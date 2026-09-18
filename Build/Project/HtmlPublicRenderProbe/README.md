@@ -24,7 +24,8 @@ malformed markup that still renders all three outputs, active multi-candidate
 responsive-picture selection by viewport, `sizes`, and device density, a two-level JavaScript module graph,
 a scoped import-map graph with prefix mapping, top-level await and dynamic import,
 a script-driven relative `fetch()` GET with query preservation, fragment stripping and JSON decoding,
-a script-driven asynchronous `XMLHttpRequest` bodyless headerless GET through the same replay path,
+a script-driven asynchronous `XMLHttpRequest` GET, header-varying XHR replay, two
+ordered identical POST occurrences with independently supplied responses,
 a same-origin frame document with its relative stylesheet and classic-script realm, a child-frame
 module graph with a frame-local import map, JavaScript dependency, static JSON import and dynamic
 `+json` import, a networkless JSON rejection case that distinguishes invalid MIME
@@ -32,10 +33,14 @@ module graph with a frame-local import map, JavaScript dependency, static JSON i
 external script URLs exceeding static discovery, a captured-document size limit, and a
 nonterminating root script and child-frame script interrupted by their command deadlines. Frame readiness proves
 separate child execution, inline, external and event-attribute scripts, parent DOM
-access and child-to-parent JSON-compatible messaging. The frame case also requires
+access and child-to-parent messaging. Runtime tests qualify the structured-clone
+subset across cycles, aliases, maps, sets, dates, regular expressions, big integers,
+special numeric values, errors, ArrayBuffer and typed views. Transfer lists remain
+unsupported. The frame case also requires
 the captured child body and its stylesheet to remain searchable in both PDF modes
-after static rendering. Cross-origin execution, richer structured-clone messaging,
-and import-attribute module types beyond JSON remain outside this fixture contract. `summary.json`
+after static rendering. Cross-origin execution, dynamic cross-origin requests and
+redirects, transferable messaging, and import-attribute module types beyond JSON
+remain outside this fixture contract. `summary.json`
 records the image and published-file digests, ordered discovery rounds with
 canonical absolute resource URLs, each outcome, elapsed time, and container
 removal. The module fixture requires the root module in the first round and its

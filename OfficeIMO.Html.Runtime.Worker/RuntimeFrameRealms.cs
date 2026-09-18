@@ -88,8 +88,9 @@ internal sealed class RuntimeFrameRealms(HtmlScriptRequest options, RuntimeFrame
             if (!_pendingModules.Remove(window, out RuntimeModuleLoader? modules))
                 throw new HtmlScriptRuntimeException("The script realm does not have a module loader.");
             _reserved.Remove(window);
+            ObjectInstance cloneTransport = RuntimeStructuredClone.CreateTransport(engine, options.MaxFrameMessageCharacters);
             var realm = new Realm(window, document.Context, engine, loop,
-                engine.Evaluate("json=>JSON.parse(json)[0]"),
+                cloneTransport.Get("decode"),
                 engine.Evaluate("(data,origin,source)=>{const event=new MessageEvent('message');Object.defineProperties(event,{data:{value:data,enumerable:true},origin:{value:origin,enumerable:true},source:{value:source,enumerable:true},ports:{value:Object.freeze([]),enumerable:true}});dispatchEvent(event)}"),
                 modules, new CancellationTokenSource());
             _realms[window] = realm;
@@ -188,19 +189,23 @@ internal sealed class RuntimeFrameRealms(HtmlScriptRequest options, RuntimeFrame
     }
 
     internal void InstallMessaging(Engine engine, IWindow source) {
-        var stringify = engine.Evaluate("value=>JSON.stringify([value],(_,item)=>{const type=typeof item;if(type==='undefined'||type==='function'||type==='symbol'||type==='bigint'||type==='number'&&!Number.isFinite(item))throw new TypeError('The message is not JSON-compatible');return item})");
+        JsValue encode = RuntimeStructuredClone.CreateTransport(engine, options.MaxFrameMessageCharacters).Get("encode");
+        JsValue hasTransfers = engine.Evaluate("value=>Array.isArray(value)&&value.length!==0");
         var post = new ClrFunction(engine, "postMessage", (receiver, args) => {
             IWindow? target = ReferenceEquals(receiver, engine.Global) ? source : receiver.ToObject() as IWindow;
             if (target == null) throw TypeError(engine, "postMessage requires a Window receiver.");
             string targetOrigin = args.Length > 1 && !args[1].IsUndefined() ? TypeConverter.ToString(args[1]) : "/";
+            if (args.Length > 2 && !args[2].IsUndefined() && engine.Invoke(hasTransfers, args[2]).AsBoolean())
+                throw DomError(engine, "DataCloneError", "Transfer lists are not supported.");
             JsValue serialized;
-            try { serialized = engine.Invoke(stringify, args.Length == 0 ? JsValue.Undefined : args[0]); }
-            catch (Exception error) { throw DomError(engine, "DataCloneError", error.Message); }
-            if (!serialized.IsString()) throw DomError(engine, "DataCloneError", "The message is not JSON-compatible.");
-            string json = serialized.AsString();
-            if (json.Length > options.MaxFrameMessageCharacters)
-                throw DomError(engine, "QuotaExceededError", "The frame message exceeds its character budget.");
-            Post(engine, source, target, targetOrigin, json);
+            try { serialized = engine.Invoke(encode, args.Length == 0 ? JsValue.Undefined : args[0]); }
+            catch (Exception error) {
+                string name = error.Message.Contains("frame message exceeds its character budget", StringComparison.OrdinalIgnoreCase)
+                    ? "QuotaExceededError" : "DataCloneError";
+                throw DomError(engine, name, error.Message);
+            }
+            if (!serialized.IsString()) throw DomError(engine, "DataCloneError", "The message could not be cloned.");
+            Post(engine, source, target, targetOrigin, serialized.AsString());
             return JsValue.Undefined;
         });
         var descriptor = new PropertyDescriptor(post, true, false, true);
@@ -230,7 +235,7 @@ internal sealed class RuntimeFrameRealms(HtmlScriptRequest options, RuntimeFrame
                 if (!_realms.ContainsKey(source) || !_realms.TryGetValue(targetRealm.Window, out Realm? currentTarget)
                     || !ReferenceEquals(currentTarget, targetRealm)) return;
                 try {
-                    JsValue data = targetRealm.Engine.Invoke(targetRealm.ParseMessage, json);
+                    JsValue data = targetRealm.Engine.Invoke(targetRealm.DecodeMessage, json);
                     targetRealm.Engine.Invoke(targetRealm.DispatchMessage, new JsValue[] {
                         data, sourceOrigin, JsValue.FromObject(targetRealm.Engine, source)
                     });
@@ -304,7 +309,7 @@ internal sealed class RuntimeFrameRealms(HtmlScriptRequest options, RuntimeFrame
     }
 
     private sealed record Realm(IWindow Window, IBrowsingContext Context, Engine Engine, RuntimeEventLoop Loop,
-        JsValue ParseMessage, JsValue DispatchMessage, RuntimeModuleLoader Modules, CancellationTokenSource Lifetime) {
+        JsValue DecodeMessage, JsValue DispatchMessage, RuntimeModuleLoader Modules, CancellationTokenSource Lifetime) {
         internal List<IDisposable> Resources { get; } = [];
     }
 

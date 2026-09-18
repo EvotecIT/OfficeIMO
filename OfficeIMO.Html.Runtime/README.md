@@ -199,15 +199,21 @@ retain their own `window`, `self`, timers, promise jobs, events, observers,
 storage and fetch bindings. `parent`, `top`, `frameElement`
 and same-origin DOM access preserve the browsing-context hierarchy instead of
 flattening child state into the root global. Parent and child windows can use
-asynchronous `postMessage` with JSON-compatible values and `*`, `/` or an exact
-HTTP(S) target origin.
+asynchronous `postMessage` with `*`, `/` or an exact HTTP(S) target origin.
+Messages are synchronously snapshotted before delivery and reconstructed as
+independent target-realm graphs. The qualified structured-clone subset preserves
+cycles and repeated references; plain objects and arrays; Map and Set; Date and
+RegExp; ArrayBuffer, DataView and typed arrays; Error and cause; BigInt, undefined
+and special numeric values. Functions, symbols, exotic host objects, the options
+overload, transfer lists and message ports are rejected or remain unsupported
+rather than being silently converted.
 
 `MaxChildFrameRealms` is cumulative for the session; after it is exhausted,
 additional frame documents remain inert. `MaxFrameMessages` is also cumulative,
-and `MaxFrameMessageCharacters` bounds each serialized message. A message over
+and `MaxFrameMessageCharacters` bounds each realm-independent message encoding. A message over
 either limit throws `QuotaExceededError` in the sending realm. Cross-origin and
 opaque-origin frames, frames whose sandbox blocks scripts, transferable objects,
-message ports and child-frame navigation remain
+message ports, the `postMessage(message, options)` overload and child-frame navigation remain
 outside this qualified execution contract. Removing a frame or changing its
 document source retires the original realm, its timers, queued messages and
 pending fetches and module evaluations. A replacement document in that child
@@ -379,13 +385,24 @@ and reject unread response consumption with the signal's reason.
 Fetch uses the document's live base URI and the same resource policy and cumulative
 budgets as document loads. `MaxRequestBytes` limits each encoded request body;
 `MaxTotalRequestBytes` counts bodies sent across commands, including redirect
-replays. Supplied resources answer GET and HEAD; other methods require network
-permission. Captures retain completed GET loads, including their response
+replays. URL resources answer bodyless headerless GET and HEAD. Exact dynamic
+responses can instead be supplied as `HtmlRuntimeFetchReplay` values keyed by
+normalized URL, method, outgoing headers, body bytes, fetch options and one-based
+occurrence. This lets a coordinator acquire each request once and restart a
+networkless worker without repeating a POST or collapsing two identical requests
+into one occurrence. An offline miss exposes `HtmlRuntimeFetchDiscovery` on
+`HtmlScriptRuntimeException`; `FailOnFetchReplayDiscovery` also fails after
+application code catches the fetch rejection, which is intended for acquisition
+coordinators. Retained discovery envelopes have a separate serialized-character
+budget derived from `MaxOutputCharacters`, so Base64 request bodies cannot produce
+an oversized worker response. Other methods require network permission or an exact replay.
+Captures retain completed GET loads, including their response
 metadata, without replacing assets with POST results.
 
 Additional allowed origins must also pass CORS response checks. Unsafe cross-origin
 methods and headers require preflight permission; preflight requests count toward
-the resource budgets. Fetch hides cookie headers and filters cross-origin response
+the resource budgets. Exact replay currently accepts only CORS-safelisted cross-origin
+requests because a replayable OPTIONS transcript is not yet modeled. Fetch hides cookie headers and filters cross-origin response
 headers. Redirects recheck authority, apply method/body rules and remove explicit
 Authorization on an origin change. A cross-origin response redirecting to a
 different origin is explicitly unsupported. Supplied redirects for fetch must

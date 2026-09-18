@@ -12,6 +12,8 @@ public sealed class HtmlScriptRequest {
     public Uri DocumentUrl { get; set; } = new("https://officeimo.invalid/");
     /// <summary>Optional immutable resources for offline scripts, stylesheets and other document assets.</summary>
     public IReadOnlyList<HtmlRuntimeResource> Resources { get; set; } = Array.Empty<HtmlRuntimeResource>();
+    /// <summary>Optional responses for exact dynamic fetch or XMLHttpRequest occurrences during deterministic offline replay.</summary>
+    public IReadOnlyList<HtmlRuntimeFetchReplay> FetchReplays { get; set; } = Array.Empty<HtmlRuntimeFetchReplay>();
     /// <summary>Network authority and cumulative resource budgets. Network access is disabled by default.</summary>
     public HtmlRuntimeResourcePolicy ResourcePolicy { get; set; } = new();
     /// <summary>Classic scripts executed in order after document loading.</summary>
@@ -56,8 +58,10 @@ public sealed class HtmlScriptRequest {
     public int MaxChildFrameRealms { get; set; } = 32;
     /// <summary>Maximum parent/child window messages admitted over the session lifetime.</summary>
     public int MaxFrameMessages { get; set; } = 1024;
-    /// <summary>Maximum UTF-16 characters in one JSON-compatible parent/child window message.</summary>
+    /// <summary>Maximum UTF-16 characters in one realm-independent parent/child structured-clone encoding.</summary>
     public int MaxFrameMessageCharacters { get; set; } = 1024 * 1024;
+    /// <summary>Fails a command after scripts handled an offline dynamic-request rejection so an acquisition coordinator can supply and replay it.</summary>
+    public bool FailOnFetchReplayDiscovery { get; set; }
     /// <summary>Layout viewport width in CSS pixels for WebApplicationV1 inspection and actionability.</summary>
     public double ViewportWidth { get; set; } = 1280D;
     /// <summary>Layout viewport height in CSS pixels for WebApplicationV1 inspection and actionability.</summary>
@@ -102,8 +106,10 @@ public sealed class HtmlScriptRequest {
         HtmlRuntimeResourcePolicy.ValidateUrl(DocumentUrl);
         var policy = (ResourcePolicy ?? throw new ArgumentNullException(nameof(ResourcePolicy))).Snapshot();
         ArgumentNullException.ThrowIfNull(Resources);
-        if (Resources.Count > policy.MaxRequests) throw new ArgumentException("Too many supplied resources.");
+        ArgumentNullException.ThrowIfNull(FetchReplays);
+        if ((long)Resources.Count + FetchReplays.Count > policy.MaxRequests) throw new ArgumentException("Too many supplied resources and dynamic replays.");
         var resources = Resources.ToArray();
+        var fetchReplays = FetchReplays.ToArray();
         var keys = new HashSet<string>(StringComparer.Ordinal);
         long resourceBytes = 0;
         foreach (var resource in resources) {
@@ -111,8 +117,17 @@ public sealed class HtmlScriptRequest {
             if (resource.Length > policy.MaxResourceBytes || (resourceBytes += resource.Length) > policy.MaxTotalBytes)
                 throw new ArgumentException("Supplied resource bytes exceed their budget.");
         }
+        long requestBytes = 0;
+        foreach (var replay in fetchReplays) {
+            if (replay == null || !keys.Add("fetch:" + replay.Identity))
+                throw new ArgumentException("Dynamic replays must have unique non-null request occurrences.");
+            if (replay.Request.BodyLength > policy.MaxRequestBytes || (requestBytes += replay.Request.BodyLength) > policy.MaxTotalRequestBytes)
+                throw new ArgumentException("Dynamic replay request bytes exceed their budget.");
+            if (replay.Response.Length > policy.MaxResourceBytes || (resourceBytes += replay.Response.Length) > policy.MaxTotalBytes)
+                throw new ArgumentException("Supplied resource bytes exceed their budget.");
+        }
         return new HtmlScriptRequest { Profile = Profile, Html = Html, Scripts = scripts, ReadyExpression = ReadyExpression, Timeout = Timeout,
-            DocumentUrl = DocumentUrl, Resources = resources, ResourcePolicy = policy,
+            DocumentUrl = DocumentUrl, Resources = resources, FetchReplays = fetchReplays, ResourcePolicy = policy,
             SessionTimeout = SessionTimeout, PollInterval = PollInterval, MaxInputCharacters = MaxInputCharacters, MaxOutputCharacters = MaxOutputCharacters,
             MaxNodes = MaxNodes, MaxDepth = MaxDepth, MaxPendingPromiseRejections = MaxPendingPromiseRejections,
             MaxStorageCharacters = MaxStorageCharacters, MaxModuleCount = MaxModuleCount,
@@ -120,7 +135,7 @@ public sealed class HtmlScriptRequest {
             MaxHistoryEntries = MaxHistoryEntries, MaxHistoryStateBytes = MaxHistoryStateBytes, MaxHistoryTotalStateBytes = MaxHistoryTotalStateBytes, MaxPendingHistoryTasks = MaxPendingHistoryTasks,
             MaxStylesheetImportDepth = MaxStylesheetImportDepth,
             MaxChildFrameRealms = MaxChildFrameRealms, MaxFrameMessages = MaxFrameMessages,
-            MaxFrameMessageCharacters = MaxFrameMessageCharacters,
+            MaxFrameMessageCharacters = MaxFrameMessageCharacters, FailOnFetchReplayDiscovery = FailOnFetchReplayDiscovery,
             ViewportWidth = ViewportWidth, ViewportHeight = ViewportHeight, DevicePixelRatio = DevicePixelRatio };
     }
 }
@@ -183,6 +198,22 @@ public sealed class HtmlScriptRuntimeException : InvalidOperationException {
     /// <summary>Creates a runtime failure with the offline GET URLs attempted during the failed command.</summary>
     public HtmlScriptRuntimeException(string message, IReadOnlyList<Uri> missingResourceUrls) : base(message) =>
         MissingResourceUrls = Array.AsReadOnly((missingResourceUrls ?? throw new ArgumentNullException(nameof(missingResourceUrls))).ToArray());
+    /// <summary>Creates a runtime failure with exact offline dynamic request occurrences and compatible URL-only GET discoveries.</summary>
+    public HtmlScriptRuntimeException(string message, IReadOnlyList<Uri> missingResourceUrls,
+        IReadOnlyList<HtmlRuntimeFetchDiscovery> missingFetchRequests) :
+        this(message, missingResourceUrls, missingFetchRequests, Array.Empty<string>()) { }
+    /// <summary>Creates a runtime failure with replay discovery and the exact replay transcript consumed before failure.</summary>
+    public HtmlScriptRuntimeException(string message, IReadOnlyList<Uri> missingResourceUrls,
+        IReadOnlyList<HtmlRuntimeFetchDiscovery> missingFetchRequests,
+        IReadOnlyList<string> consumedFetchReplayIdentities) : base(message) {
+        MissingResourceUrls = Array.AsReadOnly((missingResourceUrls ?? throw new ArgumentNullException(nameof(missingResourceUrls))).ToArray());
+        MissingFetchRequests = Array.AsReadOnly((missingFetchRequests ?? throw new ArgumentNullException(nameof(missingFetchRequests))).ToArray());
+        ConsumedFetchReplayIdentities = Array.AsReadOnly((consumedFetchReplayIdentities ?? throw new ArgumentNullException(nameof(consumedFetchReplayIdentities))).ToArray());
+    }
     /// <summary>Offline GET URLs attempted during the failed command; the runtime does not attribute a specific URL to a JavaScript rejection.</summary>
     public IReadOnlyList<Uri> MissingResourceUrls { get; } = Array.Empty<Uri>();
+    /// <summary>Exact dynamic request occurrences attempted while network access was disabled.</summary>
+    public IReadOnlyList<HtmlRuntimeFetchDiscovery> MissingFetchRequests { get; } = Array.Empty<HtmlRuntimeFetchDiscovery>();
+    /// <summary>Exact replay occurrence identities consumed before this failure, in consumption order.</summary>
+    public IReadOnlyList<string> ConsumedFetchReplayIdentities { get; } = Array.Empty<string>();
 }

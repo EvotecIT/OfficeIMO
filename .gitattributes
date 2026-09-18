@@ -18,6 +18,8 @@ Build/Project/Evidence/2026-09-16/html-public-oci-pilot/*/response.html -text -d
 Build/Project/Evidence/2026-09-18/html-isolated-public-profile/**/*.pdf -text -diff
 Build/Project/Evidence/2026-09-18/html-frame-module-json/**/*.pdf -text -diff
 Build/Project/Evidence/2026-09-18/html-isolated-public-profile/**/*.png -text -diff
+Build/Project/Evidence/2026-09-18/html-dynamic-request-structured-message/**/*.pdf -text -diff
+Build/Project/Evidence/2026-09-18/html-dynamic-request-structured-message/**/*.png -text -diff
 
 # RTF interoperability fixtures are byte-level evidence. Do not normalize their
 # producer line endings, because corpus SHA-256 checks must match on every OS.

@@ -8,6 +8,19 @@ internal sealed class HtmlPublicRenderRequest {
 
 internal sealed class HtmlPublicResourceBatch {
     public HtmlRuntimeResource[] Resources { get; set; } = Array.Empty<HtmlRuntimeResource>();
+    public HtmlRuntimeFetchReplay[] FetchReplays { get; set; } = Array.Empty<HtmlRuntimeFetchReplay>();
+}
+
+internal static class HtmlRuntimeFetchTranscript {
+    internal static void Validate(IReadOnlyList<HtmlRuntimeFetchReplay> supplied,
+        IReadOnlyList<string> consumedIdentities) {
+        ArgumentNullException.ThrowIfNull(supplied);
+        ArgumentNullException.ThrowIfNull(consumedIdentities);
+        string[] expected = supplied.Select(replay => replay?.Identity
+            ?? throw new HtmlScriptRuntimeException("The dynamic replay transcript contains a null replay.")).ToArray();
+        if (!expected.SequenceEqual(consumedIdentities, StringComparer.Ordinal))
+            throw new HtmlScriptRuntimeException("The isolated execution did not consume the acquired dynamic replay transcript exactly.");
+    }
 }
 
 internal enum HtmlPublicRenderStage {
@@ -24,6 +37,7 @@ internal sealed class HtmlPublicRenderResponse {
     public string WorkerFilesSha256 { get; set; } = string.Empty;
     public bool DiscoveryComplete { get; set; }
     public string[] DiscoveryUrls { get; set; } = Array.Empty<string>();
+    public HtmlRuntimeFetchDiscovery[] DiscoveryRequests { get; set; } = Array.Empty<HtmlRuntimeFetchDiscovery>();
     public string? ErrorKind { get; set; }
     public string? Error { get; set; }
     public string? ProviderId { get; set; }

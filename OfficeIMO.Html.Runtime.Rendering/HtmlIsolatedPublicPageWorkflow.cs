@@ -44,7 +44,9 @@ public static class HtmlIsolatedPublicPageWorkflow {
                 .Concat(input.AllowedHosts), maxRequests: acquisitionRequests,
                 maxResourceBytes: acquisitionResourceBytes, maxTotalBytes: acquisitionTotalBytes,
                 timeout: callerPolicy.Timeout < TimeSpan.FromSeconds(20) ? callerPolicy.Timeout : TimeSpan.FromSeconds(20),
-                maxRedirects: Math.Min(callerPolicy.MaxRedirects, 5));
+                maxRedirects: Math.Min(callerPolicy.MaxRedirects, 5),
+                maxRequestBytes: Math.Min(callerPolicy.MaxRequestBytes, 1024L * 1024),
+                maxTotalRequestBytes: Math.Min(callerPolicy.MaxTotalRequestBytes, 16L * 1024 * 1024));
 
             phase = HtmlIsolatedPublicPagePhase.Acquisition;
             document = await broker.FetchAsync(input.Url, operation.Token).ConfigureAwait(false);
@@ -67,6 +69,7 @@ public static class HtmlIsolatedPublicPageWorkflow {
             page.ResourcePolicy = BoundedPolicy(callerPolicy, broker.AllowedOrigins
                 .Where(origin => !origin.IdnHost.Equals(page.DocumentUrl.IdnHost, StringComparison.OrdinalIgnoreCase))
                 .ToArray());
+            page.FailOnFetchReplayDiscovery = true;
             page = page.Snapshot();
 
             phase = HtmlIsolatedPublicPagePhase.IsolatedStartup;
@@ -86,6 +89,7 @@ public static class HtmlIsolatedPublicPageWorkflow {
                 known.Add(HtmlRuntimeResourcePolicy.Key(asset.Resource.Url));
                 known.Add(HtmlRuntimeResourcePolicy.Key(asset.Resource.FinalUrl));
             }
+            var knownDynamic = new HashSet<string>(StringComparer.Ordinal);
 
             for (int round = 0; ; round++) {
                 phase = HtmlIsolatedPublicPagePhase.ResourceDiscovery;
@@ -96,9 +100,11 @@ public static class HtmlIsolatedPublicPageWorkflow {
                 VerifyIdentity(response, expectedRenderer, expectedWorker, expectedRendererFiles, expectedWorkerFiles);
                 ThrowWorkerError(response);
                 if (response.DiscoveryComplete) break;
-                if (round >= 16 || response.DiscoveryUrls == null || response.DiscoveryUrls.Length is 0 or > 128)
+                if (round >= 16 || response.DiscoveryUrls == null || response.DiscoveryRequests == null ||
+                    (long)response.DiscoveryUrls.Length + response.DiscoveryRequests.Length is 0 or > 128)
                     throw new HtmlScriptRuntimeException("The isolated renderer exceeded the resource discovery limit.");
                 var batch = new List<HtmlRuntimeResource>();
+                var fetchBatch = new List<HtmlRuntimeFetchReplay>();
                 foreach (string candidate in response.DiscoveryUrls) {
                     if (!Uri.TryCreate(candidate, UriKind.Absolute, out Uri? resourceUrl)) {
                         skipped.Add(new HtmlPublicSkippedResource(candidate, "invalid-url"));
@@ -123,8 +129,25 @@ public static class HtmlIsolatedPublicPageWorkflow {
                     known.Add(HtmlRuntimeResourcePolicy.Key(asset.Resource.FinalUrl));
                     batch.Add(asset.Resource);
                 }
+                foreach (HtmlRuntimeFetchDiscovery discovery in response.DiscoveryRequests) {
+                    HtmlRuntimeFetchRequest dynamic = discovery?.Request
+                        ?? throw new HtmlScriptRuntimeException("The isolated renderer returned an invalid dynamic request.");
+                    if (!knownDynamic.Add(discovery.Identity))
+                        throw new HtmlScriptRuntimeException("The isolated renderer repeated a supplied dynamic request occurrence.");
+                    if (!input.AllowedDynamicRequestMethods.Contains(dynamic.Method, StringComparer.Ordinal))
+                        throw new HtmlScriptRuntimeException("Dynamic request method " + dynamic.Method + " was not authorized by the caller.");
+                    if (HtmlRuntimeResourcePolicy.Origin(dynamic.Url) != HtmlRuntimeResourcePolicy.Origin(page.DocumentUrl))
+                        throw new HtmlScriptRuntimeException("Cross-origin dynamic acquisition is outside the isolated profile.");
+                    HtmlPublicResourceBroker.ValidateDynamicRequest(dynamic);
+                    if (assets.Count >= assetLimit)
+                        throw new HtmlScriptRuntimeException("The dynamic acquisition resource count limit was exceeded.");
+                    HtmlPublicResourceResult asset = await broker.FetchAsync(discovery, operation.Token).ConfigureAwait(false);
+                    assets.Add(asset);
+                    fetchBatch.Add(new HtmlRuntimeFetchReplay(dynamic, discovery.Occurrence, asset.Resource));
+                }
                 await HtmlRuntimeProtocol.WriteAsync(process.StandardInput.BaseStream,
-                    new HtmlPublicResourceBatch { Resources = batch.ToArray() }, 24 * 1024 * 1024, operation.Token).ConfigureAwait(false);
+                    new HtmlPublicResourceBatch { Resources = batch.ToArray(), FetchReplays = fetchBatch.ToArray() },
+                    24 * 1024 * 1024, operation.Token).ConfigureAwait(false);
             }
 
             phase = HtmlIsolatedPublicPagePhase.Rendering;

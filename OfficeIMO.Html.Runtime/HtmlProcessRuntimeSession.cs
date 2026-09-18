@@ -152,8 +152,11 @@ internal sealed class HtmlProcessRuntimeSession : IHtmlRuntimePage {
             foreach (HtmlRuntimeWireEvent item in response.Events ?? new()) _trace.Add(item, ContextId, Id);
             if (response.Error != null) {
                 if (response.ErrorKind == "timeout") throw new TimeoutException(response.Error);
-                if (response.MissingResourceUrls is { Length: > 0 })
-                    throw new HtmlScriptRuntimeException(response.Error, response.MissingResourceUrls);
+                if (response.MissingFetchRequests is { Length: > 0 } || response.MissingResourceUrls is { Length: > 0 })
+                    throw new HtmlScriptRuntimeException(response.Error,
+                        response.MissingResourceUrls ?? Array.Empty<Uri>(),
+                        response.MissingFetchRequests ?? Array.Empty<HtmlRuntimeFetchDiscovery>(),
+                        response.ConsumedFetchReplayIdentities ?? Array.Empty<string>());
                 throw new HtmlScriptRuntimeException(response.Error);
             }
             T result = convert(response, operation.Token);

@@ -619,6 +619,8 @@ public sealed class RuntimeFetchTests {
 
         Assert.Equal(new[] { new Uri("https://officeimo.invalid/api/report.json?view=summary") },
             failure.MissingResourceUrls);
+        Assert.Equal(new Uri("https://officeimo.invalid/api/report.json?view=summary"),
+            Assert.Single(failure.MissingFetchRequests).Request.Url);
     }
 
     [Fact]

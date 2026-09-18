@@ -220,6 +220,7 @@ public sealed class RuntimeResourceTests {
                     parent.document.body.dataset.childAccess='yes';
                     parent.document.body.dataset.postType=typeof parent.postMessage;
                     try{parent.postMessage(()=>{},'*')}catch(e){document.body.dataset.cloneError=e.name}
+                    try{parent.postMessage({},'*',[new ArrayBuffer(1)])}catch(e){document.body.dataset.transferError=e.name}
                     try{parent.postMessage({},'invalid-origin')}catch(e){document.body.dataset.originError=e.name}
                     addEventListener('message',event=>{
                       document.querySelector('#result').textContent=event.data.kind+':'+event.data.value;
@@ -232,11 +233,12 @@ public sealed class RuntimeResourceTests {
         });
 
         await session.WaitForAsync("document.body.dataset.childAccess==='yes'");
-        var state = await session.EvaluateAsync("({result:document.querySelector('#child').contentDocument.querySelector('#result').textContent,received:document.body.dataset.received??null,origin:document.body.dataset.origin??null,source:document.body.dataset.source??null,access:document.body.dataset.childAccess,postType:document.body.dataset.postType,postError:document.body.dataset.postError??null,cloneError:document.querySelector('#child').contentDocument.body.dataset.cloneError,originError:document.querySelector('#child').contentDocument.body.dataset.originError,isolated:typeof document.querySelector('#child').contentWindow.childOnly==='undefined',identities:document.querySelector('#child').contentDocument.body.dataset.identities,childSource:document.querySelector('#child').contentDocument.body.dataset.source??null})");
+        var state = await session.EvaluateAsync("({result:document.querySelector('#child').contentDocument.querySelector('#result').textContent,received:document.body.dataset.received??null,origin:document.body.dataset.origin??null,source:document.body.dataset.source??null,access:document.body.dataset.childAccess,postType:document.body.dataset.postType,postError:document.body.dataset.postError??null,cloneError:document.querySelector('#child').contentDocument.body.dataset.cloneError,transferError:document.querySelector('#child').contentDocument.body.dataset.transferError,originError:document.querySelector('#child').contentDocument.body.dataset.originError,isolated:typeof document.querySelector('#child').contentWindow.childOnly==='undefined',identities:document.querySelector('#child').contentDocument.body.dataset.identities,childSource:document.querySelector('#child').contentDocument.body.dataset.source??null})");
 
         Assert.Equal("function", state.GetProperty("postType").GetString());
         Assert.Equal(System.Text.Json.JsonValueKind.Null, state.GetProperty("postError").ValueKind);
         Assert.Equal("DataCloneError", state.GetProperty("cloneError").GetString());
+        Assert.Equal("DataCloneError", state.GetProperty("transferError").GetString());
         Assert.Equal("SyntaxError", state.GetProperty("originError").GetString());
         Assert.Equal("child-ready", state.GetProperty("received").GetString());
         Assert.Equal("https://app.example", state.GetProperty("origin").GetString());
@@ -246,6 +248,43 @@ public sealed class RuntimeResourceTests {
         Assert.Equal("true,true,true,true", state.GetProperty("identities").GetString());
         Assert.Equal("true", state.GetProperty("childSource").GetString());
         Assert.Equal("reply:42", state.GetProperty("result").GetString());
+    }
+
+    [Fact]
+    public async Task FrameMessagingUsesIndependentStructuredCloneGraphs() {
+        Uri frame = new(Origin, "structured-message-frame.html");
+        await using IHtmlRuntimeSession session = await Runtime().OpenTrustedAsync(new HtmlScriptRequest {
+            DocumentUrl = new Uri(Origin, "index.html"),
+            Html = """
+                <body><script>
+                addEventListener('message',event=>{
+                  const data=event.data, key=[...data.map.keys()][0];
+                  window.cloneResult={cycle:data.self===data,alias:data.shared===data.again,mapAlias:key===data.shared,
+                    set:data.set.has(data.shared),date:data.date instanceof Date&&data.date.toISOString()==='2024-01-02T03:04:05.000Z',
+                    regexp:data.regexp instanceof RegExp&&data.regexp.source==='a+b'&&data.regexp.flags.includes('i'),
+                    bigint:data.bigint===9007199254740993n,nan:Number.isNaN(data.nan),negativeZero:Object.is(data.negativeZero,-0),
+                    infinity:data.infinity===Infinity,typed:data.typed instanceof Uint16Array&&data.typed[0]===513&&data.bytes[0]===1,
+                    error:data.error instanceof TypeError&&data.error.message==='bad'&&data.error.cause.code===42,
+                    undefinedValue:'missing' in data&&data.missing===undefined,snapshot:data.shared.name==='before'};
+                });
+                </script><iframe src="/structured-message-frame.html"></iframe></body>
+                """,
+            Resources = new[] { HtmlRuntimeResource.FromText(frame, """
+                <body><script>
+                const shared={name:'before'},buffer=new ArrayBuffer(4),bytes=new Uint8Array(buffer);bytes.set([1,2,3,4]);
+                const error=new TypeError('bad',{cause:{code:42}});
+                const payload={shared,again:shared,map:new Map([[shared,'value']]),set:new Set([shared]),
+                  date:new Date('2024-01-02T03:04:05Z'),regexp:/a+b/gi,bigint:9007199254740993n,nan:NaN,
+                  negativeZero:-0,infinity:Infinity,typed:new Uint16Array(buffer),bytes,error,missing:undefined};
+                payload.self=payload;parent.postMessage(payload,'*');shared.name='after';bytes[0]=9;
+                </script></body>
+                """, "text/html; charset=utf-8") }
+        });
+
+        await session.WaitForAsync("!!window.cloneResult");
+        var result = await session.EvaluateAsync("window.cloneResult");
+        foreach (System.Text.Json.JsonProperty property in result.EnumerateObject())
+            Assert.True(property.Value.GetBoolean(), property.Name);
     }
 
     [Fact]

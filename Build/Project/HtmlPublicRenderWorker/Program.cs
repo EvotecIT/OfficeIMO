@@ -29,22 +29,26 @@ try {
         throw new NotSupportedException("The isolated renderer accepts only offline WebApplicationV1 input.");
     var discovery = new HtmlApplicationResourceDiscovery(page.ViewportWidth, page.ViewportHeight, page.DevicePixelRatio);
     var supplied = page.Resources.ToList();
+    var suppliedFetch = page.FetchReplays.ToList();
     string[] pending = discovery.DiscoverDocument(page.Html, page.DocumentUrl, supplied);
+    HtmlRuntimeFetchDiscovery[] pendingRequests = Array.Empty<HtmlRuntimeFetchDiscovery>();
     IHtmlRuntimeHost host = new HtmlProcessRuntimeProvider(workerPath, AngleSharpDomServices.Instance);
     HtmlApplicationDocumentResult result;
     var missingAtRuntime = new HashSet<string>(StringComparer.Ordinal);
     for (int round = 0; ; ) {
-        if (pending.Length != 0) {
+        if (pending.Length != 0 || pendingRequests.Length != 0) {
             response.Stage = HtmlPublicRenderStage.ResourceDiscovery;
             if (++round > 16)
                 throw new HtmlScriptRuntimeException("Resource discovery exceeded its round limit.");
             response.DiscoveryUrls = pending;
+            response.DiscoveryRequests = pendingRequests;
             response.DiscoveryComplete = false;
             await HtmlRuntimeProtocol.WriteAsync(output, response, 24 * 1024 * 1024, deadline.Token);
             HtmlPublicResourceBatch batch = await HtmlRuntimeProtocol.ReadAsync<HtmlPublicResourceBatch>(
                 input, 24 * 1024 * 1024, deadline.Token)
                 ?? throw new HtmlScriptRuntimeException("The host did not answer resource discovery.");
-            if (batch.Resources == null || batch.Resources.Length > 24 - supplied.Count)
+            if (batch.Resources == null || batch.FetchReplays == null ||
+                (long)batch.Resources.Length + batch.FetchReplays.Length > 24 - supplied.Count - suppliedFetch.Count)
                 throw new HtmlScriptRuntimeException("The host exceeded the pilot's supplied resource limit.");
             var requested = pending.ToHashSet(StringComparer.Ordinal);
             foreach (HtmlRuntimeResource resource in batch.Resources) {
@@ -52,7 +56,14 @@ try {
                     throw new HtmlScriptRuntimeException("The host supplied an unexpected or duplicate discovered resource.");
                 supplied.Add(resource);
             }
+            var requestedFetch = pendingRequests.ToDictionary(request => request.Identity, StringComparer.Ordinal);
+            foreach (HtmlRuntimeFetchReplay replay in batch.FetchReplays) {
+                if (replay == null || !requestedFetch.Remove(replay.Identity))
+                    throw new HtmlScriptRuntimeException("The host supplied an unexpected or duplicate dynamic replay.");
+                suppliedFetch.Add(replay);
+            }
             page.Resources = supplied.ToArray();
+            page.FetchReplays = suppliedFetch.ToArray();
             page.ResourcePolicy.AllowedOrigins = page.ResourcePolicy.AllowedOrigins
                 .Concat(supplied.SelectMany(resource => new[] { resource.Url, resource.FinalUrl }))
                 .Select(resourceUrl => new Uri(resourceUrl.GetLeftPart(UriPartial.Authority)))
@@ -60,6 +71,7 @@ try {
                 .DistinctBy(origin => origin.AbsoluteUri, StringComparer.OrdinalIgnoreCase).ToArray();
             page = page.Snapshot();
             pending = discovery.DiscoverResources(batch.Resources);
+            pendingRequests = Array.Empty<HtmlRuntimeFetchDiscovery>();
             continue;
         }
         try {
@@ -78,6 +90,10 @@ try {
                 }, deadline.Token);
             if (result.Trace.IsTruncated)
                 throw new HtmlScriptRuntimeException("Resource discovery trace exceeded its event limit.");
+            string[] consumedFetch = result.Trace.Events
+                .Where(entry => entry.Operation == "fetch-replay" && entry.Status == "consumed" && entry.ArtifactId != null)
+                .Select(entry => entry.ArtifactId!).ToArray();
+            HtmlRuntimeFetchTranscript.Validate(suppliedFetch, consumedFetch);
             pending = result.Trace.Events
                 .Where(entry => entry.Kind == HtmlRuntimeEventKind.Policy && entry.Operation == "network-access" &&
                     entry.Status == "blocked" && entry.Decision == "network-disabled-replayable-get" &&
@@ -86,13 +102,19 @@ try {
                 .Where(missingAtRuntime.Add).ToArray();
             if (pending.Length != 0) continue;
             break;
-        } catch (HtmlScriptRuntimeException error) when (error.MissingResourceUrls.Count != 0) {
+        } catch (HtmlScriptRuntimeException error) when (error.MissingResourceUrls.Count != 0 || error.MissingFetchRequests.Count != 0) {
+            HtmlRuntimeFetchTranscript.Validate(suppliedFetch, error.ConsumedFetchReplayIdentities);
+            pendingRequests = error.MissingFetchRequests.ToArray();
+            var dynamicGetUrls = pendingRequests.Where(item => item.Request.Method == "GET" && item.Request.BodyLength == 0 && item.Request.Headers.Count == 0)
+                .Select(item => HtmlRuntimeResourcePolicy.Key(item.Request.Url)).ToHashSet(StringComparer.Ordinal);
             pending = error.MissingResourceUrls.Select(HtmlRuntimeResourcePolicy.Key)
+                .Where(url => !dynamicGetUrls.Contains(url))
                 .Where(missingAtRuntime.Add).ToArray();
-            if (pending.Length == 0) throw;
+            if (pending.Length == 0 && pendingRequests.Length == 0) throw;
         }
     }
     response.DiscoveryUrls = Array.Empty<string>();
+    response.DiscoveryRequests = Array.Empty<HtmlRuntimeFetchDiscovery>();
     response.DiscoveryComplete = true;
     await HtmlRuntimeProtocol.WriteAsync(output, response, 24 * 1024 * 1024, deadline.Token);
     response.Stage = HtmlPublicRenderStage.Output;
@@ -117,5 +139,6 @@ try {
     response.Error = error.Message.Length > 1024 ? error.Message[..1024] : error.Message;
     response.DiscoveryComplete = true;
     response.DiscoveryUrls = Array.Empty<string>();
+    response.DiscoveryRequests = Array.Empty<HtmlRuntimeFetchDiscovery>();
 }
 await HtmlRuntimeProtocol.WriteAsync(output, response, 24 * 1024 * 1024, CancellationToken.None);

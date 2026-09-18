@@ -7,6 +7,7 @@ internal sealed class RuntimeResourceLoader : IDisposable {
     internal const string MissingResourceMessage = "The resource was not supplied and network loading is disabled.";
     private readonly HtmlRuntimeResourcePolicy _policy;
     private readonly Dictionary<string, HtmlRuntimeResource> _supplied;
+    private readonly Dictionary<string, HtmlRuntimeFetchReplay> _fetchReplays;
     private readonly RuntimeResourceBudget _budget;
     private Dictionary<string, HtmlRuntimeResource> _loaded => _budget.Loaded;
     private readonly HashSet<string> _origins;
@@ -21,6 +22,7 @@ internal sealed class RuntimeResourceLoader : IDisposable {
         _budget = budget ?? new RuntimeResourceBudget(options);
         _policy = options.ResourcePolicy;
         _supplied = options.Resources.ToDictionary(resource => HtmlRuntimeResourcePolicy.Key(resource.Url), StringComparer.Ordinal);
+        _fetchReplays = options.FetchReplays.ToDictionary(replay => replay.Identity, StringComparer.Ordinal);
         _documentOrigin = HtmlRuntimeResourcePolicy.Origin(options.DocumentUrl);
         _origins = _budget.Origins;
         _concurrency = _budget.Concurrency;
@@ -30,10 +32,14 @@ internal sealed class RuntimeResourceLoader : IDisposable {
     }
 
     internal IReadOnlyList<HtmlRuntimeResource> Capture() { lock (_sync) return _loaded.Values.ToArray(); }
-    internal Task<HtmlRuntimeResource> LoadAsync(Uri url, CancellationToken token) => LoadAsync(url, null, null, token);
-    internal Task<HtmlRuntimeResource> FetchAsync(Uri url, RuntimeFetchRequest request, CancellationToken token) => LoadAsync(url, request, request.Validate(_policy), token);
+    internal Task<HtmlRuntimeResource> LoadAsync(Uri url, CancellationToken token) => LoadAsync(url, null, null, null, token);
+    internal Task<HtmlRuntimeResource> FetchAsync(Uri url, RuntimeFetchRequest request, CancellationToken token) {
+        byte[]? body = request.Validate(_policy);
+        return LoadAsync(url, request, request.ReplayRequest(new Uri(HtmlRuntimeResourcePolicy.Key(url)), body), body, token);
+    }
 
-    private async Task<HtmlRuntimeResource> LoadAsync(Uri requestedUrl, RuntimeFetchRequest? fetch, byte[]? body, CancellationToken token) {
+    private async Task<HtmlRuntimeResource> LoadAsync(Uri requestedUrl, RuntimeFetchRequest? fetch,
+        HtmlRuntimeFetchRequest? replayRequest, byte[]? body, CancellationToken token) {
         DateTimeOffset started = DateTimeOffset.UtcNow;
         Uri originalUrl = requestedUrl;
         string originalMethod = fetch?.Method ?? "GET";
@@ -49,6 +55,45 @@ internal sealed class RuntimeResourceLoader : IDisposable {
             var currentUrl = requestedUrl;
             string method = fetch?.Method ?? "GET";
             var headers = new Dictionary<string, string>(fetch?.Headers ?? new(), StringComparer.OrdinalIgnoreCase);
+            if (replayRequest != null) {
+                RuntimeFetchRequest replayFetch = fetch!;
+                bool replayCrossOrigin = HtmlRuntimeResourcePolicy.Origin(requestedUrl) != _documentOrigin;
+                if (replayCrossOrigin && replayFetch.Mode == "same-origin")
+                    throw new HtmlScriptRuntimeException("Cross-origin fetch is forbidden in same-origin mode.");
+                HtmlRuntimeFetchDiscovery discovery = NextFetchOccurrence(replayRequest);
+                if (_fetchReplays.TryGetValue(discovery.Identity, out HtmlRuntimeFetchReplay? replay)) {
+                    if (replayCrossOrigin && RuntimeFetchCors.RequiresPreflight(replayFetch.Method, replayFetch.Headers))
+                        throw new HtmlScriptRuntimeException("Cross-origin exact replay requiring CORS preflight is not supported.");
+                    ReserveExactRequest(body);
+                    CheckOrigin(replay.Response.FinalUrl);
+                    ReserveBytes(method == "HEAD" ? 0 : replay.Response.Length);
+                    var replayHeaders = new Dictionary<string, string>(replay.Response.Headers, StringComparer.OrdinalIgnoreCase) {
+                        ["Content-Type"] = replay.Response.ContentType
+                    };
+                    var replayed = new HtmlRuntimeResource(requestedUrl, method == "HEAD" ? Array.Empty<byte>() : replay.Response.Buffer,
+                        replay.Response.ContentType, replay.Response.StatusCode, replay.Response.FinalUrl, 0,
+                        replayHeaders, replay.Response.StatusText);
+                    if (replayCrossOrigin) RuntimeFetchCors.Check(replayed.Headers, _documentOrigin);
+                    _diagnostics.RecordConsumedFetchReplay(replay.Identity);
+                    _diagnostics.Record(HtmlRuntimeEventKind.Policy, "fetch-replay", "consumed", started,
+                        url: requestedUrl, method: method, decision: "supplied-dynamic-replay", artifactId: replay.Identity);
+                    _diagnostics.Record(HtmlRuntimeEventKind.Resource, "fetch", "success", started,
+                        DateTimeOffset.UtcNow - started, url: originalUrl, method: originalMethod,
+                        statusCode: replayed.StatusCode, byteCount: replayed.Length, decision: "replayed");
+                    return replayed;
+                }
+                bool urlSupply = body == null && headers.Count == 0 && method is "GET" or "HEAD"
+                    && _supplied.ContainsKey(HtmlRuntimeResourcePolicy.Key(requestedUrl));
+                if (!_policy.AllowNetwork && !urlSupply) {
+                    ReserveExactRequest(body);
+                    _diagnostics.RecordMissingFetch(discovery);
+                    bool simpleGet = method == "GET" && body == null && headers.Count == 0;
+                    if (simpleGet) _diagnostics.RecordMissingResource(requestedUrl);
+                    _diagnostics.Record(HtmlRuntimeEventKind.Policy, "network-access", "blocked", started,
+                        url: requestedUrl, method: method, decision: simpleGet ? "network-disabled-replayable-get" : "network-disabled");
+                    throw new HtmlScriptRuntimeException(MissingResourceMessage);
+                }
+            }
             int redirects = 0;
             bool cors = false;
             while (true) {
@@ -62,7 +107,8 @@ internal sealed class RuntimeResourceLoader : IDisposable {
                 }
                 var outgoing = new Dictionary<string, string>(headers, StringComparer.OrdinalIgnoreCase);
                 if (fetch != null && (cors || method is not ("GET" or "HEAD"))) outgoing["Origin"] = _documentOrigin;
-                HtmlRuntimeResource response = await SendAsync(currentUrl, method, outgoing, body, operation.Token).ConfigureAwait(false);
+                bool allowUrlSupply = fetch == null || body == null && fetch.Headers.Count == 0 && method is "GET" or "HEAD";
+                HtmlRuntimeResource response = await SendAsync(currentUrl, method, outgoing, body, allowUrlSupply, operation.Token).ConfigureAwait(false);
                 if (fetch != null && cors) RuntimeFetchCors.Check(response.Headers, _documentOrigin);
                 if (response.RedirectCount != 0 || response.FinalUrl != currentUrl) {
                     // A supplied final response has no redirect response headers to check for fetch.
@@ -126,14 +172,15 @@ internal sealed class RuntimeResourceLoader : IDisposable {
         if (method is "GET" or "HEAD" or "POST" && unsafeHeaders.Length == 0) return;
         var preflightHeaders = new Dictionary<string, string> { ["Origin"] = _documentOrigin, ["Access-Control-Request-Method"] = method };
         if (unsafeHeaders.Length != 0) preflightHeaders["Access-Control-Request-Headers"] = string.Join(",", unsafeHeaders);
-        var response = await SendAsync(url, "OPTIONS", preflightHeaders, null, token).ConfigureAwait(false);
+        var response = await SendAsync(url, "OPTIONS", preflightHeaders, null, false, token).ConfigureAwait(false);
         RuntimeFetchCors.CheckPreflight(response, _documentOrigin, method, unsafeHeaders);
     }
 
-    private async Task<HtmlRuntimeResource> SendAsync(Uri url, string method, IReadOnlyDictionary<string, string> headers, byte[]? body, CancellationToken token) {
+    private async Task<HtmlRuntimeResource> SendAsync(Uri url, string method, IReadOnlyDictionary<string, string> headers,
+        byte[]? body, bool allowUrlSupply, CancellationToken token) {
         CheckOrigin(url);
         if (Interlocked.Increment(ref _budget.Requests) > _policy.MaxRequests) throw new HtmlScriptRuntimeException("Resource request budget exceeded.");
-        if (_supplied.TryGetValue(HtmlRuntimeResourcePolicy.Key(url), out var supplied) && method is "GET" or "HEAD") {
+        if (allowUrlSupply && _supplied.TryGetValue(HtmlRuntimeResourcePolicy.Key(url), out var supplied) && method is "GET" or "HEAD" && body == null) {
             _diagnostics.Record(HtmlRuntimeEventKind.Policy, "resource-source", "allowed", DateTimeOffset.UtcNow,
                 url: url, method: method, decision: "supplied");
             CheckOrigin(supplied.FinalUrl);
@@ -152,12 +199,7 @@ internal sealed class RuntimeResourceLoader : IDisposable {
         }
         _diagnostics.Record(HtmlRuntimeEventKind.Policy, "network-access", "allowed", DateTimeOffset.UtcNow,
             url: url, method: method, decision: "network-enabled");
-        if (body != null) {
-            lock (_sync) {
-                if (body.LongLength > _policy.MaxTotalRequestBytes - _budget.SentBytes) throw new HtmlScriptRuntimeException("Total fetch request body byte budget exceeded.");
-                _budget.SentBytes += body.LongLength;
-            }
-        }
+        ReserveRequestBytes(body);
         using var request = new HttpRequestMessage(new HttpMethod(method), url);
         if (body != null) request.Content = new ByteArrayContent(body);
         foreach (var header in headers) {
@@ -183,6 +225,30 @@ internal sealed class RuntimeResourceLoader : IDisposable {
         }
         token.ThrowIfCancellationRequested();
         return new HtmlRuntimeResource(url, output.ToArray(), response.Content.Headers.ContentType?.ToString() ?? "application/octet-stream", (int)response.StatusCode, headers: responseHeaders, statusText: response.ReasonPhrase ?? "");
+    }
+
+    private HtmlRuntimeFetchDiscovery NextFetchOccurrence(HtmlRuntimeFetchRequest request) {
+        lock (_sync) {
+            _budget.FetchOccurrences.TryGetValue(request.Identity, out int occurrence);
+            occurrence++;
+            _budget.FetchOccurrences[request.Identity] = occurrence;
+            return new HtmlRuntimeFetchDiscovery(request, occurrence);
+        }
+    }
+
+    private void ReserveExactRequest(byte[]? body) {
+        if (Interlocked.Increment(ref _budget.Requests) > _policy.MaxRequests)
+            throw new HtmlScriptRuntimeException("Resource request budget exceeded.");
+        ReserveRequestBytes(body);
+    }
+
+    private void ReserveRequestBytes(byte[]? body) {
+        if (body == null) return;
+        lock (_sync) {
+            if (body.LongLength > _policy.MaxTotalRequestBytes - _budget.SentBytes)
+                throw new HtmlScriptRuntimeException("Total fetch request body byte budget exceeded.");
+            _budget.SentBytes += body.LongLength;
+        }
     }
 
     private void CheckOrigin(Uri url) {

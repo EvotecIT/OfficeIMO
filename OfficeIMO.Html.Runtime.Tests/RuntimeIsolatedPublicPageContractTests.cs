@@ -68,6 +68,59 @@ public class RuntimeIsolatedPublicPageContractTests {
     }
 
     [Fact]
+    public void PublicPageRequestRejectsCallerSuppliedDynamicReplays() {
+        var fetch = new HtmlRuntimeFetchRequest(new Uri("https://example.com/submit"), "POST", body: new byte[] { 1 });
+        var request = new HtmlIsolatedPublicPageRequest {
+            ScenarioId = "replay-authority",
+            Url = new Uri("https://example.com/"),
+            SourceLicense = "fixture",
+            Runtime = new HtmlScriptRequest {
+                Profile = HtmlRuntimeProfile.WebApplicationV1,
+                FetchReplays = new[] {
+                    new HtmlRuntimeFetchReplay(fetch, 1, HtmlRuntimeResource.FromText(fetch.Url, "accepted", "text/plain"))
+                }
+            }
+        };
+
+        ArgumentException error = Assert.Throws<ArgumentException>(() => request.Validate());
+        Assert.Contains("dynamic replays", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DynamicReplayTranscriptRequiresExactOrderedConsumption() {
+        var request = new HtmlRuntimeFetchRequest(new Uri("https://example.com/submit"), "POST", body: new byte[] { 1 });
+        var first = new HtmlRuntimeFetchReplay(request, 1, HtmlRuntimeResource.FromText(request.Url, "first", "text/plain"));
+        var second = new HtmlRuntimeFetchReplay(request, 2, HtmlRuntimeResource.FromText(request.Url, "second", "text/plain"));
+
+        HtmlRuntimeFetchTranscript.Validate(new[] { first, second }, new[] { first.Identity, second.Identity });
+        Assert.Throws<HtmlScriptRuntimeException>(() => HtmlRuntimeFetchTranscript.Validate(new[] { first }, Array.Empty<string>()));
+        Assert.Throws<HtmlScriptRuntimeException>(() => HtmlRuntimeFetchTranscript.Validate(
+            new[] { first, second }, new[] { second.Identity, first.Identity }));
+    }
+
+    [Fact]
+    public void PublicPageRequestNormalizesExplicitDynamicMethodAuthority() {
+        var methods = new List<string> { "get", "POST", "post" };
+        var request = new HtmlIsolatedPublicPageRequest {
+            ScenarioId = "dynamic-methods",
+            Url = new Uri("https://example.com/"),
+            SourceLicense = "fixture",
+            AllowedDynamicRequestMethods = methods
+        };
+
+        HtmlIsolatedPublicPageRequest.Snapshot snapshot = request.Validate();
+        methods[1] = "DELETE";
+
+        Assert.Equal(new[] { "GET", "POST" }, snapshot.AllowedDynamicRequestMethods);
+        Assert.Throws<ArgumentException>(() => new HtmlIsolatedPublicPageRequest {
+            ScenarioId = "bad-method",
+            Url = new Uri("https://example.com/"),
+            SourceLicense = "fixture",
+            AllowedDynamicRequestMethods = new[] { "TRACE" }
+        }.Validate());
+    }
+
+    [Fact]
     public void ExecutionOptionsRequireImmutableImageAndSnapshotCommandPrefix() {
         string directory = Path.Combine(Path.GetTempPath(), "officeimo-public-contract-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
@@ -121,6 +174,28 @@ public class RuntimeIsolatedPublicPageContractTests {
         Assert.Equal(new byte[] { 1, 2, 3 }, retained.Content!.Value.ToArray());
         Assert.Null(digestOnly.Content);
         Assert.Equal(new byte[] { 1, 2, 3 }, output.Content.ToArray());
+    }
+
+    [Fact]
+    public void DynamicEvidenceRetainsNamesAndDigestsWithoutHeaderValuesOrRequestBytes() {
+        var url = new Uri("https://example.com/submit");
+        var request = new HtmlRuntimeFetchRequest(url, "POST",
+            new Dictionary<string, string> { ["X-Secret"] = "private", ["Content-Type"] = "text/plain" },
+            System.Text.Encoding.UTF8.GetBytes("payload"));
+        var discovery = new HtmlRuntimeFetchDiscovery(request, 2);
+        var acquired = new HtmlPublicResourceResult(HtmlRuntimeResource.FromText(url, "accepted", "text/plain"),
+            Array.Empty<HtmlPublicRedirect>(), DateTimeOffset.Parse("2026-09-18T12:00:00Z"),
+            IPAddress.Parse("93.184.216.34"), "digest", discovery);
+
+        var evidence = new HtmlPublicResourceEvidence(acquired, retainBytes: false);
+
+        Assert.Equal("POST", evidence.RequestMethod);
+        Assert.Equal(2, evidence.RequestOccurrence);
+        Assert.Equal(new[] { "Content-Type", "X-Secret" }, evidence.RequestHeaderNames);
+        Assert.Equal(7, evidence.RequestBodyByteCount);
+        Assert.Equal(64, evidence.RequestBodySha256!.Length);
+        Assert.DoesNotContain("private", string.Join(",", evidence.RequestHeaderNames), StringComparison.Ordinal);
+        Assert.Null(evidence.Content);
     }
 
     [Fact]

@@ -115,21 +115,46 @@ var cases = new List<ProbeCase> {
         Resources: new Dictionary<string, ProbeResource>(StringComparer.Ordinal) {
             [$"{fixtureOrigin}/api/xhr-report.json?view=summary"] = new("{\"total\":42}", "application/json")
         }, ExpectedDiscoveryRounds: [[ $"{fixtureOrigin}/api/xhr-report.json?view=summary" ]]),
-    new ProbeCase("dynamic-xhr-headered-get-blocked", """
+    new ProbeCase("dynamic-xhr-headered-get", """
         <!doctype html><style>body{font:16px sans-serif}#result{color:#0055aa}</style>
         <p id="result">Loading header-varying XHR</p>
         <script>
           const request = new XMLHttpRequest();
           request.open('GET', '/api/header-varying.json');
           request.setRequestHeader('X-Variant', 'private');
-          request.onload = () => document.querySelector('#result').textContent = 'Headered XHR was replayed';
-          request.onerror = () => document.querySelector('#result').textContent = 'Headered XHR remained offline';
+          request.onload = () => document.querySelector('#result').textContent = `Headered XHR ready ${request.responseText}`;
+          request.onerror = () => document.querySelector('#result').textContent = 'Headered XHR failed';
           request.onloadend = () => document.body.dataset.xhrSettled = 'yes';
           request.send();
         </script>
         """, "document.body.dataset.xhrSettled === 'yes'", 8 * 1024 * 1024,
-        ExpectedVisibleText: "Headered XHR remained offline", ExpectBlueInk: true,
-        ExpectedDiscoveryRounds: []),
+        ExpectedVisibleText: "Headered XHR ready 42", ExpectBlueInk: true,
+        DynamicResponses: new Dictionary<string, ProbeDynamicResource>(StringComparer.Ordinal) {
+            [$"GET {fixtureOrigin}/api/header-varying.json #1"] = new("42", "text/plain", ExpectedHeaders:
+                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["X-Variant"] = "private" })
+        }, ExpectedDiscoveryRounds: [[ $"GET {fixtureOrigin}/api/header-varying.json #1" ]]),
+    new ProbeCase("dynamic-post-occurrences", """
+        <!doctype html><style>body{font:16px sans-serif}#result{color:#0055aa}</style>
+        <p id="result">Posting dynamic data</p>
+        <script>
+          (async()=>{
+            const options={method:'POST',headers:{'Content-Type':'application/json','X-Variant':'blue'},body:'{"value":42}'};
+            const first=await (await fetch('/api/submit',options)).text();
+            const second=await (await fetch('/api/submit',options)).text();
+            document.querySelector('#result').textContent=`Dynamic POST ready ${first}/${second}`;
+          })();
+        </script>
+        """, "document.querySelector('#result')?.textContent === 'Dynamic POST ready first/second'", 8 * 1024 * 1024,
+        ExpectedVisibleText: "Dynamic POST ready first/second", ExpectBlueInk: true,
+        DynamicResponses: new Dictionary<string, ProbeDynamicResource>(StringComparer.Ordinal) {
+            [$"POST {fixtureOrigin}/api/submit #1"] = new("first", "text/plain", "{\"value\":42}",
+                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["Content-Type"] = "application/json", ["X-Variant"] = "blue" }),
+            [$"POST {fixtureOrigin}/api/submit #2"] = new("second", "text/plain", "{\"value\":42}",
+                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["Content-Type"] = "application/json", ["X-Variant"] = "blue" })
+        }, ExpectedDiscoveryRounds: [
+            [ $"POST {fixtureOrigin}/api/submit #1" ],
+            [ $"POST {fixtureOrigin}/api/submit #2" ]
+        ]),
     new ProbeCase("frame-document", """
         <!doctype html><style>body{font:16px sans-serif}#outer{color:#222}</style>
         <script>addEventListener('message',event=>{if(event.data?.kind==='frame-ready')document.body.dataset.childMessage=event.data.value})</script>
@@ -260,12 +285,13 @@ async Task<ProbeResult> RunCaseAsync(ProbeCase fixture) {
             DocumentUrl = fixture.DocumentUrl ?? new Uri(fixtureOrigin + "/"),
             ReadyExpression = fixture.ReadyExpression,
             ResourcePolicy = new HtmlRuntimeResourcePolicy { AllowNetwork = false, MaxRequests = 64 },
-            Timeout = TimeSpan.FromSeconds(3), SessionTimeout = TimeSpan.FromSeconds(12),
+            Timeout = TimeSpan.FromSeconds(10), SessionTimeout = TimeSpan.FromSeconds(30),
             MaxOutputCharacters = fixture.MaxOutputCharacters,
             DevicePixelRatio = fixture.DevicePixelRatio,
             ViewportWidth = 816D,
             ViewportHeight = 720D
         };
+        page.FailOnFetchReplayDiscovery = true;
         await HtmlRuntimeProtocol.WriteAsync(process.StandardInput.BaseStream,
             new HtmlPublicRenderRequest { Page = page }, 24 * 1024 * 1024, deadline.Token);
         for (int round = 0; round <= 16; round++) {
@@ -290,6 +316,7 @@ async Task<ProbeResult> RunCaseAsync(ProbeCase fixture) {
                 break;
             }
             var batch = new List<HtmlRuntimeResource>();
+            var fetchBatch = new List<HtmlRuntimeFetchReplay>();
             var discoveryRound = new List<string>();
             foreach (string candidate in response.DiscoveryUrls) {
                 if (!Uri.TryCreate(candidate, UriKind.Absolute, out Uri? resourceUrl))
@@ -302,15 +329,38 @@ async Task<ProbeResult> RunCaseAsync(ProbeCase fixture) {
                     throw new IOException("The isolated renderer requested an unexpected resource: " + candidate);
                 batch.Add(HtmlRuntimeResource.FromText(resourceUrl, resource.Content, resource.ContentType));
             }
+            foreach (HtmlRuntimeFetchDiscovery discovery in response.DiscoveryRequests) {
+                HtmlRuntimeFetchRequest request = discovery.Request;
+                string canonicalUrl = request.Url.AbsoluteUri;
+                string identity = request.Method + " " + canonicalUrl + " #" + discovery.Occurrence;
+                ProbeDynamicResource? expected = null;
+                if (request.Method == "GET" && request.Headers.Count == 0 && request.BodyLength == 0 &&
+                    fixture.Resources?.TryGetValue(canonicalUrl, out ProbeResource? simple) == true) {
+                    expected = new ProbeDynamicResource(simple.Content, simple.ContentType);
+                    discoveryRound.Add(canonicalUrl);
+                } else {
+                    discoveryRound.Add(identity);
+                    if (fixture.DynamicResponses == null || !fixture.DynamicResponses.TryGetValue(identity, out expected))
+                        throw new IOException("The isolated renderer requested an unexpected dynamic resource: " + identity);
+                }
+                if (expected.ExpectedBody != null && Encoding.UTF8.GetString(request.Body ?? Array.Empty<byte>()) != expected.ExpectedBody)
+                    throw new IOException("The isolated renderer requested the wrong dynamic body: " + identity);
+                foreach (var header in expected.ExpectedHeaders ?? new Dictionary<string, string>())
+                    if (!request.Headers.TryGetValue(header.Key, out string? actual) || actual != header.Value)
+                        throw new IOException("The isolated renderer requested the wrong dynamic header: " + identity + " " + header.Key);
+                var resource = HtmlRuntimeResource.FromText(request.Url, expected.Content, expected.ContentType);
+                fetchBatch.Add(new HtmlRuntimeFetchReplay(request, discovery.Occurrence, resource));
+            }
             discoveryRounds.Add(discoveryRound.ToArray());
             await HtmlRuntimeProtocol.WriteAsync(process.StandardInput.BaseStream,
-                new HtmlPublicResourceBatch { Resources = batch.ToArray() }, 24 * 1024 * 1024, deadline.Token);
+                new HtmlPublicResourceBatch { Resources = batch.ToArray(), FetchReplays = fetchBatch.ToArray() },
+                24 * 1024 * 1024, deadline.Token);
         }
         process.StandardInput.Close();
         await process.WaitForExitAsync(deadline.Token);
         string stderrText = await stderr;
         if (process.ExitCode != 0) throw new IOException("The isolated renderer exited " + process.ExitCode + ": " + stderrText);
-        if (fixture.ExpectedDiscoveryRounds != null &&
+        if (!workerReportedError && fixture.ExpectedDiscoveryRounds != null &&
             !DiscoveryRoundsEqual(discoveryRounds, fixture.ExpectedDiscoveryRounds))
             throw new IOException("The isolated renderer requested the wrong ordered discovery rounds: " +
                 JsonSerializer.Serialize(discoveryRounds));
@@ -405,10 +455,13 @@ static async Task<string> DrainErrorAsync(Stream stream, CancellationToken token
 }
 
 internal sealed record ProbeResource(string Content, string ContentType);
+internal sealed record ProbeDynamicResource(string Content, string ContentType, string? ExpectedBody = null,
+    IReadOnlyDictionary<string, string>? ExpectedHeaders = null);
 internal sealed record ProbeCase(string Name, string Html, string ReadyExpression, int MaxOutputCharacters,
     string? ExpectedErrorKind = null, string? ExpectedError = null, string? ExpectedVisibleText = null,
     bool ExpectBlueInk = false, bool ExpectMagentaArea = false, IReadOnlyDictionary<string, ProbeResource>? Resources = null,
-    string[][]? ExpectedDiscoveryRounds = null, Uri? DocumentUrl = null, double DevicePixelRatio = 1D);
+    string[][]? ExpectedDiscoveryRounds = null, Uri? DocumentUrl = null, double DevicePixelRatio = 1D,
+    IReadOnlyDictionary<string, ProbeDynamicResource>? DynamicResponses = null);
 internal sealed record ProbeResult(string Name, bool Passed, string? ContainerName, bool ContainerRemoved,
     long ElapsedMilliseconds, string? ErrorKind, string? Error, string? CleanupError,
     string[][] DiscoveryRounds, string? CaptureManifest, string? ScreenSha256, string? PrintSha256,

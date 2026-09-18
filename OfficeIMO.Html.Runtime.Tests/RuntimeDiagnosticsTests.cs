@@ -13,6 +13,30 @@ public sealed class RuntimeDiagnosticsTests {
         AngleSharpDomServices.Instance);
 
     [Fact]
+    public async Task TraceRecordsExactDynamicReplayConsumptionIdentity() {
+        var url = new Uri("https://diagnostics.officeimo.test/submit");
+        var request = new HtmlRuntimeFetchRequest(url, "POST",
+            new Dictionary<string, string> { ["Content-Type"] = "text/plain;charset=UTF-8" },
+            Encoding.UTF8.GetBytes("payload"));
+        var replay = new HtmlRuntimeFetchReplay(request, 1, HtmlRuntimeResource.FromText(url, "accepted", "text/plain"));
+        await using IHtmlRuntimeContext context = await Runtime().CreateContextAsync(new HtmlRuntimeContextOptions {
+            Trace = new HtmlRuntimeTraceOptions { IncludeUrls = true }
+        });
+        await using IHtmlRuntimePage page = await context.OpenPageAsync(new HtmlScriptRequest {
+            Profile = HtmlRuntimeProfile.WebApplicationV1,
+            DocumentUrl = new Uri("https://diagnostics.officeimo.test/"),
+            Html = "<script>fetch('/submit',{method:'POST',body:'payload'}).then(()=>window.done=true)</script>",
+            FetchReplays = new[] { replay }
+        });
+        await page.WaitForAsync("window.done===true");
+
+        HtmlRuntimeTrace trace = page.GetTrace();
+
+        Assert.Contains(trace.Events, item => item.Operation == "fetch-replay" && item.Status == "consumed" &&
+            item.ArtifactId == replay.Identity);
+    }
+
+    [Fact]
     public async Task TraceIncludesBoundedProviderEventsAndDeterministicArtifactEvidence() {
         var source = new Uri("https://diagnostics.officeimo.test/private-script.js?token=secret");
         var final = new Uri("https://diagnostics.officeimo.test/assets/private-script.js?token=secret");

@@ -3,7 +3,7 @@ using OfficeIMO.Html.Runtime;
 using OfficeIMO.Html.Runtime.Rendering;
 
 if (args.Length < 6) throw new ArgumentException(
-    "Usage: OfficeIMO.Html.PublicPilot <http(s)-url> <new-output-directory> <full-sha256-image-id> <published-renderer-dll> <published-worker-dll> --license=TEXT [--scenario=ID] [--resource=URL] [--host=DNS-name] [--retain-input] [--podman-command=PATH] [--podman-arg=VALUE] [--timeout-seconds=SECONDS]");
+    "Usage: OfficeIMO.Html.PublicPilot <http(s)-url> <new-output-directory> <full-sha256-image-id> <published-renderer-dll> <published-worker-dll> --license=TEXT [--scenario=ID] [--resource=URL] [--host=DNS-name] [--method=HTTP-METHOD] [--retain-input] [--podman-command=PATH] [--podman-arg=VALUE] [--timeout-seconds=SECONDS]");
 
 Uri url = new(args[0], UriKind.Absolute);
 string outputDirectory = Path.GetFullPath(args[1]);
@@ -17,8 +17,10 @@ string[] podmanArguments = Values("--podman-arg=");
 TimeSpan timeout = TimeSpan.FromSeconds(ParseTimeout(Value("--timeout-seconds=")));
 Uri[] resources = Values("--resource=").Select(value => new Uri(value, UriKind.Absolute)).ToArray();
 string[] hosts = Values("--host=");
+string[] methods = Values("--method=");
+if (methods.Length == 0) methods = ["GET", "HEAD"];
 bool retainInput = args.Contains("--retain-input", StringComparer.Ordinal);
-string[] knownPrefixes = ["--license=", "--scenario=", "--podman-command=", "--podman-arg=", "--resource=", "--host=", "--timeout-seconds="];
+string[] knownPrefixes = ["--license=", "--scenario=", "--podman-command=", "--podman-arg=", "--resource=", "--host=", "--method=", "--timeout-seconds="];
 if (args.Skip(5).Any(value => value != "--retain-input" &&
         !knownPrefixes.Any(prefix => value.StartsWith(prefix, StringComparison.Ordinal))))
     throw new ArgumentException("The pilot received an unknown option.");
@@ -41,6 +43,7 @@ try {
             SourceLicense = license,
             SeedResourceUrls = resources,
             AllowedHosts = hosts,
+            AllowedDynamicRequestMethods = methods,
             RetainInputBytes = retainInput
         });
 
@@ -147,6 +150,11 @@ static object ResourceEvidence(HtmlPublicResourceEvidence resource) => new {
     resource.ByteCount,
     resource.Sha256,
     resource.FetchedAtUtc,
+    resource.RequestMethod,
+    resource.RequestOccurrence,
+    resource.RequestHeaderNames,
+    resource.RequestBodyByteCount,
+    resource.RequestBodySha256,
     connectedAddress = resource.ConnectedAddress.ToString(),
     redirects = resource.Redirects.Select(redirect => new {
         from = redirect.From.AbsoluteUri,

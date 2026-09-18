@@ -11,13 +11,13 @@ try {
     while (true) {
         HtmlRuntimeCommand? command = await HtmlRuntimeProtocol.ReadAsync<HtmlRuntimeCommand>(input, HtmlRuntimeProtocol.MaximumRequestCharacters, CancellationToken.None);
         if (command == null) break;
-        diagnostics?.ClearMissingResources();
+        if (options?.FailOnFetchReplayDiscovery != true) diagnostics?.ClearMissingResources();
         var response = new HtmlRuntimeResponse { Id = command.Id };
         try {
             if (session == null) {
                 if (command.Kind != "open" || command.Request == null) throw new HtmlScriptRuntimeException("The first command must open a document.");
                 options = command.Request.Snapshot();
-                diagnostics = new RuntimeDiagnostics(command.Trace);
+                diagnostics = new RuntimeDiagnostics(command.Trace, options.MaxOutputCharacters);
                 using var deadline = new CancellationTokenSource(options!.Timeout);
                 session = await ScriptedBrowsingSession.OpenAsync(options,
                     command.PageId ?? throw new HtmlScriptRuntimeException("The page id is missing."), diagnostics, deadline.Token);
@@ -38,18 +38,28 @@ try {
                     default: throw new HtmlScriptRuntimeException("Unknown runtime command.");
                 }
             }
+            if (options!.FailOnFetchReplayDiscovery && diagnostics!.MissingFetchBudgetExceeded)
+                throw new HtmlScriptRuntimeException(RuntimeDiagnostics.MissingFetchBudgetMessage);
+            if (options.FailOnFetchReplayDiscovery && diagnostics!.MissingFetchRequests.Length != 0)
+                throw new HtmlScriptRuntimeException(RuntimeResourceLoader.MissingResourceMessage);
             response.PageRevision = session.CurrentRevision;
+            response.ConsumedFetchReplayIdentities = diagnostics?.ConsumedFetchReplayIdentities ?? Array.Empty<string>();
             response.Events = diagnostics?.Drain() ?? new();
             await HtmlRuntimeProtocol.WriteAsync(output, response, options!.MaxOutputCharacters, CancellationToken.None);
         } catch (OperationCanceledException) {
             response = new HtmlRuntimeResponse { Id = command.Id, Error = "The runtime command exceeded its deadline.", ErrorKind = "timeout" };
+            response.ConsumedFetchReplayIdentities = diagnostics?.ConsumedFetchReplayIdentities ?? Array.Empty<string>();
             response.Events = diagnostics?.Drain() ?? new();
             await HtmlRuntimeProtocol.WriteAsync(output, response, HtmlRuntimeProtocol.MaximumRequestCharacters, CancellationToken.None);
             break;
         } catch (Exception error) {
             response = new HtmlRuntimeResponse { Id = command.Id, Error = error.Message,
                 MissingResourceUrls = error.Message.Contains(RuntimeResourceLoader.MissingResourceMessage, StringComparison.Ordinal)
-                    ? diagnostics?.MissingResourceUrls : null };
+                    ? diagnostics?.MissingResourceUrls : null,
+                MissingFetchRequests = error.Message.Contains(RuntimeResourceLoader.MissingResourceMessage, StringComparison.Ordinal) ||
+                    error.Message.Contains(RuntimeDiagnostics.MissingFetchBudgetMessage, StringComparison.Ordinal)
+                    ? diagnostics?.MissingFetchRequests : null,
+                ConsumedFetchReplayIdentities = diagnostics?.ConsumedFetchReplayIdentities ?? Array.Empty<string>() };
             response.Events = diagnostics?.Drain() ?? new();
             await HtmlRuntimeProtocol.WriteAsync(output, response, HtmlRuntimeProtocol.MaximumRequestCharacters, CancellationToken.None);
             break;

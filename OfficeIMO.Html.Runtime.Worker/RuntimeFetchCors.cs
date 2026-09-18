@@ -33,6 +33,9 @@ internal static class RuntimeFetchCors {
         return unsafeNames.OrderBy(h => h, StringComparer.Ordinal).ToArray();
     }
 
+    internal static bool RequiresPreflight(string method, IReadOnlyDictionary<string, string> headers) =>
+        method is not ("GET" or "HEAD" or "POST") || UnsafeHeaders(headers).Length != 0;
+
     private static bool Safe(string name, string value) {
         if (value.Length > 128) return false;
         switch (name.ToLowerInvariant()) {

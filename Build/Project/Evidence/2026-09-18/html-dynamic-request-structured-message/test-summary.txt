@@ -1,0 +1,6 @@
+OfficeIMO.Html.Runtime.Tests net8.0: 485 passed, 0 failed, 0 skipped
+OfficeIMO.Html.Runtime.Tests net10.0: 485 passed, 0 failed, 0 skipped
+OfficeIMO.Html.Tests net8.0: 3164 passed, 0 failed, 0 skipped
+OfficeIMO.Html.Tests net10.0: 3164 passed, 0 failed, 0 skipped
+Rootless networkless OCI render probe: 17 passed
+Controlled host acquisition probe: 4 passed

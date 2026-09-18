@@ -3,22 +3,63 @@ namespace OfficeIMO.Html.Runtime.Worker;
 // Fixed-field diagnostics cross the worker boundary without headers, bodies,
 // credentials or script source. The client applies the caller's final redactor.
 internal sealed class RuntimeDiagnostics {
+    internal const string MissingFetchBudgetMessage = "Offline fetch discovery exceeds its response character budget.";
     private readonly HtmlRuntimeWireTraceOptions _options;
+    private readonly int _maxMissingFetchCharacters;
     private readonly List<HtmlRuntimeWireEvent> _pending = new();
     private readonly object _sync = new();
     private int _recorded;
     private readonly Dictionary<string, Uri> _missingResourceUrls = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, HtmlRuntimeFetchDiscovery> _missingFetchRequests = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, int> _missingFetchCharacters = new(StringComparer.Ordinal);
+    private readonly List<string> _consumedFetchReplayIdentities = new();
+    private long _retainedMissingFetchCharacters = 2; // JSON array brackets.
+    private bool _missingFetchBudgetExceeded;
 
-    internal RuntimeDiagnostics(HtmlRuntimeWireTraceOptions? options) => _options = options ?? new HtmlRuntimeWireTraceOptions();
+    internal RuntimeDiagnostics(HtmlRuntimeWireTraceOptions? options, int maxResponseCharacters) {
+        _options = options ?? new HtmlRuntimeWireTraceOptions();
+        _maxMissingFetchCharacters = maxResponseCharacters / 2;
+    }
     internal bool IncludeConsoleMessages => _options.IncludeConsoleMessages;
     internal bool IncludeFailureMessages => _options.IncludeFailureMessages;
     internal Uri[] MissingResourceUrls { get { lock (_sync) return _missingResourceUrls.Values.ToArray(); } }
+    internal HtmlRuntimeFetchDiscovery[] MissingFetchRequests { get { lock (_sync) return _missingFetchRequests.Values.ToArray(); } }
+    internal string[] ConsumedFetchReplayIdentities { get { lock (_sync) return _consumedFetchReplayIdentities.ToArray(); } }
+    internal bool MissingFetchBudgetExceeded { get { lock (_sync) return _missingFetchBudgetExceeded; } }
 
     internal void RecordMissingResource(Uri url) {
         lock (_sync) _missingResourceUrls[HtmlRuntimeResourcePolicy.Key(url)] = url;
     }
 
-    internal void ClearMissingResources() { lock (_sync) _missingResourceUrls.Clear(); }
+    internal void RecordMissingFetch(HtmlRuntimeFetchDiscovery request) {
+        int characters = HtmlRuntimeProtocol.MeasureCharacters(request);
+        lock (_sync) {
+            int previous = _missingFetchCharacters.GetValueOrDefault(request.Identity);
+            long separators = previous == 0 && _missingFetchRequests.Count != 0 ? 1 : 0;
+            long projected = _retainedMissingFetchCharacters - previous + characters + separators;
+            if (projected > _maxMissingFetchCharacters) {
+                _missingFetchBudgetExceeded = true;
+                throw new HtmlScriptRuntimeException(MissingFetchBudgetMessage);
+            }
+            _missingFetchRequests[request.Identity] = request;
+            _missingFetchCharacters[request.Identity] = characters;
+            _retainedMissingFetchCharacters = projected;
+        }
+    }
+
+    internal void RecordConsumedFetchReplay(string identity) {
+        lock (_sync) _consumedFetchReplayIdentities.Add(identity);
+    }
+
+    internal void ClearMissingResources() {
+        lock (_sync) {
+            _missingResourceUrls.Clear();
+            _missingFetchRequests.Clear();
+            _missingFetchCharacters.Clear();
+            _retainedMissingFetchCharacters = 2;
+            _missingFetchBudgetExceeded = false;
+        }
+    }
 
     internal void Record(HtmlRuntimeEventKind kind, string operation, string status, DateTimeOffset started,
         TimeSpan elapsed = default, long? revision = null, string? detail = null, Uri? url = null,

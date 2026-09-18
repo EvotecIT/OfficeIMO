@@ -50,8 +50,10 @@ The output directory must be new. The host does not parse page markup or CSS.
 Inside isolation, the renderer discovers HTML scripts, stylesheets, images,
 fonts and frame documents, then follows frame-static resources, stylesheet
 imports and selected CSS URLs. If execution
-requests an unsupplied bodyless, headerless GET resource, the worker can ask the host to fetch it and
-restart the offline capture. Every request passes through the same bounded host
+requests an unsupplied dynamic resource, the worker can ask the host to acquire its
+exact URL, method, allowed headers, body, fetch options and occurrence, then restart
+the offline capture with that response. URL-only static assets retain their simpler
+GET path. Every request passes through the same bounded host
 broker; rejected hosts and URLs are recorded as skipped resources. Discovery is
 limited to 16 rounds and 24 supplied assets. The acquired bytes, redirects,
 connected IP addresses and SHA-256 hashes are recorded before rendering.
@@ -62,14 +64,19 @@ URLs approve their own host. The generated OCI probe qualifies active,
 multi-candidate responsive-picture selection by viewport, `sizes`, and device density, a two-level relative
 JavaScript module graph, a scoped import-map graph with prefix mapping and dynamic import,
 script-driven relative `fetch()` GET replay with query preservation and fragment stripping,
-script-driven asynchronous headerless `XMLHttpRequest` GET replay through the same bounded transport,
+script-driven asynchronous XMLHttpRequest with request headers, bounded same-origin
+GET/HEAD and caller-authorized non-GET request replay through the same transport,
 and same-origin frame-document loading with relative-resource discovery, isolated classic-script child realms,
 frame-local import maps and module graphs, static and dynamic JSON imports, bounded parent/child messaging,
 and searchable frame-body rendering in both PDF modes. Invalid import attributes and JSON MIME types
 reject with `TypeError`; malformed JSON module source rejects with `SyntaxError`.
-Cross-origin frame execution, richer structured-clone messaging, import-attribute module types beyond JSON,
-XMLHttpRequest with request headers or beyond bodyless GET, non-GET requests and browser-wide dynamic loading are
-not qualified by this profile. Cookies and credentials are outside this profile.
+Cross-origin frame execution, dynamic cross-origin requests and redirects,
+transferable frame messages, import-attribute module types beyond JSON and browser-wide
+dynamic loading are not qualified by this profile. Cookies and credentials are outside this profile.
+GET and HEAD are admitted by default. Add `--method=POST` (or another supported
+method) only when the named page is authorized to perform that live request; the
+broker executes each discovered occurrence once and records request names, byte
+counts and digests without retaining header values or request bodies.
 Use `--timeout-seconds=SECONDS` to lower the acquisition and execution deadline
 when exercising cancellation. Verified container removal has a separate fixed
 one-minute fail-safe budget and is recorded in failure evidence. `--retain-input` writes acquired bytes only when the

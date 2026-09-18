@@ -142,6 +142,24 @@ unsupported features, and output digests. Canceled and failed runs throw typed
 exceptions with partial acquisition, phase, worker-identity, trace and cleanup
 evidence.
 
+Static assets remain URL keyed. Script-driven fetch and XMLHttpRequest calls use
+an exact request envelope containing the normalized URL, method, browser-allowed
+headers, body bytes and fetch options. The worker adds a one-based occurrence, so
+two identical POSTs receive two separately acquired responses. The host executes
+each occurrence once and returns it to the networkless worker for deterministic
+replay. Every acquired occurrence must be consumed once, in order, by the final
+successful execution; a divergent restart fails instead of accepting side effects
+that do not belong to the rendered transcript. Dynamic acquisition is same-origin and credentialless. GET and HEAD are
+enabled by default; callers must opt into POST, PUT, PATCH, DELETE or OPTIONS with
+`AllowedDynamicRequestMethods`. Authorization and proxy-authorization headers,
+cross-origin requests and dynamic redirects are rejected. Per-request and cumulative
+request-body limits come from `Runtime.ResourcePolicy`; retained discovery envelopes
+must also fit the runtime response-character budget.
+
+Resource evidence records the method, occurrence, sorted header names, request-body
+length and request-body SHA-256 digest. Header values and request bodies are not
+retained. Response retention still follows `RetainInputBytes`.
+
 The profile can discover and replay JavaScript module graphs in the root document
 and admitted same-origin child frames. Each frame retains its own import map and
 module map. Static and dynamic JSON imports use `with { type: 'json' }` and require

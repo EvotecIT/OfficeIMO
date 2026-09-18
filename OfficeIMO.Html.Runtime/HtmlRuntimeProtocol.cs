@@ -36,6 +36,8 @@ internal static class HtmlRuntimeProtocol {
         return JsonSerializer.Deserialize(json, TypeInfo<T>()) ?? throw new HtmlScriptRuntimeException("An empty runtime message is invalid.");
     }
 
+    internal static int MeasureCharacters<T>(T message) => JsonSerializer.Serialize(message, TypeInfo<T>()).Length;
+
     private static JsonTypeInfo<T> TypeInfo<T>() =>
         (JsonTypeInfo<T>)(HtmlRuntimeProtocolJsonContext.Default.GetTypeInfo(typeof(T))
             ?? throw new HtmlScriptRuntimeException("The runtime protocol type is not registered."));
@@ -59,6 +61,8 @@ internal sealed class HtmlRuntimeResponse {
     public string? Error { get; set; }
     public string? ErrorKind { get; set; }
     public Uri[]? MissingResourceUrls { get; set; }
+    public HtmlRuntimeFetchDiscovery[]? MissingFetchRequests { get; set; }
+    public string[] ConsumedFetchReplayIdentities { get; set; } = Array.Empty<string>();
     public string? ValueJson { get; set; }
     public HtmlRuntimeWireDocument? Document { get; set; }
     public HtmlAutomationResult? Automation { get; set; }
