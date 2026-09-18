@@ -305,9 +305,6 @@ public sealed partial class MhtmlDocument {
                 if (Uri.TryCreate(BaseUri, storedLocation, out Uri? resolved) &&
                     HtmlResourceIdentityComparer.Equals(RemoveUriFragment(resolved), retrievalUri)) return resource;
             }
-            if (!string.IsNullOrWhiteSpace(resource.FileName) &&
-                string.Equals(RemoveUriFragment(resource.FileName!), retrievalSource,
-                    StringComparison.Ordinal)) return resource;
         }
         return null;
     }
@@ -344,7 +341,6 @@ public sealed partial class MhtmlDocument {
                 AddArchiveUri(archiveUris, "cid:" + resource.ContentId, baseUri);
             }
             AddArchiveUri(archiveUris, resource.ContentLocation, baseUri);
-            AddArchiveUri(archiveUris, resource.FileName, baseUri);
         }
 
         if (resourcePolicy.RestrictUrlSchemes) {
@@ -404,14 +400,6 @@ public sealed partial class MhtmlDocument {
                     MhtmlDiagnosticCodes.DuplicateContentId,
                     "Duplicate Content-ID was retained in archive order; the first resource is used for resolution.",
                     location: "resource[" + index + "]"));
-            }
-            if (!string.IsNullOrWhiteSpace(resource.FileName)) {
-                string rawFileName = RemoveUriFragment(resource.FileName!.Trim());
-                RegisterResolverIdentity(rawFileName, index, resolverIdentities, diagnostics);
-                if (Uri.TryCreate(baseUri, rawFileName, out Uri? resolvedFileName)) {
-                    RegisterResolverIdentity(RemoveUriFragment(resolvedFileName).AbsoluteUri, index,
-                        resolverIdentities, diagnostics);
-                }
             }
             if (!string.IsNullOrWhiteSpace(resource.ContentLocation)) {
                 string rawLocation = RemoveUriFragment(resource.ContentLocation!.Trim());

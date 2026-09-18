@@ -127,7 +127,7 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Fact]
-    public void Mhtml_FallbackFileNameFragmentsUseFragmentFreeRetrievalIdentity() {
+    public void Mhtml_FileNamesAreNotRelatedResourceRetrievalIdentities() {
         byte[] input = new MhtmlDocument(
             "<html><head><link rel='stylesheet' href='styles/site.css#requested'></head>" +
             "<body><p class='concealed'>Filename fragment concealed text.</p></body></html>",
@@ -137,8 +137,7 @@ public sealed class HtmlPackageContentSafetyContractTests {
             },
             contentLocation: "https://example.test/index.html").ToBytes();
 
-        Assert.Contains(MhtmlDocument.InspectContentSafety(input).Findings, finding =>
-            finding.TextPreview.Contains("Filename fragment concealed text", StringComparison.Ordinal));
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(input));
     }
 
     [Fact]
@@ -409,23 +408,6 @@ public sealed class HtmlPackageContentSafetyContractTests {
 
         Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(input));
 
-        byte[] duplicateFileNames = new MhtmlDocument(
-            "<html><head><link rel='stylesheet' href='site.css'></head><body><p>Visible</p></body></html>",
-            new[] {
-                new MhtmlResource(Encoding.UTF8.GetBytes("p { display: none; }"), "text/css", fileName: "site.css"),
-                new MhtmlResource(Encoding.UTF8.GetBytes("p { display: block; }"), "text/css", fileName: "site.css")
-            }).ToBytes();
-        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(duplicateFileNames));
-
-        byte[] filenameLocationAlias = new MhtmlDocument(
-            "<html><head><link rel='stylesheet' href='styles.css'></head><body><p>Visible</p></body></html>",
-            new[] {
-                new MhtmlResource(Encoding.UTF8.GetBytes("p { display: none; }"), "text/css", fileName: "styles.css"),
-                new MhtmlResource(Encoding.UTF8.GetBytes("p { display: block; }"), "text/css", contentLocation: "https://example.test/styles.css")
-            },
-            contentLocation: "https://example.test/index.html").ToBytes();
-        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(filenameLocationAlias));
-
         byte[] fragmentAliases = new MhtmlDocument(
             "<html><head><link rel='stylesheet' href='styles.css'></head><body><p>Visible</p></body></html>",
             new[] {
@@ -435,13 +417,6 @@ public sealed class HtmlPackageContentSafetyContractTests {
             contentLocation: "https://example.test/index.html").ToBytes();
         Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(fragmentAliases));
 
-        byte[] fileNameFragmentAliases = new MhtmlDocument(
-            "<html><head><link rel='stylesheet' href='styles.css'></head><body><p>Visible</p></body></html>",
-            new[] {
-                new MhtmlResource(Encoding.UTF8.GetBytes("p { display: none; }"), "text/css", fileName: "styles.css#one"),
-                new MhtmlResource(Encoding.UTF8.GetBytes("p { display: block; }"), "text/css", fileName: "styles.css#two")
-            }).ToBytes();
-        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(fileNameFragmentAliases));
     }
 
     [Fact]
@@ -560,6 +535,22 @@ public sealed class HtmlPackageContentSafetyContractTests {
             BuildMhtmlWithImplicitNonHtmlRelatedRoot()));
         Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(
             BuildMhtmlWithAlternativeRootEndingInPlainText()));
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(
+            BuildMhtmlWithGappedRelatedStart()));
+    }
+
+    [Fact]
+    public void Mhtml_ConcealedStylePayloadsRemainReportOnly() {
+        byte[] input = new MhtmlDocument(
+            "<html><head><style hidden>.unrelated { display: none; }</style></head><body><p>Visible.</p></body></html>")
+            .ToBytes();
+        OfficeContentSafetyFinding finding = Assert.Single(MhtmlDocument.InspectContentSafety(input).Findings, item =>
+            item.TextPreview.Contains("unrelated", StringComparison.Ordinal));
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Throws<InvalidOperationException>(() => MhtmlDocument.RemoveSelectedContent(
+            input,
+            new OfficeContentCleanupSelection(new[] { finding.Id })));
     }
 
     [Fact]
@@ -1611,6 +1602,19 @@ public sealed class HtmlPackageContentSafetyContractTests {
         "--outer\r\n" +
         "Content-Type: text/html; charset=utf-8\r\n\r\n" +
         "<html><body><p style='display:none'>Second HTML body.</p></body></html>\r\n" +
+        "--outer--\r\n");
+
+    private static byte[] BuildMhtmlWithGappedRelatedStart() => Encoding.ASCII.GetBytes(
+        "MIME-Version: 1.0\r\n" +
+        "Content-Type: multipart/related; boundary=outer; start*1=\"<second-root>\"\r\n\r\n" +
+        "--outer\r\n" +
+        "Content-Type: text/html; charset=utf-8\r\n" +
+        "Content-ID: <first-root>\r\n\r\n" +
+        "<html><body><p>First visible root.</p></body></html>\r\n" +
+        "--outer\r\n" +
+        "Content-Type: text/html; charset=utf-8\r\n" +
+        "Content-ID: <second-root>\r\n\r\n" +
+        "<html><body><p style='display:none'>Wrong selected root.</p></body></html>\r\n" +
         "--outer--\r\n");
 
     private static byte[] BuildMhtmlWithNonHtmlRelatedRoot() => Encoding.ASCII.GetBytes(

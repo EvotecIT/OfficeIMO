@@ -152,6 +152,7 @@ public sealed partial class MhtmlDocument {
             || diagnostic.Code == MhtmlDiagnosticCodes.InvalidContentLocation
             || diagnostic.Code == MimeHeaderParser.DuplicateSingletonHeaderDiagnosticCode
             || diagnostic.Code == MimeValueParser.DuplicateSecurityParameterDiagnosticCode
+            || diagnostic.Code == MimeValueParser.ParameterContinuationGapDiagnosticCode
             || diagnostic.Code == MimeParser.MultipleHtmlBodyDiagnosticCode
             || diagnostic.Code == MimeParser.RelatedRootMissingDiagnosticCode
             || diagnostic.Code == MimeParser.RelatedRootNotHtmlDiagnosticCode);

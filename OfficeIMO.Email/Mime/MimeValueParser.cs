@@ -2,6 +2,7 @@ namespace OfficeIMO.Email;
 
 internal static class MimeValueParser {
     internal const string DuplicateSecurityParameterDiagnosticCode = "EMAIL_MIME_PARAMETER_DUPLICATE";
+    internal const string ParameterContinuationGapDiagnosticCode = "EMAIL_MIME_PARAMETER_CONTINUATION_GAP";
     private static readonly HashSet<string> SecurityRelevantParameters = new HashSet<string>(
         new[] {
             "boundary", "charset", "start", "type", "protocol", "micalg", "smime-type",
@@ -66,7 +67,7 @@ internal static class MimeValueParser {
             bool encoded = false;
             foreach (KeyValuePair<int, ContinuationPart> part in continuation.Value) {
                 if (part.Key != expected) {
-                    diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_PARAMETER_CONTINUATION_GAP",
+                    diagnostics.Add(new EmailDiagnostic(ParameterContinuationGapDiagnosticCode,
                         string.Concat("Parameter '", continuation.Key, "' has a missing continuation segment."),
                         EmailDiagnosticSeverity.Warning, location));
                     expected = part.Key;

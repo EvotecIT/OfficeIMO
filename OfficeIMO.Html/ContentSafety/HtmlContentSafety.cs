@@ -123,7 +123,13 @@ public static partial class HtmlContentSafety {
         if (concealment != null) {
             string text = element.TextContent ?? string.Empty;
             if (!string.IsNullOrWhiteSpace(text)) {
-                OfficeContentCleanupCapability capability = CanRemoveElement(element)
+                bool reportOnlyStylePayload = string.Equals(
+                    element.LocalName,
+                    "style",
+                    StringComparison.OrdinalIgnoreCase);
+                OfficeContentCleanupCapability capability = reportOnlyStylePayload
+                    ? OfficeContentCleanupCapability.ReportOnly
+                    : CanRemoveElement(element)
                     ? OfficeContentCleanupCapability.RemoveElement
                     : OfficeContentCleanupCapability.RemoveText;
                 OfficeContentSafetyFinding finding = builder.Add(
@@ -134,10 +140,20 @@ public static partial class HtmlContentSafety {
                     text,
                     capability,
                     inspectTextIntegrityEvidence: false);
-                if (targets != null) targets[finding.Id] = capability == OfficeContentCleanupCapability.RemoveElement
-                    ? HtmlCleanupTarget.ForElement(element)
-                    : HtmlCleanupTarget.ForText(element);
-                InspectHtmlTextIntegrity(element, location, builder, targets, alreadyCharged: true);
+                if (targets != null && capability != OfficeContentCleanupCapability.ReportOnly) {
+                    targets[finding.Id] = capability == OfficeContentCleanupCapability.RemoveElement
+                        ? HtmlCleanupTarget.ForElement(element)
+                        : HtmlCleanupTarget.ForText(element);
+                }
+                InspectHtmlTextIntegrity(
+                    element,
+                    location,
+                    builder,
+                    targets,
+                    alreadyCharged: true,
+                    reportOnlyStylePayload
+                        ? OfficeContentCleanupCapability.ReportOnly
+                        : OfficeContentCleanupCapability.RemoveText);
             }
             return;
         }
