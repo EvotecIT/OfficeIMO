@@ -402,22 +402,7 @@ internal static partial class PdfWriter {
                 lineAlignments: visibleAlignments,
                 lineXOffsets: visibleXOffsets,
                 lineWidths: visibleWidths);
-            if (cell.Runs.Any(run => run.Bold || rowUsesBold)) {
-                currentPage!.UsedBold = true;
-                usedBold = true;
-            }
-
-            if (cell.Runs.Any(run => run.Italic)) {
-                currentPage!.UsedItalic = true;
-                usedItalic = true;
-            }
-
-            if (cell.Runs.Any(run => (run.Bold || rowUsesBold) && run.Italic)) {
-                currentPage!.UsedBoldItalic = true;
-                usedBoldItalic = true;
-            }
-
-            MarkRichFonts(cell.Runs);
+            MarkRichFonts(cell.Runs, forceBold: rowUsesBold);
             AddTableCellNamedDestinationName(cell.NamedDestinationName, cellTop);
             if (cell.Images.Count > 0 || cell.CheckBoxes.Count > 0 || cell.FormFields.Count > 0) {
                 if (CanRenderTableCellCheckBoxInline(cell, lines, 0, lineCount)) {

@@ -120,9 +120,17 @@ internal static partial class PdfWriter {
         private double FirstTextBaselineFromTop(PdfStandardFont font, double fontSize, double topY) =>
             topY - GetAscenderForOptions(font, fontSize, currentOpts);
 
-        private void MarkRichFonts(System.Collections.Generic.IEnumerable<PdfTextRun> runs) {
+        private void MarkRichFonts(System.Collections.Generic.IEnumerable<PdfTextRun> runs, bool forceBold = false) {
             System.Collections.Generic.IReadOnlyList<PdfTextRun> effectiveRuns = NormalizeFallbackRuns(runs, ChooseNormal(currentOpts.DefaultFont), currentOpts);
+            bool hasBold = false;
+            bool hasItalic = false;
+            bool hasBoldItalic = false;
             foreach (PdfTextRun run in effectiveRuns) {
+                bool isBold = run.Bold || forceBold;
+                bool isItalic = run.Italic;
+                hasBold |= isBold;
+                hasItalic |= isItalic;
+                hasBoldItalic |= isBold && isItalic;
                 if (run.InlineElement != null) {
                     continue;
                 }
@@ -142,9 +150,9 @@ internal static partial class PdfWriter {
                 }
             }
 
-            if (effectiveRuns.Any(r => r.Bold)) { currentPage!.UsedBold = true; usedBold = true; }
-            if (effectiveRuns.Any(r => r.Italic)) { currentPage!.UsedItalic = true; usedItalic = true; }
-            if (effectiveRuns.Any(r => r.Bold && r.Italic)) { currentPage!.UsedBoldItalic = true; usedBoldItalic = true; }
+            if (hasBold) { currentPage!.UsedBold = true; usedBold = true; }
+            if (hasItalic) { currentPage!.UsedItalic = true; usedItalic = true; }
+            if (hasBoldItalic) { currentPage!.UsedBoldItalic = true; usedBoldItalic = true; }
         }
 
         private void MarkSimpleFont(PdfStandardFont font) {

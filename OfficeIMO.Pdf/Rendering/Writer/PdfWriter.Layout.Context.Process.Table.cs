@@ -629,10 +629,7 @@ internal static partial class PdfWriter {
                     double firstBaseline = y - cellPadTop - verticalOffset - GetAscenderForOptions(cellFont, rowSize, currentOpts) + style.RowBaselineOffset;
 
                     pageDirty = true;
-                    if (cell.Runs.Any(run => run.Bold || rowUsesBold)) { currentPage!.UsedBold = true; usedBold = true; }
-                    if (cell.Runs.Any(run => run.Italic)) { currentPage!.UsedItalic = true; usedItalic = true; }
-                    if (cell.Runs.Any(run => (run.Bold || rowUsesBold) && run.Italic)) { currentPage!.UsedBoldItalic = true; usedBoldItalic = true; }
-                    MarkRichFonts(cell.Runs);
+                    MarkRichFonts(cell.Runs, forceBold: rowUsesBold);
                     string? linkUri = cell.LinkUri;
                     string? linkDestinationName = cell.LinkDestinationName;
                     string? linkContents = cell.LinkContents;
