@@ -82,9 +82,9 @@ internal static partial class EpubReader {
             return;
         }
 
-        string navContent = ReadEntryText(navEntry, options.MaxPackageMetadataBytes, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        if (!TryParseXml(navContent, out XDocument? navDocument) || navDocument == null) {
+        if (!TryParseEntryXml(navEntry, options.MaxPackageMetadataBytes, cancellationToken, out XDocument? navDocument)
+            || navDocument == null) {
             diagnostics.Warning(
                 "epub.navigation.invalid-xml",
                 $"EPUB navigation document '{navPath}' could not be parsed.",
@@ -198,9 +198,9 @@ internal static partial class EpubReader {
             return;
         }
 
-        string ncxContent = ReadEntryText(ncxEntry, options.MaxPackageMetadataBytes, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        if (!TryParseXml(ncxContent, out XDocument? ncxDocument) || ncxDocument == null) {
+        if (!TryParseEntryXml(ncxEntry, options.MaxPackageMetadataBytes, cancellationToken, out XDocument? ncxDocument)
+            || ncxDocument == null) {
             diagnostics.Warning(
                 "epub.ncx.invalid-xml",
                 $"EPUB NCX document '{ncxPath}' could not be parsed.",

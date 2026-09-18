@@ -26,7 +26,7 @@ internal static class HtmlRenderStylesheetApplier {
         HtmlConversionLimits limits,
         HtmlCssByteBudget cssBudget,
         HtmlDiagnosticReport diagnostics) {
-        var reportedCycles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var reportedCycles = new HashSet<string>(HtmlResourceIdentityComparer.Instance);
         Uri? documentBaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, options.BaseUri);
         if (documentBaseUri != null) {
             foreach (IElement inlineStyle in document.QuerySelectorAll("style")) {
@@ -40,7 +40,7 @@ internal static class HtmlRenderStylesheetApplier {
                     options,
                     limits,
                     diagnostics,
-                    new HashSet<string>(StringComparer.OrdinalIgnoreCase),
+                    new HashSet<string>(HtmlResourceIdentityComparer.Instance),
                     reportedCycles,
                     cssBudget);
             }
@@ -96,7 +96,7 @@ internal static class HtmlRenderStylesheetApplier {
                     options,
                     limits,
                     diagnostics,
-                    new HashSet<string>(StringComparer.OrdinalIgnoreCase),
+                    new HashSet<string>(HtmlResourceIdentityComparer.Instance),
                     reportedCycles,
                     cssBudget);
             }

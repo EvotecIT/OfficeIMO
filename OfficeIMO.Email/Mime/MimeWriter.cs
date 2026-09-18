@@ -1,6 +1,18 @@
 namespace OfficeIMO.Email;
 
 internal static class MimeWriter {
+    private sealed class MimeContentPlan {
+        internal EmailAttachment? CalendarAttachment { get; set; }
+        internal bool CalendarSourceReused { get; set; }
+        internal byte[]? CalendarContent { get; set; }
+        internal EmailAttachment? ContactBodyPart { get; set; }
+        internal EmailAttachment[] RegularAttachments { get; set; } = Array.Empty<EmailAttachment>();
+        internal bool IncludeTextBody { get; set; }
+        internal bool HasAlternative { get; set; }
+        internal bool HasRelatedResources { get; set; }
+        internal bool HasUnrelatedAttachments { get; set; }
+    }
+
     private static readonly HashSet<string> ManagedHeaders = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
         "Subject", "From", "Sender", "To", "Cc", "Bcc", "Reply-To", "Date", "Message-ID",
         "References", "In-Reply-To", "MIME-Version", "Content-Type", "Content-Transfer-Encoding",
@@ -201,6 +213,47 @@ internal static class MimeWriter {
     }
 
     private static void WriteContent(Stream output, EmailDocument document, MimeWriterState state, int depth, bool includeLeadingHeaders) {
+        MimeContentPlan plan = CreateContentPlan(document, state);
+        EmailAttachment? calendarAttachment = plan.CalendarAttachment;
+        bool calendarSourceReused = plan.CalendarSourceReused;
+        byte[]? calendarContent = plan.CalendarContent;
+        EmailAttachment? contactBodyPart = plan.ContactBodyPart;
+        EmailAttachment[] regularAttachments = plan.RegularAttachments;
+        bool includeTextBody = plan.IncludeTextBody;
+        bool hasAlternative = plan.HasAlternative;
+        bool hasRelatedResources = plan.HasRelatedResources;
+        bool hasUnrelatedAttachments = plan.HasUnrelatedAttachments;
+        if (hasUnrelatedAttachments) {
+            string boundary = CreateBoundary(document, plan, state, depth, "mixed");
+            WriteLine(output, string.Concat("Content-Type: multipart/mixed; boundary=\"", boundary, "\""));
+            WriteLine(output, string.Empty);
+            WriteLine(output, string.Concat("--", boundary));
+            if (hasRelatedResources) {
+                WriteRelatedBodyEntity(output, document, plan, state, depth, hasAlternative, includeTextBody, calendarContent,
+                    calendarSourceReused ? calendarAttachment : null, contactBodyPart, regularAttachments);
+            } else {
+                WriteBodyEntity(output, document, plan, state, depth, hasAlternative, includeTextBody, calendarContent,
+                    calendarSourceReused ? calendarAttachment : null, contactBodyPart);
+            }
+            for (int i = 0; i < regularAttachments.Length; i++) {
+                if (IsRelatedResource(document, regularAttachments[i])) continue;
+                WriteLine(output, string.Concat("--", boundary));
+                WriteAttachment(output, regularAttachments[i], state, depth + 1, i);
+            }
+            WriteLine(output, string.Concat("--", boundary, "--"));
+            return;
+        }
+
+        if (hasRelatedResources) {
+            WriteRelatedBodyEntity(output, document, plan, state, depth, hasAlternative, includeTextBody, calendarContent,
+                calendarSourceReused ? calendarAttachment : null, contactBodyPart, regularAttachments);
+        } else {
+            WriteBodyEntity(output, document, plan, state, depth, hasAlternative, includeTextBody, calendarContent,
+                calendarSourceReused ? calendarAttachment : null, contactBodyPart);
+        }
+    }
+
+    private static MimeContentPlan CreateContentPlan(EmailDocument document, MimeWriterState state) {
         EmailAttachment? calendarAttachment = IcsCalendarCodec.FindSemanticAttachment(document);
         bool semanticSourceUnchanged = document.MimeSemanticSourceModelFingerprint != null &&
             EmailDocumentStateFingerprint.Matches(document, document.MimeSemanticSourceModelFingerprint);
@@ -246,42 +299,25 @@ internal static class MimeWriter {
         bool hasRelatedResources = document.Body.IsHtmlRelatedRoot ||
             regularAttachments.Any(attachment => IsRelatedResource(document, attachment));
         bool hasUnrelatedAttachments = regularAttachments.Any(attachment => !IsRelatedResource(document, attachment));
-        if (hasUnrelatedAttachments) {
-            string boundary = CreateBoundary(document, state, depth, "mixed");
-            WriteLine(output, string.Concat("Content-Type: multipart/mixed; boundary=\"", boundary, "\""));
-            WriteLine(output, string.Empty);
-            WriteLine(output, string.Concat("--", boundary));
-            if (hasRelatedResources) {
-                WriteRelatedBodyEntity(output, document, state, depth, hasAlternative, includeTextBody, calendarContent,
-                    calendarSourceReused ? calendarAttachment : null, contactBodyPart, regularAttachments);
-            } else {
-                WriteBodyEntity(output, document, state, depth, hasAlternative, includeTextBody, calendarContent,
-                    calendarSourceReused ? calendarAttachment : null, contactBodyPart);
-            }
-            for (int i = 0; i < regularAttachments.Length; i++) {
-                if (IsRelatedResource(document, regularAttachments[i])) continue;
-                WriteLine(output, string.Concat("--", boundary));
-                WriteAttachment(output, regularAttachments[i], state, depth + 1, i);
-            }
-            WriteLine(output, string.Concat("--", boundary, "--"));
-            return;
-        }
-
-        if (hasRelatedResources) {
-            WriteRelatedBodyEntity(output, document, state, depth, hasAlternative, includeTextBody, calendarContent,
-                calendarSourceReused ? calendarAttachment : null, contactBodyPart, regularAttachments);
-        } else {
-            WriteBodyEntity(output, document, state, depth, hasAlternative, includeTextBody, calendarContent,
-                calendarSourceReused ? calendarAttachment : null, contactBodyPart);
-        }
+        return new MimeContentPlan {
+            CalendarAttachment = calendarAttachment,
+            CalendarSourceReused = calendarSourceReused,
+            CalendarContent = calendarContent,
+            ContactBodyPart = contactBodyPart,
+            RegularAttachments = regularAttachments,
+            IncludeTextBody = includeTextBody,
+            HasAlternative = hasAlternative,
+            HasRelatedResources = hasRelatedResources,
+            HasUnrelatedAttachments = hasUnrelatedAttachments
+        };
     }
 
-    private static void WriteRelatedBodyEntity(Stream output, EmailDocument document, MimeWriterState state,
+    private static void WriteRelatedBodyEntity(Stream output, EmailDocument document, MimeContentPlan plan, MimeWriterState state,
         int depth, bool hasAlternative, bool includeTextBody, byte[]? calendarContent,
         EmailAttachment? calendarAttachment,
         EmailAttachment? contactBodyPart,
         IReadOnlyList<EmailAttachment> attachments) {
-        string boundary = CreateBoundary(document, state, depth, "related");
+        string boundary = CreateBoundary(document, plan, state, depth, "related");
         string rootType = hasAlternative ? "multipart/alternative" : document.Body.Html != null
             ? "text/html"
             : "text/plain";
@@ -292,7 +328,7 @@ internal static class MimeWriter {
             "\"; type=\"", rootType, "\"", start));
         WriteLine(output, string.Empty);
         WriteLine(output, string.Concat("--", boundary));
-        WriteBodyEntity(output, document, state, depth, hasAlternative, includeTextBody, calendarContent,
+        WriteBodyEntity(output, document, plan, state, depth, hasAlternative, includeTextBody, calendarContent,
             calendarAttachment, contactBodyPart);
         for (int i = 0; i < attachments.Count; i++) {
             if (!IsRelatedResource(document, attachments[i])) continue;
@@ -313,11 +349,11 @@ internal static class MimeWriter {
             MimeRelatedResourceReference.ContainsContentLocation(document.Body.Html!, attachment.ContentLocation!);
     }
 
-    private static void WriteBodyEntity(Stream output, EmailDocument document, MimeWriterState state, int depth,
+    private static void WriteBodyEntity(Stream output, EmailDocument document, MimeContentPlan plan, MimeWriterState state, int depth,
         bool hasAlternative, bool includeTextBody, byte[]? calendarContent, EmailAttachment? calendarAttachment,
         EmailAttachment? contactBodyPart) {
         if (hasAlternative) {
-            string boundary = CreateBoundary(document, state, depth, "alternative");
+            string boundary = CreateBoundary(document, plan, state, depth, "alternative");
             WriteLine(output, string.Concat("Content-Type: multipart/alternative; boundary=\"", boundary, "\""));
             WriteLine(output, string.Empty);
             if (includeTextBody) {
@@ -739,19 +775,19 @@ internal static class MimeWriter {
         }
     }
 
-    private static string CreateBoundary(EmailDocument document, MimeWriterState state, int depth, string kind) {
+    private static string CreateBoundary(EmailDocument document, MimeContentPlan plan, MimeWriterState state, int depth, string kind) {
         ulong hash = 14695981039346656037UL;
         Hash(ref hash, document.Subject);
         Hash(ref hash, document.MessageId);
         Hash(ref hash, document.Body.Text);
         Hash(ref hash, document.Body.Html);
         Hash(ref hash, document.Body.Rtf);
-        Hash(ref hash, document.Attachments.Count.ToString(CultureInfo.InvariantCulture));
+        Hash(ref hash, plan.RegularAttachments.Length.ToString(CultureInfo.InvariantCulture));
         Hash(ref hash, depth.ToString(CultureInfo.InvariantCulture));
         Hash(ref hash, kind);
         string prefix = string.Concat("=_OfficeIMO_", kind, "_", hash.ToString("x16", CultureInfo.InvariantCulture));
         var collisions = new bool[256];
-        CollectBoundaryCollisions(document, prefix, state, collisions, new HashSet<EmailDocument>());
+        CollectBoundaryCollisions(document, plan, prefix, state, collisions, new HashSet<EmailDocument>());
         for (int attempt = 0; attempt < 256; attempt++) {
             if (collisions[attempt]) continue;
             return attempt == 0
@@ -763,6 +799,7 @@ internal static class MimeWriter {
 
     private static void CollectBoundaryCollisions(
         EmailDocument document,
+        MimeContentPlan plan,
         string boundaryPrefix,
         MimeWriterState state,
         bool[] collisions,
@@ -775,35 +812,53 @@ internal static class MimeWriter {
             CollectBoundaryCollisions(document.Body.Text, markerPrefix, collisions, state.Options.MaxOutputBytes);
             CollectBoundaryCollisions(document.Body.Html, markerPrefix, collisions, state.Options.MaxOutputBytes);
             CollectBoundaryCollisions(document.Body.Rtf, markerPrefix, collisions, state.Options.MaxOutputBytes);
-            foreach (EmailAttachment attachment in document.Attachments) {
-                if (attachment.EmbeddedDocument != null && attachment.PreserveMimeHeadersOnWrite) {
-                    if (attachment.Content != null) {
-                        using var preservedInput = new MemoryStream(attachment.Content, writable: false);
-                        CollectBoundaryCollisions(preservedInput, markerPrefix, collisions, state.Options.MaxOutputBytes);
-                        continue;
-                    }
-                    if (attachment.ContentSource != null || EmailAttachmentStreamScope.HasStagedContent(attachment)) {
-                        Stream preservedInput = state.PrepareAttachmentStream(attachment);
-                        CollectBoundaryCollisions(preservedInput, markerPrefix, collisions, state.Options.MaxOutputBytes);
-                        continue;
-                    }
-                }
-                if (attachment.EmbeddedDocument != null) {
-                    CollectBoundaryCollisions(attachment.EmbeddedDocument, boundaryPrefix, state, collisions, activeDocuments);
-                    continue;
-                }
-                if (attachment.Content != null) {
-                    using var input = new MemoryStream(attachment.Content, writable: false);
-                    CollectBoundaryCollisions(input, markerPrefix, collisions, state.Options.MaxOutputBytes);
-                    continue;
-                }
-                if (attachment.ContentSource == null && !EmailAttachmentStreamScope.HasStagedContent(attachment)) continue;
-                Stream prepared = state.PrepareAttachmentStream(attachment);
-                CollectBoundaryCollisions(prepared, markerPrefix, collisions, state.Options.MaxOutputBytes);
+            if (plan.CalendarContent != null) {
+                using var calendarInput = new MemoryStream(plan.CalendarContent, writable: false);
+                CollectBoundaryCollisions(calendarInput, markerPrefix, collisions, state.Options.MaxOutputBytes);
+            }
+            if (plan.ContactBodyPart != null) {
+                CollectBoundaryCollisions(plan.ContactBodyPart, boundaryPrefix, markerPrefix, state, collisions, activeDocuments);
+            }
+            foreach (EmailAttachment attachment in plan.RegularAttachments) {
+                CollectBoundaryCollisions(attachment, boundaryPrefix, markerPrefix, state, collisions, activeDocuments);
             }
         } finally {
             activeDocuments.Remove(document);
         }
+    }
+
+    private static void CollectBoundaryCollisions(
+        EmailAttachment attachment,
+        string boundaryPrefix,
+        byte[] markerPrefix,
+        MimeWriterState state,
+        bool[] collisions,
+        ISet<EmailDocument> activeDocuments) {
+        if (attachment.EmbeddedDocument != null && attachment.PreserveMimeHeadersOnWrite) {
+            if (attachment.Content != null) {
+                using var preservedInput = new MemoryStream(attachment.Content, writable: false);
+                CollectBoundaryCollisions(preservedInput, markerPrefix, collisions, state.Options.MaxOutputBytes);
+                return;
+            }
+            if (attachment.ContentSource != null || EmailAttachmentStreamScope.HasStagedContent(attachment)) {
+                Stream preservedInput = state.PrepareAttachmentStream(attachment);
+                CollectBoundaryCollisions(preservedInput, markerPrefix, collisions, state.Options.MaxOutputBytes);
+                return;
+            }
+        }
+        if (attachment.EmbeddedDocument != null) {
+            MimeContentPlan embeddedPlan = CreateContentPlan(attachment.EmbeddedDocument, state);
+            CollectBoundaryCollisions(attachment.EmbeddedDocument, embeddedPlan, boundaryPrefix, state, collisions, activeDocuments);
+            return;
+        }
+        if (attachment.Content != null) {
+            using var input = new MemoryStream(attachment.Content, writable: false);
+            CollectBoundaryCollisions(input, markerPrefix, collisions, state.Options.MaxOutputBytes);
+            return;
+        }
+        if (attachment.ContentSource == null && !EmailAttachmentStreamScope.HasStagedContent(attachment)) return;
+        Stream prepared = state.PrepareAttachmentStream(attachment);
+        CollectBoundaryCollisions(prepared, markerPrefix, collisions, state.Options.MaxOutputBytes);
     }
 
     private static void CollectBoundaryCollisions(

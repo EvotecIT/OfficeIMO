@@ -130,7 +130,7 @@ internal static class MimeParser {
                     || IsAllowedRelatedRootType(
                         partHeaders,
                         childDefaultContentType,
-                        allowProtectedSignedRoot: partIsDefaultRelatedRoot,
+                        allowProtectedSignedRoot: true,
                         state,
                         partLocation);
                 if ((partIsExplicitRelatedRoot || partIsDefaultRelatedRoot)

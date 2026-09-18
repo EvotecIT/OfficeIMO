@@ -23,8 +23,8 @@ internal static partial class EpubReader {
             return new EpubSignatureInfo(true, false, 0);
         }
 
-        string content = ReadEntryText(entry, options.MaxPackageMetadataBytes, cancellationToken);
-        if (!TryParseXml(content, out XDocument? document) || document?.Root == null) {
+        if (!TryParseEntryXml(entry, options.MaxPackageMetadataBytes, cancellationToken, out XDocument? document)
+            || document?.Root == null) {
             diagnostics.Warning(
                 "epub.signatures.invalid-xml",
                 "EPUB signatures.xml could not be parsed as XML.",
@@ -58,8 +58,8 @@ internal static partial class EpubReader {
             return Array.Empty<EpubEncryptionInfo>();
         }
 
-        string content = ReadEntryText(entry, options.MaxPackageMetadataBytes, cancellationToken);
-        if (!TryParseXml(content, out XDocument? document) || document == null) {
+        if (!TryParseEntryXml(entry, options.MaxPackageMetadataBytes, cancellationToken, out XDocument? document)
+            || document == null) {
             diagnostics.Warning(
                 "epub.encryption.invalid-xml",
                 "EPUB encryption.xml could not be parsed as XML.",

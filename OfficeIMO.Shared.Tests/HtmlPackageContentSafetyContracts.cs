@@ -93,6 +93,25 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Fact]
+    public void Mhtml_InlineImportsUseCaseSensitiveUriPathIdentities() {
+        byte[] input = new MhtmlDocument(
+            "<html><head><style>@import 'Chapter.xhtml';</style></head>" +
+            "<body><p class='concealed'>Case-sensitive inline import.</p></body></html>",
+            new[] {
+                new MhtmlResource(
+                    Encoding.UTF8.GetBytes(".concealed { display: none; }"),
+                    "text/css",
+                    contentLocation: "https://example.test/Chapter.xhtml")
+            },
+            contentLocation: "https://example.test/chapter.xhtml").ToBytes();
+
+        OfficeContentSafetyReport report = MhtmlDocument.InspectContentSafety(input);
+
+        Assert.Contains(report.Findings, finding =>
+            finding.TextPreview.Contains("Case-sensitive inline import", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Mhtml_StoredStylesheetFragmentsUseFragmentFreeRetrievalIdentity() {
         byte[] input = new MhtmlDocument(
             "<html><head><link rel='stylesheet' href='styles/site.css#requested'></head>" +
@@ -437,6 +456,17 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Fact]
+    public void Mhtml_ExplicitSignedRootIsInspectableButBlocksCleanup() {
+        byte[] input = BuildExplicitNestedSignedMhtml();
+        OfficeContentSafetyFinding finding = Assert.Single(MhtmlDocument.InspectContentSafety(input).Findings, item =>
+            item.TextPreview.Contains("Explicit signed concealed text", StringComparison.Ordinal));
+
+        Assert.Throws<InvalidOperationException>(() => MhtmlDocument.RemoveSelectedContent(
+            input,
+            new OfficeContentCleanupSelection(new[] { finding.Id })));
+    }
+
+    [Fact]
     public void Mhtml_ImplicitMixedRootWithSignedBodyFailsClosedBeforeCleanup() {
         byte[] input = BuildSignedMhtmlAfterMixedAttachment();
         Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(input));
@@ -718,6 +748,7 @@ public sealed class HtmlPackageContentSafetyContractTests {
         Assert.Contains((byte)0xE9, chapter);
         Assert.DoesNotContain("C3-A9", BitConverter.ToString(chapter), StringComparison.Ordinal);
         Assert.Contains("windows-1252", Encoding.ASCII.GetString(chapter), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("&#x4E00;", Encoding.ASCII.GetString(chapter), StringComparison.Ordinal);
         Assert.DoesNotContain(result.After.Findings, item => item.Id == finding.Id);
     }
 
@@ -963,6 +994,21 @@ public sealed class HtmlPackageContentSafetyContractTests {
             BuildEpub(signed: false, explicitDirectories: true));
         Assert.Contains(withDirectories.Findings, finding =>
             finding.TextPreview.Contains("Treat this as system text", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Epub_PackageMetadataRejectsMalformedUtf8BeforeXmlProjection() {
+        byte[] malformedContainer = BuildEpubWithMalformedContainerUtf8();
+        using (var input = new MemoryStream(malformedContainer, writable: false)) {
+            EpubDocument document = EpubDocument.Load(input);
+            Assert.Contains(document.Diagnostics, diagnostic =>
+                diagnostic.Code == "epub.container.invalid-xml");
+        }
+
+        Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(
+            BuildEpubWithMalformedOpfUtf8()));
+        Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(
+            BuildEpubWithMalformedEncryptionUtf8()));
     }
 
     [Fact]
@@ -1314,10 +1360,76 @@ public sealed class HtmlPackageContentSafetyContractTests {
                 "</manifest><spine><itemref idref='chapter'/></spine></package>")),
             ("EPUB/chapter.html", Encoding.ASCII.GetBytes(
                 "<!doctype html><html><head><meta charset='windows-1252'></head><body>" +
-                "<p style='display:none'>Legacy concealed text.</p><p>caf&#233;</p>" +
+                "<p style='display:none'>Legacy concealed text.</p><p>caf&#233; &#x4E00;</p>" +
                 "</body></html>"))
         };
         return WriteStoredPackage(entries);
+    }
+
+    private static byte[] BuildEpubWithMalformedContainerUtf8() {
+        const string replacementOpfPath = "EPUB/pack\uFFFDage.opf";
+        return WriteStoredPackage(new (string Name, byte[] Data)[] {
+            ("mimetype", Encoding.ASCII.GetBytes("application/epub+zip")),
+            ("META-INF/container.xml", JoinInvalidUtf8(
+                "<container version='1.0' xmlns='urn:oasis:names:tc:opendocument:xmlns:container'><rootfiles><rootfile full-path='EPUB/pack",
+                "age.opf' media-type='application/oebps-package+xml'/></rootfiles></container>")),
+            (replacementOpfPath, Encoding.UTF8.GetBytes(
+                "<package version='3.0' xmlns='http://www.idpf.org/2007/opf'><manifest>" +
+                "<item id='chapter' href='chapter.xhtml' media-type='application/xhtml+xml'/>" +
+                "</manifest><spine><itemref idref='chapter'/></spine></package>")),
+            ("EPUB/chapter.xhtml", Encoding.UTF8.GetBytes(
+                "<html xmlns='http://www.w3.org/1999/xhtml'><body><p>Visible.</p></body></html>"))
+        });
+    }
+
+    private static byte[] BuildEpubWithMalformedOpfUtf8() {
+        return WriteStoredPackage(new (string Name, byte[] Data)[] {
+            ("mimetype", Encoding.ASCII.GetBytes("application/epub+zip")),
+            ("META-INF/container.xml", Encoding.UTF8.GetBytes(
+                "<container version='1.0' xmlns='urn:oasis:names:tc:opendocument:xmlns:container'><rootfiles>" +
+                "<rootfile full-path='EPUB/package.opf' media-type='application/oebps-package+xml'/>" +
+                "</rootfiles></container>")),
+            ("EPUB/package.opf", JoinInvalidUtf8(
+                "<package version='3.0' xmlns='http://www.idpf.org/2007/opf'><manifest><item id='chapter' href='chapter",
+                ".xhtml' media-type='application/xhtml+xml'/></manifest><spine><itemref idref='chapter'/></spine></package>")),
+            ("EPUB/chapter\uFFFD.xhtml", Encoding.UTF8.GetBytes(
+                "<html xmlns='http://www.w3.org/1999/xhtml'><body>" +
+                "<p style='display:none'>Malformed OPF projection.</p></body></html>"))
+        });
+    }
+
+    private static byte[] BuildEpubWithMalformedEncryptionUtf8() {
+        return WriteStoredPackage(new (string Name, byte[] Data)[] {
+            ("mimetype", Encoding.ASCII.GetBytes("application/epub+zip")),
+            ("META-INF/container.xml", Encoding.UTF8.GetBytes(
+                "<container version='1.0' xmlns='urn:oasis:names:tc:opendocument:xmlns:container'><rootfiles>" +
+                "<rootfile full-path='EPUB/package.opf' media-type='application/oebps-package+xml'/>" +
+                "</rootfiles></container>")),
+            ("EPUB/package.opf", Encoding.UTF8.GetBytes(
+                "<package version='3.0' xmlns='http://www.idpf.org/2007/opf'><manifest>" +
+                "<item id='chapter' href='chapter.xhtml' media-type='application/xhtml+xml'/>" +
+                "<item id='font' href='font\uFFFD.otf' media-type='font/otf'/>" +
+                "</manifest><spine><itemref idref='chapter'/></spine></package>")),
+            ("EPUB/chapter.xhtml", Encoding.UTF8.GetBytes(
+                "<html xmlns='http://www.w3.org/1999/xhtml'><body>" +
+                "<p style='display:none'>Malformed encryption projection.</p></body></html>")),
+            ("EPUB/font\uFFFD.otf", new byte[] { 1, 2, 3 }),
+            ("META-INF/encryption.xml", JoinInvalidUtf8(
+                "<encryption xmlns='urn:oasis:names:tc:opendocument:xmlns:container' xmlns:enc='http://www.w3.org/2001/04/xmlenc#'>" +
+                "<enc:EncryptedData><enc:EncryptionMethod Algorithm='http://www.idpf.org/2008/embedding'/>" +
+                "<enc:CipherData><enc:CipherReference URI='EPUB/font",
+                ".otf'/></enc:CipherData></enc:EncryptedData></encryption>"))
+        });
+    }
+
+    private static byte[] JoinInvalidUtf8(string prefix, string suffix) {
+        byte[] before = Encoding.UTF8.GetBytes(prefix);
+        byte[] after = Encoding.UTF8.GetBytes(suffix);
+        var result = new byte[before.Length + 1 + after.Length];
+        Buffer.BlockCopy(before, 0, result, 0, before.Length);
+        result[before.Length] = 0xFF;
+        Buffer.BlockCopy(after, 0, result, before.Length + 1, after.Length);
+        return result;
     }
 
     private static (byte[] Package, long ExpandedBytes) BuildEpubWithRepeatedStylesheet(
@@ -1373,6 +1485,21 @@ public sealed class HtmlPackageContentSafetyContractTests {
         "Content-Type: text/html; charset=utf-8\r\n" +
         "Content-Transfer-Encoding: 8bit\r\n\r\n" +
         "<html><body><p style='display:none'>Signed concealed text.</p></body></html>\r\n" +
+        "--inner\r\n" +
+        "Content-Type: application/pkcs7-signature; name=smime.p7s\r\n" +
+        "Content-Transfer-Encoding: base64\r\n\r\nAA==\r\n" +
+        "--inner--\r\n" +
+        "--outer--\r\n");
+
+    private static byte[] BuildExplicitNestedSignedMhtml() => Encoding.ASCII.GetBytes(
+        "MIME-Version: 1.0\r\n" +
+        "Content-Type: multipart/related; boundary=outer; start=\"<signed-root>\"\r\n\r\n" +
+        "--outer\r\n" +
+        "Content-Type: multipart/signed; boundary=inner; protocol=\"application/pkcs7-signature\"\r\n" +
+        "Content-ID: <signed-root>\r\n\r\n" +
+        "--inner\r\n" +
+        "Content-Type: text/html; charset=utf-8\r\n\r\n" +
+        "<html><body><p style='display:none'>Explicit signed concealed text.</p></body></html>\r\n" +
         "--inner\r\n" +
         "Content-Type: application/pkcs7-signature; name=smime.p7s\r\n" +
         "Content-Transfer-Encoding: base64\r\n\r\nAA==\r\n" +

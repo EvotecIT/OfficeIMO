@@ -120,8 +120,8 @@ internal static partial class EpubReader {
             return null;
         }
 
-        string opfContent = ReadEntryText(opfEntry, options.MaxPackageMetadataBytes, cancellationToken);
-        if (!TryParseXml(opfContent, out XDocument? opfDocument) || opfDocument == null) {
+        if (!TryParseEntryXml(opfEntry, options.MaxPackageMetadataBytes, cancellationToken, out XDocument? opfDocument)
+            || opfDocument == null) {
             diagnostics.Warning(
                 "epub.package.invalid-xml",
                 $"EPUB OPF package '{opfPath}' could not be parsed as XML.",
@@ -157,8 +157,8 @@ internal static partial class EpubReader {
             return Array.Empty<EpubRootfile>();
         }
 
-        var containerContent = ReadEntryText(containerEntry, options.MaxPackageMetadataBytes, cancellationToken);
-        if (!TryParseXml(containerContent, out var containerDocument) || containerDocument == null) {
+        if (!TryParseEntryXml(containerEntry, options.MaxPackageMetadataBytes, cancellationToken, out XDocument? containerDocument)
+            || containerDocument == null) {
             diagnostics.Warning(
                 "epub.container.invalid-xml",
                 "EPUB container.xml could not be parsed as XML.",

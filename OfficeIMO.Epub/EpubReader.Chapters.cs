@@ -242,6 +242,32 @@ internal static partial class EpubReader {
         }
     }
 
+    private static bool TryParseEntryXml(
+        ZipArchiveEntry entry,
+        long maxBytes,
+        CancellationToken cancellationToken,
+        out XDocument? document) =>
+        TryParseXml(ReadEntryBytesExact(entry, maxBytes, cancellationToken), out document);
+
+    private static bool TryParseXml(byte[] content, out XDocument? document) {
+        document = null;
+        if (content.Length == 0) return false;
+
+        try {
+            var settings = new XmlReaderSettings {
+                DtdProcessing = DtdProcessing.Ignore,
+                XmlResolver = null
+            };
+
+            using var input = new MemoryStream(content, writable: false);
+            using var xmlReader = XmlReader.Create(input, settings);
+            document = XDocument.Load(xmlReader, LoadOptions.PreserveWhitespace);
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
     private static bool TryReadChapterMarkup(string content, out ChapterMarkupInfo chapter) {
         chapter = ChapterMarkupInfo.Empty;
         if (string.IsNullOrWhiteSpace(content)) return false;
