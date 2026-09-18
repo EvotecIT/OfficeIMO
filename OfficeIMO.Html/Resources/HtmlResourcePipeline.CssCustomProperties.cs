@@ -336,9 +336,13 @@ public static partial class HtmlResourcePipeline {
     internal static bool HasCssImportAtRule(string css) =>
         ExtractCssImports(css ?? string.Empty).Any();
 
-    internal static bool HasEnvironmentDependentMediaCondition(string css) {
+    internal static bool HasEnvironmentDependentComputedStyle(string css) {
         string source = css ?? string.Empty;
         if (TryFindNextAtRule(source, 0, "media", out _, out _)) return true;
+        if (TryFindNextAtRule(source, 0, "container", out _, out _)) return true;
+        if (TryFindNextAtRule(source, 0, "keyframes", out _, out _)
+            || TryFindNextAtRule(source, 0, "-webkit-keyframes", out _, out _)
+            || TryFindNextAtRule(source, 0, "starting-style", out _, out _)) return true;
         return ExtractCssImports(source).Any(import => HasCssImportMediaCondition(import.ConditionText));
     }
 

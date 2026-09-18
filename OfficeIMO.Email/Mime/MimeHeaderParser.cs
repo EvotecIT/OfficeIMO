@@ -11,7 +11,8 @@ internal static class MimeHeaderParser {
         "Content-Transfer-Encoding",
         "Content-Disposition",
         "Content-ID",
-        "Content-Location"
+        "Content-Location",
+        "Snapshot-Content-Location"
     };
 
     internal static int Parse(byte[] data, int offset, int count, EmailReaderOptions options,
