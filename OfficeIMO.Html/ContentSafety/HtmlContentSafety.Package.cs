@@ -267,6 +267,7 @@ public static partial class HtmlContentSafety {
                 "Package content-safety inspection requires stylesheet payloads to use text/css: "
                 + unsupportedStylesheet.Source);
         }
+        RejectDataStylesheetImports(document, resources, renderOptions, resourceOptions);
 
         var acceptedStylesheets = new HashSet<string>(
             resources.Resources
@@ -293,6 +294,44 @@ public static partial class HtmlContentSafety {
 
         var syntheticStyles = new HashSet<IElement>(document.QuerySelectorAll("style").Where(item => !existingStyles.Contains(item)));
         return new PreparedPackagePart(part, document, syntheticStyles, originalInlineStyles, limits);
+    }
+
+    private static void RejectDataStylesheetImports(
+        IHtmlDocument document,
+        HtmlResourceSession resources,
+        HtmlRenderOptions renderOptions,
+        HtmlResourcePipelineOptions resourceOptions) {
+        Uri documentBaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, renderOptions.BaseUri)
+            ?? new Uri("https://officeimo.invalid/", UriKind.Absolute);
+        foreach (IElement style in document.QuerySelectorAll("style")) {
+            if (!HtmlRenderStylesheetApplier.IsApplicableStyleElement(style, renderOptions)) continue;
+            ThrowForDataStylesheetImport(style.TextContent ?? string.Empty, documentBaseUri, resourceOptions);
+        }
+
+        foreach (HtmlResourceSessionEntry entry in resources.Resources.Where(item =>
+                     item.Kind == HtmlResourceKind.Stylesheet)) {
+            if (!resources.TryGet(entry.Source, entry.CanonicalSource, out HtmlResolvedResource resource)
+                || !HtmlRenderStylesheetText.TryDecode(resource.EncodedBytes, resource.ContentType, out string css)
+                || !Uri.TryCreate(entry.CanonicalSource, UriKind.Absolute, out Uri? stylesheetUri)) {
+                continue;
+            }
+            ThrowForDataStylesheetImport(css, stylesheetUri, resourceOptions);
+        }
+    }
+
+    private static void ThrowForDataStylesheetImport(
+        string css,
+        Uri baseUri,
+        HtmlResourcePipelineOptions resourceOptions) {
+        HtmlExternalStylesheetAnalysis analysis = HtmlResourcePipeline.AnalyzeExternalStylesheet(
+            css,
+            baseUri,
+            resourceOptions);
+        if (analysis.Imports.Any(import => import.IsApplicable
+            && import.Reference.ResolvedSource.StartsWith("data:", StringComparison.OrdinalIgnoreCase))) {
+            throw new InvalidDataException(
+                "Data-URI stylesheet imports are not supported by package content-safety inspection.");
+        }
     }
 
     private static bool IsPackageStylesheetContentType(string contentType) =>

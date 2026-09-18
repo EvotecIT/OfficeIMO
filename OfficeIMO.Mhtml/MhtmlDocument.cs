@@ -470,8 +470,10 @@ public sealed partial class MhtmlDocument {
 
     private static bool IsMultipartRelated(IEnumerable<EmailHeader> headers) {
         string? contentType = GetHeaderValue(headers, "Content-Type");
-        return contentType != null && contentType.TrimStart()
-            .StartsWith("multipart/related", StringComparison.OrdinalIgnoreCase);
+        if (contentType == null) return false;
+        var diagnostics = new List<EmailDiagnostic>();
+        MimeValue parsed = MimeValueParser.Parse(contentType, "text/plain", diagnostics, "Content-Type");
+        return string.Equals(parsed.Value, "multipart/related", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string? GetHeaderValue(IEnumerable<EmailHeader> headers, string name) =>

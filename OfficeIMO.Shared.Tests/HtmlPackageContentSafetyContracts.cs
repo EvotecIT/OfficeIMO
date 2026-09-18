@@ -540,6 +540,19 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Fact]
+    public void Mhtml_RequiresExactMultipartRelatedMediaType() {
+        byte[] input = Encoding.ASCII.GetBytes(
+            "MIME-Version: 1.0\r\n" +
+            "Content-Type: multipart/relatedevil; boundary=outer\r\n\r\n" +
+            "--outer\r\n" +
+            "Content-Type: text/html; charset=utf-8\r\n\r\n" +
+            "<html><body><p style='display:none'>Generic multipart child.</p></body></html>\r\n" +
+            "--outer--\r\n");
+
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.Load(new MemoryStream(input, writable: false)));
+    }
+
+    [Fact]
     public void Mhtml_ConcealedStylePayloadsRemainReportOnly() {
         byte[] input = new MhtmlDocument(
             "<html><head><style hidden>.unrelated { display: none; }</style></head><body><p>Visible.</p></body></html>")
@@ -565,6 +578,32 @@ public sealed class HtmlPackageContentSafetyContractTests {
 
         Assert.DoesNotContain(MhtmlDocument.InspectContentSafety(input).Findings, finding =>
             finding.TextPreview.Contains("Late import remains visible", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void PackageCssRejectsDataUriImportsAtEveryStylesheetDepth() {
+        byte[] baseLessInline = new MhtmlDocument(
+            "<html><head><style>@import url('data:text/css,.concealed%7Bdisplay%3Anone%7D');</style></head>" +
+            "<body><p class='concealed'>Base-less inline import target.</p></body></html>").ToBytes();
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(baseLessInline));
+
+        byte[] inline = new MhtmlDocument(
+            "<html><head><style>@import url('data:text/css,.concealed%7Bdisplay%3Anone%7D');</style></head>" +
+            "<body><p class='concealed'>Inline import target.</p></body></html>",
+            contentLocation: "https://example.test/index.html").ToBytes();
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(inline));
+
+        byte[] external = new MhtmlDocument(
+            "<html><head><link rel='stylesheet' href='site.css'></head>" +
+            "<body><p class='concealed'>External import target.</p></body></html>",
+            new[] {
+                new MhtmlResource(
+                    Encoding.UTF8.GetBytes("@import url('data:text/css,.concealed%7Bdisplay%3Anone%7D');"),
+                    "text/css",
+                    contentLocation: "site.css")
+            },
+            contentLocation: "https://example.test/index.html").ToBytes();
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(external));
     }
 
     [Fact]
