@@ -137,6 +137,10 @@ public sealed partial class MhtmlDocument {
         EmailReaderOptions readerOptions = IntersectReaderOptions(mimeOptions ?? EmailReaderOptions.Default, options);
         using var stream = new MemoryStream(archiveBytes, writable: false);
         MhtmlDocument document = Load(stream, readerOptions, cancellationToken: cancellationToken);
+        if (document._mimeDocument.Body.HtmlMimeHeaders.Any(header => IsActiveContentSecurityPolicyHeader(header.Name))) {
+            throw new InvalidDataException(
+                "MHTML content-safety inspection cannot model an active Content Security Policy on the selected HTML root.");
+        }
         if (!MimeTextCodec.IsSupportedTransferEncoding(document._mimeDocument.Body.HtmlTransferEncoding)
             || document._mimeDocument.Body.HtmlMimeTransferDecodingWasAmbiguous
             || (!string.IsNullOrWhiteSpace(document._mimeDocument.Body.HtmlCharset)
@@ -162,6 +166,8 @@ public sealed partial class MhtmlDocument {
             || diagnostic.Code == MimeParser.RelatedRootNotHtmlDiagnosticCode
             || diagnostic.Code == MimeParser.RelatedRootTypeMismatchDiagnosticCode
             || diagnostic.Code == MimeParser.EmptyBoundaryDiagnosticCode
+            || diagnostic.Code == MimeParser.InvalidBoundaryDiagnosticCode
+            || diagnostic.Code == MimeParser.UnmodeledAlternativeDiagnosticCode
             || diagnostic.Code == MimeParser.BoundaryNotClosedDiagnosticCode);
         if (ambiguous != null) {
             throw new InvalidDataException(
@@ -170,6 +176,11 @@ public sealed partial class MhtmlDocument {
         }
         return document;
     }
+
+    private static bool IsActiveContentSecurityPolicyHeader(string name) =>
+        string.Equals(name, "Content-Security-Policy", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(name, "X-Content-Security-Policy", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(name, "X-WebKit-CSP", StringComparison.OrdinalIgnoreCase);
 
     private static async Task<OfficeContentSafetyReport> InspectDocumentContentSafetyAsync(
         MhtmlDocument document,

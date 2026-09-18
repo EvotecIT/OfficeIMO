@@ -1,6 +1,6 @@
 namespace OfficeIMO.Email;
 
-internal static class MimeParser {
+internal static partial class MimeParser {
     internal const string MultipleHtmlBodyDiagnosticCode = "EMAIL_MIME_HTML_BODY_MULTIPLE";
     internal const string RelatedRootMissingDiagnosticCode = "EMAIL_MIME_RELATED_ROOT_MISSING";
     internal const string RelatedRootNotHtmlDiagnosticCode = "EMAIL_MIME_RELATED_ROOT_NOT_HTML";
@@ -85,6 +85,11 @@ internal static class MimeParser {
                 state.Diagnostics.Add(new EmailDiagnostic(EmptyBoundaryDiagnosticCode,
                     string.Concat("Multipart entity '", contentType.Value,
                         "' declares an empty boundary; compatible recovery was attempted."),
+                    EmailDiagnosticSeverity.Warning, location));
+            } else if (!IsValidBoundary(boundary)) {
+                state.Diagnostics.Add(new EmailDiagnostic(InvalidBoundaryDiagnosticCode,
+                    string.Concat("Multipart entity '", contentType.Value,
+                        "' declares a boundary outside the RFC 2046 syntax and length limits."),
                     EmailDiagnosticSeverity.Warning, location));
             }
 
@@ -563,7 +568,7 @@ internal static class MimeParser {
         if (!alternative && !related && !signed && !mixed) {
             return contentType.Value.StartsWith("multipart/", StringComparison.OrdinalIgnoreCase)
                 ? PreferredBodyKind.NonHtml
-                : PreferredBodyKind.None;
+                : PreferredBodyKind.Unmodeled;
         }
 
         string? boundary = contentType.GetParameter("boundary");
@@ -664,6 +669,14 @@ internal static class MimeParser {
                 mimeDepth + 1,
                 childLocation,
                 "text/plain");
+            if (kind == PreferredBodyKind.Unmodeled) {
+                state.Diagnostics.Add(new EmailDiagnostic(
+                    UnmodeledAlternativeDiagnosticCode,
+                    "A preferred multipart/alternative representation cannot be modeled safely.",
+                    EmailDiagnosticSeverity.Warning,
+                    childLocation));
+                return kind;
+            }
             if (kind != PreferredBodyKind.None) return kind;
         }
         return PreferredBodyKind.None;
@@ -711,7 +724,8 @@ internal static class MimeParser {
         None,
         Html,
         HtmlThroughMixed,
-        NonHtml
+        NonHtml,
+        Unmodeled
     }
 
     internal static string? TrimAngleBrackets(string? value) {

@@ -325,17 +325,27 @@ public static partial class HtmlContentSafety {
         HtmlComputedStyle? style,
         IReadOnlyDictionary<IElement, HtmlComputedStyle> styles,
         OfficeContentSafetyOptions options) {
-        if (HtmlResourcePipeline.IsHtmlNamespaceElement(element)
-            && (element.HasAttribute("hidden")
-                || string.Equals(element.LocalName, "input", StringComparison.OrdinalIgnoreCase)
-                && string.Equals(element.GetAttribute("type"), "hidden", StringComparison.OrdinalIgnoreCase))) {
+        bool isHtmlElement = HtmlResourcePipeline.IsHtmlNamespaceElement(element);
+        bool isHiddenInput = isHtmlElement
+            && string.Equals(element.LocalName, "input", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(element.GetAttribute("type"), "hidden", StringComparison.OrdinalIgnoreCase);
+        if (isHiddenInput) {
             return new Concealment(
                 OfficeContentConcealmentKind.HiddenByProperty,
                 "The HTML hidden state prevents ordinary rendering.",
                 isComputedStyle: false);
         }
+        bool hasHiddenAttribute = isHtmlElement && element.HasAttribute("hidden");
+        string display = style?.GetValue("display").Trim() ?? string.Empty;
+        if (hasHiddenAttribute
+            && (style == null
+                || !style.IsSpecifiedValue("display")
+                || string.Equals(display, "none", StringComparison.OrdinalIgnoreCase))) {
+            return new Concealment(
+                OfficeContentConcealmentKind.HiddenByProperty,
+                "The HTML hidden state prevents ordinary rendering.");
+        }
         if (style == null) return null;
-        string display = style.GetValue("display").Trim();
         if (string.Equals(display, "none", StringComparison.OrdinalIgnoreCase)) {
             return new Concealment(OfficeContentConcealmentKind.HiddenByProperty, "Computed CSS display is none.");
         }
