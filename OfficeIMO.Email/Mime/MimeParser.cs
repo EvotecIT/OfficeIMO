@@ -58,8 +58,6 @@ internal static class MimeParser {
             string.Equals(TrimAngleBrackets(contentId), TrimAngleBrackets(preferredBodyContentId),
                 StringComparison.OrdinalIgnoreCase);
         bool isPreferredRelatedBody = isDefaultRelatedRoot || contentIdMatchesPreferred;
-        bool hasRelatedIdentity = !string.IsNullOrWhiteSpace(contentId) ||
-            !string.IsNullOrWhiteSpace(contentLocation);
         bool attachmentDisposition = string.Equals(disposition.Value, "attachment", StringComparison.OrdinalIgnoreCase);
         bool inlineDisposition = string.Equals(disposition.Value, "inline", StringComparison.OrdinalIgnoreCase);
         EmailProtectionKind entityProtection = MimeProtectionProjection.Classify(
@@ -72,7 +70,7 @@ internal static class MimeParser {
 
         if (contentType.Value.StartsWith("multipart/", StringComparison.OrdinalIgnoreCase) &&
             !attachmentDisposition && string.IsNullOrWhiteSpace(fileName) &&
-            (!isRelatedSibling || !hasRelatedIdentity || isPreferredRelatedBody)) {
+            (!isRelatedSibling || isPreferredRelatedBody)) {
             string? boundary = contentType.GetParameter("boundary");
             if (boundary == null) {
                 state.Diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_BOUNDARY_MISSING",
@@ -116,8 +114,7 @@ internal static class MimeParser {
                         childDefaultContentType,
                         state.Diagnostics,
                         partLocation);
-                    if (!string.Equals(relatedRootType.Value, "text/html", StringComparison.OrdinalIgnoreCase)
-                        && !string.Equals(relatedRootType.Value, "multipart/alternative", StringComparison.OrdinalIgnoreCase)) {
+                    if (!IsHtmlBearingRelatedRoot(relatedRootType.Value)) {
                         state.Diagnostics.Add(new EmailDiagnostic(
                             RelatedRootNotHtmlDiagnosticCode,
                             "The multipart/related start parameter selects neither HTML nor an HTML-bearing alternative root part.",
@@ -146,7 +143,7 @@ internal static class MimeParser {
         }
 
         bool isBodyCandidate = !attachmentDisposition && string.IsNullOrWhiteSpace(fileName) &&
-            (!isRelatedSibling || !hasRelatedIdentity || isPreferredRelatedBody) &&
+            (!isRelatedSibling || isPreferredRelatedBody) &&
             (string.Equals(contentType.Value, "text/plain", StringComparison.OrdinalIgnoreCase) ||
              string.Equals(contentType.Value, "text/html", StringComparison.OrdinalIgnoreCase) ||
              string.Equals(contentType.Value, "text/rtf", StringComparison.OrdinalIgnoreCase));
@@ -475,6 +472,10 @@ internal static class MimeParser {
         if (result > minimum && data[result - 1] == '\r') result--;
         return result;
     }
+
+    private static bool IsHtmlBearingRelatedRoot(string contentType) =>
+        string.Equals(contentType, "text/html", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(contentType, "multipart/alternative", StringComparison.OrdinalIgnoreCase);
 
     internal static string? TrimAngleBrackets(string? value) {
         if (string.IsNullOrWhiteSpace(value)) return value;

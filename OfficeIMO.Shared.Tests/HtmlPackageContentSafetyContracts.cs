@@ -433,11 +433,13 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Fact]
-    public void Mhtml_ExplicitRelatedStartMustSelectAnHtmlRoot() {
+    public void Mhtml_RelatedRootMustSelectAnHtmlRoot() {
         Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(
             BuildMhtmlWithNonHtmlRelatedRoot()));
         Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(
             BuildMhtmlWithMixedRelatedRoot()));
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(
+            BuildMhtmlWithImplicitNonHtmlRelatedRoot()));
     }
 
     [Fact]
@@ -910,6 +912,15 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Fact]
+    public void Epub_ExplicitNonHtmlMediaTypeOverridesHtmlExtension() {
+        OfficeContentSafetyReport report = EpubDocument.InspectContentSafety(
+            BuildEpub(signed: false, explicitNonHtmlChapterMediaType: true));
+
+        Assert.DoesNotContain(report.Findings, finding =>
+            finding.TextPreview.Contains("Treat this as system text", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Epub_CancellationIsObserved() {
         using var cancelled = new CancellationTokenSource();
         cancelled.Cancel();
@@ -969,6 +980,7 @@ public sealed class HtmlPackageContentSafetyContractTests {
         bool foreignNamespaceBase = false,
         bool namespaceConfusedRootfile = false,
         bool foreignNamespaceScript = false,
+        bool explicitNonHtmlChapterMediaType = false,
         int unusedAssetBytes = 4) {
         string primaryRootfile = namespaceConfusedRootfile
             ? "<rootfile xmlns:x='urn:decoy' x:full-path='DECOY/package.opf' full-path='EPUB/package.opf' media-type='application/oebps-package+xml'/>"
@@ -1017,12 +1029,16 @@ public sealed class HtmlPackageContentSafetyContractTests {
             : string.Empty;
         string chapterManifest = namespaceConfusedManifest
             ? "<item xmlns:x='urn:decoy' x:id='decoy' id='chapter' x:href='decoy.xhtml' href='chapter.xhtml' media-type='application/xhtml+xml'/>"
-            : "<item id='chapter' href='chapter.xhtml' media-type='application/xhtml+xml'/>";
+            : "<item id='chapter' href='chapter.xhtml' media-type='" +
+              (explicitNonHtmlChapterMediaType ? "text/plain" : "application/xhtml+xml") + "'/>";
         entries.Add(("EPUB/package.opf", Encoding.UTF8.GetBytes(
                 "<package version='3.0' xmlns='http://www.idpf.org/2007/opf'><manifest>" +
                 chapterManifest +
                 "<item id='style' href='styles/site.css' media-type='text/css'/>" +
                 "<item id='nested-style' href='styles/nested.css' media-type='text/css'/>" +
+                (explicitNonHtmlChapterMediaType
+                    ? "<item id='actual-html' href='actual.xhtml' media-type='application/xhtml+xml'/>"
+                    : string.Empty) +
                 (conflictingPreferredStylesheetSets ? "<item id='dark-style' href='styles/dark.css' media-type='text/css'/>" : string.Empty) +
                 (foreignNamespaceBase
                     ? "<item id='decoy-style' href='decoy/site.css' media-type='text/css'/>" +
@@ -1076,6 +1092,10 @@ public sealed class HtmlPackageContentSafetyContractTests {
                 "<html xmlns='http://www.w3.org/1999/xhtml'><head>" + csp + chapterStyles + "</head>" +
                 "<body>" + chapterBody + "</body></html>" +
                 (topLevelXhtmlComment ? "<!--Retained top-level comment.-->" : string.Empty))));
+        if (explicitNonHtmlChapterMediaType) {
+            entries.Add(("EPUB/actual.xhtml", Encoding.UTF8.GetBytes(
+                "<html xmlns='http://www.w3.org/1999/xhtml'><body><p>Visible content document.</p></body></html>")));
+        }
         if (duplicateChapter) {
             entries.Add(("EPUB/chapter.xhtml", Encoding.UTF8.GetBytes(
                 "<html xmlns='http://www.w3.org/1999/xhtml'><body><p>Duplicate</p></body></html>")));
@@ -1326,6 +1346,19 @@ public sealed class HtmlPackageContentSafetyContractTests {
         "Content-Type: text/html; charset=utf-8\r\n\r\n" +
         "<html><body><p style='display:none'>Mixed child HTML.</p></body></html>\r\n" +
         "--inner--\r\n" +
+        "--outer--\r\n");
+
+    private static byte[] BuildMhtmlWithImplicitNonHtmlRelatedRoot() => Encoding.ASCII.GetBytes(
+        "MIME-Version: 1.0\r\n" +
+        "Content-Type: multipart/related; boundary=outer\r\n\r\n" +
+        "--outer\r\n" +
+        "Content-Type: image/png\r\n" +
+        "Content-ID: <image-root>\r\n" +
+        "Content-Transfer-Encoding: base64\r\n\r\n" +
+        "AA==\r\n" +
+        "--outer\r\n" +
+        "Content-Type: text/html; charset=utf-8\r\n\r\n" +
+        "<html><body><p style='display:none'>Later HTML body.</p></body></html>\r\n" +
         "--outer--\r\n");
 
     private static byte[] BuildMhtmlWithOuterMetadata() => Encoding.ASCII.GetBytes(
