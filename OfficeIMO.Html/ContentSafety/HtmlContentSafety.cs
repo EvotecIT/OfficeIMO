@@ -102,14 +102,14 @@ public static partial class HtmlContentSafety {
         CancellationToken cancellationToken = default,
         bool allowComputedStyleCleanup = true) {
         cancellationToken.ThrowIfCancellationRequested();
-        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles = limits == null
-            ? HtmlComputedStyleEngine.Compute(document)
-            : HtmlComputedStyleEngine.Compute(document, HtmlCssMediaContext.Screen, limits);
+        HtmlComputedStyleSet styleSet = HtmlComputedStyleEngine.ComputeForContentSafety(document, limits);
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles = styleSet.Elements;
         cancellationToken.ThrowIfCancellationRequested();
         IElement? root = document.DocumentElement ?? document.Body;
         if (root != null) Traverse(
             root,
             styles,
+            styleSet,
             builder,
             targets,
             ancestorConcealed: false,
@@ -124,6 +124,7 @@ public static partial class HtmlContentSafety {
     private static void Traverse(
         IElement element,
         IReadOnlyDictionary<IElement, HtmlComputedStyle> styles,
+        HtmlComputedStyleSet styleSet,
         OfficeContentSafetyBuilder builder,
         IDictionary<string, HtmlCleanupTarget>? targets,
         bool ancestorConcealed,
@@ -135,7 +136,7 @@ public static partial class HtmlContentSafety {
         if (ignoredElements != null && ignoredElements.Contains(element)) return;
         string location = PrefixLocation(locationPrefix, BuildLocation(element));
         styles.TryGetValue(element, out HtmlComputedStyle? style);
-        InspectMachineOnlyAttributes(element, location, builder, targets);
+        InspectMachineOnlyAttributes(element, styleSet, location, builder, targets, allowComputedStyleCleanup);
 
         Concealment? concealment = ancestorConcealed ? null : FindElementConcealment(element, style, styles, builder.Options);
         if (concealment != null) {
@@ -194,7 +195,7 @@ public static partial class HtmlContentSafety {
             }
             if (!concealment.DescendantsMayOverride) return;
             foreach (IElement child in element.Children) {
-                Traverse(child, styles, builder, targets, ancestorConcealed: false, locationPrefix, ignoredElements, cancellationToken, allowComputedStyleCleanup);
+                Traverse(child, styles, styleSet, builder, targets, ancestorConcealed: false, locationPrefix, ignoredElements, cancellationToken, allowComputedStyleCleanup);
             }
             return;
         }
@@ -262,7 +263,7 @@ public static partial class HtmlContentSafety {
         }
 
         foreach (IElement child in element.Children) {
-            Traverse(child, styles, builder, targets, ancestorConcealed: false, locationPrefix, ignoredElements, cancellationToken, allowComputedStyleCleanup);
+            Traverse(child, styles, styleSet, builder, targets, ancestorConcealed: false, locationPrefix, ignoredElements, cancellationToken, allowComputedStyleCleanup);
         }
     }
 
@@ -422,16 +423,20 @@ public static partial class HtmlContentSafety {
 
     private static void InspectMachineOnlyAttributes(
         IElement element,
+        HtmlComputedStyleSet styleSet,
         string location,
         OfficeContentSafetyBuilder builder,
-        IDictionary<string, HtmlCleanupTarget>? targets) {
+        IDictionary<string, HtmlCleanupTarget>? targets,
+        bool allowComputedStyleCleanup) {
         if (!builder.Options.IncludeNonPrimaryContent) return;
         foreach (string attribute in new[] { "alt", "aria-label", "title", "data-ai", "data-prompt" }) {
             string value = element.GetAttribute(attribute) ?? string.Empty;
             if (string.IsNullOrWhiteSpace(value)) continue;
             AddAttributeOrNonPrimaryFinding(builder, targets, element, attribute, location + "/@" + attribute,
                 "The " + attribute + " attribute is machine-readable but not ordinary body text.", value,
-                reportOnly: string.Equals(attribute, "alt", StringComparison.Ordinal));
+                reportOnly: string.Equals(attribute, "alt", StringComparison.Ordinal)
+                    || !allowComputedStyleCleanup
+                    || IsGeneratedContentAttributeReference(element, styleSet, attribute));
         }
         if (HtmlResourcePipeline.IsHtmlNamespaceElement(element)
             && string.Equals(element.LocalName, "meta", StringComparison.OrdinalIgnoreCase)) {

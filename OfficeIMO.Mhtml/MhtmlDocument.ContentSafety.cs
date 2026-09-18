@@ -150,7 +150,8 @@ public sealed partial class MhtmlDocument {
                 "MHTML content-safety inspection requires the selected HTML root to use an unambiguous supported MIME encoding.");
         }
         EmailDiagnostic? ambiguous = document.MimeDiagnostics.FirstOrDefault(diagnostic =>
-            diagnostic.Code == MhtmlDiagnosticCodes.DuplicateContentId
+            !IsOpaqueNestedMessageDiagnostic(diagnostic)
+            && (diagnostic.Code == MhtmlDiagnosticCodes.DuplicateContentId
             || diagnostic.Code == MhtmlDiagnosticCodes.DuplicateContentLocation
             || diagnostic.Code == MhtmlDiagnosticCodes.DuplicateResourceIdentity
             || diagnostic.Code == MhtmlDiagnosticCodes.InvalidContentLocation
@@ -168,7 +169,7 @@ public sealed partial class MhtmlDocument {
             || diagnostic.Code == MimeParser.EmptyBoundaryDiagnosticCode
             || diagnostic.Code == MimeParser.InvalidBoundaryDiagnosticCode
             || diagnostic.Code == MimeParser.UnmodeledAlternativeDiagnosticCode
-            || diagnostic.Code == MimeParser.BoundaryNotClosedDiagnosticCode);
+            || diagnostic.Code == MimeParser.BoundaryNotClosedDiagnosticCode));
         if (ambiguous != null) {
             throw new InvalidDataException(
                 "MHTML content-safety inspection requires unambiguous MIME content headers and embedded resource identities. " +
@@ -181,6 +182,9 @@ public sealed partial class MhtmlDocument {
         string.Equals(name, "Content-Security-Policy", StringComparison.OrdinalIgnoreCase)
         || string.Equals(name, "X-Content-Security-Policy", StringComparison.OrdinalIgnoreCase)
         || string.Equals(name, "X-WebKit-CSP", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsOpaqueNestedMessageDiagnostic(EmailDiagnostic diagnostic) =>
+        diagnostic.Location?.IndexOf("/message", StringComparison.Ordinal) >= 0;
 
     private static async Task<OfficeContentSafetyReport> InspectDocumentContentSafetyAsync(
         MhtmlDocument document,

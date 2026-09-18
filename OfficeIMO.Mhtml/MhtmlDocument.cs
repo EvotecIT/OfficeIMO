@@ -385,13 +385,19 @@ public sealed partial class MhtmlDocument {
         var contentLocations = new HashSet<string>(HtmlResourceIdentityComparer.Instance);
         var resolverIdentities = new Dictionary<string, int>(HtmlResourceIdentityComparer.Instance);
         if (!string.IsNullOrWhiteSpace(rootContentId)) contentIds.Add(rootContentId!);
-        if (!string.IsNullOrWhiteSpace(rootContentLocation)
-            && Uri.TryCreate(baseUri, RemoveUriFragment(rootContentLocation!), out _)) {
+        if (!string.IsNullOrWhiteSpace(rootContentLocation)) {
             string rawRootLocation = RemoveUriFragment(rootContentLocation!.Trim());
-            string absoluteRootLocation = RemoveUriFragment(baseUri).AbsoluteUri;
-            contentLocations.Add(absoluteRootLocation);
-            resolverIdentities[rawRootLocation] = -1;
-            resolverIdentities[absoluteRootLocation] = -1;
+            if (Uri.TryCreate(baseUri, rawRootLocation, out _)) {
+                string absoluteRootLocation = RemoveUriFragment(baseUri).AbsoluteUri;
+                contentLocations.Add(absoluteRootLocation);
+                resolverIdentities[rawRootLocation] = -1;
+                resolverIdentities[absoluteRootLocation] = -1;
+            } else {
+                diagnostics.Add(new EmailDiagnostic(
+                    MhtmlDiagnosticCodes.InvalidContentLocation,
+                    "The selected HTML root Content-Location could not be resolved against the archive base URI.",
+                    location: "root"));
+            }
         }
         for (int index = 0; index < resources.Count; index++) {
             MhtmlResource resource = resources[index];

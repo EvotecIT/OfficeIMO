@@ -289,6 +289,22 @@ internal static class HtmlRenderStylesheetApplier {
             && IsStyleElementCandidate(element, options);
     }
 
+    internal static bool HasSelectableAlternateStylesheetSet(IHtmlDocument document, HtmlRenderOptions options) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        if (options == null) throw new ArgumentNullException(nameof(options));
+        foreach (IElement element in document.QuerySelectorAll("link[href], style")) {
+            if (NormalizeStylesheetSetTitle(element.GetAttribute("title")) == null) continue;
+            if (string.Equals(element.LocalName, "link", StringComparison.OrdinalIgnoreCase)) {
+                if (IsStylesheetLinkCandidate(element, options) && !IsApplicableStylesheetLink(element, options)) return true;
+                continue;
+            }
+            if (string.Equals(element.LocalName, "style", StringComparison.OrdinalIgnoreCase)
+                && IsStyleElementCandidate(element, options)
+                && !IsApplicableStyleElement(element, options)) return true;
+        }
+        return false;
+    }
+
     private static string? FindPreferredStylesheetSet(IElement context, HtmlRenderOptions options) {
         IDocument? owner = context.Owner;
         if (owner == null) return null;

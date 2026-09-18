@@ -343,6 +343,8 @@ public static partial class HtmlResourcePipeline {
         if (TryFindNextAtRule(source, 0, "keyframes", out _, out _)
             || TryFindNextAtRule(source, 0, "-webkit-keyframes", out _, out _)
             || TryFindNextAtRule(source, 0, "starting-style", out _, out _)) return true;
+        string masked = MaskCssComments(source);
+        if (ContainsStatefulPseudoClass(masked, 0, masked.Length)) return true;
         return ExtractCssImports(source).Any(import => HasCssImportMediaCondition(import.ConditionText));
     }
 

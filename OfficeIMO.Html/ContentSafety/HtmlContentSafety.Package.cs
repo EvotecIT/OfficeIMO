@@ -338,7 +338,8 @@ public static partial class HtmlContentSafety {
         HtmlResourceSession resources,
         HtmlRenderOptions renderOptions,
         HtmlResourcePipelineOptions resourceOptions) {
-        bool hasEnvironmentDependentComputedStyles = false;
+        bool hasEnvironmentDependentComputedStyles =
+            HtmlRenderStylesheetApplier.HasSelectableAlternateStylesheetSet(document, renderOptions);
         Uri documentBaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, renderOptions.BaseUri)
             ?? new Uri("https://officeimo.invalid/", UriKind.Absolute);
         foreach (IElement element in document.QuerySelectorAll("style[media], link[media]")) {

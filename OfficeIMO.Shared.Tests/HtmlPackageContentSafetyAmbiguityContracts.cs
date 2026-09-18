@@ -67,6 +67,63 @@ public sealed class HtmlPackageContentSafetyAmbiguityContractTests {
     }
 
     [Theory]
+    [InlineData(":target")]
+    [InlineData(":hover")]
+    [InlineData(":focus")]
+    [InlineData(":\\74 arget")]
+    public void Mhtml_StateDependentConcealmentIsReportOnly(string stateSelector) {
+        byte[] input = new MhtmlDocument(
+            "<html><head><style>#secret{display:none}#secret" + stateSelector +
+            "{display:block}</style></head><body><p id='secret'>State reveal.</p></body></html>",
+            contentLocation: "https://example.test/index.html").ToBytes();
+
+        OfficeContentSafetyFinding finding = Assert.Single(MhtmlDocument.InspectContentSafety(input).Findings, item =>
+            item.TextPreview.Contains("State reveal", StringComparison.Ordinal));
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+    }
+
+    [Fact]
+    public void Mhtml_SelectableAlternateStylesheetConcealmentIsReportOnly() {
+        byte[] input = new MhtmlDocument(
+            "<html><head><link rel='stylesheet' title='default' href='default.css'>" +
+            "<link rel='alternate stylesheet' title='readable' href='readable.css'></head>" +
+            "<body><p class='switchable' title='Alternate generated title'>Alternate set reveal.</p></body></html>",
+            new[] {
+                new MhtmlResource(Encoding.UTF8.GetBytes(".switchable{display:none}"), "text/css", contentLocation: "default.css"),
+                new MhtmlResource(Encoding.UTF8.GetBytes(
+                    ".switchable{display:block}.switchable::before{content:attr(title)}"),
+                    "text/css", contentLocation: "readable.css")
+            },
+            contentLocation: "https://example.test/index.html").ToBytes();
+
+        OfficeContentSafetyReport report = MhtmlDocument.InspectContentSafety(input);
+        OfficeContentSafetyFinding finding = Assert.Single(report.Findings, item =>
+            item.TextPreview.Contains("Alternate set reveal", StringComparison.Ordinal));
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Contains(report.Findings, item =>
+            item.Location.EndsWith("/@title", StringComparison.Ordinal)
+            && item.CleanupCapability == OfficeContentCleanupCapability.ReportOnly);
+    }
+
+    [Theory]
+    [InlineData("attr(title)")]
+    [InlineData("\\61 ttr(title)")]
+    public void Mhtml_GeneratedContentAttributeIsReportOnly(string contentExpression) {
+        byte[] input = new MhtmlDocument(
+            "<html><head><style>p::before{content:" + contentExpression + "}</style></head>" +
+            "<body><p title='Generated title'>Body.</p></body></html>",
+            contentLocation: "https://example.test/index.html").ToBytes();
+
+        OfficeContentSafetyFinding finding = Assert.Single(MhtmlDocument.InspectContentSafety(input).Findings, item =>
+            item.Location.EndsWith("/@title", StringComparison.Ordinal)
+            && item.TextPreview.Contains("Generated title", StringComparison.Ordinal));
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+    }
+
+    [Theory]
     [InlineData("é")]
     [InlineData("boundary[")]
     [InlineData("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")]
@@ -136,6 +193,58 @@ public sealed class HtmlPackageContentSafetyAmbiguityContractTests {
                 diagnostic.Code == "EMAIL_MIME_SINGLETON_HEADER_DUPLICATE");
         }
         Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(input));
+    }
+
+    [Fact]
+    public void Mhtml_RejectsMalformedSelectedRootContentLocation() {
+        byte[] input = Encoding.ASCII.GetBytes(
+            "MIME-Version: 1.0\r\n" +
+            "Snapshot-Content-Location: https://example.test/fallback/index.html\r\n" +
+            "Content-Type: multipart/related; boundary=outer\r\n\r\n" +
+            "--outer\r\n" +
+            "Content-Type: text/html; charset=utf-8\r\n" +
+            "Content-Location: http://[invalid\r\n\r\n" +
+            "<html><body><p style='display:none'>Malformed root location.</p></body></html>\r\n" +
+            "--outer--\r\n");
+
+        using (var stream = new MemoryStream(input, writable: false)) {
+            MhtmlDocument document = MhtmlDocument.Load(stream);
+            Assert.Contains(document.MimeDiagnostics, diagnostic =>
+                diagnostic.Code == "MHTML_RESOURCE_CONTENT_LOCATION_INVALID" && diagnostic.Location == "root");
+        }
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(input));
+    }
+
+    [Fact]
+    public void Mhtml_IgnoresAmbiguityInsideOpaqueNestedMessageAttachment() {
+        byte[] input = Encoding.ASCII.GetBytes(
+            "MIME-Version: 1.0\r\n" +
+            "Content-Type: multipart/related; boundary=outer\r\n\r\n" +
+            "--outer\r\n" +
+            "Content-Type: text/html; charset=utf-8\r\n\r\n" +
+            "<html><body><p style='display:none'>Opaque nested diagnostics.</p></body></html>\r\n" +
+            "--outer\r\n" +
+            "Content-Type: message/rfc822; name=nested.eml\r\n" +
+            "Content-Disposition: attachment; filename=nested.eml\r\n\r\n" +
+            "MIME-Version: 1.0\r\n" +
+            "Content-Type: multipart/mixed; boundary=inner\r\n" +
+            "Content-Type: multipart/mixed; boundary=inner\r\n\r\n" +
+            "--inner\r\nContent-Type: text/plain\r\n\r\nNested body.\r\n" +
+            "--outer--\r\n");
+
+        using (var stream = new MemoryStream(input, writable: false)) {
+            MhtmlDocument document = MhtmlDocument.Load(stream);
+            Assert.Contains(document.MimeDiagnostics, diagnostic =>
+                diagnostic.Code == "EMAIL_MIME_SINGLETON_HEADER_DUPLICATE"
+                && diagnostic.Location?.Contains("/message", StringComparison.Ordinal) == true);
+            Assert.Contains(document.MimeDiagnostics, diagnostic =>
+                diagnostic.Code == "EMAIL_MIME_BOUNDARY_NOT_CLOSED"
+                && diagnostic.Location?.Contains("/message", StringComparison.Ordinal) == true);
+        }
+
+        OfficeContentSafetyFinding finding = Assert.Single(MhtmlDocument.InspectContentSafety(input).Findings, item =>
+            item.TextPreview.Contains("Opaque nested diagnostics", StringComparison.Ordinal));
+        Assert.NotEqual(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
     }
 
     private static byte[] BuildMhtmlWithBoundary(string declaredBoundary, string wireBoundary) => Encoding.UTF8.GetBytes(

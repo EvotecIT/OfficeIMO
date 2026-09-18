@@ -591,8 +591,17 @@ public static partial class HtmlResourcePipeline {
 
     private static bool TryReadPseudoClassName(string selector, int start, out string name, out int end) {
         int cursor = start;
-        while (cursor < selector.Length && (char.IsLetterOrDigit(selector[cursor]) || selector[cursor] == '-')) {
-            cursor++;
+        while (cursor < selector.Length) {
+            if (char.IsLetterOrDigit(selector[cursor]) || selector[cursor] == '-' || selector[cursor] == '_') {
+                cursor++;
+                continue;
+            }
+            if (selector[cursor] != '\\'
+                || !HtmlCssEscapeDecoder.TryDecodeEscape(selector, cursor, out _, out int consumed)
+                || consumed <= 1) {
+                break;
+            }
+            cursor += consumed;
         }
 
         if (cursor == start) {
@@ -601,7 +610,7 @@ public static partial class HtmlResourcePipeline {
             return false;
         }
 
-        name = selector.Substring(start, cursor - start);
+        name = HtmlCssEscapeDecoder.Decode(selector.Substring(start, cursor - start));
         end = cursor;
         return true;
     }
