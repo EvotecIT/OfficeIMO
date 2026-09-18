@@ -66,7 +66,8 @@ public sealed partial class MhtmlDocument {
         foreach (EmailAttachment attachment in document._mimeDocument.Attachments) {
             attachment.PreserveMimeHeadersOnWrite = true;
         }
-        byte[] output = document.ToBytes(new EmailWriterOptions(maxOutputBytes: options.Inspection.MaxExpandedPackageBytes));
+        long outputLimit = Math.Min(options.Inspection.MaxInputBytes, options.Inspection.MaxExpandedPackageBytes);
+        byte[] output = document.ToBytes(new EmailWriterOptions(maxOutputBytes: outputLimit));
         OfficeContentSafetyReport after = InspectContentSafety(output, options.Inspection, mimeOptions, cancellationToken);
         return new OfficeContentCleanupResult(output, cleaned.Before, after, cleaned.Changes);
     }

@@ -208,10 +208,7 @@ public static partial class HtmlContentSafety {
         limits.MaxTotalCssBytes = Math.Min(limits.MaxTotalCssBytes ?? long.MaxValue, renderOptions.MaxTotalResourceBytes);
 
         IHtmlDocument document = ParsePackageDocument(part, renderOptions.BaseUri, limits, safetyOptions, cancellationToken);
-        if (document.All.Any(element =>
-                HtmlResourcePipeline.IsHtmlNamespaceElement(element)
-                && (string.Equals(element.LocalName, "iframe", StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(element.LocalName, "frame", StringComparison.OrdinalIgnoreCase)))) {
+        if (document.All.Any(IsUnsupportedNestedRenderingContext)) {
             throw new InvalidDataException(
                 "Nested browsing contexts are not supported by package content-safety inspection.");
         }
@@ -352,7 +349,7 @@ public static partial class HtmlContentSafety {
         HtmlRenderOptions renderOptions,
         HtmlResourcePipelineOptions resourceOptions) {
         bool hasEnvironmentDependentComputedStyles =
-            HasPotentiallyActiveScripting(document)
+            HasPotentiallyDynamicRendering(document)
             || HtmlRenderStylesheetApplier.HasSelectableAlternateStylesheetSet(document, renderOptions);
         Uri documentBaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, renderOptions.BaseUri)
             ?? new Uri("https://officeimo.invalid/", UriKind.Absolute);
@@ -385,9 +382,10 @@ public static partial class HtmlContentSafety {
         return hasEnvironmentDependentComputedStyles;
     }
 
-    private static bool HasPotentiallyActiveScripting(IHtmlDocument document) {
+    private static bool HasPotentiallyDynamicRendering(IHtmlDocument document) {
         foreach (IElement element in document.All) {
             if (string.Equals(element.LocalName, "script", StringComparison.OrdinalIgnoreCase)) return true;
+            if (IsSvgDeclarativeAnimation(element)) return true;
             if (element.Attributes.Any(attribute =>
                     attribute.LocalName.Length > 2
                     && attribute.LocalName.StartsWith("on", StringComparison.OrdinalIgnoreCase))) {
@@ -395,6 +393,18 @@ public static partial class HtmlContentSafety {
             }
         }
         return false;
+    }
+
+    private static bool IsUnsupportedNestedRenderingContext(IElement element) {
+        if (!HtmlResourcePipeline.IsHtmlNamespaceElement(element)) return false;
+        return element.LocalName.ToLowerInvariant() is
+            "iframe" or "frame" or "object" or "embed" or "portal" or "fencedframe";
+    }
+
+    private static bool IsSvgDeclarativeAnimation(IElement element) {
+        if (!string.Equals(element.NamespaceUri, "http://www.w3.org/2000/svg", StringComparison.Ordinal)) return false;
+        return element.LocalName.ToLowerInvariant() is
+            "animate" or "animatecolor" or "animatemotion" or "animatetransform" or "discard" or "set";
     }
 
     private static void ThrowForUnsafeStylesheetConditions(

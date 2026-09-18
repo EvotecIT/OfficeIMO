@@ -150,7 +150,8 @@ public static partial class HtmlContentSafety {
                     "style",
                     StringComparison.OrdinalIgnoreCase);
                 bool reportOnlyComputedStyle = concealment.IsComputedStyle && !allowComputedStyleCleanup;
-                OfficeContentCleanupCapability capability = reportOnlyStylePayload || reportOnlyComputedStyle
+                OfficeContentCleanupCapability capability =
+                    reportOnlyStylePayload || reportOnlyComputedStyle || concealment.ReportOnly
                     ? OfficeContentCleanupCapability.ReportOnly
                     : concealment.DescendantsMayOverride
                     ? OfficeContentCleanupCapability.RemoveText
@@ -179,7 +180,7 @@ public static partial class HtmlContentSafety {
                         builder,
                         targets,
                         alreadyCharged: true,
-                        reportOnlyStylePayload
+                        capability == OfficeContentCleanupCapability.ReportOnly
                             ? OfficeContentCleanupCapability.ReportOnly
                             : OfficeContentCleanupCapability.RemoveText);
                 } else {
@@ -189,7 +190,7 @@ public static partial class HtmlContentSafety {
                         builder,
                         targets,
                         alreadyCharged: true,
-                        reportOnlyStylePayload
+                        capability == OfficeContentCleanupCapability.ReportOnly
                             ? OfficeContentCleanupCapability.ReportOnly
                             : OfficeContentCleanupCapability.RemoveText);
                 }
@@ -351,6 +352,8 @@ public static partial class HtmlContentSafety {
                 isComputedStyle: false);
         }
         bool hasHiddenAttribute = isHtmlElement && element.HasAttribute("hidden");
+        bool isHiddenUntilFound = hasHiddenAttribute
+            && string.Equals(element.GetAttribute("hidden")?.Trim(), "until-found", StringComparison.OrdinalIgnoreCase);
         string display = style?.GetValue("display").Trim() ?? string.Empty;
         if (hasHiddenAttribute
             && (style == null
@@ -358,7 +361,10 @@ public static partial class HtmlContentSafety {
                 || string.Equals(display, "none", StringComparison.OrdinalIgnoreCase))) {
             return new Concealment(
                 OfficeContentConcealmentKind.HiddenByProperty,
-                "The HTML hidden state prevents ordinary rendering.");
+                isHiddenUntilFound
+                    ? "The HTML hidden-until-found state is revealable through find-in-page or fragment navigation."
+                    : "The HTML hidden state prevents ordinary rendering.",
+                reportOnly: isHiddenUntilFound);
         }
         if (style == null) return null;
         if (string.Equals(display, "none", StringComparison.OrdinalIgnoreCase)) {
@@ -715,18 +721,21 @@ public static partial class HtmlContentSafety {
             string evidence,
             OfficeContentSafetyRisk risk = OfficeContentSafetyRisk.ContextDependent,
             bool descendantsMayOverride = false,
-            bool isComputedStyle = true) {
+            bool isComputedStyle = true,
+            bool reportOnly = false) {
             Kind = kind;
             Evidence = evidence;
             Risk = risk;
             DescendantsMayOverride = descendantsMayOverride;
             IsComputedStyle = isComputedStyle;
+            ReportOnly = reportOnly;
         }
         internal OfficeContentConcealmentKind Kind { get; }
         internal string Evidence { get; }
         internal OfficeContentSafetyRisk Risk { get; }
         internal bool DescendantsMayOverride { get; }
         internal bool IsComputedStyle { get; }
+        internal bool ReportOnly { get; }
     }
 
     private sealed class HtmlCleanupTarget : IEquatable<HtmlCleanupTarget> {
