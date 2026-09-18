@@ -97,6 +97,35 @@ public sealed class EmailContentSourceTests {
     }
 
     [Fact]
+    public void QuotedPrintablePayloadEscapesTheGeneratedBoundaryEqualsSign() {
+        EmailDocument template = ReadQuotedPrintableBoundaryDocument("placeholder");
+        string templateOutput = Encoding.ASCII.GetString(
+            new EmailDocumentWriter().ToBytes(template, EmailFileFormat.Eml));
+        const string boundaryMarker = "boundary=\"";
+        int boundaryStart = templateOutput.IndexOf(boundaryMarker, StringComparison.Ordinal);
+        Assert.True(boundaryStart >= 0);
+        boundaryStart += boundaryMarker.Length;
+        int boundaryEnd = templateOutput.IndexOf('"', boundaryStart);
+        string boundary = templateOutput.Substring(boundaryStart, boundaryEnd - boundaryStart);
+        string decodedMarker = "--" + boundary;
+
+        EmailDocument document = ReadQuotedPrintableBoundaryDocument(
+            decodedMarker.Replace("=", "=3D"));
+        string serialized = Encoding.ASCII.GetString(
+            new EmailDocumentWriter().ToBytes(document, EmailFileFormat.Eml));
+        int regeneratedStart = serialized.IndexOf(boundaryMarker, StringComparison.Ordinal) + boundaryMarker.Length;
+        string regeneratedBoundary = serialized.Substring(
+            regeneratedStart,
+            serialized.IndexOf('"', regeneratedStart) - regeneratedStart);
+        EmailAttachment attachment = Assert.Single(
+            new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(serialized)).Document.Attachments);
+
+        Assert.Equal(boundary, regeneratedBoundary);
+        Assert.Contains("--=3D_OfficeIMO_", serialized, StringComparison.Ordinal);
+        Assert.Equal(decodedMarker, Encoding.ASCII.GetString(Assert.IsType<byte[]>(attachment.Content)).Trim());
+    }
+
+    [Fact]
     public async Task AttachmentCanOpenSourceSynchronouslyAndAsynchronously() {
         byte[] payload = new byte[] { 1, 2, 3 };
         var attachment = new EmailAttachment { ContentSource = new CountingContentSource(payload) };
@@ -346,6 +375,20 @@ public sealed class EmailContentSourceTests {
             Html = "<html><body><p>Body</p></body></html>"
         }
     };
+
+    private static EmailDocument ReadQuotedPrintableBoundaryDocument(string encodedPayload) {
+        string message = "Subject: boundary collision scan\r\nMIME-Version: 1.0\r\n" +
+            "Content-Type: multipart/mixed; boundary=outer\r\n\r\n" +
+            "--outer\r\nContent-Type: text/html; charset=utf-8\r\n\r\n" +
+            "<html><body><p>Body</p></body></html>\r\n" +
+            "--outer\r\nContent-Type: application/octet-stream; name=payload.bin\r\n" +
+            "Content-Disposition: attachment; filename=payload.bin\r\n" +
+            "Content-Transfer-Encoding: quoted-printable\r\n\r\n" +
+            encodedPayload + "\r\n--outer--\r\n";
+        EmailDocument document = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(message)).Document;
+        Assert.Single(document.Attachments).PreserveMimeHeadersOnWrite = true;
+        return document;
+    }
 
     private static byte[] ReadAll(Stream stream) {
         using var output = new MemoryStream();

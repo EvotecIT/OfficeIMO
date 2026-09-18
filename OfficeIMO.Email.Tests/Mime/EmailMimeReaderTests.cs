@@ -179,6 +179,20 @@ public sealed class EmailMimeReaderTests {
     }
 
     [Fact]
+    public void MixedRfc2231ContinuationKeepsUnencodedSegmentsLiteralAndReportsAmbiguity() {
+        const string eml = "Subject: mixed continuation\r\nMIME-Version: 1.0\r\n" +
+            "Content-Type: application/octet-stream\r\n" +
+            "Content-Disposition: attachment; filename*0*=utf-8''safe; filename*1=%2Etxt\r\n\r\n" +
+            "content";
+
+        EmailReadResult result = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml));
+
+        Assert.Equal("safe%2Etxt", Assert.Single(result.Document.Attachments).FileName);
+        Assert.Contains(result.Diagnostics, diagnostic =>
+            diagnostic.Code == MimeValueParser.InvalidExtendedParameterDiagnosticCode);
+    }
+
+    [Fact]
     public void PrefersExtendedFilenameWhenThePlainFallbackAppearsLater() {
         const string eml = "Subject: extended filename\r\n" +
             "Content-Type: application/octet-stream\r\n" +

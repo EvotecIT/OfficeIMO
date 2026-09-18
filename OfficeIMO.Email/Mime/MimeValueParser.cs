@@ -64,8 +64,11 @@ internal static class MimeValueParser {
 
         foreach (KeyValuePair<string, SortedDictionary<int, ContinuationPart>> continuation in continuations) {
             StringBuilder builder = new StringBuilder();
+            StringBuilder encodedRun = new StringBuilder();
             int expected = 0;
-            bool encoded = false;
+            bool sawEncoded = false;
+            bool sawUnencoded = false;
+            string continuationCharset = "utf-8";
             foreach (KeyValuePair<int, ContinuationPart> part in continuation.Value) {
                 if (part.Key != expected) {
                     diagnostics.Add(new EmailDiagnostic(ParameterContinuationGapDiagnosticCode,
@@ -73,19 +76,58 @@ internal static class MimeValueParser {
                         EmailDiagnosticSeverity.Warning, location));
                     expected = part.Key;
                 }
-                builder.Append(part.Value.Value);
-                encoded |= part.Value.Encoded;
+                if (part.Value.Encoded) {
+                    sawEncoded = true;
+                    encodedRun.Append(part.Value.Value);
+                } else {
+                    sawUnencoded = true;
+                    AppendDecodedContinuationRun(
+                        builder,
+                        encodedRun,
+                        continuation.Key,
+                        diagnostics,
+                        location,
+                        ref continuationCharset);
+                    builder.Append(part.Value.Value);
+                }
                 expected++;
             }
-            string combined = builder.ToString();
-            if (encoded) {
-                result.Parameters[continuation.Key] = DecodeExtended(combined, continuation.Key, diagnostics, location);
+            AppendDecodedContinuationRun(
+                builder,
+                encodedRun,
+                continuation.Key,
+                diagnostics,
+                location,
+                ref continuationCharset);
+            if (sawEncoded) {
+                if (sawUnencoded && SecurityRelevantParameters.Contains(continuation.Key)) {
+                    ReportInvalidExtendedParameter(continuation.Key, diagnostics, location);
+                }
+                result.Parameters[continuation.Key] = builder.ToString();
                 extendedParameters.Add(continuation.Key);
             } else if (!extendedParameters.Contains(continuation.Key)) {
-                result.Parameters[continuation.Key] = combined;
+                result.Parameters[continuation.Key] = builder.ToString();
             }
         }
         return result;
+    }
+
+    private static void AppendDecodedContinuationRun(
+        StringBuilder output,
+        StringBuilder encodedRun,
+        string parameterName,
+        IList<EmailDiagnostic> diagnostics,
+        string location,
+        ref string charset) {
+        if (encodedRun.Length == 0) return;
+        output.Append(DecodeExtended(
+            encodedRun.ToString(),
+            parameterName,
+            diagnostics,
+            location,
+            charset,
+            out charset));
+        encodedRun.Clear();
     }
 
     private static void ReportDuplicateSecurityParameter(
@@ -105,8 +147,22 @@ internal static class MimeValueParser {
         string value,
         string parameterName,
         IList<EmailDiagnostic> diagnostics,
-        string location) {
-        string charset = "utf-8";
+        string location) => DecodeExtended(
+            value,
+            parameterName,
+            diagnostics,
+            location,
+            "utf-8",
+            out _);
+
+    private static string DecodeExtended(
+        string value,
+        string parameterName,
+        IList<EmailDiagnostic> diagnostics,
+        string location,
+        string defaultCharset,
+        out string resolvedCharset) {
+        string charset = defaultCharset;
         string payload = value;
         int first = value.IndexOf('\'');
         int second = first >= 0 ? value.IndexOf('\'', first + 1) : -1;
@@ -114,6 +170,7 @@ internal static class MimeValueParser {
             charset = value.Substring(0, first);
             payload = value.Substring(second + 1);
         }
+        resolvedCharset = charset;
 
         bool invalid = false;
         using (MemoryStream output = new MemoryStream(payload.Length)) {

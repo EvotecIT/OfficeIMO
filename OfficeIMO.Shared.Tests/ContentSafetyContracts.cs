@@ -104,6 +104,30 @@ public sealed class ContentSafetyContracts {
     }
 
     [Fact]
+    public void HtmlVisibilityCleanupPreservesVisibleDescendantOverrides() {
+        const string html = "<html><body><div style='visibility:hidden'>Hidden direct" +
+            "<span style='visibility:visible'>Visible override</span>" +
+            "<span>Hidden nested</span></div></body></html>";
+        OfficeContentSafetyReport report = HtmlContentSafety.Inspect(html);
+        OfficeContentSafetyFinding[] hidden = report.Findings
+            .Where(item => item.Kind == OfficeContentConcealmentKind.HiddenByProperty)
+            .ToArray();
+
+        Assert.Contains(hidden, item => item.TextPreview.Contains("Hidden direct", StringComparison.Ordinal));
+        Assert.Contains(hidden, item => item.TextPreview.Contains("Hidden nested", StringComparison.Ordinal));
+        Assert.DoesNotContain(hidden, item => item.TextPreview.Contains("Visible override", StringComparison.Ordinal));
+
+        OfficeContentCleanupResult result = HtmlContentSafety.RemoveSelected(
+            html,
+            new OfficeContentCleanupSelection(hidden.Select(item => item.Id)));
+        string output = Encoding.UTF8.GetString(result.Output);
+
+        Assert.Contains("Visible override", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("Hidden direct", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("Hidden nested", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void VisibleUnicodeEvidenceRemainsSeparateFromConcealment() {
         OfficeContentSafetyReport report = HtmlContentSafety.Inspect("<html><body><p>visible\u202Etext\u202C</p></body></html>");
 

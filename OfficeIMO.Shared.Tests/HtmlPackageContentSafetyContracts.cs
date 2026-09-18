@@ -13,6 +13,27 @@ namespace OfficeIMO.Shared.Tests;
 
 public sealed class HtmlPackageContentSafetyContractTests {
     [Fact]
+    public void Mhtml_VisibilityCleanupPreservesVisibleDescendantOverrides() {
+        byte[] input = new MhtmlDocument(
+            "<html><body><div style='visibility:hidden'>Hidden direct" +
+            "<span style='visibility:visible'>Visible override</span>" +
+            "<span>Hidden nested</span></div></body></html>").ToBytes();
+        OfficeContentSafetyFinding[] hidden = MhtmlDocument.InspectContentSafety(input).Findings
+            .Where(item => item.Kind == OfficeContentConcealmentKind.HiddenByProperty)
+            .ToArray();
+
+        OfficeContentCleanupResult result = MhtmlDocument.RemoveSelectedContent(
+            input,
+            new OfficeContentCleanupSelection(hidden.Select(item => item.Id)));
+        using var output = new MemoryStream(result.Output, writable: false);
+        string html = MhtmlDocument.Load(output).Html;
+
+        Assert.Contains("Visible override", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("Hidden direct", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("Hidden nested", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Mhtml_LinkedStylesheetFindingCanBeCleanedWhileResourcesArePreserved() {
         byte[] css = Encoding.UTF8.GetBytes(".concealed { display: none; }");
         byte[] image = { 1, 2, 3, 4, 5 };
@@ -576,6 +597,8 @@ public sealed class HtmlPackageContentSafetyContractTests {
     public void Mhtml_RelatedRootParametersMustDecodeStrictlyAndMatchTheRootType() {
         Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(
             BuildMhtmlWithInvalidExtendedRelatedStart()));
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(
+            BuildMhtmlWithMixedEncodedRelatedStart()));
         Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(
             BuildMhtmlWithMismatchedRelatedRootType()));
     }
@@ -1885,6 +1908,15 @@ public sealed class HtmlPackageContentSafetyContractTests {
         "--outer\r\n" +
         "Content-Type: text/html; charset=utf-8\r\n" +
         "Content-ID: <root>\r\n\r\n" +
+        "<html><body><p>Visible root.</p></body></html>\r\n" +
+        "--outer--\r\n");
+
+    private static byte[] BuildMhtmlWithMixedEncodedRelatedStart() => Encoding.ASCII.GetBytes(
+        "MIME-Version: 1.0\r\n" +
+        "Content-Type: multipart/related; boundary=outer; start*0*=utf-8''%3Croot; start*1=%3E\r\n\r\n" +
+        "--outer\r\n" +
+        "Content-Type: text/html; charset=utf-8\r\n" +
+        "Content-ID: <root%3E>\r\n\r\n" +
         "<html><body><p>Visible root.</p></body></html>\r\n" +
         "--outer--\r\n");
 

@@ -890,6 +890,8 @@ internal static class MimeWriter {
 
     private static bool ShouldScanTransferEncodedPayload(string? transferEncoding) {
         string normalized = (transferEncoding ?? string.Empty).Trim();
+        // Generated boundaries contain '='. Base64 cannot emit it and quoted-printable
+        // always emits that byte as '=3D', so decoded payload matches cannot become wire delimiters.
         return !string.Equals(normalized, "base64", StringComparison.OrdinalIgnoreCase) &&
             !string.Equals(normalized, "quoted-printable", StringComparison.OrdinalIgnoreCase);
     }

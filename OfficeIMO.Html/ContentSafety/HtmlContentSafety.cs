@@ -128,7 +128,9 @@ public static partial class HtmlContentSafety {
 
         Concealment? concealment = ancestorConcealed ? null : FindElementConcealment(element, style, styles, builder.Options);
         if (concealment != null) {
-            string text = element.TextContent ?? string.Empty;
+            string text = concealment.DescendantsMayOverride
+                ? string.Concat(element.ChildNodes.Where(node => node.NodeType == NodeType.Text).Select(node => node.TextContent))
+                : element.TextContent ?? string.Empty;
             if (!string.IsNullOrWhiteSpace(text)) {
                 bool reportOnlyStylePayload = string.Equals(
                     element.LocalName,
@@ -136,6 +138,8 @@ public static partial class HtmlContentSafety {
                     StringComparison.OrdinalIgnoreCase);
                 OfficeContentCleanupCapability capability = reportOnlyStylePayload
                     ? OfficeContentCleanupCapability.ReportOnly
+                    : concealment.DescendantsMayOverride
+                    ? OfficeContentCleanupCapability.RemoveText
                     : CanRemoveElement(element)
                     ? OfficeContentCleanupCapability.RemoveElement
                     : OfficeContentCleanupCapability.RemoveText;
@@ -148,19 +152,37 @@ public static partial class HtmlContentSafety {
                     capability,
                     inspectTextIntegrityEvidence: false);
                 if (targets != null && capability != OfficeContentCleanupCapability.ReportOnly) {
-                    targets[finding.Id] = capability == OfficeContentCleanupCapability.RemoveElement
+                    targets[finding.Id] = concealment.DescendantsMayOverride
+                        ? HtmlCleanupTarget.ForDirectText(element)
+                        : capability == OfficeContentCleanupCapability.RemoveElement
                         ? HtmlCleanupTarget.ForElement(element)
                         : HtmlCleanupTarget.ForText(element);
                 }
-                InspectHtmlTextIntegrity(
-                    element,
-                    location,
-                    builder,
-                    targets,
-                    alreadyCharged: true,
-                    reportOnlyStylePayload
-                        ? OfficeContentCleanupCapability.ReportOnly
-                        : OfficeContentCleanupCapability.RemoveText);
+                if (concealment.DescendantsMayOverride) {
+                    InspectHtmlDirectTextIntegrity(
+                        element,
+                        location,
+                        builder,
+                        targets,
+                        alreadyCharged: true,
+                        reportOnlyStylePayload
+                            ? OfficeContentCleanupCapability.ReportOnly
+                            : OfficeContentCleanupCapability.RemoveText);
+                } else {
+                    InspectHtmlTextIntegrity(
+                        element,
+                        location,
+                        builder,
+                        targets,
+                        alreadyCharged: true,
+                        reportOnlyStylePayload
+                            ? OfficeContentCleanupCapability.ReportOnly
+                            : OfficeContentCleanupCapability.RemoveText);
+                }
+            }
+            if (!concealment.DescendantsMayOverride) return;
+            foreach (IElement child in element.Children) {
+                Traverse(child, styles, builder, targets, ancestorConcealed: false, locationPrefix, ignoredElements, cancellationToken);
             }
             return;
         }
@@ -244,13 +266,14 @@ public static partial class HtmlContentSafety {
         string location,
         OfficeContentSafetyBuilder builder,
         IDictionary<string, HtmlCleanupTarget>? targets,
-        bool alreadyCharged) => InspectHtmlTextNodes(
+        bool alreadyCharged,
+        OfficeContentCleanupCapability cleanupCapability = OfficeContentCleanupCapability.RemoveText) => InspectHtmlTextNodes(
             element.ChildNodes.OfType<IText>(),
             location,
             builder,
             targets,
             alreadyCharged,
-            OfficeContentCleanupCapability.RemoveText);
+            cleanupCapability);
 
     private static void InspectHtmlTextNodes(
         IEnumerable<IText> textNodes,
@@ -298,7 +321,10 @@ public static partial class HtmlContentSafety {
         }
         string visibility = style.GetValue("visibility").Trim();
         if (string.Equals(visibility, "hidden", StringComparison.OrdinalIgnoreCase) || string.Equals(visibility, "collapse", StringComparison.OrdinalIgnoreCase)) {
-            return new Concealment(OfficeContentConcealmentKind.HiddenByProperty, "Computed CSS visibility is " + visibility + ".");
+            return new Concealment(
+                OfficeContentConcealmentKind.HiddenByProperty,
+                "Computed CSS visibility is " + visibility + ".",
+                descendantsMayOverride: string.Equals(visibility, "hidden", StringComparison.OrdinalIgnoreCase));
         }
         if (TryParseScalar(style.GetValue("opacity"), out double opacity) && opacity <= 0.01D) {
             return new Concealment(OfficeContentConcealmentKind.TransparentText, "Computed CSS opacity is " + opacity.ToString("0.###", CultureInfo.InvariantCulture) + ".");
@@ -597,12 +623,17 @@ public static partial class HtmlContentSafety {
     private static string NormalizePayload(string value) => string.IsNullOrWhiteSpace(value) ? string.Empty : value.Trim();
 
     private sealed class Concealment {
-        internal Concealment(OfficeContentConcealmentKind kind, string evidence, OfficeContentSafetyRisk risk = OfficeContentSafetyRisk.ContextDependent) {
-            Kind = kind; Evidence = evidence; Risk = risk;
+        internal Concealment(
+            OfficeContentConcealmentKind kind,
+            string evidence,
+            OfficeContentSafetyRisk risk = OfficeContentSafetyRisk.ContextDependent,
+            bool descendantsMayOverride = false) {
+            Kind = kind; Evidence = evidence; Risk = risk; DescendantsMayOverride = descendantsMayOverride;
         }
         internal OfficeContentConcealmentKind Kind { get; }
         internal string Evidence { get; }
         internal OfficeContentSafetyRisk Risk { get; }
+        internal bool DescendantsMayOverride { get; }
     }
 
     private sealed class HtmlCleanupTarget : IEquatable<HtmlCleanupTarget> {
