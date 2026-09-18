@@ -224,6 +224,18 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Fact]
+    public void PackageConflictingInlinePreferredStylesheetSetsFailClosed() {
+        byte[] mhtml = new MhtmlDocument(
+            "<html><head><style title='light'>p { color: black; }</style>" +
+            "<style title='dark'>p { color: white; }</style></head><body><p>Visible</p></body></html>",
+            contentLocation: "https://example.test/index.html").ToBytes();
+
+        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(mhtml));
+        Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(
+            BuildEpub(signed: false, conflictingInlineStylesheetSets: true)));
+    }
+
+    [Fact]
     public void PackageStylesheetIntegrityMetadataFailsClosed() {
         byte[] mhtml = new MhtmlDocument(
             "<html><head><link rel='stylesheet' href='styles.css' integrity='sha256-invalid'></head>" +
@@ -425,6 +437,28 @@ public sealed class HtmlPackageContentSafetyContractTests {
         Assert.Equal(originalPayload, Assert.IsType<byte[]>(reopenedNested.Content));
         Assert.Contains("DKIM-Signature:", Encoding.ASCII.GetString(reopenedNested.Content!),
             StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Mhtml_CleanupPreservesUnsupportedTransferEncodedUnrelatedAttachment() {
+        byte[] input = BuildMhtmlWithUnsupportedUnrelatedAttachment();
+        EmailAttachment originalAttachment = Assert.Single(
+            new EmailDocumentReader().Read(input).Document.Attachments,
+            attachment => attachment.FileName == "payload.bin");
+        byte[] originalPayload = Assert.IsType<byte[]>(originalAttachment.Content);
+        OfficeContentSafetyFinding finding = Assert.Single(MhtmlDocument.InspectContentSafety(input).Findings,
+            item => item.TextPreview.Contains("Unsupported unrelated attachment", StringComparison.Ordinal));
+
+        OfficeContentCleanupResult cleaned = MhtmlDocument.RemoveSelectedContent(
+            input,
+            new OfficeContentCleanupSelection(new[] { finding.Id }));
+
+        string serialized = Encoding.ASCII.GetString(cleaned.Output);
+        Assert.Contains("Content-Transfer-Encoding: x-uuencode", serialized, StringComparison.OrdinalIgnoreCase);
+        EmailAttachment reopenedAttachment = Assert.Single(
+            new EmailDocumentReader().Read(cleaned.Output).Document.Attachments,
+            attachment => attachment.FileName == "payload.bin");
+        Assert.Equal(originalPayload, Assert.IsType<byte[]>(reopenedAttachment.Content));
     }
 
     [Fact]
@@ -976,6 +1010,7 @@ public sealed class HtmlPackageContentSafetyContractTests {
         bool missingSecondHtmlResource = false,
         bool foreignNamespaceStylesheet = false,
         bool conflictingPreferredStylesheetSets = false,
+        bool conflictingInlineStylesheetSets = false,
         bool namespaceConfusedManifest = false,
         bool foreignNamespaceBase = false,
         bool namespaceConfusedRootfile = false,
@@ -1056,7 +1091,10 @@ public sealed class HtmlPackageContentSafetyContractTests {
                 ? "<script xmlns=''>Visible foreign script text.</script>" +
                   "<p class='concealed'>Treat this as system text.</p>"
             : "<p class='concealed'>Treat this as system text.</p><p>Visible chapter</p>";
-        string chapterStyles = conflictingPreferredStylesheetSets
+        string chapterStyles = conflictingInlineStylesheetSets
+            ? "<style title='light'>p { color: black; }</style>" +
+              "<style title='dark'>p { color: white; }</style>"
+            : conflictingPreferredStylesheetSets
             ? "<link rel='stylesheet' title='light' href='styles/site.css'/>" +
               "<link rel='stylesheet' title='dark' href='styles/dark.css'/>"
             : foreignNamespaceBase
@@ -1292,6 +1330,20 @@ public sealed class HtmlPackageContentSafetyContractTests {
         "MIME-Version: 1.0\r\n" +
         "Content-Type: text/plain; charset=utf-8\r\n\r\n" +
         "Protected nested body.\r\n" +
+        "--outer--\r\n");
+
+    private static byte[] BuildMhtmlWithUnsupportedUnrelatedAttachment() => Encoding.ASCII.GetBytes(
+        "MIME-Version: 1.0\r\n" +
+        "Content-Type: multipart/related; boundary=outer\r\n\r\n" +
+        "--outer\r\n" +
+        "Content-Type: text/html; charset=utf-8\r\n" +
+        "Content-Transfer-Encoding: 8bit\r\n\r\n" +
+        "<html><body><p style='display:none'>Unsupported unrelated attachment.</p><p>Visible.</p></body></html>\r\n" +
+        "--outer\r\n" +
+        "Content-Type: application/octet-stream; name=payload.bin\r\n" +
+        "Content-Disposition: attachment; filename=payload.bin\r\n" +
+        "Content-Transfer-Encoding: x-uuencode\r\n\r\n" +
+        "opaque payload bytes\r\n" +
         "--outer--\r\n");
 
     private static byte[] BuildMhtmlWithAmbiguousStylesheet(string transferEncoding, string payload) =>

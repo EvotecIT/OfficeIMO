@@ -18,7 +18,7 @@ public sealed partial class EpubDocument {
         CancellationToken cancellationToken = default) {
         if (packageBytes == null) throw new ArgumentNullException(nameof(packageBytes));
         OfficeContentSafetyOptions effective = options ?? new OfficeContentSafetyOptions();
-        EpubContentSafetyPackage package = LoadContentSafetyPackage(packageBytes, effective, readOptions, cancellationToken);
+        using EpubContentSafetyPackage package = LoadContentSafetyPackage(packageBytes, effective, readOptions, cancellationToken);
         return HtmlContentSafety.InspectPackagePartsAsync(
             "EPUB",
             package.Parts,
@@ -49,7 +49,7 @@ public sealed partial class EpubDocument {
         if (selection == null) throw new ArgumentNullException(nameof(selection));
         options ??= new OfficeContentCleanupOptions();
         options.Validate();
-        EpubContentSafetyPackage package = LoadContentSafetyPackage(packageBytes, options.Inspection, readOptions, cancellationToken);
+        using EpubContentSafetyPackage package = LoadContentSafetyPackage(packageBytes, options.Inspection, readOptions, cancellationToken);
         HtmlContentSafetyPackageCleanupResult cleaned = HtmlContentSafety.RemoveSelectedPackagePartsAsync(
             "EPUB",
             package.Parts,
@@ -135,30 +135,38 @@ public sealed partial class EpubDocument {
             resourcesByUri[CreatePackageUri(resource.Path).AbsoluteUri] = resource;
         }
 
-        var parts = new List<HtmlContentSafetyPackagePart>(htmlResources.Length);
-        foreach (EpubResource resource in htmlResources) {
-            cancellationToken.ThrowIfCancellationRequested();
-            byte[] bytes = resource.Data ?? throw new InvalidDataException(
-                "EPUB content document payload was not retained within the configured limits: " + resource.Path);
-            if (resource.Encryption?.RequiresDecryption == true) {
-                throw new InvalidDataException("EPUB content document requires unsupported decryption: " + resource.Path);
+        var resourceStore = new EpubPackageResourceStore(
+            packageBytes,
+            resourcesByUri,
+            effectiveReadOptions.MaxResourceBytes);
+        try {
+            var parts = new List<HtmlContentSafetyPackagePart>(htmlResources.Length);
+            foreach (EpubResource resource in htmlResources) {
+                cancellationToken.ThrowIfCancellationRequested();
+                byte[] bytes = resource.Data ?? throw new InvalidDataException(
+                    "EPUB content document payload was not retained within the configured limits: " + resource.Path);
+                if (resource.Encryption?.RequiresDecryption == true) {
+                    throw new InvalidDataException("EPUB content document requires unsupported decryption: " + resource.Path);
+                }
+                bool xhtml = IsXhtmlResource(resource);
+                string html = DecodeContentDocument(bytes, options, xhtml);
+                var renderOptions = CreateEpubRenderOptions(
+                    resource.Path,
+                    resourceStore,
+                    effectiveReadOptions,
+                    options);
+                parts.Add(new HtmlContentSafetyPackagePart(
+                    resource.Path,
+                    html,
+                    "EPUB/" + resource.Path,
+                    renderOptions,
+                    serializeAsXhtml: xhtml));
             }
-            bool xhtml = IsXhtmlResource(resource);
-            string html = DecodeContentDocument(bytes, options, xhtml);
-            var renderOptions = CreateEpubRenderOptions(
-                resource.Path,
-                packageBytes,
-                resourcesByUri,
-                effectiveReadOptions,
-                options);
-            parts.Add(new HtmlContentSafetyPackagePart(
-                resource.Path,
-                html,
-                "EPUB/" + resource.Path,
-                renderOptions,
-                serializeAsXhtml: xhtml));
+            return new EpubContentSafetyPackage(document, parts, resourceStore);
+        } catch {
+            resourceStore.Dispose();
+            throw;
         }
-        return new EpubContentSafetyPackage(document, parts);
     }
 
     private static string DecodeContentDocument(
@@ -211,8 +219,7 @@ public sealed partial class EpubDocument {
 
     private static HtmlRenderOptions CreateEpubRenderOptions(
         string contentPath,
-        byte[] packageBytes,
-        IReadOnlyDictionary<string, EpubResource> resourcesByUri,
+        EpubPackageResourceStore resourceStore,
         EpubReadOptions readOptions,
         OfficeContentSafetyOptions options) {
         var resourcePolicy = HtmlUrlPolicy.CreateEmbeddedResourceProfile();
@@ -226,51 +233,9 @@ public sealed partial class EpubDocument {
             MaxResourceCount = Math.Min(options.MaxPackageEntries, readOptions.MaxResources),
             MaxResourceRequests = Math.Min(options.MaxPackageEntries, readOptions.MaxResources)
         };
-        renderOptions.ResourceResolver = (request, token) => {
-            token.ThrowIfCancellationRequested();
-            var lookupUri = new UriBuilder(request.Uri) {
-                Fragment = string.Empty,
-                Query = string.Empty
-            }.Uri;
-            if (!request.Uri.Scheme.Equals("epub", StringComparison.OrdinalIgnoreCase)
-                || !resourcesByUri.TryGetValue(lookupUri.AbsoluteUri, out EpubResource? resource)
-                || resource.Encryption?.RequiresDecryption == true) {
-                return Task.FromResult<HtmlResolvedResource?>(null);
-            }
-            byte[] data = ReadPackageResource(packageBytes, resource, readOptions.MaxResourceBytes, token);
-            return Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(
-                data,
-                string.IsNullOrWhiteSpace(resource.MediaType) ? "application/octet-stream" : resource.MediaType!));
-        };
+        renderOptions.ResourceResolver = (request, token) =>
+            Task.FromResult(resourceStore.Resolve(request.Uri, token));
         return renderOptions;
-    }
-
-    private static byte[] ReadPackageResource(
-        byte[] packageBytes,
-        EpubResource resource,
-        long maximumBytes,
-        CancellationToken cancellationToken) {
-        cancellationToken.ThrowIfCancellationRequested();
-        if (resource.LengthBytes > maximumBytes || resource.LengthBytes > int.MaxValue) {
-            throw new InvalidDataException("EPUB stylesheet exceeds the configured resource limit: " + resource.Path);
-        }
-        using var stream = new MemoryStream(packageBytes, writable: false);
-        using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
-        ZipArchiveEntry? entry = archive.Entries.FirstOrDefault(item => item.FullName.Equals(resource.Path, StringComparison.Ordinal));
-        if (entry == null) throw new InvalidDataException("EPUB stylesheet entry is missing: " + resource.Path);
-        using Stream source = entry.Open();
-        using var output = new MemoryStream(checked((int)entry.Length));
-        var buffer = new byte[81920];
-        while (true) {
-            cancellationToken.ThrowIfCancellationRequested();
-            int read = source.Read(buffer, 0, buffer.Length);
-            if (read == 0) break;
-            if (output.Length > maximumBytes - read) {
-                throw new InvalidDataException("EPUB stylesheet exceeds the configured resource limit: " + resource.Path);
-            }
-            output.Write(buffer, 0, read);
-        }
-        return output.ToArray();
     }
 
     private static Uri CreatePackageUri(string path) {
@@ -409,15 +374,104 @@ public sealed partial class EpubDocument {
         return result;
     }
 
-    private sealed class EpubContentSafetyPackage {
+    private sealed class EpubPackageResourceStore : IDisposable {
+        private readonly MemoryStream _stream;
+        private readonly ZipArchive _archive;
+        private readonly IReadOnlyDictionary<string, EpubResource> _resourcesByUri;
+        private readonly Dictionary<string, ZipArchiveEntry> _entriesByPath;
+        private readonly Dictionary<string, byte[]> _cache = new(StringComparer.Ordinal);
+        private readonly long _maximumBytes;
+        private readonly object _sync = new();
+        private bool _disposed;
+
+        internal EpubPackageResourceStore(
+            byte[] packageBytes,
+            IReadOnlyDictionary<string, EpubResource> resourcesByUri,
+            long maximumBytes) {
+            _stream = new MemoryStream(packageBytes, writable: false);
+            _archive = new ZipArchive(_stream, ZipArchiveMode.Read, leaveOpen: true);
+            _resourcesByUri = resourcesByUri;
+            _entriesByPath = _archive.Entries.ToDictionary(entry => entry.FullName, StringComparer.Ordinal);
+            _maximumBytes = maximumBytes;
+        }
+
+        internal HtmlResolvedResource? Resolve(Uri requestUri, CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
+            var lookupUri = new UriBuilder(requestUri) {
+                Fragment = string.Empty,
+                Query = string.Empty
+            }.Uri;
+            if (!requestUri.Scheme.Equals("epub", StringComparison.OrdinalIgnoreCase)
+                || !_resourcesByUri.TryGetValue(lookupUri.AbsoluteUri, out EpubResource? resource)
+                || resource.Encryption?.RequiresDecryption == true) {
+                return null;
+            }
+
+            byte[] data;
+            lock (_sync) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (_disposed) throw new ObjectDisposedException(nameof(EpubPackageResourceStore));
+                if (!_cache.TryGetValue(resource.Path, out data!)) {
+                    data = ReadResource(resource, cancellationToken);
+                    _cache.Add(resource.Path, data);
+                }
+            }
+            return new HtmlResolvedResource(
+                data,
+                string.IsNullOrWhiteSpace(resource.MediaType) ? "application/octet-stream" : resource.MediaType!);
+        }
+
+        private byte[] ReadResource(EpubResource resource, CancellationToken cancellationToken) {
+            if (resource.LengthBytes > _maximumBytes || resource.LengthBytes > int.MaxValue) {
+                throw new InvalidDataException("EPUB resource exceeds the configured resource limit: " + resource.Path);
+            }
+            if (!_entriesByPath.TryGetValue(resource.Path, out ZipArchiveEntry? entry)) {
+                throw new InvalidDataException("EPUB resource entry is missing: " + resource.Path);
+            }
+            if (entry.Length > _maximumBytes || entry.Length > int.MaxValue) {
+                throw new InvalidDataException("EPUB resource exceeds the configured resource limit: " + resource.Path);
+            }
+
+            using Stream source = entry.Open();
+            using var output = new MemoryStream(checked((int)entry.Length));
+            var buffer = new byte[81920];
+            while (true) {
+                cancellationToken.ThrowIfCancellationRequested();
+                int read = source.Read(buffer, 0, buffer.Length);
+                if (read == 0) break;
+                if (output.Length > _maximumBytes - read) {
+                    throw new InvalidDataException("EPUB resource exceeds the configured resource limit: " + resource.Path);
+                }
+                output.Write(buffer, 0, read);
+            }
+            return output.ToArray();
+        }
+
+        public void Dispose() {
+            lock (_sync) {
+                if (_disposed) return;
+                _disposed = true;
+                _archive.Dispose();
+                _stream.Dispose();
+                _cache.Clear();
+            }
+        }
+    }
+
+    private sealed class EpubContentSafetyPackage : IDisposable {
         internal EpubContentSafetyPackage(
             EpubDocument document,
-            IReadOnlyList<HtmlContentSafetyPackagePart> parts) {
+            IReadOnlyList<HtmlContentSafetyPackagePart> parts,
+            EpubPackageResourceStore resourceStore) {
             Document = document;
             Parts = parts;
+            ResourceStore = resourceStore;
         }
 
         internal EpubDocument Document { get; }
         internal IReadOnlyList<HtmlContentSafetyPackagePart> Parts { get; }
+        private EpubPackageResourceStore ResourceStore { get; }
+
+        public void Dispose() => ResourceStore.Dispose();
     }
 }

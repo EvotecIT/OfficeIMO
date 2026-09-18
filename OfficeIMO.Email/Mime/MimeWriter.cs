@@ -506,15 +506,7 @@ internal static class MimeWriter {
         if (attachment.EmbeddedDocument != null) {
             if (preservePartHeaders) {
                 WriteLine(output, string.Empty);
-                if (attachment.Content != null && !EmailAttachmentStreamScope.HasStagedContent(attachment)) {
-                    WriteTransferEncodedPayload(output, attachment.Content,
-                        attachment.MimeTransferEncoding, state.Options.Base64LineLength);
-                    return;
-                }
-                using (Stream input = state.OpenAttachmentStream(attachment)) {
-                    WriteTransferEncodedPayload(output, ReadBoundedBytes(input, state.Options.MaxOutputBytes),
-                        attachment.MimeTransferEncoding, state.Options.Base64LineLength);
-                }
+                WritePreservedAttachmentPayload(output, attachment, state);
                 return;
             }
             WriteLine(output, "Content-Transfer-Encoding: 8bit");
@@ -540,14 +532,39 @@ internal static class MimeWriter {
 
         if (!preservePartHeaders) WriteLine(output, "Content-Transfer-Encoding: base64");
         WriteLine(output, string.Empty);
+        if (preservePartHeaders) {
+            WritePreservedAttachmentPayload(output, attachment, state);
+            return;
+        }
         if (attachment.Content != null && !EmailAttachmentStreamScope.HasStagedContent(attachment)) {
-            WriteTransferEncodedPayload(output, attachment.Content,
-                preservePartHeaders ? attachment.MimeTransferEncoding : "base64", state.Options.Base64LineLength);
+            WriteTransferEncodedPayload(output, attachment.Content, "base64", state.Options.Base64LineLength);
             return;
         }
         using (Stream input = state.OpenAttachmentStream(attachment)) {
-            if (!preservePartHeaders || string.Equals(attachment.MimeTransferEncoding, "base64", StringComparison.OrdinalIgnoreCase)) {
-                WriteBase64(output, input, state.Options.Base64LineLength, state.Options.MaxOutputBytes);
+            WriteBase64(output, input, state.Options.Base64LineLength, state.Options.MaxOutputBytes);
+        }
+    }
+
+    private static void WritePreservedAttachmentPayload(
+        Stream output,
+        EmailAttachment attachment,
+        MimeWriterState state) {
+        bool writeRaw = attachment.MimeDecodingWasAmbiguous
+            && !MimeTextCodec.IsSupportedTransferEncoding(attachment.MimeTransferEncoding);
+        if (attachment.Content != null && !EmailAttachmentStreamScope.HasStagedContent(attachment)) {
+            if (writeRaw) {
+                using var input = new MemoryStream(attachment.Content, writable: false);
+                WriteRawEntity(output, input, state.Options.MaxOutputBytes);
+            } else {
+                WriteTransferEncodedPayload(output, attachment.Content,
+                    attachment.MimeTransferEncoding, state.Options.Base64LineLength);
+            }
+            return;
+        }
+
+        using (Stream input = state.OpenAttachmentStream(attachment)) {
+            if (writeRaw) {
+                WriteRawEntity(output, input, state.Options.MaxOutputBytes);
             } else {
                 WriteTransferEncodedPayload(output, ReadBoundedBytes(input, state.Options.MaxOutputBytes),
                     attachment.MimeTransferEncoding, state.Options.Base64LineLength);
