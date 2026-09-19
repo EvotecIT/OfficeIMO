@@ -6,9 +6,13 @@ namespace OfficeIMO.Html;
 internal static class HtmlRenderStylesheetApplier {
     private const string ComponentName = "OfficeIMO.Html.Renderer";
 
-    internal static HtmlCssByteBudget CreateBudget(IHtmlDocument document, HtmlConversionLimits limits) {
+    internal static HtmlCssByteBudget CreateBudget(
+        IHtmlDocument document,
+        HtmlConversionLimits limits,
+        HtmlRenderOptions options) {
         var budget = new HtmlCssByteBudget(limits);
         foreach (IElement style in document.QuerySelectorAll("style")) {
+            if (!IsApplicableStyleElement(style, options)) continue;
             budget.ReserveOrThrow(style.TextContent ?? string.Empty);
         }
 
@@ -22,13 +26,40 @@ internal static class HtmlRenderStylesheetApplier {
         HtmlConversionLimits limits,
         HtmlCssByteBudget cssBudget,
         HtmlDiagnosticReport diagnostics) {
-        var reportedCycles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (IElement link in document.QuerySelectorAll("link[href]")) {
-            if (!IsStylesheetLink(link)) {
-                continue;
+        var reportedCycles = new HashSet<string>(HtmlResourceIdentityComparer.Instance);
+        Uri? documentBaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, options.BaseUri);
+        if (documentBaseUri != null) {
+            foreach (IElement inlineStyle in document.QuerySelectorAll("style")) {
+                if (!IsApplicableStyleElement(inlineStyle, options)) continue;
+                string css = inlineStyle.TextContent ?? string.Empty;
+                if (!HtmlResourcePipeline.HasCssImportAtRule(css)) continue;
+                inlineStyle.TextContent = ExpandImports(
+                    css,
+                    documentBaseUri,
+                    resources,
+                    options,
+                    limits,
+                    diagnostics,
+                    new HashSet<string>(HtmlResourceIdentityComparer.Instance),
+                    reportedCycles,
+                    cssBudget);
             }
+        }
+        foreach (IElement link in document.QuerySelectorAll("link[href]")) {
+            if (!IsApplicableStylesheetLink(link, options)) continue;
 
             string source = link.GetAttribute("href") ?? string.Empty;
+            if (!string.IsNullOrWhiteSpace(link.GetAttribute("integrity"))) {
+                diagnostics.Add(
+                    ComponentName,
+                    "StylesheetResourceRejectedByPolicy",
+                    "A linked stylesheet was not applied because subresource integrity metadata cannot be verified by the bounded package resolver.",
+                    HtmlDiagnosticSeverity.Error,
+                    source,
+                    "integrity",
+                    OfficeConversionLossKind.Omission);
+                continue;
+            }
             string? resolvedSource = resources.TryGetResolvedSource(source, null, out string resolved)
                 ? resolved
                 : null;
@@ -65,7 +96,7 @@ internal static class HtmlRenderStylesheetApplier {
                     options,
                     limits,
                     diagnostics,
-                    new HashSet<string>(StringComparer.OrdinalIgnoreCase),
+                    new HashSet<string>(HtmlResourceIdentityComparer.Instance),
                     reportedCycles,
                     cssBudget);
             }
@@ -133,7 +164,16 @@ internal static class HtmlRenderStylesheetApplier {
             HtmlExternalStylesheetImport import = analysis.Imports[index];
             string replacement = string.Empty;
             HtmlResourceReference reference = import.Reference;
-            if (import.IsApplicable
+            if (import.IsApplicable && import.HasLayerCondition) {
+                diagnostics.Add(
+                    ComponentName,
+                    HtmlRenderDiagnosticCodes.StylesheetImportLayerUnsupported,
+                    "A layered stylesheet import was not flattened because doing so would change cascade priority.",
+                    HtmlDiagnosticSeverity.Error,
+                    reference.Source,
+                    stylesheetUri.AbsoluteUri,
+                    OfficeConversionLossKind.Omission);
+            } else if (import.IsApplicable
                 && reference.IsAllowed
                 && !resources.WasStylesheetRejected(reference.Source, reference.ResolvedSource)
                 && resources.TryGet(reference.Source, reference.ResolvedSource, out HtmlResolvedResource importedResource)
@@ -198,6 +238,7 @@ internal static class HtmlRenderStylesheetApplier {
     }
 
     private static bool IsStylesheetLink(IElement link) {
+        if (!HtmlResourcePipeline.IsHtmlNamespaceElement(link)) return false;
         string rel = link.GetAttribute("rel") ?? string.Empty;
         foreach (string token in rel.Split(new[] { ' ', '\t', '\r', '\n', '\f' }, StringSplitOptions.RemoveEmptyEntries)) {
             if (string.Equals(token, "stylesheet", StringComparison.OrdinalIgnoreCase)) {
@@ -206,5 +247,99 @@ internal static class HtmlRenderStylesheetApplier {
         }
 
         return false;
+    }
+
+    private static bool IsAlternateStylesheetLink(IElement link) {
+        string rel = link.GetAttribute("rel") ?? string.Empty;
+        return rel.Split(new[] { ' ', '\t', '\r', '\n', '\f' }, StringSplitOptions.RemoveEmptyEntries)
+            .Any(token => string.Equals(token, "alternate", StringComparison.OrdinalIgnoreCase));
+    }
+
+    internal static bool IsApplicableStylesheetLink(IElement link, HtmlRenderOptions options) {
+        if (link == null) throw new ArgumentNullException(nameof(link));
+        if (options == null) throw new ArgumentNullException(nameof(options));
+        if (!IsStylesheetLinkCandidate(link, options)) return false;
+
+        string? title = NormalizeStylesheetSetTitle(link.GetAttribute("title"));
+        string? preferredSet = FindPreferredStylesheetSet(link, options);
+        return title == null
+            ? !IsAlternateStylesheetLink(link)
+            : string.Equals(title, preferredSet, StringComparison.Ordinal);
+    }
+
+    internal static bool IsApplicableStyleElement(IElement styleElement, HtmlRenderOptions options) {
+        if (styleElement == null) throw new ArgumentNullException(nameof(styleElement));
+        if (options == null) throw new ArgumentNullException(nameof(options));
+        if (!IsStyleElementCandidate(styleElement, options)) return false;
+
+        string? title = NormalizeStylesheetSetTitle(styleElement.GetAttribute("title"));
+        return title == null
+            || string.Equals(title, FindPreferredStylesheetSet(styleElement, options), StringComparison.Ordinal);
+    }
+
+    internal static bool IsPreferredStylesheetSetDeclaration(IElement element, HtmlRenderOptions options) {
+        if (element == null) throw new ArgumentNullException(nameof(element));
+        if (options == null) throw new ArgumentNullException(nameof(options));
+        string? title = NormalizeStylesheetSetTitle(element.GetAttribute("title"));
+        if (title == null) return false;
+        if (string.Equals(element.LocalName, "link", StringComparison.OrdinalIgnoreCase)) {
+            return IsStylesheetLinkCandidate(element, options) && !IsAlternateStylesheetLink(element);
+        }
+        return string.Equals(element.LocalName, "style", StringComparison.OrdinalIgnoreCase)
+            && IsStyleElementCandidate(element, options);
+    }
+
+    internal static bool HasSelectableAlternateStylesheetSet(IHtmlDocument document, HtmlRenderOptions options) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        if (options == null) throw new ArgumentNullException(nameof(options));
+        foreach (IElement element in document.QuerySelectorAll("link[href], style")) {
+            if (NormalizeStylesheetSetTitle(element.GetAttribute("title")) == null) continue;
+            if (string.Equals(element.LocalName, "link", StringComparison.OrdinalIgnoreCase)) {
+                if (IsStylesheetLinkCandidate(element, options) && !IsApplicableStylesheetLink(element, options)) return true;
+                continue;
+            }
+            if (string.Equals(element.LocalName, "style", StringComparison.OrdinalIgnoreCase)
+                && IsStyleElementCandidate(element, options)
+                && !IsApplicableStyleElement(element, options)) return true;
+        }
+        return false;
+    }
+
+    private static string? FindPreferredStylesheetSet(IElement context, HtmlRenderOptions options) {
+        IDocument? owner = context.Owner;
+        if (owner == null) return null;
+        foreach (IElement candidate in owner.QuerySelectorAll("link[href], style")) {
+            if (!IsPreferredStylesheetSetDeclaration(candidate, options)) continue;
+            return NormalizeStylesheetSetTitle(candidate.GetAttribute("title"));
+        }
+        return null;
+    }
+
+    private static bool IsStylesheetLinkCandidate(IElement link, HtmlRenderOptions options) =>
+        IsStylesheetLink(link)
+        && !link.HasAttribute("disabled")
+        && HtmlResourcePipeline.IsCssStylesheetType(link.GetAttribute("type"))
+        && IsApplicableMedia(link.GetAttribute("media") ?? string.Empty, options);
+
+    private static bool IsStyleElementCandidate(IElement styleElement, HtmlRenderOptions options) =>
+        HtmlResourcePipeline.IsCssStyleElement(styleElement)
+        && IsApplicableMedia(styleElement.GetAttribute("media") ?? string.Empty, options);
+
+    private static string? NormalizeStylesheetSetTitle(string? title) {
+        string normalized = title?.Trim() ?? string.Empty;
+        return normalized.Length == 0 ? null : normalized;
+    }
+
+    private static bool IsApplicableMedia(string mediaText, HtmlRenderOptions options) {
+        double? width = options.Mode == HtmlRenderMode.Paged ? options.PageWidth : options.ViewportWidth;
+        double? height = options.Mode == HtmlRenderMode.Paged ? options.PageHeight : options.ViewportHeight ?? 1056D;
+        return width.HasValue && height.HasValue
+            ? HtmlComputedStyleEngine.IsApplicableMedia(
+                mediaText,
+                options.MediaContext,
+                width.Value,
+                height.Value,
+                options.MediaFeatures)
+            : HtmlComputedStyleEngine.IsApplicableMedia(mediaText, options.MediaContext, options.MediaFeatures);
     }
 }

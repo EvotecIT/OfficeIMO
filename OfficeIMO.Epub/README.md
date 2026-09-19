@@ -40,7 +40,7 @@ foreach (string warning in book.Warnings) {
 EpubDocument book = EpubDocument.Load("signed.epub");
 
 if (book.HasSignatures) {
-    Console.WriteLine($"Signature elements: {book.Signatures.SignatureCount}");
+    Console.WriteLine($"Signature elements: {book.Signatures.XmlSignatureCount}");
     Console.WriteLine($"Well-formed signatures.xml: {book.Signatures.IsWellFormed}");
 }
 ```
@@ -79,6 +79,35 @@ foreach (EpubResource resource in book.Resources) {
 Manifest metadata is returned even when payload loading is disabled. Payload inclusion is opt-in and bounded per resource, in total, and by resource count; skipped payloads produce warnings.
 
 When `IncludeResourceData` is enabled, IDPF and Adobe font-obfuscated resources are deobfuscated only when the OPF package identity provides the required key. `EpubResource.WasDeobfuscated` identifies the resulting payload. If the identity is missing or malformed, `Data` remains unavailable and a structured diagnostic is returned; the reader does not expose still-obfuscated bytes as usable font data. This reversible standards-defined obfuscation is not DRM decryption.
+
+### Inspect and remove selected concealed HTML
+
+`InspectContentSafety` evaluates every local manifest HTML/XHTML resource with the shared bounded HTML/CSS safety model. Linked stylesheets and recursive `@import` rules resolve only inside the EPUB package.
+
+```csharp
+using OfficeIMO.ContentSafety;
+using OfficeIMO.Epub;
+
+OfficeContentSafetyReport report = EpubDocument.InspectContentSafety("book.epub");
+OfficeContentSafetyFinding finding = report.Findings.Single(item => item.TextPreview.Contains("ignore previous", StringComparison.OrdinalIgnoreCase));
+
+OfficeContentCleanupResult cleaned = EpubDocument.RemoveSelectedContent(
+    "book.epub",
+    "book-clean.epub",
+    new OfficeContentCleanupSelection(new[] { finding.Id }));
+```
+
+Cleanup replaces only changed content documents, preserves unrelated ZIP entries and the required leading uncompressed `mimetype` entry, then reopens and reinspects the output. XHTML inspection retains document-level comments as evidence, requires every local manifest HTML resource, accepts OPF package elements and core attributes only in their defined namespaces, and applies stylesheet links and base URLs only in the XHTML namespace. Rewritten HTML content preserves its declared character encoding. Missing, malformed, duplicate, encrypted, ambiguous, active integrity-qualified, external, or over-budget content and stylesheet dependencies fail closed, as do conflicting preferred titled stylesheet sets and documents with Content Security Policy declarations that the bounded cascade does not model. Foreign-namespace base and stylesheet elements, non-CSS stylesheets, and inactive-media stylesheets remain inert. An empty selection preserves the original bytes.
+
+Package signatures, including ZIP central-directory signature records, block mutation by default. A caller that accepts invalidation must request removal explicitly:
+
+```csharp
+var cleanupOptions = new OfficeContentCleanupOptions {
+    SignatureMutationPolicy = OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures
+};
+```
+
+That policy removes both supported signature carriers during an authorized rewrite: `META-INF/signatures.xml` and any ZIP central-directory digital-signature record. It does not claim that a modified package remains signed.
 
 ### Resolve chapter-relative references
 
@@ -174,7 +203,7 @@ foreach (string warning in book.Warnings) {
 
 - This package owns reusable EPUB parsing primitives.
 - Reader integration belongs in `OfficeIMO.Reader.Epub`.
-- The content model is read-only. The provenance API provides only targeted carrier removal; it does not attempt CSS layout, scripting, DRM, or general package editing. IDPF and Adobe font deobfuscation is bounded reader behavior, not a general encryption API.
+- The content model is read-only. The provenance and content-safety APIs provide only targeted, reviewed removal; they do not provide general package authoring, browser layout, scripting, DRM, or general encrypted-resource support. IDPF and Adobe font deobfuscation is bounded reader behavior, not a general encryption API.
 
 ## Targets and license
 
@@ -184,8 +213,8 @@ foreach (string warning in book.Warnings) {
 
 ## Dependency footprint
 
-- **External:** None; no third-party EPUB engine.
-- **OfficeIMO:** `OfficeIMO.Core`. Container, OPF, spine, navigation, chapter, and resource parsing are first-party.
+- **External:** No third-party EPUB engine. Concealed-content inspection uses `AngleSharp` and `AngleSharp.Css` transitively through the shared `OfficeIMO.Html` owner.
+- **OfficeIMO:** Direct dependencies are `OfficeIMO.Core` and `OfficeIMO.Html`; the HTML dependency also brings `OfficeIMO.Html.Core` and `OfficeIMO.Html.AngleSharp` (including its `System.Text.Encoding.CodePages` runtime dependency). Container, OPF, spine, navigation, chapter, and resource parsing remain first-party; the shared HTML owner supplies the bounded concealed-content and stylesheet model.
 - **Security:** `META-INF/signatures.xml` discovery is structural and provider-free. Creation and validation of the bounded OfficeIMO XML package-manifest profile accept an explicit `IOfficeSecurityProvider`; `OfficeIMO.Security` is not pulled transitively.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

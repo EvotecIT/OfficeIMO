@@ -14,6 +14,9 @@ internal static class MimeTextCodec {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
     }
 
+    internal static bool ContainsEncodedWord(string value) =>
+        !string.IsNullOrEmpty(value) && EncodedWordPattern.IsMatch(value);
+
     internal static string DecodeHeader(string value, IList<EmailDiagnostic> diagnostics, string location) {
         if (string.IsNullOrEmpty(value) || value.IndexOf("=?", StringComparison.Ordinal) < 0) return value;
 
@@ -78,6 +81,64 @@ internal static class MimeTextCodec {
         }
     }
 
+    internal static bool TryDecodeTextStrict(byte[] bytes, string? charset, out string value) {
+        value = string.Empty;
+        try {
+            value = ResolveStrictEncoding(charset).GetString(bytes);
+            return true;
+        } catch (Exception exception) when (exception is ArgumentException
+                                            || exception is NotSupportedException
+                                            || exception is DecoderFallbackException) {
+            return false;
+        }
+    }
+
+    internal static byte[] EncodeText(string text, string? charset) {
+        if (text == null) throw new ArgumentNullException(nameof(text));
+        return ResolveStrictEncoding(charset).GetBytes(text);
+    }
+
+    internal static Encoding ResolveStrictEncoding(string? charset) {
+        string normalized = string.IsNullOrWhiteSpace(charset)
+            ? "utf-8"
+            : charset!.Trim().Trim('"').ToLowerInvariant();
+        Encoding encoding;
+        switch (normalized) {
+            case "us-ascii":
+            case "ascii":
+                encoding = Encoding.GetEncoding(Encoding.ASCII.CodePage,
+                    EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback);
+                break;
+            case "utf-8":
+            case "utf8":
+                encoding = new UTF8Encoding(false, true);
+                break;
+            case "utf-16":
+            case "unicode":
+                encoding = new UnicodeEncoding(false, false, true);
+                break;
+            case "utf-16be":
+                encoding = new UnicodeEncoding(true, false, true);
+                break;
+            case "iso-8859-1":
+            case "latin1":
+            case "latin-1":
+                encoding = Encoding.GetEncoding(28591,
+                    EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback);
+                break;
+            case "windows-1252":
+            case "cp1252":
+                encoding = Encoding.GetEncoding(1252,
+                    EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback);
+                break;
+            default:
+                encoding = Encoding.GetEncoding(normalized,
+                    EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback);
+                break;
+        }
+        return encoding;
+    }
+
     internal static string DecodeText(byte[] bytes, int codePage, IList<EmailDiagnostic> diagnostics,
         string location) {
         try {
@@ -94,6 +155,16 @@ internal static class MimeTextCodec {
     internal static byte[] DecodeTransfer(byte[] bytes, string? transferEncoding, IList<EmailDiagnostic> diagnostics, string location) {
         long decodedLength = GetDecodedLength(bytes, 0, bytes.Length, transferEncoding);
         return DecodeTransfer(bytes, 0, bytes.Length, decodedLength, transferEncoding, diagnostics, location);
+    }
+
+    internal static bool IsSupportedTransferEncoding(string? transferEncoding) {
+        string normalized = (transferEncoding ?? string.Empty).Trim().ToLowerInvariant();
+        return normalized == ""
+            || normalized == "7bit"
+            || normalized == "8bit"
+            || normalized == "binary"
+            || normalized == "base64"
+            || normalized == "quoted-printable";
     }
 
     internal static byte[] DecodeTransfer(byte[] bytes, int offset, int count, long decodedLength,

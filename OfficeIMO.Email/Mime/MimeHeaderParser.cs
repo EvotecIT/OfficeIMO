@@ -1,6 +1,20 @@
 namespace OfficeIMO.Email;
 
 internal static class MimeHeaderParser {
+    internal const string DuplicateSingletonHeaderDiagnosticCode = "EMAIL_MIME_SINGLETON_HEADER_DUPLICATE";
+    internal const string InvalidUtf8HeaderDiagnosticCode = "EMAIL_MIME_HEADER_UTF8_INVALID";
+    internal const string EncodedWordInStructuredHeaderDiagnosticCode = "EMAIL_MIME_STRUCTURED_HEADER_ENCODED_WORD";
+    internal const string InvalidFieldNameDiagnosticCode = "EMAIL_MIME_HEADER_FIELD_NAME_INVALID";
+    private static readonly Encoding StrictUtf8 = new UTF8Encoding(false, true);
+    private static readonly string[] SingletonContentHeaders = {
+        "Content-Type",
+        "Content-Transfer-Encoding",
+        "Content-Disposition",
+        "Content-ID",
+        "Content-Location",
+        "Snapshot-Content-Location"
+    };
+
     internal static int Parse(byte[] data, int offset, int count, EmailReaderOptions options,
         IList<EmailHeader> headers, IList<EmailDiagnostic> diagnostics, string location) {
         int end = offset + count;
@@ -13,7 +27,17 @@ internal static class MimeHeaderParser {
             throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxHeaderBytes), headerBytes, options.MaxHeaderBytes);
         }
 
-        string block = Encoding.UTF8.GetString(data, offset, headerBytes);
+        string block;
+        try {
+            block = StrictUtf8.GetString(data, offset, headerBytes);
+        } catch (DecoderFallbackException) {
+            diagnostics.Add(new EmailDiagnostic(
+                InvalidUtf8HeaderDiagnosticCode,
+                "A MIME header block contains an invalid UTF-8 byte sequence.",
+                EmailDiagnosticSeverity.Warning,
+                location));
+            block = Encoding.UTF8.GetString(data, offset, headerBytes);
+        }
         string normalized = block.Replace("\r\n", "\n").Replace('\r', '\n');
         string[] lines = normalized.Split('\n');
         string? currentName = null;
@@ -26,6 +50,15 @@ internal static class MimeHeaderParser {
                 throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxHeaderCount), headers.Count + 1, options.MaxHeaderCount);
             }
             string rawValue = currentValue.ToString().Trim();
+            if (SingletonContentHeaders.Any(name => string.Equals(name, currentName, StringComparison.OrdinalIgnoreCase))
+                && MimeTextCodec.ContainsEncodedWord(rawValue)) {
+                diagnostics.Add(new EmailDiagnostic(
+                    EncodedWordInStructuredHeaderDiagnosticCode,
+                    string.Concat("Structured MIME header '", currentName,
+                        "' contains an RFC 2047 encoded word, which is not valid in this field."),
+                    EmailDiagnosticSeverity.Warning,
+                    location));
+            }
             headers.Add(new EmailHeader(currentName, MimeTextCodec.DecodeHeader(rawValue, diagnostics, location), rawValue));
             currentName = null;
             currentValue.Clear();
@@ -49,12 +82,29 @@ internal static class MimeHeaderParser {
                 }
                 continue;
             }
-            currentName = line.Substring(0, colon).Trim();
+            string rawName = line.Substring(0, colon);
+            if (!IsValidFieldName(rawName)) {
+                diagnostics.Add(new EmailDiagnostic(
+                    InvalidFieldNameDiagnosticCode,
+                    "A MIME header field name contains whitespace, non-ASCII text, or another invalid character.",
+                    EmailDiagnosticSeverity.Warning,
+                    string.Concat(location, "/header[", malformedIndex.ToString(CultureInfo.InvariantCulture), "]")));
+                malformedIndex++;
+            }
+            currentName = rawName.Trim();
             currentValue.Append(line.Substring(colon + 1).Trim());
         }
         flush();
 
         return headerEnd + separatorLength;
+    }
+
+    private static bool IsValidFieldName(string value) {
+        if (value.Length == 0) return false;
+        foreach (char character in value) {
+            if (character < '!' || character > '~' || character == ':') return false;
+        }
+        return true;
     }
 
     internal static string? GetValue(IEnumerable<EmailHeader> headers, string name) {
@@ -76,6 +126,21 @@ internal static class MimeHeaderParser {
     internal static IEnumerable<string> GetRawValues(IEnumerable<EmailHeader> headers, string name) {
         return headers.Where(item => string.Equals(item.Name, name, StringComparison.OrdinalIgnoreCase))
             .Select(item => item.RawValue ?? item.Value);
+    }
+
+    internal static void ReportDuplicateSingletonHeaders(
+        IReadOnlyList<EmailHeader> headers,
+        IList<EmailDiagnostic> diagnostics,
+        string location) {
+        foreach (string name in SingletonContentHeaders) {
+            int count = headers.Count(header => string.Equals(header.Name, name, StringComparison.OrdinalIgnoreCase));
+            if (count <= 1) continue;
+            diagnostics.Add(new EmailDiagnostic(
+                DuplicateSingletonHeaderDiagnosticCode,
+                string.Concat("MIME entity declares singleton header '", name, "' more than once."),
+                EmailDiagnosticSeverity.Warning,
+                location));
+        }
     }
 
     private static int FindHeaderEnd(byte[] data, int offset, int end, out int separatorLength) {

@@ -263,7 +263,11 @@ internal static class HtmlDocumentParser {
             return fallbackBaseUri;
         }
 
-        var baseElement = document.QuerySelector("base[href]");
+        var baseElement = document.QuerySelectorAll("base[href]")
+            .FirstOrDefault(element => string.Equals(
+                element.NamespaceUri,
+                "http://www.w3.org/1999/xhtml",
+                StringComparison.Ordinal));
         string? rawBaseHref = baseElement?.GetAttribute("href");
         if (rawBaseHref == null) {
             return fallbackBaseUri;

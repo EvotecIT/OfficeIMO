@@ -1,6 +1,16 @@
 namespace OfficeIMO.Email;
 
 internal static class MimeValueParser {
+    internal const string DuplicateSecurityParameterDiagnosticCode = "EMAIL_MIME_PARAMETER_DUPLICATE";
+    internal const string ParameterContinuationGapDiagnosticCode = "EMAIL_MIME_PARAMETER_CONTINUATION_GAP";
+    internal const string InvalidExtendedParameterDiagnosticCode = "EMAIL_MIME_PARAMETER_EXTENDED_INVALID";
+    private static readonly HashSet<string> SecurityRelevantParameters = new HashSet<string>(
+        new[] {
+            "boundary", "charset", "start", "type", "protocol", "micalg", "smime-type",
+            "name", "filename", "format", "delsp", "method", "profile"
+        },
+        StringComparer.OrdinalIgnoreCase);
+
     internal static MimeValue Parse(string? input, string defaultValue, IList<EmailDiagnostic> diagnostics, string location) {
         if (string.IsNullOrWhiteSpace(input)) return new MimeValue(defaultValue);
         List<string> segments = Split(input!);
@@ -8,6 +18,9 @@ internal static class MimeValueParser {
         HashSet<string> extendedParameters = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         Dictionary<string, SortedDictionary<int, ContinuationPart>> continuations =
             new Dictionary<string, SortedDictionary<int, ContinuationPart>>(StringComparer.OrdinalIgnoreCase);
+        var scalarParameters = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var continuationSegments = new Dictionary<string, HashSet<int>>(StringComparer.OrdinalIgnoreCase);
+        var reportedDuplicates = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         for (int i = 1; i < segments.Count; i++) {
             int equals = segments[i].IndexOf('=');
@@ -20,6 +33,15 @@ internal static class MimeValueParser {
             int star = baseName.LastIndexOf('*');
             if (star > 0 && int.TryParse(baseName.Substring(star + 1), NumberStyles.None, CultureInfo.InvariantCulture, out int part)) {
                 string continuationName = baseName.Substring(0, star);
+                if (SecurityRelevantParameters.Contains(continuationName)) {
+                    if (!continuationSegments.TryGetValue(continuationName, out HashSet<int>? seenParts)) {
+                        seenParts = new HashSet<int>();
+                        continuationSegments[continuationName] = seenParts;
+                    }
+                    if (scalarParameters.Contains(continuationName) || !seenParts.Add(part)) {
+                        ReportDuplicateSecurityParameter(continuationName, diagnostics, location, reportedDuplicates);
+                    }
+                }
                 SortedDictionary<int, ContinuationPart> values;
                 if (!continuations.TryGetValue(continuationName, out values!)) {
                     values = new SortedDictionary<int, ContinuationPart>();
@@ -27,8 +49,12 @@ internal static class MimeValueParser {
                 }
                 values[part] = new ContinuationPart(value, encoded);
             } else {
+                if (SecurityRelevantParameters.Contains(baseName)
+                    && (!scalarParameters.Add(baseName) || continuationSegments.ContainsKey(baseName))) {
+                    ReportDuplicateSecurityParameter(baseName, diagnostics, location, reportedDuplicates);
+                }
                 if (encoded) {
-                    result.Parameters[baseName] = DecodeExtended(value, diagnostics, location);
+                    result.Parameters[baseName] = DecodeExtended(value, baseName, diagnostics, location);
                     extendedParameters.Add(baseName);
                 } else if (!extendedParameters.Contains(baseName)) {
                     result.Parameters[baseName] = value;
@@ -38,32 +64,105 @@ internal static class MimeValueParser {
 
         foreach (KeyValuePair<string, SortedDictionary<int, ContinuationPart>> continuation in continuations) {
             StringBuilder builder = new StringBuilder();
+            StringBuilder encodedRun = new StringBuilder();
             int expected = 0;
-            bool encoded = false;
+            bool sawEncoded = false;
+            bool sawUnencoded = false;
+            string continuationCharset = "utf-8";
             foreach (KeyValuePair<int, ContinuationPart> part in continuation.Value) {
                 if (part.Key != expected) {
-                    diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_PARAMETER_CONTINUATION_GAP",
+                    diagnostics.Add(new EmailDiagnostic(ParameterContinuationGapDiagnosticCode,
                         string.Concat("Parameter '", continuation.Key, "' has a missing continuation segment."),
                         EmailDiagnosticSeverity.Warning, location));
                     expected = part.Key;
                 }
-                builder.Append(part.Value.Value);
-                encoded |= part.Value.Encoded;
+                if (part.Value.Encoded) {
+                    sawEncoded = true;
+                    encodedRun.Append(part.Value.Value);
+                } else {
+                    sawUnencoded = true;
+                    AppendDecodedContinuationRun(
+                        builder,
+                        encodedRun,
+                        continuation.Key,
+                        diagnostics,
+                        location,
+                        ref continuationCharset);
+                    builder.Append(part.Value.Value);
+                }
                 expected++;
             }
-            string combined = builder.ToString();
-            if (encoded) {
-                result.Parameters[continuation.Key] = DecodeExtended(combined, diagnostics, location);
+            AppendDecodedContinuationRun(
+                builder,
+                encodedRun,
+                continuation.Key,
+                diagnostics,
+                location,
+                ref continuationCharset);
+            if (sawEncoded) {
+                if (sawUnencoded && SecurityRelevantParameters.Contains(continuation.Key)) {
+                    ReportInvalidExtendedParameter(continuation.Key, diagnostics, location);
+                }
+                result.Parameters[continuation.Key] = builder.ToString();
                 extendedParameters.Add(continuation.Key);
             } else if (!extendedParameters.Contains(continuation.Key)) {
-                result.Parameters[continuation.Key] = combined;
+                result.Parameters[continuation.Key] = builder.ToString();
             }
         }
         return result;
     }
 
-    private static string DecodeExtended(string value, IList<EmailDiagnostic> diagnostics, string location) {
-        string charset = "utf-8";
+    private static void AppendDecodedContinuationRun(
+        StringBuilder output,
+        StringBuilder encodedRun,
+        string parameterName,
+        IList<EmailDiagnostic> diagnostics,
+        string location,
+        ref string charset) {
+        if (encodedRun.Length == 0) return;
+        output.Append(DecodeExtended(
+            encodedRun.ToString(),
+            parameterName,
+            diagnostics,
+            location,
+            charset,
+            out charset));
+        encodedRun.Clear();
+    }
+
+    private static void ReportDuplicateSecurityParameter(
+        string name,
+        IList<EmailDiagnostic> diagnostics,
+        string location,
+        ISet<string> reported) {
+        if (!reported.Add(name)) return;
+        diagnostics.Add(new EmailDiagnostic(
+            DuplicateSecurityParameterDiagnosticCode,
+            string.Concat("MIME parameter '", name, "' is declared more than once."),
+            EmailDiagnosticSeverity.Warning,
+            location));
+    }
+
+    private static string DecodeExtended(
+        string value,
+        string parameterName,
+        IList<EmailDiagnostic> diagnostics,
+        string location) => DecodeExtended(
+            value,
+            parameterName,
+            diagnostics,
+            location,
+            "utf-8",
+            out _);
+
+    private static string DecodeExtended(
+        string value,
+        string parameterName,
+        IList<EmailDiagnostic> diagnostics,
+        string location,
+        string defaultCharset,
+        out string resolvedCharset) {
+        string charset = defaultCharset;
         string payload = value;
         int first = value.IndexOf('\'');
         int second = first >= 0 ? value.IndexOf('\'', first + 1) : -1;
@@ -71,7 +170,9 @@ internal static class MimeValueParser {
             charset = value.Substring(0, first);
             payload = value.Substring(second + 1);
         }
+        resolvedCharset = charset;
 
+        bool invalid = false;
         using (MemoryStream output = new MemoryStream(payload.Length)) {
             for (int i = 0; i < payload.Length; i++) {
                 if (payload[i] == '%' && i + 2 < payload.Length && byte.TryParse(payload.Substring(i + 1, 2),
@@ -79,11 +180,34 @@ internal static class MimeValueParser {
                     output.WriteByte(decoded);
                     i += 2;
                 } else {
+                    if (payload[i] == '%' || payload[i] > 0x7f) invalid = true;
                     output.WriteByte((byte)payload[i]);
                 }
             }
-            return MimeTextCodec.DecodeText(output.ToArray(), charset, diagnostics, location);
+            byte[] bytes = output.ToArray();
+            if (MimeTextCodec.TryDecodeTextStrict(bytes, charset, out string decodedText)) {
+                if (invalid && SecurityRelevantParameters.Contains(parameterName)) {
+                    ReportInvalidExtendedParameter(parameterName, diagnostics, location);
+                }
+                return decodedText;
+            }
+
+            if (SecurityRelevantParameters.Contains(parameterName)) {
+                ReportInvalidExtendedParameter(parameterName, diagnostics, location);
+            }
+            return MimeTextCodec.DecodeText(bytes, charset, diagnostics, location);
         }
+    }
+
+    private static void ReportInvalidExtendedParameter(
+        string parameterName,
+        ICollection<EmailDiagnostic> diagnostics,
+        string location) {
+        diagnostics.Add(new EmailDiagnostic(
+            InvalidExtendedParameterDiagnosticCode,
+            string.Concat("MIME parameter '", parameterName, "' has an invalid extended value."),
+            EmailDiagnosticSeverity.Warning,
+            location));
     }
 
     private static List<string> Split(string input) {

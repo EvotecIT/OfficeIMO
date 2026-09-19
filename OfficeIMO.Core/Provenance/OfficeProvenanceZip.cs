@@ -456,6 +456,20 @@ internal static class OfficeProvenanceZip {
         return false;
     }
 
+    internal static bool HasCentralDirectorySignature(
+        byte[] data,
+        int maximumEntries,
+        CancellationToken cancellationToken = default) {
+        if (data == null) throw new ArgumentNullException(nameof(data));
+        cancellationToken.ThrowIfCancellationRequested();
+        ValidateEntryCount(data, maximumEntries);
+        using var stream = new MemoryStream(data, writable: false);
+        using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
+        GetEntryMetadata(data, archive, out bool hasCentralDirectorySignature);
+        cancellationToken.ThrowIfCancellationRequested();
+        return hasCentralDirectorySignature;
+    }
+
     internal static void ValidateEntryCount(byte[] data, int maximumEntries) {
         const uint endOfCentralDirectorySignature = 0x06054B50;
         const uint zip64LocatorSignature = 0x07064B50;

@@ -1,6 +1,12 @@
 namespace OfficeIMO.Email;
 
-internal static class MimeParser {
+internal static partial class MimeParser {
+    internal const string MultipleHtmlBodyDiagnosticCode = "EMAIL_MIME_HTML_BODY_MULTIPLE";
+    internal const string RelatedRootMissingDiagnosticCode = "EMAIL_MIME_RELATED_ROOT_MISSING";
+    internal const string RelatedRootNotHtmlDiagnosticCode = "EMAIL_MIME_RELATED_ROOT_NOT_HTML";
+    internal const string RelatedRootTypeMismatchDiagnosticCode = "EMAIL_MIME_RELATED_ROOT_TYPE_MISMATCH";
+    internal const string EmptyBoundaryDiagnosticCode = "EMAIL_MIME_BOUNDARY_EMPTY";
+    internal const string BoundaryNotClosedDiagnosticCode = "EMAIL_MIME_BOUNDARY_NOT_CLOSED";
     internal static EmailDocument Parse(byte[] data, EmailReaderOptions options, IList<EmailDiagnostic> diagnostics,
         CancellationToken cancellationToken, EmailProcessingBudget? budget = null) {
         MimeParserState state = new MimeParserState(options, diagnostics, cancellationToken, budget);
@@ -35,11 +41,13 @@ internal static class MimeParser {
     private static void ParseEntity(IReadOnlyList<EmailHeader> headers, byte[] data, int offset, int count,
         EmailDocument document, MimeParserState state, int mimeDepth, int nestedMessageDepth, string location,
         string defaultContentType = "text/plain", string? preferredBodyContentId = null,
-        bool isRelatedSibling = false, bool isDefaultRelatedRoot = false) {
+        bool isRelatedSibling = false, bool isDefaultRelatedRoot = false,
+        EmailProtectionKind inheritedBodyProtection = EmailProtectionKind.None) {
         if (mimeDepth > state.Options.MaxMimeDepth) {
             throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxMimeDepth), mimeDepth, state.Options.MaxMimeDepth);
         }
         state.CountPart();
+        MimeHeaderParser.ReportDuplicateSingletonHeaders(headers, state.Diagnostics, location);
 
         MimeValue contentType = MimeValueParser.Parse(MimeHeaderParser.GetValue(headers, "Content-Type"),
             defaultContentType, state.Diagnostics, location);
@@ -49,18 +57,22 @@ internal static class MimeParser {
         string? fileName = disposition.GetParameter("filename") ?? contentType.GetParameter("name");
         string? contentId = MimeHeaderParser.GetValue(headers, "Content-ID");
         string? contentLocation = MimeHeaderParser.GetValue(headers, "Content-Location");
-        bool contentIdMatchesPreferred = !string.IsNullOrWhiteSpace(preferredBodyContentId) &&
-            string.Equals(TrimAngleBrackets(contentId), TrimAngleBrackets(preferredBodyContentId),
-                StringComparison.OrdinalIgnoreCase);
+        bool contentIdMatchesPreferred = !string.IsNullOrWhiteSpace(preferredBodyContentId)
+            && ContentIdentifiersMatch(contentId, preferredBodyContentId);
         bool isPreferredRelatedBody = isDefaultRelatedRoot || contentIdMatchesPreferred;
-        bool hasRelatedIdentity = !string.IsNullOrWhiteSpace(contentId) ||
-            !string.IsNullOrWhiteSpace(contentLocation);
         bool attachmentDisposition = string.Equals(disposition.Value, "attachment", StringComparison.OrdinalIgnoreCase);
         bool inlineDisposition = string.Equals(disposition.Value, "inline", StringComparison.OrdinalIgnoreCase);
+        EmailProtectionKind entityProtection = MimeProtectionProjection.Classify(
+            contentType.Value,
+            contentType.GetParameter("protocol") ?? string.Empty);
+        EmailProtectionKind bodyProtection = !attachmentDisposition && string.IsNullOrWhiteSpace(fileName)
+            && entityProtection != EmailProtectionKind.None
+                ? entityProtection
+                : inheritedBodyProtection;
 
         if (contentType.Value.StartsWith("multipart/", StringComparison.OrdinalIgnoreCase) &&
             !attachmentDisposition && string.IsNullOrWhiteSpace(fileName) &&
-            (!isRelatedSibling || !hasRelatedIdentity || isPreferredRelatedBody)) {
+            (!isRelatedSibling || isPreferredRelatedBody)) {
             string? boundary = contentType.GetParameter("boundary");
             if (boundary == null) {
                 state.Diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_BOUNDARY_MISSING",
@@ -69,9 +81,14 @@ internal static class MimeParser {
                 return;
             }
             if (boundary.Length == 0) {
-                state.Diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_BOUNDARY_EMPTY",
+                state.Diagnostics.Add(new EmailDiagnostic(EmptyBoundaryDiagnosticCode,
                     string.Concat("Multipart entity '", contentType.Value,
                         "' declares an empty boundary; compatible recovery was attempted."),
+                    EmailDiagnosticSeverity.Warning, location));
+            } else if (!IsValidBoundary(boundary)) {
+                state.Diagnostics.Add(new EmailDiagnostic(InvalidBoundaryDiagnosticCode,
+                    string.Concat("Multipart entity '", contentType.Value,
+                        "' declares a boundary outside the RFC 2046 syntax and length limits."),
                     EmailDiagnosticSeverity.Warning, location));
             }
 
@@ -80,9 +97,21 @@ internal static class MimeParser {
                 ? "message/rfc822"
                 : "text/plain";
             bool isRelated = string.Equals(contentType.Value, "multipart/related", StringComparison.OrdinalIgnoreCase);
+            string? rawRelatedRootContentId = isRelated ? contentType.GetParameter("start") : null;
+            if (isRelated) {
+                ReportInvalidRelatedRootIdentifier(rawRelatedRootContentId, state.Diagnostics, location);
+            }
+            if (isRelated && document.Body.RelatedContentTypeParameters.Count == 0) {
+                foreach (KeyValuePair<string, string> parameter in contentType.Parameters) {
+                    document.Body.RelatedContentTypeParameters[parameter.Key] = parameter.Value;
+                }
+            }
+            string? declaredRelatedRootType = isRelated ? contentType.GetParameter("type") : null;
             string? childPreferredBodyContentId = isRelated
-                ? TrimAngleBrackets(contentType.GetParameter("start"))
+                ? TrimAngleBrackets(rawRelatedRootContentId)
                 : preferredBodyContentId;
+            bool hasExplicitRelatedRoot = isRelated && !string.IsNullOrWhiteSpace(childPreferredBodyContentId);
+            bool explicitRelatedRootMatched = false;
             for (int i = 0; i < parts.Count; i++) {
                 state.ThrowIfCancellationRequested();
                 string partLocation = string.Concat(location, "/part[", i.ToString(CultureInfo.InvariantCulture), "]");
@@ -91,21 +120,81 @@ internal static class MimeParser {
                 int partBodyOffset = MimeHeaderParser.Parse(data, part.Offset, part.Count, state.Options,
                     partHeaders, state.Diagnostics, partLocation);
                 int partEnd = part.Offset + part.Count;
+                bool partIsExplicitRelatedRoot = hasExplicitRelatedRoot
+                    && ContentIdentifiersMatch(
+                        MimeHeaderParser.GetValue(partHeaders, "Content-ID"),
+                        childPreferredBodyContentId);
+                bool partIsDefaultRelatedRoot = isRelated && i == 0
+                    && string.IsNullOrWhiteSpace(childPreferredBodyContentId);
+                if (partIsExplicitRelatedRoot) {
+                    explicitRelatedRootMatched = true;
+                }
+                PreferredBodyKind relatedRootKind = partIsExplicitRelatedRoot || partIsDefaultRelatedRoot
+                    ? GetPreferredBodyKind(
+                        partHeaders,
+                        data,
+                        partBodyOffset,
+                        Math.Max(0, partEnd - partBodyOffset),
+                        state,
+                        mimeDepth + 1,
+                        partLocation,
+                        childDefaultContentType)
+                    : PreferredBodyKind.None;
+                if ((partIsExplicitRelatedRoot || partIsDefaultRelatedRoot)
+                    && !string.IsNullOrWhiteSpace(declaredRelatedRootType)) {
+                    MimeValue rootContentType = MimeValueParser.Parse(
+                        MimeHeaderParser.GetValue(partHeaders, "Content-Type"),
+                        childDefaultContentType,
+                        state.Diagnostics,
+                        partLocation);
+                    if (!string.Equals(
+                            rootContentType.Value,
+                            declaredRelatedRootType!.Trim(),
+                            StringComparison.OrdinalIgnoreCase)) {
+                        state.Diagnostics.Add(new EmailDiagnostic(
+                            RelatedRootTypeMismatchDiagnosticCode,
+                            "The multipart/related type parameter does not match the selected root content type.",
+                            EmailDiagnosticSeverity.Warning,
+                            partLocation));
+                    }
+                }
+                // Keep an implicit signed root inspectable when its signed content is HTML-bearing; the
+                // protection projection still blocks mutation unless signature invalidation is authorized.
+                bool relatedRootTypeAllowed = !(partIsExplicitRelatedRoot || partIsDefaultRelatedRoot)
+                    || IsAllowedRelatedRootType(
+                        partHeaders,
+                        childDefaultContentType,
+                        allowProtectedSignedRoot: true,
+                        state,
+                        partLocation);
+                if ((partIsExplicitRelatedRoot || partIsDefaultRelatedRoot)
+                    && (relatedRootKind != PreferredBodyKind.Html || !relatedRootTypeAllowed)) {
+                    state.Diagnostics.Add(new EmailDiagnostic(
+                        RelatedRootNotHtmlDiagnosticCode,
+                        "The multipart/related root does not select an HTML-preferred body representation.",
+                        EmailDiagnosticSeverity.Warning,
+                        partLocation));
+                }
                 string? partPreferredBodyContentId = childPreferredBodyContentId;
-                bool partIsDefaultRelatedRoot = isRelated && i == 0 &&
-                    string.IsNullOrWhiteSpace(childPreferredBodyContentId);
                 if (isRelated && string.IsNullOrWhiteSpace(partPreferredBodyContentId) && i == 0) {
                     partPreferredBodyContentId = TrimAngleBrackets(MimeHeaderParser.GetValue(partHeaders, "Content-ID"));
                 }
                 ParseEntity(partHeaders, data, partBodyOffset, Math.Max(0, partEnd - partBodyOffset),
                     document, state, mimeDepth + 1, nestedMessageDepth, partLocation, childDefaultContentType,
-                    partPreferredBodyContentId, isRelated, partIsDefaultRelatedRoot);
+                    partPreferredBodyContentId, isRelated, partIsDefaultRelatedRoot, bodyProtection);
+            }
+            if (hasExplicitRelatedRoot && !explicitRelatedRootMatched) {
+                state.Diagnostics.Add(new EmailDiagnostic(
+                    RelatedRootMissingDiagnosticCode,
+                    "The multipart/related start parameter does not identify any child part.",
+                    EmailDiagnosticSeverity.Warning,
+                    location));
             }
             return;
         }
 
         bool isBodyCandidate = !attachmentDisposition && string.IsNullOrWhiteSpace(fileName) &&
-            (!isRelatedSibling || !hasRelatedIdentity || isPreferredRelatedBody) &&
+            (!isRelatedSibling || isPreferredRelatedBody) &&
             (string.Equals(contentType.Value, "text/plain", StringComparison.OrdinalIgnoreCase) ||
              string.Equals(contentType.Value, "text/html", StringComparison.OrdinalIgnoreCase) ||
              string.Equals(contentType.Value, "text/rtf", StringComparison.OrdinalIgnoreCase));
@@ -116,6 +205,13 @@ internal static class MimeParser {
                 : document.Body.Rtf == null;
         bool isBody = isBodyCandidate && bodySlotAvailable;
         bool additionalInlineBody = isBodyCandidate && !bodySlotAvailable;
+        if (additionalInlineBody && string.Equals(contentType.Value, "text/html", StringComparison.OrdinalIgnoreCase)) {
+            state.Diagnostics.Add(new EmailDiagnostic(
+                MultipleHtmlBodyDiagnosticCode,
+                "The MIME body contains more than one viable HTML representation.",
+                EmailDiagnosticSeverity.Warning,
+                location));
+        }
         bool embeddedMessage = string.Equals(contentType.Value, "message/rfc822", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(contentType.Value, "message/global", StringComparison.OrdinalIgnoreCase);
         bool calendarContent = string.Equals(contentType.Value, "text/calendar", StringComparison.OrdinalIgnoreCase);
@@ -128,14 +224,19 @@ internal static class MimeParser {
         }
         bool skipAttachmentDecoding = !isBody && !state.Options.IncludeAttachmentContent && !embeddedMessage &&
             !semanticBodyPart;
+        int payloadDiagnosticStart = state.Diagnostics.Count;
         long decodedLength = MimeTextCodec.GetDecodedLength(data, offset, count, transferEncoding,
             skipAttachmentDecoding ? state.Diagnostics : null, skipAttachmentDecoding ? location : null);
         if (!isBody) {
             state.CountAttachmentBytes(decodedLength);
             if (skipAttachmentDecoding) {
-                document.Attachments.Add(CreateAttachment(headers, contentType, disposition, fileName,
+                EmailAttachment skipped = CreateAttachment(headers, contentType, disposition, fileName,
                     inlineDisposition || additionalInlineBody, attachmentDisposition, null, decodedLength,
-                    isRelatedSibling));
+                    isRelatedSibling);
+                skipped.MimeDecodingWasAmbiguous = state.Diagnostics
+                    .Skip(payloadDiagnosticStart)
+                    .Any(IsAmbiguousMimeDecodingDiagnostic);
+                document.Attachments.Add(skipped);
                 return;
             }
         }
@@ -144,6 +245,10 @@ internal static class MimeParser {
             transferEncoding, state.Diagnostics, location);
 
         if (isBody) {
+            if (bodyProtection != EmailProtectionKind.None && !document.Protection.IsProtected) {
+                document.Protection.Kind = bodyProtection;
+                document.Protection.MessageClass = document.MessageClass;
+            }
             document.MimeHasMessageBody = true;
             string? charset = contentType.GetParameter("charset");
             string text = MimeTextCodec.DecodeText(decoded, charset, state.Diagnostics, location);
@@ -162,6 +267,15 @@ internal static class MimeParser {
                     document.Body.HtmlContentId = TrimAngleBrackets(contentId);
                     document.Body.HtmlContentLocation = contentLocation;
                     document.Body.IsHtmlRelatedRoot = isRelatedSibling && isPreferredRelatedBody;
+                    document.Body.HtmlTransferEncoding = transferEncoding;
+                    document.Body.HtmlDecodedBytes = decoded;
+                    document.Body.HtmlMimeDecodingWasAmbiguous = state.Diagnostics
+                        .Skip(payloadDiagnosticStart)
+                        .Any(IsAmbiguousMimeDecodingDiagnostic);
+                    document.Body.HtmlMimeTransferDecodingWasAmbiguous = state.Diagnostics
+                        .Skip(payloadDiagnosticStart)
+                        .Any(IsAmbiguousMimeTransferDecodingDiagnostic);
+                    CopyHeaders(headers, document.Body.HtmlMimeHeaders);
                 }
             } else if (document.Body.Text == null) {
                 document.Body.Text = text;
@@ -174,6 +288,9 @@ internal static class MimeParser {
             EmailAttachment embedded = CreateAttachment(headers, contentType, disposition, fileName,
                 inlineDisposition, attachmentDisposition, state.Options.IncludeAttachmentContent ? decoded : null,
                 decoded.LongLength, isRelatedSibling);
+            embedded.MimeDecodingWasAmbiguous = state.Diagnostics
+                .Skip(payloadDiagnosticStart)
+                .Any(IsAmbiguousMimeDecodingDiagnostic);
             if (nestedMessageDepth >= state.Options.MaxNestedMessageDepth) {
                 state.Diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_NESTED_MESSAGE_LIMIT",
                     "The embedded message was retained but not parsed because the nested-message limit was reached.",
@@ -190,6 +307,9 @@ internal static class MimeParser {
             inlineDisposition || additionalInlineBody, attachmentDisposition,
             state.Options.IncludeAttachmentContent || semanticBodyPart ? decoded : null, decoded.LongLength,
             isRelatedSibling);
+        attachment.MimeDecodingWasAmbiguous = state.Diagnostics
+            .Skip(payloadDiagnosticStart)
+            .Any(IsAmbiguousMimeDecodingDiagnostic);
         if (semanticBodyPart) attachment.IsMimeBodyPart = true;
         string? semanticCharset = contentType.GetParameter("charset");
         int semanticDiagnosticStart = state.Diagnostics.Count;
@@ -221,6 +341,20 @@ internal static class MimeParser {
             existing.IsProjectedSemanticContent)) document.MimeSemanticProjectionIsIncomplete = true;
         document.Attachments.Add(attachment);
     }
+
+    private static bool IsAmbiguousMimeDecodingDiagnostic(EmailDiagnostic diagnostic) =>
+        diagnostic.Code == "EMAIL_MIME_TRANSFER_ENCODING_UNKNOWN"
+        || diagnostic.Code == "EMAIL_MIME_BASE64_INVALID"
+        || diagnostic.Code == "EMAIL_MIME_BASE64_PADDING_RECOVERED"
+        || diagnostic.Code == "EMAIL_MIME_QUOTED_PRINTABLE_INVALID"
+        || diagnostic.Code == "EMAIL_MIME_CHARSET_UNSUPPORTED"
+        || diagnostic.Code == "EMAIL_MIME_CHARSET_GUESSED";
+
+    private static bool IsAmbiguousMimeTransferDecodingDiagnostic(EmailDiagnostic diagnostic) =>
+        diagnostic.Code == "EMAIL_MIME_TRANSFER_ENCODING_UNKNOWN"
+        || diagnostic.Code == "EMAIL_MIME_BASE64_INVALID"
+        || diagnostic.Code == "EMAIL_MIME_BASE64_PADDING_RECOVERED"
+        || diagnostic.Code == "EMAIL_MIME_QUOTED_PRINTABLE_INVALID";
 
     private static bool HasUnpreservedSemanticPartHeaders(IEnumerable<EmailHeader> headers) =>
         headers.Any(header =>
@@ -257,7 +391,15 @@ internal static class MimeParser {
                 attachment.ContentTypeParameters[parameter.Key] = parameter.Value;
             }
         }
+        attachment.MimeTransferEncoding = MimeHeaderParser.GetValue(headers, "Content-Transfer-Encoding");
+        CopyHeaders(headers, attachment.MimeHeaders);
         return attachment;
+    }
+
+    private static void CopyHeaders(IEnumerable<EmailHeader> source, IList<EmailHeader> destination) {
+        foreach (EmailHeader header in source) {
+            destination.Add(new EmailHeader(header.Name, header.Value, header.RawValue));
+        }
     }
 
     internal static void PopulateEnvelope(EmailDocument document, IReadOnlyList<EmailHeader> headers,
@@ -342,7 +484,7 @@ internal static class MimeParser {
                 state.EnsurePendingPartCount(parts.Count + 1);
                 parts.Add(new ArraySegment<byte>(data, partStart, Math.Max(0, partEnd - partStart)));
             }
-            state.Diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_BOUNDARY_NOT_CLOSED",
+            state.Diagnostics.Add(new EmailDiagnostic(BoundaryNotClosedDiagnosticCode,
                 string.Concat("Multipart boundary '", boundary, "' has no closing delimiter."),
                 EmailDiagnosticSeverity.Warning, location));
         }
@@ -380,6 +522,211 @@ internal static class MimeParser {
         if (result > minimum && data[result - 1] == '\n') result--;
         if (result > minimum && data[result - 1] == '\r') result--;
         return result;
+    }
+
+    private static PreferredBodyKind GetPreferredBodyKind(
+        IReadOnlyList<EmailHeader> headers,
+        byte[] data,
+        int offset,
+        int count,
+        MimeParserState state,
+        int mimeDepth,
+        string location,
+        string defaultContentType) {
+        if (mimeDepth > state.Options.MaxMimeDepth) {
+            throw new EmailLimitExceededException(
+                nameof(EmailReaderOptions.MaxMimeDepth),
+                mimeDepth,
+                state.Options.MaxMimeDepth);
+        }
+
+        MimeValue contentType = MimeValueParser.Parse(
+            MimeHeaderParser.GetValue(headers, "Content-Type"),
+            defaultContentType,
+            state.Diagnostics,
+            location);
+        MimeValue disposition = MimeValueParser.Parse(
+            MimeHeaderParser.GetValue(headers, "Content-Disposition"),
+            string.Empty,
+            state.Diagnostics,
+            location);
+        string? fileName = disposition.GetParameter("filename") ?? contentType.GetParameter("name");
+        if (string.Equals(disposition.Value, "attachment", StringComparison.OrdinalIgnoreCase)
+            || !string.IsNullOrWhiteSpace(fileName)) {
+            return PreferredBodyKind.None;
+        }
+        if (string.Equals(contentType.Value, "text/html", StringComparison.OrdinalIgnoreCase)) {
+            return PreferredBodyKind.Html;
+        }
+        if (string.Equals(contentType.Value, "text/plain", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(contentType.Value, "text/rtf", StringComparison.OrdinalIgnoreCase)) {
+            return PreferredBodyKind.NonHtml;
+        }
+
+        bool alternative = string.Equals(contentType.Value, "multipart/alternative", StringComparison.OrdinalIgnoreCase);
+        bool related = string.Equals(contentType.Value, "multipart/related", StringComparison.OrdinalIgnoreCase);
+        bool signed = string.Equals(contentType.Value, "multipart/signed", StringComparison.OrdinalIgnoreCase);
+        bool mixed = string.Equals(contentType.Value, "multipart/mixed", StringComparison.OrdinalIgnoreCase);
+        if (!alternative && !related && !signed && !mixed) {
+            return contentType.Value.StartsWith("multipart/", StringComparison.OrdinalIgnoreCase)
+                ? PreferredBodyKind.NonHtml
+                : PreferredBodyKind.Unmodeled;
+        }
+
+        string? boundary = contentType.GetParameter("boundary");
+        if (boundary == null) return PreferredBodyKind.None;
+        List<ArraySegment<byte>> parts = SplitMultipart(data, offset, count, boundary, state, location);
+        if (signed) {
+            return parts.Count == 0
+                ? PreferredBodyKind.None
+                : GetPreferredBodyKind(
+                    ReadChildHeaders(parts[0], data, state, location, 0, out int childBodyOffset, out string childLocation),
+                    data,
+                    childBodyOffset,
+                    Math.Max(0, parts[0].Offset + parts[0].Count - childBodyOffset),
+                    state,
+                    mimeDepth + 1,
+                    childLocation,
+                    "text/plain");
+        }
+        if (mixed) {
+            PreferredBodyKind result = PreferredBodyKind.None;
+            for (int index = 0; index < parts.Count; index++) {
+                ArraySegment<byte> part = parts[index];
+                IReadOnlyList<EmailHeader> childHeaders = ReadChildHeaders(
+                    part,
+                    data,
+                    state,
+                    location,
+                    index,
+                    out int childBodyOffset,
+                    out string childLocation);
+                PreferredBodyKind kind = GetPreferredBodyKind(
+                    childHeaders,
+                    data,
+                    childBodyOffset,
+                    Math.Max(0, part.Offset + part.Count - childBodyOffset),
+                    state,
+                    mimeDepth + 1,
+                    childLocation,
+                    "text/plain");
+                if (kind == PreferredBodyKind.Html || kind == PreferredBodyKind.HtmlThroughMixed) {
+                    return PreferredBodyKind.HtmlThroughMixed;
+                }
+                if (kind == PreferredBodyKind.NonHtml) result = kind;
+            }
+            return result;
+        }
+        if (related) {
+            string? start = TrimAngleBrackets(contentType.GetParameter("start"));
+            for (int index = 0; index < parts.Count; index++) {
+                ArraySegment<byte> part = parts[index];
+                var childHeaders = new List<EmailHeader>();
+                string childLocation = string.Concat(location, "/part[", index.ToString(CultureInfo.InvariantCulture), "]");
+                int childBodyOffset = MimeHeaderParser.Parse(
+                    data,
+                    part.Offset,
+                    part.Count,
+                    state.Options,
+                    childHeaders,
+                    state.Diagnostics,
+                    childLocation);
+                bool selected = start == null && index == 0
+                    || start != null && ContentIdentifiersMatch(
+                        MimeHeaderParser.GetValue(childHeaders, "Content-ID"),
+                        start);
+                if (!selected) continue;
+                return GetPreferredBodyKind(
+                    childHeaders,
+                    data,
+                    childBodyOffset,
+                    Math.Max(0, part.Offset + part.Count - childBodyOffset),
+                    state,
+                    mimeDepth + 1,
+                    childLocation,
+                    "text/plain");
+            }
+            return PreferredBodyKind.None;
+        }
+
+        for (int index = parts.Count - 1; index >= 0; index--) {
+            ArraySegment<byte> part = parts[index];
+            var childHeaders = new List<EmailHeader>();
+            string childLocation = string.Concat(location, "/part[", index.ToString(CultureInfo.InvariantCulture), "]");
+            int childBodyOffset = MimeHeaderParser.Parse(
+                data,
+                part.Offset,
+                part.Count,
+                state.Options,
+                childHeaders,
+                state.Diagnostics,
+                childLocation);
+            PreferredBodyKind kind = GetPreferredBodyKind(
+                childHeaders,
+                data,
+                childBodyOffset,
+                Math.Max(0, part.Offset + part.Count - childBodyOffset),
+                state,
+                mimeDepth + 1,
+                childLocation,
+                "text/plain");
+            if (kind == PreferredBodyKind.Unmodeled) {
+                state.Diagnostics.Add(new EmailDiagnostic(
+                    UnmodeledAlternativeDiagnosticCode,
+                    "A preferred multipart/alternative representation cannot be modeled safely.",
+                    EmailDiagnosticSeverity.Warning,
+                    childLocation));
+                return kind;
+            }
+            if (kind != PreferredBodyKind.None) return kind;
+        }
+        return PreferredBodyKind.None;
+    }
+
+    private static bool IsAllowedRelatedRootType(
+        IReadOnlyList<EmailHeader> headers,
+        string defaultContentType,
+        bool allowProtectedSignedRoot,
+        MimeParserState state,
+        string location) {
+        MimeValue contentType = MimeValueParser.Parse(
+            MimeHeaderParser.GetValue(headers, "Content-Type"),
+            defaultContentType,
+            state.Diagnostics,
+            location);
+        return string.Equals(contentType.Value, "text/html", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(contentType.Value, "multipart/alternative", StringComparison.OrdinalIgnoreCase)
+            || allowProtectedSignedRoot
+                && string.Equals(contentType.Value, "multipart/signed", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static IReadOnlyList<EmailHeader> ReadChildHeaders(
+        ArraySegment<byte> part,
+        byte[] data,
+        MimeParserState state,
+        string location,
+        int index,
+        out int bodyOffset,
+        out string childLocation) {
+        var headers = new List<EmailHeader>();
+        childLocation = string.Concat(location, "/part[", index.ToString(CultureInfo.InvariantCulture), "]");
+        bodyOffset = MimeHeaderParser.Parse(
+            data,
+            part.Offset,
+            part.Count,
+            state.Options,
+            headers,
+            state.Diagnostics,
+            childLocation);
+        return headers;
+    }
+
+    private enum PreferredBodyKind {
+        None,
+        Html,
+        HtmlThroughMixed,
+        NonHtml,
+        Unmodeled
     }
 
     internal static string? TrimAngleBrackets(string? value) {

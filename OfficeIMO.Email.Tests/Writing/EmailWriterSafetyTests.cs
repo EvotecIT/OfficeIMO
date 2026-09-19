@@ -65,4 +65,28 @@ public sealed class EmailWriterSafetyTests {
 
         Assert.InRange(output.Length, 1, maxOutputBytes);
     }
+
+    [Fact]
+    public void IgnoresProjectedSemanticSourcesThatMimeWriterRegenerates() {
+        const int maxOutputBytes = 256 * 1024;
+        var document = new EmailDocument {
+            Format = EmailFileFormat.Eml,
+            OutlookItemKind = OutlookItemKind.Appointment,
+            Appointment = new OutlookAppointment {
+                Start = new DateTimeOffset(2026, 8, 1, 10, 0, 0, TimeSpan.Zero)
+            }
+        };
+        document.Attachments.Add(new EmailAttachment {
+            ContentType = "text/calendar",
+            Content = new byte[1024 * 1024],
+            Length = 1024 * 1024,
+            IsProjectedSemanticContent = true,
+            IsMimeBodyPart = true
+        });
+        var writer = new EmailDocumentWriter(new EmailWriterOptions(maxOutputBytes: maxOutputBytes));
+
+        byte[] output = writer.ToBytes(document, EmailFileFormat.Eml);
+
+        Assert.InRange(output.Length, 1, maxOutputBytes);
+    }
 }

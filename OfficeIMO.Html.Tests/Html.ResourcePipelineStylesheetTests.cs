@@ -24,6 +24,17 @@ public partial class Html {
     }
 
     [Fact]
+    public void ExternalStylesheetManifestTreatsLegacyCdoAndCdcTokensAsImportTrivia() {
+        HtmlResourceManifest manifest = HtmlResourcePipeline.BuildStylesheetManifest(
+            "<!-- --> @import 'theme.css';",
+            new Uri("https://example.test/styles/main.css"));
+
+        HtmlResourceReference imported = Assert.Single(manifest.Resources);
+        Assert.Equal(HtmlResourceKind.Stylesheet, imported.Kind);
+        Assert.Equal("https://example.test/styles/theme.css", imported.ResolvedSource);
+    }
+
+    [Fact]
     public void ExternalStylesheetManifestEnforcesCssByteLimit() {
         Assert.Throws<HtmlDomLimitException>(() => HtmlResourcePipeline.BuildStylesheetManifest(
             "body { color: red; }",

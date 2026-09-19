@@ -256,7 +256,6 @@ Milestone numbers are identifiers, not a strict dependency-removal queue. H1-H4 
 ## Security and protected content
 
 - [ ] Expand provenance to another file family only after its OfficeIMO owner provides the required bounded read, preserve, write, reopen, and exact carrier-validation contract, then qualify path, byte/stream, CLI, and browser hosts separately. Keep BMFF/AVIF, audio, video, and other containers outside provenance until OfficeIMO genuinely supports the underlying format; do not create provenance-only parsers to inflate the advertised list.
-- [ ] Add package-preserving concealed-HTML inspection and cleanup for MHTML and EPUB, including bounded MIME/resource handling, stylesheet resolution, signed-package mutation policy, and reopen validation.
 - [ ] Add legacy encrypted-DOC import, encrypted-XLS authoring, and additional legacy ODF encryption profiles only with external producer corpora, explicit password/key and resource policies, dependency-free format ownership, and fail-safe preservation evidence.
 - [ ] Materialize encrypted OneNote revisions only after the producer corpus, key-acquisition contract, dependency-chain semantics, and safe partial-result policy are defined. Until then, any encrypted current revision or dependency must fail closed without older-plaintext fallback.
 - [ ] Extend ODF and EPUB signature interoperability beyond the bounded OfficeIMO XML package-manifest profile only with independent producer corpora, explicit trust policy, mutation/invalidation rules, and deterministic validation evidence.

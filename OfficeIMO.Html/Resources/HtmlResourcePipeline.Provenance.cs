@@ -167,7 +167,7 @@ public static partial class HtmlResourcePipeline {
     }
 
     private static bool IsHtmlStylesheetLink(IElement link) {
-        if (!string.Equals(link.NamespaceUri, "http://www.w3.org/1999/xhtml", StringComparison.Ordinal)) return false;
+        if (!IsHtmlNamespaceElement(link)) return false;
         bool stylesheet = (link.GetAttribute("rel") ?? string.Empty)
             .Split(new[] { '\t', '\n', '\f', '\r', ' ' }, StringSplitOptions.RemoveEmptyEntries)
             .Any(token => token.Equals("stylesheet", StringComparison.OrdinalIgnoreCase));
@@ -392,18 +392,13 @@ public static partial class HtmlResourcePipeline {
         var options = new HtmlResourcePipelineOptions();
         int index = 0;
         while (index < css.Length) {
-            int mediaStart = css.IndexOf("@media", index, StringComparison.OrdinalIgnoreCase);
-            if (mediaStart < 0) return false;
-            if (IsInsideCssString(css, mediaStart) || !HasAtRuleTokenBoundary(css, mediaStart, "@media")) {
-                index = mediaStart + 6;
-                continue;
-            }
-            int open = FindNextTopLevelBlockStart(css, mediaStart + 6);
+            if (!TryFindNextAtRule(css, index, "media", out int mediaStart, out int mediaNameEnd)) return false;
+            int open = FindNextTopLevelBlockStart(css, mediaNameEnd);
             if (open < 0) return false;
             int close = FindMatchingCssBrace(css, open);
             if (close <= open) return false;
             if (sourceIndex > open && sourceIndex < close) {
-                string mediaText = css.Substring(mediaStart + 6, open - mediaStart - 6).Trim();
+                string mediaText = css.Substring(mediaNameEnd, open - mediaNameEnd).Trim();
                 if (!IsApplicableMedia(mediaText, options) &&
                     HtmlComputedStyleEngine.IsPotentiallyApplicableScreenMedia(mediaText, options.MediaFeatures)) return true;
                 index = open + 1;
@@ -466,13 +461,8 @@ public static partial class HtmlResourcePipeline {
     private static bool IsInsideContainerRule(string css, int index) {
         int search = 0;
         while (search < index) {
-            int start = css.IndexOf("@container", search, StringComparison.OrdinalIgnoreCase);
-            if (start < 0 || start >= index) return false;
-            if (IsInsideCssString(css, start) || !HasAtRuleTokenBoundary(css, start, "@container")) {
-                search = start + 10;
-                continue;
-            }
-            int open = FindNextTopLevelBlockStart(css, start + 10);
+            if (!TryFindNextAtRule(css, search, "container", out int start, out int nameEnd) || start >= index) return false;
+            int open = FindNextTopLevelBlockStart(css, nameEnd);
             if (open < 0) return false;
             int close = FindMatchingCssBrace(css, open);
             if (close < 0) return false;

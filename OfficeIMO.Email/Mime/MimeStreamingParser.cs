@@ -66,6 +66,7 @@ internal sealed class MimeStreamingParser {
             throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxPartCount), _analyzedPartCount,
                 _options.MaxPartCount);
         }
+        MimeHeaderParser.ReportDuplicateSingletonHeaders(headers, _diagnostics, location);
 
         MimeValue contentType = MimeValueParser.Parse(MimeHeaderParser.GetValue(headers, "Content-Type"),
             defaultContentType, _diagnostics, location);
@@ -74,9 +75,8 @@ internal sealed class MimeStreamingParser {
         string? fileName = disposition.GetParameter("filename") ?? contentType.GetParameter("name");
         string? contentId = MimeHeaderParser.GetValue(headers, "Content-ID");
         string? contentLocation = MimeHeaderParser.GetValue(headers, "Content-Location");
-        bool contentIdMatchesPreferred = !string.IsNullOrWhiteSpace(preferredBodyContentId) &&
-            string.Equals(MimeParser.TrimAngleBrackets(contentId),
-                MimeParser.TrimAngleBrackets(preferredBodyContentId), StringComparison.OrdinalIgnoreCase);
+        bool contentIdMatchesPreferred = !string.IsNullOrWhiteSpace(preferredBodyContentId)
+            && MimeParser.ContentIdentifiersMatch(contentId, preferredBodyContentId);
         bool isPreferredRelatedBody = isDefaultRelatedRoot || contentIdMatchesPreferred;
         bool hasRelatedIdentity = !string.IsNullOrWhiteSpace(contentId) ||
             !string.IsNullOrWhiteSpace(contentLocation);
@@ -211,7 +211,7 @@ internal sealed class MimeStreamingParser {
         }
         if (!closed && partStart >= 0) {
             parts.Add(new Segment(partStart, Math.Max(partStart, previousContentEnd)));
-            _diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_BOUNDARY_NOT_CLOSED",
+            _diagnostics.Add(new EmailDiagnostic(MimeParser.BoundaryNotClosedDiagnosticCode,
                 string.Concat("Multipart boundary '", boundary, "' has no closing delimiter."),
                 EmailDiagnosticSeverity.Warning, location));
         }

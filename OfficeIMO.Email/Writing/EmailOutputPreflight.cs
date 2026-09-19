@@ -14,10 +14,13 @@ internal static class EmailOutputPreflight {
         ISet<EmailDocument> visited, long maxOutputBytes) {
         if (!visited.Add(document)) return 0;
         long total = 0;
+        bool retainProjectedMimeSources = format == EmailFileFormat.Eml &&
+            document.MimeSemanticSourceModelFingerprint != null &&
+            EmailDocumentStateFingerprint.Matches(document, document.MimeSemanticSourceModelFingerprint);
         if (document.Body.Text != null) total = Add(total, document.Body.Text.Length, maxOutputBytes);
         if (document.Body.Html != null) total = Add(total, document.Body.Html.Length, maxOutputBytes);
         foreach (EmailAttachment attachment in document.Attachments) {
-            if (format != EmailFileFormat.Eml && attachment.IsProjectedSemanticContent) continue;
+            if (attachment.IsProjectedSemanticContent && !retainProjectedMimeSources) continue;
             if (attachment.EmbeddedDocument != null) {
                 total = Add(total, CountRetainedPayloadBytes(attachment.EmbeddedDocument, format, visited, maxOutputBytes),
                     maxOutputBytes);
