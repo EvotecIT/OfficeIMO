@@ -321,6 +321,26 @@ public class PdfParsingModeTests {
     }
 
     [Fact]
+    public void OrphanSummaryReportsLowestObjectNumberRegardlessOfDefinitionOrder() {
+        byte[] pdf = Encoding.ASCII.GetBytes(
+            "%PDF-1.7\n" +
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /Extra [5 0 R 5 0 R] >>\nendobj\n" +
+            "2 0 obj\n<< /Type /Pages /Count 0 /Kids [] >>\nendobj\n" +
+            "9 0 obj\n<< /Type /Annot /Subtype /Text >>\nendobj\n" +
+            "5 0 obj\n<< /Type /Annot /Subtype /Text >>\nendobj\n" +
+            "4 0 obj\n<< /Type /Annot /Subtype /Text >>\nendobj\n" +
+            "trailer\n<< /Root 1 0 R /Size 10 >>\n%%EOF\n");
+
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
+
+        PdfRepairDiagnostic orphan = Assert.Single(
+            document.RepairReport.Diagnostics,
+            item => item.Code == "OrphanedSemanticObjects");
+        Assert.Equal(4, orphan.ObjectNumber);
+        Assert.Contains("2 unreachable semantic object(s)", orphan.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void GenerationMismatchDoesNotHideAnOrphanedSemanticObject() {
         byte[] pdf = Encoding.ASCII.GetBytes(
             "%PDF-1.7\n" +
