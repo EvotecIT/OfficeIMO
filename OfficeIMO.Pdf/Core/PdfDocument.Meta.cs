@@ -391,8 +391,8 @@ public sealed partial class PdfDocument {
         PdfLoadOptions effectiveReadOptions = PdfLoadOptions.WithMinimumInputBytes(
             readOptions ?? ReadOptions,
             pdf.LongLength);
-        PdfArtifactSnapshot output = PdfArtifactSnapshot.Capture(pdf, effectiveReadOptions);
-        return WithBytes(inputBytes, input, pdf, output, effectiveReadOptions, operationName);
+        PdfArtifactSnapshot output = PdfArtifactSnapshot.Capture(pdf, effectiveReadOptions, out PdfReadDocument? readDocument);
+        return WithBytes(inputBytes, input, pdf, output, effectiveReadOptions, operationName, readDocument);
     }
 
     /// <summary>

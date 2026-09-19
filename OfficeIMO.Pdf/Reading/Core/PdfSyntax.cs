@@ -58,7 +58,10 @@ internal static partial class PdfSyntax {
         string text = decodedText ?? PdfEncoding.Latin1GetString(pdf);
         cancellationToken.ThrowIfCancellationRequested();
         List<IndirectObjectHeader> matches = FindIndirectObjectHeaders(text, parseTimer, limits);
-        int initialObjectCapacity = Math.Min(matches.Count, 32);
+        // The structural header scan has already enforced MaxIndirectObjects. Reserve
+        // for ordinary multi-page documents without trusting a hostile stream full
+        // of false headers to dictate an unbounded initial allocation.
+        int initialObjectCapacity = Math.Min(matches.Count, 1024);
         var map = new Dictionary<int, PdfIndirectObject>(initialObjectCapacity);
         var parsedOffsets = new Dictionary<int, int>(initialObjectCapacity);
         var definitionCounts = new Dictionary<(int Id, int Generation), int>(initialObjectCapacity);
@@ -108,7 +111,7 @@ internal static partial class PdfSyntax {
             }
 
             int preliminaryBodyEnd = end;
-            if (preliminaryBodyEnd - 6 >= bodyStart && string.Equals(text.Substring(preliminaryBodyEnd - 6, 6), "endobj", StringComparison.Ordinal)) {
+            if (preliminaryBodyEnd - 6 >= bodyStart && string.CompareOrdinal(text, preliminaryBodyEnd - 6, "endobj", 0, 6) == 0) {
                 preliminaryBodyEnd -= 6;
             }
 

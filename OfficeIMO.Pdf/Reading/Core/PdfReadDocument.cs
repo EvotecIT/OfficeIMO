@@ -13,6 +13,7 @@ public sealed partial class PdfReadDocument {
     private readonly PdfDecodedStreamBudget _decodedStreamBudget;
     private readonly Dictionary<string, PdfNamedDestination> _nameDestinations = new(StringComparer.Ordinal);
     private readonly Dictionary<string, PdfNamedDestination> _stringDestinations = new(StringComparer.Ordinal);
+    private Dictionary<int, int>? _pageNumberByObject;
     private readonly PdfFontResourceCache _fontResourceCache = new();
     private readonly PdfMetadata _metadata;
     private readonly PdfXmpMetadataInfo? _xmpMetadata;

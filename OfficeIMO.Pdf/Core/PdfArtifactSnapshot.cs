@@ -19,12 +19,22 @@ public sealed class PdfArtifactSnapshot {
     /// <summary>Readable page count, or null when page inspection did not complete.</summary>
     public int? PageCount { get; }
 
-    internal static PdfArtifactSnapshot Capture(byte[] bytes, PdfLoadOptions? readOptions = null) {
+    internal static PdfArtifactSnapshot Capture(byte[] bytes, PdfLoadOptions? readOptions = null) =>
+        Capture(bytes, readOptions, out _);
+
+    /// <summary>Retains a successful artifact readback for the next operation on the same output.</summary>
+    internal static PdfArtifactSnapshot Capture(
+        byte[] bytes,
+        PdfLoadOptions? readOptions,
+        out PdfReadDocument? readDocument) {
         Guard.NotNull(bytes, nameof(bytes));
 
         int? pageCount = null;
+        readDocument = null;
         try {
-            pageCount = PdfReadDocument.Open(bytes, readOptions).Pages.Count;
+            PdfReadDocument parsed = PdfReadDocument.Open(bytes, readOptions);
+            pageCount = parsed.Pages.Count;
+            readDocument = parsed;
         } catch {
             // Artifact identity remains useful even when a failed pipeline step produced unreadable bytes.
         }

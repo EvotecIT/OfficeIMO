@@ -339,12 +339,19 @@ public sealed partial class PdfReadDocument {
     }
 
     internal int? GetPageNumberForObject(int objectNumber) {
-        for (int i = 0; i < Pages.Count; i++) {
-            if (Pages[i].ObjectNumber == objectNumber) {
-                return i + 1;
+        Dictionary<int, int>? pageNumbers = System.Threading.Volatile.Read(ref _pageNumberByObject);
+        if (pageNumbers is null) {
+            var built = new Dictionary<int, int>(Pages.Count);
+            for (int i = 0; i < Pages.Count; i++) {
+                int pageObjectNumber = Pages[i].ObjectNumber;
+                if (!built.ContainsKey(pageObjectNumber)) {
+                    built[pageObjectNumber] = i + 1;
+                }
             }
+
+            pageNumbers = System.Threading.Interlocked.CompareExchange(ref _pageNumberByObject, built, null) ?? built;
         }
 
-        return null;
+        return pageNumbers.TryGetValue(objectNumber, out int pageNumber) ? pageNumber : null;
     }
 }

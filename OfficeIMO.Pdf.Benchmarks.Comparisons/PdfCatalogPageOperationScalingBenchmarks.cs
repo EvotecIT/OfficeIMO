@@ -10,10 +10,11 @@ public enum PdfCatalogFeatureMode {
     PerPageBookmark
 }
 
-/// <summary>Measures every-page split with and without page labels across page-count boundaries.</summary>
+/// <summary>Measures split and non-contiguous selection across page-count and catalog-feature boundaries.</summary>
 [MemoryDiagnoser]
-public class PdfCatalogSplitScalingBenchmarks {
+public class PdfCatalogPageOperationScalingBenchmarks {
     private byte[] _source = null!;
+    private int[] _selectedPages = null!;
 
     [Params(5, 6, 50, 500)]
     public int PageCount { get; set; }
@@ -74,10 +75,45 @@ public class PdfCatalogSplitScalingBenchmarks {
                 }
             }
         }
+
+        int selectedCount = Math.Max(2, PageCount / 4);
+        _selectedPages = new int[selectedCount];
+        for (int index = 0; index < selectedCount; index++) {
+            _selectedPages[index] = PageCount - (int)Math.Round(index * (PageCount - 1D) / (selectedCount - 1D));
+        }
+
+        PdfReadDocument selected = PdfReadDocument.Open(Select());
+        if (selected.Pages.Count != selectedCount) {
+            throw new InvalidOperationException("Catalog selection output count differs from the planned page count.");
+        }
+        for (int index = 0; index < selectedCount; index++) {
+            if (!selected.Pages[index].ExtractText().Contains(Marker(_selectedPages[index]), StringComparison.Ordinal)) {
+                throw new InvalidOperationException("Catalog selection changed page content or order at output page " + (index + 1) + ".");
+            }
+        }
+        if (hasPageLabels && (selected.PageLabels.Count != selectedCount ||
+            selected.PageLabels.Where((label, index) => label.StartPageIndex != index || label.StartNumber != _selectedPages[index]).Any())) {
+            throw new InvalidOperationException("Catalog selection did not preserve the selected page labels.");
+        }
+        if (!hasPageLabels && selected.PageLabels.Count != 0) {
+            throw new InvalidOperationException("Catalog selection added page labels to an unlabelled source.");
+        }
+        if (FeatureMode == PdfCatalogFeatureMode.PerPageBookmark) {
+            IReadOnlyList<PdfNamedDestination> destinations = selected.NamedDestinations;
+            if (destinations.Count != selectedCount ||
+                destinations.Any(destination => destination.PageNumber is not int outputPage ||
+                    outputPage < 1 || outputPage > selectedCount ||
+                    destination.Name != "Bookmark " + _selectedPages[outputPage - 1].ToString("D4", System.Globalization.CultureInfo.InvariantCulture))) {
+                throw new InvalidOperationException("Catalog selection did not preserve and remap selected bookmarks.");
+            }
+        }
     }
 
     [Benchmark]
     public byte[][] Split() => PdfDocument.Load(_source).Pages.Split().Select(static page => page.ToBytes()).ToArray();
+
+    [Benchmark]
+    public byte[] Select() => PdfDocument.Load(_source).Pages.Extract(_selectedPages).ToBytes();
 
     private static string Marker(int page) => "Catalog split page " + page.ToString("D4", System.Globalization.CultureInfo.InvariantCulture);
 }
