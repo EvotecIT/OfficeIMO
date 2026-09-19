@@ -634,7 +634,7 @@ internal static class PdfInspector {
             int pageNumber = pageNumbers[i];
             PdfReadPage page = document.Pages[pageNumber - 1];
             PdfPageGeometry geometry = page.GetGeometry();
-            var (width, height) = page.GetPageSize();
+            var (width, height) = PdfReadPage.GetPageSize(geometry);
             int rotation = page.GetRotationDegrees();
             var pageLinks = page.GetLinkAnnotationsUnchecked();
             var links = new List<PdfLinkAnnotation>(pageLinks.Count);
