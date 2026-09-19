@@ -221,10 +221,9 @@ internal static partial class PdfSyntax {
 
         if (dictionary is null) {
             try {
-                string dictionaryText = text.Substring(dictionaryStart + 2, dictionaryCharacters);
                 dictionary = limits == null
-                    ? ParseDictionary(dictionaryText)
-                    : ParseDictionary(dictionaryText, limits);
+                    ? ParseDictionary(text, dictionaryStart + 2, dictionaryCharacters)
+                    : ParseDictionary(text, dictionaryStart + 2, dictionaryCharacters, limits);
             } catch (Exception exception) when (exception is not OutOfMemoryException) {
                 return false;
             }
@@ -396,9 +395,9 @@ internal static partial class PdfSyntax {
 
         if (!preparsedDictionaries.TryGetValue(objectIndex, out PdfDictionary? dictionary)) {
             try {
-                dictionary = ParseDictionary(text.Substring(
+                dictionary = ParseDictionary(text,
                     dictionaryStart + 2,
-                    dictionaryEnd - dictionaryStart - 2), limits);
+                    dictionaryEnd - dictionaryStart - 2, limits);
                 preparsedDictionaries[objectIndex] = dictionary;
             } catch (Exception exception) when (exception is not OutOfMemoryException) {
                 return false;

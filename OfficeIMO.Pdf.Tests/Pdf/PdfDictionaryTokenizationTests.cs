@@ -30,13 +30,36 @@ public class PdfDictionaryTokenizationTests {
         Assert.False(dictionary.HasIncompleteSyntax);
     }
 
-    private static PdfDictionary ParseDictionary(string entries) {
+    [Fact]
+    public void DictionaryRangeUsesItsOwnCharacterBudgetAndDoesNotReadTheFollowingObject() {
+        PdfDictionary dictionary = ParseDictionary(
+            "/Payload (range-safe) /Nested << /Values [1 2 3] >> /Hex <4142>",
+            new PdfLoadOptions { Limits = new PdfReadLimits { MaxObjectCharacters = 128 } });
+
+        Assert.Equal(3, dictionary.Items.Count);
+        Assert.Equal("range-safe", Assert.IsType<PdfStringObj>(dictionary.Items["Payload"]).Value);
+        PdfDictionary nested = Assert.IsType<PdfDictionary>(dictionary.Items["Nested"]);
+        Assert.Equal(3, Assert.IsType<PdfArray>(nested.Items["Values"]).Items.Count);
+        Assert.Equal("AB", Assert.IsType<PdfStringObj>(dictionary.Items["Hex"]).Value);
+        Assert.False(dictionary.HasIncompleteSyntax);
+    }
+
+    [Fact]
+    public void MalformedDelimiterAtEndOfDictionaryRangeDoesNotConsumeFollowingObject() {
+        PdfDictionary dictionary = ParseDictionary("/Good 3 )");
+
+        Assert.Single(dictionary.Items);
+        Assert.Equal(3, Assert.IsType<PdfNumber>(dictionary.Items["Good"]).Value);
+        Assert.True(dictionary.HasIncompleteSyntax);
+    }
+
+    private static PdfDictionary ParseDictionary(string entries, PdfLoadOptions? options = null) {
         byte[] pdf = Encoding.ASCII.GetBytes(
             "%PDF-1.7\n" +
             "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n" +
             "2 0 obj\n<< /Type /Pages /Count 0 /Kids [] >>\nendobj\n" +
             "3 0 obj\n<< " + entries + " >>\nendobj\n" +
             "trailer\n<< /Root 1 0 R /Size 4 >>\nstartxref\n0\n%%EOF\n");
-        return Assert.IsType<PdfDictionary>(PdfSyntax.ParseObjects(pdf).Map[3].Value);
+        return Assert.IsType<PdfDictionary>(PdfSyntax.ParseObjects(pdf, options).Map[3].Value);
     }
 }

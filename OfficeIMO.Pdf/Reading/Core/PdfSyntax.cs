@@ -148,8 +148,7 @@ internal static partial class PdfSyntax {
 
                     PdfDictionary? dict;
                     if (!preparsedDictionaries.TryGetValue(start, out dict)) {
-                        string dictText = SafeSlice(text, dictStart + 2, dictionaryCharacters, limits.MaxObjectCharacters);
-                        try { dict = ParseDictionary(dictText, limits); }
+                        try { dict = ParseDictionary(text, dictStart + 2, dictionaryCharacters, limits); }
                         catch (Exception ex) when (ex is not OutOfMemoryException && ex is not PdfReadLimitException) { dict = null; }
                     }
                     if (dict is null) {
