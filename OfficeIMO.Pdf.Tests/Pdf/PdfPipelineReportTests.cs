@@ -60,6 +60,23 @@ public sealed class PdfPipelineReportTests {
     }
 
     [Fact]
+    public void ArtifactSnapshot_UsesCanonicalReadForPageCountAndRetainsIdentityOnReadFailure() {
+        byte[] encrypted = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
+            .Paragraph(paragraph => paragraph.Text("Snapshot page"))
+            .ToBytes();
+
+        PdfArtifactSnapshot readable = PdfArtifactSnapshot.Capture(
+            encrypted,
+            new PdfLoadOptions { Password = "open" });
+        PdfArtifactSnapshot unreadable = PdfArtifactSnapshot.Capture(encrypted);
+
+        Assert.Equal(1, readable.PageCount);
+        Assert.Null(unreadable.PageCount);
+        Assert.Equal(encrypted.LongLength, unreadable.ByteCount);
+        Assert.Equal(Sha256(encrypted), unreadable.Sha256);
+    }
+
+    [Fact]
     public void OpenMutationAndSave_PreserveArtifactChainAndDecision() {
         byte[] source = PdfDocument.Create()
             .Meta(title: "Before")
