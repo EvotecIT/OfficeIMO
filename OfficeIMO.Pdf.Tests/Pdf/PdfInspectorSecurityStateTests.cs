@@ -6,6 +6,21 @@ namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfInspectorTests {
     [Fact]
+    public void UnsignedDocumentHasNoSignatureMarkersOrByteRange() {
+        byte[] pdf = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Unsigned security state."))
+            .ToBytes();
+
+        PdfDocumentSecurityInfo rawSecurity = PdfSyntax.ReadDocumentSecurityInfo(pdf, includeParsedDetails: false);
+        PdfDocumentSecurityInfo parsedSecurity = PdfReadDocument.Open(pdf).Security;
+
+        Assert.False(rawSecurity.HasSignatures);
+        Assert.False(rawSecurity.HasByteRange);
+        Assert.False(parsedSecurity.HasSignatures);
+        Assert.False(parsedSecurity.HasByteRange);
+    }
+
+    [Fact]
     public void Preflight_BlocksEncryptedPdfButReportsSecuritySettings() {
         PdfDocumentPreflight report = PdfInspector.Preflight(BuildEncryptedPdf());
 

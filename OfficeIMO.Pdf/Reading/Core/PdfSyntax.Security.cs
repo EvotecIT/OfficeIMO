@@ -33,7 +33,7 @@ internal static partial class PdfSyntax {
         // fields and values from it. Keep this initial fallback marker scan raw so a
         // cancellation-aware caller does not pay for a second, tokenless parse.
         bool hasSignatures = ContainsAnyPdfName(text, cancellationToken, "ByteRange", "SigFlags", "Sig");
-        bool hasByteRange = ContainsPdfName(text, "ByteRange", cancellationToken);
+        bool hasByteRange = hasSignatures && ContainsPdfName(text, "ByteRange", cancellationToken);
         IReadOnlyList<int> startXrefOffsets = ReadStartXrefOffsets(text, limits.MaxRevisions);
         int startXrefCount = startXrefOffsets.Count;
         int? lastStartXrefOffset = startXrefOffsets.Count == 0 ? null : startXrefOffsets[startXrefOffsets.Count - 1];
@@ -212,7 +212,7 @@ internal static partial class PdfSyntax {
                 // Successful parsing supersedes raw fallback markers: opaque strings and
                 // stream payloads are not signature dictionaries or byte-range arrays.
                 hasSignatures = ContainsAnyDocumentPdfName(pdf, objects, repairReport, "ByteRange", "SigFlags", "Sig");
-                hasByteRange = ContainsAnyDocumentPdfName(pdf, objects, repairReport, "ByteRange");
+                hasByteRange = hasSignatures && ContainsAnyDocumentPdfName(pdf, objects, repairReport, "ByteRange");
             } catch (Exception ex) when (ex is not OperationCanceledException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
                 signatureValueCount = CountPdfNameOccurrences(text, "ByteRange");
                 byteRangeValueCount = 0;
