@@ -582,7 +582,7 @@ $definitions = [ordered]@{
         Suite = 'OfficeIMO.Pdf.Split'
         IdentityVariables = @('producer', 'scale', 'workflow')
         ExpectedCases = @(
-            foreach ($scale in @('Easy', 'Medium', 'High')) {
+            foreach ($scale in @('Easy', 'Medium', 'High', 'VeryHigh')) {
                 foreach ($producer in @('OfficeIMO', 'IText')) {
                     foreach ($workflow in @('EveryPage', 'Bundles')) {
                         foreach ($engine in @('OfficeIMO', 'IText', 'PdfSharp')) {
@@ -600,7 +600,7 @@ $definitions = [ordered]@{
         Suite = 'OfficeIMO.Pdf.Merge'
         IdentityVariables = @('producer', 'scale')
         ExpectedCases = @(
-            foreach ($scale in @('Easy', 'Medium', 'High')) {
+            foreach ($scale in @('Easy', 'Medium', 'High', 'VeryHigh')) {
                 foreach ($producer in @('OfficeIMO', 'IText')) {
                     foreach ($engine in @('OfficeIMO', 'IText', 'PdfSharp')) {
                         "$engine|Producer=$producer&Scale=$scale"
@@ -616,7 +616,7 @@ $definitions = [ordered]@{
         Suite = 'OfficeIMO.Pdf.PageSelection'
         IdentityVariables = @('producer', 'scale')
         ExpectedCases = @(
-            foreach ($scale in @('Easy', 'Medium', 'High')) {
+            foreach ($scale in @('Easy', 'Medium', 'High', 'VeryHigh')) {
                 foreach ($producer in @('OfficeIMO', 'IText')) {
                     foreach ($engine in @('OfficeIMO', 'IText', 'PdfSharp')) {
                         "$engine|Producer=$producer&Scale=$scale"
