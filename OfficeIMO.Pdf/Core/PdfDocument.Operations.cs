@@ -591,8 +591,9 @@ public sealed partial class PdfDocument {
         byte[] input = GetBytesForOperation();
         PdfMergeResult result = PdfMerger.MergeOwned(
             new[] { input, document.GetBytesForOperation() },
-            new[] { targetReadOptions, document.ReadOptions });
-        return WithBytes(input, result.OwnedBytes, result.ReadOptions, nameof(MergeWith));
+            new[] { targetReadOptions, document.ReadOptions },
+            new[] { GetOpenedReadDocumentFactory(targetReadOptions), document.GetOpenedReadDocumentFactory() });
+        return WithBytes(input, result.OwnedBytes, result.ReadOptions, nameof(MergeWith), result.ReadDocument);
     }
 
     /// <summary>
@@ -615,8 +616,9 @@ public sealed partial class PdfDocument {
         byte[] input = GetBytesForOperation();
         PdfMergeResult result = PdfMerger.MergeOwned(
             new[] { input, pdf },
-            new[] { targetReadOptions, PdfLoadOptions.Default });
-        return WithBytes(input, result.OwnedBytes, result.ReadOptions, nameof(MergeWith));
+            new[] { targetReadOptions, PdfLoadOptions.Default },
+            new Func<PdfReadDocument>?[] { GetOpenedReadDocumentFactory(targetReadOptions), null });
+        return WithBytes(input, result.OwnedBytes, result.ReadOptions, nameof(MergeWith), result.ReadDocument);
     }
 
     /// <summary>

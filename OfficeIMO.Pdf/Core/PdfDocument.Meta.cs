@@ -373,25 +373,31 @@ public sealed partial class PdfDocument {
         byte[] inputBytes,
         byte[] pdf,
         PdfLoadOptions? readOptions = null,
-        [System.Runtime.CompilerServices.CallerMemberName] string operationName = "") {
+        [System.Runtime.CompilerServices.CallerMemberName] string operationName = "",
+        PdfReadDocument? validatedReadDocument = null) {
         Guard.NotNull(inputBytes, nameof(inputBytes));
         PdfArtifactSnapshot input = _pipeline.Output ?? PdfArtifactSnapshot.Capture(inputBytes, ReadOptions);
-        return WithBytes(inputBytes, input, pdf, readOptions, operationName);
+        return WithBytes(inputBytes, input, pdf, readOptions, operationName, validatedReadDocument);
     }
 
+    /// <summary>Adopts an optional readback already validated against the output bytes and read settings.</summary>
     internal PdfDocument WithBytes(
         byte[] inputBytes,
         PdfArtifactSnapshot input,
         byte[] pdf,
         PdfLoadOptions? readOptions = null,
-        [System.Runtime.CompilerServices.CallerMemberName] string operationName = "") {
+        [System.Runtime.CompilerServices.CallerMemberName] string operationName = "",
+        PdfReadDocument? validatedReadDocument = null) {
         Guard.NotNull(inputBytes, nameof(inputBytes));
         Guard.NotNull(input, nameof(input));
         Guard.NotNull(pdf, nameof(pdf));
         PdfLoadOptions effectiveReadOptions = PdfLoadOptions.WithMinimumInputBytes(
             readOptions ?? ReadOptions,
             pdf.LongLength);
-        PdfArtifactSnapshot output = PdfArtifactSnapshot.Capture(pdf, effectiveReadOptions, out PdfReadDocument? readDocument);
+        PdfReadDocument? readDocument = validatedReadDocument;
+        PdfArtifactSnapshot output = readDocument is null
+            ? PdfArtifactSnapshot.Capture(pdf, effectiveReadOptions, out readDocument)
+            : PdfArtifactSnapshot.CaptureKnownPageCount(pdf, readDocument.Pages.Count);
         return WithBytes(inputBytes, input, pdf, output, effectiveReadOptions, operationName, readDocument);
     }
 
