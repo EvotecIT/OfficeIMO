@@ -16,6 +16,7 @@ internal sealed record PdfManipulationScenario(
         PdfBenchmarkScale.Easy => new(scale, SourcePageCount: 5, PagesPerBundle: 2, MergeDocumentCount: 3, MergePagesPerDocument: 2, SelectedPageCount: 3),
         PdfBenchmarkScale.Medium => new(scale, SourcePageCount: 20, PagesPerBundle: 5, MergeDocumentCount: 10, MergePagesPerDocument: 4, SelectedPageCount: 10),
         PdfBenchmarkScale.High => new(scale, SourcePageCount: 100, PagesPerBundle: 10, MergeDocumentCount: 25, MergePagesPerDocument: 4, SelectedPageCount: 25),
+        PdfBenchmarkScale.VeryHigh => new(scale, SourcePageCount: 500, PagesPerBundle: 25, MergeDocumentCount: 50, MergePagesPerDocument: 10, SelectedPageCount: 125),
         _ => throw new ArgumentOutOfRangeException(nameof(scale))
     };
 

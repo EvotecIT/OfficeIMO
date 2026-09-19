@@ -11,7 +11,7 @@ public class PdfSplitBenchmarks {
     private int _pagesPerDocument;
     private IReadOnlyList<IReadOnlyList<PdfExpectedPage>> _expectedPages = null!;
 
-    [Params(PdfBenchmarkScale.Easy, PdfBenchmarkScale.Medium, PdfBenchmarkScale.High)]
+    [Params(PdfBenchmarkScale.Easy, PdfBenchmarkScale.Medium, PdfBenchmarkScale.High, PdfBenchmarkScale.VeryHigh)]
     public PdfBenchmarkScale Scale { get; set; }
 
     [Params(PdfBenchmarkProducer.OfficeIMO, PdfBenchmarkProducer.IText)]

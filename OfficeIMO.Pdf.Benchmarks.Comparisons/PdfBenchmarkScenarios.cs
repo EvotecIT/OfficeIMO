@@ -5,7 +5,8 @@ namespace OfficeIMO.Pdf.Benchmarks.Comparisons;
 public enum PdfBenchmarkScale {
     Easy,
     Medium,
-    High
+    High,
+    VeryHigh
 }
 
 public enum PdfBenchmarkProducer {
@@ -27,6 +28,7 @@ internal sealed record PdfBenchmarkScenario(
         PdfBenchmarkScale.Easy => new(scale, "Invoice", 1, 8, 1),
         PdfBenchmarkScale.Medium => new(scale, "Monthly operational report", 20, 12, 2),
         PdfBenchmarkScale.High => new(scale, "Annual audit archive", 100, 12, 3),
+        PdfBenchmarkScale.VeryHigh => new(scale, "Multi-year audit archive", 500, 12, 3),
         _ => throw new ArgumentOutOfRangeException(nameof(scale))
     };
 

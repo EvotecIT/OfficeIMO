@@ -14,7 +14,7 @@ internal static class PdfFileAssembler {
         long objectMemoryLimitBytes = PdfObjectStore.DefaultMemoryLimitBytes,
         string? trailerIdEntry = null,
         CancellationToken cancellationToken = default) {
-        using var stream = new MemoryStream();
+        using var stream = CreateOutputMemoryStream(objects, encryption, cancellationToken);
         Assemble(stream, objects, catalogId, infoId, fileVersion, encryption, objectMemoryLimitBytes, trailerIdEntry, cancellationToken);
         return stream.ToArray();
     }
@@ -51,7 +51,7 @@ internal static class PdfFileAssembler {
         byte[] permanentFileId,
         long objectMemoryLimitBytes = PdfObjectStore.DefaultMemoryLimitBytes,
         CancellationToken cancellationToken = default) {
-        using var stream = new MemoryStream();
+        using var stream = CreateOutputMemoryStream(objects, encryption, cancellationToken);
         AssemblePreservingPermanentId(
             stream, objects, catalogId, infoId, fileVersion, encryption, permanentFileId, objectMemoryLimitBytes, cancellationToken);
         return stream.ToArray();
@@ -91,7 +91,7 @@ internal static class PdfFileAssembler {
         long objectMemoryLimitBytes,
         CancellationToken cancellationToken,
         out PdfFileAssemblyBufferEvidence bufferEvidence) {
-        using var stream = new MemoryStream();
+        using var stream = CreateOutputMemoryStream(objects, encryption, cancellationToken);
         AssembleWithEvidenceCore(
             stream,
             objects,
@@ -212,6 +212,27 @@ internal static class PdfFileAssembler {
         byte[] trailerBytes = Encoding.ASCII.GetBytes(trailer.ToString());
         destination.Write(trailerBytes, 0, trailerBytes.Length);
         return written + trailerBytes.LongLength;
+    }
+
+    private static MemoryStream CreateOutputMemoryStream(IReadOnlyList<byte[]> objects, PdfStandardEncryptionOptions? encryption, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        // Encryption may materialize a second object store. Keep the output buffer lazy
+        // until that work has finished so encrypted output does not acquire a new peak.
+        if (objects is null || encryption is not null) return new MemoryStream();
+
+        long objectBytes = 0L;
+        PdfObjectStore? objectStore = objects as PdfObjectStore;
+        for (int index = 0; index < objects.Count; index++) {
+            if ((index & 127) == 0) cancellationToken.ThrowIfCancellationRequested();
+            long objectLength = objectStore is null ? objects[index].LongLength : objectStore.GetLength(index);
+            if (objectBytes > int.MaxValue - objectLength) return new MemoryStream();
+            objectBytes += objectLength;
+        }
+
+        // A classic xref row is 20 bytes. Leave room for its header, trailer and IDs;
+        // unusually large trailers can still grow the stream without changing output.
+        long capacity = objectBytes + 20L * (objects.Count + 1L) + 512L;
+        return capacity <= int.MaxValue ? new MemoryStream((int)capacity) : new MemoryStream();
     }
 
     private static long GetRetainedMemoryBytes(IReadOnlyList<byte[]> objects, CancellationToken cancellationToken) {
