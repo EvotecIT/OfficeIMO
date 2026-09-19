@@ -16,7 +16,15 @@ internal static partial class PdfSyntax {
         byte[] pdf,
         PdfLoadOptions? options = null,
         bool includeParsedDetails = true,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default) =>
+        ReadDocumentSecurityInfo(pdf, options, includeParsedDetails, out _, cancellationToken);
+
+    internal static PdfDocumentSecurityInfo ReadDocumentSecurityInfo(
+        byte[] pdf,
+        PdfLoadOptions? options,
+        bool includeParsedDetails,
+        out string decodedText,
+        CancellationToken cancellationToken) {
         Guard.NotNull(pdf, nameof(pdf));
         cancellationToken.ThrowIfCancellationRequested();
         PdfReadLimits limits = options?.Limits ?? new PdfReadLimits();
@@ -26,6 +34,7 @@ internal static partial class PdfSyntax {
         }
 
         string text = PdfEncoding.Latin1GetString(pdf);
+        decodedText = text;
         cancellationToken.ThrowIfCancellationRequested();
         int? encryptObjectNumber = TryReadLastReferenceObjectNumber(text, "Encrypt");
         bool hasEncryption = encryptObjectNumber.HasValue;

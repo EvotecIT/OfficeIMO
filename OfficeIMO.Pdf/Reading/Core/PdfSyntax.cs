@@ -30,7 +30,16 @@ internal static partial class PdfSyntax {
         PdfLoadOptions? options,
         out PdfRepairReport repairReport,
         out long decodedStreamBytes,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default) =>
+        ParseObjects(pdf, options, out repairReport, out decodedStreamBytes, null, cancellationToken);
+
+    internal static (Dictionary<int, PdfIndirectObject> Map, string TrailerRaw) ParseObjects(
+        byte[] pdf,
+        PdfLoadOptions? options,
+        out PdfRepairReport repairReport,
+        out long decodedStreamBytes,
+        string? decodedText,
+        CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         decodedStreamBytes = 0;
         PdfReadLimits limits = options?.Limits ?? new PdfReadLimits();
@@ -46,7 +55,7 @@ internal static partial class PdfSyntax {
         }
 
         var parseTimer = System.Diagnostics.Stopwatch.StartNew();
-        string text = PdfEncoding.Latin1GetString(pdf);
+        string text = decodedText ?? PdfEncoding.Latin1GetString(pdf);
         cancellationToken.ThrowIfCancellationRequested();
         var map = new Dictionary<int, PdfIndirectObject>();
         var parsedOffsets = new Dictionary<int, int>();
