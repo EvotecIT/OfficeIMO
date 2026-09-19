@@ -1,13 +1,8 @@
 param(
     [switch] $Validate,
     [switch] $Plan,
-    [switch] $Publish,
-    [switch] $SubmitWinget
+    [switch] $Publish
 )
-
-if ($SubmitWinget -and -not $Publish) {
-    throw 'WinGet submission requires the exact signed GitHub release to be published first.'
-}
 
 $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 $previousNuGetPackages = $env:NUGET_PACKAGES
@@ -26,7 +21,6 @@ $parameters = @{
 if ($Validate) { $parameters.Validate = $true }
 if ($Plan) { $parameters.Plan = $true }
 if ($Publish) { $parameters.PublishProjectGitHub = $true }
-if ($SubmitWinget) { $parameters.SubmitWinget = $true }
 
 Push-Location $repositoryRoot
 try {

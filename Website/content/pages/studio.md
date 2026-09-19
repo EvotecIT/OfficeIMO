@@ -33,11 +33,9 @@ Studio brings the OfficeIMO document engines into a desktop workspace. It works 
 
 Open any screenshot at full size to inspect the workspace. For immediate use without building the desktop app, try the [browser PDF tools](/pdf/). Their focused operations and limits are described on each task page.
 
-## Choose a desktop download
+## Get Studio
 
-Check the [Studio section of the downloads page](/downloads/#studio-downloads) for the current signed Windows MSI and portable ZIP links. The links appear when a complete Studio release is published. The [source build guide](https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Studio#readme) remains available.
-
-WinGet follows acceptance into the community catalog. Microsoft Store, Mac App Store, and other platforms have separate release channels.
+Use the [source build guide](https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Studio#readme) to run Studio on your desktop. The [downloads page](/downloads/#studio-downloads) lists available packages.
 
 ## Prefer a command or an API?
 

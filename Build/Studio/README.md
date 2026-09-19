@@ -34,7 +34,15 @@ The release matrix contains self-contained `win-x64`, `win-arm64`, `osx-x64`, `o
 
 Studio has its own `0.1.x` release line. PowerForge resolves one monotonic version for both Windows MSIs and portable ZIPs, applies it to the application binaries, and reserves it through `studio-msi/officeimo-studio` Git tags when building a release. NuGet library versions remain independent. Planning is read only; an actual build with this release config reserves the version remotely, even when signing is disabled. For unsigned local package tests, use an isolated temporary copy of the config with signing disabled and the version authority changed to `LocalFile` with a task-owned state path. Never publish those test artifacts.
 
-`Build-StudioWindowsRelease.ps1` stages the two signed MSI files, two portable ZIPs, checksums, a release manifest, and the three-file WinGet manifest set. Its `-Publish` option creates the `Studio-v<version>` GitHub release; `-SubmitWinget` submits the WinGet manifests after that release is available. The website reads published Studio assets from the release hub and exposes direct versioned download links only when all four Windows packages are present. Before a public release, verify the exact signed artifact hashes, clean installation, upgrade, uninstall, and launch on x64 and Arm64 test systems. WinGet catalog acceptance is a separate public-state check.
+`Build-StudioWindowsRelease.ps1` stages the two signed MSI files, two portable ZIPs, checksums, a release manifest, and the three-file WinGet manifest set. Its `-Publish` option creates the `Studio-v<version>` GitHub release. Submit the generated WinGet manifest directory only after verifying that release and its exact signed assets. Keep the staged manifest directory until the catalog accepts the submission; a failed submission can be retried without rebuilding, reserving another version, or replacing release assets.
+
+```powershell
+$version = '<published Studio version>'
+gh release view "Studio-v$version" -R EvotecIT/OfficeIMO --json assets
+wingetcreate submit "Artifacts/Studio/WindowsRelease/Winget/EvotecIT.OfficeIMO.Studio/$version" --no-open
+```
+
+The website reads published Studio assets from the release hub and exposes direct versioned download links only when all four Windows packages are present. Before a public release, verify the exact signed artifact hashes, clean installation, upgrade, uninstall, and launch on x64 and Arm64 test systems. WinGet catalog acceptance is a separate public-state check.
 
 Windows binaries and the MSI use the existing OfficeIMO Authenticode certificate profile and a trusted timestamp. A missing signing tool, certificate, or timestamp is a release failure. Do not disable signing for a public artifact.
 
