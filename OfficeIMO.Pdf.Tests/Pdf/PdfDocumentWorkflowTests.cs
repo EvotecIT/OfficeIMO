@@ -1184,6 +1184,10 @@ public class PdfDocumentWorkflowTests {
         Assert.Equal(PdfMerger.Merge(source, appendix), bulkMerged.ToBytes());
         Assert.Equal(4, bulkMerged.Inspect().PageCount);
 
+        PdfDocument byteMerged = PdfDocument.MergeBytes(new[] { source, appendix });
+        Assert.Equal(PdfMerger.Merge(source, appendix), byteMerged.ToBytes());
+        Assert.Equal(4, byteMerged.Inspect().PageCount);
+
         PdfDocument metadata = merged.UpdateMetadata(title: "Workflow updated", author: "OfficeIMO Tests");
         Assert.Equal(
             PdfMetadataEditor.UpdateMetadata(merged.ToBytes(), title: "Workflow updated", author: "OfficeIMO Tests"),
@@ -1806,6 +1810,20 @@ public class PdfDocumentWorkflowTests {
             yield return PdfDocument.Create().Paragraph(p => p.Text("First"));
             cancellation.Cancel();
             yield return PdfDocument.Create().Paragraph(p => p.Text("Second"));
+        }
+    }
+
+    [Fact]
+    public void BulkByteMergeHonorsCancellationWhileEnumeratingPayloads() {
+        using var cancellation = new CancellationTokenSource();
+
+        Assert.Throws<OperationCanceledException>(() =>
+            PdfDocument.MergeBytes(EnumeratePayloads(cancellation), cancellation.Token));
+
+        static IEnumerable<byte[]> EnumeratePayloads(CancellationTokenSource cancellation) {
+            yield return BuildPdf("First", "First page");
+            cancellation.Cancel();
+            yield return BuildPdf("Second", "Second page");
         }
     }
 

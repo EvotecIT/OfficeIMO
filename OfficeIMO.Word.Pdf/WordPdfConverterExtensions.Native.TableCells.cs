@@ -11,45 +11,72 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private static List<PdfCore.PdfCellVerticalAlign>? CreateNativeTableVerticalAlignments(TableLayout layout) {
+        private readonly record struct NativeTableColumnAlignments(
+            List<PdfCore.PdfColumnAlign>? Horizontal,
+            List<PdfCore.PdfCellVerticalAlign>? Vertical);
+
+        private static NativeTableColumnAlignments CreateNativeTableColumnAlignments(TableLayout layout) {
             int columnCount = GetNativeTableColumnCount(layout);
             if (columnCount == 0) {
-                return null;
+                return default;
             }
 
-            var alignments = new List<PdfCore.PdfCellVerticalAlign>(columnCount);
-            bool hasExplicitAlignment = false;
-            for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
-                PdfCore.PdfCellVerticalAlign? columnAlignment = null;
-                bool conflict = false;
-                foreach ((WordTableCell Cell, int Column, int ColumnSpan) cell in EnumerateNativeTableCells(layout)) {
-                    if (columnIndex < cell.Column || columnIndex >= cell.Column + cell.ColumnSpan) {
+            var horizontalValues = new PdfCore.PdfColumnAlign?[columnCount];
+            var verticalValues = new PdfCore.PdfCellVerticalAlign?[columnCount];
+            var horizontalConflicts = new bool[columnCount];
+            var verticalConflicts = new bool[columnCount];
+            foreach ((WordTableCell Cell, int Column, int ColumnSpan) cell in EnumerateNativeTableCells(layout)) {
+                PdfCore.PdfColumnAlign horizontal = GetNativeCellHorizontalAlignment(cell.Cell);
+                PdfCore.PdfCellVerticalAlign? vertical = MapNativeNullableCellVerticalAlign(cell.Cell.VerticalAlignment);
+                int endColumn = Math.Min(columnCount, cell.Column + cell.ColumnSpan);
+                for (int columnIndex = Math.Max(0, cell.Column); columnIndex < endColumn; columnIndex++) {
+                    if (!horizontalConflicts[columnIndex]) {
+                        if (!horizontalValues[columnIndex].HasValue) {
+                            horizontalValues[columnIndex] = horizontal;
+                        } else if (horizontalValues[columnIndex]!.Value != horizontal) {
+                            horizontalConflicts[columnIndex] = true;
+                        }
+                    }
+
+                    if (verticalConflicts[columnIndex]) {
                         continue;
                     }
 
-                    PdfCore.PdfCellVerticalAlign? alignment = MapNativeNullableCellVerticalAlign(cell.Cell.VerticalAlignment);
-                    if (!alignment.HasValue) {
-                        conflict = true;
-                        break;
-                    }
-
-                    if (columnAlignment == null) {
-                        columnAlignment = alignment.Value;
-                    } else if (columnAlignment.Value != alignment.Value) {
-                        conflict = true;
-                        break;
+                    if (!vertical.HasValue) {
+                        verticalConflicts[columnIndex] = true;
+                    } else if (!verticalValues[columnIndex].HasValue) {
+                        verticalValues[columnIndex] = vertical.Value;
+                    } else if (verticalValues[columnIndex]!.Value != vertical.Value) {
+                        verticalConflicts[columnIndex] = true;
                     }
                 }
-
-                PdfCore.PdfCellVerticalAlign resolved = conflict ? PdfCore.PdfCellVerticalAlign.Top : columnAlignment ?? PdfCore.PdfCellVerticalAlign.Top;
-                if (resolved != PdfCore.PdfCellVerticalAlign.Top) {
-                    hasExplicitAlignment = true;
-                }
-
-                alignments.Add(resolved);
             }
 
-            return hasExplicitAlignment ? alignments : null;
+            var horizontalAlignments = new List<PdfCore.PdfColumnAlign>(columnCount);
+            var verticalAlignments = new List<PdfCore.PdfCellVerticalAlign>(columnCount);
+            bool hasExplicitHorizontalAlignment = false;
+            bool hasExplicitVerticalAlignment = false;
+            for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+                PdfCore.PdfColumnAlign horizontal = horizontalConflicts[columnIndex]
+                    ? PdfCore.PdfColumnAlign.Left
+                    : horizontalValues[columnIndex] ?? PdfCore.PdfColumnAlign.Left;
+                PdfCore.PdfCellVerticalAlign vertical = verticalConflicts[columnIndex]
+                    ? PdfCore.PdfCellVerticalAlign.Top
+                    : verticalValues[columnIndex] ?? PdfCore.PdfCellVerticalAlign.Top;
+                if (horizontal != PdfCore.PdfColumnAlign.Left) {
+                    hasExplicitHorizontalAlignment = true;
+                }
+                if (vertical != PdfCore.PdfCellVerticalAlign.Top) {
+                    hasExplicitVerticalAlignment = true;
+                }
+
+                horizontalAlignments.Add(horizontal);
+                verticalAlignments.Add(vertical);
+            }
+
+            return new NativeTableColumnAlignments(
+                hasExplicitHorizontalAlignment ? horizontalAlignments : null,
+                hasExplicitVerticalAlignment ? verticalAlignments : null);
         }
 
         private static int GetNativeTableColumnCount(TableLayout layout) {
@@ -302,14 +329,41 @@ namespace OfficeIMO.Word.Pdf {
             return CreateNativeCellText(cell, footnoteNumbersById, nativeDefaults, NativeTableStyleDefaults.Empty);
         }
 
-        private static NativeCellText CreateNativeCellText(WordTableCell cell, Dictionary<long, int>? footnoteNumbersById, NativeDocumentDefaults nativeDefaults, NativeTableStyleDefaults tableStyleDefaults, NativeFontMap? nativeFontMap = null, Func<WordParagraph, (int Level, string Marker)?>? getMarker = null) {
+        private static NativeCellText CreateNativeCellText(WordTableCell cell, Dictionary<long, int>? footnoteNumbersById, NativeDocumentDefaults nativeDefaults, NativeTableStyleDefaults tableStyleDefaults, NativeFontMap? nativeFontMap = null, Func<WordParagraph, (int Level, string Marker)?>? getMarker = null, int tableNestingDepth = 0, bool ignoreFallbackTableStyle = false) {
             var runs = new List<PdfCore.PdfTextRun>();
             var paragraphs = new List<PdfCore.PdfTableCellParagraph>();
             double? pendingSpacingAfter = null;
-            List<WordParagraph> cellParagraphs = GetNativeCellParagraphs(cell).ToList();
-            for (int i = 0; i < cellParagraphs.Count; i++) {
-                WordParagraph paragraph = cellParagraphs[i];
-                List<PdfCore.PdfTextRun> paragraphRuns = CreateNativeCellParagraphRuns(paragraph, footnoteNumbersById, tableStyleDefaults, nativeDefaults, nativeFontMap);
+            List<WordElement> cellElements = EnumerateNativeTableCellElements(cell).ToList();
+            List<PdfCore.PdfTextRun>?[]? paragraphRunsByElement = PrepareNativeCellParagraphRuns(
+                cellElements,
+                footnoteNumbersById,
+                tableStyleDefaults,
+                nativeDefaults,
+                nativeFontMap);
+            for (int i = 0; i < cellElements.Count; i++) {
+                if (cellElements[i] is WordTable nestedTable) {
+                    AppendNativeNestedTableText(
+                        nestedTable,
+                        footnoteNumbersById,
+                        nativeDefaults,
+                        nativeFontMap,
+                        getMarker,
+                        tableNestingDepth,
+                        ignoreFallbackTableStyle,
+                        runs,
+                        paragraphs);
+                    pendingSpacingAfter = null;
+                    continue;
+                }
+
+                if (cellElements[i] is not WordParagraph paragraph) {
+                    pendingSpacingAfter = null;
+                    continue;
+                }
+
+                List<PdfCore.PdfTextRun> paragraphRuns = paragraphRunsByElement == null
+                    ? CreateNativeCellParagraphRuns(paragraph, footnoteNumbersById, tableStyleDefaults, nativeDefaults, nativeFontMap)
+                    : paragraphRunsByElement[i]!;
                 (int Level, string Marker)? listMarker = getMarker?.Invoke(paragraph);
                 (double Left, double Right, double FirstLine) indentation = ResolveNativeTableCellParagraphIndentation(paragraph, tableStyleDefaults, listMarker.HasValue);
                 if (listMarker is { Marker.Length: > 0 } marker) {
@@ -338,7 +392,7 @@ namespace OfficeIMO.Word.Pdf {
                     nativeDefaults,
                     tableStyleDefaults,
                     nativeFontMap);
-                if (ShouldSuppressNativeContextualSpacingAfter(paragraph, GetNextNativeRenderableCellParagraph(cellParagraphs, i, footnoteNumbersById, tableStyleDefaults, nativeDefaults, nativeFontMap))) {
+                if (ShouldSuppressNativeContextualSpacingAfter(paragraph, GetNextNativeRenderableCellParagraph(cellElements, paragraphRunsByElement, i))) {
                     spacingAfter = 0D;
                 }
 
@@ -365,10 +419,41 @@ namespace OfficeIMO.Word.Pdf {
             return new NativeCellText(runs, paragraphs);
         }
 
-        private static WordParagraph? GetNextNativeRenderableCellParagraph(IReadOnlyList<WordParagraph> paragraphs, int index, Dictionary<long, int>? footnoteNumbersById, NativeTableStyleDefaults tableStyleDefaults, NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap = null) {
-            for (int nextIndex = index + 1; nextIndex < paragraphs.Count; nextIndex++) {
-                WordParagraph next = paragraphs[nextIndex];
-                if (CreateNativeCellParagraphRuns(next, footnoteNumbersById, tableStyleDefaults, nativeDefaults, nativeFontMap).Count > 0) {
+        private static List<PdfCore.PdfTextRun>?[]? PrepareNativeCellParagraphRuns(
+            IReadOnlyList<WordElement> elements,
+            Dictionary<long, int>? footnoteNumbersById,
+            NativeTableStyleDefaults tableStyleDefaults,
+            NativeDocumentDefaults nativeDefaults,
+            NativeFontMap? nativeFontMap) {
+            if (elements.Count < 2) {
+                return null;
+            }
+
+            var prepared = new List<PdfCore.PdfTextRun>?[elements.Count];
+            for (int index = 0; index < elements.Count; index++) {
+                if (elements[index] is WordParagraph paragraph) {
+                    prepared[index] = CreateNativeCellParagraphRuns(
+                        paragraph,
+                        footnoteNumbersById,
+                        tableStyleDefaults,
+                        nativeDefaults,
+                        nativeFontMap);
+                }
+            }
+
+            return prepared;
+        }
+
+        private static WordParagraph? GetNextNativeRenderableCellParagraph(
+            IReadOnlyList<WordElement> elements,
+            IReadOnlyList<List<PdfCore.PdfTextRun>?>? paragraphRunsByElement,
+            int index) {
+            for (int nextIndex = index + 1; nextIndex < elements.Count; nextIndex++) {
+                if (elements[nextIndex] is not WordParagraph next) {
+                    return null;
+                }
+
+                if (paragraphRunsByElement?[nextIndex]?.Count > 0) {
                     return next;
                 }
             }
@@ -820,7 +905,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static string GetNativeCellText(WordTableCell cell, Dictionary<long, int>? footnoteNumbersById) {
             var parts = new List<string>();
-            foreach (WordParagraph paragraph in GetNativeCellParagraphs(cell)) {
+            foreach (WordParagraph paragraph in EnumerateNativeTableCellParagraphs(cell)) {
                 string? paragraphText = GetNativeCellParagraphText(paragraph);
                 if (!string.IsNullOrEmpty(paragraphText)) {
                     string text = paragraphText;
@@ -838,10 +923,13 @@ namespace OfficeIMO.Word.Pdf {
             return string.Join(Environment.NewLine, parts);
         }
 
-        private static IReadOnlyList<WordParagraph> GetNativeCellParagraphs(WordTableCell cell) =>
-            CollapseNativeParagraphElements(cell.Paragraphs.Cast<WordElement>())
-                .OfType<WordParagraph>()
-                .ToList();
+        private static IEnumerable<WordParagraph> GetNativeCellParagraphs(WordTableCell cell) {
+            foreach (WordElement element in CollapseNativeParagraphElements(cell.Paragraphs.Cast<WordElement>())) {
+                if (element is WordParagraph paragraph) {
+                    yield return paragraph;
+                }
+            }
+        }
 
         private static string GetNativeCellParagraphText(WordParagraph paragraph) {
             List<WordParagraph> runs = GetNativeRuns(paragraph);

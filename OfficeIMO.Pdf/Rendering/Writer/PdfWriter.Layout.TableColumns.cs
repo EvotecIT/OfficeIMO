@@ -181,15 +181,12 @@ internal static partial class PdfWriter {
     }
 
     private static TableColumnLayout ResolveTableColumnLayout(TableBlock table, PdfOptions options, PdfTableStyle style, int columns, double frameWidth, double fontSize, int headerRowCount, int footerStartRowIndex) {
-        AutoFitColumnProfile[]? autoFitProfiles = style.AutoFitColumns
-            ? MeasureAutoFitColumnProfiles(table, headerRowCount)
+        AutoFitTableMeasurements? autoFit = style.AutoFitColumns
+            ? MeasureAutoFitTableColumns(table, options, style, fontSize, headerRowCount, footerStartRowIndex)
             : null;
-        double[]? autoFitWeights = style.AutoFitColumns
-            ? MeasureAutoFitColumnWeights(table, options, style, fontSize, headerRowCount, footerStartRowIndex)
-            : null;
-        double[]? autoFitMinimumWidths = style.AutoFitColumns
-            ? MeasureAutoFitColumnMinimumWidths(table, options, style, fontSize, headerRowCount, footerStartRowIndex)
-            : null;
+        AutoFitColumnProfile[]? autoFitProfiles = autoFit?.Profiles;
+        double[]? autoFitWeights = autoFit?.PreferredWidths;
+        double[]? autoFitMinimumWidths = autoFit?.MinimumWidths;
         double columnGap = GetTableCellSpacing(style);
         double tableWidth = ResolveTableLayoutWidth(style, frameWidth, autoFitWeights, autoFitMinimumWidths, columns, columnGap);
         double tableInnerWidth = tableWidth - (columns - 1) * columnGap;

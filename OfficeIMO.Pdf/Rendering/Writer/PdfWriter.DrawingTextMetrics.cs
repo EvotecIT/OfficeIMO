@@ -51,7 +51,7 @@ internal static partial class PdfWriter {
             foreach (var part in Resolve(text, size, family, style))
                 width += part.Canvas != null
                     ? part.Canvas.MeasureText(part.Run.Text, part.Run.FontSize ?? size, part.Family, style)
-                    : MeasureRichSegment(CreatePositionedTextSegment(part.Run, size, options), options);
+                    : GetRichSegmentWidth(CreatePositionedTextSegment(part.Run, size, options));
             return width;
         }
 

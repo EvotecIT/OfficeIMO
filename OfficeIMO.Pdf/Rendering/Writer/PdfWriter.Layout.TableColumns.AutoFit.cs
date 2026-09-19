@@ -22,6 +22,55 @@ internal static partial class PdfWriter {
         public bool ContainsUppercaseDelimitedCodeText { get; }
     }
 
+    private sealed class AutoFitTableMeasurements {
+        internal AutoFitTableMeasurements(
+            AutoFitColumnProfile[] profiles,
+            double[] preferredWidths,
+            double[] minimumWidths) {
+            Profiles = profiles;
+            PreferredWidths = preferredWidths;
+            MinimumWidths = minimumWidths;
+        }
+
+        internal AutoFitColumnProfile[] Profiles { get; }
+
+        internal double[] PreferredWidths { get; }
+
+        internal double[] MinimumWidths { get; }
+    }
+
+    private readonly struct AutoFitTextProfile {
+        internal AutoFitTextProfile(string text) {
+            IsGuidLike = IsGuidLikeAutoFitText(text);
+            IsSingleLetterNumericDelimitedCode = IsSingleLetterNumericDelimitedCodeAutoFitText(text);
+            IsSingleLetterNumericDelimitedCodeList = IsSingleLetterNumericDelimitedCodeListAutoFitText(text);
+            IsUppercaseDelimitedCode = IsUppercaseDelimitedCodeAutoFitText(text);
+            IsCompactDateTime = IsCompactDateTimeAutoFitText(text);
+            IsShortSingleSlashQualified = IsShortSingleSlashQualifiedAutoFitText(text);
+            IsShortCamelCase = IsShortCamelCaseAutoFitText(text);
+            IsStructuredPath = IsStructuredPathAutoFitText(text);
+            IsQualifiedIdentifier = IsQualifiedIdentifierAutoFitText(text);
+            IsDottedQualified = IsDottedQualifiedAutoFitText(text);
+            HasTechnicalBreakCharacters = HasTechnicalAutoFitBreakCharacters(text);
+            HasCamelCaseBreak = HasCamelCaseAutoFitBreak(text);
+            HasWhitespaceBreak = HasWhitespaceAutoFitBreak(text);
+        }
+
+        internal bool IsGuidLike { get; }
+        internal bool IsSingleLetterNumericDelimitedCode { get; }
+        internal bool IsSingleLetterNumericDelimitedCodeList { get; }
+        internal bool IsUppercaseDelimitedCode { get; }
+        internal bool IsCompactDateTime { get; }
+        internal bool IsShortSingleSlashQualified { get; }
+        internal bool IsShortCamelCase { get; }
+        internal bool IsStructuredPath { get; }
+        internal bool IsQualifiedIdentifier { get; }
+        internal bool IsDottedQualified { get; }
+        internal bool HasTechnicalBreakCharacters { get; }
+        internal bool HasCamelCaseBreak { get; }
+        internal bool HasWhitespaceBreak { get; }
+    }
+
     private static OfficeIMO.Drawing.OfficeFontInfo ToOfficeFontInfo(PdfStandardFont font, double size) {
         string family = font switch {
             PdfStandardFont.TimesRoman or PdfStandardFont.TimesBold or PdfStandardFont.TimesItalic or PdfStandardFont.TimesBoldItalic => "Times New Roman",
@@ -55,61 +104,45 @@ internal static partial class PdfWriter {
         return new OfficeIMO.Drawing.OfficeFontInfo(family, size, style);
     }
 
-    private static double[] MeasureAutoFitColumnWeights(TableBlock table, PdfOptions options, PdfTableStyle style, double fontSize, int headerRowCount, int footerStartRowIndex) {
-        int cols = GetTableColumnCount(table);
-        var weights = new double[cols];
-        var normalFont = ToOfficeFontInfo(ChooseNormal(options.DefaultFont), fontSize);
-        var measurer = OfficeIMO.Drawing.OfficeTextMeasurer.Create(normalFont);
-
-        for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
-            double rowSize = GetTableRowFontSize(style, rowIndex, headerRowCount, footerStartRowIndex, fontSize);
-            var rowFont = ToOfficeFontInfo(GetTableRowFont(options, GetTableRowBold(style, rowIndex, headerRowCount, footerStartRowIndex)), rowSize);
-            var measurementStyle = measurer.CreateStyle(rowFont);
-            var cells = GetTableCellLayouts(table, rowIndex, cols);
-            for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
-                TableCellLayout cell = cells[cellIndex];
-                double measuredTextWidth = cols == 1
-                    ? measurer.MeasureWidth(cell.Text, measurementStyle) * 72D / measurementStyle.Dpi
-                    : MeasureAutoFitPreferredTextWidth(cell.Text, value => measurer.MeasureWidth(value, measurementStyle) * 72D / measurementStyle.Dpi);
-                double measuredPoints = System.Math.Max(
-                    measuredTextWidth,
-                    MeasureTableCellObjectWidth(cell));
-                double requestedWidth = Math.Max(1D, measuredPoints + GetTableCellPaddingLeft(style, rowIndex, cell.Column) + GetTableCellPaddingRight(style, rowIndex, cell.Column));
-                double requestedPerColumn = requestedWidth / cell.ColumnSpan;
-                for (int c = cell.Column; c < cell.Column + cell.ColumnSpan && c < cols; c++) {
-                    if (requestedPerColumn > weights[c]) {
-                        weights[c] = requestedPerColumn;
-                    }
-                }
-            }
-        }
-
-        for (int c = 0; c < weights.Length; c++) {
-            if (weights[c] <= 0D) {
-                weights[c] = 1D;
-            }
-        }
-
-        return weights;
-    }
-
-    private static AutoFitColumnProfile[] MeasureAutoFitColumnProfiles(TableBlock table, int headerRowCount) {
+    private static AutoFitTableMeasurements MeasureAutoFitTableColumns(TableBlock table, PdfOptions options, PdfTableStyle style, double fontSize, int headerRowCount, int footerStartRowIndex) {
         int cols = GetTableColumnCount(table);
         var containsStructuredKeyValuePathText = new bool[cols];
         var containsQualifiedIdentifierText = new bool[cols];
         var containsDottedQualifiedIdentifierText = new bool[cols];
         var containsUppercaseDelimitedCodeText = new bool[cols];
+        bool containsAnyStructuredKeyValuePathText = false;
+        bool containsAnyCamelCaseText = false;
+        bool containsAnyUppercaseDelimitedCodeText = false;
+        bool containsAnyDottedQualifiedText = false;
         bool trackDenseUppercaseDelimitedCodeText = table.Rows.Count >= 100 && cols >= 6;
-        bool foundBodyRows = false;
+        int bodyStartRowIndex = Math.Max(0, headerRowCount);
+        bool profileAllRows = bodyStartRowIndex >= table.Rows.Count;
+        var textProfiles = new AutoFitTextProfile[table.Rows.Count * cols];
 
-        for (int rowIndex = Math.Max(0, headerRowCount); rowIndex < table.Rows.Count; rowIndex++) {
-            foundBodyRows = true;
-            MarkAutoFitColumnProfiles(table, rowIndex, cols, containsStructuredKeyValuePathText, containsQualifiedIdentifierText, containsDottedQualifiedIdentifierText, containsUppercaseDelimitedCodeText, trackDenseUppercaseDelimitedCodeText);
-        }
+        for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
+            bool includeInColumnProfiles = profileAllRows || rowIndex >= bodyStartRowIndex;
+            var cells = GetTableCellLayouts(table, rowIndex, cols);
+            for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
+                TableCellLayout cell = cells[cellIndex];
+                string text = cell.Text;
+                var textProfile = new AutoFitTextProfile(text);
+                textProfiles[rowIndex * cols + cell.Column] = textProfile;
 
-        if (!foundBodyRows) {
-            for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
-                MarkAutoFitColumnProfiles(table, rowIndex, cols, containsStructuredKeyValuePathText, containsQualifiedIdentifierText, containsDottedQualifiedIdentifierText, containsUppercaseDelimitedCodeText, trackDenseUppercaseDelimitedCodeText);
+                containsAnyStructuredKeyValuePathText |= textProfile.IsStructuredPath;
+                containsAnyDottedQualifiedText |= textProfile.IsDottedQualified;
+                containsAnyUppercaseDelimitedCodeText |= textProfile.IsUppercaseDelimitedCode;
+                containsAnyCamelCaseText |= textProfile.HasCamelCaseBreak && !textProfile.HasTechnicalBreakCharacters;
+
+                if (!includeInColumnProfiles) {
+                    continue;
+                }
+
+                for (int column = cell.Column; column < cell.Column + cell.ColumnSpan && column < cols; column++) {
+                    containsStructuredKeyValuePathText[column] |= textProfile.IsStructuredPath;
+                    containsQualifiedIdentifierText[column] |= textProfile.IsQualifiedIdentifier;
+                    containsDottedQualifiedIdentifierText[column] |= textProfile.IsDottedQualified;
+                    containsUppercaseDelimitedCodeText[column] |= trackDenseUppercaseDelimitedCodeText && textProfile.IsUppercaseDelimitedCode;
+                }
             }
         }
 
@@ -122,45 +155,142 @@ internal static partial class PdfWriter {
                 containsUppercaseDelimitedCodeText[column]);
         }
 
-        return profiles;
-    }
+        var preferredWidths = new double[cols];
+        var minimumWidths = new double[cols];
+        var normalFont = ToOfficeFontInfo(ChooseNormal(options.DefaultFont), fontSize);
+        var measurer = OfficeIMO.Drawing.OfficeTextMeasurer.Create(normalFont);
+        bool useLargeDenseTechnicalTable = table.Rows.Count >= 100 && cols >= 6;
+        double defaultMaximumTokenWidth = Math.Max(1D, fontSize * Math.Max(4D, 13D - cols));
+        bool useLargeDenseCamelCaseCap = table.Rows.Count >= 100 && containsAnyCamelCaseText;
+        bool useLargeDenseDelimitedCodeCap = useLargeDenseTechnicalTable &&
+            containsAnyUppercaseDelimitedCodeText &&
+            containsAnyDottedQualifiedText;
+        double denseMaximumTokenWidth = Math.Max(1D, fontSize * (useLargeDenseDelimitedCodeCap ? 2.45D : useLargeDenseCamelCaseCap ? 3.0D : useLargeDenseTechnicalTable ? 2.45D : 3.2D));
+        bool useDenseMinimumTokenWidth = cols >= 6 && !containsAnyStructuredKeyValuePathText;
 
-    private static void MarkAutoFitColumnProfiles(
-        TableBlock table,
-        int rowIndex,
-        int cols,
-        bool[] containsStructuredKeyValuePathText,
-        bool[] containsQualifiedIdentifierText,
-        bool[] containsDottedQualifiedIdentifierText,
-        bool[] containsUppercaseDelimitedCodeText,
-        bool trackDenseUppercaseDelimitedCodeText) {
-        var cells = GetTableCellLayouts(table, rowIndex, cols);
-        for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
-            TableCellLayout cell = cells[cellIndex];
-            if (IsStructuredPathAutoFitText(cell.Text)) {
-                for (int column = cell.Column; column < cell.Column + cell.ColumnSpan && column < cols; column++) {
-                    containsStructuredKeyValuePathText[column] = true;
+        for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
+            double rowSize = GetTableRowFontSize(style, rowIndex, headerRowCount, footerStartRowIndex, fontSize);
+            PdfStandardFont rowStandardFont = GetTableRowFont(options, GetTableRowBold(style, rowIndex, headerRowCount, footerStartRowIndex));
+            var measurementStyle = measurer.CreateStyle(ToOfficeFontInfo(rowStandardFont, rowSize));
+            var cells = GetTableCellLayouts(table, rowIndex, cols);
+            for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
+                TableCellLayout cell = cells[cellIndex];
+                AutoFitTextProfile textProfile = textProfiles[rowIndex * cols + cell.Column];
+                bool splitMinimumCamelCase = useLargeDenseCamelCaseCap || useLargeDenseDelimitedCodeCap;
+                string[] tokens = GetAutoFitMinimumWidthTokens(cell.Text, splitCamelCase: splitMinimumCamelCase);
+                double measuredTextWidth = cols == 1
+                    ? measurer.MeasureWidth(cell.Text, measurementStyle) * 72D / measurementStyle.Dpi
+                    : MeasureAutoFitPreferredTextWidth(
+                        cell.Text,
+                        textProfile,
+                        value => measurer.MeasureWidth(value, measurementStyle) * 72D / measurementStyle.Dpi,
+                        splitMinimumCamelCase ? tokens : null);
+                double measuredPoints = System.Math.Max(
+                    measuredTextWidth,
+                    MeasureTableCellObjectWidth(cell));
+                double horizontalPadding = GetTableCellPaddingLeft(style, rowIndex, cell.Column) + GetTableCellPaddingRight(style, rowIndex, cell.Column);
+                double requestedWidth = Math.Max(1D, measuredPoints + horizontalPadding);
+                double requestedPerColumn = requestedWidth / cell.ColumnSpan;
+                for (int c = cell.Column; c < cell.Column + cell.ColumnSpan && c < cols; c++) {
+                    if (requestedPerColumn > preferredWidths[c]) {
+                        preferredWidths[c] = requestedPerColumn;
+                    }
                 }
-            }
-
-            if (IsQualifiedIdentifierAutoFitText(cell.Text)) {
-                for (int column = cell.Column; column < cell.Column + cell.ColumnSpan && column < cols; column++) {
-                    containsQualifiedIdentifierText[column] = true;
+                double tokenWidth = 0D;
+                if (tokens.Length == 0) {
+                    tokenWidth = EstimateSimpleTextWidthForOptions(cell.Text, rowStandardFont, rowSize, options);
+                } else {
+                    for (int tokenIndex = 0; tokenIndex < tokens.Length; tokenIndex++) {
+                        tokenWidth = Math.Max(tokenWidth, EstimateSimpleTextWidthForOptions(tokens[tokenIndex], rowStandardFont, rowSize, options));
+                    }
                 }
-            }
 
-            if (IsDottedQualifiedAutoFitText(cell.Text)) {
-                for (int column = cell.Column; column < cell.Column + cell.ColumnSpan && column < cols; column++) {
-                    containsDottedQualifiedIdentifierText[column] = true;
+                bool qualifiedIdentifierText = textProfile.IsQualifiedIdentifier;
+                bool singleLetterNumericDelimitedCode = textProfile.IsSingleLetterNumericDelimitedCode;
+                bool singleLetterNumericDelimitedCodeList = textProfile.IsSingleLetterNumericDelimitedCodeList;
+                bool compactDateTimeText = textProfile.IsCompactDateTime;
+                bool camelCaseText = textProfile.HasCamelCaseBreak && !textProfile.HasTechnicalBreakCharacters;
+                bool shortCamelCaseText = textProfile.IsShortCamelCase;
+                if (camelCaseText) {
+                    if (!shortCamelCaseText || !useLargeDenseDelimitedCodeCap) {
+                        double wholeCamelCaseWidth = EstimateSimpleTextWidthForOptions(cell.Text, rowStandardFont, rowSize, options);
+                        tokenWidth = Math.Max(tokenWidth, shortCamelCaseText ? wholeCamelCaseWidth : wholeCamelCaseWidth * 0.75D);
+                    }
                 }
-            }
 
-            if (trackDenseUppercaseDelimitedCodeText && IsUppercaseDelimitedCodeAutoFitText(cell.Text)) {
-                for (int column = cell.Column; column < cell.Column + cell.ColumnSpan && column < cols; column++) {
-                    containsUppercaseDelimitedCodeText[column] = true;
+                double singleLetterNumericDelimitedSegmentWidth = 0D;
+                if (singleLetterNumericDelimitedCodeList) {
+                    singleLetterNumericDelimitedSegmentWidth = MeasureSingleLetterNumericDelimitedSegmentWidth(
+                        cell.Text,
+                        value => EstimateSimpleTextWidthForOptions(value, rowStandardFont, rowSize, options));
+                    tokenWidth = Math.Max(tokenWidth, singleLetterNumericDelimitedSegmentWidth);
+                } else if (singleLetterNumericDelimitedCode) {
+                    singleLetterNumericDelimitedSegmentWidth = MeasureSingleLetterNumericDelimitedMinimumWidth(
+                        cell.Text,
+                        value => EstimateSimpleTextWidthForOptions(value, rowStandardFont, rowSize, options));
+                    tokenWidth = Math.Max(tokenWidth, singleLetterNumericDelimitedSegmentWidth);
+                }
+
+                double maximumTokenWidth = useDenseMinimumTokenWidth
+                    ? denseMaximumTokenWidth
+                    : defaultMaximumTokenWidth;
+                if (textProfile.IsGuidLike) {
+                    maximumTokenWidth = Math.Min(maximumTokenWidth, Math.Max(denseMaximumTokenWidth, rowSize * 4.5D));
+                }
+
+                if (qualifiedIdentifierText) {
+                    double wholeQualifiedIdentifierWidth = EstimateSimpleTextWidthForOptions(cell.Text, rowStandardFont, rowSize, options);
+                    maximumTokenWidth = Math.Max(maximumTokenWidth, wholeQualifiedIdentifierWidth * 0.65D);
+                }
+
+                if (!useLargeDenseCamelCaseCap
+                    && !singleLetterNumericDelimitedCode
+                    && !singleLetterNumericDelimitedCodeList
+                    && textProfile.IsUppercaseDelimitedCode) {
+                    maximumTokenWidth = Math.Max(maximumTokenWidth, rowSize * 4.5D);
+                }
+
+                if (useLargeDenseTechnicalTable &&
+                    !singleLetterNumericDelimitedCode &&
+                    !singleLetterNumericDelimitedCodeList &&
+                    textProfile.IsUppercaseDelimitedCode) {
+                    maximumTokenWidth = Math.Min(maximumTokenWidth, Math.Max(1D, rowSize * 2.6D));
+                }
+
+                if (singleLetterNumericDelimitedCode || singleLetterNumericDelimitedCodeList) {
+                    maximumTokenWidth = Math.Max(maximumTokenWidth, singleLetterNumericDelimitedSegmentWidth);
+                }
+
+                if (compactDateTimeText) {
+                    maximumTokenWidth = Math.Min(maximumTokenWidth, Math.Max(tokenWidth, rowSize * 4D));
+                }
+
+                if (camelCaseText) {
+                    if (!shortCamelCaseText || !useLargeDenseDelimitedCodeCap) {
+                        maximumTokenWidth = Math.Max(maximumTokenWidth, shortCamelCaseText ? tokenWidth : rowSize * 6.5D);
+                    }
+                }
+                requestedWidth = Math.Max(1D, System.Math.Max(Math.Min(tokenWidth, maximumTokenWidth), MeasureTableCellObjectWidth(cell)) + horizontalPadding);
+                requestedPerColumn = requestedWidth / cell.ColumnSpan;
+                for (int columnIndex = cell.Column; columnIndex < cell.Column + cell.ColumnSpan && columnIndex < cols; columnIndex++) {
+                    if (requestedPerColumn > minimumWidths[columnIndex]) {
+                        minimumWidths[columnIndex] = requestedPerColumn;
+                    }
                 }
             }
         }
+
+        for (int columnIndex = 0; columnIndex < cols; columnIndex++) {
+            if (preferredWidths[columnIndex] <= 0D) {
+                preferredWidths[columnIndex] = 1D;
+            }
+
+            if (minimumWidths[columnIndex] <= 0D) {
+                minimumWidths[columnIndex] = 1D;
+            }
+        }
+
+        return new AutoFitTableMeasurements(profiles, preferredWidths, minimumWidths);
     }
 
     private static double ResolveAutoFitFlexibleWeight(double preferredWidth, double minimumWidth, AutoFitColumnProfile profile) {
@@ -184,230 +314,74 @@ internal static partial class PdfWriter {
         return Math.Max(residualWidth, preferredWidth * 0.35D);
     }
 
-    private static double[] MeasureAutoFitColumnMinimumWidths(TableBlock table, PdfOptions options, PdfTableStyle style, double fontSize, int headerRowCount, int footerStartRowIndex) {
-        int cols = GetTableColumnCount(table);
-        var widths = new double[cols];
-        bool useLargeDenseTechnicalTable = table.Rows.Count >= 100 && cols >= 6;
-        double defaultMaximumTokenWidth = Math.Max(1D, fontSize * Math.Max(4D, 13D - cols));
-        // Dense Word auto-fit tables break compact labels and codes before starving long narrative/path columns.
-        bool useLargeDenseCamelCaseCap = table.Rows.Count >= 100 && TableContainsCamelCaseAutoFitText(table, cols);
-        bool useLargeDenseDelimitedCodeCap = useLargeDenseTechnicalTable &&
-            TableContainsUppercaseDelimitedCodeAutoFitText(table, cols) &&
-            TableContainsDottedQualifiedAutoFitText(table, cols);
-        double denseMaximumTokenWidth = Math.Max(1D, fontSize * (useLargeDenseDelimitedCodeCap ? 2.45D : useLargeDenseCamelCaseCap ? 3.0D : useLargeDenseTechnicalTable ? 2.45D : 3.2D));
-        bool useDenseMinimumTokenWidth = cols >= 6 && !TableContainsStructuredKeyValuePathText(table, cols);
-
-        for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
-            double rowSize = GetTableRowFontSize(style, rowIndex, headerRowCount, footerStartRowIndex, fontSize);
-            var rowFont = GetTableRowFont(options, GetTableRowBold(style, rowIndex, headerRowCount, footerStartRowIndex));
-            var cells = GetTableCellLayouts(table, rowIndex, cols);
-            for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
-                TableCellLayout cell = cells[cellIndex];
-                double tokenWidth = 0D;
-                string[] tokens = GetAutoFitMinimumWidthTokens(cell.Text, splitCamelCase: useLargeDenseCamelCaseCap || useLargeDenseDelimitedCodeCap);
-                if (tokens.Length == 0) {
-                    tokenWidth = EstimateSimpleTextWidthForOptions(cell.Text, rowFont, rowSize, options);
-                } else {
-                    for (int tokenIndex = 0; tokenIndex < tokens.Length; tokenIndex++) {
-                        tokenWidth = Math.Max(tokenWidth, EstimateSimpleTextWidthForOptions(tokens[tokenIndex], rowFont, rowSize, options));
-                    }
-                }
-
-                bool qualifiedIdentifierText = IsQualifiedIdentifierAutoFitText(cell.Text);
-                bool singleLetterNumericDelimitedCode = IsSingleLetterNumericDelimitedCodeAutoFitText(cell.Text);
-                bool singleLetterNumericDelimitedCodeList = IsSingleLetterNumericDelimitedCodeListAutoFitText(cell.Text);
-                bool compactDateTimeText = IsCompactDateTimeAutoFitText(cell.Text);
-                bool camelCaseText = HasCamelCaseAutoFitBreak(cell.Text) && !HasTechnicalAutoFitBreakCharacters(cell.Text);
-                bool shortCamelCaseText = IsShortCamelCaseAutoFitText(cell.Text);
-                if (camelCaseText) {
-                    if (!shortCamelCaseText || !useLargeDenseDelimitedCodeCap) {
-                        double wholeCamelCaseWidth = EstimateSimpleTextWidthForOptions(cell.Text, rowFont, rowSize, options);
-                        tokenWidth = Math.Max(tokenWidth, shortCamelCaseText ? wholeCamelCaseWidth : wholeCamelCaseWidth * 0.75D);
-                    }
-                }
-
-                double singleLetterNumericDelimitedSegmentWidth = 0D;
-                if (singleLetterNumericDelimitedCodeList) {
-                    singleLetterNumericDelimitedSegmentWidth = MeasureSingleLetterNumericDelimitedSegmentWidth(
-                        cell.Text,
-                        value => EstimateSimpleTextWidthForOptions(value, rowFont, rowSize, options));
-                    tokenWidth = Math.Max(tokenWidth, singleLetterNumericDelimitedSegmentWidth);
-                } else if (singleLetterNumericDelimitedCode) {
-                    singleLetterNumericDelimitedSegmentWidth = MeasureSingleLetterNumericDelimitedMinimumWidth(
-                        cell.Text,
-                        value => EstimateSimpleTextWidthForOptions(value, rowFont, rowSize, options));
-                    tokenWidth = Math.Max(tokenWidth, singleLetterNumericDelimitedSegmentWidth);
-                }
-
-                double maximumTokenWidth = useDenseMinimumTokenWidth
-                    ? denseMaximumTokenWidth
-                    : defaultMaximumTokenWidth;
-                if (IsGuidLikeAutoFitText(cell.Text)) {
-                    maximumTokenWidth = Math.Min(maximumTokenWidth, Math.Max(denseMaximumTokenWidth, rowSize * 4.5D));
-                }
-
-                if (qualifiedIdentifierText) {
-                    double wholeQualifiedIdentifierWidth = EstimateSimpleTextWidthForOptions(cell.Text, rowFont, rowSize, options);
-                    maximumTokenWidth = Math.Max(maximumTokenWidth, wholeQualifiedIdentifierWidth * 0.65D);
-                }
-
-                if (!useLargeDenseCamelCaseCap
-                    && !singleLetterNumericDelimitedCode
-                    && !singleLetterNumericDelimitedCodeList
-                    && IsUppercaseDelimitedCodeAutoFitText(cell.Text)) {
-                    maximumTokenWidth = Math.Max(maximumTokenWidth, rowSize * 4.5D);
-                }
-
-                if (useLargeDenseTechnicalTable &&
-                    !singleLetterNumericDelimitedCode &&
-                    !singleLetterNumericDelimitedCodeList &&
-                    IsUppercaseDelimitedCodeAutoFitText(cell.Text)) {
-                    maximumTokenWidth = Math.Min(maximumTokenWidth, Math.Max(1D, rowSize * 2.6D));
-                }
-
-                if (singleLetterNumericDelimitedCode || singleLetterNumericDelimitedCodeList) {
-                    maximumTokenWidth = Math.Max(maximumTokenWidth, singleLetterNumericDelimitedSegmentWidth);
-                }
-
-                if (compactDateTimeText) {
-                    maximumTokenWidth = Math.Min(maximumTokenWidth, Math.Max(tokenWidth, rowSize * 4D));
-                }
-
-                if (camelCaseText) {
-                    if (!shortCamelCaseText || !useLargeDenseDelimitedCodeCap) {
-                        maximumTokenWidth = Math.Max(maximumTokenWidth, shortCamelCaseText ? tokenWidth : rowSize * 6.5D);
-                    }
-                }
-                double requestedWidth = Math.Max(1D, System.Math.Max(Math.Min(tokenWidth, maximumTokenWidth), MeasureTableCellObjectWidth(cell)) + GetTableCellPaddingLeft(style, rowIndex, cell.Column) + GetTableCellPaddingRight(style, rowIndex, cell.Column));
-                double requestedPerColumn = requestedWidth / cell.ColumnSpan;
-                for (int columnIndex = cell.Column; columnIndex < cell.Column + cell.ColumnSpan && columnIndex < cols; columnIndex++) {
-                    if (requestedPerColumn > widths[columnIndex]) {
-                        widths[columnIndex] = requestedPerColumn;
-                    }
-                }
-            }
-        }
-
-        for (int columnIndex = 0; columnIndex < widths.Length; columnIndex++) {
-            if (widths[columnIndex] <= 0D) {
-                widths[columnIndex] = 1D;
-            }
-        }
-
-        return widths;
-    }
-
-    private static bool TableContainsStructuredKeyValuePathText(TableBlock table, int cols) {
-        for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
-            var cells = GetTableCellLayouts(table, rowIndex, cols);
-            for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
-                if (IsStructuredPathAutoFitText(cells[cellIndex].Text)) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    private static bool TableContainsCamelCaseAutoFitText(TableBlock table, int cols) {
-        for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
-            var cells = GetTableCellLayouts(table, rowIndex, cols);
-            for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
-                string text = cells[cellIndex].Text;
-                if (HasCamelCaseAutoFitBreak(text) && !HasTechnicalAutoFitBreakCharacters(text)) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    private static bool TableContainsUppercaseDelimitedCodeAutoFitText(TableBlock table, int cols) {
-        for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
-            var cells = GetTableCellLayouts(table, rowIndex, cols);
-            for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
-                if (IsUppercaseDelimitedCodeAutoFitText(cells[cellIndex].Text)) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    private static bool TableContainsDottedQualifiedAutoFitText(TableBlock table, int cols) {
-        for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
-            var cells = GetTableCellLayouts(table, rowIndex, cols);
-            for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
-                if (IsDottedQualifiedAutoFitText(cells[cellIndex].Text)) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    private static double MeasureAutoFitPreferredTextWidth(string text, Func<string, double> measure) {
+    private static double MeasureAutoFitPreferredTextWidth(
+        string text,
+        AutoFitTextProfile profile,
+        Func<string, double> measure,
+        string[]? preparedSegments = null) {
         if (string.IsNullOrWhiteSpace(text)) {
             return 1D;
         }
 
         double fullWidth = measure(text);
         double segmentWidth = 0D;
-        foreach (string segment in GetAutoFitPreferredWidthSegments(text, splitCamelCase: true)) {
-            segmentWidth = Math.Max(segmentWidth, measure(segment));
+        if (preparedSegments != null) {
+            for (int segmentIndex = 0; segmentIndex < preparedSegments.Length; segmentIndex++) {
+                segmentWidth = Math.Max(segmentWidth, measure(preparedSegments[segmentIndex]));
+            }
+        } else {
+            foreach (string segment in GetAutoFitPreferredWidthSegments(text, splitCamelCase: true)) {
+                segmentWidth = Math.Max(segmentWidth, measure(segment));
+            }
         }
 
         if (segmentWidth <= 0D) {
             return fullWidth;
         }
 
-        if (IsGuidLikeAutoFitText(text)) {
+        if (profile.IsGuidLike) {
             return segmentWidth;
         }
 
-        if (IsSingleLetterNumericDelimitedCodeListAutoFitText(text)) {
+        if (profile.IsSingleLetterNumericDelimitedCodeList) {
             return Math.Max(segmentWidth, MeasureSingleLetterNumericDelimitedSegmentWidth(text, measure));
         }
 
-        if (IsUppercaseDelimitedCodeAutoFitText(text)) {
+        if (profile.IsUppercaseDelimitedCode) {
             return Math.Max(segmentWidth, fullWidth * 0.15D);
         }
 
-        if (IsCompactDateTimeAutoFitText(text)) {
+        if (profile.IsCompactDateTime) {
             return Math.Max(segmentWidth, fullWidth * 0.42D);
         }
 
-        if (IsShortSingleSlashQualifiedAutoFitText(text)) {
+        if (profile.IsShortSingleSlashQualified) {
             return fullWidth;
         }
 
-        if (IsShortCamelCaseAutoFitText(text)) {
+        if (profile.IsShortCamelCase) {
             return fullWidth;
         }
 
-        if (IsStructuredPathAutoFitText(text)) {
+        if (profile.IsStructuredPath) {
             return Math.Max(segmentWidth, fullWidth * 0.55D);
         }
 
-        if (IsDottedQualifiedAutoFitText(text)) {
+        if (profile.IsDottedQualified) {
             double dottedSegmentWidth = MeasureAutoFitDottedQualifiedSegmentWidth(text, measure);
             double cappedDottedWidth = Math.Min(fullWidth * 0.75D, dottedSegmentWidth * 4D);
             return Math.Max(dottedSegmentWidth, cappedDottedWidth);
         }
 
-        if (HasTechnicalAutoFitBreakCharacters(text)) {
+        if (profile.HasTechnicalBreakCharacters) {
             return Math.Max(segmentWidth, fullWidth * 0.55D);
         }
 
-        if (HasCamelCaseAutoFitBreak(text)) {
+        if (profile.HasCamelCaseBreak) {
             return Math.Max(segmentWidth, fullWidth * 0.85D);
         }
 
-        if (HasWhitespaceAutoFitBreak(text)) {
+        if (profile.HasWhitespaceBreak) {
             return Math.Max(segmentWidth, fullWidth * 0.55D);
         }
 
@@ -500,17 +474,17 @@ internal static partial class PdfWriter {
 
     private static bool IsGuidLikeAutoFitText(string text) {
         string value = text.Trim('{', '}');
-        int hyphens = value.Count(ch => ch == '-');
+        int hyphens = CountAutoFitCharacter(value, '-');
         if (hyphens < 4 || value.Length < 32 || value.Length > 40) {
             return false;
         }
 
-        return value.All(ch => ch == '-' || (ch >= '0' && ch <= '9') || (ch >= 'A' && ch <= 'F') || (ch >= 'a' && ch <= 'f'));
+        return ContainsOnlyAutoFitGuidCharacters(value);
     }
 
     private static bool IsUppercaseDelimitedCodeAutoFitText(string text) {
         string value = text.Trim();
-        if (value.Length < 5 || !value.Contains('-') || value.Any(char.IsWhiteSpace)) {
+        if (value.Length < 5 || !value.Contains('-') || ContainsAutoFitWhitespace(value)) {
             return false;
         }
 
@@ -551,7 +525,17 @@ internal static partial class PdfWriter {
 
     private static bool IsSingleLetterNumericDelimitedCodeListAutoFitText(string text) {
         string[] entries = GetSingleLetterNumericDelimitedCodeEntries(text);
-        return entries.Length >= 2 && entries.All(entry => IsSingleLetterNumericDelimitedCodeParts(entry.Split(AutoFitDelimitedCodeSplitChars, StringSplitOptions.RemoveEmptyEntries)));
+        if (entries.Length < 2) {
+            return false;
+        }
+
+        for (int i = 0; i < entries.Length; i++) {
+            if (!IsSingleLetterNumericDelimitedCodeParts(entries[i].Split(AutoFitDelimitedCodeSplitChars, StringSplitOptions.RemoveEmptyEntries))) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static bool IsCompactDateTimeAutoFitText(string text) {
@@ -606,7 +590,7 @@ internal static partial class PdfWriter {
         }
 
         for (int i = 1; i < parts.Length; i++) {
-            if (parts[i].Length == 0 || !parts[i].All(char.IsDigit)) {
+            if (parts[i].Length == 0 || !ContainsOnlyAutoFitDigits(parts[i])) {
                 return false;
             }
         }
@@ -672,8 +656,19 @@ internal static partial class PdfWriter {
     private static int GetSingleLetterNumericDelimitedPrefixGroupCount(string[] parts) =>
         parts.Length < 4 ? 0 : Math.Min(parts.Length, 4);
 
-    private static bool IsCompactSingleLetterNumericDelimitedCode(string[] parts) =>
-        parts.Length <= 4 && parts.Skip(1).All(part => part.Length <= 2);
+    private static bool IsCompactSingleLetterNumericDelimitedCode(string[] parts) {
+        if (parts.Length > 4) {
+            return false;
+        }
+
+        for (int i = 1; i < parts.Length; i++) {
+            if (parts[i].Length > 2) {
+                return false;
+            }
+        }
+
+        return true;
+    }
 
     private static double MeasureSingleLetterNumericDelimitedBreakSegmentWidth(string[] parts, Func<string, double> measure) {
         double width = 0D;
@@ -701,7 +696,7 @@ internal static partial class PdfWriter {
             return true;
         }
 
-        if (value.Any(char.IsWhiteSpace)) {
+        if (ContainsAutoFitWhitespace(value)) {
             return false;
         }
 
@@ -727,7 +722,7 @@ internal static partial class PdfWriter {
 
     private static bool IsShortSingleSlashQualifiedAutoFitText(string text) {
         string value = text.Trim();
-        if (value.Length < 5 || value.Length > 32 || value.Any(char.IsWhiteSpace)) {
+        if (value.Length < 5 || value.Length > 32 || ContainsAutoFitWhitespace(value)) {
             return false;
         }
 
@@ -757,12 +752,12 @@ internal static partial class PdfWriter {
     private static bool IsShortSlashQualifiedPart(string value) =>
         value.Length > 0 &&
         value.Length <= 20 &&
-        value.Any(char.IsLetter) &&
-        value.All(ch => char.IsLetterOrDigit(ch) || ch == '-' || ch == '_' || ch == '.');
+        ContainsAutoFitLetter(value) &&
+        ContainsOnlyAutoFitIdentifierCharacters(value);
 
     private static bool IsQualifiedIdentifierAutoFitText(string text) {
         string value = text.Trim();
-        if (value.Length < 6 || value.Any(char.IsWhiteSpace)) {
+        if (value.Length < 6 || ContainsAutoFitWhitespace(value)) {
             return false;
         }
 
@@ -815,7 +810,7 @@ internal static partial class PdfWriter {
 
     private static bool IsDottedQualifiedAutoFitText(string text) {
         string value = text.Trim();
-        if (value.Length < 5 || value.Any(char.IsWhiteSpace) || !value.Contains('.')) {
+        if (value.Length < 5 || ContainsAutoFitWhitespace(value) || !value.Contains('.')) {
             return false;
         }
 
@@ -846,6 +841,66 @@ internal static partial class PdfWriter {
         }
 
         return hasLetter && dotCount > 0;
+    }
+
+    private static int CountAutoFitCharacter(string value, char expected) {
+        int count = 0;
+        for (int i = 0; i < value.Length; i++) {
+            if (value[i] == expected) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private static bool ContainsAutoFitWhitespace(string value) {
+        for (int i = 0; i < value.Length; i++) {
+            if (char.IsWhiteSpace(value[i])) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static bool ContainsAutoFitLetter(string value) {
+        for (int i = 0; i < value.Length; i++) {
+            if (char.IsLetter(value[i])) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static bool ContainsOnlyAutoFitDigits(string value) {
+        for (int i = 0; i < value.Length; i++) {
+            if (!char.IsDigit(value[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static bool ContainsOnlyAutoFitGuidCharacters(string value) {
+        for (int i = 0; i < value.Length; i++) {
+            char ch = value[i];
+            if (ch != '-' &&
+                (ch < '0' || ch > '9') &&
+                (ch < 'A' || ch > 'F') &&
+                (ch < 'a' || ch > 'f')) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static bool ContainsOnlyAutoFitIdentifierCharacters(string value) {
+        for (int i = 0; i < value.Length; i++) {
+            char ch = value[i];
+            if (!char.IsLetterOrDigit(ch) && ch != '-' && ch != '_' && ch != '.') {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static double MeasureAutoFitDottedQualifiedSegmentWidth(string text, Func<string, double> measure) {

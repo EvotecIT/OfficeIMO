@@ -46,6 +46,21 @@ public class PdfMergerPolicyTests {
     }
 
     [Fact]
+    public void PolicyMergeResult_AcceptsBytePayloadsWithoutDocumentWrappers() {
+        byte[] first = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("First body")).ToBytes();
+        byte[] second = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Second body")).ToBytes();
+
+        PdfMergeResult result = PdfDocument.MergeBytesResult(
+            new PdfMergeOptions(),
+            new[] { first, second });
+
+        Assert.Equal(2, result.Report.OutputPageCount);
+        string text = result.ToDocument().Reader.Text();
+        Assert.Contains("First body", text, StringComparison.Ordinal);
+        Assert.Contains("Second body", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PolicyMergeComposesSourceStructuralLimitsForTheOwnedOutput() {
         byte[] first = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("First")).ToBytes();
         byte[] second = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Second")).ToBytes();

@@ -724,7 +724,7 @@ namespace OfficeIMO.Word.Pdf {
             foreach (WordTableRow row in table.Rows) {
                 IReadOnlyList<WordTableCell> cells = row.Cells;
                 if (cells.Count == 1) {
-                    foreach (WordParagraph paragraph in GetNativeCellParagraphs(cells[0])) {
+                    foreach (WordParagraph paragraph in EnumerateNativeTableCellParagraphs(cells[0])) {
                         AddNativeHeaderFooterParagraphImage(images, paragraph, null, options, source);
                     }
 
@@ -738,7 +738,7 @@ namespace OfficeIMO.Word.Pdf {
                             ? PdfCore.PdfAlign.Right
                             : PdfCore.PdfAlign.Center;
 
-                    foreach (WordParagraph paragraph in GetNativeCellParagraphs(cells[cellIndex])) {
+                    foreach (WordParagraph paragraph in EnumerateNativeTableCellParagraphs(cells[cellIndex])) {
                         AddNativeHeaderFooterParagraphImage(images, paragraph, align, options, source);
                     }
                 }
@@ -785,7 +785,7 @@ namespace OfficeIMO.Word.Pdf {
             foreach (WordTableRow row in table.Rows) {
                 IReadOnlyList<WordTableCell> cells = row.Cells;
                 if (cells.Count == 1) {
-                    foreach (WordParagraph paragraph in GetNativeCellParagraphs(cells[0])) {
+                    foreach (WordParagraph paragraph in EnumerateNativeTableCellParagraphs(cells[0])) {
                         AddNativeHeaderFooterParagraphShape(shapes, paragraph, null);
                     }
 
@@ -799,7 +799,7 @@ namespace OfficeIMO.Word.Pdf {
                             ? PdfCore.PdfAlign.Right
                             : PdfCore.PdfAlign.Center;
 
-                    foreach (WordParagraph paragraph in GetNativeCellParagraphs(cells[cellIndex])) {
+                    foreach (WordParagraph paragraph in EnumerateNativeTableCellParagraphs(cells[cellIndex])) {
                         AddNativeHeaderFooterParagraphShape(shapes, paragraph, align);
                     }
                 }
@@ -1343,7 +1343,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void AddNativeHeaderFooterTableCellText(NativeHeaderFooterText parts, WordTableCell cell, NativeHeaderFooterZone zone, IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers, NativeFontMap? nativeFontMap) {
-            List<WordParagraph> paragraphs = GetNativeCellParagraphs(cell).ToList();
+            List<WordParagraph> paragraphs = EnumerateNativeTableCellParagraphs(cell).ToList();
             int lastContentIndex = -1;
             for (int index = 0; index < paragraphs.Count; index++) {
                 string? text = GetNativeHeaderFooterParagraphText(paragraphs[index], listMarkers, out _);

@@ -995,6 +995,53 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
+    public void AutoFitTable_UsesExplicitWeightsConsistentlyInsideAndOutsideRows() {
+        var options = new PdfOptions {
+            PageWidth = 360,
+            PageHeight = 240,
+            MarginLeft = 30,
+            MarginRight = 30,
+            MarginTop = 30,
+            MarginBottom = 30,
+            DefaultFont = PdfStandardFont.Helvetica,
+            DefaultFontSize = 9
+        };
+        string[][] rows = {
+            new[] { "Key", "Description", "State" },
+            new[] { "A1", "Managed service renewal with monitoring and incident response", "Open" }
+        };
+
+        byte[] Render(bool insideRow) {
+            var style = TableStyles.Minimal();
+            style.AutoFitColumns = true;
+            style.ColumnWidthWeights = new List<double> { 1D, 1D, 1D };
+            return insideRow
+                ? PdfDocument.Create(options)
+                    .Compose(document => document.Page(page => page.Content(content => content.Row(row =>
+                        row.PercentColumn(100, column => column.Table(rows, style: style))))))
+                    .ToBytes()
+                : PdfDocument.Create(options)
+                    .Table(rows, style: style)
+                    .ToBytes();
+        }
+
+        static (double First, double Second) ReadColumnGaps(byte[] bytes) {
+            using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+            var page = pdf.GetPage(1);
+            double keyX = FindWordStartX(page, "Key");
+            double descriptionX = FindWordStartX(page, "Description");
+            double stateX = FindWordStartX(page, "State");
+            return (descriptionX - keyX, stateX - descriptionX);
+        }
+
+        (double directFirst, double directSecond) = ReadColumnGaps(Render(insideRow: false));
+        (double rowFirst, double rowSecond) = ReadColumnGaps(Render(insideRow: true));
+
+        Assert.InRange(Math.Abs(directFirst - rowFirst), 0D, 0.01D);
+        Assert.InRange(Math.Abs(directSecond - rowSecond), 0D, 0.01D);
+    }
+
+    [Fact]
     public void Table_RightAlignsCurrencyPercentAndParenthesizedNumbers() {
         var options = new PdfOptions {
             PageWidth = 320,

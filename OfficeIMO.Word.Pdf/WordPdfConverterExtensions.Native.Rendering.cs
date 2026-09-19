@@ -373,80 +373,115 @@ namespace OfficeIMO.Word.Pdf {
             return items;
         }
 
-        private static IReadOnlyList<PdfCore.PdfTableCellCheckBox> CreateNativeTableCellCheckBoxes(WordTableCell cell) {
-            var checkBoxes = new List<PdfCore.PdfTableCellCheckBox>();
-            foreach (WordParagraph paragraph in GetNativeCellParagraphs(cell)) {
-                IReadOnlyList<W.SdtRun> controls = GetNativeCheckBoxControls(paragraph);
-                for (int index = 0; index < controls.Count; index++) {
-                    W.SdtRun checkbox = controls[index];
-                    checkBoxes.Add(new PdfCore.PdfTableCellCheckBox(
-                        GetNativeCheckBoxFieldName(checkbox, checkBoxes.Count, "WordTableCheckBox"),
-                        IsNativeCheckBoxChecked(checkbox),
-                        size: 12D));
-                }
-            }
+        private readonly record struct NativeTableCellEmbeddedContent(
+            IReadOnlyList<PdfCore.PdfTableCellCheckBox> CheckBoxes,
+            IReadOnlyList<PdfCore.PdfTableCellFormField> FormFields,
+            IReadOnlyList<PdfCore.PdfTableCellImage> Images);
 
-            return checkBoxes;
-        }
-
-        private static IReadOnlyList<PdfCore.PdfTableCellFormField> CreateNativeTableCellFormFields(WordTableCell cell) {
-            var formFields = new List<PdfCore.PdfTableCellFormField>();
-            foreach (WordParagraph paragraph in GetNativeCellParagraphs(cell)) {
-                IReadOnlyList<W.SdtRun> controls = GetNativeFormFieldControls(paragraph);
-                for (int index = 0; index < controls.Count; index++) {
-                    W.SdtRun formField = controls[index];
-                    if (IsNativeDatePickerControl(formField)) {
-                        formFields.Add(PdfCore.PdfTableCellFormField.TextField(
-                            GetNativeContentControlFieldName(formField, formFields.Count, "WordTableDatePicker"),
-                            GetNativeDatePickerValue(formField),
-                            width: 150D,
-                            height: 20D,
-                            fontSize: 10D));
-                        continue;
-                    }
-
-                    IReadOnlyList<string> options = GetNativeChoiceFieldOptions(formField);
-                    string? value = GetNativeChoiceFieldValue(formField, options);
-                    if (options.Count == 0 || string.IsNullOrWhiteSpace(value)) {
-                        continue;
-                    }
-
-                    string fallbackPrefix = formField.SdtProperties?.Elements<W.SdtContentComboBox>().Any() == true
-                        ? "WordTableComboBox"
-                        : "WordTableDropDownList";
-                    formFields.Add(PdfCore.PdfTableCellFormField.ChoiceField(
-                        GetNativeContentControlFieldName(formField, formFields.Count, fallbackPrefix),
-                        options,
-                        value,
-                        width: 150D,
-                        height: 20D,
-                        fontSize: 10D,
-                        isComboBox: true));
-                }
-            }
-
-            return formFields;
-        }
-
-        private static IReadOnlyList<PdfCore.PdfTableCellImage> CreateNativeTableCellImages(WordTableCell cell) {
-            var images = new List<PdfCore.PdfTableCellImage>();
-            foreach (WordParagraph paragraph in GetNativeCellParagraphs(cell)) {
+        private static NativeTableCellEmbeddedContent CreateNativeTableCellEmbeddedContent(WordTableCell cell) {
+            List<PdfCore.PdfTableCellCheckBox>? checkBoxes = null;
+            List<PdfCore.PdfTableCellFormField>? formFields = null;
+            List<PdfCore.PdfTableCellImage>? images = null;
+            foreach (WordParagraph paragraph in EnumerateNativeTableCellParagraphs(cell)) {
                 if (paragraph.Image != null) {
+                    images ??= new List<PdfCore.PdfTableCellImage>();
                     AddNativeTableCellImage(images, paragraph.Image);
                 }
 
-                foreach (W.SdtRun pictureControl in GetNativePictureControls(paragraph)) {
-                    var pictureParagraph = new WordParagraph(paragraph._document, paragraph._paragraph!, pictureControl);
-                    WordImage? pictureControlImage = pictureParagraph.PictureControl?.Image;
-                    if (pictureControlImage == null) {
+                if (paragraph._paragraph == null) {
+                    continue;
+                }
+
+                foreach (W.SdtRun control in paragraph._paragraph.Descendants<W.SdtRun>()) {
+                    if (IsNativeCheckBoxControl(control)) {
+                        checkBoxes ??= new List<PdfCore.PdfTableCellCheckBox>();
+                        checkBoxes.Add(new PdfCore.PdfTableCellCheckBox(
+                            GetNativeCheckBoxFieldName(control, checkBoxes.Count, "WordTableCheckBox"),
+                            IsNativeCheckBoxChecked(control),
+                            size: 12D));
                         continue;
                     }
 
-                    AddNativeTableCellImage(images, pictureControlImage);
+                    if (IsNativeSupportedFormFieldContentControl(control)) {
+                        formFields ??= new List<PdfCore.PdfTableCellFormField>();
+                        AddNativeTableCellFormField(formFields, control);
+                        continue;
+                    }
+
+                    if (!IsNativePictureControl(control)) {
+                        continue;
+                    }
+
+                    var pictureParagraph = new WordParagraph(paragraph._document, paragraph._paragraph, control);
+                    WordImage? pictureControlImage = pictureParagraph.PictureControl?.Image;
+                    if (pictureControlImage != null) {
+                        images ??= new List<PdfCore.PdfTableCellImage>();
+                        AddNativeTableCellImage(images, pictureControlImage);
+                    }
                 }
             }
 
-            return images;
+            return new NativeTableCellEmbeddedContent(
+                checkBoxes ?? (IReadOnlyList<PdfCore.PdfTableCellCheckBox>)Array.Empty<PdfCore.PdfTableCellCheckBox>(),
+                formFields ?? (IReadOnlyList<PdfCore.PdfTableCellFormField>)Array.Empty<PdfCore.PdfTableCellFormField>(),
+                images ?? (IReadOnlyList<PdfCore.PdfTableCellImage>)Array.Empty<PdfCore.PdfTableCellImage>());
+        }
+
+        private static void AddNativeTableCellFormField(List<PdfCore.PdfTableCellFormField> formFields, W.SdtRun formField) {
+            if (IsNativeDatePickerControl(formField)) {
+                formFields.Add(PdfCore.PdfTableCellFormField.TextField(
+                    GetNativeContentControlFieldName(formField, formFields.Count, "WordTableDatePicker"),
+                    GetNativeDatePickerValue(formField),
+                    width: 150D,
+                    height: 20D,
+                    fontSize: 10D));
+                return;
+            }
+
+            IReadOnlyList<string> options = GetNativeChoiceFieldOptions(formField);
+            string? value = GetNativeChoiceFieldValue(formField, options);
+            if (options.Count == 0 || string.IsNullOrWhiteSpace(value)) {
+                return;
+            }
+
+            string fallbackPrefix = formField.SdtProperties?.Elements<W.SdtContentComboBox>().Any() == true
+                ? "WordTableComboBox"
+                : "WordTableDropDownList";
+            formFields.Add(PdfCore.PdfTableCellFormField.ChoiceField(
+                GetNativeContentControlFieldName(formField, formFields.Count, fallbackPrefix),
+                options,
+                value,
+                width: 150D,
+                height: 20D,
+                fontSize: 10D,
+                isComboBox: true));
+        }
+
+        private static IEnumerable<WordParagraph> EnumerateNativeTableCellParagraphs(WordTableCell cell, int tableNestingDepth = 0) {
+            if (IsNativeHorizontalMergeContinuation(cell) || IsNativeVerticalMergeContinuation(cell)) {
+                yield break;
+            }
+
+            foreach (WordElement element in EnumerateNativeTableCellElements(cell)) {
+                if (element is WordParagraph paragraph) {
+                    yield return paragraph;
+                    continue;
+                }
+
+                if (element is not WordTable nestedTable) {
+                    continue;
+                }
+
+                int nestedDepth = tableNestingDepth + 1;
+                EnsureNativeTableDepth(nestedDepth);
+                foreach (WordTableRow nestedRow in nestedTable.Rows) {
+                    foreach (WordTableCell nestedCell in nestedRow.Cells) {
+                        foreach (WordParagraph nestedParagraph in EnumerateNativeTableCellParagraphs(nestedCell, nestedDepth)) {
+                            yield return nestedParagraph;
+                        }
+                    }
+                }
+            }
         }
 
         private static void AddNativeTableCellImage(List<PdfCore.PdfTableCellImage> images, WordImage image) {

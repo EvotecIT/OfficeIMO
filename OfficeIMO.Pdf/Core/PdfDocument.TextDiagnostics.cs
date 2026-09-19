@@ -71,11 +71,8 @@ public sealed partial class PdfDocument {
             case HeadingBlock heading:
                 AddText(diagnostics, heading.Text, options, GetHeadingFont(heading, options), "PdfHeading", location);
                 break;
-            case BulletListBlock list:
-                AnalyzeListItems(list.RichItems, list.Style ?? options.DefaultListStyleSnapshot, options, defaultFont, diagnostics, location, numbered: false, startNumber: 1);
-                break;
-            case NumberedListBlock list:
-                AnalyzeListItems(list.RichItems, list.Style ?? options.DefaultListStyleSnapshot, options, defaultFont, diagnostics, location, numbered: true, list.StartNumber);
+            case PdfListBlock list:
+                AnalyzeListItems(list.RichItems, list.Style ?? options.DefaultListStyleSnapshot, options, defaultFont, diagnostics, location, list.IsNumbered, list.StartingNumber);
                 break;
             case TableBlock table:
                 AnalyzeTable(table, options, defaultFont, diagnostics, "PdfTableCell", location);

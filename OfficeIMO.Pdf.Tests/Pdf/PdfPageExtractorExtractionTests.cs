@@ -96,6 +96,26 @@ public partial class PdfPageExtractorTests {
     }
 
     [Fact]
+    public void ExtractPages_BoundedSerializationMatchesUnboundedOutputAndRejectsSmallerLimit() {
+        byte[] source = BuildThreePagePdf();
+        int[] pageNumbers = { 3, 1 };
+        byte[] expected = PdfPageExtractor.ExtractPages(source, pageNumbers);
+
+        byte[] actual = PdfPageExtractor.ExtractPages(
+            source,
+            pageNumbers,
+            options: null,
+            maximumOutputBytes: expected.LongLength);
+
+        Assert.Equal(expected, actual);
+        Assert.Throws<InvalidDataException>(() => PdfPageExtractor.ExtractPages(
+            source,
+            pageNumbers,
+            options: null,
+            maximumOutputBytes: expected.LongLength - 1L));
+    }
+
+    [Fact]
     public void ExtractPageRange_CopiesInclusiveRange() {
         byte[] source = BuildThreePagePdf();
 
