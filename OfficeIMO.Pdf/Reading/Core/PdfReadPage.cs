@@ -627,8 +627,7 @@ public sealed partial class PdfReadPage {
         bool canInspectFormInvocations = mayContainForms;
         foreach (PageContentStreamEntry entry in GetContentStreamObjects()) {
             PdfStream stream = entry.Stream;
-            AddUnsupportedFilters(stream, unsupported);
-            if (Filters.StreamDecoder.GetUnsupportedFilters(stream.Dictionary, _objects).Count != 0) {
+            if (AddUnsupportedFilters(stream, unsupported)) {
                 canInspectFormInvocations = false;
                 continue;
             }
@@ -703,8 +702,7 @@ public sealed partial class PdfReadPage {
             }
 
             try {
-                AddUnsupportedFilters(formStream, unsupported);
-                if (Filters.StreamDecoder.GetUnsupportedFilters(formStream.Dictionary, _objects).Count != 0) {
+                if (AddUnsupportedFilters(formStream, unsupported)) {
                     continue;
                 }
 
@@ -716,12 +714,15 @@ public sealed partial class PdfReadPage {
         }
     }
 
-    private void AddUnsupportedFilters(PdfStream stream, List<string> unsupported) {
-        foreach (string filterName in Filters.StreamDecoder.GetUnsupportedFilters(stream.Dictionary, _objects)) {
+    private bool AddUnsupportedFilters(PdfStream stream, List<string> unsupported) {
+        List<string> streamFilters = Filters.StreamDecoder.GetUnsupportedFilters(stream.Dictionary, _objects);
+        foreach (string filterName in streamFilters) {
             if (!ContainsFilter(unsupported, filterName)) {
                 unsupported.Add(filterName);
             }
         }
+
+        return streamFilters.Count != 0;
     }
 
     private void CollectTextAndForms(
