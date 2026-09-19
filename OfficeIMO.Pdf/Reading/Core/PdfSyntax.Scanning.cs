@@ -261,7 +261,7 @@ internal static partial class PdfSyntax {
         out Dictionary<int, PdfDictionary> preparsedDictionaries) {
         var streamRanges = new List<(int Start, int End)>();
         var knownStreamRanges = new HashSet<(int Start, int End)>();
-        preparsedDictionaries = new Dictionary<int, PdfDictionary>();
+        preparsedDictionaries = new Dictionary<int, PdfDictionary>(Math.Min(objectMatches.Count, 32));
         DiscoverDeclaredStreamRanges(
             text,
             objectMatches,

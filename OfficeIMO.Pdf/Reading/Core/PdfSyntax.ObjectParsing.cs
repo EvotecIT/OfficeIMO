@@ -346,8 +346,9 @@ internal static partial class PdfSyntax {
 
     private static PdfStringObj CreateParsedString(byte[] bytes, int? encodedTokenLength) {
         string value = PdfTextString.Decode(bytes);
-        return new PdfStringObj(
+        return PdfStringObj.FromParsedBytes(
             bytes,
+            value,
             useTextStringEncoding: !PdfWinAnsiEncoding.CanEncode(value, out _),
             encodedTokenLength);
     }

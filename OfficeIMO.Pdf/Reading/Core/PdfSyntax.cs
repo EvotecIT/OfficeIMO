@@ -57,12 +57,13 @@ internal static partial class PdfSyntax {
         var parseTimer = System.Diagnostics.Stopwatch.StartNew();
         string text = decodedText ?? PdfEncoding.Latin1GetString(pdf);
         cancellationToken.ThrowIfCancellationRequested();
-        var map = new Dictionary<int, PdfIndirectObject>();
-        var parsedOffsets = new Dictionary<int, int>();
-        var definitionCounts = new Dictionary<(int Id, int Generation), int>();
+        List<IndirectObjectHeader> matches = FindIndirectObjectHeaders(text, parseTimer, limits);
+        int initialObjectCapacity = Math.Min(matches.Count, 32);
+        var map = new Dictionary<int, PdfIndirectObject>(initialObjectCapacity);
+        var parsedOffsets = new Dictionary<int, int>(initialObjectCapacity);
+        var definitionCounts = new Dictionary<(int Id, int Generation), int>(initialObjectCapacity);
         var streamLocations = new List<(int Id, int Generation, int DataStart)>();
         var streamDataRanges = new List<(int Start, int End)>();
-        List<IndirectObjectHeader> matches = FindIndirectObjectHeaders(text, parseTimer, limits);
 
         cancellationToken.ThrowIfCancellationRequested();
         ThrowIfParsingTimeExceeded(parseTimer, limits);

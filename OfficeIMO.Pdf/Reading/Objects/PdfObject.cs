@@ -52,6 +52,28 @@ internal sealed class PdfStringObj : PdfObject {
         EncodedTokenLength = encodedTokenLength;
     }
 
+    /// <summary>Adopts bytes allocated exclusively for a parsed string token.</summary>
+    internal static PdfStringObj FromParsedBytes(
+        byte[] ownedRawBytes,
+        string decodedValue,
+        bool useTextStringEncoding,
+        int? encodedTokenLength) => new PdfStringObj(
+            ownedRawBytes,
+            decodedValue,
+            useTextStringEncoding,
+            encodedTokenLength);
+
+    private PdfStringObj(
+        byte[] ownedRawBytes,
+        string decodedValue,
+        bool useTextStringEncoding,
+        int? encodedTokenLength) {
+        RawBytes = ownedRawBytes;
+        Value = decodedValue;
+        UseTextStringEncoding = useTextStringEncoding;
+        EncodedTokenLength = encodedTokenLength;
+    }
+
     public override string ToString() => Value;
 }
 
