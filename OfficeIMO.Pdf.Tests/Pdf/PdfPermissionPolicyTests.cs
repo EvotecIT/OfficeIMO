@@ -543,6 +543,26 @@ public class PdfPermissionPolicyTests {
                 PdfDocument.Load(rewrittenBytes, enforcedRewrittenOptions)));
     }
 
+    [Fact]
+    public void GroupedSplitPreservesContentPermissionAndExplicitReadOptions() {
+        byte[] source = CreateRestrictedThreePagePdf("split-open", "split-owner");
+        var enforced = new PdfLoadOptions { Password = "split-open" };
+        PdfPermissionDeniedException denied = Assert.Throws<PdfPermissionDeniedException>(() =>
+            PdfDocument.Load(source, enforced).Pages.Split(2));
+        Assert.Equal(PdfStandardPermissions.CopyContents, denied.Permission);
+
+        var ignored = new PdfLoadOptions {
+            Password = "split-open",
+            PermissionPolicy = PdfPermissionPolicy.IgnoreRestrictions
+        };
+        PdfOperationResult<IReadOnlyList<PdfDocument>> result = PdfDocument.Load(source).Pages.SplitResult(2, ignored);
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        IReadOnlyList<PdfDocument> parts = result.RequireValue();
+        Assert.Equal(2, parts.Count);
+        Assert.Equal(2, parts[0].Inspect().PageCount);
+        Assert.Equal(1, parts[1].Inspect().PageCount);
+    }
+
     private static byte[] CreateRestrictedPdf(string userPassword, string ownerPassword, string text) =>
         CreateEncryptedPdf(userPassword, ownerPassword, PdfStandardPermissions.None, text);
 

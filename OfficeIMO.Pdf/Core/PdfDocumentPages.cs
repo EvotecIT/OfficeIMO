@@ -93,7 +93,9 @@ public sealed partial class PdfDocumentPages {
             throw new ArgumentOutOfRangeException(nameof(pagesPerDocument), pagesPerDocument, "Pages per document must be greater than zero.");
         }
 
-        int pageCount = _document.Inspect(options).PageCount;
+        PdfReadDocument readDocument = _document.GetReadDocument(options ?? _document.ReadOptions);
+        readDocument.DemandContentExtraction("logical object");
+        int pageCount = readDocument.Pages.Count;
         if (pageCount == 0) {
             throw new InvalidOperationException("PDF does not contain any readable pages.");
         }
