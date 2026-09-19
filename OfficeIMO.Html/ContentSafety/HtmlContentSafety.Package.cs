@@ -351,6 +351,12 @@ public static partial class HtmlContentSafety {
         bool hasEnvironmentDependentComputedStyles =
             HasPotentiallyDynamicRendering(document)
             || HtmlRenderStylesheetApplier.HasSelectableAlternateStylesheetSet(document, renderOptions);
+        foreach (IElement element in document.QuerySelectorAll("[style]")) {
+            if (HtmlResourcePipeline.HasUnmodeledCascadeResetDeclaration(element.GetAttribute("style") ?? string.Empty)) {
+                throw new InvalidDataException(
+                    "CSS all reset declarations are not supported by package content-safety inspection.");
+            }
+        }
         Uri documentBaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, renderOptions.BaseUri)
             ?? new Uri("https://officeimo.invalid/", UriKind.Absolute);
         foreach (IElement element in document.QuerySelectorAll("style[media], link[media]")) {
@@ -418,6 +424,10 @@ public static partial class HtmlContentSafety {
         if (HtmlResourcePipeline.HasUnmodeledScopeAtRule(css)) {
             throw new InvalidDataException(
                 "CSS scope rules are not supported by package content-safety inspection.");
+        }
+        if (HtmlResourcePipeline.HasUnmodeledCascadeResetDeclaration(css)) {
+            throw new InvalidDataException(
+                "CSS all reset declarations are not supported by package content-safety inspection.");
         }
         if (HtmlResourcePipeline.HasUnknownSupportsCondition(analysis.Css)
             || analysis.Imports.Any(import => import.HasUnknownSupportsCondition)) {

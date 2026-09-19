@@ -105,6 +105,8 @@ public static partial class HtmlContentSafety {
         HtmlComputedStyleSet styleSet = HtmlComputedStyleEngine.ComputeForContentSafety(document, limits);
         IReadOnlyDictionary<IElement, HtmlComputedStyle> styles = styleSet.Elements;
         allowComputedStyleCleanup &= !HasUnmodeledCompositingStyles(document);
+        allowComputedStyleCleanup &= !HasUnmodeledGlyphScalingStyles(document);
+        allowComputedStyleCleanup &= !HasUnmodeledCascadeResetStyles(document);
         cancellationToken.ThrowIfCancellationRequested();
         IElement? root = document.DocumentElement ?? document.Body;
         if (root != null) Traverse(
@@ -395,7 +397,7 @@ public static partial class HtmlContentSafety {
                 OfficeContentConcealmentKind.TinyText,
                 "Computed font size is " + fontPoints.ToString("0.###", CultureInfo.InvariantCulture) + "pt.",
                 descendantsMayOverride: true,
-                reportOnly: HasActiveTransform(style.GetValue("transform")));
+                reportOnly: HasActiveTransformInAncestry(element, styles));
         }
         bool zeroWidth = IsZeroLength(style.GetValue("width")) || IsZeroLength(style.GetValue("max-width"));
         bool zeroHeight = IsZeroLength(style.GetValue("height")) || IsZeroLength(style.GetValue("max-height"));
@@ -458,6 +460,18 @@ public static partial class HtmlContentSafety {
             HtmlResourcePipeline.HasUnmodeledCompositingDeclaration(style.TextContent ?? string.Empty))
         || document.QuerySelectorAll("[style]").Any(element =>
             HtmlResourcePipeline.HasUnmodeledCompositingDeclaration(element.GetAttribute("style") ?? string.Empty));
+
+    private static bool HasUnmodeledGlyphScalingStyles(IHtmlDocument document) =>
+        document.QuerySelectorAll("style").Any(style =>
+            HtmlResourcePipeline.HasUnmodeledGlyphScalingDeclaration(style.TextContent ?? string.Empty))
+        || document.QuerySelectorAll("[style]").Any(element =>
+            HtmlResourcePipeline.HasUnmodeledGlyphScalingDeclaration(element.GetAttribute("style") ?? string.Empty));
+
+    private static bool HasUnmodeledCascadeResetStyles(IHtmlDocument document) =>
+        document.QuerySelectorAll("style").Any(style =>
+            HtmlResourcePipeline.HasUnmodeledCascadeResetDeclaration(style.TextContent ?? string.Empty))
+        || document.QuerySelectorAll("[style]").Any(element =>
+            HtmlResourcePipeline.HasUnmodeledCascadeResetDeclaration(element.GetAttribute("style") ?? string.Empty));
 
     private static void InspectMachineOnlyAttributes(
         IElement element,
@@ -549,14 +563,21 @@ public static partial class HtmlContentSafety {
             cancellationToken.ThrowIfCancellationRequested();
             string value = NormalizePayload(comments[index].Data);
             if (value.Length == 0) continue;
+            bool conditionalComment = value.StartsWith("[if ", StringComparison.OrdinalIgnoreCase)
+                || value.StartsWith("[if\t", StringComparison.OrdinalIgnoreCase);
+            OfficeContentCleanupCapability capability = conditionalComment
+                ? OfficeContentCleanupCapability.ReportOnly
+                : OfficeContentCleanupCapability.RemoveElement;
             OfficeContentSafetyFinding finding = builder.Add(
                 OfficeContentConcealmentKind.NonPrimaryContent,
                 OfficeContentSafetyRisk.ContextDependent,
                 PrefixLocation(locationPrefix, "HTML/comment()[" + (index + 1).ToString(CultureInfo.InvariantCulture) + "]"),
-                "An HTML comment is machine-readable source content but is not rendered.",
+                conditionalComment
+                    ? "A conditional HTML comment can render in Office or legacy browser environments and is preserved."
+                    : "An HTML comment is machine-readable source content but is not rendered.",
                 value,
-                OfficeContentCleanupCapability.RemoveElement);
-            if (targets != null) targets[finding.Id] = HtmlCleanupTarget.ForNode(comments[index]);
+                capability);
+            if (targets != null && !conditionalComment) targets[finding.Id] = HtmlCleanupTarget.ForNode(comments[index]);
         }
     }
 
@@ -719,6 +740,16 @@ public static partial class HtmlContentSafety {
     private static bool HasActiveTransform(string value) {
         string normalized = value?.Trim() ?? string.Empty;
         return normalized.Length != 0 && !string.Equals(normalized, "none", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool HasActiveTransformInAncestry(
+        IElement element,
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) {
+        for (IElement? current = element; current != null; current = current.ParentElement) {
+            if (styles.TryGetValue(current, out HtmlComputedStyle? style)
+                && HasActiveTransform(style.GetValue("transform"))) return true;
+        }
+        return false;
     }
 
     private static bool IsZeroClip(string value) {

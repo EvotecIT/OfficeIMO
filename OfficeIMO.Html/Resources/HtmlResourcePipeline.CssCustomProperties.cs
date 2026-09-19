@@ -355,22 +355,56 @@ public static partial class HtmlResourcePipeline {
     internal static bool HasUnmodeledCompositingDeclaration(string css) {
         string masked = MaskCssComments(css ?? string.Empty);
         for (int index = 0; index < masked.Length; index++) {
-            if (masked[index] != ':') continue;
+            if (masked[index] != ':' || IsInsideCssString(masked, index)) continue;
             string propertyName = GetCssDeclarationPropertyName(masked, index + 1);
             if (propertyName is "mix-blend-mode" or "background-blend-mode" or "text-shadow"
                 or "filter" or "-webkit-filter"
-                or "backdrop-filter" or "-webkit-backdrop-filter") {
+                or "backdrop-filter" or "-webkit-backdrop-filter"
+                or "background-clip" or "-webkit-background-clip") {
                 int valueEnd = FindDeclarationValueEnd(masked, index + 1);
                 string value = DecodeCssEscapes(masked.Substring(index + 1, valueEnd - index - 1)).Trim();
                 int important = value.LastIndexOf("!important", StringComparison.OrdinalIgnoreCase);
                 if (important >= 0 && string.IsNullOrWhiteSpace(value.Substring(important + "!important".Length))) {
                     value = value.Substring(0, important).TrimEnd();
                 }
-                string noEffectValue = propertyName.EndsWith("blend-mode", StringComparison.Ordinal)
-                    ? "normal"
-                    : "none";
+                if (propertyName.EndsWith("background-clip", StringComparison.Ordinal)) {
+                    if (value.Split(',').Any(layer =>
+                            string.Equals(layer.Trim(), "text", StringComparison.OrdinalIgnoreCase))) return true;
+                    continue;
+                }
+                string noEffectValue = propertyName.EndsWith("blend-mode", StringComparison.Ordinal) ? "normal" : "none";
                 if (!string.Equals(value, noEffectValue, StringComparison.OrdinalIgnoreCase)) return true;
             }
+        }
+        return false;
+    }
+
+    internal static bool HasUnmodeledGlyphScalingDeclaration(string css) {
+        string masked = MaskCssComments(css ?? string.Empty);
+        for (int index = 0; index < masked.Length; index++) {
+            if (masked[index] != ':' || IsInsideCssString(masked, index)) continue;
+            if (GetCssDeclarationPropertyName(masked, index + 1) is not "zoom" and not "scale") continue;
+            int valueEnd = FindDeclarationValueEnd(masked, index + 1);
+            string value = DecodeCssEscapes(masked.Substring(index + 1, valueEnd - index - 1)).Trim();
+            int important = value.LastIndexOf("!important", StringComparison.OrdinalIgnoreCase);
+            if (important >= 0 && string.IsNullOrWhiteSpace(value.Substring(important + "!important".Length))) {
+                value = value.Substring(0, important).TrimEnd();
+            }
+            if (value.Length > 0
+                && !string.Equals(value, "normal", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(value, "1", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(value, "100%", StringComparison.OrdinalIgnoreCase)) return true;
+        }
+        return false;
+    }
+
+    internal static bool HasUnmodeledCascadeResetDeclaration(string css) {
+        string masked = MaskCssComments(css ?? string.Empty);
+        for (int index = 0; index < masked.Length; index++) {
+            if (masked[index] != ':' || IsInsideCssString(masked, index)) continue;
+            if (GetCssDeclarationPropertyName(masked, index + 1) != "all") continue;
+            int valueEnd = FindDeclarationValueEnd(masked, index + 1);
+            if (!string.IsNullOrWhiteSpace(masked.Substring(index + 1, valueEnd - index - 1))) return true;
         }
         return false;
     }
