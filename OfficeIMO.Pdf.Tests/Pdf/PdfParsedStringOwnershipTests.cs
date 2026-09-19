@@ -18,6 +18,21 @@ public class PdfParsedStringOwnershipTests {
         Assert.Equal(token.Length, parsed.EncodedTokenLength);
     }
 
+    [Theory]
+    [InlineData("(A(B)C)", "A(B)C")]
+    [InlineData("(A\\)B)", "A)B")]
+    [InlineData("(A\\(B)", "A(B")]
+    [InlineData("(A\\\r\nB)", "AB")]
+    public void LiteralTokenScanPreservesNestingEscapesAndSourceLength(string token, string expectedValue) {
+        byte[] pdf = Encoding.ASCII.GetBytes($"%PDF-1.7\n1 0 obj\n{token}\nendobj\n%%EOF\n");
+
+        PdfStringObj parsed = Assert.IsType<PdfStringObj>(Assert.Single(PdfSyntax.ParseObjects(pdf).Map).Value.Value);
+
+        Assert.Equal(expectedValue, parsed.Value);
+        Assert.Equal(Encoding.ASCII.GetBytes(expectedValue), parsed.RawBytes);
+        Assert.Equal(token.Length, parsed.EncodedTokenLength);
+    }
+
     [Fact]
     public void ByteArrayConstructorStillCopiesCallerOwnedBytes() {
         byte[] input = { 65, 66 };

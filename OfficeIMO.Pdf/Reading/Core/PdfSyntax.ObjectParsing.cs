@@ -238,21 +238,18 @@ internal static partial class PdfSyntax {
             if (c == '(') {
                 int start = i; i++;
                 int depth = 1; bool esc = false;
-                var sb = new StringBuilder();
                 while (i < s.Length && depth > 0) {
                     char ch = s[i++];
-                    if (esc) { sb.Append(ch); esc = false; } else if (ch == '\\') { sb.Append(ch); esc = true; } else if (ch == '(') {
+                    if (esc) { esc = false; } else if (ch == '\\') { esc = true; } else if (ch == '(') {
                         depth++;
                         if (depth > effectiveLimits.MaxObjectNestingDepth) {
                             throw PdfReadLimitException.Create(PdfReadLimitKind.ObjectNestingDepth, effectiveLimits.MaxObjectNestingDepth, depth);
                         }
-
-                        sb.Append(ch);
-                    } else if (ch == ')') { depth--; if (depth > 0) sb.Append(ch); } else sb.Append(ch);
+                    } else if (ch == ')') { depth--; }
                 }
-                string text = depth == 0
-                    ? "(" + sb.ToString() + ")"
-                    : "(" + sb.ToString();
+                // The scan only finds the token boundary; its raw bytes already
+                // contain the exact nested parentheses and escape spelling.
+                string text = s.Substring(start, i - start);
                 bool isTerminated = depth == 0;
                 tokens.Add(new PdfToken(
                     text,
