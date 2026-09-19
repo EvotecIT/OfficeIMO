@@ -10,7 +10,10 @@ namespace OfficeIMO.Excel {
             OfficeImageExportFormat rasterPlanningFormat,
             OfficeImageExportResult content,
             ExcelWorksheetImageExportOptions options,
-            ref ExcelRasterRenderState rasterState) {
+            ref ExcelRasterRenderState rasterState,
+            System.Threading.CancellationToken cancellationToken,
+            long? maximumSvgUtf8Bytes) {
+            cancellationToken.ThrowIfCancellationRequested();
             ExcelSheetPageSetup pageSetup = GetPageSetup();
             if (!ShouldApplyPageSetupCanvas(pageSetup)) {
                 return content;
@@ -65,21 +68,35 @@ namespace OfficeIMO.Excel {
 
             byte[] bytes;
             if (format == OfficeImageExportFormat.Svg) {
-                bytes = OfficeImageComposer.ComposeSvgBytes(
-                    geometry.Width,
-                    geometry.Height,
-                    options.BackgroundColor,
-                    new[] { contentLayer });
+                bytes = maximumSvgUtf8Bytes.HasValue
+                    ? OfficeImageComposer.ComposeSvgBytes(
+                        geometry.Width,
+                        geometry.Height,
+                        options.BackgroundColor,
+                        new[] { contentLayer },
+                        maximumSvgUtf8Bytes.Value,
+                        cancellationToken)
+                    : OfficeImageComposer.ComposeSvgBytes(
+                        geometry.Width,
+                        geometry.Height,
+                        options.BackgroundColor,
+                        new[] { contentLayer });
             } else {
                 OfficeRasterImage image = OfficeImageComposer.ComposeRaster(
                     geometry.Width,
                     geometry.Height,
                     options.BackgroundColor,
-                    new[] { contentLayer });
+                    new[] { contentLayer },
+                    beforeLayers: null,
+                    afterLayers: null,
+                    fonts: null,
+                    cancellationToken: cancellationToken);
                 bytes = OfficeRasterImageEncoder.Encode(
                     image,
                     format,
-                    rasterState.EncodingOptions);
+                    rasterState.EncodingOptions,
+                    ExcelRangeImageRenderer.ResolveEncodingByteCeiling(false, options),
+                    cancellationToken);
             }
 
             return new OfficeImageExportResult(

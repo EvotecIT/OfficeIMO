@@ -164,7 +164,7 @@ public static class HtmlRenderEngine {
         HtmlResourceManifest manifest = HtmlResourcePipeline.BuildManifest(document, resourceOptions);
         cancellationToken.ThrowIfCancellationRequested();
         diagnostics.AddRange(manifest.Diagnostics);
-        HtmlCssByteBudget cssBudget = HtmlRenderStylesheetApplier.CreateBudget(document, limits);
+        HtmlCssByteBudget cssBudget = HtmlRenderStylesheetApplier.CreateBudget(document, limits, resolved);
         HtmlResourceSession resources = HtmlRenderResourceLoader.Load(
             manifest,
             resolved,
@@ -312,7 +312,7 @@ public static class HtmlRenderEngine {
         };
         HtmlResourceManifest manifest = HtmlResourcePipeline.BuildManifest(document, resourceOptions);
         diagnostics.AddRange(manifest.Diagnostics);
-        HtmlCssByteBudget cssBudget = HtmlRenderStylesheetApplier.CreateBudget(document, limits);
+        HtmlCssByteBudget cssBudget = HtmlRenderStylesheetApplier.CreateBudget(document, limits, resolved);
         HtmlResourceSession resources = await HtmlRenderResourceLoader.LoadAsync(manifest, resolved, diagnostics, limits, cancellationToken, cssBudget).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
         HtmlRenderStylesheetApplier.Apply(document, resources, resolved, limits, cssBudget, diagnostics);

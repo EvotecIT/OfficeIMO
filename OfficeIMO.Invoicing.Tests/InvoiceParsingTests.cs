@@ -18,9 +18,9 @@ public class InvoiceParsingTests {
         InvoiceNote note = Assert.Single(read.Invoice.Notes);
         Assert.Equal(code, note.SubjectCode);
         Assert.Equal(text, note.Text);
-        XDocument written = XDocument.Parse(System.Text.Encoding.UTF8.GetString(read.Write()));
+        XDocument written = XDocument.Parse(System.Text.Encoding.UTF8.GetString(read.Write(InvoiceTestContracts.En16931(InvoiceSyntax.Ubl))));
         Assert.Equal(sourceNote, written.Root!.Element(cbc + "Note")!.Value);
-        InvoiceConversionResult converted = InvoiceConverter.Convert(xml, new InvoiceXmlOptions(InvoiceSyntax.Cii));
+        InvoiceConversionResult converted = InvoiceConverter.Convert(xml, InvoiceTestContracts.En16931(InvoiceSyntax.Cii));
         Assert.True(converted.Succeeded);
         InvoiceNote convertedNote = Assert.Single(InvoiceParser.Read(converted.Xml!).Invoice.Notes);
         Assert.Equal(code, convertedNote.SubjectCode);
@@ -37,7 +37,7 @@ public class InvoiceParsingTests {
         invoice.Lines[0].Classifications.Add(new InvoiceItemClassification { Value = "123", ListId = "ZZZ", ListVersion = "1" });
         invoice.Lines[0].Attributes.Add(new InvoiceItemAttribute { Name = "Colour", Value = "Blue" });
         invoice.SupportingDocuments.Add(new InvoiceSupportingDocument { Reference = "terms", Description = "Terms", Data = new byte[] { 1, 2, 3 }, FileName = "terms.bin", MimeType = "application/octet-stream" });
-        byte[] original = InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(syntax));
+        byte[] original = InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931(syntax));
         InvoiceReadResult read = InvoiceParser.Read(original);
         Assert.True(read.HasCompleteMapping, string.Join("\n", read.UnmappedData.Select(d => d.Location + ": " + d.Message)));
         Assert.Equal(invoice.Number, read.Invoice.Number);
@@ -45,9 +45,9 @@ public class InvoiceParsingTests {
         Assert.Equal(invoice.SupportingDocuments[0].Data, read.Invoice.SupportingDocuments[0].Data);
         Assert.Equal(original, read.GetOriginalBytes());
         read.Invoice.Number = "EDITED";
-        Assert.Equal("EDITED", InvoiceParser.Read(read.Write()).Invoice.Number);
+        Assert.Equal("EDITED", InvoiceParser.Read(read.Write(InvoiceTestContracts.En16931(syntax))).Invoice.Number);
         Assert.Equal(original, read.GetOriginalBytes());
-        var result = InvoiceConverter.Convert(original, new InvoiceXmlOptions(syntax == InvoiceSyntax.Cii ? InvoiceSyntax.Ubl : InvoiceSyntax.Cii));
+        var result = InvoiceConverter.Convert(original, InvoiceTestContracts.En16931(syntax == InvoiceSyntax.Cii ? InvoiceSyntax.Ubl : InvoiceSyntax.Cii));
         Assert.True(result.Succeeded, string.Join("\n", result.Diagnostics.Select(d => d.Location + ": " + d.Message)));
         Assert.Equal(read.Invoice.DeclaredTotals!.PayableAmount, InvoiceParser.Read(result.Xml!).Invoice.DeclaredTotals!.PayableAmount);
     }
@@ -63,7 +63,7 @@ public class InvoiceParsingTests {
         Assert.True(read.HasCompleteMapping, string.Join("\n", read.UnmappedData.Select(d => d.Location + ": " + d.Message)));
         InvoiceModelValidationResult validation = InvoiceModelValidator.Validate(read.Invoice);
         Assert.True(validation.IsValid, string.Join("\n", validation.Diagnostics.Select(d => d.Location + ": " + d.Message)));
-        var target = new InvoiceXmlOptions(read.Declaration.Syntax == InvoiceSyntax.Cii ? InvoiceSyntax.Ubl : InvoiceSyntax.Cii, InvoiceProfile.XRechnung);
+        var target = InvoiceTestContracts.XRechnung(read.Declaration.Syntax == InvoiceSyntax.Cii ? InvoiceSyntax.Ubl : InvoiceSyntax.Cii);
         InvoiceConversionResult result = InvoiceConverter.Convert(source, target);
         Assert.True(result.Succeeded, string.Join("\n", result.Diagnostics.Select(d => d.Location + ": " + d.Message)));
     }
@@ -72,7 +72,7 @@ public class InvoiceParsingTests {
     [InlineData(false)]
     [InlineData(true)]
     public void UnknownElementsAndAttributesBlockRewritingAndConversion(bool attribute) {
-        byte[] original = InvoiceSerializer.Write(InvoiceCalculationTests.Example());
+        byte[] original = InvoiceSerializer.Write(InvoiceCalculationTests.Example(), InvoiceTestContracts.En16931());
         XDocument document = XDocument.Parse(Encoding.UTF8.GetString(original));
         XNamespace extension = "urn:unmapped:test";
         if (attribute) document.Root!.SetAttributeValue(extension + "businessFlag", "important");
@@ -82,15 +82,15 @@ public class InvoiceParsingTests {
         Assert.False(read.HasCompleteMapping);
         Assert.Contains(read.UnmappedData, d => d.Code == "INV-UNMAPPED");
         Assert.Equal(source, read.GetOriginalBytes());
-        Assert.Throws<InvalidDataException>(() => read.Write());
-        var conversion = InvoiceConverter.Convert(source, new InvoiceXmlOptions(InvoiceSyntax.Ubl));
+        Assert.Throws<InvalidDataException>(() => read.Write(InvoiceTestContracts.En16931()));
+        var conversion = InvoiceConverter.Convert(source, InvoiceTestContracts.En16931(InvoiceSyntax.Ubl));
         Assert.False(conversion.Succeeded);
         Assert.Null(conversion.Xml);
     }
 
     [Fact]
     public void DuplicateAmountsAndInvalidNumbersAreNotSilentlySelectedOrRounded() {
-        string source = Encoding.UTF8.GetString(InvoiceSerializer.Write(InvoiceCalculationTests.Example()));
+        string source = Encoding.UTF8.GetString(InvoiceSerializer.Write(InvoiceCalculationTests.Example(), InvoiceTestContracts.En16931()));
         Assert.Throws<InvalidDataException>(() => InvoiceParser.Read(Encoding.UTF8.GetBytes(source.Replace("<ram:DuePayableAmount>119.00</ram:DuePayableAmount>",
             "<ram:DuePayableAmount>119.00</ram:DuePayableAmount><ram:DuePayableAmount>0</ram:DuePayableAmount>"))));
         Assert.Throws<InvalidDataException>(() => InvoiceParser.Read(Encoding.UTF8.GetBytes(source.Replace("<ram:ChargeAmount>100</ram:ChargeAmount>", "<ram:ChargeAmount>1e1000</ram:ChargeAmount>"))));

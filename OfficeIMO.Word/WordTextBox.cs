@@ -89,12 +89,8 @@ namespace OfficeIMO.Word {
                     return new List<WordParagraph>();
                 }
 
-                if (_textBoxInfo2 != null) {
-                    return content.Descendants<Run>().Select(run => new WordParagraph(_document, _paragraph!, run)).ToList();
-                }
-
                 return content.Descendants<Run>()
-                    .Select(run => new WordParagraph(_document, run.Ancestors<Paragraph>().FirstOrDefault()!, run))
+                    .Select(run => new WordParagraph(_document, run.Ancestors<Paragraph>().First(), run))
                     .ToList();
             }
         }

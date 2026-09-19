@@ -9,6 +9,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
     private readonly ushort[] _advanceWidths;
     private readonly Dictionary<int, int> _cmap;
     private readonly Dictionary<string, TableRecord> _tables;
+    private readonly SubsetFontFingerprint _subsetFontFingerprint;
     private readonly SortedSet<int> _usedGlyphIds = new();
     private readonly Dictionary<int, string> _usedGlyphToUnicode = new();
     private readonly object _usageLock = new();
@@ -27,6 +28,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
         StemV = stemV;
         _advanceWidths = advanceWidths;
         _cmap = cmap;
+        _subsetFontFingerprint = SubsetFontFingerprint.Create(_data);
     }
 
     private PdfTrueTypeFontProgram(PdfTrueTypeFontProgram source) {
@@ -43,6 +45,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
         StemV = source.StemV;
         _advanceWidths = source._advanceWidths;
         _cmap = source._cmap;
+        _subsetFontFingerprint = source._subsetFontFingerprint;
     }
 
     internal PdfTrueTypeFontProgram ForkForDocument() => new(this);
@@ -75,7 +78,13 @@ internal sealed partial class PdfTrueTypeFontProgram {
             return 0D;
         }
 
-        return ShapeText(text!, PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider, language: language, featureSettings: featureSettings)).TotalAdvanceWidth1000 * fontSize / 1000D;
+        PdfTextShapingOptions options = PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider, language: language, featureSettings: featureSettings);
+        // Skip the external shaper only where it would not engage (no provider, default features); the
+        // width then comes from the scalar path with no glyph-run allocation.
+        int advanceWidth1000 = shapingProvider == null && options.FeatureSettings.IsDefault
+            ? PdfUnicodeScalarTextShaper.MeasureAdvanceWidth1000(text!, this, options)
+            : ShapeText(text!, options).TotalAdvanceWidth1000;
+        return advanceWidth1000 * fontSize / 1000D;
     }
 
     public double GetAscender(double fontSize) =>
@@ -172,8 +181,45 @@ internal sealed partial class PdfTrueTypeFontProgram {
         }
     }
 
-    internal void RecordGlyphUsage(int glyphId, int unicodeScalar) =>
-        RecordGlyphUsage(glyphId, char.ConvertFromUtf32(unicodeScalar));
+    internal void RecordGlyphUsage(int glyphId, int unicodeScalar) {
+        if (glyphId < 0) {
+            return;
+        }
+
+        lock (_usageLock) {
+            _usedGlyphIds.Add(glyphId);
+            if (glyphId <= 0) {
+                return;
+            }
+
+            // This is called per glyph occurrence (measurement and drawing). The glyph -> unicode map only
+            // needs the string once per unique glyph, so when the glyph already maps to this exact scalar
+            // the ConvertFromUtf32 allocation is skipped. Any different/longer scalar still materializes and
+            // runs the normal replacement check, so the stored map is unchanged.
+            if (_usedGlyphToUnicode.TryGetValue(glyphId, out string? existing) && ScalarEqualsText(existing, unicodeScalar)) {
+                return;
+            }
+
+            string unicodeText = OfficeArabicTextShaper.ToLogicalText(char.ConvertFromUtf32(unicodeScalar));
+            if (!string.IsNullOrEmpty(unicodeText) &&
+                (!_usedGlyphToUnicode.TryGetValue(glyphId, out string? existingText) || ShouldReplaceGlyphUnicodeText(unicodeText, existingText))) {
+                _usedGlyphToUnicode[glyphId] = unicodeText;
+            }
+        }
+    }
+
+    private static bool ScalarEqualsText(string text, int unicodeScalar) {
+        if (unicodeScalar <= 0xFFFF) {
+            return text.Length == 1 && text[0] == (char)unicodeScalar;
+        }
+
+        if (text.Length != 2) {
+            return false;
+        }
+
+        int offset = unicodeScalar - 0x10000;
+        return text[0] == (char)(0xD800 + (offset >> 10)) && text[1] == (char)(0xDC00 + (offset & 0x3FF));
+    }
 
     internal void RecordGlyphUsage(int glyphId, string unicodeText) {
         if (glyphId < 0) {

@@ -443,7 +443,7 @@ public partial class PdfSanitizerTests {
 
         Assert.True(result.IsSanitized);
         Assert.Equal(3, result.RemovedActionCounts.Uri);
-        Assert.Empty(info.LinkAnnotations.Where(static link => link.Uri != null));
+        Assert.DoesNotContain(info.LinkAnnotations, static link => link.Uri != null);
         Assert.DoesNotContain("base.example", PdfEncoding.Latin1GetString(result.ToBytes()), StringComparison.Ordinal);
         Assert.Contains(preservedActions, static finding => finding.ActionKind == PdfSanitizationActionKind.JavaScript);
         Assert.Contains(preservedActions, static finding => finding.ActionKind == PdfSanitizationActionKind.Launch);

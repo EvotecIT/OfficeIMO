@@ -4,6 +4,20 @@ using OfficeIMO.Pdf;
 
 internal static class PdfBenchmarkCorpus {
     internal const int PageCount = 60;
+    internal static readonly IReadOnlyList<string> SerializationRequiredText = new[] {
+        "Operational report 1",
+        "Documents",
+        "Validated",
+        "Boundary list item 1 on page 1",
+        "Boundary list item 1 on page 30",
+        "Boundary list item 6 on page 60"
+    };
+    internal static readonly IReadOnlyList<string> HarfBuzzSerializationRequiredText = new[] {
+        "Shaped report 1",
+        "Shaped report 30",
+        "Shaped report 60",
+        "Repeated shaping must reuse one parsed font face"
+    };
     private static readonly Lazy<byte[]> CarlitoRegular = new(
         static () => File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fonts", "Carlito-Regular.ttf")),
         isThreadSafe: true);
@@ -24,6 +38,7 @@ internal static class PdfBenchmarkCorpus {
         };
         PdfDocument document = PdfDocument.Create(pdf => pdf.Content(content => {
             for (int page = 1; page <= PageCount; page++) {
+                string[] boundaryItems = CreateBoundaryItems(page, page % 2 == 0 ? 6 : 5);
                 content
                     .H1("Operational report " + page)
                     .Paragraph(paragraph => paragraph.Text(
@@ -33,8 +48,15 @@ internal static class PdfBenchmarkCorpus {
                         new[] { "Metric", "Value", "Status" },
                         new[] { "Documents", (page * 37).ToString(), "Healthy" },
                         new[] { "Rules", (page * 11).ToString(), "Reviewed" },
-                        new[] { "Signals", (page * 19).ToString(), "Observed" }
+                        new[] { "Signals", (page * 19).ToString(), "Observed" },
+                        new[] { "Long value", "Wrapping content for table layout and width measurement on page " + page, "Measured" },
+                        new[] { "Boundary", boundaryItems.Length.ToString(), "Validated" }
                     })
+                    .Bullets(boundaryItems)
+                    .Row(row => row
+                        .Gap(12)
+                        .PercentColumn(50, column => column.Numbered(boundaryItems.Take(3)))
+                        .PercentColumn(50, column => column.Bullets(boundaryItems.Skip(2).Take(3))))
                     .Rectangle(
                         180,
                         24,
@@ -49,6 +71,14 @@ internal static class PdfBenchmarkCorpus {
         }), options).Meta(title: "OfficeIMO.Pdf mixed performance corpus");
 
         return document;
+    }
+
+    private static string[] CreateBoundaryItems(int page, int count) {
+        var items = new string[count];
+        for (int index = 0; index < count; index++) {
+            items[index] = "Boundary list item " + (index + 1) + " on page " + page;
+        }
+        return items;
     }
 
     internal static PdfDocument CreateHarfBuzzDocument() {

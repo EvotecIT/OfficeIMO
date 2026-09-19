@@ -36,9 +36,15 @@ public sealed class DrawingCssColorTests {
     [InlineData("color-mix(in srgb, red 25%, blue)", 64, 0, 191, 255)]
     [InlineData("color-mix(in srgb, rgb(255 0 0 / 50%), color(srgb 0 0 1))", 85, 0, 170, 192)]
     [InlineData("color-mix(in srgb, red 20%, blue 20%)", 128, 0, 128, 102)]
+    [InlineData("color-mix(in\tsrgb, transparent, transparent)", 0, 0, 0, 0)]
     public void OfficeColor_ParsesCssColorLevelFourFunctions(string value, byte red, byte green, byte blue, byte alpha) {
         Assert.True(OfficeColor.TryParseCss(value, out OfficeColor color));
         Assert.Equal(OfficeColor.FromRgba(red, green, blue, alpha), color);
+    }
+
+    [Fact]
+    public void OfficeColor_RejectsZeroWeightColorMix() {
+        Assert.False(OfficeColor.TryParseCss("color-mix(in srgb, red 0%, blue 0%)", out _));
     }
 
     [Theory]
@@ -127,6 +133,26 @@ public sealed class DrawingCssColorTests {
     [InlineData("lab(50% 0)")]
     [InlineData("color(unknown 1 0 0)")]
     [InlineData("color-mix(in srgb, red, not-a-color)")]
+    [InlineData("rgb(0 0 0 / 0 %)")]
+    [InlineData("rgba(0, 0, 0, 0 %)")]
+    [InlineData("rgb(0 %, 0%, 0%)")]
+    [InlineData("hsl(0, 0 %, 0%)")]
+    [InlineData("hsl(0 deg, 0%, 0%)")]
+    [InlineData("hsl(0 turn, 0%, 0%)")]
+    [InlineData("hwb(0 0% 0% / 0 %)")]
+    [InlineData("lab(50% 0 0 / 0 %)")]
+    [InlineData("color(srgb 0 0 0 / 0 %)")]
+    [InlineData("color-mix(in srgb, rgb(0 0 0 / 0 %), white)")]
+    [InlineData("rgb (0 0 0 / 0)")]
+    [InlineData("hsl\t(0 0% 0% / 0)")]
+    [InlineData("rgba(0,\u00a00, 0, 0)")]
+    [InlineData("rgba(0%, 0, 0, 0)")]
+    [InlineData("rgba(0, 0, 0, none)")]
+    [InlineData("rgb(none, 0, 0)")]
+    [InlineData("hsla(0, 0%, 0%, none)")]
+    [InlineData("rgb(0 0 0 / 0.)")]
+    [InlineData("rgba(0, 0, 0, 0.)")]
+    [InlineData("hsl(0. 0% 0% / 0)")]
     [InlineData("ff0000")]
     [InlineData("fff")]
     public void OfficeColor_RejectsUnsupportedOrMalformedCssColorFunctions(string value) {

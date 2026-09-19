@@ -11,6 +11,44 @@ namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfPageImageRendererTests {
     [Fact]
+    public void RenderPage_DropsRedundantPageClipFromEditableVectorShape() {
+        byte[] pdf = BuildSingleStreamPdf(
+            "0 0 240 200 re W n\n0 0 0 RG\n1 w\n20 40 m\n220 40 l\nS");
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        OfficeDrawingShape shape = Assert.Single(drawing.Elements.OfType<OfficeDrawingShape>());
+        Assert.Equal(OfficeShapeKind.Line, shape.Shape.Kind);
+        Assert.Null(shape.Shape.ClipPath);
+        Assert.Empty(drawing.Elements.OfType<OfficeDrawingGroup>());
+    }
+
+    [Fact]
+    public void RenderPage_DropsRedundantInsetClipFromContainedEditableVectorShape() {
+        byte[] pdf = BuildSingleStreamPdf(
+            "10 10 220 180 re W n\n0 0 0 RG\n1 w\n20 40 m\n210 40 l\nS");
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        OfficeDrawingShape shape = Assert.Single(drawing.Elements.OfType<OfficeDrawingShape>());
+        Assert.Equal(OfficeShapeKind.Line, shape.Shape.Kind);
+        Assert.Null(shape.Shape.ClipPath);
+        Assert.Empty(drawing.Elements.OfType<OfficeDrawingGroup>());
+    }
+
+    [Fact]
+    public void RenderPage_PreservesClipThatCutsEditableLineStroke() {
+        byte[] pdf = BuildSingleStreamPdf(
+            "20 30 200 50 re W n\n0 0 0 RG\n2 w\n20 40 m\n220 40 l\nS");
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        OfficeDrawingGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingGroup>());
+        Assert.Single(group.Drawing.Elements.OfType<OfficeDrawingShape>());
+        Assert.Empty(drawing.Elements.OfType<OfficeDrawingShape>());
+    }
+
+    [Fact]
     public void RenderPage_PreservesAxisAlignedFallbackForShearedOrdinaryImage() {
         string image = BuildStreamObject(5, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8", "x");
         byte[] pdf = BuildSingleStreamPdf(
@@ -3427,6 +3465,7 @@ public partial class PdfPageImageRendererTests {
         string svgText = Encoding.UTF8.GetString(svg);
         Assert.Contains("<linearGradient", svgText, StringComparison.Ordinal);
         Assert.True(OfficePngReader.TryDecode(png, out OfficeRasterImage? raster));
+        Assert.NotNull(raster);
         OfficeColor leftPixel = raster!.GetPixel(28, 100);
         OfficeColor rightPixel = raster.GetPixel(132, 100);
         Assert.True(leftPixel.R > leftPixel.B);
@@ -4116,7 +4155,7 @@ public partial class PdfPageImageRendererTests {
             }
         }
 
-        OfficeColor outside = raster.GetPixel(105, 105);
+        OfficeColor outside = raster!.GetPixel(105, 105);
         Assert.True(hasInkInsideClip);
         Assert.Equal(OfficeColor.White, outside);
     }

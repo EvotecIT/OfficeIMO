@@ -1073,18 +1073,18 @@ Q3,260
                 Assert.Equal("Open with the top-line result.", presentation.Slides[0].Notes.Text);
                 Assert.Contains(presentation.Slides[0].Shapes.OfType<PowerPointTextBox>(), box => box.Text.Contains("Quarterly Review", StringComparison.Ordinal));
                 Assert.Contains(presentation.Slides[0].Shapes.OfType<PowerPointAutoShape>(), shape =>
-                    shape.Name.Contains("Summary Card", StringComparison.Ordinal));
+                    shape.Name?.Contains("Summary Card", StringComparison.Ordinal) == true);
                 Assert.Contains(presentation.Slides[0].Shapes.OfType<PowerPointAutoShape>(), shape =>
-                    shape.Name.Contains("Canvas Rail", StringComparison.Ordinal));
+                    shape.Name?.Contains("Canvas Rail", StringComparison.Ordinal) == true);
                 Assert.Contains(presentation.Slides[1].Shapes.OfType<PowerPointTextBox>(), box =>
                     box.Text.Contains("Pipeline: From Text to PPTX", StringComparison.Ordinal)
                     && box.FontSize == 32
                     && box.Bold
                     && box.TextAutoFit == PowerPointTextAutoFit.Normal);
                 Assert.Contains(presentation.Slides[1].Shapes.OfType<PowerPointAutoShape>(), shape =>
-                    shape.Name.Contains("Canvas Wash", StringComparison.Ordinal));
+                    shape.Name?.Contains("Canvas Wash", StringComparison.Ordinal) == true);
                 Assert.Contains(presentation.Slides[1].Shapes.OfType<PowerPointAutoShape>(), shape =>
-                    shape.Name.Contains("Diagram Panel", StringComparison.Ordinal));
+                    shape.Name?.Contains("Diagram Panel", StringComparison.Ordinal) == true);
                 Assert.DoesNotContain(presentation.Slides[1].Shapes.OfType<PowerPointTextBox>(), box =>
                     box.Text.Contains("Architecture Overview", StringComparison.Ordinal));
                 Assert.Contains(presentation.Slides[1].Shapes.OfType<PowerPointTextBox>(), box =>
@@ -1095,7 +1095,7 @@ Q3,260
                     || box.Text.Contains("AST --> PPTX", StringComparison.Ordinal));
                 Assert.NotEmpty(presentation.Slides[2].Charts);
                 Assert.Contains(presentation.Slides[2].Shapes.OfType<PowerPointAutoShape>(), shape =>
-                    shape.Name.Contains("Chart Panel", StringComparison.Ordinal));
+                    shape.Name?.Contains("Chart Panel", StringComparison.Ordinal) == true);
             }
 
             using var package = PresentationDocument.Open(path, false);
@@ -1195,9 +1195,9 @@ Stay in semantic Markdown until the slide actually needs more control.
             Assert.Contains(slide.Shapes.OfType<PowerPointTextBox>(), box =>
                 box.Text.Contains("Why it helps", StringComparison.Ordinal));
             Assert.Equal(2, slide.Shapes.OfType<PowerPointAutoShape>()
-                .Count(shape => shape.Name.Contains("Semantic Column Panel", StringComparison.Ordinal)));
+                .Count(shape => shape.Name?.Contains("Semantic Column Panel", StringComparison.Ordinal) == true));
             Assert.DoesNotContain(slide.Shapes.OfType<PowerPointAutoShape>(), shape =>
-                shape.Name.Contains("Canvas Rail", StringComparison.Ordinal));
+                shape.Name?.Contains("Canvas Rail", StringComparison.Ordinal) == true);
         } finally {
             if (File.Exists(path)) {
                 File.Delete(path);
@@ -1399,13 +1399,13 @@ Background image slide
 
             using (var presentation = PowerPointPresentation.Load(path)) {
                 var slide = Assert.Single(presentation.Slides);
-                Assert.Contains(slide.Shapes.OfType<PowerPointAutoShape>(), shape => shape.Name.Contains("Background Overlay", StringComparison.Ordinal));
-                Assert.DoesNotContain(slide.Shapes.OfType<PowerPointAutoShape>(), shape => shape.Name.Contains("Canvas Rail", StringComparison.Ordinal));
+                Assert.Contains(slide.Shapes.OfType<PowerPointAutoShape>(), shape => shape.Name?.Contains("Background Overlay", StringComparison.Ordinal) == true);
+                Assert.DoesNotContain(slide.Shapes.OfType<PowerPointAutoShape>(), shape => shape.Name?.Contains("Canvas Rail", StringComparison.Ordinal) == true);
             }
 
             using (var package = PresentationDocument.Open(path, false)) {
                 var slidePart = Assert.Single(package.PresentationPart!.SlideParts);
-                var blipFill = slidePart.Slide.CommonSlideData?.Background?.BackgroundProperties?.GetFirstChild<DocumentFormat.OpenXml.Drawing.BlipFill>();
+                var blipFill = slidePart.Slide!.CommonSlideData?.Background?.BackgroundProperties?.GetFirstChild<DocumentFormat.OpenXml.Drawing.BlipFill>();
                 Assert.NotNull(blipFill);
             }
         } finally {
@@ -1449,7 +1449,7 @@ profile: presentation
             using var package = PresentationDocument.Open(path, false);
             var slidePart = Assert.Single(package.PresentationPart!.SlideParts);
             Assert.NotEmpty(slidePart.ImageParts);
-            Assert.DoesNotContain("Image: EvotecLogo.png", slidePart.Slide.OuterXml, StringComparison.Ordinal);
+            Assert.DoesNotContain("Image: EvotecLogo.png", slidePart.Slide!.OuterXml, StringComparison.Ordinal);
         } finally {
             if (Directory.Exists(tempDirectory)) {
                 Directory.Delete(tempDirectory, recursive: true);
@@ -1490,7 +1490,7 @@ profile: presentation
             using var package = PresentationDocument.Open(path, false);
             var slidePart = Assert.Single(package.PresentationPart!.SlideParts);
             Assert.Empty(slidePart.ImageParts);
-            Assert.Contains("Image:", slidePart.Slide.OuterXml, StringComparison.Ordinal);
+            Assert.Contains("Image:", slidePart.Slide!.OuterXml, StringComparison.Ordinal);
         } finally {
             if (File.Exists(currentDirectoryImage)) {
                 File.Delete(currentDirectoryImage);
@@ -1534,7 +1534,7 @@ profile: presentation
             using var package = PresentationDocument.Open(path, false);
             var slidePart = Assert.Single(package.PresentationPart!.SlideParts);
             Assert.Empty(slidePart.ImageParts);
-            Assert.Contains("Image:", slidePart.Slide.OuterXml, StringComparison.Ordinal);
+            Assert.Contains("Image:", slidePart.Slide!.OuterXml, StringComparison.Ordinal);
         } finally {
             if (Directory.Exists(tempDirectory)) {
                 Directory.Delete(tempDirectory, recursive: true);
@@ -1575,7 +1575,7 @@ profile: presentation
             using var package = PresentationDocument.Open(path, false);
             var slidePart = Assert.Single(package.PresentationPart!.SlideParts);
             Assert.NotEmpty(slidePart.ImageParts);
-            Assert.DoesNotContain("Image:", slidePart.Slide.OuterXml, StringComparison.Ordinal);
+            Assert.DoesNotContain("Image:", slidePart.Slide!.OuterXml, StringComparison.Ordinal);
         } finally {
             if (Directory.Exists(tempDirectory)) {
                 Directory.Delete(tempDirectory, recursive: true);
@@ -1655,7 +1655,7 @@ profile: presentation
 
             using var presentation = PresentationDocument.Open(path, false);
             var slidePart = Assert.Single(presentation.PresentationPart!.SlideParts);
-            Assert.Contains("Image: https://example.com/logo.png", slidePart.Slide.OuterXml, StringComparison.Ordinal);
+            Assert.Contains("Image: https://example.com/logo.png", slidePart.Slide!.OuterXml, StringComparison.Ordinal);
         } finally {
             if (File.Exists(path)) {
                 File.Delete(path);
@@ -1736,7 +1736,7 @@ Gradient background slide
 
             using (var package = PresentationDocument.Open(path, false)) {
                 var slidePart = Assert.Single(package.PresentationPart!.SlideParts);
-                var properties = slidePart.Slide.CommonSlideData!.Background!.BackgroundProperties!;
+                var properties = slidePart.Slide!.CommonSlideData!.Background!.BackgroundProperties!;
                 Assert.Null(properties.GetFirstChild<DocumentFormat.OpenXml.Drawing.SolidFill>());
 
                 var gradient = Assert.IsType<DocumentFormat.OpenXml.Drawing.GradientFill>(properties.GetFirstChild<DocumentFormat.OpenXml.Drawing.GradientFill>());
@@ -1751,7 +1751,7 @@ Gradient background slide
 
             using (var presentation = PowerPointPresentation.Load(path)) {
                 var slide = Assert.Single(presentation.Slides);
-                Assert.DoesNotContain(slide.Shapes.OfType<PowerPointAutoShape>(), shape => shape.Name.Contains("Canvas Rail", StringComparison.Ordinal));
+                Assert.DoesNotContain(slide.Shapes.OfType<PowerPointAutoShape>(), shape => shape.Name?.Contains("Canvas Rail", StringComparison.Ordinal) == true);
             }
         } finally {
             if (File.Exists(path)) {
@@ -1789,14 +1789,14 @@ Gradient angle slide
 
             using (var package = PresentationDocument.Open(path, false)) {
                 var slidePart = Assert.Single(package.PresentationPart!.SlideParts);
-                var properties = slidePart.Slide.CommonSlideData!.Background!.BackgroundProperties!;
+                var properties = slidePart.Slide!.CommonSlideData!.Background!.BackgroundProperties!;
                 var gradient = Assert.IsType<DocumentFormat.OpenXml.Drawing.GradientFill>(properties.GetFirstChild<DocumentFormat.OpenXml.Drawing.GradientFill>());
                 Assert.Equal(2700000, gradient.GetFirstChild<DocumentFormat.OpenXml.Drawing.LinearGradientFill>()?.Angle?.Value);
             }
 
             using (var presentation = PowerPointPresentation.Load(path)) {
                 var slide = Assert.Single(presentation.Slides);
-                Assert.DoesNotContain(slide.Shapes.OfType<PowerPointAutoShape>(), shape => shape.Name.Contains("Canvas Rail", StringComparison.Ordinal));
+                Assert.DoesNotContain(slide.Shapes.OfType<PowerPointAutoShape>(), shape => shape.Name?.Contains("Canvas Rail", StringComparison.Ordinal) == true);
             }
         } finally {
             if (File.Exists(path)) {
@@ -1924,7 +1924,7 @@ flowchart LR
             var slideParts = package.PresentationPart!.SlideParts.ToList();
             Assert.Contains(slideParts.SelectMany(part => part.ImageParts), part =>
                 string.Equals(part.ContentType, "image/png", StringComparison.OrdinalIgnoreCase));
-            var slideXml = string.Join(Environment.NewLine, slideParts.Select(part => part.Slide.OuterXml));
+            var slideXml = string.Join(Environment.NewLine, slideParts.Select(part => part.Slide!.OuterXml));
             Assert.Contains("OfficeIMO Markup Diagram Panel", slideXml, StringComparison.Ordinal);
             Assert.DoesNotContain("Markup --> AST", slideXml, StringComparison.Ordinal);
             Assert.DoesNotContain("Mermaid renderer", slideXml, StringComparison.OrdinalIgnoreCase);
@@ -2020,7 +2020,7 @@ C,60,77
             Assert.True(File.Exists(path));
             using (var spreadsheet = SpreadsheetDocument.Open(path, false)) {
                 var workbookPart = spreadsheet.WorkbookPart!;
-                var sheet = workbookPart.Workbook.Sheets!.OfType<Sheet>().First(item => item.Name?.Value == "Revenue");
+                var sheet = workbookPart.Workbook!.Sheets!.OfType<Sheet>().First(item => item.Name?.Value == "Revenue");
                 var worksheetPart = (WorksheetPart)workbookPart.GetPartById(sheet.Id!);
 
                 Assert.Equal("Product", GetCellValue(spreadsheet, worksheetPart, "A1"));
@@ -2029,12 +2029,12 @@ C,60,77
                 Assert.True(worksheetPart.TableDefinitionParts.Any());
                 Assert.NotNull(worksheetPart.DrawingsPart);
                 Assert.True(worksheetPart.DrawingsPart!.ChartParts.Any());
-                var sheetView = worksheetPart.Worksheet.GetFirstChild<SheetViews>()!.Elements<SheetView>().First();
+                var sheetView = worksheetPart.Worksheet!.GetFirstChild<SheetViews>()!.Elements<SheetView>().First();
                 var pane = sheetView.GetFirstChild<Pane>()!;
                 Assert.Equal(PaneStateValues.Frozen, pane.State!.Value);
                 Assert.Equal(1D, pane.VerticalSplit!.Value);
                 Assert.False(sheetView.ShowGridLines!.Value);
-                var chartXml = worksheetPart.DrawingsPart!.ChartParts.First().ChartSpace.OuterXml;
+                var chartXml = worksheetPart.DrawingsPart!.ChartParts.First().ChartSpace!.OuterXml;
                 Assert.Contains("2563EB", chartXml, StringComparison.OrdinalIgnoreCase);
                 Assert.Contains("Product", chartXml, StringComparison.Ordinal);
                 Assert.Contains("Revenue", chartXml, StringComparison.Ordinal);
@@ -2090,7 +2090,7 @@ C,60,77
 
             using var spreadsheet = SpreadsheetDocument.Open(path, false);
             var workbookPart = spreadsheet.WorkbookPart!;
-            var sheets = workbookPart.Workbook.Sheets!.OfType<Sheet>().ToList();
+            var sheets = workbookPart.Workbook!.Sheets!.OfType<Sheet>().ToList();
             var revenueSheet = sheets.First(item => item.Name?.Value == "Revenue");
             var dashboardSheet = sheets.First(item => item.Name?.Value == "Dashboard");
             var revenuePart = (WorksheetPart)workbookPart.GetPartById(revenueSheet.Id!);
@@ -2100,9 +2100,9 @@ C,60,77
             Assert.Null(revenuePart.DrawingsPart);
             Assert.NotNull(dashboardPart.DrawingsPart);
             Assert.True(dashboardPart.DrawingsPart!.ChartParts.Any());
-            Assert.Contains("2563EB", dashboardPart.DrawingsPart!.ChartParts.First().ChartSpace.OuterXml, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("2563EB", dashboardPart.DrawingsPart!.ChartParts.First().ChartSpace!.OuterXml, StringComparison.OrdinalIgnoreCase);
             Assert.Equal("1+1", GetCell(dashboardPart, "H1")!.CellFormula!.Text);
-            Assert.False(dashboardPart.Worksheet.GetFirstChild<SheetViews>()!.Elements<SheetView>().First().ShowGridLines!.Value);
+            Assert.False(dashboardPart.Worksheet!.GetFirstChild<SheetViews>()!.Elements<SheetView>().First().ShowGridLines!.Value);
 
             using var document = OfficeIMO.Excel.ExcelDocument.Load(path, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
             Assert.Empty(document.ValidateOpenXml());
@@ -2148,7 +2148,7 @@ Cost,80,
 
             using var spreadsheet = SpreadsheetDocument.Open(path, false);
             var workbookPart = spreadsheet.WorkbookPart!;
-            var sheets = workbookPart.Workbook.Sheets!.OfType<Sheet>().ToList();
+            var sheets = workbookPart.Workbook!.Sheets!.OfType<Sheet>().ToList();
             var dataSheet = sheets.First(item => item.Name?.Value == "Data");
             var dashboardSheet = sheets.First(item => item.Name?.Value == "Dashboard");
             var dataPart = (WorksheetPart)workbookPart.GetPartById(dataSheet.Id!);
@@ -2161,7 +2161,7 @@ Cost,80,
             Assert.Null(dataPart.DrawingsPart);
             Assert.NotNull(dashboardPart.DrawingsPart);
             Assert.True(dashboardPart.DrawingsPart!.ChartParts.Any());
-            Assert.False(dashboardPart.Worksheet.GetFirstChild<SheetViews>()!.Elements<SheetView>().First().ShowGridLines!.Value);
+            Assert.False(dashboardPart.Worksheet!.GetFirstChild<SheetViews>()!.Elements<SheetView>().First().ShowGridLines!.Value);
 
             using var document = OfficeIMO.Excel.ExcelDocument.Load(path, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
             Assert.Empty(document.ValidateOpenXml());
@@ -2390,7 +2390,7 @@ profile: document
 
             using var package = WordprocessingDocument.Open(path, false);
             Assert.Empty(package.MainDocumentPart!.ImageParts);
-            Assert.Contains("Image:", package.MainDocumentPart!.Document.Body!.InnerText, StringComparison.Ordinal);
+            Assert.Contains("Image:", package.MainDocumentPart!.Document!.Body!.InnerText, StringComparison.Ordinal);
         } finally {
             if (Directory.Exists(tempDirectory)) {
                 Directory.Delete(tempDirectory, recursive: true);
@@ -2425,7 +2425,7 @@ profile: document
 
             using var package = WordprocessingDocument.Open(path, false);
             Assert.Empty(package.MainDocumentPart!.ImageParts);
-            Assert.Contains("Image:", package.MainDocumentPart!.Document.Body!.InnerText, StringComparison.Ordinal);
+            Assert.Contains("Image:", package.MainDocumentPart!.Document!.Body!.InnerText, StringComparison.Ordinal);
         } finally {
             if (File.Exists(currentDirectoryImage)) {
                 File.Delete(currentDirectoryImage);
@@ -2464,7 +2464,7 @@ profile: document
 
             using var package = WordprocessingDocument.Open(path, false);
             Assert.NotEmpty(package.MainDocumentPart!.ImageParts);
-            Assert.DoesNotContain("Image:", package.MainDocumentPart!.Document.Body!.InnerText, StringComparison.Ordinal);
+            Assert.DoesNotContain("Image:", package.MainDocumentPart!.Document!.Body!.InnerText, StringComparison.Ordinal);
         } finally {
             if (Directory.Exists(tempDirectory)) {
                 Directory.Delete(tempDirectory, recursive: true);
@@ -2513,7 +2513,7 @@ profile: document
             documentModel.SaveAsExcel(path, new MarkupToExcelOptions());
 
             using var spreadsheet = SpreadsheetDocument.Open(path, false);
-            var sheet = Assert.Single(spreadsheet.WorkbookPart!.Workbook.Sheets!.OfType<Sheet>());
+            var sheet = Assert.Single(spreadsheet.WorkbookPart!.Workbook!.Sheets!.OfType<Sheet>());
             var worksheetPart = (WorksheetPart)spreadsheet.WorkbookPart.GetPartById(sheet.Id!);
             Assert.Equal("4. Root four", GetCellValue(spreadsheet, worksheetPart, "A1"));
             Assert.Equal("\u00A0\u00A0- Nested bullet", GetCellValue(spreadsheet, worksheetPart, "A2"));

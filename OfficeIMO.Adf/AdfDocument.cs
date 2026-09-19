@@ -45,10 +45,11 @@ public sealed class AdfDocument {
     internal void AddExtension(string name, JsonElement value) =>
         (_extensionData ??= new Dictionary<string, JsonElement>(StringComparer.Ordinal))[name] = value;
 
-    /// <summary>Parses an ADF JSON document.</summary>
+    /// <summary>Parses an ADF JSON document and retains unrecognized fields for round trips.</summary>
+    /// <remarks>Parsing checks JSON shape and required fields; call <see cref="Validate"/> to inspect ADF structural rules.</remarks>
     public static AdfDocument Parse(string json) => AdfJsonSerializer.Parse(json);
 
-    /// <summary>Serializes this document to ADF JSON.</summary>
+    /// <summary>Serializes this document to ADF JSON without performing structural validation.</summary>
     public string ToJson(bool indented = false) => AdfJsonSerializer.Serialize(this, indented);
 
     /// <summary>Validates the structural ADF contract without rejecting unknown node or mark types.</summary>

@@ -246,7 +246,7 @@ public sealed class OfficeConversionCapability {
 /// <summary>The shared OfficeIMO conversion route catalog used by packages, agents, and browser surfaces.</summary>
 public static class OfficeConversionCapabilityCatalog {
     /// <summary>Gets the capability schema version.</summary>
-    public const int SchemaVersion = 7;
+    public const int SchemaVersion = 9;
 
     /// <summary>Gets all focused, public document-conversion routes in stable order.</summary>
     public static IReadOnlyList<OfficeConversionCapability> All { get; } =
@@ -423,6 +423,9 @@ public static class OfficeConversionCapabilityCatalog {
         Route("visio-pdf", "Visio", "PDF", OfficeConversionInputKind.File, new[] { ".vsdx" }, ".pdf", "OfficeIMO.Visio.Pdf", "VisioDocument.Load(stream).ToPdfDocumentResult(options)", "Render a Visio drawing into a fixed-layout PDF.", OfficeConversionFidelityKind.FixedLayout, "PdfDocumentConversionResult")
         };
 
+        AddEmailRoutes(routes);
+        AddBibliographyRoutes(routes);
+        AddIWorkRoutes(routes);
         AddImageRoutes(routes, "docx", "DOCX", OfficeConversionInputKind.File, new[] { ".docx" }, "OfficeIMO.Word", "WordDocument.Load(stream).ExportImages(format, options)");
         AddImageRoutes(routes, "xlsx", "XLSX", OfficeConversionInputKind.File, new[] { ".xlsx" }, "OfficeIMO.Excel", "ExcelDocument.Load(stream).ExportImages(format, options)");
         AddImageRoutes(routes, "pptx", "PPTX", OfficeConversionInputKind.File, new[] { ".pptx" }, "OfficeIMO.PowerPoint", "PowerPointPresentation.Load(stream).ExportImages(format, options)");
@@ -436,6 +439,78 @@ public static class OfficeConversionCapabilityCatalog {
         AddImageRoutes(routes, "odp", "ODP", OfficeConversionInputKind.File, new[] { ".odp" }, "OfficeIMO.PowerPoint.OpenDocument", "OdpPresentation.Load(stream).ExportImages(format, options)");
         AddImageRoutes(routes, "pdf", "PDF", OfficeConversionInputKind.File, new[] { ".pdf" }, "OfficeIMO.Pdf", "PdfDocument.Load(stream).Render.ExportImages(format, options)");
         return routes.ToArray();
+    }
+
+    private static void AddEmailRoutes(ICollection<OfficeConversionCapability> routes) {
+        var formats = new[] {
+            (Id: "eml", Label: "EML", Extensions: new[] { ".eml", ".mime" }, Extension: ".eml", EnumValue: "Eml"),
+            (Id: "msg", Label: "MSG", Extensions: new[] { ".msg" }, Extension: ".msg", EnumValue: "OutlookMsg"),
+            (Id: "oft", Label: "OFT", Extensions: new[] { ".oft" }, Extension: ".oft", EnumValue: "OutlookTemplate"),
+            (Id: "tnef", Label: "TNEF", Extensions: new[] { ".tnef", ".dat" }, Extension: ".tnef", EnumValue: "Tnef")
+        };
+        foreach (var source in formats) {
+            foreach (var target in formats) {
+                if (source.Id == target.Id) continue;
+                routes.Add(Route(
+                    "email-" + source.Id + "-" + target.Id,
+                    source.Label,
+                    target.Label,
+                    OfficeConversionInputKind.File,
+                    source.Extensions,
+                    target.Extension,
+                    "OfficeIMO.Email",
+                    "EmailDocument.Load(path).Save(outputPath, EmailFileFormat." + target.EnumValue + ")",
+                    "Convert " + source.Label + " message content to " + target.Label + " with explicit loss analysis and write evidence.",
+                    OfficeConversionFidelityKind.Editable,
+                    "EmailWriteResult"));
+            }
+        }
+    }
+
+    private static void AddBibliographyRoutes(ICollection<OfficeConversionCapability> routes) {
+        var formats = new[] {
+            (Id: "bibtex", Label: "BibTeX", Extensions: new[] { ".bib" }, Extension: ".bib", EnumValue: "BibTex"),
+            (Id: "biblatex", Label: "BibLaTeX", Extensions: new[] { ".bib" }, Extension: ".bib", EnumValue: "BibLatex"),
+            (Id: "csl-json", Label: "CSL JSON", Extensions: new[] { ".json" }, Extension: ".json", EnumValue: "CslJson"),
+            (Id: "ris", Label: "RIS", Extensions: new[] { ".ris" }, Extension: ".ris", EnumValue: "Ris"),
+            (Id: "nbib", Label: "NBIB/MEDLINE", Extensions: new[] { ".nbib", ".medline" }, Extension: ".nbib", EnumValue: "Nbib"),
+            (Id: "endnote-xml", Label: "EndNote XML", Extensions: new[] { ".xml" }, Extension: ".xml", EnumValue: "EndNoteXml")
+        };
+        foreach (var source in formats) {
+            foreach (var target in formats) {
+                if (source.Id == target.Id) continue;
+                routes.Add(Route(
+                    "bibliography-" + source.Id + "-" + target.Id,
+                    source.Label,
+                    target.Label,
+                    OfficeConversionInputKind.File,
+                    source.Extensions,
+                    target.Extension,
+                    "OfficeIMO.Bibliography",
+                    "BibliographyDocument.Load(path, BibliographyFormat." + source.EnumValue + ").Document.Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat." + target.EnumValue + " })",
+                    "Convert " + source.Label + " citation data to " + target.Label + " with a deterministic fidelity report.",
+                    OfficeConversionFidelityKind.Editable,
+                    "BibliographyWriteResult"));
+            }
+        }
+    }
+
+    private static void AddIWorkRoutes(ICollection<OfficeConversionCapability> routes) {
+        routes.Add(Route(
+            "pages-docx", "Pages", "DOCX", OfficeConversionInputKind.File, new[] { ".pages" }, ".docx",
+            "OfficeIMO.Word.IWork", "WordIWorkConverter.ConvertPagesToWordResult(path, readOptions, conversionOptions)",
+            "Reconstruct a bounded Pages source as an editable Word document with source and fallback evidence.",
+            OfficeConversionFidelityKind.Editable, "PagesToWordResult"));
+        routes.Add(Route(
+            "numbers-xlsx", "Numbers", "XLSX", OfficeConversionInputKind.File, new[] { ".numbers" }, ".xlsx",
+            "OfficeIMO.Excel.IWork", "ExcelIWorkConverter.ConvertNumbersToExcelResult(path, readOptions, conversionOptions)",
+            "Reconstruct a bounded Numbers source as an editable Excel workbook with source and fallback evidence.",
+            OfficeConversionFidelityKind.Editable, "NumbersToExcelResult"));
+        routes.Add(Route(
+            "keynote-pptx", "Keynote", "PPTX", OfficeConversionInputKind.File, new[] { ".key" }, ".pptx",
+            "OfficeIMO.PowerPoint.IWork", "PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(path, readOptions, conversionOptions)",
+            "Reconstruct a bounded Keynote source as an editable PowerPoint presentation with source and fallback evidence.",
+            OfficeConversionFidelityKind.Editable, "KeynoteToPowerPointResult"));
     }
 
     private static void AddImageRoutes(
@@ -487,7 +562,7 @@ public static class OfficeConversionCapabilityCatalog {
         OfficeConversionSupportAssessment support = OfficeConversionSupportAssessments.Get(id);
         (OfficeConversionTextFormattingKind textFormatting, string textFormattingContract) = GetTextFormattingContract(source, target);
         return new OfficeConversionCapability(
-            id, source, target, inputKind, sourceExtensions, targetExtension,
+            id, source, target, inputKind, ExpandModernOfficeFamily(source, sourceExtensions), targetExtension,
             packageId, api, description, fidelity, resultContract, browser,
             agentDiscoverable: true,
             supportLevel: support.Level,
@@ -495,6 +570,20 @@ public static class OfficeConversionCapabilityCatalog {
             knownLimitations: support.KnownLimitations,
             textFormatting: textFormatting,
             textFormattingContract: textFormattingContract);
+    }
+
+    private static IEnumerable<string> ExpandModernOfficeFamily(
+        string source,
+        IEnumerable<string> sourceExtensions) {
+        string[]? family = source switch {
+            "DOCX" => new[] { ".docx", ".docm", ".dotx", ".dotm" },
+            "XLSX" => new[] { ".xlsx", ".xlsm", ".xltx", ".xltm", ".xlam" },
+            "PPTX" => new[] { ".pptx", ".pptm", ".potx", ".potm", ".ppsx", ".ppsm", ".ppam" },
+            _ => null
+        };
+        return family == null
+            ? sourceExtensions
+            : family.Concat(sourceExtensions).Distinct(StringComparer.OrdinalIgnoreCase);
     }
 
     private static (OfficeConversionTextFormattingKind Kind, string Contract) GetTextFormattingContract(

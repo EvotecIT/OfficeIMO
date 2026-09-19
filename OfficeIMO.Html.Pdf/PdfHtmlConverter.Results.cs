@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Html.Pdf;
@@ -40,7 +41,234 @@ public static partial class PdfHtmlConverterExtensions {
                 $"Generated HTML exceeded the configured {options.MaximumOutputCharacters.Value:N0}-character output limit while it was being rendered.",
                 exception);
         }
+        ReportProfileFidelity(document, pages, options);
         return new PdfHtmlConversionResult(html, BuildExportSummary(document, pages, options, document.SourcePageCount), options.Report);
+    }
+
+    private static void ReportProfileFidelity(
+        PdfCore.PdfDocumentReadResult document,
+        IReadOnlyList<PdfCore.PdfLogicalPage> pages,
+        PdfToHtmlOptions options) {
+        ReportMetadataFidelity(document.Metadata, document.SourceFidelityFacts.HasXmpMetadata, options);
+        int textBlockCount = 0;
+        int tableCount = 0;
+        int imageCount = 0;
+        int linkCount = 0;
+        int skippedLinkCount = 0;
+        int formWidgetCount = 0;
+        int unrepresentedVectorCount = 0;
+        int annotationCount = 0;
+        for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
+            options.CancellationToken.ThrowIfCancellationRequested();
+            PdfCore.PdfLogicalPage page = pages[pageIndex];
+            textBlockCount += page.TextBlocks.Count;
+            tableCount += page.Tables.Count;
+            imageCount += page.Images.Count(image =>
+                PdfCore.PdfImagePlacementImportPolicy.HasVisiblePlacement(page, image));
+            linkCount += page.Links.Count;
+            formWidgetCount += page.FormWidgets.Count;
+            unrepresentedVectorCount += page.UnrepresentedVectorPrimitiveCount;
+            annotationCount += page.Annotations.Count(static annotation =>
+                !string.Equals(annotation.Subtype, "Link", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(annotation.Subtype, "Widget", StringComparison.OrdinalIgnoreCase));
+            if (options.IncludeLinkAnnotations) {
+                skippedLinkCount += page.Links.Count(static link => !HasHtmlLinkTarget(link));
+            }
+        }
+
+        if (options.Profile == PdfHtmlProfile.Semantic &&
+            textBlockCount + tableCount + imageCount + unrepresentedVectorCount > 0) {
+            AddWarning(
+                options,
+                "PdfSemanticLayoutReflowed",
+                "Semantic HTML reconstructs readable document structure; fixed PDF coordinates, pagination, and authoring layout are not preserved.",
+                PdfCore.PdfConversionWarningSeverity.Information,
+                OfficeConversionLossKind.Approximation);
+        }
+
+        if (options.Profile == PdfHtmlProfile.Semantic && unrepresentedVectorCount > 0) {
+            AddWarning(
+                options,
+                "PdfVectorAppearanceOmitted",
+                unrepresentedVectorCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                " vector primitives were not represented by HTML content or detected table structure.",
+                PdfCore.PdfConversionWarningSeverity.Warning,
+                OfficeConversionLossKind.Omission);
+        }
+
+        if (!options.IncludeImagePlaceholders && imageCount > 0) {
+            AddWarning(
+                options,
+                "PdfImagesOmitted",
+                imageCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                " PDF images were omitted because image output is disabled.",
+                PdfCore.PdfConversionWarningSeverity.Warning,
+                OfficeConversionLossKind.Omission);
+        } else if (options.IncludeImagePlaceholders &&
+                   options.ImageExportMode == PdfHtmlImageExportMode.PlaceholderOnly &&
+                   imageCount > 0) {
+            AddWarning(
+                options,
+                "PdfImagePixelsOmitted",
+                imageCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                " PDF images were represented by readable placeholders without their source pixels.",
+                PdfCore.PdfConversionWarningSeverity.Warning,
+                OfficeConversionLossKind.Omission);
+        }
+
+        skippedLinkCount += options.IncludeLinkAnnotations ? 0 : linkCount;
+        if (skippedLinkCount > 0) {
+            AddWarning(
+                options,
+                "PdfLinkAnnotationsOmitted",
+                skippedLinkCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                " PDF link annotations were omitted because link output is disabled or the target is unsupported.",
+                PdfCore.PdfConversionWarningSeverity.Warning,
+                OfficeConversionLossKind.Omission);
+        }
+
+        if (formWidgetCount > 0) {
+            if (options.IncludeFormWidgets) {
+                AddWarning(
+                    options,
+                    "PdfFormWidgetsFlattened",
+                    formWidgetCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                    " PDF form widgets were represented as static text; field editing and interactive behavior were not preserved.",
+                    PdfCore.PdfConversionWarningSeverity.Warning,
+                    OfficeConversionLossKind.Approximation);
+            } else {
+                AddWarning(
+                    options,
+                    "PdfFormWidgetsOmitted",
+                    formWidgetCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                    " PDF form widgets were omitted because form output is disabled.",
+                    PdfCore.PdfConversionWarningSeverity.Warning,
+                    OfficeConversionLossKind.Omission);
+            }
+        }
+
+        int unplacedFormFieldCount = document.SourceFidelityFacts.UnplacedFormFieldCount;
+        if (unplacedFormFieldCount > 0) {
+            AddWarning(
+                options,
+                "PdfFormDefinitionsOmitted",
+                unplacedFormFieldCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                " unplaced PDF form definitions were not represented in HTML.",
+                PdfCore.PdfConversionWarningSeverity.Warning,
+                OfficeConversionLossKind.Omission);
+        }
+
+        if (annotationCount > 0) {
+            AddWarning(
+                options,
+                "PdfAnnotationsOmitted",
+                annotationCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                " non-link PDF annotations are not represented by the HTML profiles.",
+                PdfCore.PdfConversionWarningSeverity.Warning,
+                OfficeConversionLossKind.Omission);
+        }
+
+        int optionalContentPageCount = pages.Count(static page => page.HasOptionalContentUsage);
+        if (optionalContentPageCount > 0) {
+            AddWarning(
+                options,
+                "PdfOptionalContentGroupsFlattened",
+                optionalContentPageCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                " selected PDF pages use optional content that was flattened to the current visible projection; layer controls and alternate visibility states were not preserved.",
+                PdfCore.PdfConversionWarningSeverity.Warning,
+                OfficeConversionLossKind.Approximation);
+        }
+
+        int outlineCount = CountOutlines(document.Outlines);
+        int preservedOutlineCount = options.IncludeOutlines
+            ? CountPreservedOutlines(document, pages)
+            : 0;
+        int omittedOutlineCount = Math.Max(0, outlineCount - preservedOutlineCount);
+        if (omittedOutlineCount > 0) {
+            AddWarning(
+                options,
+                "PdfOutlinesOmitted",
+                omittedOutlineCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                " PDF outline entries or navigation targets were omitted because outline output is disabled or their destination is outside the selected pages.",
+                PdfCore.PdfConversionWarningSeverity.Warning,
+                OfficeConversionLossKind.Omission);
+        }
+
+        if (document.SourceFidelityFacts.AttachmentCount > 0) {
+            AddWarning(
+                options,
+                "PdfAttachmentsOmitted",
+                document.SourceFidelityFacts.AttachmentCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                " PDF embedded files were not represented in HTML output.",
+                PdfCore.PdfConversionWarningSeverity.Warning,
+                OfficeConversionLossKind.Omission);
+        }
+
+        if (document.HasSecurityState) {
+            AddWarning(options, "PdfSourceSecurityNotReconstructed",
+                "PDF encryption, signature, permission, or revision state was not carried into HTML output.",
+                PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission);
+        }
+        if (document.PageLabels.Count > 0 &&
+            document.PageLabels.Any(label => pages.Any(page => page.PageNumber >= label.StartPageNumber))) {
+            AddWarning(options, "PdfPageLabelsNotReconstructed",
+                "PDF page-label rules were not carried into HTML output.",
+                PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission);
+        }
+
+        if (document.SourceFidelityFacts.HasTaggedContent) {
+            AddWarning(
+                options,
+                "PdfTaggedStructureOmitted",
+                "The source PDF's tagged accessibility structure tree was not recreated in HTML output.",
+                PdfCore.PdfConversionWarningSeverity.Warning,
+                OfficeConversionLossKind.Omission);
+        }
+
+        ActionDiagnosticSummary actionSummary = BuildActionDiagnosticSummary(document, pages);
+        var selectedPageNumbers = new HashSet<int>(pages.Select(static page => page.PageNumber));
+        int omittedDocumentActionCount = document.SourceFidelityFacts.CatalogActionCount -
+            (document.SourceFidelityFacts.HasOpenAction && document.SourceFidelityFacts.CatalogContainsOpenAction ? 1 : 0) +
+            actionSummary.SelectedPageActionCount +
+            CountOmittedAnnotationActions(pages, selectedPageNumbers, options.IncludeLinkAnnotations) +
+            (document.SourceFidelityFacts.HasOpenAction ? 1 : 0);
+        if (omittedDocumentActionCount > 0) {
+            AddWarning(
+                options,
+                "PdfDocumentActionsOmitted",
+                omittedDocumentActionCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                " PDF open, catalog, selected-page, or annotation actions were stripped from HTML output.",
+                PdfCore.PdfConversionWarningSeverity.Warning,
+                OfficeConversionLossKind.Omission);
+        }
+    }
+
+    private static void ReportMetadataFidelity(
+        PdfCore.PdfMetadata metadata,
+        bool hasXmpMetadata,
+        PdfToHtmlOptions options) {
+        // The semantic body section retains all four fields even without a document shell.
+        bool hasMetadataSection = options.Profile == PdfHtmlProfile.Semantic && options.IncludeMetadata;
+        bool hasMetadataHead = options.EmitDocumentShell && options.IncludeMetadata;
+        int omittedCount = 0;
+        if (!hasMetadataSection && !options.EmitDocumentShell && !string.IsNullOrWhiteSpace(metadata.Title)) omittedCount++;
+        if (!hasMetadataSection && !hasMetadataHead) {
+            if (!string.IsNullOrWhiteSpace(metadata.Author)) omittedCount++;
+            if (!string.IsNullOrWhiteSpace(metadata.Subject)) omittedCount++;
+            if (!string.IsNullOrWhiteSpace(metadata.Keywords)) omittedCount++;
+        }
+        if (metadata.CreationDate.HasValue) omittedCount++;
+        if (metadata.ModificationDate.HasValue) omittedCount++;
+        if (metadata.TrappingStatus.HasValue) omittedCount++;
+        if (!string.IsNullOrWhiteSpace(metadata.PdfXVersion)) omittedCount++;
+        if (!string.IsNullOrWhiteSpace(metadata.PdfXConformance)) omittedCount++;
+        if (hasXmpMetadata) omittedCount++;
+        if (omittedCount == 0) return;
+        AddWarning(options, "PdfMetadataOmitted",
+            omittedCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            " PDF metadata fields or XMP packets were omitted from HTML output.",
+            PdfCore.PdfConversionWarningSeverity.Warning,
+            OfficeConversionLossKind.Omission);
     }
 
     private static bool IsOutputBuilderCapacityException(Exception exception) =>
@@ -99,6 +327,7 @@ public static partial class PdfHtmlConverterExtensions {
             }
         }
 
+        formFields.UnionWith(document.FormFields.Where(static field => field.HasUnplacedContent));
         int skippedLinkCount = Math.Max(0, linkCount - renderedLinkCount);
         int outlineCount = CountOutlines(document.Outlines);
         int renderedOutlineCount = options.IncludeOutlines
@@ -182,7 +411,7 @@ public static partial class PdfHtmlConverterExtensions {
     }
 
     private static ActionDiagnosticSummary BuildActionDiagnosticSummary(PdfCore.PdfDocumentReadResult document, IReadOnlyList<PdfCore.PdfLogicalPage> pages) {
-        int catalogActionCount = AreAllDocumentPagesSelected(document, pages) ? document.CatalogActionCount : 0;
+        int catalogActionCount = document.CatalogActionCount;
         int selectedPageActionCount = 0;
         int selectedAnnotationActionCount = 0;
         int pageActionCount = document.PageActionCount;
@@ -234,6 +463,99 @@ public static partial class PdfHtmlConverterExtensions {
         }
     }
 
+    private static int CountOmittedAnnotationActions(
+        IReadOnlyList<PdfCore.PdfLogicalPage> pages,
+        ISet<int> selectedPageNumbers,
+        bool includeLinkAnnotations) {
+        int omittedCount = 0;
+        for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
+            PdfCore.PdfLogicalPage page = pages[pageIndex];
+            var representedLinks = new HashSet<int>();
+            for (int annotationIndex = 0; annotationIndex < page.Annotations.Count; annotationIndex++) {
+                PdfCore.PdfAnnotation annotation = page.Annotations[annotationIndex];
+                omittedCount += annotation.AdditionalActions.Count;
+                omittedCount += annotation.ChainedActions.Count;
+                bool hasDirectLinkDestination = !annotation.HasAction &&
+                    string.Equals(annotation.Subtype, "Link", StringComparison.OrdinalIgnoreCase) &&
+                    page.Links.Any(link => HasSameRectangle(annotation, link) && link.IsInternalDestinationLink);
+                if (!annotation.HasAction && !hasDirectLinkDestination) {
+                    continue;
+                }
+
+                if (!includeLinkAnnotations ||
+                    !TryMatchRepresentedPrimaryLinkAction(page, annotation, selectedPageNumbers, representedLinks)) {
+                    omittedCount++;
+                }
+            }
+        }
+
+        return omittedCount;
+    }
+
+    private static bool TryMatchRepresentedPrimaryLinkAction(
+        PdfCore.PdfLogicalPage page,
+        PdfCore.PdfAnnotation annotation,
+        ISet<int> selectedPageNumbers,
+        HashSet<int> representedLinks) {
+        if (!string.Equals(annotation.Subtype, "Link", StringComparison.OrdinalIgnoreCase)) {
+            return false;
+        }
+
+        for (int linkIndex = 0; linkIndex < page.Links.Count; linkIndex++) {
+            if (representedLinks.Contains(linkIndex)) {
+                continue;
+            }
+
+            PdfCore.PdfLogicalLinkAnnotation link = page.Links[linkIndex];
+            if (!HasSameRectangle(annotation, link) ||
+                !IsPrimaryLinkActionRepresented(annotation, link, selectedPageNumbers)) {
+                continue;
+            }
+
+            representedLinks.Add(linkIndex);
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool IsPrimaryLinkActionRepresented(
+        PdfCore.PdfAnnotation annotation,
+        PdfCore.PdfLogicalLinkAnnotation link,
+        ISet<int> selectedPageNumbers) {
+        if (!annotation.HasAction) {
+            if (link.DestinationPageNumber.HasValue) {
+                return selectedPageNumbers.Contains(link.DestinationPageNumber.Value);
+            }
+
+            return !string.IsNullOrWhiteSpace(link.DestinationName);
+        }
+
+        if (string.Equals(annotation.ActionType, "URI", StringComparison.OrdinalIgnoreCase)) {
+            return link.Uri is not null && IsSafeLinkUri(link.Uri);
+        }
+
+        if (string.Equals(annotation.ActionType, "GoTo", StringComparison.OrdinalIgnoreCase)) {
+            if (link.DestinationPageNumber.HasValue) {
+                return selectedPageNumbers.Contains(link.DestinationPageNumber.Value);
+            }
+
+            return !string.IsNullOrWhiteSpace(link.DestinationName);
+        }
+
+        return false;
+    }
+
+    private static bool HasSameRectangle(
+        PdfCore.PdfAnnotation annotation,
+        PdfCore.PdfLogicalLinkAnnotation link) {
+        const double tolerance = 0.001D;
+        return Math.Abs(annotation.X1 - link.X1) <= tolerance &&
+            Math.Abs(annotation.Y1 - link.Y1) <= tolerance &&
+            Math.Abs(annotation.X2 - link.X2) <= tolerance &&
+            Math.Abs(annotation.Y2 - link.Y2) <= tolerance;
+    }
+
     private static int CountAnnotationActions(IReadOnlyList<PdfCore.PdfLogicalPage> pages) {
         int count = 0;
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
@@ -253,19 +575,20 @@ public static partial class PdfHtmlConverterExtensions {
     }
 
     private static bool AreAllDocumentPagesSelected(PdfCore.PdfDocumentReadResult document, IReadOnlyList<PdfCore.PdfLogicalPage> pages) {
-        if (document.PageCount == 0 || pages.Count != document.PageCount) {
+        int sourcePageCount = document.SourcePageCount;
+        if (sourcePageCount == 0 || pages.Count != sourcePageCount) {
             return false;
         }
 
         var seen = new HashSet<int>();
         for (int i = 0; i < pages.Count; i++) {
             int pageNumber = pages[i].PageNumber;
-            if (pageNumber < 1 || pageNumber > document.PageCount || !seen.Add(pageNumber)) {
+            if (pageNumber < 1 || pageNumber > sourcePageCount || !seen.Add(pageNumber)) {
                 return false;
             }
         }
 
-        return seen.Count == document.PageCount;
+        return seen.Count == sourcePageCount;
     }
 
     private static bool HasScopedOpenAction(PdfCore.PdfDocumentOpenAction? openAction, IReadOnlyList<PdfCore.PdfLogicalPage> pages) {

@@ -46,36 +46,41 @@ namespace OfficeIMO.Excel {
             ExcelImageExportOptions options,
             List<OfficeImageExportDiagnostic>? diagnostics,
             OfficeRasterCanvas textMeasurer,
-            System.Threading.CancellationToken cancellationToken) {
+            System.Threading.CancellationToken cancellationToken,
+            OfficeSvgUtf8CompositionBudget? budget) {
             int imageIndex = 0;
             foreach (ExcelVisualDrawingLayer layer in snapshot.DrawingLayers) {
                 cancellationToken.ThrowIfCancellationRequested();
-                switch (layer.Kind) {
-                    case ExcelVisualDrawingLayerKind.DrawingObject:
-                        if (layer.DrawingObject != null) {
-                            AppendSvgDrawingObject(builder, layer.DrawingObject, options, diagnostics, cancellationToken);
-                        }
+                int currentImageIndex = imageIndex;
+                AppendSvgFragment(builder, budget, fragment => {
+                    switch (layer.Kind) {
+                        case ExcelVisualDrawingLayerKind.DrawingObject:
+                            if (layer.DrawingObject != null) {
+                                AppendSvgDrawingObject(fragment, layer.DrawingObject, options, diagnostics, cancellationToken);
+                            }
 
-                        break;
-                    case ExcelVisualDrawingLayerKind.Image:
-                        if (layer.Image != null) {
-                            AppendSvgImage(builder, snapshot, layer.Image, options, diagnostics, ref imageIndex);
-                        }
+                            break;
+                        case ExcelVisualDrawingLayerKind.Image:
+                            if (layer.Image != null) {
+                                AppendSvgImage(fragment, snapshot, layer.Image, options, diagnostics, ref currentImageIndex);
+                            }
 
-                        break;
-                    case ExcelVisualDrawingLayerKind.Chart:
-                        if (layer.Chart != null) {
-                            AppendSvgChart(builder, snapshot, layer.Chart, options, diagnostics, cancellationToken);
-                        }
+                            break;
+                        case ExcelVisualDrawingLayerKind.Chart:
+                            if (layer.Chart != null) {
+                                AppendSvgChart(fragment, snapshot, layer.Chart, options, diagnostics, cancellationToken);
+                            }
 
-                        break;
-                    case ExcelVisualDrawingLayerKind.CommentBody:
-                        if (layer.CommentBody != null) {
-                            AppendSvgCommentBody(builder, layer.CommentBody, options, textMeasurer);
-                        }
+                            break;
+                        case ExcelVisualDrawingLayerKind.CommentBody:
+                            if (layer.CommentBody != null) {
+                                AppendSvgCommentBody(fragment, layer.CommentBody, options, textMeasurer);
+                            }
 
-                        break;
-                }
+                            break;
+                    }
+                });
+                imageIndex = currentImageIndex;
             }
         }
     }

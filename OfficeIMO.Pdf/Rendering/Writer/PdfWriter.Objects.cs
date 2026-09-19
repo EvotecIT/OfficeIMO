@@ -167,6 +167,8 @@ internal static partial class PdfWriter {
 
         public string ReadContent(PdfPageContentHandle handle) => _contentStore.Read(handle);
 
+        public byte[] ReadContentBytes(PdfPageContentHandle handle) => _contentStore.ReadBytes(handle);
+
         public void Dispose() => _contentStore.Dispose();
     }
 
@@ -467,6 +469,7 @@ internal static partial class PdfWriter {
     private sealed class PageImage {
         public byte[] Data { get; set; } = System.Array.Empty<byte>();
         public OfficeImageInfo Info { get; set; } = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
+        public PdfImageStream? PreparedStream { get; set; }
         public double X { get; set; }
         public double Y { get; set; }
         public double W { get; set; }

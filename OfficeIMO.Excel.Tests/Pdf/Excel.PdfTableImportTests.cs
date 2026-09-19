@@ -9,6 +9,31 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Tests;
 
 public partial class Excel {
+    [Theory]
+    [InlineData("$9,012.00−", "$", PdfCore.PdfLogicalCurrencyAffixPosition.Prefix, false, 2, -9012, "\"$\"#,##0.00;\"$\"#,##0.00\"−\"")]
+    [InlineData("$−9,123.00", "$", PdfCore.PdfLogicalCurrencyAffixPosition.Prefix, false, 2, -9123, "\"$\"#,##0.00;\"$\"\"−\"#,##0.00")]
+    [InlineData("9,012.500 KWD−", "KWD", PdfCore.PdfLogicalCurrencyAffixPosition.Suffix, true, 3, -9012.5, "#,##0.000 \"KWD\";#,##0.000 \"KWD\"\"−\"")]
+    [InlineData("9,123.500− KWD", "KWD", PdfCore.PdfLogicalCurrencyAffixPosition.Suffix, true, 3, -9123.5, "#,##0.000 \"KWD\";#,##0.000\"−\" \"KWD\"")]
+    public void PdfCurrencyFormatsPreserveEquivalentUnicodeSignPlacement(
+        string source,
+        string currencyToken,
+        PdfCore.PdfLogicalCurrencyAffixPosition affixPosition,
+        bool usesSpacing,
+        int decimalPlaces,
+        double parsedValue,
+        string expected) {
+        string actual = PdfExcelTableConverterExtensions.BuildCurrencyNumberFormat(
+            currencyToken,
+            affixPosition,
+            usesSpacing,
+            decimalPlaces,
+            (decimal)parsedValue,
+            source,
+            CultureInfo.InvariantCulture);
+
+        Assert.Equal(expected, actual);
+    }
+
     [Fact]
     public void PdfTables_SaveTablesAsExcel_PreservesHeaderWhenNarrativePrecedesAutoSizedTable() {
         byte[] pdf = PdfCore.PdfDocument.Create()
@@ -102,6 +127,42 @@ public partial class Excel {
         Assert.Equal("Code", values[0, 0]);
         Assert.Equal("A-100", values[1, 0]);
         Assert.Equal(14d, Convert.ToDouble(values[2, 2], CultureInfo.InvariantCulture));
+    }
+
+    [Fact]
+    public void PdfTables_SaveTablesAsExcel_ReportsDocumentActionsOutsideTableScope() {
+        var pdfOptions = new PdfCore.PdfOptions {
+            PageWidth = 420,
+            PageHeight = 360,
+            MarginLeft = 36,
+            MarginRight = 36,
+            MarginTop = 36,
+            MarginBottom = 36,
+            DefaultFontSize = 10
+        }.SetOpenAction(1, destinationMode: PdfCore.PdfOpenActionDestinationMode.Fit);
+        byte[] tablePdf = PdfCore.PdfDocument.Create(pdfOptions)
+            .Table(new[] {
+                new[] { "Code", "Qty" },
+                new[] { "A-100", "2" },
+                new[] { "B-200", "14" }
+            })
+            .ToBytes();
+        byte[] pdf = PdfCore.PdfDocument.Load(tablePdf)
+            .JavaScript.AddOrReplace("Initialize", "app.alert('open');")
+            .ToBytes();
+
+        using var workbook = new MemoryStream();
+        PdfExcelTableImportReport report = LoadTables(pdf).SaveTablesAsExcel(
+            workbook,
+            new PdfTablesToExcelOptions { AutoFitColumns = false }).RequireSuccess().Report!;
+
+        Assert.Single(report.Entries);
+        Assert.Equal(1, report.SourceScope.CatalogActionCount);
+        Assert.True(report.SourceScope.HasOpenAction);
+        Assert.Equal(2, report.SourceScope.DocumentActionCount);
+        Assert.True(report.HasOmittedPageContent);
+        Assert.True(report.HasLoss);
+        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
     }
 
     [Fact]

@@ -189,6 +189,15 @@ public static partial class OfficeImageReader {
                        TryReadWebp(data, out _, validateDecodedAlpha: true, decodedImage: webpImage, cancellationToken: cancellationToken);
             case OfficeImageFormat.Icon:
                 return HasCompleteIconPayload(data, cancellationToken);
+            case OfficeImageFormat.Jpeg2000:
+            case OfficeImageFormat.Jpeg2000Codestream:
+                cancellationToken.ThrowIfCancellationRequested();
+                return OfficeJpeg2000Header.TryValidateOpaquePayload(
+                    data,
+                    cancellationToken,
+                    out _,
+                    out _,
+                    out _);
             default:
                 cancellationToken.ThrowIfCancellationRequested();
                 return true;
@@ -215,6 +224,7 @@ public static partial class OfficeImageReader {
             TryReadTiff(data, cancellationToken, out info) ||
             TryReadIcon(data, cancellationToken, out info) ||
             TryReadPcx(data, out info) ||
+            TryReadJpeg2000(data, cancellationToken, out info) ||
             TryReadEmf(data, out info) ||
             TryReadWmf(data, out info) ||
             TryReadSvg(data, fileName, validateCompleteDocument: !allowExtensionFallback, out info)) {
@@ -261,8 +271,31 @@ public static partial class OfficeImageReader {
             ".ico" => OfficeImageFormat.Icon,
             ".pcx" => OfficeImageFormat.Pcx,
             ".webp" => OfficeImageFormat.Webp,
+            ".jp2" => OfficeImageFormat.Jpeg2000,
+            ".j2k" or ".j2c" => OfficeImageFormat.Jpeg2000Codestream,
             _ => OfficeImageFormat.Unknown
         };
+    }
+
+    private static bool TryReadJpeg2000(
+        byte[] data,
+        CancellationToken cancellationToken,
+        out OfficeImageInfo info) {
+        info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
+        if (!OfficeJpeg2000Header.TryGetOpaqueDimensions(
+                data,
+                cancellationToken,
+                out _,
+                out int width,
+                out int height)) {
+            return false;
+        }
+
+        OfficeImageFormat format = OfficeJpeg2000Header.IsJp2Container(data)
+            ? OfficeImageFormat.Jpeg2000
+            : OfficeImageFormat.Jpeg2000Codestream;
+        info = new OfficeImageInfo(format, width, height);
+        return true;
     }
 
     /// <summary>
@@ -578,12 +611,9 @@ public static partial class OfficeImageReader {
         string normalized = value!.Trim().ToLowerInvariant();
         int unitStart = normalized.Length;
         while (unitStart > 0 && (char.IsLetter(normalized[unitStart - 1]) || normalized[unitStart - 1] == '%')) unitStart--;
-        string numberText = normalized.Substring(0, unitStart).Trim();
+        string numberText = normalized.Substring(0, unitStart);
         string unit = normalized.Substring(unitStart);
-        if (!double.TryParse(numberText, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
-            || double.IsNaN(number)
-            || double.IsInfinity(number)
-            || number <= 0D) return false;
+        if (!OfficeCssNumber.TryParse(numberText, out double number) || number <= 0D) return false;
 
         double multiplier;
         switch (unit) {

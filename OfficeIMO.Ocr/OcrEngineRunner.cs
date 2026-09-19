@@ -17,16 +17,31 @@ public static class OcrEngineRunner {
     /// <summary>Reads and validates the stable identifier exposed by an OCR engine.</summary>
     public static string GetValidatedEngineId(IOcrEngine engine) {
         if (engine == null) throw new ArgumentNullException(nameof(engine));
-        string? rawEngineId = engine.Id;
-        if (string.IsNullOrEmpty(rawEngineId)) throw new ArgumentException("OCR engine id cannot be empty.", nameof(engine));
-        if (rawEngineId.Length > MaximumEngineIdCharacters) {
+        return ValidateEngineId(engine.Id, nameof(engine));
+    }
+
+    internal static string ValidateEngineId(string? rawEngineId, string parameterName) {
+        if (string.IsNullOrEmpty(rawEngineId)) throw new ArgumentException("OCR engine id cannot be empty.", parameterName);
+        string raw = rawEngineId!;
+        if (raw.Length > MaximumEngineIdCharacters) {
             throw new ArgumentException(
                 "OCR engine id cannot exceed " + MaximumEngineIdCharacters + " characters.",
-                nameof(engine));
+                parameterName);
         }
 
-        string engineId = rawEngineId.Trim();
-        if (engineId.Length == 0) throw new ArgumentException("OCR engine id cannot be empty.", nameof(engine));
+        string engineId = raw.Trim();
+        if (engineId.Length == 0) throw new ArgumentException("OCR engine id cannot be empty.", parameterName);
+        for (int index = 0; index < engineId.Length; index++) {
+            char character = engineId[index];
+            if (char.IsHighSurrogate(character)) {
+                if (index + 1 >= engineId.Length || !char.IsLowSurrogate(engineId[index + 1])) {
+                    throw new ArgumentException("OCR engine id must contain well-formed Unicode text.", parameterName);
+                }
+                index++;
+            } else if (char.IsLowSurrogate(character)) {
+                throw new ArgumentException("OCR engine id must contain well-formed Unicode text.", parameterName);
+            }
+        }
         return engineId;
     }
 

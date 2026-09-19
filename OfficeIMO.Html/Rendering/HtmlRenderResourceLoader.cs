@@ -9,11 +9,11 @@ namespace OfficeIMO.Html;
 public sealed class HtmlResourceSession {
     private int _resolverRequestCount;
     private readonly object _diagnosticSync = new object();
-    private readonly Dictionary<string, HtmlResolvedResource> _resources = new Dictionary<string, HtmlResolvedResource>(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, string> _resolvedSources = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-    private readonly HashSet<string> _attempted = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-    private readonly HashSet<string> _budgetedStylesheets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-    private readonly HashSet<string> _rejectedStylesheets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, HtmlResolvedResource> _resources = new Dictionary<string, HtmlResolvedResource>(HtmlResourceIdentityComparer.Instance);
+    private readonly Dictionary<string, string> _resolvedSources = new Dictionary<string, string>(HtmlResourceIdentityComparer.Instance);
+    private readonly HashSet<string> _attempted = new HashSet<string>(HtmlResourceIdentityComparer.Instance);
+    private readonly HashSet<string> _budgetedStylesheets = new HashSet<string>(HtmlResourceIdentityComparer.Instance);
+    private readonly HashSet<string> _rejectedStylesheets = new HashSet<string>(HtmlResourceIdentityComparer.Instance);
     private readonly List<HtmlResourceSessionEntry> _entries = new List<HtmlResourceSessionEntry>();
     private readonly IReadOnlyList<HtmlResourceSessionEntry> _readOnlyEntries;
 
@@ -519,7 +519,7 @@ internal static class HtmlRenderResourceLoader {
         bool markAttemptedBeforeResolve,
         ResourceResolver resolver) {
         HtmlDiagnosticReport diagnostics = result.Diagnostics;
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var seen = new HashSet<string>(HtmlResourceSeenKeyComparer.Instance);
         var pending = new Queue<PendingResource>();
         foreach (HtmlResourceReference reference in manifest.Resources) {
             pending.Enqueue(new PendingResource(reference, 0));
@@ -553,7 +553,7 @@ internal static class HtmlRenderResourceLoader {
                 HtmlResourceReference reference = pendingResource.Reference;
                 if (!reference.IsAllowed || !IsLoadableKind(reference.Kind) || reference.ResolvedSource.Length == 0) continue;
                 if (reference.ResolvedSource.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) continue;
-                if (!seen.Add(reference.ResolvedSource)) continue;
+                if (!seen.Add(GetSeenKey(reference.Kind, reference.ResolvedSource))) continue;
                 if (!result.TryReserveRequest(reference)) {
                     stop = true;
                     break;
@@ -639,7 +639,7 @@ internal static class HtmlRenderResourceLoader {
                     if (stopAfterResource) stop = true;
                     continue;
                 }
-                seen.Add(resourceUri.AbsoluteUri);
+                seen.Add(GetSeenKey(reference.Kind, resourceUri.AbsoluteUri));
                 if (alreadyAccepted) continue;
                 if (reference.Kind == HtmlResourceKind.Stylesheet
                     && HtmlRenderStylesheetText.TryDecode(resource.EncodedBytes, resource.ContentType, out string css)) {
@@ -768,5 +768,8 @@ internal static class HtmlRenderResourceLoader {
 
     private static bool IsLoadableKind(HtmlResourceKind kind) =>
         kind == HtmlResourceKind.Image || kind == HtmlResourceKind.Stylesheet || kind == HtmlResourceKind.Font;
+
+    private static string GetSeenKey(HtmlResourceKind kind, string resolvedSource) =>
+        string.Concat(((int)kind).ToString(System.Globalization.CultureInfo.InvariantCulture), "\n", resolvedSource);
 
 }

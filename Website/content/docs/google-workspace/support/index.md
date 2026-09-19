@@ -10,16 +10,16 @@ order: 80
 
 | Capability | Export | Import | Current boundary |
 |---|---|---|---|
-| Paragraphs, runs, headings, lists and hyperlinks | Native | Native | Native import projects core styles; Drive DOCX export remains the broad-fidelity fallback. |
-| Tables and merged cells | Native | Partial | Export replays table structure and supported styling; native import projects simple cells. |
-| Headers, footers, footnotes and bookmarks | Native | DriveFallback | Native import reports these segments and directs callers to Drive-export import for exact placement. |
-| Document tabs | Native | Native | Reads are tab-aware; callers select one tab or deliberately replace/flatten every tab. |
+| Paragraphs, runs, headings, lists and hyperlinks | Partial | Partial | Export emits external URI links but does not apply internal-anchor navigation; core text and heading styles are native. Native import projects core text and heading styles, flattens list markers, and reports hyperlinks without reconstructing them. Drive-exported DOCX remains the broad-fidelity import choice. |
+| Tables and merged cells | Partial | Partial | Export creates editable tables and supported cell merges, but nested tables inside cells are not represented by the Word inspection snapshot. Native import projects simple cells. |
+| Headers, footers, footnotes and bookmarks | Partial | DriveFallback | Export creates default header/footer segments and supported footnotes. A paragraph bookmark name becomes a Docs named range, not an exact Word point or range; additional bookmarks in the same paragraph are not preserved. First-page and even-page header/footer variants are skipped, as are footnotes inside header/footer segments. Native import reports segments without reconstructing their placement; use Drive-exported DOCX for broader import fidelity. |
+| Document tabs | Partial | Flattened | Creation writes to the default tab; replacement targets the first or selected tab, or explicitly replaces every tab. Export does not create a Word-authored tab hierarchy. Native import selects one tab or combines multiple tabs with headings in one Word document, without preserving tab structure. |
 | Comments | Flattened | DriveFallback | Word comments become unanchored Drive comments with author context and replies. |
-| Inline images | Partial | DriveFallback | Export supports placeholders or explicit temporary public Drive leases; Drive export preserves imported binaries. |
-| Page and section layout | Partial | DriveFallback | Supported page size, margins, headers and footers are native; columns and Word-only pagination are reported. |
-| All-caps and tab leaders | Flattened | DriveFallback | All-caps is materialized in text and tab leaders are emitted as characters so appearance survives. |
+| Inline images | Partial | DriveFallback | Export uses readable placeholders by default. Opt-in native insertion supports PNG, JPEG, and GIF through a public Drive lease with no automatic expiry; the file can remain public if cleanup fails. Only the first positioned image in each Word run reaches the batch. Drive-exported DOCX preserves imported image binaries. |
+| Page and section layout | Partial | DriveFallback | Supported columns map to native section styles. The first section's paper size becomes document-wide; later sections can retain orientation and margins, but not a different paper size. Word-only pagination and unsupported header/footer variants are reported. |
+| All-caps and tab leaders | Flattened | DriveFallback | All-caps is materialized in text; tab leaders become fill characters rather than editable tab-leader metadata. |
 | Charts, SmartArt, floating content and embedded objects | Unsupported | DriveFallback | Caller fidelity policy controls fail/skip behavior; Drive DOCX import is the broad read fallback. |
-| Equations, watermarks and content controls | Unsupported | DriveFallback | These features are diagnosed explicitly and are not silently inferred. |
+| Equations, watermarks and content controls | Unsupported | DriveFallback | No direct editable export is provided. Preflight counts top-level body equations, but equations in table cells or header/footer stories can be omitted without a notice. The caller's unsupported-feature policy governs features detected by preflight. |
 
 ## Google Sheets
 
@@ -42,11 +42,11 @@ order: 80
 
 | Capability | Export | Import | Current boundary |
 |---|---|---|---|
-| Slides, ordering, size and solid backgrounds | Native | Native | Deterministic page IDs are scoped to one apply and are not synchronization identities. |
-| Text boxes, core run styles and hyperlinks | Native | Native | The first native style run is used as the editable baseline; Drive PPTX import preserves richer run structure. |
-| Tables | Native | Native | Core geometry and cell text are native; advanced borders, merges, and themes use the Drive fallback. |
-| Pictures | Native | Native | Export uses short-lived public Drive leases because Slides fetches images by URL. |
-| Basic shapes | Native | Partial | Common geometry maps natively; exact custom geometry is rendered when complex-slide fallback is enabled. |
+| Slides, ordering, size and solid backgrounds | Partial | Native | Export scales and centers source coordinates when the Google page size differs; Slides does not expose page-size updates. Deterministic page IDs are scoped to one apply and are not synchronization identities. |
+| Text boxes, run typography and hyperlinks | Native | Native | Font family, size, color, bold, italic, single underline, strike, small caps, superscript and subscript map natively. All-caps is materialized; Office-only underline and double-strike variants use their closest Google appearance. |
+| Tables | Partial | Partial | Unmerged table geometry and cell text map natively; merged cells trigger whole-slide fallback by default, while advanced borders and themes are not fully projected. Drive-exported PPTX remains the broad import fallback. |
+| Pictures | Partial | Partial | Uncropped PNG, JPEG, and GIF pictures export as native image objects through temporary public Drive leases; cleanup is attempted after export and failures are reported. Cropped or unsupported-format pictures render with whole-slide fallback by default, or are skipped under PreferNativeAndReport. Native import skips an image it cannot download and reports a warning; callers can separately choose Drive-exported PPTX import for broader fidelity. |
+| Basic shapes | Partial | Partial | Common geometry maps natively; unsupported custom geometry uses whole-slide fallback by default or is skipped under PreferNativeAndReport. |
 | Speaker notes | Native | Native | Only the speaker-notes BODY placeholder is writable in the Slides API. |
 | Charts and SmartArt | Rasterized | DriveFallback | PowerPoint charts are not equivalent to linked Google Sheets charts; complex slides use renderer-owned PNG fallback. |
 | Video and audio | Rasterized | DriveFallback | Media is rendered; no matching editable source-link contract is currently defined. |

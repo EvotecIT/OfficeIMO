@@ -178,12 +178,13 @@ public sealed partial class PdfDocument {
             OfficeImageFit placementFit = effective.FixedPageSize.HasValue
                 ? effective.Fit
                 : OfficeImageFit.Stretch;
+            PdfCanvasImageResource imageResource = PdfCanvasImageResource.Create(prepared);
 
             document.AddComposedPage(page => page
                 .Size(pageSize)
                 .Margin(0D)
-                .Canvas(canvas => canvas.Image(
-                    prepared.Data,
+                .Canvas(canvas => canvas.ImageShared(
+                    imageResource,
                     effective.Margin,
                     effective.Margin,
                     frameWidth,

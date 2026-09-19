@@ -91,7 +91,7 @@ public sealed class PdfReverseConversionScorecardTests {
         Assert.All(scannedResult.Document.TextBlocks, block => Assert.Equal(PdfCore.PdfLogicalContentSourceKind.Ocr, block.SourceKind));
         using (OfficeIMO.Word.WordDocument word = scannedResult.Document.ToWordDocument()) {
             using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(word.ToBytes()), false);
-            Assert.Contains("Scanned invoice", package.MainDocumentPart!.Document.InnerText, StringComparison.Ordinal);
+            Assert.Contains("Scanned invoice", package.MainDocumentPart!.Document!.InnerText, StringComparison.Ordinal);
         }
 
         byte[] mixed = PdfCore.PdfDocument.Create()
@@ -125,6 +125,29 @@ public sealed class PdfReverseConversionScorecardTests {
         Assert.Contains("<!doctype html", recovered.ToHtml(), StringComparison.OrdinalIgnoreCase);
         byte[] recoveredPng = PdfCore.PdfPageImageRenderer.RenderPageAsPng(malformed);
         AssertPng(recoveredPng);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task OcrTextUsesBlockFontSizeAndPageUserUnitWhenRunsHaveNoSourceSpan() {
+        byte[] scanned = WithUserUnit(
+            PdfCore.PdfDocument.Create()
+                .Image(PdfPngTestImages.CreateRgbPng(230, 230, 230), 220, 90, alternativeText: "Scaled OCR source")
+                .ToBytes(),
+            2D);
+        var provider = new ScorecardOcrProvider(request => Result(new[] {
+            OcrAt(request, "Scaled OCR", 36, 120, 72, 14)
+        }));
+
+        PdfOcrMergeResult result = await PdfCore.PdfDocument.Load(scanned).ReadWithOcrAsync(provider);
+        PdfCore.PdfLogicalTextBlock block = Assert.Single(result.Document.TextBlocks);
+        Assert.True(block.FontSize > 0D);
+        Assert.All(block.Runs, static run => Assert.Null(run.SourceSpan));
+
+        using OfficeIMO.Word.WordDocument word = result.Document.ToWordDocument();
+        OfficeIMO.Word.WordParagraph paragraph = Assert.Single(word.Paragraphs, candidate =>
+            candidate.Text.Contains("Scaled OCR", StringComparison.Ordinal));
+        Assert.True(paragraph.FontSizePoints.HasValue);
+        Assert.Equal(block.FontSize * 2D, paragraph.FontSizePoints.Value, 6);
     }
 
     private static void ExecuteAndReopen(
@@ -179,9 +202,9 @@ public sealed class PdfReverseConversionScorecardTests {
                     result.Value.Save(stream);
                     using PresentationDocument package = PresentationDocument.Open(new MemoryStream(stream.ToArray()), false);
                     Assert.Equal(logical.Pages.Count, package.PresentationPart!.SlideParts.Count());
-                    string presentationText = string.Join(" ", package.PresentationPart.SlideParts.SelectMany(static slide => slide.Slide.Descendants<A.Text>()).Select(static text => text.Text));
+                    string presentationText = string.Join(" ", package.PresentationPart.SlideParts.SelectMany(static slide => slide.Slide!.Descendants<A.Text>()).Select(static text => text.Text));
                     AssertTokenRecall(sourceTokens, presentationText, routeConfiguration.GetProperty("minimumTokenRecall").GetDouble(), route);
-                    if (expectedTables) Assert.NotEmpty(package.PresentationPart.SlideParts.SelectMany(static slide => slide.Slide.Descendants<A.Table>()));
+                    if (expectedTables) Assert.NotEmpty(package.PresentationPart.SlideParts.SelectMany(static slide => slide.Slide!.Descendants<A.Table>()));
                 }
                 return;
             case "pdf-to-odt": {
@@ -258,7 +281,7 @@ public sealed class PdfReverseConversionScorecardTests {
             .Select(static item => item.InnerText)
             .ToArray() ?? Array.Empty<string>();
         var values = new List<string>();
-        foreach (S.Cell cell in package.WorkbookPart!.WorksheetParts.SelectMany(static worksheet => worksheet.Worksheet.Descendants<S.Cell>())) {
+        foreach (S.Cell cell in package.WorkbookPart!.WorksheetParts.SelectMany(static worksheet => worksheet.Worksheet!.Descendants<S.Cell>())) {
             if (cell.DataType?.Value == S.CellValues.SharedString &&
                 int.TryParse(cell.CellValue?.Text, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out int sharedIndex) &&
                 sharedIndex >= 0 && sharedIndex < sharedStrings.Length) {
@@ -302,6 +325,15 @@ public sealed class PdfReverseConversionScorecardTests {
 
     private static OcrResult Result(IEnumerable<OcrTextSpan> spans) => new OcrResult { Spans = spans.ToArray() };
 
+    private static byte[] WithUserUnit(byte[] source, double userUnit) =>
+        PdfCore.PdfDocumentObjectGraphRewriter.Rewrite(source, null, null, (objects, security) => {
+            PdfCore.PdfIndirectObject page = Assert.Single(objects.Values, static item =>
+                item.Value is PdfCore.PdfDictionary dictionary &&
+                string.Equals(dictionary.Get<PdfCore.PdfName>("Type")?.Name, "Page", StringComparison.Ordinal));
+            Assert.IsType<PdfCore.PdfDictionary>(page.Value).Items["UserUnit"] = new PdfCore.PdfNumber(userUnit);
+            return security.InfoObjectNumber;
+        });
+
     private sealed class ScorecardOcrProvider : IOcrEngine {
         private readonly Func<OcrRequest, OcrResult> _response;
         internal ScorecardOcrProvider(Func<OcrRequest, OcrResult> response) { _response = response; }
@@ -321,7 +353,7 @@ public sealed class PdfReverseConversionScorecardTests {
 
     private static string FindRepositoryRoot() {
         string? current = AppContext.BaseDirectory;
-        while (!string.IsNullOrWhiteSpace(current)) {
+        while (current is not null && !string.IsNullOrWhiteSpace(current)) {
             if (File.Exists(Path.Combine(current, "OfficeIMO.sln"))) return current;
             current = Directory.GetParent(current)?.FullName;
         }

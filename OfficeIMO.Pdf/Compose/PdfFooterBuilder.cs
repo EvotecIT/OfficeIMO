@@ -31,15 +31,37 @@ public sealed class PdfFooterBuilder {
         _opts.SetFooterZonesForCompose(left, center, right);
         return this;
     }
+    /// <summary>Renders independently styled left, center, and right footer zones on one line.</summary>
+    public PdfFooterBuilder StyledZones(System.Action<FooterTextBuilder>? left, System.Action<FooterTextBuilder>? center, System.Action<FooterTextBuilder>? right) {
+        _opts.SetFooterZoneSegmentsForCompose(BuildZone(left), BuildZone(center), BuildZone(right));
+        return this;
+    }
     /// <summary>Renders page-1-only left, center, and right footer zones. Supports {page} and {pages}.</summary>
     public PdfFooterBuilder FirstPageZones(string? left, string? center, string? right) {
         _opts.SetFirstPageFooterZonesForCompose(left, center, right);
+        return this;
+    }
+    /// <summary>Renders independently styled page-1-only footer zones.</summary>
+    public PdfFooterBuilder FirstPageStyledZones(System.Action<FooterTextBuilder>? left, System.Action<FooterTextBuilder>? center, System.Action<FooterTextBuilder>? right) {
+        _opts.SetFirstPageFooterZoneSegmentsForCompose(BuildZone(left), BuildZone(center), BuildZone(right));
         return this;
     }
     /// <summary>Renders even-page-only left, center, and right footer zones. Supports {page} and {pages}.</summary>
     public PdfFooterBuilder EvenPagesZones(string? left, string? center, string? right) {
         _opts.SetEvenPageFooterZonesForCompose(left, center, right);
         return this;
+    }
+    /// <summary>Renders independently styled even-page-only footer zones.</summary>
+    public PdfFooterBuilder EvenPagesStyledZones(System.Action<FooterTextBuilder>? left, System.Action<FooterTextBuilder>? center, System.Action<FooterTextBuilder>? right) {
+        _opts.SetEvenPageFooterZoneSegmentsForCompose(BuildZone(left), BuildZone(center), BuildZone(right));
+        return this;
+    }
+
+    private static System.Collections.Generic.List<FooterSegment>? BuildZone(System.Action<FooterTextBuilder>? build) {
+        if (build == null) return null;
+        var segments = new System.Collections.Generic.List<FooterSegment>();
+        build(new FooterTextBuilder(segments));
+        return segments;
     }
 
     /// <summary>Adds an image to the running footer.</summary>

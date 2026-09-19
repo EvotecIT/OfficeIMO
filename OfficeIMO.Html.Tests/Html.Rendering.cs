@@ -180,6 +180,71 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public async Task HtmlRenderAsync_ResolvesImportsFromInlineStyleBlocks() {
+        var options = new HtmlRenderOptions {
+            BaseUri = new Uri("https://assets.example.test/book/index.html"),
+            ResourceResolver = (request, cancellationToken) => Task.FromResult<HtmlResolvedResource?>(
+                new HtmlResolvedResource(
+                    System.Text.Encoding.UTF8.GetBytes(".imported { color:#123456; }"),
+                    "text/css"))
+        };
+
+        HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(
+            "<style>@import 'theme.css';</style><p class='imported'>Inline import</p>",
+            options);
+
+        HtmlRenderText imported = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text =>
+            text.Text.Contains("Inline import", StringComparison.Ordinal));
+        Assert.Equal(OfficeColor.FromRgb(0x12, 0x34, 0x56), imported.Color);
+    }
+
+    [Fact]
+    public async Task HtmlRenderAsync_DoesNotLoadOrApplyDisabledStylesheets() {
+        int calls = 0;
+        var options = new HtmlRenderOptions {
+            ResourceResolver = (request, cancellationToken) => {
+                calls++;
+                return Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(
+                    System.Text.Encoding.UTF8.GetBytes(".disabled { color:red; }"),
+                    "text/css"));
+            }
+        };
+
+        HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(
+            "<link rel='stylesheet' href='https://assets.example.test/disabled.css' disabled>" +
+            "<p class='disabled'>Disabled sheet</p>",
+            options);
+
+        HtmlRenderText text = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), item =>
+            item.Text.Contains("Disabled sheet", StringComparison.Ordinal));
+        Assert.Equal(0, calls);
+        Assert.NotEqual(OfficeColor.FromRgb(255, 0, 0), text.Color);
+    }
+
+    [Fact]
+    public async Task HtmlRenderAsync_DoesNotLoadOrApplyUnselectedAlternateStylesheets() {
+        int calls = 0;
+        var options = new HtmlRenderOptions {
+            ResourceResolver = (request, cancellationToken) => {
+                calls++;
+                return Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(
+                    System.Text.Encoding.UTF8.GetBytes(".alternate { color:red; }"),
+                    "text/css"));
+            }
+        };
+
+        HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(
+            "<link rel='alternate stylesheet' title='dark' href='https://assets.example.test/dark.css'>" +
+            "<p class='alternate'>Alternate sheet</p>",
+            options);
+
+        HtmlRenderText text = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), item =>
+            item.Text.Contains("Alternate sheet", StringComparison.Ordinal));
+        Assert.Equal(0, calls);
+        Assert.NotEqual(OfficeColor.FromRgb(255, 0, 0), text.Color);
+    }
+
+    [Fact]
     public async Task HtmlRenderAsync_EnforcesSharedCssByteLimitsAcrossResolvedStylesheets() {
         const string firstCss = ".first { color:red; }";
         const string secondCss = ".second { color:blue; }";

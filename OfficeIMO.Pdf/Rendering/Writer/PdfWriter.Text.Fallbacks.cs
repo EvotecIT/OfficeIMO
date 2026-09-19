@@ -13,65 +13,90 @@ internal static partial class PdfWriter {
         Justification = "Callers expose read-only run collections and should not depend on the mutable implementation.")]
     private static System.Collections.Generic.IReadOnlyList<PdfTextRun> NormalizeFallbackRuns(System.Collections.Generic.IEnumerable<PdfTextRun> runs, PdfStandardFont baseFont, PdfOptions? options) {
         Guard.NotNull(runs, nameof(runs));
-        var normalized = new System.Collections.Generic.List<PdfTextRun>();
-        foreach (PdfTextRun run in runs) {
-            if (run.InlineElement != null) {
-                normalized.Add(run);
+        // The overwhelmingly common case is that every run renders with the selected font and no run
+        // needs fallback expansion, so the result equals the input. Allocate the copy only when a run
+        // actually expands; otherwise return the source list untouched. NOTE: in the no-expansion case
+        // this returns the caller's own IReadOnlyList instance, so the result is read-only by contract
+        // (all callers only enumerate it) and must not be mutated. This avoids a per-call
+        // List<PdfTextRun>+array on every table cell and paragraph measurement/wrap.
+        System.Collections.Generic.IReadOnlyList<PdfTextRun> source =
+            runs as System.Collections.Generic.IReadOnlyList<PdfTextRun>
+            ?? new System.Collections.Generic.List<PdfTextRun>(runs);
+        System.Collections.Generic.List<PdfTextRun>? normalized = null;
+        for (int index = 0; index < source.Count; index++) {
+            PdfTextRun run = source[index];
+            System.Collections.Generic.IReadOnlyList<PdfTextRun>? expansion = ResolveRunFallbackExpansion(run, baseFont, options);
+            if (expansion == null) {
+                normalized?.Add(run);
                 continue;
             }
 
-            bool preferSelectedCallerFamily =
-                options?.ShouldPreferSelectedCallerFamily(run.FontFamily) == true;
-            if (preferSelectedCallerFamily
-                && CanWriteRunWithSelectedFont(run, baseFont, options)) {
-                normalized.Add(run);
-                continue;
+            if (normalized == null) {
+                normalized = new System.Collections.Generic.List<PdfTextRun>(source.Count);
+                for (int prior = 0; prior < index; prior++) {
+                    normalized.Add(source[prior]);
+                }
             }
 
-            if (options?.TryGetEffectiveRenderingProfileFallbacks(
-                    run.FontFamily,
-                    run.Bold,
-                    run.Italic,
-                    out PdfEmbeddedFontFallbackSet? profileFamilyFallbacks) == true
-                && profileFamilyFallbacks != null
-                && ((preferSelectedCallerFamily
-                     && TryPlanFallbackRunsPreservingSelectedFont(
-                        run,
-                        baseFont,
-                        options,
-                        profileFamilyFallbacks,
-                        out System.Collections.Generic.IReadOnlyList<PdfTextRun> profileRuns))
-                    || TryPlanFallbackTextRuns(
-                        profileFamilyFallbacks,
-                        run.Text,
-                        run,
-                        options,
-                        ResolveFontForRun(run, baseFont),
-                        out profileRuns))) {
-                normalized.AddRange(profileRuns);
-                continue;
-            }
-
-            if (CanWriteRunWithSelectedFont(run, baseFont, options)) {
-                normalized.Add(run);
-                continue;
-            }
-
-            PdfEmbeddedFontFallbackSet? fallbackSet =
-                options?.GetEffectiveRenderingProfileDeclaredFallbacks(
-                    run.Bold,
-                    run.Italic)
-                ?? options?.EmbeddedFontFallbacksSnapshot;
-            if (fallbackSet != null
-                && (TryPlanFallbackTextRuns(fallbackSet, run.Text, run, options, ResolveFontForRun(run, baseFont), out System.Collections.Generic.IReadOnlyList<PdfTextRun> plannedRuns)
-                    || TryPlanFallbackRunsPreservingSelectedFont(run, baseFont, options, fallbackSet, out plannedRuns))) {
-                normalized.AddRange(plannedRuns);
-            } else {
-                normalized.Add(run);
-            }
+            normalized.AddRange(expansion);
         }
 
-        return normalized;
+        return normalized ?? source;
+    }
+
+    // Returns null when the run is kept as-is (no fallback needed); otherwise the expanded runs.
+    // Mirrors the original branch order exactly so output is unchanged.
+    private static System.Collections.Generic.IReadOnlyList<PdfTextRun>? ResolveRunFallbackExpansion(PdfTextRun run, PdfStandardFont baseFont, PdfOptions? options) {
+        if (run.InlineElement != null) {
+            return null;
+        }
+
+        bool preferSelectedCallerFamily =
+            options?.ShouldPreferSelectedCallerFamily(run.FontFamily) == true;
+        if (preferSelectedCallerFamily
+            && CanWriteRunWithSelectedFont(run, baseFont, options)) {
+            return null;
+        }
+
+        if (options?.TryGetEffectiveRenderingProfileFallbacks(
+                run.FontFamily,
+                run.Bold,
+                run.Italic,
+                out PdfEmbeddedFontFallbackSet? profileFamilyFallbacks) == true
+            && profileFamilyFallbacks != null
+            && ((preferSelectedCallerFamily
+                 && TryPlanFallbackRunsPreservingSelectedFont(
+                    run,
+                    baseFont,
+                    options,
+                    profileFamilyFallbacks,
+                    out System.Collections.Generic.IReadOnlyList<PdfTextRun> profileRuns))
+                || TryPlanFallbackTextRuns(
+                    profileFamilyFallbacks,
+                    run.Text,
+                    run,
+                    options,
+                    ResolveFontForRun(run, baseFont),
+                    out profileRuns))) {
+            return profileRuns;
+        }
+
+        if (CanWriteRunWithSelectedFont(run, baseFont, options)) {
+            return null;
+        }
+
+        PdfEmbeddedFontFallbackSet? fallbackSet =
+            options?.GetEffectiveRenderingProfileDeclaredFallbacks(
+                run.Bold,
+                run.Italic)
+            ?? options?.EmbeddedFontFallbacksSnapshot;
+        if (fallbackSet != null
+            && (TryPlanFallbackTextRuns(fallbackSet, run.Text, run, options, ResolveFontForRun(run, baseFont), out System.Collections.Generic.IReadOnlyList<PdfTextRun> plannedRuns)
+                || TryPlanFallbackRunsPreservingSelectedFont(run, baseFont, options, fallbackSet, out plannedRuns))) {
+            return plannedRuns;
+        }
+
+        return null;
     }
 
     private static bool TryPlanFallbackRunsPreservingSelectedFont(

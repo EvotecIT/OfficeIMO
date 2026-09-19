@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
@@ -10,6 +13,95 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public class PdfDocumentPngImageTests {
+    [Fact]
+    public void InlineImage_WithRgbaPng_ReusesPreparedStreamDuringSerialization() {
+        int alphaSplitPasses = 0;
+        byte[] source = PdfPngTestImages.CreateRgbaPng(18, 52, 86, 128);
+        PdfWriter.PngRowLoopObserverForTesting = (kind, index) => {
+            if (kind == PngRowLoopKind.AlphaSplit && index == 0) alphaSplitPasses++;
+        };
+
+        try {
+            byte[] pdf = PdfDocument.Create()
+                .Paragraph(paragraph => paragraph.InlineImage(source, 24, 24, "Status"))
+                .ToBytes();
+
+            Assert.Equal(1, alphaSplitPasses);
+            Assert.Equal(2, GetImageStreams(pdf).Count);
+        } finally {
+            PdfWriter.PngRowLoopObserverForTesting = null;
+        }
+    }
+
+    [Fact]
+    public async Task Image_WithSharedRgbaSource_PreparesOnceAcrossConcurrentDocuments() {
+        int alphaSplitPasses = 0;
+        byte[] source = PdfPngTestImages.CreateRgbaPng(18, 52, 86, 128);
+        PdfWriter.PngRowLoopObserverForTesting = (kind, index) => {
+            if (kind == PngRowLoopKind.AlphaSplit && index == 0) {
+                Interlocked.Increment(ref alphaSplitPasses);
+            }
+        };
+
+        try {
+            Task<byte[]>[] writes = Enumerable.Range(0, 8)
+                .Select(_ => Task.Run(() => PdfDocument.Create().Image(source, 24, 24).ToBytes()))
+                .ToArray();
+
+            byte[][] outputs = await Task.WhenAll(writes);
+
+            Assert.Equal(1, Volatile.Read(ref alphaSplitPasses));
+            Assert.All(outputs, output => Assert.Equal(2, GetImageStreams(output).Count));
+        } finally {
+            PdfWriter.PngRowLoopObserverForTesting = null;
+        }
+    }
+
+    [Fact]
+    public void Image_WithRgbaPng_ReusesPreparedImageStreamAcrossWrites() {
+        int alphaSplitPasses = 0;
+        byte[] source = PdfPngTestImages.CreateRgbaPng(18, 52, 86, 128);
+        PdfWriter.PngRowLoopObserverForTesting = (kind, index) => {
+            if (kind == PngRowLoopKind.AlphaSplit && index == 0) alphaSplitPasses++;
+        };
+
+        try {
+            PdfDocument firstDocument = PdfDocument.Create().Image(source, 24, 24);
+            PdfDocument secondDocument = PdfDocument.Create().Image(source, 24, 24);
+
+            byte[] first = firstDocument.ToBytes();
+            byte[] second = secondDocument.ToBytes();
+
+            Assert.Equal(1, alphaSplitPasses);
+            Assert.Equal(2, GetImageStreams(first).Count);
+            Assert.Equal(2, GetImageStreams(second).Count);
+        } finally {
+            PdfWriter.PngRowLoopObserverForTesting = null;
+        }
+    }
+
+    [Fact]
+    public void Image_WithMutatedRgbaSource_InvalidatesPreparedImageCache() {
+        int alphaSplitPasses = 0;
+        byte[] source = PdfPngTestImages.CreateRgbaPng(18, 52, 86, 128);
+        byte[] replacement = PdfPngTestImages.CreateRgbaPng(86, 52, 18, 192);
+        Assert.Equal(source.Length, replacement.Length);
+        PdfWriter.PngRowLoopObserverForTesting = (kind, index) => {
+            if (kind == PngRowLoopKind.AlphaSplit && index == 0) alphaSplitPasses++;
+        };
+
+        try {
+            byte[] first = PdfDocument.Create().Image(source, 24, 24).ToBytes();
+            Buffer.BlockCopy(replacement, 0, source, 0, source.Length);
+            byte[] second = PdfDocument.Create().Image(source, 24, 24).ToBytes();
+
+            Assert.Equal(2, alphaSplitPasses);
+            Assert.NotEqual(first, second);
+        } finally {
+            PdfWriter.PngRowLoopObserverForTesting = null;
+        }
+    }
+
     [Fact]
     public void Image_With16BitRgbPng_Writes8BitRgbImageObject() {
         byte[] bytes = PdfDocument.Create()

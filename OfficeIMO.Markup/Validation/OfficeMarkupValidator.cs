@@ -4,6 +4,8 @@ namespace OfficeIMO.Markup;
 /// Validates that profile-specific AST nodes are only used in compatible authoring profiles.
 /// </summary>
 public static class OfficeMarkupValidator {
+    /// <summary>Reports nodes not allowed by the document profile and blocks missing required fields.</summary>
+    /// <remarks>Validation returns diagnostics and does not mutate the semantic document.</remarks>
     public static IReadOnlyList<OfficeMarkupDiagnostic> Validate(OfficeMarkupDocument document) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));

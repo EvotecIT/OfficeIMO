@@ -25,7 +25,8 @@ namespace OfficeIMO.Word {
             context.Y += spacing.Before;
             if (context.IsTargetPage) {
                 AddParagraphFrame(paragraph, context, textLayout, height, colorScheme);
-                if (listMarker.HasValue) {
+                ReportPictureBulletFallback(listMarker, diagnostics);
+                if (listMarker.HasValue && !string.IsNullOrEmpty(listMarker.Value.Marker)) {
                     WordImageListMarker marker = listMarker.Value;
                     context.Drawing.AddText(
                         marker.Marker,
@@ -138,9 +139,10 @@ namespace OfficeIMO.Word {
                 }
 
                 WordImageListMarker? currentMarker = lineIndex == 0 ? listMarker : null;
-                WordImageTextLayout textLayout = ResolveTextLayout(context, currentMarker, paragraph);
+                WordImageTextLayout textLayout = ResolveTextLayout(context, listMarker, paragraph);
                 double sliceHeight = Math.Max(lineHeight, lineCount * lineHeight);
                 if (context.IsTargetPage) {
+                    ReportPictureBulletFallback(currentMarker, diagnostics);
                     AddTextRunSlice(paragraph, lines, lineIndex, lineCount, font, lineHeight, textLayout, currentMarker, colorScheme, context);
                     renderedOnTargetPage = true;
                 }
@@ -239,8 +241,9 @@ namespace OfficeIMO.Word {
                 }
 
                 WordImageListMarker? currentMarker = lineIndex == 0 ? listMarker : null;
-                WordImageTextLayout textLayout = ResolveTextLayout(context, currentMarker, paragraph);
+                WordImageTextLayout textLayout = ResolveTextLayout(context, listMarker, paragraph);
                 if (context.IsTargetPage) {
+                    ReportPictureBulletFallback(currentMarker, diagnostics);
                     AddRichTextRunSlice(paragraph, lines, lineIndex, lineCount, lineHeight, sliceHeight, textLayout, currentMarker, colorScheme, context);
                     renderedOnTargetPage = true;
                 }
@@ -311,7 +314,7 @@ namespace OfficeIMO.Word {
             WordImageFlowContext context) {
             double height = Math.Max(lineHeight, lineCount * lineHeight);
             AddParagraphFrame(paragraph, context, textLayout, height, colorScheme);
-            if (listMarker.HasValue) {
+            if (listMarker.HasValue && !string.IsNullOrEmpty(listMarker.Value.Marker)) {
                 WordImageListMarker marker = listMarker.Value;
                 context.Drawing.AddText(
                     marker.Marker,
@@ -326,20 +329,45 @@ namespace OfficeIMO.Word {
                     wrapText: false);
             }
 
-            string text = string.Join(Environment.NewLine, CopyLineRange(lines, lineIndex, lineCount));
-            context.Drawing.AddText(
-                text,
-                textLayout.TextLeft,
-                context.Y,
-                textLayout.TextWidth,
-                height,
-                font,
-                ResolveParagraphTextColor(paragraph, colorScheme),
-                MapTextAlignment(paragraph.ParagraphAlignment),
-                lineHeight,
-                wrapText: true,
-                padding: textLayout.Padding,
-                paragraphIndent: textLayout.ParagraphIndent);
+            if (textLayout.ParagraphIndent.IsEmpty) {
+                string text = string.Join(Environment.NewLine, CopyLineRange(lines, lineIndex, lineCount));
+                context.Drawing.AddText(
+                    text,
+                    textLayout.TextLeft,
+                    context.Y,
+                    textLayout.TextWidth,
+                    height,
+                    font,
+                    ResolveParagraphTextColor(paragraph, colorScheme),
+                    MapTextAlignment(paragraph.ParagraphAlignment),
+                    lineHeight,
+                    wrapText: true,
+                    padding: textLayout.Padding,
+                    paragraphIndent: OfficeTextParagraphIndent.Empty);
+                return;
+            }
+
+            double lineY = context.Y;
+            int lastIndex = Math.Min(lines.Count, lineIndex + lineCount);
+            for (int i = lineIndex; i < lastIndex; i++) {
+                double lineOffset = i == 0
+                    ? textLayout.ParagraphIndent.FirstLineOffset
+                    : textLayout.ParagraphIndent.ContinuationLineOffset;
+                context.Drawing.AddText(
+                    lines[i],
+                    textLayout.TextLeft + lineOffset,
+                    lineY,
+                    Math.Max(1D, textLayout.TextWidth - lineOffset),
+                    lineHeight,
+                    font,
+                    ResolveParagraphTextColor(paragraph, colorScheme),
+                    MapTextAlignment(paragraph.ParagraphAlignment),
+                    lineHeight,
+                    wrapText: false,
+                    padding: textLayout.Padding,
+                    paragraphIndent: OfficeTextParagraphIndent.Empty);
+                lineY += lineHeight;
+            }
         }
 
         private static List<string> CopyLineRange(IReadOnlyList<string> lines, int lineIndex, int lineCount) {
@@ -364,7 +392,7 @@ namespace OfficeIMO.Word {
             A.ColorScheme? colorScheme,
             WordImageFlowContext context) {
             AddParagraphFrame(paragraph, context, textLayout, height, colorScheme);
-            if (listMarker.HasValue) {
+            if (listMarker.HasValue && !string.IsNullOrEmpty(listMarker.Value.Marker)) {
                 WordImageListMarker marker = listMarker.Value;
                 context.Drawing.AddText(
                     marker.Marker,
@@ -379,17 +407,39 @@ namespace OfficeIMO.Word {
                     wrapText: false);
             }
 
-            context.Drawing.AddRichText(
-                CreateRichTextRunsFromLines(lines, lineIndex, lineCount),
-                textLayout.TextLeft,
-                context.Y,
-                textLayout.TextWidth,
-                height,
-                MapTextAlignment(paragraph.ParagraphAlignment),
-                lineHeight,
-                wrapText: true,
-                padding: textLayout.Padding,
-                paragraphIndent: textLayout.ParagraphIndent);
+            if (textLayout.ParagraphIndent.IsEmpty) {
+                context.Drawing.AddRichText(
+                    CreateRichTextRunsFromLines(lines, lineIndex, lineCount),
+                    textLayout.TextLeft,
+                    context.Y,
+                    textLayout.TextWidth,
+                    height,
+                    MapTextAlignment(paragraph.ParagraphAlignment),
+                    lineHeight,
+                    wrapText: true,
+                    padding: textLayout.Padding,
+                    paragraphIndent: OfficeTextParagraphIndent.Empty);
+                return;
+            }
+
+            double lineY = context.Y;
+            int lastIndex = Math.Min(lines.Count, lineIndex + lineCount);
+            for (int i = lineIndex; i < lastIndex; i++) {
+                OfficeRichTextLine line = lines[i];
+                double resolvedLineHeight = ResolveRichTextSliceLineHeight(line, lineHeight);
+                context.Drawing.AddRichText(
+                    CreateRichTextRunsFromLines(lines, i, 1),
+                    textLayout.TextLeft + line.OffsetX,
+                    lineY,
+                    Math.Max(1D, textLayout.TextWidth - line.OffsetX),
+                    resolvedLineHeight,
+                    MapTextAlignment(paragraph.ParagraphAlignment),
+                    resolvedLineHeight,
+                    wrapText: false,
+                    padding: textLayout.Padding,
+                    paragraphIndent: OfficeTextParagraphIndent.Empty);
+                lineY += resolvedLineHeight;
+            }
         }
 
         private static int CountRichTextLinesForPage(

@@ -152,6 +152,7 @@ namespace OfficeIMO.Visio {
                 ResolveConnectorLabelOverlaps = resolved.ResolveConnectorLabelOverlaps,
                 Supersampling = resolved.Supersampling,
                 MaximumRasterPixels = resolved.MaximumRasterPixels,
+                MaximumTotalEncodedBytes = resolved.MaximumTotalEncodedBytes,
                 RasterOverflowBehavior = resolved.RasterOverflowBehavior,
                 ImageCodec = resolved.ImageCodec
             };

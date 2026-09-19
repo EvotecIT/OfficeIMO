@@ -32,6 +32,7 @@ public sealed partial class PdfLogicalPage {
         IReadOnlyList<PdfLinkAnnotation> linkAnnotations,
         IReadOnlyList<PdfLogicalFormWidget> formWidgets,
         IReadOnlyList<PdfPageAction> pageActions,
+        bool hasOptionalContentUsage,
         PdfUnderstandingPageResult analysis) {
         PageNumber = pageNumber;
         Width = width;
@@ -52,6 +53,7 @@ public sealed partial class PdfLogicalPage {
         LinkAnnotations = linkAnnotations;
         FormWidgets = formWidgets;
         PageActions = pageActions;
+        HasOptionalContentUsage = hasOptionalContentUsage;
         Analysis = analysis;
     }
 
@@ -274,6 +276,9 @@ public sealed partial class PdfLogicalPage {
     /// <summary>True when the source page dictionary has page-level additional actions.</summary>
     public bool HasPageActions => PageActionCount > 0;
 
+    /// <summary>True when the page content, an invoked resource, or a page annotation uses optional-content membership.</summary>
+    public bool HasOptionalContentUsage { get; }
+
     internal static PdfLogicalPage From(
         PdfReadDocument document,
         PdfReadPage page,
@@ -445,6 +450,7 @@ public sealed partial class PdfLogicalPage {
             linkAnnotations.AsReadOnly(),
             formWidgets.AsReadOnly(),
             pageActions.AsReadOnly(),
+            page.HasOptionalContentUsage(cancellationToken),
             pageAnalysis);
     }
 

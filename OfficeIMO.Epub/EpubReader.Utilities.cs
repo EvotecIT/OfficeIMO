@@ -1,6 +1,11 @@
 namespace OfficeIMO.Epub;
 
 internal static partial class EpubReader {
+    private const string OpfNamespaceUri = "http://www.idpf.org/2007/opf";
+    private const string DublinCoreNamespaceUri = "http://purl.org/dc/elements/1.1/";
+    private const string ContainerNamespaceUri = "urn:oasis:names:tc:opendocument:xmlns:container";
+    private const string XmlEncryptionNamespaceUri = "http://www.w3.org/2001/04/xmlenc#";
+
     private static bool IsName(XElement element, string expectedLocalName) {
         return string.Equals(element.Name.LocalName, expectedLocalName, StringComparison.OrdinalIgnoreCase);
     }
@@ -9,6 +14,41 @@ internal static partial class EpubReader {
         var attr = element.Attributes().FirstOrDefault(a => string.Equals(a.Name.LocalName, attributeName, StringComparison.OrdinalIgnoreCase));
         return attr?.Value ?? string.Empty;
     }
+
+    private static bool IsOpfName(XElement element, string expectedLocalName) =>
+        string.Equals(element.Name.NamespaceName, OpfNamespaceUri, StringComparison.Ordinal)
+        && string.Equals(element.Name.LocalName, expectedLocalName, StringComparison.Ordinal);
+
+    private static bool IsDublinCoreName(XElement element, string expectedLocalName) =>
+        string.Equals(element.Name.NamespaceName, DublinCoreNamespaceUri, StringComparison.Ordinal)
+        && string.Equals(element.Name.LocalName, expectedLocalName, StringComparison.Ordinal);
+
+    private static bool IsContainerName(XElement element, string expectedLocalName) =>
+        string.Equals(element.Name.NamespaceName, ContainerNamespaceUri, StringComparison.Ordinal)
+        && string.Equals(element.Name.LocalName, expectedLocalName, StringComparison.Ordinal);
+
+    private static bool IsXmlEncryptionName(XElement element, string expectedLocalName) =>
+        string.Equals(element.Name.NamespaceName, XmlEncryptionNamespaceUri, StringComparison.Ordinal)
+        && string.Equals(element.Name.LocalName, expectedLocalName, StringComparison.Ordinal);
+
+    private static string? TryGetFirstDublinCoreValue(XElement container, string localName) {
+        XElement? element = container.Elements().FirstOrDefault(candidate => IsDublinCoreName(candidate, localName));
+        if (element == null) return null;
+        string normalized = NormalizeWhitespace(element.Value);
+        return normalized.Length == 0 ? null : normalized;
+    }
+
+    private static string GetUnqualifiedAttribute(XElement element, string attributeName) =>
+        element.Attribute(XName.Get(attributeName))?.Value ?? string.Empty;
+
+    private static string GetOpfMetadataAttribute(XElement element, string attributeName) =>
+        element.Attribute(XName.Get(attributeName))?.Value
+        ?? element.Attribute(XName.Get(attributeName, OpfNamespaceUri))?.Value
+        ?? string.Empty;
+
+    private static string GetXmlLanguage(XElement element) =>
+        element.Attribute(XNamespace.Xml + "lang")?.Value
+        ?? GetUnqualifiedAttribute(element, "lang");
 
     private static string? TryGetFirstElementValue(XElement container, string localName) {
         foreach (var element in container.Elements()) {
@@ -132,6 +172,7 @@ internal static partial class EpubReader {
             MaxTotalRawHtmlBytes = source.MaxTotalRawHtmlBytes,
             IncludeRawHtml = source.IncludeRawHtml,
             IncludeResourceData = source.IncludeResourceData,
+            ResourceDataFilter = source.ResourceDataFilter,
             MaxResources = source.MaxResources,
             MaxResourceBytes = source.MaxResourceBytes,
             MaxTotalResourceBytes = source.MaxTotalResourceBytes,

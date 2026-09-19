@@ -84,6 +84,7 @@ public static partial class HtmlImageExportExtensions {
         HtmlRenderRequest request = HtmlRenderRequest.FromLegacy(
             options, MapEncoder(format), HtmlRenderPageSet.All());
         HtmlRenderOptions resolved = HtmlRenderEngine.PrepareOptions(document, request);
+        var encodingBudget = new OfficeImageExportEncodingBudget(resolved.MaximumTotalEncodedBytes);
         HtmlRenderResult? rendered = null;
         await OfficeImageExportBatchProcessor.RunAsyncWithPreflight(
             resolved,
@@ -101,7 +102,8 @@ public static partial class HtmlImageExportExtensions {
                         format,
                         resolved,
                         completed.Document.DiagnosticReport,
-                        operationCancellationToken);
+                        operationCancellationToken,
+                        encodingBudget);
                     await accept(result, operationCancellationToken).ConfigureAwait(false);
                 }
             },

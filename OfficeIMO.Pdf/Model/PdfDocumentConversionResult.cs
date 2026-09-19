@@ -803,7 +803,7 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
 
         AddSignal(signals, documentInfo.PageCount > 0, "page-count");
         AddSignal(signals, HasReadablePageGeometry(documentInfo), "page-geometry");
-        AddSignal(signals, HasDocumentMetadata(documentInfo.Metadata), "metadata", "document-metadata");
+        AddSignal(signals, documentInfo.Metadata.HasContent, "metadata", "document-metadata");
         AddSignal(signals, !string.IsNullOrWhiteSpace(extractedText), "text", "text-blocks", "worksheet-text", "positioned-text", "logical-readback");
         AddSignal(signals, logicalDocument.Headings.Count > 0 || logicalDocument.Outlines.Count > 0 || documentInfo.Outlines.Count > 0, "headings");
         AddSignal(signals, logicalDocument.Paragraphs.Count > 0, "paragraphs");
@@ -840,13 +840,6 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
         }
 
         return documentInfo.Pages.Count > 0;
-    }
-
-    private static bool HasDocumentMetadata(PdfMetadata metadata) {
-        return !string.IsNullOrEmpty(metadata.Title) ||
-            !string.IsNullOrEmpty(metadata.Author) ||
-            !string.IsNullOrEmpty(metadata.Subject) ||
-            !string.IsNullOrEmpty(metadata.Keywords);
     }
 
     private static bool HasCatalogViewMetadata(PdfDocumentInfo documentInfo) {

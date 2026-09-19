@@ -397,7 +397,7 @@ internal static partial class PdfWriter {
             int headerFooterVariantPageNumber = pageNumberInfo.VariantPageNumber;
             int headerFooterPageNumber = pageNumberInfo.PageNumber;
             int headerFooterTotalPages = pageNumberInfo.TotalPages;
-            string pageLayoutContent = layout.ReadContent(page.Content);
+            byte[] pageContentBytes = layout.ReadContentBytes(page.Content);
             var pageFontResources = new Dictionary<PdfStandardFont, string>();
             var pageNamedFontResources = new Dictionary<PdfNamedFontFace, string>();
             string EnsurePageFontResource(PdfStandardFont font, string preferredAlias) {
@@ -418,12 +418,12 @@ internal static partial class PdfWriter {
             }
             bool LayoutUsesFontResource(string resourceName) {
                 string qualifiedName = "/" + resourceName;
-                if (UsesPdfResource(pageLayoutContent, qualifiedName)) {
+                if (UsesPdfResource(pageContentBytes, qualifiedName)) {
                     return true;
                 }
 
                 foreach (PageEffectGroup effect in page.EffectGroups) {
-                    if (UsesPdfResource(layout.ReadContent(effect.Content), qualifiedName)) {
+                    if (UsesPdfResource(layout.ReadContentBytes(effect.Content), qualifiedName)) {
                         return true;
                     }
                 }
@@ -655,58 +655,92 @@ internal static partial class PdfWriter {
             if (markInfo) AssignStructParentIndex(page, ref nextStructParentIndex);
 
             string pageBackgroundContent = BuildPageBackground(page, pageOpts, pageBackgroundShapeContent, textWatermark, watermarkFontAlias, pageFontResources, textWatermarkGraphicsStateName, pageBorder, pageBorderGraphicsStateName, markInfo);
-            string contentStr = pageBackgroundContent + WrapArtifactContent(headerFooterShapeContent, markInfo);
-            if (pageOpts.HasHeaderTextContentForPage(headerFooterVariantPageNumber)) {
-                string headerContent = BuildHeader(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, totalPages, pageOpts.HeaderFont, headerFontAlias!, pageFontResources, pageNamedFontResources);
-                contentStr += WrapArtifactContent(headerContent, markInfo);
-            }
-            string pageContent = ReplaceInlineImageDrawTokens(pageLayoutContent, page.Images);
-            contentStr += ReplaceInlineEffectGroupTokens(pageContent, page.EffectGroups, page.EffectGroups.Count);
-            var foregroundImages = new StringBuilder();
-            if (page.Images.Count > 0) {
-                var sbImgs = new StringBuilder();
-                // OrderBy is stable: equal foreground layers retain document traversal order.
-                foreach (var img in page.Images.OrderBy(static image => image.ForegroundZOrder)) {
-                    if (img.IsBackgroundDecoration || !string.IsNullOrEmpty(img.InlineDrawToken)) {
-                        continue;
-                    }
-
-                    StringBuilder target = img.IsForeground ? foregroundImages : sbImgs;
-                    AppendPageImageDraw(target, img);
-                    if (img.DebugBox) {
-                        DrawRowRect(target, new PdfColor(1D, 0D, 1D), 0.6D, img.X, img.Y, img.W, img.H, markInfo);
-                    }
-                }
-
-                contentStr += sbImgs.ToString();
-            }
-            if (pageOpts.HasFooterTextContentForPage(headerFooterVariantPageNumber)) {
-                string footer = BuildFooter(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, totalPages, pageOpts.FooterFont, footerFontAlias!, pageFontResources, pageNamedFontResources);
-                contentStr += WrapArtifactContent(footer, markInfo);
-            }
-            contentStr += foregroundImages.ToString();
             PdfPrintColorTransform? pageColorTransform = pageOpts.ConvertVectorColorsToPdfXPrintCondition
                 ? GetPrintColorTransform(pageOpts)
                 : null;
             bool flattenVisualAnnotations = opts.FlattenVisualAnnotations;
-            if (flattenVisualAnnotations) {
-                contentStr += BuildFlattenedVisualAnnotationContent(
-                    page,
-                    pageOpts,
-                    objects,
-                    xobjects,
-                    EnsureFont,
-                    EnsureFormHelveticaFont,
-                    markInfo,
-                    pageColorTransform,
-                    cancellationToken);
+
+            byte[] contentBytes;
+            List<(string Name, int Id)> usedFontResources;
+            List<(string Name, int Id)> usedXObjectResources;
+            List<(string Name, int Id)> usedGraphicsStateResources;
+            List<(string Name, int Id)> usedShadingResources;
+
+            // When a page has no background, header/footer, images, effects, flattened annotations or
+            // colour transform, the assembled content stream is exactly the content already produced by
+            // layout. If that content is pure ASCII (matching the ASCII.GetBytes used below), the stored
+            // bytes are byte-identical to the assembled bytes, so skip the bytes -> string decode, the
+            // string assembly and the string -> bytes re-encode entirely.
+            if (page.Images.Count == 0 &&
+                page.EffectGroups.Count == 0 &&
+                !flattenVisualAnnotations &&
+                pageColorTransform == null &&
+                pageBackgroundContent.Length == 0 &&
+                headerFooterShapeContent.Length == 0 &&
+                !pageOpts.HasHeaderTextContentForPage(headerFooterVariantPageNumber) &&
+                !pageOpts.HasFooterTextContentForPage(headerFooterVariantPageNumber) &&
+                IsAsciiContent(pageContentBytes)) {
+                contentBytes = pageContentBytes;
+                usedFontResources = FilterPdfResources(pageContentBytes, fontResources);
+                usedXObjectResources = FilterPdfResources(pageContentBytes, xobjects);
+                usedGraphicsStateResources = FilterPdfResources(pageContentBytes, graphicsStates);
+                usedShadingResources = FilterPdfResources(pageContentBytes, shadings);
+            } else {
+                string pageLayoutContent = layout.ReadContent(page.Content);
+                string contentStr = pageBackgroundContent + WrapArtifactContent(headerFooterShapeContent, markInfo);
+                if (pageOpts.HasHeaderTextContentForPage(headerFooterVariantPageNumber)) {
+                    string headerContent = BuildHeader(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, totalPages, pageOpts.HeaderFont, headerFontAlias!, pageFontResources, pageNamedFontResources);
+                    contentStr += WrapArtifactContent(headerContent, markInfo);
+                }
+                string pageContent = ReplaceInlineImageDrawTokens(pageLayoutContent, page.Images);
+                contentStr += ReplaceInlineEffectGroupTokens(pageContent, page.EffectGroups, page.EffectGroups.Count);
+                var foregroundImages = new StringBuilder();
+                if (page.Images.Count > 0) {
+                    var sbImgs = new StringBuilder();
+                    // OrderBy is stable: equal foreground layers retain document traversal order.
+                    foreach (var img in page.Images.OrderBy(static image => image.ForegroundZOrder)) {
+                        if (img.IsBackgroundDecoration || !string.IsNullOrEmpty(img.InlineDrawToken)) {
+                            continue;
+                        }
+
+                        StringBuilder target = img.IsForeground ? foregroundImages : sbImgs;
+                        AppendPageImageDraw(target, img);
+                        if (img.DebugBox) {
+                            DrawRowRect(target, new PdfColor(1D, 0D, 1D), 0.6D, img.X, img.Y, img.W, img.H, markInfo);
+                        }
+                    }
+
+                    contentStr += sbImgs.ToString();
+                }
+                if (pageOpts.HasFooterTextContentForPage(headerFooterVariantPageNumber)) {
+                    string footer = BuildFooter(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, totalPages, pageOpts.FooterFont, footerFontAlias!, pageFontResources, pageNamedFontResources);
+                    contentStr += WrapArtifactContent(footer, markInfo);
+                }
+                contentStr += foregroundImages.ToString();
+                if (flattenVisualAnnotations) {
+                    contentStr += BuildFlattenedVisualAnnotationContent(
+                        page,
+                        pageOpts,
+                        objects,
+                        xobjects,
+                        EnsureFont,
+                        EnsureFormHelveticaFont,
+                        markInfo,
+                        pageColorTransform,
+                        cancellationToken);
+                }
+
+                if (pageColorTransform != null) {
+                    contentStr = pageColorTransform.NormalizeGeneratedContent(contentStr, cancellationToken);
+                }
+
+                contentBytes = Encoding.ASCII.GetBytes(contentStr);
+                usedFontResources = FilterPdfResources(contentStr, fontResources);
+                usedXObjectResources = FilterPdfResources(contentStr, xobjects);
+                usedGraphicsStateResources = FilterPdfResources(contentStr, graphicsStates);
+                usedShadingResources = FilterPdfResources(contentStr, shadings);
             }
 
-            if (pageColorTransform != null) {
-                contentStr = pageColorTransform.NormalizeGeneratedContent(contentStr, cancellationToken);
-            }
-
-            byte[] contentBytes = Encoding.ASCII.GetBytes(contentStr);
             int contentId = opts.CompressContentStreams
                 ? AddFlateStreamObject(objects, contentBytes)
                 : AddStreamObject(objects, contentBytes);
@@ -997,10 +1031,10 @@ internal static partial class PdfWriter {
                     pageOpts.PageWidth,
                     pageOpts.PageHeight,
                     contentId,
-                    FilterPdfResources(contentStr, fontResources),
-                    FilterPdfResources(contentStr, xobjects),
-                    FilterPdfResources(contentStr, graphicsStates),
-                    FilterPdfResources(contentStr, shadings),
+                    usedFontResources,
+                    usedXObjectResources,
+                    usedGraphicsStateResources,
+                    usedShadingResources,
                     pageAnnotIds,
                     page.StructParentIndex,
                     useStructureTabOrder: markInfo,
@@ -1295,6 +1329,17 @@ internal static partial class PdfWriter {
         return used;
     }
 
+    private static List<(string Name, int Id)> FilterPdfResources(
+        byte[] content,
+        List<(string Name, int Id)> resources) {
+        var used = new List<(string Name, int Id)>();
+        if (content.Length == 0 || resources.Count == 0) return used;
+        for (int index = 0; index < resources.Count; index++) {
+            if (UsesPdfResource(content, resources[index].Name)) used.Add(resources[index]);
+        }
+        return used;
+    }
+
     private static bool UsesPdfResource(string content, string name) {
         int searchIndex = 0;
         while (searchIndex < content.Length) {
@@ -1304,6 +1349,42 @@ internal static partial class PdfWriter {
             if (next >= content.Length || char.IsWhiteSpace(content[next])) return true;
             searchIndex = next;
         }
+        return false;
+    }
+
+    // True when every byte is ASCII (< 0x80). Only then does the stored content (Latin1-encoded) round-trip
+    // to the same bytes as Encoding.ASCII.GetBytes(decoded content), which the plain-page fast path relies on.
+    private static bool IsAsciiContent(byte[] content) {
+        for (int i = 0; i < content.Length; i++) {
+            if (content[i] >= 0x80) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    // Byte-scan equivalent of UsesPdfResource. Generated content streams and PDF resource names are ASCII,
+    // so scanning the stored bytes matches the string scan while avoiding a bytes->string decode.
+    private static bool UsesPdfResource(byte[] content, string name) {
+        int nameLength = name.Length;
+        int limit = content.Length - nameLength;
+        for (int index = 0; index <= limit; index++) {
+            int j = 0;
+            while (j < nameLength && content[index + j] == (byte)name[j]) {
+                j++;
+            }
+
+            if (j == nameLength) {
+                int next = index + nameLength;
+                if (next >= content.Length || char.IsWhiteSpace((char)content[next])) {
+                    return true;
+                }
+
+                index = next - 1;
+            }
+        }
+
         return false;
     }
 
@@ -1659,6 +1740,7 @@ internal static partial class PdfWriter {
         page.Images.Add(new PageImage {
             Data = image.DataSnapshot,
             Info = image.ImageInfo,
+            PreparedStream = image.PreparedStream,
             X = renderPlan.ImagePlacement.X,
             Y = renderPlan.ImagePlacement.Y,
             W = renderPlan.ImagePlacement.Width,
@@ -1679,6 +1761,7 @@ internal static partial class PdfWriter {
         page.Images.Add(new PageImage {
             Data = watermark.DataSnapshot,
             Info = watermark.ImageInfo,
+            PreparedStream = watermark.PreparedStream,
             X = x,
             Y = y,
             W = watermark.Width,

@@ -96,8 +96,8 @@ public sealed class ReaderWebTests {
 
         Assert.Equal(first.Source.SourceId, second.Source.SourceId);
         Assert.DoesNotContain("secret", first.Source.SourceId, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain(first.Metadata, item => item.Value.Contains("secret", StringComparison.OrdinalIgnoreCase));
-        Assert.DoesNotContain(second.Metadata, item => item.Value.Contains("secret", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(first.Metadata, item => item.Value?.Contains("secret", StringComparison.OrdinalIgnoreCase) == true);
+        Assert.DoesNotContain(second.Metadata, item => item.Value?.Contains("secret", StringComparison.OrdinalIgnoreCase) == true);
     }
 
     [Fact]

@@ -464,7 +464,7 @@ namespace OfficeIMO.Tests {
             result.EnsureNoImportErrors();
             Assert.True(result.HasDocument);
             Paragraph paragraph = Assert.Single(result.Document._wordprocessingDocument!.MainDocumentPart!.Document.Body!.Elements<Paragraph>());
-            Assert.Equal(1, paragraph.Descendants<TabChar>().Count());
+            Assert.Single(paragraph.Descendants<TabChar>());
             Assert.DoesNotContain(paragraph.Descendants<Text>(), text => text.Text.Contains('\t'));
             Assert.Equal(new[] { "Left", "Right" }, paragraph.Descendants<Text>().Select(text => text.Text).ToArray());
         }
@@ -5972,7 +5972,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Paragraph reloadedParagraph = Assert.Single(reloaded._wordprocessingDocument!.MainDocumentPart!.Document.Body!.Elements<Paragraph>());
-                Assert.Equal(1, reloadedParagraph.Descendants<TabChar>().Count());
+                Assert.Single(reloadedParagraph.Descendants<TabChar>());
                 Assert.DoesNotContain(reloadedParagraph.Descendants<Text>(), text => text.Text.Contains('\t'));
                 Assert.Equal(new[] { "Left", "Right" }, reloadedParagraph.Descendants<Text>().Select(text => text.Text).ToArray());
             } finally {

@@ -332,4 +332,184 @@ public sealed class AgentCommandTests {
         Assert.Contains(result.Conversions, static route => route.Id == "docx-markdown");
         Assert.Equal(result.Conversions.Count, result.ConversionReturned);
     }
+
+    [Fact]
+    public void UnfilteredConvertPaginationPreservesRouteDetails() {
+        var service = new OfficeImoAgentService();
+
+        AgentCapabilitiesResult result = service.Capabilities(
+            operation: "convert",
+            maxOutputCharacters: 64_000);
+
+        Assert.NotEmpty(result.Conversions);
+        Assert.Contains(result.Conversions, route => route.Id == "docx-pdf");
+        Assert.Equal(result.Conversions.Count, result.ConversionReturned);
+        Assert.NotEmpty(result.Operations);
+        Assert.NotNull(result.OperationNextCursor);
+        Assert.True(AgentJson.Serialize(result).Length <= 64_000);
+    }
+
+    [Fact]
+    public void ConvertCapabilitiesPagesEveryRouteWithoutDroppingTheTrimmedSuffix() {
+        var service = new OfficeImoAgentService();
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        int conversionCursor = 0;
+        int? total = null;
+
+        do {
+            AgentCapabilitiesResult page = service.Capabilities(
+                operation: "convert",
+                maxOutputCharacters: 4_000,
+                conversionCursor: conversionCursor);
+
+            int conversionTotal = Assert.IsType<int>(page.ConversionTotal);
+            int returnedCursor = Assert.IsType<int>(page.ConversionCursor);
+            total ??= conversionTotal;
+            Assert.Equal(total.Value, conversionTotal);
+            Assert.Equal(conversionCursor, returnedCursor);
+            Assert.Equal(page.Conversions.Count, page.ConversionReturned);
+            Assert.NotEmpty(page.Conversions);
+            Assert.All(page.Conversions, route =>
+                Assert.True(ids.Add(route.Id), "Duplicate conversion route id: " + route.Id));
+            int next = page.ConversionNextCursor ?? conversionTotal;
+            Assert.True(next > conversionCursor);
+            conversionCursor = next;
+        } while (conversionCursor < total!.Value);
+
+        Assert.Equal(total, ids.Count);
+        Assert.Equal(
+            OfficeConversionCapabilityCatalog.AgentRoutes.Select(route => route.Id).OrderBy(id => id),
+            ids.OrderBy(id => id));
+    }
+
+    [Theory]
+    [InlineData(".docm", "docx-pdf")]
+    [InlineData(".xlsm", "xlsx-pdf")]
+    [InlineData(".pptm", "pptx-pdf")]
+    public void ConvertCapabilitiesExposeModernOfficeFamilyVariants(string extension, string routeId) {
+        var service = new OfficeImoAgentService();
+
+        AgentCapabilitiesResult result = service.Capabilities(
+            extension,
+            operation: "convert",
+            maxOutputCharacters: 12_000);
+
+        Assert.Contains(result.Conversions, route => route.Id == routeId);
+        Assert.Contains(result.Operations, row => row.CapabilityId == routeId);
+    }
+
+    [Theory]
+    [InlineData(".eml", "email-eml-msg")]
+    [InlineData(".bib", "bibliography-bibtex-csl-json")]
+    [InlineData(".pages", "pages-docx")]
+    [InlineData(".numbers", "numbers-xlsx")]
+    [InlineData(".key", "keynote-pptx")]
+    public void ConvertCapabilitiesExposeCodecAndIWorkAdapterRoutes(string extension, string routeId) {
+        var service = new OfficeImoAgentService();
+
+        AgentCapabilitiesResult result = service.Capabilities(
+            extension,
+            operation: "convert",
+            maxOutputCharacters: 12_000);
+
+        Assert.Contains(result.Conversions, route => route.Id == routeId);
+        Assert.Contains(result.Operations, row => row.CapabilityId == routeId);
+    }
+
+    [Theory]
+    [InlineData(".docx", "inspect", "OfficeIMO.Word")]
+    [InlineData(".pptx", "export", "OfficeIMO.PowerPoint")]
+    [InlineData(".xls", "preserve", "OfficeIMO.Excel")]
+    public void CapabilitiesExposePackageNeutralOperationOutcomes(
+        string extension,
+        string operation,
+        string expectedPackage) {
+        var service = new OfficeImoAgentService();
+
+        AgentCapabilitiesResult result = service.Capabilities(
+            extension, operation, maxOutputCharacters: 24_000);
+
+        Assert.NotEmpty(result.Operations);
+        Assert.Contains(result.Operations, row =>
+            row.PackageId == expectedPackage &&
+            row.Operation.Equals(operation, StringComparison.OrdinalIgnoreCase) &&
+            row.Extensions.Contains(extension, StringComparer.OrdinalIgnoreCase) &&
+            !string.IsNullOrWhiteSpace(row.CapabilityId) &&
+            !string.IsNullOrWhiteSpace(row.SourceCatalog) &&
+            !string.IsNullOrWhiteSpace(row.Evidence));
+        Assert.Equal(result.Operations.Count, result.OperationReturned);
+        Assert.True(AgentJson.Serialize(result).Length <= 24_000);
+    }
+
+    [Fact]
+    public void CapabilitiesPagesEveryUnfilteredOperationWithoutDroppingTheSuffix() {
+        var service = new OfficeImoAgentService();
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        int cursor = 0;
+        int? total = null;
+
+        do {
+            AgentCapabilitiesResult page = service.Capabilities(
+                operation: "create",
+                maxOutputCharacters: 4_000,
+                cursor: cursor);
+
+            total ??= page.OperationTotal;
+            Assert.Equal(total.Value, page.OperationTotal);
+            Assert.Equal(cursor, page.OperationCursor);
+            Assert.Equal(page.Operations.Count, page.OperationReturned);
+            Assert.NotEmpty(page.Operations);
+            Assert.All(page.Operations, row => Assert.True(ids.Add(row.Id), "Duplicate operation id: " + row.Id));
+            cursor = page.OperationNextCursor ?? page.OperationTotal;
+        } while (cursor < total!.Value);
+
+        Assert.Equal(total, ids.Count);
+    }
+
+    [Fact]
+    public async Task CliCapabilitiesAcceptsTheReturnedOperationCursor() {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        int exitCode = await AgentCommand.RunAsync(
+            ["capabilities", "--operation", "create", "--cursor", "1", "--max-output-characters", "4000"],
+            output,
+            error);
+
+        Assert.Equal(0, exitCode);
+        Assert.Equal(string.Empty, error.ToString());
+        using JsonDocument json = JsonDocument.Parse(output.ToString());
+        Assert.Equal(1, json.RootElement.GetProperty("operationCursor").GetInt32());
+        Assert.True(json.RootElement.GetProperty("operationTotal").GetInt32() > 1);
+        Assert.True(json.RootElement.GetProperty("operationReturned").GetInt32() > 0);
+    }
+
+    [Fact]
+    public async Task CliCapabilitiesAcceptsTheReturnedConversionCursor() {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        int exitCode = await AgentCommand.RunAsync(
+            ["capabilities", "--operation", "convert", "--conversion-cursor", "1", "--max-output-characters", "4000"],
+            output,
+            error);
+
+        Assert.Equal(0, exitCode);
+        Assert.Equal(string.Empty, error.ToString());
+        using JsonDocument json = JsonDocument.Parse(output.ToString());
+        Assert.Equal(1, json.RootElement.GetProperty("conversionCursor").GetInt32());
+        Assert.True(json.RootElement.GetProperty("conversionTotal").GetInt32() > 1);
+        Assert.True(json.RootElement.GetProperty("conversionReturned").GetInt32() > 0);
+    }
+
+    [Fact]
+    public void CapabilitiesRejectsABudgetThatCannotCarryOneOperationInsteadOfRepeatingTheCursor() {
+        var service = new OfficeImoAgentService();
+
+        AgentUsageException exception = Assert.Throws<AgentUsageException>(() =>
+            service.Capabilities(operation: "create", maxOutputCharacters: 512, cursor: 0));
+
+        Assert.Contains("too small for one operation row", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("Use at least", exception.Message, StringComparison.Ordinal);
+    }
 }

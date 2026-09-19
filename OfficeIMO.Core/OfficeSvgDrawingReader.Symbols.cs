@@ -97,30 +97,36 @@ public static partial class OfficeSvgDrawingReader {
         slice = false;
         if (string.IsNullOrWhiteSpace(value)) return true;
 
-        string[] parts = value!.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
-        int index = parts.Length > 0 && parts[0].Equals("defer", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
+        if (ContainsNonSvgCssWhitespace(value!)) return false;
+        string[] parts = value!.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+        int index = parts.Length > 0 && parts[0].Equals("defer", StringComparison.Ordinal) ? 1 : 0;
         if (index >= parts.Length || !TryParseAspectAlignment(parts[index++], out alignment)) return false;
-        if (alignment == SvgAspectAlignment.None) return index == parts.Length;
+        if (alignment == SvgAspectAlignment.None) {
+            if (index == parts.Length) return true;
+            return index + 1 == parts.Length &&
+                (parts[index].Equals("meet", StringComparison.Ordinal) ||
+                 parts[index].Equals("slice", StringComparison.Ordinal));
+        }
         if (index == parts.Length) return true;
         if (index + 1 != parts.Length) return false;
-        if (parts[index].Equals("meet", StringComparison.OrdinalIgnoreCase)) return true;
-        if (!parts[index].Equals("slice", StringComparison.OrdinalIgnoreCase)) return false;
+        if (parts[index].Equals("meet", StringComparison.Ordinal)) return true;
+        if (!parts[index].Equals("slice", StringComparison.Ordinal)) return false;
         slice = true;
         return true;
     }
 
     private static bool TryParseAspectAlignment(string value, out SvgAspectAlignment alignment) {
-        switch (value.ToLowerInvariant()) {
+        switch (value) {
             case "none": alignment = SvgAspectAlignment.None; return true;
-            case "xminymin": alignment = SvgAspectAlignment.XMinYMin; return true;
-            case "xmidymin": alignment = SvgAspectAlignment.XMidYMin; return true;
-            case "xmaxymin": alignment = SvgAspectAlignment.XMaxYMin; return true;
-            case "xminymid": alignment = SvgAspectAlignment.XMinYMid; return true;
-            case "xmidymid": alignment = SvgAspectAlignment.XMidYMid; return true;
-            case "xmaxymid": alignment = SvgAspectAlignment.XMaxYMid; return true;
-            case "xminymax": alignment = SvgAspectAlignment.XMinYMax; return true;
-            case "xmidymax": alignment = SvgAspectAlignment.XMidYMax; return true;
-            case "xmaxymax": alignment = SvgAspectAlignment.XMaxYMax; return true;
+            case "xMinYMin": alignment = SvgAspectAlignment.XMinYMin; return true;
+            case "xMidYMin": alignment = SvgAspectAlignment.XMidYMin; return true;
+            case "xMaxYMin": alignment = SvgAspectAlignment.XMaxYMin; return true;
+            case "xMinYMid": alignment = SvgAspectAlignment.XMinYMid; return true;
+            case "xMidYMid": alignment = SvgAspectAlignment.XMidYMid; return true;
+            case "xMaxYMid": alignment = SvgAspectAlignment.XMaxYMid; return true;
+            case "xMinYMax": alignment = SvgAspectAlignment.XMinYMax; return true;
+            case "xMidYMax": alignment = SvgAspectAlignment.XMidYMax; return true;
+            case "xMaxYMax": alignment = SvgAspectAlignment.XMaxYMax; return true;
             default:
                 alignment = default;
                 return false;

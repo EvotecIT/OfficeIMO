@@ -155,9 +155,9 @@ public partial class WordRtfConverterTests {
 
         Numbering numbering = word._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!;
         NumberingInstance instance = Assert.Single(numbering.Elements<NumberingInstance>());
-        Assert.Equal(7, (int?)instance.NumberID);
+        Assert.Equal(7, instance.NumberID?.Value);
         AbstractNum definition = Assert.Single(numbering.Elements<AbstractNum>());
-        Assert.Contains(definition.Elements<Level>(), level => (int?)level.LevelIndex == 1 && level.NumberingFormat?.Val?.Value == NumberFormatValues.Bullet);
+        Assert.Contains(definition.Elements<Level>(), level => level.LevelIndex?.Value == 1 && level.NumberingFormat?.Val?.Value == NumberFormatValues.Bullet);
         Assert.Equal(7, Assert.Single(word.Paragraphs)._listNumberId);
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "RtfWordListDefinitionsMapped" && diagnostic.Count == 2);
         result.RequireNoLoss();

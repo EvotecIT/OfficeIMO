@@ -47,7 +47,7 @@ namespace OfficeIMO.Word.Pdf {
             return null;
         }
 
-        private static void ConfigureNativeHeaderFooter(PdfCore.PdfPageBuilder page, WordSection section, WordToPdfOptions? options, double headerMarginExpansion, double footerMarginExpansion, NativeFontMap nativeFontMap) {
+        private static void ConfigureNativeHeaderFooter(PdfCore.PdfPageBuilder page, WordSection section, WordToPdfOptions? options, double headerMarginExpansion, double footerMarginExpansion, NativeFontMap nativeFontMap, IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers) {
             RecordNativeHeaderFooterDiagnostics(section.Header?.Default, options, "default header");
             RecordNativeHeaderFooterDiagnostics(section.Header?.First, options, "first header");
             RecordNativeHeaderFooterDiagnostics(section.Header?.Even, options, "even header");
@@ -56,12 +56,12 @@ namespace OfficeIMO.Word.Pdf {
             RecordNativeHeaderFooterDiagnostics(section.Footer?.Even, options, "even footer");
             ApplyNativeSectionWatermark(page, section, options);
 
-            NativeHeaderFooterText? defaultHeader = GetNativeHeaderFooterText(section.Header?.Default);
-            NativeHeaderFooterText? firstHeader = section.DifferentFirstPage ? GetNativeHeaderFooterText(section.Header?.First) : null;
-            NativeHeaderFooterText? evenHeader = section.DifferentOddAndEvenPages ? GetNativeHeaderFooterText(section.Header?.Even) : null;
-            NativeHeaderFooterText? defaultFooter = GetNativeHeaderFooterText(section.Footer?.Default);
-            NativeHeaderFooterText? firstFooter = section.DifferentFirstPage ? GetNativeHeaderFooterText(section.Footer?.First) : null;
-            NativeHeaderFooterText? evenFooter = section.DifferentOddAndEvenPages ? GetNativeHeaderFooterText(section.Footer?.Even) : null;
+            NativeHeaderFooterText? defaultHeader = GetNativeHeaderFooterText(section.Header?.Default, listMarkers, nativeFontMap);
+            NativeHeaderFooterText? firstHeader = section.DifferentFirstPage ? GetNativeHeaderFooterText(section.Header?.First, listMarkers, nativeFontMap) : null;
+            NativeHeaderFooterText? evenHeader = section.DifferentOddAndEvenPages ? GetNativeHeaderFooterText(section.Header?.Even, listMarkers, nativeFontMap) : null;
+            NativeHeaderFooterText? defaultFooter = GetNativeHeaderFooterText(section.Footer?.Default, listMarkers, nativeFontMap);
+            NativeHeaderFooterText? firstFooter = section.DifferentFirstPage ? GetNativeHeaderFooterText(section.Footer?.First, listMarkers, nativeFontMap) : null;
+            NativeHeaderFooterText? evenFooter = section.DifferentOddAndEvenPages ? GetNativeHeaderFooterText(section.Footer?.Even, listMarkers, nativeFontMap) : null;
             IReadOnlyList<NativeHeaderFooterImage> defaultHeaderImages = GetNativeHeaderFooterImages(section.Header?.Default, options, "default header image");
             IReadOnlyList<NativeHeaderFooterImage> firstHeaderImages = section.DifferentFirstPage ? GetNativeHeaderFooterImages(section.Header?.First, options, "first header image") : Array.Empty<NativeHeaderFooterImage>();
             IReadOnlyList<NativeHeaderFooterImage> evenHeaderImages = section.DifferentOddAndEvenPages ? GetNativeHeaderFooterImages(section.Header?.Even, options, "even header image") : Array.Empty<NativeHeaderFooterImage>();
@@ -141,14 +141,18 @@ namespace OfficeIMO.Word.Pdf {
                         header.FontSize(headerFontSize.Value);
                     }
 
-                    if (defaultHeader != null) {
+                    if (defaultHeader?.HasStyledZones == true) {
+                        header.StyledZones(defaultHeader.CreateHeaderZone(NativeHeaderFooterZone.Left), defaultHeader.CreateHeaderZone(NativeHeaderFooterZone.Center), defaultHeader.CreateHeaderZone(NativeHeaderFooterZone.Right));
+                    } else if (defaultHeader != null) {
                         header.Zones(defaultHeader.Left, defaultHeader.Center, defaultHeader.Right);
                     }
 
                     AddNativeHeaderImages(header, defaultHeaderImages, W.HeaderFooterValues.Default);
                     AddNativeHeaderShapes(header, defaultHeaderShapes, W.HeaderFooterValues.Default);
 
-                    if (firstHeader != null) {
+                    if (firstHeader?.HasStyledZones == true) {
+                        header.FirstPageStyledZones(firstHeader.CreateHeaderZone(NativeHeaderFooterZone.Left), firstHeader.CreateHeaderZone(NativeHeaderFooterZone.Center), firstHeader.CreateHeaderZone(NativeHeaderFooterZone.Right));
+                    } else if (firstHeader != null) {
                         header.FirstPageZones(firstHeader.Left, firstHeader.Center, firstHeader.Right);
                     } else if (hasFirstHeaderVariant) {
                         header.FirstPageText(string.Empty);
@@ -157,7 +161,9 @@ namespace OfficeIMO.Word.Pdf {
                     AddNativeHeaderImages(header, firstHeaderImages, W.HeaderFooterValues.First);
                     AddNativeHeaderShapes(header, firstHeaderShapes, W.HeaderFooterValues.First);
 
-                    if (evenHeader != null) {
+                    if (evenHeader?.HasStyledZones == true) {
+                        header.EvenPagesStyledZones(evenHeader.CreateHeaderZone(NativeHeaderFooterZone.Left), evenHeader.CreateHeaderZone(NativeHeaderFooterZone.Center), evenHeader.CreateHeaderZone(NativeHeaderFooterZone.Right));
+                    } else if (evenHeader != null) {
                         header.EvenPagesZones(evenHeader.Left, evenHeader.Center, evenHeader.Right);
                     } else if (hasEvenHeaderVariant) {
                         header.EvenPagesText(string.Empty);
@@ -195,7 +201,9 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 NativeHeaderFooterText? resolvedDefaultFooter = WithNativeFooterPageNumber(defaultFooter, includePageNumbers, pageNumberFormat);
-                if (resolvedDefaultFooter != null) {
+                if (resolvedDefaultFooter?.HasStyledZones == true) {
+                    footer.StyledZones(resolvedDefaultFooter.CreateFooterZone(NativeHeaderFooterZone.Left), resolvedDefaultFooter.CreateFooterZone(NativeHeaderFooterZone.Center), resolvedDefaultFooter.CreateFooterZone(NativeHeaderFooterZone.Right));
+                } else if (resolvedDefaultFooter != null) {
                     footer.Zones(resolvedDefaultFooter.Left, resolvedDefaultFooter.Center, resolvedDefaultFooter.Right);
                 }
 
@@ -203,7 +211,9 @@ namespace OfficeIMO.Word.Pdf {
                 AddNativeFooterShapes(footer, defaultFooterShapes, W.HeaderFooterValues.Default);
 
                 NativeHeaderFooterText? resolvedFirstFooter = WithNativeFooterPageNumber(firstFooter, includePageNumbers && firstFooter != null, pageNumberFormat);
-                if (resolvedFirstFooter != null) {
+                if (resolvedFirstFooter?.HasStyledZones == true) {
+                    footer.FirstPageStyledZones(resolvedFirstFooter.CreateFooterZone(NativeHeaderFooterZone.Left), resolvedFirstFooter.CreateFooterZone(NativeHeaderFooterZone.Center), resolvedFirstFooter.CreateFooterZone(NativeHeaderFooterZone.Right));
+                } else if (resolvedFirstFooter != null) {
                     footer.FirstPageZones(resolvedFirstFooter.Left, resolvedFirstFooter.Center, resolvedFirstFooter.Right);
                 } else if (hasFirstFooterVariant) {
                     footer.FirstPageText(string.Empty);
@@ -213,7 +223,9 @@ namespace OfficeIMO.Word.Pdf {
                 AddNativeFooterShapes(footer, firstFooterShapes, W.HeaderFooterValues.First);
 
                 NativeHeaderFooterText? resolvedEvenFooter = WithNativeFooterPageNumber(evenFooter, includePageNumbers && evenFooter != null, pageNumberFormat);
-                if (resolvedEvenFooter != null) {
+                if (resolvedEvenFooter?.HasStyledZones == true) {
+                    footer.EvenPagesStyledZones(resolvedEvenFooter.CreateFooterZone(NativeHeaderFooterZone.Left), resolvedEvenFooter.CreateFooterZone(NativeHeaderFooterZone.Center), resolvedEvenFooter.CreateFooterZone(NativeHeaderFooterZone.Right));
+                } else if (resolvedEvenFooter != null) {
                     footer.EvenPagesZones(resolvedEvenFooter.Left, resolvedEvenFooter.Center, resolvedEvenFooter.Right);
                 } else if (hasEvenFooterVariant) {
                     footer.EvenPagesText(string.Empty);
@@ -312,7 +324,12 @@ namespace OfficeIMO.Word.Pdf {
         private static void RecordNativeHeaderFooterTableDiagnostics(WordTable table, WordToPdfOptions options, string source) {
             foreach (WordTableRow row in table.Rows) {
                 foreach (WordTableCell cell in row.Cells) {
-                    foreach (WordElement element in cell.Elements) {
+                    List<WordElement> cellElements = EnumerateNativeTableCellElements(cell).ToList();
+                    if (cellElements.Any(static element => element is WordTable)) {
+                        AddNativeNestedTableLayoutWarning(options, source);
+                    }
+
+                    foreach (WordElement element in cellElements) {
                         RecordNativeHeaderFooterElementDiagnostics(element, options, source);
                     }
                 }
@@ -372,17 +389,28 @@ namespace OfficeIMO.Word.Pdf {
 
             foreach (WordTableRow row in table.Rows) {
                 foreach (WordTableCell cell in row.Cells) {
-                    foreach (WordParagraph paragraph in cell.Paragraphs) {
-                        RecordNativeBodyParagraphDiagnostics(paragraph, options, source, mapsCheckBoxes: true, mapsFormFields: true, mapsPictureControls: true, mapsRepeatingSections: true);
+                    List<WordElement> cellElements = EnumerateNativeTableCellElements(cell).ToList();
+                    if (cellElements.Any(static element => element is WordTable)) {
+                        AddNativeNestedTableLayoutWarning(options, source);
                     }
 
-                    foreach (WordElement element in cell.Elements) {
-                        if (element is not WordParagraph) {
+                    foreach (WordElement element in cellElements) {
+                        if (element is WordParagraph paragraph) {
+                            RecordNativeBodyParagraphDiagnostics(paragraph, options, source, mapsCheckBoxes: true, mapsFormFields: true, mapsPictureControls: true, mapsRepeatingSections: true);
+                        } else {
                             RecordNativeBodyElementDiagnostics(element, options, source);
                         }
                     }
                 }
             }
+        }
+
+        private static void AddNativeNestedTableLayoutWarning(WordToPdfOptions options, string source) {
+            AddNativeExportWarning(
+                options,
+                "NativeNestedTableLayoutApproximated",
+                source,
+                "Supported nested Word table content is preserved, but its inner grid and mixed-content placement are flattened by PDF conversion.");
         }
 
         private static void RecordNativeBodyElementDiagnostics(WordElement element, WordToPdfOptions options, string source) {
@@ -392,6 +420,13 @@ namespace OfficeIMO.Word.Pdf {
                     break;
                 case WordTable table:
                     RecordNativeBodyTableDiagnostics(table, options, source + " table");
+                    break;
+                case WordStructuredDocumentTag structuredDocumentTag:
+                    foreach (WordElement structuredElement in EnumerateNativeStructuredContentElements(
+                        new[] { structuredDocumentTag },
+                        structuredDocumentTagDepth: 0)) {
+                        RecordNativeBodyElementDiagnostics(structuredElement, options, source);
+                    }
                     break;
                 case WordEmbeddedDocument:
                     AddNativeExportWarning(

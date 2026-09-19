@@ -28,13 +28,13 @@ public static partial class PdfHtmlConverterExtensions {
                 if (!emitted.Add(span) || !span.IsVisible || string.IsNullOrEmpty(span.Text)) continue;
                 PositionedPoint point = geometry.TransformPoint(span.X, span.Y);
                 builder.Append("<text x=\"").Append(Number(point.Left)).Append("\" y=\"").Append(Number(point.Top));
-                builder.Append("\" font-family=\"Arial, sans-serif\" font-size=\"").Append(Number(span.FontSize));
+                builder.Append("\" font-family=\"Arial, sans-serif\" font-size=\"").Append(Number(geometry.ScaleLength(span.FontSize)));
                 builder.Append("\" font-weight=\"").Append(span.IsBold ? "700" : "400");
                 builder.Append("\" font-style=\"").Append(span.IsItalic ? "italic" : "normal").Append('"');
                 if (span.Color is { } color) {
                     builder.Append(" fill=\"rgb(").Append(color.R).Append(',').Append(color.G).Append(',').Append(color.B).Append(")\"");
                 }
-                if (span.Advance > 0) builder.Append(" textLength=\"").Append(Number(span.Advance)).Append("\" lengthAdjust=\"spacingAndGlyphs\"");
+                if (span.Advance > 0) builder.Append(" textLength=\"").Append(Number(geometry.ScaleLength(span.Advance))).Append("\" lengthAdjust=\"spacingAndGlyphs\"");
                 double rotation = geometry.RotationDegrees - span.RotationDegrees;
                 if (rotation != 0) builder.Append(" transform=\"rotate(").Append(Number(rotation)).Append(' ')
                     .Append(Number(point.Left)).Append(' ').Append(Number(point.Top)).Append(")\"");
@@ -68,11 +68,11 @@ public static partial class PdfHtmlConverterExtensions {
                 builder.Append("<text");
             }
             builder.Append(" x=\"").Append(Number(point.Left)).Append("\" y=\"").Append(Number(point.Top));
-            builder.Append("\" font-family=\"Arial, sans-serif\" font-size=\"").Append(Number(block.FontSize));
+            builder.Append("\" font-family=\"Arial, sans-serif\" font-size=\"").Append(Number(geometry.ScaleLength(block.FontSize)));
             builder.Append("\" font-weight=\"").Append(sourceSpan.IsBold ? "700" : "400");
             builder.Append("\" font-style=\"").Append(sourceSpan.IsItalic ? "italic" : "normal").Append('"');
             double width = block.XEnd - block.XStart;
-            if (width > 0D) builder.Append(" textLength=\"").Append(Number(width)).Append("\" lengthAdjust=\"spacingAndGlyphs\"");
+            if (width > 0D) builder.Append(" textLength=\"").Append(Number(geometry.ScaleLength(width))).Append("\" lengthAdjust=\"spacingAndGlyphs\"");
             double rotation = geometry.RotationDegrees - sourceSpan.RotationDegrees;
             if (rotation != 0D) builder.Append(" transform=\"rotate(").Append(Number(rotation)).Append(' ')
                 .Append(Number(point.Left)).Append(' ').Append(Number(point.Top)).Append(")\"");

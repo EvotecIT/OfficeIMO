@@ -1,4 +1,7 @@
 using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
 
 namespace OfficeIMO.Security;
 
@@ -36,12 +39,23 @@ public enum OfficeProtectionCoverageState {
 
 /// <summary>One machine-readable protected-content capability row.</summary>
 public sealed class OfficeProtectionCapability {
-    /// <summary>Creates one protected-content capability row.</summary>
+    /// <summary>Creates one protected-content capability row without unsupported-operation dispositions.</summary>
     public OfficeProtectionCapability(string id, string formatId, string packageId, OfficeProtectionKind kind,
         OfficeProtectionCoverageState inspect, OfficeProtectionCoverageState open,
         OfficeProtectionCoverageState create, OfficeProtectionCoverageState validate,
         OfficeProtectionCoverageState mutate, OfficeProtectionCoverageState remove,
-        string api, string limitation) {
+        string api, string limitation)
+        : this(id, formatId, packageId, kind, inspect, open, create, validate, mutate, remove,
+            api, limitation, null) {
+    }
+
+    /// <summary>Creates one protected-content capability row with explicit unsupported-operation dispositions.</summary>
+    public OfficeProtectionCapability(string id, string formatId, string packageId, OfficeProtectionKind kind,
+        OfficeProtectionCoverageState inspect, OfficeProtectionCoverageState open,
+        OfficeProtectionCoverageState create, OfficeProtectionCoverageState validate,
+        OfficeProtectionCoverageState mutate, OfficeProtectionCoverageState remove,
+        string api, string limitation,
+        IEnumerable<OfficeProtectionUnsupportedOperation>? unsupportedOperations) {
         if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Capability id cannot be empty.", nameof(id));
         if (string.IsNullOrWhiteSpace(formatId)) throw new ArgumentException("Format id cannot be empty.", nameof(formatId));
         if (string.IsNullOrWhiteSpace(packageId)) throw new ArgumentException("Package id cannot be empty.", nameof(packageId));
@@ -58,6 +72,22 @@ public sealed class OfficeProtectionCapability {
         Remove = remove;
         Api = api.Trim();
         Limitation = limitation?.Trim() ?? string.Empty;
+        OfficeProtectionUnsupportedOperation[] dispositions = (unsupportedOperations ??
+            Array.Empty<OfficeProtectionUnsupportedOperation>()).ToArray();
+        if (dispositions.Any(item => item == null)) {
+            throw new ArgumentException("Unsupported-operation dispositions cannot contain null entries.", nameof(unsupportedOperations));
+        }
+        string[] duplicates = dispositions
+            .GroupBy(item => item.Operation)
+            .Where(group => group.Count() > 1)
+            .Select(group => group.Key.ToString())
+            .ToArray();
+        if (duplicates.Length != 0) {
+            throw new ArgumentException(
+                "Unsupported operations must be classified once: " + string.Join(", ", duplicates),
+                nameof(unsupportedOperations));
+        }
+        UnsupportedOperations = new ReadOnlyCollection<OfficeProtectionUnsupportedOperation>(dispositions);
     }
 
     /// <summary>Stable capability identifier.</summary>
@@ -84,4 +114,21 @@ public sealed class OfficeProtectionCapability {
     public string Api { get; }
     /// <summary>Important boundary or limitation.</summary>
     public string Limitation { get; }
+
+    /// <summary>
+    /// Roadmap or intentional-boundary classifications supplied for unsupported operations. Catalog schema version 2
+    /// and later require exactly one classification for every operation whose coverage is <see cref="OfficeProtectionCoverageState.NotSupported"/>.
+    /// </summary>
+    public IReadOnlyList<OfficeProtectionUnsupportedOperation> UnsupportedOperations { get; }
+
+    /// <summary>Gets the coverage state for one operation.</summary>
+    public OfficeProtectionCoverageState GetCoverage(OfficeProtectionOperation operation) => operation switch {
+        OfficeProtectionOperation.Inspect => Inspect,
+        OfficeProtectionOperation.Open => Open,
+        OfficeProtectionOperation.Create => Create,
+        OfficeProtectionOperation.Validate => Validate,
+        OfficeProtectionOperation.Mutate => Mutate,
+        OfficeProtectionOperation.Remove => Remove,
+        _ => throw new ArgumentOutOfRangeException(nameof(operation))
+    };
 }

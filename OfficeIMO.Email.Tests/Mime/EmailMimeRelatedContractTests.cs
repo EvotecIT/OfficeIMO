@@ -68,4 +68,17 @@ public sealed class EmailMimeRelatedContractTests {
         Assert.Equal("root", roundTrip.Body.HtmlContentId);
         Assert.Empty(roundTrip.Attachments);
     }
+
+    [Fact]
+    public void ReaderAndWriterPreserveUnmanagedRelatedParameters() {
+        const string eml = "MIME-Version: 1.0\r\n" +
+            "Content-Type: multipart/related; boundary=archive; type=\"text/html\"; start-info=\"application/x-test\"\r\n\r\n" +
+            "--archive\r\nContent-Type: text/html; charset=utf-8\r\n\r\n" +
+            "<html><body>saved</body></html>\r\n--archive--\r\n";
+
+        EmailDocument document = new EmailDocumentReader().Read(Encoding.UTF8.GetBytes(eml)).Document;
+        string serialized = Encoding.ASCII.GetString(new EmailDocumentWriter().ToBytes(document));
+
+        Assert.Contains("start-info=\"application/x-test\"", serialized, StringComparison.OrdinalIgnoreCase);
+    }
 }

@@ -46,22 +46,37 @@ namespace OfficeIMO.Word {
             return RenderSnapshot(snapshot, format, options, cancellationToken);
         }
 
-        private static OfficeImageExportResult RenderSnapshot(WordDocumentVisualSnapshot snapshot,
-            OfficeImageExportFormat format, WordImageExportOptions options, CancellationToken cancellationToken = default) {
+        private static OfficeImageExportResult RenderSnapshot(
+            WordDocumentVisualSnapshot snapshot,
+            OfficeImageExportFormat format,
+            WordImageExportOptions options,
+            CancellationToken cancellationToken = default,
+            OfficeImageExportEncodingBudget? encodingBudget = null) {
             OfficeDrawing drawing = snapshot.Drawing;
 
             if (format == OfficeImageExportFormat.Svg) {
                 List<OfficeImageExportDiagnostic> diagnostics = new List<OfficeImageExportDiagnostic>(snapshot.Diagnostics);
                 var fallbackCodec = new OfficeRasterImageFallbackCodec(options.ImageCodec, diagnostics, "Word document");
                 double scale = options.GetEffectiveScale(drawing.Width, drawing.Height);
-                byte[] svg = OfficeDrawingSvgExporter.ToSvgBytes(
-                    drawing,
-                    scale,
-                    OfficeSvgSizeUnit.Pixel,
-                    fallbackCodec,
-                    resourceIdPrefix: null,
-                    maximumUtf8Bytes: options.MaximumTotalEncodedBytes,
-                    cancellationToken);
+                byte[] svg = encodingBudget == null
+                    ? OfficeDrawingSvgExporter.ToSvgBytes(
+                        drawing,
+                        scale,
+                        OfficeSvgSizeUnit.Pixel,
+                        fallbackCodec,
+                        resourceIdPrefix: null,
+                        maximumUtf8Bytes: options.MaximumTotalEncodedBytes,
+                        cancellationToken)
+                    : encodingBudget.EncodeWithinRemainingBudget(
+                        remaining => OfficeDrawingSvgExporter.ToSvgBytes(
+                            drawing,
+                            scale,
+                            OfficeSvgSizeUnit.Pixel,
+                            fallbackCodec,
+                            resourceIdPrefix: null,
+                            maximumUtf8Bytes: remaining,
+                            cancellationToken),
+                        cancellationToken);
                 return options.EnsureAccepted(new OfficeImageExportResult(format, ScaledWidth(drawing, scale), ScaledHeight(drawing, scale), svg, "Page " + (options.PageIndex + 1), "Word document", diagnostics));
             }
 
@@ -86,10 +101,19 @@ namespace OfficeIMO.Word {
                     DiagnosticSource = source,
                     CancellationToken = cancellationToken
                 });
-                byte[] bytes = OfficeRasterImageEncoder.Encode(
-                    image,
-                    format,
-                    plan.CreateEncodingOptions());
+                byte[] bytes = encodingBudget == null
+                    ? OfficeRasterImageEncoder.Encode(
+                        image,
+                        format,
+                        plan.CreateEncodingOptions(),
+                        options.MaximumTotalEncodedBytes,
+                        cancellationToken)
+                    : OfficeRasterImageEncoder.Encode(
+                        image,
+                        format,
+                        plan.CreateEncodingOptions(),
+                        encodingBudget,
+                        cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
                 return options.EnsureAccepted(new OfficeImageExportResult(format, image.Width, image.Height, bytes, "Page " + (options.PageIndex + 1), source, diagnostics));
             }
@@ -508,7 +532,7 @@ namespace OfficeIMO.Word {
                 if (textBox != null) {
                     added |= FlushTextRuns();
                     context.ClearParagraphSpacingState();
-                    added |= AddTextBox(textBox, context, diagnostics, colorScheme);
+                    added |= AddTextBox(textBox, context, diagnostics, colorScheme, listMarkers);
                     context.ClearParagraphSpacingState();
                     continue;
                 }
@@ -564,7 +588,8 @@ namespace OfficeIMO.Word {
             context.Y += spacing.Before;
             if (context.IsTargetPage) {
                 AddParagraphFrame(paragraphs[0], context, textLayout, height, colorScheme);
-                if (listMarker.HasValue) {
+                ReportPictureBulletFallback(listMarker, diagnostics);
+                if (listMarker.HasValue && !string.IsNullOrEmpty(listMarker.Value.Marker)) {
                     WordImageListMarker marker = listMarker.Value;
                     context.Drawing.AddText(
                         marker.Marker,
@@ -929,6 +954,17 @@ namespace OfficeIMO.Word {
                 code,
                 message,
                 string.IsNullOrWhiteSpace(source) ? "Word document" : source));
+        }
+
+        private static void ReportPictureBulletFallback(WordImageListMarker? marker, List<OfficeImageExportDiagnostic> diagnostics) {
+            if (marker?.PictureBulletId is not int pictureBulletId) return;
+            ReportPictureBulletFallback(pictureBulletId, diagnostics);
+        }
+
+        private static void ReportPictureBulletFallback(int pictureBulletId, List<OfficeImageExportDiagnostic> diagnostics) {
+            string markerText = "Picture bullet " + pictureBulletId + " is represented by a text bullet in image and SVG output.";
+            if (diagnostics.Exists(item => item.Code == WordImageExportDiagnosticCodes.LimitedPictureBulletTextFallback && item.Message == markerText)) return;
+            AddDiagnostic(diagnostics, WordImageExportDiagnosticCodes.LimitedPictureBulletTextFallback, markerText);
         }
 
         private readonly struct WordImagePageContext {

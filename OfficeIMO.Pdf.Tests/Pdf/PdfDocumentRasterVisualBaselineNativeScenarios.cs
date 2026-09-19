@@ -65,7 +65,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
 
                 WordList bullets = document.AddList(WordListStyle.Bulleted);
                 bullets.AddItem("Native list mapping keeps markers and text aligned.");
-                bullets.AddItem("The visual gate catches rhythm drift before QuestPDF removal.");
+                bullets.AddItem("The visual gate catches rhythm drift before renderer migration.");
 
                 WordList steps = document.AddCustomList();
                 steps.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));

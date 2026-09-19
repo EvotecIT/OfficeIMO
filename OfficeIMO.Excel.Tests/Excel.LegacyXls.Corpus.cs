@@ -516,8 +516,8 @@ namespace OfficeIMO.Tests {
                 Assert.True(extension.Priority.HasValue);
             });
             Assert.Equal(8, sheet.ConditionalFormattingExtensions.Count(extension => extension.MatchedRule));
-            Assert.Empty(sheet.ConditionalFormattingExtensions.Where(extension => !extension.MatchedRule));
-            Assert.Empty(sheet.ConditionalFormattingExtensions.Where(extension => extension.HasUnprojectedFormatting));
+            Assert.DoesNotContain(sheet.ConditionalFormattingExtensions, extension => !extension.MatchedRule);
+            Assert.DoesNotContain(sheet.ConditionalFormattingExtensions, extension => extension.HasUnprojectedFormatting);
             Assert.Equal(7, sheet.ConditionalFormattingExtensions.Count(extension => extension.HasProjectedFormatting));
             Assert.Single(sheet.ConditionalFormattingExtensions, extension => !extension.HasProjectedFormatting);
             AssertConditionalFormatting(sheet, LegacyXlsConditionalFormattingType.CellIs, LegacyXlsConditionalFormattingOperator.GreaterThan, "A2:A6", "50", null);
@@ -948,7 +948,7 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(workbook.UnsupportedFeatures);
                 Assert.DoesNotContain(workbook.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
                 Assert.DoesNotContain(workbook.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Warning);
-                Assert.False(report.FileFormatBlockers.Keys.Any(key => key.Contains("EncryptedWorkbook", StringComparison.Ordinal)));
+                Assert.DoesNotContain(report.FileFormatBlockers.Keys, key => key.Contains("EncryptedWorkbook", StringComparison.Ordinal));
 
                 LegacyXlsWorksheet sheet = Assert.Single(workbook.Worksheets);
                 Assert.Equal("Encrypted", sheet.Name);
@@ -997,7 +997,7 @@ namespace OfficeIMO.Tests {
                 Assert.DoesNotContain(workbook.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Warning);
                 Assert.DoesNotContain(workbook.Diagnostics, diagnostic => diagnostic.Code == "XLS-BIFF-VERSION-UNSUPPORTED");
                 Assert.False(report.UnsupportedBiffVersionsByVersion.ContainsKey("BIFF5"));
-                Assert.False(report.FileFormatBlockers.Keys.Any(key => key.Contains("UnsupportedBiffVersion", StringComparison.Ordinal)));
+                Assert.DoesNotContain(report.FileFormatBlockers.Keys, key => key.Contains("UnsupportedBiffVersion", StringComparison.Ordinal));
 
                 LegacyXlsWorksheet sheet = Assert.Single(workbook.Worksheets);
                 Assert.Equal("BIFF5", sheet.Name);
@@ -1011,7 +1011,7 @@ namespace OfficeIMO.Tests {
 
                 using (ExcelDocument converted = ExcelDocument.Load(outputPath)) {
                     Assert.False(converted.SourceFormat == ExcelFileFormat.Xls);
-                    Assert.Equal(1, converted.Sheets.Count);
+                    Assert.Single(converted.Sheets);
                 }
 
                 using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(outputPath, false);

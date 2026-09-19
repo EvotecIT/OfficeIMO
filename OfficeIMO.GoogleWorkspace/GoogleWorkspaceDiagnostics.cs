@@ -3,6 +3,16 @@ namespace OfficeIMO.GoogleWorkspace {
     /// Structured diagnostic entry that callers can forward to their own logging pipeline.
     /// </summary>
     public sealed class GoogleWorkspaceDiagnosticEntry {
+        /// <summary>Creates a normalized structured diagnostic entry.</summary>
+        /// <param name="severity">Impact of the diagnostic.</param>
+        /// <param name="feature">Feature that emitted the diagnostic.</param>
+        /// <param name="message">Human-readable explanation.</param>
+        /// <param name="path">Optional source-object path.</param>
+        /// <param name="failureKind">Related export-failure category, when applicable.</param>
+        /// <param name="code">Stable diagnostic code, or <see langword="null"/> to derive one from <paramref name="feature"/>.</param>
+        /// <param name="action">Target action selected for the feature.</param>
+        /// <param name="count">Number of equivalent occurrences represented by the entry.</param>
+        /// <param name="targetId">Optional remote target identifier.</param>
         public GoogleWorkspaceDiagnosticEntry(
             TranslationSeverity severity,
             string feature,
@@ -24,14 +34,23 @@ namespace OfficeIMO.GoogleWorkspace {
             TargetId = targetId;
         }
 
+        /// <summary>Gets the stable machine-readable diagnostic code.</summary>
         public string Code { get; }
+        /// <summary>Gets the impact of the diagnostic.</summary>
         public TranslationSeverity Severity { get; }
+        /// <summary>Gets the feature that emitted the diagnostic.</summary>
         public string Feature { get; }
+        /// <summary>Gets the human-readable explanation.</summary>
         public string Message { get; }
+        /// <summary>Gets the source-object path, or an empty string when not applicable.</summary>
         public string Path { get; }
+        /// <summary>Gets the related export-failure category, when applicable.</summary>
         public GoogleWorkspaceFailureKind? FailureKind { get; }
+        /// <summary>Gets the target action selected for the feature.</summary>
         public TranslationAction Action { get; }
+        /// <summary>Gets the number of equivalent occurrences represented by the entry.</summary>
         public int Count { get; }
+        /// <summary>Gets the related remote target identifier, when available.</summary>
         public string? TargetId { get; }
     }
 
@@ -39,6 +58,9 @@ namespace OfficeIMO.GoogleWorkspace {
     /// Helpers that translate reports and export exceptions into structured diagnostic entries.
     /// </summary>
     public static class GoogleWorkspaceDiagnosticsExtensions {
+        /// <summary>Converts every notice in a translation report to a structured diagnostic entry.</summary>
+        /// <param name="report">Report to convert.</param>
+        /// <returns>A snapshot preserving notice order and metadata.</returns>
         public static IReadOnlyList<GoogleWorkspaceDiagnosticEntry> ToDiagnosticEntries(this TranslationReport report) {
             if (report == null) throw new ArgumentNullException(nameof(report));
 
@@ -55,6 +77,9 @@ namespace OfficeIMO.GoogleWorkspace {
                 .ToArray();
         }
 
+        /// <summary>Converts an export exception and its report to structured diagnostics.</summary>
+        /// <param name="exception">Export failure to convert.</param>
+        /// <returns>A leading export-failure entry followed by the report notices.</returns>
         public static IReadOnlyList<GoogleWorkspaceDiagnosticEntry> ToDiagnosticEntries(this GoogleWorkspaceExportException exception) {
             if (exception == null) throw new ArgumentNullException(nameof(exception));
 
@@ -83,7 +108,11 @@ namespace OfficeIMO.GoogleWorkspace {
         }
     }
 
+    /// <summary>Records translation notices and forwards matching structured entries to a session sink.</summary>
     public static class GoogleWorkspaceDiagnosticsDispatcher {
+        /// <summary>Sends one entry to the configured diagnostic sink, when present.</summary>
+        /// <param name="sessionOptions">Session containing the optional sink.</param>
+        /// <param name="entry">Entry to emit.</param>
         public static void Emit(
             GoogleWorkspaceSessionOptions? sessionOptions,
             GoogleWorkspaceDiagnosticEntry entry) {
@@ -91,6 +120,7 @@ namespace OfficeIMO.GoogleWorkspace {
             sessionOptions?.DiagnosticSink?.Invoke(entry);
         }
 
+        /// <summary>Adds a notice to a report and emits the equivalent structured diagnostic.</summary>
         public static void Add(
             TranslationReport report,
             GoogleWorkspaceSessionOptions? sessionOptions,
@@ -109,6 +139,7 @@ namespace OfficeIMO.GoogleWorkspace {
             Emit(sessionOptions, new GoogleWorkspaceDiagnosticEntry(severity, feature, message, path, failureKind, code, action, count, targetId));
         }
 
+        /// <summary>Adds and emits a diagnostic unless the same severity, feature, message, and path already exist.</summary>
         public static void AddUnique(
             TranslationReport report,
             GoogleWorkspaceSessionOptions? sessionOptions,

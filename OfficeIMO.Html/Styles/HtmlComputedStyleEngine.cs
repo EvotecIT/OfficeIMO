@@ -384,6 +384,11 @@ public static partial class HtmlComputedStyleEngine {
         return ComputeStyleSet(document, environment, true, false, options.Limits);
     }
 
+    internal static HtmlComputedStyleSet ComputeForContentSafety(
+        IHtmlDocument document,
+        HtmlConversionLimits? limits = null) =>
+        ComputeStyleSet(document, MediaEnvironment.CreateDefault(HtmlCssMediaContext.Screen), true, false, limits);
+
     internal static HtmlComputedStyleSet ComputeForRendering(IHtmlDocument document, HtmlRenderOptions options, HtmlConversionLimits limits) =>
         ComputeStyleSet(
             document,

@@ -7,6 +7,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
     public sealed class GoogleSheetsBatch {
         private readonly List<GoogleSheetsRequest> _requests = new List<GoogleSheetsRequest>();
 
+        /// <summary>Creates an empty batch; blank titles become <c>Workbook</c>.</summary>
         public GoogleSheetsBatch(
             string title,
             GoogleSheetsTranslationPlan plan,
@@ -16,9 +17,13 @@ namespace OfficeIMO.Excel.GoogleSheets {
             Report = report ?? throw new ArgumentNullException(nameof(report));
         }
 
+        /// <summary>Gets the target spreadsheet title.</summary>
         public string Title { get; }
+        /// <summary>Gets source counts and pre-export risk classification.</summary>
         public GoogleSheetsTranslationPlan Plan { get; }
+        /// <summary>Gets translation notices associated with this batch.</summary>
         public TranslationReport Report { get; }
+        /// <summary>Gets provider-neutral requests assembled by the batch compiler.</summary>
         public IReadOnlyList<GoogleSheetsRequest> Requests => _requests;
         internal string? ChartDataSheetName { get; set; }
 

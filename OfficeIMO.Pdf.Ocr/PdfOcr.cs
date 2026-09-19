@@ -360,11 +360,7 @@ internal static partial class PdfOcr {
     }
 
     private static void EnsurePngSupport(OcrEngineCapabilities? capabilities) {
-        IReadOnlyList<string> supported = capabilities?.SupportedMediaTypes ?? Array.Empty<string>();
-        if (supported.Count == 0) return;
-        if (supported.Any(mediaType =>
-                string.Equals(mediaType, "image/png", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(mediaType, "image/*", StringComparison.OrdinalIgnoreCase))) return;
+        if (capabilities == null || capabilities.SupportsMediaType("image/png")) return;
         throw new NotSupportedException("The OCR engine does not advertise support for rendered PNG pages.");
     }
 

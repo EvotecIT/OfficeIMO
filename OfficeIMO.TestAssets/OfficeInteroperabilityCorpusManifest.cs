@@ -89,6 +89,9 @@ internal static class OfficeInteroperabilityCorpusManifestLoader {
         if (string.IsNullOrWhiteSpace(collection.Producer)) {
             errors.Add($"{label}: producer is required.");
         }
+        if (string.IsNullOrWhiteSpace(collection.ProducerVersion)) {
+            errors.Add($"{label}: producerVersion is required.");
+        }
         ValidateStringSet(label, "direction", collection.Directions, Directions, errors);
         ValidateStringSet(label, "oracle", collection.Oracles, Oracles, errors);
         if (!IsSafeRelativePath(collection.Provenance)) {
@@ -189,9 +192,9 @@ internal static class OfficeInteroperabilityCorpusManifestLoader {
             if (collection.Format is "doc" or "xls") {
                 errors.Add($"{label}: legacy binary artifacts require an approved import report.");
             }
-        } else if (!IsSafeRelativePath(artifact.ApprovedReport)) {
+        } else if (!IsSafeRelativePath(artifact.ApprovedReport!)) {
             errors.Add($"{label}: approvedReport must be a safe relative path.");
-        } else if (!File.Exists(ResolveDocumentPath(CombineRelative(collection.Root, artifact.ApprovedReport)))) {
+        } else if (!File.Exists(ResolveDocumentPath(CombineRelative(collection.Root, artifact.ApprovedReport!)))) {
             errors.Add($"{label}: approved report does not exist: {artifact.ApprovedReport}");
         }
     }
@@ -263,6 +266,7 @@ internal sealed class OfficeInteroperabilityCorpusCollection {
     public string Role { get; set; } = string.Empty;
     public string Root { get; set; } = string.Empty;
     public string Producer { get; set; } = string.Empty;
+    public string ProducerVersion { get; set; } = string.Empty;
     public string Provenance { get; set; } = string.Empty;
     public List<string> Directions { get; set; } = new();
     public List<string> Oracles { get; set; } = new();

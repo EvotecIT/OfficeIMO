@@ -4,6 +4,8 @@ namespace OfficeIMO.Invoicing;
 public static class InvoiceCalculator {
     /// <summary>Explicitly replaces source-declared amounts after editing prices, quantities, taxes or adjustments.</summary>
     public static InvoiceCalculation UpdateDeclaredAmounts(Invoice invoice) {
+        if (invoice == null) throw new ArgumentNullException(nameof(invoice));
+        if (invoice.Lines.Count == 0) return FromDeclaredAggregate(invoice);
         InvoiceCalculation calculation = Calculate(invoice, false);
         for (int index = 0; index < invoice.Lines.Count; index++) invoice.Lines[index].DeclaredNetAmount = calculation.Lines[index].NetAmount;
         invoice.DeclaredTotals = new InvoiceDeclaredTotals {
@@ -25,8 +27,31 @@ public static class InvoiceCalculator {
         return rounded;
     }
 
-    /// <summary>Calculates line totals, category-level VAT and the amount due. Throws on invalid arithmetic inputs or decimal overflow.</summary>
-    public static InvoiceCalculation Calculate(Invoice invoice) => Calculate(invoice, true);
+    /// <summary>Calculates line totals, category-level VAT and the amount due, or returns retained declared values for an aggregate-only invoice.</summary>
+    public static InvoiceCalculation Calculate(Invoice invoice) {
+        if (invoice == null) throw new ArgumentNullException(nameof(invoice));
+        return invoice.Lines.Count == 0 ? FromDeclaredAggregate(invoice) : Calculate(invoice, true);
+    }
+
+    internal static InvoiceCalculation FromDeclaredAggregate(Invoice invoice) {
+        InvoiceDeclaredTotals totals = invoice.DeclaredTotals
+            ?? throw new ArgumentException("Aggregate-only invoice data requires declared totals.", nameof(invoice));
+        if (!totals.TaxExclusiveTotal.HasValue || !totals.TaxTotal.HasValue || !totals.TaxInclusiveTotal.HasValue || !totals.PayableAmount.HasValue)
+            throw new ArgumentException("Aggregate-only invoice data is missing a required declared total.", nameof(invoice));
+        IReadOnlyList<InvoiceCalculatedTax> taxes = invoice.DeclaredTaxes.Select(tax => new InvoiceCalculatedTax(
+            tax.Category.Code, NormalizeRate(tax.Category), tax.TaxableAmount, tax.Category.ExemptionReason,
+            tax.Category.ExemptionReasonCode, tax.TaxAmount)).ToArray();
+        return new InvoiceCalculation(Array.Empty<InvoiceCalculatedLine>(), taxes,
+            totals.LineNetTotal ?? totals.TaxExclusiveTotal.Value,
+            totals.AllowanceTotal ?? 0m,
+            totals.ChargeTotal ?? 0m,
+            totals.TaxExclusiveTotal.Value,
+            totals.TaxTotal.Value,
+            totals.TaxInclusiveTotal.Value,
+            invoice.PrepaidAmount,
+            invoice.RoundingAmount,
+            totals.PayableAmount.Value);
+    }
 
     private static InvoiceCalculation Calculate(Invoice invoice, bool preserveDeclaredAmounts) {
         if (invoice == null) throw new ArgumentNullException(nameof(invoice));
@@ -98,9 +123,9 @@ public static class InvoiceCalculator {
             ReasonCode = category.ExemptionReasonCode;
         }
         internal void MergeReason(InvoiceTaxCategory category) {
-            if (Reason != null && category.ExemptionReason != null && Reason != category.ExemptionReason ||
-                ReasonCode != null && category.ExemptionReasonCode != null && ReasonCode != category.ExemptionReasonCode)
-                throw new ArgumentException("A VAT category/rate has conflicting exemption reasons.");
+            // Preserve every source value on its owning model occurrence. The calculated
+            // group retains the first value; target inspection reports any conflict with
+            // the exact source paths and values before serialization.
             Reason = Reason ?? category.ExemptionReason;
             ReasonCode = ReasonCode ?? category.ExemptionReasonCode;
         }

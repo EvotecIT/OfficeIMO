@@ -818,6 +818,15 @@ mutation policy still applies. Plans describe page positions, so regenerate them
 when the source document changes. `PdfPageSelection.Parse("2-4,7").Resolve(pageCount)`
 resolves ranges with bounds checking and preserves caller order and repeated pages.
 
+When the inputs are already byte payloads, merge them directly instead of opening
+temporary document wrappers. The same merge engine and output validation are used:
+
+```csharp
+byte[][] sources = { File.ReadAllBytes("first.pdf"), File.ReadAllBytes("second.pdf") };
+PdfDocument merged = PdfDocument.MergeBytes(sources);
+merged.Save("merged.pdf");
+```
+
 Encrypted merge inputs keep independent authentication settings. Owner
 authorization is honored automatically. A user password follows the PDF
 permission bits unless the caller explicitly opts into ignoring those
@@ -1048,7 +1057,9 @@ PdfExternalSignatureCompletion signed = PdfDocument
             VisibleAppearance = new PdfVisibleSignatureAppearanceOptions {
                 ImageBytes = File.ReadAllBytes("approval-mark.png"),
                 ImageFit = OfficeImageFit.Contain,
-                ShowText = false
+                ShowText = false,
+                ShowBackground = false,
+                ShowBorder = false
             }
         });
 
@@ -1062,6 +1073,8 @@ The PDF package owns byte ranges, incremental updates, signature dictionaries, a
 provider owns CMS, timestamps, and certificate trust. A custom `IPdfExternalSigner` or
 `IPdfSignatureCryptographyProvider` remains valid without `OfficeIMO.Security`.
 The optional appearance image is visual content only; certificate validation remains the source of signer identity.
+Set `ShowText`, `ShowBackground`, and `ShowBorder` to `false` for an image-only appearance. Existing appearances retain
+their background and border because both new visibility options default to `true`.
 
 ### Review, apply, and verify redactions
 
@@ -1737,3 +1750,22 @@ contract, and remaining general engine work, read
 - **Optional security:** install `OfficeIMO.Security` for the built-in CMS/X.509/RFC 3161 adapters. It is not a transitive PDF dependency.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+
+<!-- officeimo-operation-catalog:start -->
+## Generated capability summary
+
+This table is generated from the package-neutral OfficeIMO operation catalog. The detailed source contracts remain authoritative for feature-level behavior and limitations.
+
+| Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Create | 2 | 0 | 0 | 0 | 0 | 0 |
+| Read | 2 | 0 | 0 | 0 | 0 | 0 |
+| Edit | 2 | 0 | 0 | 0 | 0 | 0 |
+| Preserve | 0 | 1 | 0 | 0 | 0 | 0 |
+| Inspect | 3 | 0 | 0 | 0 | 0 | 0 |
+| Validate | 2 | 0 | 0 | 0 | 0 | 1 |
+| Remove | 2 | 0 | 0 | 0 | 0 | 0 |
+| Export | 5 | 0 | 0 | 0 | 0 | 0 |
+
+The complete rows for `OfficeIMO.Pdf` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
+<!-- officeimo-operation-catalog:end -->

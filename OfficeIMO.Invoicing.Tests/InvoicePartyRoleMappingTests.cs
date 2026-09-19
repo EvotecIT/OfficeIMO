@@ -5,17 +5,17 @@ namespace OfficeIMO.Invoicing.Tests;
 
 public class InvoicePartyRoleMappingTests {
     [Theory]
-    [InlineData(InvoiceSyntax.Cii, "Buyer", "LegalInformation")]
-    [InlineData(InvoiceSyntax.Cii, "Buyer", "TaxRegistration")]
-    [InlineData(InvoiceSyntax.Ubl, "Buyer", "LegalInformation")]
-    [InlineData(InvoiceSyntax.Ubl, "Buyer", "TaxRegistration")]
-    [InlineData(InvoiceSyntax.Cii, "Payee", "Contact")]
-    [InlineData(InvoiceSyntax.Cii, "Payee", "VatIdentifier")]
-    [InlineData(InvoiceSyntax.Cii, "TaxRepresentative", "LegalRegistration")]
-    [InlineData(InvoiceSyntax.Cii, "TaxRepresentative", "TradingName")]
-    [InlineData(InvoiceSyntax.Ubl, "TaxRepresentative", "TaxRegistration")]
-    public void RoleInvalidSourceFieldsAreReportedAndCanBeExplicitlyDiscarded(InvoiceSyntax syntax, string role, string field) {
-        var options = new InvoiceXmlOptions(syntax);
+    [InlineData(InvoiceSyntax.Cii, "Buyer", "LegalInformation", "Buyer.LegalInformation")]
+    [InlineData(InvoiceSyntax.Cii, "Buyer", "TaxRegistration", "Buyer.TaxRegistrations[1]")]
+    [InlineData(InvoiceSyntax.Ubl, "Buyer", "LegalInformation", "Buyer.LegalInformation")]
+    [InlineData(InvoiceSyntax.Ubl, "Buyer", "TaxRegistration", "Buyer.TaxRegistrations[1]")]
+    [InlineData(InvoiceSyntax.Cii, "Payee", "Contact", "Payee.Contact")]
+    [InlineData(InvoiceSyntax.Cii, "Payee", "VatIdentifier", "Payee.TaxRegistrations")]
+    [InlineData(InvoiceSyntax.Cii, "TaxRepresentative", "LegalRegistration", "TaxRepresentative.LegalRegistration")]
+    [InlineData(InvoiceSyntax.Cii, "TaxRepresentative", "TradingName", "TaxRepresentative.TradingName")]
+    [InlineData(InvoiceSyntax.Ubl, "TaxRepresentative", "TaxRegistration", "TaxRepresentative.TaxRegistrations[1]")]
+    public void RoleSourceFieldsArePreservedAndUnsupportedTargetsAreExplicit(InvoiceSyntax syntax, string role, string field, string? unsupportedLocation) {
+        var options = InvoiceTestContracts.En16931(syntax);
         XDocument document = XDocument.Parse(Encoding.UTF8.GetString(InvoiceSerializer.Write(InvoiceFixture.Rich(), options)));
         XNamespace ram = "urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100";
         XNamespace cac = "urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2";
@@ -35,12 +35,30 @@ public class InvoicePartyRoleMappingTests {
         }
         byte[] xml = Encoding.UTF8.GetBytes(document.ToString());
         InvoiceReadResult read = InvoiceParser.Read(xml);
-        Assert.False(read.HasCompleteMapping);
+        Assert.True(read.HasCompleteMapping);
         Assert.Equal(xml, read.GetOriginalBytes());
-        Assert.Throws<InvalidDataException>(() => read.Write());
-        Assert.False(InvoiceConverter.Convert(xml, options).Succeeded);
-        InvoiceReadResult rewritten = InvoiceParser.Read(read.Write(options, allowUnmappedDataLoss: true));
-        Assert.True(rewritten.HasCompleteMapping);
-        Assert.DoesNotContain("unsupported", Encoding.UTF8.GetString(rewritten.GetOriginalBytes()), StringComparison.Ordinal);
+        Assert.True(ContainsImportedValue(read.Invoice, role, field));
+        IReadOnlyList<InvoiceDiagnostic> diagnostics = InvoiceSerializer.InspectTarget(read.Invoice, options);
+        if (unsupportedLocation == null) {
+            Assert.Empty(diagnostics);
+            Assert.Contains("unsupported", Encoding.UTF8.GetString(read.Write(options)), StringComparison.Ordinal);
+        } else {
+            Assert.Contains(diagnostics, diagnostic => diagnostic.Location == unsupportedLocation);
+            Assert.Throws<InvalidDataException>(() => read.Write(options));
+            Assert.False(InvoiceConverter.Convert(xml, options).Succeeded);
+        }
+    }
+
+    private static bool ContainsImportedValue(Invoice invoice, string role, string field) {
+        InvoiceParty party = role == "Buyer" ? invoice.Buyer : role == "Payee" ? invoice.Payee! : invoice.TaxRepresentative!;
+        return field switch {
+            "LegalInformation" => party.LegalInformation == "unsupported",
+            "TaxRegistration" => party.TaxRegistrations.Any(registration => registration.Identifier == "unsupported"),
+            "VatIdentifier" => party.TaxRegistrations.Any(registration => registration.Identifier == "unsupported"),
+            "Contact" => party.Contact?.Name == "unsupported",
+            "LegalRegistration" => party.LegalRegistration?.Value == "unsupported",
+            "TradingName" => party.TradingName == "unsupported",
+            _ => false
+        };
     }
 }

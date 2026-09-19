@@ -152,7 +152,7 @@ foreach (var page in visualReport.VisualPages) {
 }
 ```
 
-This is a new semantic projection, not recovery of the original slide deck. Original charts, groups, themes, animations, notes, and authoring intent cannot be recovered reliably from arbitrary PDFs; omissions and simplifications remain explicit warnings.
+This is a new semantic projection, not recovery of the original slide deck. Original charts, groups, themes, animations, notes, and authoring intent cannot be recovered reliably from arbitrary PDFs; omissions and simplifications remain explicit warnings. `PdfPowerPointConversionReport.HasLoss` and `RequireNoLoss()` use typed approximation, omission, and failure evidence. Editable-content and visual-page modes therefore report their inherent reconstruction or non-editability instead of claiming lossless conversion.
 
 Use hybrid mode when the original page must remain visible while detected tables stay editable. Row and column caps split a large overlay across duplicate visual-page slides, and each overlay keeps the same centered, aspect-preserving page geometry as its background:
 
@@ -199,7 +199,7 @@ Console.WriteLine($"Non-table page content detected: {report.HasOmittedPageConte
 - `PdfPowerPointImportMode.Auto` is the options default. It resolves an opened PDF to `EditableContent` and an already reduced `PdfDocumentReadResult` to `EditableTables`; use `CreateVisualPages()` only when one rendered page image per slide is the intended output.
 - `PdfToPowerPointOptions.ReadOptions` controls the canonical semantic profile, page selection, layout, custom stages, and semantic work limits. The same page selection is used by visual and hybrid imports.
 - `PdfToPowerPointOptions.MaxPages` defaults to 100 and remains a destination import/rendering safety limit. It is separate from `ReadOptions.Pipeline.MaxPages`; both limits apply when semantic reconstruction is required.
-- `PdfPowerPointImportMode.EditableContent` reconstructs text blocks, detected tables, safe vector primitives, and supported images as native slide objects and reports anything it cannot represent safely.
+- `PdfPowerPointImportMode.EditableContent` reconstructs text blocks, detected tables, safe vector primitives, and supported images as native slide objects and reports anything it cannot represent safely. Fully transparent and unplaced image resources are suppressed; images whose clips, soft masks, unresolved transparency masks, or unsupported blend modes could expose hidden pixels are omitted instead of embedding the raw picture. Supported opacity is mapped to native picture transparency.
 - `PdfPowerPointImportMode.EditableTables` reconstructs detected tables and uses `SourceScope` / `HasOmittedPageContent` to expose unrelated page content.
 - `PdfPowerPointImportMode.HybridVisualAndEditableTables` retains each selected page as a visual layer and overlays bounded editable table segments at source-relative geometry.
 - The visual and hybrid modes accept caller-supplied fallback fonts for Base-14 and other unembedded font programs. Renderer capability diagnostics remain visible because a fallback is still a substitution, not the source font program.
@@ -223,3 +223,15 @@ Console.WriteLine($"Non-table page content detected: {report.HasOmittedPageConte
 - **OfficeIMO:** `OfficeIMO.PowerPoint`, `OfficeIMO.Pdf`, and `OfficeIMO.Core` own slide snapshots, PDF rendering, and reports.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+
+<!-- officeimo-operation-catalog:start -->
+## Generated capability summary
+
+This table is generated from the package-neutral OfficeIMO operation catalog. The detailed source contracts remain authoritative for feature-level behavior and limitations.
+
+| Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Convert | 2 | 0 | 0 | 0 | 0 | 0 |
+
+The complete rows for `OfficeIMO.PowerPoint.Pdf` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
+<!-- officeimo-operation-catalog:end -->

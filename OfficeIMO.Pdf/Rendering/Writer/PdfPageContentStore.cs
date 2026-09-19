@@ -24,9 +24,15 @@ internal sealed class PdfPageContentStore : IDisposable {
     internal long RetainedMemoryBytes => _memoryBytes;
     internal long PeakRetainedMemoryBytes => _peakMemoryBytes;
 
-    internal PdfPageContentHandle Store(string content) {
+    internal PdfPageContentHandle Store(string content) =>
+        StoreBytes(PdfEncoding.Latin1GetBytes(content ?? string.Empty));
+
+    // Overload that encodes the builder directly to bytes, skipping a per-page content string.
+    internal PdfPageContentHandle Store(System.Text.StringBuilder content) =>
+        StoreBytes(PdfEncoding.Latin1GetBytes(content ?? throw new ArgumentNullException(nameof(content))));
+
+    private PdfPageContentHandle StoreBytes(byte[] bytes) {
         ThrowIfDisposed();
-        byte[] bytes = PdfEncoding.Latin1GetBytes(content ?? string.Empty);
         int index = _entries.Count;
         if (_spillStream == null && _memoryBytes + bytes.LongLength <= _memoryLimitBytes) {
             _entries.Add(Entry.InMemory(bytes));
@@ -37,6 +43,22 @@ internal sealed class PdfPageContentStore : IDisposable {
             _entries.Add(AppendToSpill(bytes));
         }
         return new PdfPageContentHandle(index);
+    }
+
+    // Returns the stored bytes without decoding to a string. For in-memory entries this is the stored
+    // array ITSELF (no allocation), so callers MUST treat the result as read-only: it is aliased by the
+    // store and may be read again (e.g. font-usage scanning and the content stream both use it). Never
+    // mutate the returned array. Spilled entries are read into a fresh array.
+    internal byte[] ReadBytes(PdfPageContentHandle handle) {
+        ThrowIfDisposed();
+        if (handle.Index < 0 || handle.Index >= _entries.Count) throw new ArgumentOutOfRangeException(nameof(handle));
+        Entry entry = _entries[handle.Index];
+        if (entry.Bytes != null) return entry.Bytes;
+        var bytes = new byte[entry.Length];
+        FileStream stream = _spillStream ?? throw new InvalidOperationException("Page-content spill storage is unavailable.");
+        stream.Position = entry.Offset;
+        ReadExactly(stream, bytes);
+        return bytes;
     }
 
     internal string Read(PdfPageContentHandle handle) {

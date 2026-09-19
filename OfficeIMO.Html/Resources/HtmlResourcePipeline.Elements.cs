@@ -317,10 +317,16 @@ public static partial class HtmlResourcePipeline {
     }
 
     private static void AddLink(HtmlResourceManifest manifest, IElement element, Uri? baseUri, HtmlResourcePipelineOptions options) {
+        if (!IsHtmlNamespaceElement(element)) return;
         string rel = element.GetAttribute("rel") ?? string.Empty;
         HashSet<string> relTokens = GetRelTokens(rel);
         bool isPreload = relTokens.Contains("preload");
         bool isStylesheet = relTokens.Contains("stylesheet");
+        if (isStylesheet && (element.HasAttribute("disabled")
+                || !IsCssStylesheetType(element.GetAttribute("type"))
+                || relTokens.Contains("alternate") && !IsSelectedAlternateStylesheet(element, options))) {
+            return;
+        }
         if ((isPreload || isStylesheet) && !IsApplicableMedia(element.GetAttribute("media") ?? string.Empty, options)) {
             return;
         }
@@ -354,6 +360,54 @@ public static partial class HtmlResourcePipeline {
         }
         AddAttribute(manifest, kind, element, "href", baseUri, options);
     }
+
+    private static bool IsSelectedAlternateStylesheet(IElement link, HtmlResourcePipelineOptions options) {
+        string? title = NormalizeStylesheetSetTitle(link.GetAttribute("title"));
+        return title != null
+            && string.Equals(title, FindPreferredStylesheetSet(link, options), StringComparison.Ordinal);
+    }
+
+    private static string? FindPreferredStylesheetSet(IElement context, HtmlResourcePipelineOptions options) {
+        IDocument? owner = context.Owner;
+        if (owner == null) return null;
+        foreach (IElement candidate in owner.QuerySelectorAll("link[href], style")) {
+            string? title = NormalizeStylesheetSetTitle(candidate.GetAttribute("title"));
+            if (title == null) continue;
+            if (string.Equals(candidate.LocalName, "link", StringComparison.OrdinalIgnoreCase)) {
+                HashSet<string> relTokens = GetRelTokens(candidate.GetAttribute("rel") ?? string.Empty);
+                if (!IsHtmlNamespaceElement(candidate)
+                    || !relTokens.Contains("stylesheet")
+                    || relTokens.Contains("alternate")
+                    || candidate.HasAttribute("disabled")
+                    || !IsCssStylesheetType(candidate.GetAttribute("type"))
+                    || !IsApplicableMedia(candidate.GetAttribute("media") ?? string.Empty, options)) {
+                    continue;
+                }
+                return title;
+            }
+            if (string.Equals(candidate.LocalName, "style", StringComparison.OrdinalIgnoreCase)
+                && IsCssStyleElement(candidate)
+                && IsApplicableMedia(candidate.GetAttribute("media") ?? string.Empty, options)) {
+                return title;
+            }
+        }
+        return null;
+    }
+
+    private static string? NormalizeStylesheetSetTitle(string? title) {
+        string normalized = title?.Trim() ?? string.Empty;
+        return normalized.Length == 0 ? null : normalized;
+    }
+
+    internal static bool IsCssStylesheetType(string? type) {
+        if (string.IsNullOrWhiteSpace(type)) return true;
+        int parameterSeparator = type!.IndexOf(';');
+        string essence = (parameterSeparator < 0 ? type : type.Substring(0, parameterSeparator)).Trim();
+        return essence.Equals("text/css", StringComparison.OrdinalIgnoreCase);
+    }
+
+    internal static bool IsHtmlNamespaceElement(IElement element) =>
+        string.Equals(element.NamespaceUri, "http://www.w3.org/1999/xhtml", StringComparison.Ordinal);
 
     private static HashSet<string> GetRelTokens(string rel) {
         var tokens = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

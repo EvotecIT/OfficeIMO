@@ -9,8 +9,6 @@
     <IsTestProject>true</IsTestProject>
     <Nullable>enable</Nullable>
     <LangVersion>Latest</LangVersion>
-    <WarningsNotAsErrors>$(WarningsNotAsErrors);CS8600;CS8601;CS8602;CS8603;CS8604;CS8625</WarningsNotAsErrors>
-    <NoWarn>$(NoWarn);CS0436;CS8600;CS8601;CS8602;CS8603;CS8604;CS8625;CA1416;SYSLIB0057;xUnit2012;xUnit2013;xUnit2029</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -41,6 +39,7 @@
     <None Include="TestAssets\AdobeVFPrototype-Subset.otf" CopyToOutputDirectory="PreserveNewest" />
     <None Include="TestAssets\RobotoFlex.ttf" CopyToOutputDirectory="PreserveNewest" />
     <None Include="TestAssets\NotoEmoji-VariableFont_wght.ttf" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\ContentSafety\svg-concealed-adversarial.svg" Link="TestAssets\svg-concealed-adversarial.svg" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">

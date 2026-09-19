@@ -144,8 +144,8 @@ public partial class Word {
         });
 
         Assert.Null(exception);
-        Assert.Empty(section.Elements<HeaderReference>().Where(reference => reference.Type?.Value == HeaderFooterValues.Default));
-        Assert.Empty(section.Elements<FooterReference>().Where(reference => reference.Type?.Value == HeaderFooterValues.Default));
+        Assert.DoesNotContain(section.Elements<HeaderReference>(), reference => reference.Type?.Value == HeaderFooterValues.Default);
+        Assert.DoesNotContain(section.Elements<FooterReference>(), reference => reference.Type?.Value == HeaderFooterValues.Default);
     }
 
     [Fact]

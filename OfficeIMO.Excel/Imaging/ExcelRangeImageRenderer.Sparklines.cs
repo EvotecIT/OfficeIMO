@@ -29,16 +29,19 @@ namespace OfficeIMO.Excel {
             StringBuilder builder,
             ExcelRangeVisualSnapshot snapshot,
             ExcelImageExportOptions options,
-            System.Threading.CancellationToken cancellationToken) {
+            System.Threading.CancellationToken cancellationToken,
+            OfficeSvgUtf8CompositionBudget? budget) {
             double scale = options.Scale;
             int index = 0;
             foreach (ExcelVisualSparkline sparkline in snapshot.Sparklines) {
                 cancellationToken.ThrowIfCancellationRequested();
                 string clipId = "officeimo-sparkline-clip-" + index.ToString(CultureInfo.InvariantCulture);
-                builder.AppendRectClipPathDefinition(clipId, sparkline.X * scale, sparkline.Y * scale, sparkline.Width * scale, sparkline.Height * scale, wrapInDefs: true);
-                builder.Append("<g").AppendClipPathReference(clipId).Append(">");
-                AppendSvgSparkline(builder, sparkline, scale);
-                builder.Append("</g>");
+                AppendSvgFragment(builder, budget, fragment => {
+                    fragment.AppendRectClipPathDefinition(clipId, sparkline.X * scale, sparkline.Y * scale, sparkline.Width * scale, sparkline.Height * scale, wrapInDefs: true);
+                    fragment.Append("<g").AppendClipPathReference(clipId).Append(">");
+                    AppendSvgSparkline(fragment, sparkline, scale);
+                    fragment.Append("</g>");
+                });
                 index++;
             }
         }

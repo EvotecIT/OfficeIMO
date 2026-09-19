@@ -200,9 +200,8 @@ public sealed class PdfContentStreamInterpreterTests {
         PdfContentInlineImage inlineImage = Assert.IsType<PdfContentInlineImage>(operations[0].InlineImage);
         Assert.True(operations[0].HasInvalidOperands);
         Assert.Equal(new byte[] { (byte)'A' }, inlineImage.Data);
-        Assert.Equal(
-            1,
-            PdfPageXObjectInvocationParser.Parse(content, Matrix2D.Identity, 200D).Count);
+        Assert.Single(
+            PdfPageXObjectInvocationParser.Parse(content, Matrix2D.Identity, 200D));
     }
 
     [Fact]

@@ -171,9 +171,25 @@ public sealed class EmailMimeReaderTests {
             "Content-Disposition: attachment; filename*0*=utf-8''price-%E2%82; filename*1*=%AC.txt\r\n" +
             "Content-Transfer-Encoding: base64\r\n\r\nAQ==\r\n--x--\r\n";
 
-        EmailDocument document = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml)).Document;
+        EmailReadResult result = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml));
 
-        Assert.Equal("price-€.txt", Assert.Single(document.Attachments).FileName);
+        Assert.Equal("price-€.txt", Assert.Single(result.Document.Attachments).FileName);
+        Assert.DoesNotContain(result.Diagnostics,
+            diagnostic => diagnostic.Code == MimeValueParser.DuplicateSecurityParameterDiagnosticCode);
+    }
+
+    [Fact]
+    public void MixedRfc2231ContinuationKeepsUnencodedSegmentsLiteralAndReportsAmbiguity() {
+        const string eml = "Subject: mixed continuation\r\nMIME-Version: 1.0\r\n" +
+            "Content-Type: application/octet-stream\r\n" +
+            "Content-Disposition: attachment; filename*0*=utf-8''safe; filename*1=%2Etxt\r\n\r\n" +
+            "content";
+
+        EmailReadResult result = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml));
+
+        Assert.Equal("safe%2Etxt", Assert.Single(result.Document.Attachments).FileName);
+        Assert.Contains(result.Diagnostics, diagnostic =>
+            diagnostic.Code == MimeValueParser.InvalidExtendedParameterDiagnosticCode);
     }
 
     [Fact]
@@ -461,6 +477,32 @@ public sealed class EmailMimeReaderTests {
         Assert.Equal("<p>root body</p>", document.Body.Html!.Trim());
         EmailAttachment attachment = Assert.Single(document.Attachments);
         Assert.Equal("logo", attachment.ContentId);
+    }
+
+    [Fact]
+    public void ReportsInvalidExtendedRelatedStartParameter() {
+        const string eml = "Subject: invalid related start\r\n" +
+            "Content-Type: multipart/related; boundary=outer; start*=utf-8''%C3%28\r\n\r\n" +
+            "--outer\r\nContent-Type: text/html; charset=utf-8\r\n\r\n<p>root</p>\r\n" +
+            "--outer--\r\n";
+
+        EmailReadResult result = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml));
+
+        Assert.Contains(result.Diagnostics, diagnostic =>
+            diagnostic.Code == "EMAIL_MIME_PARAMETER_EXTENDED_INVALID");
+    }
+
+    [Fact]
+    public void ReportsMultipartRelatedRootTypeMismatch() {
+        const string eml = "Subject: mismatched related type\r\n" +
+            "Content-Type: multipart/related; boundary=outer; type=text/plain\r\n\r\n" +
+            "--outer\r\nContent-Type: text/html; charset=utf-8\r\n\r\n<p>root</p>\r\n" +
+            "--outer--\r\n";
+
+        EmailReadResult result = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml));
+
+        Assert.Contains(result.Diagnostics, diagnostic =>
+            diagnostic.Code == "EMAIL_MIME_RELATED_ROOT_TYPE_MISMATCH");
     }
 
     [Fact]

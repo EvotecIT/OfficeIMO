@@ -12,6 +12,9 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
+        private const double MaximumNativeHeaderFooterListOffsetPoints = 14_400D;
+        private const int MaximumNativeHeaderFooterListSpacingCharacters = 8_192;
+
         private static void ApplyNativeHeaderFooterPageNumberStyle(PdfCore.PdfPageBuilder page, params NativeHeaderFooterText?[] parts) {
             PdfCore.PdfPageNumberStyle? style = null;
             foreach (NativeHeaderFooterText? part in parts) {
@@ -45,19 +48,20 @@ namespace OfficeIMO.Word.Pdf {
             return result;
         }
 
-        private static NativeHeaderFooterText? GetNativeHeaderFooterText(WordHeaderFooter? headerFooter) {
+        private static NativeHeaderFooterText? GetNativeHeaderFooterText(WordHeaderFooter? headerFooter, IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers, NativeFontMap? nativeFontMap = null) {
             if (headerFooter == null) {
                 return null;
             }
 
+            ValidateNativeHeaderFooterTextBoxNesting(headerFooter);
             var parts = new NativeHeaderFooterText();
             foreach (WordElement element in CollapseNativeParagraphElements(headerFooter.Elements)) {
                 switch (element) {
                     case WordParagraph paragraph:
-                        AddNativeHeaderFooterParagraphText(parts, paragraph);
+                        AddNativeHeaderFooterParagraphText(parts, paragraph, listMarkers, nativeFontMap: nativeFontMap);
                         break;
                     case WordTable table:
-                        AddNativeHeaderFooterTableText(parts, table);
+                        AddNativeHeaderFooterTableText(parts, table, listMarkers, nativeFontMap);
                         break;
                     case WordHyperLink link when !string.IsNullOrWhiteSpace(link.Text):
                         parts.AppendLeft(link.Text);
@@ -498,34 +502,229 @@ namespace OfficeIMO.Word.Pdf {
             return shapes;
         }
 
-        private static void AddNativeHeaderFooterParagraphText(NativeHeaderFooterText parts, WordParagraph paragraph) {
-            string? text = GetNativeHeaderFooterParagraphText(paragraph, out PdfCore.PdfPageNumberStyle? pageNumberStyle, out NativeHeaderFooterZone? zoneOverride);
+        private static void AddNativeHeaderFooterParagraphText(NativeHeaderFooterText parts, WordParagraph paragraph, IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers, NativeHeaderFooterZone? forcedZone = null, NativeFontMap? nativeFontMap = null) {
+            WordTextBox? textBox = GetNativeParagraphTextBox(paragraph, out _);
+            string? text = GetNativeHeaderFooterParagraphText(paragraph, listMarkers, out PdfCore.PdfPageNumberStyle? pageNumberStyle, out NativeHeaderFooterZone? zoneOverride);
+            IReadOnlyList<NativeHeaderFooterStyledReplacement>? replacements = textBox == null
+                ? null
+                : CreateNativeHeaderFooterTextBoxListReplacements(textBox, listMarkers, nativeFontMap);
+            AddNativeHeaderFooterResolvedParagraphText(parts, paragraph, text, pageNumberStyle, forcedZone ?? zoneOverride, listMarkers, nativeFontMap, replacements);
+        }
 
-            if (string.IsNullOrWhiteSpace(text)) {
+        private static void AddNativeHeaderFooterResolvedParagraphText(
+            NativeHeaderFooterText parts,
+            WordParagraph paragraph,
+            string? text,
+            PdfCore.PdfPageNumberStyle? pageNumberStyle,
+            NativeHeaderFooterZone? resolvedZone,
+            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers,
+            NativeFontMap? nativeFontMap,
+            IReadOnlyList<NativeHeaderFooterStyledReplacement>? replacements = null) {
+            string resolvedText = text ?? string.Empty;
+            PdfCore.PdfTextRun? markerRun = null;
+            PdfCore.PdfTextRun? contentStyleRun = null;
+            WordDocumentTraversal.ListInfo? listInfo = WordDocumentTraversal.GetListInfo(paragraph);
+            if (listInfo != null && listMarkers.TryGetValue(paragraph, out var marker)) {
+                string serializedPrefix = marker.Marker + ResolveNativeInlineListMarkerSuffix(listInfo.Value.LevelSuffix);
+                if (serializedPrefix.Length > 0 && resolvedText.StartsWith(serializedPrefix, StringComparison.Ordinal)) {
+                    resolvedText = resolvedText.Substring(serializedPrefix.Length);
+                }
+
+                NativeResolvedTextStyle textStyle = ResolveNativeTextRunStyle(paragraph, nativeFontMap: nativeFontMap);
+                (double MarkerOffset, double TextOffset) offsets = ResolveNativeHeaderFooterListOffsets(paragraph, listInfo.Value);
+                if (!string.IsNullOrEmpty(marker.Marker)) {
+                    markerRun = CreateNativeHeaderFooterListMarkerTextRun(
+                        marker.Marker,
+                        paragraph,
+                        listInfo.Value,
+                        textStyle,
+                        nativeFontMap,
+                        offsets.MarkerOffset,
+                        offsets.TextOffset);
+                } else if (!string.IsNullOrEmpty(resolvedText) && offsets.TextOffset > 0D) {
+                    contentStyleRun = CreateNativeHeaderFooterStyledTextRun(resolvedText, textStyle, offsets.TextOffset);
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(resolvedText) && markerRun == null) {
+                if (resolvedZone.HasValue) {
+                    parts.Append(resolvedZone.Value, string.Empty, pageNumberStyle, markerRun: null, contentStyleRun: null);
+                }
                 return;
             }
 
-            string resolvedText = text!;
-            if (zoneOverride.HasValue) {
-                parts.Append(zoneOverride.Value, resolvedText, pageNumberStyle);
+            if (resolvedZone.HasValue) {
+                parts.Append(resolvedZone.Value, resolvedText, pageNumberStyle, markerRun, contentStyleRun, replacements);
                 return;
             }
 
             W.JustificationValues? alignment = ResolveNativeParagraphJustification(paragraph);
             if (alignment == W.JustificationValues.Center) {
-                parts.AppendCenter(resolvedText, pageNumberStyle);
+                parts.AppendCenter(resolvedText, pageNumberStyle, markerRun, contentStyleRun, replacements);
             } else if (alignment == W.JustificationValues.Right) {
-                parts.AppendRight(resolvedText, pageNumberStyle);
+                parts.AppendRight(resolvedText, pageNumberStyle, markerRun, contentStyleRun, replacements);
             } else {
-                parts.AppendLeft(resolvedText, pageNumberStyle);
+                parts.AppendLeft(resolvedText, pageNumberStyle, markerRun, contentStyleRun, replacements);
             }
         }
+
+        private static IReadOnlyList<NativeHeaderFooterStyledReplacement> CreateNativeHeaderFooterTextBoxListReplacements(
+            WordTextBox textBox,
+            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers,
+            NativeFontMap? nativeFontMap) {
+            var replacements = new List<NativeHeaderFooterStyledReplacement>();
+            var pending = new Stack<IEnumerator<WordParagraph>>();
+            pending.Push(GetNativeTextBoxParagraphs(textBox).GetEnumerator());
+            while (pending.Count > 0) {
+                IEnumerator<WordParagraph> current = pending.Peek();
+                if (!current.MoveNext()) {
+                    current.Dispose();
+                    pending.Pop();
+                    continue;
+                }
+
+                WordParagraph innerParagraph = current.Current;
+                WordDocumentTraversal.ListInfo? info = WordDocumentTraversal.GetListInfo(innerParagraph);
+                if (info != null &&
+                    listMarkers.TryGetValue(innerParagraph, out var marker) &&
+                    !string.IsNullOrEmpty(marker.Marker)) {
+                    string serializedPrefix = NormalizeNativeDirectText(
+                        marker.Marker + ResolveNativeInlineListMarkerSuffix(info.Value.LevelSuffix));
+                    NativeResolvedTextStyle textStyle = ResolveNativeTextRunStyle(innerParagraph, nativeFontMap: nativeFontMap);
+                    (double MarkerOffset, double TextOffset) offsets = ResolveNativeHeaderFooterListOffsets(innerParagraph, info.Value);
+                    PdfCore.PdfTextRun styledMarker = CreateNativeHeaderFooterListMarkerTextRun(
+                        marker.Marker,
+                        innerParagraph,
+                        info.Value,
+                        textStyle,
+                        nativeFontMap,
+                        offsets.MarkerOffset,
+                        offsets.TextOffset);
+                    replacements.Add(new NativeHeaderFooterStyledReplacement(serializedPrefix, styledMarker));
+                }
+
+                WordTextBox? nested = GetNativeParagraphTextBox(innerParagraph, out _);
+                if (nested != null) {
+                    pending.Push(GetNativeTextBoxParagraphs(nested).GetEnumerator());
+                }
+            }
+            return replacements;
+        }
+
+        private static (double MarkerOffset, double TextOffset) ResolveNativeHeaderFooterListOffsets(
+            WordParagraph paragraph,
+            WordDocumentTraversal.ListInfo info) {
+            NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
+            bool useParagraphStyleIndent = ShouldApplyNativeListParagraphStyleIndent(paragraph);
+            double textOffset = paragraph.IndentationBeforePoints ??
+                (useParagraphStyleIndent ? styleDefaults.LeftIndent : null) ??
+                ConvertNativeTwipsToPoints(info.LeftIndentTwips ?? ((info.Level + 1) * 720)) ?? 0D;
+            double hangingIndent = paragraph.IndentationHangingPoints ??
+                (useParagraphStyleIndent ? GetNativeStyleHangingIndent(styleDefaults) : null) ??
+                ConvertNativeTwipsToPoints(info.HangingIndentTwips ?? 360) ?? 0D;
+            double markerOffset = Math.Max(0D, textOffset - Math.Max(0D, hangingIndent));
+            return (
+                Math.Min(MaximumNativeHeaderFooterListOffsetPoints, markerOffset),
+                Math.Min(MaximumNativeHeaderFooterListOffsetPoints, Math.Max(0D, textOffset)));
+        }
+
+        private static PdfCore.PdfTextRun CreateNativeHeaderFooterListMarkerTextRun(
+            string marker,
+            WordParagraph paragraph,
+            WordDocumentTraversal.ListInfo info,
+            NativeResolvedTextStyle textStyle,
+            NativeFontMap? nativeFontMap,
+            double markerOffset,
+            double textOffset) {
+            PdfCore.PdfTextRun styledMarker = CreateNativeListMarkerTextRun(marker, paragraph, textStyle, nativeFontMap);
+            double markerFontSize = styledMarker.FontSize ?? textStyle.FontSize ?? 12D;
+            double markerWidth = EstimateNativeListMarkerWidth(marker, markerFontSize);
+            double markerColumnWidth = Math.Max(markerWidth, Math.Max(0D, textOffset - markerOffset));
+            double alignmentOffset = info.LevelJustification switch {
+                WordListLevelAlignment.Right => Math.Max(0D, markerColumnWidth - markerWidth),
+                WordListLevelAlignment.Center => Math.Max(0D, (markerColumnWidth - markerWidth) / 2D),
+                _ => 0D
+            };
+            double resolvedMarkerOffset = Math.Min(
+                MaximumNativeHeaderFooterListOffsetPoints,
+                markerOffset + alignmentOffset);
+            string suffix = ResolveNativeHeaderFooterListMarkerSuffix(
+                info.LevelSuffix,
+                info.LevelJustification,
+                marker,
+                markerFontSize,
+                resolvedMarkerOffset,
+                textOffset);
+            return CloneNativeHeaderFooterTextRun(styledMarker, marker + suffix)
+                .WithHorizontalOffset(resolvedMarkerOffset);
+        }
+
+        private static string ResolveNativeHeaderFooterListMarkerSuffix(
+            WordListLevelSuffix? suffix,
+            WordListLevelAlignment? justification,
+            string marker,
+            double markerFontSize,
+            double markerOffset,
+            double textOffset) {
+            bool leftJustified = justification != WordListLevelAlignment.Right &&
+                                 justification != WordListLevelAlignment.Center;
+            if (leftJustified && suffix == WordListLevelSuffix.Nothing) {
+                return string.Empty;
+            }
+            if (leftJustified && suffix == WordListLevelSuffix.Space) {
+                return " ";
+            }
+
+            double spaceWidth = Math.Max(0.01D, EstimateNativeListMarkerWidth(" ", markerFontSize));
+            double desiredGap = Math.Max(0D, textOffset - markerOffset - EstimateNativeListMarkerWidth(marker, markerFontSize));
+            if (suffix == WordListLevelSuffix.Space) {
+                desiredGap += spaceWidth;
+            }
+            if (desiredGap <= spaceWidth * 0.001D) {
+                return string.Empty;
+            }
+            int spaceCount = Math.Max(1, (int)Math.Ceiling(desiredGap / spaceWidth));
+            return new string(' ', Math.Min(MaximumNativeHeaderFooterListSpacingCharacters, spaceCount));
+        }
+
+        private static PdfCore.PdfTextRun CreateNativeHeaderFooterStyledTextRun(
+            string text,
+            NativeResolvedTextStyle style,
+            double horizontalOffset) =>
+            new PdfCore.PdfTextRun(
+                text.Replace('\t', ' '),
+                bold: style.Bold,
+                color: style.Color,
+                italic: style.Italic,
+                fontSize: style.FontSize,
+                font: style.Font,
+                fontFamily: style.FontFamily)
+            .WithHorizontalOffset(horizontalOffset);
+
+        private static PdfCore.PdfTextRun CloneNativeHeaderFooterTextRun(PdfCore.PdfTextRun source, string text) =>
+            new PdfCore.PdfTextRun(
+                text.Replace('\t', ' '),
+                source.Bold,
+                source.Underline,
+                source.Color,
+                source.Italic,
+                source.Strike,
+                source.FontSize,
+                source.Font,
+                baseline: source.Baseline,
+                backgroundColor: source.BackgroundColor,
+                fontFamily: source.FontFamily,
+                underlineStyle: source.UnderlineStyle,
+                strikeStyle: source.StrikeStyle,
+                decorationColor: source.DecorationColor)
+            .WithFeatureSettings(source.FeatureSettings)
+            .WithHorizontalOffset(source.HorizontalOffset);
 
         private static void AddNativeHeaderFooterTableImages(List<NativeHeaderFooterImage> images, WordTable table, WordToPdfOptions? options, string source) {
             foreach (WordTableRow row in table.Rows) {
                 IReadOnlyList<WordTableCell> cells = row.Cells;
                 if (cells.Count == 1) {
-                    foreach (WordParagraph paragraph in GetNativeCellParagraphs(cells[0])) {
+                    foreach (WordParagraph paragraph in EnumerateNativeTableCellParagraphs(cells[0])) {
                         AddNativeHeaderFooterParagraphImage(images, paragraph, null, options, source);
                     }
 
@@ -539,7 +738,7 @@ namespace OfficeIMO.Word.Pdf {
                             ? PdfCore.PdfAlign.Right
                             : PdfCore.PdfAlign.Center;
 
-                    foreach (WordParagraph paragraph in GetNativeCellParagraphs(cells[cellIndex])) {
+                    foreach (WordParagraph paragraph in EnumerateNativeTableCellParagraphs(cells[cellIndex])) {
                         AddNativeHeaderFooterParagraphImage(images, paragraph, align, options, source);
                     }
                 }
@@ -586,7 +785,7 @@ namespace OfficeIMO.Word.Pdf {
             foreach (WordTableRow row in table.Rows) {
                 IReadOnlyList<WordTableCell> cells = row.Cells;
                 if (cells.Count == 1) {
-                    foreach (WordParagraph paragraph in GetNativeCellParagraphs(cells[0])) {
+                    foreach (WordParagraph paragraph in EnumerateNativeTableCellParagraphs(cells[0])) {
                         AddNativeHeaderFooterParagraphShape(shapes, paragraph, null);
                     }
 
@@ -600,7 +799,7 @@ namespace OfficeIMO.Word.Pdf {
                             ? PdfCore.PdfAlign.Right
                             : PdfCore.PdfAlign.Center;
 
-                    foreach (WordParagraph paragraph in GetNativeCellParagraphs(cells[cellIndex])) {
+                    foreach (WordParagraph paragraph in EnumerateNativeTableCellParagraphs(cells[cellIndex])) {
                         AddNativeHeaderFooterParagraphShape(shapes, paragraph, align);
                     }
                 }
@@ -621,23 +820,36 @@ namespace OfficeIMO.Word.Pdf {
             shapes.Add(new NativeHeaderFooterShape(shape, align));
         }
 
-        private static string? GetNativeHeaderFooterParagraphText(WordParagraph paragraph, out PdfCore.PdfPageNumberStyle? pageNumberStyle) {
-            return GetNativeHeaderFooterParagraphText(paragraph, out pageNumberStyle, out _);
+        private static string? GetNativeHeaderFooterParagraphText(
+            WordParagraph paragraph,
+            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers,
+            out PdfCore.PdfPageNumberStyle? pageNumberStyle,
+            int textBoxDepth = 0) {
+            return GetNativeHeaderFooterParagraphText(paragraph, listMarkers, out pageNumberStyle, out _, textBoxDepth);
         }
 
-        private static string? GetNativeHeaderFooterParagraphText(WordParagraph paragraph, out PdfCore.PdfPageNumberStyle? pageNumberStyle, out NativeHeaderFooterZone? zoneOverride) {
+        private static string? GetNativeHeaderFooterParagraphText(
+            WordParagraph paragraph,
+            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers,
+            out PdfCore.PdfPageNumberStyle? pageNumberStyle,
+            out NativeHeaderFooterZone? zoneOverride,
+            int textBoxDepth = 0) {
             zoneOverride = null;
+            WordTextBox? numberedTextBox = GetNativeParagraphTextBox(paragraph, out _);
+            if (numberedTextBox != null && GetNativeTextBoxParagraphs(numberedTextBox).Any(inner => inner.IsListItem)) {
+                zoneOverride = MapNativeTextBoxHeaderFooterZone(numberedTextBox.HorizontalAlignment);
+            }
             if (TryBuildNativeHeaderFooterParagraphText(paragraph, out string? mixedText, out pageNumberStyle)) {
-                return AppendNativeHeaderFooterSupplementalText(mixedText, paragraph);
+                return PrependNativeHeaderFooterListMarker(paragraph, AppendNativeHeaderFooterSupplementalText(mixedText, paragraph), listMarkers, textBoxDepth);
             }
 
             if (TryGetNativeHeaderFooterFieldToken(paragraph, out string? fieldToken, out pageNumberStyle)) {
-                return AppendNativeHeaderFooterSupplementalText(fieldToken, paragraph);
+                return PrependNativeHeaderFooterListMarker(paragraph, AppendNativeHeaderFooterSupplementalText(fieldToken, paragraph), listMarkers, textBoxDepth);
             }
 
             pageNumberStyle = null;
             if (paragraph.IsHyperLink && paragraph.Hyperlink != null && !IsNativeHiddenTextRun(paragraph)) {
-                return AppendNativeHeaderFooterSupplementalText(ApplyNativeTextTransform(paragraph.Hyperlink.Text, paragraph), paragraph);
+                return PrependNativeHeaderFooterListMarker(paragraph, AppendNativeHeaderFooterSupplementalText(ApplyNativeTextTransform(paragraph.Hyperlink.Text, paragraph), paragraph), listMarkers, textBoxDepth);
             }
 
             List<WordParagraph> runs = GetNativeRuns(paragraph);
@@ -646,7 +858,7 @@ namespace OfficeIMO.Word.Pdf {
                 : IsNativeHiddenTextRun(paragraph) ? string.Empty : ApplyNativeTextTransform(paragraph.Text, paragraph);
             text = AppendNativeHeaderFooterSupplementalText(text, paragraph);
             if (!string.IsNullOrWhiteSpace(text)) {
-                return text;
+                return PrependNativeHeaderFooterListMarker(paragraph, text, listMarkers, textBoxDepth);
             }
 
             string? textBoxText = GetNativeParagraphTextBoxPlainText(paragraph);
@@ -656,7 +868,53 @@ namespace OfficeIMO.Word.Pdf {
 
             WordTextBox? textBox = GetNativeParagraphTextBox(paragraph, out _);
             zoneOverride = MapNativeTextBoxHeaderFooterZone(textBox?.HorizontalAlignment ?? WordTextBoxHorizontalAlignment.Center);
-            return textBoxText;
+            if (textBox != null) {
+                EnsureNativeHeaderFooterTextBoxDepth(textBoxDepth);
+                string innerText = string.Join("\n", GetNativeTextBoxParagraphs(textBox)
+                    .Select(inner => GetNativeHeaderFooterParagraphText(inner, listMarkers, out _, textBoxDepth + 1))
+                    .Where(inner => !string.IsNullOrWhiteSpace(inner)));
+                if (!string.IsNullOrWhiteSpace(innerText)) {
+                    return PrependNativeHeaderFooterListMarker(paragraph, innerText, listMarkers, textBoxDepth);
+                }
+            }
+            return PrependNativeHeaderFooterListMarker(paragraph, textBoxText, listMarkers, textBoxDepth);
+        }
+
+        private static string? PrependNativeHeaderFooterListMarker(
+            WordParagraph paragraph,
+            string? text,
+            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers,
+            int textBoxDepth) {
+            if (string.IsNullOrWhiteSpace(text)) return text;
+            string resolvedText = text!;
+            WordTextBox? textBox = GetNativeParagraphTextBox(paragraph, out _);
+            if (textBox != null) {
+                IReadOnlyList<WordParagraph> innerParagraphs = GetNativeTextBoxParagraphs(textBox);
+                if (innerParagraphs.Any(inner => inner.IsListItem)) {
+                    EnsureNativeHeaderFooterTextBoxDepth(textBoxDepth);
+                    string? flattenedText = GetNativeParagraphTextBoxPlainText(paragraph);
+                    int textBoxStart = string.IsNullOrEmpty(flattenedText)
+                        ? -1
+                        : resolvedText.IndexOf(flattenedText, StringComparison.Ordinal);
+                    if (textBoxStart >= 0) {
+                        string innerText = string.Join("\n", innerParagraphs
+                            .Select(inner => GetNativeHeaderFooterParagraphText(inner, listMarkers, out _, textBoxDepth + 1))
+                            .Where(inner => !string.IsNullOrWhiteSpace(inner)));
+                        resolvedText = resolvedText.Remove(textBoxStart, flattenedText!.Length).Insert(textBoxStart, innerText);
+                    }
+                }
+            }
+            if (!paragraph.IsListItem) return resolvedText;
+            return listMarkers.TryGetValue(paragraph, out var marker) && !string.IsNullOrEmpty(marker.Marker)
+                ? marker.Marker + ResolveNativeInlineListMarkerSuffix(WordDocumentTraversal.GetListInfo(paragraph)?.LevelSuffix) + resolvedText
+                : resolvedText;
+        }
+
+        private static void EnsureNativeHeaderFooterTextBoxDepth(int textBoxDepth) {
+            if (textBoxDepth >= MaximumNativeHeaderFooterTextBoxNestingDepth) {
+                throw new InvalidDataException(
+                    $"Header or footer text-box nesting exceeds the supported limit of {MaximumNativeHeaderFooterTextBoxNestingDepth} levels.");
+            }
         }
 
         private static string? AppendNativeHeaderFooterSupplementalText(string? text, WordParagraph paragraph) {
@@ -1064,11 +1322,11 @@ namespace OfficeIMO.Word.Pdf {
             return null;
         }
 
-        private static void AddNativeHeaderFooterTableText(NativeHeaderFooterText parts, WordTable table) {
+        private static void AddNativeHeaderFooterTableText(NativeHeaderFooterText parts, WordTable table, IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers, NativeFontMap? nativeFontMap) {
             foreach (WordTableRow row in table.Rows) {
                 IReadOnlyList<WordTableCell> cells = row.Cells;
                 if (cells.Count == 1) {
-                    AddNativeHeaderFooterSingleCellText(parts, cells[0]);
+                    AddNativeHeaderFooterTableCellText(parts, cells[0], NativeHeaderFooterZone.Left, listMarkers, nativeFontMap);
                     continue;
                 }
 
@@ -1079,73 +1337,22 @@ namespace OfficeIMO.Word.Pdf {
                             ? NativeHeaderFooterZone.Right
                             : NativeHeaderFooterZone.Center;
 
-                    AddNativeHeaderFooterCellText(parts, cells[cellIndex], zone);
+                    AddNativeHeaderFooterTableCellText(parts, cells[cellIndex], zone, listMarkers, nativeFontMap);
                 }
             }
         }
 
-        private static void AddNativeHeaderFooterSingleCellText(NativeHeaderFooterText parts, WordTableCell cell) {
-            string cellText = GetNativeHeaderFooterCellText(cell, preserveParagraphBreaks: true, out PdfCore.PdfPageNumberStyle? pageNumberStyle);
-            if (!string.IsNullOrWhiteSpace(cellText)) {
-                parts.AppendLeft(cellText, pageNumberStyle);
-            }
-        }
-
-        private static void AddNativeHeaderFooterCellText(NativeHeaderFooterText parts, WordTableCell cell, NativeHeaderFooterZone zone) {
-            string cellText = GetNativeHeaderFooterCellText(cell, preserveParagraphBreaks: true, out PdfCore.PdfPageNumberStyle? pageNumberStyle);
-            if (!string.IsNullOrWhiteSpace(cellText)) {
-                parts.Append(zone, cellText, pageNumberStyle);
-            }
-        }
-
-        private static string GetNativeHeaderFooterCellText(WordTableCell cell, bool preserveParagraphBreaks, out PdfCore.PdfPageNumberStyle? pageNumberStyle) {
-            var parts = new List<string>();
-            pageNumberStyle = null;
-            bool hasConflictingStyles = false;
-            foreach (WordParagraph paragraph in GetNativeCellParagraphs(cell)) {
-                string? text = GetNativeHeaderFooterParagraphText(paragraph, out PdfCore.PdfPageNumberStyle? paragraphStyle);
-                if (!string.IsNullOrEmpty(text)) {
-                    parts.Add(text!);
-                    MergeNativeHeaderFooterPageNumberStyle(ref pageNumberStyle, ref hasConflictingStyles, paragraphStyle);
-                } else {
-                    parts.Add(string.Empty);
-                }
+        private static void AddNativeHeaderFooterTableCellText(NativeHeaderFooterText parts, WordTableCell cell, NativeHeaderFooterZone zone, IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers, NativeFontMap? nativeFontMap) {
+            List<WordParagraph> paragraphs = EnumerateNativeTableCellParagraphs(cell).ToList();
+            int lastContentIndex = -1;
+            for (int index = 0; index < paragraphs.Count; index++) {
+                string? text = GetNativeHeaderFooterParagraphText(paragraphs[index], listMarkers, out _);
+                if (!string.IsNullOrWhiteSpace(text)) lastContentIndex = index;
             }
 
-            while (parts.Count > 0 && string.IsNullOrWhiteSpace(parts[parts.Count - 1])) {
-                parts.RemoveAt(parts.Count - 1);
+            for (int index = 0; index <= lastContentIndex; index++) {
+                AddNativeHeaderFooterParagraphText(parts, paragraphs[index], listMarkers, zone, nativeFontMap);
             }
-
-            if (!parts.Any(part => !string.IsNullOrWhiteSpace(part))) {
-                return string.Empty;
-            }
-
-            return JoinNativeHeaderFooterParagraphParts(parts, preserveParagraphBreaks);
-        }
-
-        private static string JoinNativeHeaderFooterParagraphParts(IReadOnlyList<string> parts, bool preserveParagraphBreaks) {
-            var builder = new StringBuilder();
-            for (int index = 0; index < parts.Count; index++) {
-                string part = parts[index];
-                if (index > 0) {
-                    bool previousHasText = !string.IsNullOrWhiteSpace(parts[index - 1]);
-                    bool currentHasText = !string.IsNullOrWhiteSpace(part);
-                    if (preserveParagraphBreaks) {
-                        builder.Append(Environment.NewLine);
-                        if (previousHasText && currentHasText) {
-                            builder.Append(Environment.NewLine);
-                        }
-                    } else if (previousHasText != currentHasText) {
-                        builder.Append(Environment.NewLine);
-                    } else if (previousHasText && currentHasText) {
-                        builder.Append(' ');
-                    }
-                }
-
-                builder.Append(part);
-            }
-
-            return builder.ToString();
         }
 
         private static void MergeNativeHeaderFooterPageNumberStyle(ref PdfCore.PdfPageNumberStyle? current, ref bool hasConflict, PdfCore.PdfPageNumberStyle? candidate) {
@@ -1198,24 +1405,63 @@ namespace OfficeIMO.Word.Pdf {
             public PdfCore.PdfAlign Align { get; }
         }
 
+        private sealed class NativeHeaderFooterStyledReplacement {
+            public NativeHeaderFooterStyledReplacement(string serializedText, PdfCore.PdfTextRun styledRun) {
+                SerializedText = serializedText;
+                StyledRun = styledRun;
+            }
+
+            public string SerializedText { get; }
+            public PdfCore.PdfTextRun StyledRun { get; }
+        }
+
         private sealed class NativeHeaderFooterText {
             public string? Left { get; private set; }
             public string? Center { get; private set; }
             public string? Right { get; private set; }
             public bool HasPageTokens { get; private set; }
             public PdfCore.PdfPageNumberStyle? PageNumberStyle { get; private set; }
+            public List<PdfCore.FooterSegment> LeftSegments { get; } = new List<PdfCore.FooterSegment>();
+            public List<PdfCore.FooterSegment> CenterSegments { get; } = new List<PdfCore.FooterSegment>();
+            public List<PdfCore.FooterSegment> RightSegments { get; } = new List<PdfCore.FooterSegment>();
+            public bool HasStyledZones { get; private set; }
             private bool _hasConflictingPageNumberStyles;
+            private int _leftParagraphCount;
+            private int _centerParagraphCount;
+            private int _rightParagraphCount;
+            private bool _leftPreviousHasText;
+            private bool _centerPreviousHasText;
+            private bool _rightPreviousHasText;
             public bool HasContent =>
                 !string.IsNullOrWhiteSpace(Left) ||
                 !string.IsNullOrWhiteSpace(Center) ||
                 !string.IsNullOrWhiteSpace(Right);
 
-            public void AppendLeft(string text) => Left = Append(Left, text, null);
-            public void AppendCenter(string text) => Center = Append(Center, text, null);
-            public void AppendRight(string text) => Right = Append(Right, text, null);
-            public void AppendLeft(string text, PdfCore.PdfPageNumberStyle? pageNumberStyle) => Left = Append(Left, text, pageNumberStyle);
-            public void AppendCenter(string text, PdfCore.PdfPageNumberStyle? pageNumberStyle) => Center = Append(Center, text, pageNumberStyle);
-            public void AppendRight(string text, PdfCore.PdfPageNumberStyle? pageNumberStyle) => Right = Append(Right, text, pageNumberStyle);
+            public Action<PdfCore.HeaderTextBuilder>? CreateHeaderZone(NativeHeaderFooterZone zone) {
+                IReadOnlyList<PdfCore.FooterSegment> segments = GetSegments(zone);
+                return segments.Count == 0 ? null : builder => AppendSegments(builder, segments);
+            }
+
+            public Action<PdfCore.FooterTextBuilder>? CreateFooterZone(NativeHeaderFooterZone zone) {
+                IReadOnlyList<PdfCore.FooterSegment> segments = GetSegments(zone);
+                return segments.Count == 0 ? null : builder => AppendSegments(builder, segments);
+            }
+
+            public void AppendLeft(string text) => Left = Append(Left, text, null, LeftSegments, null, null, null, ref _leftParagraphCount, ref _leftPreviousHasText);
+            public void AppendCenter(string text) => Center = Append(Center, text, null, CenterSegments, null, null, null, ref _centerParagraphCount, ref _centerPreviousHasText);
+            public void AppendRight(string text) => Right = Append(Right, text, null, RightSegments, null, null, null, ref _rightParagraphCount, ref _rightPreviousHasText);
+            public void AppendLeft(string text, PdfCore.PdfPageNumberStyle? pageNumberStyle) => Left = Append(Left, text, pageNumberStyle, LeftSegments, null, null, null, ref _leftParagraphCount, ref _leftPreviousHasText);
+            public void AppendCenter(string text, PdfCore.PdfPageNumberStyle? pageNumberStyle) => Center = Append(Center, text, pageNumberStyle, CenterSegments, null, null, null, ref _centerParagraphCount, ref _centerPreviousHasText);
+            public void AppendRight(string text, PdfCore.PdfPageNumberStyle? pageNumberStyle) => Right = Append(Right, text, pageNumberStyle, RightSegments, null, null, null, ref _rightParagraphCount, ref _rightPreviousHasText);
+            public void AppendLeft(string text, PdfCore.PdfPageNumberStyle? pageNumberStyle, PdfCore.PdfTextRun? markerRun) => AppendLeft(text, pageNumberStyle, markerRun, null);
+            public void AppendCenter(string text, PdfCore.PdfPageNumberStyle? pageNumberStyle, PdfCore.PdfTextRun? markerRun) => AppendCenter(text, pageNumberStyle, markerRun, null);
+            public void AppendRight(string text, PdfCore.PdfPageNumberStyle? pageNumberStyle, PdfCore.PdfTextRun? markerRun) => AppendRight(text, pageNumberStyle, markerRun, null);
+            public void AppendLeft(string text, PdfCore.PdfPageNumberStyle? pageNumberStyle, PdfCore.PdfTextRun? markerRun, PdfCore.PdfTextRun? contentStyleRun) => AppendLeft(text, pageNumberStyle, markerRun, contentStyleRun, null);
+            public void AppendCenter(string text, PdfCore.PdfPageNumberStyle? pageNumberStyle, PdfCore.PdfTextRun? markerRun, PdfCore.PdfTextRun? contentStyleRun) => AppendCenter(text, pageNumberStyle, markerRun, contentStyleRun, null);
+            public void AppendRight(string text, PdfCore.PdfPageNumberStyle? pageNumberStyle, PdfCore.PdfTextRun? markerRun, PdfCore.PdfTextRun? contentStyleRun) => AppendRight(text, pageNumberStyle, markerRun, contentStyleRun, null);
+            public void AppendLeft(string text, PdfCore.PdfPageNumberStyle? pageNumberStyle, PdfCore.PdfTextRun? markerRun, PdfCore.PdfTextRun? contentStyleRun, IReadOnlyList<NativeHeaderFooterStyledReplacement>? replacements) => Left = Append(Left, text, pageNumberStyle, LeftSegments, markerRun, contentStyleRun, replacements, ref _leftParagraphCount, ref _leftPreviousHasText);
+            public void AppendCenter(string text, PdfCore.PdfPageNumberStyle? pageNumberStyle, PdfCore.PdfTextRun? markerRun, PdfCore.PdfTextRun? contentStyleRun, IReadOnlyList<NativeHeaderFooterStyledReplacement>? replacements) => Center = Append(Center, text, pageNumberStyle, CenterSegments, markerRun, contentStyleRun, replacements, ref _centerParagraphCount, ref _centerPreviousHasText);
+            public void AppendRight(string text, PdfCore.PdfPageNumberStyle? pageNumberStyle, PdfCore.PdfTextRun? markerRun, PdfCore.PdfTextRun? contentStyleRun, IReadOnlyList<NativeHeaderFooterStyledReplacement>? replacements) => Right = Append(Right, text, pageNumberStyle, RightSegments, markerRun, contentStyleRun, replacements, ref _rightParagraphCount, ref _rightPreviousHasText);
 
             public void Append(NativeHeaderFooterZone zone, string text) => Append(zone, text, null);
 
@@ -1233,33 +1479,155 @@ namespace OfficeIMO.Word.Pdf {
                 }
             }
 
+            public void Append(NativeHeaderFooterZone zone, string text, PdfCore.PdfPageNumberStyle? pageNumberStyle, PdfCore.PdfTextRun? markerRun) {
+                Append(zone, text, pageNumberStyle, markerRun, null);
+            }
+
+            public void Append(NativeHeaderFooterZone zone, string text, PdfCore.PdfPageNumberStyle? pageNumberStyle, PdfCore.PdfTextRun? markerRun, PdfCore.PdfTextRun? contentStyleRun) {
+                Append(zone, text, pageNumberStyle, markerRun, contentStyleRun, null);
+            }
+
+            public void Append(NativeHeaderFooterZone zone, string text, PdfCore.PdfPageNumberStyle? pageNumberStyle, PdfCore.PdfTextRun? markerRun, PdfCore.PdfTextRun? contentStyleRun, IReadOnlyList<NativeHeaderFooterStyledReplacement>? replacements) {
+                switch (zone) {
+                    case NativeHeaderFooterZone.Center:
+                        AppendCenter(text, pageNumberStyle, markerRun, contentStyleRun, replacements);
+                        break;
+                    case NativeHeaderFooterZone.Right:
+                        AppendRight(text, pageNumberStyle, markerRun, contentStyleRun, replacements);
+                        break;
+                    default:
+                        AppendLeft(text, pageNumberStyle, markerRun, contentStyleRun, replacements);
+                        break;
+                }
+            }
+
             public NativeHeaderFooterText Clone() {
-                return new NativeHeaderFooterText {
+                NativeHeaderFooterText clone = new NativeHeaderFooterText {
                     Left = Left,
                     Center = Center,
                     Right = Right,
                     HasPageTokens = HasPageTokens,
                     PageNumberStyle = PageNumberStyle,
-                    _hasConflictingPageNumberStyles = _hasConflictingPageNumberStyles
+                    _hasConflictingPageNumberStyles = _hasConflictingPageNumberStyles,
+                    HasStyledZones = HasStyledZones,
+                    _leftParagraphCount = _leftParagraphCount,
+                    _centerParagraphCount = _centerParagraphCount,
+                    _rightParagraphCount = _rightParagraphCount,
+                    _leftPreviousHasText = _leftPreviousHasText,
+                    _centerPreviousHasText = _centerPreviousHasText,
+                    _rightPreviousHasText = _rightPreviousHasText
                 };
+                clone.LeftSegments.AddRange(LeftSegments);
+                clone.CenterSegments.AddRange(CenterSegments);
+                clone.RightSegments.AddRange(RightSegments);
+                return clone;
             }
 
-            private string Append(string? current, string text, PdfCore.PdfPageNumberStyle? pageNumberStyle) {
+            private string Append(string? current, string text, PdfCore.PdfPageNumberStyle? pageNumberStyle, List<PdfCore.FooterSegment> segments, PdfCore.PdfTextRun? markerRun, PdfCore.PdfTextRun? contentStyleRun, IReadOnlyList<NativeHeaderFooterStyledReplacement>? replacements, ref int paragraphCount, ref bool previousHasText) {
                 text = NormalizeNativeHeaderFooterText(text);
+                string plainText = (markerRun?.Text ?? string.Empty) + text;
+                bool currentHasText = !string.IsNullOrWhiteSpace(plainText);
                 if (text.IndexOf("{page}", StringComparison.OrdinalIgnoreCase) >= 0 ||
                     text.IndexOf("{pages}", StringComparison.OrdinalIgnoreCase) >= 0) {
                     HasPageTokens = true;
                 }
 
                 RecordPageNumberStyle(pageNumberStyle);
-                if (string.IsNullOrWhiteSpace(current)) {
-                    return text;
-                }
-
-                string separator = !string.IsNullOrWhiteSpace(text)
+                string separator = previousHasText && currentHasText
                     ? Environment.NewLine + Environment.NewLine
                     : Environment.NewLine;
-                return current + separator + text;
+                if (paragraphCount > 0) {
+                    segments.Add(new PdfCore.FooterSegment(PdfCore.FooterSegmentKind.Text, separator));
+                }
+                if (markerRun != null) {
+                    segments.Add(PdfCore.FooterSegment.RichText(markerRun));
+                    HasStyledZones = true;
+                }
+                AppendNativeHeaderFooterSegments(segments, text, contentStyleRun, replacements);
+                if (contentStyleRun != null || replacements?.Count > 0) {
+                    HasStyledZones = true;
+                }
+                string combined = paragraphCount == 0 ? plainText : (current ?? string.Empty) + separator + plainText;
+                paragraphCount++;
+                previousHasText = currentHasText;
+                return combined;
+            }
+
+            private static void AppendNativeHeaderFooterSegments(List<PdfCore.FooterSegment> segments, string text, PdfCore.PdfTextRun? styleRun, IReadOnlyList<NativeHeaderFooterStyledReplacement>? replacements) {
+                int index = 0;
+                if (replacements != null) {
+                    foreach (NativeHeaderFooterStyledReplacement replacement in replacements) {
+                        int replacementIndex = text.IndexOf(replacement.SerializedText, index, StringComparison.Ordinal);
+                        if (replacementIndex < 0) {
+                            continue;
+                        }
+
+                        AppendTokenizedText(text.Substring(index, replacementIndex - index));
+                        bool beginsVisualLine = replacementIndex == 0 || text[replacementIndex - 1] == '\r' || text[replacementIndex - 1] == '\n';
+                        PdfCore.PdfTextRun styledRun = beginsVisualLine
+                            ? replacement.StyledRun
+                            : replacement.StyledRun.WithHorizontalOffset(0D);
+                        segments.Add(PdfCore.FooterSegment.RichText(styledRun));
+                        index = replacementIndex + replacement.SerializedText.Length;
+                    }
+                }
+                AppendTokenizedText(text.Substring(index));
+
+                void AppendTokenizedText(string value) {
+                    int tokenCursor = 0;
+                    while (tokenCursor < value.Length) {
+                        int pageIndex = value.IndexOf("{page}", tokenCursor, StringComparison.OrdinalIgnoreCase);
+                        int pagesIndex = value.IndexOf("{pages}", tokenCursor, StringComparison.OrdinalIgnoreCase);
+                        int tokenIndex = pageIndex < 0 ? pagesIndex : pagesIndex < 0 ? pageIndex : Math.Min(pageIndex, pagesIndex);
+                        if (tokenIndex < 0) {
+                            if (tokenCursor < value.Length) AddText(value.Substring(tokenCursor));
+                            break;
+                        }
+                        if (tokenIndex > tokenCursor) AddText(value.Substring(tokenCursor, tokenIndex - tokenCursor));
+                        bool totalPages = tokenIndex == pagesIndex;
+                        if (styleRun != null) {
+                            PdfCore.PdfTextRun tokenStyle = CloneNativeHeaderFooterTextRun(styleRun, string.Empty);
+                            segments.Add(totalPages ? PdfCore.FooterSegment.TotalPages(tokenStyle) : PdfCore.FooterSegment.PageNumber(tokenStyle));
+                        } else {
+                            segments.Add(new PdfCore.FooterSegment(totalPages ? PdfCore.FooterSegmentKind.TotalPages : PdfCore.FooterSegmentKind.PageNumber));
+                        }
+                        tokenCursor = tokenIndex + (totalPages ? 7 : 6);
+                    }
+                }
+
+                void AddText(string value) {
+                    if (styleRun != null) {
+                        segments.Add(PdfCore.FooterSegment.RichText(CloneNativeHeaderFooterTextRun(styleRun, value)));
+                    } else {
+                        segments.Add(new PdfCore.FooterSegment(PdfCore.FooterSegmentKind.Text, value));
+                    }
+                }
+            }
+
+            private IReadOnlyList<PdfCore.FooterSegment> GetSegments(NativeHeaderFooterZone zone) => zone switch {
+                NativeHeaderFooterZone.Center => CenterSegments,
+                NativeHeaderFooterZone.Right => RightSegments,
+                _ => LeftSegments
+            };
+
+            private static void AppendSegments(PdfCore.HeaderTextBuilder builder, IReadOnlyList<PdfCore.FooterSegment> segments) {
+                foreach (PdfCore.FooterSegment segment in segments) {
+                    if (segment.Kind == PdfCore.FooterSegmentKind.PageNumber) {
+                        if (segment.StyledRun != null) builder.CurrentPage(segment.StyledRun); else builder.CurrentPage();
+                    } else if (segment.Kind == PdfCore.FooterSegmentKind.TotalPages) {
+                        if (segment.StyledRun != null) builder.TotalPages(segment.StyledRun); else builder.TotalPages();
+                    } else if (segment.StyledRun != null) builder.Run(segment.StyledRun); else builder.Text(segment.Text ?? string.Empty);
+                }
+            }
+
+            private static void AppendSegments(PdfCore.FooterTextBuilder builder, IReadOnlyList<PdfCore.FooterSegment> segments) {
+                foreach (PdfCore.FooterSegment segment in segments) {
+                    if (segment.Kind == PdfCore.FooterSegmentKind.PageNumber) {
+                        if (segment.StyledRun != null) builder.CurrentPage(segment.StyledRun); else builder.CurrentPage();
+                    } else if (segment.Kind == PdfCore.FooterSegmentKind.TotalPages) {
+                        if (segment.StyledRun != null) builder.TotalPages(segment.StyledRun); else builder.TotalPages();
+                    } else if (segment.StyledRun != null) builder.Run(segment.StyledRun); else builder.Text(segment.Text ?? string.Empty);
+                }
             }
 
             private static string NormalizeNativeHeaderFooterText(string? text) {

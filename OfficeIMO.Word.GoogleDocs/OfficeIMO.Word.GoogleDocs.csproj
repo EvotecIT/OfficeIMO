@@ -24,7 +24,6 @@
         <DebugType>portable</DebugType>
         <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
         <GenerateDocumentationFile>True</GenerateDocumentationFile>
-        <NoWarn>$(NoWarn);CS1591</NoWarn>
         <LangVersion>Latest</LangVersion>
         <Nullable>enable</Nullable>
     </PropertyGroup>

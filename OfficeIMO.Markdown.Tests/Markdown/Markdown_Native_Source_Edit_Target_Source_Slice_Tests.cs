@@ -137,7 +137,7 @@ public class Markdown_Native_Source_Edit_Target_Source_Slice_Tests {
         Assert.Equal("beta [two](https://example.com)", secondSlice.Text);
         Assert.True(native.TryCreateSourceSlice(item, out var itemSlice));
         Assert.NotNull(paragraphs[1].SyntaxNode);
-        Assert.False(paragraphs[1].SyntaxNode.IsGenerated);
+        Assert.False(paragraphs[1].SyntaxNode!.IsGenerated);
         Assert.True(native.TryCreateOriginalSourceSlice(item, out var originalItemSlice, out var originalItemReason));
         Assert.Equal(MarkdownOriginalSourceSliceFailureReason.None, originalItemReason);
         Assert.True(native.TryCreateOriginalSourceSlice(paragraphs[1], out var originalSecondSlice, out var originalReason));

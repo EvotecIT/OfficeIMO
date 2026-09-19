@@ -11,33 +11,41 @@ public static partial class OfficeTextLayoutEngine {
         IReadOnlyList<OfficeRichTextRun> runs, double width, double height, double lineHeightFactor,
         Func<string?, double, string?, OfficeFontStyle, double> measure, bool wrap,
         double minimumFontSize, OfficeTextParagraphIndent paragraphIndent, CancellationToken cancellationToken,
-        Func<string?, double, string?, OfficeFontStyle, OfficeTextPaintBounds>? measurePaint) {
+        Func<string?, double, string?, OfficeFontStyle, OfficeTextPaintBounds>? measurePaint,
+        out double appliedScale) {
         double availableHeight = NormalizeNonNegative(height);
-        bool Fits(IReadOnlyList<OfficeRichTextRun> candidate) {
+        bool Fits(IReadOnlyList<OfficeRichTextRun> candidate, double scale) {
             OfficeRichTextBlockLayout measured = LayoutRichTextBlockCore(candidate, width,
                 double.MaxValue, lineHeightFactor, measure, wrap, OfficeTextOverflowBehavior.Clip,
-                paragraphIndent, inputTruncated: false, cancellationToken);
+                paragraphIndent.Scale(scale), inputTruncated: false, cancellationToken);
             return !measured.Clipped && measured.Width <= width + 0.01D
                 && OfficeDrawingTextLayout.RequiredFrameHeight(measured, measurePaint) <= availableHeight + 0.01D;
         }
 
-        if (Fits(runs)) return runs;
+        if (Fits(runs, 1D)) {
+            appliedScale = 1D;
+            return runs;
+        }
         double maxFontSize = ResolveMaxRichTextFontSize(runs);
         double minFontSize = Math.Min(maxFontSize, Math.Max(1D, NormalizePositive(minimumFontSize, 1D)));
         double low = minFontSize / Math.Max(maxFontSize, 1D);
         IReadOnlyList<OfficeRichTextRun> best = ScaleRichTextRuns(runs, low, cancellationToken);
-        if (!Fits(best)) return best;
+        if (!Fits(best, low)) {
+            appliedScale = low;
+            return best;
+        }
 
         double high = 1D;
         for (int iteration = 0; iteration < 12; iteration++) {
             cancellationToken.ThrowIfCancellationRequested();
             double candidateScale = (low + high) / 2D;
             IReadOnlyList<OfficeRichTextRun> candidate = ScaleRichTextRuns(runs, candidateScale, cancellationToken);
-            if (Fits(candidate)) {
+            if (Fits(candidate, candidateScale)) {
                 low = candidateScale;
                 best = candidate;
             } else high = candidateScale;
         }
+        appliedScale = low;
         return best;
     }
 }

@@ -17,16 +17,63 @@ internal sealed class PdfGlyphRun {
     public IReadOnlyList<PdfTextEncodingDiagnostic> Diagnostics { get; }
     public string? ActualText { get; }
     public bool HasMissingGlyphs => Diagnostics.Count > 0;
-    public int TotalAdvanceWidth1000 => Glyphs.Sum(glyph => glyph.AdvanceWidth1000);
-    public bool HasPositioning => Glyphs.Any(glyph => glyph.HasPositioning);
+    public int TotalAdvanceWidth1000 {
+        get {
+            int total = 0;
+            for (int i = 0; i < Glyphs.Count; i++) {
+                total = checked(total + Glyphs[i].AdvanceWidth1000);
+            }
+            return total;
+        }
+    }
+    public bool HasPositioning {
+        get {
+            for (int i = 0; i < Glyphs.Count; i++) if (Glyphs[i].HasPositioning) return true;
+            return false;
+        }
+    }
 
-    public string ToGlyphHex() {
-        var sb = new StringBuilder(Glyphs.Count * 4);
-        foreach (PdfGlyphInfo glyph in Glyphs) {
-            sb.Append(glyph.GlyphId.ToString("X4", System.Globalization.CultureInfo.InvariantCulture));
+    private const string HexChars = "0123456789ABCDEF";
+
+    // Glyph-hex show-strings are built once per drawn run; a fresh StringBuilder (and its char[] backing)
+    // per run is a top allocator. Reuse one per thread. Detached while in use so nested/reentrant callers
+    // fall back to a fresh instance, and oversized buffers are dropped rather than retained.
+    [ThreadStatic] private static StringBuilder? _hexBuilder;
+
+    internal static StringBuilder RentHexBuilder(int capacityHint) {
+        StringBuilder sb = _hexBuilder ?? new StringBuilder(256);
+        _hexBuilder = null;
+        sb.Clear();
+        if (sb.Capacity < capacityHint && capacityHint <= 8192) sb.EnsureCapacity(capacityHint);
+        return sb;
+    }
+
+    internal static string ReturnHexBuilder(StringBuilder sb) {
+        string result = sb.ToString();
+        if (sb.Capacity <= 8192) {
+            sb.Clear();
+            _hexBuilder = sb;
         }
 
-        return sb.ToString();
+        return result;
+    }
+
+    // GlyphId is a 16-bit TrueType/CFF index, so four nibbles match ToString("X4") without the
+    // per-glyph string allocation.
+    internal static void AppendGlyphHex(StringBuilder sb, int glyphId) {
+        sb.Append(HexChars[(glyphId >> 12) & 0xF]);
+        sb.Append(HexChars[(glyphId >> 8) & 0xF]);
+        sb.Append(HexChars[(glyphId >> 4) & 0xF]);
+        sb.Append(HexChars[glyphId & 0xF]);
+    }
+
+    public string ToGlyphHex() {
+        var sb = RentHexBuilder(Glyphs.Count * 4);
+        for (int i = 0; i < Glyphs.Count; i++) {
+            AppendGlyphHex(sb, Glyphs[i].GlyphId);
+        }
+
+        return ReturnHexBuilder(sb);
     }
 
     public PdfTextShowCommand ToTextShowCommand() =>
@@ -180,6 +227,104 @@ internal sealed class PdfUnicodeScalarTextShaper : IPdfTextShaper {
             : null;
         return new PdfGlyphRun(glyphs, diagnostics, actualText);
     }
+
+    // Total advance width (1000-em units) without materializing a glyph run. Mirrors ShapeText's loop
+    // (same ligature/scalar handling, same usage recording, same missing-glyph throw) but skips the
+    // glyph/diagnostic list allocation, so widths and font subsetting are unchanged. Used by the
+    // line-break measurement path, which only needs the width. ForRendering never reports control
+    // characters, so that (list-producing) branch is not part of the measurement contract.
+    public static int MeasureAdvanceWidth1000(string text, PdfTrueTypeFontProgram font, PdfTextShapingOptions options) {
+        Guard.NotNull(text, nameof(text));
+        Guard.NotNull(font, nameof(font));
+
+        int totalWidth = 0;
+        for (int index = 0; index < text.Length;) {
+            int scalarStart = index;
+            if (options.ShapingMode == PdfTextShapingMode.LatinLigatures &&
+                OfficeTextLigatures.TryGetLatinPresentationForm(text, scalarStart, out int ligatureScalar, out int ligatureLength) &&
+                font.TryGetGlyphId(ligatureScalar, out int ligatureGlyphId) &&
+                ligatureGlyphId > 0) {
+                if (options.RecordGlyphUsage) {
+                    font.RecordGlyphUsage(ligatureGlyphId, text.Substring(scalarStart, ligatureLength));
+                }
+
+                totalWidth = checked(totalWidth + font.GetGlyphWidth1000(ligatureGlyphId));
+                index += ligatureLength;
+                continue;
+            }
+
+            int scalar = ReadScalar(text, ref index);
+            if (options.SkipLayoutControls && (scalar == '\n' || scalar == '\r' || scalar == '\t')) {
+                continue;
+            }
+
+            if (!font.TryGetGlyphId(scalar, out int glyphId) || glyphId <= 0) {
+                if (options.ThrowOnMissingGlyph) {
+                    throw PdfTrueTypeFontProgram.CreateUnsupportedGlyphException(text, scalarStart, scalar);
+                }
+
+                continue;
+            }
+
+            if (options.RecordGlyphUsage) {
+                font.RecordGlyphUsage(glyphId, scalar);
+            }
+
+            totalWidth = checked(totalWidth + font.GetGlyphWidth1000(glyphId));
+        }
+
+        return totalWidth;
+    }
+
+    // Emits the glyph hex show-string directly, skipping the per-run List<PdfGlyphInfo>. Scalar shaping
+    // never positions glyphs, so the emission path needs only this hex plus ActualText. Mirrors
+    // MeasureAdvanceWidth1000's loop (same usage recording, same missing-glyph throw); ForRendering never
+    // reports control characters, so that branch is not part of the contract and the hex equals
+    // ToGlyphHex over the same shaped glyphs.
+    public static string EncodeGlyphHex(string text, PdfTrueTypeFontProgram font, PdfTextShapingOptions options, out string? actualText) {
+        Guard.NotNull(text, nameof(text));
+        Guard.NotNull(font, nameof(font));
+
+        var sb = PdfGlyphRun.RentHexBuilder(text.Length * 4);
+        for (int index = 0; index < text.Length;) {
+            int scalarStart = index;
+            if (options.ShapingMode == PdfTextShapingMode.LatinLigatures &&
+                OfficeTextLigatures.TryGetLatinPresentationForm(text, scalarStart, out int ligatureScalar, out int ligatureLength) &&
+                font.TryGetGlyphId(ligatureScalar, out int ligatureGlyphId) &&
+                ligatureGlyphId > 0) {
+                if (options.RecordGlyphUsage) {
+                    font.RecordGlyphUsage(ligatureGlyphId, text.Substring(scalarStart, ligatureLength));
+                }
+
+                PdfGlyphRun.AppendGlyphHex(sb, ligatureGlyphId);
+                index += ligatureLength;
+                continue;
+            }
+
+            int scalar = ReadScalar(text, ref index);
+            if (options.SkipLayoutControls && (scalar == '\n' || scalar == '\r' || scalar == '\t')) {
+                continue;
+            }
+
+            if (!font.TryGetGlyphId(scalar, out int glyphId) || glyphId <= 0) {
+                if (options.ThrowOnMissingGlyph) {
+                    throw PdfTrueTypeFontProgram.CreateUnsupportedGlyphException(text, scalarStart, scalar);
+                }
+
+                continue;
+            }
+
+            if (options.RecordGlyphUsage) {
+                font.RecordGlyphUsage(glyphId, scalar);
+            }
+
+            PdfGlyphRun.AppendGlyphHex(sb, glyphId);
+        }
+
+        actualText = OfficeTextElements.ResolveBaseDirection(text) == OfficeTextDirection.RightToLeft ? text : null;
+        return PdfGlyphRun.ReturnHexBuilder(sb);
+    }
+
 
     private static string ResolveFontName(PdfTrueTypeFontProgram font, PdfTextShapingOptions options) =>
         string.IsNullOrWhiteSpace(options.FontName) ? font.FontName : options.FontName;

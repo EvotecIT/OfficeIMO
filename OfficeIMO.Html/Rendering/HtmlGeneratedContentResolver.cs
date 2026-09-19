@@ -5,7 +5,7 @@ using AngleSharp.Html.Dom;
 
 namespace OfficeIMO.Html;
 
-internal static class HtmlGeneratedContentResolver {
+internal static partial class HtmlGeneratedContentResolver {
     private const string ComponentName = "OfficeIMO.Html.Renderer";
 
     internal static HtmlGeneratedContentSet Resolve(
@@ -539,7 +539,18 @@ internal static class HtmlGeneratedContentResolver {
 
     private static bool TryReadFunction(string value, ref int cursor, out string name, out string arguments) {
         int nameStart = cursor;
-        while (cursor < value.Length && (char.IsLetterOrDigit(value[cursor]) || value[cursor] == '-' || value[cursor] == '_')) cursor++;
+        while (cursor < value.Length) {
+            if (char.IsLetterOrDigit(value[cursor]) || value[cursor] == '-' || value[cursor] == '_') {
+                cursor++;
+                continue;
+            }
+            if (value[cursor] != '\\'
+                || !HtmlCssEscapeDecoder.TryDecodeEscape(value, cursor, out _, out int consumed)
+                || consumed <= 1) {
+                break;
+            }
+            cursor += consumed;
+        }
         name = HtmlCssEscapeDecoder.Decode(value.Substring(nameStart, cursor - nameStart));
         if (name.Length == 0 || cursor >= value.Length || value[cursor] != '(') {
             arguments = string.Empty;

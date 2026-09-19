@@ -22,6 +22,12 @@ namespace OfficeIMO.Tests.Pdf {
             return method!.Invoke(null, new object?[] { runs, maxWidthPts, fontSize, baseFont, fontSize * 1.4, null, tabStopWidth ?? 36.0, null, tabStops })!;
         }
 
+        private static object InvokeWrapRichRunsWithOptions(IEnumerable<PdfTextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, PdfOptions options) {
+            var method = typeof(PdfWriter).GetMethod("WrapRichRunsCore", BindingFlags.NonPublic | BindingFlags.Static);
+            Assert.NotNull(method);
+            return method!.Invoke(null, new object?[] { runs, maxWidthPts, fontSize, baseFont, fontSize * 1.4, null, 36.0, options, null })!;
+        }
+
         private static T InvokePrivateFontMethod<T>(string methodName, params object[] parameters) {
             var method = ResolvePrivateFontMethod(methodName, parameters.Length);
             Assert.NotNull(method);
@@ -89,6 +95,12 @@ namespace OfficeIMO.Tests.Pdf {
             var prop = seg.GetType().GetProperty("Text");
             Assert.NotNull(prop);
             return (string)prop!.GetValue(seg)!;
+        }
+
+        private static double ExtractMeasuredWidth(object seg) {
+            var prop = seg.GetType().GetProperty("MeasuredWidth");
+            Assert.NotNull(prop);
+            return (double)prop!.GetValue(seg)!;
         }
 
         private static bool ExtractBold(object seg) {

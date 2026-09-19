@@ -383,6 +383,10 @@ foreach (PdfConversionWarning warning in reviewResult.Report.Warnings) {
 
 The named profiles emit the shared responsive OfficeIMO document shell, stable profile metadata, and adapter-owned PDF review styles. `PdfHtmlConversionResult.Report` and the report returned by save APIs retain the established `PdfConversionReport` type but are frozen snapshots (`IsReadOnly` is `true`); the mutable report used while conversion is in progress is never exposed as result state. The positioned-review profile also enables inert link and form-widget overlays. Set `IncludeDefaultStyles = false` to omit the theme and presentation layer. Positioned output still emits its minimal structural CSS because absolute page geometry is part of that profile's fidelity contract.
 
+Choose semantic HTML when readable headings, paragraphs, lists, and tables matter most. Choose positioned review when page geometry and visual comparison matter most. Semantic output reports its unavoidable reflow as a typed approximation. Both profiles report omitted vectors, images, links, forms, annotations, and outlines as typed omissions when the selected profile or options cannot represent them. `Report.HasLoss` and `RequireNoLoss()` therefore provide a strict acceptance gate; ordinary semantic conversion is expected to report approximation rather than claim pixel fidelity.
+
+`PdfHtmlImageExportMode.PlaceholderOnly` retains readable image metadata but omits the source pixels and reports that omission. `EmbeddedDataUri` embeds supported image files within the configured byte and output-size limits and reports any fallback to a placeholder. Fully transparent and unplaced resources are suppressed, while images whose clips, soft masks, unresolved transparency masks, or unsupported blend modes could reveal hidden pixels are represented without the raw data URI and reported as typed omissions. Supported opacity and blend modes are mapped to CSS with diagnostics where browser compositing can differ from PDF compositing.
+
 PDF-to-HTML profiles describe how an existing PDF is projected to review HTML. They are unrelated to HTML-to-PDF, which has one direct rendering path. HTML-to-PDF and HTML-to-PNG/JPEG/TIFF/SVG/WebP use the same `HtmlRenderOptions` scene and diagnostics; `HtmlToPdfOptions` extends that shared options type with PDF-only settings. PDF page images use `OfficeIMO.Pdf`'s `ToImage()` / `ToImages()` API instead of routing through HTML. An image is embedded into HTML as a resource; turning image pixels into document structure is an OCR workflow, not an image-rendering profile.
 
 When the source is an opened `PdfDocument`, positioned review uses the shared PDF drawing renderer to retain supported vector artwork, clipping, paint order, images, and embedded fonts as an embedded SVG image. Text remains selectable. Browser font substitution can affect text whose fonts are unavailable, and renderer diagnostics appear in the conversion report.
@@ -405,3 +409,15 @@ Semantic output uses the shared crop-, rotation-, spanning-band-, and column-awa
 - **OfficeIMO:** `OfficeIMO.Html`, `OfficeIMO.Pdf`, and `OfficeIMO.Core` own layout, rendering, reverse projection, and reports.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+
+<!-- officeimo-operation-catalog:start -->
+## Generated capability summary
+
+This table is generated from the package-neutral OfficeIMO operation catalog. The detailed source contracts remain authoritative for feature-level behavior and limitations.
+
+| Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Convert | 1 | 1 | 0 | 0 | 0 | 0 |
+
+The complete rows for `OfficeIMO.Html.Pdf` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
+<!-- officeimo-operation-catalog:end -->

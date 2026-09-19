@@ -109,10 +109,8 @@ internal static partial class PdfWriter {
                         headingSize);
                 case RichParagraphBlock paragraph:
                     return MeasureRunsPreferredWidth(paragraph.Runs);
-                case BulletListBlock bullets:
-                    return bullets.RichItems.Count == 0 ? 1D : bullets.RichItems.Max(item => MeasureRunsPreferredWidth(item.Runs)) + currentOpts.DefaultFontSize * 1.5D;
-                case NumberedListBlock numbered:
-                    return numbered.RichItems.Count == 0 ? 1D : numbered.RichItems.Max(item => MeasureRunsPreferredWidth(item.Runs)) + currentOpts.DefaultFontSize * 2D;
+                case PdfListBlock list:
+                    return MeasureListPreferredWidth(list);
                 case ImageBlock image:
                     return image.Width;
                 case ShapeBlock shape:
@@ -140,6 +138,19 @@ internal static partial class PdfWriter {
                 default:
                     return Math.Min(availableWidth, currentOpts.DefaultFontSize * 4D);
             }
+        }
+
+        private double MeasureListPreferredWidth(PdfListBlock list) {
+            if (list.RichItems.Count == 0) {
+                return 1D;
+            }
+
+            double preferred = 0D;
+            for (int itemIndex = 0; itemIndex < list.RichItems.Count; itemIndex++) {
+                preferred = Math.Max(preferred, MeasureRunsPreferredWidth(list.RichItems[itemIndex].Runs));
+            }
+
+            return preferred + currentOpts.DefaultFontSize * list.PreferredMarkerWidthFactor;
         }
 
         private double MeasureRunsPreferredWidth(IReadOnlyList<PdfTextRun> runs, double? fontSize = null) {

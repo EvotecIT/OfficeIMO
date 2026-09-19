@@ -39,7 +39,11 @@ public partial class Word {
         using (result.Value) {
             result.Value.Save(document);
         }
-        Assert.False(result.Report.HasLoss);
+        Assert.True(result.Report.HasLoss);
+        Assert.Contains(result.Report.Warnings, warning =>
+            warning.Code == "PdfEditableLayoutReconstructed" &&
+            warning.LossKind == OfficeConversionLossKind.Approximation);
+        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
 
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(document.ToArray()), false);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
@@ -109,7 +113,10 @@ public partial class Word {
         using (emptyResult.Value) {
             emptyResult.Value.Save(emptyDocument);
         }
-        Assert.False(emptyResult.Report.HasLoss);
+        Assert.True(emptyResult.Report.HasLoss);
+        Assert.Contains(emptyResult.Report.Warnings, warning =>
+            warning.Code == "PdfTextContentNotImported" &&
+            warning.LossKind == OfficeConversionLossKind.Omission);
         using WordprocessingDocument emptyPackage = WordprocessingDocument.Open(new MemoryStream(emptyDocument.ToArray()), false);
         Assert.Empty(new OpenXmlValidator().Validate(emptyPackage).ToList());
         Body emptyBody = GetBody(emptyPackage);

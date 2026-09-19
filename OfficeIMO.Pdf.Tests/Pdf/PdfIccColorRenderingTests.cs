@@ -441,7 +441,8 @@ public class PdfIccColorRenderingTests {
         OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
 
         Assert.True(OfficeIccColorProfile.TryCreate(PdfIccProfiles.SrgbIec6196621, out OfficeIccColorProfile? profile));
-        Assert.True(profile.TryConvert(new[] { 0D, 0D, 0D }, out OfficeColor expected));
+        Assert.NotNull(profile);
+        Assert.True(profile!.TryConvert(new[] { 0D, 0D, 0D }, out OfficeColor expected));
         Assert.Equal(expected, Assert.Single(drawing.Shapes).Shape.FillColor);
     }
 
@@ -2127,7 +2128,8 @@ public class PdfIccColorRenderingTests {
 
         Assert.True(OfficePngReader.TryDecode(image.Bytes, out OfficeRasterImage? raster));
         Assert.True(OfficeIccColorProfile.TryCreate(profile, out OfficeIccColorProfile? parsedProfile));
-        Assert.True(parsedProfile.TryConvert(new[] { 0.5D, 0.5D, 0.5D }, out OfficeColor expected));
+        Assert.NotNull(parsedProfile);
+        Assert.True(parsedProfile!.TryConvert(new[] { 0.5D, 0.5D, 0.5D }, out OfficeColor expected));
         Assert.Equal(expected, raster!.GetPixel(0, 0));
     }
 

@@ -31,6 +31,10 @@ if (args.Length > 0 && string.Equals(args[0], "html-runtime-conformance", String
     return await HtmlRuntimeConformanceRunner.RunAsync();
 }
 
+if (args.Length > 0 && string.Equals(args[0], "invoice-evidence", StringComparison.OrdinalIgnoreCase)) {
+    return await PdfInvoiceEvidenceRunner.RunAsync(args);
+}
+
 if (args.Length > 0 && string.Equals(args[0], "prepare-rich-word", StringComparison.OrdinalIgnoreCase)) {
     string repositoryRoot = ReadOption(args, "--repo-root") ?? FindRepositoryRoot();
     string outputDirectory = Path.GetFullPath(

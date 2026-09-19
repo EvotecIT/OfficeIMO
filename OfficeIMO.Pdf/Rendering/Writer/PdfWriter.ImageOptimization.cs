@@ -42,6 +42,7 @@ internal static partial class PdfWriter {
         if (!result.Changed) return;
         image.Data = result.Bytes;
         image.Info = result.Final;
+        image.PreparedStream = null;
     }
 
     private static bool CanOptimizeImageFormat(OfficeImageFormat format) =>

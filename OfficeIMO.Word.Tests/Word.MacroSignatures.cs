@@ -727,8 +727,17 @@ namespace OfficeIMO.Tests {
                 }, critical: false));
             using X509Certificate2 created = request.CreateSelfSigned(
                 DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddDays(1));
-            return new X509Certificate2(created.Export(X509ContentType.Pfx), (string?)null,
-                X509KeyStorageFlags.Exportable | X509KeyStorageFlags.PersistKeySet | X509KeyStorageFlags.UserKeySet);
+            byte[] exported = created.Export(X509ContentType.Pfx);
+            const X509KeyStorageFlags keyStorageFlags = X509KeyStorageFlags.Exportable
+                | X509KeyStorageFlags.PersistKeySet
+                | X509KeyStorageFlags.UserKeySet;
+#if NET9_0_OR_GREATER
+            return X509CertificateLoader.LoadPkcs12(exported, null, keyStorageFlags);
+#else
+#pragma warning disable SYSLIB0057 // X509CertificateLoader is unavailable before .NET 9.
+            return new X509Certificate2(exported, (string?)null, keyStorageFlags);
+#pragma warning restore SYSLIB0057
+#endif
         }
 
         private static void RemoveCertificatesByThumbprint(X509Store store, string? thumbprint) {

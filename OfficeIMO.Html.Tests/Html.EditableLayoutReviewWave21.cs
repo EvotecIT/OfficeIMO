@@ -67,7 +67,7 @@ public sealed class HtmlEditableLayoutReviewWave21Tests {
         PdfCore.PdfDocumentConversionResult result = await document.ToPdfDocumentResultAsync(options);
 
         Assert.Equal(0, resolverCalls);
-        Assert.Empty(PdfCore.PdfImageExtractor.ExtractImages(result.ToBytes()).Where(image => image.IsImageFile));
+        Assert.DoesNotContain(PdfCore.PdfImageExtractor.ExtractImages(result.ToBytes()), image => image.IsImageFile);
         Assert.Contains(result.Warnings, warning =>
             warning.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable
             || warning.Code == HtmlRenderDiagnosticCodes.ExternalImagePending);

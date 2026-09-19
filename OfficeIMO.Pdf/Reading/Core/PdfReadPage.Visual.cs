@@ -169,7 +169,9 @@ public sealed partial class PdfReadPage {
                     effects,
                     pageElements[i].PaintOrder,
                     contentOrderKey: pageElements[i].ContentOrderKey)));
-            AddDrawingElement(drawing, size.Height, pageTransform, element, softMasks, activeSoftMasks, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget, cancellationToken);
+            bool isRootPagePrimitive = element.Kind == PdfPageDrawingElementKind.Primitive &&
+                (element.ContentOrderKey == null || element.ContentOrderKey.Depth <= 1);
+            AddDrawingElement(drawing, size.Height, pageTransform, element, softMasks, activeSoftMasks, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget, allowRedundantPageClipRemoval: isRootPagePrimitive, cancellationToken);
         }
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -285,9 +287,10 @@ public sealed partial class PdfReadPage {
         Type3GlyphBudget type3GlyphBudget,
         PdfTextClippingBudget invocationTextClippingBudget,
         PdfTextClippingBudget patternTextClippingBudget,
+        bool allowRedundantPageClipRemoval = false,
         CancellationToken cancellationToken = default) {
         if (element.Effect.IsDefault) {
-            AddDrawingElementCore(drawing, pageHeight, element, invocationTextClippingBudget, pageContentBudget, cancellationToken);
+            AddDrawingElementCore(drawing, pageHeight, element, invocationTextClippingBudget, pageContentBudget, allowRedundantPageClipRemoval, cancellationToken);
             return;
         }
 
@@ -339,7 +342,7 @@ public sealed partial class PdfReadPage {
             TextShapingLanguage = drawing.TextShapingLanguage
         };
         isolated.Fonts.AddRange(drawing.Fonts);
-        AddDrawingElementCore(isolated, pageHeight, element, invocationTextClippingBudget, pageContentBudget, cancellationToken);
+        AddDrawingElementCore(isolated, pageHeight, element, invocationTextClippingBudget, pageContentBudget, allowRedundantPageClipRemoval: false, cancellationToken);
         if (isolated.Elements.Count == 0) return;
         OfficeDrawingSoftMask? softMask = element.Effect.SoftMask == null
             ? null
@@ -366,10 +369,11 @@ public sealed partial class PdfReadPage {
         PdfPageDrawingElement element,
         PdfTextClippingBudget textClippingBudget,
         PageContentBudget pageContentBudget,
+        bool allowRedundantPageClipRemoval,
         CancellationToken cancellationToken) {
         switch (element.Kind) {
             case PdfPageDrawingElementKind.Primitive:
-                AddVisualPrimitive(drawing, element.Primitive, textClippingBudget);
+                AddVisualPrimitive(drawing, element.Primitive, textClippingBudget, allowRedundantPageClipRemoval);
                 break;
             case PdfPageDrawingElementKind.Text:
                 AddTextSpan(drawing, pageHeight, element.TextSpan!, pageContentBudget, cancellationToken);
@@ -386,7 +390,8 @@ public sealed partial class PdfReadPage {
     private static void AddVisualPrimitive(
         OfficeDrawing drawing,
         PdfPageVisualPrimitive primitive,
-        PdfTextClippingBudget textClippingBudget) {
+        PdfTextClippingBudget textClippingBudget,
+        bool allowRedundantPageClipRemoval) {
         if (primitive.FillTilingPattern != null) {
             AddTilingPatternFill(drawing, primitive, textClippingBudget);
         }
@@ -396,11 +401,11 @@ public sealed partial class PdfReadPage {
             (primitive.StrokeColor.HasValue || primitive.StrokeGradient != null || primitive.StrokeRadialGradient != null);
         if (hasOrdinaryFill || hasOrdinaryStroke) {
             if (primitive.Kind == PdfPageVisualPrimitiveKind.Rectangle) {
-                AddRectangle(drawing, primitive);
+                AddRectangle(drawing, primitive, allowRedundantPageClipRemoval);
             } else if (primitive.Kind == PdfPageVisualPrimitiveKind.Line) {
-                AddLine(drawing, primitive);
+                AddLine(drawing, primitive, allowRedundantPageClipRemoval);
             } else if (primitive.Kind == PdfPageVisualPrimitiveKind.Path) {
-                AddPath(drawing, primitive);
+                AddPath(drawing, primitive, allowRedundantPageClipRemoval);
             }
         }
 
@@ -423,7 +428,7 @@ public sealed partial class PdfReadPage {
         }
     }
 
-    private static void AddRectangle(OfficeDrawing drawing, PdfPageVisualPrimitive primitive) {
+    private static void AddRectangle(OfficeDrawing drawing, PdfPageVisualPrimitive primitive, bool allowRedundantPageClipRemoval = true) {
         if (!HasVisibleOverlap(primitive.X, primitive.Y, primitive.Width, primitive.Height, drawing.Width, drawing.Height)) {
             return;
         }
@@ -444,7 +449,7 @@ public sealed partial class PdfReadPage {
         shape.StrokeOpacity = primitive.StrokeOpacity;
         shape.FillRule = primitive.FillRule;
         PdfPageClipPath? clipPath = GetEffectivePageClip(primitive.ClipPath, primitive.X, primitive.Y, primitive.Width, primitive.Height, drawing.Width, drawing.Height);
-        if (TryAddClippedShape(drawing, shape, primitive.X, primitive.Y, clipPath)) {
+        if (TryAddClippedShape(drawing, shape, primitive.X, primitive.Y, clipPath, allowRedundantPageClipRemoval)) {
             return;
         }
 
@@ -453,7 +458,7 @@ public sealed partial class PdfReadPage {
         }
     }
 
-    private static void AddLine(OfficeDrawing drawing, PdfPageVisualPrimitive primitive) {
+    private static void AddLine(OfficeDrawing drawing, PdfPageVisualPrimitive primitive, bool allowRedundantPageClipRemoval = true) {
         double left = Math.Min(primitive.X1, primitive.X2);
         double top = Math.Min(primitive.Y1, primitive.Y2);
         double right = Math.Max(primitive.X1, primitive.X2);
@@ -475,7 +480,7 @@ public sealed partial class PdfReadPage {
         shape.StrokeLineJoin = primitive.StrokeLineJoin;
         shape.StrokeOpacity = primitive.StrokeOpacity;
         PdfPageClipPath? clipPath = GetEffectivePageClip(primitive.ClipPath, left - strokeHalf, top - strokeHalf, right - left + (strokeHalf * 2D), bottom - top + (strokeHalf * 2D), drawing.Width, drawing.Height);
-        if (TryAddClippedShape(drawing, shape, left, top, clipPath)) {
+        if (TryAddClippedShape(drawing, shape, left, top, clipPath, allowRedundantPageClipRemoval)) {
             return;
         }
 
@@ -484,7 +489,7 @@ public sealed partial class PdfReadPage {
         }
     }
 
-    private static void AddPath(OfficeDrawing drawing, PdfPageVisualPrimitive primitive) {
+    private static void AddPath(OfficeDrawing drawing, PdfPageVisualPrimitive primitive, bool allowRedundantPageClipRemoval = true) {
         if (!HasVisibleOverlap(primitive.X, primitive.Y, primitive.Width, primitive.Height, drawing.Width, drawing.Height)) {
             return;
         }
@@ -505,7 +510,7 @@ public sealed partial class PdfReadPage {
         shape.StrokeOpacity = primitive.StrokeOpacity;
         shape.FillRule = primitive.FillRule;
         PdfPageClipPath? clipPath = GetEffectivePageClip(primitive.ClipPath, primitive.X, primitive.Y, primitive.Width, primitive.Height, drawing.Width, drawing.Height);
-        if (TryAddClippedShape(drawing, shape, primitive.X, primitive.Y, clipPath)) {
+        if (TryAddClippedShape(drawing, shape, primitive.X, primitive.Y, clipPath, allowRedundantPageClipRemoval)) {
             return;
         }
 
@@ -551,7 +556,13 @@ public sealed partial class PdfReadPage {
         return true;
     }
 
-    private static bool TryAddClippedShape(OfficeDrawing drawing, OfficeShape shape, double x, double y, PdfPageClipPath? clipPath) {
+    private static bool TryAddClippedShape(
+        OfficeDrawing drawing,
+        OfficeShape shape,
+        double x,
+        double y,
+        PdfPageClipPath? clipPath,
+        bool allowRedundantPageClipRemoval) {
         if (!clipPath.HasValue) {
             return false;
         }
@@ -566,6 +577,18 @@ public sealed partial class PdfReadPage {
         }
 
         clip = drawingClip;
+        if (allowRedundantPageClipRemoval &&
+            x >= 0D && y >= 0D &&
+            x + shape.Width <= drawing.Width && y + shape.Height <= drawing.Height &&
+            clip.IsRectangle &&
+            CanDropRedundantClipForEditableShape(shape) &&
+            ContainsShapeBounds(clip, shape, x, y)) {
+            // An enclosing rectangular clip adds no visible constraint to this
+            // top-level ordinary shape. Keeping it would force the shape into a
+            // clipped group and prevent editable-format recovery.
+            return false;
+        }
+
         OfficeClipPath? localClip = clip.ToOfficeClipPath(x, y);
         if (localClip != null && HasPositiveArea(x, y, shape.Width, shape.Height, drawing.Width, drawing.Height)) {
             shape.ClipPath = localClip;
@@ -599,6 +622,34 @@ public sealed partial class PdfReadPage {
         innerDrawing.AddShape(shape, shapeX, shapeY);
         drawing.AddClippedDrawing(innerDrawing, clip.X, clip.Y, groupClip);
         return true;
+    }
+
+    private static bool CanDropRedundantClipForEditableShape(OfficeShape shape) =>
+        (shape.Kind is OfficeShapeKind.Rectangle or
+            OfficeShapeKind.RoundedRectangle or
+            OfficeShapeKind.Ellipse or
+            OfficeShapeKind.Line) &&
+        shape.FillGradient == null &&
+        shape.FillRadialGradient == null &&
+        shape.StrokeGradient == null &&
+        shape.StrokeRadialGradient == null;
+
+    private static bool ContainsShapeBounds(
+        PdfPageClipPath clip,
+        OfficeShape shape,
+        double x,
+        double y) {
+        const double tolerance = 0.001D;
+        bool hasStroke = shape.StrokeColor.HasValue ||
+            shape.StrokeGradient != null ||
+            shape.StrokeRadialGradient != null;
+        double strokePadding = hasStroke ? Math.Max(1D, shape.StrokeWidth) / 2D : 0D;
+        return shape.Width >= 0D &&
+            shape.Height >= 0D &&
+            x - strokePadding >= clip.X - tolerance &&
+            y - strokePadding >= clip.Y - tolerance &&
+            x + shape.Width + strokePadding <= clip.X + clip.Width + tolerance &&
+            y + shape.Height + strokePadding <= clip.Y + clip.Height + tolerance;
     }
 
     private IReadOnlyList<PdfPageVisualPrimitive> GetVisualPrimitives(
@@ -1812,7 +1863,9 @@ public sealed partial class PdfReadPage {
             bool hasInvalidRenderingIntent = !TryReadSupportedExtGStateRenderingIntent(
                 state,
                 out OfficeIccRenderingIntent? renderingIntent);
-            bool hasUnsupportedBlendMode = state.Items.ContainsKey("BM") && !blendMode.HasValue;
+            bool hasUnsupportedBlendMode = state.Items.TryGetValue("BM", out PdfObject? blendModeObject) &&
+                ResolveEffectObject(blendModeObject) is not PdfNull &&
+                !blendMode.HasValue;
             bool hasUnsupportedType = state.Items.TryGetValue("Type", out PdfObject? typeObject) &&
                 ResolveEffectObject(typeObject) is not PdfNull and not PdfName { Name: "ExtGState" };
             bool hasUnsupportedEntries = state.Items.Keys.Any(static key => key is not (
@@ -1830,6 +1883,7 @@ public sealed partial class PdfReadPage {
             PdfPageSoftMaskResource? softMask = softMaskEnabled == true ? ReadSoftMask(state, resources) : null;
             bool unsupportedSoftMask = softMaskEnabled == true && softMask == null;
             bool unsupportedTextRestampEffect = hasInvalidRenderingIntent || hasInvalidFont || HasUnsupportedTextRestampEffect(state);
+            PdfPageImagePaintEffectOverrides imagePaintEffectOverrides = ReadImagePaintEffectOverrides(state);
             result[entry.Key] = new PdfPageGraphicsStateResource(
                 fillOpacity,
                 strokeOpacity,
@@ -1847,7 +1901,8 @@ public sealed partial class PdfReadPage {
                 hasUnsupportedTextRestampEffect: unsupportedTextRestampEffect,
                 strokeDashPattern: strokeDashPattern,
                 fontResource: fontResource,
-                fontSize: fontSize);
+                fontSize: fontSize,
+                imagePaintEffectOverrides: imagePaintEffectOverrides);
         }
 
         return result;
@@ -1903,6 +1958,56 @@ public sealed partial class PdfReadPage {
         string[] keys = { "op", "OPM", "BG", "BG2", "UCR", "UCR2", "TR", "TR2", "HT", "FL", "SM", "SA", "AIS", "TK" };
         for (int index = 0; index < keys.Length; index++) if (state.Items.ContainsKey(keys[index])) return true;
         return false;
+    }
+
+    private PdfPageImagePaintEffectOverrides ReadImagePaintEffectOverrides(PdfDictionary state) {
+        return new PdfPageImagePaintEffectOverrides(
+            ReadUnsupportedNamedResetEffect(state, "BG2", "BG", allowIdentity: false),
+            ReadUnsupportedNamedResetEffect(state, "UCR2", "UCR", allowIdentity: false),
+            ReadUnsupportedNamedResetEffect(state, "TR2", "TR", allowIdentity: true),
+            ReadUnsupportedNamedResetEffect(state, "HT", legacyKey: null, allowIdentity: false),
+            ReadUnsupportedBooleanEffect(state, "op"),
+            ReadUnsupportedZeroNumberEffect(state, "OPM"),
+            ReadUnsupportedBooleanEffect(state, "AIS"));
+    }
+
+    private bool? ReadUnsupportedNamedResetEffect(
+        PdfDictionary state,
+        string key,
+        string? legacyKey,
+        bool allowIdentity) {
+        PdfObject? resolved = null;
+        if (state.Items.TryGetValue(key, out PdfObject? value)) {
+            resolved = ResolveEffectObject(value);
+        }
+        if ((resolved is null or PdfNull) && legacyKey != null &&
+            state.Items.TryGetValue(legacyKey, out value)) {
+            resolved = ResolveEffectObject(value);
+        }
+        if (resolved is null or PdfNull) return null;
+        if (resolved is PdfName { Name: "Default" }) return false;
+        if (allowIdentity && resolved is PdfName { Name: "Identity" }) return false;
+        return true;
+    }
+
+    private bool? ReadUnsupportedBooleanEffect(PdfDictionary state, string key) {
+        if (!state.Items.TryGetValue(key, out PdfObject? value)) return null;
+        PdfObject? resolved = ResolveEffectObject(value);
+        return resolved switch {
+            PdfBoolean boolean => boolean.Value,
+            PdfNull => null,
+            _ => true
+        };
+    }
+
+    private bool? ReadUnsupportedZeroNumberEffect(PdfDictionary state, string key) {
+        if (!state.Items.TryGetValue(key, out PdfObject? value)) return null;
+        PdfObject? resolved = ResolveEffectObject(value);
+        return resolved switch {
+            PdfNumber number => number.Value != 0D,
+            PdfNull => null,
+            _ => true
+        };
     }
 
     private bool TryReadSupportedExtGStateRenderingIntent(
@@ -2410,7 +2515,7 @@ public sealed partial class PdfReadPage {
             var activeAppearanceSoftMasks = new HashSet<PdfStream>();
             for (int elementIndex = 0; elementIndex < elements.Count; elementIndex++) {
                 cancellationToken.ThrowIfCancellationRequested();
-                AddDrawingElement(drawing, pageHeight, appearanceTransform, elements[elementIndex], appearanceSoftMasks, activeAppearanceSoftMasks, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget, cancellationToken);
+                AddDrawingElement(drawing, pageHeight, appearanceTransform, elements[elementIndex], appearanceSoftMasks, activeAppearanceSoftMasks, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget, allowRedundantPageClipRemoval: false, cancellationToken);
             }
         }
     }
@@ -2713,7 +2818,7 @@ public sealed partial class PdfReadPage {
             return;
         }
 
-        drawing.AddImageWithInterpolation(image.Bytes, image.MimeType, projection, image.Interpolate, opacity: placement.ImageOpacity ?? 1D);
+        drawing.AddImageSharedWithInterpolation(image.EncodedBytes, image.MimeType, projection, image.Interpolate, opacity: placement.ImageOpacity ?? 1D);
     }
 
     private static bool TryAddClippedImagePlacement(OfficeDrawing drawing, PdfImagePlacement placement, PdfExtractedImage image, OfficeImageProjection projection) {
@@ -2751,7 +2856,7 @@ public sealed partial class PdfReadPage {
             return false;
         }
 
-        drawing.AddClippedImageWithInterpolation(image.Bytes, image.MimeType, projection, image.Interpolate, clip.X, clip.Y, clipPath, opacity: placement.ImageOpacity ?? 1D);
+        drawing.AddClippedImageSharedWithInterpolation(image.EncodedBytes, image.MimeType, projection, image.Interpolate, clip.X, clip.Y, clipPath, opacity: placement.ImageOpacity ?? 1D);
         return true;
     }
 

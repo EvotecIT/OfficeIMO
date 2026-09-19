@@ -298,7 +298,8 @@ internal static partial class PdfWriter {
                 projection.Height,
                 prepared.Info,
                 imageStyle,
-                useDataSnapshot: true);
+                useDataSnapshot: true,
+                preparedStream: prepared.PreparedStream);
             PageImage pageImage = CreatePageImage(
                 block,
                 imageStyle,

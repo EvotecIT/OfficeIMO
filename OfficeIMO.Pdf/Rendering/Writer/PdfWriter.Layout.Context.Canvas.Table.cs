@@ -37,10 +37,10 @@ internal static partial class PdfWriter {
             for (int rowIndex = 0; rowIndex < rows; rowIndex++) {
                 bool rowUsesBold = GetTableRowBold(style, rowIndex, headerRowCount, footerStart);
                 double originalRowFontSize = GetTableRowFontSize(style, rowIndex, headerRowCount, footerStart, currentOpts.DefaultFontSize);
-                double rowFontSize = ResolveTableRowShrinkFontSize(table, style, rowIndex, columns, columnWidths, columnGap, originalRowFontSize, rowUsesBold, currentOpts);
-                rowFontSizes[rowIndex] = rowFontSize;
-                rowFontSizeScales[rowIndex] = GetTableRunFontSizeScale(table, style, rowIndex, columns, columnWidths, columnGap, originalRowFontSize, rowFontSize, rowUsesBold, currentOpts);
-                rowLeadings[rowIndex] = GetTableLeading(style, rowFontSize);
+                TableRowTextSizing sizing = ResolveTableRowTextSizing(table, style, rowIndex, columns, columnWidths, columnGap, originalRowFontSize, rowUsesBold, currentOpts);
+                rowFontSizes[rowIndex] = sizing.FontSize;
+                rowFontSizeScales[rowIndex] = sizing.RunFontSizeScale;
+                rowLeadings[rowIndex] = GetTableLeading(style, sizing.FontSize);
             }
 
             double tableWidth = GetTableCellWidth(columnWidths, 0, columns, columnGap);
@@ -402,22 +402,7 @@ internal static partial class PdfWriter {
                 lineAlignments: visibleAlignments,
                 lineXOffsets: visibleXOffsets,
                 lineWidths: visibleWidths);
-            if (cell.Runs.Any(run => run.Bold || rowUsesBold)) {
-                currentPage!.UsedBold = true;
-                usedBold = true;
-            }
-
-            if (cell.Runs.Any(run => run.Italic)) {
-                currentPage!.UsedItalic = true;
-                usedItalic = true;
-            }
-
-            if (cell.Runs.Any(run => (run.Bold || rowUsesBold) && run.Italic)) {
-                currentPage!.UsedBoldItalic = true;
-                usedBoldItalic = true;
-            }
-
-            MarkRichFonts(cell.Runs);
+            MarkRichFonts(cell.Runs, forceBold: rowUsesBold);
             AddTableCellNamedDestinationName(cell.NamedDestinationName, cellTop);
             if (cell.Images.Count > 0 || cell.CheckBoxes.Count > 0 || cell.FormFields.Count > 0) {
                 if (CanRenderTableCellCheckBoxInline(cell, lines, 0, lineCount)) {

@@ -19,17 +19,24 @@ internal sealed class HtmlExternalStylesheetAnalysis {
 }
 
 internal sealed class HtmlExternalStylesheetImport {
-    internal HtmlExternalStylesheetImport(int start, int end, HtmlResourceReference reference, bool isApplicable) {
+    internal HtmlExternalStylesheetImport(int start, int end, HtmlResourceReference reference, bool isApplicable,
+        bool hasLayerCondition, bool hasUnknownSupportsCondition, bool hasUnknownMediaCondition) {
         Start = start;
         End = end;
         Reference = reference;
         IsApplicable = isApplicable;
+        HasLayerCondition = hasLayerCondition;
+        HasUnknownSupportsCondition = hasUnknownSupportsCondition;
+        HasUnknownMediaCondition = hasUnknownMediaCondition;
     }
 
     internal int Start { get; }
     internal int End { get; }
     internal HtmlResourceReference Reference { get; }
     internal bool IsApplicable { get; }
+    internal bool HasLayerCondition { get; }
+    internal bool HasUnknownSupportsCondition { get; }
+    internal bool HasUnknownMediaCondition { get; }
 }
 
 public static partial class HtmlResourcePipeline {
@@ -93,11 +100,19 @@ public static partial class HtmlResourcePipeline {
                 resolved,
                 allowed,
                 allowed ? string.Empty : GetDiagnosticCode(HtmlResourceKind.Stylesheet));
+            bool isApplicable = IsApplicableCssImport(
+                import.ConditionText,
+                options,
+                out bool hasUnknownSupportsCondition,
+                out bool hasUnknownMediaCondition);
             imports.Add(new HtmlExternalStylesheetImport(
                 import.Start,
                 import.End,
                 reference,
-                IsApplicableCssImport(import.ConditionText, options)));
+                isApplicable,
+                HasCssImportLayerCondition(import.ConditionText),
+                hasUnknownSupportsCondition,
+                hasUnknownMediaCondition));
         }
 
         foreach (HtmlCssFontFaceDefinition definition in ExtractFontFaces(normalized, options)) {
@@ -145,5 +160,11 @@ public static partial class HtmlResourcePipeline {
         }
 
         return new HtmlExternalStylesheetAnalysis(normalized, imports.AsReadOnly(), fontResources.AsReadOnly(), imageResources.AsReadOnly());
+    }
+
+    private static bool HasCssImportLayerCondition(string conditionText) {
+        string remaining = conditionText.TrimStart();
+        return TryConsumeCssImportFunctionCondition(remaining, "layer", out _, out _)
+            || StartsWithCssIdentifier(remaining, "layer");
     }
 }

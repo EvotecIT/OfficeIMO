@@ -232,6 +232,111 @@ public class PdfImageEditorTests {
             0D));
     }
 
+    [Theory]
+    [InlineData("/Filter [/DCTDecode] /DecodeParms [null]", "")]
+    [InlineData("/Filter [/DCTDecode] /DP [null]", "")]
+    [InlineData("/Filter [/DCTDecode] /DecodeParms [6 0 R]", "6 0 obj\nnull\nendobj\n")]
+    public void MoveAcceptsFilterAlignedNullJpegDecodeParameters(
+        string imageEntries,
+        string additionalObjects) {
+        byte[] jpeg = OfficeIMO.Drawing.OfficeJpegCodec.Encode(
+            OfficeIMO.Drawing.OfficeRasterImage.FromRgba32(1, 1, new byte[] { 255, 0, 0, 255 }),
+            new OfficeIMO.Drawing.OfficeJpegEncodeOptions {
+                Quality = 100,
+                Subsampling = OfficeIMO.Drawing.OfficeJpegSubsampling.Y444
+            });
+        PdfDocument document = PdfDocument.Load(BuildRawImagePdf(
+            "q 40 0 0 20 20 30 cm /Im0 Do Q\n",
+            imageBytes: jpeg,
+            imageEntries: "/ColorSpace /DeviceRGB /BitsPerComponent 8 " + imageEntries,
+            additionalObjects: additionalObjects));
+        PdfImagePlacement original = Assert.Single(document.Images.Placements());
+        Assert.False(Assert.Single(document.Reader.Images()).HasDecodeParameters);
+
+        PdfImageEditResult result = document.Images.Move(original, 10D, 0D);
+
+        PdfImagePlacement moved = Assert.Single(result.Document.Images.Placements());
+        Assert.Equal(original.X + 10D, moved.X, 2);
+    }
+
+    [Fact]
+    public void MoveAcceptsIdentityJpegDecodeArray() {
+        byte[] jpeg = OfficeIMO.Drawing.OfficeJpegCodec.Encode(
+            OfficeIMO.Drawing.OfficeRasterImage.FromRgba32(1, 1, new byte[] { 255, 0, 0, 255 }),
+            new OfficeIMO.Drawing.OfficeJpegEncodeOptions {
+                Quality = 100,
+                Subsampling = OfficeIMO.Drawing.OfficeJpegSubsampling.Y444
+            });
+        PdfDocument document = PdfDocument.Load(BuildRawImagePdf(
+            "q 40 0 0 20 20 30 cm /Im0 Do Q\n",
+            imageBytes: jpeg,
+            imageEntries: "/ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Decode [0 1 0 1 0 1]"));
+        PdfImagePlacement original = Assert.Single(document.Images.Placements());
+        PdfExtractedImage image = Assert.Single(document.Reader.Images());
+        Assert.True(image.HasExplicitDecode);
+        Assert.False(image.HasUnsafePassThroughDecode);
+
+        PdfImageEditResult result = document.Images.Move(original, 10D, 0D);
+
+        PdfImagePlacement moved = Assert.Single(result.Document.Images.Placements());
+        Assert.Equal(original.X + 10D, moved.X, 2);
+    }
+
+    [Fact]
+    public void MoveRejectsUnsafeJpeg2000DecodeArray() {
+        byte[] jpx = File.ReadAllBytes(Path.Combine(
+            AppContext.BaseDirectory,
+            "Pdf",
+            "Fixtures",
+            "Interoperability",
+            "Scans",
+            "red-rgb.jp2"));
+        PdfDocument document = PdfDocument.Load(BuildRawImagePdf(
+            "q 40 0 0 20 20 30 cm /Im0 Do Q\n",
+            imageBytes: jpx,
+            imageEntries: "/ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /JPXDecode /Decode [1 0 1 0 1 0]"));
+        PdfExtractedImage image = Assert.Single(document.Reader.Images());
+        Assert.True(image.HasUnsafePassThroughDecode);
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            document.Images.Move(Assert.Single(document.Images.Placements()), 10D, 0D));
+
+        Assert.Contains("Decode", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void MoveHandlesDecodeAfterPrefixFilterAccordingToExtractedPayload(bool jpeg2000) {
+        byte[] imageBytes = jpeg2000
+            ? File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Pdf", "Fixtures", "Interoperability", "Scans", "red-rgb.jp2"))
+            : OfficeIMO.Drawing.OfficeJpegCodec.Encode(
+                OfficeIMO.Drawing.OfficeRasterImage.FromRgba32(1, 1, new byte[] { 255, 0, 0, 255 }),
+                new OfficeIMO.Drawing.OfficeJpegEncodeOptions { Quality = 100, Subsampling = OfficeIMO.Drawing.OfficeJpegSubsampling.Y444 });
+        byte[] asciiHex = Encoding.ASCII.GetBytes(BitConverter.ToString(imageBytes).Replace("-", "") + ">");
+        string encodedFilter = jpeg2000 ? "JPXDecode" : "DCTDecode";
+        PdfDocument document = PdfDocument.Load(BuildRawImagePdf(
+            "q 40 0 0 20 20 30 cm /Im0 Do Q\n",
+            imageBytes: asciiHex,
+            imageEntries: "/ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter [/ASCIIHexDecode /" + encodedFilter + "] /Decode [1 0 1 0 1 0]"));
+        PdfExtractedImage image = Assert.Single(document.Reader.Images());
+        Assert.True(image.IsImageFile);
+        Assert.True(image.HasUnsafePassThroughDecode);
+        Assert.Equal("ASCIIHexDecode," + encodedFilter, image.Filter);
+
+        if (jpeg2000) {
+            Assert.Equal("image/jp2", image.MimeType);
+            NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+                document.Images.Move(Assert.Single(document.Images.Placements()), 10D, 0D));
+            Assert.Contains("Decode", exception.Message, StringComparison.Ordinal);
+        } else {
+            Assert.Equal("image/png", image.MimeType);
+            PdfImageEditResult result = document.Images.Move(
+                Assert.Single(document.Images.Placements()), 10D, 0D);
+            Assert.Single(result.Document.Images.Placements());
+        }
+    }
+
     [Fact]
     public void MoveRejectsSourceInterpolationThatRestampingCannotPreserve() {
         PdfDocument document = PdfDocument.Load(BuildRawImagePdf(
@@ -267,6 +372,23 @@ public class PdfImageEditorTests {
             document.Images.Move(Assert.Single(document.Images.Placements()), 10D, 0D));
 
         Assert.Contains("paint effect", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData("/AIS false")]
+    [InlineData("/OPM 0")]
+    [InlineData("/op false")]
+    public void MoveAcceptsBenignEffectiveImagePaintState(string graphicsState) {
+        PdfDocument document = PdfDocument.Load(BuildRawImagePdf(
+            "/GS1 gs q 40 0 0 20 20 30 cm /Im0 Do Q\n",
+            additionalResources: "/ExtGState << /GS1 << " + graphicsState + " >> >>"));
+
+        PdfImageEditResult result = document.Images.Move(
+            Assert.Single(document.Images.Placements()),
+            10D,
+            0D);
+
+        Assert.Single(result.Document.Images.Placements());
     }
 
     [Fact]

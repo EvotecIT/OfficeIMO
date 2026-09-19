@@ -32,6 +32,12 @@ public sealed partial class PdfOptions {
     private string? _evenPageFooterLeftFormat;
     private string? _evenPageFooterCenterFormat;
     private string? _evenPageFooterRightFormat;
+    private PdfPageTextZoneSegments? _headerZoneSegments;
+    private PdfPageTextZoneSegments? _firstPageHeaderZoneSegments;
+    private PdfPageTextZoneSegments? _evenPageHeaderZoneSegments;
+    private PdfPageTextZoneSegments? _footerZoneSegments;
+    private PdfPageTextZoneSegments? _firstPageFooterZoneSegments;
+    private PdfPageTextZoneSegments? _evenPageFooterZoneSegments;
     private System.Collections.Generic.List<PdfHeaderFooterImage>? _headerImages;
     private System.Collections.Generic.List<PdfHeaderFooterImage>? _firstPageHeaderImages;
     private System.Collections.Generic.List<PdfHeaderFooterImage>? _evenPageHeaderImages;
@@ -118,6 +124,7 @@ public sealed partial class PdfOptions {
     private System.Collections.Generic.HashSet<string>? _reportedTextShapingDiagnostics;
     private System.Collections.Generic.HashSet<string>? _reportedLayoutDiagnostics;
     private System.Collections.Generic.HashSet<string>? _providerShapedTextRuns;
+    private System.Action<string, string, bool>? _recordProviderShapedTextRunDelegate;
     private Func<string, IReadOnlyList<int>>? _textLineBreakCallback;
     private PdfTextHyphenationCallback? _textHyphenationCallback;
     private PdfTextShapingMode _textShapingMode;

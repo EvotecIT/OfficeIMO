@@ -66,6 +66,31 @@ public sealed class PdfVisualPageImportTests {
         Assert.Empty(package.MainDocumentPart.Document.Descendants<Text>());
     }
 
+    [Fact]
+    public void VisualPagesScopeOutlineWarningsToSelectedPages() {
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions { CreateOutlineFromHeadings = true })
+            .Paragraph(paragraph => paragraph.Text("Selected first page"))
+            .PageBreak()
+            .H1("Excluded second-page outline")
+            .ToBytes();
+        PdfCore.PdfDocument source = PdfCore.PdfDocument.Load(pdf);
+        PdfCore.PdfDocumentInfo sourceInfo = source.Inspect();
+        Assert.Single(sourceInfo.Outlines);
+        Assert.Equal(2, sourceInfo.Outlines[0].PageNumber);
+        var options = PdfToWordOptions.CreateVisualPages();
+        options.Dpi = 72;
+        options.ReadOptions = new PdfCore.PdfReadOptions {
+            PageSelection = PdfCore.PdfPageSelection.From(1)
+        };
+
+        PdfWordConversionResult result = source.ToWordDocumentResult(options);
+
+        using (result.Value) {
+            Assert.DoesNotContain(result.Report.Warnings, static warning =>
+                warning.Code == "PdfOutlineHierarchyNotReconstructed");
+        }
+    }
+
     [Theory]
     [InlineData(false)] [InlineData(true)]
     public async Task StreamSaveOverloadsHonorVisualPageModeAndLeaveStreamOpen(bool asynchronous) {

@@ -129,8 +129,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Text Box", controlLegend.NameU);
             Assert.True(dataLegend.PinY > gateway.PinY);
             Assert.True(controlLegend.PinY > gateway.PinY);
-            Assert.Contains(page.Shapes, shape => shape.NameU == "Rectangle" && shape.LinePattern == 1 && shape.Text.Length == 0);
-            Assert.Contains(page.Shapes, shape => shape.NameU == "Rectangle" && shape.LinePattern == 2 && shape.Text.Length == 0);
+            Assert.Contains(page.Shapes, shape => shape.NameU == "Rectangle" && shape.LinePattern == 1 && string.IsNullOrEmpty(shape.Text));
+            Assert.Contains(page.Shapes, shape => shape.NameU == "Rectangle" && shape.LinePattern == 2 && string.IsNullOrEmpty(shape.Text));
             Assert.Empty(page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
                 CheckConnectorShapeIntersections = false,
                 CheckConnectorLabels = false

@@ -741,9 +741,108 @@ internal readonly partial struct PdfPageClipPath {
             return false;
         }
 
-        clipPath = new PdfPageClipPath(left, top, width, height, false, fillRule, CloseFilledSubpaths(commands));
+        List<OfficePathCommand> closedCommands = CloseFilledSubpaths(commands);
+        if (TryGetAxisAlignedRectangle(closedCommands, left, top, right, bottom)) {
+            clipPath = Rectangle(left, top, width, height);
+            return true;
+        }
+
+        clipPath = new PdfPageClipPath(left, top, width, height, false, fillRule, closedCommands);
         return true;
     }
+
+    private static bool TryGetAxisAlignedRectangle(
+        List<OfficePathCommand> commands,
+        double left,
+        double top,
+        double right,
+        double bottom) {
+        if (commands.Count < 5 ||
+            commands[0].Kind != OfficePathCommandKind.MoveTo ||
+            commands[commands.Count - 1].Kind != OfficePathCommandKind.Close) {
+            return false;
+        }
+
+        var points = new List<OfficePoint>(commands.Count - 1) { commands[0].Point };
+        for (int i = 1; i < commands.Count - 1; i++) {
+            if (commands[i].Kind != OfficePathCommandKind.LineTo) {
+                return false;
+            }
+
+            OfficePoint point = commands[i].Point;
+            OfficePoint previous = points[points.Count - 1];
+            if (!NearlyEqualRectangleCoordinate(point.X, previous.X) ||
+                !NearlyEqualRectangleCoordinate(point.Y, previous.Y)) {
+                points.Add(point);
+            }
+        }
+
+        if (points.Count > 1 &&
+            NearlyEqualRectangleCoordinate(points[0].X, points[points.Count - 1].X) &&
+            NearlyEqualRectangleCoordinate(points[0].Y, points[points.Count - 1].Y)) {
+            points.RemoveAt(points.Count - 1);
+        }
+
+        if (points.Count < 4) {
+            return false;
+        }
+
+        for (int i = 0; i < points.Count; i++) {
+            OfficePoint current = points[i];
+            OfficePoint next = points[(i + 1) % points.Count];
+            bool horizontal = NearlyEqualRectangleCoordinate(current.Y, next.Y) &&
+                !NearlyEqualRectangleCoordinate(current.X, next.X);
+            bool vertical = NearlyEqualRectangleCoordinate(current.X, next.X) &&
+                !NearlyEqualRectangleCoordinate(current.Y, next.Y);
+            bool horizontalBoundary = horizontal &&
+                (NearlyEqualRectangleCoordinate(current.Y, top) ||
+                 NearlyEqualRectangleCoordinate(current.Y, bottom));
+            bool verticalBoundary = vertical &&
+                (NearlyEqualRectangleCoordinate(current.X, left) ||
+                 NearlyEqualRectangleCoordinate(current.X, right));
+            if (!horizontalBoundary && !verticalBoundary) {
+                return false;
+            }
+        }
+
+        int cornerMask = 0;
+        for (int i = 0; i < points.Count; i++) {
+            OfficePoint point = points[i];
+            bool isLeft = NearlyEqualRectangleCoordinate(point.X, left);
+            bool isRight = NearlyEqualRectangleCoordinate(point.X, right);
+            bool isTop = NearlyEqualRectangleCoordinate(point.Y, top);
+            bool isBottom = NearlyEqualRectangleCoordinate(point.Y, bottom);
+            if ((!isLeft && !isRight) || (!isTop && !isBottom)) {
+                continue;
+            }
+
+            cornerMask |= isLeft
+                ? isTop ? 1 : 2
+                : isTop ? 4 : 8;
+        }
+
+        if (cornerMask != 15) {
+            return false;
+        }
+
+        double twiceArea = 0D;
+        for (int i = 0; i < points.Count; i++) {
+            OfficePoint current = points[i];
+            OfficePoint next = points[(i + 1) % points.Count];
+            double currentX = current.X - left;
+            double currentY = current.Y - top;
+            double nextX = next.X - left;
+            double nextY = next.Y - top;
+            twiceArea += (currentX * nextY) - (nextX * currentY);
+        }
+
+        double rectangleTwiceArea = 2D * (right - left) * (bottom - top);
+        double areaTolerance = Math.Max(0.000000000000000001D, rectangleTwiceArea * 0.000000001D);
+        return Math.Abs(Math.Abs(twiceArea) - rectangleTwiceArea) <= areaTolerance;
+    }
+
+    private static bool NearlyEqualRectangleCoordinate(double left, double right) =>
+        Math.Abs(left - right) <= 0.0000001D;
 
     private static List<OfficePathCommand> CloseFilledSubpaths(IReadOnlyList<OfficePathCommand> commands) {
         var closed = new List<OfficePathCommand>(commands.Count + 4);

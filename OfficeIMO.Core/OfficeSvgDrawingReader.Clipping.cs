@@ -14,12 +14,13 @@ public static partial class OfficeSvgDrawingReader {
         clipped = null;
         if (!references.TryEnterLocal(reference, out string id, out XElement? definition)) return false;
         try {
-            if (definition == null || !definition.Name.LocalName.Equals("clipPath", StringComparison.OrdinalIgnoreCase)) return false;
+            if (definition == null || !definition.Name.LocalName.Equals("clipPath", StringComparison.Ordinal)) return false;
             string? nestedClip = ReadPresentationProperty(definition, "clip-path");
             if (!string.IsNullOrWhiteSpace(nestedClip) && !nestedClip!.Trim().Equals("none", StringComparison.OrdinalIgnoreCase)) return false;
             string? units = definition.Attribute("clipPathUnits")?.Value;
             if (!string.IsNullOrWhiteSpace(units) && !units!.Equals("userSpaceOnUse", StringComparison.OrdinalIgnoreCase)) return false;
             XElement[] children = definition.Elements().Where(child =>
+                IsNativeSvgElement(child, references.NativeNamespace) &&
                 child.Name.LocalName is not "title" and not "desc" and not "metadata").Take(2).ToArray();
             if (children.Length == 0) {
                 clipped = new OfficeDrawing(content.Width, content.Height);
@@ -35,7 +36,7 @@ public static partial class OfficeSvgDrawingReader {
                 clipped = new OfficeDrawing(content.Width, content.Height);
                 return true;
             }
-            OfficeDrawingShape? shape = child.Name.LocalName.ToLowerInvariant() switch {
+            OfficeDrawingShape? shape = child.Name.LocalName switch {
                 "rect" => CreateRectangle(child, style, viewX, viewY, content.Width, content.Height, ref unsupported),
                 "circle" => CreateCircle(child, style, viewX, viewY, content.Width, content.Height),
                 "ellipse" => CreateEllipse(child, style, viewX, viewY, content.Width, content.Height),
@@ -44,7 +45,7 @@ public static partial class OfficeSvgDrawingReader {
                 _ => null
             };
             if (shape == null) {
-                if (child.Name.LocalName.Equals("path", StringComparison.OrdinalIgnoreCase) &&
+                if (child.Name.LocalName.Equals("path", StringComparison.Ordinal) &&
                     OfficeSvgPathDataParser.TryParse(child.Attribute("d")?.Value, MaximumSvgPathCommands,
                         out var commands, out _, allowEmptyGeometry: true) && commands.All(command => command.Kind is OfficePathCommandKind.MoveTo or OfficePathCommandKind.Close)) {
                     clipped = new OfficeDrawing(content.Width, content.Height);

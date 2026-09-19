@@ -103,7 +103,8 @@ internal static class OfficeDrawingTextLayout {
             maxFontSize = Math.Max(maxFontSize, run.FontSize * scale);
             runs.Add(new OfficeRichTextRun(run.Text, run.FontSize * scale, run.Color,
                 run.Bold, run.Italic, run.Underline, run.FontFamily, run.Strikethrough,
-                run.BackgroundColor, run.UnderlineStyle, run.StrikethroughStyle, run.Baseline) {
+                run.BackgroundColor, run.UnderlineStyle, run.StrikethroughStyle, run.Baseline,
+                run.ParagraphIndent?.Scale(scale)) {
                 LinkUri = run.LinkUri
             });
         }

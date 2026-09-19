@@ -867,7 +867,7 @@ namespace OfficeIMO.Word {
             if (body != null) {
                 int estimatedPage = 1;
                 foreach (Paragraph paragraph in body.Descendants<Paragraph>()) {
-                    if (paragraph.ParagraphProperties?.PageBreakBefore != null) {
+                    if (WordParagraph.HasPageBreakBefore(paragraph)) {
                         estimatedPage++;
                     }
 
@@ -903,7 +903,7 @@ namespace OfficeIMO.Word {
 
             int page = 1;
             foreach (Paragraph currentParagraph in body.Descendants<Paragraph>()) {
-                if (currentParagraph.ParagraphProperties?.PageBreakBefore != null) {
+                if (WordParagraph.HasPageBreakBefore(currentParagraph)) {
                     page++;
                 }
 

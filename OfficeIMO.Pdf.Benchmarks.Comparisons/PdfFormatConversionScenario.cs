@@ -23,22 +23,34 @@ public enum PdfFormatConversionKind {
     Rtf
 }
 
+public enum PdfFormatConversionProfile {
+    Flat,
+    Structured
+}
+
 internal sealed record PdfFormatConversionScenario(
     PdfFormatConversionKind Kind,
     byte[] SourceBytes,
     IReadOnlyList<string> RequiredText,
     Func<byte[]> ConvertToPdf) {
     private const string Heading = "FORMAT PDF BENCHMARK";
+    private const string StructureMarker = "NESTED-STRUCTURE-MARKER";
 
     internal static PdfFormatConversionScenario Create(
         PdfFormatConversionKind kind,
-        PdfCore.PdfTextFallbackFeatures? textFallbacksOverride = null) {
+        PdfCore.PdfTextFallbackFeatures? textFallbacksOverride = null,
+        int recordCount = PdfFormatConversionRecordManifest.RecordCount,
+        PdfFormatConversionProfile profile = PdfFormatConversionProfile.Flat) {
+        if (recordCount < 1) {
+            throw new ArgumentOutOfRangeException(nameof(recordCount));
+        }
+
         byte[] source = kind switch {
-            PdfFormatConversionKind.Docx => CreateDocx(),
-            PdfFormatConversionKind.Xlsx => CreateXlsx(),
+            PdfFormatConversionKind.Docx => CreateDocx(recordCount, profile),
+            PdfFormatConversionKind.Xlsx => CreateXlsx(recordCount, profile),
             PdfFormatConversionKind.Pptx => CreatePptx(),
-            PdfFormatConversionKind.Html => CreateHtml(),
-            PdfFormatConversionKind.Markdown => CreateMarkdown(),
+            PdfFormatConversionKind.Html => CreateHtml(recordCount, profile),
+            PdfFormatConversionKind.Markdown => CreateMarkdown(recordCount, profile),
             PdfFormatConversionKind.Rtf => CreateRtf(),
             _ => throw new ArgumentOutOfRangeException(nameof(kind))
         };
@@ -46,7 +58,15 @@ internal sealed record PdfFormatConversionScenario(
         return new PdfFormatConversionScenario(
             kind,
             source,
-            PdfFormatConversionRecordManifest.CreateRequiredText(Heading),
+            PdfFormatConversionRecordManifest.CreateRequiredText(
+                Heading,
+                kind is PdfFormatConversionKind.Pptx or PdfFormatConversionKind.Rtf
+                    ? PdfFormatConversionRecordManifest.RecordCount
+                    : recordCount,
+                profile == PdfFormatConversionProfile.Structured &&
+                    kind is PdfFormatConversionKind.Docx or PdfFormatConversionKind.Xlsx or PdfFormatConversionKind.Html or PdfFormatConversionKind.Markdown
+                        ? StructureMarker
+                        : null),
             () => Convert(kind, source, textFallbacksOverride));
     }
 
@@ -101,16 +121,31 @@ internal sealed record PdfFormatConversionScenario(
             : document.ToPdfBytes();
     }
 
-    private static byte[] CreateDocx() {
+    private static byte[] CreateDocx(int recordCount, PdfFormatConversionProfile profile) {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph(Heading).SetStyle(WordParagraphStyles.Heading1);
-        for (int index = 1; index <= PdfFormatConversionRecordManifest.RecordCount; index++) {
-            document.AddParagraph(PdfFormatConversionRecordManifest.RecordLine(index));
+        if (profile == PdfFormatConversionProfile.Structured) {
+            WordList list = document.AddList(WordListStyle.Bulleted);
+            for (int index = 1; index <= recordCount; index++) {
+                list.AddItem(PdfFormatConversionRecordManifest.RecordLine(index));
+            }
+
+            WordTable table = document.AddTable(2, 2, WordTableStyle.TableGrid);
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "Structured table";
+            table.Rows[0].Cells[1].Paragraphs[0].Text = "Wrapped table value for layout measurement";
+            table.Rows[1].Cells[0].Paragraphs[0].Text = "Nested table host";
+            WordTable nested = table.Rows[1].Cells[0].AddTable(1, 1, WordTableStyle.TableGrid);
+            nested.Rows[0].Cells[0].Paragraphs[0].Text = StructureMarker;
+            table.Rows[1].Cells[1].Paragraphs[0].Text = "Trailing cell";
+        } else {
+            for (int index = 1; index <= recordCount; index++) {
+                document.AddParagraph(PdfFormatConversionRecordManifest.RecordLine(index));
+            }
         }
         return document.ToBytes();
     }
 
-    private static byte[] CreateXlsx() {
+    private static byte[] CreateXlsx(int recordCount, PdfFormatConversionProfile profile) {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddWorksheet("Report");
         sheet.Cell(1, 1, Heading);
@@ -118,7 +153,7 @@ internal sealed record PdfFormatConversionScenario(
         sheet.Cell(2, 2, "Description");
         sheet.Cell(2, 3, "Amount");
         sheet.Cell(2, 4, "Status");
-        for (int index = 1; index <= PdfFormatConversionRecordManifest.RecordCount; index++) {
+        for (int index = 1; index <= recordCount; index++) {
             int row = index + 2;
             sheet.Cell(row, 1, PdfFormatConversionRecordManifest.RecordMarker(index));
             sheet.Cell(row, 2, PdfFormatConversionRecordManifest.CustomerMarker(index) + " " + PdfFormatConversionRecordManifest.Description);
@@ -129,6 +164,12 @@ internal sealed record PdfFormatConversionScenario(
         sheet.SetColumnWidth(2, 42);
         sheet.SetColumnWidth(3, 14);
         sheet.SetColumnWidth(4, 14);
+        if (profile == PdfFormatConversionProfile.Structured) {
+            ExcelSheet details = document.AddWorksheet("Structured");
+            details.Cell(1, 1, StructureMarker);
+            details.Cell(2, 1, "This second worksheet verifies multi-sheet pagination and wrapped cell projection.");
+            details.SetColumnWidth(1, 28);
+        }
         return document.ToBytes();
     }
 
@@ -148,19 +189,29 @@ internal sealed record PdfFormatConversionScenario(
         return presentation.ToBytes();
     }
 
-    private static byte[] CreateHtml() {
+    private static byte[] CreateHtml(int recordCount, PdfFormatConversionProfile profile) {
         var html = new StringBuilder("<!doctype html><html><head><meta charset='utf-8'><style>body{font:10pt sans-serif}p{margin:0 0 4pt}</style></head><body>")
             .Append("<h1>").Append(Heading).Append("</h1>");
-        for (int index = 1; index <= PdfFormatConversionRecordManifest.RecordCount; index++) {
+        for (int index = 1; index <= recordCount; index++) {
             html.Append("<p>").Append(PdfFormatConversionRecordManifest.RecordLine(index)).Append("</p>");
+        }
+        if (profile == PdfFormatConversionProfile.Structured) {
+            html.Append("<table><tr><td>Outer<table><tr><td>")
+                .Append(StructureMarker)
+                .Append("</td></tr></table></td><td>Trailing cell</td></tr></table>");
         }
         return Encoding.UTF8.GetBytes(html.Append("</body></html>").ToString());
     }
 
-    private static byte[] CreateMarkdown() {
+    private static byte[] CreateMarkdown(int recordCount, PdfFormatConversionProfile profile) {
         var markdown = new StringBuilder("# ").Append(Heading).Append("\n\n");
-        for (int index = 1; index <= PdfFormatConversionRecordManifest.RecordCount; index++) {
+        for (int index = 1; index <= recordCount; index++) {
             markdown.Append("- ").Append(PdfFormatConversionRecordManifest.RecordLine(index)).Append('\n');
+        }
+        if (profile == PdfFormatConversionProfile.Structured) {
+            markdown.Append("\n  - ").Append(StructureMarker).Append("\n\n")
+                .Append("| Structured table | Value |\n|---|---|\n")
+                .Append("| Wrapping and pagination | Trailing cell |\n");
         }
         return Encoding.UTF8.GetBytes(markdown.ToString());
     }

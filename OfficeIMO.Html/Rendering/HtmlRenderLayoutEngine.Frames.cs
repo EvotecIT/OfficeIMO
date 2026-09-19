@@ -113,7 +113,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         options.Validate();
 
         HtmlCssRuleBlockScanner.ValidateDocument(document, _limits);
-        HtmlCssByteBudget cssBudget = HtmlRenderStylesheetApplier.CreateBudget(document, _limits);
+        HtmlCssByteBudget cssBudget = HtmlRenderStylesheetApplier.CreateBudget(document, _limits, options);
         HtmlRenderStylesheetApplier.Apply(document, _resources, options, _limits, cssBudget, _diagnostics);
         HtmlCssRuleBlockScanner.ValidateDocument(document, _limits);
         OfficeFontFaceCollection fonts = HtmlRenderFontFaceLoader.Load(

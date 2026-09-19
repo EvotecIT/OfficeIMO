@@ -5,7 +5,10 @@ using OfficeIMO.PowerPoint;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint.GoogleSlides {
+    /// <summary>Imports Google presentations through Drive-exported PPTX or native Slides projection.</summary>
     public sealed class GoogleSlidesImporter : IGoogleSlidesImporter {
+        /// <summary>Loads a Google presentation and returns a caller-owned OfficeIMO presentation with source metadata.</summary>
+        /// <remarks>Drive export is the default mode. Native mode projects supported Slides objects and records fidelity notices for unsupported content.</remarks>
         public async Task<GoogleSlidesImportResult> ImportAsync(string presentationId, GoogleWorkspaceSession session, GoogleSlidesImportOptions? options = null, CancellationToken cancellationToken = default) {
             if (string.IsNullOrWhiteSpace(presentationId)) throw new ArgumentException("Presentation ID is required.", nameof(presentationId));
             if (session == null) throw new ArgumentNullException(nameof(session));

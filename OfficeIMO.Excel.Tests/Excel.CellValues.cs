@@ -84,7 +84,7 @@ namespace OfficeIMO.Tests {
                 var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, (object?)null);
                 sheet.CellValue(2, 1, DBNull.Value);
-                sheet.CellValue(3, 1, (string?)null);
+                sheet.CellValue(3, 1, (string?)null!);
                 sheet.CellValue(4, 1, string.Empty);
                 document.Save();
             }

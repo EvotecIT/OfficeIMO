@@ -66,6 +66,63 @@ public partial class Word {
         Assert.True(imageCharacteristics.Height > 0);
     }
 
+    [Fact]
+    public void Test_GetImageCharacteristics_RejectsIncompleteJpeg2000Container() {
+        byte[] payload = CreateIncompleteJpeg2000Container();
+        Assert.True(OfficeImageReader.TryIdentify(payload, "truncated.jp2", out OfficeImageInfo identified));
+        Assert.Equal(OfficeImageFormat.Jpeg2000, identified.Format);
+        using var imageStream = new MemoryStream(payload);
+
+        Assert.Throws<InvalidDataException>(() =>
+            Helpers.GetImageCharacteristics(imageStream, "truncated.jp2"));
+
+        using WordDocument document = WordDocument.Create();
+        using var publicApiStream = new MemoryStream(payload);
+        Assert.Throws<InvalidDataException>(() =>
+            document.AddParagraph().AddImage(publicApiStream, "truncated.jp2", width: null, height: null));
+    }
+
+    private static byte[] CreateIncompleteJpeg2000Container() {
+        byte[] signature = { 0, 0, 0, 12, (byte)'j', (byte)'P', (byte)' ', (byte)' ', 13, 10, 135, 10 };
+        byte[] fileType = CreateJpeg2000Box("ftyp", new byte[] {
+            (byte)'j', (byte)'p', (byte)'2', (byte)' ', 0, 0, 0, 0,
+            (byte)'j', (byte)'p', (byte)'2', (byte)' '
+        });
+        byte[] imageHeader = CreateJpeg2000Box("ihdr", new byte[] {
+            0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 7, 7, 0, 0
+        });
+        byte[] colorSpecification = CreateJpeg2000Box("colr", new byte[] {
+            1, 0, 0, 0, 0, 0, 16
+        });
+        byte[] header = CreateJpeg2000Box("jp2h", imageHeader.Concat(colorSpecification).ToArray());
+        byte[] truncatedCodestream = {
+            0xFF, 0x4F, 0xFF, 0x51, 0x00, 0x2F, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x03, 0x07, 0x01, 0x01, 0x07, 0x01, 0x01,
+            0x07, 0x01, 0x01
+        };
+        byte[] codestream = CreateJpeg2000Box("jp2c", truncatedCodestream);
+        return signature.Concat(fileType).Concat(header).Concat(codestream).ToArray();
+    }
+
+    private static byte[] CreateJpeg2000Box(string type, byte[] contents) {
+        byte[] box = new byte[8 + contents.Length];
+        WriteJpeg2000UInt32BigEndian(box, 0, box.Length);
+        System.Text.Encoding.ASCII.GetBytes(type, 0, 4, box, 4);
+        Buffer.BlockCopy(contents, 0, box, 8, contents.Length);
+        return box;
+    }
+
+    private static void WriteJpeg2000UInt32BigEndian(byte[] data, int offset, int value) {
+        data[offset] = (byte)(value >> 24);
+        data[offset + 1] = (byte)(value >> 16);
+        data[offset + 2] = (byte)(value >> 8);
+        data[offset + 3] = (byte)value;
+    }
+
     private static byte[] CreatePlaceableWmf() {
         var wmf = new byte[56];
         WriteInt32LittleEndian(wmf, 0, unchecked((int)0x9AC6CDD7));

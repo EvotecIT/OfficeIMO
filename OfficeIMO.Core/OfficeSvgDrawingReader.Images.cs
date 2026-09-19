@@ -13,7 +13,7 @@ public static partial class OfficeSvgDrawingReader {
         double viewX,
         double viewY) {
         XAttribute[] hrefAttributes = element.Attributes()
-            .Where(attribute => attribute.Name.LocalName.Equals("href", StringComparison.OrdinalIgnoreCase))
+            .Where(attribute => attribute.Name.LocalName.Equals("href", StringComparison.Ordinal))
             .ToArray();
         if (hrefAttributes.Length != 1
             || !TryDecodeEmbeddedRasterImage(hrefAttributes[0].Value, out byte[] bytes, out string contentType, out OfficeImageInfo info)

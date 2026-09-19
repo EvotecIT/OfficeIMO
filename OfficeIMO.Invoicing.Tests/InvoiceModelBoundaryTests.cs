@@ -13,12 +13,12 @@ public class InvoiceModelBoundaryTests {
         Invoice invoice = InvoiceFixture.Create();
         invoice.SupportingDocuments.Add(new InvoiceSupportingDocument { Reference = "support", ExternalUri = uri });
         foreach (InvoiceSyntax syntax in new[] { InvoiceSyntax.Cii, InvoiceSyntax.Ubl }) {
-            byte[] xml = InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(syntax));
+            byte[] xml = InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931(syntax));
             InvoiceReadResult read = InvoiceParser.Read(xml);
             Assert.True(read.HasCompleteMapping);
             Assert.Equal(uri, Assert.Single(read.Invoice.SupportingDocuments).ExternalUri);
-            Assert.Equal(xml, read.Write());
-            InvoiceConversionResult converted = InvoiceConverter.Convert(xml, new InvoiceXmlOptions(syntax == InvoiceSyntax.Cii ? InvoiceSyntax.Ubl : InvoiceSyntax.Cii));
+            Assert.Equal(xml, read.Write(InvoiceTestContracts.En16931(syntax)));
+            InvoiceConversionResult converted = InvoiceConverter.Convert(xml, InvoiceTestContracts.En16931(syntax == InvoiceSyntax.Cii ? InvoiceSyntax.Ubl : InvoiceSyntax.Cii));
             Assert.True(converted.Succeeded, string.Join("; ", converted.Diagnostics.Select(d => d.Message)));
             Assert.Equal(uri, Assert.Single(InvoiceParser.Read(converted.Xml!).Invoice.SupportingDocuments).ExternalUri);
         }
@@ -46,7 +46,7 @@ public class InvoiceModelBoundaryTests {
         invoice.Lines[0].Attributes.Add(new InvoiceItemAttribute { Name = name!, Value = value! });
         Assert.Contains(InvoiceModelValidator.Validate(invoice).Diagnostics, d => d.Location == "Lines[0].Attributes." + missing);
         foreach (InvoiceSyntax syntax in new[] { InvoiceSyntax.Cii, InvoiceSyntax.Ubl })
-            Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(syntax)));
+            Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931(syntax)));
     }
 
     [Theory]
@@ -59,14 +59,14 @@ public class InvoiceModelBoundaryTests {
         decimal gross = negativeGross ? decimal.MinValue : decimal.MaxValue;
         decimal discount = negativeGross ? decimal.MaxValue : -1m;
         XNamespace ram = "urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100";
-        XDocument source = XDocument.Parse(Encoding.UTF8.GetString(InvoiceSerializer.Write(invoice)));
+        XDocument source = XDocument.Parse(Encoding.UTF8.GetString(InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931())));
         XElement price = source.Descendants(ram + "GrossPriceProductTradePrice").Single();
         price.Element(ram + "ChargeAmount")!.Value = gross.ToString(CultureInfo.InvariantCulture);
         price.Descendants(ram + "ActualAmount").Single().Value = discount.ToString(CultureInfo.InvariantCulture);
         invoice.Lines[0].GrossPrice = gross;
         invoice.Lines[0].PriceDiscount = discount;
         Assert.Contains(InvoiceModelValidator.Validate(invoice).Diagnostics, d => d.Code == "INV-PRICE");
-        InvoiceConversionResult result = InvoiceConverter.Convert(Encoding.UTF8.GetBytes(source.ToString()), new InvoiceXmlOptions(InvoiceSyntax.Ubl));
+        InvoiceConversionResult result = InvoiceConverter.Convert(Encoding.UTF8.GetBytes(source.ToString()), InvoiceTestContracts.En16931(InvoiceSyntax.Ubl));
         Assert.False(result.Succeeded);
         Assert.Contains(result.Diagnostics, d => d.Code == "INV-PRICE");
     }
@@ -79,7 +79,7 @@ public class InvoiceModelBoundaryTests {
         Invoice invoice = InvoiceFixture.Create();
         invoice.SalesOrderReference = "sales-1";
         invoice.PurchaseOrderReference = purchaseOrder;
-        Assert.Contains(InvoiceSerializer.InspectTarget(invoice, new InvoiceXmlOptions(InvoiceSyntax.Ubl)), d => d.Location == "SalesOrderReference");
-        Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice, new InvoiceXmlOptions(InvoiceSyntax.Ubl)));
+        Assert.Contains(InvoiceSerializer.InspectTarget(invoice, InvoiceTestContracts.En16931(InvoiceSyntax.Ubl)), d => d.Location == "SalesOrderReference");
+        Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice, InvoiceTestContracts.En16931(InvoiceSyntax.Ubl)));
     }
 }

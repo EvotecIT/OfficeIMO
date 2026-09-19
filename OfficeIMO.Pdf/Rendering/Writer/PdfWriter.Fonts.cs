@@ -170,6 +170,19 @@ internal static partial class PdfWriter {
         _ => ThrowUnsupportedStandardFontWidth(font)
     };
 
+    // A non-allocating '\r'/'\n' scan. `text.Any(c => ...)` allocates a CharEnumerator per call, and this
+    // runs once per token/cell/paragraph during layout. string.Contains(char) is unavailable on
+    // netstandard2.0/net472 and string.IndexOf(char) trips CA2249-as-error, so use an index loop.
+    private static bool ContainsLineBreak(string text) {
+        for (int i = 0; i < text.Length; i++) {
+            if (text[i] == '\r' || text[i] == '\n') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     internal static double EstimateSimpleTextWidth(string? text, PdfStandardFont font, double fontSize) {
         if (string.IsNullOrEmpty(text)) {
             return 0;
@@ -183,12 +196,24 @@ internal static partial class PdfWriter {
         return width;
     }
 
+    // The multi-line branch is factored out so its lambda-free loop keeps the closure that would capture
+    // these parameters off the single-line hot path — this method is called per token during wrapping,
+    // and a captured lambda forces a display-class allocation on every call even when unused.
+    private static double MaxLineWidthForOptions(string text, PdfStandardFont font, double fontSize, PdfOptions? options, OfficeTextFeatureSettings? featureSettings) {
+        // Seeded below the possible range (not 0) so the result equals the original LINQ .Max() exactly;
+        // Split with a line break present always yields at least one element, so max is always assigned.
+        double max = double.NegativeInfinity;
+        foreach (string line in text.Split(LayoutLineSeparators, StringSplitOptions.None)) {
+            double width = EstimateSimpleTextWidthForOptions(line, font, fontSize, options, featureSettings);
+            if (width > max) max = width;
+        }
+
+        return max;
+    }
+
     private static double EstimateSimpleTextWidthForOptions(string? text, PdfStandardFont font, double fontSize, PdfOptions? options, OfficeTextFeatureSettings? featureSettings = null) {
-        if (!string.IsNullOrEmpty(text) && text!.Any(character => character == '\r' || character == '\n')) {
-            string layoutText = text!;
-            return layoutText
-                .Split(LayoutLineSeparators, StringSplitOptions.None)
-                .Max(line => EstimateSimpleTextWidthForOptions(line, font, fontSize, options, featureSettings));
+        if (!string.IsNullOrEmpty(text) && ContainsLineBreak(text!)) {
+            return MaxLineWidthForOptions(text!, font, fontSize, options, featureSettings);
         }
 
         if (options != null &&
@@ -202,10 +227,14 @@ internal static partial class PdfWriter {
                     deferProviderCoverable: options.TextShapingProviderSnapshot != null);
             }
 
-            IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = PdfTextDiagnostics.AnalyzeEmbeddedFontText(value, fontProgram);
-            options.AddTextDiagnostics(diagnostics);
-            if (diagnostics.Count > 0) {
-                throw CreateTextEncodingException(diagnostics[0], nameof(text));
+            // Only run the allocating embedded-font diagnostic scan when a diagnostics report needs it;
+            // MeasureTextWidth already throws on a missing glyph, so validation is preserved regardless.
+            if (options.HasDiagnosticsReport) {
+                IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = PdfTextDiagnostics.AnalyzeEmbeddedFontText(value, fontProgram);
+                options.AddTextDiagnostics(diagnostics);
+                if (diagnostics.Count > 0) {
+                    throw CreateTextEncodingException(diagnostics[0], nameof(text));
+                }
             }
 
             return fontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot, options.Language, featureSettings);
@@ -222,16 +251,30 @@ internal static partial class PdfWriter {
                     deferProviderCoverable: options.TextShapingProviderSnapshot != null);
             }
 
-            IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = PdfTextDiagnostics.AnalyzeEmbeddedFontText(value, cffFontProgram);
-            options.AddTextDiagnostics(diagnostics);
-            if (diagnostics.Count > 0) {
-                throw CreateTextEncodingException(diagnostics[0], nameof(text));
+            // Only run the allocating embedded-font diagnostic scan when a diagnostics report needs it;
+            // MeasureTextWidth already throws on a missing glyph, so validation is preserved regardless.
+            if (options.HasDiagnosticsReport) {
+                IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = PdfTextDiagnostics.AnalyzeEmbeddedFontText(value, cffFontProgram);
+                options.AddTextDiagnostics(diagnostics);
+                if (diagnostics.Count > 0) {
+                    throw CreateTextEncodingException(diagnostics[0], nameof(text));
+                }
             }
 
             return cffFontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot, options.Language, featureSettings);
         }
 
         return EstimateSimpleTextWidth(text, font, fontSize);
+    }
+
+    private static double MaxLineWidthForOptions(string text, PdfStandardFont fallbackFont, PdfNamedFontFace? namedFont, double fontSize, PdfOptions? options, OfficeTextFeatureSettings? featureSettings) {
+        double max = double.NegativeInfinity;
+        foreach (string line in text.Split(LayoutLineSeparators, StringSplitOptions.None)) {
+            double width = EstimateSimpleTextWidthForOptions(line, fallbackFont, namedFont, fontSize, options, featureSettings);
+            if (width > max) max = width;
+        }
+
+        return max;
     }
 
     private static double EstimateSimpleTextWidthForOptions(
@@ -241,10 +284,8 @@ internal static partial class PdfWriter {
         double fontSize,
         PdfOptions? options,
         OfficeTextFeatureSettings? featureSettings = null) {
-        if (!string.IsNullOrEmpty(text) && text!.Any(character => character == '\r' || character == '\n')) {
-            return text!
-                .Split(LayoutLineSeparators, StringSplitOptions.None)
-                .Max(line => EstimateSimpleTextWidthForOptions(line, fallbackFont, namedFont, fontSize, options, featureSettings));
+        if (!string.IsNullOrEmpty(text) && ContainsLineBreak(text!)) {
+            return MaxLineWidthForOptions(text!, fallbackFont, namedFont, fontSize, options, featureSettings);
         }
 
         if (namedFont.HasValue &&
@@ -259,10 +300,14 @@ internal static partial class PdfWriter {
                     deferProviderCoverable: options.TextShapingProviderSnapshot != null);
             }
 
-            IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = PdfTextDiagnostics.AnalyzeEmbeddedFontText(value, fontProgram);
-            options.AddTextDiagnostics(diagnostics);
-            if (diagnostics.Count > 0) {
-                throw CreateTextEncodingException(diagnostics[0], nameof(text));
+            // Only run the allocating embedded-font diagnostic scan when a diagnostics report needs it;
+            // MeasureTextWidth already throws on a missing glyph, so validation is preserved regardless.
+            if (options.HasDiagnosticsReport) {
+                IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = PdfTextDiagnostics.AnalyzeEmbeddedFontText(value, fontProgram);
+                options.AddTextDiagnostics(diagnostics);
+                if (diagnostics.Count > 0) {
+                    throw CreateTextEncodingException(diagnostics[0], nameof(text));
+                }
             }
 
             return fontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot, options.Language, featureSettings);
@@ -280,10 +325,14 @@ internal static partial class PdfWriter {
                     deferProviderCoverable: options.TextShapingProviderSnapshot != null);
             }
 
-            IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = PdfTextDiagnostics.AnalyzeEmbeddedFontText(value, cffFontProgram);
-            options.AddTextDiagnostics(diagnostics);
-            if (diagnostics.Count > 0) {
-                throw CreateTextEncodingException(diagnostics[0], nameof(text));
+            // Only run the allocating embedded-font diagnostic scan when a diagnostics report needs it;
+            // MeasureTextWidth already throws on a missing glyph, so validation is preserved regardless.
+            if (options.HasDiagnosticsReport) {
+                IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = PdfTextDiagnostics.AnalyzeEmbeddedFontText(value, cffFontProgram);
+                options.AddTextDiagnostics(diagnostics);
+                if (diagnostics.Count > 0) {
+                    throw CreateTextEncodingException(diagnostics[0], nameof(text));
+                }
             }
 
             return cffFontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot, options.Language, featureSettings);

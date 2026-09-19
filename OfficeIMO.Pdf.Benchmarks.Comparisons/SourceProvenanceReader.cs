@@ -2,7 +2,7 @@ using System.Diagnostics;
 
 namespace OfficeIMO.Pdf.Benchmarks.Comparisons;
 
-internal sealed record GitSourceState(string Commit, bool IsClean);
+internal sealed record GitSourceState(string Commit, string Tree, bool IsClean);
 
 internal static class SourceProvenanceReader {
     internal static async Task<GitSourceState?> ReadGitStateAsync(
@@ -12,11 +12,13 @@ internal static class SourceProvenanceReader {
         if (string.IsNullOrWhiteSpace(root)) return null;
         string? commit = await RunGitAsync(root, new[] { "rev-parse", "HEAD" }, cancellationToken).ConfigureAwait(false);
         if (string.IsNullOrWhiteSpace(commit)) return null;
+        string? tree = await RunGitAsync(root, new[] { "rev-parse", "HEAD^{tree}" }, cancellationToken).ConfigureAwait(false);
+        if (string.IsNullOrWhiteSpace(tree)) return null;
         string? status = await RunGitAsync(
             root,
             new[] { "status", "--porcelain", "--untracked-files=normal" },
             cancellationToken).ConfigureAwait(false);
-        return status == null ? null : new GitSourceState(commit.Trim(), string.IsNullOrWhiteSpace(status));
+        return status == null ? null : new GitSourceState(commit.Trim(), tree.Trim(), string.IsNullOrWhiteSpace(status));
     }
 
     private static async Task<string?> RunGitAsync(

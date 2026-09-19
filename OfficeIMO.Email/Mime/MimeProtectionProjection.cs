@@ -21,7 +21,7 @@ internal static class MimeProtectionProjection {
         }
     }
 
-    private static EmailProtectionKind Classify(string contentType, string protocol) {
+    internal static EmailProtectionKind Classify(string contentType, string protocol) {
         if (string.Equals(contentType, "application/pkcs7-mime", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(contentType, "application/x-pkcs7-mime", StringComparison.OrdinalIgnoreCase)) {
             return EmailProtectionKind.SmimeOpaque;

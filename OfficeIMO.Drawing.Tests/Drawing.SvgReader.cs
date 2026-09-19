@@ -400,8 +400,8 @@ public class DrawingSvgReaderTests {
         Assert.Contains("<linearGradient", exported, StringComparison.Ordinal);
         Assert.DoesNotContain("<text", exported, StringComparison.Ordinal);
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
-        Assert.True(Enumerable.Range(0, raster.Height).Any(y =>
-            Enumerable.Range(0, raster.Width).Any(x => raster.GetPixel(x, y).A > 0)));
+        Assert.Contains(Enumerable.Range(0, raster.Height), y =>
+            Enumerable.Range(0, raster.Width).Any(x => raster.GetPixel(x, y).A > 0));
     }
 
     [Fact]
@@ -610,8 +610,8 @@ public class DrawingSvgReaderTests {
         Assert.Equal(0, unsupported);
         OfficeDrawingText text = Assert.Single(drawing!.Elements.OfType<OfficeDrawingText>());
         Assert.Equal("Label", text.Text);
-        Assert.Equal(90D, text.X + (text.Width / 2D), 6);
-        Assert.Equal(5D, text.Y, 6);
+        Assert.Equal(100D, text.X + (text.Width / 2D), 6);
+        Assert.Equal(25D, text.Y, 6);
         Assert.Contains(">Label</text>", OfficeDrawingSvgExporter.ToSvg(drawing), StringComparison.Ordinal);
     }
 

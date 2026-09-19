@@ -217,20 +217,24 @@ public static partial class OfficeTextLayoutEngine {
         IReadOnlyList<OfficeRichTextRun> normalizedRuns =
             NormalizeRichTextRuns(runs, out bool inputTruncated, cancellationToken);
         double width = NormalizeNonNegative(maxWidth);
+        OfficeTextParagraphIndent effectiveParagraphIndent = paragraphIndent ?? OfficeTextParagraphIndent.Empty;
         if (shrinkToFit && shrinkToHeight) {
             normalizedRuns = FitRichTextRunsToFrame(normalizedRuns, width, maxHeight,
                 lineHeightFactor, measure, wrap, minimumFontSize,
-                paragraphIndent ?? OfficeTextParagraphIndent.Empty, cancellationToken, measurePaint);
+                effectiveParagraphIndent, cancellationToken, measurePaint, out double appliedScale);
+            effectiveParagraphIndent = effectiveParagraphIndent.Scale(appliedScale);
         } else if (shrinkToFit && !wrap) {
             double unwrappedWidth = MeasureMaxUnwrappedRichTextWidth(
                 normalizedRuns,
                 measure,
+                effectiveParagraphIndent,
                 cancellationToken);
             if (unwrappedWidth > width) {
                 double maxFontSize = ResolveMaxRichTextFontSize(normalizedRuns);
                 double minFontSize = Math.Min(maxFontSize, Math.Max(1D, NormalizePositive(minimumFontSize, 1D)));
                 double scale = Math.Max(minFontSize / Math.Max(maxFontSize, 1D), width / Math.Max(unwrappedWidth, 1D));
                 normalizedRuns = ScaleRichTextRuns(normalizedRuns, scale, cancellationToken);
+                effectiveParagraphIndent = effectiveParagraphIndent.Scale(scale);
             }
         }
 
@@ -242,7 +246,7 @@ public static partial class OfficeTextLayoutEngine {
             measure,
             wrap,
             overflowBehavior,
-            paragraphIndent ?? OfficeTextParagraphIndent.Empty,
+            effectiveParagraphIndent,
             inputTruncated,
             cancellationToken);
     }
@@ -266,7 +270,11 @@ public static partial class OfficeTextLayoutEngine {
         double lineHeight = Math.Max(1D, Math.Ceiling(maxFontSize * lineFactor));
         var lines = new List<OfficeRichTextLine>();
         var builder = new RichTextLineBuilder(measure);
-        builder.SetOffset(ResolveLineOffset(paragraphIndent, firstVisualLine: true));
+        OfficeTextParagraphIndent currentParagraphIndent = runs.Count > 0
+            ? runs[0].ParagraphIndent ?? paragraphIndent
+            : paragraphIndent;
+        builder.SetOffset(ResolveLineOffset(currentParagraphIndent, firstVisualLine: true));
+        bool atParagraphStart = true;
         bool clipped = inputTruncated;
         bool processingStopped = false;
 
@@ -283,13 +291,22 @@ public static partial class OfficeTextLayoutEngine {
                     processingStopped = true;
                     break;
                 }
-                builder.SetOffset(ResolveLineOffset(paragraphIndent, firstVisualLine: true));
+                currentParagraphIndent = token.Run.ParagraphIndent ?? paragraphIndent;
+                builder.SetOffset(ResolveLineOffset(currentParagraphIndent, firstVisualLine: true));
+                atParagraphStart = true;
                 continue;
+            }
+
+            if (atParagraphStart && token.Run.ParagraphIndent is { } runIndent) {
+                currentParagraphIndent = runIndent;
+                builder.SetOffset(ResolveLineOffset(currentParagraphIndent, firstVisualLine: true));
             }
 
             if (token.IsWhitespace && builder.IsEmpty) {
                 continue;
             }
+
+            atParagraphStart = false;
 
             double tokenWidth = Measure(token.Text, token.Run.EffectiveFontSize, token.Run.FontFamily, token.Run.FontStyle, measure);
             double availableWidth = Math.Max(0D, width - builder.OffsetX);
@@ -299,7 +316,7 @@ public static partial class OfficeTextLayoutEngine {
                     processingStopped = true;
                     break;
                 }
-                builder.SetOffset(ResolveLineOffset(paragraphIndent, firstVisualLine: false));
+                builder.SetOffset(ResolveLineOffset(currentParagraphIndent, firstVisualLine: false));
                 if (token.IsWhitespace) {
                     continue;
                 }
@@ -314,7 +331,7 @@ public static partial class OfficeTextLayoutEngine {
                     token,
                     width,
                     measure,
-                    paragraphIndent,
+                    currentParagraphIndent,
                     cancellationToken)) {
                     clipped = true;
                     processingStopped = true;

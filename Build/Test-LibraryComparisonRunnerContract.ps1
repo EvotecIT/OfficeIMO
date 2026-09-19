@@ -1,6 +1,86 @@
 $ErrorActionPreference = 'Stop'
 
 $runner = Join-Path $PSScriptRoot 'Run-LibraryComparisonBenchmarks.ps1'
+$comparisonProject = Join-Path (Split-Path -Parent $PSScriptRoot) `
+    'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
+$pdfGenerationBenchmark = Join-Path (Split-Path -Parent $PSScriptRoot) `
+    'OfficeIMO.Pdf.Benchmarks.Comparisons\PdfGenerationBenchmarks.cs'
+[xml] $comparisonProjectXml = Get-Content -LiteralPath $comparisonProject -Raw
+$pdfGenerationBenchmarkText = Get-Content -LiteralPath $pdfGenerationBenchmark -Raw
+$questPdfReference = @($comparisonProjectXml.Project.ItemGroup.PackageReference) |
+    Where-Object Include -eq 'QuestPDF' |
+    Select-Object -First 1
+$questPdfVersionProperty = @($comparisonProjectXml.SelectNodes('/Project/PropertyGroup/QuestPdfBenchmarkVersion')) |
+    Where-Object { $_.GetAttribute('Condition') -eq "'`$(QuestPdfBenchmarkVersion)' == ''" } |
+    Select-Object -First 1
+$questPdfBoundaryTarget = $comparisonProjectXml.SelectSingleNode(
+    "/Project/Target[@Name='ValidateQuestPdfBenchmarkLicenseBoundary']")
+if ($null -eq $questPdfReference -or [string] $questPdfReference.Version -ne '$(QuestPdfBenchmarkVersion)' -or
+    $null -eq $questPdfVersionProperty -or $questPdfVersionProperty.InnerText -ne '2026.5.0' -or
+    $null -eq $questPdfBoundaryTarget -or
+    [string] $questPdfBoundaryTarget.Error.Condition -notmatch 'QuestPdfInternalAuthorization') {
+    throw 'QuestPDF comparison workloads are not pinned to the last MIT-compatible package release.'
+}
+if ($pdfGenerationBenchmarkText -notmatch
+    '(?s)\[GlobalSetup\]\s*public void Setup\(\)\s*\{\s*BenchmarkAffinityGuard\.Validate\(\);') {
+    throw 'The published structured-PDF benchmark does not validate affinity inside its measured worker.'
+}
+
+$publicQuestPdf = @(
+    & $runner -Workload pdfgenerate -RunMode quick -PlanOnly
+)
+if ($publicQuestPdf.Count -ne 1 -or
+    $publicQuestPdf[0].QuestPdfPackageVersion -ne '2026.5.0' -or
+    $publicQuestPdf[0].InternalOnly -or
+    -not $publicQuestPdf[0].CatalogEligible) {
+    throw 'The public QuestPDF lane is not pinned, labelled, and catalog eligible under the MIT-compatible release.'
+}
+
+$domainPlan = @(
+    & $runner -Workload pdfgenerate -RunMode full -AffinityMask 4294901760 -PlanOnly
+)
+if ($domainPlan.Count -ne 1 -or
+    $domainPlan[0].CatalogComparisonId -ne 'pdf-structured-generation-net10.0-affinity-0xffff0000' -or
+    $domainPlan[0].ProvenanceWorkloadId -ne $domainPlan[0].CatalogComparisonId -or
+    $domainPlan[0].AffinityMask -ne '0xFFFF0000') {
+    throw 'CPU-domain evidence does not receive one stable, non-colliding catalog and provenance identity.'
+}
+
+$internalQuestPdf = @(
+    & $runner `
+        -Workload pdfgenerate `
+        -RunMode full `
+        -QuestPdfPackageVersion 2026.9.0 `
+        -QuestPdfLicenseType Evaluation `
+        -InternalQuestPdf `
+        -ConfirmQuestPdfAuthorization `
+        -PlanOnly
+)
+if ($internalQuestPdf.Count -ne 1 -or
+    $internalQuestPdf[0].QuestPdfPackageVersion -ne '2026.9.0' -or
+    -not $internalQuestPdf[0].InternalOnly -or
+    $internalQuestPdf[0].CatalogEligible -or
+    $internalQuestPdf[0].WillCatalog -or
+    $internalQuestPdf[0].Publish) {
+    throw 'The internal QuestPDF lane can still reach shared benchmark publication.'
+}
+
+$internalPublishBlocked = $false
+try {
+    & $runner `
+        -Workload pdfgenerate `
+        -RunMode full `
+        -QuestPdfPackageVersion 2026.9.0 `
+        -InternalQuestPdf `
+        -ConfirmQuestPdfAuthorization `
+        -Publish `
+        -PlanOnly | Out-Null
+} catch {
+    $internalPublishBlocked = $true
+}
+if (-not $internalPublishBlocked) {
+    throw 'Internal QuestPDF mode can be combined with benchmark publication.'
+}
 
 $standalone = @(
     & $runner -Workload pdfformats -RunMode full -Publish -PlanOnly
@@ -66,6 +146,56 @@ $unrelated = @(
 )
 if ($unrelated.Count -ne 1 -or $unrelated[0].Workload -ne 'csv') {
     throw 'An unrelated comparison workload still depends on HtmlTinkerX discovery.'
+}
+
+$affinityBeforePlan = if ([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
+        [System.Runtime.InteropServices.OSPlatform]::Windows)) {
+    [System.Diagnostics.Process]::GetCurrentProcess().ProcessorAffinity.ToInt64()
+} else {
+    $null
+}
+$affinityPlan = @(
+    & $runner -Workload csv -RunMode quick -AffinityMask 3 -PlanOnly
+)
+$affinityAfterPlan = if ([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
+        [System.Runtime.InteropServices.OSPlatform]::Windows)) {
+    [System.Diagnostics.Process]::GetCurrentProcess().ProcessorAffinity.ToInt64()
+} else {
+    $null
+}
+$expectedAffinityApplication = if ([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
+        [System.Runtime.InteropServices.OSPlatform]::Windows)) {
+    'inherited-parent-process'
+} else {
+    'benchmarkdotnet-command-line'
+}
+if ($affinityPlan.Count -ne 1 -or
+    $affinityPlan[0].AffinityMask -ne '0x3' -or
+    $affinityPlan[0].AffinityApplication -ne $expectedAffinityApplication -or
+    $affinityAfterPlan -ne $affinityBeforePlan) {
+    throw 'The benchmark plan does not report the platform-specific affinity application mechanism.'
+}
+if ($null -ne $affinityBeforePlan) {
+    $availableAffinity = [UInt64] $affinityBeforePlan
+    $singleProcessorMask = [UInt64] 1
+    while (($availableAffinity -band $singleProcessorMask) -eq 0) {
+        $singleProcessorMask = $singleProcessorMask -shl 1
+    }
+    $failedAsExpected = $false
+    try {
+        & $runner `
+            -Workload csv `
+            -RunMode quick `
+            -AffinityMask $singleProcessorMask `
+            -PowerForgeRoot (Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString('N'))) |
+            Out-Null
+    } catch {
+        $failedAsExpected = $true
+    }
+    $affinityAfterFailure = [System.Diagnostics.Process]::GetCurrentProcess().ProcessorAffinity.ToInt64()
+    if (-not $failedAsExpected -or $affinityAfterFailure -ne $affinityBeforePlan) {
+        throw 'The benchmark runner does not restore the invoking process affinity after a failed real run.'
+    }
 }
 
 $pdfStructuredRead = @(

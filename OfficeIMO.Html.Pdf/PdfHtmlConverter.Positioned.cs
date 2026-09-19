@@ -58,7 +58,9 @@ public static partial class PdfHtmlConverterExtensions {
                 builder.Append(";top:");
                 builder.Append(Points(Math.Max(0D, point.Top)));
                 builder.Append(";width:");
-                builder.Append(Points(Math.Max(1D, block.XEnd - block.XStart)));
+                builder.Append(Points(Math.Max(1D, geometry.ScaleLength(block.XEnd - block.XStart))));
+                builder.Append(";font-size:");
+                builder.Append(Points(Math.Max(1D, geometry.ScaleLength(block.FontSize > 0D ? block.FontSize : 10D))));
                 builder.Append(";\">");
                 AppendHtmlText(builder, block.Text);
                 builder.AppendLine("</div>");
@@ -70,12 +72,25 @@ public static partial class PdfHtmlConverterExtensions {
                 }
             }
 
-            if (page.VectorPrimitiveCount > 0) AddWarning(options, "VectorAppearanceNotExported",
-                "Positioned HTML does not reproduce PDF vector artwork, including some logos, backgrounds, and borders. Compare the output with the source PDF.",
-                PdfCore.PdfConversionWarningSeverity.Warning);
+            if (page.VectorPrimitiveCount > 0) {
+                bool hasOmittedVectors = page.UnrepresentedVectorPrimitiveCount > 0;
+                AddWarning(
+                    options,
+                    "VectorAppearanceNotExported",
+                    hasOmittedVectors
+                        ? page.UnrepresentedVectorPrimitiveCount.ToString(CultureInfo.InvariantCulture) +
+                          " vector primitives were not represented by positioned HTML content or detected table structure."
+                        : "PDF vector primitives were reconstructed through detected table structure rather than their exact source appearance.",
+                    hasOmittedVectors
+                        ? PdfCore.PdfConversionWarningSeverity.Warning
+                        : PdfCore.PdfConversionWarningSeverity.Information,
+                    hasOmittedVectors
+                        ? OfficeConversionLossKind.Omission
+                        : OfficeConversionLossKind.Approximation);
+            }
 
             if (options.IncludeImagePlaceholders) {
-                AppendPositionedImagePlaceholders(builder, page, options);
+                AppendPositionedImagePlaceholders(builder, page, page.Images, options);
             }
         }
 
@@ -112,9 +127,9 @@ public static partial class PdfHtmlConverterExtensions {
         }
 
         double left = table.Columns.Count > 0 ? table.Columns[0].From : 0D;
-        double width = table.Columns.Count > 0 ? Math.Max(1D, table.Columns[table.Columns.Count - 1].To - left) : 1D;
+        double width = table.Columns.Count > 0 ? table.Columns[table.Columns.Count - 1].To - left : 1D;
         double bottom = Math.Min(table.YTop, table.YBottom);
-        double height = Math.Max(1D, Math.Abs(table.YTop - table.YBottom));
+        double height = Math.Abs(table.YTop - table.YBottom);
         PositionedBox box = geometry.TransformBox(left, bottom, width, height);
 
         builder.Append("<table class=\"pdf-table\" data-detection-kind=\"");
@@ -138,7 +153,7 @@ public static partial class PdfHtmlConverterExtensions {
         }
 
         string label = GetLinkLabel(link);
-        PositionedBox box = geometry.TransformBox(link.X1, link.Y1, Math.Max(1D, link.Width), Math.Max(1D, link.Height));
+        PositionedBox box = geometry.TransformBox(link.X1, link.Y1, link.Width, link.Height);
         builder.Append("<a class=\"pdf-link\" style=\"left:");
         builder.Append(Points(box.Left));
         builder.Append(";top:");
@@ -147,23 +162,29 @@ public static partial class PdfHtmlConverterExtensions {
         builder.Append(Points(Math.Max(1D, box.Width)));
         builder.Append(";height:");
         builder.Append(Points(Math.Max(1D, box.Height)));
-        builder.Append("\"");
+        builder.Append("\" aria-label=\"");
+        builder.Append(HtmlAttribute(label));
+        builder.Append('"');
         AppendLinkTargetAttributes(builder, link);
-        builder.Append('>');
-        AppendHtmlText(builder, label);
-        builder.AppendLine("</a>");
+        builder.AppendLine("></a>");
     }
 
-    private static void AppendPositionedImagePlaceholders(StringBuilder builder, PdfCore.PdfLogicalPage page, PdfToHtmlOptions options) {
-        if (page.Images.Count == 0) {
+    internal static void AppendPositionedImagePlaceholders(
+        StringBuilder builder,
+        PdfCore.PdfLogicalPage page,
+        IReadOnlyList<PdfCore.PdfLogicalImage> images,
+        PdfToHtmlOptions options) {
+        if (images.Count == 0) {
             return;
         }
 
-        var unplaced = new List<PdfCore.PdfLogicalImage>();
-        for (int imageIndex = 0; imageIndex < page.Images.Count; imageIndex++) {
-            PdfCore.PdfLogicalImage image = page.Images[imageIndex];
+        for (int imageIndex = 0; imageIndex < images.Count; imageIndex++) {
+            PdfCore.PdfLogicalImage image = images[imageIndex];
             if (!image.HasPlacements) {
-                unplaced.Add(image);
+                ReportHtmlImagePlacementAssessment(
+                    image,
+                    PdfCore.PdfImagePlacementImportPolicy.Analyze(page, image, placement: null),
+                    options);
                 continue;
             }
 
@@ -171,28 +192,19 @@ public static partial class PdfHtmlConverterExtensions {
                 AppendPositionedImagePlaceholder(builder, page, image, image.Placements[placementIndex], placementIndex, options);
             }
         }
-
-        if (unplaced.Count == 0) {
-            return;
-        }
-
-        AddWarning(
-            options,
-            "ImagePlaceholder",
-            "Some images are represented as page-scoped placeholders because no placement invocation was detected.",
-            PdfCore.PdfConversionWarningSeverity.Warning);
-        builder.AppendLine("<div class=\"pdf-image-placeholder\" style=\"position:absolute;left:0;bottom:0;\">");
-        for (int i = 0; i < unplaced.Count; i++) {
-            builder.Append(RenderImageFigure(unplaced[i], options, builder.Length));
-        }
-
-        builder.AppendLine("</div>");
     }
 
     private static void AppendPositionedImagePlaceholder(StringBuilder builder, PdfCore.PdfLogicalPage page, PdfCore.PdfLogicalImage image, PdfCore.PdfImagePlacement placement, int placementIndex, PdfToHtmlOptions options) {
+        PdfCore.PdfImagePlacementImportAssessment assessment =
+            PdfCore.PdfImagePlacementImportPolicy.Analyze(page, image, placement);
+        ReportHtmlImagePlacementAssessment(image, assessment, options);
+        if (assessment.IsSuppressed) return;
+        bool pageRotationUnsupported = assessment.CanImport && page.RotationDegrees % 360 != 0;
+        if (pageRotationUnsupported) ReportHtmlImagePageRotationOmission(image, options);
+
         options.EmittedImagePlaceholderCount++;
         PositionedPageGeometry geometry = PositionedPageGeometry.From(page);
-        PositionedBox box = geometry.TransformBox(placement.X, placement.Y, Math.Max(1D, placement.Width), Math.Max(1D, placement.Height));
+        PositionedBox box = geometry.TransformBox(placement.X, placement.Y, placement.Width, placement.Height);
         builder.Append("<figure class=\"pdf-image-placeholder\" data-resource=\"");
         builder.Append(HtmlAttribute(image.ResourceName));
         builder.Append("\" data-page-number=\"");
@@ -210,12 +222,26 @@ public static partial class PdfHtmlConverterExtensions {
         builder.Append(";height:");
         builder.Append(Points(Math.Max(1D, box.Height)));
         builder.Append(";\">");
-        if (TryBuildEmbeddedImageDataUri(image, options, builder.MaxCapacity - builder.Length, out string? source)) {
+        if (assessment.CanImport && !pageRotationUnsupported &&
+            TryBuildEmbeddedImageDataUri(image, options, builder.MaxCapacity - builder.Length, out string? source)) {
+            ReportHtmlImagePlacementAssessment(image, assessment, options, imageEmbedded: true);
             builder.Append("<img src=\"");
             builder.Append(HtmlAttribute(source!));
             builder.Append("\" alt=\"");
             builder.Append(HtmlAttribute("Image: " + image.ResourceName));
-            builder.Append("\" style=\"width:100%;height:100%;object-fit:contain;display:block;\">");
+            builder.Append("\" style=\"width:100%;height:100%;object-fit:contain;display:block;");
+            AppendHtmlImageReflectionStyle(builder, placement);
+            if (assessment.HasNonDefaultOpacity) {
+                builder.Append("opacity:");
+                builder.Append(FormatCssOpacity(assessment.Opacity));
+                builder.Append(';');
+            }
+            if (assessment.HasNonNormalBlendMode) {
+                builder.Append("mix-blend-mode:");
+                builder.Append(ToCssBlendMode(assessment.BlendMode));
+                builder.Append(';');
+            }
+            builder.Append("\">");
         } else {
             builder.Append("<figcaption>Image: ");
             AppendHtmlText(builder, image.ResourceName);
@@ -237,7 +263,7 @@ public static partial class PdfHtmlConverterExtensions {
 
     private static void AppendPositionedFormWidget(StringBuilder builder, PositionedPageGeometry geometry, PdfCore.PdfLogicalFormWidget widget) {
         string name = widget.FieldName ?? widget.FieldType ?? "Field";
-        PositionedBox box = geometry.TransformBox(widget.X1, widget.Y1, Math.Max(1D, widget.Width), Math.Max(1D, widget.Height));
+        PositionedBox box = geometry.TransformBox(widget.X1, widget.Y1, widget.Width, widget.Height);
         builder.Append("<div class=\"pdf-form-widget\" style=\"left:");
         builder.Append(Points(box.Left));
         builder.Append(";top:");
@@ -257,12 +283,13 @@ public static partial class PdfHtmlConverterExtensions {
     }
 
     private sealed class PositionedPageGeometry {
-        private PositionedPageGeometry(double pageWidth, double pageHeight, int rotationDegrees) {
-            PageWidth = pageWidth;
-            PageHeight = pageHeight;
+        private PositionedPageGeometry(double pageWidth, double pageHeight, int rotationDegrees, double userUnit) {
+            Scale = userUnit > 0D && !double.IsNaN(userUnit) && !double.IsInfinity(userUnit) ? userUnit : 1D;
+            PageWidth = pageWidth * Scale;
+            PageHeight = pageHeight * Scale;
             RotationDegrees = rotationDegrees;
-            Width = rotationDegrees == 90 || rotationDegrees == 270 ? pageHeight : pageWidth;
-            Height = rotationDegrees == 90 || rotationDegrees == 270 ? pageWidth : pageHeight;
+            Width = rotationDegrees == 90 || rotationDegrees == 270 ? PageHeight : PageWidth;
+            Height = rotationDegrees == 90 || rotationDegrees == 270 ? PageWidth : PageHeight;
         }
 
         public double PageWidth { get; }
@@ -270,6 +297,8 @@ public static partial class PdfHtmlConverterExtensions {
         public double PageHeight { get; }
 
         public int RotationDegrees { get; }
+
+        public double Scale { get; }
 
         public double Width { get; }
 
@@ -281,10 +310,12 @@ public static partial class PdfHtmlConverterExtensions {
                 rotation += 360;
             }
 
-            return new PositionedPageGeometry(page.Width, page.Height, rotation);
+            return new PositionedPageGeometry(page.Width, page.Height, rotation, page.UserUnit.GetValueOrDefault(1D));
         }
 
         public PositionedPoint TransformPoint(double x, double y) {
+            x *= Scale;
+            y *= Scale;
             switch (RotationDegrees) {
                 case 90:
                     return new PositionedPoint(PageHeight - y, x);
@@ -298,6 +329,10 @@ public static partial class PdfHtmlConverterExtensions {
         }
 
         public PositionedBox TransformBox(double left, double bottom, double width, double height) {
+            left *= Scale;
+            bottom *= Scale;
+            width = Math.Max(1D, width * Scale);
+            height = Math.Max(1D, height * Scale);
             switch (RotationDegrees) {
                 case 90:
                     return new PositionedBox(PageHeight - bottom - height, left, height, width);
@@ -309,6 +344,8 @@ public static partial class PdfHtmlConverterExtensions {
                     return new PositionedBox(left, PageHeight - bottom - height, width, height);
             }
         }
+
+        public double ScaleLength(double value) => value * Scale;
     }
 
     private struct PositionedPoint {

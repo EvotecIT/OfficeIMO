@@ -2,9 +2,166 @@ namespace OfficeIMO.Pdf;
 
 internal sealed partial class PdfTrueTypeFontProgram {
     private const uint TrueTypeChecksumMagic = 0xB1B0AFBA;
+    private const int MaximumCachedSubsetFiles = 512;
+    private const long MaximumCachedSubsetBytes = 64L * 1024L * 1024L;
+    private static readonly SubsetFontFileCache SubsetFileCache = new();
 
+    // Cache by font content rather than the private source byte-array identity. This preserves reuse across
+    // equivalent font-family instances without retaining every original font snapshot for the process lifetime.
     internal byte[] BuildSubsetFontFile() {
-        var glyphs = new SortedSet<int>(GetUsedGlyphIds());
+        IReadOnlyList<int> usedGlyphIds = GetUsedGlyphIds();
+        int[] glyphIds = usedGlyphIds as int[] ?? System.Linq.Enumerable.ToArray(usedGlyphIds);
+        if (SubsetFileCache.TryGet(_subsetFontFingerprint, glyphIds, out byte[]? cached)) {
+            return cached!;
+        }
+
+        byte[] built = BuildSubsetFontFileUncached(glyphIds);
+        return SubsetFileCache.AddOrGetExisting(_subsetFontFingerprint, glyphIds, built);
+    }
+
+    private readonly struct SubsetCacheKey : IEquatable<SubsetCacheKey> {
+        private readonly SubsetFontFingerprint _fontFingerprint;
+        private readonly int[] _glyphIds;
+        private readonly int _hash;
+
+        internal SubsetCacheKey(SubsetFontFingerprint fontFingerprint, int[] glyphIds) {
+            _fontFingerprint = fontFingerprint;
+            _glyphIds = glyphIds;
+            int hash = fontFingerprint.GetHashCode();
+            for (int i = 0; i < _glyphIds.Length; i++) {
+                hash = (hash * 31) + _glyphIds[i];
+            }
+
+            _hash = hash;
+        }
+
+        public bool Equals(SubsetCacheKey other) {
+            if (!_fontFingerprint.Equals(other._fontFingerprint) || _glyphIds.Length != other._glyphIds.Length) {
+                return false;
+            }
+
+            for (int i = 0; i < _glyphIds.Length; i++) {
+                if (_glyphIds[i] != other._glyphIds[i]) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public override bool Equals(object? obj) => obj is SubsetCacheKey other && Equals(other);
+        public override int GetHashCode() => _hash;
+    }
+
+    private readonly struct SubsetFontFingerprint : IEquatable<SubsetFontFingerprint> {
+        private readonly ulong _part0;
+        private readonly ulong _part1;
+        private readonly ulong _part2;
+        private readonly ulong _part3;
+
+        private SubsetFontFingerprint(byte[] hash) {
+            _part0 = BitConverter.ToUInt64(hash, 0);
+            _part1 = BitConverter.ToUInt64(hash, 8);
+            _part2 = BitConverter.ToUInt64(hash, 16);
+            _part3 = BitConverter.ToUInt64(hash, 24);
+        }
+
+        internal static SubsetFontFingerprint Create(byte[] fontData) {
+#if NET5_0_OR_GREATER
+            return new SubsetFontFingerprint(System.Security.Cryptography.SHA256.HashData(fontData));
+#else
+            using var sha256 = System.Security.Cryptography.SHA256.Create();
+            return new SubsetFontFingerprint(sha256.ComputeHash(fontData));
+#endif
+        }
+
+        public bool Equals(SubsetFontFingerprint other) =>
+            _part0 == other._part0 &&
+            _part1 == other._part1 &&
+            _part2 == other._part2 &&
+            _part3 == other._part3;
+
+        public override bool Equals(object? obj) => obj is SubsetFontFingerprint other && Equals(other);
+
+        public override int GetHashCode() {
+            int hash = _part0.GetHashCode();
+            hash = (hash * 397) ^ _part1.GetHashCode();
+            hash = (hash * 397) ^ _part2.GetHashCode();
+            return (hash * 397) ^ _part3.GetHashCode();
+        }
+    }
+
+    private sealed class SubsetFontFileCache {
+        private readonly object _syncRoot = new();
+        private readonly Dictionary<SubsetCacheKey, LinkedListNode<SubsetCacheEntry>> _entries = new();
+        private readonly LinkedList<SubsetCacheEntry> _recency = new();
+        private long _cachedBytes;
+
+        internal bool TryGet(SubsetFontFingerprint fontFingerprint, int[] glyphIds, out byte[]? subset) {
+            lock (_syncRoot) {
+                if (_entries.TryGetValue(
+                    new SubsetCacheKey(fontFingerprint, glyphIds),
+                    out LinkedListNode<SubsetCacheEntry>? node)) {
+                    _recency.Remove(node);
+                    _recency.AddFirst(node);
+                    subset = node.Value.Subset;
+                    return true;
+                }
+
+                subset = null;
+                return false;
+            }
+        }
+
+        internal byte[] AddOrGetExisting(
+            SubsetFontFingerprint fontFingerprint,
+            int[] glyphIds,
+            byte[] subset) {
+            lock (_syncRoot) {
+                var key = new SubsetCacheKey(fontFingerprint, glyphIds);
+                if (_entries.TryGetValue(key, out LinkedListNode<SubsetCacheEntry>? existing)) {
+                    _recency.Remove(existing);
+                    _recency.AddFirst(existing);
+                    return existing.Value.Subset;
+                }
+
+                if (subset.LongLength > MaximumCachedSubsetBytes) {
+                    return subset;
+                }
+
+                while (_entries.Count >= MaximumCachedSubsetFiles ||
+                       _cachedBytes + subset.LongLength > MaximumCachedSubsetBytes) {
+                    LinkedListNode<SubsetCacheEntry>? oldest = _recency.Last;
+                    if (oldest == null) {
+                        break;
+                    }
+
+                    _recency.RemoveLast();
+                    _entries.Remove(oldest.Value.Key);
+                    _cachedBytes -= oldest.Value.Subset.LongLength;
+                }
+
+                var entry = new SubsetCacheEntry(key, subset);
+                LinkedListNode<SubsetCacheEntry> added = _recency.AddFirst(entry);
+                _entries.Add(key, added);
+                _cachedBytes += subset.LongLength;
+                return subset;
+            }
+        }
+    }
+
+    private sealed class SubsetCacheEntry {
+        internal SubsetCacheEntry(SubsetCacheKey key, byte[] subset) {
+            Key = key;
+            Subset = subset;
+        }
+
+        internal SubsetCacheKey Key { get; }
+        internal byte[] Subset { get; }
+    }
+
+    private byte[] BuildSubsetFontFileUncached(IReadOnlyList<int> usedGlyphIds) {
+        var glyphs = new SortedSet<int>(usedGlyphIds);
         if (!_tables.TryGetValue("glyf", out TableRecord originalGlyf) ||
             !_tables.TryGetValue("loca", out TableRecord originalLoca)) {
             return _data.ToArray();

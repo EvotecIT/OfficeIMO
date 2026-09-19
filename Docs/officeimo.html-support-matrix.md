@@ -379,6 +379,7 @@ The exact cases and feature forms below describe each selected evidence claim. T
 | ConversionFidelity | `PowerPointSmartArtReviewApproximated` | Warning | PowerPoint SmartArt was projected through a static semantic drawing or text fallback. | Use the presentation when editable diagram layout and SmartArt authoring behavior are required. |
 | CssFidelity | `HtmlRenderStylesheetEncodingUnsupported` | Warning | A resolved stylesheet could not be decoded as supported CSS text. | Return UTF-8 CSS or UTF-16 CSS with a byte-order mark. |
 | CssFidelity | `HtmlRenderStylesheetImportCycle` | Warning | A recursive stylesheet import cycle was suppressed. | Remove the cyclic @import relationship. |
+| CssFidelity | `HtmlRenderStylesheetImportLayerUnsupported` | Error | A layered stylesheet import could not be flattened without changing cascade semantics. | Keep the layered import in a native CSS consumer or remove its layer condition before bounded rendering. |
 | CssFidelity | `MediaFilterFailed` | Warning | An active stylesheet could not be filtered safely for the selected media. | Correct invalid CSS or simplify nested media rules. |
 | CssFidelity | `UnsupportedCssDeclaration` | Warning | A CSS declaration could not be mapped to the target document model. | Prefer document-friendly CSS or route visual-first workloads through the high-fidelity print profile. |
 | CssSyntax | `HtmlRenderPositionZIndexPending` | Warning | A z-index declaration could not be parsed as an integer or auto and therefore used auto stacking. | Use auto or an integer z-index value. |

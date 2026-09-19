@@ -14,15 +14,26 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             Value = value; FileId = fileId; ExpectedVersion = expectedVersion; TotalBytes = totalBytes;
             ConfirmedBytes = confirmedBytes; ChunkSize = chunkSize; DestinationIdentity = destinationIdentity; PrefixFingerprint = prefixFingerprint;
         }
+        /// <summary>Gets the URL-safe opaque value to persist for restart.</summary>
         public string Value { get; }
+        /// <summary>Gets the Drive file identifier bound to the checkpoint.</summary>
         public string FileId { get; }
+        /// <summary>Gets the Drive file version that must remain unchanged.</summary>
         public long ExpectedVersion { get; }
+        /// <summary>Gets the expected complete file length in bytes.</summary>
         public long TotalBytes { get; }
+        /// <summary>Gets the durable byte count already confirmed in the destination.</summary>
         public long ConfirmedBytes { get; }
+        /// <summary>Gets the chunk size used to calculate prefix fingerprints.</summary>
         public int ChunkSize { get; }
+        /// <summary>Gets the SHA-256 identity of the absolute destination path.</summary>
         public string DestinationIdentity { get; }
+        /// <summary>Gets the chained SHA-256 fingerprint of the confirmed destination prefix.</summary>
         public string PrefixFingerprint { get; }
 
+        /// <summary>Parses and validates a persisted download checkpoint.</summary>
+        /// <param name="value">URL-safe checkpoint value returned by <see cref="Value"/>.</param>
+        /// <returns>The validated checkpoint.</returns>
         public static GoogleDriveDownloadCheckpoint Parse(string value) {
             if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException("A checkpoint is required.", nameof(value));
             if (value.Length > 64 * 1024) throw new InvalidDataException("The download checkpoint is too large.");
@@ -45,6 +56,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             string value = Convert.ToBase64String(stream.ToArray()).TrimEnd('=').Replace('+', '-').Replace('/', '_');
             return new GoogleDriveDownloadCheckpoint(value, fileId, expectedVersion, totalBytes, confirmedBytes, chunkSize, destinationIdentity, prefixFingerprint);
         }
+        /// <inheritdoc />
         public override string ToString() => $"GoogleDriveDownloadCheckpoint({ConfirmedBytes}/{TotalBytes})";
         private static void WriteString(BinaryWriter writer, string value) { byte[] bytes = Encoding.UTF8.GetBytes(value); writer.Write(bytes.Length); writer.Write(bytes); }
         private static string ReadString(BinaryReader reader, int maximum) { int length = reader.ReadInt32(); if (length < 0 || length > maximum) throw new InvalidDataException("The checkpoint string length is invalid."); byte[] bytes = reader.ReadBytes(length); if (bytes.Length != length) throw new EndOfStreamException(); return Encoding.UTF8.GetString(bytes); }

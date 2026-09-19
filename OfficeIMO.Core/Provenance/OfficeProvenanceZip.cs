@@ -121,6 +121,7 @@ internal static class OfficeProvenanceZip {
     internal static byte[] Remove(
         byte[] data,
         OfficeProvenanceRemovalOptions options,
+        OfficeProvenanceReport before,
         List<OfficeProvenanceChange> changes,
         out bool reserialized,
         bool removeOpcManifestReferences = true,
@@ -150,12 +151,14 @@ internal static class OfficeProvenanceZip {
             if (entryName.Equals(ManifestPath, StringComparison.Ordinal)) {
                 if (entry.Length > options.Limits.MaxManifestBytes || entry.Length > int.MaxValue) throw new InvalidDataException("ZIP provenance manifest exceeds the configured limit.");
                 ReserveExpandedBytes(ref inspectionBytes, entry.Length, options.Limits.MaxExpandedContainerBytes);
-                byte[] manifest = ReadEntry(entry, (int)entry.Length, options.Limits.CancellationToken);
-                bool valid = !hasDuplicateManifests && OfficeC2paManifestStore.IsValid(
-                    manifest, 0, manifest.Length, options.Limits.MaxManifestBytes, options.Limits.MaxContainerEntries, out _);
+                string location = $"ZIP/{ManifestPath}[{occurrence}]";
+                bool valid = !hasDuplicateManifests && before.Evidence.Any(item =>
+                    item.Carrier == OfficeProvenanceCarrierKind.C2paManifest &&
+                    item.Location == location &&
+                    item.IsStructurallyValid);
                 if (options.RemoveC2paManifests && (valid || !options.RequireStructurallyValidCarrier)) {
                     removable.Add(entryName + "\0" + occurrence);
-                    changes.Add(new OfficeProvenanceChange(OfficeProvenanceCarrierKind.C2paManifest, $"ZIP/{ManifestPath}[{occurrence}]", 0));
+                    changes.Add(new OfficeProvenanceChange(OfficeProvenanceCarrierKind.C2paManifest, location, 0));
                 }
                 occurrence++;
                 continue;
@@ -451,6 +454,20 @@ internal static class OfficeProvenanceZip {
             if (predicate(entryMetadata[entry].Name)) return true;
         }
         return false;
+    }
+
+    internal static bool HasCentralDirectorySignature(
+        byte[] data,
+        int maximumEntries,
+        CancellationToken cancellationToken = default) {
+        if (data == null) throw new ArgumentNullException(nameof(data));
+        cancellationToken.ThrowIfCancellationRequested();
+        ValidateEntryCount(data, maximumEntries);
+        using var stream = new MemoryStream(data, writable: false);
+        using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
+        GetEntryMetadata(data, archive, out bool hasCentralDirectorySignature);
+        cancellationToken.ThrowIfCancellationRequested();
+        return hasCentralDirectorySignature;
     }
 
     internal static void ValidateEntryCount(byte[] data, int maximumEntries) {

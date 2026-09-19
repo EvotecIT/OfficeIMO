@@ -299,8 +299,35 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         }
     }
 
-    internal void RecordGlyphUsage(int glyphId, int unicodeScalar) =>
-        RecordGlyphUsage(glyphId, char.ConvertFromUtf32(unicodeScalar));
+    internal void RecordGlyphUsage(int glyphId, int unicodeScalar) {
+        lock (_usageLock) {
+            _usedGlyphIds.Add(glyphId);
+            // Called per glyph occurrence; the glyph -> unicode map needs the string only once per unique
+            // glyph, so skip the ConvertFromUtf32 allocation when the glyph already maps to this scalar.
+            if (_usedGlyphToUnicode.TryGetValue(glyphId, out string? existing) && ScalarEqualsText(existing, unicodeScalar)) {
+                return;
+            }
+
+            string unicodeText = OfficeArabicTextShaper.ToLogicalText(char.ConvertFromUtf32(unicodeScalar));
+            if (!string.IsNullOrEmpty(unicodeText) &&
+                (!_usedGlyphToUnicode.TryGetValue(glyphId, out string? existingText) || ShouldReplaceGlyphUnicodeText(unicodeText, existingText))) {
+                _usedGlyphToUnicode[glyphId] = unicodeText;
+            }
+        }
+    }
+
+    private static bool ScalarEqualsText(string text, int unicodeScalar) {
+        if (unicodeScalar <= 0xFFFF) {
+            return text.Length == 1 && text[0] == (char)unicodeScalar;
+        }
+
+        if (text.Length != 2) {
+            return false;
+        }
+
+        int offset = unicodeScalar - 0x10000;
+        return text[0] == (char)(0xD800 + (offset >> 10)) && text[1] == (char)(0xDC00 + (offset & 0x3FF));
+    }
 
     internal void RecordGlyphUsage(int glyphId, string unicodeText) {
         unicodeText = OfficeArabicTextShaper.ToLogicalText(unicodeText);

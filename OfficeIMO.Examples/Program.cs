@@ -141,12 +141,13 @@ namespace OfficeIMO.Examples {
         static void Main(string[] args) {
             string? reportSource = GetArgumentValue(args, "--report-source");
             if (reportSource != null) reportSource = Path.GetFullPath(reportSource);
+            string? googleSupportMatrixPath = GetArgumentValue(args, "--google-support-matrix");
+            if (!string.IsNullOrWhiteSpace(googleSupportMatrixPath)) googleSupportMatrixPath = Path.GetFullPath(googleSupportMatrixPath);
             string baseFolder = Path.TrimEndingDirectorySeparator(AppContext.BaseDirectory);
             Directory.SetCurrentDirectory(baseFolder);
             string templatesPath = Path.Combine(baseFolder, "Templates");
             string folderPath = Path.Combine(baseFolder, "Documents");
             Setup(folderPath);
-            string? googleSupportMatrixPath = GetArgumentValue(args, "--google-support-matrix");
             if (!string.IsNullOrWhiteSpace(googleSupportMatrixPath)) {
                 Google.GoogleWorkspaceSupportMatrixWriter.WriteTo(googleSupportMatrixPath!);
                 Console.WriteLine($"Google Workspace support matrix written to {Path.GetFullPath(googleSupportMatrixPath!)}");

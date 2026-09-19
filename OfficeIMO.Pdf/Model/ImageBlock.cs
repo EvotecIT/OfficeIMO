@@ -7,6 +7,7 @@ internal sealed class ImageBlock : IPdfBlock {
     public double Width { get; }
     public double Height { get; }
     public OfficeImageInfo Info { get; }
+    public PdfWriter.PdfImageStream? PreparedStream { get; }
     public PdfImageStyle? Style { get; }
     public string? LinkUri { get; }
     public string? LinkContents { get; }
@@ -15,7 +16,7 @@ internal sealed class ImageBlock : IPdfBlock {
     public OfficeImageFit Fit => (Style ?? new PdfImageStyle()).Fit;
     public string? AlternativeText => Style?.AlternativeText;
 
-    public ImageBlock(byte[] data, double width, double height, OfficeImageInfo info, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null, bool useDataSnapshot = false) {
+    public ImageBlock(byte[] data, double width, double height, OfficeImageInfo info, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null, bool useDataSnapshot = false, PdfWriter.PdfImageStream? preparedStream = null) {
         Guard.NotNullOrEmpty(data, nameof(data));
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
@@ -33,6 +34,7 @@ internal sealed class ImageBlock : IPdfBlock {
         Width = width;
         Height = height;
         Info = info;
+        PreparedStream = preparedStream;
         Style = style?.Clone();
         LinkUri = linkUri;
         LinkContents = linkUri == null ? null : linkContents ?? "Image";

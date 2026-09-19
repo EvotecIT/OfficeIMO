@@ -62,6 +62,7 @@ namespace OfficeIMO.Word.Pdf {
             void Bookmark(string name);
             void HR(double? thickness = null, PdfCore.PdfColor? color = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfHorizontalRuleStyle? style = null);
             void Paragraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, PdfCore.PdfColor? defaultColor = null, PdfCore.PdfParagraphStyle? style = null);
+            void Panel(Action<PdfCore.PdfContentBuilder> build, PdfCore.PdfPanelStyle? style = null);
             void PanelParagraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfPanelStyle? style = null, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, PdfCore.PdfColor? defaultColor = null, PdfCore.PdfParagraphStyle? paragraphStyle = null);
             void Heading(int level, string text, PdfCore.PdfAlign align, PdfCore.PdfColor? color, PdfCore.PdfHeadingStyle? style, string? linkUri, string? linkDestinationName, string? linkContents);
             void RichNumbered(IEnumerable<PdfCore.PdfListItem> items, PdfCore.PdfAlign align, PdfCore.PdfColor? color, int startNumber, PdfCore.PdfListStyle? style);
@@ -91,6 +92,7 @@ namespace OfficeIMO.Word.Pdf {
             public void Bookmark(string name) => _pdf.Bookmark(name);
             public void HR(double? thickness = null, PdfCore.PdfColor? color = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfHorizontalRuleStyle? style = null) => _pdf.HR(thickness, color, spacingBefore, spacingAfter, style);
             public void Paragraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, PdfCore.PdfColor? defaultColor = null, PdfCore.PdfParagraphStyle? style = null) => _pdf.Paragraph(build, align, defaultColor, style);
+            public void Panel(Action<PdfCore.PdfContentBuilder> build, PdfCore.PdfPanelStyle? style = null) => _pdf.Panel(build, style);
             public void PanelParagraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfPanelStyle? style = null, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, PdfCore.PdfColor? defaultColor = null, PdfCore.PdfParagraphStyle? paragraphStyle = null) =>
                 _pdf.Panel(content => content.Paragraph(build, align, defaultColor, NativePanelAnchorStyle(paragraphStyle)), style);
             public void Heading(int level, string text, PdfCore.PdfAlign align, PdfCore.PdfColor? color, PdfCore.PdfHeadingStyle? style, string? linkUri, string? linkDestinationName, string? linkContents) {
@@ -127,6 +129,7 @@ namespace OfficeIMO.Word.Pdf {
             public void Bookmark(string name) => _column.Bookmark(name);
             public void HR(double? thickness = null, PdfCore.PdfColor? color = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfHorizontalRuleStyle? style = null) => _column.HR(thickness, color, spacingBefore, spacingAfter, style);
             public void Paragraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, PdfCore.PdfColor? defaultColor = null, PdfCore.PdfParagraphStyle? style = null) => _column.Paragraph(build, align, defaultColor, style);
+            public void Panel(Action<PdfCore.PdfContentBuilder> build, PdfCore.PdfPanelStyle? style = null) => _column.Panel(build, style);
             public void PanelParagraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfPanelStyle? style = null, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, PdfCore.PdfColor? defaultColor = null, PdfCore.PdfParagraphStyle? paragraphStyle = null) =>
                 _column.Panel(content => content.Paragraph(build, align, defaultColor, NativePanelAnchorStyle(paragraphStyle)), style);
             public void Heading(int level, string text, PdfCore.PdfAlign align, PdfCore.PdfColor? color, PdfCore.PdfHeadingStyle? style, string? linkUri, string? linkDestinationName, string? linkContents) {
@@ -159,12 +162,23 @@ namespace OfficeIMO.Word.Pdf {
             ResetNativeStyleLookupCache(document);
             WordBuiltinDocumentProperties properties = document.BuiltinDocumentProperties;
             var nativeFontMap = new NativeFontMap(options?.Report);
-            Dictionary<WordParagraph, (int Level, string Marker)> listMarkers = WordDocumentTraversal.BuildListMarkers(document);
+            Dictionary<WordParagraph, WordDocumentTraversal.ResolvedListMarker> resolvedMarkers = WordDocumentTraversal.BuildResolvedListMarkers(document);
+            Dictionary<WordParagraph, (int Level, string Marker)> listMarkers = resolvedMarkers.ToDictionary(
+                pair => pair.Key, pair => (pair.Value.Level, pair.Value.Marker), resolvedMarkers.Comparer);
+            if (options != null) {
+                IEnumerable<WordDocumentTraversal.ResolvedListMarker> renderedMarkers = resolvedMarkers
+                    .Where(pair => IsNativeRenderedListStoryParagraph(document, pair.Key))
+                    .Select(pair => pair.Value);
+                foreach (int pictureBulletId in WordDocumentTraversal.GetPictureBulletFallbackIds(renderedMarkers)) {
+                    AddNativeExportWarning(options, "NativePictureBulletTextFallback", "list marker",
+                        "Picture bullet " + pictureBulletId.ToString(CultureInfo.InvariantCulture) + " is represented by a portable text bullet in PDF output.");
+                }
+            }
             PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create(CreateNativeOptions(
                     document,
                     options,
                     nativeFontMap,
-                    listMarkers.Values.Select(value => value.Marker)))
+                    listMarkers))
                 .Meta(
                     title: options?.Title ?? properties.Title,
                     author: options?.Author ?? properties.Creator,
@@ -179,17 +193,17 @@ namespace OfficeIMO.Word.Pdf {
             IReadOnlyList<WordSection> sections = document.Sections;
             for (int sectionIndex = 0; sectionIndex < sections.Count;) {
                 cancellationToken.ThrowIfCancellationRequested();
-                int sectionGroupEnd = GetNativePdfSectionGroupEnd(sections, sectionIndex, options);
+                int sectionGroupEnd = GetNativePdfSectionGroupEnd(sections, sectionIndex, options, listMarkers);
                 WordSection firstSection = sections[sectionIndex];
                 PdfCore.PageSize sectionPageSize = GetNativePageSize(firstSection, options);
-                (double Header, double Footer) headerFooterMarginExpansion = GetNativeHeaderFooterMarginExpansion(firstSection, options);
+                (double Header, double Footer) headerFooterMarginExpansion = GetNativeHeaderFooterMarginExpansion(firstSection, options, listMarkers);
                 PdfCore.PageMargins sectionMargins = GetNativeMargins(firstSection, options, headerFooterMarginExpansion);
                 double sectionContentWidth = Math.Max(72D, sectionPageSize.Width - sectionMargins.Left - sectionMargins.Right);
                 pdf.Section(page => {
                     page.Size(sectionPageSize);
                     page.Margin(sectionMargins);
                     ConfigureNativePageNumbering(page, firstSection);
-                    ConfigureNativeHeaderFooter(page, firstSection, options, headerFooterMarginExpansion.Header, headerFooterMarginExpansion.Footer, nativeFontMap);
+                    ConfigureNativeHeaderFooter(page, firstSection, options, headerFooterMarginExpansion.Header, headerFooterMarginExpansion.Footer, nativeFontMap, listMarkers);
                     INativePdfFlow flow = new NativeSpacingCollapseFlow(new NativePdfDocumentFlow(pdf, sectionPageSize));
 
                     for (int currentSectionIndex = sectionIndex; currentSectionIndex < sectionGroupEnd; currentSectionIndex++) {
@@ -264,16 +278,57 @@ namespace OfficeIMO.Word.Pdf {
             return pdf;
         }
 
-        private static int GetNativePdfSectionGroupEnd(IReadOnlyList<WordSection> sections, int startIndex, WordToPdfOptions? options) {
+        private static bool IsNativeRenderedListStoryParagraph(WordDocument document, WordParagraph paragraph) {
+            if (IsNativeDescendantOf(paragraph._paragraph, document._wordprocessingDocument.MainDocumentPart?.Document?.Body)) {
+                return true;
+            }
+
+            foreach (WordSection section in document.Sections) {
+                if (IsNativeDescendantOf(paragraph._paragraph, section.Header?.Default?._header) ||
+                    IsNativeDescendantOf(paragraph._paragraph, section.Footer?.Default?._footer)) {
+                    return true;
+                }
+
+                if (section.DifferentFirstPage &&
+                    (IsNativeDescendantOf(paragraph._paragraph, section.Header?.First?._header) ||
+                     IsNativeDescendantOf(paragraph._paragraph, section.Footer?.First?._footer))) {
+                    return true;
+                }
+
+                if (section.DifferentOddAndEvenPages &&
+                    (IsNativeDescendantOf(paragraph._paragraph, section.Header?.Even?._header) ||
+                     IsNativeDescendantOf(paragraph._paragraph, section.Footer?.Even?._footer))) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool IsNativeDescendantOf(DocumentFormat.OpenXml.OpenXmlElement element, DocumentFormat.OpenXml.OpenXmlElement? ancestor) {
+            if (ancestor == null) {
+                return false;
+            }
+
+            for (DocumentFormat.OpenXml.OpenXmlElement? current = element.Parent; current != null; current = current.Parent) {
+                if (ReferenceEquals(current, ancestor)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static int GetNativePdfSectionGroupEnd(IReadOnlyList<WordSection> sections, int startIndex, WordToPdfOptions? options, IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers) {
             int endIndex = startIndex + 1;
-            while (endIndex < sections.Count && CanMergeNativeContinuousSection(sections[endIndex - 1], sections[endIndex], options)) {
+            while (endIndex < sections.Count && CanMergeNativeContinuousSection(sections[endIndex - 1], sections[endIndex], options, listMarkers)) {
                 endIndex++;
             }
 
             return endIndex;
         }
 
-        private static bool CanMergeNativeContinuousSection(WordSection previous, WordSection current, WordToPdfOptions? options) {
+        private static bool CanMergeNativeContinuousSection(WordSection previous, WordSection current, WordToPdfOptions? options, IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers) {
             if (GetNativeSectionBreakAfter(previous) != W.SectionMarkValues.Continuous) {
                 return false;
             }
@@ -286,8 +341,8 @@ namespace OfficeIMO.Word.Pdf {
                 return false;
             }
 
-            (double Header, double Footer) previousExpansion = GetNativeHeaderFooterMarginExpansion(previous, options);
-            (double Header, double Footer) currentExpansion = GetNativeHeaderFooterMarginExpansion(current, options);
+            (double Header, double Footer) previousExpansion = GetNativeHeaderFooterMarginExpansion(previous, options, listMarkers);
+            (double Header, double Footer) currentExpansion = GetNativeHeaderFooterMarginExpansion(current, options, listMarkers);
             if (!NativeMarginsEquivalent(GetNativeMargins(previous, options, previousExpansion), GetNativeMargins(current, options, currentExpansion))) {
                 return false;
             }

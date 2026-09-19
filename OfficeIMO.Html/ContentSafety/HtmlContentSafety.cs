@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using AngleSharp;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
@@ -14,7 +15,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Html;
 
 /// <summary>Inspects machine-readable HTML that is concealed from an ordinary rendered view.</summary>
-public static class HtmlContentSafety {
+public static partial class HtmlContentSafety {
     /// <summary>Inspects HTML using OfficeIMO's computed CSS cascade.</summary>
     public static OfficeContentSafetyReport Inspect(string html, OfficeContentSafetyOptions? options = null) {
         if (html == null) throw new ArgumentNullException(nameof(html));
@@ -22,7 +23,7 @@ public static class HtmlContentSafety {
         OfficeContentSafetyInputGuard.ValidateText(html, effective);
         HtmlConversionDocument conversion = HtmlConversionDocument.Parse(html);
         IHtmlDocument document = conversion.CreateSourceDocumentForConversion();
-        return InspectDocument(document, effective, targets: null);
+        return InspectDocument(document, effective, targets: null, conversion.Limits);
     }
 
     /// <summary>Inspects a UTF-8 HTML file.</summary>
@@ -44,7 +45,7 @@ public static class HtmlContentSafety {
         HtmlConversionDocument conversion = HtmlConversionDocument.Parse(html);
         IHtmlDocument document = conversion.CreateSourceDocumentForConversion();
         var targets = new Dictionary<string, HtmlCleanupTarget>(StringComparer.Ordinal);
-        OfficeContentSafetyReport before = InspectDocument(document, effective, targets);
+        OfficeContentSafetyReport before = InspectDocument(document, effective, targets, conversion.Limits);
         IReadOnlyList<OfficeContentSafetyFinding> selected = OfficeContentSafetyBuilder.ResolveSelection(before, selection);
         if (selected.Count == 0) return new OfficeContentCleanupResult(Encoding.UTF8.GetBytes(html), before, before, Array.Empty<OfficeContentCleanupChange>());
         foreach (IGrouping<HtmlCleanupTarget, OfficeContentSafetyFinding> group in selected
@@ -84,30 +85,80 @@ public static class HtmlContentSafety {
     private static OfficeContentSafetyReport InspectDocument(
         IHtmlDocument document,
         OfficeContentSafetyOptions? options,
-        IDictionary<string, HtmlCleanupTarget>? targets) {
+        IDictionary<string, HtmlCleanupTarget>? targets,
+        HtmlConversionLimits? limits = null) {
         var builder = new OfficeContentSafetyBuilder("HTML", options);
-        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles = HtmlComputedStyleEngine.Compute(document);
-        IElement? root = document.DocumentElement ?? document.Body;
-        if (root != null) Traverse(root, styles, builder, targets, ancestorConcealed: false);
-        InspectComments(document, builder, targets);
+        InspectDocument(document, builder, targets, locationPrefix: null, ignoredElements: null, limits);
         return builder.Build();
+    }
+
+    private static void InspectDocument(
+        IHtmlDocument document,
+        OfficeContentSafetyBuilder builder,
+        IDictionary<string, HtmlCleanupTarget>? targets,
+        string? locationPrefix,
+        ISet<IElement>? ignoredElements,
+        HtmlConversionLimits? limits = null,
+        CancellationToken cancellationToken = default,
+        bool allowComputedStyleCleanup = true) {
+        cancellationToken.ThrowIfCancellationRequested();
+        HtmlComputedStyleSet styleSet = HtmlComputedStyleEngine.ComputeForContentSafety(document, limits);
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles = styleSet.Elements;
+        allowComputedStyleCleanup &= !HasUnmodeledCompositingStyles(document);
+        allowComputedStyleCleanup &= !HasUnmodeledGlyphScalingStyles(document);
+        allowComputedStyleCleanup &= !HasUnmodeledCascadeResetStyles(document);
+        cancellationToken.ThrowIfCancellationRequested();
+        IElement? root = document.DocumentElement ?? document.Body;
+        if (root != null) Traverse(
+            root,
+            styles,
+            styleSet,
+            builder,
+            targets,
+            ancestorConcealed: false,
+            locationPrefix,
+            ignoredElements,
+            cancellationToken,
+            allowComputedStyleCleanup);
+        InspectComments(document, builder, targets, locationPrefix, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
     }
 
     private static void Traverse(
         IElement element,
         IReadOnlyDictionary<IElement, HtmlComputedStyle> styles,
+        HtmlComputedStyleSet styleSet,
         OfficeContentSafetyBuilder builder,
         IDictionary<string, HtmlCleanupTarget>? targets,
-        bool ancestorConcealed) {
-        string location = BuildLocation(element);
+        bool ancestorConcealed,
+        string? locationPrefix,
+        ISet<IElement>? ignoredElements,
+        CancellationToken cancellationToken,
+        bool allowComputedStyleCleanup) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (ignoredElements != null && ignoredElements.Contains(element)) return;
+        string location = PrefixLocation(locationPrefix, BuildLocation(element));
         styles.TryGetValue(element, out HtmlComputedStyle? style);
-        InspectMachineOnlyAttributes(element, location, builder, targets);
+        InspectMachineOnlyAttributes(element, styleSet, location, builder, targets, allowComputedStyleCleanup);
 
         Concealment? concealment = ancestorConcealed ? null : FindElementConcealment(element, style, styles, builder.Options);
         if (concealment != null) {
-            string text = element.TextContent ?? string.Empty;
+            string text = concealment.DescendantsMayOverride
+                ? string.Concat(element.ChildNodes.Where(node => node.NodeType == NodeType.Text).Select(node => node.TextContent))
+                : element.TextContent ?? string.Empty;
             if (!string.IsNullOrWhiteSpace(text)) {
-                OfficeContentCleanupCapability capability = CanRemoveElement(element)
+                bool reportOnlyStylePayload = string.Equals(
+                    element.LocalName,
+                    "style",
+                    StringComparison.OrdinalIgnoreCase);
+                bool reportOnlyComputedStyle = concealment.IsComputedStyle && !allowComputedStyleCleanup;
+                bool reportOnlyDynamicHiddenInput = !allowComputedStyleCleanup && IsHiddenInputElement(element);
+                OfficeContentCleanupCapability capability =
+                    reportOnlyStylePayload || reportOnlyComputedStyle || reportOnlyDynamicHiddenInput || concealment.ReportOnly
+                    ? OfficeContentCleanupCapability.ReportOnly
+                    : concealment.DescendantsMayOverride
+                    ? OfficeContentCleanupCapability.RemoveText
+                    : CanRemoveElement(element)
                     ? OfficeContentCleanupCapability.RemoveElement
                     : OfficeContentCleanupCapability.RemoveText;
                 OfficeContentSafetyFinding finding = builder.Add(
@@ -118,10 +169,38 @@ public static class HtmlContentSafety {
                     text,
                     capability,
                     inspectTextIntegrityEvidence: false);
-                if (targets != null) targets[finding.Id] = capability == OfficeContentCleanupCapability.RemoveElement
-                    ? HtmlCleanupTarget.ForElement(element)
-                    : HtmlCleanupTarget.ForText(element);
-                InspectHtmlTextIntegrity(element, location, builder, targets, alreadyCharged: true);
+                if (targets != null && capability != OfficeContentCleanupCapability.ReportOnly) {
+                    targets[finding.Id] = concealment.DescendantsMayOverride
+                        ? HtmlCleanupTarget.ForDirectText(element)
+                        : capability == OfficeContentCleanupCapability.RemoveElement
+                        ? HtmlCleanupTarget.ForElement(element)
+                        : HtmlCleanupTarget.ForText(element);
+                }
+                if (concealment.DescendantsMayOverride) {
+                    InspectHtmlDirectTextIntegrity(
+                        element,
+                        location,
+                        builder,
+                        targets,
+                        alreadyCharged: true,
+                        capability == OfficeContentCleanupCapability.ReportOnly
+                            ? OfficeContentCleanupCapability.ReportOnly
+                            : OfficeContentCleanupCapability.RemoveText);
+                } else {
+                    InspectHtmlTextIntegrity(
+                        element,
+                        location,
+                        builder,
+                        targets,
+                        alreadyCharged: true,
+                        capability == OfficeContentCleanupCapability.ReportOnly
+                            ? OfficeContentCleanupCapability.ReportOnly
+                            : OfficeContentCleanupCapability.RemoveText);
+                }
+            }
+            if (!concealment.DescendantsMayOverride) return;
+            foreach (IElement child in element.Children) {
+                Traverse(child, styles, styleSet, builder, targets, ancestorConcealed: false, locationPrefix, ignoredElements, cancellationToken, allowComputedStyleCleanup);
             }
             return;
         }
@@ -142,7 +221,13 @@ public static class HtmlContentSafety {
                     capability,
                     inspectTextIntegrityEvidence: false);
                 if (targets != null && safeToRemove) targets[finding.Id] = HtmlCleanupTarget.ForElement(element);
-                InspectHtmlTextIntegrity(element, location, builder, targets, alreadyCharged: true);
+                InspectHtmlTextIntegrity(
+                    element,
+                    location,
+                    builder,
+                    targets,
+                    alreadyCharged: true,
+                    safeToRemove ? OfficeContentCleanupCapability.RemoveText : OfficeContentCleanupCapability.ReportOnly);
             }
             return;
         }
@@ -152,31 +237,52 @@ public static class HtmlContentSafety {
             if (!string.IsNullOrWhiteSpace(directText)) {
                 Concealment? lowContrast = FindLowContrast(element, style, styles, builder.Options);
                 if (lowContrast != null) {
+                    OfficeContentCleanupCapability capability = allowComputedStyleCleanup && !lowContrast.ReportOnly
+                        ? OfficeContentCleanupCapability.RemoveText
+                        : OfficeContentCleanupCapability.ReportOnly;
                     OfficeContentSafetyFinding finding = builder.Add(
                         lowContrast.Kind,
                         lowContrast.Risk,
                         location + "/text()",
                         lowContrast.Evidence,
                         directText,
-                        OfficeContentCleanupCapability.RemoveText,
+                        capability,
                         inspectTextIntegrityEvidence: false);
-                    if (targets != null) targets[finding.Id] = HtmlCleanupTarget.ForDirectText(element);
-                    InspectHtmlDirectTextIntegrity(element, location, builder, targets, alreadyCharged: true);
+                    if (targets != null && capability != OfficeContentCleanupCapability.ReportOnly) {
+                        targets[finding.Id] = HtmlCleanupTarget.ForDirectText(element);
+                    }
+                    InspectHtmlDirectTextIntegrity(element, location, builder, targets, alreadyCharged: true, capability);
                 } else {
                     InspectHtmlDirectTextIntegrity(element, location, builder, targets, alreadyCharged: false);
                 }
             }
         }
 
-        if (string.Equals(element.LocalName, "template", StringComparison.OrdinalIgnoreCase)) {
-            string templateText = NormalizePayload(element.TextContent);
+        if (HtmlResourcePipeline.IsHtmlNamespaceElement(element)
+            && string.Equals(element.LocalName, "template", StringComparison.OrdinalIgnoreCase)) {
+            bool isDeclarativeShadowRoot = element.HasAttribute("shadowrootmode");
+            string templateText = NormalizePayload(element is IHtmlTemplateElement template
+                ? template.Content.TextContent
+                : element.TextContent);
             if (templateText.Length > 0 && builder.Options.IncludeNonPrimaryContent) {
-                AddAttributeOrNonPrimaryFinding(builder, targets, element, null, location, "HTML template content is not part of the ordinary rendered document.", templateText);
+                AddAttributeOrNonPrimaryFinding(
+                    builder,
+                    targets,
+                    element,
+                    null,
+                    location,
+                    isDeclarativeShadowRoot
+                        ? "Declarative shadow-root template content may render as the host shadow tree and is preserved."
+                        : "HTML template content is not part of the ordinary rendered document.",
+                    templateText,
+                    reportOnly: isDeclarativeShadowRoot);
             }
             return;
         }
 
-        foreach (IElement child in element.Children) Traverse(child, styles, builder, targets, ancestorConcealed: false);
+        foreach (IElement child in element.Children) {
+            Traverse(child, styles, styleSet, builder, targets, ancestorConcealed: false, locationPrefix, ignoredElements, cancellationToken, allowComputedStyleCleanup);
+        }
     }
 
     private static void InspectHtmlTextIntegrity(
@@ -184,10 +290,11 @@ public static class HtmlContentSafety {
         string location,
         OfficeContentSafetyBuilder builder,
         IDictionary<string, HtmlCleanupTarget>? targets,
-        bool alreadyCharged) {
+        bool alreadyCharged,
+        OfficeContentCleanupCapability cleanupCapability = OfficeContentCleanupCapability.RemoveText) {
         var textNodes = new List<IText>();
         CollectHtmlTextNodes(element, textNodes);
-        InspectHtmlTextNodes(textNodes, location, builder, targets, alreadyCharged);
+        InspectHtmlTextNodes(textNodes, location, builder, targets, alreadyCharged, cleanupCapability);
     }
 
     private static void InspectHtmlDirectTextIntegrity(
@@ -195,23 +302,33 @@ public static class HtmlContentSafety {
         string location,
         OfficeContentSafetyBuilder builder,
         IDictionary<string, HtmlCleanupTarget>? targets,
-        bool alreadyCharged) => InspectHtmlTextNodes(element.ChildNodes.OfType<IText>(), location, builder, targets, alreadyCharged);
+        bool alreadyCharged,
+        OfficeContentCleanupCapability cleanupCapability = OfficeContentCleanupCapability.RemoveText) => InspectHtmlTextNodes(
+            element.ChildNodes.OfType<IText>(),
+            location,
+            builder,
+            targets,
+            alreadyCharged,
+            cleanupCapability);
 
     private static void InspectHtmlTextNodes(
         IEnumerable<IText> textNodes,
         string location,
         OfficeContentSafetyBuilder builder,
         IDictionary<string, HtmlCleanupTarget>? targets,
-        bool alreadyCharged) {
+        bool alreadyCharged,
+        OfficeContentCleanupCapability cleanupCapability) {
         int textIndex = 0;
         foreach (IText textNode in textNodes) {
             string nodeText = textNode.Data ?? string.Empty;
             if (nodeText.Length == 0) continue;
             string nodeLocation = location + "/text()[" + (++textIndex).ToString(CultureInfo.InvariantCulture) + "]";
             IReadOnlyList<OfficeContentSafetyFinding> unicode = alreadyCharged
-                ? builder.InspectChargedTextIntegrity(nodeLocation, nodeText, OfficeContentCleanupCapability.RemoveText)
-                : builder.InspectVisibleText(nodeLocation, nodeText, OfficeContentCleanupCapability.RemoveText);
-            if (targets != null) foreach (OfficeContentSafetyFinding item in unicode) targets[item.Id] = HtmlCleanupTarget.ForTextRange(textNode, item);
+                ? builder.InspectChargedTextIntegrity(nodeLocation, nodeText, cleanupCapability)
+                : builder.InspectVisibleText(nodeLocation, nodeText, cleanupCapability);
+            if (targets != null && cleanupCapability != OfficeContentCleanupCapability.ReportOnly) {
+                foreach (OfficeContentSafetyFinding item in unicode) targets[item.Id] = HtmlCleanupTarget.ForTextRange(textNode, item);
+            }
         }
     }
 
@@ -227,37 +344,73 @@ public static class HtmlContentSafety {
         HtmlComputedStyle? style,
         IReadOnlyDictionary<IElement, HtmlComputedStyle> styles,
         OfficeContentSafetyOptions options) {
-        if (element.HasAttribute("hidden") || string.Equals(element.LocalName, "input", StringComparison.OrdinalIgnoreCase) &&
-            string.Equals(element.GetAttribute("type"), "hidden", StringComparison.OrdinalIgnoreCase)) {
-            return new Concealment(OfficeContentConcealmentKind.HiddenByProperty, "The HTML hidden state prevents ordinary rendering.");
+        bool isHtmlElement = HtmlResourcePipeline.IsHtmlNamespaceElement(element);
+        bool isHiddenInput = IsHiddenInputElement(element);
+        if (isHiddenInput) {
+            return new Concealment(
+                OfficeContentConcealmentKind.HiddenByProperty,
+                "The HTML hidden state prevents ordinary rendering.",
+                isComputedStyle: false);
+        }
+        bool hasHiddenAttribute = isHtmlElement && element.HasAttribute("hidden");
+        bool isHiddenUntilFound = hasHiddenAttribute
+            && string.Equals(element.GetAttribute("hidden")?.Trim(), "until-found", StringComparison.OrdinalIgnoreCase);
+        string display = style?.GetValue("display").Trim() ?? string.Empty;
+        if (hasHiddenAttribute
+            && (style == null
+                || !style.IsSpecifiedValue("display")
+                || string.Equals(display, "none", StringComparison.OrdinalIgnoreCase))) {
+            return new Concealment(
+                OfficeContentConcealmentKind.HiddenByProperty,
+                isHiddenUntilFound
+                    ? "The HTML hidden-until-found state is revealable through find-in-page or fragment navigation."
+                    : "The HTML hidden state prevents ordinary rendering.",
+                reportOnly: isHiddenUntilFound);
         }
         if (style == null) return null;
-        string display = style.GetValue("display").Trim();
         if (string.Equals(display, "none", StringComparison.OrdinalIgnoreCase)) {
             return new Concealment(OfficeContentConcealmentKind.HiddenByProperty, "Computed CSS display is none.");
         }
         string visibility = style.GetValue("visibility").Trim();
         if (string.Equals(visibility, "hidden", StringComparison.OrdinalIgnoreCase) || string.Equals(visibility, "collapse", StringComparison.OrdinalIgnoreCase)) {
-            return new Concealment(OfficeContentConcealmentKind.HiddenByProperty, "Computed CSS visibility is " + visibility + ".");
+            return new Concealment(
+                OfficeContentConcealmentKind.HiddenByProperty,
+                "Computed CSS visibility is " + visibility + ".",
+                descendantsMayOverride: true);
         }
         if (TryParseScalar(style.GetValue("opacity"), out double opacity) && opacity <= 0.01D) {
             return new Concealment(OfficeContentConcealmentKind.TransparentText, "Computed CSS opacity is " + opacity.ToString("0.###", CultureInfo.InvariantCulture) + ".");
         }
         if (TryParseCssColor(style.GetValue("color"), out OfficeColor textColor) && textColor.A <= 3) {
-            return new Concealment(OfficeContentConcealmentKind.TransparentText, "Computed CSS text color is fully or nearly transparent.");
+            return new Concealment(
+                OfficeContentConcealmentKind.TransparentText,
+                "Computed CSS text color is fully or nearly transparent.",
+                descendantsMayOverride: true,
+                reportOnly: !isHtmlElement);
         }
         string filter = style.GetValue("filter");
         if (TryGetCssFilterOpacity(filter, out double filterOpacity) && filterOpacity <= 0.01D) {
             return new Concealment(OfficeContentConcealmentKind.TransparentText, "Computed CSS filter applies zero opacity.");
         }
         if (TryParseLengthPoints(style.GetValue("font-size"), out double fontPoints) && fontPoints <= options.MaximumTinyFontSizePoints) {
-            return new Concealment(OfficeContentConcealmentKind.TinyText, "Computed font size is " + fontPoints.ToString("0.###", CultureInfo.InvariantCulture) + "pt.");
+            return new Concealment(
+                OfficeContentConcealmentKind.TinyText,
+                "Computed font size is " + fontPoints.ToString("0.###", CultureInfo.InvariantCulture) + "pt.",
+                descendantsMayOverride: true,
+                reportOnly: HasActiveTransformInAncestry(element, styles));
         }
         bool zeroWidth = IsZeroLength(style.GetValue("width")) || IsZeroLength(style.GetValue("max-width"));
         bool zeroHeight = IsZeroLength(style.GetValue("height")) || IsZeroLength(style.GetValue("max-height"));
+        bool minimumMayOverride = (zeroWidth && HasPotentiallyPositiveMinimum(style.GetValue("min-width")))
+            || (zeroHeight && HasPotentiallyPositiveMinimum(style.GetValue("min-height")));
         string overflow = style.GetValue("overflow") + " " + style.GetValue("overflow-x") + " " + style.GetValue("overflow-y");
         if ((zeroWidth || zeroHeight) && (overflow.IndexOf("hidden", StringComparison.OrdinalIgnoreCase) >= 0 || overflow.IndexOf("clip", StringComparison.OrdinalIgnoreCase) >= 0)) {
-            return new Concealment(OfficeContentConcealmentKind.ZeroDimension, "Computed zero-size geometry is combined with clipped overflow.");
+            return new Concealment(
+                OfficeContentConcealmentKind.ZeroDimension,
+                minimumMayOverride
+                    ? "A zero-size constraint conflicts with a minimum-size constraint, so the rendered geometry is preserved."
+                    : "Computed zero-size geometry is combined with clipped overflow.",
+                reportOnly: minimumMayOverride);
         }
         string clipPath = style.GetValue("clip-path");
         string clip = style.GetValue("clip");
@@ -268,7 +421,10 @@ public static class HtmlContentSafety {
         if (string.Equals(position, "absolute", StringComparison.OrdinalIgnoreCase) || string.Equals(position, "fixed", StringComparison.OrdinalIgnoreCase)) {
             if (IsFarNegative(style.GetValue("left")) || IsFarNegative(style.GetValue("top")) ||
                 IsFarNegativeTextIndent(style.GetValue("text-indent")) || IsFarTranslation(style.GetValue("transform"))) {
-                return new Concealment(OfficeContentConcealmentKind.OffCanvas, "Computed positioned geometry moves the content far outside the ordinary viewport.");
+                return new Concealment(
+                    OfficeContentConcealmentKind.OffCanvas,
+                    "Computed positioned geometry moves the content far outside the ordinary viewport.",
+                    reportOnly: true);
             }
         }
         return null;
@@ -295,33 +451,61 @@ public static class HtmlContentSafety {
         return new Concealment(
             OfficeContentConcealmentKind.LowContrastText,
             "Computed foreground #" + foreground.ToRgbHex() + " against background #" + background.ToRgbHex() +
-            " has contrast ratio " + ratio.ToString("0.###", CultureInfo.InvariantCulture) + ".");
+            " has contrast ratio " + ratio.ToString("0.###", CultureInfo.InvariantCulture) + ".",
+            reportOnly: HasLegacyPaintAttribute(element));
     }
+
+    private static bool HasUnmodeledCompositingStyles(IHtmlDocument document) =>
+        document.QuerySelectorAll("style").Any(style =>
+            HtmlResourcePipeline.HasUnmodeledCompositingDeclaration(style.TextContent ?? string.Empty))
+        || document.QuerySelectorAll("[style]").Any(element =>
+            HtmlResourcePipeline.HasUnmodeledCompositingDeclaration(element.GetAttribute("style") ?? string.Empty));
+
+    private static bool HasUnmodeledGlyphScalingStyles(IHtmlDocument document) =>
+        document.QuerySelectorAll("style").Any(style =>
+            HtmlResourcePipeline.HasUnmodeledGlyphScalingDeclaration(style.TextContent ?? string.Empty))
+        || document.QuerySelectorAll("[style]").Any(element =>
+            HtmlResourcePipeline.HasUnmodeledGlyphScalingDeclaration(element.GetAttribute("style") ?? string.Empty));
+
+    private static bool HasUnmodeledCascadeResetStyles(IHtmlDocument document) =>
+        document.QuerySelectorAll("style").Any(style =>
+            HtmlResourcePipeline.HasUnmodeledCascadeResetDeclaration(style.TextContent ?? string.Empty))
+        || document.QuerySelectorAll("[style]").Any(element =>
+            HtmlResourcePipeline.HasUnmodeledCascadeResetDeclaration(element.GetAttribute("style") ?? string.Empty));
 
     private static void InspectMachineOnlyAttributes(
         IElement element,
+        HtmlComputedStyleSet styleSet,
         string location,
         OfficeContentSafetyBuilder builder,
-        IDictionary<string, HtmlCleanupTarget>? targets) {
+        IDictionary<string, HtmlCleanupTarget>? targets,
+        bool allowComputedStyleCleanup) {
         if (!builder.Options.IncludeNonPrimaryContent) return;
         foreach (string attribute in new[] { "alt", "aria-label", "title", "data-ai", "data-prompt" }) {
             string value = element.GetAttribute(attribute) ?? string.Empty;
             if (string.IsNullOrWhiteSpace(value)) continue;
             AddAttributeOrNonPrimaryFinding(builder, targets, element, attribute, location + "/@" + attribute,
-                "The " + attribute + " attribute is machine-readable but not ordinary body text.", value);
+                "The " + attribute + " attribute is machine-readable but not ordinary body text.", value,
+                reportOnly: string.Equals(attribute, "alt", StringComparison.Ordinal)
+                    || !allowComputedStyleCleanup
+                    || IsGeneratedContentAttributeReference(element, styleSet, attribute));
         }
-        if (string.Equals(element.LocalName, "meta", StringComparison.OrdinalIgnoreCase)) {
+        if (HtmlResourcePipeline.IsHtmlNamespaceElement(element)
+            && string.Equals(element.LocalName, "meta", StringComparison.OrdinalIgnoreCase)) {
             string value = element.GetAttribute("content") ?? string.Empty;
             if (!string.IsNullOrWhiteSpace(value)) {
                 AddAttributeOrNonPrimaryFinding(builder, targets, element, "content", location + "/@content",
-                    "HTML metadata is machine-readable but not rendered as ordinary body text.", value);
+                    "HTML metadata is machine-readable but not rendered as ordinary body text.", value,
+                    reportOnly: IsLegacyEncodingMetadata(element, value));
             }
         }
-        if (string.Equals(element.LocalName, "input", StringComparison.OrdinalIgnoreCase)) {
+        if (HtmlResourcePipeline.IsHtmlNamespaceElement(element)
+            && string.Equals(element.LocalName, "input", StringComparison.OrdinalIgnoreCase)) {
             string value = element.GetAttribute("value") ?? string.Empty;
             if (!string.IsNullOrWhiteSpace(value) && string.Equals(element.GetAttribute("type"), "hidden", StringComparison.OrdinalIgnoreCase)) {
                 AddAttributeOrNonPrimaryFinding(builder, targets, element, "value", location + "/@value",
-                    "A hidden form control retains a machine-readable value.", value);
+                    "A hidden form control retains a machine-readable value.", value,
+                    reportOnly: !allowComputedStyleCleanup);
             }
         }
     }
@@ -333,36 +517,67 @@ public static class HtmlContentSafety {
         string? attribute,
         string location,
         string evidence,
-        string value) {
+        string value,
+        bool reportOnly = false) {
+        OfficeContentCleanupCapability capability = reportOnly
+            ? OfficeContentCleanupCapability.ReportOnly
+            : attribute == null
+                ? OfficeContentCleanupCapability.RemoveElement
+                : OfficeContentCleanupCapability.RemoveText;
         OfficeContentSafetyFinding finding = builder.Add(
             OfficeContentConcealmentKind.NonPrimaryContent,
             OfficeContentSafetyRisk.ContextDependent,
             location,
             evidence,
             NormalizePayload(value),
-            attribute == null ? OfficeContentCleanupCapability.RemoveElement : OfficeContentCleanupCapability.RemoveText);
-        if (targets != null) targets[finding.Id] = attribute == null
+            capability);
+        if (targets != null && capability != OfficeContentCleanupCapability.ReportOnly) targets[finding.Id] = attribute == null
             ? HtmlCleanupTarget.ForElement(element)
             : HtmlCleanupTarget.ForAttribute(element, attribute);
+    }
+
+    private static bool IsLegacyEncodingMetadata(IElement element, string content) {
+        if (!string.Equals(element.GetAttribute("http-equiv")?.Trim(), "Content-Type", StringComparison.OrdinalIgnoreCase)) {
+            return false;
+        }
+        foreach (string segment in content.Split(';')) {
+            int equals = segment.IndexOf('=');
+            if (equals <= 0) continue;
+            if (string.Equals(segment.Substring(0, equals).Trim(), "charset", StringComparison.OrdinalIgnoreCase)
+                && segment.Substring(equals + 1).Trim().Length > 0) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void InspectComments(
         IHtmlDocument document,
         OfficeContentSafetyBuilder builder,
-        IDictionary<string, HtmlCleanupTarget>? targets) {
+        IDictionary<string, HtmlCleanupTarget>? targets,
+        string? locationPrefix = null,
+        CancellationToken cancellationToken = default) {
         if (!builder.Options.IncludeNonPrimaryContent) return;
         IComment[] comments = document.Descendants<IComment>().ToArray();
         for (int index = 0; index < comments.Length; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
             string value = NormalizePayload(comments[index].Data);
             if (value.Length == 0) continue;
+            bool conditionalComment = value.StartsWith("[if ", StringComparison.OrdinalIgnoreCase)
+                || value.StartsWith("[if\t", StringComparison.OrdinalIgnoreCase);
+            OfficeContentCleanupCapability capability = conditionalComment
+                ? OfficeContentCleanupCapability.ReportOnly
+                : OfficeContentCleanupCapability.RemoveElement;
             OfficeContentSafetyFinding finding = builder.Add(
                 OfficeContentConcealmentKind.NonPrimaryContent,
                 OfficeContentSafetyRisk.ContextDependent,
-                "HTML/comment()[" + (index + 1).ToString(CultureInfo.InvariantCulture) + "]",
-                "An HTML comment is machine-readable source content but is not rendered.",
+                PrefixLocation(locationPrefix, "HTML/comment()[" + (index + 1).ToString(CultureInfo.InvariantCulture) + "]"),
+                conditionalComment
+                    ? "A conditional HTML comment can render in Office or legacy browser environments and is preserved."
+                    : "An HTML comment is machine-readable source content but is not rendered.",
                 value,
-                OfficeContentCleanupCapability.RemoveElement);
-            if (targets != null) targets[finding.Id] = HtmlCleanupTarget.ForNode(comments[index]);
+                capability);
+            if (targets != null && !conditionalComment) targets[finding.Id] = HtmlCleanupTarget.ForNode(comments[index]);
         }
     }
 
@@ -377,6 +592,9 @@ public static class HtmlContentSafety {
         }
         return "HTML/" + string.Join("/", segments);
     }
+
+    private static string PrefixLocation(string? prefix, string location) =>
+        string.IsNullOrWhiteSpace(prefix) ? location : prefix!.TrimEnd('/') + "/" + location;
 
     private static bool TryParseBackgroundColor(HtmlComputedStyle style, out OfficeColor color) {
         if (TryParseCssColor(style.GetValue("background-color"), out color) && color.A > 0) return true;
@@ -414,8 +632,11 @@ public static class HtmlContentSafety {
 
     private static bool TryParseCssColor(string value, out OfficeColor color) {
         string normalized = value?.Trim() ?? string.Empty;
-        if (normalized.Length == 0 || string.Equals(normalized, "transparent", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(normalized, "currentcolor", StringComparison.OrdinalIgnoreCase)) {
+        if (string.Equals(normalized, "transparent", StringComparison.OrdinalIgnoreCase)) {
+            color = OfficeColor.Transparent;
+            return true;
+        }
+        if (normalized.Length == 0 || string.Equals(normalized, "currentcolor", StringComparison.OrdinalIgnoreCase)) {
             color = default;
             return false;
         }
@@ -503,6 +724,34 @@ public static class HtmlContentSafety {
 
     private static bool IsZeroLength(string value) => TryParseLengthPoints(value, out double points) && Math.Abs(points) <= 0.000001D;
 
+    private static bool HasPotentiallyPositiveMinimum(string value) {
+        string normalized = value?.Trim() ?? string.Empty;
+        if (normalized.Length == 0
+            || string.Equals(normalized, "auto", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(normalized, "initial", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(normalized, "unset", StringComparison.OrdinalIgnoreCase)) {
+            return false;
+        }
+        return TryParseLengthPoints(normalized, out double points)
+            ? points > 0.000001D
+            : true;
+    }
+
+    private static bool HasActiveTransform(string value) {
+        string normalized = value?.Trim() ?? string.Empty;
+        return normalized.Length != 0 && !string.Equals(normalized, "none", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool HasActiveTransformInAncestry(
+        IElement element,
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) {
+        for (IElement? current = element; current != null; current = current.ParentElement) {
+            if (styles.TryGetValue(current, out HtmlComputedStyle? style)
+                && HasActiveTransform(style.GetValue("transform"))) return true;
+        }
+        return false;
+    }
+
     private static bool IsZeroClip(string value) {
         string normalized = (value ?? string.Empty).Replace(" ", string.Empty).ToLowerInvariant();
         return normalized.Contains("rect(0px,0px,0px,0px)") || normalized.Contains("rect(0,0,0,0)") ||
@@ -518,17 +767,51 @@ public static class HtmlContentSafety {
         return normalized.IndexOf("-999", marker, StringComparison.Ordinal) >= 0 || normalized.IndexOf("-1000", marker, StringComparison.Ordinal) >= 0;
     }
 
-    private static bool IsNonTextElement(IElement element) => element.LocalName.ToLowerInvariant() is "script" or "style" or "noscript";
-    private static bool CanRemoveElement(IElement element) => element.ParentElement != null && element.LocalName.ToLowerInvariant() is not "html" and not "body";
+    private static bool IsHiddenInputElement(IElement element) =>
+        HtmlResourcePipeline.IsHtmlNamespaceElement(element)
+        && string.Equals(element.LocalName, "input", StringComparison.OrdinalIgnoreCase)
+        && string.Equals(element.GetAttribute("type"), "hidden", StringComparison.OrdinalIgnoreCase);
+
+    private static bool HasLegacyPaintAttribute(IElement element) {
+        string[] paintAttributes = { "bgcolor", "background", "color", "text", "link", "vlink", "alink" };
+        for (IElement? current = element; current != null; current = current.ParentElement) {
+            if (!HtmlResourcePipeline.IsHtmlNamespaceElement(current)) continue;
+            if (paintAttributes.Any(current.HasAttribute)) return true;
+        }
+        return false;
+    }
+
+    private static bool IsNonTextElement(IElement element) =>
+        HtmlResourcePipeline.IsHtmlNamespaceElement(element)
+        && element.LocalName.ToLowerInvariant() is "script" or "style";
+
+    private static bool CanRemoveElement(IElement element) =>
+        element.ParentElement != null
+        && (!HtmlResourcePipeline.IsHtmlNamespaceElement(element)
+            || element.LocalName.ToLowerInvariant() is not "html" and not "body");
     private static string NormalizePayload(string value) => string.IsNullOrWhiteSpace(value) ? string.Empty : value.Trim();
 
     private sealed class Concealment {
-        internal Concealment(OfficeContentConcealmentKind kind, string evidence, OfficeContentSafetyRisk risk = OfficeContentSafetyRisk.ContextDependent) {
-            Kind = kind; Evidence = evidence; Risk = risk;
+        internal Concealment(
+            OfficeContentConcealmentKind kind,
+            string evidence,
+            OfficeContentSafetyRisk risk = OfficeContentSafetyRisk.ContextDependent,
+            bool descendantsMayOverride = false,
+            bool isComputedStyle = true,
+            bool reportOnly = false) {
+            Kind = kind;
+            Evidence = evidence;
+            Risk = risk;
+            DescendantsMayOverride = descendantsMayOverride;
+            IsComputedStyle = isComputedStyle;
+            ReportOnly = reportOnly;
         }
         internal OfficeContentConcealmentKind Kind { get; }
         internal string Evidence { get; }
         internal OfficeContentSafetyRisk Risk { get; }
+        internal bool DescendantsMayOverride { get; }
+        internal bool IsComputedStyle { get; }
+        internal bool ReportOnly { get; }
     }
 
     private sealed class HtmlCleanupTarget : IEquatable<HtmlCleanupTarget> {

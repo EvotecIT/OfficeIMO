@@ -42,6 +42,17 @@ namespace OfficeIMO.Word.Pdf {
                 _pendingSpacingAfter = style?.SpacingAfter;
             }
 
+            public void Panel(Action<PdfCore.PdfContentBuilder> build, PdfCore.PdfPanelStyle? style = null) {
+                PdfCore.PdfPanelStyle? collapsedStyle = style;
+                if (style != null) {
+                    collapsedStyle = style.Clone();
+                    collapsedStyle.SpacingBefore = CollapseSpacingBefore(style.SpacingBefore);
+                }
+
+                _inner.Panel(build, collapsedStyle);
+                _pendingSpacingAfter = style?.SpacingAfter;
+            }
+
             public void PanelParagraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfPanelStyle? style = null, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, PdfCore.PdfColor? defaultColor = null, PdfCore.PdfParagraphStyle? paragraphStyle = null) {
                 PdfCore.PdfPanelStyle? collapsedStyle = style;
                 if (style != null) {

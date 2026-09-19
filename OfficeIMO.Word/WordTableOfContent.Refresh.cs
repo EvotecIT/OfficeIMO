@@ -113,7 +113,7 @@ namespace OfficeIMO.Word {
             TocSourceOptions sourceOptions,
             ref int pageNumber,
             ref int headingIndex) {
-            if (paragraph.ParagraphProperties?.PageBreakBefore != null) {
+            if (WordParagraph.HasPageBreakBefore(paragraph)) {
                 pageNumber++;
             }
 
@@ -165,7 +165,7 @@ namespace OfficeIMO.Word {
             ref int headingIndex,
             bool countPageBreakBefore = true,
             bool countTrailingBreaks = true) {
-            if (countPageBreakBefore && paragraph.ParagraphProperties?.PageBreakBefore != null) {
+            if (countPageBreakBefore && WordParagraph.HasPageBreakBefore(paragraph)) {
                 pageNumber++;
             }
 

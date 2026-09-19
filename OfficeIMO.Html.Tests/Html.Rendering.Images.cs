@@ -542,6 +542,28 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlImages_CallerCodecSvgFallbackUsesAnInternalResourceBudget() {
+        const string svgSource = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 4'><rect width='10' height='4' fill='red' filter='url(#blur)'/></svg>";
+        string data = Convert.ToBase64String(Encoding.UTF8.GetBytes(svgSource));
+        string html = "<img src='data:image/svg+xml;base64," + data + "' style='width:100px;height:40px'>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 100D,
+            ViewportHeight = 40D,
+            Margins = HtmlRenderMargins.All(0D),
+            ImageCodec = new SvgFallbackCodec(),
+            MaximumTotalEncodedBytes = 16
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.SvgRasterFallback);
+
+        OfficeImageExportBatchLimitException exception = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
+            HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Png, options));
+        Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), exception.LimitName);
+        Assert.Equal(16, exception.Maximum);
+    }
+
+    [Fact]
     public void HtmlImages_UsesCallerCodecWhenManagedSvgParsingFails() {
         string data = Convert.ToBase64String(Encoding.UTF8.GetBytes("<svg-not-supported-by-managed-reader/>"));
         string html = "<img id='codec-svg' src='data:image/svg+xml;base64," + data + "' style='width:50px;height:20px'>";

@@ -56,7 +56,7 @@ namespace OfficeIMO.Pdf.Benchmarks.Comparisons {
             "ReadText" => PdfReadDocument.Open(_source).ExtractText(),
             "ReadStructured" => PdfDocument.Load(_source).Read(new PdfReadOptions { Profile = PdfReadProfile.Structured }).Text,
             "Select" => PdfDocument.Load(_source).Pages.Extract(_selection).ToBytes(),
-            "Merge" => PdfDocument.Merge(_sources.Select(source => PdfDocument.Load(source))).ToBytes(),
+            "Merge" => PdfDocument.MergeBytes(_sources).ToBytes(),
             "Split" => PdfDocument.Load(_source).Pages.Split().Select(document => document.ToBytes()).ToArray(),
             "SplitSelections" => PdfDocument.Load(_source).Pages.Split(Enumerable.Range(1, 100).Select(page => PdfPageSelection.From(page)).ToArray()).Select(document => document.ToBytes()).ToArray(),
             _ => throw new InvalidOperationException()

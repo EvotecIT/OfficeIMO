@@ -510,9 +510,9 @@ namespace OfficeIMO.Tests {
             original.Remove();
 
             Assert.Same(duplicate, Assert.Single(slide.OleObjects));
-            Assert.Equal(1, presentation.OpenXmlDocument.PresentationPart!
+            Assert.Single(presentation.OpenXmlDocument.PresentationPart!
                 .SlideParts.Single().GetPartsOfType<EmbeddedObjectPart>()
-                .Count());
+);
             Assert.Empty(presentation.ValidateDocument());
         }
 

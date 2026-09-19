@@ -15,7 +15,7 @@ namespace OfficeIMO.Word.Pdf {
             nativeFontMap ??= new NativeFontMap();
             switch (element) {
                 case WordParagraph paragraph:
-                    RenderNativeParagraph(pdf, paragraph, getMarker(paragraph), footnoteNumbers, footnoteNumbersById, options, headingDestinations, nativeDefaults, nativeFontMap, renderSpacingOnlyEmptyParagraphLineBox, nextElement as WordParagraph);
+                    RenderNativeParagraph(pdf, paragraph, getMarker(paragraph), getMarker, footnoteNumbers, footnoteNumbersById, options, headingDestinations, nativeDefaults, nativeFontMap, renderSpacingOnlyEmptyParagraphLineBox, nextElement as WordParagraph);
                     break;
                 case WordTableOfContent tableOfContent:
                     RenderNativeTableOfContents(pdf, tableOfContent, tableOfContentsEntries, contentWidth);
@@ -72,7 +72,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void RenderNativeParagraph(INativePdfFlow pdf, WordParagraph paragraph, (int Level, string Marker)? marker, IReadOnlyList<int> footnoteNumbers, Dictionary<long, int> footnoteNumbersById, WordToPdfOptions? options, IReadOnlyDictionary<W.Paragraph, string> headingDestinations, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap, bool renderSpacingOnlyEmptyParagraphLineBox, WordParagraph? nextParagraph) {
+        private static void RenderNativeParagraph(INativePdfFlow pdf, WordParagraph paragraph, (int Level, string Marker)? marker, Func<WordParagraph, (int Level, string Marker)?> getMarker, IReadOnlyList<int> footnoteNumbers, Dictionary<long, int> footnoteNumbersById, WordToPdfOptions? options, IReadOnlyDictionary<W.Paragraph, string> headingDestinations, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap, bool renderSpacingOnlyEmptyParagraphLineBox, WordParagraph? nextParagraph) {
             if (paragraph == null) {
                 return;
             }
@@ -97,12 +97,22 @@ namespace OfficeIMO.Word.Pdf {
 
             WordTextBox? textBox = GetNativeParagraphTextBox(paragraph, out string? textBoxFallbackText);
             if (textBox != null) {
-                RenderNativeTextBox(pdf, textBox, footnoteNumbersById, options, nativeDefaults, nativeFontMap, textBoxFallbackText);
+                if (marker is { Marker.Length: > 0 }) {
+                    PdfCore.PdfParagraphStyle markerStyle = CreateNativeParagraphStyle(paragraph, nativeDefaults, nativeFontMap);
+                    ApplyNativeInlineListIndent(paragraph, markerStyle);
+                    markerStyle.SpacingAfter = 0D;
+                    pdf.Paragraph(builder => AddNativeParagraphContent(builder, paragraph, marker,
+                        Array.Empty<WordParagraph>(), false, string.Empty, Array.Empty<int>(), options, nativeDefaults, nativeFontMap,
+                        inlineMarkerColumnWidth: Math.Max(0D, -markerStyle.FirstLineIndent)),
+                        ResolveNativeParagraphAlign(paragraph, allowJustify: false), style: markerStyle);
+                }
+                RenderNativeTextBox(pdf, textBox, getMarker, footnoteNumbersById, options, nativeDefaults, nativeFontMap, textBoxFallbackText);
                 return;
             }
 
             PdfCore.PdfAlign objectAlign = ResolveNativeParagraphAlign(paragraph, allowJustify: false);
             PdfCore.PdfParagraphStyle style = CreateNativeParagraphStyle(paragraph, nativeDefaults, nativeFontMap);
+            if (marker is { Marker.Length: 0 }) ApplyNativeMarkerlessListIndent(paragraph, style);
             RenderNativeChart(pdf, paragraph.Chart, objectAlign, options, "body paragraph chart");
 
             if (paragraph.Shape != null) {
@@ -363,80 +373,115 @@ namespace OfficeIMO.Word.Pdf {
             return items;
         }
 
-        private static IReadOnlyList<PdfCore.PdfTableCellCheckBox> CreateNativeTableCellCheckBoxes(WordTableCell cell) {
-            var checkBoxes = new List<PdfCore.PdfTableCellCheckBox>();
-            foreach (WordParagraph paragraph in GetNativeCellParagraphs(cell)) {
-                IReadOnlyList<W.SdtRun> controls = GetNativeCheckBoxControls(paragraph);
-                for (int index = 0; index < controls.Count; index++) {
-                    W.SdtRun checkbox = controls[index];
-                    checkBoxes.Add(new PdfCore.PdfTableCellCheckBox(
-                        GetNativeCheckBoxFieldName(checkbox, checkBoxes.Count, "WordTableCheckBox"),
-                        IsNativeCheckBoxChecked(checkbox),
-                        size: 12D));
-                }
-            }
+        private readonly record struct NativeTableCellEmbeddedContent(
+            IReadOnlyList<PdfCore.PdfTableCellCheckBox> CheckBoxes,
+            IReadOnlyList<PdfCore.PdfTableCellFormField> FormFields,
+            IReadOnlyList<PdfCore.PdfTableCellImage> Images);
 
-            return checkBoxes;
-        }
-
-        private static IReadOnlyList<PdfCore.PdfTableCellFormField> CreateNativeTableCellFormFields(WordTableCell cell) {
-            var formFields = new List<PdfCore.PdfTableCellFormField>();
-            foreach (WordParagraph paragraph in GetNativeCellParagraphs(cell)) {
-                IReadOnlyList<W.SdtRun> controls = GetNativeFormFieldControls(paragraph);
-                for (int index = 0; index < controls.Count; index++) {
-                    W.SdtRun formField = controls[index];
-                    if (IsNativeDatePickerControl(formField)) {
-                        formFields.Add(PdfCore.PdfTableCellFormField.TextField(
-                            GetNativeContentControlFieldName(formField, formFields.Count, "WordTableDatePicker"),
-                            GetNativeDatePickerValue(formField),
-                            width: 150D,
-                            height: 20D,
-                            fontSize: 10D));
-                        continue;
-                    }
-
-                    IReadOnlyList<string> options = GetNativeChoiceFieldOptions(formField);
-                    string? value = GetNativeChoiceFieldValue(formField, options);
-                    if (options.Count == 0 || string.IsNullOrWhiteSpace(value)) {
-                        continue;
-                    }
-
-                    string fallbackPrefix = formField.SdtProperties?.Elements<W.SdtContentComboBox>().Any() == true
-                        ? "WordTableComboBox"
-                        : "WordTableDropDownList";
-                    formFields.Add(PdfCore.PdfTableCellFormField.ChoiceField(
-                        GetNativeContentControlFieldName(formField, formFields.Count, fallbackPrefix),
-                        options,
-                        value,
-                        width: 150D,
-                        height: 20D,
-                        fontSize: 10D,
-                        isComboBox: true));
-                }
-            }
-
-            return formFields;
-        }
-
-        private static IReadOnlyList<PdfCore.PdfTableCellImage> CreateNativeTableCellImages(WordTableCell cell) {
-            var images = new List<PdfCore.PdfTableCellImage>();
-            foreach (WordParagraph paragraph in GetNativeCellParagraphs(cell)) {
+        private static NativeTableCellEmbeddedContent CreateNativeTableCellEmbeddedContent(WordTableCell cell) {
+            List<PdfCore.PdfTableCellCheckBox>? checkBoxes = null;
+            List<PdfCore.PdfTableCellFormField>? formFields = null;
+            List<PdfCore.PdfTableCellImage>? images = null;
+            foreach (WordParagraph paragraph in EnumerateNativeTableCellParagraphs(cell)) {
                 if (paragraph.Image != null) {
+                    images ??= new List<PdfCore.PdfTableCellImage>();
                     AddNativeTableCellImage(images, paragraph.Image);
                 }
 
-                foreach (W.SdtRun pictureControl in GetNativePictureControls(paragraph)) {
-                    var pictureParagraph = new WordParagraph(paragraph._document, paragraph._paragraph!, pictureControl);
-                    WordImage? pictureControlImage = pictureParagraph.PictureControl?.Image;
-                    if (pictureControlImage == null) {
+                if (paragraph._paragraph == null) {
+                    continue;
+                }
+
+                foreach (W.SdtRun control in paragraph._paragraph.Descendants<W.SdtRun>()) {
+                    if (IsNativeCheckBoxControl(control)) {
+                        checkBoxes ??= new List<PdfCore.PdfTableCellCheckBox>();
+                        checkBoxes.Add(new PdfCore.PdfTableCellCheckBox(
+                            GetNativeCheckBoxFieldName(control, checkBoxes.Count, "WordTableCheckBox"),
+                            IsNativeCheckBoxChecked(control),
+                            size: 12D));
                         continue;
                     }
 
-                    AddNativeTableCellImage(images, pictureControlImage);
+                    if (IsNativeSupportedFormFieldContentControl(control)) {
+                        formFields ??= new List<PdfCore.PdfTableCellFormField>();
+                        AddNativeTableCellFormField(formFields, control);
+                        continue;
+                    }
+
+                    if (!IsNativePictureControl(control)) {
+                        continue;
+                    }
+
+                    var pictureParagraph = new WordParagraph(paragraph._document, paragraph._paragraph, control);
+                    WordImage? pictureControlImage = pictureParagraph.PictureControl?.Image;
+                    if (pictureControlImage != null) {
+                        images ??= new List<PdfCore.PdfTableCellImage>();
+                        AddNativeTableCellImage(images, pictureControlImage);
+                    }
                 }
             }
 
-            return images;
+            return new NativeTableCellEmbeddedContent(
+                checkBoxes ?? (IReadOnlyList<PdfCore.PdfTableCellCheckBox>)Array.Empty<PdfCore.PdfTableCellCheckBox>(),
+                formFields ?? (IReadOnlyList<PdfCore.PdfTableCellFormField>)Array.Empty<PdfCore.PdfTableCellFormField>(),
+                images ?? (IReadOnlyList<PdfCore.PdfTableCellImage>)Array.Empty<PdfCore.PdfTableCellImage>());
+        }
+
+        private static void AddNativeTableCellFormField(List<PdfCore.PdfTableCellFormField> formFields, W.SdtRun formField) {
+            if (IsNativeDatePickerControl(formField)) {
+                formFields.Add(PdfCore.PdfTableCellFormField.TextField(
+                    GetNativeContentControlFieldName(formField, formFields.Count, "WordTableDatePicker"),
+                    GetNativeDatePickerValue(formField),
+                    width: 150D,
+                    height: 20D,
+                    fontSize: 10D));
+                return;
+            }
+
+            IReadOnlyList<string> options = GetNativeChoiceFieldOptions(formField);
+            string? value = GetNativeChoiceFieldValue(formField, options);
+            if (options.Count == 0 || string.IsNullOrWhiteSpace(value)) {
+                return;
+            }
+
+            string fallbackPrefix = formField.SdtProperties?.Elements<W.SdtContentComboBox>().Any() == true
+                ? "WordTableComboBox"
+                : "WordTableDropDownList";
+            formFields.Add(PdfCore.PdfTableCellFormField.ChoiceField(
+                GetNativeContentControlFieldName(formField, formFields.Count, fallbackPrefix),
+                options,
+                value,
+                width: 150D,
+                height: 20D,
+                fontSize: 10D,
+                isComboBox: true));
+        }
+
+        private static IEnumerable<WordParagraph> EnumerateNativeTableCellParagraphs(WordTableCell cell, int tableNestingDepth = 0) {
+            if (IsNativeHorizontalMergeContinuation(cell) || IsNativeVerticalMergeContinuation(cell)) {
+                yield break;
+            }
+
+            foreach (WordElement element in EnumerateNativeTableCellElements(cell)) {
+                if (element is WordParagraph paragraph) {
+                    yield return paragraph;
+                    continue;
+                }
+
+                if (element is not WordTable nestedTable) {
+                    continue;
+                }
+
+                int nestedDepth = tableNestingDepth + 1;
+                EnsureNativeTableDepth(nestedDepth);
+                foreach (WordTableRow nestedRow in nestedTable.Rows) {
+                    foreach (WordTableCell nestedCell in nestedRow.Cells) {
+                        foreach (WordParagraph nestedParagraph in EnumerateNativeTableCellParagraphs(nestedCell, nestedDepth)) {
+                            yield return nestedParagraph;
+                        }
+                    }
+                }
+            }
         }
 
         private static void AddNativeTableCellImage(List<PdfCore.PdfTableCellImage> images, WordImage image) {
@@ -461,17 +506,54 @@ namespace OfficeIMO.Word.Pdf {
             WordToPdfOptions? options,
             NativeDocumentDefaults nativeDefaults,
             NativeFontMap nativeFontMap,
-            bool needsAnchorLine = false) {
+            bool needsAnchorLine = false,
+            double? inlineMarkerColumnWidth = null) {
             if (needsAnchorLine) {
                 // An image-only paragraph still participates in pagination and decoration.
                 builder.FontSize(ResolveNativeParagraphFontSize(paragraph,
                     nativeDefaults, GetNativeParagraphStyleDefaults(paragraph))).LineBreak();
                 return;
             }
-            if (marker != null) {
+            if (marker != null && !string.IsNullOrEmpty(marker.Value.Marker)) {
                 builder.Text(new string(' ', Math.Max(0, marker.Value.Level - 1) * 2));
+                WordDocumentTraversal.ListInfo? markerInfo = WordDocumentTraversal.GetListInfo(paragraph);
+                double leadingMarkerOffset = 0D;
+                double trailingMarkerOffset = 0D;
+                bool useAlignedMarkerColumn = false;
+                if (markerInfo.HasValue) {
+                    NativeResolvedTextStyle textStyle = ResolveNativeTextRunStyle(paragraph, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
+                    if (inlineMarkerColumnWidth.HasValue &&
+                        (markerInfo.Value.LevelJustification == WordListLevelAlignment.Right ||
+                         markerInfo.Value.LevelJustification == WordListLevelAlignment.Center)) {
+                        double markerFontSize = markerInfo.Value.MarkerFontSize ?? textStyle.FontSize ?? nativeDefaults.FontSize;
+                        double markerWidth = EstimateNativeListMarkerWidth(marker.Value.Marker, markerFontSize);
+                        double markerColumnWidth = Math.Max(markerWidth, Math.Max(0D, inlineMarkerColumnWidth.Value));
+                        leadingMarkerOffset = markerInfo.Value.LevelJustification == WordListLevelAlignment.Right
+                            ? Math.Max(0D, markerColumnWidth - markerWidth)
+                            : Math.Max(0D, (markerColumnWidth - markerWidth) / 2D);
+                        double suffixWidth = markerInfo.Value.LevelSuffix == WordListLevelSuffix.Space
+                            ? EstimateNativeListMarkerWidth(" ", markerFontSize)
+                            : 0D;
+                        trailingMarkerOffset = Math.Max(0D, markerColumnWidth - leadingMarkerOffset - markerWidth) + suffixWidth;
+                        useAlignedMarkerColumn = true;
+                        AddNativeInlineListMarkerSpacer(builder, leadingMarkerOffset);
+                    }
+                    ApplyNativeTextStyle(builder, textStyle);
+                    builder.Bold(markerInfo.Value.MarkerBold ?? textStyle.Bold);
+                    builder.Italic(markerInfo.Value.MarkerItalic ?? textStyle.Italic);
+                    if (markerInfo.Value.MarkerFontSize.HasValue) builder.FontSize(markerInfo.Value.MarkerFontSize.Value);
+                    if (ParseNativeColor(markerInfo.Value.MarkerColorHex) is { } markerColor) builder.Color(markerColor);
+                    string? markerFontFamily = ResolveNativeListMarkerFontFamily(markerInfo.Value, marker.Value.Marker, textStyle, nativeFontMap);
+                    if (!string.IsNullOrWhiteSpace(markerFontFamily)) builder.FontFamily(markerFontFamily!);
+                    else if (ResolveNativeListMarkerFont(markerInfo.Value, marker.Value.Marker, textStyle) is { } markerFont) builder.Font(markerFont);
+                }
                 builder.Text(marker.Value.Marker);
-                builder.Text(" ");
+                if (markerInfo.HasValue) ResetNativeTextStyle(builder);
+                if (useAlignedMarkerColumn) {
+                    AddNativeInlineListMarkerSpacer(builder, trailingMarkerOffset);
+                } else {
+                    builder.Text(ResolveNativeInlineListMarkerSuffix(markerInfo?.LevelSuffix));
+                }
             }
 
             IReadOnlyList<WordTabStop> tabStops = GetNativeParagraphEffectiveTabStops(paragraph);
@@ -512,6 +594,12 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             AddNativeFootnoteReferences(builder, paragraphFootnoteNumbers);
+        }
+
+        private static void AddNativeInlineListMarkerSpacer(PdfCore.PdfParagraphBuilder builder, double width) {
+            if (width > 0.01D) {
+                builder.InlineBox(width, 0.01D, borderWidth: 0D);
+            }
         }
 
         private static void RenderNativeParagraphImages(INativePdfFlow pdf, WordParagraph paragraph, IReadOnlyList<WordParagraph> runs, PdfCore.PdfAlign align, WordToPdfOptions? options, PdfCore.PdfParagraphStyle anchorStyle) {
@@ -589,7 +677,12 @@ namespace OfficeIMO.Word.Pdf {
             run.IsBreak && run.Break?.BreakType != WordBreakType.Page;
 
         private static WordTextBox? GetNativeParagraphTextBox(WordParagraph paragraph, out string? fallbackText) {
-            fallbackText = GetNativeParagraphTextBoxPlainText(paragraph);
+            WordTextBox? textBox = FindNativeParagraphTextBox(paragraph);
+            fallbackText = GetNativeTextBoxPlainText(paragraph, textBox);
+            return textBox;
+        }
+
+        private static WordTextBox? FindNativeParagraphTextBox(WordParagraph paragraph) {
             WordTextBox? textBox = paragraph.TextBox;
             if (textBox != null || paragraph._paragraph == null) {
                 return textBox;
@@ -606,44 +699,37 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static string? GetNativeParagraphTextBoxPlainText(WordParagraph paragraph) {
-            if (paragraph._paragraph == null) {
+            return GetNativeTextBoxPlainText(paragraph, FindNativeParagraphTextBox(paragraph));
+        }
+
+        private static string? GetNativeTextBoxPlainText(WordParagraph paragraph, WordTextBox? textBox) {
+            if (textBox?.Content == null) {
                 return null;
             }
 
-            var parts = new List<string>();
-            foreach (Wps.TextBoxInfo2 textBoxInfo in paragraph._paragraph.Descendants<Wps.TextBoxInfo2>()) {
-                parts.AddRange(textBoxInfo.Descendants<W.Text>().Select(text => text.Text));
-            }
-
-            foreach (DocumentFormat.OpenXml.Vml.TextBox textBox in paragraph._paragraph.Descendants<DocumentFormat.OpenXml.Vml.TextBox>()) {
-                parts.AddRange(textBox.Descendants<W.Text>().Select(text => text.Text));
-            }
-
-            string textBoxText = ResolveNativeBuiltInPropertyPlaceholders(paragraph._document, string.Concat(parts));
+            string textBoxText = ResolveNativeBuiltInPropertyPlaceholders(
+                paragraph._document,
+                string.Join("\n", GetNativeTextBoxParagraphs(textBox)
+                    .Select(inner => inner.Text.TrimEnd('\r', '\n'))));
             return string.IsNullOrWhiteSpace(textBoxText) ? null : textBoxText;
         }
 
-        private static void RenderNativeTextBox(INativePdfFlow pdf, WordTextBox textBox, Dictionary<long, int> footnoteNumbersById, WordToPdfOptions? options, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap, string? fallbackText = null) {
-            if (!string.IsNullOrWhiteSpace(fallbackText)) {
+        private static void RenderNativeTextBox(INativePdfFlow pdf, WordTextBox textBox, Func<WordParagraph, (int Level, string Marker)?> getMarker, Dictionary<long, int> footnoteNumbersById, WordToPdfOptions? options, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap, string? fallbackText = null) {
+            IReadOnlyList<WordParagraph> paragraphs = GetNativeTextBoxParagraphs(textBox);
+            if (paragraphs.Count == 0 && !string.IsNullOrWhiteSpace(fallbackText)) {
                 PdfCore.PdfPanelStyle fallbackStyle = CreateNativeTextBoxPanelStyle(textBox);
                 pdf.PanelParagraph(builder => builder.Text(NormalizeNativeDirectText(fallbackText)), fallbackStyle, PdfCore.PdfAlign.Left);
                 return;
             }
 
-            IReadOnlyList<WordParagraph> paragraphs = GetNativeTextBoxParagraphs(textBox);
             if (paragraphs.Count == 0) {
                 return;
             }
 
             PdfCore.PdfPanelStyle style = CreateNativeTextBoxPanelStyle(textBox);
-            PdfCore.PdfAlign defaultTextAlign = MapNativeTextBoxTextAlign(paragraphs);
-            pdf.PanelParagraph(builder => {
+            pdf.Panel(contentBuilder => {
                 for (int index = 0; index < paragraphs.Count; index++) {
                     WordParagraph paragraph = paragraphs[index];
-                    if (index > 0) {
-                        builder.LineBreak();
-                    }
-
                     List<WordParagraph> runs = GetNativeRuns(paragraph);
                     bool hasEquationContent = WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0;
                     string content = hasEquationContent
@@ -652,21 +738,40 @@ namespace OfficeIMO.Word.Pdf {
                     bool hasRenderableRuns = runs.Any(run => IsNativeRenderableTextRun(run, paragraph));
                     string renderContent = hasRenderableRuns || ShouldRenderNativeDirectText(paragraph, runs, content) ? content : string.Empty;
                     List<int> paragraphFootnoteNumbers = GetNativeParagraphFootnoteNumbers(paragraph, runs, Array.Empty<int>(), footnoteNumbersById);
-                    AddNativeParagraphContent(builder, paragraph, null, runs, hasRenderableRuns, renderContent, paragraphFootnoteNumbers, options, nativeDefaults, nativeFontMap);
+                    PdfCore.PdfParagraphStyle paragraphStyle = CreateNativeParagraphStyle(paragraph, nativeDefaults, nativeFontMap);
+                    if (getMarker(paragraph) != null) ApplyNativeInlineListIndent(paragraph, paragraphStyle);
+                    paragraphStyle.SpacingBefore = 0D;
+                    paragraphStyle.SpacingAfter = 0D;
+                    contentBuilder.Paragraph(builder => AddNativeParagraphContent(builder, paragraph, getMarker(paragraph),
+                        runs, hasRenderableRuns, renderContent, paragraphFootnoteNumbers, options, nativeDefaults, nativeFontMap,
+                        inlineMarkerColumnWidth: Math.Max(0D, -paragraphStyle.FirstLineIndent)),
+                        ResolveNativeParagraphAlign(paragraph, allowJustify: false), style: paragraphStyle);
                 }
-            }, style, defaultTextAlign);
+            }, style);
         }
 
         private static IReadOnlyList<WordParagraph> GetNativeTextBoxParagraphs(WordTextBox textBox) {
-            IReadOnlyList<WordParagraph> directParagraphs = textBox.Paragraphs;
-            if (HasNativeRenderableTextBoxText(directParagraphs)) {
+            W.TextBoxContent? content = textBox.Content;
+            IReadOnlyList<WordParagraph> directParagraphs = content == null
+                ? Array.Empty<WordParagraph>()
+                : content.Descendants<W.Paragraph>()
+                    .Where(paragraph => ReferenceEquals(paragraph.Ancestors<W.TextBoxContent>().FirstOrDefault(), content))
+                    .Select(paragraph => {
+                        W.Run? firstRun = paragraph.Descendants<W.Run>()
+                            .FirstOrDefault(run => ReferenceEquals(run.Ancestors<W.Paragraph>().FirstOrDefault(), paragraph));
+                        return firstRun == null
+                            ? new WordParagraph(textBox.Document, paragraph)
+                            : new WordParagraph(textBox.Document, paragraph, firstRun);
+                    })
+                    .ToList();
+            if (HasNativeRenderableTextBoxText(directParagraphs) || directParagraphs.Any(paragraph => paragraph.IsListItem)) {
                 return directParagraphs;
             }
 
             IReadOnlyList<WordParagraph> elementParagraphs = CollapseNativeParagraphElements(textBox.Elements)
                 .OfType<WordParagraph>()
                 .ToList();
-            return elementParagraphs;
+            return elementParagraphs.GroupBy(paragraph => paragraph._paragraph).Select(group => group.First()).ToList();
         }
 
         private static bool HasNativeRenderableTextBoxText(IEnumerable<WordParagraph> paragraphs) {
@@ -712,16 +817,6 @@ namespace OfficeIMO.Word.Pdf {
                 default:
                     return PdfCore.PdfAlign.Left;
             }
-        }
-
-        private static PdfCore.PdfAlign MapNativeTextBoxTextAlign(IReadOnlyList<WordParagraph> paragraphs) {
-            foreach (WordParagraph paragraph in paragraphs) {
-                if (!string.IsNullOrEmpty(paragraph.Text)) {
-                    return ResolveNativeParagraphAlign(paragraph);
-                }
-            }
-
-            return PdfCore.PdfAlign.Left;
         }
 
         private static void RenderNativeHeading(INativePdfFlow pdf, int level, string text, PdfCore.PdfAlign align, PdfCore.PdfColor? color, WordParagraph paragraph, PdfCore.PdfParagraphStyle paragraphStyle, NativeFontMap nativeFontMap, string? linkUri = null, string? linkDestinationName = null, string? linkContents = null) {

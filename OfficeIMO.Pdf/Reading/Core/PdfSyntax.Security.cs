@@ -322,12 +322,13 @@ internal static partial class PdfSyntax {
         int? contentsSizeBytes = TryReadContentsSizeBytes(objects, dictionary);
         int? contentsEncodedSizeBytes = TryReadContentsEncodedSizeBytes(dictionary);
         int referenceCount = TryReadReferenceCount(objects, dictionary);
+        PdfSignatureFieldLockInfo? fieldLock = ReadSignatureFieldMdpInfo(objects, dictionary) ?? field?.FieldLock;
 
         return new PdfSignatureInfo(
             objectNumber,
             field?.FieldObjectNumber,
             field?.FieldName,
-            field?.FieldLock,
+            fieldLock,
             field?.SeedValue,
             TryReadName(objects, dictionary, "Filter"),
             TryReadName(objects, dictionary, "SubFilter"),
@@ -344,21 +345,6 @@ internal static partial class PdfSyntax {
             contentsSizeBytes,
             contentsEncodedSizeBytes,
             referenceCount);
-    }
-
-    private static PdfSignatureFieldLockInfo? ReadSignatureFieldLockInfo(
-        Dictionary<int, PdfIndirectObject> objects,
-        PdfDictionary signatureField) {
-        if (!signatureField.Items.TryGetValue("Lock", out PdfObject? lockObject) ||
-            ResolveObject(objects, lockObject) is not PdfDictionary lockDictionary) {
-            return null;
-        }
-
-        string? action = TryReadName(objects, lockDictionary, "Action");
-        IReadOnlyList<string> fields = ReadNameOrTextArray(objects, lockDictionary, "Fields");
-        return !string.IsNullOrEmpty(action) || fields.Count > 0
-            ? new PdfSignatureFieldLockInfo(action, fields)
-            : null;
     }
 
     private static PdfSignatureSeedValueInfo? ReadSignatureSeedValueInfo(

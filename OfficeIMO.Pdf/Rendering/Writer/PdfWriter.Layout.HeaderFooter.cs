@@ -29,6 +29,7 @@ internal static partial class PdfWriter {
         return new PageImage {
             Data = block.Data,
             Info = block.Info,
+            PreparedStream = block.PreparedStream,
             X = renderPlan.ImagePlacement.X,
             Y = renderPlan.ImagePlacement.Y,
             W = renderPlan.ImagePlacement.Width,

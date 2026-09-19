@@ -24,7 +24,6 @@
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <LangVersion>Latest</LangVersion>
     <Nullable>enable</Nullable>
-    <NoWarn>$(NoWarn);NU5104</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -60,6 +59,7 @@
     <InternalsVisibleTo Include="OfficeIMO.Html.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Html.Runtime.Worker" />
     <InternalsVisibleTo Include="OfficeIMO.Epub.Image" />
+    <InternalsVisibleTo Include="OfficeIMO.Epub" />
     <InternalsVisibleTo Include="OfficeIMO.Excel.Html" />
     <InternalsVisibleTo Include="OfficeIMO.Html.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.Html.Rtf" />

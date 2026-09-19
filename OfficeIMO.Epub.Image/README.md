@@ -18,3 +18,15 @@ IReadOnlyList<OfficeImageExportResult> pages = await book
 ```
 
 When raw HTML or resource bytes were not retained, export remains available through a diagnosed plain-text or missing-resource fallback.
+
+<!-- officeimo-operation-catalog:start -->
+## Generated capability summary
+
+This table is generated from the package-neutral OfficeIMO operation catalog. The detailed source contracts remain authoritative for feature-level behavior and limitations.
+
+| Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Export | 0 | 5 | 0 | 0 | 0 | 0 |
+
+The complete rows for `OfficeIMO.Epub.Image` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
+<!-- officeimo-operation-catalog:end -->

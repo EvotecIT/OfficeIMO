@@ -364,12 +364,13 @@ public static class OfficeProvenanceRemover {
                 output = OfficeProvenanceTiff.Remove(data, options, changes, out reserialized);
                 break;
             case OfficeProvenanceAssetFormat.Svg:
-                output = OfficeProvenanceSvg.Remove(data, options, changes, out reserialized);
+                output = OfficeProvenanceSvg.Remove(data, options, before, changes, out reserialized);
                 break;
             case OfficeProvenanceAssetFormat.ZipPackage:
                 output = OfficeProvenanceZip.Remove(
                     data,
                     options,
+                    before,
                     changes,
                     out reserialized,
                     removeOpcManifestReferences,

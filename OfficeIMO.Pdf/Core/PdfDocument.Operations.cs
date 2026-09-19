@@ -135,6 +135,16 @@ public sealed partial class PdfDocument {
         PdfLoadOptions? options,
         PdfMutationExecutionPreference executionPreference,
         CancellationToken cancellationToken) {
+        return PlanMutation(operation, fieldNames, options, executionPreference, signatureProfile: null, cancellationToken);
+    }
+
+    private PdfMutationPlan PlanMutation(
+        PdfMutationOperation operation,
+        IEnumerable<string>? fieldNames,
+        PdfLoadOptions? options,
+        PdfMutationExecutionPreference executionPreference,
+        PdfSignatureProfile? signatureProfile,
+        CancellationToken cancellationToken) {
         var snapshot = GetReadSnapshot(options, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         PdfDocumentPreflight preflight = PdfInspector.Preflight(
@@ -143,7 +153,7 @@ public sealed partial class PdfDocument {
             () => snapshot.Document,
             cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        return PdfMutationPlanner.Plan(preflight, snapshot.Bytes, operation, fieldNames, executionPreference, snapshot.Options);
+        return PdfMutationPlanner.Plan(preflight, snapshot.Bytes, operation, fieldNames, executionPreference, snapshot.Options, signatureProfile);
     }
 
     /// <summary>
@@ -435,11 +445,18 @@ public sealed partial class PdfDocument {
         Func<PdfMutationExecutionMode, T> operation,
         IEnumerable<string>? fieldNames = null,
         PdfLoadOptions? options = null,
-        PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic) where T : class {
+        PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic,
+        PdfSignatureProfile? signatureProfile = null) where T : class {
         Guard.NotNullOrWhiteSpace(operationName, nameof(operationName));
         Guard.NotNull(operation, nameof(operation));
 
-        PdfMutationPlan plan = PlanMutation(mutationOperation, fieldNames, options, executionPreference);
+        PdfMutationPlan plan = PlanMutation(
+            mutationOperation,
+            fieldNames,
+            options,
+            executionPreference,
+            signatureProfile,
+            CancellationToken.None);
         if (!plan.CanExecute) {
             return PdfOperationResult<T>.MutationBlocked(operationName, capability, plan);
         }
@@ -477,6 +494,49 @@ public sealed partial class PdfDocument {
         return Merge(documents, CancellationToken.None);
     }
 
+    /// <summary>
+    /// Creates one PDF by merging the supplied caller-owned PDF byte payloads in order.
+    /// The inputs are consumed synchronously and are not retained by the returned document.
+    /// </summary>
+    public static PdfDocument MergeBytes(IEnumerable<byte[]> pdfs) {
+        return MergeBytes(pdfs, CancellationToken.None);
+    }
+
+    /// <summary>
+    /// Creates one PDF by merging the supplied caller-owned PDF byte payloads in order through a cancellable single merge pass.
+    /// The inputs are consumed synchronously and are not retained by the returned document.
+    /// </summary>
+    public static PdfDocument MergeBytes(
+        IEnumerable<byte[]> pdfs,
+        CancellationToken cancellationToken) {
+        List<byte[]> sources = CollectMergeByteSources(pdfs, cancellationToken);
+        var readOptions = new PdfLoadOptions[sources.Count];
+        var readDocumentFactories = new Func<PdfReadDocument>?[sources.Count];
+        for (int index = 0; index < readOptions.Length; index++) {
+            readOptions[index] = PdfLoadOptions.Default;
+        }
+        return MergePreparedSources(sources, readOptions, readDocumentFactories, cancellationToken);
+    }
+
+    private static List<byte[]> CollectMergeByteSources(
+        IEnumerable<byte[]> pdfs,
+        CancellationToken cancellationToken) {
+        Guard.NotNull(pdfs, nameof(pdfs));
+        cancellationToken.ThrowIfCancellationRequested();
+        var sources = new List<byte[]>();
+        foreach (byte[] source in pdfs) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (source is null) {
+                throw new ArgumentException("PDF byte payloads cannot contain null entries.", nameof(pdfs));
+            }
+            sources.Add(source);
+        }
+        if (sources.Count == 0) {
+            throw new ArgumentException("At least one PDF byte payload must be supplied.", nameof(pdfs));
+        }
+        return sources;
+    }
+
     /// <summary>Creates one PDF by merging all supplied documents in order through a cancellable single merge pass.</summary>
     public static PdfDocument Merge(
         IEnumerable<PdfDocument> documents,
@@ -507,6 +567,14 @@ public sealed partial class PdfDocument {
             readOptions[index] = source.ReadOptions;
             readDocumentFactories[index] = source.GetOpenedReadDocumentFactory(cancellationToken);
         }
+        return MergePreparedSources(bytes, readOptions, readDocumentFactories, cancellationToken);
+    }
+
+    private static PdfDocument MergePreparedSources(
+        IReadOnlyList<byte[]> bytes,
+        IReadOnlyList<PdfLoadOptions> readOptions,
+        IReadOnlyList<Func<PdfReadDocument>?> readDocumentFactories,
+        CancellationToken cancellationToken) {
         PdfMergeResult mergeResult = PdfMerger.MergeOwned(bytes, readOptions, readDocumentFactories, cancellationToken);
         return LoadOwned(mergeResult.OwnedBytes, mergeResult.ReadOptions, mergeResult.ReadDocument);
     }
@@ -699,12 +767,15 @@ public sealed partial class PdfDocument {
     /// Attempts to append an external-signature placeholder revision, returning diagnostics when blocked or failed.
     /// </summary>
     internal PdfOperationResult<PdfExternalSignaturePreparation> PrepareExternalSignatureResult(PdfExternalSignatureOptions? signatureOptions = null, PdfLoadOptions? options = null) {
+        PdfExternalSignatureOptions effectiveOptions = signatureOptions ?? new PdfExternalSignatureOptions();
         return TryMutationOperation(
             "Prepare external signature",
             PdfPreflightCapability.PrepareExternalSignatureRevision,
             PdfMutationOperation.PrepareExternalSignature,
-            _ => PrepareExternalSignature(signatureOptions),
-            options: options);
+            _ => PrepareExternalSignature(effectiveOptions),
+            fieldNames: new[] { effectiveOptions.FieldName },
+            options: options,
+            signatureProfile: PdfIncrementalUpdater.ResolveSignatureProfile(effectiveOptions));
     }
 
     /// <summary>

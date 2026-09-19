@@ -2,6 +2,8 @@ namespace OfficeIMO.Email;
 
 /// <summary>Contains the available body alternatives for an email or Outlook item.</summary>
 public sealed class EmailBody {
+    private readonly List<EmailHeader> _htmlMimeHeaders = new List<EmailHeader>();
+    private readonly Dictionary<string, string> _relatedContentTypeParameters = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
     /// <summary>Plain-text alternative.</summary>
     public string? Text { get; set; }
 
@@ -28,6 +30,17 @@ public sealed class EmailBody {
     /// related container even when it currently has no resource parts.
     /// </summary>
     public bool IsHtmlRelatedRoot { get; set; }
+
+    internal IList<EmailHeader> HtmlMimeHeaders => _htmlMimeHeaders;
+    internal IDictionary<string, string> RelatedContentTypeParameters => _relatedContentTypeParameters;
+    internal string? HtmlTransferEncoding { get; set; }
+    internal byte[]? HtmlDecodedBytes { get; set; }
+    internal Encoding? HtmlEncodingOverride { get; set; }
+    internal byte[]? HtmlEncodingPreamble { get; set; }
+    internal bool HtmlWebDecodingWasAmbiguous { get; set; }
+    internal bool HtmlMimeDecodingWasAmbiguous { get; set; }
+    internal bool HtmlMimeTransferDecodingWasAmbiguous { get; set; }
+    internal bool PreserveHtmlMimeHeadersOnWrite { get; set; }
 }
 
 /// <summary>Represents a file, inline resource, or embedded item attachment.</summary>
@@ -37,9 +50,14 @@ public sealed class EmailAttachment {
     private readonly Dictionary<string, string> _contentTypeParameters = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, byte[]> _structuredStorageStreams = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
     private readonly List<TnefAttribute> _tnefAttributes = new List<TnefAttribute>();
+    private readonly List<EmailHeader> _mimeHeaders = new List<EmailHeader>();
     internal bool IsProjectedSemanticContent { get; set; }
     internal bool IsMimeAttachment { get; set; }
     internal bool IsMimeBodyPart { get; set; }
+    internal IList<EmailHeader> MimeHeaders => _mimeHeaders;
+    internal string? MimeTransferEncoding { get; set; }
+    internal bool MimeDecodingWasAmbiguous { get; set; }
+    internal bool PreserveMimeHeadersOnWrite { get; set; }
     /// <summary>Attachment filename.</summary>
     public string? FileName { get; set; }
 

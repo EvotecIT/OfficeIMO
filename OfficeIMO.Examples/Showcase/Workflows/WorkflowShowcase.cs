@@ -33,6 +33,7 @@ internal static class WorkflowShowcase {
         ["excel-expense-register"] = new("excel", ExpenseRegister.Create),
         ["excel-object-export"] = new("excel", ObjectExport.Create),
         ["pdf-dispatch-note"] = new("pdf", DispatchNote.Create),
+        ["pdf-branded-invoice"] = new("pdf", BrandedInvoice.Create),
         ["pdf-workshop-pack"] = new("pdf", WorkshopPack.Create),
         ["pdf-service-catalog"] = new("pdf", ServiceCatalog.Create),
         ["pdf-weekly-brief"] = new("pdf", WeeklyBrief.Create),
@@ -124,6 +125,12 @@ internal static class WorkflowShowcase {
                             .Save(Path.Combine(folder, $"slide-{index + 1}.png"), OfficeImageExportFileConflictPolicy.Replace);
                     }
                 }
+                break;
+            case "pdf":
+                string pdfPath = Path.Combine(folder, "example.pdf");
+                var pdf = OfficeIMO.Pdf.PdfDocument.Load(File.ReadAllBytes(pdfPath)).Read();
+                if (pdf.PageCount == 0 || string.IsNullOrWhiteSpace(pdf.Text))
+                    throw new InvalidOperationException("The generated PDF showcase artifact has no readable page content: " + folder);
                 break;
             case "markdown":
                 MarkdownDoc.Load(Path.Combine(folder, "example.md")).SaveAsPdf(preview, new MarkdownToPdfOptions {

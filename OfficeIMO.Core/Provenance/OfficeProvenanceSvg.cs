@@ -1,4 +1,7 @@
 using System;
+#if NET8_0_OR_GREATER
+using System.Buffers;
+#endif
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -15,6 +18,9 @@ internal static class OfficeProvenanceSvg {
     private const string IptcNamespace = "http://iptc.org/std/Iptc4xmpExt/2008-02-29/";
 
     internal static void Inspect(byte[] data, OfficeProvenanceOptions options, OfficeProvenanceContext context) {
+#if NET8_0_OR_GREATER
+        if (TryInspectManifestOnly(data, options, context)) return;
+#endif
         XDocument document = Load(data, options);
         IReadOnlyList<SvgCarrier> carriers = FindCarriers(document);
         int manifestCount = carriers.Count(carrier => carrier.Kind == SvgCarrierKind.Manifest);
@@ -25,15 +31,16 @@ internal static class OfficeProvenanceSvg {
             if (carrier.Kind == SvgCarrierKind.Manifest) {
                 XElement element = carrier.Element;
                 string value = element.Value.Trim();
-                byte[] manifest = Array.Empty<byte>();
-                bool decoded = HasOnlyTextContent(element) && TryDecode(value, options.MaxManifestBytes, out manifest);
-                bool valid = manifestCount == 1 && decoded && OfficeC2paManifestStore.IsValid(
-                    manifest, 0, manifest.Length, options.MaxManifestBytes, options.MaxContainerEntries, out _);
+                int manifestLength = 0;
+                bool structurallyValid = false;
+                bool decoded = HasOnlyTextContent(element) && TryValidateManifest(
+                    value, options.MaxManifestBytes, options.MaxContainerEntries, out manifestLength, out structurallyValid);
+                bool valid = manifestCount == 1 && decoded && structurallyValid;
                 context.Add(new OfficeProvenanceEvidence(
                     OfficeProvenanceCarrierKind.C2paManifest,
                     $"SVG/metadata/c2pa:manifest[{manifestIndex++}]",
                     valid,
-                    decoded ? manifest.Length : 0));
+                    decoded ? manifestLength : 0));
             } else {
                 OfficeProvenanceXmp.Inspect(
                     SerializeElement(carrier.Element),
@@ -48,6 +55,7 @@ internal static class OfficeProvenanceSvg {
     internal static byte[] Remove(
         byte[] data,
         OfficeProvenanceRemovalOptions options,
+        OfficeProvenanceReport before,
         List<OfficeProvenanceChange> changes,
         out bool reserialized) {
         reserialized = false;
@@ -75,17 +83,18 @@ internal static class OfficeProvenanceSvg {
                 continue;
             }
 
-            XElement element = carrier.Element;
             int index = manifestIndex++;
-            byte[] manifest = Array.Empty<byte>();
-            bool decoded = HasOnlyTextContent(element) && TryDecode(element.Value.Trim(), options.Limits.MaxManifestBytes, out manifest);
-            bool valid = manifestCount == 1 && decoded && OfficeC2paManifestStore.IsValid(
-                manifest, 0, manifest.Length, options.Limits.MaxManifestBytes, options.Limits.MaxContainerEntries, out _);
+            XElement element = carrier.Element;
+            string manifestLocation = $"SVG/metadata/c2pa:manifest[{index}]";
+            bool valid = before.Evidence.Any(item =>
+                item.Carrier == OfficeProvenanceCarrierKind.C2paManifest &&
+                item.Location == manifestLocation &&
+                item.IsStructurallyValid);
             if (!options.RemoveC2paManifests || !valid && options.RequireStructurallyValidCarrier) continue;
             element.Remove();
             changes.Add(new OfficeProvenanceChange(
                 OfficeProvenanceCarrierKind.C2paManifest,
-                $"SVG/metadata/c2pa:manifest[{index}]",
+                manifestLocation,
                 0));
         }
         if (changes.Count == 0) return OfficeProvenanceBinary.CloneForOutput(data, options.EffectiveMaxOutputBytes);
@@ -114,8 +123,17 @@ internal static class OfficeProvenanceSvg {
         return document;
     }
 
-    private static bool TryDecode(string value, long maximumBytes, out byte[] manifest) {
-        manifest = Array.Empty<byte>();
+    private static bool TryValidateManifest(
+        string value,
+        long maximumBytes,
+        int maximumEntries,
+        out int manifestLength,
+        out bool structurallyValid) {
+#if NET8_0_OR_GREATER
+        return TryValidateManifest(value.AsSpan(), maximumBytes, maximumEntries, out manifestLength, out structurallyValid);
+#else
+        manifestLength = 0;
+        structurallyValid = false;
         if (value.Length == 0) return false;
         long maximumEncodedBytes = maximumBytes > (long.MaxValue - 2L) / 4L * 3L
             ? long.MaxValue
@@ -124,15 +142,192 @@ internal static class OfficeProvenanceSvg {
             throw OfficeProvenanceLimitException.Create("The SVG provenance manifest exceeds the configured manifest limit.");
         }
         try {
-            manifest = Convert.FromBase64String(value);
+            byte[] manifest = Convert.FromBase64String(value);
+            manifestLength = manifest.Length;
             if (manifest.LongLength > maximumBytes) {
                 throw OfficeProvenanceLimitException.Create("The SVG provenance manifest exceeds the configured manifest limit.");
             }
+            structurallyValid = OfficeC2paManifestStore.IsValid(
+                manifest, 0, manifest.Length, maximumBytes, maximumEntries, out _);
             return true;
         } catch (FormatException) {
             return false;
         }
+#endif
     }
+
+#if NET8_0_OR_GREATER
+    private static bool TryValidateManifest(
+        ReadOnlySpan<char> value,
+        long maximumBytes,
+        int maximumEntries,
+        out int manifestLength,
+        out bool structurallyValid) {
+        manifestLength = 0;
+        structurallyValid = false;
+        if (value.Length == 0) return false;
+        long maximumEncodedBytes = maximumBytes > (long.MaxValue - 2L) / 4L * 3L
+            ? long.MaxValue
+            : ((maximumBytes + 2L) / 3L) * 4L;
+        if (value.Length > maximumEncodedBytes) {
+            throw OfficeProvenanceLimitException.Create("The SVG provenance manifest exceeds the configured manifest limit.");
+        }
+        int maximumDecodedLength = checked((value.Length / 4) * 3 + 3);
+        byte[] manifest = ArrayPool<byte>.Shared.Rent(maximumDecodedLength);
+        try {
+            if (!Convert.TryFromBase64Chars(value, manifest, out manifestLength)) return false;
+            if (manifestLength > maximumBytes) {
+                throw OfficeProvenanceLimitException.Create("The SVG provenance manifest exceeds the configured manifest limit.");
+            }
+            structurallyValid = OfficeC2paManifestStore.IsValid(
+                manifest, 0, manifestLength, maximumBytes, maximumEntries, out _);
+            return true;
+        } finally {
+            ArrayPool<byte>.Shared.Return(manifest, clearArray: true);
+        }
+    }
+#endif
+
+#if NET8_0_OR_GREATER
+    private static bool TryInspectManifestOnly(
+        byte[] data,
+        OfficeProvenanceOptions options,
+        OfficeProvenanceContext context) {
+        using var stream = new MemoryStream(data, writable: false);
+        using XmlReader reader = XmlReader.Create(stream, CreateReaderSettings(options));
+        var metadataDepths = new Stack<int>();
+        var manifests = new List<SvgManifestEvidence>();
+        int materializedNodes = 0;
+        bool rootSeen = false;
+        while (reader.Read()) {
+            options.CancellationToken.ThrowIfCancellationRequested();
+            if (reader.Depth > 256) throw OfficeProvenanceLimitException.Create("SVG exceeds the configured XML depth limit.");
+            if (reader.NodeType == XmlNodeType.Element) {
+                ReserveMaterializedNodes(ref materializedNodes, 1 + reader.AttributeCount, options.MaxContainerEntries);
+                if (!rootSeen) {
+                    rootSeen = true;
+                    if (reader.Depth != 0 || reader.LocalName != "svg" || reader.NamespaceURI != "http://www.w3.org/2000/svg") {
+                        throw new InvalidDataException("SVG root element is invalid.");
+                    }
+                }
+                bool insideMetadata = metadataDepths.Count != 0 && reader.Depth > metadataDepths.Peek();
+                if (insideMetadata && IsXmpCarrier(reader)) return false;
+                if (insideMetadata && reader.Depth == metadataDepths.Peek() + 1 &&
+                    reader.LocalName == "manifest" && reader.NamespaceURI == C2paNamespace.NamespaceName) {
+                    SvgManifestEvidence manifest = ReadManifestElement(reader, data.Length, options, ref materializedNodes);
+                    if (manifest.RequiresFallback) return false;
+                    manifests.Add(manifest);
+                    continue;
+                }
+                if (reader.LocalName == "metadata" && reader.NamespaceURI == "http://www.w3.org/2000/svg" && !reader.IsEmptyElement) {
+                    metadataDepths.Push(reader.Depth);
+                }
+            } else if (reader.NodeType == XmlNodeType.EndElement) {
+                if (metadataDepths.Count != 0 && metadataDepths.Peek() == reader.Depth) metadataDepths.Pop();
+            } else if (IsMaterializedTextNode(reader.NodeType)) {
+                ReserveMaterializedNodes(ref materializedNodes, 1, options.MaxContainerEntries);
+            }
+        }
+        if (!rootSeen) throw new InvalidDataException("SVG root element is invalid.");
+        for (int index = 0; index < manifests.Count; index++) {
+            SvgManifestEvidence manifest = manifests[index];
+            context.Add(new OfficeProvenanceEvidence(
+                OfficeProvenanceCarrierKind.C2paManifest,
+                $"SVG/metadata/c2pa:manifest[{index}]",
+                manifests.Count == 1 && manifest.Decoded && manifest.StructurallyValid,
+                manifest.Decoded ? manifest.ManifestLength : 0));
+        }
+        return true;
+    }
+
+    private static SvgManifestEvidence ReadManifestElement(
+        XmlReader reader,
+        int encodedAssetLength,
+        OfficeProvenanceOptions options,
+        ref int materializedNodes) {
+        if (reader.IsEmptyElement) return default;
+        int manifestDepth = reader.Depth;
+        char[] value = ArrayPool<char>.Shared.Rent(encodedAssetLength);
+        int valueLength = 0;
+        bool onlyText = true;
+        try {
+            using (XmlReader subtree = reader.ReadSubtree()) {
+                bool first = true;
+                while (subtree.Read()) {
+                    options.CancellationToken.ThrowIfCancellationRequested();
+                    if (first) {
+                        first = false;
+                        continue;
+                    }
+                    if (manifestDepth + subtree.Depth > 256) throw OfficeProvenanceLimitException.Create("SVG exceeds the configured XML depth limit.");
+                    if (subtree.NodeType == XmlNodeType.Element) {
+                        ReserveMaterializedNodes(ref materializedNodes, 1 + subtree.AttributeCount, options.MaxContainerEntries);
+                        onlyText = false;
+                        if (IsXmpCarrier(subtree) || IsManifestElement(subtree)) {
+                            return new SvgManifestEvidence(false, false, 0, requiresFallback: true);
+                        }
+                    } else if (IsMaterializedTextNode(subtree.NodeType)) {
+                        ReserveMaterializedNodes(ref materializedNodes, 1, options.MaxContainerEntries);
+                        if (subtree.NodeType is XmlNodeType.Text or XmlNodeType.CDATA or XmlNodeType.Whitespace or XmlNodeType.SignificantWhitespace) {
+                            string chunk = subtree.Value;
+                            if (chunk.Length > value.Length - valueLength) {
+                                throw OfficeProvenanceLimitException.Create("The SVG provenance manifest exceeds the configured manifest limit.");
+                            }
+                            chunk.CopyTo(0, value, valueLength, chunk.Length);
+                            valueLength += chunk.Length;
+                        } else {
+                            onlyText = false;
+                        }
+                    }
+                }
+            }
+            if (reader.Depth != manifestDepth || reader.NodeType != XmlNodeType.EndElement) {
+                throw new InvalidDataException("SVG provenance manifest parsing did not end at its carrier boundary.");
+            }
+            if (!onlyText) return default;
+            int start = 0;
+            while (start < valueLength && char.IsWhiteSpace(value[start])) start++;
+            while (valueLength > start && char.IsWhiteSpace(value[valueLength - 1])) valueLength--;
+            bool decoded = TryValidateManifest(
+                new ReadOnlySpan<char>(value, start, valueLength - start),
+                options.MaxManifestBytes,
+                options.MaxContainerEntries,
+                out int manifestLength,
+                out bool structurallyValid);
+            return new SvgManifestEvidence(decoded, structurallyValid, manifestLength);
+        } finally {
+            ArrayPool<char>.Shared.Return(value, clearArray: true);
+        }
+    }
+
+    private static bool IsXmpCarrier(XmlReader reader) {
+        if (reader.NamespaceURI == XmpNamespace.NamespaceName && reader.LocalName == "xmpmeta") return true;
+        if (reader.NamespaceURI == IptcNamespace) return true;
+        if (!reader.HasAttributes) return false;
+        bool hasIptcAttribute = false;
+        if (reader.MoveToFirstAttribute()) {
+            do {
+                if (reader.NamespaceURI == IptcNamespace) {
+                    hasIptcAttribute = true;
+                    break;
+                }
+            } while (reader.MoveToNextAttribute());
+            reader.MoveToElement();
+        }
+        return hasIptcAttribute;
+    }
+
+    private static bool IsManifestElement(XmlReader reader) =>
+        reader.NamespaceURI == C2paNamespace.NamespaceName && reader.LocalName == "manifest";
+
+    private static bool IsMaterializedTextNode(XmlNodeType nodeType) => nodeType is
+        XmlNodeType.Text or
+        XmlNodeType.CDATA or
+        XmlNodeType.ProcessingInstruction or
+        XmlNodeType.Comment or
+        XmlNodeType.Whitespace or
+        XmlNodeType.SignificantWhitespace;
+#endif
 
     private static bool IsManifestElement(XElement element) => element.Parent != null &&
         element.Parent.Name.LocalName == "metadata" &&
@@ -183,6 +378,22 @@ internal static class OfficeProvenanceSvg {
         internal XElement Element { get; }
         internal SvgCarrierKind Kind { get; }
     }
+
+#if NET8_0_OR_GREATER
+    private readonly struct SvgManifestEvidence {
+        internal SvgManifestEvidence(bool decoded, bool structurallyValid, int manifestLength, bool requiresFallback = false) {
+            Decoded = decoded;
+            StructurallyValid = structurallyValid;
+            ManifestLength = manifestLength;
+            RequiresFallback = requiresFallback;
+        }
+
+        internal bool Decoded { get; }
+        internal bool StructurallyValid { get; }
+        internal int ManifestLength { get; }
+        internal bool RequiresFallback { get; }
+    }
+#endif
 
     private static bool ContainsDirectIptcDeclaration(XElement element) =>
         element.Name.NamespaceName == IptcNamespace ||

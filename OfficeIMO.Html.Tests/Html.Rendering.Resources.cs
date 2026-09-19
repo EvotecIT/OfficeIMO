@@ -10,6 +10,23 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public async Task HtmlResourceSession_AcceptsEmptyStylesheetAsResolvedResource() {
+        HtmlConversionDocument source = HtmlConversionDocument.Parse(
+            "<link rel='stylesheet' href='https://assets.example.test/empty.css'>");
+        var options = new HtmlRenderOptions {
+            ResourceResolver = (request, cancellationToken) => Task.FromResult<HtmlResolvedResource?>(
+                new HtmlResolvedResource(Array.Empty<byte>(), "text/css"))
+        };
+
+        HtmlResourceSession session = await HtmlResourceSession.ResolveAsync(source.ResourceManifest, options);
+
+        HtmlResourceSessionEntry entry = Assert.Single(session.Resources);
+        Assert.Equal(0, entry.Length);
+        Assert.Equal(0, session.AcceptedResourceBytes);
+        Assert.Empty(session.Diagnostics);
+    }
+
+    [Fact]
     public async Task HtmlResourceSession_RejectsResolverFinalUriOutsideResourcePolicy() {
         HtmlConversionDocument source = HtmlConversionDocument.Parse(
             "<link rel='stylesheet' href='https://assets.example.test/site.css'>");

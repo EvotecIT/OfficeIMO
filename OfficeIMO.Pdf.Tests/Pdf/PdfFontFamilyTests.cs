@@ -96,7 +96,7 @@ public class PdfFontFamilyTests {
                 page.Letters,
                 letter =>
                     letter.Value == glyph &&
-                    letter.FontName.Contains("PremiumNamed", StringComparison.OrdinalIgnoreCase));
+                    letter.FontName?.Contains("PremiumNamed", StringComparison.OrdinalIgnoreCase) == true);
         }
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -169,8 +169,9 @@ public class PdfFontFamilyTests {
         if (!TryFindInstalledSystemFontFamily(out PdfEmbeddedFontFamily? family)) {
             return;
         }
+        Assert.NotNull(family);
 
-        PdfOptions options = new PdfOptions().UseFontFamily(family);
+        PdfOptions options = new PdfOptions().UseFontFamily(family!);
         byte[] bytes = PdfDocument.Create(new PdfOptions {
                 CompressContentStreams = false
             })
@@ -1013,6 +1014,27 @@ public class PdfFontFamilyTests {
         Assert.Contains(first.Glyphs, glyph => glyph.UnicodeScalar == 'К');
         Assert.Equal(first.ToGlyphHex(), fontProgram.EncodeTextAsGlyphHex(text));
         Assert.Equal(first.TotalAdvanceWidth1000 * 12D / 1000D, fontProgram.MeasureTextWidth(text, 12D), precision: 6);
+
+        PdfTextShapingOptions renderOptions = PdfTextShapingOptions.ForRendering(fontProgram.FontName);
+        Assert.Equal(
+            first.TotalAdvanceWidth1000,
+            PdfUnicodeScalarTextShaper.MeasureAdvanceWidth1000(text, fontProgram, renderOptions));
+        Assert.Equal(
+            first.ToGlyphHex(),
+            PdfUnicodeScalarTextShaper.EncodeGlyphHex(text, fontProgram, renderOptions, out string? actualText));
+        Assert.Equal(first.ActualText, actualText);
+    }
+
+    [Fact]
+    public void PdfGlyphRun_TotalAdvanceWidthPreservesCheckedOverflowContract() {
+        var glyphs = new[] {
+            new PdfGlyphInfo(1, 'A', 0, int.MaxValue),
+            new PdfGlyphInfo(2, 'B', 1, 1)
+        };
+
+        var run = new PdfGlyphRun(glyphs);
+
+        Assert.Throws<OverflowException>(() => _ = run.TotalAdvanceWidth1000);
     }
 
     [Fact]

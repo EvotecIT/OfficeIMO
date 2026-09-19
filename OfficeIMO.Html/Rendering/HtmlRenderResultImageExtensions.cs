@@ -37,11 +37,12 @@ public static class HtmlRenderResultImageExtensions {
         HtmlRenderOptions options,
         OfficeImageExportConsumer consumer,
         CancellationToken cancellationToken) {
+        var encodingBudget = new OfficeImageExportEncodingBudget(options.MaximumTotalEncodedBytes);
         OfficeImageExportBatchProcessor.ForEachOrdered(
             result.Document.Pages,
             options.MaximumDegreeOfParallelism,
             (page, _, token) => HtmlImageExportExtensions.RenderPage(
-                page, format, options, result.Document.DiagnosticReport, token),
+                page, format, options, result.Document.DiagnosticReport, token, encodingBudget),
             consumer,
             cancellationToken,
             options);

@@ -135,7 +135,7 @@ namespace OfficeIMO.Word {
             ref int pageNumber,
             ref int captionIndex,
             ref int skippedCaptionCount) {
-            if (paragraph.ParagraphProperties?.PageBreakBefore != null) {
+            if (WordParagraph.HasPageBreakBefore(paragraph)) {
                 pageNumber++;
             }
 

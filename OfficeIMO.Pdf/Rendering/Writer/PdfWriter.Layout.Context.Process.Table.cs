@@ -139,10 +139,17 @@ internal static partial class PdfWriter {
             ValidateTableRowStyleBounds(style, tb.Rows.Count);
             ValidateTableRowSpansWithinRoleBoundaries(tb, cols, headerRowCount, footerStartRowIndex);
             double contentWidth = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
-            PreparedTableColumns preparedColumns = PrepareTableColumns(tb, style, contentWidth, size, headerRowCount, footerStartRowIndex);
-            double tableWidth = preparedColumns.TableWidth;
-            double[] colPixel = preparedColumns.ColumnWidths;
-            ValidateTableCellTextWidths(tb, style, cols, colPixel, colGapPx);
+            TableColumnLayout preparedColumns = ResolveTableColumnLayout(
+                tb,
+                currentOpts,
+                style,
+                GetTableColumnCount(tb),
+                contentWidth,
+                size,
+                headerRowCount,
+                footerStartRowIndex);
+            double tableWidth = preparedColumns.Width;
+            double[] colPixel = preparedColumns.Widths;
 
             var rowLines = new TableCellTextLayout[tb.Rows.Count][];
             var rowLineCounts = new int[tb.Rows.Count];
@@ -153,8 +160,9 @@ internal static partial class PdfWriter {
             for (int ri = 0; ri < tb.Rows.Count; ri++) {
                 double originalRowSize = GetTableRowFontSize(style, ri, headerRowCount, footerStartRowIndex, currentOpts.DefaultFontSize);
                 bool rowUsesBold = GetTableRowBold(style, ri, headerRowCount, footerStartRowIndex);
-                double rowSize = ResolveTableRowShrinkFontSize(tb, style, ri, cols, colPixel, colGapPx, originalRowSize, rowUsesBold, currentOpts);
-                double runFontSizeScale = GetTableRunFontSizeScale(tb, style, ri, cols, colPixel, colGapPx, originalRowSize, rowSize, rowUsesBold, currentOpts);
+                TableRowTextSizing sizing = ResolveTableRowTextSizing(tb, style, ri, cols, colPixel, colGapPx, originalRowSize, rowUsesBold, currentOpts);
+                double rowSize = sizing.FontSize;
+                double runFontSizeScale = sizing.RunFontSizeScale;
                 double rowLeading = GetTableLeading(style, rowSize);
                 rowSizes[ri] = rowSize;
                 rowLeadings[ri] = rowLeading;
@@ -621,10 +629,7 @@ internal static partial class PdfWriter {
                     double firstBaseline = y - cellPadTop - verticalOffset - GetAscenderForOptions(cellFont, rowSize, currentOpts) + style.RowBaselineOffset;
 
                     pageDirty = true;
-                    if (cell.Runs.Any(run => run.Bold || rowUsesBold)) { currentPage!.UsedBold = true; usedBold = true; }
-                    if (cell.Runs.Any(run => run.Italic)) { currentPage!.UsedItalic = true; usedItalic = true; }
-                    if (cell.Runs.Any(run => (run.Bold || rowUsesBold) && run.Italic)) { currentPage!.UsedBoldItalic = true; usedBoldItalic = true; }
-                    MarkRichFonts(cell.Runs);
+                    MarkRichFonts(cell.Runs, forceBold: rowUsesBold);
                     string? linkUri = cell.LinkUri;
                     string? linkDestinationName = cell.LinkDestinationName;
                     string? linkContents = cell.LinkContents;

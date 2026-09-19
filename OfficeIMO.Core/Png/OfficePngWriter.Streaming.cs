@@ -63,6 +63,15 @@ public static partial class OfficePngWriter {
         Stream destination,
         OfficePngEncodeOptions options,
         System.Threading.CancellationToken cancellationToken) {
+        EncodeTo(image, destination, options, cancellationToken, checkpointObserver: null);
+    }
+
+    internal static void EncodeTo(
+        OfficeRasterImage image,
+        Stream destination,
+        OfficePngEncodeOptions options,
+        System.Threading.CancellationToken cancellationToken,
+        Action<OfficeRasterEncodingCheckpoint>? checkpointObserver) {
         if (image == null) throw new ArgumentNullException(nameof(image));
         if (options == null) throw new ArgumentNullException(nameof(options));
         ValidateDpi(options.DpiX, nameof(options.DpiX));
@@ -75,7 +84,8 @@ public static partial class OfficePngWriter {
             options.Compression,
             options.WritePhysicalResolution ? options.DpiX : (double?)null,
             options.WritePhysicalResolution ? options.DpiY : (double?)null,
-            cancellationToken);
+            cancellationToken,
+            checkpointObserver);
     }
 
 #if NET8_0_OR_GREATER
@@ -108,7 +118,8 @@ public static partial class OfficePngWriter {
         OfficePngCompression compression,
         double? dpiX,
         double? dpiY,
-        System.Threading.CancellationToken cancellationToken) {
+        System.Threading.CancellationToken cancellationToken,
+        Action<OfficeRasterEncodingCheckpoint>? checkpointObserver = null) {
         cancellationToken.ThrowIfCancellationRequested();
         ValidateRgba(width, height, rgba);
         OfficeRasterOutput.EnsureWritable(destination);
@@ -124,9 +135,9 @@ public static partial class OfficePngWriter {
 
         var idat = new PngIdatChunkStream(destination, StreamingIdatChunkSize);
         if (compression == OfficePngCompression.Optimal) {
-            WriteOptimalZlib(idat, width, height, rgba, cancellationToken);
+            WriteOptimalZlib(idat, width, height, rgba, cancellationToken, checkpointObserver);
         } else {
-            WriteStoredZlib(idat, width, height, rgba, cancellationToken);
+            WriteStoredZlib(idat, width, height, rgba, cancellationToken, checkpointObserver);
         }
         cancellationToken.ThrowIfCancellationRequested();
         idat.Complete();
@@ -138,7 +149,8 @@ public static partial class OfficePngWriter {
         int width,
         int height,
         byte[] rgba,
-        System.Threading.CancellationToken cancellationToken) {
+        System.Threading.CancellationToken cancellationToken,
+        Action<OfficeRasterEncodingCheckpoint>? checkpointObserver) {
         destination.WriteByte(0x78);
         destination.WriteByte(0x9C);
 
@@ -152,15 +164,16 @@ public static partial class OfficePngWriter {
 
         using (var deflate = new DeflateStream(destination, CompressionLevel.Optimal, leaveOpen: true)) {
             for (int y = 0; y < height; y++) {
+                checkpointObserver?.Invoke(OfficeRasterEncodingCheckpoint.PngCompressionRow);
                 cancellationToken.ThrowIfCancellationRequested();
                 int rowOffset = y * stride;
                 if (y == 0) {
                     filteredRow[0] = 1;
-                    FilterFirstRowSub(rgba, rowOffset, stride, filteredRow, 1);
+                    FilterFirstRowSub(rgba, rowOffset, stride, filteredRow, 1, cancellationToken, checkpointObserver);
                 } else {
                     int previousRowOffset = rowOffset - stride;
-                    long upScore = FilterUp(rgba, rowOffset, previousRowOffset, stride, filteredRow, 1);
-                    long paethScore = FilterPaeth(rgba, rowOffset, previousRowOffset, stride, paethCandidate);
+                    long upScore = FilterUp(rgba, rowOffset, previousRowOffset, stride, filteredRow, 1, cancellationToken, checkpointObserver);
+                    long paethScore = FilterPaeth(rgba, rowOffset, previousRowOffset, stride, paethCandidate, cancellationToken, checkpointObserver);
                     if (paethScore < upScore) {
                         filteredRow[0] = 4;
                         Buffer.BlockCopy(paethCandidate, 0, filteredRow, 1, stride);
@@ -175,7 +188,7 @@ public static partial class OfficePngWriter {
                 }
                 Buffer.BlockCopy(filteredRow, 0, compressionBatch, batchLength, filteredRow.Length);
                 batchLength += filteredRow.Length;
-                UpdateAdler32(filteredRow, 0, filteredRow.Length, ref adlerA, ref adlerB);
+                UpdateAdler32(filteredRow, 0, filteredRow.Length, ref adlerA, ref adlerB, cancellationToken, checkpointObserver);
             }
             if (batchLength > 0) deflate.Write(compressionBatch, 0, batchLength);
         }
@@ -188,7 +201,8 @@ public static partial class OfficePngWriter {
         int width,
         int height,
         byte[] rgba,
-        System.Threading.CancellationToken cancellationToken) {
+        System.Threading.CancellationToken cancellationToken,
+        Action<OfficeRasterEncodingCheckpoint>? checkpointObserver) {
         destination.WriteByte(0x78);
         destination.WriteByte(0x01);
 
@@ -202,6 +216,7 @@ public static partial class OfficePngWriter {
         uint adlerB = 0;
 
         while (remaining > 0) {
+            checkpointObserver?.Invoke(OfficeRasterEncodingCheckpoint.PngCompressionRow);
             cancellationToken.ThrowIfCancellationRequested();
             int blockLength = Math.Min(65535, remaining);
             int target = 0;
@@ -230,7 +245,7 @@ public static partial class OfficePngWriter {
             destination.WriteByte((byte)inverse);
             destination.WriteByte((byte)(inverse >> 8));
             destination.Write(block, 0, blockLength);
-            UpdateAdler32(block, 0, blockLength, ref adlerA, ref adlerB);
+            UpdateAdler32(block, 0, blockLength, ref adlerA, ref adlerB, cancellationToken, checkpointObserver);
         }
 
         WriteAdler32(destination, (adlerB << 16) | adlerA);

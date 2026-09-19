@@ -1,12 +1,13 @@
 using OfficeIMO.Email;
 using OfficeIMO.Html;
+using System.Text;
 
 namespace OfficeIMO.Mhtml;
 
 /// <summary>
 /// Represents an MHTML web archive as an HTML document plus its decoded MIME related resources.
 /// </summary>
-public sealed class MhtmlDocument {
+public sealed partial class MhtmlDocument {
     private static readonly Uri FallbackBaseUri = new Uri("mhtml://archive/");
     private readonly EmailDocument _mimeDocument;
     private readonly IReadOnlyList<MhtmlResource> _resources;
@@ -34,16 +35,26 @@ public sealed class MhtmlDocument {
         _mimeDocument = readResult.Document;
         string? html = _mimeDocument.Body.Html;
         if (html == null) throw new InvalidDataException("The MHTML archive does not contain an HTML root part.");
+        html = DecodeHtmlRootWithWebCharsetAliases(_mimeDocument.Body, html);
+        _mimeDocument.Body.Html = html;
         if (!IsMultipartRelated(_mimeDocument.Headers)) {
             throw new InvalidDataException("The artifact is an RFC message but its root is not multipart/related MHTML.");
         }
+        // The MIME projection can select an HTML body from a nested multipart/alternative and
+        // thereby lose the outer related-root marker. MHTML serialization must retain the
+        // validated top-level multipart/related contract even when no related resources exist.
+        _mimeDocument.Body.IsHtmlRelatedRoot = true;
 
-        ContentLocation = NormalizeOptional(_mimeDocument.Body.HtmlContentLocation)
-            ?? GetHeaderValue(_mimeDocument.Headers, "Snapshot-Content-Location")
-            ?? GetHeaderValue(_mimeDocument.Headers, "Content-Location");
+        string? rootContentLocation = NormalizeOptional(_mimeDocument.Body.HtmlContentLocation);
+        string? snapshotContentLocation = NormalizeOptional(
+            GetHeaderValue(_mimeDocument.Headers, "Snapshot-Content-Location"));
+        string? messageContentLocation = NormalizeOptional(
+            GetHeaderValue(_mimeDocument.Headers, "Content-Location"));
+        ContentLocation = rootContentLocation ?? snapshotContentLocation ?? messageContentLocation;
         RootContentId = NormalizeContentId(_mimeDocument.Body.HtmlContentId);
         Subject = NormalizeOptional(_mimeDocument.Subject);
-        BaseUri = ResolveBaseUri(ContentLocation, sourceBaseUri);
+        Uri archiveBaseUri = ResolveBaseUri(snapshotContentLocation ?? messageContentLocation, sourceBaseUri);
+        BaseUri = ResolveBaseUri(rootContentLocation, archiveBaseUri);
         _resources = _mimeDocument.Attachments
             .Where(static attachment => attachment.IsMimeRelated)
             .Select(MhtmlResource.FromEmailAttachment)
@@ -52,6 +63,47 @@ public sealed class MhtmlDocument {
             .Concat(BuildResourceDiagnostics(_resources, BaseUri, RootContentId, ContentLocation))
             .ToArray();
         HtmlDocument = HtmlConversionDocument.Parse(html, PrepareHtmlOptions(htmlOptions, BaseUri, _resources));
+    }
+
+    private static string DecodeHtmlRootWithWebCharsetAliases(EmailBody body, string fallback) {
+        if (body.HtmlDecodedBytes == null) return fallback;
+        try {
+            using var source = new MemoryStream(body.HtmlDecodedBytes, writable: false);
+            Encoding encoding = string.IsNullOrWhiteSpace(body.HtmlCharset)
+                ? HtmlTextEncodingResolver.Default.ResolveHtmlEncoding(source)
+                : HtmlTextEncodingResolver.Default.ResolveHtmlTransportEncoding(source, body.HtmlCharset!);
+            var strict = (Encoding)encoding.Clone();
+            strict.DecoderFallback = DecoderFallback.ExceptionFallback;
+            strict.EncoderFallback = EncoderFallback.ExceptionFallback;
+            using var reader = new StreamReader(source, strict, detectEncodingFromByteOrderMarks: true);
+            string html = reader.ReadToEnd();
+            body.HtmlEncodingOverride = strict;
+            body.HtmlEncodingPreamble = GetEncodingPreamble(body.HtmlDecodedBytes);
+            return html;
+        } catch (Exception exception) when (exception is ArgumentException || exception is NotSupportedException
+                                            || exception is DecoderFallbackException) {
+            body.HtmlWebDecodingWasAmbiguous = true;
+            return fallback;
+        }
+    }
+
+    private static byte[] GetEncodingPreamble(byte[] bytes) {
+        if (bytes.Length >= 4 && bytes[0] == 0x00 && bytes[1] == 0x00 && bytes[2] == 0xfe && bytes[3] == 0xff) {
+            return new byte[] { 0x00, 0x00, 0xfe, 0xff };
+        }
+        if (bytes.Length >= 4 && bytes[0] == 0xff && bytes[1] == 0xfe && bytes[2] == 0x00 && bytes[3] == 0x00) {
+            return new byte[] { 0xff, 0xfe, 0x00, 0x00 };
+        }
+        if (bytes.Length >= 3 && bytes[0] == 0xef && bytes[1] == 0xbb && bytes[2] == 0xbf) {
+            return new byte[] { 0xef, 0xbb, 0xbf };
+        }
+        if (bytes.Length >= 2 && bytes[0] == 0xfe && bytes[1] == 0xff) {
+            return new byte[] { 0xfe, 0xff };
+        }
+        if (bytes.Length >= 2 && bytes[0] == 0xff && bytes[1] == 0xfe) {
+            return new byte[] { 0xff, 0xfe };
+        }
+        return Array.Empty<byte>();
     }
 
     /// <summary>Parsed HTML root document.</summary>
@@ -226,16 +278,25 @@ public sealed class MhtmlDocument {
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         MhtmlResource? resource = FindResource(request);
+        if (resource != null
+            && request.Kind == HtmlResourceKind.Stylesheet
+            && resource.HasAmbiguousMimeDecoding) {
+            throw new InvalidDataException(
+                "MHTML cannot resolve a stylesheet whose MIME transfer decoding is ambiguous.");
+        }
         return Task.FromResult(resource == null
             ? null
-            : new HtmlResolvedResource(resource.EncodedContent, resource.ContentType));
+            : new HtmlResolvedResource(resource.EncodedContent, resource.ContentTypeWithParameters));
     }
 
     private MhtmlResource? FindResource(HtmlRenderResourceRequest request) {
         string source = request.Source.Trim();
-        string absolute = request.Uri.AbsoluteUri;
+        int fragmentIndex = source.IndexOf('#');
+        string retrievalSource = fragmentIndex >= 0 ? source.Substring(0, fragmentIndex) : source;
+        var retrievalUriBuilder = new UriBuilder(request.Uri) { Fragment = string.Empty };
+        Uri retrievalUri = retrievalUriBuilder.Uri;
         if (request.Uri.Scheme.Equals("cid", StringComparison.OrdinalIgnoreCase)) {
-            string contentId = Uri.UnescapeDataString(request.Uri.OriginalString.Substring("cid:".Length))
+            string contentId = Uri.UnescapeDataString(retrievalSource.Substring("cid:".Length))
                 .Trim().Trim('<', '>');
             return _resources.FirstOrDefault(resource => string.Equals(resource.ContentId, contentId,
                 StringComparison.OrdinalIgnoreCase));
@@ -243,12 +304,11 @@ public sealed class MhtmlDocument {
 
         foreach (MhtmlResource resource in _resources) {
             if (!string.IsNullOrWhiteSpace(resource.ContentLocation)) {
-                if (string.Equals(resource.ContentLocation, source, StringComparison.OrdinalIgnoreCase)) return resource;
-                if (Uri.TryCreate(BaseUri, resource.ContentLocation, out Uri? resolved) &&
-                    string.Equals(resolved.AbsoluteUri, absolute, StringComparison.OrdinalIgnoreCase)) return resource;
+                string storedLocation = RemoveUriFragment(resource.ContentLocation!);
+                if (string.Equals(storedLocation, retrievalSource, StringComparison.Ordinal)) return resource;
+                if (Uri.TryCreate(BaseUri, storedLocation, out Uri? resolved) &&
+                    HtmlResourceIdentityComparer.Equals(RemoveUriFragment(resolved), retrievalUri)) return resource;
             }
-            if (!string.IsNullOrWhiteSpace(resource.FileName) &&
-                string.Equals(resource.FileName, source, StringComparison.OrdinalIgnoreCase)) return resource;
         }
         return null;
     }
@@ -279,13 +339,12 @@ public sealed class MhtmlDocument {
         HtmlConversionDocumentOptions options = source?.Clone() ?? new HtmlConversionDocumentOptions();
         options.BaseUri ??= baseUri;
         HtmlUrlPolicy resourcePolicy = options.ResourceUrlPolicy.Clone();
-        var archiveUris = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var archiveUris = new HashSet<string>(HtmlResourceIdentityComparer.Instance);
         foreach (MhtmlResource resource in resources) {
             if (!string.IsNullOrWhiteSpace(resource.ContentId)) {
                 AddArchiveUri(archiveUris, "cid:" + resource.ContentId, baseUri);
             }
             AddArchiveUri(archiveUris, resource.ContentLocation, baseUri);
-            AddArchiveUri(archiveUris, resource.FileName, baseUri);
         }
 
         if (resourcePolicy.RestrictUrlSchemes) {
@@ -315,7 +374,9 @@ public sealed class MhtmlDocument {
 
     private static void AddArchiveUri(HashSet<string> archiveUris, string? value, Uri baseUri) {
         if (string.IsNullOrWhiteSpace(value)) return;
-        if (Uri.TryCreate(baseUri, value, out Uri? resolved)) archiveUris.Add(resolved.AbsoluteUri);
+        if (Uri.TryCreate(baseUri, RemoveUriFragment(value!), out Uri? resolved)) {
+            archiveUris.Add(RemoveUriFragment(resolved).AbsoluteUri);
+        }
     }
 
     private static IReadOnlyList<EmailDiagnostic> BuildResourceDiagnostics(
@@ -325,11 +386,22 @@ public sealed class MhtmlDocument {
         string? rootContentLocation) {
         var diagnostics = new List<EmailDiagnostic>();
         var contentIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var contentLocations = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var contentLocations = new HashSet<string>(HtmlResourceIdentityComparer.Instance);
+        var resolverIdentities = new Dictionary<string, int>(HtmlResourceIdentityComparer.Instance);
         if (!string.IsNullOrWhiteSpace(rootContentId)) contentIds.Add(rootContentId!);
-        if (!string.IsNullOrWhiteSpace(rootContentLocation)
-            && Uri.TryCreate(baseUri, rootContentLocation, out _)) {
-            contentLocations.Add(baseUri.AbsoluteUri);
+        if (!string.IsNullOrWhiteSpace(rootContentLocation)) {
+            string rawRootLocation = RemoveUriFragment(rootContentLocation!.Trim());
+            if (Uri.TryCreate(baseUri, rawRootLocation, out _)) {
+                string absoluteRootLocation = RemoveUriFragment(baseUri).AbsoluteUri;
+                contentLocations.Add(absoluteRootLocation);
+                resolverIdentities[rawRootLocation] = -1;
+                resolverIdentities[absoluteRootLocation] = -1;
+            } else {
+                diagnostics.Add(new EmailDiagnostic(
+                    MhtmlDiagnosticCodes.InvalidContentLocation,
+                    "The selected HTML root Content-Location could not be resolved against the archive base URI.",
+                    location: "root"));
+            }
         }
         for (int index = 0; index < resources.Count; index++) {
             MhtmlResource resource = resources[index];
@@ -339,23 +411,54 @@ public sealed class MhtmlDocument {
                     "Duplicate Content-ID was retained in archive order; the first resource is used for resolution.",
                     location: "resource[" + index + "]"));
             }
-            if (string.IsNullOrWhiteSpace(resource.ContentLocation)) continue;
-            if (!Uri.TryCreate(baseUri, resource.ContentLocation, out Uri? resolved)) {
-                diagnostics.Add(new EmailDiagnostic(
-                    MhtmlDiagnosticCodes.InvalidContentLocation,
-                    "Content-Location could not be resolved against the archive base URI.",
-                    location: "resource[" + index + "]"));
-                continue;
-            }
-            if (!contentLocations.Add(resolved.AbsoluteUri)) {
-                diagnostics.Add(new EmailDiagnostic(
-                    MhtmlDiagnosticCodes.DuplicateContentLocation,
-                    "Duplicate Content-Location was retained in archive order; the first resource is used for resolution.",
-                    location: "resource[" + index + "]"));
+            if (!string.IsNullOrWhiteSpace(resource.ContentLocation)) {
+                string rawLocation = RemoveUriFragment(resource.ContentLocation!.Trim());
+                RegisterResolverIdentity(rawLocation, index, resolverIdentities, diagnostics);
+                if (!Uri.TryCreate(baseUri, rawLocation, out Uri? resolved)) {
+                    diagnostics.Add(new EmailDiagnostic(
+                        MhtmlDiagnosticCodes.InvalidContentLocation,
+                        "Content-Location could not be resolved against the archive base URI.",
+                        location: "resource[" + index + "]"));
+                    continue;
+                }
+                string absoluteLocation = RemoveUriFragment(resolved).AbsoluteUri;
+                RegisterResolverIdentity(absoluteLocation, index, resolverIdentities, diagnostics);
+                if (!contentLocations.Add(absoluteLocation)) {
+                    diagnostics.Add(new EmailDiagnostic(
+                        MhtmlDiagnosticCodes.DuplicateContentLocation,
+                        "Duplicate Content-Location was retained in archive order; the first resource is used for resolution.",
+                        location: "resource[" + index + "]"));
+                }
             }
         }
         return diagnostics;
     }
+
+    private static void RegisterResolverIdentity(
+        string identity,
+        int resourceIndex,
+        Dictionary<string, int> identities,
+        List<EmailDiagnostic> diagnostics) {
+        if (identities.TryGetValue(identity, out int existingIndex)) {
+            if (existingIndex != resourceIndex) {
+                diagnostics.Add(new EmailDiagnostic(
+                    MhtmlDiagnosticCodes.DuplicateResourceIdentity,
+                    "A filename or Content-Location resolver identity selects more than one MIME part.",
+                    location: "resource[" + resourceIndex + "]"));
+            }
+            return;
+        }
+        identities.Add(identity, resourceIndex);
+    }
+
+    private static string RemoveUriFragment(string value) {
+        int fragmentIndex = value.IndexOf('#');
+        return fragmentIndex < 0 ? value : value.Substring(0, fragmentIndex);
+    }
+
+    private static Uri RemoveUriFragment(Uri value) => string.IsNullOrEmpty(value.Fragment)
+        ? value
+        : new UriBuilder(value) { Fragment = string.Empty }.Uri;
 
     private static Uri ResolveBaseUri(string? contentLocation, Uri? sourceBaseUri) {
         if (!string.IsNullOrWhiteSpace(contentLocation)) {
@@ -377,8 +480,10 @@ public sealed class MhtmlDocument {
 
     private static bool IsMultipartRelated(IEnumerable<EmailHeader> headers) {
         string? contentType = GetHeaderValue(headers, "Content-Type");
-        return contentType != null && contentType.TrimStart()
-            .StartsWith("multipart/related", StringComparison.OrdinalIgnoreCase);
+        if (contentType == null) return false;
+        var diagnostics = new List<EmailDiagnostic>();
+        MimeValue parsed = MimeValueParser.Parse(contentType, "text/plain", diagnostics, "Content-Type");
+        return string.Equals(parsed.Value, "multipart/related", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string? GetHeaderValue(IEnumerable<EmailHeader> headers, string name) =>

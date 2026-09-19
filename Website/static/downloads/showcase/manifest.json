@@ -1507,6 +1507,46 @@
       "evidence": "Complete C# source for the walkthrough example."
     },
     {
+      "id": "pdf-branded-invoice-example.pdf",
+      "path": "/downloads/showcase/workflows/pdf-branded-invoice/example.pdf",
+      "bytes": 214783,
+      "sha256": "c33baa5c8d8795a4227c6e66cd7963e8c51a72c00926d065edd095005e0b8bcd",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example pdf-branded-invoice",
+      "evidence": "The example generates the PDF and XML from one captured invoice. The runner reopens the PDF, checks its visible text, and renders both page previews with Poppler."
+    },
+    {
+      "id": "pdf-branded-invoice-example.xml",
+      "path": "/downloads/showcase/workflows/pdf-branded-invoice/example.xml",
+      "bytes": 10568,
+      "sha256": "943553f43ae221b7ee1ebb5194ee4c767c36dbd8d60157364f0c99f354d81127",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example pdf-branded-invoice",
+      "evidence": "Exact CII invoice bytes embedded in the generated PDF."
+    },
+    {
+      "id": "pdf-branded-invoice-preview.png",
+      "path": "/downloads/showcase/workflows/pdf-branded-invoice/preview.png",
+      "bytes": 111765,
+      "sha256": "85e21e7bc82e0347c8bc8da791cbb5d7f7dd77e8e71b650698fd63ec4e6d0664",
+      "generator": "Poppler pdftocairo page 1 render of the generated PDF",
+      "evidence": "Independent page 1 rasterization of the downloadable PDF."
+    },
+    {
+      "id": "pdf-branded-invoice-page-2.png",
+      "path": "/downloads/showcase/workflows/pdf-branded-invoice/page-2.png",
+      "bytes": 89803,
+      "sha256": "045136906edb47b000aed4d98def3f61d921bad5cb4586c4c864887de4f63d71",
+      "generator": "Poppler pdftocairo page 2 render of the generated PDF",
+      "evidence": "Independent page 2 rasterization of the downloadable PDF."
+    },
+    {
+      "id": "pdf-branded-invoice-source",
+      "path": "/downloads/showcase/workflows/pdf-branded-invoice/BrandedInvoice.cs.txt",
+      "bytes": 5085,
+      "sha256": "5f68018f0191bd1c283b7e08db738a6dbb8a93f34b0322102e4fb50b9ff3ac3d",
+      "generator": "Copy the generating C# source from the repository",
+      "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
       "id": "pdf-dispatch-note-example.pdf",
       "path": "/downloads/showcase/workflows/pdf-dispatch-note/example.pdf",
       "bytes": 7356,

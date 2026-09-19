@@ -232,17 +232,11 @@ public static partial class HtmlResourcePipeline {
         var ranges = new List<SourceRange>();
         int index = 0;
         while (index < css.Length) {
-            int mediaStart = css.IndexOf("@media", index, StringComparison.OrdinalIgnoreCase);
-            if (mediaStart < 0) {
+            if (!TryFindNextAtRule(css, index, "media", out int mediaStart, out int mediaNameEnd)) {
                 break;
             }
 
-            if (IsInsideCssString(css, mediaStart) || !HasAtRuleTokenBoundary(css, mediaStart, "@media")) {
-                index = mediaStart + 6;
-                continue;
-            }
-
-            int preludeStart = mediaStart + 6;
+            int preludeStart = mediaNameEnd;
             int open = FindNextTopLevelBlockStart(css, preludeStart);
             if (open < 0) {
                 break;
@@ -273,17 +267,11 @@ public static partial class HtmlResourcePipeline {
         var ranges = new List<SourceRange>();
         int index = 0;
         while (index < css.Length) {
-            int supportsStart = css.IndexOf("@supports", index, StringComparison.OrdinalIgnoreCase);
-            if (supportsStart < 0) {
+            if (!TryFindNextAtRule(css, index, "supports", out int supportsStart, out int supportsNameEnd)) {
                 break;
             }
 
-            if (IsInsideCssString(css, supportsStart) || !HasAtRuleTokenBoundary(css, supportsStart, "@supports")) {
-                index = supportsStart + 9;
-                continue;
-            }
-
-            int preludeStart = supportsStart + 9;
+            int preludeStart = supportsNameEnd;
             int open = FindNextTopLevelBlockStart(css, preludeStart);
             if (open < 0) {
                 break;
@@ -307,6 +295,138 @@ public static partial class HtmlResourcePipeline {
         }
 
         return ranges;
+    }
+
+    internal static bool HasUnknownSupportsCondition(string css) {
+        int index = 0;
+        while (index < css.Length) {
+            if (!TryFindNextAtRule(css, index, "supports", out int supportsStart, out int supportsNameEnd)) return false;
+
+            int preludeStart = supportsNameEnd;
+            int open = FindNextTopLevelBlockStart(css, preludeStart);
+            if (open < 0) return false;
+            int close = FindMatchingCssBrace(css, open);
+            if (close <= open) return false;
+
+            string conditionText = css.Substring(preludeStart, open - preludeStart).Trim();
+            if (!HtmlComputedStyleEngine.TryEvaluateSupports(conditionText, out _)) return true;
+            index = open + 1;
+        }
+        return false;
+    }
+
+    internal static bool HasUnknownMediaCondition(string css) {
+        int index = 0;
+        while (index < css.Length) {
+            if (!TryFindNextAtRule(css, index, "media", out int mediaStart, out int mediaNameEnd)) return false;
+
+            int preludeStart = mediaNameEnd;
+            int open = FindNextTopLevelBlockStart(css, preludeStart);
+            if (open < 0) return false;
+            int close = FindMatchingCssBrace(css, open);
+            if (close <= open) return false;
+
+            string conditionText = css.Substring(preludeStart, open - preludeStart).Trim();
+            if (HtmlComputedStyleEngine.HasUnknownMediaFeature(conditionText)) return true;
+            index = open + 1;
+        }
+        return false;
+    }
+
+    internal static bool HasCssImportAtRule(string css) =>
+        ExtractCssImports(css ?? string.Empty).Any();
+
+    internal static bool HasEnvironmentDependentComputedStyle(string css) {
+        string source = css ?? string.Empty;
+        if (TryFindNextAtRule(source, 0, "media", out _, out _)) return true;
+        if (TryFindNextAtRule(source, 0, "container", out _, out _)) return true;
+        if (TryFindNextAtRule(source, 0, "keyframes", out _, out _)
+            || TryFindNextAtRule(source, 0, "-webkit-keyframes", out _, out _)
+            || TryFindNextAtRule(source, 0, "starting-style", out _, out _)) return true;
+        string masked = MaskCssComments(source);
+        if (ContainsStatefulPseudoClass(masked, 0, masked.Length)) return true;
+        if (ContainsBrowserMutableAttributeSelector(masked)) return true;
+        return ExtractCssImports(source).Any(import => HasCssImportMediaCondition(import.ConditionText));
+    }
+
+    internal static bool HasUnmodeledScopeAtRule(string css) =>
+        TryFindNextAtRule(css ?? string.Empty, 0, "scope", out _, out _);
+
+    internal static bool HasUnmodeledCompositingDeclaration(string css) {
+        string masked = MaskCssComments(css ?? string.Empty);
+        for (int index = 0; index < masked.Length; index++) {
+            if (masked[index] != ':' || IsInsideCssString(masked, index)) continue;
+            string propertyName = GetCssDeclarationPropertyName(masked, index + 1);
+            if (propertyName is "mix-blend-mode" or "background-blend-mode" or "text-shadow"
+                or "filter" or "-webkit-filter"
+                or "backdrop-filter" or "-webkit-backdrop-filter"
+                or "background-clip" or "-webkit-background-clip") {
+                int valueEnd = FindDeclarationValueEnd(masked, index + 1);
+                string value = DecodeCssEscapes(masked.Substring(index + 1, valueEnd - index - 1)).Trim();
+                int important = value.LastIndexOf("!important", StringComparison.OrdinalIgnoreCase);
+                if (important >= 0 && string.IsNullOrWhiteSpace(value.Substring(important + "!important".Length))) {
+                    value = value.Substring(0, important).TrimEnd();
+                }
+                if (propertyName.EndsWith("background-clip", StringComparison.Ordinal)) {
+                    if (value.Split(',').Any(layer =>
+                            string.Equals(layer.Trim(), "text", StringComparison.OrdinalIgnoreCase))) return true;
+                    continue;
+                }
+                string noEffectValue = propertyName.EndsWith("blend-mode", StringComparison.Ordinal) ? "normal" : "none";
+                if (!string.Equals(value, noEffectValue, StringComparison.OrdinalIgnoreCase)) return true;
+            }
+        }
+        return false;
+    }
+
+    internal static bool HasUnmodeledGlyphScalingDeclaration(string css) {
+        string masked = MaskCssComments(css ?? string.Empty);
+        for (int index = 0; index < masked.Length; index++) {
+            if (masked[index] != ':' || IsInsideCssString(masked, index)) continue;
+            if (GetCssDeclarationPropertyName(masked, index + 1) is not "zoom" and not "scale") continue;
+            int valueEnd = FindDeclarationValueEnd(masked, index + 1);
+            string value = DecodeCssEscapes(masked.Substring(index + 1, valueEnd - index - 1)).Trim();
+            int important = value.LastIndexOf("!important", StringComparison.OrdinalIgnoreCase);
+            if (important >= 0 && string.IsNullOrWhiteSpace(value.Substring(important + "!important".Length))) {
+                value = value.Substring(0, important).TrimEnd();
+            }
+            if (value.Length > 0
+                && !string.Equals(value, "normal", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(value, "1", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(value, "100%", StringComparison.OrdinalIgnoreCase)) return true;
+        }
+        return false;
+    }
+
+    internal static bool HasUnmodeledCascadeResetDeclaration(string css) {
+        string masked = MaskCssComments(css ?? string.Empty);
+        for (int index = 0; index < masked.Length; index++) {
+            if (masked[index] != ':' || IsInsideCssString(masked, index)) continue;
+            if (GetCssDeclarationPropertyName(masked, index + 1) != "all") continue;
+            int valueEnd = FindDeclarationValueEnd(masked, index + 1);
+            if (!string.IsNullOrWhiteSpace(masked.Substring(index + 1, valueEnd - index - 1))) return true;
+        }
+        return false;
+    }
+
+    private static bool HasCssImportMediaCondition(string conditionText) {
+        string remaining = conditionText.Trim();
+        while (remaining.Length > 0) {
+            if (TryConsumeCssImportFunctionCondition(remaining, "layer", out _, out string afterLayer)) {
+                remaining = afterLayer.TrimStart();
+                continue;
+            }
+            if (StartsWithCssIdentifier(remaining, "layer")) {
+                remaining = remaining.Substring("layer".Length).TrimStart();
+                continue;
+            }
+            if (TryConsumeCssImportFunctionCondition(remaining, "supports", out _, out string afterSupports)) {
+                remaining = afterSupports.TrimStart();
+                continue;
+            }
+            break;
+        }
+        return remaining.Length > 0;
     }
 
     private static int FindNextTopLevelBlockStart(string css, int start) {

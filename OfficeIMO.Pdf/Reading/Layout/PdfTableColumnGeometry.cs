@@ -19,4 +19,11 @@ internal static class PdfTableColumnGeometry {
         double dx = maxX - minX, dy = maxY - minY;
         return Math.Max(dx, dy) <= 0.001D ? fallback : dx >= dy;
     }
+
+    internal static double GetProgressionLength(PdfLogicalTableColumn column, bool horizontalProgression) {
+        PdfLogicalVisualBounds? bounds = column.VisualBounds;
+        return bounds is null
+            ? Math.Abs(column.To - column.From)
+            : Math.Abs(horizontalProgression ? bounds.Width : bounds.Height);
+    }
 }

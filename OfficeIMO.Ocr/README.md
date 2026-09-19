@@ -83,6 +83,7 @@ Provider identifiers are case-insensitive and unique. Registration snapshots ide
 
 - `OfficeIMO.Reader.Ocr` recognizes image candidates from Word, Excel, PowerPoint, OneNote, EPUB, email, PDF, and other Reader adapters.
 - `OfficeIMO.Pdf.Ocr` renders PDF pages, filters OCR/native overlap, reconstructs the logical document, and can add a searchable text layer.
+- `OfficeIMO.Workflows` combines bounded OCR geometry with decoded raster pixels for concealed-text assessment and explicitly selected opaque-region redaction.
 - `OfficeIMO.Ocr.Process` adapts a caller-configured executable through a bounded versioned protocol.
 - `OfficeIMO.Ocr.Tesseract` supplies an optional engine for an installed Tesseract CLI.
 

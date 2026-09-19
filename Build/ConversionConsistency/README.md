@@ -15,6 +15,7 @@ dotnet build Build/ConversionConsistency/OfficeIMO.ConversionConsistency.Tool.cs
 $tool = 'Build/ConversionConsistency/bin/Release/net8.0/OfficeIMO.ConversionConsistency.Tool.dll'
 $evidence = '.artifacts/conversion-consistency'
 dotnet $tool prepare --output "$evidence/fixtures"
+dotnet $tool svg-content-safety --output "$evidence/svg-content-safety" --pdftoppm pdftoppm
 dotnet $tool run --suite "$evidence/fixtures/suite.json" --output "$evidence/native"
 dotnet $tool run --suite Build/ConversionConsistency/suite.json --output "$evidence/reports"
 ./Build/ConversionConsistency/Test-BundleContract.ps1 -BundlePath "$evidence/native" -OutputPath "$evidence/negative"
@@ -22,15 +23,17 @@ dotnet $tool run --suite Build/ConversionConsistency/suite.json --output "$evide
 
 On Linux, Playwright may also need `install --with-deps chromium`. The CI workflow installs that dependency and Poppler explicitly.
 
-Output directories must be empty when preparing or exporting. Choose a new directory for another run, or remove only the earlier output that you own. `--case native-pptx` selects a single source case. `--repository` selects the repository root; `--pdftoppm` selects the independent rasterizer executable for verification. Unknown, duplicate, and inapplicable options are rejected.
+Output directories must be empty when preparing, exporting, or producing SVG content-safety evidence. Choose a new directory for another run, or remove only the earlier output that you own. `--case native-pptx` selects a single source case. `--repository` selects the repository root; `--pdftoppm` selects the independent rasterizer executable for verification. `--browser-executable` lets the SVG evidence command use an explicitly selected Chromium-family executable; CI uses the pinned Playwright browser. Unknown, duplicate, and inapplicable options are rejected.
 
 `export` creates a bundle without checking it. `verify --output <bundle-directory>` verifies an existing bundle without rerunning conversion. Exit code `0` means the selected checks passed, `1` means verification failed, and `2` means an invocation or setup error prevented completion. Missing or modified page artifacts produce a failed case in `consistency-result.json`.
 
+`svg-content-safety` inspects the tracked adversarial SVG, removes only cleanup-capable findings, reopens and reinspects the result, and renders both original and cleaned SVGs independently in Chromium under the offline network policy. Their browser PDFs are rasterized with Poppler and must be pixel-identical. The retained evidence records browser, source, cleaned-output, and raster hashes, cleanup counts, blocked external requests, exact pixel totals, and the diff image.
+
 ## Read the evidence
 
-Each case contains its PDF, all image pages, the independent PDF/SVG rasterizations, and pixel-difference images. A schema-2 HTML case may also contain an immutable `browser-reference.pdf`. Export captures that reference offline from the source HTML, injects the same hashed font bytes used by the managed rendering profile, and records its hash, page count, and browser version. Verification consumes the saved reference instead of reopening the HTML, so later source or browser drift cannot change an existing bundle silently.
+Each conversion case contains its PDF, all image pages, the independent PDF/SVG rasterizations, and pixel-difference images. A schema-2 HTML case may also contain an immutable `browser-reference.pdf`. Export captures that reference offline from the source HTML, injects the same hashed font bytes used by the managed rendering profile, and records its hash, page count, and browser version. Verification consumes the saved reference instead of reopening the HTML, so later source or browser drift cannot change an existing bundle silently.
 
-`bundle.json` records source and output hashes, the source commit and tracked diff hash, untracked source-file hashes, font hash, rendering profile, managed route, expected pages, browser-specific geometry contracts, and declared limitations. Task output under `.artifacts` is excluded from source provenance. `consistency-result.json` records comparisons and failures, plus the external renderer versions. It reports the archived source-reference browser separately from the browser used during current SVG verification, so updating the local browser cannot change or invalidate an otherwise intact reference.
+`bundle.json` records source and output hashes, the source commit and tracked diff hash, untracked source-file hashes, font hash, rendering profile, managed route, expected pages, browser-specific geometry contracts, and declared limitations. The SVG content-safety lane writes its browser PDFs, exact before/after PNGs, diff PNG, and `svg-content-safety-browser-evidence.json`. Task output under `.artifacts` is excluded from source provenance. `consistency-result.json` records conversion comparisons and failures, plus external renderer versions. It reports the archived source-reference browser separately from the browser used during current SVG verification, so updating the local browser cannot change or invalidate an otherwise intact reference.
 
 Expected labels and geometry come from the authored source contract. Adding a case requires specifying the pages and content that should survive conversion. This prevents an empty image or a shared pagination mistake from passing simply because two export routes agree.
 

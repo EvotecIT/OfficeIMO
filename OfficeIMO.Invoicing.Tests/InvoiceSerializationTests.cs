@@ -11,7 +11,7 @@ public class InvoiceSerializationTests {
         Invoice invoice = InvoiceCalculationTests.Example();
         invoice.Lines[0].UnitPrice = 12.345m;
         invoice.Lines[0].Name = "Parts & services <test> – Żółć";
-        var options = new InvoiceXmlOptions(syntax);
+        var options = InvoiceTestContracts.En16931(syntax);
         CultureInfo saved = CultureInfo.CurrentCulture;
         try {
             CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("pl-PL");
@@ -32,7 +32,7 @@ public class InvoiceSerializationTests {
         Invoice invoice = InvoiceCalculationTests.Example();
         invoice.TypeCode = "381";
         invoice.ProjectReference = "project";
-        var options = new InvoiceXmlOptions(InvoiceSyntax.Ubl);
+        var options = InvoiceTestContracts.En16931(InvoiceSyntax.Ubl);
         Assert.Contains(InvoiceSerializer.InspectTarget(invoice, options), d => d.Location == "ProjectReference");
         Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice, options));
     }

@@ -1,6 +1,18 @@
 namespace OfficeIMO.Email;
 
 internal static class MimeWriter {
+    private sealed class MimeContentPlan {
+        internal EmailAttachment? CalendarAttachment { get; set; }
+        internal bool CalendarSourceReused { get; set; }
+        internal byte[]? CalendarContent { get; set; }
+        internal EmailAttachment? ContactBodyPart { get; set; }
+        internal EmailAttachment[] RegularAttachments { get; set; } = Array.Empty<EmailAttachment>();
+        internal bool IncludeTextBody { get; set; }
+        internal bool HasAlternative { get; set; }
+        internal bool HasRelatedResources { get; set; }
+        internal bool HasUnrelatedAttachments { get; set; }
+    }
+
     private static readonly HashSet<string> ManagedHeaders = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
         "Subject", "From", "Sender", "To", "Cc", "Bcc", "Reply-To", "Date", "Message-ID",
         "References", "In-Reply-To", "MIME-Version", "Content-Type", "Content-Transfer-Encoding",
@@ -20,7 +32,7 @@ internal static class MimeWriter {
         if (output == null || !output.CanWrite) {
             throw new ArgumentException("MIME output requires a writable stream.", nameof(output));
         }
-        MimeWriterState state = new MimeWriterState(options, diagnostics);
+        using var state = new MimeWriterState(options, diagnostics);
         WriteMessage(output, document, state, 0);
     }
 
@@ -34,7 +46,7 @@ internal static class MimeWriter {
     internal static byte[] WriteMimeEntity(EmailDocument document, EmailWriterOptions options,
         IList<EmailDiagnostic> diagnostics) {
         using var output = new EmailBoundedMemoryStream(options.MaxOutputBytes);
-        var state = new MimeWriterState(options, diagnostics);
+        using var state = new MimeWriterState(options, diagnostics);
         state.Enter(document, 0);
         try {
             WriteContent(output, document, state, 0, true);
@@ -201,6 +213,47 @@ internal static class MimeWriter {
     }
 
     private static void WriteContent(Stream output, EmailDocument document, MimeWriterState state, int depth, bool includeLeadingHeaders) {
+        MimeContentPlan plan = CreateContentPlan(document, state);
+        EmailAttachment? calendarAttachment = plan.CalendarAttachment;
+        bool calendarSourceReused = plan.CalendarSourceReused;
+        byte[]? calendarContent = plan.CalendarContent;
+        EmailAttachment? contactBodyPart = plan.ContactBodyPart;
+        EmailAttachment[] regularAttachments = plan.RegularAttachments;
+        bool includeTextBody = plan.IncludeTextBody;
+        bool hasAlternative = plan.HasAlternative;
+        bool hasRelatedResources = plan.HasRelatedResources;
+        bool hasUnrelatedAttachments = plan.HasUnrelatedAttachments;
+        if (hasUnrelatedAttachments) {
+            string boundary = CreateBoundary(document, plan, state, depth, "mixed");
+            WriteLine(output, string.Concat("Content-Type: multipart/mixed; boundary=\"", boundary, "\""));
+            WriteLine(output, string.Empty);
+            WriteLine(output, string.Concat("--", boundary));
+            if (hasRelatedResources) {
+                WriteRelatedBodyEntity(output, document, plan, state, depth, hasAlternative, includeTextBody, calendarContent,
+                    calendarSourceReused ? calendarAttachment : null, contactBodyPart, regularAttachments);
+            } else {
+                WriteBodyEntity(output, document, plan, state, depth, hasAlternative, includeTextBody, calendarContent,
+                    calendarSourceReused ? calendarAttachment : null, contactBodyPart);
+            }
+            for (int i = 0; i < regularAttachments.Length; i++) {
+                if (IsRelatedResource(document, regularAttachments[i])) continue;
+                WriteLine(output, string.Concat("--", boundary));
+                WriteAttachment(output, regularAttachments[i], state, depth + 1, i);
+            }
+            WriteLine(output, string.Concat("--", boundary, "--"));
+            return;
+        }
+
+        if (hasRelatedResources) {
+            WriteRelatedBodyEntity(output, document, plan, state, depth, hasAlternative, includeTextBody, calendarContent,
+                calendarSourceReused ? calendarAttachment : null, contactBodyPart, regularAttachments);
+        } else {
+            WriteBodyEntity(output, document, plan, state, depth, hasAlternative, includeTextBody, calendarContent,
+                calendarSourceReused ? calendarAttachment : null, contactBodyPart);
+        }
+    }
+
+    private static MimeContentPlan CreateContentPlan(EmailDocument document, MimeWriterState state) {
         EmailAttachment? calendarAttachment = IcsCalendarCodec.FindSemanticAttachment(document);
         bool semanticSourceUnchanged = document.MimeSemanticSourceModelFingerprint != null &&
             EmailDocumentStateFingerprint.Matches(document, document.MimeSemanticSourceModelFingerprint);
@@ -246,53 +299,40 @@ internal static class MimeWriter {
         bool hasRelatedResources = document.Body.IsHtmlRelatedRoot ||
             regularAttachments.Any(attachment => IsRelatedResource(document, attachment));
         bool hasUnrelatedAttachments = regularAttachments.Any(attachment => !IsRelatedResource(document, attachment));
-        if (hasUnrelatedAttachments) {
-            string boundary = CreateBoundary(document, depth, "mixed");
-            WriteLine(output, string.Concat("Content-Type: multipart/mixed; boundary=\"", boundary, "\""));
-            WriteLine(output, string.Empty);
-            WriteLine(output, string.Concat("--", boundary));
-            if (hasRelatedResources) {
-                WriteRelatedBodyEntity(output, document, state, depth, hasAlternative, includeTextBody, calendarContent,
-                    calendarSourceReused ? calendarAttachment : null, contactBodyPart, regularAttachments);
-            } else {
-                WriteBodyEntity(output, document, state, depth, hasAlternative, includeTextBody, calendarContent,
-                    calendarSourceReused ? calendarAttachment : null, contactBodyPart);
-            }
-            for (int i = 0; i < regularAttachments.Length; i++) {
-                if (IsRelatedResource(document, regularAttachments[i])) continue;
-                WriteLine(output, string.Concat("--", boundary));
-                WriteAttachment(output, regularAttachments[i], state, depth + 1, i);
-            }
-            WriteLine(output, string.Concat("--", boundary, "--"));
-            return;
-        }
-
-        if (hasRelatedResources) {
-            WriteRelatedBodyEntity(output, document, state, depth, hasAlternative, includeTextBody, calendarContent,
-                calendarSourceReused ? calendarAttachment : null, contactBodyPart, regularAttachments);
-        } else {
-            WriteBodyEntity(output, document, state, depth, hasAlternative, includeTextBody, calendarContent,
-                calendarSourceReused ? calendarAttachment : null, contactBodyPart);
-        }
+        return new MimeContentPlan {
+            CalendarAttachment = calendarAttachment,
+            CalendarSourceReused = calendarSourceReused,
+            CalendarContent = calendarContent,
+            ContactBodyPart = contactBodyPart,
+            RegularAttachments = regularAttachments,
+            IncludeTextBody = includeTextBody,
+            HasAlternative = hasAlternative,
+            HasRelatedResources = hasRelatedResources,
+            HasUnrelatedAttachments = hasUnrelatedAttachments
+        };
     }
 
-    private static void WriteRelatedBodyEntity(Stream output, EmailDocument document, MimeWriterState state,
+    private static void WriteRelatedBodyEntity(Stream output, EmailDocument document, MimeContentPlan plan, MimeWriterState state,
         int depth, bool hasAlternative, bool includeTextBody, byte[]? calendarContent,
         EmailAttachment? calendarAttachment,
         EmailAttachment? contactBodyPart,
         IReadOnlyList<EmailAttachment> attachments) {
-        string boundary = CreateBoundary(document, depth, "related");
+        string boundary = CreateBoundary(document, plan, state, depth, "related");
         string rootType = hasAlternative ? "multipart/alternative" : document.Body.Html != null
             ? "text/html"
             : "text/plain";
         string start = !hasAlternative && !string.IsNullOrWhiteSpace(document.Body.HtmlContentId)
             ? string.Concat("; start=\"<", SanitizeMessageId(document.Body.HtmlContentId!), ">\"")
             : string.Empty;
+        string retainedParameters = FormatContentTypeParameters(document.Body.RelatedContentTypeParameters.Where(parameter =>
+            !string.Equals(parameter.Key, "boundary", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(parameter.Key, "type", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(parameter.Key, "start", StringComparison.OrdinalIgnoreCase)));
         WriteLine(output, string.Concat("Content-Type: multipart/related; boundary=\"", boundary,
-            "\"; type=\"", rootType, "\"", start));
+            "\"; type=\"", rootType, "\"", start, retainedParameters));
         WriteLine(output, string.Empty);
         WriteLine(output, string.Concat("--", boundary));
-        WriteBodyEntity(output, document, state, depth, hasAlternative, includeTextBody, calendarContent,
+        WriteBodyEntity(output, document, plan, state, depth, hasAlternative, includeTextBody, calendarContent,
             calendarAttachment, contactBodyPart);
         for (int i = 0; i < attachments.Count; i++) {
             if (!IsRelatedResource(document, attachments[i])) continue;
@@ -313,11 +353,11 @@ internal static class MimeWriter {
             MimeRelatedResourceReference.ContainsContentLocation(document.Body.Html!, attachment.ContentLocation!);
     }
 
-    private static void WriteBodyEntity(Stream output, EmailDocument document, MimeWriterState state, int depth,
+    private static void WriteBodyEntity(Stream output, EmailDocument document, MimeContentPlan plan, MimeWriterState state, int depth,
         bool hasAlternative, bool includeTextBody, byte[]? calendarContent, EmailAttachment? calendarAttachment,
         EmailAttachment? contactBodyPart) {
         if (hasAlternative) {
-            string boundary = CreateBoundary(document, depth, "alternative");
+            string boundary = CreateBoundary(document, plan, state, depth, "alternative");
             WriteLine(output, string.Concat("Content-Type: multipart/alternative; boundary=\"", boundary, "\""));
             WriteLine(output, string.Empty);
             if (includeTextBody) {
@@ -327,7 +367,12 @@ internal static class MimeWriter {
             if (document.Body.Html != null) {
                 WriteLine(output, string.Concat("--", boundary));
                 WriteTextPart(output, "text/html", document.Body.Html, state.Options.Base64LineLength,
-                    document.Body.HtmlContentId, document.Body.HtmlContentLocation);
+                    document.Body.HtmlContentId, document.Body.HtmlContentLocation,
+                    document.Body.PreserveHtmlMimeHeadersOnWrite ? document.Body.HtmlCharset : null,
+                    document.Body.PreserveHtmlMimeHeadersOnWrite ? document.Body.HtmlTransferEncoding : null,
+                    document.Body.PreserveHtmlMimeHeadersOnWrite ? document.Body.HtmlMimeHeaders : null,
+                    document.Body.HtmlEncodingOverride,
+                    document.Body.HtmlEncodingPreamble);
             }
             if (document.Body.Rtf != null) {
                 WriteLine(output, string.Concat("--", boundary));
@@ -344,7 +389,12 @@ internal static class MimeWriter {
             WriteAttachment(output, contactBodyPart, state, depth + 1, 0);
         } else if (document.Body.Html != null) {
             WriteTextPart(output, "text/html", document.Body.Html, state.Options.Base64LineLength,
-                document.Body.HtmlContentId, document.Body.HtmlContentLocation);
+                document.Body.HtmlContentId, document.Body.HtmlContentLocation,
+                document.Body.PreserveHtmlMimeHeadersOnWrite ? document.Body.HtmlCharset : null,
+                document.Body.PreserveHtmlMimeHeadersOnWrite ? document.Body.HtmlTransferEncoding : null,
+                document.Body.PreserveHtmlMimeHeadersOnWrite ? document.Body.HtmlMimeHeaders : null,
+                document.Body.HtmlEncodingOverride,
+                document.Body.HtmlEncodingPreamble);
         } else if (document.Body.Rtf != null) {
             WriteRtfPart(output, document.Body.Rtf, state, "body/rtf");
         } else {
@@ -410,7 +460,32 @@ internal static class MimeWriter {
     }
 
     private static void WriteTextPart(Stream output, string mediaType, string text, int base64LineLength,
-        string? contentId = null, string? contentLocation = null) {
+        string? contentId = null, string? contentLocation = null, string? charset = null,
+        string? transferEncoding = null, ICollection<EmailHeader>? preservedHeaders = null,
+        Encoding? encodingOverride = null, byte[]? encodingPreamble = null) {
+        if (preservedHeaders != null && preservedHeaders.Count > 0) {
+            WritePreservedPartHeaders(output, preservedHeaders, omitPayloadDependentHeaders: true);
+            WriteLine(output, string.Empty);
+            byte[] encoded;
+            try {
+                Encoding encoding = encodingOverride ?? MimeTextCodec.ResolveStrictEncoding(charset);
+                string encodableText = string.Equals(mediaType, "text/html", StringComparison.OrdinalIgnoreCase)
+                    ? OfficeIMO.Core.Internal.OfficeCharacterReferenceEncoding.EscapeUnrepresentableCharacters(text, encoding)
+                    : text;
+                encoded = encoding.GetBytes(encodableText);
+                if (encodingPreamble != null && encodingPreamble.Length > 0) {
+                    var withPreamble = new byte[checked(encodingPreamble.Length + encoded.Length)];
+                    Buffer.BlockCopy(encodingPreamble, 0, withPreamble, 0, encodingPreamble.Length);
+                    Buffer.BlockCopy(encoded, 0, withPreamble, encodingPreamble.Length, encoded.Length);
+                    encoded = withPreamble;
+                }
+            } catch (Exception exception) when (exception is ArgumentException || exception is NotSupportedException ||
+                                                exception is EncoderFallbackException) {
+                throw new InvalidDataException("The preserved MIME charset cannot represent the updated text body.", exception);
+            }
+            WriteTransferEncodedPayload(output, encoded, transferEncoding, base64LineLength);
+            return;
+        }
         WriteLine(output, string.Concat("Content-Type: ", mediaType, "; charset=utf-8"));
         WriteLine(output, "Content-Transfer-Encoding: base64");
         if (!string.IsNullOrWhiteSpace(contentId)) {
@@ -437,6 +512,8 @@ internal static class MimeWriter {
 
     private static void WriteAttachment(Stream output, EmailAttachment attachment, MimeWriterState state, int depth, int index) {
         bool embeddedMessage = attachment.EmbeddedDocument != null;
+        bool hasContent = attachment.Content != null || attachment.ContentSource != null ||
+            EmailAttachmentStreamScope.HasStagedContent(attachment);
         string contentType = embeddedMessage
             ? "message/rfc822"
             : string.IsNullOrWhiteSpace(attachment.ContentType) ? "application/octet-stream" : attachment.ContentType!;
@@ -450,29 +527,38 @@ internal static class MimeWriter {
             }
         }
         string? fileName = attachment.FileName;
-        WriteLine(output, string.Concat("Content-Type: ", SanitizeToken(contentType),
-            FormatContentTypeParameters(attachment.ContentTypeParameters), FormatFileNameParameter("name", fileName)));
-        if (!attachment.IsMimeBodyPart) {
-            WriteLine(output, string.Concat("Content-Disposition: ",
-                attachment.IsMimeAttachment ? "attachment" : attachment.IsInline ? "inline" : "attachment",
-                FormatFileNameParameter("filename", fileName)));
-        }
-        if (!string.IsNullOrWhiteSpace(attachment.ContentId)) {
-            WriteLine(output, string.Concat("Content-ID: <", SanitizeMessageId(attachment.ContentId!), ">"));
-        }
-        if (!string.IsNullOrWhiteSpace(attachment.ContentLocation)) {
-            WriteLine(output, string.Concat("Content-Location: ", EncodeHeaderText(attachment.ContentLocation!)));
+        bool preservePartHeaders = attachment.PreserveMimeHeadersOnWrite && attachment.MimeHeaders.Count > 0
+            && (!embeddedMessage || hasContent);
+        if (preservePartHeaders) {
+            WritePreservedPartHeaders(output, attachment.MimeHeaders, omitPayloadDependentHeaders: true);
+        } else {
+            WriteLine(output, string.Concat("Content-Type: ", SanitizeToken(contentType),
+                FormatContentTypeParameters(attachment.ContentTypeParameters), FormatFileNameParameter("name", fileName)));
+            if (!attachment.IsMimeBodyPart) {
+                WriteLine(output, string.Concat("Content-Disposition: ",
+                    attachment.IsMimeAttachment ? "attachment" : attachment.IsInline ? "inline" : "attachment",
+                    FormatFileNameParameter("filename", fileName)));
+            }
+            if (!string.IsNullOrWhiteSpace(attachment.ContentId)) {
+                WriteLine(output, string.Concat("Content-ID: <", SanitizeMessageId(attachment.ContentId!), ">"));
+            }
+            if (!string.IsNullOrWhiteSpace(attachment.ContentLocation)) {
+                WriteLine(output, string.Concat("Content-Location: ", EncodeHeaderText(attachment.ContentLocation!)));
+            }
         }
 
         if (attachment.EmbeddedDocument != null) {
+            if (preservePartHeaders) {
+                WriteLine(output, string.Empty);
+                WritePreservedAttachmentPayload(output, attachment, state);
+                return;
+            }
             WriteLine(output, "Content-Transfer-Encoding: 8bit");
             WriteLine(output, string.Empty);
             WriteMessage(output, attachment.EmbeddedDocument, state, depth);
             return;
         }
 
-        bool hasContent = attachment.Content != null || attachment.ContentSource != null ||
-            EmailAttachmentStreamScope.HasStagedContent(attachment);
         if (!hasContent && attachment.Length > 0) {
             state.Diagnostics.Add(new EmailDiagnostic("EMAIL_ATTACHMENT_CONTENT_UNAVAILABLE",
                 string.Concat("Attachment ", index.ToString(CultureInfo.InvariantCulture),
@@ -480,23 +566,148 @@ internal static class MimeWriter {
                 EmailDiagnosticSeverity.Error, string.Concat("attachment[", index.ToString(CultureInfo.InvariantCulture), "]")));
         }
         if (contentType.StartsWith("multipart/", StringComparison.OrdinalIgnoreCase)) {
-            WriteLine(output, "Content-Transfer-Encoding: 8bit");
+            if (!preservePartHeaders) WriteLine(output, "Content-Transfer-Encoding: 8bit");
             WriteLine(output, string.Empty);
-            using (Stream input = EmailAttachmentStreamScope.OpenRead(attachment)) {
+            using (Stream input = state.OpenAttachmentStream(attachment)) {
                 WriteRawEntity(output, input, state.Options.MaxOutputBytes);
             }
             return;
         }
 
-        WriteLine(output, "Content-Transfer-Encoding: base64");
+        if (!preservePartHeaders) WriteLine(output, "Content-Transfer-Encoding: base64");
         WriteLine(output, string.Empty);
-        if (attachment.Content != null && !EmailAttachmentStreamScope.HasStagedContent(attachment)) {
-            WriteBase64(output, attachment.Content, state.Options.Base64LineLength);
+        if (preservePartHeaders) {
+            WritePreservedAttachmentPayload(output, attachment, state);
             return;
         }
-        using (Stream input = EmailAttachmentStreamScope.OpenRead(attachment)) {
-            WriteBase64(output, input, state.Options.Base64LineLength,
-                state.Options.MaxOutputBytes);
+        if (attachment.Content != null && !EmailAttachmentStreamScope.HasStagedContent(attachment)) {
+            WriteTransferEncodedPayload(output, attachment.Content, "base64", state.Options.Base64LineLength);
+            return;
+        }
+        using (Stream input = state.OpenAttachmentStream(attachment)) {
+            WriteBase64(output, input, state.Options.Base64LineLength, state.Options.MaxOutputBytes);
+        }
+    }
+
+    private static void WritePreservedAttachmentPayload(
+        Stream output,
+        EmailAttachment attachment,
+        MimeWriterState state) {
+        if (attachment.MimeDecodingWasAmbiguous
+            && MimeTextCodec.IsSupportedTransferEncoding(attachment.MimeTransferEncoding)) {
+            throw new InvalidDataException(
+                "A MIME part with an ambiguously decoded supported content-transfer-encoding cannot be rewritten safely.");
+        }
+        bool writeRaw = attachment.MimeDecodingWasAmbiguous
+            && !MimeTextCodec.IsSupportedTransferEncoding(attachment.MimeTransferEncoding);
+        if (attachment.Content != null && !EmailAttachmentStreamScope.HasStagedContent(attachment)) {
+            if (writeRaw) {
+                using var input = new MemoryStream(attachment.Content, writable: false);
+                WriteRawEntity(output, input, state.Options.MaxOutputBytes);
+            } else {
+                WriteTransferEncodedPayload(output, attachment.Content,
+                    attachment.MimeTransferEncoding, state.Options.Base64LineLength);
+            }
+            return;
+        }
+
+        using (Stream input = state.OpenAttachmentStream(attachment)) {
+            if (writeRaw) {
+                WriteRawEntity(output, input, state.Options.MaxOutputBytes);
+            } else {
+                WriteTransferEncodedPayload(output, ReadBoundedBytes(input, state.Options.MaxOutputBytes),
+                    attachment.MimeTransferEncoding, state.Options.Base64LineLength);
+            }
+        }
+    }
+
+    private static void WritePreservedPartHeaders(
+        Stream output,
+        IEnumerable<EmailHeader> headers,
+        bool omitPayloadDependentHeaders) {
+        foreach (EmailHeader header in headers) {
+            string name = MimeHeaderSafety.SanitizeName(header.Name);
+            if (omitPayloadDependentHeaders && IsPayloadDependentHeader(name)) continue;
+            string value = MimeHeaderSafety.SanitizeValue(header.RawValue ?? header.Value);
+            WriteLine(output, string.Concat(name, ": ", value));
+        }
+    }
+
+    private static bool IsPayloadDependentHeader(string name) =>
+        string.Equals(name, "Content-Length", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(name, "Content-MD5", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(name, "Content-Digest", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(name, "Repr-Digest", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(name, "Digest", StringComparison.OrdinalIgnoreCase);
+
+    private static void WriteTransferEncodedPayload(Stream output, byte[] data, string? transferEncoding, int base64LineLength) {
+        string normalized = (transferEncoding ?? string.Empty).Trim().ToLowerInvariant();
+        switch (normalized) {
+            case "base64":
+                WriteBase64(output, data, base64LineLength);
+                return;
+            case "quoted-printable":
+                WriteQuotedPrintable(output, data);
+                return;
+            case "":
+            case "7bit":
+                if (data.Any(value => value > 0x7f)) {
+                    throw new InvalidDataException(
+                        "The updated MIME payload cannot be represented by the preserved or default 7bit transfer encoding.");
+                }
+                goto case "8bit";
+            case "8bit":
+            case "binary":
+                using (var input = new MemoryStream(data, writable: false)) {
+                    WriteRawEntity(output, input, data.LongLength);
+                }
+                return;
+            default:
+                throw new InvalidDataException("The MIME part uses an unsupported content-transfer-encoding: " + normalized);
+        }
+    }
+
+    private static void WriteQuotedPrintable(Stream output, byte[] data) {
+        int lineLength = 0;
+        bool endedWithCrlf = false;
+        for (int index = 0; index < data.Length; index++) {
+            byte value = data[index];
+            if (value == '\r' && index + 1 < data.Length && data[index + 1] == '\n') {
+                WriteLine(output, string.Empty);
+                lineLength = 0;
+                endedWithCrlf = true;
+                index++;
+                continue;
+            }
+            endedWithCrlf = false;
+            string token = value >= 33 && value <= 126 && value != '='
+                ? ((char)value).ToString()
+                : string.Concat("=", value.ToString("X2", CultureInfo.InvariantCulture));
+            if (lineLength + token.Length > 73) {
+                WriteLine(output, "=");
+                lineLength = 0;
+            }
+            byte[] tokenBytes = Encoding.ASCII.GetBytes(token);
+            output.Write(tokenBytes, 0, tokenBytes.Length);
+            lineLength += tokenBytes.Length;
+        }
+        if (!endedWithCrlf) WriteLine(output, string.Empty);
+    }
+
+    private static byte[] ReadBoundedBytes(Stream input, long maximumInputBytes) {
+        using (var buffer = new MemoryStream()) {
+            var chunk = new byte[81920];
+            long total = 0;
+            while (true) {
+                int read = input.Read(chunk, 0, chunk.Length);
+                if (read == 0) break;
+                total = checked(total + read);
+                if (total > maximumInputBytes) {
+                    throw new EmailLimitExceededException(nameof(EmailWriterOptions.MaxOutputBytes), total, maximumInputBytes);
+                }
+                buffer.Write(chunk, 0, read);
+            }
+            return buffer.ToArray();
         }
     }
 
@@ -572,18 +783,187 @@ internal static class MimeWriter {
         }
     }
 
-    private static string CreateBoundary(EmailDocument document, int depth, string kind) {
+    private static string CreateBoundary(EmailDocument document, MimeContentPlan plan, MimeWriterState state, int depth, string kind) {
         ulong hash = 14695981039346656037UL;
         Hash(ref hash, document.Subject);
         Hash(ref hash, document.MessageId);
         Hash(ref hash, document.Body.Text);
         Hash(ref hash, document.Body.Html);
         Hash(ref hash, document.Body.Rtf);
-        Hash(ref hash, document.Attachments.Count.ToString(CultureInfo.InvariantCulture));
+        Hash(ref hash, plan.RegularAttachments.Length.ToString(CultureInfo.InvariantCulture));
         Hash(ref hash, depth.ToString(CultureInfo.InvariantCulture));
         Hash(ref hash, kind);
-        return string.Concat("=_OfficeIMO_", kind, "_", hash.ToString("x16", CultureInfo.InvariantCulture));
+        string prefix = string.Concat("=_OfficeIMO_", kind, "_", hash.ToString("x16", CultureInfo.InvariantCulture));
+        var collisions = new bool[256];
+        CollectBoundaryCollisions(document, plan, prefix, state, collisions, new HashSet<EmailDocument>());
+        for (int attempt = 0; attempt < 256; attempt++) {
+            if (collisions[attempt]) continue;
+            return attempt == 0
+                ? prefix
+                : string.Concat(prefix, "_", attempt.ToString("x2", CultureInfo.InvariantCulture));
+        }
+        throw new InvalidDataException("A collision-free MIME boundary could not be generated for the message payload.");
     }
+
+    private static void CollectBoundaryCollisions(
+        EmailDocument document,
+        MimeContentPlan plan,
+        string boundaryPrefix,
+        MimeWriterState state,
+        bool[] collisions,
+        ISet<EmailDocument> activeDocuments) {
+        if (!activeDocuments.Add(document)) {
+            throw new InvalidOperationException("The embedded-message graph contains a cycle.");
+        }
+        try {
+            byte[] markerPrefix = Encoding.ASCII.GetBytes("--" + boundaryPrefix);
+            if (document.Body.Html != null && document.Body.PreserveHtmlMimeHeadersOnWrite &&
+                ShouldScanTransferEncodedPayload(document.Body.HtmlTransferEncoding)) {
+                Encoding encoding = document.Body.HtmlEncodingOverride ??
+                    MimeTextCodec.ResolveStrictEncoding(document.Body.HtmlCharset);
+                string encodableHtml = OfficeIMO.Core.Internal.OfficeCharacterReferenceEncoding
+                    .EscapeUnrepresentableCharacters(document.Body.Html, encoding);
+                byte[] htmlBytes = encoding.GetBytes(encodableHtml);
+                using var htmlInput = new MemoryStream(htmlBytes, writable: false);
+                CollectBoundaryCollisions(htmlInput, markerPrefix, collisions, state.Options.MaxOutputBytes);
+            }
+            if (plan.ContactBodyPart != null) {
+                CollectBoundaryCollisions(plan.ContactBodyPart, boundaryPrefix, markerPrefix, state, collisions, activeDocuments);
+            }
+            foreach (EmailAttachment attachment in plan.RegularAttachments) {
+                CollectBoundaryCollisions(attachment, boundaryPrefix, markerPrefix, state, collisions, activeDocuments);
+            }
+        } finally {
+            activeDocuments.Remove(document);
+        }
+    }
+
+    private static void CollectBoundaryCollisions(
+        EmailAttachment attachment,
+        string boundaryPrefix,
+        byte[] markerPrefix,
+        MimeWriterState state,
+        bool[] collisions,
+        ISet<EmailDocument> activeDocuments) {
+        bool embeddedMessage = attachment.EmbeddedDocument != null;
+        bool hasContent = attachment.Content != null || attachment.ContentSource != null ||
+            EmailAttachmentStreamScope.HasStagedContent(attachment);
+        string contentType = embeddedMessage
+            ? "message/rfc822"
+            : string.IsNullOrWhiteSpace(attachment.ContentType) ? "application/octet-stream" : attachment.ContentType!;
+        if (!embeddedMessage && contentType.StartsWith("multipart/", StringComparison.OrdinalIgnoreCase) &&
+            (!attachment.ContentTypeParameters.TryGetValue("boundary", out string? retainedBoundary) ||
+             string.IsNullOrWhiteSpace(retainedBoundary))) {
+            contentType = "application/octet-stream";
+        }
+        bool preservePartHeaders = attachment.PreserveMimeHeadersOnWrite && attachment.MimeHeaders.Count > 0
+            && (!embeddedMessage || hasContent);
+
+        if (preservePartHeaders && !ShouldScanTransferEncodedPayload(attachment.MimeTransferEncoding)) return;
+        if (attachment.EmbeddedDocument != null && preservePartHeaders) {
+            if (attachment.Content != null) {
+                using var preservedInput = new MemoryStream(attachment.Content, writable: false);
+                CollectBoundaryCollisions(preservedInput, markerPrefix, collisions, state.Options.MaxOutputBytes);
+                return;
+            }
+            if (attachment.ContentSource != null || EmailAttachmentStreamScope.HasStagedContent(attachment)) {
+                Stream preservedInput = state.PrepareAttachmentStream(attachment);
+                CollectBoundaryCollisions(preservedInput, markerPrefix, collisions, state.Options.MaxOutputBytes);
+                return;
+            }
+        }
+        if (attachment.EmbeddedDocument != null) {
+            MimeContentPlan embeddedPlan = CreateContentPlan(attachment.EmbeddedDocument, state);
+            CollectBoundaryCollisions(attachment.EmbeddedDocument, embeddedPlan, boundaryPrefix, state, collisions, activeDocuments);
+            return;
+        }
+        if (!contentType.StartsWith("multipart/", StringComparison.OrdinalIgnoreCase) && !preservePartHeaders) return;
+        if (attachment.Content != null) {
+            using var input = new MemoryStream(attachment.Content, writable: false);
+            CollectBoundaryCollisions(input, markerPrefix, collisions, state.Options.MaxOutputBytes);
+            return;
+        }
+        if (attachment.ContentSource == null && !EmailAttachmentStreamScope.HasStagedContent(attachment)) return;
+        Stream prepared = state.PrepareAttachmentStream(attachment);
+        CollectBoundaryCollisions(prepared, markerPrefix, collisions, state.Options.MaxOutputBytes);
+    }
+
+    private static bool ShouldScanTransferEncodedPayload(string? transferEncoding) {
+        string normalized = (transferEncoding ?? string.Empty).Trim();
+        // Generated boundaries contain '='. Base64 cannot emit it and quoted-printable
+        // always emits that byte as '=3D', so decoded payload matches cannot become wire delimiters.
+        return !string.Equals(normalized, "base64", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(normalized, "quoted-printable", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static void CollectBoundaryCollisions(
+        string? value,
+        byte[] markerPrefix,
+        bool[] collisions,
+        long maximumInputBytes) {
+        if (string.IsNullOrEmpty(value)) return;
+        using var input = new MemoryStream(Encoding.UTF8.GetBytes(value), writable: false);
+        CollectBoundaryCollisions(input, markerPrefix, collisions, maximumInputBytes);
+    }
+
+    private static void CollectBoundaryCollisions(
+        Stream input,
+        byte[] markerPrefix,
+        bool[] collisions,
+        long maximumInputBytes) {
+        var prefixTable = new int[markerPrefix.Length];
+        for (int index = 1, matched = 0; index < markerPrefix.Length; index++) {
+            while (matched > 0 && markerPrefix[index] != markerPrefix[matched]) matched = prefixTable[matched - 1];
+            if (markerPrefix[index] == markerPrefix[matched]) matched++;
+            prefixTable[index] = matched;
+        }
+
+        var buffer = new byte[81920];
+        var suffix = new byte[3];
+        long total = 0;
+        int current = 0;
+        int suffixLength = -1;
+        while (true) {
+            int read = input.Read(buffer, 0, buffer.Length);
+            if (read == 0) return;
+            total = checked(total + read);
+            if (total > maximumInputBytes) {
+                throw new EmailLimitExceededException(nameof(EmailWriterOptions.MaxOutputBytes), total, maximumInputBytes);
+            }
+            for (int index = 0; index < read; index++) {
+                byte value = buffer[index];
+                if (suffixLength >= 0) {
+                    suffix[suffixLength++] = value;
+                    if (suffixLength == suffix.Length) {
+                        if (suffix[0] == (byte)'_'
+                            && TryParseLowerHexByte(suffix[1], suffix[2], out int attempt)
+                            && attempt > 0) {
+                            collisions[attempt] = true;
+                        }
+                        suffixLength = -1;
+                    }
+                }
+
+                while (current > 0 && value != markerPrefix[current]) current = prefixTable[current - 1];
+                if (value == markerPrefix[current]) current++;
+                if (current != markerPrefix.Length) continue;
+                collisions[0] = true;
+                suffixLength = 0;
+                current = prefixTable[current - 1];
+            }
+        }
+    }
+
+    private static bool TryParseLowerHexByte(byte high, byte low, out int value) {
+        int highValue = LowerHexValue(high);
+        int lowValue = LowerHexValue(low);
+        value = highValue < 0 || lowValue < 0 ? 0 : (highValue << 4) | lowValue;
+        return highValue >= 0 && lowValue >= 0;
+    }
+
+    private static int LowerHexValue(byte value) =>
+        value >= (byte)'0' && value <= (byte)'9' ? value - (byte)'0' :
+        value >= (byte)'a' && value <= (byte)'f' ? value - (byte)'a' + 10 : -1;
 
     private static void Hash(ref ulong hash, string? value) {
         if (value == null) return;
@@ -707,8 +1087,6 @@ internal static class MimeWriter {
     private static void WriteRawEntity(Stream output, Stream input, long maximumInputBytes) {
         var buffer = new byte[81920];
         long total = 0;
-        int trailingFirst = -1;
-        int trailingSecond = -1;
         while (true) {
             int read = input.Read(buffer, 0, buffer.Length);
             if (read == 0) break;
@@ -718,17 +1096,10 @@ internal static class MimeWriter {
                     total, maximumInputBytes);
             }
             output.Write(buffer, 0, read);
-            if (read == 1) {
-                trailingFirst = trailingSecond;
-                trailingSecond = buffer[0];
-            } else {
-                trailingFirst = buffer[read - 2];
-                trailingSecond = buffer[read - 1];
-            }
         }
-        if (trailingFirst != '\r' || trailingSecond != '\n') {
-            WriteLine(output, string.Empty);
-        }
+        // This CRLF belongs to the enclosing multipart delimiter. It must remain distinct from
+        // any terminal CRLF bytes in the raw entity, which are part of the preserved payload.
+        WriteLine(output, string.Empty);
     }
 
     private static string SanitizeAddress(string value) {

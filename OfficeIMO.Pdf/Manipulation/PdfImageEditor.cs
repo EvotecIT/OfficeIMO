@@ -179,9 +179,17 @@ internal static partial class PdfImageEditor {
         if (image.Interpolate) {
             throw new NotSupportedException("Moving this image is not supported because its interpolation setting cannot be preserved during restamping.");
         }
-        if (string.Equals(image.Filter, "DCTDecode", StringComparison.Ordinal)) {
-            if (image.HasExplicitDecode || image.HasDecodeParameters) {
-                throw new NotSupportedException("Moving this JPEG image is not supported because PDF Decode or DecodeParms semantics would be lost during restamping.");
+        // The extracted payload type identifies pass-through JPEG/JPX even when the source
+        // uses a prefix filter chain; Filter is only a lossy display string.
+        bool isJpeg = string.Equals(image.MimeType, "image/jpeg", StringComparison.Ordinal);
+        bool isJpeg2000 = string.Equals(image.MimeType, "image/jp2", StringComparison.Ordinal) ||
+            string.Equals(image.MimeType, "image/j2c", StringComparison.Ordinal);
+        if ((isJpeg || isJpeg2000) && image.HasUnsafePassThroughDecode) {
+            throw new NotSupportedException("Moving this encoded image is not supported because its PDF Decode semantics would be lost during restamping.");
+        }
+        if (isJpeg) {
+            if (image.HasDecodeParameters) {
+                throw new NotSupportedException("Moving this JPEG image is not supported because its PDF DecodeParms semantics would be lost during restamping.");
             }
             if (image.BitsPerComponent != 8 ||
                 (!string.Equals(image.ColorSpace, "DeviceGray", StringComparison.Ordinal) &&
@@ -204,6 +212,9 @@ internal static partial class PdfImageEditor {
             throw new NotSupportedException("Replacing or moving an image placement with a non-normal blend mode is not supported because the blend state cannot be preserved by image stamping.");
         }
         if (placement.HasUnsupportedBlendMode) {
+            throw new NotSupportedException("Replacing or moving an image placement with an unsupported blend mode is not supported because that blend state cannot be preserved by image stamping.");
+        }
+        if (placement.HasUnsupportedImagePaintEffect) {
             throw new NotSupportedException("Replacing or moving an image placement with an unsupported graphics-state paint effect is not supported because that paint state cannot be preserved by image stamping.");
         }
         if (placement.HasSoftMask) {
@@ -298,6 +309,8 @@ internal static partial class PdfImageEditor {
             renderingIntent: placement.RenderingIntent,
             blendMode: placement.BlendMode,
             hasUnsupportedBlendMode: placement.HasUnsupportedBlendMode,
+            hasUnsupportedPaintState: placement.HasUnsupportedPaintState,
+            hasUnsupportedImagePaintEffect: placement.HasUnsupportedImagePaintEffect,
             hasSoftMask: placement.HasSoftMask,
             hasAuthoredRenderingIntent: placement.HasAuthoredRenderingIntent,
             contentOrderKey: placement.ContentOrderKey);

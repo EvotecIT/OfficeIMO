@@ -284,6 +284,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task Test_GoogleSheetsDiffPlanner_RejectsOlderCheckpointFormatsBeforeRemoteRead() {
+            string path = Path.Combine(_directoryWithFiles, "GoogleSheetsLegacyCheckpoint.xlsx");
+            try {
+                using var document = ExcelDocument.Create(path);
+                document.AddWorksheet("Data").CellValue(1, 1, "Unchanged");
+                var legacyCheckpoint = new GoogleSheetsSyncCheckpoint { DriveVersion = 7 };
+                legacyCheckpoint.ContentHashes["sheet/Data"] = "old-culture-dependent-hash";
+                int requests = 0;
+                using var httpClient = new HttpClient(new FakeHttpMessageHandler(_ => {
+                    requests++;
+                    throw new InvalidOperationException("No remote request should be made for a legacy checkpoint.");
+                }));
+                var session = GoogleTestSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+
+                foreach (int version in new[] { 0, 2 }) {
+                    legacyCheckpoint.HashFormatVersion = version;
+                    InvalidOperationException error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                        GoogleSheetsDiffPlanner.BuildAsync(document, "sheet-legacy", session, legacyCheckpoint));
+                    Assert.Contains("CreateCheckpoint", error.Message);
+                }
+                Assert.Equal(0, requests);
+            } finally {
+                if (File.Exists(path)) File.Delete(path);
+            }
+        }
+
+        [Fact]
         public async Task Test_GoogleSheetsDiffPlanner_IgnoresGeneratedChartDataSheetButKeepsCollidingSourceSheet() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleSheetsChartHelperDiff.xlsx");
             try {

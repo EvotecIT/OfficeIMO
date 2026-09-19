@@ -15,6 +15,7 @@ namespace OfficeIMO.PowerPoint {
             OfficeImageFormat.Wmf => OpenXmlImagePartType.Wmf,
             OfficeImageFormat.Icon => OpenXmlImagePartType.Icon,
             OfficeImageFormat.Pcx => OpenXmlImagePartType.Pcx,
+            OfficeImageFormat.Jpeg2000 => OpenXmlImagePartType.Jp2,
             _ => throw new NotSupportedException($"Image format {format} is not supported by PowerPoint image parts.")
         };
 

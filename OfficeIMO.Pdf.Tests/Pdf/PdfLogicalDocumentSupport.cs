@@ -538,7 +538,7 @@ public partial class PdfDocumentReadResultTests {
         return Encoding.ASCII.GetBytes(pdf);
     }
 
-    private static byte[] BuildThreePageLabelPdf() {
+    private static byte[] BuildThreePageLabelPdf(bool labelOnlyThirdPage = false) {
         string pdf = string.Join("\n", new[] {
             "%PDF-1.7",
             "1 0 obj",
@@ -575,7 +575,9 @@ public partial class PdfDocumentReadResultTests {
             "endstream",
             "endobj",
             "9 0 obj",
-            "<< /Nums [0 << /S /D /P (A-) /St 10 >> 2 << /S /r /P (B-) /St 3 >>] >>",
+            labelOnlyThirdPage
+                ? "<< /Nums [2 << /S /r /P (B-) /St 3 >>] >>"
+                : "<< /Nums [0 << /S /D /P (A-) /St 10 >> 2 << /S /r /P (B-) /St 3 >>] >>",
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 10 >>",

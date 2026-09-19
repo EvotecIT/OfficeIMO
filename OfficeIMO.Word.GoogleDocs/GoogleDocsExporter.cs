@@ -13,16 +13,20 @@ namespace OfficeIMO.Word.GoogleDocs {
             WriteIndented = false,
         };
 
+        /// <summary>Inspects source features and fidelity risks without contacting Google.</summary>
         public GoogleDocsTranslationPlan BuildPlan(WordDocument document, GoogleDocsSaveOptions? options = null) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             return GoogleDocsPlanBuilder.Build(document, options ?? new GoogleDocsSaveOptions());
         }
 
+        /// <summary>Compiles a Word snapshot into provider-neutral Docs requests without contacting Google.</summary>
         public GoogleDocsBatch BuildBatch(WordDocument document, GoogleDocsSaveOptions? options = null) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             return GoogleDocsBatchCompiler.Build(document, options ?? new GoogleDocsSaveOptions());
         }
 
+        /// <summary>Creates or replaces a Google document after fidelity and revision preflight.</summary>
+        /// <remarks>Existing-document replacement uses a Docs revision guard unless overwrite-latest is explicitly selected.</remarks>
         public async Task<GoogleDocumentReference> ExportAsync(
             WordDocument document,
             GoogleWorkspaceSession session,
@@ -79,7 +83,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             }
 
             using (var transport = new GoogleWorkspaceHttpTransport(session)) {
-            using (var driveClient = new GoogleDriveClient(session, GoogleDriveClientOptions.ForFileAuthoring())) {
+            using (var driveClient = new GoogleDriveClient(session, GoogleDriveClientOptions.ForFileAuthoring(effectiveLocation.SharedDriveAware))) {
             try {
                 await ValidateDrivePlacementAsync(
                     driveClient,

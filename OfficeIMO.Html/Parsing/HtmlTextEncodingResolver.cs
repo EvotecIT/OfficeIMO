@@ -32,6 +32,25 @@ internal sealed class HtmlTextEncodingResolver {
         }
     }
 
+    internal Encoding ResolveHtmlTransportEncoding(Stream stream, string transportCharset) {
+        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        if (string.IsNullOrWhiteSpace(transportCharset)) {
+            throw new ArgumentException("A transport charset is required.", nameof(transportCharset));
+        }
+        if (!stream.CanSeek) return NormalizeHtmlDeclaredEncoding(GetEncoding(transportCharset));
+
+        long position = stream.Position;
+        try {
+            stream.Position = 0;
+            var prefix = new byte[HtmlPrescanLength];
+            int count = ReadPrefix(stream, prefix);
+            return ResolveBomEncoding(prefix, count)
+                ?? NormalizeHtmlDeclaredEncoding(GetEncoding(transportCharset));
+        } finally {
+            stream.Position = position;
+        }
+    }
+
     internal Stream PrepareHtmlStream(Stream stream, Encoding? explicitEncoding, out Encoding encoding) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (explicitEncoding != null || stream.CanSeek) {

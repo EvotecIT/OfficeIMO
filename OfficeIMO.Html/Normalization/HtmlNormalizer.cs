@@ -520,19 +520,13 @@ public static partial class HtmlNormalizer {
     private static void AddCssImportResourceReplacements(string css, Uri? baseUri, HtmlUrlPolicy policy, ICollection<CssReplacement> replacements) {
         int index = 0;
         while (index < css.Length) {
-            int importStart = css.IndexOf("@import", index, StringComparison.OrdinalIgnoreCase);
-            if (importStart < 0) {
+            if (!TryFindNextCssAtRule(css, index, "import", out int importStart, out int importNameEnd)) {
                 return;
             }
 
-            if (IsInsideCssString(css, importStart) || !HasAtRuleTokenBoundary(css, importStart, "@import")) {
-                index = importStart + 7;
-                continue;
-            }
-
-            int cursor = SkipCssWhitespaceAndComments(css, importStart + 7);
+            int cursor = SkipCssWhitespaceAndComments(css, importNameEnd);
             if (!TryReadCssImportValue(css, cursor, out int sourceStart, out int sourceEnd)) {
-                index = importStart + 7;
+                index = importNameEnd;
                 continue;
             }
 
@@ -807,10 +801,48 @@ public static partial class HtmlNormalizer {
             && string.Compare(text, index, value, 0, value.Length, StringComparison.OrdinalIgnoreCase) == 0;
     }
 
-    private static bool HasAtRuleTokenBoundary(string css, int index, string token) {
-        int after = index + token.Length;
-        return (index == 0 || !IsCssIdentifierCharacter(css[index - 1]))
-            && (after >= css.Length || !IsCssIdentifierCharacter(css[after]));
+    private static bool TryFindNextCssAtRule(
+        string css,
+        int startIndex,
+        string expectedName,
+        out int atRuleStart,
+        out int nameEnd) {
+        for (int index = css.IndexOf('@', Math.Max(0, startIndex));
+             index >= 0;
+             index = css.IndexOf('@', index + 1)) {
+            if (IsInsideCssString(css, index)) continue;
+            if (!TryReadCssAtRuleName(css, index, out string name, out int candidateEnd)) continue;
+            if (!string.Equals(name, expectedName, StringComparison.OrdinalIgnoreCase)) continue;
+            atRuleStart = index;
+            nameEnd = candidateEnd;
+            return true;
+        }
+        atRuleStart = -1;
+        nameEnd = -1;
+        return false;
+    }
+
+    private static bool TryReadCssAtRuleName(string css, int atRuleStart, out string name, out int nameEnd) {
+        name = string.Empty;
+        nameEnd = atRuleStart;
+        if (atRuleStart < 0 || atRuleStart >= css.Length || css[atRuleStart] != '@') return false;
+        int cursor = atRuleStart + 1;
+        while (cursor < css.Length) {
+            if (IsCssIdentifierCharacter(css[cursor])) {
+                cursor++;
+                continue;
+            }
+            if (css[cursor] != '\\'
+                || !HtmlCssEscapeDecoder.TryDecodeEscape(css, cursor, out _, out int consumed)
+                || consumed <= 1) {
+                break;
+            }
+            cursor += consumed;
+        }
+        if (cursor == atRuleStart + 1) return false;
+        name = DecodeCssEscapes(css.Substring(atRuleStart + 1, cursor - atRuleStart - 1));
+        nameEnd = cursor;
+        return name.Length > 0;
     }
 
     private static int SkipCssWhitespaceAndComments(string css, int index) {

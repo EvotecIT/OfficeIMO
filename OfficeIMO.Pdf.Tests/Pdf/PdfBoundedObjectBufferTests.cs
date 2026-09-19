@@ -31,6 +31,22 @@ public class PdfBoundedObjectBufferTests {
         Assert.False(File.Exists(spillPath));
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1024)]
+    public void PageContentStore_StoresStringBuilderAsEquivalentLatin1Bytes(long memoryLimitBytes) {
+        const string content = "BT\n/F1 12 Tf\n(caf\u00e9) Tj\nET\n";
+        var builder = new StringBuilder(content);
+        using var store = new PdfPageContentStore(memoryLimitBytes);
+
+        PdfPageContentHandle handle = store.Store(builder);
+        builder.Clear();
+
+        Assert.Equal(PdfEncoding.Latin1GetBytes(content), store.ReadBytes(handle));
+        Assert.Equal(content, store.Read(handle));
+        Assert.Equal(memoryLimitBytes == 0, store.IsSpilled);
+    }
+
     [Fact]
     public void ObjectStore_SpillsCompletedObjectsAndDeletesTemporaryStorage() {
         string spillPath;

@@ -1,4 +1,6 @@
 using OfficeIMO.Pdf;
+using OfficeIMO.PowerPoint.Pdf;
+using OfficeIMO.Word.Pdf;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -55,6 +57,48 @@ public sealed class PdfRotatedTableGeometryTests {
         }
         PdfLogicalVisualBounds first = table.Columns[0].VisualBounds!, second = table.Columns[1].VisualBounds!;
         Assert.True(first.Right <= second.Left || second.Right <= first.Left || first.Bottom <= second.Top || second.Bottom <= first.Top);
+    }
+
+    [Theory]
+    [InlineData("latin-90")]
+    [InlineData("latin-270")]
+    public void EditableOfficeColumnWidthsUseTheVisualProgressionAxisForQuarterTurnTables(string id) {
+        byte[] source = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "MultilingualLayout", id + "-native.pdf"));
+        PdfDocumentReadResult logical = PdfDocument.Load(source).Read(new PdfReadOptions { Profile = PdfReadProfile.Structured });
+        PdfLogicalTable table = Assert.Single(logical.Tables);
+        Assert.Equal(2, table.Columns.Count);
+        Assert.All(table.Columns, static column => Assert.NotNull(column.VisualBounds));
+        Assert.Equal(table.Columns[0].From, table.Columns[1].From, 6);
+        Assert.Equal(table.Columns[0].To, table.Columns[1].To, 6);
+
+        int[] weights = PdfWordConverter.BuildColumnWeights(table.Columns);
+
+        Assert.Equal(2, weights.Length);
+        Assert.NotEqual(weights[0], weights[1]);
+        PdfLogicalVisualBounds first = table.Columns[0].VisualBounds!;
+        PdfLogicalVisualBounds second = table.Columns[1].VisualBounds!;
+        double expectedRatio = first.Height / second.Height;
+        double actualRatio = (double)weights[0] / weights[1];
+        Assert.InRange(actualRatio, expectedRatio - 0.01D, expectedRatio + 0.01D);
+
+        PdfWordConversionResult word = logical.ToWordDocumentResult(PdfToWordOptions.CreateTablesOnly());
+        using (word.Value) {
+            using var serialized = new MemoryStream(word.Value.ToBytes());
+            using OfficeIMO.Word.WordDocument reopened = OfficeIMO.Word.WordDocument.Load(serialized);
+            OfficeIMO.Word.WordTable wordTable = Assert.Single(reopened.Tables);
+            Assert.Equal(2, wordTable.GridColumnWidth.Count);
+            double gridRatio = (double)wordTable.GridColumnWidth[0] / wordTable.GridColumnWidth[1];
+            Assert.InRange(gridRatio, expectedRatio - 0.01D, expectedRatio + 0.01D);
+        }
+
+        PdfPowerPointConversionResult powerPoint = logical.ToPowerPointPresentationResult(
+            PdfToPowerPointOptions.CreateEditableTables());
+        using (powerPoint.Value) {
+            OfficeIMO.PowerPoint.PowerPointTable powerPointTable = Assert.Single(
+                powerPoint.Value.Slides.SelectMany(static slide => slide.Tables));
+            double columnRatio = powerPointTable.GetColumnWidthPoints(0) / powerPointTable.GetColumnWidthPoints(1);
+            Assert.InRange(columnRatio, expectedRatio - 0.01D, expectedRatio + 0.01D);
+        }
     }
 
     private static PdfLogicalPage Read(byte[] bytes, double cropTop = 0D) {

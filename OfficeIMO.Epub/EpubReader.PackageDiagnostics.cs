@@ -1,5 +1,7 @@
 namespace OfficeIMO.Epub;
 
+using System.Threading;
+
 internal static partial class EpubReader {
     private const string IdpfFontObfuscationAlgorithm = "http://www.idpf.org/2008/embedding";
     private const string AdobeFontObfuscationAlgorithm = "http://ns.adobe.com/pdf/enc#RC";
@@ -7,7 +9,8 @@ internal static partial class EpubReader {
     private static EpubSignatureInfo ReadSignatures(
         IReadOnlyDictionary<string, ZipArchiveEntry> entryIndex,
         EpubReadOptions options,
-        EpubDiagnosticCollector diagnostics) {
+        EpubDiagnosticCollector diagnostics,
+        CancellationToken cancellationToken) {
         const string signaturePath = "META-INF/signatures.xml";
         if (!entryIndex.TryGetValue(signaturePath, out ZipArchiveEntry? entry)) {
             return EpubSignatureInfo.NotPresent;
@@ -20,8 +23,8 @@ internal static partial class EpubReader {
             return new EpubSignatureInfo(true, false, 0);
         }
 
-        string content = ReadEntryText(entry, options.MaxPackageMetadataBytes);
-        if (!TryParseXml(content, out XDocument? document) || document?.Root == null) {
+        if (!TryParseEntryXml(entry, options.MaxPackageMetadataBytes, cancellationToken, out XDocument? document)
+            || document?.Root == null) {
             diagnostics.Warning(
                 "epub.signatures.invalid-xml",
                 "EPUB signatures.xml could not be parsed as XML.",
@@ -41,7 +44,8 @@ internal static partial class EpubReader {
     private static IReadOnlyList<EpubEncryptionInfo> ReadEncryption(
         IReadOnlyDictionary<string, ZipArchiveEntry> entryIndex,
         EpubReadOptions options,
-        EpubDiagnosticCollector diagnostics) {
+        EpubDiagnosticCollector diagnostics,
+        CancellationToken cancellationToken) {
         const string encryptionPath = "META-INF/encryption.xml";
         if (!entryIndex.TryGetValue(encryptionPath, out ZipArchiveEntry? entry)) {
             return Array.Empty<EpubEncryptionInfo>();
@@ -54,8 +58,8 @@ internal static partial class EpubReader {
             return Array.Empty<EpubEncryptionInfo>();
         }
 
-        string content = ReadEntryText(entry, options.MaxPackageMetadataBytes);
-        if (!TryParseXml(content, out XDocument? document) || document == null) {
+        if (!TryParseEntryXml(entry, options.MaxPackageMetadataBytes, cancellationToken, out XDocument? document)
+            || document == null) {
             diagnostics.Warning(
                 "epub.encryption.invalid-xml",
                 "EPUB encryption.xml could not be parsed as XML.",
@@ -65,11 +69,12 @@ internal static partial class EpubReader {
 
         var results = new List<EpubEncryptionInfo>();
         var seenPaths = new HashSet<string>(StringComparer.Ordinal);
-        foreach (XElement encryptedData in document.Descendants().Where(element => IsName(element, "EncryptedData"))) {
-            XElement? method = encryptedData.Descendants().FirstOrDefault(element => IsName(element, "EncryptionMethod"));
-            XElement? reference = encryptedData.Descendants().FirstOrDefault(element => IsName(element, "CipherReference"));
-            string? algorithm = method == null ? null : NullIfWhiteSpace(GetAttribute(method, "Algorithm"));
-            string uri = reference == null ? string.Empty : GetAttribute(reference, "URI");
+        foreach (XElement encryptedData in document.Descendants().Where(element => IsXmlEncryptionName(element, "EncryptedData"))) {
+            cancellationToken.ThrowIfCancellationRequested();
+            XElement? method = encryptedData.Descendants().FirstOrDefault(element => IsXmlEncryptionName(element, "EncryptionMethod"));
+            XElement? reference = encryptedData.Descendants().FirstOrDefault(element => IsXmlEncryptionName(element, "CipherReference"));
+            string? algorithm = method == null ? null : NullIfWhiteSpace(GetUnqualifiedAttribute(method, "Algorithm"));
+            string uri = reference == null ? string.Empty : GetUnqualifiedAttribute(reference, "URI");
             string resourcePath = ResolveContainerRootPath(uri);
             if (resourcePath.Length == 0) {
                 diagnostics.Warning(
@@ -222,17 +227,23 @@ internal static partial class EpubReader {
             .ToArray();
 
         public void Info(string code, string message, string? path = null) =>
-            Add(code, EpubDiagnosticSeverity.Info, message, path);
+            Add(code, EpubDiagnosticSeverity.Info, message, path, null);
 
-        public void Warning(string code, string message, string? path = null) =>
-            Add(code, EpubDiagnosticSeverity.Warning, message, path);
+        public void Warning(string code, string message, string? path = null, string? mediaType = null) =>
+            Add(code, EpubDiagnosticSeverity.Warning, message, path, mediaType);
 
-        private void Add(string code, EpubDiagnosticSeverity severity, string message, string? path) {
+        private void Add(
+            string code,
+            EpubDiagnosticSeverity severity,
+            string message,
+            string? path,
+            string? mediaType) {
             _items.Add(new EpubDiagnostic {
                 Code = code,
                 Severity = severity,
                 Message = message,
-                Path = path
+                Path = path,
+                MediaType = mediaType
             });
         }
     }

@@ -105,7 +105,8 @@ public static class TesseractOcr {
         ".bmp" => "image/bmp",
         ".gif" => "image/gif",
         ".webp" => "image/webp",
-        ".jp2" or ".j2k" => "image/jp2",
+        ".jp2" => "image/jp2",
+        ".j2k" or ".j2c" => "image/j2c",
         _ => throw new NotSupportedException("Tesseract OCR supports PNG, JPEG, TIFF, BMP, GIF, WebP, and JPEG 2000 image files.")
     };
 }

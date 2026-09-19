@@ -139,6 +139,8 @@ internal static partial class PdfWriter {
                     continue;
                 }
 
+                cursorX += run.HorizontalOffset;
+
                 PdfStandardFont runFont = ResolvePageTextRunFont(run, baseFont);
                 PdfNamedFontFace? namedFont = options.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic, out PdfNamedFontFace resolvedNamedFont)
                     ? resolvedNamedFont

@@ -14,11 +14,12 @@ namespace OfficeIMO.Excel {
             StringBuilder builder,
             ExcelRangeVisualSnapshot snapshot,
             ExcelImageExportOptions options,
-            System.Threading.CancellationToken cancellationToken) {
+            System.Threading.CancellationToken cancellationToken,
+            OfficeSvgUtf8CompositionBudget? budget) {
             double scale = options.Scale;
             foreach (ExcelVisualConditionalIcon icon in snapshot.ConditionalIcons) {
                 cancellationToken.ThrowIfCancellationRequested();
-                AppendSvgConditionalIcon(builder, icon, scale);
+                AppendSvgFragment(builder, budget, fragment => AppendSvgConditionalIcon(fragment, icon, scale));
             }
         }
 

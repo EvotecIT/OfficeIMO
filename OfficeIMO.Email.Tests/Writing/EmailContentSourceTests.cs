@@ -56,6 +56,76 @@ public sealed class EmailContentSourceTests {
     }
 
     [Fact]
+    public void BoundaryCollisionSearchIgnoresDecodedBytesOfBase64Attachments() {
+        EmailDocument template = CreateBoundaryCollisionDocument();
+        template.Attachments.Add(new EmailAttachment {
+            FileName = "payload.bin",
+            ContentType = "application/octet-stream",
+            Content = Encoding.ASCII.GetBytes("placeholder")
+        });
+        string serialized = Encoding.ASCII.GetString(new EmailDocumentWriter().ToBytes(template, EmailFileFormat.Eml));
+        const string boundaryMarker = "boundary=\"";
+        int boundaryStart = serialized.IndexOf(boundaryMarker, StringComparison.Ordinal);
+        Assert.True(boundaryStart >= 0);
+        boundaryStart += boundaryMarker.Length;
+        int boundaryEnd = serialized.IndexOf('"', boundaryStart);
+        string prefix = serialized.Substring(boundaryStart, boundaryEnd - boundaryStart);
+
+        var payload = new StringBuilder();
+        payload.Append("--").Append(prefix).Append("\r\n");
+        for (int attempt = 1; attempt < 256; attempt++) {
+            payload.Append("--").Append(prefix).Append('_')
+                .Append(attempt.ToString("x2", System.Globalization.CultureInfo.InvariantCulture))
+                .Append("\r\n");
+        }
+        byte[] bytes = Encoding.ASCII.GetBytes(payload.ToString());
+        var source = new CountingSeekableContentSource(bytes);
+        EmailDocument document = CreateBoundaryCollisionDocument();
+        document.Attachments.Add(new EmailAttachment {
+            FileName = "payload.bin",
+            ContentType = "application/octet-stream",
+            ContentSource = source,
+            Length = bytes.LongLength
+        });
+
+        byte[] artifact = new EmailDocumentWriter().ToBytes(document, EmailFileFormat.Eml);
+        EmailAttachment attachment = Assert.Single(new EmailDocumentReader().Read(artifact).Document.Attachments);
+
+        Assert.Equal(bytes, attachment.Content);
+        Assert.Equal(1, source.OpenCount);
+        Assert.Equal(bytes.LongLength, source.BytesRead);
+    }
+
+    [Fact]
+    public void QuotedPrintablePayloadEscapesTheGeneratedBoundaryEqualsSign() {
+        EmailDocument template = ReadQuotedPrintableBoundaryDocument("placeholder");
+        string templateOutput = Encoding.ASCII.GetString(
+            new EmailDocumentWriter().ToBytes(template, EmailFileFormat.Eml));
+        const string boundaryMarker = "boundary=\"";
+        int boundaryStart = templateOutput.IndexOf(boundaryMarker, StringComparison.Ordinal);
+        Assert.True(boundaryStart >= 0);
+        boundaryStart += boundaryMarker.Length;
+        int boundaryEnd = templateOutput.IndexOf('"', boundaryStart);
+        string boundary = templateOutput.Substring(boundaryStart, boundaryEnd - boundaryStart);
+        string decodedMarker = "--" + boundary;
+
+        EmailDocument document = ReadQuotedPrintableBoundaryDocument(
+            decodedMarker.Replace("=", "=3D"));
+        string serialized = Encoding.ASCII.GetString(
+            new EmailDocumentWriter().ToBytes(document, EmailFileFormat.Eml));
+        int regeneratedStart = serialized.IndexOf(boundaryMarker, StringComparison.Ordinal) + boundaryMarker.Length;
+        string regeneratedBoundary = serialized.Substring(
+            regeneratedStart,
+            serialized.IndexOf('"', regeneratedStart) - regeneratedStart);
+        EmailAttachment attachment = Assert.Single(
+            new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(serialized)).Document.Attachments);
+
+        Assert.Equal(boundary, regeneratedBoundary);
+        Assert.Contains("--=3D_OfficeIMO_", serialized, StringComparison.Ordinal);
+        Assert.Equal(decodedMarker, Encoding.ASCII.GetString(Assert.IsType<byte[]>(attachment.Content)).Trim());
+    }
+
+    [Fact]
     public async Task AttachmentCanOpenSourceSynchronouslyAndAsynchronously() {
         byte[] payload = new byte[] { 1, 2, 3 };
         var attachment = new EmailAttachment { ContentSource = new CountingContentSource(payload) };
@@ -298,6 +368,28 @@ public sealed class EmailContentSourceTests {
         return document;
     }
 
+    private static EmailDocument CreateBoundaryCollisionDocument() => new EmailDocument {
+        Format = EmailFileFormat.Eml,
+        Subject = "boundary collision scan",
+        Body = {
+            Html = "<html><body><p>Body</p></body></html>"
+        }
+    };
+
+    private static EmailDocument ReadQuotedPrintableBoundaryDocument(string encodedPayload) {
+        string message = "Subject: boundary collision scan\r\nMIME-Version: 1.0\r\n" +
+            "Content-Type: multipart/mixed; boundary=outer\r\n\r\n" +
+            "--outer\r\nContent-Type: text/html; charset=utf-8\r\n\r\n" +
+            "<html><body><p>Body</p></body></html>\r\n" +
+            "--outer\r\nContent-Type: application/octet-stream; name=payload.bin\r\n" +
+            "Content-Disposition: attachment; filename=payload.bin\r\n" +
+            "Content-Transfer-Encoding: quoted-printable\r\n\r\n" +
+            encodedPayload + "\r\n--outer--\r\n";
+        EmailDocument document = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(message)).Document;
+        Assert.Single(document.Attachments).PreserveMimeHeadersOnWrite = true;
+        return document;
+    }
+
     private static byte[] ReadAll(Stream stream) {
         using var output = new MemoryStream();
         stream.CopyTo(output);
@@ -314,6 +406,34 @@ public sealed class EmailContentSourceTests {
             cancellationToken.ThrowIfCancellationRequested();
             OpenCount++;
             return Task.FromResult<Stream>(new MemoryStream(_content, writable: false));
+        }
+    }
+
+    private sealed class CountingSeekableContentSource : IEmailContentSource {
+        private readonly byte[] _content;
+        internal CountingSeekableContentSource(byte[] content) { _content = content; }
+        public long? Length => _content.LongLength;
+        internal int OpenCount { get; private set; }
+        internal long BytesRead { get; private set; }
+        public Stream OpenRead() {
+            OpenCount++;
+            return new CountingMemoryStream(_content, count => BytesRead += count);
+        }
+        public Task<Stream> OpenReadAsync(CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(OpenRead());
+        }
+    }
+
+    private sealed class CountingMemoryStream : MemoryStream {
+        private readonly Action<int> _count;
+        internal CountingMemoryStream(byte[] content, Action<int> count) : base(content, writable: false) {
+            _count = count;
+        }
+        public override int Read(byte[] buffer, int offset, int count) {
+            int read = base.Read(buffer, offset, count);
+            _count(read);
+            return read;
         }
     }
 

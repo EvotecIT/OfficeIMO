@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using OfficeIMO.Drawing;
 using PdfCore = OfficeIMO.Pdf;
 
@@ -16,7 +18,82 @@ internal static partial class PdfWordConverter {
         if (pages.Count == 0) throw new InvalidOperationException("Select at least one PDF page for visual Word conversion.");
         WordDocument target = WordDocument.Create();
         try {
-            if (options.IncludeMetadata) CopyMetadata(source.Reader.Metadata(), target);
+            PdfCore.PdfDocumentInfo sourceInfo = source.Inspect(null, token);
+            int[] selectedPageNumbers = pages.Select(static page => page.PageNumber).ToArray();
+            var selectedPageNumberSet = new HashSet<int>(selectedPageNumbers);
+            PdfCore.PdfMetadata sourceMetadata = source.Reader.Metadata();
+            if (options.IncludeMetadata) CopyMetadata(sourceMetadata, target);
+            ReportMetadataFidelity(sourceMetadata, sourceInfo.HasXmpMetadata, options);
+            ReportAttachmentsNotReconstructed(sourceInfo.AttachmentCount, options);
+            if (sourceInfo.HasSecurityState) {
+                AddWarning(options, "PdfSourceSecurityNotReconstructed", "Document/Security",
+                    "PDF encryption, signature, permission, or revision state is not carried into the visual Word document.",
+                    PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission);
+            }
+            if (sourceInfo.PageLabels.Any(label => pages.Any(page => page.PageNumber >= label.StartPageNumber))) {
+                AddWarning(options, "PdfPageLabelsNotReconstructed", "Document/PageLabels",
+                    "PDF page-label rules are not carried into the visual Word document.",
+                    PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission);
+            }
+            if (sourceInfo.HasTaggedContent) {
+                AddWarning(options, "PdfTaggedStructureNotReconstructed", "Document/StructTreeRoot",
+                    "PDF tagged accessibility structure is not copied into the visual Word document.",
+                    PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission);
+            }
+            if (PdfCore.PdfPageRangeObjectFilter.CountDocumentActionsByPageNumbers(
+                    sourceInfo, selectedPageNumbers) > 0) {
+                AddWarning(options, "PdfCatalogActionsNotReconstructed", "Document/CatalogActions",
+                    "PDF document open and catalog actions are not copied into the visual Word document.",
+                    PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission);
+            }
+            if (sourceInfo.FormFields.Any(static field => field.HasUnplacedContent) || sourceInfo.HasAcroFormXfa) {
+                AddWarning(options, "PdfFormDefinitionsNotReconstructed", "Document/Forms",
+                    "PDF form definitions not attached to a page and XFA content are not copied into the visual Word document.",
+                    PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission);
+            }
+            int selectedOutlineCount = PdfCore.PdfPageRangeObjectFilter.CountOutlinesByPageNumbers(
+                sourceInfo.Outlines, selectedPageNumbers);
+            if (selectedOutlineCount > 0 || sourceInfo.Outlines.Count == 0 && sourceInfo.HasOutlines) {
+                AddWarning(options, "PdfOutlineHierarchyNotReconstructed", "Document/Outlines",
+                    "PDF outline navigation is not copied into the visual Word document.",
+                    PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission);
+            }
+            PdfCore.PdfOptionalContentUsageSummary optionalContentUsage = source.InspectPagesForOptionalContentUsage(
+                selectedPageNumbers, token);
+            if (optionalContentUsage.PagesWithUsage > 0) {
+                AddWarning(options, "PdfOptionalContentGroupsFlattened", "Document/OCProperties",
+                    "PDF optional-content layer controls are flattened into visual Word page images.",
+                    PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission);
+            }
+            if (!optionalContentUsage.IsComplete && sourceInfo.HasOptionalContent) {
+                AddWarning(options, "PdfOptionalContentUsageInspectionInconclusive", "Document/OCProperties",
+                    "Optional-content usage could not be fully inspected for the selected PDF pages. Any selected layer controls are flattened into visual Word page images.",
+                    PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Approximation);
+            }
+            foreach (PdfCore.PdfPageInfo sourcePage in sourceInfo.Pages) {
+                if (!selectedPageNumberSet.Contains(sourcePage.PageNumber)) continue;
+                string sourcePath = "Page " + sourcePage.PageNumber + "/";
+                if (sourcePage.LinkAnnotations.Count > 0 || sourcePage.Annotations.Any(static annotation =>
+                        string.Equals(annotation.Subtype, "Link", StringComparison.OrdinalIgnoreCase)))
+                    AddWarning(options, "PdfLinksNotReconstructed", sourcePath + "Links",
+                        "PDF interactive links are not reconstructed in the visual Word document.",
+                        PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission);
+                if (sourcePage.FormWidgets.Count > 0 || sourcePage.Annotations.Any(static annotation =>
+                        string.Equals(annotation.Subtype, "Widget", StringComparison.OrdinalIgnoreCase)))
+                    AddWarning(options, "PdfFormWidgetsNotReconstructed", sourcePath + "Forms",
+                        "PDF interactive form widgets are not reconstructed in the visual Word document.",
+                        PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission);
+                if (sourcePage.Annotations.Any(static annotation =>
+                        !string.Equals(annotation.Subtype, "Link", StringComparison.OrdinalIgnoreCase) &&
+                        !string.Equals(annotation.Subtype, "Widget", StringComparison.OrdinalIgnoreCase)))
+                    AddWarning(options, "PdfAnnotationsNotReconstructed", sourcePath + "Annotations",
+                        "PDF non-link annotations are not reconstructed in the visual Word document.",
+                        PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission);
+                if (sourcePage.PageActions.Count > 0)
+                    AddWarning(options, "PdfPageActionsNotReconstructed", sourcePath + "Actions",
+                        "PDF page actions are not reconstructed in the visual Word document.",
+                        PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission);
+            }
             AddWarning(options, "VisualPagesNotEditable", "Document",
                 "PDF pages are embedded as images. Text, links, and forms are not editable Word objects.",
                 PdfCore.PdfConversionWarningSeverity.Warning);
@@ -27,12 +104,12 @@ internal static partial class PdfWordConverter {
                 OfficeDrawing drawing = source.Render.Drawing(page.PageNumber);
                 double width = drawing.Width, height = drawing.Height;
                 // Word's supported physical page size is at most 22 inches in each dimension.
-                if (width <= 0 || height <= 0 || width > 1584 || height > 1584)
-                    throw new NotSupportedException("The selected PDF page exceeds Word's supported physical page size.");
+                if (!TryGetEditablePageSizeTwips(width, height, out uint widthTwips, out uint heightTwips))
+                    throw new NotSupportedException("The selected PDF page is outside Word's supported physical page-size range.");
                 WordSection section = index == 0 ? target.Sections[0] : target.AddSection(WordSectionBreakType.NextPage);
                 section.PageSettings.Orientation = width > height ? OfficePageOrientation.Landscape : OfficePageOrientation.Portrait;
-                section.PageSettings.Width = (uint)Math.Round(width * 20D);
-                section.PageSettings.Height = (uint)Math.Round(height * 20D);
+                section.PageSettings.Width = widthTwips;
+                section.PageSettings.Height = heightTwips;
                 section.Margins.Left = section.Margins.Right = 0;
                 section.Margins.Top = section.Margins.Bottom = 0;
                 section.Margins.HeaderDistance = section.Margins.FooterDistance = 0;

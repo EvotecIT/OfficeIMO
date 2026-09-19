@@ -741,7 +741,7 @@ public class PdfITextInspiredCoverageTests {
         PdfPageGeometry typed = PdfInspector.Inspect(
             PdfPageEditor.SetPageBox(pdf, PdfPageBoundaryBox.CropBox, 13, 14, 230, 240)).Pages[0].Geometry!;
 
-        Assert.Equal(260, geometry.MediaBox.Width);
+        Assert.Equal(260, geometry.MediaBox!.Width);
         Assert.Equal(5, geometry.CropBox!.Left);
         Assert.Equal(7, geometry.BleedBox!.Left);
         Assert.Equal(9, geometry.TrimBox!.Left);
@@ -776,7 +776,7 @@ public class PdfITextInspiredCoverageTests {
         PdfAnnotation annotation = Assert.Single(info.GetAnnotationsBySubtype("Link"));
         string raw = Encoding.ASCII.GetString(resized);
 
-        Assert.Equal(600, geometry.MediaBox.Width);
+        Assert.Equal(600, geometry.MediaBox!.Width);
         Assert.Equal(600, geometry.CropBox!.Width);
         Assert.Equal(600, geometry.TrimBox!.Width);
         Assert.Equal(600, geometry.BleedBox!.Width);
@@ -818,8 +818,8 @@ public class PdfITextInspiredCoverageTests {
 
         Assert.Equal(60, link.DestinationLeft);
         Assert.Equal(420, link.DestinationTop);
-        Assert.Equal(600, info.Pages[0].Geometry!.MediaBox.Width);
-        Assert.Equal(300, info.Pages[1].Geometry!.MediaBox.Width);
+        Assert.Equal(600, info.Pages[0].Geometry!.MediaBox!.Width);
+        Assert.Equal(300, info.Pages[1].Geometry!.MediaBox!.Width);
     }
 
     [Fact]
@@ -1237,16 +1237,28 @@ public class PdfITextInspiredCoverageTests {
         return pdf.Substring(start, end - start);
     }
 
-    internal static byte[] BuildDocMdpFormPdf(int permissionLevel, string? lockDictionary = null, string fieldName = "Name") {
+    internal static byte[] BuildDocMdpFormPdf(
+        int permissionLevel,
+        string? lockDictionary = null,
+        string fieldName = "Name",
+        string? fieldMdpTransformParameters = null,
+        string? signatureReference = null,
+        bool includeDocMdpPermissions = true) {
         string lockEntry = string.IsNullOrWhiteSpace(lockDictionary) ? string.Empty : " /Lock " + lockDictionary;
+        string permissionsEntry = includeDocMdpPermissions ? " /Perms << /DocMDP 7 0 R >>" : string.Empty;
+        string fieldMdpReference = string.IsNullOrWhiteSpace(fieldMdpTransformParameters)
+            ? string.Empty
+            : " << /TransformMethod /FieldMDP /TransformParams " + fieldMdpTransformParameters + " /Data 1 0 R >>";
+        string effectiveSignatureReference = signatureReference ??
+            "[<< /TransformMethod /DocMDP /TransformParams << /Type /TransformParams /V /1.2 /P " + permissionLevel.ToString(CultureInfo.InvariantCulture) + " >> >>" + fieldMdpReference + "]";
         var objects = new List<string> {
-            "<< /Type /Catalog /Pages 2 0 R /AcroForm 8 0 R /Perms << /DocMDP 7 0 R >> >>",
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 8 0 R" + permissionsEntry + " >>",
             "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> /Annots [5 0 R 6 0 R] /Contents 9 0 R >>",
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
             "<< /Type /Annot /Subtype /Widget /FT /Tx /T (" + fieldName + ") /V (Ada) /Rect [50 50 180 70] /F 4 >>",
             "<< /FT /Sig /T (Approval) /V 7 0 R /Subtype /Widget /Rect [10 10 120 40]" + lockEntry + " >>",
-            "<< /Type /Sig /Filter /Adobe.PPKLite /SubFilter /adbe.pkcs7.detached /Name (Alice) /ByteRange [0 10 20 30] /Contents <001122> /Reference [<< /TransformMethod /DocMDP /TransformParams << /Type /TransformParams /V /1.2 /P " + permissionLevel.ToString(CultureInfo.InvariantCulture) + " >> >>] >>",
+            "<< /Type /Sig /Filter /Adobe.PPKLite /SubFilter /adbe.pkcs7.detached /Name (Alice) /ByteRange [0 10 20 30] /Contents <001122> /Reference " + effectiveSignatureReference + " >>",
             "<< /Fields [5 0 R 6 0 R] /SigFlags 3 >>",
             BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 72 720 Td (Signed form) Tj ET"))
         };

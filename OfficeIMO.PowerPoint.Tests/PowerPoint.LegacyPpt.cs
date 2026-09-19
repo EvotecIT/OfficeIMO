@@ -206,10 +206,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal(40000, pictures[2].BlipFill!.Blip!
                 .GetFirstChild<A.LuminanceEffect>()!.Contrast!.Value);
             Assert.NotNull(pictures[3].BlipFill!.Blip!.GetFirstChild<A.Grayscale>());
-            Assert.Null(pictures[3].BlipFill.Blip.GetFirstChild<A.BiLevel>());
+            Assert.Null(pictures[3].BlipFill!.Blip!.GetFirstChild<A.BiLevel>());
             Assert.Equal(50000, pictures[4].BlipFill!.Blip!
                 .GetFirstChild<A.BiLevel>()!.Threshold!.Value);
-            Assert.Null(pictures[4].BlipFill.Blip.GetFirstChild<A.Grayscale>());
+            Assert.Null(pictures[4].BlipFill!.Blip!.GetFirstChild<A.Grayscale>());
             Assert.Empty(presentation.ValidateDocument());
             Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
             Assert.Equal(File.ReadAllBytes(PictureEffectsFixturePath),
@@ -785,8 +785,8 @@ namespace OfficeIMO.Tests {
                     }));
             Assert.Equal(new[] { "Keep first", "Keep last" }, saved.Slides.Select(slide =>
                 slide.Shapes.Single(shape => shape.Kind == LegacyPptShapeKind.TextBox).Text));
-            Assert.False(saved.Slides.Any(slide => slide.Shapes.Any(shape =>
-                shape.Text == "Delete middle")));
+            Assert.DoesNotContain(saved.Slides, slide => slide.Shapes.Any(shape =>
+                shape.Text == "Delete middle"));
         }
 
         [Fact]

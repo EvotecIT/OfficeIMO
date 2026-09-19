@@ -51,6 +51,24 @@ namespace OfficeIMO.Word.Pdf {
         /// <summary>Whether source PDF page transitions should be represented by Word page breaks.</summary>
         public bool PreservePageBreaks { get; set; } = true;
 
+        /// <summary>
+        /// Whether editable output should create page sections with the physical width and height of each source PDF page.
+        /// This avoids silently converting A4, landscape, or mixed-size PDFs to Word's default Letter page size.
+        /// </summary>
+        public bool PreserveSourcePageSize { get; set; } = true;
+
+        /// <summary>
+        /// Uniform page margin, in points, used by source-sized editable sections. The narrow default leaves enough
+        /// flow space for dense business documents while retaining a printable margin.
+        /// </summary>
+        public double EditablePageMarginPoints { get; set; } = 36D;
+
+        /// <summary>
+        /// Whether imported PDF paragraphs and table cells should suppress Word's style-level before/after spacing.
+        /// PDF text already carries explicit line placement, so compact spacing avoids inflating dense business documents.
+        /// </summary>
+        public bool PreserveCompactSourceSpacing { get; set; } = true;
+
         /// <summary>Whether empty PDF pages should produce an empty Word paragraph when page breaks are preserved.</summary>
         public bool IncludeEmptyPages { get; set; }
 
@@ -94,6 +112,12 @@ namespace OfficeIMO.Word.Pdf {
         /// <summary>Whether embedded images should use detected PDF placement size when available.</summary>
         public bool PreserveImagePlacementSize { get; set; } = true;
 
+        /// <summary>
+        /// Whether axis-aligned images on unrotated pages should retain their source page position as floating Word images.
+        /// Unsupported rotations and transforms fall back to inline editable placement.
+        /// </summary>
+        public bool PreserveImagePlacementPosition { get; set; } = true;
+
         /// <summary>Whether image resources should be represented by editable placeholder paragraphs when native image embedding is unavailable or disabled.</summary>
         public bool IncludeImagePlaceholders { get; set; } = true;
 
@@ -109,7 +133,7 @@ namespace OfficeIMO.Word.Pdf {
         /// <summary>When true, tables with inferred column headers repeat the first row at the top of each Word page.</summary>
         public bool RepeatHeaderRows { get; set; } = true;
 
-        /// <summary>When true, imported tables are set to 100 percent width and columns are distributed evenly.</summary>
+        /// <summary>When true, imported tables use the full content width while preserving detected PDF column proportions.</summary>
         public bool FitTablesToPageWidth { get; set; } = true;
 
         /// <summary>When true, body cells in inferred numeric PDF columns are right-aligned in the generated Word tables.</summary>
@@ -147,6 +171,9 @@ namespace OfficeIMO.Word.Pdf {
             ReadOptions = ReadOptions?.Clone(),
             IncludeMetadata = IncludeMetadata,
             PreservePageBreaks = PreservePageBreaks,
+            PreserveSourcePageSize = PreserveSourcePageSize,
+            EditablePageMarginPoints = EditablePageMarginPoints,
+            PreserveCompactSourceSpacing = PreserveCompactSourceSpacing,
             IncludeEmptyPages = IncludeEmptyPages,
             ImportHeadings = ImportHeadings,
             ImportParagraphs = ImportParagraphs,
@@ -158,6 +185,7 @@ namespace OfficeIMO.Word.Pdf {
             BookmarkPrefix = BookmarkPrefix,
             ImportImages = ImportImages,
             PreserveImagePlacementSize = PreserveImagePlacementSize,
+            PreserveImagePlacementPosition = PreserveImagePlacementPosition,
             IncludeImagePlaceholders = IncludeImagePlaceholders,
             IncludeFormFieldPlaceholders = IncludeFormFieldPlaceholders,
             MaxTableRows = MaxTableRows,

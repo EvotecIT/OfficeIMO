@@ -8,7 +8,7 @@ namespace OfficeIMO.Drawing;
 public static partial class OfficeSvgDrawingReader {
     private static void TryAddSvgLink(XElement element, OfficeDrawing linkedContent, OfficeDrawing target, ref int unsupported) {
         XAttribute[] hrefAttributes = element.Attributes()
-            .Where(attribute => attribute.Name.LocalName.Equals("href", StringComparison.OrdinalIgnoreCase))
+            .Where(attribute => attribute.Name.LocalName.Equals("href", StringComparison.Ordinal))
             .ToArray();
         if (hrefAttributes.Length != 1 || string.IsNullOrWhiteSpace(hrefAttributes[0].Value)) {
             unsupported++;

@@ -5,11 +5,10 @@
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
       $(TargetFrameworks);net472
     </TargetFrameworks>
+    <IsTestProject>true</IsTestProject>
     <IsPackable>false</IsPackable>
     <Nullable>enable</Nullable>
     <LangVersion>Latest</LangVersion>
-    <WarningsNotAsErrors>$(WarningsNotAsErrors);CS8600;CS8601;CS8602;CS8603;CS8604;CS8625</WarningsNotAsErrors>
-    <NoWarn>$(NoWarn);CS0436;CS8600;CS8601;CS8602;CS8603;CS8604;CS8625;CA1416;SYSLIB0057;xUnit2012;xUnit2013;xUnit2029</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
