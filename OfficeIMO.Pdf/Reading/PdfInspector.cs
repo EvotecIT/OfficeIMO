@@ -181,17 +181,15 @@ internal static class PdfInspector {
         Exception? readDocumentException = null;
         PdfDocumentProbe probe;
         bool probeFromReadDocument = false;
-        if (readDocumentFactory is null) {
+        try {
+            readDocument = readDocumentFactory is null
+                ? PdfReadDocument.Open(pdf, effectiveOptions, cancellationToken)
+                : readDocumentFactory();
+            probe = Probe(pdf, readDocument, cancellationToken);
+            probeFromReadDocument = true;
+        } catch (Exception ex) when (ex is not OperationCanceledException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
+            readDocumentException = ex;
             probe = Probe(pdf, effectiveOptions, cancellationToken);
-        } else {
-            try {
-                readDocument = readDocumentFactory();
-                probe = Probe(pdf, readDocument, cancellationToken);
-                probeFromReadDocument = true;
-            } catch (Exception ex) when (ex is not OperationCanceledException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
-                readDocumentException = ex;
-                probe = Probe(pdf, effectiveOptions, cancellationToken);
-            }
         }
 
         var diagnostics = new List<string>();
@@ -267,7 +265,7 @@ internal static class PdfInspector {
             AddRewriteBlocker(PdfRewriteBlockerKind.Forms, "PDF form fields are not supported for rewriting by OfficeIMO.Pdf yet.");
         }
 
-        var rewriteMarkerSource = new PdfRewriteMarkerSource(pdf, options);
+        var rewriteMarkerSource = new PdfRewriteMarkerSource(pdf, effectiveOptions, readDocument);
 
         if (probe.HasOutlines && PdfSyntax.HasUnsupportedOutlineRewriteMarkers(pdf, options, rewriteMarkerSource)) {
             AddRewriteBlocker(PdfRewriteBlockerKind.Outlines, "PDF outlines are not supported for rewriting by OfficeIMO.Pdf yet.");
