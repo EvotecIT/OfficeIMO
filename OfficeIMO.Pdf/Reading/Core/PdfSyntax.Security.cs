@@ -41,17 +41,18 @@ internal static partial class PdfSyntax {
         // The detailed path below already parses the object graph and derives signature
         // fields and values from it. Keep this initial fallback marker scan raw so a
         // cancellation-aware caller does not pay for a second, tokenless parse.
-        bool hasSignatures = ContainsAnyPdfName(text, cancellationToken, "ByteRange", "SigFlags", "Sig");
-        bool hasByteRange = hasSignatures && ContainsPdfName(text, "ByteRange", cancellationToken);
+        RawSecurityMarkers markers = ScanRawSecurityMarkers(text, cancellationToken);
+        bool hasSignatures = markers.HasSignatures;
+        bool hasByteRange = markers.HasByteRange;
         IReadOnlyList<int> startXrefOffsets = ReadStartXrefOffsets(text, limits.MaxRevisions);
         int startXrefCount = startXrefOffsets.Count;
         int? lastStartXrefOffset = startXrefOffsets.Count == 0 ? null : startXrefOffsets[startXrefOffsets.Count - 1];
         IReadOnlyList<int> previousXrefOffsets = ReadIntegerNameValues(text, "Prev", limits.MaxRevisions);
         bool hasPreviousRevision = previousXrefOffsets.Count > 0;
         IReadOnlyList<PdfDocumentRevisionInfo> revisions = BuildRevisionInfo(startXrefOffsets, previousXrefOffsets);
-        bool hasXrefStreams = ContainsPdfName(text, "XRef", cancellationToken) && ContainsPdfName(text, "W", cancellationToken);
-        bool hasObjectStreams = ContainsPdfName(text, "ObjStm", cancellationToken);
-        bool hasTrailerId = ContainsPdfName(text, "ID", cancellationToken);
+        bool hasXrefStreams = markers.HasXrefStreams;
+        bool hasObjectStreams = markers.HasObjectStreams;
+        bool hasTrailerId = markers.HasTrailerId;
 
         PdfReference? rootReference = TryReadLastReference(text, "Root");
         int? rootObjectNumber = rootReference?.ObjectNumber;
@@ -223,12 +224,12 @@ internal static partial class PdfSyntax {
                 hasSignatures = ContainsAnyDocumentPdfName(pdf, objects, repairReport, "ByteRange", "SigFlags", "Sig");
                 hasByteRange = hasSignatures && ContainsAnyDocumentPdfName(pdf, objects, repairReport, "ByteRange");
             } catch (Exception ex) when (ex is not OperationCanceledException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
-                signatureValueCount = CountPdfNameOccurrences(text, "ByteRange");
+                signatureValueCount = markers.ByteRangeCount;
                 byteRangeValueCount = 0;
             }
         } else {
             cancellationToken.ThrowIfCancellationRequested();
-            signatureValueCount = CountPdfNameOccurrences(text, "ByteRange");
+            signatureValueCount = markers.ByteRangeCount;
             byteRangeValueCount = 0;
         }
 
@@ -631,27 +632,6 @@ internal static partial class PdfSyntax {
         }
 
         return index > start;
-    }
-
-    private static int CountPdfNameOccurrences(string text, string name) {
-        int count = 0;
-        string token = "/" + name;
-        int index = 0;
-        while (index < text.Length) {
-            index = text.IndexOf(token, index, StringComparison.Ordinal);
-            if (index < 0) {
-                return count;
-            }
-
-            int after = index + token.Length;
-            if (after >= text.Length || IsPdfDelimiter(text[after]) || char.IsWhiteSpace(text[after])) {
-                count++;
-            }
-
-            index = after;
-        }
-
-        return count;
     }
 
     private static string? TryReadText(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key) {

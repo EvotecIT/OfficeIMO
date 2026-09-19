@@ -21,6 +21,34 @@ public partial class PdfInspectorTests {
     }
 
     [Fact]
+    public void RawSecurityNames_RespectPdfNameBoundariesAndCountRepeatedByteRanges() {
+        PdfDocumentSecurityInfo markers = PdfSyntax.ReadDocumentSecurityInfo(
+            Encoding.ASCII.GetBytes("/ByteRange [0 1] /ByteRange/ID /SigFlags /Sig /XRef /W /ObjStm"),
+            includeParsedDetails: false);
+        PdfDocumentSecurityInfo prefixes = PdfSyntax.ReadDocumentSecurityInfo(
+            Encoding.ASCII.GetBytes("/ByteRangeExtra /SigFlags2 /Sign /XReference /Wider /ObjStm2 /Identifier"),
+            includeParsedDetails: false);
+        PdfDocumentSecurityInfo terminal = PdfSyntax.ReadDocumentSecurityInfo(
+            Encoding.ASCII.GetBytes("/ByteRange"),
+            includeParsedDetails: false);
+
+        Assert.True(markers.HasSignatures);
+        Assert.True(markers.HasByteRange);
+        Assert.Equal(2, markers.SignatureValueCount);
+        Assert.True(markers.HasXrefStreams);
+        Assert.True(markers.HasObjectStreams);
+        Assert.True(markers.HasTrailerId);
+        Assert.False(prefixes.HasSignatures);
+        Assert.False(prefixes.HasByteRange);
+        Assert.Equal(0, prefixes.SignatureValueCount);
+        Assert.False(prefixes.HasXrefStreams);
+        Assert.False(prefixes.HasObjectStreams);
+        Assert.False(prefixes.HasTrailerId);
+        Assert.True(terminal.HasByteRange);
+        Assert.Equal(1, terminal.SignatureValueCount);
+    }
+
+    [Fact]
     public void Preflight_BlocksEncryptedPdfButReportsSecuritySettings() {
         PdfDocumentPreflight report = PdfInspector.Preflight(BuildEncryptedPdf());
 
