@@ -66,7 +66,7 @@ internal static class PdfSemanticRepairDiagnostics {
         foreach (KeyValuePair<string, PdfObject> entry in names.Items) {
             if (!IsStandardCatalogNameTree(entry.Key)) continue;
             int traversedNameTreeNodes = 0;
-            ValidateNameTreeNode(objects, entry.Value, entry.Key, new HashSet<int>(), options, diagnostics, 0, ref traversedNameTreeNodes);
+            ValidateNameTreeNode(objects, entry.Value, entry.Key, new HashSet<(int ObjectNumber, int Generation)>(), options, diagnostics, 0, ref traversedNameTreeNodes);
         }
 
         if (names.Items.TryGetValue("Dests", out PdfObject? destinations)) {
@@ -74,7 +74,7 @@ internal static class PdfSemanticRepairDiagnostics {
             ValidateDestinationTree(
                 objects,
                 destinations,
-                new HashSet<int>(),
+                new HashSet<(int ObjectNumber, int Generation)>(),
                 new HashSet<int>(pages.Select(static page => page.ObjectNumber)),
                 options,
                 diagnostics,
@@ -92,14 +92,14 @@ internal static class PdfSemanticRepairDiagnostics {
         Dictionary<int, PdfIndirectObject> objects,
         PdfObject nodeObject,
         string treeName,
-        HashSet<int> visited,
+        HashSet<(int ObjectNumber, int Generation)> visited,
         PdfLoadOptions options,
         List<PdfRepairDiagnostic> diagnostics,
         int depth,
         ref int traversedNodes) {
         EnsureNameTreeBudget(options.Limits, depth, traversedNodes);
         if (nodeObject is PdfReference reference) {
-            if (!visited.Add(reference.ObjectNumber)) return;
+            if (!visited.Add((reference.ObjectNumber, reference.Generation))) return;
             EnsureNameTreeBudget(options.Limits, depth, ++traversedNodes);
         }
 
@@ -117,7 +117,7 @@ internal static class PdfSemanticRepairDiagnostics {
     private static void ValidateDestinationTree(
         Dictionary<int, PdfIndirectObject> objects,
         PdfObject nodeObject,
-        HashSet<int> visited,
+        HashSet<(int ObjectNumber, int Generation)> visited,
         HashSet<int> pageObjectNumbers,
         PdfLoadOptions options,
         List<PdfRepairDiagnostic> diagnostics,
@@ -125,7 +125,7 @@ internal static class PdfSemanticRepairDiagnostics {
         ref int traversedNodes) {
         EnsureNameTreeBudget(options.Limits, depth, traversedNodes);
         if (nodeObject is PdfReference reference) {
-            if (!visited.Add(reference.ObjectNumber)) return;
+            if (!visited.Add((reference.ObjectNumber, reference.Generation))) return;
             EnsureNameTreeBudget(options.Limits, depth, ++traversedNodes);
         }
 
@@ -172,11 +172,15 @@ internal static class PdfSemanticRepairDiagnostics {
         var pending = new Stack<PdfObject>(); pending.Push(root);
         while (pending.Count > 0) {
             PdfObject value = pending.Pop();
-            if (!visited.Add(value)) continue;
             if (value is PdfReference reference) {
-                if (reachable.Add(reference.ObjectNumber) && objects.TryGetValue(reference.ObjectNumber, out PdfIndirectObject? indirect)) pending.Push(indirect.Value);
+                if (!reachable.Add(reference.ObjectNumber)) continue;
+                if (PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject indirect)) pending.Push(indirect.Value);
+                else reachable.Remove(reference.ObjectNumber); // A bad generation must not hide a later valid reference.
                 continue;
             }
+            // References are already deduplicated by object number. Only direct
+            // containers need identity tracking to break array/dictionary cycles.
+            if (!visited.Add(value)) continue;
             if (value is PdfArray array) { for (int i = 0; i < array.Items.Count; i++) pending.Push(array.Items[i]); continue; }
             PdfDictionary? dictionary = value is PdfDictionary direct ? direct : value is PdfStream stream ? stream.Dictionary : null;
             if (dictionary != null) foreach (PdfObject item in dictionary.Items.Values) pending.Push(item);
