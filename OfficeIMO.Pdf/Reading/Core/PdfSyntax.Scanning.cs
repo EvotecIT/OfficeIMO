@@ -641,14 +641,9 @@ internal static partial class PdfSyntax {
         }
 
         int startXrefMarkers = 0;
-        foreach (System.Text.RegularExpressions.Match match in StartXrefRegex.Matches(text)) {
-            if (int.TryParse(
-                match.Groups[1].Value,
-                System.Globalization.NumberStyles.Integer,
-                System.Globalization.CultureInfo.InvariantCulture,
-                out _)) {
-                startXrefMarkers = checked(startXrefMarkers + 1);
-            }
+        int startXrefCursor = 0;
+        while (TryReadNextStartXrefOffset(text, ref startXrefCursor, out _)) {
+            startXrefMarkers = checked(startXrefMarkers + 1);
         }
 
         ThrowIfParsingTimeExceeded(parseTimer, limits);

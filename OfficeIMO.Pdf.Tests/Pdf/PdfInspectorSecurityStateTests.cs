@@ -49,6 +49,18 @@ public partial class PdfInspectorTests {
     }
 
     [Fact]
+    public void RawRevisionMarkers_SkipMalformedAndOverflowValuesConsistentlyWithStructuralInspection() {
+        byte[] pdf = Encoding.ASCII.GetBytes(
+            "%PDF-1.7\nstartxref\n12\nstartxref nope\nstartxref\t2147483648\nstartxref\r\n34\n%%EOF");
+
+        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf, includeParsedDetails: false);
+        PdfStructuralMarkerCounts structure = PdfSyntax.InspectStructuralMarkers(pdf, new PdfReadLimits());
+
+        Assert.Equal(new[] { 12, 34 }, security.StartXrefOffsets);
+        Assert.Equal(2, structure.StartXrefMarkers);
+    }
+
+    [Fact]
     public void Preflight_BlocksEncryptedPdfButReportsSecuritySettings() {
         PdfDocumentPreflight report = PdfInspector.Preflight(BuildEncryptedPdf());
 

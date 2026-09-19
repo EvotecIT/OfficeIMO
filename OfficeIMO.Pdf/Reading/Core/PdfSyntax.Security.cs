@@ -5,10 +5,8 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfSyntax {
 #if NET8_0_OR_GREATER
-    private static readonly Regex StartXrefRegex = new Regex(@"startxref\s+(\d+)", RegexOptions.Compiled | RegexOptions.NonBacktracking, RegexTimeout);
     private static readonly Regex ObjectHeaderTemplateRegex = new Regex(@"^\s*(\d+)\s+(\d+)\s+obj\b", RegexOptions.Compiled | RegexOptions.NonBacktracking, RegexTimeout);
 #else
-    private static readonly Regex StartXrefRegex = new Regex(@"startxref\s+(\d+)", RegexOptions.Compiled, RegexTimeout);
     private static readonly Regex ObjectHeaderTemplateRegex = new Regex(@"^\s*(\d+)\s+(\d+)\s+obj\b", RegexOptions.Compiled, RegexTimeout);
 #endif
 
@@ -480,16 +478,53 @@ internal static partial class PdfSyntax {
 
     private static IReadOnlyList<int> ReadStartXrefOffsets(string text, int maxRevisions) {
         var offsets = new List<int>();
-        foreach (Match match in StartXrefRegex.Matches(text)) {
-            if (int.TryParse(match.Groups[1].Value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int offset)) {
-                offsets.Add(offset);
-                if (offsets.Count > maxRevisions) {
-                    throw PdfReadLimitException.Create(PdfReadLimitKind.Revisions, maxRevisions, offsets.Count);
-                }
+        int cursor = 0;
+        while (TryReadNextStartXrefOffset(text, ref cursor, out int offset)) {
+            offsets.Add(offset);
+            if (offsets.Count > maxRevisions) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.Revisions, maxRevisions, offsets.Count);
             }
         }
 
         return offsets.Count == 0 ? Array.Empty<int>() : offsets.AsReadOnly();
+    }
+
+    /// <summary>Reads the same bounded decimal revision markers used by raw security inspection.</summary>
+    private static bool TryReadNextStartXrefOffset(string text, ref int cursor, out int offset) {
+        const string marker = "startxref";
+        while (cursor < text.Length) {
+            int markerIndex = text.IndexOf(marker, cursor, StringComparison.Ordinal);
+            if (markerIndex < 0) break;
+
+            cursor = markerIndex + 1;
+            int digitIndex = markerIndex + marker.Length;
+            if (digitIndex >= text.Length || !char.IsWhiteSpace(text[digitIndex])) continue;
+            do {
+                digitIndex++;
+            } while (digitIndex < text.Length && char.IsWhiteSpace(text[digitIndex]));
+
+            int value = 0;
+            bool overflow = false;
+            int end = digitIndex;
+            while (end < text.Length && text[end] >= '0' && text[end] <= '9') {
+                int digit = text[end] - '0';
+                if (!overflow) {
+                    if (value > (int.MaxValue - digit) / 10) overflow = true;
+                    else value = value * 10 + digit;
+                }
+                end++;
+            }
+
+            if (end == digitIndex) continue;
+            cursor = end;
+            if (overflow) continue;
+            offset = value;
+            return true;
+        }
+
+        cursor = text.Length;
+        offset = 0;
+        return false;
     }
 
     private static IReadOnlyList<int> ReadIntegerNameValues(string text, string key, int maxValues) {
