@@ -429,9 +429,15 @@
           "name": "OfficeIMO.MarkdownRenderer.Wpf",
           "order": 140
         },
-        { "id": "officeimo.pdf", "name": "OfficeIMO.Pdf", "order": 150 }
+        { "id": "officeimo.pdf", "name": "OfficeIMO.Pdf", "order": 150 },
+        { "id": "officeimo.studio", "name": "OfficeIMO Studio", "order": 160 }
       ],
       "assetRules": [
+        {
+          "product": "officeimo.studio",
+          "label": "OfficeIMO Studio",
+          "match": ["OfficeIMO-Studio-*.msi", "OfficeIMO-Studio-*-portable.zip"]
+        },
         {
           "product": "officeimo.googleworkspace.auth.googleapis",
           "label": "OfficeIMO.GoogleWorkspace.Auth.GoogleApis",

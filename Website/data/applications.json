@@ -7,14 +7,14 @@
     "primaryUrl": "#application-guide",
     "secondaryLabel": "Source and build guide",
     "secondaryUrl": "https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Studio#readme",
-    "availability": "Desktop source build · Public installers are not available yet",
+    "availability": "Windows release status and downloads are on the downloads page",
     "image": "/images/studio/workspace-light.png",
     "imageAlt": "OfficeIMO Studio displaying the public document showcase dashboard with page navigation and document tools.",
     "caption": "Actual Studio window with an OfficeIMO sample PDF. Desktop source build. Select the image to open it at full size.",
     "facts": ["Windows · macOS · Linux development", "Local document workflows", "MIT licensed"],
     "channels": [
-      { "name": "Direct downloads", "detail": "Installers and portable archives", "state": "In preparation" },
-      { "name": "WinGet", "detail": "Install and upgrade from a terminal", "state": "Planned" },
+      { "name": "Direct downloads", "detail": "Windows MSI and portable ZIP when published", "state": "Check availability", "url": "/downloads/#studio-downloads", "label": "Windows downloads" },
+      { "name": "WinGet", "detail": "Install and upgrade after catalog acceptance", "state": "Catalog pending" },
       { "name": "Microsoft Store / Mac App Store", "detail": "Store installation and updates", "state": "Planned" }
     ]
   },

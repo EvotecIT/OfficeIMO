@@ -1,7 +1,45 @@
 <section class="imo-platform-hero"><p class="imo-application-eyebrow">Downloads</p><h1>Choose how you work.</h1><p>A desktop workspace, a terminal tool, or a library for your application.</p></section>
+{{ studio_release = null }}
+{{ studio_msi_x64 = null }}
+{{ studio_msi_arm64 = null }}
+{{ studio_zip_x64 = null }}
+{{ studio_zip_arm64 = null }}
+{{ if data.release_hub && data.release_hub.releases }}
+  {{ for release in data.release_hub.releases }}
+    {{ if studio_release == null && !release.isDraft && !release.isPrerelease && string.starts_with release.tag "Studio-v" }}
+      {{ studio_release = release }}
+    {{ end }}
+  {{ end }}
+{{ end }}
+{{ if studio_release }}
+  {{ studio_version = string.replace studio_release.tag "Studio-v" "" }}
+  {{ studio_msi_x64_name = "OfficeIMO-Studio-" + studio_version + "-win-x64.msi" }}
+  {{ studio_msi_arm64_name = "OfficeIMO-Studio-" + studio_version + "-win-arm64.msi" }}
+  {{ studio_zip_x64_name = "OfficeIMO-Studio-" + studio_version + "-win-x64-portable.zip" }}
+  {{ studio_zip_arm64_name = "OfficeIMO-Studio-" + studio_version + "-win-arm64-portable.zip" }}
+  {{ for asset in studio_release.assets }}
+    {{ if asset.name == studio_msi_x64_name }}{{ studio_msi_x64 = asset }}{{ end }}
+    {{ if asset.name == studio_msi_arm64_name }}{{ studio_msi_arm64 = asset }}{{ end }}
+    {{ if asset.name == studio_zip_x64_name }}{{ studio_zip_x64 = asset }}{{ end }}
+    {{ if asset.name == studio_zip_arm64_name }}{{ studio_zip_arm64 = asset }}{{ end }}
+  {{ end }}
+{{ end }}
 <section class="imo-download-choice" id="studio-downloads" aria-labelledby="studio-download-title">
   <div><p class="imo-application-eyebrow">Desktop</p><h2 id="studio-download-title">Studio</h2><p>Read, review, and organize documents visually.</p><a href="/studio/">See the workspace →</a></div>
-  <div><h3>Direct downloads</h3><p>Public installers are in preparation. Explore the workspace and source build guide while desktop packages are being prepared.</p><dl class="imo-channel-list"><div><dt>Windows</dt><dd>Installer and portable ZIP · In preparation</dd></div><div><dt>macOS</dt><dd>App download · In preparation</dd></div><div><dt>Linux</dt><dd>Package and portable archive · In preparation</dd></div></dl><p class="imo-application-availability">Microsoft Store, Mac App Store, and WinGet are planned channels.</p></div>
+  <div>
+    <h3>Windows downloads</h3>
+    {{ if studio_msi_x64 && studio_msi_arm64 && studio_zip_x64 && studio_zip_arm64 }}
+      <p>OfficeIMO Studio {{ string.replace studio_release.tag "Studio-v" "v" }}. Choose an installer or a portable ZIP for your processor.</p>
+      <dl class="imo-channel-list">
+        <div><dt>Windows x64</dt><dd><a href="{{ studio_msi_x64.downloadUrl }}">MSI installer</a> · <a href="{{ studio_zip_x64.downloadUrl }}">Portable ZIP</a></dd></div>
+        <div><dt>Windows Arm64</dt><dd><a href="{{ studio_msi_arm64.downloadUrl }}">MSI installer</a> · <a href="{{ studio_zip_arm64.downloadUrl }}">Portable ZIP</a></dd></div>
+      </dl>
+      <p><a href="{{ studio_release.url }}">Release notes and checksums</a></p>
+    {{ else }}
+      <p>Signed Windows installers and portable ZIPs are in preparation.</p>
+    {{ end }}
+    <p class="imo-application-availability">macOS, Linux, Microsoft Store, and Mac App Store are separate release channels. WinGet availability follows catalog approval.</p>
+  </div>
 </section>
 <section class="imo-download-choice" id="cli-downloads" aria-labelledby="cli-download-title">
   <div><p class="imo-application-eyebrow">Terminal</p><h2 id="cli-download-title">CLI</h2><p>Automate document work with OfficeIMO.Tool.</p><a href="/tool/">Explore commands →</a></div>

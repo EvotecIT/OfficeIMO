@@ -1,0 +1,69 @@
+{
+  "$schema": "https://raw.githubusercontent.com/EvotecIT/PSPublishModule/main/Schemas/powerforge.release.schema.json",
+  "SchemaVersion": 1,
+  "Tools": {
+    "DotNetPublishConfigPath": "powerforge.dotnetpublish.json"
+  },
+  "Outputs": {
+    "Staging": {
+      "RootPath": "../../Artifacts/Studio/WindowsRelease",
+      "PortablePath": "GitHub",
+      "InstallerPath": "GitHub",
+      "MetadataPath": "Metadata"
+    }
+  },
+  "GitHub": {
+    "Publish": false,
+    "Owner": "EvotecIT",
+    "Repository": "OfficeIMO",
+    "VersionSource": "Assets",
+    "TagTemplate": "Studio-v{Version}",
+    "ReleaseNameTemplate": "OfficeIMO Studio {Version}",
+    "ReuseExistingRelease": false,
+    "ReplaceExistingAssets": false
+  },
+  "Winget": {
+    "Enabled": true,
+    "Submit": false,
+    "OutputPath": "Winget",
+    "InstallerUrlTemplate": "https://github.com/EvotecIT/OfficeIMO/releases/download/Studio-v{PackageVersion}/{FileName}",
+    "Submission": {
+      "Mode": "Manifest",
+      "TokenEnvName": "WINGET_CREATE_GITHUB_TOKEN",
+      "PullRequestTitle": "Add OfficeIMO Studio {PackageVersion}",
+      "NoOpen": true
+    },
+    "Packages": [
+      {
+        "PackageIdentifier": "EvotecIT.OfficeIMO.Studio",
+        "Publisher": "Evotec",
+        "PublisherUrl": "https://evotec.xyz",
+        "PackageName": "OfficeIMO Studio",
+        "PackageUrl": "https://officeimo.com/studio/",
+        "License": "MIT",
+        "LicenseUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/LICENSE",
+        "ShortDescription": "Desktop workspace for reading, editing, and converting documents locally.",
+        "Moniker": "officeimo-studio",
+        "Tags": [ "documents", "pdf", "office" ],
+        "Installers": [
+          {
+            "Category": "Installer",
+            "Target": "Studio.Windows",
+            "Runtime": "win-x64",
+            "Architecture": "x64",
+            "InstallerType": "msi",
+            "NestedInstallerType": null
+          },
+          {
+            "Category": "Installer",
+            "Target": "Studio.Windows",
+            "Runtime": "win-arm64",
+            "Architecture": "arm64",
+            "InstallerType": "msi",
+            "NestedInstallerType": null
+          }
+        ]
+      }
+    ]
+  }
+}

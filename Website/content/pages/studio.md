@@ -35,9 +35,9 @@ Open any screenshot at full size to inspect the workspace. For immediate use wit
 
 ## Choose a desktop download
 
-A public Studio installer is not available yet. The screenshots show the desktop source build. The first direct downloads will appear here after the packaged application has passed installation and launch checks.
+Check the [Studio section of the downloads page](/downloads/#studio-downloads) for the current signed Windows MSI and portable ZIP links. The links appear when a complete Studio release is published. The [source build guide](https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Studio#readme) remains available.
 
-Microsoft Store, Mac App Store, and WinGet links will appear alongside direct downloads when those channels are available.
+WinGet follows acceptance into the community catalog. Microsoft Store, Mac App Store, and other platforms have separate release channels.
 
 ## Prefer a command or an API?
 
