@@ -8,8 +8,6 @@ $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 $previousNuGetPackages = $env:NUGET_PACKAGES
 $env:NUGET_PACKAGES = Join-Path $repositoryRoot '.nuget/packages'
 
-Import-Module PSPublishModule -MinimumVersion 3.0.145 -Force
-
 $parameters = @{
     ConfigPath = Join-Path $PSScriptRoot 'powerforge.windows-release.json'
     ToolsOnly = $true
@@ -22,10 +20,14 @@ if ($Validate) { $parameters.Validate = $true }
 if ($Plan) { $parameters.Plan = $true }
 if ($Publish) { $parameters.PublishProjectGitHub = $true }
 
-Push-Location $repositoryRoot
 try {
-    Invoke-PowerForgeRelease @parameters
+    Import-Module PSPublishModule -MinimumVersion 3.0.145 -Force -ErrorAction Stop
+    Push-Location $repositoryRoot -ErrorAction Stop
+    try {
+        Invoke-PowerForgeRelease @parameters
+    } finally {
+        Pop-Location
+    }
 } finally {
-    Pop-Location
     $env:NUGET_PACKAGES = $previousNuGetPackages
 }
