@@ -6,6 +6,43 @@ namespace OfficeIMO.Pdf;
 /// Zero-dependency helpers for inspecting PDF document metadata and page geometry.
 /// </summary>
 internal static class PdfInspector {
+    private enum ProbeMarker {
+        Signatures, Forms, Annotations, Outlines, CatalogView, PageLabels, Names,
+        Destinations, OpenActions, ViewerPreferences, TaggedContent, Metadata,
+        OutputIntents, EmbeddedFiles, Uri, OptionalContent, ActiveContent
+    }
+
+    // One marker catalog serves parsed inspection and the conservative raw fallback.
+    private static readonly string[][] ProbeMarkerNames = {
+        new[] { "ByteRange", "SigFlags", "Sig" },
+        new[] { "AcroForm", "Fields", "FT", "XFA" },
+        new[] { "Annots", "Annot" },
+        new[] { "Outlines", "UseOutlines" },
+        new[] { "PageMode", "PageLayout" },
+        new[] { "PageLabels" },
+        new[] { "Names" },
+        new[] { "Dests" },
+        new[] { "OpenAction" },
+        new[] { "ViewerPreferences" },
+        new[] { "MarkInfo", "StructTreeRoot", "ParentTree", "StructElem" },
+        new[] { "Metadata" },
+        new[] { "OutputIntents", "OutputIntent" },
+        new[] { "EmbeddedFiles", "Filespec", "EmbeddedFile", "AF" },
+        new[] { "URI" },
+        new[] { "OCProperties", "OCGs", "OCG", "OCMD" },
+        PdfActiveContentPolicy.MarkerNames
+    };
+
+    private static readonly HashSet<string> ParsedProbeMarkerNames = CreateParsedProbeMarkerNames();
+
+    private static HashSet<string> CreateParsedProbeMarkerNames() {
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        for (int index = 0; index <= (int)ProbeMarker.EmbeddedFiles; index++) {
+            foreach (string name in ProbeMarkerNames[index]) names.Add(name);
+        }
+        return names;
+    }
+
     /// <summary>
     /// Inspects a PDF from a byte array.
     /// </summary>
@@ -444,18 +481,25 @@ internal static class PdfInspector {
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfDictionary? catalog = PdfSyntax.FindCatalog(objects, trailerRaw);
-        bool Has(params string[] names) {
+        // A single parsed walk replaces a separate full graph scan for every feature.
+        HashSet<string> presentNames = PdfSyntax.CollectParsedPdfNames(objects, ParsedProbeMarkerNames, cancellationToken);
+        string? rawFallback = repairReport.HasIncompleteObjectCoverage ? PdfEncoding.Latin1GetString(pdf) : null;
+        bool Has(ProbeMarker marker) {
             cancellationToken.ThrowIfCancellationRequested();
             // Parsed dictionaries are authoritative here. Stream bytes and string values
             // can contain marker-shaped text, including random encrypted payload bytes.
-            bool found = PdfSyntax.ContainsAnyDocumentPdfName(pdf, objects, repairReport, names);
+            string[] names = ProbeMarkerNames[(int)marker];
+            foreach (string name in names) {
+                if (presentNames.Contains(name)) return true;
+            }
+            bool found = rawFallback != null && PdfSyntax.ContainsAnyPdfName(rawFallback, cancellationToken, names);
             cancellationToken.ThrowIfCancellationRequested();
             return found;
         }
-        bool HasReachable(params string[] names) {
+        bool HasReachable(ProbeMarker marker) {
             cancellationToken.ThrowIfCancellationRequested();
             bool found = catalog != null &&
-                PdfSyntax.ContainsAnyReachableParsedPdfName(catalog, objects, names);
+                PdfSyntax.ContainsAnyReachableParsedPdfName(catalog, objects, ProbeMarkerNames[(int)marker]);
             cancellationToken.ThrowIfCancellationRequested();
             return found;
         }
@@ -463,23 +507,23 @@ internal static class PdfInspector {
         return new PdfDocumentProbe(
             PdfSyntax.GetHeaderVersion(pdf),
             security.HasEncryption,
-            Has("ByteRange", "SigFlags", "Sig"),
-            Has("AcroForm", "Fields", "FT", "XFA"),
-            Has("Annots", "Annot"),
-            Has("Outlines", "UseOutlines"),
-            Has("PageMode", "PageLayout"),
-            Has("PageLabels"),
-            Has("Names"),
-            Has("Dests"),
-            Has("OpenAction"),
-            Has("ViewerPreferences"),
-            Has("MarkInfo", "StructTreeRoot", "ParentTree", "StructElem"),
-            Has("Metadata"),
+            Has(ProbeMarker.Signatures),
+            Has(ProbeMarker.Forms),
+            Has(ProbeMarker.Annotations),
+            Has(ProbeMarker.Outlines),
+            Has(ProbeMarker.CatalogView),
+            Has(ProbeMarker.PageLabels),
+            Has(ProbeMarker.Names),
+            Has(ProbeMarker.Destinations),
+            Has(ProbeMarker.OpenActions),
+            Has(ProbeMarker.ViewerPreferences),
+            Has(ProbeMarker.TaggedContent),
+            Has(ProbeMarker.Metadata),
             catalog?.Items.ContainsKey("URI") == true,
-            Has("OutputIntents", "OutputIntent"),
-            Has("EmbeddedFiles", "Filespec", "EmbeddedFile", "AF"),
-            HasReachable("OCProperties", "OCGs", "OCG", "OCMD"),
-            HasReachable(PdfActiveContentPolicy.MarkerNames),
+            Has(ProbeMarker.OutputIntents),
+            Has(ProbeMarker.EmbeddedFiles),
+            HasReachable(ProbeMarker.OptionalContent),
+            HasReachable(ProbeMarker.ActiveContent),
             security);
     }
 
@@ -490,28 +534,28 @@ internal static class PdfInspector {
         cancellationToken.ThrowIfCancellationRequested();
         string text = PdfEncoding.Latin1GetString(pdf);
         cancellationToken.ThrowIfCancellationRequested();
-        bool Has(params string[] names) => PdfSyntax.ContainsAnyPdfName(text, cancellationToken, names);
+        bool Has(ProbeMarker marker) => PdfSyntax.ContainsAnyPdfName(text, cancellationToken, ProbeMarkerNames[(int)marker]);
 
         return new PdfDocumentProbe(
             PdfSyntax.GetHeaderVersion(pdf),
             security.HasEncryption,
-            Has("ByteRange", "SigFlags", "Sig"),
-            Has("AcroForm", "Fields", "FT", "XFA"),
-            Has("Annots", "Annot"),
-            Has("Outlines", "UseOutlines"),
-            Has("PageMode", "PageLayout"),
-            Has("PageLabels"),
-            Has("Names"),
-            Has("Dests"),
-            Has("OpenAction"),
-            Has("ViewerPreferences"),
-            Has("MarkInfo", "StructTreeRoot", "ParentTree", "StructElem"),
-            Has("Metadata"),
-            Has("URI"),
-            Has("OutputIntents", "OutputIntent"),
-            Has("EmbeddedFiles", "Filespec", "EmbeddedFile", "AF"),
-            Has("OCProperties", "OCGs", "OCG", "OCMD"),
-            Has(PdfActiveContentPolicy.MarkerNames),
+            Has(ProbeMarker.Signatures),
+            Has(ProbeMarker.Forms),
+            Has(ProbeMarker.Annotations),
+            Has(ProbeMarker.Outlines),
+            Has(ProbeMarker.CatalogView),
+            Has(ProbeMarker.PageLabels),
+            Has(ProbeMarker.Names),
+            Has(ProbeMarker.Destinations),
+            Has(ProbeMarker.OpenActions),
+            Has(ProbeMarker.ViewerPreferences),
+            Has(ProbeMarker.TaggedContent),
+            Has(ProbeMarker.Metadata),
+            Has(ProbeMarker.Uri),
+            Has(ProbeMarker.OutputIntents),
+            Has(ProbeMarker.EmbeddedFiles),
+            Has(ProbeMarker.OptionalContent),
+            Has(ProbeMarker.ActiveContent),
             security);
     }
 
