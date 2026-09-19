@@ -9,6 +9,7 @@ namespace OfficeIMO.Html.Runtime;
 // Host-side acquisition for the future isolated profile. The worker receives
 // immutable bytes and has no network route; this broker never runs in it.
 internal sealed class HtmlPublicResourceBroker {
+    private readonly HashSet<string> _staticAllowedHosts;
     private readonly HashSet<string> _allowedHosts;
     private readonly Func<string, CancellationToken, Task<IPAddress[]>> _resolveAddresses;
     private readonly Func<IPAddress, int, CancellationToken, ValueTask<Stream>> _connect;
@@ -29,16 +30,19 @@ internal sealed class HtmlPublicResourceBroker {
 
     internal HtmlPublicResourceBroker(IEnumerable<string> allowedHosts, int maxRequests,
         long maxResourceBytes, long maxTotalBytes, TimeSpan? timeout = null, int maxRedirects = 5,
-        long maxRequestBytes = 1024 * 1024, long maxTotalRequestBytes = 16 * 1024 * 1024) : this(
+        long maxRequestBytes = 1024 * 1024, long maxTotalRequestBytes = 16 * 1024 * 1024,
+        IEnumerable<string>? dynamicHosts = null) : this(
         allowedHosts, (host, token) => Dns.GetHostAddressesAsync(host, token), ConnectToAddressAsync,
-        maxRequests, maxResourceBytes, maxTotalBytes, timeout, maxRedirects, maxRequestBytes, maxTotalRequestBytes) { }
+        maxRequests, maxResourceBytes, maxTotalBytes, timeout, maxRedirects, maxRequestBytes, maxTotalRequestBytes,
+        dynamicHosts) { }
 
     internal HtmlPublicResourceBroker(IEnumerable<string> allowedHosts,
         Func<string, CancellationToken, Task<IPAddress[]>> resolveAddresses,
         Func<IPAddress, int, CancellationToken, ValueTask<Stream>> connect,
         int maxRequests = 32, long maxResourceBytes = 4 * 1024 * 1024,
         long maxTotalBytes = 16 * 1024 * 1024, TimeSpan? timeout = null, int maxRedirects = 5,
-        long maxRequestBytes = 1024 * 1024, long maxTotalRequestBytes = 16 * 1024 * 1024) {
+        long maxRequestBytes = 1024 * 1024, long maxTotalRequestBytes = 16 * 1024 * 1024,
+        IEnumerable<string>? dynamicHosts = null) {
         ArgumentNullException.ThrowIfNull(allowedHosts);
         _resolveAddresses = resolveAddresses ?? throw new ArgumentNullException(nameof(resolveAddresses));
         _connect = connect ?? throw new ArgumentNullException(nameof(connect));
@@ -58,99 +62,176 @@ internal sealed class HtmlPublicResourceBroker {
         _maxTotalRequestBytes = maxTotalRequestBytes;
         _timeout = effectiveTimeout;
         _maxRedirects = maxRedirects;
-        _allowedHosts = new HashSet<string>(allowedHosts.Select(ValidateHost), StringComparer.OrdinalIgnoreCase);
-        if (_allowedHosts.Count == 0 || _allowedHosts.Count > 16)
+        _staticAllowedHosts = new HashSet<string>(allowedHosts.Select(ValidateHost), StringComparer.OrdinalIgnoreCase);
+        _allowedHosts = new HashSet<string>(_staticAllowedHosts, StringComparer.OrdinalIgnoreCase);
+        if (dynamicHosts != null) _allowedHosts.UnionWith(dynamicHosts.Select(ValidateHost));
+        if (_staticAllowedHosts.Count == 0 || _allowedHosts.Count > 16)
             throw new ArgumentException("The pilot requires one to sixteen explicitly allowed hosts.", nameof(allowedHosts));
     }
 
-    internal bool AllowsHost(Uri url) => _allowedHosts.Contains(ValidateHost(ValidateUrl(url).IdnHost));
+    internal bool AllowsHost(Uri url) => _staticAllowedHosts.Contains(ValidateHost(ValidateUrl(url).IdnHost));
     internal Uri[] AllowedOrigins => _allowedHosts.SelectMany(host => new[] {
         new Uri("http://" + host + "/"), new Uri("https://" + host + "/")
     }).ToArray();
 
     internal Task<HtmlPublicResourceResult> FetchAsync(Uri requestedUrl, CancellationToken cancellationToken = default) =>
-        FetchAsync(requestedUrl, null, cancellationToken);
+        FetchStaticAsync(requestedUrl, cancellationToken);
 
-    internal Task<HtmlPublicResourceResult> FetchAsync(HtmlRuntimeFetchDiscovery discovery,
+    internal Task<HtmlPublicResourceResult> FetchAsync(HtmlRuntimeFetchDiscovery discovery, Uri documentUrl,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(discovery);
         ValidateDynamicRequest(discovery.Request);
-        return FetchAsync(discovery.Request.Url, discovery, cancellationToken);
+        ValidateUrl(documentUrl);
+        return FetchDynamicAsync(discovery, documentUrl, cancellationToken);
     }
 
-    private async Task<HtmlPublicResourceResult> FetchAsync(Uri requestedUrl, HtmlRuntimeFetchDiscovery? discovery,
+    private async Task<HtmlPublicResourceResult> FetchDynamicAsync(HtmlRuntimeFetchDiscovery discovery, Uri documentUrl,
         CancellationToken cancellationToken) {
-        ArgumentNullException.ThrowIfNull(requestedUrl);
-        Uri current = ValidateUrl(requestedUrl);
-        HtmlRuntimeFetchRequest? dynamicRequest = discovery?.Request;
-        if (dynamicRequest?.BodyLength > _maxRequestBytes)
+        HtmlRuntimeFetchRequest original = discovery.Request;
+        Uri current = ValidateUrl(original.Url);
+        string documentOrigin = HtmlRuntimeResourcePolicy.Origin(documentUrl);
+        string requestOrigin = HtmlRuntimeResourcePolicy.Origin(current);
+        bool cors = requestOrigin != documentOrigin;
+        if (cors && original.Mode == "same-origin")
+            throw new HtmlScriptRuntimeException("Cross-origin fetch is forbidden in same-origin mode.");
+        string method = original.Method;
+        byte[]? body = original.Buffer;
+        var headers = new Dictionary<string, string>(original.Headers, StringComparer.OrdinalIgnoreCase);
+        using var deadline = new CancellationTokenSource(_timeout);
+        using var operation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, deadline.Token);
+        var redirects = new List<HtmlPublicRedirect>();
+        var hops = new List<HtmlRuntimeFetchHop>();
+        var exchanges = new List<HtmlPublicDynamicExchange>();
+        DateTimeOffset fetchedAt = DateTimeOffset.UtcNow;
+        IPAddress? finalAddress = null;
+        for (int index = 0; ; index++) {
+            operation.Token.ThrowIfCancellationRequested();
+            HtmlRuntimeResource? preflight = null;
+            if (cors && HtmlRuntimeCorsPolicy.RequiresPreflight(method, headers)) {
+                string[] unsafeHeaders = HtmlRuntimeCorsPolicy.UnsafeHeaders(headers);
+                var preflightHeaders = new Dictionary<string, string> {
+                    ["Origin"] = documentOrigin, ["Access-Control-Request-Method"] = method
+                };
+                if (unsafeHeaders.Length != 0)
+                    preflightHeaders["Access-Control-Request-Headers"] = string.Join(",", unsafeHeaders);
+                var preflightResult = await SendDirectAsync(current, "OPTIONS", preflightHeaders, null, operation.Token).ConfigureAwait(false);
+                preflight = preflightResult.Response;
+                exchanges.Add(new HtmlPublicDynamicExchange(current, "OPTIONS", 0, null, preflight.StatusCode,
+                    preflight.Length, Convert.ToHexString(SHA256.HashData(preflight.Buffer)).ToLowerInvariant(), preflightResult.Address));
+                HtmlRuntimeCorsPolicy.CheckPreflight(preflight, documentOrigin, method, unsafeHeaders);
+            }
+            var outgoing = new Dictionary<string, string>(headers, StringComparer.OrdinalIgnoreCase);
+            if (cors || method is not ("GET" or "HEAD")) outgoing["Origin"] = documentOrigin;
+            (HtmlRuntimeResource response, IPAddress address) = await SendDirectAsync(current, method, outgoing, body, operation.Token).ConfigureAwait(false);
+            finalAddress = address;
+            exchanges.Add(new HtmlPublicDynamicExchange(current, method, body?.LongLength ?? 0,
+                body == null ? null : Convert.ToHexString(SHA256.HashData(body)).ToLowerInvariant(), response.StatusCode,
+                response.Length, Convert.ToHexString(SHA256.HashData(response.Buffer)).ToLowerInvariant(), address));
+            hops.Add(new HtmlRuntimeFetchHop(response, preflight));
+            if (cors) HtmlRuntimeCorsPolicy.Check(response.Headers, documentOrigin);
+            if (response.StatusCode is 301 or 302 or 303 or 307 or 308 &&
+                response.Headers.TryGetValue("Location", out string? location)) {
+                if (original.Redirect == "error") throw new HtmlScriptRuntimeException("Fetch redirect mode forbids redirects.");
+                if (index >= _maxRedirects) throw new HtmlScriptRuntimeException("The public resource redirect limit was exceeded.");
+                Uri next = ValidateRedirect(current, ResolveRedirect(current, new Uri(location, UriKind.RelativeOrAbsolute)),
+                    dynamic: true);
+                if (HtmlRuntimeResourcePolicy.Origin(next) != requestOrigin)
+                    throw new HtmlScriptRuntimeException("Dynamic redirects between distinct origins are outside the isolated profile.");
+                redirects.Add(new HtmlPublicRedirect(current, next, response.StatusCode, address));
+                if ((response.StatusCode is 301 or 302 && method == "POST") ||
+                    (response.StatusCode == 303 && method is not ("GET" or "HEAD"))) {
+                    method = "GET";
+                    body = null;
+                    foreach (string name in new[] { "Content-Encoding", "Content-Language", "Content-Location", "Content-Type" })
+                        headers.Remove(name);
+                }
+                current = next;
+                continue;
+            }
+            var resource = new HtmlRuntimeResource(original.Url, method == "HEAD" ? Array.Empty<byte>() : response.Buffer,
+                response.ContentType, response.StatusCode, current, redirects.Count, response.Headers, response.StatusText);
+            string digest = Convert.ToHexString(SHA256.HashData(resource.Buffer)).ToLowerInvariant();
+            return new HtmlPublicResourceResult(resource, Array.AsReadOnly(redirects.ToArray()), fetchedAt,
+                finalAddress, digest, discovery, Array.AsReadOnly(hops.ToArray()), Array.AsReadOnly(exchanges.ToArray()));
+        }
+    }
+
+    private async Task<(HtmlRuntimeResource Response, IPAddress Address)> SendDirectAsync(Uri url, string method,
+        IReadOnlyDictionary<string, string> headers, byte[]? body, CancellationToken token) {
+        ReserveRequest();
+        if (body?.LongLength > _maxRequestBytes)
             throw new HtmlScriptRuntimeException("The dynamic request body exceeds its byte budget.");
-        if (dynamicRequest?.BodyLength > 0) {
-            lock (_budgetSync) {
-                if (dynamicRequest.BodyLength > _maxTotalRequestBytes - _requestBytes)
-                    throw new HtmlScriptRuntimeException("The dynamic request bodies exceed their cumulative byte budget.");
-                _requestBytes += dynamicRequest.BodyLength;
+        if (body != null) lock (_budgetSync) {
+            if (body.LongLength > _maxTotalRequestBytes - _requestBytes)
+                throw new HtmlScriptRuntimeException("The dynamic request bodies exceed their cumulative byte budget.");
+            _requestBytes += body.LongLength;
+        }
+        IPAddress? connectedAddress = null;
+        using var handler = new SocketsHttpHandler {
+            AllowAutoRedirect = false, UseCookies = false, UseProxy = false,
+            AutomaticDecompression = DecompressionMethods.None,
+            ConnectCallback = async (context, callbackToken) => {
+                string host = ValidateHost(context.DnsEndPoint.Host);
+                if (!_allowedHosts.Contains(host)) throw new HtmlScriptRuntimeException("The public resource host is not allowed.");
+                IPAddress address = SelectPublicAddress(await _resolveAddresses(host, callbackToken).ConfigureAwait(false));
+                Stream stream = await _connect(address, context.DnsEndPoint.Port, callbackToken).ConfigureAwait(false);
+                connectedAddress = address;
+                return stream;
+            }
+        };
+        using var client = new HttpClient(handler) { Timeout = Timeout.InfiniteTimeSpan };
+        using var request = new HttpRequestMessage(new HttpMethod(method), WithoutFragment(url));
+        if (body != null) request.Content = new ByteArrayContent(body);
+        foreach (var header in headers) {
+            if (!request.Headers.TryAddWithoutValidation(header.Key, header.Value)) {
+                request.Content ??= new ByteArrayContent(Array.Empty<byte>());
+                request.Content.Headers.TryAddWithoutValidation(header.Key, header.Value);
             }
         }
+        request.Headers.AcceptEncoding.Add(new StringWithQualityHeaderValue("identity"));
+        request.Headers.UserAgent.ParseAdd("OfficeIMO-HTML-Pilot/1.0");
+        using HttpResponseMessage response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
+        if (connectedAddress == null) throw new HtmlScriptRuntimeException("The public resource address was not verified.");
+        if (response.Content.Headers.ContentEncoding.Any(value => !value.Equals("identity", StringComparison.OrdinalIgnoreCase)))
+            throw new HtmlScriptRuntimeException("Compressed public responses are outside the pilot transport profile.");
+        if (method != "HEAD" && response.Content.Headers.ContentLength > _maxResourceBytes)
+            throw new HtmlScriptRuntimeException("The public resource exceeds its byte budget.");
+        byte[] bytes = method == "HEAD" ? Array.Empty<byte>() : await ReadBoundedAsync(response.Content, token).ConfigureAwait(false);
+        var responseHeaders = response.Headers.Concat(response.Content.Headers)
+            .ToDictionary(header => header.Key, header => string.Join(", ", header.Value), StringComparer.OrdinalIgnoreCase);
+        return (new HtmlRuntimeResource(url, bytes, response.Content.Headers.ContentType?.ToString() ?? "application/octet-stream",
+            (int)response.StatusCode, headers: responseHeaders, statusText: response.ReasonPhrase ?? string.Empty), connectedAddress);
+    }
+
+    private async Task<HtmlPublicResourceResult> FetchStaticAsync(Uri requestedUrl, CancellationToken cancellationToken) {
+        ArgumentNullException.ThrowIfNull(requestedUrl);
+        Uri current = ValidateUrl(requestedUrl);
+        if (!AllowsHost(current))
+            throw new HtmlScriptRuntimeException("The public resource host is not allowed.");
         using var deadline = new CancellationTokenSource(_timeout);
         using var operation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, deadline.Token);
         var redirects = new List<HtmlPublicRedirect>();
         DateTimeOffset fetchedAt = DateTimeOffset.UtcNow;
         for (int hop = 0; ; hop++) {
             operation.Token.ThrowIfCancellationRequested();
-            ReserveRequest();
-            IPAddress? connectedAddress = null;
-            using var handler = new SocketsHttpHandler {
-                AllowAutoRedirect = false, UseCookies = false, UseProxy = false,
-                AutomaticDecompression = DecompressionMethods.None,
-                ConnectCallback = async (context, token) => {
-                    string host = ValidateHost(context.DnsEndPoint.Host);
-                    if (!_allowedHosts.Contains(host)) throw new HtmlScriptRuntimeException("The public resource host is not allowed.");
-                    IPAddress address = SelectPublicAddress(await _resolveAddresses(host, token).ConfigureAwait(false));
-                    Stream stream = await _connect(address, context.DnsEndPoint.Port, token).ConfigureAwait(false);
-                    connectedAddress = address;
-                    return stream;
-                }
-            };
-            using var client = new HttpClient(handler) { Timeout = Timeout.InfiniteTimeSpan };
-            using var request = new HttpRequestMessage(new HttpMethod(dynamicRequest?.Method ?? "GET"), WithoutFragment(current));
-            if (dynamicRequest?.Buffer is { } requestBody) request.Content = new ByteArrayContent(requestBody);
-            foreach (var header in dynamicRequest?.Headers ?? new Dictionary<string, string>()) {
-                if (!request.Headers.TryAddWithoutValidation(header.Key, header.Value)) {
-                    request.Content ??= new ByteArrayContent(Array.Empty<byte>());
-                    request.Content.Headers.TryAddWithoutValidation(header.Key, header.Value);
-                }
-            }
-            request.Headers.AcceptEncoding.Add(new StringWithQualityHeaderValue("identity"));
-            request.Headers.UserAgent.ParseAdd("OfficeIMO-HTML-Pilot/1.0");
-            using HttpResponseMessage response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, operation.Token).ConfigureAwait(false);
-            if (connectedAddress == null) throw new HtmlScriptRuntimeException("The public resource address was not verified.");
-            int status = (int)response.StatusCode;
+            (HtmlRuntimeResource response, IPAddress connectedAddress) = await SendDirectAsync(current, "GET",
+                new Dictionary<string, string>(), null, operation.Token).ConfigureAwait(false);
+            int status = response.StatusCode;
             if (status is 301 or 302 or 303 or 307 or 308) {
-                if (dynamicRequest != null)
-                    throw new HtmlScriptRuntimeException("Dynamic request redirects are outside the isolated acquisition profile.");
-                if (hop >= _maxRedirects || response.Headers.Location == null)
+                if (hop >= _maxRedirects || !response.Headers.TryGetValue("Location", out string? location))
                     throw new HtmlScriptRuntimeException("The public resource redirect limit or location was invalid.");
-                Uri next = ValidateRedirect(current, ResolveRedirect(current, response.Headers.Location));
+                Uri next = ValidateRedirect(current, ResolveRedirect(current, new Uri(location, UriKind.RelativeOrAbsolute)));
                 redirects.Add(new HtmlPublicRedirect(current, next, status, connectedAddress));
                 current = next;
                 continue;
             }
-            if (dynamicRequest == null && !response.IsSuccessStatusCode)
+            if (status is < 200 or >= 300)
                 throw new HtmlScriptRuntimeException("The public resource returned HTTP " + status + ".");
-            if (response.Content.Headers.ContentEncoding.Any(value => !value.Equals("identity", StringComparison.OrdinalIgnoreCase)))
-                throw new HtmlScriptRuntimeException("Compressed public responses are outside the pilot transport profile.");
-            if (response.Content.Headers.ContentLength > _maxResourceBytes)
-                throw new HtmlScriptRuntimeException("The public resource exceeds its byte budget.");
-            byte[] bytes = await ReadBoundedAsync(response.Content, operation.Token).ConfigureAwait(false);
-            string contentType = response.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
-            var responseHeaders = response.Headers.Concat(response.Content.Headers)
-                .ToDictionary(header => header.Key, header => string.Join(", ", header.Value), StringComparer.OrdinalIgnoreCase);
-            var resource = new HtmlRuntimeResource(requestedUrl, bytes, contentType, status,
-                current, redirects.Count, responseHeaders, response.ReasonPhrase ?? string.Empty);
-            string digest = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+            var resource = new HtmlRuntimeResource(requestedUrl, response.Buffer, response.ContentType, status,
+                current, redirects.Count, response.Headers, response.StatusText);
+            string digest = Convert.ToHexString(SHA256.HashData(response.Buffer)).ToLowerInvariant();
             return new HtmlPublicResourceResult(resource, Array.AsReadOnly(redirects.ToArray()), fetchedAt,
-                connectedAddress, digest, discovery);
+                connectedAddress, digest);
         }
     }
 
@@ -172,11 +253,11 @@ internal sealed class HtmlPublicResourceBroker {
         return url;
     }
 
-    internal Uri ValidateRedirect(Uri from, Uri target) {
+    internal Uri ValidateRedirect(Uri from, Uri target, bool dynamic = false) {
         target = ValidateUrl(target);
         if (from.Scheme == Uri.UriSchemeHttps && target.Scheme != Uri.UriSchemeHttps)
             throw new HtmlScriptRuntimeException("HTTPS to HTTP redirects are forbidden in the public pilot.");
-        if (!_allowedHosts.Contains(ValidateHost(target.IdnHost)))
+        if (!(dynamic ? _allowedHosts : _staticAllowedHosts).Contains(ValidateHost(target.IdnHost)))
             throw new HtmlScriptRuntimeException("The public resource redirect host is not allowed.");
         return target;
     }
@@ -265,4 +346,8 @@ internal sealed class HtmlPublicResourceBroker {
 internal sealed record HtmlPublicRedirect(Uri From, Uri To, int StatusCode, IPAddress ConnectedAddress);
 internal sealed record HtmlPublicResourceResult(HtmlRuntimeResource Resource, IReadOnlyList<HtmlPublicRedirect> Redirects,
     DateTimeOffset FetchedAtUtc, IPAddress ConnectedAddress, string Sha256,
-    HtmlRuntimeFetchDiscovery? DynamicRequest = null);
+    HtmlRuntimeFetchDiscovery? DynamicRequest = null, IReadOnlyList<HtmlRuntimeFetchHop>? DynamicHops = null,
+    IReadOnlyList<HtmlPublicDynamicExchange>? DynamicExchanges = null);
+
+internal sealed record HtmlPublicDynamicExchange(Uri Url, string Method, long RequestBodyByteCount,
+    string? RequestBodySha256, int StatusCode, long ResponseByteCount, string ResponseSha256, IPAddress ConnectedAddress);

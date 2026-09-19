@@ -20,6 +20,9 @@ try {
     HtmlPublicRenderRequest incoming = await HtmlRuntimeProtocol.ReadAsync<HtmlPublicRenderRequest>(
         input, 24 * 1024 * 1024, deadline.Token)
         ?? throw new HtmlScriptRuntimeException("The isolated render request is missing.");
+    if (incoming.MaxOutputBytesPerArtifact is < 1 or > 8L * 1024 * 1024 ||
+        incoming.MaxTotalOutputBytes is < 1 or > 12L * 1024 * 1024)
+        throw new HtmlScriptRuntimeException("The isolated render output budget is invalid.");
     var rendering = new HtmlToPdfOptions { ViewportWidth = incoming.Page.ViewportWidth,
         ViewportHeight = incoming.Page.ViewportHeight,
         Margins = HtmlRenderMargins.All(0D) };
@@ -121,9 +124,9 @@ try {
     byte[] screen = result.Outputs[0].Images.Single().Bytes;
     byte[] print = result.Outputs[1].Pdf!.ToBytes();
     byte[] screenToPage = result.Outputs[2].Pdf!.ToBytes();
-    if (screen.Length > 8 * 1024 * 1024 || print.Length > 8 * 1024 * 1024 ||
-        screenToPage.Length > 8 * 1024 * 1024 ||
-        (long)screen.Length + print.Length + screenToPage.Length > 12 * 1024 * 1024)
+    if (screen.LongLength > incoming.MaxOutputBytesPerArtifact || print.LongLength > incoming.MaxOutputBytesPerArtifact ||
+        screenToPage.LongLength > incoming.MaxOutputBytesPerArtifact ||
+        (long)screen.Length + print.Length + screenToPage.Length > incoming.MaxTotalOutputBytes)
         throw new HtmlScriptRuntimeException("The isolated render output exceeds its byte budget.");
     response.ProviderId = result.Provider.Id;
     response.CaptureUrl = result.Capture.DocumentUrl.AbsoluteUri;

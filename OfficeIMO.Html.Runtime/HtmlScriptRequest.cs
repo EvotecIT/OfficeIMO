@@ -118,14 +118,29 @@ public sealed class HtmlScriptRequest {
                 throw new ArgumentException("Supplied resource bytes exceed their budget.");
         }
         long requestBytes = 0;
+        long suppliedRequests = resources.LongLength;
         foreach (var replay in fetchReplays) {
             if (replay == null || !keys.Add("fetch:" + replay.Identity))
                 throw new ArgumentException("Dynamic replays must have unique non-null request occurrences.");
-            if (replay.Request.BodyLength > policy.MaxRequestBytes || (requestBytes += replay.Request.BodyLength) > policy.MaxTotalRequestBytes)
-                throw new ArgumentException("Dynamic replay request bytes exceed their budget.");
-            if (replay.Response.Length > policy.MaxResourceBytes || (resourceBytes += replay.Response.Length) > policy.MaxTotalBytes)
-                throw new ArgumentException("Supplied resource bytes exceed their budget.");
+            string replayMethod = replay.Request.Method;
+            bool sendBody = replay.Request.HasBody;
+            foreach (HtmlRuntimeFetchHop hop in replay.Hops) {
+                suppliedRequests += hop.PreflightResponse == null ? 1 : 2;
+                if (hop.Response.Length > policy.MaxResourceBytes || (resourceBytes += hop.Response.Length) > policy.MaxTotalBytes ||
+                    hop.PreflightResponse is { } preflight && (preflight.Length > policy.MaxResourceBytes ||
+                        (resourceBytes += preflight.Length) > policy.MaxTotalBytes))
+                    throw new ArgumentException("Supplied resource bytes exceed their budget.");
+                if (sendBody && (replay.Request.BodyLength > policy.MaxRequestBytes ||
+                    (requestBytes += replay.Request.BodyLength) > policy.MaxTotalRequestBytes))
+                    throw new ArgumentException("Dynamic replay request bytes exceed their budget.");
+                if ((hop.Response.StatusCode is 301 or 302 && replayMethod == "POST") ||
+                    (hop.Response.StatusCode == 303 && replayMethod is not ("GET" or "HEAD"))) {
+                    replayMethod = "GET";
+                    sendBody = false;
+                }
+            }
         }
+        if (suppliedRequests > policy.MaxRequests) throw new ArgumentException("Too many supplied HTTP responses.");
         return new HtmlScriptRequest { Profile = Profile, Html = Html, Scripts = scripts, ReadyExpression = ReadyExpression, Timeout = Timeout,
             DocumentUrl = DocumentUrl, Resources = resources, FetchReplays = fetchReplays, ResourcePolicy = policy,
             SessionTimeout = SessionTimeout, PollInterval = PollInterval, MaxInputCharacters = MaxInputCharacters, MaxOutputCharacters = MaxOutputCharacters,

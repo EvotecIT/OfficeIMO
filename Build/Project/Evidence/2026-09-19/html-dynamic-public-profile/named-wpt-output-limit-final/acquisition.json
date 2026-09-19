@@ -1,0 +1,25 @@
+{
+  "ScenarioId": "named-wpt-output-limit",
+  "SourceLicense": "BSD-3-Clause",
+  "retainedInputBytes": false,
+  "resources": [
+    {
+      "url": "https://wpt.live/css/css-pseudo/first-letter-001-ref.html",
+      "finalUrl": "https://wpt.live/css/css-pseudo/first-letter-001-ref.html",
+      "StatusCode": 200,
+      "ContentType": "text/html",
+      "ByteCount": 516,
+      "Sha256": "dd7c864327c116ea212a41a2e3b57ac85d11629c0d4639f9a71f1c4b15e4f90a",
+      "FetchedAtUtc": "2026-09-19T08:46:01.37039+00:00",
+      "RequestMethod": "GET",
+      "RequestOccurrence": null,
+      "RequestHeaderNames": [],
+      "RequestBodyByteCount": 0,
+      "RequestBodySha256": null,
+      "dynamicExchanges": [],
+      "connectedAddress": "34.41.40.10",
+      "redirects": []
+    }
+  ],
+  "SkippedResources": []
+}

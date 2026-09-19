@@ -1,6 +1,7 @@
-namespace OfficeIMO.Html.Runtime.Worker;
+namespace OfficeIMO.Html.Runtime;
 
-internal static class RuntimeFetchCors {
+// Shared by live worker fetch, offline replay, and the public host broker.
+internal static class HtmlRuntimeCorsPolicy {
     private static readonly HashSet<string> ExposedByDefault = new(StringComparer.OrdinalIgnoreCase) {
         "cache-control", "content-language", "content-length", "content-type", "expires", "last-modified", "pragma"
     };

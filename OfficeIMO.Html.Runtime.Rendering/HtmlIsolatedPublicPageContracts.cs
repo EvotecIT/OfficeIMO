@@ -43,6 +43,8 @@ public sealed class HtmlIsolatedPublicPageRequest {
     public IReadOnlyList<string> AllowedHosts { get; init; } = Array.Empty<string>();
     /// <summary>Dynamic request methods the host broker may execute. GET and HEAD are allowed by default; non-idempotent methods require explicit opt-in.</summary>
     public IReadOnlyList<string> AllowedDynamicRequestMethods { get; init; } = new[] { "GET", "HEAD" };
+    /// <summary>Exact additional HTTP(S) origins authorized for credentialless dynamic requests. Host admission remains separate.</summary>
+    public IReadOnlyList<Uri> AllowedDynamicRequestOrigins { get; init; } = Array.Empty<Uri>();
     /// <summary>Runtime limits and readiness. HTML, URL, scripts, resources, and network authority are supplied by this workflow.</summary>
     public HtmlScriptRequest Runtime { get; init; } = new() {
         Profile = HtmlRuntimeProfile.WebApplicationV1,
@@ -53,6 +55,10 @@ public sealed class HtmlIsolatedPublicPageRequest {
     };
     /// <summary>Retains acquired response bytes in the result. The default retains only provenance and digests.</summary>
     public bool RetainInputBytes { get; init; }
+    /// <summary>Maximum bytes in each encoded screen or PDF result, up to 8 MiB.</summary>
+    public long MaxOutputBytesPerArtifact { get; init; } = 8L * 1024 * 1024;
+    /// <summary>Maximum combined bytes in the three encoded results, up to 12 MiB.</summary>
+    public long MaxTotalOutputBytes { get; init; } = 12L * 1024 * 1024;
 
     internal Snapshot Validate() {
         if (string.IsNullOrWhiteSpace(ScenarioId) || ScenarioId.Length > 128)
@@ -65,6 +71,7 @@ public sealed class HtmlIsolatedPublicPageRequest {
         ArgumentNullException.ThrowIfNull(SeedResourceUrls);
         ArgumentNullException.ThrowIfNull(AllowedHosts);
         ArgumentNullException.ThrowIfNull(AllowedDynamicRequestMethods);
+        ArgumentNullException.ThrowIfNull(AllowedDynamicRequestOrigins);
         if (SeedResourceUrls.Count > 24) throw new ArgumentException("At most 24 seed resources are allowed.", nameof(SeedResourceUrls));
         if (AllowedHosts.Count > 15) throw new ArgumentException("At most 15 additional hosts are allowed.", nameof(AllowedHosts));
         Uri[] resources = SeedResourceUrls.Select(resource => HtmlPublicResourceBroker.ValidateUrl(
@@ -73,8 +80,21 @@ public sealed class HtmlIsolatedPublicPageRequest {
             "An allowed host cannot be null.", nameof(AllowedHosts))).ToArray();
         string[] methods = AllowedDynamicRequestMethods.Select(HtmlRuntimeFetchRequest.NormalizeMethod)
             .Distinct(StringComparer.Ordinal).ToArray();
+        if (AllowedDynamicRequestOrigins.Count > 15)
+            throw new ArgumentException("At most 15 additional dynamic request origins are allowed.", nameof(AllowedDynamicRequestOrigins));
+        Uri[] dynamicOrigins = AllowedDynamicRequestOrigins.Select(origin => {
+            Uri value = HtmlPublicResourceBroker.ValidateUrl(origin ?? throw new ArgumentException(
+                "A dynamic request origin cannot be null.", nameof(AllowedDynamicRequestOrigins)));
+            if (value.AbsolutePath != "/" || value.Query.Length != 0 || value.Fragment.Length != 0)
+                throw new ArgumentException("Dynamic request origins cannot contain paths, queries, or fragments.", nameof(AllowedDynamicRequestOrigins));
+            return value;
+        }).DistinctBy(HtmlRuntimeResourcePolicy.Origin, StringComparer.Ordinal).ToArray();
         if (methods.Length == 0 || methods.Length > 7)
             throw new ArgumentException("At least one supported dynamic request method is required.", nameof(AllowedDynamicRequestMethods));
+        if (MaxOutputBytesPerArtifact is < 1 or > 8L * 1024 * 1024)
+            throw new ArgumentOutOfRangeException(nameof(MaxOutputBytesPerArtifact));
+        if (MaxTotalOutputBytes is < 1 or > 12L * 1024 * 1024)
+            throw new ArgumentOutOfRangeException(nameof(MaxTotalOutputBytes));
         HtmlScriptRequest runtime = (Runtime ?? throw new ArgumentNullException(nameof(Runtime))).Snapshot();
         if (runtime.Profile != HtmlRuntimeProfile.WebApplicationV1)
             throw new ArgumentException("The isolated public-page workflow requires WebApplicationV1.", nameof(Runtime));
@@ -83,11 +103,13 @@ public sealed class HtmlIsolatedPublicPageRequest {
             throw new ArgumentException("Runtime HTML, scripts, resources, dynamic replays, and network access are owned by the isolated public-page workflow.", nameof(Runtime));
         if (runtime.Timeout > TimeSpan.FromSeconds(30) || runtime.SessionTimeout > TimeSpan.FromMinutes(2))
             throw new ArgumentException("Public-page command and session deadlines exceed the isolated profile.", nameof(Runtime));
-        return new Snapshot(ScenarioId, url, SourceLicense, resources, hosts, methods, runtime, RetainInputBytes);
+        return new Snapshot(ScenarioId, url, SourceLicense, resources, hosts, methods, dynamicOrigins, runtime,
+            RetainInputBytes, MaxOutputBytesPerArtifact, MaxTotalOutputBytes);
     }
 
     internal sealed record Snapshot(string ScenarioId, Uri Url, string SourceLicense, Uri[] SeedResourceUrls,
-        string[] AllowedHosts, string[] AllowedDynamicRequestMethods, HtmlScriptRequest Runtime, bool RetainInputBytes);
+        string[] AllowedHosts, string[] AllowedDynamicRequestMethods, Uri[] AllowedDynamicRequestOrigins,
+        HtmlScriptRequest Runtime, bool RetainInputBytes, long MaxOutputBytesPerArtifact, long MaxTotalOutputBytes);
 }
 
 /// <summary>Immutable OCI image and container-engine command used by the isolated renderer.</summary>
@@ -156,6 +178,8 @@ public sealed class HtmlPublicResourceEvidence {
         RequestBodySha256 = result.DynamicRequest?.Request.Buffer is { } body
             ? Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(body)).ToLowerInvariant()
             : null;
+        DynamicExchanges = Array.AsReadOnly((result.DynamicExchanges ?? Array.Empty<HtmlPublicDynamicExchange>())
+            .Select(exchange => new HtmlPublicHttpExchangeEvidence(exchange)).ToArray());
     }
 
     /// <summary>Originally requested resource URL.</summary>
@@ -188,6 +212,38 @@ public sealed class HtmlPublicResourceEvidence {
     public long RequestBodyByteCount { get; }
     /// <summary>Lowercase SHA-256 digest of dynamic request bytes, or <see langword="null"/> when no body was sent.</summary>
     public string? RequestBodySha256 { get; }
+    /// <summary>Ordered direct OPTIONS and dynamic request responses, including redirect hops.</summary>
+    public IReadOnlyList<HtmlPublicHttpExchangeEvidence> DynamicExchanges { get; }
+}
+
+/// <summary>One bounded HTTP exchange acquired on the host for a dynamic request.</summary>
+public sealed class HtmlPublicHttpExchangeEvidence {
+    internal HtmlPublicHttpExchangeEvidence(HtmlPublicDynamicExchange exchange) {
+        Url = exchange.Url;
+        Method = exchange.Method;
+        RequestBodyByteCount = exchange.RequestBodyByteCount;
+        RequestBodySha256 = exchange.RequestBodySha256;
+        StatusCode = exchange.StatusCode;
+        ResponseByteCount = exchange.ResponseByteCount;
+        ResponseSha256 = exchange.ResponseSha256;
+        ConnectedAddress = exchange.ConnectedAddress;
+    }
+    /// <summary>Canonical request URL.</summary>
+    public Uri Url { get; }
+    /// <summary>Actual method sent for this hop, including OPTIONS preflight and redirected GET.</summary>
+    public string Method { get; }
+    /// <summary>Request body size sent for this hop.</summary>
+    public long RequestBodyByteCount { get; }
+    /// <summary>SHA-256 of sent body bytes when present.</summary>
+    public string? RequestBodySha256 { get; }
+    /// <summary>Direct HTTP response status.</summary>
+    public int StatusCode { get; }
+    /// <summary>Direct HTTP response size.</summary>
+    public long ResponseByteCount { get; }
+    /// <summary>SHA-256 of direct response bytes.</summary>
+    public string ResponseSha256 { get; }
+    /// <summary>Validated public IPv4 address used for this direct connection.</summary>
+    public IPAddress ConnectedAddress { get; }
 }
 
 /// <summary>One retained public HTTP redirect hop.</summary>
@@ -357,8 +413,7 @@ public sealed class HtmlIsolatedPublicPageResult {
         UnsupportedFeatures = Array.AsReadOnly(new[] {
             "cross-origin-frame-execution",
             "module-import-attributes-beyond-json",
-            "cross-origin-dynamic-requests",
-            "dynamic-request-redirects",
+            "origin-changing-dynamic-redirects",
             "transferable-frame-messages",
             "cookies-and-credentials"
         });

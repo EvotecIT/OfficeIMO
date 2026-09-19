@@ -1,0 +1,25 @@
+{
+  "ScenarioId": "named-wpt-cascade",
+  "SourceLicense": "BSD-3-Clause",
+  "retainedInputBytes": false,
+  "resources": [
+    {
+      "url": "https://wpt.live/css/css-cascade/initial-color-background-001-ref.html",
+      "finalUrl": "https://wpt.live/css/css-cascade/initial-color-background-001-ref.html",
+      "StatusCode": 200,
+      "ContentType": "text/html",
+      "ByteCount": 375,
+      "Sha256": "8cf2951ffae1aed22559f3a073c844263bdc789baceeaa52533141c0348e013c",
+      "FetchedAtUtc": "2026-09-19T08:45:12.645898+00:00",
+      "RequestMethod": "GET",
+      "RequestOccurrence": null,
+      "RequestHeaderNames": [],
+      "RequestBodyByteCount": 0,
+      "RequestBodySha256": null,
+      "dynamicExchanges": [],
+      "connectedAddress": "34.41.40.10",
+      "redirects": []
+    }
+  ],
+  "SkippedResources": []
+}

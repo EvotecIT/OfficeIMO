@@ -133,6 +133,9 @@ decompression, and rejects TLS downgrade. One response is limited to 4 MiB,
 the run to 32 acquisition attempts and 16 MiB, and isolated discovery to 16
 rounds and 24 supplied resources. Every stricter limit supplied through
 `Runtime.ResourcePolicy` is preserved for acquisition and isolated replay.
+`MaxOutputBytesPerArtifact` and `MaxTotalOutputBytes` can lower the fixed 8 MiB
+per-output and 12 MiB combined encoded-output ceilings. The worker and host
+both reject a result above either configured limit.
 `OperationTimeout` covers acquisition through output validation; verified
 container removal then has a separate fixed one-minute fail-safe budget. Input bytes are omitted from results by
 default; set `RetainInputBytes` only when the source license and retention policy
@@ -149,16 +152,26 @@ two identical POSTs receive two separately acquired responses. The host executes
 each occurrence once and returns it to the networkless worker for deterministic
 replay. Every acquired occurrence must be consumed once, in order, by the final
 successful execution; a divergent restart fails instead of accepting side effects
-that do not belong to the rendered transcript. Dynamic acquisition is same-origin and credentialless. GET and HEAD are
+that do not belong to the rendered transcript. Dynamic acquisition is
+credentialless. GET and HEAD are
 enabled by default; callers must opt into POST, PUT, PATCH, DELETE or OPTIONS with
-`AllowedDynamicRequestMethods`. Authorization and proxy-authorization headers,
-cross-origin requests and dynamic redirects are rejected. Per-request and cumulative
+`AllowedDynamicRequestMethods`. Exact cross-origin requests additionally require
+an origin in `AllowedDynamicRequestOrigins`, CORS approval on
+each response and a successful OPTIONS preflight when required. Redirects are
+limited to five hops within the original dynamic request origin; 301/302 POST
+and 303 non-GET/HEAD change to GET, while 307/308 preserve method and body.
+Origin-changing dynamic redirects, cookies, Authorization and
+proxy-authorization remain outside this profile. Per-request and cumulative
 request-body limits come from `Runtime.ResourcePolicy`; retained discovery envelopes
 must also fit the runtime response-character budget.
+Authorizing a dynamic origin does not authorize static assets or document
+redirects on that host; those require separate static host approval.
 
 Resource evidence records the method, occurrence, sorted header names, request-body
-length and request-body SHA-256 digest. Header values and request bodies are not
-retained. Response retention still follows `RetainInputBytes`.
+length and request-body SHA-256 digest. It also records each direct OPTIONS,
+redirect and final exchange with actual method, URL, status, connected IPv4,
+body lengths and digests. Header values and request bodies are not retained.
+Response retention still follows `RetainInputBytes`.
 
 The profile can discover and replay JavaScript module graphs in the root document
 and admitted same-origin child frames. Each frame retains its own import map and

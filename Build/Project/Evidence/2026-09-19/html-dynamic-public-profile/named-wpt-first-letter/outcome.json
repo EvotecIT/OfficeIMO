@@ -1,0 +1,50 @@
+{
+  "ScenarioId": "named-wpt-first-letter",
+  "SourceLicense": "BSD-3-Clause",
+  "RequestedUrl": "https://wpt.live/css/css-pseudo/first-letter-001-ref.html",
+  "ProviderId": "officeimo.trusted-process",
+  "CaptureUrl": "https://wpt.live/css/css-pseudo/first-letter-001-ref.html",
+  "CaptureManifest": "sha256:838a4c33d39a5a8671ffb37fb6f56693fbe5f41e86b1a4ea0794a5fd1d712d47",
+  "TraceEntries": [
+    "Lifecycle:document-opened:success",
+    "Page:open:success",
+    "Capture:capture:success",
+    "Artifact:capture-manifest:generated"
+  ],
+  "ImageId": "sha256:c7ecddfc10d7bf12d762fdfd2f4f9652146ee49da65733d474e7fa9143b144e6",
+  "ContainerName": "officeimo-html-2b0bc96803e443d08737f1275c67defb",
+  "ContainerRemoved": true,
+  "IsolationPolicy": "rootless-podman;seccomp;cgroups-cpu-memory-pids;network-none;read-only;uid-65532;cap-drop-all;no-new-privileges;no-mounts",
+  "IsolationProfile": 0,
+  "UnsupportedFeatures": [
+    "cross-origin-frame-execution",
+    "module-import-attributes-beyond-json",
+    "origin-changing-dynamic-redirects",
+    "transferable-frame-messages",
+    "cookies-and-credentials"
+  ],
+  "RendererSha256": "d96ea55d7e9fa0e54cf8202f7e3e9ef35b123b5ea4bfafa2a4ac9e1ecc342fba",
+  "WorkerSha256": "0f25a5c1663ca82ad8286c5ea63262f02784161e0210a6ae213b1ee0f43943e6",
+  "RendererFilesSha256": "2b5fc7e07e3787afd38fae82e1fc898c4db85935a0e813cb486820c0c097eb4b",
+  "WorkerFilesSha256": "aa5326a0527368bbee53c9766e843c92f05239d90dde015439811651191cabbb",
+  "outputs": [
+    {
+      "file": "screen.png",
+      "bytes": 7629,
+      "Sha256": "8cc6f3d73eef839900b21898866cb87f18f26d987ccef8b653123fce63b882e0",
+      "MediaType": "image/png"
+    },
+    {
+      "file": "print.pdf",
+      "bytes": 2710,
+      "Sha256": "8a83995d9b87ab2ebb786feb5ce722f28de95ef2d1b9fcd20aeb082435dde53d",
+      "MediaType": "application/pdf"
+    },
+    {
+      "file": "screen-to-page.pdf",
+      "bytes": 2715,
+      "Sha256": "985d3ec727754b53fbf92634bcad277c86d52cec586695707e69f057091b0c9c",
+      "MediaType": "application/pdf"
+    }
+  ]
+}

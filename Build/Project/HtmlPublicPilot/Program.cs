@@ -3,7 +3,7 @@ using OfficeIMO.Html.Runtime;
 using OfficeIMO.Html.Runtime.Rendering;
 
 if (args.Length < 6) throw new ArgumentException(
-    "Usage: OfficeIMO.Html.PublicPilot <http(s)-url> <new-output-directory> <full-sha256-image-id> <published-renderer-dll> <published-worker-dll> --license=TEXT [--scenario=ID] [--resource=URL] [--host=DNS-name] [--method=HTTP-METHOD] [--retain-input] [--podman-command=PATH] [--podman-arg=VALUE] [--timeout-seconds=SECONDS]");
+    "Usage: OfficeIMO.Html.PublicPilot <http(s)-url> <new-output-directory> <full-sha256-image-id> <published-renderer-dll> <published-worker-dll> --license=TEXT [--scenario=ID] [--resource=URL] [--host=DNS-name] [--method=HTTP-METHOD] [--dynamic-origin=ORIGIN] [--max-output-bytes=BYTES] [--max-total-output-bytes=BYTES] [--retain-input] [--podman-command=PATH] [--podman-arg=VALUE] [--timeout-seconds=SECONDS]");
 
 Uri url = new(args[0], UriKind.Absolute);
 string outputDirectory = Path.GetFullPath(args[1]);
@@ -18,9 +18,12 @@ TimeSpan timeout = TimeSpan.FromSeconds(ParseTimeout(Value("--timeout-seconds=")
 Uri[] resources = Values("--resource=").Select(value => new Uri(value, UriKind.Absolute)).ToArray();
 string[] hosts = Values("--host=");
 string[] methods = Values("--method=");
+Uri[] dynamicOrigins = Values("--dynamic-origin=").Select(value => new Uri(value, UriKind.Absolute)).ToArray();
+long maxOutputBytes = ParseByteLimit(Value("--max-output-bytes="), 8L * 1024 * 1024);
+long maxTotalOutputBytes = ParseByteLimit(Value("--max-total-output-bytes="), 12L * 1024 * 1024);
 if (methods.Length == 0) methods = ["GET", "HEAD"];
 bool retainInput = args.Contains("--retain-input", StringComparer.Ordinal);
-string[] knownPrefixes = ["--license=", "--scenario=", "--podman-command=", "--podman-arg=", "--resource=", "--host=", "--method=", "--timeout-seconds="];
+string[] knownPrefixes = ["--license=", "--scenario=", "--podman-command=", "--podman-arg=", "--resource=", "--host=", "--method=", "--dynamic-origin=", "--max-output-bytes=", "--max-total-output-bytes=", "--timeout-seconds="];
 if (args.Skip(5).Any(value => value != "--retain-input" &&
         !knownPrefixes.Any(prefix => value.StartsWith(prefix, StringComparison.Ordinal))))
     throw new ArgumentException("The pilot received an unknown option.");
@@ -44,6 +47,9 @@ try {
             SeedResourceUrls = resources,
             AllowedHosts = hosts,
             AllowedDynamicRequestMethods = methods,
+            AllowedDynamicRequestOrigins = dynamicOrigins,
+            MaxOutputBytesPerArtifact = maxOutputBytes,
+            MaxTotalOutputBytes = maxTotalOutputBytes,
             RetainInputBytes = retainInput
         });
 
@@ -93,6 +99,14 @@ static int ParseTimeout(string? value) {
     return seconds;
 }
 
+static long ParseByteLimit(string? value, long fallback) {
+    if (value == null) return fallback;
+    if (!long.TryParse(value, System.Globalization.NumberStyles.None,
+            System.Globalization.CultureInfo.InvariantCulture, out long bytes) || bytes < 1)
+        throw new ArgumentException("Output byte limits must be positive decimal integers.");
+    return bytes;
+}
+
 async Task PersistAcquisitionAsync(IReadOnlyList<HtmlPublicResourceEvidence> acquired,
     IReadOnlyList<HtmlPublicSkippedResource> omitted) {
     if (retainInput) {
@@ -114,12 +128,15 @@ async Task PersistFailureAsync(Exception error, HtmlIsolatedPublicPageFailureEvi
     await File.WriteAllTextAsync(Path.Combine(outputDirectory, "failure.json"), JsonSerializer.Serialize(new {
         errorKind = error.GetType().Name,
         error = error.Message,
+        cause = error.InnerException?.Message,
         phase = evidence?.Phase.ToString() ?? HtmlIsolatedPublicPagePhase.Admission.ToString(),
         requestedUrl = url.AbsoluteUri,
         imageId = args[2],
         scenario,
         sourceLicense = license,
         operationTimeoutSeconds = timeout.TotalSeconds,
+        maxOutputBytesPerArtifact = maxOutputBytes,
+        maxTotalOutputBytes,
         maximumCleanupSeconds = HtmlIsolatedPublicPageExecutionOptions.MaximumCleanupDuration.TotalSeconds,
         containerName = evidence?.ContainerName,
         containerRemoved = evidence?.ContainerRemoved,
@@ -155,6 +172,16 @@ static object ResourceEvidence(HtmlPublicResourceEvidence resource) => new {
     resource.RequestHeaderNames,
     resource.RequestBodyByteCount,
     resource.RequestBodySha256,
+    dynamicExchanges = resource.DynamicExchanges.Select(exchange => new {
+        url = exchange.Url.AbsoluteUri,
+        exchange.Method,
+        exchange.RequestBodyByteCount,
+        exchange.RequestBodySha256,
+        exchange.StatusCode,
+        exchange.ResponseByteCount,
+        exchange.ResponseSha256,
+        connectedAddress = exchange.ConnectedAddress.ToString()
+    }).ToArray(),
     connectedAddress = resource.ConnectedAddress.ToString(),
     redirects = resource.Redirects.Select(redirect => new {
         from = redirect.From.AbsoluteUri,

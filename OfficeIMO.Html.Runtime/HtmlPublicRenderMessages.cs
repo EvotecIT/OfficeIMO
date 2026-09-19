@@ -4,6 +4,8 @@ namespace OfficeIMO.Html.Runtime;
 // process. No untrusted HTML is parsed, scripted or rendered on the host.
 internal sealed class HtmlPublicRenderRequest {
     public HtmlScriptRequest Page { get; set; } = new();
+    public long MaxOutputBytesPerArtifact { get; set; } = 8L * 1024 * 1024;
+    public long MaxTotalOutputBytes { get; set; } = 12L * 1024 * 1024;
 }
 
 internal sealed class HtmlPublicResourceBatch {

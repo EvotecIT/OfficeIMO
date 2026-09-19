@@ -15,6 +15,8 @@ internal sealed record ControlledAcquisitionCorpus(
         await AddCrossHostRedirectAsync(renderCases, results);
         await AddDnsRebindingRejectionAsync(results);
         await AddOversizedResponseRejectionAsync(results);
+        await AddDynamicRedirectAsync(renderCases, results);
+        await AddDynamicCorsAsync(renderCases, results);
         return new ControlledAcquisitionCorpus(renderCases.AsReadOnly(), results.AsReadOnly());
     }
 
@@ -118,7 +120,7 @@ internal sealed record ControlledAcquisitionCorpus(
 
     private static async Task AddOversizedResponseRejectionAsync(List<AcquisitionProbeResult> results) {
         const string name = "acquisition-oversized-response-rejected";
-        await using var server = new ControlledHttpServer(_ => new ControlledHttpReply([], "text/html; charset=utf-8",
+        await using var server = new ControlledHttpServer((string _) => new ControlledHttpReply([], "text/html; charset=utf-8",
             200, DeclaredLength: 4 * 1024 * 1024 + 1));
         var resolutions = new List<string>();
         var connections = new List<string>();
@@ -135,6 +137,81 @@ internal sealed record ControlledAcquisitionCorpus(
         results.Add(Result(name, passed, new Uri("http://page.example.test/large"), null,
             resolutions, connections, server.Requests,
             passed ? rejection : rejection ?? new IOException("Oversized response was not rejected.")));
+    }
+
+    private static async Task AddDynamicRedirectAsync(List<ProbeCase> renderCases, List<AcquisitionProbeResult> results) {
+        const string name = "acquisition-dynamic-redirect";
+        Uri page = new("http://page.example.test/");
+        Uri target = new("http://page.example.test/submit");
+        await using var server = new ControlledHttpServer(path => path switch {
+            "/submit" => ControlledHttpReply.Redirect("/result"),
+            "/result" => new ControlledHttpReply(Encoding.UTF8.GetBytes("Dynamic redirect ready"), "text/plain", 200),
+            _ => ControlledHttpReply.NotFound()
+        });
+        var resolutions = new List<string>();
+        var connections = new List<string>();
+        var broker = Broker(server, ["page.example.test"], (host, _) => {
+            resolutions.Add(host + "=93.184.216.34");
+            return Task.FromResult(new[] { IPAddress.Parse("93.184.216.34") });
+        }, connections);
+        HtmlPublicResourceResult? acquired = null;
+        try {
+            var request = new HtmlRuntimeFetchRequest(target, "POST", body: Encoding.UTF8.GetBytes("once"));
+            acquired = await broker.FetchAsync(new HtmlRuntimeFetchDiscovery(request, 1), page);
+            Require(acquired.DynamicHops?.Count == 2 && acquired.DynamicExchanges?.Count == 2 &&
+                acquired.DynamicExchanges[0].Method == "POST" && acquired.DynamicExchanges[1].Method == "GET",
+                "dynamic redirect transcript did not preserve method transition");
+            renderCases.Add(new ProbeCase(name, "<style>#result{color:#0055aa}</style><p id=result>Loading</p>" +
+                "<script>fetch('/submit',{method:'POST',body:'once'}).then(r=>r.text()).then(t=>document.querySelector('#result').textContent=t)</script>",
+                "document.querySelector('#result')?.textContent === 'Dynamic redirect ready'", 8 * 1024 * 1024,
+                ExpectedVisibleText: "Dynamic redirect ready", ExpectBlueInk: true,
+                DynamicResponses: new Dictionary<string, ProbeDynamicResource> {
+                    ["POST http://page.example.test/submit #1"] = new("", "text/plain", "once", Hops: acquired.DynamicHops)
+                }, ExpectedDiscoveryRounds: [["POST http://page.example.test/submit #1"]], DocumentUrl: page));
+            results.Add(Result(name, true, target, acquired, resolutions, connections, server.Requests, null));
+        } catch (Exception error) {
+            results.Add(Result(name, false, target, acquired, resolutions, connections, server.Requests, error));
+        }
+    }
+
+    private static async Task AddDynamicCorsAsync(List<ProbeCase> renderCases, List<AcquisitionProbeResult> results) {
+        const string name = "acquisition-dynamic-cors";
+        Uri page = new("http://page.example.test/");
+        Uri target = new("http://api.example.test/data");
+        const string corsHeaders = "Access-Control-Allow-Origin: http://page.example.test\r\n";
+        await using var server = new ControlledHttpServer(request => request.Method == "OPTIONS"
+            ? new ControlledHttpReply([], "text/plain", 204, ExtraHeaders: corsHeaders +
+                "Access-Control-Allow-Methods: POST\r\nAccess-Control-Allow-Headers: content-type\r\n")
+            : new ControlledHttpReply(Encoding.UTF8.GetBytes("Dynamic CORS ready"), "text/plain", 200,
+                ExtraHeaders: corsHeaders));
+        var resolutions = new List<string>();
+        var connections = new List<string>();
+        var broker = Broker(server, ["page.example.test", "api.example.test"], (host, _) => {
+            resolutions.Add(host + "=93.184.216.34");
+            return Task.FromResult(new[] { IPAddress.Parse("93.184.216.34") });
+        }, connections);
+        HtmlPublicResourceResult? acquired = null;
+        try {
+            var request = new HtmlRuntimeFetchRequest(target, "POST",
+                new Dictionary<string, string> { ["Content-Type"] = "application/json" },
+                Encoding.UTF8.GetBytes("{}"), credentials: "omit");
+            acquired = await broker.FetchAsync(new HtmlRuntimeFetchDiscovery(request, 1), page);
+            Require(acquired.DynamicHops?.Count == 1 && acquired.DynamicHops[0].PreflightResponse != null &&
+                acquired.DynamicExchanges?.Select(exchange => exchange.Method).SequenceEqual(["OPTIONS", "POST"]) == true,
+                "dynamic CORS acquisition did not preflight before POST");
+            renderCases.Add(new ProbeCase(name, "<style>#result{color:#0055aa}</style><p id=result>Loading</p>" +
+                "<script>fetch('http://api.example.test/data',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',credentials:'omit'}).then(r=>r.text()).then(t=>document.querySelector('#result').textContent=t)</script>",
+                "document.querySelector('#result')?.textContent === 'Dynamic CORS ready'", 8 * 1024 * 1024,
+                ExpectedVisibleText: "Dynamic CORS ready", ExpectBlueInk: true,
+                AllowedOrigins: [new Uri("http://api.example.test/")],
+                DynamicResponses: new Dictionary<string, ProbeDynamicResource> {
+                    ["POST http://api.example.test/data #1"] = new("", "text/plain", "{}",
+                        new Dictionary<string, string> { ["Content-Type"] = "application/json" }, Hops: acquired.DynamicHops)
+                }, ExpectedDiscoveryRounds: [["POST http://api.example.test/data #1"]], DocumentUrl: page));
+            results.Add(Result(name, true, target, acquired, resolutions, connections, server.Requests, null));
+        } catch (Exception error) {
+            results.Add(Result(name, false, target, acquired, resolutions, connections, server.Requests, error));
+        }
     }
 
     private static ProbeCase RenderCase(string name, HtmlPublicResourceResult acquired) {
@@ -188,13 +265,15 @@ internal sealed record AcquisitionRedirect(string From, string To, int StatusCod
 internal sealed class ControlledHttpServer : IAsyncDisposable {
     private readonly TcpListener _listener = new(IPAddress.Loopback, 0);
     private readonly CancellationTokenSource _stop = new();
-    private readonly Func<string, ControlledHttpReply> _respond;
+    private readonly Func<ControlledHttpRequest, ControlledHttpReply> _respond;
     private readonly List<Task> _clients = [];
     private readonly Task _accept;
     internal ConcurrentQueue<string> Requests { get; } = new();
     internal int Port => ((IPEndPoint)_listener.LocalEndpoint).Port;
 
-    internal ControlledHttpServer(Func<string, ControlledHttpReply> respond) {
+    internal ControlledHttpServer(Func<string, ControlledHttpReply> respond) : this(request => respond(request.Path)) { }
+
+    internal ControlledHttpServer(Func<ControlledHttpRequest, ControlledHttpReply> respond) {
         _respond = respond;
         _listener.Start();
         _accept = AcceptAsync();
@@ -223,16 +302,23 @@ internal sealed class ControlledHttpServer : IAsyncDisposable {
                 }
                 string[] lines = Encoding.ASCII.GetString(input.ToArray()).Split("\r\n");
                 string requestLine = lines[0];
-                string path = requestLine.Split(' ')[1];
-                string? host = lines.Skip(1).Select(line => line.Split(':', 2))
-                    .Where(pair => pair.Length == 2 && pair[0].Equals("Host", StringComparison.OrdinalIgnoreCase))
-                    .Select(pair => pair[1].Trim()).SingleOrDefault();
+                string[] requestParts = requestLine.Split(' ');
+                string path = requestParts[1];
+                var headers = lines.Skip(1).Where(line => line.Contains(':'))
+                    .Select(line => line.Split(':', 2))
+                    .ToDictionary(pair => pair[0], pair => pair[1].Trim(), StringComparer.OrdinalIgnoreCase);
+                headers.TryGetValue("Host", out string? host);
                 if (string.IsNullOrEmpty(host)) throw new IOException("Fixture request omitted its Host authority.");
                 Requests.Enqueue("http://" + host + path);
-                ControlledHttpReply reply = _respond(path);
+                int bodyLength = headers.TryGetValue("Content-Length", out string? rawLength) ? int.Parse(rawLength) : 0;
+                if (bodyLength is < 0 or > 1024 * 1024) throw new IOException("Fixture request body exceeded its limit.");
+                var body = new byte[bodyLength];
+                await stream.ReadExactlyAsync(body, _stop.Token);
+                ControlledHttpReply reply = _respond(new ControlledHttpRequest(requestParts[0], path, headers, body));
                 int declaredLength = reply.DeclaredLength ?? reply.Content.Length;
                 string location = reply.Location == null ? string.Empty : "Location: " + reply.Location + "\r\n";
                 string header = $"HTTP/1.1 {reply.Status} Test\r\nConnection: close\r\nContent-Type: {reply.ContentType}\r\nContent-Length: {declaredLength}\r\n{location}\r\n";
+                if (reply.ExtraHeaders != null) header = header[..^2] + reply.ExtraHeaders + "\r\n";
                 await stream.WriteAsync(Encoding.ASCII.GetBytes(header), _stop.Token);
                 if (reply.Content.Length != 0) await stream.WriteAsync(reply.Content, _stop.Token);
             } catch (OperationCanceledException) when (_stop.IsCancellationRequested) { }
@@ -249,8 +335,9 @@ internal sealed class ControlledHttpServer : IAsyncDisposable {
     }
 }
 
+internal sealed record ControlledHttpRequest(string Method, string Path, IReadOnlyDictionary<string, string> Headers, byte[] Body);
 internal sealed record ControlledHttpReply(byte[] Content, string ContentType, int Status,
-    string? Location = null, int? DeclaredLength = null) {
+    string? Location = null, int? DeclaredLength = null, string? ExtraHeaders = null) {
     internal static ControlledHttpReply Html(string html) =>
         new(Encoding.UTF8.GetBytes(html), "text/html; charset=utf-8", 200);
     internal static ControlledHttpReply Redirect(string location) =>

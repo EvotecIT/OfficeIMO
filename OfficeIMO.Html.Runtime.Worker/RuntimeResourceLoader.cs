@@ -55,36 +55,18 @@ internal sealed class RuntimeResourceLoader : IDisposable {
             var currentUrl = requestedUrl;
             string method = fetch?.Method ?? "GET";
             var headers = new Dictionary<string, string>(fetch?.Headers ?? new(), StringComparer.OrdinalIgnoreCase);
+            HtmlRuntimeFetchReplay? replay = null;
+            int replayHop = 0;
             if (replayRequest != null) {
                 RuntimeFetchRequest replayFetch = fetch!;
                 bool replayCrossOrigin = HtmlRuntimeResourcePolicy.Origin(requestedUrl) != _documentOrigin;
                 if (replayCrossOrigin && replayFetch.Mode == "same-origin")
                     throw new HtmlScriptRuntimeException("Cross-origin fetch is forbidden in same-origin mode.");
                 HtmlRuntimeFetchDiscovery discovery = NextFetchOccurrence(replayRequest);
-                if (_fetchReplays.TryGetValue(discovery.Identity, out HtmlRuntimeFetchReplay? replay)) {
-                    if (replayCrossOrigin && RuntimeFetchCors.RequiresPreflight(replayFetch.Method, replayFetch.Headers))
-                        throw new HtmlScriptRuntimeException("Cross-origin exact replay requiring CORS preflight is not supported.");
-                    ReserveExactRequest(body);
-                    CheckOrigin(replay.Response.FinalUrl);
-                    ReserveBytes(method == "HEAD" ? 0 : replay.Response.Length);
-                    var replayHeaders = new Dictionary<string, string>(replay.Response.Headers, StringComparer.OrdinalIgnoreCase) {
-                        ["Content-Type"] = replay.Response.ContentType
-                    };
-                    var replayed = new HtmlRuntimeResource(requestedUrl, method == "HEAD" ? Array.Empty<byte>() : replay.Response.Buffer,
-                        replay.Response.ContentType, replay.Response.StatusCode, replay.Response.FinalUrl, 0,
-                        replayHeaders, replay.Response.StatusText);
-                    if (replayCrossOrigin) RuntimeFetchCors.Check(replayed.Headers, _documentOrigin);
-                    _diagnostics.RecordConsumedFetchReplay(replay.Identity);
-                    _diagnostics.Record(HtmlRuntimeEventKind.Policy, "fetch-replay", "consumed", started,
-                        url: requestedUrl, method: method, decision: "supplied-dynamic-replay", artifactId: replay.Identity);
-                    _diagnostics.Record(HtmlRuntimeEventKind.Resource, "fetch", "success", started,
-                        DateTimeOffset.UtcNow - started, url: originalUrl, method: originalMethod,
-                        statusCode: replayed.StatusCode, byteCount: replayed.Length, decision: "replayed");
-                    return replayed;
-                }
+                _fetchReplays.TryGetValue(discovery.Identity, out replay);
                 bool urlSupply = body == null && headers.Count == 0 && method is "GET" or "HEAD"
                     && _supplied.ContainsKey(HtmlRuntimeResourcePolicy.Key(requestedUrl));
-                if (!_policy.AllowNetwork && !urlSupply) {
+                if (replay == null && !_policy.AllowNetwork && !urlSupply) {
                     ReserveExactRequest(body);
                     _diagnostics.RecordMissingFetch(discovery);
                     bool simpleGet = method == "GET" && body == null && headers.Count == 0;
@@ -98,18 +80,43 @@ internal sealed class RuntimeResourceLoader : IDisposable {
             bool cors = false;
             while (true) {
                 operation.Token.ThrowIfCancellationRequested();
+                if (replay != null && replayHop >= replay.Hops.Count)
+                    throw new HtmlScriptRuntimeException("The dynamic replay ended before the fetch completed.");
                 CheckOrigin(currentUrl);
                 bool crossOrigin = HtmlRuntimeResourcePolicy.Origin(currentUrl) != _documentOrigin;
                 if (fetch != null) {
                     if (crossOrigin && fetch.Mode == "same-origin") throw new HtmlScriptRuntimeException("Cross-origin fetch is forbidden in same-origin mode.");
                     cors |= crossOrigin;
-                    if (cors) await PreflightAsync(currentUrl, method, headers, operation.Token).ConfigureAwait(false);
+                    if (cors) {
+                        if (replay != null) {
+                            HtmlRuntimeResource? preflight = replay.Hops[replayHop].PreflightResponse;
+                            if (HtmlRuntimeCorsPolicy.RequiresPreflight(method, headers)) {
+                                if (preflight == null) throw new HtmlScriptRuntimeException("The dynamic replay omitted its required CORS preflight.");
+                                ReserveExactRequest(null);
+                                ReserveBytes(preflight.Length);
+                                HtmlRuntimeCorsPolicy.CheckPreflight(preflight, _documentOrigin, method, HtmlRuntimeCorsPolicy.UnsafeHeaders(headers));
+                            } else if (preflight != null) throw new HtmlScriptRuntimeException("The dynamic replay supplied an unexpected CORS preflight.");
+                        } else await PreflightAsync(currentUrl, method, headers, operation.Token).ConfigureAwait(false);
+                    } else if (replay?.Hops[replayHop].PreflightResponse != null)
+                        throw new HtmlScriptRuntimeException("The dynamic replay supplied a same-origin CORS preflight.");
                 }
                 var outgoing = new Dictionary<string, string>(headers, StringComparer.OrdinalIgnoreCase);
                 if (fetch != null && (cors || method is not ("GET" or "HEAD"))) outgoing["Origin"] = _documentOrigin;
                 bool allowUrlSupply = fetch == null || body == null && fetch.Headers.Count == 0 && method is "GET" or "HEAD";
-                HtmlRuntimeResource response = await SendAsync(currentUrl, method, outgoing, body, allowUrlSupply, operation.Token).ConfigureAwait(false);
-                if (fetch != null && cors) RuntimeFetchCors.Check(response.Headers, _documentOrigin);
+                HtmlRuntimeResource response;
+                if (replay != null) {
+                    ReserveExactRequest(body);
+                    response = replay.Hops[replayHop++].Response;
+                    if (HtmlRuntimeResourcePolicy.Key(response.Url) != HtmlRuntimeResourcePolicy.Key(currentUrl))
+                        throw new HtmlScriptRuntimeException("The dynamic replay hop URL did not match the fetch redirect.");
+                    ReserveBytes(method == "HEAD" ? 0 : response.Length);
+                    if (replayHop == 1) {
+                        _diagnostics.RecordConsumedFetchReplay(replay.Identity);
+                        _diagnostics.Record(HtmlRuntimeEventKind.Policy, "fetch-replay", "consumed", started,
+                            url: requestedUrl, method: method, decision: "supplied-dynamic-replay", artifactId: replay.Identity);
+                    }
+                } else response = await SendAsync(currentUrl, method, outgoing, body, allowUrlSupply, operation.Token).ConfigureAwait(false);
+                if (fetch != null && cors) HtmlRuntimeCorsPolicy.Check(response.Headers, _documentOrigin);
                 if (response.RedirectCount != 0 || response.FinalUrl != currentUrl) {
                     // A supplied final response has no redirect response headers to check for fetch.
                     if (fetch != null) throw new HtmlScriptRuntimeException("Fetch requires explicit redirect responses in supplied resources.");
@@ -143,6 +150,8 @@ internal sealed class RuntimeResourceLoader : IDisposable {
                     currentUrl = new Uri(HtmlRuntimeResourcePolicy.Key(next));
                     continue;
                 }
+                if (replay != null && replayHop != replay.Hops.Count)
+                    throw new HtmlScriptRuntimeException("The dynamic replay contains responses after the fetch completed.");
                 var finalUrl = new Uri(HtmlRuntimeResourcePolicy.Key(response.FinalUrl) + responseFragment);
                 var result = new HtmlRuntimeResource(requestedUrl, response.Buffer, response.ContentType, response.StatusCode, finalUrl, redirects, response.Headers, response.StatusText);
                 // A POST response at an image/script URL must not replace its retained GET asset.
@@ -168,12 +177,12 @@ internal sealed class RuntimeResourceLoader : IDisposable {
     }
 
     private async Task PreflightAsync(Uri url, string method, Dictionary<string, string> headers, CancellationToken token) {
-        string[] unsafeHeaders = RuntimeFetchCors.UnsafeHeaders(headers);
+        string[] unsafeHeaders = HtmlRuntimeCorsPolicy.UnsafeHeaders(headers);
         if (method is "GET" or "HEAD" or "POST" && unsafeHeaders.Length == 0) return;
         var preflightHeaders = new Dictionary<string, string> { ["Origin"] = _documentOrigin, ["Access-Control-Request-Method"] = method };
         if (unsafeHeaders.Length != 0) preflightHeaders["Access-Control-Request-Headers"] = string.Join(",", unsafeHeaders);
         var response = await SendAsync(url, "OPTIONS", preflightHeaders, null, false, token).ConfigureAwait(false);
-        RuntimeFetchCors.CheckPreflight(response, _documentOrigin, method, unsafeHeaders);
+        HtmlRuntimeCorsPolicy.CheckPreflight(response, _documentOrigin, method, unsafeHeaders);
     }
 
     private async Task<HtmlRuntimeResource> SendAsync(Uri url, string method, IReadOnlyDictionary<string, string> headers,

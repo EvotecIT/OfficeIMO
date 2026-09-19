@@ -158,7 +158,8 @@ public class RuntimePublicResourceBrokerTests {
             new Dictionary<string, string> { ["Content-Type"] = "application/json", ["X-Variant"] = "blue" },
             Encoding.UTF8.GetBytes("{\"value\":42}"), credentials: "omit");
 
-        HtmlPublicResourceResult result = await broker.FetchAsync(new HtmlRuntimeFetchDiscovery(request, 1));
+        HtmlPublicResourceResult result = await broker.FetchAsync(new HtmlRuntimeFetchDiscovery(request, 1),
+            new Uri("http://page.example.test/"));
 
         Assert.Equal(409, result.Resource.StatusCode);
         Assert.Equal("retained", result.Resource.Headers["X-Result"]);
@@ -171,7 +172,7 @@ public class RuntimePublicResourceBrokerTests {
     }
 
     [Fact]
-    public async Task DynamicAcquisitionRejectsCredentialsAndRedirects() {
+    public async Task DynamicAcquisitionRejectsCredentialsAndHonorsRedirectLimit() {
         var credentialed = new HtmlRuntimeFetchRequest(new Uri("http://page.example.test/private"), headers:
             new Dictionary<string, string> { ["Authorization"] = "Bearer secret" });
         Assert.Throws<HtmlScriptRuntimeException>(() => HtmlPublicResourceBroker.ValidateDynamicRequest(credentialed));
@@ -184,9 +185,170 @@ public class RuntimePublicResourceBrokerTests {
             body: Encoding.UTF8.GetBytes("once"));
 
         var error = await Assert.ThrowsAsync<HtmlScriptRuntimeException>(() =>
-            broker.FetchAsync(new HtmlRuntimeFetchDiscovery(request, 1)));
-        Assert.Contains("redirects", error.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Single(server.Requests);
+            broker.FetchAsync(new HtmlRuntimeFetchDiscovery(request, 1), new Uri("http://page.example.test/")));
+        Assert.Contains("redirect limit", error.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(6, server.Requests.Count);
+    }
+
+    [Fact]
+    public async Task DynamicPostRedirectChangesToGetAndRetainsDirectHops() {
+        await using var server = new RuntimeHttpFixture((path, _) => Task.FromResult(path == "/submit"
+            ? RuntimeHttpFixture.Reply.Text("", "text/plain", 302, "Location: /result\r\n")
+            : RuntimeHttpFixture.Reply.Text("ready", "text/plain")));
+        var broker = Broker(server, new[] { "page.example.test" }, (_, _) =>
+            Task.FromResult(new[] { IPAddress.Parse("93.184.216.34") }));
+        var request = new HtmlRuntimeFetchRequest(new Uri("http://page.example.test/submit"), "POST",
+            body: Encoding.UTF8.GetBytes("once"));
+
+        HtmlPublicResourceResult result = await broker.FetchAsync(new HtmlRuntimeFetchDiscovery(request, 1),
+            new Uri("http://page.example.test/"));
+
+        Assert.Equal("ready", Encoding.UTF8.GetString(result.Resource.Buffer));
+        Assert.Equal(2, result.DynamicHops!.Count);
+        Assert.Equal(302, result.DynamicHops[0].Response.StatusCode);
+        Assert.Equal(new[] { "POST", "GET" }, server.Received.Select(item => item.Method));
+        Assert.Empty(server.Received.Last().Body);
+    }
+
+    [Fact]
+    public async Task Dynamic307RetainsPostBodyAndChargesEveryHop() {
+        await using var server = new RuntimeHttpFixture((path, _) => Task.FromResult(path == "/submit"
+            ? RuntimeHttpFixture.Reply.Text("", "text/plain", 307, "Location: /result\r\n")
+            : RuntimeHttpFixture.Reply.Text("ready", "text/plain")));
+        var broker = new HtmlPublicResourceBroker(new[] { "page.example.test" },
+            (_, _) => Task.FromResult(new[] { IPAddress.Parse("93.184.216.34") }),
+            async (_, _, token) => {
+                var client = new TcpClient(AddressFamily.InterNetwork);
+                try { await client.ConnectAsync(IPAddress.Loopback, server.Origin.Port, token); return client.GetStream(); }
+                catch { client.Dispose(); throw; }
+            }, maxRequestBytes: 4, maxTotalRequestBytes: 8);
+        var request = new HtmlRuntimeFetchRequest(new Uri("http://page.example.test/submit"), "POST",
+            body: Encoding.UTF8.GetBytes("once"));
+
+        HtmlPublicResourceResult result = await broker.FetchAsync(new HtmlRuntimeFetchDiscovery(request, 1),
+            new Uri("http://page.example.test/"));
+
+        Assert.Equal(new[] { "POST", "POST" }, server.Received.Select(item => item.Method));
+        Assert.All(server.Received, item => Assert.Equal("once", Encoding.UTF8.GetString(item.Body)));
+        Assert.Equal(2, result.DynamicExchanges!.Count);
+        Assert.All(result.DynamicExchanges, exchange => Assert.Equal(4, exchange.RequestBodyByteCount));
+    }
+
+    [Fact]
+    public async Task DynamicRedirectToAnotherOriginStopsBeforeSecondConnection() {
+        await using var server = new RuntimeHttpFixture((_, _) => Task.FromResult(
+            RuntimeHttpFixture.Reply.Text("", "text/plain", 302,
+                "Location: http://other.example.test/result\r\n")));
+        int connections = 0;
+        var broker = Broker(server, new[] { "page.example.test", "other.example.test" }, (_, _) =>
+            Task.FromResult(new[] { IPAddress.Parse("93.184.216.34") }),
+            (_, _) => Interlocked.Increment(ref connections));
+        var request = new HtmlRuntimeFetchRequest(new Uri("http://page.example.test/start"));
+
+        HtmlScriptRuntimeException error = await Assert.ThrowsAsync<HtmlScriptRuntimeException>(() =>
+            broker.FetchAsync(new HtmlRuntimeFetchDiscovery(request, 1), new Uri("http://page.example.test/")));
+
+        Assert.Contains("distinct origins", error.Message, StringComparison.Ordinal);
+        Assert.Equal(1, connections);
+    }
+
+    [Fact]
+    public async Task CrossOriginDynamicAcquisitionPreflightsBeforeUnsafeRequest() {
+        await using var server = new RuntimeHttpFixture((_, _) => Task.FromResult(RuntimeHttpFixture.Reply.Text("ready", "text/plain")));
+        server.RespondToRequest = (received, _) => Task.FromResult(received.Method == "OPTIONS"
+            ? RuntimeHttpFixture.Reply.Text("", "text/plain", 204,
+                "Access-Control-Allow-Origin: http://page.example.test\r\nAccess-Control-Allow-Methods: POST\r\nAccess-Control-Allow-Headers: content-type\r\n")
+            : RuntimeHttpFixture.Reply.Text("ready", "text/plain", 200,
+                "Access-Control-Allow-Origin: http://page.example.test\r\n"));
+        var broker = Broker(server, new[] { "page.example.test", "api.example.test" }, (_, _) =>
+            Task.FromResult(new[] { IPAddress.Parse("93.184.216.34") }));
+        var request = new HtmlRuntimeFetchRequest(new Uri("http://api.example.test/submit"), "POST",
+            new Dictionary<string, string> { ["Content-Type"] = "application/json" }, Encoding.UTF8.GetBytes("{}"));
+
+        HtmlPublicResourceResult result = await broker.FetchAsync(new HtmlRuntimeFetchDiscovery(request, 1),
+            new Uri("http://page.example.test/"));
+
+        Assert.Equal(new[] { "OPTIONS", "POST" }, server.Received.Select(item => item.Method));
+        Assert.NotNull(Assert.Single(result.DynamicHops!).PreflightResponse);
+        Assert.Equal("http://page.example.test", server.Received.First().Headers["Origin"]);
+        Assert.Equal("POST", server.Received.First().Headers["Access-Control-Request-Method"]);
+        Assert.Equal("content-type", server.Received.First().Headers["Access-Control-Request-Headers"]);
+        Assert.Equal("http://page.example.test", server.Received.Last().Headers["Origin"]);
+    }
+
+    [Fact]
+    public async Task DynamicOnlyHostCannotBeFetchedAsAStaticResource() {
+        await using var server = new RuntimeHttpFixture((path, _) => Task.FromResult(path == "/start"
+            ? RuntimeHttpFixture.Reply.Text("", "text/plain", 302,
+                "Location: http://api.example.test/data\r\n")
+            : RuntimeHttpFixture.Reply.Text("ready", "text/plain", 200,
+                "Access-Control-Allow-Origin: http://page.example.test\r\n")));
+        int connections = 0;
+        var broker = new HtmlPublicResourceBroker(new[] { "page.example.test" },
+            (_, _) => Task.FromResult(new[] { IPAddress.Parse("93.184.216.34") }),
+            async (_, _, token) => {
+                Interlocked.Increment(ref connections);
+                var client = new TcpClient(AddressFamily.InterNetwork);
+                try { await client.ConnectAsync(IPAddress.Loopback, server.Origin.Port, token); return client.GetStream(); }
+                catch { client.Dispose(); throw; }
+            }, dynamicHosts: new[] { "api.example.test" });
+
+        Assert.False(broker.AllowsHost(new Uri("http://api.example.test/data")));
+        await Assert.ThrowsAsync<HtmlScriptRuntimeException>(() =>
+            broker.FetchAsync(new Uri("http://api.example.test/data")));
+        Assert.Equal(0, connections);
+
+        HtmlScriptRuntimeException redirectError = await Assert.ThrowsAsync<HtmlScriptRuntimeException>(() =>
+            broker.FetchAsync(new Uri("http://page.example.test/start")));
+        Assert.Contains("redirect host is not allowed", redirectError.Message, StringComparison.Ordinal);
+        Assert.Equal(1, connections);
+
+        var dynamicRequest = new HtmlRuntimeFetchRequest(new Uri("http://api.example.test/data"));
+        HtmlPublicResourceResult dynamicResult = await broker.FetchAsync(
+            new HtmlRuntimeFetchDiscovery(dynamicRequest, 1), new Uri("http://page.example.test/"));
+        Assert.Equal("ready", Encoding.UTF8.GetString(dynamicResult.Resource.Content));
+        Assert.Equal(2, connections);
+        Assert.Equal(new[] { "/start", "/data" }, server.Requests);
+    }
+
+    [Fact]
+    public async Task FailedPreflightDoesNotSendUnsafeRequest() {
+        await using var server = new RuntimeHttpFixture((_, _) => Task.FromResult(
+            RuntimeHttpFixture.Reply.Text("", "text/plain", 204)));
+        var broker = Broker(server, new[] { "page.example.test", "api.example.test" }, (_, _) =>
+            Task.FromResult(new[] { IPAddress.Parse("93.184.216.34") }));
+        var request = new HtmlRuntimeFetchRequest(new Uri("http://api.example.test/submit"), "POST",
+            new Dictionary<string, string> { ["Content-Type"] = "application/json" }, Encoding.UTF8.GetBytes("{}"));
+
+        await Assert.ThrowsAsync<HtmlScriptRuntimeException>(() => broker.FetchAsync(
+            new HtmlRuntimeFetchDiscovery(request, 1), new Uri("http://page.example.test/")));
+
+        Assert.Equal("OPTIONS", Assert.Single(server.Received).Method);
+    }
+
+    [Fact]
+    public async Task DynamicAcquisitionCancellationStopsWithoutRetryingThePost() {
+        var arrived = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await using var server = new RuntimeHttpFixture((_, _) => Task.FromResult(
+            RuntimeHttpFixture.Reply.Text("late", "text/plain")));
+        server.RespondToRequest = async (_, token) => {
+            arrived.TrySetResult();
+            await Task.Delay(TimeSpan.FromSeconds(5), token);
+            return RuntimeHttpFixture.Reply.Text("late", "text/plain");
+        };
+        var broker = Broker(server, new[] { "page.example.test" }, (_, _) =>
+            Task.FromResult(new[] { IPAddress.Parse("93.184.216.34") }));
+        var request = new HtmlRuntimeFetchRequest(new Uri("http://page.example.test/submit"), "POST",
+            body: Encoding.UTF8.GetBytes("once"));
+        using var cancellation = new CancellationTokenSource();
+        Task<HtmlPublicResourceResult> acquisition = broker.FetchAsync(new HtmlRuntimeFetchDiscovery(request, 1),
+            new Uri("http://page.example.test/"), cancellation.Token);
+        await arrived.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        cancellation.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => acquisition);
+
+        Assert.Single(server.Received);
     }
 
     [Fact]

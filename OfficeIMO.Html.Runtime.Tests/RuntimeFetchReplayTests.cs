@@ -193,7 +193,7 @@ public sealed class RuntimeFetchReplayTests {
     }
 
     [Fact]
-    public async Task CrossOriginExactReplayRejectsRequestsRequiringPreflight() {
+    public async Task CrossOriginExactReplayRequiresAndChecksPreflight() {
         var safeRequest = new HtmlRuntimeFetchRequest(new Uri("https://cdn.example/safe"), mode: "cors");
         var unsafeRequest = new HtmlRuntimeFetchRequest(new Uri("https://cdn.example/delete"), "DELETE", mode: "cors");
         var corsHeaders = new Dictionary<string, string> { ["Access-Control-Allow-Origin"] = Origin.GetLeftPart(UriPartial.Authority) };
@@ -215,5 +215,64 @@ public sealed class RuntimeFetchReplayTests {
 
         Assert.Equal("safe", result.GetProperty("safe").GetString());
         Assert.Contains("preflight", result.GetProperty("unsafe").GetString(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task CrossOriginReplayRunsPreflightAndPreservesRedirectMethodTransition() {
+        Uri url = new("https://cdn.example/submit");
+        var request = new HtmlRuntimeFetchRequest(url, "POST",
+            new Dictionary<string, string> { ["Content-Type"] = "application/json" },
+            Encoding.UTF8.GetBytes("{}"), credentials: "omit");
+        string origin = Origin.GetLeftPart(UriPartial.Authority);
+        var cors = new Dictionary<string, string> { ["Access-Control-Allow-Origin"] = origin };
+        var redirect = new Dictionary<string, string>(cors) { ["Location"] = "/result" };
+        var preflight = new Dictionary<string, string>(cors) {
+            ["Access-Control-Allow-Methods"] = "POST", ["Access-Control-Allow-Headers"] = "content-type"
+        };
+        var replay = new HtmlRuntimeFetchReplay(request, 1, new[] {
+            new HtmlRuntimeFetchHop(new HtmlRuntimeResource(url, Array.Empty<byte>(), "text/plain", 302,
+                headers: redirect), new HtmlRuntimeResource(url, Array.Empty<byte>(), "text/plain", 204,
+                headers: preflight)),
+            new HtmlRuntimeFetchHop(new HtmlRuntimeResource(new Uri("https://cdn.example/result"),
+                Encoding.UTF8.GetBytes("ready"), "text/plain", headers: cors))
+        });
+
+        JsonElement result = await RunAsync("return await (await fetch('https://cdn.example/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',credentials:'omit'})).text();",
+            new HtmlScriptRequest { DocumentUrl = Origin, FetchReplays = new[] { replay },
+                ResourcePolicy = new() { AllowedOrigins = new[] { new Uri("https://cdn.example/") } } });
+
+        Assert.Equal("ready", result.GetString());
+    }
+
+    [Fact]
+    public void ReplayRejectsMissingOrMismatchedRedirectHops() {
+        Uri url = new("https://app.example/start");
+        var request = new HtmlRuntimeFetchRequest(url);
+        var redirect = new HtmlRuntimeResource(url, Array.Empty<byte>(), "text/plain", 302,
+            headers: new Dictionary<string, string> { ["Location"] = "/next" });
+        Assert.Throws<ArgumentException>(() => new HtmlRuntimeFetchReplay(request, 1, redirect));
+        Assert.Throws<ArgumentException>(() => new HtmlRuntimeFetchReplay(request, 1, new[] {
+            new HtmlRuntimeFetchHop(redirect),
+            new HtmlRuntimeFetchHop(HtmlRuntimeResource.FromText(new Uri("https://app.example/wrong"), "bad", "text/plain"))
+        }));
+    }
+
+    [Fact]
+    public void ReplayBodyBudgetFollowsRedirectMethodRules() {
+        Uri url = new("https://app.example/submit");
+        var request = new HtmlRuntimeFetchRequest(url, "POST", body: Encoding.UTF8.GetBytes("once"));
+        var final = new HtmlRuntimeFetchHop(HtmlRuntimeResource.FromText(new Uri("https://app.example/result"),
+            "ready", "text/plain"));
+        HtmlScriptRequest Page(int status) => new() {
+            DocumentUrl = Origin,
+            FetchReplays = new[] { new HtmlRuntimeFetchReplay(request, 1, new[] {
+                new HtmlRuntimeFetchHop(new HtmlRuntimeResource(url, [], "text/plain", status,
+                    headers: new Dictionary<string, string> { ["Location"] = "/result" })), final
+            }) },
+            ResourcePolicy = new() { MaxRequestBytes = 4, MaxTotalRequestBytes = 4 }
+        };
+
+        Page(302).Snapshot();
+        Assert.Throws<ArgumentException>(() => Page(307).Snapshot());
     }
 }

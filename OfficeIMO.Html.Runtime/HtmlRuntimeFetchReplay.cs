@@ -134,25 +134,68 @@ public sealed class HtmlRuntimeFetchDiscovery {
     public string Identity => Request.Identity + ":" + Occurrence;
 }
 
-/// <summary>An acquired response bound to one exact dynamic request occurrence.</summary>
-public sealed class HtmlRuntimeFetchReplay {
-    /// <summary>Creates an immutable offline replay response.</summary>
+/// <summary>One direct HTTP response in an exact dynamic request transcript. A preflight response belongs to the same URL.</summary>
+public sealed class HtmlRuntimeFetchHop {
+    /// <summary>Creates an immutable response hop and its optional CORS preflight response.</summary>
     [JsonConstructor]
-    public HtmlRuntimeFetchReplay(HtmlRuntimeFetchRequest request, int occurrence, HtmlRuntimeResource response) {
+    public HtmlRuntimeFetchHop(HtmlRuntimeResource response, HtmlRuntimeResource? preflightResponse = null) {
+        Response = response ?? throw new ArgumentNullException(nameof(response));
+        if (Response.RedirectCount != 0 || HtmlRuntimeResourcePolicy.Key(Response.Url) != HtmlRuntimeResourcePolicy.Key(Response.FinalUrl))
+            throw new ArgumentException("A fetch hop must contain one direct HTTP response.", nameof(response));
+        if (preflightResponse != null && (preflightResponse.RedirectCount != 0 ||
+            HtmlRuntimeResourcePolicy.Key(preflightResponse.Url) != HtmlRuntimeResourcePolicy.Key(Response.Url) ||
+            HtmlRuntimeResourcePolicy.Key(preflightResponse.FinalUrl) != HtmlRuntimeResourcePolicy.Key(Response.Url)))
+            throw new ArgumentException("A preflight response must be direct and use the hop URL.", nameof(preflightResponse));
+        PreflightResponse = preflightResponse;
+    }
+
+    /// <summary>Direct response for this request URL, including redirect status and Location when applicable.</summary>
+    public HtmlRuntimeResource Response { get; }
+    /// <summary>Direct OPTIONS response acquired before this hop when CORS preflight was required.</summary>
+    public HtmlRuntimeResource? PreflightResponse { get; }
+}
+
+/// <summary>An ordered HTTP response transcript bound to one exact dynamic request occurrence.</summary>
+public sealed class HtmlRuntimeFetchReplay {
+    /// <summary>Creates a one-response replay for requests without redirects or preflight.</summary>
+    public HtmlRuntimeFetchReplay(HtmlRuntimeFetchRequest request, int occurrence, HtmlRuntimeResource response)
+        : this(request, occurrence, new[] { new HtmlRuntimeFetchHop(response) }) { }
+
+    /// <summary>Creates a bounded, ordered replay from direct HTTP response hops.</summary>
+    [JsonConstructor]
+    public HtmlRuntimeFetchReplay(HtmlRuntimeFetchRequest request, int occurrence, IReadOnlyList<HtmlRuntimeFetchHop> hops) {
         Request = request ?? throw new ArgumentNullException(nameof(request));
         if (occurrence <= 0) throw new ArgumentOutOfRangeException(nameof(occurrence));
-        Response = response ?? throw new ArgumentNullException(nameof(response));
-        if (Response.RedirectCount != 0 || HtmlRuntimeResourcePolicy.Key(Response.Url) != HtmlRuntimeResourcePolicy.Key(Request.Url) ||
-            HtmlRuntimeResourcePolicy.Key(Response.FinalUrl) != HtmlRuntimeResourcePolicy.Key(Request.Url))
-            throw new ArgumentException("Dynamic replay responses must be direct responses for the exact request URL.", nameof(response));
+        ArgumentNullException.ThrowIfNull(hops);
+        if (hops.Count is < 1 or > 16) throw new ArgumentException("A dynamic replay requires one to sixteen direct response hops.", nameof(hops));
+        HtmlRuntimeFetchHop[] retained = hops.ToArray();
+        Uri expected = Request.Url;
+        for (int index = 0; index < retained.Length; index++) {
+            HtmlRuntimeFetchHop hop = retained[index] ?? throw new ArgumentException("A dynamic replay hop cannot be null.", nameof(hops));
+            if (HtmlRuntimeResourcePolicy.Key(hop.Response.Url) != HtmlRuntimeResourcePolicy.Key(expected))
+                throw new ArgumentException("A dynamic replay hop has a different request URL.", nameof(hops));
+            bool redirectStatus = hop.Response.StatusCode is 301 or 302 or 303 or 307 or 308;
+            string? location = null;
+            bool redirected = redirectStatus && hop.Response.Headers.TryGetValue("Location", out location);
+            if (index == retained.Length - 1) {
+                if (redirected) throw new ArgumentException("A dynamic replay cannot end at a redirect response.", nameof(hops));
+            } else {
+                if (!redirected) throw new ArgumentException("A dynamic replay cannot continue after a final response.", nameof(hops));
+                expected = new Uri(HtmlRuntimeResourcePolicy.Key(new Uri(expected, location!)));
+            }
+        }
+        Hops = Array.AsReadOnly(retained);
         Occurrence = occurrence;
     }
     /// <summary>Normalized original request.</summary>
     public HtmlRuntimeFetchRequest Request { get; }
     /// <summary>One-based occurrence for repeated identical requests.</summary>
     public int Occurrence { get; }
-    /// <summary>Direct immutable response returned to fetch or XMLHttpRequest.</summary>
-    public HtmlRuntimeResource Response { get; }
+    /// <summary>Ordered direct responses, including redirect and preflight responses.</summary>
+    public IReadOnlyList<HtmlRuntimeFetchHop> Hops { get; }
+    /// <summary>Final direct response in the transcript.</summary>
+    [JsonIgnore]
+    public HtmlRuntimeResource Response => Hops[^1].Response;
     /// <summary>Stable identity including the repeated-request occurrence.</summary>
     [JsonIgnore]
     public string Identity => Request.Identity + ":" + Occurrence;

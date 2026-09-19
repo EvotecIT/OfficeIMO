@@ -66,17 +66,25 @@ JavaScript module graph, a scoped import-map graph with prefix mapping and dynam
 script-driven relative `fetch()` GET replay with query preservation and fragment stripping,
 script-driven asynchronous XMLHttpRequest with request headers, bounded same-origin
 GET/HEAD and caller-authorized non-GET request replay through the same transport,
+bounded same-origin dynamic redirects, and exact cross-origin requests with
+caller-approved origins and CORS preflight,
 and same-origin frame-document loading with relative-resource discovery, isolated classic-script child realms,
 frame-local import maps and module graphs, static and dynamic JSON imports, bounded parent/child messaging,
 and searchable frame-body rendering in both PDF modes. Invalid import attributes and JSON MIME types
 reject with `TypeError`; malformed JSON module source rejects with `SyntaxError`.
-Cross-origin frame execution, dynamic cross-origin requests and redirects,
+Cross-origin frame execution, origin-changing dynamic redirects,
 transferable frame messages, import-attribute module types beyond JSON and browser-wide
 dynamic loading are not qualified by this profile. Cookies and credentials are outside this profile.
 GET and HEAD are admitted by default. Add `--method=POST` (or another supported
 method) only when the named page is authorized to perform that live request; the
 broker executes each discovered occurrence once and records request names, byte
-counts and digests without retaining header values or request bodies.
+counts and digests without retaining header values or request bodies. Add
+`--dynamic-origin=https://api.example/` to authorize one exact cross-origin
+dynamic origin. `--host` alone never authorizes a dynamic cross-origin request.
+Likewise, `--dynamic-origin` does not approve static assets or document redirects
+on that host; use `--host` when those are intended.
+Use `--max-output-bytes=BYTES` or `--max-total-output-bytes=BYTES` to lower the
+8 MiB per-output or 12 MiB combined encoded-output ceilings.
 Use `--timeout-seconds=SECONDS` to lower the acquisition and execution deadline
 when exercising cancellation. Verified container removal has a separate fixed
 one-minute fail-safe budget and is recorded in failure evidence. `--retain-input` writes acquired bytes only when the

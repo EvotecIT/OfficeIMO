@@ -46,7 +46,8 @@ public static class HtmlIsolatedPublicPageWorkflow {
                 timeout: callerPolicy.Timeout < TimeSpan.FromSeconds(20) ? callerPolicy.Timeout : TimeSpan.FromSeconds(20),
                 maxRedirects: Math.Min(callerPolicy.MaxRedirects, 5),
                 maxRequestBytes: Math.Min(callerPolicy.MaxRequestBytes, 1024L * 1024),
-                maxTotalRequestBytes: Math.Min(callerPolicy.MaxTotalRequestBytes, 16L * 1024 * 1024));
+                maxTotalRequestBytes: Math.Min(callerPolicy.MaxTotalRequestBytes, 16L * 1024 * 1024),
+                dynamicHosts: input.AllowedDynamicRequestOrigins.Select(origin => origin.IdnHost));
 
             phase = HtmlIsolatedPublicPagePhase.Acquisition;
             document = await broker.FetchAsync(input.Url, operation.Token).ConfigureAwait(false);
@@ -80,7 +81,8 @@ public static class HtmlIsolatedPublicPageWorkflow {
             Process process = lease.Process;
             Task<string> stderr = DrainErrorAsync(process.StandardError.BaseStream, operation.Token);
             await HtmlRuntimeProtocol.WriteAsync(process.StandardInput.BaseStream,
-                new HtmlPublicRenderRequest { Page = page }, 24 * 1024 * 1024, operation.Token).ConfigureAwait(false);
+                new HtmlPublicRenderRequest { Page = page, MaxOutputBytesPerArtifact = input.MaxOutputBytesPerArtifact,
+                    MaxTotalOutputBytes = input.MaxTotalOutputBytes }, 24 * 1024 * 1024, operation.Token).ConfigureAwait(false);
             var known = new HashSet<string>(StringComparer.Ordinal) {
                 HtmlRuntimeResourcePolicy.Key(document.Resource.Url),
                 HtmlRuntimeResourcePolicy.Key(document.Resource.FinalUrl)
@@ -136,14 +138,17 @@ public static class HtmlIsolatedPublicPageWorkflow {
                         throw new HtmlScriptRuntimeException("The isolated renderer repeated a supplied dynamic request occurrence.");
                     if (!input.AllowedDynamicRequestMethods.Contains(dynamic.Method, StringComparer.Ordinal))
                         throw new HtmlScriptRuntimeException("Dynamic request method " + dynamic.Method + " was not authorized by the caller.");
-                    if (HtmlRuntimeResourcePolicy.Origin(dynamic.Url) != HtmlRuntimeResourcePolicy.Origin(page.DocumentUrl))
-                        throw new HtmlScriptRuntimeException("Cross-origin dynamic acquisition is outside the isolated profile.");
+                    string dynamicOrigin = HtmlRuntimeResourcePolicy.Origin(dynamic.Url);
+                    if (dynamicOrigin != HtmlRuntimeResourcePolicy.Origin(page.DocumentUrl) &&
+                        !input.AllowedDynamicRequestOrigins.Any(origin => HtmlRuntimeResourcePolicy.Origin(origin) == dynamicOrigin))
+                        throw new HtmlScriptRuntimeException("The dynamic request origin was not authorized by the caller.");
                     HtmlPublicResourceBroker.ValidateDynamicRequest(dynamic);
                     if (assets.Count >= assetLimit)
                         throw new HtmlScriptRuntimeException("The dynamic acquisition resource count limit was exceeded.");
-                    HtmlPublicResourceResult asset = await broker.FetchAsync(discovery, operation.Token).ConfigureAwait(false);
+                    HtmlPublicResourceResult asset = await broker.FetchAsync(discovery, page.DocumentUrl, operation.Token).ConfigureAwait(false);
                     assets.Add(asset);
-                    fetchBatch.Add(new HtmlRuntimeFetchReplay(dynamic, discovery.Occurrence, asset.Resource));
+                    fetchBatch.Add(new HtmlRuntimeFetchReplay(dynamic, discovery.Occurrence,
+                        asset.DynamicHops ?? throw new HtmlScriptRuntimeException("The dynamic acquisition transcript is missing.")));
                 }
                 await HtmlRuntimeProtocol.WriteAsync(process.StandardInput.BaseStream,
                     new HtmlPublicResourceBatch { Resources = batch.ToArray(), FetchReplays = fetchBatch.ToArray() },
@@ -166,6 +171,10 @@ public static class HtmlIsolatedPublicPageWorkflow {
             screen = response.Screen ?? throw new HtmlScriptRuntimeException("The isolated screen output is missing.");
             print = response.Print ?? throw new HtmlScriptRuntimeException("The isolated print output is missing.");
             screenToPage = response.ScreenToPage ?? throw new HtmlScriptRuntimeException("The isolated screen-to-page output is missing.");
+            if (screen.LongLength > input.MaxOutputBytesPerArtifact || print.LongLength > input.MaxOutputBytesPerArtifact ||
+                screenToPage.LongLength > input.MaxOutputBytesPerArtifact ||
+                (long)screen.Length + print.Length + screenToPage.Length > input.MaxTotalOutputBytes)
+                throw new HtmlScriptRuntimeException("The isolated render output exceeds its byte budget.");
         } catch (HtmlOciWorkerStartException error) {
             containerName = error.ContainerName;
             containerRemoved = error.ContainerRemoved;

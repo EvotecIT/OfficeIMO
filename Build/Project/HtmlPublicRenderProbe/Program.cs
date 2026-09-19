@@ -155,6 +155,39 @@ var cases = new List<ProbeCase> {
             [ $"POST {fixtureOrigin}/api/submit #1" ],
             [ $"POST {fixtureOrigin}/api/submit #2" ]
         ]),
+    new ProbeCase("dynamic-post-redirect", """
+        <!doctype html><style>#result{color:#0055aa}</style><p id=result>Loading</p>
+        <script>fetch('/api/submit',{method:'POST',body:'once'}).then(r=>r.text()).then(t=>document.querySelector('#result').textContent=t)</script>
+        """, "document.querySelector('#result')?.textContent === 'Redirected fetch ready'", 8 * 1024 * 1024,
+        ExpectedVisibleText: "Redirected fetch ready", ExpectBlueInk: true,
+        DynamicResponses: new Dictionary<string, ProbeDynamicResource>(StringComparer.Ordinal) {
+            [$"POST {fixtureOrigin}/api/submit #1"] = new("", "text/plain", "once", Hops: new[] {
+                new HtmlRuntimeFetchHop(new HtmlRuntimeResource(new Uri($"{fixtureOrigin}/api/submit"), [], "text/plain", 302,
+                    headers: new Dictionary<string, string> { ["Location"] = "/api/result" })),
+                new HtmlRuntimeFetchHop(HtmlRuntimeResource.FromText(new Uri($"{fixtureOrigin}/api/result"),
+                    "Redirected fetch ready", "text/plain"))
+            })
+        }, ExpectedDiscoveryRounds: [[ $"POST {fixtureOrigin}/api/submit #1" ]]),
+    new ProbeCase("dynamic-cross-origin-preflight", """
+        <!doctype html><style>#result{color:#0055aa}</style><p id=result>Loading</p>
+        <script>fetch('https://api.fixture.officeimo.invalid/data',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',credentials:'omit'}).then(r=>r.text()).then(t=>document.querySelector('#result').textContent=t)</script>
+        """, "document.querySelector('#result')?.textContent === 'CORS fetch ready'", 8 * 1024 * 1024,
+        ExpectedVisibleText: "CORS fetch ready", ExpectBlueInk: true,
+        AllowedOrigins: [new Uri("https://api.fixture.officeimo.invalid/")],
+        DynamicResponses: new Dictionary<string, ProbeDynamicResource>(StringComparer.Ordinal) {
+            ["POST https://api.fixture.officeimo.invalid/data #1"] = new("", "text/plain", "{}",
+                new Dictionary<string, string> { ["Content-Type"] = "application/json" }, Hops: new[] {
+                    new HtmlRuntimeFetchHop(new HtmlRuntimeResource(new Uri("https://api.fixture.officeimo.invalid/data"),
+                        Encoding.UTF8.GetBytes("CORS fetch ready"), "text/plain", headers: new Dictionary<string, string> {
+                            ["Access-Control-Allow-Origin"] = fixtureOrigin
+                        }), new HtmlRuntimeResource(new Uri("https://api.fixture.officeimo.invalid/data"), [],
+                        "text/plain", 204, headers: new Dictionary<string, string> {
+                            ["Access-Control-Allow-Origin"] = fixtureOrigin,
+                            ["Access-Control-Allow-Methods"] = "POST",
+                            ["Access-Control-Allow-Headers"] = "content-type"
+                        }))
+                })
+        }, ExpectedDiscoveryRounds: [[ "POST https://api.fixture.officeimo.invalid/data #1" ]]),
     new ProbeCase("frame-document", """
         <!doctype html><style>body{font:16px sans-serif}#outer{color:#222}</style>
         <script>addEventListener('message',event=>{if(event.data?.kind==='frame-ready')document.body.dataset.childMessage=event.data.value})</script>
@@ -233,6 +266,9 @@ var cases = new List<ProbeCase> {
         ExpectedError: "The document exceeds the pilot's static resource discovery limit."),
     new ProbeCase("capture-output-budget", "<p>" + new string('X', 4096) + "</p>", "true", 1024,
         ExpectedErrorKind: "HtmlScriptRuntimeException", ExpectedError: "Captured data budget exceeded."),
+    new ProbeCase("encoded-output-budget", "<p>Encoded output limit</p>", "true", 8 * 1024 * 1024,
+        ExpectedErrorKind: "HtmlScriptRuntimeException",
+        ExpectedError: "The isolated render output exceeds its byte budget.", MaxOutputBytesPerArtifact: 1),
     new ProbeCase("runaway-script", "<script>while(true){}</script>", "true", 8 * 1024 * 1024,
         ExpectedErrorKind: "TimeoutException", ExpectedError: "The runtime command exceeded its deadline."),
     new ProbeCase("runaway-frame-script", "<iframe src='/frame/runaway.html'></iframe>", "true", 8 * 1024 * 1024,
@@ -284,7 +320,8 @@ async Task<ProbeResult> RunCaseAsync(ProbeCase fixture) {
             Html = fixture.Html,
             DocumentUrl = fixture.DocumentUrl ?? new Uri(fixtureOrigin + "/"),
             ReadyExpression = fixture.ReadyExpression,
-            ResourcePolicy = new HtmlRuntimeResourcePolicy { AllowNetwork = false, MaxRequests = 64 },
+            ResourcePolicy = new HtmlRuntimeResourcePolicy { AllowNetwork = false, MaxRequests = 64,
+                AllowedOrigins = fixture.AllowedOrigins ?? Array.Empty<Uri>() },
             Timeout = TimeSpan.FromSeconds(10), SessionTimeout = TimeSpan.FromSeconds(30),
             MaxOutputCharacters = fixture.MaxOutputCharacters,
             DevicePixelRatio = fixture.DevicePixelRatio,
@@ -293,7 +330,9 @@ async Task<ProbeResult> RunCaseAsync(ProbeCase fixture) {
         };
         page.FailOnFetchReplayDiscovery = true;
         await HtmlRuntimeProtocol.WriteAsync(process.StandardInput.BaseStream,
-            new HtmlPublicRenderRequest { Page = page }, 24 * 1024 * 1024, deadline.Token);
+            new HtmlPublicRenderRequest { Page = page,
+                MaxOutputBytesPerArtifact = fixture.MaxOutputBytesPerArtifact ?? 8L * 1024 * 1024 },
+            24 * 1024 * 1024, deadline.Token);
         for (int round = 0; round <= 16; round++) {
             var response = await HtmlRuntimeProtocol.ReadAsync<HtmlPublicRenderResponse>(
                 process.StandardOutput.BaseStream, 24 * 1024 * 1024, deadline.Token)
@@ -348,8 +387,12 @@ async Task<ProbeResult> RunCaseAsync(ProbeCase fixture) {
                 foreach (var header in expected.ExpectedHeaders ?? new Dictionary<string, string>())
                     if (!request.Headers.TryGetValue(header.Key, out string? actual) || actual != header.Value)
                         throw new IOException("The isolated renderer requested the wrong dynamic header: " + identity + " " + header.Key);
-                var resource = HtmlRuntimeResource.FromText(request.Url, expected.Content, expected.ContentType);
-                fetchBatch.Add(new HtmlRuntimeFetchReplay(request, discovery.Occurrence, resource));
+                if (expected.Hops != null)
+                    fetchBatch.Add(new HtmlRuntimeFetchReplay(request, discovery.Occurrence, expected.Hops));
+                else {
+                    var resource = HtmlRuntimeResource.FromText(request.Url, expected.Content, expected.ContentType);
+                    fetchBatch.Add(new HtmlRuntimeFetchReplay(request, discovery.Occurrence, resource));
+                }
             }
             discoveryRounds.Add(discoveryRound.ToArray());
             await HtmlRuntimeProtocol.WriteAsync(process.StandardInput.BaseStream,
@@ -456,12 +499,13 @@ static async Task<string> DrainErrorAsync(Stream stream, CancellationToken token
 
 internal sealed record ProbeResource(string Content, string ContentType);
 internal sealed record ProbeDynamicResource(string Content, string ContentType, string? ExpectedBody = null,
-    IReadOnlyDictionary<string, string>? ExpectedHeaders = null);
+    IReadOnlyDictionary<string, string>? ExpectedHeaders = null, IReadOnlyList<HtmlRuntimeFetchHop>? Hops = null);
 internal sealed record ProbeCase(string Name, string Html, string ReadyExpression, int MaxOutputCharacters,
     string? ExpectedErrorKind = null, string? ExpectedError = null, string? ExpectedVisibleText = null,
     bool ExpectBlueInk = false, bool ExpectMagentaArea = false, IReadOnlyDictionary<string, ProbeResource>? Resources = null,
     string[][]? ExpectedDiscoveryRounds = null, Uri? DocumentUrl = null, double DevicePixelRatio = 1D,
-    IReadOnlyDictionary<string, ProbeDynamicResource>? DynamicResponses = null);
+    IReadOnlyDictionary<string, ProbeDynamicResource>? DynamicResponses = null, Uri[]? AllowedOrigins = null,
+    long? MaxOutputBytesPerArtifact = null);
 internal sealed record ProbeResult(string Name, bool Passed, string? ContainerName, bool ContainerRemoved,
     long ElapsedMilliseconds, string? ErrorKind, string? Error, string? CleanupError,
     string[][] DiscoveryRounds, string? CaptureManifest, string? ScreenSha256, string? PrintSha256,

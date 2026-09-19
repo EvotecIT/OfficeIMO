@@ -388,7 +388,10 @@ budgets as document loads. `MaxRequestBytes` limits each encoded request body;
 replays. URL resources answer bodyless headerless GET and HEAD. Exact dynamic
 responses can instead be supplied as `HtmlRuntimeFetchReplay` values keyed by
 normalized URL, method, outgoing headers, body bytes, fetch options and one-based
-occurrence. This lets a coordinator acquire each request once and restart a
+occurrence. Each replay carries one to sixteen direct response hops, with an
+OPTIONS response on any hop that requires CORS preflight. The runtime applies
+the same redirect, method-change, origin, CORS and byte-budget checks used for
+live fetch. This lets a coordinator acquire each request once and restart a
 networkless worker without repeating a POST or collapsing two identical requests
 into one occurrence. An offline miss exposes `HtmlRuntimeFetchDiscovery` on
 `HtmlScriptRuntimeException`; `FailOnFetchReplayDiscovery` also fails after
@@ -401,8 +404,8 @@ metadata, without replacing assets with POST results.
 
 Additional allowed origins must also pass CORS response checks. Unsafe cross-origin
 methods and headers require preflight permission; preflight requests count toward
-the resource budgets. Exact replay currently accepts only CORS-safelisted cross-origin
-requests because a replayable OPTIONS transcript is not yet modeled. Fetch hides cookie headers and filters cross-origin response
+the resource budgets. Cross-origin exact replay requires a valid OPTIONS response
+in the transcript when the method or headers trigger preflight. Fetch hides cookie headers and filters cross-origin response
 headers. Redirects recheck authority, apply method/body rules and remove explicit
 Authorization on an origin change. A cross-origin response redirecting to a
 different origin is explicitly unsupported. Supplied redirects for fetch must

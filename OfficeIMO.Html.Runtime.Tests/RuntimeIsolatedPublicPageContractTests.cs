@@ -121,6 +121,33 @@ public class RuntimeIsolatedPublicPageContractTests {
     }
 
     [Fact]
+    public void PublicPageRequestSnapshotsExactDynamicOriginsAndOutputBudgets() {
+        var origins = new List<Uri> { new("https://api.example/"), new("https://api.example/") };
+        var request = new HtmlIsolatedPublicPageRequest {
+            ScenarioId = "dynamic-origin",
+            Url = new Uri("https://example.com/"),
+            SourceLicense = "fixture",
+            AllowedDynamicRequestOrigins = origins,
+            MaxOutputBytesPerArtifact = 1024,
+            MaxTotalOutputBytes = 2048
+        };
+
+        HtmlIsolatedPublicPageRequest.Snapshot snapshot = request.Validate();
+        origins[0] = new Uri("https://different.example/");
+        Assert.Equal(new Uri("https://api.example/"), Assert.Single(snapshot.AllowedDynamicRequestOrigins));
+        Assert.Equal(1024, snapshot.MaxOutputBytesPerArtifact);
+        Assert.Equal(2048, snapshot.MaxTotalOutputBytes);
+        Assert.Throws<ArgumentException>(() => new HtmlIsolatedPublicPageRequest {
+            ScenarioId = "invalid-origin", Url = new Uri("https://example.com/"), SourceLicense = "fixture",
+            AllowedDynamicRequestOrigins = new[] { new Uri("https://api.example/path") }
+        }.Validate());
+        Assert.Throws<ArgumentOutOfRangeException>(() => new HtmlIsolatedPublicPageRequest {
+            ScenarioId = "invalid-budget", Url = new Uri("https://example.com/"), SourceLicense = "fixture",
+            MaxTotalOutputBytes = 0
+        }.Validate());
+    }
+
+    [Fact]
     public void ExecutionOptionsRequireImmutableImageAndSnapshotCommandPrefix() {
         string directory = Path.Combine(Path.GetTempPath(), "officeimo-public-contract-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
