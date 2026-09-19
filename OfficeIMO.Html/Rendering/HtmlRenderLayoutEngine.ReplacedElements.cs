@@ -244,5 +244,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal double Height { get; }
         internal OfficeImageSourceCrop SourceCrop { get; }
         internal bool IsVisible => Width > 0D && Height > 0D;
+        internal double FullWidth => !SourceCrop.HasCrop ? Width : Width / Math.Max(
+            OfficeImageSourceCrop.MinimumVisibleRatio,
+            1D - SourceCrop.Left - SourceCrop.Right);
+        internal double FullHeight => !SourceCrop.HasCrop ? Height : Height / Math.Max(
+            OfficeImageSourceCrop.MinimumVisibleRatio,
+            1D - SourceCrop.Top - SourceCrop.Bottom);
     }
 }

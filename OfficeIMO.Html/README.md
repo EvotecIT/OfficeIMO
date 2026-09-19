@@ -347,6 +347,17 @@ OfficeImageExportResult image = source.ExportImage(OfficeImageExportFormat.Png, 
 
 The static contract includes normal-flow, flex, grid with column and row subgrid, deterministic stacking, basic-shape `clip-path`, paged fragmentation, named pages, running strings and elements, SVG, tagged-PDF semantics, and CSS-controlled PDF bookmarks. Browser-only execution such as JavaScript, animation timelines, live scroll state, and interactive layout is not attempted. Unsupported values that reach the declared feature handlers produce stable diagnostics; selectors outside the bounded selector subset simply do not match. Inspect `HtmlRenderCapabilityCatalog.All`, `HtmlRenderProfileContracts.All`, or the generated support matrix for the exact declared subset.
 
+Inline SVG without intrinsic dimensions uses its resolved painted object size as the
+vector viewport, including `object-fit` sizing and cropping. The element's CSS
+background and the SVG's supported strokes remain in the same retained scene
+for screen, print, and screen-to-page output. The
+[named-page evidence](../Build/Project/Evidence/2026-09-19/html-svg-css-viewport/README.md)
+records the qualified reference and the remaining browser-default typography and
+body-margin differences on adjacent SVG text pages.
+When a caller supplies an SVG raster codec, inline SVG reaches that fallback only
+if the shared SVG safety predicate accepts its authored dimensions and resource
+work. Rejected inline content receives an omission diagnostic.
+
 Iframe `srcdoc` content is laid out as an independent replaced viewport with the
 browser default 300 by 150 CSS-pixel intrinsic size, overridden by CSS or `width`
 and `height` attributes. The child uses the selected screen or print media context,

@@ -217,6 +217,7 @@ public static partial class OfficeSvgDrawingReader {
             root = documentRoot;
             if (root.Descendants().Take(maximumElements + 1).Count() > maximumElements) return false;
             return TryResolveViewport(bytes, root, maximumViewportDimension, maximumViewportPixels, allowUnresolvedViewport,
+                options?.ViewportWidth, options?.ViewportHeight,
                 out viewX, out viewY, out viewWidth, out viewHeight,
                 out viewportWidth, out viewportHeight);
         } catch (XmlException) {
@@ -234,6 +235,8 @@ public static partial class OfficeSvgDrawingReader {
         double maximumViewportDimension,
         double maximumViewportPixels,
         bool allowUnresolvedViewport,
+        double? hostViewportWidth,
+        double? hostViewportHeight,
         out double viewX,
         out double viewY,
         out double viewWidth,
@@ -242,6 +245,10 @@ public static partial class OfficeSvgDrawingReader {
         out double viewportHeight) {
         viewX = viewY = 0D;
         viewWidth = viewHeight = viewportWidth = viewportHeight = 0D;
+        if (hostViewportWidth.HasValue != hostViewportHeight.HasValue) return false;
+        bool hasHostViewport = hostViewportWidth.HasValue;
+        if (hasHostViewport && !IsSupportedSvgViewport(hostViewportWidth!.Value, hostViewportHeight!.Value,
+                maximumViewportDimension, maximumViewportPixels)) return false;
         // ChartForgeX selects the first XML attribute by case-insensitive local name for
         // raster output dimensions; inline CSS does not override this allocation sink.
         string? widthText = ReadRasterViewportAttribute(root, "width");
@@ -250,6 +257,8 @@ public static partial class OfficeSvgDrawingReader {
         bool hasDeclaredHeight = OfficeImageReader.TryParseSvgLength(heightText, out double declaredHeight);
         if ((!string.IsNullOrWhiteSpace(widthText) && !hasDeclaredWidth)
             || (!string.IsNullOrWhiteSpace(heightText) && !hasDeclaredHeight)) return false;
+        if ((hasDeclaredWidth && (declaredWidth <= 0D || declaredWidth > maximumViewportDimension))
+            || (hasDeclaredHeight && (declaredHeight <= 0D || declaredHeight > maximumViewportDimension))) return false;
         if (TryParseNumberList(ReadRasterProjectedAttribute(root, "viewBox"), out IReadOnlyList<double> viewBox)
             && viewBox.Count == 4
             && viewBox[2] > 0D
@@ -264,18 +273,25 @@ public static partial class OfficeSvgDrawingReader {
             if (hasDeclaredHeight) viewportHeight = declaredHeight;
             if (hasDeclaredWidth && !hasDeclaredHeight) viewportHeight = declaredWidth * viewHeight / viewWidth;
             if (!hasDeclaredWidth && hasDeclaredHeight) viewportWidth = declaredHeight * viewWidth / viewHeight;
+            if (!IsSupportedSvgViewport(viewportWidth, viewportHeight, maximumViewportDimension, maximumViewportPixels)) return false;
+            if (hasHostViewport) {
+                viewportWidth = hostViewportWidth!.Value;
+                viewportHeight = hostViewportHeight!.Value;
+            }
             return IsSupportedSvgViewport(viewWidth, viewHeight, maximumViewportDimension, maximumViewportPixels)
                 && IsSupportedSvgViewport(viewportWidth, viewportHeight, maximumViewportDimension, maximumViewportPixels);
+        }
+
+        if (hasHostViewport) {
+            viewWidth = viewportWidth = hostViewportWidth!.Value;
+            viewHeight = viewportHeight = hostViewportHeight!.Value;
+            return true;
         }
 
         bool hasIntrinsicWidth = hasDeclaredWidth;
         bool hasIntrinsicHeight = hasDeclaredHeight;
         double intrinsicWidth = declaredWidth;
         double intrinsicHeight = declaredHeight;
-        if ((hasIntrinsicWidth && intrinsicWidth > maximumViewportDimension) ||
-            (hasIntrinsicHeight && intrinsicHeight > maximumViewportDimension)) {
-            return false;
-        }
         if (hasIntrinsicWidth && hasIntrinsicHeight) {
             viewWidth = viewportWidth = intrinsicWidth;
             viewHeight = viewportHeight = intrinsicHeight;

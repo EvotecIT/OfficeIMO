@@ -16,6 +16,18 @@ public sealed class OfficeSvgDrawingReaderOptions {
     /// </summary>
     public OfficeSvgForeignObjectRenderer? ForeignObjectRenderer { get; set; }
 
+    /// <summary>
+    /// Width of a caller-resolved SVG viewport, in CSS pixels. Supply with
+    /// <see cref="ViewportHeight"/> when a host layout owns the viewport size.
+    /// </summary>
+    public double? ViewportWidth { get; set; }
+
+    /// <summary>
+    /// Height of a caller-resolved SVG viewport, in CSS pixels. Supply with
+    /// <see cref="ViewportWidth"/> when a host layout owns the viewport size.
+    /// </summary>
+    public double? ViewportHeight { get; set; }
+
     /// <summary>Default maximum number of descendant and expanded reference elements.</summary>
     public const int DefaultMaximumElements = 10000;
 

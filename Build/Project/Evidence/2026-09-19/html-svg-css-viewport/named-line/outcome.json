@@ -1,0 +1,50 @@
+{
+  "ScenarioId": "named-wpt-svg-line-final2",
+  "SourceLicense": "BSD-3-Clause",
+  "RequestedUrl": "https://wpt.live/css/compositing/line-with-svg-background-ref.html",
+  "ProviderId": "officeimo.trusted-process",
+  "CaptureUrl": "https://wpt.live/css/compositing/line-with-svg-background-ref.html",
+  "CaptureManifest": "sha256:2e604e497ac6764c30ee862b37e39aee9eb8eb0e0a2a40609a550f25ebded785",
+  "TraceEntries": [
+    "Lifecycle:document-opened:success",
+    "Page:open:success",
+    "Capture:capture:success",
+    "Artifact:capture-manifest:generated"
+  ],
+  "ImageId": "sha256:bb0cc1431348aad8545cc4396b5626754a9be3a4d0c29d43ff84ab4152a721d6",
+  "ContainerName": "officeimo-html-f2e0f4b478e24791a089d2fdbdd2e647",
+  "ContainerRemoved": true,
+  "IsolationPolicy": "rootless-podman;seccomp;cgroups-cpu-memory-pids;network-none;read-only;uid-65532;cap-drop-all;no-new-privileges;no-mounts",
+  "IsolationProfile": 0,
+  "UnsupportedFeatures": [
+    "cross-origin-frame-execution",
+    "module-import-attributes-beyond-json",
+    "origin-changing-dynamic-redirects",
+    "transferable-frame-messages",
+    "cookies-and-credentials"
+  ],
+  "RendererSha256": "6b687855d0f7b070a410d288bf023ecfdaf0b9cc112e79b6b26f971ae745d795",
+  "WorkerSha256": "20fa4953b1280c40dc252b245dc7dc8c39975b88239cda8dbf162dda764dbd19",
+  "RendererFilesSha256": "3e0527d52969ea22c5ef9a8673630350ae7d3b521d083364f07f29cc8f7b8600",
+  "WorkerFilesSha256": "77486611ec10e263b9cc443d2d9fe1c15242616e0118aa6502262e0931d46f19",
+  "outputs": [
+    {
+      "file": "screen.png",
+      "bytes": 4363,
+      "Sha256": "dd29e650a9110f109000a89f6ffa287f565cda235aaaf2f05c3910ceaaeeaaa6",
+      "MediaType": "image/png"
+    },
+    {
+      "file": "print.pdf",
+      "bytes": 4124,
+      "Sha256": "6aa427562a9e04df0c9682c1d54c818094c9d6205ffc442f80cb169c2e29e355",
+      "MediaType": "application/pdf"
+    },
+    {
+      "file": "screen-to-page.pdf",
+      "bytes": 4070,
+      "Sha256": "3155d2f3cdc69f7329e3fb7aef513209ef0937ca19d3d4d2bbfc14a88972eb64",
+      "MediaType": "application/pdf"
+    }
+  ]
+}

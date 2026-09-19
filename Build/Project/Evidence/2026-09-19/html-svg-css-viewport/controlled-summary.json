@@ -1,0 +1,583 @@
+{
+  "imageId": "sha256:bb0cc1431348aad8545cc4396b5626754a9be3a4d0c29d43ff84ab4152a721d6",
+  "rendererSha256": "6b687855d0f7b070a410d288bf023ecfdaf0b9cc112e79b6b26f971ae745d795",
+  "workerSha256": "20fa4953b1280c40dc252b245dc7dc8c39975b88239cda8dbf162dda764dbd19",
+  "rendererFilesSha256": "3e0527d52969ea22c5ef9a8673630350ae7d3b521d083364f07f29cc8f7b8600",
+  "workerFilesSha256": "77486611ec10e263b9cc443d2d9fe1c15242616e0118aa6502262e0931d46f19",
+  "capturedAtUtc": "2026-09-19T15:36:43.1152375+00:00",
+  "isolationPolicy": "rootless-podman;seccomp;cgroups-cpu-memory-pids;network-none;read-only;uid-65532;cap-drop-all;no-new-privileges;no-mounts",
+  "acquisitionCases": [
+    {
+      "Name": "acquisition-same-host-redirect",
+      "Passed": true,
+      "RequestedUrl": "http://page.example.test/start",
+      "FinalUrl": "http://page.example.test/final",
+      "ConnectedAddress": "93.184.216.34",
+      "Redirects": [
+        {
+          "From": "http://page.example.test/start",
+          "To": "http://page.example.test/final",
+          "StatusCode": 302,
+          "ConnectedAddress": "93.184.216.34"
+        }
+      ],
+      "Resolutions": [
+        "page.example.test=93.184.216.34",
+        "page.example.test=93.184.216.34"
+      ],
+      "Connections": [
+        "93.184.216.34:80",
+        "93.184.216.34:80"
+      ],
+      "ServerRequests": [
+        "http://page.example.test/start",
+        "http://page.example.test/final"
+      ],
+      "ErrorKind": null,
+      "Error": null
+    },
+    {
+      "Name": "acquisition-cross-host-redirect",
+      "Passed": true,
+      "RequestedUrl": "http://page.example.test/start",
+      "FinalUrl": "http://assets.example.test/final",
+      "ConnectedAddress": "1.1.1.1",
+      "Redirects": [
+        {
+          "From": "http://page.example.test/start",
+          "To": "http://assets.example.test/final",
+          "StatusCode": 302,
+          "ConnectedAddress": "93.184.216.34"
+        }
+      ],
+      "Resolutions": [
+        "page.example.test=93.184.216.34",
+        "assets.example.test=1.1.1.1"
+      ],
+      "Connections": [
+        "93.184.216.34:80",
+        "1.1.1.1:80"
+      ],
+      "ServerRequests": [
+        "http://page.example.test/start",
+        "http://assets.example.test/final"
+      ],
+      "ErrorKind": null,
+      "Error": null
+    },
+    {
+      "Name": "acquisition-dns-rebinding-rejected",
+      "Passed": true,
+      "RequestedUrl": "http://page.example.test/start",
+      "FinalUrl": null,
+      "ConnectedAddress": null,
+      "Redirects": [],
+      "Resolutions": [
+        "page.example.test=93.184.216.34",
+        "page.example.test=127.0.0.1"
+      ],
+      "Connections": [
+        "93.184.216.34:80"
+      ],
+      "ServerRequests": [
+        "http://page.example.test/start"
+      ],
+      "ErrorKind": "HttpRequestException",
+      "Error": "The public resource resolved to an unsupported or non-public address. (page.example.test:80)"
+    },
+    {
+      "Name": "acquisition-oversized-response-rejected",
+      "Passed": true,
+      "RequestedUrl": "http://page.example.test/large",
+      "FinalUrl": null,
+      "ConnectedAddress": null,
+      "Redirects": [],
+      "Resolutions": [
+        "page.example.test=93.184.216.34"
+      ],
+      "Connections": [
+        "93.184.216.34:80"
+      ],
+      "ServerRequests": [
+        "http://page.example.test/large"
+      ],
+      "ErrorKind": "HtmlScriptRuntimeException",
+      "Error": "The public resource exceeds its byte budget."
+    },
+    {
+      "Name": "acquisition-dynamic-redirect",
+      "Passed": true,
+      "RequestedUrl": "http://page.example.test/submit",
+      "FinalUrl": "http://page.example.test/result",
+      "ConnectedAddress": "93.184.216.34",
+      "Redirects": [
+        {
+          "From": "http://page.example.test/submit",
+          "To": "http://page.example.test/result",
+          "StatusCode": 302,
+          "ConnectedAddress": "93.184.216.34"
+        }
+      ],
+      "Resolutions": [
+        "page.example.test=93.184.216.34",
+        "page.example.test=93.184.216.34"
+      ],
+      "Connections": [
+        "93.184.216.34:80",
+        "93.184.216.34:80"
+      ],
+      "ServerRequests": [
+        "http://page.example.test/submit",
+        "http://page.example.test/result"
+      ],
+      "ErrorKind": null,
+      "Error": null
+    },
+    {
+      "Name": "acquisition-dynamic-cors",
+      "Passed": true,
+      "RequestedUrl": "http://api.example.test/data",
+      "FinalUrl": "http://api.example.test/data",
+      "ConnectedAddress": "93.184.216.34",
+      "Redirects": [],
+      "Resolutions": [
+        "api.example.test=93.184.216.34",
+        "api.example.test=93.184.216.34"
+      ],
+      "Connections": [
+        "93.184.216.34:80",
+        "93.184.216.34:80"
+      ],
+      "ServerRequests": [
+        "http://api.example.test/data",
+        "http://api.example.test/data"
+      ],
+      "ErrorKind": null,
+      "Error": null
+    }
+  ],
+  "cases": [
+    {
+      "Name": "malformed-markup",
+      "Passed": true,
+      "ContainerName": "officeimo-html-3bceee5bf1f946668233ce05e7af5b3c",
+      "ContainerRemoved": true,
+      "ElapsedMilliseconds": 34212,
+      "ErrorKind": null,
+      "Error": null,
+      "CleanupError": null,
+      "DiscoveryRounds": [],
+      "CaptureManifest": "sha256:e4da52238bcc056e740795396802daa1af6db883d3df99024a8761ac299ac3f3",
+      "ScreenSha256": "aeac7cc662ea283d86d6fe0786a2f633d54ef0febd69ff2f98ddbe5a8019dc8c",
+      "PrintSha256": "58debf0fffee4ebab9fe442c55fbeb980875c5639aacac260e44841f8e427572",
+      "ScreenToPageSha256": "8cdcebed4ab06f1eb4c4beef99a80241897c0212f856d6215e0e8fc6bd19561d"
+    },
+    {
+      "Name": "responsive-picture",
+      "Passed": true,
+      "ContainerName": "officeimo-html-bd05f2bd937f427c8a394e0506fa4251",
+      "ContainerRemoved": true,
+      "ElapsedMilliseconds": 38789,
+      "ErrorKind": null,
+      "Error": null,
+      "CleanupError": null,
+      "DiscoveryRounds": [
+        [
+          "https://fixture.officeimo.invalid/responsive-2x.svg"
+        ]
+      ],
+      "CaptureManifest": "sha256:04b580de039e2f8f103280a3d62b661274cd575bb599fad720fada1ee1321619",
+      "ScreenSha256": "f967c880125b0a000e891c8d10aaba90cefc2ec421622483b2e47bbefffae4d4",
+      "PrintSha256": "f674e5fe3aafcdf896fe30f39bac9604035c37a9bbd056ce6762e01fc6b58922",
+      "ScreenToPageSha256": "1dccdab76a82d66da9cacd1a5471420c881e122276c9b8d21af7bc55633f8081"
+    },
+    {
+      "Name": "module-graph",
+      "Passed": true,
+      "ContainerName": "officeimo-html-8175799a90214ed6977721fd08002c87",
+      "ContainerRemoved": true,
+      "ElapsedMilliseconds": 34655,
+      "ErrorKind": null,
+      "Error": null,
+      "CleanupError": null,
+      "DiscoveryRounds": [
+        [
+          "https://fixture.officeimo.invalid/app/main.js"
+        ],
+        [
+          "https://fixture.officeimo.invalid/app/dep.js"
+        ]
+      ],
+      "CaptureManifest": "sha256:c3875c460b9d0831bb76729c67957aed8bcc7b5cf05f152ea17a8713b638791c",
+      "ScreenSha256": "261dfd3ee7a7cf1d051c6a7aab0519adaffefa6e7017d1f228328c4c15fb8c2a",
+      "PrintSha256": "d566e810cdc8b6081475609537f7db0c95b34cfd6ad60acbf428eee2887f019b",
+      "ScreenToPageSha256": "2a2580305e884511c9a296ee1fe20abc358d550e6d4916b7333efe194440e552"
+    },
+    {
+      "Name": "import-map-graph",
+      "Passed": true,
+      "ContainerName": "officeimo-html-6bf288f8abad414fac0c1968fae2e1bb",
+      "ContainerRemoved": true,
+      "ElapsedMilliseconds": 35511,
+      "ErrorKind": null,
+      "Error": null,
+      "CleanupError": null,
+      "DiscoveryRounds": [
+        [
+          "https://fixture.officeimo.invalid/app/features/main.js"
+        ],
+        [
+          "https://fixture.officeimo.invalid/vendor/pkg/math.js"
+        ],
+        [
+          "https://fixture.officeimo.invalid/vendor/scoped-theme.js"
+        ],
+        [
+          "https://fixture.officeimo.invalid/app/features/details.js"
+        ]
+      ],
+      "CaptureManifest": "sha256:7234e9b45f8a86f8db7ef65f1ac0df0420bd7d9878ec1b3ddc57a7e396d8916a",
+      "ScreenSha256": "25e41737d368e6fb206a3ca5f11e37f84f94ba252309c80e3073484eb55751d1",
+      "PrintSha256": "4c4ce2189c4dc931a54c1bc4000aa9105a32f7c803d257e4fbfb45b2ddabd71a",
+      "ScreenToPageSha256": "2b147ef0d17ddf44f9d11960217ebbed918b089491053a6b29a50c78a6b8d3b4"
+    },
+    {
+      "Name": "dynamic-fetch-get",
+      "Passed": true,
+      "ContainerName": "officeimo-html-0f4b9796ad9d467aa86f6133deed0177",
+      "ContainerRemoved": true,
+      "ElapsedMilliseconds": 31127,
+      "ErrorKind": null,
+      "Error": null,
+      "CleanupError": null,
+      "DiscoveryRounds": [
+        [
+          "https://fixture.officeimo.invalid/api/report.json?view=summary"
+        ]
+      ],
+      "CaptureManifest": "sha256:6ea4755f39dcf71bc72440cec5f8024d1a518c56e3dc4e5ddb6ff8fe2f0d3196",
+      "ScreenSha256": "b13a545a7c16e3b5f4334126c95df7fdd1b8b140300b32c87b4c2b0fe071fdf7",
+      "PrintSha256": "9fe8c8dbb1f4e2581ce05036712cb73a87ff24ca3c9610d49eb3c2392d6d1582",
+      "ScreenToPageSha256": "809ea94f6a328de8d3702507dd8efbb016d37181eaea050d8ac16d650e5b086d"
+    },
+    {
+      "Name": "dynamic-xhr-get",
+      "Passed": true,
+      "ContainerName": "officeimo-html-d7d635a49db04d3d9ee04f6de5901c79",
+      "ContainerRemoved": true,
+      "ElapsedMilliseconds": 30312,
+      "ErrorKind": null,
+      "Error": null,
+      "CleanupError": null,
+      "DiscoveryRounds": [
+        [
+          "https://fixture.officeimo.invalid/api/xhr-report.json?view=summary"
+        ]
+      ],
+      "CaptureManifest": "sha256:2c2854c8acfd971a0b8c55b774f6940a7d8c26da5458dd4e3348a6e1fd4b3d20",
+      "ScreenSha256": "e92c9d231cf36579d0a3639dc3ac74a9478e208920bb7071af1a99ffdccff3c6",
+      "PrintSha256": "259a28161e20eb5c4f7a057aa8822458d2432636c3f47733fa4b052b3a67beb6",
+      "ScreenToPageSha256": "c8857cd24e66434fdefa2d57b46ff96de0b24c59c14353cd407f1a2cca0d8d87"
+    },
+    {
+      "Name": "dynamic-xhr-headered-get",
+      "Passed": true,
+      "ContainerName": "officeimo-html-1f6efb738d494c809b777acc18dfe241",
+      "ContainerRemoved": true,
+      "ElapsedMilliseconds": 30022,
+      "ErrorKind": null,
+      "Error": null,
+      "CleanupError": null,
+      "DiscoveryRounds": [
+        [
+          "GET https://fixture.officeimo.invalid/api/header-varying.json #1"
+        ]
+      ],
+      "CaptureManifest": "sha256:621307e8a8d4d7e0af9bbcf1a2600e3e18258a34dfbd2c986acbd3bcd4be09b6",
+      "ScreenSha256": "463c282f3f0ddab9029616ac33222fc52304747c319a78d8a9b7869b5298e643",
+      "PrintSha256": "97e6ee7477661344dbbad8a16e2e9a3391577fd3691b9a5b6b9330e0961e8644",
+      "ScreenToPageSha256": "b190887457cdf38fae9916c694456f4aaefe741684dd5ce4e973f49d5fc3fabe"
+    },
+    {
+      "Name": "dynamic-post-occurrences",
+      "Passed": true,
+      "ContainerName": "officeimo-html-5a19962b5c404a989db6555f25178290",
+      "ContainerRemoved": true,
+      "ElapsedMilliseconds": 38171,
+      "ErrorKind": null,
+      "Error": null,
+      "CleanupError": null,
+      "DiscoveryRounds": [
+        [
+          "POST https://fixture.officeimo.invalid/api/submit #1"
+        ],
+        [
+          "POST https://fixture.officeimo.invalid/api/submit #2"
+        ]
+      ],
+      "CaptureManifest": "sha256:b6e77e996b65f380b605dd78a9d8e1426a08de438d1b4779a5f47a6ab6cd86fb",
+      "ScreenSha256": "f662d5d5f8b7139bbae18ac767b296bba8ebcf7c127fa14a76986d11aecd5b49",
+      "PrintSha256": "e70a1d09997c426e3034d6787b457fd683c918e8436c2a810cf676164be6428a",
+      "ScreenToPageSha256": "9abb5e8d4d619e25e744a47a8858423d26e66d80905440ba018866705958210c"
+    },
+    {
+      "Name": "dynamic-post-redirect",
+      "Passed": true,
+      "ContainerName": "officeimo-html-e3062aaaeac743c3900107bf4166099d",
+      "ContainerRemoved": true,
+      "ElapsedMilliseconds": 42435,
+      "ErrorKind": null,
+      "Error": null,
+      "CleanupError": null,
+      "DiscoveryRounds": [
+        [
+          "POST https://fixture.officeimo.invalid/api/submit #1"
+        ]
+      ],
+      "CaptureManifest": "sha256:54d7b48198572b0ba37db9879d87171e5f256401acc499e98ea50083d80674cb",
+      "ScreenSha256": "ac2aa5862748cccecb2dfab1141d1ad1f8fd1717b2f5d4d162f1c974e2f63ebe",
+      "PrintSha256": "7ff94f67a1cdb7bfc11f1988946e531eff46cf452089324304df693673f65c9c",
+      "ScreenToPageSha256": "5a2801eef6f567368f14400755ea479de933cbfc26daa9a64b6e8e004af46339"
+    },
+    {
+      "Name": "dynamic-cross-origin-preflight",
+      "Passed": true,
+      "ContainerName": "officeimo-html-ae9b76e754ab42a48b9deb28b5c3b536",
+      "ContainerRemoved": true,
+      "ElapsedMilliseconds": 32898,
+      "ErrorKind": null,
+      "Error": null,
+      "CleanupError": null,
+      "DiscoveryRounds": [
+        [
+          "POST https://api.fixture.officeimo.invalid/data #1"
+        ]
+      ],
+      "CaptureManifest": "sha256:6f7301c7db193f8bbd94039bd678933ee187351e918d7080f6220f834c64685e",
+      "ScreenSha256": "d25f556797a27953e24f86760dc416c98325ae7e132f3e225aec81cc9c02ceb3",
+      "PrintSha256": "ded174faf9dab3a7abdf3b0c8da7de71d3a94ce985346ede4417213931087a86",
+      "ScreenToPageSha256": "042b4137893c0486e648c71871733be8bcd71e4f234a44dfac8d94f005f892b5"
+    },
+    {
+      "Name": "frame-document",
+      "Passed": true,
+      "ContainerName": "officeimo-html-f13e3e329d7d4acf83df19d49d483176",
+      "ContainerRemoved": true,
+      "ElapsedMilliseconds": 30802,
+      "ErrorKind": null,
+      "Error": null,
+      "CleanupError": null,
+      "DiscoveryRounds": [
+        [
+          "https://fixture.officeimo.invalid/frame/detail.html"
+        ],
+        [
+          "https://fixture.officeimo.invalid/frame/frame.css",
+          "https://fixture.officeimo.invalid/frame/frame.js"
+        ]
+      ],
+      "CaptureManifest": "sha256:c91ffec54867dfc87a1f7e7821ebf0b4c859cd8ab0fd44f90280215ba3765931",
+      "ScreenSha256": "4026f140d13610dbd647d1a551b618892b7a7c31b7d289a5c2875229aaab2fe6",
+      "PrintSha256": "f5f4263aba73b22ff4a1b9e6b2f47b6dfc19b1fbd86e263f1f7b18016bc6e1a2",
+      "ScreenToPageSha256": "6c0e057b0b07bc1f313408d610e91756a2adcdf539dae9fb577cc81f9614773b"
+    },
+    {
+      "Name": "frame-module-json",
+      "Passed": true,
+      "ContainerName": "officeimo-html-a39e3f2958ef4064bd50c4ad48cdcb8b",
+      "ContainerRemoved": true,
+      "ElapsedMilliseconds": 34676,
+      "ErrorKind": null,
+      "Error": null,
+      "CleanupError": null,
+      "DiscoveryRounds": [
+        [
+          "https://fixture.officeimo.invalid/modules/frame.html"
+        ],
+        [
+          "https://fixture.officeimo.invalid/modules/main.js"
+        ],
+        [
+          "https://fixture.officeimo.invalid/modules/dep.js"
+        ],
+        [
+          "https://fixture.officeimo.invalid/modules/settings.json"
+        ],
+        [
+          "https://fixture.officeimo.invalid/modules/extra.json"
+        ]
+      ],
+      "CaptureManifest": "sha256:a30510fb6bdcf5e8474081a19bdf3238a09ae005d151b1f6bed4afcf7a9ab957",
+      "ScreenSha256": "d2e170e3cb53a7b3292d495acef079fe19393129a7276ea52931ec731c456749",
+      "PrintSha256": "6e1ffd49aeb958641b23fd7c3e85ba24f680825772cd8641242f9aabfdbf42dc",
+      "ScreenToPageSha256": "82687ecc2042a165d96e8f53c906ac0ffaa12cc701a2134108cff85101cf4537"
+    },
+    {
+      "Name": "json-module-rejections",
+      "Passed": true,
+      "ContainerName": "officeimo-html-37192fe5f66d4c3893daf3e550f80e3e",
+      "ContainerRemoved": true,
+      "ElapsedMilliseconds": 29288,
+      "ErrorKind": null,
+      "Error": null,
+      "CleanupError": null,
+      "DiscoveryRounds": [
+        [
+          "https://fixture.officeimo.invalid/modules/invalid-mime.json",
+          "https://fixture.officeimo.invalid/modules/invalid-json.json"
+        ]
+      ],
+      "CaptureManifest": "sha256:1a9e455cad5db0649bdb7fdfe7b9b4248ea3e1deb632e562d1d3549507d86d7e",
+      "ScreenSha256": "9f3598510f3b398d4f652031db97544d8fd4756a1d249eadb3e5c47dfda99601",
+      "PrintSha256": "5c12a7a83b30b6aaa463b32f7b49fadc228d19064a4fc53aff93a00a435dd478",
+      "ScreenToPageSha256": "5c156460e6c4655af5cb713d9378252b1c9b1f379eb671c9c36af6a77e1c0063"
+    },
+    {
+      "Name": "resource-fanout",
+      "Passed": true,
+      "ContainerName": "officeimo-html-9db4c4ae44b044109e2a810708cf29e1",
+      "ContainerRemoved": true,
+      "ElapsedMilliseconds": 27951,
+      "ErrorKind": "HtmlScriptRuntimeException",
+      "Error": "The document exceeds the pilot\u0027s static resource discovery limit.",
+      "CleanupError": null,
+      "DiscoveryRounds": [],
+      "CaptureManifest": null,
+      "ScreenSha256": null,
+      "PrintSha256": null,
+      "ScreenToPageSha256": null
+    },
+    {
+      "Name": "capture-output-budget",
+      "Passed": true,
+      "ContainerName": "officeimo-html-429f1f4584bf4274ac2856087d13ff5e",
+      "ContainerRemoved": true,
+      "ElapsedMilliseconds": 30668,
+      "ErrorKind": "HtmlScriptRuntimeException",
+      "Error": "Captured data budget exceeded.",
+      "CleanupError": null,
+      "DiscoveryRounds": [],
+      "CaptureManifest": null,
+      "ScreenSha256": null,
+      "PrintSha256": null,
+      "ScreenToPageSha256": null
+    },
+    {
+      "Name": "encoded-output-budget",
+      "Passed": true,
+      "ContainerName": "officeimo-html-202674bb21244117b4cbb4d0c2be4de1",
+      "ContainerRemoved": true,
+      "ElapsedMilliseconds": 30530,
+      "ErrorKind": "HtmlScriptRuntimeException",
+      "Error": "The isolated render output exceeds its byte budget.",
+      "CleanupError": null,
+      "DiscoveryRounds": [],
+      "CaptureManifest": null,
+      "ScreenSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "PrintSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "ScreenToPageSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "Name": "runaway-script",
+      "Passed": true,
+      "ContainerName": "officeimo-html-015b0e2206d44e4c94993f5ebf952b37",
+      "ContainerRemoved": true,
+      "ElapsedMilliseconds": 51624,
+      "ErrorKind": "TimeoutException",
+      "Error": "The runtime command exceeded its deadline.",
+      "CleanupError": null,
+      "DiscoveryRounds": [],
+      "CaptureManifest": null,
+      "ScreenSha256": null,
+      "PrintSha256": null,
+      "ScreenToPageSha256": null
+    },
+    {
+      "Name": "runaway-frame-script",
+      "Passed": true,
+      "ContainerName": "officeimo-html-0e37b2d38757415984f4b8144a502fbc",
+      "ContainerRemoved": true,
+      "ElapsedMilliseconds": 40068,
+      "ErrorKind": "TimeoutException",
+      "Error": "The runtime command exceeded its deadline.",
+      "CleanupError": null,
+      "DiscoveryRounds": [
+        [
+          "https://fixture.officeimo.invalid/frame/runaway.html"
+        ]
+      ],
+      "CaptureManifest": null,
+      "ScreenSha256": null,
+      "PrintSha256": null,
+      "ScreenToPageSha256": null
+    },
+    {
+      "Name": "acquisition-same-host-redirect",
+      "Passed": true,
+      "ContainerName": "officeimo-html-7af40742bd5942bb93a7f43d88c695b3",
+      "ContainerRemoved": true,
+      "ElapsedMilliseconds": 29291,
+      "ErrorKind": null,
+      "Error": null,
+      "CleanupError": null,
+      "DiscoveryRounds": [],
+      "CaptureManifest": "sha256:c4e464e150031f8c5aeef97831a6d0af3fc0b62ea67b381e3a8c5aefb7eba980",
+      "ScreenSha256": "9c1baea9ae2f7a799cac45a8aa0814c20599cbc6806c25a8a509348d4f419309",
+      "PrintSha256": "71e49f6a3bcca9f82998f7bc437bd288d9dadd745a2bd36ca8ad745d99fe0d05",
+      "ScreenToPageSha256": "90a4a08f1969a691f600b1b4e5a7ca0e2c23c98dcc13e71f6f9404c32e549f38"
+    },
+    {
+      "Name": "acquisition-cross-host-redirect",
+      "Passed": true,
+      "ContainerName": "officeimo-html-50f646302893439fa650529aa992f6b2",
+      "ContainerRemoved": true,
+      "ElapsedMilliseconds": 30900,
+      "ErrorKind": null,
+      "Error": null,
+      "CleanupError": null,
+      "DiscoveryRounds": [],
+      "CaptureManifest": "sha256:326acfc898fe922061b87fff61e4347d67ca58bb40488ed05b2b5a7a1f8c6247",
+      "ScreenSha256": "887580ddcb46f9118a6bfd18f84af3017ad0231b00712602fa03e0a457a58118",
+      "PrintSha256": "dd2f5d58ba4e2adc9c66c3bd7b5fda67273378b2716b76da02a8ffc78d9300be",
+      "ScreenToPageSha256": "f059baeebf8f4d0216d9abb21528b95bd783dd8c1f6becbf1fce9adb1a7ba203"
+    },
+    {
+      "Name": "acquisition-dynamic-redirect",
+      "Passed": true,
+      "ContainerName": "officeimo-html-85bdccb1e51e43ecaaa80261c0bd5f3a",
+      "ContainerRemoved": true,
+      "ElapsedMilliseconds": 31114,
+      "ErrorKind": null,
+      "Error": null,
+      "CleanupError": null,
+      "DiscoveryRounds": [
+        [
+          "POST http://page.example.test/submit #1"
+        ]
+      ],
+      "CaptureManifest": "sha256:75ed2587e980032db342d0e61e4edd69e09fea0057f575f6ac59b1837f526430",
+      "ScreenSha256": "9db247bc847abe4ca99b26b7cf448f14be04557dafff9b89976042a5424f7587",
+      "PrintSha256": "d760e78433065e39e44d31d2d36a7848fb2d3c1c4c468607672eb63beebf85cc",
+      "ScreenToPageSha256": "4c4cbb99ba381683a8be0c0cfca84386f3f2071c4a1a4f07f2969c51fd0377fc"
+    },
+    {
+      "Name": "acquisition-dynamic-cors",
+      "Passed": true,
+      "ContainerName": "officeimo-html-8be7453c8792461b98e10ceb33cfbe2f",
+      "ContainerRemoved": true,
+      "ElapsedMilliseconds": 31197,
+      "ErrorKind": null,
+      "Error": null,
+      "CleanupError": null,
+      "DiscoveryRounds": [
+        [
+          "POST http://api.example.test/data #1"
+        ]
+      ],
+      "CaptureManifest": "sha256:beef2a947d9e0c11991a3d39bfda48ca1d5d0eb0cd52f50e11fde428b538d014",
+      "ScreenSha256": "f505edf9d953191870d3fcb23b2899840313476106ce292f133c1209da0b3934",
+      "PrintSha256": "c828a686415f43b21a046093050e554d7956df98f763b2851af21e696db6d10f",
+      "ScreenToPageSha256": "ff9f751b04b9ec186095a8f7a5522f4948570119eeeed32e5f4394b239b0dc28"
+    }
+  ]
+}

@@ -77,7 +77,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     hasIntrinsicSize ? intrinsicWidth : 0D,
                     hasIntrinsicSize ? intrinsicHeight : 0D,
                     sourceDescription,
-                    out OfficeDrawing? svgDrawing) && svgDrawing != null) {
+                    out OfficeDrawing? svgDrawing,
+                    viewportWidth: IsInlineSvgElement(element) ? placement.FullWidth : null,
+                    viewportHeight: IsInlineSvgElement(element) ? placement.FullHeight : null) && svgDrawing != null) {
                     AddSvgImageVisual(objectVisuals, svgDrawing, bytes, imageX, imageY, placement, alternativeText,
                         link, sourceDescription);
                     addedObject = true;
@@ -210,15 +212,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double fallbackWidth,
         double fallbackHeight,
         string sourceDescription,
-        out OfficeDrawing? drawing) {
-        var readerOptions = new OfficeSvgDrawingReaderOptions();
+        out OfficeDrawing? drawing,
+        double? viewportWidth = null,
+        double? viewportHeight = null) {
+        var readerOptions = new OfficeSvgDrawingReaderOptions {
+            ViewportWidth = viewportWidth,
+            ViewportHeight = viewportHeight
+        };
+        bool canRasterizeSvg = _options.ImageCodec != null
+            && (!viewportWidth.HasValue || OfficeSvgDrawingReader.IsWithinSafetyLimits(bytes, readerOptions));
         readerOptions.Fonts.AddRange(_fonts);
         if (_options.SvgForeignObjectDepth < _options.MaxSvgForeignObjectDepth) {
             readerOptions.ForeignObjectRenderer = RenderSvgForeignObject;
         }
         if (OfficeSvgDrawingReader.TryRead(bytes, readerOptions, out drawing, out int unsupportedFeatures) && drawing != null) {
             if (unsupportedFeatures > 0) {
-                if (TryRasterizeSvgFallback(bytes, drawing.Width, drawing.Height, sourceDescription, unsupportedFeatures, out OfficeDrawing? rasterFallback)) {
+                if (canRasterizeSvg &&
+                    TryRasterizeSvgFallback(bytes, drawing.Width, drawing.Height, sourceDescription, unsupportedFeatures, out OfficeDrawing? rasterFallback)) {
                     drawing = rasterFallback;
                     return true;
                 }
@@ -234,7 +244,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return true;
         }
 
-        if (TryRasterizeSvgFallback(bytes, fallbackWidth, fallbackHeight, sourceDescription, null, out drawing)) {
+        if (canRasterizeSvg &&
+            TryRasterizeSvgFallback(bytes, fallbackWidth, fallbackHeight, sourceDescription, null, out drawing)) {
             return true;
         }
 
@@ -372,14 +383,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return;
         }
 
-        double visibleWidthRatio = Math.Max(
-            OfficeImageSourceCrop.MinimumVisibleRatio,
-            1D - placement.SourceCrop.Left - placement.SourceCrop.Right);
-        double visibleHeightRatio = Math.Max(
-            OfficeImageSourceCrop.MinimumVisibleRatio,
-            1D - placement.SourceCrop.Top - placement.SourceCrop.Bottom);
-        double fullWidth = placement.Width / visibleWidthRatio;
-        double fullHeight = placement.Height / visibleHeightRatio;
+        double fullWidth = placement.FullWidth;
+        double fullHeight = placement.FullHeight;
         var child = new HtmlRenderDrawing(
             drawing,
             visibleX - fullWidth * placement.SourceCrop.Left,

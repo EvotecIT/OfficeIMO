@@ -1,0 +1,25 @@
+{
+  "ScenarioId": "named-wpt-svg-line-final2",
+  "SourceLicense": "BSD-3-Clause",
+  "retainedInputBytes": false,
+  "resources": [
+    {
+      "url": "https://wpt.live/css/compositing/line-with-svg-background-ref.html",
+      "finalUrl": "https://wpt.live/css/compositing/line-with-svg-background-ref.html",
+      "StatusCode": 200,
+      "ContentType": "text/html",
+      "ByteCount": 2017,
+      "Sha256": "38603d5eef8f492535cb706b065474dcc21cf6866b70520576ab91de733120fe",
+      "FetchedAtUtc": "2026-09-19T15:37:19.0890337+00:00",
+      "RequestMethod": "GET",
+      "RequestOccurrence": null,
+      "RequestHeaderNames": [],
+      "RequestBodyByteCount": 0,
+      "RequestBodySha256": null,
+      "dynamicExchanges": [],
+      "connectedAddress": "34.41.40.10",
+      "redirects": []
+    }
+  ],
+  "SkippedResources": []
+}

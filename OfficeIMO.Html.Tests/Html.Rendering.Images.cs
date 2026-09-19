@@ -24,11 +24,142 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         HtmlRenderDrawing drawing = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
-        OfficeDrawingShape shape = Assert.Single(drawing.Drawing.Shapes);
+        OfficeDrawingGroup clip = Assert.IsType<OfficeDrawingGroup>(Assert.Single(drawing.Drawing.Elements));
+        OfficeDrawingEffectGroup fitted = Assert.IsType<OfficeDrawingEffectGroup>(Assert.Single(clip.InnerDrawing.Elements));
+        OfficeDrawingShape shape = Assert.Single(fitted.InnerDrawing.Shapes);
 
         Assert.Equal(OfficeColor.Red, shape.Shape.FillColor);
         Assert.Equal(OfficeColor.Blue, shape.Shape.StrokeColor);
         Assert.Equal(2D, shape.Shape.StrokeWidth);
+    }
+
+    [Fact]
+    public void HtmlRender_IntrinsiclessInlineSvgUsesCssViewportAndRetainsBoxBackgroundAndLineStroke() {
+        const string html = "<body style='margin:0'><style>svg{display:block;width:500px;height:60px;background-color:#888}</style>"
+            + "<svg><line x1='10' y1='30' x2='300' y2='30' style='stroke:blue;stroke-width:20'/></svg></body>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 520D,
+            ViewportHeight = 80D,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), visual =>
+            visual.Shape.FillColor == OfficeColor.FromRgb(136, 136, 136));
+        HtmlRenderDrawing drawing = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
+        OfficeDrawingShape line = Assert.Single(drawing.Drawing.Shapes);
+        Assert.Equal(OfficeColor.Blue, line.Shape.StrokeColor);
+        Assert.Equal(20D, line.Shape.StrokeWidth);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.SvgContentUnsupported);
+    }
+
+    [Fact]
+    public void HtmlRender_InlineSvgViewBoxUsesCssViewportWithUniformFit() {
+        const string html = "<body style='margin:0'><svg viewBox='0 0 100 50' style='display:block;width:500px;height:300px'>"
+            + "<rect x='10' y='5' width='20' height='10' fill='red'/></svg></body>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 520D,
+            ViewportHeight = 320D,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+
+        HtmlRenderDrawing visual = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
+        Assert.Equal(500D, visual.Drawing.Width);
+        Assert.Equal(300D, visual.Drawing.Height);
+        OfficeDrawingGroup clip = Assert.IsType<OfficeDrawingGroup>(Assert.Single(visual.Drawing.Elements));
+        OfficeDrawingEffectGroup fitted = Assert.IsType<OfficeDrawingEffectGroup>(Assert.Single(clip.InnerDrawing.Elements));
+        Assert.Equal(5D, fitted.Transform.M11, 6);
+        Assert.Equal(5D, fitted.Transform.M22, 6);
+        Assert.Equal(25D, fitted.Transform.OffsetY, 6);
+    }
+
+    [Fact]
+    public void HtmlRender_InlineSvgObjectFitUsesPaintedObjectViewport() {
+        const string html = "<body style='margin:0'><svg viewBox='0 0 100 50' "
+            + "style='display:block;width:500px;height:300px;object-fit:contain'>"
+            + "<rect width='100' height='50' fill='red'/></svg></body>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 520D,
+            ViewportHeight = 320D,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+
+        HtmlRenderDrawing visual = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
+        Assert.Equal(25D, visual.Y, 6);
+        Assert.Equal(500D, visual.Width, 6);
+        Assert.Equal(250D, visual.Height, 6);
+        Assert.Equal(500D, visual.Drawing.Width, 6);
+        Assert.Equal(250D, visual.Drawing.Height, 6);
+        OfficeDrawingGroup clip = Assert.IsType<OfficeDrawingGroup>(Assert.Single(visual.Drawing.Elements));
+        OfficeDrawingEffectGroup fitted = Assert.IsType<OfficeDrawingEffectGroup>(Assert.Single(clip.InnerDrawing.Elements));
+        Assert.Equal(5D, fitted.Transform.M11, 6);
+        Assert.Equal(5D, fitted.Transform.M22, 6);
+        Assert.Equal(0D, fitted.Transform.OffsetY, 6);
+    }
+
+    [Fact]
+    public void HtmlRender_InlineSvgCoverUsesUncroppedPaintedViewport() {
+        const string html = "<body style='margin:0'><svg id='covered-inline' viewBox='0 0 20 10' "
+            + "style='display:block;width:10px;height:12px;object-fit:cover;object-position:right center'>"
+            + "<rect width='10' height='10' fill='red'/><rect x='10' width='10' height='10' fill='blue'/></svg></body>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 20D,
+            ViewportHeight = 20D,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+
+        HtmlRenderClipGroup clip = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderClipGroup>(),
+            group => group.Source == "svg#covered-inline:object-fit-clip");
+        HtmlRenderDrawing painted = Assert.Single(clip.Visuals.OfType<HtmlRenderDrawing>());
+        Assert.Equal(10D, clip.Width, 6);
+        Assert.Equal(24D, painted.Width, 6);
+        Assert.Equal(12D, painted.Height, 6);
+        Assert.Equal(24D, painted.Drawing.Width, 6);
+        Assert.Equal(12D, painted.Drawing.Height, 6);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        Assert.Equal(OfficeColor.Blue, raster.GetPixel(5, 6));
+    }
+
+    [Fact]
+    public void HtmlRender_OversizedAuthoredInlineSvgCannotReachRasterCodec() {
+        const string html = "<body style='margin:0'><svg width='1000000' style='display:block;width:500px;height:60px'>"
+            + "<rect width='10' height='10' filter='url(#blur)'/></svg></body>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 520D,
+            ViewportHeight = 80D,
+            Margins = HtmlRenderMargins.All(0D),
+            ImageCodec = new SvgFallbackCodec()
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.SvgRasterFallback);
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.SvgContentUnsupported);
+    }
+
+    [Fact]
+    public void HtmlRender_BoundedInlineSvgCanUseCallerRasterFallback() {
+        const string html = "<body style='margin:0'><svg viewBox='0 0 10 4' style='display:block;width:100px;height:40px'>"
+            + "<rect width='10' height='4' fill='red'/><customPaint/></svg></body>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 120D,
+            ViewportHeight = 60D,
+            Margins = HtmlRenderMargins.All(0D),
+            ImageCodec = new SvgFallbackCodec()
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.SvgRasterFallback);
+        Assert.Single(Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>()).Drawing.Images);
     }
 
     [Fact]
@@ -301,8 +432,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.Empty(visual.Drawing.Images);
         Assert.Contains("fill=\"#FF0000\"", exportedSvg, StringComparison.Ordinal);
         Assert.Contains("fill=\"#0000FF\"", exportedSvg, StringComparison.Ordinal);
-        Assert.True(raster.GetPixel(3, 3).B > 200, raster.GetPixel(3, 3).ToString());
-        Assert.True(raster.GetPixel(8, 5).R > raster.GetPixel(8, 5).B, raster.GetPixel(8, 5).ToString());
+        Assert.True(raster.GetPixel(35, 35).B > 200, raster.GetPixel(35, 35).ToString());
+        Assert.True(raster.GetPixel(80, 50).R > raster.GetPixel(80, 50).B, raster.GetPixel(80, 50).ToString());
         Assert.Contains("InlineForeign", extracted, StringComparison.Ordinal);
         Assert.Empty(PdfCore.PdfImageExtractor.ExtractImages(pdf));
     }

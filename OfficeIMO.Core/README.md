@@ -152,6 +152,13 @@ The SVG drawing reader supports a single rectangle, rounded rectangle, circle, e
 path inside a `userSpaceOnUse` clip path, including transforms and even-odd filling. Compound clip
 unions, `objectBoundingBox` clips, and referenced or text clip geometry report unsupported features.
 Shape geometry crossing a nested SVG or symbol viewBox is retained until the viewport clip is applied.
+When another layout engine has already resolved an SVG viewport, pass both
+`OfficeSvgDrawingReaderOptions.ViewportWidth` and `ViewportHeight` in CSS pixels. This lets
+the reader project an SVG without intrinsic dimensions without changing its source markup.
+The pair remains subject to the reader's viewport dimension and area limits; a lone
+dimension is rejected. Authored dimensions are checked independently because a
+raster fallback may still allocate from them. An authored `viewBox` still supplies
+the drawing coordinates.
 
 ```csharp
 using OfficeIMO.Drawing;
