@@ -18,6 +18,7 @@ public sealed partial class PdfReadDocument {
             pdf,
             effectiveOptions,
             includeParsedDetails: false,
+            out string decodedText,
             cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         var (map, trailer) = PdfSyntax.ParseObjects(
@@ -25,6 +26,7 @@ public sealed partial class PdfReadDocument {
             effectiveOptions,
             out PdfRepairReport repairReport,
             out long decodedStreamBytes,
+            decodedText,
             cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         security = PdfSyntax.ReadDocumentSecurityInfo(

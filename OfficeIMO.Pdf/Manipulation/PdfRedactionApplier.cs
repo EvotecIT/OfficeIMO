@@ -1118,7 +1118,7 @@ internal static partial class PdfRedactionApplier {
         var rewritten = new List<byte[]>(sourceIds.Length + 1);
         foreach (int sourceId in sourceIds) {
             cancellationToken.ThrowIfCancellationRequested();
-            rewritten.Add(PdfPageExtractor.WrapObject(numberMap[sourceId], PdfPageExtractor.SerializeObject(objects[sourceId].Value, context)));
+            rewritten.Add(PdfPageExtractor.SerializeIndirectObject(numberMap[sourceId], objects[sourceId].Value, context));
         }
 
         cancellationToken.ThrowIfCancellationRequested();

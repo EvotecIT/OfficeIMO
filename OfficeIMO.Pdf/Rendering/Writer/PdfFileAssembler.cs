@@ -14,9 +14,9 @@ internal static class PdfFileAssembler {
         long objectMemoryLimitBytes = PdfObjectStore.DefaultMemoryLimitBytes,
         string? trailerIdEntry = null,
         CancellationToken cancellationToken = default) {
-        using var stream = new MemoryStream();
+        using var stream = CreateOutputMemoryStream(objects, catalogId, infoId, fileVersion, encryption, trailerIdEntry, permanentFileId: null, cancellationToken);
         Assemble(stream, objects, catalogId, infoId, fileVersion, encryption, objectMemoryLimitBytes, trailerIdEntry, cancellationToken);
-        return stream.ToArray();
+        return GetOutputBytes(stream);
     }
 
     internal static long Assemble(
@@ -51,10 +51,10 @@ internal static class PdfFileAssembler {
         byte[] permanentFileId,
         long objectMemoryLimitBytes = PdfObjectStore.DefaultMemoryLimitBytes,
         CancellationToken cancellationToken = default) {
-        using var stream = new MemoryStream();
+        using var stream = CreateOutputMemoryStream(objects, catalogId, infoId, fileVersion, encryption, trailerIdEntry: null, permanentFileId, cancellationToken);
         AssemblePreservingPermanentId(
             stream, objects, catalogId, infoId, fileVersion, encryption, permanentFileId, objectMemoryLimitBytes, cancellationToken);
-        return stream.ToArray();
+        return GetOutputBytes(stream);
     }
 
     internal static long AssemblePreservingPermanentId(
@@ -91,7 +91,7 @@ internal static class PdfFileAssembler {
         long objectMemoryLimitBytes,
         CancellationToken cancellationToken,
         out PdfFileAssemblyBufferEvidence bufferEvidence) {
-        using var stream = new MemoryStream();
+        using var stream = CreateOutputMemoryStream(objects, catalogId, infoId, fileVersion, encryption, trailerIdEntry: null, permanentFileId: null, cancellationToken);
         AssembleWithEvidenceCore(
             stream,
             objects,
@@ -104,7 +104,7 @@ internal static class PdfFileAssembler {
             permanentFileId: null,
             cancellationToken,
             out bufferEvidence);
-        return stream.ToArray();
+        return GetOutputBytes(stream);
     }
 
     internal static long AssembleWithEvidence(
@@ -195,24 +195,73 @@ internal static class PdfFileAssembler {
         byte[] fileId = encryptionAssembly?.FileId ?? FinalizeFileId(fileIdHash!);
 
         long xrefPos = written;
+        byte[] trailerBytes = BuildTrailerBytes(offsets, catalogId, infoId, xrefPos, encryptionAssembly, fileId, trailerIdEntry, permanentFileId);
+        destination.Write(trailerBytes, 0, trailerBytes.Length);
+        return written + trailerBytes.LongLength;
+    }
+
+    private static byte[] BuildTrailerBytes(
+        List<long> offsets,
+        int catalogId,
+        int infoId,
+        long xrefPos,
+        PdfEncryptionAssembly? encryptionAssembly,
+        byte[] fileId,
+        string? trailerIdEntry,
+        byte[]? permanentFileId) {
+        int objectCount = offsets.Count - 1;
         var trailer = new StringBuilder();
         trailer.Append("xref\n");
-        trailer.Append("0 ").Append((objects.Count + 1).ToString(CultureInfo.InvariantCulture)).Append('\n');
+        trailer.Append("0 ").Append((objectCount + 1).ToString(CultureInfo.InvariantCulture)).Append('\n');
         trailer.Append("0000000000 65535 f \n");
-        for (int i = 1; i <= objects.Count; i++) {
+        for (int i = 1; i <= objectCount; i++) {
             trailer.Append(offsets[i].ToString("0000000000", CultureInfo.InvariantCulture)).Append(" 00000 n \n");
         }
 
         trailer.Append("trailer\n");
-        trailer.Append("<< /Size ").Append((objects.Count + 1).ToString(CultureInfo.InvariantCulture))
+        trailer.Append("<< /Size ").Append((objectCount + 1).ToString(CultureInfo.InvariantCulture))
             .Append(" /Root ").Append(PdfSyntaxEscaper.IndirectReference(catalogId))
             .Append(infoId > 0 ? " /Info " + PdfSyntaxEscaper.IndirectReference(infoId) : string.Empty)
             .Append(BuildTrailerEntries(encryptionAssembly, fileId, trailerIdEntry, permanentFileId)).Append(" >>\n");
         trailer.Append("startxref\n").Append(xrefPos.ToString(CultureInfo.InvariantCulture)).Append("\n%%EOF\n");
-        byte[] trailerBytes = Encoding.ASCII.GetBytes(trailer.ToString());
-        destination.Write(trailerBytes, 0, trailerBytes.Length);
-        return written + trailerBytes.LongLength;
+        return Encoding.ASCII.GetBytes(trailer.ToString());
     }
+
+    private static MemoryStream CreateOutputMemoryStream(
+        IReadOnlyList<byte[]> objects,
+        int catalogId,
+        int infoId,
+        PdfFileVersion fileVersion,
+        PdfStandardEncryptionOptions? encryption,
+        string? trailerIdEntry,
+        byte[]? permanentFileId,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        // Encryption may materialize a second object store. Keep the output buffer lazy
+        // until that work has finished so encrypted output does not acquire a new peak.
+        if (objects is null || encryption is not null) return new MemoryStream();
+
+        long written = PdfEncoding.Latin1GetBytes("%PDF-" + GetHeaderVersion(fileVersion) + "\n%\u00e2\u00e3\u00cf\u00d3\n").LongLength;
+        var offsets = new List<long>(objects.Count + 1) { 0L };
+        PdfObjectStore? objectStore = objects as PdfObjectStore;
+        for (int index = 0; index < objects.Count; index++) {
+            if ((index & 127) == 0) cancellationToken.ThrowIfCancellationRequested();
+            offsets.Add(written);
+            long objectLength = objectStore is null ? objects[index].LongLength : objectStore.GetLength(index);
+            if (written > int.MaxValue - objectLength) return new MemoryStream();
+            written += objectLength;
+        }
+
+        // The file ID changes the trailer contents but not its length. Match the
+        // actual trailer builder so the array-backed result needs no final copy.
+        byte[] placeholderId = new byte[16];
+        long trailerLength = BuildTrailerBytes(offsets, catalogId, infoId, written, encryptionAssembly: null, placeholderId, trailerIdEntry, permanentFileId).LongLength;
+        long capacity = written + trailerLength;
+        return capacity <= int.MaxValue ? new MemoryStream((int)capacity) : new MemoryStream();
+    }
+
+    private static byte[] GetOutputBytes(MemoryStream stream) =>
+        stream.Length == stream.Capacity ? stream.GetBuffer() : stream.ToArray();
 
     private static long GetRetainedMemoryBytes(IReadOnlyList<byte[]> objects, CancellationToken cancellationToken) {
         if (objects is PdfObjectStore store) return store.RetainedMemoryBytes;

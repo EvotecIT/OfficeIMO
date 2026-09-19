@@ -24,7 +24,7 @@ public sealed class PdfArtifactSnapshot {
 
         int? pageCount = null;
         try {
-            pageCount = PdfInspector.Inspect(bytes, readOptions).PageCount;
+            pageCount = PdfReadDocument.Open(bytes, readOptions).Pages.Count;
         } catch {
             // Artifact identity remains useful even when a failed pipeline step produced unreadable bytes.
         }

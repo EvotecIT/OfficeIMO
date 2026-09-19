@@ -86,7 +86,13 @@ public sealed partial class PdfReadPage {
     /// Falls back to 612x792 (US Letter) when not present or malformed.
     /// </summary>
     public (double Width, double Height) GetPageSize() {
-        PdfPageBox box = GetPageBoundaryBox();
+        return GetPageSize(GetGeometry());
+    }
+
+    /// <summary>Returns page size using geometry already read for the same page snapshot.</summary>
+    internal static (double Width, double Height) GetPageSize(PdfPageGeometry geometry) {
+        Guard.NotNull(geometry, nameof(geometry));
+        PdfPageBox box = GetPageBoundaryBox(geometry);
         return (box.Width, box.Height);
     }
 
@@ -120,8 +126,9 @@ public sealed partial class PdfReadPage {
             includeArtifactText: true);
     }
 
-    private PdfPageBox GetPageBoundaryBox() {
-        PdfPageGeometry geometry = GetGeometry();
+    private PdfPageBox GetPageBoundaryBox() => GetPageBoundaryBox(GetGeometry());
+
+    private static PdfPageBox GetPageBoundaryBox(PdfPageGeometry geometry) {
         if (geometry.EffectiveBox is PdfPageBox effectiveBox) return effectiveBox;
         if (geometry.HasEmptyEffectiveBoxIntersection) throw new InvalidOperationException("The page CropBox does not intersect its MediaBox; visual and interaction geometry cannot be mapped safely.");
 

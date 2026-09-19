@@ -662,11 +662,11 @@ internal static partial class PdfMerger {
                 }
 
                 int newId = plan.NumberMap[sourceId];
-                byte[] body = sourceObject.Value is PdfDictionary dictionary && source.Collector.PageObjectIds.Contains(sourceId)
-                    ? PdfPageExtractor.SerializePageDictionary(dictionary, sourceId, context)
-                    : PdfPageExtractor.SerializeObject(sourceObject.Value, context);
+                byte[] serializedObject = sourceObject.Value is PdfDictionary dictionary && source.Collector.PageObjectIds.Contains(sourceId)
+                    ? PdfPageExtractor.WrapObject(newId, PdfPageExtractor.SerializePageDictionary(dictionary, sourceId, context))
+                    : PdfPageExtractor.SerializeIndirectObject(newId, sourceObject.Value, context);
 
-                objects.Add(PdfPageExtractor.WrapObject(newId, body));
+                objects.Add(serializedObject);
             }
         }
 

@@ -120,6 +120,30 @@ public class PdfBoundedObjectBufferTests {
     }
 
     [Fact]
+    public void BufferedAssembly_MatchesStreamOutputForTrailerVariants() {
+        byte[][] objects = {
+            Encoding.ASCII.GetBytes("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n"),
+            Encoding.ASCII.GetBytes("2 0 obj\n<< /Type /Pages /Count 0 /Kids [] >>\nendobj\n")
+        };
+        const string trailerId = " /ID [<01020304> <05060708>]";
+        byte[] permanentId = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20 };
+
+        using var defaultOutput = new MemoryStream();
+        PdfFileAssembler.Assemble(defaultOutput, objects, 1, 0, PdfFileVersion.Pdf14);
+        Assert.Equal(defaultOutput.ToArray(), PdfFileAssembler.Assemble(objects, 1, 0, PdfFileVersion.Pdf14));
+
+        using var explicitIdOutput = new MemoryStream();
+        PdfFileAssembler.Assemble(explicitIdOutput, objects, 1, 0, PdfFileVersion.Pdf17, trailerIdEntry: trailerId);
+        Assert.Equal(explicitIdOutput.ToArray(), PdfFileAssembler.Assemble(objects, 1, 0, PdfFileVersion.Pdf17, trailerIdEntry: trailerId));
+
+        using var permanentIdOutput = new MemoryStream();
+        PdfFileAssembler.AssemblePreservingPermanentId(permanentIdOutput, objects, 1, 0, PdfFileVersion.Pdf20, null, permanentId);
+        byte[] permanentIdBytes = PdfFileAssembler.AssemblePreservingPermanentId(objects, 1, 0, PdfFileVersion.Pdf20, null, permanentId);
+        Assert.Equal(permanentIdOutput.ToArray(), permanentIdBytes);
+        Assert.Equal(0, PdfInspector.Inspect(permanentIdBytes).PageCount);
+    }
+
+    [Fact]
     public void Save_WithForcedSpill_WritesReadablePdfToDestinationStream() {
         var options = new PdfOptions {
             ObjectBufferMemoryLimitBytes = 0,

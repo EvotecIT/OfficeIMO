@@ -30,7 +30,16 @@ internal static partial class PdfSyntax {
         PdfLoadOptions? options,
         out PdfRepairReport repairReport,
         out long decodedStreamBytes,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default) =>
+        ParseObjects(pdf, options, out repairReport, out decodedStreamBytes, null, cancellationToken);
+
+    internal static (Dictionary<int, PdfIndirectObject> Map, string TrailerRaw) ParseObjects(
+        byte[] pdf,
+        PdfLoadOptions? options,
+        out PdfRepairReport repairReport,
+        out long decodedStreamBytes,
+        string? decodedText,
+        CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         decodedStreamBytes = 0;
         PdfReadLimits limits = options?.Limits ?? new PdfReadLimits();
@@ -46,14 +55,15 @@ internal static partial class PdfSyntax {
         }
 
         var parseTimer = System.Diagnostics.Stopwatch.StartNew();
-        string text = PdfEncoding.Latin1GetString(pdf);
+        string text = decodedText ?? PdfEncoding.Latin1GetString(pdf);
         cancellationToken.ThrowIfCancellationRequested();
-        var map = new Dictionary<int, PdfIndirectObject>();
-        var parsedOffsets = new Dictionary<int, int>();
-        var definitionCounts = new Dictionary<(int Id, int Generation), int>();
+        List<IndirectObjectHeader> matches = FindIndirectObjectHeaders(text, parseTimer, limits);
+        int initialObjectCapacity = Math.Min(matches.Count, 32);
+        var map = new Dictionary<int, PdfIndirectObject>(initialObjectCapacity);
+        var parsedOffsets = new Dictionary<int, int>(initialObjectCapacity);
+        var definitionCounts = new Dictionary<(int Id, int Generation), int>(initialObjectCapacity);
         var streamLocations = new List<(int Id, int Generation, int DataStart)>();
         var streamDataRanges = new List<(int Start, int End)>();
-        List<IndirectObjectHeader> matches = FindIndirectObjectHeaders(text, parseTimer, limits);
 
         cancellationToken.ThrowIfCancellationRequested();
         ThrowIfParsingTimeExceeded(parseTimer, limits);
@@ -80,7 +90,13 @@ internal static partial class PdfSyntax {
             definitionCounts[definitionKey] = definitionCount + 1;
             int start = matches[i].Index;
             int bodyStart = matches[i].Index + matches[i].Length;
-            int end = FindObjectEnd(text, start, declaredLengthValues, limits);
+            int end = FindObjectEnd(
+                text,
+                start,
+                declaredLengthValues,
+                limits,
+                preparsedDictionaries: preparsedDictionaries,
+                objectBodyStart: bodyStart);
             if (end < 0) {
                 HandleStructuralDefect(
                     parsingMode,
@@ -132,8 +148,7 @@ internal static partial class PdfSyntax {
 
                     PdfDictionary? dict;
                     if (!preparsedDictionaries.TryGetValue(start, out dict)) {
-                        string dictText = SafeSlice(text, dictStart + 2, dictionaryCharacters, limits.MaxObjectCharacters);
-                        try { dict = ParseDictionary(dictText, limits); }
+                        try { dict = ParseDictionary(text, dictStart + 2, dictionaryCharacters, limits); }
                         catch (Exception ex) when (ex is not OutOfMemoryException && ex is not PdfReadLimitException) { dict = null; }
                     }
                     if (dict is null) {

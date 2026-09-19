@@ -18,7 +18,9 @@ internal static partial class PdfSyntax {
         int start,
         IReadOnlyDictionary<(int ObjectNumber, int Generation), int>? declaredLengthValues = null,
         PdfReadLimits? limits = null,
-        int? maximumIndex = null) {
+        int? maximumIndex = null,
+        IReadOnlyDictionary<int, PdfDictionary>? preparsedDictionaries = null,
+        int? objectBodyStart = null) {
         int limit = Math.Min(text.Length, maximumIndex ?? text.Length);
         int searchFrom = start;
         while (searchFrom >= 0 && searchFrom < limit) {
@@ -45,6 +47,8 @@ internal static partial class PdfSyntax {
                     declaredLengthValues,
                     limits,
                     limit,
+                    preparsedDictionaries,
+                    objectBodyStart,
                     out int declaredObjectEnd)) {
                 return declaredObjectEnd;
             }
@@ -182,6 +186,8 @@ internal static partial class PdfSyntax {
         IReadOnlyDictionary<(int ObjectNumber, int Generation), int>? declaredLengthValues,
         PdfReadLimits? limits,
         int limit,
+        IReadOnlyDictionary<int, PdfDictionary>? preparsedDictionaries,
+        int? objectBodyStart,
         out int objectEnd) {
         objectEnd = -1;
         int dictionaryStart = text.IndexOf("<<", objectStart, streamIndex - objectStart, StringComparison.Ordinal);
@@ -206,14 +212,21 @@ internal static partial class PdfSyntax {
             return false;
         }
 
-        PdfDictionary? dictionary;
-        try {
-            string dictionaryText = text.Substring(dictionaryStart + 2, dictionaryCharacters);
-            dictionary = limits == null
-                ? ParseDictionary(dictionaryText)
-                : ParseDictionary(dictionaryText, limits);
-        } catch (Exception exception) when (exception is not OutOfMemoryException) {
-            return false;
+        PdfDictionary? dictionary = null;
+        if (objectBodyStart is int bodyStart &&
+            dictionaryStart == SkipWhitespaceAndComments(text, bodyStart, streamIndex) &&
+            preparsedDictionaries is not null) {
+            preparsedDictionaries.TryGetValue(objectStart, out dictionary);
+        }
+
+        if (dictionary is null) {
+            try {
+                dictionary = limits == null
+                    ? ParseDictionary(text, dictionaryStart + 2, dictionaryCharacters)
+                    : ParseDictionary(text, dictionaryStart + 2, dictionaryCharacters, limits);
+            } catch (Exception exception) when (exception is not OutOfMemoryException) {
+                return false;
+            }
         }
 
         if (!TryResolveDeclaredStreamLength(dictionary, declaredLengthValues, out int byteLength)) {
@@ -261,7 +274,7 @@ internal static partial class PdfSyntax {
         out Dictionary<int, PdfDictionary> preparsedDictionaries) {
         var streamRanges = new List<(int Start, int End)>();
         var knownStreamRanges = new HashSet<(int Start, int End)>();
-        preparsedDictionaries = new Dictionary<int, PdfDictionary>();
+        preparsedDictionaries = new Dictionary<int, PdfDictionary>(Math.Min(objectMatches.Count, 32));
         DiscoverDeclaredStreamRanges(
             text,
             objectMatches,
@@ -271,6 +284,21 @@ internal static partial class PdfSyntax {
             declaredLengthValues: null,
             parseTimer,
             limits);
+
+        // Direct stream lengths are already bounded by the first pass. Only an
+        // indirect /Length can need scalar-object discovery and further passes.
+        bool hasIndirectLength = false;
+        foreach (PdfDictionary dictionary in preparsedDictionaries.Values) {
+            if (dictionary.Get<PdfReference>("Length") is not null) {
+                hasIndirectLength = true;
+                break;
+            }
+        }
+
+        if (!hasIndirectLength) {
+            return new Dictionary<(int ObjectNumber, int Generation), int>();
+        }
+
         Dictionary<(int ObjectNumber, int Generation), int> values =
             BuildScalarObjectIndex(text, objectMatches, streamRanges, parseTimer, limits);
 
@@ -360,20 +388,23 @@ internal static partial class PdfSyntax {
             return false;
         }
 
+        int streamIndex = SkipWhitespaceAndComments(text, dictionaryEnd, text.Length);
+        if (!IsKeywordAt(text, "stream", streamIndex, text.Length)) {
+            return false;
+        }
+
         if (!preparsedDictionaries.TryGetValue(objectIndex, out PdfDictionary? dictionary)) {
             try {
-                dictionary = ParseDictionary(text.Substring(
+                dictionary = ParseDictionary(text,
                     dictionaryStart + 2,
-                    dictionaryEnd - dictionaryStart - 2), limits);
+                    dictionaryEnd - dictionaryStart - 2, limits);
                 preparsedDictionaries[objectIndex] = dictionary;
             } catch (Exception exception) when (exception is not OutOfMemoryException) {
                 return false;
             }
         }
 
-        int streamIndex = SkipWhitespaceAndComments(text, dictionaryEnd, text.Length);
-        if (!IsKeywordAt(text, "stream", streamIndex, text.Length) ||
-            !TryResolveDeclaredStreamLength(dictionary, declaredLengthValues, out int byteLength)) {
+        if (!TryResolveDeclaredStreamLength(dictionary, declaredLengthValues, out int byteLength)) {
             return false;
         }
 
@@ -626,14 +657,9 @@ internal static partial class PdfSyntax {
         }
 
         int startXrefMarkers = 0;
-        foreach (System.Text.RegularExpressions.Match match in StartXrefRegex.Matches(text)) {
-            if (int.TryParse(
-                match.Groups[1].Value,
-                System.Globalization.NumberStyles.Integer,
-                System.Globalization.CultureInfo.InvariantCulture,
-                out _)) {
-                startXrefMarkers = checked(startXrefMarkers + 1);
-            }
+        int startXrefCursor = 0;
+        while (TryReadNextStartXrefOffset(text, ref startXrefCursor, out _)) {
+            startXrefMarkers = checked(startXrefMarkers + 1);
         }
 
         ThrowIfParsingTimeExceeded(parseTimer, limits);
@@ -652,35 +678,76 @@ internal static partial class PdfSyntax {
         if (limit > text.Length) limit = text.Length;
         if (start >= limit) return false;
 
-        int index = start;
-        while (index < limit) {
-            if ((index & 0x3FFF) == 0 && parseTimer is not null && limits is not null) {
+        // An object header has exactly one "obj" suffix but may have many numeric
+        // false starts in page content and streams. Search for that rarer suffix,
+        // then let the same exact-offset parser validate the preceding numbers.
+        int searchIndex = start;
+        int lastTimeCheck = start;
+        while (searchIndex <= limit - 3) {
+            if (searchIndex - lastTimeCheck >= 0x4000 && parseTimer is not null && limits is not null) {
                 ThrowIfParsingTimeExceeded(parseTimer, limits);
+                lastTimeCheck = searchIndex;
             }
 
-            if (!char.IsDigit(text[index])) {
-                index++;
+            int searchLength = Math.Min(0x4000, limit - searchIndex);
+            int keywordIndex = text.IndexOf("obj", searchIndex, searchLength, StringComparison.Ordinal);
+            if (keywordIndex < 0) {
+                if (searchIndex + searchLength == limit) break;
+                searchIndex += searchLength - 2;
                 continue;
             }
 
-            if (TryReadIndirectObjectHeaderAt(
-                text,
-                index,
-                limit,
-                out header,
-                parseTimer,
-                limits)) {
+            searchIndex = keywordIndex + 3;
+            int candidateIndex = keywordIndex;
+            if (TrySkipHeaderWhitespaceBackward(text, start, ref candidateIndex, parseTimer, limits) &&
+                TrySkipHeaderDigitsBackward(text, start, ref candidateIndex, parseTimer, limits) &&
+                TrySkipHeaderWhitespaceBackward(text, start, ref candidateIndex, parseTimer, limits) &&
+                TrySkipHeaderDigitsBackward(text, start, ref candidateIndex, parseTimer, limits) &&
+                TryReadIndirectObjectHeaderAt(
+                    text,
+                    candidateIndex,
+                    limit,
+                    out header,
+                    parseTimer,
+                    limits)) {
                 return true;
             }
-
-            // A failed header can still begin with a very large digit run. Skip the
-            // whole run so malformed or signature-reservation data stays linear.
-            do {
-                index++;
-            } while (index < limit && char.IsDigit(text[index]));
         }
 
+        if (parseTimer is not null && limits is not null) ThrowIfParsingTimeExceeded(parseTimer, limits);
         return false;
+    }
+
+    private static bool TrySkipHeaderWhitespaceBackward(
+        string text,
+        int start,
+        ref int index,
+        System.Diagnostics.Stopwatch? parseTimer,
+        PdfReadLimits? limits) {
+        int end = index;
+        while (index > start && char.IsWhiteSpace(text[index - 1])) {
+            index--;
+            if ((index & 0x3FFF) == 0 && parseTimer is not null && limits is not null) {
+                ThrowIfParsingTimeExceeded(parseTimer, limits);
+            }
+        }
+        return index < end;
+    }
+
+    private static bool TrySkipHeaderDigitsBackward(
+        string text,
+        int start,
+        ref int index,
+        System.Diagnostics.Stopwatch? parseTimer,
+        PdfReadLimits? limits) {
+        int end = index;
+        while (index > start && char.IsDigit(text[index - 1])) {
+            index--;
+            if ((index & 0x3FFF) == 0 && parseTimer is not null && limits is not null) {
+                ThrowIfParsingTimeExceeded(parseTimer, limits);
+            }
+        }
+        return index < end;
     }
 
     private static bool TryReadIndirectObjectHeaderAt(

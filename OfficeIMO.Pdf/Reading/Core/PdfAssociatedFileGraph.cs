@@ -1,24 +1,6 @@
-using System.Threading;
-
 namespace OfficeIMO.Pdf;
 
 internal static class PdfAssociatedFileGraph {
-    internal static IReadOnlyList<PdfArray> FindAssociatedFileArrays(
-        Dictionary<int, PdfIndirectObject> objects,
-        ISet<int>? allowedObjectNumbers = null,
-        CancellationToken cancellationToken = default) {
-        cancellationToken.ThrowIfCancellationRequested();
-        var arrays = new List<PdfArray>();
-        var visited = new HashSet<PdfObject>();
-        foreach (PdfIndirectObject item in objects.Values) {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (allowedObjectNumbers != null && !allowedObjectNumbers.Contains(item.ObjectNumber)) continue;
-            CollectAssociatedFileArrays(objects, item.Value, arrays, visited, cancellationToken);
-        }
-
-        return arrays;
-    }
-
     internal static bool RemoveAssociatedFileReferences(Dictionary<int, PdfIndirectObject> objects) {
         bool changed = false;
         var visited = new HashSet<PdfObject>();
@@ -27,36 +9,6 @@ internal static class PdfAssociatedFileGraph {
         }
 
         return changed;
-    }
-
-    private static void CollectAssociatedFileArrays(
-        Dictionary<int, PdfIndirectObject> objects,
-        PdfObject value,
-        List<PdfArray> arrays,
-        HashSet<PdfObject> visited,
-        CancellationToken cancellationToken) {
-        cancellationToken.ThrowIfCancellationRequested();
-        if (!visited.Add(value)) return;
-        PdfDictionary? dictionary = value is PdfStream stream ? stream.Dictionary : value as PdfDictionary;
-        if (dictionary is not null) {
-            if (dictionary.Items.TryGetValue("AF", out PdfObject? associatedFilesObject) &&
-                PdfObjectLookup.Resolve(objects, associatedFilesObject) is PdfArray associatedFiles &&
-                !arrays.Contains(associatedFiles)) {
-                arrays.Add(associatedFiles);
-            }
-
-            foreach (PdfObject child in dictionary.Items.Values) {
-                if (child is not PdfReference) CollectAssociatedFileArrays(objects, child, arrays, visited, cancellationToken);
-            }
-
-            return;
-        }
-
-        if (value is PdfArray array) {
-            foreach (PdfObject child in array.Items) {
-                if (child is not PdfReference) CollectAssociatedFileArrays(objects, child, arrays, visited, cancellationToken);
-            }
-        }
     }
 
     private static bool RemoveAssociatedFileReferences(PdfObject value, HashSet<PdfObject> visited) {

@@ -144,8 +144,8 @@ internal static partial class PdfSyntax {
         PdfReference? infoReference = ReadTrailerReference(trailerRaw, "Info", limits);
         int? infoObjectNumber = infoReference?.ObjectNumber ?? fallback.InfoObjectNumber;
         int? infoObjectGeneration = infoReference?.Generation ?? fallback.InfoObjectGeneration;
-        bool hasByteRange = byteRangeValueCount > 0 || ContainsAnyDocumentPdfName(pdf, objects, repairReport, "ByteRange");
         bool hasSignatures = ContainsAnyDocumentPdfName(pdf, objects, repairReport, "ByteRange", "SigFlags", "Sig");
+        bool hasByteRange = byteRangeValueCount > 0 || (hasSignatures && ContainsAnyDocumentPdfName(pdf, objects, repairReport, "ByteRange"));
 
         cancellationToken.ThrowIfCancellationRequested();
         return new PdfDocumentSecurityInfo(

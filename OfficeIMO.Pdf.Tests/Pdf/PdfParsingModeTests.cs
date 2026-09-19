@@ -303,6 +303,79 @@ public class PdfParsingModeTests {
     }
 
     [Fact]
+    public void RepeatedReferencesRemainReachableWhileUnreferencedSemanticObjectsAreReported() {
+        byte[] pdf = Encoding.ASCII.GetBytes(
+            "%PDF-1.7\n" +
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /Extra [5 0 R 5 0 R 5 0 R] >>\nendobj\n" +
+            "2 0 obj\n<< /Type /Pages /Count 0 /Kids [] >>\nendobj\n" +
+            "5 0 obj\n<< /Type /Annot /Subtype /Text >>\nendobj\n" +
+            "8 0 obj\n<< /Type /Annot /Subtype /Text >>\nendobj\n" +
+            "trailer\n<< /Root 1 0 R /Size 9 >>\n%%EOF\n");
+
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
+
+        PdfRepairDiagnostic orphan = Assert.Single(
+            document.RepairReport.Diagnostics,
+            item => item.Code == "OrphanedSemanticObjects");
+        Assert.Equal(8, orphan.ObjectNumber);
+    }
+
+    [Fact]
+    public void OrphanSummaryReportsLowestObjectNumberRegardlessOfDefinitionOrder() {
+        byte[] pdf = Encoding.ASCII.GetBytes(
+            "%PDF-1.7\n" +
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /Extra [5 0 R 5 0 R] >>\nendobj\n" +
+            "2 0 obj\n<< /Type /Pages /Count 0 /Kids [] >>\nendobj\n" +
+            "9 0 obj\n<< /Type /Annot /Subtype /Text >>\nendobj\n" +
+            "5 0 obj\n<< /Type /Annot /Subtype /Text >>\nendobj\n" +
+            "4 0 obj\n<< /Type /Annot /Subtype /Text >>\nendobj\n" +
+            "trailer\n<< /Root 1 0 R /Size 10 >>\n%%EOF\n");
+
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
+
+        PdfRepairDiagnostic orphan = Assert.Single(
+            document.RepairReport.Diagnostics,
+            item => item.Code == "OrphanedSemanticObjects");
+        Assert.Equal(4, orphan.ObjectNumber);
+        Assert.Contains("2 unreachable semantic object(s)", orphan.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GenerationMismatchDoesNotHideAnOrphanedSemanticObject() {
+        byte[] pdf = Encoding.ASCII.GetBytes(
+            "%PDF-1.7\n" +
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /Extra 5 0 R >>\nendobj\n" +
+            "2 0 obj\n<< /Type /Pages /Count 0 /Kids [] >>\nendobj\n" +
+            "5 1 obj\n<< /Type /Annot /Subtype /Text >>\nendobj\n" +
+            "trailer\n<< /Root 1 0 R /Size 6 >>\n%%EOF\n");
+
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
+
+        PdfRepairDiagnostic orphan = Assert.Single(
+            document.RepairReport.Diagnostics,
+            item => item.Code == "OrphanedSemanticObjects");
+        Assert.Equal(5, orphan.ObjectNumber);
+    }
+
+    [Fact]
+    public void InvalidNameTreeGenerationDoesNotSkipAValidSibling() {
+        byte[] pdf = Encoding.ASCII.GetBytes(
+            "%PDF-1.7\n" +
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /Names << /Dests 7 0 R >> >>\nendobj\n" +
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n" +
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] >>\nendobj\n" +
+            "7 0 obj\n<< /Kids [8 0 R 8 1 R] >>\nendobj\n" +
+            "8 1 obj\n<< /Names [(bad) [99 0 R /Fit] (dangling)] >>\nendobj\n" +
+            "trailer\n<< /Root 1 0 R /Size 9 >>\n%%EOF\n");
+
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
+
+        Assert.Contains(document.RepairReport.Diagnostics, item => item.Code == "InvalidNameTreeNode");
+        Assert.Contains(document.RepairReport.Diagnostics, item => item.Code == "OddNameTreePairs");
+        Assert.Contains(document.RepairReport.Diagnostics, item => item.Code == "BrokenNamedDestination");
+    }
+
+    [Fact]
     public void DuplicateObjectIdentifierWithoutIncrementalChainUsesLastDefinitionAndReportsRecovery() {
         byte[] pdf = Encoding.ASCII.GetBytes(
             "%PDF-1.7\n" +
