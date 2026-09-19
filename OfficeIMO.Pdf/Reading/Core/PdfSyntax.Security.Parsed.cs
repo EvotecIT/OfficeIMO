@@ -17,7 +17,8 @@ internal static partial class PdfSyntax {
         cancellationToken.ThrowIfCancellationRequested();
 
         PdfReadLimits limits = options?.Limits ?? new PdfReadLimits();
-        PdfReference? encryptReference = ReadTrailerReference(trailerRaw, "Encrypt", limits);
+        var trailerReferences = ReadTrailerReferences(trailerRaw, "Encrypt", "Root", "Info", limits);
+        PdfReference? encryptReference = trailerReferences.First;
         int? encryptObjectNumber = encryptReference?.ObjectNumber;
         bool hasEncryption = encryptObjectNumber.HasValue;
         string? encryptionFilter = null;
@@ -138,10 +139,10 @@ internal static partial class PdfSyntax {
             }
         }
 
-        PdfReference? rootReference = ReadTrailerReference(trailerRaw, "Root", limits);
+        PdfReference? rootReference = trailerReferences.Second;
         int? rootObjectNumber = rootReference?.ObjectNumber ?? fallback.RootObjectNumber;
         int? rootObjectGeneration = rootReference?.Generation ?? fallback.RootObjectGeneration;
-        PdfReference? infoReference = ReadTrailerReference(trailerRaw, "Info", limits);
+        PdfReference? infoReference = trailerReferences.Third;
         int? infoObjectNumber = infoReference?.ObjectNumber ?? fallback.InfoObjectNumber;
         int? infoObjectGeneration = infoReference?.Generation ?? fallback.InfoObjectGeneration;
         bool hasSignatures = ContainsAnyDocumentPdfName(pdf, objects, repairReport, "ByteRange", "SigFlags", "Sig");
