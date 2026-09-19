@@ -201,7 +201,7 @@ internal static partial class PdfSyntax {
             throw PdfReadLimitException.Create(PdfReadLimitKind.ObjectCharacters, effectiveLimits.MaxObjectCharacters, s.Length);
         }
 
-        var tokens = new List<PdfToken>(Math.Min(16384, s.Length / 2 + 8));
+        var tokens = new List<PdfToken>(Math.Min(16384, s.Length / 4 + 8));
         int i = 0;
         while (i < s.Length) {
             if (tokens.Count > effectiveLimits.MaxTokensPerObject) {
