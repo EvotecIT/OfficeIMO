@@ -16,6 +16,7 @@
     "Publish": false,
     "Owner": "EvotecIT",
     "Repository": "OfficeIMO",
+    "Commitish": "HEAD",
     "VersionSource": "Assets",
     "TagTemplate": "Studio-v{Version}",
     "ReleaseNameTemplate": "OfficeIMO Studio {Version}",

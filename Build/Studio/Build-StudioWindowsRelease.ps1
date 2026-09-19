@@ -21,7 +21,7 @@ if ($Plan) { $parameters.Plan = $true }
 if ($Publish) { $parameters.PublishProjectGitHub = $true }
 
 try {
-    Import-Module PSPublishModule -MinimumVersion 3.0.145 -Force -ErrorAction Stop
+    Import-Module PSPublishModule -MinimumVersion 3.0.146 -Force -ErrorAction Stop
     Push-Location $repositoryRoot -ErrorAction Stop
     try {
         Invoke-PowerForgeRelease @parameters
