@@ -93,15 +93,18 @@ internal static partial class PdfPageExtractor {
         public PdfDictionary LabelDictionary { get; }
     }
     
-    private sealed class NamedDestinationNameTreeEntry {
-        public NamedDestinationNameTreeEntry(PdfStringObj name, PdfObject destination) {
+    internal sealed class NamedDestinationNameTreeEntry {
+        public NamedDestinationNameTreeEntry(PdfStringObj name, PdfObject destination, int order = 0) {
             Name = name;
             Destination = destination;
+            Order = order;
         }
     
         public PdfStringObj Name { get; }
     
         public PdfObject Destination { get; }
+
+        public int Order { get; }
     }
     
     internal sealed class CatalogRewriteState {
@@ -109,6 +112,8 @@ internal static partial class PdfPageExtractor {
 
         private readonly Lazy<Dictionary<int, int>>? _sourcePageIndexes;
         private readonly Lazy<List<PageLabelEntry>?>? _pageLabelEntries;
+        private readonly Lazy<Dictionary<int, List<NamedDestinationNameTreeEntry>>?>? _namedDestinationPageIndex;
+        private int _namedDestinationFilterCount;
     
         public CatalogRewriteState(string? pageMode, string? pageLayout, PdfObject? catalogVersion, PdfObject? catalogLanguage, PdfObject? outlines, PdfObject? pageLabels, PdfObject? namedDestinations, PdfObject? namedDestinationNameTree, PdfObject? openAction, PdfObject? viewerPreferences, PdfObject? xmpMetadata, PdfObject? catalogUri, PdfObject? outputIntents, PdfObject? embeddedFiles, PdfObject? associatedFiles, PdfObject? optionalContent, List<int>? sourcePageObjectNumbers = null, Dictionary<int, PdfIndirectObject>? sourceObjects = null) {
             PageMode = string.IsNullOrEmpty(pageMode) ? null : pageMode;
@@ -135,6 +140,10 @@ internal static partial class PdfPageExtractor {
             if (pageLabels is not null && sourceObjects is not null) {
                 _pageLabelEntries = new Lazy<List<PageLabelEntry>?>(
                     () => ReadPageLabelEntries(sourceObjects, pageLabels));
+            }
+            if (namedDestinationNameTree is not null && sourceObjects is not null) {
+                _namedDestinationPageIndex = new Lazy<Dictionary<int, List<NamedDestinationNameTreeEntry>>?>(
+                    () => BuildNamedDestinationPageIndex(sourceObjects, namedDestinationNameTree));
             }
         }
     
@@ -177,5 +186,15 @@ internal static partial class PdfPageExtractor {
 
         /// <summary>Shares parsed label rules across outputs of a compound extraction.</summary>
         internal List<PageLabelEntry>? PageLabelEntries => _pageLabelEntries?.Value;
+
+        /// <summary>Builds the page index only when a catalog is filtered for multiple outputs.</summary>
+        internal Dictionary<int, List<NamedDestinationNameTreeEntry>>? GetNamedDestinationPageIndexForRepeatedUse() {
+            if (_namedDestinationPageIndex is null ||
+                System.Threading.Interlocked.Increment(ref _namedDestinationFilterCount) == 1) {
+                return null;
+            }
+
+            return _namedDestinationPageIndex.Value;
+        }
     }
 }
