@@ -52,7 +52,7 @@
         "KeepSymbols": false,
         "KeepDocs": false,
         "Zip": true,
-        "ZipNameTemplate": "OfficeIMO-Studio-{rid}-{style}.zip",
+        "ZipNameTemplate": "OfficeIMO-Studio-{version}-{rid}-portable.zip",
         "OutputPath": "Artifacts/Studio/{target}/{rid}/{framework}/{style}",
         "SignProfile": "OfficeIMO.Windows"
       }
@@ -96,13 +96,28 @@
     {
       "Id": "OfficeIMO.Studio.Windows.MSI",
       "PrepareFromTarget": "Studio.Windows",
-      "Runtimes": [ "win-x64" ],
+      "Runtimes": [ "win-x64", "win-arm64" ],
       "Frameworks": [ "net10.0" ],
       "Styles": [ "PortableCompat" ],
       "Harvest": "Auto",
       "HarvestExcludePatterns": [ "**/*.pdb" ],
       "OutputPath": "Artifacts/Studio/Installers/{installer}/{rid}",
-      "OutputName": "OfficeIMO-Studio-{rid}.msi",
+      "OutputName": "OfficeIMO-Studio-{version}-{rid}.msi",
+      "Versioning": {
+        "ReleaseGroup": "officeimo-studio",
+        "Enabled": true,
+        "Major": 0,
+        "Minor": 1,
+        "Monotonic": true,
+        "ApplyToPublish": true,
+        "StatePath": "Artifacts/Studio/versioning/OfficeIMO.Studio.Windows.msi.state.json",
+        "Authority": "GitTags",
+        "AuthorityKey": "officeimo-studio",
+        "GitRemote": "origin",
+        "GitTagPrefix": "studio-msi",
+        "PropertyName": "ProductVersion",
+        "PatchCap": 65535
+      },
       "Authoring": {
         "Product": {
           "Name": "OfficeIMO Studio",

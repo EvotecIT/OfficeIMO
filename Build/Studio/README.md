@@ -24,11 +24,25 @@ Avalonia and CommunityToolkit.Mvvm are the only explicitly trusted build-code pr
 ./Build/Studio/Build-Studio.ps1 -Target Studio.Windows -Runtime win-x64
 ./Build/Studio/Build-Studio.ps1 -Target Studio.macOS -Runtime osx-arm64
 ./Build/Studio/Build-Studio.ps1 -Target Studio.Linux -Runtime linux-x64
+./Build/Studio/Build-StudioWindowsRelease.ps1 -Validate
+./Build/Studio/Build-StudioWindowsRelease.ps1 -Plan
 ```
 
 Always pair a target with its compatible runtime when narrowing the release matrix. Do not use `-SkipBuild`: each runtime needs its own project-reference outputs before PowerForge performs the no-build publish and packages the result.
 
-The release matrix contains self-contained `win-x64`, `win-arm64`, `osx-x64`, `osx-arm64`, `linux-x64`, and `linux-arm64` archives. The generated MSI uses a stable upgrade code and installs the `win-x64` build with a Start menu shortcut. The Debian package owns `/opt`, `/usr/bin`, freedesktop desktop metadata, MIME associations, and the application icon. The macOS package owns the `.app` layout, stable `com.evotec.officeimo.studio` bundle identifier, generated ICNS icon, document associations, code-signing verification, and a `ditto` ZIP. User preferences and privacy-safe diagnostics remain under the user profile and are intentionally retained during ordinary uninstall.
+The release matrix contains self-contained `win-x64`, `win-arm64`, `osx-x64`, `osx-arm64`, `linux-x64`, and `linux-arm64` archives. Windows creates MSI installers for x64 and Arm64 with the same stable upgrade code and a Start menu shortcut. The Debian package owns `/opt`, `/usr/bin`, freedesktop desktop metadata, MIME associations, and the application icon. The macOS package owns the `.app` layout, stable `com.evotec.officeimo.studio` bundle identifier, generated ICNS icon, document associations, code-signing verification, and a `ditto` ZIP. User preferences and privacy-safe diagnostics remain under the user profile and are intentionally retained during ordinary uninstall.
+
+Studio has its own `0.1.x` release line. PowerForge resolves one monotonic version for both Windows MSIs and portable ZIPs, applies it to the application binaries, and reserves it through `studio-msi/officeimo-studio` Git tags when building a release. NuGet library versions remain independent. Planning is read only; an actual build with this release config reserves the version remotely, even when signing is disabled. For unsigned local package tests, use an isolated temporary copy of the config with signing disabled and the version authority changed to `LocalFile` with a task-owned state path. Never publish those test artifacts.
+
+`Build-StudioWindowsRelease.ps1` stages the two signed MSI files, two portable ZIPs, checksums, a release manifest, and the three-file WinGet manifest set. Its `-Publish` option creates the `Studio-v<version>` GitHub release. Submit the generated WinGet manifest directory only after verifying that release and its exact signed assets. Keep the staged manifest directory until the catalog accepts the submission; a failed submission can be retried without rebuilding, reserving another version, or replacing release assets.
+
+```powershell
+$version = '<published Studio version>'
+gh release view "Studio-v$version" -R EvotecIT/OfficeIMO --json assets
+wingetcreate submit "Artifacts/Studio/WindowsRelease/Winget/EvotecIT.OfficeIMO.Studio/$version" --no-open
+```
+
+The website reads published Studio assets from the release hub and exposes direct versioned download links only when all four Windows packages are present. Before a public release, verify the exact signed artifact hashes, clean installation, upgrade, uninstall, and launch on x64 and Arm64 test systems. WinGet catalog acceptance is a separate public-state check.
 
 Windows binaries and the MSI use the existing OfficeIMO Authenticode certificate profile and a trusted timestamp. A missing signing tool, certificate, or timestamp is a release failure. Do not disable signing for a public artifact.
 
