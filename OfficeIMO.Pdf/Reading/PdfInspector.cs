@@ -180,12 +180,14 @@ internal static class PdfInspector {
         PdfReadDocument? readDocument = null;
         Exception? readDocumentException = null;
         PdfDocumentProbe probe;
+        bool probeFromReadDocument = false;
         if (readDocumentFactory is null) {
             probe = Probe(pdf, effectiveOptions, cancellationToken);
         } else {
             try {
                 readDocument = readDocumentFactory();
                 probe = Probe(pdf, readDocument, cancellationToken);
+                probeFromReadDocument = true;
             } catch (Exception ex) when (ex is not OperationCanceledException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
                 readDocumentException = ex;
                 probe = Probe(pdf, effectiveOptions, cancellationToken);
@@ -213,7 +215,9 @@ internal static class PdfInspector {
                 }
 
                 readDocument ??= PdfReadDocument.Open(pdf, effectiveOptions, cancellationToken);
-                probe = Probe(pdf, readDocument, cancellationToken);
+                if (!probeFromReadDocument) {
+                    probe = Probe(pdf, readDocument, cancellationToken);
+                }
                 info = FromReadDocument(readDocument, probe, cancellationToken: cancellationToken);
                 if (info.PageCount == 0) {
                     AddReadBlocker(PdfReadBlockerKind.NoPages, "No PDF pages were discovered.");
