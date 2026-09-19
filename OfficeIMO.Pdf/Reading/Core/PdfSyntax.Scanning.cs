@@ -18,7 +18,9 @@ internal static partial class PdfSyntax {
         int start,
         IReadOnlyDictionary<(int ObjectNumber, int Generation), int>? declaredLengthValues = null,
         PdfReadLimits? limits = null,
-        int? maximumIndex = null) {
+        int? maximumIndex = null,
+        IReadOnlyDictionary<int, PdfDictionary>? preparsedDictionaries = null,
+        int? objectBodyStart = null) {
         int limit = Math.Min(text.Length, maximumIndex ?? text.Length);
         int searchFrom = start;
         while (searchFrom >= 0 && searchFrom < limit) {
@@ -45,6 +47,8 @@ internal static partial class PdfSyntax {
                     declaredLengthValues,
                     limits,
                     limit,
+                    preparsedDictionaries,
+                    objectBodyStart,
                     out int declaredObjectEnd)) {
                 return declaredObjectEnd;
             }
@@ -182,6 +186,8 @@ internal static partial class PdfSyntax {
         IReadOnlyDictionary<(int ObjectNumber, int Generation), int>? declaredLengthValues,
         PdfReadLimits? limits,
         int limit,
+        IReadOnlyDictionary<int, PdfDictionary>? preparsedDictionaries,
+        int? objectBodyStart,
         out int objectEnd) {
         objectEnd = -1;
         int dictionaryStart = text.IndexOf("<<", objectStart, streamIndex - objectStart, StringComparison.Ordinal);
@@ -206,14 +212,22 @@ internal static partial class PdfSyntax {
             return false;
         }
 
-        PdfDictionary? dictionary;
-        try {
-            string dictionaryText = text.Substring(dictionaryStart + 2, dictionaryCharacters);
-            dictionary = limits == null
-                ? ParseDictionary(dictionaryText)
-                : ParseDictionary(dictionaryText, limits);
-        } catch (Exception exception) when (exception is not OutOfMemoryException) {
-            return false;
+        PdfDictionary? dictionary = null;
+        if (objectBodyStart is int bodyStart &&
+            dictionaryStart == SkipWhitespaceAndComments(text, bodyStart, streamIndex) &&
+            preparsedDictionaries is not null) {
+            preparsedDictionaries.TryGetValue(objectStart, out dictionary);
+        }
+
+        if (dictionary is null) {
+            try {
+                string dictionaryText = text.Substring(dictionaryStart + 2, dictionaryCharacters);
+                dictionary = limits == null
+                    ? ParseDictionary(dictionaryText)
+                    : ParseDictionary(dictionaryText, limits);
+            } catch (Exception exception) when (exception is not OutOfMemoryException) {
+                return false;
+            }
         }
 
         if (!TryResolveDeclaredStreamLength(dictionary, declaredLengthValues, out int byteLength)) {
