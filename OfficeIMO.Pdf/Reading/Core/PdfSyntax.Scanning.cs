@@ -662,35 +662,76 @@ internal static partial class PdfSyntax {
         if (limit > text.Length) limit = text.Length;
         if (start >= limit) return false;
 
-        int index = start;
-        while (index < limit) {
-            if ((index & 0x3FFF) == 0 && parseTimer is not null && limits is not null) {
+        // An object header has exactly one "obj" suffix but may have many numeric
+        // false starts in page content and streams. Search for that rarer suffix,
+        // then let the same exact-offset parser validate the preceding numbers.
+        int searchIndex = start;
+        int lastTimeCheck = start;
+        while (searchIndex <= limit - 3) {
+            if (searchIndex - lastTimeCheck >= 0x4000 && parseTimer is not null && limits is not null) {
                 ThrowIfParsingTimeExceeded(parseTimer, limits);
+                lastTimeCheck = searchIndex;
             }
 
-            if (!char.IsDigit(text[index])) {
-                index++;
+            int searchLength = Math.Min(0x4000, limit - searchIndex);
+            int keywordIndex = text.IndexOf("obj", searchIndex, searchLength, StringComparison.Ordinal);
+            if (keywordIndex < 0) {
+                if (searchIndex + searchLength == limit) break;
+                searchIndex += searchLength - 2;
                 continue;
             }
 
-            if (TryReadIndirectObjectHeaderAt(
-                text,
-                index,
-                limit,
-                out header,
-                parseTimer,
-                limits)) {
+            searchIndex = keywordIndex + 3;
+            int candidateIndex = keywordIndex;
+            if (TrySkipHeaderWhitespaceBackward(text, start, ref candidateIndex, parseTimer, limits) &&
+                TrySkipHeaderDigitsBackward(text, start, ref candidateIndex, parseTimer, limits) &&
+                TrySkipHeaderWhitespaceBackward(text, start, ref candidateIndex, parseTimer, limits) &&
+                TrySkipHeaderDigitsBackward(text, start, ref candidateIndex, parseTimer, limits) &&
+                TryReadIndirectObjectHeaderAt(
+                    text,
+                    candidateIndex,
+                    limit,
+                    out header,
+                    parseTimer,
+                    limits)) {
                 return true;
             }
-
-            // A failed header can still begin with a very large digit run. Skip the
-            // whole run so malformed or signature-reservation data stays linear.
-            do {
-                index++;
-            } while (index < limit && char.IsDigit(text[index]));
         }
 
+        if (parseTimer is not null && limits is not null) ThrowIfParsingTimeExceeded(parseTimer, limits);
         return false;
+    }
+
+    private static bool TrySkipHeaderWhitespaceBackward(
+        string text,
+        int start,
+        ref int index,
+        System.Diagnostics.Stopwatch? parseTimer,
+        PdfReadLimits? limits) {
+        int end = index;
+        while (index > start && char.IsWhiteSpace(text[index - 1])) {
+            index--;
+            if ((index & 0x3FFF) == 0 && parseTimer is not null && limits is not null) {
+                ThrowIfParsingTimeExceeded(parseTimer, limits);
+            }
+        }
+        return index < end;
+    }
+
+    private static bool TrySkipHeaderDigitsBackward(
+        string text,
+        int start,
+        ref int index,
+        System.Diagnostics.Stopwatch? parseTimer,
+        PdfReadLimits? limits) {
+        int end = index;
+        while (index > start && char.IsDigit(text[index - 1])) {
+            index--;
+            if ((index & 0x3FFF) == 0 && parseTimer is not null && limits is not null) {
+                ThrowIfParsingTimeExceeded(parseTimer, limits);
+            }
+        }
+        return index < end;
     }
 
     private static bool TryReadIndirectObjectHeaderAt(
