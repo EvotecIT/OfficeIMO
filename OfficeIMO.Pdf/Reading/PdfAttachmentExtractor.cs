@@ -252,26 +252,26 @@ internal static class PdfAttachmentExtractor {
         ISet<PdfObject> visited,
         AttachmentExtractionBudget budget) {
         budget.Checkpoint();
-        if (!visited.Add(value)) return;
         if (value is PdfStream stream) {
+            if (!visited.Add(stream)) return;
             CollectAttachmentReferences(objects, stream.Dictionary, associatedFileArrays, fileAttachmentAnnotations,
                 seenAssociatedFileArrays, visited, budget);
             return;
         }
         if (value is PdfDictionary dictionary) {
+            if (!visited.Add(dictionary)) return;
             if (dictionary.Items.TryGetValue("AF", out PdfObject? associatedFilesObject) &&
                 PdfObjectLookup.Resolve(objects, associatedFilesObject) is PdfArray associatedFiles &&
                 seenAssociatedFileArrays.Add(associatedFiles)) {
                 associatedFileArrays.Add(associatedFiles);
             }
 
-            if (string.Equals(
+            if (dictionary.Items.ContainsKey("FS") && string.Equals(
                     PdfObjectLookup.Resolve(objects, dictionary.Items.TryGetValue("Subtype", out PdfObject? subtype) ? subtype : null) is PdfName resolvedSubtype
                         ? resolvedSubtype.Name
                         : null,
                     "FileAttachment",
-                    StringComparison.Ordinal) &&
-                dictionary.Items.ContainsKey("FS")) {
+                    StringComparison.Ordinal)) {
                 fileAttachmentAnnotations.Add(dictionary);
             }
 
@@ -284,6 +284,7 @@ internal static class PdfAttachmentExtractor {
             return;
         }
         if (value is PdfArray array) {
+            if (!visited.Add(array)) return;
             foreach (PdfObject child in array.Items) {
                 if (child is not PdfReference) {
                     CollectAttachmentReferences(objects, child, associatedFileArrays, fileAttachmentAnnotations,
