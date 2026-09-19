@@ -59,8 +59,9 @@ internal static class PdfDocumentObjectGraphRewriter {
                 sourcePdf,
                 sourceReadOptions,
                 includeParsedDetails: false,
-                cancellationToken: cancellationToken);
-            var parsed = PdfSyntax.ParseObjects(sourcePdf, sourceReadOptions, out PdfRepairReport repairReport, out _, cancellationToken);
+                out string decodedText,
+                cancellationToken);
+            var parsed = PdfSyntax.ParseObjects(sourcePdf, sourceReadOptions, out PdfRepairReport repairReport, out _, decodedText, cancellationToken);
             objects = parsed.Map;
             trailerRaw = parsed.TrailerRaw;
             security = PdfSyntax.ReadDocumentSecurityInfo(
