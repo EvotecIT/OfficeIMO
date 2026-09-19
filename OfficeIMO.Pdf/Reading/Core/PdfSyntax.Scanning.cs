@@ -375,6 +375,11 @@ internal static partial class PdfSyntax {
             return false;
         }
 
+        int streamIndex = SkipWhitespaceAndComments(text, dictionaryEnd, text.Length);
+        if (!IsKeywordAt(text, "stream", streamIndex, text.Length)) {
+            return false;
+        }
+
         if (!preparsedDictionaries.TryGetValue(objectIndex, out PdfDictionary? dictionary)) {
             try {
                 dictionary = ParseDictionary(text.Substring(
@@ -386,9 +391,7 @@ internal static partial class PdfSyntax {
             }
         }
 
-        int streamIndex = SkipWhitespaceAndComments(text, dictionaryEnd, text.Length);
-        if (!IsKeywordAt(text, "stream", streamIndex, text.Length) ||
-            !TryResolveDeclaredStreamLength(dictionary, declaredLengthValues, out int byteLength)) {
+        if (!TryResolveDeclaredStreamLength(dictionary, declaredLengthValues, out int byteLength)) {
             return false;
         }
 
