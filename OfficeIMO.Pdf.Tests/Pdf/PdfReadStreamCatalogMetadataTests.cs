@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.IO;
 using OfficeIMO.Pdf;
 using Xunit;
@@ -135,6 +136,43 @@ public partial class PdfReadStreamTests {
             Assert.All(info.PageLabels, label => Assert.Equal("D", label.Style));
             Assert.All(info.PageLabels, label => Assert.Null(label.Prefix));
             Assert.All(info.PageLabels, label => Assert.True(label.StartNumber >= 1));
+        }
+    }
+
+    [Theory]
+    [InlineData(5, false)]
+    [InlineData(5, true)]
+    [InlineData(6, false)]
+    [InlineData(6, true)]
+    [InlineData(50, false)]
+    [InlineData(50, true)]
+    [InlineData(500, false)]
+    [InlineData(500, true)]
+    public void SplitPages_PreservesPageLabelsAcrossDocumentSizesAndRanges(int pageCount, bool perPageRange) {
+        var options = new PdfOptions { IncludePageLabels = !perPageRange };
+        if (perPageRange) {
+            for (int page = 1; page <= pageCount; page++) {
+                options.AddPageLabelRange(page, PdfPageNumberStyle.Arabic, startNumber: page);
+            }
+        }
+
+        byte[] source = PdfDocument.Create(pdf => pdf.Content(content => {
+            for (int page = 1; page <= pageCount; page++) {
+                if (page > 1) content.PageBreak();
+                content.Paragraph(paragraph => paragraph.Text("Labeled split page " + page.ToString("D4", CultureInfo.InvariantCulture)));
+            }
+        }), options).ToBytes();
+
+        IReadOnlyList<byte[]> outputs = PdfPageExtractor.SplitPages(source);
+
+        Assert.Equal(pageCount, outputs.Count);
+        for (int index = 0; index < outputs.Count; index++) {
+            PdfReadDocument readback = PdfReadDocument.Open(outputs[index]);
+            Assert.Single(readback.Pages);
+            Assert.Contains("Labeled split page " + (index + 1).ToString("D4", CultureInfo.InvariantCulture), readback.ExtractText(), StringComparison.Ordinal);
+            PdfPageLabel label = Assert.Single(readback.PageLabels);
+            Assert.Equal(0, label.StartPageIndex);
+            Assert.Equal(index + 1, label.StartNumber);
         }
     }
 

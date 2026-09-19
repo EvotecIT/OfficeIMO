@@ -82,7 +82,7 @@ internal static partial class PdfPageExtractor {
         public Dictionary<int, int> AnnotationObjectMap { get; }
     }
     
-    private sealed class PageLabelEntry {
+    internal sealed class PageLabelEntry {
         public PageLabelEntry(int startPageIndex, PdfDictionary labelDictionary) {
             StartPageIndex = startPageIndex;
             LabelDictionary = labelDictionary;
@@ -106,8 +106,11 @@ internal static partial class PdfPageExtractor {
     
     internal sealed class CatalogRewriteState {
         public static readonly CatalogRewriteState Empty = new CatalogRewriteState(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+
+        private readonly Lazy<Dictionary<int, int>>? _sourcePageIndexes;
+        private readonly Lazy<List<PageLabelEntry>?>? _pageLabelEntries;
     
-        public CatalogRewriteState(string? pageMode, string? pageLayout, PdfObject? catalogVersion, PdfObject? catalogLanguage, PdfObject? outlines, PdfObject? pageLabels, PdfObject? namedDestinations, PdfObject? namedDestinationNameTree, PdfObject? openAction, PdfObject? viewerPreferences, PdfObject? xmpMetadata, PdfObject? catalogUri, PdfObject? outputIntents, PdfObject? embeddedFiles, PdfObject? associatedFiles, PdfObject? optionalContent, IReadOnlyList<int>? sourcePageObjectNumbers = null) {
+        public CatalogRewriteState(string? pageMode, string? pageLayout, PdfObject? catalogVersion, PdfObject? catalogLanguage, PdfObject? outlines, PdfObject? pageLabels, PdfObject? namedDestinations, PdfObject? namedDestinationNameTree, PdfObject? openAction, PdfObject? viewerPreferences, PdfObject? xmpMetadata, PdfObject? catalogUri, PdfObject? outputIntents, PdfObject? embeddedFiles, PdfObject? associatedFiles, PdfObject? optionalContent, List<int>? sourcePageObjectNumbers = null, Dictionary<int, PdfIndirectObject>? sourceObjects = null) {
             PageMode = string.IsNullOrEmpty(pageMode) ? null : pageMode;
             PageLayout = string.IsNullOrEmpty(pageLayout) ? null : pageLayout;
             CatalogVersion = catalogVersion;
@@ -125,6 +128,14 @@ internal static partial class PdfPageExtractor {
             AssociatedFiles = associatedFiles;
             OptionalContent = optionalContent;
             SourcePageObjectNumbers = sourcePageObjectNumbers;
+            if (pageLabels is not null && sourcePageObjectNumbers is not null) {
+                _sourcePageIndexes = new Lazy<Dictionary<int, int>>(
+                    () => BuildSourcePageIndexes(sourcePageObjectNumbers));
+            }
+            if (pageLabels is not null && sourceObjects is not null) {
+                _pageLabelEntries = new Lazy<List<PageLabelEntry>?>(
+                    () => ReadPageLabelEntries(sourceObjects, pageLabels));
+            }
         }
     
         public string? PageMode { get; }
@@ -159,6 +170,12 @@ internal static partial class PdfPageExtractor {
     
         public PdfObject? OptionalContent { get; }
     
-        public IReadOnlyList<int>? SourcePageObjectNumbers { get; }
+        public List<int>? SourcePageObjectNumbers { get; }
+
+        /// <summary>Shares the source page lookup across outputs of a compound extraction.</summary>
+        internal Dictionary<int, int>? SourcePageIndexes => _sourcePageIndexes?.Value;
+
+        /// <summary>Shares parsed label rules across outputs of a compound extraction.</summary>
+        internal List<PageLabelEntry>? PageLabelEntries => _pageLabelEntries?.Value;
     }
 }

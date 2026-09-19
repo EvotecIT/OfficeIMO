@@ -21,7 +21,7 @@ internal static partial class PdfPageExtractor {
             dictionary.Items.TryGetValue("Names", out var names);
             dictionary.Items.TryGetValue("AF", out var associatedFiles);
             dictionary.Items.TryGetValue("OCProperties", out var optionalContent);
-            return new CatalogRewriteState(pageMode, pageLayout, BuildCatalogVersion(sourceObjects, catalogVersion), BuildCatalogLanguage(sourceObjects, catalogLanguage), BuildOutlines(sourceObjects, outlines), pageLabels, namedDestinations, BuildNamedDestinationNameTree(sourceObjects, names), openAction, BuildViewerPreferences(sourceObjects, viewerPreferences), BuildXmpMetadata(sourceObjects, xmpMetadata), BuildCatalogUri(sourceObjects, catalogUri), BuildOutputIntents(sourceObjects, outputIntents), BuildEmbeddedFiles(sourceObjects, names), BuildAssociatedFiles(sourceObjects, associatedFiles), BuildOptionalContent(sourceObjects, optionalContent), GetPageObjectNumbersInDocumentOrder(sourceObjects, dictionary));
+            return new CatalogRewriteState(pageMode, pageLayout, BuildCatalogVersion(sourceObjects, catalogVersion), BuildCatalogLanguage(sourceObjects, catalogLanguage), BuildOutlines(sourceObjects, outlines), pageLabels, namedDestinations, BuildNamedDestinationNameTree(sourceObjects, names), openAction, BuildViewerPreferences(sourceObjects, viewerPreferences), BuildXmpMetadata(sourceObjects, xmpMetadata), BuildCatalogUri(sourceObjects, catalogUri), BuildOutputIntents(sourceObjects, outputIntents), BuildEmbeddedFiles(sourceObjects, names), BuildAssociatedFiles(sourceObjects, associatedFiles), BuildOptionalContent(sourceObjects, optionalContent), GetPageObjectNumbersInDocumentOrder(sourceObjects, dictionary), sourceObjects);
         }
     
         return CatalogRewriteState.Empty;
@@ -38,7 +38,7 @@ internal static partial class PdfPageExtractor {
         var namedDestinationNameTree = BuildNamedDestinationNameTreeForPages(sourceObjects, catalogState.NamedDestinationNameTree, copiedPageObjectIds);
         var openAction = BuildOpenActionForPages(sourceObjects, catalogState.OpenAction, copiedPageObjectIds);
         var outlines = BuildOutlinesForPages(sourceObjects, catalogState.Outlines, copiedPageObjectIds);
-        var pageLabels = BuildPageLabelsForPages(sourceObjects, catalogState.PageLabels, orderedPageObjectNumbers, outputPageIndexOffset, outputPageIndexByPageObjectNumber, catalogState.SourcePageObjectNumbers);
+        var pageLabels = BuildPageLabelsForPages(sourceObjects, catalogState.PageLabels, orderedPageObjectNumbers, outputPageIndexOffset, outputPageIndexByPageObjectNumber, catalogState.SourcePageIndexes, catalogState.PageLabelEntries);
         string? pageMode = outlines is null && string.Equals(catalogState.PageMode, "UseOutlines", StringComparison.Ordinal)
             ? null
             : catalogState.PageMode;
