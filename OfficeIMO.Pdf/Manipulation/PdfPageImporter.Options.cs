@@ -39,7 +39,8 @@ internal static partial class PdfPageImporter {
         Guard.NotNull(sourcePdf, nameof(sourcePdf));
         Guard.NotNull(sourcePageNumbers, nameof(sourcePageNumbers));
 
-        int targetPageCount = PdfInspector.Inspect(targetPdf, targetReadOptions).PageCount;
+        PdfReadDocument targetDocument = PdfReadDocument.Open(targetPdf, targetReadOptions);
+        int targetPageCount = targetDocument.Pages.Count;
         ValidateInsertBeforePageNumber(insertBeforePageNumber, targetPageCount);
 
         PdfLoadOptions? sourceReadOptions = options.SourceReadOptions;
@@ -60,7 +61,7 @@ internal static partial class PdfPageImporter {
                 new[] { PdfLoadOptions.Default, PdfLoadOptions.Resolve(targetReadOptions) });
         }
 
-        return PdfMerger.MergePrimaryWithInsertedPages(targetPdf, inserted, insertBeforePageNumber, targetReadOptions);
+        return PdfMerger.MergePrimaryWithInsertedPages(targetPdf, inserted, insertBeforePageNumber, targetReadOptions, targetDocument);
     }
 
     private static byte[] ImportPages(PdfPageImportOptions options, byte[] targetPdf, byte[] sourcePdf, bool append, PdfLoadOptions? targetReadOptions, int[]? sourcePageNumbers) {

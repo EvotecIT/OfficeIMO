@@ -109,18 +109,25 @@ internal static partial class PdfMerger {
         byte[] primaryPdf,
         byte[] insertedPdf,
         int insertBeforePageNumber,
-        PdfLoadOptions? primaryReadOptions) {
+        PdfLoadOptions? primaryReadOptions,
+        PdfReadDocument? openedPrimaryDocument = null) {
         Guard.NotNull(primaryPdf, nameof(primaryPdf));
         Guard.NotNull(insertedPdf, nameof(insertedPdf));
 
-        if (PdfReadDocument.Open(primaryPdf, primaryReadOptions).AcroFormXfa is not null ||
-            PdfReadDocument.Open(insertedPdf).AcroFormXfa is not null) {
+        PdfReadDocument primaryDocument = openedPrimaryDocument ?? PdfReadDocument.Open(primaryPdf, primaryReadOptions);
+        if (primaryDocument.AcroFormXfa is not null) {
             throw new NotSupportedException("Page insertion does not preserve XFA form packets. Flatten or remove XFA before inserting pages.");
         }
 
-        var (_, primaryDocument) = PdfMutationPlanner.RequireFullRewriteDocument(
+        PdfReadDocument insertedDocument = PdfReadDocument.Open(insertedPdf);
+        if (insertedDocument.AcroFormXfa is not null) {
+            throw new NotSupportedException("Page insertion does not preserve XFA form packets. Flatten or remove XFA before inserting pages.");
+        }
+
+        (_, primaryDocument) = PdfMutationPlanner.RequireFullRewriteDocument(
             primaryPdf,
             PdfMutationOperation.ModifyPageTree,
+            primaryDocument,
             primaryReadOptions);
         if (primaryDocument.Pages.Count == 0) {
             throw new ArgumentException("Primary PDF does not contain any pages.", nameof(primaryPdf));
@@ -130,9 +137,10 @@ internal static partial class PdfMerger {
             throw new ArgumentOutOfRangeException(nameof(insertBeforePageNumber), "Insert-before page must be in the primary document page range.");
         }
 
-        var (_, insertedDocument) = PdfMutationPlanner.RequireFullRewriteDocument(
+        (_, insertedDocument) = PdfMutationPlanner.RequireFullRewriteDocument(
             insertedPdf,
-            PdfMutationOperation.ExtractPages);
+            PdfMutationOperation.ExtractPages,
+            insertedDocument);
         if (insertedDocument.Pages.Count == 0) {
             throw new ArgumentException("Inserted PDF does not contain any pages.", nameof(insertedPdf));
         }

@@ -32,7 +32,8 @@ internal static partial class PdfPageImporter {
         Guard.NotNull(sourcePdf, nameof(sourcePdf));
         Guard.NotNull(sourcePageNumbers, nameof(sourcePageNumbers));
 
-        int targetPageCount = PdfInspector.Inspect(targetPdf).PageCount;
+        PdfReadDocument targetDocument = PdfReadDocument.Open(targetPdf);
+        int targetPageCount = targetDocument.Pages.Count;
         ValidateInsertBeforePageNumber(insertBeforePageNumber, targetPageCount);
 
         if (insertBeforePageNumber == targetPageCount + 1) {
@@ -44,7 +45,7 @@ internal static partial class PdfPageImporter {
             return PdfMerger.MergeWithPrimarySource(1, inserted, targetPdf);
         }
 
-        return PdfMerger.MergePrimaryWithInsertedPages(targetPdf, inserted, insertBeforePageNumber);
+        return PdfMerger.MergePrimaryWithInsertedPages(targetPdf, inserted, insertBeforePageNumber, primaryReadOptions: null, openedPrimaryDocument: targetDocument);
     }
 
     /// <summary>
@@ -98,7 +99,8 @@ internal static partial class PdfPageImporter {
         Guard.NotNull(sourcePdf, nameof(sourcePdf));
         Guard.NotNull(sourcePageRanges, nameof(sourcePageRanges));
 
-        int targetPageCount = PdfInspector.Inspect(targetPdf).PageCount;
+        PdfReadDocument targetDocument = PdfReadDocument.Open(targetPdf);
+        int targetPageCount = targetDocument.Pages.Count;
         ValidateInsertBeforePageNumber(insertBeforePageNumber, targetPageCount);
 
         if (insertBeforePageNumber == targetPageCount + 1) {
@@ -110,7 +112,7 @@ internal static partial class PdfPageImporter {
             return PdfMerger.MergeWithPrimarySource(1, inserted, targetPdf);
         }
 
-        return PdfMerger.MergePrimaryWithInsertedPages(targetPdf, inserted, insertBeforePageNumber);
+        return PdfMerger.MergePrimaryWithInsertedPages(targetPdf, inserted, insertBeforePageNumber, primaryReadOptions: null, openedPrimaryDocument: targetDocument);
     }
 
     /// <summary>
