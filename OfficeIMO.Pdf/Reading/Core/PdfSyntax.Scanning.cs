@@ -271,6 +271,21 @@ internal static partial class PdfSyntax {
             declaredLengthValues: null,
             parseTimer,
             limits);
+
+        // Direct stream lengths are already bounded by the first pass. Only an
+        // indirect /Length can need scalar-object discovery and further passes.
+        bool hasIndirectLength = false;
+        foreach (PdfDictionary dictionary in preparsedDictionaries.Values) {
+            if (dictionary.Get<PdfReference>("Length") is not null) {
+                hasIndirectLength = true;
+                break;
+            }
+        }
+
+        if (!hasIndirectLength) {
+            return new Dictionary<(int ObjectNumber, int Generation), int>();
+        }
+
         Dictionary<(int ObjectNumber, int Generation), int> values =
             BuildScalarObjectIndex(text, objectMatches, streamRanges, parseTimer, limits);
 
