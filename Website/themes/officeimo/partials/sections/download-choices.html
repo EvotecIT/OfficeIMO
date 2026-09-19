@@ -7,21 +7,29 @@
 {{ if data.release_hub && data.release_hub.releases }}
   {{ for release in data.release_hub.releases }}
     {{ if studio_release == null && !release.isDraft && !release.isPrerelease && string.starts_with release.tag "Studio-v" }}
-      {{ studio_release = release }}
+      {{ candidate_version = string.replace release.tag "Studio-v" "" }}
+      {{ candidate_msi_x64_name = "OfficeIMO-Studio-" + candidate_version + "-win-x64.msi" }}
+      {{ candidate_msi_arm64_name = "OfficeIMO-Studio-" + candidate_version + "-win-arm64.msi" }}
+      {{ candidate_zip_x64_name = "OfficeIMO-Studio-" + candidate_version + "-win-x64-portable.zip" }}
+      {{ candidate_zip_arm64_name = "OfficeIMO-Studio-" + candidate_version + "-win-arm64-portable.zip" }}
+      {{ candidate_msi_x64 = null }}
+      {{ candidate_msi_arm64 = null }}
+      {{ candidate_zip_x64 = null }}
+      {{ candidate_zip_arm64 = null }}
+      {{ for asset in release.assets }}
+        {{ if asset.name == candidate_msi_x64_name && asset.downloadUrl }}{{ candidate_msi_x64 = asset }}{{ end }}
+        {{ if asset.name == candidate_msi_arm64_name && asset.downloadUrl }}{{ candidate_msi_arm64 = asset }}{{ end }}
+        {{ if asset.name == candidate_zip_x64_name && asset.downloadUrl }}{{ candidate_zip_x64 = asset }}{{ end }}
+        {{ if asset.name == candidate_zip_arm64_name && asset.downloadUrl }}{{ candidate_zip_arm64 = asset }}{{ end }}
+      {{ end }}
+      {{ if candidate_msi_x64 && candidate_msi_arm64 && candidate_zip_x64 && candidate_zip_arm64 }}
+        {{ studio_release = release }}
+        {{ studio_msi_x64 = candidate_msi_x64 }}
+        {{ studio_msi_arm64 = candidate_msi_arm64 }}
+        {{ studio_zip_x64 = candidate_zip_x64 }}
+        {{ studio_zip_arm64 = candidate_zip_arm64 }}
+      {{ end }}
     {{ end }}
-  {{ end }}
-{{ end }}
-{{ if studio_release }}
-  {{ studio_version = string.replace studio_release.tag "Studio-v" "" }}
-  {{ studio_msi_x64_name = "OfficeIMO-Studio-" + studio_version + "-win-x64.msi" }}
-  {{ studio_msi_arm64_name = "OfficeIMO-Studio-" + studio_version + "-win-arm64.msi" }}
-  {{ studio_zip_x64_name = "OfficeIMO-Studio-" + studio_version + "-win-x64-portable.zip" }}
-  {{ studio_zip_arm64_name = "OfficeIMO-Studio-" + studio_version + "-win-arm64-portable.zip" }}
-  {{ for asset in studio_release.assets }}
-    {{ if asset.name == studio_msi_x64_name }}{{ studio_msi_x64 = asset }}{{ end }}
-    {{ if asset.name == studio_msi_arm64_name }}{{ studio_msi_arm64 = asset }}{{ end }}
-    {{ if asset.name == studio_zip_x64_name }}{{ studio_zip_x64 = asset }}{{ end }}
-    {{ if asset.name == studio_zip_arm64_name }}{{ studio_zip_arm64 = asset }}{{ end }}
   {{ end }}
 {{ end }}
 <section class="imo-download-choice" id="studio-downloads" aria-labelledby="studio-download-title">

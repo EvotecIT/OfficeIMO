@@ -19,6 +19,7 @@
     "VersionSource": "Assets",
     "TagTemplate": "Studio-v{Version}",
     "ReleaseNameTemplate": "OfficeIMO Studio {Version}",
+    "IsDraft": true,
     "ReuseExistingRelease": false,
     "ReplaceExistingAssets": false
   },

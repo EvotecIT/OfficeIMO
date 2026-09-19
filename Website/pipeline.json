@@ -369,7 +369,7 @@
       "maxReleases": 300,
       "pageSize": 100,
       "maxPages": 100,
-      "retainLatestStableTagPrefixes": ["Studio-v"],
+      "retainAllStableTagPrefixes": ["Studio-v"],
       "includePrerelease": true,
       "products": [
         { "id": "officeimo.word", "name": "OfficeIMO.Word", "order": 10 },
