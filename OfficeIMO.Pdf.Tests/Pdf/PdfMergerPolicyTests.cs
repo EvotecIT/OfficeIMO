@@ -106,18 +106,25 @@ public class PdfMergerPolicyTests {
 
     [Fact]
     public void MiddlePageInsertion_RejectsXfaBeforeRebuildingTheCatalog() {
-        byte[] xfa = BuildRawPdf(
-            "<< /Type /Catalog /Pages 2 0 R /AcroForm 7 0 R >>",
-            "<< /Type /Pages /Count 2 /Kids [3 0 R 5 0 R] >>",
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Contents 4 0 R >>",
-            "<< /Length 0 >>\nstream\n\nendstream",
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Contents 6 0 R >>",
-            "<< /Length 0 >>\nstream\n\nendstream",
-            "<< /Fields [] /XFA (middle-insertion-packet) >>");
+        byte[] xfa = BuildTwoPageXfaPdf("middle-insertion-packet");
         byte[] inserted = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Inserted")).ToBytes();
 
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
             PdfMerger.MergePrimaryWithInsertedPages(xfa, inserted, insertBeforePageNumber: 2));
+
+        Assert.Contains("XFA", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void PublicPageInsertion_RejectsTargetXfaAtEveryPlacement(int insertBeforePageNumber) {
+        byte[] xfa = BuildTwoPageXfaPdf("unsupported-insertion-packet");
+        byte[] incoming = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Incoming")).ToBytes();
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            PdfDocument.Load(xfa).Pages.Insert(insertBeforePageNumber, incoming));
 
         Assert.Contains("XFA", exception.Message, StringComparison.Ordinal);
     }
@@ -561,6 +568,15 @@ public class PdfMergerPolicyTests {
         "<< /Type /Outlines /First 6 0 R /Last 6 0 R /Count 1 >>",
         "<< /Title (Group) /Parent 5 0 R /First 7 0 R /Last 7 0 R /Count 1 >>",
         "<< /Title (Child) /Parent 6 0 R /Dest [3 0 R /Fit] >>");
+
+    private static byte[] BuildTwoPageXfaPdf(string packet) => BuildRawPdf(
+        "<< /Type /Catalog /Pages 2 0 R /AcroForm 7 0 R >>",
+        "<< /Type /Pages /Count 2 /Kids [3 0 R 5 0 R] >>",
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Contents 4 0 R >>",
+        "<< /Length 0 >>\nstream\n\nendstream",
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Contents 6 0 R >>",
+        "<< /Length 0 >>\nstream\n\nendstream",
+        "<< /Fields [] /XFA (" + packet + ") >>");
 
     private static byte[] BuildRawPdf(params string[] objectBodies) {
         var builder = new StringBuilder("%PDF-1.7\n");

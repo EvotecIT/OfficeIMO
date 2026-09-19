@@ -101,6 +101,16 @@ internal static partial class PdfMerger {
         return MergeCore(pdfs, primarySourceIndex, options: null, readOptions).ToBytes();
     }
 
+    internal static byte[] MergeWithPrimarySource(
+        int primarySourceIndex,
+        IReadOnlyList<byte[]> pdfs,
+        IReadOnlyList<PdfLoadOptions> readOptions,
+        IReadOnlyList<Func<PdfReadDocument>?> readDocumentFactories) {
+        Guard.NotNull(readOptions, nameof(readOptions));
+        Guard.NotNull(readDocumentFactories, nameof(readDocumentFactories));
+        return MergeCore(pdfs, primarySourceIndex, options: null, readOptions, readDocumentFactories).ToBytes();
+    }
+
     internal static byte[] MergePrimaryWithInsertedPages(byte[] primaryPdf, byte[] insertedPdf, int insertBeforePageNumber) {
         return MergePrimaryWithInsertedPages(primaryPdf, insertedPdf, insertBeforePageNumber, primaryReadOptions: null);
     }
