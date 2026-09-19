@@ -157,8 +157,7 @@ internal static class PdfDocumentObjectGraphRewriter {
         for (int i = 0; i < reachableObjectNumbers.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
             int sourceObjectNumber = reachableObjectNumbers[i];
-            byte[] body = PdfPageExtractor.SerializeObject(objects[sourceObjectNumber].Value, context);
-            byte[] serializedObject = PdfObjectBytes.WrapIndirectObject(i + 1, body);
+            byte[] serializedObject = PdfPageExtractor.SerializeIndirectObject(i + 1, objects[sourceObjectNumber].Value, context);
             serializedObjectBytes = AddWithinOutputLimit(serializedObjectBytes, serializedObject.LongLength, maximumOutputBytes: null);
             serializedObjects.Add(serializedObject);
         }

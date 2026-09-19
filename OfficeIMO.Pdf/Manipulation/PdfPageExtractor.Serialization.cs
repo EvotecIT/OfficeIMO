@@ -92,6 +92,12 @@ internal static partial class PdfPageExtractor {
         return PdfEncoding.Latin1GetBytes(sb.ToString());
     }
 
+    /// <summary>Serializes an indirect object without buffering a stream body a second time.</summary>
+    internal static byte[] SerializeIndirectObject(int objectNumber, PdfObject value, SerializationContext context) =>
+        value is PdfStream stream
+            ? PdfObjectBytes.WrapStreamObject(objectNumber, BuildStreamDictionary(stream, context), stream.Data)
+            : WrapObject(objectNumber, SerializeObject(value, context));
+
     internal static void EnsureSerializedObjectWithinLimit(PdfObject value, SerializationContext context, long maximumBytes) {
         if (maximumBytes < 0 || CountSerializedObjectBytes(value, context, maximumBytes) > maximumBytes) {
             throw PdfOutputLimitErrors.Create("The rewritten PDF exceeds the configured output limit.");
@@ -323,9 +329,10 @@ internal static partial class PdfPageExtractor {
     }
     
     private static void ValidateReferenceGeneration(PdfReference reference, SerializationContext context) {
-        if (context.SourceObjectGenerations.TryGetValue(reference.ObjectNumber, out int activeGeneration)) {
-            if (reference.Generation != activeGeneration) {
-                throw BuildGenerationMismatchException(reference, activeGeneration);
+        if (context.SourceObjects is not null &&
+            context.SourceObjects.TryGetValue(reference.ObjectNumber, out PdfIndirectObject? activeObject)) {
+            if (reference.Generation != activeObject.Generation) {
+                throw BuildGenerationMismatchException(reference, activeObject.Generation);
             }
     
             return;

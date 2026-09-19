@@ -16,8 +16,7 @@ internal static partial class PdfFormFiller {
             preserveRawStringBytes: true);
         var rewritten = new List<byte[]>(sourceIds.Length + 1);
         foreach (int sourceId in sourceIds) {
-            byte[] body = PdfPageExtractor.SerializeObject(objects[sourceId].Value, context);
-            rewritten.Add(PdfPageExtractor.WrapObject(numberMap[sourceId], body));
+            rewritten.Add(PdfPageExtractor.SerializeIndirectObject(numberMap[sourceId], objects[sourceId].Value, context));
         }
 
         int infoId = rewritten.Count + 1;

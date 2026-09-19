@@ -15,7 +15,7 @@ internal static partial class PdfPageExtractor {
             NumberMap = numberMap;
             PagesObjectId = pagesObjectId;
             MaterializedPageValues = materializedPageValues;
-            SourceObjectGenerations = sourceObjects?.ToDictionary(entry => entry.Key, entry => entry.Value.Generation) ?? new Dictionary<int, int>();
+            SourceObjects = sourceObjects;
             PageOverrides = pageOverrides ?? new Dictionary<int, Dictionary<string, PdfObject>>();
             PreserveReferenceGenerations = preserveReferenceGenerations;
             PreserveRawStringBytes = preserveRawStringBytes;
@@ -27,7 +27,8 @@ internal static partial class PdfPageExtractor {
     
         public Dictionary<int, Dictionary<string, PdfObject>> MaterializedPageValues { get; }
     
-        public Dictionary<int, int> SourceObjectGenerations { get; }
+        /// <summary>Uses the existing parse for reference-generation checks without copying every source object.</summary>
+        public Dictionary<int, PdfIndirectObject>? SourceObjects { get; }
 
         public bool PreserveReferenceGenerations { get; }
 
