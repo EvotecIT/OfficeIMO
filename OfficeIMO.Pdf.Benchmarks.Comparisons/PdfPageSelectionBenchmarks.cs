@@ -16,10 +16,13 @@ public class PdfPageSelectionBenchmarks {
     [Params(PdfBenchmarkProducer.OfficeIMO, PdfBenchmarkProducer.IText)]
     public PdfBenchmarkProducer Producer { get; set; }
 
+    [Params(PdfManipulationDensity.Standard, PdfManipulationDensity.Dense)]
+    public PdfManipulationDensity Density { get; set; }
+
     [GlobalSetup]
     public void Setup() {
         PdfManipulationScenario scenario = PdfManipulationScenario.Get(Scale);
-        PdfBenchmarkScenario sourceScenario = scenario.SourceDocument();
+        PdfBenchmarkScenario sourceScenario = scenario.SourceDocument(Density);
         _source = PdfDocumentGenerators.Generate(Producer, sourceScenario);
         PdfBenchmarkValidation.ValidateGenerated(_source, sourceScenario, Producer.ToString());
         _pageNumbers = scenario.SelectedPages();

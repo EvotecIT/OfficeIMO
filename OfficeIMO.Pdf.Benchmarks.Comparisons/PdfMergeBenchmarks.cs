@@ -15,10 +15,13 @@ public class PdfMergeBenchmarks {
     [Params(PdfBenchmarkProducer.OfficeIMO, PdfBenchmarkProducer.IText)]
     public PdfBenchmarkProducer Producer { get; set; }
 
+    [Params(PdfManipulationDensity.Standard, PdfManipulationDensity.Dense)]
+    public PdfManipulationDensity Density { get; set; }
+
     [GlobalSetup]
     public void Setup() {
         PdfManipulationScenario scenario = PdfManipulationScenario.Get(Scale);
-        IReadOnlyList<(PdfBenchmarkScenario Scenario, int[] Pages)> documents = scenario.ExpectedMergeDocuments();
+        IReadOnlyList<(PdfBenchmarkScenario Scenario, int[] Pages)> documents = scenario.ExpectedMergeDocuments(Density);
         _sources = documents
             .Select(item => PdfDocumentGenerators.Generate(Producer, item.Scenario))
             .ToArray();

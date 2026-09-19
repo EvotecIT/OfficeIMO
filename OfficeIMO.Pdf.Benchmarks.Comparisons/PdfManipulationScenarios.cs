@@ -5,6 +5,11 @@ public enum PdfSplitWorkflow {
     Bundles
 }
 
+public enum PdfManipulationDensity {
+    Standard,
+    Dense
+}
+
 internal sealed record PdfManipulationScenario(
     PdfBenchmarkScale Scale,
     int SourcePageCount,
@@ -20,13 +25,13 @@ internal sealed record PdfManipulationScenario(
         _ => throw new ArgumentOutOfRangeException(nameof(scale))
     };
 
-    internal PdfBenchmarkScenario SourceDocument(int documentNumber = 0, int? pageCount = null) =>
+    internal PdfBenchmarkScenario SourceDocument(PdfManipulationDensity density, int documentNumber = 0, int? pageCount = null) =>
         new(
             Scale,
             "PDF manipulation packet",
             pageCount ?? SourcePageCount,
-            RowsPerPage: 4,
-            ParagraphsPerPage: 1,
+            RowsPerPage: density == PdfManipulationDensity.Dense ? 12 : 4,
+            ParagraphsPerPage: density == PdfManipulationDensity.Dense ? 3 : 1,
             DocumentNumber: documentNumber);
 
     internal int[] SelectedPages() {
@@ -55,10 +60,10 @@ internal sealed record PdfManipulationScenario(
         return outputs;
     }
 
-    internal IReadOnlyList<(PdfBenchmarkScenario Scenario, int[] Pages)> ExpectedMergeDocuments() {
+    internal IReadOnlyList<(PdfBenchmarkScenario Scenario, int[] Pages)> ExpectedMergeDocuments(PdfManipulationDensity density) {
         var sources = new List<(PdfBenchmarkScenario, int[])>(MergeDocumentCount);
         for (int document = 1; document <= MergeDocumentCount; document++) {
-            PdfBenchmarkScenario scenario = SourceDocument(document, MergePagesPerDocument);
+            PdfBenchmarkScenario scenario = SourceDocument(density, document, MergePagesPerDocument);
             sources.Add((scenario, Enumerable.Range(1, MergePagesPerDocument).ToArray()));
         }
 

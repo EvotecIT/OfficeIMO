@@ -580,13 +580,15 @@ $definitions = [ordered]@{
         Filter = '*PdfSplitBenchmarks*'
         ComparisonId = "pdf-split-$Framework"
         Suite = 'OfficeIMO.Pdf.Split'
-        IdentityVariables = @('producer', 'scale', 'workflow')
+        IdentityVariables = @('density', 'producer', 'scale', 'workflow')
         ExpectedCases = @(
             foreach ($scale in @('Easy', 'Medium', 'High', 'VeryHigh')) {
                 foreach ($producer in @('OfficeIMO', 'IText')) {
-                    foreach ($workflow in @('EveryPage', 'Bundles')) {
-                        foreach ($engine in @('OfficeIMO', 'IText', 'PdfSharp')) {
-                            "$engine|Producer=$producer&Scale=$scale&Workflow=$workflow"
+                    foreach ($density in @('Standard', 'Dense')) {
+                        foreach ($workflow in @('EveryPage', 'Bundles')) {
+                            foreach ($engine in @('OfficeIMO', 'IText', 'PdfSharp')) {
+                                "$engine|Density=$density&Producer=$producer&Scale=$scale&Workflow=$workflow"
+                            }
                         }
                     }
                 }
@@ -598,12 +600,14 @@ $definitions = [ordered]@{
         Filter = '*PdfMergeBenchmarks*'
         ComparisonId = "pdf-merge-$Framework"
         Suite = 'OfficeIMO.Pdf.Merge'
-        IdentityVariables = @('producer', 'scale')
+        IdentityVariables = @('density', 'producer', 'scale')
         ExpectedCases = @(
             foreach ($scale in @('Easy', 'Medium', 'High', 'VeryHigh')) {
                 foreach ($producer in @('OfficeIMO', 'IText')) {
-                    foreach ($engine in @('OfficeIMO', 'IText', 'PdfSharp')) {
-                        "$engine|Producer=$producer&Scale=$scale"
+                    foreach ($density in @('Standard', 'Dense')) {
+                        foreach ($engine in @('OfficeIMO', 'IText', 'PdfSharp')) {
+                            "$engine|Density=$density&Producer=$producer&Scale=$scale"
+                        }
                     }
                 }
             }
@@ -614,12 +618,14 @@ $definitions = [ordered]@{
         Filter = '*PdfPageSelectionBenchmarks*'
         ComparisonId = "pdf-page-selection-$Framework"
         Suite = 'OfficeIMO.Pdf.PageSelection'
-        IdentityVariables = @('producer', 'scale')
+        IdentityVariables = @('density', 'producer', 'scale')
         ExpectedCases = @(
             foreach ($scale in @('Easy', 'Medium', 'High', 'VeryHigh')) {
                 foreach ($producer in @('OfficeIMO', 'IText')) {
-                    foreach ($engine in @('OfficeIMO', 'IText', 'PdfSharp')) {
-                        "$engine|Producer=$producer&Scale=$scale"
+                    foreach ($density in @('Standard', 'Dense')) {
+                        foreach ($engine in @('OfficeIMO', 'IText', 'PdfSharp')) {
+                            "$engine|Density=$density&Producer=$producer&Scale=$scale"
+                        }
                     }
                 }
             }
