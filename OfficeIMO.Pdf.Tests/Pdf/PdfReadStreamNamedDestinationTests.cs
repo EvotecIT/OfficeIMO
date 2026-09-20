@@ -117,6 +117,30 @@ public partial class PdfReadStreamTests {
     }
 
     [Fact]
+    public void SplitPageRanges_PreservesDenseDirectDestinationsInSourceOrder() {
+        byte[] input = BuildDenseDirectNamedDestinationPdf(130);
+        IReadOnlyList<byte[]> parts = PdfPageExtractor.SplitPageRanges(
+            input,
+            new PdfPageRange(1, 1),
+            new PdfPageRange(65, 130));
+
+        Assert.Equal(2, parts.Count);
+        PdfReadDocument first = PdfReadDocument.Open(parts[0]);
+        PdfNamedDestination firstDestination = Assert.Single(first.NamedDestinations);
+        Assert.Equal("Dest0001", firstDestination.Name);
+        Assert.Equal(1, firstDestination.PageNumber);
+
+        PdfReadDocument remaining = PdfReadDocument.Open(parts[1]);
+        Assert.Equal(66, remaining.Pages.Count);
+        Assert.Equal(66, remaining.NamedDestinations.Count);
+        for (int index = 0; index < remaining.NamedDestinations.Count; index++) {
+            PdfNamedDestination destination = remaining.NamedDestinations[index];
+            Assert.Equal("Dest" + (index + 65).ToString("D4", System.Globalization.CultureInfo.InvariantCulture), destination.Name);
+            Assert.Equal(index + 1, destination.PageNumber);
+        }
+    }
+
+    [Fact]
     public void Extract_PreservesPagesAndDestinationsFromDenseNameTree() {
         byte[] input = PdfDocument.Create(pdf => pdf.Content(content => {
             for (int page = 1; page <= 300; page++) {

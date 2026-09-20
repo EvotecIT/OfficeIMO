@@ -30,6 +30,17 @@ public class PdfDirectDestinationScalingBenchmarks {
             Validate(parts[i], new[] { i + 1 });
         }
 
+        byte[][] plainParts = SplitPlain();
+        if (plainParts.Length != PageCount) throw new InvalidOperationException("Plain split output count changed.");
+        for (int i = 0; i < plainParts.Length; i++) {
+            PdfReadDocument plainReadback = PdfReadDocument.Open(plainParts[i]);
+            if (plainReadback.Pages.Count != 1 ||
+                plainReadback.Pages[0].GetPageSize().Width != 200 + i + 1 ||
+                plainReadback.NamedDestinations.Count != 0) {
+                throw new InvalidOperationException("Plain split output changed at page " + (i + 1) + ".");
+            }
+        }
+
         int selectedCount = Math.Max(2, PageCount / 4);
         _selectedPages = new int[selectedCount];
         for (int i = 0; i < selectedCount; i++) {
@@ -40,6 +51,9 @@ public class PdfDirectDestinationScalingBenchmarks {
 
     [Benchmark]
     public byte[][] Split() => PdfDocument.Load(_source).Pages.Split().Select(static part => part.ToBytes()).ToArray();
+
+    [Benchmark]
+    public byte[][] SplitPlain() => PdfDocument.Load(_plainSource).Pages.Split().Select(static part => part.ToBytes()).ToArray();
 
     [Benchmark]
     public byte[] Select() => PdfDocument.Load(_source).Pages.Extract(_selectedPages).ToBytes();

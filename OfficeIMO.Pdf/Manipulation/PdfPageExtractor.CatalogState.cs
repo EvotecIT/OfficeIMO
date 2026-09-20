@@ -34,7 +34,7 @@ internal static partial class PdfPageExtractor {
         IReadOnlyList<int>? orderedPageObjectNumbers = null,
         int outputPageIndexOffset = 0,
         IReadOnlyDictionary<int, int>? outputPageIndexByPageObjectNumber = null) {
-        var namedDestinations = BuildNamedDestinationsForPages(sourceObjects, catalogState.NamedDestinations, copiedPageObjectIds);
+        var namedDestinations = BuildNamedDestinationsForPages(sourceObjects, catalogState.NamedDestinations, copiedPageObjectIds, catalogState.GetDirectNamedDestinationPageIndexForRepeatedUse());
         var namedDestinationNameTree = BuildNamedDestinationNameTreeForPages(sourceObjects, catalogState.NamedDestinationNameTree, copiedPageObjectIds, catalogState.GetNamedDestinationPageIndexForRepeatedUse());
         var openAction = BuildOpenActionForPages(sourceObjects, catalogState.OpenAction, copiedPageObjectIds);
         var outlines = BuildOutlinesForPages(sourceObjects, catalogState.Outlines, copiedPageObjectIds);

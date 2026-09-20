@@ -108,12 +108,15 @@ internal static partial class PdfPageExtractor {
     }
     
     internal sealed class CatalogRewriteState {
+        private const int MinimumIndexedDestinationCount = 128;
         public static readonly CatalogRewriteState Empty = new CatalogRewriteState(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
 
         private readonly Lazy<Dictionary<int, int>>? _sourcePageIndexes;
         private readonly Lazy<List<PageLabelEntry>?>? _pageLabelEntries;
         private readonly Lazy<Dictionary<int, List<NamedDestinationNameTreeEntry>>?>? _namedDestinationPageIndex;
+        private readonly Lazy<Dictionary<int, List<DirectNamedDestinationEntry>>?>? _directNamedDestinationPageIndex;
         private int _namedDestinationFilterCount;
+        private int _directNamedDestinationFilterCount;
     
         public CatalogRewriteState(string? pageMode, string? pageLayout, PdfObject? catalogVersion, PdfObject? catalogLanguage, PdfObject? outlines, PdfObject? pageLabels, PdfObject? namedDestinations, PdfObject? namedDestinationNameTree, PdfObject? openAction, PdfObject? viewerPreferences, PdfObject? xmpMetadata, PdfObject? catalogUri, PdfObject? outputIntents, PdfObject? embeddedFiles, PdfObject? associatedFiles, PdfObject? optionalContent, List<int>? sourcePageObjectNumbers = null, Dictionary<int, PdfIndirectObject>? sourceObjects = null) {
             PageMode = string.IsNullOrEmpty(pageMode) ? null : pageMode;
@@ -144,6 +147,12 @@ internal static partial class PdfPageExtractor {
             if (namedDestinationNameTree is not null && sourceObjects is not null) {
                 _namedDestinationPageIndex = new Lazy<Dictionary<int, List<NamedDestinationNameTreeEntry>>?>(
                     () => BuildNamedDestinationPageIndex(sourceObjects, namedDestinationNameTree));
+            }
+            if (namedDestinations is not null &&
+                sourceObjects is not null &&
+                ResolveDictionary(sourceObjects, namedDestinations) is { Items.Count: >= MinimumIndexedDestinationCount }) {
+                _directNamedDestinationPageIndex = new Lazy<Dictionary<int, List<DirectNamedDestinationEntry>>?>(
+                    () => BuildDirectNamedDestinationPageIndex(sourceObjects, namedDestinations));
             }
         }
     
@@ -196,5 +205,27 @@ internal static partial class PdfPageExtractor {
 
             return _namedDestinationPageIndex.Value;
         }
+
+        /// <summary>Indexes direct destinations only after a second extraction uses this source.</summary>
+        internal Dictionary<int, List<DirectNamedDestinationEntry>>? GetDirectNamedDestinationPageIndexForRepeatedUse() {
+            if (_directNamedDestinationPageIndex is null ||
+                System.Threading.Interlocked.Increment(ref _directNamedDestinationFilterCount) == 1) {
+                return null;
+            }
+
+            return _directNamedDestinationPageIndex.Value;
+        }
+    }
+
+    internal readonly struct DirectNamedDestinationEntry {
+        internal DirectNamedDestinationEntry(string name, PdfObject destination, int order) {
+            Name = name;
+            Destination = destination;
+            Order = order;
+        }
+
+        internal string Name { get; }
+        internal PdfObject Destination { get; }
+        internal int Order { get; }
     }
 }
