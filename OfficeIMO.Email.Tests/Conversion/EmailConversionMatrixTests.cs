@@ -1,4 +1,5 @@
 using MimeKit;
+using OfficeIMO;
 using OfficeIMO.Email;
 using Xunit;
 
@@ -71,6 +72,36 @@ public sealed class EmailConversionMatrixTests {
 
         Assert.False(report.CanWrite);
         Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_PROTECTED_CONTENT_REWRITE");
+        IOfficeConversionReport commonReport = report;
+        OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(
+            commonReport.FidelityDiagnostics,
+            item => item.Code == "EMAIL_PROTECTED_CONTENT_REWRITE");
+        Assert.True(commonReport.HasLoss);
+        Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
+        Assert.Equal("OfficeIMO.Email", diagnostic.Source);
+        Assert.Equal("protection", diagnostic.Location);
+        Assert.Throws<InvalidOperationException>(commonReport.RequireNoLoss);
+    }
+
+    [Fact]
+    public void ConversionReportPreservesApproximationCategoryThroughCommonContract() {
+        var report = new EmailConversionReport(
+            EmailFileFormat.Eml,
+            EmailFileFormat.OutlookMsg,
+            new[] {
+                new EmailDiagnostic(
+                    "EMAIL_TEST_APPROXIMATION",
+                    "The test value was normalized.",
+                    EmailDiagnosticSeverity.Warning,
+                    "test/value",
+                    OfficeConversionLossKind.Approximation)
+            });
+
+        OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(report.FidelityDiagnostics);
+
+        Assert.True(report.HasPotentialDataLoss);
+        Assert.True(report.HasLoss);
+        Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
     }
 
     private static EmailDocument CreateDocument(OutlookItemKind kind) {

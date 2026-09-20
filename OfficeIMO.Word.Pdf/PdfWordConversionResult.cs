@@ -15,8 +15,7 @@ public sealed class PdfWordConversionReport : IOfficeConversionReport {
 
     /// <summary>Category-preserving PDF reconstruction diagnostics.</summary>
     public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics => Array.AsReadOnly(
-        Warnings.Select(static warning => new OfficeConversionFidelityDiagnostic(
-            warning.Code, warning.Message, warning.LossKind, warning.Source)).ToArray());
+        Warnings.Select(static warning => warning.ToFidelityDiagnostic()).ToArray());
 
     /// <summary>True when conversion reported an approximation, omission, or failure.</summary>
     public bool HasLoss => Warnings.Any(static warning =>

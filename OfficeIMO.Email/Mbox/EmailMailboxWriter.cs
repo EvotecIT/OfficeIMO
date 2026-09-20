@@ -159,7 +159,8 @@ public sealed class EmailMailboxWriter {
                     diagnostic.Location == null ? string.Empty : string.Concat("/", diagnostic.Location)),
                 diagnostic.Operation, diagnostic.ByteOffset, diagnostic.LimitName,
                 diagnostic.ActualValue, diagnostic.MaximumValue, diagnostic.Disposition,
-                diagnostic.DataLossRisk, diagnostic.SuggestedAction, diagnostic.IsRetryable));
+                diagnostic.DataLossRisk, diagnostic.SuggestedAction, diagnostic.IsRetryable,
+                diagnostic.LossKind));
         }
         if (messageResult.LossDisposition == EmailConversionLossDisposition.Accepted) {
             hasAcceptedLoss = true;

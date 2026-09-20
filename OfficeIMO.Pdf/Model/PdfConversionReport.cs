@@ -66,11 +66,7 @@ public sealed class PdfConversionReport : IOfficeConversionReport {
 
     /// <summary>Gets category-preserving diagnostics for composed conversion routes.</summary>
     public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics => Array.AsReadOnly(
-        Warnings.Select(static warning => new OfficeConversionFidelityDiagnostic(
-            warning.Code,
-            warning.Message,
-            warning.LossKind,
-            warning.Source)).ToArray());
+        Warnings.Select(static warning => warning.ToFidelityDiagnostic()).ToArray());
 
     /// <summary>
     /// High-level fidelity outcome derived from the structured warnings. Declared font-family and

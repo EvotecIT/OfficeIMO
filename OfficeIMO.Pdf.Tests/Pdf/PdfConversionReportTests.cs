@@ -7,6 +7,39 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfConversionReportTests {
     [Fact]
+    public void PdfRenderCapabilityDiagnostic_ExposesCanonicalLossKind() {
+        PdfRenderCapability simplified = PdfRenderCapabilities.Current.Entries.First(static capability =>
+            capability.SupportLevel == PdfRenderSupportLevel.Simplified);
+        PdfRenderCapability unsupported = PdfRenderCapabilities.Current.Entries.First(static capability =>
+            capability.SupportLevel == PdfRenderSupportLevel.Unsupported);
+
+        Assert.Equal(
+            OfficeConversionLossKind.Approximation,
+            new PdfRenderCapabilityDiagnostic(simplified).LossKind);
+        Assert.Equal(
+            OfficeConversionLossKind.Omission,
+            new PdfRenderCapabilityDiagnostic(unsupported).LossKind);
+    }
+
+    [Fact]
+    public void PdfConversionWarning_ProjectsOwnerAndLocationWithSafeMessageFallback() {
+        var warning = new PdfConversionWarning(
+            "OfficeIMO.Tests",
+            "EmptyMessage",
+            "page:1",
+            string.Empty,
+            PdfConversionWarningSeverity.Warning,
+            OfficeConversionLossKind.Omission);
+
+        OfficeConversionFidelityDiagnostic diagnostic = warning.ToFidelityDiagnostic();
+
+        Assert.Equal("OfficeIMO.Tests", diagnostic.Source);
+        Assert.Equal("page:1", diagnostic.Location);
+        Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
+        Assert.False(string.IsNullOrWhiteSpace(diagnostic.Message));
+    }
+
+    [Fact]
     public void PdfConversionReport_SummarizeGroupsWarningsForProofAndWrapperRouting() {
         var report = new PdfConversionReport();
         report.Add(new PdfConversionWarning(

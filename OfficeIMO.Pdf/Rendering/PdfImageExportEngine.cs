@@ -260,11 +260,7 @@ internal static class PdfImageExportEngine {
                 diagnostic.Code,
                 diagnostic.Message,
                 diagnosticSource,
-                diagnostic.SupportLevel switch {
-                    PdfRenderSupportLevel.Simplified => OfficeConversionLossKind.Approximation,
-                    PdfRenderSupportLevel.Unsupported => OfficeConversionLossKind.Omission,
-                    _ => OfficeConversionLossKind.None
-                }));
+                diagnostic.LossKind));
         }
         return diagnostics;
     }

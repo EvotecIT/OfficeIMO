@@ -865,9 +865,7 @@ public static partial class PowerPointPdfConverterExtensions {
                 diagnostic.SupportLevel == PdfCore.PdfRenderSupportLevel.Unsupported
                     ? PdfCore.PdfConversionWarningSeverity.Warning
                     : PdfCore.PdfConversionWarningSeverity.Information,
-                diagnostic.SupportLevel == PdfCore.PdfRenderSupportLevel.Unsupported
-                    ? OfficeConversionLossKind.Omission
-                    : OfficeConversionLossKind.Approximation,
+                diagnostic.LossKind,
                 details: new Dictionary<string, string> {
                     ["pageNumber"] = pageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
                     ["construct"] = diagnostic.Capability.Feature,
