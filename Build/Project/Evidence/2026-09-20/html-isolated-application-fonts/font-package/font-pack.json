@@ -1,0 +1,117 @@
+{
+  "id": "officeimo-browser-compact-2026.08",
+  "description": "Portable browser PDF font pack for ordinary Office documents, common Japanese text, Arabic glyph fallback, and common symbols.",
+  "coverage": [
+    "Latin",
+    "common Japanese text (bounded Joyo kanji, kana, punctuation, and full-width forms)",
+    "Arabic glyphs",
+    "common symbols"
+  ],
+  "defaultFamily": "Carlito",
+  "fallbackFamilies": [
+    "OfficeIMO Japanese Common",
+    "Noto Sans Arabic",
+    "Noto Sans Symbols 2"
+  ],
+  "licenses": [
+    { "name": "OFL-Carlito.txt", "sha256": "443646e93617b50302a2c08e24ca179225556fb89a76810d7637c9cf9cc763a9" },
+    { "name": "OFL-Noto.txt", "sha256": "3c05a56499a20ee045a6d36834b6a9e1108f359eede10d7c1613bc4524d01eef" },
+    { "name": "OFL-NotoCJK.txt", "sha256": "78f867fc9f76f60945ad2d117d028342b23263baee8ada32d7fb27e79689d4f2" }
+  ],
+  "fonts": [
+    {
+      "family": "Carlito",
+      "purpose": "Default Latin Office document family and metric-compatible substitute for Calibri.",
+      "license": "SIL Open Font License 1.1",
+      "licenseFile": "OFL-Carlito.txt",
+      "aliases": [
+        "Arial", "Helvetica", "Calibri", "Aptos", "Segoe UI", "Tahoma", "Verdana",
+        "sans", "sans-serif", "ui-sans-serif", "system-ui", "-apple-system", "BlinkMacSystemFont",
+        "Times", "Times Roman", "Times-Roman", "Times New Roman", "serif",
+        "Courier", "Courier New", "monospace", "ui-monospace"
+      ],
+      "sourceRepository": "https://github.com/google/fonts",
+      "sourceCommit": "9fab8b6cc7b2f20376914fd765d918c698c66d75",
+      "files": [
+        { "name": "Carlito-Regular.ttf", "style": "Regular", "sha256": "f6418f708baede9789daef5d458c0f53d2a888af9820e8062934e504fedc6595" },
+        { "name": "Carlito-Bold.ttf", "style": "Bold", "sha256": "bb5d20f79b82599ec72983597437373a80f2d2085fa91fc144fd74e876a594db" },
+        { "name": "Carlito-Italic.ttf", "style": "Italic", "sha256": "0b019225e58d702bfedcbd35c21696769f8ee115cb6343f84c2f240312450d1c" },
+        { "name": "Carlito-BoldItalic.ttf", "style": "BoldItalic", "sha256": "b32928186c119599e03ca6a1ffc680fdcb7fac95772f4b95d989cf6cd3861517" }
+      ]
+    },
+    {
+      "family": "OfficeIMO Japanese Common",
+      "purpose": "Bounded Japanese fallback covering the 2,136 Joyo kanji revised in 2010 plus Japanese punctuation, kana, compatibility units, and full-width forms.",
+      "license": "SIL Open Font License 1.1",
+      "licenseFile": "OFL-NotoCJK.txt",
+      "aliases": [],
+      "sourceRepository": "https://github.com/google/fonts",
+      "sourceCommit": "ec626514f79f831f1ab848a82114a0ce7e2d6372",
+      "sourceFile": "ofl/notosansjp/NotoSansJP[wght].ttf",
+      "sourceFileSha256": "c2f3b4d463500a2ddcd3849cded1fceeb9fd6d1c32e6cbecd568453ba50fc68f",
+      "derivation": {
+        "fontToolsVersion": "4.63.0",
+        "weight": 400,
+        "coverageSource": "https://x0213.org/joyo-kanji-code/joyo-kanji-code-u.csv",
+        "coverageSourceSha256": "6525e09f259f619f08f01f59d57aa5909f7993892590838f98d1290b7f9f3ed4",
+        "joyoKanjiCount": 2136,
+        "unicodeRanges": ["U+0020-007E", "U+00A0-00FF", "U+3000-30FF", "U+31F0-31FF", "U+3300-33FF", "U+FF01-FF9F"],
+        "renamedFamily": "OfficeIMO Japanese Common"
+      },
+      "files": [
+        { "name": "NotoSansJP-OfficeIMO-Common.ttf", "style": "Regular", "sha256": "4777e0ac6a42d1bab96f53bd9f87d5d003bf9852cea1a8358463696d9ed42337" }
+      ]
+    },
+    {
+      "family": "Noto Sans Arabic",
+      "purpose": "Portable Arabic glyph fallback. OfficeIMO reports shaping and bidirectional limitations separately.",
+      "license": "SIL Open Font License 1.1",
+      "licenseFile": "OFL-Noto.txt",
+      "aliases": [],
+      "sourceRepository": "https://github.com/notofonts/noto-fonts",
+      "sourceCommit": "ffebf8c1ee449e544955a7e813c54f9b73848eac",
+      "files": [
+        { "name": "NotoSansArabic-Regular.ttf", "style": "Regular", "sha256": "ceea25b464a656dc3b26849bab9356740401af62aedf1bfa8b7f0d9b75925b1b" }
+      ]
+    },
+    {
+      "family": "Noto Sans Symbols 2",
+      "purpose": "Portable bullets, technical marks, and symbol fallback.",
+      "license": "SIL Open Font License 1.1",
+      "licenseFile": "OFL-Noto.txt",
+      "aliases": ["Symbol", "ZapfDingbats", "Zapf Dingbats"],
+      "sourceRepository": "https://github.com/google/fonts",
+      "sourceCommit": "9fab8b6cc7b2f20376914fd765d918c698c66d75",
+      "files": [
+        { "name": "NotoSansSymbols2-Regular.ttf", "style": "Regular", "sha256": "7d5fb73b7ca67a6798101741f5d280a3d016a56a197afcd4199dbb57b4b82a21" }
+      ]
+    }
+  ],
+  "substitutions": [
+    {
+      "source": "Calibri",
+      "target": "Carlito",
+      "impact": "Compatible"
+    },
+    {
+      "source": "Calibri Light",
+      "target": "Carlito",
+      "impact": "Compatible"
+    },
+    {
+      "source": "Aptos",
+      "target": "Carlito",
+      "impact": "LayoutSensitive"
+    },
+    {
+      "source": "Aptos Display",
+      "target": "Carlito",
+      "impact": "LayoutSensitive"
+    },
+    {
+      "source": "Symbol",
+      "target": "Noto Sans Symbols 2",
+      "impact": "LayoutSensitive"
+    }
+  ]
+}

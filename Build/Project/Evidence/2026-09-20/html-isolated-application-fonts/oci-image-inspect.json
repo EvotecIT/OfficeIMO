@@ -1,0 +1,177 @@
+[
+     {
+          "Id": "74ef1d7acbf513426f8b1511fd1118c30a40ca3c41cc2828cd8f942191c7a4df",
+          "Digest": "sha256:d2f98be61d885b7533eab1a0b7be6cf0225762ec540f65e9c942bed70511d093",
+          "RepoTags": [
+               "localhost/officeimo-html-public-render:app-fonts-final2"
+          ],
+          "RepoDigests": [
+               "localhost/officeimo-html-public-render@sha256:d2f98be61d885b7533eab1a0b7be6cf0225762ec540f65e9c942bed70511d093"
+          ],
+          "Parent": "972afb779a8c331e2ff83c3635cb977f2dae05214c4fffc663507e65afc04ea6",
+          "Comment": "",
+          "Created": "2026-09-20T16:38:28.195119988Z",
+          "Config": {
+               "User": "65532:65532",
+               "Env": [
+                    "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                    "APP_UID=1654",
+                    "ASPNETCORE_HTTP_PORTS=8080",
+                    "DOTNET_RUNNING_IN_CONTAINER=true",
+                    "DOTNET_VERSION=10.0.12"
+               ],
+               "Entrypoint": [
+                    "dotnet",
+                    "/app/OfficeIMO.Html.PublicRenderWorker.dll"
+               ],
+               "WorkingDir": "/app",
+               "Labels": {
+                    "io.buildah.version": "1.33.7",
+                    "org.opencontainers.image.version": "24.04"
+               }
+          },
+          "Version": "",
+          "Author": "",
+          "Architecture": "amd64",
+          "Os": "linux",
+          "Size": 264336866,
+          "VirtualSize": 264336866,
+          "GraphDriver": {
+               "Name": "overlay",
+               "Data": {
+                    "LowerDir": "/home/przemyslawklys/.local/share/containers/storage/overlay/12bb1365bbb4a98bba481c9ecbf9706f5676d9a46dcb970e1b07c092cc1e6684/diff:/home/przemyslawklys/.local/share/containers/storage/overlay/afdb909e261a26a535c512f62680f4d4b5ed8c8ce43ea447e2f0a8b201c9e6c6/diff:/home/przemyslawklys/.local/share/containers/storage/overlay/f4dcfb199de83d630b33ea2c64754e258212ff5b0c60870a99f78201487cf6a4/diff:/home/przemyslawklys/.local/share/containers/storage/overlay/f470bc92b72d8191ab001108022d0bbf5bfcb35f8ccbe954259da16c2379e524/diff:/home/przemyslawklys/.local/share/containers/storage/overlay/6e315203bc9b24aec6608c99e666bc1605e0a5e615c2b7f9dee07431f0aee35f/diff:/home/przemyslawklys/.local/share/containers/storage/overlay/535623fadf90f212c7491a792179fdfc7afeb680835a414a1bc68f828e1c3c32/diff:/home/przemyslawklys/.local/share/containers/storage/overlay/d53b5c516b169215c450c5917e2fec31647d7938f2c2451c29124b29f41e683b/diff:/home/przemyslawklys/.local/share/containers/storage/overlay/65e5d715ea720349e6475f91651a0956279fc295a45fd73aa04f1cec046281a1/diff",
+                    "UpperDir": "/home/przemyslawklys/.local/share/containers/storage/overlay/3164d3eb7e1692974634b8b30711d82a4c7b4d3df8810bdae990d6e2f17b73bb/diff",
+                    "WorkDir": "/home/przemyslawklys/.local/share/containers/storage/overlay/3164d3eb7e1692974634b8b30711d82a4c7b4d3df8810bdae990d6e2f17b73bb/work"
+               }
+          },
+          "RootFS": {
+               "Type": "layers",
+               "Layers": [
+                    "sha256:65e5d715ea720349e6475f91651a0956279fc295a45fd73aa04f1cec046281a1",
+                    "sha256:a55dfaf2a7fe63174a64f13e71b3721ae6c732615d4bb1f435b0223b8a02b711",
+                    "sha256:0e2f59b2ad60b42bd26ac2130bf13445a68ad1fa39cd703074adf4a1cb4821db",
+                    "sha256:a5f1728a5c853ed0a121a29693572d09c479835bacfdd832d227a49b1f6485df",
+                    "sha256:337cd9f14904942dd248e7280c42df264ac6ec833f8834809e861b6943e642ff",
+                    "sha256:f55a5fd5927e06ae4bdf82f339b1dceb58fd36a88697e5c1aee06fd812330b66",
+                    "sha256:9ae077a8be19fe90a1e7f360116f59057af82a35c3a18c20ff4e06de4cfd90aa",
+                    "sha256:6d31fbdae79ada70e1b92434793fbacb17366c6b3bfe4198b18837e4139535ca",
+                    "sha256:68d5e4fe464accba787ebff232ee8ee18d8de7379bad28581e51d51da2b334af"
+               ]
+          },
+          "Labels": {
+               "io.buildah.version": "1.33.7",
+               "org.opencontainers.image.version": "24.04"
+          },
+          "Annotations": {
+               "org.opencontainers.image.base.digest": "sha256:e6541e52aeab4e412012178d66a6637b65252cca2ad15ada7cd1849d7d702c3d",
+               "org.opencontainers.image.base.name": "mcr.microsoft.com/dotnet/runtime:10.0"
+          },
+          "ManifestType": "application/vnd.oci.image.manifest.v1+json",
+          "User": "65532:65532",
+          "History": [
+               {
+                    "created": "2026-09-11T11:44:03.605540158Z",
+                    "created_by": "/bin/sh -c #(nop)  ARG RELEASE",
+                    "empty_layer": true
+               },
+               {
+                    "created": "2026-09-11T11:44:03.646010328Z",
+                    "created_by": "/bin/sh -c #(nop)  ARG LAUNCHPAD_BUILD_ARCH",
+                    "empty_layer": true
+               },
+               {
+                    "created": "2026-09-11T11:44:03.67741558Z",
+                    "created_by": "/bin/sh -c #(nop)  LABEL org.opencontainers.image.version=24.04",
+                    "empty_layer": true
+               },
+               {
+                    "created": "2026-09-11T11:44:06.020434349Z",
+                    "created_by": "/bin/sh -c #(nop) ADD file:43d479b270bbaf47965cfc86b37f4c517bda83ddefda6f708f98c3b2b7d15396 in / "
+               },
+               {
+                    "created": "2026-09-11T11:44:06.579973371Z",
+                    "created_by": "/bin/sh -c #(nop)  CMD [\"/bin/bash\"]",
+                    "empty_layer": true
+               },
+               {
+                    "created": "2026-09-11T17:23:25.938242619Z",
+                    "created_by": "ENV APP_UID=1654 ASPNETCORE_HTTP_PORTS=8080 DOTNET_RUNNING_IN_CONTAINER=true",
+                    "comment": "buildkit.dockerfile.v0",
+                    "empty_layer": true
+               },
+               {
+                    "created": "2026-09-11T17:23:25.938242619Z",
+                    "created_by": "RUN /bin/sh -c apt-get update     && apt-get install -y --no-install-recommends         ca-certificates                 libc6         libgcc-s1         libicu74         libssl3t64         libstdc++6         tzdata         tzdata-legacy     && rm -rf /var/lib/apt/lists/* # buildkit",
+                    "comment": "buildkit.dockerfile.v0"
+               },
+               {
+                    "created": "2026-09-11T17:23:27.94159049Z",
+                    "created_by": "RUN /bin/sh -c groupadd         --gid=$APP_UID         app     && useradd --no-log-init         --uid=$APP_UID         --gid=$APP_UID         --create-home         app # buildkit",
+                    "comment": "buildkit.dockerfile.v0"
+               },
+               {
+                    "created": "2026-09-11T17:23:34.49839744Z",
+                    "created_by": "ENV DOTNET_VERSION=10.0.12",
+                    "comment": "buildkit.dockerfile.v0",
+                    "empty_layer": true
+               },
+               {
+                    "created": "2026-09-11T17:23:34.49839744Z",
+                    "created_by": "COPY /dotnet /usr/share/dotnet # buildkit",
+                    "comment": "buildkit.dockerfile.v0"
+               },
+               {
+                    "created": "2026-09-11T17:23:35.589197948Z",
+                    "created_by": "RUN /bin/sh -c ln -s /usr/share/dotnet/dotnet /usr/bin/dotnet # buildkit",
+                    "comment": "buildkit.dockerfile.v0"
+               },
+               {
+                    "created": "2026-09-20T15:13:44.991373564Z",
+                    "created_by": "/bin/sh -c #(nop) ARG FONTCONFIG_VERSION",
+                    "comment": "FROM mcr.microsoft.com/dotnet/runtime:10.0",
+                    "empty_layer": true
+               },
+               {
+                    "created": "2026-09-20T15:13:54.105377205Z",
+                    "created_by": "|1 FONTCONFIG_VERSION=2.15.0-1.1ubuntu2 /bin/sh -c apt-get update && apt-get install -y --no-install-recommends \"fontconfig=${FONTCONFIG_VERSION}\" && rm -rf /var/lib/apt/lists/*",
+                    "comment": "FROM 4c25dc1edbc2"
+               },
+               {
+                    "created": "2026-09-20T15:13:54.468390465Z",
+                    "created_by": "/bin/sh -c #(nop) WORKDIR /app",
+                    "comment": "FROM b52835dd4db5",
+                    "empty_layer": true
+               },
+               {
+                    "created": "2026-09-20T16:38:23.91182013Z",
+                    "created_by": "/bin/sh -c #(nop) COPY dir:7b2f1bd13964aad11e02deef097b9f0b9de3260a1a06fc2a4fbdc73bab5a9ea2 in /app/ ",
+                    "comment": "FROM 7cbb62213e86"
+               },
+               {
+                    "created": "2026-09-20T16:38:25.03811989Z",
+                    "created_by": "/bin/sh -c #(nop) COPY dir:20d496d40a87beba596f91f51506ab5038e14ccedc959c29cff257df5e2cf845 in /app/worker/ ",
+                    "comment": "FROM 5c546d284cc5"
+               },
+               {
+                    "created": "2026-09-20T16:38:27.792641754Z",
+                    "created_by": "|1 FONTCONFIG_VERSION=2.15.0-1.1ubuntu2 /bin/sh -c rm -rf /usr/share/fonts/truetype/dejavu     && install -d -m 0755 /usr/local/share/fonts/officeimo     && cp /app/font-pack/*.ttf /usr/local/share/fonts/officeimo/     && fc-cache -f     && test \"$(find /usr/share/fonts /usr/local/share/fonts -type f \\( -name '*.ttf' -o -name '*.otf' -o -name '*.woff' -o -name '*.woff2' \\) | wc -l)\" -eq 7",
+                    "comment": "FROM 45b630dae40c"
+               },
+               {
+                    "created": "2026-09-20T16:38:28.043043009Z",
+                    "created_by": "/bin/sh -c #(nop) USER 65532:65532",
+                    "comment": "FROM c70d4b545708",
+                    "empty_layer": true
+               },
+               {
+                    "created": "2026-09-20T16:38:28.195490083Z",
+                    "created_by": "/bin/sh -c #(nop) ENTRYPOINT [\"dotnet\", \"/app/OfficeIMO.Html.PublicRenderWorker.dll\"]",
+                    "comment": "FROM 972afb779a8c",
+                    "empty_layer": true
+               }
+          ],
+          "NamesHistory": [
+               "localhost/officeimo-html-public-render:app-fonts-final2"
+          ]
+     }
+]
