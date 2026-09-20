@@ -544,19 +544,6 @@ internal static partial class PdfPageImporter {
         WriteOutput(ValidateOutputPath(outputPath), InsertPageRanges(targetPath, sourcePath, insertBeforePageNumber, sourcePageRanges));
     }
 
-    private static int[] NormalizeSourcePageNumbers(byte[] sourcePdf, int[] sourcePageNumbers, PdfLoadOptions? sourceReadOptions = null) {
-        if (sourcePageNumbers.Length > 0) {
-            return sourcePageNumbers;
-        }
-
-        PdfDocumentInfo info = PdfInspector.Inspect(sourcePdf, sourceReadOptions);
-        if (info.PageCount == 0) {
-            throw new ArgumentException("Source PDF does not contain any pages.", nameof(sourcePdf));
-        }
-
-        return Enumerable.Range(1, info.PageCount).ToArray();
-    }
-
     private static void ValidateInsertBeforePageNumber(int insertBeforePageNumber, int pageCount) {
         if (insertBeforePageNumber < 1 || insertBeforePageNumber > pageCount + 1) {
             throw new ArgumentOutOfRangeException(nameof(insertBeforePageNumber), "Insert-before page must be in the target document page range 1-" + (pageCount + 1).ToString(CultureInfo.InvariantCulture) + ".");

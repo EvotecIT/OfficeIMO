@@ -50,10 +50,7 @@ internal static partial class PdfPageImporter {
             return ImportPreparedPages(targetPdf, preparedSource, append: true, targetReadOptions, preparedSourceReadOptions, sourcePageNumbers, targetDocument);
         }
 
-        byte[] inserted = PdfPageExtractor.ExtractPages(
-            preparedSource,
-            preparedSourceReadOptions,
-            NormalizeSourcePageNumbers(preparedSource, sourcePageNumbers, preparedSourceReadOptions));
+        byte[] inserted = ExtractImportedPages(preparedSource, preparedSourceReadOptions, sourcePageNumbers);
         if (insertBeforePageNumber == 1) {
             return MergeBoundaryPages(targetPdf, inserted, append: false, targetReadOptions, targetDocument);
         }
@@ -81,9 +78,25 @@ internal static partial class PdfPageImporter {
         PdfLoadOptions? sourceReadOptions,
         int[] sourcePageNumbers,
         PdfReadDocument? targetDocument = null) {
-        int[] selectedPages = NormalizeSourcePageNumbers(preparedSourcePdf, sourcePageNumbers, sourceReadOptions);
-        byte[] importedPages = PdfPageExtractor.ExtractPages(preparedSourcePdf, sourceReadOptions, selectedPages);
+        byte[] importedPages = ExtractImportedPages(preparedSourcePdf, sourceReadOptions, sourcePageNumbers);
         return MergeBoundaryPages(targetPdf, importedPages, append, targetReadOptions, targetDocument);
+    }
+
+    private static byte[] ExtractImportedPages(byte[] sourcePdf, PdfLoadOptions? sourceReadOptions, int[] sourcePageNumbers) {
+        if (sourcePageNumbers.Length != 0) {
+            return PdfPageExtractor.ExtractPages(sourcePdf, sourceReadOptions, sourcePageNumbers);
+        }
+
+        PdfReadDocument sourceDocument = PdfReadDocument.Open(sourcePdf, sourceReadOptions);
+        if (sourceDocument.Pages.Count == 0) {
+            throw new ArgumentException("Source PDF does not contain any pages.", nameof(sourcePdf));
+        }
+
+        return PdfPageExtractor.ExtractPages(
+            sourcePdf,
+            Enumerable.Range(1, sourceDocument.Pages.Count),
+            sourceReadOptions,
+            () => sourceDocument);
     }
 
     private static byte[] MergeBoundaryPages(
