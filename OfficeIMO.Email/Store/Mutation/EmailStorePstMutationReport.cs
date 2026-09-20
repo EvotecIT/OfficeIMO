@@ -1,7 +1,9 @@
 namespace OfficeIMO.Email.Store;
 
 /// <summary>Outcome of a committed existing-PST mutation transaction.</summary>
-public sealed class EmailStorePstMutationReport {
+public sealed class EmailStorePstMutationReport : IOfficeConversionReport {
+    private readonly IReadOnlyList<OfficeConversionFidelityDiagnostic> _fidelityDiagnostics;
+
     internal EmailStorePstMutationReport(string sourcePath, string? backupPath,
         EmailStorePstMutationPlan plan,
         EmailStorePstWriteReport writeReport, EmailStorePstMutationVerificationReport? verification,
@@ -30,6 +32,15 @@ public sealed class EmailStorePstMutationReport {
         ItemIdMap = itemIdMap;
         OperationResults = operationResults;
         Diagnostics = diagnostics;
+        _fidelityDiagnostics = verification?.IsSuccessful == false
+            ? EmailStoreFidelityProjection.Append(
+                EmailStoreFidelityProjection.Project(diagnostics),
+                EmailStoreFidelityProjection.Create(
+                    "EMAIL_STORE_PST_MUTATION_VERIFICATION_FAILED",
+                    "Post-write PST mutation verification did not preserve the planned semantics.",
+                    OfficeConversionLossKind.Failure,
+                    "verification"))
+            : EmailStoreFidelityProjection.Project(diagnostics);
     }
 
     /// <summary>Full path of the atomically replaced PST.</summary>
@@ -90,6 +101,12 @@ public sealed class EmailStorePstMutationReport {
     public IReadOnlyList<EmailStoreDiagnostic> Diagnostics { get; }
 
     /// <summary>True when a warning, error, or semantic mismatch was reported.</summary>
-    public bool HasDataLoss => Verification?.IsSuccessful == false || Diagnostics.Any(item =>
-        item.Severity != EmailStoreDiagnosticSeverity.Information);
+    public bool HasDataLoss => HasLoss;
+    /// <summary>Category-preserving Store mutation diagnostics.</summary>
+    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics => _fidelityDiagnostics;
+    /// <summary>True when mutation approximated, omitted, or failed to preserve source content.</summary>
+    public bool HasLoss => _fidelityDiagnostics.Any(static diagnostic =>
+        diagnostic.LossKind != OfficeConversionLossKind.None);
+    /// <summary>Throws when mutation reported possible content loss.</summary>
+    public void RequireNoLoss() => EmailStoreFidelityProjection.RequireNoLoss(_fidelityDiagnostics);
 }

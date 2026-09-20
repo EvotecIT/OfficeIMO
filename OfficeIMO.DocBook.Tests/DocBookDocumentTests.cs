@@ -2337,6 +2337,29 @@ public sealed class DocBookDocumentTests {
     }
 
     [Fact]
+    public void SharedReverseConversionClassifiesUnavailableFlatTableRowsAsOmission() {
+        var model = new OfficeDocumentModel {
+            Format = OfficeDocumentFormat.DocBook,
+            Tables = new[] {
+                new OfficeDocumentModelTable {
+                    Columns = new[] { "Value" },
+                    Rows = new IReadOnlyList<string>[] { new[] { "Available" } },
+                    TotalRowCount = 2,
+                    Truncated = true
+                }
+            }
+        };
+
+        DocBookConversionResult<DocBookDocument> converted = DocBookDocument.FromOfficeDocumentModel(model);
+        DocBookDiagnostic diagnostic = Assert.Single(converted.Diagnostics, item => item.Code == "DB117");
+
+        Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
+        Assert.Equal(OfficeConversionLossKind.Omission,
+            Assert.Single(converted.FidelityDiagnostics, item => item.Code == "DB117").LossKind);
+        Assert.Throws<InvalidDataException>(converted.RequireNoLoss);
+    }
+
+    [Fact]
     public void SharedReverseConversionPreservesEditedFlatAssetProjection() {
         const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><mediaobject><imageobject><imagedata fileref=\"assets/original.png\"/></imageobject><textobject><phrase>Original alt</phrase></textobject><caption>Original caption</caption></mediaobject></article>";
         OfficeDocumentModel model = DocBookDocument.Parse(source).ToOfficeDocumentModel().Value;

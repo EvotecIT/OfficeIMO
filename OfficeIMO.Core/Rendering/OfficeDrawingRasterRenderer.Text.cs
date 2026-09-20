@@ -64,6 +64,53 @@ public static partial class OfficeDrawingRasterRenderer {
         }
     }
 
+    private static bool TryRenderTransformedVerticalText(
+        OfficeRasterCanvas canvas,
+        OfficeDrawingText text,
+        double scale,
+        double contentX,
+        double contentY,
+        double contentWidth,
+        double contentHeight,
+        long maximumRasterPixels) {
+        _ = OfficeRasterExportPlanner.Resolve(contentWidth, contentHeight, OfficeImageExportFormat.Png,
+            new OfficeImageExportOptions {
+                MaximumRasterPixels = maximumRasterPixels,
+                RasterOverflowBehavior = OfficeRasterOverflowBehavior.Throw
+            });
+        var layer = new OfficeRasterImage(Math.Max(1, (int)Math.Ceiling(contentWidth)), Math.Max(1, (int)Math.Ceiling(contentHeight)));
+        var local = new OfficeRasterCanvas(layer, font: canvas.OutlineFont, fonts: canvas.Fonts,
+            textShapingProvider: canvas.TextShapingProvider, textShapingLanguage: canvas.TextShapingLanguage,
+            diagnosticSink: canvas.DiagnosticSink, diagnosticSource: canvas.DiagnosticSource,
+            cancellationToken: canvas.CancellationToken);
+        using (local.PushClipRectangle(0D, 0D, contentWidth, contentHeight)) {
+            if (!local.TryDrawVerticalText(
+                text.Text,
+                0D,
+                0D,
+                contentWidth,
+                contentHeight,
+                text.Color ?? OfficeColor.Black,
+                text.Font.Size * scale,
+                text.Font.Style,
+                text.Font.FamilyName,
+                text.FeatureSettings,
+                text.FontPalette)) {
+                return false;
+            }
+        }
+
+        var frame = new OfficeImageFrameTransform(
+            text.RotationDegrees,
+            text.RotationCenterX * scale,
+            text.RotationCenterY * scale,
+            text.FlipHorizontal,
+            text.FlipVertical);
+        OfficeTransform transform = OfficeTransform.Translate(contentX, contentY).Then(frame.CreateDestinationTransform());
+        canvas.DrawAffineImage(layer, transform, 1D, OfficeBlendMode.Normal, interpolate: true);
+        return true;
+    }
+
     private static void RenderText(OfficeRasterCanvas canvas, OfficeDrawingText text, double scale, long maximumRasterPixels) {
         OfficeTextPadding scaledPadding = text.Padding.Scale(scale);
         double contentX = (text.X * scale) + scaledPadding.Left;
@@ -75,20 +122,34 @@ public static partial class OfficeDrawingRasterRenderer {
         }
 
         if (text.TextDirection == OfficeTextDirection.TopToBottom) {
-            using (canvas.PushClipRectangle(contentX, contentY, contentWidth, contentHeight)) {
-                if (canvas.TryDrawVerticalText(
-                    text.Text,
+            if (text.HasFrameTransform) {
+                if (TryRenderTransformedVerticalText(
+                    canvas,
+                    text,
+                    scale,
                     contentX,
                     contentY,
                     contentWidth,
                     contentHeight,
-                    text.Color ?? OfficeColor.Black,
-                    text.Font.Size * scale,
-                    text.Font.Style,
-                    text.Font.FamilyName,
-                    text.FeatureSettings,
-                    text.FontPalette)) {
+                    maximumRasterPixels)) {
                     return;
+                }
+            } else {
+                using (canvas.PushClipRectangle(contentX, contentY, contentWidth, contentHeight)) {
+                    if (canvas.TryDrawVerticalText(
+                        text.Text,
+                        contentX,
+                        contentY,
+                        contentWidth,
+                        contentHeight,
+                        text.Color ?? OfficeColor.Black,
+                        text.Font.Size * scale,
+                        text.Font.Style,
+                        text.Font.FamilyName,
+                        text.FeatureSettings,
+                        text.FontPalette)) {
+                        return;
+                    }
                 }
             }
         }

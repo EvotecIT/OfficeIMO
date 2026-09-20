@@ -10,9 +10,11 @@ internal sealed class ImageProcessMemorySampler : IDisposable {
     private long _baselineWorkingSet;
     private long _baselinePrivateBytes;
     private long _baselineManagedHeap;
+    private long _baselineNativeBytesEstimate;
     private long _peakWorkingSet;
     private long _peakPrivateBytes;
     private long _peakManagedHeap;
+    private long _peakNativeBytesEstimate;
 
     internal ImageProcessMemorySampler() {
         _thread = new Thread(Sample) {
@@ -24,7 +26,7 @@ internal sealed class ImageProcessMemorySampler : IDisposable {
     internal long PeakWorkingSetDelta => Math.Max(0L, _peakWorkingSet - _baselineWorkingSet);
     internal long PeakPrivateBytesDelta => Math.Max(0L, _peakPrivateBytes - _baselinePrivateBytes);
     internal long PeakManagedHeapDelta => Math.Max(0L, _peakManagedHeap - _baselineManagedHeap);
-    internal long PeakNativeBytesEstimate => Math.Max(0L, PeakPrivateBytesDelta - PeakManagedHeapDelta);
+    internal long PeakNativeBytesEstimate => Math.Max(0L, _peakNativeBytesEstimate - _baselineNativeBytesEstimate);
 
     internal void Start() {
         _thread.Start();
@@ -48,9 +50,11 @@ internal sealed class ImageProcessMemorySampler : IDisposable {
         _baselineWorkingSet = process.WorkingSet64;
         _baselinePrivateBytes = process.PrivateMemorySize64;
         _baselineManagedHeap = GC.GetTotalMemory(forceFullCollection: false);
+        _baselineNativeBytesEstimate = EstimateNativeBytes(_baselinePrivateBytes, _baselineManagedHeap);
         _peakWorkingSet = _baselineWorkingSet;
         _peakPrivateBytes = _baselinePrivateBytes;
         _peakManagedHeap = _baselineManagedHeap;
+        _peakNativeBytesEstimate = _baselineNativeBytesEstimate;
         _started.Set();
         while (!_stop) {
             Record(process);
@@ -61,8 +65,15 @@ internal sealed class ImageProcessMemorySampler : IDisposable {
 
     private void Record(Process process) {
         process.Refresh();
-        _peakWorkingSet = Math.Max(_peakWorkingSet, process.WorkingSet64);
-        _peakPrivateBytes = Math.Max(_peakPrivateBytes, process.PrivateMemorySize64);
-        _peakManagedHeap = Math.Max(_peakManagedHeap, GC.GetTotalMemory(forceFullCollection: false));
+        long workingSet = process.WorkingSet64;
+        long privateBytes = process.PrivateMemorySize64;
+        long managedHeap = GC.GetTotalMemory(forceFullCollection: false);
+        _peakWorkingSet = Math.Max(_peakWorkingSet, workingSet);
+        _peakPrivateBytes = Math.Max(_peakPrivateBytes, privateBytes);
+        _peakManagedHeap = Math.Max(_peakManagedHeap, managedHeap);
+        _peakNativeBytesEstimate = Math.Max(_peakNativeBytesEstimate, EstimateNativeBytes(privateBytes, managedHeap));
     }
+
+    private static long EstimateNativeBytes(long privateBytes, long managedHeap) =>
+        Math.Max(0L, privateBytes - managedHeap);
 }

@@ -46,6 +46,22 @@ public class OfficeMarkupTextFormattingTests {
     }
 
     [Fact]
+    public void SharedConversionReport_FailsClosedWhenAnExplicitErrorClaimsNoLoss() {
+        var diagnostic = new OfficeMarkupDiagnostic(
+            OfficeMarkupDiagnosticSeverity.Error,
+            "The target could not be produced.",
+            node: null,
+            lossKind: OfficeConversionLossKind.None);
+        var report = new OfficeMarkupConversionReport(new[] { diagnostic });
+
+        Assert.False(report.Succeeded);
+        Assert.True(report.HasLoss);
+        Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
+        Assert.Equal(OfficeConversionLossKind.Failure, Assert.Single(report.FidelityDiagnostics).LossKind);
+        Assert.Throws<OfficeMarkupConversionException>(() => report.RequireNoLoss());
+    }
+
+    [Fact]
     public void NativeMarkupAdapters_ClassifyOmittedBlocksAsOmissions() {
         var excelSource = new OfficeMarkupDocument(OfficeMarkupProfile.Workbook);
         excelSource.Blocks.Add(new OfficeMarkupCodeBlock("text", "omitted"));

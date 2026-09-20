@@ -100,7 +100,9 @@ public sealed class OfficeMarkupDiagnostic {
         OfficeConversionLossKind lossKind) {
         Severity = severity;
         Message = message ?? string.Empty;
-        LossKind = lossKind;
+        LossKind = severity == OfficeMarkupDiagnosticSeverity.Error && lossKind == OfficeConversionLossKind.None
+            ? OfficeConversionLossKind.Failure
+            : lossKind;
         Node = node;
     }
 

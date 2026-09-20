@@ -1,7 +1,9 @@
 namespace OfficeIMO.Email.Store;
 
 /// <summary>Outcome of converting a supported store into a new Unicode PST.</summary>
-public sealed class EmailStorePstConversionReport {
+public sealed class EmailStorePstConversionReport : IOfficeConversionReport {
+    private readonly IReadOnlyList<OfficeConversionFidelityDiagnostic> _fidelityDiagnostics;
+
     internal EmailStorePstConversionReport(EmailStoreFormat sourceFormat,
         EmailStorePstWriteReport writeReport, int sourceFolders, int convertedItems,
         int skippedItems, EmailStorePstVerificationReport? verification,
@@ -16,6 +18,23 @@ public sealed class EmailStorePstConversionReport {
         Diagnostics = diagnostics;
         SourceIdentity = sourceIdentity;
         WasResumed = wasResumed;
+        var additional = new List<OfficeConversionFidelityDiagnostic>();
+        if (skippedItems > 0) {
+            additional.Add(EmailStoreFidelityProjection.Create(
+                "EMAIL_STORE_ITEMS_SKIPPED",
+                skippedItems + " source item(s) were skipped during conversion.",
+                OfficeConversionLossKind.Omission,
+                "source-items"));
+        }
+        if (verification?.IsSuccessful == false) {
+            additional.Add(EmailStoreFidelityProjection.Create(
+                "EMAIL_STORE_PST_VERIFICATION_FAILED",
+                "Post-write PST verification did not preserve the selected source semantics.",
+                OfficeConversionLossKind.Failure,
+                "verification"));
+        }
+        _fidelityDiagnostics = EmailStoreFidelityProjection.Append(
+            EmailStoreFidelityProjection.Project(diagnostics), additional.ToArray());
     }
 
     /// <summary>Detected source format.</summary>
@@ -41,6 +60,12 @@ public sealed class EmailStorePstConversionReport {
         ? EmailStoreMigrationDisposition.Completed
         : EmailStoreMigrationDisposition.CompletedWithAcceptedLoss;
     /// <summary>True when the conversion emitted a warning or error.</summary>
-    public bool HasDataLoss => Verification?.IsSuccessful == false || Diagnostics.Any(item =>
-        item.Severity != EmailStoreDiagnosticSeverity.Information);
+    public bool HasDataLoss => HasLoss;
+    /// <summary>Category-preserving Store conversion diagnostics.</summary>
+    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics => _fidelityDiagnostics;
+    /// <summary>True when conversion approximated, omitted, or failed to preserve source content.</summary>
+    public bool HasLoss => _fidelityDiagnostics.Any(static diagnostic =>
+        diagnostic.LossKind != OfficeConversionLossKind.None);
+    /// <summary>Throws when conversion reported possible content loss.</summary>
+    public void RequireNoLoss() => EmailStoreFidelityProjection.RequireNoLoss(_fidelityDiagnostics);
 }

@@ -1,0 +1,156 @@
+using OfficeIMO.Email.Store;
+using Xunit;
+
+namespace OfficeIMO.Email.Tests;
+
+public sealed class EmailStoreFidelityReportTests {
+    [Fact]
+    public void StoreWriteReportPreservesOmissionAndFailureCategories() {
+        var skipped = new EmailStoreDiagnostic(
+            "EMAIL_STORE_TEST_SKIPPED",
+            "One source item was skipped.",
+            EmailStoreDiagnosticSeverity.Warning,
+            "folder/item",
+            "write",
+            byteOffset: null,
+            limitName: null,
+            actualValue: null,
+            maximumValue: null,
+            EmailDiagnosticDisposition.Skipped,
+            EmailDataLossRisk.Confirmed,
+            suggestedAction: null);
+        var failed = new EmailStoreDiagnostic(
+            "EMAIL_STORE_TEST_FAILED",
+            "The destination could not preserve the item.",
+            EmailStoreDiagnosticSeverity.Error,
+            "folder/item");
+        var report = new EmailStorePstWriteReport(
+            "destination.pst", 1, 0, 0, new[] { skipped, failed });
+
+        IOfficeConversionReport common = report;
+
+        Assert.True(report.HasDataLoss);
+        Assert.True(common.HasLoss);
+        Assert.Equal(OfficeConversionLossKind.Omission,
+            Assert.Single(common.FidelityDiagnostics,
+                diagnostic => diagnostic.Code == "EMAIL_STORE_TEST_SKIPPED").LossKind);
+        Assert.Equal(OfficeConversionLossKind.Failure,
+            Assert.Single(common.FidelityDiagnostics,
+                diagnostic => diagnostic.Code == "EMAIL_STORE_TEST_FAILED").LossKind);
+        Assert.Throws<InvalidDataException>(common.RequireNoLoss);
+    }
+
+    [Fact]
+    public void StoreConversionReportClassifiesSkippedItemsWithoutAggregateOnlyLoss() {
+        var write = new EmailStorePstWriteReport(
+            "destination.pst", 1, 1, 128, Array.Empty<EmailStoreDiagnostic>());
+        var identity = new EmailStoreSourceIdentity(
+            EmailStoreFormat.Pst, 128, "catalog", "durable");
+        var report = new EmailStorePstConversionReport(
+            EmailStoreFormat.Pst,
+            write,
+            sourceFolders: 1,
+            convertedItems: 1,
+            skippedItems: 1,
+            verification: null,
+            diagnostics: Array.Empty<EmailStoreDiagnostic>(),
+            sourceIdentity: identity,
+            wasResumed: false);
+
+        IOfficeConversionReport common = report;
+        OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(common.FidelityDiagnostics);
+
+        Assert.Equal(EmailStoreMigrationDisposition.CompletedWithAcceptedLoss, report.Disposition);
+        Assert.True(report.HasDataLoss);
+        Assert.Equal("EMAIL_STORE_ITEMS_SKIPPED", diagnostic.Code);
+        Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
+        Assert.Throws<InvalidDataException>(common.RequireNoLoss);
+    }
+
+    [Fact]
+    public void StoreComposedReportsFailClosedOnVerificationMismatch() {
+        var write = new EmailStorePstWriteReport(
+            "destination.pst", 1, 1, 128, Array.Empty<EmailStoreDiagnostic>());
+        var sourceIdentity = new EmailStoreSourceIdentity(
+            EmailStoreFormat.Pst, 128, "catalog", "durable");
+        var failedVerification = new EmailStorePstVerificationReport(
+            attemptedItems: 1,
+            matchedItems: 0,
+            mismatchedItems: 1,
+            failedItems: 0,
+            issues: Array.Empty<EmailStorePstVerificationIssue>(),
+            issuesTruncated: false,
+            manifestPath: null);
+        var conversion = new EmailStorePstConversionReport(
+            EmailStoreFormat.Pst,
+            write,
+            sourceFolders: 1,
+            convertedItems: 1,
+            skippedItems: 0,
+            verification: failedVerification,
+            diagnostics: Array.Empty<EmailStoreDiagnostic>(),
+            sourceIdentity,
+            wasResumed: false);
+        var compactionPlan = new EmailStorePstCompactionPlan(
+            "compacted.pst",
+            new EmailStorePstCompactionOptions(),
+            sourceBytes: 128,
+            itemsScanned: 2,
+            selectedItems: 2,
+            associatedItems: 0,
+            orphanedItems: 0,
+            excludedSearchFolderItems: 0,
+            unknownSizeItems: 0,
+            estimatedOutputBytes: 64,
+            itemLimitReached: false,
+            diagnostics: Array.Empty<EmailStoreDiagnostic>());
+        var compaction = new EmailStorePstCompactionReport(compactionPlan, conversion);
+
+        var mutationPlan = new EmailStorePstMutationPlan(
+            "source.pst",
+            Array.Empty<EmailStorePstMutationPlanOperation>(),
+            resultingFolderCount: 1,
+            resultingItemCount: 1,
+            estimatedRewriteBytes: 128,
+            diagnostics: Array.Empty<EmailStoreDiagnostic>());
+        var mutationVerification = new EmailStorePstMutationVerificationReport(
+            attemptedFolders: 1,
+            matchedFolders: 0,
+            mismatchedFolders: 1,
+            failedFolders: 0,
+            unexpectedFolders: 0,
+            attemptedItems: 1,
+            matchedItems: 0,
+            mismatchedItems: 1,
+            failedItems: 0,
+            issues: Array.Empty<EmailStorePstMutationVerificationIssue>(),
+            issuesTruncated: false);
+        var mutation = new EmailStorePstMutationReport(
+            "source.pst",
+            backupPath: null,
+            mutationPlan,
+            write,
+            mutationVerification,
+            createdFolders: 0,
+            renamedFolders: 0,
+            movedFolders: 0,
+            deletedFolders: 0,
+            addedItems: 0,
+            copiedItems: 0,
+            replacedItems: 0,
+            patchedItems: 0,
+            movedItems: 0,
+            deletedItems: 0,
+            folderIdMap: new Dictionary<string, string>(),
+            itemIdMap: new Dictionary<string, string>(),
+            operationResults: Array.Empty<EmailStorePstMutationOperationResult>(),
+            diagnostics: Array.Empty<EmailStoreDiagnostic>());
+
+        foreach (IOfficeConversionReport report in new IOfficeConversionReport[] { conversion, compaction, mutation }) {
+            Assert.True(report.HasLoss);
+            Assert.Contains(report.FidelityDiagnostics,
+                diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Failure);
+            Assert.Throws<InvalidDataException>(report.RequireNoLoss);
+        }
+    }
+}

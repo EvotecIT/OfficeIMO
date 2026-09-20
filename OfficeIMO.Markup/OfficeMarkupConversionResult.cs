@@ -56,7 +56,7 @@ public sealed class OfficeMarkupConversionReport : IOfficeConversionReport {
 
     /// <summary>Throws when conversion failed or reported possible content loss.</summary>
     public void RequireNoLoss() {
-        if (HasLoss) throw new OfficeMarkupConversionException(_diagnostics);
+        if (!Succeeded || HasLoss) throw new OfficeMarkupConversionException(_diagnostics);
     }
 }
 

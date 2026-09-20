@@ -10,7 +10,8 @@ public static partial class OfficeDrawingSvgExporter {
         OfficeRasterCanvas textMetrics,
         string idPrefix,
         ref int clipPathId) {
-        bool useFrameTransform = text.FlipHorizontal || text.FlipVertical;
+        bool useFrameTransform = text.FlipHorizontal || text.FlipVertical ||
+            (text.TextDirection == OfficeTextDirection.TopToBottom && Math.Abs(text.RotationDegrees) > 0.000001D);
         if (useFrameTransform) {
             AppendTextFrameGroupStart(sb, text);
         }

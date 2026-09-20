@@ -90,7 +90,7 @@ public sealed partial class OfficeRasterCanvas {
 
         double size = Math.Max(1D, fontSize);
         double originX = x + width / 2D;
-        double originY = y;
+        double originY = y + ResolveRasterBaseline(font, size);
         OfficeFontStyle simulatedStyle = style & ~resolvedStyle;
         if (font is OfficeTrueTypeFont trueType && trueType.TryGetShapedColorTextContours(
             text, run, originX, originY, size, fontPalette, color, MaximumTextOutlinePointsPerRun,

@@ -252,7 +252,7 @@ public sealed class DocBookDiagnostic {
         if (severity == DocBookDiagnosticSeverity.Info) return OfficeConversionLossKind.None;
         if (severity == DocBookDiagnosticSeverity.Error) return OfficeConversionLossKind.Failure;
         return code switch {
-            "DB102" or "DB105" or "DB106" or "DB110" or "DB116" or "DB118" or
+            "DB102" or "DB105" or "DB106" or "DB110" or "DB116" or "DB117" or "DB118" or
             "DB120" or "DB121" or "DB123" or "DB124" or "DB125" or "DB126" =>
                 OfficeConversionLossKind.Omission,
             _ => OfficeConversionLossKind.Approximation
