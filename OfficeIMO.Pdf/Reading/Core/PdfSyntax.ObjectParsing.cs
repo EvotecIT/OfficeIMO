@@ -345,17 +345,21 @@ internal static partial class PdfSyntax {
         }
     }
 
-    /// <summary>Keeps small object token lists local and rents large backing arrays for dense PDF objects.</summary>
+    /// <summary>Reuses token arrays on modern targets while retaining the compatible list path on legacy targets.</summary>
     private struct PooledTokenBuffer : IDisposable {
-        private const int SmallTokenLimit = 1024;
-        private List<PdfToken>? _small;
 #if NET8_0_OR_GREATER
         private PdfToken[]? _rented;
+#else
+        private List<PdfToken>? _small;
 #endif
         private int _count;
 
         internal PooledTokenBuffer(int initialCapacity) {
+#if NET8_0_OR_GREATER
+            _rented = ArrayPool<PdfToken>.Shared.Rent(Math.Max(initialCapacity, 16));
+#else
             _small = new List<PdfToken>(initialCapacity);
+#endif
         }
 
         internal readonly int Count => _count;
@@ -364,7 +368,7 @@ internal static partial class PdfSyntax {
             get {
                 if ((uint)index >= (uint)_count) throw new ArgumentOutOfRangeException(nameof(index));
 #if NET8_0_OR_GREATER
-                return _rented is null ? _small![index] : _rented[index];
+                return _rented![index];
 #else
                 return _small![index];
 #endif
@@ -373,22 +377,14 @@ internal static partial class PdfSyntax {
 
         internal void Add(PdfToken token) {
 #if NET8_0_OR_GREATER
-            if (_rented is null && _count < SmallTokenLimit) {
-                _small!.Add(token);
-            } else {
-                if (_rented is null) {
-                    _rented = ArrayPool<PdfToken>.Shared.Rent(SmallTokenLimit * 2);
-                    _small!.CopyTo(_rented);
-                    _small = null;
-                } else if (_count == _rented.Length) {
-                    PdfToken[] expanded = ArrayPool<PdfToken>.Shared.Rent(checked(_count * 2));
-                    Array.Copy(_rented, expanded, _count);
-                    ArrayPool<PdfToken>.Shared.Return(_rented, clearArray: true);
-                    _rented = expanded;
-                }
-
-                _rented[_count] = token;
+            if (_count == _rented!.Length) {
+                PdfToken[] expanded = ArrayPool<PdfToken>.Shared.Rent(checked(_count * 2));
+                Array.Copy(_rented, expanded, _count);
+                ArrayPool<PdfToken>.Shared.Return(_rented, clearArray: true);
+                _rented = expanded;
             }
+
+            _rented[_count] = token;
 #else
             _small!.Add(token);
 #endif
