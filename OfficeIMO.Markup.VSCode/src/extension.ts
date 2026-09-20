@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { spawn } from 'child_process';
+import { randomBytes } from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -11,6 +12,8 @@ const allowedCliArtifactNames = new Set([
   'officeimo.tool.dll',
   'officeimo.tool.exe'
 ]);
+const mermaidCliVersion = '11.17.0';
+const mermaidCliPackage = `@mermaid-js/mermaid-cli@${mermaidCliVersion}`;
 
 let warnedAboutInvalidCliPath = false;
 
@@ -548,7 +551,7 @@ async function openGeneratedCodeFile(resource: vscode.Uri | undefined, target: '
 
 async function installMermaidRenderer(context: vscode.ExtensionContext): Promise<void> {
   const existing = findLocalMermaidRenderer(context);
-  if (existing) {
+  if (existing && installedMermaidCliVersion(context) === mermaidCliVersion) {
     await rememberMermaidRenderer(existing);
     vscode.window.showInformationMessage(`OfficeIMO Markup Mermaid renderer is ready: ${existing}`);
     return;
@@ -563,8 +566,8 @@ async function installMermaidRenderer(context: vscode.ExtensionContext): Promise
     cancellable: false,
     title: 'Installing OfficeIMO Markup Mermaid renderer'
   }, async (progress) => {
-    progress.report({ message: 'Installing @mermaid-js/mermaid-cli locally for this VS Code profile...' });
-    return runProcess(npm, ['install', '--prefix', installRoot, '@mermaid-js/mermaid-cli'], installRoot);
+    progress.report({ message: `Installing ${mermaidCliPackage} locally for this VS Code profile...` });
+    return runProcess(npm, ['install', '--prefix', installRoot, mermaidCliPackage], installRoot);
   });
 
   if (result.code !== 0) {
@@ -575,6 +578,10 @@ async function installMermaidRenderer(context: vscode.ExtensionContext): Promise
   const renderer = findLocalMermaidRenderer(context);
   if (!renderer) {
     vscode.window.showWarningMessage('Mermaid CLI installed, but mmdc was not found in the expected local tools folder.');
+    return;
+  }
+  if (installedMermaidCliVersion(context) !== mermaidCliVersion) {
+    vscode.window.showWarningMessage(`Mermaid CLI installation completed, but version ${mermaidCliVersion} was not found in the local tools folder.`);
     return;
   }
 
@@ -668,7 +675,7 @@ async function pickExportPath(document: vscode.TextDocument, target: ExportTarge
     `${path.basename(document.fileName, path.extname(document.fileName))}.${extension}`
   ));
 
-  const filters = target === 'pptx'
+  const filters: { [name: string]: string[] } = target === 'pptx'
     ? { PowerPoint: ['pptx'] }
     : target === 'docx'
       ? { Word: ['docx'] }
@@ -689,7 +696,7 @@ async function pickCodegenPath(
   const saveLabel = target === 'csharp' ? 'Generate C# File' : 'Generate PowerShell File';
   const defaultUri = await resolveGeneratedCodePath(document, target);
 
-  const filters = target === 'csharp'
+  const filters: { [name: string]: string[] } = target === 'csharp'
     ? { 'C#': ['cs'] }
     : { 'PowerShell': ['ps1'] };
 
@@ -842,7 +849,7 @@ function schedulePreviewRefresh(context: vscode.ExtensionContext, document: vsco
   const timer = setTimeout(() => {
     previewTimers.delete(key);
     updatePreviewPanel(context, document, panel, false).catch((error) => {
-      panel.webview.html = renderPreviewError(String(error), document);
+      panel.webview.html = renderPreviewError(String(error), document, '', panel.webview);
     });
   }, delay ?? configuredDelay);
 
@@ -857,7 +864,7 @@ async function updatePreviewPanel(context: vscode.ExtensionContext, document: vs
   const outputLabel = previewOutputLabel(document, outputDirectory);
 
   if (showLoading) {
-    panel.webview.html = renderPreviewLoading(document, outputLabel);
+    panel.webview.html = renderPreviewLoading(document, outputLabel, panel.webview);
   }
   const result = await runCli(context, document, 'preview');
   if (previewVersions.get(key) !== requestedVersion) {
@@ -865,7 +872,7 @@ async function updatePreviewPanel(context: vscode.ExtensionContext, document: vs
   }
 
   if (result.code !== 0) {
-    panel.webview.html = renderPreviewError(result.stderr || 'OfficeIMO Markup preview failed.', document, outputLabel);
+    panel.webview.html = renderPreviewError(result.stderr || 'OfficeIMO Markup preview failed.', document, outputLabel, panel.webview);
     return;
   }
 
@@ -873,7 +880,7 @@ async function updatePreviewPanel(context: vscode.ExtensionContext, document: vs
   try {
     envelope = parseJson<MarkupEnvelope>(result.stdout);
   } catch (error) {
-    panel.webview.html = renderPreviewError(`${String(error)}\n\n${result.stderr || result.stdout}`, document, outputLabel);
+    panel.webview.html = renderPreviewError(`${String(error)}\n\n${result.stderr || result.stdout}`, document, outputLabel, panel.webview);
     return;
   }
 
@@ -1051,6 +1058,23 @@ async function rememberMermaidRenderer(renderer: string): Promise<void> {
 function findLocalMermaidRenderer(context: vscode.ExtensionContext): string | undefined {
   const candidates = localMermaidRendererCandidates(context);
   return candidates.find((candidate) => fs.existsSync(candidate));
+}
+
+function installedMermaidCliVersion(context: vscode.ExtensionContext): string | undefined {
+  const manifestPath = path.join(
+    localMermaidInstallRoot(context),
+    'node_modules',
+    '@mermaid-js',
+    'mermaid-cli',
+    'package.json'
+  );
+
+  try {
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as { version?: unknown };
+    return typeof manifest.version === 'string' ? manifest.version : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function localMermaidRendererCandidates(context: vscode.ExtensionContext): string[] {
@@ -1290,6 +1314,7 @@ function renderPreview(
   sourceDocument: vscode.TextDocument,
   mermaidPreviewScript?: string
 ): string {
+  const nonce = createNonce();
   const blocks = document?.Blocks ?? [];
   const slides = blocks.filter((block) => block.Kind === 'Slide');
   const profile = (document?.Profile ?? '').toLowerCase();
@@ -1306,6 +1331,7 @@ function renderPreview(
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  ${renderContentSecurityPolicy(webview, nonce)}
   <style>
     body { margin: 0; padding: 20px; font-family: var(--vscode-font-family); color: var(--vscode-foreground); background: var(--vscode-editor-background); }
     .toolbar { margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -1409,7 +1435,7 @@ function renderPreview(
   </div>
   ${items.length > 0 ? `<section>${items.map(renderDiagnostic).join('')}</section>` : ''}
   <main class="deck">${body || '<p>No previewable blocks yet.</p>'}</main>
-  ${renderPreviewScript(renderMermaidPreview ? mermaidPreviewScript : undefined)}
+  ${renderPreviewScript(nonce, renderMermaidPreview ? mermaidPreviewScript : undefined)}
 </body>
 </html>`;
 }
@@ -1883,28 +1909,32 @@ function isTruthyAttribute(value: string): boolean {
   return normalized === 'true' || normalized === 'yes' || normalized === 'on' || normalized === '1';
 }
 
-function renderPreviewLoading(document: vscode.TextDocument, outputLabel: string): string {
+function renderPreviewLoading(document: vscode.TextDocument, outputLabel: string, webview: vscode.Webview): string {
   return renderShell(
     `OfficeIMO Markup preview - refreshing ${escapeHtml(path.basename(document.fileName))}`,
     '<div class="placeholder">Refreshing preview...</div>',
-    outputLabel
+    outputLabel,
+    webview
   );
 }
 
-function renderPreviewError(message: string, document: vscode.TextDocument, outputLabel: string): string {
+function renderPreviewError(message: string, document: vscode.TextDocument, outputLabel: string, webview: vscode.Webview): string {
   return renderShell(
     `OfficeIMO Markup preview - ${escapeHtml(path.basename(document.fileName))}`,
     `<div class="error"><strong>Preview failed</strong><pre>${escapeHtml(message)}</pre></div>`,
-    outputLabel
+    outputLabel,
+    webview
   );
 }
 
-function renderShell(title: string, body: string, outputLabel: string): string {
+function renderShell(title: string, body: string, outputLabel: string, webview: vscode.Webview): string {
+  const nonce = createNonce();
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  ${renderContentSecurityPolicy(webview, nonce)}
   <style>
     body { margin: 0; padding: 20px; font-family: var(--vscode-font-family); color: var(--vscode-foreground); background: var(--vscode-editor-background); }
     .toolbar { margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -1928,7 +1958,7 @@ function renderShell(title: string, body: string, outputLabel: string): string {
     ${renderPreviewActions()}
   </div>
   ${body}
-  ${renderPreviewScript()}
+  ${renderPreviewScript(nonce)}
 </body>
 </html>`;
 }
@@ -2806,9 +2836,9 @@ function renderPreviewActions(): string {
   </div>`;
 }
 
-function renderPreviewScript(scriptUri?: string): string {
-  const mermaidScript = scriptUri ? `<script src="${escapeHtml(scriptUri)}"></script>` : '';
-  return `${mermaidScript}<script>
+function renderPreviewScript(nonce: string, scriptUri?: string): string {
+  const mermaidScript = scriptUri ? `<script nonce="${nonce}" src="${escapeHtml(scriptUri)}"></script>` : '';
+  return `${mermaidScript}<script nonce="${nonce}">
     (function() {
       const vscode = typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : undefined;
       if (!vscode) {
@@ -2825,6 +2855,14 @@ function renderPreviewScript(scriptUri?: string): string {
       });
     })();
   </script>`;
+}
+
+function renderContentSecurityPolicy(webview: vscode.Webview, nonce: string): string {
+  return `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource} data: https:; font-src ${webview.cspSource} data:; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">`;
+}
+
+function createNonce(): string {
+  return randomBytes(16).toString('hex');
 }
 
 function escapeHtml(value: string): string {

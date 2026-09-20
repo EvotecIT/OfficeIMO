@@ -84,7 +84,7 @@
     "package.json"
   ],
   "scripts": {
-    "compile": "node scripts/bundle.cjs",
+    "compile": "tsc --noEmit && node scripts/bundle.cjs",
     "watch": "node scripts/bundle.cjs --watch",
     "package": "node scripts/package-vsix.cjs",
     "package:vsix": "node scripts/package-vsix.cjs",
@@ -401,11 +401,20 @@
   },
   "overrides": {
     "brace-expansion": "5.0.9",
-    "js-yaml": "4.3.2"
+    "js-yaml": "4.3.2",
+    "chevrotain@11.1.2": {
+      "lodash-es": "4.18.1"
+    },
+    "@chevrotain/cst-dts-gen@11.1.2": {
+      "lodash-es": "4.18.1"
+    },
+    "@chevrotain/gast@11.1.2": {
+      "lodash-es": "4.18.1"
+    }
   },
   "devDependencies": {
-    "@types/node": "^26.5.1",
-    "@types/vscode": "1.137.0",
+    "@types/node": "^24.13.6",
+    "@types/vscode": "1.136.0",
     "@vscode/vsce": "^3.9.2",
     "esbuild": "^0.28.2",
     "typescript": "^7.0.2"
