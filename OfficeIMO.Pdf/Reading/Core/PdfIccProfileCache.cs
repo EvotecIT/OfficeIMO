@@ -7,8 +7,8 @@ namespace OfficeIMO.Pdf;
 /// <summary>Caller-owned aggregate retention budget for distinct parsed ICC profiles.</summary>
 internal sealed class PdfIccProfileRetentionBudget {
     private readonly int _maximumRetainedBytes;
-    private readonly Dictionary<(PdfStream Stream, PdfIccProfileCacheRepresentation Representation), long> _charges =
-        new Dictionary<(PdfStream, PdfIccProfileCacheRepresentation), long>();
+    private readonly object _sync = new object();
+    private Dictionary<(PdfStream Stream, PdfIccProfileCacheRepresentation Representation), long>? _charges;
     private long _retainedBytes;
 
     internal PdfIccProfileRetentionBudget(int maximumRetainedBytes) {
@@ -19,9 +19,11 @@ internal sealed class PdfIccProfileRetentionBudget {
         PdfStream stream,
         PdfIccProfileCacheRepresentation representation,
         long retainedLength) {
-        lock (_charges) {
+        lock (_sync) {
+            Dictionary<(PdfStream Stream, PdfIccProfileCacheRepresentation Representation), long> charges =
+                _charges ??= new Dictionary<(PdfStream, PdfIccProfileCacheRepresentation), long>();
             var key = (stream, representation);
-            _charges.TryGetValue(key, out long priorCharge);
+            charges.TryGetValue(key, out long priorCharge);
             if (retainedLength <= priorCharge) return;
             long total = checked(_retainedBytes + retainedLength - priorCharge);
             if (total > _maximumRetainedBytes) {
@@ -30,7 +32,7 @@ internal sealed class PdfIccProfileRetentionBudget {
                     _maximumRetainedBytes,
                     total);
             }
-            _charges[key] = retainedLength;
+            charges[key] = retainedLength;
             _retainedBytes = total;
         }
     }

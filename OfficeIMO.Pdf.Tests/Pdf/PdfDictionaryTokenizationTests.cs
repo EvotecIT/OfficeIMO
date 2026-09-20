@@ -53,6 +53,16 @@ public class PdfDictionaryTokenizationTests {
         Assert.True(dictionary.HasIncompleteSyntax);
     }
 
+    [Fact]
+    public void CommonAndEscapedNamesKeepEquivalentDecodedKeysAndValues() {
+        PdfDictionary dictionary = ParseDictionary("/Type /Page /Ty#70eAlias /Pa#67e /Custom#20Key /Value#23Name");
+
+        Assert.Equal("Page", Assert.IsType<PdfName>(dictionary.Items["Type"]).Name);
+        Assert.Equal("Page", Assert.IsType<PdfName>(dictionary.Items["TypeAlias"]).Name);
+        Assert.Equal("Value#Name", Assert.IsType<PdfName>(dictionary.Items["Custom Key"]).Name);
+        Assert.False(dictionary.HasIncompleteSyntax);
+    }
+
     private static PdfDictionary ParseDictionary(string entries, PdfLoadOptions? options = null) {
         byte[] pdf = Encoding.ASCII.GetBytes(
             "%PDF-1.7\n" +

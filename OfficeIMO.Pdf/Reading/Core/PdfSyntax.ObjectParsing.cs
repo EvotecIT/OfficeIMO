@@ -1,6 +1,7 @@
 #if NET8_0_OR_GREATER
 using System.Buffers;
 #endif
+using System.Runtime.CompilerServices;
 
 namespace OfficeIMO.Pdf;
 
@@ -109,7 +110,7 @@ internal static partial class PdfSyntax {
             string tokenText = tokens[i].Text;
             if (i == 0 && tokenText == "<<") continue;
             if (tokenText.Length > 0 && tokenText[0] == '/') {
-                string key = DecodeName(tokenText.Substring(1));
+                string key = DecodeNameToken(tokenText);
                 if (i + 1 < tokens.Count && tokens[i + 1].Text != ">>") {
                     var (obj, consumed) = ParseObject(tokens, i + 1, effectiveLimits, 0);
                     d.HasIncompleteSyntax |= d.Items.ContainsKey(key);
@@ -138,7 +139,7 @@ internal static partial class PdfSyntax {
             while (j < tokens.Count && tokens[j].Text != ">>") {
                 string keyToken = tokens[j].Text;
                 if (keyToken.Length > 0 && keyToken[0] == '/') {
-                    string key = DecodeName(keyToken.Substring(1));
+                    string key = DecodeNameToken(keyToken);
                     if (j + 1 < tokens.Count && tokens[j + 1].Text != ">>") {
                         var (obj, consumed) = ParseObject(tokens, j + 1, limits, depth + 1);
                         dict.HasIncompleteSyntax |= dict.Items.ContainsKey(key);
@@ -165,7 +166,7 @@ internal static partial class PdfSyntax {
             arr.HasIncompleteSyntax |= j >= tokens.Count;
             return (arr, j - i);
         }
-        if (tok.Length > 0 && tok[0] == '/') return (new PdfName(DecodeName(tok.Substring(1))), 0);
+        if (tok.Length > 0 && tok[0] == '/') return (new PdfName(DecodeNameToken(tok)), 0);
         if (token.IsString && tok.Length > 0 && tok[0] == '(') {
             bool isTerminated = token.IsTerminated;
             string inner = isTerminated
@@ -258,7 +259,7 @@ internal static partial class PdfSyntax {
             }
             if (c == '<' && i + 1 < end && s[i + 1] == '<') { tokens.Add(new PdfToken("<<")); i += 2; continue; }
             if (c == '>' && i + 1 < end && s[i + 1] == '>') { tokens.Add(new PdfToken(">>")); i += 2; continue; }
-            if (c == '[' || c == ']') { tokens.Add(new PdfToken(c.ToString())); i++; continue; }
+            if (c == '[' || c == ']') { tokens.Add(new PdfToken(c == '[' ? "[" : "]")); i++; continue; }
             if (c == '<') {
                 int tokenStart = i++;
                 while (i < end && s[i] != '>') i++;
@@ -298,10 +299,10 @@ internal static partial class PdfSyntax {
             // name, number, keyword
             int j = i;
             while (j < end && !char.IsWhiteSpace(s[j]) && s[j] != '%' && s[j] != '/' && s[j] != '[' && s[j] != ']' && s[j] != '<' && s[j] != '>' && s[j] != '(' && s[j] != ')') j++;
-            string tok = s.Substring(i, j - i);
+            string tok = MaterializeToken(s, i, j - i);
             if (tok.Length == 0 && s[i] == '/') { // name starting here
                 j = i + 1; while (j < end && !char.IsWhiteSpace(s[j]) && s[j] != '%' && s[j] != '/' && s[j] != '[' && s[j] != ']' && s[j] != '<' && s[j] != '>' && s[j] != '(' && s[j] != ')') j++;
-                tok = s.Substring(i, j - i);
+                tok = MaterializeToken(s, i, j - i);
             }
             if (tok.Length == 0) {
                 // A malformed or unexpected standalone delimiter must still consume input.
@@ -399,6 +400,100 @@ internal static partial class PdfSyntax {
         internal bool IsString { get; }
         internal bool IsTerminated { get; }
         internal int? EncodedLength { get; }
+    }
+
+    // PDF dictionaries repeat a small vocabulary across virtually every object. Keep this
+    // pool deliberately bounded: arbitrary document names must never be globally interned.
+    // Reusing these literals avoids allocating both "/Type" and then "Type" for every
+    // catalog, page-tree node, page and resource dictionary parsed by the shared reader.
+    private static readonly KeyValuePair<string, string>[] KnownNameTokens = {
+        new("/Type", "Type"), new("/Catalog", "Catalog"), new("/Pages", "Pages"), new("/Page", "Page"),
+        new("/Parent", "Parent"), new("/MediaBox", "MediaBox"), new("/CropBox", "CropBox"), new("/Rotate", "Rotate"),
+        new("/Resources", "Resources"), new("/Contents", "Contents"), new("/Count", "Count"), new("/Kids", "Kids"),
+        new("/Root", "Root"), new("/Size", "Size"), new("/Info", "Info"), new("/ID", "ID"),
+        new("/Length", "Length"), new("/Filter", "Filter"), new("/FlateDecode", "FlateDecode"), new("/Dests", "Dests"),
+        new("/Names", "Names"), new("/Outlines", "Outlines"), new("/OpenAction", "OpenAction"), new("/Metadata", "Metadata"),
+        new("/OutputIntents", "OutputIntents"), new("/AcroForm", "AcroForm"), new("/Annots", "Annots"), new("/Subtype", "Subtype"),
+        new("/Font", "Font"), new("/XObject", "XObject"), new("/ProcSet", "ProcSet"), new("/Encoding", "Encoding"),
+        new("/BaseFont", "BaseFont"), new("/Type1", "Type1"), new("/TrueType", "TrueType"), new("/Widths", "Widths"),
+        new("/FirstChar", "FirstChar"), new("/LastChar", "LastChar"), new("/ToUnicode", "ToUnicode"),
+        new("/FontDescriptor", "FontDescriptor"), new("/FontFile2", "FontFile2"), new("/FontFile3", "FontFile3"),
+        new("/Image", "Image"), new("/Form", "Form"), new("/BBox", "BBox"), new("/Matrix", "Matrix"),
+        new("/ColorSpace", "ColorSpace"), new("/DeviceRGB", "DeviceRGB"), new("/DeviceGray", "DeviceGray"),
+        new("/DeviceCMYK", "DeviceCMYK"), new("/BitsPerComponent", "BitsPerComponent"), new("/Width", "Width"),
+        new("/Height", "Height"), new("/S", "S"), new("/Fit", "Fit"), new("/XYZ", "XYZ"),
+        new("/FitH", "FitH"), new("/FitV", "FitV"), new("/FitR", "FitR"), new("/FitB", "FitB"),
+        new("/FitBH", "FitBH"), new("/FitBV", "FitBV"), new("/Producer", "Producer"), new("/Creator", "Creator"),
+        new("/CreationDate", "CreationDate"), new("/ModDate", "ModDate"), new("/Title", "Title"), new("/Author", "Author"),
+        new("/Subject", "Subject"), new("/Keywords", "Keywords"), new("/Trapped", "Trapped")
+    };
+    private static readonly Dictionary<string, string> KnownDecodedNames = CreateKnownDecodedNames();
+    private static readonly string[][] KnownTokenTextsByLength = CreateKnownTokenTextsByLength();
+
+    private static string MaterializeToken(string source, int start, int length) {
+        if ((uint)length < (uint)KnownTokenTextsByLength.Length) {
+            string[] candidates = KnownTokenTextsByLength[length];
+            for (int candidateIndex = 0; candidateIndex < candidates.Length; candidateIndex++) {
+                string candidate = candidates[candidateIndex];
+                bool matches = true;
+                for (int characterIndex = 0; characterIndex < length; characterIndex++) {
+                    if (source[start + characterIndex] != candidate[characterIndex]) {
+                        matches = false;
+                        break;
+                    }
+                }
+
+                if (matches) return candidate;
+            }
+        }
+
+        return source.Substring(start, length);
+    }
+
+    private static string DecodeNameToken(string token) {
+        return KnownDecodedNames.TryGetValue(token, out string? decoded)
+            ? decoded
+            : DecodeName(token.Substring(1));
+    }
+
+    private static Dictionary<string, string> CreateKnownDecodedNames() {
+        var result = new Dictionary<string, string>(KnownNameTokens.Length, ReferenceStringComparer.Instance);
+        for (int i = 0; i < KnownNameTokens.Length; i++) {
+            KeyValuePair<string, string> entry = KnownNameTokens[i];
+            result.Add(entry.Key, entry.Value);
+        }
+
+        return result;
+    }
+
+    private sealed class ReferenceStringComparer : IEqualityComparer<string> {
+        internal static readonly ReferenceStringComparer Instance = new();
+
+        private ReferenceStringComparer() { }
+
+        public bool Equals(string? x, string? y) => ReferenceEquals(x, y);
+
+        public int GetHashCode(string obj) => RuntimeHelpers.GetHashCode(obj);
+    }
+
+    private static string[][] CreateKnownTokenTextsByLength() {
+        string[] syntaxTokens = { "R", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "true", "false", "null" };
+        int maximumLength = 0;
+        for (int i = 0; i < syntaxTokens.Length; i++) maximumLength = Math.Max(maximumLength, syntaxTokens[i].Length);
+        for (int i = 0; i < KnownNameTokens.Length; i++) maximumLength = Math.Max(maximumLength, KnownNameTokens[i].Key.Length);
+        var buckets = new List<string>[maximumLength + 1];
+        for (int i = 0; i < syntaxTokens.Length; i++) {
+            string token = syntaxTokens[i];
+            (buckets[token.Length] ??= new List<string>()).Add(token);
+        }
+        for (int i = 0; i < KnownNameTokens.Length; i++) {
+            string token = KnownNameTokens[i].Key;
+            (buckets[token.Length] ??= new List<string>()).Add(token);
+        }
+
+        var result = new string[maximumLength + 1][];
+        for (int i = 0; i < result.Length; i++) result[i] = buckets[i]?.ToArray() ?? Array.Empty<string>();
+        return result;
     }
 
     private static bool TryGetResolvedLength(PdfDictionary dict, Dictionary<int, PdfIndirectObject> map, out int length) {

@@ -1,6 +1,9 @@
 namespace OfficeIMO.Pdf;
 
 internal sealed partial class PdfPageOptionalContentVisibility {
+    private static readonly Dictionary<int, bool> EmptyGroupVisibility = new Dictionary<int, bool>();
+    private static readonly HashSet<int> EmptyHiddenObjectNumbers = new HashSet<int>();
+
     internal sealed class DocumentState {
         internal DocumentState(
             Dictionary<int, PdfIndirectObject> objects,
@@ -34,8 +37,8 @@ internal sealed partial class PdfPageOptionalContentVisibility {
         if (catalog == null || !catalog.Items.ContainsKey("OCProperties")) {
             return new DocumentState(
                 objects,
-                new Dictionary<int, bool>(),
-                new HashSet<int>(),
+                EmptyGroupVisibility,
+                EmptyHiddenObjectNumbers,
                 effectiveMaxExpressionDepth,
                 hasUnsupportedViewUsageApplications: false);
         }
