@@ -120,13 +120,8 @@ public sealed class OfficeConversionDiagnostic {
     public bool RepresentsDataLoss { get; }
 
     /// <summary>Gets the exact fidelity-loss category represented by this diagnostic.</summary>
-    public OfficeConversionLossKind LossKind => CompatibilityState switch {
-        OfficeCompatibilityState.Approximated => OfficeConversionLossKind.Approximation,
-        OfficeCompatibilityState.Rasterized => OfficeConversionLossKind.Approximation,
-        OfficeCompatibilityState.Dropped => OfficeConversionLossKind.Omission,
-        OfficeCompatibilityState.Blocked => OfficeConversionLossKind.Failure,
-        _ => RepresentsDataLoss ? OfficeConversionLossKind.Approximation : OfficeConversionLossKind.None
-    };
+    public OfficeConversionLossKind LossKind =>
+        OfficeConversionFidelityDiagnostics.GetLossKind(CompatibilityState, RepresentsDataLoss);
 
     /// <summary>Gets the shared feature-level representation state.</summary>
     public OfficeCompatibilityState CompatibilityState { get; }

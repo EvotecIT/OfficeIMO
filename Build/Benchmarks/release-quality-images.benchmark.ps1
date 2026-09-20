@@ -35,11 +35,16 @@ New-BenchmarkSuite 'officeimo-release-quality-images' -OutputRoot (Join-Path $re
     Set-BenchmarkSetup {
         param($case, $run)
         $run.Workload = [OfficeIMO.Drawing.Benchmarks.ImageReleaseQualityWorkload]::new($case.Asset, $case.Format, $case.Workload)
+        if ($run.Iteration -ge 0) { $run.Workload.BeginMeasurement() }
     }
     Add-BenchmarkEngine SharedImageEngine {
         Add-BenchmarkOperation Execute { param($case, $run) $run.Workload.Execute() }
     }
-    Add-BenchmarkValidation { param($case, $run) $run.Workload.Validate() }
+    Add-BenchmarkValidation {
+        param($case, $run)
+        $run.Workload.CompleteMeasurement()
+        $run.Workload.Validate()
+    }
     Add-BenchmarkMetric EncodedBytes { param($case, $run) $run.Workload.EncodedBytes }
     Add-BenchmarkMetric InputHashWord0 { param($case, $run) $run.Workload.InputHashWord0 }
     Add-BenchmarkMetric InputHashWord1 { param($case, $run) $run.Workload.InputHashWord1 }
@@ -49,6 +54,14 @@ New-BenchmarkSuite 'officeimo-release-quality-images' -OutputRoot (Join-Path $re
     Add-BenchmarkMetric InputHashWord5 { param($case, $run) $run.Workload.InputHashWord5 }
     Add-BenchmarkMetric InputHashWord6 { param($case, $run) $run.Workload.InputHashWord6 }
     Add-BenchmarkMetric InputHashWord7 { param($case, $run) $run.Workload.InputHashWord7 }
+    Add-BenchmarkMetric ProvenanceHashWord0 { param($case, $run) $run.Workload.ProvenanceHashWord0 }
+    Add-BenchmarkMetric ProvenanceHashWord1 { param($case, $run) $run.Workload.ProvenanceHashWord1 }
+    Add-BenchmarkMetric ProvenanceHashWord2 { param($case, $run) $run.Workload.ProvenanceHashWord2 }
+    Add-BenchmarkMetric ProvenanceHashWord3 { param($case, $run) $run.Workload.ProvenanceHashWord3 }
+    Add-BenchmarkMetric ProvenanceHashWord4 { param($case, $run) $run.Workload.ProvenanceHashWord4 }
+    Add-BenchmarkMetric ProvenanceHashWord5 { param($case, $run) $run.Workload.ProvenanceHashWord5 }
+    Add-BenchmarkMetric ProvenanceHashWord6 { param($case, $run) $run.Workload.ProvenanceHashWord6 }
+    Add-BenchmarkMetric ProvenanceHashWord7 { param($case, $run) $run.Workload.ProvenanceHashWord7 }
     Add-BenchmarkMetric ManagedAllocatedBytes { param($case, $run) $run.Workload.ManagedAllocatedBytes }
     Add-BenchmarkMetric PeakWorkingSetBytes { param($case, $run) $run.Workload.PeakWorkingSetBytes }
     Add-BenchmarkMetric PeakPrivateBytes { param($case, $run) $run.Workload.PeakPrivateBytes }

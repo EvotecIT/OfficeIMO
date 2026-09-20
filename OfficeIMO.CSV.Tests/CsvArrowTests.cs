@@ -82,6 +82,38 @@ public sealed class CsvArrowTests {
     }
 
     [Fact]
+    public void ArrowCStreamLeaseImportIsOneShotAndConsumesOwner() {
+        CsvDocument document = CsvDocument.Parse("Id\n1\n");
+        using var reader = document.CreateDataReader(new CsvDataReaderOptions { InferSchema = true });
+        using ArrowCArrayStreamOwner owner = reader.ExportArrowCStream(
+            new ArrowReadOptions { BatchSize = 1 });
+        using ArrowCArrayStreamOwner.ArrowCArrayStreamLease lease = owner.AcquireLease();
+
+        using IArrowArrayStream imported = lease.ImportArrayStream();
+
+        Assert.True(owner.IsDisposed);
+        Assert.Throws<InvalidOperationException>(() => lease.ImportArrayStream());
+        Assert.Throws<ObjectDisposedException>(() => owner.AcquireLease());
+        Assert.Throws<InvalidOperationException>(() => {
+            _ = lease.Address;
+        });
+    }
+
+    [Fact]
+    public void ArrowCStreamLeaseDisposalConsumesPotentiallyReleasedNativeStream() {
+        CsvDocument document = CsvDocument.Parse("Id\n1\n");
+        using var reader = document.CreateDataReader(new CsvDataReaderOptions { InferSchema = true });
+        using ArrowCArrayStreamOwner owner = reader.ExportArrowCStream();
+        ArrowCArrayStreamOwner.ArrowCArrayStreamLease lease = owner.AcquireLease();
+
+        Assert.Throws<InvalidOperationException>(() => owner.AcquireLease());
+        lease.Dispose();
+
+        Assert.True(owner.IsDisposed);
+        Assert.Throws<ObjectDisposedException>(() => owner.AcquireLease());
+    }
+
+    [Fact]
     public async Task ArrowCStreamCallbacksObserveCapturedCancellation() {
         CsvDocument document = CsvDocument.Parse("Id\n1\n2\n");
         using var reader = document.CreateDataReader(new CsvDataReaderOptions { InferSchema = true });

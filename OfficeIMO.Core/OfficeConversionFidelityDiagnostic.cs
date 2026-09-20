@@ -68,18 +68,21 @@ public static class OfficeConversionFidelityDiagnostics {
         OfficeCompatibilityFinding finding,
         string source) {
         if (finding == null) throw new ArgumentNullException(nameof(finding));
-        OfficeConversionLossKind lossKind = finding.State switch {
+        return new OfficeConversionFidelityDiagnostic(
+            finding.Code,
+            string.IsNullOrEmpty(finding.Message) ? finding.Category : finding.Message,
+            finding.LossKind,
+            source,
+            finding.SourceLocation);
+    }
+
+    internal static OfficeConversionLossKind GetLossKind(
+        OfficeCompatibilityState state,
+        bool representsLoss) => state switch {
             OfficeCompatibilityState.Approximated => OfficeConversionLossKind.Approximation,
             OfficeCompatibilityState.Rasterized => OfficeConversionLossKind.Approximation,
             OfficeCompatibilityState.Dropped => OfficeConversionLossKind.Omission,
             OfficeCompatibilityState.Blocked => OfficeConversionLossKind.Failure,
-            _ => finding.RepresentsLoss ? OfficeConversionLossKind.Approximation : OfficeConversionLossKind.None
+            _ => representsLoss ? OfficeConversionLossKind.Approximation : OfficeConversionLossKind.None
         };
-        return new OfficeConversionFidelityDiagnostic(
-            finding.Code,
-            string.IsNullOrEmpty(finding.Message) ? finding.Category : finding.Message,
-            lossKind,
-            source,
-            finding.SourceLocation);
-    }
 }

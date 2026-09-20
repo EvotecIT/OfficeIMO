@@ -36,29 +36,34 @@ if (-not $Plan -and $ReferenceSummaryPath) {
         return $null
     }
 
+    $provenanceHashMetrics = @(0..7 | ForEach-Object { "ProvenanceHashWord$_" })
     $inputHashMetrics = @(0..7 | ForEach-Object { "InputHashWord$_" })
-    $referenceInputRows = @($referenceRows | Where-Object {
-        $_.variables.Workload -ne 'Encode' -and $_.variables.Workload -ne 'Resample'
-    })
-    $referenceProvenanceRows = @($referenceInputRows | Where-Object {
+    $referenceProvenanceRows = @($referenceRows | Where-Object {
         $row = $_
-        @($inputHashMetrics | Where-Object { $null -ne (Get-RowMetricValue $row $_) }).Count -eq $inputHashMetrics.Count
+        @($provenanceHashMetrics | Where-Object { $null -ne (Get-RowMetricValue $row $_) }).Count -eq $provenanceHashMetrics.Count
     })
-    if ($referenceInputRows.Count -ne $referenceProvenanceRows.Count) {
-        Write-Host 'Skipping regression comparison because the reference summary predates input-provenance metrics.'
+    if ($referenceRows.Count -ne $referenceProvenanceRows.Count) {
+        Write-Host 'Skipping regression comparison because the reference summary predates workload-provenance metrics.'
         return
     }
 
     foreach ($current in $currentRows) {
-        $workload = $current.variables.Workload
-        if ($workload -eq 'Encode' -or $workload -eq 'Resample') { continue }
         $reference = $referenceRows | Where-Object scenario -eq $current.scenario | Select-Object -First 1
         if ($null -eq $reference) { continue }
-        foreach ($hashMetric in $inputHashMetrics) {
+        foreach ($hashMetric in $provenanceHashMetrics) {
             $referenceWord = Get-RowMetricValue $reference $hashMetric
             $currentWord = Get-RowMetricValue $current $hashMetric
             if ($null -eq $currentWord -or $currentWord -ne $referenceWord) {
-                throw "Release-quality image input provenance changed for $($current.scenario); performance comparison is not valid."
+                throw "Release-quality image source or configuration provenance changed for $($current.scenario); performance comparison is not valid."
+            }
+        }
+        if ($current.variables.Workload -ne 'Encode' -and $current.variables.Workload -ne 'Resample') {
+            foreach ($hashMetric in $inputHashMetrics) {
+                $referenceWord = Get-RowMetricValue $reference $hashMetric
+                $currentWord = Get-RowMetricValue $current $hashMetric
+                if ($null -eq $referenceWord -or $null -eq $currentWord -or $currentWord -ne $referenceWord) {
+                    throw "Release-quality image encoded input changed for $($current.scenario); performance comparison is not valid."
+                }
             }
         }
     }

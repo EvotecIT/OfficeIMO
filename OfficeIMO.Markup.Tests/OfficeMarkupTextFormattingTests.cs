@@ -25,6 +25,55 @@ public class OfficeMarkupTextFormattingTests {
     }
 
     [Fact]
+    public void SharedConversionReport_PreservesExplicitOmissionWithoutChangingLegacyWarningDefaults() {
+        var omitted = new OfficeMarkupDiagnostic(
+            OfficeMarkupDiagnosticSeverity.Warning,
+            "Source block omitted.",
+            node: null,
+            lossKind: OfficeConversionLossKind.Omission);
+        var legacyWarning = new OfficeMarkupDiagnostic(
+            OfficeMarkupDiagnosticSeverity.Warning,
+            "Source block approximated.");
+        var report = new OfficeMarkupConversionReport(new[] { omitted, legacyWarning });
+
+        Assert.Equal(OfficeConversionLossKind.Omission, omitted.LossKind);
+        Assert.Equal(OfficeConversionLossKind.Approximation, legacyWarning.LossKind);
+        Assert.Equal(
+            new[] { OfficeConversionLossKind.Omission, OfficeConversionLossKind.Approximation },
+            report.FidelityDiagnostics.Select(static diagnostic => diagnostic.LossKind));
+        Assert.True(report.HasLoss);
+        Assert.Throws<OfficeMarkupConversionException>(() => report.RequireNoLoss());
+    }
+
+    [Fact]
+    public void NativeMarkupAdapters_ClassifyOmittedBlocksAsOmissions() {
+        var excelSource = new OfficeMarkupDocument(OfficeMarkupProfile.Workbook);
+        excelSource.Blocks.Add(new OfficeMarkupCodeBlock("text", "omitted"));
+        OfficeMarkupConversionResult<ExcelDocument> excel = excelSource.ToExcelDocumentResult();
+
+        var powerPointSource = new OfficeMarkupDocument(OfficeMarkupProfile.Presentation);
+        powerPointSource.Blocks.Add(new OfficeMarkupCodeBlock("text", "omitted"));
+        OfficeMarkupPowerPointConversionResult powerPoint = powerPointSource.ToPowerPointPresentationResult(
+            new MarkupToPowerPointOptions { RenderMermaidDiagrams = false });
+
+        var wordSource = new OfficeMarkupDocument(OfficeMarkupProfile.Document);
+        wordSource.Blocks.Add(new OfficeMarkupExtensionBlock("custom", new Dictionary<string, string>(), "omitted"));
+        OfficeMarkupConversionResult<WordDocument> word = wordSource.ToWordDocumentResult(
+            new MarkupToWordOptions { IncludeUnsupportedBlocksAsText = false });
+
+        using (excel.Value)
+        using (powerPoint.Value)
+        using (word.Value) {
+            Assert.Contains(excel.Report.FidelityDiagnostics,
+                diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
+            Assert.Contains(powerPoint.Report.FidelityDiagnostics,
+                diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
+            Assert.Contains(word.Report.FidelityDiagnostics,
+                diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
+        }
+    }
+
+    [Fact]
     public void PowerPointConversionResult_PreservesTypedMarkupFailure() {
         var source = new OfficeMarkupDocument(OfficeMarkupProfile.Presentation);
         source.Blocks.Add(new OfficeMarkupSheetBlock("Invalid for presentations"));

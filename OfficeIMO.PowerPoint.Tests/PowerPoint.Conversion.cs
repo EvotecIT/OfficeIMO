@@ -215,6 +215,9 @@ public sealed class PowerPointConversionTests {
             PowerPointPresentation.Convert(source, destination));
 
         Assert.Equal(OfficeConversionFailureReason.DestinationFeatureUnsupported, exception.Reason);
+        Assert.True(exception.Result.Report.HasLoss);
+        Assert.Contains(exception.Result.Report.FidelityDiagnostics,
+            diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Failure);
         Assert.Contains(exception.Result.Report.Diagnostics,
             diagnostic => diagnostic.Code == "PowerPoint.LegacyDestination.NotWritable"
                 && diagnostic.CompatibilityState == OfficeCompatibilityState.Blocked);

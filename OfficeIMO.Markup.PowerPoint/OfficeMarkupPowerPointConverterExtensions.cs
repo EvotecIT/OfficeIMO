@@ -83,7 +83,10 @@ public static class OfficeMarkupPowerPointConverterExtensions {
                     options.IncludeUnsupportedBlocksAsText
                         ? "Extension markup is represented as plain text in PowerPoint output."
                         : "Extension markup is omitted from PowerPoint output.",
-                    block));
+                    block,
+                    options.IncludeUnsupportedBlocksAsText
+                        ? OfficeConversionLossKind.Approximation
+                        : OfficeConversionLossKind.Omission));
             } else if (block is OfficeMarkupDiagramBlock && !options.RenderMermaidDiagrams) {
                 diagnostics.Add(new OfficeMarkupDiagnostic(
                     OfficeMarkupDiagnosticSeverity.Warning,
@@ -98,5 +101,6 @@ public static class OfficeMarkupPowerPointConverterExtensions {
     private static OfficeMarkupDiagnostic Omitted(OfficeMarkupBlock block) => new OfficeMarkupDiagnostic(
         OfficeMarkupDiagnosticSeverity.Warning,
         $"{block.Kind} markup is omitted from PowerPoint output.",
-        block);
+        block,
+        OfficeConversionLossKind.Omission);
 }

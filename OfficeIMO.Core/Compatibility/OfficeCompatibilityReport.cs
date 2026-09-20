@@ -42,8 +42,8 @@ public sealed class OfficeCompatibilityReport : IOfficeConversionReport {
         Array.AsReadOnly(_findings.Select(finding =>
             OfficeConversionFidelityDiagnostics.From(finding, "OfficeIMO.Compatibility")).ToArray());
 
-    /// <summary>Gets whether any finding reports fidelity loss.</summary>
-    public bool HasLoss => _findings.Any(finding => finding.RepresentsLoss);
+    /// <summary>Gets whether any finding reports approximation, omission, or failure.</summary>
+    public bool HasLoss => _findings.Any(static finding => finding.LossKind != OfficeConversionLossKind.None);
 
     /// <summary>Gets whether any feature blocks artifact creation.</summary>
     public bool HasBlockedFeatures => _findings.Any(finding => finding.State == OfficeCompatibilityState.Blocked);

@@ -43,11 +43,15 @@ Use `-Plan` to inspect the resolved cases and policy without executing measureme
 
 The suite runs representative PNG, JPEG, TIFF, and WebP inputs through encode, decode, metadata,
 and placement-optimization workloads, plus generated line-art, text, and transparency through
-Lanczos resampling. Each case records input and benchmark-assembly hashes and validates dimensions,
-fidelity, deterministic output, and bounded cancellation where that API exposes cancellation.
+Lanczos resampling. Each case records the encoded-input hash, a source-pixel and workload-configuration
+provenance hash, and the benchmark-assembly hash, then validates dimensions, fidelity, deterministic
+output, and bounded cancellation where that API exposes cancellation. Regression comparisons require
+matching workload provenance for every operation, including encode and resample.
 Evidence separates elapsed time, encoded bytes, managed allocation, peak working set, peak private
 bytes, a conservative native/private-memory estimate, cancellation latency, and mean absolute
-error. A non-planning run fails when any case is not `Succeeded`.
+error. Memory sampling starts before and stops after the PowerForge-timed operation, so sampler thread
+startup and shutdown are excluded from elapsed time. A non-planning run fails when any case is not
+`Succeeded`.
 
 Pull-request runs download the matching operating-system artifact from the latest successful
 `master` workflow and use PowerForge `Test-BenchmarkGate` comparisons. The first run permits new

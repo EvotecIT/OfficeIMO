@@ -119,8 +119,8 @@ namespace OfficeIMO.Excel {
         /// <summary>Gets the shared feature-level fidelity assessment for this conversion.</summary>
         public OfficeCompatibilityReport Compatibility { get; }
 
-        /// <summary>Gets whether the conversion reported known content loss.</summary>
-        public bool HasLoss => Diagnostics.Any(static diagnostic => diagnostic.RepresentsDataLoss);
+        /// <summary>Gets whether the conversion reported approximation, omission, or failure.</summary>
+        public bool HasLoss => Diagnostics.Any(static diagnostic => diagnostic.LossKind != OfficeConversionLossKind.None);
 
         /// <summary>Gets whether a pre-existing destination file was replaced.</summary>
         public bool ReplacedExistingFile { get; }

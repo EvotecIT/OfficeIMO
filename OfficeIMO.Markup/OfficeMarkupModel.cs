@@ -88,9 +88,19 @@ public enum OfficeMarkupDiagnosticSeverity {
 /// </summary>
 public sealed class OfficeMarkupDiagnostic {
     /// <summary>Creates a diagnostic, optionally associated with a semantic node.</summary>
-    public OfficeMarkupDiagnostic(OfficeMarkupDiagnosticSeverity severity, string message, OfficeMarkupNode? node = null) {
+    public OfficeMarkupDiagnostic(OfficeMarkupDiagnosticSeverity severity, string message, OfficeMarkupNode? node = null)
+        : this(severity, message, node, InferLossKind(severity)) {
+    }
+
+    /// <summary>Creates a diagnostic with an explicit fidelity-loss category.</summary>
+    public OfficeMarkupDiagnostic(
+        OfficeMarkupDiagnosticSeverity severity,
+        string message,
+        OfficeMarkupNode? node,
+        OfficeConversionLossKind lossKind) {
         Severity = severity;
         Message = message ?? string.Empty;
+        LossKind = lossKind;
         Node = node;
     }
 
@@ -98,8 +108,16 @@ public sealed class OfficeMarkupDiagnostic {
     public OfficeMarkupDiagnosticSeverity Severity { get; }
     /// <summary>Gets the diagnostic text; a null constructor value becomes empty.</summary>
     public string Message { get; }
+    /// <summary>Gets the exact fidelity-loss category represented by the diagnostic.</summary>
+    public OfficeConversionLossKind LossKind { get; }
     /// <summary>Gets the related node when one was supplied.</summary>
     public OfficeMarkupNode? Node { get; }
+
+    private static OfficeConversionLossKind InferLossKind(OfficeMarkupDiagnosticSeverity severity) => severity switch {
+        OfficeMarkupDiagnosticSeverity.Info => OfficeConversionLossKind.None,
+        OfficeMarkupDiagnosticSeverity.Warning => OfficeConversionLossKind.Approximation,
+        _ => OfficeConversionLossKind.Failure
+    };
 }
 
 /// <summary>

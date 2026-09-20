@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Buffers.Binary;
+using System.Globalization;
 using System.Security.Cryptography;
+using System.Text;
 
 namespace OfficeIMO.Drawing.Benchmarks;
 
@@ -12,6 +14,8 @@ public sealed class ImageReleaseQualityWorkload {
     private readonly ImageEvidenceOperation _operation;
     private readonly OfficeRasterEncodingOptions _options;
     private readonly byte[] _input;
+    private ImageProcessMemorySampler? _sampler;
+    private long _allocatedBefore;
     private object? _result;
 
     /// <summary>Creates a deterministic corpus, format, and operation tuple.</summary>
@@ -37,6 +41,16 @@ public sealed class ImageReleaseQualityWorkload {
         InputHashWord5 = BinaryPrimitives.ReadUInt32BigEndian(inputHash.AsSpan(20, 4));
         InputHashWord6 = BinaryPrimitives.ReadUInt32BigEndian(inputHash.AsSpan(24, 4));
         InputHashWord7 = BinaryPrimitives.ReadUInt32BigEndian(inputHash.AsSpan(28, 4));
+        byte[] provenanceHash = CreateWorkloadProvenanceHash();
+        ProvenanceSha256 = Convert.ToHexString(provenanceHash);
+        ProvenanceHashWord0 = BinaryPrimitives.ReadUInt32BigEndian(provenanceHash.AsSpan(0, 4));
+        ProvenanceHashWord1 = BinaryPrimitives.ReadUInt32BigEndian(provenanceHash.AsSpan(4, 4));
+        ProvenanceHashWord2 = BinaryPrimitives.ReadUInt32BigEndian(provenanceHash.AsSpan(8, 4));
+        ProvenanceHashWord3 = BinaryPrimitives.ReadUInt32BigEndian(provenanceHash.AsSpan(12, 4));
+        ProvenanceHashWord4 = BinaryPrimitives.ReadUInt32BigEndian(provenanceHash.AsSpan(16, 4));
+        ProvenanceHashWord5 = BinaryPrimitives.ReadUInt32BigEndian(provenanceHash.AsSpan(20, 4));
+        ProvenanceHashWord6 = BinaryPrimitives.ReadUInt32BigEndian(provenanceHash.AsSpan(24, 4));
+        ProvenanceHashWord7 = BinaryPrimitives.ReadUInt32BigEndian(provenanceHash.AsSpan(28, 4));
     }
 
     /// <summary>Deterministic corpus scenario.</summary>
@@ -63,6 +77,24 @@ public sealed class ImageReleaseQualityWorkload {
     public long InputHashWord6 { get; }
     /// <summary>Eighth 32-bit word of the immutable input hash, for numeric benchmark evidence.</summary>
     public long InputHashWord7 { get; }
+    /// <summary>SHA-256 identity of the source pixels and workload configuration.</summary>
+    public string ProvenanceSha256 { get; }
+    /// <summary>First 32-bit word of the workload provenance hash.</summary>
+    public long ProvenanceHashWord0 { get; }
+    /// <summary>Second 32-bit word of the workload provenance hash.</summary>
+    public long ProvenanceHashWord1 { get; }
+    /// <summary>Third 32-bit word of the workload provenance hash.</summary>
+    public long ProvenanceHashWord2 { get; }
+    /// <summary>Fourth 32-bit word of the workload provenance hash.</summary>
+    public long ProvenanceHashWord3 { get; }
+    /// <summary>Fifth 32-bit word of the workload provenance hash.</summary>
+    public long ProvenanceHashWord4 { get; }
+    /// <summary>Sixth 32-bit word of the workload provenance hash.</summary>
+    public long ProvenanceHashWord5 { get; }
+    /// <summary>Seventh 32-bit word of the workload provenance hash.</summary>
+    public long ProvenanceHashWord6 { get; }
+    /// <summary>Eighth 32-bit word of the workload provenance hash.</summary>
+    public long ProvenanceHashWord7 { get; }
     /// <summary>SHA-256 identity of the validated output.</summary>
     public string OutputSha256 { get; private set; } = string.Empty;
     /// <summary>Relevant encoded input or output length.</summary>
@@ -82,24 +114,50 @@ public sealed class ImageReleaseQualityWorkload {
     /// <summary>Mean absolute RGB error for the validated output.</summary>
     public double MeanAbsoluteError { get; private set; }
 
-    /// <summary>Runs only the selected operation and captures allocation and process-memory peaks.</summary>
+    /// <summary>Starts allocation and process-memory sampling outside measured operation time.</summary>
+    public void BeginMeasurement() {
+        if (_sampler != null) throw new InvalidOperationException("Image evidence measurement is already active.");
+        var sampler = new ImageProcessMemorySampler();
+        try {
+            sampler.Start();
+            _allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+            _sampler = sampler;
+        } catch {
+            sampler.Dispose();
+            throw;
+        }
+    }
+
+    /// <summary>Runs only the selected image operation.</summary>
     public void Execute() {
-        using var sampler = new ImageProcessMemorySampler();
-        sampler.Start();
-        long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
-        _result = _operation switch {
-            ImageEvidenceOperation.Encode => OfficeRasterImageEncoder.Encode(_source, _format, _options, MaximumEncodedBytes),
-            ImageEvidenceOperation.Decode => Decode(_input),
-            ImageEvidenceOperation.Metadata => OfficeImageReader.Identify(_input),
-            ImageEvidenceOperation.Optimize => OfficeImageOptimizer.Optimize(_input, CreateOptimizationRequest(), ScenarioId + "." + Format),
-            ImageEvidenceOperation.Resample => Resize(_source),
-            _ => throw new InvalidOperationException("Unsupported image evidence operation.")
-        };
-        ManagedAllocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
-        sampler.Stop();
-        PeakWorkingSetBytes = sampler.PeakWorkingSetDelta;
-        PeakPrivateBytes = sampler.PeakPrivateBytesDelta;
-        PeakNativeBytesEstimate = sampler.PeakNativeBytesEstimate;
+        try {
+            _result = _operation switch {
+                ImageEvidenceOperation.Encode => OfficeRasterImageEncoder.Encode(_source, _format, _options, MaximumEncodedBytes),
+                ImageEvidenceOperation.Decode => Decode(_input),
+                ImageEvidenceOperation.Metadata => OfficeImageReader.Identify(_input),
+                ImageEvidenceOperation.Optimize => OfficeImageOptimizer.Optimize(_input, CreateOptimizationRequest(), ScenarioId + "." + Format),
+                ImageEvidenceOperation.Resample => Resize(_source),
+                _ => throw new InvalidOperationException("Unsupported image evidence operation.")
+            };
+        } catch {
+            CompleteMeasurement();
+            throw;
+        }
+    }
+
+    /// <summary>Stops sampling and publishes memory metrics outside measured operation time.</summary>
+    public void CompleteMeasurement() {
+        ImageProcessMemorySampler? sampler = Interlocked.Exchange(ref _sampler, null);
+        if (sampler == null) return;
+        try {
+            ManagedAllocatedBytes = GC.GetAllocatedBytesForCurrentThread() - _allocatedBefore;
+            sampler.Stop();
+            PeakWorkingSetBytes = sampler.PeakWorkingSetDelta;
+            PeakPrivateBytes = sampler.PeakPrivateBytesDelta;
+            PeakNativeBytesEstimate = sampler.PeakNativeBytesEstimate;
+        } finally {
+            sampler.Dispose();
+        }
     }
 
     /// <summary>Validates fidelity, determinism, bounds, output identity, and cancellation where exposed.</summary>
@@ -275,6 +333,36 @@ public sealed class ImageReleaseQualityWorkload {
         Jpeg = new OfficeJpegEncodeOptions { Quality = 85, Subsampling = OfficeJpegSubsampling.Y420, Background = OfficeColor.White },
         Tiff = new OfficeTiffEncodeOptions { Compression = OfficeTiffCompression.PackBits }
     };
+
+    private byte[] CreateWorkloadProvenanceHash() {
+        OfficeColor background = _options.Jpeg.Background;
+        string configuration = string.Join("|", new[] {
+            "officeimo-image-evidence-v1",
+            ScenarioId,
+            _source.Width.ToString(CultureInfo.InvariantCulture),
+            _source.Height.ToString(CultureInfo.InvariantCulture),
+            Format,
+            Operation,
+            _options.WriteResolutionMetadata.ToString(),
+            _options.DpiX.ToString("R", CultureInfo.InvariantCulture),
+            _options.DpiY.ToString("R", CultureInfo.InvariantCulture),
+            _options.Png.Compression.ToString(),
+            _options.Jpeg.Quality.ToString(CultureInfo.InvariantCulture),
+            _options.Jpeg.Subsampling.ToString(),
+            _options.Jpeg.Progressive.ToString(),
+            _options.Jpeg.OptimizeHuffman.ToString(),
+            $"{background.R},{background.G},{background.B},{background.A}",
+            _options.Tiff.Compression.ToString(),
+            _options.Tiff.Predictor.ToString(),
+            OfficeRasterResamplingMode.Lanczos3.ToString(),
+            MaximumEncodedBytes.ToString(CultureInfo.InvariantCulture),
+            "optimize-half-size|preserve-aspect=false|keep-original=false|jpeg-quality=85|jpeg-subsampling=Y420|tiff-compression=PackBits"
+        });
+        using IncrementalHash hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        hash.AppendData(Encoding.UTF8.GetBytes(configuration));
+        hash.AppendData(_source.GetPixels());
+        return hash.GetHashAndReset();
+    }
 
     private static string PixelHash(OfficeRasterImage image) => Convert.ToHexString(SHA256.HashData(image.GetPixels()));
     private static string MetadataHash(OfficeImageInfo info) => Convert.ToHexString(SHA256.HashData(
