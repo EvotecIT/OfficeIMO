@@ -1373,8 +1373,8 @@ public static partial class OfficeSvgDrawingReader {
                 string direction = normalized.ToLowerInvariant();
                 if (direction == "ltr") style.TextDirection = OfficeTextDirection.LeftToRight;
                 else if (direction == "rtl") style.TextDirection = OfficeTextDirection.RightToLeft;
-                else if (direction is "initial" or "unset") style.TextDirection = OfficeTextDirection.LeftToRight;
-                else if (direction != "inherit") unsupported++;
+                else if (direction == "initial") style.TextDirection = OfficeTextDirection.LeftToRight;
+                else if (direction is not "inherit" and not "unset") unsupported++;
                 break;
             case "unicode-bidi":
                 string bidi = normalized.ToLowerInvariant();

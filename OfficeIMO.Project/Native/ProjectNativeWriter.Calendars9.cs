@@ -47,7 +47,7 @@ internal sealed partial class ProjectNativeWriter {
             Loss("PROJECT_NATIVE_WORK_WEEK_FLATTENED", _profile.Generation + " represents bounded work weeks as dated calendar exceptions. The work-week structure and labels are omitted.", Path(calendar, "Calendar"));
         }
         if (calendar.Exceptions.Any(e => e.Name != null))
-            Loss("PROJECT_NATIVE_EXCEPTION_LABEL_LOSS", _profile.Generation + " calendar exceptions retain dates and working times but have no label field.", Path(calendar, "Calendar"));
+            Omission("PROJECT_NATIVE_EXCEPTION_LABEL_LOSS", _profile.Generation + " calendar exceptions retain dates and working times but have no label field.", Path(calendar, "Calendar"));
         using var buffer = new OfficeIMO.Core.Internal.OfficeBoundedMemoryStream(_options.MaxOutputBytes);
         using var writer = new BinaryWriter(buffer);
         writer.Write((ushort)dates.Count); writer.Write((ushort)0); writer.Write(CalendarWeek(calendar.WeekDays));

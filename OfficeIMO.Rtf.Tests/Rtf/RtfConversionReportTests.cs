@@ -1,4 +1,5 @@
 using OfficeIMO.Rtf;
+using OfficeIMO.Rtf.Diagnostics;
 using Xunit;
 
 namespace OfficeIMO.Tests.Rtf;
@@ -59,5 +60,27 @@ public class RtfConversionReportTests {
         Assert.True(result.HasLoss);
         Assert.Equal("value", result.RequireValue());
         Assert.Throws<RtfConversionLossException>(() => result.RequireNoLoss());
+    }
+
+    [Theory]
+    [InlineData("RTF012", RtfDiagnosticSeverity.Warning, RtfConversionAction.Flattened, OfficeConversionLossKind.Approximation)]
+    [InlineData("RTF103", RtfDiagnosticSeverity.Warning, RtfConversionAction.Flattened, OfficeConversionLossKind.Approximation)]
+    [InlineData("RTF999", RtfDiagnosticSeverity.Warning, RtfConversionAction.Flattened, OfficeConversionLossKind.Approximation)]
+    [InlineData("RTF101", RtfDiagnosticSeverity.Warning, RtfConversionAction.Omitted, OfficeConversionLossKind.Omission)]
+    [InlineData("RTF105", RtfDiagnosticSeverity.Warning, RtfConversionAction.Blocked, OfficeConversionLossKind.Failure)]
+    [InlineData("RTF013", RtfDiagnosticSeverity.Error, RtfConversionAction.Blocked, OfficeConversionLossKind.Failure)]
+    public void Read_Diagnostics_Preserve_Recovery_And_Omission_Categories(
+        string code,
+        RtfDiagnosticSeverity severity,
+        RtfConversionAction expectedAction,
+        OfficeConversionLossKind expectedLossKind) {
+        var report = new RtfConversionReport();
+
+        report.AddReadDiagnostics(new[] { new RtfDiagnostic(severity, code, "Read diagnostic.", 7) }, "fixture.rtf");
+
+        Assert.Equal(expectedAction, Assert.Single(report.Diagnostics).Action);
+        OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(report.FidelityDiagnostics);
+        Assert.Equal(expectedLossKind, diagnostic.LossKind);
+        Assert.Equal("fixture.rtf", diagnostic.Location);
     }
 }

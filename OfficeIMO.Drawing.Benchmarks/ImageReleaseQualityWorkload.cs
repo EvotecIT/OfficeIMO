@@ -229,6 +229,7 @@ public sealed class ImageReleaseQualityWorkload {
         if (Math.Abs(sourceAlpha - resultAlpha) > 8D)
             throw new InvalidOperationException($"{ScenarioId} resampling alpha-coverage drift exceeded 8.");
 
+        ValidateSpatialTiles(_source, resized);
         ValidateDynamicRange(pixels);
         if (HasTransparentAndOpaqueSamples(_source.GetPixels()) && !HasTransparentAndOpaqueSamples(pixels))
             throw new InvalidOperationException($"{ScenarioId} resampling did not preserve both transparent and opaque coverage.");
@@ -377,8 +378,10 @@ public sealed class ImageReleaseQualityWorkload {
 
     private byte[] CreateWorkloadProvenanceHash() {
         OfficeColor background = _options.Jpeg.Background;
+        OfficeImageOptimizationRequest optimization = CreateOptimizationRequest();
+        OfficeColor optimizationBackground = optimization.JpegBackground;
         string configuration = string.Join("|", new[] {
-            "officeimo-image-evidence-v1",
+            "officeimo-image-evidence-v2",
             ScenarioId,
             _source.Width.ToString(CultureInfo.InvariantCulture),
             _source.Height.ToString(CultureInfo.InvariantCulture),
@@ -388,22 +391,58 @@ public sealed class ImageReleaseQualityWorkload {
             _options.DpiX.ToString("R", CultureInfo.InvariantCulture),
             _options.DpiY.ToString("R", CultureInfo.InvariantCulture),
             _options.Png.Compression.ToString(),
+            _options.Png.DpiX.ToString("R", CultureInfo.InvariantCulture),
+            _options.Png.DpiY.ToString("R", CultureInfo.InvariantCulture),
+            _options.Png.WritePhysicalResolution.ToString(),
             _options.Jpeg.Quality.ToString(CultureInfo.InvariantCulture),
             _options.Jpeg.Subsampling.ToString(),
             _options.Jpeg.Progressive.ToString(),
             _options.Jpeg.OptimizeHuffman.ToString(),
+            _options.Jpeg.WriteJfifHeader.ToString(),
+            HashOptionalBytes(_options.Jpeg.Metadata.Exif),
+            HashOptionalBytes(_options.Jpeg.Metadata.Xmp),
+            HashOptionalBytes(_options.Jpeg.Metadata.Icc),
             $"{background.R},{background.G},{background.B},{background.A}",
+            _options.Jpeg.DpiX.ToString("R", CultureInfo.InvariantCulture),
+            _options.Jpeg.DpiY.ToString("R", CultureInfo.InvariantCulture),
             _options.Tiff.Compression.ToString(),
             _options.Tiff.Predictor.ToString(),
+            _options.Tiff.DpiX.ToString("R", CultureInfo.InvariantCulture),
+            _options.Tiff.DpiY.ToString("R", CultureInfo.InvariantCulture),
+            _options.Tiff.WriteResolution.ToString(),
             OfficeRasterResamplingMode.Lanczos3.ToString(),
+            OfficeRasterResamplingColorSpace.EncodedSrgb.ToString(),
             MaximumEncodedBytes.ToString(CultureInfo.InvariantCulture),
-            "optimize-half-size|preserve-aspect=false|keep-original=false|jpeg-quality=85|jpeg-subsampling=Y420|tiff-compression=PackBits"
+            optimization.TargetPixelWidth.ToString(CultureInfo.InvariantCulture),
+            optimization.TargetPixelHeight.ToString(CultureInfo.InvariantCulture),
+            optimization.AllowUpscaling.ToString(),
+            optimization.PreserveAspectRatio.ToString(),
+            optimization.ResamplingMode.ToString(),
+            optimization.ResamplingColorSpace.ToString(),
+            optimization.OutputFormat?.ToString() ?? "null",
+            optimization.OutputDpiX?.ToString("R", CultureInfo.InvariantCulture) ?? "null",
+            optimization.OutputDpiY?.ToString("R", CultureInfo.InvariantCulture) ?? "null",
+            optimization.PngCompression.ToString(),
+            optimization.JpegQuality.ToString(CultureInfo.InvariantCulture),
+            optimization.JpegSubsampling.ToString(),
+            optimization.JpegProgressive.ToString(),
+            optimization.JpegOptimizeHuffman.ToString(),
+            $"{optimizationBackground.R},{optimizationBackground.G},{optimizationBackground.B},{optimizationBackground.A}",
+            optimization.TiffCompression.ToString(),
+            optimization.TiffPredictor.ToString(),
+            optimization.KeepOriginalWhenNotSmaller.ToString(),
+            optimization.MetadataPolicy.ToString(),
+            optimization.MetadataSelection.ToString()
         });
         using IncrementalHash hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         hash.AppendData(Encoding.UTF8.GetBytes(configuration));
         hash.AppendData(_source.GetPixels());
         return hash.GetHashAndReset();
     }
+
+    private static string HashOptionalBytes(byte[]? bytes) => bytes == null
+        ? "null"
+        : Convert.ToHexString(SHA256.HashData(bytes));
 
     private static string PixelHash(OfficeRasterImage image) => Convert.ToHexString(SHA256.HashData(image.GetPixels()));
     private static string MetadataHash(OfficeImageInfo info) => Convert.ToHexString(SHA256.HashData(
@@ -428,6 +467,64 @@ public sealed class ImageReleaseQualityWorkload {
         }
         double count = pixels.Length / 4D;
         return (red / count, green / count, blue / count, alpha / count);
+    }
+
+    private void ValidateSpatialTiles(OfficeRasterImage source, OfficeRasterImage resized) {
+        const int columns = 4;
+        const int rows = 4;
+        var expected = CalculateTileMeans(source, columns, rows);
+        var actual = CalculateTileMeans(resized, columns, rows);
+        double totalRgbError = 0D;
+        double maximumRgbError = 0D;
+        double maximumAlphaError = 0D;
+        for (int i = 0; i < expected.Length; i++) {
+            double rgbError = (Math.Abs(expected[i].Red - actual[i].Red)
+                + Math.Abs(expected[i].Green - actual[i].Green)
+                + Math.Abs(expected[i].Blue - actual[i].Blue)) / 3D;
+            totalRgbError += rgbError;
+            maximumRgbError = Math.Max(maximumRgbError, rgbError);
+            maximumAlphaError = Math.Max(maximumAlphaError, Math.Abs(expected[i].Alpha - actual[i].Alpha));
+        }
+        double averageRgbError = totalRgbError / expected.Length;
+        if (averageRgbError > 18D || maximumRgbError > 48D || maximumAlphaError > 64D) {
+            throw new InvalidOperationException(
+                $"{ScenarioId} resampling changed normalized spatial tiles "
+                + $"(average RGB {averageRgbError:F3}, maximum RGB {maximumRgbError:F3}, maximum alpha {maximumAlphaError:F3}).");
+        }
+    }
+
+    private static (double Red, double Green, double Blue, double Alpha)[] CalculateTileMeans(
+        OfficeRasterImage image,
+        int columns,
+        int rows) {
+        byte[] pixels = image.GetPixels();
+        var result = new (double Red, double Green, double Blue, double Alpha)[columns * rows];
+        for (int row = 0; row < rows; row++) {
+            int top = row * image.Height / rows;
+            int bottom = Math.Max(top + 1, (row + 1) * image.Height / rows);
+            for (int column = 0; column < columns; column++) {
+                int left = column * image.Width / columns;
+                int right = Math.Max(left + 1, (column + 1) * image.Width / columns);
+                long red = 0L;
+                long green = 0L;
+                long blue = 0L;
+                long alpha = 0L;
+                long count = 0L;
+                for (int y = top; y < bottom; y++) {
+                    int offset = (y * image.Width + left) * 4;
+                    for (int x = left; x < right; x++, offset += 4) {
+                        red += pixels[offset];
+                        green += pixels[offset + 1];
+                        blue += pixels[offset + 2];
+                        alpha += pixels[offset + 3];
+                        count++;
+                    }
+                }
+                result[row * columns + column] = (red / (double)count, green / (double)count,
+                    blue / (double)count, alpha / (double)count);
+            }
+        }
+        return result;
     }
 
     private static void ValidateDynamicRange(byte[] pixels) {

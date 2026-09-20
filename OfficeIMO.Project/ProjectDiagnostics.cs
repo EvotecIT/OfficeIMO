@@ -14,8 +14,18 @@ public enum ProjectDiagnosticSeverity {
 
 /// <summary>A stable code and source/object location describing validation or preservation behavior.</summary>
 public sealed class ProjectDiagnostic {
-    internal ProjectDiagnostic(string code, ProjectDiagnosticSeverity severity, string message, string location, bool loss = false) {
-        Code = code; Severity = severity; Message = message; Location = location; RepresentsLoss = loss;
+    internal ProjectDiagnostic(string code, ProjectDiagnosticSeverity severity, string message, string location, bool loss = false)
+        : this(code, severity, message, location,
+            loss ? OfficeConversionLossKind.Approximation : OfficeConversionLossKind.None) {
+    }
+    internal ProjectDiagnostic(string code, ProjectDiagnosticSeverity severity, string message, string location,
+        OfficeConversionLossKind lossKind) {
+        if (!Enum.IsDefined(typeof(OfficeConversionLossKind), lossKind)) throw new ArgumentOutOfRangeException(nameof(lossKind));
+        Code = code;
+        Severity = severity;
+        Message = message;
+        Location = location;
+        LossKind = severity == ProjectDiagnosticSeverity.Error ? OfficeConversionLossKind.Failure : lossKind;
     }
     /// <summary>Stable machine-readable diagnostic code.</summary>
     public string Code { get; }
@@ -25,8 +35,10 @@ public sealed class ProjectDiagnostic {
     public string Message { get; }
     /// <summary>Entity UID or XML location.</summary>
     public string Location { get; }
+    /// <summary>Exact fidelity category retained across composed project routes.</summary>
+    public OfficeConversionLossKind LossKind { get; }
     /// <summary>True for known or possible semantic loss, even if raw content is retained.</summary>
-    public bool RepresentsLoss { get; }
+    public bool RepresentsLoss => LossKind != OfficeConversionLossKind.None;
 }
 
 /// <summary>A snapshot of validation/fidelity findings for one model revision.</summary>
@@ -37,9 +49,7 @@ public sealed class ProjectReport : IOfficeConversionReport {
             new OfficeConversionFidelityDiagnostic(
                 diagnostic.Code,
                 diagnostic.Message,
-                diagnostic.Severity == ProjectDiagnosticSeverity.Error
-                    ? OfficeConversionLossKind.Failure
-                    : diagnostic.RepresentsLoss ? OfficeConversionLossKind.Approximation : OfficeConversionLossKind.None,
+                diagnostic.LossKind,
                 "OfficeIMO.Project",
                 diagnostic.Location)).ToArray());
     }

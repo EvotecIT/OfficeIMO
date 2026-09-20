@@ -71,6 +71,21 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeSvgDrawingReader_DirectionUnsetRetainsInheritedDirection() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 60'>"
+            + "<g direction='rtl'><text x='10' y='30' font-family='Arial' font-size='18' fill='black' "
+            + "style='direction: unset' text-anchor='end'>שלום</text></g></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(
+            System.Text.Encoding.UTF8.GetBytes(svg), options: null, out OfficeDrawing? imported, out int unsupported));
+        Assert.Equal(0, unsupported);
+        OfficeDrawingText text = Assert.Single(imported!.Elements.OfType<OfficeDrawingText>());
+
+        Assert.Equal(10D, text.X, precision: 3);
+        Assert.True(text.Width > 20D, $"Expected measured inherited RTL width, got {text.Width}.");
+    }
+
+    [Fact]
     public void OfficeSvgDrawingReader_PlacesRightToLeftTspanRunsInVisualOrder() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 60'>"
             + "<text x='200' y='30' font-family='Arial' font-size='18' fill='black' "
