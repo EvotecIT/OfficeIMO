@@ -968,8 +968,12 @@ internal static partial class PdfSyntax {
 
         int searchFrom = start;
         while (searchFrom < limit) {
-            int idx = text.IndexOf(keyword, searchFrom, StringComparison.Ordinal);
-            if (idx < 0 || idx >= limit) {
+            int idx = text.IndexOf(
+                keyword,
+                searchFrom,
+                limit - searchFrom,
+                StringComparison.Ordinal);
+            if (idx < 0) {
                 return -1;
             }
 
