@@ -141,6 +141,103 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
     }
 
     [Fact]
+    public void BookAddsReciprocalDeduplicatedPageLinksAndPreservesThemThroughSave() {
+        var first = PlacementEnvelope(); var second = PlacementEnvelope();
+        first.Title = second.Title = "Services";
+        var links = new[] {
+            new OfficeVisioVisualBookLink(1, "api", 2, "database", "api-database-a"),
+            new OfficeVisioVisualBookLink(1, "api", 2, "database", "api-database-b")
+        };
+
+        OfficeVisioVisualBookResult book = new[] { first, second }.ToOfficeVisioBook(links);
+
+        Assert.Equal(4, book.RequestedNavigationCount);
+        Assert.Equal(2, book.CoalescedNavigationCount);
+        Assert.Equal(0, book.OmittedNavigationCount);
+        Assert.Equal(2, book.Navigations.Count);
+        OfficeVisioVisualBookNavigationResult forward = Assert.Single(book.Navigations, navigation => !navigation.IsReturnLink);
+        Assert.Equal(new[] { "api-database-a", "api-database-b" }, forward.RelationshipIds);
+        VisioShape source = book.Pages[0].Page.Shapes.Single(shape => shape.Id == "api");
+        VisioShape target = book.Pages[1].Page.Shapes.Single(shape => shape.Id == "database");
+        VisioHyperlink sourceLink = Assert.Single(source.Hyperlinks);
+        VisioHyperlink targetLink = Assert.Single(target.Hyperlinks);
+        Assert.True(string.IsNullOrEmpty(sourceLink.Address));
+        Assert.Equal("Services (2)", sourceLink.SubAddress);
+        Assert.True(string.IsNullOrEmpty(targetLink.Address));
+        Assert.Equal("Services", targetLink.SubAddress);
+        Assert.Equal("Services (2)", source.GetShapeDataValue("CFX.BookLink.1.TargetPage"));
+        Assert.Equal("database", source.GetShapeDataValue("CFX.BookLink.1.TargetEntityId"));
+        Assert.Equal("api-database-a,api-database-b", source.GetShapeDataValue("CFX.BookLink.1.RelationshipIds"));
+
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+        try {
+            book.Document.Save(path);
+            Assert.Empty(VisioValidator.Validate(path));
+            VisioDocument loaded = VisioDocument.Load(path);
+            VisioHyperlink loadedForward = Assert.Single(loaded.Pages[0].Shapes.Single(shape => shape.Id == "api").Hyperlinks);
+            VisioHyperlink loadedReturn = Assert.Single(loaded.Pages[1].Shapes.Single(shape => shape.Id == "database").Hyperlinks);
+            Assert.True(string.IsNullOrEmpty(loadedForward.Address));
+            Assert.Equal("Services (2)", loadedForward.SubAddress);
+            Assert.Equal("Services", loadedReturn.SubAddress);
+        } finally { if (File.Exists(path)) File.Delete(path); }
+    }
+
+    [Fact]
+    public void BookBoundsNavigationPerEntityAndReportsOmittedTargets() {
+        var pages = Enumerable.Range(1, 4).Select(number => {
+            var envelope = PlacementEnvelope();
+            envelope.Title = "Page " + number;
+            return envelope;
+        }).ToArray();
+        var links = new[] {
+            new OfficeVisioVisualBookLink(1, "api", 2, "database", "to-2"),
+            new OfficeVisioVisualBookLink(1, "api", 3, "database", "to-3"),
+            new OfficeVisioVisualBookLink(1, "api", 4, "database", "to-4")
+        };
+        var bookOptions = new OfficeVisioVisualBookOptions {
+            IncludeReturnLinks = false,
+            MaximumNavigationLinksPerEntity = 2
+        };
+
+        OfficeVisioVisualBookResult book = pages.ToOfficeVisioBook(links, bookOptions);
+
+        Assert.Equal(3, book.RequestedNavigationCount);
+        Assert.Equal(2, book.Navigations.Count);
+        Assert.Equal(1, book.OmittedNavigationCount);
+        VisioShape source = book.Pages[0].Page.Shapes.Single(shape => shape.Id == "api");
+        Assert.Equal(2, source.Hyperlinks.Count);
+        Assert.Equal("1", source.GetShapeDataValue("CFX.BookLink.Omitted"));
+        Assert.Equal(new[] { "Page 2", "Page 3" }, source.Hyperlinks.Select(link => link.SubAddress));
+    }
+
+    [Fact]
+    public void BookResolvesOriginalChartForgeXIdsAfterInterchangeBoundsThem() {
+        var first = PlacementEnvelope();
+        first.Nodes[0].Id = "bounded-node-id";
+        first.Nodes[0].Extensions["chartforgex.sourceId"] = "original-node-id";
+        first.Edges[0].SourceId = "bounded-node-id";
+        var second = PlacementEnvelope();
+
+        OfficeVisioVisualBookResult book = new[] { first, second }.ToOfficeVisioBook(new[] {
+            new OfficeVisioVisualBookLink(1, "original-node-id", 2, "database")
+        });
+
+        VisioShape projected = book.Pages[0].Page.Shapes.Single(shape => shape.Id == "bounded-node-id");
+        Assert.Equal(book.Pages[1].Page.Name, Assert.Single(projected.Hyperlinks).SubAddress);
+    }
+
+    [Fact]
+    public void BookRejectsOutOfRangePagesAndUnprojectedEntities() {
+        var pages = new[] { PlacementEnvelope(), PlacementEnvelope() };
+        Assert.Throws<ArgumentOutOfRangeException>(() => pages.ToOfficeVisioBook(new[] {
+            new OfficeVisioVisualBookLink(1, "api", 3, "database")
+        }));
+        Assert.Throws<ArgumentException>(() => pages.ToOfficeVisioBook(new[] {
+            new OfficeVisioVisualBookLink(1, "missing", 2, "database")
+        }));
+    }
+
+    [Fact]
     public void PreservedOverflowIsReportedAndCanBeRejected() {
         var envelope = PlacementEnvelope();
         envelope.Nodes[0].X = -10;

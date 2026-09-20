@@ -98,4 +98,20 @@ var book = envelopes.ToOfficeVisioBook(options);
 book.Document.Save("topology-report.vsdx");
 ```
 
-ChartForgeX report pages can supply these envelopes through `report.Pages.Select(page => page.ToInterchangeEnvelope())`. Keep the report's node-to-page index and cross-page relationship index with the exported document: pagination does not turn cross-page edges into Visio connectors or hyperlinks automatically.
+ChartForgeX report pages can supply these envelopes through `report.Pages.Select(page => page.ToInterchangeEnvelope())`. Project `CrossPageLinks` into native page links to make every relationship navigable in Visio:
+
+```csharp
+var envelopes = report.Pages.Select(page => page.ToInterchangeEnvelope());
+var links = report.CrossPageLinks.Select(link => new OfficeVisioVisualBookLink(
+    link.SourcePage, link.SourceNodeId,
+    link.TargetPage, link.TargetNodeId,
+    link.EdgeId));
+
+var book = envelopes.ToOfficeVisioBook(links, new OfficeVisioVisualBookOptions {
+    MaximumNavigationLinksPerEntity = 12,
+    IncludeReturnLinks = true
+});
+book.Document.Save("topology-report.vsdx");
+```
+
+Duplicate targets are coalesced while their relationship identifiers remain in Shape Data. `OmittedNavigationCount` and `CFX.BookLink.Omitted` disclose links removed by the per-entity bound. ChartForgeX retains an original node identifier in `chartforgex.sourceId` whenever interchange projection has to shorten or disambiguate it, so report links still resolve against the editable Visio shape.
