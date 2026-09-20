@@ -133,6 +133,27 @@ public sealed class HtmlComputedStyle {
     internal bool IsSpecifiedValue(string propertyName) =>
         !string.IsNullOrWhiteSpace(propertyName) && _specifiedProperties.Contains(propertyName.Trim());
 
+    internal bool HasCascadeState(string propertyName) {
+        if (string.IsNullOrWhiteSpace(propertyName)) return false;
+        string name = propertyName.Trim();
+        return _properties.ContainsKey(name)
+            || _inheritedProperties.Contains(name)
+            || _resetProperties.Contains(name)
+            || _originRevertedProperties.Contains(name)
+            || _specifiedProperties.Contains(name)
+            || _cascadePriorities.ContainsKey(name);
+    }
+
+    internal bool HasCascadeStateMatching(Func<string, bool> predicate) {
+        if (predicate == null) throw new ArgumentNullException(nameof(predicate));
+        return _properties.Keys.Any(predicate)
+            || _inheritedProperties.Any(predicate)
+            || _resetProperties.Any(predicate)
+            || _originRevertedProperties.Any(predicate)
+            || _specifiedProperties.Any(predicate)
+            || _cascadePriorities.Keys.Any(predicate);
+    }
+
     internal bool ShouldOverride(string candidateProperty, string existingProperty) {
         if (!_cascadePriorities.TryGetValue(candidateProperty, out HtmlCssCascadePriority candidate)) return true;
         return !_cascadePriorities.TryGetValue(existingProperty, out HtmlCssCascadePriority existing)
@@ -141,13 +162,24 @@ public sealed class HtmlComputedStyle {
 
     internal HtmlComputedStyle WithMappedProperties(
         Dictionary<string, string> properties,
-        Dictionary<string, HtmlCssCascadePriority> cascadePriorities) {
+        Dictionary<string, HtmlCssCascadePriority> cascadePriorities,
+        IReadOnlyList<(string Source, string Target)> mappings) {
+        var inheritedProperties = new HashSet<string>(_inheritedProperties, HtmlCssPropertyNameComparer.Instance);
+        var resetProperties = new HashSet<string>(_resetProperties, HtmlCssPropertyNameComparer.Instance);
+        var originRevertedProperties = new HashSet<string>(_originRevertedProperties, HtmlCssPropertyNameComparer.Instance);
+        var specifiedProperties = new HashSet<string>(_specifiedProperties, HtmlCssPropertyNameComparer.Instance);
+        foreach ((string source, string target) in mappings) {
+            MirrorMembership(_inheritedProperties, inheritedProperties, source, target);
+            MirrorMembership(_resetProperties, resetProperties, source, target);
+            MirrorMembership(_originRevertedProperties, originRevertedProperties, source, target);
+            MirrorMembership(_specifiedProperties, specifiedProperties, source, target);
+        }
         var style = new HtmlComputedStyle(
             properties,
-            new HashSet<string>(_inheritedProperties, HtmlCssPropertyNameComparer.Instance),
-            new HashSet<string>(_resetProperties, HtmlCssPropertyNameComparer.Instance),
-            new HashSet<string>(_originRevertedProperties, HtmlCssPropertyNameComparer.Instance),
-            new HashSet<string>(_specifiedProperties, HtmlCssPropertyNameComparer.Instance),
+            inheritedProperties,
+            resetProperties,
+            originRevertedProperties,
+            specifiedProperties,
             cascadePriorities,
             _cascadeTraces.Count == 0
                 ? null
@@ -157,6 +189,15 @@ public sealed class HtmlComputedStyle {
                     HtmlCssPropertyNameComparer.Instance));
         style.ResolvedFontSizePoints = ResolvedFontSizePoints;
         return style;
+    }
+
+    private static void MirrorMembership(
+        HashSet<string> sourceSet,
+        HashSet<string> targetSet,
+        string source,
+        string target) {
+        if (sourceSet.Contains(source)) targetSet.Add(target);
+        else targetSet.Remove(target);
     }
 
     internal Dictionary<string, HtmlCssCascadePriority> CopyCascadePriorities() =>

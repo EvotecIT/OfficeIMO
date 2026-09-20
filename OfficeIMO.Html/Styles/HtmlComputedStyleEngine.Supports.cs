@@ -624,6 +624,7 @@ public static partial class HtmlComputedStyleEngine {
                 specified.Remove(pair.Key);
                 reset.Add(pair.Key);
                 CascadedProperty resetSource = effective ?? pair.Value;
+                priorities[pair.Key] = ToCascadePriority(resetSource);
                 if (string.Equals(resetSource.AuthoredValue.Trim(), "revert", StringComparison.OrdinalIgnoreCase)
                     || resetSource.RevertsLayer) {
                     originReverted.Add(pair.Key);
@@ -655,7 +656,8 @@ public static partial class HtmlComputedStyleEngine {
         specifiedProperties = specified;
         List<string>? removedPriorityNames = null;
         foreach (string name in priorities.Keys) {
-            if (!resolved.ContainsKey(name)) (removedPriorityNames ??= new List<string>()).Add(name);
+            if (!resolved.ContainsKey(name) && !reset.Contains(name))
+                (removedPriorityNames ??= new List<string>()).Add(name);
         }
         if (removedPriorityNames != null) {
             foreach (string name in removedPriorityNames) priorities.Remove(name);
