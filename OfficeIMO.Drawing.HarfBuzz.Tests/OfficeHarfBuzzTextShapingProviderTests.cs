@@ -76,6 +76,48 @@ public sealed class OfficeHarfBuzzTextShapingProviderTests {
         Assert.Equal("browser-native", text.Attribute("data-officeimo-shaping-backend")?.Value);
     }
 
+    [Fact]
+    public void VerticalCjkIsClippedToItsDeclaredTextBoxAcrossRasterAndSvg() {
+        TypographyEvidenceCase evidence = Assert.Single(
+            TypographyEvidenceCorpus.Cases,
+            item => item.Direction == OfficeTextDirection.TopToBottom);
+        byte[] fontData = LoadFontData(evidence);
+        var drawing = new OfficeDrawing(100D, 100D)
+            .AddFont(evidence.Family, fontData)
+            .AddVerticalText(evidence.Text + evidence.Text, 30D, 15D, 40D, 24D,
+                new OfficeFontInfo(evidence.Family, 36D));
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing, new OfficeDrawingRasterRenderOptions {
+            TextShapingProvider = OfficeHarfBuzzTextShapingProvider.Instance,
+            TextShapingLanguage = evidence.Language
+        });
+        var painted = new List<(int X, int Y)>();
+        for (int y = 0; y < raster.Height; y++) {
+            for (int x = 0; x < raster.Width; x++) {
+                if (raster.GetPixel(x, y).A != 0) painted.Add((x, y));
+            }
+        }
+
+        Assert.NotEmpty(painted);
+        Assert.All(painted, pixel => {
+            Assert.InRange(pixel.X, 30, 69);
+            Assert.InRange(pixel.Y, 15, 38);
+        });
+
+        XDocument svg = XDocument.Parse(OfficeDrawingSvgExporter.ToSvg(drawing));
+        XElement clipPath = Assert.Single(svg.Descendants(), element => element.Name.LocalName == "clipPath");
+        XElement rectangle = Assert.Single(clipPath.Elements(), element => element.Name.LocalName == "rect");
+        Assert.Equal("30", rectangle.Attribute("x")?.Value);
+        Assert.Equal("15", rectangle.Attribute("y")?.Value);
+        Assert.Equal("40", rectangle.Attribute("width")?.Value);
+        Assert.Equal("24", rectangle.Attribute("height")?.Value);
+        XElement clippedGroup = Assert.Single(svg.Descendants(), element =>
+            element.Name.LocalName == "g" && element.Attribute("clip-path") != null);
+        Assert.Contains(clipPath.Attribute("id")!.Value, clippedGroup.Attribute("clip-path")!.Value, StringComparison.Ordinal);
+        Assert.Equal(evidence.Text + evidence.Text,
+            Assert.Single(clippedGroup.Descendants(), element => element.Name.LocalName == "text").Value);
+    }
+
     private static (int Width, int Height) InkSize(OfficeRasterImage image) {
         int minX = image.Width, minY = image.Height, maxX = -1, maxY = -1;
         for (int y = 0; y < image.Height; y++) {

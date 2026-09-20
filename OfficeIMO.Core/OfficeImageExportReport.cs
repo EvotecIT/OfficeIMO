@@ -38,8 +38,8 @@ public sealed class OfficeImageExportReport : global::OfficeIMO.IOfficeConversio
             diagnostic.Code,
             diagnostic.Message,
             diagnostic.LossKind,
-            "OfficeIMO.Drawing",
-            diagnostic.Source)).ToArray());
+            diagnostic.FidelitySource ?? "OfficeIMO.Drawing",
+            diagnostic.FidelityLocation ?? diagnostic.Source)).ToArray());
 
     /// <summary>True when at least one diagnostic represents fidelity loss.</summary>
     public bool HasLoss => _diagnostics.Any(diagnostic => diagnostic.LossKind != OfficeConversionLossKind.None);

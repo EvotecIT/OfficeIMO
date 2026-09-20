@@ -54,20 +54,49 @@ public sealed class PdfConversionLossPropagationTests {
         Assert.Contains(failure.Diagnostics, diagnostic => diagnostic.Code == "LateLoss");
     }
 
-    [Fact]
-    public void ImageExportRetainsLossFromAnEarlierSemanticProjectionStage() {
+    [Theory]
+    [InlineData(OfficeConversionLossKind.Approximation)]
+    [InlineData(OfficeConversionLossKind.Omission)]
+    [InlineData(OfficeConversionLossKind.Failure)]
+    public void ImageExportRetainsExactLossFromAnEarlierSemanticProjectionStage(OfficeConversionLossKind lossKind) {
         var sourceReport = new PdfConversionReport();
         sourceReport.Add(new PdfConversionWarning("source", "UnsupportedObject", "source:1", "Object omitted",
-            PdfConversionWarningSeverity.Information, OfficeConversionLossKind.Omission));
+            PdfConversionWarningSeverity.Information, lossKind));
         var conversion = new PdfDocumentConversionResult(
             PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Content")), new PdfConversionReport())
             .WithSourceConversionReport(sourceReport);
-        OfficeImageExportResult image = Assert.Single(conversion.ExportImages(OfficeImageExportFormat.Svg));
-        Assert.Contains(image.Diagnostics, diagnostic => diagnostic.Code == "SourceConversionLoss" &&
-            diagnostic.LossKind != OfficeConversionLossKind.None);
+        var permissive = new PdfImageExportOptions {
+            Policy = new OfficeImageExportPolicy { RequireNoFailures = false }
+        };
+        OfficeImageExportResult image = Assert.Single(conversion.ExportImages(OfficeImageExportFormat.Svg, permissive));
+        OfficeImageExportDiagnostic projected = Assert.Single(image.Diagnostics,
+            diagnostic => diagnostic.Code == "UnsupportedObject");
+        Assert.Equal(lossKind, projected.LossKind);
+        Assert.Equal("source:1", projected.Source);
+        OfficeConversionFidelityDiagnostic fidelity = Assert.Single(image.CreateReport().FidelityDiagnostics,
+            diagnostic => diagnostic.Code == "UnsupportedObject");
+        Assert.Equal(lossKind, fidelity.LossKind);
+        Assert.Equal("source", fidelity.Source);
+        Assert.Equal("source:1", fidelity.Location);
         var strict = new PdfImageExportOptions { Policy = new OfficeImageExportPolicy { RequireNoLoss = true } };
         var failure = Assert.Throws<OfficeImageExportPolicyException>(() => conversion.ToImages(strict).AsSvg().Export());
-        Assert.Contains(failure.Diagnostics, diagnostic => diagnostic.Code == "SourceConversionLoss");
+        Assert.Contains(failure.Diagnostics, diagnostic =>
+            diagnostic.Code == "UnsupportedObject" && diagnostic.LossKind == lossKind);
+    }
+
+    [Fact]
+    public void ImageExportFailsClosedWhenAnUpstreamReportViolatesTheTypedLossContract() {
+        var conversion = new PdfDocumentConversionResult(
+                PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Content")),
+                new PdfConversionReport())
+            .WithSourceConversionReport(new AggregateOnlyLossReport());
+
+        OfficeImageExportPolicyException failure = Assert.Throws<OfficeImageExportPolicyException>(() =>
+            conversion.ExportImages(OfficeImageExportFormat.Svg));
+
+        OfficeImageExportDiagnostic diagnostic = Assert.Single(failure.Diagnostics,
+            item => item.Code == "SourceConversionDiagnosticContractMismatch");
+        Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
     }
 
     [Theory]
@@ -163,5 +192,14 @@ public sealed class PdfConversionLossPropagationTests {
                 warning.LossKind == OfficeConversionLossKind.Approximation);
             Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
         }
+    }
+
+    private sealed class AggregateOnlyLossReport : IOfficeConversionReport {
+        public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; } =
+            Array.Empty<OfficeConversionFidelityDiagnostic>();
+
+        public bool HasLoss => true;
+
+        public void RequireNoLoss() => throw new InvalidOperationException("Aggregate loss.");
     }
 }

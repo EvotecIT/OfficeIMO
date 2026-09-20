@@ -12,12 +12,25 @@ public sealed class OfficeImageExportDiagnostic {
         string code,
         string message,
         string? source = null,
-        OfficeConversionLossKind? lossKind = null) {
+        OfficeConversionLossKind? lossKind = null)
+        : this(severity, code, message, source, lossKind, fidelitySource: null, fidelityLocation: null) {
+    }
+
+    internal OfficeImageExportDiagnostic(
+        OfficeImageExportDiagnosticSeverity severity,
+        string code,
+        string message,
+        string? source,
+        OfficeConversionLossKind? lossKind,
+        string? fidelitySource,
+        string? fidelityLocation) {
         Severity = severity;
         Code = string.IsNullOrWhiteSpace(code) ? "ImageExportDiagnostic" : code;
         Message = message ?? string.Empty;
         Source = source;
         LossKind = lossKind ?? InferLossKind(severity);
+        FidelitySource = fidelitySource;
+        FidelityLocation = fidelityLocation;
     }
 
     /// <summary>Diagnostic severity.</summary>
@@ -34,6 +47,10 @@ public sealed class OfficeImageExportDiagnostic {
 
     /// <summary>Fidelity-loss classification used by aggregate reports and acceptance policies.</summary>
     public OfficeConversionLossKind LossKind { get; }
+
+    internal string? FidelitySource { get; }
+
+    internal string? FidelityLocation { get; }
 
     private static OfficeConversionLossKind InferLossKind(OfficeImageExportDiagnosticSeverity severity) => severity switch {
         OfficeImageExportDiagnosticSeverity.Warning => OfficeConversionLossKind.Approximation,

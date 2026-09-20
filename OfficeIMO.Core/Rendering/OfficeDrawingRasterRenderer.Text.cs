@@ -74,19 +74,23 @@ public static partial class OfficeDrawingRasterRenderer {
             return;
         }
 
-        if (text.TextDirection == OfficeTextDirection.TopToBottom && canvas.TryDrawVerticalText(
-            text.Text,
-            contentX,
-            contentY,
-            contentWidth,
-            contentHeight,
-            text.Color ?? OfficeColor.Black,
-            text.Font.Size * scale,
-            text.Font.Style,
-            text.Font.FamilyName,
-            text.FeatureSettings,
-            text.FontPalette)) {
-            return;
+        if (text.TextDirection == OfficeTextDirection.TopToBottom) {
+            using (canvas.PushClipRectangle(contentX, contentY, contentWidth, contentHeight)) {
+                if (canvas.TryDrawVerticalText(
+                    text.Text,
+                    contentX,
+                    contentY,
+                    contentWidth,
+                    contentHeight,
+                    text.Color ?? OfficeColor.Black,
+                    text.Font.Size * scale,
+                    text.Font.Style,
+                    text.Font.FamilyName,
+                    text.FeatureSettings,
+                    text.FontPalette)) {
+                    return;
+                }
+            }
         }
 
         if (text.HasFrameTransform && text.TextAdvanceWidth.HasValue && !text.WrapText && !text.ShrinkToFit &&

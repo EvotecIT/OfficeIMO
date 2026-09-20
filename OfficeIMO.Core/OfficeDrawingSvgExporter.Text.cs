@@ -4,17 +4,42 @@ using System.Text;
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeDrawingSvgExporter {
-    private static void AppendText(StringBuilder sb, OfficeDrawingText text, OfficeRasterCanvas textMetrics) {
+    private static void AppendText(
+        StringBuilder sb,
+        OfficeDrawingText text,
+        OfficeRasterCanvas textMetrics,
+        string idPrefix,
+        ref int clipPathId) {
         bool useFrameTransform = text.FlipHorizontal || text.FlipVertical;
         if (useFrameTransform) {
             AppendTextFrameGroupStart(sb, text);
         }
 
         if (text.TextDirection == OfficeTextDirection.TopToBottom) {
+            double verticalContentX = text.X + text.Padding.Left;
+            double verticalContentY = text.Y + text.Padding.Top;
+            double verticalContentWidth = text.Width - text.Padding.Horizontal;
+            double verticalContentHeight = text.Height - text.Padding.Vertical;
+            if (verticalContentWidth <= 0D || verticalContentHeight <= 0D) {
+                if (useFrameTransform) sb.Append("</g>");
+                return;
+            }
+
+            string verticalClipPathId = idPrefix + "officeimo-text-clip-" +
+                (++clipPathId).ToString(System.Globalization.CultureInfo.InvariantCulture);
+            sb.Append("<defs><clipPath id=\"")
+                .Append(verticalClipPathId)
+                .Append("\"><rect x=\"").Append(Format(verticalContentX))
+                .Append("\" y=\"").Append(Format(verticalContentY))
+                .Append("\" width=\"").Append(Format(verticalContentWidth))
+                .Append("\" height=\"").Append(Format(verticalContentHeight))
+                .Append("\"/></clipPath></defs><g")
+                .AppendClipPathReference(verticalClipPathId)
+                .Append('>');
             sb.AppendSvgVerticalTextElement(
                 text.Text,
-                text.X + text.Width / 2D,
-                text.Y,
+                verticalContentX + verticalContentWidth / 2D,
+                verticalContentY,
                 text.Color ?? OfficeColor.Black,
                 text.Font.FamilyName,
                 text.Font.Size,
@@ -22,6 +47,7 @@ public static partial class OfficeDrawingSvgExporter {
                 text.Font.IsItalic,
                 text.FeatureSettings,
                 text.FontPalette);
+            sb.Append("</g>");
             if (useFrameTransform) sb.Append("</g>");
             return;
         }
