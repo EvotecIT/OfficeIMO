@@ -14,13 +14,16 @@ public class RtfConversionReportTests {
 
         Assert.False(report.HasLoss);
         Assert.Equal(2, report.Diagnostics.Count);
+        Assert.All(report.FidelityDiagnostics, diagnostic => Assert.Equal(OfficeConversionLossKind.None, diagnostic.LossKind));
     }
 
     [Theory]
-    [InlineData(RtfConversionAction.Flattened)]
-    [InlineData(RtfConversionAction.Omitted)]
-    [InlineData(RtfConversionAction.Blocked)]
-    public void Loss_Actions_Fail_Strict_Mode(RtfConversionAction action) {
+    [InlineData(RtfConversionAction.Flattened, OfficeConversionLossKind.Approximation)]
+    [InlineData(RtfConversionAction.Omitted, OfficeConversionLossKind.Omission)]
+    [InlineData(RtfConversionAction.Blocked, OfficeConversionLossKind.Failure)]
+    public void Loss_Actions_Fail_Strict_Mode(
+        RtfConversionAction action,
+        OfficeConversionLossKind expectedLossKind) {
         var report = new RtfConversionReport();
         report.Add(RtfConversionSeverity.Warning, "Loss", "Loss occurred.", action, "Body/0", "feature", 2, "detail");
 
@@ -32,6 +35,7 @@ public class RtfConversionReportTests {
         Assert.Equal("feature", diagnostic.Feature);
         Assert.Equal(2, diagnostic.Count);
         Assert.Equal("detail", diagnostic.Detail);
+        Assert.Equal(expectedLossKind, Assert.Single(report.FidelityDiagnostics).LossKind);
     }
 
     [Fact]

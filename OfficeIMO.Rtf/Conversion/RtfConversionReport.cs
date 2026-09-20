@@ -14,18 +14,12 @@ public sealed class RtfConversionReport : IOfficeConversionReport {
         _diagnostics.Select(static diagnostic => new OfficeConversionFidelityDiagnostic(
             diagnostic.Code,
             diagnostic.Message,
-            diagnostic.Severity == RtfConversionSeverity.Error || diagnostic.Action == RtfConversionAction.Blocked
-                ? OfficeConversionLossKind.Failure
-                : diagnostic.Action == RtfConversionAction.Omitted
-                    ? OfficeConversionLossKind.Omission
-                    : diagnostic.Action == RtfConversionAction.Flattened || diagnostic.Action == RtfConversionAction.Substituted
-                        ? OfficeConversionLossKind.Approximation
-                        : OfficeConversionLossKind.None,
+            GetLossKind(diagnostic),
             "OfficeIMO.Rtf",
             diagnostic.SourcePath)).ToArray());
 
     /// <summary>Whether the report contains a flattened, omitted, blocked, or error condition.</summary>
-    public bool HasLoss => _diagnostics.Any(IsLoss);
+    public bool HasLoss => _diagnostics.Any(static diagnostic => GetLossKind(diagnostic) != OfficeConversionLossKind.None);
 
     /// <summary>Adds a conversion diagnostic.</summary>
     public RtfConversionDiagnostic Add(
@@ -79,9 +73,12 @@ public sealed class RtfConversionReport : IOfficeConversionReport {
         if (HasLoss) throw new RtfConversionLossException(this);
     }
 
-    private static bool IsLoss(RtfConversionDiagnostic diagnostic) =>
-        diagnostic.Severity == RtfConversionSeverity.Error
-        || diagnostic.Action == RtfConversionAction.Flattened
-        || diagnostic.Action == RtfConversionAction.Omitted
-        || diagnostic.Action == RtfConversionAction.Blocked;
+    private static OfficeConversionLossKind GetLossKind(RtfConversionDiagnostic diagnostic) =>
+        diagnostic.Severity == RtfConversionSeverity.Error || diagnostic.Action == RtfConversionAction.Blocked
+            ? OfficeConversionLossKind.Failure
+            : diagnostic.Action == RtfConversionAction.Omitted
+                ? OfficeConversionLossKind.Omission
+                : diagnostic.Action == RtfConversionAction.Flattened
+                    ? OfficeConversionLossKind.Approximation
+                    : OfficeConversionLossKind.None;
 }

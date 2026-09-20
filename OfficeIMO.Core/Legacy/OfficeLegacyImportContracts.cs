@@ -124,11 +124,8 @@ public sealed class OfficeLegacyImportReport : IOfficeConversionReport {
     /// <summary>Gets category-preserving legacy-import diagnostics.</summary>
     public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
 
-    /// <summary>Gets whether the import used salvage recovery, kept active content inert, or reported a lossy or blocked mapping.</summary>
-    public bool HasLoss => Quality != OfficeLegacyImportQuality.Structured
-        || HasInertContent
-        || _findings.Any(finding => finding.RepresentsLoss
-            || finding.State == OfficeCompatibilityState.Blocked);
+    /// <summary>Gets whether any typed diagnostic reports an approximation, omission, or failure.</summary>
+    public bool HasLoss => FidelityDiagnostics.Any(static diagnostic => diagnostic.LossKind != OfficeConversionLossKind.None);
 
     /// <summary>Gets whether the source contained active or externally resolved content that remained inert.</summary>
     public bool HasInertContent => InertContent != OfficeLegacyInertContentKind.None;
