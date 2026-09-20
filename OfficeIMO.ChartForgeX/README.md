@@ -69,6 +69,33 @@ if (visio.Report.HasSemanticLoss) {
 
 `AllProjectedObjectsEditable` reports whether the native objects can be edited independently. `HasSemanticLoss` is a separate fidelity decision: it becomes true only for warning diagnostics, when Visio cannot represent a source feature exactly, even though every projected shape remains editable. Disabling Shape Data or native hyperlinks is therefore reported when source semantics would otherwise be omitted. Information diagnostics describe lossless normalizations such as collision-safe Shape Data aliases. `ArtifactKind` preserves how the visual was authored, while `SemanticFamily` identifies the reusable topology, flow, or sequence projection. Use stable diagnostic codes and severity for automation and `Message` for logs or user interfaces.
 
-Pass a typed `VisualArtifactInterchangeEnvelope` directly when the caller shares the same ChartForgeX assembly identity. The adapter validates that object without serializing it first. Use `artifact.ToInterchangeUtf8Json()` and `jsonBytes.ToOfficeVisio()` across process or PowerShell assembly-load-context boundaries. Static SVG remains a separate fallback; the adapter does not infer editable semantics by scraping rendered markup. Unsupported artifact families fail closed for native Visio conversion. Native builders fit the page to editable content by default; set `UseNaturalPageSize` when the CFX pixel viewport must remain the minimum page size.
+Pass a typed `VisualArtifactInterchangeEnvelope` directly when the caller shares the same ChartForgeX assembly identity. The adapter validates that object without serializing it first. Use `artifact.ToInterchangeUtf8Json()` and `jsonBytes.ToOfficeVisio()` across process or PowerShell assembly-load-context boundaries. Static SVG remains a separate fallback; the adapter does not infer editable semantics by scraping rendered markup. Unsupported artifact families fail closed for native Visio conversion. Complete topology envelopes preserve node and group bounds by default. Coordinates use `PixelsPerInch` to convert CFX pixels to Visio inches. Unpositioned topology, flow, and sequence inputs use native layout; `UseNaturalPageSize` keeps the CFX viewport as their minimum page size.
 
 ChartForgeX owns chart and diagram semantics, deterministic rendering, interchange, watermarks, layout, and raster metadata. OfficeIMO owns document placement, native Visio projection, page layout, document/page watermarks, PDF composition, and Office package behavior.
+
+### Preserve placement and enforce fidelity
+
+`LayoutMode = Auto` preserves complete topology bounds and reflows other inputs. Choose `Preserve` to require prepared topology coordinates, or `Reflow` to explicitly request native layout. Preserved graphs retain authored connector bends and named port offsets. When the envelope has no resolved route, native routing is reported as a normalization. Native graph styling maps source card, surface, border, and foreground colors, with Arial text for portable previews. Set `NativeTheme` to override it, for example with `VisioStyleTheme.Technical()` for the previous native defaults. Curves, advanced edge styling, icons, source fonts, and complete CFX themes still have limits described by the diagnostics.
+
+```csharp
+var options = new OfficeVisioVisualOptions {
+    LayoutMode = OfficeVisioVisualLayoutMode.Preserve,
+    PixelsPerInch = 96
+};
+options.RejectedDiagnostics.Add(OfficeVisioVisualDiagnosticCode.LayoutRecomputed);
+var result = envelope.ToOfficeVisio(options);
+result.Document.Save("topology.vsdx");
+```
+
+Set `RequireLossless = true` to reject every warning, or add selected codes to `RejectedDiagnostics`. A rejected conversion throws `OfficeVisioVisualFidelityException`; its `Report` explains the losses. Conversion does not save a file.
+
+### Export a report as one document
+
+Pass an ordered sequence of envelopes to `ToOfficeVisioBook`. Each input becomes one page; repeated titles receive distinct page names. Each result in `Pages` exposes that page's fidelity report and shares the returned document.
+
+```csharp
+var book = envelopes.ToOfficeVisioBook(options);
+book.Document.Save("topology-report.vsdx");
+```
+
+ChartForgeX report pages can supply these envelopes through `report.Pages.Select(page => page.ToInterchangeEnvelope())`. Keep the report's node-to-page index and cross-page relationship index with the exported document: pagination does not turn cross-page edges into Visio connectors or hyperlinks automatically.

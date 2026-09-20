@@ -133,7 +133,9 @@ namespace OfficeIMO.Visio.Diagrams {
                 (edge.StyleOverride ?? GetConnectorStyle(edge.Kind, edge.Directed)).ApplyTo(connector);
                 connector.Label = edge.Label;
                 ApplyEdgeMetadata(connector, edge);
-                if (selfEdge) {
+                if (_preserveLayout && edge.Route != null) {
+                    ApplyPreservedRoute(connector, edge.Route);
+                } else if (selfEdge) {
                     connector.RouteSelfLoop(clearance: 0.35D + ((routeIndex % 7) * 0.05D));
                 } else if (_layout != VisioGraphLayout.Radial) {
                     connector.RouteOrthogonal(offset: (routeIndex % 7) * 0.05D);

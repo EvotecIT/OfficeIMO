@@ -20,9 +20,13 @@ namespace OfficeIMO.Visio.Diagrams {
             }
 
             ValidateZones();
-            AssignLayoutMetadata();
-            SizePageForLayout();
-            AssignCoordinates();
+            if (_preserveLayout) {
+                AssignPreservedCoordinates();
+            } else {
+                AssignLayoutMetadata();
+                SizePageForLayout();
+                AssignCoordinates();
+            }
 
             VisioPage page = _document.AddPage(_pageName, _pageWidth, _pageHeight, _unit);
             page.Grid(visible: false, snap: true);
@@ -31,7 +35,7 @@ namespace OfficeIMO.Visio.Diagrams {
             AddEdges(page);
             AddLegend(page);
             AddTitle(page);
-            page.PolishDiagram(new VisioDiagramPolishOptions {
+            if (!_preserveLayout) page.PolishDiagram(new VisioDiagramPolishOptions {
                 FitToContent = false,
                 ResizeShapesToText = false,
                 ResizeConnectorLabelsToText = true,
@@ -148,7 +152,7 @@ namespace OfficeIMO.Visio.Diagrams {
             double requiredWidth;
             double requiredHeight;
             if (_layout == VisioGraphLayout.Radial) {
-                double radius = Math.Max(1D, _nodes.Max(node => node.Layer)) * Math.Max(layoutNodeWidth + _columnGap, layoutNodeHeight + _rowGap);
+                double radius = RadialRadii().Values.DefaultIfEmpty(0D).Max();
                 requiredWidth = _leftMargin + _rightMargin + (radius * 2D) + layoutNodeWidth * 2D;
                 requiredHeight = _topMargin + _bottomMargin + HeaderHeight + (radius * 2D) + layoutNodeHeight * 2D;
             } else if (_direction == VisioGraphDirection.TopToBottom) {
@@ -184,14 +188,30 @@ namespace OfficeIMO.Visio.Diagrams {
             }
         }
 
+        private Dictionary<int, double> RadialRadii() {
+            // Bounding circles separate rectangular nodes even at diagonal ring positions.
+            double width = LayoutNodeWidth(), height = LayoutNodeHeight();
+            double separation = Math.Sqrt(width * width + height * height) + Math.Max(_columnGap, _rowGap);
+            var radii = new Dictionary<int, double>();
+            double previous = -separation;
+            foreach (var layer in _nodes.GroupBy(node => node.Layer).OrderBy(group => group.Key)) {
+                int count = layer.Count();
+                double capacity = count <= 1 ? 0D : separation / (2D * Math.Sin(Math.PI / count));
+                double radius = Math.Max(previous + separation, capacity);
+                radii.Add(layer.Key, radius);
+                previous = radius;
+            }
+            return radii;
+        }
+
         private void AssignRadialCoordinates() {
             double contentHeight = _pageHeight - _topMargin - _bottomMargin - HeaderHeight;
             double centerX = _leftMargin + ((_pageWidth - _leftMargin - _rightMargin) / 2D);
             double centerY = _bottomMargin + (contentHeight / 2D);
-            double ringGap = Math.Max(LayoutNodeWidth() + _columnGap, LayoutNodeHeight() + _rowGap);
+            var radii = RadialRadii();
             foreach (IGrouping<int, NodeItem> layer in _nodes.GroupBy(node => node.Layer).OrderBy(group => group.Key)) {
                 NodeItem[] layerNodes = layer.OrderBy(node => _nodes.IndexOf(node)).ToArray();
-                double radius = layer.Key == 0 && layerNodes.Length == 1 ? 0D : Math.Max(0.9D, layer.Key) * ringGap;
+                double radius = radii[layer.Key];
                 for (int i = 0; i < layerNodes.Length; i++) {
                     double angle = layerNodes.Length == 1 ? -Math.PI / 2D : (-Math.PI / 2D) + (2D * Math.PI * i / layerNodes.Length);
                     layerNodes[i].PinX = centerX + Math.Cos(angle) * radius;
