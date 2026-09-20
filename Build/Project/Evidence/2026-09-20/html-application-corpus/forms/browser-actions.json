@@ -1,0 +1,8 @@
+[
+  { "action": "fill", "selector": "#title", "value": "Quarterly" },
+  { "action": "select", "selector": "#region", "values": ["South"] },
+  { "action": "set-checked", "selector": "#approved", "checked": true },
+  { "action": "fill", "selector": "#notes", "value": "Captured notes" },
+  { "action": "click", "selector": "#prepare" },
+  { "action": "wait-for-text", "selector": "#summary", "value": "Quarterly | South | approved | Captured notes" }
+]

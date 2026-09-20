@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "scenarioId": "officeimo-application-navigation-20260920",
+  "sourceLicense": "MIT",
+  "documentUrl": "https://navigation.officeimo.test/index.html",
+  "capturedAtUtc": "2026-09-20T14:23:45.1338334+00:00",
+  "browser": {
+    "product": "Chromium",
+    "version": "151.0.7922.34",
+    "playwrightAssemblyVersion": "1.62.0.0",
+    "htmlTinkerXAssemblyVersion": "3.0.1.0",
+    "hostOperatingSystem": "Microsoft Windows 10.0.26200",
+    "hostArchitecture": "X64",
+    "framework": ".NET 8.0.31"
+  },
+  "viewport": {
+    "width": 816,
+    "height": 720
+  },
+  "acquisition": {
+    "file": "acquisition.json",
+    "sha256": "4aa3d0aad29d952ca6157280cfcb8c5401f25dbc73866819484d496a506ba5fe",
+    "retainedInputBytes": true,
+    "networkPolicy": "context-route-all;service-workers-blocked;fulfill-static-get-acquired-bytes;abort-unknown"
+  },
+  "finalState": {
+    "beforeActionsExpression": null,
+    "readyExpression": "window.applicationCorpusReady===true",
+    "readyTimeoutMs": 30000,
+    "actionManifest": {
+      "file": "browser-actions.json",
+      "sha256": "ddb52dcf0138a632ab6784779353b05bea087e7c69dbdd58bdeba28f5915d5b8",
+      "count": 4
+    }
+  },
+  "source": [
+    {
+      "url": "https://navigation.officeimo.test/index.html",
+      "contentType": "text/html; charset=utf-8",
+      "statusCode": 200,
+      "bytes": 256,
+      "sha256": "c3fd6106220d4d1805a7d5a924c12034178020231c00902318f0fb7b5ea4cd0d"
+    },
+    {
+      "url": "https://navigation.officeimo.test/report.html",
+      "contentType": "text/html; charset=utf-8",
+      "statusCode": 200,
+      "bytes": 322,
+      "sha256": "985cfd9f21256e19592443c52b86651ebc27a2d283b6448d98cb9ea270e16358"
+    },
+    {
+      "url": "https://navigation.officeimo.test/route.css",
+      "contentType": "text/css; charset=utf-8",
+      "statusCode": 200,
+      "bytes": 245,
+      "sha256": "749c65413c83578f876bc8a23c6742edd543fe00580887f9f573f9a67ef24a96"
+    },
+    {
+      "url": "https://navigation.officeimo.test/route.js",
+      "contentType": "text/javascript; charset=utf-8",
+      "statusCode": 200,
+      "bytes": 328,
+      "sha256": "a8c3930d555e11fcc5d4ac14e52c01828bedecc0c5df10940c603c59412d4868"
+    }
+  ],
+  "officeImo": {
+    "file": "officeimo-screen.png",
+    "width": 816,
+    "height": 720,
+    "bytes": 10123,
+    "sha256": "320cee7faa5703ae54ce7bff2821a96f3e6fb340e9726fcb1c28dffaa7d3ef38"
+  },
+  "chromium": {
+    "file": "chromium-screen.png",
+    "width": 816,
+    "height": 720,
+    "bytes": 9511,
+    "sha256": "7a5682a9d0e4fea194dd9a08a906e1bb523c3105fbb504e3bd6a327d3e0a8def"
+  },
+  "comparison": {
+    "dimensionsMatch": true,
+    "width": 816,
+    "height": 720,
+    "meanAbsoluteError": 1.445580150462963,
+    "rootMeanSquareError": 14.83072252545514,
+    "meanLuminanceError": 1.9656672749860962,
+    "differenceFile": "difference.png",
+    "differenceSha256": "a60e35ea1438035bf9c3579e623f9030620c8e3a7305bda328e338748c16d199"
+  },
+  "blockedUrls": []
+}

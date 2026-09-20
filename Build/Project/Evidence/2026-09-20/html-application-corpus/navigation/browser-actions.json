@@ -1,0 +1,6 @@
+[
+  { "action": "click", "selector": "#open-report" },
+  { "action": "wait-for-text", "selector": "h1", "value": "Route report" },
+  { "action": "click", "selector": "#approve" },
+  { "action": "wait-for-text", "selector": "#state", "value": "Approved route snapshot" }
+]

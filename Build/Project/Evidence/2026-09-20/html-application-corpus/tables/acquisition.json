@@ -1,0 +1,59 @@
+{
+  "ScenarioId": "officeimo-application-tables-20260920",
+  "SourceLicense": "MIT",
+  "retainedInputBytes": true,
+  "resources": [
+    {
+      "url": "https://tables.officeimo.test/index.html",
+      "finalUrl": "https://tables.officeimo.test/index.html",
+      "StatusCode": 200,
+      "ContentType": "text/html; charset=utf-8",
+      "ByteCount": 896,
+      "Sha256": "38591db322b4ced269f5ccfbfa9cfce7e3c45f247c23c33426a0987fd7e1d7be",
+      "FetchedAtUtc": "2026-09-20T13:50:47.6436178+00:00",
+      "RequestMethod": "GET",
+      "RequestOccurrence": null,
+      "RequestHeaderNames": [],
+      "RequestBodyByteCount": 0,
+      "RequestBodySha256": null,
+      "dynamicExchanges": [],
+      "connectedAddress": null,
+      "redirects": []
+    },
+    {
+      "url": "https://tables.officeimo.test/ledger.css",
+      "finalUrl": "https://tables.officeimo.test/ledger.css",
+      "StatusCode": 200,
+      "ContentType": "text/css; charset=utf-8",
+      "ByteCount": 620,
+      "Sha256": "f7db4c0bea0084b0590f74ebbd9f322e65606077c8080e61a3c4029183242c02",
+      "FetchedAtUtc": "2026-09-20T13:50:47.6444930+00:00",
+      "RequestMethod": "GET",
+      "RequestOccurrence": null,
+      "RequestHeaderNames": [],
+      "RequestBodyByteCount": 0,
+      "RequestBodySha256": null,
+      "dynamicExchanges": [],
+      "connectedAddress": null,
+      "redirects": []
+    },
+    {
+      "url": "https://tables.officeimo.test/ledger.js",
+      "finalUrl": "https://tables.officeimo.test/ledger.js",
+      "StatusCode": 200,
+      "ContentType": "text/javascript; charset=utf-8",
+      "ByteCount": 512,
+      "Sha256": "545eb701576607cf1d5f0808cec39f1232733b187056bfb64063e99b5044f4a5",
+      "FetchedAtUtc": "2026-09-20T13:50:47.6452281+00:00",
+      "RequestMethod": "GET",
+      "RequestOccurrence": null,
+      "RequestHeaderNames": [],
+      "RequestBodyByteCount": 0,
+      "RequestBodySha256": null,
+      "dynamicExchanges": [],
+      "connectedAddress": null,
+      "redirects": []
+    }
+  ],
+  "SkippedResources": []
+}

@@ -1,0 +1,12 @@
+@page { size: A4; margin: 14mm; }
+body { margin: 0; color: #1d2733; font-family: Arial, sans-serif; }
+main { padding: 18px; }
+table { width: 100%; border-collapse: collapse; table-layout: auto; }
+caption { caption-side: top; padding: 8px; color: #24476b; font-weight: 700; }
+th, td { border: 1px solid #7d8b99; padding: 7px 9px; }
+thead { display: table-header-group; background: #dcecff; }
+tfoot { display: table-footer-group; background: #edf3f8; font-weight: 700; }
+.account { width: 18%; }
+.region { width: 16%; }
+td:last-child, th:last-child { text-align: right; }
+tbody tr:nth-child(even) { background: #f7f9fb; }

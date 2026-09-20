@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Application form</title>
+  <link rel="stylesheet" href="/application.css">
+</head>
+<body>
+  <main>
+    <h1>Application form</h1>
+    <form id="application-form">
+      <label>Report title <input id="title" name="title" value="Authored title"></label>
+      <label>Region
+        <select id="region" name="region">
+          <option value="North" selected>North</option>
+          <option value="South">South</option>
+          <option value="West">West</option>
+        </select>
+      </label>
+      <label class="choice"><input id="approved" name="approved" type="checkbox"> Approved</label>
+      <label>Notes <textarea id="notes" name="notes" rows="3">Authored notes</textarea></label>
+      <label>Reference <input id="reference" value="LOCK-17" readonly></label>
+      <label>Policy <input id="policy" value="Managed by policy" disabled></label>
+      <button id="prepare" type="button">Prepare summary</button>
+    </form>
+    <section aria-live="polite"><h2>Captured state</h2><p id="summary">Waiting</p></section>
+  </main>
+  <script src="/application.js"></script>
+</body>
+</html>

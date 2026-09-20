@@ -255,6 +255,77 @@ public sealed class RuntimeApplicationDocumentWorkflowTests {
         }
     }
 
+    [Theory]
+    [InlineData("forms")]
+    [InlineData("tables")]
+    [InlineData("external-graph")]
+    [InlineData("navigation")]
+    public async Task BroaderApplicationCorpusRetainsFinalStateAcrossStandardOutputs(string caseId) {
+        ApplicationCorpusCase application = CreateApplicationCorpusCase(caseId);
+        IHtmlRuntimeHost host = HtmlApplicationRuntime.CreateProcessHost(
+            Path.Combine(AppContext.BaseDirectory, "RuntimeWorker", "OfficeIMO.Html.Runtime.Worker.dll"));
+
+        HtmlApplicationDocumentResult result = await HtmlApplicationDocumentWorkflow.RunAsync(host,
+            new HtmlApplicationDocumentRequest {
+                Page = application.Page,
+                Actions = application.Actions,
+                FinalReadyExpression = application.FinalReadyExpression,
+                OutputOptions = new HtmlApplicationOutputOptions {
+                    RenderOptions = new HtmlToPdfOptions {
+                        ViewportWidth = 816D,
+                        ViewportHeight = 720D,
+                        Margins = HtmlRenderMargins.All(0D)
+                    }
+                }
+            });
+
+        Assert.Equal(application.Actions.Count, result.Actions.Count);
+        Assert.All(result.Actions, action => Assert.Equal(HtmlAutomationStatus.Success, action.Status));
+        Assert.Equal(3, result.Outputs.Count);
+        Assert.All(result.Outputs, output => {
+            Assert.Equal(HtmlRenderDocumentState.RuntimeSnapshot, output.Render.Request.DocumentState);
+            Assert.Contains(application.ExpectedText, output.Render.Document.Text, StringComparison.Ordinal);
+        });
+        byte[] png = Assert.Single(result.ScreenPng!.Images).Bytes;
+        Assert.True(OfficePngReader.TryDecode(png, out OfficeRasterImage? image));
+        Assert.NotNull(image);
+        if (Environment.GetEnvironmentVariable("OFFICEIMO_APPLICATION_EVIDENCE_DIR") is { Length: > 0 } evidenceRoot) {
+            string folder = Path.Combine(evidenceRoot, "html-application-corpus", caseId);
+            Directory.CreateDirectory(folder);
+            File.WriteAllBytes(Path.Combine(folder, "officeimo-screen.png"), png);
+            File.WriteAllBytes(Path.Combine(folder, "officeimo-print.pdf"), result.PrintPdf!.Pdf!.ToBytes());
+            File.WriteAllBytes(Path.Combine(folder, "officeimo-screen-to-page.pdf"), result.ScreenToPagePdf!.Pdf!.ToBytes());
+        }
+        foreach (HtmlApplicationRenderOutput output in new[] { result.PrintPdf!, result.ScreenToPagePdf! }) {
+            PdfReadDocument pdf = PdfReadDocument.Open(output.Pdf!.ToBytes());
+            Assert.Contains(application.ExpectedText, pdf.ExtractText(), StringComparison.Ordinal);
+            Assert.True(pdf.HasTaggedContent);
+        }
+
+        switch (caseId) {
+            case "forms":
+                Assert.Equal("Quarterly", result.Capture.Document.QuerySelector("#title")!.FormState!.Value);
+                Assert.True(result.Capture.Document.QuerySelector("#approved")!.FormState!.IsChecked);
+                Assert.True(result.Capture.Document.QuerySelector("option[value=South]")!.FormState!.IsSelected);
+                Assert.Equal("Captured notes", result.Capture.Document.QuerySelector("#notes")!.FormState!.Value);
+                break;
+            case "tables":
+                Assert.True(result.PrintPdf!.Render.Document.Pages.Count > 1);
+                Assert.Equal(44, result.Capture.Document.QuerySelectorAll("#ledger-body tr").Count);
+                break;
+            case "external-graph":
+                Assert.Contains(result.Capture.Resources, resource => resource.Url.AbsolutePath == "/summary.js");
+                Assert.Contains(result.Capture.Resources, resource => resource.Url.AbsolutePath == "/data.json");
+                Assert.False(result.Capture.Document.QuerySelector("#summarize")!.HasAttribute("disabled"));
+                break;
+            case "navigation":
+                Assert.Equal("https://navigation.officeimo.test/report/approved", result.Capture.DocumentUrl.AbsoluteUri);
+                Assert.Contains(result.Capture.Resources, resource => resource.Url.AbsolutePath == "/report.html");
+                break;
+        }
+
+    }
+
     [Fact]
     public async Task ExternalRenderResolverIsRejectedBeforeStartingAContext() {
         var host = new CountingHost();
@@ -461,6 +532,62 @@ public sealed class RuntimeApplicationDocumentWorkflowTests {
         }, new[] { Click("Approve"), Wait("#state", "Approved") },
         "document.querySelector('#state')?.textContent==='Approved'", "Approved");
 
+    private static ApplicationCorpusCase CreateApplicationCorpusCase(string caseId) {
+        string directory = caseId switch {
+            "forms" => "Forms",
+            "tables" => "Tables",
+            "external-graph" => "ExternalGraph",
+            "navigation" => "Navigation",
+            _ => throw new ArgumentOutOfRangeException(nameof(caseId))
+        };
+        Uri origin = new($"https://{caseId}.officeimo.test/index.html");
+        string root = Path.Combine(AppContext.BaseDirectory, "Fixtures", "ApplicationCorpus", directory);
+        string html = File.ReadAllText(Path.Combine(root, "index.html"));
+        var resources = Directory.EnumerateFiles(root)
+            .Where(path => !Path.GetFileName(path).Equals("index.html", StringComparison.OrdinalIgnoreCase)
+                && !Path.GetFileName(path).Equals("browser-actions.json", StringComparison.OrdinalIgnoreCase))
+            .Select(path => HtmlRuntimeResource.FromText(
+                new Uri(origin, "/" + Path.GetFileName(path)),
+                File.ReadAllText(path),
+                ContentType(path)))
+            .ToArray();
+
+        return caseId switch {
+            "forms" => new(new HtmlScriptRequest {
+                Profile = HtmlRuntimeProfile.WebApplicationV1, DocumentUrl = origin, Html = html, Resources = resources,
+                ViewportWidth = 816D, ViewportHeight = 720D, Timeout = TimeSpan.FromSeconds(30)
+            }, new[] {
+                FillCss("#title", "Quarterly"), SelectCss("#region", "South"), CheckCss("#approved", true),
+                FillCss("#notes", "Captured notes"), ClickCss("#prepare"), Wait("#summary", "Quarterly | South | approved | Captured notes")
+            }, "window.applicationCorpusReady===true", "Quarterly | South | approved | Captured notes"),
+            "tables" => new(new HtmlScriptRequest {
+                Profile = HtmlRuntimeProfile.WebApplicationV1, DocumentUrl = origin, Html = html, Resources = resources,
+                ViewportWidth = 816D, ViewportHeight = 720D,
+                ReadyExpression = "window.applicationCorpusReady===true", Timeout = TimeSpan.FromSeconds(30)
+            }, Array.Empty<HtmlAutomationRequest>(), "window.applicationCorpusReady===true", "Retained ledger entry 42"),
+            "external-graph" => new(new HtmlScriptRequest {
+                Profile = HtmlRuntimeProfile.WebApplicationV1, DocumentUrl = origin, Html = html, Resources = resources,
+                ViewportWidth = 816D, ViewportHeight = 720D,
+                ReadyExpression = "window.applicationCorpusInteractive===true", Timeout = TimeSpan.FromSeconds(30)
+            }, new[] { Click("Build summary"), Wait("#summary", "Qualified graph total: 51") },
+                "window.applicationCorpusReady===true", "Qualified graph total: 51"),
+            "navigation" => new(new HtmlScriptRequest {
+                Profile = HtmlRuntimeProfile.WebApplicationV1, DocumentUrl = origin, Html = html, Resources = resources,
+                ViewportWidth = 816D, ViewportHeight = 720D, Timeout = TimeSpan.FromSeconds(30)
+            }, new[] { Click("Open report"), Wait("h1", "Route report"), Click("Approve route"), Wait("#state", "Approved route snapshot") },
+                "window.applicationCorpusReady===true", "Approved route snapshot"),
+            _ => throw new ArgumentOutOfRangeException(nameof(caseId))
+        };
+    }
+
+    private static string ContentType(string path) => Path.GetExtension(path).ToLowerInvariant() switch {
+        ".html" => "text/html; charset=utf-8",
+        ".css" => "text/css; charset=utf-8",
+        ".js" => "text/javascript; charset=utf-8",
+        ".json" => "application/json; charset=utf-8",
+        _ => "application/octet-stream"
+    };
+
     private static string ReadFixture(string directory, string name) => File.ReadAllText(
         Path.Combine(AppContext.BaseDirectory, "Fixtures", directory, name));
 
@@ -469,6 +596,18 @@ public sealed class RuntimeApplicationDocumentWorkflowTests {
     };
     private static HtmlAutomationRequest Select(string name, string value) => new() {
         Query = HtmlLocatorQuery.ByAccessibleName(name), Action = HtmlAutomationAction.SelectOptions, Values = new[] { value }
+    };
+    private static HtmlAutomationRequest FillCss(string selector, string value) => new() {
+        Query = HtmlLocatorQuery.Css(selector), Action = HtmlAutomationAction.Fill, Value = value
+    };
+    private static HtmlAutomationRequest SelectCss(string selector, string value) => new() {
+        Query = HtmlLocatorQuery.Css(selector), Action = HtmlAutomationAction.SelectOptions, Values = new[] { value }
+    };
+    private static HtmlAutomationRequest CheckCss(string selector, bool value) => new() {
+        Query = HtmlLocatorQuery.Css(selector), Action = HtmlAutomationAction.SetChecked, Checked = value
+    };
+    private static HtmlAutomationRequest ClickCss(string selector) => new() {
+        Query = HtmlLocatorQuery.Css(selector), Action = HtmlAutomationAction.Click
     };
     private static HtmlAutomationRequest Click(string name) => new() {
         Query = HtmlLocatorQuery.ByAccessibleName(name), Action = HtmlAutomationAction.Click
@@ -487,4 +626,10 @@ public sealed class RuntimeApplicationDocumentWorkflowTests {
             throw new InvalidOperationException("A context should not be created for an invalid render request.");
         }
     }
+
+    private sealed record ApplicationCorpusCase(
+        HtmlScriptRequest Page,
+        IReadOnlyList<HtmlAutomationRequest> Actions,
+        string FinalReadyExpression,
+        string ExpectedText);
 }

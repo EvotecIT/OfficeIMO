@@ -1,0 +1,4 @@
+[
+  { "action": "click", "selector": "#summarize" },
+  { "action": "wait-for-text", "selector": "#summary", "value": "Qualified graph total: 51" }
+]

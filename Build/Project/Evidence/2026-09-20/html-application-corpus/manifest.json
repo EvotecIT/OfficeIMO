@@ -1,0 +1,286 @@
+{
+  "schemaVersion": 1,
+  "capturedAtUtc": "2026-09-20T14:28:56.9425081+00:00",
+  "framework": ".NET 10.0",
+  "platform": "Windows x64",
+  "test": "RuntimeApplicationDocumentWorkflowTests.BroaderApplicationCorpusRetainsFinalStateAcrossStandardOutputs",
+  "passedCases": [
+    "forms",
+    "tables",
+    "external-graph",
+    "navigation"
+  ],
+  "standardOutputs": [
+    "ScreenPng",
+    "PrintPdf",
+    "ScreenToPagePdf"
+  ],
+  "browserReference": "Chromium 151.0.7922.34",
+  "files": [
+    {
+      "file": "README.md",
+      "bytes": 4774,
+      "sha256": "4f13555cd4ffad066f8182d5a719dbb063c26a69ebf3d1b9851a037366287d57"
+    },
+    {
+      "file": "forms/inputs/b4237abdec74dca23136912c680d7ab844c5bdc9c7ff76784cb56264170dabaa",
+      "bytes": 1165,
+      "sha256": "b4237abdec74dca23136912c680d7ab844c5bdc9c7ff76784cb56264170dabaa"
+    },
+    {
+      "file": "navigation/acquisition.json",
+      "bytes": 2748,
+      "sha256": "4aa3d0aad29d952ca6157280cfcb8c5401f25dbc73866819484d496a506ba5fe"
+    },
+    {
+      "file": "navigation/browser-actions.json",
+      "bytes": 272,
+      "sha256": "ddb52dcf0138a632ab6784779353b05bea087e7c69dbdd58bdeba28f5915d5b8"
+    },
+    {
+      "file": "navigation/officeimo-print.pdf",
+      "bytes": 2881,
+      "sha256": "fa545ef833ab315f8a1dfcba4daab389943a09889add23a8ff124131fd9d366d"
+    },
+    {
+      "file": "navigation/officeimo-screen-to-page.pdf",
+      "bytes": 2878,
+      "sha256": "bff1e3f14331b74af84a289485fcfdcfc09d3cab430b7c78ca826b55cf9d9d11"
+    },
+    {
+      "file": "navigation/officeimo-screen.png",
+      "bytes": 10123,
+      "sha256": "320cee7faa5703ae54ce7bff2821a96f3e6fb340e9726fcb1c28dffaa7d3ef38"
+    },
+    {
+      "file": "navigation/browser/browser-evidence.json",
+      "bytes": 3064,
+      "sha256": "43961562e525943ce883aa19ba58dbc003d56e45cf83f248793d539b4db548fb"
+    },
+    {
+      "file": "navigation/browser/chromium-screen.png",
+      "bytes": 9511,
+      "sha256": "7a5682a9d0e4fea194dd9a08a906e1bb523c3105fbb504e3bd6a327d3e0a8def"
+    },
+    {
+      "file": "navigation/browser/difference.png",
+      "bytes": 7738,
+      "sha256": "a60e35ea1438035bf9c3579e623f9030620c8e3a7305bda328e338748c16d199"
+    },
+    {
+      "file": "navigation/browser/officeimo-screen.png",
+      "bytes": 10123,
+      "sha256": "320cee7faa5703ae54ce7bff2821a96f3e6fb340e9726fcb1c28dffaa7d3ef38"
+    },
+    {
+      "file": "navigation/inputs/749c65413c83578f876bc8a23c6742edd543fe00580887f9f573f9a67ef24a96",
+      "bytes": 245,
+      "sha256": "749c65413c83578f876bc8a23c6742edd543fe00580887f9f573f9a67ef24a96"
+    },
+    {
+      "file": "navigation/inputs/985cfd9f21256e19592443c52b86651ebc27a2d283b6448d98cb9ea270e16358",
+      "bytes": 322,
+      "sha256": "985cfd9f21256e19592443c52b86651ebc27a2d283b6448d98cb9ea270e16358"
+    },
+    {
+      "file": "navigation/inputs/a8c3930d555e11fcc5d4ac14e52c01828bedecc0c5df10940c603c59412d4868",
+      "bytes": 328,
+      "sha256": "a8c3930d555e11fcc5d4ac14e52c01828bedecc0c5df10940c603c59412d4868"
+    },
+    {
+      "file": "navigation/inputs/c3fd6106220d4d1805a7d5a924c12034178020231c00902318f0fb7b5ea4cd0d",
+      "bytes": 256,
+      "sha256": "c3fd6106220d4d1805a7d5a924c12034178020231c00902318f0fb7b5ea4cd0d"
+    },
+    {
+      "file": "tables/acquisition.json",
+      "bytes": 2079,
+      "sha256": "9eb9f798f9e62190e44209da0d22ea6fbd05dc88767d3888a724a326cecaba37"
+    },
+    {
+      "file": "tables/officeimo-print.pdf",
+      "bytes": 61508,
+      "sha256": "fb727d403192c3bbab76ad0befabeef49fbdc7a3d810c3bc5cd50f611b390329"
+    },
+    {
+      "file": "tables/officeimo-screen-to-page.pdf",
+      "bytes": 60485,
+      "sha256": "52c7aba3308670c314e234c79d002a69a7f8f948e8aa3b2299ff142db2fe6808"
+    },
+    {
+      "file": "tables/officeimo-screen.png",
+      "bytes": 161749,
+      "sha256": "fb262640094b6ce0bfca73aeaaa5afbd6ffd8311fc9765b1ef2e1fa351bcbbaf"
+    },
+    {
+      "file": "tables/browser/browser-evidence.json",
+      "bytes": 2649,
+      "sha256": "82518ecf9d3086f3cfc49d3068e2b4cfc633ed8bbdd03fb3c6abb205a3c62ba4"
+    },
+    {
+      "file": "tables/browser/chromium-screen.png",
+      "bytes": 128373,
+      "sha256": "ce11eef27dbca6aa3ff612bd3382eed444a9f5beab01e1af3c14f9c29f54c6a9"
+    },
+    {
+      "file": "tables/browser/difference.png",
+      "bytes": 120724,
+      "sha256": "d27cf7daea53d2a0e0c99fe69498c9a64dd363618949e802c6a650d96346772a"
+    },
+    {
+      "file": "tables/browser/officeimo-screen.png",
+      "bytes": 161749,
+      "sha256": "fb262640094b6ce0bfca73aeaaa5afbd6ffd8311fc9765b1ef2e1fa351bcbbaf"
+    },
+    {
+      "file": "tables/inputs/38591db322b4ced269f5ccfbfa9cfce7e3c45f247c23c33426a0987fd7e1d7be",
+      "bytes": 896,
+      "sha256": "38591db322b4ced269f5ccfbfa9cfce7e3c45f247c23c33426a0987fd7e1d7be"
+    },
+    {
+      "file": "forms/inputs/9a6bb8417eb82f2a5964875caf71ac3910850f6d7fef85783c714e2d905e46d3",
+      "bytes": 478,
+      "sha256": "9a6bb8417eb82f2a5964875caf71ac3910850f6d7fef85783c714e2d905e46d3"
+    },
+    {
+      "file": "tables/inputs/545eb701576607cf1d5f0808cec39f1232733b187056bfb64063e99b5044f4a5",
+      "bytes": 512,
+      "sha256": "545eb701576607cf1d5f0808cec39f1232733b187056bfb64063e99b5044f4a5"
+    },
+    {
+      "file": "forms/inputs/2473f039bf15802a4c75a176655b3c2bdb44351fd2fafb45baee43ec3881e803",
+      "bytes": 589,
+      "sha256": "2473f039bf15802a4c75a176655b3c2bdb44351fd2fafb45baee43ec3881e803"
+    },
+    {
+      "file": "forms/browser/difference.png",
+      "bytes": 18029,
+      "sha256": "842a1f56ac368dcae20af77516680527064106d73fedeb8fda1b65c8590e11f1"
+    },
+    {
+      "file": "external-graph/acquisition.json",
+      "bytes": 4751,
+      "sha256": "a93be83b9eb8a598655ff4311cd930fbd6c592daeb40f67cc2359a5e772dfd6e"
+    },
+    {
+      "file": "external-graph/browser-actions.json",
+      "bytes": 149,
+      "sha256": "874a831d92fff3bab9539ce8d141b1703b2cc9f47ba812d163dbe8d50987390d"
+    },
+    {
+      "file": "external-graph/officeimo-print.pdf",
+      "bytes": 3122,
+      "sha256": "11d50ca4329b4f408dfc6ffe26c7eded2cc3bffda0d1b04cb583d73471b2525c"
+    },
+    {
+      "file": "external-graph/officeimo-screen-to-page.pdf",
+      "bytes": 3111,
+      "sha256": "0b27f7751fa492f7b526a56482cd72b29b96edc3e5f718740f5a283986a7304f"
+    },
+    {
+      "file": "external-graph/officeimo-screen.png",
+      "bytes": 13121,
+      "sha256": "7313f4316a20e9094ce470bd6ecb48a3c93d070e0dce45385e0660624d9eaa19"
+    },
+    {
+      "file": "external-graph/browser/browser-evidence.json",
+      "bytes": 3930,
+      "sha256": "2c00eeaa6dd607f9a91cf9f141922aa6885cb06619bc19296aff9ca7e8aef82f"
+    },
+    {
+      "file": "external-graph/browser/chromium-screen.png",
+      "bytes": 13303,
+      "sha256": "8e671e7edf2be08f53e5b1b593c583c06d5e38f1b9d2654bf06510ca171aa5a0"
+    },
+    {
+      "file": "external-graph/browser/difference.png",
+      "bytes": 10434,
+      "sha256": "bc949688dfb837aa273a1d872424300e6e2c0a34cb7b6fe6b512bd5e84048978"
+    },
+    {
+      "file": "external-graph/browser/officeimo-screen.png",
+      "bytes": 13121,
+      "sha256": "7313f4316a20e9094ce470bd6ecb48a3c93d070e0dce45385e0660624d9eaa19"
+    },
+    {
+      "file": "external-graph/inputs/0e19dd0d564699e9a919d4682122877967c40f5b4ec5ac32067624f34b46633e",
+      "bytes": 614,
+      "sha256": "0e19dd0d564699e9a919d4682122877967c40f5b4ec5ac32067624f34b46633e"
+    },
+    {
+      "file": "external-graph/inputs/1288510a7014a58b11f31939d8dc6b8c700d8a2e0aba7b7a0d3c169af22e18f8",
+      "bytes": 321,
+      "sha256": "1288510a7014a58b11f31939d8dc6b8c700d8a2e0aba7b7a0d3c169af22e18f8"
+    },
+    {
+      "file": "external-graph/inputs/23b29c9e6c523bf3c0f94fbcb306c9901241985ff6a6cb25497cfdd1ea4027cd",
+      "bytes": 84,
+      "sha256": "23b29c9e6c523bf3c0f94fbcb306c9901241985ff6a6cb25497cfdd1ea4027cd"
+    },
+    {
+      "file": "external-graph/inputs/8fc672c18f9bc961e55c87ecb1297f2ee6d4ba36d4abce2819fb9f85dd470854",
+      "bytes": 481,
+      "sha256": "8fc672c18f9bc961e55c87ecb1297f2ee6d4ba36d4abce2819fb9f85dd470854"
+    },
+    {
+      "file": "external-graph/inputs/94b8ae4eeb17f2ade771c2c47e9ece078abef601448c4a5df3e5f209c1d13e6a",
+      "bytes": 96,
+      "sha256": "94b8ae4eeb17f2ade771c2c47e9ece078abef601448c4a5df3e5f209c1d13e6a"
+    },
+    {
+      "file": "external-graph/inputs/cf2bd96069aa9ccfae724ab15ba93e32a2ead04555ad3e44b53223401193a5fa",
+      "bytes": 37,
+      "sha256": "cf2bd96069aa9ccfae724ab15ba93e32a2ead04555ad3e44b53223401193a5fa"
+    },
+    {
+      "file": "external-graph/inputs/f249b3623f0423c40159fc5ce110520b968821963b2045ecea7de4a5bdc20f42",
+      "bytes": 102,
+      "sha256": "f249b3623f0423c40159fc5ce110520b968821963b2045ecea7de4a5bdc20f42"
+    },
+    {
+      "file": "forms/acquisition.json",
+      "bytes": 2093,
+      "sha256": "a55448c446260fd555e301d57e2918432d9bb730ed02a1eda2d229267c56d967"
+    },
+    {
+      "file": "forms/browser-actions.json",
+      "bytes": 451,
+      "sha256": "739d87f885197299e2a612495a7972ef507fa0f1a59099bacc67a79c80b97858"
+    },
+    {
+      "file": "forms/officeimo-print.pdf",
+      "bytes": 5889,
+      "sha256": "79b067876e2aa97816f6e52c8bbea1640d909d23f3b12cfb0bf761bfddb46d10"
+    },
+    {
+      "file": "forms/officeimo-screen-to-page.pdf",
+      "bytes": 5812,
+      "sha256": "a7ca805e21d910f7bc53877f6104bc4cbebb7ebc2b8972f879a3ccf59ee601b0"
+    },
+    {
+      "file": "forms/officeimo-screen.png",
+      "bytes": 29138,
+      "sha256": "ae21e556297d8e7303551f34c23030b6196c146e9ac081a12605d3db837e4d1e"
+    },
+    {
+      "file": "forms/browser/browser-evidence.json",
+      "bytes": 2794,
+      "sha256": "cdba25a831e4cb33825d6fb021e294f5a6d0a64a0b20a722a5c5d922e69fbaa5"
+    },
+    {
+      "file": "forms/browser/chromium-screen.png",
+      "bytes": 23033,
+      "sha256": "6b2cd90370824aeb86365d695e15feb2ff4328c94006f31db70bf8233b86c379"
+    },
+    {
+      "file": "forms/browser/officeimo-screen.png",
+      "bytes": 29138,
+      "sha256": "ae21e556297d8e7303551f34c23030b6196c146e9ac081a12605d3db837e4d1e"
+    },
+    {
+      "file": "tables/inputs/f7db4c0bea0084b0590f74ebbd9f322e65606077c8080e61a3c4029183242c02",
+      "bytes": 620,
+      "sha256": "f7db4c0bea0084b0590f74ebbd9f322e65606077c8080e61a3c4029183242c02"
+    }
+  ]
+}

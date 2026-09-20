@@ -1,0 +1,1 @@
+window.graphBootOrder = ['classic'];

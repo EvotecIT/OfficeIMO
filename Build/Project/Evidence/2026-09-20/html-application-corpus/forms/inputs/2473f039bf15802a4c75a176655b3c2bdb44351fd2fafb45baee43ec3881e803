@@ -1,0 +1,10 @@
+@page { size: A4; margin: 18mm; }
+body { margin: 0; background: #f4f7fb; color: #17324d; font-family: Arial, sans-serif; }
+main { width: 680px; margin: 24px auto; padding: 24px; background: white; border: 1px solid #cad6e2; }
+form { display: block; }
+label { display: block; margin: 0 0 14px; font-weight: 700; }
+label.choice { display: block; }
+input, select, textarea, button { font: inherit; }
+input, select, textarea { display: block; margin-top: 6px; }
+label.choice input { display: inline-block; margin: 0 6px 0 0; }
+section { margin-top: 22px; padding: 12px; background: #eef6ff; }

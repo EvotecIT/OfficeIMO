@@ -1,0 +1,4 @@
+body { margin: 0; background: #10253b; color: #f4f8fc; font-family: Arial, sans-serif; }
+main { margin: 32px auto; width: 640px; padding: 28px; border: 1px solid #5c7896; background: #17324d; }
+button { padding: 8px 14px; }
+output { display: block; margin-top: 18px; padding: 12px; background: #f4f8fc; color: #17324d; }

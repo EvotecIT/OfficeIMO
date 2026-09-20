@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "scenarioId": "officeimo-application-tables-20260920",
+  "sourceLicense": "MIT",
+  "documentUrl": "https://tables.officeimo.test/index.html",
+  "capturedAtUtc": "2026-09-20T14:23:42.2549348+00:00",
+  "browser": {
+    "product": "Chromium",
+    "version": "151.0.7922.34",
+    "playwrightAssemblyVersion": "1.62.0.0",
+    "htmlTinkerXAssemblyVersion": "3.0.1.0",
+    "hostOperatingSystem": "Microsoft Windows 10.0.26200",
+    "hostArchitecture": "X64",
+    "framework": ".NET 8.0.31"
+  },
+  "viewport": {
+    "width": 816,
+    "height": 720
+  },
+  "acquisition": {
+    "file": "acquisition.json",
+    "sha256": "9eb9f798f9e62190e44209da0d22ea6fbd05dc88767d3888a724a326cecaba37",
+    "retainedInputBytes": true,
+    "networkPolicy": "context-route-all;service-workers-blocked;fulfill-static-get-acquired-bytes;abort-unknown"
+  },
+  "finalState": {
+    "beforeActionsExpression": null,
+    "readyExpression": "window.applicationCorpusReady===true",
+    "readyTimeoutMs": 30000,
+    "actionManifest": null
+  },
+  "source": [
+    {
+      "url": "https://tables.officeimo.test/index.html",
+      "contentType": "text/html; charset=utf-8",
+      "statusCode": 200,
+      "bytes": 896,
+      "sha256": "38591db322b4ced269f5ccfbfa9cfce7e3c45f247c23c33426a0987fd7e1d7be"
+    },
+    {
+      "url": "https://tables.officeimo.test/ledger.css",
+      "contentType": "text/css; charset=utf-8",
+      "statusCode": 200,
+      "bytes": 620,
+      "sha256": "f7db4c0bea0084b0590f74ebbd9f322e65606077c8080e61a3c4029183242c02"
+    },
+    {
+      "url": "https://tables.officeimo.test/ledger.js",
+      "contentType": "text/javascript; charset=utf-8",
+      "statusCode": 200,
+      "bytes": 512,
+      "sha256": "545eb701576607cf1d5f0808cec39f1232733b187056bfb64063e99b5044f4a5"
+    }
+  ],
+  "officeImo": {
+    "file": "officeimo-screen.png",
+    "width": 816,
+    "height": 1788,
+    "bytes": 161749,
+    "sha256": "fb262640094b6ce0bfca73aeaaa5afbd6ffd8311fc9765b1ef2e1fa351bcbbaf"
+  },
+  "chromium": {
+    "file": "chromium-screen.png",
+    "width": 816,
+    "height": 1669,
+    "bytes": 128373,
+    "sha256": "ce11eef27dbca6aa3ff612bd3382eed444a9f5beab01e1af3c14f9c29f54c6a9"
+  },
+  "comparison": {
+    "dimensionsMatch": false,
+    "width": 816,
+    "height": 1669,
+    "meanAbsoluteError": 17.358101782504495,
+    "rootMeanSquareError": 48.59067254178649,
+    "meanLuminanceError": 23.427582862855797,
+    "differenceFile": "difference.png",
+    "differenceSha256": "d27cf7daea53d2a0e0c99fe69498c9a64dd363618949e802c6a650d96346772a"
+  },
+  "blockedUrls": []
+}

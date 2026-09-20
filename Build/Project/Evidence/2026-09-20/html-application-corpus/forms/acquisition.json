@@ -1,0 +1,59 @@
+{
+  "ScenarioId": "officeimo-application-forms-20260920",
+  "SourceLicense": "MIT",
+  "retainedInputBytes": true,
+  "resources": [
+    {
+      "url": "https://forms.officeimo.test/application.css",
+      "finalUrl": "https://forms.officeimo.test/application.css",
+      "StatusCode": 200,
+      "ContentType": "text/css; charset=utf-8",
+      "ByteCount": 589,
+      "Sha256": "2473f039bf15802a4c75a176655b3c2bdb44351fd2fafb45baee43ec3881e803",
+      "FetchedAtUtc": "2026-09-20T13:50:47.6258133+00:00",
+      "RequestMethod": "GET",
+      "RequestOccurrence": null,
+      "RequestHeaderNames": [],
+      "RequestBodyByteCount": 0,
+      "RequestBodySha256": null,
+      "dynamicExchanges": [],
+      "connectedAddress": null,
+      "redirects": []
+    },
+    {
+      "url": "https://forms.officeimo.test/application.js",
+      "finalUrl": "https://forms.officeimo.test/application.js",
+      "StatusCode": 200,
+      "ContentType": "text/javascript; charset=utf-8",
+      "ByteCount": 478,
+      "Sha256": "9a6bb8417eb82f2a5964875caf71ac3910850f6d7fef85783c714e2d905e46d3",
+      "FetchedAtUtc": "2026-09-20T13:50:47.6294046+00:00",
+      "RequestMethod": "GET",
+      "RequestOccurrence": null,
+      "RequestHeaderNames": [],
+      "RequestBodyByteCount": 0,
+      "RequestBodySha256": null,
+      "dynamicExchanges": [],
+      "connectedAddress": null,
+      "redirects": []
+    },
+    {
+      "url": "https://forms.officeimo.test/index.html",
+      "finalUrl": "https://forms.officeimo.test/index.html",
+      "StatusCode": 200,
+      "ContentType": "text/html; charset=utf-8",
+      "ByteCount": 1165,
+      "Sha256": "b4237abdec74dca23136912c680d7ab844c5bdc9c7ff76784cb56264170dabaa",
+      "FetchedAtUtc": "2026-09-20T13:50:47.6304952+00:00",
+      "RequestMethod": "GET",
+      "RequestOccurrence": null,
+      "RequestHeaderNames": [],
+      "RequestBodyByteCount": 0,
+      "RequestBodySha256": null,
+      "dynamicExchanges": [],
+      "connectedAddress": null,
+      "redirects": []
+    }
+  ],
+  "SkippedResources": []
+}

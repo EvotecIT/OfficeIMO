@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Regional ledger</title>
+  <link rel="stylesheet" href="/ledger.css">
+</head>
+<body>
+  <main>
+    <h1>Regional ledger</h1>
+    <table>
+      <caption>Quarterly regional account ledger</caption>
+      <colgroup><col class="account"><col class="region"><col><col></colgroup>
+      <thead><tr><th scope="col">Account</th><th scope="col">Region</th><th scope="col">Description</th><th scope="col">Amount</th></tr></thead>
+      <tbody id="ledger-body">
+        <tr><th rowspan="2" scope="rowgroup">Opening</th><td>North</td><td>Opening balance</td><td>1,250</td></tr>
+        <tr><td>South</td><td>Opening balance</td><td>980</td></tr>
+      </tbody>
+      <tfoot><tr><th colspan="3" scope="row">Qualified total</th><td id="total">0</td></tr></tfoot>
+    </table>
+  </main>
+  <script src="/ledger.js"></script>
+</body>
+</html>

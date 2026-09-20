@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "scenarioId": "officeimo-application-external-graph-20260920",
+  "sourceLicense": "MIT",
+  "documentUrl": "https://external-graph.officeimo.test/index.html",
+  "capturedAtUtc": "2026-09-20T14:23:43.673066+00:00",
+  "browser": {
+    "product": "Chromium",
+    "version": "151.0.7922.34",
+    "playwrightAssemblyVersion": "1.62.0.0",
+    "htmlTinkerXAssemblyVersion": "3.0.1.0",
+    "hostOperatingSystem": "Microsoft Windows 10.0.26200",
+    "hostArchitecture": "X64",
+    "framework": ".NET 8.0.31"
+  },
+  "viewport": {
+    "width": 816,
+    "height": 720
+  },
+  "acquisition": {
+    "file": "acquisition.json",
+    "sha256": "a93be83b9eb8a598655ff4311cd930fbd6c592daeb40f67cc2359a5e772dfd6e",
+    "retainedInputBytes": true,
+    "networkPolicy": "context-route-all;service-workers-blocked;fulfill-static-get-acquired-bytes;abort-unknown"
+  },
+  "finalState": {
+    "beforeActionsExpression": "window.applicationCorpusInteractive===true",
+    "readyExpression": "window.applicationCorpusReady===true",
+    "readyTimeoutMs": 30000,
+    "actionManifest": {
+      "file": "browser-actions.json",
+      "sha256": "874a831d92fff3bab9539ce8d141b1703b2cc9f47ba812d163dbe8d50987390d",
+      "count": 2
+    }
+  },
+  "source": [
+    {
+      "url": "https://external-graph.officeimo.test/classic.js",
+      "contentType": "text/javascript; charset=utf-8",
+      "statusCode": 200,
+      "bytes": 37,
+      "sha256": "cf2bd96069aa9ccfae724ab15ba93e32a2ead04555ad3e44b53223401193a5fa"
+    },
+    {
+      "url": "https://external-graph.officeimo.test/data.json",
+      "contentType": "application/json; charset=utf-8",
+      "statusCode": 200,
+      "bytes": 84,
+      "sha256": "23b29c9e6c523bf3c0f94fbcb306c9901241985ff6a6cb25497cfdd1ea4027cd"
+    },
+    {
+      "url": "https://external-graph.officeimo.test/format.js",
+      "contentType": "text/javascript; charset=utf-8",
+      "statusCode": 200,
+      "bytes": 102,
+      "sha256": "f249b3623f0423c40159fc5ce110520b968821963b2045ecea7de4a5bdc20f42"
+    },
+    {
+      "url": "https://external-graph.officeimo.test/graph.css",
+      "contentType": "text/css; charset=utf-8",
+      "statusCode": 200,
+      "bytes": 321,
+      "sha256": "1288510a7014a58b11f31939d8dc6b8c700d8a2e0aba7b7a0d3c169af22e18f8"
+    },
+    {
+      "url": "https://external-graph.officeimo.test/index.html",
+      "contentType": "text/html; charset=utf-8",
+      "statusCode": 200,
+      "bytes": 481,
+      "sha256": "8fc672c18f9bc961e55c87ecb1297f2ee6d4ba36d4abce2819fb9f85dd470854"
+    },
+    {
+      "url": "https://external-graph.officeimo.test/main.js",
+      "contentType": "text/javascript; charset=utf-8",
+      "statusCode": 200,
+      "bytes": 614,
+      "sha256": "0e19dd0d564699e9a919d4682122877967c40f5b4ec5ac32067624f34b46633e"
+    },
+    {
+      "url": "https://external-graph.officeimo.test/summary.js",
+      "contentType": "text/javascript; charset=utf-8",
+      "statusCode": 200,
+      "bytes": 96,
+      "sha256": "94b8ae4eeb17f2ade771c2c47e9ece078abef601448c4a5df3e5f209c1d13e6a"
+    }
+  ],
+  "officeImo": {
+    "file": "officeimo-screen.png",
+    "width": 816,
+    "height": 720,
+    "bytes": 13121,
+    "sha256": "7313f4316a20e9094ce470bd6ecb48a3c93d070e0dce45385e0660624d9eaa19"
+  },
+  "chromium": {
+    "file": "chromium-screen.png",
+    "width": 816,
+    "height": 720,
+    "bytes": 13303,
+    "sha256": "8e671e7edf2be08f53e5b1b593c583c06d5e38f1b9d2654bf06510ca171aa5a0"
+  },
+  "comparison": {
+    "dimensionsMatch": true,
+    "width": 816,
+    "height": 720,
+    "meanAbsoluteError": 4.60271863085512,
+    "rootMeanSquareError": 28.29465607762466,
+    "meanLuminanceError": 6.218978939271564,
+    "differenceFile": "difference.png",
+    "differenceSha256": "bc949688dfb837aa273a1d872424300e6e2c0a34cb7b6fe6b512bd5e84048978"
+  },
+  "blockedUrls": []
+}

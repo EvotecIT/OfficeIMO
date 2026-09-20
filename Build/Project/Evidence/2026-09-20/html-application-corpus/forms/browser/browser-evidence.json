@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "scenarioId": "officeimo-application-forms-20260920",
+  "sourceLicense": "MIT",
+  "documentUrl": "https://forms.officeimo.test/index.html",
+  "capturedAtUtc": "2026-09-20T14:23:40.6066074+00:00",
+  "browser": {
+    "product": "Chromium",
+    "version": "151.0.7922.34",
+    "playwrightAssemblyVersion": "1.62.0.0",
+    "htmlTinkerXAssemblyVersion": "3.0.1.0",
+    "hostOperatingSystem": "Microsoft Windows 10.0.26200",
+    "hostArchitecture": "X64",
+    "framework": ".NET 8.0.31"
+  },
+  "viewport": {
+    "width": 816,
+    "height": 720
+  },
+  "acquisition": {
+    "file": "acquisition.json",
+    "sha256": "a55448c446260fd555e301d57e2918432d9bb730ed02a1eda2d229267c56d967",
+    "retainedInputBytes": true,
+    "networkPolicy": "context-route-all;service-workers-blocked;fulfill-static-get-acquired-bytes;abort-unknown"
+  },
+  "finalState": {
+    "beforeActionsExpression": null,
+    "readyExpression": "window.applicationCorpusReady===true",
+    "readyTimeoutMs": 30000,
+    "actionManifest": {
+      "file": "browser-actions.json",
+      "sha256": "739d87f885197299e2a612495a7972ef507fa0f1a59099bacc67a79c80b97858",
+      "count": 6
+    }
+  },
+  "source": [
+    {
+      "url": "https://forms.officeimo.test/application.css",
+      "contentType": "text/css; charset=utf-8",
+      "statusCode": 200,
+      "bytes": 589,
+      "sha256": "2473f039bf15802a4c75a176655b3c2bdb44351fd2fafb45baee43ec3881e803"
+    },
+    {
+      "url": "https://forms.officeimo.test/application.js",
+      "contentType": "text/javascript; charset=utf-8",
+      "statusCode": 200,
+      "bytes": 478,
+      "sha256": "9a6bb8417eb82f2a5964875caf71ac3910850f6d7fef85783c714e2d905e46d3"
+    },
+    {
+      "url": "https://forms.officeimo.test/index.html",
+      "contentType": "text/html; charset=utf-8",
+      "statusCode": 200,
+      "bytes": 1165,
+      "sha256": "b4237abdec74dca23136912c680d7ab844c5bdc9c7ff76784cb56264170dabaa"
+    }
+  ],
+  "officeImo": {
+    "file": "officeimo-screen.png",
+    "width": 816,
+    "height": 770,
+    "bytes": 29138,
+    "sha256": "ae21e556297d8e7303551f34c23030b6196c146e9ac081a12605d3db837e4d1e"
+  },
+  "chromium": {
+    "file": "chromium-screen.png",
+    "width": 816,
+    "height": 725,
+    "bytes": 23033,
+    "sha256": "6b2cd90370824aeb86365d695e15feb2ff4328c94006f31db70bf8233b86c379"
+  },
+  "comparison": {
+    "dimensionsMatch": false,
+    "width": 816,
+    "height": 725,
+    "meanAbsoluteError": 5.4993973968897905,
+    "rootMeanSquareError": 28.22117462882607,
+    "meanLuminanceError": 7.47103784008616,
+    "differenceFile": "difference.png",
+    "differenceSha256": "842a1f56ac368dcae20af77516680527064106d73fedeb8fda1b65c8590e11f1"
+  },
+  "blockedUrls": []
+}
