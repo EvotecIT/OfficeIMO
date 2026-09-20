@@ -17,30 +17,43 @@ if (blocks.length > 0) {
 
   mermaid.initialize({
     startOnLoad: false,
-    securityLevel: 'loose',
+    securityLevel: 'strict',
     theme: brightness < 140 ? 'dark' : 'default',
+    layout: 'dagre',
+    look: 'classic',
+    htmlLabels: false,
     flowchart: {
-      htmlLabels: false,
       useMaxWidth: true
     }
   });
 
-  const nodes = blocks
-    .map((block) => block.querySelector<HTMLElement>('.mermaid'))
-    .filter((node): node is HTMLElement => Boolean(node));
+  void renderBlocks(blocks);
+}
 
-  mermaid.run({ nodes }).then(() => {
-    blocks.forEach((block) => completeBlock(block));
-  }).catch(() => {
-    blocks.forEach((block) => {
+async function renderBlocks(blocks: HTMLElement[]): Promise<void> {
+  for (const block of blocks) {
+    const node = block.querySelector<HTMLElement>('.mermaid');
+    if (!node) {
+      failBlock(block);
+      continue;
+    }
+
+    try {
+      await mermaid.run({ nodes: [node] });
+      completeBlock(block);
+    } catch {
       if (renderSimpleFlowchartFallback(block)) {
         completeBlock(block, 'simple-fallback');
       } else {
-        block.classList.remove('pending');
-        block.classList.add('render-failed');
+        failBlock(block);
       }
-    });
-  });
+    }
+  }
+}
+
+function failBlock(block: HTMLElement): void {
+  block.classList.remove('pending');
+  block.classList.add('render-failed');
 }
 
 function completeBlock(block: HTMLElement, extraClass?: string): void {

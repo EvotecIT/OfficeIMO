@@ -28,12 +28,10 @@
   {{ latest_release = null }}
   {{ latest_tag = "" }}
 
-  {{ if release_hub && release_hub.latest }}
-    {{ latest_tag = release_hub.latest.stableTag ?? "" }}
-  {{ end }}
-  {{ if latest_tag != "" && release_hub && release_hub.releases }}
+  {{ if release_hub && release_hub.releases }}
     {{ for release in release_hub.releases }}
-      {{ if release.tag == latest_tag }}
+      {{ if latest_release == null && !release.isDraft && !release.isPrerelease && string.starts_with release.tag "OfficeIMO-v" }}
+        {{ latest_tag = release.tag }}
         {{ latest_release = release }}
       {{ end }}
     {{ end }}
