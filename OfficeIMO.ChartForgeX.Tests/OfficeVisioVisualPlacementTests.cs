@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Xml.Linq;
 using ChartForgeX.Topology;
 using ChartForgeX.Primitives;
 using ChartForgeX.VisualArtifacts;
@@ -28,6 +29,31 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
             Assert.Equal(2, connector.FromConnectionPoint!.X, 6);
             Assert.Equal(.75, connector.FromConnectionPoint.Y, 6);
             Assert.Contains(connector.Waypoints, point => Math.Abs(point.X - 4) < .000001 && Math.Abs(point.Y - 6.75) < .000001);
+        }
+        Check(result.Page);
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+        try {
+            result.Document.Save(path);
+            Assert.Empty(VisioValidator.Validate(path));
+            Check(VisioDocument.Load(path).Pages[0]);
+        } finally { if (File.Exists(path)) File.Delete(path); }
+    }
+
+    [Fact]
+    public void PreservedDiagonalRouteStaysStraightWithLosslessPolicy() {
+        var envelope = PlacementEnvelope();
+        envelope.Edges[0].Topology!.Waypoints.Clear();
+        var result = envelope.ToOfficeVisio(new OfficeVisioVisualOptions { PixelsPerInch = 100, RequireLossless = true });
+        void Check(VisioPage page) {
+            var connector = Assert.Single(page.Connectors);
+            Assert.Equal(ConnectorKind.Straight, connector.Kind);
+            Assert.Empty(connector.Waypoints);
+            XNamespace ns = "http://www.w3.org/2000/svg";
+            var svg = XDocument.Parse(page.ToSvg());
+            var group = svg.Descendants(ns + "g").Single(item => (string?)item.Attribute("data-visio-connector-id") == connector.Id);
+            string pathData = (string)group.Elements(ns + "path").Single(item => item.Attribute("data-officeimo-connector-arrow") == null).Attribute("d")!;
+            Assert.Equal(1, pathData.Count(value => value == 'M'));
+            Assert.Equal(1, pathData.Count(value => value == 'L'));
         }
         Check(result.Page);
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");

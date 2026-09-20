@@ -31,6 +31,7 @@ namespace OfficeIMO.Visio.Diagrams {
         }
 
         private void ApplyPreservedRoute(VisioConnector connector, VisioGraphRoute route) {
+            connector.Kind = ConnectorKind.Straight;
             connector.RerouteBehavior = VisioConnectorRerouteBehavior.Never;
             var first = route.Points[0];
             var last = route.Points[route.Points.Count - 1];
