@@ -130,6 +130,11 @@ internal static partial class PdfSyntax {
         bool hasUsageRights = false;
         var usageRightsObjectNumbers = new List<int>();
         PdfDocumentDssInfo documentSecurityStore = PdfDocumentDssInfo.Empty;
+        KeyValuePair<int, PdfIndirectObject>[] orderedObjects = objects
+            .OrderBy(static item => item.Key)
+            .ToArray();
+        bool hasParsedSignatureMarker = false;
+        bool hasParsedByteRangeMarker = false;
 
         PdfDictionary? catalog = FindCatalog(objects, trailerRaw);
         if (catalog is not null) {
@@ -148,8 +153,14 @@ internal static partial class PdfSyntax {
                 usageRightsObjectNumbers);
         }
 
-        foreach (var entry in objects.OrderBy(static item => item.Key)) {
+        foreach (var entry in orderedObjects) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (!hasParsedSignatureMarker || !hasParsedByteRangeMarker) {
+                CollectParsedSignatureMarkers(
+                    entry.Value.Value,
+                    ref hasParsedSignatureMarker,
+                    ref hasParsedByteRangeMarker);
+            }
             PdfDictionary? dictionary = entry.Value.Value switch {
                 PdfDictionary directDictionary => directDictionary,
                 PdfStream stream => stream.Dictionary,
@@ -178,7 +189,7 @@ internal static partial class PdfSyntax {
             }
         }
 
-        foreach (var entry in objects.OrderBy(static item => item.Key)) {
+        foreach (var entry in orderedObjects) {
             cancellationToken.ThrowIfCancellationRequested();
             PdfDictionary? dictionary = entry.Value.Value switch {
                 PdfDictionary directDictionary => directDictionary,
@@ -214,8 +225,17 @@ internal static partial class PdfSyntax {
         PdfReference? infoReference = trailerReferences.Third;
         int? infoObjectNumber = infoReference?.ObjectNumber ?? fallback.InfoObjectNumber;
         int? infoObjectGeneration = infoReference?.Generation ?? fallback.InfoObjectGeneration;
-        bool hasSignatures = ContainsAnyDocumentPdfName(pdf, objects, repairReport, "ByteRange", "SigFlags", "Sig");
-        bool hasByteRange = byteRangeValueCount > 0 || (hasSignatures && ContainsAnyDocumentPdfName(pdf, objects, repairReport, "ByteRange"));
+        string? rawFallback = null;
+        bool hasSignatures = hasParsedSignatureMarker;
+        if (!hasSignatures && repairReport.HasIncompleteObjectCoverage) {
+            rawFallback = PdfEncoding.Latin1GetString(pdf);
+            hasSignatures = ContainsAnyPdfName(rawFallback, "ByteRange", "SigFlags", "Sig");
+        }
+        bool hasByteRange = byteRangeValueCount > 0 || hasParsedByteRangeMarker;
+        if (!hasByteRange && hasSignatures && repairReport.HasIncompleteObjectCoverage) {
+            rawFallback ??= PdfEncoding.Latin1GetString(pdf);
+            hasByteRange = ContainsAnyPdfName(rawFallback, "ByteRange");
+        }
 
         cancellationToken.ThrowIfCancellationRequested();
         return new PdfDocumentSecurityInfo(
@@ -258,5 +278,45 @@ internal static partial class PdfSyntax {
             fallback.HasPreviousRevision,
             fallback.HasXrefStreams,
             fallback.HasObjectStreams);
+    }
+
+    private static void CollectParsedSignatureMarkers(
+        PdfObject value,
+        ref bool hasSignatureMarker,
+        ref bool hasByteRangeMarker) {
+        switch (value) {
+            case PdfName name:
+                CollectParsedSignatureMarker(name.Name, ref hasSignatureMarker, ref hasByteRangeMarker);
+                return;
+            case PdfDictionary dictionary:
+                foreach (KeyValuePair<string, PdfObject> item in dictionary.Items) {
+                    CollectParsedSignatureMarker(item.Key, ref hasSignatureMarker, ref hasByteRangeMarker);
+                    if (hasSignatureMarker && hasByteRangeMarker) return;
+                    CollectParsedSignatureMarkers(item.Value, ref hasSignatureMarker, ref hasByteRangeMarker);
+                    if (hasSignatureMarker && hasByteRangeMarker) return;
+                }
+                return;
+            case PdfArray array:
+                foreach (PdfObject item in array.Items) {
+                    CollectParsedSignatureMarkers(item, ref hasSignatureMarker, ref hasByteRangeMarker);
+                    if (hasSignatureMarker && hasByteRangeMarker) return;
+                }
+                return;
+            case PdfStream stream:
+                CollectParsedSignatureMarkers(stream.Dictionary, ref hasSignatureMarker, ref hasByteRangeMarker);
+                return;
+        }
+    }
+
+    private static void CollectParsedSignatureMarker(
+        string name,
+        ref bool hasSignatureMarker,
+        ref bool hasByteRangeMarker) {
+        if (name == "ByteRange") {
+            hasByteRangeMarker = true;
+            hasSignatureMarker = true;
+        } else if (name == "SigFlags" || name == "Sig") {
+            hasSignatureMarker = true;
+        }
     }
 }
