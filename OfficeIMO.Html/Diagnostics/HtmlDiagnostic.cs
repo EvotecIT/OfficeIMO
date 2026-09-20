@@ -51,7 +51,9 @@ public sealed class HtmlDiagnostic {
         Severity = severity;
         Source = source;
         Detail = detail;
-        LossKind = lossKind;
+        LossKind = severity == HtmlDiagnosticSeverity.Error && lossKind == OfficeConversionLossKind.None
+            ? OfficeConversionLossKind.Failure
+            : lossKind;
         string sourceAddress = sourceLocation?.Selector
             ?? (string.IsNullOrWhiteSpace(source) ? "html:document" : source!);
         Provenance = new HtmlDiagnosticProvenance(

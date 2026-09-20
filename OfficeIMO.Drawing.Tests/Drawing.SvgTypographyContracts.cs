@@ -54,4 +54,38 @@ public partial class DrawingTests {
         Assert.True(text.Width > 20D, $"Expected measured RTL width, got {text.Width}.");
         Assert.Null(text.TextAdvanceWidth);
     }
+
+    [Fact]
+    public void OfficeSvgDrawingReader_PlacesRightToLeftTspanRunsInVisualOrder() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 60'>"
+            + "<text x='200' y='30' font-family='Arial' font-size='18' fill='black' "
+            + "direction='rtl' text-anchor='start'><tspan>אב</tspan><tspan>גד</tspan></text></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(
+            System.Text.Encoding.UTF8.GetBytes(svg), options: null, out OfficeDrawing? imported, out int unsupported));
+        Assert.Equal(0, unsupported);
+        OfficeDrawingText[] runs = imported!.Elements.OfType<OfficeDrawingText>().ToArray();
+
+        Assert.Equal(2, runs.Length);
+        Assert.Equal("אב", runs[0].Text);
+        Assert.Equal("גד", runs[1].Text);
+        Assert.True(runs[0].X > runs[1].X,
+            $"Expected the first logical RTL run at the visual right, got {runs[0].X} and {runs[1].X}.");
+    }
+
+    [Fact]
+    public void OfficeSvgDrawingReader_PlacesRightToLeftPositionedGlyphRunsInVisualOrder() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 60'>"
+            + "<text x='200' y='30' rotate='0 0 0 0' font-family='Arial' font-size='18' fill='black' "
+            + "direction='rtl' text-anchor='start'>אבגד</text></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(
+            System.Text.Encoding.UTF8.GetBytes(svg), options: null, out OfficeDrawing? imported, out int unsupported));
+        Assert.Equal(0, unsupported);
+        OfficeDrawingText[] runs = imported!.Elements.OfType<OfficeDrawingText>().ToArray();
+
+        Assert.Equal(4, runs.Length);
+        Assert.True(runs.Zip(runs.Skip(1), static (left, right) => left.X > right.X).All(static descending => descending),
+            "Expected logical RTL glyph runs to descend across the physical X axis.");
+    }
 }

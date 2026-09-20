@@ -452,19 +452,27 @@ public static partial class OfficeSvgDrawingReader {
                 }
                 continue;
             }
+            SvgTextRun[] horizontalRuns = chunk.ToArray();
+            string logicalText = string.Concat(horizontalRuns.Select(run => run.Text));
             string physicalAnchor = first.Anchor;
             OfficeTextDirection direction = first.Style.TextDirection == OfficeTextDirection.Auto
-                ? OfficeTextElements.ResolveBaseDirection(first.Text)
+                ? OfficeTextElements.ResolveBaseDirection(logicalText)
                 : first.Style.TextDirection;
+            double left = horizontalRuns.Min(run => run.X);
+            double right = horizontalRuns.Max(run => run.X + run.Width);
             if (direction == OfficeTextDirection.RightToLeft) {
+                // SVG text children stay in logical source order while the inline axis runs from
+                // right to left. Mirror the already measured run slots so separate tspans and
+                // per-character runs preserve their widths and authored spacing in visual order.
+                foreach (SvgTextRun run in horizontalRuns) {
+                    run.X = left + right - run.X - run.Width;
+                }
                 if (physicalAnchor == "start") physicalAnchor = "end";
                 else if (physicalAnchor == "end") physicalAnchor = "start";
             }
             if (physicalAnchor == "start") continue;
-            double left = chunk.Min(run => run.X);
-            double right = chunk.Max(run => run.X + run.Width);
             double shift = physicalAnchor == "middle" ? -(right - left) / 2D : -(right - left);
-            foreach (SvgTextRun run in chunk) run.X += shift;
+            foreach (SvgTextRun run in horizontalRuns) run.X += shift;
         }
     }
 
