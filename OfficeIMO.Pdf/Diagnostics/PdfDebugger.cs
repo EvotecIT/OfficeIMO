@@ -59,7 +59,7 @@ internal static class PdfDebugger {
         string? preview = null;
         if (indirect.Value is PdfStream objectStream) {
             streamLength = objectStream.Data.LongLength;
-            if (StreamDecoder.TryDecode(objectStream.Dictionary, objectStream.Data, options.MaxDecodedStreamPreviewBytes, out byte[] decoded, objects)) {
+            if (StreamDecoder.TryDecode(objectStream, options.MaxDecodedStreamPreviewBytes, out byte[] decoded, objects)) {
                 decodedLength = decoded.LongLength;
                 if (options.IncludeDecodedStreamPreviews) {
                     preview = CreatePreview(decoded);
@@ -101,7 +101,7 @@ internal static class PdfDebugger {
                 }
 
                 if (Resolve(content, objects) is PdfStream contentStream && operators.Count < options.MaxContentOperatorsPerPage) {
-                    byte[] decoded = StreamDecoder.Decode(contentStream.Dictionary, contentStream.Data, objects, options.MaxDecodedStreamPreviewBytes * 256);
+                    byte[] decoded = StreamDecoder.Decode(contentStream, objects, options.MaxDecodedStreamPreviewBytes * 256);
                     PdfContentOperatorScanner.AppendOperators(
                         PdfEncoding.Latin1GetString(decoded),
                         operators,

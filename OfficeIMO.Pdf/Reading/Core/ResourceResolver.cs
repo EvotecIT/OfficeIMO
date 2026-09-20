@@ -254,7 +254,7 @@ internal static partial class ResourceResolver {
             if (kv.Value is PdfReference r && PdfObjectLookup.TryGet(objects, r, out var ind) && ind.Value is PdfStream s) {
                 var subtype = s.Dictionary.Get<PdfName>("Subtype")?.Name;
                 if (string.Equals(subtype, "Form", System.StringComparison.Ordinal)) {
-                    var data = Filters.StreamDecoder.Decode(s.Dictionary, s.Data, objects);
+                    var data = Filters.StreamDecoder.Decode(s, objects);
                     result[kv.Key] = data;
                 }
             }
@@ -570,7 +570,7 @@ internal static partial class ResourceResolver {
             } else if (resolvedEncoding is PdfStream encodingStream) {
                 encoding = encodingStream.Dictionary.Get<PdfName>("CMapName")?.Name ?? "CustomCMap";
                 byte[]? encodingData = toUnicodeDecoder == null
-                    ? Filters.StreamDecoder.Decode(encodingStream.Dictionary, encodingStream.Data, objects)
+                    ? Filters.StreamDecoder.Decode(encodingStream, objects)
                     : toUnicodeDecoder(encodingStream);
                 isVerticalWriting = ResolveObject(
                     encodingStream.Dictionary.Items.TryGetValue("WMode", out PdfObject? writingMode) ? writingMode : null,
@@ -590,7 +590,7 @@ internal static partial class ResourceResolver {
                 PdfObjectLookup.TryGet(objects, r, out var ind) &&
                 ind.Value is PdfStream s) {
                 byte[]? data = toUnicodeDecoder == null
-                    ? Filters.StreamDecoder.Decode(s.Dictionary, s.Data, objects)
+                    ? Filters.StreamDecoder.Decode(s, objects)
                     : toUnicodeDecoder(s);
                 if (data == null || !ToUnicodeCMap.TryParse(data, out cmap)) cmap = null;
             }
@@ -811,7 +811,7 @@ internal static partial class ResourceResolver {
 
         byte[] bytes;
         try {
-            bytes = Filters.StreamDecoder.Decode(program.Dictionary, program.Data, objects);
+            bytes = Filters.StreamDecoder.Decode(program, objects);
         } catch (InvalidDataException) {
             return null;
         } catch (NotSupportedException) {

@@ -213,16 +213,18 @@ internal static class PdfPageRangeObjectFilter {
     }
 
     private static PdfPageLabel? FindPageLabelForSourceIndex(IReadOnlyList<PdfPageLabel> pageLabels, int sourcePageIndex) {
-        PdfPageLabel? selected = null;
-        for (int i = 0; i < pageLabels.Count; i++) {
-            if (pageLabels[i].StartPageIndex > sourcePageIndex) {
-                break;
+        int low = 0;
+        int high = pageLabels.Count;
+        while (low < high) {
+            int middle = low + ((high - low) >> 1);
+            if (pageLabels[middle].StartPageIndex <= sourcePageIndex) {
+                low = middle + 1;
+            } else {
+                high = middle;
             }
-
-            selected = pageLabels[i];
         }
 
-        return selected;
+        return low == 0 ? null : pageLabels[low - 1];
     }
 
     private static bool LabelsBelongToSameRule(PdfPageLabel left, PdfPageLabel right) {

@@ -47,7 +47,7 @@ internal static partial class PdfRedactionVerification {
             }
 
             int maximumDecodedBytes = Math.Min(MaxDecodedRedactionVerificationStreamBytes, readOptions.Limits.MaxDecodedStreamBytes);
-            if (!StreamDecoder.TryDecode(stream.Dictionary, stream.Data, maximumDecodedBytes, out byte[] decoded, objects)) {
+            if (!StreamDecoder.TryDecode(stream, maximumDecodedBytes, out byte[] decoded, objects)) {
                 continue;
             }
 
@@ -95,7 +95,7 @@ internal static partial class PdfRedactionVerification {
             }
 
             int maximumDecodedBytes = Math.Min(MaxDecodedRedactionVerificationStreamBytes, readOptions.Limits.MaxDecodedStreamBytes);
-            if (!StreamDecoder.TryDecode(stream.Dictionary, stream.Data, maximumDecodedBytes, out _, objects)) {
+            if (!StreamDecoder.TryDecode(stream, maximumDecodedBytes, out _, objects)) {
                 issues.Add(CreateUndecodableStreamIssue(
                     objectReference,
                     "The stream filter is unsupported, uses active decode parameters, exceeds the verification size limit, or failed decoding."));

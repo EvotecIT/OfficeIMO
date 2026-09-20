@@ -434,6 +434,37 @@ public class PdfPermissionPolicyTests {
         Assert.StartsWith("Page three", inserted.RequireValue().Reader.Text(), StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void InsertAllPagesFromEncryptedSourceUsesSourceReadOptionsAtEveryPlacement(int insertBeforePageNumber) {
+        byte[] target = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Target first"))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Target second"))
+            .ToBytes();
+        byte[] source = CreateRestrictedThreePagePdf("import-open", "import-owner");
+        var importOptions = new PdfPageImportOptions {
+            SourceReadOptions = new PdfLoadOptions {
+                Password = "import-open",
+                PermissionPolicy = PdfPermissionPolicy.IgnoreRestrictions
+            }
+        };
+
+        byte[] result = PdfDocument.Load(target).Pages.Insert(insertBeforePageNumber, source, importOptions).ToBytes();
+        PdfReadDocument read = PdfReadDocument.Open(result);
+        Assert.Equal(5, read.Pages.Count);
+        string[] expected = insertBeforePageNumber switch {
+            1 => new[] { "Page one", "Page two", "Page three", "Target first", "Target second" },
+            2 => new[] { "Target first", "Page one", "Page two", "Page three", "Target second" },
+            _ => new[] { "Target first", "Target second", "Page one", "Page two", "Page three" }
+        };
+        for (int page = 0; page < expected.Length; page++) {
+            Assert.Contains(expected[page], read.Pages[page].ExtractText(), StringComparison.Ordinal);
+        }
+    }
+
     [Fact]
     public void AuthenticatedFluentPageMutationsPreserveStoredReadOptions() {
         byte[] source = CreateRestrictedThreePagePdf("pages-open", "pages-owner");
@@ -541,6 +572,26 @@ public class PdfPermissionPolicyTests {
         Assert.Throws<PdfPermissionDeniedException>(() =>
             PdfDocument.Load(source, options).AssessRewritePreservation(
                 PdfDocument.Load(rewrittenBytes, enforcedRewrittenOptions)));
+    }
+
+    [Fact]
+    public void GroupedSplitPreservesContentPermissionAndExplicitReadOptions() {
+        byte[] source = CreateRestrictedThreePagePdf("split-open", "split-owner");
+        var enforced = new PdfLoadOptions { Password = "split-open" };
+        PdfPermissionDeniedException denied = Assert.Throws<PdfPermissionDeniedException>(() =>
+            PdfDocument.Load(source, enforced).Pages.Split(2));
+        Assert.Equal(PdfStandardPermissions.CopyContents, denied.Permission);
+
+        var ignored = new PdfLoadOptions {
+            Password = "split-open",
+            PermissionPolicy = PdfPermissionPolicy.IgnoreRestrictions
+        };
+        PdfOperationResult<IReadOnlyList<PdfDocument>> result = PdfDocument.Load(source).Pages.SplitResult(2, ignored);
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        IReadOnlyList<PdfDocument> parts = result.RequireValue();
+        Assert.Equal(2, parts.Count);
+        Assert.Equal(2, parts[0].Inspect().PageCount);
+        Assert.Equal(1, parts[1].Inspect().PageCount);
     }
 
     private static byte[] CreateRestrictedPdf(string userPassword, string ownerPassword, string text) =>

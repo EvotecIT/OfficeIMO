@@ -12,11 +12,13 @@ namespace OfficeIMO.Pdf;
 internal sealed class PdfDocumentSource {
     private readonly byte[] _bytes;
     private readonly PdfReadCache<PdfReadDocument> _readCache = new();
+    private readonly bool _canonicalRewrittenOutput;
     private ExceptionDispatchInfo? _readFailure;
 
-    private PdfDocumentSource(byte[] bytes, PdfLoadOptions options) {
+    private PdfDocumentSource(byte[] bytes, PdfLoadOptions options, bool canonicalRewrittenOutput = false) {
         _bytes = bytes;
         Options = options;
+        _canonicalRewrittenOutput = canonicalRewrittenOutput;
     }
 
     private PdfDocumentSource(byte[] bytes, PdfLoadOptions options, PdfReadDocument readDocument) {
@@ -48,6 +50,14 @@ internal sealed class PdfDocumentSource {
         PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options);
         ValidateLength(bytes.LongLength, effectiveOptions);
         return new PdfDocumentSource(bytes, effectiveOptions);
+    }
+
+    /// <summary>Adopts canonical clear-text rewrite bytes whose first semantic read can skip arbitrary-input marker discovery.</summary>
+    internal static PdfDocumentSource FromOwnedRewrittenBytes(byte[] bytes, PdfLoadOptions? options) {
+        Guard.NotNull(bytes, nameof(bytes));
+        PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options);
+        ValidateLength(bytes.LongLength, effectiveOptions);
+        return new PdfDocumentSource(bytes, effectiveOptions, canonicalRewrittenOutput: true);
     }
 
     /// <summary>Adopts internal bytes together with the canonical parse that already validated them.</summary>
@@ -139,7 +149,9 @@ internal sealed class PdfDocumentSource {
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         if (options is not null && !ReferenceEquals(options, Options)) {
-            return PdfReadDocument.Open(_bytes, options, cancellationToken);
+            return _canonicalRewrittenOutput
+                ? PdfReadDocument.OpenRewrittenOutput(_bytes, options, cancellationToken)
+                : PdfReadDocument.OpenOwned(_bytes, options, cancellationToken);
         }
 
         return _readCache.GetOrCreate(this, static (source, token) => source.ParseCanonical(token), cancellationToken);
@@ -148,7 +160,9 @@ internal sealed class PdfDocumentSource {
     private PdfReadDocument ParseCanonical(CancellationToken cancellationToken) {
         _readFailure?.Throw();
         try {
-            return PdfReadDocument.Open(_bytes, Options, cancellationToken);
+            return _canonicalRewrittenOutput
+                ? PdfReadDocument.OpenRewrittenOutput(_bytes, Options, cancellationToken)
+                : PdfReadDocument.OpenOwned(_bytes, Options, cancellationToken);
         } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
             // A caller's cancellation must not poison the reusable source cache.
             throw;

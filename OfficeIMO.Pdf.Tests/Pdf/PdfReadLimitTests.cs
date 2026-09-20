@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO.Compression;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using OfficeIMO.Pdf;
@@ -952,10 +953,27 @@ public class PdfReadLimitTests {
             PdfRedactionApplier.Apply(pdf, new[] { area }));
 
         Assert.False(preflight.CanReadLogicalObjects);
-        Assert.Contains(preflight.ReadBlockers, blocker => blocker.Kind == PdfReadBlockerKind.ParserUnsupported);
+        Assert.Contains(preflight.ReadBlockers, blocker => blocker.Kind == PdfReadBlockerKind.ContentStreamDecodeFailure);
         Assert.False(plan.Preflight.CanReadLogicalObjects);
         Assert.Contains(plan.Findings, finding => finding.Code == "RedactionPlanBlocked");
-        Assert.Contains("Read.ParserUnsupported", exception.Plan.BlockerCodes);
+        Assert.Contains("Read.ContentStreamDecodeFailure", exception.Plan.BlockerCodes);
+    }
+
+    [Fact]
+    public void PageExtraction_PreservesMalformedContentForStructuralRecovery() {
+        byte[] source = BuildMalformedFlatePageContentPdf();
+        PdfDocument opened = PdfDocument.Load(source);
+
+        byte[] extracted = opened.Pages.Extract(1).ToBytes();
+        PdfOperationResult<PdfDocument> result = opened.Pages.ExtractResult(PdfPageSelection.From(1));
+
+        Assert.Single(PdfReadDocument.Open(extracted).Pages);
+        Assert.False(PdfInspector.Preflight(extracted).CanRead);
+        Assert.True(opened.Preflight().CanManipulatePages);
+        Assert.True(opened.PlanMutation(PdfMutationOperation.ExtractPages).CanExecute);
+        Assert.True(result.Succeeded);
+        Assert.Contains("/FlateDecode", PdfEncoding.Latin1GetString(extracted), StringComparison.Ordinal);
+        Assert.Equal(GetFilteredStreamData(source, "FlateDecode"), GetFilteredStreamData(extracted, "FlateDecode"));
     }
 
     [Fact]
@@ -1449,6 +1467,18 @@ public class PdfReadLimitTests {
             "5 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", "endobj",
             "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF"
         }));
+    }
+
+    private static byte[] GetFilteredStreamData(byte[] pdf, string filterName) {
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
+        return document.Objects.Values
+            .Select(static indirectObject => indirectObject.Value)
+            .OfType<PdfStream>()
+            .Single(stream => string.Equals(
+                stream.Dictionary.Get<PdfName>("Filter")?.Name,
+                filterName,
+                StringComparison.Ordinal))
+            .Data;
     }
 
     private static void AssertTiffPredictorDecode(int bitsPerComponent, int columns, byte[] predicted, byte[] expected, int colors = 1) {

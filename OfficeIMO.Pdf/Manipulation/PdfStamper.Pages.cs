@@ -226,7 +226,7 @@ internal static partial class PdfStamper {
             .Rectangle(0D, 0D, width, height).ClipPath().EndPath()
             .TransformMatrix(normalization.A, normalization.B, normalization.C, normalization.D, normalization.E, normalization.F);
         foreach (PdfStream stream in GetPageContentStreams(sourceObjects, page, maximumObjectNestingDepth)) {
-            byte[] decoded = StreamDecoder.Decode(stream.Dictionary, stream.Data, sourceObjects);
+            byte[] decoded = StreamDecoder.Decode(stream, sourceObjects);
             builder.Append(PdfEncoding.Latin1GetString(decoded)).Append('\n');
         }
         content.RestoreState();

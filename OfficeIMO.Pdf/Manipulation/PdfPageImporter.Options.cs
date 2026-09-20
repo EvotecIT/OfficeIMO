@@ -39,28 +39,23 @@ internal static partial class PdfPageImporter {
         Guard.NotNull(sourcePdf, nameof(sourcePdf));
         Guard.NotNull(sourcePageNumbers, nameof(sourcePageNumbers));
 
-        int targetPageCount = PdfInspector.Inspect(targetPdf, targetReadOptions).PageCount;
+        PdfReadDocument targetDocument = PdfReadDocument.Open(targetPdf, targetReadOptions);
+        int targetPageCount = targetDocument.Pages.Count;
         ValidateInsertBeforePageNumber(insertBeforePageNumber, targetPageCount);
 
         PdfLoadOptions? sourceReadOptions = options.SourceReadOptions;
         byte[] preparedSource = PrepareImportSource(sourcePdf, options, sourceReadOptions);
         PdfLoadOptions? preparedSourceReadOptions = options.FlattenVisualAnnotations ? null : sourceReadOptions;
         if (insertBeforePageNumber == targetPageCount + 1) {
-            return ImportPreparedPages(targetPdf, preparedSource, append: true, targetReadOptions, preparedSourceReadOptions, sourcePageNumbers);
+            return ImportPreparedPages(targetPdf, preparedSource, append: true, targetReadOptions, preparedSourceReadOptions, sourcePageNumbers, targetDocument);
         }
 
-        byte[] inserted = PdfPageExtractor.ExtractPages(
-            preparedSource,
-            preparedSourceReadOptions,
-            NormalizeSourcePageNumbers(preparedSource, sourcePageNumbers, preparedSourceReadOptions));
+        byte[] inserted = ExtractImportedPages(preparedSource, preparedSourceReadOptions, sourcePageNumbers);
         if (insertBeforePageNumber == 1) {
-            return PdfMerger.MergeWithPrimarySource(
-                1,
-                new[] { inserted, targetPdf },
-                new[] { PdfLoadOptions.Default, PdfLoadOptions.Resolve(targetReadOptions) });
+            return MergeBoundaryPages(targetPdf, inserted, append: false, targetReadOptions, targetDocument);
         }
 
-        return PdfMerger.MergePrimaryWithInsertedPages(targetPdf, inserted, insertBeforePageNumber, targetReadOptions);
+        return PdfMerger.MergePrimaryWithInsertedPages(targetPdf, inserted, insertBeforePageNumber, targetReadOptions, targetDocument);
     }
 
     private static byte[] ImportPages(PdfPageImportOptions options, byte[] targetPdf, byte[] sourcePdf, bool append, PdfLoadOptions? targetReadOptions, int[]? sourcePageNumbers) {
@@ -81,17 +76,44 @@ internal static partial class PdfPageImporter {
         bool append,
         PdfLoadOptions? targetReadOptions,
         PdfLoadOptions? sourceReadOptions,
-        int[] sourcePageNumbers) {
-        int[] selectedPages = NormalizeSourcePageNumbers(preparedSourcePdf, sourcePageNumbers, sourceReadOptions);
-        byte[] importedPages = PdfPageExtractor.ExtractPages(preparedSourcePdf, sourceReadOptions, selectedPages);
-        return append
-            ? PdfMerger.Merge(
-                new[] { targetPdf, importedPages },
-                new[] { PdfLoadOptions.Resolve(targetReadOptions), PdfLoadOptions.Default })
-            : PdfMerger.MergeWithPrimarySource(
-                1,
-                new[] { importedPages, targetPdf },
-                new[] { PdfLoadOptions.Default, PdfLoadOptions.Resolve(targetReadOptions) });
+        int[] sourcePageNumbers,
+        PdfReadDocument? targetDocument = null) {
+        byte[] importedPages = ExtractImportedPages(preparedSourcePdf, sourceReadOptions, sourcePageNumbers);
+        return MergeBoundaryPages(targetPdf, importedPages, append, targetReadOptions, targetDocument);
+    }
+
+    private static byte[] ExtractImportedPages(byte[] sourcePdf, PdfLoadOptions? sourceReadOptions, int[] sourcePageNumbers) {
+        if (sourcePageNumbers.Length != 0) {
+            return PdfPageExtractor.ExtractPages(sourcePdf, sourceReadOptions, sourcePageNumbers);
+        }
+
+        PdfReadDocument sourceDocument = PdfReadDocument.Open(sourcePdf, sourceReadOptions);
+        if (sourceDocument.Pages.Count == 0) {
+            throw new ArgumentException("Source PDF does not contain any pages.", nameof(sourcePdf));
+        }
+
+        return PdfPageExtractor.ExtractPages(
+            sourcePdf,
+            Enumerable.Range(1, sourceDocument.Pages.Count),
+            sourceReadOptions,
+            () => sourceDocument);
+    }
+
+    private static byte[] MergeBoundaryPages(
+        byte[] targetPdf,
+        byte[] importedPages,
+        bool append,
+        PdfLoadOptions? targetReadOptions,
+        PdfReadDocument? targetDocument = null) {
+        byte[][] sources = append ? new[] { targetPdf, importedPages } : new[] { importedPages, targetPdf };
+        PdfLoadOptions[] readOptions = append
+            ? new[] { PdfLoadOptions.Resolve(targetReadOptions), PdfLoadOptions.Default }
+            : new[] { PdfLoadOptions.Default, PdfLoadOptions.Resolve(targetReadOptions) };
+        Func<PdfReadDocument>? targetReader = targetDocument is null ? null : () => targetDocument;
+        Func<PdfReadDocument>?[] readers = append
+            ? new Func<PdfReadDocument>?[] { targetReader, null }
+            : new Func<PdfReadDocument>?[] { null, targetReader };
+        return PdfMerger.MergeWithPrimarySource(append ? 0 : 1, sources, readOptions, readers);
     }
 
     private static byte[] PrepareImportSource(byte[] sourcePdf, PdfPageImportOptions options, PdfLoadOptions? sourceReadOptions) {

@@ -60,6 +60,53 @@ public class PdfMergerPolicyTests {
         Assert.Contains("Second body", text, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ByteMerge_BorrowsInputsOnlyForTheSynchronousOperation(bool returnPolicyResult) {
+        byte[] first = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Borrowed first")).ToBytes();
+        byte[] second = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Borrowed second")).ToBytes();
+        byte[] firstSnapshot = (byte[])first.Clone();
+        byte[] secondSnapshot = (byte[])second.Clone();
+
+        PdfDocument merged = returnPolicyResult
+            ? PdfDocument.MergeBytesResult(new PdfMergeOptions(), new[] { first, second }).ToDocument()
+            : PdfDocument.MergeBytes(new[] { first, second });
+
+        Assert.Equal(firstSnapshot, first);
+        Assert.Equal(secondSnapshot, second);
+        Array.Clear(first, 0, first.Length);
+        Array.Clear(second, 0, second.Length);
+        Assert.Equal(2, merged.Inspect().PageCount);
+        string text = merged.Reader.Text();
+        Assert.Contains("Borrowed first", text, StringComparison.Ordinal);
+        Assert.Contains("Borrowed second", text, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void MergeToBytes_TransfersOwnedOutputWithoutRetainingCallerInputs(bool usePolicy) {
+        byte[] first = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Direct first")).ToBytes();
+        byte[] second = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Direct second")).ToBytes();
+        byte[] firstSnapshot = (byte[])first.Clone();
+        byte[] secondSnapshot = (byte[])second.Clone();
+
+        byte[] merged = usePolicy
+            ? PdfDocument.MergeToBytes(new PdfMergeOptions(), first, second)
+            : PdfDocument.MergeToBytes(first, second);
+
+        Assert.Equal(firstSnapshot, first);
+        Assert.Equal(secondSnapshot, second);
+        Array.Clear(first, 0, first.Length);
+        Array.Clear(second, 0, second.Length);
+        PdfReadDocument read = PdfReadDocument.Open(merged);
+        Assert.Equal(2, read.Pages.Count);
+        string text = string.Join("\n", read.Pages.Select(static page => page.ExtractText()));
+        Assert.Contains("Direct first", text, StringComparison.Ordinal);
+        Assert.Contains("Direct second", text, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void PolicyMergeComposesSourceStructuralLimitsForTheOwnedOutput() {
         byte[] first = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("First")).ToBytes();
@@ -106,18 +153,25 @@ public class PdfMergerPolicyTests {
 
     [Fact]
     public void MiddlePageInsertion_RejectsXfaBeforeRebuildingTheCatalog() {
-        byte[] xfa = BuildRawPdf(
-            "<< /Type /Catalog /Pages 2 0 R /AcroForm 7 0 R >>",
-            "<< /Type /Pages /Count 2 /Kids [3 0 R 5 0 R] >>",
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Contents 4 0 R >>",
-            "<< /Length 0 >>\nstream\n\nendstream",
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Contents 6 0 R >>",
-            "<< /Length 0 >>\nstream\n\nendstream",
-            "<< /Fields [] /XFA (middle-insertion-packet) >>");
+        byte[] xfa = BuildTwoPageXfaPdf("middle-insertion-packet");
         byte[] inserted = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Inserted")).ToBytes();
 
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
             PdfMerger.MergePrimaryWithInsertedPages(xfa, inserted, insertBeforePageNumber: 2));
+
+        Assert.Contains("XFA", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void PublicPageInsertion_RejectsTargetXfaAtEveryPlacement(int insertBeforePageNumber) {
+        byte[] xfa = BuildTwoPageXfaPdf("unsupported-insertion-packet");
+        byte[] incoming = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Incoming")).ToBytes();
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            PdfDocument.Load(xfa).Pages.Insert(insertBeforePageNumber, incoming));
 
         Assert.Contains("XFA", exception.Message, StringComparison.Ordinal);
     }
@@ -486,12 +540,15 @@ public class PdfMergerPolicyTests {
     [Fact]
     public void MergeResult_ReportsPageNormalizationChoice() {
         byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Source")).ToBytes();
+        byte[] sourceSnapshot = (byte[])source.Clone();
         var options = new PdfMergeOptions {
             ResizePages = new PdfPageResizeOptions(PageSizes.A4) { Mode = PdfPageResizeMode.Fit }
         };
 
-        PdfMergeResult result = PdfMerger.MergeResult(options, source);
+        PdfMergeResult result = PdfDocument.MergeBytesResult(options, new[] { source });
 
+        Assert.Equal(sourceSnapshot, source);
+        Array.Clear(source, 0, source.Length);
         Assert.Single(result.Report.Decisions, static decision => decision.Structure == "PageSizeNormalization");
         Assert.Equal(595, Math.Round(PdfInspector.Inspect(result.ToBytes()).Pages[0].Width));
     }
@@ -561,6 +618,15 @@ public class PdfMergerPolicyTests {
         "<< /Type /Outlines /First 6 0 R /Last 6 0 R /Count 1 >>",
         "<< /Title (Group) /Parent 5 0 R /First 7 0 R /Last 7 0 R /Count 1 >>",
         "<< /Title (Child) /Parent 6 0 R /Dest [3 0 R /Fit] >>");
+
+    private static byte[] BuildTwoPageXfaPdf(string packet) => BuildRawPdf(
+        "<< /Type /Catalog /Pages 2 0 R /AcroForm 7 0 R >>",
+        "<< /Type /Pages /Count 2 /Kids [3 0 R 5 0 R] >>",
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Contents 4 0 R >>",
+        "<< /Length 0 >>\nstream\n\nendstream",
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Contents 6 0 R >>",
+        "<< /Length 0 >>\nstream\n\nendstream",
+        "<< /Fields [] /XFA (" + packet + ") >>");
 
     private static byte[] BuildRawPdf(params string[] objectBodies) {
         var builder = new StringBuilder("%PDF-1.7\n");

@@ -59,8 +59,9 @@ internal static class PdfDocumentObjectGraphRewriter {
                 sourcePdf,
                 sourceReadOptions,
                 includeParsedDetails: false,
-                cancellationToken: cancellationToken);
-            var parsed = PdfSyntax.ParseObjects(sourcePdf, sourceReadOptions, out PdfRepairReport repairReport, out _, cancellationToken);
+                out string decodedText,
+                cancellationToken);
+            var parsed = PdfSyntax.ParseObjects(sourcePdf, sourceReadOptions, out PdfRepairReport repairReport, out _, decodedText, cancellationToken);
             objects = parsed.Map;
             trailerRaw = parsed.TrailerRaw;
             security = PdfSyntax.ReadDocumentSecurityInfo(
@@ -157,8 +158,7 @@ internal static class PdfDocumentObjectGraphRewriter {
         for (int i = 0; i < reachableObjectNumbers.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
             int sourceObjectNumber = reachableObjectNumbers[i];
-            byte[] body = PdfPageExtractor.SerializeObject(objects[sourceObjectNumber].Value, context);
-            byte[] serializedObject = PdfObjectBytes.WrapIndirectObject(i + 1, body);
+            byte[] serializedObject = PdfPageExtractor.SerializeIndirectObject(i + 1, objects[sourceObjectNumber].Value, context);
             serializedObjectBytes = AddWithinOutputLimit(serializedObjectBytes, serializedObject.LongLength, maximumOutputBytes: null);
             serializedObjects.Add(serializedObject);
         }

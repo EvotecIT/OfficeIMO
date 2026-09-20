@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.IO;
 using OfficeIMO.Pdf;
 using Xunit;
@@ -137,6 +138,91 @@ public partial class PdfReadStreamTests {
             Assert.All(info.PageLabels, label => Assert.True(label.StartNumber >= 1));
         }
     }
+
+    [Theory]
+    [InlineData(5, false)]
+    [InlineData(5, true)]
+    [InlineData(6, false)]
+    [InlineData(6, true)]
+    [InlineData(50, false)]
+    [InlineData(50, true)]
+    [InlineData(500, false)]
+    [InlineData(500, true)]
+    public void SplitPages_PreservesPageLabelsAcrossDocumentSizesAndRanges(int pageCount, bool perPageRange) {
+        var options = new PdfOptions { IncludePageLabels = !perPageRange };
+        if (perPageRange) {
+            for (int page = 1; page <= pageCount; page++) {
+                options.AddPageLabelRange(page, PdfPageNumberStyle.Arabic, startNumber: page);
+            }
+        }
+
+        byte[] source = PdfDocument.Create(pdf => pdf.Content(content => {
+            for (int page = 1; page <= pageCount; page++) {
+                if (page > 1) content.PageBreak();
+                content.Paragraph(paragraph => paragraph.Text("Labeled split page " + page.ToString("D4", CultureInfo.InvariantCulture)));
+            }
+        }), options).ToBytes();
+
+        IReadOnlyList<byte[]> outputs = PdfPageExtractor.SplitPages(source);
+
+        Assert.Equal(pageCount, outputs.Count);
+        for (int index = 0; index < outputs.Count; index++) {
+            PdfReadDocument readback = PdfReadDocument.Open(outputs[index]);
+            Assert.Single(readback.Pages);
+            Assert.Contains("Labeled split page " + (index + 1).ToString("D4", CultureInfo.InvariantCulture), readback.ExtractText(), StringComparison.Ordinal);
+            PdfPageLabel label = Assert.Single(readback.PageLabels);
+            Assert.Equal(0, label.StartPageIndex);
+            Assert.Equal(index + 1, label.StartNumber);
+        }
+    }
+
+    [Theory]
+    [InlineData(5)]
+    [InlineData(6)]
+    [InlineData(50)]
+    [InlineData(500)]
+    public void SplitPages_PreservesPageScopedBookmarksAcrossDocumentSizes(int pageCount) {
+        byte[] source = BuildBookmarkedSplitSource(pageCount);
+
+        IReadOnlyList<byte[]> outputs = PdfPageExtractor.SplitPages(source);
+
+        Assert.Equal(pageCount, outputs.Count);
+        for (int index = 0; index < outputs.Count; index++) {
+            string suffix = (index + 1).ToString("D4", CultureInfo.InvariantCulture);
+            PdfReadDocument readback = PdfReadDocument.Open(outputs[index]);
+            Assert.Single(readback.Pages);
+            Assert.Contains("Bookmarked split page " + suffix, readback.ExtractText(), StringComparison.Ordinal);
+            PdfDocumentInfo info = PdfInspector.Inspect(outputs[index]);
+            PdfNamedDestination destination = Assert.Single(info.NamedDestinations);
+            Assert.Equal("Bookmark " + suffix, destination.Name);
+            Assert.Equal(1, destination.PageNumber);
+        }
+    }
+
+    [Fact]
+    public void SplitPageRanges_PreservesBookmarkOrderAfterSharedCatalogIndexBuild() {
+        byte[] source = BuildBookmarkedSplitSource(6);
+
+        IReadOnlyList<byte[]> outputs = PdfPageExtractor.SplitPageRanges(
+            source,
+            PdfPageRange.From(1, 1),
+            PdfPageRange.From(2, 4),
+            PdfPageRange.From(5, 6));
+
+        Assert.Equal(3, outputs.Count);
+        Assert.Equal(new[] { "Bookmark 0001" }, PdfInspector.Inspect(outputs[0]).NamedDestinationNames);
+        Assert.Equal(new[] { "Bookmark 0002", "Bookmark 0003", "Bookmark 0004" }, PdfInspector.Inspect(outputs[1]).NamedDestinationNames);
+        Assert.Equal(new[] { "Bookmark 0005", "Bookmark 0006" }, PdfInspector.Inspect(outputs[2]).NamedDestinationNames);
+    }
+
+    private static byte[] BuildBookmarkedSplitSource(int pageCount) => PdfDocument.Create(pdf => pdf.Content(content => {
+        for (int page = 1; page <= pageCount; page++) {
+            if (page > 1) content.PageBreak();
+            string suffix = page.ToString("D4", CultureInfo.InvariantCulture);
+            content.Bookmark("Bookmark " + suffix);
+            content.Paragraph(paragraph => paragraph.Text("Bookmarked split page " + suffix));
+        }
+    })).ToBytes();
 
     [Fact]
     public void RewriteApis_ReindexPageLabelsUsingTrailerRootPageTreeWhenStaleCatalogsExist() {

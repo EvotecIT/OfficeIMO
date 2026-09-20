@@ -64,7 +64,9 @@ public sealed partial class PdfDocumentPreflight {
     public bool PermissionRestrictionsIgnored => PdfPermissionAuthorization.RestrictionsIgnored(Probe.Security, PermissionPolicy);
 
     /// <summary>True when OfficeIMO.Pdf can attempt at least one page-level rewrite operation.</summary>
-    public bool CanManipulatePages => CanRewrite || CanUseAuthenticatedEncryptedPageMutation();
+    public bool CanManipulatePages => CanRewrite ||
+        CanUseAuthenticatedEncryptedPageMutation() ||
+        PdfMutationPlanner.CanTransferUnchangedPages(this);
 
     /// <summary>True when OfficeIMO.Pdf can attempt simple AcroForm value updates for named text, choice, or button fields.</summary>
     public bool CanFillSimpleFormFields => CanRead && !HasFormMutationBlocker(PdfMutationOperation.FillFormFields) && HasSimpleFillableFormFields();

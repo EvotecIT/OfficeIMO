@@ -248,6 +248,30 @@ public class PdfPageImporterTests {
         Assert.DoesNotContain("Sourcethird", text);
     }
 
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void InsertPageRanges_PreservesTargetAndSelectedPageOrderAtEveryPlacement(int insertBeforePageNumber) {
+        byte[] target = BuildPdf("Target", "Target first", "Target second");
+        byte[] source = BuildPdf("Source", "Source first", "Source second", "Source third");
+
+        byte[] imported = PdfPageImporter.InsertPageRanges(
+            target, source, insertBeforePageNumber, PdfPageRange.ParseMany("3,1"));
+
+        PdfDocumentInfo info = PdfInspector.Inspect(imported);
+        Assert.Equal(4, info.PageCount);
+        Assert.Equal("Target", info.Metadata.Title);
+        string text = NormalizeExtractedText(PdfReadDocument.Open(imported).ExtractText());
+        string[] expected = insertBeforePageNumber switch {
+            1 => new[] { "Sourcethird", "Sourcefirst", "Targetfirst", "Targetsecond" },
+            2 => new[] { "Targetfirst", "Sourcethird", "Sourcefirst", "Targetsecond" },
+            _ => new[] { "Targetfirst", "Targetsecond", "Sourcethird", "Sourcefirst" }
+        };
+        AssertContainsInOrder(text, expected);
+        Assert.DoesNotContain("Sourcesecond", text);
+    }
+
     [Fact]
     public void ImportPages_ReadsStreamsFromCurrentPositionsAndWritesOutputStreamAtCurrentPosition() {
         using var target = CreatePrefixedStream(BuildPdf("Target stream", "Target stream page"));

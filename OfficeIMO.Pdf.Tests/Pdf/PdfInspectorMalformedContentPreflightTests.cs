@@ -92,6 +92,87 @@ public partial class PdfInspectorTests {
     }
 
     [Fact]
+    public void PageTransfer_PreservesUnsupportedContentStreamsWithoutWeakeningGeneralPreflight() {
+        byte[] source = BuildUnsupportedContentStreamFilterPdf();
+        PdfDocument opened = PdfDocument.Load(source);
+
+        byte[] extracted = opened.Pages.Extract(1).ToBytes();
+        byte[] merged = PdfDocument.MergeBytes(new[] { source, BuildTwoPagePdf() }).ToBytes();
+        PdfDocumentPreflight preflight = opened.Preflight();
+        PdfMutationPortfolioReport portfolio = opened.AssessMutations(new[] {
+            PdfMutationOperation.ExtractPages,
+            PdfMutationOperation.MergeDocuments
+        });
+        PdfOperationResult<PdfDocument> extractionResult = opened.Pages.ExtractResult(PdfPageSelection.From(1));
+        PdfOperationResult<PdfDocument> primaryMergeResult = opened.MergeWithResult(PdfDocument.Load(BuildTwoPagePdf()));
+        PdfOperationResult<PdfDocument> incomingMergeResult = PdfDocument.Load(BuildTwoPagePdf()).MergeWithResult(opened);
+
+        Assert.False(preflight.CanRead);
+        Assert.True(preflight.CanManipulatePages);
+        Assert.True(opened.PlanMutation(PdfMutationOperation.ExtractPages).CanExecute);
+        Assert.True(opened.PlanMutation(PdfMutationOperation.MergeDocuments).CanExecute);
+        Assert.True(portfolio.CanExecuteAll);
+        Assert.True(extractionResult.Succeeded);
+        Assert.True(primaryMergeResult.Succeeded);
+        Assert.True(incomingMergeResult.Succeeded);
+        Assert.False(PdfInspector.Preflight(extracted).CanRead);
+        Assert.Single(PdfReadDocument.Open(extracted).Pages);
+        Assert.Equal(3, PdfReadDocument.Open(merged).Pages.Count);
+        Assert.Contains("/DCTDecode", PdfEncoding.Latin1GetString(extracted), StringComparison.Ordinal);
+        Assert.Contains("/DCTDecode", PdfEncoding.Latin1GetString(merged), StringComparison.Ordinal);
+        Assert.Equal(GetFilteredStreamData(source, "DCTDecode"), GetFilteredStreamData(extracted, "DCTDecode"));
+        Assert.Equal(GetFilteredStreamData(source, "DCTDecode"), GetFilteredStreamData(merged, "DCTDecode"));
+    }
+
+    [Fact]
+    public void PageTransfer_BlocksContextDependentCryptStreamsAcrossAllEntryPoints() {
+        byte[] source = BuildUnsupportedContentStreamFilterPdf("/Crypt");
+        PdfDocument opened = PdfDocument.Load(source);
+        PdfDocumentPreflight preflight = opened.Preflight();
+
+        Assert.False(preflight.CanRead);
+        Assert.False(preflight.CanManipulatePages);
+        Assert.True(preflight.HasReadBlocker(PdfReadBlockerKind.ContextDependentContentStreamFilter));
+        Assert.False(opened.PlanMutation(PdfMutationOperation.ExtractPages).CanExecute);
+        Assert.False(opened.PlanMutation(PdfMutationOperation.MergeDocuments).CanExecute);
+        Assert.False(opened.Pages.ExtractResult(PdfPageSelection.From(1)).CanAttempt);
+        Assert.False(opened.MergeWithResult(PdfDocument.Load(BuildTwoPagePdf())).CanAttempt);
+        Assert.Throws<PdfMutationBlockedException>(() => opened.Pages.Extract(1));
+        Assert.Throws<PdfMutationBlockedException>(() => PdfDocument.MergeBytes(new[] { source, BuildTwoPagePdf() }));
+    }
+
+    [Fact]
+    public void PageTransfer_BlocksContextDependentCryptOutsideTheSelectedPageGraph() {
+        string source = PdfEncoding.Latin1GetString(BuildUnsupportedContentStreamFilterPdf());
+        byte[] withOrphanCryptStream = PdfEncoding.Latin1GetBytes(source.Replace(
+            "trailer\n<< /Root 1 0 R /Size 5 >>",
+            "5 0 obj\n<< /Length 4 /Filter /Crypt >>\nstream\ndata\nendstream\nendobj\ntrailer\n<< /Root 1 0 R /Size 6 >>"));
+        PdfDocument opened = PdfDocument.Load(withOrphanCryptStream);
+        PdfDocumentPreflight preflight = opened.Preflight();
+
+        Assert.True(preflight.HasReadBlocker(PdfReadBlockerKind.UnsupportedContentStreamFilter));
+        Assert.True(preflight.HasReadBlocker(PdfReadBlockerKind.ContextDependentContentStreamFilter));
+        Assert.False(preflight.CanManipulatePages);
+        Assert.False(opened.PlanMutation(PdfMutationOperation.ExtractPages).CanExecute);
+        Assert.False(opened.PlanMutation(PdfMutationOperation.MergeDocuments).CanExecute);
+        Assert.Throws<PdfMutationBlockedException>(() => opened.Pages.Extract(1));
+    }
+
+    [Fact]
+    public void BlockedPageTransfer_RebuildsCompletePreflightDiagnostics() {
+        string source = PdfEncoding.Latin1GetString(BuildUnsupportedContentStreamFilterPdf());
+        byte[] signedSource = PdfEncoding.Latin1GetBytes(source.Replace(
+            "trailer\n<< /Root 1 0 R /Size 5 >>",
+            "5 0 obj\n<< /Type /Sig /ByteRange [0 1 2 3] >>\nendobj\ntrailer\n<< /Root 1 0 R /Size 6 >>"));
+
+        PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() =>
+            PdfDocument.Load(signedSource).Pages.Extract(1));
+
+        Assert.True(exception.Plan.Preflight.HasReadBlocker(PdfReadBlockerKind.UnsupportedContentStreamFilter));
+        Assert.True(exception.Plan.Preflight.HasRewriteBlocker(PdfRewriteBlockerKind.Signatures));
+    }
+
+    [Fact]
     public void Preflight_ReportsUnsupportedFormXObjectStreamFiltersWithReadBlocker() {
         PdfDocumentPreflight report = PdfInspector.Preflight(BuildUnsupportedFormXObjectStreamFilterPdf());
 
@@ -185,6 +266,18 @@ public partial class PdfInspectorTests {
         PdfDocumentPreflight report = PdfInspector.Preflight(BuildTwoPagePdf());
         Assert.Throws<ArgumentOutOfRangeException>(() => report.Can((PdfPreflightCapability)999));
         Assert.Throws<ArgumentOutOfRangeException>(() => report.GetCapabilityDiagnostics((PdfPreflightCapability)999));
+    }
+
+    private static byte[] GetFilteredStreamData(byte[] pdf, string filterName) {
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
+        return document.Objects.Values
+            .Select(static indirectObject => indirectObject.Value)
+            .OfType<PdfStream>()
+            .Single(stream => string.Equals(
+                stream.Dictionary.Get<PdfName>("Filter")?.Name,
+                filterName,
+                StringComparison.Ordinal))
+            .Data;
     }
 
 

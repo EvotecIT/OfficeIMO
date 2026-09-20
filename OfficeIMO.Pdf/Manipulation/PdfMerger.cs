@@ -33,12 +33,12 @@ internal static partial class PdfMerger {
     /// Merges all pages from the supplied PDFs into one new PDF.
     /// </summary>
     public static byte[] Merge(IEnumerable<byte[]> pdfs) {
-        return MergeCore(pdfs, primarySourceIndex: 0, options: null).ToBytes();
+        return MergeCore(pdfs, primarySourceIndex: 0, options: null).OwnedBytes;
     }
 
     internal static byte[] Merge(IReadOnlyList<byte[]> pdfs, IReadOnlyList<PdfLoadOptions> readOptions) {
         Guard.NotNull(readOptions, nameof(readOptions));
-        return MergeCore(pdfs, primarySourceIndex: 0, options: null, readOptions).ToBytes();
+        return MergeCore(pdfs, primarySourceIndex: 0, options: null, readOptions).OwnedBytes;
     }
 
     internal static PdfMergeResult MergeOwned(
@@ -75,7 +75,7 @@ internal static partial class PdfMerger {
     /// </summary>
     public static byte[] Merge(PdfMergeOptions options, IEnumerable<byte[]> pdfs) {
         Guard.NotNull(options, nameof(options));
-        return MergeCore(pdfs, primarySourceIndex: 0, options).ToBytes();
+        return MergeCore(pdfs, primarySourceIndex: 0, options).OwnedBytes;
     }
 
     /// <summary>Merges PDFs and returns the applied document-structure policy report.</summary>
@@ -90,7 +90,7 @@ internal static partial class PdfMerger {
     }
 
     internal static byte[] MergeWithPrimarySource(int primarySourceIndex, params byte[][] pdfs) {
-        return MergeCore(pdfs, primarySourceIndex, options: null).ToBytes();
+        return MergeCore(pdfs, primarySourceIndex, options: null).OwnedBytes;
     }
 
     internal static byte[] MergeWithPrimarySource(
@@ -98,7 +98,17 @@ internal static partial class PdfMerger {
         IReadOnlyList<byte[]> pdfs,
         IReadOnlyList<PdfLoadOptions> readOptions) {
         Guard.NotNull(readOptions, nameof(readOptions));
-        return MergeCore(pdfs, primarySourceIndex, options: null, readOptions).ToBytes();
+        return MergeCore(pdfs, primarySourceIndex, options: null, readOptions).OwnedBytes;
+    }
+
+    internal static byte[] MergeWithPrimarySource(
+        int primarySourceIndex,
+        IReadOnlyList<byte[]> pdfs,
+        IReadOnlyList<PdfLoadOptions> readOptions,
+        IReadOnlyList<Func<PdfReadDocument>?> readDocumentFactories) {
+        Guard.NotNull(readOptions, nameof(readOptions));
+        Guard.NotNull(readDocumentFactories, nameof(readDocumentFactories));
+        return MergeCore(pdfs, primarySourceIndex, options: null, readOptions, readDocumentFactories).OwnedBytes;
     }
 
     internal static byte[] MergePrimaryWithInsertedPages(byte[] primaryPdf, byte[] insertedPdf, int insertBeforePageNumber) {
@@ -109,18 +119,25 @@ internal static partial class PdfMerger {
         byte[] primaryPdf,
         byte[] insertedPdf,
         int insertBeforePageNumber,
-        PdfLoadOptions? primaryReadOptions) {
+        PdfLoadOptions? primaryReadOptions,
+        PdfReadDocument? openedPrimaryDocument = null) {
         Guard.NotNull(primaryPdf, nameof(primaryPdf));
         Guard.NotNull(insertedPdf, nameof(insertedPdf));
 
-        if (PdfReadDocument.Open(primaryPdf, primaryReadOptions).AcroFormXfa is not null ||
-            PdfReadDocument.Open(insertedPdf).AcroFormXfa is not null) {
+        PdfReadDocument primaryDocument = openedPrimaryDocument ?? PdfReadDocument.Open(primaryPdf, primaryReadOptions);
+        if (primaryDocument.AcroFormXfa is not null) {
             throw new NotSupportedException("Page insertion does not preserve XFA form packets. Flatten or remove XFA before inserting pages.");
         }
 
-        var (_, primaryDocument) = PdfMutationPlanner.RequireFullRewriteDocument(
+        PdfReadDocument insertedDocument = PdfReadDocument.Open(insertedPdf);
+        if (insertedDocument.AcroFormXfa is not null) {
+            throw new NotSupportedException("Page insertion does not preserve XFA form packets. Flatten or remove XFA before inserting pages.");
+        }
+
+        (_, primaryDocument) = PdfMutationPlanner.RequireFullRewriteDocument(
             primaryPdf,
             PdfMutationOperation.ModifyPageTree,
+            primaryDocument,
             primaryReadOptions);
         if (primaryDocument.Pages.Count == 0) {
             throw new ArgumentException("Primary PDF does not contain any pages.", nameof(primaryPdf));
@@ -130,9 +147,10 @@ internal static partial class PdfMerger {
             throw new ArgumentOutOfRangeException(nameof(insertBeforePageNumber), "Insert-before page must be in the primary document page range.");
         }
 
-        var (_, insertedDocument) = PdfMutationPlanner.RequireFullRewriteDocument(
+        (_, insertedDocument) = PdfMutationPlanner.RequireFullRewriteDocument(
             insertedPdf,
-            PdfMutationOperation.ExtractPages);
+            PdfMutationOperation.ExtractPages,
+            insertedDocument);
         if (insertedDocument.Pages.Count == 0) {
             throw new ArgumentException("Inserted PDF does not contain any pages.", nameof(insertedPdf));
         }
@@ -202,13 +220,12 @@ internal static partial class PdfMerger {
 
             PdfLoadOptions? sourceReadOptions = readOptions?[i];
             Func<PdfReadDocument>? readDocumentFactory = readDocumentFactories?[i];
-            (PdfMutationPlan sourceMergePlan, PdfReadDocument plannedDocument) = readDocumentFactory is null
-                ? PdfMutationPlanner.RequireFullRewriteDocument(
-                    source,
-                    PdfMutationOperation.MergeDocuments,
-                    sourceReadOptions,
-                    cancellationToken: cancellationToken)
-                : PdfMutationPlanner.RequireFullRewriteDocument(
+            readDocumentFactory ??= () => PdfReadDocument.OpenBorrowed(
+                source,
+                sourceReadOptions,
+                cancellationToken);
+            (PdfMutationPlan sourceMergePlan, PdfReadDocument plannedDocument) =
+                PdfMutationPlanner.RequireFullRewriteDocument(
                     source,
                     PdfMutationOperation.MergeDocuments,
                     readDocumentFactory,
@@ -617,14 +634,15 @@ internal static partial class PdfMerger {
         out int outputObjectCount,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        var objects = new List<byte[]>();
-        var allPageObjectIds = new List<int>();
+        GetMergeCollectionCounts(sources, outputOrder, out int retainedObjectCount, out int outputPageCount);
+        var objects = new List<PdfSerializedObject>(retainedObjectCount);
+        var allPageObjectIds = new List<int>(outputPageCount);
         var plans = new List<SourceWritePlan>(sources.Count);
         int nextObjectId = 1;
 
         foreach (var source in sources) {
             cancellationToken.ThrowIfCancellationRequested();
-            var numberMap = new Dictionary<int, int>();
+            var numberMap = new Dictionary<int, int>(source.Collector.ObjectIds.Count);
             foreach (int sourceId in source.Collector.ObjectIds) {
                 numberMap[sourceId] = nextObjectId++;
             }
@@ -662,22 +680,41 @@ internal static partial class PdfMerger {
                 }
 
                 int newId = plan.NumberMap[sourceId];
-                byte[] body = sourceObject.Value is PdfDictionary dictionary && source.Collector.PageObjectIds.Contains(sourceId)
-                    ? PdfPageExtractor.SerializePageDictionary(dictionary, sourceId, context)
-                    : PdfPageExtractor.SerializeObject(sourceObject.Value, context);
+                PdfSerializedObject serializedObject = sourceObject.Value is PdfDictionary dictionary && source.Collector.PageObjectIds.Contains(sourceId)
+                    ? PdfSerializedObject.FromBytes(PdfPageExtractor.WrapObject(newId, PdfPageExtractor.SerializePageDictionary(dictionary, sourceId, context)))
+                    : PdfPageExtractor.SerializeIndirectObjectForAssembly(newId, sourceObject.Value, context);
 
-                objects.Add(PdfPageExtractor.WrapObject(newId, body));
+                objects.Add(serializedObject);
             }
         }
 
-        objects.Add(PdfPageExtractor.WrapObject(pagesId, PdfEncoding.Latin1GetBytes(PdfPageTreeBuilder.BuildPagesDictionary(allPageObjectIds))));
+        objects.Add(PdfSerializedObject.FromBytes(PdfPageExtractor.WrapObject(pagesId, PdfEncoding.Latin1GetBytes(PdfPageTreeBuilder.BuildPagesDictionary(allPageObjectIds)))));
         var primaryPlan = plans[primarySourceIndex];
         var primaryCatalogContext = new PdfPageExtractor.SerializationContext(primaryPlan.NumberMap, pagesId, primaryPlan.Source.Collector.MaterializedPageValues, primaryPlan.Source.Objects);
-        objects.Add(PdfPageExtractor.WrapObject(catalogId, PdfEncoding.Latin1GetBytes(PdfPageExtractor.BuildCatalogDictionary(pagesId, sources[primarySourceIndex].CatalogState, primaryCatalogContext))));
-        objects.Add(PdfPageExtractor.WrapObject(infoId, PdfEncoding.Latin1GetBytes(PdfPageExtractor.BuildInfoDictionary(BuildMergedMetadata(sources, primarySourceIndex)))));
+        objects.Add(PdfSerializedObject.FromBytes(PdfPageExtractor.WrapObject(catalogId, PdfEncoding.Latin1GetBytes(PdfPageExtractor.BuildCatalogDictionary(pagesId, sources[primarySourceIndex].CatalogState, primaryCatalogContext)))));
+        objects.Add(PdfSerializedObject.FromBytes(PdfPageExtractor.WrapObject(infoId, PdfEncoding.Latin1GetBytes(PdfPageExtractor.BuildInfoDictionary(BuildMergedMetadata(sources, primarySourceIndex))))));
 
         outputObjectCount = objects.Count;
         return PdfPageExtractor.Assemble(objects, catalogId, infoId, cancellationToken: cancellationToken);
+    }
+
+    private static void GetMergeCollectionCounts(
+        IReadOnlyList<ImportedSource> sources,
+        IReadOnlyList<OutputPageReference>? outputOrder,
+        out int retainedObjectCount,
+        out int outputPageCount) {
+        long retainedObjects = 3L;
+        long pages = outputOrder?.Count ?? 0L;
+        for (int index = 0; index < sources.Count; index++) {
+            ImportedSource source = sources[index];
+            retainedObjects += source.Collector.ObjectIds.Count;
+            if (outputOrder is null) pages += source.PageObjectNumbers.Length;
+            if (retainedObjects > int.MaxValue || pages > int.MaxValue) {
+                throw PdfOutputLimitErrors.Create("The merged PDF exceeds the supported in-memory collection limits.");
+            }
+        }
+        retainedObjectCount = (int)retainedObjects;
+        outputPageCount = (int)pages;
     }
 
     private static PdfMetadata BuildMergedMetadata(IReadOnlyList<ImportedSource> sources, int primarySourceIndex) {

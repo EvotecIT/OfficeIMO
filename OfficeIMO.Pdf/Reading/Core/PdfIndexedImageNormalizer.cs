@@ -331,8 +331,7 @@ internal static class PdfIndexedImageNormalizer {
 
             try {
                 lookupBytes = Filters.StreamDecoder.DecodeRequired(
-                    lookupStream.Dictionary,
-                    lookupStream.Data,
+                    lookupStream,
                     objects,
                     maxLookupBytes);
                 return lookupBytes.Length > 0;

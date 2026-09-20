@@ -3,17 +3,25 @@ using System.Text;
 namespace OfficeIMO.Pdf;
 
 internal static class PdfEncoding {
-    // Latin1 (ISO-8859-1) byte-to-string conversion without depending on Encoding.Latin1
+    // Preserve the one-byte-to-one-character mapping on older target frameworks.
     public static string Latin1GetString(byte[] bytes) {
+#if NET8_0_OR_GREATER
+        return Encoding.Latin1.GetString(bytes);
+#else
         var chars = new char[bytes.Length];
         for (int i = 0; i < bytes.Length; i++) chars[i] = (char)bytes[i];
         return new string(chars);
+#endif
     }
 
     public static string Latin1GetString(byte[] bytes, int index, int count) {
+#if NET8_0_OR_GREATER
+        return Encoding.Latin1.GetString(bytes, index, count);
+#else
         var chars = new char[count];
         for (int i = 0; i < count; i++) chars[i] = (char)bytes[index + i];
         return new string(chars);
+#endif
     }
 
     public static byte[] Latin1GetBytes(string s) {

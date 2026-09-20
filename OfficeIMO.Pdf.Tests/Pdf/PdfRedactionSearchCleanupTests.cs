@@ -104,7 +104,7 @@ public class PdfRedactionSearchCleanupTests {
         PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() =>
             PdfRedactionApplier.Apply(source, plan, readOptions: readOptions));
 
-        Assert.Contains("Read.ParserUnsupported", exception.Plan.BlockerCodes);
+        Assert.Contains("Read.ContentStreamDecodeFailure", exception.Plan.BlockerCodes);
         Assert.Contains("DecodedStreamBytes", exception.Message, StringComparison.Ordinal);
         Assert.Contains("maximum 24", exception.Message, StringComparison.Ordinal);
     }

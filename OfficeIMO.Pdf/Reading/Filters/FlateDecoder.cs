@@ -10,6 +10,10 @@ namespace OfficeIMO.Pdf.Filters;
 
 internal static class FlateDecoder {
     private const int CopyBufferSize = 81920;
+#if !NET8_0_OR_GREATER
+    [ThreadStatic]
+    private static byte[]? _validationBuffer;
+#endif
 
     public static byte[] Decode(byte[] data) {
         // Try zlib (RFC1950) first when available in this target
@@ -38,15 +42,30 @@ internal static class FlateDecoder {
         out byte[] output,
         out bool limitExceeded,
         CancellationToken cancellationToken = default) {
+        return TryDecode(data, 0, data.Length, maxOutputBytes, out output, out limitExceeded, cancellationToken);
+    }
+
+    internal static bool TryDecode(
+        byte[] data,
+        int offset,
+        int length,
+        int maxOutputBytes,
+        out byte[] output,
+        out bool limitExceeded,
+        CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         limitExceeded = false;
+        if (offset < 0 || length < 0 || offset > data.Length - length) {
+            output = Array.Empty<byte>();
+            return false;
+        }
         if (maxOutputBytes < 0) {
             output = Array.Empty<byte>();
             return false;
         }
 
 #if NET6_0_OR_GREATER
-        if (TryZlib(data, maxOutputBytes, out var result, out bool zlibLimitExceeded, cancellationToken)) {
+        if (TryZlib(data, offset, length, maxOutputBytes, out var result, out bool zlibLimitExceeded, cancellationToken)) {
             output = result!;
             return true;
         }
@@ -58,7 +77,7 @@ internal static class FlateDecoder {
         }
 #endif
 
-        if (TryInflate(data, maxOutputBytes, out var result2, out bool inflateLimitExceeded, cancellationToken)) {
+        if (TryInflate(data, offset, length, maxOutputBytes, out var result2, out bool inflateLimitExceeded, cancellationToken)) {
             output = result2!;
             return true;
         }
@@ -69,10 +88,8 @@ internal static class FlateDecoder {
             return false;
         }
 
-        if (data.Length > 2 && IsLikelyZlib(data)) {
-            var sliced = new byte[data.Length - 2];
-            Buffer.BlockCopy(data, 2, sliced, 0, sliced.Length);
-            if (TryInflate(sliced, maxOutputBytes, out var result3, out bool slicedLimitExceeded, cancellationToken)) {
+        if (length > 2 && IsLikelyZlib(data, offset, length)) {
+            if (TryInflate(data, offset + 2, length - 2, maxOutputBytes, out var result3, out bool slicedLimitExceeded, cancellationToken)) {
                 output = result3!;
                 return true;
             }
@@ -88,14 +105,73 @@ internal static class FlateDecoder {
         return false;
     }
 
+    internal static bool TryValidate(
+        byte[] data,
+        int offset,
+        int length,
+        int maxOutputBytes,
+        out int decodedLength,
+        out bool limitExceeded,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        decodedLength = 0;
+        limitExceeded = false;
+        if (offset < 0 || length < 0 || offset > data.Length - length || maxOutputBytes < 0) {
+            return false;
+        }
+
+#if NET6_0_OR_GREATER
+        if (TryValidateZlib(data, offset, length, maxOutputBytes, out decodedLength, out bool zlibLimitExceeded, cancellationToken)) {
+            return true;
+        }
+        if (zlibLimitExceeded) {
+            limitExceeded = true;
+            return false;
+        }
+#endif
+
+        if (TryValidateInflate(data, offset, length, maxOutputBytes, out decodedLength, out bool inflateLimitExceeded, cancellationToken)) {
+            return true;
+        }
+        if (inflateLimitExceeded) {
+            limitExceeded = true;
+            return false;
+        }
+
+        if (length > 2 && IsLikelyZlib(data, offset, length)) {
+            if (TryValidateInflate(
+                    data,
+                    offset + 2,
+                    length - 2,
+                    maxOutputBytes,
+                    out decodedLength,
+                    out bool slicedLimitExceeded,
+                    cancellationToken)) {
+                return true;
+            }
+            limitExceeded = slicedLimitExceeded;
+        }
+        return false;
+    }
+
     private static bool TryInflate(
         byte[] input,
         int? maxOutputBytes,
         out byte[]? output,
         out bool limitExceeded,
+        CancellationToken cancellationToken = default) =>
+        TryInflate(input, 0, input.Length, maxOutputBytes, out output, out limitExceeded, cancellationToken);
+
+    private static bool TryInflate(
+        byte[] input,
+        int offset,
+        int length,
+        int? maxOutputBytes,
+        out byte[]? output,
+        out bool limitExceeded,
         CancellationToken cancellationToken = default) {
         try {
-            using var msIn = new MemoryStream(input);
+            using var msIn = new MemoryStream(input, offset, length, writable: false, publiclyVisible: false);
             using var ds = new DeflateStream(msIn, CompressionMode.Decompress, leaveOpen: true);
             return TryCopyToByteArray(ds, maxOutputBytes, out output, out limitExceeded, cancellationToken);
         } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
@@ -107,15 +183,46 @@ internal static class FlateDecoder {
         }
     }
 
+    private static bool TryValidateInflate(
+        byte[] input,
+        int offset,
+        int length,
+        int maxOutputBytes,
+        out int decodedLength,
+        out bool limitExceeded,
+        CancellationToken cancellationToken) {
+        try {
+            using var inputStream = new MemoryStream(input, offset, length, writable: false, publiclyVisible: false);
+            using var decoder = new DeflateStream(inputStream, CompressionMode.Decompress, leaveOpen: true);
+            return TryCountDecodedBytes(decoder, maxOutputBytes, out decodedLength, out limitExceeded, cancellationToken);
+        } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+            throw;
+        } catch {
+            decodedLength = 0;
+            limitExceeded = false;
+            return false;
+        }
+    }
+
 #if NET6_0_OR_GREATER
     private static bool TryZlib(
         byte[] input,
         int? maxOutputBytes,
         out byte[]? output,
         out bool limitExceeded,
+        CancellationToken cancellationToken = default) =>
+        TryZlib(input, 0, input.Length, maxOutputBytes, out output, out limitExceeded, cancellationToken);
+
+    private static bool TryZlib(
+        byte[] input,
+        int offset,
+        int length,
+        int? maxOutputBytes,
+        out byte[]? output,
+        out bool limitExceeded,
         CancellationToken cancellationToken = default) {
         try {
-            using var msIn = new MemoryStream(input);
+            using var msIn = new MemoryStream(input, offset, length, writable: false, publiclyVisible: false);
             using var zs = new ZLibStream(msIn, CompressionMode.Decompress, leaveOpen: true);
             return TryCopyToByteArray(zs, maxOutputBytes, out output, out limitExceeded, cancellationToken);
         } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
@@ -126,7 +233,60 @@ internal static class FlateDecoder {
             return false;
         }
     }
+
+    private static bool TryValidateZlib(
+        byte[] input,
+        int offset,
+        int length,
+        int maxOutputBytes,
+        out int decodedLength,
+        out bool limitExceeded,
+        CancellationToken cancellationToken) {
+        try {
+            using var inputStream = new MemoryStream(input, offset, length, writable: false, publiclyVisible: false);
+            using var decoder = new ZLibStream(inputStream, CompressionMode.Decompress, leaveOpen: true);
+            return TryCountDecodedBytes(decoder, maxOutputBytes, out decodedLength, out limitExceeded, cancellationToken);
+        } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+            throw;
+        } catch {
+            decodedLength = 0;
+            limitExceeded = false;
+            return false;
+        }
+    }
 #endif
+
+    private static bool TryCountDecodedBytes(
+        Stream source,
+        int maxOutputBytes,
+        out int decodedLength,
+        out bool limitExceeded,
+        CancellationToken cancellationToken) {
+        decodedLength = 0;
+        limitExceeded = false;
+#if NET8_0_OR_GREATER
+        byte[] buffer = ArrayPool<byte>.Shared.Rent(CopyBufferSize);
+#else
+        byte[] buffer = _validationBuffer ??= new byte[CopyBufferSize];
+#endif
+        try {
+            while (true) {
+                cancellationToken.ThrowIfCancellationRequested();
+                int read = source.Read(buffer, 0, buffer.Length);
+                if (read <= 0) return true;
+                if (decodedLength > maxOutputBytes - read) {
+                    decodedLength = 0;
+                    limitExceeded = true;
+                    return false;
+                }
+                decodedLength += read;
+            }
+        } finally {
+#if NET8_0_OR_GREATER
+            ArrayPool<byte>.Shared.Return(buffer);
+#endif
+        }
+    }
 
     private static bool TryCopyToByteArray(
         Stream source,
@@ -217,10 +377,14 @@ internal static class FlateDecoder {
 #endif
 
     private static bool IsLikelyZlib(byte[] d) {
+        return IsLikelyZlib(d, 0, d.Length);
+    }
+
+    private static bool IsLikelyZlib(byte[] d, int offset, int length) {
         // RFC1950: first byte CMF low 4 bits = 8 for deflate; checksum of first two bytes mod 31 == 0
-        if (d.Length < 2) return false;
-        bool deflate = (d[0] & 0x0F) == 8;
-        int cmfcm = (d[0] << 8) + d[1];
+        if (length < 2) return false;
+        bool deflate = (d[offset] & 0x0F) == 8;
+        int cmfcm = (d[offset] << 8) + d[offset + 1];
         bool mod = (cmfcm % 31) == 0;
         return deflate && mod;
     }

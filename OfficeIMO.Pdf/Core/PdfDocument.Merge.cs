@@ -11,9 +11,26 @@ public sealed partial class PdfDocument {
     public static PdfDocument Merge(PdfMergeOptions options, IEnumerable<PdfDocument> documents) =>
         MergeResult(options, documents).RequireValue();
 
-    /// <summary>Merges caller-owned PDF byte payloads using an explicit structure policy.</summary>
+    /// <summary>
+    /// Merges caller-owned PDF byte payloads using an explicit structure policy.
+    /// The inputs are consumed synchronously and are not retained by the returned document.
+    /// </summary>
     public static PdfDocument MergeBytes(PdfMergeOptions options, IEnumerable<byte[]> pdfs) =>
         MergeBytesResult(options, pdfs).RequireValue();
+
+    /// <summary>
+    /// Merges caller-owned PDF byte payloads using an explicit structure policy and returns the merged artifact directly.
+    /// The inputs are consumed synchronously and are not retained; the returned array is owned by the caller.
+    /// </summary>
+    public static byte[] MergeToBytes(PdfMergeOptions options, params byte[][] pdfs) =>
+        MergeToBytes(options, (IEnumerable<byte[]>)pdfs);
+
+    /// <summary>
+    /// Merges caller-owned PDF byte payloads using an explicit structure policy and returns the merged artifact directly.
+    /// The inputs are consumed synchronously and are not retained; the returned array is owned by the caller.
+    /// </summary>
+    public static byte[] MergeToBytes(PdfMergeOptions options, IEnumerable<byte[]> pdfs) =>
+        MergeBytesResult(options, pdfs).OwnedBytes;
 
     /// <summary>Merges loaded or generated documents with an explicit structure policy and returns readback evidence.</summary>
     public static PdfMergeResult MergeResult(PdfMergeOptions options, params PdfDocument[] documents) =>
@@ -37,7 +54,10 @@ public sealed partial class PdfDocument {
         return PdfMerger.MergeResult(options, bytes, readOptions);
     }
 
-    /// <summary>Merges caller-owned PDF byte payloads with an explicit structure policy and returns readback evidence.</summary>
+    /// <summary>
+    /// Merges caller-owned PDF byte payloads with an explicit structure policy and returns readback evidence.
+    /// The inputs are consumed synchronously and are not retained by the result.
+    /// </summary>
     public static PdfMergeResult MergeBytesResult(PdfMergeOptions options, IEnumerable<byte[]> pdfs) {
         Guard.NotNull(options, nameof(options));
         List<byte[]> sources = CollectMergeByteSources(pdfs, CancellationToken.None);
