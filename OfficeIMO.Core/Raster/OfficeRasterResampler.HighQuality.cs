@@ -13,7 +13,9 @@ public static partial class OfficeRasterResampler {
         int height,
         OfficeRasterResamplingMode mode,
         OfficeRasterResamplingColorSpace colorSpace,
-        long retainedManagedBytes, CancellationToken cancellationToken) {
+        long retainedManagedBytes,
+        CancellationToken cancellationToken,
+        Action? cancellationCheckpoint) {
         if (!TryMeasureSeparableWorkingSet(
                 source.Width,
                 source.Height,
@@ -27,6 +29,8 @@ public static partial class OfficeRasterResampler {
                 out _, cancellationToken)) {
             throw new ArgumentException(ScratchLimitMessage, nameof(source));
         }
+        cancellationCheckpoint?.Invoke();
+        cancellationToken.ThrowIfCancellationRequested();
         long horizontalFirstLength = (long)width * source.Height * 4L;
         long verticalFirstLength = (long)source.Width * height * 4L;
         AxisContributions horizontal = CreateContributions(

@@ -39,13 +39,21 @@ public sealed class BibliographyConversionDiagnostic {
 }
 
 /// <summary>Fidelity evidence for one bibliography write or conversion.</summary>
-public sealed class BibliographyConversionReport {
+public sealed class BibliographyConversionReport : global::OfficeIMO.IOfficeConversionReport {
     private readonly List<BibliographyConversionDiagnostic> _diagnostics = new List<BibliographyConversionDiagnostic>();
 
     /// <summary>Conversion decisions in deterministic item and field order.</summary>
     public IReadOnlyList<BibliographyConversionDiagnostic> Diagnostics => _diagnostics.AsReadOnly();
+    /// <summary>Category-preserving diagnostics for composed conversion routes.</summary>
+    public IReadOnlyList<global::OfficeIMO.OfficeConversionFidelityDiagnostic> FidelityDiagnostics =>
+        Array.AsReadOnly(_diagnostics.Select(static diagnostic => new global::OfficeIMO.OfficeConversionFidelityDiagnostic(
+            diagnostic.Code,
+            diagnostic.Message,
+            GetLossKind(diagnostic),
+            "OfficeIMO.Bibliography",
+            GetLocation(diagnostic))).ToArray());
     /// <summary>True when any value was approximated, omitted, or failed.</summary>
-    public bool HasLoss => _diagnostics.Any(static diagnostic => diagnostic.Action == BibliographyConversionAction.Approximated || diagnostic.Action == BibliographyConversionAction.Omitted || diagnostic.Severity == BibliographyDiagnosticSeverity.Error);
+    public bool HasLoss => _diagnostics.Any(static diagnostic => GetLossKind(diagnostic) != global::OfficeIMO.OfficeConversionLossKind.None);
 
     internal void Add(string code, BibliographyDiagnosticSeverity severity, string message, BibliographyConversionAction action, BibliographyItem? item = null, string? field = null) =>
         _diagnostics.Add(new BibliographyConversionDiagnostic(code, severity, message, action, item?.Key, field));
@@ -62,6 +70,22 @@ public sealed class BibliographyConversionReport {
     /// <summary>Throws when the report contains conversion loss.</summary>
     public void RequireNoLoss() {
         if (HasLoss) throw new BibliographyConversionLossException(this);
+    }
+
+    private static global::OfficeIMO.OfficeConversionLossKind GetLossKind(BibliographyConversionDiagnostic diagnostic) {
+        if (diagnostic.Severity == BibliographyDiagnosticSeverity.Error) return global::OfficeIMO.OfficeConversionLossKind.Failure;
+        return diagnostic.Action switch {
+            BibliographyConversionAction.Approximated => global::OfficeIMO.OfficeConversionLossKind.Approximation,
+            BibliographyConversionAction.Omitted => global::OfficeIMO.OfficeConversionLossKind.Omission,
+            _ => global::OfficeIMO.OfficeConversionLossKind.None
+        };
+    }
+
+    private static string? GetLocation(BibliographyConversionDiagnostic diagnostic) {
+        if (string.IsNullOrWhiteSpace(diagnostic.ItemKey)) return diagnostic.Field;
+        return string.IsNullOrWhiteSpace(diagnostic.Field)
+            ? diagnostic.ItemKey
+            : diagnostic.ItemKey + ":" + diagnostic.Field;
     }
 }
 

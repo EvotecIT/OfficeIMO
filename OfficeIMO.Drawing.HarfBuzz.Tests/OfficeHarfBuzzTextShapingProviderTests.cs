@@ -73,6 +73,7 @@ public sealed class OfficeHarfBuzzTextShapingProviderTests {
         var text = Assert.Single(XDocument.Parse(svg).Descendants(), element => element.Name.LocalName == "text");
         Assert.Equal(evidence.Text, text.Value);
         Assert.Equal("vertical-rl", text.Attribute("writing-mode")?.Value);
+        Assert.Equal("start", text.Attribute("text-anchor")?.Value);
         Assert.Equal("browser-native", text.Attribute("data-officeimo-shaping-backend")?.Value);
     }
 

@@ -50,7 +50,8 @@ public static partial class OfficeRasterResampler {
         OfficeRasterResamplingMode mode,
         OfficeRasterResamplingColorSpace colorSpace,
         long retainedManagedBytes,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default,
+        Action? cancellationCheckpoint = null) {
         cancellationToken.ThrowIfCancellationRequested();
         if (source == null) throw new ArgumentNullException(nameof(source));
         if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
@@ -74,7 +75,7 @@ public static partial class OfficeRasterResampler {
         }
 
         if (mode == OfficeRasterResamplingMode.Area || mode == OfficeRasterResamplingMode.Lanczos3) {
-            return ResizeSeparable(source, width, height, mode, colorSpace, retainedManagedBytes, cancellationToken);
+            return ResizeSeparable(source, width, height, mode, colorSpace, retainedManagedBytes, cancellationToken, cancellationCheckpoint);
         }
 
         EnsureSimpleWorkingSet(source, width, height, retainedManagedBytes);

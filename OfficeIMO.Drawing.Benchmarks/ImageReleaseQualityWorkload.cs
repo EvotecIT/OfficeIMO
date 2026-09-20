@@ -236,6 +236,7 @@ public sealed class ImageReleaseQualityWorkload {
         EncodedBytes = pixels.LongLength;
         OutputSha256 = Convert.ToHexString(SHA256.HashData(pixels));
         Deterministic = pixels.AsSpan().SequenceEqual(repeated) ? 1 : 0;
+        CancellationLatencyMilliseconds = MeasureResizeCancellation();
     }
 
     private void RecordEncoded(byte[] bytes, bool deterministic) {
@@ -285,6 +286,41 @@ public sealed class ImageReleaseQualityWorkload {
         return Stopwatch.GetElapsedTime(requestedAt).TotalMilliseconds;
     }
 
+    private double MeasureResizeCancellation() {
+        using var started = new ManualResetEventSlim();
+        using var requested = new ManualResetEventSlim();
+        using var cancellation = new CancellationTokenSource();
+        long requestedAt = 0L;
+        var thread = new Thread(() => {
+            started.Wait();
+            Volatile.Write(ref requestedAt, Stopwatch.GetTimestamp());
+            cancellation.Cancel();
+            requested.Set();
+        }) { IsBackground = true };
+        thread.Start();
+        try {
+            ExpectException<OperationCanceledException>(() => OfficeRasterResampler.Resize(
+                _source,
+                Math.Max(1, _source.Width / 2),
+                Math.Max(1, _source.Height / 2),
+                OfficeRasterResamplingMode.Lanczos3,
+                OfficeRasterResamplingColorSpace.EncodedSrgb,
+                retainedManagedBytes: 0L,
+                cancellationToken: cancellation.Token,
+                cancellationCheckpoint: () => {
+                    started.Set();
+                    if (!requested.Wait(TimeSpan.FromSeconds(5))) {
+                        throw new InvalidOperationException("Cancellation request did not arrive.");
+                    }
+                }));
+        } finally {
+            started.Set();
+            thread.Join();
+        }
+        if (requestedAt == 0L) throw new InvalidOperationException("The resampler did not reach its cancellation checkpoint.");
+        return Stopwatch.GetElapsedTime(requestedAt).TotalMilliseconds;
+    }
+
     private OfficeImageOptimizationRequest CreateOptimizationRequest() => new(Math.Max(1, _source.Width / 2), Math.Max(1, _source.Height / 2)) {
         PreserveAspectRatio = false,
         ResamplingMode = OfficeRasterResamplingMode.Lanczos3,
@@ -302,7 +338,12 @@ public sealed class ImageReleaseQualityWorkload {
     };
 
     private static OfficeRasterImage Resize(OfficeRasterImage source) => OfficeRasterResampler.Resize(
-        source, Math.Max(1, source.Width / 2), Math.Max(1, source.Height / 2), OfficeRasterResamplingMode.Lanczos3);
+        source,
+        Math.Max(1, source.Width / 2),
+        Math.Max(1, source.Height / 2),
+        OfficeRasterResamplingMode.Lanczos3,
+        OfficeRasterResamplingColorSpace.EncodedSrgb,
+        CancellationToken.None);
 
     private static OfficeRasterImage Decode(byte[] bytes) {
         if (!OfficeRasterImageDecoder.TryDecode(bytes, out OfficeRasterImage? image) || image == null)

@@ -25,8 +25,8 @@ public sealed class OdfSaveReport : global::OfficeIMO.IOfficeConversionReport {
                 "ODF_ENTRY_REMOVED", "The source package entry was removed.",
                 global::OfficeIMO.OfficeConversionLossKind.Omission, "OfficeIMO.OpenDocument", entry))
             .Concat(LossyEntries.Select(entry => new global::OfficeIMO.OfficeConversionFidelityDiagnostic(
-                "ODF_ENTRY_PROJECTED", "The source package entry was projected with reduced fidelity.",
-                global::OfficeIMO.OfficeConversionLossKind.Approximation, "OfficeIMO.OpenDocument", entry)))
+                "ODF_ENTRY_OMITTED", "The source package entry was not represented in the flat document.",
+                global::OfficeIMO.OfficeConversionLossKind.Omission, "OfficeIMO.OpenDocument", entry)))
             .ToArray());
 
     /// <summary>True when an entry was removed or projected lossily.</summary>

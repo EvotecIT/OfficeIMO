@@ -75,9 +75,7 @@ public static partial class OfficeDrawingSvgExporter {
         double fontSize = sourceFontSize * text.BaselineScale;
         double y = contentY + sourceFontSize + text.BaselineOffset;
         double lineHeight = text.LineHeight ?? sourceFontSize * 1.2D;
-        double advance = text.TextAdvanceWidth ?? Math.Max(
-            0.001D,
-            textMetrics.MeasureText(text.Text, fontSize, text.Font.FamilyName, text.Font.Style));
+        double? advance = text.TextAdvanceWidth;
         sb.AppendSvgPositionedTextElement(
             text.Text,
             x,
