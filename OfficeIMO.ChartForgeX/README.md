@@ -107,7 +107,7 @@ var links = report.CrossPageLinks.Select(link => new OfficeVisioVisualBookLink(
     link.TargetPage, link.TargetNodeId,
     link.EdgeId));
 
-var book = envelopes.ToOfficeVisioBook(links, new OfficeVisioVisualBookOptions {
+var book = envelopes.ToOfficeVisioBookWithNavigation(links, new OfficeVisioVisualBookOptions {
     MaximumNavigationLinksPerEntity = 12,
     IncludeReturnLinks = true
 });

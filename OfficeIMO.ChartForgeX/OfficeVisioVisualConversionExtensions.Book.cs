@@ -22,7 +22,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
     /// Projects semantic envelopes into one editable multi-page Visio document and adds bounded,
     /// reciprocal navigation for relationships that cross page boundaries.
     /// </summary>
-    public static OfficeVisioVisualBookResult ToOfficeVisioBook(
+    public static OfficeVisioVisualBookResult ToOfficeVisioBookWithNavigation(
         this IEnumerable<VisualArtifactInterchangeEnvelope> envelopes,
         IEnumerable<OfficeVisioVisualBookLink> links,
         OfficeVisioVisualBookOptions? bookOptions = null,
@@ -48,16 +48,19 @@ public static partial class OfficeVisioVisualConversionExtensions {
         }
         var document = VisioDocument.Create();
         var pages = new List<OfficeVisioVisualConversionResult>();
+        var projections = new List<BookPageProjection>();
         var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var envelope in source) {
             string baseName = string.IsNullOrWhiteSpace(envelope.Title) ? options.PageName : envelope.Title;
             string name = baseName;
             int suffix = 2;
             while (!names.Add(name)) name = baseName + " (" + suffix++ + ")";
-            pages.Add(ProjectPage(envelope, document, options.ForPage(name)));
+            OfficeVisioVisualConversionResult page = ProjectPage(envelope, document, options.ForPage(name));
+            pages.Add(page);
+            projections.Add(new BookPageProjection(envelope, page));
         }
 
-        List<PendingNavigation> requestedNavigations = BuildRequestedNavigations(requestedLinks, pages, bookOptions.IncludeReturnLinks);
+        List<PendingNavigation> requestedNavigations = BuildRequestedNavigations(requestedLinks, projections, bookOptions.IncludeReturnLinks);
         List<PendingNavigation> distinctNavigations = CoalesceNavigations(requestedNavigations);
         var applied = new List<OfficeVisioVisualBookNavigationResult>();
         int omitted = ApplyNavigationLinks(distinctNavigations, pages, bookOptions, applied);
@@ -72,17 +75,19 @@ public static partial class OfficeVisioVisualConversionExtensions {
 
     private static List<PendingNavigation> BuildRequestedNavigations(
         IReadOnlyList<OfficeVisioVisualBookLink> links,
-        IReadOnlyList<OfficeVisioVisualConversionResult> pages,
+        IReadOnlyList<BookPageProjection> pages,
         bool includeReturnLinks) {
         var result = new List<PendingNavigation>();
         for (int index = 0; index < links.Count; index++) {
             OfficeVisioVisualBookLink link = links[index] ?? throw new ArgumentException("Links cannot contain a null value.", nameof(links));
-            ValidateLink(link, pages, index);
+            (VisioShape sourceShape, VisioShape targetShape) = ResolveLink(link, pages, index);
             result.Add(new PendingNavigation(
                 link.SourcePageNumber,
                 link.SourceEntityId,
+                sourceShape,
                 link.TargetPageNumber,
                 link.TargetEntityId,
+                targetShape,
                 link.RelationshipId,
                 link.Description,
                 false));
@@ -90,8 +95,10 @@ public static partial class OfficeVisioVisualConversionExtensions {
                 result.Add(new PendingNavigation(
                     link.TargetPageNumber,
                     link.TargetEntityId,
+                    targetShape,
                     link.SourcePageNumber,
                     link.SourceEntityId,
+                    sourceShape,
                     link.RelationshipId,
                     link.ReturnDescription,
                     true));
@@ -100,9 +107,9 @@ public static partial class OfficeVisioVisualConversionExtensions {
         return result;
     }
 
-    private static void ValidateLink(
+    private static (VisioShape Source, VisioShape Target) ResolveLink(
         OfficeVisioVisualBookLink link,
-        IReadOnlyList<OfficeVisioVisualConversionResult> pages,
+        IReadOnlyList<BookPageProjection> pages,
         int index) {
         if (link.SourcePageNumber < 1 || link.SourcePageNumber > pages.Count) {
             throw new ArgumentOutOfRangeException(nameof(link.SourcePageNumber), $"Link {index + 1} references source page {link.SourcePageNumber}; the book contains {pages.Count} pages.");
@@ -119,18 +126,19 @@ public static partial class OfficeVisioVisualConversionExtensions {
         if (string.IsNullOrWhiteSpace(link.TargetEntityId)) {
             throw new ArgumentException($"Link {index + 1} has an empty target entity identifier.", nameof(link));
         }
-        ResolveShape(pages[link.SourcePageNumber - 1].Page, link.SourceEntityId, "source", index);
-        ResolveShape(pages[link.TargetPageNumber - 1].Page, link.TargetEntityId, "target", index);
+        VisioShape source = pages[link.SourcePageNumber - 1].Resolve(link.SourceEntityId, "source", index);
+        VisioShape target = pages[link.TargetPageNumber - 1].Resolve(link.TargetEntityId, "target", index);
+        return (source, target);
     }
 
     private static List<PendingNavigation> CoalesceNavigations(IEnumerable<PendingNavigation> requested) {
         var result = new List<PendingNavigation>();
         foreach (IGrouping<string, PendingNavigation> group in requested.GroupBy(
-                     item => NavigationKey(item.SourcePageNumber, item.SourceEntityId),
+                     item => NavigationKey(item.SourcePageNumber, item.SourceShape.Id),
                      StringComparer.Ordinal)) {
             var distinct = new Dictionary<string, PendingNavigation>(StringComparer.Ordinal);
             foreach (PendingNavigation item in group) {
-                string targetKey = NavigationKey(item.TargetPageNumber, item.TargetEntityId);
+                string targetKey = NavigationKey(item.TargetPageNumber, item.TargetShape.Id);
                 if (!distinct.TryGetValue(targetKey, out PendingNavigation? existing)) {
                     distinct.Add(targetKey, item);
                     result.Add(item);
@@ -153,18 +161,17 @@ public static partial class OfficeVisioVisualConversionExtensions {
         ICollection<OfficeVisioVisualBookNavigationResult> applied) {
         int omittedTotal = 0;
         foreach (IGrouping<string, PendingNavigation> group in navigations.GroupBy(
-                     item => NavigationKey(item.SourcePageNumber, item.SourceEntityId),
+                     item => NavigationKey(item.SourcePageNumber, item.SourceShape.Id),
                      StringComparer.Ordinal)) {
             List<PendingNavigation> sourceNavigations = group.ToList();
             int appliedCount = Math.Min(sourceNavigations.Count, options.MaximumNavigationLinksPerEntity);
             int omitted = sourceNavigations.Count - appliedCount;
             omittedTotal += omitted;
-            VisioPage sourcePage = pages[sourceNavigations[0].SourcePageNumber - 1].Page;
-            VisioShape sourceShape = ResolveShape(sourcePage, sourceNavigations[0].SourceEntityId, "source", 0);
+            VisioShape sourceShape = sourceNavigations[0].SourceShape;
             for (int index = 0; index < appliedCount; index++) {
                 PendingNavigation navigation = sourceNavigations[index];
                 VisioPage targetPage = pages[navigation.TargetPageNumber - 1].Page;
-                VisioShape targetShape = ResolveShape(targetPage, navigation.TargetEntityId, "target", 0);
+                VisioShape targetShape = navigation.TargetShape;
                 string description = string.IsNullOrWhiteSpace(navigation.Description)
                     ? (navigation.IsReturnLink ? "Back to " : "Open ") + targetPage.Name + ": " + DisplayShapeName(targetShape, navigation.TargetEntityId)
                     : navigation.Description!;
@@ -199,21 +206,6 @@ public static partial class OfficeVisioVisualConversionExtensions {
         }
     }
 
-    private static VisioShape ResolveShape(VisioPage page, string entityId, string role, int linkIndex) {
-        VisioShape[] direct = page.Shapes.Where(shape => string.Equals(shape.Id, entityId, StringComparison.Ordinal)).ToArray();
-        if (direct.Length == 1) return direct[0];
-        VisioShape[] semantic = page.Shapes.Where(shape =>
-            string.Equals(shape.GetShapeDataValue("CFX.Id"), entityId, StringComparison.Ordinal)).ToArray();
-        if (semantic.Length == 1) return semantic[0];
-        VisioShape[] source = page.Shapes.Where(shape =>
-            string.Equals(shape.GetShapeDataValue("Extension.chartforgex.sourceId"), entityId, StringComparison.Ordinal)).ToArray();
-        if (source.Length == 1) return source[0];
-        if (direct.Length + semantic.Length + source.Length == 0) {
-            throw new ArgumentException($"Link {linkIndex + 1} {role} entity '{entityId}' was not projected on page '{page.Name}'.", "links");
-        }
-        throw new ArgumentException($"Link {linkIndex + 1} {role} entity '{entityId}' is ambiguous on page '{page.Name}'.", "links");
-    }
-
     private static string DisplayShapeName(VisioShape shape, string fallback) =>
         string.IsNullOrWhiteSpace(shape.Text) ? fallback : shape.Text!.Replace(Environment.NewLine, " — ");
 
@@ -224,15 +216,19 @@ public static partial class OfficeVisioVisualConversionExtensions {
         public PendingNavigation(
             int sourcePageNumber,
             string sourceEntityId,
+            VisioShape sourceShape,
             int targetPageNumber,
             string targetEntityId,
+            VisioShape targetShape,
             string? relationshipId,
             string? description,
             bool isReturnLink) {
             SourcePageNumber = sourcePageNumber;
             SourceEntityId = sourceEntityId;
+            SourceShape = sourceShape;
             TargetPageNumber = targetPageNumber;
             TargetEntityId = targetEntityId;
+            TargetShape = targetShape;
             Description = description;
             IsReturnLink = isReturnLink;
             if (!string.IsNullOrWhiteSpace(relationshipId)) RelationshipIds.Add(relationshipId!);
@@ -240,11 +236,52 @@ public static partial class OfficeVisioVisualConversionExtensions {
 
         public int SourcePageNumber { get; }
         public string SourceEntityId { get; }
+        public VisioShape SourceShape { get; }
         public int TargetPageNumber { get; }
         public string TargetEntityId { get; }
+        public VisioShape TargetShape { get; }
         public string? Description { get; }
         public bool IsReturnLink { get; }
         public List<string> RelationshipIds { get; } = new();
+    }
+
+    private sealed class BookPageProjection {
+        private readonly Dictionary<string, List<VisioShape>> _aliases = new(StringComparer.Ordinal);
+
+        public BookPageProjection(VisualArtifactInterchangeEnvelope envelope, OfficeVisioVisualConversionResult result) {
+            Result = result;
+            foreach (VisioShape shape in result.Page.Shapes) {
+                AddAlias(shape.Id, shape);
+                AddAlias(shape.GetShapeDataValue("CFX.Id"), shape);
+            }
+            foreach (VisualArtifactInterchangeNode node in envelope.Nodes) {
+                if (!_aliases.TryGetValue(node.Id, out List<VisioShape>? shapes)) continue;
+                if (node.Extensions.TryGetValue("chartforgex.sourceId", out string? sourceId)) {
+                    foreach (VisioShape shape in shapes.ToArray()) AddAlias(sourceId, shape);
+                }
+            }
+        }
+
+        public OfficeVisioVisualConversionResult Result { get; }
+
+        public VisioShape Resolve(string entityId, string role, int linkIndex) {
+            if (!_aliases.TryGetValue(entityId, out List<VisioShape>? matches) || matches.Count == 0) {
+                throw new ArgumentException($"Link {linkIndex + 1} {role} entity '{entityId}' was not projected on page '{Result.Page.Name}'.", "links");
+            }
+            if (matches.Count != 1) {
+                throw new ArgumentException($"Link {linkIndex + 1} {role} entity '{entityId}' is ambiguous on page '{Result.Page.Name}'.", "links");
+            }
+            return matches[0];
+        }
+
+        private void AddAlias(string? alias, VisioShape shape) {
+            if (string.IsNullOrWhiteSpace(alias)) return;
+            if (!_aliases.TryGetValue(alias!, out List<VisioShape>? matches)) {
+                matches = new List<VisioShape>();
+                _aliases.Add(alias!, matches);
+            }
+            if (!matches.Contains(shape)) matches.Add(shape);
+        }
     }
 }
 

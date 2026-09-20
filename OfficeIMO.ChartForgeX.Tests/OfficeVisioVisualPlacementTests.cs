@@ -149,7 +149,7 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
             new OfficeVisioVisualBookLink(1, "api", 2, "database", "api-database-b")
         };
 
-        OfficeVisioVisualBookResult book = new[] { first, second }.ToOfficeVisioBook(links);
+        OfficeVisioVisualBookResult book = new[] { first, second }.ToOfficeVisioBookWithNavigation(links);
 
         Assert.Equal(4, book.RequestedNavigationCount);
         Assert.Equal(2, book.CoalescedNavigationCount);
@@ -199,7 +199,7 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
             MaximumNavigationLinksPerEntity = 2
         };
 
-        OfficeVisioVisualBookResult book = pages.ToOfficeVisioBook(links, bookOptions);
+        OfficeVisioVisualBookResult book = pages.ToOfficeVisioBookWithNavigation(links, bookOptions);
 
         Assert.Equal(3, book.RequestedNavigationCount);
         Assert.Equal(2, book.Navigations.Count);
@@ -218,23 +218,67 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
         first.Edges[0].SourceId = "bounded-node-id";
         var second = PlacementEnvelope();
 
-        OfficeVisioVisualBookResult book = new[] { first, second }.ToOfficeVisioBook(new[] {
+        OfficeVisioVisualBookResult book = new[] { first, second }.ToOfficeVisioBookWithNavigation(new[] {
             new OfficeVisioVisualBookLink(1, "original-node-id", 2, "database")
-        });
+        }, options: new OfficeVisioVisualOptions { IncludeShapeData = false });
 
         VisioShape projected = book.Pages[0].Page.Shapes.Single(shape => shape.Id == "bounded-node-id");
         Assert.Equal(book.Pages[1].Page.Name, Assert.Single(projected.Hyperlinks).SubAddress);
     }
 
     [Fact]
+    public void BookNormalizesAliasesBeforeDeduplicationAndBounds() {
+        var first = PlacementEnvelope();
+        first.Nodes[0].Id = "bounded-node-id";
+        first.Nodes[0].Extensions["chartforgex.sourceId"] = "original-node-id";
+        first.Edges[0].SourceId = "bounded-node-id";
+        var second = PlacementEnvelope();
+        var links = new[] {
+            new OfficeVisioVisualBookLink(1, "bounded-node-id", 2, "database", "projected"),
+            new OfficeVisioVisualBookLink(1, "original-node-id", 2, "database", "original")
+        };
+
+        OfficeVisioVisualBookResult book = new[] { first, second }.ToOfficeVisioBookWithNavigation(
+            links,
+            new OfficeVisioVisualBookOptions { IncludeReturnLinks = false, MaximumNavigationLinksPerEntity = 1 },
+            new OfficeVisioVisualOptions { IncludeShapeData = false });
+
+        Assert.Equal(2, book.RequestedNavigationCount);
+        Assert.Equal(1, book.CoalescedNavigationCount);
+        Assert.Equal(0, book.OmittedNavigationCount);
+        Assert.Single(book.Navigations);
+        Assert.Equal(new[] { "projected", "original" }, book.Navigations[0].RelationshipIds);
+        Assert.Single(book.Pages[0].Page.Shapes.Single(shape => shape.Id == "bounded-node-id").Hyperlinks);
+    }
+
+    [Fact]
+    public void BookRejectsAliasesThatIdentifyDifferentShapes() {
+        var first = PlacementEnvelope();
+        first.Nodes[0].Id = "bounded-node-id";
+        first.Nodes[0].Extensions["chartforgex.sourceId"] = "original-node-id";
+        first.Nodes[1].Id = "original-node-id";
+        first.Edges[0].SourceId = "bounded-node-id";
+        first.Edges[0].TargetId = "original-node-id";
+        var second = PlacementEnvelope();
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+            new[] { first, second }.ToOfficeVisioBookWithNavigation(new[] {
+                new OfficeVisioVisualBookLink(1, "original-node-id", 2, "database")
+            }));
+
+        Assert.Contains("ambiguous", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void BookRejectsOutOfRangePagesAndUnprojectedEntities() {
         var pages = new[] { PlacementEnvelope(), PlacementEnvelope() };
-        Assert.Throws<ArgumentOutOfRangeException>(() => pages.ToOfficeVisioBook(new[] {
+        Assert.Throws<ArgumentOutOfRangeException>(() => pages.ToOfficeVisioBookWithNavigation(new[] {
             new OfficeVisioVisualBookLink(1, "api", 3, "database")
         }));
-        Assert.Throws<ArgumentException>(() => pages.ToOfficeVisioBook(new[] {
+        Assert.Throws<ArgumentException>(() => pages.ToOfficeVisioBookWithNavigation(new[] {
             new OfficeVisioVisualBookLink(1, "missing", 2, "database")
         }));
+        Assert.Equal(2, pages.ToOfficeVisioBook((OfficeVisioVisualOptions?)null).Pages.Count);
     }
 
     [Fact]
