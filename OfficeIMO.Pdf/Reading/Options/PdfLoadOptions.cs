@@ -49,6 +49,7 @@ public sealed class PdfLoadOptions {
 
     internal static PdfLoadOptions WithMinimumInputBytes(PdfLoadOptions? options, long minimumInputBytes) {
         PdfLoadOptions effective = Resolve(options);
+        if (minimumInputBytes <= effective.Limits.MaxInputBytes) return effective;
         return new PdfLoadOptions {
             ParsingMode = effective.ParsingMode,
             Limits = effective.Limits.WithMinimumInputBytes(minimumInputBytes),

@@ -41,7 +41,7 @@ internal static partial class PdfRedactionApplier {
                 break;
             }
 
-            byte[] contentBytes = StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, GetMutationDecodeLimit(stream, limits, sourceStreamIdentities));
+            byte[] contentBytes = StreamDecoder.DecodeRequired(stream, objects, GetMutationDecodeLimit(stream, limits, sourceStreamIdentities));
             contentSegments.Add(PdfEncoding.Latin1GetString(contentBytes));
         }
 
@@ -84,7 +84,7 @@ internal static partial class PdfRedactionApplier {
                     continue;
                 }
 
-                string content = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, GetMutationDecodeLimit(stream, limits, sourceStreamIdentities)));
+                string content = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(stream, objects, GetMutationDecodeLimit(stream, limits, sourceStreamIdentities)));
                 string scrubbed = ScrubTextObjects(content, textTargets, fontDecoders, fontWidthProviders, new[] { Matrix2D.Identity }, limits, graphicsState, extGStateFonts, verticalWritingFonts);
                 changed = ReplacePageContentStreamIfChanged(
                     objects,
@@ -172,7 +172,7 @@ internal static partial class PdfRedactionApplier {
                 continue;
             }
 
-            contentSegments[index] = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, GetMutationDecodeLimit(stream, limits, sourceStreamIdentities)));
+            contentSegments[index] = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(stream, objects, GetMutationDecodeLimit(stream, limits, sourceStreamIdentities)));
         }
 
         bool changed = false;

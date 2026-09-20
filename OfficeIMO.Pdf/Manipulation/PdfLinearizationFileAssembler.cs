@@ -155,9 +155,10 @@ internal static class PdfLinearizationFileAssembler {
         long retainedBytes = 0L;
         byte[] SerializeObject(int sourceId) {
             options.CancellationToken.ThrowIfCancellationRequested();
-            byte[] bytes = PdfObjectBytes.WrapIndirectObject(
+            byte[] bytes = PdfPageExtractor.SerializeIndirectObject(
                 numbering.NumberMap[sourceId],
-                PdfPageExtractor.SerializeObject(objects[sourceId].Value, context));
+                objects[sourceId].Value,
+                context);
             retainedBytes = AddRetainedBytes(retainedBytes, bytes.LongLength, options.MaximumOutputBytes);
             return bytes;
         }

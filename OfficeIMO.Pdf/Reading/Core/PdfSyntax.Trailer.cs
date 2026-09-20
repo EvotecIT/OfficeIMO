@@ -16,38 +16,80 @@ internal static partial class PdfSyntax {
         out PdfReference reference) {
         reference = null!;
         if (string.IsNullOrWhiteSpace(trailerRaw) || string.IsNullOrWhiteSpace(key)) return false;
-        string raw = trailerRaw!;
-        PdfReadLimits effectiveLimits = limits ?? new PdfReadLimits();
         int searchIndex = 0;
-        while (searchIndex < raw.Length) {
-            int trailerIndex = raw.IndexOf("trailer", searchIndex, StringComparison.OrdinalIgnoreCase);
-            if (trailerIndex < 0) return false;
-            int dictionaryStart = SkipWhitespaceAndComments(raw, trailerIndex + 7, raw.Length);
-            if (dictionaryStart > raw.Length - 2 ||
-                raw[dictionaryStart] != '<' ||
-                raw[dictionaryStart + 1] != '<') return false;
-            int dictionaryEnd = FindDictEnd(raw, dictionaryStart, raw.Length);
-            if (dictionaryEnd <= dictionaryStart ||
-                dictionaryEnd - dictionaryStart - 2 > effectiveLimits.MaxObjectCharacters) return false;
-            try {
-                PdfDictionary dictionary = ParseDictionary(
-                    raw.Substring(dictionaryStart + 2, dictionaryEnd - dictionaryStart - 2),
-                    effectiveLimits);
-                if (dictionary.Items.TryGetValue(key, out PdfObject? value)) {
-                    if (value is PdfReference found) {
-                        reference = found;
-                        return true;
-                    }
-                    // A later trailer entry overrides the same key in every earlier revision.
-                    // Explicit null or another non-reference value therefore suppresses inheritance.
-                    return false;
+        PdfReadLimits effectiveLimits = limits ?? new PdfReadLimits();
+        while (TryReadNextTrailerDictionary(trailerRaw!, ref searchIndex, effectiveLimits, out PdfDictionary dictionary)) {
+            if (dictionary.Items.TryGetValue(key, out PdfObject? value)) {
+                if (value is PdfReference found) {
+                    reference = found;
+                    return true;
                 }
-            } catch (Exception exception) when (exception is not OutOfMemoryException) {
+                // A later trailer entry overrides the same key in every earlier revision.
                 return false;
             }
-            searchIndex = dictionaryEnd;
         }
         return false;
+    }
+
+    /// <summary>Reads up to three trailer references in one chain scan, retaining explicit non-reference overrides.</summary>
+    internal static (PdfReference? First, PdfReference? Second, PdfReference? Third) ReadTrailerReferences(
+        string? trailerRaw,
+        string firstKey,
+        string? secondKey,
+        string? thirdKey,
+        PdfReadLimits? limits) {
+        if (string.IsNullOrWhiteSpace(trailerRaw) || string.IsNullOrWhiteSpace(firstKey)) return default;
+        PdfReadLimits effectiveLimits = limits ?? new PdfReadLimits();
+        PdfReference? first = null;
+        PdfReference? second = null;
+        PdfReference? third = null;
+        bool foundFirst = false;
+        bool foundSecond = string.IsNullOrWhiteSpace(secondKey);
+        bool foundThird = string.IsNullOrWhiteSpace(thirdKey);
+        int searchIndex = 0;
+        while (TryReadNextTrailerDictionary(trailerRaw!, ref searchIndex, effectiveLimits, out PdfDictionary dictionary)) {
+            if (!foundFirst && dictionary.Items.TryGetValue(firstKey, out PdfObject? firstValue)) {
+                foundFirst = true;
+                first = firstValue as PdfReference;
+            }
+            if (!foundSecond && dictionary.Items.TryGetValue(secondKey!, out PdfObject? secondValue)) {
+                foundSecond = true;
+                second = secondValue as PdfReference;
+            }
+            if (!foundThird && dictionary.Items.TryGetValue(thirdKey!, out PdfObject? thirdValue)) {
+                foundThird = true;
+                third = thirdValue as PdfReference;
+            }
+            if (foundFirst && foundSecond && foundThird) break;
+        }
+        return (first, second, third);
+    }
+
+    private static bool TryReadNextTrailerDictionary(
+        string raw,
+        ref int searchIndex,
+        PdfReadLimits limits,
+        out PdfDictionary dictionary) {
+        dictionary = null!;
+        if (searchIndex >= raw.Length) return false;
+        int trailerIndex = raw.IndexOf("trailer", searchIndex, StringComparison.OrdinalIgnoreCase);
+        if (trailerIndex < 0) return false;
+        int dictionaryStart = SkipWhitespaceAndComments(raw, trailerIndex + 7, raw.Length);
+        if (dictionaryStart > raw.Length - 2 ||
+            raw[dictionaryStart] != '<' ||
+            raw[dictionaryStart + 1] != '<') return false;
+        int dictionaryEnd = FindDictEnd(raw, dictionaryStart, raw.Length);
+        if (dictionaryEnd <= dictionaryStart ||
+            dictionaryEnd - dictionaryStart - 2 > limits.MaxObjectCharacters) return false;
+        try {
+            dictionary = ParseDictionary(
+                raw.Substring(dictionaryStart + 2, dictionaryEnd - dictionaryStart - 2),
+                limits);
+            searchIndex = dictionaryEnd;
+            return true;
+        } catch (Exception exception) when (exception is not OutOfMemoryException) {
+            return false;
+        }
     }
 
     internal static byte[]? ReadPermanentTrailerIdentifier(string trailerRaw) {

@@ -55,9 +55,9 @@ internal static partial class PdfPageExtractor {
             sb.Append("/Type /Page ");
         }
     
-        sb.Append("/Parent ")
-            .Append(PdfSyntaxEscaper.IndirectReference(context.PagesObjectId))
-            .Append(' ');
+        sb.Append("/Parent ");
+        PdfSyntaxEscaper.AppendIndirectReference(sb, context.PagesObjectId);
+        sb.Append(' ');
     
         if (context.MaterializedPageValues.TryGetValue(sourceId, out var inherited)) {
             foreach (var entry in inherited) {
@@ -78,7 +78,7 @@ internal static partial class PdfPageExtractor {
         }
     
         sb.Append(">>\n");
-        return PdfEncoding.Latin1GetBytes(sb.ToString());
+        return PdfEncoding.Latin1GetBytes(sb);
     }
     
     internal static byte[] SerializeObject(PdfObject value, SerializationContext context) {
@@ -89,8 +89,23 @@ internal static partial class PdfPageExtractor {
         var sb = new StringBuilder();
         AppendObject(sb, value, context);
         sb.Append('\n');
-        return PdfEncoding.Latin1GetBytes(sb.ToString());
+        return PdfEncoding.Latin1GetBytes(sb);
     }
+
+    /// <summary>Serializes an indirect object without buffering a stream body a second time.</summary>
+    internal static byte[] SerializeIndirectObject(int objectNumber, PdfObject value, SerializationContext context) =>
+        value is PdfStream stream
+            ? PdfObjectBytes.WrapStreamObject(objectNumber, BuildStreamDictionary(stream, context), stream)
+            : WrapObject(objectNumber, SerializeObject(value, context));
+
+    /// <summary>Serializes an indirect object for final assembly without copying a retained stream payload.</summary>
+    internal static PdfSerializedObject SerializeIndirectObjectForAssembly(
+        int objectNumber,
+        PdfObject value,
+        SerializationContext context) =>
+        value is PdfStream stream
+            ? PdfObjectBytes.SegmentStreamObject(objectNumber, BuildStreamDictionary(stream, context), stream)
+            : PdfSerializedObject.FromBytes(WrapObject(objectNumber, SerializeObject(value, context)));
 
     internal static void EnsureSerializedObjectWithinLimit(PdfObject value, SerializationContext context, long maximumBytes) {
         if (maximumBytes < 0 || CountSerializedObjectBytes(value, context, maximumBytes) > maximumBytes) {
@@ -170,10 +185,10 @@ internal static partial class PdfPageExtractor {
             dictionaryBytes = AddCounted(dictionaryBytes, 1L, maximumBytes);
         }
         dictionaryBytes = AddCounted(dictionaryBytes, 8L, maximumBytes); // /Length plus trailing separator.
-        dictionaryBytes = AddCounted(dictionaryBytes, stream.Data.Length.ToString(CultureInfo.InvariantCulture).Length, maximumBytes);
+        dictionaryBytes = AddCounted(dictionaryBytes, stream.DataLength.ToString(CultureInfo.InvariantCulture).Length, maximumBytes);
         dictionaryBytes = AddCounted(dictionaryBytes, 3L, maximumBytes); //  >>
         long total = AddCounted(dictionaryBytes, 8L, maximumBytes); // \nstream\n
-        total = AddCounted(total, stream.Data.LongLength, maximumBytes);
+        total = AddCounted(total, stream.DataLongLength, maximumBytes);
         return AddCounted(total, 11L, maximumBytes); // \nendstream\n
     }
 
@@ -190,14 +205,18 @@ internal static partial class PdfPageExtractor {
     }
 
     private static long CountNameBytes(string value, long maximumBytes) {
-        long total = 0L;
+        long asciiBytes = 0L;
+        long escapedAsciiBytes = 0L;
         foreach (char character in value) {
-            long count = character <= 0x20 || character >= 0x7F || IsNameDelimiter(character)
-                ? 1L + CountHexDigits(character)
-                : 1L;
-            total = AddCounted(total, count, maximumBytes);
+            if (character >= 0x80) continue;
+            asciiBytes++;
+            if (character <= 0x20 || character == 0x7F || IsNameDelimiter(character)) escapedAsciiBytes++;
         }
-        return total;
+
+        long utf8Bytes = Encoding.UTF8.GetByteCount(value);
+        long encodedNonAsciiBytes = utf8Bytes - asciiBytes;
+        long total = AddCounted(asciiBytes, MultiplyCounted(escapedAsciiBytes, 2L, maximumBytes), maximumBytes);
+        return AddCounted(total, MultiplyCounted(encodedNonAsciiBytes, 3L, maximumBytes), maximumBytes);
     }
 
     private static long CountLiteralStringBytes(string value, long maximumBytes) {
@@ -223,8 +242,6 @@ internal static partial class PdfPageExtractor {
     private static long CountHexStringBytes(long byteCount, long maximumBytes) =>
         AddCounted(MultiplyCounted(byteCount, 2L, maximumBytes), 2L, maximumBytes);
 
-    private static int CountHexDigits(int value) => value <= 0xFF ? 2 : value <= 0xFFF ? 3 : 4;
-
     private static bool IsNameDelimiter(char character) =>
         character is '(' or ')' or '<' or '>' or '[' or ']' or '{' or '}' or '/' or '%' or '#';
 
@@ -239,7 +256,7 @@ internal static partial class PdfPageExtractor {
     
     private static byte[] SerializeStream(PdfStream stream, SerializationContext context) {
         string dictionary = BuildStreamDictionary(stream, context);
-        return SerializeStreamBody(dictionary, stream.Data);
+        return PdfObjectBytes.WrapStreamBody(dictionary, stream);
     }
     
     private static string BuildStreamDictionary(PdfStream stream, SerializationContext context) {
@@ -252,7 +269,7 @@ internal static partial class PdfPageExtractor {
         }
     
         sb.Append("/Length ")
-            .Append(stream.Data.Length.ToString(CultureInfo.InvariantCulture))
+            .Append(stream.DataLength.ToString(CultureInfo.InvariantCulture))
             .Append(" >>");
     
         return sb.ToString();
@@ -263,7 +280,9 @@ internal static partial class PdfPageExtractor {
     }
     
     private static void AppendDictionaryEntry(StringBuilder sb, string key, PdfObject value, SerializationContext context) {
-        sb.Append('/').Append(PdfSyntaxEscaper.Name(key)).Append(' ');
+        sb.Append('/');
+        PdfSyntaxEscaper.AppendName(sb, key);
+        sb.Append(' ');
         AppendObject(sb, value, context);
         sb.Append(' ');
     }
@@ -271,13 +290,14 @@ internal static partial class PdfPageExtractor {
     private static void AppendObject(StringBuilder sb, PdfObject value, SerializationContext context) {
         switch (value) {
             case PdfNumber number:
-                sb.Append(FormatNumber(number.Value));
+                AppendNumber(sb, number.Value);
                 break;
             case PdfBoolean boolean:
                 sb.Append(boolean.Value ? "true" : "false");
                 break;
             case PdfName name:
-                sb.Append('/').Append(PdfSyntaxEscaper.Name(name.Name));
+                sb.Append('/');
+                PdfSyntaxEscaper.AppendName(sb, name.Name);
                 break;
             case PdfStringObj text:
                 sb.Append(context.PreserveRawStringBytes
@@ -298,7 +318,7 @@ internal static partial class PdfPageExtractor {
                 int generation = context.PreserveReferenceGenerations && newObjectNumber == reference.ObjectNumber
                     ? reference.Generation
                     : 0;
-                sb.Append(PdfSyntaxEscaper.IndirectReference(newObjectNumber, generation));
+                PdfSyntaxEscaper.AppendIndirectReference(sb, newObjectNumber, generation);
                 break;
             case PdfArray array:
                 sb.Append("[ ");
@@ -323,9 +343,10 @@ internal static partial class PdfPageExtractor {
     }
     
     private static void ValidateReferenceGeneration(PdfReference reference, SerializationContext context) {
-        if (context.SourceObjectGenerations.TryGetValue(reference.ObjectNumber, out int activeGeneration)) {
-            if (reference.Generation != activeGeneration) {
-                throw BuildGenerationMismatchException(reference, activeGeneration);
+        if (context.SourceObjects is not null &&
+            context.SourceObjects.TryGetValue(reference.ObjectNumber, out PdfIndirectObject? activeObject)) {
+            if (reference.Generation != activeObject.Generation) {
+                throw BuildGenerationMismatchException(reference, activeObject.Generation);
             }
     
             return;
@@ -364,6 +385,14 @@ internal static partial class PdfPageExtractor {
         return PdfFileAssembler.Assemble(objects, catalogId, infoId, fileVersion, cancellationToken: cancellationToken);
     }
 
+    internal static byte[] Assemble(
+        List<PdfSerializedObject> objects,
+        int catalogId,
+        int infoId,
+        PdfFileVersion fileVersion = PdfFileVersion.Pdf14,
+        CancellationToken cancellationToken = default) =>
+        PdfFileAssembler.Assemble(objects, catalogId, infoId, fileVersion, cancellationToken: cancellationToken);
+
     internal static PdfFileVersion GetSourceFileVersion(byte[] pdf) {
         return PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(pdf));
     }
@@ -374,6 +403,23 @@ internal static partial class PdfPageExtractor {
         }
     
         return value.ToString("0.###", CultureInfo.InvariantCulture);
+    }
+
+    private static void AppendNumber(StringBuilder destination, double value) {
+#if NET6_0_OR_GREATER
+        Span<char> buffer = stackalloc char[64];
+        if (Math.Abs(value % 1) < 0.0000001) {
+            long rounded = (long)Math.Round(value);
+            if (rounded.TryFormat(buffer, out int integerWritten, default, CultureInfo.InvariantCulture)) {
+                destination.Append(buffer.Slice(0, integerWritten));
+                return;
+            }
+        } else if (value.TryFormat(buffer, out int realWritten, "0.###", CultureInfo.InvariantCulture)) {
+            destination.Append(buffer.Slice(0, realWritten));
+            return;
+        }
+#endif
+        destination.Append(FormatNumber(value));
     }
     
 }

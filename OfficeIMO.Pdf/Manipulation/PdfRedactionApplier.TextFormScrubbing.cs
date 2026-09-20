@@ -146,7 +146,7 @@ internal static partial class PdfRedactionApplier {
         Matrix2D[] effectiveTransforms = parentTransforms
             .Select(parent => ApplyFormMatrix(Matrix2D.Multiply(parent, invocationTransform), formStream.Dictionary))
             .ToArray();
-        string formContent = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(formStream.Dictionary, formStream.Data, objects, GetMutationDecodeLimit(formStream, limits, sourceStreamIdentities)));
+        string formContent = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(formStream, objects, GetMutationDecodeLimit(formStream, limits, sourceStreamIdentities)));
         var formGraphicsState = new TextScrubGraphicsState { TextState = formInitialTextState };
         IReadOnlyDictionary<string, PdfExtGStateFontSelection> formExtGStateFonts = ResolveExtGStateFontSelections(
             objects,

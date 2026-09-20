@@ -1813,12 +1813,19 @@ public class PdfDocumentWorkflowTests {
         }
     }
 
-    [Fact]
-    public void BulkByteMergeHonorsCancellationWhileEnumeratingPayloads() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void BulkByteMergeHonorsCancellationWhileEnumeratingPayloads(bool returnBytes) {
         using var cancellation = new CancellationTokenSource();
 
-        Assert.Throws<OperationCanceledException>(() =>
-            PdfDocument.MergeBytes(EnumeratePayloads(cancellation), cancellation.Token));
+        Assert.Throws<OperationCanceledException>(() => {
+            if (returnBytes) {
+                PdfDocument.MergeToBytes(EnumeratePayloads(cancellation), cancellation.Token);
+            } else {
+                PdfDocument.MergeBytes(EnumeratePayloads(cancellation), cancellation.Token);
+            }
+        });
 
         static IEnumerable<byte[]> EnumeratePayloads(CancellationTokenSource cancellation) {
             yield return BuildPdf("First", "First page");

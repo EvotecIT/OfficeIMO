@@ -6,6 +6,61 @@ namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfInspectorTests {
     [Fact]
+    public void UnsignedDocumentHasNoSignatureMarkersOrByteRange() {
+        byte[] pdf = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Unsigned security state."))
+            .ToBytes();
+
+        PdfDocumentSecurityInfo rawSecurity = PdfSyntax.ReadDocumentSecurityInfo(pdf, includeParsedDetails: false);
+        PdfDocumentSecurityInfo parsedSecurity = PdfReadDocument.Open(pdf).Security;
+
+        Assert.False(rawSecurity.HasSignatures);
+        Assert.False(rawSecurity.HasByteRange);
+        Assert.False(parsedSecurity.HasSignatures);
+        Assert.False(parsedSecurity.HasByteRange);
+    }
+
+    [Fact]
+    public void RawSecurityNames_RespectPdfNameBoundariesAndCountRepeatedByteRanges() {
+        PdfDocumentSecurityInfo markers = PdfSyntax.ReadDocumentSecurityInfo(
+            Encoding.ASCII.GetBytes("/ByteRange [0 1] /ByteRange/ID /SigFlags /Sig /XRef /W /ObjStm"),
+            includeParsedDetails: false);
+        PdfDocumentSecurityInfo prefixes = PdfSyntax.ReadDocumentSecurityInfo(
+            Encoding.ASCII.GetBytes("/ByteRangeExtra /SigFlags2 /Sign /XReference /Wider /ObjStm2 /Identifier"),
+            includeParsedDetails: false);
+        PdfDocumentSecurityInfo terminal = PdfSyntax.ReadDocumentSecurityInfo(
+            Encoding.ASCII.GetBytes("/ByteRange"),
+            includeParsedDetails: false);
+
+        Assert.True(markers.HasSignatures);
+        Assert.True(markers.HasByteRange);
+        Assert.Equal(2, markers.SignatureValueCount);
+        Assert.True(markers.HasXrefStreams);
+        Assert.True(markers.HasObjectStreams);
+        Assert.True(markers.HasTrailerId);
+        Assert.False(prefixes.HasSignatures);
+        Assert.False(prefixes.HasByteRange);
+        Assert.Equal(0, prefixes.SignatureValueCount);
+        Assert.False(prefixes.HasXrefStreams);
+        Assert.False(prefixes.HasObjectStreams);
+        Assert.False(prefixes.HasTrailerId);
+        Assert.True(terminal.HasByteRange);
+        Assert.Equal(1, terminal.SignatureValueCount);
+    }
+
+    [Fact]
+    public void RawRevisionMarkers_SkipMalformedAndOverflowValuesConsistentlyWithStructuralInspection() {
+        byte[] pdf = Encoding.ASCII.GetBytes(
+            "%PDF-1.7\nstartxref\n12\nstartxref nope\nstartxref\t2147483648\nstartxref\r\n34\n%%EOF");
+
+        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf, includeParsedDetails: false);
+        PdfStructuralMarkerCounts structure = PdfSyntax.InspectStructuralMarkers(pdf, new PdfReadLimits());
+
+        Assert.Equal(new[] { 12, 34 }, security.StartXrefOffsets);
+        Assert.Equal(2, structure.StartXrefMarkers);
+    }
+
+    [Fact]
     public void Preflight_BlocksEncryptedPdfButReportsSecuritySettings() {
         PdfDocumentPreflight report = PdfInspector.Preflight(BuildEncryptedPdf());
 

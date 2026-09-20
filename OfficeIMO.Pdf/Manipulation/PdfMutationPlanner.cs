@@ -101,11 +101,21 @@ internal static class PdfMutationPlanner {
         cancellationToken.ThrowIfCancellationRequested();
         PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options);
         PdfReadDocument? document = null;
-        PdfDocumentPreflight preflight = PdfInspector.Preflight(
-            pdf,
-            effectiveOptions,
-            () => document ??= documentFactory?.Invoke() ?? PdfReadDocument.Open(pdf, effectiveOptions, cancellationToken),
-            cancellationToken);
+        Func<PdfReadDocument> sharedDocumentFactory =
+            () => document ??= documentFactory?.Invoke() ?? PdfReadDocument.Open(pdf, effectiveOptions, cancellationToken);
+        bool transfersUnchangedPages = operation == PdfMutationOperation.ExtractPages ||
+            operation == PdfMutationOperation.MergeDocuments;
+        PdfDocumentPreflight preflight = transfersUnchangedPages
+            ? PdfInspector.PreflightPageTransfer(
+                pdf,
+                effectiveOptions,
+                sharedDocumentFactory,
+                cancellationToken)
+            : PdfInspector.Preflight(
+                pdf,
+                effectiveOptions,
+                sharedDocumentFactory,
+                cancellationToken);
         PdfMutationPlan plan = Plan(
             preflight,
             pdf,
@@ -114,6 +124,23 @@ internal static class PdfMutationPlanner {
             PdfMutationExecutionPreference.RequireFullRewrite,
             effectiveOptions);
         if (!plan.CanExecute) {
+            // Blocked plans escape through PdfMutationBlockedException. Rebuild them from the
+            // complete public preflight contract so diagnostics never imply that content
+            // capabilities were checked by the page-transfer fast path.
+            if (transfersUnchangedPages) {
+                preflight = PdfInspector.Preflight(
+                    pdf,
+                    effectiveOptions,
+                    sharedDocumentFactory,
+                    cancellationToken);
+                plan = Plan(
+                    preflight,
+                    pdf,
+                    operation,
+                    fieldNames,
+                    PdfMutationExecutionPreference.RequireFullRewrite,
+                    effectiveOptions);
+            }
             throw new PdfMutationBlockedException(plan);
         }
 
@@ -840,7 +867,7 @@ internal static class PdfMutationPlanner {
     }
 
     private static bool CanExtractPagesViaNormalization(PdfDocumentPreflight preflight, PdfMutationOperation operation) {
-        if (operation != PdfMutationOperation.ExtractPages || !preflight.CanRead) {
+        if (operation != PdfMutationOperation.ExtractPages || !CanReadForPageTransfer(preflight)) {
             return false;
         }
 
@@ -868,7 +895,7 @@ internal static class PdfMutationPlanner {
     }
 
     private static bool CanMergeDocuments(PdfDocumentPreflight preflight) {
-        if (!preflight.CanRead) return false;
+        if (!CanReadForPageTransfer(preflight)) return false;
         for (int i = 0; i < preflight.RewriteBlockers.Count; i++) {
             PdfRewriteBlockerKind blocker = preflight.RewriteBlockers[i].Kind;
             if (blocker == PdfRewriteBlockerKind.Encryption &&
@@ -878,6 +905,29 @@ internal static class PdfMutationPlanner {
 
             if (IsFullRewriteBlockerForOperation(blocker, PdfMutationOperation.MergeDocuments)) return false;
         }
+        return true;
+    }
+
+    internal static bool CanTransferUnchangedPages(PdfDocumentPreflight preflight) {
+        Guard.NotNull(preflight, nameof(preflight));
+        return CanExtractPagesViaNormalization(preflight, PdfMutationOperation.ExtractPages) ||
+            CanMergeDocuments(preflight);
+    }
+
+    private static bool CanReadForPageTransfer(PdfDocumentPreflight preflight) {
+        if (preflight.CanRead) return true;
+        if (preflight.UncheckedDocumentInfo is not { PageCount: > 0 } || preflight.ReadBlockers.Count == 0) {
+            return false;
+        }
+
+        for (int i = 0; i < preflight.ReadBlockers.Count; i++) {
+            PdfReadBlockerKind blocker = preflight.ReadBlockers[i].Kind;
+            if (blocker != PdfReadBlockerKind.UnsupportedContentStreamFilter &&
+                blocker != PdfReadBlockerKind.ContentStreamDecodeFailure) {
+                return false;
+            }
+        }
+
         return true;
     }
 

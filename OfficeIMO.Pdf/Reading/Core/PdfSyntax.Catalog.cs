@@ -524,8 +524,9 @@ internal static partial class PdfSyntax {
         IReadOnlyDictionary<int, PdfIndirectObject> objects,
         params string[] names) {
         var nameSet = new HashSet<string>(names, StringComparer.Ordinal);
+        Func<string, bool> contains = nameSet.Contains;
         foreach (PdfIndirectObject indirectObject in objects.Values) {
-            if (ContainsAnyParsedPdfName(indirectObject.Value, nameSet)) {
+            if (VisitParsedPdfNames(indirectObject.Value, contains)) {
                 return true;
             }
         }
@@ -533,29 +534,63 @@ internal static partial class PdfSyntax {
         return false;
     }
 
-    internal static bool ContainsAnyReachableParsedPdfName(
+    /// <summary>
+    /// Collects only requested names from the parsed object graph in one pass. String values and
+    /// stream payloads are intentionally excluded; callers handle incomplete coverage separately.
+    /// </summary>
+    internal static HashSet<string> CollectParsedPdfNames(
+        IReadOnlyDictionary<int, PdfIndirectObject> objects,
+        HashSet<string> requestedNames,
+        CancellationToken cancellationToken) {
+        var found = new HashSet<string>(StringComparer.Ordinal);
+        bool Collect(string name) {
+            if (requestedNames.Contains(name)) found.Add(name);
+            return false;
+        }
+        Func<string, bool> collect = Collect;
+
+        foreach (PdfIndirectObject indirectObject in objects.Values) {
+            cancellationToken.ThrowIfCancellationRequested();
+            VisitParsedPdfNames(indirectObject.Value, collect);
+        }
+
+        return found;
+    }
+
+    /// <summary>Matches requested name groups reachable from one parsed root in a single bounded graph walk.</summary>
+    internal static int MatchReachableParsedPdfNameGroups(
         PdfObject root,
         Dictionary<int, PdfIndirectObject> objects,
-        params string[] names) {
-        var nameSet = new HashSet<string>(names, StringComparer.Ordinal);
-        var visitedReferences = new HashSet<(int ObjectNumber, int Generation)>();
+        IReadOnlyList<HashSet<string>> requestedNameGroups,
+        CancellationToken cancellationToken) {
+        if (requestedNameGroups.Count == 0 || requestedNameGroups.Count > 30) {
+            throw new ArgumentOutOfRangeException(
+                nameof(requestedNameGroups),
+                requestedNameGroups.Count,
+                "Reachable PDF name matching requires between 1 and 30 groups.");
+        }
+
+        int matchedGroups = 0;
+        int allGroups = (1 << requestedNameGroups.Count) - 1;
+        var visitedObjectNumbers = new HashSet<int>();
         var visitedContainers = new HashSet<PdfObject>();
         var pending = new Stack<PdfObject>();
         pending.Push(root);
         while (pending.Count > 0) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfObject value = pending.Pop();
 
             if (value is PdfReference reference) {
-                if (!visitedReferences.Add((reference.ObjectNumber, reference.Generation)) ||
-                    !PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) ||
-                    indirect == null) {
+                if (!PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) ||
+                    indirect == null ||
+                    !visitedObjectNumbers.Add(reference.ObjectNumber)) {
                     continue;
                 }
                 pending.Push(indirect.Value);
                 continue;
             }
             if (value is PdfName name) {
-                if (nameSet.Contains(name.Name)) return true;
+                if (MatchName(name.Name)) return matchedGroups;
                 continue;
             }
             if (value is PdfStream stream) {
@@ -571,12 +606,22 @@ internal static partial class PdfSyntax {
             }
             if (value is not PdfDictionary dictionary || !visitedContainers.Add(dictionary)) continue;
             foreach (KeyValuePair<string, PdfObject> item in dictionary.Items) {
-                if (nameSet.Contains(item.Key)) return true;
+                if (MatchName(item.Key)) return matchedGroups;
                 pending.Push(item.Value);
             }
         }
 
-        return false;
+        return matchedGroups;
+
+        bool MatchName(string name) {
+            for (int groupIndex = 0; groupIndex < requestedNameGroups.Count; groupIndex++) {
+                int groupBit = 1 << groupIndex;
+                if ((matchedGroups & groupBit) == 0 && requestedNameGroups[groupIndex].Contains(name)) {
+                    matchedGroups |= groupBit;
+                }
+            }
+            return matchedGroups == allGroups;
+        }
     }
 
     private static bool ShouldSuppressParsedPdfNameException(Exception exception, PdfLoadOptions? options) {
@@ -587,13 +632,13 @@ internal static partial class PdfSyntax {
         return options is null || exception is not PdfEncryptionException;
     }
 
-    private static bool ContainsAnyParsedPdfName(PdfObject value, HashSet<string> names) {
+    private static bool VisitParsedPdfNames(PdfObject value, Func<string, bool> visit) {
         switch (value) {
             case PdfName name:
-                return names.Contains(name.Name);
+                return visit(name.Name);
             case PdfDictionary dictionary:
                 foreach (var item in dictionary.Items) {
-                    if (names.Contains(item.Key) || ContainsAnyParsedPdfName(item.Value, names)) {
+                    if (visit(item.Key) || VisitParsedPdfNames(item.Value, visit)) {
                         return true;
                     }
                 }
@@ -601,14 +646,14 @@ internal static partial class PdfSyntax {
                 return false;
             case PdfArray array:
                 foreach (PdfObject item in array.Items) {
-                    if (ContainsAnyParsedPdfName(item, names)) {
+                    if (VisitParsedPdfNames(item, visit)) {
                         return true;
                     }
                 }
 
                 return false;
             case PdfStream stream:
-                return ContainsAnyParsedPdfName(stream.Dictionary, names);
+                return VisitParsedPdfNames(stream.Dictionary, visit);
             default:
                 return false;
         }

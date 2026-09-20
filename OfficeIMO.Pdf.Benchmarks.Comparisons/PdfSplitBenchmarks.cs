@@ -11,11 +11,14 @@ public class PdfSplitBenchmarks {
     private int _pagesPerDocument;
     private IReadOnlyList<IReadOnlyList<PdfExpectedPage>> _expectedPages = null!;
 
-    [Params(PdfBenchmarkScale.Easy, PdfBenchmarkScale.Medium, PdfBenchmarkScale.High)]
+    [Params(PdfBenchmarkScale.Easy, PdfBenchmarkScale.Medium, PdfBenchmarkScale.High, PdfBenchmarkScale.VeryHigh)]
     public PdfBenchmarkScale Scale { get; set; }
 
     [Params(PdfBenchmarkProducer.OfficeIMO, PdfBenchmarkProducer.IText)]
     public PdfBenchmarkProducer Producer { get; set; }
+
+    [Params(PdfManipulationDensity.Standard, PdfManipulationDensity.Dense)]
+    public PdfManipulationDensity Density { get; set; }
 
     [Params(PdfSplitWorkflow.EveryPage, PdfSplitWorkflow.Bundles)]
     public PdfSplitWorkflow Workflow { get; set; }
@@ -23,7 +26,7 @@ public class PdfSplitBenchmarks {
     [GlobalSetup]
     public void Setup() {
         _scenario = PdfManipulationScenario.Get(Scale);
-        PdfBenchmarkScenario sourceScenario = _scenario.SourceDocument();
+        PdfBenchmarkScenario sourceScenario = _scenario.SourceDocument(Density);
         _source = PdfDocumentGenerators.Generate(Producer, sourceScenario);
         PdfBenchmarkValidation.ValidateGenerated(_source, sourceScenario, Producer.ToString());
         _pagesPerDocument = Workflow == PdfSplitWorkflow.EveryPage ? 1 : _scenario.PagesPerBundle;

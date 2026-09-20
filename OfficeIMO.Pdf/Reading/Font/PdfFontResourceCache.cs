@@ -12,7 +12,7 @@ internal sealed class PdfFontResourceCache {
         new Dictionary<string, Func<byte[], int, string>>(StringComparer.Ordinal),
         new Dictionary<string, Func<byte[], double>>(StringComparer.Ordinal));
 
-    private readonly Dictionary<PdfDictionary, PdfFontResource> _fonts = new();
+    private Dictionary<PdfDictionary, PdfFontResource>? _fonts;
     private readonly object _sync = new();
     private long _estimatedRetainedFontBytes;
 
@@ -32,15 +32,17 @@ internal sealed class PdfFontResourceCache {
         string resourceName,
         PdfDictionary font,
         Dictionary<int, PdfIndirectObject> objects) {
-        if (_fonts.TryGetValue(font, out PdfFontResource? existing)) {
+        Dictionary<PdfDictionary, PdfFontResource> fonts =
+            _fonts ??= new Dictionary<PdfDictionary, PdfFontResource>();
+        if (fonts.TryGetValue(font, out PdfFontResource? existing)) {
             return existing.WithResourceName(resourceName);
         }
 
         PdfFontResource created = ResourceResolver.CreateFontResource(resourceName, font, objects);
         long estimatedBytes = EstimateRetainedBytes(created);
-        if (_fonts.Count < MaxFontResources &&
+        if (fonts.Count < MaxFontResources &&
             estimatedBytes <= MaxEstimatedRetainedFontBytes - _estimatedRetainedFontBytes) {
-            _fonts.Add(font, created);
+            fonts.Add(font, created);
             _estimatedRetainedFontBytes += estimatedBytes;
         }
         return created;

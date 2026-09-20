@@ -481,8 +481,7 @@ internal static class PdfFontInspector {
             long remainingBeforeDecode = _remainingBytes;
             int maximumOutput = (int)Math.Min(maximumStreamBytes, Math.Min(remainingBeforeDecode, int.MaxValue));
             if (!StreamDecoder.TryDecode(
-                    program.Dictionary,
-                    program.Data,
+                    program,
                     maximumOutput,
                     out byte[] candidate,
                     out bool decodedLimitExceeded,

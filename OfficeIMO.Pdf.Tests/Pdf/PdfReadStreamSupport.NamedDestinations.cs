@@ -73,6 +73,38 @@ public partial class PdfReadStreamTests {
         return System.Text.Encoding.ASCII.GetBytes(pdf);
     }
 
+    private static byte[] BuildDenseDirectNamedDestinationPdf(int pageCount) {
+        var pdf = new System.Text.StringBuilder("%PDF-1.4\n");
+        var offsets = new System.Collections.Generic.List<int>(pageCount + 4) { 0 };
+        int destinationsId = pageCount + 3;
+        offsets.Add(pdf.Length);
+        pdf.Append("1 0 obj\n<< /Type /Catalog /Pages 2 0 R /Dests ").Append(destinationsId).Append(" 0 R >>\nendobj\n");
+        offsets.Add(pdf.Length);
+        pdf.Append("2 0 obj\n<< /Type /Pages /Count ").Append(pageCount).Append(" /Kids [");
+        for (int page = 1; page <= pageCount; page++) pdf.Append(page + 2).Append(" 0 R ");
+        pdf.Append("] >>\nendobj\n");
+        for (int page = 1; page <= pageCount; page++) {
+            offsets.Add(pdf.Length);
+            pdf.Append(page + 2).Append(" 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ")
+                .Append(200 + page).Append(" 200] >>\nendobj\n");
+        }
+        offsets.Add(pdf.Length);
+        pdf.Append(destinationsId).Append(" 0 obj\n<< ");
+        for (int page = 1; page <= pageCount; page++) {
+            pdf.Append("/Dest").Append(page.ToString("D4", System.Globalization.CultureInfo.InvariantCulture))
+                .Append(" [").Append(page + 2).Append(" 0 R /Fit] ");
+        }
+        pdf.Append(">>\nendobj\n");
+        int xrefOffset = pdf.Length;
+        pdf.Append("xref\n0 ").Append(offsets.Count).Append("\n0000000000 65535 f \n");
+        for (int objectId = 1; objectId < offsets.Count; objectId++) {
+            pdf.Append(offsets[objectId].ToString("D10", System.Globalization.CultureInfo.InvariantCulture)).Append(" 00000 n \n");
+        }
+        pdf.Append("trailer\n<< /Root 1 0 R /Size ").Append(offsets.Count)
+            .Append(" >>\nstartxref\n").Append(xrefOffset).Append("\n%%EOF\n");
+        return System.Text.Encoding.ASCII.GetBytes(pdf.ToString());
+    }
+
     private static byte[] BuildNamedDestinationNameTreePdf() {
         string pdf = string.Join("\n", new[] {
             "%PDF-1.4",
