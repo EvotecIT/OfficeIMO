@@ -931,6 +931,37 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void HtmlToPdf_NestedPageOverflowIsClippedBeforeCanvasSerialization() {
+        const string html = "<style>@page{size:A4;margin:18mm}body{margin:0}main{width:680px;margin:24px auto;padding:24px;border:1px solid #ccc}</style>"
+            + "<main><label>Value <input name='value' value='Retained value'></label></main>";
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+
+        Assert.NotEmpty(pdf);
+        Assert.Contains("Retained value", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToPdf_FullyOffPageNestedPaintDoesNotCreateEmptyCanvasContainers() {
+        const string html = "<main><p>Retained paragraph</p><p style='position:absolute;left:10000px;top:20px'>Outside paragraph</p></main>";
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
+
+        Assert.Contains("Retained paragraph", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Outside paragraph", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToPdf_OffPagePaintTransformedAndClippedIntoViewIsRetained() {
+        const string html = "<div style='position:absolute;left:900px;top:20px;width:180px;height:40px;overflow:hidden;transform:translateX(-850px)'>Visible transformed clip</div>";
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+
+        Assert.Contains("Visible transformed clip", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlToPdf_ControlInsideRoundedClipUsesStaticAppearance() {
         const string html = "<div style='position:relative;width:100px;height:40px;overflow:hidden;border-radius:20px'><input name='rounded' value='Rounded value' style='position:absolute;left:0;top:0;width:40px;height:18px'></div>";
 

@@ -332,13 +332,7 @@ internal static partial class HtmlPdfRenderedConverter {
     private static void AddPageVisuals(PdfCore.PdfPageCanvas canvas, HtmlRenderPage page, RegisteredWebFonts webFonts, PdfCore.PdfConversionReport conversionReport, bool interactiveFormControls, CancellationToken cancellationToken) {
         foreach (HtmlRenderVisual visual in page.Scene.OrderBy(item => item.PaintOrder)) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (visual.X + visual.Width > page.Width + 0.001D
-                || visual.Y + visual.Height > page.Height + 0.001D) {
-                canvas.Clip(0D, 0D, page.Width * PointsPerCssPixel, page.Height * PointsPerCssPixel, clipped =>
-                    AddVisual(clipped, visual, webFonts, conversionReport, page.Width, page.Height, interactiveFormControls, cancellationToken));
-            } else {
-                AddVisual(canvas, visual, webFonts, conversionReport, page.Width, page.Height, interactiveFormControls, cancellationToken);
-            }
+            AddVisual(canvas, visual, webFonts, conversionReport, page.Width, page.Height, interactiveFormControls, cancellationToken);
         }
     }
 
@@ -355,6 +349,16 @@ internal static partial class HtmlPdfRenderedConverter {
         ClipBounds? activeClip = null,
         bool logicalTextOwned = false) {
         cancellationToken.ThrowIfCancellationRequested();
+        if (!activeClip.HasValue && !IsVisualContainer(visual) && ExceedsSurface(visual, surfaceWidth, surfaceHeight)) {
+            double right = visual.X + visual.Width;
+            double bottom = visual.Y + visual.Height;
+            if (right <= 0D || bottom <= 0D || visual.X >= surfaceWidth || visual.Y >= surfaceHeight) return;
+            var pageClip = new ClipBounds(0D, 0D, surfaceWidth, surfaceHeight);
+            canvas.Clip(0D, 0D, surfaceWidth * PointsPerCssPixel, surfaceHeight * PointsPerCssPixel, clipped =>
+                AddVisual(clipped, visual, webFonts, conversionReport, surfaceWidth, surfaceHeight,
+                    interactiveFormControls, cancellationToken, textAsSpan, pageClip, logicalTextOwned));
+            return;
+        }
         if (visual is HtmlRenderFormField formField) {
             bool fullyContained = !activeClip.HasValue || activeClip.Value.AllowsInteractiveWidgets && activeClip.Value.Contains(formField);
             AddFormField(canvas, formField, webFonts, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls && fullyContained, cancellationToken, textAsSpan, activeClip, logicalTextOwned);
@@ -389,6 +393,19 @@ internal static partial class HtmlPdfRenderedConverter {
             AddLogicalTextGroup(canvas, logicalTextGroup, webFonts, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, textAsSpan, activeClip, logicalTextOwned);
         }
     }
+
+    private static bool ExceedsSurface(HtmlRenderVisual visual, double surfaceWidth, double surfaceHeight) =>
+        visual.X < -0.001D || visual.Y < -0.001D
+        || visual.X + visual.Width > surfaceWidth + 0.001D
+        || visual.Y + visual.Height > surfaceHeight + 0.001D;
+
+    private static bool IsVisualContainer(HtmlRenderVisual visual) =>
+        visual is HtmlRenderClipGroup
+        or HtmlRenderPathClipGroup
+        or HtmlRenderEffectGroup
+        or HtmlRenderSemanticGroup
+        or HtmlRenderLogicalTextGroup
+        or HtmlRenderLayoutRegion;
 
     private static void AddFormField(PdfCore.PdfPageCanvas canvas, HtmlRenderFormField field, RegisteredWebFonts webFonts, PdfCore.PdfConversionReport conversionReport, double surfaceWidth, double surfaceHeight, bool interactiveFormControls, CancellationToken cancellationToken, bool textAsSpan, ClipBounds? activeClip, bool logicalTextOwned) {
         bool hasInvalidPdfButtonValue = (field.FieldKind == HtmlRenderFormFieldKind.CheckBox || field.FieldKind == HtmlRenderFormFieldKind.RadioButton)
@@ -481,6 +498,10 @@ internal static partial class HtmlPdfRenderedConverter {
                 AddVisual(target, child, webFonts, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, textAsSpan, activeClip, logicalTextOwned: true);
             }
         }
+        if (!group.Visuals.Any(child => ContainsRenderableVisual(child, surfaceWidth, surfaceHeight, activeClip))) {
+            AddChildren(canvas);
+            return;
+        }
         if (group.Text.Length == 0) {
             canvas.Artifact(AddChildren);
             return;
@@ -494,9 +515,10 @@ internal static partial class HtmlPdfRenderedConverter {
     }
 
     private static void AddSemanticGroup(PdfCore.PdfPageCanvas canvas, HtmlRenderSemanticGroup group, RegisteredWebFonts webFonts, PdfCore.PdfConversionReport conversionReport, double surfaceWidth, double surfaceHeight, bool interactiveFormControls, CancellationToken cancellationToken, bool textAsSpan, ClipBounds? activeClip, bool logicalTextOwned) {
-        if (!group.Visuals.Any(ContainsPaintableVisual)) {
+        if (!group.Visuals.Any(child => ContainsRenderableVisual(child, surfaceWidth, surfaceHeight, activeClip))) {
             // Navigation-only groups still carry named destinations. They cannot create
-            // an empty structure element, but their non-painting children must reach the
+            // an empty structure element. The same path handles groups whose paint is
+            // entirely outside the page, while non-painting children still reach the
             // page canvas so empty anchors remain valid link targets.
             foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
                 AddVisual(canvas, child, webFonts, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, textAsSpan, activeClip, logicalTextOwned);
@@ -535,6 +557,24 @@ internal static partial class HtmlPdfRenderedConverter {
             }
         }, options);
     }
+
+    private static bool ContainsRenderableVisual(HtmlRenderVisual visual, double surfaceWidth, double surfaceHeight, ClipBounds? activeClip) {
+        if (!ContainsPaintableVisual(visual)) return false;
+        if (activeClip.HasValue) return true;
+        if (visual is HtmlRenderLayoutRegion layoutRegion)
+            return layoutRegion.Visuals.Any(child => ContainsRenderableVisual(child, surfaceWidth, surfaceHeight, activeClip));
+        if (visual is HtmlRenderSemanticGroup semanticGroup)
+            return semanticGroup.Visuals.Any(child => ContainsRenderableVisual(child, surfaceWidth, surfaceHeight, activeClip));
+        if (visual is HtmlRenderLogicalTextGroup logicalTextGroup)
+            return logicalTextGroup.Visuals.Any(child => ContainsRenderableVisual(child, surfaceWidth, surfaceHeight, activeClip));
+        if (visual is HtmlRenderClipGroup or HtmlRenderPathClipGroup or HtmlRenderEffectGroup)
+            return IntersectsSurface(visual, surfaceWidth, surfaceHeight);
+        return IntersectsSurface(visual, surfaceWidth, surfaceHeight);
+    }
+
+    private static bool IntersectsSurface(HtmlRenderVisual visual, double surfaceWidth, double surfaceHeight) =>
+        visual.X + visual.Width > 0D && visual.Y + visual.Height > 0D
+        && visual.X < surfaceWidth && visual.Y < surfaceHeight;
 
     private static bool ContainsPaintableVisual(HtmlRenderVisual visual) {
         if (visual is HtmlRenderBookmarkAnchor || visual is HtmlRenderNamedDestination) return false;
@@ -608,7 +648,7 @@ internal static partial class HtmlPdfRenderedConverter {
         canvas.Effect(scaled, group.Opacity, nested => {
             foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
                 cancellationToken.ThrowIfCancellationRequested();
-                AddVisual(nested, child, webFonts, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, textAsSpan, activeClip, logicalTextOwned);
+                AddVisual(nested, child, webFonts, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, textAsSpan, ClipBounds.TransformedCoordinateSpace, logicalTextOwned);
             }
         });
     }
@@ -625,12 +665,13 @@ internal static partial class HtmlPdfRenderedConverter {
         bool textAsSpan,
         ClipBounds? activeClip,
         bool logicalTextOwned) {
-        double left = group.ClipHorizontal ? Math.Max(0D, group.ClipX) : 0D;
-        double top = group.ClipVertical ? Math.Max(0D, group.ClipY) : 0D;
-        double right = group.ClipHorizontal ? Math.Min(surfaceWidth, group.ClipX + group.ClipWidth) : surfaceWidth;
-        double bottom = group.ClipVertical ? Math.Min(surfaceHeight, group.ClipY + group.ClipHeight) : surfaceHeight;
+        bool constrainToSurface = !activeClip.HasValue || activeClip.Value.ConstrainToSurface;
+        double left = group.ClipHorizontal ? (constrainToSurface ? Math.Max(0D, group.ClipX) : group.ClipX) : (constrainToSurface ? 0D : group.X);
+        double top = group.ClipVertical ? (constrainToSurface ? Math.Max(0D, group.ClipY) : group.ClipY) : (constrainToSurface ? 0D : group.Y);
+        double right = group.ClipHorizontal ? (constrainToSurface ? Math.Min(surfaceWidth, group.ClipX + group.ClipWidth) : group.ClipX + group.ClipWidth) : (constrainToSurface ? surfaceWidth : group.X + group.Width);
+        double bottom = group.ClipVertical ? (constrainToSurface ? Math.Min(surfaceHeight, group.ClipY + group.ClipHeight) : group.ClipY + group.ClipHeight) : (constrainToSurface ? surfaceHeight : group.Y + group.Height);
         if (right <= left + 0.0001D || bottom <= top + 0.0001D) return;
-        ClipBounds clip = ClipBounds.Intersect(activeClip, new ClipBounds(left, top, right, bottom));
+        ClipBounds clip = ClipBounds.Intersect(activeClip, new ClipBounds(left, top, right, bottom, constrainToSurface: constrainToSurface));
         canvas.Clip(
             left * PointsPerCssPixel,
             top * PointsPerCssPixel,
@@ -1092,12 +1133,13 @@ internal static partial class HtmlPdfRenderedConverter {
     }
 
     private readonly struct ClipBounds {
-        internal ClipBounds(double left, double top, double right, double bottom, bool allowsInteractiveWidgets = true) {
+        internal ClipBounds(double left, double top, double right, double bottom, bool allowsInteractiveWidgets = true, bool constrainToSurface = true) {
             Left = left;
             Top = top;
             Right = right;
             Bottom = bottom;
             AllowsInteractiveWidgets = allowsInteractiveWidgets;
+            ConstrainToSurface = constrainToSurface;
         }
 
         private double Left { get; }
@@ -1105,6 +1147,14 @@ internal static partial class HtmlPdfRenderedConverter {
         private double Right { get; }
         private double Bottom { get; }
         internal bool AllowsInteractiveWidgets { get; }
+        internal bool ConstrainToSurface { get; }
+        internal static ClipBounds TransformedCoordinateSpace { get; } = new(
+            double.NegativeInfinity,
+            double.NegativeInfinity,
+            double.PositiveInfinity,
+            double.PositiveInfinity,
+            allowsInteractiveWidgets: false,
+            constrainToSurface: false);
 
         internal bool Contains(HtmlRenderVisual visual) {
             double right = visual.X + visual.Width;
@@ -1120,7 +1170,8 @@ internal static partial class HtmlPdfRenderedConverter {
                 Math.Max(active.Value.Top, next.Top),
                 Math.Min(active.Value.Right, next.Right),
                 Math.Min(active.Value.Bottom, next.Bottom),
-                active.Value.AllowsInteractiveWidgets && next.AllowsInteractiveWidgets);
+                active.Value.AllowsInteractiveWidgets && next.AllowsInteractiveWidgets,
+                active.Value.ConstrainToSurface && next.ConstrainToSurface);
     }
 
     private static void AddImagePattern(PdfCore.PdfPageCanvas canvas, HtmlRenderImagePattern visual, CancellationToken cancellationToken) {
