@@ -146,6 +146,30 @@ The adapter stays outside the normal solution and package graph. It proves that
 the public host/context/page contract can serve an external browser without
 exposing Playwright handles through common OfficeIMO APIs.
 
+Compare one isolated public-page result with Chromium using the exact bytes
+retained by `HtmlPublicPilot`:
+
+```powershell
+$pilot = 'Ignore/HtmlPublicPilot/wpt-svg'
+$reference = Join-Path $pilot 'browser-reference'
+dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj `
+    -c Release `
+    -f net10.0 `
+    -- html-public-browser-evidence `
+    --acquisition (Join-Path $pilot 'acquisition.json') `
+    --officeimo-screen (Join-Path $pilot 'screen.png') `
+    --document-url https://wpt.live/css/compositing/line-with-svg-background-ref.html `
+    --output $reference
+```
+
+The acquisition must have been produced with `--retain-input`. Chromium receives
+those retained resources through request interception; an unrecorded request
+aborts the run. The new output directory contains both screen images, a pixel
+difference image, hashes, dimensions, browser/tool versions, and comparison
+metrics. This is an opt-in qualification oracle: HtmlTinkerX, Playwright, and
+Chromium remain benchmark dependencies and do not enter the OfficeIMO runtime
+package graph.
+
 Generate the reviewable direct-PDF invoice bundle before interpreting invoice benchmark timings. This route renders the same prepared two-page invoice through OfficeIMO.Pdf, QuestPDF 2026.5.0, and iText, validates the complete text and numeric contract, and writes three PDFs plus two PNG page previews per engine. `invoice-evidence.json` hashes every artifact and records the exact OfficeIMO commit/tree, source cleanliness, target framework, runtime, operating system, process architecture, and QuestPDF package and assembly versions.
 
 ```powershell

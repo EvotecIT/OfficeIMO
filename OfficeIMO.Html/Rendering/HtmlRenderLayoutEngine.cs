@@ -295,6 +295,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double contentWidth,
         HtmlRenderBoxStyle rootStyle) {
         if (rootStyle.Display == "none") return Array.Empty<HtmlRenderFlowBlock>();
+        if (_options.UserAgentStyles == HtmlRenderUserAgentStyleMode.Browser
+            && string.Equals(root.LocalName, "body", StringComparison.OrdinalIgnoreCase)) {
+            return new[] { LayoutElement(root, contentWidth, rootStyle, rootStyle, 0) };
+        }
         if (_options.Mode == HtmlRenderMode.Paged || !HasAuthoredRootBoxGeometry(root, rootStyle)) {
             return BuildChildBlocks(root, contentWidth, rootStyle, 0);
         }

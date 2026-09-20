@@ -790,7 +790,13 @@ internal sealed partial class HtmlRenderStyleResolver {
     private static bool PreventsTextWrapping(string tag, string whiteSpace) =>
         tag == "pre" || whiteSpace == "pre" || whiteSpace == "nowrap";
 
-    private static void ApplyDefaultMargins(string tag, double fontSize, HtmlRenderBoxStyle style) {
+    private void ApplyDefaultMargins(string tag, double fontSize, HtmlRenderBoxStyle style) {
+        if (tag == "body" && _options.UserAgentStyles == HtmlRenderUserAgentStyleMode.Browser) {
+            style.MarginTop = 8D;
+            style.MarginRight = 8D;
+            style.MarginBottom = 8D;
+            style.MarginLeft = 8D;
+        }
         if (tag == "p" || tag == "pre" || tag == "blockquote" || tag == "table" || tag == "figure" || tag == "ul" || tag == "ol") {
             style.MarginBottom = fontSize;
         } else if (tag.Length == 2 && tag[0] == 'h' && tag[1] >= '1' && tag[1] <= '6') {

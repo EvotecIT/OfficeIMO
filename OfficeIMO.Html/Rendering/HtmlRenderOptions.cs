@@ -60,6 +60,22 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
     /// <summary>Default line-height multiplier.</summary>
     public double DefaultLineHeight { get; set; } = 1.2D;
 
+    /// <summary>
+    /// Bounded user-agent style defaults applied before authored CSS.
+    /// The document profile preserves the existing OfficeIMO layout contract.
+    /// </summary>
+    public HtmlRenderUserAgentStyleMode UserAgentStyles { get; set; } = HtmlRenderUserAgentStyleMode.Document;
+
+    /// <summary>
+    /// Selects the bounded browser user-agent defaults and a generic serif fallback.
+    /// Authored CSS continues to override these defaults.
+    /// </summary>
+    public HtmlRenderOptions UseBrowserUserAgentStyles() {
+        UserAgentStyles = HtmlRenderUserAgentStyleMode.Browser;
+        DefaultFontFamily = "serif";
+        return this;
+    }
+
     /// <summary>Optional caller-owned dictionary or algorithm used by CSS <c>hyphens:auto</c>.</summary>
     public OfficeTextHyphenationCallback? TextHyphenationCallback { get; set; }
 
@@ -230,6 +246,7 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         target.DefaultFontSize = DefaultFontSize;
         target.FallbackTextMeasurement = FallbackTextMeasurement;
         target.DefaultLineHeight = DefaultLineHeight;
+        target.UserAgentStyles = UserAgentStyles;
         target.TextHyphenationCallback = TextHyphenationCallback;
         target.MediaFeatures = (MediaFeatures ?? new HtmlRenderMediaFeatures()).Clone();
         target._additionalStylesheets.Clear();
@@ -315,6 +332,9 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
 
         ValidatePositive(DefaultFontSize, nameof(DefaultFontSize));
         ValidatePositive(DefaultLineHeight, nameof(DefaultLineHeight));
+        if (!Enum.IsDefined(typeof(HtmlRenderUserAgentStyleMode), UserAgentStyles)) {
+            throw new ArgumentOutOfRangeException(nameof(UserAgentStyles));
+        }
         (MediaFeatures ?? throw new ArgumentNullException(nameof(MediaFeatures))).Validate();
         if (string.IsNullOrWhiteSpace(DefaultFontFamily)) {
             throw new ArgumentException("A default font family is required.", nameof(DefaultFontFamily));

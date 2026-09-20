@@ -259,6 +259,25 @@ IReadOnlyList<OfficeImageExportResult> webpPages = source
     .Save("status-pages");
 ```
 
+The default style mode keeps OfficeIMO's established document layout: an
+uninset body and Arial fallback. Select the bounded browser user-agent defaults
+when a screen or application capture should begin with the conventional
+eight-pixel body margin and generic serif family:
+
+```csharp
+var browserOptions = new HtmlRenderOptions {
+    ViewportWidth = 816,
+    Margins = HtmlRenderMargins.All(0)
+};
+browserOptions.UseBrowserUserAgentStyles();
+```
+
+Authored CSS such as `body { margin: 0 }` still overrides that margin. The
+browser mode is a versioned subset of common user-agent defaults; it does not
+claim a complete Chromium stylesheet or cross-platform system-font identity.
+Set `DefaultFontFamily` after calling the helper when the application supplies
+or requires a particular font family.
+
 Use a named render request when CSS media, viewport behavior, pagination, page
 selection, and output format must be independently reviewable. The request takes an
 immutable options snapshot. The retained result records the exact profile, surfaces,

@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "scenarioId": "named-wpt-script-dom-20260920",
+  "sourceLicense": "BSD-3-Clause",
+  "documentUrl": "https://wpt.live/html/semantics/interactive-elements/the-details-element/details-add-summary.html",
+  "capturedAtUtc": "2026-09-20T06:58:17.8106017+00:00",
+  "browser": {
+    "product": "Chromium",
+    "version": "151.0.7922.34",
+    "playwrightAssemblyVersion": "1.62.0.0",
+    "htmlTinkerXAssemblyVersion": "3.0.1.0",
+    "hostOperatingSystem": "Microsoft Windows 10.0.26200",
+    "hostArchitecture": "X64",
+    "framework": ".NET 10.0.12"
+  },
+  "viewport": {
+    "width": 816,
+    "height": 720
+  },
+  "acquisition": {
+    "file": "acquisition.json",
+    "sha256": "266a6de9bfe467334a03ba47626415fa42c9002aa1370071dc213ddd4adff149",
+    "retainedInputBytes": true,
+    "networkPolicy": "route-all;fulfill-acquired-bytes;abort-unknown"
+  },
+  "source": [
+    {
+      "url": "https://wpt.live/html/semantics/interactive-elements/the-details-element/details-add-summary.html",
+      "contentType": "text/html",
+      "statusCode": 200,
+      "bytes": 819,
+      "sha256": "e070e160be18d81e58d743840bedd8a92e148248c2b1d1aa702be9b5148634a3"
+    }
+  ],
+  "officeImo": {
+    "file": "officeimo-screen.png",
+    "width": 816,
+    "height": 720,
+    "bytes": 4936,
+    "sha256": "f37a23febedcefa416686ad5e8739e4625cad4771a3e2059799c2963009a02c9"
+  },
+  "chromium": {
+    "file": "chromium-screen.png",
+    "width": 816,
+    "height": 720,
+    "bytes": 4276,
+    "sha256": "abcbe032d52df3e988ccbffb0c070b7e5053d2f6b4c8ad72b340d9f6fc1ec234"
+  },
+  "comparison": {
+    "dimensionsMatch": true,
+    "width": 816,
+    "height": 720,
+    "meanAbsoluteError": 0.12341154343681918,
+    "rootMeanSquareError": 4.773902270548982,
+    "meanLuminanceError": 0.16007948359204796,
+    "differenceFile": "difference.png",
+    "differenceSha256": "47c19457a1ee8788cdd1d18ad33b2178440a0df5f370181e481e5971443e7b4c"
+  },
+  "blockedUrls": []
+}

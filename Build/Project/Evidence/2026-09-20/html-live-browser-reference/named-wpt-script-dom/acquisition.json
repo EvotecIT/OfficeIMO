@@ -1,0 +1,25 @@
+{
+  "ScenarioId": "named-wpt-script-dom-20260920",
+  "SourceLicense": "BSD-3-Clause",
+  "retainedInputBytes": true,
+  "resources": [
+    {
+      "url": "https://wpt.live/html/semantics/interactive-elements/the-details-element/details-add-summary.html",
+      "finalUrl": "https://wpt.live/html/semantics/interactive-elements/the-details-element/details-add-summary.html",
+      "StatusCode": 200,
+      "ContentType": "text/html",
+      "ByteCount": 819,
+      "Sha256": "e070e160be18d81e58d743840bedd8a92e148248c2b1d1aa702be9b5148634a3",
+      "FetchedAtUtc": "2026-09-20T06:57:04.0865229+00:00",
+      "RequestMethod": "GET",
+      "RequestOccurrence": null,
+      "RequestHeaderNames": [],
+      "RequestBodyByteCount": 0,
+      "RequestBodySha256": null,
+      "dynamicExchanges": [],
+      "connectedAddress": "34.41.40.10",
+      "redirects": []
+    }
+  ],
+  "SkippedResources": []
+}

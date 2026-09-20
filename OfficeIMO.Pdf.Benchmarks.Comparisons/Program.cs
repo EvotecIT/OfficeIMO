@@ -31,6 +31,10 @@ if (args.Length > 0 && string.Equals(args[0], "html-runtime-conformance", String
     return await HtmlRuntimeConformanceRunner.RunAsync();
 }
 
+if (args.Length > 0 && string.Equals(args[0], "html-public-browser-evidence", StringComparison.OrdinalIgnoreCase)) {
+    return await HtmlPublicBrowserEvidenceRunner.RunAsync(args);
+}
+
 if (args.Length > 0 && string.Equals(args[0], "invoice-evidence", StringComparison.OrdinalIgnoreCase)) {
     return await PdfInvoiceEvidenceRunner.RunAsync(args);
 }

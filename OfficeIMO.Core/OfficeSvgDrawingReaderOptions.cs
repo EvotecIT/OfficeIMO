@@ -5,6 +5,13 @@ namespace OfficeIMO.Drawing;
 /// </summary>
 public sealed class OfficeSvgDrawingReaderOptions {
     /// <summary>
+    /// Font family used by SVG text that does not declare one. The default preserves
+    /// the existing shared-drawing contract; browser-oriented hosts can select a
+    /// generic family that matches their user-agent profile.
+    /// </summary>
+    public string DefaultFontFamily { get; set; } = "Arial";
+
+    /// <summary>
     /// Scoped font faces available when SVG text must be converted to painted vector outlines.
     /// Callers can register web fonts without changing process-wide font state.
     /// </summary>

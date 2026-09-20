@@ -52,6 +52,8 @@ public static partial class OfficeSvgDrawingReader {
         out int unsupportedFeatureCount) {
         drawing = null;
         unsupportedFeatureCount = 0;
+        string defaultFontFamily = options?.DefaultFontFamily ?? "Arial";
+        if (string.IsNullOrWhiteSpace(defaultFontFamily) || defaultFontFamily.Length > 1024) return false;
         if (!TryReadBoundedDocument(
                 bytes,
                 options,
@@ -81,7 +83,7 @@ public static partial class OfficeSvgDrawingReader {
             SvgDefinitionRegistry definitions = SvgDefinitionRegistry.Create(root);
             var paintServers = new SvgPaintServerRegistry(definitions);
             var references = new SvgElementReferenceRegistry(definitions, options?.ForeignObjectRenderer);
-            SvgPaintContext rootDefaults = SvgPaintContext.Default;
+            SvgPaintContext rootDefaults = SvgPaintContext.CreateDefault(defaultFontFamily);
             rootDefaults.DashPercentageReference = NormalizedSvgDiagonal(viewWidth, viewHeight);
             var context = ResolvePaintContext(root, rootDefaults, paintServers, ref unsupportedFeatureCount);
             OfficeTransform rootTransform = ResolveTransform(root, OfficeTransform.Identity, viewX, viewY, ref unsupportedFeatureCount);
@@ -1746,7 +1748,9 @@ public static partial class OfficeSvgDrawingReader {
             StrokePattern = paint.Pattern;
         }
 
-        internal static SvgPaintContext Default => new SvgPaintContext {
+        internal static SvgPaintContext Default => CreateDefault("Arial");
+
+        internal static SvgPaintContext CreateDefault(string fontFamily) => new SvgPaintContext {
             Color = OfficeColor.Black,
             Fill = OfficeColor.Black,
             Stroke = null,
@@ -1760,7 +1764,7 @@ public static partial class OfficeSvgDrawingReader {
             LineJoin = OfficeStrokeLineJoin.Miter,
             MiterLimit = 4D,
             FillRule = OfficeFillRule.NonZero,
-            FontFamily = "Arial",
+            FontFamily = fontFamily,
             FontSize = 16D,
             LineHeight = SvgLineHeight.Normal,
             FontStyle = OfficeFontStyle.Regular,

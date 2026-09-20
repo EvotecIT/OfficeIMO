@@ -1,0 +1,50 @@
+{
+  "ScenarioId": "named-wpt-script-dom-20260920",
+  "SourceLicense": "BSD-3-Clause",
+  "RequestedUrl": "https://wpt.live/html/semantics/interactive-elements/the-details-element/details-add-summary.html",
+  "ProviderId": "officeimo.trusted-process",
+  "CaptureUrl": "https://wpt.live/html/semantics/interactive-elements/the-details-element/details-add-summary.html",
+  "CaptureManifest": "sha256:8466c0785db87e5d2ef5b43eef156183f439462c5ae452d501a67eee3204f35d",
+  "TraceEntries": [
+    "Lifecycle:document-opened:success",
+    "Page:open:success",
+    "Capture:capture:success",
+    "Artifact:capture-manifest:generated"
+  ],
+  "ImageId": "sha256:bc8238082eade5ffe42ac0cecb15c16603144dab10b470c12041a87e54043341",
+  "ContainerName": "officeimo-html-110af7925fd14f11888e789deffc4215",
+  "ContainerRemoved": true,
+  "IsolationPolicy": "rootless-podman;seccomp;cgroups-cpu-memory-pids;network-none;read-only;uid-65532;cap-drop-all;no-new-privileges;no-mounts",
+  "IsolationProfile": 0,
+  "UnsupportedFeatures": [
+    "cross-origin-frame-execution",
+    "module-import-attributes-beyond-json",
+    "origin-changing-dynamic-redirects",
+    "transferable-frame-messages",
+    "cookies-and-credentials"
+  ],
+  "RendererSha256": "b7cb793d23d0a3e34236408d3e4393a592dfc298891fbec8574922d7f5ba13b7",
+  "WorkerSha256": "0c337866dd29acb7ead0c98ffef092d486c62f96e07605868fe617b4a6a550c7",
+  "RendererFilesSha256": "6f6c6a4a0c933b678694c75a1ba205ef0a2714a122773173c8b0ee1403e229ce",
+  "WorkerFilesSha256": "81fc2a53ae0392c5376485a6235a138e3e514c0796bf07e8542b0338185ea2f0",
+  "outputs": [
+    {
+      "file": "screen.png",
+      "bytes": 4936,
+      "Sha256": "f37a23febedcefa416686ad5e8739e4625cad4771a3e2059799c2963009a02c9",
+      "MediaType": "image/png"
+    },
+    {
+      "file": "print.pdf",
+      "bytes": 1554,
+      "Sha256": "b3e303954d3c94b21739c446af392dc58517c432e1a2ca4f9e2617cab25003a4",
+      "MediaType": "application/pdf"
+    },
+    {
+      "file": "screen-to-page.pdf",
+      "bytes": 1561,
+      "Sha256": "410b1b91a6d35008fa96d20f5741a43c27b9068aa10d4d16d5328e4c0f8ba107",
+      "MediaType": "application/pdf"
+    }
+  ]
+}

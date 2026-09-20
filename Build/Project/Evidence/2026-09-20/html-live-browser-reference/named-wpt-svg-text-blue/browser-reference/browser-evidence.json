@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "scenarioId": "named-wpt-svg-text-blue-20260920",
+  "sourceLicense": "BSD-3-Clause",
+  "documentUrl": "https://wpt.live/css/compositing/Text_with_SVG_background-ref.html",
+  "capturedAtUtc": "2026-09-20T06:53:09.445757+00:00",
+  "browser": {
+    "product": "Chromium",
+    "version": "151.0.7922.34",
+    "playwrightAssemblyVersion": "1.62.0.0",
+    "htmlTinkerXAssemblyVersion": "3.0.1.0",
+    "hostOperatingSystem": "Microsoft Windows 10.0.26200",
+    "hostArchitecture": "X64",
+    "framework": ".NET 10.0.12"
+  },
+  "viewport": {
+    "width": 816,
+    "height": 720
+  },
+  "acquisition": {
+    "file": "acquisition.json",
+    "sha256": "3c06f5100b744426946668592c00d89eef42d258f8c3a3434c9307d9694c9891",
+    "retainedInputBytes": true,
+    "networkPolicy": "route-all;fulfill-acquired-bytes;abort-unknown"
+  },
+  "source": [
+    {
+      "url": "https://wpt.live/css/compositing/Text_with_SVG_background-ref.html",
+      "contentType": "text/html",
+      "statusCode": 200,
+      "bytes": 451,
+      "sha256": "926205a6959a09c681c03132ac8fb5f14083729ed6489f4472278a868c07c9f5"
+    }
+  ],
+  "officeImo": {
+    "file": "officeimo-screen.png",
+    "width": 816,
+    "height": 720,
+    "bytes": 5598,
+    "sha256": "caa8a516869b0bcd244403d19ef7927bc4c6bf99fd49995adf46400ddf0ba05e"
+  },
+  "chromium": {
+    "file": "chromium-screen.png",
+    "width": 816,
+    "height": 720,
+    "bytes": 4601,
+    "sha256": "58600d4f1945a1af3be4850ce53c9f6fad09483fbe9c21df53541ed58bf44342"
+  },
+  "comparison": {
+    "dimensionsMatch": true,
+    "width": 816,
+    "height": 720,
+    "meanAbsoluteError": 0.08891612200435729,
+    "rootMeanSquareError": 4.082648105937764,
+    "meanLuminanceError": 0.025678976034858414,
+    "differenceFile": "difference.png",
+    "differenceSha256": "b8937b1d84454a5ca5504928ac3db247af9e22ac7a5550d0d9dc0c6735b07998"
+  },
+  "blockedUrls": []
+}
