@@ -5,6 +5,10 @@ using System.Runtime.InteropServices;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfSyntax {
+    private static readonly Encoding StrictUtf8NameEncoding = new UTF8Encoding(
+        encoderShouldEmitUTF8Identifier: false,
+        throwOnInvalidBytes: true);
+
     private static bool IsPdfDelimiter(char value) {
         switch (value) {
             case '(':
@@ -630,23 +634,47 @@ internal static partial class PdfSyntax {
     }
 
     internal static string DecodeName(string raw) {
-        if (string.IsNullOrEmpty(raw) || raw.IndexOf('#') < 0) {
+        if (string.IsNullOrEmpty(raw)) {
             return raw;
         }
 
-        var sb = new StringBuilder(raw.Length);
+        bool requiresDecoding = false;
+        for (int index = 0; index < raw.Length; index++) {
+            if (raw[index] == '#' || raw[index] >= 0x80) {
+                requiresDecoding = true;
+                break;
+            }
+        }
+
+        if (!requiresDecoding) return raw;
+
+        var bytes = new byte[raw.Length];
+        int byteCount = 0;
+        bool hasNonAsciiByte = false;
         for (int i = 0; i < raw.Length; i++) {
             char ch = raw[i];
             if (ch == '#' && i + 2 < raw.Length && TryHexNibble(raw[i + 1], out int hi) && TryHexNibble(raw[i + 2], out int lo)) {
-                sb.Append(PdfEncoding.Latin1GetString(new[] { (byte)((hi << 4) | lo) }));
+                byte decoded = (byte)((hi << 4) | lo);
+                bytes[byteCount++] = decoded;
+                hasNonAsciiByte |= decoded >= 0x80;
                 i += 2;
                 continue;
             }
 
-            sb.Append(ch);
+            if (ch > byte.MaxValue) return raw;
+            bytes[byteCount++] = (byte)ch;
+            hasNonAsciiByte |= ch >= 0x80;
         }
 
-        return sb.ToString();
+        if (hasNonAsciiByte) {
+            try {
+                return StrictUtf8NameEncoding.GetString(bytes, 0, byteCount);
+            } catch (DecoderFallbackException) {
+                // Names are byte sequences. Preserve legacy single-byte names when they are not valid UTF-8.
+            }
+        }
+
+        return PdfEncoding.Latin1GetString(bytes, 0, byteCount);
     }
 
     private static PdfStringObj CreateParsedString(byte[] bytes, int? encodedTokenLength) {

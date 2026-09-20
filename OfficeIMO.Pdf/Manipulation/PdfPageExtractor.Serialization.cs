@@ -55,9 +55,9 @@ internal static partial class PdfPageExtractor {
             sb.Append("/Type /Page ");
         }
     
-        sb.Append("/Parent ")
-            .Append(PdfSyntaxEscaper.IndirectReference(context.PagesObjectId))
-            .Append(' ');
+        sb.Append("/Parent ");
+        PdfSyntaxEscaper.AppendIndirectReference(sb, context.PagesObjectId);
+        sb.Append(' ');
     
         if (context.MaterializedPageValues.TryGetValue(sourceId, out var inherited)) {
             foreach (var entry in inherited) {
@@ -78,7 +78,7 @@ internal static partial class PdfPageExtractor {
         }
     
         sb.Append(">>\n");
-        return PdfEncoding.Latin1GetBytes(sb.ToString());
+        return PdfEncoding.Latin1GetBytes(sb);
     }
     
     internal static byte[] SerializeObject(PdfObject value, SerializationContext context) {
@@ -89,7 +89,7 @@ internal static partial class PdfPageExtractor {
         var sb = new StringBuilder();
         AppendObject(sb, value, context);
         sb.Append('\n');
-        return PdfEncoding.Latin1GetBytes(sb.ToString());
+        return PdfEncoding.Latin1GetBytes(sb);
     }
 
     /// <summary>Serializes an indirect object without buffering a stream body a second time.</summary>
@@ -205,14 +205,18 @@ internal static partial class PdfPageExtractor {
     }
 
     private static long CountNameBytes(string value, long maximumBytes) {
-        long total = 0L;
+        long asciiBytes = 0L;
+        long escapedAsciiBytes = 0L;
         foreach (char character in value) {
-            long count = character <= 0x20 || character >= 0x7F || IsNameDelimiter(character)
-                ? 1L + CountHexDigits(character)
-                : 1L;
-            total = AddCounted(total, count, maximumBytes);
+            if (character >= 0x80) continue;
+            asciiBytes++;
+            if (character <= 0x20 || character == 0x7F || IsNameDelimiter(character)) escapedAsciiBytes++;
         }
-        return total;
+
+        long utf8Bytes = Encoding.UTF8.GetByteCount(value);
+        long encodedNonAsciiBytes = utf8Bytes - asciiBytes;
+        long total = AddCounted(asciiBytes, MultiplyCounted(escapedAsciiBytes, 2L, maximumBytes), maximumBytes);
+        return AddCounted(total, MultiplyCounted(encodedNonAsciiBytes, 3L, maximumBytes), maximumBytes);
     }
 
     private static long CountLiteralStringBytes(string value, long maximumBytes) {
@@ -237,8 +241,6 @@ internal static partial class PdfPageExtractor {
 
     private static long CountHexStringBytes(long byteCount, long maximumBytes) =>
         AddCounted(MultiplyCounted(byteCount, 2L, maximumBytes), 2L, maximumBytes);
-
-    private static int CountHexDigits(int value) => value <= 0xFF ? 2 : value <= 0xFFF ? 3 : 4;
 
     private static bool IsNameDelimiter(char character) =>
         character is '(' or ')' or '<' or '>' or '[' or ']' or '{' or '}' or '/' or '%' or '#';
@@ -278,7 +280,9 @@ internal static partial class PdfPageExtractor {
     }
     
     private static void AppendDictionaryEntry(StringBuilder sb, string key, PdfObject value, SerializationContext context) {
-        sb.Append('/').Append(PdfSyntaxEscaper.Name(key)).Append(' ');
+        sb.Append('/');
+        PdfSyntaxEscaper.AppendName(sb, key);
+        sb.Append(' ');
         AppendObject(sb, value, context);
         sb.Append(' ');
     }
@@ -292,7 +296,8 @@ internal static partial class PdfPageExtractor {
                 sb.Append(boolean.Value ? "true" : "false");
                 break;
             case PdfName name:
-                sb.Append('/').Append(PdfSyntaxEscaper.Name(name.Name));
+                sb.Append('/');
+                PdfSyntaxEscaper.AppendName(sb, name.Name);
                 break;
             case PdfStringObj text:
                 sb.Append(context.PreserveRawStringBytes
@@ -313,7 +318,7 @@ internal static partial class PdfPageExtractor {
                 int generation = context.PreserveReferenceGenerations && newObjectNumber == reference.ObjectNumber
                     ? reference.Generation
                     : 0;
-                sb.Append(PdfSyntaxEscaper.IndirectReference(newObjectNumber, generation));
+                PdfSyntaxEscaper.AppendIndirectReference(sb, newObjectNumber, generation);
                 break;
             case PdfArray array:
                 sb.Append("[ ");
