@@ -15,6 +15,18 @@ public sealed partial class OfficeRasterCanvas {
         string text,
         IOfficeFontProgram font,
         OfficeTextFeatureSettings? featureSettings,
+        out OfficeTextShapingResult shapedRun) => TryGetShapedTextRun(
+            text,
+            font,
+            featureSettings,
+            OfficeTextElements.ResolveBaseDirection(OfficeArabicTextShaper.ToLogicalText(text)),
+            out shapedRun);
+
+    private bool TryGetShapedTextRun(
+        string text,
+        IOfficeFontProgram font,
+        OfficeTextFeatureSettings? featureSettings,
+        OfficeTextDirection direction,
         out OfficeTextShapingResult shapedRun) {
         OfficeTextFeatureSettings resolvedFeatures = featureSettings ?? OfficeTextFeatureSettings.Default;
         IOfficeTextShapingProvider? provider = _textShapingProvider;
@@ -25,7 +37,7 @@ public sealed partial class OfficeRasterCanvas {
         }
 
         _cancellationToken.ThrowIfCancellationRequested();
-        var key = new ShapedTextKey(text, font, resolvedFeatures);
+        var key = new ShapedTextKey(text, font, resolvedFeatures, direction);
         Dictionary<ShapedTextKey, OfficeTextShapingResult?> cache =
             _shapedTextCache ??= new Dictionary<ShapedTextKey, OfficeTextShapingResult?>();
         if (cache.TryGetValue(key, out OfficeTextShapingResult? cached)) {
@@ -40,7 +52,7 @@ public sealed partial class OfficeRasterCanvas {
             font.GetFontDataForShaping(),
             font.IsOpenTypeCff,
             font.UnitsPerEm,
-            OfficeTextElements.ResolveBaseDirection(logicalText),
+            direction,
             _textShapingLanguage,
             _cancellationToken,
             font.CollectionIndex,
@@ -53,6 +65,57 @@ public sealed partial class OfficeRasterCanvas {
         cache[key] = resolved;
         shapedRun = resolved!;
         return resolved != null;
+    }
+
+    internal bool TryDrawVerticalText(
+        string text,
+        double x,
+        double y,
+        double width,
+        double height,
+        OfficeColor color,
+        double fontSize,
+        OfficeFontStyle style,
+        string? fontFamily,
+        OfficeTextFeatureSettings? featureSettings,
+        string? fontPalette) {
+        if (string.IsNullOrEmpty(text) || color.A == 0 || width <= 0D || height <= 0D) return true;
+        IOfficeFontProgram? font = ResolveTextFont(text, fontFamily, style, out OfficeFontStyle resolvedStyle);
+        if (font == null || !TryGetShapedTextRun(text, font, featureSettings, OfficeTextDirection.TopToBottom, out OfficeTextShapingResult run)) {
+            ReportTextShapingFallback(incomplete: true);
+            return false;
+        }
+
+        double size = Math.Max(1D, fontSize);
+        double originX = x + width / 2D;
+        double originY = y;
+        OfficeFontStyle simulatedStyle = style & ~resolvedStyle;
+        if (font is OfficeTrueTypeFont trueType && trueType.TryGetShapedColorTextContours(
+            text, run, originX, originY, size, fontPalette, color, MaximumTextOutlinePointsPerRun,
+            _cancellationToken, out List<OfficeColorGlyphContours> colorLayers)) {
+            foreach (OfficeColorGlyphContours layer in colorLayers) {
+                if ((simulatedStyle & OfficeFontStyle.Italic) == OfficeFontStyle.Italic) SlantContours(layer.Contours, originY, size);
+                FillContours(layer.Contours, layer.Color, OfficeFillRule.NonZero);
+            }
+            return true;
+        }
+
+        List<List<OfficePoint>> contours;
+        if (font is IOfficeCffBoundedFontProgram cff) {
+            contours = cff.GetShapedTextContoursBounded(text, run, originX, originY, size, MaximumTextOutlinePointsPerRun, _cancellationToken, _cffOperationBudget);
+        } else if (font is IOfficeBoundedFontProgram bounded) {
+            contours = bounded.GetShapedTextContoursBounded(text, run, originX, originY, size, MaximumTextOutlinePointsPerRun, _cancellationToken);
+        } else {
+            contours = font.GetShapedTextContours(text, run, originX, originY, size);
+            EnsureBoundedContourPoints(contours, MaximumTextOutlinePointsPerRun);
+        }
+        if ((simulatedStyle & OfficeFontStyle.Italic) == OfficeFontStyle.Italic) SlantContours(contours, originY, size);
+        FillContours(contours, color, OfficeFillRule.NonZero);
+        if ((simulatedStyle & OfficeFontStyle.Bold) == OfficeFontStyle.Bold) {
+            OffsetContours(contours, size / 24D, 0D);
+            FillContours(contours, color, OfficeFillRule.NonZero);
+        }
+        return true;
     }
 
     private double MeasureResolvedText(string text, IOfficeFontProgram font, double fontSize, OfficeTextFeatureSettings? featureSettings = null) {
@@ -245,18 +308,21 @@ public sealed partial class OfficeRasterCanvas {
     }
 
     private readonly struct ShapedTextKey : IEquatable<ShapedTextKey> {
-        internal ShapedTextKey(string text, IOfficeFontProgram font, OfficeTextFeatureSettings? featureSettings = null) {
+        internal ShapedTextKey(string text, IOfficeFontProgram font, OfficeTextFeatureSettings? featureSettings = null, OfficeTextDirection direction = OfficeTextDirection.Auto) {
             Text = text;
             Font = font;
             FeatureSettings = featureSettings ?? OfficeTextFeatureSettings.Default;
+            Direction = direction;
         }
 
         private string Text { get; }
         private IOfficeFontProgram Font { get; }
         private OfficeTextFeatureSettings FeatureSettings { get; }
+        private OfficeTextDirection Direction { get; }
 
         public bool Equals(ShapedTextKey other) =>
             ReferenceEquals(Font, other.Font) &&
+            Direction == other.Direction &&
             FeatureSettings.Equals(other.FeatureSettings) &&
             string.Equals(Text, other.Text, StringComparison.Ordinal);
 
@@ -266,7 +332,7 @@ public sealed partial class OfficeRasterCanvas {
         public override int GetHashCode() {
             unchecked {
                 return (StringComparer.Ordinal.GetHashCode(Text) * 397) ^
-                       RuntimeHelpers.GetHashCode(Font) ^ FeatureSettings.GetHashCode();
+                       RuntimeHelpers.GetHashCode(Font) ^ FeatureSettings.GetHashCode() ^ (int)Direction;
             }
         }
     }

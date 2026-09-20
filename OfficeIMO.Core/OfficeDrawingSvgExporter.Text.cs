@@ -10,6 +10,22 @@ public static partial class OfficeDrawingSvgExporter {
             AppendTextFrameGroupStart(sb, text);
         }
 
+        if (text.TextDirection == OfficeTextDirection.TopToBottom) {
+            sb.AppendSvgVerticalTextElement(
+                text.Text,
+                text.X + text.Width / 2D,
+                text.Y,
+                text.Color ?? OfficeColor.Black,
+                text.Font.FamilyName,
+                text.Font.Size,
+                text.Font.IsBold,
+                text.Font.IsItalic,
+                text.FeatureSettings,
+                text.FontPalette);
+            if (useFrameTransform) sb.Append("</g>");
+            return;
+        }
+
         if (text.WrapText || text.ShrinkToFit || text.StackedText || text.VerticalAlignment != OfficeTextVerticalAlignment.Top || text.HasPadding) {
             AppendTextBlock(sb, text, textMetrics, useFrameTransform);
             if (useFrameTransform) {
@@ -33,54 +49,33 @@ public static partial class OfficeDrawingSvgExporter {
         double fontSize = sourceFontSize * text.BaselineScale;
         double y = contentY + sourceFontSize + text.BaselineOffset;
         double lineHeight = text.LineHeight ?? sourceFontSize * 1.2D;
-        if (text.TextAdvanceWidth.HasValue) {
-            sb.AppendSvgPositionedTextElement(
-                text.Text,
-                x,
-                y,
-                lineHeight,
-                text.Color ?? OfficeColor.Black,
-                text.Font.FamilyName ?? "Arial",
-                fontSize,
-                text.Alignment,
-                text.Font.IsBold,
-                text.Font.IsItalic,
-                (text.Font.Style & OfficeFontStyle.Underline) == OfficeFontStyle.Underline,
-                useFrameTransform ? 0D : text.RotationDegrees,
-                useFrameTransform ? 0D : text.RotationCenterX,
-                useFrameTransform ? 0D : text.RotationCenterY,
-                (text.Font.Style & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough,
-                text.TextAdvanceWidth.Value,
-                text.UnderlineStyle,
-                text.StrikethroughStyle,
-                OfficeTextBaseline.Normal,
-                text.DecorationColor,
-                text.FeatureSettings,
-                text.FontPalette);
-        } else {
-            sb.AppendSvgFeaturedTextElement(
-                text.Text,
-                x,
-                y,
-                lineHeight,
-                text.Color ?? OfficeColor.Black,
-                text.Font.FamilyName ?? "Arial",
-                fontSize,
-                text.Alignment,
-                text.Font.IsBold,
-                text.Font.IsItalic,
-                (text.Font.Style & OfficeFontStyle.Underline) == OfficeFontStyle.Underline,
-                useFrameTransform ? 0D : text.RotationDegrees,
-                useFrameTransform ? 0D : text.RotationCenterX,
-                useFrameTransform ? 0D : text.RotationCenterY,
-                (text.Font.Style & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough,
-                text.UnderlineStyle,
-                text.StrikethroughStyle,
-                OfficeTextBaseline.Normal,
-                text.DecorationColor,
-                text.FeatureSettings,
-                text.FontPalette);
-        }
+        double advance = text.TextAdvanceWidth ?? Math.Max(
+            0.001D,
+            textMetrics.MeasureText(text.Text, fontSize, text.Font.FamilyName, text.Font.Style));
+        sb.AppendSvgPositionedTextElement(
+            text.Text,
+            x,
+            y,
+            lineHeight,
+            text.Color ?? OfficeColor.Black,
+            text.Font.FamilyName ?? "Arial",
+            fontSize,
+            text.Alignment,
+            text.Font.IsBold,
+            text.Font.IsItalic,
+            (text.Font.Style & OfficeFontStyle.Underline) == OfficeFontStyle.Underline,
+            useFrameTransform ? 0D : text.RotationDegrees,
+            useFrameTransform ? 0D : text.RotationCenterX,
+            useFrameTransform ? 0D : text.RotationCenterY,
+            (text.Font.Style & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough,
+            advance,
+            text.UnderlineStyle,
+            text.StrikethroughStyle,
+            OfficeTextBaseline.Normal,
+            text.DecorationColor,
+            text.FeatureSettings,
+            text.FontPalette,
+            OfficeTextShapingBackend.BrowserNative);
 
         if (useFrameTransform) {
             sb.Append("</g>");

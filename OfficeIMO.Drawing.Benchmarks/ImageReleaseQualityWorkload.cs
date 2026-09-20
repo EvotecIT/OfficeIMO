@@ -15,7 +15,6 @@ public sealed class ImageReleaseQualityWorkload {
     private readonly OfficeRasterEncodingOptions _options;
     private readonly byte[] _input;
     private ImageProcessMemorySampler? _sampler;
-    private long _allocatedBefore;
     private object? _result;
 
     /// <summary>Creates a deterministic corpus, format, and operation tuple.</summary>
@@ -114,13 +113,12 @@ public sealed class ImageReleaseQualityWorkload {
     /// <summary>Mean absolute RGB error for the validated output.</summary>
     public double MeanAbsoluteError { get; private set; }
 
-    /// <summary>Starts allocation and process-memory sampling outside measured operation time.</summary>
+    /// <summary>Starts process-memory sampling outside measured operation time.</summary>
     public void BeginMeasurement() {
         if (_sampler != null) throw new InvalidOperationException("Image evidence measurement is already active.");
         var sampler = new ImageProcessMemorySampler();
         try {
             sampler.Start();
-            _allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
             _sampler = sampler;
         } catch {
             sampler.Dispose();
@@ -130,6 +128,7 @@ public sealed class ImageReleaseQualityWorkload {
 
     /// <summary>Runs only the selected image operation.</summary>
     public void Execute() {
+        long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
         try {
             _result = _operation switch {
                 ImageEvidenceOperation.Encode => OfficeRasterImageEncoder.Encode(_source, _format, _options, MaximumEncodedBytes),
@@ -140,9 +139,11 @@ public sealed class ImageReleaseQualityWorkload {
                 _ => throw new InvalidOperationException("Unsupported image evidence operation.")
             };
         } catch {
+            ManagedAllocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
             CompleteMeasurement();
             throw;
         }
+        ManagedAllocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
     }
 
     /// <summary>Stops sampling and publishes memory metrics outside measured operation time.</summary>
@@ -150,7 +151,6 @@ public sealed class ImageReleaseQualityWorkload {
         ImageProcessMemorySampler? sampler = Interlocked.Exchange(ref _sampler, null);
         if (sampler == null) return;
         try {
-            ManagedAllocatedBytes = GC.GetAllocatedBytesForCurrentThread() - _allocatedBefore;
             sampler.Stop();
             PeakWorkingSetBytes = sampler.PeakWorkingSetDelta;
             PeakPrivateBytes = sampler.PeakPrivateBytesDelta;

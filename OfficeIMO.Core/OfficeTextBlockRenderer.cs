@@ -702,6 +702,25 @@ public static partial class OfficeTextBlockRenderer {
         string? fontPalette) =>
         AppendSvgTextElementCore(builder, text, x, y, lineHeight, color, fontFamily, fontSize, horizontalAlignment, bold, italic, underline, rotationDegrees, rotationCenterX, rotationCenterY, strikethrough, null, underlineStyle, strikethroughStyle, baseline, decorationColor, featureSettings, fontPalette);
 
+    internal static StringBuilder AppendSvgVerticalTextElement(
+        this StringBuilder builder,
+        string text,
+        double x,
+        double y,
+        OfficeColor color,
+        string? fontFamily,
+        double fontSize,
+        bool bold,
+        bool italic,
+        OfficeTextFeatureSettings featureSettings,
+        string? fontPalette) =>
+        AppendSvgTextElementCore(
+            builder, text, x, y, fontSize, color, fontFamily, fontSize, OfficeTextAlignment.Center,
+            bold, italic, underline: false, rotationDegrees: 0D, rotationCenterX: 0D, rotationCenterY: 0D,
+            strikethrough: false, textAdvanceWidth: null, OfficeTextDecorationStyle.None,
+            OfficeTextDecorationStyle.None, OfficeTextBaseline.Normal, decorationColor: null,
+            featureSettings, fontPalette, OfficeTextDirection.TopToBottom, OfficeTextShapingBackend.BrowserNative);
+
     internal static StringBuilder AppendSvgPositionedTextElement(
         this StringBuilder builder,
         string text,
@@ -725,8 +744,9 @@ public static partial class OfficeTextBlockRenderer {
         OfficeTextBaseline baseline,
         OfficeColor? decorationColor = null,
         OfficeTextFeatureSettings? featureSettings = null,
-        string? fontPalette = null) =>
-        AppendSvgTextElementCore(builder, text, x, y, lineHeight, color, fontFamily, fontSize, horizontalAlignment, bold, italic, underline, rotationDegrees, rotationCenterX, rotationCenterY, strikethrough, textAdvanceWidth, underlineStyle, strikethroughStyle, baseline, decorationColor, featureSettings, fontPalette);
+        string? fontPalette = null,
+        OfficeTextShapingBackend? shapingBackend = null) =>
+        AppendSvgTextElementCore(builder, text, x, y, lineHeight, color, fontFamily, fontSize, horizontalAlignment, bold, italic, underline, rotationDegrees, rotationCenterX, rotationCenterY, strikethrough, textAdvanceWidth, underlineStyle, strikethroughStyle, baseline, decorationColor, featureSettings, fontPalette, OfficeTextDirection.Auto, shapingBackend);
 
     private static StringBuilder AppendSvgTextElementCore(
         StringBuilder builder,
@@ -751,7 +771,9 @@ public static partial class OfficeTextBlockRenderer {
         OfficeTextBaseline baseline,
         OfficeColor? decorationColor,
         OfficeTextFeatureSettings? featureSettings,
-        string? fontPalette) {
+        string? fontPalette,
+        OfficeTextDirection direction = OfficeTextDirection.Auto,
+        OfficeTextShapingBackend? shapingBackend = null) {
         if (builder == null) {
             throw new ArgumentNullException(nameof(builder));
         }
@@ -799,6 +821,23 @@ public static partial class OfficeTextBlockRenderer {
 
         if (!string.IsNullOrWhiteSpace(fontPalette) && !string.Equals(fontPalette, "normal", StringComparison.OrdinalIgnoreCase)) {
             builder.AppendAttribute("font-palette", fontPalette!.Trim());
+        }
+
+        if (direction == OfficeTextDirection.TopToBottom) {
+            builder.AppendAttribute("writing-mode", "vertical-rl")
+                .AppendAttribute("text-orientation", "mixed");
+        }
+        OfficeTextDirection resolvedDirection = direction == OfficeTextDirection.Auto
+            ? OfficeTextElements.ResolveBaseDirection(text)
+            : direction;
+        if (resolvedDirection == OfficeTextDirection.RightToLeft) {
+            builder.AppendAttribute("direction", "rtl")
+                .AppendAttribute("unicode-bidi", "plaintext");
+        }
+        if (shapingBackend.HasValue) {
+            builder.AppendAttribute("data-officeimo-shaping-backend", shapingBackend.Value == OfficeTextShapingBackend.BrowserNative
+                ? "browser-native"
+                : shapingBackend.Value.ToString().ToLowerInvariant());
         }
 
         if (textAdvanceWidth.HasValue && lines.Length == 1) {

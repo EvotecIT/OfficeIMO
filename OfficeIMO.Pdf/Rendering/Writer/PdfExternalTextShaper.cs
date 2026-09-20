@@ -98,6 +98,9 @@ internal static class PdfExternalTextShaper {
             int advanceWidth1000 = shapedGlyph.AdvanceWidth.HasValue
                 ? ScaleToPdfUnits(shapedGlyph.AdvanceWidth.Value, unitsPerEm)
                 : nominalWidth1000;
+            int advanceHeight1000 = shapedGlyph.AdvanceHeight.HasValue
+                ? ScaleToPdfUnits(shapedGlyph.AdvanceHeight.Value, unitsPerEm)
+                : 0;
             int offsetX1000 = ScaleToPdfUnits(shapedGlyph.OffsetX, unitsPerEm);
             int offsetY1000 = ScaleToPdfUnits(shapedGlyph.OffsetY, unitsPerEm);
             recordGlyphUsage?.Invoke(shapedGlyph.GlyphId, shapedGlyph.UnicodeText);
@@ -107,11 +110,12 @@ internal static class PdfExternalTextShaper {
                 shapedGlyph.TextIndex,
                 nominalWidth1000,
                 advanceWidth1000,
+                advanceHeight1000,
                 offsetX1000,
                 offsetY1000));
         }
 
-        return new PdfGlyphRun(glyphs, Array.Empty<PdfTextEncodingDiagnostic>(), actualText: text);
+        return new PdfGlyphRun(glyphs, Array.Empty<PdfTextEncodingDiagnostic>(), actualText: text, result.Direction);
     }
 
     private static int ScaleToPdfUnits(int value, int unitsPerEm) =>

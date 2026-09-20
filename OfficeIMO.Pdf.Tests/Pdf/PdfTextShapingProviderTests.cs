@@ -39,6 +39,120 @@ public class PdfTextShapingProviderTests {
     }
 
     [Fact]
+    public void VerticalDrawingRetainsLogicalTextAndReportsThePdfPositioningFallback() {
+        TypographyEvidenceCase evidence = Assert.Single(
+            TypographyEvidenceCorpus.Cases,
+            item => item.Direction == OfficeTextDirection.TopToBottom);
+        byte[] fontData = LoadTypographyFont(evidence);
+        var drawing = new OfficeDrawing(120D, 180D)
+            .AddFont(evidence.Family, fontData)
+            .AddVerticalText(evidence.Text, 20D, 10D, 80D, 160D, new OfficeFontInfo(evidence.Family, 36D));
+        var report = new PdfConversionReport();
+        var options = new PdfOptions {
+                CompressContentStreams = false,
+                PageWidth = 180D,
+                PageHeight = 240D,
+                MarginLeft = 20D,
+                MarginRight = 20D,
+                MarginTop = 20D,
+                MarginBottom = 20D
+            }
+            .ReportDiagnosticsTo(report, "OfficeIMO.Pdf.Tests")
+            .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(evidence.Family, fontData))
+            .SetLanguage(evidence.Language)
+            .SetTextShapingProvider(OfficeManagedTextShapingProvider.Instance);
+
+        byte[] bytes = PdfDocument.Create(options).Drawing(drawing).ToBytes();
+        string extracted = PdfReadDocument.Open(bytes).ExtractText();
+
+        Assert.Contains(evidence.Text, extracted, StringComparison.Ordinal);
+        Assert.Contains(report.FidelityDiagnostics, diagnostic =>
+            diagnostic.Code == "vertical-text-stacked-fallback" &&
+            diagnostic.LossKind == OfficeConversionLossKind.Approximation);
+        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
+        Assert.Contains("/ActualText", Encoding.ASCII.GetString(bytes), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HorizontalCorpusHasComparableRenderedGeometryAcrossRasterSvgAndPdf() {
+        foreach (TypographyEvidenceCase evidence in TypographyEvidenceCorpus.Cases.Where(
+            item => item.Direction != OfficeTextDirection.TopToBottom)) {
+            byte[] fontData = LoadTypographyFont(evidence);
+            var drawing = new OfficeDrawing(560D, 100D)
+                .AddFont(evidence.Family, fontData)
+                .AddText(evidence.Text, 10D, 10D, 540D, 80D, new OfficeFontInfo(evidence.Family, 28D));
+            var rasterOptions = new OfficeDrawingRasterRenderOptions {
+                TextShapingProvider = OfficeManagedTextShapingProvider.Instance,
+                TextShapingLanguage = evidence.Language
+            };
+            drawing.ApplyImageExportOptions(new OfficeImageExportOptions {
+                TextShapingProvider = OfficeManagedTextShapingProvider.Instance,
+                TextShapingLanguage = evidence.Language
+            });
+            PixelBounds directBounds = GetInkBounds(OfficeDrawingRasterRenderer.Render(drawing, rasterOptions));
+
+            byte[] svg = OfficeDrawingSvgExporter.ToSvgBytes(drawing, 1D, OfficeSvgSizeUnit.Pixel);
+            var svgOptions = new OfficeSvgDrawingReaderOptions();
+            svgOptions.Fonts.Add(evidence.Family, fontData);
+            Assert.True(OfficeSvgDrawingReader.TryRead(svg, svgOptions, out OfficeDrawing? svgDrawing), evidence.Name);
+            PixelBounds svgBounds = GetInkBounds(OfficeDrawingRasterRenderer.Render(svgDrawing!, rasterOptions));
+
+            var pdfOptions = new PdfOptions {
+                    PageWidth = 600D,
+                    PageHeight = 140D,
+                    MarginLeft = 0D,
+                    MarginRight = 0D,
+                    MarginTop = 0D,
+                    MarginBottom = 0D
+                }
+                .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(evidence.Family, fontData))
+                .SetLanguage(evidence.Language)
+                .SetTextShapingProvider(OfficeManagedTextShapingProvider.Instance);
+            byte[] pdf = PdfDocument.Create(pdfOptions)
+                .Canvas(canvas => canvas.Drawing(drawing, 20D, 20D, 560D, 100D))
+                .ToBytes();
+            PixelBounds pdfBounds = GetInkBounds(OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf), rasterOptions));
+
+            AssertGeometryClose(directBounds, svgBounds, evidence.Name + " raster/SVG", offsetX: 0, offsetY: 0);
+            AssertGeometryClose(directBounds, pdfBounds, evidence.Name + " raster/PDF", offsetX: 20, offsetY: 20);
+            foreach (string token in evidence.Text.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
+                Assert.Contains(token, PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+            }
+        }
+    }
+
+    private static PixelBounds GetInkBounds(OfficeRasterImage image) {
+        int minX = image.Width, minY = image.Height, maxX = -1, maxY = -1;
+        for (int y = 0; y < image.Height; y++) {
+            for (int x = 0; x < image.Width; x++) {
+                OfficeColor pixel = image.GetPixel(x, y);
+                if (pixel.A == 0 || pixel.R >= 250 && pixel.G >= 250 && pixel.B >= 250) continue;
+                minX = Math.Min(minX, x); minY = Math.Min(minY, y);
+                maxX = Math.Max(maxX, x); maxY = Math.Max(maxY, y);
+            }
+        }
+        Assert.True(maxX >= minX && maxY >= minY, "Expected rendered text ink.");
+        return new PixelBounds(minX, minY, maxX - minX + 1, maxY - minY + 1);
+    }
+
+    private static void AssertGeometryClose(PixelBounds expected, PixelBounds actual, string source, int offsetX, int offsetY) {
+        int positionTolerance = Math.Max(8, (int)Math.Ceiling(expected.Width * 0.25D));
+        int widthTolerance = Math.Max(6, (int)Math.Ceiling(expected.Width * 0.35D));
+        int heightTolerance = Math.Max(5, (int)Math.Ceiling(expected.Height * 0.35D));
+        PixelBounds normalized = actual with { X = actual.X - offsetX, Y = actual.Y - offsetY };
+        Assert.True(normalized.X >= expected.X - positionTolerance && normalized.X <= expected.X + positionTolerance,
+            $"{source} X mismatch: expected {expected}, actual {normalized}.");
+        Assert.True(normalized.Y >= expected.Y - 10 && normalized.Y <= expected.Y + 10,
+            $"{source} Y mismatch: expected {expected}, actual {normalized}.");
+        Assert.True(normalized.Width >= expected.Width - widthTolerance && normalized.Width <= expected.Width + widthTolerance,
+            $"{source} width mismatch: expected {expected}, actual {normalized}.");
+        Assert.True(normalized.Height >= expected.Height - heightTolerance && normalized.Height <= expected.Height + heightTolerance,
+            $"{source} height mismatch: expected {expected}, actual {normalized}.");
+    }
+
+    private readonly record struct PixelBounds(int X, int Y, int Width, int Height);
+
+    [Fact]
     public void TextShapingProvider_ShapesEmbeddedTrueTypeComplexScriptWithoutUnsupportedWarnings() {
         string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
         if (fontPath == null) {

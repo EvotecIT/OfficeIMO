@@ -27,7 +27,7 @@ Completion evidence: a visitor can choose a task, find the supported surface, in
 
 ## Image engine
 
-- [ ] Qualify horizontal baseline placement and glyph geometry across raster, SVG, and PDF with identical font programs, rendered geometry or golden-image assertions, and retained searchable logical text where supported. Carry true vertical glyph advances and baseline placement through the shared shaped-glyph contract and every consumer; qualify CJK vertical substitutions and positioning with explicit fallback diagnostics before the optional HarfBuzz provider accepts top-to-bottom shaping requests.
+- [ ] Replace the diagnosed searchable stacked-text fallback for vertical PDF drawing with native vertical glyph positioning when the PDF font and text operators can preserve shaped Y advances, substitutions, logical extraction, and strict-profile evidence together. Keep the current approximation explicit until independent CJK producer fixtures qualify that path.
 - [ ] Add bounded ICC-to-sRGB conversion only after representative matrix, LUT, RGB, CMYK, and malformed profiles have an explicit color-correctness corpus. Keep the current byte-preservation and metadata-loss report separate from color conversion, and reject profiles that exceed the declared parser, pixel, or allocation limits.
 - [ ] Evaluate lossy or animated WebP, JPEG-in-TIFF, and BigTIFF as separate products only when real consumer files establish the required decode, encode, fallback, animation/page-loss, and memory contracts.
 - [ ] Add bounded EMF/WMF rasterization when older Office-document fixtures demonstrate a material fidelity gain. Keep ICO, PCX, BMP/GIF encoding, and uncommon or expensive codecs behind the caller-codec boundary until a first-party consumer justifies ownership.

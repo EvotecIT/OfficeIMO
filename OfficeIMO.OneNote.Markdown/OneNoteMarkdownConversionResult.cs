@@ -43,12 +43,7 @@ public sealed class OneNoteMarkdownConversionReport : IOfficeConversionReport {
             new OfficeConversionFidelityDiagnostic(
                 diagnostic.Code,
                 diagnostic.Message,
-                diagnostic.Severity switch {
-                    OneNoteDiagnosticSeverity.Information => OfficeConversionLossKind.None,
-                    OneNoteDiagnosticSeverity.Warning when diagnostic.Code.IndexOf("OMITTED", StringComparison.Ordinal) >= 0 => OfficeConversionLossKind.Omission,
-                    OneNoteDiagnosticSeverity.Warning => OfficeConversionLossKind.Approximation,
-                    _ => OfficeConversionLossKind.Failure
-                },
+                GetLossKind(diagnostic),
                 "OfficeIMO.OneNote.Markdown",
                 diagnostic.Source)).ToArray());
     }
@@ -68,6 +63,20 @@ public sealed class OneNoteMarkdownConversionReport : IOfficeConversionReport {
         if (HasLoss) {
             throw new InvalidOperationException("OneNote-to-Markdown conversion reported one or more lossy mappings.");
         }
+    }
+
+    private static OfficeConversionLossKind GetLossKind(OneNoteMarkdownDiagnostic diagnostic) {
+        if (diagnostic.Severity == OneNoteDiagnosticSeverity.Information) {
+            return OfficeConversionLossKind.None;
+        }
+        if (diagnostic.Severity != OneNoteDiagnosticSeverity.Warning) {
+            return OfficeConversionLossKind.Failure;
+        }
+        return diagnostic.Code switch {
+            "ONENOTE_MARKDOWN_ASSET_PLACEHOLDER" => OfficeConversionLossKind.Omission,
+            "ONENOTE_MARKDOWN_OPAQUE_CONTENT_OMITTED" => OfficeConversionLossKind.Omission,
+            _ => OfficeConversionLossKind.Approximation
+        };
     }
 }
 

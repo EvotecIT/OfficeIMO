@@ -90,7 +90,7 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
             advanceAdjustments.Add(positioning[index].XAdvance);
         }
 
-        return glyphs.Count == 0 ? null : new OfficeTextShapingResult(glyphs, advanceAdjustments);
+        return glyphs.Count == 0 ? null : new OfficeTextShapingResult(glyphs, advanceAdjustments, request.Direction);
     }
 
     private static IReadOnlyList<VisualTextElement> MapVisualElements(

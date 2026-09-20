@@ -50,7 +50,9 @@ matching workload provenance for every operation, including encode and resample.
 Evidence separates elapsed time, encoded bytes, managed allocation, peak working set, peak private
 bytes, a conservative native/private-memory estimate, cancellation latency, and mean absolute
 error. Memory sampling starts before and stops after the PowerForge-timed operation, so sampler thread
-startup and shutdown are excluded from elapsed time. A non-planning run fails when any case is not
+startup and shutdown are excluded from elapsed time. Managed allocation is captured immediately
+around the workload operation on its executing thread, excluding host dispatch and process-sampler
+setup or teardown. A non-planning run fails when any case is not
 `Succeeded`.
 
 Pull-request runs download the matching operating-system artifact from the latest successful

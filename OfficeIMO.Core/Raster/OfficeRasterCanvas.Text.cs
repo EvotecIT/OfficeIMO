@@ -72,6 +72,22 @@ public sealed partial class OfficeRasterCanvas {
         string? fontFamily = null) =>
         DrawTextCore(text, x, y, width, height, color, fontSize, alignment, style, fontFamily, OfficeTextOverflowBehavior.Ellipsis, null);
 
+    internal void DrawBaselineText(
+        string? text,
+        double x,
+        double y,
+        double width,
+        double height,
+        OfficeColor color,
+        double fontSize,
+        OfficeTextAlignment alignment,
+        OfficeFontStyle style,
+        string? fontFamily) =>
+        DrawTextCore(
+            text, x, y, width, height, color, fontSize, alignment, style, fontFamily,
+            OfficeTextOverflowBehavior.Ellipsis, textAdvanceWidth: null,
+            baselineFontSize: fontSize);
+
     internal void DrawPositionedText(
         string? text,
         double x,

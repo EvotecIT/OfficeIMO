@@ -34,11 +34,6 @@ public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvid
         if (request == null) throw new ArgumentNullException(nameof(request));
         request.CancellationToken.ThrowIfCancellationRequested();
         if (request.Text.Length == 0) return null;
-        // The shared shaped-glyph contract currently carries horizontal advance only.
-        // Decline vertical runs until Y-advance and vertical placement can be preserved
-        // through every raster, SVG, and PDF consumer.
-        if (request.Direction == OfficeTextDirection.TopToBottom) return null;
-
         byte[] fontData = request.FontDataForShaping;
         object fontCacheKey = request.FontProgramCacheKeyForShaping ?? fontData;
         ResolvedLanguage language = ResolveLanguage(request.Language);
@@ -80,7 +75,7 @@ public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvid
         CachedFontCollection fontCollection,
         Language? language) {
         fontCollection.Shape(request, language, out int glyphCount, out GlyphInfo[] infos, out GlyphPosition[] positions);
-        if (glyphCount <= 1) return null;
+        if (glyphCount == 0) return null;
         GC.KeepAlive(request.FontDataForShaping);
         if (infos.Length == 0 || infos.Length != positions.Length) return null;
 
@@ -100,11 +95,12 @@ public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvid
                 unicodeText,
                 textIndex,
                 position.XAdvance,
+                position.YAdvance,
                 position.XOffset,
                 position.YOffset));
         }
 
-        return new OfficeTextShapingResult(glyphs);
+        return new OfficeTextShapingResult(glyphs, request.Direction);
     }
 
     private ResolvedLanguage ResolveLanguage(string? value) {

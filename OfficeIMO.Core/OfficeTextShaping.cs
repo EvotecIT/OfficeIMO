@@ -321,14 +321,26 @@ public sealed class OfficeTextShapingResult {
 
     /// <summary>Creates an immutable result from shaped glyph mappings.</summary>
     public OfficeTextShapingResult(IEnumerable<OfficeShapedGlyph> glyphs)
-        : this(glyphs, advanceAdjustments: null) {
+        : this(glyphs, OfficeTextDirection.Auto) {
+    }
+
+    /// <summary>Creates an immutable result from shaped glyph mappings and their resolved write direction.</summary>
+    public OfficeTextShapingResult(IEnumerable<OfficeShapedGlyph> glyphs, OfficeTextDirection direction)
+        : this(glyphs, advanceAdjustments: null, direction) {
     }
 
     internal OfficeTextShapingResult(
         IEnumerable<OfficeShapedGlyph> glyphs,
-        IReadOnlyList<int>? advanceAdjustments) {
+        IReadOnlyList<int>? advanceAdjustments,
+        OfficeTextDirection direction = OfficeTextDirection.Auto) {
         if (glyphs == null) {
             throw new ArgumentNullException(nameof(glyphs));
+        }
+        if (direction != OfficeTextDirection.Auto &&
+            direction != OfficeTextDirection.LeftToRight &&
+            direction != OfficeTextDirection.RightToLeft &&
+            direction != OfficeTextDirection.TopToBottom) {
+            throw new ArgumentOutOfRangeException(nameof(direction));
         }
 
         var snapshot = new List<OfficeShapedGlyph>();
@@ -336,6 +348,7 @@ public sealed class OfficeTextShapingResult {
             snapshot.Add(glyph);
         }
         Glyphs = Array.AsReadOnly(snapshot.ToArray());
+        Direction = direction;
         if (advanceAdjustments != null) {
             if (advanceAdjustments.Count != snapshot.Count) {
                 throw new ArgumentException("Shaped glyph advance adjustments must match the glyph count.", nameof(advanceAdjustments));
@@ -350,6 +363,9 @@ public sealed class OfficeTextShapingResult {
     /// <summary>Glyph identifiers, source mappings, advances, and offsets.</summary>
     public IReadOnlyList<OfficeShapedGlyph> Glyphs { get; }
 
+    /// <summary>Resolved write direction. Auto preserves the legacy direction-neutral result contract.</summary>
+    public OfficeTextDirection Direction { get; }
+
     internal int GetAdvanceAdjustment(int glyphIndex) => _advanceAdjustments?[glyphIndex] ?? 0;
 }
 
@@ -357,7 +373,7 @@ public sealed class OfficeTextShapingResult {
 public readonly struct OfficeShapedGlyph {
     /// <summary>Creates a glyph that uses the font's nominal advance.</summary>
     public OfficeShapedGlyph(int glyphId, string unicodeText, int textIndex)
-        : this(glyphId, unicodeText, textIndex, advanceWidth: null, offsetX: 0, offsetY: 0) {
+        : this(glyphId, unicodeText, textIndex, advanceWidth: null, advanceHeight: null, offsetX: 0, offsetY: 0) {
     }
 
     /// <summary>Creates a positioned glyph expressed in the request font's design units.</summary>
@@ -368,7 +384,19 @@ public readonly struct OfficeShapedGlyph {
         int advanceWidth,
         int offsetX = 0,
         int offsetY = 0)
-        : this(glyphId, unicodeText, textIndex, (int?)advanceWidth, offsetX, offsetY) {
+        : this(glyphId, unicodeText, textIndex, (int?)advanceWidth, advanceHeight: null, offsetX, offsetY) {
+    }
+
+    /// <summary>Creates a positioned glyph with horizontal and vertical advances expressed in font design units.</summary>
+    public OfficeShapedGlyph(
+        int glyphId,
+        string unicodeText,
+        int textIndex,
+        int advanceWidth,
+        int advanceHeight,
+        int offsetX,
+        int offsetY)
+        : this(glyphId, unicodeText, textIndex, (int?)advanceWidth, advanceHeight, offsetX, offsetY) {
     }
 
     private OfficeShapedGlyph(
@@ -376,6 +404,7 @@ public readonly struct OfficeShapedGlyph {
         string unicodeText,
         int textIndex,
         int? advanceWidth,
+        int? advanceHeight,
         int offsetX,
         int offsetY,
         bool allowEmptyUnicode = false) {
@@ -393,6 +422,7 @@ public readonly struct OfficeShapedGlyph {
         UnicodeText = unicodeText;
         TextIndex = textIndex;
         AdvanceWidth = advanceWidth;
+        AdvanceHeight = advanceHeight;
         OffsetX = offsetX;
         OffsetY = offsetY;
     }
@@ -402,13 +432,13 @@ public readonly struct OfficeShapedGlyph {
         string unicodeText,
         int textIndex,
         int offsetX,
-        int offsetY) => new OfficeShapedGlyph(glyphId, unicodeText, textIndex, advanceWidth: null, offsetX, offsetY);
+        int offsetY) => new OfficeShapedGlyph(glyphId, unicodeText, textIndex, advanceWidth: null, advanceHeight: null, offsetX, offsetY);
 
     internal static OfficeShapedGlyph CreateUnicodeContinuation(
         int glyphId,
         int textIndex,
         int offsetX,
-        int offsetY) => new OfficeShapedGlyph(glyphId, string.Empty, textIndex, advanceWidth: null, offsetX, offsetY, allowEmptyUnicode: true);
+        int offsetY) => new OfficeShapedGlyph(glyphId, string.Empty, textIndex, advanceWidth: null, advanceHeight: null, offsetX, offsetY, allowEmptyUnicode: true);
 
     /// <summary>Font glyph identifier.</summary>
     public int GlyphId { get; }
@@ -421,6 +451,9 @@ public readonly struct OfficeShapedGlyph {
 
     /// <summary>Optional shaped advance in font design units; null uses the nominal glyph width.</summary>
     public int? AdvanceWidth { get; }
+
+    /// <summary>Optional shaped vertical advance in font design units; null means no vertical pen movement.</summary>
+    public int? AdvanceHeight { get; }
 
     /// <summary>Horizontal placement offset in font design units.</summary>
     public int OffsetX { get; }

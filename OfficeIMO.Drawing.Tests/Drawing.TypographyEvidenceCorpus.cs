@@ -28,11 +28,15 @@ public sealed class DrawingTypographyEvidenceCorpusTests {
                     evidence.Language));
             Assert.True(evidence.ManagedShapingExpected == (shaped != null), evidence.Name);
 
-            var drawing = new OfficeDrawing(560, 100)
-                .AddFont(evidence.Family, fontData)
-                .AddText(evidence.Text, 10, 10, 540, 80,
+            var drawing = new OfficeDrawing(560, evidence.Direction == OfficeTextDirection.TopToBottom ? 180 : 100)
+                .AddFont(evidence.Family, fontData);
+            if (evidence.Direction == OfficeTextDirection.TopToBottom) {
+                drawing.AddVerticalText(evidence.Text, 240, 10, 80, 160, new OfficeFontInfo(evidence.Family, 28));
+            } else {
+                drawing.AddText(evidence.Text, 10, 10, 540, 80,
                     new OfficeFontInfo(evidence.Family, 28),
                     wrapText: false);
+            }
             drawing.ApplyImageExportOptions(new OfficeImageExportOptions {
                 TextShapingProvider = OfficeManagedTextShapingProvider.Instance,
                 TextShapingLanguage = evidence.Language
@@ -50,8 +54,21 @@ public sealed class DrawingTypographyEvidenceCorpusTests {
                 .Select(element => element.Value));
             Assert.Contains(evidence.Text, logicalText, StringComparison.Ordinal);
 
-            OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+            var renderDiagnostics = new List<OfficeImageExportDiagnostic>();
+            OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing, new OfficeDrawingRasterRenderOptions {
+                TextShapingProvider = OfficeManagedTextShapingProvider.Instance,
+                TextShapingLanguage = evidence.Language,
+                DiagnosticSink = renderDiagnostics,
+                DiagnosticSource = evidence.Name
+            });
             Assert.Contains(raster.GetPixels(), pixel => pixel != 0);
+            if (evidence.Direction == OfficeTextDirection.TopToBottom) {
+                Assert.Contains(renderDiagnostics, diagnostic =>
+                    diagnostic.Code == OfficeImageExportDiagnosticCodes.TextShapingFallback &&
+                    diagnostic.LossKind == OfficeConversionLossKind.Approximation);
+                XElement verticalText = Assert.Single(XDocument.Parse(svg).Descendants(), element => element.Name.LocalName == "text");
+                Assert.Equal("browser-native", verticalText.Attribute("data-officeimo-shaping-backend")?.Value);
+            }
         }
     }
 

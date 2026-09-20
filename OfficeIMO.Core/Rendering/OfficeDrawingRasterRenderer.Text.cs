@@ -74,6 +74,21 @@ public static partial class OfficeDrawingRasterRenderer {
             return;
         }
 
+        if (text.TextDirection == OfficeTextDirection.TopToBottom && canvas.TryDrawVerticalText(
+            text.Text,
+            contentX,
+            contentY,
+            contentWidth,
+            contentHeight,
+            text.Color ?? OfficeColor.Black,
+            text.Font.Size * scale,
+            text.Font.Style,
+            text.Font.FamilyName,
+            text.FeatureSettings,
+            text.FontPalette)) {
+            return;
+        }
+
         if (text.HasFrameTransform && text.TextAdvanceWidth.HasValue && !text.WrapText && !text.ShrinkToFit &&
             !text.StackedText && !text.HasPadding && text.VerticalAlignment == OfficeTextVerticalAlignment.Top) {
             RenderTransformedPositionedText(canvas, text, scale, maximumRasterPixels);
@@ -93,7 +108,7 @@ public static partial class OfficeDrawingRasterRenderer {
         }
 
         if (supportsLegacyFastPath && supportsPositionedPath && text.Text.IndexOfAny(new[] { '\r', '\n' }) < 0) {
-            canvas.DrawText(
+            canvas.DrawBaselineText(
                 text.Text,
                 contentX,
                 contentY,
