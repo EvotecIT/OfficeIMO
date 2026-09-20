@@ -5,6 +5,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
     public sealed class LegacyPptLoadResult : IDisposable, IOfficeConversionReport {
         private readonly PowerPointPresentation? _document;
         private readonly Lazy<LegacyPptImportReport> _report;
+        private readonly Lazy<IReadOnlyList<OfficeConversionFidelityDiagnostic>> _fidelityDiagnostics;
 
         internal LegacyPptLoadResult(PowerPointPresentation? document, LegacyPptPresentation presentation,
             Exception? projectionException = null) {
@@ -12,6 +13,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             Presentation = presentation ?? throw new ArgumentNullException(nameof(presentation));
             ProjectionException = projectionException;
             _report = new Lazy<LegacyPptImportReport>(presentation.CreateImportReport);
+            _fidelityDiagnostics = new Lazy<IReadOnlyList<OfficeConversionFidelityDiagnostic>>(CreateFidelityDiagnostics);
         }
 
         /// <summary>Gets the normal editable OfficeIMO presentation projected from supported binary content.</summary>
@@ -35,22 +37,32 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         public LegacyPptImportReport ImportReport => _report.Value;
 
         /// <summary>Gets whether import produced error diagnostics.</summary>
-        public bool HasImportErrors => Diagnostics.Any(diagnostic => diagnostic.Severity == LegacyPptDiagnosticSeverity.Error);
+        public bool HasImportErrors => ProjectionException != null ||
+            Diagnostics.Any(diagnostic => diagnostic.Severity == LegacyPptDiagnosticSeverity.Error);
 
         /// <summary>Gets whether projection is known to omit unsupported content.</summary>
-        public bool HasConversionLoss => ImportReport.HasConversionLoss;
+        public bool HasConversionLoss => HasLoss;
 
         /// <inheritdoc />
-        public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics => ImportReport.FidelityDiagnostics;
+        public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics => _fidelityDiagnostics.Value;
 
         /// <inheritdoc />
-        public bool HasLoss => ImportReport.HasLoss;
+        public bool HasLoss => FidelityDiagnostics.Any(static diagnostic =>
+            diagnostic.LossKind != OfficeConversionLossKind.None);
 
         /// <inheritdoc />
-        public void RequireNoLoss() => ImportReport.RequireNoLoss();
+        public void RequireNoLoss() {
+            if (HasLoss) throw new InvalidDataException(
+                "The legacy PPT import reported content loss. Inspect FidelityDiagnostics and the source import report for details.");
+        }
 
         /// <summary>Throws when import produced errors.</summary>
         public LegacyPptLoadResult EnsureNoImportErrors() {
+            if (ProjectionException != null) {
+                throw new InvalidOperationException(
+                    "Legacy PPT content was parsed but could not be projected to an OfficeIMO presentation.",
+                    ProjectionException);
+            }
             if (HasImportErrors) throw new InvalidOperationException("Legacy PPT import produced errors: "
                 + string.Join("; ", Diagnostics.Where(diagnostic => diagnostic.Severity == LegacyPptDiagnosticSeverity.Error)
                     .Take(8)));
@@ -66,5 +78,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
         /// <inheritdoc />
         public void Dispose() => _document?.Dispose();
+
+        private IReadOnlyList<OfficeConversionFidelityDiagnostic> CreateFidelityDiagnostics() {
+            var diagnostics = new List<OfficeConversionFidelityDiagnostic>(ImportReport.FidelityDiagnostics);
+            if (ProjectionException != null) {
+                diagnostics.Insert(0, new OfficeConversionFidelityDiagnostic(
+                    "PPT-PROJECTION-FAILED",
+                    ProjectionException.Message,
+                    OfficeConversionLossKind.Failure,
+                    "OfficeIMO.PowerPoint.LegacyPpt.Projection",
+                    ProjectionException.GetType().FullName));
+            }
+            return Array.AsReadOnly(diagnostics.ToArray());
+        }
     }
 }

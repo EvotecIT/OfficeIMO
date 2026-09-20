@@ -1126,6 +1126,10 @@ public static partial class OfficeSvgDrawingReader {
 
     private static SvgPaintContext ResolvePaintContext(XElement element, SvgPaintContext inherited, SvgPaintServerRegistry paintServers, ref int unsupported) {
         SvgPaintContext result = inherited;
+        // unicode-bidi is not inherited. Keep it separate from the inherited direction property so
+        // plaintext can choose its base direction after all attributes and declarations are applied.
+        result.InheritedPlaintextBidi = inherited.PlaintextBidi;
+        result.PlaintextBidi = false;
         ApplyProperty("color", element.Attribute("color")?.Value, paintServers, ref result, ref unsupported);
         string? styleText = element.Attribute("style")?.Value;
         string[] declarations = string.IsNullOrWhiteSpace(styleText) ? Array.Empty<string>() : styleText!.Split(';');
@@ -1374,9 +1378,13 @@ public static partial class OfficeSvgDrawingReader {
                 break;
             case "unicode-bidi":
                 string bidi = normalized.ToLowerInvariant();
-                if (bidi == "plaintext") style.TextDirection = OfficeTextDirection.Auto;
-                else if (bidi is "initial" or "unset") style.TextDirection = OfficeTextDirection.LeftToRight;
-                else if (bidi is not "normal" and not "inherit") unsupported++;
+                if (bidi == "plaintext") {
+                    style.PlaintextBidi = true;
+                } else if (bidi is "initial" or "unset" or "normal") {
+                    style.PlaintextBidi = false;
+                } else if (bidi == "inherit") {
+                    style.PlaintextBidi = style.InheritedPlaintextBidi;
+                } else unsupported++;
                 break;
             case "dominant-baseline":
                 string baseline = normalized.ToLowerInvariant();
@@ -1723,6 +1731,8 @@ public static partial class OfficeSvgDrawingReader {
         internal OfficeFontStyle FontStyle;
         internal string TextAnchor;
         internal OfficeTextDirection TextDirection;
+        internal bool PlaintextBidi;
+        internal bool InheritedPlaintextBidi;
         internal SvgDominantBaseline DominantBaseline;
         internal SvgBaselineShift BaselineShift;
         internal SvgWritingMode WritingMode;

@@ -79,7 +79,8 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>
         /// Gets whether the legacy XLS import produced error diagnostics.
         /// </summary>
-        public bool HasImportErrors => Diagnostics.Any(diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
+        public bool HasImportErrors => ProjectionException != null ||
+            Diagnostics.Any(diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
 
         /// <summary>
         /// Gets whether the legacy XLS import discovered unsupported or preserve-only features.
@@ -106,6 +107,11 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// Throws when the legacy XLS import produced error diagnostics.
         /// </summary>
         public LegacyXlsLoadResult EnsureNoImportErrors() {
+            if (ProjectionException != null) {
+                throw new InvalidOperationException(
+                    "Legacy XLS content was parsed but could not be projected to an OfficeIMO workbook.",
+                    ProjectionException);
+            }
             if (HasImportErrors) {
                 throw new InvalidOperationException("Legacy XLS import produced errors: " + FormatDiagnostics(Diagnostics.Where(diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error)));
             }
@@ -164,6 +170,14 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         private IReadOnlyList<OfficeConversionFidelityDiagnostic> CreateFidelityDiagnostics() {
             var diagnostics = new List<OfficeConversionFidelityDiagnostic>();
+            if (ProjectionException != null) {
+                diagnostics.Add(new OfficeConversionFidelityDiagnostic(
+                    "XLS-PROJECTION-FAILED",
+                    ProjectionException.Message,
+                    OfficeConversionLossKind.Failure,
+                    "OfficeIMO.Excel.LegacyXls.Projection",
+                    ProjectionException.GetType().FullName));
+            }
             diagnostics.AddRange(Diagnostics.Select(diagnostic => new OfficeConversionFidelityDiagnostic(
                 diagnostic.Code,
                 diagnostic.Message,

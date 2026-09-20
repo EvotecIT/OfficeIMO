@@ -18,6 +18,26 @@ using StorageModeFlags = OpenMcdf.StorageModeFlags;
 namespace OfficeIMO.Tests {
     public partial class Word {
         [Fact]
+        public void LegacyDoc_LoadResult_ProjectsCapturedProjectionExceptionAsTypedFailure() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDoc("Projection source");
+            using LegacyDocLoadResult parsed = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+            using var failed = new LegacyDocLoadResult(
+                document: null,
+                parsed.LegacyDocument,
+                new InvalidDataException("Projection failed."));
+
+            OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(
+                failed.FidelityDiagnostics,
+                item => item.Code == "DOC-PROJECTION-FAILED");
+
+            Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
+            Assert.True(failed.HasLoss);
+            Assert.True(failed.HasImportErrors);
+            Assert.Throws<InvalidDataException>(failed.RequireNoLoss);
+            Assert.Throws<InvalidOperationException>(() => failed.EnsureNoImportErrors());
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsPlainTextParagraphs() {
             byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDoc("First paragraph", "Second paragraph");
 

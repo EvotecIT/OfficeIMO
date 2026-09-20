@@ -37,13 +37,15 @@ internal static class EmailStoreFidelityProjection {
     }
 
     private static OfficeConversionLossKind ResolveLossKind(EmailStoreDiagnostic diagnostic) {
-        if (diagnostic.Severity == EmailStoreDiagnosticSeverity.Error ||
-            diagnostic.Disposition == EmailDiagnosticDisposition.Stopped) {
+        if (diagnostic.Disposition == EmailDiagnosticDisposition.Stopped) {
             return OfficeConversionLossKind.Failure;
         }
         if (diagnostic.Disposition == EmailDiagnosticDisposition.Skipped ||
             diagnostic.DataLossRisk == EmailDataLossRisk.Confirmed) {
             return OfficeConversionLossKind.Omission;
+        }
+        if (diagnostic.Severity == EmailStoreDiagnosticSeverity.Error) {
+            return OfficeConversionLossKind.Failure;
         }
         if (diagnostic.Severity == EmailStoreDiagnosticSeverity.Warning ||
             diagnostic.Disposition == EmailDiagnosticDisposition.Recovered ||

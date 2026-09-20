@@ -5,6 +5,31 @@ namespace OfficeIMO.Email.Tests;
 
 public sealed class EmailStoreFidelityReportTests {
     [Fact]
+    public void StoreWriteReport_ClassifiesContinuedAttachmentLossAsOmission() {
+        var omitted = new EmailStoreDiagnostic(
+            "EMAIL_STORE_PST_WRITE_ATTACHMENT_CONTENT_UNAVAILABLE",
+            "Attachment content was unavailable and only metadata was written.",
+            EmailStoreDiagnosticSeverity.Error,
+            "attachment/0x00000001",
+            operation: "write",
+            byteOffset: null,
+            limitName: null,
+            actualValue: null,
+            maximumValue: null,
+            disposition: EmailDiagnosticDisposition.Skipped,
+            dataLossRisk: EmailDataLossRisk.Confirmed,
+            suggestedAction: null);
+        var report = new EmailStorePstWriteReport(
+            "destination.pst", 1, 1, 128, new[] { omitted });
+
+        OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(report.FidelityDiagnostics);
+
+        Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
+        Assert.True(report.HasLoss);
+        Assert.Throws<InvalidDataException>(report.RequireNoLoss);
+    }
+
+    [Fact]
     public void StoreWriteReportPreservesOmissionAndFailureCategories() {
         var skipped = new EmailStoreDiagnostic(
             "EMAIL_STORE_TEST_SKIPPED",

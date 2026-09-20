@@ -79,7 +79,8 @@ namespace OfficeIMO.Word.LegacyDoc {
         /// <summary>
         /// Gets whether the legacy DOC import produced error diagnostics.
         /// </summary>
-        public bool HasImportErrors => Diagnostics.Any(diagnostic => diagnostic.Severity == LegacyDocDiagnosticSeverity.Error);
+        public bool HasImportErrors => ProjectionException != null ||
+            Diagnostics.Any(diagnostic => diagnostic.Severity == LegacyDocDiagnosticSeverity.Error);
 
         /// <summary>
         /// Gets whether conversion to DOCX would omit unsupported, preserved-only, or compound legacy content.
@@ -103,6 +104,11 @@ namespace OfficeIMO.Word.LegacyDoc {
         /// Throws when the legacy DOC import produced error diagnostics.
         /// </summary>
         public LegacyDocLoadResult EnsureNoImportErrors() {
+            if (ProjectionException != null) {
+                throw new InvalidOperationException(
+                    "Legacy DOC content was parsed but could not be projected to an OfficeIMO document.",
+                    ProjectionException);
+            }
             if (HasImportErrors) {
                 throw new InvalidOperationException("Legacy DOC import produced errors: " + string.Join("; ", Diagnostics.Where(diagnostic => diagnostic.Severity == LegacyDocDiagnosticSeverity.Error).Take(8).Select(diagnostic => diagnostic.ToString())));
             }
@@ -128,6 +134,14 @@ namespace OfficeIMO.Word.LegacyDoc {
 
         private IReadOnlyList<OfficeConversionFidelityDiagnostic> CreateFidelityDiagnostics() {
             var diagnostics = new List<OfficeConversionFidelityDiagnostic>();
+            if (ProjectionException != null) {
+                diagnostics.Add(new OfficeConversionFidelityDiagnostic(
+                    "DOC-PROJECTION-FAILED",
+                    ProjectionException.Message,
+                    OfficeConversionLossKind.Failure,
+                    "OfficeIMO.Word.LegacyDoc.Projection",
+                    ProjectionException.GetType().FullName));
+            }
             diagnostics.AddRange(Diagnostics.Select(diagnostic => new OfficeConversionFidelityDiagnostic(
                 diagnostic.Code,
                 diagnostic.Message,

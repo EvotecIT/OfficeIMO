@@ -24,6 +24,25 @@ namespace OfficeIMO.Tests {
             "Documents", "LegacyPptCorpus", "PictureEffectsPowerPoint.ppt");
 
         [Fact]
+        public void LoadResult_ProjectsCapturedProjectionExceptionAsTypedFailure() {
+            LegacyPptPresentation legacy = LegacyPptPresentation.Load(FixturePath);
+            using var failed = new LegacyPptLoadResult(
+                document: null,
+                legacy,
+                new InvalidDataException("Projection failed."));
+
+            OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(
+                failed.FidelityDiagnostics,
+                item => item.Code == "PPT-PROJECTION-FAILED");
+
+            Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
+            Assert.True(failed.HasLoss);
+            Assert.True(failed.HasImportErrors);
+            Assert.Throws<InvalidDataException>(failed.RequireNoLoss);
+            Assert.Throws<InvalidOperationException>(() => failed.EnsureNoImportErrors());
+        }
+
+        [Fact]
         public void NeutralReader_DecodesRealBinaryPresentation() {
             LegacyPptPresentation legacy = LegacyPptPresentation.Load(FixturePath);
 

@@ -455,7 +455,8 @@ public static partial class OfficeSvgDrawingReader {
             SvgTextRun[] horizontalRuns = chunk.ToArray();
             string logicalText = string.Concat(horizontalRuns.Select(run => run.Text));
             string physicalAnchor = first.Anchor;
-            OfficeTextDirection direction = first.Style.TextDirection == OfficeTextDirection.Auto
+            OfficeTextDirection direction = first.Style.PlaintextBidi ||
+                first.Style.TextDirection == OfficeTextDirection.Auto
                 ? OfficeTextElements.ResolveBaseDirection(logicalText)
                 : first.Style.TextDirection;
             double left = horizontalRuns.Min(run => run.X);
