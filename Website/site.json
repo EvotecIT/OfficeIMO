@@ -720,18 +720,22 @@
               "Items": [
                 {
                   "Title": "Document showcase",
+                    "Description": "Real documents, previews, and source",
                   "Url": "/showcase/"
                 },
                 {
                   "Title": "Code examples",
+                    "Description": "Start with C# or PowerShell",
                   "Url": "/libraries/#code-examples"
                 },
                 {
                   "Title": "Blog",
+                    "Description": "Guides and project news",
                   "Url": "/blog/"
                 },
                 {
                   "Title": "Solutions",
+                    "Description": "Find a workflow for your document task",
                   "Url": "/solutions/"
                 }
               ]
@@ -741,22 +745,27 @@
               "Items": [
                 {
                   "Title": "Format support",
+                    "Description": "Supported operations and known limits",
                   "Url": "/compatibility/"
                 },
                 {
                   "Title": "Benchmarks",
+                    "Description": "Measured performance and workloads",
                   "Url": "/benchmarks/"
                 },
                 {
                   "Title": "PDF corpus evidence",
+                    "Description": "Rendering and compatibility results",
                   "Url": "/corpus/"
                 },
                 {
                   "Title": "Comparisons",
+                    "Description": "Choose the right library",
                   "Url": "/comparisons/"
                 },
                 {
                   "Title": "Support and services",
+                    "Description": "Get help with your integration",
                   "Url": "/pricing/"
                 }
               ]

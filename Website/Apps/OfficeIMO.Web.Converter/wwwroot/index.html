@@ -28,9 +28,17 @@
       data-webmcp-read-only="false">
     <div id="app">
         <main class="ocx-shell">
-            <div class="ocx-container">
-                <h1 class="ocx-loading">Loading OfficeIMO document workspace...</h1>
-            </div>
+            <section class="ocx-startup" aria-labelledby="startup-title">
+                <p class="ocx-startup__eyebrow">OfficeIMO · Browser tools</p>
+                <h1 id="startup-title">Preparing your workspace</h1>
+                <p>Document tools run on your device. The first visit downloads the runtime; individual tools load when you need them.</p>
+                <progress id="startup-progress" max="100" aria-label="Workspace download"></progress>
+                <p id="startup-status" role="status">Starting the download…</p>
+                <p id="startup-slow" hidden>A slow connection can make the first visit take longer. If progress stops, try reloading. You can also browse the <a href="/docs/" target="_top">documentation</a>.</p>
+                <button id="startup-retry" type="button" hidden>Reload workspace</button>
+                <small>Files stay in this browser. No account or upload required.</small>
+                <noscript>Enable JavaScript to use these browser tools.</noscript>
+            </section>
         </main>
     </div>
 
@@ -40,7 +48,8 @@
         <span class="dismiss">x</span>
     </div>
     <script type="module" src="Components/ConverterWorkspace.razor.js" data-powerforge-webmcp data-webmcp-tool-name="convert_selected_document"></script>
-    <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
+    <script src="_framework/blazor.webassembly#[.{fingerprint}].js" autostart="false"></script>
+    <script src="startup.js"></script>
 </body>
 
 </html>
