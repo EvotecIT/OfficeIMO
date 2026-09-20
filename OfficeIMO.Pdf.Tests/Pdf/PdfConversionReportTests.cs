@@ -1,5 +1,6 @@
 using OfficeIMO.Pdf;
 using OfficeIMO.Drawing;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -348,6 +349,61 @@ public sealed class PdfConversionReportTests {
         Assert.Contains(proof.Issues, issue => issue.Feature == "ConversionLoss");
         Assert.Contains(result.Warnings, warning =>
             warning.Code == "unsupported-bidirectional-text-layout");
+    }
+
+    [Fact]
+    public void PdfDocumentConversionResult_StrictStreamOutputRejectsSerializationLossBeforePublication() {
+        using var destination = new MemoryStream(new byte[] { 7, 8, 9 }, writable: true);
+        byte[] original = destination.ToArray();
+        PdfDocumentConversionResult result = CreateSerializationLossResult();
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            result.SaveLossless(destination));
+
+        Assert.Contains("loss", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(original, destination.ToArray());
+    }
+
+    [Fact]
+    public async Task PdfDocumentConversionResult_StrictAsyncFileOutputRejectsSerializationLossBeforePublication() {
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pdf");
+        byte[] original = { 7, 8, 9 };
+        File.WriteAllBytes(path, original);
+        try {
+            PdfDocumentConversionResult result = CreateSerializationLossResult();
+
+            InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                result.SaveLosslessAsync(path));
+
+            Assert.Contains("loss", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(original, File.ReadAllBytes(path));
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void PdfDocumentConversionResult_StrictByteOutputRejectsSerializationLoss() {
+        PdfDocumentConversionResult result = CreateSerializationLossResult();
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => result.ToBytesLossless());
+
+        Assert.Contains("loss", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(result.Warnings, warning => warning.Code == "unsupported-bidirectional-text-layout");
+    }
+
+    private static PdfDocumentConversionResult CreateSerializationLossResult() {
+        var report = new PdfConversionReport();
+        byte[] fontData = File.ReadAllBytes(Path.Combine(
+            AppContext.BaseDirectory,
+            "Typography",
+            "NotoSansArabic-Regular.ttf"));
+        var options = new PdfOptions()
+            .ReportDiagnosticsTo(report, "OfficeIMO.Tests")
+            .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "OfficeIMO Strict Arabic");
+        return new PdfDocumentConversionResult(
+            PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text("مرحبا")),
+            report);
     }
 
     [Fact]

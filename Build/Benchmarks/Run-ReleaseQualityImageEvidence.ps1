@@ -26,6 +26,42 @@ if (-not $Plan -and $ReferenceSummaryPath) {
     $ReferenceSummaryPath = (Resolve-Path -LiteralPath $ReferenceSummaryPath).Path
     $summaryPath = $result.Artifacts['summary.json']
     $gateRoot = Split-Path -Parent $summaryPath
+    $referenceRows = @(Get-Content -LiteralPath $ReferenceSummaryPath -Raw | ConvertFrom-Json)
+    $currentRows = @(Get-Content -LiteralPath $summaryPath -Raw | ConvertFrom-Json)
+
+    function Get-RowMetricValue {
+        param($Row, [string] $Name)
+        if ($Row.PSObject.Properties.Name -contains $Name) { return $Row.$Name }
+        if ($null -ne $Row.metrics -and $Row.metrics.PSObject.Properties.Name -contains $Name) { return $Row.metrics.$Name }
+        return $null
+    }
+
+    $inputHashMetrics = @(0..7 | ForEach-Object { "InputHashWord$_" })
+    $referenceInputRows = @($referenceRows | Where-Object {
+        $_.variables.Workload -ne 'Encode' -and $_.variables.Workload -ne 'Resample'
+    })
+    $referenceProvenanceRows = @($referenceInputRows | Where-Object {
+        $row = $_
+        @($inputHashMetrics | Where-Object { $null -ne (Get-RowMetricValue $row $_) }).Count -eq $inputHashMetrics.Count
+    })
+    if ($referenceInputRows.Count -ne $referenceProvenanceRows.Count) {
+        Write-Host 'Skipping regression comparison because the reference summary predates input-provenance metrics.'
+        return
+    }
+
+    foreach ($current in $currentRows) {
+        $workload = $current.variables.Workload
+        if ($workload -eq 'Encode' -or $workload -eq 'Resample') { continue }
+        $reference = $referenceRows | Where-Object scenario -eq $current.scenario | Select-Object -First 1
+        if ($null -eq $reference) { continue }
+        foreach ($hashMetric in $inputHashMetrics) {
+            $referenceWord = Get-RowMetricValue $reference $hashMetric
+            $currentWord = Get-RowMetricValue $current $hashMetric
+            if ($null -eq $currentWord -or $currentWord -ne $referenceWord) {
+                throw "Release-quality image input provenance changed for $($current.scenario); performance comparison is not valid."
+            }
+        }
+    }
     $gateMetrics = @(
         @{ Name = 'MedianMs'; Absolute = 10.0 },
         @{ Name = 'ManagedAllocatedBytes'; Absolute = 1048576.0 },
@@ -37,6 +73,10 @@ if (-not $Plan -and $ReferenceSummaryPath) {
         @{ Name = 'MeanAbsoluteError'; Absolute = 0.5 }
     )
     foreach ($metric in $gateMetrics) {
+        if (-not ($referenceRows | Where-Object { $null -ne (Get-RowMetricValue $_ $metric.Name) } | Select-Object -First 1)) {
+            Write-Host "Skipping $($metric.Name) regression comparison because the reference summary predates that metric."
+            continue
+        }
         $baselinePath = Join-Path $gateRoot ("reference-$($metric.Name).json")
         Test-BenchmarkGate -SummaryPath $ReferenceSummaryPath -BaselinePath $baselinePath `
             -Metric $metric.Name -GroupBy scenario -Update | Out-Null

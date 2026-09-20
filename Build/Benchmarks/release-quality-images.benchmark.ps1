@@ -41,6 +41,14 @@ New-BenchmarkSuite 'officeimo-release-quality-images' -OutputRoot (Join-Path $re
     }
     Add-BenchmarkValidation { param($case, $run) $run.Workload.Validate() }
     Add-BenchmarkMetric EncodedBytes { param($case, $run) $run.Workload.EncodedBytes }
+    Add-BenchmarkMetric InputHashWord0 { param($case, $run) $run.Workload.InputHashWord0 }
+    Add-BenchmarkMetric InputHashWord1 { param($case, $run) $run.Workload.InputHashWord1 }
+    Add-BenchmarkMetric InputHashWord2 { param($case, $run) $run.Workload.InputHashWord2 }
+    Add-BenchmarkMetric InputHashWord3 { param($case, $run) $run.Workload.InputHashWord3 }
+    Add-BenchmarkMetric InputHashWord4 { param($case, $run) $run.Workload.InputHashWord4 }
+    Add-BenchmarkMetric InputHashWord5 { param($case, $run) $run.Workload.InputHashWord5 }
+    Add-BenchmarkMetric InputHashWord6 { param($case, $run) $run.Workload.InputHashWord6 }
+    Add-BenchmarkMetric InputHashWord7 { param($case, $run) $run.Workload.InputHashWord7 }
     Add-BenchmarkMetric ManagedAllocatedBytes { param($case, $run) $run.Workload.ManagedAllocatedBytes }
     Add-BenchmarkMetric PeakWorkingSetBytes { param($case, $run) $run.Workload.PeakWorkingSetBytes }
     Add-BenchmarkMetric PeakPrivateBytes { param($case, $run) $run.Workload.PeakPrivateBytes }

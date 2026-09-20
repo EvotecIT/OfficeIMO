@@ -34,6 +34,10 @@ public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvid
         if (request == null) throw new ArgumentNullException(nameof(request));
         request.CancellationToken.ThrowIfCancellationRequested();
         if (request.Text.Length == 0) return null;
+        // The shared shaped-glyph contract currently carries horizontal advance only.
+        // Decline vertical runs until Y-advance and vertical placement can be preserved
+        // through every raster, SVG, and PDF consumer.
+        if (request.Direction == OfficeTextDirection.TopToBottom) return null;
 
         byte[] fontData = request.FontDataForShaping;
         object fontCacheKey = request.FontProgramCacheKeyForShaping ?? fontData;

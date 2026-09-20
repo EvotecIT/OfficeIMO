@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Buffers.Binary;
 using System.Security.Cryptography;
 
 namespace OfficeIMO.Drawing.Benchmarks;
@@ -26,7 +27,16 @@ public sealed class ImageReleaseQualityWorkload {
         _source = scenario.CreateImage();
         _options = CreateOptions();
         _input = OfficeRasterImageEncoder.Encode(_source, _format, _options, MaximumEncodedBytes);
-        InputSha256 = Convert.ToHexString(SHA256.HashData(_input));
+        byte[] inputHash = SHA256.HashData(_input);
+        InputSha256 = Convert.ToHexString(inputHash);
+        InputHashWord0 = BinaryPrimitives.ReadUInt32BigEndian(inputHash.AsSpan(0, 4));
+        InputHashWord1 = BinaryPrimitives.ReadUInt32BigEndian(inputHash.AsSpan(4, 4));
+        InputHashWord2 = BinaryPrimitives.ReadUInt32BigEndian(inputHash.AsSpan(8, 4));
+        InputHashWord3 = BinaryPrimitives.ReadUInt32BigEndian(inputHash.AsSpan(12, 4));
+        InputHashWord4 = BinaryPrimitives.ReadUInt32BigEndian(inputHash.AsSpan(16, 4));
+        InputHashWord5 = BinaryPrimitives.ReadUInt32BigEndian(inputHash.AsSpan(20, 4));
+        InputHashWord6 = BinaryPrimitives.ReadUInt32BigEndian(inputHash.AsSpan(24, 4));
+        InputHashWord7 = BinaryPrimitives.ReadUInt32BigEndian(inputHash.AsSpan(28, 4));
     }
 
     /// <summary>Deterministic corpus scenario.</summary>
@@ -37,6 +47,22 @@ public sealed class ImageReleaseQualityWorkload {
     public string Operation { get; }
     /// <summary>SHA-256 identity of the immutable encoded input.</summary>
     public string InputSha256 { get; }
+    /// <summary>First 32-bit word of the immutable input hash, for numeric benchmark evidence.</summary>
+    public long InputHashWord0 { get; }
+    /// <summary>Second 32-bit word of the immutable input hash, for numeric benchmark evidence.</summary>
+    public long InputHashWord1 { get; }
+    /// <summary>Third 32-bit word of the immutable input hash, for numeric benchmark evidence.</summary>
+    public long InputHashWord2 { get; }
+    /// <summary>Fourth 32-bit word of the immutable input hash, for numeric benchmark evidence.</summary>
+    public long InputHashWord3 { get; }
+    /// <summary>Fifth 32-bit word of the immutable input hash, for numeric benchmark evidence.</summary>
+    public long InputHashWord4 { get; }
+    /// <summary>Sixth 32-bit word of the immutable input hash, for numeric benchmark evidence.</summary>
+    public long InputHashWord5 { get; }
+    /// <summary>Seventh 32-bit word of the immutable input hash, for numeric benchmark evidence.</summary>
+    public long InputHashWord6 { get; }
+    /// <summary>Eighth 32-bit word of the immutable input hash, for numeric benchmark evidence.</summary>
+    public long InputHashWord7 { get; }
     /// <summary>SHA-256 identity of the validated output.</summary>
     public string OutputSha256 { get; private set; } = string.Empty;
     /// <summary>Relevant encoded input or output length.</summary>
@@ -102,8 +128,7 @@ public sealed class ImageReleaseQualityWorkload {
 
     private void ValidateDecode(OfficeRasterImage decoded) {
         OfficeRasterImage repeated = Decode(_input);
-        OfficeRasterImage expected = _format == OfficeImageExportFormat.Jpeg ? repeated : _source;
-        ValidateFidelity(expected, decoded);
+        ValidateFidelity(_source, decoded);
         EncodedBytes = _input.LongLength;
         OutputSha256 = PixelHash(decoded);
         Deterministic = decoded.GetPixels().AsSpan().SequenceEqual(repeated.GetPixels()) ? 1 : 0;
@@ -129,8 +154,25 @@ public sealed class ImageReleaseQualityWorkload {
     }
 
     private void ValidateResize(OfficeRasterImage resized) {
+        int expectedWidth = Math.Max(1, _source.Width / 2);
+        int expectedHeight = Math.Max(1, _source.Height / 2);
+        if (resized.Width != expectedWidth || resized.Height != expectedHeight)
+            throw new InvalidOperationException($"{ScenarioId} resampling produced {resized.Width}x{resized.Height}; expected {expectedWidth}x{expectedHeight}.");
+
         byte[] pixels = resized.GetPixels();
         byte[] repeated = Resize(_source).GetPixels();
+        (double sourceRed, double sourceGreen, double sourceBlue, double sourceAlpha) = CalculateChannelMeans(_source.GetPixels());
+        (double resultRed, double resultGreen, double resultBlue, double resultAlpha) = CalculateChannelMeans(pixels);
+        MeanAbsoluteError = (Math.Abs(sourceRed - resultRed) + Math.Abs(sourceGreen - resultGreen) + Math.Abs(sourceBlue - resultBlue)) / 3D;
+        if (MeanAbsoluteError > 8D)
+            throw new InvalidOperationException($"{ScenarioId} resampling mean-channel RGB drift {MeanAbsoluteError:F3} exceeded 8.");
+        if (Math.Abs(sourceAlpha - resultAlpha) > 8D)
+            throw new InvalidOperationException($"{ScenarioId} resampling alpha-coverage drift exceeded 8.");
+
+        ValidateDynamicRange(pixels);
+        if (HasTransparentAndOpaqueSamples(_source.GetPixels()) && !HasTransparentAndOpaqueSamples(pixels))
+            throw new InvalidOperationException($"{ScenarioId} resampling did not preserve both transparent and opaque coverage.");
+
         EncodedBytes = pixels.LongLength;
         OutputSha256 = Convert.ToHexString(SHA256.HashData(pixels));
         Deterministic = pixels.AsSpan().SequenceEqual(repeated) ? 1 : 0;
@@ -236,6 +278,38 @@ public sealed class ImageReleaseQualityWorkload {
             total += Math.Abs(left[i] - right[i]); total += Math.Abs(left[i + 1] - right[i + 1]); total += Math.Abs(left[i + 2] - right[i + 2]);
         }
         return left.Length == 0 ? 0D : total / (left.Length / 4D * 3D);
+    }
+
+    private static (double Red, double Green, double Blue, double Alpha) CalculateChannelMeans(byte[] pixels) {
+        if (pixels.Length == 0) return default;
+        long red = 0L; long green = 0L; long blue = 0L; long alpha = 0L;
+        for (int i = 0; i < pixels.Length; i += 4) {
+            red += pixels[i]; green += pixels[i + 1]; blue += pixels[i + 2]; alpha += pixels[i + 3];
+        }
+        double count = pixels.Length / 4D;
+        return (red / count, green / count, blue / count, alpha / count);
+    }
+
+    private static void ValidateDynamicRange(byte[] pixels) {
+        byte minimum = byte.MaxValue;
+        byte maximum = byte.MinValue;
+        for (int i = 0; i < pixels.Length; i += 4) {
+            minimum = Math.Min(minimum, Math.Min(pixels[i], Math.Min(pixels[i + 1], pixels[i + 2])));
+            maximum = Math.Max(maximum, Math.Max(pixels[i], Math.Max(pixels[i + 1], pixels[i + 2])));
+        }
+        if (maximum - minimum < 8)
+            throw new InvalidOperationException("Resampling collapsed the source image's visible RGB dynamic range.");
+    }
+
+    private static bool HasTransparentAndOpaqueSamples(byte[] pixels) {
+        bool transparent = false;
+        bool opaque = false;
+        for (int i = 3; i < pixels.Length; i += 4) {
+            transparent |= pixels[i] < 32;
+            opaque |= pixels[i] > 223;
+            if (transparent && opaque) return true;
+        }
+        return false;
     }
 
     private enum ImageEvidenceOperation { Encode, Decode, Metadata, Optimize, Resample }

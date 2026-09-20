@@ -11,7 +11,7 @@ public static class TypographyEvidenceCorpus {
         new TypographyEvidenceCase("Arabic", "Noto Sans Arabic", "NotoSansArabic-Regular.ttf", "سلام بالعالم", OfficeTextDirection.RightToLeft, "ar", true, true),
         new TypographyEvidenceCase("Hebrew", "OfficeIMO Hebrew Evidence", "", "שלום עולם", OfficeTextDirection.RightToLeft, "he", true, false),
         new TypographyEvidenceCase("Indic", "Noto Sans Devanagari", "NotoSansDevanagari-Regular.ttf", "नमस्ते दुनिया", OfficeTextDirection.LeftToRight, "hi", false, true),
-        new TypographyEvidenceCase("CjkVertical", "Noto Sans SC", "NotoSansSC-BaselineSubset.ttf", "永字国", OfficeTextDirection.TopToBottom, "zh", false, true),
+        new TypographyEvidenceCase("CjkVertical", "Noto Sans SC", "NotoSansSC-BaselineSubset.ttf", "永字国", OfficeTextDirection.TopToBottom, "zh", false, false),
         new TypographyEvidenceCase("CombiningMarks", "OfficeIMO Combining Evidence", "", "Cafe\u0301", OfficeTextDirection.LeftToRight, "fr", false, false),
         new TypographyEvidenceCase("Emoji", "Noto Emoji", "NotoEmoji-VariableFont_wght.ttf", "😀🚀🌍", OfficeTextDirection.LeftToRight, "und", false, true)
     };

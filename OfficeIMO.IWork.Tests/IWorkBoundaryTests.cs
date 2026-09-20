@@ -9,6 +9,29 @@ namespace OfficeIMO.IWork.Tests;
 
 public sealed partial class IWorkBoundaryTests {
     [Fact]
+    public void WarningDiagnosticIsTypedApproximationAndParticipatesInStrictLossPolicy() {
+        var warning = new IWorkDiagnostic(
+            IWorkDiagnosticSeverity.Warning,
+            "IWORK_APPROXIMATION_TEST",
+            "A source feature was approximated.");
+        var report = new IWorkConversionReport(
+            IWorkDocumentKind.Pages,
+            IWorkProjectionKind.EditableReconstruction,
+            Array.Empty<string>(),
+            Array.Empty<IWorkArchiveRecord>(),
+            new[] { warning },
+            visualPreview: null,
+            totalRecordCount: 0,
+            unsupportedRecordCount: 0,
+            reconstructedItemCount: 1);
+
+        Assert.True(report.HasLoss);
+        OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(report.FidelityDiagnostics);
+        Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
+        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
+    }
+
+    [Fact]
     public void Enforces_the_combined_decompressed_iwa_budget_across_entries() {
         byte[] first = ArchiveRecord(1, 1, new byte[48]);
         byte[] second = ArchiveRecord(2, 6000, new byte[48]);

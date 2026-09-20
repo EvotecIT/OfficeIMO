@@ -65,8 +65,9 @@ public sealed class IWorkConversionReport : global::OfficeIMO.IOfficeConversionR
     public int UnsupportedRecordCount { get; }
     /// <summary>Gets the number of semantic paragraphs, cells, slides, or other items reconstructed by the adapter.</summary>
     public int ReconstructedItemCount { get; }
-    /// <summary>Gets whether the projection is known to omit or flatten source content.</summary>
-    public bool HasLoss => ProjectionKind == IWorkProjectionKind.VisualFallback || UnsupportedRecordCount > 0 || HasErrors;
+    /// <summary>Gets whether any typed fidelity diagnostic reports omission, approximation, or failure.</summary>
+    public bool HasLoss => FidelityDiagnostics.Any(static diagnostic =>
+        diagnostic.LossKind != global::OfficeIMO.OfficeConversionLossKind.None);
     /// <summary>Gets whether the parser or semantic projection reported an error diagnostic.</summary>
     public bool HasErrors => Diagnostics.Any(diagnostic => diagnostic.Severity == IWorkDiagnosticSeverity.Error);
     /// <summary>Gets whether the visual fallback is known to cover the complete source rather than a first-page or composite preview.</summary>
@@ -89,11 +90,11 @@ public sealed class IWorkConversionReport : global::OfficeIMO.IOfficeConversionR
         return this;
     }
 
-    /// <summary>Throws when the projection used a visual fallback, left preserved records unprojected, or reported errors.</summary>
+    /// <summary>Throws when any typed fidelity diagnostic reports omission, approximation, or failure.</summary>
     public void RequireNoLoss() {
         if (HasLoss) {
             throw new InvalidOperationException(
-                "The iWork conversion contains errors, visual fallback content, or preserved records that are not represented in the editable destination.");
+                "The iWork conversion contains a typed fidelity diagnostic reporting omission, approximation, or failure.");
         }
     }
 }

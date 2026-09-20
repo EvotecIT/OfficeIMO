@@ -394,7 +394,7 @@ public sealed partial class PdfDocument {
         }
     }
 
-    private static string ValidateOutputPath(string path) {
+    internal static string ValidateOutputPath(string path) {
         Guard.NotNull(path, nameof(path));
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Path cannot be empty or whitespace.", nameof(path));
 

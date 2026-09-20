@@ -140,6 +140,20 @@ public sealed class PdfSaveResult : IOfficeOutputResult {
             sourceConversionReports);
     }
 
+    internal PdfSaveResult WithOutputPath(string? outputPath) {
+        return new PdfSaveResult(
+            outputPath,
+            BytesWritten,
+            Diagnostics,
+            Exception,
+            Report,
+            Pipeline,
+            Serialization,
+            ConversionReports.Count == 0
+                ? Array.Empty<IOfficeConversionReport>()
+                : ConversionReports.Take(ConversionReports.Count - 1).ToArray());
+    }
+
     private static PdfConversionReport Snapshot(PdfConversionReport? report) {
         var snapshot = new PdfConversionReport();
         if (report != null) snapshot.AddRange(report.Warnings);
