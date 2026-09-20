@@ -15,11 +15,15 @@ context close before image or PDF generation begins.
 Render-only supplied resources still obey the page's allowed-origin and
 redirect limits. A direct URL identity wins over a redirect alias.
 
-Choose explicit output intents. `ScreenFullPage` keeps screen CSS in a continuous
-image, `PrintPaged` applies print CSS and pagination, and `ScreenSnapshotPaged`
-places screen CSS onto PDF pages. The output also retains the resolved drawing
-scene, diagnostics, provider identity, action results, bounded trace, render
-resources, and frozen document for other OfficeIMO consumers.
+The standard application profile produces three deliberately different results:
+`ScreenPng` keeps screen CSS in one continuous image, `PrintPdf` applies print CSS
+and pagination, and `ScreenToPagePdf` places screen CSS onto PDF pages. It inherits
+the live page viewport and device density, applies the bounded browser user-agent
+style profile, and leaves outer document margins at zero. Select any subset with
+`HtmlApplicationOutputKinds`. Advanced callers can still provide explicit
+`RenderRequests` for another encoder or intent. The result also retains the
+resolved drawing scene, diagnostics, provider identity, action results, bounded
+trace, render resources, and frozen document for other OfficeIMO consumers.
 
 Create the supported process host from the deployed worker output. The application
 package wires its current capture-import provider internally, so callers retain the
@@ -64,20 +68,21 @@ HtmlApplicationDocumentResult result = await HtmlApplicationDocumentWorkflow.Run
             }
         },
         FinalReadyExpression = "document.querySelector('#total')?.textContent==='Total: 18'",
-        RenderRequests = new[] {
-            HtmlRenderRequest.Create(HtmlRenderIntentProfile.ScreenFullPage, HtmlRenderEncoder.Png,
-                new HtmlRenderOptions { ViewportWidth = 816 }),
-            HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf,
-                new HtmlToPdfOptions { ViewportWidth = 816 }),
-            HtmlRenderRequest.Create(HtmlRenderIntentProfile.ScreenSnapshotPaged, HtmlRenderEncoder.Pdf,
-                new HtmlToPdfOptions { ViewportWidth = 816 })
+        OutputOptions = new HtmlApplicationOutputOptions {
+            Kinds = HtmlApplicationOutputKinds.All
         }
     }, cancellationToken);
 
-byte[] screenPng = result.Outputs[0].Images[0].Bytes;
-byte[] printPdf = result.Outputs[1].Pdf!.ToBytes();
-byte[] screenToPagePdf = result.Outputs[2].Pdf!.ToBytes();
+byte[] screenPng = result.ScreenPng!.Images[0].Bytes;
+byte[] printPdf = result.PrintPdf!.Pdf!.ToBytes();
+byte[] screenToPagePdf = result.ScreenToPagePdf!.Pdf!.ToBytes();
 ```
+
+`OutputOptions` defaults to all three standard results, so it can be omitted
+when those defaults are appropriate. Set `UsePageViewport` or
+`UseBrowserUserAgentStyles` to `false` only when a caller deliberately supplies a
+different static-rendering contract. Explicit `RenderRequests` take precedence
+over the standard output profile.
 
 Every output in one application workflow inherits the page request's
 `DevicePixelRatio`. Runtime resource capture and static screen, print, and

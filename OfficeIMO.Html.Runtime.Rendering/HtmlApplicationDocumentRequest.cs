@@ -12,7 +12,15 @@ public sealed class HtmlApplicationDocumentRequest {
     public IReadOnlyList<HtmlAutomationRequest> Actions { get; init; } = Array.Empty<HtmlAutomationRequest>();
     /// <summary>Optional final boolean readiness expression; null uses <see cref="HtmlScriptRequest.ReadyExpression"/>.</summary>
     public string? FinalReadyExpression { get; init; }
-    /// <summary>Explicit display-list, image, or PDF requests. The workflow marks each as a runtime snapshot.</summary>
+    /// <summary>
+    /// Standard screen PNG, print PDF, and screen-to-page PDF selection. Used when
+    /// <see cref="RenderRequests"/> is empty.
+    /// </summary>
+    public HtmlApplicationOutputOptions? OutputOptions { get; init; } = new();
+    /// <summary>
+    /// Advanced explicit display-list, image, or PDF requests. When present, these replace
+    /// <see cref="OutputOptions"/>. The workflow marks each as a runtime snapshot.
+    /// </summary>
     public IReadOnlyList<HtmlRenderRequest> RenderRequests { get; init; } = Array.Empty<HtmlRenderRequest>();
 
     internal HtmlApplicationDocumentRequest Snapshot() {
@@ -31,14 +39,19 @@ public sealed class HtmlApplicationDocumentRequest {
             return snapshot;
         }).ToArray();
         ArgumentNullException.ThrowIfNull(RenderRequests);
-        if (RenderRequests.Count is < 1 or > 8) throw new ArgumentException("Select between one and eight render requests.", nameof(RenderRequests));
-        HtmlRenderRequest[] outputs = RenderRequests.Select(render => render ?? throw new ArgumentException(
+        IReadOnlyList<HtmlRenderRequest> selected = RenderRequests.Count == 0
+            ? (OutputOptions ?? throw new ArgumentException(
+                "Select standard output options or at least one explicit render request.", nameof(OutputOptions))).CreateRequests(page)
+            : RenderRequests;
+        if (selected.Count is < 1 or > 8) throw new ArgumentException("Select between one and eight render requests.", nameof(RenderRequests));
+        HtmlRenderRequest[] outputs = selected.Select(render => render ?? throw new ArgumentException(
             "A render request cannot be null.", nameof(RenderRequests))).ToArray();
         return new HtmlApplicationDocumentRequest {
             Page = page,
             Context = context,
             Actions = Array.AsReadOnly(actions),
             FinalReadyExpression = FinalReadyExpression,
+            OutputOptions = null,
             RenderRequests = Array.AsReadOnly(outputs)
         };
     }

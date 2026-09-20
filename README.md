@@ -45,6 +45,7 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 | HTML document contracts (`OfficeIMO.Html.Core`) | None | Owned nodes, immutable snapshots, edits and parser/charset contracts |
 | HTML syntax provider (`OfficeIMO.Html.AngleSharp`) | AngleSharp and `System.Text.Encoding.CodePages` | Translation to owned nodes, selector/serialization services and charset-provider integration |
 | HTML conversion and rendering | [AngleSharp](https://github.com/AngleSharp/AngleSharp) and AngleSharp.Css | Resource policy, media filtering, layout scene, and PNG/JPEG/TIFF/SVG/WebP output; opt-in bridges add RTF, MHTML, email-image, and PDF workflows |
+| Optional HTML application runtime | Jint plus retained AngleSharp DOM, CSS, and JavaScript bindings in the separately deployed worker | Provider-neutral contexts, pages, locators, actions, traces, immutable capture, and screen/print/screen-to-page workflows; the static HTML packages do not acquire the worker graph |
 | PDF | No third-party PDF or cryptographic dependency | PDF parsing/writing/rendering, password security, signature structure, preservation policy, limits, and diagnostics |
 | Email, email stores, and address books | `System.Text.Encoding.CodePages` | EML/MIME, MSG/OFT, TNEF, mbox, PST/OST, OLM, EMLX, Outlook OAB, MAPI projection, protected-wrapper preservation, limits, and diagnostics |
 | Optional Security provider | [Bouncy Castle](https://www.bouncycastle.org/csharp/) and `System.Security.Cryptography.Xml` | CMS/S/MIME/RFC 3161/X.509/XML DSig orchestration behind one typed provider explicitly supplied to Word, PDF, or Email |
@@ -368,6 +369,23 @@ _Dependency footprint:_ OfficeIMO Markdown, Markdown.Html, and HTML plus `System
 - [x] Stable HTML contracts reused by Office, Markdown, Reader, PDF, and optional cross-format bridges
 
 _Dependency footprint:_ `OfficeIMO.Core`, AngleSharp, and AngleSharp.Css. Email, RTF, MHTML, and PDF are not part of the base HTML restore graph.
+
+#### [OfficeIMO.Html.Runtime](OfficeIMO.Html.Runtime/README.md)
+
+- [x] Provider-neutral contexts, pages, locators, actions, waits, navigation, resource policy, traces, and immutable captures
+- [x] Optional process worker for trusted scripted documents and bounded `WebApplicationV1` workflows
+- [x] Reusable conformance manifests and evaluators in `OfficeIMO.Html.Runtime.Conformance`
+
+_Dependency footprint:_ the public runtime contracts depend only on `OfficeIMO.Html.Core`. The separately deployed worker currently retains Jint and the AngleSharp runtime providers.
+
+#### [OfficeIMO.Html.Runtime.Rendering](OfficeIMO.Html.Runtime.Rendering/README.md)
+
+- [x] One application request can interact with a live page, freeze it, close the runtime, and produce named screen PNG, print PDF, and screen-to-page PDF results
+- [x] Standard outputs inherit the page viewport and density and use the bounded browser user-agent style profile
+- [x] `HtmlApplicationRuntime.CreateProcessHost` hides the current capture-import provider while returning the provider-neutral `IHtmlRuntimeHost` contract
+- [x] Separate rootless, networkless OCI workflow for explicitly admitted public pages
+
+_Dependency footprint:_ OfficeIMO HTML, PDF, runtime contracts, and the current HTML capture-import provider. The worker remains an explicit deployed process and does not enter ordinary static HTML applications.
 
 #### [OfficeIMO.Html.Rtf](OfficeIMO.Html.Rtf/README.md)
 

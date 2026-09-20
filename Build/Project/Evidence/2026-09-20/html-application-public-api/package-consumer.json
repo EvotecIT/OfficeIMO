@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "package": "OfficeIMO.Html.Runtime.Rendering",
+  "version": "3.4.3",
+  "bytes": 81655,
+  "sha256": "6baac939747c25d82c3da0cba95a68b9c5c702ea2ba9d280f60b09fda16870e4",
+  "targetFramework": "net8.0",
+  "cachePolicy": "empty-task-owned-nuget-cache",
+  "topLevelReferences": [
+    "OfficeIMO.Html.Runtime.Rendering/3.4.3"
+  ],
+  "resolvedDependencies": [
+    "AngleSharp/1.7.1",
+    "AngleSharp.Css/1.0.1",
+    "OfficeIMO.Core/3.4.3",
+    "OfficeIMO.Html/3.4.3",
+    "OfficeIMO.Html.AngleSharp/3.4.3",
+    "OfficeIMO.Html.Core/3.4.3",
+    "OfficeIMO.Html.Pdf/3.4.3",
+    "OfficeIMO.Html.Runtime/3.4.3",
+    "OfficeIMO.Pdf/3.4.3"
+  ],
+  "compileWarnings": 0,
+  "runtimeProbe": "officeimo.trusted-process:All",
+  "result": "passed"
+}

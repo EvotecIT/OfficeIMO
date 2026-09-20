@@ -23,10 +23,6 @@ try {
     if (incoming.MaxOutputBytesPerArtifact is < 1 or > 8L * 1024 * 1024 ||
         incoming.MaxTotalOutputBytes is < 1 or > 12L * 1024 * 1024)
         throw new HtmlScriptRuntimeException("The isolated render output budget is invalid.");
-    var rendering = new HtmlToPdfOptions { ViewportWidth = incoming.Page.ViewportWidth,
-        ViewportHeight = incoming.Page.ViewportHeight,
-        Margins = HtmlRenderMargins.All(0D) };
-    rendering.MediaFeatures.ResolutionDpi = incoming.Page.DevicePixelRatio * HtmlRenderOptions.CssPixelsPerInch;
     HtmlScriptRequest page = incoming.Page.Snapshot();
     if (page.Profile != HtmlRuntimeProfile.WebApplicationV1 || page.ResourcePolicy.AllowNetwork)
         throw new NotSupportedException("The isolated renderer accepts only offline WebApplicationV1 input.");
@@ -85,10 +81,8 @@ try {
                     Context = new HtmlRuntimeContextOptions {
                         Trace = new HtmlRuntimeTraceOptions { IncludeUrls = true }
                     },
-                    RenderRequests = new[] {
-                        HtmlRenderRequest.Create(HtmlRenderIntentProfile.ScreenFullPage, HtmlRenderEncoder.Png, rendering),
-                        HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, rendering),
-                        HtmlRenderRequest.Create(HtmlRenderIntentProfile.ScreenSnapshotPaged, HtmlRenderEncoder.Pdf, rendering)
+                    OutputOptions = new HtmlApplicationOutputOptions {
+                        RenderOptions = new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0D) }
                     }
                 }, deadline.Token);
             if (result.Trace.IsTruncated)
@@ -121,9 +115,9 @@ try {
     response.DiscoveryComplete = true;
     await HtmlRuntimeProtocol.WriteAsync(output, response, 24 * 1024 * 1024, deadline.Token);
     response.Stage = HtmlPublicRenderStage.Output;
-    byte[] screen = result.Outputs[0].Images.Single().Bytes;
-    byte[] print = result.Outputs[1].Pdf!.ToBytes();
-    byte[] screenToPage = result.Outputs[2].Pdf!.ToBytes();
+    byte[] screen = result.ScreenPng!.Images.Single().Bytes;
+    byte[] print = result.PrintPdf!.Pdf!.ToBytes();
+    byte[] screenToPage = result.ScreenToPagePdf!.Pdf!.ToBytes();
     if (screen.LongLength > incoming.MaxOutputBytesPerArtifact || print.LongLength > incoming.MaxOutputBytesPerArtifact ||
         screenToPage.LongLength > incoming.MaxOutputBytesPerArtifact ||
         (long)screen.Length + print.Length + screenToPage.Length > incoming.MaxTotalOutputBytes)

@@ -22,6 +22,39 @@ public sealed class RuntimeApplicationDocumentWorkflowTests {
     }
 
     [Fact]
+    public void StandardApplicationOutputsCanSelectOneNamedResult() {
+        var page = new HtmlScriptRequest {
+            ViewportWidth = 1024D,
+            ViewportHeight = 640D
+        };
+
+        HtmlApplicationDocumentRequest snapshot = new HtmlApplicationDocumentRequest {
+            Page = page,
+            OutputOptions = new HtmlApplicationOutputOptions {
+                Kinds = HtmlApplicationOutputKinds.ScreenToPagePdf
+            }
+        }.Snapshot();
+
+        HtmlRenderRequest output = Assert.Single(snapshot.RenderRequests);
+        Assert.Equal(HtmlRenderIntentProfile.ScreenSnapshotPaged, output.Profile);
+        Assert.Equal(HtmlRenderEncoder.Pdf, output.Encoder);
+        Assert.Equal(1024D, output.Options.ViewportWidth);
+        Assert.Equal(640D, output.Options.ViewportHeight);
+        Assert.Equal(HtmlRenderMargins.All(0D), output.Options.Margins);
+        Assert.Equal(HtmlRenderUserAgentStyleMode.Browser, output.Options.UserAgentStyles);
+        Assert.Equal("serif", output.Options.DefaultFontFamily);
+    }
+
+    [Fact]
+    public void StandardApplicationOutputsRejectAnEmptySelection() {
+        var request = new HtmlApplicationDocumentRequest {
+            OutputOptions = new HtmlApplicationOutputOptions { Kinds = HtmlApplicationOutputKinds.None }
+        };
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => request.Snapshot());
+    }
+
+    [Fact]
     public void StaticRendererProjectsAuthoredSrcdocIntoAClippedFrameViewport() {
         HtmlConversionDocument document = HtmlConversionDocument.Parse("""
             <main>Before <iframe width="220" height="80" srcdoc="<p id='inside'>Static frame body</p>"></iframe> After</main>
@@ -144,16 +177,13 @@ public sealed class RuntimeApplicationDocumentWorkflowTests {
         IHtmlRuntimeHost host = new HtmlProcessRuntimeProvider(
             Path.Combine(AppContext.BaseDirectory, "RuntimeWorker", "OfficeIMO.Html.Runtime.Worker.dll"),
             AngleSharpDomServices.Instance);
-        var rendering = new HtmlToPdfOptions { ViewportWidth = 816D, Margins = HtmlRenderMargins.All(0D) };
         HtmlApplicationDocumentResult result = await HtmlApplicationDocumentWorkflow.RunAsync(host,
             new HtmlApplicationDocumentRequest {
                 Page = page,
                 Actions = actions,
                 FinalReadyExpression = ready,
-                RenderRequests = new[] {
-                    HtmlRenderRequest.Create(HtmlRenderIntentProfile.ScreenFullPage, HtmlRenderEncoder.Png, rendering),
-                    HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, rendering),
-                    HtmlRenderRequest.Create(HtmlRenderIntentProfile.ScreenSnapshotPaged, HtmlRenderEncoder.Pdf, rendering)
+                OutputOptions = new HtmlApplicationOutputOptions {
+                    RenderOptions = new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0D) }
                 }
             });
 
@@ -164,11 +194,19 @@ public sealed class RuntimeApplicationDocumentWorkflowTests {
         Assert.Contains(result.Trace.Events, item => item.Kind == HtmlRuntimeEventKind.Capture);
         Assert.Equal(3, result.Outputs.Count);
         Assert.All(result.Outputs, output => Assert.Equal(HtmlRenderDocumentState.RuntimeSnapshot, output.Render.Request.DocumentState));
-        byte[] png = Assert.Single(result.Outputs[0].Images).Bytes;
+        Assert.All(result.Outputs, output => {
+            Assert.Equal(page.ViewportWidth, output.Render.Request.Options.ViewportWidth);
+            Assert.Equal(page.ViewportHeight, output.Render.Request.Options.ViewportHeight);
+            Assert.Equal(HtmlRenderUserAgentStyleMode.Browser, output.Render.Request.Options.UserAgentStyles);
+        });
+        Assert.Same(result.Outputs[0], result.ScreenPng);
+        Assert.Same(result.Outputs[1], result.PrintPdf);
+        Assert.Same(result.Outputs[2], result.ScreenToPagePdf);
+        byte[] png = Assert.Single(result.ScreenPng!.Images).Bytes;
         Assert.True(OfficePngReader.TryDecode(png, out OfficeRasterImage? image));
         Assert.NotNull(image);
-        Assert.Null(result.Outputs[0].Pdf);
-        foreach (HtmlApplicationRenderOutput output in result.Outputs.Skip(1)) {
+        Assert.Null(result.ScreenPng.Pdf);
+        foreach (HtmlApplicationRenderOutput output in new[] { result.PrintPdf!, result.ScreenToPagePdf! }) {
             Assert.Empty(output.Images);
             Assert.NotNull(output.Pdf);
             PdfReadDocument pdf = PdfReadDocument.Open(output.Pdf!.ToBytes());
@@ -184,8 +222,8 @@ public sealed class RuntimeApplicationDocumentWorkflowTests {
             string folder = Path.Combine(evidenceRoot, caseId);
             Directory.CreateDirectory(folder);
             File.WriteAllBytes(Path.Combine(folder, "officeimo-screen.png"), png);
-            File.WriteAllBytes(Path.Combine(folder, "officeimo-print.pdf"), result.Outputs[1].Pdf!.ToBytes());
-            File.WriteAllBytes(Path.Combine(folder, "officeimo-screen-to-page.pdf"), result.Outputs[2].Pdf!.ToBytes());
+            File.WriteAllBytes(Path.Combine(folder, "officeimo-print.pdf"), result.PrintPdf!.Pdf!.ToBytes());
+            File.WriteAllBytes(Path.Combine(folder, "officeimo-screen-to-page.pdf"), result.ScreenToPagePdf!.Pdf!.ToBytes());
         }
     }
 

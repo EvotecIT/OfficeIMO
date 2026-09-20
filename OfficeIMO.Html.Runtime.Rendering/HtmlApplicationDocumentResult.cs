@@ -47,4 +47,21 @@ public sealed class HtmlApplicationDocumentResult {
     public IReadOnlyList<HtmlAutomationResult> Actions { get; }
     /// <summary>Outputs in request order, independent of the runtime worker.</summary>
     public IReadOnlyList<HtmlApplicationRenderOutput> Outputs { get; }
+
+    /// <summary>Standard full-page PNG using screen CSS, when requested.</summary>
+    public HtmlApplicationRenderOutput? ScreenPng => FindOutput(
+        HtmlRenderIntentProfile.ScreenFullPage, HtmlRenderEncoder.Png);
+
+    /// <summary>Standard paged PDF using print CSS, when requested.</summary>
+    public HtmlApplicationRenderOutput? PrintPdf => FindOutput(
+        HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf);
+
+    /// <summary>Standard paged PDF using screen CSS, when requested.</summary>
+    public HtmlApplicationRenderOutput? ScreenToPagePdf => FindOutput(
+        HtmlRenderIntentProfile.ScreenSnapshotPaged, HtmlRenderEncoder.Pdf);
+
+    /// <summary>Returns the first output with the requested intent and encoder, or null when it was not selected.</summary>
+    public HtmlApplicationRenderOutput? FindOutput(HtmlRenderIntentProfile profile, HtmlRenderEncoder encoder) =>
+        Outputs.FirstOrDefault(output => output.Render.Request.Profile == profile
+            && output.Render.Request.Encoder == encoder);
 }

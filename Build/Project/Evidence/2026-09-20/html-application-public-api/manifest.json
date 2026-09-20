@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "capturedAtUtc": "2026-09-20T07:05:16.8977520+00:00",
+  "framework": ".NET 10.0",
+  "platform": "Windows x64",
+  "test": "RuntimeApplicationDocumentWorkflowTests.OneWorkflowCapturesAndRendersFourApplicationClasses",
+  "passedCases": [
+    "vanilla",
+    "react-build",
+    "preact",
+    "legacy"
+  ],
+  "standardOutputs": [
+    "ScreenPng",
+    "PrintPdf",
+    "ScreenToPagePdf"
+  ],
+  "files": [
+    {
+      "file": "legacy/officeimo-print.pdf",
+      "bytes": 4382,
+      "sha256": "ce3300a7b9b44946dc278016231cc8aa585776604044f62bc6f5a3c208cab9a6"
+    },
+    {
+      "file": "legacy/officeimo-screen-to-page.pdf",
+      "bytes": 4350,
+      "sha256": "366109e6c745314cf7edfbc08a86f123084b571fffdcfc7e952cd30aabf111a7"
+    },
+    {
+      "file": "legacy/officeimo-screen.png",
+      "bytes": 14809,
+      "sha256": "fa15ecf2bbd49f5da35704efeb2150ad0ae8cbb5dd27d633ef3829d789ad1ce7"
+    },
+    {
+      "file": "preact/officeimo-print.pdf",
+      "bytes": 5029,
+      "sha256": "a56db885ac6e989cd2d96bfb675a5f705ee7befff19a943703c53fa46e7e332a"
+    },
+    {
+      "file": "preact/officeimo-screen-to-page.pdf",
+      "bytes": 5035,
+      "sha256": "ed89fbaa82fd81f084cd6ee903c0787f64a1c388d2132e147abfe1bf1557c681"
+    },
+    {
+      "file": "preact/officeimo-screen.png",
+      "bytes": 16410,
+      "sha256": "4f7c735c2acf2807bb15dc583e19fdb989e937069089fc6a337c16d5aabca0e9"
+    },
+    {
+      "file": "react-build/officeimo-print.pdf",
+      "bytes": 5525,
+      "sha256": "f1134c98d1712de86ee544ebf3bd382e32443226f6231b303a1c30022eb81d39"
+    },
+    {
+      "file": "react-build/officeimo-screen-to-page.pdf",
+      "bytes": 5576,
+      "sha256": "936f12a33f0864c410dc3b42f495eb93e20ae554b045b1678a985a771e0544d7"
+    },
+    {
+      "file": "react-build/officeimo-screen.png",
+      "bytes": 17988,
+      "sha256": "667f239ce601b9c5441b01e38de9419e9eb289a491b9652b5b426a7c2ea55633"
+    },
+    {
+      "file": "vanilla/officeimo-print.pdf",
+      "bytes": 3620,
+      "sha256": "7916413b047b49dea06832b03fc23e3ee45a5c3d3ef2b217e228e4b5ec1f4c7e"
+    },
+    {
+      "file": "vanilla/officeimo-screen-to-page.pdf",
+      "bytes": 3628,
+      "sha256": "57f2dbd691eccf49e9d7934a0644c24a8f00055e0a6c0edff3c10f7d0ee564b7"
+    },
+    {
+      "file": "vanilla/officeimo-screen.png",
+      "bytes": 15971,
+      "sha256": "0621252abd2458516ea42f1a6e7cdd7651b51d5053e7caaf471fd5fa803fe69f"
+    }
+  ]
+}
