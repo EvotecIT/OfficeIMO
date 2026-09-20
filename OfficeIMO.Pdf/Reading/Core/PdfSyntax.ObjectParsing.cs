@@ -1,3 +1,7 @@
+#if NET8_0_OR_GREATER
+using System.Buffers;
+#endif
+
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfSyntax {
@@ -50,22 +54,22 @@ internal static partial class PdfSyntax {
             return null;
         }
         if (s.Length > 0 && s[0] == '[') {
-            var toks = Tokenize(s, effectiveLimits, trackEncodedStringSourceSpans);
+            using var toks = Tokenize(s, effectiveLimits, trackEncodedStringSourceSpans);
             var (obj, consumed) = ParseObject(toks, 0, effectiveLimits, 0);
             return consumed + 1 == toks.Count ? obj : null;
         }
         if (s.Length > 0 && s[0] == '(') {
-            var stringTokens = Tokenize(s, effectiveLimits, trackEncodedStringSourceSpans);
+            using var stringTokens = Tokenize(s, effectiveLimits, trackEncodedStringSourceSpans);
             var (obj, consumed) = ParseObject(stringTokens, 0, effectiveLimits, 0);
             return consumed + 1 == stringTokens.Count ? obj : null;
         }
         if (s.Length > 0 && s[0] == '<' && (s.Length == 1 || s[1] != '<')) {
-            var stringTokens = Tokenize(s, effectiveLimits, trackEncodedStringSourceSpans);
+            using var stringTokens = Tokenize(s, effectiveLimits, trackEncodedStringSourceSpans);
             var (obj, consumed) = ParseObject(stringTokens, 0, effectiveLimits, 0);
             return consumed + 1 == stringTokens.Count ? obj : null;
         }
         // number or name fallbacks
-        var tokens = Tokenize(s, effectiveLimits, trackEncodedStringSourceSpans);
+        using var tokens = Tokenize(s, effectiveLimits, trackEncodedStringSourceSpans);
         if (tokens.Count > 0) {
             var (obj0, consumed) = ParseObject(tokens, 0, effectiveLimits, 0);
             return consumed + 1 == tokens.Count ? obj0 : null;
@@ -100,7 +104,7 @@ internal static partial class PdfSyntax {
         }
 
         var d = new PdfDictionary();
-        var tokens = Tokenize(source, start, length, effectiveLimits, trackEncodedStringSourceSpans);
+        using var tokens = Tokenize(source, start, length, effectiveLimits, trackEncodedStringSourceSpans);
         for (int i = 0; i < tokens.Count; i++) {
             string tokenText = tokens[i].Text;
             if (i == 0 && tokenText == "<<") continue;
@@ -120,7 +124,7 @@ internal static partial class PdfSyntax {
         return d;
     }
 
-    private static (PdfObject Obj, int Consumed) ParseObject(List<PdfToken> tokens, int i, PdfReadLimits limits, int depth) {
+    private static (PdfObject Obj, int Consumed) ParseObject(in PooledTokenBuffer tokens, int i, PdfReadLimits limits, int depth) {
         if (i < 0 || i >= tokens.Count) return (new PdfName(""), 0);
         if (depth > limits.MaxObjectNestingDepth) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.ObjectNestingDepth, limits.MaxObjectNestingDepth, depth);
@@ -199,13 +203,13 @@ internal static partial class PdfSyntax {
         return (new PdfName(tok) { HasIncompleteSyntax = true }, 0);
     }
 
-    private static List<PdfToken> Tokenize(
+    private static PooledTokenBuffer Tokenize(
         string s,
         PdfReadLimits? limits = null,
         bool trackEncodedStringSourceSpans = true) =>
         Tokenize(s, 0, s.Length, limits, trackEncodedStringSourceSpans);
 
-    private static List<PdfToken> Tokenize(
+    private static PooledTokenBuffer Tokenize(
         string s,
         int start,
         int length,
@@ -222,7 +226,23 @@ internal static partial class PdfSyntax {
         // a long literal or hex string. Grow for genuinely dense objects rather
         // than reserving thousands of unused token slots up front.
         int estimatedTokens = Math.Min(512, length / 4 + 8);
-        var tokens = new List<PdfToken>(Math.Min(estimatedTokens, effectiveLimits.MaxTokensPerObject));
+        var tokens = new PooledTokenBuffer(Math.Min(estimatedTokens, effectiveLimits.MaxTokensPerObject));
+        try {
+            TokenizeInto(s, start, end, effectiveLimits, trackEncodedStringSourceSpans, ref tokens);
+            return tokens;
+        } catch {
+            tokens.Dispose();
+            throw;
+        }
+    }
+
+    private static void TokenizeInto(
+        string s,
+        int start,
+        int end,
+        PdfReadLimits effectiveLimits,
+        bool trackEncodedStringSourceSpans,
+        ref PooledTokenBuffer tokens) {
         int i = start;
         while (i < end) {
             if (tokens.Count > effectiveLimits.MaxTokensPerObject) {
@@ -300,8 +320,67 @@ internal static partial class PdfSyntax {
         if (tokens.Count > effectiveLimits.MaxTokensPerObject) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.ObjectTokens, effectiveLimits.MaxTokensPerObject, tokens.Count);
         }
+    }
 
-        return tokens;
+    /// <summary>Keeps small object token lists local and rents large backing arrays for dense PDF objects.</summary>
+    private struct PooledTokenBuffer : IDisposable {
+        private const int SmallTokenLimit = 1024;
+        private List<PdfToken>? _small;
+#if NET8_0_OR_GREATER
+        private PdfToken[]? _rented;
+#endif
+        private int _count;
+
+        internal PooledTokenBuffer(int initialCapacity) {
+            _small = new List<PdfToken>(initialCapacity);
+        }
+
+        internal readonly int Count => _count;
+
+        internal readonly PdfToken this[int index] {
+            get {
+                if ((uint)index >= (uint)_count) throw new ArgumentOutOfRangeException(nameof(index));
+#if NET8_0_OR_GREATER
+                return _rented is null ? _small![index] : _rented[index];
+#else
+                return _small![index];
+#endif
+            }
+        }
+
+        internal void Add(PdfToken token) {
+#if NET8_0_OR_GREATER
+            if (_rented is null && _count < SmallTokenLimit) {
+                _small!.Add(token);
+            } else {
+                if (_rented is null) {
+                    _rented = ArrayPool<PdfToken>.Shared.Rent(SmallTokenLimit * 2);
+                    _small!.CopyTo(_rented);
+                    _small = null;
+                } else if (_count == _rented.Length) {
+                    PdfToken[] expanded = ArrayPool<PdfToken>.Shared.Rent(checked(_count * 2));
+                    Array.Copy(_rented, expanded, _count);
+                    ArrayPool<PdfToken>.Shared.Return(_rented, clearArray: true);
+                    _rented = expanded;
+                }
+
+                _rented[_count] = token;
+            }
+#else
+            _small!.Add(token);
+#endif
+
+            _count++;
+        }
+
+        public void Dispose() {
+#if NET8_0_OR_GREATER
+            if (_rented is not null) {
+                ArrayPool<PdfToken>.Shared.Return(_rented, clearArray: true);
+                _rented = null;
+            }
+#endif
+        }
     }
 
     private readonly struct PdfToken {

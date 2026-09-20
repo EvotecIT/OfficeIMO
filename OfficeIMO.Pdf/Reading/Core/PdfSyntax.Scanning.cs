@@ -456,21 +456,23 @@ internal static partial class PdfSyntax {
                 continue;
             }
 
-            List<PdfToken> tokens;
+            PooledTokenBuffer tokens;
             try {
                 tokens = Tokenize(text.Substring(bodyStart, bodyLength));
             } catch (Exception exception) when (exception is not OutOfMemoryException) {
                 continue;
             }
 
-            if (tokens.Count == 1 &&
-                double.TryParse(
-                    tokens[0].Text,
-                    System.Globalization.NumberStyles.Float,
-                    System.Globalization.CultureInfo.InvariantCulture,
-                    out double value) &&
-                TryNormalizeStreamLength(value, out int byteLength)) {
-                values[(match.ObjectNumber, match.Generation)] = byteLength;
+            using (tokens) {
+                if (tokens.Count == 1 &&
+                    double.TryParse(
+                        tokens[0].Text,
+                        System.Globalization.NumberStyles.Float,
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        out double value) &&
+                    TryNormalizeStreamLength(value, out int byteLength)) {
+                    values[(match.ObjectNumber, match.Generation)] = byteLength;
+                }
             }
         }
 
