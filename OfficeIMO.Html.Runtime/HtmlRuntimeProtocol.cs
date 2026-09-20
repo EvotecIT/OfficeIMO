@@ -63,6 +63,8 @@ internal sealed class HtmlRuntimeResponse {
     public Uri[]? MissingResourceUrls { get; set; }
     public HtmlRuntimeFetchDiscovery[]? MissingFetchRequests { get; set; }
     public string[] ConsumedFetchReplayIdentities { get; set; } = Array.Empty<string>();
+    public HtmlRuntimeNavigationDiscovery[]? MissingNavigationRequests { get; set; }
+    public string[] ConsumedNavigationReplayIdentities { get; set; } = Array.Empty<string>();
     public string? ValueJson { get; set; }
     public HtmlRuntimeWireDocument? Document { get; set; }
     public HtmlAutomationResult? Automation { get; set; }

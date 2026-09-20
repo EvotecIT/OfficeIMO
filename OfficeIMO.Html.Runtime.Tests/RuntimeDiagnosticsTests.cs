@@ -15,7 +15,7 @@ public sealed class RuntimeDiagnosticsTests {
     [Fact]
     public async Task TraceRecordsExactDynamicReplayConsumptionIdentity() {
         var url = new Uri("https://diagnostics.officeimo.test/submit");
-        var request = new HtmlRuntimeFetchRequest(url, "POST",
+        var request = new HtmlRuntimeFetchRequest(url, new Uri("https://diagnostics.officeimo.test/"), "POST",
             new Dictionary<string, string> { ["Content-Type"] = "text/plain;charset=UTF-8" },
             Encoding.UTF8.GetBytes("payload"));
         var replay = new HtmlRuntimeFetchReplay(request, 1, HtmlRuntimeResource.FromText(url, "accepted", "text/plain"));

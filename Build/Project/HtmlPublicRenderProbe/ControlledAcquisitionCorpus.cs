@@ -156,10 +156,10 @@ internal sealed record ControlledAcquisitionCorpus(
         }, connections);
         HtmlPublicResourceResult? acquired = null;
         try {
-            var request = new HtmlRuntimeFetchRequest(target, "POST", body: Encoding.UTF8.GetBytes("once"));
-            acquired = await broker.FetchAsync(new HtmlRuntimeFetchDiscovery(request, 1), page);
-            Require(acquired.DynamicHops?.Count == 2 && acquired.DynamicExchanges?.Count == 2 &&
-                acquired.DynamicExchanges[0].Method == "POST" && acquired.DynamicExchanges[1].Method == "GET",
+            var request = new HtmlRuntimeFetchRequest(target, page, "POST", body: Encoding.UTF8.GetBytes("once"));
+            acquired = await broker.FetchAsync(new HtmlRuntimeFetchDiscovery(request, 1));
+            Require(acquired.DynamicHops?.Count == 2 && acquired.HttpExchanges?.Count == 2 &&
+                acquired.HttpExchanges[0].Method == "POST" && acquired.HttpExchanges[1].Method == "GET",
                 "dynamic redirect transcript did not preserve method transition");
             renderCases.Add(new ProbeCase(name, "<style>#result{color:#0055aa}</style><p id=result>Loading</p>" +
                 "<script>fetch('/submit',{method:'POST',body:'once'}).then(r=>r.text()).then(t=>document.querySelector('#result').textContent=t)</script>",
@@ -186,18 +186,18 @@ internal sealed record ControlledAcquisitionCorpus(
                 ExtraHeaders: corsHeaders));
         var resolutions = new List<string>();
         var connections = new List<string>();
-        var broker = Broker(server, ["page.example.test", "api.example.test"], (host, _) => {
+        var broker = Broker(server, ["page.example.test"], (host, _) => {
             resolutions.Add(host + "=93.184.216.34");
             return Task.FromResult(new[] { IPAddress.Parse("93.184.216.34") });
-        }, connections);
+        }, connections, [new Uri("http://api.example.test/")]);
         HtmlPublicResourceResult? acquired = null;
         try {
-            var request = new HtmlRuntimeFetchRequest(target, "POST",
+            var request = new HtmlRuntimeFetchRequest(target, page, "POST",
                 new Dictionary<string, string> { ["Content-Type"] = "application/json" },
                 Encoding.UTF8.GetBytes("{}"), credentials: "omit");
-            acquired = await broker.FetchAsync(new HtmlRuntimeFetchDiscovery(request, 1), page);
+            acquired = await broker.FetchAsync(new HtmlRuntimeFetchDiscovery(request, 1));
             Require(acquired.DynamicHops?.Count == 1 && acquired.DynamicHops[0].PreflightResponse != null &&
-                acquired.DynamicExchanges?.Select(exchange => exchange.Method).SequenceEqual(["OPTIONS", "POST"]) == true,
+                acquired.HttpExchanges?.Select(exchange => exchange.Method).SequenceEqual(["OPTIONS", "POST"]) == true,
                 "dynamic CORS acquisition did not preflight before POST");
             renderCases.Add(new ProbeCase(name, "<style>#result{color:#0055aa}</style><p id=result>Loading</p>" +
                 "<script>fetch('http://api.example.test/data',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',credentials:'omit'}).then(r=>r.text()).then(t=>document.querySelector('#result').textContent=t)</script>",
@@ -227,7 +227,8 @@ internal sealed record ControlledAcquisitionCorpus(
         $"<!doctype html><style>body{{font:16px sans-serif}}#result{{color:#0055aa}}</style><p id=result>{text}</p>";
 
     private static HtmlPublicResourceBroker Broker(ControlledHttpServer server, IEnumerable<string> hosts,
-        Func<string, CancellationToken, Task<IPAddress[]>> resolve, List<string> connections) =>
+        Func<string, CancellationToken, Task<IPAddress[]>> resolve, List<string> connections,
+        IEnumerable<Uri>? dynamicOrigins = null) =>
         new(hosts, resolve, async (address, port, token) => {
             connections.Add(address + ":" + port);
             var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
@@ -235,7 +236,7 @@ internal sealed record ControlledAcquisitionCorpus(
                 await socket.ConnectAsync(IPAddress.Loopback, server.Port, token);
                 return new NetworkStream(socket, ownsSocket: true);
             } catch { socket.Dispose(); throw; }
-        });
+        }, dynamicOrigins: dynamicOrigins);
 
     private static AcquisitionProbeResult Result(string name, bool passed, Uri requestedUrl, HtmlPublicResourceResult? acquired,
         IReadOnlyList<string> resolutions, IReadOnlyList<string> connections, IEnumerable<string> requests, Exception? error) =>

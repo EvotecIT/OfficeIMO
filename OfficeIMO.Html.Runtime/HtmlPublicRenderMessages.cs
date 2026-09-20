@@ -14,6 +14,19 @@ internal sealed class HtmlPublicRenderRequest {
 internal sealed class HtmlPublicResourceBatch {
     public HtmlRuntimeResource[] Resources { get; set; } = Array.Empty<HtmlRuntimeResource>();
     public HtmlRuntimeFetchReplay[] FetchReplays { get; set; } = Array.Empty<HtmlRuntimeFetchReplay>();
+    public HtmlRuntimeNavigationReplay[] NavigationReplays { get; set; } = Array.Empty<HtmlRuntimeNavigationReplay>();
+}
+
+internal static class HtmlRuntimeNavigationTranscript {
+    internal static void Validate(IReadOnlyList<HtmlRuntimeNavigationReplay> supplied,
+        IReadOnlyList<string> consumedIdentities) {
+        ArgumentNullException.ThrowIfNull(supplied);
+        ArgumentNullException.ThrowIfNull(consumedIdentities);
+        string[] expected = supplied.Select(replay => replay?.Identity
+            ?? throw new HtmlScriptRuntimeException("The navigation replay transcript contains a null replay.")).ToArray();
+        if (!expected.SequenceEqual(consumedIdentities, StringComparer.Ordinal))
+            throw new HtmlScriptRuntimeException("The isolated execution did not consume the acquired navigation replay transcript exactly.");
+    }
 }
 
 internal static class HtmlRuntimeFetchTranscript {
@@ -44,6 +57,8 @@ internal sealed class HtmlPublicRenderResponse {
     public bool DiscoveryComplete { get; set; }
     public string[] DiscoveryUrls { get; set; } = Array.Empty<string>();
     public HtmlRuntimeFetchDiscovery[] DiscoveryRequests { get; set; } = Array.Empty<HtmlRuntimeFetchDiscovery>();
+    public HtmlRuntimeNavigationDiscovery[] NavigationRequests { get; set; } = Array.Empty<HtmlRuntimeNavigationDiscovery>();
+    public string[] ConsumedNavigationReplayIdentities { get; set; } = Array.Empty<string>();
     public string? ErrorKind { get; set; }
     public string? Error { get; set; }
     public string? ProviderId { get; set; }

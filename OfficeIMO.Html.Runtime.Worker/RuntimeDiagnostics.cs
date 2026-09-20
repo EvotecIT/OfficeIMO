@@ -13,6 +13,9 @@ internal sealed class RuntimeDiagnostics {
     private readonly Dictionary<string, HtmlRuntimeFetchDiscovery> _missingFetchRequests = new(StringComparer.Ordinal);
     private readonly Dictionary<string, int> _missingFetchCharacters = new(StringComparer.Ordinal);
     private readonly List<string> _consumedFetchReplayIdentities = new();
+    private readonly Dictionary<string, HtmlRuntimeNavigationDiscovery> _missingNavigationRequests = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, int> _missingNavigationCharacters = new(StringComparer.Ordinal);
+    private readonly List<string> _consumedNavigationReplayIdentities = new();
     private long _retainedMissingFetchCharacters = 2; // JSON array brackets.
     private bool _missingFetchBudgetExceeded;
 
@@ -25,6 +28,8 @@ internal sealed class RuntimeDiagnostics {
     internal Uri[] MissingResourceUrls { get { lock (_sync) return _missingResourceUrls.Values.ToArray(); } }
     internal HtmlRuntimeFetchDiscovery[] MissingFetchRequests { get { lock (_sync) return _missingFetchRequests.Values.ToArray(); } }
     internal string[] ConsumedFetchReplayIdentities { get { lock (_sync) return _consumedFetchReplayIdentities.ToArray(); } }
+    internal HtmlRuntimeNavigationDiscovery[] MissingNavigationRequests { get { lock (_sync) return _missingNavigationRequests.Values.ToArray(); } }
+    internal string[] ConsumedNavigationReplayIdentities { get { lock (_sync) return _consumedNavigationReplayIdentities.ToArray(); } }
     internal bool MissingFetchBudgetExceeded { get { lock (_sync) return _missingFetchBudgetExceeded; } }
 
     internal void RecordMissingResource(Uri url) {
@@ -35,7 +40,7 @@ internal sealed class RuntimeDiagnostics {
         int characters = HtmlRuntimeProtocol.MeasureCharacters(request);
         lock (_sync) {
             int previous = _missingFetchCharacters.GetValueOrDefault(request.Identity);
-            long separators = previous == 0 && _missingFetchRequests.Count != 0 ? 1 : 0;
+            long separators = previous == 0 && (_missingFetchRequests.Count + _missingNavigationRequests.Count) != 0 ? 1 : 0;
             long projected = _retainedMissingFetchCharacters - previous + characters + separators;
             if (projected > _maxMissingFetchCharacters) {
                 _missingFetchBudgetExceeded = true;
@@ -51,11 +56,33 @@ internal sealed class RuntimeDiagnostics {
         lock (_sync) _consumedFetchReplayIdentities.Add(identity);
     }
 
+    internal void RecordMissingNavigation(HtmlRuntimeNavigationDiscovery request) {
+        int characters = HtmlRuntimeProtocol.MeasureCharacters(request);
+        lock (_sync) {
+            int previous = _missingNavigationCharacters.GetValueOrDefault(request.Identity);
+            long separators = previous == 0 && (_missingFetchRequests.Count + _missingNavigationRequests.Count) != 0 ? 1 : 0;
+            long projected = _retainedMissingFetchCharacters - previous + characters + separators;
+            if (projected > _maxMissingFetchCharacters) {
+                _missingFetchBudgetExceeded = true;
+                throw new HtmlScriptRuntimeException(MissingFetchBudgetMessage);
+            }
+            _missingNavigationRequests[request.Identity] = request;
+            _missingNavigationCharacters[request.Identity] = characters;
+            _retainedMissingFetchCharacters = projected;
+        }
+    }
+
+    internal void RecordConsumedNavigationReplay(string identity) {
+        lock (_sync) _consumedNavigationReplayIdentities.Add(identity);
+    }
+
     internal void ClearMissingResources() {
         lock (_sync) {
             _missingResourceUrls.Clear();
             _missingFetchRequests.Clear();
             _missingFetchCharacters.Clear();
+            _missingNavigationRequests.Clear();
+            _missingNavigationCharacters.Clear();
             _retainedMissingFetchCharacters = 2;
             _missingFetchBudgetExceeded = false;
         }

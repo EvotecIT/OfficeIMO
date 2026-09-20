@@ -22,6 +22,6 @@ internal sealed class RuntimeFetchRequest {
         return body;
     }
 
-    internal HtmlRuntimeFetchRequest ReplayRequest(Uri url, byte[]? body) =>
-        new(url, Method, Headers, body, Mode, Credentials, Redirect, Body != null);
+    internal HtmlRuntimeFetchRequest ReplayRequest(Uri url, byte[]? body, Uri initiatorOrigin) =>
+        new(url, Method, Headers, body, Mode, Credentials, Redirect, Body != null, initiatorOrigin);
 }

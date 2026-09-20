@@ -39,8 +39,12 @@ public sealed class HtmlIsolatedPublicPageRequest {
     public string SourceLicense { get; init; } = string.Empty;
     /// <summary>Optional resources fetched before isolated discovery begins.</summary>
     public IReadOnlyList<Uri> SeedResourceUrls { get; init; } = Array.Empty<Uri>();
-    /// <summary>Additional DNS hosts authorized for redirects and discovered resources.</summary>
+    /// <summary>Additional DNS hosts authorized for initial-document redirects and discovered static resources.</summary>
     public IReadOnlyList<string> AllowedHosts { get; init; } = Array.Empty<string>();
+    /// <summary>Exact additional HTTP(S) origins authorized for top-level document requests and redirects. The acquired document origin is implicit.</summary>
+    public IReadOnlyList<Uri> AllowedNavigationOrigins { get; init; } = Array.Empty<Uri>();
+    /// <summary>Top-level document methods the host broker may execute. GET is allowed by default; POST requires explicit opt-in.</summary>
+    public IReadOnlyList<string> AllowedNavigationMethods { get; init; } = new[] { "GET" };
     /// <summary>Dynamic request methods the host broker may execute. GET and HEAD are allowed by default; non-idempotent methods require explicit opt-in.</summary>
     public IReadOnlyList<string> AllowedDynamicRequestMethods { get; init; } = new[] { "GET", "HEAD" };
     /// <summary>Exact additional HTTP(S) origins authorized for credentialless dynamic requests. Host admission remains separate.</summary>
@@ -76,6 +80,8 @@ public sealed class HtmlIsolatedPublicPageRequest {
         ArgumentNullException.ThrowIfNull(AllowedHosts);
         ArgumentNullException.ThrowIfNull(AllowedDynamicRequestMethods);
         ArgumentNullException.ThrowIfNull(AllowedDynamicRequestOrigins);
+        ArgumentNullException.ThrowIfNull(AllowedNavigationOrigins);
+        ArgumentNullException.ThrowIfNull(AllowedNavigationMethods);
         ArgumentNullException.ThrowIfNull(Actions);
         if (SeedResourceUrls.Count > 24) throw new ArgumentException("At most 24 seed resources are allowed.", nameof(SeedResourceUrls));
         if (AllowedHosts.Count > 15) throw new ArgumentException("At most 15 additional hosts are allowed.", nameof(AllowedHosts));
@@ -94,6 +100,20 @@ public sealed class HtmlIsolatedPublicPageRequest {
                 throw new ArgumentException("Dynamic request origins cannot contain paths, queries, or fragments.", nameof(AllowedDynamicRequestOrigins));
             return value;
         }).DistinctBy(HtmlRuntimeResourcePolicy.Origin, StringComparer.Ordinal).ToArray();
+        if (AllowedNavigationOrigins.Count > 15)
+            throw new ArgumentException("At most 15 additional navigation origins are allowed.", nameof(AllowedNavigationOrigins));
+        Uri[] navigationOrigins = AllowedNavigationOrigins.Select(origin => {
+            Uri value = HtmlPublicResourceBroker.ValidateUrl(origin ?? throw new ArgumentException(
+                "A navigation origin cannot be null.", nameof(AllowedNavigationOrigins)));
+            if (value.AbsolutePath != "/" || value.Query.Length != 0 || value.Fragment.Length != 0)
+                throw new ArgumentException("Navigation origins cannot contain paths, queries, or fragments.", nameof(AllowedNavigationOrigins));
+            return value;
+        }).DistinctBy(HtmlRuntimeResourcePolicy.Origin, StringComparer.Ordinal).ToArray();
+        string[] navigationMethods = AllowedNavigationMethods.Select(HtmlRuntimeFetchRequest.NormalizeMethod)
+            .Distinct(StringComparer.Ordinal).ToArray();
+        if (navigationMethods.Length == 0 || navigationMethods.Length > 2 ||
+            navigationMethods.Any(method => method is not ("GET" or "POST")))
+            throw new ArgumentException("Navigation methods can contain GET and POST only.", nameof(AllowedNavigationMethods));
         if (methods.Length == 0 || methods.Length > 7)
             throw new ArgumentException("At least one supported dynamic request method is required.", nameof(AllowedDynamicRequestMethods));
         if (MaxOutputBytesPerArtifact is < 1 or > 8L * 1024 * 1024)
@@ -119,18 +139,21 @@ public sealed class HtmlIsolatedPublicPageRequest {
             throw new ArgumentException("The combined action and readiness input exceeds MaxInputCharacters.", nameof(Actions));
         if (runtime.Profile != HtmlRuntimeProfile.WebApplicationV1)
             throw new ArgumentException("The isolated public-page workflow requires WebApplicationV1.", nameof(Runtime));
-        if (runtime.Html.Length != 0 || runtime.Scripts.Count != 0 || runtime.Resources.Count != 0 || runtime.FetchReplays.Count != 0 ||
+        if (runtime.Html.Length != 0 || runtime.Scripts.Count != 0 || runtime.Resources.Count != 0 ||
+            runtime.FetchReplays.Count != 0 || runtime.NavigationReplays.Count != 0 ||
             runtime.ResourcePolicy.AllowNetwork || runtime.ResourcePolicy.AllowedOrigins.Count != 0)
-            throw new ArgumentException("Runtime HTML, scripts, resources, dynamic replays, and network access are owned by the isolated public-page workflow.", nameof(Runtime));
+            throw new ArgumentException("Runtime HTML, scripts, resources, dynamic replays, navigation replays, and network access are owned by the isolated public-page workflow.", nameof(Runtime));
         if (runtime.Timeout > TimeSpan.FromSeconds(30) || runtime.SessionTimeout > TimeSpan.FromMinutes(2))
             throw new ArgumentException("Public-page command and session deadlines exceed the isolated profile.", nameof(Runtime));
-        return new Snapshot(ScenarioId, url, SourceLicense, resources, hosts, methods, dynamicOrigins, runtime,
+        return new Snapshot(ScenarioId, url, SourceLicense, resources, hosts, methods, dynamicOrigins,
+            navigationMethods, navigationOrigins, runtime,
             actions, FinalReadyExpression,
             RetainInputBytes, MaxOutputBytesPerArtifact, MaxTotalOutputBytes);
     }
 
     internal sealed record Snapshot(string ScenarioId, Uri Url, string SourceLicense, Uri[] SeedResourceUrls,
         string[] AllowedHosts, string[] AllowedDynamicRequestMethods, Uri[] AllowedDynamicRequestOrigins,
+        string[] AllowedNavigationMethods, Uri[] AllowedNavigationOrigins,
         HtmlScriptRequest Runtime, HtmlAutomationRequest[] Actions, string? FinalReadyExpression,
         bool RetainInputBytes, long MaxOutputBytesPerArtifact, long MaxTotalOutputBytes);
 }
@@ -193,15 +216,26 @@ public sealed class HtmlPublicResourceEvidence {
         Redirects = Array.AsReadOnly(result.Redirects.Select(redirect => new HtmlPublicRedirectEvidence(
             redirect.From, redirect.To, redirect.StatusCode, redirect.ConnectedAddress)).ToArray());
         Content = retainBytes ? (ReadOnlyMemory<byte>?)result.Resource.Content.ToArray() : null;
-        RequestMethod = result.DynamicRequest?.Request.Method ?? "GET";
-        RequestOccurrence = result.DynamicRequest?.Occurrence;
-        RequestHeaderNames = Array.AsReadOnly((result.DynamicRequest?.Request.Headers.Keys ?? Array.Empty<string>())
+        RequestMethod = result.NavigationRequest?.Request.Method ?? result.DynamicRequest?.Request.Method ?? "GET";
+        RequestOccurrence = result.NavigationRequest?.Occurrence ?? result.DynamicRequest?.Occurrence;
+        RequestHeaderNames = Array.AsReadOnly((result.NavigationRequest?.Request.Headers.Keys ??
+                result.DynamicRequest?.Request.Headers.Keys ?? Array.Empty<string>())
             .OrderBy(name => name, StringComparer.OrdinalIgnoreCase).ToArray());
-        RequestBodyByteCount = result.DynamicRequest?.Request.BodyLength ?? 0;
-        RequestBodySha256 = result.DynamicRequest?.Request.Buffer is { } body
+        RequestBodyByteCount = result.NavigationRequest?.Request.BodyLength ?? result.DynamicRequest?.Request.BodyLength ?? 0;
+        byte[]? requestBody = result.NavigationRequest?.Request.Buffer ?? result.DynamicRequest?.Request.Buffer;
+        RequestBodySha256 = requestBody is { } body
             ? Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(body)).ToLowerInvariant()
             : null;
-        DynamicExchanges = Array.AsReadOnly((result.DynamicExchanges ?? Array.Empty<HtmlPublicDynamicExchange>())
+        DynamicInitiatorOrigin = result.DynamicRequest?.Request.InitiatorOrigin;
+        NavigationKind = result.NavigationRequest?.Request.Kind;
+        NavigationHistoryEntryIndex = result.NavigationRequest?.Request.HistoryEntryIndex;
+        NavigationReplacesHistoryEntry = result.NavigationRequest?.Request.ReplaceHistoryEntry;
+        NavigationInitiatorUrl = result.NavigationRequest?.Request.InitiatorUrl;
+        NavigationReferrer = result.NavigationRequest?.Request.Referrer;
+        NavigationFinalOrigin = result.NavigationRequest == null ? null : new Uri(result.Resource.FinalUrl.GetLeftPart(UriPartial.Authority) + "/");
+        NavigationRedirectTaintedOrigin = result.NavigationRequest != null && result.Redirects.Any(redirect =>
+            HtmlRuntimeResourcePolicy.Origin(redirect.From) != HtmlRuntimeResourcePolicy.Origin(redirect.To));
+        HttpExchanges = Array.AsReadOnly((result.HttpExchanges ?? Array.Empty<HtmlPublicHttpExchange>())
             .Select(exchange => new HtmlPublicHttpExchangeEvidence(exchange)).ToArray());
     }
 
@@ -227,21 +261,37 @@ public sealed class HtmlPublicResourceEvidence {
     public ReadOnlyMemory<byte>? Content { get; }
     /// <summary>HTTP request method used to acquire this response.</summary>
     public string RequestMethod { get; }
-    /// <summary>One-based occurrence for an exact dynamic request, or <see langword="null"/> for URL resources.</summary>
+    /// <summary>One-based occurrence for an exact dynamic or navigation request, or <see langword="null"/> for URL resources.</summary>
     public int? RequestOccurrence { get; }
     /// <summary>Sorted request header names. Values are deliberately excluded from evidence.</summary>
     public IReadOnlyList<string> RequestHeaderNames { get; }
-    /// <summary>Dynamic request body byte count.</summary>
+    /// <summary>Dynamic or navigation request body byte count.</summary>
     public long RequestBodyByteCount { get; }
-    /// <summary>Lowercase SHA-256 digest of dynamic request bytes, or <see langword="null"/> when no body was sent.</summary>
+    /// <summary>Lowercase SHA-256 digest of dynamic or navigation request bytes, or <see langword="null"/> when no body was sent.</summary>
     public string? RequestBodySha256 { get; }
-    /// <summary>Ordered direct OPTIONS and dynamic request responses, including redirect hops.</summary>
-    public IReadOnlyList<HtmlPublicHttpExchangeEvidence> DynamicExchanges { get; }
+    /// <summary>Exact origin of the document that initiated a dynamic request.</summary>
+    public Uri? DynamicInitiatorOrigin { get; }
+    /// <summary>Top-level navigation kind, or <see langword="null"/> for document assets and dynamic requests.</summary>
+    public HtmlRuntimeNavigationKind? NavigationKind { get; }
+    /// <summary>Selected history entry for reload or traversal, otherwise -1 for a new navigation.</summary>
+    public int? NavigationHistoryEntryIndex { get; }
+    /// <summary>Whether this navigation replaces the current history entry.</summary>
+    public bool? NavigationReplacesHistoryEntry { get; }
+    /// <summary>Document URL that initiated this top-level navigation.</summary>
+    public Uri? NavigationInitiatorUrl { get; }
+    /// <summary>Referrer used for the first top-level request after profile reduction.</summary>
+    public Uri? NavigationReferrer { get; }
+    /// <summary>Final document origin after redirects.</summary>
+    public Uri? NavigationFinalOrigin { get; }
+    /// <summary>Whether a redirect crossed an origin boundary before the final document response.</summary>
+    public bool NavigationRedirectTaintedOrigin { get; }
+    /// <summary>Ordered direct HTTP responses, including preflights and redirect hops.</summary>
+    public IReadOnlyList<HtmlPublicHttpExchangeEvidence> HttpExchanges { get; }
 }
 
-/// <summary>One bounded HTTP exchange acquired on the host for a dynamic request.</summary>
+/// <summary>One bounded HTTP exchange acquired on the host for a dynamic or navigation request.</summary>
 public sealed class HtmlPublicHttpExchangeEvidence {
-    internal HtmlPublicHttpExchangeEvidence(HtmlPublicDynamicExchange exchange) {
+    internal HtmlPublicHttpExchangeEvidence(HtmlPublicHttpExchange exchange) {
         Url = exchange.Url;
         Method = exchange.Method;
         RequestBodyByteCount = exchange.RequestBodyByteCount;

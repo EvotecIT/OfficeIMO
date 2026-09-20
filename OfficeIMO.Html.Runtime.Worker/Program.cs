@@ -11,7 +11,8 @@ try {
     while (true) {
         HtmlRuntimeCommand? command = await HtmlRuntimeProtocol.ReadAsync<HtmlRuntimeCommand>(input, HtmlRuntimeProtocol.MaximumRequestCharacters, CancellationToken.None);
         if (command == null) break;
-        if (options?.FailOnFetchReplayDiscovery != true) diagnostics?.ClearMissingResources();
+        if (options?.FailOnFetchReplayDiscovery != true && options?.FailOnNavigationReplayDiscovery != true)
+            diagnostics?.ClearMissingResources();
         var response = new HtmlRuntimeResponse { Id = command.Id };
         try {
             if (session == null) {
@@ -42,13 +43,17 @@ try {
                 throw new HtmlScriptRuntimeException(RuntimeDiagnostics.MissingFetchBudgetMessage);
             if (options.FailOnFetchReplayDiscovery && diagnostics!.MissingFetchRequests.Length != 0)
                 throw new HtmlScriptRuntimeException(RuntimeResourceLoader.MissingResourceMessage);
+            if (options.FailOnNavigationReplayDiscovery && diagnostics!.MissingNavigationRequests.Length != 0)
+                throw new HtmlScriptRuntimeException(RuntimeResourceLoader.MissingResourceMessage);
             response.PageRevision = session.CurrentRevision;
             response.ConsumedFetchReplayIdentities = diagnostics?.ConsumedFetchReplayIdentities ?? Array.Empty<string>();
+            response.ConsumedNavigationReplayIdentities = diagnostics?.ConsumedNavigationReplayIdentities ?? Array.Empty<string>();
             response.Events = diagnostics?.Drain() ?? new();
             await HtmlRuntimeProtocol.WriteAsync(output, response, options!.MaxOutputCharacters, CancellationToken.None);
         } catch (OperationCanceledException) {
             response = new HtmlRuntimeResponse { Id = command.Id, Error = "The runtime command exceeded its deadline.", ErrorKind = "timeout" };
             response.ConsumedFetchReplayIdentities = diagnostics?.ConsumedFetchReplayIdentities ?? Array.Empty<string>();
+            response.ConsumedNavigationReplayIdentities = diagnostics?.ConsumedNavigationReplayIdentities ?? Array.Empty<string>();
             response.Events = diagnostics?.Drain() ?? new();
             await HtmlRuntimeProtocol.WriteAsync(output, response, HtmlRuntimeProtocol.MaximumRequestCharacters, CancellationToken.None);
             break;
@@ -59,7 +64,11 @@ try {
                 MissingFetchRequests = error.Message.Contains(RuntimeResourceLoader.MissingResourceMessage, StringComparison.Ordinal) ||
                     error.Message.Contains(RuntimeDiagnostics.MissingFetchBudgetMessage, StringComparison.Ordinal)
                     ? diagnostics?.MissingFetchRequests : null,
-                ConsumedFetchReplayIdentities = diagnostics?.ConsumedFetchReplayIdentities ?? Array.Empty<string>() };
+                MissingNavigationRequests = error.Message.Contains(RuntimeResourceLoader.MissingResourceMessage, StringComparison.Ordinal) ||
+                    error.Message.Contains(RuntimeDiagnostics.MissingFetchBudgetMessage, StringComparison.Ordinal)
+                    ? diagnostics?.MissingNavigationRequests : null,
+                ConsumedFetchReplayIdentities = diagnostics?.ConsumedFetchReplayIdentities ?? Array.Empty<string>(),
+                ConsumedNavigationReplayIdentities = diagnostics?.ConsumedNavigationReplayIdentities ?? Array.Empty<string>() };
             response.Events = diagnostics?.Drain() ?? new();
             await HtmlRuntimeProtocol.WriteAsync(output, response, HtmlRuntimeProtocol.MaximumRequestCharacters, CancellationToken.None);
             break;

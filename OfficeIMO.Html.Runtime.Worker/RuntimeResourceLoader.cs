@@ -8,6 +8,7 @@ internal sealed class RuntimeResourceLoader : IDisposable {
     private readonly HtmlRuntimeResourcePolicy _policy;
     private readonly Dictionary<string, HtmlRuntimeResource> _supplied;
     private readonly Dictionary<string, HtmlRuntimeFetchReplay> _fetchReplays;
+    private readonly Dictionary<string, HtmlRuntimeNavigationReplay> _navigationReplays;
     private readonly RuntimeResourceBudget _budget;
     private Dictionary<string, HtmlRuntimeResource> _loaded => _budget.Loaded;
     private readonly HashSet<string> _origins;
@@ -16,6 +17,7 @@ internal sealed class RuntimeResourceLoader : IDisposable {
     private readonly CancellationTokenSource _lifetime = new();
     private readonly HttpClient _client;
     private readonly RuntimeDiagnostics _diagnostics;
+    private readonly bool _discoverNavigationReplays;
     private object _sync => _budget.Sync;
 
     internal RuntimeResourceLoader(HtmlScriptRequest options, RuntimeResourceBudget? budget, RuntimeDiagnostics diagnostics) {
@@ -23,6 +25,8 @@ internal sealed class RuntimeResourceLoader : IDisposable {
         _policy = options.ResourcePolicy;
         _supplied = options.Resources.ToDictionary(resource => HtmlRuntimeResourcePolicy.Key(resource.Url), StringComparer.Ordinal);
         _fetchReplays = options.FetchReplays.ToDictionary(replay => replay.Identity, StringComparer.Ordinal);
+        _navigationReplays = options.NavigationReplays.ToDictionary(replay => replay.Identity, StringComparer.Ordinal);
+        _discoverNavigationReplays = options.FailOnNavigationReplayDiscovery || _navigationReplays.Count != 0;
         _documentOrigin = HtmlRuntimeResourcePolicy.Origin(options.DocumentUrl);
         _origins = _budget.Origins;
         _concurrency = _budget.Concurrency;
@@ -33,9 +37,12 @@ internal sealed class RuntimeResourceLoader : IDisposable {
 
     internal IReadOnlyList<HtmlRuntimeResource> Capture() { lock (_sync) return _loaded.Values.ToArray(); }
     internal Task<HtmlRuntimeResource> LoadAsync(Uri url, CancellationToken token) => LoadAsync(url, null, null, null, token);
+    internal Task<HtmlRuntimeResource> LoadNavigationAsync(HtmlRuntimeNavigationRequest request, CancellationToken token) =>
+        _discoverNavigationReplays ? ReplayNavigationAsync(request, token) : LoadAsync(request.Url, token);
     internal Task<HtmlRuntimeResource> FetchAsync(Uri url, RuntimeFetchRequest request, CancellationToken token) {
         byte[]? body = request.Validate(_policy);
-        return LoadAsync(url, request, request.ReplayRequest(new Uri(HtmlRuntimeResourcePolicy.Key(url)), body), body, token);
+        return LoadAsync(url, request, request.ReplayRequest(new Uri(HtmlRuntimeResourcePolicy.Key(url)), body,
+            new Uri(_documentOrigin + "/")), body, token);
     }
 
     private async Task<HtmlRuntimeResource> LoadAsync(Uri requestedUrl, RuntimeFetchRequest? fetch,
@@ -176,6 +183,80 @@ internal sealed class RuntimeResourceLoader : IDisposable {
         }
     }
 
+    private async Task<HtmlRuntimeResource> ReplayNavigationAsync(HtmlRuntimeNavigationRequest request, CancellationToken token) {
+        DateTimeOffset started = DateTimeOffset.UtcNow;
+        _budget.BeginOperation();
+        using var deadline = new CancellationTokenSource(_policy.Timeout);
+        using var operation = CancellationTokenSource.CreateLinkedTokenSource(token, deadline.Token, _lifetime.Token);
+        bool admitted = false;
+        try {
+            await _concurrency.WaitAsync(operation.Token).ConfigureAwait(false);
+            admitted = true;
+            HtmlRuntimeNavigationDiscovery discovery = NextNavigationOccurrence(request);
+            if (!_navigationReplays.TryGetValue(discovery.Identity, out HtmlRuntimeNavigationReplay? replay)) {
+                ReserveExactRequest(request.Buffer);
+                _diagnostics.RecordMissingNavigation(discovery);
+                _diagnostics.Record(HtmlRuntimeEventKind.Policy, "navigation-network-access", "blocked", started,
+                    url: request.Url, method: request.Method, decision: "network-disabled-exact-navigation");
+                throw new HtmlScriptRuntimeException(MissingResourceMessage);
+            }
+
+            Uri originalUrl = request.Url;
+            string responseFragment = originalUrl.Fragment;
+            Uri currentUrl = new(HtmlRuntimeResourcePolicy.Key(originalUrl));
+            string method = request.Method;
+            byte[]? body = request.Buffer;
+            int redirects = 0;
+            for (int index = 0; index < replay.Hops.Count; index++) {
+                operation.Token.ThrowIfCancellationRequested();
+                CheckOrigin(currentUrl);
+                HtmlRuntimeResource response = replay.Hops[index].Response;
+                if (HtmlRuntimeResourcePolicy.Key(response.Url) != HtmlRuntimeResourcePolicy.Key(currentUrl))
+                    throw new HtmlScriptRuntimeException("The navigation replay hop URL did not match the document redirect.");
+                ReserveExactRequest(body);
+                ReserveBytes(method == "HEAD" ? 0 : response.Length);
+                if (index == 0) {
+                    _diagnostics.RecordConsumedNavigationReplay(replay.Identity);
+                    _diagnostics.Record(HtmlRuntimeEventKind.Policy, "navigation-replay", "consumed", started,
+                        url: originalUrl, method: method, decision: "supplied-navigation-replay", artifactId: replay.Identity);
+                }
+                bool redirectStatus = response.StatusCode is 301 or 302 or 303 or 307 or 308;
+                if (redirectStatus && response.Headers.TryGetValue("Location", out string? location)) {
+                    if (++redirects > _policy.MaxRedirects)
+                        throw new HtmlScriptRuntimeException("Resource redirect budget exceeded.");
+                    Uri next = new(currentUrl, location);
+                    CheckOrigin(next);
+                    if (location.Contains('#')) responseFragment = next.Fragment;
+                    if ((response.StatusCode is 301 or 302 && method == "POST") ||
+                        (response.StatusCode == 303 && method is not ("GET" or "HEAD"))) {
+                        method = "GET";
+                        body = null;
+                    }
+                    _diagnostics.Record(HtmlRuntimeEventKind.Redirect, "document-redirect", "followed", started,
+                        url: next, method: method, statusCode: response.StatusCode, redirectCount: redirects);
+                    currentUrl = new Uri(HtmlRuntimeResourcePolicy.Key(next));
+                    continue;
+                }
+                if (index != replay.Hops.Count - 1)
+                    throw new HtmlScriptRuntimeException("The navigation replay contains responses after the document request completed.");
+                Uri finalUrl = new(HtmlRuntimeResourcePolicy.Key(response.FinalUrl) + responseFragment);
+                var result = new HtmlRuntimeResource(originalUrl, method == "HEAD" ? Array.Empty<byte>() : response.Buffer,
+                    response.ContentType, response.StatusCode, finalUrl, redirects, response.Headers, response.StatusText);
+                lock (_sync) _loaded[HtmlRuntimeResourcePolicy.Key(originalUrl)] = result;
+                _diagnostics.Record(HtmlRuntimeEventKind.Resource, "document-navigation", "success", started,
+                    DateTimeOffset.UtcNow - started, url: originalUrl, method: request.Method, statusCode: result.StatusCode,
+                    byteCount: result.Length, redirectCount: redirects, decision: "replayed");
+                return result;
+            }
+            throw new HtmlScriptRuntimeException("The navigation replay ended before the document request completed.");
+        } catch (OperationCanceledException) when (deadline.IsCancellationRequested && !token.IsCancellationRequested && !_lifetime.IsCancellationRequested) {
+            throw new HtmlScriptRuntimeException("The resource load exceeded its deadline.");
+        } finally {
+            if (admitted) _concurrency.Release();
+            _budget.EndOperation();
+        }
+    }
+
     private async Task PreflightAsync(Uri url, string method, Dictionary<string, string> headers, CancellationToken token) {
         string[] unsafeHeaders = HtmlRuntimeCorsPolicy.UnsafeHeaders(headers);
         if (method is "GET" or "HEAD" or "POST" && unsafeHeaders.Length == 0) return;
@@ -242,6 +323,15 @@ internal sealed class RuntimeResourceLoader : IDisposable {
             occurrence++;
             _budget.FetchOccurrences[request.Identity] = occurrence;
             return new HtmlRuntimeFetchDiscovery(request, occurrence);
+        }
+    }
+
+    private HtmlRuntimeNavigationDiscovery NextNavigationOccurrence(HtmlRuntimeNavigationRequest request) {
+        lock (_sync) {
+            _budget.NavigationOccurrences.TryGetValue(request.Identity, out int occurrence);
+            occurrence++;
+            _budget.NavigationOccurrences[request.Identity] = occurrence;
+            return new HtmlRuntimeNavigationDiscovery(request, occurrence);
         }
     }
 

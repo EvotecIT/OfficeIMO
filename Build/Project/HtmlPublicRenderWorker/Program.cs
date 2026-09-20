@@ -47,25 +47,29 @@ try {
     var discovery = new HtmlApplicationResourceDiscovery(page.ViewportWidth, page.ViewportHeight, page.DevicePixelRatio);
     var supplied = page.Resources.ToList();
     var suppliedFetch = page.FetchReplays.ToList();
+    var suppliedNavigation = page.NavigationReplays.ToList();
     string[] pending = discovery.DiscoverDocument(page.Html, page.DocumentUrl, supplied);
     HtmlRuntimeFetchDiscovery[] pendingRequests = Array.Empty<HtmlRuntimeFetchDiscovery>();
+    HtmlRuntimeNavigationDiscovery[] pendingNavigations = Array.Empty<HtmlRuntimeNavigationDiscovery>();
     IHtmlRuntimeHost host = new HtmlProcessRuntimeProvider(workerPath, AngleSharpDomServices.Instance);
     HtmlApplicationDocumentResult result;
     var missingAtRuntime = new HashSet<string>(StringComparer.Ordinal);
     for (int round = 0; ; ) {
-        if (pending.Length != 0 || pendingRequests.Length != 0) {
+        if (pending.Length != 0 || pendingRequests.Length != 0 || pendingNavigations.Length != 0) {
             response.Stage = HtmlPublicRenderStage.ResourceDiscovery;
             if (++round > 16)
                 throw new HtmlScriptRuntimeException("Resource discovery exceeded its round limit.");
             response.DiscoveryUrls = pending;
             response.DiscoveryRequests = pendingRequests;
+            response.NavigationRequests = pendingNavigations;
             response.DiscoveryComplete = false;
             await HtmlRuntimeProtocol.WriteAsync(output, response, 24 * 1024 * 1024, deadline.Token);
             HtmlPublicResourceBatch batch = await HtmlRuntimeProtocol.ReadAsync<HtmlPublicResourceBatch>(
                 input, 24 * 1024 * 1024, deadline.Token)
                 ?? throw new HtmlScriptRuntimeException("The host did not answer resource discovery.");
-            if (batch.Resources == null || batch.FetchReplays == null ||
-                (long)batch.Resources.Length + batch.FetchReplays.Length > 24 - supplied.Count - suppliedFetch.Count)
+            if (batch.Resources == null || batch.FetchReplays == null || batch.NavigationReplays == null ||
+                (long)batch.Resources.Length + batch.FetchReplays.Length + batch.NavigationReplays.Length >
+                24 - supplied.Count - suppliedFetch.Count - suppliedNavigation.Count)
                 throw new HtmlScriptRuntimeException("The host exceeded the pilot's supplied resource limit.");
             var requested = pending.ToHashSet(StringComparer.Ordinal);
             foreach (HtmlRuntimeResource resource in batch.Resources) {
@@ -79,8 +83,15 @@ try {
                     throw new HtmlScriptRuntimeException("The host supplied an unexpected or duplicate dynamic replay.");
                 suppliedFetch.Add(replay);
             }
+            var requestedNavigation = pendingNavigations.ToDictionary(request => request.Identity, StringComparer.Ordinal);
+            foreach (HtmlRuntimeNavigationReplay replay in batch.NavigationReplays) {
+                if (replay == null || !requestedNavigation.Remove(replay.Identity))
+                    throw new HtmlScriptRuntimeException("The host supplied an unexpected or duplicate navigation replay.");
+                suppliedNavigation.Add(replay);
+            }
             page.Resources = supplied.ToArray();
             page.FetchReplays = suppliedFetch.ToArray();
+            page.NavigationReplays = suppliedNavigation.ToArray();
             page.ResourcePolicy.AllowedOrigins = page.ResourcePolicy.AllowedOrigins
                 .Concat(supplied.SelectMany(resource => new[] { resource.Url, resource.FinalUrl }))
                 .Select(resourceUrl => new Uri(resourceUrl.GetLeftPart(UriPartial.Authority)))
@@ -89,6 +100,7 @@ try {
             page = page.Snapshot();
             pending = discovery.DiscoverResources(batch.Resources);
             pendingRequests = Array.Empty<HtmlRuntimeFetchDiscovery>();
+            pendingNavigations = Array.Empty<HtmlRuntimeNavigationDiscovery>();
             continue;
         }
         try {
@@ -111,6 +123,11 @@ try {
                 .Where(entry => entry.Operation == "fetch-replay" && entry.Status == "consumed" && entry.ArtifactId != null)
                 .Select(entry => entry.ArtifactId!).ToArray();
             HtmlRuntimeFetchTranscript.Validate(suppliedFetch, consumedFetch);
+            string[] consumedNavigation = result.Trace.Events
+                .Where(entry => entry.Operation == "navigation-replay" && entry.Status == "consumed" && entry.ArtifactId != null)
+                .Select(entry => entry.ArtifactId!).ToArray();
+            HtmlRuntimeNavigationTranscript.Validate(suppliedNavigation, consumedNavigation);
+            response.ConsumedNavigationReplayIdentities = consumedNavigation;
             pending = result.Trace.Events
                 .Where(entry => entry.Kind == HtmlRuntimeEventKind.Policy && entry.Operation == "network-access" &&
                     entry.Status == "blocked" && entry.Decision == "network-disabled-replayable-get" &&
@@ -119,19 +136,23 @@ try {
                 .Where(missingAtRuntime.Add).ToArray();
             if (pending.Length != 0) continue;
             break;
-        } catch (HtmlScriptRuntimeException error) when (error.MissingResourceUrls.Count != 0 || error.MissingFetchRequests.Count != 0) {
+        } catch (HtmlScriptRuntimeException error) when (error.MissingResourceUrls.Count != 0 ||
+            error.MissingFetchRequests.Count != 0 || error.MissingNavigationRequests.Count != 0) {
             HtmlRuntimeFetchTranscript.Validate(suppliedFetch, error.ConsumedFetchReplayIdentities);
+            HtmlRuntimeNavigationTranscript.Validate(suppliedNavigation, error.ConsumedNavigationReplayIdentities);
             pendingRequests = error.MissingFetchRequests.ToArray();
+            pendingNavigations = error.MissingNavigationRequests.ToArray();
             var dynamicGetUrls = pendingRequests.Where(item => item.Request.Method == "GET" && item.Request.BodyLength == 0 && item.Request.Headers.Count == 0)
                 .Select(item => HtmlRuntimeResourcePolicy.Key(item.Request.Url)).ToHashSet(StringComparer.Ordinal);
             pending = error.MissingResourceUrls.Select(HtmlRuntimeResourcePolicy.Key)
                 .Where(url => !dynamicGetUrls.Contains(url))
                 .Where(missingAtRuntime.Add).ToArray();
-            if (pending.Length == 0 && pendingRequests.Length == 0) throw;
+            if (pending.Length == 0 && pendingRequests.Length == 0 && pendingNavigations.Length == 0) throw;
         }
     }
     response.DiscoveryUrls = Array.Empty<string>();
     response.DiscoveryRequests = Array.Empty<HtmlRuntimeFetchDiscovery>();
+    response.NavigationRequests = Array.Empty<HtmlRuntimeNavigationDiscovery>();
     response.DiscoveryComplete = true;
     await HtmlRuntimeProtocol.WriteAsync(output, response, 24 * 1024 * 1024, deadline.Token);
     response.Stage = HtmlPublicRenderStage.Output;
@@ -158,6 +179,7 @@ try {
     response.DiscoveryComplete = true;
     response.DiscoveryUrls = Array.Empty<string>();
     response.DiscoveryRequests = Array.Empty<HtmlRuntimeFetchDiscovery>();
+    response.NavigationRequests = Array.Empty<HtmlRuntimeNavigationDiscovery>();
 }
 
 HtmlToPdfOptions CreateRenderOptions() {

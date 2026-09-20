@@ -308,7 +308,7 @@ await File.WriteAllTextAsync(Path.Combine(outputDirectory, "summary.json"), Json
     cases = results
 }, new JsonSerializerOptions { WriteIndented = true }));
 if (acquisition.Results.Any(result => !result.Passed) || results.Any(result => !result.Passed)
-    || applications.Results.Count != 3 || applications.Results.Any(result => !result.Passed)
+    || applications.Results.Count != 4 || applications.Results.Any(result => !result.Passed)
     || runLiveAcquisition && liveAcquisition.Results.Any(result => !result.Passed))
     throw new InvalidOperationException("The isolated renderer probe failed; inspect summary.json.");
 Console.WriteLine("Isolated renderer probe passed: " + results.Count + " render cases and " +

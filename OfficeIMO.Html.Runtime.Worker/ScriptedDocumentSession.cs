@@ -171,6 +171,7 @@ internal sealed class ScriptedDocumentSession : IDisposable {
     internal Task NavigateAsync(string target, bool replace, CancellationToken token) => OnLoop(() => { _history.NavigateFragment(target, replace); return true; }, token);
     internal Task RestoreTraversalAsync(bool dispatchPopState, CancellationToken token) => OnLoop(() => { _history.RestoreTraversal(dispatchPopState); return true; }, token);
     internal Task ReloadAsync(CancellationToken token) => OnLoop(() => { _history.Reload(); return true; }, token);
+    internal Uri DocumentUrl => new(_document.Url);
     internal Task<bool> PromptToUnloadAsync(CancellationToken token) => OnLoop(() => {
         var beforeUnload = new Event("beforeunload", bubbles: false, cancelable: true);
         _document.DefaultView!.Dispatch(beforeUnload);

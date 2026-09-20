@@ -114,7 +114,14 @@ internal sealed class ScriptedBrowsingSession : IAsyncDisposable {
         bool replayRetainedSource = TryGetRetainedSource(navigation, out response);
         if (!replayRetainedSource) {
             using var loader = new RuntimeResourceLoader(_options, _budget, _diagnostics);
-            response = await loader.LoadAsync(navigation.Url, token);
+            Uri initiator = _document?.DocumentUrl ?? _options.DocumentUrl;
+            HtmlRuntimeNavigationKind kind = navigation.Reload
+                ? HtmlRuntimeNavigationKind.Reload
+                : navigation.EntryIndex >= 0 ? HtmlRuntimeNavigationKind.Traverse : HtmlRuntimeNavigationKind.Navigate;
+            var navigationRequest = new HtmlRuntimeNavigationRequest(navigation.Url, initiator,
+                HtmlRuntimeNavigationRequest.DefaultReferrer(initiator, navigation.Url), kind: kind,
+                replaceHistoryEntry: navigation.Replace, historyEntryIndex: navigation.EntryIndex);
+            response = await loader.LoadNavigationAsync(navigationRequest, token);
             if (response.StatusCode is 204 or 205) return;
             if (response.StatusCode == 304) throw new HtmlScriptRuntimeException("A 304 navigation response requires an HTTP cache, which this profile does not provide.");
             if (response.Headers.TryGetValue("Content-Disposition", out var disposition) && disposition.TrimStart().StartsWith("attachment", StringComparison.OrdinalIgnoreCase)) {
@@ -144,7 +151,8 @@ internal sealed class ScriptedBrowsingSession : IAsyncDisposable {
     private bool TryGetRetainedSource(RuntimeNavigation navigation, out HtmlRuntimeResource? source) {
         string key = HtmlRuntimeResourcePolicy.Key(navigation.Url);
         source = null;
-        if (_options.ResourcePolicy.AllowNetwork
+        if (_options.FailOnNavigationReplayDiscovery || _options.NavigationReplays.Count != 0
+            || _options.ResourcePolicy.AllowNetwork
             || navigation.DocumentId < 0
             || _options.Resources.Any(resource => HtmlRuntimeResourcePolicy.Key(resource.Url) == key)) return false;
         return _documentSources.TryGetValue(navigation.DocumentId, out source);

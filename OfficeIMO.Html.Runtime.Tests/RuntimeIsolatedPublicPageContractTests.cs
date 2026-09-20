@@ -69,7 +69,8 @@ public class RuntimeIsolatedPublicPageContractTests {
 
     [Fact]
     public void PublicPageRequestRejectsCallerSuppliedDynamicReplays() {
-        var fetch = new HtmlRuntimeFetchRequest(new Uri("https://example.com/submit"), "POST", body: new byte[] { 1 });
+        var fetch = new HtmlRuntimeFetchRequest(new Uri("https://example.com/submit"), new Uri("https://example.com/"),
+            "POST", body: new byte[] { 1 });
         var request = new HtmlIsolatedPublicPageRequest {
             ScenarioId = "replay-authority",
             Url = new Uri("https://example.com/"),
@@ -87,14 +88,52 @@ public class RuntimeIsolatedPublicPageContractTests {
     }
 
     [Fact]
+    public void PublicPageRequestRejectsCallerSuppliedNavigationReplays() {
+        var navigation = new HtmlRuntimeNavigationRequest(new Uri("https://example.com/report"),
+            new Uri("https://example.com/"));
+        var request = new HtmlIsolatedPublicPageRequest {
+            ScenarioId = "navigation-replay-authority",
+            Url = new Uri("https://example.com/"),
+            SourceLicense = "fixture",
+            Runtime = new HtmlScriptRequest {
+                Profile = HtmlRuntimeProfile.WebApplicationV1,
+                NavigationReplays = new[] {
+                    new HtmlRuntimeNavigationReplay(navigation, 1,
+                        HtmlRuntimeResource.FromText(navigation.Url, "<p>report</p>", "text/html"))
+                }
+            }
+        };
+
+        ArgumentException error = Assert.Throws<ArgumentException>(() => request.Validate());
+        Assert.Contains("navigation replays", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void DynamicReplayTranscriptRequiresExactOrderedConsumption() {
-        var request = new HtmlRuntimeFetchRequest(new Uri("https://example.com/submit"), "POST", body: new byte[] { 1 });
+        var request = new HtmlRuntimeFetchRequest(new Uri("https://example.com/submit"), new Uri("https://example.com/"),
+            "POST", body: new byte[] { 1 });
         var first = new HtmlRuntimeFetchReplay(request, 1, HtmlRuntimeResource.FromText(request.Url, "first", "text/plain"));
         var second = new HtmlRuntimeFetchReplay(request, 2, HtmlRuntimeResource.FromText(request.Url, "second", "text/plain"));
 
         HtmlRuntimeFetchTranscript.Validate(new[] { first, second }, new[] { first.Identity, second.Identity });
         Assert.Throws<HtmlScriptRuntimeException>(() => HtmlRuntimeFetchTranscript.Validate(new[] { first }, Array.Empty<string>()));
         Assert.Throws<HtmlScriptRuntimeException>(() => HtmlRuntimeFetchTranscript.Validate(
+            new[] { first, second }, new[] { second.Identity, first.Identity }));
+    }
+
+    [Fact]
+    public void NavigationReplayTranscriptRequiresExactOrderedConsumption() {
+        var request = new HtmlRuntimeNavigationRequest(new Uri("https://example.com/report"),
+            new Uri("https://example.com/"));
+        var first = new HtmlRuntimeNavigationReplay(request, 1,
+            HtmlRuntimeResource.FromText(request.Url, "<p>first</p>", "text/html"));
+        var second = new HtmlRuntimeNavigationReplay(request, 2,
+            HtmlRuntimeResource.FromText(request.Url, "<p>second</p>", "text/html"));
+
+        HtmlRuntimeNavigationTranscript.Validate(new[] { first, second }, new[] { first.Identity, second.Identity });
+        Assert.Throws<HtmlScriptRuntimeException>(() =>
+            HtmlRuntimeNavigationTranscript.Validate(new[] { first }, Array.Empty<string>()));
+        Assert.Throws<HtmlScriptRuntimeException>(() => HtmlRuntimeNavigationTranscript.Validate(
             new[] { first, second }, new[] { second.Identity, first.Identity }));
     }
 
@@ -145,6 +184,49 @@ public class RuntimeIsolatedPublicPageContractTests {
             ScenarioId = "invalid-budget", Url = new Uri("https://example.com/"), SourceLicense = "fixture",
             MaxTotalOutputBytes = 0
         }.Validate());
+    }
+
+    [Fact]
+    public void PublicPageRequestSnapshotsSeparateNavigationOriginsAndMethods() {
+        var origins = new List<Uri> { new("https://reports.example/"), new("https://reports.example/") };
+        var methods = new List<string> { "get", "POST", "post" };
+        var request = new HtmlIsolatedPublicPageRequest {
+            ScenarioId = "navigation-authority",
+            Url = new Uri("https://example.com/"),
+            SourceLicense = "fixture",
+            AllowedNavigationOrigins = origins,
+            AllowedNavigationMethods = methods
+        };
+
+        HtmlIsolatedPublicPageRequest.Snapshot snapshot = request.Validate();
+        origins[0] = new Uri("https://different.example/");
+        methods[1] = "HEAD";
+
+        Assert.Equal(new Uri("https://reports.example/"), Assert.Single(snapshot.AllowedNavigationOrigins));
+        Assert.Equal(new[] { "GET", "POST" }, snapshot.AllowedNavigationMethods);
+        Assert.Throws<ArgumentException>(() => new HtmlIsolatedPublicPageRequest {
+            ScenarioId = "navigation-origin-path", Url = new Uri("https://example.com/"), SourceLicense = "fixture",
+            AllowedNavigationOrigins = new[] { new Uri("https://reports.example/path") }
+        }.Validate());
+        Assert.Throws<ArgumentException>(() => new HtmlIsolatedPublicPageRequest {
+            ScenarioId = "navigation-method", Url = new Uri("https://example.com/"), SourceLicense = "fixture",
+            AllowedNavigationMethods = new[] { "DELETE" }
+        }.Validate());
+    }
+
+    [Fact]
+    public void WorkerOriginProjectionPreservesAnAuthorizedSchemeOnTheSameHost() {
+        var broker = new HtmlPublicResourceBroker(new[] { "example.com" },
+            maxRequests: 32, maxResourceBytes: 4 * 1024 * 1024, maxTotalBytes: 16 * 1024 * 1024,
+            dynamicOrigins: new[] { new Uri("https://api.example/") },
+            navigationOrigins: new[] { new Uri("https://example.com/") });
+
+        Uri[] origins = HtmlIsolatedPublicPageWorkflow.WorkerAllowedOrigins(
+            broker, new Uri("http://example.com/page"));
+
+        Assert.Contains(new Uri("https://example.com/"), origins);
+        Assert.Contains(new Uri("https://api.example/"), origins);
+        Assert.DoesNotContain(new Uri("http://example.com/"), origins);
     }
 
     [Fact]
@@ -276,7 +358,7 @@ public class RuntimeIsolatedPublicPageContractTests {
     [Fact]
     public void DynamicEvidenceRetainsNamesAndDigestsWithoutHeaderValuesOrRequestBytes() {
         var url = new Uri("https://example.com/submit");
-        var request = new HtmlRuntimeFetchRequest(url, "POST",
+        var request = new HtmlRuntimeFetchRequest(url, new Uri("https://example.com/"), "POST",
             new Dictionary<string, string> { ["X-Secret"] = "private", ["Content-Type"] = "text/plain" },
             System.Text.Encoding.UTF8.GetBytes("payload"));
         var discovery = new HtmlRuntimeFetchDiscovery(request, 2);
@@ -291,7 +373,39 @@ public class RuntimeIsolatedPublicPageContractTests {
         Assert.Equal(new[] { "Content-Type", "X-Secret" }, evidence.RequestHeaderNames);
         Assert.Equal(7, evidence.RequestBodyByteCount);
         Assert.Equal(64, evidence.RequestBodySha256!.Length);
+        Assert.Equal(new Uri("https://example.com/"), evidence.DynamicInitiatorOrigin);
         Assert.DoesNotContain("private", string.Join(",", evidence.RequestHeaderNames), StringComparison.Ordinal);
+        Assert.Null(evidence.Content);
+    }
+
+    [Fact]
+    public void NavigationEvidenceRetainsInitiatorReferrerFinalOriginAndTaintWithoutRequestBytes() {
+        var requested = new Uri("https://example.com/submit");
+        var final = new Uri("https://reports.example/result");
+        var navigation = new HtmlRuntimeNavigationRequest(requested, new Uri("https://example.com/start#private"),
+            new Uri("https://example.com/start"), "POST",
+            new Dictionary<string, string> { ["Content-Type"] = "text/plain" },
+            System.Text.Encoding.UTF8.GetBytes("payload"));
+        var discovery = new HtmlRuntimeNavigationDiscovery(navigation, 2);
+        var acquired = new HtmlPublicResourceResult(
+            new HtmlRuntimeResource(requested, System.Text.Encoding.UTF8.GetBytes("<p>ready</p>"), "text/html",
+                finalUrl: final, redirectCount: 1),
+            new[] { new HtmlPublicRedirect(requested, final, 302, IPAddress.Parse("93.184.216.34")) },
+            DateTimeOffset.Parse("2026-09-20T12:00:00Z"), IPAddress.Parse("93.184.216.34"), "digest",
+            NavigationRequest: discovery);
+
+        var evidence = new HtmlPublicResourceEvidence(acquired, retainBytes: false);
+
+        Assert.Equal(HtmlRuntimeNavigationKind.Navigate, evidence.NavigationKind);
+        Assert.Equal(new Uri("https://example.com/start#private"), evidence.NavigationInitiatorUrl);
+        Assert.Equal(new Uri("https://example.com/start"), evidence.NavigationReferrer);
+        Assert.Equal(new Uri("https://reports.example/"), evidence.NavigationFinalOrigin);
+        Assert.True(evidence.NavigationRedirectTaintedOrigin);
+        Assert.Equal("POST", evidence.RequestMethod);
+        Assert.Equal(2, evidence.RequestOccurrence);
+        Assert.Equal(7, evidence.RequestBodyByteCount);
+        Assert.Equal(64, evidence.RequestBodySha256!.Length);
+        Assert.Null(evidence.DynamicInitiatorOrigin);
         Assert.Null(evidence.Content);
     }
 
