@@ -98,15 +98,17 @@ seccomp, CPU/memory/PID cgroups, read-only root, no network or mounts, non-root
 user, dropped capabilities and no-new-privileges. Acquisition and execution have
 a two-minute default deadline; verified cleanup may use its separate one-minute
 budget. The container limits are 512 MiB, one CPU and 32 PIDs.
-The container image includes fontconfig and DejaVu fonts for deterministic basic
-text rendering. The image is addressed by its full SHA-256 ID, and the returned
-renderer and script-worker binary hashes must match the published files supplied
-to the runner.
+The container image includes fontconfig and the repository's manifest-bound
+portable browser font pack. Its seven font files and three license files are
+validated on the host and inside isolation; the complete package digest and
+source manifest are retained in `outcome.json`. The image is addressed by its
+full SHA-256 ID, and the returned renderer, script-worker, font-package, and
+published-directory identities must match the supplied payloads.
 
 Inspect `acquisition.json`, `outcome.json` or `failure.json` before using any
 result as corpus evidence. The successful outcome records the verified policy,
 image ID, binary and complete published-file-set hashes, trace entries, output
-hashes and confirmed container removal. A failed site does not imply a
+hashes, font and license provenance, action results, and confirmed container removal. A failed site does not imply a
 browser-equivalent capture. Acquisition and preflight failures also write a
 phase-labelled `failure.json` to the new output directory. Remove only
 the task-owned image and output after recording evidence; keep shared base-image

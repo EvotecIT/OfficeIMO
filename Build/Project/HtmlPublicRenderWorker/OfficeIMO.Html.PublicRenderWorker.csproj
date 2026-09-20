@@ -10,5 +10,18 @@
     <ProjectReference Include="../../../OfficeIMO.Html.Runtime/OfficeIMO.Html.Runtime.csproj" />
     <ProjectReference Include="../../../OfficeIMO.Html.Runtime.Rendering/OfficeIMO.Html.Runtime.Rendering.csproj" />
     <ProjectReference Include="../../../OfficeIMO.Html.AngleSharp/OfficeIMO.Html.AngleSharp.csproj" />
+    <ProjectReference Include="../../../OfficeIMO.Drawing.HarfBuzz/OfficeIMO.Drawing.HarfBuzz.csproj" />
+    <Content Include="../../../Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/*.ttf"
+             Link="font-pack/%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../../Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/OFL-*.txt"
+             Link="font-pack/%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../../Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/font-pack.json"
+             Link="font-pack/font-pack.json"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

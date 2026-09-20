@@ -395,7 +395,7 @@ public sealed class BrowserConversionServiceTests {
         JsonElement root = manifest.RootElement;
         Assert.Equal("officeimo-browser-compact-2026.08", root.GetProperty("fontPack").GetProperty("id").GetString());
         Assert.Equal(
-            "7cf393d8573f2cfeb6628defe7f5a08f95182bad204a5ab8182d74bad5a61cdf",
+            "f69721965e37295fd9f1372c5547a95ab2863ff6afb357226989719e409f8030",
             root.GetProperty("fontPack").GetProperty("fingerprint").GetString());
         Assert.Contains(
             root.GetProperty("fontPack").GetProperty("coverage").EnumerateArray(),

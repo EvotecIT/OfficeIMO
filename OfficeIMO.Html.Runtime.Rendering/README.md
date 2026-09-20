@@ -152,6 +152,15 @@ rounds and 24 supplied resources. Every stricter limit supplied through
 `MaxOutputBytesPerArtifact` and `MaxTotalOutputBytes` can lower the fixed 8 MiB
 per-output and 12 MiB combined encoded-output ceilings. The worker and host
 both reject a result above either configured limit.
+`Actions` accepts the same bounded locator-based `HtmlAutomationRequest` values
+as the trusted application workflow. The worker executes them after initial
+readiness and before `FinalReadyExpression` and capture. Successful action
+results are returned in order. Revision-bound observed references are rejected
+because the isolated page identity is created inside the worker.
+The combined initial readiness, final readiness, locator, action-value, and
+selection-value text must fit `MaxInputCharacters`. After acquisition, the host
+also measures the complete serialized page, resource, and automation request
+against the 24 MiB protocol frame before starting a container.
 `OperationTimeout` covers acquisition through output validation; verified
 container removal then has a separate fixed one-minute fail-safe budget. Input bytes are omitted from results by
 default; set `RetainInputBytes` only when the source license and retention policy
@@ -160,6 +169,15 @@ redirects, byte counts, SHA-256 digests, runtime trace summaries, known
 unsupported features, and output digests. Canceled and failed runs throw typed
 exceptions with partial acquisition, phase, worker-identity, trace and cleanup
 evidence.
+
+The renderer payload also contains a manifest-bound portable font package. The
+host and worker independently verify the manifest, every declared font file,
+the exact manifest-declared license files, and the complete font-package directory digest.
+`FontPackage` on successful results exposes that provenance; failure evidence
+keeps expected host identity separate from any identity reported from isolation.
+`HtmlPortableBrowserFontProfile` applies the same faces, browser-family aliases,
+fallback order, HarfBuzz seam, substitutions, and PDF embedding to every standard
+output. The immutable image ID still binds fontconfig and the remaining OS libraries.
 
 Static assets remain URL keyed. Script-driven fetch and XMLHttpRequest calls use
 an exact request envelope containing the normalized URL, method, browser-allowed

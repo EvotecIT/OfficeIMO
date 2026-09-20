@@ -8,7 +8,11 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../../OfficeIMO.Html.Runtime/OfficeIMO.Html.Runtime.csproj" />
+    <ProjectReference Include="../../../OfficeIMO.Html.Runtime.Rendering/OfficeIMO.Html.Runtime.Rendering.csproj" />
     <ProjectReference Include="../../../OfficeIMO.Core/OfficeIMO.Core.csproj" />
     <ProjectReference Include="../../../OfficeIMO.Pdf/OfficeIMO.Pdf.csproj" />
+    <Content Include="../../../OfficeIMO.Html.Runtime.Tests/Fixtures/ApplicationCorpus/**/*"
+             Link="ApplicationCorpus/%(RecursiveDir)%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

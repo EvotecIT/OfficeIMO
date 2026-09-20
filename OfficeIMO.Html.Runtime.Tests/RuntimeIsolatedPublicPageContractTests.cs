@@ -148,6 +148,76 @@ public class RuntimeIsolatedPublicPageContractTests {
     }
 
     [Fact]
+    public void PublicPageRequestSnapshotsBoundedStructuredActionsAndFinalReadiness() {
+        var actions = new List<HtmlAutomationRequest> {
+            new() { Query = HtmlLocatorQuery.Css("#submit"), Action = HtmlAutomationAction.Click }
+        };
+        var request = new HtmlIsolatedPublicPageRequest {
+            ScenarioId = "structured-actions",
+            Url = new Uri("https://example.com/"),
+            SourceLicense = "fixture",
+            Actions = actions,
+            FinalReadyExpression = "window.finished===true"
+        };
+
+        HtmlIsolatedPublicPageRequest.Snapshot snapshot = request.Validate();
+        actions.Clear();
+
+        Assert.Equal(HtmlAutomationAction.Click, Assert.Single(snapshot.Actions).Action);
+        Assert.Equal("window.finished===true", snapshot.FinalReadyExpression);
+        Assert.Throws<ArgumentException>(() => new HtmlIsolatedPublicPageRequest {
+            ScenarioId = "revision-action", Url = new Uri("https://example.com/"), SourceLicense = "fixture",
+            Actions = new[] { new HtmlAutomationRequest {
+                Reference = new HtmlObservedElementReference { PageId = "page", Revision = 1, ElementIndex = 0, ElementName = "button" },
+                Action = HtmlAutomationAction.Click
+            } }
+        }.Validate());
+        Assert.Throws<ArgumentException>(() => new HtmlIsolatedPublicPageRequest {
+            ScenarioId = "combined-action-budget", Url = new Uri("https://example.com/"), SourceLicense = "fixture",
+            Runtime = new HtmlScriptRequest {
+                Profile = HtmlRuntimeProfile.WebApplicationV1, ReadyExpression = "ready", MaxInputCharacters = 16
+            },
+            Actions = new[] {
+                new HtmlAutomationRequest { Query = HtmlLocatorQuery.Css("#a"), Action = HtmlAutomationAction.Fill, Value = "12345" },
+                new HtmlAutomationRequest { Query = HtmlLocatorQuery.Css("#b"), Action = HtmlAutomationAction.Fill, Value = "67890" }
+            }
+        }.Validate());
+    }
+
+    [Fact]
+    public void FontPackageValidationBindsManifestFontsAndLicenses() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-font-package-" + Guid.NewGuid().ToString("N"));
+        string directory = Path.Combine(root, HtmlPublicFontPackage.DirectoryName);
+        Directory.CreateDirectory(directory);
+        byte[] font = [1, 2, 3, 4];
+        string fontSha = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(font)).ToLowerInvariant();
+        File.WriteAllBytes(Path.Combine(directory, "Fixture.ttf"), font);
+        byte[] license = System.Text.Encoding.UTF8.GetBytes("fixture license");
+        string licenseSha = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(license)).ToLowerInvariant();
+        File.WriteAllBytes(Path.Combine(directory, "OFL-Fixture.txt"), license);
+        File.WriteAllText(Path.Combine(directory, HtmlPublicFontPackage.ManifestName),
+            "{\"id\":\"fixture-fonts\",\"licenses\":[{\"name\":\"OFL-Fixture.txt\",\"sha256\":\"" + licenseSha +
+            "\"}],\"fonts\":[{\"license\":\"fixture\",\"licenseFile\":\"OFL-Fixture.txt\",\"files\":[{\"name\":\"Fixture.ttf\",\"sha256\":\"" + fontSha + "\"}]}]}");
+        try {
+            HtmlPublicFontPackageIdentity package = HtmlPublicFontPackage.Load(root);
+
+            Assert.Equal("fixture-fonts", package.Id);
+            Assert.Equal(fontSha, Assert.Single(package.Fonts).Sha256);
+            Assert.Equal("OFL-Fixture.txt", Assert.Single(package.Licenses).Name);
+            File.WriteAllBytes(Path.Combine(directory, "Fixture.ttf"), [9]);
+            Assert.Throws<HtmlScriptRuntimeException>(() => HtmlPublicFontPackage.Load(root));
+            File.WriteAllBytes(Path.Combine(directory, "Fixture.ttf"), font);
+            File.WriteAllText(Path.Combine(directory, "undeclared.bin"), "undeclared");
+            Assert.Throws<HtmlScriptRuntimeException>(() => HtmlPublicFontPackage.Load(root));
+            File.Delete(Path.Combine(directory, "undeclared.bin"));
+            File.Delete(Path.Combine(directory, "OFL-Fixture.txt"));
+            Assert.Throws<HtmlScriptRuntimeException>(() => HtmlPublicFontPackage.Load(root));
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public void ExecutionOptionsRequireImmutableImageAndSnapshotCommandPrefix() {
         string directory = Path.Combine(Path.GetTempPath(), "officeimo-public-contract-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
@@ -237,7 +307,7 @@ public class RuntimeIsolatedPublicPageContractTests {
         var evidence = new HtmlIsolatedPublicPageFailureEvidence(HtmlIsolatedPublicPagePhase.IsolatedStartup,
             Array.Empty<HtmlPublicResourceEvidence>(), Array.Empty<HtmlPublicSkippedResource>(),
             "sha256:" + new string('a', 64), "container", true, null, response,
-            "expected-renderer", "expected-worker", "expected-renderer-files", "expected-worker-files");
+            "expected-renderer", "expected-worker", null, "expected-renderer-files", "expected-worker-files");
 
         Assert.Equal("expected-renderer", evidence.ExpectedRendererSha256);
         Assert.Equal("reported-renderer", evidence.ReportedRendererSha256);
