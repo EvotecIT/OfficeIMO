@@ -151,7 +151,7 @@ internal static partial class PdfSyntax {
             return (dict, j - i);
         }
         if (tok == "[") {
-            var arr = new PdfArray(); int j = i + 1;
+            var arr = new PdfArray(EstimateArrayItemCount(tokens, i)); int j = i + 1;
             while (j < tokens.Count && tokens[j].Text != "]") {
                 var (inner, used) = ParseObject(tokens, j, limits, depth + 1);
                 arr.Items.Add(inner);
@@ -197,6 +197,33 @@ internal static partial class PdfSyntax {
             }
         }
         return (new PdfName(tok) { HasIncompleteSyntax = true }, 0);
+    }
+
+    private static int EstimateArrayItemCount(in PooledTokenBuffer tokens, int arrayStart) {
+        int count = 0;
+        int index = arrayStart + 1;
+        while (index < tokens.Count) {
+            string token = tokens[index].Text;
+            if (token == "]") break;
+            count++;
+            if (token == "[" || token == "<<") {
+                // Do not rescan nested subtrees. Their own ParseObject call can size
+                // a flat child array, while the parent grows from observed entries.
+                return 0;
+            }
+
+            if (index + 2 < tokens.Count &&
+                tokens[index + 2].Text == "R" &&
+                int.TryParse(tokens[index].Text, out _) &&
+                int.TryParse(tokens[index + 1].Text, out _)) {
+                index += 3;
+                continue;
+            }
+
+            index++;
+        }
+
+        return count;
     }
 
     private static PooledTokenBuffer Tokenize(

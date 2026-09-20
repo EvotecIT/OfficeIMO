@@ -10,8 +10,14 @@ public sealed partial class PdfReadDocument {
             if (pagesNode is not null) {
                 var kids = ResolveArray(pagesNode.Items.TryGetValue("Kids", out var kidsObj) ? kidsObj : null);
                 int kidCount = kids?.Items.Count ?? 0;
+                // Kids is already materialized and therefore safe to use for the result
+                // list. Keep the auxiliary set capped because invalid references need not
+                // produce pages and must not force a second large eager allocation.
+                result.Capacity = kidCount;
                 var visitedNodes = new HashSet<PdfDictionary>();
-                var visitedPages = new HashSet<int>();
+                HashSet<int> visitedPages = PdfCollectionSizing.CreateHashSet<int>(
+                    kidCount,
+                    4_096);
                 int pagesObjectNumber = v is PdfReference pagesReference ? pagesReference.ObjectNumber : 0;
                 TraversePagesNodeDeepLimited(pagesNode, pagesObjectNumber, visitedNodes, visitedPages, result, limit: null, depth: 1);
                 if (result.Count == 0 && kidCount > 0) {

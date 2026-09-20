@@ -100,7 +100,7 @@ internal static partial class PdfSyntax {
         byte[] pdf,
         Dictionary<int, int> parsedOffsets,
         string text,
-        List<(int ObjectNumber, int Offset, int Generation, bool InUse)> entries,
+        IReadOnlyList<(int ObjectNumber, int Offset, int Generation, bool InUse)> entries,
         XrefObjectScanBudget scanBudget,
         HashSet<int>? activeObjectNumbers = null,
         Dictionary<int, PdfIndirectObject?>? parsedObjectsByOffset = null) {
@@ -138,8 +138,8 @@ internal static partial class PdfSyntax {
         }
     }
 
-    private static List<(int Offset, List<(int ObjectNumber, int Offset, int Generation, bool InUse)> Entries, int? XrefStreamOffset)> GetClassicXrefTableChain(string text, int activeXrefOffset) {
-        var newestToOldest = new List<(int Offset, List<(int ObjectNumber, int Offset, int Generation, bool InUse)> Entries, int? XrefStreamOffset)>();
+    private static List<(int Offset, (int ObjectNumber, int Offset, int Generation, bool InUse)[] Entries, int? XrefStreamOffset)> GetClassicXrefTableChain(string text, int activeXrefOffset) {
+        var newestToOldest = new List<(int Offset, (int ObjectNumber, int Offset, int Generation, bool InUse)[] Entries, int? XrefStreamOffset)>();
         var visited = new HashSet<int>();
         int currentOffset = activeXrefOffset;
         while (visited.Add(currentOffset) &&
@@ -157,8 +157,8 @@ internal static partial class PdfSyntax {
         return newestToOldest;
     }
 
-    private static bool TryParseClassicXrefTable(string text, int offset, out List<(int ObjectNumber, int Offset, int Generation, bool InUse)> entries, out int? previousOffset, out string trailerRaw, out int? xrefStreamOffset) {
-        entries = new List<(int ObjectNumber, int Offset, int Generation, bool InUse)>();
+    private static bool TryParseClassicXrefTable(string text, int offset, out (int ObjectNumber, int Offset, int Generation, bool InUse)[] entries, out int? previousOffset, out string trailerRaw, out int? xrefStreamOffset) {
+        entries = Array.Empty<(int ObjectNumber, int Offset, int Generation, bool InUse)>();
         previousOffset = null;
         trailerRaw = string.Empty;
         xrefStreamOffset = null;
@@ -177,6 +177,10 @@ internal static partial class PdfSyntax {
 
         int position = offset + 4;
         int sectionEnd = (int)Math.Min((long)trailerIndex, (long)position + 2_000_000L);
+        // The structural section estimate is deliberately capped. Growth uses pooled
+        // arrays, and only the observed entries become a retained managed array.
+        using var entryBuilder = new PdfPooledValueBuilder<(int ObjectNumber, int Offset, int Generation, bool InUse)>(
+            PdfCollectionSizing.BoundedInitialCapacity((sectionEnd - position) / 20, 256));
         while (TryReadXrefLine(text, ref position, sectionEnd, out int lineStart, out int lineEnd)) {
             int tokenPosition = lineStart;
             if (!TryReadXrefToken(text, ref tokenPosition, lineEnd, out int firstStart, out int firstLength) ||
@@ -191,7 +195,8 @@ internal static partial class PdfSyntax {
 
             for (int i = 0; i < count; i++) {
                 if (!TryReadXrefLine(text, ref position, sectionEnd, out lineStart, out lineEnd)) {
-                    return entries.Count > 0;
+                    entries = entryBuilder.ToArray();
+                    return entries.Length > 0;
                 }
 
                 tokenPosition = lineStart;
@@ -204,14 +209,15 @@ internal static partial class PdfSyntax {
                 }
 
                 if (statusLength == 1 && text[statusStart] == 'n') {
-                    entries.Add((firstObjectNumber + i, objectOffset, generation, true));
+                    entryBuilder.Add((firstObjectNumber + i, objectOffset, generation, true));
                 } else if (statusLength == 1 && text[statusStart] == 'f') {
-                    entries.Add((firstObjectNumber + i, objectOffset, generation, false));
+                    entryBuilder.Add((firstObjectNumber + i, objectOffset, generation, false));
                 }
             }
         }
 
-        if (entries.Count == 0) {
+        entries = entryBuilder.ToArray();
+        if (entries.Length == 0) {
             return false;
         }
 
@@ -354,7 +360,7 @@ internal static partial class PdfSyntax {
                     }
                 }
 
-                for (int i = 0; i < table.Entries.Count; i++) {
+                for (int i = 0; i < table.Entries.Length; i++) {
                     activeEntries.Remove(table.Entries[i].ObjectNumber);
                 }
             }
@@ -495,7 +501,7 @@ internal static partial class PdfSyntax {
         // decryption has replaced encrypted object streams in the active object map.
     }
 
-    private static List<(int Offset, List<(int ObjectNumber, int Offset, int Generation, bool InUse)> Entries, int? XrefStreamOffset)> GetClassicPredecessorTablesForXrefStreamChain(
+    private static List<(int Offset, (int ObjectNumber, int Offset, int Generation, bool InUse)[] Entries, int? XrefStreamOffset)> GetClassicPredecessorTablesForXrefStreamChain(
         string text,
         List<(int ObjectNumber, int Offset, PdfStream Stream)> xrefStreams,
         int activeXrefOffset) {
@@ -512,7 +518,7 @@ internal static partial class PdfSyntax {
             if (stream.Dictionary.Get<PdfNumber>("Prev") is not PdfNumber previous ||
                 previous.Value < 0 ||
                 previous.Value > int.MaxValue) {
-                return new List<(int Offset, List<(int ObjectNumber, int Offset, int Generation, bool InUse)> Entries, int? XrefStreamOffset)>();
+                return new List<(int Offset, (int ObjectNumber, int Offset, int Generation, bool InUse)[] Entries, int? XrefStreamOffset)>();
             }
 
             currentOffset = (int)Math.Floor(previous.Value);

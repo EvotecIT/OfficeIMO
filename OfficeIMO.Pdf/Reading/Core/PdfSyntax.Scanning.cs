@@ -584,11 +584,14 @@ internal static partial class PdfSyntax {
         return true;
     }
 
-    private static List<IndirectObjectHeader> FindIndirectObjectHeaders(
+    private static IndirectObjectHeader[] FindIndirectObjectHeaders(
         string text,
         System.Diagnostics.Stopwatch parseTimer,
         PdfReadLimits limits) {
-        var headers = new List<IndirectObjectHeader>();
+        // Text length is already bounded by MaxInputBytes. Cap the estimate so stream
+        // payloads containing header-shaped text cannot force a large eager allocation.
+        using var headers = new PdfPooledValueBuilder<IndirectObjectHeader>(
+            PdfCollectionSizing.BoundedInitialCapacity(text.Length / 64, 1_024));
         int cursor = 0;
         while (TryFindIndirectObjectHeader(
             text,
@@ -609,7 +612,7 @@ internal static partial class PdfSyntax {
         }
 
         ThrowIfParsingTimeExceeded(parseTimer, limits);
-        return headers;
+        return headers.ToArray();
     }
 
     internal static int CountIndirectObjectHeaders(byte[] pdf, PdfReadLimits limits) =>

@@ -79,6 +79,11 @@ internal sealed class PdfStringObj : PdfObject {
 
 /// <summary>PDF array object.</summary>
 internal sealed class PdfArray : PdfObject {
+    public PdfArray() { }
+    internal PdfArray(int capacity) {
+        if (capacity > 0) Items.Capacity = capacity;
+    }
+
     public System.Collections.Generic.List<PdfObject> Items { get; } = new();
 }
 

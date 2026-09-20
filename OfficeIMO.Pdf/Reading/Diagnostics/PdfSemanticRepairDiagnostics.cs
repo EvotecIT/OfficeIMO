@@ -154,7 +154,8 @@ internal static class PdfSemanticRepairDiagnostics {
 
     private static void DiagnoseOrphanedSemanticObjects(Dictionary<int, PdfIndirectObject> objects, PdfDictionary catalog, List<PdfRepairDiagnostic> diagnostics) {
         int catalogNumber = FindObjectNumber(objects, catalog); if (catalogNumber <= 0) return;
-        var reachable = new HashSet<int>(); TraverseReferences(objects, new PdfReference(catalogNumber, objects[catalogNumber].Generation), reachable);
+        HashSet<int> reachable = PdfCollectionSizing.CreateHashSet<int>(objects.Count, objects.Count);
+        TraverseReferences(objects, new PdfReference(catalogNumber, objects[catalogNumber].Generation), reachable);
         int orphanCount = 0;
         int firstOrphan = int.MaxValue;
         foreach (PdfIndirectObject indirect in objects.Values) {

@@ -57,11 +57,11 @@ internal static partial class PdfSyntax {
         var parseTimer = System.Diagnostics.Stopwatch.StartNew();
         string text = decodedText ?? PdfEncoding.Latin1GetString(pdf);
         cancellationToken.ThrowIfCancellationRequested();
-        List<IndirectObjectHeader> matches = FindIndirectObjectHeaders(text, parseTimer, limits);
+        IndirectObjectHeader[] matches = FindIndirectObjectHeaders(text, parseTimer, limits);
         // The structural header scan has already enforced MaxIndirectObjects. Reserve
         // for ordinary multi-page documents without trusting a hostile stream full
         // of false headers to dictate an unbounded initial allocation.
-        int initialObjectCapacity = Math.Min(matches.Count, 1024);
+        int initialObjectCapacity = PdfCollectionSizing.BoundedInitialCapacity(matches.Length, 1024);
         var map = new Dictionary<int, PdfIndirectObject>(initialObjectCapacity);
         var parsedOffsets = new Dictionary<int, int>(initialObjectCapacity);
         var definitionCounts = new Dictionary<(int Id, int Generation), int>(initialObjectCapacity);
@@ -79,7 +79,7 @@ internal static partial class PdfSyntax {
                 out Dictionary<int, PdfDictionary> preparsedDictionaries);
         cancellationToken.ThrowIfCancellationRequested();
 
-        for (int i = 0; i < matches.Count; i++) {
+        for (int i = 0; i < matches.Length; i++) {
             cancellationToken.ThrowIfCancellationRequested();
             if ((i & 127) == 0) {
                 ThrowIfParsingTimeExceeded(parseTimer, limits);
@@ -107,7 +107,7 @@ internal static partial class PdfSyntax {
                     "MissingEndObject",
                     "Indirect object " + id.ToString(System.Globalization.CultureInfo.InvariantCulture) + " has no readable endobj boundary; lenient parsing used the next object or end of file.",
                     id);
-                end = (i + 1 < matches.Count) ? matches[i + 1].Index : text.Length;
+                end = (i + 1 < matches.Length) ? matches[i + 1].Index : text.Length;
             }
 
             int preliminaryBodyEnd = end;
@@ -243,7 +243,7 @@ internal static partial class PdfSyntax {
         ValidateActiveCrossReference(text, map, parsedOffsets, parsingMode, repairDiagnostics);
         cancellationToken.ThrowIfCancellationRequested();
         ResolveIndirectStreamLengths(map, pdf, streamLocations, limits);
-        var activeClassicObjectNumbers = new HashSet<int>();
+        HashSet<int> activeClassicObjectNumbers = PdfCollectionSizing.CreateHashSet<int>(map.Count, map.Count);
         var xrefScanBudget = new XrefObjectScanBudget(limits);
         var decodedStreamBudget = new PdfDecodedStreamBudget(limits);
         bool reportedIncompleteXref = false;
