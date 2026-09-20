@@ -753,6 +753,17 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void ExplicitImageExportErrorCannotSuppressFailureClassification() {
+        var diagnostic = new OfficeImageExportDiagnostic(
+            OfficeImageExportDiagnosticSeverity.Error,
+            "TEST_ERROR",
+            "The image could not be produced.",
+            lossKind: OfficeConversionLossKind.None);
+
+        Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
+    }
+
+    [Fact]
     public void BatchProcessorPreservesOrderWithBoundedParallelRendering() {
         int[] items = Enumerable.Range(1, 8).ToArray();
         var names = new List<string>();

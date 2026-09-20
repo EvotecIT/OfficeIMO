@@ -5,10 +5,11 @@ namespace OfficeIMO.Word.LegacyDoc {
     /// <summary>
     /// Contains the projected OfficeIMO document and the legacy DOC import report produced from the same parse.
     /// </summary>
-    public sealed class LegacyDocLoadResult : IDisposable {
+    public sealed class LegacyDocLoadResult : IDisposable, IOfficeConversionReport {
         private readonly WordDocument? _document;
         private readonly Lazy<LegacyDocImportReport> _importReport;
         private readonly Lazy<LegacyDocImportSummary> _summary;
+        private readonly Lazy<IReadOnlyList<OfficeConversionFidelityDiagnostic>> _fidelityDiagnostics;
 
         internal LegacyDocLoadResult(WordDocument? document, LegacyDocDocument legacyDocument, Exception? projectionException = null) {
             _document = document;
@@ -16,6 +17,7 @@ namespace OfficeIMO.Word.LegacyDoc {
             ProjectionException = projectionException;
             _importReport = new Lazy<LegacyDocImportReport>(() => LegacyDocument.CreateImportReport());
             _summary = new Lazy<LegacyDocImportSummary>(() => new LegacyDocImportSummary(this));
+            _fidelityDiagnostics = new Lazy<IReadOnlyList<OfficeConversionFidelityDiagnostic>>(CreateFidelityDiagnostics);
         }
 
         /// <summary>
@@ -82,7 +84,20 @@ namespace OfficeIMO.Word.LegacyDoc {
         /// <summary>
         /// Gets whether conversion to DOCX would omit unsupported, preserved-only, or compound legacy content.
         /// </summary>
-        public bool HasConversionLoss => UnsupportedFeatures.Count > 0 || PreservedFeatures.Count > 0 || CompoundFeatures.Count > 0;
+        public bool HasConversionLoss => HasLoss;
+
+        /// <inheritdoc />
+        public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics => _fidelityDiagnostics.Value;
+
+        /// <inheritdoc />
+        public bool HasLoss => FidelityDiagnostics.Any(diagnostic =>
+            diagnostic.LossKind != OfficeConversionLossKind.None);
+
+        /// <inheritdoc />
+        public void RequireNoLoss() {
+            if (HasLoss) throw new InvalidDataException(
+                "The legacy DOC import reported content loss. Inspect FidelityDiagnostics and the source import collections for details.");
+        }
 
         /// <summary>
         /// Throws when the legacy DOC import produced error diagnostics.
@@ -109,6 +124,29 @@ namespace OfficeIMO.Word.LegacyDoc {
         /// </summary>
         public void Dispose() {
             _document?.Dispose();
+        }
+
+        private IReadOnlyList<OfficeConversionFidelityDiagnostic> CreateFidelityDiagnostics() {
+            var diagnostics = new List<OfficeConversionFidelityDiagnostic>();
+            diagnostics.AddRange(Diagnostics.Select(diagnostic => new OfficeConversionFidelityDiagnostic(
+                diagnostic.Code,
+                diagnostic.Message,
+                diagnostic.Severity switch {
+                    LegacyDocDiagnosticSeverity.Error => OfficeConversionLossKind.Failure,
+                    LegacyDocDiagnosticSeverity.Warning => OfficeConversionLossKind.Approximation,
+                    _ => OfficeConversionLossKind.None
+                },
+                "OfficeIMO.Word.LegacyDoc.Reader")));
+            diagnostics.AddRange(UnsupportedFeatures.Select(feature => new OfficeConversionFidelityDiagnostic(
+                feature.Code, feature.Description, OfficeConversionLossKind.Omission,
+                "OfficeIMO.Word.LegacyDoc.Reader", feature.EntryPath ?? feature.DetailCode)));
+            diagnostics.AddRange(PreservedFeatures.Select(feature => new OfficeConversionFidelityDiagnostic(
+                feature.Code, feature.Description, OfficeConversionLossKind.Omission,
+                "OfficeIMO.Word.LegacyDoc.Reader", feature.DetailCode)));
+            diagnostics.AddRange(CompoundFeatures.Select(feature => new OfficeConversionFidelityDiagnostic(
+                feature.Code, feature.Description, OfficeConversionLossKind.Omission,
+                "OfficeIMO.Word.LegacyDoc.Reader", feature.EntryPath ?? feature.DetailCode)));
+            return Array.AsReadOnly(diagnostics.ToArray());
         }
     }
 }

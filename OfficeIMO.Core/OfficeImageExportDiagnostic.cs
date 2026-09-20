@@ -28,7 +28,10 @@ public sealed class OfficeImageExportDiagnostic {
         Code = string.IsNullOrWhiteSpace(code) ? "ImageExportDiagnostic" : code;
         Message = message ?? string.Empty;
         Source = source;
-        LossKind = lossKind ?? InferLossKind(severity);
+        LossKind = severity == OfficeImageExportDiagnosticSeverity.Error
+            && lossKind == OfficeConversionLossKind.None
+                ? OfficeConversionLossKind.Failure
+                : lossKind ?? InferLossKind(severity);
         FidelitySource = fidelitySource;
         FidelityLocation = fidelityLocation;
     }

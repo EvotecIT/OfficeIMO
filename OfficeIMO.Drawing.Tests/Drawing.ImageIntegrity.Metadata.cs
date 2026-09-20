@@ -85,6 +85,13 @@ public partial class DrawingTests {
         Assert.Equal(OfficeImageMetadataKinds.Xmp, result.Metadata.Source);
         Assert.Equal(OfficeImageMetadataKinds.Xmp, result.Metadata.Requested);
         Assert.Equal(OfficeImageMetadataKinds.Xmp, result.Metadata.Lost);
+        IOfficeConversionReport report = result.Metadata;
+        OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(report.FidelityDiagnostics);
+        Assert.True(report.HasLoss);
+        Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
+        Assert.Equal("IMAGE_METADATA_XMP_LOST", diagnostic.Code);
+        Assert.Equal("Xmp", diagnostic.Location);
+        Assert.Throws<InvalidOperationException>(report.RequireNoLoss);
     }
 
     private static byte[] CreatePngTextPayload(string chunkType, string keyword, byte[] text) {

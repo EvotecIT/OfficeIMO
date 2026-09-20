@@ -1,5 +1,6 @@
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
+using OfficeIMO.PowerPoint.LegacyPpt.Diagnostics;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 using OfficeIMO.Drawing.Binary;
@@ -94,6 +95,25 @@ namespace OfficeIMO.Tests {
             Assert.NotEmpty(legacy.Package.UserEdits);
             Assert.NotEmpty(legacy.Package.PersistObjects);
             Assert.True(legacy.CreateImportReport().CompoundStreamCount >= 2);
+        }
+
+        [Fact]
+        public void ImportReport_ExposesTypedLossAndStrictAcceptance() {
+            LegacyPptPresentation legacy = LegacyPptPresentation.Load(FixturePath);
+            LegacyPptImportReport report = legacy.CreateImportReport();
+            IOfficeConversionReport commonReport = report;
+
+            Assert.Equal(report.HasConversionLoss, commonReport.HasLoss);
+            Assert.Equal(
+                legacy.Diagnostics.Count(diagnostic =>
+                    diagnostic.Severity != LegacyPptDiagnosticSeverity.Information)
+                    + (report.UnsupportedShapeCount > 0 ? 1 : 0),
+                commonReport.FidelityDiagnostics.Count(diagnostic =>
+                    diagnostic.LossKind != OfficeConversionLossKind.None));
+            Assert.All(commonReport.FidelityDiagnostics.Where(diagnostic =>
+                    diagnostic.Code == "PPT-UNSUPPORTED-SHAPES"),
+                diagnostic => Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind));
+            Assert.Throws<InvalidDataException>(commonReport.RequireNoLoss);
         }
 
         [Fact]

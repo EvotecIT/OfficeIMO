@@ -40,7 +40,10 @@ public sealed class AdfConversionDiagnostic {
         string message,
         AdfConversionSeverity severity,
         OfficeConversionLossKind lossKind)
-        : this(code, path, message, severity) => LossKind = lossKind;
+        : this(code, path, message, severity) => LossKind =
+            severity == AdfConversionSeverity.Error && lossKind == OfficeConversionLossKind.None
+                ? OfficeConversionLossKind.Failure
+                : lossKind;
 
     /// <summary>Gets the diagnostic identifier supplied by the converter or caller.</summary>
     public string Code { get; }

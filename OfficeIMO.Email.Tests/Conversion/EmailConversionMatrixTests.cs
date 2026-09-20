@@ -104,6 +104,34 @@ public sealed class EmailConversionMatrixTests {
         Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
     }
 
+    [Fact]
+    public void ExplicitErrorDiagnosticCannotSuppressFailureClassification() {
+        var simple = new EmailDiagnostic(
+            "EMAIL_TEST_ERROR",
+            "The source could not be converted.",
+            EmailDiagnosticSeverity.Error,
+            "message/body",
+            OfficeConversionLossKind.None);
+        var actionable = new EmailDiagnostic(
+            "EMAIL_TEST_ACTIONABLE_ERROR",
+            "The source could not be converted.",
+            EmailDiagnosticSeverity.Error,
+            "message/body",
+            "Convert",
+            null,
+            null,
+            null,
+            null,
+            EmailDiagnosticDisposition.Stopped,
+            EmailDataLossRisk.None,
+            "Inspect the source.",
+            false,
+            OfficeConversionLossKind.None);
+
+        Assert.Equal(OfficeConversionLossKind.Failure, simple.LossKind);
+        Assert.Equal(OfficeConversionLossKind.Failure, actionable.LossKind);
+    }
+
     private static EmailDocument CreateDocument(OutlookItemKind kind) {
         DateTimeOffset start = new DateTimeOffset(2026, 12, 1, 9, 0, 0, TimeSpan.Zero);
         var document = new EmailDocument {

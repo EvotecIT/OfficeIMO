@@ -244,7 +244,10 @@ public sealed class DocBookDiagnostic {
         string message,
         string? path,
         OfficeConversionLossKind lossKind)
-        : this(code, severity, message, path) => LossKind = lossKind;
+        : this(code, severity, message, path) => LossKind =
+            severity == DocBookDiagnosticSeverity.Error && lossKind == OfficeConversionLossKind.None
+                ? OfficeConversionLossKind.Failure
+                : lossKind;
 
     private static OfficeConversionLossKind ResolveLossKind(
         string code,

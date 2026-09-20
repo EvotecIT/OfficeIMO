@@ -25,6 +25,32 @@ public sealed class PdfConversionLossPropagationTests {
         Assert.Equal(BitConverter.ToString(sha.ComputeHash(original)).Replace("-", string.Empty).ToLowerInvariant(), proof.ArtifactSha256);
     }
 
+    [Fact]
+    public void ArtifactProofPreservesTypedConversionLossForStrictAcceptance() {
+        var sourceReport = new PdfConversionReport();
+        sourceReport.Add(new PdfConversionWarning(
+            "source",
+            "SOURCE_OMISSION",
+            "source:1",
+            "Source content was omitted.",
+            PdfConversionWarningSeverity.Warning,
+            OfficeConversionLossKind.Omission));
+        var conversion = new PdfDocumentConversionResult(
+            PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Content")),
+            new PdfConversionReport())
+            .WithSourceConversionReport(sourceReport);
+
+        PdfConversionProofReport proof = conversion.AssessProof();
+        IOfficeConversionReport commonReport = proof;
+
+        OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(commonReport.FidelityDiagnostics);
+        Assert.True(commonReport.HasLoss);
+        Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
+        Assert.Equal("source", diagnostic.Source);
+        Assert.Equal("source:1", diagnostic.Location);
+        Assert.Throws<InvalidOperationException>(commonReport.RequireNoLoss);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -97,6 +123,15 @@ public sealed class PdfConversionLossPropagationTests {
         OfficeImageExportDiagnostic diagnostic = Assert.Single(failure.Diagnostics,
             item => item.Code == "SourceConversionDiagnosticContractMismatch");
         Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
+        OfficeConversionFidelityDiagnostic contractFailure = Assert.Single(
+            conversion.FidelityDiagnostics,
+            item => item.Code == "CONVERSION_REPORT_UNTYPED_LOSS");
+        Assert.Equal(OfficeConversionLossKind.Failure, contractFailure.LossKind);
+        PdfConversionProofReport proof = conversion.AssessProof();
+        Assert.Contains(proof.FidelityDiagnostics,
+            item => item.Code == "CONVERSION_REPORT_UNTYPED_LOSS"
+                && item.LossKind == OfficeConversionLossKind.Failure);
+        Assert.Throws<InvalidOperationException>(proof.RequireNoLoss);
     }
 
     [Theory]

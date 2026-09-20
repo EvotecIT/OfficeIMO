@@ -2,7 +2,7 @@ using OfficeIMO.PowerPoint.LegacyPpt.Diagnostics;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt {
     /// <summary>Contains the projected OfficeIMO presentation and its binary PPT import report.</summary>
-    public sealed class LegacyPptLoadResult : IDisposable {
+    public sealed class LegacyPptLoadResult : IDisposable, IOfficeConversionReport {
         private readonly PowerPointPresentation? _document;
         private readonly Lazy<LegacyPptImportReport> _report;
 
@@ -39,6 +39,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
         /// <summary>Gets whether projection is known to omit unsupported content.</summary>
         public bool HasConversionLoss => ImportReport.HasConversionLoss;
+
+        /// <inheritdoc />
+        public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics => ImportReport.FidelityDiagnostics;
+
+        /// <inheritdoc />
+        public bool HasLoss => ImportReport.HasLoss;
+
+        /// <inheritdoc />
+        public void RequireNoLoss() => ImportReport.RequireNoLoss();
 
         /// <summary>Throws when import produced errors.</summary>
         public LegacyPptLoadResult EnsureNoImportErrors() {

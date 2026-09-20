@@ -351,6 +351,14 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["DOC-MERGED-TABLE-CELLS-PRESENT"]);
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByDetail["MergedTableCell|DOC-MERGED-TABLE-CELLS-PRESENT|PAPX:sprmTDefTable"]);
             Assert.Contains(result.Document.LegacyDocUnsupportedFeatures, item => item.Code == "DOC-MERGED-TABLE-CELLS-PRESENT");
+            IOfficeConversionReport commonResult = result;
+            OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(
+                commonResult.FidelityDiagnostics,
+                item => item.Code == feature.Code && item.LossKind == OfficeConversionLossKind.Omission);
+            Assert.Equal("PAPX:sprmTDefTable", diagnostic.Location);
+            Assert.True(result.Summary.HasLoss);
+            Assert.Throws<InvalidDataException>(commonResult.RequireNoLoss);
+            Assert.Throws<InvalidDataException>(result.Summary.RequireNoLoss);
 
             WordTable table = Assert.Single(result.Document.Tables);
             WordTableRow row = Assert.Single(table.Rows);

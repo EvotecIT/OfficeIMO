@@ -66,6 +66,32 @@ public partial class Html {
     }
 
     [Fact]
+    public void CapabilityArtifactEvidenceExposesTypedLossAndStrictAcceptance() {
+        var diagnostic = new HtmlDiagnostic(
+            "OfficeIMO.Html.Tests",
+            "HTML_ARTIFACT_OMISSION",
+            "A source resource was omitted.",
+            HtmlDiagnosticSeverity.Warning,
+            "asset:image",
+            lossKind: OfficeConversionLossKind.Omission);
+        var evidence = new HtmlCapabilityGalleryArtifactEvidence(
+            1,
+            1,
+            640,
+            480,
+            "px",
+            new[] { diagnostic },
+            Array.Empty<HtmlCapabilityGalleryCheck>());
+
+        IOfficeConversionReport report = evidence;
+        OfficeConversionFidelityDiagnostic projected = Assert.Single(report.FidelityDiagnostics);
+        Assert.Equal(OfficeConversionLossKind.Omission, projected.LossKind);
+        Assert.Equal("OfficeIMO.Html.Tests", projected.Source);
+        Assert.Equal("asset:image", projected.Location);
+        Assert.Throws<InvalidOperationException>(report.RequireNoLoss);
+    }
+
+    [Fact]
     public void MarkdownImport_UsesHtmlIntegerRulesForOrderedLists() {
         string markdown = HtmlConversionDocument
             .Parse("<ol start='9x'><li>First</li><li value='12junk'>Second</li><li>Third</li></ol>")

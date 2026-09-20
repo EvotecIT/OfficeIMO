@@ -429,6 +429,23 @@ public sealed class AdfContractTests {
     }
 
     [Fact]
+    public void ExplicitErrorDiagnosticCannotBypassStrictLossAcceptance() {
+        var diagnostic = new AdfConversionDiagnostic(
+            "ADF_EXPLICIT_FAILURE",
+            "$.content[0]",
+            "The projection failed.",
+            AdfConversionSeverity.Error,
+            OfficeConversionLossKind.None);
+        var report = new AdfConversionReport(new[] { diagnostic });
+
+        Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
+        Assert.Equal(OfficeConversionLossKind.Failure, Assert.Single(report.FidelityDiagnostics).LossKind);
+        Assert.True(report.HasErrors);
+        Assert.True(report.HasLoss);
+        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
+    }
+
+    [Fact]
     public void LinkProjection_EscapesAndRoundTripsDestinationDelimiters() {
         const string href = "https://example.test/a(b)/docs\\[one]|two";
         var link = new AdfMark("link").SetAttribute("href", href);

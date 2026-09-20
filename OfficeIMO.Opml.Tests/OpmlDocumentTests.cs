@@ -859,6 +859,18 @@ public sealed class OpmlDocumentTests {
         Assert.Equal(1, children.IndexerCalls);
     }
 
+    [Fact]
+    public void ExplicitErrorDiagnosticCannotSuppressFailureClassification() {
+        var diagnostic = new OpmlDiagnostic(
+            "OPML-TEST-ERROR",
+            OpmlDiagnosticSeverity.Error,
+            "The source could not be converted.",
+            "/opml/body",
+            OfficeConversionLossKind.None);
+
+        Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
+    }
+
     private sealed class WideNodeList : IReadOnlyList<OfficeDocumentModelNode> {
         public int Count => int.MaxValue;
         public int IndexerCalls { get; private set; }

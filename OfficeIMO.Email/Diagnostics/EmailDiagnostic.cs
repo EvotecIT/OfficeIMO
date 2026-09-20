@@ -31,7 +31,7 @@ public sealed class EmailDiagnostic {
         Location = location;
         Disposition = EmailDiagnosticDisposition.Observed;
         DataLossRisk = EmailDataLossRisk.None;
-        LossKind = lossKind;
+        LossKind = NormalizeLossKind(severity, lossKind);
     }
 
     /// <summary>Creates an actionable diagnostic with machine-readable operation and recovery context.</summary>
@@ -65,7 +65,7 @@ public sealed class EmailDiagnostic {
         DataLossRisk = dataLossRisk;
         SuggestedAction = suggestedAction;
         IsRetryable = isRetryable;
-        LossKind = lossKind;
+        LossKind = NormalizeLossKind(severity, lossKind);
     }
 
     /// <summary>Stable diagnostic identifier.</summary>
@@ -106,4 +106,11 @@ public sealed class EmailDiagnostic {
             throw new ArgumentOutOfRangeException(nameof(lossKind));
         }
     }
+
+    private static OfficeConversionLossKind NormalizeLossKind(
+        EmailDiagnosticSeverity severity,
+        OfficeConversionLossKind lossKind) =>
+        severity == EmailDiagnosticSeverity.Error && lossKind == OfficeConversionLossKind.None
+            ? OfficeConversionLossKind.Failure
+            : lossKind;
 }

@@ -2483,6 +2483,18 @@ public sealed class DocBookDocumentTests {
             $"Indexed reverse conversion took {stopwatch.Elapsed}.");
     }
 
+    [Fact]
+    public void ExplicitErrorDiagnosticCannotSuppressFailureClassification() {
+        var diagnostic = new DocBookDiagnostic(
+            "DB-TEST-ERROR",
+            DocBookDiagnosticSeverity.Error,
+            "The source could not be converted.",
+            "/article",
+            OfficeConversionLossKind.None);
+
+        Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
+    }
+
     private static OfficeDocumentModelNode FindStructureNode(IEnumerable<OfficeDocumentModelNode> nodes, string kind) {
         OfficeDocumentModelNode? result = FindStructureNodeOrDefault(nodes, kind);
         return result ?? throw new InvalidOperationException($"Shared structure node '{kind}' was not found.");

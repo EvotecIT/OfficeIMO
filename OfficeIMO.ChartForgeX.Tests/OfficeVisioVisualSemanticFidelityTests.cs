@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using global::ChartForgeX.Primitives;
 using global::ChartForgeX.Topology;
@@ -71,6 +72,9 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
             diagnostic.EntityKind == OfficeVisioVisualEntityKind.Node &&
             diagnostic.EntityId == "service" &&
             diagnostic.Feature == "nodeKind");
+        OfficeConversionFidelityDiagnostic normalized = Assert.Single(topologyResult.Report.FidelityDiagnostics,
+            diagnostic => diagnostic.Code == nameof(OfficeVisioVisualDiagnosticCode.NodeKindNormalized));
+        Assert.Equal(OfficeConversionLossKind.Approximation, normalized.LossKind);
 
         var flow = new VisualArtifactInterchangeEnvelope {
             Id = "flow-kind",
@@ -108,6 +112,12 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
             diagnostic.EntityKind == OfficeVisioVisualEntityKind.Artifact &&
             diagnostic.EntityId == "untitled-graph" &&
             diagnostic.Feature == "title");
+        IOfficeConversionReport common = topologyResult.Report;
+        OfficeConversionFidelityDiagnostic omittedTitle = Assert.Single(common.FidelityDiagnostics,
+            diagnostic => diagnostic.Code == nameof(OfficeVisioVisualDiagnosticCode.TitleNotProjected));
+        Assert.Equal(OfficeConversionLossKind.Omission, omittedTitle.LossKind);
+        Assert.Equal("Artifact:untitled-graph/title", omittedTitle.Location);
+        Assert.Throws<InvalidOperationException>(() => common.RequireNoLoss());
 
         VisualArtifactInterchangeEnvelope sequence = SequenceEnvelope("untitled-sequence", "Visible sequence title");
         sequence.Nodes.Add(Participant("client", "Client", SequenceArtifactParticipantKind.Actor, 0));

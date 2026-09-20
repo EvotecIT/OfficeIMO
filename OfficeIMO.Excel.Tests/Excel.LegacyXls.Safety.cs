@@ -91,6 +91,12 @@ namespace OfficeIMO.Tests {
             Assert.True(result.HasUnsupportedFeatures);
             Assert.True(result.HasConversionLoss);
             Assert.True(result.Summary.HasConversionLoss);
+            IOfficeConversionReport commonResult = result;
+            Assert.Contains(commonResult.FidelityDiagnostics,
+                diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
+            Assert.True(result.Summary.HasLoss);
+            Assert.Throws<InvalidDataException>(commonResult.RequireNoLoss);
+            Assert.Throws<InvalidDataException>(result.Summary.RequireNoLoss);
             LegacyXlsImportReport report = result.CreateImportReport();
             Assert.True(report.PreservedFeatureRecordCount > 0);
             Assert.True(report.HasUnsupportedFeatures);

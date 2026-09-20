@@ -74,6 +74,39 @@ public class PdfTextShapingProviderTests {
     }
 
     [Fact]
+    public void VerticalDrawingInsideActualTextGroupStillReportsThePdfPositioningFallback() {
+        TypographyEvidenceCase evidence = Assert.Single(
+            TypographyEvidenceCorpus.Cases,
+            item => item.Direction == OfficeTextDirection.TopToBottom);
+        byte[] fontData = LoadTypographyFont(evidence);
+        var paint = new OfficeDrawing(100D, 160D)
+            .AddFont(evidence.Family, fontData)
+            .AddVerticalText(evidence.Text, 10D, 10D, 80D, 140D, new OfficeFontInfo(evidence.Family, 32D));
+        var drawing = new OfficeDrawing(100D, 160D)
+            .AddActualTextDrawing(evidence.Text, paint, 50D, 20D);
+        var report = new PdfConversionReport();
+        var options = new PdfOptions {
+                CompressContentStreams = false,
+                PageWidth = 140D,
+                PageHeight = 200D,
+                MarginLeft = 20D,
+                MarginRight = 20D,
+                MarginTop = 20D,
+                MarginBottom = 20D
+            }
+            .ReportDiagnosticsTo(report, "OfficeIMO.Pdf.Tests")
+            .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(evidence.Family, fontData));
+
+        byte[] bytes = PdfDocument.Create(options).Drawing(drawing).ToBytes();
+
+        Assert.Contains(report.FidelityDiagnostics, diagnostic =>
+            diagnostic.Code == "vertical-text-stacked-fallback" &&
+            diagnostic.LossKind == OfficeConversionLossKind.Approximation);
+        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
+        Assert.Contains(evidence.Text, PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HorizontalCorpusHasComparableRenderedGeometryAcrossRasterSvgAndPdf() {
         foreach (TypographyEvidenceCase evidence in TypographyEvidenceCorpus.Cases.Where(
             item => item.Direction != OfficeTextDirection.TopToBottom)) {

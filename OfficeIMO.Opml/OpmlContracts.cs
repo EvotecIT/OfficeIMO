@@ -114,7 +114,10 @@ public sealed class OpmlDiagnostic {
         string message,
         string? path,
         OfficeConversionLossKind lossKind)
-        : this(code, severity, message, path) => LossKind = lossKind;
+        : this(code, severity, message, path) => LossKind =
+            severity == OpmlDiagnosticSeverity.Error && lossKind == OfficeConversionLossKind.None
+                ? OfficeConversionLossKind.Failure
+                : lossKind;
 
     private static OfficeConversionLossKind ResolveLossKind(
         string code,

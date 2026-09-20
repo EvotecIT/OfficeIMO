@@ -288,6 +288,7 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
             artifactSha256,
             warningSummary,
             hasLoss,
+            FidelityDiagnostics,
             issues);
     }
 

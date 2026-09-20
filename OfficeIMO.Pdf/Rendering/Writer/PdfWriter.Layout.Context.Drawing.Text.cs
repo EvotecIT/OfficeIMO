@@ -11,7 +11,7 @@ internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private void DrawDrawingTextAt(OfficeDrawingText text, double originX, double originTopY, OfficeDrawingTextMetrics textMetrics) {
             if (string.IsNullOrEmpty(text.Text)) return;
-            if (text.TextDirection == OfficeTextDirection.TopToBottom && !_suppressCanvasAccessibilityWrappers) {
+            if (text.TextDirection == OfficeTextDirection.TopToBottom) {
                 int scalar = char.ConvertToUtf32(text.Text, 0);
                 currentOpts.AddTextShapingDiagnostics(new[] {
                     new PdfTextShapingDiagnostic(
@@ -22,12 +22,14 @@ internal static partial class PdfWriter {
                         "vertical-text-stacked-fallback",
                         "PDF retains the logical text but currently paints this top-to-bottom run as searchable stacked text rather than native vertical font glyph positioning.")
                 });
-                RenderLogicalText(
-                    text.Text,
-                    originX + text.X + text.Width / 2D,
-                    originTopY - text.Y,
-                    () => DrawDrawingTextAt(text, originX, originTopY, textMetrics));
-                return;
+                if (!_suppressCanvasAccessibilityWrappers) {
+                    RenderLogicalText(
+                        text.Text,
+                        originX + text.X + text.Width / 2D,
+                        originTopY - text.Y,
+                        () => DrawDrawingTextAt(text, originX, originTopY, textMetrics));
+                    return;
+                }
             }
             if (!text.WrapText && !text.ShrinkToFit && !text.StackedText && !text.HasPadding
                 && text.VerticalAlignment == OfficeTextVerticalAlignment.Top) {

@@ -46,7 +46,23 @@ public static class OfficeConversionFidelityDiagnostics {
     public static IReadOnlyList<OfficeConversionFidelityDiagnostic> Flatten(
         IEnumerable<IOfficeConversionReport> reports) {
         if (reports == null) throw new ArgumentNullException(nameof(reports));
-        return Array.AsReadOnly(reports.SelectMany(static report => report.FidelityDiagnostics).ToArray());
+        var diagnostics = new List<OfficeConversionFidelityDiagnostic>();
+        foreach (IOfficeConversionReport report in reports) {
+            if (report == null) throw new ArgumentException("Conversion reports cannot contain null entries.", nameof(reports));
+            IReadOnlyList<OfficeConversionFidelityDiagnostic> stageDiagnostics = report.FidelityDiagnostics
+                ?? throw new InvalidOperationException($"{report.GetType().FullName} returned null FidelityDiagnostics.");
+            diagnostics.AddRange(stageDiagnostics);
+            if (report.HasLoss && !stageDiagnostics.Any(static diagnostic =>
+                    diagnostic.LossKind != OfficeConversionLossKind.None)) {
+                string source = report.GetType().FullName ?? report.GetType().Name;
+                diagnostics.Add(new OfficeConversionFidelityDiagnostic(
+                    "CONVERSION_REPORT_UNTYPED_LOSS",
+                    "The conversion stage reported aggregate loss without a typed fidelity diagnostic.",
+                    OfficeConversionLossKind.Failure,
+                    source));
+            }
+        }
+        return Array.AsReadOnly(diagnostics.ToArray());
     }
 
     /// <summary>Creates a diagnostic from the shared native-format projection contract.</summary>

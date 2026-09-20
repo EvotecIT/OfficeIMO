@@ -115,7 +115,10 @@ public sealed class HtmlDiagnostic {
         Severity = source.Severity;
         Source = source.Source;
         Detail = source.Detail;
-        LossKind = lossKind;
+        LossKind = source.Severity == HtmlDiagnosticSeverity.Error
+            && lossKind == OfficeConversionLossKind.None
+                ? OfficeConversionLossKind.Failure
+                : lossKind;
         Provenance = source.Provenance;
     }
 

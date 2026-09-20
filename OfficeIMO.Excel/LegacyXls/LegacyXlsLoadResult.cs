@@ -5,10 +5,11 @@ namespace OfficeIMO.Excel.LegacyXls {
     /// <summary>
     /// Contains the projected OfficeIMO document and the legacy XLS import report produced from the same parse.
     /// </summary>
-    public sealed class LegacyXlsLoadResult : IDisposable {
+    public sealed class LegacyXlsLoadResult : IDisposable, IOfficeConversionReport {
         private readonly ExcelDocument? _document;
         private readonly Lazy<LegacyXlsImportReport> _importReport;
         private readonly Lazy<LegacyXlsImportSummary> _summary;
+        private readonly Lazy<IReadOnlyList<OfficeConversionFidelityDiagnostic>> _fidelityDiagnostics;
 
         internal LegacyXlsLoadResult(ExcelDocument? document, LegacyXlsWorkbook workbook, Exception? projectionException = null) {
             _document = document;
@@ -16,6 +17,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             ProjectionException = projectionException;
             _importReport = new Lazy<LegacyXlsImportReport>(() => Workbook.CreateImportReport());
             _summary = new Lazy<LegacyXlsImportSummary>(() => new LegacyXlsImportSummary(this));
+            _fidelityDiagnostics = new Lazy<IReadOnlyList<OfficeConversionFidelityDiagnostic>>(CreateFidelityDiagnostics);
         }
 
         /// <summary>
@@ -85,12 +87,20 @@ namespace OfficeIMO.Excel.LegacyXls {
         public bool HasUnsupportedFeatures => UnsupportedFeatures.Count > 0 || PreservedFeatures.Count > 0;
 
         /// <summary>Gets whether conversion to XLSX would omit known legacy content.</summary>
-        public bool HasConversionLoss => UnsupportedFeatures.Count > 0
-            || PreservedFeatures.Count > 0
-            || UnsupportedSheets.Count > 0
-            || CompoundFeatures.Any(feature =>
-                feature.Kind == LegacyXlsCompoundFeatureRecordKind.VbaProject
-                || feature.Kind == LegacyXlsCompoundFeatureRecordKind.OleObject);
+        public bool HasConversionLoss => HasLoss;
+
+        /// <inheritdoc />
+        public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics => _fidelityDiagnostics.Value;
+
+        /// <inheritdoc />
+        public bool HasLoss => FidelityDiagnostics.Any(diagnostic =>
+            diagnostic.LossKind != OfficeConversionLossKind.None);
+
+        /// <inheritdoc />
+        public void RequireNoLoss() {
+            if (HasLoss) throw new InvalidDataException(
+                "The legacy XLS import reported content loss. Inspect FidelityDiagnostics and the source import collections for details.");
+        }
 
         /// <summary>
         /// Throws when the legacy XLS import produced error diagnostics.
@@ -150,6 +160,48 @@ namespace OfficeIMO.Excel.LegacyXls {
                 return $"{feature.Code}{sheet} record=0x{feature.RecordType:X4} offset={feature.RecordOffset}: {feature.Description}";
             });
             return string.Join("; ", unsupported.Concat(preserved).Distinct(StringComparer.Ordinal).Take(8));
+        }
+
+        private IReadOnlyList<OfficeConversionFidelityDiagnostic> CreateFidelityDiagnostics() {
+            var diagnostics = new List<OfficeConversionFidelityDiagnostic>();
+            diagnostics.AddRange(Diagnostics.Select(diagnostic => new OfficeConversionFidelityDiagnostic(
+                diagnostic.Code,
+                diagnostic.Message,
+                diagnostic.Severity switch {
+                    LegacyXlsDiagnosticSeverity.Error => OfficeConversionLossKind.Failure,
+                    LegacyXlsDiagnosticSeverity.Warning => OfficeConversionLossKind.Approximation,
+                    _ => OfficeConversionLossKind.None
+                },
+                "OfficeIMO.Excel.LegacyXls.Reader",
+                FormatLocation(diagnostic.SheetName, diagnostic.RecordOffset))));
+            diagnostics.AddRange(UnsupportedFeatures.Select(feature => new OfficeConversionFidelityDiagnostic(
+                feature.Code, feature.Description, OfficeConversionLossKind.Omission,
+                "OfficeIMO.Excel.LegacyXls.Reader", FormatLocation(feature.SheetName, feature.RecordOffset))));
+            diagnostics.AddRange(PreservedFeatures.Select(feature => new OfficeConversionFidelityDiagnostic(
+                feature.Code, feature.Description, OfficeConversionLossKind.Omission,
+                "OfficeIMO.Excel.LegacyXls.Reader", FormatLocation(feature.SheetName, feature.RecordOffset))));
+            diagnostics.AddRange(UnsupportedSheets.Select(sheet => new OfficeConversionFidelityDiagnostic(
+                "XLS-UNSUPPORTED-SHEET", $"Sheet '{sheet.Name}' is not projected as an editable worksheet.",
+                OfficeConversionLossKind.Omission, "OfficeIMO.Excel.LegacyXls.Reader",
+                FormatLocation(sheet.Name, sheet.StreamOffset))));
+            diagnostics.AddRange(CompoundFeatures
+                .Where(feature => feature.Kind == LegacyXlsCompoundFeatureRecordKind.VbaProject
+                    || feature.Kind == LegacyXlsCompoundFeatureRecordKind.OleObject)
+                .Select(feature => new OfficeConversionFidelityDiagnostic(
+                    "XLS-COMPOUND-" + feature.Kind.ToString().ToUpperInvariant(),
+                    $"The {feature.Kind} compound feature is preserved but not projected to XLSX.",
+                    OfficeConversionLossKind.Omission,
+                    "OfficeIMO.Excel.LegacyXls.Reader",
+                    feature.Entries.FirstOrDefault())));
+            return Array.AsReadOnly(diagnostics.ToArray());
+        }
+
+        private static string? FormatLocation(string? sheetName, int? recordOffset) {
+            if (!string.IsNullOrWhiteSpace(sheetName) && recordOffset.HasValue) {
+                return $"sheet:{sheetName}/offset:{recordOffset.Value}";
+            }
+            if (!string.IsNullOrWhiteSpace(sheetName)) return "sheet:" + sheetName;
+            return recordOffset.HasValue ? "offset:" + recordOffset.Value : null;
         }
     }
 }
