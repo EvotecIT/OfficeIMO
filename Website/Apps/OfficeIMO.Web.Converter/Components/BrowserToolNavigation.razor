@@ -1,0 +1,48 @@
+@namespace OfficeIMO.Web.Converter.Components
+
+<nav aria-label="Choose a browser tool">
+    <a href="/convert/" target="_top" data-workspace="home" class="@(Workspace == "home" ? "is-active" : null)" aria-current="@(Workspace == "home" ? "page" : null)">All browser tools</a>
+    <label class="ocx-tool-search" for="browser-tool-search">Find a tool</label>
+    <input id="browser-tool-search" type="search" placeholder="Search tools…" @bind="_filter" @bind:event="oninput" />
+    @if (Routes.Length > 0) {
+        <details @key="(Workspace, _filter, 0)" open="@(Workspace == "convert" || HasFilter)">
+            <summary>Convert documents <span>@Routes.Length</span></summary>
+            @foreach (ConversionRoute route in Routes) {
+                <a @key="route.Id" href="/convert/?route=@route.Id" target="_top" data-route="@route.Id"
+                   class="@(Workspace == "convert" && Route == route.Id ? "is-active" : null)"
+                   aria-current="@(Workspace == "convert" && Route == route.Id ? "page" : null)">@route.Title</a>
+            }
+        </details>
+    }
+    @if (Tools.Length > 0) {
+        <details @key="(Workspace, _filter, 1)" open="@(Workspace == "pdf" || HasFilter)">
+            <summary>PDF tools <span>@Tools.Length</span></summary>
+            @foreach (PdfToolDefinition tool in Tools) {
+                <a @key="tool.Id" href="/convert/?workspace=pdf&tool=@tool.Id" target="_top" data-pdf-tool="@tool.Id"
+                   class="@(Workspace == "pdf" && Tool == tool.Id ? "is-active" : null)"
+                   aria-current="@(Workspace == "pdf" && Tool == tool.Id ? "page" : null)">@tool.Label</a>
+            }
+        </details>
+    }
+    @if (Matches("File origin data provenance inspect clean")) {
+        <details @key="(Workspace, _filter, 2)" open="@(Workspace == "provenance" || HasFilter)">
+            <summary>Inspect and clean <span>1</span></summary>
+            <a href="/convert/?workspace=provenance" target="_top" data-workspace="provenance"
+               class="@(Workspace == "provenance" ? "is-active" : null)"
+               aria-current="@(Workspace == "provenance" ? "page" : null)">File origin data</a>
+        </details>
+    } else if (Routes.Length == 0 && Tools.Length == 0) {
+        <p role="status">No tools match “@_filter”.</p>
+    }
+</nav>
+
+@code {
+    [Parameter] public string Workspace { get; set; } = "convert";
+    [Parameter] public string Route { get; set; } = "docx-pdf";
+    [Parameter] public string Tool { get; set; } = "inspect";
+    private string _filter = "";
+    private bool HasFilter => !string.IsNullOrWhiteSpace(_filter);
+    private bool Matches(string text) => text.Contains(_filter.Trim(), StringComparison.OrdinalIgnoreCase);
+    private ConversionRoute[] Routes => ConversionRouteCatalog.All.Where(route => Matches(route.Title)).ToArray();
+    private PdfToolDefinition[] Tools => PdfToolCatalog.All.Where(tool => Matches(tool.Label)).ToArray();
+}

@@ -31,7 +31,8 @@ async (page) => {
     });
   });
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.reload({ waitUntil: 'domcontentloaded' });
+  const baseUrl = page.url().split('?')[0];
+  await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
   const findWorkspace = async () => {
     const host = page.locator('iframe[data-workspace-src]');
     await host.waitFor({ state: 'visible', timeout: 60000 });
@@ -42,10 +43,17 @@ async (page) => {
   let workspace = await findWorkspace();
   const routeIds = ['docx-pdf', 'xlsx-pdf', 'pptx-pdf'];
 
-  const baseUrl = page.url().split('?')[0];
   const results = [];
-  await workspace.locator('[data-converter-ready="true"]').waitFor({ state: 'visible', timeout: 60000 });
+  await workspace.locator('.ocx-tool-picker').waitFor({ state: 'visible', timeout: 60000 });
   const startupMilliseconds = await page.evaluate(() => performance.now());
+  const landingResources = await workspace.evaluate(() => performance.getEntriesByType('resource').map(entry => entry.name));
+  const prematureEngine = landingResources.find(name => /\/(?:OfficeIMO\.(?:Word|Excel|PowerPoint|Pdf|Html|Markdown|Visio|Workflows|Web\.Fonts)|DocumentFormat\.OpenXml)\.[^.]+\.wasm$/.test(name));
+  if (prematureEngine) throw new Error(`The tool picker downloaded an engine before selection: ${prematureEngine}`);
+  await workspace.locator('.ocx-tool-picker a[data-route="docx-pdf"]').click();
+  await workspace.locator('[data-converter-ready="true"]').waitFor({ state: 'visible', timeout: 60000 });
+  const unrelatedOfficeEngine = await workspace.evaluate(() => performance.getEntriesByType('resource')
+    .find(entry => /\/OfficeIMO\.(?:Excel|PowerPoint|Visio)\.[^.]+\.wasm$/.test(entry.name))?.name);
+  if (unrelatedOfficeEngine) throw new Error(`Word conversion downloaded an unrelated engine: ${unrelatedOfficeEngine}`);
   const initialResourceErrors = await workspace.evaluate(() => performance.getEntriesByType('resource')
     .filter(entry => Number.isFinite(entry.responseStatus) && entry.responseStatus >= 400)
     .map(entry => `${entry.responseStatus} ${entry.name}`));
@@ -55,9 +63,11 @@ async (page) => {
   }
   // The embedded app exposes its tool on the host document; files and output blobs stay in the workspace frame.
   await page.waitForFunction(() => Boolean(window.__officeImoWebMcpTools?.convert_selected_document), null, { timeout: 60000 });
+  await workspace.locator('#workspace-navigation details').filter({ hasText: 'PDF tools' }).locator('summary').click();
   await workspace.locator('#workspace-navigation a[data-pdf-tool="merge"]').click();
   await page.waitForFunction(() => !window.__officeImoWebMcpTools?.convert_selected_document, null, { timeout: 60000 });
   const removedOutsideConverter = await page.evaluate(() => !window.__officeImoWebMcpTools?.convert_selected_document);
+  await workspace.locator('#workspace-navigation details').filter({ hasText: 'Convert documents' }).locator('summary').click();
   await workspace.locator('#workspace-navigation a[data-route="docx-pdf"]').click();
   await page.waitForFunction(() => Boolean(window.__officeImoWebMcpTools?.convert_selected_document), null, { timeout: 60000 });
   const restoredWithConverter = await page.evaluate(() => Boolean(window.__officeImoWebMcpTools?.convert_selected_document));

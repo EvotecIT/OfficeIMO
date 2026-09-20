@@ -206,8 +206,8 @@
       if (!btn) return;
       item.classList.toggle("is-open", open);
       btn.setAttribute("aria-expanded", open ? "true" : "false");
-      if (!open) delete item.dataset.openedByHover;
       var menu = item.querySelector(":scope > .imo-dropdown");
+      if (menu) menu.hidden = !open;
       if (!open || window.innerWidth < 1024) {
         if (menu) menu.style.removeProperty("--imo-menu-shift");
         return;
@@ -233,9 +233,7 @@
       btn.addEventListener("click", function (e) {
         e.preventDefault();
         e.stopPropagation();
-        var wasOpenedByHover = item.dataset.openedByHover === "true";
-        delete item.dataset.openedByHover;
-        var willOpen = wasOpenedByHover || !item.classList.contains("is-open");
+        var willOpen = !item.classList.contains("is-open");
         closeAll(item);
         setOpen(item, willOpen);
       });
@@ -250,21 +248,6 @@
         window.requestAnimationFrame(function () {
           if (target && item.classList.contains("is-open") && document.activeElement === btn) target.focus();
         });
-      });
-
-      item.addEventListener("mouseenter", function () {
-        if (window.innerWidth >= 1024 && window.matchMedia("(hover: hover)").matches) {
-          if (item.classList.contains("is-open")) return;
-          closeAll(item);
-          setOpen(item, true);
-          item.dataset.openedByHover = "true";
-        }
-      });
-
-      item.addEventListener("mouseleave", function () {
-        if (window.innerWidth >= 1024 && window.matchMedia("(hover: hover)").matches && !item.contains(document.activeElement)) {
-          setOpen(item, false);
-        }
       });
 
       item.addEventListener("focusout", function () {

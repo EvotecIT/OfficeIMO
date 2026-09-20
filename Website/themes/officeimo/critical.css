@@ -128,6 +128,7 @@ img {
   height: 10px;
   flex: 0 0 auto;
 }
+.imo-dropdown[hidden] { display:none; }
 .imo-dropdown {
   position: absolute;
   top: 100%;

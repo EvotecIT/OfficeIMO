@@ -1,13 +1,14 @@
 @namespace OfficeIMO.Web.Converter.Components
 
-<section class="ocx-tool-guide" aria-labelledby="tool-guide-title">
-    <header class="ocx-tool-guide__heading">
+<details class="ocx-tool-guide" aria-labelledby="tool-guide-title">
+    <summary class="ocx-tool-guide__heading">
         <div>
             <p>About this tool</p>
             <h2 id="tool-guide-title">What to expect</h2>
         </div>
-        <a href="@Content.GuideUrl" target="_top">@Content.GuideLabel <span aria-hidden="true">→</span></a>
-    </header>
+        <span class="ocx-tool-guide__expand" aria-hidden="true">+</span>
+    </summary>
+    <p class="ocx-tool-guide__link"><a href="@Content.GuideUrl" target="_top">@Content.GuideLabel <span aria-hidden="true">→</span></a></p>
     <div class="ocx-tool-guide__facts">
         <article>
             <span class="ocx-tool-guide__icon" aria-hidden="true">↗</span>
@@ -35,7 +36,7 @@
         </ol>
     </div>
     <p class="ocx-tool-guide__privacy"><strong>Private by default.</strong> The file stays in this browser tab, and OfficeIMO creates a separate result instead of overwriting your original.</p>
-</section>
+</details>
 
 @code {
     [Parameter, EditorRequired] public BrowserToolContent Content { get; set; } = BrowserToolContentCatalog.Provenance;

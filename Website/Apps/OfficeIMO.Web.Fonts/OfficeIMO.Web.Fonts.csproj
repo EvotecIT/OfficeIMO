@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="../OfficeIMO.Web.Converter/Assets/Fonts/*.ttf;../OfficeIMO.Web.Converter/Assets/Fonts/font-pack.json"
+                      Link="Assets/Fonts/%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>
