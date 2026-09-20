@@ -81,7 +81,9 @@ public sealed partial class OfficeRasterCanvas {
         string? fontPalette) {
         if (string.IsNullOrEmpty(text) || color.A == 0 || width <= 0D || height <= 0D) return true;
         IOfficeFontProgram? font = ResolveTextFont(text, fontFamily, style, out OfficeFontStyle resolvedStyle);
-        if (font == null || !TryGetShapedTextRun(text, font, featureSettings, OfficeTextDirection.TopToBottom, out OfficeTextShapingResult run)) {
+        if (font == null ||
+            !TryGetShapedTextRun(text, font, featureSettings, OfficeTextDirection.TopToBottom, out OfficeTextShapingResult run) ||
+            !HasUsableVerticalPositioning(run)) {
             ReportTextShapingFallback(incomplete: true);
             return false;
         }
@@ -96,6 +98,10 @@ public sealed partial class OfficeRasterCanvas {
             foreach (OfficeColorGlyphContours layer in colorLayers) {
                 if ((simulatedStyle & OfficeFontStyle.Italic) == OfficeFontStyle.Italic) SlantContours(layer.Contours, originY, size);
                 FillContours(layer.Contours, layer.Color, OfficeFillRule.NonZero);
+                if ((simulatedStyle & OfficeFontStyle.Bold) == OfficeFontStyle.Bold) {
+                    OffsetContours(layer.Contours, size / 24D, 0D);
+                    FillContours(layer.Contours, layer.Color, OfficeFillRule.NonZero);
+                }
             }
             return true;
         }
@@ -116,6 +122,16 @@ public sealed partial class OfficeRasterCanvas {
             FillContours(contours, color, OfficeFillRule.NonZero);
         }
         return true;
+    }
+
+    private static bool HasUsableVerticalPositioning(OfficeTextShapingResult run) {
+        if (run.Direction != OfficeTextDirection.TopToBottom || run.Glyphs.Count == 0) return false;
+        bool hasPenMovement = false;
+        foreach (OfficeShapedGlyph glyph in run.Glyphs) {
+            if (!glyph.AdvanceHeight.HasValue) return false;
+            if (glyph.AdvanceHeight.Value != 0) hasPenMovement = true;
+        }
+        return hasPenMovement;
     }
 
     private double MeasureResolvedText(string text, IOfficeFontProgram font, double fontSize, OfficeTextFeatureSettings? featureSettings = null) {

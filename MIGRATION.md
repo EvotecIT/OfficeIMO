@@ -24,9 +24,10 @@ NativeConsumer.ReadArrowStream(lease.Address);
 
 The lease keeps the unmanaged struct and managed callbacks alive when the owner is disposed
 concurrently. Native code may invoke the Arrow release callback but must not free the struct.
-Managed consumers should call `owner.ImportArrayStream()`; ownership transfers only after the
-Apache Arrow importer succeeds. Existing `OpenArrowStream` and `ReadArrowBatchesAsync` calls are
-unchanged and remain managed-only.
+Managed consumers should call `owner.ImportArrayStream()`. Every import attempt consumes the
+one-shot stream, including an attempt where the Apache Arrow importer throws, because ownership
+may already have crossed the native boundary. Do not retry through the same owner or lease.
+Existing `OpenArrowStream` and `ReadArrowBatchesAsync` calls are unchanged and remain managed-only.
 
 ### Typed conversion fidelity reports
 

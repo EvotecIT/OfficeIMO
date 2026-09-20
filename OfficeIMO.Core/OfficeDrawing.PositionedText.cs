@@ -3,6 +3,31 @@ using System;
 namespace OfficeIMO.Drawing;
 
 public sealed partial class OfficeDrawing {
+    internal OfficeDrawing AddPositionedTextWithNaturalAdvance(
+        string text, double x, double y, double width, double height,
+        OfficeFontInfo? font, OfficeColor? color, double? lineHeight) =>
+        AddTextCore(text, x, y, width, height, font, color, OfficeTextAlignment.Left, lineHeight,
+            OfficeTextVerticalAlignment.Top, 0D, null, null, false, false, false, false, false, null, null,
+            OfficeTextOverflowBehavior.Clip, textAdvanceWidth: null,
+            OfficeTextDecorationStyle.None, OfficeTextDecorationStyle.None, OfficeTextBaseline.Normal, allowOverflow: true);
+
+    internal OfficeDrawing AddClippedPositionedTextWithNaturalAdvance(
+        string text, double x, double y, double width, double height,
+        double clipX, double clipY, OfficeClipPath clipPath,
+        OfficeFontInfo? font, OfficeColor? color, double? lineHeight) {
+        if (clipPath == null) throw new ArgumentNullException(nameof(clipPath));
+        ValidateFiniteNonNegative(clipX, nameof(clipX));
+        ValidateFiniteNonNegative(clipY, nameof(clipY));
+        if (clipX + clipPath.Width > Width || clipY + clipPath.Height > Height)
+            throw new ArgumentOutOfRangeException(nameof(clipPath), "Text clip must fit inside the drawing bounds.");
+        var clipped = new OfficeDrawing(Math.Max(0.01D, clipPath.Width), Math.Max(0.01D, clipPath.Height));
+        clipped.AddTextCore(text, x - clipX, y - clipY, width, height, font, color, OfficeTextAlignment.Left, lineHeight,
+            OfficeTextVerticalAlignment.Top, 0D, null, null, false, false, false, false, false, null, null,
+            OfficeTextOverflowBehavior.Clip, textAdvanceWidth: null,
+            OfficeTextDecorationStyle.None, OfficeTextDecorationStyle.None, OfficeTextBaseline.Normal, allowOverflow: true);
+        return AddClippedDrawing(clipped, clipX, clipY, clipPath);
+    }
+
     /// <summary>Adds a resolved source text run with its glyph advance and a destination-space rotation or mirror transform. Source text is clipped, never shortened with an ellipsis.</summary>
     public OfficeDrawing AddPositionedText(
         string text, double x, double y, double width, double height,

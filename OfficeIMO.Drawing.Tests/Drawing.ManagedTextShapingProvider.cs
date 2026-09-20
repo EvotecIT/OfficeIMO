@@ -41,6 +41,29 @@ public class DrawingManagedTextShapingProviderTests {
     }
 
     [Fact]
+    public void VerticalColorFont_AppliesSimulatedBoldToEveryLayer() {
+        byte[] font = ManagedTextShapingTestAssets.CreateColorFont('A');
+        var fonts = new OfficeFontFaceCollection().Add("Vertical Color", font);
+        var result = new OfficeTextShapingResult(new[] {
+            new OfficeShapedGlyph(1, "A", 0, advanceWidth: 700, advanceHeight: -1000, offsetX: 0, offsetY: 0)
+        }, OfficeTextDirection.TopToBottom);
+        var provider = new FixedShapingProvider(result);
+        var regularImage = new OfficeRasterImage(80, 80, OfficeColor.White);
+        var boldImage = new OfficeRasterImage(80, 80, OfficeColor.White);
+        var regular = new OfficeRasterCanvas(regularImage, font: null, fonts: fonts, textShapingProvider: provider);
+        var bold = new OfficeRasterCanvas(boldImage, font: null, fonts: fonts, textShapingProvider: provider);
+
+        Assert.True(regular.TryDrawVerticalText(
+            "A", 10D, 10D, 50D, 60D, OfficeColor.Black, 36D,
+            OfficeFontStyle.Regular, "Vertical Color", featureSettings: null, fontPalette: "light"));
+        Assert.True(bold.TryDrawVerticalText(
+            "A", 10D, 10D, 50D, 60D, OfficeColor.Black, 36D,
+            OfficeFontStyle.Bold, "Vertical Color", featureSettings: null, fontPalette: "light"));
+
+        Assert.True(CountInk(boldImage) > CountInk(regularImage));
+    }
+
+    [Fact]
     public void ManagedProvider_ShapesSupportedArabicAndPreservesLogicalMappings() {
         byte[] font = ManagedTextShapingTestAssets.CreateFont(
             0x0627,
@@ -83,6 +106,25 @@ public class DrawingManagedTextShapingProviderTests {
             language: "ar");
 
         Assert.Null(OfficeManagedTextShapingProvider.Instance.ShapeText(request));
+    }
+
+    private static int CountInk(OfficeRasterImage image) {
+        byte[] pixels = image.GetPixels();
+        int ink = 0;
+        for (int i = 0; i + 3 < pixels.Length; i += 4) {
+            if (pixels[i] < 250 || pixels[i + 1] < 250 || pixels[i + 2] < 250) ink++;
+        }
+        return ink;
+    }
+
+    private sealed class FixedShapingProvider : IOfficeTextShapingProvider {
+        private readonly OfficeTextShapingResult _result;
+
+        internal FixedShapingProvider(OfficeTextShapingResult result) {
+            _result = result;
+        }
+
+        public OfficeTextShapingResult? ShapeText(OfficeTextShapingRequest request) => _result;
     }
 
     [Fact]

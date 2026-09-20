@@ -383,6 +383,7 @@ public static partial class OfficeSvgDrawingReader {
             run.X = origin + ((run.X - origin) * scale);
             run.Width *= scale;
             run.GlyphScale *= scale;
+            run.HasExplicitAdvance = true;
         }
         cursor.X = origin + ((cursor.X - origin) * scale);
     }
@@ -440,8 +441,8 @@ public static partial class OfficeSvgDrawingReader {
     private static void ApplyTextAnchors(IList<SvgTextRun> runs) {
         foreach (IGrouping<int, SvgTextRun> chunk in runs.GroupBy(run => run.Chunk)) {
             SvgTextRun first = chunk.First();
-            if (first.Anchor == "start") continue;
             if (first.IsVertical) {
+                if (first.Anchor == "start") continue;
                 double top = chunk.Min(run => run.RotationCenterY - (run.InlineAdvance / 2D));
                 double bottom = chunk.Max(run => run.RotationCenterY + (run.InlineAdvance / 2D));
                 double verticalShift = first.Anchor == "middle" ? -(bottom - top) / 2D : -(bottom - top);
@@ -451,9 +452,18 @@ public static partial class OfficeSvgDrawingReader {
                 }
                 continue;
             }
+            string physicalAnchor = first.Anchor;
+            OfficeTextDirection direction = first.Style.TextDirection == OfficeTextDirection.Auto
+                ? OfficeTextElements.ResolveBaseDirection(first.Text)
+                : first.Style.TextDirection;
+            if (direction == OfficeTextDirection.RightToLeft) {
+                if (physicalAnchor == "start") physicalAnchor = "end";
+                else if (physicalAnchor == "end") physicalAnchor = "start";
+            }
+            if (physicalAnchor == "start") continue;
             double left = chunk.Min(run => run.X);
             double right = chunk.Max(run => run.X + run.Width);
-            double shift = first.Anchor == "middle" ? -(right - left) / 2D : -(right - left);
+            double shift = physicalAnchor == "middle" ? -(right - left) / 2D : -(right - left);
             foreach (SvgTextRun run in chunk) run.X += shift;
         }
     }
@@ -524,23 +534,23 @@ public static partial class OfficeSvgDrawingReader {
         try {
             double naturalWidth = width / run.GlyphScale;
             if (requiresViewportClip) {
-                target.AddClippedPositionedText(
-                    run.Text,
-                    x,
-                    y,
-                    naturalWidth,
-                    height,
-                    0D,
-                    0D,
-                    OfficeClipPath.Rectangle(drawing.Width, drawing.Height),
-                    default(OfficeImageFrameTransform),
-                    font,
-                    color,
-                    OfficeTextAlignment.Left,
-                    height,
-                    textAdvanceWidth: run.Width / run.GlyphScale);
+                if (run.HasExplicitAdvance) {
+                    target.AddClippedPositionedText(
+                        run.Text, x, y, naturalWidth, height, 0D, 0D,
+                        OfficeClipPath.Rectangle(drawing.Width, drawing.Height), default(OfficeImageFrameTransform),
+                        font, color, OfficeTextAlignment.Left, height, textAdvanceWidth: run.Width / run.GlyphScale);
+                } else {
+                    target.AddClippedPositionedTextWithNaturalAdvance(
+                        run.Text, x, y, naturalWidth, height, 0D, 0D,
+                        OfficeClipPath.Rectangle(drawing.Width, drawing.Height), font, color, height);
+                }
             } else {
-                target.AddPositionedText(run.Text, x, y, naturalWidth, height, font, color, OfficeTextAlignment.Left, height, textAdvanceWidth: run.Width / run.GlyphScale);
+                if (run.HasExplicitAdvance) {
+                    target.AddPositionedText(run.Text, x, y, naturalWidth, height, font, color, OfficeTextAlignment.Left, height,
+                        textAdvanceWidth: run.Width / run.GlyphScale);
+                } else {
+                    target.AddPositionedTextWithNaturalAdvance(run.Text, x, y, naturalWidth, height, font, color, height);
+                }
             }
             if (!ReferenceEquals(target, drawing)) {
                 OfficeTransform effect = run.GlyphScale.Equals(1D)
@@ -573,6 +583,7 @@ public static partial class OfficeSvgDrawingReader {
         internal double Baseline { get; set; }
         internal double Width { get; set; }
         internal double GlyphScale { get; set; } = 1D;
+        internal bool HasExplicitAdvance { get; set; }
         internal double FontSize { get; }
         internal int Chunk { get; }
         internal string Anchor { get; }

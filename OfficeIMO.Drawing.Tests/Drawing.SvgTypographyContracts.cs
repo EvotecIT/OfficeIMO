@@ -38,4 +38,20 @@ public partial class DrawingTests {
         Assert.Equal(expectedX, text.Attribute("x")?.Value);
         Assert.Equal(expectedAnchor, text.Attribute("text-anchor")?.Value);
     }
+
+    [Fact]
+    public void OfficeSvgDrawingReader_PreservesPhysicalLeftAlignmentForRightToLeftText() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 60'>"
+            + "<text x='10' y='30' font-family='Arial' font-size='18' fill='black' "
+            + "direction='rtl' unicode-bidi='plaintext' text-anchor='end'>שלום</text></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(
+            System.Text.Encoding.UTF8.GetBytes(svg), options: null, out OfficeDrawing? imported, out int unsupported));
+        Assert.Equal(0, unsupported);
+        OfficeDrawingText text = Assert.Single(imported!.Elements.OfType<OfficeDrawingText>());
+
+        Assert.Equal(10D, text.X, precision: 3);
+        Assert.True(text.Width > 20D, $"Expected measured RTL width, got {text.Width}.");
+        Assert.Null(text.TextAdvanceWidth);
+    }
 }

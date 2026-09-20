@@ -378,11 +378,39 @@ public partial class DrawingTests {
         Assert.Equal("اب", Assert.Single(provider.Requests).Text);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RasterCanvas_RejectsVerticalRunsWithoutUsableVerticalPositioning(bool topToBottom) {
+        byte[] fontData = ManagedTextShapingTestAssets.CreateFont('A');
+        var fonts = new OfficeFontFaceCollection().Add("Vertical Contract", fontData);
+        var glyph = new OfficeShapedGlyph(1, "A", 0, advanceWidth: 600);
+        var result = topToBottom
+            ? new OfficeTextShapingResult(new[] { glyph }, OfficeTextDirection.TopToBottom)
+            : new OfficeTextShapingResult(new[] { glyph });
+        var diagnostics = new List<OfficeImageExportDiagnostic>();
+        var canvas = new OfficeRasterCanvas(
+            new OfficeRasterImage(80, 80, OfficeColor.White),
+            font: null,
+            fonts: fonts,
+            textShapingProvider: new RasterMappingTextShapingProvider(result),
+            diagnosticSink: diagnostics);
+
+        Assert.False(canvas.TryDrawVerticalText(
+            "A", 10D, 10D, 40D, 60D, OfficeColor.Black, 24D,
+            OfficeFontStyle.Regular, "Vertical Contract", featureSettings: null, fontPalette: null));
+        Assert.Equal(OfficeImageExportDiagnosticCodes.TextShapingFallback, Assert.Single(diagnostics).Code);
+    }
+
     private sealed class RasterMappingTextShapingProvider : IOfficeTextShapingProvider {
         private readonly OfficeTextShapingResult _result;
 
         internal RasterMappingTextShapingProvider(params OfficeShapedGlyph[] glyphs) {
             _result = new OfficeTextShapingResult(glyphs);
+        }
+
+        internal RasterMappingTextShapingProvider(OfficeTextShapingResult result) {
+            _result = result;
         }
 
         internal List<OfficeTextShapingRequest> Requests { get; } = new();

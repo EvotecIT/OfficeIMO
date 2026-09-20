@@ -51,7 +51,8 @@ public static partial class OfficeSvgDrawingReader {
                         angleDegrees + source.RotationDegrees,
                         point.X,
                         point.Y) {
-                        GlyphScale = source.GlyphScale
+                        GlyphScale = source.GlyphScale,
+                        HasExplicitAdvance = source.HasExplicitAdvance
                     };
                     replacements.Add(replacement);
                     observer?.Transfer(source, replacement);

@@ -125,10 +125,13 @@ public static partial class OfficeSvgDrawingReader {
             }
             if (visited > maximumElements) return false;
             if (Math.Abs(viewportWidth - viewWidth) < 0.000001D && Math.Abs(viewportHeight - viewHeight) < 0.000001D) {
-                drawing = HasNewlyRetainedSvgGeometry(scene)
-                    ? new OfficeDrawing(viewportWidth, viewportHeight)
-                        .AddClippedDrawing(scene, 0D, 0D, OfficeClipPath.Rectangle(viewportWidth, viewportHeight))
-                    : scene;
+                if (HasNewlyRetainedSvgGeometry(scene)) {
+                    var clipped = new OfficeDrawing(viewportWidth, viewportHeight);
+                    clipped.Fonts.AddRange(scene.Fonts);
+                    drawing = clipped.AddClippedDrawing(scene, 0D, 0D, OfficeClipPath.Rectangle(viewportWidth, viewportHeight));
+                } else {
+                    drawing = scene;
+                }
             } else {
                 if (!TryParsePreserveAspectRatio(root.Attribute("preserveAspectRatio")?.Value, out SvgAspectAlignment alignment, out bool slice)) {
                     alignment = SvgAspectAlignment.XMidYMid;
@@ -138,8 +141,9 @@ public static partial class OfficeSvgDrawingReader {
                 OfficeDrawing viewport = FitSvgViewport(scene, viewportWidth, viewportHeight,
                     ResolveViewportTransform(viewWidth, viewHeight, viewportWidth, viewportHeight, alignment, slice),
                     maximumViewportDimension, maximumViewportPixels, ref unsupportedFeatureCount);
-                drawing = new OfficeDrawing(viewportWidth, viewportHeight)
-                    .AddClippedDrawing(viewport, 0D, 0D, OfficeClipPath.Rectangle(viewportWidth, viewportHeight));
+                var clipped = new OfficeDrawing(viewportWidth, viewportHeight);
+                clipped.Fonts.AddRange(viewport.Fonts);
+                drawing = clipped.AddClippedDrawing(viewport, 0D, 0D, OfficeClipPath.Rectangle(viewportWidth, viewportHeight));
             }
             return IsSupportedSvgViewport(viewportWidth, viewportHeight, maximumViewportDimension, maximumViewportPixels);
         } catch (XmlException) {
@@ -1149,6 +1153,8 @@ public static partial class OfficeSvgDrawingReader {
         ApplyProperty("writing-mode", element.Attribute("writing-mode")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("text-orientation", element.Attribute("text-orientation")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("text-anchor", element.Attribute("text-anchor")?.Value, paintServers, ref result, ref unsupported);
+        ApplyProperty("unicode-bidi", element.Attribute("unicode-bidi")?.Value, paintServers, ref result, ref unsupported);
+        ApplyProperty("direction", element.Attribute("direction")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("dominant-baseline", element.Attribute("dominant-baseline")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("baseline-shift", element.Attribute("baseline-shift")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("display", element.Attribute("display")?.Value, paintServers, ref result, ref unsupported);
@@ -1358,6 +1364,19 @@ public static partial class OfficeSvgDrawingReader {
                 string anchor = normalized.ToLowerInvariant();
                 if (anchor is "start" or "middle" or "end") style.TextAnchor = anchor;
                 else unsupported++;
+                break;
+            case "direction":
+                string direction = normalized.ToLowerInvariant();
+                if (direction == "ltr") style.TextDirection = OfficeTextDirection.LeftToRight;
+                else if (direction == "rtl") style.TextDirection = OfficeTextDirection.RightToLeft;
+                else if (direction is "initial" or "unset") style.TextDirection = OfficeTextDirection.LeftToRight;
+                else if (direction != "inherit") unsupported++;
+                break;
+            case "unicode-bidi":
+                string bidi = normalized.ToLowerInvariant();
+                if (bidi == "plaintext") style.TextDirection = OfficeTextDirection.Auto;
+                else if (bidi is "initial" or "unset") style.TextDirection = OfficeTextDirection.LeftToRight;
+                else if (bidi is not "normal" and not "inherit") unsupported++;
                 break;
             case "dominant-baseline":
                 string baseline = normalized.ToLowerInvariant();
@@ -1703,6 +1722,7 @@ public static partial class OfficeSvgDrawingReader {
         internal SvgLineHeight LineHeight;
         internal OfficeFontStyle FontStyle;
         internal string TextAnchor;
+        internal OfficeTextDirection TextDirection;
         internal SvgDominantBaseline DominantBaseline;
         internal SvgBaselineShift BaselineShift;
         internal SvgWritingMode WritingMode;
@@ -1749,6 +1769,7 @@ public static partial class OfficeSvgDrawingReader {
             LineHeight = SvgLineHeight.Normal,
             FontStyle = OfficeFontStyle.Regular,
             TextAnchor = "start",
+            TextDirection = OfficeTextDirection.LeftToRight,
             DominantBaseline = SvgDominantBaseline.Alphabetic,
             BaselineShift = default,
             WritingMode = SvgWritingMode.HorizontalTb,

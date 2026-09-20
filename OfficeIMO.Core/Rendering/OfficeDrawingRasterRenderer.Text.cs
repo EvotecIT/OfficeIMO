@@ -104,6 +104,7 @@ public static partial class OfficeDrawingRasterRenderer {
             text.StrikethroughStyle == OfficeTextDecorationStyle.None;
         bool supportsPositionedPath = !text.WrapText && !text.ShrinkToFit && !text.StackedText && !text.HasFrameTransform && text.VerticalAlignment == OfficeTextVerticalAlignment.Top && !text.HasPadding;
         if ((text.TextAdvanceWidth.HasValue ||
+             text.OverflowBehavior == OfficeTextOverflowBehavior.Clip ||
              text.BaselineScale != 1D || text.BaselineOffset != 0D ||
              !text.FeatureSettings.IsDefault ||
              !string.Equals(text.FontPalette, "normal", StringComparison.OrdinalIgnoreCase)) && supportsPositionedPath) {
