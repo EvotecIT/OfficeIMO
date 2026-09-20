@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 using OfficeIMO.Pdf;
 using Xunit;
 
@@ -26,5 +27,43 @@ public class PdfIndirectObjectSerializationTests {
         byte[] actual = PdfPageExtractor.SerializeIndirectObject(4, stream, context);
 
         Assert.Equal(expected, actual);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(81937)]
+    public void SegmentedStreamAssemblyMatchesBufferedAssemblyExactly(int payloadLength) {
+        var numberMap = new Dictionary<int, int>();
+        var context = new PdfPageExtractor.SerializationContext(
+            numberMap,
+            pagesObjectId: 0,
+            new Dictionary<int, Dictionary<string, PdfObject>>());
+        var dictionary = new PdfDictionary();
+        dictionary.Items["Type"] = new PdfName("Catalog");
+        dictionary.Items["Length"] = new PdfNumber(1);
+        var ownedSource = new byte[payloadLength + 2];
+        for (int index = 0; index < payloadLength; index++) {
+            ownedSource[index + 1] = (byte)(index * 31);
+        }
+        PdfStream stream = PdfStream.FromOwnedSource(dictionary, ownedSource, 1, payloadLength);
+
+        byte[] bufferedObject = PdfPageExtractor.SerializeIndirectObject(1, stream, context);
+        PdfSerializedObject segmentedObject = PdfPageExtractor.SerializeIndirectObjectForAssembly(1, stream, context);
+        byte[] secondObject = PdfPageExtractor.WrapObject(2, PdfEncoding.Latin1GetBytes("<< /Type /Example >>\n"));
+
+        byte[] bufferedFile = PdfFileAssembler.Assemble(new[] { bufferedObject, secondObject }, 1, 0);
+        using var cancellation = new CancellationTokenSource();
+        byte[] segmentedFile = PdfFileAssembler.Assemble(
+            new[] { segmentedObject, PdfSerializedObject.FromBytes(secondObject) },
+            1,
+            0,
+            cancellationToken: cancellation.Token);
+
+        Assert.Equal(bufferedObject.LongLength, segmentedObject.Length);
+        Assert.Equal(bufferedFile.LongLength, PdfFileAssembler.GetAssembledLength(
+            new[] { segmentedObject, PdfSerializedObject.FromBytes(secondObject) },
+            1,
+            0));
+        Assert.Equal(bufferedFile, segmentedFile);
     }
 }

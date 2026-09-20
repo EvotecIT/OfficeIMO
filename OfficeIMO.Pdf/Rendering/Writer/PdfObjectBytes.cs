@@ -34,12 +34,7 @@ internal static class PdfObjectBytes {
 
     internal static byte[] WrapStreamObject(int objectNumber, string dictionary, PdfStream content) {
         Guard.NotNull(content, nameof(content));
-        Guard.NotNullOrWhiteSpace(dictionary, nameof(dictionary));
-        if (objectNumber < 1) throw new ArgumentOutOfRangeException(nameof(objectNumber), "PDF object number must be positive.");
-        if (ContainsStreamMarker(dictionary)) throw new ArgumentException("Stream dictionaries must not include stream markers.", nameof(dictionary));
-
-        byte[] prefix = PdfEncoding.Latin1GetBytes(objectNumber.ToString(CultureInfo.InvariantCulture) + " 0 obj\n" + dictionary.TrimEnd() + "\nstream\n");
-        byte[] suffix = PdfEncoding.Latin1GetBytes("\nendstream\nendobj\n");
+        CreateStreamObjectEnvelope(objectNumber, dictionary, out byte[] prefix, out byte[] suffix);
         var result = new byte[checked(prefix.Length + content.DataLength + suffix.Length)];
         Buffer.BlockCopy(prefix, 0, result, 0, prefix.Length);
         content.CopyDataTo(result, prefix.Length);
@@ -47,17 +42,33 @@ internal static class PdfObjectBytes {
         return result;
     }
 
+    internal static PdfSerializedObject SegmentStreamObject(int objectNumber, string dictionary, PdfStream content) {
+        Guard.NotNull(content, nameof(content));
+        CreateStreamObjectEnvelope(objectNumber, dictionary, out byte[] prefix, out byte[] suffix);
+        return PdfSerializedObject.FromStream(prefix, content, suffix);
+    }
+
     internal static byte[][] CreateStreamObjectSegments(int objectNumber, string dictionary, byte[] content) {
         Guard.NotNull(content, nameof(content));
+        CreateStreamObjectEnvelope(objectNumber, dictionary, out byte[] prefix, out byte[] suffix);
+        return new[] {
+            prefix,
+            content,
+            suffix
+        };
+    }
+
+    private static void CreateStreamObjectEnvelope(
+        int objectNumber,
+        string dictionary,
+        out byte[] prefix,
+        out byte[] suffix) {
         Guard.NotNullOrWhiteSpace(dictionary, nameof(dictionary));
         if (objectNumber < 1) throw new ArgumentOutOfRangeException(nameof(objectNumber), "PDF object number must be positive.");
         if (ContainsStreamMarker(dictionary)) throw new ArgumentException("Stream dictionaries must not include stream markers.", nameof(dictionary));
 
-        return new[] {
-            PdfEncoding.Latin1GetBytes(objectNumber.ToString(CultureInfo.InvariantCulture) + " 0 obj\n" + dictionary.TrimEnd() + "\nstream\n"),
-            content,
-            PdfEncoding.Latin1GetBytes("\nendstream\nendobj\n")
-        };
+        prefix = PdfEncoding.Latin1GetBytes(objectNumber.ToString(CultureInfo.InvariantCulture) + " 0 obj\n" + dictionary.TrimEnd() + "\nstream\n");
+        suffix = PdfEncoding.Latin1GetBytes("\nendstream\nendobj\n");
     }
 
     internal static byte[] WrapStreamBody(string dictionary, byte[] content) {

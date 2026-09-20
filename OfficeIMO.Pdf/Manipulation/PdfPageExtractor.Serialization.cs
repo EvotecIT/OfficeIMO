@@ -98,6 +98,15 @@ internal static partial class PdfPageExtractor {
             ? PdfObjectBytes.WrapStreamObject(objectNumber, BuildStreamDictionary(stream, context), stream)
             : WrapObject(objectNumber, SerializeObject(value, context));
 
+    /// <summary>Serializes an indirect object for final assembly without copying a retained stream payload.</summary>
+    internal static PdfSerializedObject SerializeIndirectObjectForAssembly(
+        int objectNumber,
+        PdfObject value,
+        SerializationContext context) =>
+        value is PdfStream stream
+            ? PdfObjectBytes.SegmentStreamObject(objectNumber, BuildStreamDictionary(stream, context), stream)
+            : PdfSerializedObject.FromBytes(WrapObject(objectNumber, SerializeObject(value, context)));
+
     internal static void EnsureSerializedObjectWithinLimit(PdfObject value, SerializationContext context, long maximumBytes) {
         if (maximumBytes < 0 || CountSerializedObjectBytes(value, context, maximumBytes) > maximumBytes) {
             throw PdfOutputLimitErrors.Create("The rewritten PDF exceeds the configured output limit.");
@@ -370,6 +379,14 @@ internal static partial class PdfPageExtractor {
         CancellationToken cancellationToken = default) {
         return PdfFileAssembler.Assemble(objects, catalogId, infoId, fileVersion, cancellationToken: cancellationToken);
     }
+
+    internal static byte[] Assemble(
+        List<PdfSerializedObject> objects,
+        int catalogId,
+        int infoId,
+        PdfFileVersion fileVersion = PdfFileVersion.Pdf14,
+        CancellationToken cancellationToken = default) =>
+        PdfFileAssembler.Assemble(objects, catalogId, infoId, fileVersion, cancellationToken: cancellationToken);
 
     internal static PdfFileVersion GetSourceFileVersion(byte[] pdf) {
         return PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(pdf));

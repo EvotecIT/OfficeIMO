@@ -6,6 +6,54 @@ namespace OfficeIMO.Pdf;
 
 internal static class PdfFileAssembler {
     internal static byte[] Assemble(
+        IReadOnlyList<PdfSerializedObject> objects,
+        int catalogId,
+        int infoId,
+        PdfFileVersion fileVersion = PdfFileVersion.Pdf14,
+        string? trailerIdEntry = null,
+        CancellationToken cancellationToken = default) {
+        using var stream = CreateOutputMemoryStream(objects, catalogId, infoId, fileVersion, trailerIdEntry, cancellationToken);
+        Assemble(stream, objects, catalogId, infoId, fileVersion, trailerIdEntry, cancellationToken);
+        return GetOutputBytes(stream);
+    }
+
+    internal static long Assemble(
+        Stream destination,
+        IReadOnlyList<PdfSerializedObject> objects,
+        int catalogId,
+        int infoId,
+        PdfFileVersion fileVersion = PdfFileVersion.Pdf14,
+        string? trailerIdEntry = null,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        Guard.FileVersion(fileVersion, nameof(fileVersion));
+        Guard.NotNull(destination, nameof(destination));
+        Guard.NotNull(objects, nameof(objects));
+        if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
+
+        byte[] header = PdfEncoding.Latin1GetBytes("%PDF-" + GetHeaderVersion(fileVersion) + "\n%\u00e2\u00e3\u00cf\u00d3\n");
+        using HashAlgorithm fileIdHash = SHA256.Create();
+        fileIdHash.TransformBlock(header, 0, header.Length, header, 0);
+        destination.Write(header, 0, header.Length);
+        long written = header.LongLength;
+
+        var offsets = new List<long>(objects.Count + 1) { 0L };
+        for (int index = 0; index < objects.Count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            offsets.Add(written);
+            PdfSerializedObject serializedObject = objects[index];
+            serializedObject.CopyTo(destination, fileIdHash, cancellationToken);
+            written = checked(written + serializedObject.Length);
+        }
+
+        byte[] fileId = FinalizeFileId(fileIdHash);
+        long xrefPos = written;
+        byte[] trailerBytes = BuildTrailerBytes(offsets, catalogId, infoId, xrefPos, encryptionAssembly: null, fileId, trailerIdEntry, permanentFileId: null);
+        destination.Write(trailerBytes, 0, trailerBytes.Length);
+        return checked(written + trailerBytes.LongLength);
+    }
+
+    internal static byte[] Assemble(
         IReadOnlyList<byte[]> objects,
         int catalogId,
         int infoId,
@@ -240,28 +288,120 @@ internal static class PdfFileAssembler {
         // Encryption may materialize a second object store. Keep the output buffer lazy
         // until that work has finished so encrypted output does not acquire a new peak.
         if (objects is null || encryption is not null) return new MemoryStream();
-
-        long written = PdfEncoding.Latin1GetBytes("%PDF-" + GetHeaderVersion(fileVersion) + "\n%\u00e2\u00e3\u00cf\u00d3\n").LongLength;
-        var offsets = new List<long>(objects.Count + 1) { 0L };
         PdfObjectStore? objectStore = objects as PdfObjectStore;
-        for (int index = 0; index < objects.Count; index++) {
+        return CreateOutputMemoryStreamCore(
+            objects.Count,
+            index => objectStore is null ? objects[index].LongLength : objectStore.GetLength(index),
+            catalogId,
+            infoId,
+            fileVersion,
+            trailerIdEntry,
+            permanentFileId,
+            cancellationToken);
+    }
+
+    private static MemoryStream CreateOutputMemoryStream(
+        IReadOnlyList<PdfSerializedObject> objects,
+        int catalogId,
+        int infoId,
+        PdfFileVersion fileVersion,
+        string? trailerIdEntry,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        Guard.NotNull(objects, nameof(objects));
+        return CreateOutputMemoryStreamCore(
+            objects.Count,
+            index => objects[index].Length,
+            catalogId,
+            infoId,
+            fileVersion,
+            trailerIdEntry,
+            permanentFileId: null,
+            cancellationToken);
+    }
+
+    private static MemoryStream CreateOutputMemoryStreamCore(
+        int objectCount,
+        Func<int, long> getObjectLength,
+        int catalogId,
+        int infoId,
+        PdfFileVersion fileVersion,
+        string? trailerIdEntry,
+        byte[]? permanentFileId,
+        CancellationToken cancellationToken) {
+        PdfFileAssemblyLayout layout = CreateAssemblyLayout(
+            objectCount,
+            getObjectLength,
+            catalogId,
+            infoId,
+            fileVersion,
+            trailerIdEntry,
+            permanentFileId,
+            cancellationToken);
+        if (layout.TotalLength > int.MaxValue) {
+            throw new InvalidDataException("The assembled PDF exceeds the supported in-memory result size.");
+        }
+        return new MemoryStream((int)layout.TotalLength);
+    }
+
+    internal static long GetAssembledLength(
+        IReadOnlyList<PdfSerializedObject> objects,
+        int catalogId,
+        int infoId,
+        PdfFileVersion fileVersion = PdfFileVersion.Pdf14,
+        string? trailerIdEntry = null,
+        CancellationToken cancellationToken = default) {
+        Guard.NotNull(objects, nameof(objects));
+        return CreateAssemblyLayout(
+            objects.Count,
+            index => objects[index].Length,
+            catalogId,
+            infoId,
+            fileVersion,
+            trailerIdEntry,
+            permanentFileId: null,
+            cancellationToken).TotalLength;
+    }
+
+    private static PdfFileAssemblyLayout CreateAssemblyLayout(
+        int objectCount,
+        Func<int, long> getObjectLength,
+        int catalogId,
+        int infoId,
+        PdfFileVersion fileVersion,
+        string? trailerIdEntry,
+        byte[]? permanentFileId,
+        CancellationToken cancellationToken) {
+        long written = PdfEncoding.Latin1GetBytes("%PDF-" + GetHeaderVersion(fileVersion) + "\n%\u00e2\u00e3\u00cf\u00d3\n").LongLength;
+        var offsets = new List<long>(objectCount + 1) { 0L };
+        for (int index = 0; index < objectCount; index++) {
             if ((index & 127) == 0) cancellationToken.ThrowIfCancellationRequested();
             offsets.Add(written);
-            long objectLength = objectStore is null ? objects[index].LongLength : objectStore.GetLength(index);
-            if (written > int.MaxValue - objectLength) return new MemoryStream();
+            long objectLength = getObjectLength(index);
+            if (objectLength < 0L || written > long.MaxValue - objectLength) {
+                throw new InvalidDataException("The assembled PDF exceeds the supported output size.");
+            }
             written += objectLength;
         }
 
-        // The file ID changes the trailer contents but not its length. Match the
-        // actual trailer builder so the array-backed result needs no final copy.
         byte[] placeholderId = new byte[16];
         long trailerLength = BuildTrailerBytes(offsets, catalogId, infoId, written, encryptionAssembly: null, placeholderId, trailerIdEntry, permanentFileId).LongLength;
-        long capacity = written + trailerLength;
-        return capacity <= int.MaxValue ? new MemoryStream((int)capacity) : new MemoryStream();
+        if (written > long.MaxValue - trailerLength) {
+            throw new InvalidDataException("The assembled PDF exceeds the supported output size.");
+        }
+        return new PdfFileAssemblyLayout(written + trailerLength);
     }
 
     private static byte[] GetOutputBytes(MemoryStream stream) =>
         stream.Length == stream.Capacity ? stream.GetBuffer() : stream.ToArray();
+
+    private readonly struct PdfFileAssemblyLayout {
+        internal PdfFileAssemblyLayout(long totalLength) {
+            TotalLength = totalLength;
+        }
+
+        internal long TotalLength { get; }
+    }
 
     private static long GetRetainedMemoryBytes(IReadOnlyList<byte[]> objects, CancellationToken cancellationToken) {
         if (objects is PdfObjectStore store) return store.RetainedMemoryBytes;
