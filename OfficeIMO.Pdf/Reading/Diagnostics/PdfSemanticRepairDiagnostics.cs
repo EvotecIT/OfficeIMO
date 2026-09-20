@@ -175,7 +175,6 @@ internal static class PdfSemanticRepairDiagnostics {
     }
 
     private static void TraverseReferences(Dictionary<int, PdfIndirectObject> objects, PdfObject root, HashSet<int> reachable) {
-        var visited = new HashSet<PdfObject>(PdfObjectReferenceComparer.Instance);
         var pending = new Stack<PdfObject>(); pending.Push(root);
         while (pending.Count > 0) {
             PdfObject value = pending.Pop();
@@ -185,15 +184,16 @@ internal static class PdfSemanticRepairDiagnostics {
                 else reachable.Remove(reference.ObjectNumber); // A bad generation must not hide a later valid reference.
                 continue;
             }
-            // References are already deduplicated by object number. Scalars have
-            // no children, so only direct containers need cycle detection.
+            // Indirect references are the only way a parsed PDF object graph can
+            // contain cycles. Direct dictionaries and arrays are materialized as
+            // bounded trees by the parser, so reference-identity hashing here only
+            // repeats work for every container in otherwise valid documents.
             if (value is PdfArray array) {
-                if (!visited.Add(array)) continue;
                 for (int i = 0; i < array.Items.Count; i++) pending.Push(array.Items[i]);
                 continue;
             }
             PdfDictionary? dictionary = value is PdfDictionary direct ? direct : value is PdfStream stream ? stream.Dictionary : null;
-            if (dictionary != null && visited.Add(value)) foreach (PdfObject item in dictionary.Items.Values) pending.Push(item);
+            if (dictionary != null) foreach (PdfObject item in dictionary.Items.Values) pending.Push(item);
         }
     }
 
@@ -207,9 +207,4 @@ internal static class PdfSemanticRepairDiagnostics {
     private static PdfArray? ResolveArray(Dictionary<int, PdfIndirectObject> objects, PdfObject? value) => PdfObjectLookup.Resolve(objects, value) as PdfArray;
     private static int FindObjectNumber(Dictionary<int, PdfIndirectObject> objects, PdfObject value) { foreach (PdfIndirectObject indirect in objects.Values) if (ReferenceEquals(indirect.Value, value) || indirect.Value is PdfStream stream && ReferenceEquals(stream.Dictionary, value)) return indirect.ObjectNumber; return 0; }
 
-    private sealed class PdfObjectReferenceComparer : IEqualityComparer<PdfObject> {
-        internal static readonly PdfObjectReferenceComparer Instance = new PdfObjectReferenceComparer();
-        public bool Equals(PdfObject? left, PdfObject? right) => ReferenceEquals(left, right);
-        public int GetHashCode(PdfObject value) => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(value);
-    }
 }

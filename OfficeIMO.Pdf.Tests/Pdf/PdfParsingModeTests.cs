@@ -321,6 +321,24 @@ public class PdfParsingModeTests {
     }
 
     [Fact]
+    public void CyclicReferencesRemainBoundedWhileUnreferencedSemanticObjectsAreReported() {
+        byte[] pdf = Encoding.ASCII.GetBytes(
+            "%PDF-1.7\n" +
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /Extra 5 0 R >>\nendobj\n" +
+            "2 0 obj\n<< /Type /Pages /Count 0 /Kids [] >>\nendobj\n" +
+            "5 0 obj\n<< /Back 1 0 R >>\nendobj\n" +
+            "8 0 obj\n<< /Type /Annot /Subtype /Text >>\nendobj\n" +
+            "trailer\n<< /Root 1 0 R /Size 9 >>\n%%EOF\n");
+
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
+
+        PdfRepairDiagnostic orphan = Assert.Single(
+            document.RepairReport.Diagnostics,
+            item => item.Code == "OrphanedSemanticObjects");
+        Assert.Equal(8, orphan.ObjectNumber);
+    }
+
+    [Fact]
     public void OrphanSummaryReportsLowestObjectNumberRegardlessOfDefinitionOrder() {
         byte[] pdf = Encoding.ASCII.GetBytes(
             "%PDF-1.7\n" +
