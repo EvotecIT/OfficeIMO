@@ -634,14 +634,15 @@ internal static partial class PdfMerger {
         out int outputObjectCount,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        var objects = new List<PdfSerializedObject>();
-        var allPageObjectIds = new List<int>();
+        GetMergeCollectionCounts(sources, outputOrder, out int retainedObjectCount, out int outputPageCount);
+        var objects = new List<PdfSerializedObject>(retainedObjectCount);
+        var allPageObjectIds = new List<int>(outputPageCount);
         var plans = new List<SourceWritePlan>(sources.Count);
         int nextObjectId = 1;
 
         foreach (var source in sources) {
             cancellationToken.ThrowIfCancellationRequested();
-            var numberMap = new Dictionary<int, int>();
+            var numberMap = new Dictionary<int, int>(source.Collector.ObjectIds.Count);
             foreach (int sourceId in source.Collector.ObjectIds) {
                 numberMap[sourceId] = nextObjectId++;
             }
@@ -695,6 +696,25 @@ internal static partial class PdfMerger {
 
         outputObjectCount = objects.Count;
         return PdfPageExtractor.Assemble(objects, catalogId, infoId, cancellationToken: cancellationToken);
+    }
+
+    private static void GetMergeCollectionCounts(
+        IReadOnlyList<ImportedSource> sources,
+        IReadOnlyList<OutputPageReference>? outputOrder,
+        out int retainedObjectCount,
+        out int outputPageCount) {
+        long retainedObjects = 3L;
+        long pages = outputOrder?.Count ?? 0L;
+        for (int index = 0; index < sources.Count; index++) {
+            ImportedSource source = sources[index];
+            retainedObjects += source.Collector.ObjectIds.Count;
+            if (outputOrder is null) pages += source.PageObjectNumbers.Length;
+            if (retainedObjects > int.MaxValue || pages > int.MaxValue) {
+                throw PdfOutputLimitErrors.Create("The merged PDF exceeds the supported in-memory collection limits.");
+            }
+        }
+        retainedObjectCount = (int)retainedObjects;
+        outputPageCount = (int)pages;
     }
 
     private static PdfMetadata BuildMergedMetadata(IReadOnlyList<ImportedSource> sources, int primarySourceIndex) {
