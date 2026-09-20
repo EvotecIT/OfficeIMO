@@ -17,13 +17,15 @@ public class PdfIndirectObjectSerializationTests {
         dictionary.Items["Space Key"] = new PdfName("Hash#Value");
         dictionary.Items["Unicode\u0141"] = new PdfName("Slash/Value");
         dictionary.Items["Emoji\U0001F600"] = new PdfName("Caf\u00E9");
+        dictionary.Items["Integer"] = new PdfNumber(-42);
+        dictionary.Items["Real"] = new PdfNumber(1.23456);
         dictionary.Items["Reference"] = new PdfReference(7, 0);
         context.NumberMap[7] = 42;
 
         byte[] serialized = PdfPageExtractor.SerializeObject(dictionary, context);
 
         Assert.Equal(
-            "<< /Ordinary /Value /Space#20Key /Hash#23Value /Unicode#C5#81 /Slash#2FValue /Emoji#F0#9F#98#80 /Caf#C3#A9 /Reference 42 0 R >>\n",
+            "<< /Ordinary /Value /Space#20Key /Hash#23Value /Unicode#C5#81 /Slash#2FValue /Emoji#F0#9F#98#80 /Caf#C3#A9 /Integer -42 /Real 1.235 /Reference 42 0 R >>\n",
             PdfEncoding.Latin1GetString(serialized));
         Assert.Equal("Unicode\u0141", PdfSyntax.DecodeName("Unicode#C5#81"));
         Assert.Equal("Emoji\U0001F600", PdfSyntax.DecodeName("Emoji#F0#9F#98#80"));

@@ -290,7 +290,7 @@ internal static partial class PdfPageExtractor {
     private static void AppendObject(StringBuilder sb, PdfObject value, SerializationContext context) {
         switch (value) {
             case PdfNumber number:
-                sb.Append(FormatNumber(number.Value));
+                AppendNumber(sb, number.Value);
                 break;
             case PdfBoolean boolean:
                 sb.Append(boolean.Value ? "true" : "false");
@@ -403,6 +403,23 @@ internal static partial class PdfPageExtractor {
         }
     
         return value.ToString("0.###", CultureInfo.InvariantCulture);
+    }
+
+    private static void AppendNumber(StringBuilder destination, double value) {
+#if NET6_0_OR_GREATER
+        Span<char> buffer = stackalloc char[64];
+        if (Math.Abs(value % 1) < 0.0000001) {
+            long rounded = (long)Math.Round(value);
+            if (rounded.TryFormat(buffer, out int integerWritten, default, CultureInfo.InvariantCulture)) {
+                destination.Append(buffer.Slice(0, integerWritten));
+                return;
+            }
+        } else if (value.TryFormat(buffer, out int realWritten, "0.###", CultureInfo.InvariantCulture)) {
+            destination.Append(buffer.Slice(0, realWritten));
+            return;
+        }
+#endif
+        destination.Append(FormatNumber(value));
     }
     
 }

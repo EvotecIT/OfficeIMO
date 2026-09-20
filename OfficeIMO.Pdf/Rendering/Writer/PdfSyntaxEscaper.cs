@@ -53,10 +53,22 @@ internal static class PdfSyntaxEscaper {
             throw new ArgumentOutOfRangeException(nameof(generation), "PDF generation number cannot be negative.");
         }
 
+#if NET6_0_OR_GREATER
+        Span<char> buffer = stackalloc char[11];
+        if (!objectNumber.TryFormat(buffer, out int written, default, CultureInfo.InvariantCulture)) {
+            throw new InvalidOperationException("The PDF object number could not be formatted.");
+        }
+        destination.Append(buffer.Slice(0, written)).Append(' ');
+        if (!generation.TryFormat(buffer, out written, default, CultureInfo.InvariantCulture)) {
+            throw new InvalidOperationException("The PDF generation number could not be formatted.");
+        }
+        destination.Append(buffer.Slice(0, written)).Append(" R");
+#else
         destination.Append(objectNumber.ToString(CultureInfo.InvariantCulture))
             .Append(' ')
             .Append(generation.ToString(CultureInfo.InvariantCulture))
             .Append(" R");
+#endif
     }
 
     internal static string LiteralString(string value) {
