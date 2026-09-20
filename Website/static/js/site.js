@@ -376,7 +376,7 @@
       var query = input.value.trim().toLowerCase();
       var matches = 0;
       cards.forEach(function (card) {
-        var terms = card.querySelector('strong').textContent + ' ' + card.querySelector('.imo-browser-tools__badge').textContent;
+        var terms = card.textContent.replace(/\s+/g, ' ').trim();
         card.hidden = !terms.toLowerCase().includes(query);
         if (!card.hidden) matches++;
       });
