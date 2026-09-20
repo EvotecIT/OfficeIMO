@@ -9,6 +9,23 @@ using Xunit;
 namespace OfficeIMO.ChartForgeX.Tests;
 
 public sealed partial class OfficeVisioVisualIntegrationTests {
+    [Theory]
+    [InlineData(0, OfficeVisioVisualDiagnosticCode.GeometryOutsidePage)]
+    [InlineData(70, OfficeVisioVisualDiagnosticCode.TitleNotProjected)]
+    public void PreservedLabelBoundsParticipateInFidelityAndTitleClearance(double y, OfficeVisioVisualDiagnosticCode code) {
+        var envelope = PlacementEnvelope();
+        envelope.Title = "Services";
+        foreach (var node in envelope.Nodes) node.Y = y;
+        envelope.Edges[0].Label = "Relationship";
+        envelope.Edges[0].Topology!.Waypoints.Clear();
+        var options = new OfficeVisioVisualOptions { PixelsPerInch = 100 };
+        var result = envelope.ToOfficeVisio(options);
+        Assert.Contains(result.Report.Diagnostics, item => item.Code == code);
+        Assert.DoesNotContain(result.Page.Shapes, shape => shape.Text == "Services");
+        options.RejectedDiagnostics.Add(code);
+        Assert.Throws<OfficeVisioVisualFidelityException>(() => envelope.ToOfficeVisio(options));
+    }
+
     [Fact]
     public void PreservedGroupCaptionStaysInsideTopBoundaryThroughSave() {
         var envelope = PlacementEnvelope();

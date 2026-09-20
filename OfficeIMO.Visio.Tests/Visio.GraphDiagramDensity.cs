@@ -7,6 +7,42 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public class VisioGraphDiagramDensityTests {
+    [Fact]
+    public void PreservedPageFitReservesLegendAboveContent() {
+        var document = VisioDocument.Create().GraphDiagram("Legend", graph =>
+            graph.PageSize(4, 4).PreserveLayout().Legend().Import(new[] {
+                new VisioGraphNodeRecord("a", "A") { Placement = new VisioGraphPlacement(1, 12, 1, 1) }
+            }, Array.Empty<VisioGraphEdgeRecord>()));
+        var page = document.Pages[0];
+        var node = page.Shapes.Single(shape => shape.Id == "a");
+        Assert.All(page.Shapes.Where(shape => shape.Id != "a"), shape =>
+            Assert.True(shape.PinY - shape.Height / 2 >= node.PinY + node.Height / 2));
+    }
+
+    [Theory]
+    [InlineData(VisioMeasurementUnit.Inches)]
+    [InlineData(VisioMeasurementUnit.Centimeters)]
+    public void PreservedPageFitIncludesRouteBendsAndLabels(VisioMeasurementUnit unit) {
+        var nodes = new[] {
+            new VisioGraphNodeRecord("a", "A") { Placement = new VisioGraphPlacement(1, 1, 1, 1) },
+            new VisioGraphNodeRecord("b", "B") { Placement = new VisioGraphPlacement(3, 1, 1, 1) }
+        };
+        var edges = new[] { new VisioGraphEdgeRecord("ab", "a", "b") {
+            Label = "An extended route label",
+            Route = new VisioGraphRoute(new[] {
+                new VisioConnectorWaypoint(1.5, 1), new VisioConnectorWaypoint(12, 1),
+                new VisioConnectorWaypoint(12, 12), new VisioConnectorWaypoint(2.5, 1)
+            })
+        } };
+        var document = VisioDocument.Create().GraphDiagram("Preserved", graph =>
+            graph.PageSize(4, 4, unit).PreserveLayout().Import(nodes, edges));
+        var page = document.Pages[0];
+        var bounds = Assert.Single(page.Connectors).GetConnectorContentBounds();
+        Assert.True(page.Width >= bounds.Right);
+        Assert.True(page.Height >= bounds.Top);
+        Assert.True(page.Width > (unit == VisioMeasurementUnit.Inches ? 12 : 12 / 2.54));
+    }
+
     [Theory]
     [InlineData(100)]
     [InlineData(500)]

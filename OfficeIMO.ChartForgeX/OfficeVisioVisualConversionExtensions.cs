@@ -137,7 +137,11 @@ public static partial class OfficeVisioVisualConversionExtensions {
             } else ConfigureGraph(builder, envelope, options, report, flow);
             builder.Import(nodes, edges, groups);
         });
-        if (preserve) RouteComputedConnectors(document.Pages[document.Pages.Count - 1], envelope, report);
+        if (preserve) {
+            var page = document.Pages[document.Pages.Count - 1];
+            RouteComputedConnectors(page, envelope, report);
+            ValidatePreservedLabels(page, envelope, options, report);
+        }
         if (options.UseNaturalPageSize && !preserve) {
             document.Pages[document.Pages.Count - 1].CenterContent();
         }

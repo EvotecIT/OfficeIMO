@@ -33,6 +33,13 @@ namespace OfficeIMO.Visio.Diagrams {
             AddZones(page);
             AddNodes(page);
             AddEdges(page);
+            if (_preserveLayout && _fitPageToGraph) {
+                VisioShapeBounds bounds = page.GetContentBounds();
+                _pageWidth = Math.Max(_pageWidth, bounds.Right.FromInches(_unit) + _rightMargin);
+                _pageHeight = Math.Max(_pageHeight, bounds.Top.FromInches(_unit) + _topMargin + TitleHeaderHeight + LegendHeaderHeight);
+                page.Width = _pageWidth.ToInches(_unit);
+                page.Height = _pageHeight.ToInches(_unit);
+            }
             AddLegend(page);
             AddTitle(page);
             if (!_preserveLayout) page.PolishDiagram(new VisioDiagramPolishOptions {

@@ -114,6 +114,25 @@ public static partial class OfficeVisioVisualConversionExtensions {
         }
     }
 
+    private static void ValidatePreservedLabels(VisioPage page, VisualArtifactInterchangeEnvelope envelope,
+        OfficeVisioVisualOptions options, OfficeVisioVisualConversionReport report) {
+        var title = options.IncludeTitle && HasTitle(envelope)
+            ? page.Shapes.FirstOrDefault(shape => shape.Id == UniqueTitleId(envelope)) : null;
+        foreach (var connector in page.Connectors) {
+            var bounds = connector.GetLabelBounds();
+            if (bounds.IsEmpty) continue;
+            if (bounds.Left < 0 || bounds.Bottom < 0 || bounds.Right > page.Width || bounds.Top > page.Height)
+                report.Warn(OfficeVisioVisualDiagnosticCode.GeometryOutsidePage, OfficeVisioVisualEntityKind.Edge, connector.Id, "labelBounds",
+                    "The native connector label extends beyond the declared page.");
+            if (title != null && bounds.Top > title.PinY - title.Height / 2 - 0.08) {
+                page.Shapes.Remove(title);
+                title = null;
+                report.Warn(OfficeVisioVisualDiagnosticCode.TitleNotProjected, OfficeVisioVisualEntityKind.Artifact, envelope.Id, "title",
+                    "The native connector label leaves no clear header band for a title. The title remains in the source envelope and document metadata.");
+            }
+        }
+    }
+
     private static void ReportBounds(double x, double y, double width, double height,
         VisualArtifactInterchangeEnvelope envelope, OfficeVisioVisualConversionReport report,
         OfficeVisioVisualEntityKind kind, string id) {
