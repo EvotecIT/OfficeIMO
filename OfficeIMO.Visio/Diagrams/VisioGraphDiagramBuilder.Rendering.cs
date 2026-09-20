@@ -28,14 +28,19 @@ namespace OfficeIMO.Visio.Diagrams {
                 if (zone.LineColor.HasValue) shape.LineColor = zone.LineColor.Value;
                 page.Shapes.Add(shape);
                 ApplyZoneMetadata(shape, zone);
-                VisioNetworkDiagramVisuals.AddBackgroundZoneCaption(
+                VisioShape? caption = VisioNetworkDiagramVisuals.AddBackgroundZoneCaption(
                     page,
                     CreateGeneratedId(VisioNetworkDiagramVisuals.CreateBackgroundZoneCaptionId(zone.Id)),
                     zone.Text,
-                    left,
-                    top,
-                    width,
+                    left.ToInches(_unit),
+                    top.ToInches(_unit),
+                    width.ToInches(_unit),
                     _theme);
+                if (_preserveLayout && caption != null) {
+                    caption.Width = Math.Min(caption.Width, shape.Width);
+                    caption.Height = Math.Min(caption.Height, shape.Height);
+                    caption.PinY = shape.PinY + shape.Height / 2 - caption.Height / 2;
+                }
             }
         }
 

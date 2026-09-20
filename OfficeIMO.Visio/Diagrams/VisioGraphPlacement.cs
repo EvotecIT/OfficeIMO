@@ -27,18 +27,19 @@ namespace OfficeIMO.Visio.Diagrams {
 
     /// <summary>A complete fixed polyline in page units, including both glued endpoints.</summary>
     public sealed class VisioGraphRoute {
-        private readonly (double X, double Y)[] _points;
+        private readonly IReadOnlyList<(double X, double Y)> _points;
         /// <summary>Snapshots a finite route containing at least two points.</summary>
         public VisioGraphRoute(IEnumerable<VisioConnectorWaypoint> points) {
             if (points == null) throw new ArgumentNullException(nameof(points));
-            _points = points.Select(point => {
+            _points = Array.AsReadOnly(points.Select(point => {
                 if (point == null) throw new ArgumentException("Route points cannot be null.", nameof(points));
                 VisioGraphPlacement.RequireFinite(point.X, nameof(points));
                 VisioGraphPlacement.RequireFinite(point.Y, nameof(points));
                 return (point.X, point.Y);
-            }).ToArray();
-            if (_points.Length < 2) throw new ArgumentException("A route requires both endpoints.", nameof(points));
+            }).ToArray());
+            if (_points.Count < 2) throw new ArgumentException("A route requires both endpoints.", nameof(points));
         }
-        internal IReadOnlyList<(double X, double Y)> Points => _points;
+        /// <summary>Gets the immutable route snapshot, including both endpoints, in page units.</summary>
+        public IReadOnlyList<(double X, double Y)> Points => _points;
     }
 }

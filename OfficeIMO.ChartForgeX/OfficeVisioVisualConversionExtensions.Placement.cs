@@ -87,11 +87,12 @@ public static partial class OfficeVisioVisualConversionExtensions {
     }
 
     private static void ConfigurePreservedTitle(VisioGraphDiagramBuilder builder, VisualArtifactInterchangeEnvelope envelope,
-        OfficeVisioVisualOptions options, OfficeVisioVisualConversionReport report) {
+        OfficeVisioVisualOptions options, IEnumerable<VisioGraphEdgeRecord> edges, OfficeVisioVisualConversionReport report) {
         if (!options.IncludeTitle || !HasTitle(envelope)) return;
         double available = envelope.Nodes.Select(node => node.Y!.Value)
             .Concat(options.IncludeGroups ? envelope.Groups.Select(group => group.Y!.Value) : Array.Empty<double>())
-            .Concat(envelope.Edges.Where(edge => edge.Topology != null).SelectMany(edge => edge.Topology!.Waypoints).Select(point => point.Y))
+            .Concat(edges.Where(edge => edge.Route != null).SelectMany(edge => edge.Route!.Points)
+                .Select(point => envelope.Height!.Value - point.Y * options.PixelsPerInch))
             .DefaultIfEmpty(envelope.Height!.Value).Min() / options.PixelsPerInch;
         const double margin = 0.16, height = 0.45, gap = 0.08;
         if (available < margin + height + gap) {

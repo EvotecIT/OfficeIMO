@@ -9,11 +9,11 @@ public static partial class OfficeVisioVisualConversionExtensions {
         if (options.NativeTheme != null) return options.NativeTheme.Clone();
         var theme = VisioStyleTheme.Minimal();
         var source = envelope.Presentation?.Theme;
-        var foreground = source == null ? null : MapNativeColor(source.Foreground, "Theme foreground", envelope.Id, report);
-        var border = source == null ? null : MapNativeColor(source.Border, "Theme border", envelope.Id, report);
-        var connectorColor = source == null ? null : MapNativeColor(source.MutedForeground, "Theme connector", envelope.Id, report);
-        var card = source == null ? null : MapNativeColor(source.Card, "Theme card", envelope.Id, report);
-        var surface = source == null ? null : MapNativeColor(source.Surface, "Theme surface", envelope.Id, report);
+        var foreground = source == null ? null : MapNativeColor(source.Foreground, "Theme foreground", envelope.Id, report, OfficeVisioVisualEntityKind.Artifact);
+        var border = source == null ? null : MapNativeColor(source.Border, "Theme border", envelope.Id, report, OfficeVisioVisualEntityKind.Artifact);
+        var connectorColor = source == null ? null : MapNativeColor(source.MutedForeground, "Theme connector", envelope.Id, report, OfficeVisioVisualEntityKind.Artifact);
+        var card = source == null ? null : MapNativeColor(source.Card, "Theme card", envelope.Id, report, OfficeVisioVisualEntityKind.Artifact);
+        var surface = source == null ? null : MapNativeColor(source.Surface, "Theme surface", envelope.Id, report, OfficeVisioVisualEntityKind.Artifact);
         foreach (var style in new[] { theme.Primary, theme.Success, theme.Decision, theme.Marker, theme.Emphasis, theme.Container }) {
             if (border.HasValue) style.LineColor = border.Value;
             var fill = ReferenceEquals(style, theme.Container) ? surface : card;

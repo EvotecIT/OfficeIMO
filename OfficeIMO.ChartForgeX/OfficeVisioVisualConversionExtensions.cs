@@ -20,7 +20,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
         OfficeVisioVisualOptions? options = null,
         VisualArtifactRenderOptions? renderOptions = null) {
         if (artifact == null) throw new ArgumentNullException(nameof(artifact));
-        OfficeVisioVisualConversionResult result = artifact.ToInterchangeEnvelope(renderOptions).ToOfficeVisio(options);
+        OfficeVisioVisualConversionResult result = CreateDocumentProjection(artifact.ToInterchangeEnvelope(renderOptions), options, enforceFidelity: false);
         if (renderOptions != null && renderOptions.Watermarks.Count > 0) {
             result.Report.Warn(OfficeVisioVisualDiagnosticCode.WatermarkNotProjected, OfficeVisioVisualEntityKind.Artifact, artifact.Id, "watermark",
                 "CFX render watermarks are not projected into the native editable Visio page; keep the separately rendered SVG or PNG when watermark fidelity is required.");
@@ -33,6 +33,11 @@ public static partial class OfficeVisioVisualConversionExtensions {
     public static OfficeVisioVisualConversionResult ToOfficeVisio(
         this VisualArtifactInterchangeEnvelope envelope,
         OfficeVisioVisualOptions? options = null) {
+        return CreateDocumentProjection(envelope, options, enforceFidelity: true);
+    }
+
+    private static OfficeVisioVisualConversionResult CreateDocumentProjection(
+        VisualArtifactInterchangeEnvelope envelope, OfficeVisioVisualOptions? options, bool enforceFidelity) {
         if (envelope == null) throw new ArgumentNullException(nameof(envelope));
         envelope.Validate();
         VisualArtifactInterchangeEnvelope validated = envelope;
@@ -43,11 +48,11 @@ public static partial class OfficeVisioVisualConversionExtensions {
 
         VisioDocument document = VisioDocument.Create();
         document.Title = HasTitle(validated) ? CombineLabel(validated.Title, validated.Subtitle) : null;
-        return ProjectPage(validated, document, options);
+        return ProjectPage(validated, document, options, enforceFidelity);
     }
 
     private static OfficeVisioVisualConversionResult ProjectPage(VisualArtifactInterchangeEnvelope validated,
-        VisioDocument document, OfficeVisioVisualOptions options) {
+        VisioDocument document, OfficeVisioVisualOptions options, bool enforceFidelity = true) {
         if (options.LayoutMode == OfficeVisioVisualLayoutMode.Preserve && validated.Family != VisualArtifactInterchangeFamily.Topology)
             throw new NotSupportedException("Preserve layout is supported only for topology envelopes.");
         var report = new OfficeVisioVisualConversionReport {
@@ -79,7 +84,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
                     "Keep the separately rendered SVG as the flat fallback or add a semantic adapter for this artifact family.");
         }
 
-        EnforceFidelity(report, options);
+        if (enforceFidelity) EnforceFidelity(report, options);
         VisioPage page = document.Pages[document.Pages.Count - 1];
         return new OfficeVisioVisualConversionResult(validated, document, page, report);
     }
@@ -128,7 +133,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
             builder.Theme(ResolveNativeTheme(envelope, options, report));
             if (preserve) {
                 builder.PageSize(envelope.Width!.Value / options.PixelsPerInch, envelope.Height!.Value / options.PixelsPerInch).PreserveLayout().FitPageToGraph(false);
-                ConfigurePreservedTitle(builder, envelope, options, report);
+                ConfigurePreservedTitle(builder, envelope, options, edges, report);
             } else ConfigureGraph(builder, envelope, options, report, flow);
             builder.Import(nodes, edges, groups);
         });
