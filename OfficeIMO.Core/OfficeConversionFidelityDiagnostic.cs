@@ -16,10 +16,9 @@ public sealed class OfficeConversionFidelityDiagnostic {
         string source,
         string? location = null) {
         if (string.IsNullOrWhiteSpace(code)) throw new ArgumentException("Diagnostic code cannot be empty.", nameof(code));
-        if (string.IsNullOrWhiteSpace(message)) throw new ArgumentException("Diagnostic message cannot be empty.", nameof(message));
         if (string.IsNullOrWhiteSpace(source)) throw new ArgumentException("Diagnostic source cannot be empty.", nameof(source));
         Code = code;
-        Message = message;
+        Message = message ?? string.Empty;
         LossKind = lossKind;
         Source = source;
         Location = location;

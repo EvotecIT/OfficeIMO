@@ -9,6 +9,14 @@ public sealed class OfficeMarkupPowerPointConversionReport : IOfficeConversionRe
         PowerPointDeckPreflightReport preflightReport) {
         Markup = new OfficeMarkupConversionReport(diagnostics);
         Preflight = preflightReport ?? throw new ArgumentNullException(nameof(preflightReport));
+        FidelityDiagnostics = Array.AsReadOnly(Markup.FidelityDiagnostics
+            .Concat(Preflight.Findings.Select(static finding => new OfficeConversionFidelityDiagnostic(
+                finding.Code,
+                finding.Message,
+                GetPreflightLossKind(finding.Severity),
+                "OfficeIMO.Markup.PowerPoint.Preflight",
+                GetPreflightLocation(finding))))
+            .ToArray());
     }
 
     /// <summary>Markup mapping diagnostics.</summary>
@@ -20,20 +28,37 @@ public sealed class OfficeMarkupPowerPointConversionReport : IOfficeConversionRe
     /// <summary>Markup mapping diagnostics in emission order.</summary>
     public IReadOnlyList<OfficeMarkupDiagnostic> Diagnostics => Markup.Diagnostics;
 
-    /// <summary>Category-preserving markup diagnostics.</summary>
-    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics => Markup.FidelityDiagnostics;
+    /// <summary>Category-preserving markup and native PowerPoint preflight diagnostics.</summary>
+    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
 
     /// <summary>Whether markup conversion completed without an error diagnostic.</summary>
     public bool Succeeded => Markup.Succeeded;
 
-    /// <summary>Whether markup conversion reported possible content loss.</summary>
-    public bool HasLoss => Markup.HasLoss;
+    /// <summary>Whether markup conversion or native PowerPoint preflight reported possible content loss.</summary>
+    public bool HasLoss => FidelityDiagnostics.Any(static diagnostic =>
+        diagnostic.LossKind != OfficeConversionLossKind.None);
 
     /// <summary>Throws when markup conversion failed.</summary>
     public void RequireSuccess() => Markup.RequireSuccess();
 
-    /// <summary>Throws when markup conversion reported possible content loss.</summary>
-    public void RequireNoLoss() => Markup.RequireNoLoss();
+    /// <summary>Throws when markup conversion or native PowerPoint preflight reported possible content loss.</summary>
+    public void RequireNoLoss() {
+        Markup.RequireNoLoss();
+        Preflight.ThrowIfFindings(PowerPointDeckPreflightSeverity.Warning);
+    }
+
+    private static OfficeConversionLossKind GetPreflightLossKind(PowerPointDeckPreflightSeverity severity) => severity switch {
+        PowerPointDeckPreflightSeverity.Error => OfficeConversionLossKind.Failure,
+        PowerPointDeckPreflightSeverity.Warning => OfficeConversionLossKind.Approximation,
+        _ => OfficeConversionLossKind.None
+    };
+
+    private static string GetPreflightLocation(PowerPointDeckPreflightFinding finding) {
+        string location = "slide:" + (finding.SlideIndex + 1).ToString(CultureInfo.InvariantCulture);
+        return finding.ShapeIndex.HasValue
+            ? location + "/shape:" + (finding.ShapeIndex.Value + 1).ToString(CultureInfo.InvariantCulture)
+            : location;
+    }
 }
 
 /// <summary>An editable PowerPoint presentation with mapping diagnostics and native preflight evidence.</summary>
