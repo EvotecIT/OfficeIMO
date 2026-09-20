@@ -1,3 +1,5 @@
 body { margin: 0; background: #f2f5f8; color: #17324d; font-family: Arial, sans-serif; }
 main { width: 620px; margin: 30px auto; padding: 24px; background: white; border-left: 8px solid #2f6f9f; }
 a, button { color: #164f7a; font-weight: 700; }
+.route-space { height: 980px; }
+#viewport-marker { padding: 12px; background: #dcecff; }

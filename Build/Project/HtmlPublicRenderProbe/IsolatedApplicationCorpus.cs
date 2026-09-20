@@ -75,6 +75,8 @@ internal sealed record IsolatedApplicationCorpus(IReadOnlyList<IsolatedApplicati
             if (!PdfReadDocument.Open(print.Content.ToArray()).ExtractText().Contains(fixture.ExpectedText, StringComparison.Ordinal)
                 || !PdfReadDocument.Open(screenToPage.Content.ToArray()).ExtractText().Contains(fixture.ExpectedText, StringComparison.Ordinal))
                 throw new IOException("The isolated application PDFs do not retain the expected final state.");
+            if (fixture.ExpectedCaptureUrl != null && result.CaptureUrl != fixture.ExpectedCaptureUrl)
+                throw new IOException("The isolated application capture URL does not match its expected final route.");
             string directory = Path.Combine(outputDirectory, "isolated-applications", fixture.Id);
             Directory.CreateDirectory(directory);
             foreach (HtmlIsolatedPageOutput output in result.Outputs)
@@ -89,7 +91,14 @@ internal sealed record IsolatedApplicationCorpus(IReadOnlyList<IsolatedApplicati
         bool passed = failure == null && result != null && result.ContainerRemoved;
         return new IsolatedApplicationProbeResult(fixture.Id, passed, containerName, containerRemoved,
             stopwatch.ElapsedMilliseconds, result?.ProviderId, result?.CaptureManifest,
+            result?.CaptureUrl?.AbsoluteUri,
             result?.Actions.Count ?? 0, result?.Resources.Count ?? 0, server.Requests.ToArray(), connections.ToArray(),
+            result?.Resources.Where(resource => resource.NavigationKind != null).Select(resource => new NavigationProbeEvidence(
+                resource.NavigationKind!.Value.ToString(), resource.Url.AbsoluteUri, resource.FinalUrl.AbsoluteUri,
+                resource.NavigationInitiatorUrl?.AbsoluteUri, resource.NavigationReferrer?.AbsoluteUri,
+                resource.NavigationFinalOrigin?.AbsoluteUri, resource.NavigationRedirectTaintedOrigin,
+                resource.RequestMethod, resource.RequestOccurrence, resource.NavigationHistoryEntryIndex,
+                resource.NavigationReplacesHistoryEntry)).ToArray(),
             result?.FontPackage.Id, result?.FontPackage.ManifestSha256, result?.FontPackage.FilesSha256,
             result?.Outputs.ToDictionary(output => output.Name, output => output.Sha256, StringComparer.Ordinal),
             failure?.GetType().Name, failure?.Message);
@@ -99,6 +108,7 @@ internal sealed record IsolatedApplicationCorpus(IReadOnlyList<IsolatedApplicati
         if (request.Method != "GET") return ControlledHttpReply.NotFound();
         string name = request.Path == "/" || request.Path == "/index.html"
             ? "index.html" : request.Path.TrimStart('/');
+        if (fixture.Id == "navigation" && request.Path is "/report/review" or "/report/approved") name = "report.html";
         string path = Path.Combine(fixture.Directory, name.Replace('/', Path.DirectorySeparatorChar));
         string full = Path.GetFullPath(path);
         if (!full.StartsWith(Path.GetFullPath(fixture.Directory) + Path.DirectorySeparatorChar,
@@ -125,7 +135,18 @@ internal sealed record IsolatedApplicationCorpus(IReadOnlyList<IsolatedApplicati
                 new Uri("http://external-graph.officeimo.test/index.html"),
                 "window.applicationCorpusInteractive===true", "window.applicationCorpusReady===true",
                 new[] { ClickName("Build summary"), Wait("#summary", "Qualified graph total: 51") },
-                "Qualified graph total: 51")
+                "Qualified graph total: 51"),
+            new ApplicationCase("navigation", Path.Combine(root, "Navigation"),
+                new Uri("http://navigation.officeimo.test/index.html"),
+                "document.readyState === 'complete'",
+                "window.applicationCorpusReady===true && scrollY>0 && sessionStorage.reportLoads==='3' && sessionStorage.beforeUnloadCount==='2' && sessionStorage.lastPageHide==='false' && sessionStorage.lastUnload==='yes'",
+                new[] {
+                    ClickName("Open report"), Wait("h1", "Route report"), Scroll("#viewport-marker"),
+                    ClickName("Approve route"), Wait("#state", "Approved route snapshot"),
+                    ClickName("Back"), Wait("#state", "Review pending"), ClickName("Back"), Wait("h1", "Navigation start"),
+                    ClickName("Forward to report"), Wait("#state", "Review pending"), ClickName("Forward"),
+                    Wait("#state", "Approved route snapshot"), ClickName("Reload"), Wait("#state", "Approved route snapshot")
+                }, "Approved route snapshot", new Uri("http://navigation.officeimo.test/report/approved"))
         };
     }
 
@@ -155,13 +176,22 @@ internal sealed record IsolatedApplicationCorpus(IReadOnlyList<IsolatedApplicati
         Query = HtmlLocatorQuery.Css(selector), Action = HtmlAutomationAction.Wait,
         WaitState = HtmlLocatorWaitState.Text, Value = value
     };
+    private static HtmlAutomationRequest Scroll(string selector) => new() {
+        Query = HtmlLocatorQuery.Css(selector), Action = HtmlAutomationAction.ScrollIntoView
+    };
 }
 
 internal sealed record ApplicationCase(string Id, string Directory, Uri DocumentUrl,
-    string InitialReadyExpression, string FinalReadyExpression, HtmlAutomationRequest[] Actions, string ExpectedText);
+    string InitialReadyExpression, string FinalReadyExpression, HtmlAutomationRequest[] Actions, string ExpectedText,
+    Uri? ExpectedCaptureUrl = null);
 
 internal sealed record IsolatedApplicationProbeResult(string Name, bool Passed, string? ContainerName,
     bool? ContainerRemoved, long ElapsedMilliseconds, string? ProviderId, string? CaptureManifest,
-    int ActionCount, int AcquiredResourceCount, string[] ServerRequests, string[] Connections,
+    string? CaptureUrl, int ActionCount, int AcquiredResourceCount, string[] ServerRequests, string[] Connections,
+    NavigationProbeEvidence[]? NavigationRequests,
     string? FontPackageId, string? FontManifestSha256, string? FontFilesSha256,
     IReadOnlyDictionary<string, string>? Outputs, string? ErrorKind, string? Error);
+
+internal sealed record NavigationProbeEvidence(string Kind, string RequestedUrl, string FinalUrl,
+    string? InitiatorUrl, string? Referrer, string? FinalOrigin, bool RedirectTaintedOrigin,
+    string Method, int? Occurrence, int? HistoryEntryIndex, bool? ReplacesHistoryEntry);

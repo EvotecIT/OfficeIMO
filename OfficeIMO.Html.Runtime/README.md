@@ -387,8 +387,10 @@ budgets as document loads. `MaxRequestBytes` limits each encoded request body;
 `MaxTotalRequestBytes` counts bodies sent across commands, including redirect
 replays. URL resources answer bodyless headerless GET and HEAD. Exact dynamic
 responses can instead be supplied as `HtmlRuntimeFetchReplay` values keyed by
-normalized URL, method, outgoing headers, body bytes, fetch options and one-based
-occurrence. Each replay carries one to sixteen direct response hops, with an
+normalized URL, method, outgoing headers, body bytes, fetch options, exact
+initiating document origin, and one-based occurrence. Retaining the initiator
+keeps authorization, Origin headers, and CORS checks correct after cross-document
+navigation. Each replay carries one to sixteen direct response hops, with an
 OPTIONS response on any hop that requires CORS preflight. The runtime applies
 the same redirect, method-change, origin, CORS and byte-budget checks used for
 live fetch. This lets a coordinator acquire each request once and restart a
@@ -595,6 +597,17 @@ its own offset. A cancelable `beforeunload` can keep the current document active
 Committed replacement dispatches `pagehide` with `persisted=false`, then `unload`.
 Specialized `beforeunload.returnValue` and handler return semantics, additional
 browsing contexts and the newer Navigation API remain outside this profile.
+
+Offline hosts can supply cross-document responses as
+`HtmlRuntimeNavigationReplay` values. Each replay is bound to the complete
+`HtmlRuntimeNavigationRequest` envelope and one-based occurrence and contains
+the ordered direct redirect and final responses. With
+`FailOnNavigationReplayDiscovery`, a missing occurrence fails with a typed
+discovery payload so a bounded host can acquire it and restart the networkless
+worker. The final execution reports the consumed replay identities, allowing a
+host to reject missing, reordered, or divergent side-effecting requests. This
+is the reusable runtime protocol used by the separately packaged isolated
+public-page broker; it does not itself grant network authority or OS isolation.
 
 `WebApplicationV1` names the selected trusted application and layout-aware
 automation contract. The test-only Preact 10.29.8

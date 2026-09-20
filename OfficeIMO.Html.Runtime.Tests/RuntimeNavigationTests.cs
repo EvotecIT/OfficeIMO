@@ -172,6 +172,90 @@ public sealed class RuntimeNavigationTests {
     }
 
     [Fact]
+    public async Task OfflineNavigationDiscoveryCarriesExactInitiatorReferrerHistoryAndOccurrence() {
+        var request = Application(Page("First"));
+        request.FailOnNavigationReplayDiscovery = true;
+        HtmlScriptRuntimeException failure;
+        await using (var session = await Runtime().OpenTrustedAsync(request)) {
+            failure = await Assert.ThrowsAsync<HtmlScriptRuntimeException>(() => session.NavigateAsync(Second));
+        }
+
+        HtmlRuntimeNavigationDiscovery discovery = Assert.Single(failure.MissingNavigationRequests);
+        Assert.Empty(failure.MissingResourceUrls);
+        Assert.Empty(failure.MissingFetchRequests);
+        Assert.Equal(Second, discovery.Request.Url);
+        Assert.Equal(First, discovery.Request.InitiatorUrl);
+        Assert.Equal(First, discovery.Request.Referrer);
+        Assert.Equal("GET", discovery.Request.Method);
+        Assert.Equal(HtmlRuntimeNavigationKind.Navigate, discovery.Request.Kind);
+        Assert.False(discovery.Request.ReplaceHistoryEntry);
+        Assert.Equal(-1, discovery.Request.HistoryEntryIndex);
+        Assert.Equal(1, discovery.Occurrence);
+
+        request.NavigationReplays = new[] {
+            new HtmlRuntimeNavigationReplay(discovery.Request, discovery.Occurrence, Resource(Second, Page("Second")))
+        };
+        await using var replayed = await Runtime().OpenTrustedAsync(request);
+        await replayed.NavigateAsync(Second);
+        Assert.Equal(Second, (await replayed.CaptureAsync()).DocumentUrl);
+    }
+
+    [Fact]
+    public async Task NavigationReplayRetainsRedirectedFinalOriginWithoutGrantingWorkerNetwork() {
+        Uri requested = new(First, "/redirect");
+        Uri final = new("https://reports.example/final");
+        var request = Application(Page("First"));
+        request.FailOnNavigationReplayDiscovery = true;
+        request.ResourcePolicy = new HtmlRuntimeResourcePolicy {
+            AllowedOrigins = new[] { new Uri("https://reports.example/") }
+        };
+        HtmlRuntimeNavigationDiscovery discovery;
+        await using (var session = await Runtime().OpenTrustedAsync(request)) {
+            var failure = await Assert.ThrowsAsync<HtmlScriptRuntimeException>(() => session.NavigateAsync(requested));
+            discovery = Assert.Single(failure.MissingNavigationRequests);
+        }
+        var redirect = new HtmlRuntimeResource(requested, Array.Empty<byte>(), "text/html", 302,
+            headers: new Dictionary<string, string> { ["Location"] = final.AbsoluteUri });
+        request.NavigationReplays = new[] { new HtmlRuntimeNavigationReplay(discovery.Request, 1, new[] {
+            new HtmlRuntimeNavigationHop(redirect), new HtmlRuntimeNavigationHop(Resource(final, Page("Final")))
+        }) };
+
+        await using var replayed = await Runtime().OpenTrustedAsync(request);
+        await replayed.NavigateAsync(requested);
+        HtmlScriptCapture capture = await replayed.CaptureAsync();
+        Assert.Equal(final, capture.DocumentUrl);
+        Assert.Equal("Final", capture.Document.QuerySelector("#title")!.TextContent);
+    }
+
+    [Fact]
+    public async Task FetchDiscoveryAfterNavigationCarriesTheActiveDocumentOrigin() {
+        Uri other = new("https://other.example/report");
+        var request = Application(Page("First"));
+        request.FailOnNavigationReplayDiscovery = true;
+        request.FailOnFetchReplayDiscovery = true;
+        request.ResourcePolicy = new HtmlRuntimeResourcePolicy {
+            AllowedOrigins = new[] { new Uri("https://other.example/") }
+        };
+
+        HtmlRuntimeNavigationDiscovery navigation;
+        await using (var session = await Runtime().OpenTrustedAsync(request)) {
+            var failure = await Assert.ThrowsAsync<HtmlScriptRuntimeException>(() => session.NavigateAsync(other));
+            navigation = Assert.Single(failure.MissingNavigationRequests);
+        }
+        request.NavigationReplays = new[] {
+            new HtmlRuntimeNavigationReplay(navigation.Request, navigation.Occurrence,
+                Resource(other, Page("Other", "fetch('https://navigation.example/data').then(r=>r.text())")))
+        };
+
+        await using var replayed = await Runtime().OpenTrustedAsync(request);
+        HtmlScriptRuntimeException fetchFailure = await Assert.ThrowsAsync<HtmlScriptRuntimeException>(() =>
+            replayed.NavigateAsync(other));
+        HtmlRuntimeFetchDiscovery fetch = Assert.Single(fetchFailure.MissingFetchRequests);
+        Assert.Equal(new Uri("https://other.example/"), fetch.Request.InitiatorOrigin);
+        Assert.Equal(new Uri("https://navigation.example/data"), fetch.Request.Url);
+    }
+
+    [Fact]
     public async Task NoContentResponseLeavesTheCurrentDocumentAndHistoryActive() {
         var request = Application(Page("First"));
         request.Resources = new[] { new HtmlRuntimeResource(Second, Array.Empty<byte>(), "text/html", 204) };

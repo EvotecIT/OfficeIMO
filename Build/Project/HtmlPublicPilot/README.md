@@ -52,7 +52,9 @@ fonts and frame documents, then follows frame-static resources, stylesheet
 imports and selected CSS URLs. If execution
 requests an unsupplied dynamic resource, the worker can ask the host to acquire its
 exact URL, method, allowed headers, body, fetch options and occurrence, then restart
-the offline capture with that response. URL-only static assets retain their simpler
+the offline capture with that response. A top-level document navigation uses its
+own exact request and redirect transcript, including initiator, reduced referrer,
+navigation kind, selected history entry, method/body, and occurrence. URL-only static assets retain their simpler
 GET path. Every request passes through the same bounded host
 broker; rejected hosts and URLs are recorded as skipped resources. Discovery is
 limited to 16 rounds and 24 supplied assets. The acquired bytes, redirects,
@@ -83,6 +85,13 @@ counts and digests without retaining header values or request bodies. Add
 dynamic origin. `--host` alone never authorizes a dynamic cross-origin request.
 Likewise, `--dynamic-origin` does not approve static assets or document redirects
 on that host; use `--host` when those are intended.
+Same-origin top-level GET navigation is admitted automatically. Add
+`--navigation-origin=https://reports.example/` for each additional exact requested
+or redirect origin. Add `--navigation-method=POST` only when the page is authorized
+to submit a live navigation body. Navigation authority remains separate from
+`--host` and `--dynamic-origin`. Each redirect target is revalidated and must be
+authorized; HTTPS downgrade and credentials are rejected. Origin-changing dynamic
+fetch redirects remain outside the profile.
 Use `--max-output-bytes=BYTES` or `--max-total-output-bytes=BYTES` to lower the
 8 MiB per-output or 12 MiB combined encoded-output ceilings.
 Use `--timeout-seconds=SECONDS` to lower the acquisition and execution deadline

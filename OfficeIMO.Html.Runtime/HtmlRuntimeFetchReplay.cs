@@ -10,15 +10,15 @@ namespace OfficeIMO.Html.Runtime;
 public sealed class HtmlRuntimeFetchRequest {
     private readonly byte[]? _body;
 
-    /// <summary>Creates an immutable request identity from browser-visible fetch options.</summary>
-    public HtmlRuntimeFetchRequest(Uri url, string method = "GET", IReadOnlyDictionary<string, string>? headers = null,
+    /// <summary>Creates an immutable request identity from browser-visible fetch options and the required initiating document origin.</summary>
+    public HtmlRuntimeFetchRequest(Uri url, Uri initiatorOrigin, string method = "GET", IReadOnlyDictionary<string, string>? headers = null,
         byte[]? body = null, string mode = "cors", string credentials = "same-origin", string redirect = "follow")
-        : this(url, method, headers, body, mode, credentials, redirect, body != null) { }
+        : this(url, method, headers, body, mode, credentials, redirect, body != null, initiatorOrigin) { }
 
     /// <summary>Restores an immutable request identity while preserving the distinction between no body and a zero-byte body.</summary>
     [JsonConstructor]
     public HtmlRuntimeFetchRequest(Uri url, string method, IReadOnlyDictionary<string, string>? headers,
-        byte[]? body, string mode, string credentials, string redirect, bool hasBody) {
+        byte[]? body, string mode, string credentials, string redirect, bool hasBody, Uri initiatorOrigin) {
         Url = HtmlRuntimeResourcePolicy.ValidateUrl(url);
         Method = NormalizeMethod(method);
         HasBody = hasBody;
@@ -31,6 +31,10 @@ public sealed class HtmlRuntimeFetchRequest {
         Mode = mode;
         Credentials = credentials;
         Redirect = redirect;
+        initiatorOrigin = HtmlRuntimeResourcePolicy.ValidateUrl(initiatorOrigin ?? throw new ArgumentNullException(nameof(initiatorOrigin)));
+        if (initiatorOrigin.AbsolutePath != "/" || initiatorOrigin.Query.Length != 0 || initiatorOrigin.Fragment.Length != 0)
+            throw new ArgumentException("A fetch initiator origin cannot contain a path, query, or fragment.", nameof(initiatorOrigin));
+        InitiatorOrigin = initiatorOrigin;
         Identity = ComputeIdentity();
     }
 
@@ -50,7 +54,9 @@ public sealed class HtmlRuntimeFetchRequest {
     public string Credentials { get; }
     /// <summary>Fetch redirect mode.</summary>
     public string Redirect { get; }
-    /// <summary>Stable lowercase SHA-256 identity over URL, method, headers, body, and fetch options.</summary>
+    /// <summary>Required exact origin of the document that initiated this request.</summary>
+    public Uri InitiatorOrigin { get; }
+    /// <summary>Stable lowercase SHA-256 identity over URL, initiating origin, method, headers, body, and fetch options.</summary>
     public string Identity { get; }
     /// <summary>Request body byte count.</summary>
     [JsonIgnore]
@@ -103,6 +109,7 @@ public sealed class HtmlRuntimeFetchRequest {
         Field(stream, Mode);
         Field(stream, Credentials);
         Field(stream, Redirect);
+        Field(stream, InitiatorOrigin.AbsoluteUri);
         Span<byte> headerCount = stackalloc byte[4];
         BinaryPrimitives.WriteInt32LittleEndian(headerCount, Headers.Count);
         stream.Write(headerCount);

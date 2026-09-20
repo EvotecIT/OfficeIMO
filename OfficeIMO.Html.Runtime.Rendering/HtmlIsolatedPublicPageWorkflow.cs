@@ -58,23 +58,29 @@ public static class HtmlIsolatedPublicPageWorkflow {
                 .Concat(input.AllowedHosts).ToArray();
             TimeSpan acquisitionTimeout = callerPolicy.Timeout < TimeSpan.FromSeconds(20)
                 ? callerPolicy.Timeout : TimeSpan.FromSeconds(20);
+            Uri[] navigationOrigins = input.AllowedNavigationOrigins
+                .Append(new Uri(input.Url.GetLeftPart(UriPartial.Authority) + "/"))
+                .DistinctBy(HtmlRuntimeResourcePolicy.Origin, StringComparer.Ordinal).ToArray();
             var broker = transport == null
                 ? new HtmlPublicResourceBroker(allowedHosts, maxRequests: acquisitionRequests,
                     maxResourceBytes: acquisitionResourceBytes, maxTotalBytes: acquisitionTotalBytes,
                     timeout: acquisitionTimeout, maxRedirects: Math.Min(callerPolicy.MaxRedirects, 5),
                     maxRequestBytes: Math.Min(callerPolicy.MaxRequestBytes, 1024L * 1024),
                     maxTotalRequestBytes: Math.Min(callerPolicy.MaxTotalRequestBytes, 16L * 1024 * 1024),
-                    dynamicHosts: input.AllowedDynamicRequestOrigins.Select(origin => origin.IdnHost))
+                    dynamicOrigins: input.AllowedDynamicRequestOrigins,
+                    navigationOrigins: navigationOrigins)
                 : new HtmlPublicResourceBroker(allowedHosts, transport.ResolveAddresses, transport.Connect,
                     maxRequests: acquisitionRequests, maxResourceBytes: acquisitionResourceBytes,
                     maxTotalBytes: acquisitionTotalBytes, timeout: acquisitionTimeout,
                     maxRedirects: Math.Min(callerPolicy.MaxRedirects, 5),
                     maxRequestBytes: Math.Min(callerPolicy.MaxRequestBytes, 1024L * 1024),
                     maxTotalRequestBytes: Math.Min(callerPolicy.MaxTotalRequestBytes, 16L * 1024 * 1024),
-                    dynamicHosts: input.AllowedDynamicRequestOrigins.Select(origin => origin.IdnHost));
+                    dynamicOrigins: input.AllowedDynamicRequestOrigins,
+                    navigationOrigins: navigationOrigins);
 
             phase = HtmlIsolatedPublicPagePhase.Acquisition;
             document = await broker.FetchAsync(input.Url, operation.Token).ConfigureAwait(false);
+            broker.AuthorizeNavigationOrigin(document.Resource.FinalUrl);
             string html = HtmlPublicResourceBroker.DecodeUtf8Html(document.Resource);
             foreach (Uri resourceUrl in input.SeedResourceUrls.DistinctBy(
                          HtmlRuntimeResourcePolicy.Key, StringComparer.Ordinal)) {
@@ -92,10 +98,9 @@ public static class HtmlIsolatedPublicPageWorkflow {
             page.Html = html;
             page.DocumentUrl = document.Resource.FinalUrl;
             page.Resources = assets.Select(asset => asset.Resource).ToArray();
-            page.ResourcePolicy = BoundedPolicy(callerPolicy, broker.AllowedOrigins
-                .Where(origin => !origin.IdnHost.Equals(page.DocumentUrl.IdnHost, StringComparison.OrdinalIgnoreCase))
-                .ToArray());
+            page.ResourcePolicy = BoundedPolicy(callerPolicy, WorkerAllowedOrigins(broker, page.DocumentUrl));
             page.FailOnFetchReplayDiscovery = true;
+            page.FailOnNavigationReplayDiscovery = true;
             page = page.Snapshot();
             var renderRequest = new HtmlPublicRenderRequest { Page = page, Actions = input.Actions,
                 FinalReadyExpression = input.FinalReadyExpression,
@@ -122,6 +127,7 @@ public static class HtmlIsolatedPublicPageWorkflow {
                 known.Add(HtmlRuntimeResourcePolicy.Key(asset.Resource.FinalUrl));
             }
             var knownDynamic = new HashSet<string>(StringComparer.Ordinal);
+            var knownNavigations = new HashSet<string>(StringComparer.Ordinal);
 
             for (int round = 0; ; round++) {
                 phase = HtmlIsolatedPublicPagePhase.ResourceDiscovery;
@@ -134,10 +140,12 @@ public static class HtmlIsolatedPublicPageWorkflow {
                 ThrowWorkerError(response);
                 if (response.DiscoveryComplete) break;
                 if (round >= 16 || response.DiscoveryUrls == null || response.DiscoveryRequests == null ||
-                    (long)response.DiscoveryUrls.Length + response.DiscoveryRequests.Length is 0 or > 128)
+                    response.NavigationRequests == null ||
+                    (long)response.DiscoveryUrls.Length + response.DiscoveryRequests.Length + response.NavigationRequests.Length is 0 or > 128)
                     throw new HtmlScriptRuntimeException("The isolated renderer exceeded the resource discovery limit.");
                 var batch = new List<HtmlRuntimeResource>();
                 var fetchBatch = new List<HtmlRuntimeFetchReplay>();
+                var navigationBatch = new List<HtmlRuntimeNavigationReplay>();
                 foreach (string candidate in response.DiscoveryUrls) {
                     if (!Uri.TryCreate(candidate, UriKind.Absolute, out Uri? resourceUrl)) {
                         skipped.Add(new HtmlPublicSkippedResource(candidate, "invalid-url"));
@@ -169,20 +177,44 @@ public static class HtmlIsolatedPublicPageWorkflow {
                         throw new HtmlScriptRuntimeException("The isolated renderer repeated a supplied dynamic request occurrence.");
                     if (!input.AllowedDynamicRequestMethods.Contains(dynamic.Method, StringComparer.Ordinal))
                         throw new HtmlScriptRuntimeException("Dynamic request method " + dynamic.Method + " was not authorized by the caller.");
+                    Uri initiatorOrigin = dynamic.InitiatorOrigin
+                        ?? throw new HtmlScriptRuntimeException("The isolated renderer omitted the dynamic request initiator origin.");
                     string dynamicOrigin = HtmlRuntimeResourcePolicy.Origin(dynamic.Url);
-                    if (dynamicOrigin != HtmlRuntimeResourcePolicy.Origin(page.DocumentUrl) &&
+                    if (dynamicOrigin != HtmlRuntimeResourcePolicy.Origin(initiatorOrigin) &&
                         !input.AllowedDynamicRequestOrigins.Any(origin => HtmlRuntimeResourcePolicy.Origin(origin) == dynamicOrigin))
                         throw new HtmlScriptRuntimeException("The dynamic request origin was not authorized by the caller.");
                     HtmlPublicResourceBroker.ValidateDynamicRequest(dynamic);
                     if (assets.Count >= assetLimit)
                         throw new HtmlScriptRuntimeException("The dynamic acquisition resource count limit was exceeded.");
-                    HtmlPublicResourceResult asset = await broker.FetchAsync(discovery, page.DocumentUrl, operation.Token).ConfigureAwait(false);
+                    HtmlPublicResourceResult asset = await broker.FetchAsync(discovery, operation.Token).ConfigureAwait(false);
                     assets.Add(asset);
                     fetchBatch.Add(new HtmlRuntimeFetchReplay(dynamic, discovery.Occurrence,
                         asset.DynamicHops ?? throw new HtmlScriptRuntimeException("The dynamic acquisition transcript is missing.")));
                 }
+                foreach (HtmlRuntimeNavigationDiscovery discovery in response.NavigationRequests) {
+                    HtmlRuntimeNavigationRequest navigation = discovery?.Request
+                        ?? throw new HtmlScriptRuntimeException("The isolated renderer returned an invalid navigation request.");
+                    if (!knownNavigations.Add(discovery.Identity))
+                        throw new HtmlScriptRuntimeException("The isolated renderer repeated a supplied navigation occurrence.");
+                    if (!input.AllowedNavigationMethods.Contains(navigation.Method, StringComparer.Ordinal))
+                        throw new HtmlScriptRuntimeException("Document navigation method " + navigation.Method + " was not authorized by the caller.");
+                    string requestedOrigin = HtmlRuntimeResourcePolicy.Origin(navigation.Url);
+                    string initiatorOrigin = HtmlRuntimeResourcePolicy.Origin(navigation.InitiatorUrl);
+                    if (requestedOrigin != initiatorOrigin && !input.AllowedNavigationOrigins.Any(origin =>
+                            HtmlRuntimeResourcePolicy.Origin(origin) == requestedOrigin))
+                        throw new HtmlScriptRuntimeException("The document navigation origin was not authorized by the caller.");
+                    HtmlPublicResourceBroker.ValidateNavigationRequest(navigation);
+                    if (assets.Count >= assetLimit)
+                        throw new HtmlScriptRuntimeException("The navigation acquisition resource count limit was exceeded.");
+                    HtmlPublicResourceResult asset = await broker.FetchAsync(discovery, operation.Token).ConfigureAwait(false);
+                    assets.Add(asset);
+                    broker.AuthorizeNavigationOrigin(asset.Resource.FinalUrl);
+                    navigationBatch.Add(new HtmlRuntimeNavigationReplay(navigation, discovery.Occurrence,
+                        asset.NavigationHops ?? throw new HtmlScriptRuntimeException("The navigation acquisition transcript is missing.")));
+                }
                 await HtmlRuntimeProtocol.WriteAsync(process.StandardInput.BaseStream,
-                    new HtmlPublicResourceBatch { Resources = batch.ToArray(), FetchReplays = fetchBatch.ToArray() },
+                    new HtmlPublicResourceBatch { Resources = batch.ToArray(), FetchReplays = fetchBatch.ToArray(),
+                        NavigationReplays = navigationBatch.ToArray() },
                     24 * 1024 * 1024, operation.Token).ConfigureAwait(false);
             }
 
@@ -251,6 +283,12 @@ public static class HtmlIsolatedPublicPageWorkflow {
             Array.AsReadOnly(evidenceResources), Array.AsReadOnly(skipped.ToArray()), run.ImageId,
             containerName ?? throw new HtmlScriptRuntimeException("The isolated container identity is missing."),
             response!, screen!, print!, screenToPage!);
+    }
+
+    internal static Uri[] WorkerAllowedOrigins(HtmlPublicResourceBroker broker, Uri documentUrl) {
+        ArgumentNullException.ThrowIfNull(broker);
+        string documentOrigin = HtmlRuntimeResourcePolicy.Origin(documentUrl);
+        return broker.AllowedOrigins.Where(origin => HtmlRuntimeResourcePolicy.Origin(origin) != documentOrigin).ToArray();
     }
 
     internal static HtmlRuntimeResourcePolicy BoundedPolicy(HtmlRuntimeResourcePolicy caller, Uri[] allowedOrigins) => new() {

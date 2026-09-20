@@ -3,7 +3,7 @@ using OfficeIMO.Html.Runtime;
 using OfficeIMO.Html.Runtime.Rendering;
 
 if (args.Length < 6) throw new ArgumentException(
-    "Usage: OfficeIMO.Html.PublicPilot <http(s)-url> <new-output-directory> <full-sha256-image-id> <published-renderer-dll> <published-worker-dll> --license=TEXT [--scenario=ID] [--resource=URL] [--host=DNS-name] [--method=HTTP-METHOD] [--dynamic-origin=ORIGIN] [--max-output-bytes=BYTES] [--max-total-output-bytes=BYTES] [--retain-input] [--podman-command=PATH] [--podman-arg=VALUE] [--timeout-seconds=SECONDS]");
+    "Usage: OfficeIMO.Html.PublicPilot <http(s)-url> <new-output-directory> <full-sha256-image-id> <published-renderer-dll> <published-worker-dll> --license=TEXT [--scenario=ID] [--resource=URL] [--host=DNS-name] [--method=HTTP-METHOD] [--dynamic-origin=ORIGIN] [--navigation-method=GET|POST] [--navigation-origin=ORIGIN] [--max-output-bytes=BYTES] [--max-total-output-bytes=BYTES] [--retain-input] [--podman-command=PATH] [--podman-arg=VALUE] [--timeout-seconds=SECONDS]");
 
 Uri url = new(args[0], UriKind.Absolute);
 string outputDirectory = Path.GetFullPath(args[1]);
@@ -19,11 +19,14 @@ Uri[] resources = Values("--resource=").Select(value => new Uri(value, UriKind.A
 string[] hosts = Values("--host=");
 string[] methods = Values("--method=");
 Uri[] dynamicOrigins = Values("--dynamic-origin=").Select(value => new Uri(value, UriKind.Absolute)).ToArray();
+string[] navigationMethods = Values("--navigation-method=");
+Uri[] navigationOrigins = Values("--navigation-origin=").Select(value => new Uri(value, UriKind.Absolute)).ToArray();
 long maxOutputBytes = ParseByteLimit(Value("--max-output-bytes="), 8L * 1024 * 1024);
 long maxTotalOutputBytes = ParseByteLimit(Value("--max-total-output-bytes="), 12L * 1024 * 1024);
 if (methods.Length == 0) methods = ["GET", "HEAD"];
+if (navigationMethods.Length == 0) navigationMethods = ["GET"];
 bool retainInput = args.Contains("--retain-input", StringComparer.Ordinal);
-string[] knownPrefixes = ["--license=", "--scenario=", "--podman-command=", "--podman-arg=", "--resource=", "--host=", "--method=", "--dynamic-origin=", "--max-output-bytes=", "--max-total-output-bytes=", "--timeout-seconds="];
+string[] knownPrefixes = ["--license=", "--scenario=", "--podman-command=", "--podman-arg=", "--resource=", "--host=", "--method=", "--dynamic-origin=", "--navigation-method=", "--navigation-origin=", "--max-output-bytes=", "--max-total-output-bytes=", "--timeout-seconds="];
 if (args.Skip(5).Any(value => value != "--retain-input" &&
         !knownPrefixes.Any(prefix => value.StartsWith(prefix, StringComparison.Ordinal))))
     throw new ArgumentException("The pilot received an unknown option.");
@@ -48,6 +51,8 @@ try {
             AllowedHosts = hosts,
             AllowedDynamicRequestMethods = methods,
             AllowedDynamicRequestOrigins = dynamicOrigins,
+            AllowedNavigationMethods = navigationMethods,
+            AllowedNavigationOrigins = navigationOrigins,
             MaxOutputBytesPerArtifact = maxOutputBytes,
             MaxTotalOutputBytes = maxTotalOutputBytes,
             RetainInputBytes = retainInput
@@ -188,7 +193,15 @@ static object ResourceEvidence(HtmlPublicResourceEvidence resource) => new {
     resource.RequestHeaderNames,
     resource.RequestBodyByteCount,
     resource.RequestBodySha256,
-    dynamicExchanges = resource.DynamicExchanges.Select(exchange => new {
+    dynamicInitiatorOrigin = resource.DynamicInitiatorOrigin?.AbsoluteUri,
+    resource.NavigationKind,
+    resource.NavigationHistoryEntryIndex,
+    resource.NavigationReplacesHistoryEntry,
+    navigationInitiatorUrl = resource.NavigationInitiatorUrl?.AbsoluteUri,
+    navigationReferrer = resource.NavigationReferrer?.AbsoluteUri,
+    navigationFinalOrigin = resource.NavigationFinalOrigin?.AbsoluteUri,
+    resource.NavigationRedirectTaintedOrigin,
+    httpExchanges = resource.HttpExchanges.Select(exchange => new {
         url = exchange.Url.AbsoluteUri,
         exchange.Method,
         exchange.RequestBodyByteCount,

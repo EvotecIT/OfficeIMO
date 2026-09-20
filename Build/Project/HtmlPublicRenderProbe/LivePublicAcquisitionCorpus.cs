@@ -32,13 +32,13 @@ internal sealed record LivePublicAcquisitionCorpus(IReadOnlyList<LivePublicAcqui
         HtmlPublicResourceResult? acquired = null;
         Exception? failure = null;
         try {
-            var broker = new HtmlPublicResourceBroker(new[] { requested.IdnHost });
-            var request = new HtmlRuntimeFetchRequest(requested, "POST",
+            var broker = new HtmlPublicResourceBroker(new[] { "example.com" },
+                dynamicOrigins: new[] { new Uri("https://httpbingo.org/") });
+            var request = new HtmlRuntimeFetchRequest(requested, new Uri("https://example.com/"), "POST",
                 new Dictionary<string, string> { ["Content-Type"] = "application/json" },
                 Encoding.UTF8.GetBytes("{}"), credentials: "omit");
-            acquired = await broker.FetchAsync(new HtmlRuntimeFetchDiscovery(request, 1),
-                new Uri("https://example.com/"));
-            if (acquired.DynamicExchanges?.Select(exchange => exchange.Method)
+            acquired = await broker.FetchAsync(new HtmlRuntimeFetchDiscovery(request, 1));
+            if (acquired.HttpExchanges?.Select(exchange => exchange.Method)
                     .SequenceEqual(new[] { "OPTIONS", "POST" }, StringComparer.Ordinal) != true
                 || acquired.DynamicHops?.Single().PreflightResponse?.StatusCode is not 200)
                 throw new IOException("The live public endpoint did not complete the expected OPTIONS and POST exchange.");
@@ -53,7 +53,7 @@ internal sealed record LivePublicAcquisitionCorpus(IReadOnlyList<LivePublicAcqui
             acquired?.Sha256, acquired?.Redirects.Select(redirect => new AcquisitionRedirect(
                 redirect.From.AbsoluteUri, redirect.To.AbsoluteUri, redirect.StatusCode,
                 redirect.ConnectedAddress.ToString())).ToArray() ?? [],
-            acquired?.DynamicExchanges?.Select(exchange => new LivePublicHttpExchange(
+            acquired?.HttpExchanges?.Select(exchange => new LivePublicHttpExchange(
                 exchange.Url.AbsoluteUri, exchange.Method, exchange.StatusCode,
                 exchange.RequestBodyByteCount, exchange.RequestBodySha256,
                 exchange.ResponseByteCount, exchange.ResponseSha256, exchange.ConnectedAddress.ToString())).ToArray() ?? [],

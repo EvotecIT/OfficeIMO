@@ -11,6 +11,8 @@ namespace OfficeIMO.Html.Runtime;
 internal sealed class HtmlPublicResourceBroker {
     private readonly HashSet<string> _staticAllowedHosts;
     private readonly HashSet<string> _allowedHosts;
+    private readonly HashSet<string> _dynamicAllowedOrigins = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _navigationAllowedOrigins = new(StringComparer.Ordinal);
     private readonly Func<string, CancellationToken, Task<IPAddress[]>> _resolveAddresses;
     private readonly Func<IPAddress, int, CancellationToken, ValueTask<Stream>> _connect;
     private readonly int _maxRequests;
@@ -25,16 +27,18 @@ internal sealed class HtmlPublicResourceBroker {
     private long _bytes;
     private long _requestBytes;
 
-    internal HtmlPublicResourceBroker(IEnumerable<string> allowedHosts) : this(
-        allowedHosts, (host, token) => Dns.GetHostAddressesAsync(host, token), ConnectToAddressAsync) { }
+    internal HtmlPublicResourceBroker(IEnumerable<string> allowedHosts, IEnumerable<Uri>? dynamicOrigins = null,
+        IEnumerable<Uri>? navigationOrigins = null) : this(
+        allowedHosts, (host, token) => Dns.GetHostAddressesAsync(host, token), ConnectToAddressAsync,
+        dynamicOrigins: dynamicOrigins, navigationOrigins: navigationOrigins) { }
 
     internal HtmlPublicResourceBroker(IEnumerable<string> allowedHosts, int maxRequests,
         long maxResourceBytes, long maxTotalBytes, TimeSpan? timeout = null, int maxRedirects = 5,
         long maxRequestBytes = 1024 * 1024, long maxTotalRequestBytes = 16 * 1024 * 1024,
-        IEnumerable<string>? dynamicHosts = null) : this(
+        IEnumerable<Uri>? dynamicOrigins = null, IEnumerable<Uri>? navigationOrigins = null) : this(
         allowedHosts, (host, token) => Dns.GetHostAddressesAsync(host, token), ConnectToAddressAsync,
         maxRequests, maxResourceBytes, maxTotalBytes, timeout, maxRedirects, maxRequestBytes, maxTotalRequestBytes,
-        dynamicHosts) { }
+        dynamicOrigins, navigationOrigins) { }
 
     internal HtmlPublicResourceBroker(IEnumerable<string> allowedHosts,
         Func<string, CancellationToken, Task<IPAddress[]>> resolveAddresses,
@@ -42,7 +46,7 @@ internal sealed class HtmlPublicResourceBroker {
         int maxRequests = 32, long maxResourceBytes = 4 * 1024 * 1024,
         long maxTotalBytes = 16 * 1024 * 1024, TimeSpan? timeout = null, int maxRedirects = 5,
         long maxRequestBytes = 1024 * 1024, long maxTotalRequestBytes = 16 * 1024 * 1024,
-        IEnumerable<string>? dynamicHosts = null) {
+        IEnumerable<Uri>? dynamicOrigins = null, IEnumerable<Uri>? navigationOrigins = null) {
         ArgumentNullException.ThrowIfNull(allowedHosts);
         _resolveAddresses = resolveAddresses ?? throw new ArgumentNullException(nameof(resolveAddresses));
         _connect = connect ?? throw new ArgumentNullException(nameof(connect));
@@ -64,32 +68,120 @@ internal sealed class HtmlPublicResourceBroker {
         _maxRedirects = maxRedirects;
         _staticAllowedHosts = new HashSet<string>(allowedHosts.Select(ValidateHost), StringComparer.OrdinalIgnoreCase);
         _allowedHosts = new HashSet<string>(_staticAllowedHosts, StringComparer.OrdinalIgnoreCase);
-        if (dynamicHosts != null) _allowedHosts.UnionWith(dynamicHosts.Select(ValidateHost));
+        if (dynamicOrigins != null) foreach (Uri origin in dynamicOrigins) AuthorizeDynamicOrigin(origin);
+        if (navigationOrigins != null) foreach (Uri origin in navigationOrigins) AuthorizeNavigationOrigin(origin);
         if (_staticAllowedHosts.Count == 0 || _allowedHosts.Count > 16)
             throw new ArgumentException("The pilot requires one to sixteen explicitly allowed hosts.", nameof(allowedHosts));
     }
 
     internal bool AllowsHost(Uri url) => _staticAllowedHosts.Contains(ValidateHost(ValidateUrl(url).IdnHost));
-    internal Uri[] AllowedOrigins => _allowedHosts.SelectMany(host => new[] {
-        new Uri("http://" + host + "/"), new Uri("https://" + host + "/")
-    }).ToArray();
+    internal Uri[] AllowedOrigins => _staticAllowedHosts.SelectMany(host => new[] {
+            new Uri("http://" + host + "/"), new Uri("https://" + host + "/")
+        }).Concat(_dynamicAllowedOrigins.Select(origin => new Uri(origin + "/")))
+        .Concat(_navigationAllowedOrigins.Select(origin => new Uri(origin + "/")))
+        .DistinctBy(HtmlRuntimeResourcePolicy.Origin, StringComparer.Ordinal).ToArray();
 
     internal Task<HtmlPublicResourceResult> FetchAsync(Uri requestedUrl, CancellationToken cancellationToken = default) =>
         FetchStaticAsync(requestedUrl, cancellationToken);
 
-    internal Task<HtmlPublicResourceResult> FetchAsync(HtmlRuntimeFetchDiscovery discovery, Uri documentUrl,
+    internal Task<HtmlPublicResourceResult> FetchAsync(HtmlRuntimeFetchDiscovery discovery,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(discovery);
         ValidateDynamicRequest(discovery.Request);
-        ValidateUrl(documentUrl);
-        return FetchDynamicAsync(discovery, documentUrl, cancellationToken);
+        Uri initiatorOrigin = discovery.Request.InitiatorOrigin;
+        ValidateUrl(initiatorOrigin);
+        string requestOrigin = HtmlRuntimeResourcePolicy.Origin(discovery.Request.Url);
+        if (requestOrigin != HtmlRuntimeResourcePolicy.Origin(initiatorOrigin) && !_dynamicAllowedOrigins.Contains(requestOrigin))
+            throw new HtmlScriptRuntimeException("The dynamic request origin was not authorized by the caller.");
+        return FetchDynamicAsync(discovery, initiatorOrigin, cancellationToken);
     }
 
-    private async Task<HtmlPublicResourceResult> FetchDynamicAsync(HtmlRuntimeFetchDiscovery discovery, Uri documentUrl,
+    private void AuthorizeDynamicOrigin(Uri origin) {
+        origin = ValidateUrl(origin);
+        string key = HtmlRuntimeResourcePolicy.Origin(origin);
+        if (origin.AbsolutePath != "/" || origin.Query.Length != 0 || origin.Fragment.Length != 0)
+            throw new ArgumentException("A dynamic request origin cannot contain a path, query, or fragment.", nameof(origin));
+        _dynamicAllowedOrigins.Add(key);
+        _allowedHosts.Add(ValidateHost(origin.IdnHost));
+    }
+
+    internal void AuthorizeNavigationOrigin(Uri origin) {
+        origin = ValidateUrl(origin);
+        _navigationAllowedOrigins.Add(HtmlRuntimeResourcePolicy.Origin(origin));
+        _allowedHosts.Add(ValidateHost(origin.IdnHost));
+        if (_allowedHosts.Count > 16) throw new ArgumentException("The pilot requires no more than sixteen explicitly allowed hosts.");
+    }
+
+    internal Task<HtmlPublicResourceResult> FetchAsync(HtmlRuntimeNavigationDiscovery discovery,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(discovery);
+        ValidateNavigationRequest(discovery.Request);
+        if (!_navigationAllowedOrigins.Contains(HtmlRuntimeResourcePolicy.Origin(discovery.Request.Url)))
+            throw new HtmlScriptRuntimeException("The document navigation origin was not authorized by the caller.");
+        return FetchNavigationAsync(discovery, cancellationToken);
+    }
+
+    private async Task<HtmlPublicResourceResult> FetchNavigationAsync(HtmlRuntimeNavigationDiscovery discovery,
+        CancellationToken cancellationToken) {
+        HtmlRuntimeNavigationRequest original = discovery.Request;
+        Uri current = ValidateUrl(original.Url);
+        string method = original.Method;
+        byte[]? body = original.Buffer;
+        var headers = new Dictionary<string, string>(original.Headers, StringComparer.OrdinalIgnoreCase);
+        Uri? referrer = ApplyReferrerPolicy(original.Referrer, current, "strict-origin-when-cross-origin");
+        using var deadline = new CancellationTokenSource(_timeout);
+        using var operation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, deadline.Token);
+        var redirects = new List<HtmlPublicRedirect>();
+        var hops = new List<HtmlRuntimeNavigationHop>();
+        var exchanges = new List<HtmlPublicHttpExchange>();
+        DateTimeOffset fetchedAt = DateTimeOffset.UtcNow;
+        IPAddress? finalAddress = null;
+        for (int index = 0; ; index++) {
+            operation.Token.ThrowIfCancellationRequested();
+            var outgoing = new Dictionary<string, string>(headers, StringComparer.OrdinalIgnoreCase);
+            if (referrer != null) outgoing["Referer"] = referrer.AbsoluteUri;
+            (HtmlRuntimeResource response, IPAddress address) = await SendDirectAsync(
+                current, method, outgoing, body, operation.Token).ConfigureAwait(false);
+            finalAddress = address;
+            exchanges.Add(new HtmlPublicHttpExchange(current, method, body?.LongLength ?? 0,
+                body == null ? null : Convert.ToHexString(SHA256.HashData(body)).ToLowerInvariant(), response.StatusCode,
+                response.Length, Convert.ToHexString(SHA256.HashData(response.Buffer)).ToLowerInvariant(), address));
+            hops.Add(new HtmlRuntimeNavigationHop(response));
+            if (response.StatusCode is 301 or 302 or 303 or 307 or 308) {
+                if (index >= _maxRedirects || !response.Headers.TryGetValue("Location", out string? location))
+                    throw new HtmlScriptRuntimeException("The document navigation redirect limit or location was invalid.");
+                Uri next = ValidateUrl(ResolveRedirect(current, new Uri(location, UriKind.RelativeOrAbsolute)));
+                if (current.Scheme == Uri.UriSchemeHttps && next.Scheme != Uri.UriSchemeHttps)
+                    throw new HtmlScriptRuntimeException("HTTPS to HTTP redirects are forbidden in the public pilot.");
+                if (!_navigationAllowedOrigins.Contains(HtmlRuntimeResourcePolicy.Origin(next)))
+                    throw new HtmlScriptRuntimeException("The document navigation redirect origin was not authorized by the caller.");
+                redirects.Add(new HtmlPublicRedirect(current, next, response.StatusCode, address));
+                if ((response.StatusCode is 301 or 302 && method == "POST") ||
+                    (response.StatusCode == 303 && method is not ("GET" or "HEAD"))) {
+                    method = "GET";
+                    body = null;
+                    foreach (string name in new[] { "Content-Encoding", "Content-Language", "Content-Location", "Content-Type" })
+                        headers.Remove(name);
+                }
+                referrer = ApplyRedirectReferrerPolicy(referrer, next, response.Headers);
+                current = next;
+                continue;
+            }
+            var resource = new HtmlRuntimeResource(original.Url, method == "HEAD" ? Array.Empty<byte>() : response.Buffer,
+                response.ContentType, response.StatusCode, current, redirects.Count, response.Headers, response.StatusText);
+            string digest = Convert.ToHexString(SHA256.HashData(resource.Buffer)).ToLowerInvariant();
+            return new HtmlPublicResourceResult(resource, Array.AsReadOnly(redirects.ToArray()), fetchedAt,
+                finalAddress, digest, NavigationRequest: discovery,
+                NavigationHops: Array.AsReadOnly(hops.ToArray()),
+                HttpExchanges: Array.AsReadOnly(exchanges.ToArray()));
+        }
+    }
+
+    private async Task<HtmlPublicResourceResult> FetchDynamicAsync(HtmlRuntimeFetchDiscovery discovery, Uri initiatorOrigin,
         CancellationToken cancellationToken) {
         HtmlRuntimeFetchRequest original = discovery.Request;
         Uri current = ValidateUrl(original.Url);
-        string documentOrigin = HtmlRuntimeResourcePolicy.Origin(documentUrl);
+        string documentOrigin = HtmlRuntimeResourcePolicy.Origin(initiatorOrigin);
         string requestOrigin = HtmlRuntimeResourcePolicy.Origin(current);
         bool cors = requestOrigin != documentOrigin;
         if (cors && original.Mode == "same-origin")
@@ -101,7 +193,7 @@ internal sealed class HtmlPublicResourceBroker {
         using var operation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, deadline.Token);
         var redirects = new List<HtmlPublicRedirect>();
         var hops = new List<HtmlRuntimeFetchHop>();
-        var exchanges = new List<HtmlPublicDynamicExchange>();
+        var exchanges = new List<HtmlPublicHttpExchange>();
         DateTimeOffset fetchedAt = DateTimeOffset.UtcNow;
         IPAddress? finalAddress = null;
         for (int index = 0; ; index++) {
@@ -116,7 +208,7 @@ internal sealed class HtmlPublicResourceBroker {
                     preflightHeaders["Access-Control-Request-Headers"] = string.Join(",", unsafeHeaders);
                 var preflightResult = await SendDirectAsync(current, "OPTIONS", preflightHeaders, null, operation.Token).ConfigureAwait(false);
                 preflight = preflightResult.Response;
-                exchanges.Add(new HtmlPublicDynamicExchange(current, "OPTIONS", 0, null, preflight.StatusCode,
+                exchanges.Add(new HtmlPublicHttpExchange(current, "OPTIONS", 0, null, preflight.StatusCode,
                     preflight.Length, Convert.ToHexString(SHA256.HashData(preflight.Buffer)).ToLowerInvariant(), preflightResult.Address));
                 HtmlRuntimeCorsPolicy.CheckPreflight(preflight, documentOrigin, method, unsafeHeaders);
             }
@@ -124,7 +216,7 @@ internal sealed class HtmlPublicResourceBroker {
             if (cors || method is not ("GET" or "HEAD")) outgoing["Origin"] = documentOrigin;
             (HtmlRuntimeResource response, IPAddress address) = await SendDirectAsync(current, method, outgoing, body, operation.Token).ConfigureAwait(false);
             finalAddress = address;
-            exchanges.Add(new HtmlPublicDynamicExchange(current, method, body?.LongLength ?? 0,
+            exchanges.Add(new HtmlPublicHttpExchange(current, method, body?.LongLength ?? 0,
                 body == null ? null : Convert.ToHexString(SHA256.HashData(body)).ToLowerInvariant(), response.StatusCode,
                 response.Length, Convert.ToHexString(SHA256.HashData(response.Buffer)).ToLowerInvariant(), address));
             hops.Add(new HtmlRuntimeFetchHop(response, preflight));
@@ -245,6 +337,48 @@ internal sealed class HtmlPublicResourceBroker {
             throw new HtmlScriptRuntimeException("Unsupported dynamic request credentials mode.");
     }
 
+    internal static void ValidateNavigationRequest(HtmlRuntimeNavigationRequest request) {
+        ArgumentNullException.ThrowIfNull(request);
+        ValidateUrl(request.Url);
+        ValidateUrl(request.InitiatorUrl);
+        if (request.Referrer != null) ValidateUrl(request.Referrer);
+        if (request.Headers.Keys.Any(name => name.Equals("Authorization", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("Proxy-Authorization", StringComparison.OrdinalIgnoreCase)))
+            throw new HtmlScriptRuntimeException("Credential-bearing navigation request headers are forbidden in the isolated profile.");
+    }
+
+    internal static Uri? ApplyRedirectReferrerPolicy(Uri? currentReferrer, Uri target,
+        IReadOnlyDictionary<string, string> responseHeaders) {
+        string policy = "strict-origin-when-cross-origin";
+        if (responseHeaders.TryGetValue("Referrer-Policy", out string? value)) {
+            foreach (string candidate in value.Split(',').Select(item => item.Trim().ToLowerInvariant())) {
+                if (candidate is "no-referrer" or "no-referrer-when-downgrade" or "origin" or
+                    "origin-when-cross-origin" or "same-origin" or "strict-origin" or
+                    "strict-origin-when-cross-origin" or "unsafe-url") policy = candidate;
+            }
+        }
+        return ApplyReferrerPolicy(currentReferrer, target, policy);
+    }
+
+    private static Uri? ApplyReferrerPolicy(Uri? currentReferrer, Uri target, string policy) {
+        if (currentReferrer == null) return null;
+        target = ValidateUrl(target);
+        Uri source = HtmlRuntimeNavigationRequest.WithoutFragment(currentReferrer);
+        bool sameOrigin = HtmlRuntimeResourcePolicy.Origin(source) == HtmlRuntimeResourcePolicy.Origin(target);
+        bool downgrade = source.Scheme == Uri.UriSchemeHttps && target.Scheme != Uri.UriSchemeHttps;
+        Uri origin = new(HtmlRuntimeResourcePolicy.Origin(source) + "/");
+        return policy switch {
+            "no-referrer" => null,
+            "origin" => origin,
+            "same-origin" => sameOrigin ? source : null,
+            "origin-when-cross-origin" => sameOrigin ? source : origin,
+            "strict-origin" => downgrade ? null : origin,
+            "unsafe-url" => source,
+            "no-referrer-when-downgrade" => downgrade ? null : source,
+            _ => downgrade ? null : sameOrigin ? source : origin
+        };
+    }
+
     internal static Uri ValidateUrl(Uri url) {
         HtmlRuntimeResourcePolicy.ValidateUrl(url);
         int standardPort = url.Scheme == Uri.UriSchemeHttps ? 443 : 80;
@@ -347,7 +481,9 @@ internal sealed record HtmlPublicRedirect(Uri From, Uri To, int StatusCode, IPAd
 internal sealed record HtmlPublicResourceResult(HtmlRuntimeResource Resource, IReadOnlyList<HtmlPublicRedirect> Redirects,
     DateTimeOffset FetchedAtUtc, IPAddress ConnectedAddress, string Sha256,
     HtmlRuntimeFetchDiscovery? DynamicRequest = null, IReadOnlyList<HtmlRuntimeFetchHop>? DynamicHops = null,
-    IReadOnlyList<HtmlPublicDynamicExchange>? DynamicExchanges = null);
+    IReadOnlyList<HtmlPublicHttpExchange>? HttpExchanges = null,
+    HtmlRuntimeNavigationDiscovery? NavigationRequest = null,
+    IReadOnlyList<HtmlRuntimeNavigationHop>? NavigationHops = null);
 
-internal sealed record HtmlPublicDynamicExchange(Uri Url, string Method, long RequestBodyByteCount,
+internal sealed record HtmlPublicHttpExchange(Uri Url, string Method, long RequestBodyByteCount,
     string? RequestBodySha256, int StatusCode, long ResponseByteCount, string ResponseSha256, IPAddress ConnectedAddress);

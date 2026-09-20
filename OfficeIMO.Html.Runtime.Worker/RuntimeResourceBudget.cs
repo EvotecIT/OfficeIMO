@@ -6,6 +6,7 @@ internal sealed class RuntimeResourceBudget(HtmlScriptRequest options) : IDispos
     internal readonly object Sync = new();
     internal readonly Dictionary<string, HtmlRuntimeResource> Loaded = new(StringComparer.Ordinal);
     internal readonly Dictionary<string, int> FetchOccurrences = new(StringComparer.Ordinal);
+    internal readonly Dictionary<string, int> NavigationOccurrences = new(StringComparer.Ordinal);
     internal readonly HashSet<string> Origins = new(options.ResourcePolicy.AllowedOrigins.Select(HtmlRuntimeResourcePolicy.Origin)
         .Append(HtmlRuntimeResourcePolicy.Origin(options.DocumentUrl)), StringComparer.OrdinalIgnoreCase);
     internal readonly SemaphoreSlim Concurrency = new(options.ResourcePolicy.MaxConcurrentRequests);

@@ -64,8 +64,12 @@ containers. It also proves that a per-hop public-to-loopback DNS change and an
 oversized declared response are rejected before container startup. The summary
 records requested and final URLs, resolutions, validated connection endpoints,
 HTTP redirect hops and fixture requests. The run also carries the retained form,
-table, and external-module fixtures through `HtmlIsolatedPublicPageWorkflow`,
-including their structured actions and all three standard outputs. Host and worker
+table, external-module, and navigation fixtures through
+`HtmlIsolatedPublicPageWorkflow`, including their structured actions and all
+three standard outputs. The navigation application crosses document boundaries,
+changes history state, traverses back and forward, reloads, restores the viewport,
+and proves `beforeunload`, `pagehide`, and `unload` observations through exact
+host-acquired navigation transcripts. Host and worker
 validate the portable font manifest, exact font bytes, retained license files,
 and complete package digest. The live flag records current public redirect and
 preflight exchanges separately so mutable public DNS never becomes part of the

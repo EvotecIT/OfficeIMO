@@ -14,6 +14,8 @@ public sealed class HtmlScriptRequest {
     public IReadOnlyList<HtmlRuntimeResource> Resources { get; set; } = Array.Empty<HtmlRuntimeResource>();
     /// <summary>Optional responses for exact dynamic fetch or XMLHttpRequest occurrences during deterministic offline replay.</summary>
     public IReadOnlyList<HtmlRuntimeFetchReplay> FetchReplays { get; set; } = Array.Empty<HtmlRuntimeFetchReplay>();
+    /// <summary>Optional ordered response transcripts for exact top-level document-navigation occurrences.</summary>
+    public IReadOnlyList<HtmlRuntimeNavigationReplay> NavigationReplays { get; set; } = Array.Empty<HtmlRuntimeNavigationReplay>();
     /// <summary>Network authority and cumulative resource budgets. Network access is disabled by default.</summary>
     public HtmlRuntimeResourcePolicy ResourcePolicy { get; set; } = new();
     /// <summary>Classic scripts executed in order after document loading.</summary>
@@ -62,6 +64,8 @@ public sealed class HtmlScriptRequest {
     public int MaxFrameMessageCharacters { get; set; } = 1024 * 1024;
     /// <summary>Fails a command after scripts handled an offline dynamic-request rejection so an acquisition coordinator can supply and replay it.</summary>
     public bool FailOnFetchReplayDiscovery { get; set; }
+    /// <summary>Reports exact offline top-level navigation occurrences so an acquisition coordinator can supply and replay them.</summary>
+    public bool FailOnNavigationReplayDiscovery { get; set; }
     /// <summary>Layout viewport width in CSS pixels for WebApplicationV1 inspection and actionability.</summary>
     public double ViewportWidth { get; set; } = 1280D;
     /// <summary>Layout viewport height in CSS pixels for WebApplicationV1 inspection and actionability.</summary>
@@ -107,9 +111,12 @@ public sealed class HtmlScriptRequest {
         var policy = (ResourcePolicy ?? throw new ArgumentNullException(nameof(ResourcePolicy))).Snapshot();
         ArgumentNullException.ThrowIfNull(Resources);
         ArgumentNullException.ThrowIfNull(FetchReplays);
-        if ((long)Resources.Count + FetchReplays.Count > policy.MaxRequests) throw new ArgumentException("Too many supplied resources and dynamic replays.");
+        ArgumentNullException.ThrowIfNull(NavigationReplays);
+        if ((long)Resources.Count + FetchReplays.Count + NavigationReplays.Count > policy.MaxRequests)
+            throw new ArgumentException("Too many supplied resources and replay transcripts.");
         var resources = Resources.ToArray();
         var fetchReplays = FetchReplays.ToArray();
+        var navigationReplays = NavigationReplays.ToArray();
         var keys = new HashSet<string>(StringComparer.Ordinal);
         long resourceBytes = 0;
         foreach (var resource in resources) {
@@ -140,9 +147,28 @@ public sealed class HtmlScriptRequest {
                 }
             }
         }
+        foreach (var replay in navigationReplays) {
+            if (replay == null || !keys.Add("navigation:" + replay.Identity))
+                throw new ArgumentException("Navigation replays must have unique non-null request occurrences.");
+            string replayMethod = replay.Request.Method;
+            bool sendBody = replay.Request.HasBody;
+            foreach (HtmlRuntimeNavigationHop hop in replay.Hops) {
+                suppliedRequests++;
+                if (hop.Response.Length > policy.MaxResourceBytes || (resourceBytes += hop.Response.Length) > policy.MaxTotalBytes)
+                    throw new ArgumentException("Supplied resource bytes exceed their budget.");
+                if (sendBody && (replay.Request.BodyLength > policy.MaxRequestBytes ||
+                    (requestBytes += replay.Request.BodyLength) > policy.MaxTotalRequestBytes))
+                    throw new ArgumentException("Navigation replay request bytes exceed their budget.");
+                if ((hop.Response.StatusCode is 301 or 302 && replayMethod == "POST") ||
+                    (hop.Response.StatusCode == 303 && replayMethod is not ("GET" or "HEAD"))) {
+                    replayMethod = "GET";
+                    sendBody = false;
+                }
+            }
+        }
         if (suppliedRequests > policy.MaxRequests) throw new ArgumentException("Too many supplied HTTP responses.");
         return new HtmlScriptRequest { Profile = Profile, Html = Html, Scripts = scripts, ReadyExpression = ReadyExpression, Timeout = Timeout,
-            DocumentUrl = DocumentUrl, Resources = resources, FetchReplays = fetchReplays, ResourcePolicy = policy,
+            DocumentUrl = DocumentUrl, Resources = resources, FetchReplays = fetchReplays, NavigationReplays = navigationReplays, ResourcePolicy = policy,
             SessionTimeout = SessionTimeout, PollInterval = PollInterval, MaxInputCharacters = MaxInputCharacters, MaxOutputCharacters = MaxOutputCharacters,
             MaxNodes = MaxNodes, MaxDepth = MaxDepth, MaxPendingPromiseRejections = MaxPendingPromiseRejections,
             MaxStorageCharacters = MaxStorageCharacters, MaxModuleCount = MaxModuleCount,
@@ -151,6 +177,7 @@ public sealed class HtmlScriptRequest {
             MaxStylesheetImportDepth = MaxStylesheetImportDepth,
             MaxChildFrameRealms = MaxChildFrameRealms, MaxFrameMessages = MaxFrameMessages,
             MaxFrameMessageCharacters = MaxFrameMessageCharacters, FailOnFetchReplayDiscovery = FailOnFetchReplayDiscovery,
+            FailOnNavigationReplayDiscovery = FailOnNavigationReplayDiscovery,
             ViewportWidth = ViewportWidth, ViewportHeight = ViewportHeight, DevicePixelRatio = DevicePixelRatio };
     }
 }
@@ -216,14 +243,25 @@ public sealed class HtmlScriptRuntimeException : InvalidOperationException {
     /// <summary>Creates a runtime failure with exact offline dynamic request occurrences and compatible URL-only GET discoveries.</summary>
     public HtmlScriptRuntimeException(string message, IReadOnlyList<Uri> missingResourceUrls,
         IReadOnlyList<HtmlRuntimeFetchDiscovery> missingFetchRequests) :
-        this(message, missingResourceUrls, missingFetchRequests, Array.Empty<string>()) { }
+        this(message, missingResourceUrls, missingFetchRequests, Array.Empty<string>(),
+            Array.Empty<HtmlRuntimeNavigationDiscovery>(), Array.Empty<string>()) { }
     /// <summary>Creates a runtime failure with replay discovery and the exact replay transcript consumed before failure.</summary>
     public HtmlScriptRuntimeException(string message, IReadOnlyList<Uri> missingResourceUrls,
         IReadOnlyList<HtmlRuntimeFetchDiscovery> missingFetchRequests,
-        IReadOnlyList<string> consumedFetchReplayIdentities) : base(message) {
+        IReadOnlyList<string> consumedFetchReplayIdentities) :
+        this(message, missingResourceUrls, missingFetchRequests, consumedFetchReplayIdentities,
+            Array.Empty<HtmlRuntimeNavigationDiscovery>(), Array.Empty<string>()) { }
+    /// <summary>Creates a runtime failure with exact dynamic and top-level navigation discovery and consumption transcripts.</summary>
+    public HtmlScriptRuntimeException(string message, IReadOnlyList<Uri> missingResourceUrls,
+        IReadOnlyList<HtmlRuntimeFetchDiscovery> missingFetchRequests,
+        IReadOnlyList<string> consumedFetchReplayIdentities,
+        IReadOnlyList<HtmlRuntimeNavigationDiscovery> missingNavigationRequests,
+        IReadOnlyList<string> consumedNavigationReplayIdentities) : base(message) {
         MissingResourceUrls = Array.AsReadOnly((missingResourceUrls ?? throw new ArgumentNullException(nameof(missingResourceUrls))).ToArray());
         MissingFetchRequests = Array.AsReadOnly((missingFetchRequests ?? throw new ArgumentNullException(nameof(missingFetchRequests))).ToArray());
         ConsumedFetchReplayIdentities = Array.AsReadOnly((consumedFetchReplayIdentities ?? throw new ArgumentNullException(nameof(consumedFetchReplayIdentities))).ToArray());
+        MissingNavigationRequests = Array.AsReadOnly((missingNavigationRequests ?? throw new ArgumentNullException(nameof(missingNavigationRequests))).ToArray());
+        ConsumedNavigationReplayIdentities = Array.AsReadOnly((consumedNavigationReplayIdentities ?? throw new ArgumentNullException(nameof(consumedNavigationReplayIdentities))).ToArray());
     }
     /// <summary>Offline GET URLs attempted during the failed command; the runtime does not attribute a specific URL to a JavaScript rejection.</summary>
     public IReadOnlyList<Uri> MissingResourceUrls { get; } = Array.Empty<Uri>();
@@ -231,4 +269,8 @@ public sealed class HtmlScriptRuntimeException : InvalidOperationException {
     public IReadOnlyList<HtmlRuntimeFetchDiscovery> MissingFetchRequests { get; } = Array.Empty<HtmlRuntimeFetchDiscovery>();
     /// <summary>Exact replay occurrence identities consumed before this failure, in consumption order.</summary>
     public IReadOnlyList<string> ConsumedFetchReplayIdentities { get; } = Array.Empty<string>();
+    /// <summary>Exact top-level document navigation occurrences attempted while network access was disabled.</summary>
+    public IReadOnlyList<HtmlRuntimeNavigationDiscovery> MissingNavigationRequests { get; } = Array.Empty<HtmlRuntimeNavigationDiscovery>();
+    /// <summary>Exact navigation replay occurrence identities consumed before this failure, in consumption order.</summary>
+    public IReadOnlyList<string> ConsumedNavigationReplayIdentities { get; } = Array.Empty<string>();
 }

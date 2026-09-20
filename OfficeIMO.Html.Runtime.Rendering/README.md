@@ -181,7 +181,9 @@ output. The immutable image ID still binds fontconfig and the remaining OS libra
 
 Static assets remain URL keyed. Script-driven fetch and XMLHttpRequest calls use
 an exact request envelope containing the normalized URL, method, browser-allowed
-headers, body bytes and fetch options. The worker adds a one-based occurrence, so
+headers, body bytes, fetch options, and exact initiating document origin. The
+initiator participates in replay identity, so a request made after navigation
+cannot inherit the initial document's authority or CORS origin. The worker adds a one-based occurrence, so
 two identical POSTs receive two separately acquired responses. The host executes
 each occurrence once and returns it to the networkless worker for deterministic
 replay. Every acquired occurrence must be consumed once, in order, by the final
@@ -201,11 +203,39 @@ must also fit the runtime response-character budget.
 Authorizing a dynamic origin does not authorize static assets or document
 redirects on that host; those require separate static host approval.
 
+Top-level document navigation uses a separate exact replay contract. The
+networkless worker reports the requested URL, initiating document, reduced
+referrer, GET or POST method and body, navigation kind, history entry, replace
+decision, and one-based occurrence. The host acquires that occurrence once and
+returns an ordered redirect/final-response transcript. A successful final run
+must consume every navigation replay once and in order. The acquired document
+origin is implicit. Each additional requested or redirected origin requires an
+exact entry in `AllowedNavigationOrigins`; `AllowedHosts` and
+`AllowedDynamicRequestOrigins` do not grant navigation authority. GET is the
+default navigation method, while POST requires an entry in
+`AllowedNavigationMethods`. The broker revalidates public DNS and connected IP
+addresses on every hop, rejects HTTPS downgrade and credentials, reduces a
+cross-origin default referrer to its origin, preserves referrer suppression,
+applies a redirect response's supported `Referrer-Policy`, and applies the browser POST-to-GET
+rewrite for 301/302/303, and preserves method/body for 307/308. An
+origin-changing navigation redirect is accepted only when its target origin was
+explicitly authorized. Origin-changing dynamic fetch redirects remain rejected.
+
+History state remains inside the worker and is not exposed to acquisition.
+Reload and back/forward traversal cross the boundary as explicit navigation
+kinds and history indexes, then create a fresh document realm from the exact
+transcript. The worker retains history state and viewport offsets and applies
+the selected `beforeunload`, `pagehide`, and `unload` lifecycle. Runtime-produced
+document requests are currently GET; the request, broker, and replay contracts
+also define POST and redirect rewriting for a future form-navigation producer.
+
 Resource evidence records the method, occurrence, sorted header names, request-body
 length and request-body SHA-256 digest. It also records each direct OPTIONS,
 redirect and final exchange with actual method, URL, status, connected IPv4,
 body lengths and digests. Header values and request bodies are not retained.
-Response retention still follows `RetainInputBytes`.
+Dynamic evidence includes the initiating origin. Navigation evidence additionally records initiator, reduced referrer, kind,
+history entry, replacement decision, final origin and whether redirects crossed
+an origin boundary. Response retention still follows `RetainInputBytes`.
 
 The profile can discover and replay JavaScript module graphs in the root document
 and admitted same-origin child frames. Each frame retains its own import map and

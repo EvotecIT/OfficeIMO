@@ -21,7 +21,7 @@ public sealed class RuntimeFetchReplayTests {
     public void DynamicRequestIdentitySnapshotsHeadersBodyAndFetchOptions() {
         byte[] body = Encoding.UTF8.GetBytes("payload");
         var headers = new Dictionary<string, string> { ["X-Variant"] = "blue" };
-        var request = new HtmlRuntimeFetchRequest(new Uri(Origin, "submit"), "post", headers, body, credentials: "omit");
+        var request = new HtmlRuntimeFetchRequest(new Uri(Origin, "submit"), Origin, "post", headers, body, credentials: "omit");
         string identity = request.Identity;
         body[0] = (byte)'X';
         headers["X-Variant"] = "changed";
@@ -30,16 +30,16 @@ public sealed class RuntimeFetchReplayTests {
         Assert.Equal("payload", Encoding.UTF8.GetString(request.Body!));
         Assert.Equal("blue", request.Headers["X-Variant"]);
         Assert.Equal(identity, request.Identity);
-        Assert.Equal(identity, new HtmlRuntimeFetchRequest(new Uri(Origin, "submit"), "POST",
+        Assert.Equal(identity, new HtmlRuntimeFetchRequest(new Uri(Origin, "submit"), Origin, "POST",
             new Dictionary<string, string> { ["x-variant"] = "blue" }, Encoding.UTF8.GetBytes("payload"), credentials: "omit").Identity);
-        var noBody = new HtmlRuntimeFetchRequest(new Uri(Origin, "empty"), "POST");
-        var emptyBody = new HtmlRuntimeFetchRequest(new Uri(Origin, "empty"), "POST", body: Array.Empty<byte>());
+        var noBody = new HtmlRuntimeFetchRequest(new Uri(Origin, "empty"), Origin, "POST");
+        var emptyBody = new HtmlRuntimeFetchRequest(new Uri(Origin, "empty"), Origin, "POST", body: Array.Empty<byte>());
         Assert.False(noBody.HasBody);
         Assert.True(emptyBody.HasBody);
         Assert.NotEqual(noBody.Identity, emptyBody.Identity);
-        var headeredNoBody = new HtmlRuntimeFetchRequest(new Uri(Origin, "collision"), "POST",
+        var headeredNoBody = new HtmlRuntimeFetchRequest(new Uri(Origin, "collision"), Origin, "POST",
             new Dictionary<string, string> { ["x"] = "y" });
-        var headerlessBody = new HtmlRuntimeFetchRequest(new Uri(Origin, "collision"), "POST", body:
+        var headerlessBody = new HtmlRuntimeFetchRequest(new Uri(Origin, "collision"), Origin, "POST", body:
             new byte[] { 0, 0, 0, (byte)'x', 1, 0, 0, 0, (byte)'y', 0 });
         Assert.NotEqual(headeredNoBody.Identity, headerlessBody.Identity);
     }
@@ -59,6 +59,7 @@ public sealed class RuntimeFetchReplayTests {
         Assert.Equal(1, discovery.Occurrence);
         Assert.Equal("POST", discovery.Request.Method);
         Assert.Equal(new Uri(Origin, "submit"), discovery.Request.Url);
+        Assert.Equal(Origin, discovery.Request.InitiatorOrigin);
         Assert.Equal("blue", discovery.Request.Headers["X-Variant"]);
         Assert.Equal("application/json", discovery.Request.Headers["Content-Type"]);
         Assert.Equal("{\"value\":42}", Encoding.UTF8.GetString(discovery.Request.Body!));
@@ -114,7 +115,7 @@ public sealed class RuntimeFetchReplayTests {
 
     [Fact]
     public async Task ExactDynamicReplaysPreserveRepeatedRequestOccurrences() {
-        var request = new HtmlRuntimeFetchRequest(new Uri(Origin, "submit"), "POST",
+        var request = new HtmlRuntimeFetchRequest(new Uri(Origin, "submit"), Origin, "POST",
             new Dictionary<string, string> { ["Content-Type"] = "text/plain;charset=UTF-8", ["X-Variant"] = "blue" },
             Encoding.UTF8.GetBytes("payload"));
         var first = new HtmlRuntimeFetchReplay(request, 1,
@@ -134,7 +135,7 @@ public sealed class RuntimeFetchReplayTests {
 
     [Fact]
     public async Task HeaderedXmlHttpRequestConsumesAnExactDynamicReplay() {
-        var request = new HtmlRuntimeFetchRequest(new Uri(Origin, "api/header-varying.json"), headers:
+        var request = new HtmlRuntimeFetchRequest(new Uri(Origin, "api/header-varying.json"), Origin, headers:
             new Dictionary<string, string> { ["X-Variant"] = "private" });
         HtmlScriptCapture capture = await Runtime().CaptureTrustedAsync(new HtmlScriptRequest {
             DocumentUrl = Origin,
@@ -160,7 +161,7 @@ public sealed class RuntimeFetchReplayTests {
 
     [Fact]
     public async Task MissingLaterOccurrenceReportsTheConsumedReplayTranscript() {
-        var request = new HtmlRuntimeFetchRequest(new Uri(Origin, "submit"), "POST",
+        var request = new HtmlRuntimeFetchRequest(new Uri(Origin, "submit"), Origin, "POST",
             new Dictionary<string, string> { ["Content-Type"] = "text/plain;charset=UTF-8" },
             Encoding.UTF8.GetBytes("payload"));
         var first = new HtmlRuntimeFetchReplay(request, 1,
@@ -179,7 +180,7 @@ public sealed class RuntimeFetchReplayTests {
 
     [Fact]
     public async Task ExactReplayStillEnforcesSameOriginMode() {
-        var request = new HtmlRuntimeFetchRequest(new Uri("https://cdn.example/data"), mode: "same-origin");
+        var request = new HtmlRuntimeFetchRequest(new Uri("https://cdn.example/data"), Origin, mode: "same-origin");
         var replay = new HtmlRuntimeFetchReplay(request, 1,
             HtmlRuntimeResource.FromText(request.Url, "private", "text/plain"));
         var result = await RunAsync("""
@@ -194,8 +195,8 @@ public sealed class RuntimeFetchReplayTests {
 
     [Fact]
     public async Task CrossOriginExactReplayRequiresAndChecksPreflight() {
-        var safeRequest = new HtmlRuntimeFetchRequest(new Uri("https://cdn.example/safe"), mode: "cors");
-        var unsafeRequest = new HtmlRuntimeFetchRequest(new Uri("https://cdn.example/delete"), "DELETE", mode: "cors");
+        var safeRequest = new HtmlRuntimeFetchRequest(new Uri("https://cdn.example/safe"), Origin, mode: "cors");
+        var unsafeRequest = new HtmlRuntimeFetchRequest(new Uri("https://cdn.example/delete"), Origin, "DELETE", mode: "cors");
         var corsHeaders = new Dictionary<string, string> { ["Access-Control-Allow-Origin"] = Origin.GetLeftPart(UriPartial.Authority) };
         var result = await RunAsync("""
             const safe=await (await fetch('https://cdn.example/safe',{mode:'cors'})).text();
@@ -220,7 +221,7 @@ public sealed class RuntimeFetchReplayTests {
     [Fact]
     public async Task CrossOriginReplayRunsPreflightAndPreservesRedirectMethodTransition() {
         Uri url = new("https://cdn.example/submit");
-        var request = new HtmlRuntimeFetchRequest(url, "POST",
+        var request = new HtmlRuntimeFetchRequest(url, Origin, "POST",
             new Dictionary<string, string> { ["Content-Type"] = "application/json" },
             Encoding.UTF8.GetBytes("{}"), credentials: "omit");
         string origin = Origin.GetLeftPart(UriPartial.Authority);
@@ -247,7 +248,7 @@ public sealed class RuntimeFetchReplayTests {
     [Fact]
     public void ReplayRejectsMissingOrMismatchedRedirectHops() {
         Uri url = new("https://app.example/start");
-        var request = new HtmlRuntimeFetchRequest(url);
+        var request = new HtmlRuntimeFetchRequest(url, Origin);
         var redirect = new HtmlRuntimeResource(url, Array.Empty<byte>(), "text/plain", 302,
             headers: new Dictionary<string, string> { ["Location"] = "/next" });
         Assert.Throws<ArgumentException>(() => new HtmlRuntimeFetchReplay(request, 1, redirect));
@@ -260,7 +261,7 @@ public sealed class RuntimeFetchReplayTests {
     [Fact]
     public void ReplayBodyBudgetFollowsRedirectMethodRules() {
         Uri url = new("https://app.example/submit");
-        var request = new HtmlRuntimeFetchRequest(url, "POST", body: Encoding.UTF8.GetBytes("once"));
+        var request = new HtmlRuntimeFetchRequest(url, Origin, "POST", body: Encoding.UTF8.GetBytes("once"));
         var final = new HtmlRuntimeFetchHop(HtmlRuntimeResource.FromText(new Uri("https://app.example/result"),
             "ready", "text/plain"));
         HtmlScriptRequest Page(int status) => new() {
