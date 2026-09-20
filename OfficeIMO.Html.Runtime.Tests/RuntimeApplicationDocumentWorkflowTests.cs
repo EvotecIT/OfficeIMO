@@ -12,6 +12,16 @@ namespace OfficeIMO.Tests;
 
 public sealed class RuntimeApplicationDocumentWorkflowTests {
     [Fact]
+    public void ApplicationRuntimeCreatesTheSupportedProcessHostWithoutProviderWiring() {
+        IHtmlRuntimeHost host = HtmlApplicationRuntime.CreateProcessHost(
+            Path.Combine(AppContext.BaseDirectory, "RuntimeWorker", "OfficeIMO.Html.Runtime.Worker.dll"));
+
+        Assert.Equal("officeimo.trusted-process", host.Descriptor.Id);
+        Assert.Contains(HtmlRuntimeProfile.WebApplicationV1, host.Descriptor.Profiles);
+        Assert.True(host.Descriptor.Supports(HtmlRuntimeCapabilityIds.StructuredActions));
+    }
+
+    [Fact]
     public void StaticRendererProjectsAuthoredSrcdocIntoAClippedFrameViewport() {
         HtmlConversionDocument document = HtmlConversionDocument.Parse("""
             <main>Before <iframe width="220" height="80" srcdoc="<p id='inside'>Static frame body</p>"></iframe> After</main>

@@ -19,9 +19,20 @@ Choose explicit output intents. `ScreenFullPage` keeps screen CSS in a continuou
 image, `PrintPaged` applies print CSS and pagination, and `ScreenSnapshotPaged`
 places screen CSS onto PDF pages. The output also retains the resolved drawing
 scene, diagnostics, provider identity, action results, bounded trace, render
-resources, and frozen document for other OfficeIMO consumers. Given an
-`IHtmlRuntimeHost host` and
-prepared `reportHtml` and `reportResources` values:
+resources, and frozen document for other OfficeIMO consumers.
+
+Create the supported process host from the deployed worker output. The application
+package wires its current capture-import provider internally, so callers retain the
+provider-neutral `IHtmlRuntimeHost` contract and do not reference AngleSharp services:
+
+```csharp
+using OfficeIMO.Html.Runtime;
+using OfficeIMO.Html.Runtime.Rendering;
+
+IHtmlRuntimeHost host = HtmlApplicationRuntime.CreateProcessHost(workerDllPath);
+```
+
+Given that host and prepared `reportHtml` and `reportResources` values:
 
 ```csharp
 using OfficeIMO.Html;
