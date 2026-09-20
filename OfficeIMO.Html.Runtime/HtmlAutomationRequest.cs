@@ -123,18 +123,26 @@ public sealed class HtmlAutomationRequest {
             throw new ArgumentException("The operation requires Checked.");
         ArgumentNullException.ThrowIfNull(Values);
         var values = Values.ToArray();
-        long characters = Value?.Length ?? 0;
         foreach (string item in values) {
             if (item == null) throw new ArgumentException("An option value cannot be null.", nameof(Values));
-            characters += item.Length + 1L;
         }
-        for (var query = Query; query != null; query = query.Scope) characters += query.Value.Length;
-        characters += Reference?.PageId.Length ?? 0;
-        characters += Reference?.ElementName.Length ?? 0;
-        characters += Reference?.ElementId.Length ?? 0;
+        long characters = InputCharacterCount(Query, Reference, Value, values);
         if (characters > maximumCharacters) throw new ArgumentException("The automation request exceeds MaxInputCharacters.");
         return new() { Query = Query, Reference = Reference, Action = Action, Value = Value, Values = Array.AsReadOnly(values), Checked = Checked,
             Modifiers = Modifiers, SelectionStart = SelectionStart, SelectionEnd = SelectionEnd,
             WaitState = WaitState, WaitForReady = WaitForReady };
+    }
+
+    internal long InputCharacterCount() => InputCharacterCount(Query, Reference, Value, Values);
+
+    private static long InputCharacterCount(HtmlLocatorQuery? query, HtmlObservedElementReference? reference,
+        string? value, IReadOnlyList<string> values) {
+        long characters = value?.Length ?? 0;
+        foreach (string item in values) characters += item.Length + 1L;
+        for (; query != null; query = query.Scope) characters += query.Value.Length;
+        characters += reference?.PageId.Length ?? 0;
+        characters += reference?.ElementName.Length ?? 0;
+        characters += reference?.ElementId.Length ?? 0;
+        return characters;
     }
 }

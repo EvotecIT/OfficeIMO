@@ -11,7 +11,20 @@ public static class HtmlIsolatedPublicPageWorkflow {
     public static async Task<HtmlIsolatedPublicPageResult> RunAsync(
         HtmlIsolatedPublicPageExecutionOptions execution,
         HtmlIsolatedPublicPageRequest request,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default) => await RunCoreAsync(execution, request, null, cancellationToken).ConfigureAwait(false);
+
+    internal static Task<HtmlIsolatedPublicPageResult> RunWithTransportAsync(
+        HtmlIsolatedPublicPageExecutionOptions execution,
+        HtmlIsolatedPublicPageRequest request,
+        HtmlPublicAcquisitionTransport transport,
+        CancellationToken cancellationToken = default) =>
+        RunCoreAsync(execution, request, transport ?? throw new ArgumentNullException(nameof(transport)), cancellationToken);
+
+    private static async Task<HtmlIsolatedPublicPageResult> RunCoreAsync(
+        HtmlIsolatedPublicPageExecutionOptions execution,
+        HtmlIsolatedPublicPageRequest request,
+        HtmlPublicAcquisitionTransport? transport,
+        CancellationToken cancellationToken) {
         HtmlIsolatedPublicPageExecutionOptions.Snapshot run = (execution ?? throw new ArgumentNullException(nameof(execution))).Validate();
         HtmlIsolatedPublicPageRequest.Snapshot input = (request ?? throw new ArgumentNullException(nameof(request))).Validate();
         using var deadline = new CancellationTokenSource(run.OperationTimeout);
@@ -27,6 +40,7 @@ public static class HtmlIsolatedPublicPageWorkflow {
         string? cleanupError = null;
         string? expectedRenderer = null, expectedWorker = null;
         string? expectedRendererFiles = null, expectedWorkerFiles = null;
+        HtmlPublicFontPackageIdentity? expectedFontPackage = null;
         Exception? failure = null;
         HtmlIsolatedPublicPagePhase phase = HtmlIsolatedPublicPagePhase.Admission;
 
@@ -39,15 +53,25 @@ public static class HtmlIsolatedPublicPageWorkflow {
             long acquisitionResourceBytes = Math.Min(4L * 1024 * 1024,
                 Math.Min(callerPolicy.MaxResourceBytes, callerPolicy.MaxTotalBytes));
             long acquisitionTotalBytes = Math.Min(16L * 1024 * 1024, callerPolicy.MaxTotalBytes);
-            var broker = new HtmlPublicResourceBroker(new[] { input.Url.IdnHost }
+            string[] allowedHosts = new[] { input.Url.IdnHost }
                 .Concat(input.SeedResourceUrls.Select(resource => resource.IdnHost))
-                .Concat(input.AllowedHosts), maxRequests: acquisitionRequests,
-                maxResourceBytes: acquisitionResourceBytes, maxTotalBytes: acquisitionTotalBytes,
-                timeout: callerPolicy.Timeout < TimeSpan.FromSeconds(20) ? callerPolicy.Timeout : TimeSpan.FromSeconds(20),
-                maxRedirects: Math.Min(callerPolicy.MaxRedirects, 5),
-                maxRequestBytes: Math.Min(callerPolicy.MaxRequestBytes, 1024L * 1024),
-                maxTotalRequestBytes: Math.Min(callerPolicy.MaxTotalRequestBytes, 16L * 1024 * 1024),
-                dynamicHosts: input.AllowedDynamicRequestOrigins.Select(origin => origin.IdnHost));
+                .Concat(input.AllowedHosts).ToArray();
+            TimeSpan acquisitionTimeout = callerPolicy.Timeout < TimeSpan.FromSeconds(20)
+                ? callerPolicy.Timeout : TimeSpan.FromSeconds(20);
+            var broker = transport == null
+                ? new HtmlPublicResourceBroker(allowedHosts, maxRequests: acquisitionRequests,
+                    maxResourceBytes: acquisitionResourceBytes, maxTotalBytes: acquisitionTotalBytes,
+                    timeout: acquisitionTimeout, maxRedirects: Math.Min(callerPolicy.MaxRedirects, 5),
+                    maxRequestBytes: Math.Min(callerPolicy.MaxRequestBytes, 1024L * 1024),
+                    maxTotalRequestBytes: Math.Min(callerPolicy.MaxTotalRequestBytes, 16L * 1024 * 1024),
+                    dynamicHosts: input.AllowedDynamicRequestOrigins.Select(origin => origin.IdnHost))
+                : new HtmlPublicResourceBroker(allowedHosts, transport.ResolveAddresses, transport.Connect,
+                    maxRequests: acquisitionRequests, maxResourceBytes: acquisitionResourceBytes,
+                    maxTotalBytes: acquisitionTotalBytes, timeout: acquisitionTimeout,
+                    maxRedirects: Math.Min(callerPolicy.MaxRedirects, 5),
+                    maxRequestBytes: Math.Min(callerPolicy.MaxRequestBytes, 1024L * 1024),
+                    maxTotalRequestBytes: Math.Min(callerPolicy.MaxTotalRequestBytes, 16L * 1024 * 1024),
+                    dynamicHosts: input.AllowedDynamicRequestOrigins.Select(origin => origin.IdnHost));
 
             phase = HtmlIsolatedPublicPagePhase.Acquisition;
             document = await broker.FetchAsync(input.Url, operation.Token).ConfigureAwait(false);
@@ -62,6 +86,7 @@ public static class HtmlIsolatedPublicPageWorkflow {
             expectedWorker = Digest(await File.ReadAllBytesAsync(run.WorkerPath, operation.Token).ConfigureAwait(false));
             expectedRendererFiles = HtmlPublicArtifactDigest.DirectorySha256(Path.GetDirectoryName(run.RendererPath)!);
             expectedWorkerFiles = HtmlPublicArtifactDigest.DirectorySha256(Path.GetDirectoryName(run.WorkerPath)!);
+            expectedFontPackage = HtmlPublicFontPackage.Load(Path.GetDirectoryName(run.RendererPath)!);
 
             HtmlScriptRequest page = input.Runtime;
             page.Html = html;
@@ -72,6 +97,12 @@ public static class HtmlIsolatedPublicPageWorkflow {
                 .ToArray());
             page.FailOnFetchReplayDiscovery = true;
             page = page.Snapshot();
+            var renderRequest = new HtmlPublicRenderRequest { Page = page, Actions = input.Actions,
+                FinalReadyExpression = input.FinalReadyExpression,
+                MaxOutputBytesPerArtifact = input.MaxOutputBytesPerArtifact,
+                MaxTotalOutputBytes = input.MaxTotalOutputBytes };
+            if (HtmlRuntimeProtocol.MeasureCharacters(renderRequest) > HtmlPublicRenderRequest.MaximumProtocolCharacters)
+                throw new ArgumentException("The acquired page and automation request exceed the isolated protocol budget.", nameof(request));
 
             phase = HtmlIsolatedPublicPagePhase.IsolatedStartup;
             lease = await HtmlOciWorkerLease.StartAsync(
@@ -80,9 +111,8 @@ public static class HtmlIsolatedPublicPageWorkflow {
             containerRemoved = false;
             Process process = lease.Process;
             Task<string> stderr = DrainErrorAsync(process.StandardError.BaseStream, operation.Token);
-            await HtmlRuntimeProtocol.WriteAsync(process.StandardInput.BaseStream,
-                new HtmlPublicRenderRequest { Page = page, MaxOutputBytesPerArtifact = input.MaxOutputBytesPerArtifact,
-                    MaxTotalOutputBytes = input.MaxTotalOutputBytes }, 24 * 1024 * 1024, operation.Token).ConfigureAwait(false);
+            await HtmlRuntimeProtocol.WriteAsync(process.StandardInput.BaseStream, renderRequest,
+                HtmlPublicRenderRequest.MaximumProtocolCharacters, operation.Token).ConfigureAwait(false);
             var known = new HashSet<string>(StringComparer.Ordinal) {
                 HtmlRuntimeResourcePolicy.Key(document.Resource.Url),
                 HtmlRuntimeResourcePolicy.Key(document.Resource.FinalUrl)
@@ -99,7 +129,8 @@ public static class HtmlIsolatedPublicPageWorkflow {
                     process.StandardOutput.BaseStream, 24 * 1024 * 1024, operation.Token).ConfigureAwait(false)
                     ?? throw new HtmlScriptRuntimeException("The isolated renderer returned no discovery response.");
                 phase = WorkerPhase(response.Stage);
-                VerifyIdentity(response, expectedRenderer, expectedWorker, expectedRendererFiles, expectedWorkerFiles);
+                VerifyIdentity(response, expectedRenderer, expectedWorker, expectedRendererFiles, expectedWorkerFiles,
+                    expectedFontPackage);
                 ThrowWorkerError(response);
                 if (response.DiscoveryComplete) break;
                 if (round >= 16 || response.DiscoveryUrls == null || response.DiscoveryRequests == null ||
@@ -165,7 +196,8 @@ public static class HtmlIsolatedPublicPageWorkflow {
             string errorOutput = await stderr.ConfigureAwait(false);
             if (process.ExitCode != 0)
                 throw new HtmlScriptRuntimeException("The isolated renderer exited " + process.ExitCode + ": " + errorOutput);
-            VerifyIdentity(response, expectedRenderer, expectedWorker, expectedRendererFiles, expectedWorkerFiles);
+            VerifyIdentity(response, expectedRenderer, expectedWorker, expectedRendererFiles, expectedWorkerFiles,
+                expectedFontPackage);
             ThrowWorkerError(response);
             phase = HtmlIsolatedPublicPagePhase.Output;
             screen = response.Screen ?? throw new HtmlScriptRuntimeException("The isolated screen output is missing.");
@@ -201,7 +233,7 @@ public static class HtmlIsolatedPublicPageWorkflow {
         if (failure != null) {
             HtmlIsolatedPublicPageFailureEvidence evidence = FailureEvidence(phase, input, document, assets, skipped,
                 run.ImageId, containerName, containerRemoved, cleanupError, response, expectedRenderer, expectedWorker,
-                expectedRendererFiles, expectedWorkerFiles);
+                expectedRendererFiles, expectedWorkerFiles, expectedFontPackage);
             if (failure is OperationCanceledException && phase != HtmlIsolatedPublicPagePhase.Cleanup) {
                 string message = cancellationToken.IsCancellationRequested
                     ? "The isolated public-page run was canceled."
@@ -238,14 +270,15 @@ public static class HtmlIsolatedPublicPageWorkflow {
         HtmlIsolatedPublicPageRequest.Snapshot input, HtmlPublicResourceResult? document,
         IEnumerable<HtmlPublicResourceResult> assets, IEnumerable<HtmlPublicSkippedResource> skipped,
         string imageId, string? containerName, bool? containerRemoved, string? cleanupError,
-        HtmlPublicRenderResponse? response, string? renderer, string? worker, string? rendererFiles, string? workerFiles) {
+        HtmlPublicRenderResponse? response, string? renderer, string? worker, string? rendererFiles, string? workerFiles,
+        HtmlPublicFontPackageIdentity? expectedFontPackage) {
         IEnumerable<HtmlPublicResourceResult> acquired = document == null
             ? assets
             : new[] { document }.Concat(assets);
         var resources = acquired.Select(resource => new HtmlPublicResourceEvidence(resource, input.RetainInputBytes)).ToArray();
         return new HtmlIsolatedPublicPageFailureEvidence(phase, Array.AsReadOnly(resources),
             Array.AsReadOnly(skipped.ToArray()), imageId, containerName, containerRemoved, cleanupError,
-            response, renderer, worker, rendererFiles, workerFiles);
+            response, renderer, worker, expectedFontPackage, rendererFiles, workerFiles);
     }
 
     private static void ThrowWorkerError(HtmlPublicRenderResponse response) {
@@ -260,13 +293,14 @@ public static class HtmlIsolatedPublicPageWorkflow {
     };
 
     private static void VerifyIdentity(HtmlPublicRenderResponse response, string renderer, string worker,
-        string rendererFiles, string workerFiles) {
+        string rendererFiles, string workerFiles, HtmlPublicFontPackageIdentity expectedFontPackage) {
         if (!response.RendererSha256.Equals(renderer, StringComparison.OrdinalIgnoreCase)
             || !response.WorkerSha256.Equals(worker, StringComparison.OrdinalIgnoreCase)
             || !response.RendererFilesSha256.Equals(rendererFiles, StringComparison.OrdinalIgnoreCase)
-            || !response.WorkerFilesSha256.Equals(workerFiles, StringComparison.OrdinalIgnoreCase)) {
+            || !response.WorkerFilesSha256.Equals(workerFiles, StringComparison.OrdinalIgnoreCase)
+            || !HtmlPublicFontPackage.Matches(expectedFontPackage, response.FontPackage)) {
             throw new HtmlScriptRuntimeException(
-                "The isolated image does not contain the expected renderer and script worker builds.");
+                "The isolated image does not contain the expected renderer, script worker, and font-package payloads.");
         }
     }
 

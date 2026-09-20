@@ -17,6 +17,10 @@ dotnet run --project Build/Project/HtmlPublicRenderProbe/OfficeIMO.Html.PublicRe
   /tmp/officeimo-public-pilot/fixture-output
 ```
 
+Append `--live-acquisition` to add one live HTTPS redirect and one live CORS
+preflight/POST observation against `httpbingo.org`. The default gate remains
+fully controlled and does not depend on public DNS or service availability.
+
 The output directory must be new. Each render case starts a separate verified
 container and checks removal after completion; acquisition rejection cases stop
 before container startup. The generated cases cover
@@ -59,6 +63,10 @@ before rendering the acquired responses in separate network-disabled
 containers. It also proves that a per-hop public-to-loopback DNS change and an
 oversized declared response are rejected before container startup. The summary
 records requested and final URLs, resolutions, validated connection endpoints,
-HTTP redirect hops and fixture requests. This is controlled fixture evidence;
-mutable public DNS, live public-host redirects and cross-platform containment
-need separate qualification.
+HTTP redirect hops and fixture requests. The run also carries the retained form,
+table, and external-module fixtures through `HtmlIsolatedPublicPageWorkflow`,
+including their structured actions and all three standard outputs. Host and worker
+validate the portable font manifest, exact font bytes, retained license files,
+and complete package digest. The live flag records current public redirect and
+preflight exchanges separately so mutable public DNS never becomes part of the
+six-case deterministic acquisition gate.

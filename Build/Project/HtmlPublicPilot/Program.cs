@@ -74,6 +74,10 @@ try {
         result.WorkerSha256,
         result.RendererFilesSha256,
         result.WorkerFilesSha256,
+        fontPackage = FontPackageEvidence(result.FontPackage),
+        actions = result.Actions.Select(action => new {
+            action.Status, action.MatchCount, action.Message, action.PageRevision, action.Element
+        }).ToArray(),
         outputs = result.Outputs.Select(output => new {
             file = output.Name, bytes = output.Content.Length, output.Sha256, output.MediaType
         }).ToArray()
@@ -152,12 +156,24 @@ async Task PersistFailureAsync(Exception error, HtmlIsolatedPublicPageFailureEvi
         reportedWorkerSha256 = evidence?.ReportedWorkerSha256,
         reportedRendererFilesSha256 = evidence?.ReportedRendererFilesSha256,
         reportedWorkerFilesSha256 = evidence?.ReportedWorkerFilesSha256,
+        expectedFontPackage = evidence?.ExpectedFontPackage == null ? null : FontPackageEvidence(evidence.ExpectedFontPackage),
+        reportedFontPackage = evidence?.ReportedFontPackage == null ? null : FontPackageEvidence(evidence.ReportedFontPackage),
+        actions = evidence?.Actions,
         acquiredResources = evidence?.Resources.Count ?? 0,
         skippedResources = evidence?.SkippedResources ?? Array.Empty<HtmlPublicSkippedResource>()
     }, json));
     Console.Error.WriteLine("Pilot failed: " + error.GetType().Name + ": " + error.Message);
     Environment.ExitCode = 2;
 }
+
+static object FontPackageEvidence(HtmlPublicFontPackageEvidence package) => new {
+    package.Id,
+    package.ManifestSha256,
+    package.FilesSha256,
+    package.ManifestJson,
+    package.Fonts,
+    package.Licenses
+};
 
 static object ResourceEvidence(HtmlPublicResourceEvidence resource) => new {
     url = resource.Url.AbsoluteUri,

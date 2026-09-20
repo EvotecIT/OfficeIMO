@@ -4,15 +4,17 @@ using System.Text;
 using System.Text.Json;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html.Runtime;
+using OfficeIMO.Html.Runtime.Rendering;
 using OfficeIMO.Pdf;
 
-if (args.Length != 4)
-    throw new ArgumentException("Usage: OfficeIMO.Html.PublicRenderProbe <full-sha256-image-id> <published-renderer-dll> <published-worker-dll> <new-output-directory>");
+if (args.Length is < 4 or > 5 || args.Length == 5 && args[4] != "--live-acquisition")
+    throw new ArgumentException("Usage: OfficeIMO.Html.PublicRenderProbe <full-sha256-image-id> <published-renderer-dll> <published-worker-dll> <new-output-directory> [--live-acquisition]");
 
 string imageId = args[0];
 string rendererPath = Path.GetFullPath(args[1]);
 string workerPath = Path.GetFullPath(args[2]);
 string outputDirectory = Path.GetFullPath(args[3]);
+bool runLiveAcquisition = args.Length == 5;
 if (Directory.Exists(outputDirectory) || File.Exists(outputDirectory))
     throw new IOException("The probe output directory must be new.");
 Directory.CreateDirectory(outputDirectory);
@@ -21,6 +23,7 @@ string rendererSha256 = Digest(await File.ReadAllBytesAsync(rendererPath));
 string workerSha256 = Digest(await File.ReadAllBytesAsync(workerPath));
 string rendererFilesSha256 = HtmlPublicArtifactDigest.DirectorySha256(Path.GetDirectoryName(rendererPath)!);
 string workerFilesSha256 = HtmlPublicArtifactDigest.DirectorySha256(Path.GetDirectoryName(workerPath)!);
+HtmlPublicFontPackageIdentity fontPackage = HtmlPublicFontPackage.Load(Path.GetDirectoryName(rendererPath)!);
 const string fixtureOrigin = "https://fixture.officeimo.invalid";
 var cases = new List<ProbeCase> {
     new ProbeCase("malformed-markup", """
@@ -285,21 +288,35 @@ foreach (ProbeCase fixture in cases) {
     results.Add(result);
     if (!result.ContainerRemoved) break;
 }
+IsolatedApplicationCorpus applications = results.All(result => result.ContainerRemoved)
+    ? await IsolatedApplicationCorpus.RunAsync(imageId, rendererPath, workerPath, outputDirectory)
+    : new IsolatedApplicationCorpus(Array.Empty<IsolatedApplicationProbeResult>());
+LivePublicAcquisitionCorpus liveAcquisition = runLiveAcquisition
+    ? await LivePublicAcquisitionCorpus.RunAsync()
+    : new LivePublicAcquisitionCorpus(Array.Empty<LivePublicAcquisitionResult>());
 
 await File.WriteAllTextAsync(Path.Combine(outputDirectory, "summary.json"), JsonSerializer.Serialize(new {
     imageId, rendererSha256, workerSha256, rendererFilesSha256, workerFilesSha256,
+    fontPackage = new { fontPackage.Id, fontPackage.ManifestSha256, fontPackage.FilesSha256,
+        fontCount = fontPackage.Fonts.Length, licenseCount = fontPackage.Licenses.Length },
     capturedAtUtc = DateTimeOffset.UtcNow, isolationPolicy =
         "rootless-podman;seccomp;cgroups-cpu-memory-pids;network-none;read-only;uid-65532;cap-drop-all;no-new-privileges;no-mounts",
     acquisitionCases = acquisition.Results,
+    liveAcquisitionRequested = runLiveAcquisition,
+    liveAcquisitionCases = liveAcquisition.Results,
+    isolatedApplicationCases = applications.Results,
     cases = results
 }, new JsonSerializerOptions { WriteIndented = true }));
-if (acquisition.Results.Any(result => !result.Passed) || results.Any(result => !result.Passed))
+if (acquisition.Results.Any(result => !result.Passed) || results.Any(result => !result.Passed)
+    || applications.Results.Count != 3 || applications.Results.Any(result => !result.Passed)
+    || runLiveAcquisition && liveAcquisition.Results.Any(result => !result.Passed))
     throw new InvalidOperationException("The isolated renderer probe failed; inspect summary.json.");
 Console.WriteLine("Isolated renderer probe passed: " + results.Count + " render cases and " +
-    acquisition.Results.Count + " acquisition cases.");
+    acquisition.Results.Count + " acquisition cases, " + applications.Results.Count +
+    " isolated application cases" + (runLiveAcquisition ? ", and 2 live acquisition cases." : "."));
 
 async Task<ProbeResult> RunCaseAsync(ProbeCase fixture) {
-    using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+    using var deadline = new CancellationTokenSource(TimeSpan.FromMinutes(2));
     HtmlOciWorkerLease? lease = null;
     string? containerName = null;
     bool removed = false;
@@ -459,7 +476,8 @@ void VerifyIdentity(HtmlPublicRenderResponse response) {
     if (!response.RendererSha256.Equals(rendererSha256, StringComparison.OrdinalIgnoreCase) ||
         !response.WorkerSha256.Equals(workerSha256, StringComparison.OrdinalIgnoreCase) ||
         !response.RendererFilesSha256.Equals(rendererFilesSha256, StringComparison.OrdinalIgnoreCase) ||
-        !response.WorkerFilesSha256.Equals(workerFilesSha256, StringComparison.OrdinalIgnoreCase))
+        !response.WorkerFilesSha256.Equals(workerFilesSha256, StringComparison.OrdinalIgnoreCase) ||
+        !HtmlPublicFontPackage.Matches(fontPackage, response.FontPackage))
         throw new IOException("The isolated renderer or script worker does not match the published files.");
 }
 

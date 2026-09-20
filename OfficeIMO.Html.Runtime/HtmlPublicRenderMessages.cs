@@ -3,7 +3,10 @@ namespace OfficeIMO.Html.Runtime;
 // Private protocol between the public-page pilot and its whole-pipeline OCI
 // process. No untrusted HTML is parsed, scripted or rendered on the host.
 internal sealed class HtmlPublicRenderRequest {
+    internal const int MaximumProtocolCharacters = 24 * 1024 * 1024;
     public HtmlScriptRequest Page { get; set; } = new();
+    public HtmlAutomationRequest[] Actions { get; set; } = Array.Empty<HtmlAutomationRequest>();
+    public string? FinalReadyExpression { get; set; }
     public long MaxOutputBytesPerArtifact { get; set; } = 8L * 1024 * 1024;
     public long MaxTotalOutputBytes { get; set; } = 12L * 1024 * 1024;
 }
@@ -37,6 +40,7 @@ internal sealed class HtmlPublicRenderResponse {
     public string WorkerSha256 { get; set; } = string.Empty;
     public string RendererFilesSha256 { get; set; } = string.Empty;
     public string WorkerFilesSha256 { get; set; } = string.Empty;
+    public HtmlPublicFontPackageIdentity? FontPackage { get; set; }
     public bool DiscoveryComplete { get; set; }
     public string[] DiscoveryUrls { get; set; } = Array.Empty<string>();
     public HtmlRuntimeFetchDiscovery[] DiscoveryRequests { get; set; } = Array.Empty<HtmlRuntimeFetchDiscovery>();
@@ -46,6 +50,7 @@ internal sealed class HtmlPublicRenderResponse {
     public string? CaptureUrl { get; set; }
     public string? CaptureManifest { get; set; }
     public string[] TraceEntries { get; set; } = Array.Empty<string>();
+    public HtmlAutomationResult[] Actions { get; set; } = Array.Empty<HtmlAutomationResult>();
     public byte[]? Screen { get; set; }
     public byte[]? Print { get; set; }
     public byte[]? ScreenToPage { get; set; }

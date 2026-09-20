@@ -246,6 +246,23 @@ var options = new HtmlToPdfOptions {
 options.Fonts.Add("Report Arabic", File.ReadAllBytes("ReportArabic.ttf"));
 ```
 
+Hosts that ship the OfficeIMO portable browser font set can activate its layout
+aliases, fallback order, PDF embedding, and substitutions through one reusable
+profile. The profile does not embed or download fonts; the host remains responsible
+for supplying pinned and licensed bytes:
+
+```csharp
+HtmlPortableBrowserFontProfile fonts = HtmlPortableBrowserFontProfile.Create(
+    "my-portable-fonts-v1",
+    fileName => File.ReadAllBytes(Path.Combine(fontDirectory, fileName)));
+
+HtmlToPdfOptions options = fonts.CreateHtmlOptions(
+    OfficeHarfBuzzTextShapingProvider.Instance);
+```
+
+The same `options` instance can drive screen images, browser-print PDF, and
+screen-to-page PDF so layout and encoded output use the same fonts.
+
 If no configured provider accepts a run that requires provider-owned complex shaping, OfficeIMO retains logical searchable text and reports `HtmlRenderComplexTextShapingUnsupported`; strict mode rejects that fallback, including outlined-font output.
 
 Install `OfficeIMO.Mhtml.Pdf` when the source is an MHT/MHTML archive. That bridge adds MIME parsing and embedded-resource resolution without putting `OfficeIMO.Email` into ordinary HTML/PDF applications.

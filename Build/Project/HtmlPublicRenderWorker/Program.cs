@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using OfficeIMO.Drawing.HarfBuzz;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Html.Providers;
@@ -9,21 +10,38 @@ using Stream input = Console.OpenStandardInput();
 using Stream output = Console.OpenStandardOutput();
 string rendererPath = typeof(Program).Assembly.Location;
 string workerPath = Path.Combine(AppContext.BaseDirectory, "worker", "OfficeIMO.Html.Runtime.Worker.dll");
+HtmlPublicFontPackageIdentity fontPackage = HtmlPublicFontPackage.Load(AppContext.BaseDirectory);
+HtmlPortableBrowserFontProfile portableFonts = HtmlPortableBrowserFontProfile.Create(fontPackage.Id,
+    name => File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, HtmlPublicFontPackage.DirectoryName, name)));
 var response = new HtmlPublicRenderResponse {
     RendererSha256 = Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(rendererPath))),
     WorkerSha256 = Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(workerPath))),
     RendererFilesSha256 = HtmlPublicArtifactDigest.DirectorySha256(AppContext.BaseDirectory, "worker"),
-    WorkerFilesSha256 = HtmlPublicArtifactDigest.DirectorySha256(Path.GetDirectoryName(workerPath)!)
+    WorkerFilesSha256 = HtmlPublicArtifactDigest.DirectorySha256(Path.GetDirectoryName(workerPath)!),
+    FontPackage = fontPackage
 };
 try {
     using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(90));
     HtmlPublicRenderRequest incoming = await HtmlRuntimeProtocol.ReadAsync<HtmlPublicRenderRequest>(
-        input, 24 * 1024 * 1024, deadline.Token)
+        input, HtmlPublicRenderRequest.MaximumProtocolCharacters, deadline.Token)
         ?? throw new HtmlScriptRuntimeException("The isolated render request is missing.");
     if (incoming.MaxOutputBytesPerArtifact is < 1 or > 8L * 1024 * 1024 ||
         incoming.MaxTotalOutputBytes is < 1 or > 12L * 1024 * 1024)
         throw new HtmlScriptRuntimeException("The isolated render output budget is invalid.");
     HtmlScriptRequest page = incoming.Page.Snapshot();
+    HtmlAutomationRequest[] actions = (incoming.Actions ?? throw new HtmlScriptRuntimeException(
+        "The isolated render action list is missing.")).Select(action => (action
+            ?? throw new HtmlScriptRuntimeException("The isolated render action list contains null."))
+        .Snapshot(page.MaxInputCharacters)).ToArray();
+    if (actions.Length > 64 || actions.Any(action => action.Reference != null))
+        throw new HtmlScriptRuntimeException("The isolated render action list is invalid.");
+    if (incoming.FinalReadyExpression != null && (string.IsNullOrWhiteSpace(incoming.FinalReadyExpression)
+        || incoming.FinalReadyExpression.Length > page.MaxInputCharacters))
+        throw new HtmlScriptRuntimeException("The isolated final readiness expression is invalid.");
+    long automationCharacters = page.ReadyExpression.Length + (incoming.FinalReadyExpression?.Length ?? 0L);
+    foreach (HtmlAutomationRequest action in actions) automationCharacters += action.InputCharacterCount();
+    if (automationCharacters > page.MaxInputCharacters)
+        throw new HtmlScriptRuntimeException("The combined isolated action and readiness input exceeds MaxInputCharacters.");
     if (page.Profile != HtmlRuntimeProfile.WebApplicationV1 || page.ResourcePolicy.AllowNetwork)
         throw new NotSupportedException("The isolated renderer accepts only offline WebApplicationV1 input.");
     var discovery = new HtmlApplicationResourceDiscovery(page.ViewportWidth, page.ViewportHeight, page.DevicePixelRatio);
@@ -78,11 +96,13 @@ try {
             result = await HtmlApplicationDocumentWorkflow.RunAsync(host,
                 new HtmlApplicationDocumentRequest {
                     Page = page,
+                    Actions = actions,
+                    FinalReadyExpression = incoming.FinalReadyExpression,
                     Context = new HtmlRuntimeContextOptions {
                         Trace = new HtmlRuntimeTraceOptions { IncludeUrls = true }
                     },
                     OutputOptions = new HtmlApplicationOutputOptions {
-                        RenderOptions = new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0D) }
+                        RenderOptions = CreateRenderOptions()
                     }
                 }, deadline.Token);
             if (result.Trace.IsTruncated)
@@ -128,6 +148,7 @@ try {
     response.TraceEntries = result.Trace.Events.Take(128).Select(entry =>
         entry.Kind + ":" + entry.Operation + ":" + entry.Status +
         (entry.Detail == null ? string.Empty : ":" + entry.Detail)).ToArray();
+    response.Actions = result.Actions.ToArray();
     response.Screen = screen;
     response.Print = print;
     response.ScreenToPage = screenToPage;
@@ -137,5 +158,11 @@ try {
     response.DiscoveryComplete = true;
     response.DiscoveryUrls = Array.Empty<string>();
     response.DiscoveryRequests = Array.Empty<HtmlRuntimeFetchDiscovery>();
+}
+
+HtmlToPdfOptions CreateRenderOptions() {
+    HtmlToPdfOptions options = portableFonts.CreateHtmlOptions(OfficeHarfBuzzTextShapingProvider.Instance);
+    options.Margins = HtmlRenderMargins.All(0D);
+    return options;
 }
 await HtmlRuntimeProtocol.WriteAsync(output, response, 24 * 1024 * 1024, CancellationToken.None);

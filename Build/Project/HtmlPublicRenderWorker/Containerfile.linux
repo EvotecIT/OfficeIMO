@@ -1,9 +1,15 @@
 FROM mcr.microsoft.com/dotnet/runtime@sha256:8a153b5889d796b6450295b383596b13308c24c230515f8a7770ce1b94e0c460
 
-RUN apt-get update && apt-get install -y --no-install-recommends fontconfig fonts-dejavu-core && rm -rf /var/lib/apt/lists/*
+ARG FONTCONFIG_VERSION=2.15.0-1.1ubuntu2
+RUN apt-get update && apt-get install -y --no-install-recommends "fontconfig=${FONTCONFIG_VERSION}" && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY renderer/ /app/
 COPY worker/ /app/worker/
+RUN rm -rf /usr/share/fonts/truetype/dejavu \
+    && install -d -m 0755 /usr/local/share/fonts/officeimo \
+    && cp /app/font-pack/*.ttf /usr/local/share/fonts/officeimo/ \
+    && fc-cache -f \
+    && test "$(find /usr/share/fonts /usr/local/share/fonts -type f \( -name '*.ttf' -o -name '*.otf' -o -name '*.woff' -o -name '*.woff2' \) | wc -l)" -eq 7
 USER 65532:65532
 ENTRYPOINT ["dotnet", "/app/OfficeIMO.Html.PublicRenderWorker.dll"]

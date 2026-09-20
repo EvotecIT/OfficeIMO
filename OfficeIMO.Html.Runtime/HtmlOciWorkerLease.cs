@@ -9,6 +9,8 @@ namespace OfficeIMO.Html.Runtime;
 // separate provider, verified isolation report and resource acquisition broker.
 internal sealed class HtmlOciWorkerLease : IDisposable, IAsyncDisposable {
     internal static readonly TimeSpan MaximumCleanupDuration = TimeSpan.FromMinutes(1);
+    private static readonly TimeSpan EngineMetadataTimeout = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan EngineCreateTimeout = TimeSpan.FromSeconds(45);
     private readonly string _podmanExecutable;
     private readonly string[] _podmanArguments;
     private readonly string _containerName;
@@ -43,14 +45,14 @@ internal sealed class HtmlOciWorkerLease : IDisposable, IAsyncDisposable {
         // still be cleaned up without parsing its possibly incomplete output.
         try {
             string engineInfo = await RunAsync(podmanExecutable, podmanArguments,
-                new[] { "info", "--format", "json" }, TimeSpan.FromSeconds(15), token).ConfigureAwait(false);
+                new[] { "info", "--format", "json" }, EngineMetadataTimeout, token).ConfigureAwait(false);
             string[] baselineCapabilities = VerifyEngine(engineInfo);
             createAttempted = true;
             await RunAsync(podmanExecutable, podmanArguments, new[] { "create", "--interactive", "--name", name,
                 "--network", "none", "--read-only", "--pids-limit", "32", "--memory", "512m",
                 "--cpus", "1", "--cap-drop", "all", "--security-opt", "no-new-privileges",
-                "--user", "65532:65532", imageId }, TimeSpan.FromSeconds(30), token).ConfigureAwait(false);
-            string inspection = await RunAsync(podmanExecutable, podmanArguments, new[] { "inspect", name }, TimeSpan.FromSeconds(15), token).ConfigureAwait(false);
+                "--user", "65532:65532", imageId }, EngineCreateTimeout, token).ConfigureAwait(false);
+            string inspection = await RunAsync(podmanExecutable, podmanArguments, new[] { "inspect", name }, EngineMetadataTimeout, token).ConfigureAwait(false);
             VerifyInspection(inspection, name, imageId, baselineCapabilities);
             token.ThrowIfCancellationRequested();
             var start = new ProcessStartInfo(podmanExecutable) {

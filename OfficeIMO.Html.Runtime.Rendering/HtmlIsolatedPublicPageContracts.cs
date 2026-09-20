@@ -53,6 +53,10 @@ public sealed class HtmlIsolatedPublicPageRequest {
         Timeout = TimeSpan.FromSeconds(20),
         SessionTimeout = TimeSpan.FromMinutes(2)
     };
+    /// <summary>Ordered provider-neutral actions performed after the initial ready state and before capture.</summary>
+    public IReadOnlyList<HtmlAutomationRequest> Actions { get; init; } = Array.Empty<HtmlAutomationRequest>();
+    /// <summary>Optional final boolean readiness expression evaluated after <see cref="Actions"/>; null reuses the runtime readiness expression.</summary>
+    public string? FinalReadyExpression { get; init; }
     /// <summary>Retains acquired response bytes in the result. The default retains only provenance and digests.</summary>
     public bool RetainInputBytes { get; init; }
     /// <summary>Maximum bytes in each encoded screen or PDF result, up to 8 MiB.</summary>
@@ -72,6 +76,7 @@ public sealed class HtmlIsolatedPublicPageRequest {
         ArgumentNullException.ThrowIfNull(AllowedHosts);
         ArgumentNullException.ThrowIfNull(AllowedDynamicRequestMethods);
         ArgumentNullException.ThrowIfNull(AllowedDynamicRequestOrigins);
+        ArgumentNullException.ThrowIfNull(Actions);
         if (SeedResourceUrls.Count > 24) throw new ArgumentException("At most 24 seed resources are allowed.", nameof(SeedResourceUrls));
         if (AllowedHosts.Count > 15) throw new ArgumentException("At most 15 additional hosts are allowed.", nameof(AllowedHosts));
         Uri[] resources = SeedResourceUrls.Select(resource => HtmlPublicResourceBroker.ValidateUrl(
@@ -96,6 +101,22 @@ public sealed class HtmlIsolatedPublicPageRequest {
         if (MaxTotalOutputBytes is < 1 or > 12L * 1024 * 1024)
             throw new ArgumentOutOfRangeException(nameof(MaxTotalOutputBytes));
         HtmlScriptRequest runtime = (Runtime ?? throw new ArgumentNullException(nameof(Runtime))).Snapshot();
+        if (Actions.Count > 64)
+            throw new ArgumentException("An isolated public-page request allows at most 64 actions.", nameof(Actions));
+        HtmlAutomationRequest[] actions = Actions.Select(action => {
+            HtmlAutomationRequest snapshot = (action ?? throw new ArgumentException(
+                "An action cannot be null.", nameof(Actions))).Snapshot(runtime.MaxInputCharacters);
+            if (snapshot.Reference != null)
+                throw new ArgumentException("Preconfigured actions require locator queries, not revision-bound references.", nameof(Actions));
+            return snapshot;
+        }).ToArray();
+        if (FinalReadyExpression != null && (string.IsNullOrWhiteSpace(FinalReadyExpression)
+            || FinalReadyExpression.Length > runtime.MaxInputCharacters))
+            throw new ArgumentException("The final readiness expression is empty or exceeds MaxInputCharacters.", nameof(FinalReadyExpression));
+        long automationCharacters = runtime.ReadyExpression.Length + (FinalReadyExpression?.Length ?? 0L);
+        foreach (HtmlAutomationRequest action in actions) automationCharacters += action.InputCharacterCount();
+        if (automationCharacters > runtime.MaxInputCharacters)
+            throw new ArgumentException("The combined action and readiness input exceeds MaxInputCharacters.", nameof(Actions));
         if (runtime.Profile != HtmlRuntimeProfile.WebApplicationV1)
             throw new ArgumentException("The isolated public-page workflow requires WebApplicationV1.", nameof(Runtime));
         if (runtime.Html.Length != 0 || runtime.Scripts.Count != 0 || runtime.Resources.Count != 0 || runtime.FetchReplays.Count != 0 ||
@@ -104,12 +125,14 @@ public sealed class HtmlIsolatedPublicPageRequest {
         if (runtime.Timeout > TimeSpan.FromSeconds(30) || runtime.SessionTimeout > TimeSpan.FromMinutes(2))
             throw new ArgumentException("Public-page command and session deadlines exceed the isolated profile.", nameof(Runtime));
         return new Snapshot(ScenarioId, url, SourceLicense, resources, hosts, methods, dynamicOrigins, runtime,
+            actions, FinalReadyExpression,
             RetainInputBytes, MaxOutputBytesPerArtifact, MaxTotalOutputBytes);
     }
 
     internal sealed record Snapshot(string ScenarioId, Uri Url, string SourceLicense, Uri[] SeedResourceUrls,
         string[] AllowedHosts, string[] AllowedDynamicRequestMethods, Uri[] AllowedDynamicRequestOrigins,
-        HtmlScriptRequest Runtime, bool RetainInputBytes, long MaxOutputBytesPerArtifact, long MaxTotalOutputBytes);
+        HtmlScriptRequest Runtime, HtmlAutomationRequest[] Actions, string? FinalReadyExpression,
+        bool RetainInputBytes, long MaxOutputBytesPerArtifact, long MaxTotalOutputBytes);
 }
 
 /// <summary>Immutable OCI image and container-engine command used by the isolated renderer.</summary>
@@ -297,12 +320,56 @@ public sealed class HtmlIsolatedPageOutput {
     public string Sha256 { get; }
 }
 
+/// <summary>One immutable font or license file carried by the isolated renderer's declared font package.</summary>
+public sealed class HtmlPublicFontPackageFileEvidence {
+    internal HtmlPublicFontPackageFileEvidence(HtmlPublicFontFileIdentity file) {
+        Name = file.Name;
+        ByteCount = file.ByteCount;
+        Sha256 = file.Sha256;
+    }
+
+    /// <summary>Package-relative file name.</summary>
+    public string Name { get; }
+    /// <summary>Exact file size.</summary>
+    public long ByteCount { get; }
+    /// <summary>Lowercase SHA-256 digest of the file bytes.</summary>
+    public string Sha256 { get; }
+}
+
+/// <summary>Validated font-package identity, source manifest, font bytes, and retained license files.</summary>
+public sealed class HtmlPublicFontPackageEvidence {
+    internal HtmlPublicFontPackageEvidence(HtmlPublicFontPackageIdentity package) {
+        Id = package.Id;
+        ManifestSha256 = package.ManifestSha256;
+        FilesSha256 = package.FilesSha256;
+        ManifestJson = package.ManifestJson;
+        Fonts = Array.AsReadOnly((package.Fonts ?? Array.Empty<HtmlPublicFontFileIdentity>())
+            .Select(file => new HtmlPublicFontPackageFileEvidence(file)).ToArray());
+        Licenses = Array.AsReadOnly((package.Licenses ?? Array.Empty<HtmlPublicFontFileIdentity>())
+            .Select(file => new HtmlPublicFontPackageFileEvidence(file)).ToArray());
+    }
+
+    /// <summary>Stable package identity declared by the source manifest.</summary>
+    public string Id { get; }
+    /// <summary>Lowercase SHA-256 digest of the UTF-8 source manifest.</summary>
+    public string ManifestSha256 { get; }
+    /// <summary>Deterministic digest of the complete published font-package directory.</summary>
+    public string FilesSha256 { get; }
+    /// <summary>Validated source manifest containing family, license, source revision, derivation, and file identities.</summary>
+    public string ManifestJson { get; }
+    /// <summary>Exact font files validated against the source manifest.</summary>
+    public IReadOnlyList<HtmlPublicFontPackageFileEvidence> Fonts { get; }
+    /// <summary>Retained license files shipped with the package.</summary>
+    public IReadOnlyList<HtmlPublicFontPackageFileEvidence> Licenses { get; }
+}
+
 /// <summary>Bounded partial provenance and cleanup evidence retained when an isolated public-page run fails.</summary>
 public sealed class HtmlIsolatedPublicPageFailureEvidence {
     internal HtmlIsolatedPublicPageFailureEvidence(HtmlIsolatedPublicPagePhase phase,
         IReadOnlyList<HtmlPublicResourceEvidence> resources, IReadOnlyList<HtmlPublicSkippedResource> skippedResources,
         string imageId, string? containerName, bool? containerRemoved, string? cleanupError,
         HtmlPublicRenderResponse? response, string? rendererSha256, string? workerSha256,
+        HtmlPublicFontPackageIdentity? expectedFontPackage,
         string? rendererFilesSha256, string? workerFilesSha256) {
         Phase = phase;
         Resources = resources;
@@ -322,6 +389,9 @@ public sealed class HtmlIsolatedPublicPageFailureEvidence {
         ReportedWorkerSha256 = response?.WorkerSha256;
         ReportedRendererFilesSha256 = response?.RendererFilesSha256;
         ReportedWorkerFilesSha256 = response?.WorkerFilesSha256;
+        ExpectedFontPackage = expectedFontPackage == null ? null : new HtmlPublicFontPackageEvidence(expectedFontPackage);
+        ReportedFontPackage = response?.FontPackage == null ? null : new HtmlPublicFontPackageEvidence(response.FontPackage);
+        Actions = Array.AsReadOnly(response?.Actions ?? Array.Empty<HtmlAutomationResult>());
     }
 
     /// <summary>Last workflow phase reached before failure.</summary>
@@ -364,6 +434,12 @@ public sealed class HtmlIsolatedPublicPageFailureEvidence {
     public string? ReportedRendererFilesSha256 { get; }
     /// <summary>Complete script-worker payload digest reported from isolation, when available.</summary>
     public string? ReportedWorkerFilesSha256 { get; }
+    /// <summary>Font-package identity calculated from the host-published renderer payload, when available.</summary>
+    public HtmlPublicFontPackageEvidence? ExpectedFontPackage { get; }
+    /// <summary>Font-package identity validated and reported from isolation, when available.</summary>
+    public HtmlPublicFontPackageEvidence? ReportedFontPackage { get; }
+    /// <summary>Ordered successful action results reported before a later failure.</summary>
+    public IReadOnlyList<HtmlAutomationResult> Actions { get; }
 }
 
 /// <summary>An isolated public-page run failed after admission and carries bounded partial evidence.</summary>
@@ -405,6 +481,9 @@ public sealed class HtmlIsolatedPublicPageResult {
         WorkerSha256 = response.WorkerSha256;
         RendererFilesSha256 = response.RendererFilesSha256;
         WorkerFilesSha256 = response.WorkerFilesSha256;
+        FontPackage = new HtmlPublicFontPackageEvidence(response.FontPackage
+            ?? throw new HtmlScriptRuntimeException("The isolated font-package identity is missing."));
+        Actions = Array.AsReadOnly(response.Actions ?? Array.Empty<HtmlAutomationResult>());
         Outputs = Array.AsReadOnly(new[] {
             new HtmlIsolatedPageOutput("screen.png", "image/png", screen),
             new HtmlIsolatedPageOutput("print.pdf", "application/pdf", print),
@@ -457,6 +536,10 @@ public sealed class HtmlIsolatedPublicPageResult {
     public string RendererFilesSha256 { get; }
     /// <summary>Deterministic digest of the complete published script-worker payload.</summary>
     public string WorkerFilesSha256 { get; }
+    /// <summary>Validated font-package manifest, exact font identities, and retained license identities.</summary>
+    public HtmlPublicFontPackageEvidence FontPackage { get; }
+    /// <summary>Ordered successful structured action results.</summary>
+    public IReadOnlyList<HtmlAutomationResult> Actions { get; }
     /// <summary>Screen, browser-print and screen-to-page artifacts.</summary>
     public IReadOnlyList<HtmlIsolatedPageOutput> Outputs { get; }
 }

@@ -17,6 +17,7 @@
   </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Html.PublicRenderWorker" />
+    <InternalsVisibleTo Include="OfficeIMO.Html.PublicRenderProbe" />
     <InternalsVisibleTo Include="OfficeIMO.Html.Runtime.Tests" />
     <ProjectReference Include="../OfficeIMO.Core/OfficeIMO.Core.csproj" />
     <ProjectReference Include="../OfficeIMO.Html/OfficeIMO.Html.csproj" />
