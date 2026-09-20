@@ -10,11 +10,26 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 public sealed partial class PdfDocument {
     private readonly System.Collections.Generic.List<IPdfBlock> _blocks = new();
-    private readonly PdfOptions _options;
-    private readonly System.Collections.Generic.Stack<System.Action<IPdfBlock>> _blockScopes;
+    private PdfOptions? _optionsStorage;
+    private readonly System.Collections.Generic.Stack<System.Action<IPdfBlock>>? _blockScopes;
     private readonly PdfDocumentSource? _source;
     private readonly PdfPipelineReport _pipeline;
-    private readonly PdfDocumentReader _reader;
+    private PdfDocumentPages? _pages;
+    private PdfDocumentReader? _reader;
+    private PdfDocumentRenderer? _render;
+    private PdfDocumentResources? _resources;
+    private PdfDocumentTextEditor? _text;
+    private PdfDocumentImageEditor? _images;
+    private PdfDocumentStamper? _stamp;
+    private PdfDocumentForms? _forms;
+    private PdfDocumentAttachments? _attachments;
+    private PdfDocumentBookmarks? _bookmarks;
+    private PdfDocumentAnnotations? _annotations;
+    private PdfDocumentJavaScript? _javaScript;
+    private PdfDocumentSecurity? _security;
+    private PdfDocumentRedactions? _redactions;
+    private PdfDocumentOptimization? _optimization;
+    private PdfDocumentProof? _proof;
 
     // Metadata
     private string? _title;
@@ -23,37 +38,30 @@ public sealed partial class PdfDocument {
     private string? _keywords;
 
     private PdfDocument(PdfOptions? options = null) {
-        _options = options?.Clone() ?? new PdfOptions();
-        _options.MaterializeAutomaticPdfXProductionMetadata();
+        _optionsStorage = options?.Clone() ?? new PdfOptions();
+        _optionsStorage.MaterializeAutomaticPdfXProductionMetadata();
         _pipeline = PdfPipelineReport.Created();
         _blockScopes = new System.Collections.Generic.Stack<System.Action<IPdfBlock>>();
         _blockScopes.Push(_blocks.Add);
-        Pages = new PdfDocumentPages(this);
-        _reader = new PdfDocumentReader(this);
-        Render = new PdfDocumentRenderer(this);
-        Resources = new PdfDocumentResources(this);
-        Text = new PdfDocumentTextEditor(this);
-        Images = new PdfDocumentImageEditor(this);
-        Stamp = new PdfDocumentStamper(this);
-        Forms = new PdfDocumentForms(this);
-        Attachments = new PdfDocumentAttachments(this);
-        Bookmarks = new PdfDocumentBookmarks(this);
-        Annotations = new PdfDocumentAnnotations(this);
-        JavaScript = new PdfDocumentJavaScript(this);
-        Security = new PdfDocumentSecurity(this);
-        Redactions = new PdfDocumentRedactions(this);
-        Optimization = new PdfDocumentOptimization(this);
-        Proof = new PdfDocumentProof(this);
     }
 
-    private PdfDocument(PdfDocumentSource source) : this() {
+    private PdfDocument(PdfDocumentSource source) {
         _source = source;
         _pipeline = PdfPipelineReport.Opened(source);
     }
 
-    private PdfDocument(PdfDocumentSource source, PdfPipelineReport pipeline) : this() {
+    private PdfDocument(PdfDocumentSource source, PdfPipelineReport pipeline) {
         _source = source;
         _pipeline = pipeline;
+    }
+
+    private PdfOptions _options => Volatile.Read(ref _optionsStorage) ??
+        LazyInitializer.EnsureInitialized(ref _optionsStorage, CreateSourceBackedOptions)!;
+
+    private static PdfOptions CreateSourceBackedOptions() {
+        var options = new PdfOptions();
+        options.MaterializeAutomaticPdfXProductionMetadata();
+        return options;
     }
 
     /// <summary>
@@ -142,7 +150,8 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Page editing and extraction operations for this PDF.
     /// </summary>
-    public PdfDocumentPages Pages { get; }
+    public PdfDocumentPages Pages => Volatile.Read(ref _pages) ??
+        LazyInitializer.EnsureInitialized(ref _pages, () => new PdfDocumentPages(this))!;
 
     /// <summary>
     /// Builds the canonical semantic document result using the structured profile by default.
@@ -155,43 +164,56 @@ public sealed partial class PdfDocument {
     /// Transitional internal access to focused read operations while they move to their canonical capability owners.
     /// This property is not part of the 3.3 public API.
     /// </summary>
-    internal PdfDocumentReader Reader => _reader;
+    internal PdfDocumentReader Reader => Volatile.Read(ref _reader) ??
+        LazyInitializer.EnsureInitialized(ref _reader, () => new PdfDocumentReader(this))!;
 
     /// <summary>Managed page rendering, drawing projection, and renderer diagnostics.</summary>
-    public PdfDocumentRenderer Render { get; }
+    public PdfDocumentRenderer Render => Volatile.Read(ref _render) ??
+        LazyInitializer.EnsureInitialized(ref _render, () => new PdfDocumentRenderer(this))!;
 
     /// <summary>Bounded font and raw object-resource inspection.</summary>
-    public PdfDocumentResources Resources { get; }
+    public PdfDocumentResources Resources => Volatile.Read(ref _resources) ??
+        LazyInitializer.EnsureInitialized(ref _resources, () => new PdfDocumentResources(this))!;
 
     /// <summary>Existing-page text search and editing operations.</summary>
-    public PdfDocumentTextEditor Text { get; }
+    public PdfDocumentTextEditor Text => Volatile.Read(ref _text) ??
+        LazyInitializer.EnsureInitialized(ref _text, () => new PdfDocumentTextEditor(this))!;
 
     /// <summary>Existing-page image placement discovery and editing operations.</summary>
-    public PdfDocumentImageEditor Images { get; }
+    public PdfDocumentImageEditor Images => Volatile.Read(ref _images) ??
+        LazyInitializer.EnsureInitialized(ref _images, () => new PdfDocumentImageEditor(this))!;
 
     /// <summary>Existing-document embedded and associated file editing operations.</summary>
-    public PdfDocumentAttachments Attachments { get; }
+    public PdfDocumentAttachments Attachments => Volatile.Read(ref _attachments) ??
+        LazyInitializer.EnsureInitialized(ref _attachments, () => new PdfDocumentAttachments(this))!;
 
     /// <summary>Existing-document bookmark editing operations.</summary>
-    public PdfDocumentBookmarks Bookmarks { get; }
+    public PdfDocumentBookmarks Bookmarks => Volatile.Read(ref _bookmarks) ??
+        LazyInitializer.EnsureInitialized(ref _bookmarks, () => new PdfDocumentBookmarks(this))!;
 
     /// <summary>Existing-document annotation editing operations.</summary>
-    public PdfDocumentAnnotations Annotations { get; }
+    public PdfDocumentAnnotations Annotations => Volatile.Read(ref _annotations) ??
+        LazyInitializer.EnsureInitialized(ref _annotations, () => new PdfDocumentAnnotations(this))!;
 
     /// <summary>Explicit active-content operations for named document-level JavaScript.</summary>
-    public PdfDocumentJavaScript JavaScript { get; }
+    public PdfDocumentJavaScript JavaScript => Volatile.Read(ref _javaScript) ??
+        LazyInitializer.EnsureInitialized(ref _javaScript, () => new PdfDocumentJavaScript(this))!;
 
     /// <summary>Password encryption and digital-signature operations for this PDF.</summary>
-    public PdfDocumentSecurity Security { get; }
+    public PdfDocumentSecurity Security => Volatile.Read(ref _security) ??
+        LazyInitializer.EnsureInitialized(ref _security, () => new PdfDocumentSecurity(this))!;
 
     /// <summary>Search, planning, application, and verification operations for permanent redaction.</summary>
-    public PdfDocumentRedactions Redactions { get; }
+    public PdfDocumentRedactions Redactions => Volatile.Read(ref _redactions) ??
+        LazyInitializer.EnsureInitialized(ref _redactions, () => new PdfDocumentRedactions(this))!;
 
     /// <summary>Lossless optimization analysis and rewrite operations for this PDF.</summary>
-    public PdfDocumentOptimization Optimization { get; }
+    public PdfDocumentOptimization Optimization => Volatile.Read(ref _optimization) ??
+        LazyInitializer.EnsureInitialized(ref _optimization, () => new PdfDocumentOptimization(this))!;
 
     /// <summary>Visual and structural preservation proof operations for this PDF.</summary>
-    public PdfDocumentProof Proof { get; }
+    public PdfDocumentProof Proof => Volatile.Read(ref _proof) ??
+        LazyInitializer.EnsureInitialized(ref _proof, () => new PdfDocumentProof(this))!;
 
     /// <summary>
     /// Immutable create/open and mutation history accumulated by this document.
@@ -202,12 +224,14 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Text and image stamping operations for this PDF.
     /// </summary>
-    public PdfDocumentStamper Stamp { get; }
+    public PdfDocumentStamper Stamp => Volatile.Read(ref _stamp) ??
+        LazyInitializer.EnsureInitialized(ref _stamp, () => new PdfDocumentStamper(this))!;
 
     /// <summary>
     /// Simple AcroForm operations for this PDF.
     /// </summary>
-    public PdfDocumentForms Forms { get; }
+    public PdfDocumentForms Forms => Volatile.Read(ref _forms) ??
+        LazyInitializer.EnsureInitialized(ref _forms, () => new PdfDocumentForms(this))!;
 
     /// <summary>
     /// Sets PDF metadata. Only values provided are updated; missing parameters keep previous values.
@@ -243,7 +267,7 @@ public sealed partial class PdfDocument {
     internal System.Collections.Generic.IEnumerable<IPdfBlock> Blocks => _blocks;
     internal PdfOptions Options => _options;
 
-    private System.Action<IPdfBlock> CurrentBlockSink => _blockScopes.Peek();
+    private System.Action<IPdfBlock> CurrentBlockSink => _blockScopes!.Peek();
 
     private void AddBlock(IPdfBlock block) {
         EnsureGeneratedDocument();
@@ -269,12 +293,17 @@ public sealed partial class PdfDocument {
     }
 
     internal System.IDisposable PushBlockScope(System.Action<IPdfBlock> addBlock) {
+        EnsureGeneratedDocument();
         Guard.NotNull(addBlock, nameof(addBlock));
-        _blockScopes.Push(addBlock);
+        _blockScopes!.Push(addBlock);
         return new Scope(this);
     }
 
-    private void PopScope() { if (_blockScopes.Count > 1) _blockScopes.Pop(); }
+    private void PopScope() {
+        if (_blockScopes is { Count: > 1 }) {
+            _blockScopes.Pop();
+        }
+    }
 
     private void EnsureGeneratedDocument() {
         if (_source is not null) {
