@@ -103,6 +103,45 @@ public partial class PdfReadStreamTests {
     }
 
     [Fact]
+    public void Split_PreservesEachDirectDestinationOnItsOwnPage() {
+        byte[][] parts = PdfPageExtractor.SplitPages(BuildTwoPageNamedDestinationPdf()).ToArray();
+
+        Assert.Equal(2, parts.Length);
+        for (int index = 0; index < parts.Length; index++) {
+            PdfReadDocument output = PdfReadDocument.Open(parts[index]);
+            Assert.Single(output.Pages);
+            PdfNamedDestination destination = Assert.Single(output.NamedDestinations);
+            Assert.Equal("Chapter" + (index + 1), destination.Name);
+            Assert.Equal(1, destination.PageNumber);
+        }
+    }
+
+    [Fact]
+    public void Extract_PreservesPagesAndDestinationsFromDenseNameTree() {
+        byte[] input = PdfDocument.Create(pdf => pdf.Content(content => {
+            for (int page = 1; page <= 300; page++) {
+                if (page > 1) content.PageBreak();
+                content.Bookmark("Dest" + page.ToString("D4", System.Globalization.CultureInfo.InvariantCulture));
+                content.Paragraph(paragraph => paragraph.Text("Dense destination page " + page));
+            }
+        })).ToBytes();
+        PdfReadDocument source = PdfReadDocument.Open(input);
+        Assert.Equal(300, source.Pages.Count);
+        Assert.Equal(300, source.NamedDestinations.Count);
+
+        PdfReadDocument output = PdfReadDocument.Open(PdfDocument.Load(input).Pages.Extract(300, 1, 150).ToBytes());
+        Assert.Equal(3, output.Pages.Count);
+        int[] expected = { 300, 1, 150 };
+        for (int index = 0; index < expected.Length; index++) {
+            int sourcePage = expected[index];
+            Assert.Contains("Dense destination page " + sourcePage, output.Pages[index].ExtractText(), StringComparison.Ordinal);
+            Assert.Contains(output.NamedDestinations, destination =>
+                destination.Name == "Dest" + sourcePage.ToString("D4", System.Globalization.CultureInfo.InvariantCulture) &&
+                destination.PageNumber == index + 1);
+        }
+    }
+
+    [Fact]
     public void RewriteApis_PreserveNamedDestinationNameTreesForCopiedPages() {
         byte[] namedDestinationPdf = BuildNamedDestinationNameTreePdf();
         byte[] twoPageNamedDestinationPdf = BuildTwoPageNamedDestinationNameTreePdf();
