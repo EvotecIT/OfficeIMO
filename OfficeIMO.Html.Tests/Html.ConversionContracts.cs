@@ -21,6 +21,21 @@ namespace OfficeIMO.Tests;
 
 public partial class Html {
     [Fact]
+    public void HtmlTextResultPreservesTypedDiagnosticsAddedDuringConstruction() {
+        var diagnostic = new HtmlDiagnostic(
+            "OfficeIMO.Html.Tests",
+            "HTML_TEST_OMISSION",
+            "Source content was omitted.",
+            HtmlDiagnosticSeverity.Warning,
+            lossKind: OfficeConversionLossKind.Omission);
+
+        var result = new HtmlTextConversionResult("<p>Body</p>", new[] { diagnostic });
+
+        Assert.True(result.HasLoss);
+        Assert.Equal(OfficeConversionLossKind.Omission, Assert.Single(result.Report.FidelityDiagnostics).LossKind);
+    }
+
+    [Fact]
     public void MarkdownImport_UsesHtmlIntegerRulesForOrderedLists() {
         string markdown = HtmlConversionDocument
             .Parse("<ol start='9x'><li>First</li><li value='12junk'>Second</li><li>Third</li></ol>")

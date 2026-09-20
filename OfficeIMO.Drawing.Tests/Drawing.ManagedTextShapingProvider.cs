@@ -67,6 +67,25 @@ public class DrawingManagedTextShapingProviderTests {
     }
 
     [Fact]
+    public void ManagedProvider_DeclinesTopToBottomRunsWithoutVerticalAdvances() {
+        byte[] font = ManagedTextShapingTestAssets.CreateFont(
+            0x0627,
+            0x0628,
+            0xFE8D,
+            0xFE8F);
+        var request = new OfficeTextShapingRequest(
+            "اب",
+            ManagedTextShapingTestAssets.FamilyName,
+            font,
+            isOpenTypeCff: false,
+            unitsPerEm: 1000,
+            direction: OfficeTextDirection.TopToBottom,
+            language: "ar");
+
+        Assert.Null(OfficeManagedTextShapingProvider.Instance.ShapeText(request));
+    }
+
+    [Fact]
     public void ManagedProvider_DeclinesScriptsOutsideItsBoundedSubset() {
         byte[] font = ManagedTextShapingTestAssets.CreateFont(0x0915, 0x093F);
         var request = new OfficeTextShapingRequest(

@@ -52,7 +52,7 @@ public sealed class ProjectReport : IOfficeConversionReport {
     /// <summary>True when any finding prevents save.</summary>
     public bool HasErrors => Diagnostics.Any(d => d.Severity == ProjectDiagnosticSeverity.Error);
     /// <inheritdoc />
-    public bool HasLoss => Diagnostics.Any(d => d.RepresentsLoss);
+    public bool HasLoss => FidelityDiagnostics.Any(d => d.LossKind != OfficeConversionLossKind.None);
     /// <summary>Throws with the first validation error when the model is inconsistent.</summary>
     public void ThrowIfErrors() {
         var error = Diagnostics.FirstOrDefault(d => d.Severity == ProjectDiagnosticSeverity.Error);

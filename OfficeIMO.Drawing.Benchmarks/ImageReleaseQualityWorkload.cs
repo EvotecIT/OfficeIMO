@@ -137,7 +137,9 @@ public sealed class ImageReleaseQualityWorkload {
     }
 
     private void ValidateMetadata(OfficeImageInfo info) {
-        if (info.Format != ToImageFormat(_format) || info.Width != _source.Width || info.Height != _source.Height)
+        (double expectedDpiX, double expectedDpiY) = GetExpectedEncodedDpi(_format);
+        if (info.Format != ToImageFormat(_format) || info.Width != _source.Width || info.Height != _source.Height ||
+            Math.Abs(info.DpiX - expectedDpiX) > 0.0001D || Math.Abs(info.DpiY - expectedDpiY) > 0.0001D)
             throw new InvalidOperationException($"{ScenarioId} {Format} metadata did not match the encoded input.");
         EncodedBytes = _input.LongLength;
         OutputSha256 = MetadataHash(info);
@@ -257,6 +259,15 @@ public sealed class ImageReleaseQualityWorkload {
         OfficeImageExportFormat.Webp => OfficeImageFormat.Webp,
         _ => throw new ArgumentOutOfRangeException(nameof(format))
     };
+
+    private static (double DpiX, double DpiY) GetExpectedEncodedDpi(OfficeImageExportFormat format) {
+        // PNG pHYs stores whole pixels per metre, so the fixed 144x120 corpus density is quantized.
+        return format switch {
+            OfficeImageExportFormat.Png => (5669D * 0.0254D, 4724D * 0.0254D),
+            OfficeImageExportFormat.Jpeg or OfficeImageExportFormat.Tiff or OfficeImageExportFormat.Webp => (144D, 120D),
+            _ => throw new ArgumentOutOfRangeException(nameof(format))
+        };
+    }
 
     private static OfficeRasterEncodingOptions CreateOptions() => new() {
         DpiX = 144D, DpiY = 120D,

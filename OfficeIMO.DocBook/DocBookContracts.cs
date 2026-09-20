@@ -228,10 +228,35 @@ public sealed class DocBookDiagnostic {
     public string Message { get; }
     /// <summary>Best-effort element path.</summary>
     public string? Path { get; }
+    /// <summary>Exact fidelity-loss category represented by this diagnostic.</summary>
+    public OfficeConversionLossKind LossKind { get; }
     /// <summary>Creates a diagnostic.</summary>
     public DocBookDiagnostic(string code, DocBookDiagnosticSeverity severity, string message, string? path = null) {
         Code = code ?? throw new ArgumentNullException(nameof(code)); Severity = severity;
         Message = message ?? throw new ArgumentNullException(nameof(message)); Path = path;
+        LossKind = ResolveLossKind(code, severity);
+    }
+
+    /// <summary>Creates a diagnostic with an explicit fidelity-loss category.</summary>
+    public DocBookDiagnostic(
+        string code,
+        DocBookDiagnosticSeverity severity,
+        string message,
+        string? path,
+        OfficeConversionLossKind lossKind)
+        : this(code, severity, message, path) => LossKind = lossKind;
+
+    private static OfficeConversionLossKind ResolveLossKind(
+        string code,
+        DocBookDiagnosticSeverity severity) {
+        if (severity == DocBookDiagnosticSeverity.Info) return OfficeConversionLossKind.None;
+        if (severity == DocBookDiagnosticSeverity.Error) return OfficeConversionLossKind.Failure;
+        return code switch {
+            "DB102" or "DB105" or "DB106" or "DB110" or "DB116" or "DB118" or
+            "DB120" or "DB121" or "DB123" or "DB124" or "DB125" or "DB126" =>
+                OfficeConversionLossKind.Omission,
+            _ => OfficeConversionLossKind.Approximation
+        };
     }
 }
 
@@ -276,14 +301,10 @@ public sealed class DocBookConversionResult<T> : IOfficeConversionReport {
             new OfficeConversionFidelityDiagnostic(
                 diagnostic.Code,
                 diagnostic.Message,
-                diagnostic.Severity == DocBookDiagnosticSeverity.Error
-                    ? OfficeConversionLossKind.Failure
-                    : diagnostic.Severity == DocBookDiagnosticSeverity.Warning
-                        ? OfficeConversionLossKind.Approximation
-                        : OfficeConversionLossKind.None,
+                diagnostic.LossKind,
                 "OfficeIMO.DocBook",
                 diagnostic.Path)).ToArray());
-        HasLoss = System.Linq.Enumerable.Any(diagnostics, d => d.Severity != DocBookDiagnosticSeverity.Info);
+        HasLoss = System.Linq.Enumerable.Any(FidelityDiagnostics, d => d.LossKind != OfficeConversionLossKind.None);
     }
     /// <inheritdoc />
     public void RequireNoLoss() {

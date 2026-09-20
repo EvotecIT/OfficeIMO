@@ -557,6 +557,8 @@ public sealed class OpmlDocumentTests {
         Assert.True(structuredResult.HasLoss);
         Assert.Equal(2, structuredResult.Diagnostics.Count(diagnostic => diagnostic.Code == "OPML108"));
         Assert.Equal(2, flatResult.Diagnostics.Count(diagnostic => diagnostic.Code == "OPML108"));
+        Assert.All(structuredResult.FidelityDiagnostics.Where(diagnostic => diagnostic.Code == "OPML108"),
+            diagnostic => Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind));
     }
 
     [Fact]

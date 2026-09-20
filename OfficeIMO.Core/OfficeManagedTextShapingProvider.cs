@@ -27,7 +27,8 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
     public OfficeTextShapingResult? ShapeText(OfficeTextShapingRequest request) {
         if (request == null) throw new ArgumentNullException(nameof(request));
         request.CancellationToken.ThrowIfCancellationRequested();
-        if (string.IsNullOrEmpty(request.Text) ||
+        if (request.Direction == OfficeTextDirection.TopToBottom ||
+            string.IsNullOrEmpty(request.Text) ||
             !OfficeManagedTextShaper.RequiresComplexLayout(request.Text) && request.FeatureSettings.IsDefault ||
             OfficeTextElements.ContainsVariationSelector(request.Text) ||
             OfficeTextElements.ContainsZeroWidthJoinerSequence(request.Text) ||

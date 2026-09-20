@@ -1340,7 +1340,10 @@ public sealed class DocBookDocumentTests {
         OfficeDocumentModelNode root = Assert.Single(converted.Value.Structure);
 
         Assert.True(Flatten(root).Sum(node => (long)node.Text.Length) <= 12);
-        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB123");
+        Assert.All(converted.Diagnostics.Where(diagnostic => diagnostic.Code == "DB123"),
+            diagnostic => Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind));
+        Assert.All(converted.FidelityDiagnostics.Where(diagnostic => diagnostic.Code == "DB123"),
+            diagnostic => Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind));
         Assert.Throws<ArgumentOutOfRangeException>(() => DocBookDocument.Parse(source)
             .ToOfficeDocumentModel(options: new DocBookConversionOptions { MaxTotalTextCharacters = 0 }));
 

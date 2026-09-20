@@ -421,7 +421,11 @@ public sealed class AdfContractTests {
         AdfConversionResult<string> result = AdfConverter.ToMarkdown(document);
 
         Assert.Contains("[details](https://example.com/details 'Ready \"now\"')", result.Value);
-        Assert.Contains(result.Report.Diagnostics, item => item.Code == "ADF_LINK_ATTRIBUTES_DROPPED");
+        AdfConversionDiagnostic diagnostic = Assert.Single(
+            result.Report.Diagnostics,
+            item => item.Code == "ADF_LINK_ATTRIBUTES_DROPPED");
+        Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
+        Assert.Equal(OfficeConversionLossKind.Omission, Assert.Single(result.Report.FidelityDiagnostics).LossKind);
     }
 
     [Fact]

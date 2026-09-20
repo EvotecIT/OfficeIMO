@@ -25,7 +25,22 @@ public sealed class AdfConversionDiagnostic {
         Path = path;
         Message = message;
         Severity = severity;
+        LossKind = ResolveLossKind(code, severity);
     }
+
+    /// <summary>Creates a diagnostic with an explicit fidelity-loss category.</summary>
+    /// <param name="code">Non-empty identifier for the conversion decision.</param>
+    /// <param name="path">Location associated with the decision; use <c>$</c> for the document root.</param>
+    /// <param name="message">Non-empty explanation for a reader of the report.</param>
+    /// <param name="severity">Severity used by the report's fidelity and error checks.</param>
+    /// <param name="lossKind">Exact fidelity-loss category.</param>
+    public AdfConversionDiagnostic(
+        string code,
+        string path,
+        string message,
+        AdfConversionSeverity severity,
+        OfficeConversionLossKind lossKind)
+        : this(code, path, message, severity) => LossKind = lossKind;
 
     /// <summary>Gets the diagnostic identifier supplied by the converter or caller.</summary>
     public string Code { get; }
@@ -38,6 +53,29 @@ public sealed class AdfConversionDiagnostic {
 
     /// <summary>Gets the severity used when evaluating fidelity and errors in a report.</summary>
     public AdfConversionSeverity Severity { get; }
+
+    /// <summary>Gets the exact fidelity-loss category represented by this diagnostic.</summary>
+    public OfficeConversionLossKind LossKind { get; }
+
+    private static OfficeConversionLossKind ResolveLossKind(
+        string code,
+        AdfConversionSeverity severity) {
+        if (severity == AdfConversionSeverity.Information) return OfficeConversionLossKind.None;
+        if (severity == AdfConversionSeverity.Error) return OfficeConversionLossKind.Failure;
+        return code switch {
+            "MARKDOWN_UNSUPPORTED_BLOCK" or
+            "MARKDOWN_UNSUPPORTED_INLINE" or
+            "ADF_ROOT_PROPERTIES_DROPPED" or
+            "ADF_EMPTY_PARAGRAPH_DROPPED" or
+            "ADF_HEADING_PROPERTIES_DROPPED" or
+            "ADF_CODE_PROPERTIES_DROPPED" or
+            "ADF_UNSUPPORTED_NODE" or
+            "ADF_TABLE_ATTRIBUTES_DROPPED" or
+            "ADF_TABLE_CELL_ATTRIBUTES_DROPPED" or
+            "ADF_LINK_ATTRIBUTES_DROPPED" => OfficeConversionLossKind.Omission,
+            _ => OfficeConversionLossKind.Approximation
+        };
+    }
 }
 
 /// <summary>Operation-scoped conversion evidence.</summary>
@@ -50,11 +88,7 @@ public sealed class AdfConversionReport : IOfficeConversionReport {
             new OfficeConversionFidelityDiagnostic(
                 diagnostic.Code,
                 diagnostic.Message,
-                diagnostic.Severity switch {
-                    AdfConversionSeverity.Information => OfficeConversionLossKind.None,
-                    AdfConversionSeverity.Warning => OfficeConversionLossKind.Approximation,
-                    _ => OfficeConversionLossKind.Failure
-                },
+                diagnostic.LossKind,
                 "OfficeIMO.Adf",
                 diagnostic.Path)).ToArray());
     }
@@ -68,7 +102,7 @@ public sealed class AdfConversionReport : IOfficeConversionReport {
     public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
 
     /// <summary>Gets whether every diagnostic is informational; an empty report is also lossless.</summary>
-    public bool IsLossless => Diagnostics.All(item => item.Severity == AdfConversionSeverity.Information);
+    public bool IsLossless => FidelityDiagnostics.All(item => item.LossKind == OfficeConversionLossKind.None);
 
     /// <summary>Gets whether at least one diagnostic has <see cref="AdfConversionSeverity.Error"/> severity.</summary>
     public bool HasErrors => Diagnostics.Any(item => item.Severity == AdfConversionSeverity.Error);
