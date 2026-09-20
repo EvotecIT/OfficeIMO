@@ -233,13 +233,15 @@ internal static class PdfAttachmentExtractor {
         List<PdfDictionary> fileAttachmentAnnotations,
         AttachmentExtractionBudget budget,
         ISet<int>? allowedObjectNumbers) {
-        var visited = new HashSet<PdfObject>();
         var seenAssociatedFileArrays = new HashSet<PdfArray>();
+        // Every parsed indirect value owns a bounded direct-container tree. References are
+        // intentionally skipped below because each referenced value is visited once here as
+        // an indirect root, so hashing every dictionary and array cannot prevent a PDF cycle.
         foreach (PdfIndirectObject indirect in objects.Values) {
             budget.Checkpoint();
             if (allowedObjectNumbers != null && !allowedObjectNumbers.Contains(indirect.ObjectNumber)) continue;
             CollectAttachmentReferences(objects, indirect.Value, associatedFileArrays, fileAttachmentAnnotations,
-                seenAssociatedFileArrays, visited, budget);
+                seenAssociatedFileArrays, budget);
         }
     }
 
@@ -249,17 +251,14 @@ internal static class PdfAttachmentExtractor {
         List<PdfArray> associatedFileArrays,
         List<PdfDictionary> fileAttachmentAnnotations,
         ISet<PdfArray> seenAssociatedFileArrays,
-        ISet<PdfObject> visited,
         AttachmentExtractionBudget budget) {
         budget.Checkpoint();
         if (value is PdfStream stream) {
-            if (!visited.Add(stream)) return;
             CollectAttachmentReferences(objects, stream.Dictionary, associatedFileArrays, fileAttachmentAnnotations,
-                seenAssociatedFileArrays, visited, budget);
+                seenAssociatedFileArrays, budget);
             return;
         }
         if (value is PdfDictionary dictionary) {
-            if (!visited.Add(dictionary)) return;
             if (dictionary.Items.TryGetValue("AF", out PdfObject? associatedFilesObject) &&
                 PdfObjectLookup.Resolve(objects, associatedFilesObject) is PdfArray associatedFiles &&
                 seenAssociatedFileArrays.Add(associatedFiles)) {
@@ -278,17 +277,16 @@ internal static class PdfAttachmentExtractor {
             foreach (PdfObject child in dictionary.Items.Values) {
                 if (child is not PdfReference) {
                     CollectAttachmentReferences(objects, child, associatedFileArrays, fileAttachmentAnnotations,
-                        seenAssociatedFileArrays, visited, budget);
+                        seenAssociatedFileArrays, budget);
                 }
             }
             return;
         }
         if (value is PdfArray array) {
-            if (!visited.Add(array)) return;
             foreach (PdfObject child in array.Items) {
                 if (child is not PdfReference) {
                     CollectAttachmentReferences(objects, child, associatedFileArrays, fileAttachmentAnnotations,
-                        seenAssociatedFileArrays, visited, budget);
+                        seenAssociatedFileArrays, budget);
                 }
             }
         }
