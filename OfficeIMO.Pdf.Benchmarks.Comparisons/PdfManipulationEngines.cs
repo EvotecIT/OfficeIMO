@@ -11,7 +11,16 @@ internal static class PdfManipulationEngines {
         IReadOnlyList<OfficePdfDocument> outputs = pagesPerDocument == 1
             ? document.Pages.Split()
             : document.Pages.Split(pagesPerDocument);
-        return outputs.Select(static output => output.ToBytes()).ToArray();
+        int sourcePageCount = document.Pipeline.Output!.PageCount!.Value;
+        var bytes = new byte[outputs.Count][];
+        for (int index = 0; index < outputs.Count; index++) {
+            bytes[index] = outputs[index].ToBytes();
+            int expectedPageCount = Math.Min(
+                pagesPerDocument,
+                sourcePageCount - (index * pagesPerDocument));
+            ValidateOfficeImoReadback(bytes[index], expectedPageCount);
+        }
+        return bytes;
     }
 
     internal static byte[][] SplitWithIText(byte[] source, int pagesPerDocument) {
@@ -87,13 +96,9 @@ internal static class PdfManipulationEngines {
 
     internal static byte[] SelectWithOfficeImo(byte[] source, int[] pageNumbers) {
         OfficePdfDocument output = OfficePdfDocument.Load(source).Pages.Extract(pageNumbers);
-        int? actualPageCount = output.Pipeline.Output?.PageCount;
-        if (actualPageCount != pageNumbers.Length) {
-            throw new InvalidDataException(
-                $"OfficeIMO post-save validation found {actualPageCount?.ToString() ?? "an unreadable output"}; expected {pageNumbers.Length} pages.");
-        }
-
-        return output.ToBytes();
+        byte[] bytes = output.ToBytes();
+        ValidateOfficeImoReadback(bytes, pageNumbers.Length);
+        return bytes;
     }
 
     internal static byte[] SelectWithIText(byte[] source, int[] pageNumbers) {
@@ -156,6 +161,14 @@ internal static class PdfManipulationEngines {
         if (document.PageCount != outputPageCount) {
             throw new InvalidDataException(
                 $"PDFsharp post-save validation found {document.PageCount} pages; expected {outputPageCount}.");
+        }
+    }
+
+    private static void ValidateOfficeImoReadback(byte[] bytes, int outputPageCount) {
+        int actualPageCount = PdfReadDocument.Open(bytes).Pages.Count;
+        if (actualPageCount != outputPageCount) {
+            throw new InvalidDataException(
+                $"OfficeIMO post-save validation found {actualPageCount} pages; expected {outputPageCount}.");
         }
     }
 }

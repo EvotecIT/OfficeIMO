@@ -97,10 +97,13 @@ public sealed class PdfDocumentCapabilityLifetimeTests {
 
         PdfDocument part = Assert.Single(PdfDocument.Load(source).Pages.Split());
         PdfReadDocument cached = part.GetReadDocument();
+        PdfReadDocument explicitRead = part.GetReadDocument(new PdfLoadOptions());
 
         Assert.Single(cached.Pages);
         Assert.Equal(1, cached.Security.StartXrefCount);
         Assert.True(cached.Security.HasTrailerId);
+        Assert.Equal(1, explicitRead.Security.StartXrefCount);
+        Assert.True(explicitRead.Security.HasTrailerId);
         Assert.Contains("startxref\n123", Encoding.ASCII.GetString(part.ToBytes()), StringComparison.Ordinal);
     }
 

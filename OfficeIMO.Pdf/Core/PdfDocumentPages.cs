@@ -14,12 +14,18 @@ public sealed partial class PdfDocumentPages {
     /// Creates a new PDF containing selected pages in caller order.
     /// </summary>
     public PdfDocument Extract(params int[] pageNumbers) {
-        return _document.ApplyMutation(input => PdfPageExtractor.ExtractPages(input, pageNumbers, _document.ReadOptions, _document.GetOpenedReadDocumentFactory()));
+        Guard.NotNull(pageNumbers, nameof(pageNumbers));
+        byte[] input = _document.GetBytesForOperation();
+        byte[] output = PdfPageExtractor.ExtractPages(input, pageNumbers, _document.ReadOptions, _document.GetOpenedReadDocumentFactory());
+        return AdoptExtractedOutput(input, output, pageNumbers.Length, _document.ReadOptions);
     }
 
     /// <summary>Extracts pages with a byte budget enforced during the first canonical serialization.</summary>
     internal PdfDocument Extract(int[] pageNumbers, long maximumOutputBytes) {
-        return _document.ApplyMutation(input => PdfPageExtractor.ExtractPages(input, pageNumbers, _document.ReadOptions, maximumOutputBytes, _document.GetOpenedReadDocumentFactory()));
+        Guard.NotNull(pageNumbers, nameof(pageNumbers));
+        byte[] input = _document.GetBytesForOperation();
+        byte[] output = PdfPageExtractor.ExtractPages(input, pageNumbers, _document.ReadOptions, maximumOutputBytes, _document.GetOpenedReadDocumentFactory());
+        return AdoptExtractedOutput(input, output, pageNumbers.Length, _document.ReadOptions);
     }
 
     /// <summary>
@@ -39,7 +45,9 @@ public sealed partial class PdfDocumentPages {
 
     private PdfDocument Extract(PdfPageSelection selection, PdfLoadOptions? options) {
         Guard.NotNull(selection, nameof(selection));
-        return _document.ApplyMutation(input => PdfPageExtractor.ExtractPageRanges(input, selection.ToRanges(), options, _document.GetOpenedReadDocumentFactory(options)));
+        byte[] input = _document.GetBytesForOperation();
+        byte[] output = PdfPageExtractor.ExtractPageRanges(input, selection.ToRanges(), options, _document.GetOpenedReadDocumentFactory(options));
+        return AdoptExtractedOutput(input, output, selection.PageCount, options);
     }
 
     /// <summary>
@@ -185,7 +193,7 @@ public sealed partial class PdfDocumentPages {
             PdfArtifactSnapshot.Capture(input, _document.ReadOptions);
         var documents = new PdfDocument[outputs.Count];
         for (int i = 0; i < outputs.Count; i++) {
-            documents[i] = _document.WithBytesKnownPageCount(
+            documents[i] = _document.WithCanonicalBytesKnownPageCount(
                 input,
                 inputArtifact,
                 outputs[i],
@@ -195,6 +203,22 @@ public sealed partial class PdfDocumentPages {
         }
 
         return documents;
+    }
+
+    private PdfDocument AdoptExtractedOutput(
+        byte[] input,
+        byte[] output,
+        int outputPageCount,
+        PdfLoadOptions? options) {
+        PdfArtifactSnapshot inputArtifact = _document.Pipeline.Output ??
+            PdfArtifactSnapshot.Capture(input, _document.ReadOptions);
+        return _document.WithCanonicalBytesKnownPageCount(
+            input,
+            inputArtifact,
+            output,
+            outputPageCount,
+            options,
+            "Extract");
     }
 
     /// <summary>

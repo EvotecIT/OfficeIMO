@@ -431,10 +431,10 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>
-    /// Adopts an internal operation result after reading it back and verifying the expected page count.
-    /// The validated parse becomes the output document's canonical parse.
+    /// Adopts bytes produced by the canonical page-rewrite assembler together with its exact page-count evidence.
+    /// The immutable output is parsed once, lazily, when a semantic read is first requested.
     /// </summary>
-    internal PdfDocument WithBytesKnownPageCount(
+    internal PdfDocument WithCanonicalBytesKnownPageCount(
         byte[] inputBytes,
         PdfArtifactSnapshot input,
         byte[] pdf,
@@ -455,14 +455,15 @@ public sealed partial class PdfDocument {
         PdfLoadOptions effectiveReadOptions = PdfLoadOptions.WithMinimumInputBytes(
             readOptions ?? ReadOptions,
             pdf.LongLength);
-        PdfReadDocument readback = PdfReadDocument.OpenRewrittenOutput(pdf, effectiveReadOptions);
-        int actualPageCount = readback.Pages.Count;
-        if (actualPageCount != outputPageCount) {
-            throw new InvalidOperationException("PDF operation post-save validation failed: output page count did not match the planned page count.");
-        }
-
-        PdfArtifactSnapshot output = PdfArtifactSnapshot.CaptureKnownPageCount(pdf, actualPageCount);
-        return WithBytes(inputBytes, input, pdf, output, effectiveReadOptions, operationName, readback);
+        PdfArtifactSnapshot output = PdfArtifactSnapshot.CaptureKnownPageCount(pdf, outputPageCount);
+        return WithBytes(
+            inputBytes,
+            input,
+            pdf,
+            output,
+            effectiveReadOptions,
+            operationName,
+            canonicalRewrittenOutput: true);
     }
 
     private PdfDocument WithBytes(
@@ -472,7 +473,8 @@ public sealed partial class PdfDocument {
         PdfArtifactSnapshot output,
         PdfLoadOptions effectiveReadOptions,
         string operationName,
-        PdfReadDocument? readDocument = null) {
+        PdfReadDocument? readDocument = null,
+        bool canonicalRewrittenOutput = false) {
         PdfMutationOperation? mutationOperation = ResolveMutationOperation(operationName);
         PdfMutationExecutionMode executionMode = IsAppendOnly(inputBytes, pdf)
             ? PdfMutationExecutionMode.AppendOnly
@@ -487,7 +489,9 @@ public sealed partial class PdfDocument {
             mutationOperation,
             executionMode);
         var source = readDocument is null
-            ? PdfDocumentSource.FromOwnedBytes(pdf, effectiveReadOptions)
+            ? canonicalRewrittenOutput
+                ? PdfDocumentSource.FromOwnedRewrittenBytes(pdf, effectiveReadOptions)
+                : PdfDocumentSource.FromOwnedBytes(pdf, effectiveReadOptions)
             : PdfDocumentSource.FromOwnedBytes(pdf, effectiveReadOptions, readDocument);
         return new PdfDocument(source, _pipeline.Append(step));
     }
