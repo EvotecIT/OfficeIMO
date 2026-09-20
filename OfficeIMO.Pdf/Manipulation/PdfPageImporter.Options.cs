@@ -55,11 +55,7 @@ internal static partial class PdfPageImporter {
             preparedSourceReadOptions,
             NormalizeSourcePageNumbers(preparedSource, sourcePageNumbers, preparedSourceReadOptions));
         if (insertBeforePageNumber == 1) {
-            return PdfMerger.MergeWithPrimarySource(
-                1,
-                new[] { inserted, targetPdf },
-                new[] { PdfLoadOptions.Default, PdfLoadOptions.Resolve(targetReadOptions) },
-                new Func<PdfReadDocument>?[] { null, () => targetDocument });
+            return MergeBoundaryPages(targetPdf, inserted, append: false, targetReadOptions, targetDocument);
         }
 
         return PdfMerger.MergePrimaryWithInsertedPages(targetPdf, inserted, insertBeforePageNumber, targetReadOptions, targetDocument);
@@ -87,6 +83,15 @@ internal static partial class PdfPageImporter {
         PdfReadDocument? targetDocument = null) {
         int[] selectedPages = NormalizeSourcePageNumbers(preparedSourcePdf, sourcePageNumbers, sourceReadOptions);
         byte[] importedPages = PdfPageExtractor.ExtractPages(preparedSourcePdf, sourceReadOptions, selectedPages);
+        return MergeBoundaryPages(targetPdf, importedPages, append, targetReadOptions, targetDocument);
+    }
+
+    private static byte[] MergeBoundaryPages(
+        byte[] targetPdf,
+        byte[] importedPages,
+        bool append,
+        PdfLoadOptions? targetReadOptions,
+        PdfReadDocument? targetDocument = null) {
         byte[][] sources = append ? new[] { targetPdf, importedPages } : new[] { importedPages, targetPdf };
         PdfLoadOptions[] readOptions = append
             ? new[] { PdfLoadOptions.Resolve(targetReadOptions), PdfLoadOptions.Default }
