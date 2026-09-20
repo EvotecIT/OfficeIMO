@@ -365,12 +365,44 @@
   }
 
   function initConverterFrame() {
-    var frame = document.querySelector('.imo-converter-launch__frame');
-    if (!frame) return;
+    var template = document.getElementById('browser-workspace-template');
+    if (!template) return;
+    var directory = document.querySelector('.imo-browser-tools');
+    var search = directory.querySelector('.imo-browser-tools__search');
+    var input = search.querySelector('input');
+    var cards = Array.from(directory.querySelectorAll('.imo-browser-tools__card'));
+    search.hidden = false;
+    function filterTools() {
+      var query = input.value.trim().toLowerCase();
+      var matches = 0;
+      cards.forEach(function (card) {
+        var terms = card.querySelector('strong').textContent + ' ' + card.querySelector('.imo-browser-tools__badge').textContent;
+        card.hidden = !terms.toLowerCase().includes(query);
+        if (!card.hidden) matches++;
+      });
+      directory.querySelectorAll('[data-tool-group]').forEach(function (group) {
+        group.hidden = !group.querySelector('.imo-browser-tools__card:not([hidden])');
+      });
+      search.querySelector('[data-tool-count]').textContent = matches ? matches + (matches === 1 ? ' tool' : ' tools') : 'No tools match your search.';
+    }
+    input.addEventListener('input', filterTools);
+    directory.querySelectorAll('.imo-browser-tools__toolbar nav a').forEach(function (link) {
+      link.addEventListener('click', function () { input.value = ''; filterTools(); });
+    });
+    filterTools();
+
+    var pageParameters = new URLSearchParams(window.location.search);
+    var selectedWorkspace = (pageParameters.get('workspace') || '').toLowerCase();
+    // Browsing the directory never creates a frame or starts the WebAssembly runtime.
+    if (!pageParameters.get('route')?.trim() && selectedWorkspace !== 'pdf' && selectedWorkspace !== 'provenance') return;
+    directory.hidden = true;
+    var frameShell = document.querySelector('.imo-converter-launch__frame-shell');
+    frameShell.appendChild(template.content.cloneNode(true));
+    frameShell.hidden = false;
+    var frame = frameShell.querySelector('iframe');
 
     // The app owns route validation; the website forwards only its public selection keys.
     var workspaceUrl = new URL(frame.getAttribute('data-workspace-src'), window.location.href);
-    var pageParameters = new URLSearchParams(window.location.search);
     ['workspace', 'route', 'tool'].forEach(function (key) {
       if (pageParameters.has(key)) workspaceUrl.searchParams.set(key, pageParameters.get(key));
     });

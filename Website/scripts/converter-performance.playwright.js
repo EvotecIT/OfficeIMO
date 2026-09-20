@@ -40,17 +40,20 @@ async (page) => {
     if (!frame) throw new Error('The browser document workspace frame is unavailable.');
     return frame;
   };
-  let workspace = await findWorkspace();
   const routeIds = ['docx-pdf', 'xlsx-pdf', 'pptx-pdf'];
 
   const results = [];
-  await workspace.locator('.ocx-tool-picker').waitFor({ state: 'visible', timeout: 60000 });
-  const startupMilliseconds = await page.evaluate(() => performance.now());
-  const landingResources = await workspace.evaluate(() => performance.getEntriesByType('resource').map(entry => entry.name));
-  const prematureEngine = landingResources.find(name => /\/(?:OfficeIMO\.(?:Word|Excel|PowerPoint|Pdf|Html|Markdown|Visio|Workflows|Web\.Fonts)|DocumentFormat\.OpenXml)\.[^.]+\.wasm$/.test(name));
-  if (prematureEngine) throw new Error(`The tool picker downloaded an engine before selection: ${prematureEngine}`);
-  await workspace.locator('.ocx-tool-picker a[data-route="docx-pdf"]').click();
+  await page.locator('.imo-browser-tools').waitFor({ state: 'visible', timeout: 60000 });
+  const directoryMilliseconds = await page.evaluate(() => performance.now());
+  const landingResources = await page.evaluate(() => performance.getEntriesByType('resource').map(entry => entry.name));
+  const prematureRuntime = landingResources.find(name => /\/apps\/officeimo-converter\/|\/_framework\/|\.wasm(?:\?|$)/.test(name));
+  if (prematureRuntime || await page.locator('iframe[data-workspace-src]').count()) {
+    throw new Error(`The directory started the document runtime before selection: ${prematureRuntime || 'workspace iframe'}`);
+  }
+  await page.locator('.imo-browser-tools a[data-route="docx-pdf"]').click();
+  let workspace = await findWorkspace();
   await workspace.locator('[data-converter-ready="true"]').waitFor({ state: 'visible', timeout: 60000 });
+  const startupMilliseconds = await page.evaluate(() => performance.now());
   const unrelatedOfficeEngine = await workspace.evaluate(() => performance.getEntriesByType('resource')
     .find(entry => /\/OfficeIMO\.(?:Excel|PowerPoint|Visio)\.[^.]+\.wasm$/.test(entry.name))?.name);
   if (unrelatedOfficeEngine) throw new Error(`Word conversion downloaded an unrelated engine: ${unrelatedOfficeEngine}`);
@@ -245,6 +248,7 @@ async (page) => {
   malformedWebMcp.visibleDiagnostics = await workspace.locator('.ocx-diagnostic').allTextContents().then(items => items.join(' '));
 
   return JSON.stringify({
+    directoryMilliseconds,
     startupMilliseconds,
     maximumBrowserHeapBytes,
     routes: results,
