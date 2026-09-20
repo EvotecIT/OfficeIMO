@@ -40,7 +40,8 @@ internal static partial class PdfPageExtractor {
         }
 
         var sourceIds = collector.ObjectIds;
-        var numberMap = new Dictionary<int, int>();
+        int numberMapCapacity = GetBoundedExtractionCollectionCount(sourceIds.Count, extraObjects.Length);
+        var numberMap = new Dictionary<int, int>(numberMapCapacity);
         for (int i = 0; i < sourceIds.Count; i++) {
             numberMap[sourceIds[i]] = i + 1;
         }
@@ -55,7 +56,7 @@ internal static partial class PdfPageExtractor {
         }
     
         var clonedPages = new List<ClonedPageObject>();
-        var seenPages = new HashSet<int>();
+        var seenPages = PdfCollectionSizing.CreateHashSet<int>(pageObjectNumbers.Length, pageObjectNumbers.Length);
         var outputPageObjectIds = new int[pageObjectNumbers.Length];
         for (int i = 0; i < pageObjectNumbers.Length; i++) {
             int pageObjectNumber = pageObjectNumbers[i];
@@ -77,7 +78,8 @@ internal static partial class PdfPageExtractor {
         int catalogId = nextObjectId++;
         int infoId = nextObjectId;
         var context = new SerializationContext(numberMap, pagesId, collector.MaterializedPageValues, sourceObjects, pageOverrides);
-        var objects = new List<PdfSerializedObject>(sourceIds.Count + 3);
+        int serializedObjectCapacity = GetSerializedObjectCapacity(sourceIds.Count, extraObjects.Length, clonedPages);
+        var objects = new List<PdfSerializedObject>(serializedObjectCapacity);
         long serializedObjectBytes = 0L;
         bool enforceOutputLimit = maximumOutputBytes.HasValue;
         long objectBytesLimit = maximumOutputBytes ?? long.MaxValue;
@@ -176,6 +178,27 @@ internal static partial class PdfPageExtractor {
             : Assemble(objects, catalogId, infoId, fileVersion);
         captureObjectNumbers?.Invoke(numberMap);
         return result;
+    }
+
+    private static int GetSerializedObjectCapacity(
+        int sourceObjectCount,
+        int additionalObjectCount,
+        IReadOnlyList<ClonedPageObject> clonedPages) {
+        long total = (long)sourceObjectCount + additionalObjectCount + clonedPages.Count + 3L;
+        for (int index = 0; index < clonedPages.Count; index++) {
+            total += clonedPages[index].AnnotationObjectMap.Count;
+        }
+        return GetBoundedExtractionCollectionCount(total);
+    }
+
+    private static int GetBoundedExtractionCollectionCount(int first, int second) =>
+        GetBoundedExtractionCollectionCount((long)first + second);
+
+    private static int GetBoundedExtractionCollectionCount(long total) {
+        if (total > int.MaxValue) {
+            throw PdfOutputLimitErrors.Create("The extracted PDF exceeds the supported in-memory collection limits.");
+        }
+        return (int)total;
     }
 
     private static void AddBoundedObject(
