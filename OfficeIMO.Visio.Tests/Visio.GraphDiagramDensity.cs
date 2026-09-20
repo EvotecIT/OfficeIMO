@@ -7,6 +7,63 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public class VisioGraphDiagramDensityTests {
+    [Theory]
+    [InlineData(VisioMeasurementUnit.Centimeters)]
+    [InlineData(VisioMeasurementUnit.Millimeters)]
+    public void ExistingBlockCaptionRetainsPageUnitCoordinates(VisioMeasurementUnit unit) {
+        var document = VisioDocument.Create().BlockDiagram("Units", graph =>
+            graph.PageSize(20, 20, unit).Region("zone", "Zone caption", 0, 0, 2, 2).Block("a", "A", 0, 0));
+        var page = document.Pages[0];
+        var body = page.Shapes.Single(shape => shape.Id == "zone");
+        var caption = page.Shapes.Single(shape => shape.Text == "Zone caption");
+        Assert.Equal(body.PinX, caption.PinX, 6);
+        Assert.InRange(caption.Width, 0, body.Width);
+    }
+
+    [Theory]
+    [InlineData(VisioMeasurementUnit.Centimeters)]
+    [InlineData(VisioMeasurementUnit.Millimeters)]
+    public void PreservedGroupCaptionUsesPageUnitsOnce(VisioMeasurementUnit unit) {
+        var document = VisioDocument.Create().GraphDiagram("Units", graph =>
+            graph.PageSize(20, 20, unit).PreserveLayout().Import(new[] {
+                new VisioGraphNodeRecord("a", "A") { Placement = new VisioGraphPlacement(10, 10, 1, 1) }
+            }, Array.Empty<VisioGraphEdgeRecord>(), new[] {
+                new VisioGraphClusterRecord("zone", "Zone caption", new[] { "a" }) { Placement = new VisioGraphPlacement(10, 10, 8, 8) }
+            }));
+        var page = document.Pages[0];
+        var body = page.Shapes.Single(shape => shape.Id == "zone");
+        var caption = page.Shapes.Single(shape => shape.Text == "Zone caption");
+        Assert.Equal(body.PinX, caption.PinX, 6);
+        Assert.InRange(caption.Width, 0, body.Width);
+    }
+
+    [Theory]
+    [InlineData(VisioMeasurementUnit.Inches)]
+    [InlineData(VisioMeasurementUnit.Centimeters)]
+    public void PreservedPageFitTranslatesNegativeShapesAndRoutesTogether(VisioMeasurementUnit unit) {
+        var document = VisioDocument.Create().GraphDiagram("Negative bounds", graph =>
+            graph.PageSize(4, 4, unit).PreserveLayout().Import(new[] {
+                new VisioGraphNodeRecord("a", "A") { Placement = new VisioGraphPlacement(0, 0, 1, 1) },
+                new VisioGraphNodeRecord("b", "B") { Placement = new VisioGraphPlacement(3, 1, 1, 1) }
+            }, new[] { new VisioGraphEdgeRecord("ab", "a", "b") {
+                Label = "Negative bend", Route = new VisioGraphRoute(new[] {
+                    new VisioConnectorWaypoint(.5, 0), new VisioConnectorWaypoint(-2, -2),
+                    new VisioConnectorWaypoint(2.5, 1)
+                })
+            } }));
+        var page = document.Pages[0];
+        var bounds = page.GetContentBounds();
+        Assert.True(bounds.Left >= 0 && bounds.Bottom >= 0);
+        Assert.True(bounds.Right <= page.Width && bounds.Top <= page.Height);
+        var a = page.Shapes.Single(shape => shape.Id == "a");
+        var b = page.Shapes.Single(shape => shape.Id == "b");
+        double scale = unit == VisioMeasurementUnit.Inches ? 1 : 1 / 2.54;
+        Assert.Equal(3 * scale, b.PinX - a.PinX, 6);
+        Assert.Equal(scale, b.PinY - a.PinY, 6);
+        Assert.Contains(Assert.Single(page.Connectors).Waypoints, point =>
+            Math.Abs(point.X - (a.PinX - 2 * scale)) < 1e-6 && Math.Abs(point.Y - (a.PinY - 2 * scale)) < 1e-6);
+    }
+
     [Fact]
     public void PreservedPageFitReservesLegendAboveContent() {
         var document = VisioDocument.Create().GraphDiagram("Legend", graph =>

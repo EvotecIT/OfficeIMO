@@ -35,6 +35,14 @@ namespace OfficeIMO.Visio.Diagrams {
             AddEdges(page);
             if (_preserveLayout && _fitPageToGraph) {
                 VisioShapeBounds bounds = page.GetContentBounds();
+                if (bounds.Left < 0 || bounds.Bottom < 0) {
+                    // Reuse the page owner so routes, label coordinates, and shapes move together.
+                    page.FitToContent(
+                        bounds.Left < 0 ? _leftMargin.ToInches(_unit) : bounds.Left,
+                        bounds.Bottom < 0 ? _bottomMargin.ToInches(_unit) : bounds.Bottom,
+                        resizePage: false);
+                    bounds = page.GetContentBounds();
+                }
                 _pageWidth = Math.Max(_pageWidth, bounds.Right.FromInches(_unit) + _rightMargin);
                 _pageHeight = Math.Max(_pageHeight, bounds.Top.FromInches(_unit) + _topMargin + TitleHeaderHeight + LegendHeaderHeight);
                 page.Width = _pageWidth.ToInches(_unit);

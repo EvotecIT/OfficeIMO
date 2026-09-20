@@ -12,6 +12,33 @@ namespace OfficeIMO.ChartForgeX.Tests;
 
 public sealed partial class OfficeVisioVisualIntegrationTests {
     [Fact]
+    public void NarrowPreservedPageReportsOmittedNativeTitle() {
+        var envelope = PlacementEnvelope();
+        envelope.Title = "Service";
+        envelope.Width = 80;
+        envelope.Nodes.RemoveAt(1);
+        envelope.Edges.Clear();
+        var node = envelope.Nodes[0];
+        node.Ports.Clear(); node.X = 10; node.Y = 200; node.Width = 60; node.Height = 80;
+        var result = envelope.ToOfficeVisio(new OfficeVisioVisualOptions { PixelsPerInch = 100 });
+        Assert.Contains(result.Report.Diagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.TitleNotProjected);
+        Assert.Throws<OfficeVisioVisualFidelityException>(() => envelope.ToOfficeVisio(new OfficeVisioVisualOptions { PixelsPerInch = 100, RequireLossless = true }));
+    }
+
+    [Theory]
+    [InlineData(OfficeVisioVisualLayoutMode.Auto)]
+    [InlineData(OfficeVisioVisualLayoutMode.Preserve)]
+    public void EmptyUnpositionedGroupDoesNotDiscardNodePlacement(OfficeVisioVisualLayoutMode mode) {
+        var envelope = PlacementEnvelope();
+        envelope.Title = "Services";
+        envelope.Groups.Add(new VisualArtifactInterchangeGroup { Id = "empty", Label = "Empty", Kind = "TopologyGroup", Role = VisualArtifactInterchangeGroupRole.TopologyGroup, Topology = new VisualArtifactInterchangeTopologyGroup() });
+        var result = envelope.ToOfficeVisio(new OfficeVisioVisualOptions { PixelsPerInch = 100, LayoutMode = mode });
+        Assert.DoesNotContain(result.Report.Diagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.LayoutRecomputed);
+        Assert.Contains(result.Report.Diagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.GroupNotProjected);
+        Assert.Equal(2, result.Page.Shapes.Single(item => item.Id == "api").PinX, 6);
+    }
+
+    [Fact]
     public void PreparedBoundsAndNamedAttachmentsSurviveSaveAndLoad() {
         var envelope = PlacementEnvelope();
         var result = envelope.ToOfficeVisio(new OfficeVisioVisualOptions { PixelsPerInch = 100 });

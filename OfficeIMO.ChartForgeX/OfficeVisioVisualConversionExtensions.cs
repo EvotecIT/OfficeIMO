@@ -133,7 +133,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
             builder.Theme(ResolveNativeTheme(envelope, options, report));
             if (preserve) {
                 builder.PageSize(envelope.Width!.Value / options.PixelsPerInch, envelope.Height!.Value / options.PixelsPerInch).PreserveLayout().FitPageToGraph(false);
-                ConfigurePreservedTitle(builder, envelope, options, edges, report);
+                ConfigurePreservedTitle(builder, envelope, options, edges, groups, report);
             } else ConfigureGraph(builder, envelope, options, report, flow);
             builder.Import(nodes, edges, groups);
         });

@@ -35,7 +35,8 @@ namespace OfficeIMO.Visio.Diagrams {
                     left.ToInches(_unit),
                     top.ToInches(_unit),
                     width.ToInches(_unit),
-                    _theme);
+                    _theme,
+                    VisioMeasurementUnit.Inches);
                 if (_preserveLayout && caption != null) {
                     caption.Width = Math.Min(caption.Width, shape.Width);
                     caption.Height = Math.Min(caption.Height, shape.Height);

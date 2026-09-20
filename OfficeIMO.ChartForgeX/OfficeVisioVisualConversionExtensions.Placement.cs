@@ -11,10 +11,12 @@ namespace OfficeIMO.ChartForgeX;
 public static partial class OfficeVisioVisualConversionExtensions {
     private static bool ShouldPreserveLayout(VisualArtifactInterchangeEnvelope envelope, OfficeVisioVisualOptions options) {
         if (options.LayoutMode == OfficeVisioVisualLayoutMode.Reflow) return false;
+        var projectedGroupIds = new HashSet<string>(envelope.Nodes
+            .Where(node => !string.IsNullOrEmpty(node.GroupId)).Select(node => node.GroupId!), StringComparer.Ordinal);
         bool complete = envelope.Family == VisualArtifactInterchangeFamily.Topology &&
             envelope.Width > 0 && envelope.Height > 0 &&
             envelope.Nodes.All(node => HasBounds(node.X, node.Y, node.Width, node.Height)) &&
-            (!options.IncludeGroups || envelope.Groups.All(group => HasBounds(group.X, group.Y, group.Width, group.Height)));
+            (!options.IncludeGroups || envelope.Groups.Where(group => projectedGroupIds.Contains(group.Id)).All(group => HasBounds(group.X, group.Y, group.Width, group.Height)));
         if (!complete && options.LayoutMode == OfficeVisioVisualLayoutMode.Preserve) {
             throw new NotSupportedException("Preserving geometry requires a topology envelope with complete node, group, and viewport bounds. Use Reflow explicitly for other inputs.");
         }
@@ -87,17 +89,17 @@ public static partial class OfficeVisioVisualConversionExtensions {
     }
 
     private static void ConfigurePreservedTitle(VisioGraphDiagramBuilder builder, VisualArtifactInterchangeEnvelope envelope,
-        OfficeVisioVisualOptions options, IEnumerable<VisioGraphEdgeRecord> edges, OfficeVisioVisualConversionReport report) {
+        OfficeVisioVisualOptions options, IEnumerable<VisioGraphEdgeRecord> edges, IEnumerable<VisioGraphClusterRecord> groups, OfficeVisioVisualConversionReport report) {
         if (!options.IncludeTitle || !HasTitle(envelope)) return;
         double available = envelope.Nodes.Select(node => node.Y!.Value)
-            .Concat(options.IncludeGroups ? envelope.Groups.Select(group => group.Y!.Value) : Array.Empty<double>())
+            .Concat(groups.Select(group => envelope.Height!.Value - (group.Placement!.PinY + group.Placement.Height / 2) * options.PixelsPerInch))
             .Concat(edges.Where(edge => edge.Route != null).SelectMany(edge => edge.Route!.Points)
                 .Select(point => envelope.Height!.Value - point.Y * options.PixelsPerInch))
             .DefaultIfEmpty(envelope.Height!.Value).Min() / options.PixelsPerInch;
         const double margin = 0.16, height = 0.45, gap = 0.08;
-        if (available < margin + height + gap) {
+        if (available < margin + height + gap || envelope.Width!.Value / options.PixelsPerInch < 1) {
             report.Warn(OfficeVisioVisualDiagnosticCode.TitleNotProjected, OfficeVisioVisualEntityKind.Artifact, envelope.Id, "title",
-                "The preserved geometry leaves no clear header band for a native title. The title remains in the source envelope and document metadata.");
+                "The preserved geometry leaves insufficient clear header space for a native title. The title remains in the source envelope and document metadata.");
             return;
         }
         builder.Margins(0.4, margin, 0.4, 0.4).Title(CombineLabel(envelope.Title, envelope.Subtitle), UniqueTitleId(envelope), height, gap);
