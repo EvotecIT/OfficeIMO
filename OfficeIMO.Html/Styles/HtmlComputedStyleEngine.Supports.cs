@@ -392,6 +392,11 @@ public static partial class HtmlComputedStyleEngine {
             return false;
         }
 
+        if (string.Equals(propertyName, "all", StringComparison.OrdinalIgnoreCase)
+            && HtmlCssCustomPropertyResolver.ContainsVarFunction(value)) {
+            return false;
+        }
+
         if (HtmlCssCustomPropertyResolver.ContainsVarFunction(value)) {
             return true;
         }
@@ -562,6 +567,7 @@ public static partial class HtmlComputedStyleEngine {
         IReadOnlyDictionary<string, string>? parentProperties,
         out HashSet<string> inheritedProperties,
         out HashSet<string> resetProperties,
+        out HashSet<string> originRevertedProperties,
         out HashSet<string> specifiedProperties,
         out Dictionary<string, HtmlCssCascadePriority> cascadePriorities,
         out Dictionary<string, OfficeIMO.Html.Css.HtmlCssCascadeTrace>? cascadeTraces,
@@ -571,6 +577,7 @@ public static partial class HtmlComputedStyleEngine {
         var deferredFonts = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
         var inherited = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
         var reset = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
+        var originReverted = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
         var specified = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
         var priorities = new Dictionary<string, HtmlCssCascadePriority>(HtmlCssPropertyNameComparer.Instance);
         if (parentProperties != null) {
@@ -590,6 +597,7 @@ public static partial class HtmlComputedStyleEngine {
                 if (effective.IsDeferredFontShorthand) deferredFonts.Add(pair.Key);
                 priorities[pair.Key] = ToCascadePriority(effective);
                 reset.Remove(pair.Key);
+                originReverted.Remove(pair.Key);
                 if (ReferenceEquals(effective.Specificity, Specificity.Inherited) || effective.InheritsComputedValue) {
                     inherited.Add(pair.Key);
                     specified.Remove(pair.Key);
@@ -607,6 +615,7 @@ public static partial class HtmlComputedStyleEngine {
                     ids: -1, classes: -1, elements: -1, ruleOrder: -1, declarationOrder: -1);
                 inherited.Add(pair.Key);
                 reset.Remove(pair.Key);
+                originReverted.Remove(pair.Key);
                 specified.Remove(pair.Key);
             } else {
                 raw.Remove(pair.Key);
@@ -614,6 +623,13 @@ public static partial class HtmlComputedStyleEngine {
                 inherited.Remove(pair.Key);
                 specified.Remove(pair.Key);
                 reset.Add(pair.Key);
+                CascadedProperty resetSource = effective ?? pair.Value;
+                if (string.Equals(resetSource.AuthoredValue.Trim(), "revert", StringComparison.OrdinalIgnoreCase)
+                    || resetSource.RevertsLayer) {
+                    originReverted.Add(pair.Key);
+                } else {
+                    originReverted.Remove(pair.Key);
+                }
             }
         }
         ApplyRegisteredCustomPropertyFallbacks(raw, parentProperties, specified, inherited, customPropertyRegistrations);
@@ -633,6 +649,8 @@ public static partial class HtmlComputedStyleEngine {
         inheritedProperties = inherited;
         reset.ExceptWith(resolved.Keys);
         resetProperties = reset;
+        originReverted.IntersectWith(reset);
+        originRevertedProperties = originReverted;
         specified.IntersectWith(resolved.Keys);
         specifiedProperties = specified;
         List<string>? removedPriorityNames = null;

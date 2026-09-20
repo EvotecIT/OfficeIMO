@@ -11,6 +11,7 @@ public sealed class HtmlComputedStyle {
     private readonly IReadOnlyDictionary<string, string> _readOnlyProperties;
     private readonly HashSet<string> _inheritedProperties;
     private readonly HashSet<string> _resetProperties;
+    private readonly HashSet<string> _originRevertedProperties;
     private readonly HashSet<string> _specifiedProperties;
     private readonly Dictionary<string, HtmlCssCascadePriority> _cascadePriorities;
     private readonly IReadOnlyDictionary<string, OfficeIMO.Html.Css.HtmlCssCascadeTrace> _cascadeTraces;
@@ -19,6 +20,7 @@ public sealed class HtmlComputedStyle {
         IDictionary<string, string> properties,
         IEnumerable<string>? inheritedProperties = null,
         IEnumerable<string>? resetProperties = null,
+        IEnumerable<string>? originRevertedProperties = null,
         IEnumerable<string>? specifiedProperties = null,
         IDictionary<string, HtmlCssCascadePriority>? cascadePriorities = null,
         IDictionary<string, OfficeIMO.Html.Css.HtmlCssCascadeTrace>? cascadeTraces = null) {
@@ -26,6 +28,7 @@ public sealed class HtmlComputedStyle {
         _readOnlyProperties = new System.Collections.ObjectModel.ReadOnlyDictionary<string, string>(_properties);
         _inheritedProperties = new HashSet<string>(inheritedProperties ?? Array.Empty<string>(), HtmlCssPropertyNameComparer.Instance);
         _resetProperties = new HashSet<string>(resetProperties ?? Array.Empty<string>(), HtmlCssPropertyNameComparer.Instance);
+        _originRevertedProperties = new HashSet<string>(originRevertedProperties ?? Array.Empty<string>(), HtmlCssPropertyNameComparer.Instance);
         _specifiedProperties = new HashSet<string>(specifiedProperties ?? Array.Empty<string>(), HtmlCssPropertyNameComparer.Instance);
         _cascadePriorities = new Dictionary<string, HtmlCssCascadePriority>(cascadePriorities ?? new Dictionary<string, HtmlCssCascadePriority>(), HtmlCssPropertyNameComparer.Instance);
         _cascadeTraces = cascadeTraces == null || cascadeTraces.Count == 0
@@ -38,6 +41,7 @@ public sealed class HtmlComputedStyle {
         Dictionary<string, string> properties,
         HashSet<string> inheritedProperties,
         HashSet<string> resetProperties,
+        HashSet<string> originRevertedProperties,
         HashSet<string> specifiedProperties,
         Dictionary<string, HtmlCssCascadePriority> cascadePriorities,
         Dictionary<string, OfficeIMO.Html.Css.HtmlCssCascadeTrace>? cascadeTraces) {
@@ -45,6 +49,7 @@ public sealed class HtmlComputedStyle {
         _readOnlyProperties = new System.Collections.ObjectModel.ReadOnlyDictionary<string, string>(_properties);
         _inheritedProperties = inheritedProperties;
         _resetProperties = resetProperties;
+        _originRevertedProperties = originRevertedProperties;
         _specifiedProperties = specifiedProperties;
         _cascadePriorities = cascadePriorities;
         _cascadeTraces = cascadeTraces == null || cascadeTraces.Count == 0 ? EmptyCascadeTraces : cascadeTraces;
@@ -54,10 +59,12 @@ public sealed class HtmlComputedStyle {
         Dictionary<string, string> properties,
         HashSet<string> inheritedProperties,
         HashSet<string> resetProperties,
+        HashSet<string> originRevertedProperties,
         HashSet<string> specifiedProperties,
         Dictionary<string, HtmlCssCascadePriority> cascadePriorities,
         Dictionary<string, OfficeIMO.Html.Css.HtmlCssCascadeTrace>? cascadeTraces) =>
-        new HtmlComputedStyle(properties, inheritedProperties, resetProperties, specifiedProperties, cascadePriorities, cascadeTraces);
+        new HtmlComputedStyle(properties, inheritedProperties, resetProperties, originRevertedProperties,
+            specifiedProperties, cascadePriorities, cascadeTraces);
 
     /// <summary>All computed properties known to the lightweight style engine.</summary>
     public IReadOnlyDictionary<string, string> Properties => _readOnlyProperties;
@@ -120,6 +127,9 @@ public sealed class HtmlComputedStyle {
     internal bool IsResetValue(string propertyName) =>
         !string.IsNullOrWhiteSpace(propertyName) && _resetProperties.Contains(propertyName.Trim());
 
+    internal bool IsOriginRevertedValue(string propertyName) =>
+        !string.IsNullOrWhiteSpace(propertyName) && _originRevertedProperties.Contains(propertyName.Trim());
+
     internal bool IsSpecifiedValue(string propertyName) =>
         !string.IsNullOrWhiteSpace(propertyName) && _specifiedProperties.Contains(propertyName.Trim());
 
@@ -136,6 +146,7 @@ public sealed class HtmlComputedStyle {
             properties,
             new HashSet<string>(_inheritedProperties, HtmlCssPropertyNameComparer.Instance),
             new HashSet<string>(_resetProperties, HtmlCssPropertyNameComparer.Instance),
+            new HashSet<string>(_originRevertedProperties, HtmlCssPropertyNameComparer.Instance),
             new HashSet<string>(_specifiedProperties, HtmlCssPropertyNameComparer.Instance),
             cascadePriorities,
             _cascadeTraces.Count == 0

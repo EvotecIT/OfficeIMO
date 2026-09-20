@@ -398,9 +398,10 @@ public static partial class OfficeSvgDrawingReader {
         SvgContentSafetyTextObserver observer,
         ref int unsupported) {
         SvgDefinitionRegistry definitions = SvgDefinitionRegistry.Create(root);
-        var paintServers = new SvgPaintServerRegistry(definitions);
+        TryResolveDefaultFontFamily(readerOptions, out string defaultFontFamily);
+        var paintServers = new SvgPaintServerRegistry(definitions, defaultFontFamily);
         var references = new SvgElementReferenceRegistry(definitions, readerOptions?.ForeignObjectRenderer);
-        SvgPaintContext defaults = SvgPaintContext.Default;
+        SvgPaintContext defaults = SvgPaintContext.CreateDefault(defaultFontFamily);
         defaults.DashPercentageReference = NormalizedSvgDiagonal(document.ViewWidth, document.ViewHeight);
         SvgPaintContext rootStyle = ResolvePaintContext(root, defaults, paintServers, ref unsupported);
         OfficeTransform rootTransform = ResolveTransform(root, OfficeTransform.Identity, document.ViewX, document.ViewY, ref unsupported);

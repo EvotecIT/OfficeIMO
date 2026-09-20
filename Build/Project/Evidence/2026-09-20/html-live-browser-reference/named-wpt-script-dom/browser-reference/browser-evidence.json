@@ -3,7 +3,7 @@
   "scenarioId": "named-wpt-script-dom-20260920",
   "sourceLicense": "BSD-3-Clause",
   "documentUrl": "https://wpt.live/html/semantics/interactive-elements/the-details-element/details-add-summary.html",
-  "capturedAtUtc": "2026-09-20T06:58:17.8106017+00:00",
+  "capturedAtUtc": "2026-09-20T07:56:16.2334097+00:00",
   "browser": {
     "product": "Chromium",
     "version": "151.0.7922.34",
@@ -21,7 +21,7 @@
     "file": "acquisition.json",
     "sha256": "266a6de9bfe467334a03ba47626415fa42c9002aa1370071dc213ddd4adff149",
     "retainedInputBytes": true,
-    "networkPolicy": "route-all;fulfill-acquired-bytes;abort-unknown"
+    "networkPolicy": "context-route-all;service-workers-blocked;fulfill-static-get-acquired-bytes;abort-unknown"
   },
   "source": [
     {

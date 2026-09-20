@@ -38,11 +38,23 @@ internal static class HtmlPublicBrowserEvidenceRunner {
         byte[] browserPng;
         string browserVersion;
         var blockedUrls = new ConcurrentQueue<string>();
-        await using (HtmlBrowserSession session = await HtmlPdfComparisonRenderers.OpenChromiumSessionAsync().ConfigureAwait(false)) {
-            browserVersion = session.Browser?.Version ?? "unknown";
-            await session.Page.SetViewportSizeAsync(viewportWidth, viewportHeight).ConfigureAwait(false);
-            await session.Page.RouteAsync("**/*", async route => {
-                if (resources.TryGetValue(route.Request.Url, out Resource? resource)) {
+        await using (HtmlBrowserSession launcher = await HtmlPdfComparisonRenderers.OpenChromiumSessionAsync().ConfigureAwait(false)) {
+            IBrowser browserInstance = launcher.Browser
+                ?? throw new InvalidOperationException("The browser-reference runner requires a non-persistent browser instance.");
+            browserVersion = browserInstance.Version;
+            await using IBrowserContext context = await browserInstance.NewContextAsync(new BrowserNewContextOptions {
+                ServiceWorkers = ServiceWorkerPolicy.Block,
+                ViewportSize = new ViewportSize { Width = viewportWidth, Height = viewportHeight }
+            }).ConfigureAwait(false);
+            await context.RouteAsync("**/*", async route => {
+                IRequest request = route.Request;
+                if (!string.Equals(request.Method, "GET", StringComparison.OrdinalIgnoreCase)
+                    || request.PostDataBuffer is { Length: > 0 }) {
+                    blockedUrls.Enqueue(request.Method + " " + request.Url);
+                    await route.AbortAsync("blockedbyclient").ConfigureAwait(false);
+                    return;
+                }
+                if (resources.TryGetValue(request.Url, out Resource? resource)) {
                     await route.FulfillAsync(new RouteFulfillOptions {
                         BodyBytes = resource.Bytes,
                         ContentType = resource.ContentType,
@@ -50,12 +62,13 @@ internal static class HtmlPublicBrowserEvidenceRunner {
                     }).ConfigureAwait(false);
                     return;
                 }
-                blockedUrls.Add(route.Request.Url);
+                blockedUrls.Enqueue(request.Method + " " + request.Url);
                 await route.AbortAsync("blockedbyclient").ConfigureAwait(false);
             }).ConfigureAwait(false);
-            await session.Page.GotoAsync(documentUrl.AbsoluteUri, new PageGotoOptions { WaitUntil = WaitUntilState.Load }).ConfigureAwait(false);
-            await session.Page.EvaluateAsync("document.fonts ? document.fonts.ready : Promise.resolve()").ConfigureAwait(false);
-            browserPng = await session.Page.ScreenshotAsync(new PageScreenshotOptions {
+            IPage page = await context.NewPageAsync().ConfigureAwait(false);
+            await page.GotoAsync(documentUrl.AbsoluteUri, new PageGotoOptions { WaitUntil = WaitUntilState.Load }).ConfigureAwait(false);
+            await page.EvaluateAsync("document.fonts ? document.fonts.ready : Promise.resolve()").ConfigureAwait(false);
+            browserPng = await page.ScreenshotAsync(new PageScreenshotOptions {
                 FullPage = true,
                 Type = ScreenshotType.Png,
                 Animations = ScreenshotAnimations.Disabled,
@@ -95,7 +108,7 @@ internal static class HtmlPublicBrowserEvidenceRunner {
                 file = Path.GetFileName(acquisitionPath),
                 sha256 = Sha256(File.ReadAllBytes(acquisitionPath)),
                 retainedInputBytes = true,
-                networkPolicy = "route-all;fulfill-acquired-bytes;abort-unknown"
+                networkPolicy = "context-route-all;service-workers-blocked;fulfill-static-get-acquired-bytes;abort-unknown"
             },
             source = resources.Values.Distinct().Select(resource => new {
                 url = resource.Url,
@@ -146,20 +159,35 @@ internal static class HtmlPublicBrowserEvidenceRunner {
                 resource.GetProperty("finalUrl").GetString() ?? string.Empty,
                 resource.GetProperty("ContentType").GetString() ?? "application/octet-stream",
                 resource.GetProperty("StatusCode").GetInt32(),
-                resource.GetProperty("Sha256").GetString() ?? string.Empty)).ToArray());
+                resource.GetProperty("Sha256").GetString() ?? string.Empty,
+                resource.GetProperty("RequestMethod").GetString() ?? string.Empty,
+                resource.GetProperty("RequestOccurrence").ValueKind == JsonValueKind.Null
+                    ? null
+                    : resource.GetProperty("RequestOccurrence").GetInt32(),
+                resource.GetProperty("dynamicExchanges").GetArrayLength(),
+                resource.GetProperty("redirects").GetArrayLength())).ToArray());
     }
 
     private static Dictionary<string, Resource> LoadResources(string acquisitionPath, Acquisition acquisition) {
         string inputs = Path.Combine(Path.GetDirectoryName(acquisitionPath)!, "inputs");
         var result = new Dictionary<string, Resource>(StringComparer.Ordinal);
         foreach (ResourceManifest item in acquisition.Resources) {
+            if (!string.Equals(item.RequestMethod, "GET", StringComparison.OrdinalIgnoreCase)
+                || item.RequestOccurrence.HasValue
+                || item.DynamicExchangeCount != 0
+                || item.RedirectCount != 0
+                || !string.Equals(item.Url, item.FinalUrl, StringComparison.Ordinal)) {
+                throw new InvalidDataException(
+                    "The browser-reference runner accepts only direct static GET acquisitions. " +
+                    "Dynamic requests and redirect chains require exact request/response exchange bytes.");
+            }
             string path = Path.Combine(inputs, item.Sha256);
             byte[] bytes = File.ReadAllBytes(path);
             if (!string.Equals(Sha256(bytes), item.Sha256, StringComparison.OrdinalIgnoreCase))
                 throw new InvalidDataException("Retained input does not match its acquisition digest: " + item.Url);
             var resource = new Resource(item.Url, item.ContentType, item.StatusCode, bytes);
-            result[item.Url] = resource;
-            result.TryAdd(item.FinalUrl, resource);
+            if (!result.TryAdd(item.Url, resource))
+                throw new InvalidDataException("The static acquisition contains a duplicate URL identity: " + item.Url);
         }
         return result;
     }
@@ -239,7 +267,8 @@ internal static class HtmlPublicBrowserEvidenceRunner {
 
     private sealed record Acquisition(string ScenarioId, string SourceLicense, bool RetainedInputBytes,
         IReadOnlyList<ResourceManifest> Resources);
-    private sealed record ResourceManifest(string Url, string FinalUrl, string ContentType, int StatusCode, string Sha256);
+    private sealed record ResourceManifest(string Url, string FinalUrl, string ContentType, int StatusCode, string Sha256,
+        string RequestMethod, int? RequestOccurrence, int DynamicExchangeCount, int RedirectCount);
     private sealed record Resource(string Url, string ContentType, int StatusCode, byte[] Bytes);
     private sealed record PixelComparison(int Width, int Height, double MeanAbsoluteError,
         double RootMeanSquareError, double MeanLuminanceError, OfficeRasterImage Difference);

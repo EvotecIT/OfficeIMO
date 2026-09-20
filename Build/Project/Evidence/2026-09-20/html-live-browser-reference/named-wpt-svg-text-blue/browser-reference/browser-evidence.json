@@ -3,7 +3,7 @@
   "scenarioId": "named-wpt-svg-text-blue-20260920",
   "sourceLicense": "BSD-3-Clause",
   "documentUrl": "https://wpt.live/css/compositing/Text_with_SVG_background-ref.html",
-  "capturedAtUtc": "2026-09-20T06:53:09.445757+00:00",
+  "capturedAtUtc": "2026-09-20T07:56:19.4707401+00:00",
   "browser": {
     "product": "Chromium",
     "version": "151.0.7922.34",
@@ -21,7 +21,7 @@
     "file": "acquisition.json",
     "sha256": "3c06f5100b744426946668592c00d89eef42d258f8c3a3434c9307d9694c9891",
     "retainedInputBytes": true,
-    "networkPolicy": "route-all;fulfill-acquired-bytes;abort-unknown"
+    "networkPolicy": "context-route-all;service-workers-blocked;fulfill-static-get-acquired-bytes;abort-unknown"
   },
   "source": [
     {

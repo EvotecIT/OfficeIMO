@@ -814,6 +814,10 @@ internal sealed partial class HtmlRenderStyleResolver {
 
     private void ApplyBoxValues(HtmlComputedStyle computed, double reference, double fontSize, HtmlRenderBoxStyle style) {
         ApplyAutoMargins(computed, style);
+        ResetUserAgentMargin(computed, "margin-top", ref style.MarginTop);
+        ResetUserAgentMargin(computed, "margin-right", ref style.MarginRight);
+        ResetUserAgentMargin(computed, "margin-bottom", ref style.MarginBottom);
+        ResetUserAgentMargin(computed, "margin-left", ref style.MarginLeft);
         ApplyMarginLength(computed.GetValue("margin-top"), reference, fontSize, ref style.MarginTop);
         ApplyMarginLength(computed.GetValue("margin-right"), reference, fontSize, ref style.MarginRight);
         ApplyMarginLength(computed.GetValue("margin-bottom"), reference, fontSize, ref style.MarginBottom);
@@ -825,6 +829,10 @@ internal sealed partial class HtmlRenderStyleResolver {
         ApplyLength(computed.GetValue("padding-left"), reference, fontSize, ref style.PaddingLeft);
 
         ApplyBorderAndOutlinePaint(computed, reference, fontSize, style);
+    }
+
+    private static void ResetUserAgentMargin(HtmlComputedStyle computed, string property, ref double target) {
+        if (computed.IsResetValue(property) && !computed.IsOriginRevertedValue(property)) target = 0D;
     }
 
     private static void ApplyAutoMargins(HtmlComputedStyle computed, HtmlRenderBoxStyle style) {

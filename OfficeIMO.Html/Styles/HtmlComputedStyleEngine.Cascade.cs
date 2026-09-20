@@ -48,6 +48,19 @@ public static partial class HtmlComputedStyleEngine {
             return;
         }
 
+        if (string.Equals(name, "all", StringComparison.OrdinalIgnoreCase)) {
+            if (!IsCssWideKeyword(value.Trim())) return;
+            foreach (string property in SupportedProperties) {
+                if (string.Equals(property, "all", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(property, "direction", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(property, "unicode-bidi", StringComparison.OrdinalIgnoreCase)) continue;
+                ApplyDeclaration(properties, parentProperties, property, value, isImportant, specificity, order, layerOrder,
+                    valueAlreadyValidated: true, declarationOrder: declarationOrder,
+                    customPropertyRegistrations: customPropertyRegistrations, source: source, selector: selector, layerName: layerName);
+            }
+            return;
+        }
+
         if (string.Equals(name, "font", StringComparison.OrdinalIgnoreCase)
             && HtmlCssCustomPropertyResolver.ContainsVarFunction(value)) {
             foreach (string longhand in FontShorthandLonghands) {

@@ -55,6 +55,34 @@ public sealed class RuntimeApplicationDocumentWorkflowTests {
     }
 
     [Fact]
+    public async Task NamedApplicationResultSkipsARequestWithCustomizedIntentAxes() {
+        var page = new HtmlScriptRequest {
+            Profile = HtmlRuntimeProfile.WebApplicationV1,
+            DocumentUrl = new Uri("https://named-output.officeimo.test/"),
+            Html = "<p>Named output</p>"
+        };
+        var options = new HtmlRenderOptions { ViewportWidth = 320D };
+        HtmlRenderRequest customized = HtmlRenderRequest.Create(
+            HtmlRenderIntentProfile.ScreenFullPage, HtmlRenderEncoder.Png, options)
+            .WithCssMedia(HtmlCssMediaContext.Print);
+        HtmlRenderRequest standard = HtmlRenderRequest.Create(
+            HtmlRenderIntentProfile.ScreenFullPage, HtmlRenderEncoder.Png, options);
+        IHtmlRuntimeHost host = HtmlApplicationRuntime.CreateProcessHost(
+            Path.Combine(AppContext.BaseDirectory, "RuntimeWorker", "OfficeIMO.Html.Runtime.Worker.dll"));
+
+        HtmlApplicationDocumentResult result = await HtmlApplicationDocumentWorkflow.RunAsync(host,
+            new HtmlApplicationDocumentRequest {
+                Page = page,
+                RenderRequests = new[] { customized, standard }
+            });
+
+        Assert.False(result.Outputs[0].Render.Request.MatchesNamedProfile);
+        Assert.Same(result.Outputs[1], result.ScreenPng);
+        Assert.Same(result.Outputs[1], result.FindOutput(
+            HtmlRenderIntentProfile.ScreenFullPage, HtmlRenderEncoder.Png));
+    }
+
+    [Fact]
     public void StaticRendererProjectsAuthoredSrcdocIntoAClippedFrameViewport() {
         HtmlConversionDocument document = HtmlConversionDocument.Parse("""
             <main>Before <iframe width="220" height="80" srcdoc="<p id='inside'>Static frame body</p>"></iframe> After</main>

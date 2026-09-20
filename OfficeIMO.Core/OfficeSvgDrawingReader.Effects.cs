@@ -342,7 +342,7 @@ public static partial class OfficeSvgDrawingReader {
         XElement definition,
         SvgPaintServerRegistry paintServers,
         ref int unsupported) {
-        SvgPaintContext context = SvgPaintContext.Default;
+        SvgPaintContext context = SvgPaintContext.CreateDefault(paintServers.DefaultFontFamily);
         foreach (XElement ancestor in definition.Ancestors().Reverse()) {
             context = ResolvePaintContext(ancestor, context, paintServers, ref unsupported);
         }

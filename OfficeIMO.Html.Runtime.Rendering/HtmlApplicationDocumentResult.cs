@@ -60,8 +60,12 @@ public sealed class HtmlApplicationDocumentResult {
     public HtmlApplicationRenderOutput? ScreenToPagePdf => FindOutput(
         HtmlRenderIntentProfile.ScreenSnapshotPaged, HtmlRenderEncoder.Pdf);
 
-    /// <summary>Returns the first output with the requested intent and encoder, or null when it was not selected.</summary>
+    /// <summary>
+    /// Returns the first output whose effective media and layout axes still match the requested named intent
+    /// and encoder, or null when no qualified named output was selected.
+    /// </summary>
     public HtmlApplicationRenderOutput? FindOutput(HtmlRenderIntentProfile profile, HtmlRenderEncoder encoder) =>
         Outputs.FirstOrDefault(output => output.Render.Request.Profile == profile
+            && output.Render.Request.MatchesNamedProfile
             && output.Render.Request.Encoder == encoder);
 }

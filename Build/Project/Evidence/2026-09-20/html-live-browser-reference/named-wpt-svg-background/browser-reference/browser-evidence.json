@@ -3,7 +3,7 @@
   "scenarioId": "named-wpt-svg-background-20260920",
   "sourceLicense": "BSD-3-Clause",
   "documentUrl": "https://wpt.live/css/compositing/line-with-svg-background-ref.html",
-  "capturedAtUtc": "2026-09-20T06:53:07.7634342+00:00",
+  "capturedAtUtc": "2026-09-20T07:56:17.8486647+00:00",
   "browser": {
     "product": "Chromium",
     "version": "151.0.7922.34",
@@ -21,7 +21,7 @@
     "file": "acquisition.json",
     "sha256": "d68208baf072bb12aaab96c93ffc8263a5aa37205d37edc0742c77f95e58fbb2",
     "retainedInputBytes": true,
-    "networkPolicy": "route-all;fulfill-acquired-bytes;abort-unknown"
+    "networkPolicy": "context-route-all;service-workers-blocked;fulfill-static-get-acquired-bytes;abort-unknown"
   },
   "source": [
     {

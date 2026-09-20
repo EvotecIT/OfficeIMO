@@ -52,8 +52,7 @@ public static partial class OfficeSvgDrawingReader {
         out int unsupportedFeatureCount) {
         drawing = null;
         unsupportedFeatureCount = 0;
-        string defaultFontFamily = options?.DefaultFontFamily ?? "Arial";
-        if (string.IsNullOrWhiteSpace(defaultFontFamily) || defaultFontFamily.Length > 1024) return false;
+        if (!TryResolveDefaultFontFamily(options, out string defaultFontFamily)) return false;
         if (!TryReadBoundedDocument(
                 bytes,
                 options,
@@ -81,7 +80,7 @@ public static partial class OfficeSvgDrawingReader {
             int pathCommands = 0;
             bool pathCommandLimitExceeded = false;
             SvgDefinitionRegistry definitions = SvgDefinitionRegistry.Create(root);
-            var paintServers = new SvgPaintServerRegistry(definitions);
+            var paintServers = new SvgPaintServerRegistry(definitions, defaultFontFamily);
             var references = new SvgElementReferenceRegistry(definitions, options?.ForeignObjectRenderer);
             SvgPaintContext rootDefaults = SvgPaintContext.CreateDefault(defaultFontFamily);
             rootDefaults.DashPercentageReference = NormalizedSvgDiagonal(viewWidth, viewHeight);
@@ -151,6 +150,11 @@ public static partial class OfficeSvgDrawingReader {
         } catch (ArgumentException) {
             return false;
         }
+    }
+
+    private static bool TryResolveDefaultFontFamily(OfficeSvgDrawingReaderOptions? options, out string fontFamily) {
+        fontFamily = options?.DefaultFontFamily ?? "Arial";
+        return !string.IsNullOrWhiteSpace(fontFamily) && fontFamily.Length <= 1024;
     }
 
     /// <summary>

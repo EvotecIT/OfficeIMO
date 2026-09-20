@@ -9,10 +9,12 @@ qualified rootless, network-disabled Podman profile. Each `outcome.json` records
 image ID
 `sha256:bc8238082eade5ffe42ac0cecb15c16603144dab10b470c12041a87e54043341`,
 renderer and script-worker hashes, isolation controls, trace, output hashes, and
-confirmed container removal. The comparison-only runner then intercepted every
-Chromium request and fulfilled it from that retained acquisition. An unrecorded
-request fails the run; all four evidence files record an empty `blockedUrls`
-collection.
+confirmed container removal. These four acquisitions contain only direct static
+GET responses. The comparison-only runner blocked service workers, intercepted
+every Chromium-context request, and fulfilled it from that retained acquisition.
+An unrecorded or non-GET request fails the run; dynamic requests and redirect
+chains are rejected because this evidence format does not retain every exchange's
+response bytes. All four evidence files record an empty `blockedUrls` collection.
 
 The Chromium reference used Windows x64 Chromium 151.0.7922.34 through
 Playwright 1.62.0.0 and HtmlTinkerX 3.0.1.0. OfficeIMO used the image's declared

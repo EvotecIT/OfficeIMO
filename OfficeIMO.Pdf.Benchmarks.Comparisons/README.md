@@ -162,8 +162,11 @@ dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmar
     --output $reference
 ```
 
-The acquisition must have been produced with `--retain-input`. Chromium receives
-those retained resources through request interception; an unrecorded request
+The acquisition must have been produced with `--retain-input` and contain only
+direct static GET responses. Dynamic requests and redirect chains are rejected
+because their complete exchange bytes are not retained by this evidence format.
+Chromium runs with service workers blocked and receives those retained resources
+through context-wide request interception; an unrecorded or non-GET request
 aborts the run. The new output directory contains both screen images, a pixel
 difference image, hashes, dimensions, browser/tool versions, and comparison
 metrics. This is an opt-in qualification oracle: HtmlTinkerX, Playwright, and

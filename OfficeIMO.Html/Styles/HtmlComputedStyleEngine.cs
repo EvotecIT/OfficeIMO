@@ -78,6 +78,7 @@ public static partial class HtmlComputedStyleEngine {
         "baseline-shift"
     };
     private static readonly HashSet<string> SupportedProperties = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
+        "all",
         "background",
         "background-attachment",
         "background-clip",
@@ -534,13 +535,15 @@ public static partial class HtmlComputedStyleEngine {
         ApplyInlineDeclarations(properties, parent?.Properties, element.GetAttribute("style"), rules.CustomPropertyRegistrations, budget);
         Dictionary<string, string> resolvedProperties = ResolveComputedProperties(properties, parent?.Properties,
             out HashSet<string> inheritedProperties, out HashSet<string> resetProperties,
+            out HashSet<string> originRevertedProperties,
             out HashSet<string> specifiedProperties,
             out Dictionary<string, HtmlCssCascadePriority> cascadePriorities,
             out Dictionary<string, OfficeIMO.Html.Css.HtmlCssCascadeTrace>? cascadeTraces,
             includeCascadeTraces,
             rules.CustomPropertyRegistrations);
         HtmlComputedStyle style = HtmlComputedStyle.FromOwnedCollections(
-            resolvedProperties, inheritedProperties, resetProperties, specifiedProperties, cascadePriorities, cascadeTraces);
+            resolvedProperties, inheritedProperties, resetProperties, originRevertedProperties,
+            specifiedProperties, cascadePriorities, cascadeTraces);
         computed[element] = style;
 
         double inheritedFontSize = containerContexts.Count == 0 ? 16D : containerContexts[containerContexts.Count - 1].FontSize;
@@ -639,13 +642,15 @@ public static partial class HtmlComputedStyleEngine {
 
         Dictionary<string, string> resolvedProperties = ResolveComputedProperties(properties, originatingStyle.Properties,
             out HashSet<string> inheritedProperties, out HashSet<string> resetProperties,
+            out HashSet<string> originRevertedProperties,
             out HashSet<string> specifiedProperties,
             out Dictionary<string, HtmlCssCascadePriority> cascadePriorities,
             out Dictionary<string, OfficeIMO.Html.Css.HtmlCssCascadeTrace>? cascadeTraces,
             includeCascadeTraces,
             customPropertyRegistrations);
         return HtmlComputedStyle.FromOwnedCollections(
-            resolvedProperties, inheritedProperties, resetProperties, specifiedProperties, cascadePriorities, cascadeTraces);
+            resolvedProperties, inheritedProperties, resetProperties, originRevertedProperties,
+            specifiedProperties, cascadePriorities, cascadeTraces);
     }
 
 }
