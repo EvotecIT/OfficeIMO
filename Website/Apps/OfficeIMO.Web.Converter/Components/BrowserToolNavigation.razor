@@ -43,6 +43,7 @@
     private string _filter = "";
     private bool HasFilter => !string.IsNullOrWhiteSpace(_filter);
     private bool Matches(string text) => text.Contains(_filter.Trim(), StringComparison.OrdinalIgnoreCase);
-    private ConversionRoute[] Routes => ConversionRouteCatalog.All.Where(route => Matches(route.Title)).ToArray();
-    private PdfToolDefinition[] Tools => PdfToolCatalog.All.Where(tool => Matches(tool.Label)).ToArray();
+    private ConversionRoute[] Routes => ConversionRouteCatalog.All.Where(route =>
+        Matches($"{route.Title} {route.Source} {route.Target} {route.Id} {route.Accept}")).ToArray();
+    private PdfToolDefinition[] Tools => PdfToolCatalog.All.Where(tool => Matches($"PDF {tool.Label} {tool.Id}")).ToArray();
 }

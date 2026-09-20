@@ -25,7 +25,8 @@ public sealed class BrowserToolLoader(LazyAssemblyLoader assemblies) {
             "html-pdf" => ["OfficeIMO.Html.wasm", "AngleSharp.wasm", "AngleSharp.Css.wasm", "OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm"],
             "pdf-html" => ["OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm", "OfficeIMO.Html.wasm", "AngleSharp.wasm", "AngleSharp.Css.wasm"],
             "pdf-png" => ["OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm"],
-            "markdown-html" or "html-markdown" => ["OfficeIMO.Markdown.wasm", "OfficeIMO.Html.wasm", "AngleSharp.wasm", "AngleSharp.Css.wasm"],
+            "markdown-html" => ["OfficeIMO.Markdown.wasm"],
+            "html-markdown" => ["OfficeIMO.Markdown.wasm", "OfficeIMO.Html.wasm", "AngleSharp.wasm", "AngleSharp.Css.wasm"],
             _ => []
         };
     }
