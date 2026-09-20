@@ -458,18 +458,17 @@ internal static partial class PdfSyntax {
 
             PooledTokenBuffer tokens;
             try {
-                tokens = Tokenize(text.Substring(bodyStart, bodyLength));
+                tokens = Tokenize(text, bodyStart, bodyLength);
             } catch (Exception exception) when (exception is not OutOfMemoryException) {
                 continue;
             }
 
             using (tokens) {
                 if (tokens.Count == 1 &&
-                    double.TryParse(
-                        tokens[0].Text,
-                        System.Globalization.NumberStyles.Float,
-                        System.Globalization.CultureInfo.InvariantCulture,
-                        out double value) &&
+                    tokens[0].TryParseDouble(
+                        tokens.Source,
+                        out double value,
+                        System.Globalization.NumberStyles.Float) &&
                     TryNormalizeStreamLength(value, out int byteLength)) {
                     values[(match.ObjectNumber, match.Generation)] = byteLength;
                 }

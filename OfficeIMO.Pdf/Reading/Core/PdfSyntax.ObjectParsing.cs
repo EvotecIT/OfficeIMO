@@ -106,16 +106,16 @@ internal static partial class PdfSyntax {
         var d = new PdfDictionary();
         using var tokens = Tokenize(source, start, length, effectiveLimits, trackEncodedStringSourceSpans);
         for (int i = 0; i < tokens.Count; i++) {
-            string tokenText = tokens[i].Text;
-            if (i == 0 && tokenText == "<<") continue;
-            if (tokenText.Length > 0 && tokenText[0] == '/') {
-                string key = DecodeNameToken(tokenText);
-                if (i + 1 < tokens.Count && tokens[i + 1].Text != ">>") {
+            PdfToken token = tokens[i];
+            if (i == 0 && token.Equals(tokens.Source, "<<")) continue;
+            if (token.Length > 0 && token.GetCharacter(tokens.Source, 0) == '/') {
+                string key = DecodeNameToken(token, tokens.Source);
+                if (i + 1 < tokens.Count && !tokens[i + 1].Equals(tokens.Source, ">>")) {
                     var (obj, consumed) = ParseObject(tokens, i + 1, effectiveLimits, 0);
                     SetDictionaryItem(d, key, obj);
                     i += consumed + 1;
                 } else d.HasIncompleteSyntax = true;
-            } else if (tokenText == ">>" && i == tokens.Count - 1) {
+            } else if (token.Equals(tokens.Source, ">>") && i == tokens.Count - 1) {
                 break;
             } else d.HasIncompleteSyntax = true;
         }
@@ -129,15 +129,15 @@ internal static partial class PdfSyntax {
         }
 
         PdfToken token = tokens[i];
-        string tok = token.Text;
-        if (tok == "<<") {
+        string source = tokens.Source;
+        if (token.Equals(source, "<<")) {
             var dict = new PdfDictionary();
             int j = i + 1;
-            while (j < tokens.Count && tokens[j].Text != ">>") {
-                string keyToken = tokens[j].Text;
-                if (keyToken.Length > 0 && keyToken[0] == '/') {
-                    string key = DecodeNameToken(keyToken);
-                    if (j + 1 < tokens.Count && tokens[j + 1].Text != ">>") {
+            while (j < tokens.Count && !tokens[j].Equals(source, ">>")) {
+                PdfToken keyToken = tokens[j];
+                if (keyToken.Length > 0 && keyToken.GetCharacter(source, 0) == '/') {
+                    string key = DecodeNameToken(keyToken, source);
+                    if (j + 1 < tokens.Count && !tokens[j + 1].Equals(source, ">>")) {
                         var (obj, consumed) = ParseObject(tokens, j + 1, limits, depth + 1);
                         SetDictionaryItem(dict, key, obj);
                         j += consumed + 2;
@@ -150,9 +150,9 @@ internal static partial class PdfSyntax {
             dict.HasIncompleteSyntax |= j >= tokens.Count;
             return (dict, j - i);
         }
-        if (tok == "[") {
+        if (token.Equals(source, "[")) {
             var arr = new PdfArray(EstimateArrayItemCount(tokens, i)); int j = i + 1;
-            while (j < tokens.Count && tokens[j].Text != "]") {
+            while (j < tokens.Count && !tokens[j].Equals(source, "]")) {
                 var (inner, used) = ParseObject(tokens, j, limits, depth + 1);
                 arr.Items.Add(inner);
                 arr.HasIncompleteSyntax |= inner.HasIncompleteSyntax;
@@ -161,61 +161,60 @@ internal static partial class PdfSyntax {
             arr.HasIncompleteSyntax |= j >= tokens.Count;
             return (arr, j - i);
         }
-        if (tok.Length > 0 && tok[0] == '/') return (new PdfName(DecodeNameToken(tok)), 0);
-        if (token.IsString && tok.Length > 0 && tok[0] == '(') {
+        if (token.Length > 0 && token.GetCharacter(source, 0) == '/') return (new PdfName(DecodeNameToken(token, source)), 0);
+        if (token.IsString && token.Length > 0 && token.GetCharacter(source, 0) == '(') {
             bool isTerminated = token.IsTerminated;
-            string inner = isTerminated
-                ? tok.Substring(1, tok.Length - 2)
-                : tok.Substring(1);
+            int innerLength = token.Length - (isTerminated ? 2 : 1);
             var value = CreateParsedString(
-                PdfStringParser.ParseLiteralToBytes(inner),
+                PdfStringParser.ParseLiteralToBytes(source, token.SourceStart + 1, innerLength),
                 token.EncodedLength);
             value.HasIncompleteSyntax = !isTerminated;
             return (value, 0);
         }
-        if (token.IsString && tok.Length > 0 && tok[0] == '<' && (tok.Length == 1 || tok[1] != '<')) {
+        if (token.IsString && token.Length > 0 && token.GetCharacter(source, 0) == '<' &&
+            (token.Length == 1 || token.GetCharacter(source, 1) != '<')) {
             bool isTerminated = token.IsTerminated;
-            string inner = isTerminated
-                ? tok.Substring(1, tok.Length - 2)
-                : tok.Substring(1);
+            int innerLength = token.Length - (isTerminated ? 2 : 1);
             var value = CreateParsedString(
-                PdfTextString.DecodeHexBytes(inner),
+                PdfTextString.DecodeHexBytes(source, token.SourceStart + 1, innerLength),
                 token.EncodedLength);
             value.HasIncompleteSyntax = !isTerminated;
             return (value, 0);
         }
-        if (string.Equals(tok, "true", StringComparison.Ordinal)) return (new PdfBoolean(true), 0);
-        if (string.Equals(tok, "false", StringComparison.Ordinal)) return (new PdfBoolean(false), 0);
-        if (string.Equals(tok, "null", StringComparison.Ordinal)) return (PdfNull.Instance, 0);
-        if (tok.Length > 0 && (char.IsDigit(tok[0]) || tok[0] == '-' || tok[0] == '+' || tok[0] == '.')) {
+        if (token.Equals(source, "true")) return (new PdfBoolean(true), 0);
+        if (token.Equals(source, "false")) return (new PdfBoolean(false), 0);
+        if (token.Equals(source, "null")) return (PdfNull.Instance, 0);
+        if (token.Length > 0 && IsPdfNumberStart(token.GetCharacter(source, 0))) {
             // reference (obj gen R) or number
-            if (i + 2 < tokens.Count && tokens[i + 2].Text == "R" && int.TryParse(tokens[i].Text, out int obj) && int.TryParse(tokens[i + 1].Text, out int gen)) {
+            if (i + 2 < tokens.Count && tokens[i + 2].Equals(source, "R") &&
+                token.TryParseInt32(source, out int obj) && tokens[i + 1].TryParseInt32(source, out int gen)) {
                 return (new PdfReference(obj, gen), 2);
             }
-            if (double.TryParse(tok, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double val)) {
+            if (token.TryParseDouble(source, out double val)) {
                 return (new PdfNumber(val), 0);
             }
         }
-        return (new PdfName(tok) { HasIncompleteSyntax = true }, 0);
+        return (new PdfName(token.GetText(source)) { HasIncompleteSyntax = true }, 0);
     }
 
     private static int EstimateArrayItemCount(in PooledTokenBuffer tokens, int arrayStart) {
         int count = 0;
         int index = arrayStart + 1;
+        string source = tokens.Source;
         while (index < tokens.Count) {
-            string token = tokens[index].Text;
-            if (token == "]") break;
+            PdfToken token = tokens[index];
+            if (token.Equals(source, "]")) break;
             count++;
-            if (token == "[" || token == "<<") {
+            if (token.Equals(source, "[") || token.Equals(source, "<<")) {
                 // Do not rescan nested subtrees. Their own ParseObject call can size
                 // a flat child array, while the parent grows from observed entries.
                 return 0;
             }
 
             if (index + 2 < tokens.Count &&
-                tokens[index + 2].Text == "R" &&
-                int.TryParse(tokens[index].Text, out _) &&
-                int.TryParse(tokens[index + 1].Text, out _)) {
+                tokens[index + 2].Equals(source, "R") &&
+                tokens[index].TryParseInt32(source, out _) &&
+                tokens[index + 1].TryParseInt32(source, out _)) {
                 index += 3;
                 continue;
             }
@@ -249,7 +248,7 @@ internal static partial class PdfSyntax {
         // a long literal or hex string. Grow for genuinely dense objects rather
         // than reserving thousands of unused token slots up front.
         int estimatedTokens = Math.Min(512, length / 4 + 8);
-        var tokens = new PooledTokenBuffer(Math.Min(estimatedTokens, effectiveLimits.MaxTokensPerObject));
+        var tokens = new PooledTokenBuffer(s, Math.Min(estimatedTokens, effectiveLimits.MaxTokensPerObject));
         try {
             TokenizeInto(s, start, end, effectiveLimits, trackEncodedStringSourceSpans, ref tokens);
             return tokens;
@@ -287,12 +286,12 @@ internal static partial class PdfSyntax {
                 while (i < end && s[i] != '>') i++;
                 if (i < end && s[i] == '>') i++;
                 bool isTerminated = i > tokenStart && s[i - 1] == '>';
-                string text = s.Substring(tokenStart, i - tokenStart);
                 tokens.Add(new PdfToken(
-                    text,
+                    tokenStart,
+                    i - tokenStart,
                     isString: true,
                     isTerminated,
-                    isTerminated && trackEncodedStringSourceSpans ? text.Length : null));
+                    isTerminated && trackEncodedStringSourceSpans ? i - tokenStart : null));
                 continue;
             }
             if (c == '(') {
@@ -309,31 +308,31 @@ internal static partial class PdfSyntax {
                 }
                 // The scan only finds the token boundary; its raw bytes already
                 // contain the exact nested parentheses and escape spelling.
-                string text = s.Substring(tokenStart, i - tokenStart);
                 bool isTerminated = depth == 0;
                 tokens.Add(new PdfToken(
-                    text,
+                    tokenStart,
+                    i - tokenStart,
                     isString: true,
                     isTerminated,
-                    isTerminated && trackEncodedStringSourceSpans ? text.Length : null));
+                    isTerminated && trackEncodedStringSourceSpans ? i - tokenStart : null));
                 continue;
             }
             // name, number, keyword
             int j = i;
             while (j < end && !char.IsWhiteSpace(s[j]) && s[j] != '%' && s[j] != '/' && s[j] != '[' && s[j] != ']' && s[j] != '<' && s[j] != '>' && s[j] != '(' && s[j] != ')') j++;
-            string tok = MaterializeToken(s, i, j - i);
-            if (tok.Length == 0 && s[i] == '/') { // name starting here
+            int tokenLength = j - i;
+            if (tokenLength == 0 && s[i] == '/') { // name starting here
                 j = i + 1; while (j < end && !char.IsWhiteSpace(s[j]) && s[j] != '%' && s[j] != '/' && s[j] != '[' && s[j] != ']' && s[j] != '<' && s[j] != '>' && s[j] != '(' && s[j] != ')') j++;
-                tok = MaterializeToken(s, i, j - i);
+                tokenLength = j - i;
             }
-            if (tok.Length == 0) {
+            if (tokenLength == 0) {
                 // A malformed or unexpected standalone delimiter must still consume input.
                 // Otherwise ')' and '>' repeatedly produce empty tokens until the token
                 // budget is exhausted, turning one bad byte into excessive CPU and memory use.
-                tok = s[i].ToString();
+                tokenLength = 1;
                 j = i + 1;
             }
-            tokens.Add(new PdfToken(tok));
+            tokens.Add(MaterializeToken(s, i, tokenLength));
             if (tokens.Count > effectiveLimits.MaxTokensPerObject) {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.ObjectTokens, effectiveLimits.MaxTokensPerObject, tokens.Count);
             }
@@ -353,8 +352,10 @@ internal static partial class PdfSyntax {
         private List<PdfToken>? _small;
 #endif
         private int _count;
+        private readonly string _source;
 
-        internal PooledTokenBuffer(int initialCapacity) {
+        internal PooledTokenBuffer(string source, int initialCapacity) {
+            _source = source;
 #if NET8_0_OR_GREATER
             _rented = ArrayPool<PdfToken>.Shared.Rent(Math.Max(initialCapacity, 16));
 #else
@@ -363,6 +364,7 @@ internal static partial class PdfSyntax {
         }
 
         internal readonly int Count => _count;
+        internal readonly string Source => _source;
 
         internal readonly PdfToken this[int index] {
             get {
@@ -403,21 +405,81 @@ internal static partial class PdfSyntax {
     }
 
     private readonly struct PdfToken {
+        private readonly string? _text;
+        private readonly int _sourceStart;
+        private readonly int _length;
+
         internal PdfToken(
             string text,
             bool isString = false,
             bool isTerminated = false,
             int? encodedLength = null) {
-            Text = text ?? string.Empty;
+            _text = text ?? string.Empty;
+            _sourceStart = -1;
+            _length = _text.Length;
             IsString = isString;
             IsTerminated = isTerminated;
             EncodedLength = encodedLength;
         }
 
-        internal string Text { get; }
+        internal PdfToken(
+            int sourceStart,
+            int length,
+            bool isString = false,
+            bool isTerminated = false,
+            int? encodedLength = null) {
+            _text = null;
+            _sourceStart = sourceStart;
+            _length = length;
+            IsString = isString;
+            IsTerminated = isTerminated;
+            EncodedLength = encodedLength;
+        }
+
+        internal int Length => _length;
+        internal int SourceStart => _sourceStart;
+        internal string? MaterializedText => _text;
         internal bool IsString { get; }
         internal bool IsTerminated { get; }
         internal int? EncodedLength { get; }
+
+        internal char GetCharacter(string source, int index) {
+            if ((uint)index >= (uint)_length) throw new ArgumentOutOfRangeException(nameof(index));
+            return _text is not null ? _text[index] : source[_sourceStart + index];
+        }
+
+        internal string GetText(string source) => _text ?? source.Substring(_sourceStart, _length);
+
+        internal bool Equals(string source, string value) {
+            if (_length != value.Length) return false;
+            if (_text is not null) return string.Equals(_text, value, StringComparison.Ordinal);
+            return string.CompareOrdinal(source, _sourceStart, value, 0, _length) == 0;
+        }
+
+        internal bool TryParseInt32(string source, out int value) {
+#if NET8_0_OR_GREATER
+            ReadOnlySpan<char> span = _text is not null ? _text.AsSpan() : source.AsSpan(_sourceStart, _length);
+            return int.TryParse(span, System.Globalization.NumberStyles.Integer,
+                System.Globalization.CultureInfo.InvariantCulture, out value);
+#else
+            return int.TryParse(GetText(source), System.Globalization.NumberStyles.Integer,
+                System.Globalization.CultureInfo.InvariantCulture, out value);
+#endif
+        }
+
+        internal bool TryParseDouble(
+            string source,
+            out double value,
+            System.Globalization.NumberStyles styles = System.Globalization.NumberStyles.Any) {
+#if NET8_0_OR_GREATER
+            ReadOnlySpan<char> span = _text is not null ? _text.AsSpan() : source.AsSpan(_sourceStart, _length);
+            return double.TryParse(span, styles,
+                System.Globalization.CultureInfo.InvariantCulture, out value);
+#else
+            return double.TryParse(GetText(source), styles,
+                System.Globalization.CultureInfo.InvariantCulture, out value);
+#endif
+        }
     }
 
     // PDF dictionaries repeat a small vocabulary across virtually every object. Keep this
@@ -448,7 +510,7 @@ internal static partial class PdfSyntax {
     private static readonly string[][] KnownTokenTextsByLength = CreateKnownTokenTextsByLength();
     private static readonly string?[][] KnownDecodedNamesByLength = CreateKnownDecodedNamesByLength();
 
-    private static string MaterializeToken(string source, int start, int length) {
+    private static PdfToken MaterializeToken(string source, int start, int length) {
         if ((uint)length < (uint)KnownTokenTextsByLength.Length) {
             string[] candidates = KnownTokenTextsByLength[length];
             for (int candidateIndex = 0; candidateIndex < candidates.Length; candidateIndex++) {
@@ -461,26 +523,39 @@ internal static partial class PdfSyntax {
                     }
                 }
 
-                if (matches) return candidate;
+                if (matches) return new PdfToken(candidate);
             }
         }
 
-        return source.Substring(start, length);
+#if NET8_0_OR_GREATER
+        return new PdfToken(start, length);
+#else
+        // Older targets do not expose span-based numeric parsing. Preserve their
+        // single materialization rather than recreating the same slice at each parse.
+        return new PdfToken(source.Substring(start, length));
+#endif
     }
 
-    private static string DecodeNameToken(string token) {
+    private static string DecodeNameToken(PdfToken token, string source) {
         if ((uint)token.Length < (uint)KnownTokenTextsByLength.Length) {
             string[] candidates = KnownTokenTextsByLength[token.Length];
             string?[] decodedNames = KnownDecodedNamesByLength[token.Length];
             for (int i = 0; i < candidates.Length; i++) {
-                if (decodedNames[i] is string decoded && ReferenceEquals(token, candidates[i])) {
+                if (decodedNames[i] is string decoded &&
+                    ReferenceEquals(token.MaterializedText, candidates[i])) {
                     return decoded;
                 }
             }
         }
 
-        return DecodeName(token.Substring(1));
+        string encodedName = token.SourceStart >= 0
+            ? source.Substring(token.SourceStart + 1, token.Length - 1)
+            : token.GetText(source).Substring(1);
+        return DecodeName(encodedName);
     }
+
+    private static bool IsPdfNumberStart(char value) =>
+        char.IsDigit(value) || value == '-' || value == '+' || value == '.';
 
     private static void SetDictionaryItem(PdfDictionary dictionary, string key, PdfObject value) {
 #if NET8_0_OR_GREATER

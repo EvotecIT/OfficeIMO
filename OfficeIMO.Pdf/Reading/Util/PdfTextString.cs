@@ -97,26 +97,33 @@ internal static class PdfTextString {
         return builder.ToString();
     }
 
-    internal static byte[] DecodeHexBytes(string raw) {
-        var hex = new StringBuilder(raw.Length);
-        for (int i = 0; i < raw.Length; i++) {
-            char ch = raw[i];
-            if (!char.IsWhiteSpace(ch)) {
-                hex.Append(ch);
+    internal static byte[] DecodeHexBytes(string raw) => DecodeHexBytes(raw, 0, raw.Length);
+
+    internal static byte[] DecodeHexBytes(string source, int start, int length) {
+        if (start < 0 || length < 0 || start > source.Length - length) throw new ArgumentOutOfRangeException(nameof(start));
+        int end = start + length;
+        int nibbleCount = 0;
+        for (int i = start; i < end; i++) {
+            if (!char.IsWhiteSpace(source[i])) nibbleCount++;
+        }
+
+        if (nibbleCount == 0) return Array.Empty<byte>();
+        var bytes = new byte[(nibbleCount + 1) / 2];
+        int highNibble = -1;
+        int byteIndex = 0;
+        for (int i = start; i < end; i++) {
+            char ch = source[i];
+            if (char.IsWhiteSpace(ch)) continue;
+            int nibble = HexNibble(ch);
+            if (highNibble < 0) {
+                highNibble = nibble;
+            } else {
+                bytes[byteIndex++] = (byte)((highNibble << 4) | nibble);
+                highNibble = -1;
             }
         }
 
-        if ((hex.Length & 1) == 1) {
-            hex.Append('0');
-        }
-
-        var bytes = new byte[hex.Length / 2];
-        for (int i = 0; i < bytes.Length; i++) {
-            int hi = HexNibble(hex[i * 2]);
-            int lo = HexNibble(hex[i * 2 + 1]);
-            bytes[i] = (byte)((hi << 4) | lo);
-        }
-
+        if (highNibble >= 0) bytes[byteIndex] = (byte)(highNibble << 4);
         return bytes;
     }
 

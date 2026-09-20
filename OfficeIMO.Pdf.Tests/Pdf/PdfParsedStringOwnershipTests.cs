@@ -8,6 +8,8 @@ public class PdfParsedStringOwnershipTests {
     [Theory]
     [InlineData("(A\\050B)", "A(B", new byte[] { 65, 40, 66 })]
     [InlineData("<414228>", "AB(", new byte[] { 65, 66, 40 })]
+    [InlineData("<41 42 28>", "AB(", new byte[] { 65, 66, 40 })]
+    [InlineData("<41422>", "AB ", new byte[] { 65, 66, 32 })]
     public void ParsedStringsPreserveDecodedAndEncodedValues(string token, string expectedValue, byte[] expectedBytes) {
         byte[] pdf = Encoding.ASCII.GetBytes($"%PDF-1.7\n1 0 obj\n{token}\nendobj\n%%EOF\n");
 

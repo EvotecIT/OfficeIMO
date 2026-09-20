@@ -2,18 +2,23 @@ namespace OfficeIMO.Pdf;
 
 internal static class PdfStringParser {
     // Parses PDF literal string content (without surrounding parentheses) into original bytes (respecting escapes).
-    public static byte[] ParseLiteralToBytes(string inner) {
-        if (inner.Length == 0) return Array.Empty<byte>();
+    public static byte[] ParseLiteralToBytes(string inner) =>
+        ParseLiteralToBytes(inner, 0, inner.Length);
+
+    internal static byte[] ParseLiteralToBytes(string source, int start, int length) {
+        if (length == 0) return Array.Empty<byte>();
+        if (start < 0 || length < 0 || start > source.Length - length) throw new ArgumentOutOfRangeException(nameof(start));
 
         // Escapes can only remove characters, never add bytes. Most literal strings
         // contain no escapes, so this buffer is already the exact returned size.
-        var bytes = new byte[inner.Length];
+        var bytes = new byte[length];
         int count = 0;
-        for (int i = 0; i < inner.Length; i++) {
-            char c = inner[i];
+        int end = start + length;
+        for (int i = start; i < end; i++) {
+            char c = source[i];
             if (c == '\\') {
-                if (i + 1 >= inner.Length) break;
-                char n = inner[++i];
+                if (i + 1 >= end) break;
+                char n = source[++i];
                 switch (n) {
                     case 'n': bytes[count++] = (byte)'\n'; break;
                     case 'r': bytes[count++] = (byte)'\r'; break;
@@ -25,7 +30,7 @@ internal static class PdfStringParser {
                     case ')': bytes[count++] = (byte)')'; break;
                     case '\n': /* line continuation */ break;
                     case '\r':
-                        if (i + 1 < inner.Length && inner[i + 1] == '\n') {
+                        if (i + 1 < end && source[i + 1] == '\n') {
                             i++;
                         }
                         break;
@@ -33,8 +38,8 @@ internal static class PdfStringParser {
                         if (IsOctalDigit(n)) {
                             int v = n - '0';
                             // up to 2 more octal digits
-                            for (int k = 0; k < 2 && i + 1 < inner.Length && IsOctalDigit(inner[i + 1]); k++) {
-                                v = (v << 3) + (inner[++i] - '0');
+                            for (int k = 0; k < 2 && i + 1 < end && IsOctalDigit(source[i + 1]); k++) {
+                                v = (v << 3) + (source[++i] - '0');
                             }
                             bytes[count++] = (byte)(v & 0xFF);
                         } else {
