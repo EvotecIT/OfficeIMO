@@ -32,7 +32,7 @@ with the same development version.
 
 The isolated public renderer was rebuilt after adopting the same standard output
 API. Its immutable image
-`sha256:9b414e497d032e4dc58033dd6c8cf4b29a6565783f791f5aa0bf1a76d90d7a4b`
+`sha256:a337ea0a6cc10b9de61902eaf397874c19ca4fd9400801a8724a7f6c1cf99130`
 passed all 22 parser, script, module, fetch/XHR, frame, output-limit, and
 cancellation cases plus all six controlled acquisition cases. Every started
 container was removed. The retained [OCI summary](oci-summary.json) records the
