@@ -443,6 +443,38 @@ internal static partial class StreamDecoder {
         return true;
     }
 
+    internal static bool HasDeclaredFilter(
+        PdfDictionary dictionary,
+        string filterName,
+        Dictionary<int, PdfIndirectObject>? objects = null) {
+        if (!dictionary.Items.TryGetValue("Filter", out PdfObject? filterObject)) {
+            return false;
+        }
+
+        PdfObject? resolved = filterObject is PdfReference && objects is not null
+            ? PdfObjectLookup.ResolveChain(objects, filterObject)
+            : filterObject;
+        if (resolved is PdfName declaredName) {
+            return string.Equals(declaredName.Name, filterName, StringComparison.Ordinal);
+        }
+        if (resolved is not PdfArray filterArray) {
+            return false;
+        }
+
+        for (int i = 0; i < filterArray.Items.Count; i++) {
+            PdfObject item = filterArray.Items[i];
+            PdfObject? resolvedItem = item is PdfReference && objects is not null
+                ? PdfObjectLookup.ResolveChain(objects, item)
+                : item;
+            if (resolvedItem is PdfName arrayName &&
+                string.Equals(arrayName.Name, filterName, StringComparison.Ordinal)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     internal static bool HasNoEffectiveFilters(
         PdfDictionary dictionary,
         Dictionary<int, PdfIndirectObject>? objects = null) {

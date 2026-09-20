@@ -34,6 +34,7 @@ internal static class PdfInspector {
     };
 
     private static readonly HashSet<string> ParsedProbeMarkerNames = CreateParsedProbeMarkerNames();
+    private static readonly HashSet<string>[] ReachableProbeMarkerGroups = CreateReachableProbeMarkerGroups();
 
     private static HashSet<string> CreateParsedProbeMarkerNames() {
         var names = new HashSet<string>(StringComparer.Ordinal);
@@ -41,6 +42,15 @@ internal static class PdfInspector {
             foreach (string name in ProbeMarkerNames[index]) names.Add(name);
         }
         return names;
+    }
+
+    private static HashSet<string>[] CreateReachableProbeMarkerGroups() {
+        var groups = new HashSet<string>[2];
+        for (int index = (int)ProbeMarker.OptionalContent; index <= (int)ProbeMarker.ActiveContent; index++) {
+            groups[index - (int)ProbeMarker.OptionalContent] =
+                new HashSet<string>(ProbeMarkerNames[index], StringComparer.Ordinal);
+        }
+        return groups;
     }
 
     /// <summary>
@@ -150,7 +160,7 @@ internal static class PdfInspector {
         byte[] pdf,
         PdfLoadOptions? options,
         CancellationToken cancellationToken) {
-        return PreflightCore(pdf, options, readDocumentFactory: null, cancellationToken);
+        return PreflightCore(pdf, options, readDocumentFactory: null, cancellationToken: cancellationToken);
     }
 
     internal static PdfDocumentPreflight Preflight(
@@ -167,13 +177,33 @@ internal static class PdfInspector {
         Func<PdfReadDocument> readDocumentFactory,
         CancellationToken cancellationToken) {
         Guard.NotNull(readDocumentFactory, nameof(readDocumentFactory));
-        return PreflightCore(pdf, options, readDocumentFactory, cancellationToken);
+        return PreflightCore(pdf, options, readDocumentFactory, cancellationToken: cancellationToken);
+    }
+
+    /// <summary>
+    /// Proves the structural contract required to transfer unchanged pages between PDFs.
+    /// Page content bytes are preserved verbatim, so this path does not inflate them merely
+    /// to prove capabilities that extraction and merge do not consume.
+    /// </summary>
+    internal static PdfDocumentPreflight PreflightPageTransfer(
+        byte[] pdf,
+        PdfLoadOptions options,
+        Func<PdfReadDocument> readDocumentFactory,
+        CancellationToken cancellationToken) {
+        Guard.NotNull(readDocumentFactory, nameof(readDocumentFactory));
+        return PreflightCore(
+            pdf,
+            options,
+            readDocumentFactory,
+            validatePageContentStreams: false,
+            cancellationToken);
     }
 
     private static PdfDocumentPreflight PreflightCore(
         byte[] pdf,
         PdfLoadOptions? options,
         Func<PdfReadDocument>? readDocumentFactory,
+        bool validatePageContentStreams = true,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options);
@@ -222,11 +252,37 @@ internal static class PdfInspector {
                     canRead = false;
                 }
 
-                var unsupportedContentFilters = GetUnsupportedContentStreamFilters(readDocument, cancellationToken);
-                if (unsupportedContentFilters.Count > 0) {
+                if (validatePageContentStreams) {
+                    try {
+                        var unsupportedContentFilters = GetUnsupportedContentStreamFilters(readDocument, cancellationToken);
+                        if (unsupportedContentFilters.Count > 0) {
+                            if (ContainsFilter(unsupportedContentFilters, "Crypt")) {
+                                AddReadBlocker(
+                                    PdfReadBlockerKind.ContextDependentContentStreamFilter,
+                                    "PDF page content streams use the context-dependent Crypt filter and cannot be transferred safely.");
+                                unsupportedContentFilters.Remove("Crypt");
+                            }
+
+                            if (unsupportedContentFilters.Count > 0) {
+                                AddReadBlocker(
+                                    PdfReadBlockerKind.UnsupportedContentStreamFilter,
+                                    "PDF page content streams use unsupported filter(s): " + string.Join(", ", unsupportedContentFilters) + ".");
+                            }
+                            canRead = false;
+                        }
+                    } catch (Exception ex) when (ex is not OperationCanceledException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
+                        AddReadBlocker(
+                            PdfReadBlockerKind.ContentStreamDecodeFailure,
+                            "PDF page content streams could not be decoded by OfficeIMO.Pdf: " + ex.Message);
+                        canRead = false;
+                    }
+                }
+
+                if (!HasReadBlocker(PdfReadBlockerKind.ContextDependentContentStreamFilter) &&
+                    HasContextDependentTransferFilter(readDocument, cancellationToken)) {
                     AddReadBlocker(
-                        PdfReadBlockerKind.UnsupportedContentStreamFilter,
-                        "PDF page content streams use unsupported filter(s): " + string.Join(", ", unsupportedContentFilters) + ".");
+                        PdfReadBlockerKind.ContextDependentContentStreamFilter,
+                        "PDF page-related streams use the context-dependent Crypt filter and cannot be transferred safely.");
                     canRead = false;
                 }
             } catch (PdfPasswordRequiredException ex) {
@@ -248,7 +304,7 @@ internal static class PdfInspector {
             AddRewriteBlocker(PdfRewriteBlockerKind.IncompleteObjectGraph,
                 "PDF contains unreadable indirect objects; mutation cannot prove preservation or signature safety.");
 
-        if (canRead && readDocument is not null && !probe.HasEncryption) {
+        if (readDocument is not null && info is not null && info.PageCount > 0 && !probe.HasEncryption) {
             cancellationToken.ThrowIfCancellationRequested();
             try {
                 ValidateRewriteObjectGraph(readDocument, cancellationToken);
@@ -326,6 +382,14 @@ internal static class PdfInspector {
         void AddReadBlocker(PdfReadBlockerKind kind, string message) {
             AddDiagnostic(message);
             readBlockers.Add(new PdfReadBlocker(kind, message));
+        }
+
+        bool HasReadBlocker(PdfReadBlockerKind kind) {
+            for (int i = 0; i < readBlockers.Count; i++) {
+                if (readBlockers[i].Kind == kind) return true;
+            }
+
+            return false;
         }
 
         void AddRewriteBlocker(PdfRewriteBlockerKind kind, string message) {
@@ -422,6 +486,20 @@ internal static class PdfInspector {
         return unsupported;
     }
 
+    private static bool HasContextDependentTransferFilter(
+        PdfReadDocument document,
+        CancellationToken cancellationToken) {
+        foreach (PdfIndirectObject indirectObject in document.Objects.Values) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (indirectObject.Value is PdfStream stream &&
+                Filters.StreamDecoder.HasDeclaredFilter(stream.Dictionary, "Crypt", document.Objects)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static bool ContainsFilter(List<string> filters, string filterName) {
         for (int i = 0; i < filters.Count; i++) {
             if (string.Equals(filters[i], filterName, StringComparison.Ordinal)) {
@@ -487,6 +565,13 @@ internal static class PdfInspector {
         PdfDictionary? catalog = PdfSyntax.FindCatalog(objects, trailerRaw);
         // A single parsed walk replaces a separate full graph scan for every feature.
         HashSet<string> presentNames = PdfSyntax.CollectParsedPdfNames(objects, ParsedProbeMarkerNames, cancellationToken);
+        int reachableMarkerGroups = catalog is null
+            ? 0
+            : PdfSyntax.MatchReachableParsedPdfNameGroups(
+                catalog,
+                objects,
+                ReachableProbeMarkerGroups,
+                cancellationToken);
         string? rawFallback = repairReport.HasIncompleteObjectCoverage ? PdfEncoding.Latin1GetString(pdf) : null;
         bool Has(ProbeMarker marker) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -502,10 +587,8 @@ internal static class PdfInspector {
         }
         bool HasReachable(ProbeMarker marker) {
             cancellationToken.ThrowIfCancellationRequested();
-            bool found = catalog != null &&
-                PdfSyntax.ContainsAnyReachableParsedPdfName(catalog, objects, ProbeMarkerNames[(int)marker]);
-            cancellationToken.ThrowIfCancellationRequested();
-            return found;
+            int markerIndex = (int)marker - (int)ProbeMarker.OptionalContent;
+            return (reachableMarkerGroups & (1 << markerIndex)) != 0;
         }
 
         return new PdfDocumentProbe(

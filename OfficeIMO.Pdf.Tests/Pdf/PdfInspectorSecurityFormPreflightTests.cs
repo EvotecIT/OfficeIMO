@@ -72,7 +72,7 @@ public partial class PdfInspectorTests {
     }
 
     [Fact]
-    public void Preflight_AllowsFormPdfReadButBlocksRewrite() {
+    public void Preflight_AllowsFormPdfReadAndPageTransferButBlocksGeneralRewrite() {
         PdfDocumentPreflight report = PdfInspector.Preflight(BuildFormPdfMarker());
 
         Assert.True(report.CanRead);
@@ -80,7 +80,7 @@ public partial class PdfInspectorTests {
         Assert.True(report.CanExtractText);
         Assert.True(report.CanExtractImages);
         Assert.True(report.CanReadLogicalObjects);
-        Assert.False(report.CanManipulatePages);
+        Assert.True(report.CanManipulatePages);
         Assert.True(report.CanFillSimpleFormFields);
         Assert.False(report.CanFlattenSimpleFormFields);
         Assert.False(report.CanFillAndFlattenSimpleFormFields);
@@ -124,7 +124,7 @@ public partial class PdfInspectorTests {
         Assert.True(report.CanExtractText);
         Assert.True(report.CanExtractImages);
         Assert.True(report.CanReadLogicalObjects);
-        Assert.False(report.CanManipulatePages);
+        Assert.True(report.CanManipulatePages);
         Assert.True(report.CanFillSimpleFormFields);
         Assert.True(report.CanFlattenSimpleFormFields);
         Assert.True(report.CanFillAndFlattenSimpleFormFields);
@@ -134,7 +134,7 @@ public partial class PdfInspectorTests {
         Assert.Empty(report.GetCapabilityDiagnostics(PdfPreflightCapability.FillSimpleFormFields));
         Assert.Empty(report.GetCapabilityDiagnostics(PdfPreflightCapability.FlattenSimpleFormFields));
         Assert.Empty(report.GetCapabilityDiagnostics(PdfPreflightCapability.FillAndFlattenSimpleFormFields));
-        Assert.Contains("PDF form fields are not supported for rewriting by OfficeIMO.Pdf yet.", report.GetCapabilityDiagnostics(PdfPreflightCapability.ManipulatePages));
+        Assert.Empty(report.GetCapabilityDiagnostics(PdfPreflightCapability.ManipulatePages));
         Assert.NotNull(report.DocumentInfo);
         Assert.True(report.DocumentInfo!.HasReadableFormFields);
         Assert.True(report.DocumentInfo.HasFormWidgets);

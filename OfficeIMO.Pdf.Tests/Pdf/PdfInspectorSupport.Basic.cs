@@ -31,7 +31,7 @@ public partial class PdfInspectorTests {
         return doc.ToBytes();
     }
 
-    private static byte[] BuildUnsupportedContentStreamFilterPdf() {
+    private static byte[] BuildUnsupportedContentStreamFilterPdf(string filterDeclaration = "/DCTDecode") {
         string pdf = string.Join("\n", new[] {
             "%PDF-1.4",
             "1 0 obj",
@@ -44,7 +44,7 @@ public partial class PdfInspectorTests {
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>",
             "endobj",
             "4 0 obj",
-            "<< /Length 4 /Filter /DCTDecode >>",
+            "<< /Length 4 /Filter " + filterDeclaration + " >>",
             "stream",
             "data",
             "endstream",
