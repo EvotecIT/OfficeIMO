@@ -606,6 +606,7 @@ public sealed partial class PdfDocument {
 
     /// <summary>
     /// Creates a new PDF by merging this PDF with another PDF byte payload.
+    /// The input is consumed synchronously and is not retained by the returned document.
     /// </summary>
     public PdfDocument MergeWith(byte[] pdf) {
         Guard.NotNull(pdf, nameof(pdf));
@@ -623,6 +624,7 @@ public sealed partial class PdfDocument {
 
     /// <summary>
     /// Attempts to merge this PDF with another PDF byte payload, returning diagnostics when blocked or failed.
+    /// The input is consumed synchronously and is not retained by the result.
     /// </summary>
     public PdfOperationResult<PdfDocument> MergeWithResult(byte[] pdf, PdfLoadOptions? options = null) {
         Guard.NotNull(pdf, nameof(pdf));

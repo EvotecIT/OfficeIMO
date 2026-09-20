@@ -220,13 +220,12 @@ internal static partial class PdfMerger {
 
             PdfLoadOptions? sourceReadOptions = readOptions?[i];
             Func<PdfReadDocument>? readDocumentFactory = readDocumentFactories?[i];
-            (PdfMutationPlan sourceMergePlan, PdfReadDocument plannedDocument) = readDocumentFactory is null
-                ? PdfMutationPlanner.RequireFullRewriteDocument(
-                    source,
-                    PdfMutationOperation.MergeDocuments,
-                    sourceReadOptions,
-                    cancellationToken: cancellationToken)
-                : PdfMutationPlanner.RequireFullRewriteDocument(
+            readDocumentFactory ??= () => PdfReadDocument.OpenBorrowed(
+                source,
+                sourceReadOptions,
+                cancellationToken);
+            (PdfMutationPlan sourceMergePlan, PdfReadDocument plannedDocument) =
+                PdfMutationPlanner.RequireFullRewriteDocument(
                     source,
                     PdfMutationOperation.MergeDocuments,
                     readDocumentFactory,

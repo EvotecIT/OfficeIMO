@@ -20,6 +20,16 @@ public sealed partial class PdfReadDocument {
         CancellationToken cancellationToken = default) =>
         OpenCore(ownedPdf, options, ownsBytes: true, cancellationToken);
 
+    /// <summary>
+    /// Opens a buffer that remains stable for the complete lifetime of the returned internal reader.
+    /// The caller must not let the reader escape the synchronous operation that owns that lifetime.
+    /// </summary>
+    internal static PdfReadDocument OpenBorrowed(
+        byte[] borrowedPdf,
+        PdfLoadOptions? options,
+        CancellationToken cancellationToken = default) =>
+        OpenCore(borrowedPdf, options, ownsBytes: true, cancellationToken);
+
     private static PdfReadDocument OpenCore(
         byte[] pdf,
         PdfLoadOptions? options,

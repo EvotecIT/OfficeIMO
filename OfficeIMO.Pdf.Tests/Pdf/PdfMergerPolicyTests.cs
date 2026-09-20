@@ -60,6 +60,29 @@ public class PdfMergerPolicyTests {
         Assert.Contains("Second body", text, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ByteMerge_BorrowsInputsOnlyForTheSynchronousOperation(bool returnPolicyResult) {
+        byte[] first = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Borrowed first")).ToBytes();
+        byte[] second = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Borrowed second")).ToBytes();
+        byte[] firstSnapshot = (byte[])first.Clone();
+        byte[] secondSnapshot = (byte[])second.Clone();
+
+        PdfDocument merged = returnPolicyResult
+            ? PdfDocument.MergeBytesResult(new PdfMergeOptions(), new[] { first, second }).ToDocument()
+            : PdfDocument.MergeBytes(new[] { first, second });
+
+        Assert.Equal(firstSnapshot, first);
+        Assert.Equal(secondSnapshot, second);
+        Array.Clear(first, 0, first.Length);
+        Array.Clear(second, 0, second.Length);
+        Assert.Equal(2, merged.Inspect().PageCount);
+        string text = merged.Reader.Text();
+        Assert.Contains("Borrowed first", text, StringComparison.Ordinal);
+        Assert.Contains("Borrowed second", text, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void PolicyMergeComposesSourceStructuralLimitsForTheOwnedOutput() {
         byte[] first = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("First")).ToBytes();
@@ -493,12 +516,15 @@ public class PdfMergerPolicyTests {
     [Fact]
     public void MergeResult_ReportsPageNormalizationChoice() {
         byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Source")).ToBytes();
+        byte[] sourceSnapshot = (byte[])source.Clone();
         var options = new PdfMergeOptions {
             ResizePages = new PdfPageResizeOptions(PageSizes.A4) { Mode = PdfPageResizeMode.Fit }
         };
 
-        PdfMergeResult result = PdfMerger.MergeResult(options, source);
+        PdfMergeResult result = PdfDocument.MergeBytesResult(options, new[] { source });
 
+        Assert.Equal(sourceSnapshot, source);
+        Array.Clear(source, 0, source.Length);
         Assert.Single(result.Report.Decisions, static decision => decision.Structure == "PageSizeNormalization");
         Assert.Equal(595, Math.Round(PdfInspector.Inspect(result.ToBytes()).Pages[0].Width));
     }
