@@ -90,11 +90,12 @@ public sealed partial class OfficeRasterCanvas {
 
         double size = Math.Max(1D, fontSize);
         double originX = x + width / 2D;
-        double originY = y + ResolveRasterBaseline(font, size);
+        double originY = y;
         OfficeFontStyle simulatedStyle = style & ~resolvedStyle;
         if (font is OfficeTrueTypeFont trueType && trueType.TryGetShapedColorTextContours(
             text, run, originX, originY, size, fontPalette, color, MaximumTextOutlinePointsPerRun,
             _cancellationToken, out List<OfficeColorGlyphContours> colorLayers)) {
+            AlignVerticalColorContoursToTop(colorLayers, y);
             foreach (OfficeColorGlyphContours layer in colorLayers) {
                 if ((simulatedStyle & OfficeFontStyle.Italic) == OfficeFontStyle.Italic) SlantContours(layer.Contours, originY, size);
                 FillContours(layer.Contours, layer.Color, OfficeFillRule.NonZero);
@@ -115,6 +116,7 @@ public sealed partial class OfficeRasterCanvas {
             contours = font.GetShapedTextContours(text, run, originX, originY, size);
             EnsureBoundedContourPoints(contours, MaximumTextOutlinePointsPerRun);
         }
+        AlignVerticalContoursToTop(contours, y);
         if ((simulatedStyle & OfficeFontStyle.Italic) == OfficeFontStyle.Italic) SlantContours(contours, originY, size);
         FillContours(contours, color, OfficeFillRule.NonZero);
         if ((simulatedStyle & OfficeFontStyle.Bold) == OfficeFontStyle.Bold) {
@@ -122,6 +124,33 @@ public sealed partial class OfficeRasterCanvas {
             FillContours(contours, color, OfficeFillRule.NonZero);
         }
         return true;
+    }
+
+    private static void AlignVerticalColorContoursToTop(List<OfficeColorGlyphContours> layers, double top) {
+        double minimumY = double.PositiveInfinity;
+        foreach (OfficeColorGlyphContours layer in layers) {
+            minimumY = Math.Min(minimumY, FindMinimumContourY(layer.Contours));
+        }
+        if (double.IsPositiveInfinity(minimumY)) return;
+        double offsetY = top - minimumY;
+        foreach (OfficeColorGlyphContours layer in layers) OffsetContours(layer.Contours, 0D, offsetY);
+    }
+
+    private static void AlignVerticalContoursToTop(List<List<OfficePoint>> contours, double top) {
+        // HarfBuzz vertical origins and synthetic providers use different baseline conventions.
+        // Normalize actual ink before the caller clips the run to its declared text box.
+        double minimumY = FindMinimumContourY(contours);
+        if (!double.IsPositiveInfinity(minimumY)) OffsetContours(contours, 0D, top - minimumY);
+    }
+
+    private static double FindMinimumContourY(List<List<OfficePoint>> contours) {
+        double minimumY = double.PositiveInfinity;
+        foreach (List<OfficePoint> contour in contours) {
+            foreach (OfficePoint point in contour) {
+                if (!double.IsNaN(point.Y) && !double.IsInfinity(point.Y)) minimumY = Math.Min(minimumY, point.Y);
+            }
+        }
+        return minimumY;
     }
 
     private static bool HasUsableVerticalPositioning(OfficeTextShapingResult run) {
