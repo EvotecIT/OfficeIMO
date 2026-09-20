@@ -83,6 +83,30 @@ public class PdfMergerPolicyTests {
         Assert.Contains("Borrowed second", text, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void MergeToBytes_TransfersOwnedOutputWithoutRetainingCallerInputs(bool usePolicy) {
+        byte[] first = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Direct first")).ToBytes();
+        byte[] second = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Direct second")).ToBytes();
+        byte[] firstSnapshot = (byte[])first.Clone();
+        byte[] secondSnapshot = (byte[])second.Clone();
+
+        byte[] merged = usePolicy
+            ? PdfDocument.MergeToBytes(new PdfMergeOptions(), first, second)
+            : PdfDocument.MergeToBytes(first, second);
+
+        Assert.Equal(firstSnapshot, first);
+        Assert.Equal(secondSnapshot, second);
+        Array.Clear(first, 0, first.Length);
+        Array.Clear(second, 0, second.Length);
+        PdfReadDocument read = PdfReadDocument.Open(merged);
+        Assert.Equal(2, read.Pages.Count);
+        string text = string.Join("\n", read.Pages.Select(static page => page.ExtractText()));
+        Assert.Contains("Direct first", text, StringComparison.Ordinal);
+        Assert.Contains("Direct second", text, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void PolicyMergeComposesSourceStructuralLimitsForTheOwnedOutput() {
         byte[] first = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("First")).ToBytes();

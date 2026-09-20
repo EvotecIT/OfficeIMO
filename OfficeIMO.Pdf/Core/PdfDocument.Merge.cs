@@ -18,6 +18,20 @@ public sealed partial class PdfDocument {
     public static PdfDocument MergeBytes(PdfMergeOptions options, IEnumerable<byte[]> pdfs) =>
         MergeBytesResult(options, pdfs).RequireValue();
 
+    /// <summary>
+    /// Merges caller-owned PDF byte payloads using an explicit structure policy and returns the merged artifact directly.
+    /// The inputs are consumed synchronously and are not retained; the returned array is owned by the caller.
+    /// </summary>
+    public static byte[] MergeToBytes(PdfMergeOptions options, params byte[][] pdfs) =>
+        MergeToBytes(options, (IEnumerable<byte[]>)pdfs);
+
+    /// <summary>
+    /// Merges caller-owned PDF byte payloads using an explicit structure policy and returns the merged artifact directly.
+    /// The inputs are consumed synchronously and are not retained; the returned array is owned by the caller.
+    /// </summary>
+    public static byte[] MergeToBytes(PdfMergeOptions options, IEnumerable<byte[]> pdfs) =>
+        MergeBytesResult(options, pdfs).OwnedBytes;
+
     /// <summary>Merges loaded or generated documents with an explicit structure policy and returns readback evidence.</summary>
     public static PdfMergeResult MergeResult(PdfMergeOptions options, params PdfDocument[] documents) =>
         MergeResult(options, (IEnumerable<PdfDocument>)documents);

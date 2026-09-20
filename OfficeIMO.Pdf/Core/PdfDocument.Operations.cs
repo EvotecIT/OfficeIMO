@@ -509,13 +509,43 @@ public sealed partial class PdfDocument {
     public static PdfDocument MergeBytes(
         IEnumerable<byte[]> pdfs,
         CancellationToken cancellationToken) {
+        PdfMergeResult result = MergeByteSources(pdfs, cancellationToken);
+        return LoadOwned(result.OwnedBytes, result.ReadOptions, result.ReadDocument);
+    }
+
+    /// <summary>
+    /// Merges the supplied caller-owned PDF byte payloads and returns the merged artifact directly.
+    /// The inputs are consumed synchronously and are not retained; the returned array is owned by the caller.
+    /// </summary>
+    public static byte[] MergeToBytes(params byte[][] pdfs) =>
+        MergeToBytes((IEnumerable<byte[]>)pdfs, CancellationToken.None);
+
+    /// <summary>
+    /// Merges the supplied caller-owned PDF byte payloads and returns the merged artifact directly.
+    /// The inputs are consumed synchronously and are not retained; the returned array is owned by the caller.
+    /// </summary>
+    public static byte[] MergeToBytes(IEnumerable<byte[]> pdfs) =>
+        MergeToBytes(pdfs, CancellationToken.None);
+
+    /// <summary>
+    /// Merges the supplied caller-owned PDF byte payloads through a cancellable single pass and returns the merged artifact directly.
+    /// The inputs are consumed synchronously and are not retained; the returned array is owned by the caller.
+    /// </summary>
+    public static byte[] MergeToBytes(
+        IEnumerable<byte[]> pdfs,
+        CancellationToken cancellationToken) =>
+        MergeByteSources(pdfs, cancellationToken).OwnedBytes;
+
+    private static PdfMergeResult MergeByteSources(
+        IEnumerable<byte[]> pdfs,
+        CancellationToken cancellationToken) {
         List<byte[]> sources = CollectMergeByteSources(pdfs, cancellationToken);
         var readOptions = new PdfLoadOptions[sources.Count];
         var readDocumentFactories = new Func<PdfReadDocument>?[sources.Count];
         for (int index = 0; index < readOptions.Length; index++) {
             readOptions[index] = PdfLoadOptions.Default;
         }
-        return MergePreparedSources(sources, readOptions, readDocumentFactories, cancellationToken);
+        return PdfMerger.MergeOwned(sources, readOptions, readDocumentFactories, cancellationToken);
     }
 
     private static List<byte[]> CollectMergeByteSources(

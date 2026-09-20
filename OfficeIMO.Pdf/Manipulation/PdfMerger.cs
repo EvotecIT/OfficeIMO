@@ -33,12 +33,12 @@ internal static partial class PdfMerger {
     /// Merges all pages from the supplied PDFs into one new PDF.
     /// </summary>
     public static byte[] Merge(IEnumerable<byte[]> pdfs) {
-        return MergeCore(pdfs, primarySourceIndex: 0, options: null).ToBytes();
+        return MergeCore(pdfs, primarySourceIndex: 0, options: null).OwnedBytes;
     }
 
     internal static byte[] Merge(IReadOnlyList<byte[]> pdfs, IReadOnlyList<PdfLoadOptions> readOptions) {
         Guard.NotNull(readOptions, nameof(readOptions));
-        return MergeCore(pdfs, primarySourceIndex: 0, options: null, readOptions).ToBytes();
+        return MergeCore(pdfs, primarySourceIndex: 0, options: null, readOptions).OwnedBytes;
     }
 
     internal static PdfMergeResult MergeOwned(
@@ -75,7 +75,7 @@ internal static partial class PdfMerger {
     /// </summary>
     public static byte[] Merge(PdfMergeOptions options, IEnumerable<byte[]> pdfs) {
         Guard.NotNull(options, nameof(options));
-        return MergeCore(pdfs, primarySourceIndex: 0, options).ToBytes();
+        return MergeCore(pdfs, primarySourceIndex: 0, options).OwnedBytes;
     }
 
     /// <summary>Merges PDFs and returns the applied document-structure policy report.</summary>
@@ -90,7 +90,7 @@ internal static partial class PdfMerger {
     }
 
     internal static byte[] MergeWithPrimarySource(int primarySourceIndex, params byte[][] pdfs) {
-        return MergeCore(pdfs, primarySourceIndex, options: null).ToBytes();
+        return MergeCore(pdfs, primarySourceIndex, options: null).OwnedBytes;
     }
 
     internal static byte[] MergeWithPrimarySource(
@@ -98,7 +98,7 @@ internal static partial class PdfMerger {
         IReadOnlyList<byte[]> pdfs,
         IReadOnlyList<PdfLoadOptions> readOptions) {
         Guard.NotNull(readOptions, nameof(readOptions));
-        return MergeCore(pdfs, primarySourceIndex, options: null, readOptions).ToBytes();
+        return MergeCore(pdfs, primarySourceIndex, options: null, readOptions).OwnedBytes;
     }
 
     internal static byte[] MergeWithPrimarySource(
@@ -108,7 +108,7 @@ internal static partial class PdfMerger {
         IReadOnlyList<Func<PdfReadDocument>?> readDocumentFactories) {
         Guard.NotNull(readOptions, nameof(readOptions));
         Guard.NotNull(readDocumentFactories, nameof(readDocumentFactories));
-        return MergeCore(pdfs, primarySourceIndex, options: null, readOptions, readDocumentFactories).ToBytes();
+        return MergeCore(pdfs, primarySourceIndex, options: null, readOptions, readDocumentFactories).OwnedBytes;
     }
 
     internal static byte[] MergePrimaryWithInsertedPages(byte[] primaryPdf, byte[] insertedPdf, int insertBeforePageNumber) {

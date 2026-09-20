@@ -59,7 +59,7 @@ internal static class PdfManipulationEngines {
     }
 
     internal static byte[] MergeWithOfficeImo(byte[][] sources) =>
-        OfficePdfDocument.MergeBytes(sources).ToBytes();
+        OfficePdfDocument.MergeToBytes(sources);
 
     internal static byte[] MergeWithIText(byte[][] sources) {
         using var outputStream = new MemoryStream();
