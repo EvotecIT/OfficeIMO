@@ -63,6 +63,17 @@ public class PdfDictionaryTokenizationTests {
         Assert.False(dictionary.HasIncompleteSyntax);
     }
 
+    [Fact]
+    public void DuplicateKeysKeepTheLastValueAndMarkDictionariesIncomplete() {
+        PdfDictionary dictionary = ParseDictionary("/Value 1 /Value 2 /Nested << /Value 3 /Value 4 >>");
+
+        Assert.Equal(2, Assert.IsType<PdfNumber>(dictionary.Items["Value"]).Value);
+        PdfDictionary nested = Assert.IsType<PdfDictionary>(dictionary.Items["Nested"]);
+        Assert.Equal(4, Assert.IsType<PdfNumber>(nested.Items["Value"]).Value);
+        Assert.True(dictionary.HasIncompleteSyntax);
+        Assert.True(nested.HasIncompleteSyntax);
+    }
+
     private static PdfDictionary ParseDictionary(string entries, PdfLoadOptions? options = null) {
         byte[] pdf = Encoding.ASCII.GetBytes(
             "%PDF-1.7\n" +

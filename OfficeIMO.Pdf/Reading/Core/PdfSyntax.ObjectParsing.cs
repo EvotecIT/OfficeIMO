@@ -1,8 +1,7 @@
 #if NET8_0_OR_GREATER
 using System.Buffers;
+using System.Runtime.InteropServices;
 #endif
-using System.Runtime.CompilerServices;
-
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfSyntax {
@@ -113,9 +112,7 @@ internal static partial class PdfSyntax {
                 string key = DecodeNameToken(tokenText);
                 if (i + 1 < tokens.Count && tokens[i + 1].Text != ">>") {
                     var (obj, consumed) = ParseObject(tokens, i + 1, effectiveLimits, 0);
-                    d.HasIncompleteSyntax |= d.Items.ContainsKey(key);
-                    d.Items[key] = obj;
-                    d.HasIncompleteSyntax |= obj.HasIncompleteSyntax;
+                    SetDictionaryItem(d, key, obj);
                     i += consumed + 1;
                 } else d.HasIncompleteSyntax = true;
             } else if (tokenText == ">>" && i == tokens.Count - 1) {
@@ -142,9 +139,7 @@ internal static partial class PdfSyntax {
                     string key = DecodeNameToken(keyToken);
                     if (j + 1 < tokens.Count && tokens[j + 1].Text != ">>") {
                         var (obj, consumed) = ParseObject(tokens, j + 1, limits, depth + 1);
-                        dict.HasIncompleteSyntax |= dict.Items.ContainsKey(key);
-                        dict.Items[key] = obj;
-                        dict.HasIncompleteSyntax |= obj.HasIncompleteSyntax;
+                        SetDictionaryItem(dict, key, obj);
                         j += consumed + 2;
                         continue;
                     }
@@ -427,8 +422,8 @@ internal static partial class PdfSyntax {
         new("/CreationDate", "CreationDate"), new("/ModDate", "ModDate"), new("/Title", "Title"), new("/Author", "Author"),
         new("/Subject", "Subject"), new("/Keywords", "Keywords"), new("/Trapped", "Trapped")
     };
-    private static readonly Dictionary<string, string> KnownDecodedNames = CreateKnownDecodedNames();
     private static readonly string[][] KnownTokenTextsByLength = CreateKnownTokenTextsByLength();
+    private static readonly string?[][] KnownDecodedNamesByLength = CreateKnownDecodedNamesByLength();
 
     private static string MaterializeToken(string source, int start, int length) {
         if ((uint)length < (uint)KnownTokenTextsByLength.Length) {
@@ -451,29 +446,29 @@ internal static partial class PdfSyntax {
     }
 
     private static string DecodeNameToken(string token) {
-        return KnownDecodedNames.TryGetValue(token, out string? decoded)
-            ? decoded
-            : DecodeName(token.Substring(1));
-    }
-
-    private static Dictionary<string, string> CreateKnownDecodedNames() {
-        var result = new Dictionary<string, string>(KnownNameTokens.Length, ReferenceStringComparer.Instance);
-        for (int i = 0; i < KnownNameTokens.Length; i++) {
-            KeyValuePair<string, string> entry = KnownNameTokens[i];
-            result.Add(entry.Key, entry.Value);
+        if ((uint)token.Length < (uint)KnownTokenTextsByLength.Length) {
+            string[] candidates = KnownTokenTextsByLength[token.Length];
+            string?[] decodedNames = KnownDecodedNamesByLength[token.Length];
+            for (int i = 0; i < candidates.Length; i++) {
+                if (decodedNames[i] is string decoded && ReferenceEquals(token, candidates[i])) {
+                    return decoded;
+                }
+            }
         }
 
-        return result;
+        return DecodeName(token.Substring(1));
     }
 
-    private sealed class ReferenceStringComparer : IEqualityComparer<string> {
-        internal static readonly ReferenceStringComparer Instance = new();
-
-        private ReferenceStringComparer() { }
-
-        public bool Equals(string? x, string? y) => ReferenceEquals(x, y);
-
-        public int GetHashCode(string obj) => RuntimeHelpers.GetHashCode(obj);
+    private static void SetDictionaryItem(PdfDictionary dictionary, string key, PdfObject value) {
+#if NET8_0_OR_GREATER
+        ref PdfObject? slot = ref CollectionsMarshal.GetValueRefOrAddDefault(dictionary.Items, key, out bool exists);
+        dictionary.HasIncompleteSyntax |= exists;
+        slot = value;
+#else
+        dictionary.HasIncompleteSyntax |= dictionary.Items.ContainsKey(key);
+        dictionary.Items[key] = value;
+#endif
+        dictionary.HasIncompleteSyntax |= value.HasIncompleteSyntax;
     }
 
     private static string[][] CreateKnownTokenTextsByLength() {
@@ -493,6 +488,26 @@ internal static partial class PdfSyntax {
 
         var result = new string[maximumLength + 1][];
         for (int i = 0; i < result.Length; i++) result[i] = buckets[i]?.ToArray() ?? Array.Empty<string>();
+        return result;
+    }
+
+    private static string?[][] CreateKnownDecodedNamesByLength() {
+        var result = new string?[KnownTokenTextsByLength.Length][];
+        for (int length = 0; length < result.Length; length++) {
+            string[] candidates = KnownTokenTextsByLength[length];
+            var decodedNames = new string?[candidates.Length];
+            for (int candidateIndex = 0; candidateIndex < candidates.Length; candidateIndex++) {
+                string candidate = candidates[candidateIndex];
+                for (int nameIndex = 0; nameIndex < KnownNameTokens.Length; nameIndex++) {
+                    KeyValuePair<string, string> knownName = KnownNameTokens[nameIndex];
+                    if (string.Equals(candidate, knownName.Key, StringComparison.Ordinal)) {
+                        decodedNames[candidateIndex] = knownName.Value;
+                        break;
+                    }
+                }
+            }
+            result[length] = decodedNames;
+        }
         return result;
     }
 
