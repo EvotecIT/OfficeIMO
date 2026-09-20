@@ -646,8 +646,8 @@ internal static class PdfAttachmentExtractor {
                         : _sharedDecodedStreamBudget.Decode(stream, objects, decodeLimit, _cancellationToken);
                 } else {
                     bytes = requireSuccessfulDecoding
-                        ? StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, decodeLimit, _cancellationToken)
-                        : StreamDecoder.Decode(stream.Dictionary, stream.Data, objects, decodeLimit, _cancellationToken);
+                        ? StreamDecoder.DecodeRequired(stream, objects, decodeLimit, _cancellationToken)
+                        : StreamDecoder.Decode(stream, objects, decodeLimit, _cancellationToken);
                 }
             } catch (PdfReadLimitException exception) when (
                 exception.Kind == PdfReadLimitKind.DecodedStreamBytes &&

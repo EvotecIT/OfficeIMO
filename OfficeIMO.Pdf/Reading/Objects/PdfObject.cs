@@ -110,14 +110,77 @@ internal sealed class PdfReference : PdfObject {
 
 /// <summary>PDF stream object (dictionary + bytes).</summary>
 internal sealed class PdfStream : PdfObject {
+    private byte[]? _data;
+    private readonly byte[]? _source;
+    private readonly int _sourceOffset;
+    private readonly int _sourceLength;
+
     public PdfDictionary Dictionary { get; }
-    public byte[] Data { get; }
+    public byte[] Data {
+        get {
+            byte[]? data = System.Threading.Volatile.Read(ref _data);
+            if (data is not null) return data;
+            data = new byte[_sourceLength];
+            Buffer.BlockCopy(_source!, _sourceOffset, data, 0, data.Length);
+            return System.Threading.Interlocked.CompareExchange(ref _data, data, null) ?? data;
+        }
+    }
+    internal int DataLength => _data?.Length ?? _sourceLength;
+    internal long DataLongLength => DataLength;
     /// <summary>True when a decode filter failed; <see cref="Data"/> contains original undecoded bytes.</summary>
     public bool DecodingFailed { get; }
     /// <summary>Error message from decode failure, when available.</summary>
     public string? DecodingError { get; }
     public PdfStream(PdfDictionary dict, byte[] data, bool decodingFailed = false, string? error = null) {
-        Dictionary = dict; Data = data; DecodingFailed = decodingFailed; DecodingError = error;
+        Dictionary = dict;
+        _data = data;
+        DecodingFailed = decodingFailed;
+        DecodingError = error;
+    }
+
+    private PdfStream(
+        PdfDictionary dictionary,
+        byte[] ownedSource,
+        int sourceOffset,
+        int sourceLength) {
+        Dictionary = dictionary;
+        _source = ownedSource;
+        _sourceOffset = sourceOffset;
+        _sourceLength = sourceLength;
+    }
+
+    internal static PdfStream FromOwnedSource(
+        PdfDictionary dictionary,
+        byte[] ownedSource,
+        int sourceOffset,
+        int sourceLength) {
+        if (sourceOffset < 0 || sourceLength < 0 || sourceOffset > ownedSource.Length - sourceLength) {
+            throw new ArgumentOutOfRangeException(nameof(sourceLength));
+        }
+        return new PdfStream(dictionary, ownedSource, sourceOffset, sourceLength);
+    }
+
+    internal void CopyDataTo(byte[] destination, int destinationOffset) {
+        byte[]? data = System.Threading.Volatile.Read(ref _data);
+        if (data is not null) {
+            Buffer.BlockCopy(data, 0, destination, destinationOffset, data.Length);
+            return;
+        }
+        Buffer.BlockCopy(_source!, _sourceOffset, destination, destinationOffset, _sourceLength);
+    }
+
+    internal void GetDataSegment(out byte[] buffer, out int offset, out int length) {
+        byte[]? data = System.Threading.Volatile.Read(ref _data);
+        if (data is not null) {
+            buffer = data;
+            offset = 0;
+            length = data.Length;
+            return;
+        }
+
+        buffer = _source!;
+        offset = _sourceOffset;
+        length = _sourceLength;
     }
 }
 

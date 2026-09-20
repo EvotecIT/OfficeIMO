@@ -95,7 +95,7 @@ internal static partial class PdfPageExtractor {
     /// <summary>Serializes an indirect object without buffering a stream body a second time.</summary>
     internal static byte[] SerializeIndirectObject(int objectNumber, PdfObject value, SerializationContext context) =>
         value is PdfStream stream
-            ? PdfObjectBytes.WrapStreamObject(objectNumber, BuildStreamDictionary(stream, context), stream.Data)
+            ? PdfObjectBytes.WrapStreamObject(objectNumber, BuildStreamDictionary(stream, context), stream)
             : WrapObject(objectNumber, SerializeObject(value, context));
 
     internal static void EnsureSerializedObjectWithinLimit(PdfObject value, SerializationContext context, long maximumBytes) {
@@ -176,10 +176,10 @@ internal static partial class PdfPageExtractor {
             dictionaryBytes = AddCounted(dictionaryBytes, 1L, maximumBytes);
         }
         dictionaryBytes = AddCounted(dictionaryBytes, 8L, maximumBytes); // /Length plus trailing separator.
-        dictionaryBytes = AddCounted(dictionaryBytes, stream.Data.Length.ToString(CultureInfo.InvariantCulture).Length, maximumBytes);
+        dictionaryBytes = AddCounted(dictionaryBytes, stream.DataLength.ToString(CultureInfo.InvariantCulture).Length, maximumBytes);
         dictionaryBytes = AddCounted(dictionaryBytes, 3L, maximumBytes); //  >>
         long total = AddCounted(dictionaryBytes, 8L, maximumBytes); // \nstream\n
-        total = AddCounted(total, stream.Data.LongLength, maximumBytes);
+        total = AddCounted(total, stream.DataLongLength, maximumBytes);
         return AddCounted(total, 11L, maximumBytes); // \nendstream\n
     }
 
@@ -245,7 +245,7 @@ internal static partial class PdfPageExtractor {
     
     private static byte[] SerializeStream(PdfStream stream, SerializationContext context) {
         string dictionary = BuildStreamDictionary(stream, context);
-        return SerializeStreamBody(dictionary, stream.Data);
+        return PdfObjectBytes.WrapStreamBody(dictionary, stream);
     }
     
     private static string BuildStreamDictionary(PdfStream stream, SerializationContext context) {
@@ -258,7 +258,7 @@ internal static partial class PdfPageExtractor {
         }
     
         sb.Append("/Length ")
-            .Append(stream.Data.Length.ToString(CultureInfo.InvariantCulture))
+            .Append(stream.DataLength.ToString(CultureInfo.InvariantCulture))
             .Append(" >>");
     
         return sb.ToString();

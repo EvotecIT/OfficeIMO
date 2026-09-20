@@ -115,7 +115,7 @@ internal static partial class PdfImageEditor {
                     indirect.Value is not PdfStream stream ||
                     stream.DecodingFailed) continue;
                 try {
-                    byte[] decoded = StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, maximumDecodedStreamBytes);
+                    byte[] decoded = StreamDecoder.DecodeRequired(stream, objects, maximumDecodedStreamBytes);
                     retainedContentBytes += decoded.LongLength;
                     if (retainedContentBytes > limits.MaxRetainedContentBytes) {
                         throw PdfReadLimitException.Create(

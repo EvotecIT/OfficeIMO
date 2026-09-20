@@ -439,10 +439,10 @@ internal static partial class PdfRedactionApplier {
             // Every selected stream is new or was replaced by this mutation. Supported filtered
             // streams were produced from already-bounded in-memory content, while unsupported image
             // codecs are accounted by their encoded bytes like the reader's decoded-stream cache.
-            byte[] decoded = StreamDecoder.Decode(stream.Dictionary, stream.Data, objects, int.MaxValue);
+            byte[] decoded = StreamDecoder.Decode(stream, objects, int.MaxValue);
             maximumGeneratedDecodedStreamBytes = Math.Max(maximumGeneratedDecodedStreamBytes, decoded.Length);
             long sourceDecodedStreamBytes = hasSourceStream
-                ? StreamDecoder.Decode(sourceStream!.Dictionary, sourceStream.Data, sourceObjects, int.MaxValue).LongLength
+                ? StreamDecoder.Decode(sourceStream!, sourceObjects, int.MaxValue).LongLength
                 : 0L;
             additionalDecodedStreamBytes = SaturatingAdd(
                 additionalDecodedStreamBytes,

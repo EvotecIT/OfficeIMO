@@ -10,6 +10,20 @@ public sealed partial class PdfReadDocument {
     internal static PdfReadDocument Open(
         byte[] pdf,
         PdfLoadOptions? options,
+        CancellationToken cancellationToken) =>
+        OpenCore(pdf, options, ownsBytes: false, cancellationToken);
+
+    /// <summary>Opens an immutable buffer already owned by OfficeIMO without duplicating stream payloads.</summary>
+    internal static PdfReadDocument OpenOwned(
+        byte[] ownedPdf,
+        PdfLoadOptions? options,
+        CancellationToken cancellationToken = default) =>
+        OpenCore(ownedPdf, options, ownsBytes: true, cancellationToken);
+
+    private static PdfReadDocument OpenCore(
+        byte[] pdf,
+        PdfLoadOptions? options,
+        bool ownsBytes,
         CancellationToken cancellationToken) {
         Guard.NotNull(pdf, nameof(pdf));
         cancellationToken.ThrowIfCancellationRequested();
@@ -21,13 +35,25 @@ public sealed partial class PdfReadDocument {
             out string decodedText,
             cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        var (map, trailer) = PdfSyntax.ParseObjects(
-            pdf,
-            effectiveOptions,
-            out PdfRepairReport repairReport,
-            out long decodedStreamBytes,
-            decodedText,
-            cancellationToken);
+        PdfRepairReport repairReport;
+        long decodedStreamBytes;
+        (Dictionary<int, PdfIndirectObject> Map, string TrailerRaw) parsed = ownsBytes
+            ? PdfSyntax.ParseOwnedObjects(
+                pdf,
+                effectiveOptions,
+                out repairReport,
+                out decodedStreamBytes,
+                decodedText,
+                cancellationToken)
+            : PdfSyntax.ParseObjects(
+                pdf,
+                effectiveOptions,
+                out repairReport,
+                out decodedStreamBytes,
+                decodedText,
+                cancellationToken);
+        Dictionary<int, PdfIndirectObject> map = parsed.Map;
+        string trailer = parsed.TrailerRaw;
         cancellationToken.ThrowIfCancellationRequested();
         security = PdfSyntax.ReadDocumentSecurityInfo(
             pdf,
@@ -55,7 +81,7 @@ public sealed partial class PdfReadDocument {
         cancellationToken.ThrowIfCancellationRequested();
         PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options);
         string decodedText = PdfEncoding.Latin1GetString(pdf);
-        var (map, trailer) = PdfSyntax.ParseObjects(
+        var (map, trailer) = PdfSyntax.ParseOwnedObjects(
             pdf,
             effectiveOptions,
             out PdfRepairReport repairReport,

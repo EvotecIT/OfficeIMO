@@ -632,8 +632,10 @@ public sealed partial class PdfReadPage {
                 continue;
             }
 
-            byte[] decoded = pageContentBudget.Decode(stream);
-            if (content is not null) {
+            if (content is null) {
+                pageContentBudget.Validate(stream);
+            } else {
+                byte[] decoded = pageContentBudget.Decode(stream);
                 content.Append(PdfEncoding.Latin1GetString(decoded));
             }
         }
@@ -2150,18 +2152,21 @@ public sealed partial class PdfReadPage {
     }
 
     private byte[] DecodeIfNeeded(PdfStream s, int maxDecodedBytes, CancellationToken cancellationToken = default) {
+        EnsureStreamDecodable(s);
+        return Filters.StreamDecoder.DecodeRequired(s, _objects, maxDecodedBytes, cancellationToken);
+    }
+
+    private static void EnsureStreamDecodable(PdfStream s) {
         if (s.DecodingFailed) {
             throw new InvalidDataException(
                 "PDF page content stream could not be decoded safely" +
                 (string.IsNullOrWhiteSpace(s.DecodingError) ? "." : ": " + s.DecodingError));
         }
-
-        return Filters.StreamDecoder.DecodeRequired(s.Dictionary, s.Data, _objects, maxDecodedBytes, cancellationToken);
     }
 
     internal sealed class PageContentBudget {
         private readonly PdfReadPage _page;
-        private readonly Dictionary<PdfStream, byte[]> _decodedStreams = new();
+        private Dictionary<PdfStream, byte[]>? _decodedStreams;
         private long _decodedBytes;
         private long _remainingColorFunctionEvaluationWork;
         private long _positionedTextCharacters;
@@ -2224,7 +2229,7 @@ public sealed partial class PdfReadPage {
 
         internal byte[] Decode(PdfStream stream) {
             CancellationToken.ThrowIfCancellationRequested();
-            if (_decodedStreams.TryGetValue(stream, out byte[]? cached)) {
+            if (_decodedStreams is not null && _decodedStreams.TryGetValue(stream, out byte[]? cached)) {
                 Charge(cached.LongLength);
                 return cached;
             }
@@ -2251,8 +2256,38 @@ public sealed partial class PdfReadPage {
             }
 
             Charge(decoded.LongLength);
-            _decodedStreams[stream] = decoded;
+            (_decodedStreams ??= new Dictionary<PdfStream, byte[]>())[stream] = decoded;
             return decoded;
+        }
+
+        internal void Validate(PdfStream stream) {
+            CancellationToken.ThrowIfCancellationRequested();
+            EnsureStreamDecodable(stream);
+            long remainingPageBytes = (long)_page._limits.MaxPageContentBytes - _decodedBytes;
+            if (remainingPageBytes <= 0L) {
+                throw PdfReadLimitException.Create(
+                    PdfReadLimitKind.PageContentBytes,
+                    _page._limits.MaxPageContentBytes,
+                    (long)_page._limits.MaxPageContentBytes + 1L);
+            }
+
+            int streamDecodeLimit = (int)Math.Min(_page._maxDecodedStreamBytes, remainingPageBytes);
+            int decodedLength;
+            try {
+                decodedLength = Filters.StreamDecoder.ValidateRequired(
+                    stream,
+                    _page._objects,
+                    streamDecodeLimit,
+                    CancellationToken);
+            } catch (PdfReadLimitException exception) when (
+                exception.Kind == PdfReadLimitKind.DecodedStreamBytes &&
+                remainingPageBytes <= _page._maxDecodedStreamBytes) {
+                throw PdfReadLimitException.Create(
+                    PdfReadLimitKind.PageContentBytes,
+                    _page._limits.MaxPageContentBytes,
+                    (long)_page._limits.MaxPageContentBytes + 1L);
+            }
+            Charge(decodedLength);
         }
 
         private void Charge(long decodedBytes) {

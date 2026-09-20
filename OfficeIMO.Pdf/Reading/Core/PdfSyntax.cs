@@ -39,6 +39,39 @@ internal static partial class PdfSyntax {
         out PdfRepairReport repairReport,
         out long decodedStreamBytes,
         string? decodedText,
+        CancellationToken cancellationToken) =>
+        ParseObjectsCore(
+            pdf,
+            options,
+            out repairReport,
+            out decodedStreamBytes,
+            decodedText,
+            retainOwnedStreamSlices: false,
+            cancellationToken);
+
+    internal static (Dictionary<int, PdfIndirectObject> Map, string TrailerRaw) ParseOwnedObjects(
+        byte[] ownedPdf,
+        PdfLoadOptions? options,
+        out PdfRepairReport repairReport,
+        out long decodedStreamBytes,
+        string? decodedText,
+        CancellationToken cancellationToken) =>
+        ParseObjectsCore(
+            ownedPdf,
+            options,
+            out repairReport,
+            out decodedStreamBytes,
+            decodedText,
+            retainOwnedStreamSlices: true,
+            cancellationToken);
+
+    private static (Dictionary<int, PdfIndirectObject> Map, string TrailerRaw) ParseObjectsCore(
+        byte[] pdf,
+        PdfLoadOptions? options,
+        out PdfRepairReport repairReport,
+        out long decodedStreamBytes,
+        string? decodedText,
+        bool retainOwnedStreamSlices,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         decodedStreamBytes = 0;
@@ -211,9 +244,10 @@ internal static partial class PdfSyntax {
                             }
 
                             if (byteStart >= 0 && byteLen >= 0 && byteStart + byteLen <= pdf.Length) {
-                                var data = new byte[byteLen];
-                                Buffer.BlockCopy(pdf, byteStart, data, 0, byteLen);
-                                map[id] = new PdfIndirectObject(id, gen, new PdfStream(dict, data));
+                                PdfStream stream = retainOwnedStreamSlices
+                                    ? PdfStream.FromOwnedSource(dict, pdf, byteStart, byteLen)
+                                    : new PdfStream(dict, CopyBytes(pdf, byteStart, byteLen));
+                                map[id] = new PdfIndirectObject(id, gen, stream);
                                 parsedOffsets[id] = start;
                                 continue;
                             }
@@ -311,6 +345,12 @@ internal static partial class PdfSyntax {
         repairReport = new PdfRepairReport(repairDiagnostics.AsReadOnly());
         decodedStreamBytes = decodedStreamBudget.UsedBytes;
         return (map, trailerRaw);
+    }
+
+    private static byte[] CopyBytes(byte[] source, int offset, int count) {
+        var data = new byte[count];
+        Buffer.BlockCopy(source, offset, data, 0, count);
+        return data;
     }
 
     private static void ThrowIfParsingTimeExceeded(System.Diagnostics.Stopwatch timer, PdfReadLimits limits) {

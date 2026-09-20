@@ -42,7 +42,7 @@ internal static partial class PdfSyntax {
                 continue;
             }
 
-            if (stream.Data.Length == byteLen) {
+            if (stream.DataLength == byteLen) {
                 continue;
             }
 
