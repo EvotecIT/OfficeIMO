@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "package": "OfficeIMO.Html.Runtime.Rendering",
   "version": "3.4.3",
-  "bytes": 81655,
-  "sha256": "6baac939747c25d82c3da0cba95a68b9c5c702ea2ba9d280f60b09fda16870e4",
+  "bytes": 81799,
+  "sha256": "d0df41a05685ad7502caaea827dda9a8298561fa9c33ceff39801f1de9aa6d4b",
   "targetFramework": "net8.0",
   "cachePolicy": "empty-task-owned-nuget-cache",
   "topLevelReferences": [
