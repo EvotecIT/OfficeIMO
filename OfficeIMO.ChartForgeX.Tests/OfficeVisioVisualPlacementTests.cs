@@ -65,6 +65,21 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
     }
 
     [Fact]
+    public void PreservedTitleUsesClearHeaderSpaceOrReportsOmission() {
+        var envelope = PlacementEnvelope();
+        envelope.Title = "Services";
+        var result = envelope.ToOfficeVisio(new OfficeVisioVisualOptions { PixelsPerInch = 100 });
+        var title = result.Page.Shapes.Single(shape => shape.Text == "Services");
+        var node = result.Page.Shapes.Single(shape => shape.Id == "api");
+        Assert.True(title.PinY - title.Height / 2 > node.PinY + node.Height / 2);
+        envelope.Nodes[0].Y = 0;
+        var crowded = envelope.ToOfficeVisio();
+        Assert.DoesNotContain(crowded.Page.Shapes, shape => shape.Text == "Services");
+        Assert.Contains(crowded.Report.Diagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.TitleNotProjected);
+        Assert.Throws<OfficeVisioVisualFidelityException>(() => envelope.ToOfficeVisio(new OfficeVisioVisualOptions { RequireLossless = true }));
+    }
+
+    [Fact]
     public void ExplicitReflowAndFidelityPolicyAreHonored() {
         var envelope = PlacementEnvelope();
         var reflow = envelope.ToOfficeVisio(new OfficeVisioVisualOptions { LayoutMode = OfficeVisioVisualLayoutMode.Reflow });

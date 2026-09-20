@@ -86,6 +86,22 @@ public static partial class OfficeVisioVisualConversionExtensions {
         }
     }
 
+    private static void ConfigurePreservedTitle(VisioGraphDiagramBuilder builder, VisualArtifactInterchangeEnvelope envelope,
+        OfficeVisioVisualOptions options, OfficeVisioVisualConversionReport report) {
+        if (!options.IncludeTitle || !HasTitle(envelope)) return;
+        double available = envelope.Nodes.Select(node => node.Y!.Value)
+            .Concat(options.IncludeGroups ? envelope.Groups.Select(group => group.Y!.Value) : Array.Empty<double>())
+            .Concat(envelope.Edges.Where(edge => edge.Topology != null).SelectMany(edge => edge.Topology!.Waypoints).Select(point => point.Y))
+            .DefaultIfEmpty(envelope.Height!.Value).Min() / options.PixelsPerInch;
+        const double margin = 0.16, height = 0.45, gap = 0.08;
+        if (available < margin + height + gap) {
+            report.Warn(OfficeVisioVisualDiagnosticCode.TitleNotProjected, OfficeVisioVisualEntityKind.Artifact, envelope.Id, "title",
+                "The preserved geometry leaves no clear header band for a native title. The title remains in the source envelope and document metadata.");
+            return;
+        }
+        builder.Margins(0.4, margin, 0.4, 0.4).Title(CombineLabel(envelope.Title, envelope.Subtitle), UniqueTitleId(envelope), height, gap);
+    }
+
     private static void RouteComputedConnectors(VisioPage page, VisualArtifactInterchangeEnvelope envelope, OfficeVisioVisualConversionReport report) {
         var computed = new HashSet<string>(envelope.Edges.Where(edge => edge.Topology!.Waypoints.Count == 0 &&
             edge.SourceId != edge.TargetId && edge.Topology.Routing != TopologyEdgeRouting.Straight).Select(edge => edge.Id), StringComparer.Ordinal);

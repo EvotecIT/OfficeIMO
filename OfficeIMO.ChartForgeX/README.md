@@ -75,7 +75,7 @@ ChartForgeX owns chart and diagram semantics, deterministic rendering, interchan
 
 ### Preserve placement and enforce fidelity
 
-`LayoutMode = Auto` preserves complete topology bounds and reflows other inputs. Choose `Preserve` to require prepared topology coordinates, or `Reflow` to explicitly request native layout. Preserved graphs retain authored connector bends and named port offsets. When the envelope has no resolved route, native routing is reported as a normalization. Native graph styling maps source card, surface, border, and foreground colors, with Arial text for portable previews. Set `NativeTheme` to override it, for example with `VisioStyleTheme.Technical()` for the previous native defaults. Curves, advanced edge styling, icons, source fonts, and complete CFX themes still have limits described by the diagnostics.
+`LayoutMode = Auto` preserves complete topology bounds and reflows other inputs. Choose `Preserve` to require prepared topology coordinates, or `Reflow` to explicitly request native layout. Preserved graphs retain authored connector bends and named port offsets. Native titles use clear space above the preserved content; when no header band is available, the title is omitted and `TitleNotProjected` is reported. When the envelope has no resolved route, native routing is reported as a normalization. Native graph styling maps source card, surface, border, and foreground colors, with Arial text for portable previews. Set `NativeTheme` to override it, for example with `VisioStyleTheme.Technical()` for the previous native defaults. Curves, advanced edge styling, icons, source fonts, and complete CFX themes still have limits described by the diagnostics.
 
 ```csharp
 var options = new OfficeVisioVisualOptions {
