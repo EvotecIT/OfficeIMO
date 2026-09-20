@@ -15,6 +15,34 @@ public sealed class IWorkConversionReport : global::OfficeIMO.IOfficeConversionR
         TotalRecordCount = totalRecordCount;
         UnsupportedRecordCount = unsupportedRecordCount;
         ReconstructedItemCount = reconstructedItemCount;
+        var fidelityDiagnostics = new List<global::OfficeIMO.OfficeConversionFidelityDiagnostic>();
+        foreach (IWorkDiagnostic diagnostic in Diagnostics) {
+            fidelityDiagnostics.Add(new global::OfficeIMO.OfficeConversionFidelityDiagnostic(
+                diagnostic.Code,
+                diagnostic.Message,
+                diagnostic.Severity switch {
+                    IWorkDiagnosticSeverity.Information => global::OfficeIMO.OfficeConversionLossKind.None,
+                    IWorkDiagnosticSeverity.Warning => global::OfficeIMO.OfficeConversionLossKind.Approximation,
+                    _ => global::OfficeIMO.OfficeConversionLossKind.Failure
+                },
+                "OfficeIMO.IWork",
+                diagnostic.EntryPath));
+        }
+        if (ProjectionKind == IWorkProjectionKind.VisualFallback) {
+            fidelityDiagnostics.Add(new global::OfficeIMO.OfficeConversionFidelityDiagnostic(
+                "IWORK_VISUAL_FALLBACK",
+                "The source was represented by a visual preview instead of editable reconstruction.",
+                global::OfficeIMO.OfficeConversionLossKind.Approximation,
+                "OfficeIMO.IWork"));
+        }
+        if (UnsupportedRecordCount > 0) {
+            fidelityDiagnostics.Add(new global::OfficeIMO.OfficeConversionFidelityDiagnostic(
+                "IWORK_UNPROJECTED_RECORDS",
+                UnsupportedRecordCount + " source record(s) were not represented by the typed projection.",
+                global::OfficeIMO.OfficeConversionLossKind.Omission,
+                "OfficeIMO.IWork"));
+        }
+        FidelityDiagnostics = fidelityDiagnostics.AsReadOnly();
     }
 
     /// <summary>Gets the source iWork application.</summary>
@@ -27,6 +55,8 @@ public sealed class IWorkConversionReport : global::OfficeIMO.IOfficeConversionR
     public IReadOnlyList<IWorkArchiveRecord> UnsupportedRecords { get; }
     /// <summary>Gets parser and projection diagnostics.</summary>
     public IReadOnlyList<IWorkDiagnostic> Diagnostics { get; }
+    /// <summary>Gets category-preserving diagnostics for downstream acceptance policies.</summary>
+    public IReadOnlyList<global::OfficeIMO.OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
     /// <summary>Gets the preview used by visual fallback, when applicable.</summary>
     public IWorkPreviewAsset? VisualPreview { get; }
     /// <summary>Gets the total number of IWA payload records in the source.</summary>

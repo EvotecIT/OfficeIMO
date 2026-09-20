@@ -33,11 +33,22 @@ public sealed class ProjectDiagnostic {
 public sealed class ProjectReport : IOfficeConversionReport {
     internal ProjectReport(long revision, IEnumerable<ProjectDiagnostic> diagnostics) {
         ModelRevision = revision; Diagnostics = new ReadOnlyCollection<ProjectDiagnostic>(diagnostics.ToArray());
+        FidelityDiagnostics = new ReadOnlyCollection<OfficeConversionFidelityDiagnostic>(Diagnostics.Select(static diagnostic =>
+            new OfficeConversionFidelityDiagnostic(
+                diagnostic.Code,
+                diagnostic.Message,
+                diagnostic.Severity == ProjectDiagnosticSeverity.Error
+                    ? OfficeConversionLossKind.Failure
+                    : diagnostic.RepresentsLoss ? OfficeConversionLossKind.Approximation : OfficeConversionLossKind.None,
+                "OfficeIMO.Project",
+                diagnostic.Location)).ToArray());
     }
     /// <summary>The model revision assessed, not a promise about future mutations.</summary>
     public long ModelRevision { get; }
     /// <summary>Immutable findings.</summary>
     public IReadOnlyList<ProjectDiagnostic> Diagnostics { get; }
+    /// <summary>Category-preserving project diagnostics.</summary>
+    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
     /// <summary>True when any finding prevents save.</summary>
     public bool HasErrors => Diagnostics.Any(d => d.Severity == ProjectDiagnosticSeverity.Error);
     /// <inheritdoc />

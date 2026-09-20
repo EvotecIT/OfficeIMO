@@ -67,10 +67,24 @@ public sealed class MarkdownToAsciiDocResult : OfficeConversionResult<AsciiDocDo
 public sealed class MarkdownToAsciiDocReport : IOfficeConversionReport {
     internal MarkdownToAsciiDocReport(IReadOnlyList<MarkdownAsciiDocConversionDiagnostic> diagnostics) {
         Diagnostics = Array.AsReadOnly((diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).ToArray());
+        FidelityDiagnostics = Array.AsReadOnly(Diagnostics.Select(static diagnostic =>
+            new OfficeConversionFidelityDiagnostic(
+                diagnostic.Code,
+                diagnostic.Message,
+                diagnostic.Outcome switch {
+                    AsciiDocMarkdownConversionOutcome.Converted => OfficeConversionLossKind.None,
+                    AsciiDocMarkdownConversionOutcome.Omitted => OfficeConversionLossKind.Omission,
+                    _ => OfficeConversionLossKind.Approximation
+                },
+                "OfficeIMO.AsciiDoc.Markdown",
+                diagnostic.SourceSpan?.ToString())).ToArray());
     }
 
     /// <summary>Fallback and simplification diagnostics.</summary>
     public IReadOnlyList<MarkdownAsciiDocConversionDiagnostic> Diagnostics { get; }
+
+    /// <summary>Category-preserving conversion diagnostics.</summary>
+    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
 
     /// <summary>True when at least one feature was not converted exactly.</summary>
     public bool HasLoss => Diagnostics.Any(static diagnostic => diagnostic.Outcome != AsciiDocMarkdownConversionOutcome.Converted);

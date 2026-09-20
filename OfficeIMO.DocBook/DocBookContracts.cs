@@ -3,6 +3,7 @@ using OfficeIMO.Core.Internal;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace OfficeIMO.DocBook;
 
@@ -266,9 +267,22 @@ public sealed class DocBookConversionResult<T> : IOfficeConversionReport {
     /// <summary>Conversion diagnostics.</summary>
     public IReadOnlyList<DocBookDiagnostic> Diagnostics { get; }
     /// <inheritdoc />
+    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
+    /// <inheritdoc />
     public bool HasLoss { get; }
     internal DocBookConversionResult(T value, IReadOnlyList<DocBookDiagnostic> diagnostics) {
         Value = value; Diagnostics = diagnostics;
+        FidelityDiagnostics = Array.AsReadOnly(System.Linq.Enumerable.Select(diagnostics, diagnostic =>
+            new OfficeConversionFidelityDiagnostic(
+                diagnostic.Code,
+                diagnostic.Message,
+                diagnostic.Severity == DocBookDiagnosticSeverity.Error
+                    ? OfficeConversionLossKind.Failure
+                    : diagnostic.Severity == DocBookDiagnosticSeverity.Warning
+                        ? OfficeConversionLossKind.Approximation
+                        : OfficeConversionLossKind.None,
+                "OfficeIMO.DocBook",
+                diagnostic.Path)).ToArray());
         HasLoss = System.Linq.Enumerable.Any(diagnostics, d => d.Severity != DocBookDiagnosticSeverity.Info);
     }
     /// <inheritdoc />

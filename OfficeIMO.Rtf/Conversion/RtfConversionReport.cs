@@ -9,6 +9,21 @@ public sealed class RtfConversionReport : IOfficeConversionReport {
     /// <summary>Snapshot of recorded diagnostics in conversion order.</summary>
     public IReadOnlyList<RtfConversionDiagnostic> Diagnostics => _diagnostics.AsReadOnly();
 
+    /// <summary>Category-preserving diagnostics for composed conversion routes.</summary>
+    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics => Array.AsReadOnly(
+        _diagnostics.Select(static diagnostic => new OfficeConversionFidelityDiagnostic(
+            diagnostic.Code,
+            diagnostic.Message,
+            diagnostic.Severity == RtfConversionSeverity.Error || diagnostic.Action == RtfConversionAction.Blocked
+                ? OfficeConversionLossKind.Failure
+                : diagnostic.Action == RtfConversionAction.Omitted
+                    ? OfficeConversionLossKind.Omission
+                    : diagnostic.Action == RtfConversionAction.Flattened || diagnostic.Action == RtfConversionAction.Substituted
+                        ? OfficeConversionLossKind.Approximation
+                        : OfficeConversionLossKind.None,
+            "OfficeIMO.Rtf",
+            diagnostic.SourcePath)).ToArray());
+
     /// <summary>Whether the report contains a flattened, omitted, blocked, or error condition.</summary>
     public bool HasLoss => _diagnostics.Any(IsLoss);
 

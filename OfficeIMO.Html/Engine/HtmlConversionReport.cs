@@ -8,10 +8,20 @@ public sealed class HtmlConversionReport : IOfficeConversionReport {
 
     internal HtmlConversionReport(IReadOnlyList<HtmlDiagnostic> diagnostics) {
         _diagnostics = diagnostics ?? throw new ArgumentNullException(nameof(diagnostics));
+        FidelityDiagnostics = Array.AsReadOnly(_diagnostics.Select(static diagnostic =>
+            new OfficeConversionFidelityDiagnostic(
+                diagnostic.Code,
+                diagnostic.Message,
+                diagnostic.LossKind,
+                diagnostic.Component,
+                diagnostic.Provenance.SourceAddress)).ToArray());
     }
 
     /// <summary>Structured conversion diagnostics in emission order.</summary>
     public IReadOnlyList<HtmlDiagnostic> Diagnostics => _diagnostics;
+
+    /// <summary>Category-preserving conversion diagnostics.</summary>
+    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
 
     /// <summary>Whether conversion completed without an error diagnostic.</summary>
     public bool Succeeded => !_diagnostics.Any(static diagnostic => diagnostic.Severity == HtmlDiagnosticSeverity.Error);

@@ -19,6 +19,24 @@ public interface IOfficeTextShapingProvider {
     OfficeTextShapingResult? ShapeText(OfficeTextShapingRequest request);
 }
 
+/// <summary>Identifies the shaping engine that produced a glyph run.</summary>
+public enum OfficeTextShapingBackend {
+    /// <summary>OfficeIMO's dependency-free bounded managed shaper.</summary>
+    Managed,
+    /// <summary>The optional native HarfBuzz adapter.</summary>
+    HarfBuzz,
+    /// <summary>A browser engine's native shaping stack.</summary>
+    BrowserNative,
+    /// <summary>A caller-supplied provider whose engine is not otherwise identified.</summary>
+    HostProvided
+}
+
+/// <summary>Optional metadata implemented by shaping providers with a stable engine identity.</summary>
+public interface IOfficeTextShapingProviderMetadata {
+    /// <summary>Gets the shaping engine used by this provider.</summary>
+    OfficeTextShapingBackend Backend { get; }
+}
+
 /// <summary>Describes a Unicode text run and font passed to a shared shaping provider.</summary>
 public sealed class OfficeTextShapingRequest {
     private readonly byte[] _fontData;
@@ -211,8 +229,9 @@ public sealed class OfficeTextShapingRequest {
         }
         if (direction != OfficeTextDirection.Auto &&
             direction != OfficeTextDirection.LeftToRight &&
-            direction != OfficeTextDirection.RightToLeft) {
-            throw new ArgumentOutOfRangeException(nameof(direction), "Text shaping direction must be Auto, LeftToRight, or RightToLeft.");
+            direction != OfficeTextDirection.RightToLeft &&
+            direction != OfficeTextDirection.TopToBottom) {
+            throw new ArgumentOutOfRangeException(nameof(direction), "Text shaping direction must be Auto, LeftToRight, RightToLeft, or TopToBottom.");
         }
         if (fontCollectionIndex < 0) {
             throw new ArgumentOutOfRangeException(nameof(fontCollectionIndex), "Font collection indexes cannot be negative.");

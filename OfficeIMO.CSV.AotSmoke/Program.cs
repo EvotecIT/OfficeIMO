@@ -105,12 +105,7 @@ using var arrowReader = CsvDocument.OpenTextDataReader(
     readerOptions: new CsvDataReaderOptions { InferSchema = true });
 using ArrowCArrayStreamOwner arrowOwner = arrowReader.ExportArrowCStream(
     new ArrowReadOptions { BatchSize = 1 });
-IArrowArrayStream importedArrowStream;
-unsafe {
-    importedArrowStream = CArrowArrayStreamImporter.ImportArrayStream(
-        arrowOwner.DangerousGetPointer());
-}
-arrowOwner.Dispose();
+IArrowArrayStream importedArrowStream = arrowOwner.ImportArrayStream();
 using (importedArrowStream) {
     using RecordBatch importedArrowBatch =
         (await importedArrowStream.ReadNextRecordBatchAsync())!;

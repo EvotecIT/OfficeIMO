@@ -29,10 +29,19 @@ public sealed class WordMarkdownConversionReport : IOfficeConversionReport {
     /// <summary>Creates a report from conversion diagnostics.</summary>
     public WordMarkdownConversionReport(IEnumerable<WordMarkdownConversionDiagnostic>? diagnostics = null) {
         Diagnostics = Array.AsReadOnly((diagnostics ?? Array.Empty<WordMarkdownConversionDiagnostic>()).ToArray());
+        FidelityDiagnostics = Array.AsReadOnly(Diagnostics.Select(static diagnostic =>
+            new OfficeConversionFidelityDiagnostic(
+                diagnostic.Code,
+                diagnostic.Message,
+                diagnostic.LossKind,
+                "OfficeIMO.Word.Markdown")).ToArray());
     }
 
     /// <summary>Structured diagnostics in emission order.</summary>
     public IReadOnlyList<WordMarkdownConversionDiagnostic> Diagnostics { get; }
+
+    /// <summary>Category-preserving conversion diagnostics.</summary>
+    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
 
     /// <summary>Whether conversion completed without a failure diagnostic.</summary>
     public bool Succeeded => !Diagnostics.Any(static diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Failure);

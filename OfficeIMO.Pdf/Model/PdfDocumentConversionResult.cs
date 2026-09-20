@@ -66,6 +66,10 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
     /// <summary>True when any source or PDF conversion stage reported possible content loss.</summary>
     public bool HasLoss => ConversionReports.Any(static report => report.HasLoss);
 
+    /// <summary>All source and PDF-stage diagnostics with their original loss categories preserved.</summary>
+    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics =>
+        OfficeConversionFidelityDiagnostics.Flatten(ConversionReports);
+
     /// <summary>Counts grouped conversion diagnostics captured with this result.</summary>
     public PdfConversionReportSummary Summary => Report.Summarize();
 
@@ -307,6 +311,12 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
         }
     }
 
+    /// <summary>Serializes only when every conversion stage is lossless.</summary>
+    public byte[] ToBytesLossless(System.Threading.CancellationToken cancellationToken = default) {
+        RequireNoLoss();
+        return ToBytes(cancellationToken);
+    }
+
     /// <summary>
     /// Writes the generated PDF document to the supplied stream and returns conversion plus output evidence.
     /// </summary>
@@ -323,6 +333,12 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
         return result.WithReport(Report, SourceConversionReports);
     }
 
+    /// <summary>Writes to a stream only when every conversion stage is lossless.</summary>
+    public PdfSaveResult SaveLossless(Stream stream, System.Threading.CancellationToken cancellationToken = default) {
+        RequireNoLoss();
+        return Save(stream, cancellationToken);
+    }
+
     /// <summary>
     /// Writes the generated PDF document to the supplied file path and returns conversion plus output evidence.
     /// </summary>
@@ -337,6 +353,12 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
             RefreshConversionReport();
         }
         return result.WithReport(Report, SourceConversionReports);
+    }
+
+    /// <summary>Writes to a file only when every conversion stage is lossless.</summary>
+    public PdfSaveResult SaveLossless(string path, System.Threading.CancellationToken cancellationToken = default) {
+        RequireNoLoss();
+        return Save(path, cancellationToken);
     }
 
     /// <summary>
@@ -378,6 +400,12 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
         return result.WithReport(Report, SourceConversionReports);
     }
 
+    /// <summary>Writes to a stream asynchronously only when every conversion stage is lossless.</summary>
+    public System.Threading.Tasks.Task<PdfSaveResult> SaveLosslessAsync(Stream stream, System.Threading.CancellationToken cancellationToken = default) {
+        RequireNoLoss();
+        return SaveAsync(stream, cancellationToken);
+    }
+
     /// <summary>
     /// Asynchronously writes the generated PDF document to the supplied file path and returns conversion plus output evidence.
     /// </summary>
@@ -389,6 +417,12 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
             RefreshConversionReport();
         }
         return result.WithReport(Report, SourceConversionReports);
+    }
+
+    /// <summary>Writes to a file asynchronously only when every conversion stage is lossless.</summary>
+    public System.Threading.Tasks.Task<PdfSaveResult> SaveLosslessAsync(string path, System.Threading.CancellationToken cancellationToken = default) {
+        RequireNoLoss();
+        return SaveAsync(path, cancellationToken);
     }
 
     /// <summary>

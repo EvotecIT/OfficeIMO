@@ -8,7 +8,7 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// Aggregate diagnostics and fidelity status for one or more image-export results.
 /// </summary>
-public sealed class OfficeImageExportReport {
+public sealed class OfficeImageExportReport : global::OfficeIMO.IOfficeConversionReport {
     private readonly ReadOnlyCollection<OfficeImageExportDiagnostic> _diagnostics;
 
     /// <summary>Creates an aggregate report from result diagnostics.</summary>
@@ -32,6 +32,15 @@ public sealed class OfficeImageExportReport {
     /// <summary>All structured diagnostics in result order.</summary>
     public IReadOnlyList<OfficeImageExportDiagnostic> Diagnostics => _diagnostics;
 
+    /// <summary>Diagnostics projected onto the common typed conversion contract.</summary>
+    public IReadOnlyList<global::OfficeIMO.OfficeConversionFidelityDiagnostic> FidelityDiagnostics =>
+        Array.AsReadOnly(_diagnostics.Select(diagnostic => new global::OfficeIMO.OfficeConversionFidelityDiagnostic(
+            diagnostic.Code,
+            diagnostic.Message,
+            diagnostic.LossKind,
+            "OfficeIMO.Drawing",
+            diagnostic.Source)).ToArray());
+
     /// <summary>True when at least one diagnostic represents fidelity loss.</summary>
     public bool HasLoss => _diagnostics.Any(diagnostic => diagnostic.LossKind != OfficeConversionLossKind.None);
 
@@ -48,5 +57,10 @@ public sealed class OfficeImageExportReport {
         if (policy == null) throw new ArgumentNullException(nameof(policy));
         policy.EnsureAccepted(_diagnostics);
         return this;
+    }
+
+    /// <summary>Throws when any export diagnostic represents fidelity loss.</summary>
+    public void RequireNoLoss() {
+        if (HasLoss) throw new InvalidOperationException("Image export reported fidelity loss. Inspect FidelityDiagnostics.");
     }
 }

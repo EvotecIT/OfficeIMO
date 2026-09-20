@@ -48,17 +48,7 @@ public sealed class CsvArrowTests {
         using ArrowCArrayStreamOwner owner = reader.ExportArrowCStream(
             new ArrowReadOptions { BatchSize = 2 });
 
-        Assert.NotEqual(0, owner.Address);
-        IArrowArrayStream importedStream;
-        unsafe {
-            importedStream = CArrowArrayStreamImporter.ImportArrayStream(
-                owner.DangerousGetPointer());
-        }
-        using IArrowArrayStream imported = importedStream;
-
-        // Import moves the release callback into the managed importer. The owner can
-        // now free its original struct without releasing the moved stream twice.
-        owner.Dispose();
+        using IArrowArrayStream imported = owner.ImportArrayStream();
         Assert.True(owner.IsDisposed);
         Assert.Equal(2, imported.Schema.FieldsList.Count);
 
@@ -70,6 +60,41 @@ public sealed class CsvArrowTests {
         Assert.Equal("Gamma", Assert.IsType<StringArray>(second.Column(1)).GetString(0));
         Assert.Null(await imported.ReadNextRecordBatchAsync());
         Assert.False(reader.IsClosed);
+    }
+
+    [Fact]
+    public async Task ArrowCStreamLeasePinsNativeAllocationAcrossOwnerDisposal() {
+        CsvDocument document = CsvDocument.Parse("Id\n1\n");
+        using var reader = document.CreateDataReader(new CsvDataReaderOptions { InferSchema = true });
+        using ArrowCArrayStreamOwner owner = reader.ExportArrowCStream(
+            new ArrowReadOptions { BatchSize = 1 });
+        using ArrowCArrayStreamOwner.ArrowCArrayStreamLease lease = owner.AcquireLease();
+
+        Assert.NotEqual(0, lease.Address);
+        owner.Dispose();
+        Assert.True(owner.IsDisposed);
+        Assert.Throws<ObjectDisposedException>(() => owner.AcquireLease());
+
+        using IArrowArrayStream imported = lease.ImportArrayStream();
+        using RecordBatch batch = (await imported.ReadNextRecordBatchAsync())!;
+        Assert.Equal(1, batch.Length);
+        Assert.Equal(1, Assert.IsType<Int32Array>(batch.Column(0)).GetValue(0));
+    }
+
+    [Fact]
+    public async Task ArrowCStreamCallbacksObserveCapturedCancellation() {
+        CsvDocument document = CsvDocument.Parse("Id\n1\n2\n");
+        using var reader = document.CreateDataReader(new CsvDataReaderOptions { InferSchema = true });
+        using var cancellation = new CancellationTokenSource();
+        using ArrowCArrayStreamOwner owner = reader.ExportArrowCStream(
+            new ArrowReadOptions { BatchSize = 1 },
+            cancellation.Token);
+        using IArrowArrayStream imported = owner.ImportArrayStream();
+
+        cancellation.Cancel();
+        Exception exception = await Assert.ThrowsAsync<Exception>(() =>
+            imported.ReadNextRecordBatchAsync().AsTask());
+        Assert.Contains("canceled", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

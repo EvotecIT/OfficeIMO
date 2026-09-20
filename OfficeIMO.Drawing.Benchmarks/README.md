@@ -41,7 +41,29 @@ pwsh ./Build/Benchmarks/Run-ReleaseQualityImageEvidence.ps1
 
 Use `-Plan` to inspect the resolved cases and policy without executing measurements. `-BinaryRoot`, `-OutputRoot`, `-WarmupCount`, and `-IterationCount` provide explicit inputs for a controlled run. The default output is `.validation/release-quality-images`; it contains JSON, CSV, and Markdown evidence and remains a task-owned validation artifact rather than a committed benchmark result.
 
-The suite runs PNG screenshot, TIFF scan, WebP alpha-graphic, and JPEG text cases through the shared bounded encoder. Each case validates decoded output, deterministic encoding, cancellation observation, and format-specific fidelity before it can succeed. Evidence records elapsed time, encoded bytes, managed allocation, peak process memory, deterministic status, cancellation status, and mean absolute error where applicable. A non-planning run fails when any case is not `Succeeded`.
+The suite runs representative PNG, JPEG, TIFF, and WebP inputs through encode, decode, metadata,
+and placement-optimization workloads, plus generated line-art, text, and transparency through
+Lanczos resampling. Each case records input and benchmark-assembly hashes and validates dimensions,
+fidelity, deterministic output, and bounded cancellation where that API exposes cancellation.
+Evidence separates elapsed time, encoded bytes, managed allocation, peak working set, peak private
+bytes, a conservative native/private-memory estimate, cancellation latency, and mean absolute
+error. A non-planning run fails when any case is not `Succeeded`.
+
+Pull-request runs download the matching operating-system artifact from the latest successful
+`master` workflow and use PowerForge `Test-BenchmarkGate` comparisons. The first run permits new
+scenario keys; after they are present on `master`, subsequent Windows, Linux, and macOS runs gate
+the full matrix. Process-memory metrics use an absolute noise allowance as well as relative
+tolerance because a zero baseline is common for short operations. Pass a reference summary when
+reproducing the same comparison locally:
+
+```powershell
+pwsh ./Build/Benchmarks/Run-ReleaseQualityImageEvidence.ps1 `
+    -ReferenceSummaryPath ./reference/summary.json
+```
+
+TIFF or WebP decoder optimization is justified only by a large, repeatable decode gap in the full
+corpus on every supported operating system. A single-machine quick run is diagnostic evidence, not
+an optimization priority.
 
 Interpret correctness and cancellation as gates. Compare encoded size, elapsed time, allocation, and peak memory as separate tradeoffs across equivalent cases and the same machine/runtime; do not treat the fastest row alone as release-quality evidence. JPEG error is a lossy-fidelity metric, while the lossless cases must satisfy their exact decoded-pixel contract.
 

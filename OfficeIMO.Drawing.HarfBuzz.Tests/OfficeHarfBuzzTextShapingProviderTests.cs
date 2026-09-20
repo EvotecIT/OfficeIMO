@@ -4,11 +4,50 @@ using System.Linq;
 using System.Collections.Generic;
 using OfficeIMO.Drawing;
 using OfficeIMO.Drawing.HarfBuzz;
+using OfficeIMO.TestAssets;
 using Xunit;
 
 namespace OfficeIMO.Drawing.HarfBuzz.Tests;
 
 public sealed class OfficeHarfBuzzTextShapingProviderTests {
+    [Fact]
+    public void ShapesTheSharedCrossRendererTypographyCorpus() {
+        Assert.Equal(OfficeTextShapingBackend.HarfBuzz,
+            ((IOfficeTextShapingProviderMetadata)OfficeHarfBuzzTextShapingProvider.Instance).Backend);
+
+        foreach (TypographyEvidenceCase evidence in TypographyEvidenceCorpus.Cases) {
+            byte[] fontData = LoadFontData(evidence);
+            OfficeFontFace face = Assert.Single(new OfficeFontFaceCollection()
+                .Add(evidence.Family, fontData).Faces);
+            Assert.True(face.Program.HasGlyphs(evidence.Text), evidence.Name);
+
+            OfficeTextShapingResult? shaped = OfficeHarfBuzzTextShapingProvider.Instance.ShapeText(new OfficeTextShapingRequest(
+                    evidence.Text,
+                    evidence.Family,
+                    face.Program.GetFontDataForShaping(),
+                    face.Program.IsOpenTypeCff,
+                    face.Program.UnitsPerEm,
+                    evidence.Direction,
+                    evidence.Language));
+            Assert.Equal(evidence.HarfBuzzShapingExpected, shaped != null);
+            if (shaped == null) continue;
+            OfficeTextShapingResult result = shaped;
+
+            Assert.NotEmpty(result.Glyphs);
+            Assert.All(result.Glyphs, glyph => Assert.True(glyph.GlyphId > 0, evidence.Name));
+            Assert.All(result.Glyphs, glyph =>
+                Assert.Equal(glyph.UnicodeText,
+                    evidence.Text.Substring(glyph.TextIndex, glyph.UnicodeText.Length)));
+        }
+    }
+
+    private static byte[] LoadFontData(TypographyEvidenceCase evidence) {
+        if (!string.IsNullOrEmpty(evidence.FontFileName)) return File.ReadAllBytes(FontPath(evidence.FontFileName));
+        return evidence.Name == "Hebrew"
+            ? ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 0x05E9, 0x05DC, 0x05D5, 0x05DD, 0x05E2)
+            : ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 'C', 'a', 'f', 'e', 0x0301);
+    }
+
     [Fact]
     public void RenderingProfileAppliesHarfBuzzToSharedExportOptions() {
         OfficeRenderingProfile profile = OfficeHarfBuzzRenderingProfile.Create(language: " ar ");

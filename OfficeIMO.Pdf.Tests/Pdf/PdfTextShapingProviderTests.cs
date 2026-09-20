@@ -5,11 +5,39 @@ using System.IO;
 using System.Text;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
+using OfficeIMO.TestAssets;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
 public class PdfTextShapingProviderTests {
+    [Fact]
+    public void ManagedPdfUsesTheSharedTypographyCorpusAndRetainsLogicalText() {
+        foreach (TypographyEvidenceCase evidence in TypographyEvidenceCorpus.Cases) {
+            byte[] fontData = LoadTypographyFont(evidence);
+            var report = new PdfConversionReport();
+            var options = new PdfOptions { CompressContentStreams = false }
+                .ReportDiagnosticsTo(report, "OfficeIMO.Pdf.Tests")
+                .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(evidence.Family, fontData))
+                .SetLanguage(evidence.Language)
+                .SetTextShapingProvider(OfficeManagedTextShapingProvider.Instance);
+
+            byte[] bytes = PdfDocument.Create(options)
+                .Paragraph(paragraph => paragraph.FontFamily(evidence.Family).Text(evidence.Text))
+                .ToBytes();
+
+            string extracted = PdfReadDocument.Open(bytes).ExtractText();
+            foreach (string logicalToken in evidence.Text.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
+                Assert.Contains(logicalToken, extracted, StringComparison.Ordinal);
+            }
+            if (evidence.Direction == OfficeTextDirection.RightToLeft || evidence.ManagedShapingExpected) {
+                Assert.Contains("/ActualText", Encoding.ASCII.GetString(bytes), StringComparison.Ordinal);
+            }
+            Assert.DoesNotContain(report.Warnings, warning =>
+                warning.Code.Contains("font-family-substitution", StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
     [Fact]
     public void TextShapingProvider_ShapesEmbeddedTrueTypeComplexScriptWithoutUnsupportedWarnings() {
         string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
@@ -304,6 +332,15 @@ public class PdfTextShapingProviderTests {
         }
 
         return glyphs;
+    }
+
+    private static byte[] LoadTypographyFont(TypographyEvidenceCase evidence) {
+        if (!string.IsNullOrEmpty(evidence.FontFileName)) {
+            return File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Typography", evidence.FontFileName));
+        }
+        return evidence.Name == "Hebrew"
+            ? ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 0x05E9, 0x05DC, 0x05D5, 0x05DD, 0x05E2)
+            : ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 'C', 'a', 'f', 'e', 0x0301);
     }
 
     private static int ReadScalar(string text, ref int index) {

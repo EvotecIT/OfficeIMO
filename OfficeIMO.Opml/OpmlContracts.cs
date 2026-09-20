@@ -3,6 +3,7 @@ using OfficeIMO.Core.Internal;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace OfficeIMO.Opml;
 
@@ -127,11 +128,24 @@ public sealed class OpmlConversionResult<T> : IOfficeConversionReport {
     /// <summary>Conversion diagnostics.</summary>
     public IReadOnlyList<OpmlDiagnostic> Diagnostics { get; }
     /// <inheritdoc />
+    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
+    /// <inheritdoc />
     public bool HasLoss { get; }
 
     internal OpmlConversionResult(T value, IReadOnlyList<OpmlDiagnostic> diagnostics) {
         Value = value;
         Diagnostics = diagnostics;
+        FidelityDiagnostics = Array.AsReadOnly(System.Linq.Enumerable.Select(diagnostics, diagnostic =>
+            new OfficeConversionFidelityDiagnostic(
+                diagnostic.Code,
+                diagnostic.Message,
+                diagnostic.Severity == OpmlDiagnosticSeverity.Error
+                    ? OfficeConversionLossKind.Failure
+                    : diagnostic.Severity == OpmlDiagnosticSeverity.Warning
+                        ? OfficeConversionLossKind.Approximation
+                        : OfficeConversionLossKind.None,
+                "OfficeIMO.Opml",
+                diagnostic.Path)).ToArray());
         HasLoss = System.Linq.Enumerable.Any(diagnostics, d => d.Severity != OpmlDiagnosticSeverity.Info);
     }
 

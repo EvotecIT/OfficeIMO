@@ -20,6 +20,18 @@ public sealed class OdfConversionReport : IOfficeConversionReport {
     public string TargetFormat { get; }
     /// <summary>Feature results in the order reported by the adapter.</summary>
     public IReadOnlyList<OdfConversionMapping> Mappings => _mappings;
+    /// <summary>Category-preserving diagnostics for downstream acceptance policies.</summary>
+    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics => Array.AsReadOnly(
+        _mappings.Select(mapping => new OfficeConversionFidelityDiagnostic(
+            "ODF_" + mapping.Status.ToString().ToUpperInvariant(),
+            mapping.Message ?? $"{mapping.Count} '{mapping.Feature}' item(s) mapped as {mapping.Status}.",
+            mapping.Status switch {
+                OdfConversionMappingStatus.Converted => OfficeConversionLossKind.None,
+                OdfConversionMappingStatus.Approximated => OfficeConversionLossKind.Approximation,
+                _ => OfficeConversionLossKind.Omission
+            },
+            $"OfficeIMO.OpenDocument:{SourceFormat}->{TargetFormat}",
+            mapping.Feature)).ToArray());
     /// <summary>True when at least one feature was approximated, skipped, or unsupported.</summary>
     public bool HasLoss => _mappings.Any(mapping => mapping.Status != OdfConversionMappingStatus.Converted);
     /// <summary>True when at least one feature was skipped or unsupported.</summary>

@@ -12,6 +12,11 @@ public sealed class PdfRtfConversionReport : IOfficeConversionReport {
     /// <summary>Diagnostics captured while reconstructing editable RTF content.</summary>
     public IReadOnlyList<PdfCore.PdfConversionWarning> Warnings { get; }
 
+    /// <summary>Category-preserving PDF reconstruction diagnostics.</summary>
+    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics => Array.AsReadOnly(
+        Warnings.Select(static warning => new OfficeConversionFidelityDiagnostic(
+            warning.Code, warning.Message, warning.LossKind, warning.Source)).ToArray());
+
     /// <summary>True when the conversion reported a warning or error severity diagnostic.</summary>
     public bool HasLoss => Warnings.Any(static warning =>
         warning.Severity != PdfCore.PdfConversionWarningSeverity.Information);

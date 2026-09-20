@@ -290,6 +290,45 @@ public sealed class PdfConversionReportTests {
     }
 
     [Fact]
+    public void PdfDocumentConversionResult_PreservesTypedLossAcrossComposedStages() {
+        var pdfReport = new PdfConversionReport();
+        pdfReport.Add(new PdfConversionWarning(
+            "OfficeIMO.Pdf.Tests",
+            "TEST_PDF_APPROXIMATION",
+            "pdf:page[1]",
+            "The PDF stage approximated content."));
+        var result = new PdfDocumentConversionResult(
+                PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Typed loss proof")),
+                pdfReport)
+            .WithSourceConversionReport(new LossySourceConversionReport());
+
+        Assert.Collection(
+            result.FidelityDiagnostics,
+            diagnostic => {
+                Assert.Equal("TEST_SOURCE_OMISSION", diagnostic.Code);
+                Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
+            },
+            diagnostic => {
+                Assert.Equal("TEST_PDF_APPROXIMATION", diagnostic.Code);
+                Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
+            });
+    }
+
+    [Fact]
+    public void PdfDocumentConversionResult_SaveLosslessRejectsBeforeWriting() {
+        var result = new PdfDocumentConversionResult(
+                PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Reject before publication")),
+                new PdfConversionReport())
+            .WithSourceConversionReport(new LossySourceConversionReport());
+        using var destination = new MemoryStream();
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => result.SaveLossless(destination));
+
+        Assert.Contains("source stage is lossy", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(0L, destination.Length);
+    }
+
+    [Fact]
     public void PdfDocumentConversionResult_LosslessProofCapturesSerializationDiagnostics() {
         var report = new PdfConversionReport();
         var pdfOptions = new PdfOptions().ReportDiagnosticsTo(report, "OfficeIMO.Tests");
@@ -747,6 +786,14 @@ public sealed class PdfConversionReportTests {
     }
 
     private sealed class LossySourceConversionReport : IOfficeConversionReport {
+        public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; } = new[] {
+            new OfficeConversionFidelityDiagnostic(
+                "TEST_SOURCE_OMISSION",
+                "The test source omitted content.",
+                OfficeConversionLossKind.Omission,
+                "OfficeIMO.Pdf.Tests")
+        };
+
         public bool HasLoss => true;
 
         public void RequireNoLoss() {

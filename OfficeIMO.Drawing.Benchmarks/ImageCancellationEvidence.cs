@@ -25,6 +25,20 @@ internal static class ImageCancellationEvidence {
         WriteResult(writer, "WebP", Measure(webp));
     }
 
+    internal static TimeSpan Measure(OfficeImageExportFormat format) {
+        if (format is not (OfficeImageExportFormat.Tiff or OfficeImageExportFormat.Webp)) {
+            throw new ArgumentOutOfRangeException(nameof(format));
+        }
+        OfficeRasterImage source = ImageBenchmarkCorpus.CreatePattern(Width, Height);
+        var options = new OfficeRasterEncodingOptions {
+            Tiff = new OfficeTiffEncodeOptions {
+                Compression = OfficeTiffCompression.None,
+                Predictor = OfficeTiffPredictor.None
+            }
+        };
+        return Measure(OfficeRasterImageEncoder.Encode(source, format, options));
+    }
+
     private static TimeSpan Measure(byte[] encoded) {
         using var cancellation = new CancellationTokenSource();
         var options = new OfficeRasterDecodeOptions {

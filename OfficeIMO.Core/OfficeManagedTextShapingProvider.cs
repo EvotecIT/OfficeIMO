@@ -13,12 +13,15 @@ namespace OfficeIMO.Drawing;
 /// bounded managed core. Callers then retain their normal scalar fallback and diagnostics. This
 /// keeps <see cref="IOfficeTextShapingProvider"/> as the single shaping contract used by Drawing and PDF.
 /// </remarks>
-public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvider {
+public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvider, IOfficeTextShapingProviderMetadata {
     /// <summary>Shared stateless provider instance.</summary>
     public static OfficeManagedTextShapingProvider Instance { get; } = new OfficeManagedTextShapingProvider();
 
     private OfficeManagedTextShapingProvider() {
     }
+
+    /// <inheritdoc />
+    public OfficeTextShapingBackend Backend => OfficeTextShapingBackend.Managed;
 
     /// <inheritdoc />
     public OfficeTextShapingResult? ShapeText(OfficeTextShapingRequest request) {

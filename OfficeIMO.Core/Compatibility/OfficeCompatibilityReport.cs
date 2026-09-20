@@ -6,7 +6,7 @@ using System.Linq;
 namespace OfficeIMO;
 
 /// <summary>Immutable feature-level fidelity report for one Office conversion assessment.</summary>
-public sealed class OfficeCompatibilityReport {
+public sealed class OfficeCompatibilityReport : IOfficeConversionReport {
     private readonly ReadOnlyCollection<OfficeCompatibilityFinding> _findings;
 
     /// <summary>Creates a compatibility report.</summary>
@@ -36,6 +36,11 @@ public sealed class OfficeCompatibilityReport {
 
     /// <summary>Gets all feature-level decisions in discovery order.</summary>
     public IReadOnlyList<OfficeCompatibilityFinding> Findings => _findings;
+
+    /// <summary>Gets category-preserving compatibility diagnostics.</summary>
+    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics =>
+        Array.AsReadOnly(_findings.Select(finding =>
+            OfficeConversionFidelityDiagnostics.From(finding, "OfficeIMO.Compatibility")).ToArray());
 
     /// <summary>Gets whether any finding reports fidelity loss.</summary>
     public bool HasLoss => _findings.Any(finding => finding.RepresentsLoss);

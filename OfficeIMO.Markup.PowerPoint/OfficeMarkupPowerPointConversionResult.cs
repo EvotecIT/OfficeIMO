@@ -20,6 +20,9 @@ public sealed class OfficeMarkupPowerPointConversionReport : IOfficeConversionRe
     /// <summary>Markup mapping diagnostics in emission order.</summary>
     public IReadOnlyList<OfficeMarkupDiagnostic> Diagnostics => Markup.Diagnostics;
 
+    /// <summary>Category-preserving markup diagnostics.</summary>
+    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics => Markup.FidelityDiagnostics;
+
     /// <summary>Whether markup conversion completed without an error diagnostic.</summary>
     public bool Succeeded => Markup.Succeeded;
 

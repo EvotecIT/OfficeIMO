@@ -39,10 +39,25 @@ public sealed class OneNoteMarkdownConversionResult : OfficeConversionResult<Mar
 public sealed class OneNoteMarkdownConversionReport : IOfficeConversionReport {
     internal OneNoteMarkdownConversionReport(IReadOnlyList<OneNoteMarkdownDiagnostic> diagnostics) {
         Diagnostics = Array.AsReadOnly((diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).ToArray());
+        FidelityDiagnostics = Array.AsReadOnly(Diagnostics.Select(static diagnostic =>
+            new OfficeConversionFidelityDiagnostic(
+                diagnostic.Code,
+                diagnostic.Message,
+                diagnostic.Severity switch {
+                    OneNoteDiagnosticSeverity.Information => OfficeConversionLossKind.None,
+                    OneNoteDiagnosticSeverity.Warning when diagnostic.Code.IndexOf("OMITTED", StringComparison.Ordinal) >= 0 => OfficeConversionLossKind.Omission,
+                    OneNoteDiagnosticSeverity.Warning => OfficeConversionLossKind.Approximation,
+                    _ => OfficeConversionLossKind.Failure
+                },
+                "OfficeIMO.OneNote.Markdown",
+                diagnostic.Source)).ToArray());
     }
 
     /// <summary>Source and projection diagnostics in discovery order.</summary>
     public IReadOnlyList<OneNoteMarkdownDiagnostic> Diagnostics { get; }
+
+    /// <summary>Category-preserving conversion diagnostics.</summary>
+    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
 
     /// <summary>True when projection reported an approximation, omission, or error.</summary>
     public bool HasLoss => Diagnostics.Any(static diagnostic =>

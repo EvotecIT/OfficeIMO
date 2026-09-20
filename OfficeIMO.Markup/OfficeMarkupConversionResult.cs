@@ -27,10 +27,24 @@ public sealed class OfficeMarkupConversionReport : IOfficeConversionReport {
     /// <summary>Creates a conversion report.</summary>
     public OfficeMarkupConversionReport(IEnumerable<OfficeMarkupDiagnostic>? diagnostics = null) {
         _diagnostics = Array.AsReadOnly((diagnostics ?? Array.Empty<OfficeMarkupDiagnostic>()).ToArray());
+        FidelityDiagnostics = Array.AsReadOnly(_diagnostics.Select(static (diagnostic, index) =>
+            new OfficeConversionFidelityDiagnostic(
+                "OFFICE_MARKUP_" + diagnostic.Severity.ToString().ToUpperInvariant(),
+                string.IsNullOrWhiteSpace(diagnostic.Message) ? "Office markup diagnostic." : diagnostic.Message,
+                diagnostic.Severity switch {
+                    OfficeMarkupDiagnosticSeverity.Info => OfficeConversionLossKind.None,
+                    OfficeMarkupDiagnosticSeverity.Warning => OfficeConversionLossKind.Approximation,
+                    _ => OfficeConversionLossKind.Failure
+                },
+                "OfficeIMO.Markup",
+                diagnostic.Node == null ? index.ToString(System.Globalization.CultureInfo.InvariantCulture) : diagnostic.Node.Kind.ToString())).ToArray());
     }
 
     /// <summary>Immutable conversion diagnostics in emission order.</summary>
     public IReadOnlyList<OfficeMarkupDiagnostic> Diagnostics => _diagnostics;
+
+    /// <summary>Category-preserving conversion diagnostics.</summary>
+    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
 
     /// <summary>Whether conversion completed without an error diagnostic.</summary>
     public bool Succeeded => !_diagnostics.Any(static diagnostic =>

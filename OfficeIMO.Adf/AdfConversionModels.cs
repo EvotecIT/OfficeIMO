@@ -44,13 +44,28 @@ public sealed class AdfConversionDiagnostic {
 public sealed class AdfConversionReport : IOfficeConversionReport {
     /// <summary>Creates a report by copying the supplied diagnostic sequence.</summary>
     /// <param name="diagnostics">Diagnostics to include in the report; an empty sequence is allowed.</param>
-    public AdfConversionReport(IEnumerable<AdfConversionDiagnostic> diagnostics) =>
+    public AdfConversionReport(IEnumerable<AdfConversionDiagnostic> diagnostics) {
         Diagnostics = diagnostics?.ToArray() ?? throw new ArgumentNullException(nameof(diagnostics));
+        FidelityDiagnostics = Array.AsReadOnly(Diagnostics.Select(static diagnostic =>
+            new OfficeConversionFidelityDiagnostic(
+                diagnostic.Code,
+                diagnostic.Message,
+                diagnostic.Severity switch {
+                    AdfConversionSeverity.Information => OfficeConversionLossKind.None,
+                    AdfConversionSeverity.Warning => OfficeConversionLossKind.Approximation,
+                    _ => OfficeConversionLossKind.Failure
+                },
+                "OfficeIMO.Adf",
+                diagnostic.Path)).ToArray());
+    }
     /// <summary>Gets a report with no diagnostics, which is considered lossless.</summary>
     public static AdfConversionReport Empty { get; } = new AdfConversionReport(Array.Empty<AdfConversionDiagnostic>());
     /// <summary>Gets the diagnostics captured when this report was created.</summary>
     /// <remarks>The sequence is copied from the constructor input; the exposed collection is not an immutable snapshot.</remarks>
     public IReadOnlyList<AdfConversionDiagnostic> Diagnostics { get; }
+
+    /// <summary>Gets category-preserving conversion diagnostics.</summary>
+    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
 
     /// <summary>Gets whether every diagnostic is informational; an empty report is also lossless.</summary>
     public bool IsLossless => Diagnostics.All(item => item.Severity == AdfConversionSeverity.Information);

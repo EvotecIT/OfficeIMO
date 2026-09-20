@@ -281,6 +281,29 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
     /// <summary>Gets typed warnings for source content that is not editable in the selected projection.</summary>
     public IReadOnlyList<OfficeIMO.Pdf.PdfConversionWarning> Warnings { get; }
 
+    /// <summary>Gets category-preserving projection diagnostics.</summary>
+    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics {
+        get {
+            var diagnostics = Warnings.Select(static warning => new OfficeConversionFidelityDiagnostic(
+                warning.Code, warning.Message, warning.LossKind, warning.Source)).ToList();
+            if (TableEntries.Any(static entry => entry.Truncated)) {
+                diagnostics.Add(new OfficeConversionFidelityDiagnostic(
+                    "PDF_POWERPOINT_TABLES_TRUNCATED",
+                    "One or more detected PDF tables were truncated by configured projection limits.",
+                    OfficeConversionLossKind.Omission,
+                    "OfficeIMO.PowerPoint.Pdf"));
+            }
+            if (EditablePages.Any(static page => page.HasOmittedContent)) {
+                diagnostics.Add(new OfficeConversionFidelityDiagnostic(
+                    "PDF_POWERPOINT_EDITABLE_CONTENT_OMITTED",
+                    "One or more supported PDF objects were omitted from editable slide projection.",
+                    OfficeConversionLossKind.Omission,
+                    "OfficeIMO.PowerPoint.Pdf"));
+            }
+            return diagnostics.AsReadOnly();
+        }
+    }
+
     /// <summary>Gets whether the source contained page or document content omitted by the selected projection.</summary>
     public bool HasOmittedPageContent => _hasOmittedPageContent;
 

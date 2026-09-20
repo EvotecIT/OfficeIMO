@@ -67,6 +67,10 @@ public sealed class PdfSaveResult : IOfficeOutputResult {
     /// <summary>True when any source or PDF conversion stage reported possible content loss.</summary>
     public bool HasLoss => ConversionReports.Any(static report => report.HasLoss);
 
+    /// <summary>All source and PDF-stage diagnostics with their original loss categories preserved.</summary>
+    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics =>
+        OfficeConversionFidelityDiagnostics.Flatten(ConversionReports);
+
     /// <summary>Returns this result or throws with diagnostics when the save failed.</summary>
     public PdfSaveResult RequireSuccess() {
         if (Succeeded) {

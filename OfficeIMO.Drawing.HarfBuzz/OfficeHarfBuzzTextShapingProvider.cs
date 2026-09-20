@@ -15,7 +15,7 @@ namespace OfficeIMO.Drawing.HarfBuzz;
 /// <see cref="IOfficeTextShapingProvider"/> contract. Core Drawing and PDF
 /// packages remain independent of HarfBuzz and its native assets.
 /// </remarks>
-public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvider {
+public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvider, IOfficeTextShapingProviderMetadata {
     private readonly ConditionalWeakTable<object, CachedFontCollection> _fontCache = new();
     private readonly object _languageSync = new();
     private readonly Dictionary<string, Language> _languages = new(StringComparer.Ordinal);
@@ -25,6 +25,9 @@ public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvid
 
     internal OfficeHarfBuzzTextShapingProvider() {
     }
+
+    /// <inheritdoc />
+    public OfficeTextShapingBackend Backend => OfficeTextShapingBackend.HarfBuzz;
 
     /// <inheritdoc />
     public OfficeTextShapingResult? ShapeText(OfficeTextShapingRequest request) {
@@ -339,6 +342,7 @@ public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvid
                 buffer.Direction = request.Direction switch {
                     OfficeTextDirection.LeftToRight => Direction.LeftToRight,
                     OfficeTextDirection.RightToLeft => Direction.RightToLeft,
+                    OfficeTextDirection.TopToBottom => Direction.TopToBottom,
                     _ => buffer.Direction
                 };
                 if (language != null) {

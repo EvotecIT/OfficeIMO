@@ -119,6 +119,15 @@ public sealed class OfficeConversionDiagnostic {
     /// <summary>Gets whether the diagnostic describes content that will not survive conversion.</summary>
     public bool RepresentsDataLoss { get; }
 
+    /// <summary>Gets the exact fidelity-loss category represented by this diagnostic.</summary>
+    public OfficeConversionLossKind LossKind => CompatibilityState switch {
+        OfficeCompatibilityState.Approximated => OfficeConversionLossKind.Approximation,
+        OfficeCompatibilityState.Rasterized => OfficeConversionLossKind.Approximation,
+        OfficeCompatibilityState.Dropped => OfficeConversionLossKind.Omission,
+        OfficeCompatibilityState.Blocked => OfficeConversionLossKind.Failure,
+        _ => RepresentsDataLoss ? OfficeConversionLossKind.Approximation : OfficeConversionLossKind.None
+    };
+
     /// <summary>Gets the shared feature-level representation state.</summary>
     public OfficeCompatibilityState CompatibilityState { get; }
 
