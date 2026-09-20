@@ -42,6 +42,35 @@ public sealed partial class PdfReadDocument {
         return new PdfReadDocument(map, trailer, security, repairReport, effectiveOptions, decodedStreamBytes, cancellationToken);
     }
 
+    /// <summary>
+    /// Opens bytes produced by the canonical clear-text rewrite writer without repeating the
+    /// arbitrary-input security marker scan. The complete object parse and semantic repair pass
+    /// still run, and the resulting document remains the canonical cached readback.
+    /// </summary>
+    internal static PdfReadDocument OpenRewrittenOutput(
+        byte[] pdf,
+        PdfLoadOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        Guard.NotNull(pdf, nameof(pdf));
+        cancellationToken.ThrowIfCancellationRequested();
+        PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options);
+        string decodedText = PdfEncoding.Latin1GetString(pdf);
+        var (map, trailer) = PdfSyntax.ParseObjects(
+            pdf,
+            effectiveOptions,
+            out PdfRepairReport repairReport,
+            out long decodedStreamBytes,
+            decodedText,
+            cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        PdfDocumentSecurityInfo security = PdfSyntax.ReadRewrittenOutputSecurityInfo(
+            decodedText,
+            trailer,
+            effectiveOptions);
+
+        return new PdfReadDocument(map, trailer, security, repairReport, effectiveOptions, decodedStreamBytes, cancellationToken);
+    }
+
     /// <summary>Opens a PDF from a bounded file snapshot.</summary>
     public static PdfReadDocument Open(string path, PdfLoadOptions? options = null) =>
         PdfDocumentSource.FromPath(path, options).Read();

@@ -3,6 +3,75 @@ using System.Threading;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfSyntax {
+    /// <summary>
+    /// Builds security and revision evidence for a clear-text artifact emitted by
+    /// <see cref="PdfFileAssembler"/>. Callers must only use this after the rewrite
+    /// planner has accepted the source and the canonical assembler has produced the bytes.
+    /// </summary>
+    internal static PdfDocumentSecurityInfo ReadRewrittenOutputSecurityInfo(
+        string decodedText,
+        string trailerRaw,
+        PdfLoadOptions options) {
+        Guard.NotNull(decodedText, nameof(decodedText));
+        Guard.NotNull(trailerRaw, nameof(trailerRaw));
+        Guard.NotNull(options, nameof(options));
+        PdfReadLimits limits = options.Limits;
+        var trailerReferences = ReadTrailerReferences(trailerRaw, "Encrypt", "Root", "Info", limits);
+        if (trailerReferences.First is not null) {
+            throw new InvalidDataException("The canonical clear-text rewrite unexpectedly emitted an encryption reference.");
+        }
+
+        if (!TryGetLatestStartXrefOffset(decodedText, out int startXrefOffset)) {
+            throw new InvalidDataException("The canonical full rewrite did not contain a readable terminal cross-reference pointer.");
+        }
+
+        PdfReference? rootReference = trailerReferences.Second;
+        PdfReference? infoReference = trailerReferences.Third;
+        IReadOnlyList<int> startXrefOffsets = new[] { startXrefOffset };
+        IReadOnlyList<int> previousXrefOffsets = Array.Empty<int>();
+        IReadOnlyList<PdfDocumentRevisionInfo> revisions = BuildRevisionInfo(startXrefOffsets, previousXrefOffsets);
+        return new PdfDocumentSecurityInfo(
+            hasEncryption: false,
+            encryptObjectNumber: null,
+            encryptionFilter: null,
+            encryptionSubFilter: null,
+            encryptionVersion: null,
+            encryptionRevision: null,
+            encryptionLengthBits: null,
+            encryptionPermissions: null,
+            encryptMetadata: null,
+            PdfPasswordAuthenticationRole.None,
+            hasSignatures: false,
+            Array.Empty<int>(),
+            Array.Empty<string>(),
+            Array.Empty<PdfSignatureInfo>(),
+            signatureValueCount: 0,
+            hasByteRange: false,
+            byteRangeValueCount: 0,
+            acroFormSignatureFlags: null,
+            hasDocMDPPermissions: false,
+            docMDPSignatureObjectNumber: null,
+            docMDPTransformMethod: null,
+            docMDPTransformVersion: null,
+            docMDPPermissionLevel: null,
+            hasUsageRights: false,
+            Array.Empty<int>(),
+            PdfDocumentDssInfo.Empty,
+            rootReference?.ObjectNumber,
+            rootReference?.Generation,
+            infoReference?.ObjectNumber,
+            infoReference?.Generation,
+            hasTrailerId: true,
+            startXrefCount: 1,
+            lastStartXrefOffset: startXrefOffset,
+            startXrefOffsets,
+            previousXrefOffsets,
+            revisions,
+            hasPreviousRevision: false,
+            hasXrefStreams: false,
+            hasObjectStreams: false);
+    }
+
     internal static PdfDocumentSecurityInfo ReadDocumentSecurityInfo(
         byte[] pdf,
         Dictionary<int, PdfIndirectObject> objects,

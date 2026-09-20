@@ -455,7 +455,7 @@ public sealed partial class PdfDocument {
         PdfLoadOptions effectiveReadOptions = PdfLoadOptions.WithMinimumInputBytes(
             readOptions ?? ReadOptions,
             pdf.LongLength);
-        PdfReadDocument readback = PdfReadDocument.Open(pdf, effectiveReadOptions);
+        PdfReadDocument readback = PdfReadDocument.OpenRewrittenOutput(pdf, effectiveReadOptions);
         int actualPageCount = readback.Pages.Count;
         if (actualPageCount != outputPageCount) {
             throw new InvalidOperationException("PDF operation post-save validation failed: output page count did not match the planned page count.");

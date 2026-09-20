@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Text;
 using System.Threading.Tasks;
 using OfficeIMO.Pdf;
 using Xunit;
@@ -58,5 +59,62 @@ public sealed class PdfDocumentCapabilityLifetimeTests {
 
         PdfDocumentPages expected = Assert.Single(capabilities.Distinct());
         Assert.Same(expected, document.Pages);
+    }
+
+    [Fact]
+    public void SplitReadbackRetainsCanonicalSecurityAndRevisionEvidence() {
+        PdfDocument source = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("First"))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Second"));
+
+        PdfDocument part = source.Pages.Split()[0];
+        PdfReadDocument cached = part.GetReadDocument();
+        PdfReadDocument publicReadback = PdfReadDocument.Open(part.ToBytes());
+
+        Assert.Same(cached, part.GetReadDocument());
+        Assert.Single(cached.Pages);
+        Assert.Equal(publicReadback.Security.HasEncryption, cached.Security.HasEncryption);
+        Assert.Equal(publicReadback.Security.HasSignatures, cached.Security.HasSignatures);
+        Assert.Equal(publicReadback.Security.HasByteRange, cached.Security.HasByteRange);
+        Assert.Equal(publicReadback.Security.RootObjectNumber, cached.Security.RootObjectNumber);
+        Assert.Equal(publicReadback.Security.RootObjectGeneration, cached.Security.RootObjectGeneration);
+        Assert.Equal(publicReadback.Security.InfoObjectNumber, cached.Security.InfoObjectNumber);
+        Assert.Equal(publicReadback.Security.InfoObjectGeneration, cached.Security.InfoObjectGeneration);
+        Assert.Equal(publicReadback.Security.HasTrailerId, cached.Security.HasTrailerId);
+        Assert.Equal(publicReadback.Security.StartXrefCount, cached.Security.StartXrefCount);
+        Assert.Equal(publicReadback.Security.LastStartXrefOffset, cached.Security.LastStartXrefOffset);
+        Assert.Equal(publicReadback.Security.StartXrefOffsets, cached.Security.StartXrefOffsets);
+        Assert.Equal(publicReadback.Security.RevisionCount, cached.Security.RevisionCount);
+        Assert.Equal(publicReadback.Security.HasPreviousRevision, cached.Security.HasPreviousRevision);
+        Assert.Equal(publicReadback.Security.HasXrefStreams, cached.Security.HasXrefStreams);
+        Assert.Equal(publicReadback.Security.HasObjectStreams, cached.Security.HasObjectStreams);
+    }
+
+    [Fact]
+    public void SplitReadbackIgnoresStartXrefTextInsideStreamPayload() {
+        byte[] source = BuildPdfWithStartXrefStreamPayload();
+
+        PdfDocument part = Assert.Single(PdfDocument.Load(source).Pages.Split());
+        PdfReadDocument cached = part.GetReadDocument();
+
+        Assert.Single(cached.Pages);
+        Assert.Equal(1, cached.Security.StartXrefCount);
+        Assert.True(cached.Security.HasTrailerId);
+        Assert.Contains("startxref\n123", Encoding.ASCII.GetString(part.ToBytes()), StringComparison.Ordinal);
+    }
+
+    private static byte[] BuildPdfWithStartXrefStreamPayload() {
+        byte[] payload = Encoding.ASCII.GetBytes("startxref\n123\n");
+        byte[] streamBody = PdfObjectBytes.WrapStreamBody(
+            "<< /Length " + payload.Length + " >>",
+            payload);
+        var objects = new List<byte[]> {
+            PdfObjectBytes.WrapIndirectObject(1, "<< /Type /Catalog /Pages 2 0 R >>\n"),
+            PdfObjectBytes.WrapIndirectObject(2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>\n"),
+            PdfObjectBytes.WrapIndirectObject(3, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>\n"),
+            PdfObjectBytes.WrapIndirectObject(4, streamBody)
+        };
+        return PdfFileAssembler.Assemble(objects, 1, 0, PdfFileVersion.Pdf14);
     }
 }
