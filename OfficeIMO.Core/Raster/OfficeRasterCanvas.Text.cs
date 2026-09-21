@@ -71,9 +71,9 @@ public sealed partial class OfficeRasterCanvas {
             IReadOnlyList<OfficeFontFallbackRun> fallbackRuns = _fonts.PlanFallbackRuns(text, fontFamily, style);
             if (ShouldUseFallbackRuns(fallbackRuns, fontFamily)) {
                 double aggregate = 0D;
-                foreach (OfficeFontFallbackRun run in fallbackRuns) {
+                foreach ((OfficeFontFallbackRun run, OfficeTextDirection runDirection) in PlanVisualFallbackRuns(text!, fontFamily, style, textDirection)) {
                     aggregate += MeasurePositionedText(
-                        run.Text, size, run.FamilyName, style, featureSettings, textDirection);
+                        run.Text, size, run.FamilyName, style, featureSettings, runDirection);
                 }
                 return aggregate;
             }

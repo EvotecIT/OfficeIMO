@@ -98,7 +98,10 @@ public static partial class OfficeDrawingRasterRenderer {
                 text.Font.Style,
                 text.Font.FamilyName,
                 text.FeatureSettings,
-                text.FontPalette)) {
+                text.FontPalette,
+                text.UnderlineStyle,
+                text.StrikethroughStyle,
+                text.DecorationColor)) {
                 return false;
             }
         }
@@ -150,7 +153,10 @@ public static partial class OfficeDrawingRasterRenderer {
                         text.Font.Style,
                         text.Font.FamilyName,
                         text.FeatureSettings,
-                        text.FontPalette)) {
+                        text.FontPalette,
+                        text.UnderlineStyle,
+                        text.StrikethroughStyle,
+                        text.DecorationColor)) {
                         return;
                     }
                 }

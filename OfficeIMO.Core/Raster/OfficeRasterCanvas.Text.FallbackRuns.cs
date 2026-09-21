@@ -77,8 +77,8 @@ public sealed partial class OfficeRasterCanvas {
         double textX = ResolveTextX(retainOverflow ? x : x + 3D, availableWidth, resolvedAdvance, alignment);
         double scale = resolvedAdvance / measured;
         double cursor = textX;
-        foreach (OfficeFontFallbackRun run in runs) {
-            double runAdvance = MeasurePositionedText(run.Text, size, run.FamilyName, style, featureSettings, textDirection) * scale;
+        foreach ((OfficeFontFallbackRun run, OfficeTextDirection runDirection) in PlanVisualFallbackRuns(value, fontFamily, style, textDirection)) {
+            double runAdvance = MeasurePositionedText(run.Text, size, run.FamilyName, style, featureSettings, runDirection) * scale;
             DrawTextCore(
                 run.Text,
                 cursor,
@@ -98,7 +98,7 @@ public sealed partial class OfficeRasterCanvas {
                 featureSettings,
                 fontPalette,
                 baselineFontSize,
-                textDirection);
+                runDirection);
             cursor += runAdvance;
         }
         return true;
@@ -209,5 +209,21 @@ public sealed partial class OfficeRasterCanvas {
             runs[0].FamilyName,
             requestedFamilies?.Trim() ?? string.Empty,
             StringComparison.OrdinalIgnoreCase);
+    }
+
+    private IReadOnlyList<(OfficeFontFallbackRun Run, OfficeTextDirection Direction)> PlanVisualFallbackRuns(
+        string text, string? fontFamily, OfficeFontStyle style, OfficeTextDirection textDirection) {
+        var result = new List<(OfficeFontFallbackRun, OfficeTextDirection)>();
+        // Resolve the complete string first. A font-only split does not know which
+        // fallback face belongs at the visual left of an authored RTL run.
+        foreach (OfficeBidiTextRun bidiRun in OfficeBidiTextResolver.ResolveVisualRuns(text, textDirection, _cancellationToken)) {
+            IReadOnlyList<OfficeFontFallbackRun> faces = _fonts!.PlanFallbackRuns(bidiRun.Text, fontFamily, style);
+            if (bidiRun.Direction == OfficeTextDirection.RightToLeft) {
+                for (int index = faces.Count - 1; index >= 0; index--) result.Add((faces[index], bidiRun.Direction));
+            } else {
+                foreach (OfficeFontFallbackRun face in faces) result.Add((face, bidiRun.Direction));
+            }
+        }
+        return result;
     }
 }

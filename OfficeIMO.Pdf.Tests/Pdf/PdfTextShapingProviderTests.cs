@@ -66,7 +66,7 @@ public class PdfTextShapingProviderTests {
         string extracted = PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.Contains(evidence.Text, extracted, StringComparison.Ordinal);
-        Assert.Contains(report.FidelityDiagnostics, diagnostic =>
+        Assert.Single(report.FidelityDiagnostics, diagnostic =>
             diagnostic.Code == "vertical-text-stacked-fallback" &&
             diagnostic.LossKind == OfficeConversionLossKind.Approximation);
         Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
@@ -99,7 +99,7 @@ public class PdfTextShapingProviderTests {
 
         byte[] bytes = PdfDocument.Create(options).Drawing(drawing).ToBytes();
 
-        Assert.Contains(report.FidelityDiagnostics, diagnostic =>
+        Assert.Single(report.FidelityDiagnostics, diagnostic =>
             diagnostic.Code == "vertical-text-stacked-fallback" &&
             diagnostic.LossKind == OfficeConversionLossKind.Approximation);
         Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());

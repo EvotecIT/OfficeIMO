@@ -47,7 +47,7 @@ public sealed class BibliographyConversionReport : global::OfficeIMO.IOfficeConv
     /// <summary>Category-preserving diagnostics for composed conversion routes.</summary>
     public IReadOnlyList<global::OfficeIMO.OfficeConversionFidelityDiagnostic> FidelityDiagnostics =>
         Array.AsReadOnly(_diagnostics.Select(static diagnostic => new global::OfficeIMO.OfficeConversionFidelityDiagnostic(
-            diagnostic.Code,
+            string.IsNullOrWhiteSpace(diagnostic.Code) ? "BIBLIOGRAPHY_DIAGNOSTIC" : diagnostic.Code,
             diagnostic.Message,
             GetLossKind(diagnostic),
             "OfficeIMO.Bibliography",

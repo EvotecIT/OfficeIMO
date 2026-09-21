@@ -63,6 +63,55 @@ public class DrawingManagedTextShapingProviderTests {
         Assert.True(CountInk(boldImage) > CountInk(regularImage));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ShapedVerticalTextPaintsTypedDecorationsWithTheirOwnColor(bool colorFont) {
+        byte[] font = colorFont
+            ? ManagedTextShapingTestAssets.CreateColorFont('A')
+            : ManagedTextShapingTestAssets.CreateFont('A');
+        var fonts = new OfficeFontFaceCollection().Add("Vertical Decoration", font);
+        var run = new OfficeTextShapingResult(new[] {
+            new OfficeShapedGlyph(1, "A", 0, advanceWidth: 700, advanceHeight: -1000, offsetX: 0, offsetY: 0)
+        }, OfficeTextDirection.TopToBottom);
+        var image = new OfficeRasterImage(80, 80, OfficeColor.White);
+        var canvas = new OfficeRasterCanvas(image, font: null, fonts: fonts, textShapingProvider: new FixedShapingProvider(run));
+
+        Assert.True(canvas.TryDrawVerticalText(
+            "A", 10D, 10D, 50D, 60D, OfficeColor.Black, 36D,
+            OfficeFontStyle.Regular, "Vertical Decoration", featureSettings: null, fontPalette: "light",
+            underlineStyle: OfficeTextDecorationStyle.Double,
+            strikethroughStyle: OfficeTextDecorationStyle.Wavy,
+            decorationColor: OfficeColor.FromRgb(255, 0, 255)));
+
+        static bool IsDecoration(OfficeColor pixel) => pixel.R > 180 && pixel.G < 80 && pixel.B > 180;
+        Assert.Contains(Enumerable.Range(30, 10), x => Enumerable.Range(10, 60).Any(y => IsDecoration(image.GetPixel(x, y))));
+        Assert.Contains(Enumerable.Range(46, 12), x => Enumerable.Range(10, 60).Any(y => IsDecoration(image.GetPixel(x, y))));
+    }
+
+    [Fact]
+    public void VerticalDrawingRetainsFontStyleDecorationsWithShapedAdvances() {
+        byte[] font = ManagedTextShapingTestAssets.CreateFont('A');
+        var run = new OfficeTextShapingResult(new[] {
+            new OfficeShapedGlyph(1, "A", 0, advanceWidth: 700, advanceHeight: -1000, offsetX: 0, offsetY: 0)
+        }, OfficeTextDirection.TopToBottom);
+        var options = new OfficeDrawingRasterRenderOptions {
+            TextShapingProvider = new FixedShapingProvider(run),
+            Background = OfficeColor.White
+        };
+        static OfficeDrawing CreateDrawing(byte[] fontData, OfficeFontStyle style) =>
+            new OfficeDrawing(80D, 80D)
+                .AddFont("Vertical Decoration", fontData)
+                .AddVerticalText("A", 10D, 10D, 50D, 60D,
+                    new OfficeFontInfo("Vertical Decoration", 36D, style), OfficeColor.Black);
+
+        OfficeRasterImage regular = OfficeDrawingRasterRenderer.Render(CreateDrawing(font, OfficeFontStyle.Regular), options);
+        OfficeRasterImage decorated = OfficeDrawingRasterRenderer.Render(CreateDrawing(font,
+            OfficeFontStyle.Underline | OfficeFontStyle.Strikethrough), options);
+
+        Assert.True(CountInk(decorated) > CountInk(regular));
+    }
+
     [Fact]
     public void ManagedProvider_ShapesSupportedArabicAndPreservesLogicalMappings() {
         byte[] font = ManagedTextShapingTestAssets.CreateFont(

@@ -78,7 +78,10 @@ public sealed partial class OfficeRasterCanvas {
         OfficeFontStyle style,
         string? fontFamily,
         OfficeTextFeatureSettings? featureSettings,
-        string? fontPalette) {
+        string? fontPalette,
+        OfficeTextDecorationStyle underlineStyle = OfficeTextDecorationStyle.None,
+        OfficeTextDecorationStyle strikethroughStyle = OfficeTextDecorationStyle.None,
+        OfficeColor? decorationColor = null) {
         if (string.IsNullOrEmpty(text) || color.A == 0 || width <= 0D || height <= 0D) return true;
         IOfficeFontProgram? font = ResolveTextFont(text, fontFamily, style, out OfficeFontStyle resolvedStyle);
         if (font == null ||
@@ -96,7 +99,9 @@ public sealed partial class OfficeRasterCanvas {
             text, run, originX, originY, size, fontPalette, color, MaximumTextOutlinePointsPerRun,
             _cancellationToken, out List<OfficeColorGlyphContours> colorLayers)) {
             AlignVerticalColorContoursToTop(colorLayers, y);
+            double inkBottom = double.NegativeInfinity;
             foreach (OfficeColorGlyphContours layer in colorLayers) {
+                inkBottom = Math.Max(inkBottom, FindMaximumContourY(layer.Contours));
                 if ((simulatedStyle & OfficeFontStyle.Italic) == OfficeFontStyle.Italic) SlantContours(layer.Contours, originY, size);
                 FillContours(layer.Contours, layer.Color, OfficeFillRule.NonZero);
                 if ((simulatedStyle & OfficeFontStyle.Bold) == OfficeFontStyle.Bold) {
@@ -104,6 +109,8 @@ public sealed partial class OfficeRasterCanvas {
                     FillContours(layer.Contours, layer.Color, OfficeFillRule.NonZero);
                 }
             }
+            DrawVerticalTextDecorations(originX, y, height, inkBottom, size, style,
+                underlineStyle, strikethroughStyle, decorationColor ?? color);
             return true;
         }
 
@@ -117,13 +124,36 @@ public sealed partial class OfficeRasterCanvas {
             EnsureBoundedContourPoints(contours, MaximumTextOutlinePointsPerRun);
         }
         AlignVerticalContoursToTop(contours, y);
+        double contourBottom = FindMaximumContourY(contours);
         if ((simulatedStyle & OfficeFontStyle.Italic) == OfficeFontStyle.Italic) SlantContours(contours, originY, size);
         FillContours(contours, color, OfficeFillRule.NonZero);
         if ((simulatedStyle & OfficeFontStyle.Bold) == OfficeFontStyle.Bold) {
             OffsetContours(contours, size / 24D, 0D);
             FillContours(contours, color, OfficeFillRule.NonZero);
         }
+        DrawVerticalTextDecorations(originX, y, height, contourBottom, size, style,
+            underlineStyle, strikethroughStyle, decorationColor ?? color);
         return true;
+    }
+
+    private void DrawVerticalTextDecorations(
+        double originX, double top, double height, double inkBottom, double size, OfficeFontStyle fontStyle,
+        OfficeTextDecorationStyle underlineStyle, OfficeTextDecorationStyle strikethroughStyle, OfficeColor color) {
+        if (color.A == 0 || double.IsNegativeInfinity(inkBottom)) return;
+        double length = Math.Min(height, Math.Max(0D, inkBottom - top));
+        if (length <= 0D) return;
+        OfficeTextDecorationStyle underline = underlineStyle != OfficeTextDecorationStyle.None ? underlineStyle :
+            (fontStyle & OfficeFontStyle.Underline) != 0 ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None;
+        OfficeTextDecorationStyle strike = strikethroughStyle != OfficeTextDecorationStyle.None ? strikethroughStyle :
+            (fontStyle & OfficeFontStyle.Strikethrough) != 0 ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None;
+        if (underline != OfficeTextDecorationStyle.None) {
+            double x = originX + size * .45D;
+            DrawTransformedTextDecoration(x, length, top, color, size, Math.PI / 2D, x, top, underline, false, false);
+        }
+        if (strike != OfficeTextDecorationStyle.None) {
+            DrawTransformedTextDecoration(originX, length, top, color, size, Math.PI / 2D,
+                originX, top, strike, false, false);
+        }
     }
 
     private static void AlignVerticalColorContoursToTop(List<OfficeColorGlyphContours> layers, double top) {
@@ -151,6 +181,16 @@ public sealed partial class OfficeRasterCanvas {
             }
         }
         return minimumY;
+    }
+
+    private static double FindMaximumContourY(List<List<OfficePoint>> contours) {
+        double maximumY = double.NegativeInfinity;
+        foreach (List<OfficePoint> contour in contours) {
+            foreach (OfficePoint point in contour) {
+                if (!double.IsNaN(point.Y) && !double.IsInfinity(point.Y)) maximumY = Math.Max(maximumY, point.Y);
+            }
+        }
+        return maximumY;
     }
 
     private static bool HasUsableVerticalPositioning(OfficeTextShapingResult run) {

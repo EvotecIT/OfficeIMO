@@ -38,4 +38,20 @@ public sealed class BibliographyTypedFidelityContractTests {
 
         Assert.Throws<BibliographyConversionLossException>(() => report.RequireNoLoss());
     }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void BlankLegacyCodeRemainsReadableThroughTypedAndComposedReports(string code) {
+        var report = new BibliographyConversionReport();
+        report.Add(new BibliographyConversionDiagnostic(
+            code, BibliographyDiagnosticSeverity.Warning, "Source field omitted.", BibliographyConversionAction.Omitted));
+
+        Assert.Equal(code, Assert.Single(report.Diagnostics).Code);
+        OfficeConversionFidelityDiagnostic typed = Assert.Single(report.FidelityDiagnostics);
+        Assert.Equal("BIBLIOGRAPHY_DIAGNOSTIC", typed.Code);
+        Assert.Equal(OfficeConversionLossKind.Omission, typed.LossKind);
+        Assert.Equal(typed.Code, Assert.Single(OfficeConversionFidelityDiagnostics.Flatten(new IOfficeConversionReport[] { report })).Code);
+        Assert.Throws<BibliographyConversionLossException>(() => report.RequireNoLoss());
+    }
 }
