@@ -44,7 +44,7 @@ internal sealed partial class ProjectNativeWriter {
             // ordinary weekday overrides must still precede a base's work week.
             for (var current = calendar; current != null; current = current.BaseCalendar)
                 foreach (var week in current.WorkWeeks) AddRange(week.FromDate, week.ToDate);
-            Loss("PROJECT_NATIVE_WORK_WEEK_FLATTENED", _profile.Generation + " represents bounded work weeks as dated calendar exceptions. The work-week structure and labels are omitted.", Path(calendar, "Calendar"));
+            Omission("PROJECT_NATIVE_WORK_WEEK_FLATTENED", _profile.Generation + " represents bounded work weeks as dated calendar exceptions. The work-week structure and labels are omitted.", Path(calendar, "Calendar"));
         }
         if (calendar.Exceptions.Any(e => e.Name != null))
             Omission("PROJECT_NATIVE_EXCEPTION_LABEL_LOSS", _profile.Generation + " calendar exceptions retain dates and working times but have no label field.", Path(calendar, "Calendar"));

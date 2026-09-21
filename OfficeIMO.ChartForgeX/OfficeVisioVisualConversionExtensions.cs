@@ -370,7 +370,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
                 SequenceActivationOpen start = starts.Pop();
                 activations.Add(CreateActivationProjection(ids, change.Participant, start.Row, change.Row, start.Annotations, change.Annotations));
             } else {
-                report.Warn(OfficeVisioVisualDiagnosticCode.SemanticLoss, OfficeVisioVisualEntityKind.Annotation, change.EntityId, "activation",
+                report.Warn(OfficeVisioVisualDiagnosticCode.ActivationNotProjected, OfficeVisioVisualEntityKind.Annotation, change.EntityId, "activation",
                     $"Sequence deactivation '{change.EntityId}' had no matching open activation and was not projected.");
             }
         }

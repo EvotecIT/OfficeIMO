@@ -169,7 +169,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             }
 
             string code = diagnostic.Code;
-            return code.IndexOf("-PRESERVED", StringComparison.Ordinal) >= 0
+            return code is "PPT-COMMENT-TAG-DATA" or "PPT-COMMENT-CONTAINER"
+                or "PPT-COMMENT-ATOM" or "PPT-COMMENT-INDEX"
+                or "PPT-COMMENT-DATETIME" or "PPT-COMMENT-STRING"
+                or "PPT-COMMENT-EXTENSION"
+                || code.IndexOf("-PRESERVED", StringComparison.Ordinal) >= 0
                 || code.IndexOf("-PRESERVE-ONLY", StringComparison.Ordinal) >= 0
                 || code.EndsWith("-UNSUPPORTED", StringComparison.Ordinal)
                 || code.EndsWith("-MISSING", StringComparison.Ordinal)

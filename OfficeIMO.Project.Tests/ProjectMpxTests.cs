@@ -6,6 +6,22 @@ public sealed class ProjectMpxTests {
     private static ProjectDocument Read(string text) => ProjectDocument.Load(new MemoryStream(Encoding.ASCII.GetBytes(text)));
     private static ProjectSaveOptions Options(bool allow = true) => new ProjectSaveOptions { Format = ProjectFileFormat.Mpx4, LossPolicy = allow ? OfficeConversionLossPolicy.Allow : OfficeConversionLossPolicy.Block };
 
+    [Fact]
+    public void FlattenedWorkWeekRetainsItsOmissionCategory() {
+        using var project = ProjectDocument.Create();
+        var calendar = project.Calendars.AddStandardWorkingWeek(); project.Calendar = calendar;
+        var week = calendar.WorkWeeks.Add(); week.Name = "Special";
+        week.FromDate = new DateTime(2026, 10, 12); week.ToDate = new DateTime(2026, 10, 16);
+
+        ProjectReport report = project.AssessSave(Options());
+        ProjectDiagnostic omission = Assert.Single(report.Diagnostics,
+            item => item.Code == "PROJECT_MPX_WORK_WEEK_FLATTENED");
+        Assert.Equal(OfficeConversionLossKind.Omission, omission.LossKind);
+        Assert.Contains(report.FidelityDiagnostics, item => item.Code == omission.Code
+            && item.LossKind == OfficeConversionLossKind.Omission);
+        Assert.Throws<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
+    }
+
     [Theory]
     [InlineData("task name", "/Task[UID=1]/Name")]
     [InlineData("task wbs", "/Task[UID=1]/Wbs")]

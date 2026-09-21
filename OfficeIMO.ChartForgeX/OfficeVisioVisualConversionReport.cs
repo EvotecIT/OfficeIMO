@@ -117,6 +117,8 @@ public sealed class OfficeVisioVisualConversionReport : IOfficeConversionReport 
             OfficeVisioVisualDiagnosticCode.EndpointLabelsNotRendered or
             OfficeVisioVisualDiagnosticCode.ShapeDataDisabled or
             OfficeVisioVisualDiagnosticCode.HyperlinkNotProjected or
+            OfficeVisioVisualDiagnosticCode.ActivationNotProjected or
+            OfficeVisioVisualDiagnosticCode.BranchDividerNotProjected or
             OfficeVisioVisualDiagnosticCode.DetailsNotRendered or
             OfficeVisioVisualDiagnosticCode.TitleNotProjected => OfficeConversionLossKind.Omission,
             _ => OfficeConversionLossKind.Approximation

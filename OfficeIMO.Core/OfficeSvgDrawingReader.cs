@@ -13,7 +13,7 @@ namespace OfficeIMO.Drawing;
 /// </summary>
 public static partial class OfficeSvgDrawingReader {
     private const int MaximumInputBytes = 8 * 1024 * 1024;
-    private const int MaximumSvgNestingDepth = 128;
+    private const int MaximumSvgNestingDepth = 64;
     private const int MaximumSvgPathCommands = 20000;
     private const double MaximumSvgTransformCoefficient = 1024D;
     private const double MaximumSvgTransformOffset = 1000000D;
@@ -69,7 +69,7 @@ public static partial class OfficeSvgDrawingReader {
                 out double viewportHeight)) return false;
         // Malformed shapes remain a tolerant-import concern, but complete geometry in definitions
         // still belongs to the document-wide hard budget even when it is not painted directly.
-        if (ExceedsValidSvgDocumentPathCommandLimit(root)) return false;
+        if (ExceedsSvgElementNestingLimit(root) || ExceedsValidSvgDocumentPathCommandLimit(root)) return false;
 
         try {
             ApplySvgStylesheets(root, ref unsupportedFeatureCount);

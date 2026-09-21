@@ -122,7 +122,7 @@ internal sealed partial class ProjectMpxWriter {
                 }
             }
             HandleTree(path + "/Day"); HandleTree(path + "/Exception"); HandleTree(path + "/Week");
-            if (calendar.WorkWeeks.Count != 0) Diagnostic("PROJECT_MPX_WORK_WEEK_FLATTENED", "Bounded work weeks become date exceptions; labels and work-week structure are omitted.", path + "/Week");
+            if (calendar.WorkWeeks.Count != 0) Omission("PROJECT_MPX_WORK_WEEK_FLATTENED", "Bounded work weeks become date exceptions; labels and work-week structure are omitted.", path + "/Week");
             if (calendar.Exceptions.Any(e => e.Name != null)) Omission("PROJECT_MPX_EXCEPTION_LABEL_LOSS", "Calendar exception dates and working times are retained; MPX has no exception labels.", path + "/Exception");
     }
     private static bool SamePattern(ProjectCalendarException first, ProjectCalendarException second) {

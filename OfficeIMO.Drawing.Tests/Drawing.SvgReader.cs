@@ -945,18 +945,16 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
-    public void SvgReaderBoundsNestedTextTransformsAndSymbolSurfaces() {
+    public void SvgReaderRejectsOverNestedTextAndBoundsSymbolSurfaces() {
         var nested = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'><text>");
         for (int index = 0; index < 160; index++) nested.Append("<tspan>");
         nested.Append("Text");
         for (int index = 0; index < 160; index++) nested.Append("</tspan>");
         nested.Append("</text><line x2='10' y2='10' stroke='black' stroke-dasharray='1 1' transform='scale(1000000000)'/></svg>");
 
-        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(nested.ToString()),
-            out OfficeDrawing? bounded, out int unsupported));
-        Assert.NotNull(bounded);
-        Assert.True(unsupported >= 2);
-        OfficeDrawingRasterRenderer.Render(bounded!);
+        Assert.False(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(nested.ToString()),
+            out OfficeDrawing? bounded, out _));
+        Assert.Null(bounded);
 
         const string oversized = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'>"
             + "<defs><symbol id='large' viewBox='0 0 100000 100000'><rect width='1' height='1'/></symbol></defs>"

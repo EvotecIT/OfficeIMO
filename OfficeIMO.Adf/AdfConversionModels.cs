@@ -75,7 +75,8 @@ public sealed class AdfConversionDiagnostic {
             "ADF_UNSUPPORTED_NODE" or
             "ADF_TABLE_ATTRIBUTES_DROPPED" or
             "ADF_TABLE_CELL_ATTRIBUTES_DROPPED" or
-            "ADF_LINK_ATTRIBUTES_DROPPED" => OfficeConversionLossKind.Omission,
+            "ADF_LINK_ATTRIBUTES_DROPPED" or
+            "ADF_TASK_LOCAL_IDS_REGENERATED" => OfficeConversionLossKind.Omission,
             _ => OfficeConversionLossKind.Approximation
         };
     }

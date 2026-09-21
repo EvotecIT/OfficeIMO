@@ -7,6 +7,18 @@ namespace OfficeIMO.Tests;
 
 public class DrawingSvgReaderSecurityTests {
     [Fact]
+    public void DirectSvgImportRejectsOverNestedMarkupBeforeRecursiveProjection() {
+        var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>");
+        for (int index = 0; index < 130; index++) svg.Append("<g>");
+        svg.Append("<rect width='16' height='8'/>");
+        for (int index = 0; index < 130; index++) svg.Append("</g>");
+        byte[] bytes = Encoding.UTF8.GetBytes(svg.Append("</svg>").ToString());
+
+        Assert.False(OfficeSvgDrawingReader.TryRead(bytes, out OfficeDrawing? drawing));
+        Assert.Null(drawing);
+    }
+
+    [Fact]
     public void SvgSafetyPredicateTokenizesNestedCustomPropertyDeclarations() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
             + "<defs><pattern id='p;x'><rect width='1' height='1'/></pattern></defs>"
