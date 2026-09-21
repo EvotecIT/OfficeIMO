@@ -31,6 +31,33 @@ internal static class EmailStoreFidelityProjection {
             ? diagnostics
             : Array.AsReadOnly(diagnostics.Concat(additional).ToArray());
 
+    internal static IReadOnlyList<OfficeConversionFidelityDiagnostic> AppendMissing(
+        IReadOnlyList<OfficeConversionFidelityDiagnostic> diagnostics,
+        IEnumerable<OfficeConversionFidelityDiagnostic> supplemental) {
+        var aggregate = new List<OfficeConversionFidelityDiagnostic>(diagnostics);
+        foreach (OfficeConversionFidelityDiagnostic candidate in supplemental) {
+            if (aggregate.Any(existing => SameDiagnostic(existing, candidate))) continue;
+            aggregate.Add(candidate);
+        }
+        return aggregate.Count == diagnostics.Count
+            ? diagnostics
+            : Array.AsReadOnly(aggregate.ToArray());
+    }
+
+    internal static IReadOnlyList<OfficeConversionFidelityDiagnostic> ProjectWrite(
+        IReadOnlyList<EmailStoreDiagnostic> diagnostics,
+        bool diagnosticsTruncated,
+        string destinationPath) {
+        IReadOnlyList<OfficeConversionFidelityDiagnostic> projected = Project(diagnostics);
+        return diagnosticsTruncated
+            ? Append(projected, Create(
+                "EMAIL_STORE_PST_WRITE_DIAGNOSTICS_TRUNCATED",
+                "Additional PST writer diagnostics exceeded the configured retention bound, so preservation cannot be proven.",
+                OfficeConversionLossKind.Failure,
+                destinationPath))
+            : projected;
+    }
+
     internal static IReadOnlyList<OfficeConversionFidelityDiagnostic> ProjectExport(
         IEnumerable<EmailStoreDiagnostic> reportDiagnostics,
         IEnumerable<IEnumerable<EmailStoreDiagnostic>> entryDiagnostics,
@@ -83,4 +110,13 @@ internal static class EmailStoreFidelityProjection {
         }
         return OfficeConversionLossKind.None;
     }
+
+    private static bool SameDiagnostic(
+        OfficeConversionFidelityDiagnostic left,
+        OfficeConversionFidelityDiagnostic right) =>
+        left.LossKind == right.LossKind
+        && string.Equals(left.Code, right.Code, StringComparison.Ordinal)
+        && string.Equals(left.Message, right.Message, StringComparison.Ordinal)
+        && string.Equals(left.Source, right.Source, StringComparison.Ordinal)
+        && string.Equals(left.Location, right.Location, StringComparison.Ordinal);
 }

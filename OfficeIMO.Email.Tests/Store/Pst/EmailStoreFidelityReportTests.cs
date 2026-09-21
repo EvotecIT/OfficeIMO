@@ -149,6 +149,95 @@ public sealed class EmailStoreFidelityReportTests {
     }
 
     [Fact]
+    public void PstWriterDiagnosticTruncationFailsClosedAcrossComposedReports() {
+        var retained = new EmailStoreDiagnostic(
+            "EMAIL_STORE_TEST_INFORMATION",
+            "One informational writer diagnostic was retained.",
+            EmailStoreDiagnosticSeverity.Information,
+            "destination.pst");
+        var write = new EmailStorePstWriteReport(
+            "destination.pst", 1, 1, 128, new[] { retained }, diagnosticsTruncated: true);
+        var sourceIdentity = new EmailStoreSourceIdentity(
+            EmailStoreFormat.Pst, 128, "catalog", "durable");
+        var verification = new EmailStorePstVerificationReport(
+            attemptedItems: 1,
+            matchedItems: 1,
+            mismatchedItems: 0,
+            failedItems: 0,
+            issues: Array.Empty<EmailStorePstVerificationIssue>(),
+            issuesTruncated: false,
+            manifestPath: null);
+        var conversion = new EmailStorePstConversionReport(
+            EmailStoreFormat.Pst,
+            write,
+            sourceFolders: 1,
+            convertedItems: 1,
+            skippedItems: 0,
+            verification,
+            diagnostics: new[] { retained },
+            sourceIdentity,
+            wasResumed: false);
+        var mutationPlan = new EmailStorePstMutationPlan(
+            "source.pst",
+            Array.Empty<EmailStorePstMutationPlanOperation>(),
+            resultingFolderCount: 1,
+            resultingItemCount: 1,
+            estimatedRewriteBytes: 128,
+            diagnostics: Array.Empty<EmailStoreDiagnostic>());
+        var mutation = new EmailStorePstMutationReport(
+            "source.pst",
+            backupPath: null,
+            mutationPlan,
+            write,
+            verification: null,
+            createdFolders: 0,
+            renamedFolders: 0,
+            movedFolders: 0,
+            deletedFolders: 0,
+            addedItems: 0,
+            copiedItems: 0,
+            replacedItems: 0,
+            patchedItems: 0,
+            movedItems: 0,
+            deletedItems: 0,
+            folderIdMap: new Dictionary<string, string>(),
+            itemIdMap: new Dictionary<string, string>(),
+            operationResults: Array.Empty<EmailStorePstMutationOperationResult>(),
+            diagnostics: new[] { retained });
+        var splitPlan = new EmailStorePstSplitPlanPart(
+            number: 1,
+            destinationPath: "destination.part001.pst",
+            items: Array.Empty<EmailStoreItemReference>(),
+            estimatedBytes: 128,
+            estimatedTargetBytes: 256,
+            containsOversizedItem: false);
+        var split = new EmailStorePstSplitPartReport(
+            splitPlan, write, verification, skippedItems: 0, diagnostics: new[] { retained });
+        var merge = new EmailStorePstMergeReport(
+            write,
+            sources: Array.Empty<EmailStoreMergeSourceReport>(),
+            inspectedItems: 1,
+            writtenItems: 1,
+            duplicateItems: 0,
+            skippedItems: 0,
+            retryCount: 0,
+            diagnostics: new[] { retained },
+            diagnosticsTruncated: true);
+
+        foreach (IOfficeConversionReport report in new IOfficeConversionReport[] {
+            write, conversion, mutation, split, merge
+        }) {
+            OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(
+                report.FidelityDiagnostics,
+                item => item.Code == "EMAIL_STORE_PST_WRITE_DIAGNOSTICS_TRUNCATED");
+            Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
+            Assert.Equal("destination.pst", diagnostic.Location);
+            Assert.True(report.HasLoss);
+            Assert.Throws<InvalidDataException>(report.RequireNoLoss);
+        }
+    }
+
+    [Fact]
     public void StoreConversionReportClassifiesSkippedItemsWithoutAggregateOnlyLoss() {
         var write = new EmailStorePstWriteReport(
             "destination.pst", 1, 1, 128, Array.Empty<EmailStoreDiagnostic>());

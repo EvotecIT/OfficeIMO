@@ -27,8 +27,11 @@ public sealed class EmailStorePstSplitPartReport : IOfficeConversionReport {
                 OfficeConversionLossKind.Failure,
                 plan.DestinationPath));
         }
-        _fidelityDiagnostics = EmailStoreFidelityProjection.Append(
-            EmailStoreFidelityProjection.Project(diagnostics), aggregate.ToArray());
+        IReadOnlyList<OfficeConversionFidelityDiagnostic> projected =
+            EmailStoreFidelityProjection.AppendMissing(
+                EmailStoreFidelityProjection.Project(diagnostics),
+                writeReport.FidelityDiagnostics);
+        _fidelityDiagnostics = EmailStoreFidelityProjection.Append(projected, aggregate.ToArray());
     }
 
     /// <summary>Dry-run partition that produced this part.</summary>

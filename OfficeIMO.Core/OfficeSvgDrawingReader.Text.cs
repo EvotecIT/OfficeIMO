@@ -544,21 +544,23 @@ public static partial class OfficeSvgDrawingReader {
             double naturalWidth = width / run.GlyphScale;
             if (requiresViewportClip) {
                 if (run.HasExplicitAdvance) {
-                    target.AddClippedPositionedText(
+                    target.AddClippedPositionedTextWithResolvedDirection(
                         run.Text, x, y, naturalWidth, height, 0D, 0D,
-                        OfficeClipPath.Rectangle(drawing.Width, drawing.Height), default(OfficeImageFrameTransform),
-                        font, color, OfficeTextAlignment.Left, height, textAdvanceWidth: run.Width / run.GlyphScale);
+                        OfficeClipPath.Rectangle(drawing.Width, drawing.Height),
+                        font, color, height, run.Width / run.GlyphScale, run.TextDirection);
                 } else {
                     target.AddClippedPositionedTextWithNaturalAdvance(
                         run.Text, x, y, naturalWidth, height, 0D, 0D,
-                        OfficeClipPath.Rectangle(drawing.Width, drawing.Height), font, color, height);
+                        OfficeClipPath.Rectangle(drawing.Width, drawing.Height), font, color, height, run.TextDirection);
                 }
             } else {
                 if (run.HasExplicitAdvance) {
-                    target.AddPositionedText(run.Text, x, y, naturalWidth, height, font, color, OfficeTextAlignment.Left, height,
-                        textAdvanceWidth: run.Width / run.GlyphScale);
+                    target.AddPositionedTextWithResolvedDirection(
+                        run.Text, x, y, naturalWidth, height, font, color, height,
+                        run.Width / run.GlyphScale, run.TextDirection);
                 } else {
-                    target.AddPositionedTextWithNaturalAdvance(run.Text, x, y, naturalWidth, height, font, color, height);
+                    target.AddPositionedTextWithNaturalAdvance(
+                        run.Text, x, y, naturalWidth, height, font, color, height, run.TextDirection);
                 }
             }
             if (!ReferenceEquals(target, drawing)) {
@@ -604,6 +606,7 @@ public static partial class OfficeSvgDrawingReader {
         internal double RotationCenterY { get; set; }
         internal bool IsVertical { get; }
         internal double InlineAdvance { get; }
+        internal OfficeTextDirection TextDirection { get; }
 
         internal SvgTextRun(string text, double x, double baseline, double width, double fontSize, int chunk, string anchor, SvgPaintContext style, OfficeTransform transform, IOfficeFontProgram? fontProgram,
             double rotationDegrees = 0D, double? rotationCenterX = null, double? rotationCenterY = null, bool isVertical = false, double inlineAdvance = 0D) {
@@ -622,6 +625,7 @@ public static partial class OfficeSvgDrawingReader {
             RotationCenterY = rotationCenterY ?? baseline - fontSize / 2D;
             IsVertical = isVertical;
             InlineAdvance = inlineAdvance > 0D ? inlineAdvance : width;
+            TextDirection = style.PlaintextBidi ? OfficeTextDirection.Auto : style.TextDirection;
         }
     }
 

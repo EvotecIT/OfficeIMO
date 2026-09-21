@@ -100,7 +100,8 @@ public static partial class OfficeDrawingSvgExporter {
             text.DecorationColor,
             text.FeatureSettings,
             text.FontPalette,
-            OfficeTextShapingBackend.BrowserNative);
+            OfficeTextShapingBackend.BrowserNative,
+            text.TextDirection);
 
         if (useFrameTransform) {
             sb.Append("</g>");

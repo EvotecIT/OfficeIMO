@@ -13,7 +13,8 @@ public sealed class EmailStorePstWriteReport : IOfficeConversionReport {
         BytesWritten = bytesWritten;
         Diagnostics = diagnostics;
         DiagnosticsTruncated = diagnosticsTruncated;
-        _fidelityDiagnostics = EmailStoreFidelityProjection.Project(diagnostics);
+        _fidelityDiagnostics = EmailStoreFidelityProjection.ProjectWrite(
+            diagnostics, diagnosticsTruncated, destinationPath);
     }
 
     /// <summary>Committed destination path.</summary>

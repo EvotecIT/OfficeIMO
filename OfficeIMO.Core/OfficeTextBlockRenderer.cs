@@ -745,8 +745,9 @@ public static partial class OfficeTextBlockRenderer {
         OfficeColor? decorationColor = null,
         OfficeTextFeatureSettings? featureSettings = null,
         string? fontPalette = null,
-        OfficeTextShapingBackend? shapingBackend = null) =>
-        AppendSvgTextElementCore(builder, text, x, y, lineHeight, color, fontFamily, fontSize, horizontalAlignment, bold, italic, underline, rotationDegrees, rotationCenterX, rotationCenterY, strikethrough, textAdvanceWidth, underlineStyle, strikethroughStyle, baseline, decorationColor, featureSettings, fontPalette, OfficeTextDirection.Auto, shapingBackend);
+        OfficeTextShapingBackend? shapingBackend = null,
+        OfficeTextDirection direction = OfficeTextDirection.Auto) =>
+        AppendSvgTextElementCore(builder, text, x, y, lineHeight, color, fontFamily, fontSize, horizontalAlignment, bold, italic, underline, rotationDegrees, rotationCenterX, rotationCenterY, strikethrough, textAdvanceWidth, underlineStyle, strikethroughStyle, baseline, decorationColor, featureSettings, fontPalette, direction, shapingBackend);
 
     private static StringBuilder AppendSvgTextElementCore(
         StringBuilder builder,
@@ -831,8 +832,10 @@ public static partial class OfficeTextBlockRenderer {
                 .AppendAttribute("text-orientation", "mixed");
         }
         if (resolvedDirection == OfficeTextDirection.RightToLeft) {
-            builder.AppendAttribute("direction", "rtl")
-                .AppendAttribute("unicode-bidi", "plaintext");
+            builder.AppendAttribute("direction", "rtl");
+            if (direction == OfficeTextDirection.Auto) {
+                builder.AppendAttribute("unicode-bidi", "plaintext");
+            }
         }
         if (shapingBackend.HasValue) {
             builder.AppendAttribute("data-officeimo-shaping-backend", shapingBackend.Value == OfficeTextShapingBackend.BrowserNative

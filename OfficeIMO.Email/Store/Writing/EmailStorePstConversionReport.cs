@@ -33,8 +33,11 @@ public sealed class EmailStorePstConversionReport : IOfficeConversionReport {
                 OfficeConversionLossKind.Failure,
                 "verification"));
         }
-        _fidelityDiagnostics = EmailStoreFidelityProjection.Append(
-            EmailStoreFidelityProjection.Project(diagnostics), additional.ToArray());
+        IReadOnlyList<OfficeConversionFidelityDiagnostic> projected =
+            EmailStoreFidelityProjection.AppendMissing(
+                EmailStoreFidelityProjection.Project(diagnostics),
+                writeReport.FidelityDiagnostics);
+        _fidelityDiagnostics = EmailStoreFidelityProjection.Append(projected, additional.ToArray());
     }
 
     /// <summary>Detected source format.</summary>

@@ -32,15 +32,19 @@ public sealed class EmailStorePstMutationReport : IOfficeConversionReport {
         ItemIdMap = itemIdMap;
         OperationResults = operationResults;
         Diagnostics = diagnostics;
+        IReadOnlyList<OfficeConversionFidelityDiagnostic> projected =
+            EmailStoreFidelityProjection.AppendMissing(
+                EmailStoreFidelityProjection.Project(diagnostics),
+                writeReport.FidelityDiagnostics);
         _fidelityDiagnostics = verification?.IsSuccessful == false
             ? EmailStoreFidelityProjection.Append(
-                EmailStoreFidelityProjection.Project(diagnostics),
+                projected,
                 EmailStoreFidelityProjection.Create(
                     "EMAIL_STORE_PST_MUTATION_VERIFICATION_FAILED",
                     "Post-write PST mutation verification did not preserve the planned semantics.",
                     OfficeConversionLossKind.Failure,
                     "verification"))
-            : EmailStoreFidelityProjection.Project(diagnostics);
+            : projected;
     }
 
     /// <summary>Full path of the atomically replaced PST.</summary>

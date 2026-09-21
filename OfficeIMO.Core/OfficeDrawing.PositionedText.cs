@@ -5,16 +5,36 @@ namespace OfficeIMO.Drawing;
 public sealed partial class OfficeDrawing {
     internal OfficeDrawing AddPositionedTextWithNaturalAdvance(
         string text, double x, double y, double width, double height,
-        OfficeFontInfo? font, OfficeColor? color, double? lineHeight) =>
+        OfficeFontInfo? font, OfficeColor? color, double? lineHeight,
+        OfficeTextDirection textDirection = OfficeTextDirection.Auto) =>
+        AddPositionedTextWithResolvedDirection(text, x, y, width, height, font, color, lineHeight,
+            textAdvanceWidth: null, textDirection: textDirection);
+
+    internal OfficeDrawing AddPositionedTextWithResolvedDirection(
+        string text, double x, double y, double width, double height,
+        OfficeFontInfo? font, OfficeColor? color, double? lineHeight,
+        double? textAdvanceWidth, OfficeTextDirection textDirection) =>
         AddTextCore(text, x, y, width, height, font, color, OfficeTextAlignment.Left, lineHeight,
             OfficeTextVerticalAlignment.Top, 0D, null, null, false, false, false, false, false, null, null,
-            OfficeTextOverflowBehavior.Clip, textAdvanceWidth: null,
-            OfficeTextDecorationStyle.None, OfficeTextDecorationStyle.None, OfficeTextBaseline.Normal, allowOverflow: true);
+            OfficeTextOverflowBehavior.Clip, textAdvanceWidth,
+            OfficeTextDecorationStyle.None, OfficeTextDecorationStyle.None, OfficeTextBaseline.Normal,
+            baselineLevel: 0, baselineScale: 1D, baselineOffset: 0D, decorationColor: null,
+            featureSettings: null, fontPalette: null, allowOverflow: true, textDirection: textDirection);
 
     internal OfficeDrawing AddClippedPositionedTextWithNaturalAdvance(
         string text, double x, double y, double width, double height,
         double clipX, double clipY, OfficeClipPath clipPath,
-        OfficeFontInfo? font, OfficeColor? color, double? lineHeight) {
+        OfficeFontInfo? font, OfficeColor? color, double? lineHeight,
+        OfficeTextDirection textDirection = OfficeTextDirection.Auto) =>
+        AddClippedPositionedTextWithResolvedDirection(text, x, y, width, height,
+            clipX, clipY, clipPath, font, color, lineHeight,
+            textAdvanceWidth: null, textDirection: textDirection);
+
+    internal OfficeDrawing AddClippedPositionedTextWithResolvedDirection(
+        string text, double x, double y, double width, double height,
+        double clipX, double clipY, OfficeClipPath clipPath,
+        OfficeFontInfo? font, OfficeColor? color, double? lineHeight,
+        double? textAdvanceWidth, OfficeTextDirection textDirection) {
         if (clipPath == null) throw new ArgumentNullException(nameof(clipPath));
         ValidateFiniteNonNegative(clipX, nameof(clipX));
         ValidateFiniteNonNegative(clipY, nameof(clipY));
@@ -23,8 +43,10 @@ public sealed partial class OfficeDrawing {
         var clipped = new OfficeDrawing(Math.Max(0.01D, clipPath.Width), Math.Max(0.01D, clipPath.Height));
         clipped.AddTextCore(text, x - clipX, y - clipY, width, height, font, color, OfficeTextAlignment.Left, lineHeight,
             OfficeTextVerticalAlignment.Top, 0D, null, null, false, false, false, false, false, null, null,
-            OfficeTextOverflowBehavior.Clip, textAdvanceWidth: null,
-            OfficeTextDecorationStyle.None, OfficeTextDecorationStyle.None, OfficeTextBaseline.Normal, allowOverflow: true);
+            OfficeTextOverflowBehavior.Clip, textAdvanceWidth,
+            OfficeTextDecorationStyle.None, OfficeTextDecorationStyle.None, OfficeTextBaseline.Normal,
+            baselineLevel: 0, baselineScale: 1D, baselineOffset: 0D, decorationColor: null,
+            featureSettings: null, fontPalette: null, allowOverflow: true, textDirection: textDirection);
         return AddClippedDrawing(clipped, clipX, clipY, clipPath);
     }
 
