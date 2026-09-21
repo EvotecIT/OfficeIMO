@@ -27,6 +27,20 @@ public sealed class OpenDocumentHardeningTests {
     }
 
     [Fact]
+    public void ProducerSignatureFilenameDoesNotClassifyAnUnnamespacedResourceRoot() {
+        const string entryName = "META-INF/auditsignatures.xml";
+        byte[] package = RewritePackage(OdtDocument.Create().ToBytes(), additions: new[] {
+            new OdfTestPackageEntry(entryName, Encoding.UTF8.GetBytes("<signatures><audit>keep</audit></signatures>"))
+        });
+
+        Assert.Empty(OdfDocument.FindSignatureEntries(package, new OfficeProvenanceOptions()));
+        OdtDocument document = OdtDocument.Load(new MemoryStream(package));
+        document.Metadata.Title = "Changed";
+        byte[] output = document.ToBytes(new OdfSaveOptions { SignatureHandling = OdfSignatureHandling.RemoveInvalidated });
+        Assert.True(ContainsEntry(output, entryName));
+    }
+
+    [Fact]
     public void ProducerSignatureClassificationHasAnAggregateReadBudget() {
         byte[] package = RewritePackage(OdtDocument.Create().ToBytes(), additions: new[] {
             new OdfTestPackageEntry("META-INF/firstsignatures.xml", Encoding.UTF8.GetBytes("<resource>" + new string(' ', 700000) + "</resource>")),

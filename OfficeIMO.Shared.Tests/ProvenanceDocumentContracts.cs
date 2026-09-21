@@ -601,7 +601,10 @@ public sealed partial class ProvenanceDocumentContracts {
     [InlineData("odt", "META-INF/customsignatures.xml")]
     [InlineData("epub", "META-INF/signatures.xml")]
     public void ZipDocumentOwnersRemoveInvalidatedNativeSignatures(string extension, string signaturePath) {
-        byte[] package = CreateZipPackage(extension, signaturePath, CreatePngWithManifest(CreateManifestStore()));
+        byte[]? signatureContent = extension == "odt"
+            ? Encoding.UTF8.GetBytes("<document-signatures xmlns='urn:oasis:names:tc:opendocument:xmlns:digitalsignature:1.0'/>")
+            : null;
+        byte[] package = CreateZipPackage(extension, signaturePath, CreatePngWithManifest(CreateManifestStore()), signatureContent);
         var options = new OfficeProvenanceRemovalOptions {
             SignatureMutationPolicy = OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures
         };

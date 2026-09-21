@@ -427,7 +427,7 @@ internal static class OfficeProvenanceSvg {
         roots.AddRange(directIptcScopes.Where(element =>
             !element.Ancestors().Any(directIptcScopeSet.Contains)));
         var rootSet = new HashSet<XElement>(roots);
-        return roots.Where(element => !element.Ancestors().Any(rootSet.Contains));
+        return roots.Distinct().Where(element => !element.Ancestors().Any(rootSet.Contains));
     }
 
     private enum SvgCarrierKind {
