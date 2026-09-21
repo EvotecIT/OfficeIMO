@@ -29,9 +29,8 @@ public sealed class OfficeImageExportDiagnostic {
         Message = message ?? string.Empty;
         Source = source;
         LossKind = severity == OfficeImageExportDiagnosticSeverity.Error
-            && lossKind == OfficeConversionLossKind.None
-                ? OfficeConversionLossKind.Failure
-                : lossKind ?? InferLossKind(severity);
+            ? OfficeConversionLossKind.Failure
+            : lossKind ?? InferLossKind(severity);
         FidelitySource = fidelitySource;
         FidelityLocation = fidelityLocation;
     }

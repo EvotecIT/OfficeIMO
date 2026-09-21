@@ -1945,6 +1945,24 @@ namespace OfficeIMO.Tests {
             Assert.Throws<InvalidDataException>(() => result.RequireNoLoss());
         }
 
+        [Theory]
+        [InlineData(false, false)]
+        [InlineData(false, true)]
+        [InlineData(true, false)]
+        [InlineData(true, true)]
+        public void LegacyDoc_LoadLegacyDocWithReport_ClassifiesUnreadOlePropertiesAsOmission(bool documentSummary, bool emptyStream) {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithUnreadableProperties("Retained text", documentSummary, emptyStream);
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(
+                new MemoryStream(docBytes), new LegacyDocImportOptions { ReportUnsupportedContent = false });
+            Assert.True(result.HasDocument);
+            Assert.Equal("Retained text", result.Document.Sections[0].Paragraphs[0].Text);
+            Assert.Contains(result.FidelityDiagnostics, diagnostic =>
+                diagnostic.Code == "DOC-OLE-PROPERTIES-UNREADABLE"
+                && diagnostic.LossKind == OfficeConversionLossKind.Omission);
+            Assert.Throws<InvalidDataException>(() => result.RequireNoLoss());
+        }
+
         [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsFormattedFootnoteStory() {
             byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithFormattedFootnoteStory("Body with formatted note");
@@ -12770,6 +12788,21 @@ namespace OfficeIMO.Tests {
                     WriteStream(root, "\u0005DocumentSummaryInformation", documentSummaryInformation);
                 }
 
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateSimpleDocWithUnreadableProperties(string paragraph, bool documentSummary, bool emptyStream) {
+                string text = paragraph + "\r";
+                byte[] wordDocumentStream = CreateWordDocumentStream(text);
+                byte[] tableStream = CreateTableStream(text.Length);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                    WriteStream(root, documentSummary ? "\u0005DocumentSummaryInformation" : "\u0005SummaryInformation",
+                        emptyStream ? Array.Empty<byte>() : new byte[] { 1, 2, 3, 4 });
+                }
                 return package.ToArray();
             }
 

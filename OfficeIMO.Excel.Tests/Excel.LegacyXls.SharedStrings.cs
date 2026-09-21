@@ -67,6 +67,24 @@ namespace OfficeIMO.Tests {
             Assert.Throws<InvalidDataException>(() => result.RequireNoLoss());
         }
 
+        [Theory]
+        [InlineData(false, "XLS-BIFF-SUPBOOK-SHORT")]
+        [InlineData(true, "XLS-BIFF-SUPBOOK-INVALID")]
+        public void LegacyXls_Load_ClassifiesUnreadExternalLinksAsOmissions(bool invalidTarget, string code) {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateWorkbookWithBrokenSupBook(invalidTarget);
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(
+                new MemoryStream(compound), new LegacyXlsImportOptions { ReportUnsupportedContent = false });
+            Assert.True(result.HasDocument);
+            Assert.Empty(result.AdvancedWorkbook.ExternalReferences);
+            Assert.Contains(result.FidelityDiagnostics, diagnostic =>
+                diagnostic.Code == code && diagnostic.LossKind == OfficeConversionLossKind.Omission);
+            Assert.Contains(result.Summary.FidelityDiagnostics, diagnostic =>
+                diagnostic.Code == code && diagnostic.LossKind == OfficeConversionLossKind.Omission);
+            Assert.Throws<InvalidDataException>(() => result.RequireNoLoss());
+        }
+
         [Fact]
         public void LegacyXls_Load_ImportsSharedStringSplitInsideContinueRecord() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateSegmentedSharedStringWorkbookStream();
@@ -135,6 +153,23 @@ namespace OfficeIMO.Tests {
         }
 
         private static partial class LegacyXlsTestWorkbookBuilder {
+            internal static byte[] CreateWorkbookWithBrokenSupBook(bool invalidTarget) {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0, 6, 5, 0, 0xdb, 0x0b, 0xcc, 7 });
+                WriteRecord(stream, 0x01ae, invalidTarget
+                    ? new byte[] { 1, 0, 5, 0 }
+                    : new byte[] { 1 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "Readable"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0, 6, 0x10, 0, 0xdb, 0x0b, 0xcc, 7 });
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
+                return bytes;
+            }
+
             internal static byte[] CreateWorkbookWithInvalidSheetOffset() {
                 using var stream = new MemoryStream();
                 WriteRecord(stream, 0x0809, new byte[] { 0, 6, 5, 0, 0xdb, 0x0b, 0xcc, 7 });

@@ -23,7 +23,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         }
 
         private static bool TryGetStream(IReadOnlyDictionary<string, byte[]> streams, string name, out byte[]? bytes) {
-            return streams.TryGetValue(name, out bytes) && bytes != null && bytes.Length > 0;
+            return streams.TryGetValue(name, out bytes) && bytes != null;
         }
 
         private static void TryReadSummaryInformation(byte[] bytes, LegacyDocDocument document) {

@@ -165,7 +165,8 @@ namespace OfficeIMO.Word.LegacyDoc {
             // unlike format/style recovery warnings where the content is still represented.
             if (diagnostic.Code is "DOC-FOOTNOTE-PLC-INVALID" or "DOC-ENDNOTE-PLC-INVALID"
                 or "DOC-COMMENT-PLC-INVALID" or "DOC-BOOKMARK-PLC-INVALID"
-                or "DOC-PICTURE-DATA-INVALID" or "DOC-PLCFHDD-INVALID")
+                or "DOC-PICTURE-DATA-INVALID" or "DOC-PLCFHDD-INVALID"
+                or "DOC-OLE-PROPERTIES-UNREADABLE")
                 return OfficeConversionLossKind.Omission;
             return diagnostic.Severity == LegacyDocDiagnosticSeverity.Warning
                 ? OfficeConversionLossKind.Approximation : OfficeConversionLossKind.None;
