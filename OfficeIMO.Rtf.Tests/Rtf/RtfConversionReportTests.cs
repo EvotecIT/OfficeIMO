@@ -5,6 +5,23 @@ using Xunit;
 namespace OfficeIMO.Tests.Rtf;
 
 public class RtfConversionReportTests {
+    [Theory]
+    [InlineData("")]
+    [InlineData("  ")]
+    public void BlankLegacyCodeProjectsAStableTypedIdentifier(string code) {
+        var report = new RtfConversionReport();
+        report.Add(RtfConversionSeverity.Warning, code, "Content omitted.", RtfConversionAction.Omitted, "body/0");
+
+        Assert.Equal(code, Assert.Single(report.Diagnostics).Code);
+        OfficeConversionFidelityDiagnostic typed = Assert.Single(
+            OfficeConversionFidelityDiagnostics.Flatten(new[] { report }));
+        Assert.Equal("RTF_DIAGNOSTIC_UNSPECIFIED", typed.Code);
+        Assert.Equal(OfficeConversionLossKind.Omission, typed.LossKind);
+        Assert.Equal("body/0", typed.Location);
+        Assert.True(report.HasLoss);
+        Assert.Throws<RtfConversionLossException>(report.RequireNoLoss);
+    }
+
     [Fact]
     public void Preserved_And_Substituted_Actions_Do_Not_Fail_Strict_Mode() {
         var report = new RtfConversionReport();

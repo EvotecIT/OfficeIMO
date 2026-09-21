@@ -12,7 +12,7 @@ public sealed class RtfConversionReport : IOfficeConversionReport {
     /// <summary>Category-preserving diagnostics for composed conversion routes.</summary>
     public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics => Array.AsReadOnly(
         _diagnostics.Select(static diagnostic => new OfficeConversionFidelityDiagnostic(
-            diagnostic.Code,
+            string.IsNullOrWhiteSpace(diagnostic.Code) ? "RTF_DIAGNOSTIC_UNSPECIFIED" : diagnostic.Code,
             diagnostic.Message,
             GetLossKind(diagnostic),
             "OfficeIMO.Rtf",

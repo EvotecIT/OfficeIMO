@@ -41,7 +41,7 @@ public sealed class AdfConversionDiagnostic {
         AdfConversionSeverity severity,
         OfficeConversionLossKind lossKind)
         : this(code, path, message, severity) => LossKind =
-            severity == AdfConversionSeverity.Error && lossKind == OfficeConversionLossKind.None
+            severity == AdfConversionSeverity.Error
                 ? OfficeConversionLossKind.Failure
                 : lossKind;
 

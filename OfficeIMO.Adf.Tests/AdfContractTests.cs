@@ -428,14 +428,17 @@ public sealed class AdfContractTests {
         Assert.Equal(OfficeConversionLossKind.Omission, Assert.Single(result.Report.FidelityDiagnostics).LossKind);
     }
 
-    [Fact]
-    public void ExplicitErrorDiagnosticCannotBypassStrictLossAcceptance() {
+    [Theory]
+    [InlineData(OfficeConversionLossKind.None)]
+    [InlineData(OfficeConversionLossKind.Approximation)]
+    [InlineData(OfficeConversionLossKind.Omission)]
+    public void ExplicitErrorDiagnosticCannotBypassStrictLossAcceptance(OfficeConversionLossKind declaredLossKind) {
         var diagnostic = new AdfConversionDiagnostic(
             "ADF_EXPLICIT_FAILURE",
             "$.content[0]",
             "The projection failed.",
             AdfConversionSeverity.Error,
-            OfficeConversionLossKind.None);
+            declaredLossKind);
         var report = new AdfConversionReport(new[] { diagnostic });
 
         Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
