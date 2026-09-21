@@ -270,13 +270,13 @@ internal static class OfficeProvenanceGif {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (HasXmpMagicTrailer(data, cursor)) {
                     if (collected.Length == 0) break;
-                    if (LooksLikeRawXmpPacket(data, payloadOffset) &&
+                    if (LooksLikeRawXmpPacket(data, payloadOffset, cancellationToken) &&
                         IsWellFormedRawXmp(
                             data, payloadOffset, cursor - payloadOffset, maximumPacketBytes,
                             maximumEntries, cancellationToken)) {
                         return TryReadRawXmpApplicationData(
                             data, payloadOffset, maximumPacketBytes, ref entryCount, maximumEntries,
-                            ref nextRawTrailer, out packet, out extensionEnd, out trailerStart);
+                            cancellationToken, ref nextRawTrailer, out packet, out extensionEnd, out trailerStart);
                     }
                     if (candidateEntryCount > maximumEntries) {
                         throw OfficeProvenanceLimitException.Create("GIF XMP data sub-blocks exceed the configured entry limit.");
@@ -298,17 +298,20 @@ internal static class OfficeProvenanceGif {
                 cursor += length;
             }
         }
-        if (!LooksLikeRawXmpPacket(data, payloadOffset)) return false;
+        if (!LooksLikeRawXmpPacket(data, payloadOffset, cancellationToken)) return false;
         return TryReadRawXmpApplicationData(
-            data, payloadOffset, maximumPacketBytes, ref entryCount, maximumEntries, ref nextRawTrailer,
+            data, payloadOffset, maximumPacketBytes, ref entryCount, maximumEntries, cancellationToken, ref nextRawTrailer,
             out packet, out extensionEnd, out trailerStart);
     }
 
-    private static bool LooksLikeRawXmpPacket(byte[] data, int offset) {
+    private static bool LooksLikeRawXmpPacket(byte[] data, int offset, CancellationToken cancellationToken) {
         if (offset <= data.Length - 3 && data[offset] == 0xEF && data[offset + 1] == 0xBB && data[offset + 2] == 0xBF) {
             offset += 3;
         }
-        while (offset < data.Length && data[offset] is 0x09 or 0x0A or 0x0D or 0x20) offset++;
+        while (offset < data.Length && data[offset] is 0x09 or 0x0A or 0x0D or 0x20) {
+            if ((offset & 0xFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
+            offset++;
+        }
         if (offset >= data.Length || data[offset++] != (byte)'<' || offset >= data.Length) return false;
         byte next = data[offset];
         return next is (byte)'?' or (byte)'!' or (byte)'_' or (>= (byte)'A' and <= (byte)'Z') or (>= (byte)'a' and <= (byte)'z');
@@ -359,6 +362,7 @@ internal static class OfficeProvenanceGif {
         long maximumPacketBytes,
         ref int entryCount,
         int maximumEntries,
+        CancellationToken cancellationToken,
         ref int nextRawTrailer,
         out byte[] packet,
         out int extensionEnd,
@@ -371,6 +375,7 @@ internal static class OfficeProvenanceGif {
             int start = Math.Max(payloadOffset, nextRawTrailer + 1);
             nextRawTrailer = int.MaxValue;
             for (int candidate = start; candidate <= data.Length - trailerLength; candidate++) {
+                if ((candidate & 0xFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
                 if (!HasXmpMagicTrailer(data, candidate)) continue;
                 nextRawTrailer = candidate;
                 break;

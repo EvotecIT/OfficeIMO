@@ -24,7 +24,7 @@ internal static class OfficeProvenanceSvg {
         XDocument document = Load(data, options);
         IReadOnlyList<SvgCarrier> carriers = FindCarriers(document);
         int manifestCount = carriers.Count(carrier => carrier.Kind == SvgCarrierKind.Manifest);
-        int xmpCarrierCount = carriers.Count(carrier => carrier.Kind == SvgCarrierKind.Xmp);
+        int xmpCarrierCount = CountLogicalXmpCarriers(carriers);
         int manifestIndex = 0;
         int xmpIndex = 0;
         foreach (SvgCarrier carrier in carriers) {
@@ -65,40 +65,58 @@ internal static class OfficeProvenanceSvg {
         }
         XDocument document = Load(data, options.Limits);
         IReadOnlyList<SvgCarrier> carriers = FindCarriers(document);
-        int manifestCount = carriers.Count(carrier => carrier.Kind == SvgCarrierKind.Manifest);
-        int xmpCarrierCount = carriers.Count(carrier => carrier.Kind == SvgCarrierKind.Xmp);
+        int xmpCarrierCount = CountLogicalXmpCarriers(carriers);
+        var manifestIndexes = new Dictionary<XElement, int>();
+        var xmpIndexes = new Dictionary<XElement, int>();
         int manifestIndex = 0;
         int xmpIndex = 0;
         foreach (SvgCarrier carrier in carriers) {
+            if (carrier.Kind == SvgCarrierKind.Manifest) manifestIndexes[carrier.Element] = manifestIndex++;
+            else xmpIndexes[carrier.Element] = xmpIndex++;
+        }
+        // Process descendants first so replacing an XMP scope cannot detach a carrier
+        // that was discovered within that scope before it is removed. Restore the public
+        // change list to source order after all mutations have completed.
+        int initialChangeCount = changes.Count;
+        var orderedChanges = new List<(int Order, OfficeProvenanceChange Change)>();
+        for (int carrierOrder = carriers.Count - 1; carrierOrder >= 0; carrierOrder--) {
+            SvgCarrier carrier = carriers[carrierOrder];
+            int previousChangeCount = changes.Count;
             if (carrier.Kind == SvgCarrierKind.Xmp) {
-                string location = $"SVG/XMP[{xmpIndex++}]";
-                if (!options.RemoveAiSourceMetadata || !OfficeProvenanceXmp.TryRemoveAiDeclarations(
+                string location = $"SVG/XMP[{xmpIndexes[carrier.Element]}]";
+                if (options.RemoveAiSourceMetadata && OfficeProvenanceXmp.TryRemoveAiDeclarations(
                     SerializeElement(carrier.Element),
                     options,
                     location,
                     changes,
                     out byte[] cleanedXmp,
                     carrierIsStructurallyValid: xmpCarrierCount == 1,
-                    allowDirectRootIptc: IsSvgMetadataElement(carrier.Element))) continue;
-                carrier.Element.ReplaceWith(LoadElement(cleanedXmp, options.Limits));
-                reserialized = true;
-                continue;
+                    allowDirectRootIptc: IsSvgMetadataElement(carrier.Element))) {
+                    carrier.Element.ReplaceWith(LoadElement(cleanedXmp, options.Limits));
+                    reserialized = true;
+                }
+            } else {
+                int index = manifestIndexes[carrier.Element];
+                XElement element = carrier.Element;
+                string manifestLocation = $"SVG/metadata/c2pa:manifest[{index}]";
+                bool valid = before.Evidence.Any(item =>
+                    item.Carrier == OfficeProvenanceCarrierKind.C2paManifest &&
+                    item.Location == manifestLocation &&
+                    item.IsStructurallyValid);
+                if (options.RemoveC2paManifests && (valid || !options.RequireStructurallyValidCarrier)) {
+                    element.Remove();
+                    changes.Add(new OfficeProvenanceChange(
+                        OfficeProvenanceCarrierKind.C2paManifest,
+                        manifestLocation,
+                        0));
+                }
             }
-
-            int index = manifestIndex++;
-            XElement element = carrier.Element;
-            string manifestLocation = $"SVG/metadata/c2pa:manifest[{index}]";
-            bool valid = before.Evidence.Any(item =>
-                item.Carrier == OfficeProvenanceCarrierKind.C2paManifest &&
-                item.Location == manifestLocation &&
-                item.IsStructurallyValid);
-            if (!options.RemoveC2paManifests || !valid && options.RequireStructurallyValidCarrier) continue;
-            element.Remove();
-            changes.Add(new OfficeProvenanceChange(
-                OfficeProvenanceCarrierKind.C2paManifest,
-                manifestLocation,
-                0));
+            for (int changeIndex = previousChangeCount; changeIndex < changes.Count; changeIndex++) {
+                orderedChanges.Add((carrierOrder, changes[changeIndex]));
+            }
         }
+        changes.RemoveRange(initialChangeCount, changes.Count - initialChangeCount);
+        changes.AddRange(orderedChanges.OrderBy(item => item.Order).Select(item => item.Change));
         if (changes.Count == 0) return OfficeProvenanceBinary.CloneForOutput(data, options.EffectiveMaxOutputBytes);
         using var output = new OfficeProvenanceBoundedMemoryStream(options.EffectiveMaxOutputBytes);
         var settings = new XmlWriterSettings {
@@ -370,6 +388,28 @@ internal static class OfficeProvenanceSvg {
         return carriers;
     }
 
+    private static int CountLogicalXmpCarriers(IReadOnlyList<SvgCarrier> carriers) {
+        int count = 0;
+        foreach (SvgCarrier carrier in carriers) {
+            if (carrier.Kind != SvgCarrierKind.Xmp) continue;
+            var scopes = new HashSet<XElement>();
+            foreach (XElement xmp in carrier.Element.DescendantsAndSelf(XmpNamespace + "xmpmeta")
+                .Where(element => !element.Ancestors(XmpNamespace + "xmpmeta").Any())) {
+                scopes.Add(xmp);
+            }
+            foreach (XElement declaration in carrier.Element.DescendantsAndSelf()
+                .Where(ContainsDirectIptcDeclaration)
+                .Where(element => !element.Ancestors(XmpNamespace + "xmpmeta").Any())) {
+                scopes.Add(GetDirectIptcScope(declaration));
+            }
+            // A direct declaration on metadata belongs to its one nested XMP/RDF
+            // scope, but multiple sibling scopes remain separate carriers.
+            if (scopes.Count > 1) scopes.Remove(carrier.Element);
+            count = checked(count + Math.Max(1, scopes.Count));
+        }
+        return count;
+    }
+
     private static IEnumerable<XElement> FindXmpRoots(XDocument document) {
         var roots = new List<XElement>();
         roots.AddRange(document.Descendants(XmpNamespace + "xmpmeta")
@@ -385,7 +425,8 @@ internal static class OfficeProvenanceSvg {
         var directIptcScopeSet = new HashSet<XElement>(directIptcScopes);
         roots.AddRange(directIptcScopes.Where(element =>
             !element.Ancestors().Any(directIptcScopeSet.Contains)));
-        return roots;
+        var rootSet = new HashSet<XElement>(roots);
+        return roots.Where(element => !element.Ancestors().Any(rootSet.Contains));
     }
 
     private enum SvgCarrierKind {
@@ -426,6 +467,9 @@ internal static class OfficeProvenanceSvg {
     private static XElement GetDirectIptcScope(XElement element) {
         XElement? rdf = element.AncestorsAndSelf().FirstOrDefault(ancestor => ancestor.Name == RdfNamespace + "RDF");
         if (rdf != null) return rdf;
+        if (element.Name == C2paNamespace + "manifest") {
+            return element.Ancestors().FirstOrDefault(IsSvgMetadataElement) ?? element;
+        }
         return element.Name.NamespaceName == IptcNamespace && element.Parent != null ? element.Parent : element;
     }
 

@@ -126,6 +126,80 @@ public sealed partial class ProvenanceCoreContracts {
         Assert.DoesNotContain("trainedAlgorithmicMedia", Encoding.UTF8.GetString(result.ToArray()), StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void SvgMetadataRootAndNestedXmpAreRemovedAsOneCarrier(bool requireValidCarrier) {
+        byte[] svg = Encoding.UTF8.GetBytes(
+            "<svg xmlns='http://www.w3.org/2000/svg' xmlns:iptc='http://iptc.org/std/Iptc4xmpExt/2008-02-29/' " +
+            "xmlns:x='adobe:ns:meta/' xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>" +
+            "<metadata iptc:DigitalSourceType='trainedAlgorithmicMedia'><x:xmpmeta><rdf:RDF>" +
+            "<rdf:Description iptc:DigitalSourceType='trainedAlgorithmicMedia'/></rdf:RDF></x:xmpmeta>" +
+            "</metadata></svg>");
+        var options = new OfficeProvenanceRemovalOptions {
+            RequireStructurallyValidCarrier = requireValidCarrier
+        };
+
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(svg, "fixture.svg", options);
+
+        Assert.True(result.WasChanged);
+        Assert.Equal(2, result.Before.Evidence.Count);
+        Assert.Empty(result.After.Evidence);
+        Assert.DoesNotContain("trainedAlgorithmicMedia", Encoding.UTF8.GetString(result.ToArray()), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SvgNestedManifestIsRemovedBeforeReplacingItsMetadataScope() {
+        string manifest = Convert.ToBase64String(CreateManifestStore());
+        byte[] svg = Encoding.UTF8.GetBytes(
+            "<svg xmlns='http://www.w3.org/2000/svg' xmlns:iptc='http://iptc.org/std/Iptc4xmpExt/2008-02-29/' " +
+            "xmlns:c2pa='http://c2pa.org/manifest'><metadata iptc:DigitalSourceType='trainedAlgorithmicMedia'>" +
+            "<c2pa:manifest>" + manifest + "</c2pa:manifest></metadata></svg>");
+
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(svg, "fixture.svg");
+
+        Assert.True(result.WasChanged);
+        Assert.Equal(2, result.Before.Evidence.Count);
+        Assert.Empty(result.After.Evidence);
+        Assert.DoesNotContain("trainedAlgorithmicMedia", Encoding.UTF8.GetString(result.ToArray()), StringComparison.Ordinal);
+        Assert.DoesNotContain("c2pa:manifest", Encoding.UTF8.GetString(result.ToArray()), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SvgNestedDuplicateXmpPacketsRemainStructurallyInvalid() {
+        const string packet = "<x:xmpmeta><rdf:RDF><rdf:Description " +
+            "iptc:DigitalSourceType='trainedAlgorithmicMedia'/></rdf:RDF></x:xmpmeta>";
+        byte[] svg = Encoding.UTF8.GetBytes(
+            "<svg xmlns='http://www.w3.org/2000/svg' xmlns:iptc='http://iptc.org/std/Iptc4xmpExt/2008-02-29/' " +
+            "xmlns:x='adobe:ns:meta/' xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>" +
+            "<metadata iptc:DigitalSourceType='trainedAlgorithmicMedia'>" + packet + packet +
+            "</metadata></svg>");
+
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(svg, "fixture.svg");
+
+        Assert.Equal(3, result.Before.Evidence.Count);
+        Assert.All(result.Before.Evidence, evidence => Assert.False(evidence.IsStructurallyValid));
+        Assert.False(result.WasChanged);
+    }
+
+    [Fact]
+    public void SvgMetadataDeclarationDoesNotHideMultipleRdfScopes() {
+        byte[] svg = Encoding.UTF8.GetBytes(
+            "<svg xmlns='http://www.w3.org/2000/svg' xmlns:iptc='http://iptc.org/std/Iptc4xmpExt/2008-02-29/' " +
+            "xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'><metadata " +
+            "iptc:DigitalSourceType='trainedAlgorithmicMedia'>" +
+            "<rdf:RDF><rdf:Description iptc:DigitalSourceType='trainedAlgorithmicMedia'/></rdf:RDF>" +
+            "<rdf:RDF><rdf:Description iptc:DigitalSourceType='trainedAlgorithmicMedia'/></rdf:RDF>" +
+            "</metadata></svg>");
+
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(svg, "fixture.svg");
+
+        Assert.Equal(3, result.Before.Evidence.Count);
+        Assert.All(result.Before.Evidence, evidence => Assert.False(evidence.IsStructurallyValid));
+        Assert.False(result.WasChanged);
+        Assert.Equal(svg, result.ToArray());
+    }
+
     [Fact]
     public void DuplicateWebpExtendedHeadersInvalidateC2pa() {
         byte[] webp = CreateWebp(
