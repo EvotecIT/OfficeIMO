@@ -194,6 +194,35 @@ public sealed class ConverterTests {
         Assert.Throws<InvalidOperationException>(() => pdf.RequireNoLoss());
     }
 
+    [Fact]
+    public void UnreadAndMetadataOnlySectionsRemainTypedOmissionsInMarkdown() {
+        var notebook = new OneNoteNotebook { Name = "Incomplete notebook" };
+        notebook.Diagnostics.Add(new OneNoteDiagnostic {
+            Code = "ONENOTE_TOC_SECTION_MISSING",
+            Severity = OneNoteDiagnosticSeverity.Warning,
+            Message = "A referenced section is missing."
+        });
+        notebook.Diagnostics.Add(new OneNoteDiagnostic {
+            Code = "ONENOTE_TOC_STREAM_METADATA_ONLY",
+            Severity = OneNoteDiagnosticSeverity.Warning,
+            Message = "Only hierarchy metadata was available."
+        });
+        notebook.Diagnostics.Add(new OneNoteDiagnostic {
+            Code = "ONENOTE_FILE_TYPE",
+            Severity = OneNoteDiagnosticSeverity.Warning,
+            Message = "A section could not be read.",
+            LossKind = OfficeConversionLossKind.Omission
+        });
+
+        OneNoteMarkdownConversionResult result = notebook.ToMarkdownDocumentResult();
+
+        Assert.Equal(3, result.Report.FidelityDiagnostics.Count(diagnostic =>
+            diagnostic.LossKind == OfficeConversionLossKind.Omission));
+        Assert.DoesNotContain(result.Report.FidelityDiagnostics, diagnostic =>
+            diagnostic.LossKind == OfficeConversionLossKind.Approximation);
+        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+    }
+
     [Theory]
     [InlineData(typeof(OneNoteSectionPdfConverterExtensions))]
     [InlineData(typeof(OneNoteNotebookPdfConverterExtensions))]

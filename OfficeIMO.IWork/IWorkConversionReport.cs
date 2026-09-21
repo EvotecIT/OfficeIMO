@@ -20,11 +20,7 @@ public sealed class IWorkConversionReport : global::OfficeIMO.IOfficeConversionR
             fidelityDiagnostics.Add(new global::OfficeIMO.OfficeConversionFidelityDiagnostic(
                 diagnostic.Code,
                 diagnostic.Message,
-                diagnostic.Severity switch {
-                    IWorkDiagnosticSeverity.Information => global::OfficeIMO.OfficeConversionLossKind.None,
-                    IWorkDiagnosticSeverity.Warning => global::OfficeIMO.OfficeConversionLossKind.Approximation,
-                    _ => global::OfficeIMO.OfficeConversionLossKind.Failure
-                },
+                diagnostic.LossKind,
                 "OfficeIMO.IWork",
                 diagnostic.EntryPath));
         }
@@ -32,7 +28,9 @@ public sealed class IWorkConversionReport : global::OfficeIMO.IOfficeConversionR
             fidelityDiagnostics.Add(new global::OfficeIMO.OfficeConversionFidelityDiagnostic(
                 "IWORK_VISUAL_FALLBACK",
                 "The source was represented by a visual preview instead of editable reconstruction.",
-                global::OfficeIMO.OfficeConversionLossKind.Approximation,
+                VisualPreview?.Coverage == IWorkVisualCoverage.FullDocument
+                    ? global::OfficeIMO.OfficeConversionLossKind.Approximation
+                    : global::OfficeIMO.OfficeConversionLossKind.Omission,
                 "OfficeIMO.IWork"));
         }
         if (UnsupportedRecordCount > 0) {

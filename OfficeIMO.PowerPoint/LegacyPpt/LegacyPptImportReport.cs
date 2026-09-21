@@ -142,11 +142,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 .Select(diagnostic => new OfficeConversionFidelityDiagnostic(
                     diagnostic.Code,
                     diagnostic.Message,
-                    diagnostic.Severity switch {
-                        LegacyPptDiagnosticSeverity.Error => OfficeConversionLossKind.Failure,
-                        LegacyPptDiagnosticSeverity.Warning => OfficeConversionLossKind.Approximation,
-                        _ => OfficeConversionLossKind.None
-                    },
+                    GetLossKind(diagnostic),
                     "OfficeIMO.PowerPoint.LegacyPpt.Reader",
                     diagnostic.StreamOffset.HasValue
                         ? $"PowerPoint Document+0x{diagnostic.StreamOffset.Value:X}"
@@ -161,6 +157,27 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     "shapes"));
             }
             FidelityDiagnostics = Array.AsReadOnly(fidelityDiagnostics.ToArray());
+        }
+
+        private static OfficeConversionLossKind GetLossKind(
+            LegacyPptImportDiagnostic diagnostic) {
+            if (diagnostic.Severity == LegacyPptDiagnosticSeverity.Information) {
+                return OfficeConversionLossKind.None;
+            }
+            if (diagnostic.Severity == LegacyPptDiagnosticSeverity.Error) {
+                return OfficeConversionLossKind.Failure;
+            }
+
+            string code = diagnostic.Code;
+            return code.IndexOf("-PRESERVED", StringComparison.Ordinal) >= 0
+                || code.IndexOf("-PRESERVE-ONLY", StringComparison.Ordinal) >= 0
+                || code.EndsWith("-UNSUPPORTED", StringComparison.Ordinal)
+                || code.EndsWith("-MISSING", StringComparison.Ordinal)
+                || code.EndsWith("-TRUNCATED", StringComparison.Ordinal)
+                || code.EndsWith("-READ", StringComparison.Ordinal)
+                || code.EndsWith("-MALFORMED", StringComparison.Ordinal)
+                ? OfficeConversionLossKind.Omission
+                : OfficeConversionLossKind.Approximation;
         }
 
         /// <summary>Gets the presentation slide count.</summary>

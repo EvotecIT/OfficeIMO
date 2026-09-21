@@ -13,7 +13,8 @@ public sealed partial class IWorkBoundaryTests {
         var warning = new IWorkDiagnostic(
             IWorkDiagnosticSeverity.Warning,
             "IWORK_APPROXIMATION_TEST",
-            "A source feature was approximated.");
+            "A source feature was approximated.",
+            lossKind: OfficeConversionLossKind.Approximation);
         var report = new IWorkConversionReport(
             IWorkDocumentKind.Pages,
             IWorkProjectionKind.EditableReconstruction,
@@ -29,6 +30,55 @@ public sealed partial class IWorkBoundaryTests {
         OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(report.FidelityDiagnostics);
         Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
         Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
+    }
+
+    [Theory]
+    [InlineData("IWORK_KEYNOTE_SLIDE_MISSING")]
+    [InlineData("IWORK_PAGES_HEADER_FOOTER_UNSUPPORTED")]
+    [InlineData("IWORK_TABLE_CELL_DECODE")]
+    public void MissingOrUnprojectedContentIsTypedAsOmission(string code) {
+        var warning = new IWorkDiagnostic(
+            IWorkDiagnosticSeverity.Warning,
+            code,
+            "Source content was not represented.");
+        var report = new IWorkConversionReport(
+            IWorkDocumentKind.Pages,
+            IWorkProjectionKind.EditableReconstruction,
+            Array.Empty<string>(),
+            Array.Empty<IWorkArchiveRecord>(),
+            new[] { warning },
+            visualPreview: null,
+            totalRecordCount: 0,
+            unsupportedRecordCount: 0,
+            reconstructedItemCount: 1);
+
+        Assert.Equal(OfficeConversionLossKind.Omission,
+            Assert.Single(report.FidelityDiagnostics).LossKind);
+    }
+
+    [Theory]
+    [InlineData(IWorkVisualCoverage.Unknown, OfficeConversionLossKind.Omission)]
+    [InlineData(IWorkVisualCoverage.FirstPageOrCompositePreview, OfficeConversionLossKind.Omission)]
+    [InlineData(IWorkVisualCoverage.FullDocument, OfficeConversionLossKind.Approximation)]
+    public void VisualFallbackCategoryReflectsPreviewCoverage(
+        IWorkVisualCoverage coverage, OfficeConversionLossKind expected) {
+        var preview = new IWorkPreviewAsset(
+            "preview.png", "image/png", coverage, 1, 1, new byte[] { 1 });
+        var report = new IWorkConversionReport(
+            IWorkDocumentKind.Pages,
+            IWorkProjectionKind.VisualFallback,
+            Array.Empty<string>(),
+            Array.Empty<IWorkArchiveRecord>(),
+            Array.Empty<IWorkDiagnostic>(),
+            preview,
+            totalRecordCount: 0,
+            unsupportedRecordCount: 0,
+            reconstructedItemCount: 0);
+
+        OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(
+            report.FidelityDiagnostics,
+            item => item.Code == "IWORK_VISUAL_FALLBACK");
+        Assert.Equal(expected, diagnostic.LossKind);
     }
 
     [Fact]
