@@ -98,6 +98,17 @@ public sealed class HtmlSecurityLayoutBatchTests {
     }
 
     [Fact]
+    public void TrustedStylesCanRegisterMoreThanTheFormerFixedPropertyCap() {
+        string registrations = string.Concat(Enumerable.Range(0, 257).Select(index =>
+            $"@property --p{index} {{ syntax:'<color>'; inherits:false; initial-value:red; }}"));
+        string html = "<style>" + registrations + "p{color:var(--p256)}</style><p>Text</p>";
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            html, HtmlConversionDocumentOptions.CreateTrustedProfile());
+
+        Assert.Equal("red", HtmlComputedStyleEngine.Compute(document)[document.Document.QuerySelector("p")!].GetValue("color"));
+    }
+
+    [Fact]
     public void ZeroWidthLeaderCannotExpandIntoAnUnboundedString() {
         string html = "<style>p::before{content:leader('" + new string('\u200b', 1000) +
             "')}</style><p>x</p>";
@@ -126,6 +137,25 @@ public sealed class HtmlSecurityLayoutBatchTests {
             MaxLayoutOperations = 10000
         });
         Assert.Contains('漢', rendered.Text);
+    }
+
+    [Fact]
+    public void FirstLineSearchKeepsSurrogatePairsWholeAtTheFormerPrefixBoundary() {
+        string token = new string('\u200B', 16383) + "😀suffix";
+        var callbackInputs = new List<string>();
+        var options = new HtmlRenderOptions {
+            TextHyphenationCallback = value => {
+                callbackInputs.Add(value);
+                return Array.Empty<int>();
+            }
+        };
+        string html = "<style>p::first-line{color:red}</style>" +
+            "<p style='width:1px;hyphens:auto;overflow-wrap:anywhere'>" + token + "</p>";
+
+        HtmlRenderTestDriver.Render(html, options);
+
+        Assert.Contains(callbackInputs, value => value.Length == 16385 && char.IsLowSurrogate(value[value.Length - 1]));
+        Assert.DoesNotContain(callbackInputs, value => value.Length > 0 && char.IsHighSurrogate(value[value.Length - 1]));
     }
 
     [Fact]

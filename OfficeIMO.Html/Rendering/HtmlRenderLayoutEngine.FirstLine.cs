@@ -145,10 +145,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double width,
         out int split) {
         split = -1;
-        const int maximumSearchCharacters = 16384;
-        string searchToken = token.Length <= maximumSearchCharacters
-            ? token
-            : token.Substring(0, maximumSearchCharacters);
+        ChargeLayoutOperations(token.Length, "first-line token search");
+        string searchToken = GetFirstLineSearchToken(token, firstLineStyle, width);
         HyphenationToken hyphenation = PrepareHyphenationToken(searchToken, searchToken, layoutStyle);
         if (hyphenation.HasBreaks) {
             int[] candidates = hyphenation.PrimaryBreaks.Concat(hyphenation.SecondaryBreaks)
@@ -173,6 +171,25 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return split > 0 && split < token.Length;
     }
 
+    private string GetFirstLineSearchToken(string token, HtmlRenderBoxStyle style, double width) {
+        const int initialSearchCharacters = 16384;
+        if (token.Length <= initialSearchCharacters) return token;
+
+        int target = initialSearchCharacters;
+        var elements = StringInfo.GetTextElementEnumerator(token);
+        while (elements.MoveNext()) {
+            int boundary = elements.ElementIndex;
+            if (boundary < target) continue;
+            CheckCancellation();
+            ChargeLayoutOperations((boundary + 31L) / 32L, "first-line token search");
+            if (MeasureInlineText(token.Substring(0, boundary), style) > width + 0.0001D) {
+                return token.Substring(0, boundary);
+            }
+            target = target > token.Length / 2 ? token.Length : target * 2;
+        }
+        return token;
+    }
+
     private int FindLargestFittingFirstLineBreak(
         string text,
         IReadOnlyList<int> points,
@@ -195,6 +212,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 high = middle - 1;
                 continue;
             }
+            ChargeLayoutOperations((point + 31L) / 32L, "first-line token splitting");
             string candidate = text.Substring(0, point) + suffix;
             if (MeasureInlineText(candidate, style) <= width + 0.0001D) {
                 best = point;

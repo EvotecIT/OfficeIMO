@@ -191,11 +191,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     if (Math.Abs(fragment.Y - y) > tolerance || Math.Abs(fragment.Height - height) > tolerance) continue;
                     double right = x + width;
                     if (right < fragment.X - tolerance || x > fragment.Right + tolerance) continue;
-                    _fragments[index] = new InlineFragmentRect(
+                    var merged = new InlineFragmentRect(
                         Math.Min(fragment.X, x),
                         Math.Min(fragment.Y, y),
                         Math.Max(fragment.Right, right) - Math.Min(fragment.X, x),
                         Math.Max(fragment.Bottom, y + height) - Math.Min(fragment.Y, y));
+                    _fragments[index] = merged;
+                    long mergedLine = (long)Math.Floor(merged.Y / tolerance);
+                    if (mergedLine != candidate) {
+                        indexes.RemoveAt(item);
+                        if (!_fragmentsByLine.TryGetValue(mergedLine, out List<int>? mergedIndexes)) {
+                            mergedIndexes = new List<int>();
+                            _fragmentsByLine.Add(mergedLine, mergedIndexes);
+                        }
+                        mergedIndexes.Add(index);
+                    }
                     return;
                 }
             }

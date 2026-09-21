@@ -63,12 +63,6 @@ public static partial class HtmlComputedStyleEngine {
             int close = FindCustomPropertyBlockEnd(css, cursor);
             if (close < 0) return;
             budget.RecordRule(3);
-            if (registrations.Count >= 256) {
-                throw new HtmlDomLimitException(
-                    HtmlConversionDiagnosticCodes.CssRuleLimitExceeded,
-                    "Registered CSS custom properties exceeded the processing limit.",
-                    "RegisteredCustomProperties", registrations.Count + 1, 256);
-            }
             string block = css.Substring(cursor + 1, close - cursor - 1);
             if (TryCreateCustomPropertyRegistration(nameText, block, out CustomPropertyRegistration? registration)) {
                 registrations[registration!.Name] = registration;

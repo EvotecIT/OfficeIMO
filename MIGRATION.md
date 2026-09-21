@@ -9,6 +9,21 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## HTML style and rendering limits
+
+`HtmlComputedStyleEngine.Compute(HtmlDocument)` now applies the untrusted HTML and CSS limits to prepared documents. Applications that intentionally process trusted or larger documents can retain their chosen policy by wrapping the prepared document before computing styles:
+
+```csharp
+var conversion = HtmlConversionDocument.FromDocument(
+    preparedDocument,
+    HtmlConversionDocumentOptions.CreateTrustedProfile());
+var styles = HtmlComputedStyleEngine.Compute(conversion);
+```
+
+To set specific limits, pass `new HtmlConversionDocumentOptions { Limits = yourLimits }` to `FromDocument` instead. Continue using the direct overload for untrusted prepared documents.
+
+`HtmlRenderOptions.MaxTextShadowLayers` now accepts values from 1 through 64. If an application set a value above 64, reduce it to 64 or less before rendering; larger values now throw `ArgumentOutOfRangeException` during option validation.
+
 ## Native ChartForgeX topology placement
 
 `OfficeVisioVisualOptions.LayoutMode` defaults to `Auto`. A topology envelope with complete viewport, node, and included-group bounds now keeps those bounds instead of being laid out again. `PixelsPerInch` controls their physical size. Set `LayoutMode = OfficeVisioVisualLayoutMode.Reflow` to retain the previous native-layout behavior. Flow, sequence, and incomplete topology envelopes continue to use native layout in `Auto` mode. Native graph styling now uses source theme colors with portable Arial text; set `NativeTheme = VisioStyleTheme.Technical()` to retain the previous native palette and typography.
