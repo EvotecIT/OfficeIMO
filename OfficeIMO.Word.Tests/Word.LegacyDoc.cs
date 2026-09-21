@@ -1910,6 +1910,41 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Theory]
+        [InlineData(false, "DOC-FOOTNOTE-PLC-INVALID")]
+        [InlineData(true, "DOC-ENDNOTE-PLC-INVALID")]
+        public void LegacyDoc_LoadLegacyDocWithReport_ClassifiesUnreadNotesAsOmissions(bool endnote, string code) {
+            byte[] docBytes = endnote
+                ? LegacyDocTestBuilder.CreateSimpleDocWithEndnoteStory("Body with note", "Lost endnote", omitReferencePlc: true)
+                : LegacyDocTestBuilder.CreateSimpleDocWithFootnoteStory("Body with note", "Lost footnote", omitReferencePlc: true);
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(
+                new MemoryStream(docBytes), new LegacyDocImportOptions { ReportUnsupportedContent = false });
+            Assert.True(result.HasDocument);
+            Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == code);
+            Assert.Contains(result.FidelityDiagnostics, diagnostic =>
+                diagnostic.Code == code && diagnostic.LossKind == OfficeConversionLossKind.Omission);
+            Assert.Contains(result.Summary.FidelityDiagnostics, diagnostic =>
+                diagnostic.Code == code && diagnostic.LossKind == OfficeConversionLossKind.Omission);
+            Assert.Empty(endnote ? result.Document.EndNotes : result.Document.FootNotes);
+            Assert.Throws<InvalidDataException>(() => result.RequireNoLoss());
+            Assert.Throws<InvalidDataException>(() => result.Summary.RequireNoLoss());
+        }
+
+        [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ClassifiesUnreadCommentsAsOmissions() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithCommentStory(
+                "Body with comment", "Lost comment", omitReferencePlc: true);
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(
+                new MemoryStream(docBytes), new LegacyDocImportOptions { ReportUnsupportedContent = false });
+            Assert.True(result.HasDocument);
+            Assert.Empty(result.LegacyDocument.Comments);
+            Assert.Contains(result.FidelityDiagnostics, diagnostic =>
+                diagnostic.Code == "DOC-COMMENT-PLC-INVALID" && diagnostic.LossKind == OfficeConversionLossKind.Omission);
+            Assert.Throws<InvalidDataException>(() => result.RequireNoLoss());
+        }
+
         [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsFormattedFootnoteStory() {
             byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithFormattedFootnoteStory("Body with formatted note");
@@ -13077,7 +13112,7 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
-            internal static byte[] CreateSimpleDocWithFootnoteStory(string bodyText, string footnoteText) {
+            internal static byte[] CreateSimpleDocWithFootnoteStory(string bodyText, string footnoteText, bool omitReferencePlc = false) {
                 string documentText = bodyText + "\u0002\r";
                 string footnoteStory = footnoteText + "\r";
                 string text = documentText + footnoteStory;
@@ -13097,7 +13132,7 @@ namespace OfficeIMO.Tests {
                     text,
                     ccpFtn: footnoteStory.Length,
                     fcPlcffndRef: fcPlcffndRef,
-                    lcbPlcffndRef: footnoteReferencePlc.Length,
+                    lcbPlcffndRef: omitReferencePlc ? 0 : footnoteReferencePlc.Length,
                     fcPlcffndTxt: fcPlcffndTxt,
                     lcbPlcffndTxt: footnoteTextPlc.Length,
                     ccpTextOverride: documentText.Length);
@@ -13111,7 +13146,7 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
-            internal static byte[] CreateSimpleDocWithCommentStory(string bodyText, string commentText) {
+            internal static byte[] CreateSimpleDocWithCommentStory(string bodyText, string commentText, bool omitReferencePlc = false) {
                 string documentText = bodyText + "\u0005\r";
                 string commentStory = commentText + "\r";
                 string text = documentText + commentStory;
@@ -13131,7 +13166,7 @@ namespace OfficeIMO.Tests {
                     text,
                     ccpAtn: commentStory.Length,
                     fcPlcfandRef: fcPlcfandRef,
-                    lcbPlcfandRef: commentReferencePlc.Length,
+                    lcbPlcfandRef: omitReferencePlc ? 0 : commentReferencePlc.Length,
                     fcPlcfandTxt: fcPlcfandTxt,
                     lcbPlcfandTxt: commentTextPlc.Length,
                     ccpTextOverride: documentText.Length);
@@ -13267,7 +13302,7 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
-            internal static byte[] CreateSimpleDocWithEndnoteStory(string bodyText, string endnoteText) {
+            internal static byte[] CreateSimpleDocWithEndnoteStory(string bodyText, string endnoteText, bool omitReferencePlc = false) {
                 string documentText = bodyText + "\u0002\r";
                 string endnoteStory = endnoteText + "\r";
                 string text = documentText + endnoteStory;
@@ -13288,7 +13323,7 @@ namespace OfficeIMO.Tests {
                     text,
                     ccpEdn: endnoteStory.Length,
                     fcPlcfendRef: fcPlcfendRef,
-                    lcbPlcfendRef: endnoteReferencePlc.Length,
+                    lcbPlcfendRef: omitReferencePlc ? 0 : endnoteReferencePlc.Length,
                     fcPlcfendTxt: fcPlcfendTxt,
                     lcbPlcfendTxt: endnoteTextPlc.Length,
                     textOffset: textOffset,

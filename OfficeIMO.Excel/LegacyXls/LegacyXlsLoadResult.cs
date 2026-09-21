@@ -208,9 +208,12 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         private static OfficeConversionLossKind ClassifyLoss(LegacyXlsImportDiagnostic diagnostic) {
             if (diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error) return OfficeConversionLossKind.Failure;
-            // An unread shared string can become an empty LabelSst cell; it is not a
-            // representational approximation of the original value.
-            if (diagnostic.Code is "XLS-BIFF-SST-SHORT" or "XLS-BIFF-SST-STRING-INVALID")
+            // Unread strings become empty cells; unread sheet records or invalid substream
+            // offsets leave whole sheets unprojected rather than approximately represented.
+            if (diagnostic.Code is "XLS-BIFF-SST-SHORT" or "XLS-BIFF-SST-STRING-INVALID"
+                or "XLS-BIFF-BOUNDSHEET-SHORT" or "XLS-BIFF-BOUNDSHEET-INVALID"
+                or "XLS-BIFF-SHEET-OFFSET-INVALID" or "XLS-BIFF-CHART-SHEET-OFFSET-INVALID"
+                or "XLS-BIFF-UNSUPPORTED-SHEET-OFFSET-INVALID")
                 return OfficeConversionLossKind.Omission;
             return diagnostic.Severity == LegacyXlsDiagnosticSeverity.Warning
                 ? OfficeConversionLossKind.Approximation : OfficeConversionLossKind.None;
