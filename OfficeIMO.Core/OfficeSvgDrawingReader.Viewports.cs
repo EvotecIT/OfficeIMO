@@ -85,7 +85,8 @@ public static partial class OfficeSvgDrawingReader {
             || !TryNestedViewportLength(element.Attribute("height")?.Value, drawing.Height, out double height)
             || width <= 0D
             || height <= 0D
-            || !IsSupportedSvgViewport(width, height, maximumViewportDimension, maximumViewportPixels)) {
+            || !IsSupportedSvgViewport(width, height, maximumViewportDimension, maximumViewportPixels)
+            || !references.TryChargeNestedViewport(width, height)) {
             return false;
         }
 

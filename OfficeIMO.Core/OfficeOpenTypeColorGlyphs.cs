@@ -24,6 +24,7 @@ internal readonly struct OfficeColorGlyphLayer {
 internal sealed class OfficeOpenTypeColorGlyphs {
     private const int MaximumBaseGlyphs = 65535;
     private const int MaximumLayers = 262144;
+    private const int MaximumExpandedLayers = 262144;
     private const int MaximumPalettes = 4096;
     private const int MaximumPaletteEntries = 4096;
 
@@ -65,6 +66,7 @@ internal sealed class OfficeOpenTypeColorGlyphs {
 
             var layerMap = new Dictionary<int, LayerRecord[]>(baseGlyphCount);
             int previousBaseGlyph = -1;
+            int expandedLayers = 0;
             for (int index = 0; index < baseGlyphCount; index++) {
                 int record = baseRecords + index * 6;
                 int glyphId = reader.ReadUInt16(record);
@@ -74,6 +76,10 @@ internal sealed class OfficeOpenTypeColorGlyphs {
                     glyphLayerCount <= 0 || firstLayer > layerCount - glyphLayerCount) {
                     throw new InvalidDataException("The COLR base-glyph records are invalid.");
                 }
+                if (glyphLayerCount > MaximumExpandedLayers - expandedLayers) {
+                    throw new InvalidDataException("The COLR layer expansion exceeds the managed color-glyph limit.");
+                }
+                expandedLayers += glyphLayerCount;
                 previousBaseGlyph = glyphId;
                 var glyphLayers = new LayerRecord[glyphLayerCount];
                 for (int layerIndex = 0; layerIndex < glyphLayerCount; layerIndex++) {
@@ -96,7 +102,8 @@ internal sealed class OfficeOpenTypeColorGlyphs {
             int colorRecords = Relative32(reader, cpal, cpal + 8, cpal, cpalEnd, 4);
             if (entriesPerPalette <= 0 || entriesPerPalette > MaximumPaletteEntries ||
                 paletteCount <= 0 || paletteCount > MaximumPalettes ||
-                colorRecordCount <= 0 || colorRecordCount > MaximumLayers) {
+                colorRecordCount <= 0 || colorRecordCount > MaximumLayers ||
+                (long)entriesPerPalette * paletteCount > MaximumExpandedLayers) {
                 throw new InvalidDataException("The CPAL table exceeds the managed palette limits.");
             }
             int paletteIndexes = cpal + 12;

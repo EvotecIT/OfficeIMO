@@ -32,8 +32,11 @@ public static partial class OfficeDrawingRasterRenderer {
         if (paddedHeight > 0D && paddedWidth <= maximumRasterPixels / paddedHeight) {
             left -= 1D; top -= 1D; right += 1D; bottom += 1D;
         }
+        const long maximumSingleTextIntermediatePixels = 16_000_000L;
         _ = OfficeRasterExportPlanner.Resolve(right - left, bottom - top, OfficeImageExportFormat.Png,
-            new OfficeImageExportOptions { MaximumRasterPixels = maximumRasterPixels, RasterOverflowBehavior = OfficeRasterOverflowBehavior.Throw });
+            new OfficeImageExportOptions { MaximumRasterPixels = Math.Min(maximumRasterPixels, maximumSingleTextIntermediatePixels), RasterOverflowBehavior = OfficeRasterOverflowBehavior.Throw });
+        canvas.ChargeTransformedTextIntermediatePixels(
+            checked((long)Math.Max(1D, Math.Ceiling(right - left)) * (long)Math.Max(1D, Math.Ceiling(bottom - top))));
         var layer = new OfficeRasterImage(Math.Max(1, (int)(right - left)), Math.Max(1, (int)(bottom - top)));
         var local = new OfficeRasterCanvas(layer, font: canvas.OutlineFont, fonts: canvas.Fonts,
             textShapingProvider: canvas.TextShapingProvider, textShapingLanguage: canvas.TextShapingLanguage,

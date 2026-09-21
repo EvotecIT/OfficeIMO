@@ -25,9 +25,19 @@ public static partial class OfficeSvgDrawingReader {
             }
 
             var replacements = new List<SvgTextRun>();
+            int remainingRuns = MaximumTextRuns - (runs.Count - (end - layout.FirstRun));
+            bool runLimitExceeded = false;
             for (int runIndex = layout.FirstRun; runIndex < end; runIndex++) {
                 SvgTextRun source = runs[runIndex];
+                if (source.Text.Length > remainingRuns - replacements.Count) {
+                    runLimitExceeded = true;
+                    break;
+                }
                 IReadOnlyList<string> glyphs = OfficeTextElements.Split(source.Text);
+                if (glyphs.Count > remainingRuns - replacements.Count) {
+                    runLimitExceeded = true;
+                    break;
+                }
                 if (glyphs.Count == 0) continue;
                 IReadOnlyList<double> glyphAdvances = MeasureTextPathGlyphAdvances(source, glyphs);
                 double runAdvance = 0D;
@@ -60,6 +70,10 @@ public static partial class OfficeSvgDrawingReader {
             }
 
             RemoveTextPathRuns(runs, layout.FirstRun, end);
+            if (runLimitExceeded) {
+                unsupported++;
+                continue;
+            }
             for (int index = 0; index < replacements.Count; index++) {
                 runs.Insert(layout.FirstRun + index, replacements[index]);
             }

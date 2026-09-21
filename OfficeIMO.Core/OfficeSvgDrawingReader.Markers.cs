@@ -117,6 +117,11 @@ public static partial class OfficeSvgDrawingReader {
                 unsupported++;
                 return false;
             }
+            if (!IsSupportedSvgViewport(viewBox[2], viewBox[3], maximumViewportDimension, maximumViewportPixels)
+                || !references.TryChargeMarkerScene(viewBox[2], viewBox[3])) {
+                unsupported++;
+                return false;
+            }
             if (!TryParsePreserveAspectRatio(marker.Attribute("preserveAspectRatio")?.Value, out SvgAspectAlignment alignment, out bool slice)
                 || !TryMarkerCoordinate(marker.Attribute("refX")?.Value, viewBox[2], 0D, out double refX)
                 || !TryMarkerCoordinate(marker.Attribute("refY")?.Value, viewBox[3], 0D, out double refY)

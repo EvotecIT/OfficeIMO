@@ -108,7 +108,7 @@ public static partial class OfficeSvgDrawingReader {
             return;
         }
         if (name == "image") {
-            if (!TryAddEmbeddedSvgImage(element, drawing, style, transform, viewX, viewY)) unsupported++;
+            if (!TryAddEmbeddedSvgImage(element, drawing, style, references, transform, viewX, viewY)) unsupported++;
             return;
         }
         if (name == "svg") {

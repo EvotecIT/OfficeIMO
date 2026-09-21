@@ -120,6 +120,11 @@ public static partial class OfficeSvgDrawingReader {
                 return;
             }
             if (node is XText textNode) {
+                if (!references.TryChargeTextCharacters(textNode.Value.Length)
+                    || RequiresPaintedTextOutline(style) && textNode.Value.Length > 4096) {
+                    ReportTextRunLimit(ref cursor, ref unsupported);
+                    return;
+                }
                 string text = NormalizeText(textNode.Value, preserve, ref cursor);
                 if (text.Length == 0) continue;
                 int firstTextRun = runs.Count;
@@ -179,11 +184,20 @@ public static partial class OfficeSvgDrawingReader {
         ref SvgTextCursor cursor,
         ref int unsupported) {
         SvgElementReferenceEntryResult entry = references.TryEnterDetailed(tref, out string referenceId, out XElement? target);
-        if (entry != SvgElementReferenceEntryResult.Entered || string.IsNullOrEmpty(target!.Value)) {
+        if (entry != SvgElementReferenceEntryResult.Entered || target == null) {
             unsupported++;
             return;
         }
         try {
+            long referencedLength = 0;
+            foreach (XText textNode in target.DescendantNodes().OfType<XText>()) {
+                referencedLength += textNode.Value.Length;
+                if (referencedLength > int.MaxValue || !references.CanChargeTextCharacters((int)referencedLength)) {
+                    ReportTextRunLimit(ref cursor, ref unsupported);
+                    return;
+                }
+            }
+            if (referencedLength == 0) { unsupported++; return; }
             var substitute = new XElement(tref.Name,
                 tref.Attributes().Where(attribute => !attribute.Name.LocalName.Equals("href", StringComparison.Ordinal)),
                 new XText(target.Value));

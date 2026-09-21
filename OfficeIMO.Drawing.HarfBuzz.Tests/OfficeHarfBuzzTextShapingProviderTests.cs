@@ -429,7 +429,8 @@ public sealed class OfficeHarfBuzzTextShapingProviderTests {
         }
 
         OfficeTextShapingResult overflow = ShapeWithLanguage(provider, fontData, fontCacheKey, text, "x-overflow");
-        Assert.Same(noLanguage, overflow);
+        Assert.NotSame(noLanguage, overflow);
+        Assert.Same(overflow, ShapeWithLanguage(provider, fontData, fontCacheKey, text, "x-overflow"));
     }
 
     [Fact]

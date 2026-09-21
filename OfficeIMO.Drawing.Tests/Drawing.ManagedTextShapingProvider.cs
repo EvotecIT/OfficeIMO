@@ -347,6 +347,32 @@ public class DrawingManagedTextShapingProviderTests {
     }
 
     [Fact]
+    public void SelfReferentialLigatureDoesNotRepeatedlyReprocessItsReplacement() {
+        byte[] font = ManagedTextShapingTestAssets.CreateFontWithSelfReferentialLigature('f', 'i');
+        OfficeOpenTypeSubstitution substitution = Assert.IsType<OfficeOpenTypeSubstitution>(OfficeOpenTypeSubstitution.TryCreate(font));
+        var tokens = new List<OfficeOpenTypeSubstitution.GlyphToken> {
+            new OfficeOpenTypeSubstitution.GlyphToken(1, "f", 0, 'f')
+        };
+        for (int index = 0; index < 2000; index++) {
+            tokens.Add(new OfficeOpenTypeSubstitution.GlyphToken(2, "i", index + 1, 'i'));
+        }
+
+        substitution.Apply(tokens,
+            new OfficeTextFeatureSettings(new[] { new KeyValuePair<string, int>("liga", 1) }), default);
+
+        Assert.Equal(2000, tokens.Count);
+        Assert.Equal("fi", tokens[0].UnicodeText);
+    }
+
+    [Fact]
+    public void OverlappingColorGlyphRangesDoNotExpandIntoUnboundedRetainedLayers() {
+        byte[] font = ManagedTextShapingTestAssets.CreateColorFontWithOverlappingLayerRanges();
+
+        OfficeTrueTypeFont loaded = Assert.IsType<OfficeTrueTypeFont>(OfficeTrueTypeFont.TryLoad(font));
+        Assert.False(((IOfficeColorFontProgram)loaded).HasColorGlyph(1));
+    }
+
+    [Fact]
     public void ManagedProvider_AppliesMultipleSubstitutionWithoutDuplicatingLogicalText() {
         byte[] font = ManagedTextShapingTestAssets.CreateFontWithMultipleSubstitution('A');
         var request = new OfficeTextShapingRequest(

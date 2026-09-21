@@ -114,7 +114,9 @@ public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvid
                 return new ResolvedLanguage(normalized, language);
             }
             if (_languages.Count >= MaxInternedLanguagesPerProvider) {
-                return default;
+                // Preserve the requested language even when the process-wide intern
+                // table is full. Shape results remain bounded by the per-font LRU.
+                return new ResolvedLanguage(normalized, new Language(normalized));
             }
 
             language = new Language(normalized);

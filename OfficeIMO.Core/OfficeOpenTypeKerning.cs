@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
@@ -136,7 +137,8 @@ internal sealed class OfficeOpenTypeKerning {
 
     internal OfficeOpenTypeGlyphPositioning[] PositionRun(
         IReadOnlyList<int> glyphs,
-        IReadOnlyList<int> scalars) {
+        IReadOnlyList<int> scalars,
+        CancellationToken cancellationToken = default) {
         if (glyphs == null) throw new ArgumentNullException(nameof(glyphs));
         if (scalars == null) throw new ArgumentNullException(nameof(scalars));
         if (glyphs.Count != scalars.Count) throw new ArgumentException("Glyph and scalar runs must have the same length.");
@@ -148,28 +150,37 @@ internal sealed class OfficeOpenTypeKerning {
         }
 
         int pairCount = glyphs.Count - 1;
-        var pairLookups = new List<ushort>[pairCount];
+        var pairLookups = new HashSet<ushort>[pairCount];
         var orderedLookups = new List<ushort>();
         var knownLookups = new HashSet<ushort>();
+        var lookupsByScript = new Dictionary<string, HashSet<ushort>>(StringComparer.Ordinal);
         bool hasGposLayout = TryGetGposLayoutTables(out int scriptList, out int featureList, out int lookupList);
         if (hasGposLayout) {
             for (int index = 0; index < pairCount; index++) {
+                if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
                 string scriptTag = ResolveScriptTag(scalars[index], scalars[index + 1]);
-                var lookups = new List<ushort>();
-                var pairSeen = new HashSet<ushort>();
-                foreach (ushort lookupIndex in GposFeatureLookupIndexes(scriptList, featureList, "kern", scriptTag)) {
-                    if (!pairSeen.Add(lookupIndex)) continue;
-                    lookups.Add(lookupIndex);
-                    if (knownLookups.Add(lookupIndex)) orderedLookups.Add(lookupIndex);
+                if (!lookupsByScript.TryGetValue(scriptTag, out HashSet<ushort>? lookups)) {
+                    lookups = new HashSet<ushort>();
+                    foreach (ushort lookupIndex in GposFeatureLookupIndexes(scriptList, featureList, "kern", scriptTag)) {
+                        if (!lookups.Add(lookupIndex)) continue;
+                        if (knownLookups.Add(lookupIndex)) orderedLookups.Add(lookupIndex);
+                    }
+                    lookupsByScript.Add(scriptTag, lookups);
                 }
                 pairLookups[index] = lookups;
             }
         }
 
         var gposApplied = new bool[pairCount];
+        const long maximumLookupPairInspections = 8_000_000;
+        long lookupPairInspections = 0;
         foreach (ushort lookupIndex in orderedLookups) {
             for (int index = 0; index < pairCount;) {
-                List<ushort> activeLookups = pairLookups[index];
+                if (++lookupPairInspections > maximumLookupPairInspections) {
+                    throw new InvalidDataException("GPOS positioning exceeded the managed lookup-pair budget.");
+                }
+                if ((lookupPairInspections & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
+                HashSet<ushort> activeLookups = pairLookups[index];
                 if (activeLookups.Contains(lookupIndex) &&
                     TryGposPairAdjustmentFromLookup(
                         lookupList,
@@ -192,6 +203,7 @@ internal sealed class OfficeOpenTypeKerning {
         }
 
         for (int index = 0; index < pairCount; index++) {
+            if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (gposApplied[index]) continue;
             int legacyAdjustment = KernPairAdjustment((ushort)glyphs[index], (ushort)glyphs[index + 1]);
             result[index] = result[index].Add(0, legacyAdjustment);
@@ -286,14 +298,15 @@ internal sealed class OfficeOpenTypeKerning {
 
         int featureCount = ReadUInt16(featureList);
         var featureIndexes = new List<ushort>();
+        var seenFeatures = new HashSet<ushort>();
         ushort requiredFeature = ReadUInt16(langSys + 2);
-        if (requiredFeature != ushort.MaxValue) featureIndexes.Add(requiredFeature);
+        if (requiredFeature != ushort.MaxValue && seenFeatures.Add(requiredFeature)) featureIndexes.Add(requiredFeature);
         int langSysFeatureCount = ReadUInt16(langSys + 4);
         for (int index = 0; index < langSysFeatureCount; index++) {
             int offset = checked(langSys + 6 + (index * 2));
             if (!InBounds(offset, 2)) yield break;
             ushort featureIndex = ReadUInt16(offset);
-            if (!featureIndexes.Contains(featureIndex)) featureIndexes.Add(featureIndex);
+            if (seenFeatures.Add(featureIndex)) featureIndexes.Add(featureIndex);
         }
 
         foreach (ushort featureIndex in featureIndexes) {

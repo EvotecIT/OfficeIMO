@@ -358,9 +358,12 @@ public static partial class OfficeSvgDrawingReader {
         if (!options.DetectInstructionLikeText) return;
         foreach (IGrouping<XElement, SvgContentSafetyCandidate> group in candidates.GroupBy(candidate =>
                      FindSvgLogicalTextOwner(candidate.SourceText))) {
-            string logicalText = string.Concat(group
-                .OrderBy(candidate => candidate.SourceText, XNode.DocumentOrderComparer)
-                .Select(candidate => candidate.SourceText.Value));
+            // The candidate set omits whitespace-only native text nodes. Retain those
+            // nodes when scanning the logical owner so adjacent words stay separated.
+            IEnumerable<XText> logicalNodes = group.Key.Name.LocalName.Equals("text", StringComparison.Ordinal)
+                ? group.Key.DescendantNodes().OfType<XText>()
+                : group.Key.Nodes().OfType<XText>();
+            string logicalText = string.Concat(logicalNodes.Select(text => text.Value));
             IReadOnlyList<string> signals = OfficeContentInstructionDetector.Detect(logicalText);
             foreach (SvgContentSafetyCandidate candidate in group) candidate.InstructionSignals = signals;
         }

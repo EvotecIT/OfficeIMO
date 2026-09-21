@@ -26,6 +26,8 @@ public sealed partial class OfficeRasterCanvas {
     private readonly System.Threading.CancellationToken _cancellationToken;
     private bool _reportedBoundedTextShapingFallback;
     private bool _reportedIncompleteTextShapingFallback;
+    private const long MaximumTransformedTextIntermediatePixels = 64_000_000L;
+    private long _transformedTextIntermediatePixels;
     private int CoverageSamples => _target != null && _target.Supersampling > 1 ? 1 : AntiAliasSamples;
 
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
@@ -122,6 +124,16 @@ public sealed partial class OfficeRasterCanvas {
     internal OfficeTrueTypeFont? OutlineFont => _font;
 
     internal OfficeFontFaceCollection? Fonts => _fonts;
+
+    internal void ChargeTransformedTextIntermediatePixels(long pixels) {
+        if (pixels < 0L || pixels > MaximumTransformedTextIntermediatePixels - _transformedTextIntermediatePixels) {
+            throw new OfficeImageExportLimitException(1D,
+                pixels > long.MaxValue - _transformedTextIntermediatePixels ? long.MaxValue : _transformedTextIntermediatePixels + pixels,
+                MaximumTransformedTextIntermediatePixels,
+                OfficeRasterImageEncoder.GetMaximumDimension(OfficeImageExportFormat.Png));
+        }
+        _transformedTextIntermediatePixels += pixels;
+    }
 
     internal System.Threading.CancellationToken CancellationToken => _cancellationToken;
 

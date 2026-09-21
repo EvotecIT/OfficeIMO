@@ -75,6 +75,26 @@ public static partial class OfficeSvgDrawingReader {
     private sealed class SvgElementReferenceRegistry {
         private readonly SvgDefinitionRegistry _definitions;
         private readonly ISet<string> _activeIds = new HashSet<string>(StringComparer.Ordinal);
+        private const int MaximumExpandedTextCharacters = 131_072;
+        private int _expandedTextCharacters;
+        private const double MaximumNestedViewportIntermediatePixels = 64_000_000D;
+        private double _nestedViewportIntermediatePixels;
+        private const long MaximumEmbeddedRasterBytes = 64L * 1024L * 1024L;
+        private long _embeddedRasterBytes;
+        private readonly Dictionary<XAttribute, (byte[] Bytes, string ContentType, OfficeImageInfo Info)> _embeddedRasters =
+            new Dictionary<XAttribute, (byte[] Bytes, string ContentType, OfficeImageInfo Info)>();
+        private const int MaximumForeignObjectRenderCalls = 128;
+        private const long MaximumForeignObjectSourceCharacters = 8L * 1024L * 1024L;
+        private const double MaximumForeignObjectPixels = 64_000_000D;
+        private int _foreignObjectRenderCalls;
+        private long _foreignObjectSourceCharacters;
+        private long _foreignObjectSerializedCharacters;
+        private double _foreignObjectPixels;
+        private const double MaximumMarkerScenePixels = 64_000_000D;
+        private double _markerScenePixels;
+        private readonly Dictionary<(XElement Element, double Width, double Height), (OfficeDrawing Drawing, int Elements)> _foreignObjects =
+            new Dictionary<(XElement Element, double Width, double Height), (OfficeDrawing Drawing, int Elements)>();
+        internal OfficeCffOperationBudget CffOperationBudget { get; } = new OfficeCffOperationBudget();
 
         internal SvgElementReferenceRegistry(
             SvgDefinitionRegistry definitions,
@@ -86,6 +106,90 @@ public static partial class OfficeSvgDrawingReader {
         internal OfficeSvgForeignObjectRenderer? ForeignObjectRenderer { get; }
 
         internal XNamespace NativeNamespace => _definitions.NativeNamespace;
+
+        internal bool CanChargeTextCharacters(int count) =>
+            count >= 0 && count <= MaximumExpandedTextCharacters - _expandedTextCharacters;
+
+        internal bool TryChargeTextCharacters(int count) {
+            if (!CanChargeTextCharacters(count)) return false;
+            _expandedTextCharacters += count;
+            return true;
+        }
+
+        internal bool TryChargeNestedViewport(double width, double height) {
+            // A nested viewport retains a transformed scene and a clipped effect surface.
+            double pixels = width * height * 2D;
+            if (double.IsNaN(pixels) || double.IsInfinity(pixels) || pixels < 0D
+                || pixels > MaximumNestedViewportIntermediatePixels - _nestedViewportIntermediatePixels) return false;
+            _nestedViewportIntermediatePixels += pixels;
+            return true;
+        }
+
+        internal bool TryGetEmbeddedRaster(XAttribute source, out byte[] bytes, out string contentType, out OfficeImageInfo info) {
+            if (_embeddedRasters.TryGetValue(source, out var cached)) {
+                bytes = cached.Bytes;
+                contentType = cached.ContentType;
+                info = cached.Info;
+                return true;
+            }
+            bytes = Array.Empty<byte>();
+            contentType = string.Empty;
+            info = null!;
+            return false;
+        }
+
+        internal bool TryCacheEmbeddedRaster(XAttribute source, byte[] bytes, string contentType, OfficeImageInfo info) {
+            if (bytes.Length > MaximumEmbeddedRasterBytes - _embeddedRasterBytes) return false;
+            _embeddedRasterBytes += bytes.Length;
+            _embeddedRasters.Add(source, (bytes, contentType, info));
+            return true;
+        }
+
+        internal bool TryGetForeignObject(XElement element, double width, double height, out OfficeDrawing drawing, out int elements) {
+            if (_foreignObjects.TryGetValue((element, width, height), out var cached)) {
+                drawing = cached.Drawing;
+                elements = cached.Elements;
+                return true;
+            }
+            drawing = null!;
+            elements = 0;
+            return false;
+        }
+
+        internal bool TryReserveForeignObject(XElement element, double width, double height) {
+            double pixels = width * height;
+            if (_foreignObjectRenderCalls >= MaximumForeignObjectRenderCalls
+                || double.IsNaN(pixels) || double.IsInfinity(pixels) || pixels < 0D
+                || pixels > MaximumForeignObjectPixels - _foreignObjectPixels) return false;
+            long characters = 0;
+            foreach (XElement node in element.DescendantsAndSelf()) {
+                characters += node.Name.LocalName.Length + 4;
+                foreach (XAttribute attribute in node.Attributes()) characters += attribute.Name.LocalName.Length + attribute.Value.Length + 4;
+                foreach (XText text in node.Nodes().OfType<XText>()) characters += text.Value.Length;
+                if (characters > MaximumForeignObjectSourceCharacters - _foreignObjectSourceCharacters) return false;
+            }
+            _foreignObjectRenderCalls++;
+            _foreignObjectSourceCharacters += characters;
+            _foreignObjectPixels += pixels;
+            return true;
+        }
+
+        internal void CacheForeignObject(XElement element, double width, double height, OfficeDrawing drawing, int elements) =>
+            _foreignObjects[(element, width, height)] = (drawing, elements);
+
+        internal bool TryChargeSerializedForeignObject(int characters) {
+            if (characters < 0 || characters > MaximumForeignObjectSourceCharacters - _foreignObjectSerializedCharacters) return false;
+            _foreignObjectSerializedCharacters += characters;
+            return true;
+        }
+
+        internal bool TryChargeMarkerScene(double width, double height) {
+            double pixels = width * height;
+            if (double.IsNaN(pixels) || double.IsInfinity(pixels) || pixels <= 0D
+                || pixels > MaximumMarkerScenePixels - _markerScenePixels) return false;
+            _markerScenePixels += pixels;
+            return true;
+        }
 
         internal bool TryEnter(XElement use, out string id, out XElement? target) {
             return TryEnterDetailed(use, out id, out target) == SvgElementReferenceEntryResult.Entered;

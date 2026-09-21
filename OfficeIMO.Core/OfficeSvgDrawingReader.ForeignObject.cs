@@ -30,27 +30,36 @@ public static partial class OfficeSvgDrawingReader {
 
         double x = ReadViewportCoordinate(element, "x", viewX, drawing.Width);
         double y = ReadViewportCoordinate(element, "y", viewY, drawing.Height);
-        string html = string.Concat(element.Nodes().Select(node => node.ToString(SaveOptions.DisableFormatting)));
-        if (string.IsNullOrWhiteSpace(html)) return;
-
-        OfficeDrawing? content;
-        try {
-            content = renderer(new OfficeSvgForeignObjectContext(html, width, height));
-        } catch (OperationCanceledException) {
-            throw;
-        } catch (Exception exception) when (exception is not OutOfMemoryException && exception is not StackOverflowException) {
-            unsupported++;
-            return;
+        if (!references.TryGetForeignObject(element, width, height, out OfficeDrawing content, out int contentElements)) {
+            if (!references.TryReserveForeignObject(element, width, height)) {
+                unsupported++;
+                return;
+            }
+            string html = string.Concat(element.Nodes().Select(node => node.ToString(SaveOptions.DisableFormatting)));
+            if (string.IsNullOrWhiteSpace(html)) return;
+            if (!references.TryChargeSerializedForeignObject(html.Length)) {
+                unsupported++;
+                return;
+            }
+            OfficeDrawing? rendered;
+            try {
+                rendered = renderer(new OfficeSvgForeignObjectContext(html, width, height));
+            } catch (OperationCanceledException) {
+                throw;
+            } catch (Exception exception) when (exception is not OutOfMemoryException && exception is not StackOverflowException) {
+                unsupported++;
+                return;
+            }
+            if (rendered == null
+                || Math.Abs(rendered.Width - width) > 0.0001D
+                || Math.Abs(rendered.Height - height) > 0.0001D) {
+                unsupported++;
+                return;
+            }
+            content = rendered;
+            contentElements = CountDrawingElements(content, maximumElements);
+            references.CacheForeignObject(element, width, height, content, contentElements);
         }
-
-        if (content == null
-            || Math.Abs(content.Width - width) > 0.0001D
-            || Math.Abs(content.Height - height) > 0.0001D) {
-            unsupported++;
-            return;
-        }
-
-        int contentElements = CountDrawingElements(content, maximumElements);
         if (contentElements > maximumElements - visited) {
             unsupported++;
             return;

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading;
 
 namespace OfficeIMO.Drawing;
@@ -49,7 +50,7 @@ public static partial class OfficeSvgDrawingReader {
                     run.FontSize,
                     pointAllowance,
                     CancellationToken.None,
-                    new OfficeCffOperationBudget())
+                    references.CffOperationBudget)
                 : bounded.GetTextContoursBounded(
                     outlineText,
                     run.X,
@@ -58,6 +59,9 @@ public static partial class OfficeSvgDrawingReader {
                     pointAllowance,
                     CancellationToken.None);
         } catch (InvalidOperationException) {
+            pathCommandLimitExceeded = true;
+            return false;
+        } catch (InvalidDataException) {
             pathCommandLimitExceeded = true;
             return false;
         } catch (ArgumentException) {

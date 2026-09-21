@@ -214,7 +214,8 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeCffBoundedFontProgram, IOff
 
     internal OfficeOpenTypeGlyphPositioning[] PositionGlyphRun(
         IReadOnlyList<int> glyphs,
-        IReadOnlyList<int> scalars) => _kerning.PositionRun(glyphs, scalars);
+        IReadOnlyList<int> scalars,
+        System.Threading.CancellationToken cancellationToken = default) => _kerning.PositionRun(glyphs, scalars, cancellationToken);
 
     public double MeasureShapedText(string text, OfficeTextShapingResult result, double fontSize) {
         PositionedGlyph[] glyphs = ValidateShapedGlyphs(text, result);

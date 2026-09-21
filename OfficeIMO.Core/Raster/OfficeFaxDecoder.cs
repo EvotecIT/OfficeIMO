@@ -160,14 +160,15 @@ internal static partial class OfficeFaxDecoder {
         internal bool TryReadEndOfLine() {
             long saved = _position;
             int zeros = 0;
-            while (_position < (long)_bytes.Length * 8) {
+            const int maximumFillBits = 4096;
+            while (_position < (long)_bytes.Length * 8 && _position - saved < maximumFillBits) {
                 if ((_position & 4095) == 0) _token.ThrowIfCancellationRequested();
                 if (Read() != 0) {
                     if (zeros >= 11) return true;
                     break;
                 }
-                // T.4 fill has variable length. Saturate the marker threshold so a long
-                // bounded payload cannot overflow the counter, while cancellation stays responsive.
+                // T.4 fill is variable length, but malformed streams cannot scan the
+                // entire decoded filter output looking for a marker.
                 if (zeros < 11) zeros++;
             }
             _position = saved;

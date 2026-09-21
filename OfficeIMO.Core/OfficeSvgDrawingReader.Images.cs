@@ -9,15 +9,19 @@ public static partial class OfficeSvgDrawingReader {
         XElement element,
         OfficeDrawing drawing,
         SvgPaintContext style,
+        SvgElementReferenceRegistry references,
         OfficeTransform transform,
         double viewX,
         double viewY) {
         XAttribute[] hrefAttributes = element.Attributes()
             .Where(attribute => attribute.Name.LocalName.Equals("href", StringComparison.Ordinal))
             .ToArray();
-        if (hrefAttributes.Length != 1
-            || !TryDecodeEmbeddedRasterImage(hrefAttributes[0].Value, out byte[] bytes, out string contentType, out OfficeImageInfo info)
-            || !TryViewportLength(element, "width", drawing.Width, out double width)
+        if (hrefAttributes.Length != 1) return false;
+        if (!references.TryGetEmbeddedRaster(hrefAttributes[0], out byte[] bytes, out string contentType, out OfficeImageInfo info)) {
+            if (!TryDecodeEmbeddedRasterImage(hrefAttributes[0].Value, out bytes, out contentType, out info)
+                || !references.TryCacheEmbeddedRaster(hrefAttributes[0], bytes, contentType, info)) return false;
+        }
+        if (!TryViewportLength(element, "width", drawing.Width, out double width)
             || !TryViewportLength(element, "height", drawing.Height, out double height)
             || width <= 0D
             || height <= 0D) return false;
@@ -32,10 +36,11 @@ public static partial class OfficeSvgDrawingReader {
             .FirstOrDefault(attribute => attribute.Name.LocalName.Equals("aria-label", StringComparison.OrdinalIgnoreCase))?.Value;
 
         var imageLayer = new OfficeDrawing(drawing.Width, drawing.Height);
-        imageLayer.AddClippedImage(
+        imageLayer.AddClippedImageSharedWithInterpolation(
             bytes,
             contentType,
             projection,
+            true,
             0D,
             0D,
             OfficeClipPath.Rectangle(drawing.Width, drawing.Height),

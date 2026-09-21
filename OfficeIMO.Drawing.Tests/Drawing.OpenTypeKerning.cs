@@ -209,6 +209,38 @@ public sealed class DrawingOpenTypeKerningTests {
         Assert.Equal(0, positioning[2].XAdvance);
     }
 
+    [Fact]
+    public void GposRunBoundsLookupPairWorkWithoutPerPairLookupLists() {
+        const int lookupCount = 2000;
+        const int featureList = 30;
+        const int feature = featureList + 8;
+        int lookupList = feature + 4 + lookupCount * 2;
+        byte[] data = new byte[lookupList + 2];
+        WriteUInt16(data, 0, 1);
+        WriteUInt16(data, 4, 10);
+        WriteUInt16(data, 6, featureList);
+        WriteUInt16(data, 8, (ushort)lookupList);
+        WriteUInt16(data, 10, 1);
+        WriteTag(data, 12, "DFLT");
+        WriteUInt16(data, 16, 8);
+        WriteUInt16(data, 18, 4);
+        WriteUInt16(data, 24, ushort.MaxValue);
+        WriteUInt16(data, 26, 1);
+        WriteUInt16(data, 28, 0);
+        WriteUInt16(data, featureList, 1);
+        WriteTag(data, featureList + 2, "kern");
+        WriteUInt16(data, featureList + 6, 8);
+        WriteUInt16(data, feature + 2, lookupCount);
+        for (int index = 0; index < lookupCount; index++) {
+            WriteUInt16(data, feature + 4 + index * 2, (ushort)index);
+        }
+        var kerning = new OfficeOpenTypeKerning(data, kern: -1, gpos: 0);
+        int[] glyphs = Enumerable.Repeat(1, 5002).ToArray();
+        int[] scalars = Enumerable.Repeat((int)'A', glyphs.Length).ToArray();
+
+        Assert.Throws<InvalidDataException>(() => kerning.PositionRun(glyphs, scalars));
+    }
+
     private static byte[] CreateKerningTables(
         short legacyAdjustment,
         short gposAdjustment,
