@@ -77,7 +77,7 @@ public sealed class EmailConversionMatrixTests {
             commonReport.FidelityDiagnostics,
             item => item.Code == "EMAIL_PROTECTED_CONTENT_REWRITE");
         Assert.True(commonReport.HasLoss);
-        Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
+        Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
         Assert.Equal("OfficeIMO.Email", diagnostic.Source);
         Assert.Equal("protection", diagnostic.Location);
         Assert.Throws<InvalidOperationException>(commonReport.RequireNoLoss);
@@ -104,14 +104,17 @@ public sealed class EmailConversionMatrixTests {
         Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
     }
 
-    [Fact]
-    public void ExplicitErrorDiagnosticCannotSuppressFailureClassification() {
+    [Theory]
+    [InlineData(OfficeConversionLossKind.None)]
+    [InlineData(OfficeConversionLossKind.Approximation)]
+    [InlineData(OfficeConversionLossKind.Omission)]
+    public void ExplicitErrorDiagnosticCannotSuppressFailureClassification(OfficeConversionLossKind specifiedLoss) {
         var simple = new EmailDiagnostic(
             "EMAIL_TEST_ERROR",
             "The source could not be converted.",
             EmailDiagnosticSeverity.Error,
             "message/body",
-            OfficeConversionLossKind.None);
+            specifiedLoss);
         var actionable = new EmailDiagnostic(
             "EMAIL_TEST_ACTIONABLE_ERROR",
             "The source could not be converted.",
@@ -126,10 +129,34 @@ public sealed class EmailConversionMatrixTests {
             EmailDataLossRisk.None,
             "Inspect the source.",
             false,
-            OfficeConversionLossKind.None);
+            specifiedLoss);
 
         Assert.Equal(OfficeConversionLossKind.Failure, simple.LossKind);
         Assert.Equal(OfficeConversionLossKind.Failure, actionable.LossKind);
+        var report = new EmailConversionReport(EmailFileFormat.Eml, EmailFileFormat.OutlookMsg,
+            new[] { simple, actionable });
+        Assert.False(report.CanWrite);
+        Assert.True(report.HasLoss);
+        Assert.All(report.FidelityDiagnostics, diagnostic =>
+            Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind));
+        Assert.Throws<InvalidOperationException>(report.RequireNoLoss);
+    }
+
+    [Theory]
+    [InlineData(OfficeConversionLossKind.None)]
+    [InlineData(OfficeConversionLossKind.Approximation)]
+    [InlineData(OfficeConversionLossKind.Omission)]
+    public void StoppedDiagnosticCannotSuppressFailureOrAllowPublication(OfficeConversionLossKind specifiedLoss) {
+        var stopped = new EmailDiagnostic("EMAIL_TEST_STOPPED", "Processing stopped.",
+            EmailDiagnosticSeverity.Warning, "message/body", "Convert", null, null, null, null,
+            EmailDiagnosticDisposition.Stopped, EmailDataLossRisk.None, "Inspect source.", false, specifiedLoss);
+        var report = new EmailConversionReport(EmailFileFormat.Eml, EmailFileFormat.OutlookMsg,
+            new[] { stopped });
+
+        Assert.Equal(OfficeConversionLossKind.Failure, stopped.LossKind);
+        Assert.Equal(OfficeConversionLossKind.Failure, Assert.Single(report.FidelityDiagnostics).LossKind);
+        Assert.False(report.CanWrite);
+        Assert.Throws<InvalidOperationException>(report.RequireNoLoss);
     }
 
     private static EmailDocument CreateDocument(OutlookItemKind kind) {

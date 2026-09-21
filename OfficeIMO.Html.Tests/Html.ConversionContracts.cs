@@ -51,18 +51,26 @@ public partial class Html {
         Assert.Throws<HtmlConversionException>(() => result.RequireNoLoss());
     }
 
-    [Fact]
-    public void HtmlErrorPreservesAnExplicitSpecificLossKind() {
+    [Theory]
+    [InlineData(OfficeConversionLossKind.None)]
+    [InlineData(OfficeConversionLossKind.Approximation)]
+    [InlineData(OfficeConversionLossKind.Omission)]
+    public void HtmlErrorCannotSuppressFailureClassification(OfficeConversionLossKind specifiedLoss) {
         var diagnostic = new HtmlDiagnostic(
             "OfficeIMO.Html.Tests",
             "HTML_TEST_OMISSION",
             "One source node was omitted.",
             HtmlDiagnosticSeverity.Error,
-            lossKind: OfficeConversionLossKind.Omission);
+            lossKind: specifiedLoss);
 
         var result = new HtmlTextConversionResult("<p>Partial</p>", new[] { diagnostic });
 
-        Assert.Equal(OfficeConversionLossKind.Omission, Assert.Single(result.Report.FidelityDiagnostics).LossKind);
+        Assert.False(result.Succeeded);
+        Assert.True(result.HasLoss);
+        Assert.Equal(OfficeConversionLossKind.Failure, Assert.Single(result.Report.FidelityDiagnostics).LossKind);
+        Assert.Equal(OfficeConversionLossKind.Failure,
+            diagnostic.WithLossKind(OfficeConversionLossKind.Omission).LossKind);
+        Assert.Throws<HtmlConversionException>(() => result.RequireNoLoss());
     }
 
     [Fact]

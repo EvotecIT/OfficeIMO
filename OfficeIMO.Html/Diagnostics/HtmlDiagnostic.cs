@@ -51,7 +51,7 @@ public sealed class HtmlDiagnostic {
         Severity = severity;
         Source = source;
         Detail = detail;
-        LossKind = severity == HtmlDiagnosticSeverity.Error && lossKind == OfficeConversionLossKind.None
+        LossKind = severity == HtmlDiagnosticSeverity.Error
             ? OfficeConversionLossKind.Failure
             : lossKind;
         string sourceAddress = sourceLocation?.Selector
@@ -116,9 +116,8 @@ public sealed class HtmlDiagnostic {
         Source = source.Source;
         Detail = source.Detail;
         LossKind = source.Severity == HtmlDiagnosticSeverity.Error
-            && lossKind == OfficeConversionLossKind.None
-                ? OfficeConversionLossKind.Failure
-                : lossKind;
+            ? OfficeConversionLossKind.Failure
+            : lossKind;
         Provenance = source.Provenance;
     }
 

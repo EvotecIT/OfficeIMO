@@ -279,7 +279,6 @@ public sealed class DrawingRasterStreamingEncodingTests {
         int checkpointCount = 0;
         var thread = new Thread(() => {
             completedBlock.Wait();
-            Thread.Sleep(1);
             cancellation.Cancel();
         }) { IsBackground = true };
         thread.Start();
@@ -295,14 +294,19 @@ public sealed class DrawingRasterStreamingEncodingTests {
                     cancellationToken: cancellation.Token,
                     checkpointObserver: checkpoint => {
                         if (checkpoint != OfficeRasterEncodingCheckpoint.WebpCompressionBlock) return;
-                        if (Interlocked.Increment(ref checkpointCount) == 2) completedBlock.Set();
+                        if (Interlocked.Increment(ref checkpointCount) == 2) {
+                            completedBlock.Set();
+                            if (!cancellation.Token.WaitHandle.WaitOne(TimeSpan.FromSeconds(10))) {
+                                throw new TimeoutException("The cancellation worker did not run after a completed WebP block.");
+                            }
+                        }
                     }));
         } finally {
             completedBlock.Set();
             thread.Join();
         }
 
-        Assert.True(checkpointCount > 2);
+        Assert.True(checkpointCount >= 2);
     }
 
     [Fact]

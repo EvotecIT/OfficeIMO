@@ -40,7 +40,8 @@ public sealed class EmailConversionReport : IOfficeConversionReport {
         diagnostic.LossKind != OfficeConversionLossKind.None);
 
     /// <summary>True when the active conversion policy permits serialization.</summary>
-    public bool CanWrite => !Diagnostics.Any(diagnostic => diagnostic.Severity == EmailDiagnosticSeverity.Error);
+    public bool CanWrite => !Diagnostics.Any(diagnostic =>
+        diagnostic.Severity == EmailDiagnosticSeverity.Error || diagnostic.Disposition == EmailDiagnosticDisposition.Stopped);
 
     /// <summary>Throws when the requested conversion reports possible content loss.</summary>
     public void RequireNoLoss() {

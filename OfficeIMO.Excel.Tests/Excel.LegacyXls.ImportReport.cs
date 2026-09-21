@@ -7,6 +7,39 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class Excel {
+        [Fact]
+        public void LegacyXls_InvalidSheetRecordReportsOmittedSourceCells() {
+            byte[] workbook = LegacyXlsTestWorkbookBuilder.CreatePhase2ValueWorkbookStream();
+            bool modified = false;
+            for (int offset = 0; offset <= workbook.Length - 4;) {
+                ushort type = BitConverter.ToUInt16(workbook, offset);
+                ushort length = BitConverter.ToUInt16(workbook, offset + 2);
+                if (type == 0x00bd) {
+                    // The first MULRK contains B2 and C2. Last column 0 is less than first column 1.
+                    workbook[offset + 4 + length - 2] = 0;
+                    workbook[offset + 4 + length - 1] = 0;
+                    modified = true;
+                    break;
+                }
+
+                offset += 4 + length;
+            }
+
+            Assert.True(modified);
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbook);
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound));
+
+            Assert.DoesNotContain(result.AdvancedWorkbook.Worksheets[0].Cells,
+                cell => cell.Row == 2 && (cell.Column == 2 || cell.Column == 3));
+            OfficeConversionFidelityDiagnostic omission = Assert.Single(result.FidelityDiagnostics,
+                item => item.Code == "XLS-BIFF-SHEET-RECORD-INVALID");
+            Assert.Equal(OfficeConversionLossKind.Omission, omission.LossKind);
+            Assert.True(result.HasLoss);
+            Assert.Contains(result.Summary.FidelityDiagnostics,
+                item => item.Code == omission.Code && item.LossKind == OfficeConversionLossKind.Omission);
+            Assert.Throws<InvalidDataException>(result.RequireNoLoss);
+        }
+
         [Theory]
         [InlineData(true, "XLS-BIFF-LBL-SHORT")]
         [InlineData(false, "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED")]
