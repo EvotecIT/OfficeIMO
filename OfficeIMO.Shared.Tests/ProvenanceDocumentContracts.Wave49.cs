@@ -8,6 +8,22 @@ namespace OfficeIMO.Shared.Tests;
 
 public sealed partial class ProvenanceDocumentContracts {
     [Fact]
+    public void ExcelXlsbSignatureCleanupRemovesRelatedCertificatePart() {
+        byte[] package = CreateWave33XlsbProvenancePackage(signed: true, includeCertificate: true);
+        var options = new OfficeProvenanceRemovalOptions {
+            SignatureMutationPolicy = OfficeIMO.OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures
+        };
+
+        OfficeProvenanceRemovalResult result = ExcelDocument.RemoveProvenance(package, "workbook.xlsb", options);
+
+        using var archive = new System.IO.Compression.ZipArchive(
+            new System.IO.MemoryStream(result.ToArray()), System.IO.Compression.ZipArchiveMode.Read);
+        Assert.True(result.WereInvalidatedSignaturesRemoved);
+        Assert.DoesNotContain(archive.Entries, entry => entry.FullName == "_xmlsignatures/cert1.cer");
+        Assert.DoesNotContain(archive.Entries, entry => entry.FullName == "_xmlsignatures/_rels/sig1.xml.rels");
+    }
+
+    [Fact]
     public void HtmlPreflightDecodesMathMlIntegrationPointEncoding() {
         string html =
             "<math><annotation-xml encoding=\"text&#x2f;html\"><![CDATA[>" +

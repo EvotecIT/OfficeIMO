@@ -15,6 +15,7 @@ public partial class ExcelDocument {
 
     private const string SignatureOriginContentType = "application/vnd.openxmlformats-package.digital-signature-origin";
     private const string SignaturePartContentType = "application/vnd.openxmlformats-package.digital-signature-xmlsignature+xml";
+    private const string SignatureCertificateContentType = "application/vnd.openxmlformats-package.digital-signature-certificate";
     private const string SignatureRelationshipPrefix = "http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/";
     private const string ExtendedPropertiesContentType = "application/vnd.openxmlformats-officedocument.extended-properties+xml";
     private const string ExtendedPropertiesRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties";
@@ -220,7 +221,7 @@ public partial class ExcelDocument {
                 !string.Equals(contentTypes.GetContentType(normalized), expectedContentType, StringComparison.OrdinalIgnoreCase)) {
                 throw new InvalidDataException($"The XLSB {role} target has an unexpected package content type.");
             }
-            if (entries.Add(normalized)) pending.Enqueue(normalized);
+            if (entries.Add(normalized) && expectedContentType != SignatureCertificateContentType) pending.Enqueue(normalized);
         }
 
         AddPart(info.OriginPartUri, SignatureOriginContentType, "signature-origin");
@@ -324,9 +325,15 @@ public partial class ExcelDocument {
             expectedContentType = SignatureOriginContentType;
             return true;
         }
-        if (!string.Equals(type, SignatureRelationshipPrefix + "signature", StringComparison.Ordinal)) return false;
-        expectedContentType = SignaturePartContentType;
-        return true;
+        if (string.Equals(type, SignatureRelationshipPrefix + "signature", StringComparison.Ordinal)) {
+            expectedContentType = SignaturePartContentType;
+            return true;
+        }
+        if (string.Equals(type, SignatureRelationshipPrefix + "certificate", StringComparison.Ordinal)) {
+            expectedContentType = SignatureCertificateContentType;
+            return true;
+        }
+        return false;
     }
 
     private static string? ResolveRelationshipTarget(string sourcePart, string? target) {

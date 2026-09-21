@@ -1,4 +1,5 @@
 using System.Text;
+using OfficeIMO.Drawing;
 using OfficeIMO.Provenance;
 using Xunit;
 
@@ -6,12 +7,26 @@ namespace OfficeIMO.Shared.Tests;
 
 public sealed partial class ProvenanceCoreContracts {
     [Fact]
+    public void EmbeddedPngDecodeWorkSharesThePackageBudget() {
+        byte[] image = CreatePngWithC2paManifest(CreateManifestStore());
+        Assert.True(OfficePngReader.TryGetProvenanceDecodeBudget(image, default, out long decodedBytes));
+        byte[] package = CreateCompressedZip(("media/first.png", image), ("media/second.png", image));
+        var options = new OfficeProvenanceOptions {
+            MaxExpandedContainerBytes = 2L * (image.Length + decodedBytes) - 1L
+        };
+
+        Assert.Throws<InvalidDataException>(() =>
+            OfficeProvenanceInspector.Inspect(package, "package.zip", options));
+    }
+
+    [Fact]
     public void ExtensionlessZipImageReusesTheBudgetedSniffPayload() {
         byte[] image = CreatePngWithC2paManifest(CreateManifestStore());
         byte[] package = CreateCompressedZip(("media/extensionless", image));
-        var inspectionOptions = new OfficeProvenanceOptions { MaxExpandedContainerBytes = image.Length };
+        Assert.True(OfficePngReader.TryGetProvenanceDecodeBudget(image, default, out long decodedBytes));
+        var inspectionOptions = new OfficeProvenanceOptions { MaxExpandedContainerBytes = image.Length + decodedBytes };
         var removalOptions = new OfficeProvenanceRemovalOptions();
-        removalOptions.Limits.MaxExpandedContainerBytes = image.Length * 2L;
+        removalOptions.Limits.MaxExpandedContainerBytes = 1024 * 1024;
 
         OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(package, "package.zip", inspectionOptions);
         OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(package, "package.zip", removalOptions);

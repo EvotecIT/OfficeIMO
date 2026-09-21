@@ -6,6 +6,7 @@ using OfficeIMO.Provenance;
 namespace OfficeIMO.Visio;
 
 public partial class VisioDocument {
+    private const long MaximumProvenanceXmlBytes = 16L * 1024L * 1024L;
     private const string SignatureOriginRelationship = "http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/origin";
     private const string SignaturePartRelationship = "http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/signature";
     private const string DocumentRelationship = "http://schemas.microsoft.com/visio/2010/relationships/document";
@@ -69,7 +70,7 @@ public partial class VisioDocument {
                 throw new InvalidDataException("A Visio extended-properties relationship targets a part with an unexpected content type.");
             }
             using Stream input = part.GetStream(FileMode.Open, FileAccess.Read);
-            byte[] xml = ReadBoundedXml(input, limits.MaxAssetBytes);
+            byte[] xml = ReadBoundedXml(input, limits);
             // System.IO.Packaging can surface an owned but empty extended-properties part.
             // It carries no DigSig evidence and must not make unrelated native signatures
             // impossible to remove.
@@ -137,7 +138,7 @@ public partial class VisioDocument {
                 }
                 XDocument? document = null;
                 using (Stream input = appProperties.GetStream(FileMode.Open, FileAccess.Read)) {
-                    byte[] xml = ReadBoundedXml(input, limits.MaxAssetBytes);
+                    byte[] xml = ReadBoundedXml(input, limits);
                     if (xml.Length != 0) {
                         OfficeProvenanceXml.ValidateMaterializedNodeBudget(xml, limits, "Visio app metadata");
                         using var xmlInput = new MemoryStream(xml, writable: false);
@@ -163,11 +164,12 @@ public partial class VisioDocument {
         if (!package.PartExists(relationshipPartUri)) return;
         PackagePart relationshipPart = package.GetPart(relationshipPartUri);
         using Stream input = relationshipPart.GetStream(FileMode.Open, FileAccess.Read);
-        byte[] xml = ReadBoundedXml(input, limits.MaxAssetBytes);
+        byte[] xml = ReadBoundedXml(input, limits);
         OfficeProvenanceXml.ValidateMaterializedNodeBudget(xml, limits, "Visio signature relationships");
     }
 
-    private static byte[] ReadBoundedXml(Stream input, long maximumBytes) {
+    private static byte[] ReadBoundedXml(Stream input, OfficeProvenanceOptions limits) {
+        long maximumBytes = Math.Min(limits.MaxAssetBytes, MaximumProvenanceXmlBytes);
         if (input.CanSeek && input.Length > maximumBytes) {
             throw new InvalidDataException("Visio app metadata exceeds the configured asset limit.");
         }

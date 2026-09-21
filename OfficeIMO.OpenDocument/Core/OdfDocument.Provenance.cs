@@ -149,22 +149,62 @@ public abstract partial class OdfDocument {
     }
 
     private static bool HasPackageSignatures(byte[] data, OfficeProvenanceRemovalOptions options) =>
-        OfficeProvenanceZip.HasEntry(data, OdfPackage.IsSignaturePath, options.Limits.CancellationToken);
+        FindSignatureEntries(data, options.Limits).Count > 0;
 
     private static OfficeProvenanceSignatureStripResult StripPackageSignatures(byte[] data, OfficeProvenanceRemovalOptions options) {
         OfficeProvenanceOptions limits = options.Limits;
+        HashSet<string> signatureEntries = FindSignatureEntries(data, limits);
         return OfficeProvenanceZip.RemoveEntries(
             data,
-            OdfPackage.IsSignaturePath,
+            signatureEntries.Contains,
             limits.MaxExpandedContainerBytes,
             path => path == "META-INF/manifest.xml",
             (_, manifest) => RemoveManifestEntries(
                 manifest,
                 limits,
-                OdfPackage.IsSignaturePath),
+                signatureEntries.Contains),
             limits.MaxAssetBytes,
             options.EffectiveMaxOutputBytes,
             limits.CancellationToken);
+    }
+
+    internal static HashSet<string> FindSignatureEntries(byte[] data, OfficeProvenanceOptions limits) {
+        var signatures = new HashSet<string>(StringComparer.Ordinal);
+        using var stream = new MemoryStream(data, writable: false);
+        using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
+        Dictionary<ZipArchiveEntry, string> names = OfficeProvenanceZip.GetValidatedEntryNames(data, archive);
+        long inspectedBytes = 0;
+        long maximumInspectedBytes = limits.MaxExpandedContainerBytes;
+        foreach (ZipArchiveEntry entry in archive.Entries) {
+            limits.CancellationToken.ThrowIfCancellationRequested();
+            string name = names[entry];
+            if (!OdfPackage.IsSignatureCandidatePath(name)) continue;
+            if (OdfPackage.IsSignaturePath(name)) {
+                signatures.Add(name);
+                continue;
+            }
+            if (entry.Length > 1024 * 1024) {
+                byte[] prefix = new byte[8];
+                int read = 0;
+                using (Stream prefixStream = entry.Open()) {
+                    while (read < prefix.Length) {
+                        int current = prefixStream.Read(prefix, read, prefix.Length - read);
+                        if (current == 0) break;
+                        read += current;
+                    }
+                }
+                if (!OdfPackage.IsPngContent(prefix, read)) signatures.Add(name);
+                continue;
+            }
+            if (entry.Length < 0 || entry.Length > maximumInspectedBytes - inspectedBytes) {
+                throw OfficeProvenanceLimitException.Create("ODF signature classification exceeds the configured expanded-byte limit.");
+            }
+            inspectedBytes += entry.Length;
+            using Stream content = entry.Open();
+            byte[] bytes = OfficeProvenanceBinary.ReadBounded(content, 1024 * 1024, limits.CancellationToken);
+            if (OdfPackage.IsSignatureEntry(name, bytes)) signatures.Add(name);
+        }
+        return signatures;
     }
 
     private static byte[] RemoveManifestEntries(

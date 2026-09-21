@@ -380,7 +380,8 @@ internal static class OfficeProvenanceTiff {
                     (int)offset,
                     (int)count,
                     (int)compression,
-                    (int)expectedBytes)) return false;
+                    (int)expectedBytes,
+                    options.CancellationToken)) return false;
         }
         return true;
     }

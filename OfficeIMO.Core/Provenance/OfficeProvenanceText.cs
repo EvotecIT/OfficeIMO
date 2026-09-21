@@ -129,11 +129,22 @@ internal static class OfficeProvenanceText {
         CancellationToken cancellationToken) {
         int search = 0;
         int pendingEnd = -1;
+        int nextBegin = -2;
+        int nextEnd = -2;
+        int cachedLineStart = -1;
+        int cachedLineContentEnd = -1;
+        int cachedPrefixStart = -1;
         int delimiterCount = 0;
         while (search < data.Length) {
             cancellationToken.ThrowIfCancellationRequested();
-            int begin = IndexOf(data, BeginDelimiter, search, cancellationToken);
-            int orphanEnd = FindStandaloneDelimiter(data, EndDelimiter, search, cancellationToken);
+            if (nextBegin == -2 || nextBegin >= 0 && nextBegin < search) {
+                nextBegin = IndexOf(data, BeginDelimiter, search, cancellationToken);
+            }
+            if (nextEnd == -2 || nextEnd >= 0 && nextEnd < search) {
+                nextEnd = FindStandaloneDelimiter(data, EndDelimiter, search, cancellationToken);
+            }
+            int begin = nextBegin;
+            int orphanEnd = nextEnd;
             if (orphanEnd >= 0 && (begin < 0 || orphanEnd < begin)) {
                 if (++delimiterCount > maximumContainerEntries) {
                     throw new InvalidDataException("The structured text exceeds the configured container-entry limit.");
@@ -149,9 +160,20 @@ internal static class OfficeProvenanceText {
             if (++delimiterCount > maximumContainerEntries) {
                 throw new InvalidDataException("The structured text exceeds the configured container-entry limit.");
             }
+            if (begin < cachedLineStart || begin >= cachedLineContentEnd) {
+                cachedLineStart = FindLineStart(data, begin, cancellationToken);
+                cachedLineContentEnd = FindLineEnd(data, begin + BeginDelimiter.Length, cancellationToken);
+                cachedPrefixStart = cachedLineStart;
+                while (cachedPrefixStart < cachedLineContentEnd && IsHorizontalWhitespace(data[cachedPrefixStart])) {
+                    cachedPrefixStart++;
+                }
+            }
             if (TryReadSingleLineBlock(
                 data,
                 begin,
+                cachedLineStart,
+                cachedLineContentEnd,
+                cachedPrefixStart,
                 maximumManifestBytes,
                 maximumContainerEntries,
                 cancellationToken,
@@ -167,7 +189,7 @@ internal static class OfficeProvenanceText {
             int contentStart = begin + BeginDelimiter.Length;
             int end = pendingEnd >= contentStart
                 ? pendingEnd
-                : FindStandaloneDelimiter(data, EndDelimiter, contentStart, cancellationToken);
+                : orphanEnd;
             if (end < 0) {
                 int unmatchedLineStart = FindLineStart(data, begin, cancellationToken);
                 int unmatchedLineEnd = FindLineEndIncludingTerminator(
@@ -216,22 +238,16 @@ internal static class OfficeProvenanceText {
     private static bool TryReadSingleLineBlock(
         byte[] data,
         int begin,
+        int lineStart,
+        int lineContentEnd,
+        int prefixStart,
         long maximumManifestBytes,
         int maximumContainerEntries,
         CancellationToken cancellationToken,
         out StructuredBlock? block) {
         block = null;
-        int lineStart = FindLineStart(data, begin, cancellationToken);
-        int lineContentEnd = FindLineEnd(data, begin + BeginDelimiter.Length, cancellationToken);
         int contentStart = begin + BeginDelimiter.Length;
-        int end = IndexOf(data, EndDelimiter, contentStart, cancellationToken);
-        bool hasSameLineEnd = end >= contentStart && end < lineContentEnd;
 
-        int prefixStart = lineStart;
-        while (prefixStart < begin && IsHorizontalWhitespace(data[prefixStart])) {
-            if ((prefixStart & 0xFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
-            prefixStart++;
-        }
         int prefixEnd = begin;
         while (prefixEnd > prefixStart && IsHorizontalWhitespace(data[prefixEnd - 1])) {
             if ((prefixEnd & 0xFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
@@ -239,7 +255,9 @@ internal static class OfficeProvenanceText {
         }
         int prefixLength = prefixEnd - prefixStart;
 
-        if (prefixLength == 0) return false;
+        if (prefixLength == 0 || !IsSupportedCommentPrefix(data, prefixStart, prefixLength)) return false;
+        int end = IndexOfBefore(data, EndDelimiter, contentStart, lineContentEnd, cancellationToken);
+        bool hasSameLineEnd = end >= contentStart;
         int suffixStart = hasSameLineEnd ? end + EndDelimiter.Length : lineContentEnd;
         while (suffixStart < lineContentEnd && IsHorizontalWhitespace(data[suffixStart])) {
             if ((suffixStart & 0xFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
@@ -294,14 +312,7 @@ internal static class OfficeProvenanceText {
         int prefixLength,
         int suffixStart,
         int suffixLength) {
-        if (MatchesAscii(data, prefixStart, prefixLength, "#") ||
-            MatchesAscii(data, prefixStart, prefixLength, "//") ||
-            MatchesAscii(data, prefixStart, prefixLength, "--") ||
-            MatchesAscii(data, prefixStart, prefixLength, ";") ||
-            MatchesAscii(data, prefixStart, prefixLength, "%") ||
-            MatchesAscii(data, prefixStart, prefixLength, "'") ||
-            MatchesAscii(data, prefixStart, prefixLength, "::") ||
-            MatchesAsciiIgnoreCase(data, prefixStart, prefixLength, "REM")) {
+        if (IsLineCommentPrefix(data, prefixStart, prefixLength)) {
             return suffixLength == 0;
         }
         if (MatchesAscii(data, prefixStart, prefixLength, "/*")) {
@@ -315,6 +326,22 @@ internal static class OfficeProvenanceText {
         }
         return false;
     }
+
+    private static bool IsLineCommentPrefix(byte[] data, int start, int length) =>
+        MatchesAscii(data, start, length, "#") ||
+        MatchesAscii(data, start, length, "//") ||
+        MatchesAscii(data, start, length, "--") ||
+        MatchesAscii(data, start, length, ";") ||
+        MatchesAscii(data, start, length, "%") ||
+        MatchesAscii(data, start, length, "'") ||
+        MatchesAscii(data, start, length, "::") ||
+        MatchesAsciiIgnoreCase(data, start, length, "REM");
+
+    private static bool IsSupportedCommentPrefix(byte[] data, int start, int length) =>
+        IsLineCommentPrefix(data, start, length) ||
+        MatchesAscii(data, start, length, "/*") ||
+        MatchesAscii(data, start, length, "<!--") ||
+        MatchesAscii(data, start, length, "<#");
 
     private static bool MatchesAscii(byte[] data, int offset, int length, string value) {
         if (length != value.Length) return false;
@@ -500,6 +527,21 @@ internal static class OfficeProvenanceText {
         return -1;
     }
 
+    private static int IndexOfBefore(
+        byte[] data,
+        byte[] pattern,
+        int start,
+        int endExclusive,
+        CancellationToken cancellationToken) {
+        for (int offset = Math.Max(0, start); offset <= endExclusive - pattern.Length; offset++) {
+            if ((offset & 0xFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
+            int index = 0;
+            while (index < pattern.Length && data[offset + index] == pattern[index]) index++;
+            if (index == pattern.Length) return offset;
+        }
+        return -1;
+    }
+
     private static int FindStandaloneDelimiter(
         byte[] data,
         byte[] delimiter,
@@ -551,8 +593,7 @@ internal static class OfficeProvenanceText {
         int offset,
         int length,
         CancellationToken cancellationToken) {
-        int lineStart = FindLineStart(data, offset, cancellationToken);
-        for (int index = lineStart; index < offset; index++) {
+        for (int index = offset - 1; index >= 0 && data[index] != 0x0A && data[index] != 0x0D; index--) {
             if ((index & 0xFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (!IsHorizontalWhitespace(data[index])) return false;
         }

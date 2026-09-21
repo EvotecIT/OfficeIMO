@@ -261,6 +261,29 @@ public static class OfficePngReader {
         }
     }
 
+    internal static bool TryGetProvenanceDecodeBudget(byte[] bytes, CancellationToken cancellationToken, out long decodedBytes) {
+        decodedBytes = 0;
+        if (bytes == null || bytes.Length < 33) return false;
+        for (int index = 0; index < Signature.Length; index++) {
+            if (bytes[index] != Signature[index]) return false;
+        }
+        if (!OfficePngContainerValidator.TryValidate(bytes, cancellationToken, out int frameCount, out _) ||
+            ReadBigEndianInt32(bytes, 8) != 13 ||
+            bytes[12] != (byte)'I' || bytes[13] != (byte)'H' || bytes[14] != (byte)'D' || bytes[15] != (byte)'R') return false;
+        int width = ReadBigEndianInt32(bytes, 16);
+        int height = ReadBigEndianInt32(bytes, 20);
+        int colorType = bytes[25];
+        byte[]? palette = colorType == 3 ? new byte[3] : null;
+        if (!TryGetValidationWorkingSetBytes(width, height, bytes[24], colorType, bytes[28], palette,
+                out long perFrameBytes)) return false;
+        try {
+            decodedBytes = checked(perFrameBytes * Math.Max(1, frameCount));
+            return true;
+        } catch (OverflowException) {
+            return false;
+        }
+    }
+
     private static bool ValidateAdam7Scanlines(PngPayload payload, CancellationToken cancellationToken) {
         int[] startX = { 0, 4, 0, 2, 0, 1, 0 };
         int[] startY = { 0, 0, 4, 0, 2, 0, 1 };

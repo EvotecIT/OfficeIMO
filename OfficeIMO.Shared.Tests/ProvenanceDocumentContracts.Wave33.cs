@@ -78,10 +78,12 @@ public sealed partial class ProvenanceDocumentContracts {
 
     private static byte[] CreateWave33XlsbProvenancePackage(
         bool signed,
-        string officeDocumentTarget = "xl/workbook.bin") {
+        string officeDocumentTarget = "xl/workbook.bin",
+        bool includeCertificate = false) {
         string signatureTypes = signed
             ? "<Override PartName=\"/_xmlsignatures/origin.sigs\" ContentType=\"application/vnd.openxmlformats-package.digital-signature-origin\"/>" +
-              "<Override PartName=\"/_xmlsignatures/sig1.xml\" ContentType=\"application/vnd.openxmlformats-package.digital-signature-xmlsignature+xml\"/>"
+              "<Override PartName=\"/_xmlsignatures/sig1.xml\" ContentType=\"application/vnd.openxmlformats-package.digital-signature-xmlsignature+xml\"/>" +
+              (includeCertificate ? "<Override PartName=\"/_xmlsignatures/cert1.cer\" ContentType=\"application/vnd.openxmlformats-package.digital-signature-certificate\"/>" : string.Empty)
             : string.Empty;
         string signatureRelationship = signed
             ? "<Relationship Id=\"rSig\" Type=\"http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/origin\" Target=\"_xmlsignatures/origin.sigs\"/>"
@@ -115,6 +117,13 @@ public sealed partial class ProvenanceDocumentContracts {
                     "<CanonicalizationMethod Algorithm=\"http://www.w3.org/2001/10/xml-exc-c14n#\"/>" +
                     "<SignatureMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#rsa-sha256\"/>" +
                     "</SignedInfo><SignatureValue>AA==</SignatureValue></Signature>");
+                if (includeCertificate) {
+                    WriteWave33Entry(archive, "_xmlsignatures/_rels/sig1.xml.rels",
+                        "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">" +
+                        "<Relationship Id=\"rCert\" Type=\"http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/certificate\" Target=\"cert1.cer\"/>" +
+                        "</Relationships>");
+                    WriteWave33Entry(archive, "_xmlsignatures/cert1.cer", new byte[] { 1, 2, 3 });
+                }
             }
         }
         return output.ToArray();
