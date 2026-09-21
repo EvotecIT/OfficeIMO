@@ -6,7 +6,7 @@ namespace OfficeIMO.Html;
 /// <summary>
 /// Backend-neutral result shared by HTML image and PDF export.
 /// </summary>
-public sealed class HtmlRenderDocument {
+public sealed class HtmlRenderDocument : global::OfficeIMO.IOfficeConversionReport {
     private readonly ReadOnlyCollection<HtmlRenderPage> _pages;
     private readonly OfficeFontFaceCollection _fonts;
     private readonly ReadOnlyCollection<HtmlRenderHeading> _headings;
@@ -48,6 +48,10 @@ public sealed class HtmlRenderDocument {
     /// <summary>Diagnostics emitted while parsing, laying out, and preparing paint operations.</summary>
     public IReadOnlyList<HtmlDiagnostic> Diagnostics => _diagnosticReport.Diagnostics;
 
+    /// <summary>Category-preserving HTML resource, layout, font, SVG, and bridge diagnostics.</summary>
+    public IReadOnlyList<global::OfficeIMO.OfficeConversionFidelityDiagnostic> FidelityDiagnostics =>
+        Array.AsReadOnly(_diagnosticReport.Select(HtmlFidelityProjection.From).ToArray());
+
     /// <summary>
     /// Whether rendering reported an approximation, omission, or failure. Renderer warnings are
     /// deliberately treated as loss unless they are informational diagnostics.
@@ -59,6 +63,8 @@ public sealed class HtmlRenderDocument {
         if (HasLoss) throw new HtmlConversionException(Diagnostics);
         return this;
     }
+
+    void global::OfficeIMO.IOfficeConversionReport.RequireNoLoss() => RequireNoLoss();
 
     internal HtmlDiagnosticReport DiagnosticReport => _diagnosticReport;
 

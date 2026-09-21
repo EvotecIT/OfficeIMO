@@ -84,24 +84,44 @@ public sealed class MarkdownToLatexResult : OfficeConversionResult<LatexDocument
 public sealed class LatexToMarkdownReport : IOfficeConversionReport {
     internal LatexToMarkdownReport(IReadOnlyList<LatexMarkdownConversionDiagnostic> diagnostics) {
         Diagnostics = Array.AsReadOnly((diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).ToArray());
+        FidelityDiagnostics = CreateFidelityDiagnostics(Diagnostics, "OfficeIMO.Latex.Markdown");
     }
     /// <summary>Loss, fallback, and omission diagnostics.</summary>
     public IReadOnlyList<LatexMarkdownConversionDiagnostic> Diagnostics { get; }
+    /// <summary>Category-preserving conversion diagnostics.</summary>
+    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
     /// <summary>True when at least one feature was not converted exactly.</summary>
     public bool HasLoss => Diagnostics.Any(static diagnostic => diagnostic.Outcome != LatexMarkdownConversionOutcome.Converted);
     /// <summary>Throws when the conversion reported a lossy mapping.</summary>
     public void RequireNoLoss() {
         if (HasLoss) throw new InvalidOperationException("LaTeX-to-Markdown conversion reported one or more lossy mappings.");
     }
+
+    internal static IReadOnlyList<OfficeConversionFidelityDiagnostic> CreateFidelityDiagnostics(
+        IReadOnlyList<LatexMarkdownConversionDiagnostic> diagnostics,
+        string source) => Array.AsReadOnly(diagnostics.Select(diagnostic =>
+            new OfficeConversionFidelityDiagnostic(
+                diagnostic.Code,
+                diagnostic.Message,
+                diagnostic.Outcome switch {
+                    LatexMarkdownConversionOutcome.Converted => OfficeConversionLossKind.None,
+                    LatexMarkdownConversionOutcome.Omitted => OfficeConversionLossKind.Omission,
+                    _ => OfficeConversionLossKind.Approximation
+                },
+                source,
+                diagnostic.LatexSpan?.ToString() ?? diagnostic.MarkdownSpan?.ToString())).ToArray());
 }
 
 /// <summary>Markdown-to-LaTeX conversion diagnostics captured for one operation.</summary>
 public sealed class MarkdownToLatexReport : IOfficeConversionReport {
     internal MarkdownToLatexReport(IReadOnlyList<LatexMarkdownConversionDiagnostic> diagnostics) {
         Diagnostics = Array.AsReadOnly((diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).ToArray());
+        FidelityDiagnostics = LatexToMarkdownReport.CreateFidelityDiagnostics(Diagnostics, "OfficeIMO.Latex.Markdown");
     }
     /// <summary>Loss, fallback, and omission diagnostics.</summary>
     public IReadOnlyList<LatexMarkdownConversionDiagnostic> Diagnostics { get; }
+    /// <summary>Category-preserving conversion diagnostics.</summary>
+    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
     /// <summary>True when at least one feature was not converted exactly.</summary>
     public bool HasLoss => Diagnostics.Any(static diagnostic => diagnostic.Outcome != LatexMarkdownConversionOutcome.Converted);
     /// <summary>Throws when the conversion reported a lossy mapping.</summary>

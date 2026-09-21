@@ -251,6 +251,9 @@ namespace OfficeIMO.Tests {
                 ExcelDocument.Convert(sourcePath, destinationPath));
 
             Assert.Equal(OfficeConversionFailureReason.DestinationFeatureUnsupported, exception.Reason);
+            Assert.True(exception.Result.Report.HasLoss);
+            Assert.Contains(exception.Result.Report.FidelityDiagnostics,
+                diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Failure);
             Assert.Contains(exception.Result.Report.Diagnostics,
                 diagnostic => diagnostic.Code == "Excel.LegacyDestination.NotWritable"
                     && diagnostic.CompatibilityState == OfficeCompatibilityState.Blocked);
@@ -529,6 +532,9 @@ namespace OfficeIMO.Tests {
                 ExcelDocument.Convert(sourcePath, blockedPath));
 
             Assert.Equal(OfficeConversionFailureReason.DestinationFeatureUnsupported, blocked.Reason);
+            Assert.True(blocked.Result.Report.HasLoss);
+            Assert.Contains(blocked.Result.Report.FidelityDiagnostics,
+                diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Failure);
             Assert.Contains(blocked.Result.Report.Diagnostics,
                 finding => finding.Code == "Excel.BinaryWriter.Unsupported"
                     && finding.CompatibilityState == OfficeCompatibilityState.Blocked);

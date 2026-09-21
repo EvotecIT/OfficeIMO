@@ -28,29 +28,49 @@ public static partial class DbDataReaderArrowExtensions {
             columns,
             schema,
             effectiveOptions.BatchSize,
-            (reader as IDataReaderFastValueSource)?.FastValueSource);
+            (reader as IDataReaderFastValueSource)?.FastValueSource,
+            default);
     }
 
     /// <summary>
     /// Exports the current result set through the Arrow C stream interface without
     /// materializing the whole result set.
     /// </summary>
+    /// <param name="reader">Forward-only reader to project.</param>
+    /// <param name="options">Bounded Arrow projection options.</param>
+    /// <param name="cancellationToken">Cancellation observed by native stream callbacks.</param>
     /// <remarks>
-    /// Keep the returned owner alive while native code uses its address. Disposing it
-    /// releases the exported stream and its unmanaged struct. The source reader remains
-    /// caller-owned. Each native <c>get_next</c> call produces at most
-    /// <see cref="ArrowReadOptions.BatchSize"/> rows.
+    /// Acquire a lease from the returned owner for every native call sequence. Disposing
+    /// the owner stops new leases and releases the unmanaged struct after active leases
+    /// finish. The source reader remains caller-owned. Each native <c>get_next</c> call
+    /// produces at most <see cref="ArrowReadOptions.BatchSize"/> rows. Because the Arrow C
+    /// stream ABI has no cancellation parameter, <paramref name="cancellationToken"/> is
+    /// captured by the exported callbacks.
     /// </remarks>
     public static ArrowCArrayStreamOwner ExportArrowCStream(
         this DbDataReader reader,
-        ArrowReadOptions? options = null) =>
-        ArrowCArrayStreamOwner.Export(reader.OpenArrowStream(options));
+        ArrowReadOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(reader);
+        ArrowReadOptions effectiveOptions = options ?? new ArrowReadOptions();
+        Type[]? columnTypes = effectiveOptions.ValidateAndSnapshotColumnTypes(reader.FieldCount);
+        ArrowColumnFactory[] columns = CreateColumns(reader, effectiveOptions, columnTypes);
+        Schema schema = CreateSchema(reader, columns);
+        return ArrowCArrayStreamOwner.Export(new DbDataReaderArrowArrayStream(
+            reader,
+            columns,
+            schema,
+            effectiveOptions.BatchSize,
+            (reader as IDataReaderFastValueSource)?.FastValueSource,
+            cancellationToken));
+    }
 
     private sealed class DbDataReaderArrowArrayStream : IArrowArrayStream {
         private readonly DbDataReader _reader;
         private readonly ArrowColumnFactory[] _columns;
         private readonly int _batchSize;
         private readonly IDataReaderFastValueSource? _fastValueSource;
+        private readonly CancellationToken _ownerCancellationToken;
         private int _readInProgress;
         private bool _completed;
         private bool _disposed;
@@ -61,12 +81,14 @@ public static partial class DbDataReaderArrowExtensions {
             ArrowColumnFactory[] columns,
             Schema schema,
             int batchSize,
-            IDataReaderFastValueSource? fastValueSource) {
+            IDataReaderFastValueSource? fastValueSource,
+            CancellationToken ownerCancellationToken) {
             _reader = reader;
             _columns = columns;
             Schema = schema;
             _batchSize = batchSize;
             _fastValueSource = fastValueSource;
+            _ownerCancellationToken = ownerCancellationToken;
         }
 
         public Schema Schema { get; }
@@ -84,35 +106,38 @@ public static partial class DbDataReaderArrowExtensions {
                     throw new InvalidOperationException(
                         "The Arrow stream cannot continue after a failed or cancelled read.");
                 }
-                cancellationToken.ThrowIfCancellationRequested();
+                ThrowIfCancellationRequested(cancellationToken);
                 if (_completed) return null;
                 readAttempted = true;
-                bool hasRow = await _reader.ReadAsync(cancellationToken).ConfigureAwait(false);
-                cancellationToken.ThrowIfCancellationRequested();
-                if (!hasRow) {
-                    _completed = true;
-                    return null;
+                CancellationToken effectiveToken = ResolveReadCancellationToken(cancellationToken, out CancellationTokenSource? linkedCancellation);
+                using (linkedCancellation) {
+                    bool hasRow = await _reader.ReadAsync(effectiveToken).ConfigureAwait(false);
+                    ThrowIfCancellationRequested(cancellationToken);
+                    if (!hasRow) {
+                        _completed = true;
+                        return null;
+                    }
+
+                    ArrowColumnBuilder[] builders = CreateBuilders(
+                        _columns,
+                        _batchSize,
+                        _fastValueSource);
+                    int rowCount = 0;
+                    do {
+                        ThrowIfCancellationRequested(cancellationToken);
+                        AppendRow(_reader, builders);
+                        ThrowIfCancellationRequested(cancellationToken);
+                        rowCount++;
+                        if (rowCount >= _batchSize) break;
+
+                        readAttempted = true;
+                        hasRow = await _reader.ReadAsync(effectiveToken).ConfigureAwait(false);
+                        ThrowIfCancellationRequested(cancellationToken);
+                    } while (hasRow);
+
+                    if (!hasRow) _completed = true;
+                    return BuildBatch(Schema, builders, rowCount, effectiveToken);
                 }
-
-                ArrowColumnBuilder[] builders = CreateBuilders(
-                    _columns,
-                    _batchSize,
-                    _fastValueSource);
-                int rowCount = 0;
-                do {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    AppendRow(_reader, builders);
-                    cancellationToken.ThrowIfCancellationRequested();
-                    rowCount++;
-                    if (rowCount >= _batchSize) break;
-
-                    readAttempted = true;
-                    hasRow = await _reader.ReadAsync(cancellationToken).ConfigureAwait(false);
-                    cancellationToken.ThrowIfCancellationRequested();
-                } while (hasRow);
-
-                if (!hasRow) _completed = true;
-                return BuildBatch(Schema, builders, rowCount, cancellationToken);
             } catch {
                 // A forward-only reader may have advanced before the exception. Refuse a
                 // retry that could silently omit or duplicate a row.
@@ -125,6 +150,26 @@ public static partial class DbDataReaderArrowExtensions {
 
         public void Dispose() {
             Volatile.Write(ref _disposed, true);
+        }
+
+        private void ThrowIfCancellationRequested(CancellationToken readCancellationToken) {
+            _ownerCancellationToken.ThrowIfCancellationRequested();
+            readCancellationToken.ThrowIfCancellationRequested();
+        }
+
+        private CancellationToken ResolveReadCancellationToken(
+            CancellationToken readCancellationToken,
+            out CancellationTokenSource? linkedCancellation) {
+            linkedCancellation = null;
+            if (!_ownerCancellationToken.CanBeCanceled) return readCancellationToken;
+            if (!readCancellationToken.CanBeCanceled || readCancellationToken == _ownerCancellationToken) {
+                return _ownerCancellationToken;
+            }
+
+            linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+                _ownerCancellationToken,
+                readCancellationToken);
+            return linkedCancellation.Token;
         }
     }
 }

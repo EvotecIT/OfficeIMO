@@ -1,3 +1,4 @@
+using System;
 using OfficeIMO.Adf;
 using Xunit;
 
@@ -25,6 +26,10 @@ public sealed class AdfTaskProjectionTests {
             markdown.Report.Diagnostics,
             item => item.Code == "ADF_TASK_LOCAL_IDS_REGENERATED");
         Assert.Equal("$.content[0]", diagnostic.Path);
+        OfficeConversionFidelityDiagnostic fidelity = Assert.Single(markdown.Report.FidelityDiagnostics,
+            item => item.Code == diagnostic.Code);
+        Assert.Equal(OfficeConversionLossKind.Omission, fidelity.LossKind);
+        Assert.Throws<InvalidOperationException>(markdown.Report.RequireNoLoss);
         AdfNode projectedList = Assert.Single(roundTrip.Value.Content);
         AdfNode projectedItem = Assert.Single(projectedList.Content);
         Assert.NotEqual("list-1", projectedList.GetStringAttribute("localId"));

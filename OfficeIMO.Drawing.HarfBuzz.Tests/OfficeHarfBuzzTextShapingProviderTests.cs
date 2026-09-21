@@ -1,14 +1,144 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Xml.Linq;
 using System.Collections.Generic;
 using OfficeIMO.Drawing;
 using OfficeIMO.Drawing.HarfBuzz;
+using OfficeIMO.TestAssets;
 using Xunit;
 
 namespace OfficeIMO.Drawing.HarfBuzz.Tests;
 
 public sealed class OfficeHarfBuzzTextShapingProviderTests {
+    [Fact]
+    public void ShapesTheSharedCrossRendererTypographyCorpus() {
+        Assert.Equal(OfficeTextShapingBackend.HarfBuzz,
+            ((IOfficeTextShapingProviderMetadata)OfficeHarfBuzzTextShapingProvider.Instance).Backend);
+
+        foreach (TypographyEvidenceCase evidence in TypographyEvidenceCorpus.Cases) {
+            byte[] fontData = LoadFontData(evidence);
+            OfficeFontFace face = Assert.Single(new OfficeFontFaceCollection()
+                .Add(evidence.Family, fontData).Faces);
+            Assert.True(face.Program.HasGlyphs(evidence.Text), evidence.Name);
+
+            OfficeTextShapingResult? shaped = OfficeHarfBuzzTextShapingProvider.Instance.ShapeText(new OfficeTextShapingRequest(
+                    evidence.Text,
+                    evidence.Family,
+                    face.Program.GetFontDataForShaping(),
+                    face.Program.IsOpenTypeCff,
+                    face.Program.UnitsPerEm,
+                    evidence.Direction,
+                    evidence.Language));
+            Assert.Equal(evidence.HarfBuzzShapingExpected, shaped != null);
+            if (shaped == null) continue;
+            OfficeTextShapingResult result = shaped;
+
+            Assert.Equal(evidence.Direction, result.Direction);
+            Assert.NotEmpty(result.Glyphs);
+            Assert.All(result.Glyphs, glyph => Assert.True(glyph.GlyphId > 0, evidence.Name));
+            Assert.All(result.Glyphs, glyph =>
+                Assert.Equal(glyph.UnicodeText,
+                    evidence.Text.Substring(glyph.TextIndex, glyph.UnicodeText.Length)));
+            if (evidence.Direction == OfficeTextDirection.TopToBottom) {
+                Assert.All(result.Glyphs, glyph => Assert.NotEqual(0, glyph.AdvanceHeight));
+                Assert.True(Math.Abs(result.Glyphs.Sum(glyph => glyph.AdvanceHeight ?? 0)) > 0);
+            }
+        }
+    }
+
+    [Fact]
+    public void VerticalCjkUsesHarfBuzzAdvancesInRasterAndMarksSvgAsBrowserNative() {
+        TypographyEvidenceCase evidence = Assert.Single(
+            TypographyEvidenceCorpus.Cases,
+            item => item.Direction == OfficeTextDirection.TopToBottom);
+        byte[] fontData = LoadFontData(evidence);
+        var drawing = new OfficeDrawing(120D, 180D)
+            .AddFont(evidence.Family, fontData)
+            .AddVerticalText(evidence.Text, 20D, 10D, 80D, 160D, new OfficeFontInfo(evidence.Family, 36D));
+
+        var diagnostics = new List<OfficeImageExportDiagnostic>();
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing, new OfficeDrawingRasterRenderOptions {
+            TextShapingProvider = OfficeHarfBuzzTextShapingProvider.Instance,
+            TextShapingLanguage = evidence.Language,
+            DiagnosticSink = diagnostics,
+            DiagnosticSource = evidence.Name
+        });
+        (int width, int height) = InkSize(raster);
+
+        Assert.True(height > width, $"Expected vertical ink, got {width}x{height}.");
+        Assert.DoesNotContain(diagnostics, diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.TextShapingFallback);
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+        var text = Assert.Single(XDocument.Parse(svg).Descendants(), element => element.Name.LocalName == "text");
+        Assert.Equal(evidence.Text, text.Value);
+        Assert.Equal("vertical-rl", text.Attribute("writing-mode")?.Value);
+        Assert.Equal("start", text.Attribute("text-anchor")?.Value);
+        Assert.Equal("browser-native", text.Attribute("data-officeimo-shaping-backend")?.Value);
+    }
+
+    [Fact]
+    public void VerticalCjkIsClippedToItsDeclaredTextBoxAcrossRasterAndSvg() {
+        TypographyEvidenceCase evidence = Assert.Single(
+            TypographyEvidenceCorpus.Cases,
+            item => item.Direction == OfficeTextDirection.TopToBottom);
+        byte[] fontData = LoadFontData(evidence);
+        var drawing = new OfficeDrawing(100D, 100D)
+            .AddFont(evidence.Family, fontData)
+            .AddVerticalText(evidence.Text + evidence.Text, 30D, 15D, 40D, 24D,
+                new OfficeFontInfo(evidence.Family, 36D));
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing, new OfficeDrawingRasterRenderOptions {
+            TextShapingProvider = OfficeHarfBuzzTextShapingProvider.Instance,
+            TextShapingLanguage = evidence.Language
+        });
+        var painted = new List<(int X, int Y)>();
+        for (int y = 0; y < raster.Height; y++) {
+            for (int x = 0; x < raster.Width; x++) {
+                if (raster.GetPixel(x, y).A != 0) painted.Add((x, y));
+            }
+        }
+
+        Assert.NotEmpty(painted);
+        Assert.All(painted, pixel => {
+            Assert.InRange(pixel.X, 30, 69);
+            Assert.InRange(pixel.Y, 15, 38);
+        });
+
+        XDocument svg = XDocument.Parse(OfficeDrawingSvgExporter.ToSvg(drawing));
+        XElement clipPath = Assert.Single(svg.Descendants(), element => element.Name.LocalName == "clipPath");
+        XElement rectangle = Assert.Single(clipPath.Elements(), element => element.Name.LocalName == "rect");
+        Assert.Equal("30", rectangle.Attribute("x")?.Value);
+        Assert.Equal("15", rectangle.Attribute("y")?.Value);
+        Assert.Equal("40", rectangle.Attribute("width")?.Value);
+        Assert.Equal("24", rectangle.Attribute("height")?.Value);
+        XElement clippedGroup = Assert.Single(svg.Descendants(), element =>
+            element.Name.LocalName == "g" && element.Attribute("clip-path") != null);
+        Assert.Contains(clipPath.Attribute("id")!.Value, clippedGroup.Attribute("clip-path")!.Value, StringComparison.Ordinal);
+        Assert.Equal(evidence.Text + evidence.Text,
+            Assert.Single(clippedGroup.Descendants(), element => element.Name.LocalName == "text").Value);
+    }
+
+    private static (int Width, int Height) InkSize(OfficeRasterImage image) {
+        int minX = image.Width, minY = image.Height, maxX = -1, maxY = -1;
+        for (int y = 0; y < image.Height; y++) {
+            for (int x = 0; x < image.Width; x++) {
+                if (image.GetPixel(x, y).A == 0) continue;
+                minX = Math.Min(minX, x); minY = Math.Min(minY, y);
+                maxX = Math.Max(maxX, x); maxY = Math.Max(maxY, y);
+            }
+        }
+        Assert.True(maxX >= minX && maxY >= minY);
+        return (maxX - minX + 1, maxY - minY + 1);
+    }
+
+    private static byte[] LoadFontData(TypographyEvidenceCase evidence) {
+        if (!string.IsNullOrEmpty(evidence.FontFileName)) return File.ReadAllBytes(FontPath(evidence.FontFileName));
+        return evidence.Name == "Hebrew"
+            ? ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 0x05E9, 0x05DC, 0x05D5, 0x05DD, 0x05E2)
+            : ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 'C', 'a', 'f', 'e', 0x0301);
+    }
+
     [Fact]
     public void RenderingProfileAppliesHarfBuzzToSharedExportOptions() {
         OfficeRenderingProfile profile = OfficeHarfBuzzRenderingProfile.Create(language: " ar ");

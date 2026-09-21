@@ -8,6 +8,24 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Excel {
         [Fact]
+        public void LegacyXls_LoadResult_ProjectsCapturedProjectionExceptionAsTypedFailure() {
+            var failed = new LegacyXlsLoadResult(
+                document: null,
+                new LegacyXlsWorkbook(),
+                new InvalidDataException("Projection failed."));
+
+            OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(
+                failed.FidelityDiagnostics,
+                item => item.Code == "XLS-PROJECTION-FAILED");
+
+            Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
+            Assert.True(failed.HasLoss);
+            Assert.True(failed.HasImportErrors);
+            Assert.Throws<InvalidDataException>(failed.RequireNoLoss);
+            Assert.Throws<InvalidOperationException>(() => failed.EnsureNoImportErrors());
+        }
+
+        [Fact]
         public async Task FormatApi_ToXlsxToXlsAndLoadAsyncStream_RoundTrips() {
             string path = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(path);
@@ -91,6 +109,12 @@ namespace OfficeIMO.Tests {
             Assert.True(result.HasUnsupportedFeatures);
             Assert.True(result.HasConversionLoss);
             Assert.True(result.Summary.HasConversionLoss);
+            IOfficeConversionReport commonResult = result;
+            Assert.Contains(commonResult.FidelityDiagnostics,
+                diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
+            Assert.True(result.Summary.HasLoss);
+            Assert.Throws<InvalidDataException>(commonResult.RequireNoLoss);
+            Assert.Throws<InvalidDataException>(result.Summary.RequireNoLoss);
             LegacyXlsImportReport report = result.CreateImportReport();
             Assert.True(report.PreservedFeatureRecordCount > 0);
             Assert.True(report.HasUnsupportedFeatures);

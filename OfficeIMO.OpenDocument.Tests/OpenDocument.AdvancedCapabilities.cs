@@ -205,6 +205,10 @@ public sealed class OpenDocumentAdvancedCapabilityTests {
         Assert.True(save.HasLoss);
         Assert.Throws<InvalidOperationException>(() => save.RequireNoLoss());
         Assert.Contains("Thumbnails/thumbnail.png", save.Report.LossyEntries);
+        OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(save.Report.FidelityDiagnostics,
+            item => item.Location == "Thumbnails/thumbnail.png");
+        Assert.Equal("ODF_ENTRY_OMITTED", diagnostic.Code);
+        Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
         Assert.Contains("content.xml", save.Report.RewrittenEntries);
     }
 

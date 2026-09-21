@@ -169,6 +169,18 @@ OfficeImageFit fit = OfficeImageFit.Contain;
 `TryIdentify(...)` retains the metadata reader's extension fallback. `TryIdentifyByContent(...)`
 may use a file name to select the SVG parser, but succeeds only when the bytes match a supported format.
 
+### Text shaping and vertical text
+
+Font resolution, glyph coverage, shaping diagnostics, and baseline placement are shared by the
+raster, SVG, and PDF drawing routes. Use `OfficeDrawing.AddVerticalText(...)` for top-to-bottom text.
+The optional `OfficeIMO.Drawing.HarfBuzz` package supplies full OpenType shaping and true vertical
+advances to raster outline rendering. SVG retains one searchable logical string and explicitly marks
+browser-native shaping with vertical writing attributes. PDF also retains the logical string, but its
+current vertical drawing route paints a stacked-glyph fallback and reports a typed approximation;
+strict conversion profiles reject it. The dependency-free managed provider likewise reports when it
+cannot supply true vertical shaping. These boundaries keep fallback behavior visible instead of
+silently claiming equivalent glyph positioning.
+
 Use `TryValidateContent(...)` at ingestion and export boundaries that must reject incomplete or
 corrupt image bodies. It applies the shared encoded-payload limit, validates the complete known
 container, decodes supported raster bodies, and validates every ICO entry. Both byte-array and

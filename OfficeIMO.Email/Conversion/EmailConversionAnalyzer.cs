@@ -7,10 +7,8 @@ internal static class EmailConversionAnalyzer {
         if (options == null) throw new ArgumentNullException(nameof(options));
 
         var diagnostics = new List<EmailDiagnostic>();
-        bool hasPotentialDataLoss = false;
 
         if (document.Protection.IsProtected && !CanPassThroughProtectedSource(document, targetFormat)) {
-            hasPotentialDataLoss = true;
             diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
                 EmailArtifactDiagnosticCodes.ProtectedContentRewrite,
                 "The protected MIME or Outlook wrapper cannot be regenerated without invalidating its signature or encrypted payload. " +
@@ -22,14 +20,12 @@ internal static class EmailConversionAnalyzer {
             if (document.OutlookItemKind == OutlookItemKind.Appointment) {
                 if ((document.Appointment == null || !document.Appointment.Start.HasValue) &&
                     !HasUnchangedMimeSemanticSource(document)) {
-                    hasPotentialDataLoss = true;
                     diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
                         "EMAIL_ICALENDAR_START_REQUIRED",
                         "An appointment needs a start time before it can be represented as an iCalendar VEVENT.",
                         "appointment/start"));
                 } else if (document.Appointment != null && IcsCalendarCodec.HasOpaqueAppointmentState(document.Appointment) &&
                     !HasUnchangedMimeSemanticSource(document)) {
-                    hasPotentialDataLoss = true;
                     diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
                         "EMAIL_ICALENDAR_OPAQUE_RECURRENCE",
                         "The appointment contains Outlook recurrence or time-zone blobs that cannot be translated safely to iCalendar without changing their meaning.",
@@ -37,7 +33,6 @@ internal static class EmailConversionAnalyzer {
                 }
                 if (document.Appointment != null && HasAddresslessAttendeeDisplayState(document) &&
                     !HasUnchangedMimeSemanticSource(document)) {
-                    hasPotentialDataLoss = true;
                     diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
                         "EMAIL_ICALENDAR_ATTENDEE_ADDRESS_REQUIRED",
                         "The appointment has attendee state without portable SMTP recipient addresses from which valid iCalendar ATTENDEE values can be created.",
@@ -45,7 +40,6 @@ internal static class EmailConversionAnalyzer {
                 }
                 if (HasNonPortableCalendarOrganizer(document) &&
                     !HasUnchangedMimeSemanticSource(document)) {
-                    hasPotentialDataLoss = true;
                     diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
                         "EMAIL_ICALENDAR_ORGANIZER_ADDRESS_REQUIRED",
                         "The appointment organizer does not have a portable SMTP address from which a valid iCalendar ORGANIZER value can be created.",
@@ -53,7 +47,6 @@ internal static class EmailConversionAnalyzer {
                 }
                 if (HasNonPortableMeetingLifecycle(document.MeetingCommunication) &&
                     !HasUnchangedMimeSemanticSource(document)) {
-                    hasPotentialDataLoss = true;
                     diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
                         "EMAIL_ICALENDAR_MEETING_LIFECYCLE_EXTENSION_LOSS",
                         "The meeting communication contains Outlook lifecycle or counter-proposal properties that the current iCalendar projection cannot represent completely.",
@@ -63,7 +56,6 @@ internal static class EmailConversionAnalyzer {
                 if (document.TaskCommunication != null &&
                     document.TaskCommunication.Kind != OutlookTaskCommunicationKind.None &&
                     !HasUnchangedMimeSemanticSource(document)) {
-                    hasPotentialDataLoss = true;
                     diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
                         "EMAIL_ICALENDAR_TASK_COMMUNICATION_UNSUPPORTED",
                         "The current iCalendar projection does not represent an Outlook task request, acceptance, rejection, or update envelope with its embedded task.",
@@ -71,14 +63,12 @@ internal static class EmailConversionAnalyzer {
                 }
                 if (document.Task != null && IcsCalendarCodec.HasOpaqueTaskState(document.Task) &&
                     !HasUnchangedMimeSemanticSource(document)) {
-                    hasPotentialDataLoss = true;
                     diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
                         "EMAIL_ICALENDAR_OPAQUE_TASK_RECURRENCE",
                         "The task is recurring, but its recurrence rule is not available for a safe iCalendar VTODO representation.",
                         "task/recurrence"));
                 }
                 if (HasNonPortableCalendarRecipient(document) && !HasUnchangedMimeSemanticSource(document)) {
-                    hasPotentialDataLoss = true;
                     diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
                         "EMAIL_ICALENDAR_ATTENDEE_ADDRESS_REQUIRED",
                         "The task has an assignee recipient without a portable SMTP address from which a valid iCalendar ATTENDEE value can be created.",
@@ -86,28 +76,24 @@ internal static class EmailConversionAnalyzer {
                 }
                 if (HasNonPortableCalendarOrganizer(document, document.Task?.Owner) &&
                     !HasUnchangedMimeSemanticSource(document)) {
-                    hasPotentialDataLoss = true;
                     diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
                         "EMAIL_ICALENDAR_ORGANIZER_ADDRESS_REQUIRED",
                         "The task owner does not have a portable SMTP address from which a valid iCalendar ORGANIZER value can be created.",
                         "task/organizer"));
                 }
             } else if (IsDistributionList(document)) {
-                hasPotentialDataLoss = true;
                 diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
                     "EMAIL_VCARD_DISTRIBUTION_LIST_UNSUPPORTED",
                     "An Outlook distribution list cannot be represented as an individual vCard without losing its membership.",
                     "contact/distribution-list"));
             } else if (document.OutlookItemKind == OutlookItemKind.Contact &&
                 (document.Contact == null || VCardCodec.HasOpaqueContactState(document.Contact))) {
-                hasPotentialDataLoss = true;
                 diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
                     "EMAIL_VCARD_OPAQUE_CONTACT_IDENTITY",
                     "The contact contains opaque Outlook entry identifiers that cannot be represented in vCard.",
                     "contact/email-address"));
             } else if (document.OutlookItemKind == OutlookItemKind.Journal ||
                 document.OutlookItemKind == OutlookItemKind.Note) {
-                hasPotentialDataLoss = true;
                 diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
                     "EMAIL_OUTLOOK_ITEM_EML_REPRESENTATION_MISSING",
                     string.Concat(document.OutlookItemKind.ToString(),
@@ -118,7 +104,6 @@ internal static class EmailConversionAnalyzer {
 
         if (document.MimeSemanticSourceModelFingerprint != null &&
             !EmailDocumentStateFingerprint.Matches(document, document.MimeSemanticSourceModelFingerprint)) {
-            hasPotentialDataLoss = true;
             diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
                 "EMAIL_MIME_SEMANTIC_CONTENT_CHANGED",
                 "The message model changed after calendar or vCard content was projected. Regenerating that content can omit unmodeled source properties.",
@@ -126,7 +111,6 @@ internal static class EmailConversionAnalyzer {
         }
 
         if (targetFormat != EmailFileFormat.Eml && document.MimeSemanticProjectionIsIncomplete) {
-            hasPotentialDataLoss = true;
             diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
                 "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE",
                 "The calendar or vCard contains semantics that cannot be projected completely into MSG/TNEF properties.",
@@ -135,7 +119,6 @@ internal static class EmailConversionAnalyzer {
 
         if ((targetFormat == EmailFileFormat.OutlookMsg || targetFormat == EmailFileFormat.OutlookTemplate) &&
             TnefWriter.HasUnmanagedRawAttributes(document)) {
-            hasPotentialDataLoss = true;
             diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
                 "EMAIL_TNEF_ATTRIBUTES_NOT_REPRESENTED_IN_MSG",
                 "Raw TNEF message or attachment attributes cannot be represented in an Outlook MSG artifact.",
@@ -143,13 +126,12 @@ internal static class EmailConversionAnalyzer {
         }
 
         if (targetFormat == EmailFileFormat.Eml && HasSourceSpecificMetadata(document)) {
-            hasPotentialDataLoss = true;
             diagnostics.Add(new EmailDiagnostic("EMAIL_SOURCE_METADATA_NOT_REPRESENTED_IN_EML",
                 "The common message content is representable, but opaque MAPI, TNEF, compound-storage, conversation, reaction, or editor metadata has no portable EML equivalent.",
-                EmailDiagnosticSeverity.Warning, "source-metadata"));
+                EmailDiagnosticSeverity.Warning, "source-metadata", OfficeConversionLossKind.Omission));
         }
 
-        return new EmailConversionReport(document.Format, targetFormat, diagnostics.AsReadOnly(), hasPotentialDataLoss);
+        return new EmailConversionReport(document.Format, targetFormat, diagnostics.AsReadOnly());
     }
 
     internal static bool CanPassThroughProtectedSource(EmailDocument document, EmailFileFormat targetFormat) {
@@ -173,7 +155,9 @@ internal static class EmailConversionAnalyzer {
             EmailDataLossRisk.Confirmed,
             policy == EmailConversionLossPolicy.Block
                 ? "Choose a target that preserves the source semantics or explicitly select Warn/Allow after reviewing the loss."
-                : "Review the regenerated artifact and its diagnostics before transport or archival use.");
+                : "Review the regenerated artifact and its diagnostics before transport or archival use.",
+            isRetryable: false,
+            lossKind: OfficeConversionLossKind.Omission);
     }
 
     private static bool HasSourceSpecificMetadata(EmailDocument document) {

@@ -557,6 +557,8 @@ public sealed class OpmlDocumentTests {
         Assert.True(structuredResult.HasLoss);
         Assert.Equal(2, structuredResult.Diagnostics.Count(diagnostic => diagnostic.Code == "OPML108"));
         Assert.Equal(2, flatResult.Diagnostics.Count(diagnostic => diagnostic.Code == "OPML108"));
+        Assert.All(structuredResult.FidelityDiagnostics.Where(diagnostic => diagnostic.Code == "OPML108"),
+            diagnostic => Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind));
     }
 
     [Fact]
@@ -855,6 +857,18 @@ public sealed class OpmlDocumentTests {
         Assert.Throws<InvalidDataException>(() => OpmlDocument.FromOfficeDocumentModel(
             model, null, new OpmlConversionOptions { MaxStructureNodes = 2 }));
         Assert.Equal(1, children.IndexerCalls);
+    }
+
+    [Fact]
+    public void ExplicitErrorDiagnosticCannotSuppressFailureClassification() {
+        var diagnostic = new OpmlDiagnostic(
+            "OPML-TEST-ERROR",
+            OpmlDiagnosticSeverity.Error,
+            "The source could not be converted.",
+            "/opml/body",
+            OfficeConversionLossKind.None);
+
+        Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
     }
 
     private sealed class WideNodeList : IReadOnlyList<OfficeDocumentModelNode> {

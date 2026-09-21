@@ -160,29 +160,38 @@ public sealed partial class OfficeTrueTypeFont {
                         variationWorkBudget,
                         cancellationToken)) +
                     result.GetAdvanceAdjustment(index)),
+                glyph.AdvanceHeight ?? 0,
                 glyph.OffsetX,
                 glyph.OffsetY);
         }
 
-        return new ShapedTextRun(this, glyphs);
+        return new ShapedTextRun(this, glyphs, result.Direction);
     }
 
     internal sealed class ShapedTextRun {
         private readonly OfficeTrueTypeFont _font;
         internal readonly PositionedGlyph[] _glyphs;
         private readonly long _advanceWidth;
+        private readonly long _advanceHeight;
 
-        internal ShapedTextRun(OfficeTrueTypeFont font, PositionedGlyph[] glyphs) {
+        internal ShapedTextRun(OfficeTrueTypeFont font, PositionedGlyph[] glyphs, OfficeTextDirection direction) {
             _font = font;
             _glyphs = glyphs;
+            Direction = direction;
             long width = 0L;
+            long height = 0L;
             for (int index = 0; index < glyphs.Length; index++) {
                 width = checked(width + glyphs[index].AdvanceWidth);
+                height = checked(height + glyphs[index].AdvanceHeight);
             }
             _advanceWidth = width;
+            _advanceHeight = height;
         }
 
-        internal double Measure(double fontSize) => Math.Abs(_advanceWidth * _font.ScaleFor(fontSize));
+        internal OfficeTextDirection Direction { get; }
+
+        internal double Measure(double fontSize) => Math.Abs(
+            (Direction == OfficeTextDirection.TopToBottom ? _advanceHeight : _advanceWidth) * _font.ScaleFor(fontSize));
 
         internal List<List<OfficePoint>> GetContours(
             double x,
@@ -194,6 +203,29 @@ public sealed partial class OfficeTrueTypeFont {
             if (maximumPointCount <= 0) throw new ArgumentOutOfRangeException(nameof(maximumPointCount));
             var contours = new List<List<OfficePoint>>();
             double scale = _font.ScaleFor(fontSize);
+            if (Direction == OfficeTextDirection.TopToBottom) {
+                double cursorY = y;
+                int verticalPointCount = 0;
+                variationWorkBudget ??= _font._variations?.CreateWorkBudget();
+                for (int index = 0; index < _glyphs.Length; index++) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    PositionedGlyph glyph = _glyphs[index];
+                    double glyphX = x + (glyph.OffsetX * scale);
+                    double glyphBaseline = cursorY - (glyph.OffsetY * scale);
+                    List<List<OfficePoint>> glyphContours = _font.ReadGlyphContours(
+                        glyph.GlyphId,
+                        new FontTransform(scale, 0D, 0D, -scale, glyphX, glyphBaseline),
+                        0,
+                        variationWorkBudget,
+                        maximumPointCount,
+                        ref verticalPointCount,
+                        cancellationToken,
+                        attachmentPoints: null);
+                    contours.AddRange(glyphContours);
+                    cursorY -= glyph.AdvanceHeight * scale;
+                }
+                return contours;
+            }
             bool negativeDirection = _advanceWidth < 0L;
             double cursor = negativeDirection ? x - (_advanceWidth * scale) : x;
             double baseline = y + (_font._ascender * scale);
@@ -226,15 +258,17 @@ public sealed partial class OfficeTrueTypeFont {
     }
 
     internal readonly struct PositionedGlyph {
-        internal PositionedGlyph(ushort glyphId, int advanceWidth, int offsetX, int offsetY) {
+        internal PositionedGlyph(ushort glyphId, int advanceWidth, int advanceHeight, int offsetX, int offsetY) {
             GlyphId = glyphId;
             AdvanceWidth = advanceWidth;
+            AdvanceHeight = advanceHeight;
             OffsetX = offsetX;
             OffsetY = offsetY;
         }
 
         internal ushort GlyphId { get; }
         internal int AdvanceWidth { get; }
+        internal int AdvanceHeight { get; }
         internal int OffsetX { get; }
         internal int OffsetY { get; }
     }

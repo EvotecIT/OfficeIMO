@@ -21,6 +21,115 @@ namespace OfficeIMO.Tests;
 
 public partial class Html {
     [Fact]
+    public void HtmlTextResultPreservesTypedDiagnosticsAddedDuringConstruction() {
+        var diagnostic = new HtmlDiagnostic(
+            "OfficeIMO.Html.Tests",
+            "HTML_TEST_OMISSION",
+            "Source content was omitted.",
+            HtmlDiagnosticSeverity.Warning,
+            lossKind: OfficeConversionLossKind.Omission);
+
+        var result = new HtmlTextConversionResult("<p>Body</p>", new[] { diagnostic });
+
+        Assert.True(result.HasLoss);
+        Assert.Equal(OfficeConversionLossKind.Omission, Assert.Single(result.Report.FidelityDiagnostics).LossKind);
+    }
+
+    [Fact]
+    public void HtmlErrorWithoutExplicitLossKindIsTypedAsFailure() {
+        var diagnostic = new HtmlDiagnostic(
+            "OfficeIMO.Html.Tests",
+            "HTML_TEST_FAILURE",
+            "Conversion failed.",
+            HtmlDiagnosticSeverity.Error);
+
+        var result = new HtmlTextConversionResult("<p>Partial</p>", new[] { diagnostic });
+
+        Assert.False(result.Succeeded);
+        Assert.True(result.HasLoss);
+        Assert.Equal(OfficeConversionLossKind.Failure, Assert.Single(result.Report.FidelityDiagnostics).LossKind);
+        Assert.Throws<HtmlConversionException>(() => result.RequireNoLoss());
+    }
+
+    [Theory]
+    [InlineData(OfficeConversionLossKind.None)]
+    [InlineData(OfficeConversionLossKind.Approximation)]
+    [InlineData(OfficeConversionLossKind.Omission)]
+    public void HtmlErrorCannotSuppressFailureClassification(OfficeConversionLossKind specifiedLoss) {
+        var diagnostic = new HtmlDiagnostic(
+            "OfficeIMO.Html.Tests",
+            "HTML_TEST_OMISSION",
+            "One source node was omitted.",
+            HtmlDiagnosticSeverity.Error,
+            lossKind: specifiedLoss);
+
+        var result = new HtmlTextConversionResult("<p>Partial</p>", new[] { diagnostic });
+
+        Assert.False(result.Succeeded);
+        Assert.True(result.HasLoss);
+        Assert.Equal(OfficeConversionLossKind.Failure, Assert.Single(result.Report.FidelityDiagnostics).LossKind);
+        Assert.Equal(OfficeConversionLossKind.Failure,
+            diagnostic.WithLossKind(OfficeConversionLossKind.Omission).LossKind);
+        Assert.Throws<HtmlConversionException>(() => result.RequireNoLoss());
+    }
+
+    [Fact]
+    public void CapabilityArtifactEvidenceExposesTypedLossAndStrictAcceptance() {
+        var diagnostic = new HtmlDiagnostic(
+            "OfficeIMO.Html.Tests",
+            "HTML_ARTIFACT_OMISSION",
+            "A source resource was omitted.",
+            HtmlDiagnosticSeverity.Warning,
+            "asset:image",
+            lossKind: OfficeConversionLossKind.Omission);
+        var evidence = new HtmlCapabilityGalleryArtifactEvidence(
+            1,
+            1,
+            640,
+            480,
+            "px",
+            new[] { diagnostic },
+            Array.Empty<HtmlCapabilityGalleryCheck>());
+
+        IOfficeConversionReport report = evidence;
+        OfficeConversionFidelityDiagnostic projected = Assert.Single(report.FidelityDiagnostics);
+        Assert.Equal(OfficeConversionLossKind.Omission, projected.LossKind);
+        Assert.Equal("OfficeIMO.Html.Tests", projected.Source);
+        Assert.Equal("asset:image", projected.Location);
+        Assert.Throws<InvalidOperationException>(report.RequireNoLoss);
+    }
+
+    [Fact]
+    public void HtmlTypedProjectionNormalizesLegacyBlankIdentifiersAcrossReports() {
+        var diagnostic = new HtmlDiagnostic(
+            "   ",
+            " ",
+            "Legacy diagnostic",
+            HtmlDiagnosticSeverity.Warning,
+            lossKind: OfficeConversionLossKind.Approximation);
+        var conversion = new HtmlTextConversionResult("<p>Partial</p>", new[] { diagnostic });
+        var artifact = new HtmlCapabilityGalleryArtifactEvidence(
+            1,
+            1,
+            640,
+            480,
+            "px",
+            new[] { diagnostic },
+            Array.Empty<HtmlCapabilityGalleryCheck>());
+
+        foreach (IOfficeConversionReport report in new IOfficeConversionReport[] {
+            conversion.Report,
+            artifact
+        }) {
+            OfficeConversionFidelityDiagnostic projected = Assert.Single(report.FidelityDiagnostics);
+            Assert.Equal("HTML_DIAGNOSTIC_UNCATEGORIZED", projected.Code);
+            Assert.Equal("OfficeIMO.Html", projected.Source);
+            Assert.Equal(OfficeConversionLossKind.Approximation, projected.LossKind);
+            Assert.True(report.HasLoss);
+        }
+    }
+
+    [Fact]
     public void MarkdownImport_UsesHtmlIntegerRulesForOrderedLists() {
         string markdown = HtmlConversionDocument
             .Parse("<ol start='9x'><li>First</li><li value='12junk'>Second</li><li>Third</li></ol>")

@@ -47,6 +47,49 @@ Second overlapping box
                 finding => finding.Code == "Layout.ShapeCollision");
             Assert.Contains(explicitCollisionScan.Report.Preflight.Findings,
                 finding => finding.Code == "Layout.ShapeCollision");
+            Assert.Contains(explicitCollisionScan.Report.FidelityDiagnostics,
+                diagnostic => diagnostic.Code == "Layout.ShapeCollision" &&
+                              diagnostic.LossKind == OfficeConversionLossKind.Approximation);
+            Assert.True(explicitCollisionScan.Report.HasLoss);
+        }
+    }
+
+    [Fact]
+    public void PreflightFailuresParticipateInTypedLossAcceptance() {
+        const string markup = """
+---
+profile: presentation
+---
+
+# Clipped content
+
+@slide {
+  layout: blank
+}
+
+::textbox x=10% y=120% w=55% h=20%
+This shape is outside the slide.
+""";
+        OfficeMarkupParseResult parsed = OfficeMarkupParser.Parse(markup);
+        OfficeMarkupPowerPointConversionResult result = parsed.Document.ToPowerPointPresentationResult(
+            new MarkupToPowerPointOptions {
+                RenderMermaidDiagrams = false,
+                PreflightOptions = new PowerPointDeckPreflightOptions {
+                    DetectShapeCollisions = false,
+                    DetectMissingVisualAssets = false,
+                    IncludeVisualSnapshotDiagnostics = false
+                }
+            });
+
+        using (result.Value) {
+            Assert.True(result.Report.Preflight.ErrorCount > 0);
+            OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(
+                result.Report.FidelityDiagnostics,
+                item => item.Source == "OfficeIMO.Markup.PowerPoint.Preflight" &&
+                        item.LossKind == OfficeConversionLossKind.Failure);
+            Assert.StartsWith("slide:1", diagnostic.Location, StringComparison.Ordinal);
+            Assert.True(result.Report.HasLoss);
+            Assert.Throws<PowerPointDeckPreflightException>(() => result.Report.RequireNoLoss());
         }
     }
 

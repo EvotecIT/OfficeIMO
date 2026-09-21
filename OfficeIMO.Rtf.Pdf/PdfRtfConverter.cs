@@ -67,6 +67,7 @@ internal static class PdfRtfConverter {
             source,
             message,
             PdfCore.PdfConversionWarningSeverity.Warning,
+            global::OfficeIMO.OfficeConversionLossKind.Omission,
             details: new Dictionary<string, string> {
                 ["count"] = count.ToString(System.Globalization.CultureInfo.InvariantCulture)
             }));

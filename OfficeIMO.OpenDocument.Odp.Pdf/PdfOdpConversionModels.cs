@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using OfficeIMO.PowerPoint.Pdf;
 
 namespace OfficeIMO.OpenDocument.Odp.Pdf;
@@ -13,6 +14,9 @@ public sealed class PdfOdpConversionReport : IOfficeConversionReport {
     public PdfPowerPointConversionReport PdfReport { get; }
     /// <summary>Feature mappings from PowerPoint to ODP.</summary>
     public OdfConversionReport OpenDocumentReport { get; }
+    /// <summary>Category-preserving diagnostics from both stages.</summary>
+    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics =>
+        OfficeConversionFidelityDiagnostics.Flatten(new IOfficeConversionReport[] { PdfReport, OpenDocumentReport });
     /// <summary>True when either stage truncated, approximated, skipped, or omitted source content.</summary>
     public bool HasLoss => PdfReport.HasLoss || PdfReport.HasOmittedPageContent || OpenDocumentReport.HasLoss;
 

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using OfficeIMO.Word.Pdf;
 
 namespace OfficeIMO.OpenDocument.Odt.Pdf;
@@ -13,6 +14,9 @@ public sealed class PdfOdtConversionReport : IOfficeConversionReport {
     public PdfWordConversionReport PdfReport { get; }
     /// <summary>Feature mappings from Word to ODT.</summary>
     public OdfConversionReport OpenDocumentReport { get; }
+    /// <summary>Category-preserving diagnostics from both stages.</summary>
+    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics =>
+        OfficeConversionFidelityDiagnostics.Flatten(new IOfficeConversionReport[] { PdfReport, OpenDocumentReport });
     /// <summary>True when either stage reported possible loss.</summary>
     public bool HasLoss => PdfReport.HasLoss || OpenDocumentReport.HasLoss;
 

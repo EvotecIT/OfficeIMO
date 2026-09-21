@@ -357,8 +357,11 @@ namespace OfficeIMO.Tests {
                 shape => ReferenceEquals(shape.Media, media));
             Assert.Contains(neutral.Diagnostics, diagnostic =>
                 diagnostic.Code == "PPT-MEDIA-PRESERVED");
-            Assert.Equal(1, neutral.CreateImportReport()
-                .LinkedOrDeviceMediaCount);
+            LegacyPptImportReport report = neutral.CreateImportReport();
+            Assert.Equal(1, report.LinkedOrDeviceMediaCount);
+            Assert.Contains(report.FidelityDiagnostics, diagnostic =>
+                diagnostic.Code == "PPT-MEDIA-PRESERVED" &&
+                diagnostic.LossKind == OfficeConversionLossKind.Omission);
 
             using var input = new MemoryStream(sourceBytes,
                 writable: false);

@@ -15,7 +15,7 @@ namespace OfficeIMO.Drawing.HarfBuzz;
 /// <see cref="IOfficeTextShapingProvider"/> contract. Core Drawing and PDF
 /// packages remain independent of HarfBuzz and its native assets.
 /// </remarks>
-public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvider {
+public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvider, IOfficeTextShapingProviderMetadata {
     private readonly ConditionalWeakTable<object, CachedFontCollection> _fontCache = new();
     private readonly object _languageSync = new();
     private readonly Dictionary<string, Language> _languages = new(StringComparer.Ordinal);
@@ -27,11 +27,13 @@ public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvid
     }
 
     /// <inheritdoc />
+    public OfficeTextShapingBackend Backend => OfficeTextShapingBackend.HarfBuzz;
+
+    /// <inheritdoc />
     public OfficeTextShapingResult? ShapeText(OfficeTextShapingRequest request) {
         if (request == null) throw new ArgumentNullException(nameof(request));
         request.CancellationToken.ThrowIfCancellationRequested();
         if (request.Text.Length == 0) return null;
-
         byte[] fontData = request.FontDataForShaping;
         object fontCacheKey = request.FontProgramCacheKeyForShaping ?? fontData;
         ResolvedLanguage language = ResolveLanguage(request.Language);
@@ -73,7 +75,7 @@ public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvid
         CachedFontCollection fontCollection,
         Language? language) {
         fontCollection.Shape(request, language, out int glyphCount, out GlyphInfo[] infos, out GlyphPosition[] positions);
-        if (glyphCount <= 1) return null;
+        if (glyphCount == 0) return null;
         GC.KeepAlive(request.FontDataForShaping);
         if (infos.Length == 0 || infos.Length != positions.Length) return null;
 
@@ -93,11 +95,12 @@ public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvid
                 unicodeText,
                 textIndex,
                 position.XAdvance,
+                position.YAdvance,
                 position.XOffset,
                 position.YOffset));
         }
 
-        return new OfficeTextShapingResult(glyphs);
+        return new OfficeTextShapingResult(glyphs, request.Direction);
     }
 
     private ResolvedLanguage ResolveLanguage(string? value) {
@@ -339,6 +342,7 @@ public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvid
                 buffer.Direction = request.Direction switch {
                     OfficeTextDirection.LeftToRight => Direction.LeftToRight,
                     OfficeTextDirection.RightToLeft => Direction.RightToLeft,
+                    OfficeTextDirection.TopToBottom => Direction.TopToBottom,
                     _ => buffer.Direction
                 };
                 if (language != null) {

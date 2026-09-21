@@ -157,6 +157,12 @@ public sealed class ConverterTests {
 
         Assert.Contains(projection.Diagnostics, diagnostic => diagnostic.Code == "ONENOTE_MARKDOWN_CANVAS_FLATTENED");
         Assert.Contains(projection.Diagnostics, diagnostic => diagnostic.Code == "ONENOTE_MARKDOWN_ASSET_PLACEHOLDER");
+        Assert.Contains(projection.FidelityDiagnostics, diagnostic =>
+            diagnostic.Code == "ONENOTE_MARKDOWN_ASSET_PLACEHOLDER" &&
+            diagnostic.LossKind == OfficeConversionLossKind.Omission);
+        Assert.Contains(result.FidelityDiagnostics, diagnostic =>
+            diagnostic.Code == "ONENOTE_MARKDOWN_ASSET_PLACEHOLDER" &&
+            diagnostic.LossKind == OfficeConversionLossKind.Omission);
         Assert.DoesNotContain(result.Warnings, warning =>
             warning.Code.StartsWith("ONENOTE_MARKDOWN_", StringComparison.Ordinal));
         Assert.True(result.HasLoss);
@@ -175,11 +181,46 @@ public sealed class ConverterTests {
 
         Assert.True(markdown.HasLoss);
         Assert.Contains(markdown.Diagnostics, diagnostic => diagnostic.Code == "ONENOTE_MARKDOWN_ASSET_PLACEHOLDER");
+        Assert.Contains(markdown.Report.FidelityDiagnostics, diagnostic =>
+            diagnostic.Code == "ONENOTE_MARKDOWN_ASSET_PLACEHOLDER" &&
+            diagnostic.LossKind == OfficeConversionLossKind.Omission);
         Assert.True(pdf.HasLoss);
         OneNoteMarkdownConversionReport projection = Assert.IsType<OneNoteMarkdownConversionReport>(
             Assert.Single(pdf.SourceConversionReports));
         Assert.Contains(projection.Diagnostics, diagnostic => diagnostic.Code == "ONENOTE_MARKDOWN_ASSET_PLACEHOLDER");
+        Assert.Contains(pdf.FidelityDiagnostics, diagnostic =>
+            diagnostic.Code == "ONENOTE_MARKDOWN_ASSET_PLACEHOLDER" &&
+            diagnostic.LossKind == OfficeConversionLossKind.Omission);
         Assert.Throws<InvalidOperationException>(() => pdf.RequireNoLoss());
+    }
+
+    [Fact]
+    public void UnreadAndMetadataOnlySectionsRemainTypedOmissionsInMarkdown() {
+        var notebook = new OneNoteNotebook { Name = "Incomplete notebook" };
+        notebook.Diagnostics.Add(new OneNoteDiagnostic {
+            Code = "ONENOTE_TOC_SECTION_MISSING",
+            Severity = OneNoteDiagnosticSeverity.Warning,
+            Message = "A referenced section is missing."
+        });
+        notebook.Diagnostics.Add(new OneNoteDiagnostic {
+            Code = "ONENOTE_TOC_STREAM_METADATA_ONLY",
+            Severity = OneNoteDiagnosticSeverity.Warning,
+            Message = "Only hierarchy metadata was available."
+        });
+        notebook.Diagnostics.Add(new OneNoteDiagnostic {
+            Code = "ONENOTE_FILE_TYPE",
+            Severity = OneNoteDiagnosticSeverity.Warning,
+            Message = "A section could not be read.",
+            LossKind = OfficeConversionLossKind.Omission
+        });
+
+        OneNoteMarkdownConversionResult result = notebook.ToMarkdownDocumentResult();
+
+        Assert.Equal(3, result.Report.FidelityDiagnostics.Count(diagnostic =>
+            diagnostic.LossKind == OfficeConversionLossKind.Omission));
+        Assert.DoesNotContain(result.Report.FidelityDiagnostics, diagnostic =>
+            diagnostic.LossKind == OfficeConversionLossKind.Approximation);
+        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
     }
 
     [Theory]

@@ -3,7 +3,7 @@ using OfficeIMO.PowerPoint.LegacyPpt.Model;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt {
     /// <summary>Provides a compact inventory of a binary PowerPoint import.</summary>
-    public sealed class LegacyPptImportReport {
+    public sealed class LegacyPptImportReport : IOfficeConversionReport {
         internal LegacyPptImportReport(LegacyPptPresentation presentation) {
             SlideCount = presentation.Slides.Count;
             ShapeCount = presentation.Slides.Sum(slide => slide.Shapes.Count);
@@ -138,6 +138,50 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             EncryptionKeySizeBits = presentation.EncryptionKeySizeBits;
             EncryptedDocumentProperties =
                 presentation.EncryptedDocumentProperties;
+            List<OfficeConversionFidelityDiagnostic> fidelityDiagnostics = presentation.Diagnostics
+                .Select(diagnostic => new OfficeConversionFidelityDiagnostic(
+                    diagnostic.Code,
+                    diagnostic.Message,
+                    GetLossKind(diagnostic),
+                    "OfficeIMO.PowerPoint.LegacyPpt.Reader",
+                    diagnostic.StreamOffset.HasValue
+                        ? $"PowerPoint Document+0x{diagnostic.StreamOffset.Value:X}"
+                        : null))
+                .ToList();
+            if (UnsupportedShapeCount > 0) {
+                fidelityDiagnostics.Add(new OfficeConversionFidelityDiagnostic(
+                    "PPT-UNSUPPORTED-SHAPES",
+                    $"{UnsupportedShapeCount} preserve-only shape(s) cannot be projected to editable PowerPoint content.",
+                    OfficeConversionLossKind.Omission,
+                    "OfficeIMO.PowerPoint.LegacyPpt.Reader",
+                    "shapes"));
+            }
+            FidelityDiagnostics = Array.AsReadOnly(fidelityDiagnostics.ToArray());
+        }
+
+        private static OfficeConversionLossKind GetLossKind(
+            LegacyPptImportDiagnostic diagnostic) {
+            if (diagnostic.Severity == LegacyPptDiagnosticSeverity.Information) {
+                return OfficeConversionLossKind.None;
+            }
+            if (diagnostic.Severity == LegacyPptDiagnosticSeverity.Error) {
+                return OfficeConversionLossKind.Failure;
+            }
+
+            string code = diagnostic.Code;
+            return code is "PPT-COMMENT-TAG-DATA" or "PPT-COMMENT-CONTAINER"
+                or "PPT-COMMENT-ATOM" or "PPT-COMMENT-INDEX"
+                or "PPT-COMMENT-DATETIME" or "PPT-COMMENT-STRING"
+                or "PPT-COMMENT-EXTENSION"
+                || code.IndexOf("-PRESERVED", StringComparison.Ordinal) >= 0
+                || code.IndexOf("-PRESERVE-ONLY", StringComparison.Ordinal) >= 0
+                || code.EndsWith("-UNSUPPORTED", StringComparison.Ordinal)
+                || code.EndsWith("-MISSING", StringComparison.Ordinal)
+                || code.EndsWith("-TRUNCATED", StringComparison.Ordinal)
+                || code.EndsWith("-READ", StringComparison.Ordinal)
+                || code.EndsWith("-MALFORMED", StringComparison.Ordinal)
+                ? OfficeConversionLossKind.Omission
+                : OfficeConversionLossKind.Approximation;
         }
 
         /// <summary>Gets the presentation slide count.</summary>
@@ -333,7 +377,20 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         public int CompoundStreamCount { get; }
 
         /// <summary>Gets whether projection to PPTX has known conversion loss.</summary>
-        public bool HasConversionLoss => WarningCount > 0 || UnsupportedShapeCount > 0;
+        public bool HasConversionLoss => HasLoss;
+
+        /// <inheritdoc />
+        public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
+
+        /// <inheritdoc />
+        public bool HasLoss => FidelityDiagnostics.Any(diagnostic =>
+            diagnostic.LossKind != OfficeConversionLossKind.None);
+
+        /// <inheritdoc />
+        public void RequireNoLoss() {
+            if (HasLoss) throw new InvalidDataException(
+                "The legacy PPT import reported content loss. Inspect FidelityDiagnostics and the source diagnostics for details.");
+        }
 
         private static int CountSpecialMasterShapes(LegacyPptSpecialMaster? master) =>
             master?.Shapes.Count ?? 0;

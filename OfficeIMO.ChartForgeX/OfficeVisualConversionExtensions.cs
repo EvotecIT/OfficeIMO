@@ -39,7 +39,9 @@ public static class OfficeVisualConversionExtensions {
             if (options.SvgPolicy == OfficeVisualSvgPolicy.RequireVector) {
                 throw new InvalidOperationException("ChartForgeX SVG could not be imported as an Office drawing.");
             }
-            report.Warn("The SVG payload could not be imported as an Office drawing; the OfficeDrawing result uses PNG fallback.");
+            report.Warn("SVG_RASTER_FALLBACK",
+                "The SVG payload could not be imported as an Office drawing; the OfficeDrawing result uses PNG fallback.",
+                OfficeConversionLossKind.Approximation);
             ThrowIfRasterFallbackIsUnsafe(svgBytes, readerOptions);
             placementBytes = RasterizeRenderedSvg(svgBytes, options);
             placementFormat = OfficeVisualMediaFormat.Png;
@@ -54,7 +56,9 @@ public static class OfficeVisualConversionExtensions {
         } else if (unsupportedFeatureCount > 0 && options.SvgPolicy == OfficeVisualSvgPolicy.RequireVector) {
             throw new NotSupportedException("ChartForgeX SVG contains " + unsupportedFeatureCount + " feature(s) that OfficeIMO.Drawing cannot preserve.");
         } else if (unsupportedFeatureCount > 0 && options.SvgPolicy == OfficeVisualSvgPolicy.RasterizeWhenNeeded) {
-            report.Warn("The SVG importer reported " + unsupportedFeatureCount + " unsupported feature(s); the OfficeDrawing result uses PNG fallback.");
+            report.Warn("SVG_FEATURES_RASTERIZED",
+                "The SVG importer reported " + unsupportedFeatureCount + " unsupported feature(s); the OfficeDrawing result uses PNG fallback.",
+                OfficeConversionLossKind.Approximation);
             ThrowIfRasterFallbackIsUnsafe(svgBytes, readerOptions);
             placementBytes = RasterizeRenderedSvg(svgBytes, options);
             placementFormat = OfficeVisualMediaFormat.Png;
@@ -64,12 +68,17 @@ public static class OfficeVisualConversionExtensions {
             drawing = ScaleDrawing(importedDrawing, widthPoints, heightPoints);
             report.IsVector = true;
             if (unsupportedFeatureCount > 0) {
-                report.Warn("The vector scene was preserved with " + unsupportedFeatureCount + " unsupported SVG feature(s). Inspect the Office output or choose RasterizeWhenNeeded.");
+                report.Warn("SVG_FEATURES_UNSUPPORTED",
+                    "The vector scene was preserved with " + unsupportedFeatureCount + " unsupported SVG feature(s). Inspect the Office output or choose RasterizeWhenNeeded.",
+                    OfficeConversionLossKind.Omission);
             }
         }
 
         if (HasLinkedRegions(artifact)) {
-            report.Warn("Artifact region links are retained in the conversion result; image-based Office placements do not create per-region hyperlinks.");
+            report.Warn("VISUAL_REGION_LINKS_NOT_PROJECTED",
+                "Artifact region links are retained in the conversion result; image-based Office placements do not create per-region hyperlinks.",
+                OfficeConversionLossKind.Omission,
+                "regions");
         }
 
         return new OfficeVisualConversionResult(
@@ -119,13 +128,17 @@ public static class OfficeVisualConversionExtensions {
             placementFormat = OfficeVisualMediaFormat.Png;
             drawing = CreateRasterDrawing(placementBytes, widthPoints, heightPoints, ResolveAlternativeText(source));
             report.UsedRasterFallback = true;
-            report.Warn(imported
-                ? "The SVG importer reported " + unsupportedFeatureCount + " unsupported feature(s); the Office result uses PNG fallback."
-                : "The SVG payload could not be imported as an Office drawing; the Office result uses PNG fallback.");
+            report.Warn(imported ? "SVG_FEATURES_RASTERIZED" : "SVG_RASTER_FALLBACK",
+                imported
+                    ? "The SVG importer reported " + unsupportedFeatureCount + " unsupported feature(s); the Office result uses PNG fallback."
+                    : "The SVG payload could not be imported as an Office drawing; the Office result uses PNG fallback.",
+                OfficeConversionLossKind.Approximation);
         } else {
             drawing = ScaleDrawing(importedDrawing!, widthPoints, heightPoints);
             report.IsVector = true;
-            if (unsupportedFeatureCount > 0) report.Warn("The vector scene was preserved with " + unsupportedFeatureCount + " unsupported SVG feature(s). Inspect the Office output or choose RasterizeWhenNeeded.");
+            if (unsupportedFeatureCount > 0) report.Warn("SVG_FEATURES_UNSUPPORTED",
+                "The vector scene was preserved with " + unsupportedFeatureCount + " unsupported SVG feature(s). Inspect the Office output or choose RasterizeWhenNeeded.",
+                OfficeConversionLossKind.Omission);
         }
         return new OfficeVisualConversionResult(
             null,

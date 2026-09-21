@@ -9,6 +9,7 @@ internal static class OfficeManagedTextShaper {
     internal static OfficeManagedTextFallback Resolve(
         string text,
         IOfficeFontProgram font,
+        OfficeTextDirection direction = OfficeTextDirection.Auto,
         System.Threading.CancellationToken cancellationToken = default) {
         if (string.IsNullOrEmpty(text) || !RequiresComplexLayout(text)) {
             return new OfficeManagedTextFallback(text ?? string.Empty, used: false, incomplete: false);
@@ -23,7 +24,7 @@ internal static class OfficeManagedTextShaper {
              !OfficeArabicTextShaper.CanShapeAllJoiningCharacters(text));
         string contextual = OfficeArabicTextShaper.Shape(text);
         cancellationToken.ThrowIfCancellationRequested();
-        string visual = ToVisualOrder(contextual, cancellationToken);
+        string visual = ToVisualOrder(contextual, direction, cancellationToken);
         if (font.HasGlyphs(visual)) {
             return new OfficeManagedTextFallback(visual, used: true, incomplete);
         }
@@ -31,6 +32,7 @@ internal static class OfficeManagedTextShaper {
         cancellationToken.ThrowIfCancellationRequested();
         string reordered = ToVisualOrder(
             OfficeArabicTextShaper.ToLogicalText(text),
+            direction,
             cancellationToken);
         if (font.HasGlyphs(reordered)) {
             return new OfficeManagedTextFallback(reordered, used: true, incomplete: true);
@@ -50,9 +52,16 @@ internal static class OfficeManagedTextShaper {
     internal static string ToVisualOrder(
         string? value,
         System.Threading.CancellationToken cancellationToken = default) {
+        return ToVisualOrder(value, OfficeTextDirection.Auto, cancellationToken);
+    }
+
+    internal static string ToVisualOrder(
+        string? value,
+        OfficeTextDirection requestedDirection,
+        System.Threading.CancellationToken cancellationToken = default) {
         if (string.IsNullOrEmpty(value)) return value ?? string.Empty;
 
-        return OfficeBidiTextResolver.ToVisualOrder(value, OfficeTextDirection.Auto, cancellationToken);
+        return OfficeBidiTextResolver.ToVisualOrder(value, requestedDirection, cancellationToken);
     }
 
     internal static IReadOnlyList<T> ToVisualOrder<T>(

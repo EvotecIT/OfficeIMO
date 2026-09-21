@@ -79,6 +79,9 @@ namespace OfficeIMO.Word {
             SourceFormatDescriptor = sourceDescriptor;
             DestinationFormatDescriptor = destinationDescriptor;
             Diagnostics = Array.AsReadOnly((diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).ToArray());
+            FidelityDiagnostics = Array.AsReadOnly(Diagnostics
+                .Select(static diagnostic => OfficeConversionFidelityDiagnostics.From(diagnostic, "OfficeIMO.Word"))
+                .ToArray());
             Compatibility = new OfficeCompatibilityReport(
                 sourceDescriptor,
                 destinationDescriptor,
@@ -108,11 +111,14 @@ namespace OfficeIMO.Word {
         /// <summary>Gets a snapshot of conversion diagnostics.</summary>
         public IReadOnlyList<OfficeConversionDiagnostic> Diagnostics { get; }
 
+        /// <summary>Gets the shared category-preserving fidelity diagnostics.</summary>
+        public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
+
         /// <summary>Gets the shared feature-level fidelity assessment for this conversion.</summary>
         public OfficeCompatibilityReport Compatibility { get; }
 
-        /// <summary>Gets whether the conversion reported known content loss.</summary>
-        public bool HasLoss => Diagnostics.Any(static diagnostic => diagnostic.RepresentsDataLoss);
+        /// <summary>Gets whether the conversion reported approximation, omission, or failure.</summary>
+        public bool HasLoss => Diagnostics.Any(static diagnostic => diagnostic.LossKind != OfficeConversionLossKind.None);
 
         /// <summary>Gets whether a pre-existing destination file was replaced.</summary>
         public bool ReplacedExistingFile { get; }

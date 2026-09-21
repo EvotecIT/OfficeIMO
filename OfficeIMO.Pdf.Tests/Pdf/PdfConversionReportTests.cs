@@ -1,10 +1,44 @@
 using OfficeIMO.Pdf;
 using OfficeIMO.Drawing;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfConversionReportTests {
+    [Fact]
+    public void PdfRenderCapabilityDiagnostic_ExposesCanonicalLossKind() {
+        PdfRenderCapability simplified = PdfRenderCapabilities.Current.Entries.First(static capability =>
+            capability.SupportLevel == PdfRenderSupportLevel.Simplified);
+        PdfRenderCapability unsupported = PdfRenderCapabilities.Current.Entries.First(static capability =>
+            capability.SupportLevel == PdfRenderSupportLevel.Unsupported);
+
+        Assert.Equal(
+            OfficeConversionLossKind.Approximation,
+            new PdfRenderCapabilityDiagnostic(simplified).LossKind);
+        Assert.Equal(
+            OfficeConversionLossKind.Omission,
+            new PdfRenderCapabilityDiagnostic(unsupported).LossKind);
+    }
+
+    [Fact]
+    public void PdfConversionWarning_ProjectsOwnerAndLocationWithSafeMessageFallback() {
+        var warning = new PdfConversionWarning(
+            "OfficeIMO.Tests",
+            "EmptyMessage",
+            "page:1",
+            string.Empty,
+            PdfConversionWarningSeverity.Warning,
+            OfficeConversionLossKind.Omission);
+
+        OfficeConversionFidelityDiagnostic diagnostic = warning.ToFidelityDiagnostic();
+
+        Assert.Equal("OfficeIMO.Tests", diagnostic.Source);
+        Assert.Equal("page:1", diagnostic.Location);
+        Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
+        Assert.False(string.IsNullOrWhiteSpace(diagnostic.Message));
+    }
+
     [Fact]
     public void PdfConversionReport_SummarizeGroupsWarningsForProofAndWrapperRouting() {
         var report = new PdfConversionReport();
@@ -290,6 +324,45 @@ public sealed class PdfConversionReportTests {
     }
 
     [Fact]
+    public void PdfDocumentConversionResult_PreservesTypedLossAcrossComposedStages() {
+        var pdfReport = new PdfConversionReport();
+        pdfReport.Add(new PdfConversionWarning(
+            "OfficeIMO.Pdf.Tests",
+            "TEST_PDF_APPROXIMATION",
+            "pdf:page[1]",
+            "The PDF stage approximated content."));
+        var result = new PdfDocumentConversionResult(
+                PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Typed loss proof")),
+                pdfReport)
+            .WithSourceConversionReport(new LossySourceConversionReport());
+
+        Assert.Collection(
+            result.FidelityDiagnostics,
+            diagnostic => {
+                Assert.Equal("TEST_SOURCE_OMISSION", diagnostic.Code);
+                Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
+            },
+            diagnostic => {
+                Assert.Equal("TEST_PDF_APPROXIMATION", diagnostic.Code);
+                Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
+            });
+    }
+
+    [Fact]
+    public void PdfDocumentConversionResult_SaveLosslessRejectsBeforeWriting() {
+        var result = new PdfDocumentConversionResult(
+                PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Reject before publication")),
+                new PdfConversionReport())
+            .WithSourceConversionReport(new LossySourceConversionReport());
+        using var destination = new MemoryStream();
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => result.SaveLossless(destination));
+
+        Assert.Contains("source stage is lossy", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(0L, destination.Length);
+    }
+
+    [Fact]
     public void PdfDocumentConversionResult_LosslessProofCapturesSerializationDiagnostics() {
         var report = new PdfConversionReport();
         var pdfOptions = new PdfOptions().ReportDiagnosticsTo(report, "OfficeIMO.Tests");
@@ -309,6 +382,61 @@ public sealed class PdfConversionReportTests {
         Assert.Contains(proof.Issues, issue => issue.Feature == "ConversionLoss");
         Assert.Contains(result.Warnings, warning =>
             warning.Code == "unsupported-bidirectional-text-layout");
+    }
+
+    [Fact]
+    public void PdfDocumentConversionResult_StrictStreamOutputRejectsSerializationLossBeforePublication() {
+        using var destination = new MemoryStream(new byte[] { 7, 8, 9 }, writable: true);
+        byte[] original = destination.ToArray();
+        PdfDocumentConversionResult result = CreateSerializationLossResult();
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            result.SaveLossless(destination));
+
+        Assert.Contains("loss", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(original, destination.ToArray());
+    }
+
+    [Fact]
+    public async Task PdfDocumentConversionResult_StrictAsyncFileOutputRejectsSerializationLossBeforePublication() {
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pdf");
+        byte[] original = { 7, 8, 9 };
+        File.WriteAllBytes(path, original);
+        try {
+            PdfDocumentConversionResult result = CreateSerializationLossResult();
+
+            InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                result.SaveLosslessAsync(path));
+
+            Assert.Contains("loss", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(original, File.ReadAllBytes(path));
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void PdfDocumentConversionResult_StrictByteOutputRejectsSerializationLoss() {
+        PdfDocumentConversionResult result = CreateSerializationLossResult();
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => result.ToBytesLossless());
+
+        Assert.Contains("loss", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(result.Warnings, warning => warning.Code == "unsupported-bidirectional-text-layout");
+    }
+
+    private static PdfDocumentConversionResult CreateSerializationLossResult() {
+        var report = new PdfConversionReport();
+        byte[] fontData = File.ReadAllBytes(Path.Combine(
+            AppContext.BaseDirectory,
+            "Typography",
+            "NotoSansArabic-Regular.ttf"));
+        var options = new PdfOptions()
+            .ReportDiagnosticsTo(report, "OfficeIMO.Tests")
+            .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "OfficeIMO Strict Arabic");
+        return new PdfDocumentConversionResult(
+            PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text("مرحبا")),
+            report);
     }
 
     [Fact]
@@ -747,6 +875,14 @@ public sealed class PdfConversionReportTests {
     }
 
     private sealed class LossySourceConversionReport : IOfficeConversionReport {
+        public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; } = new[] {
+            new OfficeConversionFidelityDiagnostic(
+                "TEST_SOURCE_OMISSION",
+                "The test source omitted content.",
+                OfficeConversionLossKind.Omission,
+                "OfficeIMO.Pdf.Tests")
+        };
+
         public bool HasLoss => true;
 
         public void RequireNoLoss() {

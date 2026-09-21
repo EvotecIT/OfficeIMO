@@ -15,6 +15,35 @@ OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup.
 
 ## OfficeIMO 3.4: one document and conversion grammar
 
+### Arrow C stream ownership
+
+`OfficeIMO.Data.Arrow` no longer exposes an unmanaged `ArrowArrayStream*` directly from
+`ArrowCArrayStreamOwner`. Acquire a lease for the complete native call sequence:
+
+```csharp
+using ArrowCArrayStreamOwner owner = reader.ExportArrowCStream(options, cancellationToken);
+using ArrowCArrayStreamOwner.ArrowCArrayStreamLease lease = owner.AcquireLease();
+NativeConsumer.ReadArrowStream(lease.Address);
+```
+
+The lease keeps the unmanaged struct and managed callbacks alive when the owner is disposed
+concurrently. Native code may invoke the Arrow release callback but must not free the struct.
+Managed consumers should call `owner.ImportArrayStream()`. Every import attempt consumes the
+one-shot stream, including an attempt where the Apache Arrow importer throws, because ownership
+may already have crossed the native boundary. Do not retry through the same owner or lease.
+Existing `OpenArrowStream` and `ReadArrowBatchesAsync` calls are unchanged and remain managed-only.
+
+### Typed conversion fidelity reports
+
+`IOfficeConversionReport` now requires `FidelityDiagnostics`. Custom report implementations must
+return immutable `OfficeConversionFidelityDiagnostic` entries with an exact
+`OfficeConversionLossKind`. Use `OfficeConversionFidelityDiagnostics.Flatten` when composing
+several stages so omissions, approximations, and failures are not collapsed into one Boolean.
+
+For PDF publication, use `ToBytesLossless`, `SaveLossless`, or `SaveLosslessAsync` when any loss
+must reject the artifact before bytes are returned or written. The existing save methods continue
+to permit reported loss for callers that inspect and accept diagnostics themselves.
+
 ### PDF-to-Word editable layout defaults
 
 Editable PDF-to-Word conversion now preserves each source page's physical size, removes Word style spacing that would inflate explicitly positioned PDF text, and keeps supported axis-aligned images at their source page positions on unrotated, uncropped pages when their bounds fit the page. Other images remain in the document flow. These defaults improve dense business documents but can change pagination and image flow in applications that relied on the earlier Word defaults.

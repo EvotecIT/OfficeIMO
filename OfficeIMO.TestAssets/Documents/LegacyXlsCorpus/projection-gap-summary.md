@@ -5,13 +5,13 @@ Fixtures: 22
 Unsupported projection gaps: 0
 Fixtures with projection gaps: 0
 Errors: 0
-Warnings: 0
+Warnings: 3
 
 ## Fixtures
 
 | Fixture | Projection gaps | Errors | Warnings |
 | --- | --- | --- | --- |
-| apache-poi-testdata/3dFormulas.xls | 0 | 0 | 0 |
+| apache-poi-testdata/3dFormulas.xls | 0 | 0 | 3 |
 | apache-poi-testdata/IntersectionPtg.xls | 0 | 0 | 0 |
 | apache-poi-testdata/RangePtg.xls | 0 | 0 | 0 |
 | apache-poi-testdata/SimpleWithComments.xls | 0 | 0 | 0 |

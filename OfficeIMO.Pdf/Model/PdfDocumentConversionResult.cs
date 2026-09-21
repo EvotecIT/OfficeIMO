@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
@@ -65,6 +66,10 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
 
     /// <summary>True when any source or PDF conversion stage reported possible content loss.</summary>
     public bool HasLoss => ConversionReports.Any(static report => report.HasLoss);
+
+    /// <summary>All source and PDF-stage diagnostics with their original loss categories preserved.</summary>
+    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics =>
+        OfficeConversionFidelityDiagnostics.Flatten(ConversionReports);
 
     /// <summary>Counts grouped conversion diagnostics captured with this result.</summary>
     public PdfConversionReportSummary Summary => Report.Summarize();
@@ -283,6 +288,7 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
             artifactSha256,
             warningSummary,
             hasLoss,
+            FidelityDiagnostics,
             issues);
     }
 
@@ -307,6 +313,12 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
         }
     }
 
+    /// <summary>Serializes to a private stage and returns bytes only when every conversion stage remains lossless.</summary>
+    public byte[] ToBytesLossless(System.Threading.CancellationToken cancellationToken = default) {
+        (byte[] bytes, _) = StageLossless(cancellationToken);
+        return bytes;
+    }
+
     /// <summary>
     /// Writes the generated PDF document to the supplied stream and returns conversion plus output evidence.
     /// </summary>
@@ -323,6 +335,14 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
         return result.WithReport(Report, SourceConversionReports);
     }
 
+    /// <summary>Publishes staged bytes to a stream only after every conversion stage remains lossless.</summary>
+    public PdfSaveResult SaveLossless(Stream stream, System.Threading.CancellationToken cancellationToken = default) {
+        ValidateLosslessDestination(stream);
+        (byte[] bytes, PdfSaveResult result) = StageLossless(cancellationToken);
+        OfficeStreamWriter.WriteAllBytes(stream, bytes);
+        return result;
+    }
+
     /// <summary>
     /// Writes the generated PDF document to the supplied file path and returns conversion plus output evidence.
     /// </summary>
@@ -337,6 +357,14 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
             RefreshConversionReport();
         }
         return result.WithReport(Report, SourceConversionReports);
+    }
+
+    /// <summary>Atomically publishes staged bytes to a file only after every conversion stage remains lossless.</summary>
+    public PdfSaveResult SaveLossless(string path, System.Threading.CancellationToken cancellationToken = default) {
+        string fullPath = PdfDocument.ValidateOutputPath(path);
+        (byte[] bytes, PdfSaveResult result) = StageLossless(cancellationToken);
+        OfficeFileCommit.WriteAllBytes(fullPath, bytes);
+        return result.WithOutputPath(fullPath);
     }
 
     /// <summary>
@@ -378,6 +406,14 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
         return result.WithReport(Report, SourceConversionReports);
     }
 
+    /// <summary>Asynchronously publishes staged bytes to a stream only after every conversion stage remains lossless.</summary>
+    public async System.Threading.Tasks.Task<PdfSaveResult> SaveLosslessAsync(Stream stream, System.Threading.CancellationToken cancellationToken = default) {
+        ValidateLosslessDestination(stream);
+        (byte[] bytes, PdfSaveResult result) = await StageLosslessAsync(cancellationToken).ConfigureAwait(false);
+        await OfficeStreamWriter.WriteAllBytesAsync(stream, bytes, cancellationToken).ConfigureAwait(false);
+        return result;
+    }
+
     /// <summary>
     /// Asynchronously writes the generated PDF document to the supplied file path and returns conversion plus output evidence.
     /// </summary>
@@ -389,6 +425,39 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
             RefreshConversionReport();
         }
         return result.WithReport(Report, SourceConversionReports);
+    }
+
+    /// <summary>Asynchronously and atomically publishes staged bytes to a file only after every conversion stage remains lossless.</summary>
+    public async System.Threading.Tasks.Task<PdfSaveResult> SaveLosslessAsync(string path, System.Threading.CancellationToken cancellationToken = default) {
+        string fullPath = PdfDocument.ValidateOutputPath(path);
+        (byte[] bytes, PdfSaveResult result) = await StageLosslessAsync(cancellationToken).ConfigureAwait(false);
+        await OfficeFileCommit.WriteAllBytesAsync(fullPath, bytes, cancellationToken: cancellationToken).ConfigureAwait(false);
+        return result.WithOutputPath(fullPath);
+    }
+
+    private (byte[] Bytes, PdfSaveResult Result) StageLossless(
+        System.Threading.CancellationToken cancellationToken) {
+        RequireNoLoss();
+        using var staging = new MemoryStream();
+        PdfSaveResult result = Save(staging, cancellationToken);
+        result.RequireNoLoss();
+        return (staging.ToArray(), result);
+    }
+
+    private async System.Threading.Tasks.Task<(byte[] Bytes, PdfSaveResult Result)> StageLosslessAsync(
+        System.Threading.CancellationToken cancellationToken) {
+        RequireNoLoss();
+        using var staging = new MemoryStream();
+        PdfSaveResult result = await SaveAsync(staging, cancellationToken).ConfigureAwait(false);
+        result.RequireNoLoss();
+        return (staging.ToArray(), result);
+    }
+
+    private static void ValidateLosslessDestination(Stream stream) {
+        Guard.NotNull(stream, nameof(stream));
+        if (!stream.CanWrite) {
+            throw new ArgumentException("Destination stream must be writable.", nameof(stream));
+        }
     }
 
     /// <summary>

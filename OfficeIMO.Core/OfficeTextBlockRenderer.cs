@@ -702,6 +702,30 @@ public static partial class OfficeTextBlockRenderer {
         string? fontPalette) =>
         AppendSvgTextElementCore(builder, text, x, y, lineHeight, color, fontFamily, fontSize, horizontalAlignment, bold, italic, underline, rotationDegrees, rotationCenterX, rotationCenterY, strikethrough, null, underlineStyle, strikethroughStyle, baseline, decorationColor, featureSettings, fontPalette);
 
+    internal static StringBuilder AppendSvgVerticalTextElement(
+        this StringBuilder builder,
+        string text,
+        double x,
+        double y,
+        OfficeColor color,
+        string? fontFamily,
+        double fontSize,
+        bool bold,
+        bool italic,
+        bool underline,
+        bool strikethrough,
+        OfficeTextDecorationStyle underlineStyle,
+        OfficeTextDecorationStyle strikethroughStyle,
+        OfficeColor? decorationColor,
+        OfficeTextFeatureSettings featureSettings,
+        string? fontPalette) =>
+        AppendSvgTextElementCore(
+            builder, text, x, y, fontSize, color, fontFamily, fontSize, OfficeTextAlignment.Left,
+            bold, italic, underline, rotationDegrees: 0D, rotationCenterX: 0D, rotationCenterY: 0D,
+            strikethrough, textAdvanceWidth: null, underlineStyle,
+            strikethroughStyle, OfficeTextBaseline.Normal, decorationColor,
+            featureSettings, fontPalette, OfficeTextDirection.TopToBottom, OfficeTextShapingBackend.BrowserNative);
+
     internal static StringBuilder AppendSvgPositionedTextElement(
         this StringBuilder builder,
         string text,
@@ -719,14 +743,16 @@ public static partial class OfficeTextBlockRenderer {
         double rotationCenterX,
         double rotationCenterY,
         bool strikethrough,
-        double textAdvanceWidth,
+        double? textAdvanceWidth,
         OfficeTextDecorationStyle underlineStyle,
         OfficeTextDecorationStyle strikethroughStyle,
         OfficeTextBaseline baseline,
         OfficeColor? decorationColor = null,
         OfficeTextFeatureSettings? featureSettings = null,
-        string? fontPalette = null) =>
-        AppendSvgTextElementCore(builder, text, x, y, lineHeight, color, fontFamily, fontSize, horizontalAlignment, bold, italic, underline, rotationDegrees, rotationCenterX, rotationCenterY, strikethrough, textAdvanceWidth, underlineStyle, strikethroughStyle, baseline, decorationColor, featureSettings, fontPalette);
+        string? fontPalette = null,
+        OfficeTextShapingBackend? shapingBackend = null,
+        OfficeTextDirection direction = OfficeTextDirection.Auto) =>
+        AppendSvgTextElementCore(builder, text, x, y, lineHeight, color, fontFamily, fontSize, horizontalAlignment, bold, italic, underline, rotationDegrees, rotationCenterX, rotationCenterY, strikethrough, textAdvanceWidth, underlineStyle, strikethroughStyle, baseline, decorationColor, featureSettings, fontPalette, direction, shapingBackend);
 
     private static StringBuilder AppendSvgTextElementCore(
         StringBuilder builder,
@@ -751,7 +777,9 @@ public static partial class OfficeTextBlockRenderer {
         OfficeTextBaseline baseline,
         OfficeColor? decorationColor,
         OfficeTextFeatureSettings? featureSettings,
-        string? fontPalette) {
+        string? fontPalette,
+        OfficeTextDirection direction = OfficeTextDirection.Auto,
+        OfficeTextShapingBackend? shapingBackend = null) {
         if (builder == null) {
             throw new ArgumentNullException(nameof(builder));
         }
@@ -776,13 +804,16 @@ public static partial class OfficeTextBlockRenderer {
             ? underlineStyle : underline ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None;
         OfficeTextDecorationStyle resolvedStrikethroughStyle = strikethroughStyle != OfficeTextDecorationStyle.None
             ? strikethroughStyle : strikethrough ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None;
+        OfficeTextDirection resolvedDirection = direction == OfficeTextDirection.Auto
+            ? OfficeTextElements.ResolveBaseDirection(text)
+            : direction;
         bool splitDecorations = RequiresSeparateSvgDecorations(resolvedUnderlineStyle, resolvedStrikethroughStyle);
         builder.Append("<text")
             .AppendNumberAttribute("x", x)
             .AppendNumberAttribute("y", renderedY)
             .AppendAttribute("font-family", string.IsNullOrWhiteSpace(fontFamily) ? "Arial, sans-serif" : fontFamily)
             .AppendNumberAttribute("font-size", renderedFontSize)
-            .AppendAttribute("text-anchor", GetSvgTextAnchor(horizontalAlignment))
+            .AppendAttribute("text-anchor", GetSvgTextAnchor(horizontalAlignment, resolvedDirection))
             .AppendPaintAttribute("fill", color);
 
         if (featureSettings != null && !featureSettings.IsDefault) {
@@ -799,6 +830,22 @@ public static partial class OfficeTextBlockRenderer {
 
         if (!string.IsNullOrWhiteSpace(fontPalette) && !string.Equals(fontPalette, "normal", StringComparison.OrdinalIgnoreCase)) {
             builder.AppendAttribute("font-palette", fontPalette!.Trim());
+        }
+
+        if (direction == OfficeTextDirection.TopToBottom) {
+            builder.AppendAttribute("writing-mode", "vertical-rl")
+                .AppendAttribute("text-orientation", "mixed");
+        }
+        if (resolvedDirection == OfficeTextDirection.RightToLeft) {
+            builder.AppendAttribute("direction", "rtl");
+            if (direction == OfficeTextDirection.Auto) {
+                builder.AppendAttribute("unicode-bidi", "plaintext");
+            }
+        }
+        if (shapingBackend.HasValue) {
+            builder.AppendAttribute("data-officeimo-shaping-backend", shapingBackend.Value == OfficeTextShapingBackend.BrowserNative
+                ? "browser-native"
+                : shapingBackend.Value.ToString().ToLowerInvariant());
         }
 
         if (textAdvanceWidth.HasValue && lines.Length == 1) {
@@ -1281,6 +1328,18 @@ public static partial class OfficeTextBlockRenderer {
                 return "middle";
             default:
                 return "start";
+        }
+    }
+
+    private static string GetSvgTextAnchor(OfficeTextAlignment alignment, OfficeTextDirection direction) {
+        if (direction != OfficeTextDirection.RightToLeft) return GetSvgTextAnchor(alignment);
+        switch (alignment) {
+            case OfficeTextAlignment.Left:
+                return "end";
+            case OfficeTextAlignment.Right:
+                return "start";
+            default:
+                return GetSvgTextAnchor(alignment);
         }
     }
 

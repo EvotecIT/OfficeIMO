@@ -33,6 +33,11 @@
   <ItemGroup>
     <None Include="..\OfficeIMO.TestAssets\ScanQuality\**\*" Link="ScanQuality\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.cs" Link="ManagedTextShapingTestAssets.cs" />
+    <Compile Include="..\OfficeIMO.TestAssets\TypographyEvidenceCorpus.cs" Link="TypographyEvidenceCorpus.cs" />
+    <None Include="..\Website\Apps\OfficeIMO.Web.Converter\Assets\Fonts\Carlito-Regular.ttf" Link="TestAssets\Carlito-Regular.ttf" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\Website\Apps\OfficeIMO.Web.Converter\Assets\Fonts\NotoSansArabic-Regular.ttf" Link="TestAssets\NotoSansArabic-Regular.ttf" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="TestAssets\NotoSansDevanagari-Regular.ttf" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="TestAssets\NotoSansSC-BaselineSubset.ttf" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Images\Kulek.jpg" Link="TestAssets\Kulek.jpg" CopyToOutputDirectory="PreserveNewest" />
     <None Include="TestAssets\OpenSans-Regular.woff2" CopyToOutputDirectory="PreserveNewest" />
     <None Include="TestAssets\SourceSansPro-Regular.otf" CopyToOutputDirectory="PreserveNewest" />

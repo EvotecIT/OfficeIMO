@@ -70,6 +70,9 @@ public sealed class PowerPointPresentationConversionReport : IOfficeConversionRe
         SourceFormatDescriptor = sourceDescriptor;
         DestinationFormatDescriptor = destinationDescriptor;
         Diagnostics = Array.AsReadOnly((diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).ToArray());
+        FidelityDiagnostics = Array.AsReadOnly(Diagnostics
+            .Select(static diagnostic => OfficeConversionFidelityDiagnostics.From(diagnostic, "OfficeIMO.PowerPoint"))
+            .ToArray());
         Compatibility = new OfficeCompatibilityReport(
             sourceDescriptor,
             destinationDescriptor,
@@ -98,6 +101,9 @@ public sealed class PowerPointPresentationConversionReport : IOfficeConversionRe
 
     /// <summary>Gets all PowerPoint-specific diagnostics.</summary>
     public IReadOnlyList<OfficeConversionDiagnostic> Diagnostics { get; }
+
+    /// <summary>Gets the shared category-preserving fidelity diagnostics.</summary>
+    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
 
     /// <summary>Gets the shared feature-level fidelity assessment.</summary>
     public OfficeCompatibilityReport Compatibility { get; }

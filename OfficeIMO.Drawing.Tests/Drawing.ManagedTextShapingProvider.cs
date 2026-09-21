@@ -41,6 +41,78 @@ public class DrawingManagedTextShapingProviderTests {
     }
 
     [Fact]
+    public void VerticalColorFont_AppliesSimulatedBoldToEveryLayer() {
+        byte[] font = ManagedTextShapingTestAssets.CreateColorFont('A');
+        var fonts = new OfficeFontFaceCollection().Add("Vertical Color", font);
+        var result = new OfficeTextShapingResult(new[] {
+            new OfficeShapedGlyph(1, "A", 0, advanceWidth: 700, advanceHeight: -1000, offsetX: 0, offsetY: 0)
+        }, OfficeTextDirection.TopToBottom);
+        var provider = new FixedShapingProvider(result);
+        var regularImage = new OfficeRasterImage(80, 80, OfficeColor.White);
+        var boldImage = new OfficeRasterImage(80, 80, OfficeColor.White);
+        var regular = new OfficeRasterCanvas(regularImage, font: null, fonts: fonts, textShapingProvider: provider);
+        var bold = new OfficeRasterCanvas(boldImage, font: null, fonts: fonts, textShapingProvider: provider);
+
+        Assert.True(regular.TryDrawVerticalText(
+            "A", 10D, 10D, 50D, 60D, OfficeColor.Black, 36D,
+            OfficeFontStyle.Regular, "Vertical Color", featureSettings: null, fontPalette: "light"));
+        Assert.True(bold.TryDrawVerticalText(
+            "A", 10D, 10D, 50D, 60D, OfficeColor.Black, 36D,
+            OfficeFontStyle.Bold, "Vertical Color", featureSettings: null, fontPalette: "light"));
+
+        Assert.True(CountInk(boldImage) > CountInk(regularImage));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ShapedVerticalTextPaintsTypedDecorationsWithTheirOwnColor(bool colorFont) {
+        byte[] font = colorFont
+            ? ManagedTextShapingTestAssets.CreateColorFont('A')
+            : ManagedTextShapingTestAssets.CreateFont('A');
+        var fonts = new OfficeFontFaceCollection().Add("Vertical Decoration", font);
+        var run = new OfficeTextShapingResult(new[] {
+            new OfficeShapedGlyph(1, "A", 0, advanceWidth: 700, advanceHeight: -1000, offsetX: 0, offsetY: 0)
+        }, OfficeTextDirection.TopToBottom);
+        var image = new OfficeRasterImage(80, 80, OfficeColor.White);
+        var canvas = new OfficeRasterCanvas(image, font: null, fonts: fonts, textShapingProvider: new FixedShapingProvider(run));
+
+        Assert.True(canvas.TryDrawVerticalText(
+            "A", 10D, 10D, 50D, 60D, OfficeColor.Black, 36D,
+            OfficeFontStyle.Regular, "Vertical Decoration", featureSettings: null, fontPalette: "light",
+            underlineStyle: OfficeTextDecorationStyle.Double,
+            strikethroughStyle: OfficeTextDecorationStyle.Wavy,
+            decorationColor: OfficeColor.FromRgb(255, 0, 255)));
+
+        static bool IsDecoration(OfficeColor pixel) => pixel.R > 180 && pixel.G < 80 && pixel.B > 180;
+        Assert.Contains(Enumerable.Range(30, 10), x => Enumerable.Range(10, 60).Any(y => IsDecoration(image.GetPixel(x, y))));
+        Assert.Contains(Enumerable.Range(46, 12), x => Enumerable.Range(10, 60).Any(y => IsDecoration(image.GetPixel(x, y))));
+    }
+
+    [Fact]
+    public void VerticalDrawingRetainsFontStyleDecorationsWithShapedAdvances() {
+        byte[] font = ManagedTextShapingTestAssets.CreateFont('A');
+        var run = new OfficeTextShapingResult(new[] {
+            new OfficeShapedGlyph(1, "A", 0, advanceWidth: 700, advanceHeight: -1000, offsetX: 0, offsetY: 0)
+        }, OfficeTextDirection.TopToBottom);
+        var options = new OfficeDrawingRasterRenderOptions {
+            TextShapingProvider = new FixedShapingProvider(run),
+            Background = OfficeColor.White
+        };
+        static OfficeDrawing CreateDrawing(byte[] fontData, OfficeFontStyle style) =>
+            new OfficeDrawing(80D, 80D)
+                .AddFont("Vertical Decoration", fontData)
+                .AddVerticalText("A", 10D, 10D, 50D, 60D,
+                    new OfficeFontInfo("Vertical Decoration", 36D, style), OfficeColor.Black);
+
+        OfficeRasterImage regular = OfficeDrawingRasterRenderer.Render(CreateDrawing(font, OfficeFontStyle.Regular), options);
+        OfficeRasterImage decorated = OfficeDrawingRasterRenderer.Render(CreateDrawing(font,
+            OfficeFontStyle.Underline | OfficeFontStyle.Strikethrough), options);
+
+        Assert.True(CountInk(decorated) > CountInk(regular));
+    }
+
+    [Fact]
     public void ManagedProvider_ShapesSupportedArabicAndPreservesLogicalMappings() {
         byte[] font = ManagedTextShapingTestAssets.CreateFont(
             0x0627,
@@ -64,6 +136,44 @@ public class DrawingManagedTextShapingProviderTests {
         Assert.Equal(1, result.Glyphs[0].TextIndex);
         Assert.Equal("ا", result.Glyphs[1].UnicodeText);
         Assert.Equal(0, result.Glyphs[1].TextIndex);
+    }
+
+    [Fact]
+    public void ManagedProvider_DeclinesTopToBottomRunsWithoutVerticalAdvances() {
+        byte[] font = ManagedTextShapingTestAssets.CreateFont(
+            0x0627,
+            0x0628,
+            0xFE8D,
+            0xFE8F);
+        var request = new OfficeTextShapingRequest(
+            "اب",
+            ManagedTextShapingTestAssets.FamilyName,
+            font,
+            isOpenTypeCff: false,
+            unitsPerEm: 1000,
+            direction: OfficeTextDirection.TopToBottom,
+            language: "ar");
+
+        Assert.Null(OfficeManagedTextShapingProvider.Instance.ShapeText(request));
+    }
+
+    private static int CountInk(OfficeRasterImage image) {
+        byte[] pixels = image.GetPixels();
+        int ink = 0;
+        for (int i = 0; i + 3 < pixels.Length; i += 4) {
+            if (pixels[i] < 250 || pixels[i + 1] < 250 || pixels[i + 2] < 250) ink++;
+        }
+        return ink;
+    }
+
+    private sealed class FixedShapingProvider : IOfficeTextShapingProvider {
+        private readonly OfficeTextShapingResult _result;
+
+        internal FixedShapingProvider(OfficeTextShapingResult result) {
+            _result = result;
+        }
+
+        public OfficeTextShapingResult? ShapeText(OfficeTextShapingRequest request) => _result;
     }
 
     [Fact]

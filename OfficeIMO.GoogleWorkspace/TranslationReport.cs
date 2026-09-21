@@ -1,3 +1,5 @@
+using OfficeIMO;
+
 namespace OfficeIMO.GoogleWorkspace {
     /// <summary>
     /// Action selected by a translator for a source feature.
@@ -20,7 +22,7 @@ namespace OfficeIMO.GoogleWorkspace {
     /// <summary>
     /// Standard fidelity report shared across exporter packages.
     /// </summary>
-    public sealed class TranslationReport {
+    public sealed class TranslationReport : IOfficeConversionReport {
         private readonly List<TranslationNotice> _notices;
         private readonly IReadOnlyList<TranslationNotice> _readOnlyNotices;
         private readonly bool _isReadOnly;
@@ -40,6 +42,30 @@ namespace OfficeIMO.GoogleWorkspace {
         public bool HasWarnings => _notices.Any(n => n.Severity >= TranslationSeverity.Warning);
         /// <summary>Gets whether the report contains at least one error.</summary>
         public bool HasErrors => _notices.Any(n => n.Severity >= TranslationSeverity.Error);
+
+        /// <summary>Gets immutable, category-preserving diagnostics for this translation stage.</summary>
+        public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics =>
+            Array.AsReadOnly(_notices.Select(static notice => new OfficeConversionFidelityDiagnostic(
+                notice.Code,
+                notice.Message,
+                ResolveLossKind(notice),
+                "OfficeIMO.GoogleWorkspace",
+                string.IsNullOrWhiteSpace(notice.Path) ? notice.TargetId : notice.Path)).ToArray());
+
+        /// <summary>Gets whether the translation omitted, approximated, or failed to preserve content.</summary>
+        public bool HasLoss => _notices.Any(static notice =>
+            ResolveLossKind(notice) != OfficeConversionLossKind.None);
+
+        /// <summary>Throws when the translation omitted, approximated, or failed to preserve content.</summary>
+        public void RequireNoLoss() {
+            OfficeConversionFidelityDiagnostic? firstLoss = FidelityDiagnostics.FirstOrDefault(static diagnostic =>
+                diagnostic.LossKind != OfficeConversionLossKind.None);
+            if (firstLoss != null) {
+                throw new InvalidOperationException(
+                    "Google Workspace translation reported possible content loss. First diagnostic: "
+                    + firstLoss.Code + ".");
+            }
+        }
 
         /// <summary>Adds a structured translation notice.</summary>
         /// <param name="severity">Impact of the notice.</param>
@@ -105,6 +131,20 @@ namespace OfficeIMO.GoogleWorkspace {
 
         /// <summary>Creates an independent read-only snapshot of the current notices.</summary>
         public TranslationReport CreateReadOnlySnapshot() => new TranslationReport(_notices, true);
+
+        private static OfficeConversionLossKind ResolveLossKind(TranslationNotice notice) {
+            if (notice.Action == TranslationAction.Fail || notice.Severity == TranslationSeverity.Error) {
+                return OfficeConversionLossKind.Failure;
+            }
+            if (notice.Action == TranslationAction.Skip) return OfficeConversionLossKind.Omission;
+            if (notice.Action is TranslationAction.Flatten or TranslationAction.Rasterize) {
+                return OfficeConversionLossKind.Approximation;
+            }
+            if (notice.Action == TranslationAction.Preserve) return OfficeConversionLossKind.None;
+            return notice.Severity == TranslationSeverity.Warning
+                ? OfficeConversionLossKind.Approximation
+                : OfficeConversionLossKind.None;
+        }
 
         private void EnsureMutable() {
             if (_isReadOnly) throw new InvalidOperationException("This translation report is a read-only planning snapshot.");

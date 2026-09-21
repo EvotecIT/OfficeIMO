@@ -22,7 +22,8 @@ public sealed partial class OfficeRasterCanvas {
         OfficeColor? decorationColor,
         OfficeTextFeatureSettings? featureSettings,
         string? fontPalette,
-        double? baselineFontSize) {
+        double? baselineFontSize,
+        OfficeTextDirection textDirection) {
         if (_fonts == null) return false;
         IReadOnlyList<OfficeFontFallbackRun> runs = _fonts.PlanFallbackRuns(text, fontFamily, style);
         if (!ShouldUseFallbackRuns(runs, fontFamily)) return false;
@@ -31,17 +32,17 @@ public sealed partial class OfficeRasterCanvas {
         bool retainOverflow = overflowBehavior == OfficeTextOverflowBehavior.Clip;
         double size = ResolveRasterTextSize(fontSize, height, textAdvanceWidth.HasValue);
         double availableWidth = Math.Max(1D, retainOverflow ? width : width - 6D);
-        double measured = MeasureText(value, size, fontFamily, style);
+        double measured = MeasurePositionedText(value, size, fontFamily, style, featureSettings, textDirection);
         if (!retainOverflow) {
             while (measured > availableWidth && value.Length > 0) {
                 value = OfficeTextElements.RemoveLast(value);
                 if (value.Length == 0) break;
-                measured = MeasureText(value + "...", size, fontFamily, style);
+                measured = MeasurePositionedText(value + "...", size, fontFamily, style, featureSettings, textDirection);
             }
-            if (value.Length == 0 && MeasureText("...", size, fontFamily, style) > availableWidth) return true;
+            if (value.Length == 0 && MeasurePositionedText("...", size, fontFamily, style, featureSettings, textDirection) > availableWidth) return true;
             if (!string.Equals(value, text, StringComparison.Ordinal)) {
                 value += "...";
-                measured = MeasureText(value, size, fontFamily, style);
+                measured = MeasurePositionedText(value, size, fontFamily, style, featureSettings, textDirection);
                 runs = _fonts.PlanFallbackRuns(value, fontFamily, style);
                 if (!ShouldUseFallbackRuns(runs, fontFamily)) {
                     DrawTextCore(
@@ -62,7 +63,8 @@ public sealed partial class OfficeRasterCanvas {
                         decorationColor,
                         featureSettings,
                         fontPalette,
-                        baselineFontSize);
+                        baselineFontSize,
+                        textDirection);
                     return true;
                 }
             }
@@ -75,8 +77,8 @@ public sealed partial class OfficeRasterCanvas {
         double textX = ResolveTextX(retainOverflow ? x : x + 3D, availableWidth, resolvedAdvance, alignment);
         double scale = resolvedAdvance / measured;
         double cursor = textX;
-        foreach (OfficeFontFallbackRun run in runs) {
-            double runAdvance = MeasureText(run.Text, size, run.FamilyName, style) * scale;
+        foreach ((OfficeFontFallbackRun run, OfficeTextDirection runDirection) in PlanVisualFallbackRuns(value, fontFamily, style, textDirection)) {
+            double runAdvance = MeasurePositionedText(run.Text, size, run.FamilyName, style, featureSettings, runDirection) * scale;
             DrawTextCore(
                 run.Text,
                 cursor,
@@ -95,7 +97,8 @@ public sealed partial class OfficeRasterCanvas {
                 decorationColor,
                 featureSettings,
                 fontPalette,
-                baselineFontSize);
+                baselineFontSize,
+                runDirection);
             cursor += runAdvance;
         }
         return true;
@@ -206,5 +209,21 @@ public sealed partial class OfficeRasterCanvas {
             runs[0].FamilyName,
             requestedFamilies?.Trim() ?? string.Empty,
             StringComparison.OrdinalIgnoreCase);
+    }
+
+    private IReadOnlyList<(OfficeFontFallbackRun Run, OfficeTextDirection Direction)> PlanVisualFallbackRuns(
+        string text, string? fontFamily, OfficeFontStyle style, OfficeTextDirection textDirection) {
+        var result = new List<(OfficeFontFallbackRun, OfficeTextDirection)>();
+        // Resolve the complete string first. A font-only split does not know which
+        // fallback face belongs at the visual left of an authored RTL run.
+        foreach (OfficeBidiTextRun bidiRun in OfficeBidiTextResolver.ResolveVisualRuns(text, textDirection, _cancellationToken)) {
+            IReadOnlyList<OfficeFontFallbackRun> faces = _fonts!.PlanFallbackRuns(bidiRun.Text, fontFamily, style);
+            if (bidiRun.Direction == OfficeTextDirection.RightToLeft) {
+                for (int index = faces.Count - 1; index >= 0; index--) result.Add((faces[index], bidiRun.Direction));
+            } else {
+                foreach (OfficeFontFallbackRun face in faces) result.Add((face, bidiRun.Direction));
+            }
+        }
+        return result;
     }
 }

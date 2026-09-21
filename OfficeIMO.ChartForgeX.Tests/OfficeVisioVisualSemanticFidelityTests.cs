@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using global::ChartForgeX.Primitives;
 using global::ChartForgeX.Topology;
@@ -8,6 +9,41 @@ using Xunit;
 namespace OfficeIMO.ChartForgeX.Tests;
 
 public sealed partial class OfficeVisioVisualIntegrationTests {
+    [Fact]
+    public void UnmatchedSequenceDeactivationIsAnOmission() {
+        VisualArtifactInterchangeEnvelope sequence = SequenceEnvelope("unmatched-deactivation");
+        sequence.Nodes.Add(Participant("client", "Client", SequenceArtifactParticipantKind.Actor, 0));
+        sequence.Nodes.Add(Participant("service", "Service", SequenceArtifactParticipantKind.Control, 1));
+        sequence.Edges.Add(Message("unmatched", "service", "client", "End", 0, deactivates: true));
+
+        OfficeVisioVisualConversionResult result = sequence.ToOfficeVisio();
+
+        OfficeConversionFidelityDiagnostic omission = Assert.Single(result.Report.FidelityDiagnostics,
+            item => item.Code == nameof(OfficeVisioVisualDiagnosticCode.ActivationNotProjected));
+        Assert.Equal(OfficeConversionLossKind.Omission, omission.LossKind);
+        Assert.Equal("Annotation:unmatched/activation", omission.Location);
+        Assert.Throws<InvalidOperationException>(result.Report.RequireNoLoss);
+    }
+
+    [Fact]
+    public void UnrenderedSequenceBranchDividerIsAnOmission() {
+        VisualArtifactInterchangeEnvelope sequence = SequenceEnvelope("undrawn-divider");
+        sequence.Nodes.Add(Participant("client", "Client", SequenceArtifactParticipantKind.Actor, 0));
+        sequence.Nodes.Add(Participant("service", "Service", SequenceArtifactParticipantKind.Control, 1));
+        sequence.Edges.Add(Message("first", "client", "service", "First", 0));
+        sequence.Edges.Add(Message("second", "service", "client", "Second", 1));
+        sequence.Annotations.Add(SequenceBlock("fragment", "Choice", SequenceArtifactBlockKind.Alt, 0, 1));
+        sequence.Annotations.Add(SequenceBranch("alternate", "Else", SequenceArtifactBlockKind.Alt, "Else", 0, 0, 0));
+
+        OfficeVisioVisualConversionResult result = sequence.ToOfficeVisio();
+
+        OfficeConversionFidelityDiagnostic omission = Assert.Single(result.Report.FidelityDiagnostics,
+            item => item.Code == nameof(OfficeVisioVisualDiagnosticCode.BranchDividerNotProjected));
+        Assert.Equal(OfficeConversionLossKind.Omission, omission.LossKind);
+        Assert.Equal("Annotation:alternate/branchDivider", omission.Location);
+        Assert.Throws<InvalidOperationException>(result.Report.RequireNoLoss);
+    }
+
     [Fact]
     public void GraphAndFlowNodeDetailsReportTypedSemanticLoss() {
         VisualArtifactInterchangeEnvelope topology = TopologyEnvelope("topology-details");
@@ -71,6 +107,9 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
             diagnostic.EntityKind == OfficeVisioVisualEntityKind.Node &&
             diagnostic.EntityId == "service" &&
             diagnostic.Feature == "nodeKind");
+        OfficeConversionFidelityDiagnostic normalized = Assert.Single(topologyResult.Report.FidelityDiagnostics,
+            diagnostic => diagnostic.Code == nameof(OfficeVisioVisualDiagnosticCode.NodeKindNormalized));
+        Assert.Equal(OfficeConversionLossKind.Approximation, normalized.LossKind);
 
         var flow = new VisualArtifactInterchangeEnvelope {
             Id = "flow-kind",
@@ -108,6 +147,12 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
             diagnostic.EntityKind == OfficeVisioVisualEntityKind.Artifact &&
             diagnostic.EntityId == "untitled-graph" &&
             diagnostic.Feature == "title");
+        IOfficeConversionReport common = topologyResult.Report;
+        OfficeConversionFidelityDiagnostic omittedTitle = Assert.Single(common.FidelityDiagnostics,
+            diagnostic => diagnostic.Code == nameof(OfficeVisioVisualDiagnosticCode.TitleNotProjected));
+        Assert.Equal(OfficeConversionLossKind.Omission, omittedTitle.LossKind);
+        Assert.Equal("Artifact:untitled-graph/title", omittedTitle.Location);
+        Assert.Throws<InvalidOperationException>(() => common.RequireNoLoss());
 
         VisualArtifactInterchangeEnvelope sequence = SequenceEnvelope("untitled-sequence", "Visible sequence title");
         sequence.Nodes.Add(Participant("client", "Client", SequenceArtifactParticipantKind.Actor, 0));

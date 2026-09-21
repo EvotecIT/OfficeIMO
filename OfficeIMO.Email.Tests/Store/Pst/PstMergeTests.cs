@@ -26,6 +26,12 @@ public sealed class PstMergeTests {
             Assert.Equal(0, report.SkippedItems);
             Assert.Equal(3, report.WriteReport.ItemCount);
             Assert.All(report.Sources, source => Assert.True(source.Completed));
+            IOfficeConversionReport typed = report;
+            Assert.True(typed.HasLoss);
+            Assert.Contains(typed.FidelityDiagnostics, diagnostic =>
+                diagnostic.Code == "EMAIL_STORE_MERGE_DUPLICATES_OMITTED" &&
+                diagnostic.LossKind == OfficeConversionLossKind.Omission);
+            Assert.Throws<InvalidDataException>(typed.RequireNoLoss);
             using EmailStoreSession merged = EmailStoreSession.Open(destination);
             Assert.Equal(3, merged.EnumerateItems().Count());
             Assert.Contains(merged.Folders, folder => folder.Name == "Source One");
@@ -51,6 +57,8 @@ public sealed class PstMergeTests {
                 folderMode: EmailStoreMergeFolderMode.MergeByFolderPath));
 
             Assert.Equal(2, report.WrittenItems);
+            Assert.False(report.HasLoss);
+            report.RequireNoLoss();
             using EmailStoreSession merged = EmailStoreSession.Open(destination);
             EmailStoreFolderInfo projects = Assert.Single(merged.Folders,
                 folder => folder.Name == "Projects");
@@ -83,6 +91,10 @@ public sealed class PstMergeTests {
             Assert.Equal(1, report.Sources[1].RetryCount);
             Assert.Contains(report.Diagnostics, diagnostic =>
                 diagnostic.Code == "EMAIL_STORE_MERGE_SOURCE_SKIPPED");
+            Assert.Contains(report.FidelityDiagnostics, diagnostic =>
+                diagnostic.Code == "EMAIL_STORE_MERGE_SOURCE_INCOMPLETE" &&
+                diagnostic.LossKind == OfficeConversionLossKind.Failure);
+            Assert.Throws<InvalidDataException>(report.RequireNoLoss);
             using EmailStoreSession merged = EmailStoreSession.Open(destination);
             Assert.Single(merged.EnumerateItems());
         } finally {

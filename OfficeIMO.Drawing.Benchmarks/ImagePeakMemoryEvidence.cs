@@ -91,7 +91,7 @@ internal static class ImagePeakMemoryEvidence {
         GC.WaitForPendingFinalizers();
         GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true, compacting: true);
 
-        using var sampler = new ProcessMemorySampler();
+        using var sampler = new ImageProcessMemorySampler();
         sampler.Start();
         long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
         byte[]? output = null;
@@ -211,59 +211,4 @@ internal static class ImagePeakMemoryEvidence {
         public override void WriteByte(byte value) => BytesWritten = checked(BytesWritten + 1);
     }
 
-    private sealed class ProcessMemorySampler : IDisposable {
-        private readonly ManualResetEventSlim _started = new(false);
-        private readonly Thread _thread;
-        private volatile bool _stop;
-        private long _baselineWorkingSet;
-        private long _baselinePrivateBytes;
-        private long _peakWorkingSet;
-        private long _peakPrivateBytes;
-
-        internal ProcessMemorySampler() {
-            _thread = new Thread(Sample) {
-                IsBackground = true,
-                Name = "OfficeIMO image memory sampler"
-            };
-        }
-
-        internal long PeakWorkingSetDelta => Math.Max(0L, _peakWorkingSet - _baselineWorkingSet);
-        internal long PeakPrivateBytesDelta => Math.Max(0L, _peakPrivateBytes - _baselinePrivateBytes);
-
-        internal void Start() {
-            _thread.Start();
-            _started.Wait();
-        }
-
-        internal void Stop() {
-            _stop = true;
-            _thread.Join();
-        }
-
-        public void Dispose() {
-            if (_thread.IsAlive) Stop();
-            _started.Dispose();
-        }
-
-        private void Sample() {
-            using Process process = Process.GetCurrentProcess();
-            process.Refresh();
-            _baselineWorkingSet = process.WorkingSet64;
-            _baselinePrivateBytes = process.PrivateMemorySize64;
-            _peakWorkingSet = _baselineWorkingSet;
-            _peakPrivateBytes = _baselinePrivateBytes;
-            _started.Set();
-            while (!_stop) {
-                Record(process);
-                Thread.Sleep(1);
-            }
-            Record(process);
-        }
-
-        private void Record(Process process) {
-            process.Refresh();
-            _peakWorkingSet = Math.Max(_peakWorkingSet, process.WorkingSet64);
-            _peakPrivateBytes = Math.Max(_peakPrivateBytes, process.PrivateMemorySize64);
-        }
-    }
 }

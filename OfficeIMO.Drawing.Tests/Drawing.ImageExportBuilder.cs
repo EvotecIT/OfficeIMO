@@ -752,6 +752,25 @@ public partial class DrawingTests {
             result.Require(new OfficeImageExportPolicy { FailOnDiagnosticCodes = new[] { "approximated" } }));
     }
 
+    [Theory]
+    [InlineData(OfficeConversionLossKind.None)]
+    [InlineData(OfficeConversionLossKind.Approximation)]
+    [InlineData(OfficeConversionLossKind.Omission)]
+    public void ExplicitImageExportErrorCannotSuppressFailureClassification(OfficeConversionLossKind suppliedKind) {
+        var diagnostic = new OfficeImageExportDiagnostic(
+            OfficeImageExportDiagnosticSeverity.Error,
+            "TEST_ERROR",
+            "The image could not be produced.",
+            lossKind: suppliedKind);
+
+        Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
+        OfficeImageExportReport report = new OfficeImageExportReport(new[] { diagnostic }, resultCount: 0);
+        Assert.Equal(OfficeConversionLossKind.Failure, Assert.Single(report.FidelityDiagnostics).LossKind);
+        Assert.True(report.HasFailures);
+        Assert.Throws<OfficeImageExportPolicyException>(() => report.Require(
+            new OfficeImageExportPolicy { RequireNoFailures = true }));
+    }
+
     [Fact]
     public void BatchProcessorPreservesOrderWithBoundedParallelRendering() {
         int[] items = Enumerable.Range(1, 8).ToArray();

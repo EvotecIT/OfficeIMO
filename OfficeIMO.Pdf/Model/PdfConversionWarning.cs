@@ -73,6 +73,14 @@ public sealed class PdfConversionWarning {
     /// <summary>Additional converter-specific details such as sheet name, slide number, or feature name.</summary>
     public IReadOnlyDictionary<string, string> Details { get; }
 
+    /// <summary>Projects this warning into the shared category-preserving conversion contract.</summary>
+    public OfficeConversionFidelityDiagnostic ToFidelityDiagnostic() => new(
+        Code,
+        string.IsNullOrWhiteSpace(Message) ? Code + " was reported without a diagnostic message." : Message,
+        LossKind,
+        Converter,
+        string.IsNullOrWhiteSpace(Source) ? null : Source);
+
     /// <inheritdoc />
     public override string ToString() {
         string prefix = string.IsNullOrWhiteSpace(Source)

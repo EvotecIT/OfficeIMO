@@ -37,6 +37,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   raster-evidence:
@@ -67,9 +68,28 @@ jobs:
       - name: Build release-quality workload
         run: dotnet build OfficeIMO.Drawing.Benchmarks/OfficeIMO.Drawing.Benchmarks.csproj --configuration Release --framework net10.0
 
+      - name: Download matching master evidence
+        if: github.event_name == 'pull_request'
+        id: reference
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $runId = gh run list --workflow release-quality-evidence.yml --branch master --status success --limit 1 --json databaseId --jq '.[0].databaseId'
+          if (-not $runId) { throw 'No successful master release-quality evidence run is available.' }
+          gh run download $runId --name "release-quality-images-${{ matrix.os }}" --dir ./artifacts/reference
+          $summary = Get-ChildItem ./artifacts/reference -Filter summary.json -Recurse | Sort-Object FullName -Descending | Select-Object -First 1
+          if (-not $summary) { throw 'The master evidence artifact does not contain summary.json.' }
+          "summary=$($summary.FullName)" >> $env:GITHUB_OUTPUT
+
       - name: Run PowerForge evidence
         shell: pwsh
-        run: ./Build/Benchmarks/Run-ReleaseQualityImageEvidence.ps1 -OutputRoot ./artifacts/release-quality-images
+        run: |
+          $parameters = @{ OutputRoot = './artifacts/release-quality-images' }
+          if ('${{ steps.reference.outputs.summary }}') {
+            $parameters.ReferenceSummaryPath = '${{ steps.reference.outputs.summary }}'
+          }
+          ./Build/Benchmarks/Run-ReleaseQualityImageEvidence.ps1 @parameters
 
       - name: Validate codecs and cancellation
         shell: pwsh

@@ -1,7 +1,9 @@
 namespace OfficeIMO.Email.Store;
 
 /// <summary>Outcome of merging multiple stores into a new Unicode PST.</summary>
-public sealed class EmailStorePstMergeReport {
+public sealed class EmailStorePstMergeReport : IOfficeConversionReport {
+    private readonly IReadOnlyList<OfficeConversionFidelityDiagnostic> _fidelityDiagnostics;
+
     internal EmailStorePstMergeReport(EmailStorePstWriteReport writeReport,
         IReadOnlyList<EmailStoreMergeSourceReport> sources, int inspectedItems,
         int writtenItems, int duplicateItems, int skippedItems, int retryCount,
@@ -15,6 +17,40 @@ public sealed class EmailStorePstMergeReport {
         RetryCount = retryCount;
         Diagnostics = diagnostics;
         DiagnosticsTruncated = diagnosticsTruncated;
+        var aggregate = new List<OfficeConversionFidelityDiagnostic>();
+        if (duplicateItems > 0) {
+            aggregate.Add(EmailStoreFidelityProjection.Create(
+                "EMAIL_STORE_MERGE_DUPLICATES_OMITTED",
+                duplicateItems + " semantically duplicate source item(s) were omitted by the selected merge policy.",
+                OfficeConversionLossKind.Omission,
+                writeReport.DestinationPath));
+        }
+        if (skippedItems > 0) {
+            aggregate.Add(EmailStoreFidelityProjection.Create(
+                "EMAIL_STORE_MERGE_ITEMS_OMITTED",
+                skippedItems + " source item(s) were skipped during merge.",
+                OfficeConversionLossKind.Omission,
+                writeReport.DestinationPath));
+        }
+        if (sources.Any(static source => !source.Completed)) {
+            aggregate.Add(EmailStoreFidelityProjection.Create(
+                "EMAIL_STORE_MERGE_SOURCE_INCOMPLETE",
+                "At least one merge source was not enumerated to completion.",
+                OfficeConversionLossKind.Failure,
+                writeReport.DestinationPath));
+        }
+        if (diagnosticsTruncated) {
+            aggregate.Add(EmailStoreFidelityProjection.Create(
+                "EMAIL_STORE_MERGE_DIAGNOSTICS_TRUNCATED",
+                "Additional merge diagnostics exceeded the configured retention bound.",
+                OfficeConversionLossKind.Failure,
+                writeReport.DestinationPath));
+        }
+        IReadOnlyList<OfficeConversionFidelityDiagnostic> projected =
+            EmailStoreFidelityProjection.AppendMissing(
+                EmailStoreFidelityProjection.Project(diagnostics),
+                writeReport.FidelityDiagnostics);
+        _fidelityDiagnostics = EmailStoreFidelityProjection.Append(projected, aggregate.ToArray());
     }
 
     /// <summary>Committed destination PST report.</summary>
@@ -38,4 +74,14 @@ public sealed class EmailStorePstMergeReport {
     /// <summary>Whether any warning or error was reported.</summary>
     public bool HasIssues => Diagnostics.Any(diagnostic =>
         diagnostic.Severity != EmailStoreDiagnosticSeverity.Information);
+
+    /// <summary>Category-preserving merge, omission, completion, and writer diagnostics.</summary>
+    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics => _fidelityDiagnostics;
+
+    /// <summary>Whether merge approximated, omitted, or failed to preserve selected source content.</summary>
+    public bool HasLoss => _fidelityDiagnostics.Any(static diagnostic =>
+        diagnostic.LossKind != OfficeConversionLossKind.None);
+
+    /// <summary>Throws when merge reported possible content loss.</summary>
+    public void RequireNoLoss() => EmailStoreFidelityProjection.RequireNoLoss(_fidelityDiagnostics);
 }

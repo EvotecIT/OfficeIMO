@@ -64,6 +64,10 @@ public sealed class PdfConversionReport : IOfficeConversionReport {
     /// <summary>True when conversion reported an approximation, omission, or error.</summary>
     public bool HasLoss => Warnings.Any(static warning => warning.LossKind != OfficeConversionLossKind.None);
 
+    /// <summary>Gets category-preserving diagnostics for composed conversion routes.</summary>
+    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics => Array.AsReadOnly(
+        Warnings.Select(static warning => warning.ToFidelityDiagnostic()).ToArray());
+
     /// <summary>
     /// High-level fidelity outcome derived from the structured warnings. Declared font-family and
     /// bounded typography substitutions are distinguished from other lossy or unsupported behavior.

@@ -421,7 +421,31 @@ public sealed class AdfContractTests {
         AdfConversionResult<string> result = AdfConverter.ToMarkdown(document);
 
         Assert.Contains("[details](https://example.com/details 'Ready \"now\"')", result.Value);
-        Assert.Contains(result.Report.Diagnostics, item => item.Code == "ADF_LINK_ATTRIBUTES_DROPPED");
+        AdfConversionDiagnostic diagnostic = Assert.Single(
+            result.Report.Diagnostics,
+            item => item.Code == "ADF_LINK_ATTRIBUTES_DROPPED");
+        Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
+        Assert.Equal(OfficeConversionLossKind.Omission, Assert.Single(result.Report.FidelityDiagnostics).LossKind);
+    }
+
+    [Theory]
+    [InlineData(OfficeConversionLossKind.None)]
+    [InlineData(OfficeConversionLossKind.Approximation)]
+    [InlineData(OfficeConversionLossKind.Omission)]
+    public void ExplicitErrorDiagnosticCannotBypassStrictLossAcceptance(OfficeConversionLossKind declaredLossKind) {
+        var diagnostic = new AdfConversionDiagnostic(
+            "ADF_EXPLICIT_FAILURE",
+            "$.content[0]",
+            "The projection failed.",
+            AdfConversionSeverity.Error,
+            declaredLossKind);
+        var report = new AdfConversionReport(new[] { diagnostic });
+
+        Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
+        Assert.Equal(OfficeConversionLossKind.Failure, Assert.Single(report.FidelityDiagnostics).LossKind);
+        Assert.True(report.HasErrors);
+        Assert.True(report.HasLoss);
+        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
     }
 
     [Fact]

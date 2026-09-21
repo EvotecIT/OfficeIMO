@@ -19,6 +19,15 @@ forms, kerning, or font substitutions that need a complete OpenType shaping
 engine. The core packages retain their bounded managed fallback when this
 adapter is not installed.
 
+The adapter also carries HarfBuzz top-to-bottom advances through the shared
+glyph contract. `OfficeDrawing.AddVerticalText(...)` uses those advances for
+raster outlines when this package is registered. SVG keeps the searchable
+logical string and declares browser-native vertical shaping. PDF keeps the
+searchable logical string but currently paints a diagnosed stacked-glyph
+fallback; strict conversion profiles reject that approximation. Without the
+adapter, the managed provider declines true vertical shaping and the same
+fallback is reported instead of being treated as lossless output.
+
 The package uses HarfBuzzSharp `14.2.1.2` and matching Windows, Linux, macOS,
 and WebAssembly native assets. HarfBuzzSharp is MIT licensed; applications
 should include the upstream notices required by their own distribution policy.

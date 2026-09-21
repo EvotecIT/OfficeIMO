@@ -1340,7 +1340,10 @@ public sealed class DocBookDocumentTests {
         OfficeDocumentModelNode root = Assert.Single(converted.Value.Structure);
 
         Assert.True(Flatten(root).Sum(node => (long)node.Text.Length) <= 12);
-        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB123");
+        Assert.All(converted.Diagnostics.Where(diagnostic => diagnostic.Code == "DB123"),
+            diagnostic => Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind));
+        Assert.All(converted.FidelityDiagnostics.Where(diagnostic => diagnostic.Code == "DB123"),
+            diagnostic => Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind));
         Assert.Throws<ArgumentOutOfRangeException>(() => DocBookDocument.Parse(source)
             .ToOfficeDocumentModel(options: new DocBookConversionOptions { MaxTotalTextCharacters = 0 }));
 
@@ -2334,6 +2337,29 @@ public sealed class DocBookDocumentTests {
     }
 
     [Fact]
+    public void SharedReverseConversionClassifiesUnavailableFlatTableRowsAsOmission() {
+        var model = new OfficeDocumentModel {
+            Format = OfficeDocumentFormat.DocBook,
+            Tables = new[] {
+                new OfficeDocumentModelTable {
+                    Columns = new[] { "Value" },
+                    Rows = new IReadOnlyList<string>[] { new[] { "Available" } },
+                    TotalRowCount = 2,
+                    Truncated = true
+                }
+            }
+        };
+
+        DocBookConversionResult<DocBookDocument> converted = DocBookDocument.FromOfficeDocumentModel(model);
+        DocBookDiagnostic diagnostic = Assert.Single(converted.Diagnostics, item => item.Code == "DB117");
+
+        Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
+        Assert.Equal(OfficeConversionLossKind.Omission,
+            Assert.Single(converted.FidelityDiagnostics, item => item.Code == "DB117").LossKind);
+        Assert.Throws<InvalidDataException>(converted.RequireNoLoss);
+    }
+
+    [Fact]
     public void SharedReverseConversionPreservesEditedFlatAssetProjection() {
         const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><mediaobject><imageobject><imagedata fileref=\"assets/original.png\"/></imageobject><textobject><phrase>Original alt</phrase></textobject><caption>Original caption</caption></mediaobject></article>";
         OfficeDocumentModel model = DocBookDocument.Parse(source).ToOfficeDocumentModel().Value;
@@ -2455,6 +2481,18 @@ public sealed class DocBookDocumentTests {
         Assert.Equal(count, converted.Xml.Descendants().Count(element => element.Name.LocalName == "para"));
         Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(10),
             $"Indexed reverse conversion took {stopwatch.Elapsed}.");
+    }
+
+    [Fact]
+    public void ExplicitErrorDiagnosticCannotSuppressFailureClassification() {
+        var diagnostic = new DocBookDiagnostic(
+            "DB-TEST-ERROR",
+            DocBookDiagnosticSeverity.Error,
+            "The source could not be converted.",
+            "/article",
+            OfficeConversionLossKind.None);
+
+        Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
     }
 
     private static OfficeDocumentModelNode FindStructureNode(IEnumerable<OfficeDocumentModelNode> nodes, string kind) {

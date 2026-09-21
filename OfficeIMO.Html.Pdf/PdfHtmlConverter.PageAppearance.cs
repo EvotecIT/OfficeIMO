@@ -89,9 +89,7 @@ public static partial class PdfHtmlConverterExtensions {
                 diagnostic.SupportLevel == PdfCore.PdfRenderSupportLevel.Unsupported
                     ? PdfCore.PdfConversionWarningSeverity.Warning
                     : PdfCore.PdfConversionWarningSeverity.Information,
-                diagnostic.SupportLevel == PdfCore.PdfRenderSupportLevel.Unsupported
-                    ? OfficeConversionLossKind.Omission
-                    : OfficeConversionLossKind.Approximation);
+                diagnostic.LossKind);
         }
         if (drawing.Fonts.Faces.Count == 0 && page.TextBlocks.Count > 0) {
             AddWarning(options, "PageAppearanceBrowserFonts",

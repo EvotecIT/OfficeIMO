@@ -1,7 +1,7 @@
 namespace OfficeIMO.Html;
 
 /// <summary>Observed geometry, diagnostics, and executed checks for one hash-bound gallery artifact.</summary>
-public sealed class HtmlCapabilityGalleryArtifactEvidence {
+public sealed class HtmlCapabilityGalleryArtifactEvidence : IOfficeConversionReport {
     /// <summary>Creates an immutable snapshot of observations from the artifact's producing operation.</summary>
     public HtmlCapabilityGalleryArtifactEvidence(
         int pageCount,
@@ -22,6 +22,8 @@ public sealed class HtmlCapabilityGalleryArtifactEvidence {
         DimensionUnit = dimensionUnit ?? throw new ArgumentNullException(nameof(dimensionUnit));
         Diagnostics = (diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).ToList().AsReadOnly();
         Checks = (checks ?? throw new ArgumentNullException(nameof(checks))).ToList().AsReadOnly();
+        FidelityDiagnostics = Diagnostics.Select(diagnostic =>
+            HtmlFidelityProjection.From(diagnostic)).ToList().AsReadOnly();
     }
 
     /// <summary>Total pages in the rendered source document.</summary>
@@ -40,6 +42,13 @@ public sealed class HtmlCapabilityGalleryArtifactEvidence {
     public IReadOnlyList<HtmlCapabilityGalleryCheck> Checks { get; }
     /// <summary>Whether this artifact's producing operation reported fidelity loss.</summary>
     public bool HasLoss => Diagnostics.Any(diagnostic => diagnostic.LossKind != OfficeConversionLossKind.None);
+    /// <inheritdoc />
+    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
+    /// <inheritdoc />
+    public void RequireNoLoss() {
+        if (HasLoss) throw new InvalidOperationException(
+            "The HTML capability artifact reported fidelity loss. Inspect FidelityDiagnostics for details.");
+    }
 }
 
 /// <summary>Result of an executed check, rather than an unexecuted capability expectation.</summary>
