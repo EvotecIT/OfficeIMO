@@ -117,7 +117,7 @@ internal static class PdfExternalTextShaper {
                 offsetY1000));
         }
 
-        return new PdfGlyphRun(glyphs, Array.Empty<PdfTextEncodingDiagnostic>(), actualText: text, result.Direction, hasCompleteVerticalAdvances);
+        return new PdfGlyphRun(glyphs, Array.Empty<PdfTextEncodingDiagnostic>(), actualText: text, result.Direction, hasCompleteVerticalAdvances, result);
     }
 
     private static int ScaleToPdfUnits(int value, int unitsPerEm) =>

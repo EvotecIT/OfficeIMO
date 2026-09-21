@@ -133,6 +133,43 @@ public class PdfTextShapingProviderTests {
     }
 
     [Fact]
+    public void VerticalProviderWithBaselineRelativeOffsetsAlignsInkBeforePdfClipping() {
+        TypographyEvidenceCase evidence = Assert.Single(TypographyEvidenceCorpus.Cases,
+            item => item.Direction == OfficeTextDirection.TopToBottom);
+        byte[] fontData = LoadTypographyFont(evidence);
+        PdfTrueTypeFontProgram font = PdfTrueTypeFontProgram.Parse(fontData, evidence.Family);
+        var glyphs = new List<OfficeShapedGlyph>();
+        foreach (OfficeShapedGlyph glyph in CreateGlyphMap(evidence.Text, font)) {
+            glyphs.Add(new OfficeShapedGlyph(glyph.GlyphId, glyph.UnicodeText, glyph.TextIndex,
+                advanceWidth: 0, advanceHeight: -font.UnitsPerEm, offsetX: 0, offsetY: 0));
+        }
+        var provider = new DirectionRecordingTextShapingProvider(evidence.Text, glyphs);
+        var drawing = new OfficeDrawing(120D, 180D)
+            .AddFont(evidence.Family, fontData)
+            .AddVerticalText(evidence.Text, 20D, 10D, 80D, 160D,
+                new OfficeFontInfo(evidence.Family, 20D));
+        var report = new PdfConversionReport();
+        var options = new PdfOptions {
+                CompressContentStreams = false, PageWidth = 120D, PageHeight = 180D,
+                MarginLeft = 0D, MarginRight = 0D, MarginTop = 0D, MarginBottom = 0D
+            }
+            .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(evidence.Family, fontData))
+            .SetTextShapingProvider(provider)
+            .ReportDiagnosticsTo(report, "Baseline-relative vertical glyphs");
+
+        byte[] pdf = PdfDocument.Create(options)
+            .Canvas(canvas => canvas.Drawing(drawing, 0D, 0D, 120D, 180D))
+            .ToBytes();
+        PixelBounds bounds = GetInkBounds(OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf)));
+
+        Assert.Equal(evidence.Text, PdfReadDocument.Open(pdf).ExtractText());
+        Assert.InRange(bounds.Y, 10, 12);
+        Assert.DoesNotContain(report.FidelityDiagnostics, diagnostic =>
+            diagnostic.Code == "vertical-text-stacked-fallback");
+        report.RequireNoLoss();
+    }
+
+    [Fact]
     public void VerticalDrawingInsideActualTextGroupStillReportsThePdfPositioningFallback() {
         TypographyEvidenceCase evidence = Assert.Single(
             TypographyEvidenceCorpus.Cases,

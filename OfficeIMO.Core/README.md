@@ -175,11 +175,11 @@ Font resolution, glyph coverage, shaping diagnostics, and baseline placement are
 raster, SVG, and PDF drawing routes. Use `OfficeDrawing.AddVerticalText(...)` for top-to-bottom text.
 The optional `OfficeIMO.Drawing.HarfBuzz` package supplies full OpenType shaping and true vertical
 advances to raster outline rendering. SVG retains one searchable logical string and explicitly marks
-browser-native shaping with vertical writing attributes. PDF also retains the logical string, but its
-current vertical drawing route paints a stacked-glyph fallback and reports a typed approximation;
-strict conversion profiles reject it. The dependency-free managed provider likewise reports when it
-cannot supply true vertical shaping. These boundaries keep fallback behavior visible instead of
-silently claiming equivalent glyph positioning.
+browser-native shaping with vertical writing attributes. PDF uses positioned embedded glyphs when
+the provider supplies complete vertical advances and logical coverage and the writer can align the
+glyph ink within its text box. Otherwise it retains searchable stacked text, reports a typed
+approximation, and strict conversion profiles reject that approximation. The dependency-free
+managed provider likewise reports when it cannot supply true vertical shaping.
 
 Use `TryValidateContent(...)` at ingestion and export boundaries that must reject incomplete or
 corrupt image bodies. It applies the shared encoded-payload limit, validates the complete known

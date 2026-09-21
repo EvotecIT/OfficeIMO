@@ -1,12 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Threading;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
+        private readonly Dictionary<byte[], IOfficeBoundedFontProgram> verticalOutlineFonts = new Dictionary<byte[], IOfficeBoundedFontProgram>();
+
         private bool TryDrawNativeVerticalText(OfficeDrawingText text, double originX, double originTopY) {
             IOfficeTextShapingProvider? provider = currentOpts.TextShapingProviderSnapshot;
             if (provider == null || (_suppressCanvasAccessibilityWrappers && !_suppressCanvasActualTextChildren) ||
@@ -39,14 +42,24 @@ internal static partial class PdfWriter {
                 currentOpts.RecordProviderShapedTextRunDelegate, currentOpts.Language,
                 text.FeatureSettings, OfficeTextDirection.TopToBottom);
             PdfGlyphRun glyphRun;
+            byte[] fontData;
+            int fontUnitsPerEm;
             if (namedFont.HasValue && currentOpts.TryGetNamedFontProgram(namedFont.Value, out PdfTrueTypeFontProgram? trueType) && trueType != null) {
                 if (!PdfExternalTextShaper.TryShapeText(text.Text, trueType, shapingOptions, out glyphRun)) return false;
+                fontData = trueType.FontDataForInspection;
+                fontUnitsPerEm = trueType.UnitsPerEm;
             } else if (namedFont.HasValue && currentOpts.TryGetNamedOpenTypeCffFontProgram(namedFont.Value, out PdfOpenTypeCffFontProgram? cff) && cff != null) {
                 if (!PdfExternalTextShaper.TryShapeText(text.Text, cff, shapingOptions, out glyphRun)) return false;
+                fontData = cff.FontDataForInspection;
+                fontUnitsPerEm = cff.UnitsPerEm;
             } else if (!namedFont.HasValue && currentOpts.TryGetEmbeddedStandardFontProgram(font, out PdfTrueTypeFontProgram? standardTrueType) && standardTrueType != null) {
                 if (!PdfExternalTextShaper.TryShapeText(text.Text, standardTrueType, shapingOptions, out glyphRun)) return false;
+                fontData = standardTrueType.FontDataForInspection;
+                fontUnitsPerEm = standardTrueType.UnitsPerEm;
             } else if (!namedFont.HasValue && currentOpts.TryGetEmbeddedStandardOpenTypeCffFontProgram(font, out PdfOpenTypeCffFontProgram? standardCff) && standardCff != null) {
                 if (!PdfExternalTextShaper.TryShapeText(text.Text, standardCff, shapingOptions, out glyphRun)) return false;
+                fontData = standardCff.FontDataForInspection;
+                fontUnitsPerEm = standardCff.UnitsPerEm;
             } else {
                 return false;
             }
@@ -57,11 +70,15 @@ internal static partial class PdfWriter {
                 movesVertically |= glyphRun.Glyphs[index].AdvanceHeight1000 != 0;
             }
             if (!movesVertically) return false;
+            if (!TryGetVerticalInkTop(text.Text, glyphRun, fontData, fontUnitsPerEm, size, out double inkTop)) return false;
 
             double frameX = originX + text.X;
             double frameTopY = originTopY - text.Y;
             double penX = frameX + text.Width / 2D;
-            double penY = frameTopY - text.BaselineOffset;
+            // Core contours use a downward Y axis; PDF uses an upward Y axis.
+            // Shaping providers disagree on vertical baseline conventions. Move ink
+            // below the top clip edge only when the supplied origin would crop it.
+            double penY = frameTopY + Math.Min(0D, inkTop);
             string fontResource = GetFontResourceName(font, namedFont, ChooseNormal(currentOpts.DefaultFont));
             void Paint() {
                 var content = new ContentStreamBuilder(sb)
@@ -93,6 +110,44 @@ internal static partial class PdfWriter {
             }
             MarkRichFonts(new[] { run });
             pageDirty = true;
+            return true;
+        }
+
+        private bool TryGetVerticalInkTop(string text, PdfGlyphRun glyphRun, byte[] fontData,
+            int unitsPerEm, double size, out double inkTop) {
+            inkTop = 0D;
+            OfficeTextShapingResult? result = glyphRun.SourceShapingResult;
+            if (result == null) return false;
+            if (!verticalOutlineFonts.TryGetValue(fontData, out IOfficeBoundedFontProgram? font)) {
+                var faces = new OfficeFontFaceCollection();
+                if (!faces.TryAdd("PDF vertical ink", fontData) || faces.Faces.Count != 1 ||
+                    faces.Faces[0].Program is not IOfficeBoundedFontProgram parsed) return false;
+                font = parsed;
+                verticalOutlineFonts.Add(fontData, font);
+            }
+            if (font.UnitsPerEm != unitsPerEm) return false;
+            List<List<OfficePoint>> contours;
+            try {
+                contours = font.GetShapedTextContoursBounded(text, result, 0D, 0D, size,
+                    maximumPointCount: 100_000, cancellationToken);
+            } catch (OperationCanceledException) {
+                throw;
+            } catch (ArgumentException) {
+                return false;
+            } catch (InvalidOperationException) {
+                return false;
+            } catch (NotSupportedException) {
+                return false;
+            }
+            double minimumY = double.PositiveInfinity;
+            foreach (List<OfficePoint> contour in contours) {
+                foreach (OfficePoint point in contour) {
+                    if (double.IsNaN(point.Y) || double.IsInfinity(point.Y)) return false;
+                    minimumY = Math.Min(minimumY, point.Y);
+                }
+            }
+            if (double.IsPositiveInfinity(minimumY)) return false;
+            inkTop = minimumY;
             return true;
         }
 

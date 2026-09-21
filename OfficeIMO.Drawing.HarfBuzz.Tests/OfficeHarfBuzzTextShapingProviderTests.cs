@@ -126,12 +126,13 @@ public sealed class OfficeHarfBuzzTextShapingProviderTests {
         const double size = 20D;
         byte[] fontData = File.ReadAllBytes(FontPath("NotoSansJP-OfficeIMO-Common.ttf"));
         OfficeFontFace face = Assert.Single(new OfficeFontFaceCollection().Add(family, fontData).Faces);
-        OfficeShapedGlyph[] Shape(OfficeTextDirection direction) =>
+        OfficeTextShapingResult Shape(OfficeTextDirection direction) =>
             Assert.IsType<OfficeTextShapingResult>(OfficeHarfBuzzTextShapingProvider.Instance.ShapeText(
                 new OfficeTextShapingRequest(value, family, face.Program.GetFontDataForShaping(),
-                    face.Program.IsOpenTypeCff, face.Program.UnitsPerEm, direction, "ja"))).Glyphs.ToArray();
-        OfficeShapedGlyph[] vertical = Shape(OfficeTextDirection.TopToBottom);
-        OfficeShapedGlyph[] horizontal = Shape(OfficeTextDirection.LeftToRight);
+                    face.Program.IsOpenTypeCff, face.Program.UnitsPerEm, direction, "ja")));
+        OfficeTextShapingResult verticalResult = Shape(OfficeTextDirection.TopToBottom);
+        OfficeShapedGlyph[] vertical = verticalResult.Glyphs.ToArray();
+        OfficeShapedGlyph[] horizontal = Shape(OfficeTextDirection.LeftToRight).Glyphs.ToArray();
         Assert.Equal(value.Length, vertical.Length);
         Assert.All(vertical, glyph => Assert.True(glyph.AdvanceHeight < 0));
         Assert.All(vertical, glyph => Assert.True(glyph.AdvanceWidth.HasValue));
@@ -158,7 +159,11 @@ public sealed class OfficeHarfBuzzTextShapingProviderTests {
         Assert.Equal(vertical.Length, positions.Count);
 
         double penX = 60D;
-        double penY = 170D;
+        var outlineFont = Assert.IsAssignableFrom<IOfficeBoundedFontProgram>(face.Program);
+        double inkTop = outlineFont.GetShapedTextContoursBounded(value, verticalResult, 0D, 0D,
+                size, 100_000, default)
+            .SelectMany(contour => contour).Min(point => point.Y);
+        double penY = 170D + Math.Min(0D, inkTop);
         for (int index = 0; index < vertical.Length; index++) {
             OfficeShapedGlyph glyph = vertical[index];
             Match position = positions[index];

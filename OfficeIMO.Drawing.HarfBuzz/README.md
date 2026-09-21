@@ -22,11 +22,12 @@ adapter is not installed.
 The adapter also carries HarfBuzz top-to-bottom advances through the shared
 glyph contract. `OfficeDrawing.AddVerticalText(...)` uses those advances for
 raster outlines when this package is registered. SVG keeps the searchable
-logical string and declares browser-native vertical shaping. PDF keeps the
-searchable logical string but currently paints a diagnosed stacked-glyph
-fallback; strict conversion profiles reject that approximation. Without the
-adapter, the managed provider declines true vertical shaping and the same
-fallback is reported instead of being treated as lossless output.
+logical string and declares browser-native vertical shaping. PDF paints
+positioned embedded glyphs when the provider supplies complete vertical
+advances and logical coverage and the writer can align their ink. Otherwise
+it paints searchable stacked text, reports an approximation, and strict
+conversion profiles reject it. Without the adapter, the managed provider
+declines true vertical shaping and the same fallback is reported.
 
 The package uses HarfBuzzSharp `14.2.1.2` and matching Windows, Linux, macOS,
 and WebAssembly native assets. HarfBuzzSharp is MIT licensed; applications
