@@ -15,10 +15,12 @@ public static partial class OfficeDrawingRasterRenderer {
             if (lines[index].Length == 0) continue;
             double advance = lines.Length == 1 && text.TextAdvanceWidth.HasValue
                 ? text.TextAdvanceWidth.Value * scale
-                : Math.Max(.001D, canvas.MeasureText(lines[index], sourceSize * text.BaselineScale, text.Font.FamilyName, text.Font.Style));
+                : Math.Max(.001D, canvas.MeasurePositionedText(lines[index], sourceSize * text.BaselineScale,
+                    text.Font.FamilyName, text.Font.Style, text.FeatureSettings, text.TextDirection));
             var bounds = canvas.MeasurePositionedTextBounds(lines[index], 0D, offset + text.BaselineOffset * scale,
                 text.Width * scale, text.Height * scale - offset, sourceSize * text.BaselineScale, text.Font, advance,
-                text.Alignment, text.FeatureSettings, text.FontPalette, sourceSize, text.UnderlineStyle, text.StrikethroughStyle);
+                text.Alignment, text.FeatureSettings, text.FontPalette, sourceSize, text.UnderlineStyle, text.StrikethroughStyle,
+                text.TextDirection);
             left = Math.Min(left, bounds.Left); top = Math.Min(top, bounds.Top);
             right = Math.Max(right, bounds.Right); bottom = Math.Max(bottom, bounds.Bottom);
         }
@@ -56,11 +58,12 @@ public static partial class OfficeDrawingRasterRenderer {
             if (value.Length == 0) continue;
             double advance = lines.Length == 1 && text.TextAdvanceWidth.HasValue
                 ? text.TextAdvanceWidth.Value * scale
-                : Math.Max(.001D, canvas.MeasureText(value, size, text.Font.FamilyName, text.Font.Style));
+                : Math.Max(.001D, canvas.MeasurePositionedText(value, size, text.Font.FamilyName,
+                    text.Font.Style, text.FeatureSettings, text.TextDirection));
             canvas.DrawPositionedText(value, x, y + offset + text.BaselineOffset * scale, width, height - offset,
                 text.Color ?? OfficeColor.Black, size, text.Alignment, text.Font.Style, text.Font.FamilyName, advance,
                 text.UnderlineStyle, text.StrikethroughStyle, text.DecorationColor, text.FeatureSettings, text.FontPalette,
-                baselineFontSize: sourceSize);
+                baselineFontSize: sourceSize, textDirection: text.TextDirection);
         }
     }
 

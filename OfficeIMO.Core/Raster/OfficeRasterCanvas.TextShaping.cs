@@ -163,12 +163,15 @@ public sealed partial class OfficeRasterCanvas {
         return hasPenMovement;
     }
 
-    private double MeasureResolvedText(string text, IOfficeFontProgram font, double fontSize, OfficeTextFeatureSettings? featureSettings = null) {
+    private double MeasureResolvedText(string text, IOfficeFontProgram font, double fontSize,
+        OfficeTextFeatureSettings? featureSettings = null,
+        OfficeTextDirection direction = OfficeTextDirection.Auto) {
         if (font.ProvidesComplexTextLayout) return font.Measure(text, fontSize);
-        if (TryGetShapedTextRun(text, font, featureSettings, out OfficeTextShapingResult run)) {
+        OfficeTextDirection resolvedDirection = ResolveTextDirection(text, direction);
+        if (TryGetShapedTextRun(text, font, featureSettings, resolvedDirection, out OfficeTextShapingResult run)) {
             return font.MeasureShapedText(OfficeArabicTextShaper.ToLogicalText(text), run, fontSize);
         }
-        OfficeManagedTextFallback fallback = GetManagedTextFallback(text, font);
+        OfficeManagedTextFallback fallback = GetManagedTextFallback(text, font, resolvedDirection);
         return font.Measure(fallback.Text, fontSize);
     }
 
@@ -178,11 +181,13 @@ public sealed partial class OfficeRasterCanvas {
         double x,
         double y,
         double fontSize,
-        OfficeTextFeatureSettings? featureSettings = null) {
+        OfficeTextFeatureSettings? featureSettings = null,
+        OfficeTextDirection direction = OfficeTextDirection.Auto) {
         if (font.ProvidesComplexTextLayout) {
             return GetBoundedTextContours(font, text, x, y, fontSize);
         }
-        if (TryGetShapedTextRun(text, font, featureSettings, out OfficeTextShapingResult run)) {
+        OfficeTextDirection resolvedDirection = ResolveTextDirection(text, direction);
+        if (TryGetShapedTextRun(text, font, featureSettings, resolvedDirection, out OfficeTextShapingResult run)) {
             string logicalText = OfficeArabicTextShaper.ToLogicalText(text);
             if (font is IOfficeCffBoundedFontProgram cff) {
                 return cff.GetShapedTextContoursBounded(
@@ -213,7 +218,7 @@ public sealed partial class OfficeRasterCanvas {
         }
         return GetBoundedTextContours(
             font,
-            GetManagedTextFallback(text, font).Text,
+            GetManagedTextFallback(text, font, resolvedDirection).Text,
             x,
             y,
             fontSize);
@@ -228,10 +233,12 @@ public sealed partial class OfficeRasterCanvas {
         OfficeTextFeatureSettings? featureSettings,
         string? fontPalette,
         OfficeColor foreground,
-        out List<OfficeColorGlyphContours> layers) {
+        out List<OfficeColorGlyphContours> layers,
+        OfficeTextDirection direction = OfficeTextDirection.Auto) {
         layers = new List<OfficeColorGlyphContours>();
         if (font is not OfficeTrueTypeFont trueType) return false;
-        if (TryGetShapedTextRun(text, font, featureSettings, out OfficeTextShapingResult run)) {
+        OfficeTextDirection resolvedDirection = ResolveTextDirection(text, direction);
+        if (TryGetShapedTextRun(text, font, featureSettings, resolvedDirection, out OfficeTextShapingResult run)) {
             return trueType.TryGetShapedColorTextContours(
                 OfficeArabicTextShaper.ToLogicalText(text),
                 run,
@@ -245,7 +252,7 @@ public sealed partial class OfficeRasterCanvas {
                 out layers);
         }
         return trueType.TryGetColorTextContours(
-            GetManagedTextFallback(text, font).Text,
+            GetManagedTextFallback(text, font, resolvedDirection).Text,
             x,
             y,
             fontSize,
@@ -300,9 +307,11 @@ public sealed partial class OfficeRasterCanvas {
         }
     }
 
-    private OfficeManagedTextFallback GetManagedTextFallback(string text, IOfficeFontProgram font) {
+    private OfficeManagedTextFallback GetManagedTextFallback(string text, IOfficeFontProgram font,
+        OfficeTextDirection direction = OfficeTextDirection.Auto) {
         _cancellationToken.ThrowIfCancellationRequested();
-        var key = new ShapedTextKey(text, font);
+        OfficeTextDirection resolvedDirection = ResolveTextDirection(text, direction);
+        var key = new ShapedTextKey(text, font, direction: resolvedDirection);
         Dictionary<ShapedTextKey, OfficeManagedTextFallback> cache =
             _managedTextCache ??= new Dictionary<ShapedTextKey, OfficeManagedTextFallback>();
         if (cache.TryGetValue(key, out OfficeManagedTextFallback cached)) return cached;
@@ -310,12 +319,18 @@ public sealed partial class OfficeRasterCanvas {
         OfficeManagedTextFallback fallback = OfficeManagedTextShaper.Resolve(
             text,
             font,
+            resolvedDirection,
             _cancellationToken);
         if (fallback.Used || fallback.Incomplete) ReportTextShapingFallback(fallback.Incomplete);
         if (cache.Count >= MaxShapedTextCacheEntries) cache.Clear();
         cache[key] = fallback;
         return fallback;
     }
+
+    private static OfficeTextDirection ResolveTextDirection(string text, OfficeTextDirection direction) =>
+        direction == OfficeTextDirection.Auto
+            ? OfficeTextElements.ResolveBaseDirection(OfficeArabicTextShaper.ToLogicalText(text))
+            : direction;
 
     private void ReportTextShapingFallback(bool incomplete) {
         if (_diagnosticSink == null || HasTextShapingFallbackDiagnostic()) return;

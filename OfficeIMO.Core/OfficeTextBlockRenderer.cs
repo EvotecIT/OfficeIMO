@@ -712,13 +712,18 @@ public static partial class OfficeTextBlockRenderer {
         double fontSize,
         bool bold,
         bool italic,
+        bool underline,
+        bool strikethrough,
+        OfficeTextDecorationStyle underlineStyle,
+        OfficeTextDecorationStyle strikethroughStyle,
+        OfficeColor? decorationColor,
         OfficeTextFeatureSettings featureSettings,
         string? fontPalette) =>
         AppendSvgTextElementCore(
             builder, text, x, y, fontSize, color, fontFamily, fontSize, OfficeTextAlignment.Left,
-            bold, italic, underline: false, rotationDegrees: 0D, rotationCenterX: 0D, rotationCenterY: 0D,
-            strikethrough: false, textAdvanceWidth: null, OfficeTextDecorationStyle.None,
-            OfficeTextDecorationStyle.None, OfficeTextBaseline.Normal, decorationColor: null,
+            bold, italic, underline, rotationDegrees: 0D, rotationCenterX: 0D, rotationCenterY: 0D,
+            strikethrough, textAdvanceWidth: null, underlineStyle,
+            strikethroughStyle, OfficeTextBaseline.Normal, decorationColor,
             featureSettings, fontPalette, OfficeTextDirection.TopToBottom, OfficeTextShapingBackend.BrowserNative);
 
     internal static StringBuilder AppendSvgPositionedTextElement(

@@ -8,7 +8,7 @@ internal static class PdfExternalTextShaper {
         Guard.NotNull(font, nameof(font));
 
         IOfficeTextShapingProvider? provider = options.ShapingProvider;
-        if (provider == null && !options.FeatureSettings.IsDefault) provider = OfficeManagedTextShapingProvider.Instance;
+        if (provider == null && (!options.FeatureSettings.IsDefault || options.Direction != OfficeTextDirection.Auto)) provider = OfficeManagedTextShapingProvider.Instance;
         if (provider == null) {
             glyphRun = null!;
             return false;
@@ -20,7 +20,7 @@ internal static class PdfExternalTextShaper {
             font.FontDataForInspection,
             isOpenTypeCff: false,
             font.UnitsPerEm,
-            OfficeTextElements.ResolveBaseDirection(text),
+            options.Direction == OfficeTextDirection.Auto ? OfficeTextElements.ResolveBaseDirection(text) : options.Direction,
             options.Language,
             default,
             fontCollectionIndex: null,
@@ -43,7 +43,7 @@ internal static class PdfExternalTextShaper {
         Guard.NotNull(font, nameof(font));
 
         IOfficeTextShapingProvider? provider = options.ShapingProvider;
-        if (provider == null && !options.FeatureSettings.IsDefault) provider = OfficeManagedTextShapingProvider.Instance;
+        if (provider == null && (!options.FeatureSettings.IsDefault || options.Direction != OfficeTextDirection.Auto)) provider = OfficeManagedTextShapingProvider.Instance;
         if (provider == null) {
             glyphRun = null!;
             return false;
@@ -55,7 +55,7 @@ internal static class PdfExternalTextShaper {
             font.FontDataForInspection,
             isOpenTypeCff: true,
             font.UnitsPerEm,
-            OfficeTextElements.ResolveBaseDirection(text),
+            options.Direction == OfficeTextDirection.Auto ? OfficeTextElements.ResolveBaseDirection(text) : options.Direction,
             options.Language,
             default,
             fontCollectionIndex: null,

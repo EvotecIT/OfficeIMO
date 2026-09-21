@@ -271,6 +271,41 @@ public sealed class DrawingRasterStreamingEncodingTests {
     }
 
     [Fact]
+    public void WebpCancellationAfterCompletedBlockPreservesOperationCanceledException() {
+        OfficeRasterImage image = new OfficeRasterImage(1024, 1024, OfficeColor.CornflowerBlue);
+        using var cancellation = new CancellationTokenSource();
+        using var completedBlock = new ManualResetEventSlim();
+        using var destination = new CountingWriteStream();
+        int checkpointCount = 0;
+        var thread = new Thread(() => {
+            completedBlock.Wait();
+            Thread.Sleep(1);
+            cancellation.Cancel();
+        }) { IsBackground = true };
+        thread.Start();
+
+        try {
+            Assert.Throws<OperationCanceledException>(() =>
+                OfficeRasterImageEncoder.EncodeTo(
+                    image,
+                    OfficeImageExportFormat.Webp,
+                    destination,
+                    CreateOptions(),
+                    maximumEncodedBytes: long.MaxValue,
+                    cancellationToken: cancellation.Token,
+                    checkpointObserver: checkpoint => {
+                        if (checkpoint != OfficeRasterEncodingCheckpoint.WebpCompressionBlock) return;
+                        if (Interlocked.Increment(ref checkpointCount) == 2) completedBlock.Set();
+                    }));
+        } finally {
+            completedBlock.Set();
+            thread.Join();
+        }
+
+        Assert.True(checkpointCount > 2);
+    }
+
+    [Fact]
     public void CancellationCanStopPngInsideASingleWideFilteringRow() {
         OfficeRasterImage image = new OfficeRasterImage(32768, 1, OfficeColor.CornflowerBlue);
         using var cancellation = new CancellationTokenSource();

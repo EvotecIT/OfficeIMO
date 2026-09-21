@@ -33,7 +33,7 @@ internal static partial class PdfWriter {
             }
             if (!text.WrapText && !text.ShrinkToFit && !text.StackedText && !text.HasPadding
                 && text.VerticalAlignment == OfficeTextVerticalAlignment.Top) {
-                DrawDrawingPositionedText(text, originX, originTopY, textMetrics.MeasureText);
+                DrawDrawingPositionedText(text, originX, originTopY, textMetrics.MeasurePositionedText);
                 return;
             }
 
@@ -80,23 +80,28 @@ internal static partial class PdfWriter {
         }
 
         private void DrawDrawingPositionedText(OfficeDrawingText text, double originX, double originTopY,
-            Func<string?, double, string?, OfficeFontStyle, double> measure) {
+            Func<string?, double, string?, OfficeFontStyle, OfficeTextDirection, double> measure) {
             double size = text.Font.Size * text.BaselineScale;
             double frameX = originX + text.X;
             double frameTopY = originTopY - text.Y;
+            OfficeTextDirection positionedDirection = text.TextDirection == OfficeTextDirection.TopToBottom
+                ? OfficeTextDirection.Auto
+                : text.TextDirection;
             void Paint() {
                 double baseline = frameTopY - text.Font.Size - text.BaselineOffset;
                 string[] lines = text.Text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
                 foreach (string value in lines) {
                     double advance = lines.Length == 1 && text.TextAdvanceWidth.HasValue
                         ? text.TextAdvanceWidth.Value
-                        : measure(value, size, text.Font.FamilyName, text.Font.Style);
+                        : measure(value, size, text.Font.FamilyName, text.Font.Style, positionedDirection);
                     double x = OfficeTextPlacement.ResolveLineLeft(frameX, text.Width, advance, text.Alignment);
                     var run = new PdfTextRun(value, text.Font.IsBold, text.Font.IsUnderline,
                         ToPdfColor(text.Color ?? OfficeColor.Black), text.Font.IsItalic, text.Font.IsStrikethrough,
                         size, ResolveDrawingTextFont(text.Font.FamilyName), fontFamily: text.Font.FamilyName,
                         underlineStyle: text.UnderlineStyle, strikeStyle: text.StrikethroughStyle,
-                        decorationColor: ToPdfColor(text.DecorationColor)).WithFeatureSettings(text.FeatureSettings);
+                        decorationColor: ToPdfColor(text.DecorationColor))
+                        .WithFeatureSettings(text.FeatureSettings)
+                        .WithTextDirection(positionedDirection);
                     WriteDrawingPositionedRun(run, x, baseline, advance, frameX, frameTopY - text.Height, text.Width, text.Height);
                     baseline -= text.LineHeight ?? text.Font.Size * 1.2D;
                 }

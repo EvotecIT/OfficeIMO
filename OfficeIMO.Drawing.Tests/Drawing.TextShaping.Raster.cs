@@ -208,6 +208,30 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void DrawingRasterRenderer_UsesImportedAuthoredDirectionForPositionedText() {
+        const string value = "abc אבג";
+        const string family = "Direction Contract";
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 60'>"
+            + "<text x='300' y='30' font-family='Direction Contract' font-size='18' fill='black' "
+            + "direction='rtl' text-anchor='start'>abc אבג</text></svg>";
+        Assert.True(OfficeSvgDrawingReader.TryRead(
+            System.Text.Encoding.UTF8.GetBytes(svg), options: null, out OfficeDrawing? drawing, out int unsupported));
+        Assert.Equal(0, unsupported);
+        drawing!.AddFont(family, ManagedTextShapingTestAssets.CreateFont('a', 'b', 'c', ' ', 0x05D0, 0x05D1, 0x05D2));
+        var provider = new RasterMappingTextShapingProvider(
+            new OfficeTextShapingResult(
+                new[] { new OfficeShapedGlyph(1, value, 0, advanceWidth: 700) },
+                OfficeTextDirection.RightToLeft));
+
+        OfficeDrawingRasterRenderer.Render(drawing, new OfficeDrawingRasterRenderOptions {
+            TextShapingProvider = provider
+        });
+
+        Assert.Contains(provider.Requests, request =>
+            request.Text == value && request.Direction == OfficeTextDirection.RightToLeft);
+    }
+
+    [Fact]
     public void SharedImageBuilders_ConfigureAndCloneTextShaping() {
         var provider = new RasterMappingTextShapingProvider(
             new OfficeShapedGlyph(1, "A", 0, advanceWidth: 500));

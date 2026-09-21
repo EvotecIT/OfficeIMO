@@ -107,6 +107,38 @@ public class PdfTextShapingProviderTests {
     }
 
     [Fact]
+    public void ImportedAuthoredDirectionReachesPdfShapingAndRetainsLogicalText() {
+        const string value = "abc אבג";
+        const string family = "Direction Contract";
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 60'>"
+            + "<text x='300' y='30' font-family='Direction Contract' font-size='18' fill='black' "
+            + "direction='rtl' text-anchor='start'>abc אבג</text></svg>";
+        Assert.True(OfficeSvgDrawingReader.TryRead(
+            Encoding.UTF8.GetBytes(svg), options: null, out OfficeDrawing? drawing, out int unsupported));
+        Assert.Equal(0, unsupported);
+
+        byte[] fontData = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(
+            'a', 'b', 'c', ' ', 0x05D0, 0x05D1, 0x05D2);
+        PdfTrueTypeFontProgram fontProgram = PdfTrueTypeFontProgram.Parse(fontData, family);
+        var glyphs = new List<OfficeShapedGlyph>();
+        for (int index = 0; index < value.Length; index++) {
+            Assert.True(fontProgram.TryGetGlyphId(value[index], out int glyphId));
+            glyphs.Add(new OfficeShapedGlyph(glyphId, value[index].ToString(), index, fontProgram.UnitsPerEm / 2));
+        }
+        var provider = new DirectionRecordingTextShapingProvider(value, glyphs);
+        var options = new PdfOptions { CompressContentStreams = false }
+            .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family, fontData))
+            .SetTextShapingProvider(provider);
+
+        byte[] bytes = PdfDocument.Create(options).Drawing(drawing!).ToBytes();
+
+        Assert.Contains(provider.Requests, request =>
+            request.Direction == OfficeTextDirection.RightToLeft && !request.IsOpenTypeCff);
+        Assert.Contains(value, PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("/ActualText", Encoding.ASCII.GetString(bytes), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HorizontalCorpusHasComparableRenderedGeometryAcrossRasterSvgAndPdf() {
         foreach (TypographyEvidenceCase evidence in TypographyEvidenceCorpus.Cases.Where(
             item => item.Direction != OfficeTextDirection.TopToBottom)) {
@@ -525,6 +557,24 @@ public class PdfTextShapingProviderTests {
             CallCount++;
             LastRequest = request;
             return new OfficeTextShapingResult(_glyphs);
+        }
+    }
+
+    private sealed class DirectionRecordingTextShapingProvider : IOfficeTextShapingProvider {
+        private readonly string _text;
+        private readonly IReadOnlyList<OfficeShapedGlyph> _glyphs;
+
+        internal DirectionRecordingTextShapingProvider(string text, IReadOnlyList<OfficeShapedGlyph> glyphs) {
+            _text = text;
+            _glyphs = glyphs;
+        }
+
+        internal List<OfficeTextShapingRequest> Requests { get; } = new();
+
+        public OfficeTextShapingResult? ShapeText(OfficeTextShapingRequest request) {
+            if (!string.Equals(request.Text, _text, StringComparison.Ordinal)) return null;
+            Requests.Add(request);
+            return new OfficeTextShapingResult(_glyphs, request.Direction);
         }
     }
 

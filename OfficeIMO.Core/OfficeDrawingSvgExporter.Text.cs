@@ -46,6 +46,11 @@ public static partial class OfficeDrawingSvgExporter {
                 text.Font.Size,
                 text.Font.IsBold,
                 text.Font.IsItalic,
+                text.Font.IsUnderline,
+                text.Font.IsStrikethrough,
+                text.UnderlineStyle,
+                text.StrikethroughStyle,
+                text.DecorationColor,
                 text.FeatureSettings,
                 text.FontPalette);
             sb.Append("</g>");

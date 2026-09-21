@@ -107,6 +107,25 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeDrawingSvgExporter_PreservesVerticalTextDecorations() {
+        var drawing = new OfficeDrawing(120D, 180D)
+            .AddVerticalText(
+                "Vertical",
+                20D,
+                10D,
+                80D,
+                160D,
+                new OfficeFontInfo("Arial", 24D, OfficeFontStyle.Underline | OfficeFontStyle.Strikethrough),
+                OfficeColor.FromRgb(12, 34, 56));
+
+        XElement text = Assert.Single(XDocument.Parse(OfficeDrawingSvgExporter.ToSvg(drawing))
+            .Descendants(), element => element.Name.LocalName == "text");
+
+        Assert.Equal("underline line-through", text.Attribute("text-decoration")?.Value);
+        Assert.Equal("#0C2238", text.Attribute("text-decoration-color")?.Value);
+    }
+
+    [Fact]
     public void OfficeSvgDrawingReader_PlacesRightToLeftTspanRunsInVisualOrder() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 60'>"
             + "<text x='200' y='30' font-family='Arial' font-size='18' fill='black' "

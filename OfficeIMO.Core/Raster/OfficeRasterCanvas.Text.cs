@@ -58,6 +58,33 @@ public sealed partial class OfficeRasterCanvas {
         return measured;
     }
 
+    internal double MeasurePositionedText(
+        string? text,
+        double fontSize,
+        string? fontFamily,
+        OfficeFontStyle style,
+        OfficeTextFeatureSettings? featureSettings,
+        OfficeTextDirection textDirection) {
+        if (string.IsNullOrEmpty(text)) return 0D;
+        double size = Math.Max(1D, fontSize);
+        if (_fonts != null) {
+            IReadOnlyList<OfficeFontFallbackRun> fallbackRuns = _fonts.PlanFallbackRuns(text, fontFamily, style);
+            if (ShouldUseFallbackRuns(fallbackRuns, fontFamily)) {
+                double aggregate = 0D;
+                foreach (OfficeFontFallbackRun run in fallbackRuns) {
+                    aggregate += MeasurePositionedText(
+                        run.Text, size, run.FamilyName, style, featureSettings, textDirection);
+                }
+                return aggregate;
+            }
+        }
+
+        IOfficeFontProgram? font = ResolveTextFont(text!, fontFamily, style);
+        return font != null
+            ? MeasureResolvedText(text!, font, size, featureSettings, textDirection)
+            : MeasureFallbackText(text!, size);
+    }
+
     /// <summary>Draws text inside a rectangle using a managed TrueType font when available.</summary>
     public void DrawText(
         string? text,
@@ -119,8 +146,9 @@ public sealed partial class OfficeRasterCanvas {
         OfficeColor? decorationColor = null,
         OfficeTextFeatureSettings? featureSettings = null,
         string? fontPalette = null,
-        double? baselineFontSize = null) =>
-        DrawTextCore(text, x, y, width, height, color, fontSize, alignment, style, fontFamily, OfficeTextOverflowBehavior.Clip, textAdvanceWidth, underlineStyle, strikethroughStyle, decorationColor, featureSettings, fontPalette, baselineFontSize);
+        double? baselineFontSize = null,
+        OfficeTextDirection textDirection = OfficeTextDirection.Auto) =>
+        DrawTextCore(text, x, y, width, height, color, fontSize, alignment, style, fontFamily, OfficeTextOverflowBehavior.Clip, textAdvanceWidth, underlineStyle, strikethroughStyle, decorationColor, featureSettings, fontPalette, baselineFontSize, textDirection);
 
     private void DrawTextCore(
         string? text,
@@ -140,7 +168,8 @@ public sealed partial class OfficeRasterCanvas {
         OfficeColor? decorationColor = null,
         OfficeTextFeatureSettings? featureSettings = null,
         string? fontPalette = null,
-        double? baselineFontSize = null) {
+        double? baselineFontSize = null,
+        OfficeTextDirection textDirection = OfficeTextDirection.Auto) {
         if (string.IsNullOrEmpty(text) || color.A == 0 || width <= 0D || height <= 0D) {
             return;
         }
@@ -172,25 +201,26 @@ public sealed partial class OfficeRasterCanvas {
             decorationColor,
             featureSettings,
             fontPalette,
-            baselineFontSize)) {
+            baselineFontSize,
+            textDirection)) {
             return;
         }
         IOfficeFontProgram? font = ResolveTextFont(value, fontFamily, style, out OfficeFontStyle resolvedStyle);
         OfficeFontStyle simulatedStyle = style & ~resolvedStyle;
         if (font != null) {
-            double measured = MeasureResolvedText(value, font, size, featureSettings);
+            double measured = MeasureResolvedText(value, font, size, featureSettings, textDirection);
             double availableWidth = Math.Max(1D, retainOverflow ? width : width - 6D);
             if (!retainOverflow) {
                 while (measured > availableWidth && value.Length > 0) {
                     value = OfficeTextElements.RemoveLast(value);
                     if (value.Length == 0) break;
-                    measured = MeasureResolvedText(value + "...", font, size, featureSettings);
+                    measured = MeasureResolvedText(value + "...", font, size, featureSettings, textDirection);
                 }
 
-                if (value.Length == 0 && MeasureResolvedText("...", font, size, featureSettings) > availableWidth) return;
+                if (value.Length == 0 && MeasureResolvedText("...", font, size, featureSettings, textDirection) > availableWidth) return;
                 if (!string.Equals(value, text, StringComparison.Ordinal)) {
                     value += "...";
-                    measured = MeasureResolvedText(value, font, size, featureSettings);
+                    measured = MeasureResolvedText(value, font, size, featureSettings, textDirection);
                 }
             }
 
@@ -202,7 +232,7 @@ public sealed partial class OfficeRasterCanvas {
             double horizontalScale = measured > 0D && Math.Abs(resolvedAdvance - measured) > 0.0001D
                 ? resolvedAdvance / measured
                 : 1D;
-            if (TryGetResolvedColorTextContours(value, font, textX, top, size, featureSettings, fontPalette, color, out List<OfficeColorGlyphContours> colorLayers)) {
+            if (TryGetResolvedColorTextContours(value, font, textX, top, size, featureSettings, fontPalette, color, out List<OfficeColorGlyphContours> colorLayers, textDirection)) {
                 foreach (OfficeColorGlyphContours layer in colorLayers) {
                     if (Math.Abs(horizontalScale - 1D) > 0.0001D) ScaleContoursX(layer.Contours, textX, horizontalScale);
                     if ((simulatedStyle & OfficeFontStyle.Italic) == OfficeFontStyle.Italic) SlantContours(layer.Contours, top, size);
@@ -213,7 +243,7 @@ public sealed partial class OfficeRasterCanvas {
                     }
                 }
             } else {
-                List<List<OfficePoint>> contours = GetResolvedTextContours(value, font, textX, top, size, featureSettings);
+                List<List<OfficePoint>> contours = GetResolvedTextContours(value, font, textX, top, size, featureSettings, textDirection);
                 if (Math.Abs(horizontalScale - 1D) > 0.0001D) ScaleContoursX(contours, textX, horizontalScale);
                 if ((simulatedStyle & OfficeFontStyle.Italic) == OfficeFontStyle.Italic) SlantContours(contours, top, size);
                 FillContours(contours, color, OfficeFillRule.NonZero);

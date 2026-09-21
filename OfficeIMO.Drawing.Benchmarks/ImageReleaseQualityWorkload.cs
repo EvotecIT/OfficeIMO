@@ -267,10 +267,17 @@ public sealed class ImageReleaseQualityWorkload {
             _ => throw new ArgumentOutOfRangeException(nameof(_format))
         };
         using var started = new ManualResetEventSlim();
-        using var requested = new ManualResetEventSlim();
         using var cancellation = new CancellationTokenSource();
         long requestedAt = 0L;
-        var thread = new Thread(() => { started.Wait(); Volatile.Write(ref requestedAt, Stopwatch.GetTimestamp()); cancellation.Cancel(); requested.Set(); }) { IsBackground = true };
+        var thread = new Thread(() => {
+            started.Wait();
+            // The second checkpoint proves that one complete row/block of codec work ran.
+            // Cancel on a different thread after the observer returns so latency is measured
+            // at a later real-operation boundary instead of at the observer-adjacent check.
+            Thread.Sleep(1);
+            Volatile.Write(ref requestedAt, Stopwatch.GetTimestamp());
+            cancellation.Cancel();
+        }) { IsBackground = true };
         thread.Start();
         int checkpoints = 0;
         try {
@@ -280,7 +287,6 @@ public sealed class ImageReleaseQualityWorkload {
                 checkpoint => {
                     if (checkpoint != expected || Interlocked.Increment(ref checkpoints) != 2) return;
                     started.Set();
-                    if (!requested.Wait(TimeSpan.FromSeconds(5))) throw new InvalidOperationException("Cancellation request did not arrive.");
                 }));
         } finally { started.Set(); thread.Join(); }
         if (checkpoints < 2 || requestedAt == 0L) throw new InvalidOperationException("The encoder did not reach its cancellation checkpoint.");
