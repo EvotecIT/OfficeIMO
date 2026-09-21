@@ -105,6 +105,22 @@ public sealed class DrawingCompatibilityTests {
     }
 
     [Fact]
+    public void ErrorConversionDiagnosticAlwaysUsesFailureCategory() {
+        var diagnostic = new OfficeConversionDiagnostic(
+            "PowerPoint.Legacy.ParseFailed",
+            OfficeConversionDiagnosticCategory.DataLoss,
+            OfficeConversionDiagnosticSeverity.Error,
+            "A legacy record could not be parsed.",
+            OfficeCompatibilityState.Dropped,
+            OfficeCompatibilityImpact.Semantic,
+            representsDataLoss: true);
+
+        Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
+        Assert.Equal(OfficeConversionLossKind.Failure,
+            OfficeConversionFidelityDiagnostics.From(diagnostic, "OfficeIMO.PowerPoint").LossKind);
+    }
+
+    [Fact]
     public void SourceCarrierRoundTripsAndRejectsTamperedPackagePayload() {
         byte[] package = CreateMinimalOpcPackage();
         byte[] source = Encoding.UTF8.GetBytes("original source payload");

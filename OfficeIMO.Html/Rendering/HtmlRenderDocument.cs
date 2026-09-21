@@ -50,12 +50,7 @@ public sealed class HtmlRenderDocument : global::OfficeIMO.IOfficeConversionRepo
 
     /// <summary>Category-preserving HTML resource, layout, font, SVG, and bridge diagnostics.</summary>
     public IReadOnlyList<global::OfficeIMO.OfficeConversionFidelityDiagnostic> FidelityDiagnostics =>
-        Array.AsReadOnly(_diagnosticReport.Select(diagnostic => new global::OfficeIMO.OfficeConversionFidelityDiagnostic(
-            diagnostic.Code,
-            diagnostic.Message,
-            diagnostic.LossKind,
-            diagnostic.Component,
-            diagnostic.Provenance.SourceAddress)).ToArray());
+        Array.AsReadOnly(_diagnosticReport.Select(HtmlFidelityProjection.From).ToArray());
 
     /// <summary>
     /// Whether rendering reported an approximation, omission, or failure. Renderer warnings are

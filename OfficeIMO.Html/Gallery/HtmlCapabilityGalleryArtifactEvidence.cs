@@ -23,12 +23,7 @@ public sealed class HtmlCapabilityGalleryArtifactEvidence : IOfficeConversionRep
         Diagnostics = (diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).ToList().AsReadOnly();
         Checks = (checks ?? throw new ArgumentNullException(nameof(checks))).ToList().AsReadOnly();
         FidelityDiagnostics = Diagnostics.Select(diagnostic =>
-            new OfficeConversionFidelityDiagnostic(
-                diagnostic.Code,
-                diagnostic.Message,
-                diagnostic.LossKind,
-                diagnostic.Component,
-                diagnostic.Provenance.SourceAddress)).ToList().AsReadOnly();
+            HtmlFidelityProjection.From(diagnostic)).ToList().AsReadOnly();
     }
 
     /// <summary>Total pages in the rendered source document.</summary>

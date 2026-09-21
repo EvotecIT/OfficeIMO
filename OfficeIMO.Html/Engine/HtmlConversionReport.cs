@@ -16,12 +16,7 @@ public sealed class HtmlConversionReport : IOfficeConversionReport {
     /// <summary>Category-preserving conversion diagnostics.</summary>
     public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics =>
         Array.AsReadOnly(_diagnostics.Select(static diagnostic =>
-            new OfficeConversionFidelityDiagnostic(
-                diagnostic.Code,
-                diagnostic.Message,
-                diagnostic.LossKind,
-                diagnostic.Component,
-                diagnostic.Provenance.SourceAddress)).ToArray());
+            HtmlFidelityProjection.From(diagnostic)).ToArray());
 
     /// <summary>Whether conversion completed without an error diagnostic.</summary>
     public bool Succeeded => !_diagnostics.Any(static diagnostic => diagnostic.Severity == HtmlDiagnosticSeverity.Error);

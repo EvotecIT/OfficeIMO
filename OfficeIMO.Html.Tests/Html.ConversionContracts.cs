@@ -92,6 +92,36 @@ public partial class Html {
     }
 
     [Fact]
+    public void HtmlTypedProjectionNormalizesLegacyBlankIdentifiersAcrossReports() {
+        var diagnostic = new HtmlDiagnostic(
+            "   ",
+            " ",
+            "Legacy diagnostic",
+            HtmlDiagnosticSeverity.Warning,
+            lossKind: OfficeConversionLossKind.Approximation);
+        var conversion = new HtmlTextConversionResult("<p>Partial</p>", new[] { diagnostic });
+        var artifact = new HtmlCapabilityGalleryArtifactEvidence(
+            1,
+            1,
+            640,
+            480,
+            "px",
+            new[] { diagnostic },
+            Array.Empty<HtmlCapabilityGalleryCheck>());
+
+        foreach (IOfficeConversionReport report in new IOfficeConversionReport[] {
+            conversion.Report,
+            artifact
+        }) {
+            OfficeConversionFidelityDiagnostic projected = Assert.Single(report.FidelityDiagnostics);
+            Assert.Equal("HTML_DIAGNOSTIC_UNCATEGORIZED", projected.Code);
+            Assert.Equal("OfficeIMO.Html", projected.Source);
+            Assert.Equal(OfficeConversionLossKind.Approximation, projected.LossKind);
+            Assert.True(report.HasLoss);
+        }
+    }
+
+    [Fact]
     public void MarkdownImport_UsesHtmlIntegerRulesForOrderedLists() {
         string markdown = HtmlConversionDocument
             .Parse("<ol start='9x'><li>First</li><li value='12junk'>Second</li><li>Third</li></ol>")
