@@ -148,6 +148,33 @@ that require color-managed pixels must perform that conversion explicitly before
 image. The profile APIs above provide bounded color conversion; metadata validation alone does not
 mean a raster image has been converted to sRGB.
 
+For already unpacked, tightly packed 8-bit RGB or CMYK device samples, use the explicit raster
+converter with the corresponding embedded profile bytes:
+
+```csharp
+OfficeIccRasterConversionStatus status = OfficeIccRasterConverter.TryConvertToSrgb(
+    deviceSamples, width, height, profileBytes,
+    new OfficeIccRasterConversionOptions {
+        MaximumProfileBytes = 1024 * 1024,
+        MaximumPixels = 1_000_000
+    },
+    out OfficeRasterImage? srgbImage);
+if (status != OfficeIccRasterConversionStatus.Converted) {
+    throw new InvalidDataException($"ICC raster conversion rejected the input: {status}");
+}
+```
+
+The converter uses the shared ICC matrix/TRC and LUT engine. It rejects malformed or unsupported
+profiles and incomplete sample buffers, and accounts for the source, profile parser, and RGBA output
+before allocating pixels. The default ceilings are 4 MiB of ICC data, 4 million pixels, and 256 MiB
+of accounted managed memory; callers can lower them. The result is opaque sRGB pixels. Alpha,
+planar samples, higher bit depths, and extraction of device channels from encoded images are separate
+format concerns. The [independent color corpus](../OfficeIMO.Drawing.Tests/TestAssets/IccColorCorpus/SOURCE.md)
+checks matrix RGB, ICC v4 LUT RGB, and CMYK LUT swatches against LittleCMS.
+
+`OfficeImageOptimizer` still preserves or reports ICC metadata according to its metadata policy.
+It does not call the raster converter or claim that re-encoded pixels were normalized to sRGB.
+
 The SVG drawing reader supports a single rectangle, rounded rectangle, circle, ellipse, polygon, or
 path inside a `userSpaceOnUse` clip path, including transforms and even-odd filling. Compound clip
 unions, `objectBoundingBox` clips, and referenced or text clip geometry report unsupported features.
