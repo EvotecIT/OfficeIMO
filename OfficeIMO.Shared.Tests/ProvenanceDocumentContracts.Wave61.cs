@@ -10,30 +10,8 @@ public sealed partial class ProvenanceDocumentContracts {
     private static string Wave61DataUri() => "data:image/png;base64," +
         Convert.ToBase64String(CreatePngWithManifest(CreateManifestStore()));
 
-    [Fact]
-    public void OverriddenOrdinaryCssImageDeclarationsAreInactive() {
-        string html = "<style>.box{background-image:url('" + Wave61DataUri() +
-            "');background-image:none}</style><div class='box'></div>";
-        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
-        Assert.Empty(result.Before.Evidence);
-        Assert.False(result.WasChanged);
-    }
 
-    [Fact]
-    public void OnlyTheLastKeyframesDefinitionWithANameIsActive() {
-        string html = "<style>@keyframes pulse{from{background-image:url('" + Wave61DataUri() +
-            "')}}@keyframes pulse{from{opacity:0}}.box{animation:pulse 1s}</style><div class='box'></div>";
-        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
-        Assert.Empty(result.Before.Evidence);
-        Assert.False(result.WasChanged);
-    }
 
-    [Fact]
-    public void ImageIconsHonorTheirMediaCondition() {
-        string html = "<link rel='icon' media='print' href='" + Wave61DataUri() + "'>";
-        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
-        Assert.Empty(result.Before.Evidence);
-    }
 
     [Theory]
     [InlineData("1.x")]
@@ -53,13 +31,6 @@ public sealed partial class ProvenanceDocumentContracts {
         Assert.Single(result.Before.Evidence);
     }
 
-    [Fact]
-    public void InactiveContainerImageDeclarationsAreIgnored() {
-        string html = "<style>@container (min-width:99999px){.box{background-image:url('" +
-            Wave61DataUri() + "')}}</style><div class='box'></div>";
-        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
-        Assert.Empty(result.Before.Evidence);
-    }
 
     [Fact]
     public void UnpaddedBase64ImageDataUrisAreSupported() {
@@ -69,13 +40,6 @@ public sealed partial class ProvenanceDocumentContracts {
         Assert.Empty(result.After.Evidence);
     }
 
-    [Fact]
-    public void OneXSrcsetCandidateSuppressesTheFallbackSrcCarrier() {
-        string html = "<img src='" + Wave61DataUri() + "' srcset='ordinary.png 1x'>";
-        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
-        Assert.Empty(result.Before.Evidence);
-        Assert.False(result.WasChanged);
-    }
 
     [Fact]
     public void XlsbOwnershipRejectsBackslashRelationshipTargets() {

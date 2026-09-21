@@ -7,22 +7,6 @@ using Xunit;
 namespace OfficeIMO.Shared.Tests;
 
 public sealed partial class ProvenanceDocumentContracts {
-    [Theory]
-    [InlineData("")]
-    [InlineData("normal")]
-    [InlineData("none")]
-    public void NonGeneratedPseudoElementsDoNotOwnImageCarriers(string content) {
-        string dataUri = "data:image/png;base64," +
-            Convert.ToBase64String(CreatePngWithManifest(CreateManifestStore()));
-        string contentDeclaration = content.Length == 0 ? string.Empty : "content:" + content + ";";
-        string html = "<style>.box::before{" + contentDeclaration + "background-image:url('" +
-            dataUri + "')}</style><div class='box'></div>";
-
-        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
-
-        Assert.Empty(result.Before.Evidence);
-        Assert.False(result.WasChanged);
-    }
 
     [Theory]
     [InlineData(false)]

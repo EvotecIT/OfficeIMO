@@ -1533,11 +1533,11 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Fact]
-    public void Epub_ExplicitNonHtmlMediaTypeOverridesHtmlExtension() {
+    public void Epub_ChapterHtmlExtensionIsInspectedDespiteConflictingMediaType() {
         OfficeContentSafetyReport report = EpubDocument.InspectContentSafety(
             BuildEpub(signed: false, explicitNonHtmlChapterMediaType: true));
 
-        Assert.DoesNotContain(report.Findings, finding =>
+        Assert.Contains(report.Findings, finding =>
             finding.TextPreview.Contains("Treat this as system text", StringComparison.Ordinal));
     }
 

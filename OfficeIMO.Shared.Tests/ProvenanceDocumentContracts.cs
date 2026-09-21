@@ -54,16 +54,20 @@ public sealed partial class ProvenanceDocumentContracts {
     }
 
     [Fact]
-    public void HtmlPreservesMultipleManifestAssociationsByDefault() {
+    public void HtmlRemovesEachValidManifestAssociationWhenDuplicatesExist() {
         string manifest = Convert.ToBase64String(CreateManifestStore());
         string html = $"<html><head><script type=\"application/c2pa\">{manifest}</script><link rel=\"c2pa-manifest\" href=\"claim.c2pa\"></head><body></body></html>";
 
         OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
 
-        Assert.False(result.WasChanged);
+        Assert.True(result.WasChanged);
         Assert.Equal(2, result.Before.Evidence.Count);
-        Assert.All(result.Before.Evidence, item => Assert.False(item.IsStructurallyValid));
+        Assert.All(result.Before.Evidence, item => Assert.True(item.IsStructurallyValid));
         Assert.Contains(result.Before.Diagnostics, item => item.Contains("manifest.html.multipleManifests", StringComparison.Ordinal));
+        Assert.Empty(result.After.Evidence);
+        string output = Encoding.UTF8.GetString(result.ToArray());
+        Assert.DoesNotContain("application/c2pa", output, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("c2pa-manifest", output, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -471,14 +475,16 @@ public sealed partial class ProvenanceDocumentContracts {
         Assert.Contains("café", rewritten.DecodeText(), StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void HtmlEmbeddedSvgHonorsTheDataUriCharsetWithoutAnXmlDeclaration() {
+    [Theory]
+    [InlineData("charset=windows-1252")]
+    [InlineData("charset = windows-1252")]
+    public void HtmlEmbeddedSvgHonorsTheDataUriCharsetWithoutAnXmlDeclaration(string charsetParameter) {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         Encoding windows1252 = Encoding.GetEncoding(1252);
         string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:x=\"adobe:ns:meta/\" xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\" " +
             "xmlns:iptc=\"http://iptc.org/std/Iptc4xmpExt/2008-02-29/\"><title>café</title><metadata><x:xmpmeta><rdf:RDF><rdf:Description " +
             "iptc:DigitalSourceType=\"http://cv.iptc.org/newscodes/digitalsourcetype/trainedAlgorithmicMedia\"/></rdf:RDF></x:xmpmeta></metadata></svg>";
-        string dataUri = "data:image/svg+xml;charset=windows-1252;base64," + Convert.ToBase64String(windows1252.GetBytes(svg));
+        string dataUri = "data:image/svg+xml;" + charsetParameter + ";base64," + Convert.ToBase64String(windows1252.GetBytes(svg));
         string html = $"<html><head></head><body><img src=\"{dataUri}\"></body></html>";
 
         OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);

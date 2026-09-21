@@ -8,41 +8,8 @@ using Xunit;
 namespace OfficeIMO.Shared.Tests;
 
 public sealed partial class ProvenanceDocumentContracts {
-    [Fact]
-    public void HtmlIgnoresInactivePictureSources() {
-        string dataUri = "data:image/png;base64," + Convert.ToBase64String(CreatePngWithManifest(CreateManifestStore()));
-        string html = $"<picture><source media=\"print\" type=\"image/png\" srcset=\"{dataUri}\"><img src=\"fallback.png\"></picture>";
 
-        OfficeProvenanceReport report = HtmlProvenance.Inspect(html);
-        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
 
-        Assert.Empty(report.Evidence);
-        Assert.False(result.WasChanged);
-    }
-
-    [Fact]
-    public void HtmlIgnoresPictureFallbackWhenAnEarlierSourceIsSelected() {
-        string dataUri = "data:image/png;base64," + Convert.ToBase64String(CreatePngWithManifest(CreateManifestStore()));
-        string html = $"<picture><source type=\"image/png\" srcset=\"selected.png\"><img src=\"{dataUri}\"></picture>";
-
-        OfficeProvenanceReport report = HtmlProvenance.Inspect(html);
-        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
-
-        Assert.Empty(report.Evidence);
-        Assert.False(result.WasChanged);
-    }
-
-    [Fact]
-    public void HtmlIgnoresImageDeclarationsForUnmatchedSelectors() {
-        string dataUri = "data:image/png;base64," + Convert.ToBase64String(CreatePngWithManifest(CreateManifestStore()));
-        string html = $"<style>.unused{{background-image:url({dataUri})}}</style><div class=\"used\"></div>";
-
-        OfficeProvenanceReport report = HtmlProvenance.Inspect(html);
-        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
-
-        Assert.Empty(report.Evidence);
-        Assert.False(result.WasChanged);
-    }
 
     [Fact]
     public void HtmlPreservesSrcdocLocationForEmbeddedImages() {

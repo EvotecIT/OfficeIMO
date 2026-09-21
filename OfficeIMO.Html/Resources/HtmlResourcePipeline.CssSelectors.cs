@@ -1,10 +1,12 @@
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Html;
 
 public static partial class HtmlResourcePipeline {
+    private static readonly ConditionalWeakTable<string, CssKeyframesIndex> KeyframesIndexes = new();
     private static bool SelectorMatchesElementOrAncestor(string selector, IElement? useElement) {
         return GetElementSubstitutionRank(selector, useElement) >= 0;
     }
@@ -254,16 +256,7 @@ public static partial class HtmlResourcePipeline {
         if (blockStart < 0) {
             return string.Empty;
         }
-
-        FindPreviousCssStructuralTokens(css, blockStart, out _, out int previousBlockEnd, out int previousStatementEnd);
-        int selectorStart = Math.Max(0, Math.Max(previousBlockEnd, previousStatementEnd) + 1);
-        string selector = css.Substring(selectorStart, blockStart - selectorStart)
-            .Replace(CssCommentMask.ToString(), string.Empty)
-            .Trim();
-        int groupingStart = selector.LastIndexOf('{');
-        return groupingStart >= 0
-            ? selector.Substring(groupingStart + 1).Trim()
-            : selector;
+        return StructuralIndexes.GetValue(css, BuildStructuralIndex).GetSelector(css, blockStart);
     }
 
     private static bool IsCssReferenceForMatchingSelector(
@@ -319,58 +312,100 @@ public static partial class HtmlResourcePipeline {
         name = string.Empty;
         definitionStart = -1;
         if (index < 0 || index >= css.Length) return false;
-
-        int search = 0;
-        while (search < index) {
-            bool hasStandard = TryFindNextAtRule(css, search, "keyframes", out int standard, out int standardEnd);
-            bool hasPrefixed = TryFindNextAtRule(css, search, "-webkit-keyframes", out int prefixed, out int prefixedEnd);
-            int atRule = !hasStandard ? prefixed : !hasPrefixed ? standard : Math.Min(standard, prefixed);
-            if (atRule < 0 || atRule >= index) return false;
-
-            int nameEnd = hasPrefixed && atRule == prefixed ? prefixedEnd : standardEnd;
-            int open = FindNextTopLevelBlockStart(css, nameEnd);
-            if (open < 0) return false;
-            int close = FindMatchingCssBrace(css, open);
-            if (close < 0) return false;
-            if (index > open && index < close) {
-                string prelude = css.Substring(nameEnd, open - nameEnd).Trim();
-                if (prelude.Length >= 2 && prelude[0] == prelude[prelude.Length - 1] && prelude[0] is '\'' or '"') {
-                    prelude = prelude.Substring(1, prelude.Length - 2);
-                }
-                name = DecodeCssEscapes(prelude).Trim();
-                definitionStart = atRule;
-                return name.Length != 0;
-            }
-
-            search = close + 1;
-        }
-
-        return false;
+        return KeyframesIndexes.GetValue(css, BuildKeyframesIndex).TryFind(index, out name, out definitionStart);
     }
 
     private static bool IsLastActiveKeyframesDefinition(string css, string name, int definitionStart) {
-        List<SourceRange> inactive = GetInactiveCssRuleRanges(css, new HtmlResourcePipelineOptions());
-        int search = definitionStart + 1;
+        return KeyframesIndexes.GetValue(css, BuildKeyframesIndex).IsLastActive(name, definitionStart);
+    }
+
+    private static CssKeyframesIndex BuildKeyframesIndex(string css) {
+        var definitions = new List<CssKeyframesDefinition>();
+        int search = 0;
         while (search < css.Length) {
             bool hasStandard = TryFindNextAtRule(css, search, "keyframes", out int standard, out int standardEnd);
             bool hasPrefixed = TryFindNextAtRule(css, search, "-webkit-keyframes", out int prefixed, out int prefixedEnd);
             int atRule = !hasStandard ? prefixed : !hasPrefixed ? standard : Math.Min(standard, prefixed);
-            if (atRule < 0) return true;
+            if (atRule < 0) break;
             int nameEnd = hasPrefixed && atRule == prefixed ? prefixedEnd : standardEnd;
             int open = FindNextTopLevelBlockStart(css, nameEnd);
-            if (open < 0) return true;
+            if (open < 0) break;
             int close = FindMatchingCssBrace(css, open);
-            if (close < 0) return true;
+            if (close < 0) break;
             string candidate = css.Substring(nameEnd, open - nameEnd).Trim();
             if (candidate.Length >= 2 && candidate[0] == candidate[candidate.Length - 1] && candidate[0] is '\'' or '"') {
                 candidate = candidate.Substring(1, candidate.Length - 2);
             }
-            if (!IsInRanges(open + 1, inactive) && string.Equals(DecodeCssEscapes(candidate).Trim(), name, StringComparison.Ordinal)) {
-                return false;
-            }
+            definitions.Add(new CssKeyframesDefinition(atRule, open, close, DecodeCssEscapes(candidate).Trim()));
             search = close + 1;
         }
-        return true;
+        if (definitions.Count == 0) return new CssKeyframesIndex(definitions, new Dictionary<string, int>(StringComparer.Ordinal));
+        SourceRange[] inactive = GetInactiveCssRuleRanges(css, new HtmlResourcePipelineOptions())
+            .OrderBy(range => range.Start).ToArray();
+        var lastActive = new Dictionary<string, int>(StringComparer.Ordinal);
+        int rangeIndex = 0;
+        int coveredUntil = -1;
+        foreach (CssKeyframesDefinition definition in definitions) {
+            int position = definition.Open + 1;
+            while (rangeIndex < inactive.Length && inactive[rangeIndex].Start <= position) {
+                coveredUntil = Math.Max(coveredUntil, inactive[rangeIndex].End);
+                rangeIndex++;
+            }
+            if (position >= coveredUntil && definition.Name.Length != 0) {
+                lastActive[definition.Name] = definition.Start;
+            }
+        }
+        return new CssKeyframesIndex(definitions, lastActive);
+    }
+
+    private readonly struct CssKeyframesDefinition {
+        internal CssKeyframesDefinition(int start, int open, int close, string name) {
+            Start = start;
+            Open = open;
+            Close = close;
+            Name = name;
+        }
+        internal int Start { get; }
+        internal int Open { get; }
+        internal int Close { get; }
+        internal string Name { get; }
+    }
+
+    private sealed class CssKeyframesIndex {
+        private readonly IReadOnlyList<CssKeyframesDefinition> _definitions;
+        private readonly IReadOnlyDictionary<string, int> _lastActive;
+
+        internal CssKeyframesIndex(
+            IReadOnlyList<CssKeyframesDefinition> definitions,
+            IReadOnlyDictionary<string, int> lastActive) {
+            _definitions = definitions;
+            _lastActive = lastActive;
+        }
+
+        internal bool TryFind(int position, out string name, out int definitionStart) {
+            int low = 0;
+            int high = _definitions.Count - 1;
+            int candidate = -1;
+            while (low <= high) {
+                int middle = low + (high - low) / 2;
+                if (_definitions[middle].Open < position) {
+                    candidate = middle;
+                    low = middle + 1;
+                } else high = middle - 1;
+            }
+            if (candidate >= 0 && position < _definitions[candidate].Close &&
+                _definitions[candidate].Name.Length != 0) {
+                name = _definitions[candidate].Name;
+                definitionStart = _definitions[candidate].Start;
+                return true;
+            }
+            name = string.Empty;
+            definitionStart = -1;
+            return false;
+        }
+
+        internal bool IsLastActive(string name, int definitionStart) =>
+            !_lastActive.TryGetValue(name, out int lastStart) || lastStart <= definitionStart;
     }
 
     private static IEnumerable<IElement> GetElementsMatchingSelectorList(IHtmlDocument document, string selector) {

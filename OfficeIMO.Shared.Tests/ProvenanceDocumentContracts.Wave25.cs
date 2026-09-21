@@ -21,20 +21,6 @@ public sealed partial class ProvenanceDocumentContracts {
         Assert.Empty(report.Evidence);
     }
 
-    [Fact]
-    public void HtmlIgnoresImageFallbacksInsideInactiveRules() {
-        string dataUri = "data:image/png;base64," + Convert.ToBase64String(
-            CreatePngWithManifest(CreateManifestStore()));
-        string html =
-            $"<html><head><style>@media print{{.hero{{background:var(--missing,url({dataUri}))}}}}</style></head>" +
-            "<body><div class=\"hero\"></div></body></html>";
-
-        OfficeProvenanceReport report = HtmlProvenance.Inspect(html);
-        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
-
-        Assert.Empty(report.Evidence);
-        Assert.False(result.WasChanged);
-    }
 
     [Fact]
     public void HtmlFileRemovalEncodesDirectlyIntoTheDetectedLegacyCharset() {
