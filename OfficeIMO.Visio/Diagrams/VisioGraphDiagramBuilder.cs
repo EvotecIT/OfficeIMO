@@ -532,6 +532,7 @@ namespace OfficeIMO.Visio.Diagrams {
             }
 
             NodeItem node = GetKnownNode(nodeId, nameof(record.Id));
+            node.Placement = record.Placement;
             node.FillColor = record.FillColor;
             node.LineColor = record.LineColor;
 
@@ -554,6 +555,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 ? CreateStableEdgeId(record.FromId, record.ToId, record.Kind, reservedExplicitIds)
                 : RequireId(record.Id!, nameof(record.Id), "Edge id");
             Edge(edgeId, record.FromId, record.ToId, record.Kind, record.Label, record.Directed);
+            _edges[_edges.Count - 1].Route = record.Route;
             if (record.BeginArrow.HasValue || record.EndArrow.HasValue || record.LineStyle.HasValue || record.LineColor.HasValue) {
                 EdgeStyle(edgeId, style => {
                     if (record.BeginArrow.HasValue) style.BeginArrow = record.BeginArrow;
@@ -577,6 +579,7 @@ namespace OfficeIMO.Visio.Diagrams {
             IReadOnlyList<string> nodeIds = NormalizeZoneNodeIds(record.NodeIds, nameof(record.NodeIds), "Cluster node id");
             Cluster(clusterId, record.Text, nodeIds.ToArray());
             ZoneItem zone = GetKnownZone(clusterId, nameof(record.Id));
+            zone.Placement = record.Placement;
             zone.FillColor = record.FillColor;
             zone.LineColor = record.LineColor;
             foreach (KeyValuePair<string, string?> item in record.ShapeData) {

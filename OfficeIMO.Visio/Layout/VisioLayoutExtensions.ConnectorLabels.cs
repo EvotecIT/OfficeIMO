@@ -270,7 +270,9 @@ namespace OfficeIMO.Visio {
         }
 
 
-        private static VisioShapeBounds GetConnectorContentBounds(VisioConnector connector) {
+        /// <summary>Gets connector route and label bounds in page inches.</summary>
+        public static VisioShapeBounds GetConnectorContentBounds(this VisioConnector connector) {
+            if (connector == null) throw new ArgumentNullException(nameof(connector));
             List<Point> path = BuildConnectorPath(connector);
             VisioShapeBounds bounds = GetPointBounds(path);
             if (TryGetConnectorLabelBounds(connector, path, out VisioShapeBounds labelBounds)) {
@@ -278,6 +280,14 @@ namespace OfficeIMO.Visio {
             }
 
             return bounds;
+        }
+
+        /// <summary>Gets the explicitly placed connector label bounds in page inches, or empty bounds when no label is placed.</summary>
+        public static VisioShapeBounds GetLabelBounds(this VisioConnector connector) {
+            if (connector == null) throw new ArgumentNullException(nameof(connector));
+            if (string.IsNullOrWhiteSpace(connector.Label)) return VisioShapeBounds.Empty;
+            return TryGetConnectorLabelBounds(connector, BuildConnectorPath(connector), out VisioShapeBounds bounds)
+                ? bounds : VisioShapeBounds.Empty;
         }
 
         private static List<Point> BuildConnectorPath(VisioConnector connector) {

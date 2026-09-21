@@ -23,6 +23,9 @@ namespace OfficeIMO.Visio.Diagrams {
         /// <summary>Node text.</summary>
         public string Text { get; }
 
+        /// <summary>Optional fixed bounds used by PreserveLayout, in the builder page unit.</summary>
+        public VisioGraphPlacement? Placement { get; set; }
+
         /// <summary>Fallback graph node kind when no stencil is supplied.</summary>
         public VisioGraphNodeKind Kind { get; set; } = VisioGraphNodeKind.Process;
 
@@ -87,6 +90,9 @@ namespace OfficeIMO.Visio.Diagrams {
         /// <summary>Target node id.</summary>
         public string ToId { get; }
 
+        /// <summary>Optional complete route, including glued endpoints, in the builder page unit.</summary>
+        public VisioGraphRoute? Route { get; set; }
+
         /// <summary>Visual edge kind.</summary>
         public VisioGraphConnectorKind Kind { get; set; } = VisioGraphConnectorKind.Standard;
 
@@ -149,6 +155,9 @@ namespace OfficeIMO.Visio.Diagrams {
 
         /// <summary>Stable cluster id used for the generated background shape.</summary>
         public string Id { get; }
+
+        /// <summary>Optional fixed container bounds used by PreserveLayout.</summary>
+        public VisioGraphPlacement? Placement { get; set; }
 
         /// <summary>Cluster caption text.</summary>
         public string Text { get; }

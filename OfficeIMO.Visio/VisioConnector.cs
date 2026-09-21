@@ -267,6 +267,22 @@ namespace OfficeIMO.Visio {
         }
 
         /// <summary>
+        /// Adds an internal hyperlink to another page in the same Visio document.
+        /// </summary>
+        /// <param name="pageName">Target page name.</param>
+        /// <param name="description">Optional display description.</param>
+        /// <returns>The created hyperlink row.</returns>
+        public VisioHyperlink AddPageHyperlink(string pageName, string? description = null) {
+            if (string.IsNullOrWhiteSpace(pageName)) {
+                throw new ArgumentException("Target page name cannot be empty.", nameof(pageName));
+            }
+
+            VisioHyperlink hyperlink = new(null, description, pageName);
+            Hyperlinks.Add(hyperlink);
+            return hyperlink;
+        }
+
+        /// <summary>
         /// Finds a Shape Data row by row name.
         /// </summary>
         /// <param name="name">Shape Data row name.</param>
@@ -397,4 +413,3 @@ namespace OfficeIMO.Visio {
         }
     }
 }
-
