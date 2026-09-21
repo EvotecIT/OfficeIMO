@@ -700,7 +700,13 @@ public static partial class HtmlProvenance {
         if (!string.Equals(dataUri.MediaType, "image/svg+xml", StringComparison.OrdinalIgnoreCase)) {
             return dataUri.TryDecodeBytes(out image);
         }
-        bool hasDeclaredCharset = HtmlTextEncodingResolver.Default.HasDataUriCharset(dataUri.Metadata);
+        bool hasDeclaredCharset;
+        try {
+            hasDeclaredCharset = HtmlTextEncodingResolver.Default.HasDataUriCharset(dataUri.Metadata);
+        } catch (FormatException) {
+            image = Array.Empty<byte>();
+            return false;
+        }
         if (!hasDeclaredCharset) return dataUri.TryDecodeBytes(out image);
         if (!dataUri.TryDecodeText(out string text)) {
             image = Array.Empty<byte>();
@@ -887,6 +893,8 @@ public static partial class HtmlProvenance {
         bool sawHeadElement = false;
         bool sawBodyElement = false;
         var openElements = new List<HtmlPreflightElement>();
+        var selectPositions = new List<int>();
+        var templatePositions = new List<int>();
         long remainingStackComparisons = Math.Max(4096L, (long)maximumEntries * 16L);
         while (index < html.Length - 1) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -922,11 +930,17 @@ public static partial class HtmlProvenance {
                 int nameStart = markup + 2;
                 int closingNameEnd = FindHtmlTagNameEnd(html, nameStart);
                 string closingName = html.Substring(nameStart, closingNameEnd - nameStart);
-                if (!HandleEndTagInSelect(openElements, closingName, ref remainingStackComparisons)) {
+                bool inSelect = HasActivePreflightSelect(selectPositions, templatePositions);
+                bool handledInSelect = inSelect && HandleEndTagInSelect(openElements, closingName, ref remainingStackComparisons);
+                PrunePreflightPositions(selectPositions, openElements.Count);
+                PrunePreflightPositions(templatePositions, openElements.Count);
+                if (!handledInSelect) {
                     for (int elementIndex = openElements.Count - 1; elementIndex >= 0; elementIndex--) {
                         ConsumePreflightStackComparison(ref remainingStackComparisons);
                         if (!openElements[elementIndex].Name.Equals(closingName, StringComparison.OrdinalIgnoreCase)) continue;
                         openElements.RemoveRange(elementIndex, openElements.Count - elementIndex);
+                        PrunePreflightPositions(selectPositions, openElements.Count);
+                        PrunePreflightPositions(templatePositions, openElements.Count);
                         break;
                     }
                 }
@@ -947,8 +961,14 @@ public static partial class HtmlProvenance {
                 while (openElements.Count > 0 && ChildNamespace(openElements) != HtmlPreflightNamespace.Html) {
                     openElements.RemoveAt(openElements.Count - 1);
                 }
+                PrunePreflightPositions(selectPositions, openElements.Count);
+                PrunePreflightPositions(templatePositions, openElements.Count);
             }
-            if (ShouldIgnoreStartTagInSelect(openElements, tagName, ref remainingStackComparisons)) {
+            bool ignoreInSelect = HasActivePreflightSelect(selectPositions, templatePositions) &&
+                ShouldIgnoreStartTagInSelect(openElements, tagName, ref remainingStackComparisons);
+            PrunePreflightPositions(selectPositions, openElements.Count);
+            PrunePreflightPositions(templatePositions, openElements.Count);
+            if (ignoreInSelect) {
                 index = tagEnd + 1;
                 continue;
             }
@@ -974,6 +994,10 @@ public static partial class HtmlProvenance {
                 IsHtmlIntegrationPoint(html, tagName, elementNamespace, nameEnd, tagEnd);
             if (!selfClosing && !(elementNamespace == HtmlPreflightNamespace.Html && IsHtmlVoidElement(tagName))) {
                 openElements.Add(new HtmlPreflightElement(tagName, elementNamespace, childrenUseHtml));
+                if (elementNamespace == HtmlPreflightNamespace.Html) {
+                    if (tagName.Equals("select", StringComparison.OrdinalIgnoreCase)) selectPositions.Add(openElements.Count - 1);
+                    if (tagName.Equals("template", StringComparison.OrdinalIgnoreCase)) templatePositions.Add(openElements.Count - 1);
+                }
             }
             index = tagEnd + 1;
             if (elementNamespace == HtmlPreflightNamespace.Html && tagName.Equals("plaintext", StringComparison.OrdinalIgnoreCase)) return;
@@ -1008,6 +1032,13 @@ public static partial class HtmlProvenance {
 
     private static void ConsumePreflightStackComparison(ref long remaining) {
         if (--remaining < 0) throw new InvalidDataException("The HTML document exceeds the configured preflight scan limit.");
+    }
+
+    private static bool HasActivePreflightSelect(List<int> selects, List<int> templates) =>
+        selects.Count > 0 && (templates.Count == 0 || selects[selects.Count - 1] > templates[templates.Count - 1]);
+
+    private static void PrunePreflightPositions(List<int> positions, int openCount) {
+        while (positions.Count > 0 && positions[positions.Count - 1] >= openCount) positions.RemoveAt(positions.Count - 1);
     }
 
     private static bool ShouldIgnoreNestedFormStart(List<HtmlPreflightElement> elements, string tagName, ref long remaining) {
