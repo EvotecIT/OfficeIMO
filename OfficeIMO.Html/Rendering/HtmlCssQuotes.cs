@@ -22,6 +22,7 @@ internal sealed class HtmlCssQuotes {
 
     internal static bool TryParse(string? value, out HtmlCssQuotes quotes) {
         quotes = Default;
+        if (value?.Length > 8192) return false;
         if (string.IsNullOrWhiteSpace(value)) {
             return true;
         }
@@ -41,6 +42,7 @@ internal sealed class HtmlCssQuotes {
             if (normalized[cursor] != '\'' && normalized[cursor] != '"') return false;
             if (!TryReadQuoted(normalized, ref cursor, out string text)) return false;
             strings.Add(text);
+            if (strings.Count > 128) return false;
         }
 
         if (strings.Count == 0 || strings.Count % 2 != 0) return false;

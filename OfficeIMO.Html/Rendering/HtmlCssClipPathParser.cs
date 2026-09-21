@@ -4,6 +4,8 @@ namespace OfficeIMO.Html;
 
 internal static class HtmlCssClipPathParser {
     private const double CircleBezierKappa = 0.5522847498307936D;
+    private const int MaximumClipPathCharacters = 262144;
+    private const int MaximumPolygonVertices = 4096;
 
     internal static bool IsSupportedSyntax(string? value) =>
         TryResolve(value, 100D, 100D, 16D, 16D, 100D, 100D, double.NaN, double.NaN, null, out _, out _);
@@ -23,6 +25,10 @@ internal static class HtmlCssClipPathParser {
         out string detail) {
         resolved = null;
         detail = string.Empty;
+        if (value != null && value.Length > MaximumClipPathCharacters) {
+            detail = "clip-path exceeds the supported length";
+            return false;
+        }
         string normalized = string.IsNullOrWhiteSpace(value) ? "none" : value!.Trim().ToLowerInvariant();
         if (normalized == "none") return true;
 
@@ -80,6 +86,8 @@ internal static class HtmlCssClipPathParser {
         ExpandFour(values, out double top, out double right, out double bottom, out double left);
         double clipWidth = width - left - right;
         double clipHeight = height - top - bottom;
+        if (double.IsNaN(clipWidth) || double.IsInfinity(clipWidth) ||
+            double.IsNaN(clipHeight) || double.IsInfinity(clipHeight)) return false;
         if (clipWidth <= 0.0001D || clipHeight <= 0.0001D) {
             resolved = HtmlCssResolvedClipPath.Empty;
             return true;
@@ -194,6 +202,7 @@ internal static class HtmlCssClipPathParser {
         double containerHeight,
         out HtmlCssResolvedClipPath? resolved) {
         resolved = null;
+        if (arguments.Count(character => character == ',') > MaximumPolygonVertices) return false;
         IReadOnlyList<string> entries = HtmlRenderCssValues.SplitTopLevelCommas(arguments);
         if (entries.Count < 3) return false;
         OfficeFillRule fillRule = OfficeFillRule.NonZero;
@@ -201,6 +210,7 @@ internal static class HtmlCssClipPathParser {
         if (entries[0].Equals("evenodd", StringComparison.OrdinalIgnoreCase)) { fillRule = OfficeFillRule.EvenOdd; start = 1; }
         else if (entries[0].Equals("nonzero", StringComparison.OrdinalIgnoreCase)) start = 1;
         if (entries.Count - start < 3) return false;
+        if (entries.Count - start > MaximumPolygonVertices) return false;
 
         var points = new List<OfficePoint>(entries.Count - start);
         double minX = double.MaxValue;

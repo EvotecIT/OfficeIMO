@@ -51,6 +51,7 @@ internal static class HtmlDocumentParser {
         if (html.IndexOf("xlink:href", StringComparison.OrdinalIgnoreCase) < 0) return html;
         var replacements = new List<(int Start, int Length, string Value)>();
         var openElements = new List<SourceElement>();
+        var lastOpenByName = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         int cursor = 0;
         while (cursor < html.Length - 1) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -71,10 +72,10 @@ internal static class HtmlDocumentParser {
                 int closingNameStart = nameStart + 1;
                 int closingNameEnd = FindTagNameEnd(html, closingNameStart);
                 string closingName = html.Substring(closingNameStart, closingNameEnd - closingNameStart);
-                for (int index = openElements.Count - 1; index >= 0; index--) {
-                    if (!openElements[index].Name.Equals(closingName, StringComparison.OrdinalIgnoreCase)) continue;
-                    openElements.RemoveRange(index, openElements.Count - index);
-                    break;
+                if (lastOpenByName.TryGetValue(closingName, out int matchingIndex)) {
+                    while (openElements.Count > matchingIndex) {
+                        PopOpenElement(openElements, lastOpenByName);
+                    }
                 }
                 int closingEnd = FindStartTagEnd(html, closingNameEnd);
                 cursor = closingEnd < 0 ? html.Length : closingEnd + 1;
@@ -90,7 +91,7 @@ internal static class HtmlDocumentParser {
             if (tagEnd < 0) break;
             if (ChildNamespace(openElements) != SourceNamespace.Html && IsForeignContentHtmlBreakout(tagName)) {
                 while (openElements.Count > 0 && ChildNamespace(openElements) != SourceNamespace.Html) {
-                    openElements.RemoveAt(openElements.Count - 1);
+                    PopOpenElement(openElements, lastOpenByName);
                 }
             }
             SourceNamespace elementNamespace = ChildNamespace(openElements, tagName);
@@ -121,7 +122,9 @@ internal static class HtmlDocumentParser {
             bool childrenUseHtml = elementNamespace == SourceNamespace.Html ||
                 IsHtmlIntegrationPoint(html, nameEnd, tagEnd, tagName, elementNamespace);
             if (!selfClosing && !(elementNamespace == SourceNamespace.Html && IsHtmlVoidElement(tagName))) {
-                openElements.Add(new SourceElement(tagName, elementNamespace, childrenUseHtml));
+                int previousSameNameIndex = lastOpenByName.TryGetValue(tagName, out int previous) ? previous : -1;
+                lastOpenByName[tagName] = openElements.Count;
+                openElements.Add(new SourceElement(tagName, elementNamespace, childrenUseHtml, previousSameNameIndex));
             }
             cursor = tagEnd + 1;
             if (elementNamespace == SourceNamespace.Html && tagName.Equals("plaintext", StringComparison.OrdinalIgnoreCase)) break;
@@ -148,6 +151,14 @@ internal static class HtmlDocumentParser {
         int index = start;
         while (index < html.Length && html[index] != '>' && html[index] != '/' && !IsAsciiWhitespace(html[index])) index++;
         return index;
+    }
+
+    private static void PopOpenElement(List<SourceElement> elements, Dictionary<string, int> lastOpenByName) {
+        int last = elements.Count - 1;
+        SourceElement element = elements[last];
+        elements.RemoveAt(last);
+        if (element.PreviousSameNameIndex < 0) lastOpenByName.Remove(element.Name);
+        else lastOpenByName[element.Name] = element.PreviousSameNameIndex;
     }
 
     private static int FindStartTagEnd(string html, int start) {
@@ -232,13 +243,15 @@ internal static class HtmlDocumentParser {
     private enum SourceNamespace { Html, Svg, MathMl }
 
     private readonly struct SourceElement {
-        internal SourceElement(string name, SourceNamespace @namespace, bool childrenUseHtml) {
+        internal SourceElement(string name, SourceNamespace @namespace, bool childrenUseHtml, int previousSameNameIndex) {
             Name = name;
             Namespace = @namespace;
             ChildrenUseHtml = childrenUseHtml;
+            PreviousSameNameIndex = previousSameNameIndex;
         }
 
         internal string Name { get; }
+        internal int PreviousSameNameIndex { get; }
         internal SourceNamespace Namespace { get; }
         internal bool ChildrenUseHtml { get; }
     }

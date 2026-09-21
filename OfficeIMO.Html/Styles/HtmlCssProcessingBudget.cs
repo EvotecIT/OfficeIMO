@@ -42,6 +42,18 @@ internal sealed class HtmlCssProcessingBudget {
         }
     }
 
+    internal void ValidateRegistrationFanout(int registrations, int elements) {
+        if (!_limits.MaxCssDeclarations.HasValue) return;
+        long applications = (long)registrations * elements;
+        if (applications > _limits.MaxCssDeclarations.Value) {
+            throw Limit(
+                HtmlConversionDiagnosticCodes.CssDeclarationLimitExceeded,
+                nameof(HtmlConversionLimits.MaxCssDeclarations),
+                applications,
+                _limits.MaxCssDeclarations.Value);
+        }
+    }
+
     internal void RecordNestingDepth(int depth) {
         int maximum = _limits.MaxCssNestingDepth ?? 256;
         if (depth > maximum) {

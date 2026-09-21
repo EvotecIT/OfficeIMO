@@ -12,13 +12,47 @@ internal static class HtmlCssTextShadowParser {
         double containerWidth,
         double containerHeight,
         OfficeColor currentColor,
-        out IReadOnlyList<HtmlCssTextShadow> shadows) {
+        out IReadOnlyList<HtmlCssTextShadow> shadows) =>
+        TryParse(value, fontSize, rootFontSize, viewportWidth, viewportHeight,
+            containerWidth, containerHeight, currentColor, 256, out shadows, out _);
+
+    internal static bool TryParse(
+        string value,
+        double fontSize,
+        double rootFontSize,
+        double viewportWidth,
+        double viewportHeight,
+        double containerWidth,
+        double containerHeight,
+        OfficeColor currentColor,
+        int maximumLayers,
+        out IReadOnlyList<HtmlCssTextShadow> shadows,
+        out int layerCount) {
         shadows = Array.Empty<HtmlCssTextShadow>();
+        layerCount = 0;
+        if (value == null || value.Length > 65536 || maximumLayers <= 0) return false;
         string normalized = string.IsNullOrWhiteSpace(value) ? "none" : value.Trim().ToLowerInvariant();
         if (normalized == "none") return true;
 
-        IReadOnlyList<string> layers = HtmlRenderCssValues.SplitTopLevelCommas(normalized);
-        if (layers.Count == 0) return false;
+        var layers = new List<string>(Math.Min(maximumLayers, 16));
+        int start = 0;
+        int depth = 0;
+        char quote = '\0';
+        for (int index = 0; index < normalized.Length; index++) {
+            char current = normalized[index];
+            if (current == '\\' && index + 1 < normalized.Length) { index++; continue; }
+            if (quote != '\0') { if (current == quote) quote = '\0'; continue; }
+            if (current == '\'' || current == '"') quote = current;
+            else if (current == '(') depth++;
+            else if (current == ')' && depth > 0) depth--;
+            else if (current == ',' && depth == 0) {
+                if (layerCount < maximumLayers) layers.Add(normalized.Substring(start, index - start).Trim());
+                layerCount++;
+                start = index + 1;
+            }
+        }
+        if (layerCount < maximumLayers) layers.Add(normalized.Substring(start).Trim());
+        layerCount++;
         var parsed = new List<HtmlCssTextShadow>(layers.Count);
         foreach (string layer in layers) {
             if (!TryParseLayer(

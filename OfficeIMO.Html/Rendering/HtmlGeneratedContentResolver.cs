@@ -19,10 +19,11 @@ internal static partial class HtmlGeneratedContentResolver {
         if (!styles.HasPseudoElements) return new HtmlGeneratedContentSet(content);
         var counters = new CounterState();
         var quotes = new QuoteState();
+        var quoteCache = new Dictionary<string, (bool Valid, HtmlCssQuotes Quotes)>(StringComparer.Ordinal);
         IElement? root = document.DocumentElement ?? document.Body;
         if (root != null) {
             int level = counters.EnterLevel();
-            TraverseElement(root, level, 0, maximumDepth, styles, diagnostics, counters, quotes, content, counterStyles);
+            TraverseElement(root, level, 0, maximumDepth, styles, diagnostics, counters, quotes, content, counterStyles, quoteCache);
             counters.ExitLevel(level);
         }
 
@@ -39,7 +40,8 @@ internal static partial class HtmlGeneratedContentResolver {
         CounterState counters,
         QuoteState quotes,
         IDictionary<IElement, HtmlGeneratedPseudoContentPair> content,
-        HtmlCounterStyleRegistry counterStyles) {
+        HtmlCounterStyleRegistry counterStyles,
+        IDictionary<string, (bool Valid, HtmlCssQuotes Quotes)> quoteCache) {
         if (depth > maximumDepth) {
             throw new HtmlDomLimitException(
                 HtmlRenderDiagnosticCodes.DepthLimitExceeded,
@@ -57,19 +59,19 @@ internal static partial class HtmlGeneratedContentResolver {
         ApplyCounterProperties(elementStyle, level, counters, diagnostics, HtmlRenderStyleResolver.DescribeSource(element));
         if (string.Equals(elementStyle.GetValue("float").Trim(), "footnote", StringComparison.OrdinalIgnoreCase)) {
             counters.Increment("footnote", 1, level);
-            ResolvePseudo(element, HtmlPseudoElementKind.FootnoteCall, level, styles, diagnostics, counters, quotes, content, counterStyles);
-            ResolvePseudo(element, HtmlPseudoElementKind.FootnoteMarker, level, styles, diagnostics, counters, quotes, content, counterStyles);
+            ResolvePseudo(element, HtmlPseudoElementKind.FootnoteCall, level, styles, diagnostics, counters, quotes, content, counterStyles, quoteCache);
+            ResolvePseudo(element, HtmlPseudoElementKind.FootnoteMarker, level, styles, diagnostics, counters, quotes, content, counterStyles, quoteCache);
         }
-        ResolvePseudo(element, HtmlPseudoElementKind.Marker, level, styles, diagnostics, counters, quotes, content, counterStyles);
-        ResolvePseudo(element, HtmlPseudoElementKind.Before, level, styles, diagnostics, counters, quotes, content, counterStyles);
+        ResolvePseudo(element, HtmlPseudoElementKind.Marker, level, styles, diagnostics, counters, quotes, content, counterStyles, quoteCache);
+        ResolvePseudo(element, HtmlPseudoElementKind.Before, level, styles, diagnostics, counters, quotes, content, counterStyles, quoteCache);
 
         int childLevel = counters.EnterLevel();
         foreach (IElement child in element.Children) {
-            if (!ShouldSkipSubtree(child)) TraverseElement(child, childLevel, depth + 1, maximumDepth, styles, diagnostics, counters, quotes, content, counterStyles);
+            if (!ShouldSkipSubtree(child)) TraverseElement(child, childLevel, depth + 1, maximumDepth, styles, diagnostics, counters, quotes, content, counterStyles, quoteCache);
         }
 
         counters.ExitLevel(childLevel);
-        ResolvePseudo(element, HtmlPseudoElementKind.After, level, styles, diagnostics, counters, quotes, content, counterStyles);
+        ResolvePseudo(element, HtmlPseudoElementKind.After, level, styles, diagnostics, counters, quotes, content, counterStyles, quoteCache);
     }
 
     private static void ResolvePseudo(
@@ -81,7 +83,8 @@ internal static partial class HtmlGeneratedContentResolver {
         CounterState counters,
         QuoteState quotes,
         IDictionary<IElement, HtmlGeneratedPseudoContentPair> content,
-        HtmlCounterStyleRegistry counterStyles) {
+        HtmlCounterStyleRegistry counterStyles,
+        IDictionary<string, (bool Valid, HtmlCssQuotes Quotes)> quoteCache) {
         if (!styles.TryGetPseudoStyle(element, kind, out HtmlComputedStyle pseudoStyle)
             || string.Equals(pseudoStyle.GetValue("display"), "none", StringComparison.OrdinalIgnoreCase)) {
             return;
@@ -119,7 +122,16 @@ internal static partial class HtmlGeneratedContentResolver {
             return;
         }
 
-        if (!HtmlCssQuotes.TryParse(pseudoStyle.GetValue("quotes"), out HtmlCssQuotes quotePairs)) {
+        string quoteValue = pseudoStyle.GetValue("quotes");
+        if (!quoteCache.TryGetValue(quoteValue, out var parsedQuotes)) {
+            HtmlCssQuotes resolvedQuotes = HtmlCssQuotes.Default;
+            bool valid = quoteCache.Count < 1024
+                && HtmlCssQuotes.TryParse(quoteValue, out resolvedQuotes);
+            parsedQuotes = (valid, resolvedQuotes);
+            if (quoteCache.Count < 1024) quoteCache[quoteValue] = parsedQuotes;
+        }
+        HtmlCssQuotes quotePairs = parsedQuotes.Quotes;
+        if (!parsedQuotes.Valid) {
             diagnostics.Add(
                 ComponentName,
                 HtmlRenderDiagnosticCodes.GeneratedContentUnsupported,
@@ -489,7 +501,8 @@ internal static partial class HtmlGeneratedContentResolver {
 
     private static bool TryParseLeader(string arguments, out string leader) {
         string trimmed = arguments.Trim();
-        if (TryParseQuotedValue(trimmed, out leader)) return leader.Length > 0;
+        if (trimmed.Length > 2048) { leader = string.Empty; return false; }
+        if (TryParseQuotedValue(trimmed, out leader)) return leader.Length > 0 && leader.Length <= 1024;
         if (string.Equals(trimmed, "dotted", StringComparison.OrdinalIgnoreCase)) {
             leader = ".";
             return true;

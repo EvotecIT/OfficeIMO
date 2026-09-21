@@ -409,7 +409,8 @@ public static partial class HtmlComputedStyleEngine {
 
         var budget = new HtmlCssProcessingBudget(limits);
         IReadOnlyDictionary<string, CustomPropertyRegistration> customPropertyRegistrations =
-            ParseCustomPropertyRegistrations(document, environment);
+            ParseCustomPropertyRegistrations(document, environment, budget);
+        budget.ValidateRegistrationFanout(customPropertyRegistrations.Count, document.QuerySelectorAll("*").Length);
         IReadOnlyList<StyleRule> rules = ParseStyleRules(document, environment, budget);
         var ruleIndex = new StyleRuleIndex(rules, customPropertyRegistrations);
         var computed = new Dictionary<IElement, HtmlComputedStyle>();
@@ -438,11 +439,11 @@ public static partial class HtmlComputedStyleEngine {
     }
 
     /// <summary>Computes styles keyed by owned nodes from the supplied document snapshot.</summary>
-    /// <remarks>A prepared document retains the unbounded computation contract. To apply input and CSS
-    /// budgets, create an HtmlConversionDocument with explicit limits and use that overload.</remarks>
+    /// <remarks>Prepared documents use the untrusted input and CSS budgets by default. To supply
+    /// different limits, create an HtmlConversionDocument with explicit limits and use that overload.</remarks>
     public static IReadOnlyDictionary<Dom.HtmlElement, HtmlComputedStyle> Compute(
         Dom.HtmlDocument document, HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen) =>
-        Compute(document, mediaContext, limits: null);
+        Compute(document, mediaContext, HtmlConversionLimits.CreateUntrustedProfile());
 
     private static IReadOnlyDictionary<Dom.HtmlElement, HtmlComputedStyle> Compute(
         Dom.HtmlDocument document, HtmlCssMediaContext mediaContext, HtmlConversionLimits? limits) {

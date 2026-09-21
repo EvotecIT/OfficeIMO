@@ -7,7 +7,8 @@ namespace OfficeIMO.Html;
 public static partial class HtmlComputedStyleEngine {
     private static IReadOnlyDictionary<string, CustomPropertyRegistration> ParseCustomPropertyRegistrations(
         IHtmlDocument document,
-        MediaEnvironment environment) {
+        MediaEnvironment environment,
+        HtmlCssProcessingBudget budget) {
         var registrations = new Dictionary<string, CustomPropertyRegistration>(HtmlCssPropertyNameComparer.Instance);
         foreach (IElement styleElement in document.QuerySelectorAll("style")) {
             if (!IsCssStyleElement(styleElement)
@@ -15,14 +16,15 @@ public static partial class HtmlComputedStyleEngine {
                 continue;
             }
 
-            ParseTopLevelCustomPropertyRegistrations(styleElement.TextContent ?? string.Empty, registrations);
+            ParseTopLevelCustomPropertyRegistrations(styleElement.TextContent ?? string.Empty, registrations, budget);
         }
         return registrations;
     }
 
     private static void ParseTopLevelCustomPropertyRegistrations(
         string css,
-        IDictionary<string, CustomPropertyRegistration> registrations) {
+        IDictionary<string, CustomPropertyRegistration> registrations,
+        HtmlCssProcessingBudget budget) {
         int depth = 0;
         char quote = '\0';
         for (int index = 0; index < css.Length; index++) {
@@ -60,6 +62,13 @@ public static partial class HtmlComputedStyleEngine {
             string nameText = css.Substring(nameStart, cursor - nameStart).Trim();
             int close = FindCustomPropertyBlockEnd(css, cursor);
             if (close < 0) return;
+            budget.RecordRule(3);
+            if (registrations.Count >= 256) {
+                throw new HtmlDomLimitException(
+                    HtmlConversionDiagnosticCodes.CssRuleLimitExceeded,
+                    "Registered CSS custom properties exceeded the processing limit.",
+                    "RegisteredCustomProperties", registrations.Count + 1, 256);
+            }
             string block = css.Substring(cursor + 1, close - cursor - 1);
             if (TryCreateCustomPropertyRegistration(nameText, block, out CustomPropertyRegistration? registration)) {
                 registrations[registration!.Name] = registration;
@@ -100,6 +109,8 @@ public static partial class HtmlComputedStyleEngine {
         }
 
         if (string.IsNullOrWhiteSpace(syntax) || !inherits.HasValue) return false;
+        if (syntax!.Length > 256 || initialValue?.Length > 1024
+            || syntax.Split('|').Length > 16) return false;
         if (syntax != "*" && string.IsNullOrWhiteSpace(initialValue)) return false;
         if (!string.IsNullOrWhiteSpace(initialValue)
             && (HtmlCssCustomPropertyResolver.ContainsVarFunction(initialValue!)

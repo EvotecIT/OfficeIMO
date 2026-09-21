@@ -642,9 +642,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
             shape.StrokeDashStyle = run.LeaderPattern == "." ? OfficeStrokeDashStyle.Dot : OfficeStrokeDashStyle.Solid;
             paint = new HtmlRenderShape(shape, x, y + lineY, paintOrder, run.LinkUri, run.Source);
         } else {
-            double unitWidth = Math.Max(0.01D, MeasureInlineText(run.LeaderPattern!, run.Style));
-            int count = Math.Max(1, (int)Math.Ceiling(width / unitWidth));
-            string repeated = string.Concat(Enumerable.Repeat(run.LeaderPattern!, count));
+            string leaderPattern = run.LeaderPattern!;
+            double unitWidth = Math.Max(0.01D, MeasureInlineText(leaderPattern, run.Style));
+            double requiredCount = Math.Max(1D, Math.Ceiling(width / unitWidth));
+            if (double.IsNaN(requiredCount) || double.IsInfinity(requiredCount)
+                || requiredCount * leaderPattern.Length > _options.MaxLeaderCharacters) {
+                throw new HtmlDomLimitException(
+                    HtmlRenderDiagnosticCodes.LayoutOperationLimitExceeded,
+                    "Generated leader text exceeded the configured character limit.",
+                    nameof(HtmlRenderOptions.MaxLeaderCharacters),
+                    (long)Math.Min(long.MaxValue, requiredCount * leaderPattern.Length),
+                    _options.MaxLeaderCharacters);
+            }
+            int count = (int)requiredCount;
+            string repeated = string.Concat(Enumerable.Repeat(leaderPattern, count));
             paint = new HtmlRenderText(
                 repeated,
                 x,

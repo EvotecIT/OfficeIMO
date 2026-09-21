@@ -209,9 +209,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double markerHeight = ResolveFootnoteMarkerHeight(entry);
             double offset = 0D;
             while (offset < entry.Block.Height - 0.0001D) {
+                _cancellationToken.ThrowIfCancellationRequested();
+                ChargeLayoutOperation("footnote planning");
+                if (pageNumber > _options.MaxPageCount) {
+                    throw new InvalidOperationException("HTML footnote planning exceeded the configured maximum page count.");
+                }
                 HtmlCssPageGeometry geometry = ResolveFootnotePageGeometry(rendered, pageNumber);
                 reservations.TryGetValue(pageNumber, out double reserved);
-                bool firstOnPage = !chunks.Any(chunk => chunk.PageNumber == pageNumber);
+                bool firstOnPage = !reservations.ContainsKey(pageNumber);
                 double separator = firstOnPage ? FootnoteSeparatorGap : 2D;
                 double minimumBody = Math.Min(geometry.ContentHeight * 0.5D, Math.Max(12D, _options.DefaultFontSize * 1.5D));
                 double capacity = Math.Max(0D, geometry.ContentHeight - minimumBody - reserved - separator);

@@ -153,6 +153,9 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
     /// <summary>Maximum CSS text-shadow layers accepted on one element.</summary>
     public int MaxTextShadowLayers { get; set; } = 16;
 
+    /// <summary>Maximum characters materialized for a generated CSS leader.</summary>
+    public int MaxLeaderCharacters { get; set; } = 65_536;
+
     /// <summary>Maximum nested SVG <c>foreignObject</c> HTML render depth.</summary>
     public int MaxSvgForeignObjectDepth { get; set; } = 4;
 
@@ -242,6 +245,7 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         target.MaxBackgroundImageLayers = MaxBackgroundImageLayers;
         target.MaxBoxShadowLayers = MaxBoxShadowLayers;
         target.MaxTextShadowLayers = MaxTextShadowLayers;
+        target.MaxLeaderCharacters = MaxLeaderCharacters;
         target.MaxSvgForeignObjectDepth = MaxSvgForeignObjectDepth;
         target.MaxSvgForeignObjectHtmlNodes = MaxSvgForeignObjectHtmlNodes;
         target.SvgForeignObjectDepth = SvgForeignObjectDepth;
@@ -323,6 +327,9 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
 
         if (MaxTextShadowLayers <= 0) {
             throw new ArgumentOutOfRangeException(nameof(MaxTextShadowLayers), "Maximum text-shadow layer count must be positive.");
+        }
+        if (MaxLeaderCharacters <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(MaxLeaderCharacters), "Maximum leader character count must be positive.");
         }
 
         if (MaxSvgForeignObjectDepth <= 0) {

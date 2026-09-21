@@ -2,6 +2,8 @@ namespace OfficeIMO.Html;
 
 internal static class HtmlCssCustomPropertyResolver {
     private const int MaximumDepth = 32;
+    private const int MaximumSyntaxDepth = 256;
+    private const int MaximumSyntaxCharacters = 262144;
 
     internal static bool TryResolve(string value, Func<string, string?> lookup, out string resolved) {
         if (lookup == null) throw new ArgumentNullException(nameof(lookup));
@@ -12,7 +14,8 @@ internal static class HtmlCssCustomPropertyResolver {
         !string.IsNullOrEmpty(value) && value.IndexOf("var(", StringComparison.OrdinalIgnoreCase) >= 0;
 
     internal static bool HasValidVarFunctionSyntax(string value) {
-        if (string.IsNullOrWhiteSpace(value) || !HasBalancedComponentValueSyntax(value)) return false;
+        if (string.IsNullOrWhiteSpace(value) || value.Length > MaximumSyntaxCharacters ||
+            !ContainsVarFunction(value) || !TryBuildMatchedDelimiters(value, out int[] matchingCloses)) return false;
         bool found = false;
         char quote = '\0';
         for (int index = 0; index <= value.Length - 4; index++) {
@@ -33,10 +36,23 @@ internal static class HtmlCssCustomPropertyResolver {
 
             found = true;
             int open = index + 3;
-            int close = FindMatchingParenthesis(value, open);
+            int close = matchingCloses[open];
             if (close <= open) return false;
-            string arguments = value.Substring(open + 1, close - open - 1);
-            SplitArguments(arguments, out string propertyName, out _);
+            int nameEnd = close;
+            for (int argumentIndex = open + 1; argumentIndex < close; argumentIndex++) {
+                if (value[argumentIndex] == '\\' && argumentIndex + 1 < close) {
+                    argumentIndex++;
+                    continue;
+                }
+                if (value[argumentIndex] == ',') {
+                    nameEnd = argumentIndex;
+                    break;
+                }
+                if (matchingCloses[argumentIndex] > argumentIndex) {
+                    argumentIndex = matchingCloses[argumentIndex];
+                }
+            }
+            string propertyName = value.Substring(open + 1, nameEnd - open - 1).Trim();
             if (!HtmlCssIdentifierParser.TryParse(propertyName, out string identifier)
                 || !identifier.StartsWith("--", StringComparison.Ordinal)
                 || identifier.Length <= 2) {
@@ -54,8 +70,9 @@ internal static class HtmlCssCustomPropertyResolver {
     private static bool IsIdentifierCharacter(char value) =>
         char.IsLetterOrDigit(value) || value == '_' || value == '-' || value == '\\' || value >= 0x80;
 
-    private static bool HasBalancedComponentValueSyntax(string value) {
-        var delimiters = new Stack<char>();
+    private static bool TryBuildMatchedDelimiters(string value, out int[] matchingCloses) {
+        matchingCloses = new int[value.Length];
+        var delimiters = new Stack<(char Open, int Index)>();
         char quote = '\0';
         for (int index = 0; index < value.Length; index++) {
             char current = value[index];
@@ -72,9 +89,13 @@ internal static class HtmlCssCustomPropertyResolver {
             } else if (current == '\'' || current == '"') {
                 quote = current;
             } else if (current == '(' || current == '[' || current == '{') {
-                delimiters.Push(current);
+                if (delimiters.Count >= MaximumSyntaxDepth) return false;
+                delimiters.Push((current, index));
             } else if (current == ')' || current == ']' || current == '}') {
-                if (delimiters.Count == 0 || !IsMatchingDelimiter(delimiters.Pop(), current)) return false;
+                if (delimiters.Count == 0) return false;
+                (char open, int openIndex) = delimiters.Pop();
+                if (!IsMatchingDelimiter(open, current)) return false;
+                matchingCloses[openIndex] = index;
             }
         }
         return quote == '\0' && delimiters.Count == 0;
