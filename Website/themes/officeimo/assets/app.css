@@ -44,11 +44,11 @@ h1{font-size:2.75rem;font-weight:800} h2{font-size:2rem;font-weight:800} h3{font
 .imo-nav__link.is-active,
 .imo-nav__link[aria-current="page"]{color:var(--imo-text);background:var(--imo-surface-hover)}
 .imo-chevron{width:10px;height:10px;transition:transform var(--imo-duration)}
-.imo-nav__item:hover .imo-chevron{transform:rotate(180deg)}
+
 .imo-nav__item{padding-bottom:6px;margin-bottom:-6px}
 .imo-dropdown{position:absolute;top:100%;left:50%;transform:translateX(-50%) translateY(8px);min-width:240px;padding:0.75rem;background:rgba(8,15,28,0.96);backdrop-filter:blur(12px) saturate(150%);-webkit-backdrop-filter:blur(12px) saturate(150%);border:1px solid var(--imo-glass-border-hover);border-radius:var(--imo-radius-lg);box-shadow:var(--imo-shadow-xl),inset 0 1px 0 rgba(255,255,255,0.04);opacity:0;visibility:hidden;pointer-events:none;transition:all var(--imo-duration)}
 [data-theme="light"] .imo-dropdown{background:rgba(255,255,255,0.97)}
-.imo-nav__item:hover>.imo-dropdown{opacity:1;visibility:visible;pointer-events:auto;transform:translateX(-50%) translateY(0)}
+
 .imo-dropdown--mega{min-width:540px;display:grid;grid-template-columns:1.4fr 1fr;gap:0.5rem;padding:1.25rem}
 .imo-dropdown__group{display:flex;flex-direction:column;gap:0.125rem}
 .imo-dropdown__group .imo-dropdown__title{padding:0.35rem 0.6rem;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--imo-text-muted)}

@@ -53,7 +53,7 @@ internal sealed class PdfDecodedStreamBudget {
         byte[] decoded;
         try {
             decoded = Filters.StreamDecoder.DecodeRequired(
-                stream.Dictionary, stream.Data, objects, maximumOutput, cancellationToken);
+                stream, objects, maximumOutput, cancellationToken);
         } catch (PdfReadLimitException exception) when (
             exception.Kind == PdfReadLimitKind.DecodedStreamBytes &&
             remaining < Math.Min(_maximumPerStream, (long)maximumRequestedBytes)) {
@@ -113,7 +113,7 @@ internal sealed class PdfDecodedStreamBudget {
             if (requireSupportedFilters) ThrowCachedRequiredFailure(stream, maximumOutput);
             decoded = requireSupportedFilters
                 ? DecodeRequiredAndCacheFailure(stream, objects, maximumOutput, cancellationToken)
-                : Filters.StreamDecoder.Decode(stream.Dictionary, stream.Data, objects, maximumOutput, cancellationToken);
+                : Filters.StreamDecoder.Decode(stream, objects, maximumOutput, cancellationToken);
         } catch (PdfReadLimitException exception) when (
             exception.Kind == PdfReadLimitKind.DecodedStreamBytes &&
             remaining < Math.Min(_maximumPerStream, (long)maximumRequestedBytes)) {
@@ -137,8 +137,7 @@ internal sealed class PdfDecodedStreamBudget {
         System.Threading.CancellationToken cancellationToken) {
         try {
             byte[] decoded = Filters.StreamDecoder.DecodeRequired(
-                stream.Dictionary,
-                stream.Data,
+                stream,
                 objects,
                 maximumOutput,
                 cancellationToken);

@@ -41,7 +41,7 @@ internal static partial class PdfRedactionApplier {
                 continue;
             }
 
-            string content = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, maximumDecodedStreamBytes));
+            string content = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(stream, objects, maximumDecodedStreamBytes));
             ImagePixelRewriteContentResult result = RewriteImagePixelsInContent(objects, resources, xObjects, content, targets, options, contentState, referenceCounts, new HashSet<int>(), removedMatches, limits, hasEffectiveOutputIntentColorTransform, ref nextObjectNumber);
             if (!string.Equals(result.Content, content, StringComparison.Ordinal)) {
                 PdfReference targetReference = reference;
@@ -180,7 +180,7 @@ internal static partial class PdfRedactionApplier {
         }
         PdfDictionary formXObjects = EnsureResourceXObjects(objects, formResources);
         Matrix2D formTransform = ApplyFormMatrix(invocationTransform, formStream.Dictionary);
-        string formContent = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(formStream.Dictionary, formStream.Data, objects, maximumDecodedStreamBytes));
+        string formContent = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(formStream, objects, maximumDecodedStreamBytes));
         ImagePixelRewriteContentResult result = RewriteImagePixelsInContent(objects, formResources, formXObjects, formContent, targets, options, new ImageContentGraphicsState(formTransform), referenceCounts, activeForms, removedMatches, limits, hasEffectiveOutputIntentColorTransform, ref nextObjectNumber);
         if (!string.Equals(result.Content, formContent, StringComparison.Ordinal)) {
             objects[formReference.ObjectNumber] = new PdfIndirectObject(formReference.ObjectNumber, formReference.Generation, new PdfStream(CleanStreamDictionary(formStream.Dictionary), PdfEncoding.Latin1GetBytes(result.Content)));
@@ -473,8 +473,7 @@ internal static partial class PdfRedactionApplier {
         }
 
         if (!StreamDecoder.TryDecode(
-            imageStream.Dictionary,
-            imageStream.Data,
+            imageStream,
             options.MaximumDecodedImageBytes,
             out byte[] pixels,
             objects)) {
@@ -764,8 +763,7 @@ internal static partial class PdfRedactionApplier {
         }
 
         if (!StreamDecoder.TryDecode(
-            softMaskStream.Dictionary,
-            softMaskStream.Data,
+            softMaskStream,
             maximumDecodedImageBytes,
             out byte[] maskPixels,
             objects)) {

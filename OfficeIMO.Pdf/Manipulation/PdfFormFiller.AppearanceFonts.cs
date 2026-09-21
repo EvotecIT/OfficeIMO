@@ -137,7 +137,7 @@ internal static partial class PdfFormFiller {
             return false;
         }
 
-        byte[] toUnicodeData = StreamDecoder.Decode(toUnicodeStream.Dictionary, toUnicodeStream.Data, objects);
+        byte[] toUnicodeData = StreamDecoder.Decode(toUnicodeStream, objects);
         if (!ToUnicodeCMap.TryParse(toUnicodeData, out ToUnicodeCMap? cmap) ||
             cmap is null ||
             !TryCreateTextSegmentEncoder(cmap, displayValue, out string? mappedHex, out Func<string, string?>? segmentEncoder)) {

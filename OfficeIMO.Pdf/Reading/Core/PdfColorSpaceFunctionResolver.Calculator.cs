@@ -30,7 +30,7 @@ internal static partial class PdfColorSpaceFunctionResolver {
             PdfCalculatorProgram.MaxProgramBytes + 1L);
         byte[] bytes;
         try {
-            bytes = Filters.StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, decodeLimit);
+            bytes = Filters.StreamDecoder.DecodeRequired(stream, objects, decodeLimit);
         } catch (InvalidDataException) {
             return false;
         }

@@ -300,7 +300,29 @@ internal static partial class PdfPageExtractor {
     private static PdfDictionary? BuildNamedDestinationsForPages(
         Dictionary<int, PdfIndirectObject> sourceObjects,
         PdfObject? namedDestinations,
-        HashSet<int> copiedPageObjectIds) {
+        HashSet<int> copiedPageObjectIds,
+        Dictionary<int, List<DirectNamedDestinationEntry>>? pageIndex = null) {
+        if (pageIndex is not null) {
+            if (copiedPageObjectIds.Count == 1) {
+                var pageEnumerator = copiedPageObjectIds.GetEnumerator();
+                pageEnumerator.MoveNext();
+                return pageIndex.TryGetValue(pageEnumerator.Current, out var pageEntries)
+                    ? BuildIndexedNamedDestinations(sourceObjects, copiedPageObjectIds, pageEntries)
+                    : null;
+            }
+
+            var candidates = new List<DirectNamedDestinationEntry>();
+            foreach (int pageObjectId in copiedPageObjectIds) {
+                if (pageIndex.TryGetValue(pageObjectId, out var entries)) {
+                    candidates.AddRange(entries);
+                }
+            }
+
+            if (candidates.Count == 0) return null;
+            candidates.Sort((left, right) => left.Order.CompareTo(right.Order));
+            return BuildIndexedNamedDestinations(sourceObjects, copiedPageObjectIds, candidates);
+        }
+
         PdfDictionary? sourceDictionary = ResolveDictionary(sourceObjects, namedDestinations);
         if (sourceDictionary is null) {
             return null;
@@ -319,6 +341,46 @@ internal static partial class PdfPageExtractor {
         }
     
         return result.Items.Count == 0 ? null : result;
+    }
+
+    private static PdfDictionary? BuildIndexedNamedDestinations(
+        Dictionary<int, PdfIndirectObject> sourceObjects,
+        HashSet<int> copiedPageObjectIds,
+        List<DirectNamedDestinationEntry> entries) {
+        var result = new PdfDictionary();
+        for (int index = 0; index < entries.Count; index++) {
+            DirectNamedDestinationEntry entry = entries[index];
+            PdfObject? destination = ResolveObject(sourceObjects, entry.Destination);
+            if (destination is null) return null;
+            if (IsDestinationForCopiedPages(destination, copiedPageObjectIds)) {
+                result.Items[entry.Name] = destination;
+            }
+        }
+
+        return result.Items.Count == 0 ? null : result;
+    }
+
+    private static Dictionary<int, List<DirectNamedDestinationEntry>>? BuildDirectNamedDestinationPageIndex(
+        Dictionary<int, PdfIndirectObject> sourceObjects,
+        PdfObject namedDestinations) {
+        PdfDictionary? sourceDictionary = ResolveDictionary(sourceObjects, namedDestinations);
+        if (sourceDictionary is null) return null;
+
+        var index = new Dictionary<int, List<DirectNamedDestinationEntry>>();
+        int order = 0;
+        foreach (var entry in sourceDictionary.Items) {
+            if (!TryGetNamedDestinationPageObjectId(sourceObjects, entry.Value, out int pageObjectId)) {
+                return null;
+            }
+
+            if (!index.TryGetValue(pageObjectId, out var entries)) {
+                entries = new List<DirectNamedDestinationEntry>();
+                index[pageObjectId] = entries;
+            }
+            entries.Add(new DirectNamedDestinationEntry(entry.Key, entry.Value, order++));
+        }
+
+        return index;
     }
     
     private static bool IsDestinationForCopiedPages(PdfObject destination, HashSet<int> copiedPageObjectIds) {

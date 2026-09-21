@@ -1,3 +1,6 @@
+#if NET8_0_OR_GREATER
+using System.Buffers;
+#endif
 using System.Globalization;
 using System.Threading;
 
@@ -10,6 +13,8 @@ internal static partial class PdfPageExtractor {
         private readonly Dictionary<int, Dictionary<string, PdfObject>> _pageOverrides;
         private readonly List<int> _objectIds = new();
         private readonly HashSet<int> _visited = new();
+        private TraversalStack _pending;
+        private readonly List<KeyValuePair<string, PdfObject>> _reverseEntries = new();
         private readonly CancellationToken _cancellationToken;
     
         public ObjectCollector(
@@ -46,12 +51,11 @@ internal static partial class PdfPageExtractor {
         }
     
         private void CollectObject(int objectNumber, bool isPageObject) {
-            var pending = new Stack<TraversalItem>();
-            QueueObject(objectNumber, isPageObject, pending);
-            TraversePending(pending);
+            QueueObject(objectNumber, isPageObject, ref _pending);
+            TraversePending(ref _pending);
         }
 
-        private void QueueObject(int objectNumber, bool isPageObject, Stack<TraversalItem> pending) {
+        private void QueueObject(int objectNumber, bool isPageObject, ref TraversalStack pending) {
             if (!_visited.Add(objectNumber)) {
                 return;
             }
@@ -70,62 +74,69 @@ internal static partial class PdfPageExtractor {
         }
     
         private void CollectReferences(PdfObject value, bool isPageObject, Dictionary<string, PdfObject>? pageOverrides = null) {
-            var pending = new Stack<TraversalItem>();
-            pending.Push(new TraversalItem(value, isPageObject, pageOverrides));
-            TraversePending(pending);
+            _pending.Push(new TraversalItem(value, isPageObject, pageOverrides));
+            TraversePending(ref _pending);
         }
 
-        private void TraversePending(Stack<TraversalItem> pending) {
-            while (pending.Count != 0) {
-                _cancellationToken.ThrowIfCancellationRequested();
-                TraversalItem current = pending.Pop();
-                PdfObject value = current.Value;
-                bool isPageObject = current.IsPageObject;
-                Dictionary<string, PdfObject>? pageOverrides = current.PageOverrides;
-                switch (value) {
-                case PdfReference reference:
-                    if (reference.ObjectNumber >= 0 &&
-                        _sourceObjects.TryGetValue(reference.ObjectNumber, out var referenced) &&
-                        referenced.Generation != reference.Generation) {
-                        throw BuildGenerationMismatchException(reference, referenced.Generation);
-                    }
-    
-                    QueueObject(reference.ObjectNumber, isPageObject: false, pending);
-                    break;
-                case PdfArray array:
-                    for (int index = array.Items.Count - 1; index >= 0; index--) {
-                        pending.Push(new TraversalItem(array.Items[index], isPageObject: false, pageOverrides: null));
-                    }
-    
-                    break;
-                case PdfDictionary dictionary:
-                    if (isPageObject && pageOverrides is not null) {
-                        foreach (var entry in pageOverrides.Reverse()) {
-                            pending.Push(new TraversalItem(entry.Value, isPageObject: false, pageOverrides: null));
+        private void TraversePending(ref TraversalStack pending) {
+            try {
+                while (pending.Count != 0) {
+                    _cancellationToken.ThrowIfCancellationRequested();
+                    TraversalItem current = pending.Pop();
+                    PdfObject value = current.Value;
+                    bool isPageObject = current.IsPageObject;
+                    Dictionary<string, PdfObject>? pageOverrides = current.PageOverrides;
+                    switch (value) {
+                    case PdfReference reference:
+                        if (reference.ObjectNumber >= 0 &&
+                            _sourceObjects.TryGetValue(reference.ObjectNumber, out var referenced) &&
+                            referenced.Generation != reference.Generation) {
+                            throw BuildGenerationMismatchException(reference, referenced.Generation);
                         }
-                    }
 
-                    foreach (var entry in dictionary.Items.Reverse()) {
-                        if (isPageObject &&
-                            (string.Equals(entry.Key, "Parent", StringComparison.Ordinal) ||
-                            (pageOverrides is not null && pageOverrides.ContainsKey(entry.Key)))) {
-                            continue;
+                        QueueObject(reference.ObjectNumber, isPageObject: false, ref pending);
+                        break;
+                    case PdfArray array:
+                        for (int index = array.Items.Count - 1; index >= 0; index--) {
+                            pending.Push(new TraversalItem(array.Items[index], isPageObject: false, pageOverrides: null));
                         }
-    
-                        pending.Push(new TraversalItem(entry.Value, isPageObject: false, pageOverrides: null));
-                    }
-    
-                    break;
-                case PdfStream stream:
-                    foreach (var entry in stream.Dictionary.Items.Reverse()) {
-                        if (!string.Equals(entry.Key, "Length", StringComparison.Ordinal)) {
-                            pending.Push(new TraversalItem(entry.Value, isPageObject: false, pageOverrides: null));
+
+                        break;
+                    case PdfDictionary dictionary:
+                        if (isPageObject && pageOverrides is not null) {
+                            QueueEntriesInReverse(pageOverrides, ref pending, skipPageParent: false, pageOverrides: null, skipStreamLength: false);
                         }
+
+                        QueueEntriesInReverse(dictionary.Items, ref pending, skipPageParent: isPageObject, pageOverrides, skipStreamLength: false);
+
+                        break;
+                    case PdfStream stream:
+                        QueueEntriesInReverse(stream.Dictionary.Items, ref pending, skipPageParent: false, pageOverrides: null, skipStreamLength: true);
+
+                        break;
                     }
-    
-                    break;
                 }
+            } finally {
+                pending.Release();
             }
+        }
+
+        private void QueueEntriesInReverse(
+            Dictionary<string, PdfObject> entries,
+            ref TraversalStack pending,
+            bool skipPageParent,
+            Dictionary<string, PdfObject>? pageOverrides,
+            bool skipStreamLength) {
+            _reverseEntries.AddRange(entries);
+            for (int index = _reverseEntries.Count - 1; index >= 0; index--) {
+                KeyValuePair<string, PdfObject> entry = _reverseEntries[index];
+                if (skipPageParent &&
+                    (string.Equals(entry.Key, "Parent", StringComparison.Ordinal) ||
+                    (pageOverrides is not null && pageOverrides.ContainsKey(entry.Key)))) continue;
+                if (skipStreamLength && string.Equals(entry.Key, "Length", StringComparison.Ordinal)) continue;
+                pending.Push(new TraversalItem(entry.Value, isPageObject: false, pageOverrides: null));
+            }
+            _reverseEntries.Clear();
         }
     
         private void MaterializeInheritedPageValues(int pageObjectNumber, PdfDictionary pageDictionary) {
@@ -170,6 +181,57 @@ internal static partial class PdfPageExtractor {
             }
     
             return null;
+        }
+
+        private struct TraversalStack {
+#if NET8_0_OR_GREATER
+            private TraversalItem[]? _items;
+            private int _count;
+
+            internal readonly int Count => _count;
+
+            internal void Push(TraversalItem item) {
+                if (_items is null) {
+                    _items = ArrayPool<TraversalItem>.Shared.Rent(16);
+                } else if (_count == _items.Length) {
+                    TraversalItem[] expanded = ArrayPool<TraversalItem>.Shared.Rent(checked(_count * 2));
+                    Array.Copy(_items, expanded, _count);
+                    ArrayPool<TraversalItem>.Shared.Return(_items, clearArray: true);
+                    _items = expanded;
+                }
+
+                _items[_count++] = item;
+            }
+
+            internal TraversalItem Pop() {
+                if (_count == 0) throw new InvalidOperationException("The PDF object traversal stack is empty.");
+                int index = --_count;
+                TraversalItem item = _items![index];
+                _items[index] = default;
+                return item;
+            }
+
+            internal void Release() {
+                if (_items is null) return;
+                ArrayPool<TraversalItem>.Shared.Return(_items, clearArray: true);
+                _items = null;
+                _count = 0;
+            }
+#else
+            private Stack<TraversalItem>? _items;
+
+            internal readonly int Count => _items?.Count ?? 0;
+
+            internal void Push(TraversalItem item) =>
+                (_items ??= new Stack<TraversalItem>()).Push(item);
+
+            internal TraversalItem Pop() => _items!.Pop();
+
+            internal void Release() {
+                // Preserve the existing retained Stack<T> behavior on legacy targets.
+                if (_items is null) return;
+            }
+#endif
         }
 
         private readonly struct TraversalItem {

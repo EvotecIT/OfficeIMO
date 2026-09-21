@@ -4,6 +4,7 @@ internal static partial class PdfPageExtractor {
     /// <summary>One validated input and catalog snapshot shared by a compound page extraction.</summary>
     internal sealed class ExtractionSession {
         private readonly PdfReadDocument _document;
+        private PdfMetadata? _metadata;
         private readonly CatalogRewriteState _catalog;
         private readonly PdfFileVersion _fileVersion;
 
@@ -23,7 +24,7 @@ internal static partial class PdfPageExtractor {
             if (pageNumbers.Length == 0) throw new ArgumentException("At least one page number must be specified.", nameof(pageNumbers));
             ValidatePageNumbers(pageNumbers, PageCount, nameof(pageNumbers));
             int[] objects = pageNumbers.Select(number => _document.Pages[number - 1].ObjectNumber).ToArray();
-            return ExtractPages(_document.Objects, _document.UncheckedMetadata, objects,
+            return ExtractPages(_document.Objects, _metadata ??= _document.UncheckedMetadata, objects,
                 catalogState: _catalog, fileVersion: _fileVersion, maximumOutputBytes: maximumOutputBytes);
         }
 

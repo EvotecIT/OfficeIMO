@@ -40,7 +40,8 @@ internal static partial class PdfPageExtractor {
         }
 
         var sourceIds = collector.ObjectIds;
-        var numberMap = new Dictionary<int, int>();
+        int numberMapCapacity = GetBoundedExtractionCollectionCount(sourceIds.Count, extraObjects.Length);
+        var numberMap = new Dictionary<int, int>(numberMapCapacity);
         for (int i = 0; i < sourceIds.Count; i++) {
             numberMap[sourceIds[i]] = i + 1;
         }
@@ -55,7 +56,7 @@ internal static partial class PdfPageExtractor {
         }
     
         var clonedPages = new List<ClonedPageObject>();
-        var seenPages = new HashSet<int>();
+        var seenPages = PdfCollectionSizing.CreateHashSet<int>(pageObjectNumbers.Length, pageObjectNumbers.Length);
         var outputPageObjectIds = new int[pageObjectNumbers.Length];
         for (int i = 0; i < pageObjectNumbers.Length; i++) {
             int pageObjectNumber = pageObjectNumbers[i];
@@ -77,7 +78,8 @@ internal static partial class PdfPageExtractor {
         int catalogId = nextObjectId++;
         int infoId = nextObjectId;
         var context = new SerializationContext(numberMap, pagesId, collector.MaterializedPageValues, sourceObjects, pageOverrides);
-        var objects = new List<byte[]>(sourceIds.Count + 3);
+        int serializedObjectCapacity = GetSerializedObjectCapacity(sourceIds.Count, extraObjects.Length, clonedPages);
+        var objects = new List<PdfSerializedObject>(serializedObjectCapacity);
         long serializedObjectBytes = 0L;
         bool enforceOutputLimit = maximumOutputBytes.HasValue;
         long objectBytesLimit = maximumOutputBytes ?? long.MaxValue;
@@ -98,11 +100,11 @@ internal static partial class PdfPageExtractor {
                     newId,
                     objectBytesLimit - serializedObjectBytes - (ReferenceEquals(sizeCheckValue, sourceObject.Value) ? 0L : 64L));
             }
-            byte[] body = sourceObject.Value is PdfDictionary dictionary && collector.PageObjectIds.Contains(sourceId)
-                ? SerializePageDictionary(dictionary, sourceId, context)
-                : SerializeObject(sourceObject.Value, context);
-    
-            AddBoundedObject(objects, newId, body, objectBytesLimit, ref serializedObjectBytes);
+            PdfSerializedObject serializedObject = sourceObject.Value is PdfDictionary dictionary && collector.PageObjectIds.Contains(sourceId)
+                ? PdfSerializedObject.FromBytes(WrapObject(newId, SerializePageDictionary(dictionary, sourceId, context)))
+                : SerializeIndirectObjectForAssembly(newId, sourceObject.Value, context);
+
+            AddBoundedObject(objects, serializedObject, objectBytesLimit, ref serializedObjectBytes);
         }
     
         foreach (var extraObject in extraObjects) {
@@ -114,8 +116,8 @@ internal static partial class PdfPageExtractor {
                     newId,
                     objectBytesLimit - serializedObjectBytes);
             }
-            byte[] body = SerializeObject(extraObject.Value, context);
-            AddBoundedObject(objects, newId, body, objectBytesLimit, ref serializedObjectBytes);
+            PdfSerializedObject serializedObject = SerializeIndirectObjectForAssembly(newId, extraObject.Value, context);
+            AddBoundedObject(objects, serializedObject, objectBytesLimit, ref serializedObjectBytes);
         }
     
         foreach (var clonedPage in clonedPages) {
@@ -145,8 +147,10 @@ internal static partial class PdfPageExtractor {
                     clonedPage.OutputPageObjectNumber,
                     objectBytesLimit - serializedObjectBytes - 64L);
             }
-            byte[] body = SerializePageDictionary(dictionary, clonedPage.SourcePageObjectNumber, clonedContext);
-            AddBoundedObject(objects, clonedPage.OutputPageObjectNumber, body, objectBytesLimit, ref serializedObjectBytes);
+            PdfSerializedObject serializedPage = PdfSerializedObject.FromBytes(WrapObject(
+                clonedPage.OutputPageObjectNumber,
+                SerializePageDictionary(dictionary, clonedPage.SourcePageObjectNumber, clonedContext)));
+            AddBoundedObject(objects, serializedPage, objectBytesLimit, ref serializedObjectBytes);
     
             foreach (var annotation in clonedPage.AnnotationObjectMap) {
                 if (!sourceObjects.TryGetValue(annotation.Key, out var annotationObject)) {
@@ -160,14 +164,14 @@ internal static partial class PdfPageExtractor {
                         annotation.Value,
                         objectBytesLimit - serializedObjectBytes);
                 }
-                byte[] annotationBody = SerializeObject(annotationObject.Value, clonedContext);
-                AddBoundedObject(objects, annotation.Value, annotationBody, objectBytesLimit, ref serializedObjectBytes);
+                PdfSerializedObject serializedAnnotation = SerializeIndirectObjectForAssembly(annotation.Value, annotationObject.Value, clonedContext);
+                AddBoundedObject(objects, serializedAnnotation, objectBytesLimit, ref serializedObjectBytes);
             }
         }
     
-        AddBoundedObject(objects, pagesId, PdfEncoding.Latin1GetBytes(PdfPageTreeBuilder.BuildPagesDictionary(outputPageObjectIds)), objectBytesLimit, ref serializedObjectBytes);
-        AddBoundedObject(objects, catalogId, PdfEncoding.Latin1GetBytes(BuildCatalogDictionary(pagesId, catalogState, context)), objectBytesLimit, ref serializedObjectBytes);
-        AddBoundedObject(objects, infoId, PdfEncoding.Latin1GetBytes(BuildInfoDictionary(metadata)), objectBytesLimit, ref serializedObjectBytes);
+        AddBoundedObject(objects, PdfSerializedObject.FromBytes(WrapObject(pagesId, PdfEncoding.Latin1GetBytes(PdfPageTreeBuilder.BuildPagesDictionary(outputPageObjectIds)))), objectBytesLimit, ref serializedObjectBytes);
+        AddBoundedObject(objects, PdfSerializedObject.FromBytes(WrapObject(catalogId, PdfEncoding.Latin1GetBytes(BuildCatalogDictionary(pagesId, catalogState, context)))), objectBytesLimit, ref serializedObjectBytes);
+        AddBoundedObject(objects, PdfSerializedObject.FromBytes(WrapObject(infoId, PdfEncoding.Latin1GetBytes(BuildInfoDictionary(metadata)))), objectBytesLimit, ref serializedObjectBytes);
     
         byte[] result = maximumOutputBytes.HasValue
             ? AssembleBounded(objects, catalogId, infoId, fileVersion, maximumOutputBytes.Value)
@@ -176,38 +180,63 @@ internal static partial class PdfPageExtractor {
         return result;
     }
 
+    private static int GetSerializedObjectCapacity(
+        int sourceObjectCount,
+        int additionalObjectCount,
+        IReadOnlyList<ClonedPageObject> clonedPages) {
+        long total = (long)sourceObjectCount + additionalObjectCount + clonedPages.Count + 3L;
+        for (int index = 0; index < clonedPages.Count; index++) {
+            total += clonedPages[index].AnnotationObjectMap.Count;
+        }
+        return GetBoundedExtractionCollectionCount(total);
+    }
+
+    private static int GetBoundedExtractionCollectionCount(int first, int second) =>
+        GetBoundedExtractionCollectionCount((long)first + second);
+
+    private static int GetBoundedExtractionCollectionCount(long total) {
+        if (total > int.MaxValue) {
+            throw PdfOutputLimitErrors.Create("The extracted PDF exceeds the supported in-memory collection limits.");
+        }
+        return (int)total;
+    }
+
     private static void AddBoundedObject(
-        List<byte[]> objects,
-        int objectNumber,
-        byte[] body,
+        List<PdfSerializedObject> objects,
+        PdfSerializedObject indirectObject,
         long maximumObjectBytes,
         ref long serializedObjectBytes) {
-        byte[] indirectObject = WrapObject(objectNumber, body);
-        if (serializedObjectBytes > maximumObjectBytes - indirectObject.LongLength) {
+        if (serializedObjectBytes > maximumObjectBytes - indirectObject.Length) {
             throw new InvalidDataException("The extracted PDF exceeds the configured output limit.");
         }
-        serializedObjectBytes += indirectObject.LongLength;
+        serializedObjectBytes += indirectObject.Length;
         objects.Add(indirectObject);
     }
 
     private static byte[] AssembleBounded(
-        IReadOnlyList<byte[]> objects,
+        IReadOnlyList<PdfSerializedObject> objects,
         int catalogId,
         int infoId,
         PdfFileVersion fileVersion,
         long maximumOutputBytes) {
+        long assembledLength = PdfFileAssembler.GetAssembledLength(objects, catalogId, infoId, fileVersion);
+        if (assembledLength > maximumOutputBytes) {
+            throw new InvalidDataException("The extracted PDF exceeds the configured output limit.");
+        }
+        if (assembledLength > int.MaxValue) {
+            throw new InvalidDataException("The extracted PDF exceeds the supported in-memory result size.");
+        }
         using FileStream output = PdfTemporaryFile.Create(".extract", FileOptions.RandomAccess, out _);
         using var boundedOutput = new PdfBoundedWriteStream(
             output,
-            maximumOutputBytes,
+            Math.Min(maximumOutputBytes, int.MaxValue),
             "The extracted PDF exceeds the configured output limit.");
         PdfFileAssembler.Assemble(
             boundedOutput,
             objects,
             catalogId,
             infoId,
-            fileVersion,
-            objectMemoryLimitBytes: 0L);
+            fileVersion);
         boundedOutput.Flush();
         if (output.Length > int.MaxValue) {
             throw new InvalidDataException("The extracted PDF exceeds the supported in-memory result size.");

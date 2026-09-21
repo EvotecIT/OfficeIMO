@@ -212,48 +212,21 @@ internal static partial class PdfPageExtractor {
         IReadOnlyList<int>? orderedPageObjectNumbers,
         int outputPageIndexOffset,
         IReadOnlyDictionary<int, int>? outputPageIndexByPageObjectNumber,
-        IReadOnlyList<int>? sourcePageOrder = null) {
+        Dictionary<int, int>? sourcePageIndexes = null,
+        List<PageLabelEntry>? entries = null) {
         if (pageLabels is null || orderedPageObjectNumbers is null || orderedPageObjectNumbers.Count == 0) {
             return pageLabels;
         }
-    
-        PdfDictionary? labelTree = ResolveDictionary(sourceObjects, pageLabels);
-        if (labelTree is null ||
-            labelTree.Items.ContainsKey("Kids") ||
-            !labelTree.Items.TryGetValue("Nums", out var numsObject) ||
-            ResolveObject(sourceObjects, numsObject) is not PdfArray nums ||
-            nums.Items.Count % 2 != 0) {
+
+        sourcePageIndexes ??= BuildSourcePageIndexes(GetPageObjectNumbersInDocumentOrder(sourceObjects));
+        if (sourcePageIndexes.Count == 0) {
             return pageLabels;
         }
-    
-        sourcePageOrder ??= GetPageObjectNumbersInDocumentOrder(sourceObjects);
-        if (sourcePageOrder.Count == 0) {
+
+        entries ??= ReadPageLabelEntries(sourceObjects, pageLabels);
+        if (entries is null || entries.Count == 0) {
             return pageLabels;
         }
-    
-        var sourcePageIndexes = new Dictionary<int, int>();
-        for (int i = 0; i < sourcePageOrder.Count; i++) {
-            if (!sourcePageIndexes.ContainsKey(sourcePageOrder[i])) {
-                sourcePageIndexes[sourcePageOrder[i]] = i;
-            }
-        }
-    
-        var entries = new List<PageLabelEntry>();
-        for (int i = 0; i < nums.Items.Count; i += 2) {
-            if (ResolveObject(sourceObjects, nums.Items[i]) is not PdfNumber pageIndexNumber ||
-                !TryGetNonNegativeInteger(pageIndexNumber, out int pageIndex) ||
-                ResolveObject(sourceObjects, nums.Items[i + 1]) is not PdfDictionary labelDictionary) {
-                return pageLabels;
-            }
-    
-            entries.Add(new PageLabelEntry(pageIndex, labelDictionary));
-        }
-    
-        if (entries.Count == 0) {
-            return pageLabels;
-        }
-    
-        entries.Sort((left, right) => left.StartPageIndex.CompareTo(right.StartPageIndex));
         var rewrittenNums = new PdfArray();
         PageLabelEntry? previousEntry = null;
         int previousSourcePageIndex = -1;
@@ -297,7 +270,45 @@ internal static partial class PdfPageExtractor {
         rewrittenTree.Items["Nums"] = rewrittenNums;
         return rewrittenTree;
     }
-    
+
+    private static List<PageLabelEntry>? ReadPageLabelEntries(
+        Dictionary<int, PdfIndirectObject> sourceObjects,
+        PdfObject pageLabels) {
+        PdfDictionary? labelTree = ResolveDictionary(sourceObjects, pageLabels);
+        if (labelTree is null ||
+            labelTree.Items.ContainsKey("Kids") ||
+            !labelTree.Items.TryGetValue("Nums", out var numsObject) ||
+            ResolveObject(sourceObjects, numsObject) is not PdfArray nums ||
+            nums.Items.Count % 2 != 0) {
+            return null;
+        }
+
+        var entries = new List<PageLabelEntry>(nums.Items.Count / 2);
+        for (int i = 0; i < nums.Items.Count; i += 2) {
+            if (ResolveObject(sourceObjects, nums.Items[i]) is not PdfNumber pageIndexNumber ||
+                !TryGetNonNegativeInteger(pageIndexNumber, out int pageIndex) ||
+                ResolveObject(sourceObjects, nums.Items[i + 1]) is not PdfDictionary labelDictionary) {
+                return null;
+            }
+
+            entries.Add(new PageLabelEntry(pageIndex, labelDictionary));
+        }
+
+        entries.Sort((left, right) => left.StartPageIndex.CompareTo(right.StartPageIndex));
+        return entries;
+    }
+
+    private static Dictionary<int, int> BuildSourcePageIndexes(List<int> sourcePageOrder) {
+        var indexes = new Dictionary<int, int>(sourcePageOrder.Count);
+        for (int index = 0; index < sourcePageOrder.Count; index++) {
+            if (!indexes.ContainsKey(sourcePageOrder[index])) {
+                indexes[sourcePageOrder[index]] = index;
+            }
+        }
+
+        return indexes;
+    }
+
     private static List<int> GetPageObjectNumbersInDocumentOrder(Dictionary<int, PdfIndirectObject> sourceObjects, PdfDictionary? catalog = null) {
         var pages = new List<int>();
         if (catalog is not null &&
@@ -351,17 +362,19 @@ internal static partial class PdfPageExtractor {
         }
     }
     
-    private static PageLabelEntry? FindPageLabelEntry(IReadOnlyList<PageLabelEntry> entries, int sourcePageIndex) {
-        PageLabelEntry? selected = null;
-        for (int i = 0; i < entries.Count; i++) {
-            if (entries[i].StartPageIndex > sourcePageIndex) {
-                break;
+    private static PageLabelEntry? FindPageLabelEntry(List<PageLabelEntry> entries, int sourcePageIndex) {
+        int low = 0;
+        int high = entries.Count;
+        while (low < high) {
+            int middle = low + ((high - low) >> 1);
+            if (entries[middle].StartPageIndex <= sourcePageIndex) {
+                low = middle + 1;
+            } else {
+                high = middle;
             }
-    
-            selected = entries[i];
         }
-    
-        return selected;
+
+        return low == 0 ? null : entries[low - 1];
     }
     
     private static PdfDictionary ClonePageLabelDictionary(PdfDictionary source, int sourcePageOffset) {

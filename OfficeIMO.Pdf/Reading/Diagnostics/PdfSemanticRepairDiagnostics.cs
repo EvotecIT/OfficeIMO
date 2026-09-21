@@ -66,7 +66,7 @@ internal static class PdfSemanticRepairDiagnostics {
         foreach (KeyValuePair<string, PdfObject> entry in names.Items) {
             if (!IsStandardCatalogNameTree(entry.Key)) continue;
             int traversedNameTreeNodes = 0;
-            ValidateNameTreeNode(objects, entry.Value, entry.Key, new HashSet<int>(), options, diagnostics, 0, ref traversedNameTreeNodes);
+            ValidateNameTreeNode(objects, entry.Value, entry.Key, new HashSet<(int ObjectNumber, int Generation)>(), options, diagnostics, 0, ref traversedNameTreeNodes);
         }
 
         if (names.Items.TryGetValue("Dests", out PdfObject? destinations)) {
@@ -74,7 +74,7 @@ internal static class PdfSemanticRepairDiagnostics {
             ValidateDestinationTree(
                 objects,
                 destinations,
-                new HashSet<int>(),
+                new HashSet<(int ObjectNumber, int Generation)>(),
                 new HashSet<int>(pages.Select(static page => page.ObjectNumber)),
                 options,
                 diagnostics,
@@ -92,14 +92,14 @@ internal static class PdfSemanticRepairDiagnostics {
         Dictionary<int, PdfIndirectObject> objects,
         PdfObject nodeObject,
         string treeName,
-        HashSet<int> visited,
+        HashSet<(int ObjectNumber, int Generation)> visited,
         PdfLoadOptions options,
         List<PdfRepairDiagnostic> diagnostics,
         int depth,
         ref int traversedNodes) {
         EnsureNameTreeBudget(options.Limits, depth, traversedNodes);
         if (nodeObject is PdfReference reference) {
-            if (!visited.Add(reference.ObjectNumber)) return;
+            if (!visited.Add((reference.ObjectNumber, reference.Generation))) return;
             EnsureNameTreeBudget(options.Limits, depth, ++traversedNodes);
         }
 
@@ -117,7 +117,7 @@ internal static class PdfSemanticRepairDiagnostics {
     private static void ValidateDestinationTree(
         Dictionary<int, PdfIndirectObject> objects,
         PdfObject nodeObject,
-        HashSet<int> visited,
+        HashSet<(int ObjectNumber, int Generation)> visited,
         HashSet<int> pageObjectNumbers,
         PdfLoadOptions options,
         List<PdfRepairDiagnostic> diagnostics,
@@ -125,7 +125,7 @@ internal static class PdfSemanticRepairDiagnostics {
         ref int traversedNodes) {
         EnsureNameTreeBudget(options.Limits, depth, traversedNodes);
         if (nodeObject is PdfReference reference) {
-            if (!visited.Add(reference.ObjectNumber)) return;
+            if (!visited.Add((reference.ObjectNumber, reference.Generation))) return;
             EnsureNameTreeBudget(options.Limits, depth, ++traversedNodes);
         }
 
@@ -154,10 +154,18 @@ internal static class PdfSemanticRepairDiagnostics {
 
     private static void DiagnoseOrphanedSemanticObjects(Dictionary<int, PdfIndirectObject> objects, PdfDictionary catalog, List<PdfRepairDiagnostic> diagnostics) {
         int catalogNumber = FindObjectNumber(objects, catalog); if (catalogNumber <= 0) return;
-        var reachable = new HashSet<int>(); TraverseReferences(objects, new PdfReference(catalogNumber, objects[catalogNumber].Generation), reachable);
-        int[] orphans = objects.Values.Where(indirect => !reachable.Contains(indirect.ObjectNumber) && IsSemanticObject(indirect.Value)).Select(static indirect => indirect.ObjectNumber).OrderBy(static number => number).ToArray();
-        if (orphans.Length == 0) return;
-        diagnostics.Add(new PdfRepairDiagnostic("OrphanedSemanticObjects", "Detected " + orphans.Length + " unreachable semantic object(s), beginning with object " + orphans[0] + "; they remain available for forensic inspection and are not silently deleted during read.", orphans[0], PdfRepairDisposition.DetectedOnly));
+        HashSet<int> reachable = PdfCollectionSizing.CreateHashSet<int>(objects.Count, objects.Count);
+        TraverseReferences(objects, new PdfReference(catalogNumber, objects[catalogNumber].Generation), reachable);
+        int orphanCount = 0;
+        int firstOrphan = int.MaxValue;
+        foreach (PdfIndirectObject indirect in objects.Values) {
+            if (reachable.Contains(indirect.ObjectNumber) || !IsSemanticObject(indirect.Value)) continue;
+            orphanCount++;
+            firstOrphan = Math.Min(firstOrphan, indirect.ObjectNumber);
+        }
+
+        if (orphanCount == 0) return;
+        diagnostics.Add(new PdfRepairDiagnostic("OrphanedSemanticObjects", "Detected " + orphanCount + " unreachable semantic object(s), beginning with object " + firstOrphan + "; they remain available for forensic inspection and are not silently deleted during read.", firstOrphan, PdfRepairDisposition.DetectedOnly));
     }
 
     private static bool IsSemanticObject(PdfObject value) {
@@ -168,16 +176,23 @@ internal static class PdfSemanticRepairDiagnostics {
     }
 
     private static void TraverseReferences(Dictionary<int, PdfIndirectObject> objects, PdfObject root, HashSet<int> reachable) {
-        var visited = new HashSet<PdfObject>(PdfObjectReferenceComparer.Instance);
         var pending = new Stack<PdfObject>(); pending.Push(root);
         while (pending.Count > 0) {
             PdfObject value = pending.Pop();
-            if (!visited.Add(value)) continue;
             if (value is PdfReference reference) {
-                if (reachable.Add(reference.ObjectNumber) && objects.TryGetValue(reference.ObjectNumber, out PdfIndirectObject? indirect)) pending.Push(indirect.Value);
+                if (!reachable.Add(reference.ObjectNumber)) continue;
+                if (PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject indirect)) pending.Push(indirect.Value);
+                else reachable.Remove(reference.ObjectNumber); // A bad generation must not hide a later valid reference.
                 continue;
             }
-            if (value is PdfArray array) { for (int i = 0; i < array.Items.Count; i++) pending.Push(array.Items[i]); continue; }
+            // Indirect references are the only way a parsed PDF object graph can
+            // contain cycles. Direct dictionaries and arrays are materialized as
+            // bounded trees by the parser, so reference-identity hashing here only
+            // repeats work for every container in otherwise valid documents.
+            if (value is PdfArray array) {
+                for (int i = 0; i < array.Items.Count; i++) pending.Push(array.Items[i]);
+                continue;
+            }
             PdfDictionary? dictionary = value is PdfDictionary direct ? direct : value is PdfStream stream ? stream.Dictionary : null;
             if (dictionary != null) foreach (PdfObject item in dictionary.Items.Values) pending.Push(item);
         }
@@ -193,9 +208,4 @@ internal static class PdfSemanticRepairDiagnostics {
     private static PdfArray? ResolveArray(Dictionary<int, PdfIndirectObject> objects, PdfObject? value) => PdfObjectLookup.Resolve(objects, value) as PdfArray;
     private static int FindObjectNumber(Dictionary<int, PdfIndirectObject> objects, PdfObject value) { foreach (PdfIndirectObject indirect in objects.Values) if (ReferenceEquals(indirect.Value, value) || indirect.Value is PdfStream stream && ReferenceEquals(stream.Dictionary, value)) return indirect.ObjectNumber; return 0; }
 
-    private sealed class PdfObjectReferenceComparer : IEqualityComparer<PdfObject> {
-        internal static readonly PdfObjectReferenceComparer Instance = new PdfObjectReferenceComparer();
-        public bool Equals(PdfObject? left, PdfObject? right) => ReferenceEquals(left, right);
-        public int GetHashCode(PdfObject value) => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(value);
-    }
 }

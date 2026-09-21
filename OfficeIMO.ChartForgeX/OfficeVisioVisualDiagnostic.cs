@@ -78,6 +78,8 @@ public enum OfficeVisioVisualDiagnosticCode {
     NodeKindNormalized,
     /// <summary>A visible artifact title was retained only as document metadata.</summary>
     TitleNotProjected,
+    /// <summary>Preserved geometry extends beyond the declared page bounds.</summary>
+    GeometryOutsidePage,
     /// <summary>A sequence deactivation with no corresponding activation was not projected.</summary>
     ActivationNotProjected,
     /// <summary>A sequence branch divider could not be projected, although its guard was retained.</summary>

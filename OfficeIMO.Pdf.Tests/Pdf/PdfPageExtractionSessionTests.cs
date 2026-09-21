@@ -45,6 +45,24 @@ public sealed class PdfPageExtractionSessionTests {
     }
 
     [Fact]
+    public void ChainedSelectionsKeepPageOrderAndValidatedPipelineCounts() {
+        byte[] bytes = PdfDocument.Create().Paragraph(p => p.Text("FirstPage"))
+            .PageBreak().Paragraph(p => p.Text("SecondPage"))
+            .PageBreak().Paragraph(p => p.Text("ThirdPage")).ToBytes();
+        PdfDocument source = PdfDocument.Load(bytes);
+
+        PdfDocument first = source.Pages.Extract(PdfPageSelection.Parse("3,1-2"));
+        PdfDocument second = first.Pages.Extract(2, 1);
+
+        Assert.Equal(3, first.Pipeline.Output?.PageCount);
+        Assert.Equal(2, second.Pipeline.Output?.PageCount);
+        using var independent = UglyToad.PdfPig.PdfDocument.Open(second.ToBytes());
+        Assert.Equal(new[] { "FirstPage", "ThirdPage" },
+            independent.GetPages().Select(static page => page.Text.Trim()).ToArray());
+        Assert.Equal(bytes, source.ToBytes());
+    }
+
+    [Fact]
     public void WarmSourceStillEnforcesExplicitParserLimitsForPageOperations() {
         PdfDocument source = PdfDocument.Load(PdfDocument.Create().Paragraph(p => p.Text("Readable")).ToBytes());
         Assert.Contains("Readable", source.Reader.Text());

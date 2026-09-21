@@ -1,0 +1,57 @@
+@namespace OfficeIMO.Web.Converter.Components
+@implements IDisposable
+@inject BrowserToolLoader Loader
+@inject NavigationManager Navigation
+
+@if (_ready) {
+    @ChildContent
+} else {
+    <section class="ocx-tool-loading" aria-busy="@(_error is null)">
+        <p class="ocx-tool-loading__eyebrow">Browser tools · Local processing</p>
+        @if (_error is null) {
+            <h2>Preparing @Title</h2>
+            <p role="status">Downloading the tools for this task. The first visit can take longer; your files stay on this device.</p>
+            <progress aria-label="Loading selected tool"></progress>
+        } else {
+            <h2>This tool could not load</h2>
+            <p role="alert">Check your connection, then reload the workspace to download this tool again. You can also choose another tool from the menu.</p>
+            <p>Reloading clears files and results from this browser session. Save any results you need first.</p>
+            <button class="ocx-button ocx-button--primary" type="button" @onclick="Reload">Reload workspace</button>
+        }
+    </section>
+}
+
+@code {
+    [Parameter] public string Workspace { get; set; } = "convert";
+    [Parameter] public string Route { get; set; } = "docx-pdf";
+    [Parameter] public string Title { get; set; } = "your tool";
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    private bool _ready;
+    private bool _disposed;
+    private string? _error;
+    private int _generation;
+    private string? _selection;
+
+    protected override Task OnParametersSetAsync() {
+        string selection = Workspace + ":" + Route;
+        if (_selection == selection) return Task.CompletedTask;
+        _selection = selection;
+        _ready = false;
+        return LoadAsync();
+    }
+
+    private async Task LoadAsync() {
+        int generation = ++_generation;
+        _error = null;
+        try {
+            await Loader.LoadAsync(Workspace, Route);
+            if (!_disposed && generation == _generation) _ready = true;
+        } catch (Exception error) {
+            if (!_disposed && generation == _generation) _error = error.Message;
+        }
+    }
+
+    public void Dispose() { _disposed = true; }
+
+    private void Reload() => Navigation.NavigateTo(Navigation.Uri, forceLoad: true);
+}

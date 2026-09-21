@@ -368,7 +368,8 @@
       "title": "OfficeIMO Releases",
       "maxReleases": 300,
       "pageSize": 100,
-      "maxPages": 4,
+      "maxPages": 100,
+      "retainAllStableTagPrefixes": ["Studio-v"],
       "includePrerelease": true,
       "products": [
         { "id": "officeimo.word", "name": "OfficeIMO.Word", "order": 10 },
@@ -429,9 +430,15 @@
           "name": "OfficeIMO.MarkdownRenderer.Wpf",
           "order": 140
         },
-        { "id": "officeimo.pdf", "name": "OfficeIMO.Pdf", "order": 150 }
+        { "id": "officeimo.pdf", "name": "OfficeIMO.Pdf", "order": 150 },
+        { "id": "officeimo.studio", "name": "OfficeIMO Studio", "order": 160 }
       ],
       "assetRules": [
+        {
+          "product": "officeimo.studio",
+          "label": "OfficeIMO Studio",
+          "match": ["OfficeIMO-Studio-*.msi", "OfficeIMO-Studio-*-portable.zip"]
+        },
         {
           "product": "officeimo.googleworkspace.auth.googleapis",
           "label": "OfficeIMO.GoogleWorkspace.Auth.GoogleApis",

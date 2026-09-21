@@ -3,6 +3,75 @@ using System.Threading;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfSyntax {
+    /// <summary>
+    /// Builds security and revision evidence for a clear-text artifact emitted by
+    /// <see cref="PdfFileAssembler"/>. Callers must only use this after the rewrite
+    /// planner has accepted the source and the canonical assembler has produced the bytes.
+    /// </summary>
+    internal static PdfDocumentSecurityInfo ReadRewrittenOutputSecurityInfo(
+        string decodedText,
+        string trailerRaw,
+        PdfLoadOptions options) {
+        Guard.NotNull(decodedText, nameof(decodedText));
+        Guard.NotNull(trailerRaw, nameof(trailerRaw));
+        Guard.NotNull(options, nameof(options));
+        PdfReadLimits limits = options.Limits;
+        var trailerReferences = ReadTrailerReferences(trailerRaw, "Encrypt", "Root", "Info", limits);
+        if (trailerReferences.First is not null) {
+            throw new InvalidDataException("The canonical clear-text rewrite unexpectedly emitted an encryption reference.");
+        }
+
+        if (!TryGetLatestStartXrefOffset(decodedText, out int startXrefOffset)) {
+            throw new InvalidDataException("The canonical full rewrite did not contain a readable terminal cross-reference pointer.");
+        }
+
+        PdfReference? rootReference = trailerReferences.Second;
+        PdfReference? infoReference = trailerReferences.Third;
+        IReadOnlyList<int> startXrefOffsets = new[] { startXrefOffset };
+        IReadOnlyList<int> previousXrefOffsets = Array.Empty<int>();
+        IReadOnlyList<PdfDocumentRevisionInfo> revisions = BuildRevisionInfo(startXrefOffsets, previousXrefOffsets);
+        return new PdfDocumentSecurityInfo(
+            hasEncryption: false,
+            encryptObjectNumber: null,
+            encryptionFilter: null,
+            encryptionSubFilter: null,
+            encryptionVersion: null,
+            encryptionRevision: null,
+            encryptionLengthBits: null,
+            encryptionPermissions: null,
+            encryptMetadata: null,
+            PdfPasswordAuthenticationRole.None,
+            hasSignatures: false,
+            Array.Empty<int>(),
+            Array.Empty<string>(),
+            Array.Empty<PdfSignatureInfo>(),
+            signatureValueCount: 0,
+            hasByteRange: false,
+            byteRangeValueCount: 0,
+            acroFormSignatureFlags: null,
+            hasDocMDPPermissions: false,
+            docMDPSignatureObjectNumber: null,
+            docMDPTransformMethod: null,
+            docMDPTransformVersion: null,
+            docMDPPermissionLevel: null,
+            hasUsageRights: false,
+            Array.Empty<int>(),
+            PdfDocumentDssInfo.Empty,
+            rootReference?.ObjectNumber,
+            rootReference?.Generation,
+            infoReference?.ObjectNumber,
+            infoReference?.Generation,
+            hasTrailerId: true,
+            startXrefCount: 1,
+            lastStartXrefOffset: startXrefOffset,
+            startXrefOffsets,
+            previousXrefOffsets,
+            revisions,
+            hasPreviousRevision: false,
+            hasXrefStreams: false,
+            hasObjectStreams: false);
+    }
+
     internal static PdfDocumentSecurityInfo ReadDocumentSecurityInfo(
         byte[] pdf,
         Dictionary<int, PdfIndirectObject> objects,
@@ -17,7 +86,8 @@ internal static partial class PdfSyntax {
         cancellationToken.ThrowIfCancellationRequested();
 
         PdfReadLimits limits = options?.Limits ?? new PdfReadLimits();
-        PdfReference? encryptReference = ReadTrailerReference(trailerRaw, "Encrypt", limits);
+        var trailerReferences = ReadTrailerReferences(trailerRaw, "Encrypt", "Root", "Info", limits);
+        PdfReference? encryptReference = trailerReferences.First;
         int? encryptObjectNumber = encryptReference?.ObjectNumber;
         bool hasEncryption = encryptObjectNumber.HasValue;
         string? encryptionFilter = null;
@@ -60,6 +130,11 @@ internal static partial class PdfSyntax {
         bool hasUsageRights = false;
         var usageRightsObjectNumbers = new List<int>();
         PdfDocumentDssInfo documentSecurityStore = PdfDocumentDssInfo.Empty;
+        KeyValuePair<int, PdfIndirectObject>[] orderedObjects = objects
+            .OrderBy(static item => item.Key)
+            .ToArray();
+        bool hasParsedSignatureMarker = false;
+        bool hasParsedByteRangeMarker = false;
 
         PdfDictionary? catalog = FindCatalog(objects, trailerRaw);
         if (catalog is not null) {
@@ -78,8 +153,14 @@ internal static partial class PdfSyntax {
                 usageRightsObjectNumbers);
         }
 
-        foreach (var entry in objects.OrderBy(static item => item.Key)) {
+        foreach (var entry in orderedObjects) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (!hasParsedSignatureMarker || !hasParsedByteRangeMarker) {
+                CollectParsedSignatureMarkers(
+                    entry.Value.Value,
+                    ref hasParsedSignatureMarker,
+                    ref hasParsedByteRangeMarker);
+            }
             PdfDictionary? dictionary = entry.Value.Value switch {
                 PdfDictionary directDictionary => directDictionary,
                 PdfStream stream => stream.Dictionary,
@@ -108,7 +189,7 @@ internal static partial class PdfSyntax {
             }
         }
 
-        foreach (var entry in objects.OrderBy(static item => item.Key)) {
+        foreach (var entry in orderedObjects) {
             cancellationToken.ThrowIfCancellationRequested();
             PdfDictionary? dictionary = entry.Value.Value switch {
                 PdfDictionary directDictionary => directDictionary,
@@ -138,14 +219,23 @@ internal static partial class PdfSyntax {
             }
         }
 
-        PdfReference? rootReference = ReadTrailerReference(trailerRaw, "Root", limits);
+        PdfReference? rootReference = trailerReferences.Second;
         int? rootObjectNumber = rootReference?.ObjectNumber ?? fallback.RootObjectNumber;
         int? rootObjectGeneration = rootReference?.Generation ?? fallback.RootObjectGeneration;
-        PdfReference? infoReference = ReadTrailerReference(trailerRaw, "Info", limits);
+        PdfReference? infoReference = trailerReferences.Third;
         int? infoObjectNumber = infoReference?.ObjectNumber ?? fallback.InfoObjectNumber;
         int? infoObjectGeneration = infoReference?.Generation ?? fallback.InfoObjectGeneration;
-        bool hasByteRange = byteRangeValueCount > 0 || ContainsAnyDocumentPdfName(pdf, objects, repairReport, "ByteRange");
-        bool hasSignatures = ContainsAnyDocumentPdfName(pdf, objects, repairReport, "ByteRange", "SigFlags", "Sig");
+        string? rawFallback = null;
+        bool hasSignatures = hasParsedSignatureMarker;
+        if (!hasSignatures && repairReport.HasIncompleteObjectCoverage) {
+            rawFallback = PdfEncoding.Latin1GetString(pdf);
+            hasSignatures = ContainsAnyPdfName(rawFallback, "ByteRange", "SigFlags", "Sig");
+        }
+        bool hasByteRange = byteRangeValueCount > 0 || hasParsedByteRangeMarker;
+        if (!hasByteRange && hasSignatures && repairReport.HasIncompleteObjectCoverage) {
+            rawFallback ??= PdfEncoding.Latin1GetString(pdf);
+            hasByteRange = ContainsAnyPdfName(rawFallback, "ByteRange");
+        }
 
         cancellationToken.ThrowIfCancellationRequested();
         return new PdfDocumentSecurityInfo(
@@ -188,5 +278,45 @@ internal static partial class PdfSyntax {
             fallback.HasPreviousRevision,
             fallback.HasXrefStreams,
             fallback.HasObjectStreams);
+    }
+
+    private static void CollectParsedSignatureMarkers(
+        PdfObject value,
+        ref bool hasSignatureMarker,
+        ref bool hasByteRangeMarker) {
+        switch (value) {
+            case PdfName name:
+                CollectParsedSignatureMarker(name.Name, ref hasSignatureMarker, ref hasByteRangeMarker);
+                return;
+            case PdfDictionary dictionary:
+                foreach (KeyValuePair<string, PdfObject> item in dictionary.Items) {
+                    CollectParsedSignatureMarker(item.Key, ref hasSignatureMarker, ref hasByteRangeMarker);
+                    if (hasSignatureMarker && hasByteRangeMarker) return;
+                    CollectParsedSignatureMarkers(item.Value, ref hasSignatureMarker, ref hasByteRangeMarker);
+                    if (hasSignatureMarker && hasByteRangeMarker) return;
+                }
+                return;
+            case PdfArray array:
+                foreach (PdfObject item in array.Items) {
+                    CollectParsedSignatureMarkers(item, ref hasSignatureMarker, ref hasByteRangeMarker);
+                    if (hasSignatureMarker && hasByteRangeMarker) return;
+                }
+                return;
+            case PdfStream stream:
+                CollectParsedSignatureMarkers(stream.Dictionary, ref hasSignatureMarker, ref hasByteRangeMarker);
+                return;
+        }
+    }
+
+    private static void CollectParsedSignatureMarker(
+        string name,
+        ref bool hasSignatureMarker,
+        ref bool hasByteRangeMarker) {
+        if (name == "ByteRange") {
+            hasByteRangeMarker = true;
+            hasSignatureMarker = true;
+        } else if (name == "SigFlags" || name == "Sig") {
+            hasSignatureMarker = true;
+        }
     }
 }

@@ -15,7 +15,7 @@ internal static partial class PdfPageExtractor {
             NumberMap = numberMap;
             PagesObjectId = pagesObjectId;
             MaterializedPageValues = materializedPageValues;
-            SourceObjectGenerations = sourceObjects?.ToDictionary(entry => entry.Key, entry => entry.Value.Generation) ?? new Dictionary<int, int>();
+            SourceObjects = sourceObjects;
             PageOverrides = pageOverrides ?? new Dictionary<int, Dictionary<string, PdfObject>>();
             PreserveReferenceGenerations = preserveReferenceGenerations;
             PreserveRawStringBytes = preserveRawStringBytes;
@@ -27,7 +27,8 @@ internal static partial class PdfPageExtractor {
     
         public Dictionary<int, Dictionary<string, PdfObject>> MaterializedPageValues { get; }
     
-        public Dictionary<int, int> SourceObjectGenerations { get; }
+        /// <summary>Uses the existing parse for reference-generation checks without copying every source object.</summary>
+        public Dictionary<int, PdfIndirectObject>? SourceObjects { get; }
 
         public bool PreserveReferenceGenerations { get; }
 
@@ -81,7 +82,7 @@ internal static partial class PdfPageExtractor {
         public Dictionary<int, int> AnnotationObjectMap { get; }
     }
     
-    private sealed class PageLabelEntry {
+    internal sealed class PageLabelEntry {
         public PageLabelEntry(int startPageIndex, PdfDictionary labelDictionary) {
             StartPageIndex = startPageIndex;
             LabelDictionary = labelDictionary;
@@ -92,21 +93,32 @@ internal static partial class PdfPageExtractor {
         public PdfDictionary LabelDictionary { get; }
     }
     
-    private sealed class NamedDestinationNameTreeEntry {
-        public NamedDestinationNameTreeEntry(PdfStringObj name, PdfObject destination) {
+    internal sealed class NamedDestinationNameTreeEntry {
+        public NamedDestinationNameTreeEntry(PdfStringObj name, PdfObject destination, int order = 0) {
             Name = name;
             Destination = destination;
+            Order = order;
         }
     
         public PdfStringObj Name { get; }
     
         public PdfObject Destination { get; }
+
+        public int Order { get; }
     }
     
     internal sealed class CatalogRewriteState {
+        private const int MinimumIndexedDestinationCount = 128;
         public static readonly CatalogRewriteState Empty = new CatalogRewriteState(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+
+        private readonly Lazy<Dictionary<int, int>>? _sourcePageIndexes;
+        private readonly Lazy<List<PageLabelEntry>?>? _pageLabelEntries;
+        private readonly Lazy<Dictionary<int, List<NamedDestinationNameTreeEntry>>?>? _namedDestinationPageIndex;
+        private readonly Lazy<Dictionary<int, List<DirectNamedDestinationEntry>>?>? _directNamedDestinationPageIndex;
+        private int _namedDestinationFilterCount;
+        private int _directNamedDestinationFilterCount;
     
-        public CatalogRewriteState(string? pageMode, string? pageLayout, PdfObject? catalogVersion, PdfObject? catalogLanguage, PdfObject? outlines, PdfObject? pageLabels, PdfObject? namedDestinations, PdfObject? namedDestinationNameTree, PdfObject? openAction, PdfObject? viewerPreferences, PdfObject? xmpMetadata, PdfObject? catalogUri, PdfObject? outputIntents, PdfObject? embeddedFiles, PdfObject? associatedFiles, PdfObject? optionalContent, IReadOnlyList<int>? sourcePageObjectNumbers = null) {
+        public CatalogRewriteState(string? pageMode, string? pageLayout, PdfObject? catalogVersion, PdfObject? catalogLanguage, PdfObject? outlines, PdfObject? pageLabels, PdfObject? namedDestinations, PdfObject? namedDestinationNameTree, PdfObject? openAction, PdfObject? viewerPreferences, PdfObject? xmpMetadata, PdfObject? catalogUri, PdfObject? outputIntents, PdfObject? embeddedFiles, PdfObject? associatedFiles, PdfObject? optionalContent, List<int>? sourcePageObjectNumbers = null, Dictionary<int, PdfIndirectObject>? sourceObjects = null) {
             PageMode = string.IsNullOrEmpty(pageMode) ? null : pageMode;
             PageLayout = string.IsNullOrEmpty(pageLayout) ? null : pageLayout;
             CatalogVersion = catalogVersion;
@@ -124,6 +136,24 @@ internal static partial class PdfPageExtractor {
             AssociatedFiles = associatedFiles;
             OptionalContent = optionalContent;
             SourcePageObjectNumbers = sourcePageObjectNumbers;
+            if (pageLabels is not null && sourcePageObjectNumbers is not null) {
+                _sourcePageIndexes = new Lazy<Dictionary<int, int>>(
+                    () => BuildSourcePageIndexes(sourcePageObjectNumbers));
+            }
+            if (pageLabels is not null && sourceObjects is not null) {
+                _pageLabelEntries = new Lazy<List<PageLabelEntry>?>(
+                    () => ReadPageLabelEntries(sourceObjects, pageLabels));
+            }
+            if (namedDestinationNameTree is not null && sourceObjects is not null) {
+                _namedDestinationPageIndex = new Lazy<Dictionary<int, List<NamedDestinationNameTreeEntry>>?>(
+                    () => BuildNamedDestinationPageIndex(sourceObjects, namedDestinationNameTree));
+            }
+            if (namedDestinations is not null &&
+                sourceObjects is not null &&
+                ResolveDictionary(sourceObjects, namedDestinations) is { Items.Count: >= MinimumIndexedDestinationCount }) {
+                _directNamedDestinationPageIndex = new Lazy<Dictionary<int, List<DirectNamedDestinationEntry>>?>(
+                    () => BuildDirectNamedDestinationPageIndex(sourceObjects, namedDestinations));
+            }
         }
     
         public string? PageMode { get; }
@@ -158,6 +188,44 @@ internal static partial class PdfPageExtractor {
     
         public PdfObject? OptionalContent { get; }
     
-        public IReadOnlyList<int>? SourcePageObjectNumbers { get; }
+        public List<int>? SourcePageObjectNumbers { get; }
+
+        /// <summary>Shares the source page lookup across outputs of a compound extraction.</summary>
+        internal Dictionary<int, int>? SourcePageIndexes => _sourcePageIndexes?.Value;
+
+        /// <summary>Shares parsed label rules across outputs of a compound extraction.</summary>
+        internal List<PageLabelEntry>? PageLabelEntries => _pageLabelEntries?.Value;
+
+        /// <summary>Builds the page index only when a catalog is filtered for multiple outputs.</summary>
+        internal Dictionary<int, List<NamedDestinationNameTreeEntry>>? GetNamedDestinationPageIndexForRepeatedUse() {
+            if (_namedDestinationPageIndex is null ||
+                System.Threading.Interlocked.Increment(ref _namedDestinationFilterCount) == 1) {
+                return null;
+            }
+
+            return _namedDestinationPageIndex.Value;
+        }
+
+        /// <summary>Indexes direct destinations only after a second extraction uses this source.</summary>
+        internal Dictionary<int, List<DirectNamedDestinationEntry>>? GetDirectNamedDestinationPageIndexForRepeatedUse() {
+            if (_directNamedDestinationPageIndex is null ||
+                System.Threading.Interlocked.Increment(ref _directNamedDestinationFilterCount) == 1) {
+                return null;
+            }
+
+            return _directNamedDestinationPageIndex.Value;
+        }
+    }
+
+    internal readonly struct DirectNamedDestinationEntry {
+        internal DirectNamedDestinationEntry(string name, PdfObject destination, int order) {
+            Name = name;
+            Destination = destination;
+            Order = order;
+        }
+
+        internal string Name { get; }
+        internal PdfObject Destination { get; }
+        internal int Order { get; }
     }
 }

@@ -17,7 +17,7 @@ internal static partial class PdfOptimizer {
                 break;
             }
             int maximumDecodedBytes = (int)Math.Min(options.MaximumDecodedImageBytes, Math.Min(int.MaxValue, remainingDecodedBytes));
-            if (!StreamDecoder.TryDecode(stream.Dictionary, stream.Data, maximumDecodedBytes, out byte[] decoded, objects)) {
+            if (!StreamDecoder.TryDecode(stream, maximumDecodedBytes, out byte[] decoded, objects)) {
                 string reason = maximumDecodedBytes < options.MaximumDecodedImageBytes
                     ? "AggregateDecodeLimit"
                     : "UnsupportedImageFilter";

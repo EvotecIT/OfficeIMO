@@ -18,10 +18,98 @@ internal static partial class PdfPageExtractor {
     private static PdfDictionary? BuildNamedDestinationNameTreeForPages(
         Dictionary<int, PdfIndirectObject> sourceObjects,
         PdfObject? namedDestinationNameTree,
-        HashSet<int> copiedPageObjectIds) {
+        HashSet<int> copiedPageObjectIds,
+        Dictionary<int, List<NamedDestinationNameTreeEntry>>? pageIndex = null) {
+        if (pageIndex is not null) {
+            var candidates = new List<NamedDestinationNameTreeEntry>();
+            foreach (int pageObjectId in copiedPageObjectIds) {
+                if (pageIndex.TryGetValue(pageObjectId, out var entries)) {
+                    candidates.AddRange(entries);
+                }
+            }
+
+            if (candidates.Count == 0) {
+                return null;
+            }
+
+            candidates.Sort((left, right) => left.Order.CompareTo(right.Order));
+            var names = new PdfArray();
+            foreach (var entry in candidates) {
+                PdfObject? destination = ResolveObject(sourceObjects, entry.Destination);
+                if (destination is null) {
+                    return null;
+                }
+
+                if (IsDestinationForCopiedPages(destination, copiedPageObjectIds)) {
+                    names.Items.Add(entry.Name);
+                    names.Items.Add(entry.Destination);
+                }
+            }
+
+            if (names.Items.Count == 0) {
+                return null;
+            }
+
+            var filtered = new PdfDictionary();
+            filtered.Items["Names"] = names;
+            return filtered;
+        }
+
         return TryBuildFlattenedNamedDestinationNameTree(sourceObjects, namedDestinationNameTree, copiedPageObjectIds, out var filteredTree)
             ? filteredTree
             : null;
+    }
+
+    private static Dictionary<int, List<NamedDestinationNameTreeEntry>>? BuildNamedDestinationPageIndex(
+        Dictionary<int, PdfIndirectObject> sourceObjects,
+        PdfObject namedDestinationNameTree) {
+        if (ResolveDictionary(sourceObjects, namedDestinationNameTree) is not PdfDictionary tree ||
+            !tree.Items.TryGetValue("Names", out var namesObject) ||
+            ResolveObject(sourceObjects, namesObject) is not PdfArray names ||
+            names.Items.Count % 2 != 0) {
+            return null;
+        }
+
+        var index = new Dictionary<int, List<NamedDestinationNameTreeEntry>>();
+        for (int item = 0; item < names.Items.Count; item += 2) {
+            if (names.Items[item] is not PdfStringObj name ||
+                !TryGetNamedDestinationPageObjectId(sourceObjects, names.Items[item + 1], out int pageObjectId)) {
+                return null;
+            }
+
+            if (!index.TryGetValue(pageObjectId, out var entries)) {
+                entries = new List<NamedDestinationNameTreeEntry>();
+                index[pageObjectId] = entries;
+            }
+
+            entries.Add(new NamedDestinationNameTreeEntry(name, names.Items[item + 1], item / 2));
+        }
+
+        return index;
+    }
+
+    private static bool TryGetNamedDestinationPageObjectId(
+        Dictionary<int, PdfIndirectObject> sourceObjects,
+        PdfObject destination,
+        out int pageObjectId) {
+        pageObjectId = 0;
+        PdfObject? current = destination;
+        for (int depth = 0; depth < 32; depth++) {
+            current = ResolveObject(sourceObjects, current);
+            if (current is PdfDictionary dictionary && dictionary.Items.TryGetValue("D", out var nestedDestination)) {
+                current = nestedDestination;
+                continue;
+            }
+
+            if (current is PdfArray array && array.Items.Count > 0 && array.Items[0] is PdfReference pageReference) {
+                pageObjectId = pageReference.ObjectNumber;
+                return true;
+            }
+
+            return false;
+        }
+
+        return false;
     }
     
     private static bool TryGetNamedDestinationNameTree(

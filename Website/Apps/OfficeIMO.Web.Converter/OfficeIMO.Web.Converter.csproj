@@ -16,6 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Web.Fonts\OfficeIMO.Web.Fonts.csproj" />
     <ProjectReference Include="..\..\..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
     <ProjectReference Include="..\..\..\OfficeIMO.Workflows\OfficeIMO.Workflows.csproj" />
     <ProjectReference Include="..\..\..\OfficeIMO.Drawing.HarfBuzz\OfficeIMO.Drawing.HarfBuzz.csproj" />
@@ -33,8 +34,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Assets\Fonts\*.ttf" />
-    <EmbeddedResource Include="Assets\Fonts\font-pack.json" />
     <None Update="Assets\Fonts\*.txt"
           TargetPath="wwwroot\licenses\%(Filename)%(Extension)"
           CopyToOutputDirectory="PreserveNewest"
@@ -44,6 +43,24 @@
              Link="wwwroot\licenses\OfficeIMO.Core-THIRD-PARTY-NOTICES.md"
              CopyToOutputDirectory="PreserveNewest"
              CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!-- The workspace loads the selected format family before mounting its tool. -->
+  <ItemGroup>
+    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Web.Fonts.wasm" />
+    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Word.wasm" />
+    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Excel.wasm" />
+    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.PowerPoint.wasm" />
+    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Visio.wasm" />
+    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Workflows.wasm" />
+    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Pdf.wasm" />
+    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Html.wasm" />
+    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Markdown.wasm" />
+    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Project.wasm" />
+    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Reader.Core.wasm" />
+    <BlazorWebAssemblyLazyLoad Include="DocumentFormat.OpenXml.wasm" />
+    <BlazorWebAssemblyLazyLoad Include="AngleSharp.wasm" />
+    <BlazorWebAssemblyLazyLoad Include="AngleSharp.Css.wasm" />
   </ItemGroup>
 
   <ItemGroup>

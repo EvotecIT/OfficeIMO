@@ -10,9 +10,16 @@ public sealed partial class PdfReadDocument {
             if (pagesNode is not null) {
                 var kids = ResolveArray(pagesNode.Items.TryGetValue("Kids", out var kidsObj) ? kidsObj : null);
                 int kidCount = kids?.Items.Count ?? 0;
+                // Kids is already materialized and therefore safe to use for the result
+                // list. Keep the auxiliary set capped because invalid references need not
+                // produce pages and must not force a second large eager allocation.
+                result.Capacity = kidCount;
                 var visitedNodes = new HashSet<PdfDictionary>();
-                var visitedPages = new HashSet<int>();
-                TraversePagesNodeDeepLimited(pagesNode, visitedNodes, visitedPages, result, limit: null, depth: 1);
+                HashSet<int> visitedPages = PdfCollectionSizing.CreateHashSet<int>(
+                    kidCount,
+                    4_096);
+                int pagesObjectNumber = v is PdfReference pagesReference ? pagesReference.ObjectNumber : 0;
+                TraversePagesNodeDeepLimited(pagesNode, pagesObjectNumber, visitedNodes, visitedPages, result, limit: null, depth: 1);
                 if (result.Count == 0 && kidCount > 0) {
                     // Build a reachable candidate set from Kids only
                     var reachable = CollectReachableLeafCandidates(pagesNode);
@@ -45,7 +52,7 @@ public sealed partial class PdfReadDocument {
         return !hasKids && hasContents && (hasRes || hasMedia);
     }
 
-    private void TraversePagesNodeDeepLimited(PdfDictionary node, HashSet<PdfDictionary> visitedNodes, HashSet<int> visitedPages, List<PdfReadPage> outList, int? limit, int depth) {
+    private void TraversePagesNodeDeepLimited(PdfDictionary node, int nodeObjectNumber, HashSet<PdfDictionary> visitedNodes, HashSet<int> visitedPages, List<PdfReadPage> outList, int? limit, int depth) {
         if (depth > _options.Limits.MaxPageTreeDepth) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.PageTreeDepth, _options.Limits.MaxPageTreeDepth, depth);
         }
@@ -59,7 +66,7 @@ public sealed partial class PdfReadDocument {
 
         var type = node.Get<PdfName>("Type")?.Name;
         if (type == "Page" || (type is null && IsLikelyPage(node))) {
-            int objNum = FindObjectNumberFor(node);
+            int objNum = nodeObjectNumber > 0 ? nodeObjectNumber : FindObjectNumberFor(node);
             if (objNum > 0 && visitedPages.Add(objNum)) {
                 if (type == "Page" || HasMedia(node) || HasInheritedValue(node, "MediaBox") || HasInheritedValue(node, "CropBox")) {
                     AddPageWithinBudget(outList, CreateReadPage(objNum, node));
@@ -74,10 +81,11 @@ public sealed partial class PdfReadDocument {
             var d = ResolveDict(kid);
             if (d is null) { continue; }
             var t = d.Get<PdfName>("Type")?.Name;
-            if (t == "Pages" || (t is null && ResolveArray(d.Items.TryGetValue("Kids", out var dKidsObj) ? dKidsObj : null) is not null)) TraversePagesNodeDeepLimited(d, visitedNodes, visitedPages, outList, limit, depth + 1);
+            int kidObjectNumber = kid is PdfReference kidReference ? kidReference.ObjectNumber : 0;
+            if (t == "Pages" || (t is null && ResolveArray(d.Items.TryGetValue("Kids", out var dKidsObj) ? dKidsObj : null) is not null)) TraversePagesNodeDeepLimited(d, kidObjectNumber, visitedNodes, visitedPages, outList, limit, depth + 1);
             else if ((t == "Page" || IsLikelyPage(d) || IsLeafPageByParent(d)) &&
                      (t == "Page" || HasMedia(d) || HasInheritedValue(d, "MediaBox") || HasInheritedValue(d, "CropBox"))) {
-                int on = FindObjectNumberFor(d);
+                int on = kidObjectNumber > 0 ? kidObjectNumber : FindObjectNumberFor(d);
                 if (on > 0 && visitedPages.Add(on)) {
                     AddPageWithinBudget(outList, CreateReadPage(on, d));
                     if (limit.HasValue && outList.Count >= limit.Value) return;
@@ -126,7 +134,7 @@ public sealed partial class PdfReadDocument {
                 var t = d.Get<PdfName>("Type")?.Name;
                 if (t == "Pages" || (t is null && ResolveArray(d.Items.TryGetValue("Kids", out var dKidsObj) ? dKidsObj : null) is not null)) stack.Push((d, depth + 1));
                 else if (IsLikelyPage(d) || IsLeafPageByParent(d)) {
-                    int on = FindObjectNumberFor(d);
+                    int on = k is PdfReference pageReference ? pageReference.ObjectNumber : FindObjectNumberFor(d);
                     if (on > 0 && set.Add(on) && set.Count > _options.Limits.MaxPages) {
                         throw PdfReadLimitException.Create(PdfReadLimitKind.Pages, _options.Limits.MaxPages, set.Count);
                     }

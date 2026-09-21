@@ -128,7 +128,8 @@ namespace OfficeIMO.Visio.Diagrams {
             double left,
             double top,
             double width,
-            VisioStyleTheme theme) {
+            VisioStyleTheme theme,
+            VisioMeasurementUnit? unit = null) {
             if (string.IsNullOrWhiteSpace(text)) {
                 return null;
             }
@@ -139,7 +140,8 @@ namespace OfficeIMO.Visio.Diagrams {
                 top + 0.16D,
                 Math.Max(0.8D, width - 0.3D),
                 0.3D,
-                text);
+                text,
+                unit ?? page.DefaultUnit);
             label.TextStyle = CreateBackgroundZoneCaptionTextStyle(theme);
             VisioSemanticUserCells.MarkGeneratedAdornment(label);
             return label;

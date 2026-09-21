@@ -208,9 +208,12 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         private static OfficeConversionLossKind ClassifyLoss(LegacyXlsImportDiagnostic diagnostic) {
             if (diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error) return OfficeConversionLossKind.Failure;
-            // Unread strings become empty cells; unread sheet records or invalid substream
-            // offsets leave whole sheets unprojected rather than approximately represented.
+            // Unread strings become empty cells; unread sheets and defined names are not
+            // projected rather than approximately represented.
             if (diagnostic.Code is "XLS-BIFF-SST-SHORT" or "XLS-BIFF-SST-STRING-INVALID"
+                or "XLS-BIFF-LBL-SHORT" or "XLS-BIFF-LBL-INVALID"
+                or "XLS-BIFF-LBL-EMPTY-NAME" or "XLS-BIFF-LBL-FORMULA-UNSUPPORTED"
+                or "XLS-BIFF-LBL-SCOPE-INVALID" or "XLS-BIFF-LBL-SCOPE-UNSUPPORTED"
                 or "XLS-BIFF-BOUNDSHEET-SHORT" or "XLS-BIFF-BOUNDSHEET-INVALID"
                 or "XLS-BIFF-SHEET-OFFSET-INVALID" or "XLS-BIFF-CHART-SHEET-OFFSET-INVALID"
                 or "XLS-BIFF-UNSUPPORTED-SHEET-OFFSET-INVALID"
@@ -220,6 +223,9 @@ namespace OfficeIMO.Excel.LegacyXls {
                 or "XLS-BIFF-EXTERNNAME-ORPHANED"
                 or "XLS-BIFF-XCT-SHORT" or "XLS-BIFF-XCT-ORPHANED"
                 or "XLS-BIFF-CRN-INVALID" or "XLS-BIFF-CRN-ORPHANED")
+                return OfficeConversionLossKind.Omission;
+            if (diagnostic.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED"
+                && diagnostic.FormulaContext == "DefinedName")
                 return OfficeConversionLossKind.Omission;
             return diagnostic.Severity == LegacyXlsDiagnosticSeverity.Warning
                 ? OfficeConversionLossKind.Approximation : OfficeConversionLossKind.None;

@@ -28,14 +28,20 @@ namespace OfficeIMO.Visio.Diagrams {
                 if (zone.LineColor.HasValue) shape.LineColor = zone.LineColor.Value;
                 page.Shapes.Add(shape);
                 ApplyZoneMetadata(shape, zone);
-                VisioNetworkDiagramVisuals.AddBackgroundZoneCaption(
+                VisioShape? caption = VisioNetworkDiagramVisuals.AddBackgroundZoneCaption(
                     page,
                     CreateGeneratedId(VisioNetworkDiagramVisuals.CreateBackgroundZoneCaptionId(zone.Id)),
                     zone.Text,
-                    left,
-                    top,
-                    width,
-                    _theme);
+                    left.ToInches(_unit),
+                    top.ToInches(_unit),
+                    width.ToInches(_unit),
+                    _theme,
+                    VisioMeasurementUnit.Inches);
+                if (_preserveLayout && caption != null) {
+                    caption.Width = Math.Min(caption.Width, shape.Width);
+                    caption.Height = Math.Min(caption.Height, shape.Height);
+                    caption.PinY = shape.PinY + shape.Height / 2 - caption.Height / 2;
+                }
             }
         }
 
@@ -133,7 +139,9 @@ namespace OfficeIMO.Visio.Diagrams {
                 (edge.StyleOverride ?? GetConnectorStyle(edge.Kind, edge.Directed)).ApplyTo(connector);
                 connector.Label = edge.Label;
                 ApplyEdgeMetadata(connector, edge);
-                if (selfEdge) {
+                if (_preserveLayout && edge.Route != null) {
+                    ApplyPreservedRoute(connector, edge.Route);
+                } else if (selfEdge) {
                     connector.RouteSelfLoop(clearance: 0.35D + ((routeIndex % 7) * 0.05D));
                 } else if (_layout != VisioGraphLayout.Radial) {
                     connector.RouteOrthogonal(offset: (routeIndex % 7) * 0.05D);

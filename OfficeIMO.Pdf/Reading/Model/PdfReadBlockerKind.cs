@@ -17,5 +17,11 @@ public enum PdfReadBlockerKind {
     ParserUnsupported = 3,
 
     /// <summary>At least one page content stream uses a filter OfficeIMO.Pdf cannot decode yet.</summary>
-    UnsupportedContentStreamFilter = 4
+    UnsupportedContentStreamFilter = 4,
+
+    /// <summary>At least one supported page content stream could not be decoded.</summary>
+    ContentStreamDecodeFailure = 5,
+
+    /// <summary>At least one page-related stream uses a context-dependent filter that cannot be transferred safely.</summary>
+    ContextDependentContentStreamFilter = 6
 }

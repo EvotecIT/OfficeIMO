@@ -147,6 +147,31 @@ public class PdfAttachmentExtractorTests {
     }
 
     [Fact]
+    public void ExtractAttachments_PrefersAssociatedFileOverAnnotationForSharedFileSpec() {
+        byte[] pdf = PdfAssociatedFileTestSupport.BuildFileAttachmentAnnotationPdf();
+
+        PdfExtractedAttachment extracted = Assert.Single(PdfAttachmentExtractor.ExtractAttachments(pdf));
+        PdfAttachmentInfo inspected = Assert.Single(PdfReadDocument.Open(pdf).Attachments);
+
+        Assert.Equal("AF", extracted.Source);
+        Assert.Equal("AF", inspected.Source);
+        Assert.Equal(PdfAssociatedFileTestSupport.Payload, Encoding.ASCII.GetString(extracted.Bytes));
+    }
+
+    [Fact]
+    public void ExtractAttachments_FiltersAssociatedFileAndAnnotationRootsIndependently() {
+        PdfReadDocument document = PdfReadDocument.Open(PdfAssociatedFileTestSupport.BuildFileAttachmentAnnotationPdf());
+
+        PdfExtractedAttachment pageAttachment = Assert.Single(PdfAttachmentExtractor.ExtractAttachments(
+            document, static _ => true, 1024, allowedObjectNumbers: new HashSet<int> { 3 }));
+        PdfExtractedAttachment annotationAttachment = Assert.Single(PdfAttachmentExtractor.ExtractAttachments(
+            document, static _ => true, 1024, allowedObjectNumbers: new HashSet<int> { 7 }));
+
+        Assert.Equal("AF", pageAttachment.Source);
+        Assert.Equal("FileAttachment", annotationAttachment.Source);
+    }
+
+    [Fact]
     public void ExtractAttachments_CachesSharedPayloadWithoutDroppingAliases() {
         byte[] pdf = BuildRepeatedFileAttachmentAnnotationPdf(annotationCount: 1_000);
 

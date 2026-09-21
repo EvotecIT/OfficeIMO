@@ -43,4 +43,27 @@ public class PdfIndirectObjectHeaderScannerTests {
         Assert.Equal(12, parsed.ObjectNumber);
         Assert.Equal(13D, Assert.IsType<PdfNumber>(parsed.Value).Value);
     }
+
+    [Fact]
+    public void FindsObjectHeaderWhenKeywordCrossesAScanChunkBoundary() {
+        byte[] pdf = Encoding.ASCII.GetBytes(
+            new string('x', 0x4000 - 5) + "7 0 obj\n42\nendobj\n%%EOF\n");
+
+        var (objects, _) = PdfSyntax.ParseObjects(pdf);
+
+        PdfIndirectObject parsed = Assert.Single(objects).Value;
+        Assert.Equal(7, parsed.ObjectNumber);
+        Assert.Equal(42D, Assert.IsType<PdfNumber>(parsed.Value).Value);
+    }
+
+    [Fact]
+    public void StructuralHeaderCountKeepsLegacyNumericAndKeywordBoundaries() {
+        byte[] pdf = Encoding.ASCII.GetBytes(
+            "%PDF-1.7\n1 0 obj\nendobj\n2 0 object\n3\n0\tobj\n" +
+            "2147483648 0 obj\n5 0 OBJ\n6 0 obj\n%%EOF\n");
+
+        int count = PdfSyntax.CountIndirectObjectHeaders(pdf, new PdfReadLimits());
+
+        Assert.Equal(4, count);
+    }
 }

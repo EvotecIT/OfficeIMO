@@ -22,8 +22,8 @@ public sealed class PdfSaveResult : IOfficeOutputResult {
         TextEncodingDiagnostics = PdfOutputDiagnostics.ExtractTextEncodingDiagnostics(exception);
         Report = Snapshot(report);
         IOfficeConversionReport[] sourceReports = SnapshotSourceReports(sourceConversionReports);
-        ConversionReports = CreateConversionReports(sourceReports, report == null ? null : Report);
         Report.AddRange(PdfOutputDiagnostics.ToConversionWarnings(TextEncodingDiagnostics));
+        ConversionReports = CreateConversionReports(sourceReports, Report);
         Pipeline = pipeline ?? PdfPipelineReport.Empty();
         Serialization = serialization;
     }

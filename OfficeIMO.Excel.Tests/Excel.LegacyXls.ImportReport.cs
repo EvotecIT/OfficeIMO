@@ -7,6 +7,24 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class Excel {
+        [Theory]
+        [InlineData(true, "XLS-BIFF-LBL-SHORT")]
+        [InlineData(false, "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED")]
+        public void LegacyXls_UnreadDefinedNamesAreTypedOmissions(bool shortRecord, string code) {
+            byte[] workbook = LegacyXlsTestWorkbookBuilder.CreateUnreadDefinedNameWorkbookStream(shortRecord);
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbook);
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound));
+            Assert.Empty(result.AdvancedWorkbook.DefinedNames);
+            OfficeConversionFidelityDiagnostic omission = Assert.Single(result.FidelityDiagnostics,
+                item => item.Code == code);
+            Assert.Equal(OfficeConversionLossKind.Omission, omission.LossKind);
+            Assert.True(result.HasLoss);
+            Assert.Contains(result.Summary.FidelityDiagnostics,
+                item => item.Code == code && item.LossKind == OfficeConversionLossKind.Omission);
+            Assert.Throws<InvalidDataException>(result.RequireNoLoss);
+        }
+
         [Fact]
         public void LegacyXls_ImportReport_SummarizesCorpusSignals() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase5UnsupportedSheetTypesWorkbookStream();

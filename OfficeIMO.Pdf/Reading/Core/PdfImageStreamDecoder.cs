@@ -9,8 +9,7 @@ internal static class PdfImageStreamDecoder {
         int maxDecodedBytes = PdfReadLimits.DefaultMaxDecodedStreamBytes, CancellationToken cancellationToken = default) {
         try {
             decoded = Filters.StreamDecoder.DecodeRequired(
-                stream.Dictionary,
-                stream.Data,
+                stream,
                 objects,
                 maxDecodedBytes, cancellationToken);
             return true;

@@ -44,6 +44,26 @@ public partial class PdfInspectorTests {
     }
 
     [Theory]
+    [InlineData("/PageLabels", "PageLabels")]
+    [InlineData("/OutputIntents", "OutputIntents")]
+    [InlineData("/EmbeddedFiles", "EmbeddedFiles")]
+    public void IncompleteObjectParsingRetainsConservativeFeatureMarkers(string marker, string feature) {
+        string source = Encoding.ASCII.GetString(BuildOpaqueMarkerPdf("Safe metadata", inStream: false));
+        byte[] pdf = Encoding.ASCII.GetBytes(source.Replace("trailer", "6 0 obj\n<< " + marker + "\nendobj\ntrailer"));
+        PdfSyntax.ParseObjects(pdf, null, out var repair);
+        Assert.True(repair.HasIncompleteObjectCoverage);
+
+        PdfDocumentProbe probe = PdfInspector.Probe(pdf);
+        bool present = feature switch {
+            "PageLabels" => probe.HasPageLabels,
+            "OutputIntents" => probe.HasOutputIntents,
+            "EmbeddedFiles" => probe.HasEmbeddedFiles,
+            _ => false
+        };
+        Assert.True(present, feature);
+    }
+
+    [Theory]
     [InlineData("7 0 << /Type /Sig /ByteRange", 1, 4)]
     [InlineData("7 0 << /Nested << /ByteRange >> >>", 1, 4)]
     [InlineData("7 0 << /Type /Sig >>", 2, 4)]

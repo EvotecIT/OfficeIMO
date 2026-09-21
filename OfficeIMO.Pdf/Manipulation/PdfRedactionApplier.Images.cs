@@ -44,7 +44,7 @@ internal static partial class PdfRedactionApplier {
                     continue;
                 }
 
-                byte[] contentBytes = StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, maximumDecodedStreamBytes);
+                byte[] contentBytes = StreamDecoder.DecodeRequired(stream, objects, maximumDecodedStreamBytes);
                 string content = PdfEncoding.Latin1GetString(contentBytes);
                 string scrubbed = RemoveImageInvocations(content, wholeImageTargets, pageXObjects, objects, contentState, out IReadOnlyList<ImageRedactionTarget> removedTargets);
                 if (string.Equals(content, scrubbed, StringComparison.Ordinal)) {
@@ -140,7 +140,7 @@ internal static partial class PdfRedactionApplier {
                 continue;
             }
 
-            string content = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, maximumDecodedStreamBytes));
+            string content = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(stream, objects, maximumDecodedStreamBytes));
             ImagePixelRewriteContentResult result = ScrubImageFormInvocations(objects, resources, xObjects, content, targets, contentState, referenceCounts, new HashSet<int>(), removedMatches, limits, ref nextObjectNumber);
             if (!string.Equals(result.Content, content, StringComparison.Ordinal)) {
                 PdfReference targetReference = reference;
@@ -256,7 +256,7 @@ internal static partial class PdfRedactionApplier {
         }
         PdfDictionary formXObjects = EnsureResourceXObjects(objects, formResources);
         Matrix2D formTransform = ApplyFormMatrix(invocationTransform, formStream.Dictionary);
-        string formContent = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(formStream.Dictionary, formStream.Data, objects, maximumDecodedStreamBytes));
+        string formContent = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(formStream, objects, maximumDecodedStreamBytes));
         string scrubbed = RemoveImageInvocations(formContent, targets, formXObjects, objects, new ImageContentGraphicsState(formTransform), out IReadOnlyList<ImageRedactionTarget> removedTargets);
         bool changed = false;
 
@@ -519,7 +519,7 @@ internal static partial class PdfRedactionApplier {
             if (PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) &&
                 indirect.Value is PdfStream stream &&
                 !stream.DecodingFailed) {
-                builder.Append(PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, maximumDecodedStreamBytes)));
+                builder.Append(PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(stream, objects, maximumDecodedStreamBytes)));
                 builder.Append('\n');
             }
         }
@@ -559,7 +559,7 @@ internal static partial class PdfRedactionApplier {
 
             try {
                 string formContent = PdfEncoding.Latin1GetString(
-                    StreamDecoder.DecodeRequired(form.Dictionary, form.Data, objects, limits.MaxDecodedStreamBytes));
+                    StreamDecoder.DecodeRequired(form, objects, limits.MaxDecodedStreamBytes));
                 if (ContentOrInheritedFormsInvokeResource(
                         objects,
                         xObjects,
@@ -649,7 +649,7 @@ internal static partial class PdfRedactionApplier {
             byte[] decoded;
             try {
                 int maximumDecodedBytes = GetMutationDecodeLimit(stream, limits, sourceStreamIdentities);
-                decoded = StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, maximumDecodedBytes);
+                decoded = StreamDecoder.DecodeRequired(stream, objects, maximumDecodedBytes);
             } catch (InvalidDataException) {
                 hasUnscannableContentOwner = true;
                 return;

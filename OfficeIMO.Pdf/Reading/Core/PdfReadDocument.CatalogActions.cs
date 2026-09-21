@@ -8,11 +8,21 @@ public sealed partial class PdfReadDocument {
             return Array.Empty<PdfCatalogAction>();
         }
 
+        PdfObject? javaScriptNameTree = null;
+        if (catalog.Items.TryGetValue("Names", out var namesObject) &&
+            ResolveDict(namesObject) is PdfDictionary namesDictionary) {
+            namesDictionary.Items.TryGetValue("JavaScript", out javaScriptNameTree);
+        }
+        if (javaScriptNameTree is null &&
+            !catalog.Items.ContainsKey("OpenAction") &&
+            !catalog.Items.ContainsKey("AA")) {
+            javaScripts = Array.Empty<PdfJavaScript>();
+            return Array.Empty<PdfCatalogAction>();
+        }
+
         var result = new List<PdfCatalogAction>();
         var scripts = new List<PdfJavaScript>();
-        if (catalog.Items.TryGetValue("Names", out var namesObject) &&
-            ResolveDict(namesObject) is PdfDictionary namesDictionary &&
-            namesDictionary.Items.TryGetValue("JavaScript", out var javaScriptNameTree)) {
+        if (javaScriptNameTree is not null) {
             int traversedNameTreeNodes = 0;
             int discoveredJavaScripts = 0;
             long totalJavaScriptBytes = 0L;

@@ -200,70 +200,84 @@ internal static class PdfAttachmentExtractor {
             ReadEmbeddedFilesNameTree(objects, embeddedFilesTreeObject, attachments, discoveredFileSpecs, visitedTrees, budget, effectiveLimits, 0, ref traversedNameTreeNodes);
         }
 
-        foreach (PdfArray associatedFiles in PdfAssociatedFileGraph.FindAssociatedFileArrays(
-                     objects,
-                     allowedObjectNumbers,
-                     cancellationToken)) {
+        var associatedFileArrays = new List<PdfArray>();
+        var fileAttachmentAnnotations = new List<PdfDictionary>();
+        CollectAttachmentReferences(objects, associatedFileArrays, fileAttachmentAnnotations, budget, allowedObjectNumbers);
+        foreach (PdfArray associatedFiles in associatedFileArrays) {
             budget.Checkpoint();
             ReadAssociatedFiles(objects, associatedFiles, attachments, discoveredFileSpecs, budget);
         }
 
-        ReadFileAttachmentAnnotations(objects, attachments, discoveredFileSpecs, budget, allowedObjectNumbers);
+        foreach (PdfDictionary annotation in fileAttachmentAnnotations) {
+            budget.Checkpoint();
+            PdfObject fileSpecObject = annotation.Items["FS"];
+            string name = TryReadFileSpecName(objects, fileSpecObject) ?? "FileAttachment";
+            AttachmentDescriptor? attachment = TryBuildAttachment(
+                objects,
+                name,
+                fileSpecObject,
+                "FileAttachment",
+                discoveredFileSpecs,
+                budget);
+            if (attachment != null) {
+                attachments.Add(attachment);
+            }
+        }
 
         return attachments.Count == 0 ? Array.Empty<AttachmentDescriptor>() : attachments.AsReadOnly();
     }
 
-    private static void ReadFileAttachmentAnnotations(
+    private static void CollectAttachmentReferences(
         Dictionary<int, PdfIndirectObject> objects,
-        List<AttachmentDescriptor> attachments,
-        ISet<PdfDictionary> discoveredFileSpecs,
+        List<PdfArray> associatedFileArrays,
+        List<PdfDictionary> fileAttachmentAnnotations,
         AttachmentExtractionBudget budget,
         ISet<int>? allowedObjectNumbers) {
-        var visited = new HashSet<PdfObject>();
+        var seenAssociatedFileArrays = new HashSet<PdfArray>();
+        // Every parsed indirect value owns a bounded direct-container tree. References are
+        // intentionally skipped below because each referenced value is visited once here as
+        // an indirect root, so hashing every dictionary and array cannot prevent a PDF cycle.
         foreach (PdfIndirectObject indirect in objects.Values) {
             budget.Checkpoint();
             if (allowedObjectNumbers != null && !allowedObjectNumbers.Contains(indirect.ObjectNumber)) continue;
-            ReadFileAttachmentAnnotations(objects, indirect.Value, attachments, discoveredFileSpecs, visited, budget);
+            CollectAttachmentReferences(objects, indirect.Value, associatedFileArrays, fileAttachmentAnnotations,
+                seenAssociatedFileArrays, budget);
         }
     }
 
-    private static void ReadFileAttachmentAnnotations(
+    private static void CollectAttachmentReferences(
         Dictionary<int, PdfIndirectObject> objects,
         PdfObject value,
-        List<AttachmentDescriptor> attachments,
-        ISet<PdfDictionary> discoveredFileSpecs,
-        ISet<PdfObject> visited,
+        List<PdfArray> associatedFileArrays,
+        List<PdfDictionary> fileAttachmentAnnotations,
+        ISet<PdfArray> seenAssociatedFileArrays,
         AttachmentExtractionBudget budget) {
         budget.Checkpoint();
-        if (!visited.Add(value)) return;
         if (value is PdfStream stream) {
-            ReadFileAttachmentAnnotations(objects, stream.Dictionary, attachments, discoveredFileSpecs, visited, budget);
+            CollectAttachmentReferences(objects, stream.Dictionary, associatedFileArrays, fileAttachmentAnnotations,
+                seenAssociatedFileArrays, budget);
             return;
         }
         if (value is PdfDictionary dictionary) {
-            if (string.Equals(
+            if (dictionary.Items.TryGetValue("AF", out PdfObject? associatedFilesObject) &&
+                PdfObjectLookup.Resolve(objects, associatedFilesObject) is PdfArray associatedFiles &&
+                seenAssociatedFileArrays.Add(associatedFiles)) {
+                associatedFileArrays.Add(associatedFiles);
+            }
+
+            if (dictionary.Items.ContainsKey("FS") && string.Equals(
                     PdfObjectLookup.Resolve(objects, dictionary.Items.TryGetValue("Subtype", out PdfObject? subtype) ? subtype : null) is PdfName resolvedSubtype
                         ? resolvedSubtype.Name
                         : null,
                     "FileAttachment",
-                    StringComparison.Ordinal) &&
-                dictionary.Items.TryGetValue("FS", out PdfObject? fileSpecObject)) {
-                string name = TryReadFileSpecName(objects, fileSpecObject) ?? "FileAttachment";
-                AttachmentDescriptor? attachment = TryBuildAttachment(
-                    objects,
-                    name,
-                    fileSpecObject,
-                    "FileAttachment",
-                    discoveredFileSpecs,
-                    budget);
-                if (attachment != null) {
-                    attachments.Add(attachment);
-                }
+                    StringComparison.Ordinal)) {
+                fileAttachmentAnnotations.Add(dictionary);
             }
 
             foreach (PdfObject child in dictionary.Items.Values) {
                 if (child is not PdfReference) {
-                    ReadFileAttachmentAnnotations(objects, child, attachments, discoveredFileSpecs, visited, budget);
+                    CollectAttachmentReferences(objects, child, associatedFileArrays, fileAttachmentAnnotations,
+                        seenAssociatedFileArrays, budget);
                 }
             }
             return;
@@ -271,7 +285,8 @@ internal static class PdfAttachmentExtractor {
         if (value is PdfArray array) {
             foreach (PdfObject child in array.Items) {
                 if (child is not PdfReference) {
-                    ReadFileAttachmentAnnotations(objects, child, attachments, discoveredFileSpecs, visited, budget);
+                    CollectAttachmentReferences(objects, child, associatedFileArrays, fileAttachmentAnnotations,
+                        seenAssociatedFileArrays, budget);
                 }
             }
         }
@@ -631,8 +646,8 @@ internal static class PdfAttachmentExtractor {
                         : _sharedDecodedStreamBudget.Decode(stream, objects, decodeLimit, _cancellationToken);
                 } else {
                     bytes = requireSuccessfulDecoding
-                        ? StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, decodeLimit, _cancellationToken)
-                        : StreamDecoder.Decode(stream.Dictionary, stream.Data, objects, decodeLimit, _cancellationToken);
+                        ? StreamDecoder.DecodeRequired(stream, objects, decodeLimit, _cancellationToken)
+                        : StreamDecoder.Decode(stream, objects, decodeLimit, _cancellationToken);
                 }
             } catch (PdfReadLimitException exception) when (
                 exception.Kind == PdfReadLimitKind.DecodedStreamBytes &&

@@ -10,6 +10,30 @@ public sealed partial class PdfReadDocument {
     internal static PdfReadDocument Open(
         byte[] pdf,
         PdfLoadOptions? options,
+        CancellationToken cancellationToken) =>
+        OpenCore(pdf, options, ownsBytes: false, cancellationToken);
+
+    /// <summary>Opens an immutable buffer already owned by OfficeIMO without duplicating stream payloads.</summary>
+    internal static PdfReadDocument OpenOwned(
+        byte[] ownedPdf,
+        PdfLoadOptions? options,
+        CancellationToken cancellationToken = default) =>
+        OpenCore(ownedPdf, options, ownsBytes: true, cancellationToken);
+
+    /// <summary>
+    /// Opens a buffer that remains stable for the complete lifetime of the returned internal reader.
+    /// The caller must not let the reader escape the synchronous operation that owns that lifetime.
+    /// </summary>
+    internal static PdfReadDocument OpenBorrowed(
+        byte[] borrowedPdf,
+        PdfLoadOptions? options,
+        CancellationToken cancellationToken = default) =>
+        OpenCore(borrowedPdf, options, ownsBytes: true, cancellationToken);
+
+    private static PdfReadDocument OpenCore(
+        byte[] pdf,
+        PdfLoadOptions? options,
+        bool ownsBytes,
         CancellationToken cancellationToken) {
         Guard.NotNull(pdf, nameof(pdf));
         cancellationToken.ThrowIfCancellationRequested();
@@ -18,14 +42,28 @@ public sealed partial class PdfReadDocument {
             pdf,
             effectiveOptions,
             includeParsedDetails: false,
+            out string decodedText,
             cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        var (map, trailer) = PdfSyntax.ParseObjects(
-            pdf,
-            effectiveOptions,
-            out PdfRepairReport repairReport,
-            out long decodedStreamBytes,
-            cancellationToken);
+        PdfRepairReport repairReport;
+        long decodedStreamBytes;
+        (Dictionary<int, PdfIndirectObject> Map, string TrailerRaw) parsed = ownsBytes
+            ? PdfSyntax.ParseOwnedObjects(
+                pdf,
+                effectiveOptions,
+                out repairReport,
+                out decodedStreamBytes,
+                decodedText,
+                cancellationToken)
+            : PdfSyntax.ParseObjects(
+                pdf,
+                effectiveOptions,
+                out repairReport,
+                out decodedStreamBytes,
+                decodedText,
+                cancellationToken);
+        Dictionary<int, PdfIndirectObject> map = parsed.Map;
+        string trailer = parsed.TrailerRaw;
         cancellationToken.ThrowIfCancellationRequested();
         security = PdfSyntax.ReadDocumentSecurityInfo(
             pdf,
@@ -36,6 +74,35 @@ public sealed partial class PdfReadDocument {
             effectiveOptions,
             cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
+
+        return new PdfReadDocument(map, trailer, security, repairReport, effectiveOptions, decodedStreamBytes, cancellationToken);
+    }
+
+    /// <summary>
+    /// Opens bytes produced by the canonical clear-text rewrite writer without repeating the
+    /// arbitrary-input security marker scan. The complete object parse and semantic repair pass
+    /// still run, and the resulting document remains the canonical cached readback.
+    /// </summary>
+    internal static PdfReadDocument OpenRewrittenOutput(
+        byte[] pdf,
+        PdfLoadOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        Guard.NotNull(pdf, nameof(pdf));
+        cancellationToken.ThrowIfCancellationRequested();
+        PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options);
+        string decodedText = PdfEncoding.Latin1GetString(pdf);
+        var (map, trailer) = PdfSyntax.ParseOwnedObjects(
+            pdf,
+            effectiveOptions,
+            out PdfRepairReport repairReport,
+            out long decodedStreamBytes,
+            decodedText,
+            cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        PdfDocumentSecurityInfo security = PdfSyntax.ReadRewrittenOutputSecurityInfo(
+            decodedText,
+            trailer,
+            effectiveOptions);
 
         return new PdfReadDocument(map, trailer, security, repairReport, effectiveOptions, decodedStreamBytes, cancellationToken);
     }

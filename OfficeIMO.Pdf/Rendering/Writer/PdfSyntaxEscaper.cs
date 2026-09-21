@@ -42,6 +42,35 @@ internal static class PdfSyntaxEscaper {
             " R";
     }
 
+    /// <summary>Appends an indirect reference without allocating the combined reference string.</summary>
+    internal static void AppendIndirectReference(StringBuilder destination, int objectNumber, int generation = 0) {
+        Guard.NotNull(destination, nameof(destination));
+        if (objectNumber < 1) {
+            throw new ArgumentOutOfRangeException(nameof(objectNumber), "PDF object number must be positive.");
+        }
+
+        if (generation < 0) {
+            throw new ArgumentOutOfRangeException(nameof(generation), "PDF generation number cannot be negative.");
+        }
+
+#if NET6_0_OR_GREATER
+        Span<char> buffer = stackalloc char[11];
+        if (!objectNumber.TryFormat(buffer, out int written, default, CultureInfo.InvariantCulture)) {
+            throw new InvalidOperationException("The PDF object number could not be formatted.");
+        }
+        destination.Append(buffer.Slice(0, written)).Append(' ');
+        if (!generation.TryFormat(buffer, out written, default, CultureInfo.InvariantCulture)) {
+            throw new InvalidOperationException("The PDF generation number could not be formatted.");
+        }
+        destination.Append(buffer.Slice(0, written)).Append(" R");
+#else
+        destination.Append(objectNumber.ToString(CultureInfo.InvariantCulture))
+            .Append(' ')
+            .Append(generation.ToString(CultureInfo.InvariantCulture))
+            .Append(" R");
+#endif
+    }
+
     internal static string LiteralString(string value) {
         Guard.NotNull(value, nameof(value));
         for (int index = 0; index < value.Length; index++) {
@@ -126,15 +155,44 @@ internal static class PdfSyntaxEscaper {
     internal static string Name(string value) {
         Guard.NotNull(value, nameof(value));
         var sb = new StringBuilder(value.Length);
-        foreach (char ch in value) {
-            if (ch <= 0x20 || ch >= 0x7F || IsNameDelimiter(ch)) {
-                sb.Append('#').Append(((int)ch).ToString("X2", CultureInfo.InvariantCulture));
-            } else {
-                sb.Append(ch);
+        AppendName(sb, value);
+        return sb.ToString();
+    }
+
+    /// <summary>Appends an escaped PDF name without allocating an intermediate escaped string.</summary>
+    internal static void AppendName(StringBuilder destination, string value) {
+        Guard.NotNull(destination, nameof(destination));
+        Guard.NotNull(value, nameof(value));
+
+        bool requiresUtf8 = false;
+        for (int index = 0; index < value.Length; index++) {
+            if (value[index] >= 0x80) {
+                requiresUtf8 = true;
+                break;
             }
         }
 
-        return sb.ToString();
+        if (requiresUtf8) {
+            byte[] bytes = Encoding.UTF8.GetBytes(value);
+            for (int index = 0; index < bytes.Length; index++) AppendNameByte(destination, bytes[index]);
+            return;
+        }
+
+        for (int index = 0; index < value.Length; index++) {
+            AppendNameByte(destination, (byte)value[index]);
+        }
+    }
+
+    private static void AppendNameByte(StringBuilder destination, byte value) {
+        char ch = (char)value;
+        if (value <= 0x20 || value >= 0x7F || IsNameDelimiter(ch)) {
+            const string HexDigits = "0123456789ABCDEF";
+            destination.Append('#')
+                .Append(HexDigits[value >> 4])
+                .Append(HexDigits[value & 0x0F]);
+        } else {
+            destination.Append(ch);
+        }
     }
 
     private static bool IsNameDelimiter(char ch) {

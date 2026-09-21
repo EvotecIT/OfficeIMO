@@ -278,8 +278,7 @@ internal static partial class PdfPrintProductionStructureInspector {
         int maximumObjectDepth) {
         if (StreamDecoder.GetUnsupportedFilters(charProc.Dictionary, objects).Count != 0 ||
             !StreamDecoder.TryDecode(
-                charProc.Dictionary,
-                charProc.Data,
+                charProc,
                 maxDecodedStreamBytes,
                 out byte[] decoded,
                 objects)) return false;
@@ -372,8 +371,7 @@ internal static partial class PdfPrintProductionStructureInspector {
             ResolveObject(objects, value, 0, maximumObjectDepth, out _) is not PdfStream stream ||
             StreamDecoder.GetUnsupportedFilters(stream.Dictionary, objects).Count != 0) return false;
         return StreamDecoder.TryDecode(
-            stream.Dictionary,
-            stream.Data,
+            stream,
             maxDecodedStreamBytes,
             out byte[] decoded,
             objects) && IsValidFontProgram(fontSubtype, key, stream, decoded, objects, maximumObjectDepth);
