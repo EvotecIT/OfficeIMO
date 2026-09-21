@@ -19,7 +19,7 @@ internal static partial class HtmlGeneratedContentResolver {
         if (!styles.HasPseudoElements) return new HtmlGeneratedContentSet(content);
         var counters = new CounterState();
         var quotes = new QuoteState();
-        var quoteCache = new Dictionary<string, (bool Valid, HtmlCssQuotes Quotes, bool Reported)>(StringComparer.Ordinal);
+        var quoteCache = new Dictionary<string, (bool Valid, HtmlCssQuotes Quotes, bool Reported)>(QuoteValueReferenceComparer.Instance);
         long quoteParseCharacters = 0;
         IElement? root = document.DocumentElement ?? document.Body;
         if (root != null) {
@@ -198,6 +198,16 @@ internal static partial class HtmlGeneratedContentResolver {
             content[element] = pair;
         }
         return pair;
+    }
+
+    // Computed styles retain inherited property strings. Cache by identity so looking up
+    // an oversized rejected value on every pseudo-element does not hash it repeatedly.
+    private sealed class QuoteValueReferenceComparer : IEqualityComparer<string> {
+        internal static readonly QuoteValueReferenceComparer Instance = new QuoteValueReferenceComparer();
+
+        public bool Equals(string? left, string? right) => ReferenceEquals(left, right);
+
+        public int GetHashCode(string value) => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(value);
     }
 
     private static void ApplyCounterProperties(
