@@ -165,6 +165,7 @@ internal static class OfficeProvenanceText {
                 cachedLineContentEnd = FindLineEnd(data, begin + BeginDelimiter.Length, cancellationToken);
                 cachedPrefixStart = cachedLineStart;
                 while (cachedPrefixStart < cachedLineContentEnd && IsHorizontalWhitespace(data[cachedPrefixStart])) {
+                    if ((cachedPrefixStart & 0xFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
                     cachedPrefixStart++;
                 }
             }

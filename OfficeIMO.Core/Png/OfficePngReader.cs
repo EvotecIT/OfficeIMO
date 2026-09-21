@@ -261,13 +261,17 @@ public static class OfficePngReader {
         }
     }
 
-    internal static bool TryGetProvenanceDecodeBudget(byte[] bytes, CancellationToken cancellationToken, out long decodedBytes) {
+    internal static bool TryGetProvenanceDecodeBudget(
+        byte[] bytes,
+        CancellationToken cancellationToken,
+        int maximumChunks,
+        out long decodedBytes) {
         decodedBytes = 0;
         if (bytes == null || bytes.Length < 33) return false;
         for (int index = 0; index < Signature.Length; index++) {
             if (bytes[index] != Signature[index]) return false;
         }
-        if (!OfficePngContainerValidator.TryValidate(bytes, cancellationToken, out int frameCount, out _) ||
+        if (!OfficePngContainerValidator.TryValidate(bytes, cancellationToken, maximumChunks, out int frameCount, out _) ||
             ReadBigEndianInt32(bytes, 8) != 13 ||
             bytes[12] != (byte)'I' || bytes[13] != (byte)'H' || bytes[14] != (byte)'D' || bytes[15] != (byte)'R') return false;
         int width = ReadBigEndianInt32(bytes, 16);

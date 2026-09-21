@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using System.Xml;
 using OfficeIMO.Drawing;
 
@@ -80,7 +81,8 @@ internal static class OfficeProvenanceGif {
                 offset += headerLength;
                 int payloadStart = offset;
                 if (isXmp && TryReadXmpApplicationData(
-                    data, payloadStart, options.MaxAssetBytes, ref entryCount, options.MaxContainerEntries, ref nextRawTrailer,
+                    data, payloadStart, options.MaxAssetBytes, ref entryCount, options.MaxContainerEntries,
+                    options.CancellationToken, ref nextRawTrailer,
                     out byte[] packet, out int extensionEnd, out int trailerStart, out bool usesSubBlocks)) {
                     string location = $"GIF/XMP@{blockStart}";
                     bool carrierValid = xmpApplicationCount == 1 && validStructure;
@@ -172,7 +174,8 @@ internal static class OfficeProvenanceGif {
                 if (isXmp) xmpApplicationCount++;
                 offset += headerLength;
                 if (isXmp && TryReadXmpApplicationData(
-                    data, offset, options.MaxAssetBytes, ref entryCount, options.MaxContainerEntries, ref nextRawTrailer,
+                    data, offset, options.MaxAssetBytes, ref entryCount, options.MaxContainerEntries,
+                    options.CancellationToken, ref nextRawTrailer,
                     out _, out int extensionEnd, out _, out _)) {
                     offset = extensionEnd;
                     continue;
@@ -249,6 +252,7 @@ internal static class OfficeProvenanceGif {
         long maximumPacketBytes,
         ref int entryCount,
         int maximumEntries,
+        CancellationToken cancellationToken,
         ref int nextRawTrailer,
         out byte[] packet,
         out int extensionEnd,
@@ -263,10 +267,13 @@ internal static class OfficeProvenanceGif {
         int candidateEntryCount = entryCount;
         using (var collected = new MemoryStream()) {
             while (cursor < data.Length) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (HasXmpMagicTrailer(data, cursor)) {
                     if (collected.Length == 0) break;
                     if (LooksLikeRawXmpPacket(data, payloadOffset) &&
-                        IsWellFormedRawXmp(data, payloadOffset, cursor - payloadOffset, maximumPacketBytes)) {
+                        IsWellFormedRawXmp(
+                            data, payloadOffset, cursor - payloadOffset, maximumPacketBytes,
+                            maximumEntries, cancellationToken)) {
                         return TryReadRawXmpApplicationData(
                             data, payloadOffset, maximumPacketBytes, ref entryCount, maximumEntries,
                             ref nextRawTrailer, out packet, out extensionEnd, out trailerStart);
@@ -307,17 +314,39 @@ internal static class OfficeProvenanceGif {
         return next is (byte)'?' or (byte)'!' or (byte)'_' or (>= (byte)'A' and <= (byte)'Z') or (>= (byte)'a' and <= (byte)'z');
     }
 
-    private static bool IsWellFormedRawXmp(byte[] data, int offset, int length, long maximumPacketBytes) {
+    private static bool IsWellFormedRawXmp(
+        byte[] data,
+        int offset,
+        int length,
+        long maximumPacketBytes,
+        int maximumEntries,
+        CancellationToken cancellationToken) {
         if (length <= 0 || length > maximumPacketBytes) return false;
         try {
             var settings = new XmlReaderSettings {
                 DtdProcessing = DtdProcessing.Prohibit,
                 XmlResolver = null,
-                MaxCharactersInDocument = maximumPacketBytes
+                MaxCharactersInDocument = maximumPacketBytes,
+                MaxCharactersFromEntities = 0
             };
             using var stream = new MemoryStream(data, offset, length, writable: false);
             using XmlReader reader = XmlReader.Create(stream, settings);
-            while (reader.Read()) { }
+            int nodes = 0;
+            while (true) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!reader.Read()) break;
+                if (reader.Depth > 256) {
+                    throw OfficeProvenanceLimitException.Create("GIF XMP exceeds the configured XML depth limit.");
+                }
+                int current = reader.NodeType == XmlNodeType.Element
+                    ? 1 + reader.AttributeCount
+                    : reader.NodeType is XmlNodeType.Text or XmlNodeType.CDATA or XmlNodeType.ProcessingInstruction or
+                        XmlNodeType.Comment or XmlNodeType.Whitespace or XmlNodeType.SignificantWhitespace ? 1 : 0;
+                if (current > 0 && nodes > maximumEntries - current) {
+                    throw OfficeProvenanceLimitException.Create("GIF XMP exceeds the configured XML node limit.");
+                }
+                nodes += current;
+            }
             return true;
         } catch (XmlException) {
             return false;

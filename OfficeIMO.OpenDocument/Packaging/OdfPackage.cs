@@ -407,10 +407,9 @@ internal sealed partial class OdfPackage {
     internal static bool IsSignatureEntry(string path, byte[] content) {
         if (IsSignaturePath(path)) return true;
         if (!IsSignatureCandidatePath(path)) return false;
-        // Producer-specific signature filenames are permitted. Bound classification and
-        // treat unreadable candidate XML as signature material unless it is a known image.
+        // Producer-specific signature filenames are permitted. Inspect only the XML root;
+        // ambiguous content must not be deleted as if it were a signature.
         if (IsPngContent(content, content.Length)) return false;
-        if (content.Length > 1024 * 1024) return true;
         try {
             var settings = new System.Xml.XmlReaderSettings {
                 DtdProcessing = System.Xml.DtdProcessing.Prohibit,
@@ -421,8 +420,8 @@ internal sealed partial class OdfPackage {
             using System.Xml.XmlReader reader = System.Xml.XmlReader.Create(stream, settings);
             reader.MoveToContent();
             return reader.LocalName is "signatures" or "document-signatures" or "Signature";
-        } catch (System.Xml.XmlException) {
-            return true;
+        } catch (System.Xml.XmlException exception) {
+            throw new InvalidDataException("An ODF signature-like entry could not be classified safely.", exception);
         }
     }
 

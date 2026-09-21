@@ -52,6 +52,22 @@ public sealed partial class ProvenanceCoreContracts {
     }
 
     [Fact]
+    public void GifRawXmpDisambiguationHonorsTheXmlNodeLimit() {
+        byte[] xmp = Encoding.UTF8.GetBytes("<root>" + string.Concat(Enumerable.Repeat("<item/>", 32)) + "</root>");
+        int cursor = 0;
+        while (cursor < xmp.Length) cursor += xmp[cursor] + 1;
+        byte[] alignedXmp = Join(xmp, Encoding.ASCII.GetBytes(new string(' ', cursor - xmp.Length)));
+        byte[] gif = Join(Encoding.ASCII.GetBytes("GIF89a"),
+            new byte[] { 1, 0, 1, 0, 0, 0, 0 },
+            CreateGifXmpExtension(alignedXmp), CreateMinimalGifImage(), new byte[] { 0x3B });
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => OfficeProvenanceInspector.Inspect(
+            gif, "fixture.gif", new OfficeProvenanceOptions { MaxContainerEntries = 10 }));
+
+        Assert.Contains("XML node limit", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void TiffStripValidationChecksExactInflatedBytesAndChecksum() {
         byte[] pixels = new byte[64 * 1024];
         byte[] compressed = OfficeZlibCodec.Compress(pixels);

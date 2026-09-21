@@ -183,25 +183,38 @@ public abstract partial class OdfDocument {
                 signatures.Add(name);
                 continue;
             }
-            if (entry.Length > 1024 * 1024) {
-                byte[] prefix = new byte[8];
-                int read = 0;
-                using (Stream prefixStream = entry.Open()) {
-                    while (read < prefix.Length) {
-                        int current = prefixStream.Read(prefix, read, prefix.Length - read);
-                        if (current == 0) break;
-                        read += current;
-                    }
-                }
-                if (!OdfPackage.IsPngContent(prefix, read)) signatures.Add(name);
-                continue;
-            }
-            if (entry.Length < 0 || entry.Length > maximumInspectedBytes - inspectedBytes) {
+            if (entry.Length < 0) {
                 throw OfficeProvenanceLimitException.Create("ODF signature classification exceeds the configured expanded-byte limit.");
             }
-            inspectedBytes += entry.Length;
             using Stream content = entry.Open();
-            byte[] bytes = OfficeProvenanceBinary.ReadBounded(content, 1024 * 1024, limits.CancellationToken);
+            int prefixLength = (int)Math.Min(entry.Length, 1024 * 1024);
+            byte[] prefix = new byte[Math.Min(prefixLength, 8)];
+            int read = 0;
+            while (read < prefix.Length) {
+                limits.CancellationToken.ThrowIfCancellationRequested();
+                int current = content.Read(prefix, read, prefix.Length - read);
+                if (current == 0) throw new InvalidDataException("An ODF signature-like entry ended before its advertised length.");
+                read += current;
+            }
+            if (OdfPackage.IsPngContent(prefix, read)) {
+                if (read > maximumInspectedBytes - inspectedBytes) {
+                    throw OfficeProvenanceLimitException.Create("ODF signature classification exceeds the configured expanded-byte limit.");
+                }
+                inspectedBytes += read;
+                continue;
+            }
+            if (prefixLength > maximumInspectedBytes - inspectedBytes) {
+                throw OfficeProvenanceLimitException.Create("ODF signature classification exceeds the configured expanded-byte limit.");
+            }
+            byte[] bytes = new byte[prefixLength];
+            Buffer.BlockCopy(prefix, 0, bytes, 0, read);
+            while (read < bytes.Length) {
+                limits.CancellationToken.ThrowIfCancellationRequested();
+                int current = content.Read(bytes, read, bytes.Length - read);
+                if (current == 0) throw new InvalidDataException("An ODF signature-like entry ended before its advertised length.");
+                read += current;
+            }
+            inspectedBytes += read;
             if (OdfPackage.IsSignatureEntry(name, bytes)) signatures.Add(name);
         }
         return signatures;

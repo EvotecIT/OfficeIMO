@@ -176,7 +176,7 @@ public sealed class OfficeProvenanceOptions {
     }
     /// <summary>Maximum encoded asset bytes accepted. Defaults to 256 MiB.</summary>
     public long MaxAssetBytes { get; set; } = 256L * 1024L * 1024L;
-    /// <summary>Maximum single manifest store or XMP packet bytes accepted. Defaults to 64 MiB.</summary>
+    /// <summary>Maximum single C2PA manifest store bytes. PNG iTXt XMP packets also use this cap; other XMP carriers remain bounded by the asset limit. Defaults to 64 MiB.</summary>
     public long MaxManifestBytes { get; set; } = 64L * 1024L * 1024L;
     /// <summary>Maximum carriers accepted in one asset. Defaults to 128.</summary>
     public int MaxCarriers { get; set; } = 128;

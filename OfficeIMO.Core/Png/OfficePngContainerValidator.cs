@@ -21,6 +21,14 @@ internal static class OfficePngContainerValidator {
         byte[]? bytes,
         CancellationToken cancellationToken,
         out int frameCount,
+        out string? failureReason) =>
+        TryValidate(bytes, cancellationToken, int.MaxValue, out frameCount, out failureReason);
+
+    internal static bool TryValidate(
+        byte[]? bytes,
+        CancellationToken cancellationToken,
+        int maximumChunks,
+        out int frameCount,
         out string? failureReason) {
         frameCount = 0;
         failureReason = null;
@@ -57,8 +65,13 @@ internal static class OfficePngContainerValidator {
             bool hasStandardRgbChromaticities = false;
             long decodedTextBytes = 0;
             int offset = Signature.Length;
+            int chunkCount = 0;
             while (offset + 12 <= bytes.Length) {
                 cancellationToken.ThrowIfCancellationRequested();
+                if (++chunkCount > maximumChunks) {
+                    failureReason = "PNG chunk count exceeds the configured limit.";
+                    return false;
+                }
                 int length = ReadBigEndianInt32(bytes, offset);
                 long chunkEnd = (long)offset + 12L + length;
                 if (length < 0 || chunkEnd > bytes.Length) {

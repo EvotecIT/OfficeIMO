@@ -9,7 +9,7 @@ public sealed partial class ProvenanceCoreContracts {
     [Fact]
     public void EmbeddedPngDecodeWorkSharesThePackageBudget() {
         byte[] image = CreatePngWithC2paManifest(CreateManifestStore());
-        Assert.True(OfficePngReader.TryGetProvenanceDecodeBudget(image, default, out long decodedBytes));
+        Assert.True(OfficePngReader.TryGetProvenanceDecodeBudget(image, default, int.MaxValue, out long decodedBytes));
         byte[] package = CreateCompressedZip(("media/first.png", image), ("media/second.png", image));
         var options = new OfficeProvenanceOptions {
             MaxExpandedContainerBytes = 2L * (image.Length + decodedBytes) - 1L
@@ -23,7 +23,7 @@ public sealed partial class ProvenanceCoreContracts {
     public void ExtensionlessZipImageReusesTheBudgetedSniffPayload() {
         byte[] image = CreatePngWithC2paManifest(CreateManifestStore());
         byte[] package = CreateCompressedZip(("media/extensionless", image));
-        Assert.True(OfficePngReader.TryGetProvenanceDecodeBudget(image, default, out long decodedBytes));
+        Assert.True(OfficePngReader.TryGetProvenanceDecodeBudget(image, default, int.MaxValue, out long decodedBytes));
         var inspectionOptions = new OfficeProvenanceOptions { MaxExpandedContainerBytes = image.Length + decodedBytes };
         var removalOptions = new OfficeProvenanceRemovalOptions();
         removalOptions.Limits.MaxExpandedContainerBytes = 1024 * 1024;
@@ -34,6 +34,20 @@ public sealed partial class ProvenanceCoreContracts {
         Assert.True(report.HasC2paManifest);
         Assert.True(result.WasChanged);
         Assert.Empty(OfficeProvenanceInspector.Inspect(ReadZipEntry(result.ToArray(), "media/extensionless"), "image.png").Evidence);
+    }
+
+    [Fact]
+    public void PngProvenanceBudgetPrepassStopsAtTheConfiguredChunkCount() {
+        byte[] textChunk = CreatePngChunk("tEXt", Encoding.ASCII.GetBytes("k\0v"));
+        byte[] png = Join(
+            new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A },
+            CreatePngChunk("IHDR", new byte[] { 0, 0, 0, 1, 0, 0, 0, 1, 8, 2, 0, 0, 0 }),
+            Join(Enumerable.Repeat(textChunk, 16).ToArray()),
+            CreatePngChunk("IDAT", CreateValidPngImageData()),
+            CreatePngChunk("IEND", Array.Empty<byte>()));
+
+        Assert.False(OfficePngReader.TryGetProvenanceDecodeBudget(png, default, 4, out _));
+        Assert.True(OfficePngReader.TryGetProvenanceDecodeBudget(png, default, 20, out _));
     }
 
     [Fact]

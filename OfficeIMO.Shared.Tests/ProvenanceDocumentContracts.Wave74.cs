@@ -60,4 +60,21 @@ public sealed partial class ProvenanceDocumentContracts {
         Assert.Contains(archive.Entries, entry => entry.FullName == resourcePath);
         Assert.Empty(result.After.Evidence);
     }
+
+    [Fact]
+    public void OdfPreservesLargeNonSignatureXmlAtProducerSignatureLikePath() {
+        const string resourcePath = "META-INF/audit-signatures.xml";
+        byte[] resource = Encoding.UTF8.GetBytes("<resource>" + new string('x', 2 * 1024 * 1024) + "</resource>");
+        byte[] package = CreateZipPackage(
+            "odt", resourcePath, CreatePngWithManifest(CreateManifestStore()), signatureContent: resource);
+
+        OfficeProvenanceRemovalResult result = OdfDocument.RemoveProvenance(package, "document.odt", new OfficeProvenanceRemovalOptions {
+            SignatureMutationPolicy = OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures
+        });
+
+        using var archive = new ZipArchive(new MemoryStream(result.ToArray()), ZipArchiveMode.Read);
+        Assert.False(result.WereInvalidatedSignaturesRemoved);
+        Assert.Equal(resource, ReadZipEntry(result.ToArray(), resourcePath));
+        Assert.Empty(result.After.Evidence);
+    }
 }

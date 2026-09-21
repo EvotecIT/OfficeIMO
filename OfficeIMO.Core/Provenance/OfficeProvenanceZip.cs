@@ -1097,7 +1097,8 @@ internal static class OfficeProvenanceZip {
 
     private static void ReserveEmbeddedPngDecodeBudget(byte[] asset, OfficeProvenanceOptions options, ref long expandedBytes) {
         if (OfficeProvenanceInspector.DetectFormat(asset, fileName: null, options) != OfficeProvenanceAssetFormat.Png) return;
-        if (OfficePngReader.TryGetProvenanceDecodeBudget(asset, options.CancellationToken, out long decodedBytes)) {
+        if (OfficePngReader.TryGetProvenanceDecodeBudget(
+            asset, options.CancellationToken, options.MaxContainerEntries, out long decodedBytes)) {
             ReserveExpandedBytes(ref expandedBytes, decodedBytes, options.MaxExpandedContainerBytes);
         }
     }
