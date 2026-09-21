@@ -72,6 +72,23 @@ public partial class DrawingTests {
         Assert.Equal(OfficeTextDirection.Auto, text.TextDirection);
     }
 
+    [Theory]
+    [InlineData("<tspan>שלום</tspan>")]
+    [InlineData("<a><tspan unicode-bidi='normal'>שלום</tspan></a>")]
+    public void OfficeSvgDrawingReader_AncestorPlaintextControlsNestedText(string children) {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 60'>"
+            + "<text x='10' y='30' font-family='Arial' font-size='18' fill='black' "
+            + "direction='ltr' unicode-bidi='plaintext' text-anchor='end'>"
+            + children + "</text></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(
+            System.Text.Encoding.UTF8.GetBytes(svg), options: null, out OfficeDrawing? imported, out int unsupported));
+        Assert.Equal(0, unsupported);
+        OfficeDrawingText text = Assert.Single(imported!.Elements.OfType<OfficeDrawingText>());
+        Assert.Equal(10D, text.X, precision: 3);
+        Assert.Equal(OfficeTextDirection.Auto, text.TextDirection);
+    }
+
     [Fact]
     public void OfficeSvgDrawingReader_DirectionUnsetRetainsInheritedDirection() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 60'>"

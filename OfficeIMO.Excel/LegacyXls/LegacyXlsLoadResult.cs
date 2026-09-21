@@ -181,11 +181,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             diagnostics.AddRange(Diagnostics.Select(diagnostic => new OfficeConversionFidelityDiagnostic(
                 diagnostic.Code,
                 diagnostic.Message,
-                diagnostic.Severity switch {
-                    LegacyXlsDiagnosticSeverity.Error => OfficeConversionLossKind.Failure,
-                    LegacyXlsDiagnosticSeverity.Warning => OfficeConversionLossKind.Approximation,
-                    _ => OfficeConversionLossKind.None
-                },
+                ClassifyLoss(diagnostic),
                 "OfficeIMO.Excel.LegacyXls.Reader",
                 FormatLocation(diagnostic.SheetName, diagnostic.RecordOffset))));
             diagnostics.AddRange(UnsupportedFeatures.Select(feature => new OfficeConversionFidelityDiagnostic(
@@ -208,6 +204,16 @@ namespace OfficeIMO.Excel.LegacyXls {
                     "OfficeIMO.Excel.LegacyXls.Reader",
                     feature.Entries.FirstOrDefault())));
             return Array.AsReadOnly(diagnostics.ToArray());
+        }
+
+        private static OfficeConversionLossKind ClassifyLoss(LegacyXlsImportDiagnostic diagnostic) {
+            if (diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error) return OfficeConversionLossKind.Failure;
+            // An unread shared string can become an empty LabelSst cell; it is not a
+            // representational approximation of the original value.
+            if (diagnostic.Code is "XLS-BIFF-SST-SHORT" or "XLS-BIFF-SST-STRING-INVALID")
+                return OfficeConversionLossKind.Omission;
+            return diagnostic.Severity == LegacyXlsDiagnosticSeverity.Warning
+                ? OfficeConversionLossKind.Approximation : OfficeConversionLossKind.None;
         }
 
         private static string? FormatLocation(string? sheetName, int? recordOffset) {

@@ -35,11 +35,15 @@ public static partial class OfficeSvgDrawingReader {
             || double.IsNaN(baselineOffset) || double.IsInfinity(baselineOffset)) return false;
         baselineOffset = Math.Max(0D, Math.Min(lineHeight, baselineOffset));
         int pointAllowance = Math.Max(1, remainingCommands / 2);
+        // The contours are visual ink, while ActualText below retains the source's logical text.
+        OfficeManagedTextFallback shaped = OfficeManagedTextShaper.Resolve(
+            run.Text, bounded, run.TextDirection, CancellationToken.None);
+        string outlineText = shaped.Used ? shaped.Text : run.Text;
         List<List<OfficePoint>> contours;
         try {
             contours = bounded is IOfficeCffBoundedFontProgram cff
                 ? cff.GetTextContoursBounded(
-                    run.Text,
+                    outlineText,
                     run.X,
                     run.Baseline - baselineOffset,
                     run.FontSize,
@@ -47,7 +51,7 @@ public static partial class OfficeSvgDrawingReader {
                     CancellationToken.None,
                     new OfficeCffOperationBudget())
                 : bounded.GetTextContoursBounded(
-                    run.Text,
+                    outlineText,
                     run.X,
                     run.Baseline - baselineOffset,
                     run.FontSize,

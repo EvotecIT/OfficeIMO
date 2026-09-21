@@ -1129,6 +1129,9 @@ public static partial class OfficeSvgDrawingReader {
         // unicode-bidi is not inherited. Keep it separate from the inherited direction property so
         // plaintext can choose its base direction after all attributes and declarations are applied.
         result.InheritedPlaintextBidi = inherited.PlaintextBidi;
+        // A text container's plaintext bidi scope still governs descendants even though the
+        // unicode-bidi CSS property itself is non-inherited.
+        result.AncestorPlaintextBidi = inherited.AncestorPlaintextBidi || inherited.PlaintextBidi;
         result.PlaintextBidi = false;
         ApplyProperty("color", element.Attribute("color")?.Value, paintServers, ref result, ref unsupported);
         string? styleText = element.Attribute("style")?.Value;
@@ -1733,6 +1736,7 @@ public static partial class OfficeSvgDrawingReader {
         internal OfficeTextDirection TextDirection;
         internal bool PlaintextBidi;
         internal bool InheritedPlaintextBidi;
+        internal bool AncestorPlaintextBidi;
         internal SvgDominantBaseline DominantBaseline;
         internal SvgBaselineShift BaselineShift;
         internal SvgWritingMode WritingMode;

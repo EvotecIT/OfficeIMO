@@ -455,7 +455,7 @@ public static partial class OfficeSvgDrawingReader {
             SvgTextRun[] horizontalRuns = chunk.ToArray();
             string logicalText = string.Concat(horizontalRuns.Select(run => run.Text));
             string physicalAnchor = first.Anchor;
-            OfficeTextDirection direction = first.Style.PlaintextBidi ||
+            OfficeTextDirection direction = first.Style.PlaintextBidi || first.Style.AncestorPlaintextBidi ||
                 first.Style.TextDirection == OfficeTextDirection.Auto
                 ? OfficeTextElements.ResolveBaseDirection(logicalText)
                 : first.Style.TextDirection;
@@ -625,7 +625,8 @@ public static partial class OfficeSvgDrawingReader {
             RotationCenterY = rotationCenterY ?? baseline - fontSize / 2D;
             IsVertical = isVertical;
             InlineAdvance = inlineAdvance > 0D ? inlineAdvance : width;
-            TextDirection = style.PlaintextBidi ? OfficeTextDirection.Auto : style.TextDirection;
+            TextDirection = style.PlaintextBidi || style.AncestorPlaintextBidi
+                ? OfficeTextDirection.Auto : style.TextDirection;
         }
     }
 
