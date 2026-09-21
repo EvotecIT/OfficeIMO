@@ -19,7 +19,8 @@ geometry from word boxes and compares the OfficeIMO and Chrome rendered ink at
 reference run produced 0.936. The normal HarfBuzz integration test separately
 checks vertical substitutions, each emitted glyph ID and text matrix against
 the provider's X/Y offsets and advances, `/ActualText` readback, and
-`RequireNoLoss()`.
+`RequireNoLoss()`. Separate tests require a diagnosed fallback for partial
+shaping results and drawing contexts without a logical-text wrapper.
 
 The dvipdfmx file has no ToUnicode map. Poppler recovers its Japanese text from
 the predefined CJK font mapping; OfficeIMO's PDF reader currently does not.

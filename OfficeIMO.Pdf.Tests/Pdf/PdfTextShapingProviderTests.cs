@@ -103,6 +103,36 @@ public class PdfTextShapingProviderTests {
     }
 
     [Fact]
+    public void VerticalProviderWithPartialTextCoverageKeepsTheDiagnosedFallback() {
+        TypographyEvidenceCase evidence = Assert.Single(
+            TypographyEvidenceCorpus.Cases,
+            item => item.Direction == OfficeTextDirection.TopToBottom);
+        byte[] fontData = LoadTypographyFont(evidence);
+        PdfTrueTypeFontProgram font = PdfTrueTypeFontProgram.Parse(fontData, evidence.Family);
+        OfficeShapedGlyph first = CreateGlyphMap(evidence.Text, font)[0];
+        var provider = new DirectionRecordingTextShapingProvider(evidence.Text,
+            new[] { new OfficeShapedGlyph(first.GlyphId, first.UnicodeText, first.TextIndex,
+                advanceWidth: 0, advanceHeight: -font.UnitsPerEm, offsetX: 0, offsetY: 0) });
+        var drawing = new OfficeDrawing(120D, 180D)
+            .AddFont(evidence.Family, fontData)
+            .AddVerticalText(evidence.Text, 20D, 10D, 80D, 160D,
+                new OfficeFontInfo(evidence.Family, 36D));
+        var report = new PdfConversionReport();
+        var options = new PdfOptions { CompressContentStreams = false }
+            .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(evidence.Family, fontData))
+            .SetTextShapingProvider(provider)
+            .ReportDiagnosticsTo(report, "Partial vertical run");
+
+        byte[] pdf = PdfDocument.Create(options).Drawing(drawing).ToBytes();
+
+        Assert.Contains(evidence.Text, PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Single(report.FidelityDiagnostics, diagnostic =>
+            diagnostic.Code == "vertical-text-stacked-fallback" &&
+            diagnostic.LossKind == OfficeConversionLossKind.Approximation);
+        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
+    }
+
+    [Fact]
     public void VerticalDrawingInsideActualTextGroupStillReportsThePdfPositioningFallback() {
         TypographyEvidenceCase evidence = Assert.Single(
             TypographyEvidenceCorpus.Cases,

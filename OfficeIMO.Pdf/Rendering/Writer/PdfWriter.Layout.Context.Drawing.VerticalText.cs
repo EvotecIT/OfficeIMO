@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using OfficeIMO.Drawing;
 
@@ -8,7 +9,8 @@ internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private bool TryDrawNativeVerticalText(OfficeDrawingText text, double originX, double originTopY) {
             IOfficeTextShapingProvider? provider = currentOpts.TextShapingProviderSnapshot;
-            if (provider == null || text.WrapText || text.ShrinkToFit || text.HasPadding ||
+            if (provider == null || (_suppressCanvasAccessibilityWrappers && !_suppressCanvasActualTextChildren) ||
+                text.WrapText || text.ShrinkToFit || text.HasPadding ||
                 text.HasParagraphIndent || text.Alignment != OfficeTextAlignment.Center ||
                 text.VerticalAlignment != OfficeTextVerticalAlignment.Top ||
                 text.Font.IsUnderline || text.Font.IsStrikethrough ||
@@ -48,7 +50,8 @@ internal static partial class PdfWriter {
             } else {
                 return false;
             }
-            if (!glyphRun.HasCompleteVerticalAdvances || glyphRun.Glyphs.Count == 0) return false;
+            if (!glyphRun.HasCompleteVerticalAdvances || glyphRun.Glyphs.Count == 0 ||
+                !HasCompleteLogicalCoverage(text.Text, glyphRun.Glyphs)) return false;
             bool movesVertically = false;
             for (int index = 0; index < glyphRun.Glyphs.Count; index++) {
                 movesVertically |= glyphRun.Glyphs[index].AdvanceHeight1000 != 0;
@@ -91,6 +94,25 @@ internal static partial class PdfWriter {
             MarkRichFonts(new[] { run });
             pageDirty = true;
             return true;
+        }
+
+        private static bool HasCompleteLogicalCoverage(string source, IReadOnlyList<PdfGlyphInfo> glyphs) {
+            var ranges = new List<(int Start, int End)>(glyphs.Count);
+            for (int index = 0; index < glyphs.Count; index++) {
+                PdfGlyphInfo glyph = glyphs[index];
+                if (glyph.UnicodeText.Length == 0) continue;
+                if (glyph.TextIndex < 0 || glyph.TextIndex > source.Length - glyph.UnicodeText.Length ||
+                    string.CompareOrdinal(source, glyph.TextIndex, glyph.UnicodeText, 0,
+                        glyph.UnicodeText.Length) != 0) return false;
+                ranges.Add((glyph.TextIndex, glyph.TextIndex + glyph.UnicodeText.Length));
+            }
+            ranges.Sort((left, right) => left.Start.CompareTo(right.Start));
+            int covered = 0;
+            for (int index = 0; index < ranges.Count; index++) {
+                if (ranges[index].Start > covered) return false;
+                covered = Math.Max(covered, ranges[index].End);
+            }
+            return covered == source.Length;
         }
     }
 }

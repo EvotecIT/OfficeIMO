@@ -112,8 +112,9 @@ fallbacks, language, and shaping provider when the document contract requires
 broader scripts or reproducible font selection.
 
 `OfficeDrawing.AddVerticalText(...)` draws native positioned glyphs in PDF when
-the selected shaping provider supplies vertical advances and the chosen font is
-embedded. The writer preserves shaped glyph substitutions and X/Y offsets,
+the selected shaping provider supplies vertical advances and complete logical
+text coverage, the chosen font is embedded, and an `/ActualText` wrapper owns
+extraction. The writer preserves shaped glyph substitutions and X/Y offsets,
 marks the original text for extraction, and clips paint to the drawing text
 box. Without that font/provider contract it retains searchable stacked text and
 reports `vertical-text-stacked-fallback`; `PdfConversionReport.RequireNoLoss()`

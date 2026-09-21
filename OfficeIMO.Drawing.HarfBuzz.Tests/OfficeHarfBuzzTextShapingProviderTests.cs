@@ -182,6 +182,62 @@ public sealed class OfficeHarfBuzzTextShapingProviderTests {
     }
 
     [Fact]
+    public void VerticalTextInsideLogicalDrawingKeepsNativePositionsAndOneExtraction() {
+        TypographyEvidenceCase evidence = Assert.Single(
+            TypographyEvidenceCorpus.Cases,
+            item => item.Direction == OfficeTextDirection.TopToBottom);
+        byte[] fontData = LoadFontData(evidence);
+        var paint = new OfficeDrawing(120D, 180D)
+            .AddFont(evidence.Family, fontData)
+            .AddVerticalText(evidence.Text, 20D, 10D, 80D, 160D,
+                new OfficeFontInfo(evidence.Family, 36D));
+        var drawing = new OfficeDrawing(120D, 180D)
+            .AddActualTextDrawing(evidence.Text, paint, 60D, 10D);
+        var report = new PdfConversionReport();
+        var options = new PdfOptions { CompressContentStreams = false }
+            .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(evidence.Family, fontData))
+            .SetTextShapingProvider(OfficeHarfBuzzTextShapingProvider.Instance)
+            .ReportDiagnosticsTo(report, "Logical vertical drawing");
+
+        byte[] pdf = PdfDocument.Create(
+            document => document.Content(content => content.Drawing(drawing)), options).ToBytes();
+
+        Assert.Equal(evidence.Text, PdfReadDocument.Open(pdf).ExtractText().Trim());
+        Assert.DoesNotContain(report.FidelityDiagnostics, diagnostic =>
+            diagnostic.Code == "vertical-text-stacked-fallback");
+        report.RequireNoLoss();
+    }
+
+    [Fact]
+    public void TaggedFigureWithoutLogicalTextWrapperKeepsDiagnosedVerticalFallback() {
+        TypographyEvidenceCase evidence = Assert.Single(
+            TypographyEvidenceCorpus.Cases,
+            item => item.Direction == OfficeTextDirection.TopToBottom);
+        byte[] fontData = LoadFontData(evidence);
+        var drawing = new OfficeDrawing(120D, 180D)
+            .AddFont(evidence.Family, fontData)
+            .AddVerticalText(evidence.Text, 20D, 10D, 80D, 160D,
+                new OfficeFontInfo(evidence.Family, 36D));
+        var report = new PdfConversionReport();
+        var options = new PdfOptions { CompressContentStreams = false }
+            .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(evidence.Family, fontData))
+            .SetTextShapingProvider(OfficeHarfBuzzTextShapingProvider.Instance)
+            .ReportDiagnosticsTo(report, "Tagged vertical drawing");
+
+        byte[] pdf = PdfDocument.Create(document => document.Content(content =>
+                content.Drawing(drawing, style: new PdfDrawingStyle {
+                    AlternativeText = "Japanese text figure"
+                })), options)
+            .ToBytes();
+
+        Assert.Contains("/Figure << /Alt", System.Text.Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
+        Assert.Single(report.FidelityDiagnostics, diagnostic =>
+            diagnostic.Code == "vertical-text-stacked-fallback" &&
+            diagnostic.LossKind == OfficeConversionLossKind.Approximation);
+        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
+    }
+
+    [Fact]
     public void VerticalCjkIsClippedToItsDeclaredTextBoxAcrossRasterAndSvg() {
         TypographyEvidenceCase evidence = Assert.Single(
             TypographyEvidenceCorpus.Cases,
