@@ -3,6 +3,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Html;
 
 internal static class HtmlCssTextShadowParser {
+    private const int MaximumParsedLayers = 64;
     internal static bool TryParse(
         string value,
         double fontSize,
@@ -46,14 +47,16 @@ internal static class HtmlCssTextShadowParser {
             else if (current == '(') depth++;
             else if (current == ')' && depth > 0) depth--;
             else if (current == ',' && depth == 0) {
-                if (layerCount < maximumLayers) layers.Add(normalized.Substring(start, index - start).Trim());
+                if (layerCount >= MaximumParsedLayers) return false;
+                layers.Add(normalized.Substring(start, index - start).Trim());
                 layerCount++;
                 start = index + 1;
             }
         }
-        if (layerCount < maximumLayers) layers.Add(normalized.Substring(start).Trim());
+        if (layerCount >= MaximumParsedLayers) return false;
+        layers.Add(normalized.Substring(start).Trim());
         layerCount++;
-        var parsed = new List<HtmlCssTextShadow>(layers.Count);
+        var parsed = new List<HtmlCssTextShadow>(Math.Min(layers.Count, maximumLayers));
         foreach (string layer in layers) {
             if (!TryParseLayer(
                     layer,
@@ -65,7 +68,7 @@ internal static class HtmlCssTextShadowParser {
                     containerHeight,
                     currentColor,
                     out HtmlCssTextShadow? shadow)) return false;
-            parsed.Add(shadow!);
+            if (parsed.Count < maximumLayers) parsed.Add(shadow!);
         }
 
         shadows = parsed;

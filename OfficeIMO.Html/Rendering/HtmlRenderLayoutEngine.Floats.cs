@@ -655,6 +655,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     _options.MaxLeaderCharacters);
             }
             int count = (int)requiredCount;
+            ChargeLayoutOperations((long)count * leaderPattern.Length, "leader text expansion");
             string repeated = string.Concat(Enumerable.Repeat(leaderPattern, count));
             paint = new HtmlRenderText(
                 repeated,

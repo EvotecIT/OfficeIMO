@@ -19,11 +19,12 @@ internal static partial class HtmlGeneratedContentResolver {
         if (!styles.HasPseudoElements) return new HtmlGeneratedContentSet(content);
         var counters = new CounterState();
         var quotes = new QuoteState();
-        var quoteCache = new Dictionary<string, (bool Valid, HtmlCssQuotes Quotes)>(StringComparer.Ordinal);
+        var quoteCache = new Dictionary<string, (bool Valid, HtmlCssQuotes Quotes, bool Reported)>(StringComparer.Ordinal);
+        long quoteParseCharacters = 0;
         IElement? root = document.DocumentElement ?? document.Body;
         if (root != null) {
             int level = counters.EnterLevel();
-            TraverseElement(root, level, 0, maximumDepth, styles, diagnostics, counters, quotes, content, counterStyles, quoteCache);
+            TraverseElement(root, level, 0, maximumDepth, styles, diagnostics, counters, quotes, content, counterStyles, quoteCache, ref quoteParseCharacters);
             counters.ExitLevel(level);
         }
 
@@ -41,7 +42,8 @@ internal static partial class HtmlGeneratedContentResolver {
         QuoteState quotes,
         IDictionary<IElement, HtmlGeneratedPseudoContentPair> content,
         HtmlCounterStyleRegistry counterStyles,
-        IDictionary<string, (bool Valid, HtmlCssQuotes Quotes)> quoteCache) {
+        IDictionary<string, (bool Valid, HtmlCssQuotes Quotes, bool Reported)> quoteCache,
+        ref long quoteParseCharacters) {
         if (depth > maximumDepth) {
             throw new HtmlDomLimitException(
                 HtmlRenderDiagnosticCodes.DepthLimitExceeded,
@@ -59,19 +61,19 @@ internal static partial class HtmlGeneratedContentResolver {
         ApplyCounterProperties(elementStyle, level, counters, diagnostics, HtmlRenderStyleResolver.DescribeSource(element));
         if (string.Equals(elementStyle.GetValue("float").Trim(), "footnote", StringComparison.OrdinalIgnoreCase)) {
             counters.Increment("footnote", 1, level);
-            ResolvePseudo(element, HtmlPseudoElementKind.FootnoteCall, level, styles, diagnostics, counters, quotes, content, counterStyles, quoteCache);
-            ResolvePseudo(element, HtmlPseudoElementKind.FootnoteMarker, level, styles, diagnostics, counters, quotes, content, counterStyles, quoteCache);
+            ResolvePseudo(element, HtmlPseudoElementKind.FootnoteCall, level, styles, diagnostics, counters, quotes, content, counterStyles, quoteCache, ref quoteParseCharacters);
+            ResolvePseudo(element, HtmlPseudoElementKind.FootnoteMarker, level, styles, diagnostics, counters, quotes, content, counterStyles, quoteCache, ref quoteParseCharacters);
         }
-        ResolvePseudo(element, HtmlPseudoElementKind.Marker, level, styles, diagnostics, counters, quotes, content, counterStyles, quoteCache);
-        ResolvePseudo(element, HtmlPseudoElementKind.Before, level, styles, diagnostics, counters, quotes, content, counterStyles, quoteCache);
+        ResolvePseudo(element, HtmlPseudoElementKind.Marker, level, styles, diagnostics, counters, quotes, content, counterStyles, quoteCache, ref quoteParseCharacters);
+        ResolvePseudo(element, HtmlPseudoElementKind.Before, level, styles, diagnostics, counters, quotes, content, counterStyles, quoteCache, ref quoteParseCharacters);
 
         int childLevel = counters.EnterLevel();
         foreach (IElement child in element.Children) {
-            if (!ShouldSkipSubtree(child)) TraverseElement(child, childLevel, depth + 1, maximumDepth, styles, diagnostics, counters, quotes, content, counterStyles, quoteCache);
+            if (!ShouldSkipSubtree(child)) TraverseElement(child, childLevel, depth + 1, maximumDepth, styles, diagnostics, counters, quotes, content, counterStyles, quoteCache, ref quoteParseCharacters);
         }
 
         counters.ExitLevel(childLevel);
-        ResolvePseudo(element, HtmlPseudoElementKind.After, level, styles, diagnostics, counters, quotes, content, counterStyles, quoteCache);
+        ResolvePseudo(element, HtmlPseudoElementKind.After, level, styles, diagnostics, counters, quotes, content, counterStyles, quoteCache, ref quoteParseCharacters);
     }
 
     private static void ResolvePseudo(
@@ -84,7 +86,8 @@ internal static partial class HtmlGeneratedContentResolver {
         QuoteState quotes,
         IDictionary<IElement, HtmlGeneratedPseudoContentPair> content,
         HtmlCounterStyleRegistry counterStyles,
-        IDictionary<string, (bool Valid, HtmlCssQuotes Quotes)> quoteCache) {
+        IDictionary<string, (bool Valid, HtmlCssQuotes Quotes, bool Reported)> quoteCache,
+        ref long quoteParseCharacters) {
         if (!styles.TryGetPseudoStyle(element, kind, out HtmlComputedStyle pseudoStyle)
             || string.Equals(pseudoStyle.GetValue("display"), "none", StringComparison.OrdinalIgnoreCase)) {
             return;
@@ -124,22 +127,32 @@ internal static partial class HtmlGeneratedContentResolver {
 
         string quoteValue = pseudoStyle.GetValue("quotes");
         if (!quoteCache.TryGetValue(quoteValue, out var parsedQuotes)) {
+            quoteParseCharacters += Math.Min(quoteValue.Length, 8192);
+            if (quoteParseCharacters > 1_000_000) {
+                throw new HtmlDomLimitException(
+                    HtmlRenderDiagnosticCodes.LayoutOperationLimitExceeded,
+                    "CSS quotes parsing exceeded the render-wide work limit.",
+                    "CssQuotesParseCharacters", quoteParseCharacters, 1_000_000);
+            }
             HtmlCssQuotes resolvedQuotes = HtmlCssQuotes.Default;
-            bool valid = quoteCache.Count < 1024
-                && HtmlCssQuotes.TryParse(quoteValue, out resolvedQuotes);
-            parsedQuotes = (valid, resolvedQuotes);
-            if (quoteCache.Count < 1024) quoteCache[quoteValue] = parsedQuotes;
+            bool valid = HtmlCssQuotes.TryParse(quoteValue, out resolvedQuotes);
+            parsedQuotes = (valid, resolvedQuotes, false);
+            if (quoteCache.Count >= 1024) quoteCache.Clear();
+            quoteCache[quoteValue] = parsedQuotes;
         }
         HtmlCssQuotes quotePairs = parsedQuotes.Quotes;
         if (!parsedQuotes.Valid) {
-            diagnostics.Add(
-                ComponentName,
-                HtmlRenderDiagnosticCodes.GeneratedContentUnsupported,
-                "A CSS quotes declaration could not be represented and used the default quote pairs.",
-                HtmlDiagnosticSeverity.Warning,
-                pseudoSource,
-                "quotes=" + pseudoStyle.GetValue("quotes"),
-                OfficeConversionLossKind.Approximation);
+            if (!parsedQuotes.Reported) {
+                diagnostics.Add(
+                    ComponentName,
+                    HtmlRenderDiagnosticCodes.GeneratedContentUnsupported,
+                    "A CSS quotes declaration could not be represented and used the default quote pairs.",
+                    HtmlDiagnosticSeverity.Warning,
+                    pseudoSource,
+                    "quotes=" + (quoteValue.Length <= 256 ? quoteValue : quoteValue.Substring(0, 256)),
+                    OfficeConversionLossKind.Approximation);
+                if (quoteCache.ContainsKey(quoteValue)) quoteCache[quoteValue] = (false, HtmlCssQuotes.Default, true);
+            }
             quotePairs = HtmlCssQuotes.Default;
         }
 

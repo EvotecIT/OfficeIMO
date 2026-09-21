@@ -150,7 +150,7 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
     /// <summary>Maximum CSS box-shadow layers accepted on one element.</summary>
     public int MaxBoxShadowLayers { get; set; } = 32;
 
-    /// <summary>Maximum CSS text-shadow layers accepted on one element.</summary>
+    /// <summary>Maximum CSS text-shadow layers retained on one element, from 1 to 64.</summary>
     public int MaxTextShadowLayers { get; set; } = 16;
 
     /// <summary>Maximum characters materialized for a generated CSS leader.</summary>
@@ -325,8 +325,8 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
             throw new ArgumentOutOfRangeException(nameof(MaxBoxShadowLayers), "Maximum box-shadow layer count must be positive.");
         }
 
-        if (MaxTextShadowLayers <= 0) {
-            throw new ArgumentOutOfRangeException(nameof(MaxTextShadowLayers), "Maximum text-shadow layer count must be positive.");
+        if (MaxTextShadowLayers <= 0 || MaxTextShadowLayers > 64) {
+            throw new ArgumentOutOfRangeException(nameof(MaxTextShadowLayers), "Maximum text-shadow layer count must be between 1 and 64.");
         }
         if (MaxLeaderCharacters <= 0) {
             throw new ArgumentOutOfRangeException(nameof(MaxLeaderCharacters), "Maximum leader character count must be positive.");

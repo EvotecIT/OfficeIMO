@@ -65,12 +65,16 @@ public sealed class HtmlSecurityLayoutBatchTests {
 
     [Fact]
     public void TextShadowParserCountsExcessLayersWithoutMaterializingThem() {
-        string value = string.Join(",", Enumerable.Repeat("1px 2px red", 4000));
+        string value = string.Join(",", Enumerable.Repeat("1px 2px red", 32));
 
         Assert.True(HtmlCssTextShadowParser.TryParse(value, 16, 16, 100, 100, 100, 100,
             OfficeColor.Black, 2, out IReadOnlyList<HtmlCssTextShadow> shadows, out int total));
         Assert.Equal(2, shadows.Count);
-        Assert.Equal(4000, total);
+        Assert.Equal(32, total);
+        Assert.False(HtmlCssTextShadowParser.TryParse(value + ",invalid", 16, 16, 100, 100,
+            100, 100, OfficeColor.Black, 2, out _, out _));
+        Assert.False(HtmlCssTextShadowParser.TryParse(string.Join(",", Enumerable.Repeat("1px 2px red", 65)),
+            16, 16, 100, 100, 100, 100, OfficeColor.Black, 2, out _, out _));
     }
 
     [Fact]
@@ -122,5 +126,50 @@ public sealed class HtmlSecurityLayoutBatchTests {
             MaxLayoutOperations = 10000
         });
         Assert.Contains('漢', rendered.Text);
+    }
+
+    [Fact]
+    public void InheritedOversizedQuotesProduceOneBoundedDiagnostic() {
+        string html = "<style>body{quotes:'" + new string('x', 9000) +
+            "' 'y'}p::before{content:open-quote}</style>" +
+            string.Concat(Enumerable.Repeat("<p>x</p>", 100));
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item =>
+            item.Code == HtmlRenderDiagnosticCodes.GeneratedContentUnsupported
+            && item.Detail.StartsWith("quotes=", StringComparison.Ordinal));
+        Assert.True(diagnostic.Detail.Length <= 263);
+    }
+
+    [Fact]
+    public void QuoteCacheCapacityDoesNotChangeValidQuoteRendering() {
+        var html = new StringBuilder("<style>span::before{content:open-quote}");
+        for (int index = 0; index < 1025; index++) {
+            html.Append("#q").Append(index).Append("{quotes:'").Append(index).Append("' 'x'}");
+        }
+        html.Append("</style>");
+        for (int index = 0; index < 1025; index++) {
+            html.Append("<span id='q").Append(index).Append("'>z </span>");
+        }
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html.ToString());
+        Assert.Contains("1024", rendered.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain(rendered.Diagnostics, item =>
+            item.Code == HtmlRenderDiagnosticCodes.GeneratedContentUnsupported
+            && item.Detail.StartsWith("quotes=", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ManySmallLeadersConsumeTheRenderWideBudget() {
+        string html = "<style>p::before{content:leader('\u200b')}p{margin:0}</style>" +
+            string.Concat(Enumerable.Repeat("<p>x</p>", 12));
+
+        Assert.Equal(nameof(HtmlRenderOptions.MaxLayoutOperations), Assert.Throws<HtmlDomLimitException>(
+            () => HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+                ViewportWidth = 100,
+                Margins = HtmlRenderMargins.All(0),
+                MaxLayoutOperations = 50000,
+                MaxLeaderCharacters = 20000
+            })).LimitSource);
     }
 }
