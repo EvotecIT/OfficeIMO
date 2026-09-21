@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Threading;
 using OfficeIMO.Drawing;
 
@@ -80,13 +81,16 @@ internal static partial class PdfWriter {
             // below the top clip edge only when the supplied origin would crop it.
             double penY = frameTopY + Math.Min(0D, inkTop);
             string fontResource = GetFontResourceName(font, namedFont, ChooseNormal(currentOpts.DefaultFont));
+            OfficeColor paintColor = text.Color ?? OfficeColor.Black;
+            string? opacityState = EnsureGraphicsState(paintColor.A / 255D, 1D);
             void Paint() {
-                var content = new ContentStreamBuilder(sb)
-                    .SaveState()
+                var content = new ContentStreamBuilder(sb).SaveState();
+                if (opacityState != null) content.GraphicsState(opacityState);
+                content
                     .Rectangle(frameX, frameTopY - text.Height, text.Width, text.Height)
                     .ClipPath()
                     .EndPath()
-                    .FillColor(ToPdfColor(text.Color ?? OfficeColor.Black) ?? PdfColor.Black)
+                    .FillColor(ToPdfColor(paintColor) ?? PdfColor.Black)
                     .BeginText()
                     .Font(fontResource, size);
                 for (int index = 0; index < glyphRun.Glyphs.Count; index++) {
@@ -137,6 +141,10 @@ internal static partial class PdfWriter {
             } catch (InvalidOperationException) {
                 return false;
             } catch (NotSupportedException) {
+                return false;
+            } catch (InvalidDataException) {
+                return false;
+            } catch (OverflowException) {
                 return false;
             }
             double minimumY = double.PositiveInfinity;
