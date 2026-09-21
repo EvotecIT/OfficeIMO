@@ -272,7 +272,8 @@ internal static class OfficeProvenanceSvg {
         ref int materializedNodes) {
         if (reader.IsEmptyElement) return default;
         int manifestDepth = reader.Depth;
-        int maximumValueChars = (int)Math.Min(encodedAssetLength, options.MaxManifestBytes * 4L + 4096L);
+        long maximumBase64Chars = ((options.MaxManifestBytes + 2L) / 3L) * 4L;
+        int maximumValueChars = (int)Math.Min(encodedAssetLength, maximumBase64Chars + 4096L);
         char[] value = ArrayPool<char>.Shared.Rent(Math.Min(4096, Math.Max(1, maximumValueChars)));
         char[] chunkBuffer = ArrayPool<char>.Shared.Rent(4096);
         int valueLength = 0;

@@ -13,6 +13,20 @@ namespace OfficeIMO.OpenDocument.Tests;
 
 public sealed class OpenDocumentHardeningTests {
     [Fact]
+    public void ProducerSignatureFilenameDoesNotClassifyAnUnrelatedXmlNamespace() {
+        byte[] package = RewritePackage(OdtDocument.Create().ToBytes(), additions: new[] {
+            new OdfTestPackageEntry("META-INF/auditsignatures.xml",
+                Encoding.UTF8.GetBytes("<audit:Signature xmlns:audit='urn:example:audit'/>"))
+        });
+
+        Assert.Empty(OdfDocument.FindSignatureEntries(package, new OfficeProvenanceOptions()));
+        OdtDocument document = OdtDocument.Load(new MemoryStream(package));
+        document.Metadata.Title = "Changed";
+        byte[] output = document.ToBytes(new OdfSaveOptions { SignatureHandling = OdfSignatureHandling.RemoveInvalidated });
+        Assert.True(ContainsEntry(output, "META-INF/auditsignatures.xml"));
+    }
+
+    [Fact]
     public void ProducerSignatureClassificationHasAnAggregateReadBudget() {
         byte[] package = RewritePackage(OdtDocument.Create().ToBytes(), additions: new[] {
             new OdfTestPackageEntry("META-INF/firstsignatures.xml", Encoding.UTF8.GetBytes("<resource>" + new string(' ', 700000) + "</resource>")),

@@ -686,7 +686,8 @@ internal static class OfficeProvenanceZip {
     }
 
     private static bool IsSafeOutputEntryName(string name) {
-        if (name.Length == 0 || name[0] == '/' || name.IndexOf('\\') >= 0 || name.IndexOf(':') >= 0) {
+        if (name.Length == 0 || name[0] == '/' || name.IndexOf('\\') >= 0 ||
+            name.Length >= 2 && char.IsLetter(name[0]) && name[1] == ':') {
             return false;
         }
         foreach (char value in name) {

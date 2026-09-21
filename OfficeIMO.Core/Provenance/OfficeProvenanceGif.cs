@@ -265,12 +265,13 @@ internal static class OfficeProvenanceGif {
         int cursor = payloadOffset;
         if (cursor >= data.Length || HasXmpMagicTrailer(data, cursor)) return false;
         int candidateEntryCount = entryCount;
+        bool couldBeRawXmp = LooksLikeRawXmpPacket(data, payloadOffset, cancellationToken);
         using (var collected = new MemoryStream()) {
             while (cursor < data.Length) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (HasXmpMagicTrailer(data, cursor)) {
                     if (collected.Length == 0) break;
-                    if (LooksLikeRawXmpPacket(data, payloadOffset, cancellationToken) &&
+                    if (couldBeRawXmp &&
                         IsWellFormedRawXmp(
                             data, payloadOffset, cursor - payloadOffset, maximumPacketBytes,
                             maximumEntries, cancellationToken)) {
@@ -289,6 +290,25 @@ internal static class OfficeProvenanceGif {
                     return true;
                 }
                 candidateEntryCount++;
+                if (candidateEntryCount > maximumEntries) {
+                    if (couldBeRawXmp) {
+                        int rawEntryCount = entryCount;
+                        int rawTrailer = nextRawTrailer;
+                        if (TryReadRawXmpApplicationData(
+                                data, payloadOffset, maximumPacketBytes, ref rawEntryCount, maximumEntries,
+                                cancellationToken, ref rawTrailer, out byte[] rawPacket, out int rawEnd, out int rawStart) &&
+                            IsWellFormedRawXmp(data, payloadOffset, rawPacket.Length, maximumPacketBytes,
+                                maximumEntries, cancellationToken)) {
+                            entryCount = rawEntryCount;
+                            nextRawTrailer = rawTrailer;
+                            packet = rawPacket;
+                            extensionEnd = rawEnd;
+                            trailerStart = rawStart;
+                            return true;
+                        }
+                    }
+                    throw OfficeProvenanceLimitException.Create("GIF XMP data sub-blocks exceed the configured entry limit.");
+                }
                 int length = data[cursor++];
                 if (length == 0 || length > data.Length - cursor) break;
                 if (collected.Length > maximumPacketBytes - length) {
@@ -298,7 +318,7 @@ internal static class OfficeProvenanceGif {
                 cursor += length;
             }
         }
-        if (!LooksLikeRawXmpPacket(data, payloadOffset, cancellationToken)) return false;
+        if (!couldBeRawXmp) return false;
         return TryReadRawXmpApplicationData(
             data, payloadOffset, maximumPacketBytes, ref entryCount, maximumEntries, cancellationToken, ref nextRawTrailer,
             out packet, out extensionEnd, out trailerStart);
