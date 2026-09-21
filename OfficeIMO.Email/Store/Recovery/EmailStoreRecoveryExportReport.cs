@@ -1,7 +1,9 @@
 namespace OfficeIMO.Email.Store;
 
 /// <summary>Corruption-tolerant export result for indexed items absent from normal folder tables.</summary>
-public sealed class EmailStoreRecoveryExportReport {
+public sealed class EmailStoreRecoveryExportReport : IOfficeConversionReport {
+    private readonly IReadOnlyList<OfficeConversionFidelityDiagnostic> _fidelityDiagnostics;
+
     internal EmailStoreRecoveryExportReport(string destinationDirectory,
         EmailStoreRecoveryReport discovery, string? manifestPath,
         IReadOnlyList<EmailStoreExportEntry> entries,
@@ -11,6 +13,17 @@ public sealed class EmailStoreRecoveryExportReport {
         ManifestPath = manifestPath;
         Entries = entries;
         Diagnostics = diagnostics;
+        int failedCount = entries.Count(static entry => !entry.Succeeded);
+        _fidelityDiagnostics = EmailStoreFidelityProjection.ProjectExport(
+            diagnostics,
+            entries.Select(static entry => entry.Diagnostics),
+            discovery.StoppedAtLimit,
+            "EMAIL_STORE_RECOVERY_DISCOVERY_TRUNCATED",
+            "The configured recovery bound stopped discovery before every candidate item was examined.",
+            failedCount,
+            "EMAIL_STORE_RECOVERY_ITEMS_OMITTED",
+            failedCount + " discovered recoverable item(s) did not produce a destination artifact.",
+            destinationDirectory);
     }
 
     /// <summary>Absolute recovery-export root.</summary>
@@ -32,4 +45,14 @@ public sealed class EmailStoreRecoveryExportReport {
     /// <summary>Whether discovery, export, or manifest processing produced an error.</summary>
     public bool HasErrors => FailedCount > 0 || Diagnostics.Any(diagnostic =>
         diagnostic.Severity == EmailStoreDiagnosticSeverity.Error);
+
+    /// <summary>Category-preserving discovery, item, truncation, and publication diagnostics.</summary>
+    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics => _fidelityDiagnostics;
+
+    /// <summary>Whether recovery approximated, omitted, or failed to preserve discovered source content.</summary>
+    public bool HasLoss => _fidelityDiagnostics.Any(static diagnostic =>
+        diagnostic.LossKind != OfficeConversionLossKind.None);
+
+    /// <summary>Throws when recovery export reported possible content loss.</summary>
+    public void RequireNoLoss() => EmailStoreFidelityProjection.RequireNoLoss(_fidelityDiagnostics);
 }

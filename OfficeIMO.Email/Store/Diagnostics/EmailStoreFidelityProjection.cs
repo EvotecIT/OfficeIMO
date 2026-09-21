@@ -4,6 +4,10 @@ namespace OfficeIMO.Email.Store;
 internal static class EmailStoreFidelityProjection {
     internal static IReadOnlyList<OfficeConversionFidelityDiagnostic> Project(
         IReadOnlyList<EmailStoreDiagnostic> diagnostics) =>
+        Project((IEnumerable<EmailStoreDiagnostic>)diagnostics);
+
+    internal static IReadOnlyList<OfficeConversionFidelityDiagnostic> Project(
+        IEnumerable<EmailStoreDiagnostic> diagnostics) =>
         Array.AsReadOnly(diagnostics.Select(static diagnostic => new OfficeConversionFidelityDiagnostic(
             diagnostic.Code,
             string.IsNullOrWhiteSpace(diagnostic.Message)
@@ -26,6 +30,30 @@ internal static class EmailStoreFidelityProjection {
         additional.Length == 0
             ? diagnostics
             : Array.AsReadOnly(diagnostics.Concat(additional).ToArray());
+
+    internal static IReadOnlyList<OfficeConversionFidelityDiagnostic> ProjectExport(
+        IEnumerable<EmailStoreDiagnostic> reportDiagnostics,
+        IEnumerable<IEnumerable<EmailStoreDiagnostic>> entryDiagnostics,
+        bool wasTruncated,
+        string truncationCode,
+        string truncationMessage,
+        int omittedItems,
+        string omissionCode,
+        string omissionMessage,
+        string? location) {
+        IReadOnlyList<OfficeConversionFidelityDiagnostic> projected =
+            Project(reportDiagnostics.Concat(entryDiagnostics.SelectMany(static item => item)));
+        var aggregate = new List<OfficeConversionFidelityDiagnostic>(2);
+        if (wasTruncated) {
+            aggregate.Add(Create(truncationCode, truncationMessage,
+                OfficeConversionLossKind.Omission, location));
+        }
+        if (omittedItems > 0) {
+            aggregate.Add(Create(omissionCode, omissionMessage,
+                OfficeConversionLossKind.Omission, location));
+        }
+        return Append(projected, aggregate.ToArray());
+    }
 
     internal static void RequireNoLoss(IReadOnlyList<OfficeConversionFidelityDiagnostic> diagnostics) {
         OfficeConversionFidelityDiagnostic? firstLoss = diagnostics.FirstOrDefault(static diagnostic =>

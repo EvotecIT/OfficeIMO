@@ -289,14 +289,12 @@ public sealed class ImageReleaseQualityWorkload {
 
     private double MeasureResizeCancellation() {
         using var started = new ManualResetEventSlim();
-        using var requested = new ManualResetEventSlim();
         using var cancellation = new CancellationTokenSource();
         long requestedAt = 0L;
         var thread = new Thread(() => {
             started.Wait();
             Volatile.Write(ref requestedAt, Stopwatch.GetTimestamp());
             cancellation.Cancel();
-            requested.Set();
         }) { IsBackground = true };
         thread.Start();
         try {
@@ -308,17 +306,12 @@ public sealed class ImageReleaseQualityWorkload {
                 OfficeRasterResamplingColorSpace.EncodedSrgb,
                 retainedManagedBytes: 0L,
                 cancellationToken: cancellation.Token,
-                cancellationCheckpoint: () => {
-                    started.Set();
-                    if (!requested.Wait(TimeSpan.FromSeconds(5))) {
-                        throw new InvalidOperationException("Cancellation request did not arrive.");
-                    }
-                }));
+                resamplingWorkStarted: started.Set));
         } finally {
             started.Set();
             thread.Join();
         }
-        if (requestedAt == 0L) throw new InvalidOperationException("The resampler did not reach its cancellation checkpoint.");
+        if (requestedAt == 0L) throw new InvalidOperationException("The resampler did not begin pixel filtering before cancellation was requested.");
         return Stopwatch.GetElapsedTime(requestedAt).TotalMilliseconds;
     }
 

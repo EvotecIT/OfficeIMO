@@ -1,7 +1,9 @@
 namespace OfficeIMO.Email.Store;
 
 /// <summary>Aggregate result of a streaming, atomically committed mbox export.</summary>
-public sealed class EmailStoreMboxExportReport {
+public sealed class EmailStoreMboxExportReport : IOfficeConversionReport {
+    private readonly IReadOnlyList<OfficeConversionFidelityDiagnostic> _fidelityDiagnostics;
+
     internal EmailStoreMboxExportReport(string? destinationPath, bool wasTruncated,
         IReadOnlyList<EmailStoreMboxExportEntry> entries,
         IReadOnlyList<EmailStoreDiagnostic> diagnostics) {
@@ -9,6 +11,17 @@ public sealed class EmailStoreMboxExportReport {
         WasTruncated = wasTruncated;
         Entries = entries;
         Diagnostics = diagnostics;
+        int failedCount = entries.Count(static entry => !entry.Succeeded);
+        _fidelityDiagnostics = EmailStoreFidelityProjection.ProjectExport(
+            diagnostics,
+            entries.Select(static entry => entry.Diagnostics),
+            wasTruncated,
+            "EMAIL_STORE_MBOX_SELECTION_TRUNCATED",
+            "The configured item bound stopped mbox export before every selected source item was attempted.",
+            failedCount,
+            "EMAIL_STORE_MBOX_ITEMS_OMITTED",
+            failedCount + " selected source item(s) were not appended to the mbox artifact.",
+            destinationPath);
     }
 
     /// <summary>Absolute committed mbox path, or null when commit did not occur.</summary>
@@ -36,4 +49,14 @@ public sealed class EmailStoreMboxExportReport {
     public bool HasErrors => DestinationPath == null ||
         Diagnostics.Any(item => item.Severity == EmailStoreDiagnosticSeverity.Error) ||
         Entries.Any(item => !item.Succeeded);
+
+    /// <summary>Category-preserving session, item, truncation, and publication diagnostics.</summary>
+    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics => _fidelityDiagnostics;
+
+    /// <summary>Whether the export approximated, omitted, or failed to preserve selected source content.</summary>
+    public bool HasLoss => _fidelityDiagnostics.Any(static diagnostic =>
+        diagnostic.LossKind != OfficeConversionLossKind.None);
+
+    /// <summary>Throws when the export reported possible content loss.</summary>
+    public void RequireNoLoss() => EmailStoreFidelityProjection.RequireNoLoss(_fidelityDiagnostics);
 }

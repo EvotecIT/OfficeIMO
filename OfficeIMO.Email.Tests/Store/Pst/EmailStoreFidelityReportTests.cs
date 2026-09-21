@@ -5,6 +5,89 @@ namespace OfficeIMO.Email.Tests;
 
 public sealed class EmailStoreFidelityReportTests {
     [Fact]
+    public void StoreFormatExportReportsImplementCommonTypedFidelityContract() {
+        var reference = new EmailStoreItemReference("item-1", "folder-1", false, false);
+        var skipped = new EmailStoreDiagnostic(
+            "EMAIL_STORE_TEST_EXPORT_SKIPPED",
+            "The selected source item was not exported.",
+            EmailStoreDiagnosticSeverity.Warning,
+            "item/item-1",
+            operation: "export",
+            byteOffset: null,
+            limitName: null,
+            actualValue: null,
+            maximumValue: null,
+            disposition: EmailDiagnosticDisposition.Skipped,
+            dataLossRisk: EmailDataLossRisk.Confirmed,
+            suggestedAction: null);
+        var failedEntry = new EmailStoreExportEntry(reference, null, 0, new[] { skipped });
+        var directory = new EmailStoreExportReport(
+            "export", true, manifestPath: null, new[] { failedEntry }, Array.Empty<EmailStoreDiagnostic>());
+        var mbox = new EmailStoreMboxExportReport(
+            "export.mbox", true, Array.Empty<EmailStoreMboxExportEntry>(), Array.Empty<EmailStoreDiagnostic>());
+        var discovery = new EmailStoreRecoveryReport(
+            itemsScanned: 1,
+            stoppedAtLimit: true,
+            recoveredItems: Array.Empty<EmailStoreItemReference>(),
+            diagnostics: Array.Empty<EmailStoreDiagnostic>());
+        var recovery = new EmailStoreRecoveryExportReport(
+            "recovery", discovery, manifestPath: null,
+            entries: Array.Empty<EmailStoreExportEntry>(),
+            diagnostics: Array.Empty<EmailStoreDiagnostic>());
+
+        IOfficeConversionReport[] reports = { directory, mbox, recovery };
+        IReadOnlyList<OfficeConversionFidelityDiagnostic> flattened =
+            OfficeConversionFidelityDiagnostics.Flatten(reports);
+
+        Assert.All(reports, report => {
+            Assert.True(report.HasLoss);
+            Assert.Throws<InvalidDataException>(report.RequireNoLoss);
+        });
+        Assert.Contains(flattened, diagnostic =>
+            diagnostic.Code == "EMAIL_STORE_TEST_EXPORT_SKIPPED" &&
+            diagnostic.LossKind == OfficeConversionLossKind.Omission);
+        Assert.Contains(flattened, diagnostic =>
+            diagnostic.Code == "EMAIL_STORE_EXPORT_SELECTION_TRUNCATED" &&
+            diagnostic.LossKind == OfficeConversionLossKind.Omission);
+        Assert.Contains(flattened, diagnostic =>
+            diagnostic.Code == "EMAIL_STORE_EXPORT_ITEMS_OMITTED" &&
+            diagnostic.LossKind == OfficeConversionLossKind.Omission);
+        Assert.Contains(flattened, diagnostic =>
+            diagnostic.Code == "EMAIL_STORE_MBOX_SELECTION_TRUNCATED" &&
+            diagnostic.LossKind == OfficeConversionLossKind.Omission);
+        Assert.Contains(flattened, diagnostic =>
+            diagnostic.Code == "EMAIL_STORE_RECOVERY_DISCOVERY_TRUNCATED" &&
+            diagnostic.LossKind == OfficeConversionLossKind.Omission);
+    }
+
+    [Fact]
+    public void SuccessfulStoreFormatExportReportsPassStrictAcceptance() {
+        var directory = new EmailStoreExportReport(
+            "export", false, manifestPath: null,
+            entries: Array.Empty<EmailStoreExportEntry>(),
+            diagnostics: Array.Empty<EmailStoreDiagnostic>());
+        var mbox = new EmailStoreMboxExportReport(
+            "export.mbox", false,
+            entries: Array.Empty<EmailStoreMboxExportEntry>(),
+            diagnostics: Array.Empty<EmailStoreDiagnostic>());
+        var discovery = new EmailStoreRecoveryReport(
+            itemsScanned: 0,
+            stoppedAtLimit: false,
+            recoveredItems: Array.Empty<EmailStoreItemReference>(),
+            diagnostics: Array.Empty<EmailStoreDiagnostic>());
+        var recovery = new EmailStoreRecoveryExportReport(
+            "recovery", discovery, manifestPath: null,
+            entries: Array.Empty<EmailStoreExportEntry>(),
+            diagnostics: Array.Empty<EmailStoreDiagnostic>());
+
+        foreach (IOfficeConversionReport report in new IOfficeConversionReport[] { directory, mbox, recovery }) {
+            Assert.False(report.HasLoss);
+            Assert.Empty(report.FidelityDiagnostics);
+            report.RequireNoLoss();
+        }
+    }
+
+    [Fact]
     public void StoreWriteReport_ClassifiesContinuedAttachmentLossAsOmission() {
         var omitted = new EmailStoreDiagnostic(
             "EMAIL_STORE_PST_WRITE_ATTACHMENT_CONTENT_UNAVAILABLE",
