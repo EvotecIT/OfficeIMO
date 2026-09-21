@@ -3,6 +3,8 @@ using System;
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeDrawingRasterRenderer {
+    private const long MaximumSingleTransformedTextIntermediatePixels = 16_000_000L;
+
     private static void RenderTransformedPositionedText(OfficeRasterCanvas canvas, OfficeDrawingText text, double scale, long maximumRasterPixels) {
         canvas.CancellationToken.ThrowIfCancellationRequested();
         double left = 0D, top = 0D, right = text.Width * scale, bottom = text.Height * scale;
@@ -32,9 +34,8 @@ public static partial class OfficeDrawingRasterRenderer {
         if (paddedHeight > 0D && paddedWidth <= maximumRasterPixels / paddedHeight) {
             left -= 1D; top -= 1D; right += 1D; bottom += 1D;
         }
-        const long maximumSingleTextIntermediatePixels = 16_000_000L;
         _ = OfficeRasterExportPlanner.Resolve(right - left, bottom - top, OfficeImageExportFormat.Png,
-            new OfficeImageExportOptions { MaximumRasterPixels = Math.Min(maximumRasterPixels, maximumSingleTextIntermediatePixels), RasterOverflowBehavior = OfficeRasterOverflowBehavior.Throw });
+            new OfficeImageExportOptions { MaximumRasterPixels = Math.Min(maximumRasterPixels, MaximumSingleTransformedTextIntermediatePixels), RasterOverflowBehavior = OfficeRasterOverflowBehavior.Throw });
         canvas.ChargeTransformedTextIntermediatePixels(
             checked((long)Math.Max(1D, Math.Ceiling(right - left)) * (long)Math.Max(1D, Math.Ceiling(bottom - top))));
         var layer = new OfficeRasterImage(Math.Max(1, (int)(right - left)), Math.Max(1, (int)(bottom - top)));
@@ -81,9 +82,11 @@ public static partial class OfficeDrawingRasterRenderer {
         long maximumRasterPixels) {
         _ = OfficeRasterExportPlanner.Resolve(contentWidth, contentHeight, OfficeImageExportFormat.Png,
             new OfficeImageExportOptions {
-                MaximumRasterPixels = maximumRasterPixels,
+                MaximumRasterPixels = Math.Min(maximumRasterPixels, MaximumSingleTransformedTextIntermediatePixels),
                 RasterOverflowBehavior = OfficeRasterOverflowBehavior.Throw
             });
+        canvas.ChargeTransformedTextIntermediatePixels(
+            checked((long)Math.Max(1D, Math.Ceiling(contentWidth)) * (long)Math.Max(1D, Math.Ceiling(contentHeight))));
         var layer = new OfficeRasterImage(Math.Max(1, (int)Math.Ceiling(contentWidth)), Math.Max(1, (int)Math.Ceiling(contentHeight)));
         var local = new OfficeRasterCanvas(layer, font: canvas.OutlineFont, fonts: canvas.Fonts,
             textShapingProvider: canvas.TextShapingProvider, textShapingLanguage: canvas.TextShapingLanguage,

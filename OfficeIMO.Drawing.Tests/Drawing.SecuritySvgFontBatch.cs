@@ -84,6 +84,17 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void SvgTextPathCountsUnicodeElementsRatherThanUtf16Units() {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 20'><defs>" +
+            "<path id='p' d='M0 10 H1000'/></defs><text font-size='8'><textPath href='#p'>" +
+            string.Concat(Enumerable.Repeat("a\u0301", 2500)) + "</textPath></text></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.Equal(0, unsupported);
+        Assert.Contains(drawing!.Elements.OfType<OfficeDrawingText>(), text => text.Text.Contains("a\u0301", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void RepeatedTrefExpansionUsesOneDocumentWideTextBudget() {
         string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 20'><defs>" +
             "<text id='t'>" + new string('a', 5000) + "</text></defs><text>" +

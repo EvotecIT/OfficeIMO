@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -17,8 +18,8 @@ namespace OfficeIMO.Drawing.HarfBuzz;
 /// </remarks>
 public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvider, IOfficeTextShapingProviderMetadata {
     private readonly ConditionalWeakTable<object, CachedFontCollection> _fontCache = new();
-    private readonly object _languageSync = new();
-    private readonly Dictionary<string, Language> _languages = new(StringComparer.Ordinal);
+    private static readonly object LanguageSync = new();
+    private static readonly Dictionary<string, Language> Languages = new(StringComparer.Ordinal);
 
     /// <summary>Shared provider instance with a weak cache of parsed font faces.</summary>
     public static OfficeHarfBuzzTextShapingProvider Instance { get; } = new();
@@ -67,7 +68,7 @@ public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvid
     private const int MaxCachedResultsPerFont = 4096;
     private const int MaxCacheableTextLength = 4096;
     private const int MaxCacheableLanguageLength = 255;
-    internal const int MaxInternedLanguagesPerProvider = 256;
+    internal const int MaxInternedLanguagesPerProcess = 1024;
     private const long MaxCachedResultBytesPerFont = 8L * 1024L * 1024L;
 
     private OfficeTextShapingResult? ShapeUncached(
@@ -109,18 +110,17 @@ public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvid
             return default;
         }
 
-        lock (_languageSync) {
-            if (_languages.TryGetValue(normalized, out Language? language)) {
+        lock (LanguageSync) {
+            if (Languages.TryGetValue(normalized, out Language? language)) {
                 return new ResolvedLanguage(normalized, language);
             }
-            if (_languages.Count >= MaxInternedLanguagesPerProvider) {
-                // Preserve the requested language even when the process-wide intern
-                // table is full. Shape results remain bounded by the per-font LRU.
-                return new ResolvedLanguage(normalized, new Language(normalized));
+            if (Languages.Count >= MaxInternedLanguagesPerProcess) {
+                throw new InvalidDataException(
+                    $"HarfBuzz language hints exceed the process-wide limit of {MaxInternedLanguagesPerProcess} distinct values.");
             }
 
             language = new Language(normalized);
-            _languages.Add(normalized, language);
+            Languages.Add(normalized, language);
             return new ResolvedLanguage(normalized, language);
         }
     }

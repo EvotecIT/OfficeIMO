@@ -414,7 +414,7 @@ public sealed class OfficeHarfBuzzTextShapingProviderTests {
     }
 
     [Fact]
-    public void LanguageInterningIsNormalizedAndBoundedPerProvider() {
+    public void LanguageInterningIsNormalizedAndSharedAcrossProviders() {
         const string text = "office";
         byte[] fontData = File.ReadAllBytes(FontPath("Carlito-Regular.ttf"));
         var provider = new OfficeHarfBuzzTextShapingProvider();
@@ -424,7 +424,7 @@ public sealed class OfficeHarfBuzzTextShapingProviderTests {
         OfficeTextShapingResult normalized = ShapeWithLanguage(provider, fontData, fontCacheKey, text, " EN ");
         Assert.Same(normalized, ShapeWithLanguage(provider, fontData, fontCacheKey, text, "en"));
 
-        for (int index = 1; index < OfficeHarfBuzzTextShapingProvider.MaxInternedLanguagesPerProvider; index++) {
+        for (int index = 1; index < OfficeHarfBuzzTextShapingProvider.MaxInternedLanguagesPerProcess / 4; index++) {
             ShapeWithLanguage(provider, fontData, fontCacheKey, text, $"x-{index:x4}");
         }
 

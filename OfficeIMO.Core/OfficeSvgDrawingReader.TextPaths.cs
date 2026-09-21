@@ -29,15 +29,20 @@ public static partial class OfficeSvgDrawingReader {
             bool runLimitExceeded = false;
             for (int runIndex = layout.FirstRun; runIndex < end; runIndex++) {
                 SvgTextRun source = runs[runIndex];
-                if (source.Text.Length > remainingRuns - replacements.Count) {
+                int availableRuns = remainingRuns - replacements.Count;
+                if (availableRuns < 0) {
                     runLimitExceeded = true;
                     break;
                 }
-                IReadOnlyList<string> glyphs = OfficeTextElements.Split(source.Text);
-                if (glyphs.Count > remainingRuns - replacements.Count) {
-                    runLimitExceeded = true;
-                    break;
+                var glyphs = new List<string>(Math.Min(source.Text.Length, availableRuns));
+                foreach (string glyph in OfficeTextElements.Enumerate(source.Text)) {
+                    if (glyphs.Count >= availableRuns) {
+                        runLimitExceeded = true;
+                        break;
+                    }
+                    glyphs.Add(glyph);
                 }
+                if (runLimitExceeded) break;
                 if (glyphs.Count == 0) continue;
                 IReadOnlyList<double> glyphAdvances = MeasureTextPathGlyphAdvances(source, glyphs);
                 double runAdvance = 0D;
