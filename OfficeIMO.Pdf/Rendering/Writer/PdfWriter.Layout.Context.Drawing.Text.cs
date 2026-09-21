@@ -20,6 +20,7 @@ internal static partial class PdfWriter {
                         () => DrawDrawingTextAt(text, originX, originTopY, textMetrics));
                     return;
                 }
+                if (TryDrawNativeVerticalText(text, originX, originTopY)) return;
                 int scalar = char.ConvertToUtf32(text.Text, 0);
                 currentOpts.AddTextShapingDiagnostics(new[] {
                     new PdfTextShapingDiagnostic(

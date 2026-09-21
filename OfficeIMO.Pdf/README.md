@@ -111,6 +111,15 @@ core-Arabic/TrueType subset. Supply a profile containing your embedded font fami
 fallbacks, language, and shaping provider when the document contract requires
 broader scripts or reproducible font selection.
 
+`OfficeDrawing.AddVerticalText(...)` draws native positioned glyphs in PDF when
+the selected shaping provider supplies vertical advances and the chosen font is
+embedded. The writer preserves shaped glyph substitutions and X/Y offsets,
+marks the original text for extraction, and clips paint to the drawing text
+box. Without that font/provider contract it retains searchable stacked text and
+reports `vertical-text-stacked-fallback`; `PdfConversionReport.RequireNoLoss()`
+rejects that approximation. The [vertical PDF reference gate](../OfficeIMO.Pdf.Tests/Pdf/Fixtures/Vertical/SOURCE.md)
+records the tested CJK scope and independent render/extraction checks.
+
 For a complete generated sample, see
 [`Pdf.AuthoringModel.cs`](../OfficeIMO.Examples/Pdf/Pdf.AuthoringModel.cs). The
 existing report, invoice, label-sheet, ticket, table-style, drawing, dashboard,
