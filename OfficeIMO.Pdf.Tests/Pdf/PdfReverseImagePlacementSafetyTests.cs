@@ -516,6 +516,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
     [Theory]
     [InlineData("/TR << /FunctionType 2 /Domain [0 1] /C0 [0] /C1 [0] /N 1 >>")]
     [InlineData("/op true /OPM 1")]
+    [InlineData("/OP true /OPM 1")]
     [InlineData("/AIS true /ca 0.5")]
     public void ImagePaintEffectsNeverExposeUntransformedRawPixelsAcrossEditableAdapters(string graphicsStateEntries) {
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateImageWithGraphicsStatePdf(graphicsStateEntries));

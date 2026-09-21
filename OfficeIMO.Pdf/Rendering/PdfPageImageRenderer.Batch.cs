@@ -124,7 +124,8 @@ internal static partial class PdfPageImageRenderer {
         IReadOnlyList<PdfRenderCapabilityDiagnostic> capabilityDiagnostics = Array.Empty<PdfRenderCapabilityDiagnostic>();
         try {
             cancellationToken.ThrowIfCancellationRequested();
-            capabilityDiagnostics = document.Pages[pageNumber - 1].GetRenderCapabilityDiagnostics(cancellationToken);
+            capabilityDiagnostics = document.Pages[pageNumber - 1].GetRenderCapabilityDiagnostics(
+                options.MaxDiagnosticsPerPage, options.MaxDiagnosticCharactersPerPage, cancellationToken);
             void ConfigureDrawing(OfficeDrawing scene) {
                 scene.Fonts.AddRangePreservingExisting(options.Fonts);
                 scene.TextShapingProvider = options.TextShapingProvider;

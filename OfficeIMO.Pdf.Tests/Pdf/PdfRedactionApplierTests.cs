@@ -824,6 +824,72 @@ public class PdfRedactionApplierTests {
         Assert.DoesNotContain("secret", text, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    [InlineData(true, false)]
+    public void SearchAndApply_UsesFontSelectedBeforeFormInvocation(
+        bool indirectFontDictionary,
+        bool includeFontResource) {
+        byte[] source = BuildExtGStateFontFormRedactionSource(indirectFontDictionary, includeFontResource);
+        PdfRedactionPlan plan = PdfRedactionPlanner.Search(
+            source, new PdfRedactionSearchOptions().AddLiteral("secret"));
+
+        Assert.Single(plan.Areas);
+        PdfTextSpan sourceSpan = Assert.Single(PdfReadDocument.Open(source).Pages[0].GetTextSpans());
+        Assert.Equal(30D, sourceSpan.FontSize);
+        byte[] redacted = PdfRedactionApplier.Apply(source, plan);
+        string text = PdfTextExtractor.ExtractAllText(redacted);
+
+        Assert.DoesNotContain("secret", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Apply_RejectsSearchPlanWhenItsLiteralSurvivesTheRewrite() {
+        byte[] source = BuildExtGStateFontFormRedactionSource(indirectFontDictionary: false, includeFontResource: true);
+        PdfRedactionPlan searched = PdfRedactionPlanner.Search(
+            source, new PdfRedactionSearchOptions().AddLiteral("secret"));
+        var displaced = new PdfRedactionArea(1, 480D, 30D, 20D, 20D, searched.Areas[0].Label);
+        var plan = new PdfRedactionPlan(searched.Preflight, new[] { displaced }, searched.Matches,
+            searched.Findings, searched.SearchCriteria, searched.SourceSha256,
+            searched.PageIdentities, searched.ReviewedTextObjectScopes, searched.SearchMatchCase);
+
+        InvalidOperationException error = Assert.Throws<InvalidOperationException>(() => PdfRedactionApplier.Apply(source, plan));
+        Assert.Contains("still contains searched text", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Apply_RejectsSearchPlanWhenItsRegexMatchSurvivesTheRewrite() {
+        byte[] source = BuildExtGStateFontFormRedactionSource(indirectFontDictionary: false, includeFontResource: true);
+        PdfRedactionPlan searched = PdfRedactionPlanner.Search(
+            source, new PdfRedactionSearchOptions().AddRegex("sec.et"));
+        var displaced = new PdfRedactionArea(1, 480D, 30D, 20D, 20D, searched.Areas[0].Label);
+        var plan = new PdfRedactionPlan(searched.Preflight, new[] { displaced }, searched.Matches,
+            searched.Findings, searched.SearchCriteria, searched.SourceSha256,
+            searched.PageIdentities, searched.ReviewedTextObjectScopes, searched.SearchMatchCase,
+            searched.SearchRegexOptions, searched.SearchRegexTimeout);
+
+        InvalidOperationException error = Assert.Throws<InvalidOperationException>(() => PdfRedactionApplier.Apply(source, plan));
+        Assert.Contains("still contains searched text", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Apply_RejectsSurvivingSecondCriterionFromTheSameSourceBlock() {
+        byte[] source = BuildExtGStateFontFormRedactionSource(indirectFontDictionary: false, includeFontResource: true);
+        PdfRedactionPlan searched = PdfRedactionPlanner.Search(
+            source, new PdfRedactionSearchOptions().AddLiteral("Alpha", "secret"));
+        PdfTextSpan span = Assert.Single(PdfReadDocument.Open(source).Pages[0].GetTextSpans());
+        PdfRedactionArea alphaBounds = BuildAreaForSubstring(span, "Alpha");
+        var firstCriterionOnly = new PdfRedactionArea(alphaBounds.PageNumber, alphaBounds.X, alphaBounds.Y,
+            alphaBounds.Width, alphaBounds.Height, searched.Areas[0].Label);
+        var plan = new PdfRedactionPlan(searched.Preflight, new[] { firstCriterionOnly }, searched.Matches,
+            searched.Findings, searched.SearchCriteria, searched.SourceSha256,
+            searched.PageIdentities, searched.ReviewedTextObjectScopes, searched.SearchMatchCase);
+
+        InvalidOperationException error = Assert.Throws<InvalidOperationException>(() => PdfRedactionApplier.Apply(source, plan));
+        Assert.Contains("still contains searched text", error.Message, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Apply_UsesSpacingSetByDoubleQuoteBeforeFormInvocation() {
         byte[] source = BuildQuotedTextStateFormRedactionSource();

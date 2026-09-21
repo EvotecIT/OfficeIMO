@@ -23,6 +23,8 @@ internal static partial class PdfOcr {
             ImageCodec = options.ImageCodec,
             MaxPixelsPerPage = options.MaxPixelsPerPage,
             MaxOutputBytesPerPage = options.MaxRenderedBytesPerPage,
+            MaxDiagnosticsPerPage = options.MaxDiagnosticsPerPage,
+            MaxDiagnosticCharactersPerPage = options.MaxDiagnosticCharactersPerPage,
             ContinueOnError = false
         };
         renderOptions.Validate();
@@ -47,7 +49,8 @@ internal static partial class PdfOcr {
                     throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, options.MaxDiagnosticsPerPage, render.Diagnostics.Count);
                 EnsureCharacters(render.Diagnostics, options.MaxDiagnosticCharactersPerPage);
                 IReadOnlyList<PdfSelectionQuad> nativeBounds = PdfPageInteractionMap.GetOcrOverlapTextSpanBounds(
-                    overlapDocument.Pages[pageNumber - 1]);
+                    overlapDocument.Pages[pageNumber - 1], options.MaxNativeTextBlocksPerPage,
+                    options.MaxMergedTextCharactersPerPage, workCancellation.Token);
                 (double width, double height) = document.Pages[pageNumber - 1].GetInteractionPageSize();
                 string candidateId = "pdf-page-" + pageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 var request = new OcrRequest {

@@ -232,6 +232,23 @@ public class PdfImageEditorTests {
             0D));
     }
 
+    [Fact]
+    public void ImageInspectionReusesResolvedDecodeParameterChainsAcrossArrayEntries() {
+        byte[] jpeg = OfficeIMO.Drawing.OfficeJpegCodec.Encode(
+            OfficeIMO.Drawing.OfficeRasterImage.FromRgba32(1, 1, new byte[] { 255, 0, 0, 255 }),
+            new OfficeIMO.Drawing.OfficeJpegEncodeOptions { Quality = 90 });
+        var references = string.Join(" ", Enumerable.Repeat("6 0 R", 2_000));
+        var chain = new StringBuilder();
+        for (int number = 6; number < 105; number++)
+            chain.Append(number).Append(" 0 obj\n").Append(number + 1).Append(" 0 R\nendobj\n");
+        chain.Append("105 0 obj\nnull\nendobj\n");
+        byte[] pdf = BuildRawImagePdf("q 40 0 0 20 20 30 cm /Im0 Do Q\n", imageBytes: jpeg,
+            imageEntries: "/ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /DecodeParms [" + references + "]",
+            additionalObjects: chain.ToString());
+
+        Assert.False(Assert.Single(PdfDocument.Load(pdf).Reader.Images()).HasDecodeParameters);
+    }
+
     [Theory]
     [InlineData("/Filter [/DCTDecode] /DecodeParms [null]", "")]
     [InlineData("/Filter [/DCTDecode] /DP [null]", "")]

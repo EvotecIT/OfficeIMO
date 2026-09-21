@@ -801,13 +801,15 @@ public sealed partial class PdfReadPage {
             ? null
             : GetOptionalContentVisibility(resources);
         PdfPageInvokedResourceNames invokedResources = invokedResourceNames ?? GetInvokedResourceNames(content, resources);
+        Dictionary<string, PdfPageGraphicsStateResource> graphicsStates =
+            GetGraphicsStateResources(resources, decoders, widthProviders, fonts);
         spans.AddRange(TextContentParser.Parse(
             content,
             DecodeWithFont,
             SumWidth1000,
             actualTextForProperty: ResolveActualTextProperty,
             mcidForProperty: ResolveMarkedContentMcid,
-            graphicsStates: GetGraphicsStateResources(resources),
+            graphicsStates: graphicsStates,
             colorSpaces: GetColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget),
             baseFontForResource: ResolveBaseFont,
             isType3FontResource: IsType3FontResource,
@@ -858,7 +860,7 @@ public sealed partial class PdfReadPage {
                      paintOrderBase,
                      paintOrderScale,
                      paintOrderOffset,
-                     GetGraphicsStateResources(resources),
+                     graphicsStates,
                      GetColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget),
                      pageHeight,
                      initialFillColor,
@@ -2171,6 +2173,8 @@ public sealed partial class PdfReadPage {
         private long _remainingColorFunctionEvaluationWork;
         private long _positionedTextCharacters;
         private long _positionedTextWorkCharacters;
+        private long _positionedTextProjectionCharacters;
+        private long _clippedTextFontCopyWork;
         private readonly Action<OfficeDrawing>? _configureDrawing;
 
         internal PageContentBudget(PdfReadPage page, CancellationToken cancellationToken = default)
@@ -2224,6 +2228,27 @@ public sealed partial class PdfReadPage {
             if (_positionedTextWorkCharacters > _page._limits.MaxPositionedTextWorkCharactersPerPage) {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.PositionedTextWorkCharacters,
                     _page._limits.MaxPositionedTextWorkCharactersPerPage, _positionedTextWorkCharacters);
+            }
+        }
+
+        internal void ChargePositionedTextProjectionCharacters(int count) {
+            CancellationToken.ThrowIfCancellationRequested();
+            _positionedTextProjectionCharacters += count;
+            if (_positionedTextProjectionCharacters > _page._limits.MaxPositionedTextProjectionCharactersPerPage) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.PositionedTextProjectionCharacters,
+                    _page._limits.MaxPositionedTextProjectionCharactersPerPage, _positionedTextProjectionCharacters);
+            }
+        }
+
+        internal void ChargeClippedTextFontCopyWork(int faceCount) {
+            CancellationToken.ThrowIfCancellationRequested();
+            // A child AddRange scans its growing collection and the parent merge
+            // scans its existing faces. Charge both before any wrappers are cloned.
+            long work = 2L * faceCount * Math.Max(1, faceCount);
+            _clippedTextFontCopyWork += work;
+            if (_clippedTextFontCopyWork > _page._limits.MaxClippedTextFontCopyWorkPerPage) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.ClippedTextFontCopyWork,
+                    _page._limits.MaxClippedTextFontCopyWorkPerPage, _clippedTextFontCopyWork);
             }
         }
 

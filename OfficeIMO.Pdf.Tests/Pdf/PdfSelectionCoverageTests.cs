@@ -50,6 +50,19 @@ public class PdfSelectionCoverageTests {
             new[] { target }, 0.5D, _ => { }, new CancellationToken(true)));
     }
 
+    [Fact]
+    public void CoverageBoundsRetainedIntersectionsBeforeUnionAllocation() {
+        PdfSelectionQuad target = Rectangle(0, 0, 10, 10);
+        PdfSelectionQuad fragment = Rectangle(0, 0, 1, 1);
+
+        PdfReadLimitException error = Assert.Throws<PdfReadLimitException>(() => PdfSelectionCoverage.Covers(
+            target, new[] { fragment, fragment, fragment }, 0.9D, _ => { }, default,
+            maximumRetainedIntersections: 2));
+
+        Assert.Equal(PdfReadLimitKind.OcrArtifacts, error.Kind);
+        Assert.Equal(3, error.Actual);
+    }
+
     private static bool Covers(PdfSelectionQuad target, IReadOnlyList<PdfSelectionQuad> native, double threshold) =>
         PdfSelectionCoverage.Covers(target, native, threshold, _ => { }, default);
 

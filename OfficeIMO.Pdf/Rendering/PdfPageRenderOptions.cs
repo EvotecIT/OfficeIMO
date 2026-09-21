@@ -39,6 +39,10 @@ public sealed class PdfPageRenderOptions : OfficeImageExportOptions {
     public long MaxOutputBytesPerPage { get; set; } = 64L * 1024L * 1024L;
     /// <summary>Maximum aggregate encoded output bytes retained for one batch.</summary>
     public long MaxTotalOutputBytes { get; set; } = 256L * 1024L * 1024L;
+    /// <summary>Maximum distinct capability diagnostics retained while rendering one page.</summary>
+    public int MaxDiagnosticsPerPage { get; set; } = 1_000;
+    /// <summary>Maximum aggregate diagnostic characters retained while rendering one page.</summary>
+    public int MaxDiagnosticCharactersPerPage { get; set; } = 1 * 1024 * 1024;
     /// <summary>Continues a batch and returns a failed per-page report when rendering fails.</summary>
     public bool ContinueOnError { get; set; } = true;
     internal double GetScale(OfficeDrawing drawing) {
@@ -59,6 +63,8 @@ public sealed class PdfPageRenderOptions : OfficeImageExportOptions {
         if (MaxPages <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPages));
         if (MaxOutputBytesPerPage <= 0) throw new ArgumentOutOfRangeException(nameof(MaxOutputBytesPerPage));
         if (MaxTotalOutputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTotalOutputBytes));
+        if (MaxDiagnosticsPerPage <= 0) throw new ArgumentOutOfRangeException(nameof(MaxDiagnosticsPerPage));
+        if (MaxDiagnosticCharactersPerPage <= 0) throw new ArgumentOutOfRangeException(nameof(MaxDiagnosticCharactersPerPage));
     }
 
     private static bool IsPositiveFinite(double value) => value > 0D && !double.IsNaN(value) && !double.IsInfinity(value);

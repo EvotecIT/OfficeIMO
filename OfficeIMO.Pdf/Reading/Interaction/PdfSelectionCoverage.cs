@@ -6,7 +6,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>Measures union coverage of visual selection quads without counting duplicate spans twice.</summary>
 internal static partial class PdfSelectionCoverage {
     internal static bool Covers(PdfSelectionQuad target, IReadOnlyList<PdfSelectionQuad> regions, double threshold,
-        Action<long> consumeWork, CancellationToken cancellationToken) {
+        Action<long> consumeWork, CancellationToken cancellationToken, int maximumRetainedIntersections = int.MaxValue) {
         cancellationToken.ThrowIfCancellationRequested();
         var targetPoints = Points(target);
         double targetArea = Area(targetPoints);
@@ -23,6 +23,9 @@ internal static partial class PdfSelectionCoverage {
             double left = Math.Max(target.Left, region.Left), top = Math.Max(target.Top, region.Top);
             double right = Math.Min(target.Right, region.Right), bottom = Math.Min(target.Bottom, region.Bottom);
             if (right <= left || bottom <= top) continue;
+            if ((long)rectangles.Count + polygons.Count >= maximumRetainedIntersections)
+                throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts,
+                    maximumRetainedIntersections, (long)rectangles.Count + polygons.Count + 1L);
             double area;
             if (targetIsRectangle && IsRectangle(region)) {
                 area = (right - left) * (bottom - top);

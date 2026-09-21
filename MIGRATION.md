@@ -200,6 +200,23 @@ Raise this property in `PdfLoadOptions.Limits` for trusted documents that need
 more visibility work, independently of the limit on visible drawing elements.
 Glyphs with no resolved ink consume no scene-expansion budget.
 
+PDF rendering also bounds the character scans needed to project spaced text, even
+when every glyph falls outside the page. `MaxPositionedTextProjectionCharactersPerPage`
+defaults to 1,000,000. Clipped positioned text has a separate
+`MaxClippedTextFontCopyWorkPerPage` budget, defaulting to 1,000,000 estimated face
+comparisons. Applications processing trusted files with unusually long spaced
+runs or many embedded fonts may raise these values in `PdfLoadOptions.Limits`.
+The visible-element and measured-glyph budgets remain separate.
+
+PDF/X color inspection now limits one document to 4,096 distinct content contexts
+and 5,000,000 aggregate content operations. Configure
+`MaxPrintProductionContexts` and `MaxPrintProductionOperations` in
+`PdfReadLimits` for trusted documents that need more. OCR merge limits raw native
+text spans before overlap analysis and caps retained intersections per OCR word
+with `MaxNativeTextOverlapIntersectionsPerWord` (default 10,000). An interaction
+map may reject a page with too many off-page image placements before it builds
+the visible regions. These limits report `PdfReadLimitException`.
+
 ### Configure PDF drawing fonts before projection
 
 If you add substitute fonts to the drawing returned by `PdfReadPage.ToDrawing()`,

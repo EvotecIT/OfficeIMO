@@ -18,6 +18,10 @@ public sealed partial class OfficeWorkflowRunner {
         if (pages.Length == 0 || pages.Length > preparation.MaxPages) throw new InvalidOperationException("Scan page selection exceeds its page limit.");
         var documents = new List<PdfDocument>();
         long retainedBytes = 0;
+        const int maximumScanDiagnostics = 10_000;
+        const int maximumScanDiagnosticCharacters = 8 * 1024 * 1024;
+        long diagnosticCount = 0;
+        long diagnosticCharacters = 0;
         foreach (int page in pages) {
             token.ThrowIfCancellationRequested();
             PdfScanPreview preview = source.PreviewScanAsync(page, preparation, token).GetAwaiter().GetResult();
@@ -25,8 +29,14 @@ public sealed partial class OfficeWorkflowRunner {
             retainedBytes = checked(retainedBytes + output.ToBytes().LongLength);
             if (retainedBytes > request.Limits.MaximumOutputBytes) throw new IOException("Prepared scan pages exceed the output byte budget.");
             documents.Add(output);
-            foreach (string message in preview.Diagnostics)
+            foreach (string message in preview.Diagnostics) {
+                token.ThrowIfCancellationRequested();
+                diagnosticCount++;
+                diagnosticCharacters += message.Length;
+                if (diagnosticCount > maximumScanDiagnostics || diagnosticCharacters > maximumScanDiagnosticCharacters)
+                    throw new IOException("Prepared scan diagnostics exceed the workflow budget.");
                 diagnostics.Add(new OfficeWorkflowDiagnostic("ScanPreparation", $"Page {page}: {message}", OfficeWorkflowDiagnosticSeverity.Warning, "scan"));
+            }
         }
         PdfDocument result = documents.Count == 1 ? documents[0] : PdfDocument.Merge(documents, token);
         byte[] bytes = result.ToBytes();

@@ -10,7 +10,10 @@ public sealed class PdfRedactionPlan {
         IReadOnlyList<string>? searchCriteria,
         string sourceSha256,
         IReadOnlyList<string>? pageIdentities = null,
-        IReadOnlyList<IReadOnlyList<PdfRedactionTextObjectScope>>? reviewedTextObjectScopes = null) {
+        IReadOnlyList<IReadOnlyList<PdfRedactionTextObjectScope>>? reviewedTextObjectScopes = null,
+        bool searchMatchCase = true,
+        System.Text.RegularExpressions.RegexOptions searchRegexOptions = System.Text.RegularExpressions.RegexOptions.CultureInvariant,
+        TimeSpan? searchRegexTimeout = null) {
         Preflight = preflight;
         Areas = areas;
         Matches = matches;
@@ -19,6 +22,9 @@ public sealed class PdfRedactionPlan {
         SourceSha256 = sourceSha256;
         PageIdentities = pageIdentities ?? Array.Empty<string>();
         ReviewedTextObjectScopes = reviewedTextObjectScopes ?? Array.Empty<IReadOnlyList<PdfRedactionTextObjectScope>>();
+        SearchMatchCase = searchMatchCase;
+        SearchRegexOptions = searchRegexOptions;
+        SearchRegexTimeout = searchRegexTimeout ?? TimeSpan.FromSeconds(2);
     }
 
     /// <summary>Preflight result used while creating the plan.</summary>
@@ -42,6 +48,12 @@ public sealed class PdfRedactionPlan {
     internal IReadOnlyList<string> PageIdentities { get; }
 
     internal IReadOnlyList<IReadOnlyList<PdfRedactionTextObjectScope>> ReviewedTextObjectScopes { get; }
+
+    internal bool SearchMatchCase { get; }
+
+    internal System.Text.RegularExpressions.RegexOptions SearchRegexOptions { get; }
+
+    internal TimeSpan SearchRegexTimeout { get; }
 
     /// <summary>True when the source was inspectable and the plan contains no blocking findings.</summary>
     public bool IsReviewable =>

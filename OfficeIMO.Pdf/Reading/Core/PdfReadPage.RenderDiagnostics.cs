@@ -4,9 +4,26 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadPage {
-    internal IReadOnlyList<PdfRenderCapabilityDiagnostic> GetRenderCapabilityDiagnostics(CancellationToken cancellationToken = default) {
+    private sealed class BoundedRenderDiagnostics : List<PdfRenderCapabilityDiagnostic> {
+        internal BoundedRenderDiagnostics(int maximumCount, int maximumCharacters) {
+            MaximumCount = maximumCount;
+            MaximumCharacters = maximumCharacters;
+        }
+
+        internal int MaximumCount { get; }
+        internal int MaximumCharacters { get; }
+        internal long RetainedCharacters { get; set; }
+    }
+
+    internal IReadOnlyList<PdfRenderCapabilityDiagnostic> GetRenderCapabilityDiagnostics(CancellationToken cancellationToken = default) =>
+        GetRenderCapabilityDiagnostics(1_000, 1 * 1024 * 1024, cancellationToken);
+
+    internal IReadOnlyList<PdfRenderCapabilityDiagnostic> GetRenderCapabilityDiagnostics(
+        int maximumDiagnostics, int maximumDiagnosticCharacters, CancellationToken cancellationToken) {
+        Guard.PositiveInteger(maximumDiagnostics, nameof(maximumDiagnostics));
+        Guard.PositiveInteger(maximumDiagnosticCharacters, nameof(maximumDiagnosticCharacters));
         cancellationToken.ThrowIfCancellationRequested();
-        var diagnostics = new List<PdfRenderCapabilityDiagnostic>();
+        var diagnostics = new BoundedRenderDiagnostics(maximumDiagnostics, maximumDiagnosticCharacters);
         var seen = new HashSet<string>(StringComparer.Ordinal);
         PdfOutputIntentColorTransform? outputIntentColorTransform = _outputIntentColorTransform;
         if (outputIntentColorTransform != null) {
@@ -1578,7 +1595,18 @@ public sealed partial class PdfReadPage {
     }
 
     private static void AddRenderDiagnostic(List<PdfRenderCapabilityDiagnostic> diagnostics, HashSet<string> seen, string capabilityId, string subject) {
+        var bounded = (BoundedRenderDiagnostics)diagnostics;
+        PdfRenderCapability capability = PdfRenderCapabilities.Get(capabilityId);
+        long characters = (long)capability.Id.Length + capability.Message.Length + subject.Length + 16L;
+        if (characters > bounded.MaximumCharacters - bounded.RetainedCharacters)
+            throw PdfReadLimitException.Create(PdfReadLimitKind.RenderDiagnostics, bounded.MaximumCharacters,
+                bounded.RetainedCharacters + characters);
         string key = capabilityId + "\n" + subject;
-        if (seen.Add(key)) diagnostics.Add(new PdfRenderCapabilityDiagnostic(PdfRenderCapabilities.Get(capabilityId), subject));
+        if (seen.Contains(key)) return;
+        if (diagnostics.Count >= bounded.MaximumCount)
+            throw PdfReadLimitException.Create(PdfReadLimitKind.RenderDiagnostics, bounded.MaximumCount, diagnostics.Count + 1L);
+        seen.Add(key);
+        diagnostics.Add(new PdfRenderCapabilityDiagnostic(capability, subject));
+        bounded.RetainedCharacters += characters;
     }
 }

@@ -118,6 +118,38 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderPage_OffPageSpacedTextChargesProjectionWorkBeforeGlyphMeasurement() {
+        byte[] pdf = BuildSingleStreamPdf("BT /F1 10 Tf 1 Tc 1000 100 Td (AAAA) Tj ET");
+        var document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
+            Limits = new PdfReadLimits {
+                MaxPositionedTextProjectionCharactersPerPage = 3,
+                MaxPositionedTextWorkCharactersPerPage = 1
+            }
+        });
+
+        PdfReadLimitException error = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].ToDrawing());
+        Assert.Equal(PdfReadLimitKind.PositionedTextProjectionCharacters, error.Kind);
+        Assert.Equal(4, error.Actual);
+    }
+
+    [Fact]
+    public void RenderPage_ClippedSpacedTextBoundsFontCopies() {
+        const string font = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj";
+        byte[] pdf = BuildSingleStreamPdf(
+            "90 80 m 120 80 l 120 120 l h W n BT /F1 10 Tf 1 0 0 1 100 100 Tm 2 Tc (ABCD) Tj ET",
+            "<< /Font << /F1 5 0 R >> >>", font);
+        var faces = new OfficeFontFaceCollection();
+        faces.Add("Courier New", OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFont('A', 'B', 'C', 'D'));
+        var document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxClippedTextFontCopyWorkPerPage = 1 }
+        });
+
+        PdfReadLimitException error = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].ToDrawing(faces));
+        Assert.Equal(PdfReadLimitKind.ClippedTextFontCopyWork, error.Kind);
+        Assert.Equal(2, error.Actual);
+    }
+
+    [Fact]
     public void RenderPage_OverprintedBlankSpacesDoNotConsumePositioningBudget() {
         const string font = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj";
         string content = string.Concat(Enumerable.Repeat("A ", 50001)) + "B";

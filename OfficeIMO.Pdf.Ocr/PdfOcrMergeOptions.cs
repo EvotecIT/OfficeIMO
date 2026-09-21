@@ -71,10 +71,12 @@ public sealed class PdfOcrMergeOptions {
     public int MaxDiagnosticCharactersPerPage { get; set; } = 1 * 1024 * 1024;
     /// <summary>Maximum aggregate provider, model, and language metadata characters accepted for one page.</summary>
     public int MaxProviderMetadataCharactersPerPage { get; set; } = 16 * 1024;
-    /// <summary>Maximum native text blocks merged with OCR output for one page.</summary>
+    /// <summary>Maximum logical native text blocks and raw native spans considered for OCR overlap on one page.</summary>
     public int MaxNativeTextBlocksPerPage { get; set; } = 100_000;
     /// <summary>Maximum native-text overlap comparisons performed for one page.</summary>
     public long MaxNativeTextOverlapComparisonsPerPage { get; set; } = 5_000_000L;
+    /// <summary>Maximum overlapping native-text fragments retained while testing one OCR word.</summary>
+    public int MaxNativeTextOverlapIntersectionsPerWord { get; set; } = 10_000;
     /// <summary>Maximum characters retained in one merged native/OCR text result.</summary>
     public int MaxMergedTextCharactersPerPage { get; set; } = 8 * 1024 * 1024;
     /// <summary>Creates an independent option snapshot.</summary>
@@ -114,6 +116,7 @@ public sealed class PdfOcrMergeOptions {
             MaxProviderMetadataCharactersPerPage = MaxProviderMetadataCharactersPerPage,
             MaxNativeTextBlocksPerPage = MaxNativeTextBlocksPerPage,
             MaxNativeTextOverlapComparisonsPerPage = MaxNativeTextOverlapComparisonsPerPage,
+            MaxNativeTextOverlapIntersectionsPerWord = MaxNativeTextOverlapIntersectionsPerWord,
             MaxMergedTextCharactersPerPage = MaxMergedTextCharactersPerPage
         };
     }
@@ -162,6 +165,7 @@ public sealed class PdfOcrMergeOptions {
         Guard.PositiveInteger(MaxProviderMetadataCharactersPerPage, nameof(MaxProviderMetadataCharactersPerPage));
         Guard.PositiveInteger(MaxNativeTextBlocksPerPage, nameof(MaxNativeTextBlocksPerPage));
         if (MaxNativeTextOverlapComparisonsPerPage <= 0) throw new ArgumentOutOfRangeException(nameof(MaxNativeTextOverlapComparisonsPerPage));
+        Guard.PositiveInteger(MaxNativeTextOverlapIntersectionsPerWord, nameof(MaxNativeTextOverlapIntersectionsPerWord));
         Guard.PositiveInteger(MaxMergedTextCharactersPerPage, nameof(MaxMergedTextCharactersPerPage));
     }
 

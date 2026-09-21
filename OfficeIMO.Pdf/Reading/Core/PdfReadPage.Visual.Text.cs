@@ -199,6 +199,7 @@ public sealed partial class PdfReadPage {
                 sharedClip = sharedClipBounds.ToOfficeClipPath(sharedClipBounds.X, sharedClipBounds.Y);
             }
         }
+        pageContentBudget.ChargePositionedTextProjectionCharacters(span.Text.Length);
         if (!CanExpandSpacedText(span, cancellationToken, out double direction)) return false;
         IReadOnlyList<int> characterLengths = span.GlyphCharacterLengths!;
         IReadOnlyList<double> paintedAdvances = span.GlyphPaintedAdvances!;
@@ -208,14 +209,7 @@ public sealed partial class PdfReadPage {
         var metrics = OfficeDrawingTextLayout.CreateMetrics(drawing, cancellationToken);
         // A path can contain thousands of commands. Retain it once for the run,
         // rather than cloning and rasterizing it separately for every glyph.
-        OfficeDrawing glyphDrawing = drawing;
-        if (sharedClip != null) {
-            glyphDrawing = new OfficeDrawing(drawing.Width, drawing.Height) {
-                TextShapingProvider = drawing.TextShapingProvider,
-                TextShapingLanguage = drawing.TextShapingLanguage
-            };
-            glyphDrawing.Fonts.AddRange(drawing.Fonts);
-        }
+        OfficeDrawing? clippedGlyphDrawing = null;
         PdfPageClipPath? glyphClip = sharedClip == null ? span.ClipPath :
             PdfPageClipPath.Rectangle(sharedClipBounds.X, sharedClipBounds.Y, sharedClipBounds.Width, sharedClipBounds.Height);
 
@@ -250,11 +244,19 @@ public sealed partial class PdfReadPage {
             if (HasPaintOverlap(drawing, paint, canCullClip ? activeClip : null)) {
                 // Charge only visible scene expansion, before creating a drawing element.
                 pageContentBudget.ChargePositionedTextCharacters(length);
+                if (sharedClip != null && clippedGlyphDrawing == null) {
+                    pageContentBudget.ChargeClippedTextFontCopyWork(drawing.Fonts.Faces.Count);
+                    clippedGlyphDrawing = new OfficeDrawing(drawing.Width, drawing.Height) {
+                        TextShapingProvider = drawing.TextShapingProvider,
+                        TextShapingLanguage = drawing.TextShapingLanguage
+                    };
+                    clippedGlyphDrawing.Fonts.AddRange(drawing.Fonts);
+                }
                 var glyph = new PdfTextSpan(measurement.Text, span.FontResource, span.FontSize,
                     x, y, paintedAdvances[index], span.Color, span.IsVisible, span.RotationDegrees, span.BaseFont, glyphClip,
                     drawingFontFamily: span.DrawingFontFamily, fontWeight: span.FontWeight,
                     fontDescriptorFlags: span.FontDescriptorFlags);
-                AddTextSpanCore(glyphDrawing, pageHeight, glyph, pageContentBudget, paint, cancellationToken);
+                AddTextSpanCore(clippedGlyphDrawing ?? drawing, pageHeight, glyph, pageContentBudget, paint, cancellationToken);
             }
             // Stream origins instead of allocating an array for a potentially huge
             // off-page run. Nonpainting prefixes still move later glyphs correctly.
@@ -264,9 +266,9 @@ public sealed partial class PdfReadPage {
                 offset += characterAdvances[characterOffset] * direction;
             }
         }
-        if (sharedClip != null && glyphDrawing.Elements.Count > 0) {
+        if (sharedClip != null && clippedGlyphDrawing != null && clippedGlyphDrawing.Elements.Count > 0) {
             cancellationToken.ThrowIfCancellationRequested();
-            drawing.AddClippedDrawing(glyphDrawing, sharedClipBounds.X, sharedClipBounds.Y, sharedClip,
+            drawing.AddClippedDrawing(clippedGlyphDrawing, sharedClipBounds.X, sharedClipBounds.Y, sharedClip,
                 -sharedClipBounds.X, -sharedClipBounds.Y);
         }
         return true;

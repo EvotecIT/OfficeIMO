@@ -56,7 +56,7 @@ internal static partial class PdfRedactionApplier {
             if (removable.Length > 0) working = PdfAcroFormEditor.Edit(pdf, edit => { for (int i = 0; i < removable.Length; i++) edit.Remove(removable[i]); }, readOptions).ToBytes();
             effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
         }
-        return ApplyCore(
+        byte[] output = ApplyCore(
             working,
             plan.Areas,
             effectiveOptions,
@@ -68,6 +68,8 @@ internal static partial class PdfRedactionApplier {
             imageTargets: null,
             generatedGrowth: out generatedGrowth,
             appliedImageMatches: out appliedImageMatches);
+        VerifySearchedTextRemoved(output, pdf, plan, layoutOptions, readOptions, generatedGrowth, effectiveOptions.CancellationToken);
+        return output;
     }
 
     /// <summary>

@@ -248,6 +248,9 @@ public sealed class PdfHiddenContentInspectionTests {
     [InlineData("", "", true)]
     [InlineData("/AP << /N << /Off 8 0 R >> >>", "q 0 0 40 40 re f Q", true)]
     [InlineData("/AP << /N << /On 8 0 R /Off 9 0 R >> >>", "q Q", true)]
+    [InlineData("/AP << /N << /On 8 0 R /Off 9 0 R >> >>", "0 0 0 0 re f", true)]
+    [InlineData("/AP << /N << /On 8 0 R /Off 9 0 R >> >>", "/Missing Do", true)]
+    [InlineData("/AP << /N << /On 8 0 R /Off 9 0 R >> >>", "0 0 1 1 re W n 20 20 10 10 re f", true)]
     [InlineData("/AP << /N << /On 8 0 R /Off 9 0 R >> >>", "q 0 0 40 40 re f Q", false)]
     public void ContentSafetyRequiresSelectedButtonAppearanceEvidence(
         string appearanceEntry,

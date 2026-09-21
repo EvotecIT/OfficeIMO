@@ -53,6 +53,18 @@ public class PdfRedactionSearchCleanupTests {
     }
 
     [Fact]
+    public void Apply_LogicalKindAllowsSameTextOutsideSelectedHeading() {
+        byte[] source = PdfDocument.Create().H1("Summary").Spacer(120).Paragraph(p => p.Text("Summary"))
+            .ToBytes();
+        PdfRedactionPlan plan = PdfRedactionPlanner.Search(source,
+            new PdfRedactionSearchOptions().AddLogicalKind(PdfLogicalElementKind.Heading));
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, plan);
+
+        Assert.Contains("Summary", PdfTextExtractor.ExtractAllText(redacted), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Apply_RemovesIntersectingPaintedPathsAndKeepsUnrelatedPaths() {
         const string content = "0 0 0 rg 10 10 40 40 re f 0 0 1 rg 120 120 30 30 re f";
         byte[] source = Encoding.ASCII.GetBytes(string.Join("\n", new[] {

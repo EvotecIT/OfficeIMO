@@ -22,6 +22,10 @@ public sealed class PdfReadLimits {
     internal const long DefaultMaxTotalAttachmentBytes = 256L * 1024L * 1024L;
     internal const int DefaultMaxPositionedTextCharactersPerPage = 100_000;
     internal const int DefaultMaxPositionedTextWorkCharactersPerPage = 100_000;
+    internal const int DefaultMaxPositionedTextProjectionCharactersPerPage = 1_000_000;
+    internal const int DefaultMaxClippedTextFontCopyWorkPerPage = 1_000_000;
+    internal const int DefaultMaxPrintProductionContexts = 4_096;
+    internal const int DefaultMaxPrintProductionOperations = 5_000_000;
     internal const int DefaultMaxType3GlyphInvocationsPerPage = 1_000_000;
 
     /// <summary>Creates default parser budgets that callers can customize without changing another options instance.</summary>
@@ -138,6 +142,18 @@ public sealed class PdfReadLimits {
     /// <summary>Maximum characters materialized or measured for positioned-glyph visibility in one page render, including invisible glyphs and nested forms. Charged before glyph strings or outlines are allocated. Default: 100,000.</summary>
     public int MaxPositionedTextWorkCharactersPerPage { get; init; } = DefaultMaxPositionedTextWorkCharactersPerPage;
 
+    /// <summary>Maximum characters scanned while projecting spaced text on one rendered page, including clipped and off-page runs. Default: 1,000,000.</summary>
+    public int MaxPositionedTextProjectionCharactersPerPage { get; init; } = DefaultMaxPositionedTextProjectionCharactersPerPage;
+
+    /// <summary>Maximum estimated face comparisons while copying fonts for clipped positioned text on one page. Default: 1,000,000.</summary>
+    public int MaxClippedTextFontCopyWorkPerPage { get; init; } = DefaultMaxClippedTextFontCopyWorkPerPage;
+
+    /// <summary>Maximum distinct content-stream contexts examined by one PDF/X color inspection. Default: 4,096.</summary>
+    public int MaxPrintProductionContexts { get; init; } = DefaultMaxPrintProductionContexts;
+
+    /// <summary>Maximum aggregate content operations examined by one PDF/X color inspection. Default: 5,000,000.</summary>
+    public int MaxPrintProductionOperations { get; init; } = DefaultMaxPrintProductionOperations;
+
     internal PdfReadLimits WithMinimumInputBytes(long minimumInputBytes) {
         return WithMinimumStructure(minimumInputBytes, MaxIndirectObjects);
     }
@@ -189,6 +205,10 @@ public sealed class PdfReadLimits {
             MaxContentNestingDepth = SaturatingAdd(MaxContentNestingDepth, growth.AdditionalContentNestingDepth),
             MaxPositionedTextCharactersPerPage = MaxPositionedTextCharactersPerPage,
             MaxPositionedTextWorkCharactersPerPage = MaxPositionedTextWorkCharactersPerPage,
+            MaxPositionedTextProjectionCharactersPerPage = MaxPositionedTextProjectionCharactersPerPage,
+            MaxClippedTextFontCopyWorkPerPage = MaxClippedTextFontCopyWorkPerPage,
+            MaxPrintProductionContexts = MaxPrintProductionContexts,
+            MaxPrintProductionOperations = MaxPrintProductionOperations,
             MaxType3GlyphInvocationsPerPage = MaxType3GlyphInvocationsPerPage
         };
     }
@@ -243,6 +263,10 @@ public sealed class PdfReadLimits {
             MaxContentNestingDepth = sources.Max(static limits => limits.MaxContentNestingDepth),
             MaxPositionedTextCharactersPerPage = sources.Max(static limits => limits.MaxPositionedTextCharactersPerPage),
             MaxPositionedTextWorkCharactersPerPage = sources.Max(static limits => limits.MaxPositionedTextWorkCharactersPerPage),
+            MaxPositionedTextProjectionCharactersPerPage = sources.Max(static limits => limits.MaxPositionedTextProjectionCharactersPerPage),
+            MaxClippedTextFontCopyWorkPerPage = sources.Max(static limits => limits.MaxClippedTextFontCopyWorkPerPage),
+            MaxPrintProductionContexts = sources.Max(static limits => limits.MaxPrintProductionContexts),
+            MaxPrintProductionOperations = sources.Max(static limits => limits.MaxPrintProductionOperations),
             MaxType3GlyphInvocationsPerPage = sources.Max(static limits => limits.MaxType3GlyphInvocationsPerPage)
         };
     }
@@ -339,6 +363,10 @@ public sealed class PdfReadLimits {
             MaxContentNestingDepth = MaxContentNestingDepth,
             MaxPositionedTextCharactersPerPage = MaxPositionedTextCharactersPerPage,
             MaxPositionedTextWorkCharactersPerPage = MaxPositionedTextWorkCharactersPerPage,
+            MaxPositionedTextProjectionCharactersPerPage = MaxPositionedTextProjectionCharactersPerPage,
+            MaxClippedTextFontCopyWorkPerPage = MaxClippedTextFontCopyWorkPerPage,
+            MaxPrintProductionContexts = MaxPrintProductionContexts,
+            MaxPrintProductionOperations = MaxPrintProductionOperations,
             MaxType3GlyphInvocationsPerPage = MaxType3GlyphInvocationsPerPage
         };
     }
@@ -414,6 +442,10 @@ public sealed class PdfReadLimits {
         ValidatePositive(MaxContentNestingDepth, nameof(MaxContentNestingDepth), "Maximum content nesting depth must be positive.");
         ValidatePositive(MaxPositionedTextCharactersPerPage, nameof(MaxPositionedTextCharactersPerPage), "Maximum positioned text characters per page must be positive.");
         ValidatePositive(MaxPositionedTextWorkCharactersPerPage, nameof(MaxPositionedTextWorkCharactersPerPage), "Maximum positioned text work characters per page must be positive.");
+        ValidatePositive(MaxPositionedTextProjectionCharactersPerPage, nameof(MaxPositionedTextProjectionCharactersPerPage), "Maximum positioned text projection characters per page must be positive.");
+        ValidatePositive(MaxClippedTextFontCopyWorkPerPage, nameof(MaxClippedTextFontCopyWorkPerPage), "Maximum clipped text font-copy work per page must be positive.");
+        ValidatePositive(MaxPrintProductionContexts, nameof(MaxPrintProductionContexts), "Maximum PDF/X content contexts must be positive.");
+        ValidatePositive(MaxPrintProductionOperations, nameof(MaxPrintProductionOperations), "Maximum PDF/X content operations must be positive.");
         ValidatePositive(MaxType3GlyphInvocationsPerPage, nameof(MaxType3GlyphInvocationsPerPage), "Maximum Type 3 glyph invocations per page must be positive.");
     }
 

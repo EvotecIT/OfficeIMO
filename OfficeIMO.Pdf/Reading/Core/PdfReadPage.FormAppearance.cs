@@ -1,3 +1,5 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadPage {
@@ -74,59 +76,34 @@ public sealed partial class PdfReadPage {
         WidgetAppearanceScanBudget budget) {
         if (!_objects.TryGetValue(widgetObjectNumber, out PdfIndirectObject? widgetObject) ||
             widgetObject.Value is not PdfDictionary widget ||
-            !TryGetNormalAppearanceStream(widget, out PdfStream appearance)) {
+            !TryGetNormalAppearanceStream(widget, out _)) {
             return false;
         }
 
         try {
-            string content = PdfEncoding.Latin1GetString(budget._pageContentBudget.Decode(appearance));
-            bool hasPaint = false;
-            int textRenderingMode = 0;
-            var textRenderingModeStack = new Stack<int>();
-            PdfContentStreamInterpreter.Interpret(
-                content,
-                _limits.MaxContentOperations,
-                operation => {
-                    if (hasPaint) return;
-                    switch (operation.Name) {
-                        case "q":
-                            textRenderingModeStack.Push(textRenderingMode);
-                            break;
-                        case "Q":
-                            textRenderingMode = textRenderingModeStack.Count > 0 ? textRenderingModeStack.Pop() : 0;
-                            break;
-                        case "Tr" when operation.Operands.Count > 0:
-                            textRenderingMode = (int)Convert.ToDouble(
-                                operation.Operands[operation.Operands.Count - 1],
-                                System.Globalization.CultureInfo.InvariantCulture);
-                            break;
-                        case "Tj":
-                        case "TJ":
-                        case "'":
-                        case "\"":
-                            hasPaint = textRenderingMode != 3 && ContainsTextBytes(operation.Operands);
-                            break;
-                        case "S":
-                        case "s":
-                        case "f":
-                        case "F":
-                        case "f*":
-                        case "B":
-                        case "B*":
-                        case "b":
-                        case "b*":
-                        case "Do":
-                        case "sh":
-                            hasPaint = true;
-                            break;
-                        case "BI" when operation.InlineImage is not null:
-                            hasPaint = operation.InlineImage.Data.Length > 0;
-                            break;
-                    }
-                },
-                maxNestingDepth: _limits.MaxContentNestingDepth,
-                maxOperands: _limits.MaxContentOperands);
-            return hasPaint;
+            (double width, double height) = GetVisualPageSize();
+            const long maximumPixels = 1_000_000L;
+            double scale = Math.Min(1D, Math.Sqrt(maximumPixels / (width * height)));
+            if (scale <= 0D || double.IsNaN(scale) || double.IsInfinity(scale)) return false;
+            long pixelsToRender = checked((long)Math.Ceiling(width * scale) * (long)Math.Ceiling(height * scale));
+            if (!budget.TryConsumeRasterPixels(pixelsToRender)) return false;
+            var drawing = new OfficeDrawing(width, height);
+            var selected = new PdfArray();
+            selected.Items.Add(widget);
+            AddAnnotationAppearances(drawing, height, GetVisualPageTransform(), budget._textOutputBudget,
+                budget._pageContentBudget, new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage),
+                budget._textClippingBudget, new PdfTextClippingBudget(),
+                budget._pageContentBudget.CancellationToken, selected);
+            if (drawing.Elements.Count == 0) return false;
+            byte[] pixels = OfficeDrawingRasterRenderer.Render(drawing, new OfficeDrawingRasterRenderOptions {
+                Scale = scale,
+                MaximumRasterPixels = maximumPixels,
+                ThrowOnImageDecodeFailure = true,
+                CancellationToken = budget._pageContentBudget.CancellationToken
+            }).GetPixels();
+            for (int index = 3; index < pixels.Length; index += 4)
+                if (pixels[index] > 0) return true;
+            return false;
         } catch (System.IO.InvalidDataException) {
             return false;
         } catch (FormatException) {
@@ -135,22 +112,22 @@ public sealed partial class PdfReadPage {
             return false;
         } catch (OverflowException) {
             return false;
+        } catch (ArgumentOutOfRangeException) {
+            return false;
         }
-    }
-
-    private static bool ContainsTextBytes(IEnumerable<object> operands) {
-        foreach (object operand in operands) {
-            if (operand is byte[] bytes && bytes.Length > 0) return true;
-            if (operand is string text && text.Length > 0) return true;
-            if (operand is IEnumerable<object> nested && ContainsTextBytes(nested)) return true;
-        }
-        return false;
     }
 
     internal sealed class WidgetAppearanceScanBudget {
         internal readonly PageContentBudget _pageContentBudget;
         internal readonly TextContentParser.TextOutputBudget _textOutputBudget;
         internal readonly PdfTextClippingBudget _textClippingBudget;
+        private long _remainingRasterPixels = 10_000_000L;
+
+        internal bool TryConsumeRasterPixels(long pixels) {
+            if (pixels <= 0L || pixels > _remainingRasterPixels) return false;
+            _remainingRasterPixels -= pixels;
+            return true;
+        }
 
         internal WidgetAppearanceScanBudget(PdfReadPage page) {
             _pageContentBudget = new PageContentBudget(page);

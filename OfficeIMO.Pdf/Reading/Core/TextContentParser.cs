@@ -1903,6 +1903,9 @@ internal static class TextContentParser {
                 return;
             }
 
+            if (!string.IsNullOrEmpty(resource.FontResource) && resource.FontSize.HasValue) {
+                textState = textState.WithFont(resource.FontResource!, resource.FontSize.Value);
+            }
             fillOpacity = resource.FillOpacity ?? fillOpacity;
             strokeOpacity = resource.StrokeOpacity ?? strokeOpacity;
             hasUnsupportedEffect = hasUnsupportedEffect ||

@@ -325,6 +325,25 @@ public class PdfPageInteractionMapTests {
     }
 
     [Fact]
+    public void InteractionMap_BoundsOffPageImagePlacementDiscovery() {
+        string content = string.Concat(Enumerable.Repeat("q 10 0 0 10 10000 10000 cm /Im Do Q\n", 33));
+        byte[] source = Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /XObject << /Im 5 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + content.Length.ToString(CultureInfo.InvariantCulture) + " >>", "stream", content, "endstream", "endobj",
+            "5 0 obj", "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length 3 >>", "stream", "abc", "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF"
+        }));
+
+        PdfReadLimitException error = Assert.Throws<PdfReadLimitException>(() =>
+            PdfPageInteractionMap.Create(source, 1, new PdfPageInteractionOptions { MaxImageRegions = 1 }));
+        Assert.Equal(PdfReadLimitKind.InteractionRegions, error.Kind);
+        Assert.Equal(32, error.Limit);
+    }
+
+    [Fact]
     public void InteractionMap_IncludesVisibleArtifactTextAndUsesItsActualTextReplacement() {
         const string content =
             "/Artifact BMC\n" +

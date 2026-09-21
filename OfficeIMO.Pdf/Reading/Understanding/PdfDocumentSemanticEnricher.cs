@@ -91,7 +91,8 @@ internal static partial class PdfDocumentSemanticEnricher {
                 page.RestrictLogicalProjectionToReadingOrder,
                 tableCandidates[pageIndex],
                 page.ImagePlacements,
-                RemapImageCaptions(imageRegions[pageIndex], elements[pageIndex]));
+                RemapImageCaptions(imageRegions[pageIndex], elements[pageIndex]),
+                page.MaxWorkUnitsPerPage);
         }
         return Array.AsReadOnly(result);
     }

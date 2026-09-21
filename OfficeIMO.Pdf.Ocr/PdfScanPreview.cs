@@ -55,8 +55,13 @@ internal static partial class PdfOcr {
             ImageCodec = options.ImageCodec,
             MaxPixelsPerPage = options.MaxPixelsPerPage,
             MaxOutputBytesPerPage = options.MaxRenderedBytesPerPage,
+            MaxDiagnosticsPerPage = options.MaxDiagnosticsPerPage,
+            MaxDiagnosticCharactersPerPage = options.MaxDiagnosticCharactersPerPage,
             ContinueOnError = false
         }, token);
+        if (rendered.Diagnostics.Count > options.MaxDiagnosticsPerPage)
+            throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, options.MaxDiagnosticsPerPage, rendered.Diagnostics.Count);
+        EnsureCharacters(rendered.Diagnostics, options.MaxDiagnosticCharactersPerPage);
         (double width, double height) = document.Pages[pageNumber - 1].GetInteractionPageSize();
         var request = new OcrRequest {
             Payload = rendered.Bytes!,
@@ -68,6 +73,10 @@ internal static partial class PdfOcr {
             Region = new OcrRegion { Width = width, Height = height }
         };
         PreparedPage prepared = await PreparePageAsync(request, null, options, token).ConfigureAwait(false);
+        long diagnosticCount = (long)rendered.Diagnostics.Count + prepared.Diagnostics.Count;
+        if (diagnosticCount > options.MaxDiagnosticsPerPage)
+            throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, options.MaxDiagnosticsPerPage, diagnosticCount);
+        EnsureCharacters(rendered.Diagnostics.Concat(prepared.Diagnostics), options.MaxDiagnosticCharactersPerPage);
         return new PdfScanPreview(pageNumber, rendered.Bytes!, request.Payload, request.Region!.Width, request.Region.Height,
             request.PixelWidth!.Value, request.PixelHeight!.Value, rendered.Diagnostics.Concat(prepared.Diagnostics).ToArray(), prepared.Report);
     }

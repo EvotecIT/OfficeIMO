@@ -42,6 +42,7 @@ internal static class PdfFontInspector {
         private readonly FontStreamDecodeBudget _decodeBudget;
         private int _referenceCount;
         private int _formTraversalCount;
+        private long _resourcePathCharacters;
 
         internal InspectionContext(Dictionary<int, PdfIndirectObject> objects, PdfFontInspectionOptions options) {
             _objects = objects;
@@ -65,11 +66,12 @@ internal static class PdfFontInspector {
             if (!resources.Items.TryGetValue("XObject", out PdfObject? xObjectValue) ||
                 Resolve(xObjectValue) is not PdfDictionary xObjects) return;
             foreach (KeyValuePair<string, PdfObject> entry in xObjects.Items) {
+                if (IsStopped) return;
                 if (Resolve(entry.Value) is not PdfStream form ||
                     !string.Equals(form.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal)) continue;
-                string formPath = resourcePath + "/XObject/" + entry.Key;
+                if (!TryBuildResourcePath(resourcePath, "/XObject/", entry.Key, pageNumber, out string formPath)) return;
                 if (depth >= _options.MaxResourceDepth) {
-                    _diagnostics.Add(new PdfFontInspectionDiagnostic(
+                    AddDiagnostic(new PdfFontInspectionDiagnostic(
                         PdfFontInspectionDiagnosticCode.ResourceDepthExceeded,
                         "Font resource traversal stopped at the configured nested Form XObject depth.",
                         pageNumber,
@@ -77,7 +79,7 @@ internal static class PdfFontInspector {
                     continue;
                 }
                 if (!activeForms.Add(form)) {
-                    _diagnostics.Add(new PdfFontInspectionDiagnostic(
+                    AddDiagnostic(new PdfFontInspectionDiagnostic(
                         PdfFontInspectionDiagnosticCode.CyclicResourceGraph,
                         "Font resource traversal stopped at a cyclic Form XObject path.",
                         pageNumber,
@@ -127,11 +129,12 @@ internal static class PdfFontInspector {
                 Resolve(xObjectValue) is not PdfDictionary xObjects) return;
 
             foreach (KeyValuePair<string, PdfObject> entry in xObjects.Items) {
+                if (IsStopped) return;
                 if (Resolve(entry.Value) is not PdfStream form ||
                     !string.Equals(form.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal)) continue;
-                string formPath = resourcePath + "/XObject/" + entry.Key;
+                if (!TryBuildResourcePath(resourcePath, "/XObject/", entry.Key, pageNumber, out string formPath)) return;
                 if (depth >= _options.MaxResourceDepth) {
-                    _diagnostics.Add(new PdfFontInspectionDiagnostic(
+                    AddDiagnostic(new PdfFontInspectionDiagnostic(
                         PdfFontInspectionDiagnosticCode.ResourceDepthExceeded,
                         "Font resource traversal stopped at the configured nested Form XObject depth.",
                         pageNumber,
@@ -139,7 +142,7 @@ internal static class PdfFontInspector {
                     continue;
                 }
                 if (!activeForms.Add(form)) {
-                    _diagnostics.Add(new PdfFontInspectionDiagnostic(
+                    AddDiagnostic(new PdfFontInspectionDiagnostic(
                         PdfFontInspectionDiagnosticCode.CyclicResourceGraph,
                         "Font resource traversal stopped at a cyclic Form XObject path.",
                         pageNumber,
@@ -177,13 +180,15 @@ internal static class PdfFontInspector {
             if (!resources.Items.TryGetValue("Font", out PdfObject? fontValue) ||
                 Resolve(fontValue) is not PdfDictionary fontDictionary) return;
             foreach (KeyValuePair<string, PdfObject> entry in fontDictionary.Items) {
+                if (IsStopped) return;
                 if (Resolve(entry.Value) is not PdfDictionary font) continue;
+                if (!TryBuildResourcePath(resourcePath, "/Font/", entry.Key, pageNumber, out string fontPath)) return;
                 if (_referenceCount >= _options.MaxResourceReferences) {
                     AddLimitDiagnostic(
                         PdfFontInspectionDiagnosticCode.ResourceReferenceLimitExceeded,
                         "Font inspection stopped at the configured resource-reference limit.",
                         pageNumber,
-                        resourcePath + "/Font/" + entry.Key);
+                        fontPath);
                     return;
                 }
                 _referenceCount++;
@@ -194,7 +199,7 @@ internal static class PdfFontInspector {
                             PdfFontInspectionDiagnosticCode.FontLimitExceeded,
                             "Font inspection stopped at the configured unique-font limit.",
                             pageNumber,
-                            resourcePath + "/Font/" + entry.Key);
+                            fontPath);
                         return;
                     }
                     GetReferenceIdentity(entry.Value, out int? objectNumber, out int? generation);
@@ -202,7 +207,7 @@ internal static class PdfFontInspector {
                     _fonts.Add(font, builder);
                     _fontOrder.Add(builder);
                 }
-                builder.AddReference(pageNumber, entry.Key, resourcePath + "/Font/" + entry.Key);
+                builder.AddReference(pageNumber, entry.Key, fontPath);
             }
         }
 
@@ -211,8 +216,33 @@ internal static class PdfFontInspector {
             string message,
             int pageNumber,
             string resourcePath) {
-            _diagnostics.Add(new PdfFontInspectionDiagnostic(code, message, pageNumber, resourcePath));
+            AddDiagnostic(new PdfFontInspectionDiagnostic(code, message, pageNumber, resourcePath));
             IsStopped = true;
+        }
+
+        private bool TryBuildResourcePath(string parent, string segment, string name, int pageNumber, out string path) {
+            path = string.Empty;
+            long length = (long)parent.Length + segment.Length + name.Length;
+            if (length > _options.MaxResourcePathCharacters ||
+                _resourcePathCharacters + length > _options.MaxTotalResourcePathCharacters) {
+                AddLimitDiagnostic(PdfFontInspectionDiagnosticCode.ResourceReferenceLimitExceeded,
+                    "Font inspection stopped at the configured resource-path budget.", pageNumber,
+                    parent.Length <= _options.MaxResourcePathCharacters
+                        ? parent
+                        : parent.Substring(0, _options.MaxResourcePathCharacters));
+                return false;
+            }
+            _resourcePathCharacters += length;
+            path = parent + segment + name;
+            return true;
+        }
+
+        private void AddDiagnostic(PdfFontInspectionDiagnostic diagnostic) {
+            if (_diagnostics.Count >= _options.MaxDiagnostics) {
+                IsStopped = true;
+                return;
+            }
+            _diagnostics.Add(diagnostic);
         }
 
         private PdfObject? Resolve(PdfObject? value) =>

@@ -1831,7 +1831,11 @@ public sealed partial class PdfReadPage {
     private static double Clamp01(double value) =>
         value < 0D ? 0D : value > 1D ? 1D : value;
 
-    private Dictionary<string, PdfPageGraphicsStateResource> GetGraphicsStateResources(PdfDictionary? resources) {
+    private Dictionary<string, PdfPageGraphicsStateResource> GetGraphicsStateResources(
+        PdfDictionary? resources,
+        Dictionary<string, Func<byte[], int, string>>? decoders = null,
+        Dictionary<string, Func<byte[], double>>? widthProviders = null,
+        Dictionary<string, PdfFontResource>? fonts = null) {
         var result = new Dictionary<string, PdfPageGraphicsStateResource>(StringComparer.Ordinal);
         if (resources == null ||
             !resources.Items.TryGetValue("ExtGState", out PdfObject? extGStateObject)) {
@@ -1842,6 +1846,8 @@ public sealed partial class PdfReadPage {
         if (extGStates == null) {
             return result;
         }
+
+        Dictionary<PdfDictionary, string> declaredFontNames = GetDeclaredFontNames(resources);
 
         foreach (KeyValuePair<string, PdfObject> entry in extGStates.Items) {
             PdfDictionary? state = ResolveDictionary(entry.Value);
@@ -1856,7 +1862,8 @@ public sealed partial class PdfReadPage {
             PdfStrokeDashPattern? strokeDashPattern = ReadStrokeDashPattern(state);
             OfficeStrokeLineCap? strokeLineCap = ReadStrokeLineCap(state);
             OfficeStrokeLineJoin? strokeLineJoin = ReadStrokeLineJoin(state);
-            bool hasInvalidFont = !TryReadExtGStateFont(state, out string? fontResource, out double? fontSize);
+            bool hasInvalidFont = !TryReadExtGStateFont(state, declaredFontNames, decoders, widthProviders, fonts,
+                out string? fontResource, out double? fontSize);
             OfficeBlendMode? blendMode = ReadBlendMode(state);
             bool hasInvalidRenderingIntent = !TryReadSupportedExtGStateRenderingIntent(
                 state,
@@ -1937,17 +1944,62 @@ public sealed partial class PdfReadPage {
         return values.Count == 0;
     }
 
-    private bool TryReadExtGStateFont(PdfDictionary state, out string? fontResource, out double? fontSize) {
+    private Dictionary<PdfDictionary, string> GetDeclaredFontNames(PdfDictionary? resources) {
+        var names = new Dictionary<PdfDictionary, string>();
+        PdfDictionary? declaredFonts = ResolveDictionary(resources?.Items.TryGetValue("Font", out PdfObject? fontObjects) == true
+            ? fontObjects : null);
+        if (declaredFonts == null) return names;
+        foreach (KeyValuePair<string, PdfObject> entry in declaredFonts.Items) {
+            if (ResolveEffectObject(entry.Value) is PdfDictionary font && !names.ContainsKey(font)) names.Add(font, entry.Key);
+        }
+        return names;
+    }
+
+    private bool TryReadExtGStateFont(
+        PdfDictionary state,
+        Dictionary<PdfDictionary, string> declaredFontNames,
+        Dictionary<string, Func<byte[], int, string>>? decoders,
+        Dictionary<string, Func<byte[], double>>? widthProviders,
+        Dictionary<string, PdfFontResource>? fonts,
+        out string? fontResource,
+        out double? fontSize) {
         fontResource = null;
         fontSize = null;
         if (!state.Items.TryGetValue("Font", out PdfObject? value)) return true;
         PdfObject? resolved = ResolveEffectObject(value);
         if (resolved is PdfNull) return true;
         if (resolved is not PdfArray font || font.Items.Count != 2 ||
-            ResolveEffectObject(font.Items[0]) is not PdfName name ||
             ResolveEffectObject(font.Items[1]) is not PdfNumber size ||
             !IsFinite(size.Value) || size.Value < 0D) return false;
-        fontResource = name.Name;
+        PdfObject? resolvedFont = ResolveEffectObject(font.Items[0]);
+        if (resolvedFont is PdfName name) {
+            fontResource = name.Name;
+        } else if (resolvedFont is PdfDictionary fontDictionary) {
+            declaredFontNames.TryGetValue(fontDictionary, out fontResource);
+            if (fontResource == null) {
+                if (decoders == null || widthProviders == null || fonts == null) return false;
+                const string aliasPrefix = "__OfficeIMOExtGStateFont";
+                int suffix = 0;
+                string alias;
+                do {
+                    if (suffix >= 64) return false;
+                    alias = aliasPrefix + suffix.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    suffix++;
+                } while (fonts.ContainsKey(alias) || decoders.ContainsKey(alias) || widthProviders.ContainsKey(alias));
+                var fontEntries = new PdfDictionary();
+                fontEntries.Items[alias] = font.Items[0];
+                var syntheticResources = new PdfDictionary();
+                syntheticResources.Items["Font"] = fontEntries;
+                PdfFontResourceSet set = _fontResourceCache.GetOrCreate(syntheticResources, _objects);
+                if (!set.Fonts.TryGetValue(alias, out PdfFontResource? parsedFont)) return false;
+                fonts[alias] = parsedFont;
+                if (set.Decoders.TryGetValue(alias, out Func<byte[], int, string>? decoder)) decoders[alias] = decoder;
+                if (set.WidthProviders.TryGetValue(alias, out Func<byte[], double>? width)) widthProviders[alias] = width;
+                fontResource = alias;
+            }
+        } else {
+            return false;
+        }
         fontSize = size.Value;
         return true;
     }
@@ -1964,7 +2016,9 @@ public sealed partial class PdfReadPage {
             ReadUnsupportedNamedResetEffect(state, "UCR2", "UCR", allowIdentity: false),
             ReadUnsupportedNamedResetEffect(state, "TR2", "TR", allowIdentity: true),
             ReadUnsupportedNamedResetEffect(state, "HT", legacyKey: null, allowIdentity: false),
-            ReadUnsupportedBooleanEffect(state, "op"),
+            state.Items.ContainsKey("op")
+                ? ReadUnsupportedBooleanEffect(state, "op")
+                : ReadUnsupportedBooleanEffect(state, "OP"),
             ReadUnsupportedZeroNumberEffect(state, "OPM"),
             ReadUnsupportedBooleanEffect(state, "AIS"));
     }
@@ -2369,13 +2423,12 @@ public sealed partial class PdfReadPage {
         Type3GlyphBudget type3GlyphBudget,
         PdfTextClippingBudget invocationTextClippingBudget,
         PdfTextClippingBudget patternTextClippingBudget,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        PdfArray? selectedAnnotations = null) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!_pageDict.Items.TryGetValue("Annots", out PdfObject? annotationsObject)) {
-            return;
-        }
-
-        PdfArray? annotations = ResolveArray(annotationsObject);
+        PdfArray? annotations = selectedAnnotations;
+        if (annotations == null && _pageDict.Items.TryGetValue("Annots", out PdfObject? annotationsObject))
+            annotations = ResolveArray(annotationsObject);
         if (annotations == null) {
             return;
         }

@@ -407,10 +407,25 @@ public sealed class PdfHtmlPageSelectionTests {
         return Encoding.ASCII.GetBytes(pdf);
     }
 
-    private static byte[] BuildType3OptionalContentPdf(string layeredGlyph, bool useExtGStateFont = false) {
+    [Fact]
+    public void Type3OptionalContentInspectionHonorsTheGlyphInvocationLimit() {
+        byte[] pdf = BuildType3OptionalContentPdf("none", pageText: "AAAA");
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxType3GlyphInvocationsPerPage = 1 }
+        });
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            document.Pages[0].HasOptionalContentUsage());
+
+        Assert.Equal(PdfReadLimitKind.Type3GlyphInvocations, exception.Kind);
+        Assert.Equal(2, exception.Actual);
+    }
+
+    private static byte[] BuildType3OptionalContentPdf(string layeredGlyph, bool useExtGStateFont = false,
+        string pageText = "A") {
         string pageContent = useExtGStateFont
-            ? "BT /FontState gs 20 100 Td (A) Tj ET"
-            : "BT /F3 24 Tf 20 100 Td (A) Tj ET";
+            ? "BT /FontState gs 20 100 Td (" + pageText + ") Tj ET"
+            : "BT /F3 24 Tf 20 100 Td (" + pageText + ") Tj ET";
         string extGState = useExtGStateFont
             ? " /ExtGState << /FontState << /Font [/F3 24] >> >>"
             : string.Empty;

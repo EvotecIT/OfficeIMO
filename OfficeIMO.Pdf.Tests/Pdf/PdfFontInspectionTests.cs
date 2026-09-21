@@ -366,6 +366,24 @@ public sealed class PdfFontInspectionTests {
     }
 
     [Fact]
+    public void Fonts_StopsBeforeRetainingOversizedResourcePaths() {
+        byte[] pdf = BuildPdf(
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /XObject << /VeryLongResourceName 4 0 R >> >> /Contents 5 0 R >>",
+            StreamObject(string.Empty, "/Type /XObject /Subtype /Form /BBox [0 0 10 10] /Resources << >>"),
+            StreamObject(string.Empty));
+
+        PdfFontInventory inventory = PdfDocument.Load(pdf).Resources.Fonts(new PdfFontInspectionOptions {
+            MaxResourcePathCharacters = 20
+        });
+
+        PdfFontInspectionDiagnostic diagnostic = Assert.Single(inventory.Diagnostics);
+        Assert.Equal(PdfFontInspectionDiagnosticCode.ResourceReferenceLimitExceeded, diagnostic.Code);
+        Assert.True(diagnostic.ResourcePath!.Length <= 20);
+    }
+
+    [Fact]
     public void TryFonts_UsesLogicalContentPermissionGate() {
         PdfOperationResult<PdfFontInventory> result = PdfDocument.Load(BuildFontPdf()).Reader.FontsResult();
 

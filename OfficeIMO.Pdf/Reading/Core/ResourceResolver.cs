@@ -1351,34 +1351,88 @@ internal static partial class ResourceResolver {
             imageMaskColor ?? OfficeColor.Black,
             renderingIntent,
             hasExplicitDecode: hasExplicitDecode,
-            hasDecodeParameters: HasResolvedDecodeParametersEntry(stream.Dictionary, objects),
+            hasDecodeParameters: HasResolvedDecodeParametersEntry(stream.Dictionary, objects, cancellationToken),
             interpolate: stream.Dictionary.Items.TryGetValue("Interpolate", out PdfObject? interpolateObject) &&
                 ResolveObject(interpolateObject, objects) is PdfBoolean { Value: true },
             hasAuthoredRenderingIntent: hasAuthoredRenderingIntent || inheritedHasAuthoredRenderingIntent,
-            requiresScanDecode: HasScanFilter(filterObj, objects),
+            requiresScanDecode: HasScanFilter(filterObj, objects, cancellationToken),
             hasUnsafePassThroughDecode: hasUnsafePassThroughDecode);
     }
 
     private static bool HasResolvedDecodeParametersEntry(
         PdfDictionary dictionary,
-        Dictionary<int, PdfIndirectObject> objects) {
+        Dictionary<int, PdfIndirectObject> objects,
+        CancellationToken cancellationToken) {
         PdfObject? value = dictionary.Items.TryGetValue("DecodeParms", out PdfObject? fullName)
             ? fullName
             : dictionary.Items.TryGetValue("DP", out PdfObject? abbreviation)
                 ? abbreviation
                 : null;
-        PdfObject? resolved = PdfObjectLookup.ResolveChain(objects, value);
+        var resolver = new BoundedArrayReferenceResolver(objects, cancellationToken);
+        PdfObject? resolved = resolver.Resolve(value);
         if (resolved is PdfDictionary) return true;
         if (resolved is not PdfArray array) return false;
-        return array.Items.Any(item => PdfObjectLookup.ResolveChain(objects, item) is PdfDictionary);
+        for (int index = 0; index < array.Items.Count; index++) {
+            if (resolver.Resolve(array.Items[index]) is PdfDictionary) return true;
+        }
+        return false;
     }
 
-    private static bool HasScanFilter(PdfObject? filters, Dictionary<int, PdfIndirectObject> objects) {
-        PdfObject? resolved = PdfObjectLookup.ResolveChain(objects, filters);
+    private static bool HasScanFilter(PdfObject? filters, Dictionary<int, PdfIndirectObject> objects,
+        CancellationToken cancellationToken) {
+        var resolver = new BoundedArrayReferenceResolver(objects, cancellationToken);
+        PdfObject? resolved = resolver.Resolve(filters);
         if (resolved is PdfName name) return IsScanFilter(name);
-        return resolved is PdfArray array && array.Items.Any(item => PdfObjectLookup.ResolveChain(objects, item) is PdfName entry && IsScanFilter(entry));
+        if (resolved is not PdfArray array) return false;
+        for (int index = 0; index < array.Items.Count; index++) {
+            if (resolver.Resolve(array.Items[index]) is PdfName entry && IsScanFilter(entry)) return true;
+        }
+        return false;
 
         static bool IsScanFilter(PdfName name) => name.Name is "CCITTFaxDecode" or "CCF" or "JPXDecode";
+    }
+
+    private sealed class BoundedArrayReferenceResolver {
+        private const int MaximumReferenceSteps = 100_000;
+        private readonly Dictionary<int, PdfIndirectObject> _objects;
+        private readonly CancellationToken _cancellationToken;
+        private readonly Dictionary<(int ObjectNumber, int Generation), PdfObject?> _cache = new();
+        private int _steps;
+
+        internal BoundedArrayReferenceResolver(Dictionary<int, PdfIndirectObject> objects,
+            CancellationToken cancellationToken) {
+            _objects = objects;
+            _cancellationToken = cancellationToken;
+        }
+
+        internal PdfObject? Resolve(PdfObject? value) {
+            _cancellationToken.ThrowIfCancellationRequested();
+            if (value is not PdfReference firstReference) return value;
+            if (_cache.TryGetValue((firstReference.ObjectNumber, firstReference.Generation), out PdfObject? firstCached))
+                return firstCached;
+            var visited = new HashSet<(int ObjectNumber, int Generation)>();
+            var path = new List<(int ObjectNumber, int Generation)>();
+            PdfObject? resolved = value;
+            while (resolved is PdfReference reference) {
+                var key = (reference.ObjectNumber, reference.Generation);
+                if (_cache.TryGetValue(key, out PdfObject? cached)) {
+                    resolved = cached;
+                    break;
+                }
+                if (!visited.Add(key) || !PdfObjectLookup.TryGet(_objects, reference, out PdfIndirectObject indirect)) {
+                    resolved = null;
+                    break;
+                }
+                if (++_steps > MaximumReferenceSteps) {
+                    throw new InvalidDataException("PDF array reference resolution exceeded the managed work limit.");
+                }
+                if ((_steps & 255) == 0) _cancellationToken.ThrowIfCancellationRequested();
+                path.Add(key);
+                resolved = indirect.Value;
+            }
+            for (int index = 0; index < path.Count; index++) _cache[path[index]] = resolved;
+            return resolved;
+        }
     }
 
     private static string? GetTransparencyMaskKind(PdfDictionary dictionary, Dictionary<int, PdfIndirectObject> objects) {
