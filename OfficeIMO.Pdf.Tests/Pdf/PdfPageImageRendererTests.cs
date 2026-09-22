@@ -11,6 +11,20 @@ namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfPageImageRendererTests {
     [Fact]
+    public void RenderFailureRespectsThePageDiagnosticCharacterLimit() {
+        byte[] pdf = BuildSingleStreamPdf("0 0 10 10 re f");
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf,
+            options: new PdfPageRenderOptions {
+                MaxPixelsPerPage = 1,
+                MaxDiagnosticCharactersPerPage = 1,
+                ContinueOnError = true
+            }));
+
+        Assert.False(result.Succeeded);
+        Assert.True(result.Diagnostics.Sum(diagnostic => diagnostic.Length) <= 1);
+    }
+
+    [Fact]
     public void RenderCapabilityDiagnosticsStopWhileCollectingDistinctOperators() {
         byte[] pdf = BuildSingleStreamPdf("unknownOne\nunknownTwo\nunknownThree");
         PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];

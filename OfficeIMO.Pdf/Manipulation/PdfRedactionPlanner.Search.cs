@@ -9,6 +9,8 @@ internal static partial class PdfRedactionPlanner {
         search.CancellationToken.ThrowIfCancellationRequested();
         if (search.RegexTimeout <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(search), "Regex timeout must be positive.");
         if (search.MaximumCandidates <= 0) throw new ArgumentOutOfRangeException(nameof(search), "Maximum candidates must be positive.");
+        if (search.LiteralText.Any(string.IsNullOrWhiteSpace))
+            throw new ArgumentException("Literal search criteria must contain text.", nameof(search));
         Regex[] expressions = search.RegularExpressions.Select(pattern => new Regex(pattern, search.RegexOptions, search.RegexTimeout)).ToArray();
         if (search.LiteralText.Count == 0 && expressions.Length == 0 && search.FormFieldNames.Count == 0 && search.LogicalElementKinds.Count == 0) throw new ArgumentException("At least one redaction search criterion is required.", nameof(search));
 

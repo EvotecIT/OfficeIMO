@@ -199,8 +199,7 @@ public sealed partial class PdfReadPage {
                 sharedClip = sharedClipBounds.ToOfficeClipPath(sharedClipBounds.X, sharedClipBounds.Y);
             }
         }
-        pageContentBudget.ChargePositionedTextProjectionCharacters(span.Text.Length);
-        if (!CanExpandSpacedText(span, cancellationToken, out double direction)) return false;
+        if (!CanExpandSpacedText(span, pageContentBudget, cancellationToken, out double direction)) return false;
         IReadOnlyList<int> characterLengths = span.GlyphCharacterLengths!;
         IReadOnlyList<double> paintedAdvances = span.GlyphPaintedAdvances!;
         IReadOnlyList<double> characterAdvances = span.CharacterAdvances!;
@@ -302,7 +301,8 @@ public sealed partial class PdfReadPage {
         (!clip.HasValue || paint.Right > clip.Value.X && paint.Bottom > clip.Value.Y &&
             paint.Left < clip.Value.X + clip.Value.Width && paint.Top < clip.Value.Y + clip.Value.Height);
 
-    private static bool CanExpandSpacedText(PdfTextSpan span, System.Threading.CancellationToken cancellationToken,
+    private static bool CanExpandSpacedText(PdfTextSpan span, PageContentBudget pageContentBudget,
+        System.Threading.CancellationToken cancellationToken,
         out double direction) {
         direction = 0D;
         cancellationToken.ThrowIfCancellationRequested();
@@ -312,6 +312,7 @@ public sealed partial class PdfReadPage {
         if (span.HasActualText) return false;
         for (int index = 0; index < span.Text.Length; index++) {
             cancellationToken.ThrowIfCancellationRequested();
+            pageContentBudget.ChargePositionedTextProjectionCharacters(1);
             if (span.Text[index] < ' ' || span.Text[index] > '~') return false;
         }
         IReadOnlyList<int>? lengths = span.GlyphCharacterLengths;

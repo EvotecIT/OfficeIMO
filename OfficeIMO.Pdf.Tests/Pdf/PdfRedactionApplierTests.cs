@@ -824,6 +824,43 @@ public class PdfRedactionApplierTests {
         Assert.DoesNotContain("secret", text, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void SearchRejectsMutableEmptyLiteralBeforePlanning() {
+        byte[] source = BuildExtGStateFontFormRedactionSource(indirectFontDictionary: false,
+            includeFontResource: true);
+        var options = new PdfRedactionSearchOptions();
+        options.LiteralText.Add(string.Empty);
+
+        Assert.Throws<ArgumentException>(() => PdfRedactionPlanner.Search(source, options));
+    }
+
+    [Fact]
+    public void SearchPlanCriteriaCannotBeChangedAfterPlanning() {
+        byte[] source = BuildExtGStateFontFormRedactionSource(indirectFontDictionary: false,
+            includeFontResource: true);
+        PdfRedactionPlan plan = PdfRedactionPlanner.Search(source,
+            new PdfRedactionSearchOptions().AddLiteral("secret"));
+
+        Assert.Equal("literal:secret", Assert.Single(plan.SearchCriteria));
+        Assert.IsNotType<string[]>(plan.SearchCriteria);
+        Assert.Throws<NotSupportedException>(() => ((IList<string>)plan.SearchCriteria)[0] = "field:other");
+        Assert.Equal("literal:secret", Assert.Single(plan.SearchCriteria));
+    }
+
+    [Fact]
+    public void ReviewedPlanAreasCannotBeReplacedBeforeApply() {
+        byte[] source = BuildExtGStateFontFormRedactionSource(indirectFontDictionary: false,
+            includeFontResource: true);
+        PdfRedactionPlan plan = PdfRedactionPlanner.Search(source,
+            new PdfRedactionSearchOptions().AddLiteral("secret"));
+        PdfRedactionArea reviewedArea = Assert.Single(plan.Areas);
+
+        Assert.IsNotType<PdfRedactionArea[]>(plan.Areas);
+        Assert.Throws<NotSupportedException>(() => ((IList<PdfRedactionArea>)plan.Areas)[0] =
+            new PdfRedactionArea(1, 480D, 30D, 20D, 20D));
+        Assert.Same(reviewedArea, Assert.Single(plan.Areas));
+    }
+
     [Theory]
     [InlineData(false, true)]
     [InlineData(true, true)]

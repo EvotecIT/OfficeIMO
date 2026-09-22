@@ -133,6 +133,17 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderPage_NonLatinSpacedTextChargesOnlyTheRejectedPrefix() {
+        byte[] pdf = BuildSingleStreamPdf("BT /F1 10 Tf 1 Tc 1000 100 Td (\\351" +
+            new string('A', 1000) + ") Tj ET");
+        var document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxPositionedTextProjectionCharactersPerPage = 2 }
+        });
+
+        document.Pages[0].ToDrawing();
+    }
+
+    [Fact]
     public void RenderPage_ClippedSpacedTextBoundsFontCopies() {
         const string font = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj";
         byte[] pdf = BuildSingleStreamPdf(

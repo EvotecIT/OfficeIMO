@@ -15,10 +15,10 @@ public sealed class PdfRedactionPlan {
         System.Text.RegularExpressions.RegexOptions searchRegexOptions = System.Text.RegularExpressions.RegexOptions.CultureInvariant,
         TimeSpan? searchRegexTimeout = null) {
         Preflight = preflight;
-        Areas = areas;
+        Areas = Array.AsReadOnly(areas.ToArray());
         Matches = matches;
         Findings = findings;
-        SearchCriteria = searchCriteria ?? Array.Empty<string>();
+        SearchCriteria = Array.AsReadOnly(searchCriteria?.ToArray() ?? Array.Empty<string>());
         SourceSha256 = sourceSha256;
         PageIdentities = pageIdentities ?? Array.Empty<string>();
         ReviewedTextObjectScopes = reviewedTextObjectScopes ?? Array.Empty<IReadOnlyList<PdfRedactionTextObjectScope>>();

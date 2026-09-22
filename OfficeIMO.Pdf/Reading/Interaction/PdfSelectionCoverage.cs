@@ -25,8 +25,9 @@ internal static partial class PdfSelectionCoverage {
             if (right <= left || bottom <= top) continue;
             double area;
             if (targetIsRectangle && IsRectangle(region)) {
-                EnsureRetainedIntersectionCapacity();
                 area = (right - left) * (bottom - top);
+                if (area >= required) return true;
+                EnsureRetainedIntersectionCapacity();
                 rectangles.Add(new CoverageRectangle(left, top, right, bottom));
             } else {
                 // Convex quad clipping has at most eight output vertices and four clip edges.
@@ -34,10 +35,10 @@ internal static partial class PdfSelectionCoverage {
                 List<OfficePoint> clipped = PdfPageClipPath.ClipPolygonToConvexPolygon(Points(region), targetPoints, null);
                 area = Area(clipped);
                 if (area <= 0D) continue;
+                if (area >= required) return true;
                 EnsureRetainedIntersectionCapacity();
                 polygons.Add(clipped);
             }
-            if (area >= required) return true;
             summedArea += area;
         }
         if (summedArea < required || summedArea <= 0D) return false;

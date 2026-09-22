@@ -82,6 +82,7 @@ public sealed class PdfPageRenderResult {
         int height,
         TimeSpan elapsed,
         IReadOnlyList<PdfRenderCapabilityDiagnostic> capabilityDiagnostics,
+        int maximumDiagnosticCharacters,
         IReadOnlyList<string>? errors = null) {
         PageNumber = pageNumber;
         Format = format;
@@ -91,9 +92,18 @@ public sealed class PdfPageRenderResult {
         Elapsed = elapsed;
         CapabilityDiagnostics = capabilityDiagnostics.ToArray();
         var diagnostics = new List<string>(capabilityDiagnostics.Count + (errors?.Count ?? 0));
-        for (int i = 0; i < capabilityDiagnostics.Count; i++) diagnostics.Add(capabilityDiagnostics[i].Code + ": " + capabilityDiagnostics[i].Message);
-        if (errors != null) diagnostics.AddRange(errors);
+        int remainingCharacters = maximumDiagnosticCharacters;
+        for (int i = 0; i < capabilityDiagnostics.Count; i++)
+            AddDiagnostic(capabilityDiagnostics[i].Code + ": " + capabilityDiagnostics[i].Message);
+        if (errors != null) foreach (string error in errors) AddDiagnostic(error);
         Diagnostics = diagnostics.Count == 0 ? Array.Empty<string>() : diagnostics.AsReadOnly();
+
+        void AddDiagnostic(string value) {
+            if (remainingCharacters <= 0) return;
+            if (value.Length > remainingCharacters) value = value.Substring(0, remainingCharacters);
+            diagnostics.Add(value);
+            remainingCharacters -= value.Length;
+        }
     }
 
     /// <summary>One-based source page number.</summary>
