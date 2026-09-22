@@ -258,12 +258,10 @@ public static partial class WordOpenDocumentConversionExtensions {
         ref int hyperlinks, ref int externalHyperlinks, ref int images, ref int bookmarks,
         ref int approximatedRuns, ref int approximatedBookmarkRanges, ref int unsupportedMeasurements,
         ref int approximatedFontFamilyLists, ref int unsupportedFontFamilies) {
-        OdfTextTransform?[] transforms = source.InlineNodes.Select(node => node.Kind switch {
-            OdtInlineNodeKind.Span => node.Span!.TextTransform ?? source.TextTransform,
-            OdtInlineNodeKind.Hyperlink => node.Hyperlink!.TextTransform ?? source.TextTransform,
-            _ => source.TextTransform
-        }).ToArray();
-        string[] displayTexts = source.InlineNodes.Select(node => node.Text).ToArray();
+        OdtInlineLeaf[] leaves = FlattenOdtInlineNodes(source.InlineNodes).ToArray();
+        OdfTextTransform?[] transforms = leaves.Select(leaf =>
+            leaf.Span?.TextTransform ?? leaf.StyleLink?.TextTransform ?? source.TextTransform).ToArray();
+        string[] displayTexts = leaves.Select(leaf => leaf.Node.Text).ToArray();
         for (int start = 0; start < transforms.Length;) {
             OdfTextTransform? transform = transforms[start];
             int end = start + 1;
@@ -284,39 +282,46 @@ public static partial class WordOpenDocumentConversionExtensions {
             }
             start = end;
         }
-        for (int nodeIndex = 0; nodeIndex < source.InlineNodes.Count; nodeIndex++) {
-            OdtInlineNode node = source.InlineNodes[nodeIndex];
+        var convertedLinks = new HashSet<OdtHyperlink>();
+        for (int nodeIndex = 0; nodeIndex < leaves.Length; nodeIndex++) {
+            OdtInlineLeaf leaf = leaves[nodeIndex];
+            OdtInlineNode node = leaf.Node;
             string displayText = displayTexts[nodeIndex];
             switch (node.Kind) {
                 case OdtInlineNodeKind.Text:
-                    unsupportedMeasurements += ApplyOdtParagraphTextFormatting(source, target.AddText(displayText),
-                        ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
-                    break;
                 case OdtInlineNodeKind.Span:
-                    unsupportedMeasurements += ApplyOdtSpanFormatting(node.Span!, source, target.AddText(displayText),
-                        ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
-                    break;
                 case OdtInlineNodeKind.Hyperlink:
-                    OdtHyperlink link = node.Hyperlink!;
-                    WordParagraph? hyperlinkRun = null;
-                    if (OdfUriReference.TryDecodeFragment(link.Href, out string fragment)) {
-                        hyperlinkRun = target.AddHyperLink(displayText, fragment, addStyle: true);
-                    } else if (!link.Href.StartsWith("#", StringComparison.Ordinal)
-                        && Uri.TryCreate(link.Href, UriKind.RelativeOrAbsolute, out Uri? uri)) {
-                        hyperlinkRun = target.AddHyperLink(displayText, uri, addStyle: true);
+                case OdtInlineNodeKind.Other:
+                    WordParagraph? output = null;
+                    OdtHyperlink? link = leaf.TargetLink;
+                    if (link != null) {
+                        if (OdfUriReference.TryDecodeFragment(link.Href, out string fragment)) {
+                            output = target.AddHyperLink(displayText, fragment, addStyle: true);
+                        } else if (!link.Href.StartsWith("#", StringComparison.Ordinal)
+                            && Uri.TryCreate(link.Href, UriKind.RelativeOrAbsolute, out Uri? uri)) {
+                            output = target.AddHyperLink(displayText, uri, addStyle: true);
+                        }
+                        if (output != null && convertedLinks.Add(link)) {
+                            hyperlinks++;
+                            if (IsExternalOdfHref(link.Href)) externalHyperlinks++;
+                        }
+                        if (output == null) approximatedRuns++;
                     }
-                    if (hyperlinkRun != null) {
-                        unsupportedMeasurements += ApplyOdtHyperlinkFormatting(link, source, hyperlinkRun,
+                    output ??= target.AddText(displayText);
+                    if (leaf.Span != null) {
+                        unsupportedMeasurements += ApplyOdtSpanFormatting(leaf.Span, source, output,
                             ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
-                        hyperlinks++;
-                        if (IsExternalOdfHref(link.Href)) externalHyperlinks++;
+                    } else if (leaf.StyleLink != null) {
+                        unsupportedMeasurements += ApplyOdtHyperlinkFormatting(leaf.StyleLink, source, output,
+                            ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
                     } else {
-                        unsupportedMeasurements += ApplyOdtParagraphTextFormatting(source, target.AddText(displayText),
+                        unsupportedMeasurements += ApplyOdtParagraphTextFormatting(source, output,
                             ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
-                        approximatedRuns++;
                     }
+                    if (node.Kind == OdtInlineNodeKind.Other) approximatedRuns++;
                     break;
                 case OdtInlineNodeKind.Image:
+                    if (leaf.TargetLink != null) approximatedRuns++;
                     if (!options.IncludeImages) break;
                     try {
                         OdtImage image = node.Image!;
@@ -343,16 +348,32 @@ public static partial class WordOpenDocumentConversionExtensions {
                     break;
                 case OdtInlineNodeKind.BookmarkEnd:
                     break;
-                case OdtInlineNodeKind.Other:
-                    if (displayText.Length > 0) unsupportedMeasurements += ApplyOdtParagraphTextFormatting(source,
-                        target.AddText(displayText), ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
-                    approximatedRuns++;
-                    break;
             }
         }
 
         target.PageBreakBefore = source.PageBreakBefore;
         unsupportedMeasurements += ApplyOdtParagraphFormatting(source, target);
+    }
+
+    private readonly record struct OdtInlineLeaf(OdtInlineNode Node, OdtSpan? Span,
+        OdtHyperlink? StyleLink, OdtHyperlink? TargetLink);
+
+    private static IEnumerable<OdtInlineLeaf> FlattenOdtInlineNodes(
+        IReadOnlyList<OdtInlineNode> nodes, OdtSpan? span = null,
+        OdtHyperlink? styleLink = null, OdtHyperlink? targetLink = null) {
+        foreach (OdtInlineNode node in nodes) {
+            if (node.Kind == OdtInlineNodeKind.Span) {
+                if (node.Children.Count == 0) yield return new OdtInlineLeaf(node, node.Span, null, targetLink);
+                else foreach (OdtInlineLeaf child in FlattenOdtInlineNodes(node.Children, node.Span, null, targetLink))
+                    yield return child;
+            } else if (node.Kind == OdtInlineNodeKind.Hyperlink) {
+                if (node.Children.Count == 0) yield return new OdtInlineLeaf(node, null, node.Hyperlink, node.Hyperlink);
+                else foreach (OdtInlineLeaf child in FlattenOdtInlineNodes(node.Children, null, node.Hyperlink, node.Hyperlink))
+                    yield return child;
+            } else {
+                yield return new OdtInlineLeaf(node, span, styleLink, targetLink);
+            }
+        }
     }
 
     private static void ApplyWordRunFormatting(WordRunSnapshot source, OdtSpan target) {

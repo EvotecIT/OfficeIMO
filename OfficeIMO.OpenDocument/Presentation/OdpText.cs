@@ -149,6 +149,36 @@ public sealed class OdpRun {
     internal OdpRun(OdpPresentation presentation, XElement element) { _presentation = presentation; _element = element; }
     /// <summary>Decoded run text.</summary>
     public string Text { get => OdfTextCodec.Read(_element); set { OdfTextCodec.Replace(_element, value); Dirty(); } }
+    /// <summary>Ordered text, runs, and hyperlinks inside this run.</summary>
+    public IReadOnlyList<OdpInlineNode> InlineNodes => OdpInlineNode.Read(_presentation, _element);
+
+    /// <summary>Appends text after existing child nodes.</summary>
+    public OdpRun AddText(string text) {
+        OdfTextCodec.Append(_element, text);
+        Dirty();
+        return this;
+    }
+
+    /// <summary>Appends a nested styled run.</summary>
+    public OdpRun AddRun(string? text = null) {
+        var element = new XElement(OdfNamespaces.Text + "span");
+        OdfTextCodec.Append(element, text);
+        _element.Add(element);
+        Dirty();
+        return new OdpRun(_presentation, element);
+    }
+
+    /// <summary>Appends a hyperlink inside this run without fetching its target.</summary>
+    public OdpHyperlink AddHyperlink(string text, string href) {
+        if (string.IsNullOrWhiteSpace(href)) throw new ArgumentException("Hyperlink target cannot be empty.", nameof(href));
+        var element = new XElement(OdfNamespaces.Text + "a",
+            new XAttribute(OdfNamespaces.XLink + "type", "simple"),
+            new XAttribute(OdfNamespaces.XLink + "href", href));
+        OdfTextCodec.Append(element, text);
+        _element.Add(element);
+        Dirty();
+        return new OdpHyperlink(_presentation, element);
+    }
     /// <summary>Referenced text style name.</summary>
     public string? StyleName { get => (string?)_element.Attribute(OdfNamespaces.Text + "style-name"); set { _element.SetAttributeValue(OdfNamespaces.Text + "style-name", value); Dirty(); } }
     /// <summary>Explicit or inherited bold state.</summary>
@@ -185,13 +215,12 @@ public sealed class OdpRun {
     public OdfColor? Color { get => Resolve(style => style.Color); set => EnsureStyle().Color = value; }
     /// <summary>Explicit or inherited text background color.</summary>
     public OdfColor? BackgroundColor {
-        get {
-            OdfStyle? style = StyleName == null ? null : _presentation.Styles.Find(
-                OdfStyleFamily.Text, StyleName);
-            return _presentation.Styles.ResolveTextBackgroundColor(style);
-        }
+        get => OdfInlineStyleResolver.ResolveTextBackgroundColor(_presentation.Styles, _element, "content.xml");
         set => EnsureStyle().TextBackgroundColor = value;
     }
+    /// <summary>Whether an inline style sets a text background, including transparent.</summary>
+    public bool HasTextBackgroundOverride => OdfInlineStyleResolver.TryResolveTextBackgroundColor(
+        _presentation.Styles, _element, "content.xml", out _);
     /// <summary>Changes the stored run text casing while preserving its text style.</summary>
     public OdpRun TransformTextCase(OfficeIMO.Drawing.OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) {
         OdfTextCodec.TransformTextCase(_element, textCase, culture);
@@ -199,14 +228,10 @@ public sealed class OdpRun {
         return this;
     }
     private OdfStyle EnsureStyle() => _presentation.Styles.EnsureAutomaticStyle(_element, OdfNamespaces.Text + "style-name", OdfStyleFamily.Text, "ofRun");
-    private T? Resolve<T>(Func<OdfStyle, T?> selector) where T : struct {
-        OdfStyle? style = StyleName == null ? null : _presentation.Styles.Find(OdfStyleFamily.Text, StyleName); if (style == null) return null;
-        foreach (OdfStyle candidate in _presentation.Styles.Resolve(style)) { T? value = selector(candidate); if (value.HasValue) return value; } return null;
-    }
-    private string? ResolveReference(Func<OdfStyle, string?> selector) {
-        OdfStyle? style = StyleName == null ? null : _presentation.Styles.Find(OdfStyleFamily.Text, StyleName); if (style == null) return null;
-        foreach (OdfStyle candidate in _presentation.Styles.Resolve(style)) { string? value = selector(candidate); if (value != null) return value; } return null;
-    }
+    private T? Resolve<T>(Func<OdfStyle, T?> selector) where T : struct =>
+        OdfInlineStyleResolver.Resolve(_presentation.Styles, _element, "content.xml", selector);
+    private string? ResolveReference(Func<OdfStyle, string?> selector) =>
+        OdfInlineStyleResolver.ResolveReference(_presentation.Styles, _element, "content.xml", selector);
     private void Dirty() => _presentation.MarkPartDirty("content.xml");
 }
 

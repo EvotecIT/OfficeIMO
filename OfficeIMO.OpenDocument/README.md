@@ -66,6 +66,28 @@ slide.GetOrCreateSpeakerNotes().AddParagraph("Explain the result.");
 presentation.Save("summary.odp");
 ```
 
+Nest text styles and links when their formatting changes within a sentence:
+
+```csharp
+using OfficeIMO.OpenDocument;
+
+using OdtDocument document = OdtDocument.Create();
+OdtParagraph paragraph = document.AddParagraph();
+OdtSpan emphasis = paragraph.AddSpan("Read ");
+emphasis.Bold = true;
+emphasis.AddHyperlink("the guide", "https://example.com/guide").Italic = true;
+
+using OdpPresentation presentation = OdpPresentation.Create();
+OdpSlide slide = presentation.AddSlide("Links");
+OdpParagraph slideText = slide.AddTextBox(
+    OdfRect.FromCentimeters(2, 9, 18, 2)).AddParagraph();
+OdpRun label = slideText.AddRun("Open ");
+label.Bold = true;
+label.AddHyperlink("the guide", "https://example.com/guide").Underline = true;
+```
+
+`InlineNodes` exposes nested `Children` in document order. A nested run inherits text properties from its containing span or link until its own style overrides them.
+
 Convert explicitly between OpenDocument and OfficeIMO Word, Excel, or PowerPoint models by installing the corresponding adapter package. Every conversion returns an `OdfConversionReport` that identifies mapped, approximated, skipped, and unsupported features.
 
 ```powershell
@@ -138,7 +160,7 @@ Unknown XML, vendor extensions, scripts, embedded content, and unsupported drawi
 
 - Formula evaluation covers arithmetic, comparisons, concatenation, cell/range references, and common aggregate/math functions. External data, volatile functions, matrix formulas, and the complete OpenFormula language are not included.
 - Typed validation syntax covers explicit lists and scalar whole-number, decimal, and text-length comparisons. Other valid ODF conditions remain preserved text and are reported by conversions that cannot map them exactly.
-- Ordered ODT/ODP inline syntax types direct text, spans/runs, hyperlinks, images, and bookmark markers. Nested inline markup remains preserved in the package and is surfaced as an untyped node so conversion loss is explicit.
+- Ordered ODT/ODP inline syntax types text, nested spans/runs, and hyperlinks. ODT also types inline images and bookmark markers. Unsupported inline elements remain `Other` nodes and conversion reports their approximation.
 - Tracked-change editing covers paragraph insertions and deletions. Arbitrary inline merges and conflict resolution remain preservation-oriented.
 - Animation editing covers basic shape-attribute effects and fade-in timing. Advanced timing trees are preserved when untouched.
 - Password-encrypted packages using the documented AES-256-CBC profile can be opened and written. Legacy Blowfish and other unsupported profiles fail before content is exposed.
