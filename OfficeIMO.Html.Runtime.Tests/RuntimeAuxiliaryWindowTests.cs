@@ -120,6 +120,55 @@ public sealed class RuntimeAuxiliaryWindowTests {
         Assert.True((await session.EvaluateAsync("popup.document.body!==null && !popup.closed")).GetBoolean());
     }
 
+    [Theory]
+    [InlineData("open")]
+    [InlineData("write")]
+    [InlineData("writeln")]
+    public async Task ParentOpeningPopupDocumentUsesItsEntryUrlWithoutInheritedBase(string method)
+    {
+        await using var session = await Runtime().OpenTrustedAsync(new() {
+            Profile = HtmlRuntimeProfile.WebApplicationV1, DocumentUrl = Start,
+            Html = "<!doctype html><base href='/assets/'><h1>Opener</h1>"
+        });
+        Assert.True((await session.EvaluateAsync($$"""
+            (()=>{
+                const popup=open();
+                const original=popup.document;
+                const inherited=original.baseURI;
+                const result=original['{{method}}']('<p>New</p>');
+                return inherited==='https://popup.example/assets/' &&
+                    (result===original || (result===undefined && '{{method}}'!=='open')) && popup.document===original &&
+                    popup.document.URL==='https://popup.example/reports/start' && popup.location.href===popup.document.URL &&
+                    popup.document.baseURI===popup.document.URL && popup.opener===window &&
+                    ('{{method}}'==='open' ? popup.document.documentElement===null : popup.document.querySelector('p')?.textContent==='New');
+            })()
+            """)).GetBoolean());
+    }
+
+    [Fact]
+    public async Task PopupOpeningItsOwnDocumentKeepsItsInitialUrlAndInheritedBase()
+    {
+        await using var session = await Runtime().OpenTrustedAsync(new() {
+            Profile = HtmlRuntimeProfile.WebApplicationV1, DocumentUrl = Start,
+            Html = "<!doctype html><base href='/assets/'><h1>Opener</h1>"
+        });
+        await session.ExecuteAsync("""
+            window.popup=open();
+            const original=popup.document;
+            const script=original.createElement('script');
+            script.textContent=`setTimeout(()=>{
+                const original=document, inherited=document.baseURI, opened=document.open();
+                opener.document.body.dataset.popupOpen=String(opened===original && window.document===original &&
+                    document.URL==='about:blank' && location.href==='about:blank' &&
+                    inherited==='https://popup.example/assets/' && document.baseURI===inherited &&
+                    document.documentElement===null);
+            },0)`;
+            original.body.append(script);
+            """);
+        await session.WaitForAsync("document.body.hasAttribute('data-popup-open')");
+        Assert.Equal("true", (await session.EvaluateAsync("document.body.dataset.popupOpen")).GetString());
+    }
+
     [Fact]
     public async Task DocumentWindowOverloadPreservesTheOpenerAndSupportsMessages()
     {
