@@ -16,6 +16,7 @@ internal sealed class RuntimeEventLoop(IBrowsingContext context, Func<Engine?> g
     object sessionSync, Action checkpoint, RuntimeScriptEntry scriptEntry) : IEventLoop, IMutationMicrotaskScheduler, IDisposable {
     private readonly IEventLoop _inner = new JsEventLoop(context);
     private readonly object _sync = sessionSync;
+    private readonly Func<Engine?> _getEngine = getEngine;
     private JsValue? _enqueueMicrotask;
     private volatile bool _cancelled;
 
@@ -24,10 +25,21 @@ internal sealed class RuntimeEventLoop(IBrowsingContext context, Func<Engine?> g
     void IMutationMicrotaskScheduler.EnqueueMutationMicrotask(Action notification) => EnqueueMicrotask(notification);
 
     internal void EnqueueMicrotask(Action notification) {
-        var engine=getEngine();
+        var engine=_getEngine();
         if(engine==null || _enqueueMicrotask==null) {
-            // An unscripted document can still be observed by another realm. Its
-            // native notification must wait for the active script to release _sync.
+            // An unscripted document can still be mutated by another realm. Its
+            // observer notification belongs in the active script's microtask queue,
+            // between the promise jobs queued before and after that mutation.
+            lock(_sync) {
+                var entryLoop=scriptEntry.Document?.Context.GetService<IEventLoop>() as RuntimeEventLoop;
+                if(entryLoop != null && !ReferenceEquals(entryLoop,this) &&
+                   !entryLoop._cancelled && entryLoop._enqueueMicrotask != null && entryLoop._getEngine() != null) {
+                    entryLoop.EnqueueMicrotask(notification);
+                    return;
+                }
+            }
+            // A native mutation without an active script still needs asynchronous
+            // delivery, serialized with every realm in this session.
             _inner.Enqueue(_=>{
                 lock(_sync) {
                     if(!_cancelled) notification();
@@ -68,7 +80,7 @@ internal sealed class RuntimeEventLoop(IBrowsingContext context, Func<Engine?> g
             finally {
                 checkpoint();
                 try {
-                    Engine? engine = getEngine();
+                    Engine? engine = _getEngine();
                     if (!_cancelled && engine != null) engine.Advanced.ProcessTasks();
                     errors.ThrowIfFailed();
                 } catch (Exception error) {
