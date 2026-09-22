@@ -25,7 +25,7 @@ public static partial class HtmlPowerPointConverterExtensions {
             double contentTop = 30D;
             if (!string.IsNullOrWhiteSpace(section.Title)) {
                 HtmlSemanticBlock? titleBlock = section.Blocks.FirstOrDefault();
-                contentTop = ImportTextBox(titleBlock?.SourceElement, section.Title, slide, 30D, result, budget, 44D);
+                contentTop = ImportTextBox(titleBlock?.SourceElement, section.Title, slide, 30D, result, budget, 44D, options);
             }
 
             double pictureTop = contentTop;
@@ -38,9 +38,9 @@ public static partial class HtmlPowerPointConverterExtensions {
                 if (importText && !isSectionTitle) {
                     contentTop = ImportTextBox(block.SourceElement, block.Text, slide, contentTop, result, budget,
                         block.Kind == HtmlSemanticBlockKind.List ? Math.Max(52D, CountSemanticListItems(block) * 30D) : 52D,
-                        block);
+                        options, block);
                 } else if (importTable) {
-                    contentTop = ImportTable(block.SourceElement, slide, contentTop, result, budget, block);
+                    contentTop = ImportTable(block.SourceElement, slide, contentTop, result, budget, options, block);
                 } else if (importPicture) {
                     pictureTop = Math.Max(pictureTop, contentTop);
                     ImportPicture(block.SourceElement, slide, result, budget, ref pictureTop);

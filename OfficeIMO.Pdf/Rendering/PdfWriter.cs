@@ -138,7 +138,13 @@ internal static partial class PdfWriter {
             }
             if (outputStream == null) {
                 forwardBuffer = new MemoryStream();
-                outputStream = forwardBuffer;
+                outputStream = opts.MaxGeneratedOutputBytes.HasValue
+                    ? new PdfBoundedWriteStream(forwardBuffer, opts.MaxGeneratedOutputBytes,
+                        "Generated PDF exceeds the configured output byte limit.")
+                    : forwardBuffer;
+            } else if (opts.MaxGeneratedOutputBytes.HasValue) {
+                outputStream = new PdfBoundedWriteStream(outputStream, opts.MaxGeneratedOutputBytes,
+                    "Generated PDF exceeds the configured output byte limit.");
             }
             forwardOnlyObjects = new PdfForwardOnlyObjectStore(outputStream, opts.FileVersion, cancellationToken);
         }
@@ -1209,6 +1215,9 @@ internal static partial class PdfWriter {
             return forwardBuffer?.ToArray();
         }
         if (outputStream != null) {
+            if (opts.MaxGeneratedOutputBytes.HasValue)
+                outputStream = new PdfBoundedWriteStream(outputStream, opts.MaxGeneratedOutputBytes,
+                    "Generated PDF exceeds the configured output byte limit.");
             bytesWritten = PdfFileAssembler.AssembleWithEvidence(
                 outputStream,
                 objects,
@@ -1224,6 +1233,25 @@ internal static partial class PdfWriter {
             return null;
         }
 
+        if (opts.MaxGeneratedOutputBytes.HasValue) {
+            using var boundedBuffer = new MemoryStream();
+            using var boundedOutput = new PdfBoundedWriteStream(boundedBuffer, opts.MaxGeneratedOutputBytes,
+                "Generated PDF exceeds the configured output byte limit.");
+            bytesWritten = PdfFileAssembler.AssembleWithEvidence(
+                boundedOutput,
+                objects,
+                catalogId,
+                infoId,
+                effectiveFileVersion,
+                opts.EncryptionSnapshot,
+                opts.ObjectBufferMemoryLimitBytes,
+                trailerIdEntry: null,
+                cancellationToken,
+                out PdfFileAssemblyBufferEvidence boundedBufferEvidence);
+            serializationReport = CreateSerializationReport(layout, boundedBufferEvidence, opts, pageCount,
+                bytesWritten, finalArtifactBuffered: true);
+            return boundedBuffer.ToArray();
+        }
         byte[] bytes = PdfFileAssembler.AssembleWithEvidence(
             objects,
             catalogId,

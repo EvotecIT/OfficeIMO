@@ -205,6 +205,62 @@ public partial class Word {
         Assert.Contains("Logo content control in a table", pdf.GetPage(1).Text);
     }
 
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Bounds_Table_Cell_PictureControls_Per_Paragraph() {
+        string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
+        using WordDocument document = WordDocument.Create();
+        WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
+        WordParagraph paragraph = table.Rows[0].Cells[0].Paragraphs[0];
+        paragraph.AddPictureControl(imagePath, 32, 32, "First", "First");
+        paragraph.AddPictureControl(imagePath, 32, 32, "Second", "Second");
+
+        Assert.Throws<InvalidDataException>(() => document.ToPdfDocumentResult(
+            new WordToPdfOptions { MaxImagesPerParagraph = 1 }));
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Bounds_Ordinary_Table_Cell_Images_Per_Paragraph() {
+        string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
+        using WordDocument document = WordDocument.Create();
+        WordParagraph paragraph = document.AddTable(1, 1, WordTableStyle.TableGrid)
+            .Rows[0].Cells[0].Paragraphs[0];
+        paragraph.AddImage(imagePath, 32, 32);
+        paragraph.AddText(" between ").AddImage(imagePath, 32, 32);
+
+        Assert.Throws<InvalidDataException>(() => document.ToPdfDocumentResult(
+            new WordToPdfOptions { MaxImagesPerParagraph = 1 }));
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Bounds_Header_Images_Across_Runs() {
+        string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
+        using WordDocument document = WordDocument.Create();
+        document.AddHeadersAndFooters();
+        WordParagraph paragraph = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph();
+        paragraph.AddImage(imagePath, 32, 32);
+        paragraph.AddText(" between ").AddImage(imagePath, 32, 32);
+        document.AddParagraph("Body");
+
+        Assert.Throws<InvalidDataException>(() => document.ToPdfDocumentResult(
+            new WordToPdfOptions { MaxImagesPerParagraph = 1 }));
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Ignores_Deleted_Table_Cell_Images() {
+        string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
+        using WordDocument document = WordDocument.Create();
+        WordParagraph paragraph = document.AddTable(1, 1, WordTableStyle.TableGrid)
+            .Rows[0].Cells[0].Paragraphs[0];
+        paragraph.AddImage(imagePath, 32, 32);
+        WordParagraph deleted = paragraph.AddText("deleted");
+        deleted.AddImage(imagePath, 32, 32);
+        DocumentFormat.OpenXml.Wordprocessing.Run deletedRun = deleted._run!;
+        deletedRun.Remove();
+        paragraph._paragraph!.Append(new DocumentFormat.OpenXml.Wordprocessing.DeletedRun(deletedRun));
+
+        document.ToPdfDocumentResult(new WordToPdfOptions { MaxImagesPerParagraph = 1 });
+    }
+
     private static void ReplaceFirstMainDocumentImagePart(string docPath, byte[] bytes) {
         using WordprocessingDocument package = WordprocessingDocument.Open(docPath, true);
         ImagePart imagePart = package.MainDocumentPart!.ImageParts.First();

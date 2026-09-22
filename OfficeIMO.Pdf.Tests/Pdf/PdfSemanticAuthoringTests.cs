@@ -314,6 +314,30 @@ public sealed class PdfSemanticAuthoringTests {
     }
 
     [Fact]
+    public void SemanticAncestorOfCrossPageHeadingHasNoPageReference() {
+        string heading = string.Join(" ", Enumerable.Repeat("Continued heading", 90));
+        byte[] bytes = PdfDocument.Create(document => document
+            .Settings(options => {
+                options.TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers;
+                options.PageWidth = 300;
+                options.PageHeight = 180;
+                options.Margins = PageMargins.Uniform(24);
+            })
+            .Content(content => content.Semantic(PdfSemanticRole.Article, article => article.H1(heading))))
+            .ToBytes();
+
+        Assert.True(PdfInspector.Inspect(bytes).PageCount > 1);
+        PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(PdfDocument.Load(bytes).Reader.TaggedContent());
+        PdfStructureElementInfo ancestor = Assert.Single(tagged.StructureElements, element => element.StructureType == "Art");
+        string source = PdfEncoding.Latin1GetString(bytes);
+        System.Text.RegularExpressions.Match ancestorObject = System.Text.RegularExpressions.Regex.Match(
+            source, "(?ms)^" + ancestor.ObjectNumber + " 0 obj\\s*(?<dictionary><<.*?>>)\\s*endobj$");
+
+        Assert.True(ancestorObject.Success);
+        Assert.DoesNotContain("/Pg", ancestorObject.Groups["dictionary"].Value, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void CrossPageFigureSemanticsEmitAlternateTextOnce() {
         byte[] bytes = PdfDocument.Create(document => document
             .Settings(options => {
