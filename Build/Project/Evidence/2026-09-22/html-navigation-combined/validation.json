@@ -1,0 +1,60 @@
+{
+  "schema": 1,
+  "date": "2026-09-22",
+  "qualification": "Selected combined popup-history, root reload, document-input and rendered-state workflow; broader navigation remains open",
+  "environment": {
+    "os": "macOS 27.0",
+    "architecture": "arm64",
+    "sdk": "10.0.303"
+  },
+  "source": {
+    "office": "f383bf030f9983c76d577597e39cb5460f303be4",
+    "angleSharp": "549a9465056161c130b03607b4147aec06339d58",
+    "angleSharpJs": "2aaa705edf934d1f93009977de4acab49b4fc614",
+    "jint": "2339be034e48b1f2195987fff27cda225582b7b7"
+  },
+  "validation": [
+    {
+      "name": "focusedRuntimeNavigationAndDocument",
+      "filter": "FullyQualifiedName~RuntimeAuxiliaryWindowTests|FullyQualifiedName~RuntimeDocumentOpenTests|FullyQualifiedName~RuntimeResizableHistoryStateTests|FullyQualifiedName~RuntimeNavigationTests",
+      "net10.0": { "passed": 84, "failed": 0 },
+      "net8.0": { "passed": 84, "failed": 0 }
+    },
+    {
+      "name": "combinedRenderProof",
+      "framework": "net10.0",
+      "freshSessions": 10,
+      "passed": 10,
+      "failed": 0,
+      "widths": [360, 720],
+      "height": 440,
+      "visualInspection": "Four PNGs inspected; status text and frame content fit both viewports."
+    }
+  ],
+  "render": {
+    "source": "RenderProof.cs.txt",
+    "readiness": "Wait for root completion and the committed about:srcdoc frame URL and completion before frame replacement.",
+    "assertions": [
+      "Root history buffer aliases and resizable tracking/fixed views before and after reload",
+      "Frame document replacement URL, disconnected original root, and incremental write identity",
+      "Popup inherited base, message origin/source, history length and buffer aliases",
+      "Popup and opener identity survive root reload",
+      "Parent popup document.open retains history state and rewrites URL/base",
+      "Same-origin popup pushState and back restore serialized 8-byte state"
+    ]
+  },
+  "artifactsSha256": {
+    "RenderProof.cs.txt": "a3af4833e1df95cd6e6e944c2be7cd7102cd1de0337ae71b6920ca0c7c3d996e",
+    "source.html": "359176af56e7d6e1e58ec75c1f5e36de74d086d2a2a98e55e0785538edd465d9",
+    "integrated-360.png": "cfe4476e225660dada56ed4559fb07f801586a880896eda12cd3c8b60bb16138",
+    "integrated-720.png": "4c92b65195726a33f2387392ac54555ffcf81c4028a1a3a95f5c5bfa919ac285",
+    "reloaded-360.png": "a74156c14bcdcaaa88d9734e996127c596fdad56b11421ef2af8598eff38e1b2",
+    "reloaded-720.png": "c6cefb6c68a4ceba569ff87b34b29ecd1d10a3afa19577dfd60d237c45a0886a"
+  },
+  "limits": [
+    "Not an official WPT harness run or a complete navigation qualification.",
+    "Cross-realm child-defined window functions and wider Navigation API behavior remain open.",
+    "Popup itself is asserted in script but not separately rendered.",
+    "The earlier combined proof's cross-document MutationObserver assertion was intermittent under repeated fresh sessions; this proof uses direct DOM replacement assertions, while the focused native/document tests cover observer behavior separately."
+  ]
+}

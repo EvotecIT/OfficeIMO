@@ -1,0 +1,112 @@
+using OfficeIMO.Html;
+using OfficeIMO.Html.Runtime;
+using OfficeIMO.Html.Providers;
+
+var output = args[1]; Directory.CreateDirectory(output);
+const string source = """
+<!doctype html><base href='/assets/'><style>
+body{font-family:Arial;margin:20px;background:#f4f7fa;color:#193448}
+h1{font-size:24px}p{font-size:14px;line-height:1.5}section{padding:14px;background:#edf7f0;border:1px solid #a8bfb0}
+iframe{width:100%;height:95px;border:1px solid #a8bfb0;background:white}
+</style><h1>Navigation contracts</h1><section><p id='history'>History: waiting</p><p id='popup'>Popup: waiting</p><p id='replacement'>Document replacement: waiting</p></section>
+<h2>Rebuilt frame</h2><iframe id='preview' srcdoc='<p>Original frame</p>'></iframe>
+""";
+File.WriteAllText(Path.Combine(output, "source.html"), source);
+var provider = new HtmlProcessRuntimeProvider(args[0], AngleSharpDomServices.Instance);
+await using var session = await provider.OpenTrustedAsync(new() { Profile = HtmlRuntimeProfile.WebApplicationV1,
+    DocumentUrl = new("https://navigation.example/reports/start#fragment"), Html = source });
+await session.ExecuteAsync("(()=>{const buffer=new ArrayBuffer(8,{maxByteLength:24});history.replaceState({buffer,tracking:new Uint8Array(buffer,2),fixed:new Uint8Array(buffer,2,6)},'')})()");
+foreach (var stage in new[] { "integrated", "reloaded" }) {
+    if (stage == "reloaded") await session.ReloadAsync();
+    await session.WaitForAsync("document.readyState==='complete' && document.getElementById('preview').contentDocument?.URL==='about:srcdoc' && document.getElementById('preview').contentDocument?.readyState==='complete'");
+    await session.ExecuteAsync("""
+        (()=>{
+            const state=history.state;
+            if(state.buffer.byteLength!==8 || state.tracking.buffer!==state.buffer || state.fixed.buffer!==state.buffer)throw new Error('History alias contract');
+            state.buffer.resize(16);
+            if(state.tracking.length!==14 || state.fixed.length!==6)throw new Error('History tracking contract');
+            document.getElementById('history').textContent='History: shared buffer retained; tracking 14, fixed 6.';
+            const frame=document.getElementById('preview').contentDocument,original=frame.documentElement;
+            frame.open();
+            if(frame.documentElement!==null || original.isConnected || frame.URL!=='https://navigation.example/reports/start')
+                throw new Error('Document replacement contract: '+JSON.stringify({removed:!original.isConnected,url:frame.URL}));
+            frame.write('<!doctype html><p id=stream>First chunk ');
+            const paragraph=frame.getElementById('stream');
+            frame.write('&amp; second chunk.</p>');frame.close();
+            if(frame.getElementById('stream')!==paragraph || paragraph.textContent!=='First chunk & second chunk.')throw new Error('Incremental identity contract');
+            document.getElementById('replacement').textContent='Document stream: node identity retained across writes; URL and replacement verified.';
+        })()
+        """);
+    await session.ExecuteAsync("""
+        (()=>{
+            window.popupReady=false;window.popup=open('','proof');
+            addEventListener('message',event=>{
+                const data=event.data;
+                if(event.source!==popup || event.origin!=='https://navigation.example' ||
+                    data.base!=='https://navigation.example/assets/' || data.url!=='about:blank#two' ||
+                    data.historyLength!==2 || data.trackingLength!==14)throw new Error('Popup history and inheritance contract');
+                document.getElementById('popup').textContent='Popup: inherited base; history 2, tracking 14; opener message '+data.count+'.';
+                popupReady=true;
+            },{once:true});
+            if(!popup.document.getElementById('setup')) {
+                const script=popup.document.createElement('script');script.id='setup';
+                script.textContent=`const savedOpener=opener; let count=0;
+                    const buffer=new ArrayBuffer(8,{maxByteLength:24});
+                    history.replaceState({step:'first'},'','about:blank#one');
+                    history.pushState({buffer,tracking:new Uint8Array(buffer,2),fixed:new Uint8Array(buffer,2,6)},'','about:blank#two');
+                    window.savedHistory=history;
+                    addEventListener('message',()=>{
+                        count++;
+                        const state=history.state;
+                        if(savedOpener!==opener || history!==savedHistory || history.length!==2 ||
+                            state.tracking.buffer!==state.buffer || state.fixed.buffer!==state.buffer ||
+                            state.fixed.length!==6)throw new Error('Popup history owner or alias contract');
+                        if(count===1)state.buffer.resize(16);
+                        if(state.buffer.byteLength!==16 || state.tracking.length!==14)throw new Error('Popup tracking contract');
+                        savedOpener.document.body.setAttribute('data-popup-count',String(count));
+                        savedOpener.postMessage({base:document.baseURI,url:document.URL,historyLength:history.length,
+                            trackingLength:state.tracking.length,count},'https://navigation.example');
+                    });`;
+                popup.document.body.append(script);
+            }
+            popup.postMessage('probe','https://navigation.example');
+        })()
+        """);
+    await session.WaitForAsync("popupReady");
+    var count = (await session.EvaluateAsync("Number(document.body.getAttribute('data-popup-count'))")).GetInt32();
+    if (count != (stage == "integrated" ? 1 : 2)) throw new Exception("Popup realm did not survive reload");
+    if (stage == "reloaded") {
+        await session.ExecuteAsync("""
+            (()=>{
+                const documentBefore=popup.document;
+                if(popup.document.open()!==documentBefore)throw new Error('Popup document identity');
+                const script=popup.document.createElement('script');
+                script.textContent=`const prior=history.state;
+                    if(history!==savedHistory || history.length!==2 || prior.buffer.byteLength!==16 ||
+                        prior.tracking.buffer!==prior.buffer || prior.tracking.length!==14 ||
+                        document.URL!=='https://navigation.example/reports/start' || document.baseURI!==document.URL)
+                        throw new Error('Popup document.open history contract');
+                    history.pushState({phase:'after-open'},'','/reports/popup');
+                    if(history.length!==3 || document.URL!=='https://navigation.example/reports/popup')
+                        throw new Error('Popup same-origin history rewrite');
+                    addEventListener('popstate',event=>{
+                        if(history!==savedHistory || event.state?.tracking?.buffer!==event.state?.buffer ||
+                            event.state?.buffer?.byteLength!==8 || event.state?.tracking?.length!==6 ||
+                            document.URL!=='https://navigation.example/reports/start')
+                            throw new Error('Popup history traversal after document.open: '+JSON.stringify({sameHistory:history===savedHistory,
+                                hasState:!!event.state,alias:event.state?.tracking?.buffer===event.state?.buffer,
+                                size:event.state?.buffer?.byteLength,url:document.URL,length:history.length}));
+                        opener.document.getElementById('popup').textContent='Popup: history survived root reload and document.open; traversal restored the serialized 8-byte buffer.';
+                        opener.document.body.setAttribute('data-popup-history-verified','yes');
+                    });
+                    history.back();`;
+                popup.document.append(script);
+            })()
+            """);
+        await session.WaitForAsync("document.body.dataset.popupHistoryVerified==='yes'");
+    }
+    var capture = await session.CaptureAsync();
+    foreach (var width in new[] { 360, 720 }) File.WriteAllBytes(Path.Combine(output, $"{stage}-{width}.png"),
+        HtmlConversionDocument.FromDocument(capture.CreateRenderDocument()).ToPng(new() { ViewportWidth = width, ViewportHeight = 440, Margins = HtmlRenderMargins.All(0) }));
+}
+Console.WriteLine("Root and popup resizable history, frame replacement, popup survival, document.open and traversal verified. Four renders produced.");
