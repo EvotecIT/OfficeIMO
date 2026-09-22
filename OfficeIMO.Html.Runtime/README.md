@@ -279,7 +279,8 @@ Cross-document popup navigation remains unsupported.
 The zero-, one- and two-argument forms of `document.open()` clear the connected
 DOM and its event listeners while preserving the document, JavaScript realm,
 history state and timers. Mutation observers receive the document replacement
-record. For an active HTTP document opened from a same-origin HTTP entry
+record, including an observer created by a same-origin parent for a loaded frame.
+For an active HTTP document opened from a same-origin HTTP entry
 document, its URL becomes the entry URL, with the fragment removed when the
 entry is a different document. Opening a local frame from its HTTP parent also
 removes the inherited base in favor of the new document URL. Calls during

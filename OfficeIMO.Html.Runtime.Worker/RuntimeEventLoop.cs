@@ -26,7 +26,13 @@ internal sealed class RuntimeEventLoop(IBrowsingContext context, Func<Engine?> g
     internal void EnqueueMicrotask(Action notification) {
         var engine=getEngine();
         if(engine==null || _enqueueMicrotask==null) {
-            _inner.Enqueue(_=>{if(!_cancelled)notification();},TaskPriority.Microtask);
+            // An unscripted document can still be observed by another realm. Its
+            // native notification must wait for the active script to release _sync.
+            _inner.Enqueue(_=>{
+                lock(_sync) {
+                    if(!_cancelled) notification();
+                }
+            },TaskPriority.Microtask);
             return;
         }
         lock(_sync) {

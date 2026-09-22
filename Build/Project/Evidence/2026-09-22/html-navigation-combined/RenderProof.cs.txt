@@ -27,14 +27,18 @@ foreach (var stage in new[] { "integrated", "reloaded" }) {
             if(state.tracking.length!==14 || state.fixed.length!==6)throw new Error('History tracking contract');
             document.getElementById('history').textContent='History: shared buffer retained; tracking 14, fixed 6.';
             const frame=document.getElementById('preview').contentDocument,original=frame.documentElement;
+            const observer=new MutationObserver(()=>{throw new Error('Frame observer ran before the script returned')});
+            observer.observe(frame,{childList:true});
             frame.open();
-            if(frame.documentElement!==null || original.isConnected || frame.URL!=='https://navigation.example/reports/start')
+            const records=observer.takeRecords();observer.disconnect();
+            if(frame.documentElement!==null || original.isConnected || frame.URL!=='https://navigation.example/reports/start' ||
+                !records.some(record=>record.target===frame && Array.from(record.removedNodes).includes(original)))
                 throw new Error('Document replacement contract: '+JSON.stringify({removed:!original.isConnected,url:frame.URL}));
             frame.write('<!doctype html><p id=stream>First chunk ');
             const paragraph=frame.getElementById('stream');
             frame.write('&amp; second chunk.</p>');frame.close();
             if(frame.getElementById('stream')!==paragraph || paragraph.textContent!=='First chunk & second chunk.')throw new Error('Incremental identity contract');
-            document.getElementById('replacement').textContent='Document stream: node identity retained across writes; URL and replacement verified.';
+            document.getElementById('replacement').textContent='Document stream: node identity, mutation record, URL and replacement verified.';
         })()
         """);
     await session.ExecuteAsync("""
