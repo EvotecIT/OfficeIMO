@@ -289,7 +289,8 @@ public sealed partial class EpubDocument {
 
     private static bool IsXhtmlResource(EpubResource resource) =>
         string.Equals(resource.MediaType, "application/xhtml+xml", StringComparison.OrdinalIgnoreCase) ||
-        resource.Path.EndsWith(".xhtml", StringComparison.OrdinalIgnoreCase);
+        (!string.Equals(resource.MediaType, "text/html", StringComparison.OrdinalIgnoreCase) &&
+         resource.Path.EndsWith(".xhtml", StringComparison.OrdinalIgnoreCase));
 
     private static bool IsHtmlMediaType(string? mediaType) =>
         string.Equals(mediaType, "application/xhtml+xml", StringComparison.OrdinalIgnoreCase)
