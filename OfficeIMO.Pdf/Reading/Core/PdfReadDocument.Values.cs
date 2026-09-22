@@ -35,7 +35,7 @@ public sealed partial class PdfReadDocument {
         return text;
     }
 
-    private IReadOnlyList<string> ReadSimpleFieldValues(PdfDictionary dictionary, string key) {
+    private IReadOnlyList<string> ReadSimpleFieldValues(PdfDictionary dictionary, string key, System.Threading.CancellationToken cancellationToken) {
         if (!dictionary.Items.TryGetValue(key, out var value)) {
             return Array.Empty<string>();
         }
@@ -45,6 +45,7 @@ public sealed partial class PdfReadDocument {
         if (resolved is PdfArray array) {
             var values = new List<string>();
             for (int i = 0; i < array.Items.Count; i++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (TryFormatSimpleValue(array.Items[i], out string? itemText)) {
                     values.Add(itemText!);
                 }
@@ -60,7 +61,7 @@ public sealed partial class PdfReadDocument {
         return Array.Empty<string>();
     }
 
-    private IReadOnlyList<PdfFormFieldOption> ReadFormFieldOptions(PdfDictionary dictionary) {
+    private IReadOnlyList<PdfFormFieldOption> ReadFormFieldOptions(PdfDictionary dictionary, System.Threading.CancellationToken cancellationToken) {
         if (!dictionary.Items.TryGetValue("Opt", out var optionsObject) ||
             ResolveArray(optionsObject) is not PdfArray optionsArray ||
             optionsArray.Items.Count == 0) {
@@ -69,6 +70,7 @@ public sealed partial class PdfReadDocument {
 
         var options = new List<PdfFormFieldOption>();
         for (int i = 0; i < optionsArray.Items.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfObject? optionObject = ResolveObject(optionsArray.Items[i]);
             if (optionObject is PdfArray pair &&
                 pair.Items.Count >= 2 &&
@@ -86,7 +88,7 @@ public sealed partial class PdfReadDocument {
         return options.Count == 0 ? Array.Empty<PdfFormFieldOption>() : options.AsReadOnly();
     }
 
-    private IReadOnlyList<int> ReadFormFieldSelectedIndices(PdfDictionary dictionary) {
+    private IReadOnlyList<int> ReadFormFieldSelectedIndices(PdfDictionary dictionary, System.Threading.CancellationToken cancellationToken) {
         if (!dictionary.Items.TryGetValue("I", out var indicesObject) ||
             ResolveArray(indicesObject) is not PdfArray indicesArray ||
             indicesArray.Items.Count == 0) {
@@ -96,6 +98,7 @@ public sealed partial class PdfReadDocument {
         var indices = new List<int>(indicesArray.Items.Count);
         var seen = new HashSet<int>();
         for (int i = 0; i < indicesArray.Items.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (ResolveObject(indicesArray.Items[i]) is PdfNumber number &&
                 TryGetNonNegativeInteger(number, out int index) &&
                 seen.Add(index)) {

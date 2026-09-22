@@ -70,7 +70,7 @@ public sealed partial class PdfReadDocument {
 
         var type = node.Get<PdfName>("Type")?.Name;
         if (type == "Page" || (type is null && IsLikelyPage(node))) {
-            int objNum = nodeObjectNumber > 0 ? nodeObjectNumber : FindObjectNumberFor(node);
+            int objNum = nodeObjectNumber > 0 ? nodeObjectNumber : FindObjectNumberFor(node, cancellationToken);
             if (objNum > 0 && visitedPages.Add(objNum)) {
                 if (type == "Page" || HasMedia(node) || HasInheritedValue(node, "MediaBox") || HasInheritedValue(node, "CropBox")) {
                     AddPageWithinBudget(outList, CreateReadPage(objNum, node));
@@ -90,7 +90,7 @@ public sealed partial class PdfReadDocument {
             if (t == "Pages" || (t is null && ResolveArray(d.Items.TryGetValue("Kids", out var dKidsObj) ? dKidsObj : null) is not null)) TraversePagesNodeDeepLimited(d, kidObjectNumber, visitedNodes, visitedPages, outList, limit, depth + 1, cancellationToken);
             else if ((t == "Page" || IsLikelyPage(d) || IsLeafPageByParent(d)) &&
                      (t == "Page" || HasMedia(d) || HasInheritedValue(d, "MediaBox") || HasInheritedValue(d, "CropBox"))) {
-                int on = kidObjectNumber > 0 ? kidObjectNumber : FindObjectNumberFor(d);
+                int on = kidObjectNumber > 0 ? kidObjectNumber : FindObjectNumberFor(d, cancellationToken);
                 if (on > 0 && visitedPages.Add(on)) {
                     AddPageWithinBudget(outList, CreateReadPage(on, d));
                     if (limit.HasValue && outList.Count >= limit.Value) return;
@@ -141,7 +141,7 @@ public sealed partial class PdfReadDocument {
                 var t = d.Get<PdfName>("Type")?.Name;
                 if (t == "Pages" || (t is null && ResolveArray(d.Items.TryGetValue("Kids", out var dKidsObj) ? dKidsObj : null) is not null)) stack.Push((d, depth + 1));
                 else if (IsLikelyPage(d) || IsLeafPageByParent(d)) {
-                    int on = k is PdfReference pageReference ? pageReference.ObjectNumber : FindObjectNumberFor(d);
+                    int on = k is PdfReference pageReference ? pageReference.ObjectNumber : FindObjectNumberFor(d, cancellationToken);
                     if (on > 0 && set.Add(on) && set.Count > _options.Limits.MaxPages) {
                         throw PdfReadLimitException.Create(PdfReadLimitKind.Pages, _options.Limits.MaxPages, set.Count);
                     }

@@ -79,7 +79,9 @@ internal sealed class PdfOutputIntentColorTransform {
         PdfDictionary? catalog,
         Dictionary<int, PdfIndirectObject> objects,
         int maxDecodedStreamBytes,
-        PdfIccProfileRetentionBudget? retentionBudget = null) {
+        PdfIccProfileRetentionBudget? retentionBudget = null,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (catalog == null ||
             !catalog.Items.TryGetValue("OutputIntents", out PdfObject? outputIntentsObject)) return null;
         if (!TryResolve(objects, outputIntentsObject, out PdfObject? resolvedOutputIntents)) {
@@ -93,6 +95,7 @@ internal sealed class PdfOutputIntentColorTransform {
 
         string? malformedSubject = null;
         for (int index = 0; index < outputIntents.Items.Count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfObject item = outputIntents.Items[index];
             string subject = item is PdfReference reference
                 ? reference.ObjectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture)

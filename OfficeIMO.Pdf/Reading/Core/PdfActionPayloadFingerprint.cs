@@ -5,6 +5,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
@@ -19,17 +20,19 @@ internal static class PdfActionPayloadFingerprint {
     internal static string? Create(
         PdfDictionary action,
         Dictionary<int, PdfIndirectObject> objects,
-        PdfReadLimits limits) {
+        PdfReadLimits limits,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         var builder = new StringBuilder();
         var activeReferences = new HashSet<(int ObjectNumber, int Generation)>();
         PageNumberLookup pageNumberLookup = PageNumberLookups.GetValue(
             objects,
-            static source => new PageNumberLookupCache(source)).Get(limits);
+            static source => new PageNumberLookupCache(source)).Get(limits, cancellationToken);
         if (!pageNumberLookup.IsComplete) return null;
         IReadOnlyDictionary<int, int> pageNumbers = pageNumberLookup.Value;
         int nodes = 0;
         bool complete = true;
-        AppendDictionary(builder, action, objects, pageNumbers, activeReferences, depth: 0, ref nodes, ref complete, isActionRoot: true, useReferenceHashes: true);
+        AppendDictionary(builder, action, objects, pageNumbers, activeReferences, depth: 0, ref nodes, ref complete, isActionRoot: true, useReferenceHashes: true, cancellationToken);
         return complete ? builder.ToString() : null;
     }
 
@@ -42,7 +45,9 @@ internal static class PdfActionPayloadFingerprint {
         int depth,
         ref int nodes,
         ref bool complete,
-        bool useReferenceHashes) {
+        bool useReferenceHashes,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         nodes++;
         if (depth > MaximumDepth || nodes > MaximumNodes) {
             complete = false;
@@ -64,26 +69,27 @@ internal static class PdfActionPayloadFingerprint {
                 AppendText(builder, 'N', name.Name);
                 return;
             case PdfStringObj text:
-                AppendText(builder, 'S', StringHashes.GetValue(objects, static _ => new StringHashCache()).Get(text));
+                AppendText(builder, 'S', StringHashes.GetValue(objects, static _ => new StringHashCache()).Get(text, cancellationToken));
                 return;
             case PdfReference reference:
-                AppendReference(builder, reference, objects, pageNumbers, activeReferences, depth, ref nodes, ref complete, useReferenceHashes);
+                AppendReference(builder, reference, objects, pageNumbers, activeReferences, depth, ref nodes, ref complete, useReferenceHashes, cancellationToken);
                 return;
             case PdfArray array:
                 builder.Append('[');
                 for (int i = 0; i < array.Items.Count; i++) {
-                    AppendObject(builder, array.Items[i], objects, pageNumbers, activeReferences, depth + 1, ref nodes, ref complete, useReferenceHashes);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    AppendObject(builder, array.Items[i], objects, pageNumbers, activeReferences, depth + 1, ref nodes, ref complete, useReferenceHashes, cancellationToken);
                     builder.Append(';');
                 }
                 builder.Append(']');
                 return;
             case PdfDictionary dictionary:
-                AppendDictionary(builder, dictionary, objects, pageNumbers, activeReferences, depth + 1, ref nodes, ref complete, isActionRoot: false, useReferenceHashes);
+                AppendDictionary(builder, dictionary, objects, pageNumbers, activeReferences, depth + 1, ref nodes, ref complete, isActionRoot: false, useReferenceHashes, cancellationToken);
                 return;
             case PdfStream stream:
                 builder.Append("stream:");
-                AppendDictionary(builder, stream.Dictionary, objects, pageNumbers, activeReferences, depth + 1, ref nodes, ref complete, isActionRoot: false, useReferenceHashes);
-                AppendText(builder, 'H', StreamHashes.GetValue(objects, static _ => new StreamHashCache()).Get(stream));
+                AppendDictionary(builder, stream.Dictionary, objects, pageNumbers, activeReferences, depth + 1, ref nodes, ref complete, isActionRoot: false, useReferenceHashes, cancellationToken);
+                AppendText(builder, 'H', StreamHashes.GetValue(objects, static _ => new StreamHashCache()).Get(stream, cancellationToken));
                 return;
             default:
                 AppendText(builder, '?', value.GetType().FullName ?? value.GetType().Name);
@@ -100,7 +106,9 @@ internal static class PdfActionPayloadFingerprint {
         int depth,
         ref int nodes,
         ref bool complete,
-        bool useReferenceHashes) {
+        bool useReferenceHashes,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         var key = (reference.ObjectNumber, reference.Generation);
         if (!activeReferences.Add(key)) {
             builder.Append("cycle:").Append(reference.ObjectNumber).Append(':').Append(reference.Generation);
@@ -124,7 +132,7 @@ internal static class PdfActionPayloadFingerprint {
                 ReferenceHashResult result = ReferenceHashes.GetValue(objects, static _ => new ReferenceHashCache()).Get(
                     reference,
                     depth + 1,
-                    () => CreateReferenceHash(indirect.Value, objects, pageNumbers, key, depth + 1));
+                    () => CreateReferenceHash(indirect.Value, objects, pageNumbers, key, depth + 1, cancellationToken), cancellationToken);
                 nodes = checked(nodes + result.Nodes);
                 if (!result.Complete || nodes > MaximumNodes) {
                     complete = false;
@@ -133,7 +141,7 @@ internal static class PdfActionPayloadFingerprint {
                 AppendText(builder, 'R', result.Hash);
                 return;
             }
-            AppendObject(builder, indirect.Value, objects, pageNumbers, activeReferences, depth + 1, ref nodes, ref complete, useReferenceHashes: false);
+            AppendObject(builder, indirect.Value, objects, pageNumbers, activeReferences, depth + 1, ref nodes, ref complete, useReferenceHashes: false, cancellationToken);
         } finally {
             activeReferences.Remove(key);
         }
@@ -149,14 +157,16 @@ internal static class PdfActionPayloadFingerprint {
         ref int nodes,
         ref bool complete,
         bool isActionRoot,
-        bool useReferenceHashes) {
+        bool useReferenceHashes,
+        CancellationToken cancellationToken) {
         builder.Append('{');
         foreach (string key in dictionary.Items.Keys.OrderBy(static key => key, StringComparer.Ordinal)) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (isActionRoot &&
                 (string.Equals(key, "S", StringComparison.Ordinal) ||
                  string.Equals(key, "Next", StringComparison.Ordinal))) continue;
             AppendText(builder, 'K', key);
-            AppendObject(builder, dictionary.Items[key], objects, pageNumbers, activeReferences, depth + 1, ref nodes, ref complete, useReferenceHashes);
+            AppendObject(builder, dictionary.Items[key], objects, pageNumbers, activeReferences, depth + 1, ref nodes, ref complete, useReferenceHashes, cancellationToken);
             builder.Append(';');
         }
         builder.Append('}');
@@ -167,32 +177,28 @@ internal static class PdfActionPayloadFingerprint {
         Dictionary<int, PdfIndirectObject> objects,
         IReadOnlyDictionary<int, int> pageNumbers,
         (int ObjectNumber, int Generation) rootReference,
-        int depth) {
+        int depth,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         var builder = new StringBuilder();
         var activeReferences = new HashSet<(int ObjectNumber, int Generation)> { rootReference };
         int nodes = 0;
         bool complete = true;
-        AppendObject(builder, value, objects, pageNumbers, activeReferences, depth, ref nodes, ref complete, useReferenceHashes: false);
+        AppendObject(builder, value, objects, pageNumbers, activeReferences, depth, ref nodes, ref complete, useReferenceHashes: false, cancellationToken);
         if (!complete) return new ReferenceHashResult(string.Empty, nodes, complete: false);
         byte[] bytes = Encoding.UTF8.GetBytes(builder.ToString());
-#if NET8_0_OR_GREATER
-        string hash = Convert.ToBase64String(SHA256.HashData(bytes));
-#else
-        string hash;
-        using (SHA256 sha256 = SHA256.Create()) {
-            hash = Convert.ToBase64String(sha256.ComputeHash(bytes));
-        }
-#endif
+        string hash = HashBase64(bytes, cancellationToken);
         return new ReferenceHashResult(hash, nodes, complete: true);
     }
 
-    private static PageNumberLookup BuildPageNumberLookup(Dictionary<int, PdfIndirectObject> objects, PdfReadLimits limits) {
+    private static PageNumberLookup BuildPageNumberLookup(Dictionary<int, PdfIndirectObject> objects, PdfReadLimits limits, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         var result = new Dictionary<int, int>();
         PdfDictionary? catalog = PdfSyntax.FindCatalog(objects);
         if (catalog == null || !catalog.Items.TryGetValue("Pages", out PdfObject? pages)) return new PageNumberLookup(result, isComplete: true);
         var visited = new HashSet<int>();
         bool complete = true;
-        AddPageTreeNode(pages, objects, visited, result, depth: 0, limits, ref complete);
+        AddPageTreeNode(pages, objects, visited, result, depth: 0, limits, ref complete, cancellationToken);
         return new PageNumberLookup(result, complete);
     }
 
@@ -203,7 +209,9 @@ internal static class PdfActionPayloadFingerprint {
         Dictionary<int, int> pageNumbers,
         int depth,
         PdfReadLimits limits,
-        ref bool complete) {
+        ref bool complete,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (depth > limits.MaxPageTreeDepth) {
             complete = false;
             return;
@@ -227,12 +235,35 @@ internal static class PdfActionPayloadFingerprint {
         if (!dictionary.Items.TryGetValue("Kids", out PdfObject? kidsObject) ||
             PdfObjectLookup.Resolve(objects, kidsObject) is not PdfArray kids) return;
         for (int index = 0; index < kids.Items.Count; index++) {
-            AddPageTreeNode(kids.Items[index], objects, visited, pageNumbers, depth + 1, limits, ref complete);
+            cancellationToken.ThrowIfCancellationRequested();
+            AddPageTreeNode(kids.Items[index], objects, visited, pageNumbers, depth + 1, limits, ref complete, cancellationToken);
         }
     }
 
     private static void AppendText(StringBuilder builder, char prefix, string value) =>
         builder.Append(prefix).Append(value.Length).Append(':').Append(value);
+
+    private static string HashBase64(byte[] bytes, CancellationToken cancellationToken) {
+        if (!cancellationToken.CanBeCanceled) {
+#if NET8_0_OR_GREATER
+            return Convert.ToBase64String(SHA256.HashData(bytes));
+#else
+            using var sha256 = SHA256.Create();
+            return Convert.ToBase64String(sha256.ComputeHash(bytes));
+#endif
+        }
+
+        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        const int chunkSize = 64 * 1024;
+        for (int offset = 0; offset < bytes.Length;) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = Math.Min(chunkSize, bytes.Length - offset);
+            hash.AppendData(bytes, offset, count);
+            offset += count;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return Convert.ToBase64String(hash.GetHashAndReset());
+    }
 
     private sealed class PageNumberLookup {
         internal PageNumberLookup(IReadOnlyDictionary<int, int> value, bool isComplete) { Value = value; IsComplete = isComplete; }
@@ -246,11 +277,12 @@ internal static class PdfActionPayloadFingerprint {
 
         internal PageNumberLookupCache(Dictionary<int, PdfIndirectObject> objects) { _objects = objects; }
 
-        internal PageNumberLookup Get(PdfReadLimits limits) {
+        internal PageNumberLookup Get(PdfReadLimits limits, CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             var key = (limits.MaxPageTreeDepth, limits.MaxPageTreeNodes);
             lock (_values) {
                 if (!_values.TryGetValue(key, out PageNumberLookup? value)) {
-                    value = BuildPageNumberLookup(_objects, limits);
+                    value = BuildPageNumberLookup(_objects, limits, cancellationToken);
                     _values.Add(key, value);
                 }
                 return value;
@@ -261,16 +293,11 @@ internal static class PdfActionPayloadFingerprint {
     private sealed class StreamHashCache {
         private readonly Dictionary<PdfStream, string> _values = new();
 
-        internal string Get(PdfStream stream) {
+        internal string Get(PdfStream stream, CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             lock (_values) {
                 if (_values.TryGetValue(stream, out string? value)) return value;
-#if NET8_0_OR_GREATER
-                value = Convert.ToBase64String(SHA256.HashData(stream.Data));
-#else
-                using (SHA256 sha256 = SHA256.Create()) {
-                    value = Convert.ToBase64String(sha256.ComputeHash(stream.Data));
-                }
-#endif
+                value = HashBase64(stream.Data, cancellationToken);
                 _values.Add(stream, value);
                 return value;
             }
@@ -280,16 +307,11 @@ internal static class PdfActionPayloadFingerprint {
     private sealed class StringHashCache {
         private readonly Dictionary<PdfStringObj, string> _values = new();
 
-        internal string Get(PdfStringObj text) {
+        internal string Get(PdfStringObj text, CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             lock (_values) {
                 if (_values.TryGetValue(text, out string? value)) return value;
-#if NET8_0_OR_GREATER
-                value = Convert.ToBase64String(SHA256.HashData(text.RawBytes));
-#else
-                using (SHA256 sha256 = SHA256.Create()) {
-                    value = Convert.ToBase64String(sha256.ComputeHash(text.RawBytes));
-                }
-#endif
+                value = HashBase64(text.RawBytes, cancellationToken);
                 _values.Add(text, value);
                 return value;
             }
@@ -306,7 +328,8 @@ internal static class PdfActionPayloadFingerprint {
     private sealed class ReferenceHashCache {
         private readonly Dictionary<(int ObjectNumber, int Generation, int Depth), ReferenceHashResult> _values = new();
 
-        internal ReferenceHashResult Get(PdfReference reference, int depth, Func<ReferenceHashResult> create) {
+        internal ReferenceHashResult Get(PdfReference reference, int depth, Func<ReferenceHashResult> create, CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             var key = (reference.ObjectNumber, reference.Generation, depth);
             lock (_values) {
                 if (_values.TryGetValue(key, out ReferenceHashResult value)) return value;

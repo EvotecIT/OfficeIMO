@@ -17,7 +17,8 @@ public sealed partial class PdfReadDocument {
     /// <summary>Catalog XMP metadata stream discovered from /Metadata.</summary>
     public PdfXmpMetadataInfo? XmpMetadata => ReadLogicalContent(_xmpMetadata);
 
-    private PdfXmpMetadataInfo? ExtractXmpMetadata() {
+    private PdfXmpMetadataInfo? ExtractXmpMetadata(System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         PdfDictionary? catalog = FindCatalog();
         if (catalog is null ||
             !catalog.Items.TryGetValue("Metadata", out PdfObject? metadataObject)) {
@@ -32,7 +33,7 @@ public sealed partial class PdfReadDocument {
         byte[] decoded;
         bool decodedWithinLimit;
         try {
-            decoded = _decodedStreamBudget.DecodeRequired(stream, _objects, MaxXmpMetadataBytes);
+            decoded = _decodedStreamBudget.DecodeRequired(stream, _objects, MaxXmpMetadataBytes, cancellationToken);
             decodedWithinLimit = true;
         } catch (PdfReadLimitException exception) when (
             exception.Kind == PdfReadLimitKind.DecodedStreamBytes &&
@@ -47,7 +48,9 @@ public sealed partial class PdfReadDocument {
         }
         string? rawXml = decodedWithinLimit ? DecodeMetadataText(decoded) : null;
         int decodedSizeBytes = decodedWithinLimit ? decoded.Length : MaxXmpMetadataBytes + 1;
+        cancellationToken.ThrowIfCancellationRequested();
         XDocument? document = rawXml is null ? null : TryParseXml(rawXml);
+        cancellationToken.ThrowIfCancellationRequested();
         return new PdfXmpMetadataInfo(
             objectNumber,
             TryReadName(stream.Dictionary, "Type"),
