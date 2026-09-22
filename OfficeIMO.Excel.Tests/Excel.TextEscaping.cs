@@ -41,15 +41,85 @@ public class ExcelTextEscapingTests {
                 ? strings[int.Parse(cell.CellValue!.Text, CultureInfo.InvariantCulture)]
                 : cell.InlineString?.InnerText ?? cell.CellValue?.Text ?? "").ToArray();
         string[] expected = new[] { header }.Concat(values.Select(value =>
-            new string(value.Where(c => c >= 0x20 || c == '\t' || c == '\n' || c == '\r').ToArray())
-                .Replace("\r\n", "\n").Replace('\r', '\n'))).ToArray();
+            new string(value.Where(c => c >= 0x20 || c == '\t' || c == '\n' || c == '\r').ToArray()))).ToArray();
         Assert.Equal(expected, actual);
         Assert.Equal("Data & '\"", workbook.Workbook.Sheets!.Elements<Sheet>().Single().Name!.Value);
+        if (cellReferences) {
+            stream.Position = 0;
+            using var reopened = ExcelDocument.Load(stream);
+            for (int row = 1; row <= expected.Length; row++) {
+                Assert.True(reopened["Data & '\""].TryGetCellText(row, 1, out string text));
+                Assert.Equal(expected[row - 1], text);
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void CellValuesPreserveCarriageReturnsAcrossPackageWriters(bool standardWriter) {
+        const string value = "Start\r\nMiddle\rEnd\nTab\tUnicode Łódź 😀 &<>";
+        using var stream = new MemoryStream();
+        using (var document = ExcelDocument.Create(new MemoryStream())) {
+            var sheet = document.AddWorksheet("Text");
+            sheet.CellValue(1, 1, value);
+            sheet.CellValue(1, 2, "inline");
+            sheet.CellValue(1, 3, "plain");
+            var cells = sheet.WorksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            cells["B1"].CellValue = null;
+            cells["B1"].DataType = CellValues.InlineString;
+            cells["B1"].InlineString = new InlineString(new Text(value));
+            cells["C1"].DataType = CellValues.String;
+            cells["C1"].CellValue = new CellValue(value);
+            sheet.MarkRequiresSavePreparation();
+            document.Save(stream, new ExcelSaveOptions { DisableFastPackageWriter = standardWriter });
+            Assert.Equal(standardWriter ? ExcelSavePackageWriter.StandardPackage : ExcelSavePackageWriter.SimplePackage,
+                document.LastSaveDiagnostics.Writer);
+        }
+        stream.Position = 0;
+        using (var package = SpreadsheetDocument.Open(stream, false)) {
+            var writtenCells = package.WorkbookPart!.WorksheetParts.Single().Worksheet.Descendants<Cell>()
+                .ToDictionary(cell => cell.CellReference!.Value!);
+            var cell = writtenCells["A1"];
+            int index = int.Parse(cell.CellValue!.Text, CultureInfo.InvariantCulture);
+            Assert.Equal(value, package.WorkbookPart.SharedStringTablePart!.SharedStringTable!
+                .Elements<SharedStringItem>().ElementAt(index).InnerText);
+            Assert.Equal(value, writtenCells["B1"].InlineString!.InnerText);
+            Assert.Equal(value, writtenCells["C1"].CellValue!.Text);
+        }
+
+        stream.Position = 0;
+        using var reopened = ExcelDocument.Load(stream);
+        for (int column = 1; column <= 3; column++) {
+            Assert.True(reopened["Text"].TryGetCellText(1, column, out string actual));
+            Assert.Equal(value, actual);
+        }
+    }
+
+    [Fact]
+    public void ExtendedPackagePreservesCarriageReturnsInSharedStrings() {
+        const string value = "First\r\nSecond\rThird";
+        using var stream = new MemoryStream();
+        using (var document = ExcelDocument.Create(new MemoryStream())) {
+            var sheet = document.AddWorksheet("Text");
+            sheet.CellValue(1, 1, value);
+            sheet.AddChart(
+                new ExcelChartData(new[] { "One" }, new[] { new ExcelChartSeries("Values", new[] { 1.0 }) }),
+                row: 2, column: 3, type: ExcelChartType.ColumnClustered, title: "Values");
+            document.Save(stream);
+            Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
+        }
+
+        stream.Position = 0;
+        using var reopened = ExcelDocument.Load(stream);
+        Assert.True(reopened["Text"].TryGetCellText(1, 1, out string actual));
+        Assert.Equal(value, actual);
     }
 
     private static IEnumerable<string> Values() {
         yield return "";
         yield return " \tŁódź 😀 &<> '\"\n ";
+        yield return "before\r\nafter\rmiddle\nlast";
         yield return new string(Enumerable.Range(0, 32).Select(value => (char)value).ToArray()) + "valid";
         yield return string.Concat(Enumerable.Repeat("&<>\u0001", 1000));
         foreach (int offset in new[] { 0, 15, 16, 31, 32, 63, 64, 4096, 32000 }) {

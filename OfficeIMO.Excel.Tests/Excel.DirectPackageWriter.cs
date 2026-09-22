@@ -10,7 +10,7 @@ namespace OfficeIMO.Excel.Tests {
             using var output = new MemoryStream();
             string emoji = char.ConvertFromUtf32(0x1F680);
             var rows = new[] {
-                new DirectPackageWriterRow(1, "Zażółć", "東京", new DateTime(2026, 7, 10), 12.5, 2, true, "A&B < " + emoji),
+                new DirectPackageWriterRow(1, "Zażółć", "東京", new DateTime(2026, 7, 10), 12.5, 2, true, "A&B < " + emoji + "\r\nnext\rreturn"),
                 new DirectPackageWriterRow(2, null, "München", new DateTime(2026, 7, 11), 20.75, 3, false, "Plain")
             };
 
@@ -38,10 +38,15 @@ namespace OfficeIMO.Excel.Tests {
 
             Assert.Equal("Zażółć", GetDirectCellText(cells["B2"]));
             Assert.Equal("東京", GetDirectCellText(cells["C2"]));
-            Assert.Equal("A&B < " + emoji, GetDirectCellText(cells["H2"]));
+            Assert.Equal("A&B < " + emoji + "\r\nnext\rreturn", GetDirectCellText(cells["H2"]));
             Assert.Equal(string.Empty, GetDirectCellText(cells["B3"]));
             Assert.Equal("München", GetDirectCellText(cells["C3"]));
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet));
+
+            output.Position = 0;
+            using var reopened = ExcelDocument.Load(output);
+            Assert.True(reopened["Data"].TryGetCellText(2, 8, out string notes));
+            Assert.Equal("A&B < " + emoji + "\r\nnext\rreturn", notes);
         }
 
         private static string? GetDirectCellText(Cell cell)

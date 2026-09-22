@@ -93,7 +93,8 @@ namespace OfficeIMO.Excel {
                         WriteWorksheetEntry(archive, worksheetModel);
                         ReportTiming("Save.ExtendedPackage.WriteSimpleWorksheet");
                     } else {
-                        WriteOpenXmlElementEntry(archive, part.Path, part.RootElement!);
+                        WriteOpenXmlElementEntry(archive, part.Path, part.RootElement!,
+                            preserveLineEndings: part.Part is SharedStringTablePart);
                         ReportTiming("Save.ExtendedPackage.WriteOpenXmlPart");
                     }
 
