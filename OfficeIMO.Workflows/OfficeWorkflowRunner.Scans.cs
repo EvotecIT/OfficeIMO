@@ -29,11 +29,12 @@ public sealed partial class OfficeWorkflowRunner {
             documents.Add(output);
             foreach (string message in preview.Diagnostics) {
                 token.ThrowIfCancellationRequested();
+                string diagnostic = $"Page {page}: {message}";
                 diagnosticCount++;
-                diagnosticCharacters += message.Length;
+                diagnosticCharacters = checked(diagnosticCharacters + diagnostic.Length);
                 if (diagnosticCount > settings.MaximumDiagnostics || diagnosticCharacters > settings.MaximumDiagnosticCharacters)
                     throw new IOException("Prepared scan diagnostics exceed the workflow budget.");
-                diagnostics.Add(new OfficeWorkflowDiagnostic("ScanPreparation", $"Page {page}: {message}", OfficeWorkflowDiagnosticSeverity.Warning, "scan"));
+                diagnostics.Add(new OfficeWorkflowDiagnostic("ScanPreparation", diagnostic, OfficeWorkflowDiagnosticSeverity.Warning, "scan"));
             }
         }
         PdfDocument result = documents.Count == 1 ? documents[0] : PdfDocument.Merge(documents, token);

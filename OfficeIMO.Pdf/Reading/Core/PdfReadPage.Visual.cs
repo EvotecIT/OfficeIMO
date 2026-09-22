@@ -2009,6 +2009,7 @@ public sealed partial class PdfReadPage {
                 fonts[alias] = parsedFont;
                 if (set.Decoders.TryGetValue(alias, out Func<byte[], int, string>? decoder)) decoders[alias] = decoder;
                 if (set.WidthProviders.TryGetValue(alias, out Func<byte[], double>? width)) widthProviders[alias] = width;
+                declaredFontNames[fontDictionary] = alias;
                 fontResource = alias;
             }
         } else {

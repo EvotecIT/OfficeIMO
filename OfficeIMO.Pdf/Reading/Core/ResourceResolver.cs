@@ -1367,7 +1367,8 @@ internal static partial class ResourceResolver {
     private static void PreflightImageFilterReferences(PdfDictionary dictionary,
         Dictionary<int, PdfIndirectObject> objects, int maxImageReferenceSteps, CancellationToken cancellationToken) {
         BoundedArrayReferenceResolver? resolver = null;
-        foreach (string key in new[] { "Filter", "DecodeParms", "DP" }) {
+        string decodeParametersKey = dictionary.Items.ContainsKey("DecodeParms") ? "DecodeParms" : "DP";
+        foreach (string key in new[] { "Filter", decodeParametersKey }) {
             if (!dictionary.Items.TryGetValue(key, out PdfObject? value)) continue;
             if (value is not PdfReference &&
                 (value is not PdfArray directArray || !directArray.Items.Any(static item => item is PdfReference))) continue;

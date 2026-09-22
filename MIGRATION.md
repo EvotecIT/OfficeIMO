@@ -214,7 +214,11 @@ and 5,000,000 aggregate content operations. Configure
 `PdfReadLimits` for trusted documents that need more. OCR merge limits raw native
 text spans before overlap analysis and caps retained intersections per OCR word
 with `MaxNativeTextOverlapIntersectionsPerWord` (default 10,000). An interaction
-map may reject a page with too many off-page image placements before it builds
+map also uses `MaxNativeTextCharactersPerPage` (default 8,388,608) for the
+aggregate span scan, including concealed spans. `MaxMergedTextCharactersPerPage`
+continues to limit only the retained canonical text; configure the scan budget
+separately for trusted pages with large hidden text layers. The interaction map
+may also reject a page with too many off-page image placements before it builds
 the visible regions. These limits report `PdfReadLimitException`.
 
 PDF/X inspection counts both resource discovery and the final color pass against
