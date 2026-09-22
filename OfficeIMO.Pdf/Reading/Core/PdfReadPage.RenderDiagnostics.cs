@@ -5,13 +5,15 @@ namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadPage {
     private sealed class BoundedRenderDiagnostics : List<PdfRenderCapabilityDiagnostic> {
-        internal BoundedRenderDiagnostics(int maximumCount, int maximumCharacters) {
+        internal BoundedRenderDiagnostics(int maximumCount, int maximumCharacters, bool suppressRetention = false) {
             MaximumCount = maximumCount;
             MaximumCharacters = maximumCharacters;
+            SuppressRetention = suppressRetention;
         }
 
         internal int MaximumCount { get; }
         internal int MaximumCharacters { get; }
+        internal bool SuppressRetention { get; }
         internal long RetainedCharacters { get; set; }
     }
 
@@ -1596,6 +1598,9 @@ public sealed partial class PdfReadPage {
 
     private static void AddRenderDiagnostic(List<PdfRenderCapabilityDiagnostic> diagnostics, HashSet<string> seen, string capabilityId, string subject) {
         var bounded = (BoundedRenderDiagnostics)diagnostics;
+        // Capability validation needs the Boolean result, not a second diagnostic
+        // collection. The public render scan retains and bounds diagnostics.
+        if (bounded.SuppressRetention) return;
         PdfRenderCapability capability = PdfRenderCapabilities.Get(capabilityId);
         long characters = (long)capability.Id.Length + capability.Message.Length + subject.Length + 16L;
         // An oversized diagnostic cannot have been retained earlier. Reject it

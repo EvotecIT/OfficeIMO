@@ -410,7 +410,7 @@ public sealed partial class PdfReadPage {
             textClippingBudget: textClippingBudget,
             inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array));
         if (!supported) return false;
-        var validationDiagnostics = new BoundedRenderDiagnostics(1_000, 1 * 1024 * 1024);
+        var validationDiagnostics = new BoundedRenderDiagnostics(1, 1, suppressRetention: true);
         var validationDiagnosticKeys = new HashSet<string>(StringComparer.Ordinal);
         IReadOnlyList<PdfPageXObjectInvocation> invocations = PdfPageXObjectInvocationParser.Parse(
             content,

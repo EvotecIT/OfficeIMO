@@ -374,11 +374,9 @@ public sealed class PdfFontInspectionTests {
             "<< /Type /Font /Subtype /Type1 >>",
             StreamObject(string.Empty));
 
-        PdfFontInventory inventory = PdfDocument.Load(pdf).Resources.Fonts(new PdfFontInspectionOptions {
-            MaxDiagnostics = 1
-        });
-
-        Assert.Equal(1, inventory.Fonts.Sum(font => font.Diagnostics.Count) + inventory.Diagnostics.Count);
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfDocument.Load(pdf).Resources.Fonts(new PdfFontInspectionOptions { MaxDiagnostics = 1 }));
+        Assert.Equal(PdfReadLimitKind.FontInspectionDiagnostics, exception.Kind);
     }
 
     [Fact]

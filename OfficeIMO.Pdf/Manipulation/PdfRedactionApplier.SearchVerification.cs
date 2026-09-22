@@ -23,9 +23,9 @@ internal static partial class PdfRedactionApplier {
 
         PdfLoadOptions outputOptions = PdfLoadOptions.ForGeneratedOutput(readOptions, source, output, generatedGrowth);
         PdfReadDocument rewritten = PdfReadDocument.Open(output, outputOptions, cancellationToken);
-        PdfDocumentReadResult? rewrittenLogical = regexes.Length > 0 || kinds.Length > 0
+        PdfDocumentReadResult? rewrittenLogical = literals.Length > 0 || regexes.Length > 0 || kinds.Length > 0
             ? PdfDocumentReadResult.From(rewritten, layoutOptions, cancellationToken) : null;
-        PdfDocumentReadResult? sourceLogical = kinds.Length > 0
+        PdfDocumentReadResult? sourceLogical = literals.Length > 0 || regexes.Length > 0 || kinds.Length > 0
             ? PdfDocumentReadResult.From(PdfReadDocument.Open(source, readOptions, cancellationToken), layoutOptions, cancellationToken) : null;
         Dictionary<int, PdfLogicalTextBlock[]>? rewrittenBlocksByPage = rewrittenLogical?.TextBlocks
             .GroupBy(static block => block.PageNumber)
@@ -65,15 +65,12 @@ internal static partial class PdfRedactionApplier {
                     foreach (PdfTextSpan span in block.Spans)
                         rewrittenSpans.Add((span, PdfTextSpanGeometry.GetAxisAlignedBounds(span)));
                 }
-                var matchedTextsByArea = new Dictionary<PdfRedactionArea, Dictionary<string, bool>>();
-                var rewrittenTextsByArea = new Dictionary<PdfRedactionArea, string[]>();
-                foreach (PdfRedactionArea area in page.Value) {
-                    if (!matchedTextsByArea.ContainsKey(area))
-                        matchedTextsByArea.Add(area, new Dictionary<string, bool>(StringComparer.Ordinal));
-                }
                 foreach (PdfLogicalTextBlock block in sourceBlocks) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    if (!selectedKinds.Contains(block.Kind)) continue;
+                    bool selected = selectedKinds.Contains(block.Kind) ||
+                        literals.Any(literal => Contains(block.Text, literal, comparison)) ||
+                        regexes.Any(regex => regex.IsMatch(block.Text));
+                    if (!selected) continue;
                     foreach (PdfTextSpan span in block.Spans) {
                         if (string.IsNullOrEmpty(span.Text)) continue;
                         PdfTextSpanBounds sourceBounds = PdfTextSpanGeometry.GetAxisAlignedBounds(span);
@@ -82,32 +79,14 @@ internal static partial class PdfRedactionApplier {
                             ConsumeLogicalVerificationWork(ref remainingLogicalVerificationWork, 1L);
                             if (!area.IntersectsRectangle(sourceBounds.Left, sourceBounds.Bottom, sourceBounds.Width, sourceBounds.Height))
                                 continue;
-                            Dictionary<string, bool> matchedTexts = matchedTextsByArea[area];
-                            if (!matchedTexts.TryGetValue(span.Text, out bool survives)) {
-                                if (!rewrittenTextsByArea.TryGetValue(area, out string[]? candidateTexts)) {
-                                    var candidates = new List<string>();
-                                    foreach ((PdfTextSpan candidateSpan, PdfTextSpanBounds candidateBounds) in rewrittenSpans) {
-                                        cancellationToken.ThrowIfCancellationRequested();
-                                        ConsumeLogicalVerificationWork(ref remainingLogicalVerificationWork, 1L);
-                                        if (area.IntersectsRectangle(candidateBounds.Left, candidateBounds.Bottom,
-                                                candidateBounds.Width, candidateBounds.Height))
-                                            candidates.Add(candidateSpan.Text);
-                                    }
-                                    candidateTexts = candidates.ToArray();
-                                    rewrittenTextsByArea.Add(area, candidateTexts);
-                                }
-                                foreach (string candidateText in candidateTexts) {
-                                    cancellationToken.ThrowIfCancellationRequested();
-                                    ConsumeLogicalVerificationWork(ref remainingLogicalVerificationWork,
-                                        Math.Max(1L, (long)candidateText.Length * span.Text.Length));
-                                    if (Contains(candidateText, span.Text, StringComparison.Ordinal)) {
-                                        survives = true;
-                                        break;
-                                    }
-                                }
-                                matchedTexts.Add(span.Text, survives);
+                            foreach ((PdfTextSpan candidateSpan, PdfTextSpanBounds candidateBounds) in rewrittenSpans) {
+                                cancellationToken.ThrowIfCancellationRequested();
+                                ConsumeLogicalVerificationWork(ref remainingLogicalVerificationWork, 1L);
+                                if (!string.IsNullOrWhiteSpace(candidateSpan.Text) &&
+                                    sourceBounds.Left < candidateBounds.Right && sourceBounds.Right > candidateBounds.Left &&
+                                    sourceBounds.Bottom < candidateBounds.Top && sourceBounds.Top > candidateBounds.Bottom)
+                                    ThrowSurvivingText(pageNumber);
                             }
-                            if (survives) ThrowSurvivingText(pageNumber);
                         }
                     }
                 }

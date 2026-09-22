@@ -246,8 +246,8 @@ internal static class PdfFontInspector {
 
         private bool TryReserveDiagnostic() {
             if (_retainedDiagnostics >= _options.MaxDiagnostics) {
-                IsStopped = true;
-                return false;
+                throw PdfReadLimitException.Create(PdfReadLimitKind.FontInspectionDiagnostics,
+                    _options.MaxDiagnostics, (long)_retainedDiagnostics + 1L);
             }
             _retainedDiagnostics++;
             return true;

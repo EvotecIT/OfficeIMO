@@ -150,5 +150,8 @@ public enum PdfReadLimitKind {
     PrintProductionOperations = 48,
 
     /// <summary>Capability diagnostics retained while rendering one PDF page.</summary>
-    RenderDiagnostics = 49
+    RenderDiagnostics = 49,
+
+    /// <summary>Diagnostics retained while inspecting PDF fonts.</summary>
+    FontInspectionDiagnostics = 50
 }

@@ -378,7 +378,8 @@ internal static partial class ResourceResolver {
                             outputIntentColorTransform: outputIntentColorTransform,
                             colorFunctionEvaluationBudget: colorFunctionEvaluationBudget,
                             functionResolutionContext: functionResolutionContext,
-                            inheritedHasAuthoredRenderingIntent: hasAuthoredImageIntent || placement.HasAuthoredRenderingIntent, cancellationToken: cancellationToken));
+                            inheritedHasAuthoredRenderingIntent: hasAuthoredImageIntent || placement.HasAuthoredRenderingIntent,
+                            cancellationToken: cancellationToken, maxImageReferenceSteps: limits.MaxImageReferenceSteps));
                     }
                 } else {
                     if (matchingPlacements is null) {
@@ -386,7 +387,7 @@ internal static partial class ResourceResolver {
                             continue;
                         }
 
-                        result.Add(BuildExtractedImage(pageNumber, kv.Key, objectNumber, directStreamIdentity, stream, objects, resources: resources, maxDecodedStreamBytes: limits.MaxDecodedStreamBytes, outputIntentColorTransform: outputIntentColorTransform, colorFunctionEvaluationBudget: colorFunctionEvaluationBudget, functionResolutionContext: functionResolutionContext, cancellationToken: cancellationToken));
+                        result.Add(BuildExtractedImage(pageNumber, kv.Key, objectNumber, directStreamIdentity, stream, objects, resources: resources, maxDecodedStreamBytes: limits.MaxDecodedStreamBytes, outputIntentColorTransform: outputIntentColorTransform, colorFunctionEvaluationBudget: colorFunctionEvaluationBudget, functionResolutionContext: functionResolutionContext, cancellationToken: cancellationToken, maxImageReferenceSteps: limits.MaxImageReferenceSteps));
                     } else {
                         List<EffectiveImageIntent> effectiveIntents = GetDistinctImageIntents(
                             matchingPlacements,
@@ -412,7 +413,8 @@ internal static partial class ResourceResolver {
                                 outputIntentColorTransform: outputIntentColorTransform,
                                 colorFunctionEvaluationBudget: colorFunctionEvaluationBudget,
                                 functionResolutionContext: functionResolutionContext,
-                                inheritedHasAuthoredRenderingIntent: effectiveIntents[intentIndex].HasAuthoredRenderingIntent, cancellationToken: cancellationToken));
+                                inheritedHasAuthoredRenderingIntent: effectiveIntents[intentIndex].HasAuthoredRenderingIntent,
+                                cancellationToken: cancellationToken, maxImageReferenceSteps: limits.MaxImageReferenceSteps));
                         }
                     }
                 }
@@ -1212,7 +1214,9 @@ internal static partial class ResourceResolver {
         PdfOutputIntentColorTransform? outputIntentColorTransform = null,
         Func<int, long, bool>? colorFunctionEvaluationBudget = null,
         PdfColorFunctionResolutionContext? functionResolutionContext = null,
-        bool inheritedHasAuthoredRenderingIntent = false, CancellationToken cancellationToken = default) {
+        bool inheritedHasAuthoredRenderingIntent = false,
+        int maxImageReferenceSteps = PdfReadLimits.DefaultMaxImageReferenceSteps,
+        CancellationToken cancellationToken = default) {
         int width = (int)(stream.Dictionary.Get<PdfNumber>("Width")?.Value ?? 0);
         int height = (int)(stream.Dictionary.Get<PdfNumber>("Height")?.Value ?? 0);
         int bitsPerComponent = (int)(stream.Dictionary.Get<PdfNumber>("BitsPerComponent")?.Value ?? 0);
@@ -1351,24 +1355,24 @@ internal static partial class ResourceResolver {
             imageMaskColor ?? OfficeColor.Black,
             renderingIntent,
             hasExplicitDecode: hasExplicitDecode,
-            hasDecodeParameters: HasResolvedDecodeParametersEntry(stream.Dictionary, objects, cancellationToken),
+            hasDecodeParameters: HasResolvedDecodeParametersEntry(stream.Dictionary, objects, maxImageReferenceSteps, cancellationToken),
             interpolate: stream.Dictionary.Items.TryGetValue("Interpolate", out PdfObject? interpolateObject) &&
                 ResolveObject(interpolateObject, objects) is PdfBoolean { Value: true },
             hasAuthoredRenderingIntent: hasAuthoredRenderingIntent || inheritedHasAuthoredRenderingIntent,
-            requiresScanDecode: HasScanFilter(filterObj, objects, cancellationToken),
+            requiresScanDecode: HasScanFilter(filterObj, objects, maxImageReferenceSteps, cancellationToken),
             hasUnsafePassThroughDecode: hasUnsafePassThroughDecode);
     }
 
     private static bool HasResolvedDecodeParametersEntry(
         PdfDictionary dictionary,
         Dictionary<int, PdfIndirectObject> objects,
-        CancellationToken cancellationToken) {
+        int maxImageReferenceSteps, CancellationToken cancellationToken) {
         PdfObject? value = dictionary.Items.TryGetValue("DecodeParms", out PdfObject? fullName)
             ? fullName
             : dictionary.Items.TryGetValue("DP", out PdfObject? abbreviation)
                 ? abbreviation
                 : null;
-        var resolver = new BoundedArrayReferenceResolver(objects, cancellationToken);
+        var resolver = new BoundedArrayReferenceResolver(objects, maxImageReferenceSteps, cancellationToken);
         PdfObject? resolved = resolver.Resolve(value);
         if (resolved is PdfDictionary) return true;
         if (resolved is not PdfArray array) return false;
@@ -1379,8 +1383,8 @@ internal static partial class ResourceResolver {
     }
 
     private static bool HasScanFilter(PdfObject? filters, Dictionary<int, PdfIndirectObject> objects,
-        CancellationToken cancellationToken) {
-        var resolver = new BoundedArrayReferenceResolver(objects, cancellationToken);
+        int maxImageReferenceSteps, CancellationToken cancellationToken) {
+        var resolver = new BoundedArrayReferenceResolver(objects, maxImageReferenceSteps, cancellationToken);
         PdfObject? resolved = resolver.Resolve(filters);
         if (resolved is PdfName name) return IsScanFilter(name);
         if (resolved is not PdfArray array) return false;
@@ -1393,16 +1397,17 @@ internal static partial class ResourceResolver {
     }
 
     private sealed class BoundedArrayReferenceResolver {
-        private const int MaximumReferenceSteps = 100_000;
+        private readonly int _maximumReferenceSteps;
         private readonly Dictionary<int, PdfIndirectObject> _objects;
         private readonly CancellationToken _cancellationToken;
         private readonly Dictionary<(int ObjectNumber, int Generation), PdfObject?> _cache = new();
         private int _steps;
 
         internal BoundedArrayReferenceResolver(Dictionary<int, PdfIndirectObject> objects,
-            CancellationToken cancellationToken) {
+            int maximumReferenceSteps, CancellationToken cancellationToken) {
             _objects = objects;
             _cancellationToken = cancellationToken;
+            _maximumReferenceSteps = maximumReferenceSteps;
         }
 
         internal PdfObject? Resolve(PdfObject? value) {
@@ -1423,7 +1428,7 @@ internal static partial class ResourceResolver {
                     resolved = null;
                     break;
                 }
-                if (++_steps > MaximumReferenceSteps) {
+                if (++_steps > _maximumReferenceSteps) {
                     throw new InvalidDataException("PDF array reference resolution exceeded the managed work limit.");
                 }
                 if ((_steps & 255) == 0) _cancellationToken.ThrowIfCancellationRequested();

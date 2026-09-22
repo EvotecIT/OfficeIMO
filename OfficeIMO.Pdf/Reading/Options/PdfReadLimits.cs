@@ -27,6 +27,7 @@ public sealed class PdfReadLimits {
     internal const int DefaultMaxPrintProductionContexts = 4_096;
     internal const int DefaultMaxPrintProductionOperations = 5_000_000;
     internal const int DefaultMaxType3GlyphInvocationsPerPage = 1_000_000;
+    internal const int DefaultMaxImageReferenceSteps = 100_000;
 
     /// <summary>Creates default parser budgets that callers can customize without changing another options instance.</summary>
     public static PdfReadLimits Default => new PdfReadLimits();
@@ -136,6 +137,9 @@ public sealed class PdfReadLimits {
     /// <summary>Maximum Type 3 glyph programs invoked while rendering one page, including nested forms. Default: 1,000,000.</summary>
     public int MaxType3GlyphInvocationsPerPage { get; init; } = DefaultMaxType3GlyphInvocationsPerPage;
 
+    /// <summary>Maximum indirect-reference steps followed while resolving one image's filter and decode-parameter arrays. Default: 100,000.</summary>
+    public int MaxImageReferenceSteps { get; init; } = DefaultMaxImageReferenceSteps;
+
     /// <summary>Maximum characters expanded into individually positioned drawing glyphs per page, including nested forms. Glyph frames rejected by page or clip bounds do not count. Default: 100,000.</summary>
     public int MaxPositionedTextCharactersPerPage { get; init; } = DefaultMaxPositionedTextCharactersPerPage;
 
@@ -209,7 +213,8 @@ public sealed class PdfReadLimits {
             MaxClippedTextFontCopyWorkPerPage = MaxClippedTextFontCopyWorkPerPage,
             MaxPrintProductionContexts = MaxPrintProductionContexts,
             MaxPrintProductionOperations = MaxPrintProductionOperations,
-            MaxType3GlyphInvocationsPerPage = MaxType3GlyphInvocationsPerPage
+            MaxType3GlyphInvocationsPerPage = MaxType3GlyphInvocationsPerPage,
+            MaxImageReferenceSteps = MaxImageReferenceSteps
         };
     }
 
@@ -267,7 +272,8 @@ public sealed class PdfReadLimits {
             MaxClippedTextFontCopyWorkPerPage = sources.Max(static limits => limits.MaxClippedTextFontCopyWorkPerPage),
             MaxPrintProductionContexts = sources.Max(static limits => limits.MaxPrintProductionContexts),
             MaxPrintProductionOperations = sources.Max(static limits => limits.MaxPrintProductionOperations),
-            MaxType3GlyphInvocationsPerPage = sources.Max(static limits => limits.MaxType3GlyphInvocationsPerPage)
+            MaxType3GlyphInvocationsPerPage = sources.Max(static limits => limits.MaxType3GlyphInvocationsPerPage),
+            MaxImageReferenceSteps = sources.Max(static limits => limits.MaxImageReferenceSteps)
         };
     }
 
@@ -367,7 +373,8 @@ public sealed class PdfReadLimits {
             MaxClippedTextFontCopyWorkPerPage = MaxClippedTextFontCopyWorkPerPage,
             MaxPrintProductionContexts = MaxPrintProductionContexts,
             MaxPrintProductionOperations = MaxPrintProductionOperations,
-            MaxType3GlyphInvocationsPerPage = MaxType3GlyphInvocationsPerPage
+            MaxType3GlyphInvocationsPerPage = MaxType3GlyphInvocationsPerPage,
+            MaxImageReferenceSteps = Math.Min(MaxImageReferenceSteps, maximumContainerEntries)
         };
     }
 
@@ -447,6 +454,7 @@ public sealed class PdfReadLimits {
         ValidatePositive(MaxPrintProductionContexts, nameof(MaxPrintProductionContexts), "Maximum PDF/X content contexts must be positive.");
         ValidatePositive(MaxPrintProductionOperations, nameof(MaxPrintProductionOperations), "Maximum PDF/X content operations must be positive.");
         ValidatePositive(MaxType3GlyphInvocationsPerPage, nameof(MaxType3GlyphInvocationsPerPage), "Maximum Type 3 glyph invocations per page must be positive.");
+        ValidatePositive(MaxImageReferenceSteps, nameof(MaxImageReferenceSteps), "Maximum image reference steps must be positive.");
     }
 
     private static void ValidatePositive(int value, string parameterName, string message) {

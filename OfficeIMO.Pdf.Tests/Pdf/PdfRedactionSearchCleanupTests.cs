@@ -65,6 +65,44 @@ public class PdfRedactionSearchCleanupTests {
     }
 
     [Fact]
+    public void Apply_LogicalKindRejectsPartiallySurvivingHeading() {
+        byte[] source = PdfDocument.Create().H1("Confidential heading").Paragraph(p => p.Text("Retained paragraph")).ToBytes();
+        PdfRedactionPlan searched = PdfRedactionPlanner.Search(source,
+            new PdfRedactionSearchOptions().AddLogicalKind(PdfLogicalElementKind.Heading));
+        PdfRedactionArea original = Assert.Single(searched.Areas);
+        var partial = new PdfRedactionArea(original.PageNumber, original.X, original.Y,
+            original.Width / 3D, original.Height, original.Label);
+        var plan = new PdfRedactionPlan(searched.Preflight, [partial], searched.Matches,
+            searched.Findings, searched.SearchCriteria, searched.SourceSha256,
+            searched.PageIdentities, searched.ReviewedTextObjectScopes, searched.SearchMatchCase);
+
+        InvalidOperationException error = Assert.Throws<InvalidOperationException>(() => PdfRedactionApplier.Apply(source, plan));
+
+        Assert.Contains("still contains searched text", error.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Apply_TextSearchRejectsPartiallySurvivingMatch(bool useRegex) {
+        byte[] source = PdfDocument.Create().H1("Confidential heading")
+            .Paragraph(p => p.Text("Retained paragraph")).ToBytes();
+        PdfRedactionSearchOptions search = useRegex
+            ? new PdfRedactionSearchOptions().AddRegex("Confidential heading")
+            : new PdfRedactionSearchOptions().AddLiteral("Confidential heading");
+        PdfRedactionPlan searched = PdfRedactionPlanner.Search(source, search);
+        PdfRedactionArea original = Assert.Single(searched.Areas);
+        var partial = new PdfRedactionArea(original.PageNumber, original.X, original.Y,
+            original.Width / 3D, original.Height, original.Label);
+        var plan = new PdfRedactionPlan(searched.Preflight, [partial], searched.Matches,
+            searched.Findings, searched.SearchCriteria, searched.SourceSha256,
+            searched.PageIdentities, searched.ReviewedTextObjectScopes, searched.SearchMatchCase,
+            searched.SearchRegexOptions, searched.SearchRegexTimeout);
+
+        Assert.Throws<InvalidOperationException>(() => PdfRedactionApplier.Apply(source, plan));
+    }
+
+    [Fact]
     public void Apply_RemovesIntersectingPaintedPathsAndKeepsUnrelatedPaths() {
         const string content = "0 0 0 rg 10 10 40 40 re f 0 0 1 rg 120 120 30 30 re f";
         byte[] source = Encoding.ASCII.GetBytes(string.Join("\n", new[] {
