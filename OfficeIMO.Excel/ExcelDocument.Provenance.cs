@@ -15,6 +15,7 @@ public partial class ExcelDocument {
 
     private const string SignatureOriginContentType = "application/vnd.openxmlformats-package.digital-signature-origin";
     private const string SignaturePartContentType = "application/vnd.openxmlformats-package.digital-signature-xmlsignature+xml";
+    private const string SignatureCertificateContentType = "application/vnd.openxmlformats-package.digital-signature-certificate";
     private const string SignatureRelationshipPrefix = "http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/";
     private const string ExtendedPropertiesContentType = "application/vnd.openxmlformats-officedocument.extended-properties+xml";
     private const string ExtendedPropertiesRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties";
@@ -242,8 +243,8 @@ public partial class ExcelDocument {
             }
             string sourcePart = pending.Dequeue();
             string relationshipsPart = GetRelationshipsPartName(sourcePart);
-            XElement[] relationships = ReadRelationships(archive, relationshipsPart, limits);
-            if (relationships.Length == 0) continue;
+            XElement[] relationships = ReadRelationships(archive, relationshipsPart, limits, out bool relationshipPartPresent);
+            if (!relationshipPartPresent) continue;
             entries.Add(relationshipsPart);
             foreach (XElement relationship in relationships) {
                 if (!TryGetSignatureRelationshipContentType(relationship, requireOrigin: false, out string expectedContentType)) continue;
@@ -293,11 +294,15 @@ public partial class ExcelDocument {
         return new PackageContentTypes(overrides, defaults);
     }
 
-    private static XElement[] ReadRelationships(ZipArchive archive, string entryName, OfficeProvenanceOptions limits) {
+    private static XElement[] ReadRelationships(ZipArchive archive, string entryName, OfficeProvenanceOptions limits) =>
+        ReadRelationships(archive, entryName, limits, out _);
+
+    private static XElement[] ReadRelationships(ZipArchive archive, string entryName, OfficeProvenanceOptions limits, out bool present) {
         ZipArchiveEntry[] matches = archive.Entries
             .Where(entry => NormalizePartName(entry.FullName).Equals(NormalizePartName(entryName), StringComparison.OrdinalIgnoreCase))
             .ToArray();
-        if (matches.Length == 0) return Array.Empty<XElement>();
+        present = matches.Length != 0;
+        if (!present) return Array.Empty<XElement>();
         if (matches.Length != 1) throw new InvalidDataException("The XLSB package contains duplicate relationship parts.");
         byte[] xml = ReadBoundedEntry(matches[0], limits.MaxAssetBytes);
         OfficeProvenanceXml.ValidateMaterializedNodeBudget(xml, limits, "XLSB signature relationships");
@@ -324,9 +329,15 @@ public partial class ExcelDocument {
             expectedContentType = SignatureOriginContentType;
             return true;
         }
-        if (!string.Equals(type, SignatureRelationshipPrefix + "signature", StringComparison.Ordinal)) return false;
-        expectedContentType = SignaturePartContentType;
-        return true;
+        if (string.Equals(type, SignatureRelationshipPrefix + "signature", StringComparison.Ordinal)) {
+            expectedContentType = SignaturePartContentType;
+            return true;
+        }
+        if (string.Equals(type, SignatureRelationshipPrefix + "certificate", StringComparison.Ordinal)) {
+            expectedContentType = SignatureCertificateContentType;
+            return true;
+        }
+        return false;
     }
 
     private static string? ResolveRelationshipTarget(string sourcePart, string? target) {

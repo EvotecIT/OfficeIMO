@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Xml;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Provenance;
 
@@ -99,6 +100,7 @@ internal static class OfficeProvenanceZip {
             if (!IsSupportedEmbeddedImage(asset, options)) continue;
             embeddedCount++;
             if (embeddedCount > options.MaxEmbeddedAssets) throw new InvalidDataException("ZIP package exceeds the configured embedded-asset limit.");
+            ReserveEmbeddedPngDecodeBudget(asset, options, ref expandedBytes);
             OfficeProvenanceReport nested;
             try {
                 nested = OfficeProvenanceInspector.InspectCore(asset, entryName, CreateNestedOptions(options));
@@ -173,6 +175,7 @@ internal static class OfficeProvenanceZip {
             if (!IsSupportedEmbeddedImage(asset, options.Limits)) continue;
             embeddedCount++;
             if (embeddedCount > Math.Min(options.MaxEmbeddedAssets, options.Limits.MaxEmbeddedAssets)) throw new InvalidDataException("ZIP package exceeds the configured embedded-asset limit.");
+            ReserveEmbeddedPngDecodeBudget(asset, options.Limits, ref inspectionBytes);
             OfficeProvenanceRemovalResult nested;
             try {
                 nested = OfficeProvenanceRemover.Remove(asset, entryName, CreateNestedRemovalOptions(options));
@@ -406,6 +409,7 @@ internal static class OfficeProvenanceZip {
         CancellationToken cancellationToken = default) {
         if (data == null) throw new ArgumentNullException(nameof(data));
         if (shouldRemove == null) throw new ArgumentNullException(nameof(shouldRemove));
+        if (maximumExpandedBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumExpandedBytes));
         using var inputStream = new MemoryStream(data, writable: false);
         using var input = new ZipArchive(inputStream, ZipArchiveMode.Read, leaveOpen: false);
         Dictionary<ZipArchiveEntry, OfficeProvenanceZipEntryMetadata> entryMetadata = GetEntryMetadata(data, input);
@@ -418,6 +422,7 @@ internal static class OfficeProvenanceZip {
         }
 
         var outputEntries = new List<OfficeProvenanceZipWriteEntry>();
+        long replacementReadBytes = 0;
         foreach (ZipArchiveEntry entry in input.Entries
             .OrderByDescending(candidate => entryMetadata[candidate].Name.Equals("mimetype", StringComparison.Ordinal))) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -428,6 +433,11 @@ internal static class OfficeProvenanceZip {
                 if (replace == null || entry.Length > maximumReplacementBytes || entry.Length > int.MaxValue) {
                     throw new InvalidDataException("A package metadata entry exceeds its configured rewrite limit.");
                 }
+                if (entry.Length > maximumReplacementBytes - replacementReadBytes) {
+                    throw OfficeProvenanceLimitException.Create(
+                        "Package metadata reads exceed the configured replacement-read limit.");
+                }
+                replacementReadBytes += entry.Length;
                 replacement = replace(entryName, ReadEntry(entry, (int)entry.Length, cancellationToken));
                 if (replacement.LongLength > maximumReplacementBytes) {
                     throw new InvalidDataException("A rewritten package metadata entry exceeds its configured rewrite limit.");
@@ -524,6 +534,9 @@ internal static class OfficeProvenanceZip {
         return GetEntryMetadata(data, archive, out _);
     }
 
+    internal static Dictionary<ZipArchiveEntry, string> GetValidatedEntryNames(byte[] data, ZipArchive archive) =>
+        GetEntryMetadata(data, archive).ToDictionary(pair => pair.Key, pair => pair.Value.Name);
+
     private static Dictionary<ZipArchiveEntry, OfficeProvenanceZipEntryMetadata> GetEntryMetadata(
         byte[] data,
         ZipArchive archive,
@@ -603,6 +616,9 @@ internal static class OfficeProvenanceZip {
             byte[] rawName = new byte[nameLength];
             if (nameLength != 0) Buffer.BlockCopy(data, cursor + 46, rawName, 0, nameLength);
             string decodedName = DecodeZipEntryName(rawName, flags, centralExtraField);
+            if (!IsSafeOutputEntryName(decodedName)) {
+                throw new InvalidDataException("A ZIP entry name is unsafe for package output.");
+            }
             string rawNameKey = Convert.ToBase64String(rawName);
             if (decodedNames.TryGetValue(decodedName, out string? priorRawName) && priorRawName != rawNameKey) {
                 throw new InvalidDataException("ZIP entries resolve to the same decoded name.");
@@ -667,6 +683,24 @@ internal static class OfficeProvenanceZip {
         }
         if (TryReadUnicodePath(extraField, rawName, out string? unicodeName)) return unicodeName!;
         return new string(DecodeCp437(rawName));
+    }
+
+    private static bool IsSafeOutputEntryName(string name) {
+        if (name.Length == 0 || name[0] == '/' || name.IndexOf('\\') >= 0 ||
+            name.Length >= 2 && char.IsLetter(name[0]) && name[1] == ':') {
+            return false;
+        }
+        foreach (char value in name) {
+            if (char.IsControl(value)) return false;
+        }
+        string[] segments = name.Split('/');
+        for (int index = 0; index < segments.Length; index++) {
+            string segment = segments[index];
+            if (segment is "." or ".." || segment.Length == 0 && index != segments.Length - 1) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static bool TryReadUnicodePath(byte[] extraField, byte[] rawName, out string? name) {
@@ -1060,6 +1094,14 @@ internal static class OfficeProvenanceZip {
         return format is OfficeProvenanceAssetFormat.Jpeg or OfficeProvenanceAssetFormat.Png or
             OfficeProvenanceAssetFormat.Webp or OfficeProvenanceAssetFormat.Gif or
             OfficeProvenanceAssetFormat.Tiff or OfficeProvenanceAssetFormat.Svg;
+    }
+
+    private static void ReserveEmbeddedPngDecodeBudget(byte[] asset, OfficeProvenanceOptions options, ref long expandedBytes) {
+        if (OfficeProvenanceInspector.DetectFormat(asset, fileName: null, options) != OfficeProvenanceAssetFormat.Png) return;
+        if (OfficePngReader.TryGetProvenanceDecodeBudget(
+            asset, options.CancellationToken, options.MaxContainerEntries, out long decodedBytes)) {
+            ReserveExpandedBytes(ref expandedBytes, decodedBytes, options.MaxExpandedContainerBytes);
+        }
     }
 
     private static OfficeProvenanceOptions CreateNestedOptions(OfficeProvenanceOptions source) => new OfficeProvenanceOptions {
