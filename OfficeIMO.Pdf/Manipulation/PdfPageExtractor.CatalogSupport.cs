@@ -4,9 +4,11 @@ using System.Threading;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfPageExtractor {
-    private static bool IsSimpleCatalogDictionary(PdfDictionary dictionary) {
+    private static bool IsSimpleCatalogDictionary(PdfDictionary dictionary,
+        CancellationToken cancellationToken = default) {
         foreach (var value in dictionary.Items.Values) {
-            if (!IsSimpleCatalogValue(value)) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!IsSimpleCatalogValue(value, cancellationToken)) {
                 return false;
             }
         }
@@ -14,7 +16,9 @@ internal static partial class PdfPageExtractor {
         return true;
     }
     
-    private static bool IsSimpleCatalogValue(PdfObject value) {
+    private static bool IsSimpleCatalogValue(PdfObject value,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         switch (value) {
             case PdfNumber:
             case PdfBoolean:
@@ -24,7 +28,8 @@ internal static partial class PdfPageExtractor {
                 return true;
             case PdfArray array:
                 foreach (var item in array.Items) {
-                    if (!IsSimpleCatalogValue(item)) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (!IsSimpleCatalogValue(item, cancellationToken)) {
                         return false;
                     }
                 }
@@ -234,7 +239,9 @@ internal static partial class PdfPageExtractor {
     
     private static PdfDictionary? BuildViewerPreferences(
         Dictionary<int, PdfIndirectObject> sourceObjects,
-        PdfObject? viewerPreferences) {
+        PdfObject? viewerPreferences,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         PdfDictionary? sourceDictionary = ResolveDictionary(sourceObjects, viewerPreferences);
         if (sourceDictionary is null) {
             return null;
@@ -242,7 +249,8 @@ internal static partial class PdfPageExtractor {
     
         var result = new PdfDictionary();
         foreach (var entry in sourceDictionary.Items) {
-            if (!TryCloneSimpleCatalogValue(entry.Value, out var cloned)) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!TryCloneSimpleCatalogValue(entry.Value, out var cloned, cancellationToken)) {
                 return null;
             }
     
@@ -252,7 +260,9 @@ internal static partial class PdfPageExtractor {
         return result;
     }
     
-    private static bool TryCloneSimpleCatalogValue(PdfObject value, out PdfObject cloned) {
+    private static bool TryCloneSimpleCatalogValue(PdfObject value, out PdfObject cloned,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         switch (value) {
             case PdfNumber number:
                 cloned = new PdfNumber(number.Value);
@@ -272,7 +282,8 @@ internal static partial class PdfPageExtractor {
             case PdfArray array:
                 var clonedArray = new PdfArray();
                 foreach (var item in array.Items) {
-                    if (!TryCloneSimpleCatalogValue(item, out var clonedItem)) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (!TryCloneSimpleCatalogValue(item, out var clonedItem, cancellationToken)) {
                         cloned = PdfNull.Instance;
                         return false;
                     }

@@ -18,7 +18,8 @@ public sealed partial class PdfReadDocument {
         return (null, null, null, null, null, null, null);
     }
 
-    private IReadOnlyList<PdfNamedDestination> ExtractNamedDestinations() {
+    private IReadOnlyList<PdfNamedDestination> ExtractNamedDestinations(System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         PdfDictionary? catalog = FindCatalog();
         if (catalog is null) {
             return Array.Empty<PdfNamedDestination>();
@@ -39,6 +40,7 @@ public sealed partial class PdfReadDocument {
         var result = new List<PdfNamedDestination>();
         if (directDestinations is not null) {
             foreach (var entry in directDestinations.Items) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (TryCreateNamedDestination(entry.Key, entry.Value, out var destination)) {
                     AddNamedDestination(result, destination, PdfNamedDestinationTokenKind.Name);
                 }
@@ -47,7 +49,7 @@ public sealed partial class PdfReadDocument {
 
         if (namedDestinationTree is not null) {
             int traversedNameTreeNodes = 0;
-            AddNamedDestinationsFromNameTree(namedDestinationTree, result, new HashSet<int>(), 0, ref traversedNameTreeNodes);
+            AddNamedDestinationsFromNameTree(namedDestinationTree, result, new HashSet<int>(), 0, ref traversedNameTreeNodes, cancellationToken);
         }
 
         return result.Count == 0 ? Array.Empty<PdfNamedDestination>() : result.AsReadOnly();
@@ -58,7 +60,9 @@ public sealed partial class PdfReadDocument {
         List<PdfNamedDestination> result,
         HashSet<int> visitedReferences,
         int depth,
-        ref int traversedNodes) {
+        ref int traversedNodes,
+        System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         EnsureNameTreeBudget(depth, traversedNodes);
         if (treeObject is PdfReference reference) {
             if (!visitedReferences.Add(reference.ObjectNumber)) {
@@ -80,6 +84,7 @@ public sealed partial class PdfReadDocument {
         if (tree.Items.TryGetValue("Names", out var destinationNamesObject) &&
             ResolveArray(destinationNamesObject) is PdfArray destinationNames) {
             for (int i = 0; i + 1 < destinationNames.Items.Count; i += 2) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (TryReadDestinationName(destinationNames.Items[i], out string? name, out _) &&
                     TryCreateNamedDestination(name!, destinationNames.Items[i + 1], out var destination)) {
                     AddNamedDestination(result, destination, PdfNamedDestinationTokenKind.String);
@@ -90,7 +95,8 @@ public sealed partial class PdfReadDocument {
         if (tree.Items.TryGetValue("Kids", out var kidsObject) &&
             ResolveArray(kidsObject) is PdfArray kids) {
             foreach (var kid in kids.Items) {
-                AddNamedDestinationsFromNameTree(kid, result, visitedReferences, depth + 1, ref traversedNodes);
+                cancellationToken.ThrowIfCancellationRequested();
+                AddNamedDestinationsFromNameTree(kid, result, visitedReferences, depth + 1, ref traversedNodes, cancellationToken);
             }
         }
     }

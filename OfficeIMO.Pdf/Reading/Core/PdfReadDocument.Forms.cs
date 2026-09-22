@@ -1,7 +1,8 @@
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadDocument {
-    private IReadOnlyList<PdfFormField> ExtractFormFields(out int javaScriptCount, out long javaScriptBytes) {
+    private IReadOnlyList<PdfFormField> ExtractFormFields(out int javaScriptCount, out long javaScriptBytes, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         javaScriptCount = 0;
         javaScriptBytes = 0L;
         PdfDictionary? acroForm = GetAcroFormDictionary();
@@ -13,7 +14,7 @@ public sealed partial class PdfReadDocument {
 
         var result = new List<PdfFormField>();
         var visited = new HashSet<int>();
-        var widgetPageNumbers = BuildWidgetPageNumberLookup();
+        var widgetPageNumbers = BuildWidgetPageNumberLookup(cancellationToken);
         var actionBudget = new PdfFormWidgetActionReadBudget();
         int nextDirectValueOwnerKey = -1;
         PdfFormFieldInheritedState inherited = PdfFormFieldInheritedState.FromAcroForm(_acroFormDefaultAppearance, _acroFormQuadding);
@@ -22,7 +23,8 @@ public sealed partial class PdfReadDocument {
         }
 
         for (int i = 0; i < fields.Items.Count; i++) {
-            ReadFormField(fields.Items[i], null, inherited, result, visited, widgetPageNumbers, actionBudget, ref nextDirectValueOwnerKey, depth: 1);
+            cancellationToken.ThrowIfCancellationRequested();
+            ReadFormField(fields.Items[i], null, inherited, result, visited, widgetPageNumbers, actionBudget, ref nextDirectValueOwnerKey, depth: 1, cancellationToken);
         }
 
         javaScriptCount = actionBudget.Count;
@@ -182,11 +184,13 @@ public sealed partial class PdfReadDocument {
         return acroForm;
     }
 
-    private Dictionary<int, int> BuildWidgetPageNumberLookup() {
+    private Dictionary<int, int> BuildWidgetPageNumberLookup(System.Threading.CancellationToken cancellationToken) {
         var widgetPageNumbers = new Dictionary<int, int>();
         for (int i = 0; i < Pages.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             IReadOnlyList<int> annotationObjectNumbers = Pages[i].GetAnnotationObjectNumbers("Widget");
             for (int j = 0; j < annotationObjectNumbers.Count; j++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (!widgetPageNumbers.ContainsKey(annotationObjectNumbers[j])) {
                     widgetPageNumbers.Add(annotationObjectNumbers[j], i + 1);
                 }
@@ -196,7 +200,8 @@ public sealed partial class PdfReadDocument {
         return widgetPageNumbers;
     }
 
-    private void ReadFormField(PdfObject fieldObject, string? parentName, PdfFormFieldInheritedState inherited, List<PdfFormField> result, HashSet<int> visited, IReadOnlyDictionary<int, int> widgetPageNumbers, PdfFormWidgetActionReadBudget actionBudget, ref int nextDirectValueOwnerKey, int depth) {
+    private void ReadFormField(PdfObject fieldObject, string? parentName, PdfFormFieldInheritedState inherited, List<PdfFormField> result, HashSet<int> visited, IReadOnlyDictionary<int, int> widgetPageNumbers, PdfFormWidgetActionReadBudget actionBudget, ref int nextDirectValueOwnerKey, int depth, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (depth > _options.Limits.MaxFormFieldDepth) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.FormFieldDepth, _options.Limits.MaxFormFieldDepth, depth);
         }
@@ -265,6 +270,7 @@ public sealed partial class PdfReadDocument {
         var fieldKids = new List<PdfObject>();
         if (kids is not null) {
             for (int i = 0; i < kids.Items.Count; i++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 PdfObject kidObject = kids.Items[i];
                 PdfDictionary? kid = ResolveObject(kidObject) as PdfDictionary;
                 if (kid is not null && IsWidget(kid) && !HasOwnFieldName(kid)) {
@@ -320,7 +326,8 @@ public sealed partial class PdfReadDocument {
 
         var childInherited = new PdfFormFieldInheritedState(fieldType, value, values, valueOwnerKey, hasValueEntry, defaultValue, defaultValues, defaultValueOwnerKey, hasDefaultValueEntry, flags, maxLength, defaultAppearance, quadding, options, selectedIndices, richValue, richValuePlainText, richValueOwnerKey, hasRichValueEntry);
         for (int i = 0; i < fieldKids.Count; i++) {
-            ReadFormField(fieldKids[i], fullName, childInherited, result, visited, widgetPageNumbers, actionBudget, ref nextDirectValueOwnerKey, depth + 1);
+            cancellationToken.ThrowIfCancellationRequested();
+            ReadFormField(fieldKids[i], fullName, childInherited, result, visited, widgetPageNumbers, actionBudget, ref nextDirectValueOwnerKey, depth + 1, cancellationToken);
         }
     }
 

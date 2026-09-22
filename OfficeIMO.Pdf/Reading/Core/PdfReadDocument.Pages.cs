@@ -1,7 +1,8 @@
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadDocument {
-    private List<PdfReadPage> CollectPages() {
+    private List<PdfReadPage> CollectPages(System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         // Prefer true page tree traversal when possible (Catalog -> Pages -> Kids ...)
         var result = new List<PdfReadPage>();
         PdfDictionary? catalog = FindCatalog();
@@ -19,11 +20,12 @@ public sealed partial class PdfReadDocument {
                     kidCount,
                     4_096);
                 int pagesObjectNumber = v is PdfReference pagesReference ? pagesReference.ObjectNumber : 0;
-                TraversePagesNodeDeepLimited(pagesNode, pagesObjectNumber, visitedNodes, visitedPages, result, limit: null, depth: 1);
+                TraversePagesNodeDeepLimited(pagesNode, pagesObjectNumber, visitedNodes, visitedPages, result, limit: null, depth: 1, cancellationToken);
                 if (result.Count == 0 && kidCount > 0) {
                     // Build a reachable candidate set from Kids only
-                    var reachable = CollectReachableLeafCandidates(pagesNode);
+                    var reachable = CollectReachableLeafCandidates(pagesNode, cancellationToken);
                     foreach (var id in reachable) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         if (_objects.TryGetValue(id, out var ind) && ind.Value is PdfDictionary dict) {
                             AddPageWithinBudget(result, CreateReadPage(id, dict));
                         }
@@ -35,6 +37,7 @@ public sealed partial class PdfReadDocument {
 
         // Fallback: scan all dictionaries; accept leaf candidates whose Parent chain leads to a /Pages node
         foreach (var kv in _objects) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (kv.Value.Value is PdfDictionary dict) {
                 if (IsLeafPageByParent(dict)) AddPageWithinBudget(result, CreateReadPage(kv.Key, dict));
             }
@@ -52,7 +55,8 @@ public sealed partial class PdfReadDocument {
         return !hasKids && hasContents && (hasRes || hasMedia);
     }
 
-    private void TraversePagesNodeDeepLimited(PdfDictionary node, int nodeObjectNumber, HashSet<PdfDictionary> visitedNodes, HashSet<int> visitedPages, List<PdfReadPage> outList, int? limit, int depth) {
+    private void TraversePagesNodeDeepLimited(PdfDictionary node, int nodeObjectNumber, HashSet<PdfDictionary> visitedNodes, HashSet<int> visitedPages, List<PdfReadPage> outList, int? limit, int depth, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (depth > _options.Limits.MaxPageTreeDepth) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.PageTreeDepth, _options.Limits.MaxPageTreeDepth, depth);
         }
@@ -77,12 +81,13 @@ public sealed partial class PdfReadDocument {
         var kids = ResolveArray(node.Items.TryGetValue("Kids", out var kidsObj) ? kidsObj : null);
         if (kids is null) return;
         foreach (var kid in kids.Items) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (limit.HasValue && outList.Count >= limit.Value) return;
             var d = ResolveDict(kid);
             if (d is null) { continue; }
             var t = d.Get<PdfName>("Type")?.Name;
             int kidObjectNumber = kid is PdfReference kidReference ? kidReference.ObjectNumber : 0;
-            if (t == "Pages" || (t is null && ResolveArray(d.Items.TryGetValue("Kids", out var dKidsObj) ? dKidsObj : null) is not null)) TraversePagesNodeDeepLimited(d, kidObjectNumber, visitedNodes, visitedPages, outList, limit, depth + 1);
+            if (t == "Pages" || (t is null && ResolveArray(d.Items.TryGetValue("Kids", out var dKidsObj) ? dKidsObj : null) is not null)) TraversePagesNodeDeepLimited(d, kidObjectNumber, visitedNodes, visitedPages, outList, limit, depth + 1, cancellationToken);
             else if ((t == "Page" || IsLikelyPage(d) || IsLeafPageByParent(d)) &&
                      (t == "Page" || HasMedia(d) || HasInheritedValue(d, "MediaBox") || HasInheritedValue(d, "CropBox"))) {
                 int on = kidObjectNumber > 0 ? kidObjectNumber : FindObjectNumberFor(d);
@@ -107,12 +112,13 @@ public sealed partial class PdfReadDocument {
             _outputIntentColorTransform,
             _optionalContentVisibilityState);
 
-    private HashSet<int> CollectReachableLeafCandidates(PdfDictionary pagesRoot) {
+    private HashSet<int> CollectReachableLeafCandidates(PdfDictionary pagesRoot, System.Threading.CancellationToken cancellationToken) {
         var set = new HashSet<int>();
         var visited = new HashSet<PdfDictionary>();
         var stack = new Stack<(PdfDictionary Node, int Depth)>();
         stack.Push((pagesRoot, 1));
         while (stack.Count > 0) {
+            cancellationToken.ThrowIfCancellationRequested();
             (PdfDictionary cur, int depth) = stack.Pop();
             if (depth > _options.Limits.MaxPageTreeDepth) {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.PageTreeDepth, _options.Limits.MaxPageTreeDepth, depth);
@@ -129,6 +135,7 @@ public sealed partial class PdfReadDocument {
             var kids = ResolveArray(cur.Items.TryGetValue("Kids", out var kidsObj) ? kidsObj : null);
             if (kids is null) continue;
             foreach (var k in kids.Items) {
+                cancellationToken.ThrowIfCancellationRequested();
                 var d = ResolveDict(k);
                 if (d is null) continue;
                 var t = d.Get<PdfName>("Type")?.Name;

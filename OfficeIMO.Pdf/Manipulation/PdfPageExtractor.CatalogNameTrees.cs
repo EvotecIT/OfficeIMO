@@ -327,10 +327,11 @@ internal static partial class PdfPageExtractor {
     
     private static PdfObject? BuildCatalogUri(
         Dictionary<int, PdfIndirectObject> sourceObjects,
-        PdfObject? catalogUri) {
+        PdfObject? catalogUri,
+        CancellationToken cancellationToken = default) {
         return catalogUri is not null &&
             ResolveDictionary(sourceObjects, catalogUri) is PdfDictionary dictionary &&
-            IsSimpleCatalogDictionary(dictionary)
+            IsSimpleCatalogDictionary(dictionary, cancellationToken)
             ? catalogUri
             : null;
     }

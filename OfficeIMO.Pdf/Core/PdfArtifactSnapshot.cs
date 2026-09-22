@@ -75,9 +75,11 @@ public sealed class PdfArtifactSnapshot {
             using var sha256 = System.Security.Cryptography.IncrementalHash.CreateHash(
                 System.Security.Cryptography.HashAlgorithmName.SHA256);
             const int chunkSize = 64 * 1024;
-            for (int offset = 0; offset < bytes.Length; offset += chunkSize) {
+            for (int offset = 0; offset < bytes.Length;) {
                 cancellationToken.ThrowIfCancellationRequested();
-                sha256.AppendData(bytes, offset, Math.Min(chunkSize, bytes.Length - offset));
+                int count = Math.Min(chunkSize, bytes.Length - offset);
+                sha256.AppendData(bytes, offset, count);
+                offset += count;
             }
             cancellationToken.ThrowIfCancellationRequested();
             return ToLowerHex(sha256.GetHashAndReset());

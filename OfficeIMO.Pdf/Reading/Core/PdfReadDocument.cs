@@ -73,32 +73,46 @@ public sealed partial class PdfReadDocument {
             _objects,
             _options.Limits.MaxDecodedStreamBytes,
             _outputIntentMetadataRetentionBudget);
-        Pages = CollectPages();
-        RepairReport = repairReport.Append(PdfSemanticRepairDiagnostics.AnalyzeAndRepair(_objects, _catalog, Pages, _options));
+        Pages = CollectPages(cancellationToken);
+        RepairReport = repairReport.Append(PdfSemanticRepairDiagnostics.AnalyzeAndRepair(_objects, _catalog, Pages, _options, cancellationToken));
+        cancellationToken.ThrowIfCancellationRequested();
         _metadata = ExtractMetadata();
+        cancellationToken.ThrowIfCancellationRequested();
         _pageLabels = ExtractPageLabels();
-        _namedDestinations = ExtractNamedDestinations();
+        cancellationToken.ThrowIfCancellationRequested();
+        _namedDestinations = ExtractNamedDestinations(cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         _catalogActions = ExtractCatalogActions(out _javaScripts);
+        cancellationToken.ThrowIfCancellationRequested();
         _attachments = ExtractAttachmentInfos(cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         _outputIntents = ExtractOutputIntents(out bool outputIntentsAreComplete);
+        cancellationToken.ThrowIfCancellationRequested();
         _outputIntentsAreComplete = outputIntentsAreComplete;
         _xmpMetadata = ExtractXmpMetadata();
+        cancellationToken.ThrowIfCancellationRequested();
         _taggedContent = ExtractTaggedContent();
+        cancellationToken.ThrowIfCancellationRequested();
         _optionalContent = ExtractOptionalContent();
+        cancellationToken.ThrowIfCancellationRequested();
         _outlines = ExtractOutlines();
+        cancellationToken.ThrowIfCancellationRequested();
         _openAction = ExtractOpenAction();
         ViewerPreferences = ExtractViewerPreferences();
         _portfolio = ExtractPortfolio();
         _acroFormDefaultAppearance = ExtractAcroFormText("DA");
         _acroFormQuadding = ExtractAcroFormInteger("Q");
         _acroFormXfa = ExtractAcroFormXfaInfo();
-        _formFields = ExtractFormFields(out _formWidgetJavaScriptCount, out _formWidgetJavaScriptBytes);
+        cancellationToken.ThrowIfCancellationRequested();
+        _formFields = ExtractFormFields(out _formWidgetJavaScriptCount, out _formWidgetJavaScriptBytes, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         _acroFormNeedAppearances = ExtractAcroFormBoolean("NeedAppearances");
         _acroFormSignatureFlags = ExtractAcroFormInteger("SigFlags");
         CatalogPageMode = ExtractCatalogName("PageMode");
         CatalogPageLayout = ExtractCatalogName("PageLayout");
         CatalogVersion = ExtractCatalogName("Version");
         CatalogLanguage = ExtractCatalogString("Lang");
+        cancellationToken.ThrowIfCancellationRequested();
         _decodedStreamBytes = _decodedStreamBudget.UsedBytes;
     }
 
