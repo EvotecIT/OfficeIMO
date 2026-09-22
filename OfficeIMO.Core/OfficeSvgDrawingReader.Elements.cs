@@ -72,10 +72,6 @@ public static partial class OfficeSvgDrawingReader {
         string? clipValue = ReadPresentationProperty(element, "clip-path");
         if (name != "svg" && !suppressElementClip && !string.IsNullOrWhiteSpace(clipValue) &&
             !clipValue!.Trim().Equals("none", StringComparison.OrdinalIgnoreCase)) {
-            if (!references.TryChargeIntermediateSurface(drawing.Width, drawing.Height)) {
-                unsupported++;
-                return;
-            }
             var content = new OfficeDrawing(drawing.Width, drawing.Height);
             content.Fonts.AddRange(drawing.Fonts);
             AddElement(element, content, inherited, paintServers, references, inheritedTransform, viewX, viewY,
@@ -148,8 +144,7 @@ public static partial class OfficeSvgDrawingReader {
                 out OfficeDrawingSoftMask? softMask,
                 out SvgFilterEffect? filterEffect);
             bool capturesLink = name == "a";
-            if ((hasEffects || capturesLink)
-                && !references.TryChargeIntermediateSurface(drawing.Width, drawing.Height)) {
+            if (hasEffects && !references.TryChargeIntermediateSurface(drawing.Width, drawing.Height)) {
                 unsupported++;
                 return;
             }

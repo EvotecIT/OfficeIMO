@@ -140,6 +140,57 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void CommentOnlyForeignObjectsDoNotExhaustRendererCalls() {
+        string empty = string.Concat(Enumerable.Repeat("<foreignObject width='1' height='1'><!-- comment --></foreignObject>", 129));
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'>" + empty +
+            "<foreignObject width='1' height='1'><div xmlns='http://www.w3.org/1999/xhtml'>Text</div></foreignObject></svg>";
+        int calls = 0;
+        var options = new OfficeSvgDrawingReaderOptions {
+            ForeignObjectRenderer = context => {
+                calls++;
+                return new OfficeDrawing(context.Width, context.Height);
+            }
+        };
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), options, out _, out int unsupported));
+        Assert.Equal(0, unsupported);
+        Assert.Equal(1, calls);
+    }
+
+    [Fact]
+    public void DirectRenderedClipsDoNotConsumeEffectSurfaces() {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4096 4096'>" +
+            "<defs><clipPath id='c'><rect width='5' height='5'/></clipPath></defs>" +
+            string.Concat(Enumerable.Repeat("<rect width='5' height='5' clip-path='url(#c)'/>", 4)) + "</svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.Equal(0, unsupported);
+        Assert.Equal(4, drawing!.Elements.OfType<OfficeDrawingGroup>().Count());
+    }
+
+    [Fact]
+    public void PlainLinksDoNotConsumeEffectSurfaces() {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4096 4096'>" +
+            string.Concat(Enumerable.Repeat("<a href='https://example.test/'><rect width='5' height='5'/></a>", 4)) + "</svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.Equal(0, unsupported);
+        Assert.Equal(4, drawing!.Elements.OfType<OfficeDrawingLink>().Count());
+    }
+
+    [Fact]
+    public void PlainOutlinedTextDoesNotConsumeEffectSurfaces() {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4096 4096'>" +
+            string.Concat(Enumerable.Repeat("<text x='1' y='15' font-family='Painted' font-size='12' fill='none' stroke='black'>A</text>", 4)) + "</svg>";
+        var options = new OfficeSvgDrawingReaderOptions();
+        options.Fonts.Add("Painted", ManagedTextShapingTestAssets.CreateFont('A', 'B'));
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), options, out OfficeDrawing? drawing, out int unsupported));
+        Assert.Equal(0, unsupported);
+        Assert.Equal(4, drawing!.Elements.OfType<OfficeDrawingGroup>().Count(group => group.ActualText == "A"));
+    }
+
+    [Fact]
     public void NestedFullSizeViewportsUseAnAggregateIntermediateBudget() {
         string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4096 4096'>" +
             "<svg><svg><svg><rect width='1' height='1'/></svg></svg></svg></svg>";

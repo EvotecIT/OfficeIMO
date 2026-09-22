@@ -173,7 +173,7 @@ public static partial class OfficeSvgDrawingReader {
 
         internal bool HasForeignObjectContent(XElement element) {
             if (_foreignObjectHasContent.TryGetValue(element, out bool hasContent)) return hasContent;
-            hasContent = element.Nodes().Any(node => node is not XText text || !string.IsNullOrWhiteSpace(text.Value));
+            hasContent = element.Nodes().Any(node => node is XElement || node is XText text && !string.IsNullOrWhiteSpace(text.Value));
             _foreignObjectHasContent[element] = hasContent;
             return hasContent;
         }

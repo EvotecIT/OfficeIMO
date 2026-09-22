@@ -166,7 +166,6 @@ public static partial class OfficeSvgDrawingReader {
             ref unsupported,
             out OfficeDrawing? strokePatternLayer);
 
-        if (!references.TryChargeIntermediateSurface(drawing.Width, drawing.Height)) return false;
         var paint = new OfficeDrawing(drawing.Width, drawing.Height);
         paint.Fonts.AddRange(drawing.Fonts);
         if (hasPattern && patternLayer != null) paint.AddEffectDrawing(patternLayer, OfficeTransform.Identity);
