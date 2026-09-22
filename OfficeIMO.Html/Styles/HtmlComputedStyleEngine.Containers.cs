@@ -4,10 +4,11 @@ public static partial class HtmlComputedStyleEngine {
     private static bool AreContainerConditionsApplicable(
         IReadOnlyList<ContainerRuleCondition> conditions,
         IReadOnlyList<ContainerQueryContext> contexts,
-        MediaEnvironment environment) {
+        MediaEnvironment environment,
+        bool enforceResolutionLimits) {
         foreach (ContainerRuleCondition condition in conditions) {
             ContainerQueryContext? context = FindContainerContext(condition, contexts);
-            if (context == null || !EvaluateContainerCondition(condition.Condition, context, environment)) return false;
+            if (context == null || !EvaluateContainerCondition(condition.Condition, context, environment, enforceResolutionLimits)) return false;
         }
         return true;
     }
@@ -294,27 +295,29 @@ public static partial class HtmlComputedStyleEngine {
             : inheritedFontSize;
     }
 
-    private static bool EvaluateContainerCondition(string condition, ContainerQueryContext context, MediaEnvironment environment) {
+    private static bool EvaluateContainerCondition(string condition, ContainerQueryContext context, MediaEnvironment environment,
+        bool enforceResolutionLimits) {
         string normalized = condition.Trim();
         if (normalized.Length == 0) return false;
-        if (StartsWithLogicalNot(normalized)) return !EvaluateContainerCondition(normalized.Substring(3).Trim(), context, environment);
+        if (StartsWithLogicalNot(normalized)) return !EvaluateContainerCondition(normalized.Substring(3).Trim(), context, environment, enforceResolutionLimits);
 
         IReadOnlyList<string> orParts = SplitTopLevelLogical(normalized, "or").ToList();
-        if (orParts.Count > 1) return orParts.Any(part => EvaluateContainerCondition(part, context, environment));
+        if (orParts.Count > 1) return orParts.Any(part => EvaluateContainerCondition(part, context, environment, enforceResolutionLimits));
         IReadOnlyList<string> andParts = SplitTopLevelLogical(normalized, "and").ToList();
-        if (andParts.Count > 1) return andParts.All(part => EvaluateContainerCondition(part, context, environment));
+        if (andParts.Count > 1) return andParts.All(part => EvaluateContainerCondition(part, context, environment, enforceResolutionLimits));
 
         if (normalized[0] == '(' && FindMatchingParenthesis(normalized, 0) == normalized.Length - 1) {
-            return EvaluateContainerCondition(normalized.Substring(1, normalized.Length - 2), context, environment);
+            return EvaluateContainerCondition(normalized.Substring(1, normalized.Length - 2), context, environment, enforceResolutionLimits);
         }
         if (normalized.StartsWith("style(", StringComparison.OrdinalIgnoreCase)
             && normalized.EndsWith(")", StringComparison.Ordinal)) {
-            return EvaluateContainerStyleQuery(normalized.Substring(6, normalized.Length - 7), context, environment);
+            return EvaluateContainerStyleQuery(normalized.Substring(6, normalized.Length - 7), context, environment, enforceResolutionLimits);
         }
         return EvaluateContainerSizeFeature(normalized, context, environment);
     }
 
-    private static bool EvaluateContainerStyleQuery(string query, ContainerQueryContext context, MediaEnvironment environment) {
+    private static bool EvaluateContainerStyleQuery(string query, ContainerQueryContext context, MediaEnvironment environment,
+        bool enforceResolutionLimits) {
         int colon = query.IndexOf(':');
         string name = (colon < 0 ? query : query.Substring(0, colon)).Trim();
         if (name.Length == 0 || !context.Properties.TryGetValue(name, out string? actual)) return false;
@@ -322,8 +325,8 @@ public static partial class HtmlComputedStyleEngine {
         string expected = query.Substring(colon + 1).Trim();
         if (name.StartsWith("--", StringComparison.Ordinal)) {
             string? LookupCustomProperty(string property) => context.Properties.TryGetValue(property, out string? value) ? value : null;
-            if (!HtmlCssCustomPropertyResolver.TryResolve(actual, LookupCustomProperty, out string resolvedActual)
-                || !HtmlCssCustomPropertyResolver.TryResolve(expected, LookupCustomProperty, out string resolvedExpected)) {
+            if (!HtmlCssCustomPropertyResolver.TryResolve(actual, LookupCustomProperty, out string resolvedActual, enforceResolutionLimits)
+                || !HtmlCssCustomPropertyResolver.TryResolve(expected, LookupCustomProperty, out string resolvedExpected, enforceResolutionLimits)) {
                 return false;
             }
             return string.Equals(

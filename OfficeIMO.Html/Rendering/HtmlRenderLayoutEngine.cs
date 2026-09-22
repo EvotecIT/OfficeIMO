@@ -366,7 +366,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _nextLogicalTextOrder = 0;
         _nextSemanticNodeId = 0;
         _backgroundImageTileCount = 0;
-        _layoutOperationCount = 0;
         _fixedPositionedElements.Clear();
         _rootPositionedElements.Clear();
         _localPositionedElements.Clear();

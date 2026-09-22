@@ -844,12 +844,12 @@ internal sealed partial class HtmlRenderStyleResolver {
             style.BoxShadowLayerCount = shadows.Count;
             style.BoxShadows = shadows.Take(_options.MaxBoxShadowLayers).ToArray();
         }
-        string textShadow = NormalizeCssValue(computed.GetValue("text-shadow"), "none");
-        if (!HtmlCssTextShadowParser.TryParse(textShadow, style.Font.Size, _options.DefaultFontSize, _viewportWidth, _viewportHeight, _activeContainerWidth, _activeContainerHeight, style.Color, out IReadOnlyList<HtmlCssTextShadow> textShadows)) {
-            style.UnsupportedTextShadow = textShadow;
+        string textShadow = computed.GetValue("text-shadow");
+        if (!HtmlCssTextShadowParser.TryParse(textShadow, style.Font.Size, _options.DefaultFontSize, _viewportWidth, _viewportHeight, _activeContainerWidth, _activeContainerHeight, style.Color, _options.MaxTextShadowLayers, out IReadOnlyList<HtmlCssTextShadow> textShadows, out int textShadowLayerCount)) {
+            style.UnsupportedTextShadow = textShadow.Length <= 256 ? textShadow : textShadow.Substring(0, 256);
         } else {
-            style.TextShadowLayerCount = textShadows.Count;
-            style.TextShadows = textShadows.Take(_options.MaxTextShadowLayers).ToArray();
+            style.TextShadowLayerCount = textShadowLayerCount;
+            style.TextShadows = textShadows;
         }
     }
 

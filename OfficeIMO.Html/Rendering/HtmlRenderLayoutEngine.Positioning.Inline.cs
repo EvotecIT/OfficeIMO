@@ -34,7 +34,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 && _layoutStyles.TryGetValue(current, out HtmlRenderBoxStyle? style)
                 && style.Display == "inline") {
                 if (!bounds.TryGetValue(current, out InlineContainingBounds? currentBounds)) {
-                    currentBounds = new InlineContainingBounds();
+                    currentBounds = new InlineContainingBounds(this);
                     bounds[current] = currentBounds;
                 }
                 currentBounds.Include(
@@ -164,11 +164,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private sealed class InlineContainingBounds {
+        private readonly HtmlRenderLayoutEngine _owner;
         private double _left = double.PositiveInfinity;
         private double _top = double.PositiveInfinity;
         private double _right = double.NegativeInfinity;
         private double _bottom = double.NegativeInfinity;
         private readonly List<InlineFragmentRect> _fragments = new List<InlineFragmentRect>();
+        private readonly Dictionary<long, List<int>> _fragmentsByLine = new Dictionary<long, List<int>>();
+
+        internal InlineContainingBounds(HtmlRenderLayoutEngine owner) => _owner = owner;
 
         internal void Include(double x, double y, double width, double height) {
             _left = Math.Min(_left, x);
@@ -180,18 +184,40 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         private void IncludeFragment(double x, double y, double width, double height) {
             const double tolerance = 0.01D;
-            for (int index = 0; index < _fragments.Count; index++) {
-                InlineFragmentRect fragment = _fragments[index];
-                if (Math.Abs(fragment.Y - y) > tolerance || Math.Abs(fragment.Height - height) > tolerance) continue;
-                double right = x + width;
-                if (right < fragment.X - tolerance || x > fragment.Right + tolerance) continue;
-                _fragments[index] = new InlineFragmentRect(
-                    Math.Min(fragment.X, x),
-                    Math.Min(fragment.Y, y),
-                    Math.Max(fragment.Right, right) - Math.Min(fragment.X, x),
-                    Math.Max(fragment.Bottom, y + height) - Math.Min(fragment.Y, y));
-                return;
+            long line = (long)Math.Floor(y / tolerance);
+            for (int offset = -1; offset <= 1; offset++) {
+                long candidate = line + offset;
+                if (!_fragmentsByLine.TryGetValue(candidate, out List<int>? indexes)) continue;
+                for (int item = indexes.Count - 1; item >= 0; item--) {
+                    _owner.ChargeLayoutOperation("positioned inline fragment lookup");
+                    int index = indexes[item];
+                    InlineFragmentRect fragment = _fragments[index];
+                    if (Math.Abs(fragment.Y - y) > tolerance || Math.Abs(fragment.Height - height) > tolerance) continue;
+                    double right = x + width;
+                    if (right < fragment.X - tolerance || x > fragment.Right + tolerance) continue;
+                    var merged = new InlineFragmentRect(
+                        Math.Min(fragment.X, x),
+                        Math.Min(fragment.Y, y),
+                        Math.Max(fragment.Right, right) - Math.Min(fragment.X, x),
+                        Math.Max(fragment.Bottom, y + height) - Math.Min(fragment.Y, y));
+                    _fragments[index] = merged;
+                    long mergedLine = (long)Math.Floor(merged.Y / tolerance);
+                    if (mergedLine != candidate) {
+                        indexes.RemoveAt(item);
+                        if (!_fragmentsByLine.TryGetValue(mergedLine, out List<int>? mergedIndexes)) {
+                            mergedIndexes = new List<int>();
+                            _fragmentsByLine.Add(mergedLine, mergedIndexes);
+                        }
+                        mergedIndexes.Add(index);
+                    }
+                    return;
+                }
             }
+            if (!_fragmentsByLine.TryGetValue(line, out List<int>? lineIndexes)) {
+                lineIndexes = new List<int>();
+                _fragmentsByLine.Add(line, lineIndexes);
+            }
+            lineIndexes.Add(_fragments.Count);
             _fragments.Add(new InlineFragmentRect(x, y, width, height));
         }
 
