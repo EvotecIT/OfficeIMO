@@ -51,7 +51,7 @@ internal sealed class ScriptedDocumentSession : IDisposable {
         _historyState = history;
         _navigate = navigate;
         _errors = new RuntimeScriptErrors(options.MaxPendingPromiseRejections, diagnostics);
-        _realms = new RuntimeFrameRealms(options, frameBudget, _realmSync, _errors);
+        _realms = new RuntimeFrameRealms(options, frameBudget, _realmSync, _errors, _scriptEntry);
         _auxiliary = new RuntimeAuxiliaryWindows(options, frameBudget, _realms, _scriptEntry, EnsureEngine);
         _resources = new RuntimeResourceLoader(options, budget, diagnostics);
         _integrity = new RuntimeSubresourceIntegrity(options.MaxModuleIntegrityMetadataCharacters);
@@ -169,6 +169,7 @@ internal sealed class ScriptedDocumentSession : IDisposable {
                     var popupViewport = new RuntimeViewport((IHtmlDocument)document, _options, () => _activeCommandToken, _resources.Capture);
                     _histories.Add(document, new RuntimeHistoryBindings(engine, document, loop, _options, popupViewport, installLocation: false));
                 }
+                _realms.CaptureWindowSurface(document);
                 return engine;
             }
             var viewport = new RuntimeViewport((IHtmlDocument)document, _options, () => _activeCommandToken, _resources.Capture);
@@ -177,6 +178,7 @@ internal sealed class ScriptedDocumentSession : IDisposable {
             _automation = new RuntimeAutomation(document, _options, _focus, _history, viewport, engine, _diagnostics);
             RuntimeInteractionBindings.Install(engine, document, _focus, _automation, _options.DevicePixelRatio);
             RuntimeSelectBindings.Install(engine);
+            _realms.CaptureWindowSurface(document);
             return engine;
         }
     }

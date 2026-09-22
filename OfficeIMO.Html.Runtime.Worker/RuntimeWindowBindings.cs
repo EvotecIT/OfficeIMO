@@ -20,7 +20,7 @@ internal static class RuntimeWindowBindings {
         foreach (var property in engine.Global.GetOwnProperties().ToArray()) {
             if (property.Value.Value is Function constructor && constructor.Get("prototype") is ObjectInstance prototype) prototypes.Add(prototype);
         }
-        var names = new HashSet<string>(StringComparer.Ordinal) { "window", "self", "parent", "top", "frames", "defaultView", "view", "target", "currentTarget", "srcElement" };
+        var names = new HashSet<string>(StringComparer.Ordinal) { "window", "self", "parent", "top", "frames", "contentWindow", "defaultView", "view", "target", "currentTarget", "srcElement" };
         using var stream = typeof(RuntimeWindowBindings).Assembly.GetManifestResourceStream("OfficeIMO.RuntimeWindowBootstrap.js")!;
         using var reader = new StreamReader(stream);
         var methodFactory = engine.Evaluate(reader.ReadToEnd());

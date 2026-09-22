@@ -16,7 +16,7 @@ internal sealed partial class RuntimeFrameRealms {
         if (window == null) return JsValue.Null;
         window = ResolveWindow(window);
         if (ReferenceEquals(window, caller)) return engine.Global;
-        return JsValue.FromObject(engine, _rootWindows.Contains(window) ? _rootAnchor! : window);
+        return WrapWindowFunctions(engine, caller, _rootWindows.Contains(window) ? _rootAnchor! : window);
     }
 
     internal CancellationToken ResourceLifetimeFor(IBrowsingContext context) {

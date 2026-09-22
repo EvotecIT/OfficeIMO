@@ -9,6 +9,24 @@ public sealed class RuntimeAuxiliaryWindowTests {
     private static HtmlProcessRuntimeProvider Runtime() => new(Path.Combine(AppContext.BaseDirectory, "RuntimeWorker", "OfficeIMO.Html.Runtime.Worker.dll"), AngleSharpDomServices.Instance);
 
     [Fact]
+    public async Task PopupDefinedWindowFunctionUsesItsRealmAndRetiresWhenClosed() {
+        await using var session = await Runtime().OpenTrustedAsync(new() {
+            Profile = HtmlRuntimeProfile.WebApplicationV1, DocumentUrl = Start,
+            Html = "<!doctype html><body>Root"
+        });
+        Assert.True((await session.EvaluateAsync("""
+            (()=>{const popup=open('','functions'),script=popup.document.createElement('script');
+                script.textContent="window.answer=function(value){return this===window?value+1:-1}";
+                popup.document.body.append(script);
+                const saved=popup.answer;
+                if(popup.answer!==saved || popup.answer(41)!==42)return false;
+                popup.close();
+                try{saved(1);return false}catch(error){return error.name==='InvalidStateError'}
+            })()
+            """)).GetBoolean());
+    }
+
+    [Fact]
     public async Task PopupSurvivesReloadWithItsRealmAndCapturedOpener()
     {
         await using var session = await Runtime().OpenTrustedAsync(new() {
@@ -48,7 +66,7 @@ public sealed class RuntimeAuxiliaryWindowTests {
         await session.ExecuteAsync("""
             window.popup=open('','persistent');
             const script=popup.document.createElement('script');
-            script.textContent="const saved=opener;addEventListener('message',()=>{let blocked=false;try{saved.document.body.textContent='leak'}catch(e){blocked=e.name==='SecurityError'}fetch('/data',{mode:'same-origin'}).then(r=>r.text()).then(value=>saved.postMessage({blocked,same:saved===opener,value},'*'))});opener.document.body.setAttribute('data-ready','yes')";
+            script.textContent="window.secret=()=>42;const saved=opener;addEventListener('message',()=>{let blocked=false;try{saved.document.body.textContent='leak'}catch(e){blocked=e.name==='SecurityError'}fetch('/data',{mode:'same-origin'}).then(r=>r.text()).then(value=>saved.postMessage({blocked,same:saved===opener,value},'*'))});opener.document.body.setAttribute('data-ready','yes')";
             popup.document.body.append(script);
             """);
         await session.WaitForAsync("document.body.hasAttribute('data-ready')");
@@ -57,10 +75,11 @@ public sealed class RuntimeAuxiliaryWindowTests {
             window.popup=open('','persistent');window.reply=null;
             addEventListener('message',event=>reply={...event.data,origin:event.origin,source:event.source===popup});
             window.blocked=false;try{popup.document.body.textContent='leak'}catch(e){blocked=e.name==='SecurityError'}
+            window.functionBlocked=false;try{popup.secret}catch(e){functionBlocked=e.name==='SecurityError'}
             popup.postMessage('check','https://popup.example');
             """);
         await session.WaitForAsync("reply!==null");
-        Assert.True((await session.EvaluateAsync("blocked && reply.blocked && reply.same && reply.source && reply.value==='popup-origin' && reply.origin==='https://popup.example' && document.body.textContent==='Other'")).GetBoolean());
+        Assert.True((await session.EvaluateAsync("blocked && functionBlocked && reply.blocked && reply.same && reply.source && reply.value==='popup-origin' && reply.origin==='https://popup.example' && document.body.textContent==='Other'")).GetBoolean());
     }
 
     [Theory]

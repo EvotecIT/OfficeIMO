@@ -46,7 +46,7 @@ internal sealed class RuntimeFrameBudget(HtmlScriptRequest options) {
     }
 }
 
-internal sealed partial class RuntimeFrameRealms(HtmlScriptRequest options, RuntimeFrameBudget budget, object sync, RuntimeScriptErrors errors) {
+internal sealed partial class RuntimeFrameRealms(HtmlScriptRequest options, RuntimeFrameBudget budget, object sync, RuntimeScriptErrors errors, RuntimeScriptEntry entry) {
     private readonly Dictionary<IWindow, Realm> _realms = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<IBrowsingContext, Realm> _contexts = new(ReferenceEqualityComparer.Instance);
     private readonly HashSet<IWindow> _reserved = new(ReferenceEqualityComparer.Instance);
@@ -366,6 +366,7 @@ internal sealed partial class RuntimeFrameRealms(HtmlScriptRequest options, Runt
     private sealed record Realm(IWindow Window, IBrowsingContext Context, Engine Engine, RuntimeEventLoop Loop,
         JsValue DecodeMessage, JsValue DispatchMessage, RuntimeModuleLoader Modules, CancellationTokenSource Lifetime) {
         internal List<IDisposable> Resources { get; } = [];
+        internal HashSet<string>? InitialGlobalKeys { get; set; }
     }
 
     private sealed record RetiringRealm(Realm Realm, RetirementKind Kind);
