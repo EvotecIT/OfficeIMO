@@ -85,6 +85,8 @@ internal static partial class PdfWriter {
 
         private void StartPage(PdfOptions options) {
             options.Validate();
+            if (options.MaxGeneratedPages is int maximumPages && pages.Count >= maximumPages)
+                throw new InvalidDataException("PDF layout exceeded the configured generated page limit.");
             currentOpts = options;
             width = options.PageWidth - options.MarginLeft - options.MarginRight;
             yStart = options.PageHeight - options.MarginTop;

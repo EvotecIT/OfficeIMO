@@ -11,6 +11,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         double top,
         HtmlToPowerPointResult result,
         HtmlImportBudget budget,
+        HtmlToPowerPointOptions options,
         HtmlSemanticBlock? semanticBlock = null) {
         if (!budget.TryReserveTableWithShape(out string tableLimit)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
@@ -40,7 +41,7 @@ public static partial class HtmlPowerPointConverterExtensions {
 
         if (semanticBlock?.Table != null) ApplySemanticTableFormatting(table, semanticBlock.Table, grid.Cells);
         foreach (PowerPointHtmlTableCell cell in grid.Cells) {
-            TryApplyTargetSemanticRuns(table.GetCell(cell.Row, cell.Column), cell.Element);
+            TryApplyTargetSemanticRuns(table.GetCell(cell.Row, cell.Column), cell.Element, options.HyperlinkUrlPolicy);
         }
 
         ApplyShapeTransforms(tableElement, table, budget, result);

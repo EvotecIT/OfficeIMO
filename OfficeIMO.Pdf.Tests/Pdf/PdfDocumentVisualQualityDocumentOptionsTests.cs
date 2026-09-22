@@ -14,6 +14,27 @@ namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfDocumentVisualQualityTests {
     [Fact]
+    public void GeneratedPageLimitStopsLayoutBeforeCreatingAnotherPage() {
+        var options = new PdfOptions {
+            PageHeight = 180, MarginTop = 24, MarginBottom = 24, MaxGeneratedPages = 1
+        };
+        PdfDocument document = PdfDocument.Create(options)
+            .Paragraph(p => p.Text(string.Join(" ", Enumerable.Repeat("A long paragraph", 80))));
+
+        Assert.Equal(1, options.Clone().MaxGeneratedPages);
+        Assert.Throws<InvalidDataException>(() => document.ToBytes());
+    }
+
+    [Fact]
+    public void GeneratedOutputLimitStopsSerializationBeforeTheBufferGrows() {
+        var options = new PdfOptions { MaxGeneratedOutputBytes = 128 };
+        PdfDocument document = PdfDocument.Create(options).Paragraph(p => p.Text("Bounded output"));
+
+        Assert.Equal(128L, options.Clone().MaxGeneratedOutputBytes);
+        Assert.Throws<InvalidDataException>(() => document.ToBytes());
+    }
+
+    [Fact]
     public void Options_RejectInvalidPageGeometryAndTypography() {
         var widthException = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create(new PdfOptions {

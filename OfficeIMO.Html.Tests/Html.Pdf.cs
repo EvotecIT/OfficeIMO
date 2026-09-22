@@ -2119,6 +2119,35 @@ public sealed class HtmlPdfTests {
             .ToBytes();
     }
 
+    [Fact]
+    public void PdfToHtmlMatchesRepeatedLinkAnnotationsWithinLinearWorkBudget() {
+        byte[] single = CreateLinkAnnotationPdf("https://example.com/repeated");
+        string repeated = System.Text.Encoding.ASCII.GetString(single).Replace(
+            "/Annots [4 0 R]", "/Annots [" + string.Concat(Enumerable.Repeat("4 0 R ", 1_000)) + "]",
+            StringComparison.Ordinal);
+        byte[] pdf = System.Text.Encoding.ASCII.GetBytes(repeated);
+        var options = PdfToHtmlOptions.CreatePositionedReviewProfile();
+        options.MaximumAnnotationMatchWork = 1_500;
+
+        PdfHtmlConversionResult result = PdfCore.PdfDocumentReadResult.Load(pdf).ToHtmlResult(options);
+
+        Assert.Equal(1_000, result.Summary.SelectedAnnotationActionCount);
+    }
+
+    [Fact]
+    public void PdfToHtmlRejectsAnnotationMatchingAboveConfiguredWorkBudget() {
+        byte[] single = CreateLinkAnnotationPdf("https://example.com/repeated");
+        string repeated = System.Text.Encoding.ASCII.GetString(single).Replace(
+            "/Annots [4 0 R]", "/Annots [" + string.Concat(Enumerable.Repeat("4 0 R ", 20)) + "]",
+            StringComparison.Ordinal);
+        byte[] pdf = System.Text.Encoding.ASCII.GetBytes(repeated);
+        var options = PdfToHtmlOptions.CreatePositionedReviewProfile();
+        options.MaximumAnnotationMatchWork = 10;
+
+        Assert.Throws<InvalidOperationException>(() =>
+            PdfCore.PdfDocumentReadResult.Load(pdf).ToHtmlResult(options));
+    }
+
     private static byte[] CreateLinkAnnotationPdf(string uri) {
         string escapedUri = uri.Replace("\\", "\\\\").Replace("(", "\\(").Replace(")", "\\)");
         string pdf = string.Join("\n", new[] {

@@ -603,11 +603,15 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void RenderNativeParagraphImages(INativePdfFlow pdf, WordParagraph paragraph, IReadOnlyList<WordParagraph> runs, PdfCore.PdfAlign align, WordToPdfOptions? options, PdfCore.PdfParagraphStyle anchorStyle) {
+            int imageLimit = options?.MaxImagesPerParagraph ?? 1_000;
+            if (imageLimit <= 0) throw new ArgumentOutOfRangeException(nameof(WordToPdfOptions.MaxImagesPerParagraph));
             var positions = paragraph._paragraph!.Descendants().Select((element, index) => (element, index))
                 .ToDictionary(pair => pair.element, pair => pair.index);
             var images = new List<(WordImage Image, int Position)>();
             void Add(WordImage? image, DocumentFormat.OpenXml.OpenXmlElement? container) {
                 if (image == null) return;
+                if (images.Count >= imageLimit)
+                    throw new InvalidDataException("Word paragraph image count exceeds the PDF export limit.");
                 // DrawingML images retain their exact position; VML wrappers use their containing run.
                 int position = image._Image != null && positions.TryGetValue(image._Image, out int drawingPosition) ? drawingPosition
                     : container != null && positions.TryGetValue(container, out int containerPosition) ? containerPosition : int.MaxValue;
@@ -624,8 +628,13 @@ namespace OfficeIMO.Word.Pdf {
                 if (ReferenceEquals(run._run, paragraph._run)) continue;
                 foreach (WordImage image in run.EnumerateImages()) Add(image, run._run);
             }
-            foreach (var image in images.OrderBy(item => item.Position))
-                RenderNativeImage(pdf, image.Image, align, options, "body paragraph image", anchorStyle);
+            var anchoredCanvas = new PdfCore.PdfPageCanvas();
+            foreach (var image in images.OrderBy(item => item.Position)) {
+                options?.CancellationToken.ThrowIfCancellationRequested();
+                RenderNativeImage(pdf, image.Image, align, options, "body paragraph image", anchorStyle, anchoredCanvas);
+            }
+            if (anchoredCanvas.Items.Count > 0)
+                anchorStyle.AnchoredCanvas = new PdfCore.PdfCanvasBlock(anchoredCanvas.Items);
         }
 
         private static void RenderNativeRunCharts(INativePdfFlow pdf, IReadOnlyList<WordParagraph> runs, PdfCore.PdfAlign align, WordToPdfOptions? options, W.Run? currentRun = null) {

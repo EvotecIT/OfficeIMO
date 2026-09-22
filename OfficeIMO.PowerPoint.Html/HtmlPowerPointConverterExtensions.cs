@@ -26,6 +26,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         const HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen;
         IHtmlDocument adapterDocument = document.CreateNativeDocumentForConversion(mediaContext);
         HtmlToPowerPointOptions resolved = options?.Clone() ?? new HtmlToPowerPointOptions();
+        resolved.HyperlinkUrlPolicy = HtmlUrlPolicy.Intersect(document.HyperlinkUrlPolicy, resolved.HyperlinkUrlPolicy);
         bool targetSemantic = resolved.Mode != HtmlImportMode.Generic
             && (resolved.Mode == HtmlImportMode.Semantic
                 || OfficeHtmlSemanticEnvelope.Inspect(adapterDocument, "powerpoint").IsPresent

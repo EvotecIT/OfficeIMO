@@ -15,9 +15,25 @@ public sealed class InvoicePdfLayoutOptions {
     private double _logoWidth = 150D;
     private double _logoHeight = 30D;
     private OfficeImageFit _logoFit = OfficeImageFit.Contain;
+    private int _maxInvoiceXmlBytes = 256 * 1024;
+    private int _maxLineTextCharacters = 4_096;
+    private int _maxInvoiceLines = 1_000;
+    private int _maxGeneratedPages = 100;
+    private int _maxOutputBytes = 32 * 1024 * 1024;
 
     /// <summary>Creates the compatibility layout: English labels with invariant numbers and ISO dates.</summary>
     public InvoicePdfLayoutOptions() => _languages.Add(InvoicePdfLanguagePack.ForCulture("en-US"));
+
+    /// <summary>Maximum source invoice XML bytes accepted for PDF presentation.</summary>
+    public int MaxInvoiceXmlBytes { get => _maxInvoiceXmlBytes; set => _maxInvoiceXmlBytes = Positive(value, nameof(value)); }
+    /// <summary>Maximum visible text characters in a single invoice line item.</summary>
+    public int MaxLineTextCharacters { get => _maxLineTextCharacters; set => _maxLineTextCharacters = Positive(value, nameof(value)); }
+    /// <summary>Maximum invoice line items accepted for PDF presentation.</summary>
+    public int MaxInvoiceLines { get => _maxInvoiceLines; set => _maxInvoiceLines = Positive(value, nameof(value)); }
+    /// <summary>Maximum pages generated during invoice PDF layout.</summary>
+    public int MaxGeneratedPages { get => _maxGeneratedPages; set => _maxGeneratedPages = Positive(value, nameof(value)); }
+    /// <summary>Maximum serialized PDF bytes returned by invoice rendering.</summary>
+    public int MaxOutputBytes { get => _maxOutputBytes; set => _maxOutputBytes = Positive(value, nameof(value)); }
 
     /// <summary>Language packs displayed in order. Multiple packs produce multilingual labels.</summary>
     public IList<InvoicePdfLanguagePack> Languages => _languages;
@@ -118,7 +134,12 @@ public sealed class InvoicePdfLayoutOptions {
             LogoWidth = LogoWidth,
             LogoHeight = LogoHeight,
             LogoFit = LogoFit,
-            LogoAlternativeText = LogoAlternativeText
+            LogoAlternativeText = LogoAlternativeText,
+            MaxInvoiceXmlBytes = MaxInvoiceXmlBytes,
+            MaxLineTextCharacters = MaxLineTextCharacters,
+            MaxInvoiceLines = MaxInvoiceLines,
+            MaxGeneratedPages = MaxGeneratedPages,
+            MaxOutputBytes = MaxOutputBytes
         };
         result._languages.Clear();
         result._languages.AddRange(_languages);
@@ -134,4 +155,7 @@ public sealed class InvoicePdfLayoutOptions {
             throw new ArgumentOutOfRangeException(paramName, "The value must be a positive finite number.");
         return value;
     }
+
+    private static int Positive(int value, string paramName) => value > 0
+        ? value : throw new ArgumentOutOfRangeException(paramName);
 }
