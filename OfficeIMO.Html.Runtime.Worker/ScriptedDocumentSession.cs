@@ -14,7 +14,8 @@ using AngleSharp.Io;
 namespace OfficeIMO.Html.Runtime.Worker;
 
 internal sealed class ScriptedDocumentSession : IDisposable {
-    private readonly IBrowsingContext _context;
+    private IBrowsingContext _context;
+    private readonly IConfiguration _configuration;
     private readonly RuntimeScriptErrors _errors;
     private readonly RuntimeResourceLoader _resources;
     private readonly RuntimeSubresourceIntegrity _integrity;
@@ -28,7 +29,6 @@ internal sealed class ScriptedDocumentSession : IDisposable {
     private readonly HtmlScriptRequest _options;
     private IDocument _document = null!;
     private IEventLoop _loop = null!;
-    private readonly List<IDisposable> _rootErrorSubscriptions = [];
     private readonly RuntimeFocusController _focus = new();
     private RuntimeAutomation _automation = null!;
     private CancellationToken _activeCommandToken;
@@ -39,7 +39,7 @@ internal sealed class ScriptedDocumentSession : IDisposable {
     private readonly RuntimeDiagnostics _diagnostics;
     private readonly RuntimeBrowsingStorage _storage;
     private readonly RuntimeBrowsingHistory _historyState;
-    private readonly Action<RuntimeNavigation>? _navigate;
+    private Action<RuntimeNavigation>? _navigate;
 
     private ScriptedDocumentSession(HtmlScriptRequest options, RuntimeResourceBudget budget, RuntimeFrameBudget frameBudget, RuntimeBrowsingStorage storage,
         RuntimeBrowsingHistory history, RuntimeDiagnostics diagnostics, Action<RuntimeNavigation>? navigate, Func<long> currentRevision, Action markRevision) {
@@ -82,7 +82,7 @@ internal sealed class ScriptedDocumentSession : IDisposable {
             .WithOnly<ILinkRelationFactory>(linkRelations)
             .Without<AngleSharp.Css.IPseudoClassSelectorFactory>()
             .With((AngleSharp.Css.IPseudoClassSelectorFactory)_focus.CreateSelectors())
-            .With(new RuntimeResourceRequester(_resources, _errors))
+            .With<IRequester>(context => new RuntimeResourceRequester(_resources, _errors, () => _realms.ResourceLifetimeFor(context)))
             .WithDefaultLoader(new LoaderOptions { IsResourceLoadingEnabled = true, IsNavigationDisabled = true })
             .WithOnly<IResourceLoader>(context => new RuntimeDocumentResourceLoader(
                 context, _moduleSources, () => _realms.ModulesFor(context)?.ImportMap,
@@ -101,12 +101,18 @@ internal sealed class ScriptedDocumentSession : IDisposable {
         // Local frame loads can complete inside the native attribute observer.
         // Retire the previous realm before that observer can create its replacement.
         configuration = new Configuration(configuration.Services.Prepend(new RuntimeFrameNavigationObserver(_realms)));
-        _context = BrowsingContext.New(configuration);
-        _loop = _context.GetService<IEventLoop>() ?? throw new HtmlScriptRuntimeException("The provider did not create an event loop.");
-        _context.GetService<IHtmlParser>()!.Parsing += (_, args) => {
+        _configuration = configuration;
+        _context = CreateRootContext();
+    }
+
+    private IBrowsingContext CreateRootContext() {
+        var context = BrowsingContext.New(_configuration);
+        _loop = context.GetService<IEventLoop>() ?? throw new HtmlScriptRuntimeException("The provider did not create an event loop.");
+        context.GetService<IHtmlParser>()!.Parsing += (_, args) => {
             var document = ((HtmlParseEvent)args).Document;
             EnsureEngine(document);
         };
+        return context;
     }
 
     private Engine? EnsureEngine(IDocument document) {
@@ -132,13 +138,8 @@ internal sealed class ScriptedDocumentSession : IDisposable {
             bool root = document.Context.Parent == null;
             IDisposable contextErrors = AttachErrors(document.Context);
             IDisposable windowErrors = AttachErrors(document.DefaultView!);
-            if (root) {
-                _rootErrorSubscriptions.Add(contextErrors);
-                _rootErrorSubscriptions.Add(windowErrors);
-            } else {
-                _realms.Own(document, contextErrors);
-                _realms.Own(document, windowErrors);
-            }
+            _realms.Own(document, contextErrors);
+            _realms.Own(document, windowErrors);
             _errors.Attach(engine);
             loop.InitializeMicrotasks(engine);
             _scripting.Initialize(engine);
@@ -160,6 +161,7 @@ internal sealed class ScriptedDocumentSession : IDisposable {
                 RuntimeDocumentUrls.Origin(document));
             var fetch = new RuntimeFetchBindings(engine, document, loop, _resources, _options, _errors);
             _realms.Own(document, fetch);
+            RuntimeWindowNavigationBindings.Install(engine, document.DefaultView!, _realms);
             if (!root) return engine;
             var viewport = new RuntimeViewport((IHtmlDocument)document, _options, () => _activeCommandToken, _resources.Capture);
             _history = new RuntimeHistoryBindings(engine, document, loop, _options, viewport, _historyState, _navigate);
@@ -175,18 +177,36 @@ internal sealed class ScriptedDocumentSession : IDisposable {
         Func<long> currentRevision, Action markRevision, CancellationToken token, HtmlRuntimeResource? source = null) {
         var session = new ScriptedDocumentSession(request, budget, frameBudget, storage, history, diagnostics, navigate, currentRevision, markRevision);
         try {
+            await session.LoadDocumentAsync(request, token, source);
+            return session;
+        } catch { session.Dispose(); throw; }
+    }
+
+    // The browsing session retains this owner across navigation. Only the root
+    // document and its frame descendants retire; auxiliary realms keep running.
+    internal async Task ReplaceDocumentAsync(HtmlScriptRequest request, Action<RuntimeNavigation>? navigate,
+        CancellationToken token, HtmlRuntimeResource? source) {
+        lock (_realmSync) {
+            foreach (Engine engine in _realms.RetireRoot()) _scripting.Retire(engine);
+            _context.Dispose();
+            _focus.Reset();
+            _navigate = navigate;
+            _context = CreateRootContext();
+        }
+        await LoadDocumentAsync(request, token, source);
+    }
+
+    private async Task LoadDocumentAsync(HtmlScriptRequest request, CancellationToken token, HtmlRuntimeResource? source) {
             string html = source == null ? request.Html : RuntimeHtmlNavigationSource.Decode(source, request.MaxInputCharacters);
-            session._document = await session._context.OpenAsync(response => {
+            _document = await _context.OpenAsync(response => {
                 response.Address(request.DocumentUrl);
                 response.Content(html);
                 if (source != null) response.Header("Content-Type", source.ContentType).Status(source.StatusCode);
             }, token).WaitUntilAvailable(token);
-            await session._scripting.WaitForModuleEvaluationsAsync(token);
-            session._loop = session._context.GetService<IEventLoop>() ?? throw new HtmlScriptRuntimeException("The provider did not create an event loop.");
-            foreach (string script in request.Scripts) await session.ExecuteAsync(script, token);
-            await session.OnLoop(() => true, token);
-            return session;
-        } catch { session.Dispose(); throw; }
+            await _scripting.WaitForModuleEvaluationsAsync(_document, token);
+            _loop = _context.GetService<IEventLoop>() ?? throw new HtmlScriptRuntimeException("The provider did not create an event loop.");
+            foreach (string script in request.Scripts) await ExecuteAsync(script, token);
+            await OnLoop(() => true, token);
     }
 
     internal Task ExecuteAsync(string script, CancellationToken token) => OnLoop(() => { _scripting.EvaluateScript(_document, script, "text/javascript", RuntimeDocumentUrls.Base(_document)); return true; }, token);
@@ -284,8 +304,6 @@ internal sealed class ScriptedDocumentSession : IDisposable {
     private void DisposeCore() {
         _scripting.Dispose();
         _realms.DisposeAll();
-        foreach (IDisposable subscription in _rootErrorSubscriptions) subscription.Dispose();
-        _rootErrorSubscriptions.Clear();
         _resources.Dispose();
         _context.Dispose();
     }

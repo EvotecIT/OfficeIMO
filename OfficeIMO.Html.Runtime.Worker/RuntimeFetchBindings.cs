@@ -68,8 +68,10 @@ internal sealed class RuntimeFetchBindings : IDisposable {
     private JsValue Start(string json, JsValue callback) {
         if (json.Length > _options.MaxInputCharacters) throw new HtmlScriptRuntimeException("Fetch request exceeds the input character budget.");
         var request = JsonSerializer.Deserialize<RuntimeFetchRequest>(json) ?? throw new HtmlScriptRuntimeException("Invalid fetch request.");
-        // Read live base URI only on the interpreter thread; the document's origin is fixed by the loader.
+        // Capture the initiating realm before asynchronous transport; root navigation
+        // must not change a surviving popup request's origin.
         var url = new Uri(new Uri(RuntimeDocumentUrls.Base(_document)), request.Url);
+        var origin = new Uri(RuntimeDocumentUrls.Origin(_document) + "/");
         CancellationTokenSource cancellation;
         int id;
         lock (_sync) {
@@ -79,15 +81,15 @@ internal sealed class RuntimeFetchBindings : IDisposable {
             cancellation = new CancellationTokenSource();
             _pending.Add(id, cancellation);
         }
-        _ = CompleteAsync(id, url, request, callback, cancellation);
+        _ = CompleteAsync(id, url, origin, request, callback, cancellation);
         return id;
     }
 
-    private async Task CompleteAsync(int id, Uri url, RuntimeFetchRequest request, JsValue callback, CancellationTokenSource cancellation) {
+    private async Task CompleteAsync(int id, Uri url, Uri origin, RuntimeFetchRequest request, JsValue callback, CancellationTokenSource cancellation) {
         string json;
         try {
-            var response = await _loader.FetchAsync(url, request, cancellation.Token).ConfigureAwait(false);
-            bool cors = HtmlRuntimeResourcePolicy.Origin(response.FinalUrl) != HtmlRuntimeResourcePolicy.Origin(_options.DocumentUrl);
+            var response = await _loader.FetchAsync(url, request, origin, cancellation.Token).ConfigureAwait(false);
+            bool cors = HtmlRuntimeResourcePolicy.Origin(response.FinalUrl) != HtmlRuntimeResourcePolicy.Origin(origin);
             bool hasBody = request.Method != "HEAD" && response.StatusCode is not (204 or 205 or 304);
             json = JsonSerializer.Serialize(new {
                 status = response.StatusCode, statusText = response.StatusText, url = HtmlRuntimeResourcePolicy.Key(response.FinalUrl),

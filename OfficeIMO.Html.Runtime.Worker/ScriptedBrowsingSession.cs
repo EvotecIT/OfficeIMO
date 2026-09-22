@@ -55,9 +55,17 @@ internal sealed class ScriptedBrowsingSession : IAsyncDisposable {
         MarkRevision();
         _history.Generation = generation;
         _documentSources[generation] = source ?? HtmlRuntimeResource.FromText(request.DocumentUrl, request.Html, "text/html; charset=utf-8");
+        if (_document != null) return ReplaceRetainingAuxiliariesAsync();
         return ScriptedDocumentSession.OpenAsync(request, _budget, _frameBudget, _storage, _history, _diagnostics,
             request.Profile == HtmlRuntimeProfile.WebApplicationV1 ? navigation => RequestNavigation(generation, navigation) : null,
             () => CurrentRevision, MarkRevision, token, source);
+
+        async Task<ScriptedDocumentSession> ReplaceRetainingAuxiliariesAsync() {
+            await _document.ReplaceDocumentAsync(request,
+                request.Profile == HtmlRuntimeProfile.WebApplicationV1 ? navigation => RequestNavigation(generation, navigation) : null,
+                token, source);
+            return _document;
+        }
     }
 
     internal long CurrentRevision => Interlocked.Read(ref _revision);
@@ -135,8 +143,6 @@ internal sealed class ScriptedBrowsingSession : IAsyncDisposable {
         token.ThrowIfCancellationRequested();
         if (_document != null && !await _document.PromptToUnloadAsync(token)) return;
         if (_document != null) await _document.CommitUnloadAsync(token);
-        _document?.Dispose();
-        _document = null;
         _history.Transition = navigation;
         var request = _options.Snapshot();
         request.DocumentUrl = replayRetainedSource ? navigation.Url : response!.FinalUrl;

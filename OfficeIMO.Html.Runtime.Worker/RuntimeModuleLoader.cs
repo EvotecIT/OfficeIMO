@@ -39,7 +39,7 @@ internal sealed class RuntimeModuleLoader(IDocument document, RuntimeModuleSourc
         IEnumerable<KeyValuePair<string, string>> headers, bool hasPreparedIntegritySelection) {
         string identity = externalIdentity ?? new UriBuilder(baseUrl) { Fragment = "officeimo-inline-" + Guid.NewGuid().ToString("N") }.Uri.AbsoluteUri;
         if (hasPreparedIntegritySelection) _preparedRootIntegrity.Add(identity);
-        return (identity, sources.Register(identity, new(source, baseUrl.AbsoluteUri, buffer, contentType, statusCode,
+        return (identity, sources.Register(identity, new Uri(RuntimeDocumentUrls.Origin(document) + "/"), new(source, baseUrl.AbsoluteUri, buffer, contentType, statusCode,
             new Dictionary<string, string>(headers, StringComparer.OrdinalIgnoreCase)), integrityMetadata));
     }
 
@@ -71,7 +71,7 @@ internal sealed class RuntimeModuleLoader(IDocument document, RuntimeModuleSourc
     public void LoadModuleAsync(Engine engine, ResolvedSpecifier resolved, ModuleLoadCompletion completion) {
         string? integrityMetadata = _preparedRootIntegrity.Contains(resolved.Key) ? null : ImportMap.IntegrityFor(resolved.Uri!);
         CancellationToken lifetime = realmLifetime();
-        var pending = sources.GetOrLoad(resolved.Key, resolved.Uri!, integrityMetadata, lifetime);
+        var pending = sources.GetOrLoad(resolved.Key, resolved.Uri!, new Uri(RuntimeDocumentUrls.Origin(document) + "/"), integrityMetadata, lifetime);
         if (pending.IsCompleted) Settle(pending, engine, resolved, completion);
         else _ = CompleteAsync(pending, engine, resolved, completion, loop(), lifetime);
     }

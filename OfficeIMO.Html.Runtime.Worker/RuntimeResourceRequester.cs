@@ -5,14 +5,15 @@ using System.Net;
 
 namespace OfficeIMO.Html.Runtime.Worker;
 
-internal sealed class RuntimeResourceRequester(RuntimeResourceLoader loader, RuntimeScriptErrors errors) : BaseRequester {
+internal sealed class RuntimeResourceRequester(RuntimeResourceLoader loader, RuntimeScriptErrors errors, Func<CancellationToken> realmLifetime) : BaseRequester {
     public override bool SupportsProtocol(string protocol) => true; // Route every scheme through the owned policy, including refusals.
 
     protected override async Task<IResponse?> PerformRequestAsync(Request request, CancellationToken cancel) {
+        using var operation = CancellationTokenSource.CreateLinkedTokenSource(cancel, realmLifetime());
         try {
             if (request.Method != AngleSharp.Io.HttpMethod.Get) throw new HtmlScriptRuntimeException("Document resources require GET requests.");
             var url = new Uri(request.Address.Href);
-            var resource = await loader.LoadAsync(url, cancel).ConfigureAwait(false);
+            var resource = await loader.LoadAsync(url, operation.Token).ConfigureAwait(false);
             if (resource.StatusCode < 200 || resource.StatusCode >= 300) throw new HtmlScriptRuntimeException("Document resource loading returned HTTP " + resource.StatusCode + ".");
             return new DefaultResponse {
                 Address = new Url(resource.FinalUrl.AbsoluteUri),
@@ -20,6 +21,7 @@ internal sealed class RuntimeResourceRequester(RuntimeResourceLoader loader, Run
                 Content = new MemoryStream(resource.Buffer, writable: false),
                 Headers = new Dictionary<string, string>(resource.Headers, StringComparer.OrdinalIgnoreCase) { ["Content-Type"] = resource.ContentType }
             };
-        } catch (Exception error) { errors.Report(error.Message); throw; }
+        } catch (OperationCanceledException) when (operation.IsCancellationRequested) { throw; }
+        catch (Exception error) { errors.Report(error.Message); throw; }
     }
 }

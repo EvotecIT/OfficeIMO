@@ -14,7 +14,8 @@ namespace OfficeIMO.Html.Runtime.Worker;
 internal static class RuntimeWindowBindings {
     internal static JsValue Install(Engine engine, IWindow window, RuntimeFrameRealms realms) {
         var nativeWindow = JsValue.FromObject(engine, window).AsObject();
-        var normalize = new ClrFunction(engine, "normalizeWindow", (_, args) => ReferenceEquals(args[0], nativeWindow) ? engine.Global : args[0]);
+        JsValue Normalize(JsValue value) => !ReferenceEquals(value, engine.Global) && value.ToObject() is IWindow target ? realms.WrapWindow(engine, window, target) : value;
+        var normalize = new ClrFunction(engine, "normalizeWindow", (_, args) => Normalize(args[0]));
         var prototypes = new HashSet<ObjectInstance>(ReferenceEqualityComparer.Instance) { engine.Global, nativeWindow };
         foreach (var property in engine.Global.GetOwnProperties().ToArray()) {
             if (property.Value.Value is Function constructor && constructor.Get("prototype") is ObjectInstance prototype) prototypes.Add(prototype);
@@ -23,6 +24,8 @@ internal static class RuntimeWindowBindings {
         using var stream = typeof(RuntimeWindowBindings).Assembly.GetManifestResourceStream("OfficeIMO.RuntimeWindowBootstrap.js")!;
         using var reader = new StreamReader(stream);
         var methodFactory = engine.Evaluate(reader.ReadToEnd());
+        var timers = new RuntimeTimerLifetime(engine, window);
+        realms.Own(window.Document, timers);
         var unsupportedWorker = engine.Evaluate("(function Worker(){const error=new Error('Dedicated workers are outside this session profile');error.name='NotSupportedError';throw error;})");
         foreach (var prototype in prototypes) {
             var worker = prototype.GetOwnProperty("Worker");
@@ -31,14 +34,14 @@ internal static class RuntimeWindowBindings {
             foreach (string name in new[] { "setTimeout", "setInterval", "clearTimeout", "clearInterval" }) {
                 var descriptor = prototype.GetOwnProperty(name);
                 if (descriptor.Value is not Function timer) continue;
-                var wrapped = engine.Invoke(methodFactory, new JsValue[] { timer, normalize, name });
+                var wrapped = engine.Invoke(methodFactory, new JsValue[] { timer, normalize, name, timers.Alive, timers.Track, timers.Release });
                 prototype.FastSetProperty(name, new PropertyDescriptor(wrapped, descriptor.Writable, descriptor.Enumerable, descriptor.Configurable));
             }
             foreach (var property in prototype.GetOwnProperties().ToArray()) {
                 if (!property.Key.IsString() || !names.Contains(property.Key.AsString()) || property.Value.Get is not Function getter) continue;
                 var wrapped = new ClrFunction(engine, "get " + property.Key.AsString(), (receiver, args) => {
                     var result = engine.Invoke(getter, receiver, args);
-                    return ReferenceEquals(result, nativeWindow) ? engine.Global : result;
+                    return Normalize(result);
                 });
                 prototype.FastSetProperty(property.Key, new GetSetPropertyDescriptor(wrapped, property.Value.Set, property.Value.Enumerable, property.Value.Configurable));
             }

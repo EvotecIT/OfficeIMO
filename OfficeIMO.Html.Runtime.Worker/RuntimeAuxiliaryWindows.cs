@@ -17,9 +17,9 @@ internal sealed class RuntimeAuxiliaryWindows(HtmlScriptRequest options, Runtime
     private readonly List<IWindow> _windows = [];
 
     internal void Install(Engine engine, IWindow window) {
-        JsValue Wrap(IWindow? value) => value == null ? JsValue.Null : ReferenceEquals(value, window) ? engine.Global : JsValue.FromObject(engine, value);
-        IWindow Target(JsValue receiver) => receiver.IsNull() || receiver.IsUndefined() || ReferenceEquals(receiver, engine.Global) ? window : receiver.ToObject() as IWindow
-            ?? throw Error(engine, "TypeError", "The receiver must be a Window.");
+        JsValue Wrap(IWindow? value) => realms.WrapWindow(engine, window, value);
+        IWindow Target(JsValue receiver) => realms.ResolveWindow(receiver.IsNull() || receiver.IsUndefined() || ReferenceEquals(receiver, engine.Global) ? window : receiver.ToObject() as IWindow
+            ?? throw Error(engine, "TypeError", "The receiver must be a Window."));
         var open = new ClrFunction(engine, "open", (receiver, args) => {
             Target(receiver);
             return Open(engine, window, args);
@@ -72,7 +72,7 @@ internal sealed class RuntimeAuxiliaryWindows(HtmlScriptRequest options, Runtime
         if (existing != null) {
             if (url.Length != 0) throw Error(engine, "NotSupportedError", "Navigation of an existing auxiliary window is not supported.");
             realms.SetAuxiliaryOpener(existing, source.DefaultView);
-            return JsValue.FromObject(engine, existing);
+            return realms.WrapWindow(engine, realmWindow, existing);
         }
         if (!budget.TryReserveAuxiliaryWindow()) return JsValue.Null;
         var context = source.Context.CreateChild(named ? name : null, source.Context.Security);
@@ -86,7 +86,7 @@ internal sealed class RuntimeAuxiliaryWindows(HtmlScriptRequest options, Runtime
             return JsValue.Null;
         }
         _windows.Add(window);
-        return JsValue.FromObject(engine, window);
+        return realms.WrapWindow(engine, realmWindow, window);
     }
 
     private static JavaScriptException Error(Engine engine, string name, string message) {

@@ -46,7 +46,7 @@ internal sealed class RuntimeFrameBudget(HtmlScriptRequest options) {
     }
 }
 
-internal sealed class RuntimeFrameRealms(HtmlScriptRequest options, RuntimeFrameBudget budget, object sync, RuntimeScriptErrors errors) {
+internal sealed partial class RuntimeFrameRealms(HtmlScriptRequest options, RuntimeFrameBudget budget, object sync, RuntimeScriptErrors errors) {
     private readonly Dictionary<IWindow, Realm> _realms = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<IBrowsingContext, Realm> _contexts = new(ReferenceEqualityComparer.Instance);
     private readonly HashSet<IWindow> _reserved = new(ReferenceEqualityComparer.Instance);
@@ -58,7 +58,7 @@ internal sealed class RuntimeFrameRealms(HtmlScriptRequest options, RuntimeFrame
 
     internal void RegisterAuxiliary(IWindow window, IWindow? opener) => _auxiliaryWindows.Add(window, opener);
     internal void SetAuxiliaryOpener(IWindow window, IWindow? opener) => _auxiliaryWindows[window] = opener;
-    internal IWindow? OpenerFor(IWindow window) => _auxiliaryWindows.GetValueOrDefault(window);
+    internal IWindow? OpenerFor(IWindow window) => _auxiliaryWindows.GetValueOrDefault(window) is { } opener ? ResolveWindow(opener) : null;
     internal bool IsAuxiliary(IWindow window) => _auxiliaryWindows.ContainsKey(window);
     internal bool IsAuxiliaryNavigation(object? target) => target switch {
         IWindow window => IsAuxiliary(window),
@@ -85,8 +85,9 @@ internal sealed class RuntimeFrameRealms(HtmlScriptRequest options, RuntimeFrame
         IWindow? window = document.DefaultView;
         if (window == null) return false;
         IBrowsingContext context = document.Context;
-        if (context.Parent == null) return true;
+        if (context.Parent == null) return !_blockedContexts.Contains(context);
         if ((context.Security & (Sandboxes.Scripts | Sandboxes.Origin)) != 0) return false;
+        if (IsAuxiliary(window)) return !window.IsClosed;
         IWindow? parent = context.Parent.Current;
         if (parent == null || !_realms.ContainsKey(parent)) return false;
         return SameOrigin(parent.Document, document);
@@ -134,6 +135,11 @@ internal sealed class RuntimeFrameRealms(HtmlScriptRequest options, RuntimeFrame
                 cloneTransport.Get("decode"),
                 engine.Invoke(engine.Evaluate("dispatch=>(data,origin,source)=>{const event=new MessageEvent('message');Object.defineProperties(event,{data:{value:data,enumerable:true},origin:{value:origin,enumerable:true},source:{value:source,enumerable:true},ports:{value:Object.freeze([]),enumerable:true}});dispatch(event)}"), new JsValue[] { dispatch }),
                 modules, new CancellationTokenSource());
+            if (document.Context.Parent == null) {
+                _rootWindows.Add(window);
+                _rootAnchor ??= window;
+                _currentRoot = window;
+            }
             _realms[window] = realm;
             _contexts[document.Context] = realm;
         }
@@ -201,9 +207,8 @@ internal sealed class RuntimeFrameRealms(HtmlScriptRequest options, RuntimeFrame
     internal void RetireDetached() {
         lock (sync) {
             Realm? root = _contexts.Values.FirstOrDefault(realm => realm.Context.Parent == null);
-            if (root == null) return;
             var attached = new HashSet<IBrowsingContext>(ReferenceEqualityComparer.Instance);
-            CollectAttachedContexts(root.Window.Document, attached);
+            if (root != null) CollectAttachedContexts(root.Window.Document, attached);
             foreach (IWindow window in _auxiliaryWindows.Keys.Where(window => !window.IsClosed)) {
                 attached.Add(window.Document.Context);
                 CollectAttachedContexts(window.Document, attached);
@@ -231,6 +236,9 @@ internal sealed class RuntimeFrameRealms(HtmlScriptRequest options, RuntimeFrame
             _blocked.Clear();
             _blockedContexts.Clear();
             _auxiliaryWindows.Clear();
+            _rootWindows.Clear();
+            _rootAnchor = null;
+            _currentRoot = null;
         }
     }
 
@@ -240,6 +248,7 @@ internal sealed class RuntimeFrameRealms(HtmlScriptRequest options, RuntimeFrame
         var post = new ClrFunction(engine, "postMessage", (receiver, args) => {
             IWindow? target = ReferenceEquals(receiver, engine.Global) ? source : receiver.ToObject() as IWindow;
             if (target == null) throw TypeError(engine, "postMessage requires a Window receiver.");
+            target = ResolveWindow(target);
             string targetOrigin = args.Length > 1 && !args[1].IsUndefined() ? TypeConverter.ToString(args[1]) : "/";
             if (args.Length > 2 && !args[2].IsUndefined() && engine.Invoke(hasTransfers, args[2]).AsBoolean())
                 throw DomError(engine, "DataCloneError", "Transfer lists are not supported.");
@@ -283,7 +292,7 @@ internal sealed class RuntimeFrameRealms(HtmlScriptRequest options, RuntimeFrame
                 try {
                     JsValue data = targetRealm.Engine.Invoke(targetRealm.DecodeMessage, json);
                     targetRealm.Engine.Invoke(targetRealm.DispatchMessage, new JsValue[] {
-                        data, sourceOrigin, JsValue.FromObject(targetRealm.Engine, source)
+                        data, sourceOrigin, WrapWindow(targetRealm.Engine, targetRealm.Window, source)
                     });
                 } catch (Exception error) { errors.Report(error.Message); }
             }

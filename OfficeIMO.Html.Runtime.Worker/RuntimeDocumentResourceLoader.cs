@@ -20,7 +20,7 @@ internal sealed class RuntimeDocumentResourceLoader(IBrowsingContext context, Ru
         if (script.GetAttribute("crossorigin")?.Equals("use-credentials", StringComparison.OrdinalIgnoreCase) == true)
             throw new HtmlScriptRuntimeException("Credentialed module loading is not supported.");
         var cancellation = new CancellationTokenSource();
-        var task = LoadModuleAsync(request.Target, request.IntegritySnapshot, cancellation.Token);
+        var task = LoadModuleAsync(request.Target, request.IntegritySnapshot, new Uri(RuntimeDocumentUrls.Origin(script.Owner!) + "/"), cancellation.Token);
         return new RuntimeModuleDownload(new AngleSharp.Dom.Url(request.Target.Href), request.Source, task, cancellation);
     }
 
@@ -49,13 +49,13 @@ internal sealed class RuntimeDocumentResourceLoader(IBrowsingContext context, Ru
     }
 
     private async Task<IResponse> LoadModuleAsync(AngleSharp.Dom.Url target, IntegrityMetadataSnapshot? integritySnapshot,
-        CancellationToken token) {
+        Uri initiatorOrigin, CancellationToken token) {
         using var loading = CancellationTokenSource.CreateLinkedTokenSource(token, realmLifetime());
         var url = new Uri(target.Href);
         string? integrityMetadata = integritySnapshot != null
             ? integritySnapshot.Resolve(importMap()?.IntegrityFor(url))
             : importMap()?.IntegrityFor(url);
-        RuntimeModuleSource source = await sources.GetOrLoad(url.AbsoluteUri, url, integrityMetadata, loading.Token).ConfigureAwait(false);
+        RuntimeModuleSource source = await sources.GetOrLoad(url.AbsoluteUri, url, initiatorOrigin, integrityMetadata, loading.Token).ConfigureAwait(false);
         RuntimeModuleLoader.ValidateJavaScript(source.StatusCode, source.ContentType);
         return new DefaultResponse {
             Address = new AngleSharp.Dom.Url(source.Location),

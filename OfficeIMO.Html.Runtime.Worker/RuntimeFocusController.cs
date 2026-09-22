@@ -13,6 +13,13 @@ internal sealed class RuntimeFocusController {
     private string? _initialValue;
     private bool _dirty;
     private long _transition;
+    internal void Reset() {
+        _focused = null;
+        _initialValue = null;
+        _dirty = false;
+        _transition++;
+    }
+
     internal IElement? Focused {
         get {
             if (_focused != null && !CanFocus(_focused)) {

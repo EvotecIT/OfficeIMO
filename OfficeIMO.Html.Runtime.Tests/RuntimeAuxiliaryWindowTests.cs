@@ -9,6 +9,85 @@ public sealed class RuntimeAuxiliaryWindowTests {
     private static HtmlProcessRuntimeProvider Runtime() => new(Path.Combine(AppContext.BaseDirectory, "RuntimeWorker", "OfficeIMO.Html.Runtime.Worker.dll"), AngleSharpDomServices.Instance);
 
     [Fact]
+    public async Task PopupSurvivesReloadWithItsRealmAndCapturedOpener()
+    {
+        await using var session = await Runtime().OpenTrustedAsync(new() {
+            Profile = HtmlRuntimeProfile.WebApplicationV1, DocumentUrl = Start,
+            MaxAuxiliaryWindows = 1, Html = "<!doctype html><body><h1>Root</h1>"
+        });
+        await session.ExecuteAsync("""
+            window.popup=open('','persistent');
+            const script=popup.document.createElement('script');
+            script.textContent="const originalOpener=opener;let count=0;addEventListener('message',()=>{count++;originalOpener.document.body.setAttribute('data-popup-count',String(count));originalOpener.postMessage({same:originalOpener===opener},'*');});opener.document.body.setAttribute('data-popup-ready','yes')";
+            popup.document.body.append(script);
+            """);
+        await session.WaitForAsync("document.body.hasAttribute('data-popup-ready')");
+        await session.ReloadAsync();
+        await session.ExecuteAsync("""
+            window.popup=open('','persistent');window.reply=null;
+            addEventListener('message',e=>reply={same:e.data.same,source:e.source===popup});
+            popup.postMessage('next','*');
+            """);
+        await session.WaitForAsync("reply!==null");
+        Assert.True((await session.EvaluateAsync("reply.same && reply.source && !popup.closed && popup.opener===window && document.body.getAttribute('data-popup-count')==='1'")).GetBoolean());
+        await session.ExecuteAsync("popup.close()");
+        Assert.True((await session.EvaluateAsync("popup.closed && open('','another')===null")).GetBoolean());
+    }
+
+    [Fact]
+    public async Task CrossOriginRootNavigationRevokesCapturedOpenerDomAccessButKeepsMessaging()
+    {
+        var other = new Uri("https://other.example/next");
+        await using var session = await Runtime().OpenTrustedAsync(new() {
+            Profile = HtmlRuntimeProfile.WebApplicationV1, DocumentUrl = Start,
+            ResourcePolicy = new() { AllowedOrigins = [new Uri("https://other.example/")] },
+            Resources = [HtmlRuntimeResource.FromText(other, "<!doctype html><body>Other", "text/html"),
+                HtmlRuntimeResource.FromText(new Uri(Start, "/data"), "popup-origin", "text/plain")],
+            Html = "<!doctype html><body>Original"
+        });
+        await session.ExecuteAsync("""
+            window.popup=open('','persistent');
+            const script=popup.document.createElement('script');
+            script.textContent="const saved=opener;addEventListener('message',()=>{let blocked=false;try{saved.document.body.textContent='leak'}catch(e){blocked=e.name==='SecurityError'}fetch('/data',{mode:'same-origin'}).then(r=>r.text()).then(value=>saved.postMessage({blocked,same:saved===opener,value},'*'))});opener.document.body.setAttribute('data-ready','yes')";
+            popup.document.body.append(script);
+            """);
+        await session.WaitForAsync("document.body.hasAttribute('data-ready')");
+        await session.NavigateAsync(other);
+        await session.ExecuteAsync("""
+            window.popup=open('','persistent');window.reply=null;
+            addEventListener('message',event=>reply={...event.data,origin:event.origin,source:event.source===popup});
+            window.blocked=false;try{popup.document.body.textContent='leak'}catch(e){blocked=e.name==='SecurityError'}
+            popup.postMessage('check','https://popup.example');
+            """);
+        await session.WaitForAsync("reply!==null");
+        Assert.True((await session.EvaluateAsync("blocked && reply.blocked && reply.same && reply.source && reply.value==='popup-origin' && reply.origin==='https://popup.example' && document.body.textContent==='Other'")).GetBoolean());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RootReloadRetiresOnlyRootCallbacksAndPreservesPopupTimers(bool scheduleOnPopup)
+    {
+        await using var session = await Runtime().OpenTrustedAsync(new() {
+            Profile = HtmlRuntimeProfile.WebApplicationV1, DocumentUrl = Start,
+            Html = "<!doctype html><body>Root"
+        });
+        await session.ExecuteAsync("window.scheduleOnPopup=" + (scheduleOnPopup ? "true" : "false"));
+        await session.ExecuteAsync("""
+            window.popup=open('','clock');popup.document.body.setAttribute('data-root','0');
+            let rootTicks=0;(scheduleOnPopup ? popup : window).setInterval(()=>popup.document.body.setAttribute('data-root',String(++rootTicks)),1);
+            const script=popup.document.createElement('script');
+            script.textContent="let ticks=0;setInterval(()=>document.body.setAttribute('data-popup',String(++ticks)),1);opener.document.body.setAttribute('data-ready','yes')";
+            popup.document.body.append(script);
+            """);
+        await session.WaitForAsync("document.body.hasAttribute('data-ready') && Number(popup.document.body.getAttribute('data-popup'))>2 && Number(popup.document.body.getAttribute('data-root'))>2");
+        await session.ReloadAsync();
+        await session.ExecuteAsync("window.popup=open('','clock');window.rootTicks=popup.document.body.getAttribute('data-root');window.popupTicks=Number(popup.document.body.getAttribute('data-popup'))");
+        await session.WaitForAsync("Number(popup.document.body.getAttribute('data-popup'))>popupTicks+5");
+        Assert.True((await session.EvaluateAsync("popup.document.body.getAttribute('data-root')===rootTicks")).GetBoolean());
+    }
+
+    [Fact]
     public void AuxiliaryWindowLimitIsValidatedAndSnapshotted()
     {
         var request = new HtmlScriptRequest { MaxAuxiliaryWindows = 3 };

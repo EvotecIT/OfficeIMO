@@ -1,7 +1,7 @@
 namespace OfficeIMO.Html.Runtime.Worker;
 
-// Authority and accounting belong to the browsing session. Each document gets a
-// cancellable loader, but replacing that document never resets these limits.
+// Authority and accounting belong to the browsing session. Each realm owns its
+// cancellable resource operations; navigation never resets these limits.
 internal sealed class RuntimeResourceBudget(HtmlScriptRequest options) : IDisposable {
     internal readonly object Sync = new();
     internal readonly Dictionary<string, HtmlRuntimeResource> Loaded = new(StringComparer.Ordinal);

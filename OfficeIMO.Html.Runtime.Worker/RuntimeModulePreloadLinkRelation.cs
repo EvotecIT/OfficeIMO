@@ -59,7 +59,7 @@ internal sealed class RuntimeModulePreloadLinkRelation : BaseLinkRelation {
             using var loading = CancellationTokenSource.CreateLinkedTokenSource(cancellation, realmLifetime());
             var url = new Uri(target.Href);
             string? metadata = link.HasAttribute("integrity") ? link.Integrity : importMap()?.IntegrityFor(url);
-            RuntimeModuleSource source = await sources.GetOrLoad(url.AbsoluteUri, url, metadata, loading.Token).ConfigureAwait(false);
+            RuntimeModuleSource source = await sources.GetOrLoad(url.AbsoluteUri, url, new Uri(RuntimeDocumentUrls.Origin(link.Owner!) + "/"), metadata, loading.Token).ConfigureAwait(false);
             RuntimeModuleLoader.ValidateJavaScript(source.StatusCode, source.ContentType);
             return null!;
         }

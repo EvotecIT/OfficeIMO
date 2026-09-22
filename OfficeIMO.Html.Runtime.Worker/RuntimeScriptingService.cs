@@ -17,7 +17,7 @@ internal sealed class RuntimeScriptingService(JsScriptingService scripting, Func
     HtmlScriptRequest request, Action<string> report, RuntimeScriptEntry scriptEntry) : IScriptingService, ISynchronousScriptingService, IDisposable {
     private readonly Dictionary<Engine, JsValue> _observeLoad = new(ReferenceEqualityComparer.Instance);
     private readonly CancellationTokenSource _lifetime = new();
-    private readonly List<Task> _evaluations = [];
+    private readonly List<(IDocument Document, Task Task)> _evaluations = [];
     private int _disposed;
 
     internal void Initialize(Engine engine) => _observeLoad.Add(engine,
@@ -31,14 +31,24 @@ internal sealed class RuntimeScriptingService(JsScriptingService scripting, Func
         return completion.Task;
     }
 
-    internal async Task WaitForModuleEvaluationsAsync(CancellationToken token) {
+    internal async Task WaitForModuleEvaluationsAsync(IDocument root, CancellationToken token) {
         while (true) {
             Task[] pending;
-            lock (_evaluations) { _evaluations.RemoveAll(task => task.IsCompleted); pending = _evaluations.ToArray(); }
+            lock (_evaluations) { _evaluations.RemoveAll(item => item.Task.IsCompleted); pending = _evaluations.Where(item => BelongsToRoot(item.Document, root)).Select(item => item.Task).ToArray(); }
             if (pending.Length == 0) return;
             await Task.WhenAll(pending).WaitAsync(token);
         }
     }
+
+    private static bool BelongsToRoot(IDocument document, IDocument root) {
+        for (var context = document.Context; context != null; context = context.Parent) {
+            if (ReferenceEquals(context, root.Context)) return true;
+            if (!RuntimeFrameRealms.IsFrameContext(context)) return false;
+        }
+        return false;
+    }
+
+    internal void Retire(Engine engine) => _observeLoad.Remove(engine);
 
     public void Dispose() {
         if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
@@ -77,7 +87,10 @@ internal sealed class RuntimeScriptingService(JsScriptingService scripting, Func
             using var reader = new StreamReader(response.Content, options.Encoding ?? Encoding.UTF8, true);
             string classicSource = await reader.ReadToEndAsync(cancel).ConfigureAwait(false);
             string sourceUrl = options.IsExternal ? response.Address.Href : RuntimeDocumentUrls.Base(options.Document);
-            await options.EventLoop.EnqueueAsync(_ => EvaluateScript(options.Document, classicSource, options.PreparedType!, sourceUrl), TaskPriority.Critical).WaitAsync(cancel);
+            await options.EventLoop.EnqueueAsync(_ => {
+                cancel.ThrowIfCancellationRequested();
+                return EvaluateScript(options.Document, classicSource, options.PreparedType!, sourceUrl);
+            }, TaskPriority.Critical).WaitAsync(cancel);
             return;
         }
         using var content = new MemoryStream();
@@ -111,7 +124,7 @@ internal sealed class RuntimeScriptingService(JsScriptingService scripting, Func
         ModuleImportOperation operation = await options.EventLoop.EnqueueAsync(
             _ => engine.Modules.StartImport(prepared.Identity), TaskPriority.Critical).WaitAsync(loading.Token);
         var evaluation = CompleteEvaluationAsync(operation, engine, options.EventLoop, realmLifetime(options.Document));
-        lock (_evaluations) { _evaluations.RemoveAll(task => task.IsCompleted); _evaluations.Add(evaluation); }
+        lock (_evaluations) { _evaluations.RemoveAll(item => item.Task.IsCompleted); _evaluations.Add((options.Document, evaluation)); }
     }
 
     private async Task CompleteEvaluationAsync(ModuleImportOperation operation, Engine engine, IEventLoop loop,

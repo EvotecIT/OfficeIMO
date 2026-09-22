@@ -9,7 +9,8 @@ internal sealed class RuntimeModuleSourceCache(RuntimeResourceLoader resources, 
     private readonly Dictionary<string, Entry> _entries = new(StringComparer.Ordinal);
     private readonly object _sync = new();
 
-    internal Task<RuntimeModuleSource> Register(string identity, RuntimeModuleSource source, string? integrityMetadata) {
+    internal Task<RuntimeModuleSource> Register(string identity, Uri initiatorOrigin, RuntimeModuleSource source, string? integrityMetadata) {
+        identity = HtmlRuntimeResourcePolicy.Origin(initiatorOrigin) + "\n" + identity;
         lock (_sync) {
             if (!_entries.TryGetValue(identity, out var entry)) {
                 Reserve();
@@ -19,14 +20,15 @@ internal sealed class RuntimeModuleSourceCache(RuntimeResourceLoader resources, 
         }
     }
 
-    internal Task<RuntimeModuleSource> GetOrLoad(string identity, Uri url, string? integrityMetadata, CancellationToken token = default) {
+    internal Task<RuntimeModuleSource> GetOrLoad(string identity, Uri url, Uri initiatorOrigin, string? integrityMetadata, CancellationToken token = default) {
+        identity = HtmlRuntimeResourcePolicy.Origin(initiatorOrigin) + "\n" + identity;
         Entry entry;
         Task<RuntimeModuleSource> pending;
         lock (_sync) {
             if (!_entries.TryGetValue(identity, out entry!)) {
                 Reserve();
                 var cancellation = new CancellationTokenSource();
-                entry = new(LoadAsync(url, cancellation.Token), integrity, maximumIntegrityCharacters, cancellation);
+                entry = new(LoadAsync(url, initiatorOrigin, cancellation.Token), integrity, maximumIntegrityCharacters, cancellation);
                 _entries.Add(identity, entry);
             }
             pending = entry.ReadAsync(integrityMetadata, token);
@@ -50,8 +52,8 @@ internal sealed class RuntimeModuleSourceCache(RuntimeResourceLoader resources, 
         }
     }
 
-    private async Task<RuntimeModuleSource> LoadAsync(Uri url, CancellationToken token) {
-        var resource = await resources.FetchAsync(url, new RuntimeFetchRequest(), token).ConfigureAwait(false);
+    private async Task<RuntimeModuleSource> LoadAsync(Uri url, Uri initiatorOrigin, CancellationToken token) {
+        var resource = await resources.FetchAsync(url, new RuntimeFetchRequest(), initiatorOrigin, token).ConfigureAwait(false);
         RuntimeModuleLoader.ValidateStatus(resource.StatusCode);
         string source = Encoding.UTF8.GetString(resource.Buffer);
         if (source.StartsWith('\uFEFF')) source = source[1..];
