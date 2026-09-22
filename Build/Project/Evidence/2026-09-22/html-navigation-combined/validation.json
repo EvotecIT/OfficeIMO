@@ -8,7 +8,7 @@
     "sdk": "10.0.303"
   },
   "source": {
-    "office": "bae43290fbfce8485e6cc6ca038749dc1696f5d3",
+    "office": "c0ecdf8af1d571d9ee34becda63c0e9b8ddb5f55",
     "angleSharp": "85941d3d35aba79da852f9c64b60e193b9a42206",
     "angleSharpJs": "1190abed8991e0aafb29664462a7177ef64d66d2",
     "jint": "2339be034e48b1f2195987fff27cda225582b7b7"
@@ -18,8 +18,20 @@
       "name": "focusedDocumentOpenAndMutation",
       "filter": "FullyQualifiedName~RuntimeDocumentOpenTests|FullyQualifiedName~RuntimeMutationCheckpointTests|FullyQualifiedName~RuntimeMutationRegistrationTests",
       "execution": "Each test class ran separately on each framework to avoid cross-class fixture contention.",
-      "net10.0": { "passed": 42, "failed": 0 },
-      "net8.0": { "passed": 42, "failed": 0 }
+      "net10.0": { "passed": 43, "failed": 0 },
+      "net8.0": { "passed": 43, "failed": 0 }
+    },
+    {
+      "name": "frameObserverRepetition",
+      "framework": "net10.0",
+      "recordPreservation": { "passed": 30, "failed": 0 },
+      "parentPromiseObserverOrder": { "passed": 30, "failed": 0 }
+    },
+    {
+      "name": "scriptLifecycle",
+      "filter": "FullyQualifiedName~RuntimeScriptLifecycleTests",
+      "net10.0": { "passed": 33, "failed": 0 },
+      "net8.0": { "passed": 33, "failed": 0 }
     },
     {
       "name": "combinedRenderProof",
@@ -56,6 +68,6 @@
     "Not an official WPT harness run or a complete navigation qualification.",
     "Cross-realm child-defined window functions and wider Navigation API behavior remain open.",
     "Popup itself is asserted in script but not separately rendered.",
-    "The mutation-record proof covers a same-origin parent-created observer on a loaded srcdoc frame; wider cross-agent observer scheduling remains unqualified."
+      "The mutation-record and ordering proofs cover a same-origin parent-created observer on a loaded srcdoc frame; wider cross-agent observer scheduling remains unqualified."
   ]
 }
