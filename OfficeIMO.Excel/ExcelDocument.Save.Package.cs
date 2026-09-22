@@ -169,7 +169,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static void RewritePackageWithPreservedCarriageReturns(
-            FileStream source, FileStream destination, IReadOnlyDictionary<string, OpenXmlElement> affected) {
+            Stream source, Stream destination, IReadOnlyDictionary<string, OpenXmlElement> affected) {
             source.Position = 0;
             int replaced = 0;
             using (var input = new ZipArchive(source, ZipArchiveMode.Read, leaveOpen: true))
