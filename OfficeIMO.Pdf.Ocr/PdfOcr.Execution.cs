@@ -43,7 +43,7 @@ internal static partial class PdfOcr {
                 }
                 workCancellation.Token.ThrowIfCancellationRequested();
                 int pageNumber = selectedPages[index];
-                PdfPageRenderResult render = PdfPageImageRenderer.RenderPage(
+                PdfPageRenderResult render = RenderOcrPage(
                     document, pageNumber, renderOptions, workCancellation.Token);
                 if (render.Diagnostics.Count > options.MaxDiagnosticsPerPage)
                     throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, options.MaxDiagnosticsPerPage, render.Diagnostics.Count);
@@ -110,6 +110,15 @@ internal static partial class PdfOcr {
                 workCancellation.Cancel();
                 throw;
             }
+        }
+    }
+
+    private static PdfPageRenderResult RenderOcrPage(PdfReadDocument document, int pageNumber,
+        PdfPageRenderOptions options, CancellationToken cancellationToken) {
+        try {
+            return PdfPageImageRenderer.RenderPage(document, pageNumber, options, cancellationToken);
+        } catch (PdfReadLimitException exception) when (exception.Kind == PdfReadLimitKind.RenderDiagnostics) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, exception.Limit, exception.Actual);
         }
     }
 }

@@ -2689,7 +2689,10 @@ public sealed partial class PdfReadPage {
         TextContentParser.TextOutputBudget? textOutputBudget = null,
         PageContentBudget? pageContentBudget = null,
         bool useLogicalTextFilters = false,
-        bool includeArtifactText = false) {
+        bool includeArtifactText = false,
+        Action<int>? onTextSpan = null,
+        Action? cancellationCheck = null) {
+        cancellationCheck?.Invoke();
         textOutputBudget ??= CreateTextOutputBudget();
         pageContentBudget ??= new PageContentBudget(this);
         var spans = new List<PdfTextSpan>();
@@ -2717,7 +2720,9 @@ public sealed partial class PdfReadPage {
                 textOutputBudget: textOutputBudget,
                 pageContentBudget: pageContentBudget,
                 contentOrderPrefix: PdfContentOrderKey.Root,
-                contentOrderOffset: -transformedContentOffset);
+                contentOrderOffset: -transformedContentOffset,
+                onTextSpan: onTextSpan,
+                cancellationCheck: cancellationCheck);
         }
 
         for (int index = 0; index < spans.Count; index++) {

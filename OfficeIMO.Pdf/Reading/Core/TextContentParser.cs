@@ -323,7 +323,8 @@ internal static class TextContentParser {
         Func<int, int?>? contentStreamObjectNumberAtOffset = null,
         bool initialArtifactContent = false,
         Action? cancellationCheck = null,
-        PdfTextStateSnapshot? initialTextState = null) {
+        PdfTextStateSnapshot? initialTextState = null,
+        Action<int>? onTextSpan = null) {
 #if NET8_0_OR_GREATER
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedTextCharacters);
@@ -1039,6 +1040,7 @@ internal static class TextContentParser {
                 if (normalizedText.Length == 0) {
                     return;
                 }
+                onTextSpan?.Invoke(normalizedText.Length);
                 string paintedText = sbOut.ToString();
                 bool visibleGlyphsMatchLogicalText = string.Equals(
                     NormalizeShatteredSpan(paintedText),

@@ -49,7 +49,7 @@ internal static partial class PdfOcr {
         if (pageNumber < 1 || pageNumber > document.Pages.Count) throw new ArgumentOutOfRangeException(nameof(pageNumber));
         if (!options.GetSelectedPages(document.Pages.Count).Contains(pageNumber))
             throw new ArgumentException("The preview page does not belong to the selected OCR pages.", nameof(pageNumber));
-        var rendered = PdfPageImageRenderer.RenderPage(document, pageNumber, new PdfPageRenderOptions {
+        var rendered = RenderOcrPage(document, pageNumber, new PdfPageRenderOptions {
             Dpi = options.Dpi,
             Format = PdfPageRenderFormat.Png,
             ImageCodec = options.ImageCodec,

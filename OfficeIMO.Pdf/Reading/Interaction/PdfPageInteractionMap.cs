@@ -166,7 +166,7 @@ public sealed partial class PdfPageInteractionMap {
 
     internal static IReadOnlyList<PdfSelectionQuad> GetOcrOverlapTextSpanBounds(PdfReadPage page,
         int maximumSpans, int maximumCharacters, System.Threading.CancellationToken cancellationToken) {
-        IReadOnlyList<PdfTextSpan> spans = page.GetInteractionTextSpans();
+        IReadOnlyList<PdfTextSpan> spans = page.GetInteractionTextSpans(maximumSpans, maximumCharacters, cancellationToken);
         if (spans.Count > maximumSpans)
             throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, maximumSpans, spans.Count);
         (double pageWidth, double pageHeight) = page.GetInteractionPageSize();

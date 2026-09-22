@@ -116,14 +116,31 @@ public sealed partial class PdfReadPage {
 
     internal (double X, double Y) TransformPointToVisual(double x, double y) => GetVisualPageTransform().Transform(x, y);
 
-    internal IReadOnlyList<PdfTextSpan> GetInteractionTextSpans() {
+    internal IReadOnlyList<PdfTextSpan> GetInteractionTextSpans() =>
+        GetInteractionTextSpans(int.MaxValue, int.MaxValue, default);
+
+    internal IReadOnlyList<PdfTextSpan> GetInteractionTextSpans(int maximumSpans, int maximumCharacters,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         _demandTextExtraction?.Invoke();
         (double Width, double Height) size = GetVisualPageSize();
+        long spanCount = 0;
+        long characterCount = 0;
+        void ChargeSpan(int characters) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (++spanCount > maximumSpans)
+                throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, maximumSpans, spanCount);
+            characterCount += characters;
+            if (characterCount > maximumCharacters)
+                throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, maximumCharacters, characterCount);
+        }
         return GetVisualTextSpans(
             size.Height,
             GetVisualPageTransform(),
             useLogicalTextFilters: true,
-            includeArtifactText: true);
+            includeArtifactText: true,
+            onTextSpan: ChargeSpan,
+            cancellationCheck: cancellationToken.ThrowIfCancellationRequested);
     }
 
     private PdfPageBox GetPageBoundaryBox() => GetPageBoundaryBox(GetGeometry());
@@ -766,7 +783,8 @@ public sealed partial class PdfReadPage {
         Action? cancellationCheck = null,
         bool includeHiddenOptionalContent = false,
         PdfTextStateSnapshot? initialTextState = null,
-        PdfPageInvokedResourceNames? invokedResourceNames = null) {
+        PdfPageInvokedResourceNames? invokedResourceNames = null,
+        Action<int>? onTextSpan = null) {
         cancellationCheck?.Invoke();
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
@@ -853,7 +871,8 @@ public sealed partial class PdfReadPage {
             contentStreamObjectNumberAtOffset: contentStreamObjectNumberAtOffset,
             initialArtifactContent: inheritedArtifactContent,
             cancellationCheck: cancellationCheck,
-            initialTextState: initialTextState));
+            initialTextState: initialTextState,
+            onTextSpan: onTextSpan));
 
         foreach (var invocation in TextContentParser.ExtractFormInvocations(
                      content,
@@ -960,7 +979,8 @@ public sealed partial class PdfReadPage {
                     inheritedArtifactContent: effectiveArtifactContent,
                     cancellationCheck: cancellationCheck,
                     includeHiddenOptionalContent: includeHiddenOptionalContent,
-                    initialTextState: formInitialTextState);
+                    initialTextState: formInitialTextState,
+                    onTextSpan: onTextSpan);
             } finally {
                 activeForms.Remove(formStream);
             }
