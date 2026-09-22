@@ -41,7 +41,7 @@ public sealed class PdfImageDocumentSource {
     public static PdfImageDocumentSource FromFile(string path) =>
         FromFile(path, PdfImageInput.DefaultMaximumEncodedBytes);
 
-    /// <summary>Creates an image source from a file snapshot within an encoded-byte limit.</summary>
+    /// <summary>Creates an image source from a file snapshot within an encoded-byte limit. Document creation applies its own limit.</summary>
     public static PdfImageDocumentSource FromFile(string path, long maximumEncodedImageBytes) =>
         FromFile(path, maximumEncodedImageBytes, CancellationToken.None);
 

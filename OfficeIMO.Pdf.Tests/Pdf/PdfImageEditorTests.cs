@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.IO;
 using System.Text;
 using OfficeIMO.Pdf;
 using Xunit;
@@ -6,6 +7,28 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public class PdfImageEditorTests {
+    [Fact]
+    public void ImageEditBudgetFlowsThroughAddReplaceAndMoveRestamps() {
+        byte[] image = PdfPngTestImages.CreateRgbPng(25, 50, 75);
+        var target = new PdfPageRegion(1, 50D, 90D, 40D, 25D);
+        PdfDocument original = PdfDocument.Load(CreateTextPdf());
+        var rejected = new PdfImageEditOptions { MaximumEncodedImageBytes = 1 };
+
+        Assert.Throws<InvalidDataException>(() => original.Images.Add(target, image, rejected));
+        Assert.Empty(original.Images.Placements());
+
+        PdfDocument added = original.Images.Add(target, image,
+            new PdfImageEditOptions { MaximumEncodedImageBytes = image.Length }).Document;
+        PdfImagePlacement placement = Assert.Single(added.Images.Placements());
+        Assert.Throws<InvalidDataException>(() => added.Images.Replace(placement, image, rejected));
+        Assert.Throws<InvalidDataException>(() => added.Images.Move(placement, 10D, 0D, rejected));
+
+        int extractedBytes = Assert.Single(added.Reader.Images()).Bytes.Length;
+        PdfDocument moved = added.Images.Move(placement, 10D, 0D,
+            new PdfImageEditOptions { MaximumEncodedImageBytes = extractedBytes }).Document;
+        Assert.Single(moved.Images.Placements());
+    }
+
     [Fact]
     public void AddFindAndRemoveAffectOnlyTheSelectedPlacement() {
         byte[] source = PdfDocument.Create()

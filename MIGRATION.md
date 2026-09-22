@@ -16,8 +16,11 @@ PDF image-file pages and image stamps now limit each encoded image source to
 images can set `PdfImageDocumentOptions.MaximumEncodedImageBytes` for
 `CreateFromImages`, `PdfImageStampOptions.MaximumEncodedImageBytes` for stamps,
 or call `PdfImageDocumentSource.FromFile(path, maximumEncodedImageBytes)`.
-Choose a value no greater than `int.MaxValue`. Image stamp streams continue to
-read from their current position.
+When passing a source created with `FromFile` to `CreateFromImages`, set the
+document option as well; each stage applies its own limit. Existing-page image
+edits use `PdfImageEditOptions.MaximumEncodedImageBytes`, including moves that
+restamp the extracted image. Choose a value no greater than `int.MaxValue`.
+Image stamp streams continue to read from their current position.
 
 ## HTML style and rendering limits
 

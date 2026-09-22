@@ -71,8 +71,13 @@ var stamped = PdfDocument.Load("input.pdf").Stamp.Image(
 ```
 
 `PdfImageDocumentSource.FromFile(path, maximumEncodedImageBytes)` applies the
-same budget when creating a source directly. Stamp streams are read from their
-current position. The byte budget applies before image decoding; decoded
+file-read budget when creating a source directly. If that source is passed to
+`CreateFromImages(IEnumerable<PdfImageDocumentSource>, options)`, set
+`PdfImageDocumentOptions.MaximumEncodedImageBytes` to the intended limit too;
+document creation checks every source independently. For edits to existing PDF
+images, set `PdfImageEditOptions.MaximumEncodedImageBytes` when adding, replacing,
+moving, or transforming a larger trusted image. Stamp streams are read from
+their current position. The byte budget applies before image decoding; decoded
 image and PDF output limits remain separate.
 
 ```csharp

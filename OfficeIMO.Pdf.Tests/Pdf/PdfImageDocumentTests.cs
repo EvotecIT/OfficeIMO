@@ -191,6 +191,27 @@ public sealed class PdfImageDocumentTests {
         }
     }
 
+    [Fact]
+    public void ImageFileSourceAndDocumentCreationApplyTheirOwnBudgets() {
+        byte[] image = PdfPngTestImages.CreateRgbPng(25, 50, 75);
+        string path = Path.Combine(Path.GetTempPath(), "officeimo-pdf-image-source-budget-" + Guid.NewGuid().ToString("N") + ".png");
+        try {
+            File.WriteAllBytes(path, image);
+            PdfImageDocumentSource source = PdfImageDocumentSource.FromFile(path, image.Length);
+
+            Assert.Throws<InvalidDataException>(() => PdfDocument.CreateFromImages(
+                new[] { source },
+                new PdfImageDocumentOptions { MaximumEncodedImageBytes = image.Length - 1L }));
+
+            PdfDocument document = PdfDocument.CreateFromImages(
+                new[] { source },
+                new PdfImageDocumentOptions { MaximumEncodedImageBytes = image.Length });
+            Assert.Single(document.Inspect().Pages);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
     private static byte[] CreateExifOrientation(ushort orientation) => [
         (byte)'I', (byte)'I', 0x2A, 0x00, 0x08, 0x00, 0x00, 0x00,
         0x01, 0x00,
