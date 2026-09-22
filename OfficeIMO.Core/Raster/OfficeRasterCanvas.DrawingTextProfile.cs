@@ -10,6 +10,7 @@ public sealed partial class OfficeRasterCanvas {
         OfficeRasterCanvas child = _image != null
             ? new OfficeRasterCanvas(_image, _font, _fonts, provider, language, _diagnosticSink, _diagnosticSource, _cancellationToken)
             : new OfficeRasterCanvas(_target!, _font, _fonts, provider, language, _diagnosticSink, _diagnosticSource, _cancellationToken);
+        child.ShareTransformedTextBudget(_transformedTextBudget);
         child._clipRegion = _clipRegion;
         return child;
     }

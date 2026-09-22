@@ -27,6 +27,7 @@ public static partial class OfficeDrawingRasterRenderer {
             TextShapingLanguage = canvas.TextShapingLanguage,
             DiagnosticSink = canvas.DiagnosticSink,
             DiagnosticSource = canvas.DiagnosticSource,
+            TransformedTextBudget = canvas.TransformedTextBudget,
             MaximumRasterPixels = maximumRasterPixels,
             CancellationToken = cancellationToken
         });

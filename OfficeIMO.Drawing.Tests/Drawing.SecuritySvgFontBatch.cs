@@ -11,6 +11,17 @@ namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
     [Fact]
+    public void NestedEffectTextSharesTheRenderWideIntermediatePixelBudget() {
+        var inner = new OfficeDrawing(20, 20).AddPositionedText("A", 0, 0, 10, 10,
+            new OfficeImageFrameTransform(90, 5, 5), new OfficeFontInfo("Arial", 12), textAdvanceWidth: 8);
+        var drawing = new OfficeDrawing(20, 20).AddEffectDrawing(inner, OfficeTransform.Identity);
+        var budget = new OfficeRasterTransformedTextBudget { Pixels = 64_000_000L };
+
+        Assert.Throws<OfficeImageExportLimitException>(() => OfficeDrawingRasterRenderer.Render(drawing,
+            new OfficeDrawingRasterRenderOptions { TransformedTextBudget = budget }));
+    }
+
+    [Fact]
     public void FaxFillScanRejectsMissingEndOfLineWithoutScanningTheWholePayload() {
         byte[] encoded = new byte[8 * 1024 * 1024];
 
@@ -50,6 +61,24 @@ public partial class DrawingTests {
         Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), options, out _, out int unsupported));
         Assert.Equal(1, calls);
         Assert.Equal(0, unsupported);
+    }
+
+    [Fact]
+    public void EmptyForeignObjectsDoNotExhaustRendererCalls() {
+        string empty = string.Concat(Enumerable.Repeat("<foreignObject width='1' height='1'/>", 129));
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'>" + empty +
+            "<foreignObject width='1' height='1'><div xmlns='http://www.w3.org/1999/xhtml'>Text</div></foreignObject></svg>";
+        int calls = 0;
+        var options = new OfficeSvgDrawingReaderOptions {
+            ForeignObjectRenderer = context => {
+                calls++;
+                return new OfficeDrawing(context.Width, context.Height);
+            }
+        };
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), options, out _, out int unsupported));
+        Assert.Equal(0, unsupported);
+        Assert.Equal(1, calls);
     }
 
     [Fact]
@@ -114,6 +143,19 @@ public partial class DrawingTests {
 
         Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out _, out int unsupported));
         Assert.True(unsupported > 0);
+    }
+
+    [Fact]
+    public void ShortPatternedStrokeAcceptsSmallUserUnitDashes() {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 0.1 0.1'><defs>" +
+            "<pattern id='p' patternUnits='userSpaceOnUse' width='0.01' height='0.01'>" +
+            "<rect width='0.01' height='0.01'/></pattern></defs>" +
+            "<path d='M0 0.05 H0.05' fill='none' stroke='url(#p)' stroke-width='0.01' " +
+            "stroke-dasharray='0.005 0.005'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.Equal(0, unsupported);
+        Assert.NotEmpty(drawing!.Elements);
     }
 
     private static IEnumerable<OfficeDrawingImage> EnumerateDrawingImages(OfficeDrawing drawing) {

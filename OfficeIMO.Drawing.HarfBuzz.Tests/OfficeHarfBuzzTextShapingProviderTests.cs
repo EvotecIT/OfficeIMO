@@ -419,8 +419,6 @@ public sealed class OfficeHarfBuzzTextShapingProviderTests {
         byte[] fontData = File.ReadAllBytes(FontPath("Carlito-Regular.ttf"));
         var provider = new OfficeHarfBuzzTextShapingProvider();
         var fontCacheKey = new object();
-        OfficeTextShapingResult noLanguage = ShapeWithLanguage(provider, fontData, fontCacheKey, text, null);
-
         OfficeTextShapingResult normalized = ShapeWithLanguage(provider, fontData, fontCacheKey, text, " EN ");
         Assert.Same(normalized, ShapeWithLanguage(provider, fontData, fontCacheKey, text, "en"));
 
@@ -429,8 +427,20 @@ public sealed class OfficeHarfBuzzTextShapingProviderTests {
         }
 
         OfficeTextShapingResult overflow = ShapeWithLanguage(provider, fontData, fontCacheKey, text, "x-overflow");
-        Assert.NotSame(noLanguage, overflow);
         Assert.Same(overflow, ShapeWithLanguage(provider, fontData, fontCacheKey, text, "x-overflow"));
+    }
+
+    [Fact]
+    public void NewLanguageHintsFallBackAfterTheProcessCacheFills() {
+        byte[] fontData = File.ReadAllBytes(FontPath("Carlito-Regular.ttf"));
+        var provider = new OfficeHarfBuzzTextShapingProvider();
+        var fontCacheKey = new object();
+        OfficeTextShapingResult inferred = ShapeWithLanguage(provider, fontData, fontCacheKey, "office", null);
+        for (int index = 0; index < OfficeHarfBuzzTextShapingProvider.MaxInternedLanguagesPerProcess; index++) {
+            ShapeWithLanguage(provider, fontData, fontCacheKey, "office", $"q-{index:x4}");
+        }
+
+        Assert.Same(inferred, ShapeWithLanguage(provider, fontData, fontCacheKey, "office", "q-after"));
     }
 
     [Fact]

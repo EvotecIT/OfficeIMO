@@ -115,8 +115,10 @@ public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvid
                 return new ResolvedLanguage(normalized, language);
             }
             if (Languages.Count >= MaxInternedLanguagesPerProcess) {
-                throw new InvalidDataException(
-                    $"HarfBuzz language hints exceed the process-wide limit of {MaxInternedLanguagesPerProcess} distinct values.");
+                // HarfBuzz interns language strings for the process lifetime. Shape with
+                // its inferred language after saturation so one document cannot make
+                // later unrelated requests fail or grow the native intern table.
+                return default;
             }
 
             language = new Language(normalized);

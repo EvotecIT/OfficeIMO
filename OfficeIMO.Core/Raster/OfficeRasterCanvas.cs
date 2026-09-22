@@ -27,7 +27,7 @@ public sealed partial class OfficeRasterCanvas {
     private bool _reportedBoundedTextShapingFallback;
     private bool _reportedIncompleteTextShapingFallback;
     private const long MaximumTransformedTextIntermediatePixels = 64_000_000L;
-    private long _transformedTextIntermediatePixels;
+    private OfficeRasterTransformedTextBudget _transformedTextBudget = new OfficeRasterTransformedTextBudget();
     private int CoverageSamples => _target != null && _target.Supersampling > 1 ? 1 : AntiAliasSamples;
 
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
@@ -126,14 +126,20 @@ public sealed partial class OfficeRasterCanvas {
     internal OfficeFontFaceCollection? Fonts => _fonts;
 
     internal void ChargeTransformedTextIntermediatePixels(long pixels) {
-        if (pixels < 0L || pixels > MaximumTransformedTextIntermediatePixels - _transformedTextIntermediatePixels) {
+        long consumed = _transformedTextBudget.Pixels;
+        if (pixels < 0L || pixels > MaximumTransformedTextIntermediatePixels - consumed) {
             throw new OfficeImageExportLimitException(1D,
-                pixels > long.MaxValue - _transformedTextIntermediatePixels ? long.MaxValue : _transformedTextIntermediatePixels + pixels,
+                pixels > long.MaxValue - consumed ? long.MaxValue : consumed + pixels,
                 MaximumTransformedTextIntermediatePixels,
                 OfficeRasterImageEncoder.GetMaximumDimension(OfficeImageExportFormat.Png));
         }
-        _transformedTextIntermediatePixels += pixels;
+        _transformedTextBudget.Pixels = consumed + pixels;
     }
+
+    internal OfficeRasterTransformedTextBudget TransformedTextBudget => _transformedTextBudget;
+
+    internal void ShareTransformedTextBudget(OfficeRasterTransformedTextBudget budget) =>
+        _transformedTextBudget = budget;
 
     internal System.Threading.CancellationToken CancellationToken => _cancellationToken;
 
@@ -1418,4 +1424,8 @@ public sealed partial class OfficeRasterCanvas {
     private static int Clamp(int value, int min, int max) => value < min ? min : value > max ? max : value;
 
     private static double Clamp(double value, double min, double max) => value < min ? min : value > max ? max : value;
+}
+
+internal sealed class OfficeRasterTransformedTextBudget {
+    internal long Pixels;
 }

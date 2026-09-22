@@ -94,6 +94,7 @@ public static partial class OfficeSvgDrawingReader {
         private double _markerScenePixels;
         private readonly Dictionary<(XElement Element, double Width, double Height), (OfficeDrawing Drawing, int Elements)> _foreignObjects =
             new Dictionary<(XElement Element, double Width, double Height), (OfficeDrawing Drawing, int Elements)>();
+        private readonly Dictionary<XElement, bool> _foreignObjectHasContent = new Dictionary<XElement, bool>();
         internal OfficeCffOperationBudget CffOperationBudget { get; } = new OfficeCffOperationBudget();
 
         internal SvgElementReferenceRegistry(
@@ -154,6 +155,13 @@ public static partial class OfficeSvgDrawingReader {
             drawing = null!;
             elements = 0;
             return false;
+        }
+
+        internal bool HasForeignObjectContent(XElement element) {
+            if (_foreignObjectHasContent.TryGetValue(element, out bool hasContent)) return hasContent;
+            hasContent = element.Nodes().Any(node => node is not XText text || !string.IsNullOrWhiteSpace(text.Value));
+            _foreignObjectHasContent[element] = hasContent;
+            return hasContent;
         }
 
         internal bool TryReserveForeignObject(XElement element, double width, double height) {

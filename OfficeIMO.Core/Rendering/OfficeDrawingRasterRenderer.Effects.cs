@@ -18,6 +18,7 @@ public static partial class OfficeDrawingRasterRenderer {
             TextShapingLanguage = canvas.TextShapingLanguage,
             DiagnosticSink = canvas.DiagnosticSink,
             DiagnosticSource = canvas.DiagnosticSource,
+            TransformedTextBudget = canvas.TransformedTextBudget,
             MaximumRasterPixels = maximumRasterPixels,
             CancellationToken = cancellationToken
         });
@@ -31,6 +32,7 @@ public static partial class OfficeDrawingRasterRenderer {
                 canvas.TextShapingLanguage,
                 canvas.DiagnosticSink,
                 canvas.DiagnosticSource,
+                canvas.TransformedTextBudget,
                 maximumRasterPixels,
                 cancellationToken);
         }
@@ -260,6 +262,7 @@ public static partial class OfficeDrawingRasterRenderer {
         string? textShapingLanguage,
         System.Collections.Generic.ICollection<OfficeImageExportDiagnostic>? diagnosticSink,
         string? diagnosticSource,
+        OfficeRasterTransformedTextBudget transformedTextBudget,
         long maximumRasterPixels,
         System.Threading.CancellationToken cancellationToken) {
         var maskScene = new OfficeDrawing(source.Width / scale, source.Height / scale);
@@ -271,6 +274,7 @@ public static partial class OfficeDrawingRasterRenderer {
             TextShapingLanguage = textShapingLanguage,
             DiagnosticSink = diagnosticSink,
             DiagnosticSource = diagnosticSource,
+            TransformedTextBudget = transformedTextBudget,
             MaximumRasterPixels = maximumRasterPixels,
             CancellationToken = cancellationToken
         });

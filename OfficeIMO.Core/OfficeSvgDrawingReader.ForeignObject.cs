@@ -31,12 +31,12 @@ public static partial class OfficeSvgDrawingReader {
         double x = ReadViewportCoordinate(element, "x", viewX, drawing.Width);
         double y = ReadViewportCoordinate(element, "y", viewY, drawing.Height);
         if (!references.TryGetForeignObject(element, width, height, out OfficeDrawing content, out int contentElements)) {
+            if (!references.HasForeignObjectContent(element)) return;
             if (!references.TryReserveForeignObject(element, width, height)) {
                 unsupported++;
                 return;
             }
             string html = string.Concat(element.Nodes().Select(node => node.ToString(SaveOptions.DisableFormatting)));
-            if (string.IsNullOrWhiteSpace(html)) return;
             if (!references.TryChargeSerializedForeignObject(html.Length)) {
                 unsupported++;
                 return;

@@ -53,6 +53,7 @@ public static partial class OfficeDrawingRasterRenderer {
             diagnosticSink: options.DiagnosticSink,
             diagnosticSource: options.DiagnosticSource,
             cancellationToken: options.CancellationToken);
+        if (options.TransformedTextBudget != null) canvas.ShareTransformedTextBudget(options.TransformedTextBudget);
         IOfficeRasterImageCodec? imageCodec = options.ThrowOnImageDecodeFailure
             ? new RequiredImageCodec(options.ImageCodec, options.MaximumRasterPixels, options.CancellationToken)
             : options.ImageCodec;
@@ -307,6 +308,7 @@ public static partial class OfficeDrawingRasterRenderer {
                 canvas.TextShapingLanguage,
                 canvas.DiagnosticSink,
                 canvas.DiagnosticSource,
+                canvas.TransformedTextBudget,
                 maximumRasterPixels,
                 cancellationToken,
                 out OfficeRasterImage? image) &&
@@ -329,6 +331,7 @@ public static partial class OfficeDrawingRasterRenderer {
         string? textShapingLanguage,
         ICollection<OfficeImageExportDiagnostic>? diagnosticSink,
         string? diagnosticSource,
+        OfficeRasterTransformedTextBudget transformedTextBudget,
         long maximumRasterPixels,
         System.Threading.CancellationToken cancellationToken,
         out OfficeRasterImage? image) {
@@ -348,6 +351,7 @@ public static partial class OfficeDrawingRasterRenderer {
                 TextShapingLanguage = textShapingLanguage,
                 DiagnosticSink = diagnosticSink,
                 DiagnosticSource = diagnosticSource,
+                TransformedTextBudget = transformedTextBudget,
                 MaximumRasterPixels = maximumRasterPixels,
                 CancellationToken = cancellationToken
             });
