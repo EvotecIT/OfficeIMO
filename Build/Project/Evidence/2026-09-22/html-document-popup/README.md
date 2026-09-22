@@ -19,8 +19,9 @@ checks, review coverage, artifact hashes and remaining qualification limits.
 
 The later reverse-call qualification covers both `about:blank` and `about:srcdoc`
 children opening an active HTTP parent. Native `DocumentOpenLifecycleTests` and
-runtime `RuntimeDocumentOpenTests` check that the parent adopts the entry URL,
-loses its old `<base>` element, retains its origin, and uses its own fallback
+runtime `RuntimeDocumentOpenTests` check that the parent adopts the entry URL
+in both `document.URL` and `location.href`, loses its old `<base>` element,
+retains its origin, and uses its own fallback
 base rather than the child's inherited base. The runtime cases execute from
 child-owned timer tasks; dispatching a child event from the parent would retain
 the parent as the entry global and test a different contract. These assertions

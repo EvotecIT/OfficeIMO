@@ -11,6 +11,7 @@
   "source": {
     "angleSharpBefore": "dc31ba69c0921312ea1a1d2c97dfc1f5fcc89e8f",
     "angleSharpAfter": "09a525ff2227e12e0095f181677aa1eec79f044a",
+    "angleSharpPinned": "30703c2296ade1f80e3095c7a7af8ba652c267e6",
     "officeRuntimeSource": "f9e3292f0522409668e0c25aa143f0885d1ebf47",
     "probe": "UnfinishedTokenProbe.cs.txt"
   },
