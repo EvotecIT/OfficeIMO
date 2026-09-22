@@ -35,6 +35,14 @@ var status = capture.Document.QuerySelector("#status")!.TextContent;
 // Use the captured document with HtmlConversionDocument.FromDocument for conversion.
 ```
 
+`element.dataset` is a live map of `data-*` attributes. Camel-case names map to
+hyphenated attribute names; `Object.keys`, `Object.entries`, object spread and
+`delete` operate on the current attributes. Names such as `constructor` and
+`toString` can be data keys. Assigned values use JavaScript string conversion,
+including `null` and `undefined`. Invalid names throw catchable `SyntaxError` or
+`InvalidCharacterError` DOM exceptions. Captures retain the resulting attributes
+and DOM changes.
+
 Keep a session open when a workflow needs several operations. Globals, listeners
 and the live DOM survive between commands; each capture is an independent snapshot:
 
