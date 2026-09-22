@@ -2,6 +2,7 @@ using AngleSharp;
 using AngleSharp.Html.Dom;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Provenance;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 
@@ -30,7 +31,7 @@ public static partial class HtmlProvenance {
         Uri? documentUri = null) {
         OfficeProvenanceBinary.ValidateLimits(options);
         options.CancellationToken.ThrowIfCancellationRequested();
-        if (enforceUtf8Size && Encoding.UTF8.GetByteCount(html) > options.MaxAssetBytes) {
+        if (enforceUtf8Size && CountHtmlBytes(html, Encoding.UTF8, options.MaxAssetBytes, options.CancellationToken) > options.MaxAssetBytes) {
             throw new InvalidDataException("The HTML document exceeds the configured asset limit.");
         }
 
@@ -170,7 +171,7 @@ public static partial class HtmlProvenance {
         OfficeProvenanceBinary.ValidateLimits(options);
         byte[] data = ReadBounded(filePath, options.MaxAssetBytes, options.CancellationToken);
         return InspectCore(
-            DecodeHtml(data, out _, out _),
+            DecodeHtml(data, options.CancellationToken, out _, out _),
             options,
             enforceUtf8Size: false,
             new Uri(Path.GetFullPath(logicalFilePath)));
@@ -207,9 +208,8 @@ public static partial class HtmlProvenance {
             if (outputEncoding != null) {
                 original = Array.Empty<byte>();
             } else {
-                int byteCount = Encoding.UTF8.GetByteCount(html);
-                OfficeProvenanceBinary.EnsureOutputWithinLimit(byteCount, options.EffectiveMaxOutputBytes);
-                original = Encoding.UTF8.GetBytes(html);
+                original = EncodeHtml(html, Encoding.UTF8, false, options.EffectiveMaxOutputBytes,
+                    options.Limits.CancellationToken, useCharacterReferenceFallback: false);
             }
             return new OfficeProvenanceRemovalResult(original, before, before, changes.AsReadOnly(), false);
         }
@@ -218,9 +218,8 @@ public static partial class HtmlProvenance {
         string outputHtml = document.ToHtml();
         byte[] output;
         if (outputEncoding == null) {
-            int byteCount = Encoding.UTF8.GetByteCount(outputHtml);
-            OfficeProvenanceBinary.EnsureOutputWithinLimit(byteCount, options.EffectiveMaxOutputBytes);
-            output = Encoding.UTF8.GetBytes(outputHtml);
+            output = EncodeHtml(outputHtml, Encoding.UTF8, false, options.EffectiveMaxOutputBytes,
+                options.Limits.CancellationToken, useCharacterReferenceFallback: false);
         } else {
             output = EncodeHtml(outputHtml, outputEncoding, outputHadPreamble,
                 options.EffectiveMaxOutputBytes, options.Limits.CancellationToken);
@@ -284,7 +283,7 @@ public static partial class HtmlProvenance {
         if (string.IsNullOrWhiteSpace(outputPath)) throw new ArgumentException("An output path is required.", nameof(outputPath));
         options ??= new OfficeProvenanceRemovalOptions();
         byte[] input = ReadBounded(inputPath, options.Limits.MaxAssetBytes, options.Limits.CancellationToken);
-        string html = DecodeHtml(input, out Encoding encoding, out bool hadPreamble);
+        string html = DecodeHtml(input, options.Limits.CancellationToken, out Encoding encoding, out bool hadPreamble);
         OfficeProvenanceRemovalResult result = RemoveCore(
             html, options, enforceUtf8Size: false, outputEncoding: encoding, outputHadPreamble: hadPreamble);
         if (!result.WasChanged) {
@@ -883,7 +882,7 @@ public static partial class HtmlProvenance {
     private static void ValidatePotentialElementCount(string html, int maximumEntries) =>
         ValidatePotentialElementCountCore(html, maximumEntries, CancellationToken.None);
 
-    private static void ValidatePotentialElementCountCore(
+    internal static void ValidatePotentialElementCountCore(
         string html,
         int maximumEntries,
         CancellationToken cancellationToken) {
@@ -1112,7 +1111,12 @@ public static partial class HtmlProvenance {
         }
         if (selectIndex < 0) return false;
 
-        if (IsTableSelectBreakoutTag(tagName) && SelectHasTableAncestor(elements, selectIndex, ref remaining)) {
+        if (IsTableSelectEndTag(tagName)) {
+            if (tagName.Equals("tr", StringComparison.OrdinalIgnoreCase) &&
+                TryCloseImpliedTableRow(elements, selectIndex, ref remaining)) return true;
+            if (tagName.Equals("tbody", StringComparison.OrdinalIgnoreCase) &&
+                TryCloseImpliedTableBody(elements, selectIndex, ref remaining)) return true;
+            if (!SelectHasNamedTableAncestor(elements, selectIndex, tagName, ref remaining)) return true;
             elements.RemoveRange(selectIndex, elements.Count - selectIndex);
             return false;
         }
@@ -1148,11 +1152,71 @@ public static partial class HtmlProvenance {
         tagName.Equals("td", StringComparison.OrdinalIgnoreCase) ||
         tagName.Equals("th", StringComparison.OrdinalIgnoreCase);
 
+    private static bool IsTableSelectEndTag(string tagName) =>
+        IsTableSelectBreakoutTag(tagName) && !tagName.Equals("caption", StringComparison.OrdinalIgnoreCase);
+
     private static bool SelectHasTableAncestor(List<HtmlPreflightElement> elements, int selectIndex, ref long remaining) {
         for (int index = selectIndex - 1; index >= 0; index--) {
             ConsumePreflightStackComparison(ref remaining);
-            if (elements[index].Namespace == HtmlPreflightNamespace.Html &&
-                elements[index].Name.Equals("table", StringComparison.OrdinalIgnoreCase)) return true;
+            if (elements[index].Namespace != HtmlPreflightNamespace.Html) continue;
+            if (elements[index].Name.Equals("template", StringComparison.OrdinalIgnoreCase)) return false;
+            if (elements[index].Name.Equals("table", StringComparison.OrdinalIgnoreCase)) return true;
+        }
+        return false;
+    }
+
+    private static bool SelectHasNamedTableAncestor(
+        List<HtmlPreflightElement> elements, int selectIndex, string tagName, ref long remaining) {
+        for (int index = selectIndex - 1; index >= 0; index--) {
+            ConsumePreflightStackComparison(ref remaining);
+            if (elements[index].Namespace != HtmlPreflightNamespace.Html) continue;
+            if (elements[index].Name.Equals("template", StringComparison.OrdinalIgnoreCase)) return false;
+            if (elements[index].Name.Equals(tagName, StringComparison.OrdinalIgnoreCase)) return true;
+            if (elements[index].Name.Equals("table", StringComparison.OrdinalIgnoreCase)) return false;
+        }
+        return false;
+    }
+
+    private static bool TryCloseImpliedTableBody(
+        List<HtmlPreflightElement> elements, int selectIndex, ref long remaining) {
+        bool hasRow = false;
+        for (int index = selectIndex - 1; index >= 0; index--) {
+            ConsumePreflightStackComparison(ref remaining);
+            if (elements[index].Namespace != HtmlPreflightNamespace.Html) continue;
+            string name = elements[index].Name;
+            if (name.Equals("template", StringComparison.OrdinalIgnoreCase) ||
+                name.Equals("tbody", StringComparison.OrdinalIgnoreCase) ||
+                name.Equals("thead", StringComparison.OrdinalIgnoreCase) ||
+                name.Equals("tfoot", StringComparison.OrdinalIgnoreCase)) return false;
+            if (name.Equals("tr", StringComparison.OrdinalIgnoreCase) ||
+                name.Equals("td", StringComparison.OrdinalIgnoreCase) ||
+                name.Equals("th", StringComparison.OrdinalIgnoreCase)) hasRow = true;
+            if (!name.Equals("table", StringComparison.OrdinalIgnoreCase)) continue;
+            if (!hasRow) return false;
+            elements.RemoveRange(index + 1, elements.Count - index - 1);
+            return true;
+        }
+        return false;
+    }
+
+    private static bool TryCloseImpliedTableRow(
+        List<HtmlPreflightElement> elements, int selectIndex, ref long remaining) {
+        bool hasCell = false;
+        for (int index = selectIndex - 1; index >= 0; index--) {
+            ConsumePreflightStackComparison(ref remaining);
+            if (elements[index].Namespace != HtmlPreflightNamespace.Html) continue;
+            string name = elements[index].Name;
+            if (name.Equals("template", StringComparison.OrdinalIgnoreCase) ||
+                name.Equals("tr", StringComparison.OrdinalIgnoreCase)) return false;
+            if (name.Equals("td", StringComparison.OrdinalIgnoreCase) ||
+                name.Equals("th", StringComparison.OrdinalIgnoreCase)) hasCell = true;
+            if (!name.Equals("tbody", StringComparison.OrdinalIgnoreCase) &&
+                !name.Equals("thead", StringComparison.OrdinalIgnoreCase) &&
+                !name.Equals("tfoot", StringComparison.OrdinalIgnoreCase) &&
+                !name.Equals("table", StringComparison.OrdinalIgnoreCase)) continue;
+            if (!hasCell) return false;
+            elements.RemoveRange(index + 1, elements.Count - index - 1);
+            return true;
         }
         return false;
     }
@@ -1480,14 +1544,41 @@ public static partial class HtmlProvenance {
         return encoding;
     }
 
-    private static string DecodeHtml(byte[] data, out Encoding encoding, out bool hadPreamble) {
+    private static string DecodeHtml(byte[] data, CancellationToken cancellationToken, out Encoding encoding, out bool hadPreamble) {
         using var stream = new MemoryStream(data, writable: false);
         encoding = HtmlTextEncodingResolver.Default.ResolveHtmlEncoding(stream);
         byte[] preamble = encoding.GetPreamble();
         hadPreamble = preamble.Length != 0 && data.Length >= preamble.Length &&
             preamble.SequenceEqual(data.Take(preamble.Length));
         int offset = hadPreamble ? preamble.Length : 0;
-        return encoding.GetString(data, offset, data.Length - offset);
+        Decoder decoder = encoding.GetDecoder();
+        var characters = new char[encoding.GetMaxCharCount(8192)];
+        var output = new StringBuilder(Math.Min(data.Length - offset, 8192));
+        while (offset < data.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = Math.Min(8192, data.Length - offset);
+            int decoded = decoder.GetChars(data, offset, count, characters, 0, offset + count == data.Length);
+            output.Append(characters, 0, decoded);
+            offset += count;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return output.ToString();
+    }
+
+    private static long CountHtmlBytes(string html, Encoding encoding, long maximumBytes, CancellationToken cancellationToken) {
+        Encoder encoder = encoding.GetEncoder();
+        var chunk = new char[8192];
+        long length = 0;
+        for (int offset = 0; offset < html.Length;) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = Math.Min(chunk.Length, html.Length - offset);
+            html.CopyTo(offset, chunk, 0, count);
+            length += encoder.GetByteCount(chunk, 0, count, offset + count == html.Length);
+            if (length > maximumBytes) return length;
+            offset += count;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return length;
     }
 
     private static byte[] EncodeHtml(
@@ -1495,8 +1586,11 @@ public static partial class HtmlProvenance {
         Encoding encoding,
         bool includePreamble,
         long maximumBytes,
-        CancellationToken cancellationToken) {
-        Encoding boundedEncoding = OfficeCharacterReferenceEncoding.WithCharacterReferenceFallback(encoding);
+        CancellationToken cancellationToken,
+        bool useCharacterReferenceFallback = true) {
+        Encoding boundedEncoding = useCharacterReferenceFallback
+            ? OfficeCharacterReferenceEncoding.WithCharacterReferenceFallback(encoding)
+            : encoding;
         byte[] preamble = includePreamble ? encoding.GetPreamble() : Array.Empty<byte>();
         long availableBodyBytes = maximumBytes - preamble.Length;
         if (availableBodyBytes < 0) {
@@ -1522,12 +1616,19 @@ public static partial class HtmlProvenance {
             throw OfficeProvenanceLimitException.CreateOutput(
                 $"The rewritten HTML document exceeds the supported output size.");
         }
-        cancellationToken.ThrowIfCancellationRequested();
-        byte[] body = boundedEncoding.GetBytes(html);
-        if (preamble.Length == 0) return body;
-        byte[] output = new byte[preamble.Length + body.Length];
+        byte[] output = new byte[preamble.Length + (int)bodyLength];
         Buffer.BlockCopy(preamble, 0, output, 0, preamble.Length);
-        Buffer.BlockCopy(body, 0, output, preamble.Length, body.Length);
+        encoder = boundedEncoding.GetEncoder();
+        int written = preamble.Length;
+        for (int offset = 0; offset < html.Length;) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = Math.Min(chunk.Length, html.Length - offset);
+            html.CopyTo(offset, chunk, 0, count);
+            written += encoder.GetBytes(chunk, 0, count, output, written, offset + count == html.Length);
+            offset += count;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        if (written != output.Length) throw new InvalidDataException("The rewritten HTML encoding length changed unexpectedly.");
         return output;
     }
 
