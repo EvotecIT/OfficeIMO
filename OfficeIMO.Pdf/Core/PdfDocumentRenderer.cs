@@ -38,8 +38,9 @@ public sealed class PdfDocumentRenderer {
         _document.Reader.LayoutDebugOverlay(pageNumber, options, layoutOptions, loadOptions);
 
     /// <summary>Returns managed-renderer capability diagnostics for a one-based page.</summary>
-    public IReadOnlyList<PdfRenderCapabilityDiagnostic> CapabilityDiagnostics(int pageNumber) =>
-        _document.Reader.RenderCapabilityDiagnostics(pageNumber);
+    public IReadOnlyList<PdfRenderCapabilityDiagnostic> CapabilityDiagnostics(
+        int pageNumber, PdfPageRenderOptions? options = null) =>
+        _document.Reader.RenderCapabilityDiagnostics(pageNumber, renderOptions: options);
 
     /// <summary>Builds text-selection and interactive hit regions for a one-based page.</summary>
     public PdfPageInteractionMap Interactions(

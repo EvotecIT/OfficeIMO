@@ -36,6 +36,28 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void PublicCapabilityScansAndImageExportAcceptRaisedDiagnosticLimits() {
+        byte[] pdf = BuildSingleStreamPdf("unknownOne\nunknownTwo");
+        PdfDocument document = PdfDocument.Load(pdf);
+        var strict = new PdfPageRenderOptions { MaxDiagnosticsPerPage = 1 };
+        var generous = new PdfPageRenderOptions { MaxDiagnosticsPerPage = 3 };
+
+        Assert.Equal(PdfReadLimitKind.RenderDiagnostics, Assert.Throws<PdfReadLimitException>(() =>
+            document.Reader.RenderCapabilityDiagnostics(1, renderOptions: strict)).Kind);
+        Assert.Equal(PdfReadLimitKind.RenderDiagnostics, Assert.Throws<PdfReadLimitException>(() =>
+            document.AssessRenderCompatibility(renderOptions: strict)).Kind);
+        Assert.Equal(2, document.Reader.RenderCapabilityDiagnostics(1, renderOptions: generous).Count);
+        Assert.Equal(2, document.Render.CapabilityDiagnostics(1, generous).Count);
+        Assert.Equal(2, Assert.Single(document.AssessRenderCompatibility(renderOptions: generous).Pages).Diagnostics.Count);
+
+        Assert.Equal(PdfReadLimitKind.RenderDiagnostics, Assert.Throws<PdfReadLimitException>(() =>
+            document.ExportImages(OfficeImageExportFormat.Svg,
+                new PdfImageExportOptions { MaxDiagnosticsPerPage = 1 })).Kind);
+        Assert.Single(document.ExportImages(OfficeImageExportFormat.Svg,
+            new PdfImageExportOptions { MaxDiagnosticsPerPage = 3 }));
+    }
+
+    [Fact]
     public void RenderCapabilityDiagnosticsDoNotChargeRepeatedOccurrences() {
         byte[] pdf = BuildSingleStreamPdf("unknownOne\nunknownOne\nunknownOne");
         PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];

@@ -232,7 +232,10 @@ Page rendering retains at most 1,000 distinct capability diagnostics and
 1,048,576 diagnostic characters per page by default. Set
 `PdfPageRenderOptions.MaxDiagnosticsPerPage` and
 `MaxDiagnosticCharactersPerPage` when rendering trusted pages that require
-more diagnostic detail. Duplicate diagnostics do not consume the character
+more diagnostic detail. The same options can be supplied to
+`PdfDocumentReader.RenderCapabilityDiagnostics`, `PdfDocumentRenderer.CapabilityDiagnostics`,
+and `PdfDocument.AssessRenderCompatibility`; image export uses the matching
+properties on `PdfImageExportOptions`. Duplicate diagnostics do not consume the character
 budget. PDF font inspection also shares its 10,000-diagnostic default across
 font-specific and resource-traversal findings; configure
 `PdfFontInspectionOptions.MaxDiagnostics` for trusted documents that need more.
