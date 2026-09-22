@@ -4,7 +4,7 @@ public sealed partial class PdfEmbeddedFontFamily {
     internal const int MaxSystemFontFilesToInspect = 8192;
     internal const int MaxSystemFontDirectoriesToInspect = 512;
     internal const int MaxSystemFontDirectoryDepth = 16;
-    internal const long MaxSystemFontFileBytes = 128L * 1024L * 1024L;
+    internal const long MaxSystemFontFileBytes = PdfFontInput.MaximumFontFaceBytes;
     internal const int MaxSystemFontFamilyCacheEntries = 32;
     private static readonly System.Collections.Generic.Dictionary<string, System.Lazy<SystemFontFamilyCacheEntry>> SystemFontFamilyCache =
         new(System.StringComparer.Ordinal);
@@ -149,7 +149,7 @@ public sealed partial class PdfEmbeddedFontFamily {
                 return false;
             }
 
-            byte[] fileData = System.IO.File.ReadAllBytes(path);
+            byte[] fileData = PdfFontInput.ReadFile(path);
             System.Collections.Generic.List<byte[]> fontPrograms = ExtractTrueTypeFontPrograms(fileData);
             var found = new System.Collections.Generic.List<SystemFontFaceCandidate>();
             for (int i = 0; i < fontPrograms.Count; i++) {
