@@ -19,6 +19,7 @@
     <EmbeddedResource Include="RuntimeStorageBootstrap.js" LogicalName="OfficeIMO.RuntimeStorageBootstrap.js" />
     <EmbeddedResource Include="RuntimeWindowBootstrap.js" LogicalName="OfficeIMO.RuntimeWindowBootstrap.js" />
     <EmbeddedResource Include="RuntimeHistoryBootstrap.js" LogicalName="OfficeIMO.RuntimeHistoryBootstrap.js" />
+    <EmbeddedResource Include="RuntimeStructuredCloneErrors.js" LogicalName="OfficeIMO.RuntimeStructuredCloneErrors.js" />
     <EmbeddedResource Include="RuntimeStructuredClone.js" LogicalName="OfficeIMO.RuntimeStructuredClone.js" />
     <EmbeddedResource Include="RuntimeStructuredCloneTransport.js" LogicalName="OfficeIMO.RuntimeStructuredCloneTransport.js" />
     <ProjectReference Include="../OfficeIMO.Html.Runtime/OfficeIMO.Html.Runtime.csproj" />

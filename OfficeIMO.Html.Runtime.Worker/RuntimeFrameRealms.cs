@@ -205,11 +205,11 @@ internal sealed class RuntimeFrameRealms(HtmlScriptRequest options, RuntimeFrame
                 throw DomError(engine, "DataCloneError", "Transfer lists are not supported.");
             JsValue serialized;
             try { serialized = engine.Invoke(encode, args.Length == 0 ? JsValue.Undefined : args[0]); }
-            catch (Exception error) {
-                string name = error.Message.Contains("frame message exceeds its character budget", StringComparison.OrdinalIgnoreCase)
-                    ? "QuotaExceededError" : "DataCloneError";
-                throw DomError(engine, name, error.Message);
+            catch (JavaScriptException error) when (error.Message.Contains("frame message exceeds its character budget", StringComparison.OrdinalIgnoreCase)) {
+                throw DomError(engine, "QuotaExceededError", error.Message);
             }
+            catch (JavaScriptException) { throw; }
+            catch (Exception error) { throw DomError(engine, "DataCloneError", error.Message); }
             if (!serialized.IsString()) throw DomError(engine, "DataCloneError", "The message could not be cloned.");
             Post(engine, source, target, targetOrigin, serialized.AsString());
             return JsValue.Undefined;

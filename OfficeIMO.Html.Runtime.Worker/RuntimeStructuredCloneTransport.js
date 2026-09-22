@@ -1,18 +1,16 @@
-((brand, maximumCharacters) => {
+((brand, maximumCharacters, errorFields) => {
     "use strict";
     const apply = Reflect.apply, descriptor = Object.getOwnPropertyDescriptor, prototype = Object.getPrototypeOf;
     const mapEntries = Map.prototype.entries, mapSet = Map.prototype.set, setValues = Set.prototype.values, setAdd = Set.prototype.add;
     const dateValue = Date.prototype.getTime, regexpSource = descriptor(RegExp.prototype, 'source').get;
     const regexpFlags = ['hasIndices','global','ignoreCase','multiline','dotAll','unicode','unicodeSets','sticky']
         .map((name,i) => [descriptor(RegExp.prototype,name)?.get, 'dgimsuvy'[i]]);
-    const bufferLength = descriptor(ArrayBuffer.prototype,'byteLength').get;
     const typedPrototype = prototype(Uint8Array.prototype);
     const typed = Object.fromEntries(['buffer','byteOffset','length'].map(name => [name,descriptor(typedPrototype,name).get]));
     const typedName = descriptor(typedPrototype,Symbol.toStringTag).get;
     const dataView = Object.fromEntries(['buffer','byteOffset','byteLength'].map(name => [name,descriptor(DataView.prototype,name).get]));
     const views = Object.fromEntries(['Int8Array','Uint8Array','Uint8ClampedArray','Int16Array','Uint16Array','Int32Array','Uint32Array','Float16Array','Float32Array','Float64Array','BigInt64Array','BigUint64Array']
         .filter(name => typeof globalThis[name] === 'function').map(name => [name,globalThis[name]]));
-    const errors = {Error,EvalError,RangeError,ReferenceError,SyntaxError,TypeError,URIError};
     function fail(message) { const error=new Error(message);error.name='DataCloneError';throw error; }
     function encode(input) {
         const seen=new Map(), nodes=[];let estimate=0;
@@ -50,8 +48,9 @@
             else if(kind==='set') {const entries=[];for(const entry of apply(setValues,item,[])){charge(8);entries.push(value(entry,depth+1));}node={t:'s',v:entries};}
             else if(kind==='array'||kind==='object') {const length=kind==='array'?descriptor(item,'length').value:undefined;if(length>maximumCharacters)fail('The frame message exceeds its character budget');const properties=[];for(const name of Object.keys(item)){charge(name.length*6+16);properties.push([name,value(item[name],depth+1)]);}node={t:kind==='array'?'a':'o',l:length,p:properties};}
             else if(kind==='error') {
-                const message=descriptor(item,'message'), cause=descriptor(item,'cause');
-                node={t:'e',n:typeof item.name==='string'&&Object.hasOwn(errors,item.name)?item.name:'Error',m:message&&'value'in message?String(message.value):'',c:cause&&'value'in cause?value(cause.value,depth+1):undefined};
+                const fields=errorFields.read(item), cause=descriptor(item,'cause');
+                charge((fields.message?.length || 0)*6 + (fields.stack?.length || 0)*6);
+                node={t:'e',v:fields,c:cause&&'value'in cause?value(cause.value,depth+1):undefined};
             } else fail('This object type cannot be cloned');
             nodes[index]=node;return {r:index};
         }
@@ -81,7 +80,7 @@
             else if(node.t==='s') values[i]=new Set();
             else if(node.t==='a') values[i]=new Array(node.l);
             else if(node.t==='o') values[i]={};
-            else if(node.t==='e') values[i]=new (errors[node.n]||Error)(node.m);
+            else if(node.t==='e') values[i]=errorFields.create(node.v);
         }
         for(let i=0;i<nodes.length;i++) if(nodes[i].t==='v') {
             const node=nodes[i], buffer=primitive(node.b), ctor=node.n==='DataView'?DataView:views[node.n];

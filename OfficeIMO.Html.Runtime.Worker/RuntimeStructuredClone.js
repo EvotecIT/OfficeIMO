@@ -1,11 +1,11 @@
-((brand, maximumBytes) => {
+((brand, maximumBytes, errorFields) => {
     "use strict";
     const apply = Reflect.apply, keys = Object.keys, define = Object.defineProperty;
     const descriptor = Object.getOwnPropertyDescriptor, prototype = Object.getPrototypeOf;
     const ArrayCtor = Array, MapCtor = Map, SetCtor = Set, DateCtor = Date, RegExpCtor = RegExp;
     const BufferCtor = ArrayBuffer, ViewCtor = DataView, BytesCtor = Uint8Array;
     const mapEntries = Map.prototype.entries, mapSet = Map.prototype.set, setValues = Set.prototype.values, setAdd = Set.prototype.add;
-    const mapHas = Map.prototype.has, mapGet = Map.prototype.get, from = Array.from, hasOwn = Object.hasOwn;
+    const mapHas = Map.prototype.has, mapGet = Map.prototype.get, from = Array.from;
     const mapSize = descriptor(Map.prototype,'size').get, setSize = descriptor(Set.prototype,'size').get;
     const dateValue = Date.prototype.getTime, regexpSource = descriptor(RegExp.prototype, 'source').get;
     const regexpFlags = ['hasIndices','global','ignoreCase','multiline','dotAll','unicode','unicodeSets','sticky']
@@ -21,8 +21,8 @@
     const isView = ArrayBuffer.isView;
     const boxes = [Boolean,Number,String,BigInt].map(type => type.prototype.valueOf);
     const objectBox = Object;
-    const errors = {Error,EvalError,RangeError,ReferenceError,SyntaxError,TypeError,URIError};
-    function fail(message) { const error=new errors.Error(message);error.name='DataCloneError';throw error; }
+    const ErrorCtor = Error;
+    function fail(message) { const error=new ErrorCtor(message);error.name='DataCloneError';throw error; }
     return function snapshot(input) {
         const seen = new MapCtor();
         let bytes = 0;
@@ -67,11 +67,9 @@
             else if (kind === 'array') {const length=descriptor(value,'length').value;charge(length*8);result = new ArrayCtor(length);}
             else if (kind === 'object') result = {};
             else if (kind === 'error') {
-                const name = value.name;
-                const message = descriptor(value,'message');
-                const text = message && 'value' in message ? String(message.value) : undefined;
-                charge(text?.length*2 || 0);
-                result = new (typeof name==='string' && hasOwn(errors,name) ? errors[name] : errors.Error)(text);
+                const fields = errorFields.read(value);
+                charge((fields.message?.length || 0)*2 + (fields.stack?.length || 0)*2);
+                result = errorFields.create(fields);
             } else {
                 for (const getter of boxes) {
                     try { const primitive = apply(getter,value,[]); result = objectBox(copy(primitive,depth+1)); break; }

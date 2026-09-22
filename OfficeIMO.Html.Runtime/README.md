@@ -207,8 +207,8 @@ later parent base or history changes do not alter it. A child `base` element can
 change relative URL resolution without changing the child's inherited origin.
 Classic scripts, modules, fetch, storage, messaging and nested captures use these
 separate identities. Empty frames also have an initial `about:blank` document.
-Frames created in a detached container initialize when that container is attached. HTTP frame sources
-matching an ancestor document are suppressed to prevent recursive embedding.
+Frames created in a detached container initialize when that container is attached.
+HTTP frame sources matching an ancestor document are suppressed to prevent recursive embedding.
 This qualification covers iframe creation; popup initiators, `document.open()` URL
 rewriting and child-frame navigation remain outside the supported contract.
 
@@ -224,7 +224,7 @@ asynchronous `postMessage` with `*`, `/` or an exact HTTP(S) target origin.
 Messages are synchronously snapshotted before delivery and reconstructed as
 independent target-realm graphs. The qualified structured-clone subset preserves
 cycles and repeated references; plain objects and arrays; Map and Set; Date and
-RegExp; ArrayBuffer, DataView and typed arrays; Error and cause; BigInt, undefined
+RegExp; ArrayBuffer, DataView and typed arrays; Error, string stack traces and causes; BigInt, undefined
 and special numeric values. Functions, symbols, exotic host objects, the options
 overload, transfer lists and message ports are rejected or remain unsupported
 rather than being silently converted.
@@ -592,11 +592,20 @@ documents retain the resolved base for independent conversion.
 
 History state is copied on insertion and restored independently on traversal.
 The state graph supports ordinary objects, sparse arrays, cycles, shared references,
-maps, sets, dates, regular expressions, errors with causes, boxed primitives,
+maps, sets, dates, regular expressions, errors with string stack traces and causes, boxed primitives,
 BigInt, fixed-length ArrayBuffers, typed arrays and DataViews. Functions, symbols,
 proxies, promises, DOM nodes, shared/resizable buffers and other unsupported objects
 fail with `DataCloneError`. This is history-state storage; it does not expose a
 general `structuredClone` or transferable-object API.
+
+Reload and cross-document traversal rebuild supported state graphs in the new
+realm, retaining cycles, binary aliases, boxed values and special numeric values.
+Error names outside the native error families deserialize as `Error`. Error
+message and cause accessors are not invoked; message values use JavaScript string
+conversion, so a symbol-valued message throws `TypeError` before the history
+update. Explicit string stack traces and captured interpreter traces are copied
+without invoking an authored stack accessor and count toward the state budget.
+Frame messaging uses the same error payload rules.
 
 `MaxHistoryEntries` defaults to 128 and retains the first and current entries while
 evicting older intermediate entries. `MaxHistoryStateBytes` defaults to 1 MiB per
