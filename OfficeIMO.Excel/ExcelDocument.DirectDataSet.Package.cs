@@ -6,6 +6,7 @@ using System.Threading;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Excel.Utilities;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
@@ -661,7 +662,11 @@ namespace OfficeIMO.Excel {
                                           : dataType == CellValues.Date
                                               ? "d"
                                               : "inlineStr");
-                return new DirectTypedCellValue(dataTypeText, text, cell.InlineString?.OuterXml);
+                string? inlineXml = cell.InlineString == null ? null
+                    : cell.InlineString.InnerText.IndexOf('\r') >= 0
+                        ? ExcelXmlPartWriter.SerializePreservingLineEndings(cell.InlineString)
+                        : cell.InlineString.OuterXml;
+                return new DirectTypedCellValue(dataTypeText, text, inlineXml);
             }
 
             return sheet.GetCellText(cell);
