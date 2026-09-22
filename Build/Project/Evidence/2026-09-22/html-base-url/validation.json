@@ -1,0 +1,120 @@
+{
+  "schema": 1,
+  "date": "2026-09-22",
+  "environment": {
+    "os": "macOS 27.0 (26A428)",
+    "architecture": "arm64",
+    "sdk": "10.0.303",
+    "runtimeNet10": "10.0.11",
+    "runtimeNet8": "8.0.23"
+  },
+  "source": {
+    "officeCode": "cda3b77d40924a34dc19f4fc44b9d573dde54a5c",
+    "angleSharpCode": "61af3274b64438f6365209071197d3b1cc867bb6",
+    "angleSharpPin": "a355eb5de7a635ae2f7ffc5945bc813e03ec774b",
+    "angleSharpJsCode": "3d8c1de6fd6e4d37bb0e1dad9f495e711685bbd4",
+    "angleSharpJsPin": "2aaa705edf934d1f93009977de4acab49b4fc614",
+    "upstreamCandidate": "d4cb91d4fe7f866972ee358ac9f590bfa78f1d5a"
+  },
+  "broaderWorkerSource": {
+    "office": "b62cb3f9e",
+    "angleSharp": "e2d47708548dc86587031b1ff7415f6a4814c24d",
+    "note": "215-case serial suite before final template replacement correction; final correction covered by full standalone provider and 53 worker cases on both frameworks."
+  },
+  "validation": [
+    {
+      "name": "coreFocused",
+      "passed": 55,
+      "skipped": 0,
+      "failed": 0,
+      "log": "core-focused-closure.log"
+    },
+    {
+      "name": "standaloneUpstream",
+      "passed": 4118,
+      "skipped": 1,
+      "failed": 0,
+      "log": "upstream-base-qualified.log"
+    },
+    {
+      "name": "bindingSuite",
+      "passed": 333,
+      "skipped": 0,
+      "failed": 0,
+      "log": "js-qualified-final.log"
+    },
+    {
+      "name": "workerNet10",
+      "passed": 53,
+      "skipped": 0,
+      "failed": 0,
+      "log": "runtime-pinned-final.log"
+    },
+    {
+      "name": "workerNet8",
+      "passed": 53,
+      "skipped": 0,
+      "failed": 0,
+      "log": "runtime-net8-final.log"
+    },
+    {
+      "name": "broaderWorkerBeforeFinalTemplateFix",
+      "passed": 215,
+      "skipped": 0,
+      "failed": 0,
+      "log": "runtime-final.log"
+    }
+  ],
+  "netstandardBuild": {
+    "warnings": 0,
+    "errors": 0,
+    "log": "upstream-base-netstandard.log"
+  },
+  "render": {
+    "widths": [
+      360,
+      720
+    ],
+    "height": 280,
+    "states": [
+      "loaded",
+      "navigated"
+    ],
+    "finalByteIdenticalToInspectedImages": true,
+    "log": "render-proof-final.log"
+  },
+  "review": {
+    "reviewer": "/root/base_url_review",
+    "fullPass": 1,
+    "targetedConfirmation": 1,
+    "findings": "Two P2 template activation cases reproduced and fixed; final follow-up remediation validated by primary agent. No unresolved validated finding.",
+    "redLogs": [
+      "template-red.log",
+      "template-active-red.log"
+    ]
+  },
+  "standards": {
+    "html": "https://html.spec.whatwg.org/multipage/semantics.html#the-base-element",
+    "wptRevision": "95448d45c5291187f19555a4c6a786ef1ac9885b",
+    "wptCases": [
+      "base_href_invalid.html",
+      "base-data.html",
+      "base-javascript.html"
+    ],
+    "scope": "Original standards-derived regressions, not a complete WPT run"
+  },
+  "upstream": [
+    "https://github.com/AngleSharp/AngleSharp.Js/pull/141",
+    "https://github.com/AngleSharp/AngleSharp/pull/1354",
+    "https://github.com/AngleSharp/AngleSharp/pull/1355"
+  ],
+  "artifacts": {
+    "RenderProof.cs.txt": "ba5947793b57463fd015fdfef1e68486a7a43a09b95d8c30aa695732ca535505",
+    "loaded-720.png": "13875099c634384c840396c867ebe4e6155971c631bf6e78464aef86bc30f2d5",
+    "navigated-720.png": "330e25e561d30fd737a2c3040e48a451e963dc600cc3e7599d596d6cab9b64ba",
+    "start.html": "627fb9f948b41dfdaf628fdb1370ccdaa334d89cc4a64f613fa3c8febf49e51a",
+    "loaded-360.png": "e004e567d5f0fc3b764598522a1ec8adb69334ddeacf47366e33f0436216f522",
+    "next.html": "08c83989827c1c104269870a702f3754017cca00d299e526567a90fcd1106a70",
+    "navigated-360.png": "207228b17660202dca45d338658ea845b7dfe5a0c4d01e82a1c702dadeea2ebb"
+  }
+}

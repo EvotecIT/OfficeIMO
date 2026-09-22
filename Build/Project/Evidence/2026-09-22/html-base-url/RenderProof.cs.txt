@@ -1,0 +1,29 @@
+using OfficeIMO.Html;
+using OfficeIMO.Html.Runtime;
+using OfficeIMO.Html.Providers;
+
+var output = args[1]; Directory.CreateDirectory(output);
+const string style = "<style>body{margin:24px;font-family:Arial;color:#183348;background:#f3f6fa}article{padding:20px;background:white;border:1px solid #c3d4e0}h1{font-size:24px;margin:0 0 14px}p,a{font-size:16px;line-height:1.5}</style>";
+var start = new Uri("https://proof.example/start/page");
+var next = new Uri(start, "/middle/assets/next");
+var source = "<base href='./initial/'>" + style + "<article><h1>Project resources</h1><p id='status'>Waiting for report data</p><a id='next' href='next'>Open report</a></article>";
+var destination = style + "<article><h1>Report opened</h1><p>Navigation used the base set before the route changed.</p></article>";
+File.WriteAllText(Path.Combine(output, "start.html"), source);
+File.WriteAllText(Path.Combine(output, "next.html"), destination);
+var provider = new HtmlProcessRuntimeProvider(args[0], AngleSharpDomServices.Instance);
+await using var session = await provider.OpenTrustedAsync(new HtmlScriptRequest {
+    Html = source, DocumentUrl = start, Profile = HtmlRuntimeProfile.WebApplicationV1,
+    Resources = [HtmlRuntimeResource.FromText(next, destination, "text/html"), HtmlRuntimeResource.FromText(new Uri(start, "/middle/assets/data.txt"), "Report data loaded from the correct directory.", "text/plain")]
+});
+await session.ExecuteAsync("history.pushState(null,'','/middle/page');document.querySelector('base').href='./assets/';history.pushState(null,'','/final/page');fetch('data.txt').then(r=>r.text()).then(text=>{document.querySelector('#status').textContent=text;window.loaded=true})");
+await session.WaitForAsync("window.loaded===true");
+var loaded = await session.CaptureAsync();
+if (loaded.BaseUri.AbsoluteUri != "https://proof.example/middle/assets/" || loaded.Document.QuerySelector("#status")!.TextContent != "Report data loaded from the correct directory.") throw new Exception("Resource resolution failed");
+await session.Locator("#next").ClickAsync();
+var navigated = await session.CaptureAsync();
+if (navigated.DocumentUrl != next) throw new Exception("Navigation resolution failed");
+foreach (var entry in new[] { ("loaded", loaded), ("navigated", navigated) }) {
+    var document = HtmlConversionDocument.FromDocument(entry.Item2.CreateStandaloneDocument());
+    foreach (var width in new[] { 360, 720 }) File.WriteAllBytes(Path.Combine(output, $"{entry.Item1}-{width}.png"), document.ToPng(new HtmlRenderOptions { ViewportWidth = width, ViewportHeight = 280, Margins = HtmlRenderMargins.All(0) }));
+}
+Console.WriteLine("Fetch and host navigation resolved the frozen base; rendered both states at 360/720px.");
