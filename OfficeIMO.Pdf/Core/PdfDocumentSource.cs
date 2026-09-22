@@ -101,6 +101,7 @@ internal sealed class PdfDocumentSource {
     /// </summary>
     internal static PdfDocumentSource FromRemainingStream(Stream stream, PdfLoadOptions? options) {
         Guard.NotNull(stream, nameof(stream));
+        if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
         PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options);
         long limit = effectiveOptions.Limits.MaxInputBytes;
         try {
