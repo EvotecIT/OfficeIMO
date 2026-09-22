@@ -292,6 +292,45 @@ public partial class DrawingTests {
         Assert.True(unsupported > 0);
     }
 
+    [Theory]
+    [InlineData(1.0, 63)]
+    [InlineData(0.5, 31)]
+    public void EmbeddedImagePlacementsChargeDecodedAndOpacitySurfaces(double opacity, int expectedRetained) {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1000, 1000, OfficeColor.Red));
+        string image = "data:image/png;base64," + Convert.ToBase64String(png);
+        string placement = "<image href='" + image + "' width='1' height='1' opacity='" +
+            opacity.ToString(System.Globalization.CultureInfo.InvariantCulture) + "'/>";
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'>" +
+            string.Concat(Enumerable.Repeat(placement, 70)) + "</svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.Equal(70 - expectedRetained, unsupported);
+        Assert.Equal(expectedRetained, drawing!.Elements.Count);
+    }
+
+    [Fact]
+    public void MaskedGroupsReserveAllRasterSurfacesBeforeRetainingTheNextGroup() {
+        string group = "<g mask='url(#m)'><rect width='1' height='1'/></g>";
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 3000 3000'><defs>" +
+            "<mask id='m' maskUnits='userSpaceOnUse' x='0' y='0' width='3000' height='3000'>" +
+            "<rect width='3000' height='3000' fill='white'/></mask></defs>" + group + group + "</svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.True(unsupported > 0);
+        Assert.Single(drawing!.Elements);
+    }
+
+    [Fact]
+    public void RootMaskBeyondTheRasterBudgetCannotExposeItsHiddenChildren() {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4096 4096' mask='url(#m)'><defs>" +
+            "<mask id='m' maskUnits='userSpaceOnUse' x='0' y='0' width='4096' height='4096'>" +
+            "<rect width='4096' height='4096' fill='black'/></mask></defs>" +
+            "<rect width='4096' height='4096' fill='red'/></svg>";
+
+        Assert.False(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out _));
+        Assert.Null(drawing);
+    }
+
     [Fact]
     public void BlendedGroupsShareTheFullCanvasEffectSurfaceBudget() {
         string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4096 4096'>" +
@@ -411,6 +450,19 @@ public partial class DrawingTests {
             "<rect width='0.01' height='0.01'/></pattern></defs>" +
             "<path d='M0 0.05 H0.05' fill='none' stroke='url(#p)' stroke-width='0.01' " +
             "stroke-dasharray='0.005 0.005'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.Equal(0, unsupported);
+        Assert.NotEmpty(drawing!.Elements);
+    }
+
+    [Fact]
+    public void PatternedStrokeRetainsPositiveSubNanounitDashesWithinTheWorkBudget() {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 0.000000004 0.000000004'><defs>" +
+            "<pattern id='p' patternUnits='userSpaceOnUse' width='0.000000004' height='0.000000004'>" +
+            "<rect width='0.000000004' height='0.000000004'/></pattern></defs>" +
+            "<path d='M0 0.000000002 H0.000000004' fill='none' stroke='url(#p)' " +
+            "stroke-width='0.0000000005' stroke-dasharray='0.0000000005 0.0000000005'/></svg>";
 
         Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
         Assert.Equal(0, unsupported);

@@ -35,7 +35,8 @@ public static partial class OfficeSvgDrawingReader {
         string? alternativeText = element.Attributes()
             .FirstOrDefault(attribute => attribute.Name.LocalName.Equals("aria-label", StringComparison.OrdinalIgnoreCase))?.Value;
 
-        if (!references.TryChargeIntermediateSurface(drawing.Width, drawing.Height)) return false;
+        if (!references.TryChargeEmbeddedImage(drawing.Width, drawing.Height,
+                info.Width, info.Height, style.Opacity)) return false;
 
         var imageLayer = new OfficeDrawing(drawing.Width, drawing.Height);
         imageLayer.AddClippedImageSharedWithInterpolation(

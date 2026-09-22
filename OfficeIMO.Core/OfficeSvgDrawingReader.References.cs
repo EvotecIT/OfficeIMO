@@ -132,6 +132,14 @@ public static partial class OfficeSvgDrawingReader {
         internal bool TryChargeIntermediateSurface(double width, double height, int surfaces = 1) =>
             TryChargeIntermediatePixels(width * height * surfaces);
 
+        internal bool TryChargeEffectSurfaces(double width, double height, bool hasSoftMask) =>
+            TryChargeIntermediateSurface(width, height, hasSoftMask ? 4 : 1);
+
+        internal bool TryChargeEmbeddedImage(double canvasWidth, double canvasHeight,
+            int imageWidth, int imageHeight, double opacity) =>
+            TryChargeIntermediatePixels(canvasWidth * canvasHeight +
+                (double)imageWidth * imageHeight * (opacity < 1D ? 2D : 1D));
+
         private bool TryChargeIntermediatePixels(double pixels) {
             // Full-size effect, image, viewport, and symbol layers all reach the
             // raster renderer; count their retained surfaces in one document budget.

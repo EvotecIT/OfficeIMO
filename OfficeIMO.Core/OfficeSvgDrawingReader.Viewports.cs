@@ -139,6 +139,7 @@ public static partial class OfficeSvgDrawingReader {
             out OfficeBlendMode blendMode,
             out OfficeDrawingSoftMask? softMask,
             out SvgFilterEffect? filterEffect);
+        if (softMask != null && !references.TryChargeIntermediateSurface(width, height, 3)) return false;
 
         var scene = new OfficeDrawing(childViewWidth, childViewHeight);
         scene.Fonts.AddRange(drawing.Fonts);

@@ -144,7 +144,7 @@ public static partial class OfficeSvgDrawingReader {
                 out OfficeDrawingSoftMask? softMask,
                 out SvgFilterEffect? filterEffect);
             bool capturesLink = name == "a";
-            if (hasEffects && !references.TryChargeIntermediateSurface(drawing.Width, drawing.Height)) {
+            if (hasEffects && !references.TryChargeEffectSurfaces(drawing.Width, drawing.Height, softMask != null)) {
                 unsupported++;
                 return;
             }
@@ -193,7 +193,7 @@ public static partial class OfficeSvgDrawingReader {
                 out OfficeBlendMode blendMode,
                 out OfficeDrawingSoftMask? softMask,
                 out SvgFilterEffect? filterEffect);
-            if (hasEffects && !references.TryChargeIntermediateSurface(drawing.Width, drawing.Height)) {
+            if (hasEffects && !references.TryChargeEffectSurfaces(drawing.Width, drawing.Height, softMask != null)) {
                 unsupported++;
                 return;
             }
@@ -328,7 +328,7 @@ public static partial class OfficeSvgDrawingReader {
                 out OfficeDrawingSoftMask? softMask,
                 out SvgFilterEffect? filterEffect);
             if (hasEffects || hasPattern || hasStrokePattern || hasMarkers) {
-                if (!references.TryChargeIntermediateSurface(drawing.Width, drawing.Height)) {
+                if (!references.TryChargeEffectSurfaces(drawing.Width, drawing.Height, softMask != null)) {
                     unsupported++;
                     return;
                 }

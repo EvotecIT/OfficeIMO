@@ -107,9 +107,8 @@ public static partial class OfficeSvgDrawingReader {
                 out OfficeBlendMode rootBlendMode,
                 out OfficeDrawingSoftMask? rootSoftMask,
                 out SvgFilterEffect? rootFilterEffect);
-            if (rootHasEffects && !references.TryChargeIntermediateSurface(viewWidth, viewHeight)) {
-                unsupportedFeatureCount++;
-                rootHasEffects = false;
+            if (rootHasEffects && !references.TryChargeEffectSurfaces(viewWidth, viewHeight, rootSoftMask != null)) {
+                return false;
             }
             OfficeDrawing rootContent = rootHasEffects ? new OfficeDrawing(viewWidth, viewHeight) : scene;
             rootContent.Fonts.AddRange(options?.Fonts);

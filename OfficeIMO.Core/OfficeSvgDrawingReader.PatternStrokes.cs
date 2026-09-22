@@ -248,19 +248,16 @@ public static partial class OfficeSvgDrawingReader {
             double dx = end.X - start.X;
             double dy = end.Y - start.Y;
             double length = Math.Sqrt((dx * dx) + (dy * dy));
-            if (length <= 0.000000001D) continue;
+            if (length <= 0D) continue;
             double consumed = 0D;
-            while (consumed < length - 0.000000001D) {
+            while (consumed < length) {
                 if (++strokeOperations > MaximumSvgPathCommands || commands.Count > MaximumSvgPathCommands) return false;
                 ResolveDashPosition(pattern, patternPosition, out int patternIndex, out double within);
                 double available = pattern[patternIndex] - within;
-                if (available <= 0.000000001D) {
-                    patternPosition = AdvanceDashPosition(patternPosition, Math.Max(available, 0.000000001D), cycle);
-                    return false;
-                }
+                if (available <= 0D) return false;
                 double take = Math.Min(length - consumed, available);
-                if (take <= 0.000000001D) return false;
-                if ((patternIndex & 1) == 0 && take > 0.000000001D) {
+                if (take <= 0D || consumed + take <= consumed) return false;
+                if ((patternIndex & 1) == 0) {
                     double startRatio = consumed / length;
                     double endRatio = (consumed + take) / length;
                     var dashStart = new OfficePoint(start.X + (dx * startRatio), start.Y + (dy * startRatio));
@@ -297,7 +294,7 @@ public static partial class OfficeSvgDrawingReader {
         double dx = end.X - start.X;
         double dy = end.Y - start.Y;
         double length = Math.Sqrt((dx * dx) + (dy * dy));
-        if (length <= 0.000000001D) return;
+        if (length <= 0D) return;
         double ux = dx / length;
         double uy = dy / length;
         double sx = start.X - (extendStart ? ux * half : 0D);
