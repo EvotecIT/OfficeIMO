@@ -319,8 +319,8 @@ replacement, while AngleSharp incrementally parses script-created input streams.
 OfficeIMO forwards retained opener references to the current root and checks
 origin access. Reverse about-child opening now follows the HTML URL and
 fallback-base rules, with an observed Chromium difference still to resolve.
-Popup navigation and unfinished-token performance remain separate qualification
-work.
+Popup navigation and unfinished lexical forms beyond start tags remain separate
+qualification work.
 
 Freeze time and disable unrelated animations in reproducibility tests; separately test real scheduling and animation behavior when those become supported. Define readiness using explicit lifecycle events, application predicates, resource/font completion and layout stability under a deadline. Network-idle alone cannot establish that a page is complete.
 

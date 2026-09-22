@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "environment": {
+    "os": "macOS 27.0 (26A428)",
+    "architecture": "arm64",
+    "processor": "Apple M4 (10 physical, 10 logical CPUs)",
+    "sdk": "10.0.303",
+    "targetFramework": "net10.0",
+    "configuration": "Release"
+  },
+  "source": {
+    "angleSharpBefore": "dc31ba69c0921312ea1a1d2c97dfc1f5fcc89e8f",
+    "angleSharpAfter": "09a525ff2227e12e0095f181677aa1eec79f044a",
+    "officeRuntimeSource": "f9e3292f0522409668e0c25aa143f0885d1ebf47",
+    "probe": "UnfinishedTokenProbe.cs.txt"
+  },
+  "method": "Create a new script-opened document per sample, write one character at a time into an unfinished quoted start-tag attribute, then close and verify the attribute length. Four samples per size; discard the first and report the median of the remaining three. This measures only the write loop, not setup, completion or process startup.",
+  "medianMilliseconds": {
+    "plainAttribute": {
+      "writes": [2000, 4000, 8000, 16000],
+      "before": [45.72, 73.40, 127.32, 467.21],
+      "after": [0.87, 1.87, 3.49, 6.90]
+    },
+    "quotedGreaterThanBeforeWrites": {
+      "writes": [2000, 4000, 8000, 16000],
+      "after": [0.91, 1.94, 3.65, 7.21]
+    }
+  },
+  "validation": {
+    "nativeStandard": { "passed": 4201, "skipped": 1, "failed": 0 },
+    "nativePrefetched": { "passed": 4198, "skipped": 4, "failed": 0 },
+    "nativeNetStandard2Build": { "warnings": 0, "errors": 0 },
+    "officeRuntimeDocumentOpenNet10": { "passed": 12, "failed": 0 },
+    "officeRuntimeDocumentOpenNet8": { "passed": 12, "failed": 0 },
+    "independentReview": "Two token-boundary findings fixed; one targeted confirmation found no remaining issue."
+  },
+  "limits": [
+    "This is a local microbenchmark, not a cross-platform performance guarantee.",
+    "Unfinished comments, doctypes, end tags, script text and other lexical forms were not benchmarked.",
+    "A root document.open after a child script can detach the child; these timing samples do not measure frame lifecycle or rendering."
+  ]
+}

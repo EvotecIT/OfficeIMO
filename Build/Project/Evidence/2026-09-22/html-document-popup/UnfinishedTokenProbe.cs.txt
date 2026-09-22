@@ -1,0 +1,26 @@
+using System.Diagnostics;
+using AngleSharp;
+using AngleSharp.Dom;
+
+var quotedBracket = Environment.GetEnvironmentVariable("QUOTED_BRACKET") == "true";
+foreach (var writes in new[] { 2000, 4000, 8000, 16000 }) {
+    var samples = new List<double>();
+    for (var repetition = 0; repetition < 4; repetition++) {
+        var context = BrowsingContext.New(Configuration.Default);
+        var document = await context.OpenAsync(request => request.Content("<p>Before</p>").Address("https://probe.example/"));
+        document.Open();
+        document.Write(quotedBracket ? "<div data-long='>" : "<div data-long='");
+        var clock = Stopwatch.StartNew();
+        for (var i = 0; i < writes; i++) document.Write("x");
+        clock.Stop();
+        document.Write("'>ok</div>");
+        document.Close();
+        var attribute = document.QuerySelector("div")?.GetAttribute("data-long");
+        var expectedLength = writes + (quotedBracket ? 1 : 0);
+        if (attribute?.Length != expectedLength) throw new Exception($"Expected {expectedLength}, got {attribute?.Length}");
+        if (repetition > 0) samples.Add(clock.Elapsed.TotalMilliseconds);
+        context.Dispose();
+    }
+    samples.Sort();
+    Console.WriteLine($"{writes},{samples[1]:F2},{string.Join('/', samples.Select(value => value.ToString("F2")))}");
+}

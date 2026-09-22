@@ -29,3 +29,18 @@ and [fallback-base rules](https://html.spec.whatwg.org/multipage/urls-and-fetchi
 Chromium 151 differed in a separate browser observation: the blank case kept
 the parent's former `/assets/` base, while the srcdoc case kept its former HTTP
 URL. This is an interop limit, not evidence that either behavior is universal.
+
+The [unfinished-token probe](unfinished-token-performance.json) checks 2,000 to
+16,000 one-character writes inside a still-open start-tag attribute. At 16,000
+writes, the Release-mode median fell from 467 ms to 6.9 ms; a quoted `>` before
+the writes took 7.2 ms after the fix. The probe verifies the completed attribute
+length, and the native and runtime regression suites cover token boundaries.
+These measurements are local to macOS arm64 and do not qualify other unfinished
+token types.
+
+To repeat the probe, build the selected AngleSharp commit in Release for
+`net10.0`, create a small `net10.0` console project referencing that assembly,
+and use `UnfinishedTokenProbe.cs.txt` as `Program.cs`. Run once normally and
+once with `QUOTED_BRACKET=true`; the latter puts `>` inside the quoted value
+before the measured writes. The probe discards its first sample per size and
+checks the completed attribute length after each timed loop.

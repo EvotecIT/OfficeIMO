@@ -290,8 +290,11 @@ parent, the parent retains its origin and adopts the child's about URL. The old
 about base URL, so its `baseURI` is the adopted about URL. This follows the
 current HTML URL and fallback-base rules. Chromium 151 was observed to retain
 the old base for the blank case and the old parent URL for the srcdoc case;
-cross-browser equivalence for these reverse calls remains open. Performance of
-very long unfinished tokens supplied through many small writes is also unqualified.
+cross-browser equivalence for these reverse calls remains open. Repeated small
+`document.write()` calls into an unfinished start tag, including a quoted
+attribute containing `>`, avoid reparsing the whole prefix; see the
+[measured case](../Build/Project/Evidence/2026-09-22/html-document-popup/unfinished-token-performance.json).
+Other unfinished lexical forms have not been performance-qualified.
 
 Use `CreateStandaloneDocument()` when only the root snapshot is needed. Use
 `CreateRenderDocument()` to create an independent clone that projects the captured
