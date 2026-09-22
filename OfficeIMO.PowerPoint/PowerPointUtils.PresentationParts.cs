@@ -164,9 +164,16 @@ namespace OfficeIMO.PowerPoint {
             string? relationshipId = slideId.RelationshipId?.Value;
             if (relationshipId is { Length: > 0 } &&
                 presentationPart.TryGetPartById(relationshipId, out OpenXmlPart? part) &&
-                part is SlidePart slidePart &&
-                slidePart.Slide?.Show?.Value != null) {
-                return !slidePart.Slide.Show.Value;
+                part is SlidePart slidePart) {
+                bool? show;
+                if (slidePart.IsRootElementLoaded) {
+                    show = slidePart.Slide?.Show?.Value;
+                } else {
+                    using Stream stream = slidePart.GetStream(FileMode.Open,
+                        FileAccess.Read);
+                    show = PowerPointXmlReader.ReadSlideShow(stream);
+                }
+                if (show.HasValue) return !show.Value;
             }
 
             string? legacyShowValue = slideId.GetAttributes()

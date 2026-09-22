@@ -16,4 +16,11 @@ internal static class PowerPointXmlReader {
         using XmlReader reader = XmlReader.Create(stream, PackageXmlReaderSettings);
         return XDocument.Load(reader, options);
     }
+
+    internal static bool? ReadSlideShow(Stream stream) {
+        using XmlReader reader = XmlReader.Create(stream, PackageXmlReaderSettings);
+        reader.MoveToContent();
+        string? value = reader.GetAttribute("show");
+        return value == null ? null : XmlConvert.ToBoolean(value);
+    }
 }
