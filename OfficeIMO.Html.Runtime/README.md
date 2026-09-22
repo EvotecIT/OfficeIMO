@@ -284,9 +284,14 @@ more input, and `document.close()` finishes the stream. Written scripts use the
 same realm and respect blocking stylesheets. Reopening abandons the previous
 input stream and its pending scripts and completion events.
 
-Reverse calls from an `about:blank` or `about:srcdoc` child into its parent are not
-qualified for browser-equivalent URL and base behavior. Performance of very long
-unfinished tokens supplied through many small writes has not been qualified.
+When a script in an `about:blank` or `about:srcdoc` child opens its active HTTP
+parent, the parent retains its origin and adopts the child's about URL. The old
+`<base>` element is removed; the parent does not acquire the child's inherited
+about base URL, so its `baseURI` is the adopted about URL. This follows the
+current HTML URL and fallback-base rules. Chromium 151 was observed to retain
+the old base for the blank case and the old parent URL for the srcdoc case;
+cross-browser equivalence for these reverse calls remains open. Performance of
+very long unfinished tokens supplied through many small writes is also unqualified.
 
 Use `CreateStandaloneDocument()` when only the root snapshot is needed. Use
 `CreateRenderDocument()` to create an independent clone that projects the captured
