@@ -676,11 +676,10 @@ public static partial class HtmlProvenance {
     }
 
     private static string CreateRewrittenDataUriMetadata(HtmlImageDataUri dataUri) {
-        string[] parts = dataUri.Metadata.Split(';');
-        var metadata = new List<string>(parts.Length + 1);
+        var metadata = new List<string>();
         bool svg = string.Equals(dataUri.MediaType, "image/svg+xml", StringComparison.OrdinalIgnoreCase);
         bool hasCharset = false;
-        foreach (string part in parts) {
+        foreach (string part in EnumerateDataUriMetadataParameters(dataUri.Metadata)) {
             string trimmed = TrimAsciiWhitespace(part);
             if (trimmed.Equals("base64", StringComparison.OrdinalIgnoreCase)) continue;
             if (svg && HtmlTextEncodingResolver.Default.HasDataUriCharset(trimmed)) {
@@ -742,7 +741,10 @@ public static partial class HtmlProvenance {
                     ? group.First().Reference.ContainerText ?? string.Empty
                     : exactAttribute?.Value ?? element.GetAttribute(group.Key) ?? string.Empty;
             foreach ((EmbeddedImageReference reference, string replacement) in group.OrderByDescending(item => item.Reference.Start)) {
-                value = value.Substring(0, reference.Start) + replacement + value.Substring(reference.Start + reference.Length);
+                string inserted = group.Key is "css" or "stylesheet-css" or "style"
+                    ? EscapeCssDataUri(replacement)
+                    : replacement;
+                value = value.Substring(0, reference.Start) + inserted + value.Substring(reference.Start + reference.Length);
             }
             if (group.Key == "css") element.TextContent = value;
             else if (group.Key == "stylesheet-css") {
@@ -757,9 +759,18 @@ public static partial class HtmlProvenance {
         }
     }
 
+    private static string EscapeCssDataUri(string value) {
+        var escaped = new StringBuilder(value.Length);
+        foreach (char character in value) {
+            if (character is '\\' or '"' or '\'' or '(' or ')' || char.IsWhiteSpace(character)) escaped.Append('\\');
+            escaped.Append(character);
+        }
+        return escaped.ToString();
+    }
+
     private static string CreateRewrittenCssDataUriMetadata(string originalMetadata) {
         var metadata = new List<string>();
-        foreach (string part in originalMetadata.Split(';')) {
+        foreach (string part in EnumerateDataUriMetadataParameters(originalMetadata)) {
             string trimmed = TrimAsciiWhitespace(part);
             if (trimmed.Length == 0 || trimmed.Equals("base64", StringComparison.OrdinalIgnoreCase) ||
                 HtmlTextEncodingResolver.Default.HasDataUriCharset(trimmed)) continue;
@@ -769,6 +780,23 @@ public static partial class HtmlProvenance {
         metadata.Add("charset=utf-8");
         metadata.Add("base64");
         return string.Join(";", metadata);
+    }
+
+    private static IEnumerable<string> EnumerateDataUriMetadataParameters(string metadata) {
+        int start = 0;
+        bool quoted = false;
+        for (int i = 0; i < metadata.Length; i++) {
+            char current = metadata[i];
+            if (quoted && current == '\\' && i + 1 < metadata.Length) {
+                i++;
+            } else if (current == '"') {
+                quoted = !quoted;
+            } else if (current == ';' && !quoted) {
+                yield return metadata.Substring(start, i - start);
+                start = i + 1;
+            }
+        }
+        yield return metadata.Substring(start);
     }
 
     private static bool TryDecodeManifest(
