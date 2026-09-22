@@ -9,7 +9,7 @@ namespace OfficeIMO.Visio {
     /// Connects two shapes together.
     /// </summary>
     public class VisioConnector {
-        internal sealed class PreservedShapeChildEntry {
+        internal readonly struct PreservedShapeChildEntry {
             public PreservedShapeChildEntry(XElement rawElement) {
                 RawElement = new XElement(rawElement);
             }

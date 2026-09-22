@@ -8,7 +8,7 @@ namespace OfficeIMO.Visio {
     /// Represents a shape on a Visio page.
     /// </summary>
     public class VisioShape {
-        internal sealed class PreservedShapeChildEntry {
+        internal readonly struct PreservedShapeChildEntry {
             public PreservedShapeChildEntry(XElement rawElement) {
                 RawElement = new XElement(rawElement);
             }
