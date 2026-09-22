@@ -74,6 +74,171 @@ public class PdfTextShapingProviderTests {
     }
 
     [Fact]
+    public void VerticalProviderWithoutYAdvancesKeepsTheDiagnosedFallback() {
+        TypographyEvidenceCase evidence = Assert.Single(
+            TypographyEvidenceCorpus.Cases,
+            item => item.Direction == OfficeTextDirection.TopToBottom);
+        byte[] fontData = LoadTypographyFont(evidence);
+        PdfTrueTypeFontProgram font = PdfTrueTypeFontProgram.Parse(fontData, evidence.Family);
+        var provider = new DirectionRecordingTextShapingProvider(
+            evidence.Text, CreateGlyphMap(evidence.Text, font));
+        var drawing = new OfficeDrawing(120D, 180D)
+            .AddFont(evidence.Family, fontData)
+            .AddVerticalText(evidence.Text, 20D, 10D, 80D, 160D,
+                new OfficeFontInfo(evidence.Family, 36D));
+        var report = new PdfConversionReport();
+        var options = new PdfOptions { CompressContentStreams = false }
+            .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(evidence.Family, fontData))
+            .SetTextShapingProvider(provider)
+            .ReportDiagnosticsTo(report, "Incomplete vertical advances");
+
+        byte[] pdf = PdfDocument.Create(options).Drawing(drawing).ToBytes();
+
+        Assert.Contains(provider.Requests, request => request.Direction == OfficeTextDirection.TopToBottom);
+        Assert.Contains(evidence.Text, PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Single(report.FidelityDiagnostics, diagnostic =>
+            diagnostic.Code == "vertical-text-stacked-fallback" &&
+            diagnostic.LossKind == OfficeConversionLossKind.Approximation);
+        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
+    }
+
+    [Fact]
+    public void VerticalProviderWithPartialTextCoverageKeepsTheDiagnosedFallback() {
+        TypographyEvidenceCase evidence = Assert.Single(
+            TypographyEvidenceCorpus.Cases,
+            item => item.Direction == OfficeTextDirection.TopToBottom);
+        byte[] fontData = LoadTypographyFont(evidence);
+        PdfTrueTypeFontProgram font = PdfTrueTypeFontProgram.Parse(fontData, evidence.Family);
+        OfficeShapedGlyph first = CreateGlyphMap(evidence.Text, font)[0];
+        var provider = new DirectionRecordingTextShapingProvider(evidence.Text,
+            new[] { new OfficeShapedGlyph(first.GlyphId, first.UnicodeText, first.TextIndex,
+                advanceWidth: 0, advanceHeight: -font.UnitsPerEm, offsetX: 0, offsetY: 0) });
+        var drawing = new OfficeDrawing(120D, 180D)
+            .AddFont(evidence.Family, fontData)
+            .AddVerticalText(evidence.Text, 20D, 10D, 80D, 160D,
+                new OfficeFontInfo(evidence.Family, 36D));
+        var report = new PdfConversionReport();
+        var options = new PdfOptions { CompressContentStreams = false }
+            .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(evidence.Family, fontData))
+            .SetTextShapingProvider(provider)
+            .ReportDiagnosticsTo(report, "Partial vertical run");
+
+        byte[] pdf = PdfDocument.Create(options).Drawing(drawing).ToBytes();
+
+        Assert.Contains(evidence.Text, PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Single(report.FidelityDiagnostics, diagnostic =>
+            diagnostic.Code == "vertical-text-stacked-fallback" &&
+            diagnostic.LossKind == OfficeConversionLossKind.Approximation);
+        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
+    }
+
+    [Fact]
+    public void VerticalProviderWithBaselineRelativeOffsetsAlignsInkBeforePdfClipping() {
+        TypographyEvidenceCase evidence = Assert.Single(TypographyEvidenceCorpus.Cases,
+            item => item.Direction == OfficeTextDirection.TopToBottom);
+        byte[] fontData = LoadTypographyFont(evidence);
+        PdfTrueTypeFontProgram font = PdfTrueTypeFontProgram.Parse(fontData, evidence.Family);
+        var glyphs = new List<OfficeShapedGlyph>();
+        foreach (OfficeShapedGlyph glyph in CreateGlyphMap(evidence.Text, font)) {
+            glyphs.Add(new OfficeShapedGlyph(glyph.GlyphId, glyph.UnicodeText, glyph.TextIndex,
+                advanceWidth: 0, advanceHeight: -font.UnitsPerEm, offsetX: 0, offsetY: 0));
+        }
+        var provider = new DirectionRecordingTextShapingProvider(evidence.Text, glyphs);
+        var drawing = new OfficeDrawing(120D, 180D)
+            .AddFont(evidence.Family, fontData)
+            .AddVerticalText(evidence.Text, 20D, 10D, 80D, 160D,
+                new OfficeFontInfo(evidence.Family, 20D));
+        var report = new PdfConversionReport();
+        var options = new PdfOptions {
+                CompressContentStreams = false, PageWidth = 120D, PageHeight = 180D,
+                MarginLeft = 0D, MarginRight = 0D, MarginTop = 0D, MarginBottom = 0D
+            }
+            .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(evidence.Family, fontData))
+            .SetTextShapingProvider(provider)
+            .ReportDiagnosticsTo(report, "Baseline-relative vertical glyphs");
+
+        byte[] pdf = PdfDocument.Create(options)
+            .Canvas(canvas => canvas.Drawing(drawing, 0D, 0D, 120D, 180D))
+            .ToBytes();
+        PixelBounds bounds = GetInkBounds(OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf)));
+
+        Assert.Equal(evidence.Text, PdfReadDocument.Open(pdf).ExtractText());
+        Assert.InRange(bounds.Y, 10, 12);
+        Assert.DoesNotContain(report.FidelityDiagnostics, diagnostic =>
+            diagnostic.Code == "vertical-text-stacked-fallback");
+        report.RequireNoLoss();
+    }
+
+    [Theory]
+    [InlineData((byte)0, "0")]
+    [InlineData((byte)128, "0.502")]
+    public void NativeVerticalTextPreservesColorAlphaAndLogicalExtraction(byte alpha, string pdfOpacity) {
+        TypographyEvidenceCase evidence = Assert.Single(TypographyEvidenceCorpus.Cases,
+            item => item.Direction == OfficeTextDirection.TopToBottom);
+        byte[] fontData = LoadTypographyFont(evidence);
+        PdfTrueTypeFontProgram font = PdfTrueTypeFontProgram.Parse(fontData, evidence.Family);
+        var glyphs = new List<OfficeShapedGlyph>();
+        foreach (OfficeShapedGlyph glyph in CreateGlyphMap(evidence.Text, font)) {
+            glyphs.Add(new OfficeShapedGlyph(glyph.GlyphId, glyph.UnicodeText, glyph.TextIndex,
+                advanceWidth: 0, advanceHeight: -font.UnitsPerEm, offsetX: 0, offsetY: 0));
+        }
+        var drawing = new OfficeDrawing(120D, 180D)
+            .AddFont(evidence.Family, fontData)
+            .AddVerticalText(evidence.Text, 20D, 10D, 80D, 160D,
+                new OfficeFontInfo(evidence.Family, 20D), OfficeColor.FromRgba(255, 0, 0, alpha));
+        var report = new PdfConversionReport();
+        var options = new PdfOptions { CompressContentStreams = false }
+            .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(evidence.Family, fontData))
+            .SetTextShapingProvider(new DirectionRecordingTextShapingProvider(evidence.Text, glyphs))
+            .ReportDiagnosticsTo(report, "Vertical alpha");
+
+        byte[] pdf = PdfDocument.Create(options).Drawing(drawing).ToBytes();
+        string raw = Encoding.ASCII.GetString(pdf);
+
+        Assert.Contains("/ca " + pdfOpacity + " /CA 1", raw, StringComparison.Ordinal);
+        Assert.Contains("/GS1 gs", raw, StringComparison.Ordinal);
+        Assert.Contains(evidence.Text, PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.DoesNotContain(report.FidelityDiagnostics, diagnostic =>
+            diagnostic.Code == "vertical-text-stacked-fallback");
+        report.RequireNoLoss();
+    }
+
+    [Fact]
+    public void NativeVerticalTextFallsBackWhenCffGlyphOutlineIsMalformed() {
+        const string value = "A";
+        const string family = "Malformed CFF vertical";
+        string fontPath = Assert.IsType<string>(PdfComplianceTestFonts.FindBundledOpenTypeCffFont());
+        byte[] fontData = File.ReadAllBytes(fontPath);
+        PdfOpenTypeCffFontProgram valid = PdfOpenTypeCffFontProgram.Parse(fontData, family);
+        Assert.True(valid.TryGetGlyphId('A', out int glyphId));
+        OfficeOpenTypeReader reader = Assert.IsType<OfficeOpenTypeReader>(OfficeOpenTypeReader.TryCreate(fontData));
+        OfficeCffFontData.CffSlice glyphBytes = OfficeCffFontData.Parse(reader, OfficeFontVariationModel.None)
+            .GetCharString(glyphId);
+        Assert.True(glyphBytes.Length > 0);
+        fontData[glyphBytes.Offset] = 10; // callsubr with an empty stack fails only during outline decoding.
+        var provider = new DirectionRecordingTextShapingProvider(value,
+            new[] { new OfficeShapedGlyph(glyphId, value, 0, advanceWidth: 0,
+                advanceHeight: -valid.UnitsPerEm, offsetX: 0, offsetY: 0) });
+        var drawing = new OfficeDrawing(100D, 100D)
+            .AddVerticalText(value, 10D, 10D, 80D, 80D, new OfficeFontInfo(family, 24D));
+        var report = new PdfConversionReport();
+        var options = new PdfOptions { CompressContentStreams = false }
+            .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family, fontData))
+            .SetTextShapingProvider(provider)
+            .ReportDiagnosticsTo(report, "Malformed CFF glyph");
+
+        byte[] pdf = PdfDocument.Create(options).Drawing(drawing).ToBytes();
+
+        Assert.Contains(provider.Requests, request =>
+            request.Direction == OfficeTextDirection.TopToBottom && request.IsOpenTypeCff);
+        Assert.Contains(value, PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Single(report.FidelityDiagnostics, diagnostic =>
+            diagnostic.Code == "vertical-text-stacked-fallback" &&
+            diagnostic.LossKind == OfficeConversionLossKind.Approximation);
+        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
+    }
+
+    [Fact]
     public void VerticalDrawingInsideActualTextGroupStillReportsThePdfPositioningFallback() {
         TypographyEvidenceCase evidence = Assert.Single(
             TypographyEvidenceCorpus.Cases,

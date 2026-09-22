@@ -1,10 +1,13 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Globalization;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using System.Collections.Generic;
 using OfficeIMO.Drawing;
 using OfficeIMO.Drawing.HarfBuzz;
+using OfficeIMO.Pdf;
 using OfficeIMO.TestAssets;
 using Xunit;
 
@@ -75,6 +78,168 @@ public sealed class OfficeHarfBuzzTextShapingProviderTests {
         Assert.Equal("vertical-rl", text.Attribute("writing-mode")?.Value);
         Assert.Equal("start", text.Attribute("text-anchor")?.Value);
         Assert.Equal("browser-native", text.Attribute("data-officeimo-shaping-backend")?.Value);
+    }
+
+    [Fact]
+    public void VerticalCjkPdfUsesShapedGlyphPositionsAndPassesStrictLossPolicy() {
+        TypographyEvidenceCase evidence = Assert.Single(
+            TypographyEvidenceCorpus.Cases,
+            item => item.Direction == OfficeTextDirection.TopToBottom);
+        byte[] fontData = LoadFontData(evidence);
+        var drawing = new OfficeDrawing(120D, 180D)
+            .AddFont(evidence.Family, fontData)
+            .AddVerticalText(evidence.Text, 20D, 10D, 80D, 160D, new OfficeFontInfo(evidence.Family, 36D));
+        var report = new PdfConversionReport();
+        var options = new PdfOptions {
+                CompressContentStreams = false,
+                PageWidth = 120D,
+                PageHeight = 180D,
+                MarginLeft = 0D,
+                MarginRight = 0D,
+                MarginTop = 0D,
+                MarginBottom = 0D
+            }
+            .ReportDiagnosticsTo(report, "HarfBuzz vertical PDF")
+            .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(evidence.Family, fontData))
+            .SetLanguage(evidence.Language)
+            .SetTextShapingProvider(OfficeHarfBuzzTextShapingProvider.Instance);
+
+        byte[] pdf = PdfDocument.Create(
+                document => document.Content(content => content.Canvas(
+                    canvas => canvas.Drawing(drawing, 0D, 0D, 120D, 180D))), options)
+            .ToBytes();
+        string raw = System.Text.Encoding.ASCII.GetString(pdf);
+        string extracted = PdfReadDocument.Open(pdf).ExtractText();
+
+        Assert.Contains(evidence.Text, extracted, StringComparison.Ordinal);
+        Assert.Contains("/ActualText", raw, StringComparison.Ordinal);
+        Assert.True(raw.Split(new[] { " Tm" }, StringSplitOptions.None).Length > evidence.Text.Length);
+        Assert.DoesNotContain(report.FidelityDiagnostics, diagnostic =>
+            diagnostic.Code == "vertical-text-stacked-fallback");
+        report.RequireNoLoss();
+    }
+
+    [Fact]
+    public void JapanesePdfPositionsSubstitutedVerticalGlyphsAtProviderYAdvances() {
+        const string value = "日本語（例）。";
+        const string family = "Noto Sans JP";
+        const double size = 20D;
+        byte[] fontData = File.ReadAllBytes(FontPath("NotoSansJP-OfficeIMO-Common.ttf"));
+        OfficeFontFace face = Assert.Single(new OfficeFontFaceCollection().Add(family, fontData).Faces);
+        OfficeTextShapingResult Shape(OfficeTextDirection direction) =>
+            Assert.IsType<OfficeTextShapingResult>(OfficeHarfBuzzTextShapingProvider.Instance.ShapeText(
+                new OfficeTextShapingRequest(value, family, face.Program.GetFontDataForShaping(),
+                    face.Program.IsOpenTypeCff, face.Program.UnitsPerEm, direction, "ja")));
+        OfficeTextShapingResult verticalResult = Shape(OfficeTextDirection.TopToBottom);
+        OfficeShapedGlyph[] vertical = verticalResult.Glyphs.ToArray();
+        OfficeShapedGlyph[] horizontal = Shape(OfficeTextDirection.LeftToRight).Glyphs.ToArray();
+        Assert.Equal(value.Length, vertical.Length);
+        Assert.All(vertical, glyph => Assert.True(glyph.AdvanceHeight < 0));
+        Assert.All(vertical, glyph => Assert.True(glyph.AdvanceWidth.HasValue));
+        Assert.Contains(new[] { 3, 5, 6 }, index => vertical[index].GlyphId != horizontal[index].GlyphId);
+
+        var drawing = new OfficeDrawing(120D, 180D)
+            .AddFont(family, fontData)
+            .AddVerticalText(value, 20D, 10D, 80D, 160D, new OfficeFontInfo(family, size));
+        var report = new PdfConversionReport();
+        var options = new PdfOptions {
+                CompressContentStreams = false,
+                PageWidth = 120D, PageHeight = 180D,
+                MarginLeft = 0D, MarginRight = 0D, MarginTop = 0D, MarginBottom = 0D
+            }
+            .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family, fontData))
+            .SetLanguage("ja")
+            .SetTextShapingProvider(OfficeHarfBuzzTextShapingProvider.Instance)
+            .ReportDiagnosticsTo(report, "Japanese vertical glyphs");
+        byte[] pdf = PdfDocument.Create(document => document.Content(content => content.Canvas(
+            canvas => canvas.Drawing(drawing, 0D, 0D, 120D, 180D))), options).ToBytes();
+        string raw = System.Text.Encoding.ASCII.GetString(pdf);
+        MatchCollection positions = Regex.Matches(raw,
+            @"(?m)^1 0 0 1 (-?[0-9.]+) (-?[0-9.]+) Tm\r?\n<([0-9A-F]{4})> Tj$");
+        Assert.Equal(vertical.Length, positions.Count);
+
+        double penX = 60D;
+        var outlineFont = Assert.IsAssignableFrom<IOfficeBoundedFontProgram>(face.Program);
+        double inkTop = outlineFont.GetShapedTextContoursBounded(value, verticalResult, 0D, 0D,
+                size, 100_000, default)
+            .SelectMany(contour => contour).Min(point => point.Y);
+        double penY = 170D + Math.Min(0D, inkTop);
+        for (int index = 0; index < vertical.Length; index++) {
+            OfficeShapedGlyph glyph = vertical[index];
+            Match position = positions[index];
+            Assert.Equal(glyph.GlyphId, int.Parse(position.Groups[3].Value, NumberStyles.HexNumber, CultureInfo.InvariantCulture));
+            double x = double.Parse(position.Groups[1].Value, CultureInfo.InvariantCulture);
+            double y = double.Parse(position.Groups[2].Value, CultureInfo.InvariantCulture);
+            Assert.InRange(Math.Abs(x - (penX + glyph.OffsetX * size / face.Program.UnitsPerEm)), 0D, 0.01D);
+            Assert.InRange(Math.Abs(y - (penY + glyph.OffsetY * size / face.Program.UnitsPerEm)), 0D, 0.01D);
+            penX += glyph.AdvanceWidth!.Value * size / face.Program.UnitsPerEm;
+            penY += glyph.AdvanceHeight!.Value * size / face.Program.UnitsPerEm;
+        }
+
+        Assert.Contains("/Identity-H", raw, StringComparison.Ordinal);
+        Assert.Contains("/ActualText", raw, StringComparison.Ordinal);
+        Assert.Equal(value, PdfReadDocument.Open(pdf).ExtractText().Trim());
+        Assert.DoesNotContain(report.FidelityDiagnostics, diagnostic =>
+            diagnostic.Code == "vertical-text-stacked-fallback");
+        report.RequireNoLoss();
+        string? evidencePath = Environment.GetEnvironmentVariable("OFFICEIMO_VERTICAL_PDF_EVIDENCE");
+        if (!string.IsNullOrEmpty(evidencePath)) File.WriteAllBytes(evidencePath, pdf);
+    }
+
+    [Fact]
+    public void VerticalTextInsideLogicalDrawingKeepsNativePositionsAndOneExtraction() {
+        TypographyEvidenceCase evidence = Assert.Single(
+            TypographyEvidenceCorpus.Cases,
+            item => item.Direction == OfficeTextDirection.TopToBottom);
+        byte[] fontData = LoadFontData(evidence);
+        var paint = new OfficeDrawing(120D, 180D)
+            .AddFont(evidence.Family, fontData)
+            .AddVerticalText(evidence.Text, 20D, 10D, 80D, 160D,
+                new OfficeFontInfo(evidence.Family, 36D));
+        var drawing = new OfficeDrawing(120D, 180D)
+            .AddActualTextDrawing(evidence.Text, paint, 60D, 10D);
+        var report = new PdfConversionReport();
+        var options = new PdfOptions { CompressContentStreams = false }
+            .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(evidence.Family, fontData))
+            .SetTextShapingProvider(OfficeHarfBuzzTextShapingProvider.Instance)
+            .ReportDiagnosticsTo(report, "Logical vertical drawing");
+
+        byte[] pdf = PdfDocument.Create(
+            document => document.Content(content => content.Drawing(drawing)), options).ToBytes();
+
+        Assert.Equal(evidence.Text, PdfReadDocument.Open(pdf).ExtractText().Trim());
+        Assert.DoesNotContain(report.FidelityDiagnostics, diagnostic =>
+            diagnostic.Code == "vertical-text-stacked-fallback");
+        report.RequireNoLoss();
+    }
+
+    [Fact]
+    public void TaggedFigureWithoutLogicalTextWrapperKeepsDiagnosedVerticalFallback() {
+        TypographyEvidenceCase evidence = Assert.Single(
+            TypographyEvidenceCorpus.Cases,
+            item => item.Direction == OfficeTextDirection.TopToBottom);
+        byte[] fontData = LoadFontData(evidence);
+        var drawing = new OfficeDrawing(120D, 180D)
+            .AddFont(evidence.Family, fontData)
+            .AddVerticalText(evidence.Text, 20D, 10D, 80D, 160D,
+                new OfficeFontInfo(evidence.Family, 36D));
+        var report = new PdfConversionReport();
+        var options = new PdfOptions { CompressContentStreams = false }
+            .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(evidence.Family, fontData))
+            .SetTextShapingProvider(OfficeHarfBuzzTextShapingProvider.Instance)
+            .ReportDiagnosticsTo(report, "Tagged vertical drawing");
+
+        byte[] pdf = PdfDocument.Create(document => document.Content(content =>
+                content.Drawing(drawing, style: new PdfDrawingStyle {
+                    AlternativeText = "Japanese text figure"
+                })), options)
+            .ToBytes();
+
+        Assert.Contains("/Figure << /Alt", System.Text.Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
+        Assert.Single(report.FidelityDiagnostics, diagnostic =>
+            diagnostic.Code == "vertical-text-stacked-fallback" &&
+            diagnostic.LossKind == OfficeConversionLossKind.Approximation);
+        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
     }
 
     [Fact]

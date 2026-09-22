@@ -27,7 +27,6 @@ Completion evidence: a visitor can choose a task, find the supported surface, in
 
 ## Image engine
 
-- [ ] Replace the diagnosed searchable stacked-text fallback for vertical PDF drawing with native vertical glyph positioning when the PDF font and text operators can preserve shaped Y advances, substitutions, logical extraction, and strict-profile evidence together. Qualify against independent CJK producer files using both `/Identity-V` and independently positioned `/Identity-H` glyphs; keep the current approximation explicit until extraction and rendered geometry pass those references.
 - [ ] Add bounded EMF/WMF rasterization when older Office-document fixtures demonstrate a material fidelity gain. Keep ICO, PCX, BMP/GIF encoding, and uncommon or expensive codecs behind the caller-codec boundary until a first-party consumer justifies ownership.
 
 ## PDF engine and conversion fidelity

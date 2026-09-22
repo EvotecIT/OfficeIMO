@@ -7,17 +7,21 @@ internal sealed class PdfGlyphRun {
         : this(glyphs, Array.Empty<PdfTextEncodingDiagnostic>(), actualText: null, OfficeTextDirection.Auto) {
     }
 
-    public PdfGlyphRun(IReadOnlyList<PdfGlyphInfo> glyphs, IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics, string? actualText = null, OfficeTextDirection direction = OfficeTextDirection.Auto) {
+    public PdfGlyphRun(IReadOnlyList<PdfGlyphInfo> glyphs, IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics, string? actualText = null, OfficeTextDirection direction = OfficeTextDirection.Auto, bool hasCompleteVerticalAdvances = false, OfficeTextShapingResult? sourceShapingResult = null) {
         Glyphs = glyphs ?? throw new ArgumentNullException(nameof(glyphs));
         Diagnostics = diagnostics ?? throw new ArgumentNullException(nameof(diagnostics));
         ActualText = string.IsNullOrEmpty(actualText) ? null : actualText;
         Direction = direction;
+        HasCompleteVerticalAdvances = hasCompleteVerticalAdvances;
+        SourceShapingResult = sourceShapingResult;
     }
 
     public IReadOnlyList<PdfGlyphInfo> Glyphs { get; }
     public IReadOnlyList<PdfTextEncodingDiagnostic> Diagnostics { get; }
     public string? ActualText { get; }
     public OfficeTextDirection Direction { get; }
+    public bool HasCompleteVerticalAdvances { get; }
+    internal OfficeTextShapingResult? SourceShapingResult { get; }
     public bool HasMissingGlyphs => Diagnostics.Count > 0;
     public int TotalAdvanceWidth1000 {
         get {

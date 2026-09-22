@@ -85,6 +85,7 @@ internal static class PdfExternalTextShaper {
         }
 
         var glyphs = new List<PdfGlyphInfo>(result.Glyphs.Count);
+        bool hasCompleteVerticalAdvances = result.Direction == OfficeTextDirection.TopToBottom;
         foreach (OfficeShapedGlyph shapedGlyph in result.Glyphs) {
             if (shapedGlyph.GlyphId <= 0 || shapedGlyph.GlyphId >= glyphCount) {
                 throw new ArgumentException("PDF text shaping provider returned glyph id " + shapedGlyph.GlyphId.ToString(System.Globalization.CultureInfo.InvariantCulture) + ", which is outside the embedded font glyph range.", nameof(result));
@@ -101,6 +102,7 @@ internal static class PdfExternalTextShaper {
             int advanceHeight1000 = shapedGlyph.AdvanceHeight.HasValue
                 ? ScaleToPdfUnits(shapedGlyph.AdvanceHeight.Value, unitsPerEm)
                 : 0;
+            hasCompleteVerticalAdvances &= shapedGlyph.AdvanceHeight.HasValue;
             int offsetX1000 = ScaleToPdfUnits(shapedGlyph.OffsetX, unitsPerEm);
             int offsetY1000 = ScaleToPdfUnits(shapedGlyph.OffsetY, unitsPerEm);
             recordGlyphUsage?.Invoke(shapedGlyph.GlyphId, shapedGlyph.UnicodeText);
@@ -115,7 +117,7 @@ internal static class PdfExternalTextShaper {
                 offsetY1000));
         }
 
-        return new PdfGlyphRun(glyphs, Array.Empty<PdfTextEncodingDiagnostic>(), actualText: text, result.Direction);
+        return new PdfGlyphRun(glyphs, Array.Empty<PdfTextEncodingDiagnostic>(), actualText: text, result.Direction, hasCompleteVerticalAdvances, result);
     }
 
     private static int ScaleToPdfUnits(int value, int unitsPerEm) =>
