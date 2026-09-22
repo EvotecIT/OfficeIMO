@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "budgets": [
+    {
+      "suite": "word-format-depth",
+      "operatingSystem": "Any",
+      "key": "CreateParagraph|100",
+      "maxElapsedMicrosecondsPerOperation": 10000,
+      "maxAllocatedBytesPerOperation": 700000,
+      "maxPeakManagedHeapGrowthBytes": 6291456,
+      "maxAbsoluteProcessPeakWorkingSetBytes": 146800640,
+      "maxArtifactBytes": 20000
+    },
+    {
+      "suite": "word-format-depth",
+      "operatingSystem": "Any",
+      "key": "CreateReport|100",
+      "maxElapsedMicrosecondsPerOperation": 20000,
+      "maxAllocatedBytesPerOperation": 1100000,
+      "maxPeakManagedHeapGrowthBytes": 9437184,
+      "maxAbsoluteProcessPeakWorkingSetBytes": 146800640,
+      "maxArtifactBytes": 21000
+    },
+    {
+      "suite": "word-format-depth",
+      "operatingSystem": "Any",
+      "key": "Replace|100",
+      "maxElapsedMicrosecondsPerOperation": 20000,
+      "maxAllocatedBytesPerOperation": 830000,
+      "maxPeakManagedHeapGrowthBytes": 7340032,
+      "maxAbsoluteProcessPeakWorkingSetBytes": 146800640,
+      "maxArtifactBytes": 20000
+    }
+  ]
+}

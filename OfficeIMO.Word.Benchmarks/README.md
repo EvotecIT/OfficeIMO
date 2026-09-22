@@ -80,6 +80,12 @@ peak, input bytes, and output bytes. The current Windows result is documented
 in [`Docs/benchmarks/officeimo.word-openxml-2026-08-24.md`](../Docs/benchmarks/officeimo.word-openxml-2026-08-24.md).
 The [2026-09-22 structured-report cell-writing run](../Docs/benchmarks/officeimo.word-table-report-2026-09-22.md)
 records a three-platform allocation reduction and its remaining timing limits.
+The [100-item format-depth budgets](../Docs/benchmarks/officeimo.word-format-depth-budgets-2026-09-22.md)
+set absolute elapsed, allocation, managed-peak, process-peak, and DOCX-size
+limits for paragraph creation, structured reports, and rich replacement. Run
+`evidence --repeat 3 --budget .\OfficeIMO.Word.Benchmarks\word-format-depth-budgets.json`
+after `validate-openxml` to check them. The process-peak reading is unavailable
+on the current macOS host.
 
 The shared repository runner adds provenance capture and PowerForge-normalized
 JSON/CSV/Markdown evidence. Word workloads are excluded from the default `all`
