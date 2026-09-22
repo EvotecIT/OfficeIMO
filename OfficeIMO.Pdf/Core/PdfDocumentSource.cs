@@ -106,7 +106,7 @@ internal sealed class PdfDocumentSource {
         try {
             byte[] bytes = OfficeStreamReader.ReadRemainingBytes(stream, limit);
             return FromOwnedBytes(bytes, effectiveOptions);
-        } catch (InvalidDataException) {
+        } catch (InvalidDataException exception) when (OfficeStreamReader.IsSizeLimitException(exception)) {
             throw CreateInputLimitException(stream, limit, remainingOnly: true);
         }
     }
@@ -193,7 +193,7 @@ internal sealed class PdfDocumentSource {
         try {
             byte[] bytes = OfficeStreamReader.ReadAllBytes(stream, limit);
             return FromOwnedBytes(bytes, options);
-        } catch (InvalidDataException) {
+        } catch (InvalidDataException exception) when (OfficeStreamReader.IsSizeLimitException(exception)) {
             throw CreateInputLimitException(stream, limit);
         }
     }
@@ -209,7 +209,7 @@ internal sealed class PdfDocumentSource {
                 .ReadAllBytesAsync(stream, cancellationToken, limit)
                 .ConfigureAwait(false);
             return FromOwnedBytes(bytes, options);
-        } catch (InvalidDataException) {
+        } catch (InvalidDataException exception) when (OfficeStreamReader.IsSizeLimitException(exception)) {
             throw CreateInputLimitException(stream, limit);
         }
     }

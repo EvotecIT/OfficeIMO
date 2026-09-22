@@ -666,6 +666,32 @@ public class PdfReadLimitTests {
     }
 
     [Fact]
+    public async Task PdfSourceAndProofPreserveInvalidDataErrorsRaisedByStreams() {
+        const string sourceError = "Damaged compressed source";
+        using var loadStream = new InvalidDataThrowingStream(sourceError);
+        InvalidDataException loadError = Assert.Throws<InvalidDataException>(() =>
+            PdfDocumentSource.FromStream(loadStream, null));
+        Assert.Equal(sourceError, loadError.Message);
+
+        using var asyncStream = new InvalidDataThrowingStream(sourceError);
+        InvalidDataException asyncError = await Assert.ThrowsAsync<InvalidDataException>(() =>
+            PdfDocumentSource.FromStreamAsync(asyncStream, null, CancellationToken.None));
+        Assert.Equal(sourceError, asyncError.Message);
+
+        using var proofStream = new InvalidDataThrowingStream(sourceError);
+        InvalidDataException proofError = Assert.Throws<InvalidDataException>(() =>
+            PdfDocument.Load(BuildPdf()).Proof.AssessRewritePreservation(proofStream));
+        Assert.Equal(sourceError, proofError.Message);
+
+        using var ltvStream = new InvalidDataThrowingStream(sourceError);
+        var evidence = new PdfLongTermValidationEvidence(1, certificates: new[] { new byte[] { 0x30, 0x00 } });
+        var provider = new PdfCmsSignatureCryptographyProvider(OfficeSecurityProvider.Default, new CmsVerificationOptions());
+        InvalidDataException ltvError = Assert.Throws<InvalidDataException>(() =>
+            PdfLongTermValidationEnricher.Enrich(ltvStream, evidence, provider));
+        Assert.Equal(sourceError, ltvError.Message);
+    }
+
+    [Fact]
     public void PdfDocumentPreflightConsumesSeekableStreamsFromTheirCurrentPosition() {
         byte[] pdf = BuildPdf();
         byte[] prefixed = new byte[pdf.Length + 7];
@@ -1764,6 +1790,28 @@ public class PdfReadLimitTests {
             return read;
         }
 
+        public override void Flush() { }
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    }
+
+    private sealed class InvalidDataThrowingStream : Stream {
+        private readonly string _message;
+
+        internal InvalidDataThrowingStream(string message) => _message = message;
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+
+        public override int Read(byte[] buffer, int offset, int count) => throw new InvalidDataException(_message);
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) =>
+            Task.FromException<int>(new InvalidDataException(_message));
         public override void Flush() { }
         public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
         public override void SetLength(long value) => throw new NotSupportedException();
