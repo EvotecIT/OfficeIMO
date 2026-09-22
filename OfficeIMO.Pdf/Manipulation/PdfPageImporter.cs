@@ -379,7 +379,7 @@ internal static partial class PdfPageImporter {
         Guard.NotNullOrWhiteSpace(sourcePath, nameof(sourcePath));
         Guard.NotNull(sourcePageNumbers, nameof(sourcePageNumbers));
 
-        return AppendPages(File.ReadAllBytes(targetPath), File.ReadAllBytes(sourcePath), sourcePageNumbers);
+        return AppendPages(ReadPath(targetPath), ReadPath(sourcePath), sourcePageNumbers);
     }
 
     /// <summary>
@@ -391,7 +391,7 @@ internal static partial class PdfPageImporter {
         Guard.NotNullOrWhiteSpace(sourcePath, nameof(sourcePath));
         Guard.NotNull(sourcePageNumbers, nameof(sourcePageNumbers));
 
-        return PrependPages(File.ReadAllBytes(targetPath), File.ReadAllBytes(sourcePath), sourcePageNumbers);
+        return PrependPages(ReadPath(targetPath), ReadPath(sourcePath), sourcePageNumbers);
     }
 
     /// <summary>
@@ -403,7 +403,7 @@ internal static partial class PdfPageImporter {
         Guard.NotNullOrWhiteSpace(sourcePath, nameof(sourcePath));
         Guard.NotNull(sourcePageNumbers, nameof(sourcePageNumbers));
 
-        return InsertPages(File.ReadAllBytes(targetPath), File.ReadAllBytes(sourcePath), insertBeforePageNumber, sourcePageNumbers);
+        return InsertPages(ReadPath(targetPath), ReadPath(sourcePath), insertBeforePageNumber, sourcePageNumbers);
     }
 
     /// <summary>
@@ -414,7 +414,7 @@ internal static partial class PdfPageImporter {
         Guard.NotNullOrWhiteSpace(targetPath, nameof(targetPath));
         Guard.NotNullOrWhiteSpace(sourcePath, nameof(sourcePath));
 
-        return InsertPageRange(File.ReadAllBytes(targetPath), File.ReadAllBytes(sourcePath), insertBeforePageNumber, firstSourcePage, lastSourcePage);
+        return InsertPageRange(ReadPath(targetPath), ReadPath(sourcePath), insertBeforePageNumber, firstSourcePage, lastSourcePage);
     }
 
     /// <summary>
@@ -425,7 +425,7 @@ internal static partial class PdfPageImporter {
         Guard.NotNullOrWhiteSpace(targetPath, nameof(targetPath));
         Guard.NotNullOrWhiteSpace(sourcePath, nameof(sourcePath));
 
-        return InsertPageRange(File.ReadAllBytes(targetPath), File.ReadAllBytes(sourcePath), insertBeforePageNumber, sourcePageRange);
+        return InsertPageRange(ReadPath(targetPath), ReadPath(sourcePath), insertBeforePageNumber, sourcePageRange);
     }
 
     /// <summary>
@@ -437,7 +437,7 @@ internal static partial class PdfPageImporter {
         Guard.NotNullOrWhiteSpace(sourcePath, nameof(sourcePath));
         Guard.NotNull(sourcePageRanges, nameof(sourcePageRanges));
 
-        return AppendPageRanges(File.ReadAllBytes(targetPath), File.ReadAllBytes(sourcePath), sourcePageRanges);
+        return AppendPageRanges(ReadPath(targetPath), ReadPath(sourcePath), sourcePageRanges);
     }
 
     /// <summary>
@@ -449,7 +449,7 @@ internal static partial class PdfPageImporter {
         Guard.NotNullOrWhiteSpace(sourcePath, nameof(sourcePath));
         Guard.NotNull(sourcePageRanges, nameof(sourcePageRanges));
 
-        return PrependPageRanges(File.ReadAllBytes(targetPath), File.ReadAllBytes(sourcePath), sourcePageRanges);
+        return PrependPageRanges(ReadPath(targetPath), ReadPath(sourcePath), sourcePageRanges);
     }
 
     /// <summary>
@@ -461,7 +461,7 @@ internal static partial class PdfPageImporter {
         Guard.NotNullOrWhiteSpace(sourcePath, nameof(sourcePath));
         Guard.NotNull(sourcePageRanges, nameof(sourcePageRanges));
 
-        return InsertPageRanges(File.ReadAllBytes(targetPath), File.ReadAllBytes(sourcePath), insertBeforePageNumber, sourcePageRanges);
+        return InsertPageRanges(ReadPath(targetPath), ReadPath(sourcePath), insertBeforePageNumber, sourcePageRanges);
     }
 
     /// <summary>
@@ -564,10 +564,11 @@ internal static partial class PdfPageImporter {
             throw new ArgumentException("Stream must be readable.", paramName);
         }
 
-        using var buffer = new MemoryStream();
-        stream.CopyTo(buffer);
-        return buffer.ToArray();
+        return PdfDocumentSource.FromRemainingStream(stream, null).Bytes;
     }
+
+    private static byte[] ReadPath(string path) =>
+        PdfDocumentSource.FromPath(path, null).Bytes;
 
     private static void WriteOutput(Stream outputStream, byte[] bytes) {
         ValidateWritableOutputStream(outputStream);
