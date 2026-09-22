@@ -17,6 +17,8 @@ namespace OfficeIMO.Word {
             OfficeImageExportConsumer consumer,
             CancellationToken cancellationToken = default) {
             if (consumer == null) throw new ArgumentNullException(nameof(consumer));
+            using WordDocumentTraversal.ListMarkerRenderScope listMarkerScope =
+                WordDocumentTraversal.BuildListMarkersForRendering(document, cancellationToken);
             IReadOnlyList<int> sectionPageCounts = EstimateSectionPageCounts(
                 document,
                 cancellationToken,
@@ -47,6 +49,8 @@ namespace OfficeIMO.Word {
             WordImageExportOptions options,
             CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
+            using WordDocumentTraversal.ListMarkerRenderScope listMarkerScope =
+                WordDocumentTraversal.BuildListMarkersForRendering(document, cancellationToken);
             IReadOnlyList<int> sectionPageCounts = EstimateSectionPageCounts(
                 document,
                 cancellationToken,

@@ -69,10 +69,12 @@ public sealed class OfficeVisioVisualBookOptions {
         if (MaximumNavigationLinksPerEntity < 1) {
             throw new ArgumentOutOfRangeException(nameof(MaximumNavigationLinksPerEntity), "The per-entity navigation limit must be positive.");
         }
-        if (MaximumRequestedLinks < 1 || MaximumRelationshipIdsPerNavigation < 1 ||
-            MaximumRelationshipIdCharactersPerNavigation < 1) {
-            throw new ArgumentOutOfRangeException(nameof(MaximumRequestedLinks), "Book navigation limits must be positive.");
-        }
+        if (MaximumRequestedLinks < 1)
+            throw new ArgumentOutOfRangeException(nameof(MaximumRequestedLinks), "The requested link limit must be positive.");
+        if (MaximumRelationshipIdsPerNavigation < 1)
+            throw new ArgumentOutOfRangeException(nameof(MaximumRelationshipIdsPerNavigation), "The relationship identifier count limit must be positive.");
+        if (MaximumRelationshipIdCharactersPerNavigation < 1)
+            throw new ArgumentOutOfRangeException(nameof(MaximumRelationshipIdCharactersPerNavigation), "The relationship identifier character limit must be positive.");
     }
 }
 

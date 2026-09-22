@@ -134,6 +134,8 @@ namespace OfficeIMO.Word {
             }
 
             cancellationToken.ThrowIfCancellationRequested();
+            using WordDocumentTraversal.ListMarkerRenderScope listMarkerScope =
+                WordDocumentTraversal.BuildListMarkersForRendering(document, cancellationToken);
             return CreateSnapshot(
                 document,
                 options,
@@ -193,7 +195,7 @@ namespace OfficeIMO.Word {
                     ? ResolveSectionPageNumber(pageContext.Section, sectionPageNumberStart, pageContext.SectionPageIndex)
                     : (options.PageIndex + 1, (options.PageIndex + 1).ToString(CultureInfo.InvariantCulture));
                 WordHeaderFooterPageFrame? headerFooterFrame = pageContext.Section != null
-                    ? AddSupportedHeaderFooterContent(pageContext.Section, drawing, diagnostics, options.PageIndex, pageContext.SectionIndex, sectionPageNumberStart, pageContext.SectionPageIndex, totalPageCount, sectionPageCount)
+                    ? AddSupportedHeaderFooterContent(pageContext.Section, drawing, diagnostics, options.PageIndex, pageContext.SectionIndex, sectionPageNumberStart, pageContext.SectionPageIndex, totalPageCount, sectionPageCount, cancellationToken)
                     : null;
 
                 AddSupportedBodyContent(
@@ -213,7 +215,7 @@ namespace OfficeIMO.Word {
                     contentBottom: headerFooterFrame?.BodyBottom,
                     sectionPageCounts: sectionPageCounts,
                     bodyFrameProvider: pageContext.Section != null
-                        ? CreateBodyFrameProvider(pageContext.Section, drawing, pageContext.SectionIndex, sectionPageNumberStart, totalPageCount, sectionPageCount, pageContext.SectionPageIndex, headerFooterFrame)
+                        ? CreateBodyFrameProvider(pageContext.Section, drawing, pageContext.SectionIndex, sectionPageNumberStart, totalPageCount, sectionPageCount, pageContext.SectionPageIndex, headerFooterFrame, cancellationToken)
                         : null,
                     sourceBlocks: sourceBlocks,
                     fragments: fragments,

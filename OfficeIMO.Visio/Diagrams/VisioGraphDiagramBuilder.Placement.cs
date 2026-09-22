@@ -4,8 +4,13 @@ using System.Collections.Generic;
 namespace OfficeIMO.Visio.Diagrams {
     public sealed partial class VisioGraphDiagramBuilder {
         private bool _preserveLayout;
-        private readonly Dictionary<VisioShape, Dictionary<(long X, long Y), List<VisioConnectionPoint>>> _routeEndpointIndex = new();
+        private readonly Dictionary<VisioShape, RouteEndpointIndex> _routeEndpointIndex = new();
         private const double RouteEndpointTolerance = 1e-9;
+
+        private sealed class RouteEndpointIndex {
+            internal readonly Dictionary<(long X, long Y), List<VisioConnectionPoint>> Buckets = new();
+            internal int IndexedCount;
+        }
 
         /// <summary>
         /// Uses imported node and container placements without automatic layout or geometry polish.
@@ -49,11 +54,15 @@ namespace OfficeIMO.Visio.Diagrams {
         private VisioConnectionPoint AddRouteEndpoint(VisioShape shape, double x, double y) {
             double localX = x.ToInches(_unit) - shape.PinX + shape.Width / 2;
             double localY = y.ToInches(_unit) - shape.PinY + shape.Height / 2;
-            if (!_routeEndpointIndex.TryGetValue(shape, out var buckets)) {
-                buckets = new Dictionary<(long X, long Y), List<VisioConnectionPoint>>();
-                foreach (VisioConnectionPoint point in shape.ConnectionPoints) AddIndexedPoint(buckets, point);
-                _routeEndpointIndex.Add(shape, buckets);
+            if (!_routeEndpointIndex.TryGetValue(shape, out RouteEndpointIndex? index)) {
+                index = new RouteEndpointIndex();
+                _routeEndpointIndex.Add(shape, index);
             }
+            // AddConnector can append side points after this shape was indexed for an earlier edge.
+            for (int i = index.IndexedCount; i < shape.ConnectionPoints.Count; i++)
+                AddIndexedPoint(index.Buckets, shape.ConnectionPoints[i]);
+            index.IndexedCount = shape.ConnectionPoints.Count;
+            var buckets = index.Buckets;
             (long X, long Y) bucket = RouteEndpointBucket(localX, localY);
             for (long dx = -1; dx <= 1; dx++) for (long dy = -1; dy <= 1; dy++) {
                 if (!buckets.TryGetValue((bucket.X + dx, bucket.Y + dy), out var points)) continue;
@@ -65,6 +74,7 @@ namespace OfficeIMO.Visio.Diagrams {
             var created = new VisioConnectionPoint(localX, localY, 0, 0);
             shape.ConnectionPoints.Add(created);
             AddIndexedPoint(buckets, created);
+            index.IndexedCount++;
             return created;
         }
 

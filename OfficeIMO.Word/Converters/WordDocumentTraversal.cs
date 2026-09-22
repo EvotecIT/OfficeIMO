@@ -14,12 +14,15 @@ namespace OfficeIMO.Word {
 
         private sealed class ListInfoSnapshot {
             internal ListInfoSnapshot(WordDocument document,
-                IReadOnlyDictionary<WordParagraph, ResolvedListMarker> markers) {
+                IReadOnlyDictionary<WordParagraph, ResolvedListMarker> markers,
+                IReadOnlyDictionary<WordParagraph, (int Level, string Marker)>? renderMarkers = null) {
                 Document = document;
                 Markers = markers;
+                RenderMarkers = renderMarkers;
             }
             internal WordDocument Document { get; }
             internal IReadOnlyDictionary<WordParagraph, ResolvedListMarker> Markers { get; }
+            internal IReadOnlyDictionary<WordParagraph, (int Level, string Marker)>? RenderMarkers { get; }
         }
 
         private sealed class ListInfoSnapshotScope : IDisposable {
@@ -29,9 +32,10 @@ namespace OfficeIMO.Word {
         }
 
         internal static IDisposable UseResolvedListMarkers(WordDocument document,
-            IReadOnlyDictionary<WordParagraph, ResolvedListMarker> markers) {
+            IReadOnlyDictionary<WordParagraph, ResolvedListMarker> markers,
+            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)>? renderMarkers = null) {
             ListInfoSnapshot? previous = ActiveListInfoSnapshot.Value;
-            ActiveListInfoSnapshot.Value = new ListInfoSnapshot(document, markers);
+            ActiveListInfoSnapshot.Value = new ListInfoSnapshot(document, markers, renderMarkers);
             return new ListInfoSnapshotScope(previous);
         }
 
@@ -253,7 +257,7 @@ namespace OfficeIMO.Word {
 
         internal sealed class ListMarkerRenderScope : IDisposable {
             private readonly IDisposable _listInfoScope;
-            internal ListMarkerRenderScope(Dictionary<WordParagraph, (int Level, string Marker)> markers,
+            internal ListMarkerRenderScope(IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> markers,
                 IDisposable listInfoScope) {
                 Markers = markers;
                 _listInfoScope = listInfoScope;
@@ -264,11 +268,15 @@ namespace OfficeIMO.Word {
 
         internal static ListMarkerRenderScope BuildListMarkersForRendering(
             WordDocument document, CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
+            ListInfoSnapshot? active = ActiveListInfoSnapshot.Value;
+            if (ReferenceEquals(active?.Document, document) && active.RenderMarkers != null)
+                return new ListMarkerRenderScope(active.RenderMarkers, new ListInfoSnapshotScope(active));
             Dictionary<WordParagraph, ResolvedListMarker> resolved = BuildResolvedListMarkers(document, cancellationToken);
             var result = new Dictionary<WordParagraph, (int, string)>(ParagraphReferenceComparer.Instance);
             foreach (KeyValuePair<WordParagraph, ResolvedListMarker> item in resolved)
                 result[item.Key] = (item.Value.Level, item.Value.Marker);
-            return new ListMarkerRenderScope(result, UseResolvedListMarkers(document, resolved));
+            return new ListMarkerRenderScope(result, UseResolvedListMarkers(document, resolved, result));
         }
 
         internal static IReadOnlyList<int> GetPictureBulletFallbackIds(WordDocument document) =>

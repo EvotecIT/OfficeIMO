@@ -229,6 +229,24 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
             Assert.Single(book.Navigations, navigation => !navigation.IsReturnLink).RelationshipIds);
     }
 
+    [Theory]
+    [InlineData(0, nameof(OfficeVisioVisualBookOptions.MaximumRequestedLinks))]
+    [InlineData(1, nameof(OfficeVisioVisualBookOptions.MaximumRelationshipIdsPerNavigation))]
+    [InlineData(2, nameof(OfficeVisioVisualBookOptions.MaximumRelationshipIdCharactersPerNavigation))]
+    public void BookRejectsInvalidLimitsWithTheirOwnParameterName(int invalidLimit, string expectedParameter) {
+        var options = new OfficeVisioVisualBookOptions();
+        switch (invalidLimit) {
+            case 0: options.MaximumRequestedLinks = 0; break;
+            case 1: options.MaximumRelationshipIdsPerNavigation = 0; break;
+            default: options.MaximumRelationshipIdCharactersPerNavigation = 0; break;
+        }
+
+        var exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new[] { PlacementEnvelope(), PlacementEnvelope() }.ToOfficeVisioBookWithNavigation(
+                Array.Empty<OfficeVisioVisualBookLink>(), options));
+        Assert.Equal(expectedParameter, exception.ParamName);
+    }
+
     [Fact]
     public void BookResolvesOriginalChartForgeXIdsAfterInterchangeBoundsThem() {
         var first = PlacementEnvelope();

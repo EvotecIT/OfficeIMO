@@ -7,8 +7,11 @@ using System.Threading;
 
 namespace OfficeIMO.Word {
     internal static partial class WordDocumentImageRenderer {
-        internal static int EstimatePageCount(WordDocument document) =>
-            Math.Max(1, EstimateSectionPageCounts(document).Sum());
+        internal static int EstimatePageCount(WordDocument document) {
+            using WordDocumentTraversal.ListMarkerRenderScope listMarkerScope =
+                WordDocumentTraversal.BuildListMarkersForRendering(document);
+            return Math.Max(1, EstimateSectionPageCounts(document).Sum());
+        }
 
         private static IReadOnlyList<int> EstimateSectionPageCounts(
             WordDocument document,
@@ -129,14 +132,14 @@ namespace OfficeIMO.Word {
             cancellationToken.ThrowIfCancellationRequested();
             (double width, double height) = GetPageSizePoints(section);
             var drawing = new OfficeDrawing(width, height);
-            WordHeaderFooterPageFrame headerFooterFrame = CreateHeaderFooterPageFrame(section, drawing, 0, document.Sections.IndexOf(section), 1, 0, 1, 1);
+            WordHeaderFooterPageFrame headerFooterFrame = CreateHeaderFooterPageFrame(section, drawing, 0, document.Sections.IndexOf(section), 1, 0, 1, 1, cancellationToken);
             WordImageFlowContext context = CreateFlowContext(
                 section,
                 drawing,
                 int.MaxValue,
                 contentTop: headerFooterFrame.BodyTop,
                 contentBottom: headerFooterFrame.BodyBottom,
-                bodyFrameProvider: CreateBodyFrameProvider(section, drawing, document.Sections.IndexOf(section), 1, 1, 1, 0, headerFooterFrame),
+                bodyFrameProvider: CreateBodyFrameProvider(section, drawing, document.Sections.IndexOf(section), 1, 1, 1, 0, headerFooterFrame, cancellationToken),
                 cancellationToken: cancellationToken,
                 cancellationCheckpoint: cancellationCheckpoint);
             using WordDocumentTraversal.ListMarkerRenderScope listMarkerScope = WordDocumentTraversal.BuildListMarkersForRendering(document, cancellationToken);
