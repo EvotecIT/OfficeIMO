@@ -155,10 +155,14 @@ internal static class TextContentParser {
     internal sealed class TextOutputBudget {
         private readonly int _maxActualTextCharacters;
         private readonly int _maxDecodedTextCharacters;
+        private readonly PdfReadLimitKind _actualTextLimitKind;
+        private readonly PdfReadLimitKind _decodedTextLimitKind;
         private long _actualTextCharacters;
         private long _decodedTextCharacters;
 
-        internal TextOutputBudget(int maxActualTextCharacters, int maxDecodedTextCharacters) {
+        internal TextOutputBudget(int maxActualTextCharacters, int maxDecodedTextCharacters,
+            PdfReadLimitKind actualTextLimitKind = PdfReadLimitKind.ActualTextCharacters,
+            PdfReadLimitKind decodedTextLimitKind = PdfReadLimitKind.DecodedTextCharacters) {
 #if NET8_0_OR_GREATER
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedTextCharacters);
@@ -168,12 +172,17 @@ internal static class TextContentParser {
 #endif
             _maxActualTextCharacters = maxActualTextCharacters;
             _maxDecodedTextCharacters = maxDecodedTextCharacters;
+            _actualTextLimitKind = actualTextLimitKind;
+            _decodedTextLimitKind = decodedTextLimitKind;
         }
+
+        internal PdfReadLimitKind DecodedTextLimitKind => _decodedTextLimitKind;
+        internal int MaxDecodedTextCharacters => _maxDecodedTextCharacters;
 
         internal void ChargeActualText(int characters) {
             long next = _actualTextCharacters + characters;
             if (next > _maxActualTextCharacters) {
-                throw PdfReadLimitException.Create(PdfReadLimitKind.ActualTextCharacters, _maxActualTextCharacters, next);
+                throw PdfReadLimitException.Create(_actualTextLimitKind, _maxActualTextCharacters, next);
             }
 
             _actualTextCharacters = next;
@@ -182,14 +191,14 @@ internal static class TextContentParser {
         internal void EnsureActualTextMayFit(int characters) {
             long next = _actualTextCharacters + characters;
             if (next > _maxActualTextCharacters) {
-                throw PdfReadLimitException.Create(PdfReadLimitKind.ActualTextCharacters, _maxActualTextCharacters, next);
+                throw PdfReadLimitException.Create(_actualTextLimitKind, _maxActualTextCharacters, next);
             }
         }
 
         internal void ChargeDecodedText(int characters) {
             long next = _decodedTextCharacters + characters;
             if (next > _maxDecodedTextCharacters) {
-                throw PdfReadLimitException.Create(PdfReadLimitKind.DecodedTextCharacters, _maxDecodedTextCharacters, next);
+                throw PdfReadLimitException.Create(_decodedTextLimitKind, _maxDecodedTextCharacters, next);
             }
 
             _decodedTextCharacters = next;
@@ -197,7 +206,7 @@ internal static class TextContentParser {
 
         internal void ThrowDecodedTextLimitExceeded() =>
             throw PdfReadLimitException.Create(
-                PdfReadLimitKind.DecodedTextCharacters,
+                _decodedTextLimitKind,
                 _maxDecodedTextCharacters,
                 (long)_maxDecodedTextCharacters + 1L);
 
@@ -323,7 +332,8 @@ internal static class TextContentParser {
         Func<int, int?>? contentStreamObjectNumberAtOffset = null,
         bool initialArtifactContent = false,
         Action? cancellationCheck = null,
-        PdfTextStateSnapshot? initialTextState = null) {
+        PdfTextStateSnapshot? initialTextState = null,
+        Action<int>? onTextSpan = null) {
 #if NET8_0_OR_GREATER
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedTextCharacters);
@@ -1039,6 +1049,7 @@ internal static class TextContentParser {
                 if (normalizedText.Length == 0) {
                     return;
                 }
+                onTextSpan?.Invoke(normalizedText.Length);
                 string paintedText = sbOut.ToString();
                 bool visibleGlyphsMatchLogicalText = string.Equals(
                     NormalizeShatteredSpan(paintedText),
@@ -1903,6 +1914,9 @@ internal static class TextContentParser {
                 return;
             }
 
+            if (!string.IsNullOrEmpty(resource.FontResource) && resource.FontSize.HasValue) {
+                textState = textState.WithFont(resource.FontResource!, resource.FontSize.Value);
+            }
             fillOpacity = resource.FillOpacity ?? fillOpacity;
             strokeOpacity = resource.StrokeOpacity ?? strokeOpacity;
             hasUnsupportedEffect = hasUnsupportedEffect ||

@@ -41,11 +41,13 @@ public sealed partial class PdfReadPage {
         PdfDictionary? resources = ResolveDictionary(GetInheritedValue("Resources"));
         var activeStreams = new HashSet<PdfStream>();
         var budget = new PageContentBudget(this, cancellationToken);
+        var type3GlyphBudget = new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
         if (ContentUsesOptionalContent(
                 GetContentStreamContent(budget),
                 resources,
                 activeStreams,
                 budget,
+                type3GlyphBudget,
                 depth: 0)) return true;
 
         PdfArray? annotations = ResolveArray(
@@ -62,7 +64,8 @@ public sealed partial class PdfReadPage {
                     appearanceStream,
                     resources,
                     activeStreams,
-                    budget)) return true;
+                    budget,
+                    type3GlyphBudget)) return true;
         }
 
         return false;
@@ -72,7 +75,8 @@ public sealed partial class PdfReadPage {
         PdfStream appearanceStream,
         PdfDictionary? pageResources,
         HashSet<PdfStream> activeStreams,
-        PageContentBudget budget) {
+        PageContentBudget budget,
+        Type3GlyphBudget type3GlyphBudget) {
         if (HasEffectiveOptionalContentEntry(appearanceStream.Dictionary)) return true;
         if (!activeStreams.Add(appearanceStream)) return false;
         try {
@@ -85,6 +89,7 @@ public sealed partial class PdfReadPage {
                 appearanceResources,
                 activeStreams,
                 budget,
+                type3GlyphBudget,
                 depth: 1);
         } finally {
             activeStreams.Remove(appearanceStream);
@@ -96,12 +101,14 @@ public sealed partial class PdfReadPage {
         PdfDictionary? resources,
         HashSet<PdfStream> activeStreams,
         PageContentBudget budget,
+        Type3GlyphBudget type3GlyphBudget,
         int depth) {
         EnsureContentNestingBudget(depth);
         bool found = false;
         string? fontName = null;
         var fontStack = new Stack<string?>();
-        Dictionary<string, PdfFontResource>? fonts = null;
+        PdfFontResourceSet? fontResources = null;
+        Dictionary<PdfDictionary, string> declaredFontNames = GetDeclaredFontNames(resources);
         PdfContentStreamInterpreter.Interpret(content, _limits.MaxContentOperations, operation => {
             budget.CancellationToken.ThrowIfCancellationRequested();
             if (found) return;
@@ -127,17 +134,19 @@ public sealed partial class PdfReadPage {
                     return;
                 case "Tj": case "TJ": case "'": case "\"":
                     if (fontName is string activeFontName &&
-                        (fonts ??= ResourceResolver.GetFontsForResources(resources, _objects))
+                        (fontResources ??= _fontResourceCache.GetOrCreate(resources, _objects)).Fonts
                             .TryGetValue(activeFontName, out PdfFontResource? font) &&
                         font.Type3 is PdfType3FontResource type3) {
                         foreach (byte[] bytes in GetShownTextBytes(operation)) {
                             for (int index = 0; index < bytes.Length && !found; index++) {
+                                type3GlyphBudget.Consume(1);
                                 if (type3.TryGetGlyph(bytes[index], out PdfStream glyph)) {
                                     found = Type3GlyphUsesOptionalContent(
                                         glyph,
                                         type3.Resources,
                                         activeStreams,
                                         budget,
+                                        type3GlyphBudget,
                                         depth + 1);
                                 }
                             }
@@ -155,7 +164,8 @@ public sealed partial class PdfReadPage {
                     resources.Items.TryGetValue("XObject", out PdfObject? xObjectsObject) ? xObjectsObject : null);
                 if (xObjects?.Items.TryGetValue(name, out PdfObject? xObject) == true &&
                     PdfObjectLookup.ResolveChain(_objects, xObject) is PdfStream stream) {
-                    found = StreamUsesOptionalContent(stream, resources, activeStreams, budget, depth + 1);
+                    found = StreamUsesOptionalContent(stream, resources, activeStreams, budget,
+                        type3GlyphBudget, depth + 1);
                 }
                 return;
             }
@@ -169,8 +179,11 @@ public sealed partial class PdfReadPage {
                     graphicsStates?.Items.TryGetValue(name, out PdfObject? graphicsStateObject) == true
                         ? graphicsStateObject
                         : null);
+                fontResources ??= _fontResourceCache.GetOrCreate(resources, _objects);
                 if (graphicsState != null &&
-                    TryReadExtGStateFont(graphicsState, out string? graphicsStateFont, out _) &&
+                    TryReadExtGStateFont(graphicsState, declaredFontNames,
+                        fontResources.Decoders, fontResources.WidthProviders, fontResources.Fonts,
+                        out string? graphicsStateFont, out _) &&
                     !string.IsNullOrEmpty(graphicsStateFont)) {
                     fontName = graphicsStateFont;
                 }
@@ -183,7 +196,8 @@ public sealed partial class PdfReadPage {
                         softMask?.Items.TryGetValue("G", out PdfObject? groupObject) == true
                             ? groupObject
                             : null) is PdfStream group) {
-                    found = StreamUsesOptionalContent(group, resources, activeStreams, budget, depth + 1);
+                    found = StreamUsesOptionalContent(group, resources, activeStreams, budget,
+                        type3GlyphBudget, depth + 1);
                 }
                 return;
             }
@@ -193,7 +207,8 @@ public sealed partial class PdfReadPage {
                     resources.Items.TryGetValue("Pattern", out PdfObject? patternsObject) ? patternsObject : null);
                 if (patterns?.Items.TryGetValue(name, out PdfObject? patternObject) == true &&
                     PdfObjectLookup.ResolveChain(_objects, patternObject) is PdfStream pattern) {
-                    found = StreamUsesOptionalContent(pattern, resources, activeStreams, budget, depth + 1);
+                    found = StreamUsesOptionalContent(pattern, resources, activeStreams, budget,
+                        type3GlyphBudget, depth + 1);
                 }
             }
         },
@@ -209,6 +224,7 @@ public sealed partial class PdfReadPage {
         PdfDictionary? resources,
         HashSet<PdfStream> activeStreams,
         PageContentBudget budget,
+        Type3GlyphBudget type3GlyphBudget,
         int depth) {
         if (HasEffectiveOptionalContentEntry(glyph.Dictionary)) return true;
         if (!activeStreams.Add(glyph)) return false;
@@ -218,6 +234,7 @@ public sealed partial class PdfReadPage {
                 resources,
                 activeStreams,
                 budget,
+                type3GlyphBudget,
                 depth);
         } finally {
             activeStreams.Remove(glyph);
@@ -229,6 +246,7 @@ public sealed partial class PdfReadPage {
         PdfDictionary? inheritedResources,
         HashSet<PdfStream> activeStreams,
         PageContentBudget budget,
+        Type3GlyphBudget type3GlyphBudget,
         int depth) {
         if (HasEffectiveOptionalContentEntry(stream.Dictionary)) return true;
         string? subtype = (PdfObjectLookup.ResolveChain(
@@ -249,6 +267,7 @@ public sealed partial class PdfReadPage {
                 resources,
                 activeStreams,
                 budget,
+                type3GlyphBudget,
                 depth);
         } finally {
             activeStreams.Remove(stream);

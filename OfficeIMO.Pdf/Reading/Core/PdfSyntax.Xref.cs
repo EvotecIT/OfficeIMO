@@ -346,25 +346,23 @@ internal static partial class PdfSyntax {
         xrefStreams.Sort(static (left, right) => left.Offset.CompareTo(right.Offset));
         var activeChainOffsets = GetXrefStreamChainOffsets(xrefStreams, activeXrefOffset);
         var activeEntries = new Dictionary<int, XrefStreamEntry>();
-        if (activeChainOffsets.Count == 0) {
-            var classicTables = GetClassicXrefTableChain(text, activeXrefOffset);
-            if (classicTables.Count == 0) {
-                return false;
+        var classicTables = activeChainOffsets.Count == 0
+            ? GetClassicXrefTableChain(text, activeXrefOffset)
+            : GetClassicPredecessorTablesForXrefStreamChain(text, xrefStreams, activeXrefOffset);
+        if (classicTables.Count == 0 && activeChainOffsets.Count == 0) return false;
+        foreach (var table in classicTables) {
+            // A hybrid stream belongs to its classic section. Apply its compressed
+            // entries before that section's direct entries, then let newer sections win.
+            if (table.XrefStreamOffset.HasValue) {
+                var xrefStream = xrefStreams.FirstOrDefault(item => item.Offset == table.XrefStreamOffset.Value);
+                if (xrefStream.Stream is not null)
+                    UpdateActiveCompressedEntries(activeEntries, xrefStream.Stream, map, decodedStreamBudget,
+                        () => reportUnreadable(xrefStream.ObjectNumber));
             }
-
-            foreach (var table in classicTables) {
-                if (table.XrefStreamOffset.HasValue) {
-                    var xrefStream = xrefStreams.FirstOrDefault(item => item.Offset == table.XrefStreamOffset.Value);
-                    if (xrefStream.Stream is not null) {
-                        UpdateActiveCompressedEntries(activeEntries, xrefStream.Stream, map, decodedStreamBudget, () => reportUnreadable(xrefStream.ObjectNumber));
-                    }
-                }
-
-                for (int i = 0; i < table.Entries.Length; i++) {
-                    activeEntries.Remove(table.Entries[i].ObjectNumber);
-                }
-            }
-        } else {
+            for (int i = 0; i < table.Entries.Length; i++)
+                activeEntries.Remove(table.Entries[i].ObjectNumber);
+        }
+        if (activeChainOffsets.Count != 0) {
             foreach (int chainOffset in activeChainOffsets) {
                 var xrefStream = xrefStreams.First(item => item.Offset == chainOffset);
                 UpdateActiveCompressedEntries(activeEntries, xrefStream.Stream, map, decodedStreamBudget, () => reportUnreadable(xrefStream.ObjectNumber));

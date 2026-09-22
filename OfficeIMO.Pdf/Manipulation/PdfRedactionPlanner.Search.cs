@@ -9,19 +9,22 @@ internal static partial class PdfRedactionPlanner {
         search.CancellationToken.ThrowIfCancellationRequested();
         if (search.RegexTimeout <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(search), "Regex timeout must be positive.");
         if (search.MaximumCandidates <= 0) throw new ArgumentOutOfRangeException(nameof(search), "Maximum candidates must be positive.");
+        if (search.LiteralText.Any(string.IsNullOrWhiteSpace))
+            throw new ArgumentException("Literal search criteria must contain text.", nameof(search));
         Regex[] expressions = search.RegularExpressions.Select(pattern => new Regex(pattern, search.RegexOptions, search.RegexTimeout)).ToArray();
         if (search.LiteralText.Count == 0 && expressions.Length == 0 && search.FormFieldNames.Count == 0 && search.LogicalElementKinds.Count == 0) throw new ArgumentException("At least one redaction search criterion is required.", nameof(search));
 
         PdfReadDocument readDocument = PdfReadDocument.Open(pdf, readOptions, search.CancellationToken);
-        PdfDocumentReadResult logical = PdfDocumentReadResult.From(readDocument, layoutOptions);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.From(readDocument, layoutOptions, search.CancellationToken);
         if (search.PageNumbers.Any(page => page < 1 || page > logical.Pages.Count)) throw new ArgumentOutOfRangeException(nameof(search), "Search pages must identify existing one-based pages.");
         search.CancellationToken.ThrowIfCancellationRequested();
         StringComparison comparison = search.MatchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
         var areas = new List<PdfRedactionArea>(); var keys = new HashSet<string>(StringComparer.Ordinal);
+        var workBudget = new PdfRedactionSearchWorkBudget("search planning");
         foreach (PdfLogicalTextBlock block in logical.TextBlocks) {
             search.CancellationToken.ThrowIfCancellationRequested();
             if (search.PageNumbers.Count > 0 && !search.PageNumbers.Contains(block.PageNumber)) continue;
-            string? criterion = MatchText(block, search, expressions, comparison); if (criterion is null) continue;
+            string? criterion = MatchText(block, search, expressions, comparison, workBudget); if (criterion is null) continue;
             PdfTextSpanBounds bounds = GetTextBlockBounds(block, logical.Pages[block.PageNumber - 1]);
             AddArea(areas, keys, new PdfRedactionArea(block.PageNumber, bounds.Left, bounds.Bottom, bounds.Width, bounds.Height, criterion), search.MaximumCandidates);
         }
@@ -34,16 +37,25 @@ internal static partial class PdfRedactionPlanner {
         if (areas.Count == 0) return new PdfRedactionPlan(PdfInspector.Preflight(pdf, readOptions, search.CancellationToken), Array.Empty<PdfRedactionArea>(), Array.Empty<PdfRedactionMatch>(), new[] { new PdfDiagnosticFinding(PdfDiagnosticSeverity.Info, "RedactionSearchNoMatches", "No logical content matched the requested redaction search criteria.") }, DescribeCriteria(search), PdfRedactionPlan.ComputeSourceSha256(pdf), PdfRedactionPlan.CapturePageIdentities(readDocument, Array.Empty<PdfRedactionArea>()));
         PdfRedactionPlan planned = Plan(pdf, areas, layoutOptions, readOptions, search.CancellationToken);
         search.CancellationToken.ThrowIfCancellationRequested();
-        return new PdfRedactionPlan(planned.Preflight, planned.Areas, planned.Matches, planned.Findings, DescribeCriteria(search), planned.SourceSha256, planned.PageIdentities, planned.ReviewedTextObjectScopes);
+        return new PdfRedactionPlan(planned.Preflight, planned.Areas, planned.Matches, planned.Findings, DescribeCriteria(search), planned.SourceSha256, planned.PageIdentities, planned.ReviewedTextObjectScopes, search.MatchCase, search.RegexOptions, search.RegexTimeout);
     }
 
-    private static string? MatchText(PdfLogicalTextBlock block, PdfRedactionSearchOptions search, Regex[] expressions, StringComparison comparison) {
-        for (int i = 0; i < search.LiteralText.Count; i++) if (ContainsText(block.Text, search.LiteralText[i], comparison)) return "literal:" + search.LiteralText[i];
-        for (int i = 0; i < expressions.Length; i++) if (expressions[i].IsMatch(block.Text)) return "regex:" + search.RegularExpressions[i];
+    private static string? MatchText(PdfLogicalTextBlock block, PdfRedactionSearchOptions search, Regex[] expressions, StringComparison comparison, PdfRedactionSearchWorkBudget workBudget) {
+        for (int i = 0; i < search.LiteralText.Count; i++) {
+            workBudget.ChargeTextScan(block.Text, search.LiteralText[i]);
+            if (ContainsText(block.Text, search.LiteralText[i], comparison)) return "literal:" + search.LiteralText[i];
+        }
+        for (int i = 0; i < expressions.Length; i++) if (workBudget.IsMatch(expressions[i], block.Text)) return "regex:" + search.RegularExpressions[i];
         return search.LogicalElementKinds.Contains(block.Kind) ? "logical-kind:" + block.Kind.ToString() : null;
     }
 
     private static void AddArea(List<PdfRedactionArea> areas, HashSet<string> keys, PdfRedactionArea area, int maximumCandidates) { string key = area.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" + area.X.ToString("R", System.Globalization.CultureInfo.InvariantCulture) + ":" + area.Y.ToString("R", System.Globalization.CultureInfo.InvariantCulture) + ":" + area.Width.ToString("R", System.Globalization.CultureInfo.InvariantCulture) + ":" + area.Height.ToString("R", System.Globalization.CultureInfo.InvariantCulture); if (keys.Add(key)) { if (areas.Count >= maximumCandidates) throw new InvalidOperationException("Redaction search exceeded the configured candidate limit."); areas.Add(area); } }
     private static string[] DescribeCriteria(PdfRedactionSearchOptions search) => search.LiteralText.Select(value => "literal:" + value).Concat(search.RegularExpressions.Select(value => "regex:" + value)).Concat(search.FormFieldNames.Select(value => "field:" + value)).Concat(search.LogicalElementKinds.Select(value => "logical-kind:" + value.ToString())).ToArray();
-    private static bool ContainsText(string text, string value, StringComparison comparison) { if (value.Length == 0) return true; for (int i = 0; i <= text.Length - value.Length; i++) if (string.Compare(text, i, value, 0, value.Length, comparison) == 0) return true; return false; }
+    private static bool ContainsText(string text, string value, StringComparison comparison) {
+#if NET6_0_OR_GREATER
+        return text.Contains(value, comparison);
+#else
+        return text.IndexOf(value, comparison) >= 0;
+#endif
+    }
 }

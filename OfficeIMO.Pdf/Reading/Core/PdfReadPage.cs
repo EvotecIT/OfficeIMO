@@ -116,14 +116,37 @@ public sealed partial class PdfReadPage {
 
     internal (double X, double Y) TransformPointToVisual(double x, double y) => GetVisualPageTransform().Transform(x, y);
 
-    internal IReadOnlyList<PdfTextSpan> GetInteractionTextSpans() {
+    internal IReadOnlyList<PdfTextSpan> GetInteractionTextSpans() =>
+        GetInteractionTextSpans(int.MaxValue, int.MaxValue, default);
+
+    internal IReadOnlyList<PdfTextSpan> GetInteractionTextSpans(int maximumSpans, int maximumCharacters,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         _demandTextExtraction?.Invoke();
         (double Width, double Height) size = GetVisualPageSize();
+        long spanCount = 0;
+        long characterCount = 0;
+        void ChargeSpan(int characters) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (++spanCount > maximumSpans)
+                throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, maximumSpans, spanCount);
+            characterCount += characters;
+            if (characterCount > maximumCharacters)
+                throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, maximumCharacters, characterCount);
+        }
+        var nativeBudget = new TextContentParser.TextOutputBudget(
+            Math.Min(_limits.MaxActualTextCharacters, maximumCharacters),
+            Math.Min(_limits.MaxDecodedTextCharacters, maximumCharacters),
+            maximumCharacters < _limits.MaxActualTextCharacters ? PdfReadLimitKind.OcrArtifacts : PdfReadLimitKind.ActualTextCharacters,
+            maximumCharacters < _limits.MaxDecodedTextCharacters ? PdfReadLimitKind.OcrArtifacts : PdfReadLimitKind.DecodedTextCharacters);
         return GetVisualTextSpans(
             size.Height,
             GetVisualPageTransform(),
+            textOutputBudget: nativeBudget,
             useLogicalTextFilters: true,
-            includeArtifactText: true);
+            includeArtifactText: true,
+            onTextSpan: ChargeSpan,
+            cancellationCheck: cancellationToken.ThrowIfCancellationRequested);
     }
 
     private PdfPageBox GetPageBoundaryBox() => GetPageBoundaryBox(GetGeometry());
@@ -520,7 +543,8 @@ public sealed partial class PdfReadPage {
                     EffectiveOutputIntentColorTransform,
                     pageContentBudget == null ? null : pageContentBudget.TryConsumeColorFunctionEvaluations,
                     pageContentBudget?.ColorFunctionResolutionContext,
-                    inheritedHasAuthoredRenderingIntent: placement.HasAuthoredRenderingIntent, cancellationToken: cancellationToken));
+                    inheritedHasAuthoredRenderingIntent: placement.HasAuthoredRenderingIntent,
+                    cancellationToken: cancellationToken, maxImageReferenceSteps: _limits.MaxImageReferenceSteps));
             }
         }
 
@@ -765,7 +789,8 @@ public sealed partial class PdfReadPage {
         Action? cancellationCheck = null,
         bool includeHiddenOptionalContent = false,
         PdfTextStateSnapshot? initialTextState = null,
-        PdfPageInvokedResourceNames? invokedResourceNames = null) {
+        PdfPageInvokedResourceNames? invokedResourceNames = null,
+        Action<int>? onTextSpan = null) {
         cancellationCheck?.Invoke();
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
@@ -773,10 +798,19 @@ public sealed partial class PdfReadPage {
             _limits.MaxActualTextCharacters,
             _limits.MaxDecodedTextCharacters);
         textClippingBudget ??= new PdfTextClippingBudget();
-        string DecodeWithFontWithinLimit(string fontRes, byte[] bytes, int maximumCharacters) =>
-            decoders.TryGetValue(fontRes, out var dec)
-                ? dec(bytes, maximumCharacters)
-                : PdfWinAnsiEncoding.Decode(bytes, maximumCharacters);
+        string DecodeWithFontWithinLimit(string fontRes, byte[] bytes, int maximumCharacters) {
+            try {
+                return decoders.TryGetValue(fontRes, out var dec)
+                    ? dec(bytes, maximumCharacters)
+                    : PdfWinAnsiEncoding.Decode(bytes, maximumCharacters);
+            } catch (PdfReadLimitException exception) when (
+                exception.Kind == PdfReadLimitKind.DecodedTextCharacters
+                && textOutputBudget.DecodedTextLimitKind == PdfReadLimitKind.OcrArtifacts) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts,
+                    textOutputBudget.MaxDecodedTextCharacters,
+                    (long)textOutputBudget.MaxDecodedTextCharacters + 1L);
+            }
+        }
         string DecodeWithFont(string fontRes, byte[] bytes) =>
             DecodeWithFontWithinLimit(fontRes, bytes, _limits.MaxDecodedTextCharacters);
         double SumWidth1000(string fontRes, byte[] bytes) =>
@@ -801,13 +835,15 @@ public sealed partial class PdfReadPage {
             ? null
             : GetOptionalContentVisibility(resources);
         PdfPageInvokedResourceNames invokedResources = invokedResourceNames ?? GetInvokedResourceNames(content, resources);
+        Dictionary<string, PdfPageGraphicsStateResource> graphicsStates =
+            GetGraphicsStateResources(resources, decoders, widthProviders, fonts);
         spans.AddRange(TextContentParser.Parse(
             content,
             DecodeWithFont,
             SumWidth1000,
             actualTextForProperty: ResolveActualTextProperty,
             mcidForProperty: ResolveMarkedContentMcid,
-            graphicsStates: GetGraphicsStateResources(resources),
+            graphicsStates: graphicsStates,
             colorSpaces: GetColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget),
             baseFontForResource: ResolveBaseFont,
             isType3FontResource: IsType3FontResource,
@@ -850,7 +886,8 @@ public sealed partial class PdfReadPage {
             contentStreamObjectNumberAtOffset: contentStreamObjectNumberAtOffset,
             initialArtifactContent: inheritedArtifactContent,
             cancellationCheck: cancellationCheck,
-            initialTextState: initialTextState));
+            initialTextState: initialTextState,
+            onTextSpan: onTextSpan));
 
         foreach (var invocation in TextContentParser.ExtractFormInvocations(
                      content,
@@ -858,7 +895,7 @@ public sealed partial class PdfReadPage {
                      paintOrderBase,
                      paintOrderScale,
                      paintOrderOffset,
-                     GetGraphicsStateResources(resources),
+                     graphicsStates,
                      GetColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget),
                      pageHeight,
                      initialFillColor,
@@ -957,7 +994,8 @@ public sealed partial class PdfReadPage {
                     inheritedArtifactContent: effectiveArtifactContent,
                     cancellationCheck: cancellationCheck,
                     includeHiddenOptionalContent: includeHiddenOptionalContent,
-                    initialTextState: formInitialTextState);
+                    initialTextState: formInitialTextState,
+                    onTextSpan: onTextSpan);
             } finally {
                 activeForms.Remove(formStream);
             }
@@ -2171,6 +2209,8 @@ public sealed partial class PdfReadPage {
         private long _remainingColorFunctionEvaluationWork;
         private long _positionedTextCharacters;
         private long _positionedTextWorkCharacters;
+        private long _positionedTextProjectionCharacters;
+        private long _clippedTextFontCopyWork;
         private readonly Action<OfficeDrawing>? _configureDrawing;
 
         internal PageContentBudget(PdfReadPage page, CancellationToken cancellationToken = default)
@@ -2224,6 +2264,27 @@ public sealed partial class PdfReadPage {
             if (_positionedTextWorkCharacters > _page._limits.MaxPositionedTextWorkCharactersPerPage) {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.PositionedTextWorkCharacters,
                     _page._limits.MaxPositionedTextWorkCharactersPerPage, _positionedTextWorkCharacters);
+            }
+        }
+
+        internal void ChargePositionedTextProjectionCharacters(int count) {
+            CancellationToken.ThrowIfCancellationRequested();
+            _positionedTextProjectionCharacters += count;
+            if (_positionedTextProjectionCharacters > _page._limits.MaxPositionedTextProjectionCharactersPerPage) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.PositionedTextProjectionCharacters,
+                    _page._limits.MaxPositionedTextProjectionCharactersPerPage, _positionedTextProjectionCharacters);
+            }
+        }
+
+        internal void ChargeClippedTextFontCopyWork(int faceCount) {
+            CancellationToken.ThrowIfCancellationRequested();
+            // A child AddRange scans its growing collection and the parent merge
+            // scans its existing faces. Charge both before any wrappers are cloned.
+            long work = 2L * faceCount * Math.Max(1, faceCount);
+            _clippedTextFontCopyWork += work;
+            if (_clippedTextFontCopyWork > _page._limits.MaxClippedTextFontCopyWorkPerPage) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.ClippedTextFontCopyWork,
+                    _page._limits.MaxClippedTextFontCopyWorkPerPage, _clippedTextFontCopyWork);
             }
         }
 

@@ -56,7 +56,7 @@ internal static partial class PdfRedactionPlanner {
         cancellationToken.ThrowIfCancellationRequested();
         IReadOnlyList<string> pageIdentities = PdfRedactionPlan.CapturePageIdentities(readDocument, areaArray, reviewedTextObjectScopes);
         cancellationToken.ThrowIfCancellationRequested();
-        PdfDocumentReadResult logical = PdfDocumentReadResult.From(readDocument, layoutOptions);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.From(readDocument, layoutOptions, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         PdfDocumentInfo info = preflight.UncheckedDocumentInfo ?? PdfInspector.Inspect(pdf, options);
         var matches = new List<PdfRedactionMatch>();

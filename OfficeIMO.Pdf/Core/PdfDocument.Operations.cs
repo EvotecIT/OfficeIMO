@@ -234,13 +234,23 @@ public sealed partial class PdfDocument {
     /// Type 3/CFF substitution, ICC, pattern, annotation-appearance, blend, mask, and resource gaps
     /// tied to one registry rather than a duplicate compatibility table.
     /// </remarks>
-    public PdfRenderCompatibilityReport AssessRenderCompatibility(PdfLoadOptions? options = null) {
+    public PdfRenderCompatibilityReport AssessRenderCompatibility(PdfLoadOptions? options = null) =>
+        AssessRenderCompatibility(options, null);
+
+    /// <summary>Assesses managed page-render fidelity with configurable per-page diagnostic limits.</summary>
+    public PdfRenderCompatibilityReport AssessRenderCompatibility(
+        PdfLoadOptions? options, PdfPageRenderOptions? renderOptions) {
+        var diagnosticOptions = renderOptions ?? new PdfPageRenderOptions();
+        diagnosticOptions.Validate();
         var snapshot = GetReadSnapshot(options);
         var pages = new PdfRenderCompatibilityPage[snapshot.Document.Pages.Count];
         for (int index = 0; index < pages.Length; index++) {
             pages[index] = new PdfRenderCompatibilityPage(
                 index + 1,
-                snapshot.Document.Pages[index].GetRenderCapabilityDiagnostics());
+                snapshot.Document.Pages[index].GetRenderCapabilityDiagnostics(
+                    diagnosticOptions.MaxDiagnosticsPerPage,
+                    diagnosticOptions.MaxDiagnosticCharactersPerPage,
+                    default));
         }
         return new PdfRenderCompatibilityReport(Array.AsReadOnly(pages));
     }

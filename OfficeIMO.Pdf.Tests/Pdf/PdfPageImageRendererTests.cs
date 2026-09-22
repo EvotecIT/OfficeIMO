@@ -11,6 +11,122 @@ namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfPageImageRendererTests {
     [Fact]
+    public void RenderFailureRespectsThePageDiagnosticCharacterLimit() {
+        byte[] pdf = BuildSingleStreamPdf("0 0 10 10 re f");
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf,
+            options: new PdfPageRenderOptions {
+                MaxPixelsPerPage = 1,
+                MaxDiagnosticCharactersPerPage = 1,
+                ContinueOnError = true
+            }));
+
+        Assert.False(result.Succeeded);
+        Assert.True(result.Diagnostics.Sum(diagnostic => diagnostic.Length) <= 1);
+    }
+
+    [Fact]
+    public void RenderFailurePreservesTheErrorBeforeCapabilityWarnings() {
+        byte[] pdf = BuildSingleStreamPdf("unknownOne\n0 0 10 10 re f");
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf,
+            options: new PdfPageRenderOptions {
+                MaxPixelsPerPage = 1,
+                MaxDiagnosticCharactersPerPage = 200,
+                ContinueOnError = true
+            }));
+
+        Assert.False(result.Succeeded);
+        Assert.StartsWith("PdfReadLimitException: PDF render pixel count", result.Diagnostics[0]);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.StartsWith("render.operator.unsupported:"));
+    }
+
+    [Fact]
+    public void RenderCapabilityDiagnosticsStopWhileCollectingDistinctOperators() {
+        byte[] pdf = BuildSingleStreamPdf("unknownOne\nunknownTwo\nunknownThree");
+        PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
+
+        PdfReadLimitException error = Assert.Throws<PdfReadLimitException>(() =>
+            page.GetRenderCapabilityDiagnostics(2, 10_000, System.Threading.CancellationToken.None));
+
+        Assert.Equal(PdfReadLimitKind.RenderDiagnostics, error.Kind);
+    }
+
+    [Fact]
+    public void PublicCapabilityScansAndImageExportAcceptRaisedDiagnosticLimits() {
+        byte[] pdf = BuildSingleStreamPdf("unknownOne\nunknownTwo");
+        PdfDocument document = PdfDocument.Load(pdf);
+        var strict = new PdfPageRenderOptions { MaxDiagnosticsPerPage = 1 };
+        var generous = new PdfPageRenderOptions { MaxDiagnosticsPerPage = 3 };
+
+        Assert.Equal(PdfReadLimitKind.RenderDiagnostics, Assert.Throws<PdfReadLimitException>(() =>
+            document.Reader.RenderCapabilityDiagnostics(1, renderOptions: strict)).Kind);
+        Assert.Equal(PdfReadLimitKind.RenderDiagnostics, Assert.Throws<PdfReadLimitException>(() =>
+            document.AssessRenderCompatibility(options: null, renderOptions: strict)).Kind);
+        Assert.Equal(2, document.Reader.RenderCapabilityDiagnostics(1, renderOptions: generous).Count);
+        Assert.Equal(2, document.Render.CapabilityDiagnostics(1, generous).Count);
+        Assert.Equal(2, Assert.Single(document.AssessRenderCompatibility(options: null, renderOptions: generous).Pages).Diagnostics.Count);
+
+        Assert.Equal(PdfReadLimitKind.RenderDiagnostics, Assert.Throws<PdfReadLimitException>(() =>
+            document.ExportImages(OfficeImageExportFormat.Svg,
+                new PdfImageExportOptions { MaxDiagnosticsPerPage = 1 })).Kind);
+        Assert.Single(document.ExportImages(OfficeImageExportFormat.Svg,
+            new PdfImageExportOptions { MaxDiagnosticsPerPage = 3 }));
+    }
+
+    [Fact]
+    public void RenderCapabilityDiagnosticsDoNotChargeRepeatedOccurrences() {
+        byte[] pdf = BuildSingleStreamPdf("unknownOne\nunknownOne\nunknownOne");
+        PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
+        PdfRenderCapabilityDiagnostic first = Assert.Single(page.GetRenderCapabilityDiagnostics());
+        int characters = first.Code.Length + first.Capability.Message.Length + first.Subject!.Length + 16;
+
+        PdfRenderCapabilityDiagnostic retained = Assert.Single(
+            page.GetRenderCapabilityDiagnostics(1, characters, System.Threading.CancellationToken.None));
+
+        Assert.Equal(first.Code, retained.Code);
+        Assert.Equal(first.Subject, retained.Subject);
+    }
+
+    [Fact]
+    public void RenderPage_AllocatesDirectExtGStateFontAliasAfterDeclaredCollisions() {
+        string declared = string.Join(" ", Enumerable.Range(0, 64)
+            .Select(index => "/__OfficeIMOExtGStateFont" + index + " 6 0 R"));
+        byte[] pdf = BuildSingleStreamPdf(
+            "BT /GS1 gs 40 130 Td (Visible) Tj ET",
+            "<< /Font << " + declared + " >> /ExtGState << /GS1 5 0 R >> >>",
+            "5 0 obj\n<< /Type /ExtGState /Font [7 0 R 18] >>\nendobj",
+            "6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj",
+            "7 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj");
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.Equal("Visible", Assert.Single(drawing.Elements.OfType<OfficeDrawingText>()).Text);
+    }
+
+    [Fact]
+    public void RenderPage_AllocatesManyDirectExtGStateFontAliases() {
+        string states = string.Join(" ", Enumerable.Range(0, 80).Select(index =>
+            "/GS" + index + " << /Type /ExtGState /Font [<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> 18] >>"));
+        byte[] pdf = BuildSingleStreamPdf(
+            "BT /GS79 gs 40 130 Td (Visible) Tj ET",
+            "<< /ExtGState << " + states + " >> >>");
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.Equal("Visible", Assert.Single(drawing.Elements.OfType<OfficeDrawingText>()).Text);
+    }
+
+    [Fact]
+    public void RenderCapabilityDiagnosticsStopBeforeRetainingOversizedSubject() {
+        byte[] pdf = BuildSingleStreamPdf(new string('q', 1_000));
+        PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
+
+        PdfReadLimitException error = Assert.Throws<PdfReadLimitException>(() =>
+            page.GetRenderCapabilityDiagnostics(100, 128, System.Threading.CancellationToken.None));
+
+        Assert.Equal(PdfReadLimitKind.RenderDiagnostics, error.Kind);
+    }
+
+    [Fact]
     public void RenderPage_DropsRedundantPageClipFromEditableVectorShape() {
         byte[] pdf = BuildSingleStreamPdf(
             "0 0 240 200 re W n\n0 0 0 RG\n1 w\n20 40 m\n220 40 l\nS");
@@ -4940,6 +5056,7 @@ public partial class PdfPageImageRendererTests {
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
         OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
 
+        Assert.True(result.Succeeded, string.Join("; ", result.Diagnostics));
         Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId && diagnostic.Subject == "FType3");
         Assert.Single(drawing.Elements.OfType<OfficeDrawingText>());
         Assert.DoesNotContain(drawing.Elements, element => element is OfficeDrawingShape);

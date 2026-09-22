@@ -11,6 +11,36 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfReadLimitTests {
     [Fact]
+    public void TextEditSafetyProbeDoesNotRetainUnrelatedCapabilityDiagnostics() {
+        string content = string.Join(" ", Enumerable.Range(0, 1_100).Select(i => "Unknown" + i));
+        byte[] pdf = PdfEncoding.Latin1GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + content.Length + " >>", "stream", content, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 5 >>", "%%EOF"
+        }));
+        PdfReadPage page = Assert.Single(PdfReadDocument.Open(pdf).Pages);
+
+        Assert.Throws<PdfReadLimitException>(() => page.GetRenderCapabilityDiagnostics());
+        Assert.True(page.WouldAppendingTextChangeVisibleStacking([
+            new PdfTextSpan("Edited", "F1", 12D, 10D, 20D)
+        ]));
+    }
+
+    [Fact]
+    public void ComposedOutputAddsDocumentWidePrintInspectionBudgets() {
+        PdfReadLimits combined = PdfReadLimits.ForComposedOutput([
+            new PdfReadLimits { MaxPrintProductionContexts = 3, MaxPrintProductionOperations = 20 },
+            new PdfReadLimits { MaxPrintProductionContexts = 4, MaxPrintProductionOperations = 30 }
+        ], minimumInputBytes: 1, minimumIndirectObjects: 1);
+
+        Assert.Equal(7, combined.MaxPrintProductionContexts);
+        Assert.Equal(50, combined.MaxPrintProductionOperations);
+    }
+
+    [Fact]
     public void TrailerFallbackDoesNotCopyTheUnboundedRemainderOfTheInput() {
         string source = "%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\ntrailer\n<< /Root 1 0 R /Size 2 >>\n" +
             new string('X', 2_000_000);

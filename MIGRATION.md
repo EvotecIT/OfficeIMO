@@ -273,6 +273,62 @@ Raise this property in `PdfLoadOptions.Limits` for trusted documents that need
 more visibility work, independently of the limit on visible drawing elements.
 Glyphs with no resolved ink consume no scene-expansion budget.
 
+PDF rendering also bounds the character scans needed to project spaced text, even
+when every glyph falls outside the page. `MaxPositionedTextProjectionCharactersPerPage`
+defaults to 1,000,000. Clipped positioned text has a separate
+`MaxClippedTextFontCopyWorkPerPage` budget, defaulting to 1,000,000 estimated face
+comparisons. Applications processing trusted files with unusually long spaced
+runs or many embedded fonts may raise these values in `PdfLoadOptions.Limits`.
+The visible-element and measured-glyph budgets remain separate.
+
+PDF/X color inspection now limits one document to 4,096 distinct content contexts
+and 5,000,000 aggregate content operations. Configure
+`MaxPrintProductionContexts` and `MaxPrintProductionOperations` in
+`PdfReadLimits` for trusted documents that need more. OfficeIMO-generated output
+grows these allowances for the content contexts and operations it adds; the
+source document's configured limits remain unchanged. OCR merge limits raw native
+text spans before overlap analysis and caps retained intersections per OCR word
+with `MaxNativeTextOverlapIntersectionsPerWord` (default 10,000). An interaction
+map also uses `MaxNativeTextCharactersPerPage` (default 8,388,608) for the
+aggregate span scan, including concealed spans. `MaxMergedTextCharactersPerPage`
+continues to limit only the retained canonical text; configure the scan budget
+separately for trusted pages with large hidden text layers. The interaction map
+may also reject a page with too many off-page image placements before it builds
+the visible regions. These limits report `PdfReadLimitException`.
+
+PDF/X inspection counts both resource discovery and the final color pass against
+`MaxPrintProductionOperations`. When composing PDFs, the document-wide context
+and operation allowances are summed across inputs. Scan cleanup separately
+retains at most 10,000 diagnostic messages and 8,388,608 diagnostic characters
+across selected pages. Set `OfficeScanCleanupOptions.MaximumDiagnostics` and
+`MaximumDiagnosticCharacters` for trusted scans that need more diagnostic detail.
+
+Page rendering retains at most 1,000 distinct capability diagnostics and
+1,048,576 diagnostic characters per page by default. Set
+`PdfPageRenderOptions.MaxDiagnosticsPerPage` and
+`MaxDiagnosticCharactersPerPage` when rendering trusted pages that require
+more diagnostic detail. The same options can be supplied to
+`PdfDocumentRenderer.CapabilityDiagnostics` and `PdfDocument.AssessRenderCompatibility`;
+image export uses the matching
+properties on `PdfImageExportOptions`. Duplicate diagnostics do not consume the character
+budget. PDF font inspection also shares its 10,000-diagnostic default across
+font-specific and resource-traversal findings; configure
+`PdfFontInspectionOptions.MaxDiagnostics` for trusted documents that need more.
+Font inspection also stops after 4,096 unique fonts, 32 nested resource levels,
+100,000 font references, or 10,000 Form resource traversals. Resource paths
+are capped at 4,096 characters each and 4 MiB in aggregate. Set
+`PdfFontInspectionOptions.MaxFonts`, `MaxResourceDepth`,
+`MaxResourceReferences`, `MaxFormResourceTraversals`,
+`MaxResourcePathCharacters`, or `MaxTotalResourcePathCharacters` when a
+trusted document needs a larger font inventory.
+
+Search-based redaction now stops if logical-kind verification needs more than
+20,000,000 text scan and span intersection work units across the document.
+Planning uses the same work ceiling; each planning or verification phase also
+has a 30-second elapsed limit in addition to the per-match regex timeout.
+An `InvalidDataException` means the search or rewritten file was not verified;
+do not use that output as a completed redaction.
+
 ### Configure PDF drawing fonts before projection
 
 If you add substitute fonts to the drawing returned by `PdfReadPage.ToDrawing()`,

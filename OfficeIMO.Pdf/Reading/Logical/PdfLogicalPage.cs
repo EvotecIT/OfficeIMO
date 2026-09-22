@@ -716,14 +716,17 @@ public sealed partial class PdfLogicalPage {
         IReadOnlyList<PdfImagePlacement> placements,
         IReadOnlyList<PdfUnderstandingImageRegion> regions) {
         if (placements.Count == 0 || regions.Count == 0) return Array.Empty<PdfUnderstandingImageRegion>();
+        var regionsByPlacement = new Dictionary<PdfImagePlacement, PdfUnderstandingImageRegion>();
+        for (int regionIndex = 0; regionIndex < regions.Count; regionIndex++) {
+            PdfUnderstandingImageRegion region = regions[regionIndex];
+            if (!regionsByPlacement.TryGetValue(region.Placement, out _)) {
+                regionsByPlacement[region.Placement] = region;
+            }
+        }
         var result = new List<PdfUnderstandingImageRegion>(placements.Count);
         for (int placementIndex = 0; placementIndex < placements.Count; placementIndex++) {
             PdfImagePlacement placement = placements[placementIndex];
-            for (int regionIndex = 0; regionIndex < regions.Count; regionIndex++) {
-                if (!ReferenceEquals(regions[regionIndex].Placement, placement)) continue;
-                result.Add(regions[regionIndex]);
-                break;
-            }
+            if (regionsByPlacement.TryGetValue(placement, out PdfUnderstandingImageRegion? region)) result.Add(region);
         }
         return result.Count == 0 ? Array.Empty<PdfUnderstandingImageRegion>() : result.AsReadOnly();
     }

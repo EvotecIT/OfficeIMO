@@ -20,7 +20,8 @@ internal static partial class PdfImageEditor {
     internal static IReadOnlyList<PdfImagePlacement> Placements(
         PdfReadDocument document,
         byte[] pdf,
-        int pageNumber) {
+        int pageNumber,
+        int maximumPlacements = int.MaxValue) {
         Guard.NotNull(document, nameof(document));
         Guard.NotNull(pdf, nameof(pdf));
         ValidatePage(pageNumber, document.Pages.Count, nameof(pageNumber));
@@ -28,7 +29,7 @@ internal static partial class PdfImageEditor {
         PdfReadPage page = document.Pages[pageNumber - 1];
         (double originX, double originY) = page.GetPageBoundaryOrigin();
         return BindSourceIdentity(
-            page.GetImagePlacements(pageNumber)
+            page.GetImagePlacements(pageNumber, maximumPlacements, static _ => { }, static () => { })
                 .Select(placement => NormalizePlacement(placement, originX, originY))
                 .ToArray(),
             pdf);

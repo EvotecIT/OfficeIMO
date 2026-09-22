@@ -486,6 +486,73 @@ public partial class PdfExternalDocumentCompatibilityTests {
         return stream.ToArray();
     }
 
+    internal static byte[] BuildHybridClassicXrefWithDirectReplacementOfCompressedPage() {
+        using var stream = new MemoryStream();
+        var offsets = new Dictionary<int, int>();
+        WriteAscii(stream, "%PDF-1.5\n");
+        WriteObject(stream, offsets, 1, "<< /Type /Catalog /Pages 2 0 R >>");
+        WriteObject(stream, offsets, 2, "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F13 7 0 R >> >> >>");
+        WriteObject(stream, offsets, 3, "<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>");
+        WriteStreamObject(stream, offsets, 4, Encoding.ASCII.GetBytes("BT /F13 12 Tf 72 720 Td (Active direct page) Tj ET"));
+        WriteStreamObject(stream, offsets, 6, Encoding.ASCII.GetBytes("BT /F13 12 Tf 72 720 Td (Stale compressed page) Tj ET"));
+        WriteObject(stream, offsets, 7, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+        WriteRawObject(stream, offsets, 10, BuildObjectStreamObject(10, new List<(int ObjectNumber, string Body)> {
+            (3, "<< /Type /Page /Parent 2 0 R /Contents 6 0 R >>")
+        }));
+        offsets[11] = (int)stream.Position;
+        byte[] entries = BuildXrefStreamEntries(new[] { 3 }, new Dictionary<int, (int Type, int Field1, int Field2)> {
+            [3] = (2, 10, 0)
+        });
+        WriteAscii(stream, "11 0 obj\n<< /Type /XRef /Size 12 /Root 1 0 R /W [1 4 2] /Index [3 1] /Length " +
+            entries.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>\nstream\n");
+        stream.Write(entries, 0, entries.Length);
+        WriteAscii(stream, "\nendstream\nendobj\n");
+        int classicXrefOffset = (int)stream.Position;
+        WriteClassicXrefTableWithXRefStm(stream, offsets, size: 12, rootObjectNumber: 1, xrefStreamOffset: offsets[11]);
+        WriteAscii(stream, "startxref\n" + classicXrefOffset.ToString(System.Globalization.CultureInfo.InvariantCulture) + "\n%%EOF\n");
+        return stream.ToArray();
+    }
+
+    private static byte[] BuildXrefStreamWithHybridCompressedPredecessor() {
+        using var stream = new MemoryStream();
+        var offsets = new Dictionary<int, int>();
+        WriteAscii(stream, "%PDF-1.5\n");
+        WriteObject(stream, offsets, 1, "<< /Type /Catalog /Pages 2 0 R >>");
+        WriteObject(stream, offsets, 2, "<< /Type /Pages /Count 1 /Kids [3 0 R] >>");
+        WriteObject(stream, offsets, 3, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R /Resources << /Font << /F1 7 0 R >> >> >>");
+        WriteStreamObject(stream, offsets, 4, Encoding.ASCII.GetBytes("BT /F1 12 Tf 10 50 Td (Hybrid predecessor) Tj ET"));
+        WriteRawObject(stream, offsets, 10, BuildObjectStreamObject(10, new[] {
+            (7, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
+        }));
+
+        int hybridOffset = (int)stream.Position;
+        byte[] hybridEntries = BuildXrefStreamEntries(new[] { 7 }, new Dictionary<int, (int, int, int)> {
+            [7] = (2, 10, 0)
+        });
+        WriteAscii(stream, "11 0 obj\n<< /Type /XRef /Size 13 /W [1 4 2] /Index [7 1] /Length " +
+            hybridEntries.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>\nstream\n");
+        stream.Write(hybridEntries, 0, hybridEntries.Length);
+        WriteAscii(stream, "\nendstream\nendobj\n");
+        offsets[11] = hybridOffset;
+        int classicOffset = (int)stream.Position;
+        var classicEntries = new Dictionary<int, int>(offsets) { [0] = 0 };
+        WriteClassicXrefTableWithXRefStm(stream, classicEntries, size: 13, rootObjectNumber: 1, xrefStreamOffset: hybridOffset);
+        WriteAscii(stream, "startxref\n" + classicOffset.ToString(System.Globalization.CultureInfo.InvariantCulture) + "\n%%EOF\n");
+
+        int activeOffset = (int)stream.Position;
+        byte[] activeEntries = BuildXrefStreamEntries(new[] { 12 }, new Dictionary<int, (int, int, int)> {
+            [12] = (1, activeOffset, 0)
+        });
+        WriteAscii(stream, "12 0 obj\n<< /Type /XRef /Size 13 /Root 1 0 R /Prev " +
+            classicOffset.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            " /W [1 4 2] /Index [12 1] /Length " + activeEntries.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            " >>\nstream\n");
+        stream.Write(activeEntries, 0, activeEntries.Length);
+        WriteAscii(stream, "\nendstream\nendobj\n");
+        WriteAscii(stream, "startxref\n" + activeOffset.ToString(System.Globalization.CultureInfo.InvariantCulture) + "\n%%EOF\n");
+        return stream.ToArray();
+    }
+
     private static byte[] BuildHybridClassicXrefPdfWithXRefStmTrailerRootAndStaleXrefStreamRoot() {
         using var stream = new MemoryStream();
         var offsets = new Dictionary<int, int>();

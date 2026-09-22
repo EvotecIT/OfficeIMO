@@ -6,6 +6,24 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfBatesNumbererTests {
     [Fact]
+    public void NumberedPagesCarryGeneratedPrintInspectionBudgets() {
+        byte[] source = PdfProductionWorkflowTestSupport.CreatePdf("First page", "Second page");
+        var readOptions = new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxPrintProductionContexts = 2, MaxPrintProductionOperations = 100 }
+        };
+        Assert.True(PdfReadDocument.Open(source, readOptions).InspectPrintProductionColors().IsComplete);
+
+        PdfBatesDocumentResult result = Assert.Single(PdfBatesNumberer.Apply([
+            new PdfBatesDocument(source) { ReadOptions = readOptions }
+        ]).Documents);
+        PdfDocument numbered = result.ToDocument();
+
+        Assert.True(numbered.ReadOptions.Limits.MaxPrintProductionContexts > readOptions.Limits.MaxPrintProductionContexts);
+        Assert.True(numbered.ReadOptions.Limits.MaxPrintProductionOperations > readOptions.Limits.MaxPrintProductionOperations);
+        Assert.True(PdfReadDocument.Open(result.ToBytes(), numbered.ReadOptions).InspectPrintProductionColors().IsComplete);
+    }
+
+    [Fact]
     public void Apply_NumbersSelectedPagesContinuouslyAcrossDocuments() {
         byte[] first = PdfProductionWorkflowTestSupport.CreatePdf("First one", "First two");
         byte[] second = PdfProductionWorkflowTestSupport.CreatePdf("Second one", "Second two");

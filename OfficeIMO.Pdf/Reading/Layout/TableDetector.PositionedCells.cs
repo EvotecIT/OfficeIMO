@@ -83,7 +83,7 @@ internal static partial class TableDetector {
     private static void TryAddWrappedPositionedCellTable(
         List<StructuredTable> result,
         List<(TextLayoutEngine.TextLine Line, PositionedRow Row)> anchors,
-        IReadOnlyList<TextLayoutEngine.TextLine> lines,
+        List<TextLayoutEngine.TextLine> lines,
         Action<long>? consumeWork,
         Action? cancellationCheck) {
         cancellationCheck?.Invoke();
@@ -127,12 +127,20 @@ internal static partial class TableDetector {
         string[] firstAnchorCells = anchors[0].Row.Cells
             .Select(static cell => ContentStructureExtractor.NormalizeShattered(cell.Text).Trim())
             .ToArray();
-        bool hasWrappedBodyEvidence = lines.Any(line =>
-            line.Y < anchors[0].Row.Y &&
-            line.Y > anchors[anchors.Count - 1].Row.Y - rowPitch / 2D &&
-            line.XEnd >= left &&
-            line.XStart <= right &&
-            !anchors.Any(anchor => ReferenceEquals(anchor.Line, line)));
+        var anchorLines = new HashSet<TextLayoutEngine.TextLine>(anchors.Select(static anchor => anchor.Line));
+        bool hasWrappedBodyEvidence = false;
+        for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
+            consumeWork?.Invoke(1);
+            if ((lineIndex & 255) == 0) cancellationCheck?.Invoke();
+            TextLayoutEngine.TextLine line = lines[lineIndex];
+            if (line.Y < anchors[0].Row.Y &&
+                line.Y > anchors[anchors.Count - 1].Row.Y - rowPitch / 2D &&
+                line.XEnd >= left && line.XStart <= right &&
+                !anchorLines.Contains(line)) {
+                hasWrappedBodyEvidence = true;
+                break;
+            }
+        }
         bool firstAnchorIsHeader = anchors.Count >= 3 &&
             hasWrappedBodyEvidence &&
             LooksLikeHeaderRow(firstAnchorCells) &&

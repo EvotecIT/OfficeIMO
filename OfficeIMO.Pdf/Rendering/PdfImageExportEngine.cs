@@ -119,7 +119,8 @@ internal static class PdfImageExportEngine {
         // the shared validation step overwrite a stricter thumbnail scale.
         effective.TargetDpi = null;
         IReadOnlyList<PdfRenderCapabilityDiagnostic> capabilityDiagnostics =
-            page.GetRenderCapabilityDiagnostics(cancellationToken);
+            page.GetRenderCapabilityDiagnostics(options.MaxDiagnosticsPerPage,
+                options.MaxDiagnosticCharactersPerPage, cancellationToken);
         var diagnostics = new List<OfficeImageExportDiagnostic>(
             (initialDiagnostics?.Count ?? 0) + capabilityDiagnostics.Count);
         if (initialDiagnostics != null) diagnostics.AddRange(initialDiagnostics);

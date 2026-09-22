@@ -15,9 +15,17 @@ public sealed class PdfImageExportOptions : OfficeImageExportOptions {
     /// <summary>Optional maximum output width or height in pixels.</summary>
     public int? ThumbnailMaxDimension { get; set; }
 
+    /// <summary>Maximum distinct capability diagnostics retained while exporting one page.</summary>
+    public int MaxDiagnosticsPerPage { get; set; } = 1_000;
+
+    /// <summary>Maximum aggregate capability diagnostic characters retained while exporting one page.</summary>
+    public int MaxDiagnosticCharactersPerPage { get; set; } = 1 * 1024 * 1024;
+
     internal PdfImageExportOptions Clone() {
         PdfImageExportOptions clone = CopyImageExportOptionsTo(new PdfImageExportOptions());
         clone.ThumbnailMaxDimension = ThumbnailMaxDimension;
+        clone.MaxDiagnosticsPerPage = MaxDiagnosticsPerPage;
+        clone.MaxDiagnosticCharactersPerPage = MaxDiagnosticCharactersPerPage;
         return clone;
     }
 
@@ -35,5 +43,7 @@ public sealed class PdfImageExportOptions : OfficeImageExportOptions {
         if (ThumbnailMaxDimension.HasValue && ThumbnailMaxDimension.Value < 1) {
             throw new ArgumentOutOfRangeException(nameof(ThumbnailMaxDimension));
         }
+        if (MaxDiagnosticsPerPage <= 0) throw new ArgumentOutOfRangeException(nameof(MaxDiagnosticsPerPage));
+        if (MaxDiagnosticCharactersPerPage <= 0) throw new ArgumentOutOfRangeException(nameof(MaxDiagnosticCharactersPerPage));
     }
 }

@@ -23,6 +23,8 @@ internal static partial class PdfOcr {
             ImageCodec = options.ImageCodec,
             MaxPixelsPerPage = options.MaxPixelsPerPage,
             MaxOutputBytesPerPage = options.MaxRenderedBytesPerPage,
+            MaxDiagnosticsPerPage = options.MaxDiagnosticsPerPage,
+            MaxDiagnosticCharactersPerPage = options.MaxDiagnosticCharactersPerPage,
             ContinueOnError = false
         };
         renderOptions.Validate();
@@ -41,13 +43,14 @@ internal static partial class PdfOcr {
                 }
                 workCancellation.Token.ThrowIfCancellationRequested();
                 int pageNumber = selectedPages[index];
-                PdfPageRenderResult render = PdfPageImageRenderer.RenderPage(
+                PdfPageRenderResult render = RenderOcrPage(
                     document, pageNumber, renderOptions, workCancellation.Token);
                 if (render.Diagnostics.Count > options.MaxDiagnosticsPerPage)
                     throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, options.MaxDiagnosticsPerPage, render.Diagnostics.Count);
                 EnsureCharacters(render.Diagnostics, options.MaxDiagnosticCharactersPerPage);
                 IReadOnlyList<PdfSelectionQuad> nativeBounds = PdfPageInteractionMap.GetOcrOverlapTextSpanBounds(
-                    overlapDocument.Pages[pageNumber - 1]);
+                    overlapDocument.Pages[pageNumber - 1], options.MaxNativeTextBlocksPerPage,
+                    options.MaxNativeTextCharactersPerPage, workCancellation.Token);
                 (double width, double height) = document.Pages[pageNumber - 1].GetInteractionPageSize();
                 string candidateId = "pdf-page-" + pageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 var request = new OcrRequest {
@@ -107,6 +110,15 @@ internal static partial class PdfOcr {
                 workCancellation.Cancel();
                 throw;
             }
+        }
+    }
+
+    private static PdfPageRenderResult RenderOcrPage(PdfReadDocument document, int pageNumber,
+        PdfPageRenderOptions options, CancellationToken cancellationToken) {
+        try {
+            return PdfPageImageRenderer.RenderPage(document, pageNumber, options, cancellationToken);
+        } catch (PdfReadLimitException exception) when (exception.Kind == PdfReadLimitKind.RenderDiagnostics) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, exception.Limit, exception.Actual);
         }
     }
 }

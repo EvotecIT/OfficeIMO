@@ -16,12 +16,17 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>Returns managed-renderer capability diagnostics for a one-based PDF page.</summary>
     public IReadOnlyList<PdfRenderCapabilityDiagnostic> RenderCapabilityDiagnostics(
         int pageNumber,
-        PdfLoadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null,
+        PdfPageRenderOptions? renderOptions = null) {
+        var diagnosticOptions = renderOptions ?? new PdfPageRenderOptions();
+        diagnosticOptions.Validate();
         PdfReadDocument document = ReadDocument(readOptions);
         if (pageNumber <= 0 || pageNumber > document.Pages.Count) {
             throw new ArgumentOutOfRangeException(nameof(pageNumber), pageNumber, "Page number must refer to an existing one-based PDF page.");
         }
-        return document.Pages[pageNumber - 1].GetRenderCapabilityDiagnostics();
+        return document.Pages[pageNumber - 1].GetRenderCapabilityDiagnostics(
+            diagnosticOptions.MaxDiagnosticsPerPage, diagnosticOptions.MaxDiagnosticCharactersPerPage,
+            default);
     }
 
     /// <summary>

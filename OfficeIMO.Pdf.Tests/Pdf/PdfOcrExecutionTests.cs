@@ -77,6 +77,88 @@ public class PdfOcrExecutionTests {
         Assert.Contains("provider: fixture", page.Diagnostics);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Ocr_ClassifiesRenderDiagnosticLimitsAsOcrArtifacts(bool preview) {
+        var document = PdfDocument.Create().Paragraph(p => p.Text("Font fallback"));
+        var options = new PdfOcrMergeOptions { MaxDiagnosticCharactersPerPage = 1 };
+
+        PdfReadLimitException exception = preview
+            ? await Assert.ThrowsAsync<PdfReadLimitException>(() => document.PreviewScanAsync(1, options))
+            : await Assert.ThrowsAsync<PdfReadLimitException>(() => document.ReadWithOcrAsync(
+                new ControlledEngine(false, completeImmediately: true), options));
+
+        Assert.Equal(PdfReadLimitKind.OcrArtifacts, exception.Kind);
+        Assert.Equal(1, exception.Limit);
+    }
+
+    [Fact]
+    public void Ocr_NativeSpanBudgetsStopParsingAtTheProducingSpan() {
+        string content = "BT /F1 12 Tf (A) Tj (B) Tj ET " + string.Concat(Enumerable.Repeat("q Q ", 100));
+        int observedSpans = 0;
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => TextContentParser.Parse(
+            content,
+            static (_, bytes) => System.Text.Encoding.ASCII.GetString(bytes),
+            static (_, bytes) => bytes.Length * 500D,
+            maxOperations: 10,
+            onTextSpan: characters => {
+                Assert.Equal(1, characters);
+                if (++observedSpans > 1)
+                    throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, 1, observedSpans);
+            }));
+
+        Assert.Equal(PdfReadLimitKind.OcrArtifacts, exception.Kind);
+        Assert.Equal(2, observedSpans);
+    }
+
+    [Fact]
+    public void Ocr_NativeSpanLimitsApplyToTheInteractionExtraction() {
+        byte[] pdf = PdfDocument.Create()
+            .Paragraph(p => p.Text("First"))
+            .Paragraph(p => p.Text("Second"))
+            .ToBytes();
+        PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
+
+        PdfReadLimitException blocks = Assert.Throws<PdfReadLimitException>(() =>
+            PdfPageInteractionMap.GetOcrOverlapTextSpanBounds(page, 1, 100, CancellationToken.None));
+        PdfReadLimitException characters = Assert.Throws<PdfReadLimitException>(() =>
+            PdfPageInteractionMap.GetOcrOverlapTextSpanBounds(page, 100, 1, CancellationToken.None));
+
+        Assert.Equal(PdfReadLimitKind.OcrArtifacts, blocks.Kind);
+        Assert.Equal(1, blocks.Limit);
+        Assert.Equal(PdfReadLimitKind.OcrArtifacts, characters.Kind);
+        Assert.Equal(1, characters.Limit);
+    }
+
+    [Fact]
+    public void Ocr_NativeTextBudgetStopsDecodingBeforeTheBroaderReadLimit() {
+        byte[] pdf = PdfDocument.Create()
+            .Paragraph(p => p.Text(new string('A', 1000)))
+            .ToBytes();
+        PdfReadPage page = PdfReadDocument.Open(pdf, new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxDecodedTextCharacters = 100 }
+        }).Pages[0];
+
+        PdfReadLimitException error = Assert.Throws<PdfReadLimitException>(() =>
+            PdfPageInteractionMap.GetOcrOverlapTextSpanBounds(page, 100, 10, CancellationToken.None));
+
+        Assert.Equal(PdfReadLimitKind.OcrArtifacts, error.Kind);
+        Assert.Equal(10, error.Limit);
+    }
+
+    [Fact]
+    public void Ocr_NativeSpanExtractionHonorsCancellationBeforeParsing() {
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("Native text")).ToBytes();
+        PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() =>
+            page.GetInteractionTextSpans(100, 100, cancellation.Token));
+    }
+
     [Fact]
     public async Task Ocr_RejectsOversizedPngBeforeCallingProvider() {
         var engine = new ControlledEngine(false, completeImmediately: true);

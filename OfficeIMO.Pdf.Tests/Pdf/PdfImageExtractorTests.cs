@@ -100,6 +100,31 @@ public class PdfImageExtractorTests {
     }
 
     [Fact]
+    public void ExtractedImageHonorsConfiguredImageReferenceStepLimit() {
+        var dictionary = new PdfDictionary();
+        dictionary.Items["Type"] = new PdfName("XObject");
+        dictionary.Items["Subtype"] = new PdfName("Image");
+        dictionary.Items["Width"] = new PdfNumber(1);
+        dictionary.Items["Height"] = new PdfNumber(1);
+        dictionary.Items["BitsPerComponent"] = new PdfNumber(8);
+        dictionary.Items["ColorSpace"] = new PdfName("DeviceRGB");
+        var parameters = new PdfArray();
+        parameters.Items.Add(new PdfReference(1, 0));
+        dictionary.Items["DecodeParms"] = parameters;
+        var objects = new Dictionary<int, PdfIndirectObject> {
+            [1] = new PdfIndirectObject(1, 0, new PdfReference(2, 0)),
+            [2] = new PdfIndirectObject(2, 0, PdfNull.Instance)
+        };
+        var stream = new PdfStream(dictionary, new byte[] { 255, 0, 0 });
+
+        Assert.Throws<InvalidDataException>(() => ResourceResolver.BuildExtractedImage(
+            1, "Im1", 5, 0, stream, objects, maxImageReferenceSteps: 1));
+        PdfExtractedImage image = ResourceResolver.BuildExtractedImage(
+            1, "Im1", 5, 0, stream, objects, maxImageReferenceSteps: 2);
+        Assert.False(image.HasDecodeParameters);
+    }
+
+    [Fact]
     public void ExtractImages_NormalizesUnfilteredDeviceRgbImageStreamsToPngFiles() {
         byte[] source = BuildUnfilteredDeviceRgbImagePdf();
 

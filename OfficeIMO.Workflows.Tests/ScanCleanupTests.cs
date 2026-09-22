@@ -5,6 +5,22 @@ using OfficeIMO.Pdf.Ocr;
 namespace OfficeIMO.Workflows.Tests;
 
 public sealed class ScanCleanupTests {
+    [Fact]
+    public void ScanDiagnosticBudgetsAreSnapshottedAndMustBePositive() {
+        var options = new OfficeScanCleanupOptions {
+            AcknowledgeRasterOutput = true,
+            MaximumDiagnostics = 20_000,
+            MaximumDiagnosticCharacters = 16L * 1024L * 1024L
+        };
+        OfficeScanCleanupOptions snapshot = options.Snapshot();
+        options.MaximumDiagnostics = 1;
+        options.MaximumDiagnosticCharacters = 1;
+        Assert.Equal(20_000, snapshot.MaximumDiagnostics);
+        Assert.Equal(16L * 1024L * 1024L, snapshot.MaximumDiagnosticCharacters);
+        options.MaximumDiagnostics = 0;
+        Assert.Throws<ArgumentOutOfRangeException>(() => options.Snapshot());
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

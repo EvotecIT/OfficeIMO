@@ -17,7 +17,7 @@ internal sealed partial class PdfUnderstandingReadingFrame {
             result.TableCandidates.Select(RestoreTable).ToArray(), result.ImagePlacements,
             result.ImageRegions.Select(item => new PdfUnderstandingImageRegion(item.Placement,
                 item.Caption is null ? null : RestoreElement(item.Caption), item.Confidence, item.Evidence,
-                item.IsFigure, item.AlternativeText)).ToArray());
+                item.IsFigure, item.AlternativeText)).ToArray(), result.MaxWorkUnitsPerPage);
 
         PdfTextSpan RestoreRun(PdfTextSpan run) {
             _context.ConsumeWork();
