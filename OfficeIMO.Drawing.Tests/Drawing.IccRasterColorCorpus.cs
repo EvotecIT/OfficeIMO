@@ -40,6 +40,11 @@ public sealed class DrawingIccRasterColorCorpusTests {
 
         Assert.Equal(OfficeIccRasterConversionStatus.UnsupportedProfile,
             OfficeIccRasterConverter.TryConvertToSrgb(sample, 1, 1,
+                Array.Empty<byte>(), null, out OfficeRasterImage? emptyProfile));
+        Assert.Null(emptyProfile);
+
+        Assert.Equal(OfficeIccRasterConversionStatus.UnsupportedProfile,
+            OfficeIccRasterConverter.TryConvertToSrgb(sample, 1, 1,
                 profile.Take(100).ToArray(), null, out OfficeRasterImage? malformed));
         Assert.Null(malformed);
         byte[] damagedTag = profile.ToArray();

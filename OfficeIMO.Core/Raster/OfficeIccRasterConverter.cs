@@ -57,7 +57,7 @@ public sealed class OfficeIccRasterConversionOptions {
     /// <summary>ICC rendering intent applied to every device sample.</summary>
     public OfficeIccRenderingIntent RenderingIntent { get; set; } = OfficeIccRenderingIntent.RelativeColorimetric;
 
-    /// <summary>Cancellation checked during the pixel loop.</summary>
+    /// <summary>Cancellation checked before parsing and allocation and during the pixel loop.</summary>
     public CancellationToken CancellationToken { get; set; }
 }
 
@@ -87,7 +87,10 @@ public static class OfficeIccRasterConverter {
         }
         image = null;
         effective.CancellationToken.ThrowIfCancellationRequested();
-        if (profileBytes.Length == 0 || profileBytes.Length > effective.MaximumProfileBytes) {
+        if (profileBytes.Length == 0) {
+            return OfficeIccRasterConversionStatus.UnsupportedProfile;
+        }
+        if (profileBytes.Length > effective.MaximumProfileBytes) {
             return OfficeIccRasterConversionStatus.ProfileLimitExceeded;
         }
         long pixels = (long)width * height;
@@ -116,6 +119,7 @@ public static class OfficeIccRasterConverter {
                 Math.Max(parserAllowance, profile.RetainedByteCount), effective.MaximumManagedBytes)) {
             return OfficeIccRasterConversionStatus.AllocationLimitExceeded;
         }
+        effective.CancellationToken.ThrowIfCancellationRequested();
         var converted = new byte[checked((int)outputBytes)];
         var components = new double[channels];
         for (long pixel = 0L; pixel < pixels; pixel++) {
