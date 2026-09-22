@@ -13,6 +13,88 @@ namespace OfficeIMO.OpenDocument.Converters.Tests;
 
 public sealed class SpreadsheetTemporalValidationConversionTests {
     [Fact]
+    public void ConstantExcelDateAndTimeFormulaBoundsConvertWithoutLoss() {
+        byte[] package;
+        using (ExcelDocument authored = ExcelDocument.Create()) {
+            ExcelSheet sheet = authored.AddWorksheet("Data");
+            sheet.ValidationDate("A1", ExcelDataValidationOperator.Between,
+                new DateTime(2024, 2, 29), new DateTime(2024, 12, 31));
+            sheet.ValidationTime("B1", ExcelDataValidationOperator.Between,
+                new TimeSpan(8, 30, 0), new TimeSpan(17, 0, 0));
+            package = authored.ToBytes();
+        }
+
+        using (var stream = new MemoryStream()) {
+            stream.Write(package, 0, package.Length);
+            stream.Position = 0;
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(stream, true)) {
+                Worksheet worksheet = spreadsheet.WorkbookPart!.WorksheetParts.Single().Worksheet
+                    ?? throw new InvalidDataException("The regression workbook has no worksheet XML.");
+                foreach (DataValidation validation in worksheet.Descendants<DataValidation>()) {
+                    string address = validation.SequenceOfReferences?.InnerText
+                        ?? throw new InvalidDataException("The regression validation has no target range.");
+                    if (address == "A1") {
+                        validation.Formula1 = new Formula1("DATE(2024,2,29)");
+                        validation.Formula2 = new Formula2("DATE(2024,12,31)");
+                    } else if (address == "B1") {
+                        validation.Formula1 = new Formula1("TIME(8,30,0)");
+                        validation.Formula2 = new Formula2("TIME(17,0,0)");
+                    }
+                }
+                worksheet.Save();
+            }
+            package = stream.ToArray();
+        }
+
+        using ExcelDocument source = ExcelDocument.Load(new MemoryStream(package));
+        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+        OdsDocument ods = OdsDocument.Load(new MemoryStream(conversion.Value.ToBytes()));
+        Assert.Equal(2, ods.Validations.Count);
+        Assert.Contains(ods.Validations, validation => validation.ParsedCondition?.ValueKind == OdsValidationValueKind.Date
+            && validation.ParsedCondition.FirstOperand == "DATE(2024;2;29)"
+            && validation.ParsedCondition.SecondOperand == "DATE(2024;12;31)");
+        Assert.Contains(ods.Validations, validation => validation.ParsedCondition?.ValueKind == OdsValidationValueKind.Time
+            && validation.ParsedCondition.FirstOperand == "TIME(8;30;0)"
+            && validation.ParsedCondition.SecondOperand == "TIME(17;0;0)");
+        Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "validations"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported);
+    }
+
+    [Fact]
+    public void DynamicAndFractionalExcelDateTimeFormulasReportUnsupported() {
+        byte[] package;
+        using (ExcelDocument authored = ExcelDocument.Create()) {
+            ExcelSheet sheet = authored.AddWorksheet("Data");
+            sheet.ValidationDate("A1", ExcelDataValidationOperator.Equal, new DateTime(2024, 1, 1));
+            sheet.ValidationTime("B1", ExcelDataValidationOperator.Equal, new TimeSpan(8, 30, 0));
+            package = authored.ToBytes();
+        }
+
+        using (var stream = new MemoryStream()) {
+            stream.Write(package, 0, package.Length);
+            stream.Position = 0;
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(stream, true)) {
+                Worksheet worksheet = spreadsheet.WorkbookPart!.WorksheetParts.Single().Worksheet
+                    ?? throw new InvalidDataException("The regression workbook has no worksheet XML.");
+                foreach (DataValidation validation in worksheet.Descendants<DataValidation>()) {
+                    string address = validation.SequenceOfReferences?.InnerText
+                        ?? throw new InvalidDataException("The regression validation has no target range.");
+                    if (address == "A1") validation.Formula1 = new Formula1("DATE(YEAR(TODAY()),1,1)");
+                    else if (address == "B1") validation.Formula1 = new Formula1("TIME(8,30,0.5)");
+                }
+                worksheet.Save();
+            }
+            package = stream.ToArray();
+        }
+
+        using ExcelDocument source = ExcelDocument.Load(new MemoryStream(package));
+        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+        Assert.Empty(conversion.Value.Validations);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "validations"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 2);
+    }
+
+    [Fact]
     public void EarlyOutOfRangeAndFractionalExcelDatesReportUnsupported() {
         byte[] package;
         using (ExcelDocument authored = ExcelDocument.Create()) {

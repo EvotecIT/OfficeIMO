@@ -11,6 +11,20 @@ public static partial class ExcelOpenDocumentConversionExtensions {
     private static bool TryFormatTemporalOperand(string? formula, OdsValidationValueKind kind,
         ExcelDateSystem dateSystem, out string? operand) {
         operand = null;
+        string? expression = formula?.Trim();
+        if (expression?.StartsWith("=", StringComparison.Ordinal) == true) {
+            expression = expression.Substring(1).TrimStart();
+        }
+        if (kind == OdsValidationValueKind.Date
+            && TryParseDateOperand(expression, ',', out DateTime constantDate)) {
+            operand = FormatDateOperand(constantDate);
+            return true;
+        }
+        if (kind == OdsValidationValueKind.Time
+            && TryParseTimeOperand(expression, ',', out TimeSpan constantTime)) {
+            operand = FormatTimeOperand(constantTime);
+            return true;
+        }
         if (!double.TryParse(formula, NumberStyles.Float, CultureInfo.InvariantCulture, out double serial)
             || double.IsNaN(serial) || double.IsInfinity(serial)) return false;
 
@@ -25,8 +39,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 return false;
             }
             if (date.Year < MinimumOpenFormulaDateYear || date.Year > MaximumOpenFormulaDateYear) return false;
-            operand = string.Format(CultureInfo.InvariantCulture, "DATE({0};{1};{2})",
-                date.Year, date.Month, date.Day);
+            operand = FormatDateOperand(date);
             return true;
         }
 
@@ -36,14 +49,24 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         // OpenFormula TIME permits evaluators to truncate fractional seconds.
         if (rounded >= 86400d || Math.Abs(seconds - rounded) > 0.0000001d) return false;
         var time = TimeSpan.FromSeconds(rounded);
-        operand = string.Format(CultureInfo.InvariantCulture, "TIME({0};{1};{2})",
-            time.Hours, time.Minutes, time.Seconds);
+        operand = FormatTimeOperand(time);
         return true;
     }
 
-    private static bool TryParseDateOperand(string? operand, out DateTime value) {
+    private static string FormatDateOperand(DateTime date) =>
+        string.Format(CultureInfo.InvariantCulture, "DATE({0};{1};{2})",
+            date.Year, date.Month, date.Day);
+
+    private static string FormatTimeOperand(TimeSpan time) =>
+        string.Format(CultureInfo.InvariantCulture, "TIME({0};{1};{2})",
+            time.Hours, time.Minutes, time.Seconds);
+
+    private static bool TryParseDateOperand(string? operand, out DateTime value) =>
+        TryParseDateOperand(operand, ';', out value);
+
+    private static bool TryParseDateOperand(string? operand, char separator, out DateTime value) {
         value = default;
-        if (!TrySplitTemporalFunction(operand, "DATE", out string[]? arguments)
+        if (!TrySplitTemporalFunction(operand, "DATE", separator, out string[]? arguments)
             || !int.TryParse(arguments![0], NumberStyles.Integer, CultureInfo.InvariantCulture, out int year)
             || !int.TryParse(arguments[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int month)
             || !int.TryParse(arguments[2], NumberStyles.Integer, CultureInfo.InvariantCulture, out int day)
@@ -56,9 +79,12 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         }
     }
 
-    private static bool TryParseTimeOperand(string? operand, out TimeSpan value) {
+    private static bool TryParseTimeOperand(string? operand, out TimeSpan value) =>
+        TryParseTimeOperand(operand, ';', out value);
+
+    private static bool TryParseTimeOperand(string? operand, char separator, out TimeSpan value) {
         value = default;
-        if (!TrySplitTemporalFunction(operand, "TIME", out string[]? arguments)
+        if (!TrySplitTemporalFunction(operand, "TIME", separator, out string[]? arguments)
             || !int.TryParse(arguments![0], NumberStyles.Integer, CultureInfo.InvariantCulture, out int hours)
             || !int.TryParse(arguments[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int minutes)
             || !decimal.TryParse(arguments[2], NumberStyles.AllowDecimalPoint,
@@ -87,13 +113,14 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         return true;
     }
 
-    private static bool TrySplitTemporalFunction(string? operand, string name, out string[]? arguments) {
+    private static bool TrySplitTemporalFunction(string? operand, string name, char separator,
+        out string[]? arguments) {
         arguments = null;
         if (operand == null || operand.Length > 64
             || !operand.StartsWith(name + "(", StringComparison.OrdinalIgnoreCase)
             || !operand.EndsWith(")", StringComparison.Ordinal)) return false;
         string body = operand.Substring(name.Length + 1, operand.Length - name.Length - 2);
-        string[] parts = body.Split(';');
+        string[] parts = body.Split(separator);
         if (parts.Length != 3) return false;
         for (int index = 0; index < parts.Length; index++) {
             parts[index] = parts[index].Trim();
