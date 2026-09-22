@@ -11,7 +11,8 @@ The fixtures come from two public corpora listed by the PDF Association's
   `366f068cec399d0cdfd61fa473de3ab6dc858098`, licensed CC0 unless a file says
   otherwise. The selected Cabinet of Horrors files were produced mainly by
   Microsoft Word 2003 and Adobe Acrobat Professional 9.5.2 and cover embedded
-  fonts, PDF/A, links, attachments, recoverable corruption, and image failures.
+  fonts, PDF/A, links, attachments, recoverable corruption, image failures,
+  and a three-page web capture with forms and many annotations.
 - veraPDF `veraPDF-corpus`, commit
   `49de56cd987929932c9e4fbbbe67d052bf44ef83`, licensed CC BY 4.0. The selected
   atomic PDF/A cases exercise valid ToUnicode maps, ICCBased and Indexed
