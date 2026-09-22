@@ -221,7 +221,7 @@ public partial class ExcelDocument {
                 !string.Equals(contentTypes.GetContentType(normalized), expectedContentType, StringComparison.OrdinalIgnoreCase)) {
                 throw new InvalidDataException($"The XLSB {role} target has an unexpected package content type.");
             }
-            if (entries.Add(normalized) && expectedContentType != SignatureCertificateContentType) pending.Enqueue(normalized);
+            if (entries.Add(normalized)) pending.Enqueue(normalized);
         }
 
         AddPart(info.OriginPartUri, SignatureOriginContentType, "signature-origin");
@@ -243,8 +243,8 @@ public partial class ExcelDocument {
             }
             string sourcePart = pending.Dequeue();
             string relationshipsPart = GetRelationshipsPartName(sourcePart);
-            XElement[] relationships = ReadRelationships(archive, relationshipsPart, limits);
-            if (relationships.Length == 0) continue;
+            XElement[] relationships = ReadRelationships(archive, relationshipsPart, limits, out bool relationshipPartPresent);
+            if (!relationshipPartPresent) continue;
             entries.Add(relationshipsPart);
             foreach (XElement relationship in relationships) {
                 if (!TryGetSignatureRelationshipContentType(relationship, requireOrigin: false, out string expectedContentType)) continue;
@@ -294,11 +294,15 @@ public partial class ExcelDocument {
         return new PackageContentTypes(overrides, defaults);
     }
 
-    private static XElement[] ReadRelationships(ZipArchive archive, string entryName, OfficeProvenanceOptions limits) {
+    private static XElement[] ReadRelationships(ZipArchive archive, string entryName, OfficeProvenanceOptions limits) =>
+        ReadRelationships(archive, entryName, limits, out _);
+
+    private static XElement[] ReadRelationships(ZipArchive archive, string entryName, OfficeProvenanceOptions limits, out bool present) {
         ZipArchiveEntry[] matches = archive.Entries
             .Where(entry => NormalizePartName(entry.FullName).Equals(NormalizePartName(entryName), StringComparison.OrdinalIgnoreCase))
             .ToArray();
-        if (matches.Length == 0) return Array.Empty<XElement>();
+        present = matches.Length != 0;
+        if (!present) return Array.Empty<XElement>();
         if (matches.Length != 1) throw new InvalidDataException("The XLSB package contains duplicate relationship parts.");
         byte[] xml = ReadBoundedEntry(matches[0], limits.MaxAssetBytes);
         OfficeProvenanceXml.ValidateMaterializedNodeBudget(xml, limits, "XLSB signature relationships");

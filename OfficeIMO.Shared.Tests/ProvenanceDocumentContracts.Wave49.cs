@@ -20,6 +20,7 @@ public sealed partial class ProvenanceDocumentContracts {
             new System.IO.MemoryStream(result.ToArray()), System.IO.Compression.ZipArchiveMode.Read);
         Assert.True(result.WereInvalidatedSignaturesRemoved);
         Assert.DoesNotContain(archive.Entries, entry => entry.FullName == "_xmlsignatures/cert1.cer");
+        Assert.DoesNotContain(archive.Entries, entry => entry.FullName == "_xmlsignatures/_rels/cert1.cer.rels");
         Assert.DoesNotContain(archive.Entries, entry => entry.FullName == "_xmlsignatures/_rels/sig1.xml.rels");
     }
 

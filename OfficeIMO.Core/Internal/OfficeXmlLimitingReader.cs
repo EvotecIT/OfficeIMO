@@ -85,11 +85,11 @@ namespace OfficeIMO.Core.Internal {
             _cancellationToken.ThrowIfCancellationRequested();
             bool result = _inner.Read();
             if (!result) return false;
-            if (_inner.Depth > _maxDepth) throw Limit("MaxDepth");
             if (IsMaterializedNode(_inner.NodeType) && ++_materializedNodes > _maxMaterializedNodes) {
                 throw Limit("MaxMaterializedNodes");
             }
             if (_inner.NodeType != XmlNodeType.Element) return true;
+            if (_inner.Depth > _maxDepth) throw Limit("MaxDepth");
             if (++_elements > _maxElements) throw Limit("MaxElements");
             _attributes += _inner.AttributeCount;
             if (_attributes > _maxAttributes) throw Limit("MaxAttributes");

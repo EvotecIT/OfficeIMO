@@ -1,4 +1,6 @@
 using System.Text;
+using System.Xml;
+using OfficeIMO.Core.Internal;
 using OfficeIMO.Drawing;
 using OfficeIMO.Provenance;
 using Xunit;
@@ -6,6 +8,70 @@ using Xunit;
 namespace OfficeIMO.Shared.Tests;
 
 public sealed partial class ProvenanceCoreContracts {
+    [Fact]
+    public void XmlDepthLimitCountsElementsRatherThanTextNodes() {
+        using var source = XmlReader.Create(new StringReader("<root><item>text<!--comment--><![CDATA[data]]></item></root>"));
+        using var bounded = new OfficeXmlLimitingReader(source, "test", maxDepth: 1,
+            maxElements: 10, maxAttributes: 10, cancellationToken: default);
+
+        while (bounded.Read()) { }
+    }
+
+    [Fact]
+    public void ProvenanceXmlDepthAllowsTextAtTheDeepestElement() {
+        string xml = string.Concat(Enumerable.Repeat("<e>", 257)) + "text" +
+            string.Concat(Enumerable.Repeat("</e>", 257));
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(xml));
+
+        OfficeProvenanceXml.ValidateMaterializedNodeBudget(stream, new OfficeProvenanceOptions(), "XML");
+    }
+
+    [Fact]
+    public void SvgProvenanceDepthAllowsTextAtTheDeepestElement() {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg'>" +
+            string.Concat(Enumerable.Repeat("<g>", 256)) + "text" +
+            string.Concat(Enumerable.Repeat("</g>", 256)) + "</svg>";
+
+        OfficeProvenanceInspector.Inspect(Encoding.UTF8.GetBytes(svg), "image.svg");
+    }
+
+    [Fact]
+    public void ApngProvenanceBudgetUsesSecondaryFrameDimensions() {
+        byte[] canvas = OfficePngWriter.Encode(new OfficeRasterImage(200, 200, OfficeColor.Red));
+        byte[] small = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Red));
+        byte[] firstControl = new byte[26], secondControl = new byte[26];
+        firstControl[7] = firstControl[11] = 200;
+        secondControl[3] = 1;
+        secondControl[7] = secondControl[11] = 1;
+        byte[] apng = Join(
+            canvas.Take(8).ToArray(),
+            CreatePngChunk("IHDR", canvas.Skip(16).Take(13).ToArray()),
+            CreatePngChunk("acTL", new byte[] { 0, 0, 0, 2, 0, 0, 0, 0 }),
+            CreatePngChunk("fcTL", firstControl),
+            CreatePngChunk("IDAT", PngChunkData(canvas, "IDAT")),
+            CreatePngChunk("fcTL", secondControl),
+            CreatePngChunk("fdAT", Join(new byte[] { 0, 0, 0, 2 }, PngChunkData(small, "IDAT"))),
+            CreatePngChunk("IEND", Array.Empty<byte>()));
+
+        Assert.True(OfficePngContainerValidator.TryValidate(apng, default, int.MaxValue, out _, out string? reason), reason);
+        Assert.True(OfficePngAnimationValidator.TryValidateStructure(apng));
+        Assert.True(OfficePngReader.TryGetProvenanceDecodeBudget(apng, default, int.MaxValue, out long decodedBytes));
+        Assert.True(OfficePngReader.TryGetValidationWorkingSetBytes(200, 200, 8, 6, 0, null, out long canvasBytes));
+        Assert.True(OfficePngReader.TryGetValidationWorkingSetBytes(1, 1, 8, 6, 0, null, out long frameBytes));
+        Assert.Equal(canvasBytes + frameBytes, decodedBytes);
+    }
+
+    private static byte[] PngChunkData(byte[] png, string type) {
+        for (int offset = 8; offset + 12 <= png.Length;) {
+            int length = (png[offset] << 24) | (png[offset + 1] << 16) |
+                (png[offset + 2] << 8) | png[offset + 3];
+            if (Encoding.ASCII.GetString(png, offset + 4, 4) == type)
+                return png.Skip(offset + 8).Take(length).ToArray();
+            offset += 12 + length;
+        }
+        throw new InvalidDataException("PNG chunk was not found.");
+    }
+
     [Fact]
     public void EmbeddedPngDecodeWorkSharesThePackageBudget() {
         byte[] image = CreatePngWithC2paManifest(CreateManifestStore());

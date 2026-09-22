@@ -221,7 +221,7 @@ internal static class OfficeProvenanceSvg {
         bool rootSeen = false;
         while (reader.Read()) {
             options.CancellationToken.ThrowIfCancellationRequested();
-            if (reader.Depth > 256) throw OfficeProvenanceLimitException.Create("SVG exceeds the configured XML depth limit.");
+            if (reader.NodeType == XmlNodeType.Element && reader.Depth > 256) throw OfficeProvenanceLimitException.Create("SVG exceeds the configured XML depth limit.");
             if (reader.NodeType == XmlNodeType.Element) {
                 ReserveMaterializedNodes(ref materializedNodes, 1 + reader.AttributeCount, options.MaxContainerEntries);
                 if (!rootSeen) {
@@ -287,7 +287,7 @@ internal static class OfficeProvenanceSvg {
                         first = false;
                         continue;
                     }
-                    if (manifestDepth + subtree.Depth > 256) throw OfficeProvenanceLimitException.Create("SVG exceeds the configured XML depth limit.");
+                    if (subtree.NodeType == XmlNodeType.Element && manifestDepth + subtree.Depth > 256) throw OfficeProvenanceLimitException.Create("SVG exceeds the configured XML depth limit.");
                     if (subtree.NodeType == XmlNodeType.Element) {
                         ReserveMaterializedNodes(ref materializedNodes, 1 + subtree.AttributeCount, options.MaxContainerEntries);
                         onlyText = false;
@@ -512,7 +512,7 @@ internal static class OfficeProvenanceSvg {
         using XmlReader reader = XmlReader.Create(stream, CreateReaderSettings(options));
         int materializedNodes = 0;
         while (reader.Read()) {
-            if (reader.Depth > 256) throw OfficeProvenanceLimitException.Create("SVG exceeds the configured XML depth limit.");
+            if (reader.NodeType == XmlNodeType.Element && reader.Depth > 256) throw OfficeProvenanceLimitException.Create("SVG exceeds the configured XML depth limit.");
             switch (reader.NodeType) {
                 case XmlNodeType.Element:
                     ReserveMaterializedNodes(ref materializedNodes, 1 + reader.AttributeCount, options.MaxContainerEntries);

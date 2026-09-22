@@ -358,7 +358,7 @@ internal static class OfficeProvenanceGif {
             while (true) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!reader.Read()) break;
-                if (reader.Depth > 256) {
+                if (reader.NodeType == XmlNodeType.Element && reader.Depth > 256) {
                     throw OfficeProvenanceLimitException.Create("GIF XMP exceeds the configured XML depth limit.");
                 }
                 int current = reader.NodeType == XmlNodeType.Element

@@ -281,7 +281,37 @@ public static class OfficePngReader {
         if (!TryGetValidationWorkingSetBytes(width, height, bytes[24], colorType, bytes[28], palette,
                 out long perFrameBytes)) return false;
         try {
-            decodedBytes = checked(perFrameBytes * Math.Max(1, frameCount));
+            // The default PNG image always has its own validation pass. An APNG
+            // frame following IDAT is validated at its fcTL subrectangle size.
+            decodedBytes = perFrameBytes;
+            bool seenImageData = false;
+            bool seenAnimationControl = false;
+            int controlledFrames = 0;
+            for (int offset = Signature.Length; offset + 12 <= bytes.Length;) {
+                cancellationToken.ThrowIfCancellationRequested();
+                int length = ReadBigEndianInt32(bytes, offset);
+                int dataOffset = offset + 8;
+                bool frameControl = bytes[offset + 4] == (byte)'f' && bytes[offset + 5] == (byte)'c' &&
+                    bytes[offset + 6] == (byte)'T' && bytes[offset + 7] == (byte)'L';
+                if (bytes[offset + 4] == (byte)'a' && bytes[offset + 5] == (byte)'c' &&
+                    bytes[offset + 6] == (byte)'T' && bytes[offset + 7] == (byte)'L') seenAnimationControl = true;
+                if (frameControl) {
+                    if (length != 26) return false;
+                    controlledFrames++;
+                    if (seenImageData) {
+                        int frameWidth = ReadBigEndianInt32(bytes, dataOffset + 4);
+                        int frameHeight = ReadBigEndianInt32(bytes, dataOffset + 8);
+                        if (!TryGetValidationWorkingSetBytes(frameWidth, frameHeight, bytes[24], colorType, bytes[28], palette,
+                                out long frameBytes)) return false;
+                        decodedBytes = checked(decodedBytes + frameBytes);
+                    }
+                }
+                if (bytes[offset + 4] == (byte)'I' && bytes[offset + 5] == (byte)'D' &&
+                    bytes[offset + 6] == (byte)'A' && bytes[offset + 7] == (byte)'T') seenImageData = true;
+                offset = checked(offset + 12 + length);
+            }
+            if (seenAnimationControl && (controlledFrames != frameCount ||
+                    !OfficePngAnimationValidator.TryValidateStructure(bytes, cancellationToken))) return false;
             return true;
         } catch (OverflowException) {
             return false;

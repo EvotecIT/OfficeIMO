@@ -123,6 +123,8 @@ public sealed partial class ProvenanceDocumentContracts {
                         "<Relationship Id=\"rCert\" Type=\"http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/certificate\" Target=\"cert1.cer\"/>" +
                         "</Relationships>");
                     WriteWave33Entry(archive, "_xmlsignatures/cert1.cer", new byte[] { 1, 2, 3 });
+                    WriteWave33Entry(archive, "_xmlsignatures/_rels/cert1.cer.rels",
+                        "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"/>");
                 }
             }
         }
