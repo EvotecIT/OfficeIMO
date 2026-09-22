@@ -336,9 +336,47 @@ public static partial class OfficeDrawingRasterRenderer {
         long maximumRasterPixels,
         System.Threading.CancellationToken cancellationToken,
         out OfficeRasterImage? image) {
-        if (OfficeRasterImageDecoder.TryDecode(
-                bytes, maximumRasterPixels, cancellationToken, out image) && image != null) {
-            transformedTextBudget.ChargeIntermediateSurfacePixels((long)image.Width * image.Height, maximumRasterPixels);
+        // Inspect the selected output before managed decode allocates it. The
+        // remaining shared budget may be smaller than the per-image limit.
+        long reservedPixels = 0L;
+        long remainingPixels = maximumRasterPixels - transformedTextBudget.IntermediatePixels;
+        var decodeOptions = new OfficeRasterDecodeOptions {
+            MaximumDecodedPixels = Math.Min(maximumRasterPixels, OfficeRasterGuards.MaximumPixels),
+            MaximumInspectionWorkPixels = Math.Max(1L, Math.Min(remainingPixels, OfficeRasterGuards.MaximumPixels)),
+            CancellationToken = cancellationToken
+        };
+        if (OfficeImageReader.TryIdentifyByContent(bytes, null, out OfficeImageInfo identified) &&
+            (identified.Format == OfficeImageFormat.Png || identified.Format == OfficeImageFormat.Jpeg ||
+             identified.Format == OfficeImageFormat.Bmp || identified.Format == OfficeImageFormat.Webp ||
+             identified.Format == OfficeImageFormat.Gif || identified.Format == OfficeImageFormat.Tiff)) {
+            if (!OfficeRasterImageDecoder.IsWithinPixelLimit(identified.Width, identified.Height, maximumRasterPixels)) {
+                image = null;
+                return false;
+            }
+            // Identification reports the first TIFF page and the output canvas
+            // for other managed formats. Reserve before inspection, which may
+            // validate GIF frames or decode WebP pixels.
+            reservedPixels = (long)identified.Width * identified.Height;
+            transformedTextBudget.ChargeIntermediateSurfacePixels(reservedPixels, maximumRasterPixels);
+        }
+        bool decoded = false;
+        image = null;
+        try {
+            decoded = OfficeRasterImageDecoder.TryDecode(bytes, decodeOptions, out image, out _) && image != null;
+        } finally {
+            if (!decoded && reservedPixels > 0L) transformedTextBudget.ReleaseIntermediateSurfacePixels(reservedPixels);
+        }
+        if (decoded && image != null) {
+            if (reservedPixels == 0L) {
+                transformedTextBudget.ChargeIntermediateSurfacePixels((long)image.Width * image.Height, maximumRasterPixels);
+            } else if ((long)image.Width * image.Height != reservedPixels) {
+                long actualPixels = (long)image.Width * image.Height;
+                if (actualPixels > reservedPixels) {
+                    transformedTextBudget.ChargeIntermediateSurfacePixels(actualPixels - reservedPixels, maximumRasterPixels);
+                } else {
+                    transformedTextBudget.ReleaseIntermediateSurfacePixels(reservedPixels - actualPixels);
+                }
+            }
             return true;
         }
         if (IsSvg(bytes, contentType) &&

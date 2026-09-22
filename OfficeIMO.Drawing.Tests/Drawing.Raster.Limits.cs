@@ -67,7 +67,10 @@ public sealed class DrawingRasterLimitTests {
 
         OfficeRasterImage rendered = OfficeDrawingRasterRenderer.Render(
             drawing,
-            new OfficeDrawingRasterRenderOptions { MaximumRasterPixels = 1L });
+            new OfficeDrawingRasterRenderOptions {
+                MaximumRasterPixels = 1L,
+                ImageCodec = new ThrowingCodec(new InvalidOperationException("Oversized managed images must not reach the caller codec."))
+            });
 
         Assert.Equal(OfficeColor.Transparent, rendered.GetPixel(0, 0));
     }

@@ -81,6 +81,11 @@ public static partial class OfficeSvgDrawingReader {
             SvgDefinitionRegistry definitions = SvgDefinitionRegistry.Create(root);
             var paintServers = new SvgPaintServerRegistry(definitions);
             var references = new SvgElementReferenceRegistry(definitions, options?.ForeignObjectRenderer);
+            bool fitsRootViewport = Math.Abs(viewportWidth - viewWidth) < 0.000001D &&
+                Math.Abs(viewportHeight - viewHeight) < 0.000001D;
+            // Fitting a viewBox retains its full scene as an effect surface alongside
+            // every child surface, even when the displayed viewport is tiny.
+            if (!fitsRootViewport && !references.TryChargeIntermediateSurface(viewWidth, viewHeight)) return false;
             SvgPaintContext rootDefaults = SvgPaintContext.Default;
             rootDefaults.DashPercentageReference = NormalizedSvgDiagonal(viewWidth, viewHeight);
             var context = ResolvePaintContext(root, rootDefaults, paintServers, ref unsupportedFeatureCount);
@@ -127,7 +132,7 @@ public static partial class OfficeSvgDrawingReader {
                 else unsupportedFeatureCount++;
             }
             if (visited > maximumElements) return false;
-            if (Math.Abs(viewportWidth - viewWidth) < 0.000001D && Math.Abs(viewportHeight - viewHeight) < 0.000001D) {
+            if (fitsRootViewport) {
                 if (HasNewlyRetainedSvgGeometry(scene)) {
                     var clipped = new OfficeDrawing(viewportWidth, viewportHeight);
                     clipped.Fonts.AddRange(scene.Fonts);
@@ -143,7 +148,9 @@ public static partial class OfficeSvgDrawingReader {
                 }
                 OfficeDrawing viewport = FitSvgViewport(scene, viewportWidth, viewportHeight,
                     ResolveViewportTransform(viewWidth, viewHeight, viewportWidth, viewportHeight, alignment, slice),
-                    maximumViewportDimension, maximumViewportPixels, ref unsupportedFeatureCount);
+                    maximumViewportDimension, maximumViewportPixels, ref unsupportedFeatureCount,
+                    out double retainedScenePixels);
+                if (!references.TryChargeNestedViewportExpansion(retainedScenePixels - viewWidth * viewHeight)) return false;
                 var clipped = new OfficeDrawing(viewportWidth, viewportHeight);
                 clipped.Fonts.AddRange(viewport.Fonts);
                 drawing = clipped.AddClippedDrawing(viewport, 0D, 0D, OfficeClipPath.Rectangle(viewportWidth, viewportHeight));

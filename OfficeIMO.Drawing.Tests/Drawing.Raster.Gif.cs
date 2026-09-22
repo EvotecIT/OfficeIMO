@@ -4,6 +4,18 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class DrawingRasterTests {
         [Fact]
+        public void DrawingRendererCountsGifFrameValidationAgainstRemainingRasterWork() {
+            byte[] gif = CreateTwoFrameGif();
+            var drawing = new OfficeDrawing(1, 1).AddImage(gif, "image/gif",
+                new OfficeImageProjection(new OfficeImagePlacement(0, 0, 1, 1)));
+
+            OfficeRasterImage rendered = OfficeDrawingRasterRenderer.Render(drawing,
+                new OfficeDrawingRasterRenderOptions { MaximumRasterPixels = 1 });
+
+            Assert.Equal(OfficeColor.Transparent, rendered.GetPixel(0, 0));
+        }
+
+        [Fact]
         public void OfficeRasterImageDecoder_DecodesGifFirstFrameThroughSharedRasterPath() {
             byte[] gif = CreateIndexedGif(
                 2,

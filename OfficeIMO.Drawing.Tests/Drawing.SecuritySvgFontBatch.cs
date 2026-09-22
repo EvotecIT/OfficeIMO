@@ -62,6 +62,50 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void TransformedTextAndEffectLayersShareTheCallerRasterLimit() {
+        var inner = new OfficeDrawing(20, 20).AddPositionedText("A", 0, 0, 10, 10,
+            new OfficeImageFrameTransform(90, 5, 5), new OfficeFontInfo("Arial", 12), textAdvanceWidth: 8);
+        var drawing = new OfficeDrawing(20, 20).AddEffectDrawing(inner, OfficeTransform.Identity);
+        var budget = new OfficeRasterTransformedTextBudget();
+
+        Assert.Throws<OfficeImageExportLimitException>(() => OfficeDrawingRasterRenderer.Render(drawing,
+            new OfficeDrawingRasterRenderOptions { MaximumRasterPixels = 500, TransformedTextBudget = budget }));
+        Assert.Equal(400L, budget.IntermediatePixels);
+        Assert.Equal(0L, budget.Pixels);
+    }
+
+    [Fact]
+    public void UnsupportedTransformedVerticalTextDoesNotRetainAnUnusedLayerCharge() {
+        var source = new OfficeDrawing(20, 20).AddVerticalText("A", 0, 0, 10, 10,
+            new OfficeFontInfo("Missing vertical font", 8));
+        var drawing = new OfficeDrawing(20, 20).AddDrawing(source, 0, 0,
+            new OfficeImageFrameTransform(90, 10, 10));
+        var budget = new OfficeRasterTransformedTextBudget();
+
+        OfficeDrawingRasterRenderer.Render(drawing, new OfficeDrawingRasterRenderOptions {
+            MaximumRasterPixels = 400, TransformedTextBudget = budget
+        });
+
+        Assert.Equal(0L, budget.Pixels);
+        Assert.Equal(0L, budget.IntermediatePixels);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ManagedImageIsRejectedBeforeItsDecodedPixelsExceedTheSharedBudget(bool webp) {
+        var source = new OfficeRasterImage(2, 2, OfficeColor.Red);
+        byte[] encoded = webp ? OfficeWebpCodec.Encode(source) : OfficePngWriter.Encode(source);
+        var drawing = new OfficeDrawing(2, 2).AddImage(encoded, webp ? "image/webp" : "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(0, 0, 2, 2)));
+        var budget = new OfficeRasterTransformedTextBudget { IntermediatePixels = 1 };
+
+        Assert.Throws<OfficeImageExportLimitException>(() => OfficeDrawingRasterRenderer.Render(drawing,
+            new OfficeDrawingRasterRenderOptions { MaximumRasterPixels = 4, TransformedTextBudget = budget }));
+        Assert.Equal(1L, budget.IntermediatePixels);
+    }
+
+    [Fact]
     public void FaxFillScanRejectsMissingEndOfLineWithinBoundedWork() {
         byte[] encoded = new byte[8 * 1024 * 1024];
 
@@ -151,6 +195,25 @@ public partial class DrawingTests {
         Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), options, out OfficeDrawing? drawing, out int unsupported));
         Assert.True(unsupported > 0);
         Assert.Empty(drawing!.Elements);
+    }
+
+    [Fact]
+    public void TransparentForeignObjectEffectsDoNotChargeUnrenderedNestedSurfaces() {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'>" +
+            "<foreignObject width='10' height='10'><div xmlns='http://www.w3.org/1999/xhtml'>Text</div></foreignObject></svg>";
+        var options = new OfficeSvgDrawingReaderOptions {
+            ForeignObjectRenderer = context => {
+                var content = new OfficeDrawing(context.Width, context.Height);
+                var large = new OfficeDrawing(4000, 4000);
+                for (int i = 0; i < 5; i++) content.AddEffectDrawing(large, OfficeTransform.Identity, opacity: 0D);
+                return content;
+            }
+        };
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), options,
+            out OfficeDrawing? drawing, out int unsupported));
+        Assert.Equal(0, unsupported);
+        Assert.NotEmpty(drawing!.Elements);
     }
 
     [Theory]
@@ -491,6 +554,16 @@ public partial class DrawingTests {
         string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4096 4096'>" +
             string.Concat(Enumerable.Repeat(
                 "<g style='mix-blend-mode:multiply'><rect width='1' height='1'/></g>", 5)) + "</svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out _, out int unsupported));
+        Assert.True(unsupported > 0);
+    }
+
+    [Fact]
+    public void RootViewBoxSceneCompetesWithItsChildEffectsForTheSurfaceBudget() {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='1' height='1' viewBox='0 0 4000 4000'>" +
+            string.Concat(Enumerable.Repeat(
+                "<g style='mix-blend-mode:multiply'><rect width='1' height='1'/></g>", 4)) + "</svg>";
 
         Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out _, out int unsupported));
         Assert.True(unsupported > 0);

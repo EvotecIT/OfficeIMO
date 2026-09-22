@@ -14,6 +14,7 @@ public static partial class OfficeSvgDrawingReader {
             foreach (OfficeDrawingElement element in pending.Pop().Elements) {
                 if (++elementCount > maximumElements) return false;
                 if (element is OfficeDrawingEffectGroup effect) {
+                    if (effect.Opacity <= 0D) continue;
                     OfficeDrawing inner = effect.InnerDrawing;
                     double surface = Math.Ceiling(inner.Width) * Math.Ceiling(inner.Height);
                     pixels += surface * (effect.SoftMask == null ? 1D : 4D);
@@ -22,6 +23,7 @@ public static partial class OfficeSvgDrawingReader {
                 } else if (element is OfficeDrawingGroup group) {
                     if (group.ClipPath.Kind != OfficeClipPathKind.Empty) pending.Push(group.InnerDrawing);
                 } else if (element is OfficeDrawingTilingPattern pattern) {
+                    if (pattern.Opacity <= 0D) continue;
                     OfficeDrawing tile = pattern.InnerTile;
                     pixels += Math.Ceiling(tile.Width) * Math.Ceiling(tile.Height);
                     pending.Push(tile);

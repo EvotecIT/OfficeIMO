@@ -37,7 +37,7 @@ public static partial class OfficeDrawingRasterRenderer {
         _ = OfficeRasterExportPlanner.Resolve(right - left, bottom - top, OfficeImageExportFormat.Png,
             new OfficeImageExportOptions { MaximumRasterPixels = Math.Min(maximumRasterPixels, MaximumSingleTransformedTextIntermediatePixels), RasterOverflowBehavior = OfficeRasterOverflowBehavior.Throw });
         canvas.ChargeTransformedTextIntermediatePixels(
-            checked((long)Math.Max(1D, Math.Ceiling(right - left)) * (long)Math.Max(1D, Math.Ceiling(bottom - top))));
+            checked((long)Math.Max(1D, Math.Ceiling(right - left)) * (long)Math.Max(1D, Math.Ceiling(bottom - top))), maximumRasterPixels);
         var layer = new OfficeRasterImage(Math.Max(1, (int)(right - left)), Math.Max(1, (int)(bottom - top)));
         var local = new OfficeRasterCanvas(layer, font: canvas.OutlineFont, fonts: canvas.Fonts,
             textShapingProvider: canvas.TextShapingProvider, textShapingLanguage: canvas.TextShapingLanguage,
@@ -86,8 +86,8 @@ public static partial class OfficeDrawingRasterRenderer {
                 MaximumRasterPixels = Math.Min(maximumRasterPixels, MaximumSingleTransformedTextIntermediatePixels),
                 RasterOverflowBehavior = OfficeRasterOverflowBehavior.Throw
             });
-        canvas.ChargeTransformedTextIntermediatePixels(
-            checked((long)Math.Max(1D, Math.Ceiling(contentWidth)) * (long)Math.Max(1D, Math.Ceiling(contentHeight))));
+        long layerPixels = checked((long)Math.Max(1D, Math.Ceiling(contentWidth)) * (long)Math.Max(1D, Math.Ceiling(contentHeight)));
+        canvas.ChargeTransformedTextIntermediatePixels(layerPixels, maximumRasterPixels);
         var layer = new OfficeRasterImage(Math.Max(1, (int)Math.Ceiling(contentWidth)), Math.Max(1, (int)Math.Ceiling(contentHeight)));
         var local = new OfficeRasterCanvas(layer, font: canvas.OutlineFont, fonts: canvas.Fonts,
             textShapingProvider: canvas.TextShapingProvider, textShapingLanguage: canvas.TextShapingLanguage,
@@ -110,6 +110,7 @@ public static partial class OfficeDrawingRasterRenderer {
                 text.UnderlineStyle,
                 text.StrikethroughStyle,
                 text.DecorationColor)) {
+                canvas.ReleaseTransformedTextIntermediatePixels(layerPixels);
                 return false;
             }
         }

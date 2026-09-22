@@ -125,7 +125,7 @@ public sealed partial class OfficeRasterCanvas {
 
     internal OfficeFontFaceCollection? Fonts => _fonts;
 
-    internal void ChargeTransformedTextIntermediatePixels(long pixels) {
+    internal void ChargeTransformedTextIntermediatePixels(long pixels, long maximumRasterPixels) {
         long consumed = _transformedTextBudget.Pixels;
         if (pixels < 0L || pixels > MaximumTransformedTextIntermediatePixels - consumed) {
             throw new OfficeImageExportLimitException(1D,
@@ -133,7 +133,13 @@ public sealed partial class OfficeRasterCanvas {
                 MaximumTransformedTextIntermediatePixels,
                 OfficeRasterImageEncoder.GetMaximumDimension(OfficeImageExportFormat.Png));
         }
+        _transformedTextBudget.ChargeIntermediateSurfacePixels(pixels, maximumRasterPixels);
         _transformedTextBudget.Pixels = consumed + pixels;
+    }
+
+    internal void ReleaseTransformedTextIntermediatePixels(long pixels) {
+        _transformedTextBudget.Pixels -= pixels;
+        _transformedTextBudget.ReleaseIntermediateSurfacePixels(pixels);
     }
 
     internal OfficeRasterTransformedTextBudget TransformedTextBudget => _transformedTextBudget;
@@ -1433,7 +1439,7 @@ internal sealed class OfficeRasterTransformedTextBudget {
     internal long Pixels;
     internal long IntermediatePixels;
 
-    internal void ChargeIntermediateSurfacePixels(long pixels, long maximumRasterPixels) {
+    internal void EnsureIntermediateSurfacePixels(long pixels, long maximumRasterPixels) {
         long consumed = IntermediatePixels;
         if (pixels < 0L || pixels > maximumRasterPixels - consumed) {
             throw new OfficeImageExportLimitException(1D,
@@ -1441,6 +1447,12 @@ internal sealed class OfficeRasterTransformedTextBudget {
                 maximumRasterPixels,
                 OfficeRasterImageEncoder.GetMaximumDimension(OfficeImageExportFormat.Png));
         }
-        IntermediatePixels = consumed + pixels;
     }
+
+    internal void ChargeIntermediateSurfacePixels(long pixels, long maximumRasterPixels) {
+        EnsureIntermediateSurfacePixels(pixels, maximumRasterPixels);
+        IntermediatePixels += pixels;
+    }
+
+    internal void ReleaseIntermediateSurfacePixels(long pixels) => IntermediatePixels -= pixels;
 }

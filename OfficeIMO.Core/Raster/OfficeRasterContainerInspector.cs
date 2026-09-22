@@ -202,7 +202,7 @@ public static class OfficeRasterContainerInspector {
             if (cursor >= bytes.Length) return false;
             int minimumCodeSize = bytes[cursor++];
             if (!OfficeRasterGuards.TryEnsurePixelCount(width, height, out int framePixels) ||
-                decodedFramePixels > OfficeRasterGuards.MaximumPixels - framePixels) return false;
+                decodedFramePixels > options.MaximumInspectionWorkPixels - framePixels) return false;
             decodedFramePixels += framePixels;
             if (!OfficeGifReader.TryValidateImageData(
                     bytes,
@@ -412,7 +412,7 @@ public static class OfficeRasterContainerInspector {
                 if ((flags & 0xFC) != 0 || width < 1 || height < 1 ||
                     x > imageInfo.Width - width || y > imageInfo.Height - height) return false;
                 long framePixels = checked((long)width * height);
-                if (framePixels > options.MaximumDecodedPixels - validatedFramePixels ||
+                if (framePixels > System.Math.Min(options.MaximumDecodedPixels, options.MaximumInspectionWorkPixels) - validatedFramePixels ||
                     !TryValidateWebpAnimationFramePayload(
                         bytes, data + 16, length - 16, width, height,
                         checked(options.RetainedManagedBytes + (frames.Count + 1L) * 128L),
