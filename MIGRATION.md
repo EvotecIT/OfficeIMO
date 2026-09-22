@@ -9,14 +9,6 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
-## PDF invoice XML size
-
-The low-level Factur-X/ZUGFeRD XML carrier methods now reject invoice XML
-larger than 16 MiB, matching `PdfCiiInvoiceDocument.MaximumXmlBytes`.
-File overloads reject an oversized source before buffering. Applications that
-previously attached larger XML must reduce or split the payload before using
-these methods.
-
 ## HTML style and rendering limits
 
 `HtmlComputedStyleEngine.Compute(HtmlDocument)` now applies the untrusted HTML and CSS limits to prepared documents. Applications that intentionally process trusted or larger documents can retain their chosen policy by wrapping the prepared document before computing styles:
@@ -37,6 +29,14 @@ A `text-shadow` declaration with more than 64 authored layers now falls back as 
 `HtmlRenderOptions.MaxLeaderCharacters` now limits each generated CSS `leader()` to 65,536 characters by default. Applications that render wider leaders can raise this positive limit on their render options. When the limit is exceeded, rendering throws `HtmlDomLimitException` instead of materializing the leader text.
 
 Quoted `leader()` patterns now accept at most 1,024 decoded characters and 2,048 source characters. Shorten longer patterns; raising `MaxLeaderCharacters` does not change these pattern limits.
+
+## PDF invoice XML size
+
+The low-level Factur-X/ZUGFeRD XML carrier methods now reject invoice XML
+larger than 16 MiB, matching `PdfCiiInvoiceDocument.MaximumXmlBytes`.
+File overloads reject an oversized source before buffering. Applications that
+previously attached larger XML must reduce or split the payload before using
+these methods.
 
 ## Native ChartForgeX topology placement
 
