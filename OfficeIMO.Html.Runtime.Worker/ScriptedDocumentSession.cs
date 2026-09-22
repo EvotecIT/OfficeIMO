@@ -10,6 +10,7 @@ using AngleSharp.Html.Dom;
 using AngleSharp.Html;
 using AngleSharp.Html.Parser;
 using AngleSharp.Io;
+using System.Runtime.CompilerServices;
 
 namespace OfficeIMO.Html.Runtime.Worker;
 
@@ -34,6 +35,7 @@ internal sealed class ScriptedDocumentSession : IDisposable {
     private CancellationToken _activeCommandToken;
     private readonly RuntimeScriptingService _scripting;
     private RuntimeHistoryBindings _history = null!;
+    private readonly ConditionalWeakTable<IDocument, RuntimeHistoryBindings> _histories = new();
     private readonly Func<long> _currentRevision;
     private readonly Action _markRevision;
     private readonly RuntimeDiagnostics _diagnostics;
@@ -152,7 +154,7 @@ internal sealed class ScriptedDocumentSession : IDisposable {
             RuntimeNativeNavigationBindings.Install(engine, document.DefaultView!, _realms.IsAuxiliaryNavigation);
             RuntimeEventBindings.Install(engine, document.DefaultView!, _errors.Report, normalizeWindow, resource => _realms.Own(document, resource));
             RuntimeDocumentOpenBindings.Install(engine, document, _scriptEntry, opened => {
-                if (ReferenceEquals(opened, _document)) _history?.RewriteDocumentUrl();
+                if (_histories.TryGetValue(opened, out var history)) history.RewriteDocumentUrl();
             }, (window, args) => _auxiliary.Open(engine, window, args));
             RuntimeUrlBindings.Install(engine, document.DefaultView!);
             RuntimeConsoleBindings.Install(engine, _diagnostics);
@@ -162,9 +164,16 @@ internal sealed class ScriptedDocumentSession : IDisposable {
             var fetch = new RuntimeFetchBindings(engine, document, loop, _resources, _options, _errors);
             _realms.Own(document, fetch);
             RuntimeWindowNavigationBindings.Install(engine, document.DefaultView!, _realms);
-            if (!root) return engine;
+            if (!root) {
+                if (_realms.IsAuxiliary(document.DefaultView!)) {
+                    var popupViewport = new RuntimeViewport((IHtmlDocument)document, _options, () => _activeCommandToken, _resources.Capture);
+                    _histories.Add(document, new RuntimeHistoryBindings(engine, document, loop, _options, popupViewport, installLocation: false));
+                }
+                return engine;
+            }
             var viewport = new RuntimeViewport((IHtmlDocument)document, _options, () => _activeCommandToken, _resources.Capture);
             _history = new RuntimeHistoryBindings(engine, document, loop, _options, viewport, _historyState, _navigate);
+            _histories.Add(document, _history);
             _automation = new RuntimeAutomation(document, _options, _focus, _history, viewport, engine, _diagnostics);
             RuntimeInteractionBindings.Install(engine, document, _focus, _automation, _options.DevicePixelRatio);
             RuntimeSelectBindings.Install(engine);

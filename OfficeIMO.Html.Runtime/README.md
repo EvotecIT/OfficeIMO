@@ -267,6 +267,15 @@ navigation revokes DOM access while preserving `postMessage`. Root replacement
 retires the old root and its frame callbacks without retiring popup realms.
 Auxiliary windows are not separate host pages or frame captures.
 
+Scripts in an initially blank popup have a separate history object. They can
+store state with `pushState()` or `replaceState()`, change the `about:blank`
+fragment, and traverse those entries without changing the opener's history.
+The initial document rejects other URL rewrites. When an opener calls
+`popup.document.open()`, the popup keeps its history object and state while the
+current entry adopts the opener's URL; the call does not add an entry. After
+that rewrite, same-origin HTTP history URLs follow the new document URL.
+Cross-document popup navigation remains unsupported.
+
 The zero-, one- and two-argument forms of `document.open()` clear the connected
 DOM and its event listeners while preserving the document, JavaScript realm,
 history state and timers. Mutation observers receive the document replacement

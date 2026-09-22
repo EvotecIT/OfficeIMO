@@ -170,6 +170,75 @@ public sealed class RuntimeAuxiliaryWindowTests {
     }
 
     [Fact]
+    public async Task InitialPopupHistoryCanRewriteOnlyItsAboutBlankFragment()
+    {
+        await using var session = await Runtime().OpenTrustedAsync(new() {
+            Profile = HtmlRuntimeProfile.WebApplicationV1, DocumentUrl = Start,
+            Html = "<!doctype html><base href='/assets/'><h1>Opener</h1>"
+        });
+        await session.ExecuteAsync("""
+            window.popup=open();
+            const script=popup.document.createElement('script');
+            script.textContent=`try {
+                history.replaceState({value:1},'', 'about:blank#one');
+                history.pushState({value:2},'', 'about:blank#two');
+                let rejected=false;
+                try { history.pushState({value:3},'', 'about:blank?search'); }
+                catch (error) { rejected=error.name==='SecurityError'; }
+                opener.document.body.dataset.popupHistory=String(rejected && history.length===2 &&
+                    history.state.value===2 && document.URL==='about:blank#two' &&
+                    location.href==='about:blank#two' && document.baseURI==='https://popup.example/assets/');
+            } catch (error) { opener.document.body.dataset.popupHistory=error.name+':'+error.message; }`;
+            popup.document.body.append(script);
+            """);
+        await session.WaitForAsync("document.body.hasAttribute('data-popup-history')");
+        Assert.Equal("true", (await session.EvaluateAsync("document.body.dataset.popupHistory")).GetString());
+        Assert.True((await session.EvaluateAsync("history.length===1 && document.URL==='https://popup.example/reports/start'")).GetBoolean());
+        await session.ExecuteAsync("""
+            const traversal=popup.document.createElement('script');
+            traversal.textContent=`addEventListener('popstate',event=>
+                opener.document.body.dataset.popupTraversal=String(event.state?.value)+':'+document.URL);
+                history.back()`;
+            popup.document.body.append(traversal);
+            """);
+        await session.WaitForAsync("document.body.dataset.popupTraversal==='1:about:blank#one'");
+        await session.ExecuteAsync("""
+            const forward=popup.document.createElement('script');
+            forward.textContent='history.forward()';popup.document.body.append(forward);
+            """);
+        await session.WaitForAsync("document.body.dataset.popupTraversal==='2:about:blank#two'");
+    }
+
+    [Fact]
+    public async Task ParentDocumentOpenRewritesThePopupHistoryEntryWithoutReplacingItsState()
+    {
+        await using var session = await Runtime().OpenTrustedAsync(new() {
+            Profile = HtmlRuntimeProfile.WebApplicationV1, DocumentUrl = Start,
+            Html = "<!doctype html><body><h1>Opener</h1>"
+        });
+        await session.ExecuteAsync("""
+            window.popup=open();
+            const before=popup.document.createElement('script');
+            before.textContent="history.replaceState({value:7},'', 'about:blank#old');window.savedHistory=history;";
+            popup.document.body.append(before);
+            popup.document.open();
+            const after=popup.document.createElement('script');
+            after.textContent=`const kept=history===savedHistory && history.length===1 && history.state.value===7 &&
+                document.URL==='https://popup.example/reports/start' && location.href===document.URL;
+                history.pushState({value:8},'', '/reports/next');
+                let rejected=false;
+                try { history.replaceState({value:9},'', 'https://other.example/'); }
+                catch (error) { rejected=error.name==='SecurityError'; }
+                opener.document.body.dataset.popupState=String(kept && rejected && history.length===2 &&
+                    history.state.value===8 && document.URL==='https://popup.example/reports/next');`;
+            popup.document.append(after);
+            """);
+        await session.WaitForAsync("document.body.hasAttribute('data-popup-state')");
+        Assert.Equal("true", (await session.EvaluateAsync("document.body.dataset.popupState")).GetString());
+        Assert.True((await session.EvaluateAsync("history.length===1 && document.URL==='https://popup.example/reports/start'")).GetBoolean());
+    }
+
+    [Fact]
     public async Task DocumentWindowOverloadPreservesTheOpenerAndSupportsMessages()
     {
         await using var session = await Runtime().OpenTrustedAsync(new() {

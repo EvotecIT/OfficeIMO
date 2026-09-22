@@ -19,7 +19,7 @@ internal sealed class RuntimeHistoryBindings {
     private readonly JsValue _rewriteDocumentUrl;
 
     internal RuntimeHistoryBindings(Engine engine, IDocument document, IEventLoop loop, HtmlScriptRequest options, RuntimeViewport viewport,
-        RuntimeBrowsingHistory? browsingHistory = null, Action<RuntimeNavigation>? requestNavigation = null) {
+        RuntimeBrowsingHistory? browsingHistory = null, Action<RuntimeNavigation>? requestNavigation = null, bool installLocation = true) {
         browsingHistory ??= new RuntimeBrowsingHistory();
         _engine = engine;
         var nativeDocument = document as Document ?? throw new HtmlScriptRuntimeException("The DOM provider does not expose its document URL record.");
@@ -28,6 +28,10 @@ internal sealed class RuntimeHistoryBindings {
             string input = TypeConverter.ToString(args[0]);
             var url = new Url(new Url(RuntimeDocumentUrls.Base(document)), input);
             if (url.IsInvalid) throw Error(engine, "SecurityError", "The route URL is invalid.");
+            if (IsBlankFragmentUrl(document.Url)) {
+                if (IsBlankFragmentUrl(url.Href)) return url.Href;
+                throw Error(engine, "SecurityError", "An initial blank document can rewrite only its fragment.");
+            }
             try { HtmlRuntimeResourcePolicy.ValidateUrl(new Uri(url.Href)); }
             catch (Exception error) when (error is ArgumentException or UriFormatException) { throw Error(engine, "SecurityError", "Route URLs must use HTTP(S) without credentials."); }
             if (url.Origin != new Url(document.Url).Origin) throw Error(engine, "SecurityError", "History cannot change the document origin.");
@@ -90,12 +94,14 @@ internal sealed class RuntimeHistoryBindings {
         var location = exports.Get("location");
         var nativeWindow = JsValue.FromObject(engine, document.DefaultView).AsObject();
         foreach (var target in new[] { engine.Global, nativeWindow }) {
-            foreach(string name in new[]{"History","Location","PopStateEvent","HashChangeEvent"})
+            foreach(string name in installLocation ? new[]{"History","Location","PopStateEvent","HashChangeEvent"} : new[]{"History","PopStateEvent","HashChangeEvent"})
                 target.FastSetProperty(name,new PropertyDescriptor(exports.Get(name),true,false,true));
             target.FastSetProperty("history", new GetSetPropertyDescriptor(new ClrFunction(engine,"get history",(_,_)=>history), JsValue.Undefined, true, true));
-            target.FastSetProperty("location", new GetSetPropertyDescriptor(new ClrFunction(engine,"get location",(_,_)=>location),
-                new ClrFunction(engine,"set location",(_,args)=>engine.Invoke(_navigate,new JsValue[]{TypeConverter.ToString(args[0]),false})),true,false));
+            if (installLocation)
+                target.FastSetProperty("location", new GetSetPropertyDescriptor(new ClrFunction(engine,"get location",(_,_)=>location),
+                    new ClrFunction(engine,"set location",(_,args)=>engine.Invoke(_navigate,new JsValue[]{TypeConverter.ToString(args[0]),false})),true,false));
         }
+        if (!installLocation) return;
         for (var prototype = JsValue.FromObject(engine,document).AsObject().Prototype; prototype != null; prototype = prototype.Prototype) {
             if (prototype.GetOwnProperty("location").Get is not Function) continue;
             prototype.FastSetProperty("location", new GetSetPropertyDescriptor(new ClrFunction(engine,"get location",(receiver,_)=>{
@@ -112,6 +118,8 @@ internal sealed class RuntimeHistoryBindings {
     internal void RestoreTraversal(bool dispatchPopState) => _engine.Invoke(_restore, dispatchPopState);
     internal void Reload() => _engine.Invoke(_reload);
     internal void RewriteDocumentUrl() => _engine.Invoke(_rewriteDocumentUrl);
+
+    private static bool IsBlankFragmentUrl(string url) => url == "about:blank" || url.StartsWith("about:blank#", StringComparison.Ordinal);
 
     private static JavaScriptException Error(Engine engine, string name, string message) {
         var error = engine.Intrinsics.Error.Construct(message);
