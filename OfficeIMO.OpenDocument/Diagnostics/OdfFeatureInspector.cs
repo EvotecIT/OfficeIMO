@@ -74,7 +74,14 @@ internal static class OdfFeatureInspector {
                 findings.Add(new OdfFeatureFinding("foreign-namespace:" + group.Key, OdfFeatureSupport.Preserved, entry.Name, group.Count()));
             }
         }
-        if (package.IsSigned) findings.Add(new OdfFeatureFinding("digital-signatures", OdfFeatureSupport.Preserved, "META-INF"));
+        try {
+            if (package.IsSigned) findings.Add(new OdfFeatureFinding("digital-signatures", OdfFeatureSupport.Preserved, "META-INF"));
+        } catch (InvalidDataException exception) {
+            diagnostics.Add(new OdfFeatureDiagnostic(
+                "ODF_FEATURE_SIGNATURE_UNREADABLE",
+                "META-INF",
+                "A signature-like entry could not be classified: " + exception.Message));
+        }
         return new OdfFeatureReport(findings, diagnostics);
     }
 

@@ -21,6 +21,8 @@ public static partial class OfficeTiffCodec {
             (int)OfficeTiffCompression.None => inputCount == expectedCount,
             (int)OfficeTiffCompression.PackBits => TryValidatePackBitsPayload(
                 input, inputOffset, inputCount, expectedCount, cancellationToken),
+            (int)OfficeTiffCompression.Lzw => TryValidateLzwPayload(
+                input, inputOffset, inputCount, expectedCount, cancellationToken),
             (int)OfficeTiffCompression.Deflate => OfficeZlibCodec.TryValidateExact(
                 input, inputOffset, inputCount, expectedCount, cancellationToken),
             32946 => OfficeZlibCodec.TryValidateExact(

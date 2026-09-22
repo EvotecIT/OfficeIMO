@@ -246,7 +246,7 @@ internal sealed partial class OdfPackage {
         OdfVersion outputVersion = ResolveOutputVersion(effective.CompatibilityProfile);
         bool outputEncrypted = effective.Encryption != null;
         bool hasChanges = outputVersion != Version || _entryGraphChanged || _entries.Any(entry => entry.IsDirty) || outputEncrypted;
-        if (IsSigned && hasChanges) {
+        if (hasChanges && IsSigned) {
             if (effective.SignatureHandling == OdfSignatureHandling.RejectInvalidation) {
                 throw new InvalidOperationException("Saving this changed document would invalidate its signatures. Set SignatureHandling to RemoveInvalidated to continue.");
             }
@@ -421,8 +421,7 @@ internal sealed partial class OdfPackage {
             reader.MoveToContent();
             const string odfSignatureNamespace = "urn:oasis:names:tc:opendocument:xmlns:digitalsignature:1.0";
             const string xmlSignatureNamespace = "http://www.w3.org/2000/09/xmldsig#";
-            return reader.LocalName == "document-signatures" &&
-                    (reader.NamespaceURI == odfSignatureNamespace || reader.NamespaceURI.Length == 0) ||
+            return reader.LocalName == "document-signatures" && reader.NamespaceURI == odfSignatureNamespace ||
                 reader.LocalName == "Signature" && reader.NamespaceURI == xmlSignatureNamespace;
         } catch (System.Xml.XmlException exception) {
             throw new InvalidDataException("An ODF signature-like entry could not be classified safely.", exception);
