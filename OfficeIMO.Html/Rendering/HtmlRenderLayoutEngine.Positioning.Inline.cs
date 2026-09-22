@@ -34,7 +34,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 && _layoutStyles.TryGetValue(current, out HtmlRenderBoxStyle? style)
                 && style.Display == "inline") {
                 if (!bounds.TryGetValue(current, out InlineContainingBounds? currentBounds)) {
-                    currentBounds = new InlineContainingBounds();
+                    currentBounds = new InlineContainingBounds(this);
                     bounds[current] = currentBounds;
                 }
                 currentBounds.Include(
@@ -164,12 +164,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private sealed class InlineContainingBounds {
+        private readonly HtmlRenderLayoutEngine _owner;
         private double _left = double.PositiveInfinity;
         private double _top = double.PositiveInfinity;
         private double _right = double.NegativeInfinity;
         private double _bottom = double.NegativeInfinity;
         private readonly List<InlineFragmentRect> _fragments = new List<InlineFragmentRect>();
         private readonly Dictionary<long, List<int>> _fragmentsByLine = new Dictionary<long, List<int>>();
+
+        internal InlineContainingBounds(HtmlRenderLayoutEngine owner) => _owner = owner;
 
         internal void Include(double x, double y, double width, double height) {
             _left = Math.Min(_left, x);
@@ -186,6 +189,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 long candidate = line + offset;
                 if (!_fragmentsByLine.TryGetValue(candidate, out List<int>? indexes)) continue;
                 for (int item = indexes.Count - 1; item >= 0; item--) {
+                    _owner.ChargeLayoutOperation("positioned inline fragment lookup");
                     int index = indexes[item];
                     InlineFragmentRect fragment = _fragments[index];
                     if (Math.Abs(fragment.Y - y) > tolerance || Math.Abs(fragment.Height - height) > tolerance) continue;

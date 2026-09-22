@@ -8,7 +8,7 @@ public static class HtmlRenderCapabilityCatalog {
     private static readonly IReadOnlyList<HtmlRenderCapability> Capabilities = new[] {
         Full("css-cascade", "CSS cascade", HtmlRenderCapabilityKind.Css,
             Features("author stylesheets", "caller stylesheets", "inline styles", "!important", "inheritance", "custom properties", "@supports", "@layer", "revert-layer"),
-            "Applies the bounded author cascade, selector specificity, cascade-layer ordering, layer rollback, inherited values, var() substitution, supported @supports conditions, and caller stylesheets appended after document styles."),
+            "Applies the bounded author cascade, selector specificity, cascade-layer ordering, layer rollback, inherited values, var() substitution, supported @supports conditions, and caller stylesheets appended after document styles. Supports-condition variable syntax is limited to 262,144 characters. For untrusted input, expanded variable values are limited to 262,144 characters, with 8,388,608 character-work units and 4,096 resolution charges per declaration; a declaration whose substitution exceeds a limit is discarded. Caller-trusted conversion profiles allow larger variable expansion."),
         Full("css-selectors", "CSS selectors", HtmlRenderCapabilityKind.Css,
             Features("type", "class", "id", "attribute", "combinators", "structural pseudo-classes", "CSS nesting", "::before", "::after", "::marker"),
             "Matches the documented selector subset, bounded parent-list and ampersand nesting including nested conditional rules, and generated before, after, and list-marker content; selectors outside the bounded subset do not match."),

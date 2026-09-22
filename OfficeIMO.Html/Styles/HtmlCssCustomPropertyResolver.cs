@@ -9,20 +9,24 @@ internal static class HtmlCssCustomPropertyResolver {
     private const int MaximumSubstitutions = 4096;
 
     private sealed class ResolutionBudget {
+        private readonly bool _enforceLimits;
+        internal ResolutionBudget(bool enforceLimits) => _enforceLimits = enforceLimits;
         internal int RemainingWork = MaximumResolutionWork;
         internal int RemainingSubstitutions = MaximumSubstitutions;
 
         internal bool Charge(int characters) {
+            if (!_enforceLimits) return true;
             if (characters > RemainingWork || RemainingSubstitutions-- <= 0) return false;
             RemainingWork -= characters;
             return true;
         }
     }
 
-    internal static bool TryResolve(string value, Func<string, string?> lookup, out string resolved) {
+    internal static bool TryResolve(string value, Func<string, string?> lookup, out string resolved,
+        bool enforceLimits = true) {
         if (lookup == null) throw new ArgumentNullException(nameof(lookup));
         return TryResolve(value ?? string.Empty, lookup, new HashSet<string>(StringComparer.Ordinal),
-            new ResolutionBudget(), 0, out resolved);
+            new ResolutionBudget(enforceLimits), enforceLimits, 0, out resolved);
     }
 
     internal static bool ContainsVarFunction(string value) =>
@@ -120,9 +124,12 @@ internal static class HtmlCssCustomPropertyResolver {
         open == '(' && close == ')' || open == '[' && close == ']' || open == '{' && close == '}';
 
     private static bool TryResolve(string value, Func<string, string?> lookup, ISet<string> resolving,
-        ResolutionBudget budget, int depth, out string resolved) {
+        ResolutionBudget budget, bool enforceLimits, int depth, out string resolved) {
         resolved = value;
-        if (depth > MaximumDepth || value.Length > MaximumResolvedCharacters) return false;
+        // Trusted documents may have deeper finite dependency chains, while a bounded
+        // recursion ceiling still protects the host stack from malicious cycles.
+        if (depth > (enforceLimits ? MaximumDepth : MaximumSyntaxDepth)
+            || enforceLimits && value.Length > MaximumResolvedCharacters) return false;
         int searchStart = 0;
         while (true) {
             if (!budget.Charge(resolved.Length)) return false;
@@ -135,19 +142,19 @@ internal static class HtmlCssCustomPropertyResolver {
             bool added = resolving.Add(propertyName);
             if (added) {
                 string? customValue = lookup(propertyName);
-                if (customValue != null && TryResolve(customValue, lookup, resolving, budget, depth + 1, out string customResolved)) {
+                if (customValue != null && TryResolve(customValue, lookup, resolving, budget, enforceLimits, depth + 1, out string customResolved)) {
                     replacement = customResolved;
                 }
 
                 resolving.Remove(propertyName);
             }
 
-            if (replacement == null && fallback != null && TryResolve(fallback, lookup, resolving, budget, depth + 1, out string fallbackResolved)) {
+            if (replacement == null && fallback != null && TryResolve(fallback, lookup, resolving, budget, enforceLimits, depth + 1, out string fallbackResolved)) {
                 replacement = fallbackResolved;
             }
 
             if (replacement == null) return false;
-            if (replacement.Length > MaximumResolvedCharacters - (resolved.Length - (close - start + 1))) return false;
+            if (enforceLimits && replacement.Length > MaximumResolvedCharacters - (resolved.Length - (close - start + 1))) return false;
             resolved = resolved.Substring(0, start) + replacement + resolved.Substring(close + 1);
             searchStart = Math.Max(0, start + replacement.Length);
         }

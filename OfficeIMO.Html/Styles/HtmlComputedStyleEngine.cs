@@ -537,23 +537,24 @@ public static partial class HtmlComputedStyleEngine {
         IReadOnlyList<StyleRule> candidateRules = rules.GetCandidates(element);
         foreach (StyleRule rule in candidateRules) {
             budget.RecordSelectorEvaluation();
-            if (AreContainerConditionsApplicable(rule.ContainerConditions, containerContexts, environment)
+            if (AreContainerConditionsApplicable(rule.ContainerConditions, containerContexts, environment, budget.HasDeclarationLimit)
                 && !TryParsePseudoElementSelector(rule.Selector, out _, out _)
                 && MatchesSelector(element, rule.Selector)) {
                 foreach (var declaration in rule.Declarations) {
                     if (declaration.Value.IsSupported) {
-                        ApplyDeclaration(properties, parent?.Properties, declaration.Key, declaration.Value.Value, declaration.Value.IsImportant, rule.Specificity, rule.Order, rule.LayerOrder, valueAlreadyValidated: true, declarationOrder: declaration.Value.DeclarationOrder, customPropertyRegistrations: rules.CustomPropertyRegistrations);
+                        ApplyDeclaration(properties, parent?.Properties, declaration.Key, declaration.Value.Value, declaration.Value.IsImportant, rule.Specificity, rule.Order, rule.LayerOrder, valueAlreadyValidated: true, declarationOrder: declaration.Value.DeclarationOrder, customPropertyRegistrations: rules.CustomPropertyRegistrations, enforceResolutionLimits: budget.HasDeclarationLimit);
                     }
                 }
             }
         }
 
-        ApplyInlineDeclarations(properties, parent?.Properties, element.GetAttribute("style"), rules.CustomPropertyRegistrations);
+        ApplyInlineDeclarations(properties, parent?.Properties, element.GetAttribute("style"), rules.CustomPropertyRegistrations, budget.HasDeclarationLimit);
         Dictionary<string, string> resolvedProperties = ResolveComputedProperties(properties, parent?.Properties,
             out HashSet<string> inheritedProperties, out HashSet<string> resetProperties,
             out HashSet<string> specifiedProperties,
             out Dictionary<string, HtmlCssCascadePriority> cascadePriorities,
-            rules.CustomPropertyRegistrations);
+            rules.CustomPropertyRegistrations,
+            enforceResolutionLimits: budget.HasDeclarationLimit);
         HtmlComputedStyle style = HtmlComputedStyle.FromOwnedCollections(
             resolvedProperties, inheritedProperties, resetProperties, specifiedProperties, cascadePriorities);
         computed[element] = style;
@@ -615,7 +616,7 @@ public static partial class HtmlComputedStyleEngine {
         List<StyleRule>? matchedRules = null;
         foreach (StyleRule rule in candidateRules) {
             budget.RecordSelectorEvaluation();
-            if (!AreContainerConditionsApplicable(rule.ContainerConditions, containerContexts, environment)
+            if (!AreContainerConditionsApplicable(rule.ContainerConditions, containerContexts, environment, budget.HasDeclarationLimit)
                 || !TryParsePseudoElementSelector(rule.Selector, out string hostSelector, out HtmlPseudoElementKind ruleKind)
                 || ruleKind != kind
                 || !MatchesSelector(element, hostSelector)) {
@@ -642,7 +643,8 @@ public static partial class HtmlComputedStyleEngine {
                     rule.LayerOrder,
                     valueAlreadyValidated: true,
                     declarationOrder: declaration.Value.DeclarationOrder,
-                    customPropertyRegistrations: customPropertyRegistrations);
+                    customPropertyRegistrations: customPropertyRegistrations,
+                    enforceResolutionLimits: budget.HasDeclarationLimit);
             }
         }
 
@@ -650,7 +652,8 @@ public static partial class HtmlComputedStyleEngine {
             out HashSet<string> inheritedProperties, out HashSet<string> resetProperties,
             out HashSet<string> specifiedProperties,
             out Dictionary<string, HtmlCssCascadePriority> cascadePriorities,
-            customPropertyRegistrations);
+            customPropertyRegistrations,
+            enforceResolutionLimits: budget.HasDeclarationLimit);
         return HtmlComputedStyle.FromOwnedCollections(
             resolvedProperties, inheritedProperties, resetProperties, specifiedProperties, cascadePriorities);
     }

@@ -37,6 +37,44 @@ public sealed class HtmlSecurityLayoutBatchTests {
     }
 
     [Fact]
+    public void TrustedStyleExpansionCanExceedTheUntrustedCharacterCeiling() {
+        string family = new string('a', 262145);
+        string html = "<style>p{--family:" + family + ";font-family:var(--family)}</style><p>x</p>";
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            html, HtmlConversionDocumentOptions.CreateTrustedProfile());
+
+        Assert.Equal(family, HtmlComputedStyleEngine.Compute(document)[document.Document.QuerySelector("p")!]
+            .GetValue("font-family"));
+        HtmlConversionDocument untrusted = HtmlConversionDocument.Parse(html);
+        Assert.NotEqual(family, HtmlComputedStyleEngine.Compute(untrusted)[untrusted.Document.QuerySelector("p")!]
+            .GetValue("font-family"));
+    }
+
+    [Fact]
+    public void TrustedContainerStyleQueryResolvesLargeCustomProperties() {
+        string large = new string('a', 262145);
+        string html = "<style>@container style(--x:var(--y)){#target{color:red}}</style>" +
+            "<section style='--x:" + large + ";--y:" + large + "'><p id='target'>x</p></section>";
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            html, HtmlConversionDocumentOptions.CreateTrustedProfile());
+
+        Assert.Equal("rgba(255, 0, 0, 1)", HtmlComputedStyleEngine.Compute(document)[document.Document.QuerySelector("#target")!]
+            .GetValue("color"));
+    }
+
+    [Fact]
+    public void TrustedCustomPropertiesResolveFiniteDeepChains() {
+        var values = new Dictionary<string, string>(StringComparer.Ordinal) { ["--p40"] = "blue" };
+        for (int index = 39; index >= 0; index--) values[$"--p{index}"] = $"var(--p{index + 1})";
+        string? Lookup(string name) => values.TryGetValue(name, out string? value) ? value : null;
+
+        Assert.False(HtmlCssCustomPropertyResolver.TryResolve("var(--p0)", Lookup, out _));
+        Assert.True(HtmlCssCustomPropertyResolver.TryResolve("var(--p0)", Lookup, out string resolved,
+            enforceLimits: false));
+        Assert.Equal("blue", resolved);
+    }
+
+    [Fact]
     public void ClipPathRejectsExcessivePolygonVerticesBeforeMaterializingThem() {
         string polygon = "polygon(" + string.Join(",", Enumerable.Repeat("1px 1px", 4097)) + ")";
 
@@ -286,4 +324,5 @@ public sealed class HtmlSecurityLayoutBatchTests {
                 MaxLeaderCharacters = 20000
             })).LimitSource);
     }
+
 }

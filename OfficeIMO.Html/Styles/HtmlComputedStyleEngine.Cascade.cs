@@ -5,7 +5,8 @@ public static partial class HtmlComputedStyleEngine {
         IDictionary<string, CascadedProperty> properties,
         IReadOnlyDictionary<string, string>? parentProperties,
         string? styleText,
-        IReadOnlyDictionary<string, CustomPropertyRegistration>? customPropertyRegistrations = null) {
+        IReadOnlyDictionary<string, CustomPropertyRegistration>? customPropertyRegistrations = null,
+        bool enforceResolutionLimits = true) {
         if (string.IsNullOrWhiteSpace(styleText)) {
             return;
         }
@@ -23,13 +24,13 @@ public static partial class HtmlComputedStyleEngine {
             value = StripTrailingImportant(value, out isImportant);
 
             if (name.Length > 0 && value.Length > 0) {
-                ApplyDeclaration(properties, parentProperties, name, value, isImportant, Specificity.Inline, int.MaxValue, layerOrder: null, declarationOrder: declarationOrder, customPropertyRegistrations: customPropertyRegistrations);
+                ApplyDeclaration(properties, parentProperties, name, value, isImportant, Specificity.Inline, int.MaxValue, layerOrder: null, declarationOrder: declarationOrder, customPropertyRegistrations: customPropertyRegistrations, enforceResolutionLimits: enforceResolutionLimits);
             }
             declarationOrder++;
         }
     }
 
-    private static void ApplyDeclaration(IDictionary<string, CascadedProperty> properties, IReadOnlyDictionary<string, string>? parentProperties, string name, string value, bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder, bool valueAlreadyValidated = false, int declarationOrder = 0, IReadOnlyDictionary<string, CustomPropertyRegistration>? customPropertyRegistrations = null, bool deferredFontShorthand = false) {
+    private static void ApplyDeclaration(IDictionary<string, CascadedProperty> properties, IReadOnlyDictionary<string, string>? parentProperties, string name, string value, bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder, bool valueAlreadyValidated = false, int declarationOrder = 0, IReadOnlyDictionary<string, CustomPropertyRegistration>? customPropertyRegistrations = null, bool deferredFontShorthand = false, bool enforceResolutionLimits = true) {
         if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(value)) {
             return;
         }
@@ -39,7 +40,7 @@ public static partial class HtmlComputedStyleEngine {
             foreach (string longhand in FontShorthandLonghands) {
                 ApplyDeclaration(properties, parentProperties, longhand, value, isImportant, specificity, order, layerOrder,
                     valueAlreadyValidated: true, declarationOrder: declarationOrder,
-                    customPropertyRegistrations: customPropertyRegistrations, deferredFontShorthand: true);
+                    customPropertyRegistrations: customPropertyRegistrations, deferredFontShorthand: true, enforceResolutionLimits: enforceResolutionLimits);
             }
         }
 
@@ -48,7 +49,7 @@ public static partial class HtmlComputedStyleEngine {
             && TryExpandCascadeShorthand(name, value, out IReadOnlyList<KeyValuePair<string, string>> boxLonghands)) {
             foreach (KeyValuePair<string, string> longhand in boxLonghands) {
                 ApplyDeclaration(properties, parentProperties, longhand.Key, longhand.Value, isImportant, specificity, order, layerOrder,
-                    valueAlreadyValidated: false, declarationOrder: declarationOrder, customPropertyRegistrations: customPropertyRegistrations);
+                    valueAlreadyValidated: false, declarationOrder: declarationOrder, customPropertyRegistrations: customPropertyRegistrations, enforceResolutionLimits: enforceResolutionLimits);
             }
         }
 
@@ -59,23 +60,23 @@ public static partial class HtmlComputedStyleEngine {
                 value,
                 customName => TryGetCascadedValue(properties, customName)
                     ?? (parentProperties != null && parentProperties.TryGetValue(customName, out string? inherited) ? inherited : null),
-                out shorthandValue);
+                out shorthandValue, enforceResolutionLimits);
         }
         if (string.Equals(name, "container", StringComparison.OrdinalIgnoreCase)
             && IsSupportedDeclarationValue(name, shorthandValue)
             && TryExpandContainerShorthand(shorthandValue, out string containerName, out string containerType)) {
-            ApplyDeclaration(properties, parentProperties, "container-name", containerName, isImportant, specificity, order, layerOrder, declarationOrder: declarationOrder, customPropertyRegistrations: customPropertyRegistrations);
-            ApplyDeclaration(properties, parentProperties, "container-type", containerType, isImportant, specificity, order, layerOrder, declarationOrder: declarationOrder, customPropertyRegistrations: customPropertyRegistrations);
+            ApplyDeclaration(properties, parentProperties, "container-name", containerName, isImportant, specificity, order, layerOrder, declarationOrder: declarationOrder, customPropertyRegistrations: customPropertyRegistrations, enforceResolutionLimits: enforceResolutionLimits);
+            ApplyDeclaration(properties, parentProperties, "container-type", containerType, isImportant, specificity, order, layerOrder, declarationOrder: declarationOrder, customPropertyRegistrations: customPropertyRegistrations, enforceResolutionLimits: enforceResolutionLimits);
         }
         if (string.Equals(name, "animation", StringComparison.OrdinalIgnoreCase)
             && IsSupportedDeclarationValue(name, value)
             && HtmlResourcePipeline.TryExpandAnimationShorthandNames(value, out string animationNames)) {
-            ApplyDeclaration(properties, parentProperties, "animation-name", animationNames, isImportant, specificity, order, layerOrder, declarationOrder: declarationOrder, customPropertyRegistrations: customPropertyRegistrations);
+            ApplyDeclaration(properties, parentProperties, "animation-name", animationNames, isImportant, specificity, order, layerOrder, declarationOrder: declarationOrder, customPropertyRegistrations: customPropertyRegistrations, enforceResolutionLimits: enforceResolutionLimits);
         }
         string imageSourceProperty = GetImageSourcePropertyName(name);
         if (!string.Equals(imageSourceProperty, name, StringComparison.OrdinalIgnoreCase)
             && IsSupportedDeclarationValue(name, value)) {
-            ApplyDeclaration(properties, parentProperties, imageSourceProperty, value, isImportant, specificity, order, layerOrder, declarationOrder: declarationOrder, customPropertyRegistrations: customPropertyRegistrations);
+            ApplyDeclaration(properties, parentProperties, imageSourceProperty, value, isImportant, specificity, order, layerOrder, declarationOrder: declarationOrder, customPropertyRegistrations: customPropertyRegistrations, enforceResolutionLimits: enforceResolutionLimits);
         }
 
         CascadedProperty? existing;
