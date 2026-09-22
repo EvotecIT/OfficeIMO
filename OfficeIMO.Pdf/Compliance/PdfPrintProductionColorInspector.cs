@@ -1373,6 +1373,7 @@ internal static partial class PdfPrintProductionColorInspector {
 
     private sealed class ContentStreamContexts : List<ContentStreamContext> {
         private readonly HashSet<ContentStreamContext> _seen = new(new ContextIdentityComparer());
+        private readonly Dictionary<PdfDictionary, ColorSpaceAliases> _aliasesByResources = new();
         private readonly int _maximumContexts;
         private readonly int _maximumOperations;
         private long _operations;
@@ -1380,6 +1381,17 @@ internal static partial class PdfPrintProductionColorInspector {
         internal ContentStreamContexts(PdfReadLimits limits) {
             _maximumContexts = limits.MaxPrintProductionContexts;
             _maximumOperations = limits.MaxPrintProductionOperations;
+        }
+
+        internal ColorSpaceAliases GetOrCreateAliases(
+            PdfDictionary resources,
+            Dictionary<int, PdfIndirectObject> objects,
+            PdfReadLimits limits) {
+            if (_aliasesByResources.TryGetValue(resources, out ColorSpaceAliases? aliases)) return aliases;
+            aliases = CreateColorSpaceAliases(resources, objects,
+                limits.MaxObjectNestingDepth, limits.MaxDecodedStreamBytes);
+            _aliasesByResources.Add(resources, aliases);
+            return aliases;
         }
 
         internal bool TryAdd(ContentStreamContext context) {
@@ -1402,7 +1414,7 @@ internal static partial class PdfPrintProductionColorInspector {
             public bool Equals(ContentStreamContext? left, ContentStreamContext? right) =>
                 ReferenceEquals(left, right) || left != null && right != null &&
                 ReferenceEquals(left.Stream, right.Stream) &&
-                ReferenceEquals(left.Aliases, right.Aliases) &&
+                (ReferenceEquals(left.Aliases, right.Aliases) || left.Aliases.SetEquals(right.Aliases)) &&
                 ReferenceEquals(left.Resources, right.Resources) &&
                 ReferenceEquals(left.InheritedFontObject, right.InheritedFontObject) &&
                 left.InitialColorState == right.InitialColorState;
@@ -1410,7 +1422,7 @@ internal static partial class PdfPrintProductionColorInspector {
             public int GetHashCode(ContentStreamContext context) {
                 unchecked {
                     int hash = System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(context.Stream);
-                    hash = hash * 31 + System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(context.Aliases);
+                    hash = hash * 31 + context.Aliases.ValueHashCode;
                     hash = hash * 31 + (context.Resources == null ? 0 : System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(context.Resources));
                     hash = hash * 31 + (context.InheritedFontObject == null ? 0 : System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(context.InheritedFontObject));
                     return hash * 31 + context.InitialColorState.GetHashCode();

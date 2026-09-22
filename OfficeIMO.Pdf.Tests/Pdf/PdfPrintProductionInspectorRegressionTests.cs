@@ -464,6 +464,27 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
         Assert.Equal(0, evidence.UninspectableContentStreamCount);
     }
 
+    [Fact]
+    public void ColorInspectorDeduplicatesEquivalentFormColorSpaceContexts() {
+        const string formContent = "/PrintRgb cs 1 0 0 sc";
+        byte[] pdf = BuildInspectionPdf(
+            "/Fm Do /Fm Do /Fm Do",
+            resources: "/XObject << /Fm 5 0 R >>",
+            extraObjects:
+                "5 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] " +
+                "/Resources << /ColorSpace << /PrintRgb /DeviceRGB >> >> /Length " +
+                formContent.Length +
+                " >>\nstream\n" + formContent + "\nendstream\nendobj\n");
+        var options = new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxPrintProductionContexts = 2 }
+        };
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf, options).InspectPrintProductionColors();
+
+        Assert.True(evidence.IsComplete);
+        Assert.Equal(2, evidence.DeviceRgbOperatorCount);
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("/BBox [10 0 0 10]")]

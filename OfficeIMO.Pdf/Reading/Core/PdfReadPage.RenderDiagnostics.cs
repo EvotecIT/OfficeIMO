@@ -1598,11 +1598,16 @@ public sealed partial class PdfReadPage {
         var bounded = (BoundedRenderDiagnostics)diagnostics;
         PdfRenderCapability capability = PdfRenderCapabilities.Get(capabilityId);
         long characters = (long)capability.Id.Length + capability.Message.Length + subject.Length + 16L;
+        // An oversized diagnostic cannot have been retained earlier. Reject it
+        // before allocating a second copy of a potentially huge PDF token.
+        if (characters > bounded.MaximumCharacters)
+            throw PdfReadLimitException.Create(PdfReadLimitKind.RenderDiagnostics, bounded.MaximumCharacters,
+                characters);
+        string key = capabilityId + "\n" + subject;
+        if (seen.Contains(key)) return;
         if (characters > bounded.MaximumCharacters - bounded.RetainedCharacters)
             throw PdfReadLimitException.Create(PdfReadLimitKind.RenderDiagnostics, bounded.MaximumCharacters,
                 bounded.RetainedCharacters + characters);
-        string key = capabilityId + "\n" + subject;
-        if (seen.Contains(key)) return;
         if (diagnostics.Count >= bounded.MaximumCount)
             throw PdfReadLimitException.Create(PdfReadLimitKind.RenderDiagnostics, bounded.MaximumCount, diagnostics.Count + 1L);
         seen.Add(key);

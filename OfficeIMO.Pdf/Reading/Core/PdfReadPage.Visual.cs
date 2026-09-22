@@ -1848,6 +1848,7 @@ public sealed partial class PdfReadPage {
         }
 
         Dictionary<PdfDictionary, string> declaredFontNames = GetDeclaredFontNames(resources);
+        int nextFontAliasSuffix = 0;
 
         foreach (KeyValuePair<string, PdfObject> entry in extGStates.Items) {
             PdfDictionary? state = ResolveDictionary(entry.Value);
@@ -1863,6 +1864,7 @@ public sealed partial class PdfReadPage {
             OfficeStrokeLineCap? strokeLineCap = ReadStrokeLineCap(state);
             OfficeStrokeLineJoin? strokeLineJoin = ReadStrokeLineJoin(state);
             bool hasInvalidFont = !TryReadExtGStateFont(state, declaredFontNames, decoders, widthProviders, fonts,
+                ref nextFontAliasSuffix,
                 out string? fontResource, out double? fontSize);
             OfficeBlendMode? blendMode = ReadBlendMode(state);
             bool hasInvalidRenderingIntent = !TryReadSupportedExtGStateRenderingIntent(
@@ -1963,6 +1965,20 @@ public sealed partial class PdfReadPage {
         Dictionary<string, PdfFontResource>? fonts,
         out string? fontResource,
         out double? fontSize) {
+        int nextFontAliasSuffix = 0;
+        return TryReadExtGStateFont(state, declaredFontNames, decoders, widthProviders, fonts,
+            ref nextFontAliasSuffix, out fontResource, out fontSize);
+    }
+
+    private bool TryReadExtGStateFont(
+        PdfDictionary state,
+        Dictionary<PdfDictionary, string> declaredFontNames,
+        Dictionary<string, Func<byte[], int, string>>? decoders,
+        Dictionary<string, Func<byte[], double>>? widthProviders,
+        Dictionary<string, PdfFontResource>? fonts,
+        ref int nextFontAliasSuffix,
+        out string? fontResource,
+        out double? fontSize) {
         fontResource = null;
         fontSize = null;
         if (!state.Items.TryGetValue("Font", out PdfObject? value)) return true;
@@ -1979,12 +1995,10 @@ public sealed partial class PdfReadPage {
             if (fontResource == null) {
                 if (decoders == null || widthProviders == null || fonts == null) return false;
                 const string aliasPrefix = "__OfficeIMOExtGStateFont";
-                int suffix = 0;
                 string alias;
                 do {
-                    if (suffix >= 64) return false;
-                    alias = aliasPrefix + suffix.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                    suffix++;
+                    alias = aliasPrefix + nextFontAliasSuffix.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    nextFontAliasSuffix++;
                 } while (fonts.ContainsKey(alias) || decoders.ContainsKey(alias) || widthProviders.ContainsKey(alias));
                 var fontEntries = new PdfDictionary();
                 fontEntries.Items[alias] = font.Items[0];

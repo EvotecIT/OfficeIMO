@@ -63,6 +63,16 @@ public class PdfSelectionCoverageTests {
         Assert.Equal(3, error.Actual);
     }
 
+    [Fact]
+    public void CoverageDoesNotChargeEmptyPolygonIntersections() {
+        PdfSelectionQuad target = Diamond(5, 5, 5);
+        PdfSelectionQuad left = Rectangle(0, 0, 5, 10);
+        PdfSelectionQuad outsideCorner = Rectangle(0, 0, 1, 1);
+
+        Assert.False(PdfSelectionCoverage.Covers(target, new[] { left, outsideCorner },
+            0.9D, _ => { }, default, maximumRetainedIntersections: 1));
+    }
+
     private static bool Covers(PdfSelectionQuad target, IReadOnlyList<PdfSelectionQuad> native, double threshold) =>
         PdfSelectionCoverage.Covers(target, native, threshold, _ => { }, default);
 

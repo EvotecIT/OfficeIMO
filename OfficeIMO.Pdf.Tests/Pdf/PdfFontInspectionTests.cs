@@ -366,6 +366,22 @@ public sealed class PdfFontInspectionTests {
     }
 
     [Fact]
+    public void Fonts_ShareDiagnosticLimitAcrossFontAndTraversalDiagnostics() {
+        byte[] pdf = BuildPdf(
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /Type1 >>",
+            StreamObject(string.Empty));
+
+        PdfFontInventory inventory = PdfDocument.Load(pdf).Resources.Fonts(new PdfFontInspectionOptions {
+            MaxDiagnostics = 1
+        });
+
+        Assert.Equal(1, inventory.Fonts.Sum(font => font.Diagnostics.Count) + inventory.Diagnostics.Count);
+    }
+
+    [Fact]
     public void Fonts_StopsBeforeRetainingOversizedResourcePaths() {
         byte[] pdf = BuildPdf(
             "<< /Type /Catalog /Pages 2 0 R >>",

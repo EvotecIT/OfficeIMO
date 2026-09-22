@@ -453,6 +453,7 @@ internal static partial class PdfPrintProductionColorInspector {
                 inheritedAliases,
                 objects,
                 limits,
+                streams,
                 out PdfDictionary? resources,
                 out ColorSpaceAliases aliases)) return false;
 
@@ -477,6 +478,7 @@ internal static partial class PdfPrintProductionColorInspector {
         ColorSpaceAliases inheritedAliases,
         Dictionary<int, PdfIndirectObject> objects,
         PdfReadLimits limits,
+        ContentStreamContexts streams,
         out PdfDictionary? resources,
         out ColorSpaceAliases aliases) {
         resources = inheritedResources;
@@ -489,11 +491,7 @@ internal static partial class PdfPrintProductionColorInspector {
                 limits.MaxObjectNestingDepth,
                 out _) is not PdfDictionary directResources) return false;
         resources = directResources;
-        aliases = CreateColorSpaceAliases(
-            directResources,
-            objects,
-            limits.MaxObjectNestingDepth,
-            limits.MaxDecodedStreamBytes);
+        aliases = streams.GetOrCreateAliases(directResources, objects, limits);
         return true;
     }
 
@@ -540,6 +538,7 @@ internal static partial class PdfPrintProductionColorInspector {
                 context.Aliases,
                 objects,
                 limits,
+                streams,
                 out PdfDictionary? groupResources,
                 out ColorSpaceAliases groupAliases) ||
             !string.Equals(

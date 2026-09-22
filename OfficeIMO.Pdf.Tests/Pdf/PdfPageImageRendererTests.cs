@@ -22,6 +22,49 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderCapabilityDiagnosticsDoNotChargeRepeatedOccurrences() {
+        byte[] pdf = BuildSingleStreamPdf("unknownOne\nunknownOne\nunknownOne");
+        PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
+        PdfRenderCapabilityDiagnostic first = Assert.Single(page.GetRenderCapabilityDiagnostics());
+        int characters = first.Code.Length + first.Capability.Message.Length + first.Subject!.Length + 16;
+
+        PdfRenderCapabilityDiagnostic retained = Assert.Single(
+            page.GetRenderCapabilityDiagnostics(1, characters, System.Threading.CancellationToken.None));
+
+        Assert.Equal(first.Code, retained.Code);
+        Assert.Equal(first.Subject, retained.Subject);
+    }
+
+    [Fact]
+    public void RenderPage_AllocatesDirectExtGStateFontAliasAfterDeclaredCollisions() {
+        string declared = string.Join(" ", Enumerable.Range(0, 64)
+            .Select(index => "/__OfficeIMOExtGStateFont" + index + " 6 0 R"));
+        byte[] pdf = BuildSingleStreamPdf(
+            "BT /GS1 gs 40 130 Td (Visible) Tj ET",
+            "<< /Font << " + declared + " >> /ExtGState << /GS1 5 0 R >> >>",
+            "5 0 obj\n<< /Type /ExtGState /Font [7 0 R 18] >>\nendobj",
+            "6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj",
+            "7 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj");
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.Equal("Visible", Assert.Single(drawing.Elements.OfType<OfficeDrawingText>()).Text);
+    }
+
+    [Fact]
+    public void RenderPage_AllocatesManyDirectExtGStateFontAliases() {
+        string states = string.Join(" ", Enumerable.Range(0, 80).Select(index =>
+            "/GS" + index + " << /Type /ExtGState /Font [<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> 18] >>"));
+        byte[] pdf = BuildSingleStreamPdf(
+            "BT /GS79 gs 40 130 Td (Visible) Tj ET",
+            "<< /ExtGState << " + states + " >> >>");
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.Equal("Visible", Assert.Single(drawing.Elements.OfType<OfficeDrawingText>()).Text);
+    }
+
+    [Fact]
     public void RenderCapabilityDiagnosticsStopBeforeRetainingOversizedSubject() {
         byte[] pdf = BuildSingleStreamPdf(new string('q', 1_000));
         PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];

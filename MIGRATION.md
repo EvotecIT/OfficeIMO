@@ -217,6 +217,15 @@ with `MaxNativeTextOverlapIntersectionsPerWord` (default 10,000). An interaction
 map may reject a page with too many off-page image placements before it builds
 the visible regions. These limits report `PdfReadLimitException`.
 
+Page rendering retains at most 1,000 distinct capability diagnostics and
+1,048,576 diagnostic characters per page by default. Set
+`PdfPageRenderOptions.MaxDiagnosticsPerPage` and
+`MaxDiagnosticCharactersPerPage` when rendering trusted pages that require
+more diagnostic detail. Duplicate diagnostics do not consume the character
+budget. PDF font inspection also shares its 10,000-diagnostic default across
+font-specific and resource-traversal findings; configure
+`PdfFontInspectionOptions.MaxDiagnostics` for trusted documents that need more.
+
 ### Configure PDF drawing fonts before projection
 
 If you add substitute fonts to the drawing returned by `PdfReadPage.ToDrawing()`,

@@ -42,6 +42,7 @@ internal static class PdfFontInspector {
         private readonly FontStreamDecodeBudget _decodeBudget;
         private int _referenceCount;
         private int _formTraversalCount;
+        private int _retainedDiagnostics;
         private long _resourcePathCharacters;
 
         internal InspectionContext(Dictionary<int, PdfIndirectObject> objects, PdfFontInspectionOptions options) {
@@ -203,7 +204,8 @@ internal static class PdfFontInspector {
                         return;
                     }
                     GetReferenceIdentity(entry.Value, out int? objectNumber, out int? generation);
-                    builder = FontBuilder.Create(font, entry.Key, objectNumber, generation, _objects, _options, _decodeBudget);
+                    builder = FontBuilder.Create(font, entry.Key, objectNumber, generation, _objects, _options, _decodeBudget,
+                        TryReserveDiagnostic);
                     _fonts.Add(font, builder);
                     _fontOrder.Add(builder);
                 }
@@ -238,11 +240,17 @@ internal static class PdfFontInspector {
         }
 
         private void AddDiagnostic(PdfFontInspectionDiagnostic diagnostic) {
-            if (_diagnostics.Count >= _options.MaxDiagnostics) {
-                IsStopped = true;
-                return;
-            }
+            if (!TryReserveDiagnostic()) return;
             _diagnostics.Add(diagnostic);
+        }
+
+        private bool TryReserveDiagnostic() {
+            if (_retainedDiagnostics >= _options.MaxDiagnostics) {
+                IsStopped = true;
+                return false;
+            }
+            _retainedDiagnostics++;
+            return true;
         }
 
         private PdfObject? Resolve(PdfObject? value) =>
@@ -312,7 +320,8 @@ internal static class PdfFontInspector {
             int? generation,
             Dictionary<int, PdfIndirectObject> objects,
             PdfFontInspectionOptions options,
-            FontStreamDecodeBudget decodeBudget) {
+            FontStreamDecodeBudget decodeBudget,
+            Func<bool> reserveDiagnostic) {
             FontStreamDecodeFailure toUnicodeDecodeFailure = FontStreamDecodeFailure.None;
             PdfFontResource resource = ResourceResolver.CreateFontResource(
                 resourceName,
@@ -367,17 +376,20 @@ internal static class PdfFontInspector {
                 program?.Data.Length,
                 openTypeInfo,
                 programBytes);
+            void AddFontDiagnostic(PdfFontInspectionDiagnostic diagnostic) {
+                if (reserveDiagnostic()) builder._diagnostics.Add(diagnostic);
+            }
             if (string.IsNullOrWhiteSpace(resource.BaseFont)) {
-                builder._diagnostics.Add(new PdfFontInspectionDiagnostic(
+                AddFontDiagnostic(new PdfFontInspectionDiagnostic(
                     PdfFontInspectionDiagnosticCode.MissingBaseFont,
                     "Font dictionary does not declare a BaseFont name."));
             }
             if (!resource.HasToUnicode) {
-                builder._diagnostics.Add(new PdfFontInspectionDiagnostic(
+                AddFontDiagnostic(new PdfFontInspectionDiagnostic(
                     PdfFontInspectionDiagnosticCode.MissingToUnicode,
                     "Font dictionary does not declare a ToUnicode mapping."));
             } else if (resource.CMap is null) {
-                builder._diagnostics.Add(new PdfFontInspectionDiagnostic(
+                AddFontDiagnostic(new PdfFontInspectionDiagnostic(
                     toUnicodeDecodeFailure == FontStreamDecodeFailure.AggregateLimit
                         ? PdfFontInspectionDiagnosticCode.ToUnicodeTotalLimitExceeded
                         : toUnicodeDecodeFailure == FontStreamDecodeFailure.PerStreamLimit
@@ -390,7 +402,7 @@ internal static class PdfFontInspector {
                             : "Font dictionary declares a ToUnicode mapping that could not be decoded."));
             }
             if (programUnavailable) {
-                builder._diagnostics.Add(new PdfFontInspectionDiagnostic(
+                AddFontDiagnostic(new PdfFontInspectionDiagnostic(
                     programDecodeFailure == FontStreamDecodeFailure.AggregateLimit
                         ? PdfFontInspectionDiagnosticCode.EmbeddedProgramTotalLimitExceeded
                         : PdfFontInspectionDiagnosticCode.EmbeddedProgramUnavailable,
@@ -399,7 +411,7 @@ internal static class PdfFontInspector {
                         : "Embedded font program could not be decoded within the configured byte limit."));
             }
             if (unreadableOpenTypeProgram) {
-                builder._diagnostics.Add(new PdfFontInspectionDiagnostic(
+                AddFontDiagnostic(new PdfFontInspectionDiagnostic(
                     PdfFontInspectionDiagnosticCode.UnreadableEmbeddedOpenTypeProgram,
                     "Embedded OpenType or TrueType font program was decoded but its table directory could not be inspected."));
             }

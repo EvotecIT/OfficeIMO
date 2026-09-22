@@ -13,7 +13,7 @@ internal static partial class PdfRedactionPlanner {
         if (search.LiteralText.Count == 0 && expressions.Length == 0 && search.FormFieldNames.Count == 0 && search.LogicalElementKinds.Count == 0) throw new ArgumentException("At least one redaction search criterion is required.", nameof(search));
 
         PdfReadDocument readDocument = PdfReadDocument.Open(pdf, readOptions, search.CancellationToken);
-        PdfDocumentReadResult logical = PdfDocumentReadResult.From(readDocument, layoutOptions);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.From(readDocument, layoutOptions, search.CancellationToken);
         if (search.PageNumbers.Any(page => page < 1 || page > logical.Pages.Count)) throw new ArgumentOutOfRangeException(nameof(search), "Search pages must identify existing one-based pages.");
         search.CancellationToken.ThrowIfCancellationRequested();
         StringComparison comparison = search.MatchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;

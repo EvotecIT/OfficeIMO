@@ -23,11 +23,9 @@ internal static partial class PdfSelectionCoverage {
             double left = Math.Max(target.Left, region.Left), top = Math.Max(target.Top, region.Top);
             double right = Math.Min(target.Right, region.Right), bottom = Math.Min(target.Bottom, region.Bottom);
             if (right <= left || bottom <= top) continue;
-            if ((long)rectangles.Count + polygons.Count >= maximumRetainedIntersections)
-                throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts,
-                    maximumRetainedIntersections, (long)rectangles.Count + polygons.Count + 1L);
             double area;
             if (targetIsRectangle && IsRectangle(region)) {
+                EnsureRetainedIntersectionCapacity();
                 area = (right - left) * (bottom - top);
                 rectangles.Add(new CoverageRectangle(left, top, right, bottom));
             } else {
@@ -36,6 +34,7 @@ internal static partial class PdfSelectionCoverage {
                 List<OfficePoint> clipped = PdfPageClipPath.ClipPolygonToConvexPolygon(Points(region), targetPoints, null);
                 area = Area(clipped);
                 if (area <= 0D) continue;
+                EnsureRetainedIntersectionCapacity();
                 polygons.Add(clipped);
             }
             if (area >= required) return true;
@@ -48,6 +47,12 @@ internal static partial class PdfSelectionCoverage {
             new OfficePoint(rectangle.Right, rectangle.Bottom), new OfficePoint(rectangle.Left, rectangle.Bottom)
         });
         return PolygonUnionArea(polygons, required, consumeWork, cancellationToken) >= required;
+
+        void EnsureRetainedIntersectionCapacity() {
+            if ((long)rectangles.Count + polygons.Count >= maximumRetainedIntersections)
+                throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts,
+                    maximumRetainedIntersections, (long)rectangles.Count + polygons.Count + 1L);
+        }
     }
 
     private static double PolygonUnionArea(List<List<OfficePoint>> polygons, double stopAt,

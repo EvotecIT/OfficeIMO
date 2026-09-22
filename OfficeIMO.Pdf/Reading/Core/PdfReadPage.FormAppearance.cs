@@ -82,10 +82,20 @@ public sealed partial class PdfReadPage {
 
         try {
             (double width, double height) = GetVisualPageSize();
+            if (!TryReadRectangle(widget.Items.TryGetValue("Rect", out PdfObject? rectangleObject)
+                    ? rectangleObject : null, out (double X1, double Y1, double X2, double Y2) rectangle)) return false;
+            PdfVisualBounds widgetBounds = TransformBoundsToVisual(
+                Math.Min(rectangle.X1, rectangle.X2), Math.Min(rectangle.Y1, rectangle.Y2),
+                Math.Max(rectangle.X1, rectangle.X2), Math.Max(rectangle.Y1, rectangle.Y2));
+            double left = Math.Max(0D, widgetBounds.Left);
+            double top = Math.Max(0D, widgetBounds.Top);
+            double cropWidth = Math.Min(width, widgetBounds.Right) - left;
+            double cropHeight = Math.Min(height, widgetBounds.Bottom) - top;
+            if (cropWidth <= 0D || cropHeight <= 0D) return false;
             const long maximumPixels = 1_000_000L;
-            double scale = Math.Min(1D, Math.Sqrt(maximumPixels / (width * height)));
+            double scale = Math.Min(1D, Math.Sqrt(maximumPixels / (cropWidth * cropHeight)));
             if (scale <= 0D || double.IsNaN(scale) || double.IsInfinity(scale)) return false;
-            long pixelsToRender = checked((long)Math.Ceiling(width * scale) * (long)Math.Ceiling(height * scale));
+            long pixelsToRender = checked((long)Math.Ceiling(cropWidth * scale) * (long)Math.Ceiling(cropHeight * scale));
             if (!budget.TryConsumeRasterPixels(pixelsToRender)) return false;
             var drawing = new OfficeDrawing(width, height);
             var selected = new PdfArray();
@@ -95,7 +105,10 @@ public sealed partial class PdfReadPage {
                 budget._textClippingBudget, new PdfTextClippingBudget(),
                 budget._pageContentBudget.CancellationToken, selected);
             if (drawing.Elements.Count == 0) return false;
-            byte[] pixels = OfficeDrawingRasterRenderer.Render(drawing, new OfficeDrawingRasterRenderOptions {
+            var cropped = new OfficeDrawing(cropWidth, cropHeight);
+            cropped.AddClippedDrawingForRendering(drawing, 0D, 0D,
+                OfficeClipPath.Rectangle(cropWidth, cropHeight), -left, -top);
+            byte[] pixels = OfficeDrawingRasterRenderer.Render(cropped, new OfficeDrawingRasterRenderOptions {
                 Scale = scale,
                 MaximumRasterPixels = maximumPixels,
                 ThrowOnImageDecodeFailure = true,
@@ -113,6 +126,8 @@ public sealed partial class PdfReadPage {
         } catch (OverflowException) {
             return false;
         } catch (ArgumentOutOfRangeException) {
+            return false;
+        } catch (NotSupportedException) {
             return false;
         }
     }

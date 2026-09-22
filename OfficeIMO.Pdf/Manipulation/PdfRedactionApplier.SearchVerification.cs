@@ -23,9 +23,9 @@ internal static partial class PdfRedactionApplier {
         PdfLoadOptions outputOptions = PdfLoadOptions.ForGeneratedOutput(readOptions, source, output, generatedGrowth);
         PdfReadDocument rewritten = PdfReadDocument.Open(output, outputOptions, cancellationToken);
         PdfDocumentReadResult? rewrittenLogical = regexes.Length > 0 || kinds.Length > 0
-            ? PdfDocumentReadResult.From(rewritten, layoutOptions) : null;
+            ? PdfDocumentReadResult.From(rewritten, layoutOptions, cancellationToken) : null;
         PdfDocumentReadResult? sourceLogical = kinds.Length > 0
-            ? PdfDocumentReadResult.From(PdfReadDocument.Open(source, readOptions, cancellationToken), layoutOptions) : null;
+            ? PdfDocumentReadResult.From(PdfReadDocument.Open(source, readOptions, cancellationToken), layoutOptions, cancellationToken) : null;
         StringComparison comparison = plan.SearchMatchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
         foreach (int pageNumber in affectedPages) {
             cancellationToken.ThrowIfCancellationRequested();

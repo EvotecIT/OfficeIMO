@@ -1175,6 +1175,15 @@ public sealed partial class PdfDocumentReadResult {
         return PdfDocumentReadEngine.Read(document, new PdfReadOptions { LayoutOptions = options ?? new PdfTextLayoutOptions() });
     }
 
+    internal static PdfDocumentReadResult From(
+        PdfReadDocument document,
+        PdfTextLayoutOptions? options,
+        CancellationToken cancellationToken) {
+        Guard.NotNull(document, nameof(document));
+        return PdfDocumentReadEngine.Read(document,
+            new PdfReadOptions { LayoutOptions = options ?? new PdfTextLayoutOptions() }, cancellationToken);
+    }
+
     /// <summary>Builds a logical read model for selected source page ranges from an already parsed PDF document, preserving caller order and overlaps.</summary>
     internal static PdfDocumentReadResult FromPageRanges(PdfReadDocument document, params PdfPageRange[] pageRanges) {
         return FromPageRanges(document, null, pageRanges);
