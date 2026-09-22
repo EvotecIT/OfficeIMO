@@ -13,17 +13,19 @@ public enum OdpInlineNodeKind {
 }
 
 /// <summary>
-/// An ordered typed direct child in an ODP paragraph. Nested inline markup is surfaced
-/// as <see cref="OdpInlineNodeKind.Other"/> so conversion loss remains explicit.
+/// An ordered typed view of ODP inline syntax. Runs and hyperlinks retain their
+/// child nodes in document order so nested formatting can be resolved by consumers.
 /// </summary>
 public sealed class OdpInlineNode {
     private OdpInlineNode(OdpInlineNodeKind kind, string text, OdpRun? run = null,
-        OdpHyperlink? hyperlink = null, string? qualifiedName = null) {
+        OdpHyperlink? hyperlink = null, string? qualifiedName = null,
+        IReadOnlyList<OdpInlineNode>? children = null) {
         Kind = kind;
         Text = text;
         Run = run;
         Hyperlink = hyperlink;
         QualifiedName = qualifiedName;
+        Children = children ?? Array.Empty<OdpInlineNode>();
     }
 
     /// <summary>Node kind.</summary>
@@ -36,9 +38,15 @@ public sealed class OdpInlineNode {
     public OdpHyperlink? Hyperlink { get; }
     /// <summary>Expanded XML name for an unrepresented element.</summary>
     public string? QualifiedName { get; }
+    /// <summary>Ordered content inside a run or hyperlink; empty for leaf nodes.</summary>
+    public IReadOnlyList<OdpInlineNode> Children { get; }
 
     internal static IReadOnlyList<OdpInlineNode> Read(OdpPresentation presentation, XElement paragraph) {
         _ = OdfTextCodec.Read(paragraph);
+        return ReadChildren(presentation, paragraph);
+    }
+
+    private static IReadOnlyList<OdpInlineNode> ReadChildren(OdpPresentation presentation, XElement parent) {
         var result = new List<OdpInlineNode>();
         var plainNodes = new List<XNode>();
 
@@ -49,7 +57,7 @@ public sealed class OdpInlineNode {
             plainNodes.Clear();
         }
 
-        foreach (XNode node in paragraph.Nodes()) {
+        foreach (XNode node in parent.Nodes()) {
             if (node is XText) { plainNodes.Add(node); continue; }
             if (!(node is XElement element)) continue;
             if (element.Name == OdfNamespaces.Text + "s"
@@ -59,17 +67,14 @@ public sealed class OdpInlineNode {
                 continue;
             }
             FlushPlain();
-            if ((element.Name == OdfNamespaces.Text + "span"
-                    || element.Name == OdfNamespaces.Text + "a")
-                && HasNestedInlineMarkup(element)) {
-                result.Add(new OdpInlineNode(OdpInlineNodeKind.Other, OdfTextCodec.Read(element),
-                    qualifiedName: element.Name.ToString()));
-            } else if (element.Name == OdfNamespaces.Text + "span") {
+            if (element.Name == OdfNamespaces.Text + "span") {
                 var run = new OdpRun(presentation, element);
-                result.Add(new OdpInlineNode(OdpInlineNodeKind.Run, run.Text, run: run));
+                result.Add(new OdpInlineNode(OdpInlineNodeKind.Run, run.Text, run: run,
+                    children: ReadChildren(presentation, element)));
             } else if (element.Name == OdfNamespaces.Text + "a") {
                 var hyperlink = new OdpHyperlink(presentation, element);
-                result.Add(new OdpInlineNode(OdpInlineNodeKind.Hyperlink, hyperlink.Text, hyperlink: hyperlink));
+                result.Add(new OdpInlineNode(OdpInlineNodeKind.Hyperlink, hyperlink.Text, hyperlink: hyperlink,
+                    children: ReadChildren(presentation, element)));
             } else {
                 result.Add(new OdpInlineNode(OdpInlineNodeKind.Other, OdfTextCodec.Read(element),
                     qualifiedName: element.Name.ToString()));
@@ -79,10 +84,6 @@ public sealed class OdpInlineNode {
         return result;
     }
 
-    private static bool HasNestedInlineMarkup(XElement element) => element.Elements().Any(child =>
-        child.Name != OdfNamespaces.Text + "s"
-        && child.Name != OdfNamespaces.Text + "tab"
-        && child.Name != OdfNamespaces.Text + "line-break");
 }
 
 /// <summary>An XML-backed ODP hyperlink. Targets are preserved and never fetched.</summary>
@@ -97,6 +98,24 @@ public sealed class OdpHyperlink {
 
     /// <summary>Decoded display text.</summary>
     public string Text { get => OdfTextCodec.Read(_element); set { OdfTextCodec.Replace(_element, value); Dirty(); } }
+    /// <summary>Ordered text and runs inside this hyperlink.</summary>
+    public IReadOnlyList<OdpInlineNode> InlineNodes => OdpInlineNode.Read(_presentation, _element);
+
+    /// <summary>Appends display text after existing child nodes.</summary>
+    public OdpHyperlink AddText(string text) {
+        OdfTextCodec.Append(_element, text);
+        Dirty();
+        return this;
+    }
+
+    /// <summary>Appends a styled run inside this hyperlink.</summary>
+    public OdpRun AddRun(string? text = null) {
+        var element = new XElement(OdfNamespaces.Text + "span");
+        OdfTextCodec.Append(element, text);
+        _element.Add(element);
+        Dirty();
+        return new OdpRun(_presentation, element);
+    }
     /// <summary>Changes the hyperlink display text casing while preserving its target and text style.</summary>
     public OdpHyperlink TransformTextCase(OfficeIMO.Drawing.OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) {
         OdfTextCodec.TransformTextCase(_element, textCase, culture);
@@ -158,24 +177,19 @@ public sealed class OdpHyperlink {
     public OdfColor? Color { get => Resolve(style => style.Color); set => EnsureStyle().Color = value; }
     /// <summary>Explicit or inherited text background color.</summary>
     public OdfColor? BackgroundColor {
-        get {
-            OdfStyle? style = StyleName == null ? null : _presentation.Styles.Find(
-                OdfStyleFamily.Text, StyleName);
-            return _presentation.Styles.ResolveTextBackgroundColor(style);
-        }
+        get => OdfInlineStyleResolver.ResolveTextBackgroundColor(_presentation.Styles, _element, "content.xml");
         set => EnsureStyle().TextBackgroundColor = value;
     }
+    /// <summary>Whether an inline style sets a text background, including transparent.</summary>
+    public bool HasTextBackgroundOverride => OdfInlineStyleResolver.TryResolveTextBackgroundColor(
+        _presentation.Styles, _element, "content.xml", out _);
 
     private OdfStyle EnsureStyle() => _presentation.Styles.EnsureAutomaticStyle(
         _element, OdfNamespaces.Text + "style-name", OdfStyleFamily.Text, "ofLink");
-    private T? Resolve<T>(Func<OdfStyle, T?> selector) where T : struct {
-        OdfStyle? style = StyleName == null ? null : _presentation.Styles.Find(OdfStyleFamily.Text, StyleName); if (style == null) return null;
-        foreach (OdfStyle candidate in _presentation.Styles.Resolve(style)) { T? value = selector(candidate); if (value.HasValue) return value; } return null;
-    }
-    private string? ResolveReference(Func<OdfStyle, string?> selector) {
-        OdfStyle? style = StyleName == null ? null : _presentation.Styles.Find(OdfStyleFamily.Text, StyleName); if (style == null) return null;
-        foreach (OdfStyle candidate in _presentation.Styles.Resolve(style)) { string? value = selector(candidate); if (value != null) return value; } return null;
-    }
+    private T? Resolve<T>(Func<OdfStyle, T?> selector) where T : struct =>
+        OdfInlineStyleResolver.Resolve(_presentation.Styles, _element, "content.xml", selector);
+    private string? ResolveReference(Func<OdfStyle, string?> selector) =>
+        OdfInlineStyleResolver.ResolveReference(_presentation.Styles, _element, "content.xml", selector);
     private static string? NormalizeOptional(string? value) => string.IsNullOrWhiteSpace(value) ? null : value;
     private void Dirty() => _presentation.MarkPartDirty("content.xml");
 }

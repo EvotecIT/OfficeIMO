@@ -31,7 +31,8 @@ public static partial class WordOpenDocumentConversionExtensions {
         if (selectedFontFamily != null) target.FontFamily = selectedFontFamily;
         OdfColor? color = source.Color ?? paragraph.Color;
         if (color.HasValue) target.ColorHex = color.Value.ToString();
-        ApplyOdfTextBackground(source.BackgroundColor ?? paragraph.TextBackgroundColor, target);
+        ApplyOdfTextBackground(source.HasTextBackgroundOverride
+            ? source.BackgroundColor : paragraph.TextBackgroundColor, target);
         return unsupported;
     }
 
@@ -87,7 +88,8 @@ public static partial class WordOpenDocumentConversionExtensions {
         if (selectedFontFamily != null) target.FontFamily = selectedFontFamily;
         OdfColor? color = source.Color ?? paragraph.Color;
         if (color.HasValue) target.ColorHex = color.Value.ToString();
-        ApplyOdfTextBackground(source.BackgroundColor ?? paragraph.TextBackgroundColor, target);
+        ApplyOdfTextBackground(source.HasTextBackgroundOverride
+            ? source.BackgroundColor : paragraph.TextBackgroundColor, target);
         return unsupported;
     }
 

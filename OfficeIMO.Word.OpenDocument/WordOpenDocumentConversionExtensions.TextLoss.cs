@@ -37,11 +37,17 @@ public static partial class WordOpenDocumentConversionExtensions {
             paragraph.UnderlineStyle,
             paragraph.UnderlineType,
             paragraph.LineThroughStyle) ? 1 : 0;
-        foreach (OdtInlineNode node in paragraph.InlineNodes) {
+        return count + CountNonSolidTextDecorations(paragraph.InlineNodes);
+    }
+
+    private static int CountNonSolidTextDecorations(IReadOnlyList<OdtInlineNode> nodes) {
+        int count = 0;
+        foreach (OdtInlineNode node in nodes) {
             if (node.Span is OdtSpan span &&
                 RequiresDecorationApproximation(span.UnderlineStyle, span.UnderlineType, span.LineThroughStyle)) count++;
             if (node.Hyperlink is OdtHyperlink hyperlink &&
                 RequiresDecorationApproximation(hyperlink.UnderlineStyle, hyperlink.UnderlineType, hyperlink.LineThroughStyle)) count++;
+            count += CountNonSolidTextDecorations(node.Children);
         }
         return count;
     }

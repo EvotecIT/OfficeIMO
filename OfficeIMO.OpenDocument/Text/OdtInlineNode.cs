@@ -21,15 +21,13 @@ public enum OdtInlineNodeKind {
 }
 
 /// <summary>
-/// An ordered typed view of a direct child in an ODT paragraph. This syntax view keeps
-/// mixed plain text, simple spans, simple hyperlinks, images, and bookmark markers in
-/// document order. Nested inline markup is surfaced as <see cref="OdtInlineNodeKind.Other"/>
-/// so converters cannot mistake a flattened representation for an exact mapping.
+/// An ordered typed view of ODT inline syntax. Spans and hyperlinks retain their
+/// child nodes in document order so nested formatting can be resolved by consumers.
 /// </summary>
 public sealed class OdtInlineNode {
     private OdtInlineNode(OdtInlineNodeKind kind, string text, OdtSpan? span = null,
         OdtHyperlink? hyperlink = null, OdtImage? image = null, string? name = null,
-        string? qualifiedName = null) {
+        string? qualifiedName = null, IReadOnlyList<OdtInlineNode>? children = null) {
         Kind = kind;
         Text = text;
         Span = span;
@@ -37,6 +35,7 @@ public sealed class OdtInlineNode {
         Image = image;
         Name = name;
         QualifiedName = qualifiedName;
+        Children = children ?? Array.Empty<OdtInlineNode>();
     }
 
     /// <summary>Node kind.</summary>
@@ -53,6 +52,8 @@ public sealed class OdtInlineNode {
     public string? Name { get; }
     /// <summary>Expanded XML name for an unrepresented element.</summary>
     public string? QualifiedName { get; }
+    /// <summary>Ordered content inside a span or hyperlink; empty for leaf nodes.</summary>
+    public IReadOnlyList<OdtInlineNode> Children { get; }
 
     internal static IReadOnlyList<OdtInlineNode> Read(
         OdtDocument document,
@@ -60,6 +61,11 @@ public sealed class OdtInlineNode {
         string partPath) {
         // Enforce the paragraph-wide decoded-text budget before producing per-node values.
         _ = OdfTextCodec.Read(paragraph);
+        return ReadChildren(document, paragraph, partPath);
+    }
+
+    private static IReadOnlyList<OdtInlineNode> ReadChildren(
+        OdtDocument document, XElement parent, string partPath) {
         var result = new List<OdtInlineNode>();
         var plainNodes = new List<XNode>();
 
@@ -70,7 +76,7 @@ public sealed class OdtInlineNode {
             plainNodes.Clear();
         }
 
-        foreach (XNode node in paragraph.Nodes()) {
+        foreach (XNode node in parent.Nodes()) {
             if (node is XText) {
                 plainNodes.Add(node);
                 continue;
@@ -84,17 +90,14 @@ public sealed class OdtInlineNode {
             }
 
             FlushPlain();
-            if ((element.Name == OdfNamespaces.Text + "span"
-                    || element.Name == OdfNamespaces.Text + "a")
-                && HasNestedInlineMarkup(element)) {
-                result.Add(new OdtInlineNode(OdtInlineNodeKind.Other, OdfTextCodec.Read(element),
-                    qualifiedName: element.Name.ToString()));
-            } else if (element.Name == OdfNamespaces.Text + "span") {
+            if (element.Name == OdfNamespaces.Text + "span") {
                 var span = new OdtSpan(document, element, partPath);
-                result.Add(new OdtInlineNode(OdtInlineNodeKind.Span, span.Text, span: span));
+                result.Add(new OdtInlineNode(OdtInlineNodeKind.Span, span.Text, span: span,
+                    children: ReadChildren(document, element, partPath)));
             } else if (element.Name == OdfNamespaces.Text + "a") {
                 var hyperlink = new OdtHyperlink(document, element, partPath);
-                result.Add(new OdtInlineNode(OdtInlineNodeKind.Hyperlink, hyperlink.Text, hyperlink: hyperlink));
+                result.Add(new OdtInlineNode(OdtInlineNodeKind.Hyperlink, hyperlink.Text, hyperlink: hyperlink,
+                    children: ReadChildren(document, element, partPath)));
             } else if (element.Name == OdfNamespaces.Draw + "frame"
                 && element.Element(OdfNamespaces.Draw + "image") != null) {
                 var image = new OdtImage(document, element, partPath);
@@ -118,8 +121,4 @@ public sealed class OdtInlineNode {
         new OdtInlineNode(kind, string.Empty,
             name: (string?)element.Attribute(OdfNamespaces.Text + "name"));
 
-    private static bool HasNestedInlineMarkup(XElement element) => element.Elements().Any(child =>
-        child.Name != OdfNamespaces.Text + "s"
-        && child.Name != OdfNamespaces.Text + "tab"
-        && child.Name != OdfNamespaces.Text + "line-break");
 }

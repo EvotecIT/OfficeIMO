@@ -26,11 +26,17 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             paragraph.UnderlineStyle,
             paragraph.UnderlineType,
             paragraph.LineThroughStyle) ? 1 : 0;
-        foreach (OdpInlineNode node in paragraph.InlineNodes) {
+        return count + CountNonSolidTextDecorations(paragraph.InlineNodes);
+    }
+
+    private static int CountNonSolidTextDecorations(IReadOnlyList<OdpInlineNode> nodes) {
+        int count = 0;
+        foreach (OdpInlineNode node in nodes) {
             if (node.Run is OdpRun run &&
                 RequiresDecorationApproximation(run.UnderlineStyle, run.UnderlineType, run.LineThroughStyle)) count++;
             if (node.Hyperlink is OdpHyperlink hyperlink &&
                 RequiresDecorationApproximation(hyperlink.UnderlineStyle, hyperlink.UnderlineType, hyperlink.LineThroughStyle)) count++;
+            count += CountNonSolidTextDecorations(node.Children);
         }
         return count;
     }
