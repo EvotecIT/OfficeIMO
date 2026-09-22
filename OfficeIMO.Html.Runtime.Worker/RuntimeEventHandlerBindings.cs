@@ -72,7 +72,7 @@ internal sealed class RuntimeEventHandlerBindings(Engine engine, IEventTarget wi
         if (target is IElement element && element.NamespaceUri == "http://www.w3.org/1999/xhtml"
             && element.LocalName is "body" or "frameset" && WindowBodyEvents.Contains(eventType)) {
             var view = element.Owner?.DefaultView;
-            return view != null && ReferenceEquals(view.Document, element.Owner) ? view : null;
+            return view != null && ReferenceEquals(element.Owner?.Context.Active, element.Owner) ? view : null;
         }
         return target;
     }

@@ -97,8 +97,8 @@ public sealed class RuntimeBeforeUnloadTests {
         await using var session = await Runtime().OpenTrustedAsync(new() {
             Profile = HtmlRuntimeProfile.WebApplicationV1, DocumentUrl = Start, Html = "<body><h1>Active</h1></body>"
         });
-        await session.ExecuteAsync("const parsed=new DOMParser().parseFromString('<script>window.unexpected=true</scr'+'ipt><p>Parsed</p>', 'text/html'); document.querySelector('h1').textContent=parsed.querySelector('p').textContent; window.parsedUrl=parsed.URL");
-        Assert.True((await session.EvaluateAsync("document.querySelector('h1').textContent==='Parsed' && typeof unexpected==='undefined' && parsedUrl===location.href")).GetBoolean());
+        await session.ExecuteAsync("const parsed=new DOMParser().parseFromString('<script>window.unexpected=true</scr'+'ipt><p>Parsed</p>', 'text/html'); document.querySelector('h1').textContent=parsed.querySelector('p').textContent; window.parsedUrl=parsed.URL; window.original=()=> 'stay';onbeforeunload=original;parsed.body.onbeforeunload=()=> 'wrong';window.isolated=onbeforeunload===original && parsed.body.onbeforeunload===null;onbeforeunload=null");
+        Assert.True((await session.EvaluateAsync("document.querySelector('h1').textContent==='Parsed' && typeof unexpected==='undefined' && parsedUrl===location.href && isolated")).GetBoolean());
     }
 
 }

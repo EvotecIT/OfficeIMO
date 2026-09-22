@@ -36,3 +36,22 @@ Source revision pins make development builds reproducible without publishing a
 package. A later package release needs a distinct fork package identity, artifact
 validation and an explicitly chosen publication destination. Fork assemblies must
 not be published as official upstream packages.
+
+## Contributing while retaining a usable fork
+
+Prepare each upstream candidate from its upstream base with one reusable correction
+and its regression proof. Keep ongoing integration on the fork's runtime branch;
+OfficeIMO consumes qualified revision pins independently of upstream PR decisions.
+
+If a patch is accepted, qualify the upstream release before removing the fork delta.
+If it is declined, retain the smallest tested patch needed by the supported contract
+and record the maintainer's reason with the patch's upstream link. Rework it when a
+better extension point is agreed. Host-specific policy stays in OfficeIMO. A declined
+PR alone is not a reason to replace a working dependency.
+
+The combined binding suite can use the pinned core source:
+
+```sh
+dotnet test External/AngleSharp.Js/src/AngleSharp.Js.Tests/AngleSharp.Js.Tests.csproj \
+  -f net10.0 -p:AngleSharpTestProject="$PWD/External/AngleSharp/src/AngleSharp/AngleSharp.Core.csproj"
+```
