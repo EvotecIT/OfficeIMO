@@ -72,7 +72,7 @@ namespace OfficeIMO.Word.Pdf {
                         nativeFontMap,
                         getMarker,
                         ignoreFallbackTableStyle: hasExplicitDefaultTableStyle);
-                    NativeTableCellEmbeddedContent embeddedContent = CreateNativeTableCellEmbeddedContent(cell);
+                    NativeTableCellEmbeddedContent embeddedContent = CreateNativeTableCellEmbeddedContent(cell, options);
                     (string? LinkUri, string? LinkContents) link = GetNativeCellLink(cell);
                     int rowSpan = GetNativeCellRowSpan(cell);
                     nativeCells.Add(new PdfCore.PdfTableCell(

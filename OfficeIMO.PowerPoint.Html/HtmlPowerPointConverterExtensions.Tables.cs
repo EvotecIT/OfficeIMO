@@ -40,7 +40,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         }
 
         if (semanticBlock?.Table != null) ApplySemanticTableFormatting(table, semanticBlock.Table, grid.Cells,
-            options.HyperlinkUrlPolicy);
+            options.NormalizedHyperlinkUrlPolicy ?? options.HyperlinkUrlPolicy);
         foreach (PowerPointHtmlTableCell cell in grid.Cells) {
             TryApplyTargetSemanticRuns(table.GetCell(cell.Row, cell.Column), cell.Element, options.HyperlinkUrlPolicy);
         }

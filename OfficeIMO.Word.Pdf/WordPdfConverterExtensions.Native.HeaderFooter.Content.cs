@@ -468,7 +468,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             var images = new List<NativeHeaderFooterImage>();
-            foreach (WordElement element in headerFooter.Elements) {
+            foreach (WordElement element in CollapseNativeParagraphElements(headerFooter.Elements)) {
                 switch (element) {
                     case WordParagraph paragraph:
                         AddNativeHeaderFooterParagraphImage(images, paragraph, null, options, source);
@@ -756,19 +756,8 @@ namespace OfficeIMO.Word.Pdf {
                     throw new InvalidDataException("Word paragraph image count exceeds the PDF export limit.");
                 AddNativeHeaderFooterImage(images, image, align, options, source);
             }
-            if (paragraph.Image != null) {
-                AddImage(paragraph.Image);
-            }
-
-            foreach (W.SdtRun pictureControl in GetNativePictureControls(paragraph)) {
-                var pictureParagraph = new WordParagraph(paragraph._document, paragraph._paragraph!, pictureControl);
-                WordImage? pictureControlImage = pictureParagraph.PictureControl?.Image;
-                if (pictureControlImage == null) {
-                    continue;
-                }
-
-                AddImage(pictureControlImage);
-            }
+            foreach (WordImage image in EnumerateNativeParagraphImages(paragraph, options?.CancellationToken ?? default))
+                AddImage(image);
         }
 
         private static void AddNativeHeaderFooterImage(List<NativeHeaderFooterImage> images, WordImage image, PdfCore.PdfAlign align, WordToPdfOptions? options, string source) {

@@ -137,10 +137,12 @@ public static partial class HtmlPowerPointConverterExtensions {
         }
         PptCore.PowerPointTextBox textBox = slide.AddTextBoxPoints(text, left, top, width, height);
         if (semanticBlock?.Kind == HtmlSemanticBlockKind.List) {
-            ApplySemanticList(textBox, semanticBlock, result, options.HyperlinkUrlPolicy);
+            ApplySemanticList(textBox, semanticBlock, result,
+                options.NormalizedHyperlinkUrlPolicy ?? options.HyperlinkUrlPolicy);
         } else if (source != null && TryApplyTargetSemanticRuns(textBox, source, options.HyperlinkUrlPolicy)) {
         } else if (semanticBlock != null && semanticBlock.Runs.Count > 0) {
-            ApplySemanticRuns(textBox, semanticBlock.Runs, options.HyperlinkUrlPolicy);
+            ApplySemanticRuns(textBox, semanticBlock.Runs,
+                options.NormalizedHyperlinkUrlPolicy ?? options.HyperlinkUrlPolicy);
         }
         if (source != null) ApplyShapeTransforms(source, textBox, budget, result);
         result.TextBoxes++;
@@ -449,8 +451,9 @@ public static partial class HtmlPowerPointConverterExtensions {
         if (TryParseSemanticPixels(source.Style?.GetValue("font-size"), out double pixels)) {
             target.FontSizePoints = Math.Max(1D, pixels * 0.75D);
         }
-        if (HtmlUrlPolicyEvaluator.IsAllowed(source.Hyperlink, hyperlinkPolicy)
-            && Uri.TryCreate(source.Hyperlink, UriKind.RelativeOrAbsolute, out Uri? hyperlink)) {
+        string resolvedHyperlink = HtmlUrlPolicyEvaluator.ResolveUrl(source.Hyperlink, null, hyperlinkPolicy);
+        if (!string.IsNullOrWhiteSpace(resolvedHyperlink)
+            && Uri.TryCreate(resolvedHyperlink, UriKind.RelativeOrAbsolute, out Uri? hyperlink)) {
             target.Hyperlink = hyperlink;
         }
     }
