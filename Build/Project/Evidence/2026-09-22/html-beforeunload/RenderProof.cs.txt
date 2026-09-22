@@ -1,0 +1,22 @@
+using OfficeIMO.Html;
+using OfficeIMO.Html.Runtime;
+using OfficeIMO.Html.Providers;
+var output=args[1]; Directory.CreateDirectory(output);
+const string style="<style>body{margin:24px;font-family:Arial;color:#183348;background:#f3f6fa}article{padding:20px;background:white;border:1px solid #c3d4e0}h1{font-size:24px;margin:0 0 14px}p{font-size:16px;line-height:1.5}</style>";
+var start=new Uri("https://proof.example/draft"); var next=new Uri(start,"/next");
+var source=style+"<article><h1>Unsaved report</h1><p id='status'>Draft ready</p></article><script>onbeforeunload=()=>{document.querySelector('#status').textContent='Navigation canceled: draft retained.';return 'Unsaved draft'}</script>";
+var destination=style+"<article><h1>Navigation complete</h1><p>Handler cleared. The next document is active.</p></article>";
+File.WriteAllText(Path.Combine(output,"draft.html"),source); File.WriteAllText(Path.Combine(output,"next.html"),destination);
+var provider=new HtmlProcessRuntimeProvider(args[0],AngleSharpDomServices.Instance);
+await using var session=await provider.OpenTrustedAsync(new HtmlScriptRequest{Html=source,DocumentUrl=start,Profile=HtmlRuntimeProfile.WebApplicationV1,Resources=[HtmlRuntimeResource.FromText(next,destination,"text/html")]});
+await session.NavigateAsync(next);
+var canceled=await session.CaptureAsync();
+if(canceled.DocumentUrl!=start || canceled.Document.QuerySelector("#status")!.TextContent!="Navigation canceled: draft retained.")throw new Exception("Cancellation failed");
+await session.ExecuteAsync("onbeforeunload=null"); await session.NavigateAsync(next);
+var committed=await session.CaptureAsync();
+if(committed.DocumentUrl!=next)throw new Exception("Commit failed");
+foreach(var entry in new[]{("canceled",canceled),("committed",committed)}){
+var document=HtmlConversionDocument.FromDocument(entry.Item2.Document);
+foreach(var width in new[]{360,720})File.WriteAllBytes(Path.Combine(output,$"{entry.Item1}-{width}.png"),document.ToPng(new HtmlRenderOptions{ViewportWidth=width,ViewportHeight=260,Margins=HtmlRenderMargins.All(0)}));
+}
+Console.WriteLine("Canceled and committed navigation captured and rendered at 360/720px.");

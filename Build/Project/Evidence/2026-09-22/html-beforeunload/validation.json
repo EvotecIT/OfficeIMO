@@ -1,0 +1,102 @@
+{
+  "date": "2026-09-22",
+  "host": {
+    "os": "macOS 27.0",
+    "architecture": "arm64",
+    "sdk": "10.0.303",
+    "runtime": [
+      "10.0.11",
+      "8.0.23"
+    ]
+  },
+  "standards": {
+    "repository": "https://github.com/whatwg/html",
+    "commit": "964f6664082d374fb496cda3cc956f2b68cf0d0c",
+    "sections": [
+      "https://html.spec.whatwg.org/multipage/webappapis.html#the-event-handler-processing-algorithm",
+      "https://html.spec.whatwg.org/multipage/nav-history-apis.html#the-beforeunloadevent-interface"
+    ],
+    "qualification": "Focused original regression fixtures; not a full WPT run."
+  },
+  "results": {
+    "coreEventTests": {
+      "passed": 10
+    },
+    "combinedBindingTests": {
+      "passed": 333,
+      "failed": 0,
+      "skipped": 0,
+      "source": "source"
+    },
+    "net8FocusedWorkerTests": {
+      "passed": 15,
+      "source": "fullSuiteSource"
+    },
+    "bindingNetstandardBuild": {
+      "errors": 0,
+      "warnings": 0
+    },
+    "render": {
+      "passed": true,
+      "widths": [
+        360,
+        720
+      ],
+      "height": 260,
+      "states": [
+        "canceled",
+        "committed"
+      ],
+      "source": "fullSuiteSource"
+    },
+    "runtimeFull": {
+      "passed": 537,
+      "failed": 0,
+      "skipped": 0,
+      "framework": "net10.0",
+      "parallelThreads": 1,
+      "durationMinutes": 15.9475,
+      "source": "fullSuiteSource"
+    },
+    "finalPinnedWorkerTests": {
+      "passed": 15,
+      "failed": 0,
+      "skipped": 0,
+      "framework": "net10.0",
+      "source": "source"
+    }
+  },
+  "review": {
+    "scope": "beforeunload handler, DOMParser/worker initialization and owner-window isolation",
+    "independentPass": true,
+    "finding": "P2 accessing-engine window used instead of owning document; reproduced for onload/onbeforeunload, fixed and confirmed",
+    "targetedConfirmation": true
+  },
+  "limits": [
+    "Deterministic headless cancellation; no confirmation dialog or user-activation gate.",
+    "No new browsing contexts or Navigation API qualification.",
+    "Combined provider tests use the core fork; official AngleSharp 1.8.0 retains the native beforeunload event-name defect.",
+    "No Windows/Linux runtime qualification in this run."
+  ],
+  "artifacts": {
+    "RenderProof.cs.txt": "88cfb4217aebd22c36307d1132dffc5c7289d55e32e3b7a1b6d7dedeb2c4c059",
+    "committed-720.png": "549a6afdbe12262bb195fbfb4b5ed9372a95109ec455749dd1238caa88161578",
+    "canceled-360.png": "ef1f66df40b59da546761ae65a0df6200a696fa231326fa193ea988b4403f76d",
+    "committed-360.png": "c96c7a17bd418a7a9511f952fc2293d96daa8d2c2e9a597a1eafe5cf7e48c722",
+    "next.html": "074a065b0431a0d4febaa78f5524cf0f3b05e294fca30e2d738e461b30658328",
+    "canceled-720.png": "c4d63344f688bb00b5f0c03b5939f7ccc1963d96cd4ee19f5f3332d21c249e1c",
+    "draft.html": "c5081fc2ee7581110711e678e4b84846500f1264293ad1b2ada52f99108f5514"
+  },
+  "fullSuiteSource": {
+    "officeimo": "1f271f3f9fe99daddf3ccff59cc2611adb922cd0",
+    "anglesharp": "a5e5562d83f3254e52dfd4cef8e0e4fcfbcf3d4a",
+    "anglesharpJs": "8ef1056c0033206f045c4a9298160ef3f20089eb"
+  },
+  "source": {
+    "officeimo": "419b6e080bb244afccac59b221f48baf6242cf96",
+    "anglesharp": "03e019bd2afc3e23cb363f897326b1057d657d38",
+    "anglesharpJs": "3d8c1de6fd6e4d37bb0e1dad9f495e711685bbd4"
+  },
+  "productionSourceChangesAfterFullSuite": false,
+  "changesAfterFullSuite": "Fork documentation, changelogs, test formatting, and consumer revision pins; no production source changes."
+}
