@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using AngleSharp.Dom;
+using AngleSharp.Js.Dom;
 using Jint;
 using Jint.Native;
 using Jint.Native.Function;
@@ -10,7 +11,7 @@ namespace OfficeIMO.Html.Runtime.Worker;
 // Handler properties share one native registration per target/event, regardless of the
 // DOM wrapper or prototype through which script accesses them. Replacing a function
 // preserves its listener position; clearing and assigning again creates a new position.
-internal sealed class RuntimeEventHandlerBindings(Engine engine, IEventTarget window) {
+internal sealed class RuntimeEventHandlerBindings(Engine engine, IEventTarget window, Action<string> report) {
     private readonly ConditionalWeakTable<IEventTarget, Dictionary<string, Registration>> _targets = new();
     private readonly Dictionary<string, (JsValue Get, JsValue Set)> _accessors = new(StringComparer.Ordinal);
     private static readonly HashSet<string> WindowBodyEvents = new(StringComparer.Ordinal) {
@@ -42,8 +43,15 @@ internal sealed class RuntimeEventHandlerBindings(Engine engine, IEventTarget wi
                 if (registration != null) registration.Callback = callback;
                 else {
                     registration = new Registration(callback);
-                    registration.Handler = (sender, ev) => engine.Invoke(registration.Callback,
-                        JsValue.FromObject(engine, sender), new[] { JsValue.FromObject(engine, ev) });
+                    registration.Handler = (sender, ev) => {
+                        var result = engine.Invoke(registration.Callback,
+                            JsValue.FromObject(engine, sender), new[] { JsValue.FromObject(engine, ev) });
+                        if (eventType == "beforeunload") {
+                            try { BeforeUnloadEvent.ApplyHandlerResult(ev, result); }
+                            catch (Exception error) { report(error.Message); throw; }
+                        }
+                        else if (result.IsBoolean() && !result.AsBoolean()) ev.Cancel();
+                    };
                     handlers.Add(eventType, registration);
                     target.AddEventListener(eventType, registration.Handler);
                 }

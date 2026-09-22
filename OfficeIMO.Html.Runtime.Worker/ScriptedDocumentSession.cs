@@ -173,9 +173,10 @@ internal sealed class ScriptedDocumentSession : IDisposable {
     internal Task ReloadAsync(CancellationToken token) => OnLoop(() => { _history.Reload(); return true; }, token);
     internal Uri DocumentUrl => new(_document.Url);
     internal Task<bool> PromptToUnloadAsync(CancellationToken token) => OnLoop(() => {
-        var beforeUnload = new Event("beforeunload", bubbles: false, cancelable: true);
+        var beforeUnload = new AngleSharp.Js.Dom.BeforeUnloadEvent();
+        RuntimeEventTrust.Set(beforeUnload, true);
         _document.DefaultView!.Dispatch(beforeUnload);
-        return !beforeUnload.IsDefaultPrevented;
+        return !beforeUnload.IsDefaultPrevented && beforeUnload.ReturnValue.Length == 0;
     }, token);
     internal Task CommitUnloadAsync(CancellationToken token) => OnLoop(() => {
         _document.DefaultView!.Dispatch(new PageTransitionEvent("pagehide", bubbles: false, cancelable: false, persisted: false));

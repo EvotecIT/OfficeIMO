@@ -603,10 +603,17 @@ is admitted as strict UTF-8 before parsing or script execution. History-created
 events expose their state or URL pair and are trusted; script redispatch clears that
 status. Each history entry retains its viewport offsets. Traversal and reload restore
 them when `scrollRestoration` is `auto`; `manual` starts a replacement document at
-its own offset. A cancelable `beforeunload` can keep the current document active.
+its own offset. Before replacement, a trusted, cancelable `BeforeUnloadEvent` is
+sent to the window. The headless runtime keeps the current document when that event
+is canceled or its string `returnValue` is nonempty. A non-null/undefined return
+from `onbeforeunload` is converted to a string, cancels the event (even for an empty
+string), and fills `returnValue` only if it is empty. Values returned by
+`addEventListener` callbacks are ignored. Body property and inline handlers share
+the window handler. Same-document navigation does not fire `beforeunload`.
 Committed replacement dispatches `pagehide` with `persisted=false`, then `unload`.
-Specialized `beforeunload.returnValue` and handler return semantics, additional
-browsing contexts and the newer Navigation API remain outside this profile.
+This is a deterministic headless decision; browser confirmation dialogs and their
+user-activation rules are not implemented. Additional browsing contexts and the
+newer Navigation API remain outside this navigation profile.
 
 Offline hosts can supply cross-document responses as
 `HtmlRuntimeNavigationReplay` values. Each replay is bound to the complete
@@ -657,8 +664,9 @@ object listeners, capture, `once`, and passive cancellation semantics;
 signal-controlled registrations are rejected. Event properties and inline attributes share session-owned registration
 for ordinary and collection-backed elements such as select. Replacing a handler
 preserves its listener position; clearing and assigning again creates a new position.
-Body/window handler aliases share the window target. Specialized error/beforeunload
-callback signatures remain outside the qualified handler profile.
+Body/window handler aliases share the window target. `beforeunload` uses the
+specialized return contract described above. Specialized `error` callback
+signatures remain outside the qualified handler profile.
 
 Capture transfers nodes and attributes structurally, including namespaces,
 document mode and template contents. It does not serialize and reparse HTML.

@@ -13,7 +13,7 @@ internal static class RuntimeEventBindings {
         JsValue factory = engine.Evaluate(reader.ReadToEnd());
         JsValue reporter = JsValue.FromObject(engine, report);
         var listeners = new RuntimeListenerBindings(engine, window);
-        var handlers = new RuntimeEventHandlerBindings(engine, window);
+        var handlers = new RuntimeEventHandlerBindings(engine, window, report);
         var untrust = new Jint.Runtime.Interop.ClrFunction(engine,"untrust",(_,args)=>{
             if(args[0].ToObject() is AngleSharp.Dom.Events.Event value && value.Phase==0)RuntimeEventTrust.Set(value,false);
             return JsValue.Undefined;

@@ -51,7 +51,6 @@
                     try {
                         rememberPath(event, event.target, false);
                         const result = typeof listener === 'function' ? listener.call(normalizeWindow(this), event) : listener.handleEvent(event);
-                        if (handler && result === false) event.preventDefault();
                         return result;
                     } catch (error) {
                         let message = 'Event listener failed.';
