@@ -278,6 +278,14 @@ parser-executed scripts or navigation lifecycle handlers leave the document
 unchanged. A detached frame or closed popup cannot use the three-argument
 window-opening overload.
 
+Calling `write()` or `writeln()` on a completed document implicitly opens its
+input stream with the same entry-document URL rule. This also applies when a
+same-origin parent script writes to a child document or a child script writes
+to its parent. A foreign-origin entry is rejected before the target is erased.
+Neither explicit nor implicit opening adds a session-history entry; the current
+history object and state survive. The runtime does not yet forward arbitrary
+user-defined `window` functions between frame realms.
+
 After `document.open()`, `document.write()` parses completed input incrementally.
 Existing nodes retain their identity across writes; incomplete tokens wait for
 more input, and `document.close()` finishes the stream. Written scripts use the

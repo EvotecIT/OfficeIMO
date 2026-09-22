@@ -148,7 +148,7 @@
     "RenderProof.cs.txt": "98a8077d791bb0afec897f778e96a9431f47d0e0e3b83cd74b9addaaf0b42cad",
     "integrated-360.png": "21e982503e4e41b86f7c6ca5ce68f4ff3146d90c62d570835f8fa03537cf7809",
     "reloaded-360.png": "21e982503e4e41b86f7c6ca5ce68f4ff3146d90c62d570835f8fa03537cf7809",
-    "README.md": "63ed2225fa7e7f3335338dc58c8d116eab1d93753f8807ac1d465ad6b7f6bdb6",
+    "README.md": "a459244d33d2c78310cfa761d39a9f76db391e58fa57eb35e726df32c9945264",
     "source.html": "359176af56e7d6e1e58ec75c1f5e36de74d086d2a2a98e55e0785538edd465d9",
     "reloaded-720.png": "b5fc32a4fb5698349d37f2fc2cf06bc587ae83b7f87e796a3830d1247f7d44af",
     "integrated-720.png": "b5fc32a4fb5698349d37f2fc2cf06bc587ae83b7f87e796a3830d1247f7d44af"
@@ -162,5 +162,26 @@
     "repository": "https://github.com/EvotecIT/AngleSharp",
     "commit": "d46ba0bdd78f0256e0128dc3e0a4da4b890f688e",
     "contract": "Incremental script-created document input; retained on integration fork. Not submitted as a standalone upstream PR because extraction must account for preceding document lifecycle/reentry changes."
+  },
+  "inputStreamUrlCheckpoint": {
+    "source": {
+      "officeCode": "c68144314",
+      "angleSharp": "549a9465056161c130b03607b4147aec06339d58",
+      "wptReference": "02c25cc3a34a70a6225147f76cec312483df4706"
+    },
+    "validation": {
+      "nativeLifecycle": { "passed": 19, "failed": 0 },
+      "nativeCoreNet10": { "passed": 4206, "skipped": 1, "failed": 0 },
+      "nativeNetstandard2Release": { "warnings": 0, "errors": 0 },
+      "runtimeDocumentNet10": { "passed": 21, "failed": 0 },
+      "runtimeDocumentNet8": { "passed": 21, "failed": 0 },
+      "adjacentRuntimeNet10": { "passed": 84, "failed": 0 }
+    },
+    "review": "One independent read-only pass found no actionable issue. Worker cross-origin writes and two-entry history behavior were then added as focused tests and passed.",
+    "scope": "Adapted entry-document URL and history checks, including implicit write and writeln opening; no official WPT harness run.",
+    "remaining": [
+      "The WPT synchronous-call case invokes a child-defined window function from the parent; arbitrary cross-realm window function forwarding remains unsupported.",
+      "The WPT popup history case and the wider input-stream suite are not qualified by the root history tests."
+    ]
   }
 }

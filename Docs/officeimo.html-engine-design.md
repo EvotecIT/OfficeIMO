@@ -319,6 +319,10 @@ replacement, while AngleSharp incrementally parses script-created input streams.
 OfficeIMO forwards retained opener references to the current root and checks
 origin access. Reverse about-child opening now follows the HTML URL and
 fallback-base rules, with an observed Chromium difference still to resolve.
+Implicit opens from `write()` and `writeln()` use the script entry document through
+the native input-stream owner. Same-origin document methods are callable across
+frame realms, but arbitrary child-defined `window` functions are not yet
+forwarded across realms; the corresponding synchronous-call WPT case remains open.
 Popup navigation and unfinished lexical forms beyond start tags remain separate
 qualification work.
 

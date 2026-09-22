@@ -45,3 +45,26 @@ and use `UnfinishedTokenProbe.cs.txt` as `Program.cs`. Run once normally and
 once with `QUOTED_BRACKET=true`; the latter puts `>` inside the quoted value
 before the measured writes. The probe discards its first sample per size and
 checks the completed attribute length after each timed loop.
+
+The input-stream URL checkpoint uses AngleSharp fork commit `549a94650` and
+OfficeIMO code commit `c68144314`. It checks implicit `write()` and `writeln()`
+opens from a same-origin parent into a completed child, and a child-owned timer
+writing into its parent. The receiver takes the entry document URL, strips its
+fragment when the documents differ, and updates `location.href` without adding
+history. Runtime tests also check one- and two-entry history state and reject
+cross-origin frame writes before erasing content. The native lifecycle suite
+passes 19/19; its full .NET 10 suite passes 4,206 with one skip. The runtime
+document-input class passes 21/21 on both .NET 10 and .NET 8; adjacent .NET 10
+script, history, state and frame-base checks pass 84/84. The native
+`netstandard2.0` Release build has no warnings or errors. An independent
+read-only review found no actionable issue in this contract.
+
+These are selected adaptations of the URL and history behavior in WPT's
+[opening-the-input-stream tests](https://github.com/web-platform-tests/wpt/tree/02c25cc3a34a70a6225147f76cec312483df4706/html/webappapis/dynamic-markup-insertion/opening-the-input-stream),
+not an official WPT harness run. In particular, the
+[`url-entry-document-sync-call.window.js` case](https://github.com/web-platform-tests/wpt/blob/02c25cc3a34a70a6225147f76cec312483df4706/html/webappapis/dynamic-markup-insertion/opening-the-input-stream/url-entry-document-sync-call.window.js)
+invokes a child-defined `window` function from the parent. The runtime does
+not yet forward arbitrary child window functions across realms, so the direct
+cross-realm document-method tests do not qualify that case. The WPT history
+case also uses a popup; the current one- and two-entry checks run on the root
+browsing context.
