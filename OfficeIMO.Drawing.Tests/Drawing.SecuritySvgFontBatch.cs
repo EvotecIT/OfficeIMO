@@ -489,6 +489,22 @@ public partial class DrawingTests {
     }
 
     [Theory]
+    [InlineData("flood-opacity='0'")]
+    [InlineData("flood-color='transparent'")]
+    public void InvisibleDropShadowsDoNotConsumeSurfacesNeededByVisibleEffects(string invisiblePaint) {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 2000 2000'><defs>" +
+            "<filter id='invisible'><feDropShadow stdDeviation='1' " + invisiblePaint + "/></filter>" +
+            "<filter id='visible'><feOffset dx='1' dy='1'/></filter></defs>" +
+            "<rect width='1' height='1' filter='url(#invisible)'/>" +
+            string.Concat(Enumerable.Repeat("<rect width='1' height='1' filter='url(#visible)'/>", 4)) +
+            "</svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.Equal(0, unsupported);
+        Assert.Equal(5, drawing!.Elements.Count);
+    }
+
+    [Theory]
     [InlineData("fill")]
     [InlineData("stroke")]
     public void PatternLayersChargeOnlyTheAdditionalIntermediateSurfaces(string paint) {

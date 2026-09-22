@@ -46,8 +46,17 @@ public static partial class OfficeSvgDrawingReader {
         string? filterValue = ReadPresentationProperty(element, "filter");
         if (!string.IsNullOrWhiteSpace(filterValue)
             && !filterValue!.Trim().Equals("none", StringComparison.OrdinalIgnoreCase)) {
-            if (TryResolveSvgFilter(filterValue, references, out filterEffect)) hasEffects = true;
-            else unsupported++;
+            if (TryResolveSvgFilter(filterValue, references, out filterEffect)) {
+                // A zero-alpha shadow leaves the source unchanged. Omitting it
+                // avoids retaining sample and wrapper scenes that never render.
+                if (filterEffect?.Kind == SvgFilterEffectKind.DropShadow && filterEffect.Opacity <= 0D) {
+                    filterEffect = null;
+                } else {
+                    hasEffects = true;
+                }
+            } else {
+                unsupported++;
+            }
         }
 
         string? maskValue = ReadPresentationProperty(element, "mask");

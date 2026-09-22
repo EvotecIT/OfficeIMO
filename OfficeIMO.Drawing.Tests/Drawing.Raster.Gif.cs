@@ -55,6 +55,23 @@ namespace OfficeIMO.Tests {
                 }));
         }
 
+        [Fact]
+        public void IncompleteJpegCannotUseCallerCodecAfterManagedValidationRejectsIt() {
+            byte[] jpeg = {
+                0xFF, 0xD8, 0xFF, 0xC0, 0x00, 0x11, 0x08,
+                0x00, 0x01, 0x00, 0x01, 0x03,
+                0x01, 0x11, 0x00, 0x02, 0x11, 0x00, 0x03, 0x11, 0x00,
+                0xFF, 0xD9
+            };
+            Assert.True(OfficeImageReader.TryIdentifyByContent(jpeg, null, out _));
+            var drawing = new OfficeDrawing(1, 1).AddImage(jpeg, "image/jpeg",
+                new OfficeImageProjection(new OfficeImagePlacement(0, 0, 1, 1)));
+
+            OfficeRasterImage rendered = OfficeDrawingRasterRenderer.Render(drawing,
+                new OfficeDrawingRasterRenderOptions { ImageCodec = new UnexpectedGifCodec() });
+            Assert.Equal(OfficeColor.Transparent, rendered.GetPixel(0, 0));
+        }
+
         private sealed class UnexpectedGifCodec : IOfficeRasterImageCodec {
             public bool TryDecode(byte[] encodedBytes, string? contentType, out OfficeRasterImage? image) {
                 throw new InvalidOperationException("Rejected GIF inspection must not reach the caller codec.");

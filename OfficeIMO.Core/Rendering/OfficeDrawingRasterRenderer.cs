@@ -386,11 +386,17 @@ public static partial class OfficeDrawingRasterRenderer {
         // Only validated animated WebP intentionally delegates pixel decoding
         // to a caller codec. A rejected managed raster must not bypass its
         // container and aggregate inspection limits through that fallback.
-        bool callerDecodedWebp = decodeInfo.Container?.Format == OfficeImageFormat.Webp &&
+        bool callerCodecInputWithinLimit = bytes.Length <= decodeOptions.MaximumEncodedBytes;
+        bool callerDecodedWebp = callerCodecInputWithinLimit && decodeInfo.Container?.Format == OfficeImageFormat.Webp &&
             decodeInfo.Container.IsAnimated ||
-            identifiedManagedRaster && identified.Format == OfficeImageFormat.Webp &&
+            callerCodecInputWithinLimit && identifiedManagedRaster && identified.Format == OfficeImageFormat.Webp &&
             IsCallerDecodedLossyWebp(bytes);
-        if (identifiedManagedRaster && !callerDecodedWebp) {
+        bool callerDecodedJpeg = callerCodecInputWithinLimit && identifiedManagedRaster && identified.Format == OfficeImageFormat.Jpeg &&
+            OfficeImageReader.HasCompleteJpegPayload(bytes, cancellationToken,
+                requireManagedFrame: false, validateMetadata: true) &&
+            !OfficeImageReader.HasCompleteJpegPayload(bytes, cancellationToken,
+                requireManagedFrame: true, validateMetadata: true);
+        if (identifiedManagedRaster && !callerDecodedWebp && !callerDecodedJpeg) {
             if (imageCodec is RequiredImageCodec) throw new NotSupportedException(
                 "Raster rendering cannot decode the image within the managed raster limits.");
             return false;
