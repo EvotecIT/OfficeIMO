@@ -114,6 +114,7 @@ namespace OfficeIMO.Visio.Diagrams {
         }
 
         private void AddEdges(VisioPage page) {
+            _routeEndpointIndex.Clear();
             int routeIndex = 0;
             HashSet<string> reservedConnectorIds = BuildReservedConnectorIds(page);
             foreach (EdgeItem edge in _edges) {

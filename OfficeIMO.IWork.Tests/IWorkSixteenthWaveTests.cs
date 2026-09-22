@@ -65,7 +65,10 @@ public sealed partial class IWorkBoundaryTests {
         byte[] imageBytes = CreateSizedPreviewPng(20, 20);
         using MemoryStream package = CreatePagesImagePackage(duplicateMetadata: false,
             imageCount: 2, imageBytes: imageBytes);
-        var options = new IWorkReadOptions { MaximumPackageBytes = 2_000 };
+        var options = new IWorkReadOptions {
+            MaximumPackageBytes = 2_000,
+            MaximumDecodedImageBytes = 2_000
+        };
         IWorkSourceDocument source = IWorkSourceDocument.Open(
             package, IWorkDocumentKind.Pages, options);
         IWorkArchiveRecord[] images = source.Records

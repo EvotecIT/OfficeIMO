@@ -1,6 +1,27 @@
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfOptions {
+    private int? _maxGeneratedPages;
+    private long? _maxGeneratedOutputBytes;
+
+    /// <summary>Optional maximum number of pages generated during PDF layout.</summary>
+    public int? MaxGeneratedPages {
+        get => _maxGeneratedPages;
+        set {
+            if (value <= 0) throw new System.ArgumentOutOfRangeException(nameof(MaxGeneratedPages));
+            _maxGeneratedPages = value;
+        }
+    }
+
+
+    /// <summary>Optional maximum number of bytes serialized for a generated PDF.</summary>
+    public long? MaxGeneratedOutputBytes {
+        get => _maxGeneratedOutputBytes;
+        set {
+            if (value <= 0L) throw new System.ArgumentOutOfRangeException(nameof(MaxGeneratedOutputBytes));
+            _maxGeneratedOutputBytes = value;
+        }
+    }
     /// <summary>When true, generated page content streams are written with Flate compression.</summary>
     public bool CompressContentStreams {
         get => _compressContentStreams;

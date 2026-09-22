@@ -391,7 +391,8 @@ public static partial class PowerPointPdfConverterExtensions {
             slide.AddTextBox("No PDF pages were selected.");
         }
 
-        PdfCore.PdfDocumentInfo sourceInfo = document.Inspect(options: null, cancellationToken);
+        PdfCore.PdfDocumentInfo sourceInfo = document.InspectSelectedPages(
+            entries.Select(static page => page.PageNumber).ToArray(), cancellationToken);
         PdfCore.PdfOptionalContentUsageSummary optionalContentUsage = document.InspectPagesForOptionalContentUsage(
             entries.Select(static page => page.PageNumber).ToArray(), cancellationToken);
         return presentationOwner.Release(

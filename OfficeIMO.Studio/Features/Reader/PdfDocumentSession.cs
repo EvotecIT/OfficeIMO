@@ -135,7 +135,7 @@ internal sealed class PdfDocumentSession {
         cancellationToken.ThrowIfCancellationRequested();
         var file = new FileInfo(fullPath);
         PdfDocument document = await PdfDocument
-            .LoadAsync(fullPath, cancellationToken: cancellationToken)
+            .LoadAsync(fullPath, StudioPdfSecurityPolicy.CreateLoadOptions(), cancellationToken)
             .ConfigureAwait(false);
 
         PdfDocumentViewInfo documentInfo = await Task
@@ -158,14 +158,21 @@ internal sealed class PdfDocumentSession {
             Scale = scale,
             MaxPages = 1,
             ContinueOnError = true,
-            MaxTotalOutputBytes = 64L * 1024L * 1024L,
-            MaxOutputBytesPerPage = 64L * 1024L * 1024L
+            MaxPixelsPerPage = StudioPdfSecurityPolicy.MaximumRasterPixels,
+            RenderTimeout = StudioPdfSecurityPolicy.RenderTimeout,
+            MaxTotalOutputBytes = 16L * 1024L * 1024L,
+            MaxOutputBytesPerPage = 16L * 1024L * 1024L
         };
 
         PdfPageRenderResult result;
         if (!ViewInfo.CanExtractContent) {
             result = await Task.Run(() => _document.Render.DisplayPage(pageNumber,
-                new PdfPageDisplayOptions { Scale = scale, MaximumOutputBytes = options.MaxOutputBytesPerPage }, cancellationToken),
+                new PdfPageDisplayOptions {
+                    Scale = scale,
+                    MaximumPixels = StudioPdfSecurityPolicy.MaximumRasterPixels,
+                    MaximumOutputBytes = options.MaxOutputBytesPerPage,
+                    Timeout = StudioPdfSecurityPolicy.RenderTimeout
+                }, cancellationToken),
                 cancellationToken).ConfigureAwait(false);
         } else {
             IReadOnlyList<PdfPageRenderResult> results = await Task.Run(

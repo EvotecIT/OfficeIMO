@@ -1144,6 +1144,7 @@ namespace OfficeIMO.Word.Html {
             };
 
             var listMarkers = WordDocumentTraversal.BuildResolvedListMarkers(document);
+            using var listInfoScope = WordDocumentTraversal.UseResolvedListMarkers(document, listMarkers);
             WordDocumentTraversal.ListInfo? GetCachedListInfo(WordParagraph paragraph) =>
                 listMarkers.TryGetValue(paragraph, out var marker) ? marker.Info : null;
 

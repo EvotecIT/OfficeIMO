@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
@@ -9,8 +10,8 @@ namespace OfficeIMO.Word {
     internal static partial class WordDocumentImageRenderer {
         private const double DefaultHeaderFooterLineHeightPoints = 18D;
 
-        private static WordHeaderFooterPageFrame AddSupportedHeaderFooterContent(WordSection section, OfficeDrawing drawing, List<OfficeImageExportDiagnostic> diagnostics, int pageIndex, int sectionIndex, int sectionPageNumberStart, int sectionPageIndex, int totalPageCount, int sectionPageCount) {
-            WordHeaderFooterPageFrame frame = CreateHeaderFooterPageFrame(section, drawing, pageIndex, sectionIndex, sectionPageNumberStart, sectionPageIndex, totalPageCount, sectionPageCount);
+        private static WordHeaderFooterPageFrame AddSupportedHeaderFooterContent(WordSection section, OfficeDrawing drawing, List<OfficeImageExportDiagnostic> diagnostics, int pageIndex, int sectionIndex, int sectionPageNumberStart, int sectionPageIndex, int totalPageCount, int sectionPageCount, CancellationToken cancellationToken) {
+            WordHeaderFooterPageFrame frame = CreateHeaderFooterPageFrame(section, drawing, pageIndex, sectionIndex, sectionPageNumberStart, sectionPageIndex, totalPageCount, sectionPageCount, cancellationToken);
             if (frame.Header != null) {
                 WordImageFlowContext context = CreateFlowContext(
                     drawing,
@@ -27,7 +28,8 @@ namespace OfficeIMO.Word {
                     sectionNumber: sectionIndex + 1,
                     sectionPageCount: sectionPageCount,
                     pageNumberValue: frame.PageNumberValue,
-                    pageNumberText: frame.PageNumberText);
+                    pageNumberText: frame.PageNumberText,
+                    cancellationToken: cancellationToken);
                 AddHeaderFooterContent(frame.Header, context, diagnostics, "header");
             }
 
@@ -47,14 +49,16 @@ namespace OfficeIMO.Word {
                     sectionNumber: sectionIndex + 1,
                     sectionPageCount: sectionPageCount,
                     pageNumberValue: frame.PageNumberValue,
-                    pageNumberText: frame.PageNumberText);
+                    pageNumberText: frame.PageNumberText,
+                    cancellationToken: cancellationToken);
                 AddHeaderFooterContent(frame.Footer, context, diagnostics, "footer");
             }
 
             return frame;
         }
 
-        private static WordHeaderFooterPageFrame CreateHeaderFooterPageFrame(WordSection section, OfficeDrawing drawing, int pageIndex, int sectionIndex, int sectionPageNumberStart, int sectionPageIndex, int totalPageCount, int sectionPageCount) {
+        private static WordHeaderFooterPageFrame CreateHeaderFooterPageFrame(WordSection section, OfficeDrawing drawing, int pageIndex, int sectionIndex, int sectionPageNumberStart, int sectionPageIndex, int totalPageCount, int sectionPageCount, CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             WordMargins margins = section.Margins;
             double left = ToPoints(margins.Left, DefaultMarginPoints);
             double right = ToPoints(margins.Right, DefaultMarginPoints);
@@ -70,7 +74,7 @@ namespace OfficeIMO.Word {
             double headerRenderBottom = 0D;
             if (header != null) {
                 double headerDistance = ToPoints(margins.HeaderDistance, DefaultMarginPoints / 2D);
-                double headerHeight = EstimateHeaderFooterContentHeight(header, drawing.Width, left, contentWidth, pageIndex, sectionIndex, sectionPageCount, pageNumberValue, pageNumberText, totalPageCount);
+                double headerHeight = EstimateHeaderFooterContentHeight(header, drawing.Width, left, contentWidth, pageIndex, sectionIndex, sectionPageCount, pageNumberValue, pageNumberText, totalPageCount, cancellationToken);
                 headerTop = Math.Max(0D, Math.Min(headerDistance, topMargin) - (DefaultHeaderFooterLineHeightPoints / 2D));
                 double headerContentBottom = Math.Min(drawing.Height, headerTop + headerHeight);
                 headerRenderBottom = Math.Min(drawing.Height, Math.Max(headerContentBottom, topMargin + DefaultHeaderFooterLineHeightPoints + ParagraphGapPoints));
@@ -84,7 +88,7 @@ namespace OfficeIMO.Word {
             double footerRenderBottom = drawing.Height;
             if (footer != null) {
                 double footerDistance = ToPoints(margins.FooterDistance, DefaultMarginPoints / 2D);
-                double footerHeight = EstimateHeaderFooterContentHeight(footer, drawing.Width, left, contentWidth, pageIndex, sectionIndex, sectionPageCount, pageNumberValue, pageNumberText, totalPageCount);
+                double footerHeight = EstimateHeaderFooterContentHeight(footer, drawing.Width, left, contentWidth, pageIndex, sectionIndex, sectionPageCount, pageNumberValue, pageNumberText, totalPageCount, cancellationToken);
                 double footerTopFromDistance = drawing.Height - footerDistance - footerHeight;
                 footerTop = Math.Min(Math.Max(0D, footerTopFromDistance), Math.Max(0D, drawing.Height - footerHeight));
                 footerRenderBottom = Math.Min(drawing.Height, footerTop + footerHeight + ParagraphGapPoints);
@@ -117,7 +121,8 @@ namespace OfficeIMO.Word {
             int totalPageCount,
             int sectionPageCount,
             int knownSectionPageIndex,
-            WordHeaderFooterPageFrame? knownFrame = null) =>
+            WordHeaderFooterPageFrame? knownFrame = null,
+            CancellationToken cancellationToken = default) =>
             sectionPageIndex => {
                 int normalizedSectionPageIndex = Math.Max(0, sectionPageIndex);
                 if (knownFrame.HasValue && normalizedSectionPageIndex == knownSectionPageIndex) {
@@ -132,7 +137,8 @@ namespace OfficeIMO.Word {
                     sectionPageNumberStart,
                     normalizedSectionPageIndex,
                     totalPageCount,
-                    sectionPageCount);
+                    sectionPageCount,
+                    cancellationToken);
                 return frame.BodyFrame;
             };
 
@@ -184,7 +190,8 @@ namespace OfficeIMO.Word {
             int sectionPageCount,
             int pageNumberValue,
             string pageNumberText,
-            int totalPageCount) {
+            int totalPageCount,
+            CancellationToken cancellationToken) {
             var measurementDrawing = new OfficeDrawing(Math.Max(1D, pageWidth), double.MaxValue);
             WordImageFlowContext measurementContext = CreateFlowContext(
                 measurementDrawing,
@@ -201,7 +208,8 @@ namespace OfficeIMO.Word {
                 sectionNumber: sectionIndex + 1,
                 sectionPageCount: sectionPageCount,
                 pageNumberValue: pageNumberValue,
-                pageNumberText: pageNumberText);
+                pageNumberText: pageNumberText,
+                cancellationToken: cancellationToken);
             using (measurementDrawing.DeferBehindContentOrdering()) {
                 AddHeaderFooterContent(headerFooter, measurementContext, new List<OfficeImageExportDiagnostic>(), "header-footer");
             }
@@ -210,8 +218,11 @@ namespace OfficeIMO.Word {
 
         private static void AddHeaderFooterContent(WordHeaderFooter headerFooter, WordImageFlowContext context, List<OfficeImageExportDiagnostic> diagnostics, string kind) {
             WordDocument document = headerFooter.Document;
-            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers = WordDocumentTraversal.BuildListMarkers(document);
+            using WordDocumentTraversal.ListMarkerRenderScope listMarkerScope =
+                WordDocumentTraversal.BuildListMarkersForRendering(document);
+            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers = listMarkerScope.Markers;
             foreach (OpenXmlElement element in headerFooter.ChildElements) {
+                context.CancellationToken.ThrowIfCancellationRequested();
                 bool added = AddHeaderFooterElementContent(document, element, context, diagnostics, listMarkers, kind);
 
                 if (context.StoppedForPagination) {

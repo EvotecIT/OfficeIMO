@@ -257,6 +257,35 @@ public sealed partial class PdfWorkspaceTests {
     }
 
     [Fact]
+    public async Task EncryptedWorkspaceRejectsPlaintextStampBeforeRecoveryOrStateChange() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-encrypted-edit-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string source = Path.Combine(root, "source.pdf");
+        string protectedCopy = Path.Combine(root, "protected.pdf");
+        CreateTextSource(source, "Keep encrypted");
+        try {
+            using (PdfWorkspace plain = await PdfWorkspace.OpenAsync(source, CancellationToken.None)) {
+                await plain.SaveProtectedCopyAsync(protectedCopy, new PdfStandardEncryptionOptions("open") {
+                    OwnerPassword = "owner", AllowedPermissions = PdfStandardPermissions.All
+                }, null, CancellationToken.None);
+            }
+            using PdfWorkspace encrypted = await PdfWorkspace.OpenAsync(protectedCopy, CancellationToken.None, password: "open");
+            byte[] original = encrypted.CopyBytes();
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() => encrypted.ApplyPageNumbersAsync(CancellationToken.None));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => encrypted.ApplyWatermarkAsync("draft", CancellationToken.None));
+
+            Assert.Equal(original, encrypted.CopyBytes());
+            Assert.True(encrypted.IsEncrypted);
+            Assert.False(encrypted.IsDirty);
+            Assert.False(encrypted.HasRecovery);
+            Assert.True(PdfDocument.Load(protectedCopy, new PdfLoadOptions { Password = "open" }).Inspect().Security.HasEncryption);
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task BatesNumberingAndCertificateSigningProduceInspectableCurrentArtifacts() {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-security-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);

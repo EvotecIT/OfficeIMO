@@ -261,6 +261,63 @@ public static class OfficePngReader {
         }
     }
 
+    internal static bool TryGetProvenanceDecodeBudget(
+        byte[] bytes,
+        CancellationToken cancellationToken,
+        int maximumChunks,
+        out long decodedBytes) {
+        decodedBytes = 0;
+        if (bytes == null || bytes.Length < 33) return false;
+        for (int index = 0; index < Signature.Length; index++) {
+            if (bytes[index] != Signature[index]) return false;
+        }
+        if (!OfficePngContainerValidator.TryValidate(bytes, cancellationToken, maximumChunks, out int frameCount, out _) ||
+            ReadBigEndianInt32(bytes, 8) != 13 ||
+            bytes[12] != (byte)'I' || bytes[13] != (byte)'H' || bytes[14] != (byte)'D' || bytes[15] != (byte)'R') return false;
+        int width = ReadBigEndianInt32(bytes, 16);
+        int height = ReadBigEndianInt32(bytes, 20);
+        int colorType = bytes[25];
+        byte[]? palette = colorType == 3 ? new byte[3] : null;
+        if (!TryGetValidationWorkingSetBytes(width, height, bytes[24], colorType, bytes[28], palette,
+                out long perFrameBytes)) return false;
+        try {
+            // The default PNG image always has its own validation pass. An APNG
+            // frame following IDAT is validated at its fcTL subrectangle size.
+            decodedBytes = perFrameBytes;
+            bool seenImageData = false;
+            bool seenAnimationControl = false;
+            int controlledFrames = 0;
+            for (int offset = Signature.Length; offset + 12 <= bytes.Length;) {
+                cancellationToken.ThrowIfCancellationRequested();
+                int length = ReadBigEndianInt32(bytes, offset);
+                int dataOffset = offset + 8;
+                bool frameControl = bytes[offset + 4] == (byte)'f' && bytes[offset + 5] == (byte)'c' &&
+                    bytes[offset + 6] == (byte)'T' && bytes[offset + 7] == (byte)'L';
+                if (bytes[offset + 4] == (byte)'a' && bytes[offset + 5] == (byte)'c' &&
+                    bytes[offset + 6] == (byte)'T' && bytes[offset + 7] == (byte)'L') seenAnimationControl = true;
+                if (frameControl) {
+                    if (length != 26) return false;
+                    controlledFrames++;
+                    if (seenImageData) {
+                        int frameWidth = ReadBigEndianInt32(bytes, dataOffset + 4);
+                        int frameHeight = ReadBigEndianInt32(bytes, dataOffset + 8);
+                        if (!TryGetValidationWorkingSetBytes(frameWidth, frameHeight, bytes[24], colorType, bytes[28], palette,
+                                out long frameBytes)) return false;
+                        decodedBytes = checked(decodedBytes + frameBytes);
+                    }
+                }
+                if (bytes[offset + 4] == (byte)'I' && bytes[offset + 5] == (byte)'D' &&
+                    bytes[offset + 6] == (byte)'A' && bytes[offset + 7] == (byte)'T') seenImageData = true;
+                offset = checked(offset + 12 + length);
+            }
+            if (seenAnimationControl && (controlledFrames != frameCount ||
+                    !OfficePngAnimationValidator.TryValidateStructure(bytes, cancellationToken))) return false;
+            return true;
+        } catch (OverflowException) {
+            return false;
+        }
+    }
+
     private static bool ValidateAdam7Scanlines(PngPayload payload, CancellationToken cancellationToken) {
         int[] startX = { 0, 4, 0, 2, 0, 1, 0 };
         int[] startY = { 0, 0, 4, 0, 2, 0, 1 };

@@ -7,6 +7,61 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public class VisioGraphDiagramDensityTests {
+    [Fact]
+    public void PreservedParallelRoutesReuseNearEndpointsWithoutLosingDistinctRoutes() {
+        var nodes = new[] {
+            new VisioGraphNodeRecord("a", "A") { Placement = new VisioGraphPlacement(1, 1, 1, 1) },
+            new VisioGraphNodeRecord("b", "B") { Placement = new VisioGraphPlacement(3, 1, 1, 1) }
+        };
+        VisioGraphEdgeRecord[] edges = Enumerable.Range(0, 256).Select(index =>
+            new VisioGraphEdgeRecord("route" + index, "a", "b") {
+                Route = new VisioGraphRoute(new[] {
+                    new VisioConnectorWaypoint(1.5, 1 + (index + 1) / 1000D),
+                    new VisioConnectorWaypoint(2, 1 + (index + 1) / 1000D),
+                    new VisioConnectorWaypoint(2.5, 1 + (index + 1) / 1000D)
+                })
+            }).Concat(new[] { new VisioGraphEdgeRecord("near-duplicate", "a", "b") {
+                Route = new VisioGraphRoute(new[] {
+                    new VisioConnectorWaypoint(1.5, 1.0010000005D),
+                    new VisioConnectorWaypoint(2, 1.0010000005D),
+                    new VisioConnectorWaypoint(2.5, 1.0010000005D)
+                })
+            } }).ToArray();
+        var document = VisioDocument.Create().GraphDiagram("Parallel", graph =>
+            graph.PageSize(5, 5).PreserveLayout().Import(nodes, edges));
+        var connectors = document.Pages[0].Connectors;
+
+        Assert.Equal(257, connectors.Count);
+        Assert.Equal(256, connectors.Select(connector => connector.FromConnectionPoint).Distinct().Count());
+        Assert.Equal(256, connectors.Select(connector => connector.ToConnectionPoint).Distinct().Count());
+        Assert.Same(connectors[0].FromConnectionPoint, connectors[256].FromConnectionPoint);
+    }
+
+    [Fact]
+    public void PreservedRouteReusesSidePointAddedAfterShapeWasIndexed() {
+        var nodes = new[] {
+            new VisioGraphNodeRecord("a", "A") { Placement = new VisioGraphPlacement(1, 1, 1, 1) },
+            new VisioGraphNodeRecord("b", "B") { Placement = new VisioGraphPlacement(3, 1, 1, 1) },
+            new VisioGraphNodeRecord("c", "C") { Placement = new VisioGraphPlacement(1, 3, 1, 1) }
+        };
+        var edges = new[] {
+            new VisioGraphEdgeRecord("ab", "a", "b") { Route = new VisioGraphRoute(new[] {
+                new VisioConnectorWaypoint(1.5, 1), new VisioConnectorWaypoint(2.5, 1)
+            }) },
+            new VisioGraphEdgeRecord("ca", "c", "a") { Route = new VisioGraphRoute(new[] {
+                new VisioConnectorWaypoint(1, 2.5), new VisioConnectorWaypoint(1, 1.5)
+            }) }
+        };
+
+        var document = VisioDocument.Create().GraphDiagram("Side points", graph =>
+            graph.PageSize(5, 5).PreserveLayout().Import(nodes, edges));
+        var page = document.Pages[0];
+        var a = page.Shapes.Single(shape => shape.Id == "a");
+        var connector = page.Connectors.Single(edge => edge.Id == "ca");
+        Assert.Equal(2, a.ConnectionPoints.Count);
+        Assert.Same(a.ConnectionPoints[1], connector.ToConnectionPoint);
+    }
+
     [Theory]
     [InlineData(VisioMeasurementUnit.Centimeters)]
     [InlineData(VisioMeasurementUnit.Millimeters)]

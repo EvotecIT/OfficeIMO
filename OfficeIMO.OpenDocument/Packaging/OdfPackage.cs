@@ -23,7 +23,8 @@ internal sealed partial class OdfPackage {
     internal string MediaType => OdfMediaTypes.ForKind(Kind);
     internal IReadOnlyList<OdfDiagnostic> Diagnostics => _diagnostics;
     internal IReadOnlyList<OdfPackageEntry> Entries => _entries.Where(entry => !entry.IsRemoved).ToList();
-    internal bool IsSigned => _entries.Any(entry => !entry.IsRemoved && IsSignaturePath(entry.Name));
+    internal bool IsSigned => _entries.Any(entry => !entry.IsRemoved && IsSignatureCandidatePath(entry.Name) &&
+        IsSignatureEntry(entry.Name, entry.GetBytesForSave()));
     internal bool SourceIsEncrypted => _sourceIsEncrypted;
 
     internal static OdfPackage Create(OdfDocumentKind kind, OdfVersion version = OdfVersion.V1_4) {
@@ -245,11 +246,12 @@ internal sealed partial class OdfPackage {
         OdfVersion outputVersion = ResolveOutputVersion(effective.CompatibilityProfile);
         bool outputEncrypted = effective.Encryption != null;
         bool hasChanges = outputVersion != Version || _entryGraphChanged || _entries.Any(entry => entry.IsDirty) || outputEncrypted;
-        if (IsSigned && hasChanges) {
+        if (hasChanges && IsSigned) {
             if (effective.SignatureHandling == OdfSignatureHandling.RejectInvalidation) {
                 throw new InvalidOperationException("Saving this changed document would invalidate its signatures. Set SignatureHandling to RemoveInvalidated to continue.");
             }
-            foreach (OdfPackageEntry signature in _entries.Where(entry => IsSignaturePath(entry.Name)).ToList()) {
+            foreach (OdfPackageEntry signature in _entries.Where(entry =>
+                IsSignatureCandidatePath(entry.Name) && IsSignatureEntry(entry.Name, entry.GetBytesForSave())).ToList()) {
                 signature.Remove();
             }
             _entryGraphChanged = true;
@@ -401,6 +403,39 @@ internal sealed partial class OdfPackage {
         return string.Equals(path, "META-INF/documentsignatures.xml", StringComparison.Ordinal) ||
             string.Equals(path, "META-INF/macrosignatures.xml", StringComparison.Ordinal);
     }
+
+    internal static bool IsSignatureEntry(string path, byte[] content) {
+        if (IsSignaturePath(path)) return true;
+        if (!IsSignatureCandidatePath(path)) return false;
+        // Producer-specific signature filenames are permitted. Inspect only the XML root;
+        // ambiguous content must not be deleted as if it were a signature.
+        if (IsPngContent(content, content.Length)) return false;
+        try {
+            var settings = new System.Xml.XmlReaderSettings {
+                DtdProcessing = System.Xml.DtdProcessing.Prohibit,
+                XmlResolver = null,
+                MaxCharactersInDocument = 1024 * 1024
+            };
+            using var stream = new MemoryStream(content, writable: false);
+            using System.Xml.XmlReader reader = System.Xml.XmlReader.Create(stream, settings);
+            reader.MoveToContent();
+            const string odfSignatureNamespace = "urn:oasis:names:tc:opendocument:xmlns:digitalsignature:1.0";
+            const string xmlSignatureNamespace = "http://www.w3.org/2000/09/xmldsig#";
+            return reader.LocalName == "document-signatures" && reader.NamespaceURI == odfSignatureNamespace ||
+                reader.LocalName == "Signature" && reader.NamespaceURI == xmlSignatureNamespace;
+        } catch (System.Xml.XmlException exception) {
+            throw new InvalidDataException("An ODF signature-like entry could not be classified safely.", exception);
+        }
+    }
+
+    internal static bool IsPngContent(byte[] content, int length) => length >= 8 &&
+        content[0] == 0x89 && content[1] == (byte)'P' &&
+        content[2] == (byte)'N' && content[3] == (byte)'G' && content[4] == 0x0D &&
+        content[5] == 0x0A && content[6] == 0x1A && content[7] == 0x0A;
+
+    internal static bool IsSignatureCandidatePath(string path) => IsSignaturePath(path) ||
+        path.StartsWith("META-INF/", StringComparison.Ordinal) &&
+        path.EndsWith("signatures.xml", StringComparison.OrdinalIgnoreCase);
 
     private static string GuessMediaType(string path) {
         string extension = Path.GetExtension(path).ToLowerInvariant();

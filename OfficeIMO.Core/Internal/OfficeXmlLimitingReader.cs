@@ -4,12 +4,13 @@ using System.Threading;
 using System.Xml;
 
 namespace OfficeIMO.Core.Internal {
-    /// <summary>Enforces structural XML limits before a consumer materializes each element.</summary>
+    /// <summary>Enforces structural XML limits before a consumer materializes each node.</summary>
     internal sealed class OfficeXmlLimitingReader : XmlReader, IXmlLineInfo {
         private readonly XmlReader _inner;
         private readonly string _formatName;
         private readonly int _maxDepth;
         private readonly int _maxElements;
+        private readonly long _maxMaterializedNodes;
         private readonly int _maxAttributes;
         private readonly string? _scopedElementLocalName;
         private readonly string? _scopedElementNamespaceUri;
@@ -17,6 +18,7 @@ namespace OfficeIMO.Core.Internal {
         private readonly string? _scopedLimitName;
         private readonly CancellationToken _cancellationToken;
         private int _elements;
+        private long _materializedNodes;
         private int _scopedElements;
         private long _attributes;
 
@@ -35,6 +37,7 @@ namespace OfficeIMO.Core.Internal {
             _formatName = formatName ?? throw new ArgumentNullException(nameof(formatName));
             _maxDepth = maxDepth;
             _maxElements = maxElements;
+            _maxMaterializedNodes = 4L * maxElements;
             _maxAttributes = maxAttributes;
             _cancellationToken = cancellationToken;
             _scopedElementLocalName = scopedElementLocalName;
@@ -81,7 +84,11 @@ namespace OfficeIMO.Core.Internal {
         public override bool Read() {
             _cancellationToken.ThrowIfCancellationRequested();
             bool result = _inner.Read();
-            if (!result || _inner.NodeType != XmlNodeType.Element) return result;
+            if (!result) return false;
+            if (IsMaterializedNode(_inner.NodeType) && ++_materializedNodes > _maxMaterializedNodes) {
+                throw Limit("MaxMaterializedNodes");
+            }
+            if (_inner.NodeType != XmlNodeType.Element) return true;
             if (_inner.Depth > _maxDepth) throw Limit("MaxDepth");
             if (++_elements > _maxElements) throw Limit("MaxElements");
             _attributes += _inner.AttributeCount;
@@ -94,6 +101,11 @@ namespace OfficeIMO.Core.Internal {
             }
             return true;
         }
+
+        private static bool IsMaterializedNode(XmlNodeType type) =>
+            type is XmlNodeType.Element or XmlNodeType.Text or XmlNodeType.CDATA or
+                XmlNodeType.Comment or XmlNodeType.ProcessingInstruction or
+                XmlNodeType.Whitespace or XmlNodeType.SignificantWhitespace;
 
         protected override void Dispose(bool disposing) {
             if (disposing) _inner.Dispose();

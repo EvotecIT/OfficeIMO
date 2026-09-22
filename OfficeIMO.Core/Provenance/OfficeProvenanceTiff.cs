@@ -332,7 +332,7 @@ internal static class OfficeProvenanceTiff {
             !TryReadOptionalSingleValue(data, ifd, PhotometricInterpretationTag, 2, out ulong photometric) ||
             !TryReadOptionalSingleValue(data, ifd, RowsPerStripTag, 0, out ulong rowsPerStrip) ||
             !TryReadOptionalSingleValue(data, ifd, SamplesPerPixelTag, 0, out ulong samplesPerPixel)) return false;
-        if (compression is not (1 or 8 or 32946 or 32773)) return true;
+        if (compression is not (1 or 5 or 8 or 32946 or 32773)) return true;
 
         ulong baseSamples = photometric switch {
             0 or 1 or 3 => 1,
@@ -380,7 +380,8 @@ internal static class OfficeProvenanceTiff {
                     (int)offset,
                     (int)count,
                     (int)compression,
-                    (int)expectedBytes)) return false;
+                    (int)expectedBytes,
+                    options.CancellationToken)) return false;
         }
         return true;
     }

@@ -1,6 +1,7 @@
 namespace OfficeIMO.IWork.Internal;
 
 internal static partial class IWorkPdfInfo {
+    private const int MaximumResourceReferenceDepth = 256;
     private readonly struct ResourceDictionary {
         internal ResourceDictionary(int start, int end) {
             IsDeclared = true;
@@ -127,6 +128,10 @@ internal static partial class IWorkPdfInfo {
             return false;
         }
         if (!state.Visiting.Add(identity)) return true;
+        if (state.Visiting.Count > MaximumResourceReferenceDepth) {
+            state.Visiting.Remove(identity);
+            return false;
+        }
         bool complete = HasCompleteResourceSpan(bytes, bodyStart, bodyEnd,
             inUseOffsets, orderedObjectOffsets, limit, state);
         state.Visiting.Remove(identity);

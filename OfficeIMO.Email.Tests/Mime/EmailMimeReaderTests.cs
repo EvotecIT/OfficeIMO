@@ -519,6 +519,27 @@ public sealed class EmailMimeReaderTests {
     }
 
     [Fact]
+    public void RelatedRootLookaheadCountsNestedPartsAgainstTheMessageLimit() {
+        static string NestedMixed(int depth, int id) {
+            if (depth == 0) return "Content-Type: text/plain\r\n\r\nleaf\r\n";
+            string boundary = $"branch-{depth}-{id}";
+            return $"Content-Type: multipart/mixed; boundary={boundary}\r\n\r\n" +
+                $"--{boundary}\r\n" + NestedMixed(depth - 1, id * 2) +
+                $"--{boundary}\r\n" + NestedMixed(depth - 1, id * 2 + 1) +
+                $"--{boundary}--\r\n";
+        }
+
+        string eml = "Subject: nested related root\r\nContent-Type: multipart/related; boundary=outer\r\n\r\n" +
+            "--outer\r\n" + NestedMixed(5, 1) + "--outer--\r\n";
+        byte[] data = Encoding.ASCII.GetBytes(eml);
+
+        EmailLimitExceededException failure = Assert.Throws<EmailLimitExceededException>(() =>
+            new EmailDocumentReader(new EmailReaderOptions(maxPartCount: 20)).Read(data));
+        Assert.Equal(nameof(EmailReaderOptions.MaxPartCount), failure.LimitName);
+        new EmailDocumentReader(new EmailReaderOptions(maxPartCount: 100)).Read(data);
+    }
+
+    [Fact]
     public void KeepsRelatedTextWithContentLocationAsAnInlineAttachment() {
         const string eml = "Subject: related text resource\r\nContent-Type: multipart/related; boundary=outer\r\n\r\n" +
             "--outer\r\nContent-Type: text/html; charset=utf-8\r\n\r\n<a href=\"caption.txt\">root</a>\r\n" +

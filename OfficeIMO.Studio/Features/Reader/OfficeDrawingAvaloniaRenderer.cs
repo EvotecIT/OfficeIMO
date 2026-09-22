@@ -8,17 +8,21 @@ namespace OfficeIMO.Studio.Features.Reader;
 
 /// <summary>Maps the dependency-free OfficeIMO drawing scene onto Avalonia drawing primitives.</summary>
 internal sealed class OfficeDrawingAvaloniaRenderer : IDisposable {
+    internal const long MaximumRetainedImagePixels = 4_000_000;
+    internal const long MaximumRetainedPageImagePixels = 8_000_000;
     private readonly Dictionary<OfficeDrawingImage, Bitmap> _images = new(ReferenceEqualityComparer.Instance);
+    private long _decodedImagePixels;
 
     internal static bool RequiresRasterFallback(OfficeDrawing drawing) => AnalyzeRasterFallback(drawing).Count > 0;
 
     internal static IReadOnlyList<string> AnalyzeRasterFallback(OfficeDrawing drawing) {
         var reasons = new HashSet<string>(StringComparer.Ordinal);
-        AnalyzeRasterFallback(drawing, reasons);
+        long imagePixels = 0;
+        AnalyzeRasterFallback(drawing, reasons, ref imagePixels);
         return reasons.ToArray();
     }
 
-    private static void AnalyzeRasterFallback(OfficeDrawing drawing, HashSet<string> reasons) {
+    private static void AnalyzeRasterFallback(OfficeDrawing drawing, HashSet<string> reasons, ref long imagePixels) {
         if (drawing.Fonts.Faces.Count > 0) {
             reasons.Add("Avalonia vector fallback: drawing-scoped embedded fonts require the OfficeIMO raster renderer for glyph fidelity.");
         }
@@ -38,16 +42,26 @@ internal sealed class OfficeDrawingAvaloniaRenderer : IDisposable {
                         reasons.Add("Avalonia vector fallback: advanced PDF text metrics or decoration require the OfficeIMO raster renderer.");
                     }
                     break;
-                case OfficeDrawingImage:
+                case OfficeDrawingImage image:
+                    if (!OfficeImageReader.TryIdentifyByContent(image.Bytes, null, out OfficeImageInfo imageInfo) ||
+                        imageInfo.Width <= 0 || imageInfo.Height <= 0 ||
+                        (long)imageInfo.Width * imageInfo.Height > MaximumRetainedImagePixels) {
+                        reasons.Add("Avalonia vector fallback: embedded image dimensions exceed the retained image budget.");
+                    } else {
+                        long pixels = (long)imageInfo.Width * imageInfo.Height;
+                        if (pixels > MaximumRetainedPageImagePixels - imagePixels)
+                            reasons.Add("Avalonia vector fallback: embedded images exceed the retained page image budget.");
+                        else imagePixels += pixels;
+                    }
                     break;
                 case OfficeDrawingGroup group:
-                    AnalyzeRasterFallback(group.Drawing, reasons);
+                    AnalyzeRasterFallback(group.Drawing, reasons, ref imagePixels);
                     break;
                 case OfficeDrawingEffectGroup effectGroup:
                     if (effectGroup.BlendMode != OfficeBlendMode.Normal || effectGroup.SoftMask is not null) {
                         reasons.Add("Avalonia vector fallback: blend modes or soft masks require the OfficeIMO raster renderer.");
                     }
-                    AnalyzeRasterFallback(effectGroup.Drawing, reasons);
+                    AnalyzeRasterFallback(effectGroup.Drawing, reasons, ref imagePixels);
                     break;
                 default:
                     reasons.Add($"Avalonia vector fallback: {element.GetType().Name} is not supported by the retained adapter.");
@@ -69,6 +83,7 @@ internal sealed class OfficeDrawingAvaloniaRenderer : IDisposable {
     internal void ClearImages() {
         foreach (Bitmap image in _images.Values) image.Dispose();
         _images.Clear();
+        _decodedImagePixels = 0;
     }
 
     private void RenderDrawing(DrawingContext context, OfficeDrawing drawing) {
@@ -185,9 +200,16 @@ internal sealed class OfficeDrawingAvaloniaRenderer : IDisposable {
 
     private void RenderImage(DrawingContext context, OfficeDrawingImage image) {
         if (!_images.TryGetValue(image, out Bitmap? bitmap)) {
-            using var stream = new MemoryStream(image.Bytes, writable: false);
+            byte[] bytes = image.Bytes;
+            if (!OfficeImageReader.TryIdentifyByContent(bytes, null, out OfficeImageInfo info) ||
+                info.Width <= 0 || info.Height <= 0 ||
+                (long)info.Width * info.Height > MaximumRetainedImagePixels ||
+                (long)info.Width * info.Height > MaximumRetainedPageImagePixels - _decodedImagePixels)
+                throw new InvalidDataException("Embedded image exceeds the retained rendering budget.");
+            using var stream = new MemoryStream(bytes, writable: false);
             bitmap = new Bitmap(stream);
             _images.Add(image, bitmap);
+            _decodedImagePixels += (long)info.Width * info.Height;
         }
 
         OfficeImageProjection projection = image.Projection;

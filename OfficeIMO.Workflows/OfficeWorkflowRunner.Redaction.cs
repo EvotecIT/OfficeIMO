@@ -74,7 +74,7 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
             byte[] emptyManifest = JsonSerializer.SerializeToUtf8Bytes(new PdfRedactionBatchRecord(emptyResult), PdfRedactionWorkflowJsonContext.Default.PdfRedactionBatchRecord);
             if (emptyManifest.LongLength > maximumManifestBytes) throw new RedactionWorkflowException("Privacy-safe redaction batch manifest exceeds the configured evidence-byte limit.");
             try {
-                PublishPreparedFiles(new[] { new PreparedFile(Path.GetFullPath(manifestPath), emptyManifest) }, manifestConflictPolicy.Value, cancellationToken);
+                PublishPreparedFiles(new[] { new PreparedFile(Path.GetFullPath(manifestPath), emptyManifest, manifestPath) }, manifestConflictPolicy.Value, cancellationToken);
                 return emptyResult;
             } catch (RedactionBackupCleanupException) {
                 return new PdfRedactionBatchResult(OfficeWorkflowStatus.Failed, Array.Empty<PdfRedactionWorkflowResult>(), true, "The empty batch manifest was published, but prior-destination rollback data could not be removed. Host cleanup is required.");
@@ -138,7 +138,7 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
                 byte[] manifestBytes = JsonSerializer.SerializeToUtf8Bytes(new PdfRedactionBatchRecord(projectedResult), PdfRedactionWorkflowJsonContext.Default.PdfRedactionBatchRecord);
                 if (manifestBytes.LongLength > maximumManifestBytes) throw new RedactionWorkflowException("Privacy-safe redaction batch manifest exceeds the configured evidence-byte limit.");
                 manifestReservation = preparedBudget.Reserve(manifestBytes.LongLength);
-                files.Add(new PreparedFile(Path.GetFullPath(manifestPath), manifestBytes));
+                files.Add(new PreparedFile(Path.GetFullPath(manifestPath), manifestBytes, manifestPath));
             }
             EnsureUniqueDestinations(files);
             EnsureDestinationsDoNotReplaceReviewedInputs(files, batch);
@@ -169,7 +169,8 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
         CancellationToken cancellationToken) {
         ValidateRedactionRequest(request);
         Report(progress, request.Id, "validate", "Validating source, recipe, and resource limits", 0.05D);
-        byte[] originalSource = await ReadFileBoundedAsync(request.InputPath, request.Limits.MaximumInputBytes, cancellationToken).ConfigureAwait(false);
+        byte[] originalSource = await ReadFileBoundedAsync(request.InputPath, request.Limits.MaximumInputBytes,
+            cancellationToken, request.PhysicalInputRoot).ConfigureAwait(false);
         string originalSourceSha = ComputeSha256(originalSource);
         string recipeSha = ComputeRecipeSha256(request.Recipe);
         PdfLoadOptions loadOptions = new() { Password = request.OwnerPassword };
@@ -221,7 +222,7 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
 
         if (request.Mode == PdfRedactionWorkflowMode.PlanOnly) {
             var result = new PdfRedactionWorkflowResult(request.Id, request.Mode, OfficeWorkflowStatus.Completed, $"Planned {candidatePlan.Candidates.Count} privacy-safe redaction candidate(s).", originalSourceSha, recipeSha, candidatePlan.Candidates, null, NormalizeOptionalPath(request.EvidencePath), null, candidatePlan.Diagnostics);
-            return CreatePreparedResult(result, request.EvidencePath, request.Limits, outputBytes: null);
+            return CreatePreparedResult(result, request, outputBytes: null);
         }
 
         ValidateDecisions(request.Decisions!, originalSourceSha, recipeSha, candidatePlan.Candidates);
@@ -283,7 +284,8 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
                 if (!evidence.Verified) throw new RedactionWorkflowException("Redaction verification was inconclusive or found residual content; no artifact will be published.");
             }
         } else {
-            byte[] existingOutput = await ReadFileBoundedAsync(request.OutputPath!, request.Limits.MaximumOutputBytes, cancellationToken).ConfigureAwait(false);
+            byte[] existingOutput = await ReadFileBoundedAsync(request.OutputPath!, request.Limits.MaximumOutputBytes,
+                cancellationToken, request.PhysicalOutputRoot).ConfigureAwait(false);
             PdfLoadOptions outputOptions = GetOutputLoadOptions(request);
             ValidateFinalArtifactEncryptionPolicy(existingOutput, request, outputOptions, cancellationToken);
             RedactionSignatureEvidence signature = InspectDerivativeSignature(existingOutput, outputOptions, request, sourceSignatureCount);
@@ -321,7 +323,7 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
         var completed = new PdfRedactionWorkflowResult(request.Id, request.Mode, OfficeWorkflowStatus.Completed,
             request.Mode == PdfRedactionWorkflowMode.ApplyAndVerify ? $"Applied and verified {approvedAreas.Length} approved candidate(s)." : $"Verified {approvedAreas.Length} approved candidate(s) against the existing output.",
             originalSourceSha, recipeSha, candidatePlan.Candidates, publishedOutput, evidencePath, evidence, candidatePlan.Diagnostics);
-        return CreatePreparedResult(completed, request.EvidencePath, request.Limits, request.Mode == PdfRedactionWorkflowMode.ApplyAndVerify ? output : null, request.OutputPath);
+        return CreatePreparedResult(completed, request, request.Mode == PdfRedactionWorkflowMode.ApplyAndVerify ? output : null);
     }
 
     private static async Task<CandidatePlan> BuildCandidatePlanAsync(PdfDocument document, PdfRedactionWorkflowRequest request, string sourceSha, CancellationToken cancellationToken) {
@@ -617,15 +619,15 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
         return true;
     }
 
-    private static PreparedRedactionResult CreatePreparedResult(PdfRedactionWorkflowResult result, string? evidencePath, PdfRedactionWorkflowLimits limits, byte[]? outputBytes, string? outputPath = null) {
+    private static PreparedRedactionResult CreatePreparedResult(PdfRedactionWorkflowResult result, PdfRedactionWorkflowRequest request, byte[]? outputBytes) {
         var files = new List<PreparedFile>();
-        if (outputBytes is not null && outputPath is not null) files.Add(new PreparedFile(Path.GetFullPath(outputPath), outputBytes));
-        if (!string.IsNullOrWhiteSpace(evidencePath)) {
+        if (outputBytes is not null && request.OutputPath is not null) files.Add(new PreparedFile(Path.GetFullPath(request.OutputPath), outputBytes, request.PhysicalOutputPublicationPath));
+        if (!string.IsNullOrWhiteSpace(request.EvidencePath)) {
             byte[] evidenceBytes = JsonSerializer.SerializeToUtf8Bytes(
                 new PdfRedactionWorkflowRecord(result),
                 PdfRedactionWorkflowJsonContext.Default.PdfRedactionWorkflowRecord);
-            if (evidenceBytes.LongLength > limits.MaximumEvidenceBytes) throw new RedactionWorkflowException("Privacy-safe redaction evidence exceeds the configured evidence-byte limit.");
-            files.Add(new PreparedFile(Path.GetFullPath(evidencePath), evidenceBytes));
+            if (evidenceBytes.LongLength > request.Limits.MaximumEvidenceBytes) throw new RedactionWorkflowException("Privacy-safe redaction evidence exceeds the configured evidence-byte limit.");
+            files.Add(new PreparedFile(Path.GetFullPath(request.EvidencePath), evidenceBytes, request.PhysicalEvidencePublicationPath));
         }
         return new PreparedRedactionResult(result, files);
     }
@@ -641,10 +643,12 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
         _ => fallback + " The privacy-safe result omits detailed exception text; inspect the exception type and host logs."
     };
 
-    private static async Task<byte[]> ReadFileBoundedAsync(string path, long maximumBytes, CancellationToken cancellationToken) {
-        var info = new FileInfo(path);
-        if (info.Length > maximumBytes) throw new RedactionWorkflowException($"Input is {info.Length} bytes, above the configured {maximumBytes}-byte limit.");
-        await using var input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 81_920, FileOptions.Asynchronous | FileOptions.SequentialScan);
+    private static async Task<byte[]> ReadFileBoundedAsync(string path, long maximumBytes, CancellationToken cancellationToken,
+        string? physicalRoot = null) {
+        await using FileStream input = physicalRoot is null
+            ? new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 81_920, FileOptions.Asynchronous | FileOptions.SequentialScan)
+            : OfficeWorkflowPathIdentity.OpenRegularFileForRead(path, physicalRoot, 81_920);
+        if (input.Length > maximumBytes) throw new RedactionWorkflowException($"Input is {input.Length} bytes, above the configured {maximumBytes}-byte limit.");
         using var output = new MemoryStream();
         byte[] buffer = new byte[81_920];
         long total = 0;
@@ -720,7 +724,10 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
     private static void EnsureUniqueDestinations(IReadOnlyList<PreparedFile> files) {
         for (int left = 0; left < files.Count; left++) {
             for (int right = left + 1; right < files.Count; right++) {
-                if (OfficeWorkflowPathIdentity.AreEquivalentWithPortableFallback(files[left].Path, files[right].Path)) {
+                if (OfficeWorkflowPathIdentity.AreEquivalentWithPortableFallback(files[left].Path, files[right].Path) ||
+                    OfficeWorkflowPathIdentity.AreEquivalentWithPortableFallback(
+                        files[left].PublicationPath ?? files[left].Path,
+                        files[right].PublicationPath ?? files[right].Path)) {
                     throw new RedactionWorkflowException("Atomic batch output and evidence destinations must be unique.");
                 }
             }
@@ -730,11 +737,16 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
     private static void EnsureDestinationsDoNotReplaceReviewedInputs(IReadOnlyList<PreparedFile> files, IReadOnlyList<PdfRedactionWorkflowRequest> requests) {
         foreach (PreparedFile file in files) {
             foreach (PdfRedactionWorkflowRequest request in requests) {
-                bool replacesSource = OfficeWorkflowPathIdentity.AreEquivalentWithPortableFallback(file.Path, request.InputPath);
+                string publicationPath = file.PublicationPath ?? file.Path;
+                bool replacesSource = OfficeWorkflowPathIdentity.AreEquivalentWithPortableFallback(file.Path, request.InputPath) ||
+                    OfficeWorkflowPathIdentity.AreEquivalentWithPortableFallback(publicationPath, request.InputPath);
                 bool replacesVerifiedOutput = request.Mode == PdfRedactionWorkflowMode.VerifyExistingOutput &&
                     request.OutputPath is not null &&
-                    OfficeWorkflowPathIdentity.AreEquivalentWithPortableFallback(file.Path, request.OutputPath);
-                bool replacesProtectedInput = request.ProtectedInputPaths.Any(path => OfficeWorkflowPathIdentity.AreEquivalentWithPortableFallback(file.Path, path));
+                    (OfficeWorkflowPathIdentity.AreEquivalentWithPortableFallback(file.Path, request.OutputPath) ||
+                     OfficeWorkflowPathIdentity.AreEquivalentWithPortableFallback(publicationPath, request.OutputPath));
+                bool replacesProtectedInput = request.ProtectedInputPaths.Any(path =>
+                    OfficeWorkflowPathIdentity.AreEquivalentWithPortableFallback(file.Path, path) ||
+                    OfficeWorkflowPathIdentity.AreEquivalentWithPortableFallback(publicationPath, path));
                 if (replacesSource || replacesVerifiedOutput || replacesProtectedInput) {
                     throw new RedactionWorkflowException("Atomic batch destinations cannot replace any source or existing output inspected by the batch.");
                 }
@@ -744,47 +756,46 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
 
     private static void PublishPreparedFiles(IReadOnlyList<PreparedFile> files, OfficeWorkflowConflictPolicy conflictPolicy, CancellationToken cancellationToken) {
         EnsureUniqueDestinations(files);
-        var staged = new List<(string Temp, string Destination)>(files.Count);
-        var published = new List<(string Destination, string? Backup)>(files.Count);
+        var staged = new List<(OfficeWorkflowPublicationDirectory Directory, string Temp, string Destination)>(files.Count);
+        var published = new List<(OfficeWorkflowPublicationDirectory Directory, string Destination, string? Backup, bool DestinationPublished)>(files.Count);
+        var openedDirectories = new List<OfficeWorkflowPublicationDirectory>(files.Count);
         bool committed = false;
         try {
             foreach (PreparedFile file in files) {
                 cancellationToken.ThrowIfCancellationRequested();
-                string? directory = Path.GetDirectoryName(file.Path);
-                if (string.IsNullOrWhiteSpace(directory)) throw new ArgumentException("Output path requires a directory.");
-                Directory.CreateDirectory(directory);
-                if (conflictPolicy == OfficeWorkflowConflictPolicy.Fail && File.Exists(file.Path)) throw new IOException("Output already exists: " + file.Path);
-                if (conflictPolicy == OfficeWorkflowConflictPolicy.Rename && File.Exists(file.Path)) throw new NotSupportedException("Redaction transaction publication requires Fail or Replace conflict policy.");
-                string temp = Path.Combine(directory, "." + Path.GetFileName(file.Path) + "." + Guid.NewGuid().ToString("N") + ".tmp");
-                staged.Add((temp, file.Path));
-                File.WriteAllBytes(temp, file.Bytes);
+                string publicationPath = file.PublicationPath ?? Path.Combine(
+                    OfficeWorkflowPathIdentity.ResolvePhysicalPath(Path.GetDirectoryName(file.Path)!),
+                    Path.GetFileName(file.Path));
+                OfficeWorkflowPublicationDirectory directory = OfficeWorkflowPublicationDirectory.Open(publicationPath);
+                openedDirectories.Add(directory);
+                string destination = Path.GetFileName(publicationPath);
+                string temp = "." + destination + "." + Guid.NewGuid().ToString("N") + ".tmp";
+                staged.Add((directory, temp, destination));
+                directory.WriteNew(temp, file.Bytes);
             }
-            foreach ((string temp, string destination) in staged) {
+            foreach ((OfficeWorkflowPublicationDirectory directory, string temp, string destination) in staged) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (conflictPolicy == OfficeWorkflowConflictPolicy.Fail) {
-                    File.Move(temp, destination);
-                    published.Add((destination, null));
+                    directory.MoveNoReplace(temp, destination);
+                    published.Add((directory, destination, null, true));
                     continue;
                 }
-
-                if (File.Exists(destination)) {
-                    string backup = destination + "." + Guid.NewGuid().ToString("N") + ".rollback";
-                    File.Move(destination, backup);
-                    published.Add((destination, backup));
-                    File.Move(temp, destination);
-                } else {
-                    File.Move(temp, destination);
-                    published.Add((destination, null));
-                }
+                if (conflictPolicy != OfficeWorkflowConflictPolicy.Replace)
+                    throw new NotSupportedException("Redaction transaction publication requires Fail or Replace conflict policy.");
+                string backup = destination + "." + Guid.NewGuid().ToString("N") + ".rollback";
+                string? movedBackup = directory.TryBackup(destination, backup) ? backup : null;
+                published.Add((directory, destination, movedBackup, false));
+                directory.MoveNoReplace(temp, destination);
+                published[^1] = (directory, destination, movedBackup, true);
             }
             committed = true;
         } catch {
             var rollbackFailures = new List<Exception>();
             for (int index = published.Count - 1; index >= 0; index--) {
-                (string destination, string? backup) = published[index];
+                (OfficeWorkflowPublicationDirectory directory, string destination, string? backup, bool destinationPublished) = published[index];
                 try {
-                    if (File.Exists(destination)) File.Delete(destination);
-                    if (backup is not null && File.Exists(backup)) File.Move(backup, destination);
+                    if (destinationPublished) directory.DeleteIfExists(destination);
+                    if (backup is not null) directory.MoveNoReplace(backup, destination);
                 } catch (Exception rollbackException) when (rollbackException is IOException or UnauthorizedAccessException) {
                     rollbackFailures.Add(rollbackException);
                 }
@@ -792,15 +803,20 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
             if (rollbackFailures.Count > 0) throw new AggregateException("Redaction publication failed and one or more destinations require recovery from their .rollback sibling files.", rollbackFailures);
             throw;
         } finally {
-            foreach ((string temp, _) in staged) if (File.Exists(temp)) File.Delete(temp);
-        }
-        if (committed) {
-            var cleanupFailures = new List<Exception>();
-            foreach ((_, string? backup) in published) {
-                if (backup is null || !File.Exists(backup)) continue;
-                try { File.Delete(backup); } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) { cleanupFailures.Add(exception); }
+            try {
+                foreach ((OfficeWorkflowPublicationDirectory directory, string temp, _) in staged)
+                    directory.DeleteIfExists(temp);
+                if (committed) {
+                    var cleanupFailures = new List<Exception>();
+                    foreach ((OfficeWorkflowPublicationDirectory directory, _, string? backup, _) in published) {
+                        if (backup is null) continue;
+                        try { directory.DeleteIfExists(backup); } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) { cleanupFailures.Add(exception); }
+                    }
+                    if (cleanupFailures.Count > 0) throw new RedactionBackupCleanupException(cleanupFailures);
+                }
+            } finally {
+                foreach (OfficeWorkflowPublicationDirectory directory in openedDirectories) directory.Dispose();
             }
-            if (cleanupFailures.Count > 0) throw new RedactionBackupCleanupException(cleanupFailures);
         }
     }
 
@@ -814,6 +830,6 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
     private sealed record CandidatePlan(IReadOnlyList<IReadOnlyList<PdfRedactionArea>> CandidateAreas, IReadOnlyList<PdfRedactionWorkflowCandidate> Candidates, IReadOnlyList<OfficeWorkflowDiagnostic> Diagnostics, bool OcrUsed) {
         internal int AreaCount => CandidateAreas.Sum(static areas => areas.Count);
     }
-    private sealed record PreparedFile(string Path, byte[] Bytes);
+    private sealed record PreparedFile(string Path, byte[] Bytes, string? PublicationPath = null);
     private sealed record PreparedRedactionResult(PdfRedactionWorkflowResult Result, IReadOnlyList<PreparedFile> Files);
 }

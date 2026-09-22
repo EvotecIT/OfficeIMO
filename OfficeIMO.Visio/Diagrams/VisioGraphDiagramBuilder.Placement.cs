@@ -1,9 +1,16 @@
 using System;
-using System.Linq;
+using System.Collections.Generic;
 
 namespace OfficeIMO.Visio.Diagrams {
     public sealed partial class VisioGraphDiagramBuilder {
         private bool _preserveLayout;
+        private readonly Dictionary<VisioShape, RouteEndpointIndex> _routeEndpointIndex = new();
+        private const double RouteEndpointTolerance = 1e-9;
+
+        private sealed class RouteEndpointIndex {
+            internal readonly Dictionary<(long X, long Y), List<VisioConnectionPoint>> Buckets = new();
+            internal int IndexedCount;
+        }
 
         /// <summary>
         /// Uses imported node and container placements without automatic layout or geometry polish.
@@ -47,11 +54,45 @@ namespace OfficeIMO.Visio.Diagrams {
         private VisioConnectionPoint AddRouteEndpoint(VisioShape shape, double x, double y) {
             double localX = x.ToInches(_unit) - shape.PinX + shape.Width / 2;
             double localY = y.ToInches(_unit) - shape.PinY + shape.Height / 2;
-            var existing = shape.ConnectionPoints.FirstOrDefault(point => Math.Abs(point.X - localX) < 1e-9 && Math.Abs(point.Y - localY) < 1e-9);
-            if (existing != null) return existing;
+            if (!_routeEndpointIndex.TryGetValue(shape, out RouteEndpointIndex? index)) {
+                index = new RouteEndpointIndex();
+                _routeEndpointIndex.Add(shape, index);
+            }
+            // AddConnector can append side points after this shape was indexed for an earlier edge.
+            for (int i = index.IndexedCount; i < shape.ConnectionPoints.Count; i++)
+                AddIndexedPoint(index.Buckets, shape.ConnectionPoints[i]);
+            index.IndexedCount = shape.ConnectionPoints.Count;
+            var buckets = index.Buckets;
+            (long X, long Y) bucket = RouteEndpointBucket(localX, localY);
+            for (long dx = -1; dx <= 1; dx++) for (long dy = -1; dy <= 1; dy++) {
+                if (!buckets.TryGetValue((bucket.X + dx, bucket.Y + dy), out var points)) continue;
+                foreach (VisioConnectionPoint point in points) {
+                    if (Math.Abs(point.X - localX) < RouteEndpointTolerance &&
+                        Math.Abs(point.Y - localY) < RouteEndpointTolerance) return point;
+                }
+            }
             var created = new VisioConnectionPoint(localX, localY, 0, 0);
             shape.ConnectionPoints.Add(created);
+            AddIndexedPoint(buckets, created);
+            index.IndexedCount++;
             return created;
+        }
+
+        private static void AddIndexedPoint(Dictionary<(long X, long Y), List<VisioConnectionPoint>> buckets,
+            VisioConnectionPoint point) {
+            var bucket = RouteEndpointBucket(point.X, point.Y);
+            if (!buckets.TryGetValue(bucket, out var points)) buckets.Add(bucket, points = new List<VisioConnectionPoint>());
+            points.Add(point);
+        }
+
+        private static (long X, long Y) RouteEndpointBucket(double x, double y) {
+            double bucketX = Math.Floor(x / RouteEndpointTolerance);
+            double bucketY = Math.Floor(y / RouteEndpointTolerance);
+            if (double.IsNaN(bucketX) || double.IsNaN(bucketY) ||
+                bucketX < long.MinValue + 1D || bucketX > long.MaxValue - 1D ||
+                bucketY < long.MinValue + 1D || bucketY > long.MaxValue - 1D)
+                throw new InvalidOperationException("A preserved route endpoint is outside the supported coordinate range.");
+            return ((long)bucketX, (long)bucketY);
         }
     }
 }

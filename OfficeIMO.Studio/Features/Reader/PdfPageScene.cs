@@ -37,7 +37,7 @@ public sealed record PdfPageScene(
             drawing.Fonts.Faces.Sum(static face => face.Data.LongLength);
         foreach (OfficeDrawingElement element in drawing.Elements) {
             bytes += element switch {
-                OfficeDrawingImage image => image.Bytes.LongLength,
+                OfficeDrawingImage image => EstimateImageBytes(image),
                 OfficeDrawingImagePattern pattern => pattern.Bytes.LongLength,
                 OfficeDrawingText text => (long)text.Text.Length * sizeof(char),
                 OfficeDrawingGroup group => EstimateDrawingBytes(group.Drawing),
@@ -47,5 +47,14 @@ public sealed record PdfPageScene(
             };
         }
         return bytes;
+    }
+
+    private static long EstimateImageBytes(OfficeDrawingImage image) {
+        byte[] encoded = image.Bytes;
+        long estimate = encoded.LongLength;
+        if (OfficeImageReader.TryIdentifyByContent(encoded, null, out OfficeImageInfo info) &&
+            info.Width > 0 && info.Height > 0)
+            estimate += (long)info.Width * info.Height * 4L;
+        return estimate;
     }
 }

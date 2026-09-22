@@ -53,19 +53,35 @@ public sealed partial class PdfInvoiceDocument {
     /// Renders the captured invoice and attaches its exact CII XML using Factur-X PDF/A-3 groundwork.
     /// Supply embedded fonts through the PDF options. Validate the exact output with PDF/A and invoice validators before claiming compliance.
     /// </summary>
-    public byte[] ToPdfBytes(PdfOptions? options = null) {
-        return RenderPdf(options, embedInvoiceXml: true);
+    public byte[] ToPdfBytes(PdfOptions? options = null) => ToPdfBytes(options, default);
+
+    /// <summary>Renders the captured hybrid invoice with cancellation support.</summary>
+    public byte[] ToPdfBytes(PdfOptions? options, System.Threading.CancellationToken cancellationToken) {
+        return RenderPdf(options, embedInvoiceXml: true, cancellationToken);
     }
 
     /// <summary>
     /// Renders the captured invoice as a presentation-only PDF without attaching CII XML.
     /// Use <see cref="ToPdfBytes(PdfOptions?)"/> when a Factur-X/ZUGFeRD hybrid document is required.
     /// </summary>
-    public byte[] ToPresentationPdfBytes(PdfOptions? options = null) {
-        return RenderPdf(options, embedInvoiceXml: false);
+    public byte[] ToPresentationPdfBytes(PdfOptions? options = null) => ToPresentationPdfBytes(options, default);
+
+    /// <summary>Renders the presentation-only invoice with cancellation support.</summary>
+    public byte[] ToPresentationPdfBytes(PdfOptions? options, System.Threading.CancellationToken cancellationToken) {
+        return RenderPdf(options, embedInvoiceXml: false, cancellationToken);
     }
 
-    private byte[] RenderPdf(PdfOptions? options, bool embedInvoiceXml) {
+    private byte[] RenderPdf(PdfOptions? options, bool embedInvoiceXml, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (_xml.Length > _layout.MaxInvoiceXmlBytes)
+            throw new InvalidDataException("Invoice XML exceeds the configured PDF presentation input limit.");
+        if (_invoice.Lines.Count > _layout.MaxInvoiceLines)
+            throw new InvalidDataException("Invoice line count exceeds the configured PDF presentation limit.");
+        foreach (InvoiceLine line in _invoice.Lines) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (LineText(line).Length > _layout.MaxLineTextCharacters)
+                throw new InvalidDataException("Invoice line text exceeds the configured PDF presentation limit.");
+        }
         if (!embedInvoiceXml && options != null &&
             (options.ElectronicInvoiceMetadata != null ||
              options.ComplianceProfile == PdfComplianceProfile.FacturX ||
@@ -79,6 +95,8 @@ public sealed partial class PdfInvoiceDocument {
                 nameof(options));
         }
         PdfOptions configured = options?.Clone() ?? new PdfOptions();
+        configured.MaxGeneratedPages = Math.Min(configured.MaxGeneratedPages ?? int.MaxValue, _layout.MaxGeneratedPages);
+        configured.MaxGeneratedOutputBytes = Math.Min(configured.MaxGeneratedOutputBytes ?? long.MaxValue, _layout.MaxOutputBytes);
         configured.UseTextFallbacks(PdfTextFallbackFeatures.MultilingualFonts);
         if (configured.TextShapingProvider == null) configured.UseManagedTextShaping();
         if (embedInvoiceXml) {
@@ -88,6 +106,9 @@ public sealed partial class PdfInvoiceDocument {
         PdfDocument document = PdfDocument.Create(configured);
         document.Meta(title: DocumentTitle, author: _invoice.Seller.Name);
         Compose(document.Content);
-        return document.ToBytes();
+        byte[] pdf = document.ToBytes(cancellationToken);
+        if (pdf.Length > _layout.MaxOutputBytes)
+            throw new InvalidDataException("Invoice PDF exceeds the configured output byte limit.");
+        return pdf;
     }
 }

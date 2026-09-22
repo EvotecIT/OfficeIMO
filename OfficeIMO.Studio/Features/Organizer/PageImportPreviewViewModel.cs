@@ -38,7 +38,7 @@ public sealed partial class PageImportPreviewViewModel : ObservableObject {
             ErrorMessage = _localizer.Get("Organizer.ImportFixRanges");
         else {
             long count = Sources.Sum(source => (long)source.SelectedPages.Length);
-            if (count is < 1 or > PdfImportPreparation.MaximumImportedPages)
+            if (count < 1 || TargetPageCount + count > PdfImportPreparation.MaximumImportedPages)
                 ErrorMessage = _localizer.Get("Organizer.ImportPageLimit");
             else { InsertBefore = before; ImportedPageCount = (int)count; }
         }
@@ -78,7 +78,7 @@ public sealed partial class PageImportSourceViewModel : ObservableObject {
         try {
             PdfPageSelection selection = PdfPageSelection.Parse(PageRange);
             if (selection.Ranges.Sum(range => (long)range.PageCount) > PdfImportPreparation.MaximumImportedPages)
-                throw new ArgumentException("An import cannot exceed 100,000 selected pages.");
+                throw new ArgumentException($"An import cannot exceed {PdfImportPreparation.MaximumImportedPages:N0} selected pages.");
             SelectedPages = selection.Resolve(PageCount).ToArray();
         } catch (Exception error) when (error is ArgumentException or FormatException or OverflowException) { ErrorMessage = error.Message; }
     }

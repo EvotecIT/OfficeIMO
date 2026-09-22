@@ -103,7 +103,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ExcelWorksheet_FinalPngLimitDoesNotRejectLargerPageSetupIntermediate() {
+        public void ExcelWorksheet_PageSetupIntermediateRespectsEncodedByteLimit() {
             using var stream = new MemoryStream();
             using ExcelDocument document = ExcelDocument.Create(stream);
             ExcelSheet sheet = document.AddWorksheet("FinalPngLimit");
@@ -127,10 +127,12 @@ namespace OfficeIMO.Tests {
             Assert.True(content.Bytes.LongLength > page.Bytes.LongLength);
 
             pageOptions.MaximumTotalEncodedBytes = page.Bytes.LongLength;
-            OfficeImageExportResult limited = Assert.Single(sheet.ExportImages(OfficeImageExportFormat.Png, pageOptions));
+            OfficeImageExportBatchLimitException failure = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
+                sheet.ExportImages(OfficeImageExportFormat.Png, pageOptions));
 
-            Assert.Equal(page.Bytes, limited.Bytes);
-            Assert.True(limited.Bytes.LongLength <= pageOptions.MaximumTotalEncodedBytes);
+            Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), failure.LimitName);
+            Assert.Equal(pageOptions.MaximumTotalEncodedBytes, failure.Maximum);
+            Assert.True(failure.Actual > failure.Maximum);
         }
 
         [Fact]

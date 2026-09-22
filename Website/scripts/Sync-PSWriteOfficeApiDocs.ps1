@@ -5,6 +5,17 @@ param(
     [switch] $SkipExamples
 )
 
+function Assert-NoSourceLinks {
+    param([Parameter(Mandatory)][string] $Root)
+
+    foreach ($item in @(Get-Item -LiteralPath $Root -Force -ErrorAction Stop) +
+                     @(Get-ChildItem -LiteralPath $Root -Recurse -Force -ErrorAction Stop)) {
+        if (($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+            throw "The PSWriteOffice source contains a symbolic link or reparse point: '$($item.FullName)'."
+        }
+    }
+}
+
 $ErrorActionPreference = 'Stop'
 
 function Resolve-RepoRoot {
@@ -292,7 +303,9 @@ function Set-PSWriteOfficeSourceLinks {
         throw 'PSWriteOffice API source links require the configured repository and a pinned source ref.'
     }
     $metadata = Get-Content -LiteralPath $MetadataPath -Raw | ConvertFrom-Json -Depth 40
-    $sourcePrefix = "https://github.com/$($Source.Repo)/blob/$([Uri]::EscapeDataString($Source.Ref))/"
+    $module = Import-PowerShellDataFile -LiteralPath (Join-Path (Split-Path -Parent $MetadataPath) 'PSWriteOffice.psd1')
+    $publicRef = 'v' + [string] $module.ModuleVersion
+    $sourcePrefix = "https://github.com/$($Source.Repo)/blob/$([Uri]::EscapeDataString($publicRef))/"
     $changed = $false
     foreach ($command in @($metadata.commands)) {
         if ([string]::IsNullOrWhiteSpace($command.sourcePath)) { continue }
@@ -318,7 +331,8 @@ function Set-PSWriteOfficeDocumentationSnapshot {
     )
 
     $repository = [regex]::Escape($Source.Repo)
-    $sourceRef = [Uri]::EscapeDataString($Source.Ref)
+    $module = Import-PowerShellDataFile -LiteralPath (Join-Path $SiteRootPath 'data/apidocs/powershell/PSWriteOffice.psd1')
+    $sourceRef = [Uri]::EscapeDataString('v' + [string] $module.ModuleVersion)
     # Only floating repository refs change. Explicit historical tags, other
     # repositories, URL suffixes and branches such as main-next retain their meaning.
     $pattern = '(?<prefix>https://(?:github\.com/' + $repository +
@@ -443,6 +457,10 @@ if (-not $resolvedRepoRoot) {
     [PSCustomObject] $summary
     return
 }
+
+# Source documents and examples are copied into publishable site content.
+# Reject links before reading any source bundle or dereferencing copy inputs.
+Assert-NoSourceLinks -Root $resolvedRepoRoot
 
 $websiteArtifactsRoot = Join-Path $resolvedRepoRoot 'WebsiteArtifacts\apidocs\powershell'
 $resolvedHelpPath = Join-Path $websiteArtifactsRoot 'PSWriteOffice-help.xml'

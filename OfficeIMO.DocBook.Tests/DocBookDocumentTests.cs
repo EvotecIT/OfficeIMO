@@ -78,6 +78,16 @@ public sealed class DocBookDocumentTests {
     }
 
     [Fact]
+    public void CommentsCannotBypassTheDocBookNodeBudget() {
+        string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\">" +
+            string.Concat(Enumerable.Repeat("<!--padding-->", 32)) + "</article>";
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            DocBookDocument.Parse(source, new DocBookReadOptions { MaxElements = 2 }));
+        Assert.Contains("MaxMaterializedNodes", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void InternalSubsetProcessingInstructionsDoNotImpersonateEntityDeclarations() {
         const string source = "<!DOCTYPE article [<?audit <!ENTITY % sample SYSTEM \"uri\">?><!ENTITY safe \"ok\">]><article><para>&safe;</para></article>";
 

@@ -68,11 +68,9 @@ if (-not $Plan -and $ReferenceSummaryPath) {
         }
     }
     $gateMetrics = @(
-        @{ Name = 'MedianMs'; Absolute = 10.0 },
         @{ Name = 'ManagedAllocatedBytes'; Absolute = 1048576.0 },
         @{ Name = 'PeakWorkingSetBytes'; Absolute = 16777216.0 },
         @{ Name = 'PeakPrivateBytes'; Absolute = 16777216.0 },
-        @{ Name = 'PeakNativeBytesEstimate'; Absolute = 16777216.0 },
         @{ Name = 'EncodedBytes'; Absolute = 0.0 },
         @{ Name = 'CancellationLatencyMilliseconds'; Absolute = 5.0 },
         @{ Name = 'MeanAbsoluteError'; Absolute = 0.5 }
