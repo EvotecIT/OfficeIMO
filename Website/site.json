@@ -18,7 +18,7 @@
   "Sources": [
     {
       "Repo": "EvotecIT/PSWriteOffice",
-      "Ref": "v3.0.5",
+      "Ref": "71c77cb93c8b33a8668509a7c305f4e49c1d59da",
       "Slug": "pswriteoffice",
       "Destination": "./projects/pswriteoffice",
       "Clean": true

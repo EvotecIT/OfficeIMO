@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
+using System.Threading;
 using OfficeIMO.Drawing;
 using A = DocumentFormat.OpenXml.Drawing;
 using W = DocumentFormat.OpenXml.Wordprocessing;
@@ -378,15 +379,23 @@ namespace OfficeIMO.Word.Pdf {
             IReadOnlyList<PdfCore.PdfTableCellFormField> FormFields,
             IReadOnlyList<PdfCore.PdfTableCellImage> Images);
 
-        private static NativeTableCellEmbeddedContent CreateNativeTableCellEmbeddedContent(WordTableCell cell) {
+        private static NativeTableCellEmbeddedContent CreateNativeTableCellEmbeddedContent(WordTableCell cell, WordToPdfOptions? options) {
             List<PdfCore.PdfTableCellCheckBox>? checkBoxes = null;
             List<PdfCore.PdfTableCellFormField>? formFields = null;
             List<PdfCore.PdfTableCellImage>? images = null;
+            int imageLimit = options?.MaxImagesPerParagraph ?? 1_000;
+            if (imageLimit <= 0) throw new ArgumentOutOfRangeException(nameof(WordToPdfOptions.MaxImagesPerParagraph));
             foreach (WordParagraph paragraph in EnumerateNativeTableCellParagraphs(cell)) {
-                if (paragraph.Image != null) {
+                int imageCount = 0;
+                void AddImage(WordImage image) {
+                    options?.CancellationToken.ThrowIfCancellationRequested();
+                    if (++imageCount > imageLimit)
+                        throw new InvalidDataException("Word paragraph image count exceeds the PDF export limit.");
                     images ??= new List<PdfCore.PdfTableCellImage>();
-                    AddNativeTableCellImage(images, paragraph.Image);
+                    AddNativeTableCellImage(images, image);
                 }
+                foreach (WordImage image in EnumerateNativeParagraphImages(paragraph, options?.CancellationToken ?? default))
+                    AddImage(image);
 
                 if (paragraph._paragraph == null) {
                     continue;
@@ -408,16 +417,6 @@ namespace OfficeIMO.Word.Pdf {
                         continue;
                     }
 
-                    if (!IsNativePictureControl(control)) {
-                        continue;
-                    }
-
-                    var pictureParagraph = new WordParagraph(paragraph._document, paragraph._paragraph, control);
-                    WordImage? pictureControlImage = pictureParagraph.PictureControl?.Image;
-                    if (pictureControlImage != null) {
-                        images ??= new List<PdfCore.PdfTableCellImage>();
-                        AddNativeTableCellImage(images, pictureControlImage);
-                    }
                 }
             }
 
@@ -425,6 +424,27 @@ namespace OfficeIMO.Word.Pdf {
                 checkBoxes ?? (IReadOnlyList<PdfCore.PdfTableCellCheckBox>)Array.Empty<PdfCore.PdfTableCellCheckBox>(),
                 formFields ?? (IReadOnlyList<PdfCore.PdfTableCellFormField>)Array.Empty<PdfCore.PdfTableCellFormField>(),
                 images ?? (IReadOnlyList<PdfCore.PdfTableCellImage>)Array.Empty<PdfCore.PdfTableCellImage>());
+        }
+
+        private static IEnumerable<WordImage> EnumerateNativeParagraphImages(WordParagraph paragraph, CancellationToken cancellationToken) {
+            if (paragraph._paragraph == null) {
+                foreach (WordImage image in paragraph.EnumerateImages()) yield return image;
+                yield break;
+            }
+            foreach (W.Run run in paragraph._paragraph.Descendants<W.Run>()) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (run.Ancestors<W.DeletedRun>().Any() || run.Ancestors<W.MoveFromRun>().Any()) continue;
+                if (run.Ancestors<W.SdtRun>().Any(IsNativePictureControl)) continue;
+                var imageRun = new WordParagraph(paragraph._document, paragraph._paragraph, run);
+                foreach (WordImage image in imageRun.EnumerateImages()) yield return image;
+            }
+            foreach (W.SdtRun control in GetNativePictureControls(paragraph)) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (control.Ancestors<W.DeletedRun>().Any() || control.Ancestors<W.MoveFromRun>().Any()) continue;
+                var pictureParagraph = new WordParagraph(paragraph._document, paragraph._paragraph, control);
+                WordImage? image = pictureParagraph.PictureControl?.Image;
+                if (image != null) yield return image;
+            }
         }
 
         private static void AddNativeTableCellFormField(List<PdfCore.PdfTableCellFormField> formFields, W.SdtRun formField) {
@@ -603,11 +623,15 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void RenderNativeParagraphImages(INativePdfFlow pdf, WordParagraph paragraph, IReadOnlyList<WordParagraph> runs, PdfCore.PdfAlign align, WordToPdfOptions? options, PdfCore.PdfParagraphStyle anchorStyle) {
+            int imageLimit = options?.MaxImagesPerParagraph ?? 1_000;
+            if (imageLimit <= 0) throw new ArgumentOutOfRangeException(nameof(WordToPdfOptions.MaxImagesPerParagraph));
             var positions = paragraph._paragraph!.Descendants().Select((element, index) => (element, index))
                 .ToDictionary(pair => pair.element, pair => pair.index);
             var images = new List<(WordImage Image, int Position)>();
             void Add(WordImage? image, DocumentFormat.OpenXml.OpenXmlElement? container) {
                 if (image == null) return;
+                if (images.Count >= imageLimit)
+                    throw new InvalidDataException("Word paragraph image count exceeds the PDF export limit.");
                 // DrawingML images retain their exact position; VML wrappers use their containing run.
                 int position = image._Image != null && positions.TryGetValue(image._Image, out int drawingPosition) ? drawingPosition
                     : container != null && positions.TryGetValue(container, out int containerPosition) ? containerPosition : int.MaxValue;
@@ -624,8 +648,13 @@ namespace OfficeIMO.Word.Pdf {
                 if (ReferenceEquals(run._run, paragraph._run)) continue;
                 foreach (WordImage image in run.EnumerateImages()) Add(image, run._run);
             }
-            foreach (var image in images.OrderBy(item => item.Position))
-                RenderNativeImage(pdf, image.Image, align, options, "body paragraph image", anchorStyle);
+            var anchoredCanvas = new PdfCore.PdfPageCanvas();
+            foreach (var image in images.OrderBy(item => item.Position)) {
+                options?.CancellationToken.ThrowIfCancellationRequested();
+                RenderNativeImage(pdf, image.Image, align, options, "body paragraph image", anchorStyle, anchoredCanvas);
+            }
+            if (anchoredCanvas.Items.Count > 0)
+                anchorStyle.AnchoredCanvas = new PdfCore.PdfCanvasBlock(anchoredCanvas.Items);
         }
 
         private static void RenderNativeRunCharts(INativePdfFlow pdf, IReadOnlyList<WordParagraph> runs, PdfCore.PdfAlign align, WordToPdfOptions? options, W.Run? currentRun = null) {
