@@ -20,7 +20,12 @@ public sealed class ProjectLoadOptions : DocumentLoadOptions {
     public int MaxAttributes { get; set; } = 2_000_000;
     /// <summary>Maximum tasks, including summary and null placeholder records.</summary>
     public int MaxTasks { get; set; } = 100_000;
-    /// <summary>Maximum combined task/resource/calendar/assignment entities.</summary>
+    /// <summary>
+    /// Maximum combined records materialized from a project. MPX and native input count
+    /// tasks, resources, calendars, and assignments. XML also counts child records,
+    /// including baselines, dependencies, custom fields, lookup values, timephased
+    /// values, calendar work periods, and resource capacity or rate entries.
+    /// </summary>
     public int MaxEntities { get; set; } = 300_000;
     /// <summary>Maximum total variable field values materialized from native MPP/MPT tables.</summary>
     public int MaxNativeValues { get; set; } = 1_000_000;

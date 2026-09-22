@@ -56,10 +56,8 @@ internal static class IWorkContainerReader {
         while (directories.Count > 0) {
             string directory = directories.Pop();
             OfficePathIdentity.EnsurePathMatchesOpenedDirectory(path, rootHandle);
-            string[] fileSystemEntries = Directory.EnumerateFileSystemEntries(
-                directory, "*", SearchOption.TopDirectoryOnly).ToArray();
-            OfficePathIdentity.EnsurePathMatchesOpenedDirectory(path, rootHandle);
-            foreach (string fileSystemEntry in fileSystemEntries) {
+            foreach (string fileSystemEntry in Directory.EnumerateFileSystemEntries(
+                         directory, "*", SearchOption.TopDirectoryOnly)) {
                 EnforceEntryCount(ref nodeCount, options);
                 OfficePathIdentity.EnsurePathMatchesOpenedDirectory(path, rootHandle);
                 FileAttributes attributes = File.GetAttributes(fileSystemEntry);
@@ -94,6 +92,7 @@ internal static class IWorkContainerReader {
                 EnforceEntryBounds(bytes.LongLength, ref total, options, relative);
                 AddEntry(entries, relative, bytes);
             }
+            OfficePathIdentity.EnsurePathMatchesOpenedDirectory(path, rootHandle);
         }
         OfficePathIdentity.EnsurePathMatchesOpenedDirectory(path, rootHandle);
         ExpandNestedIndex(entries, ref total, ref nodeCount, options);

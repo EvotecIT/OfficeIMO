@@ -539,6 +539,7 @@ internal static partial class MimeParser {
                 mimeDepth,
                 state.Options.MaxMimeDepth);
         }
+        state.CountLookaheadEntity(offset, count);
 
         MimeValue contentType = MimeValueParser.Parse(
             MimeHeaderParser.GetValue(headers, "Content-Type"),

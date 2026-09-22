@@ -50,6 +50,15 @@ public sealed class OfficeVisioVisualBookOptions {
     /// <summary>Gets or sets the maximum distinct page links attached to one entity. The default is 12.</summary>
     public int MaximumNavigationLinksPerEntity { get; set; } = 12;
 
+    /// <summary>Gets or sets the maximum requested cross-page links read for one book. The default is 10,000.</summary>
+    public int MaximumRequestedLinks { get; set; } = 10_000;
+
+    /// <summary>Gets or sets the maximum distinct relationship identifiers retained per navigation. The default is 64.</summary>
+    public int MaximumRelationshipIdsPerNavigation { get; set; } = 64;
+
+    /// <summary>Gets or sets the maximum total relationship identifier characters retained per navigation. The default is 4,096.</summary>
+    public int MaximumRelationshipIdCharactersPerNavigation { get; set; } = 4_096;
+
     /// <summary>Gets or sets whether every forward link also adds a link back from the target entity. The default is true.</summary>
     public bool IncludeReturnLinks { get; set; } = true;
 
@@ -60,6 +69,12 @@ public sealed class OfficeVisioVisualBookOptions {
         if (MaximumNavigationLinksPerEntity < 1) {
             throw new ArgumentOutOfRangeException(nameof(MaximumNavigationLinksPerEntity), "The per-entity navigation limit must be positive.");
         }
+        if (MaximumRequestedLinks < 1)
+            throw new ArgumentOutOfRangeException(nameof(MaximumRequestedLinks), "The requested link limit must be positive.");
+        if (MaximumRelationshipIdsPerNavigation < 1)
+            throw new ArgumentOutOfRangeException(nameof(MaximumRelationshipIdsPerNavigation), "The relationship identifier count limit must be positive.");
+        if (MaximumRelationshipIdCharactersPerNavigation < 1)
+            throw new ArgumentOutOfRangeException(nameof(MaximumRelationshipIdCharactersPerNavigation), "The relationship identifier character limit must be positive.");
     }
 }
 

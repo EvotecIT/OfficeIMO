@@ -6,11 +6,10 @@ namespace OfficeIMO.IWork.Tests;
 
 public sealed partial class IWorkBoundaryTests {
     [Fact]
-    public void Rejected_raster_previews_do_not_consume_the_shared_decode_budget() {
-        byte[] large = CreateSizedPreviewPng(100, 100);
-        byte[] malformed = Message(large[..33],
-            CreatePngChunk("IDAT", new byte[] { 0 }),
-            CreatePngChunk("IEND", Array.Empty<byte>()));
+    public void Rejected_raster_previews_consume_the_shared_decode_budget() {
+        byte[] malformed = CreateInvalidAdlerPng(20, 20, colorType: 6);
+        _ = IWorkImageInfo.Read(malformed, "image/png", 1_622, out long decodedBytes);
+        Assert.Equal(1_620, decodedBytes);
         byte[] records = Message(ArchiveRecord(1, 10000, Message()));
         using MemoryStream package = CreatePackage(
             ("Index/Document.iwa", FrameIwa(records)),
@@ -19,9 +18,12 @@ public sealed partial class IWorkBoundaryTests {
 
         IWorkSourceDocument source = IWorkSourceDocument.Open(package,
             IWorkDocumentKind.Pages,
-            new IWorkReadOptions { MaximumPackageBytes = 40_002 });
+            new IWorkReadOptions {
+                MaximumPackageBytes = 40_002,
+                MaximumDecodedImageBytes = 1_622
+            });
 
-        Assert.Equal("preview-web.png", source.PreferredRasterPreview?.Path);
+        Assert.Null(source.PreferredRasterPreview);
     }
 
     [Fact]
