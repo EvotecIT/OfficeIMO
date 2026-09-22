@@ -77,8 +77,10 @@ internal sealed partial class RuntimeFrameRealms {
             if (!_realms.TryGetValue(caller, out var callerRealm) || !ReferenceEquals(callerRealm.Engine, engine) ||
                 !_realms.TryGetValue(current, out var targetRealm) || !ReferenceEquals(targetRealm, owner))
                 throw DomError(engine, "InvalidStateError", "The window function's realm is no longer active.");
-            JsValue thisValue = receiver.ToObject() is IWindow self && ReferenceEquals(ResolveWindow(self), current)
-                ? owner.Engine.Global : JsValue.Undefined;
+            JsValue thisValue = !ReferenceEquals(receiver, engine.Global) &&
+                receiver.ToObject() is IWindow self && ReferenceEquals(ResolveWindow(self), current)
+                ? owner.Engine.Global
+                : TransferWindowValue(receiver, engine, caller, owner.Engine, current, engine);
             var transferred = args.Select(value => TransferWindowValue(value, engine, caller, owner.Engine, current, engine)).ToArray();
             using var scope = entry.Enter(caller.Document);
             JsValue result;
@@ -103,7 +105,7 @@ internal sealed partial class RuntimeFrameRealms {
         object? native = value.ToObject();
         if (native is IWindow window) return WrapWindow(destinationEngine, destinationWindow, window);
         if (native is INode node) return JsValue.FromObject(destinationEngine, node);
-        throw DomError(errorEngine, "NotSupportedError", "Cross-realm window calls require primitive or DOM arguments and results.");
+        throw DomError(errorEngine, "NotSupportedError", "Cross-realm window calls require primitive or DOM receivers, arguments and results.");
     }
 
     private static bool SameScriptOrigin(IDocument left, IDocument right) {

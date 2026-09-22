@@ -320,9 +320,11 @@ OfficeIMO forwards retained opener references to the current root and checks
 origin access. Reverse about-child opening now follows the HTML URL and
 fallback-base rules, with an observed Chromium difference still to resolve.
 Implicit opens from `write()` and `writeln()` use the script entry document through
-the native input-stream owner. Same-origin document methods are callable across
-frame realms, but arbitrary child-defined `window` functions are not yet
-forwarded across realms; the corresponding synchronous-call WPT case remains open.
+the native input-stream owner. Same-origin document methods and child-defined
+`window` functions are callable across frame realms with primitive and DOM/window
+receivers, arguments and results. A focused runtime test covers the
+synchronous-call WPT entry-document scenario in this bounded profile; general
+cross-realm JavaScript object and property-assignment semantics remain unqualified.
 Popup navigation and unfinished lexical forms beyond start tags remain separate
 qualification work.
 

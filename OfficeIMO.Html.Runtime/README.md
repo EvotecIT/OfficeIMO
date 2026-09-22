@@ -297,12 +297,12 @@ history object and state survive. A same-origin caller can invoke a function
 defined on a child or popup `window`. The call runs in that window's realm, while
 `document.open()`, `write()` and `writeln()` inside it retain the caller's entry
 document. Function identity is stable on repeated reads. Primitive values and
-DOM/window references cross this synchronous call boundary; other JavaScript
-objects and functions as arguments or results throw `NotSupportedError` rather
-than silently losing identity. Cross-origin and opaque-window function access
-throws `SecurityError`, and a saved function from a retired realm throws
-`InvalidStateError` when called. General cross-realm JavaScript object and
-property-assignment semantics are not part of this profile.
+DOM/window references cross this synchronous call boundary as receivers,
+arguments and results; other JavaScript objects and functions in those positions
+throw `NotSupportedError` rather than silently losing identity. Cross-origin
+and opaque-window function access throws `SecurityError`. A saved function from
+a retired realm throws `InvalidStateError` when called. General cross-realm
+JavaScript object and property-assignment semantics are not part of this profile.
 
 After `document.open()`, `document.write()` parses completed input incrementally.
 Existing nodes retain their identity across writes; incomplete tokens wait for
