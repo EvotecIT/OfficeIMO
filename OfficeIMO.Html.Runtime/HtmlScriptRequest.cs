@@ -58,6 +58,8 @@ public sealed class HtmlScriptRequest {
     public int MaxStylesheetImportDepth { get; set; } = 16;
     /// <summary>Maximum same-origin child-frame JavaScript realms created over the session lifetime.</summary>
     public int MaxChildFrameRealms { get; set; } = 32;
+    /// <summary>Maximum initially blank auxiliary windows created over the session lifetime. Zero disables window creation.</summary>
+    public int MaxAuxiliaryWindows { get; set; } = 8;
     /// <summary>Maximum parent/child window messages admitted over the session lifetime.</summary>
     public int MaxFrameMessages { get; set; } = 1024;
     /// <summary>Maximum UTF-16 characters in one realm-independent parent/child structured-clone encoding.</summary>
@@ -90,6 +92,7 @@ public sealed class HtmlScriptRequest {
         if (MaxPendingHistoryTasks <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPendingHistoryTasks));
         if (MaxStylesheetImportDepth <= 0 || MaxStylesheetImportDepth > 64) throw new ArgumentOutOfRangeException(nameof(MaxStylesheetImportDepth));
         if (MaxChildFrameRealms <= 0 || MaxChildFrameRealms > 1024) throw new ArgumentOutOfRangeException(nameof(MaxChildFrameRealms));
+        if (MaxAuxiliaryWindows < 0 || MaxAuxiliaryWindows > 128) throw new ArgumentOutOfRangeException(nameof(MaxAuxiliaryWindows));
         if (MaxFrameMessages <= 0) throw new ArgumentOutOfRangeException(nameof(MaxFrameMessages));
         if (MaxFrameMessageCharacters <= 0 || MaxFrameMessageCharacters > 8 * 1024 * 1024)
             throw new ArgumentOutOfRangeException(nameof(MaxFrameMessageCharacters));
@@ -176,6 +179,7 @@ public sealed class HtmlScriptRequest {
             MaxHistoryEntries = MaxHistoryEntries, MaxHistoryStateBytes = MaxHistoryStateBytes, MaxHistoryTotalStateBytes = MaxHistoryTotalStateBytes, MaxPendingHistoryTasks = MaxPendingHistoryTasks,
             MaxStylesheetImportDepth = MaxStylesheetImportDepth,
             MaxChildFrameRealms = MaxChildFrameRealms, MaxFrameMessages = MaxFrameMessages,
+            MaxAuxiliaryWindows = MaxAuxiliaryWindows,
             MaxFrameMessageCharacters = MaxFrameMessageCharacters, FailOnFetchReplayDiscovery = FailOnFetchReplayDiscovery,
             FailOnNavigationReplayDiscovery = FailOnNavigationReplayDiscovery,
             ViewportWidth = ViewportWidth, ViewportHeight = ViewportHeight, DevicePixelRatio = DevicePixelRatio };

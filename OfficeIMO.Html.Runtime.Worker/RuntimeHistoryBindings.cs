@@ -16,6 +16,7 @@ internal sealed class RuntimeHistoryBindings {
     private readonly JsValue _navigate;
     private readonly JsValue _restore;
     private readonly JsValue _reload;
+    private readonly JsValue _rewriteDocumentUrl;
 
     internal RuntimeHistoryBindings(Engine engine, IDocument document, IEventLoop loop, HtmlScriptRequest options, RuntimeViewport viewport,
         RuntimeBrowsingHistory? browsingHistory = null, Action<RuntimeNavigation>? requestNavigation = null) {
@@ -84,6 +85,7 @@ internal sealed class RuntimeHistoryBindings {
         _navigate = exports.Get("navigate");
         _restore = exports.Get("restore");
         _reload = exports.Get("reload");
+        _rewriteDocumentUrl = exports.Get("rewriteDocumentUrl");
         var history = exports.Get("history");
         var location = exports.Get("location");
         var nativeWindow = JsValue.FromObject(engine, document.DefaultView).AsObject();
@@ -97,8 +99,8 @@ internal sealed class RuntimeHistoryBindings {
         for (var prototype = JsValue.FromObject(engine,document).AsObject().Prototype; prototype != null; prototype = prototype.Prototype) {
             if (prototype.GetOwnProperty("location").Get is not Function) continue;
             prototype.FastSetProperty("location", new GetSetPropertyDescriptor(new ClrFunction(engine,"get location",(receiver,_)=>{
-                if (!ReferenceEquals(receiver.ToObject(),document)) throw Error(engine,"NotSupportedError","Location belongs to this session's document.");
-                return location;
+                if (receiver.ToObject() is not IDocument target) throw Error(engine,"TypeError","Location requires a Document receiver.");
+                return ReferenceEquals(target,document) ? location : JsValue.FromObject(engine,target.Location);
             }), new ClrFunction(engine,"set location",(receiver,args)=>{
                 if (!ReferenceEquals(receiver.ToObject(),document)) throw Error(engine,"NotSupportedError","Location belongs to this session's document.");
                 return engine.Invoke(_navigate,new JsValue[]{TypeConverter.ToString(args[0]),false});
@@ -109,6 +111,7 @@ internal sealed class RuntimeHistoryBindings {
     internal void NavigateFragment(string target, bool replace = false) => _engine.Invoke(_navigate, new JsValue[] { target, replace });
     internal void RestoreTraversal(bool dispatchPopState) => _engine.Invoke(_restore, dispatchPopState);
     internal void Reload() => _engine.Invoke(_reload);
+    internal void RewriteDocumentUrl() => _engine.Invoke(_rewriteDocumentUrl);
 
     private static JavaScriptException Error(Engine engine, string name, string message) {
         var error = engine.Intrinsics.Error.Construct(message);

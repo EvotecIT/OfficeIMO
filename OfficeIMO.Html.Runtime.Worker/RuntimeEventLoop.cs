@@ -13,7 +13,7 @@ namespace OfficeIMO.Html.Runtime.Worker;
 // The pinned DOM provider exposes mutation notification enqueue at its source,
 // allowing the notification to enter the same FIFO queue as promise reactions.
 internal sealed class RuntimeEventLoop(IBrowsingContext context, Func<Engine?> getEngine, RuntimeScriptErrors errors,
-    object sessionSync, Action checkpoint) : IEventLoop, IMutationMicrotaskScheduler, IDisposable {
+    object sessionSync, Action checkpoint, RuntimeScriptEntry scriptEntry) : IEventLoop, IMutationMicrotaskScheduler, IDisposable {
     private readonly IEventLoop _inner = new JsEventLoop(context);
     private readonly object _sync = sessionSync;
     private JsValue? _enqueueMicrotask;
@@ -57,6 +57,7 @@ internal sealed class RuntimeEventLoop(IBrowsingContext context, Func<Engine?> g
         if (token.IsCancellationRequested) return;
         lock (_sync) {
             if (_cancelled || token.IsCancellationRequested) return;
+            using var entry = scriptEntry.Enter(context.Active);
             try { action(token); }
             finally {
                 checkpoint();

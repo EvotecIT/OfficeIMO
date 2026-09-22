@@ -14,7 +14,7 @@ namespace OfficeIMO.Html.Runtime.Worker;
 // Classic execution and the retained DOM wrappers continue using the same Jint engine.
 internal sealed class RuntimeScriptingService(JsScriptingService scripting, Func<IDocument, RuntimeModuleLoader?> modules,
     Func<IDocument, CancellationToken> realmLifetime, Func<IDocument, Engine?> ensureEngine, object sessionSync,
-    HtmlScriptRequest request, Action<string> report) : IScriptingService, ISynchronousScriptingService, IDisposable {
+    HtmlScriptRequest request, Action<string> report, RuntimeScriptEntry scriptEntry) : IScriptingService, ISynchronousScriptingService, IDisposable {
     private readonly Dictionary<Engine, JsValue> _observeLoad = new(ReferenceEqualityComparer.Instance);
     private readonly CancellationTokenSource _lifetime = new();
     private readonly List<Task> _evaluations = [];
@@ -61,7 +61,10 @@ internal sealed class RuntimeScriptingService(JsScriptingService scripting, Func
         if (type?.Equals("module", StringComparison.OrdinalIgnoreCase) == true)
             throw new HtmlScriptRuntimeException("Module scripts require asynchronous document execution.");
         string location = string.IsNullOrEmpty(sourceUrl) ? RuntimeDocumentUrls.Base(document) : new Uri(new Uri(RuntimeDocumentUrls.Base(document)), sourceUrl).AbsoluteUri;
-        lock (sessionSync) return engine.Evaluate(source, location);
+        lock (sessionSync) {
+            using var entry = scriptEntry.Enter(document);
+            return engine.Evaluate(source, location);
+        }
     }
 
     public async Task EvaluateScriptAsync(IResponse response, ScriptOptions options, CancellationToken cancel) {

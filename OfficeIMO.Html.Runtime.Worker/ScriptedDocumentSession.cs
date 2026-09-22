@@ -21,7 +21,9 @@ internal sealed class ScriptedDocumentSession : IDisposable {
     private readonly RuntimeModuleSourceCache _moduleSources;
     private Engine _engine = null!;
     private readonly object _realmSync = new();
+    private readonly RuntimeScriptEntry _scriptEntry = new();
     private readonly RuntimeFrameRealms _realms;
+    private readonly RuntimeAuxiliaryWindows _auxiliary;
     private readonly JsScriptingService _providerScripting;
     private readonly HtmlScriptRequest _options;
     private IDocument _document = null!;
@@ -48,6 +50,7 @@ internal sealed class ScriptedDocumentSession : IDisposable {
         _navigate = navigate;
         _errors = new RuntimeScriptErrors(options.MaxPendingPromiseRejections, diagnostics);
         _realms = new RuntimeFrameRealms(options, frameBudget, _realmSync, _errors);
+        _auxiliary = new RuntimeAuxiliaryWindows(options, frameBudget, _realms, _scriptEntry, EnsureEngine);
         _resources = new RuntimeResourceLoader(options, budget, diagnostics);
         _integrity = new RuntimeSubresourceIntegrity(options.MaxModuleIntegrityMetadataCharacters);
         _moduleSources = new RuntimeModuleSourceCache(_resources, options.MaxModuleCount,
@@ -68,10 +71,10 @@ internal sealed class ScriptedDocumentSession : IDisposable {
                             ?? throw new HtmlScriptRuntimeException("The module realm does not have an event loop."),
                         () => _realms.EngineFor(document.Context) ?? throw new HtmlScriptRuntimeException("The module realm is no longer active."),
                         () => _realms.LifetimeFor(document.Context)));
-                    engineOptions.EnableModules(modules).UseHostFactory(engine => new RuntimeModuleHost(engine, modules));
+                    engineOptions.EnableModules(modules).UseHostFactory(engine => new RuntimeModuleHost(engine, modules, () => _realms.CanExecuteJob(window)));
                 }
             })
-            .WithEventLoop(context => new RuntimeEventLoop(context, () => _realms.EngineFor(context), _errors, _realmSync, _realms.RetireDetached))
+            .WithEventLoop(context => new RuntimeEventLoop(context, () => _realms.EngineFor(context), _errors, _realmSync, _realms.RetireDetached, _scriptEntry))
             .With(new RuntimeDomRevisionListener(markRevision))
             .With(new RuntimeDomSynchronization(() => _realmSync))
             .With(new RuntimeScriptBlockingStyleSheetEvaluator(options))
@@ -88,7 +91,7 @@ internal sealed class ScriptedDocumentSession : IDisposable {
         _scripting = new RuntimeScriptingService(_providerScripting,
             document => _realms.ModulesFor(document.Context),
             document => _realms.LifetimeFor(document.Context),
-            EnsureEngine, _realmSync, options, _errors.Report);
+            EnsureEngine, _realmSync, options, _errors.Report, _scriptEntry);
         configuration = configuration.Without<IScriptingService>()
             .With(_scripting);
         var scriptObservers = configuration.Services.OfType<IAttributeObserver>().Where(observer => observer.GetType().Assembly == typeof(JsScriptingService).Assembly).ToArray();
@@ -144,10 +147,15 @@ internal sealed class ScriptedDocumentSession : IDisposable {
                 _loop = loop;
             }
             var normalizeWindow = RuntimeWindowBindings.Install(engine, document.DefaultView!, _realms);
-            RuntimeEventBindings.Install(engine, document.DefaultView!, _errors.Report, normalizeWindow);
+            _auxiliary.Install(engine, document.DefaultView!);
+            RuntimeNativeNavigationBindings.Install(engine, document.DefaultView!, _realms.IsAuxiliaryNavigation);
+            RuntimeEventBindings.Install(engine, document.DefaultView!, _errors.Report, normalizeWindow, resource => _realms.Own(document, resource));
+            RuntimeDocumentOpenBindings.Install(engine, document, _scriptEntry, opened => {
+                if (ReferenceEquals(opened, _document)) _history?.RewriteDocumentUrl();
+            }, (window, args) => _auxiliary.Open(engine, window, args));
             RuntimeUrlBindings.Install(engine, document.DefaultView!);
             RuntimeConsoleBindings.Install(engine, _diagnostics);
-            RuntimeObserverBindings.Install(engine, document, _errors.Report, loop.EnqueueMicrotask);
+            RuntimeObserverBindings.Install(engine, document, _errors.Report, loop.EnqueueMicrotask, resource => _realms.Own(document, resource));
             RuntimeStorageBindings.Install(engine, _options.MaxStorageCharacters, _storage,
                 RuntimeDocumentUrls.Origin(document));
             var fetch = new RuntimeFetchBindings(engine, document, loop, _resources, _options, _errors);
@@ -187,12 +195,14 @@ internal sealed class ScriptedDocumentSession : IDisposable {
     internal Task ReloadAsync(CancellationToken token) => OnLoop(() => { _history.Reload(); return true; }, token);
     internal Uri DocumentUrl => new(_document.Url);
     internal Task<bool> PromptToUnloadAsync(CancellationToken token) => OnLoop(() => {
+        using var unload = ((Document)_document).BeginUnloadScope();
         var beforeUnload = new AngleSharp.Js.Dom.BeforeUnloadEvent();
         RuntimeEventTrust.Set(beforeUnload, true);
         _document.DefaultView!.Dispatch(beforeUnload);
         return !beforeUnload.IsDefaultPrevented && beforeUnload.ReturnValue.Length == 0;
     }, token);
     internal Task CommitUnloadAsync(CancellationToken token) => OnLoop(() => {
+        using var unload = ((Document)_document).BeginUnloadScope();
         _document.DefaultView!.Dispatch(new PageTransitionEvent("pagehide", bubbles: false, cancelable: false, persisted: false));
         _document.DefaultView.Dispatch(new Event("unload", bubbles: false, cancelable: false));
         return true;

@@ -209,8 +209,8 @@ Classic scripts, modules, fetch, storage, messaging and nested captures use thes
 separate identities. Empty frames also have an initial `about:blank` document.
 Frames created in a detached container initialize when that container is attached.
 HTTP frame sources matching an ancestor document are suppressed to prevent recursive embedding.
-This qualification covers iframe creation; popup initiators, `document.open()` URL
-rewriting and child-frame navigation remain outside the supported contract.
+Child-frame navigation remains outside the supported contract. The bounded
+auxiliary-window and document replacement behavior is described below.
 
 Same-origin child frames run classic and module scripts in distinct JavaScript
 globals when their sandbox permits both scripts and same-origin access. Each
@@ -240,6 +240,44 @@ document source retires the original realm, its timers, queued messages and
 pending fetches and module evaluations. A replacement document in that child
 browsing context remains inert rather than continuing an unqualified navigation
 lifecycle.
+
+`WebApplicationV1` supports initially blank auxiliary windows through
+`window.open()` and the three-argument `document.open(url, name, features)`
+overload. Each window has an initial HTML document and an independent script
+realm. The initiating document supplies the inherited base URL, origin and
+opener. A named window can be reused with an empty URL; lookup uses its current
+`window.name`, including names assigned after creation. Closing a popup retires
+its timers, queued jobs, event callbacks and observers. Same-origin messaging
+uses the structured-clone subset and message budgets described above.
+
+`MaxAuxiliaryWindows` defaults to 8 and accepts 0 through 128. It limits total
+creations during the session, so closing a window does not restore capacity;
+reusing a named window does not consume another slot. Exhaustion returns `null`,
+as does opening from a sandbox that prohibits popups. Popups inherit the initiating
+document's sandbox restrictions, including blocked form submission.
+`allow-popups-to-escape-sandbox` is not supported; the restrictions remain in effect.
+Window names are limited
+to 256 characters. Only initially blank URLs, empty features and new or named
+auxiliary targets are supported. Navigation of a popup, nonempty features,
+`noopener`, `noreferrer` and reserved targets other than `_blank` are rejected.
+Auxiliary windows currently belong to the active root document and retire when
+that document is replaced; they are not separate host pages or frame captures.
+
+The zero-, one- and two-argument forms of `document.open()` clear the connected
+DOM and its event listeners while preserving the document, JavaScript realm,
+history state and timers. Mutation observers receive the document replacement
+record. For an active HTTP document opened from a same-origin HTTP entry
+document, its URL becomes the entry URL, with the fragment removed when the
+entry is a different document. Opening a local frame from its HTTP parent also
+removes the inherited base in favor of the new document URL. Calls during
+parser-executed scripts or navigation lifecycle handlers leave the document
+unchanged. A detached frame or closed popup cannot use the three-argument
+window-opening overload.
+
+This document replacement contract does not include incremental
+`document.write()`/`document.close()` parsing. DOM APIs can rebuild the emptied
+document. Reverse calls from an `about:blank` or `about:srcdoc` child into its
+parent are not qualified for browser-equivalent URL and base behavior.
 
 Use `CreateStandaloneDocument()` when only the root snapshot is needed. Use
 `CreateRenderDocument()` to create an independent clone that projects the captured
@@ -640,8 +678,9 @@ string), and fills `returnValue` only if it is empty. Values returned by
 the window handler. Same-document navigation does not fire `beforeunload`.
 Committed replacement dispatches `pagehide` with `persisted=false`, then `unload`.
 This is a deterministic headless decision; browser confirmation dialogs and their
-user-activation rules are not implemented. Additional browsing contexts and the
-newer Navigation API remain outside this navigation profile.
+user-activation rules are not implemented. Auxiliary contexts use the bounded
+initially blank window contract above. The newer Navigation API remains outside
+this navigation profile.
 
 Offline hosts can supply cross-document responses as
 `HtmlRuntimeNavigationReplay` values. Each replay is bound to the complete

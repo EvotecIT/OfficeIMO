@@ -1,4 +1,5 @@
 using AngleSharp.Dom;
+using AngleSharp.Browser;
 using AngleSharp.Dom.Events;
 using AngleSharp.Html.Dom;
 using AngleSharp.Io;
@@ -44,6 +45,7 @@ internal sealed partial class RuntimeAutomation {
         if (submitter != null && (!HtmlFormControlSemantics.IsSubmitter(submitter)
             || !ReferenceEquals(HtmlFormControlSemantics.ResolveFormOwner(submitter), form)))
             return RuntimeFormActionOutcome.Invalid("The submitter must be a submit button owned by this form.");
+        if ((form.Owner!.Context.Security & Sandboxes.Forms) != 0) return RuntimeFormActionOutcome.Success;
         if (validate && !form.NoValidate && submitter?.HasAttribute("formnovalidate") != true && !form.CheckValidity())
             return RuntimeFormActionOutcome.Success;
         if (dispatchSubmitEvent) {

@@ -6,7 +6,9 @@ using Jint.Runtime.Modules;
 
 namespace OfficeIMO.Html.Runtime.Worker;
 
-internal sealed class RuntimeModuleHost(Engine engine, RuntimeModuleLoader modules) : Host {
+internal sealed class RuntimeModuleHost(Engine engine, RuntimeModuleLoader modules, Func<bool> canExecuteJob) : Host {
+    public override bool CanExecuteJob() => canExecuteJob();
+
     public override List<KeyValuePair<JsValue, JsValue>> GetImportMetaProperties(Module moduleRecord) {
         var resolve = new ClrFunction(engine, "resolve", (_, arguments) => {
             string specifier = TypeConverter.ToString(arguments.ElementAtOrDefault(0) ?? JsValue.Undefined);

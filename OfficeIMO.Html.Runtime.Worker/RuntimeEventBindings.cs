@@ -7,13 +7,15 @@ using Jint.Runtime.Descriptors;
 namespace OfficeIMO.Html.Runtime.Worker;
 
 internal static class RuntimeEventBindings {
-    internal static void Install(Engine engine, AngleSharp.Dom.IEventTarget window, Action<string> report, JsValue normalizeWindow) {
+    internal static void Install(Engine engine, AngleSharp.Dom.IEventTarget window, Action<string> report, JsValue normalizeWindow, Action<IDisposable> own) {
         using var stream = typeof(RuntimeEventBindings).Assembly.GetManifestResourceStream("OfficeIMO.RuntimeBootstrap.js")!;
         using var reader = new StreamReader(stream);
         JsValue factory = engine.Evaluate(reader.ReadToEnd());
         JsValue reporter = JsValue.FromObject(engine, report);
         var listeners = new RuntimeListenerBindings(engine, window);
         var handlers = new RuntimeEventHandlerBindings(engine, window, report);
+        own(listeners);
+        own(handlers);
         var untrust = new Jint.Runtime.Interop.ClrFunction(engine,"untrust",(_,args)=>{
             if(args[0].ToObject() is AngleSharp.Dom.Events.Event value && value.Phase==0)RuntimeEventTrust.Set(value,false);
             return JsValue.Undefined;

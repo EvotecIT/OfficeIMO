@@ -19,6 +19,15 @@ internal sealed class RuntimeFrameBudget(HtmlScriptRequest options) {
     private readonly object _sync = new();
     private int _childRealms;
     private int _messages;
+    private int _auxiliaryWindows;
+
+    internal bool TryReserveAuxiliaryWindow() {
+        lock (_sync) {
+            if (_auxiliaryWindows >= options.MaxAuxiliaryWindows) return false;
+            _auxiliaryWindows++;
+            return true;
+        }
+    }
 
     internal bool TryReserveChildRealm() {
         lock (_sync) {
@@ -45,6 +54,32 @@ internal sealed class RuntimeFrameRealms(HtmlScriptRequest options, RuntimeFrame
     private readonly HashSet<IBrowsingContext> _blockedContexts = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<IWindow, RuntimeModuleLoader> _pendingModules = new(ReferenceEqualityComparer.Instance);
     private readonly List<RetiringRealm> _retiring = [];
+    private readonly Dictionary<IWindow, IWindow?> _auxiliaryWindows = new(ReferenceEqualityComparer.Instance);
+
+    internal void RegisterAuxiliary(IWindow window, IWindow? opener) => _auxiliaryWindows.Add(window, opener);
+    internal void SetAuxiliaryOpener(IWindow window, IWindow? opener) => _auxiliaryWindows[window] = opener;
+    internal IWindow? OpenerFor(IWindow window) => _auxiliaryWindows.GetValueOrDefault(window);
+    internal bool IsAuxiliary(IWindow window) => _auxiliaryWindows.ContainsKey(window);
+    internal bool IsAuxiliaryNavigation(object? target) => target switch {
+        IWindow window => IsAuxiliary(window),
+        IDocument document => document.DefaultView is { } window && IsAuxiliary(window),
+        ILocation location => _auxiliaryWindows.Keys.Any(window => ReferenceEquals(window.Document.Location, location)),
+        _ => false
+    };
+    internal static bool IsFrameContext(IBrowsingContext context) => context.Parent != null && context is not BrowsingContext { IsFrame: false };
+
+    internal void CloseAuxiliary(IWindow window) {
+        if (!_auxiliaryWindows.ContainsKey(window)) return;
+        window.Close();
+        RetireDetached();
+    }
+
+    internal bool CanExecuteJob(IWindow window) {
+        lock (sync) {
+            RetireDetached();
+            return !_blocked.Contains(window);
+        }
+    }
 
     internal bool CanExecute(IDocument document) {
         IWindow? window = document.DefaultView;
@@ -71,7 +106,7 @@ internal sealed class RuntimeFrameRealms(HtmlScriptRequest options, RuntimeFrame
                 return false;
             }
             if (!CanExecute(document)) return false;
-            if (document.Context.Parent != null) {
+            if (IsFrameContext(document.Context)) {
                 if (!budget.TryReserveChildRealm()) {
                     _blocked.Add(window);
                     return false;
@@ -169,6 +204,10 @@ internal sealed class RuntimeFrameRealms(HtmlScriptRequest options, RuntimeFrame
             if (root == null) return;
             var attached = new HashSet<IBrowsingContext>(ReferenceEqualityComparer.Instance);
             CollectAttachedContexts(root.Window.Document, attached);
+            foreach (IWindow window in _auxiliaryWindows.Keys.Where(window => !window.IsClosed)) {
+                attached.Add(window.Document.Context);
+                CollectAttachedContexts(window.Document, attached);
+            }
             foreach (Realm realm in _contexts.Values
                          .Where(realm => realm.Context.Parent != null
                              && (!attached.Contains(realm.Context) || !ReferenceEquals(realm.Context.Current, realm.Window)))
@@ -191,6 +230,7 @@ internal sealed class RuntimeFrameRealms(HtmlScriptRequest options, RuntimeFrame
             _pendingModules.Clear();
             _blocked.Clear();
             _blockedContexts.Clear();
+            _auxiliaryWindows.Clear();
         }
     }
 

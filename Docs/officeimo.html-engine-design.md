@@ -290,7 +290,7 @@ Distinguish two paths: native layout of captured HTML/CSS/assets, and importing 
 
 ## Browser runtime evolution
 
-The static engine is inert even when the input contains scripts. An optional OfficeIMO runtime owns the public session, execution, readiness and capture contracts. Its implementation supplies realms, DOM bindings, event dispatch, tasks/microtasks, timers, navigation, fetch, storage, origins and invalidation as each profile is qualified. A session has one authoritative live document. A transitional provider may retain that document in its native representation and produce independent OfficeIMO snapshots at an explicit capture boundary; do not maintain two independently mutable DOMs or expose provider nodes as public session results. A future owned live DOM replaces the provider implementation without changing the session contract.
+The static engine is inert even when the input contains scripts. An optional OfficeIMO runtime owns the public session, execution, readiness and capture contracts. Its implementation supplies realms, DOM bindings, event dispatch, tasks/microtasks, timers, navigation, fetch, storage, origins and invalidation as each profile is qualified. A session has one authoritative live root document. A transitional provider may retain that document in its native representation and produce independent OfficeIMO snapshots at an explicit capture boundary; do not maintain two independently mutable DOMs or expose provider nodes as public session results. A future owned live DOM replaces the provider implementation without changing the session contract.
 
 The scripted-document workflow reaches an explicitly ready document, owned interaction and independent rendered or semantic output. `WebApplicationV1` adds bounded modules, fetch, asynchronous XMLHttpRequest, storage, observers, cross-document navigation, reload, history restoration, forms, lifecycle behavior and layout-aware automation while retaining session resource limits and locator handles. Same-origin frame documents run qualified classic and module scripts in isolated globals with per-realm import/module maps, shared source and resource accounting, same-origin parent/top/frame access and bounded JSON-compatible messaging. Static and dynamic JSON imports are qualified through explicit `type: 'json'` attributes and strict JSON MIME checks; other import-attribute module types remain outside the profile. Cross-origin or opaque sandbox frames and sandbox-blocked scripts remain inert. Frame documents are captured as a separate immutable tree and projected into clipped static screen, print and screen-to-page output. The named profile accepts explicitly trusted content and declares its unsupported credential, isolation, layout and input behavior. Retain effective HTML, CSS and JavaScript providers while advancing static CSS and rendering qualification; owned parser and interpreter replacement remain separate tracks. HtmlTinkerX can reuse the engine later, but its current helper APIs, package graph and workflows do not define the runtime's boundary or acceptance criteria.
 
@@ -304,6 +304,20 @@ Admit runtime features through executable profiles:
 | `WebApplicationV1` | Modules and chosen fetch/XMLHttpRequest/storage/history/observer APIs, bounded document navigation, origin behavior, forms, lifecycle and layout invalidation; representative framework application fixtures |
 | Interactive automation | Selected input dispatch, focus, scrolling, hit testing, locator semantics, actionability, explicit waits and cancellation; representative standalone OfficeIMO workflows pass on each advertised provider |
 | Broader browser compatibility | Separately qualified shadow DOM/custom elements, canvas, workers, service workers, media, WebGL and other APIs as product scope expands |
+
+For document replacement and initially blank auxiliary windows, AngleSharp owns
+native document/window identity, initial DOM construction, inherited document
+metadata, listener removal and sandboxed form policy. OfficeIMO owns initiator
+selection, opening quotas, supported targets, navigation restrictions and realm
+retirement. Jint supplies the per-job host eligibility hook used to stop queued
+work after a realm retires. These responsibilities remain in their existing
+owners rather than being copied into a second DOM or script engine.
+
+The [runtime contract](../OfficeIMO.Html.Runtime/README.md) states the current
+limits: auxiliary windows belong to the active root document, and input-stream
+replacement does not provide incremental `document.write()` parsing. Neither
+boundary establishes general browser-compatible popup navigation or parser
+lifecycle behavior.
 
 Freeze time and disable unrelated animations in reproducibility tests; separately test real scheduling and animation behavior when those become supported. Define readiness using explicit lifecycle events, application predicates, resource/font completion and layout stability under a deadline. Network-idle alone cannot establish that a page is complete.
 

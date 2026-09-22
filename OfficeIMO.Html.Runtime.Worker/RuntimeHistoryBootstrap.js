@@ -127,5 +127,5 @@
     Object.defineProperties(History.prototype,Object.getOwnPropertyDescriptors(history));
     Object.defineProperties(Location.prototype,Object.getOwnPropertyDescriptors(location));
     Object.setPrototypeOf(history,History.prototype);Object.setPrototypeOf(location,Location.prototype);
-    return {history,location,navigate,reload:reloadDocument,restore:(dispatchState)=>{restoreCurrentScroll();if(dispatchState)event('popstate',{state})},History,Location,PopStateEvent,HashChangeEvent};
+    return {history,location,navigate,reload:reloadDocument,rewriteDocumentUrl:()=>{entries[index].url=currentUrl();persist(entries,index)},restore:(dispatchState)=>{restoreCurrentScroll();if(dispatchState)event('popstate',{state})},History,Location,PopStateEvent,HashChangeEvent};
 })

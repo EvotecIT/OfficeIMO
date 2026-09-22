@@ -11,7 +11,8 @@ namespace OfficeIMO.Html.Runtime.Worker;
 // Handler properties share one native registration per target/event, regardless of the
 // DOM wrapper or prototype through which script accesses them. Replacing a function
 // preserves its listener position; clearing and assigning again creates a new position.
-internal sealed class RuntimeEventHandlerBindings(Engine engine, IEventTarget window, Action<string> report) {
+internal sealed class RuntimeEventHandlerBindings(Engine engine, IEventTarget window, Action<string> report) : IDisposable {
+    private bool _disposed;
     private readonly ConditionalWeakTable<IEventTarget, Dictionary<string, Registration>> _targets = new();
     private readonly Dictionary<string, (JsValue Get, JsValue Set)> _accessors = new(StringComparer.Ordinal);
     private static readonly HashSet<string> WindowBodyEvents = new(StringComparer.Ordinal) {
@@ -31,19 +32,21 @@ internal sealed class RuntimeEventHandlerBindings(Engine engine, IEventTarget wi
         };
         var getter = new ClrFunction(engine, "get " + propertyName, (receiver, _) => {
             var target = Target(receiver, eventType);
-            return target != null && _targets.TryGetValue(target, out var handlers) && handlers.TryGetValue(eventType, out var registration)
+            return target != null && _targets.TryGetValue(target, out var handlers) && Current(target, handlers, eventType) is { } registration
                 ? registration.Callback : JsValue.Null;
         });
         var setter = new ClrFunction(engine, "set " + propertyName, (receiver, args) => {
+            if (_disposed) return JsValue.Undefined;
             var target = Target(receiver, eventType);
             if (target == null) return JsValue.Undefined;
             var handlers = _targets.GetValue(target, _ => new(StringComparer.Ordinal));
-            handlers.TryGetValue(eventType, out var registration);
+            var registration = Current(target, handlers, eventType);
             if (args.ElementAtOrDefault(0) is Function callback) {
                 if (registration != null) registration.Callback = callback;
                 else {
                     registration = new Registration(callback);
                     registration.Handler = (sender, ev) => {
+                        if (_disposed) return;
                         var result = engine.Invoke(registration.Callback,
                             JsValue.FromObject(engine, sender), new[] { JsValue.FromObject(engine, ev) });
                         if (eventType == "beforeunload") {
@@ -64,6 +67,24 @@ internal sealed class RuntimeEventHandlerBindings(Engine engine, IEventTarget wi
         var accessors = ((JsValue)getter, (JsValue)setter);
         _accessors.Add(propertyName, accessors);
         return accessors;
+    }
+
+    public void Dispose() {
+        if (_disposed) return;
+        _disposed = true;
+        foreach (var pair in _targets)
+            foreach (var registration in pair.Value)
+                pair.Key.RemoveEventListener(registration.Key, registration.Value.Handler);
+        _targets.Clear();
+    }
+
+    private static Registration? Current(IEventTarget target, Dictionary<string, Registration> handlers, string eventType) {
+        if (!handlers.TryGetValue(eventType, out var registration)) return null;
+        if (target is EventTarget native && !native.HasEventListener(eventType, registration.Handler)) {
+            handlers.Remove(eventType);
+            return null;
+        }
+        return registration;
     }
 
     private IEventTarget? Target(JsValue receiver, string eventType) {

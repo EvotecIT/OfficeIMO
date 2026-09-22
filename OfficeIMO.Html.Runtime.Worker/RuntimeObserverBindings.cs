@@ -3,11 +3,14 @@ using Jint.Native;
 using Jint.Runtime.Descriptors;
 using Jint.Runtime.Interop;
 using AngleSharp.Dom;
+using System.Runtime.CompilerServices;
 
 namespace OfficeIMO.Html.Runtime.Worker;
 
 internal static class RuntimeObserverBindings {
-    internal static void Install(Engine engine, IDocument document, Action<string> report, Action<Action> enqueue) {
+    internal static void Install(Engine engine, IDocument document, Action<string> report, Action<Action> enqueue, Action<IDisposable> own) {
+        var lifetime = new ObserverLifetime();
+        own(lifetime);
         using var stream = typeof(RuntimeObserverBindings).Assembly.GetManifestResourceStream("OfficeIMO.RuntimeObserverBootstrap.js")!;
         using var reader = new StreamReader(stream);
         var factory = engine.Evaluate(reader.ReadToEnd());
@@ -15,12 +18,14 @@ internal static class RuntimeObserverBindings {
             var callback = args[0];
             var observer = new MutationObserver((records, _) => {
                 lock (engine) {
+                    if (lifetime.IsDisposed) return;
                     try {
                         var values = new JsArray(engine, records.Select(record => JsValue.FromObject(engine, record)).ToArray());
                         engine.Invoke(callback, new JsValue[] { values });
                     } catch (Exception error) { report(error.Message); }
                 }
             });
+            lifetime.Register(observer);
             return JsValue.FromObject(engine, observer);
         });
         var take = new ClrFunction(engine, "takeRecords", (_, args) => {
@@ -28,6 +33,7 @@ internal static class RuntimeObserverBindings {
             return new JsArray(engine, observer.Flush().Select(record => JsValue.FromObject(engine, record)).ToArray());
         });
         var observe = new ClrFunction(engine, "observe", (_, args) => {
+            if (lifetime.IsDisposed) return JsValue.Undefined;
             var observer = (MutationObserver)args[0].ToObject()!;
             var target = args[1].ToObject() as INode ?? throw new ArgumentException("The observation target must be a Node.");
             var options = args[2].AsObject();
@@ -53,11 +59,28 @@ internal static class RuntimeObserverBindings {
         }
         var queue = new ClrFunction(engine,"queueMicrotask",(_,args)=>{
             var callback=args[0];
-            enqueue(()=>engine.Invoke(callback));
+            enqueue(()=> { if (!lifetime.IsDisposed) engine.Invoke(callback); });
             return JsValue.Undefined;
         });
         var exports = engine.Invoke(factory, new[] { create, take, observe, JsValue.FromObject(engine, report), queue }).AsObject();
         foreach (var property in exports.GetOwnProperties())
             engine.Global.FastSetProperty(property.Key, new PropertyDescriptor(property.Value.Value, true, false, true));
+    }
+
+    // Weak keys preserve normal collection of disconnected observers. Connected
+    // observers remain reachable through their targets and are disconnected when
+    // their script realm retires, including when they observe another document.
+    private sealed class ObserverLifetime : IDisposable {
+        private readonly ConditionalWeakTable<MutationObserver, object> _observers = new();
+        private static readonly object Registration = new();
+        internal bool IsDisposed { get; private set; }
+        internal void Register(MutationObserver observer) => _observers.Add(observer, Registration);
+
+        public void Dispose() {
+            if (IsDisposed) return;
+            IsDisposed = true;
+            foreach (var observer in _observers) observer.Key.Disconnect();
+            _observers.Clear();
+        }
     }
 }

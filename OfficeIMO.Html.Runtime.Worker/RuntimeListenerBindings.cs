@@ -11,14 +11,16 @@ namespace OfficeIMO.Html.Runtime.Worker;
 
 // The provider creates a new CLR delegate each time a JS callback crosses its method
 // boundary. Own registration identity so removal and duplicate suppression are reliable.
-internal sealed class RuntimeListenerBindings {
+internal sealed class RuntimeListenerBindings : IDisposable {
     private readonly ConditionalWeakTable<IEventTarget, List<Registration>> _targets = new();
     private readonly Engine _engine;
     private readonly IEventTarget _window;
+    private bool _disposed;
 
     internal RuntimeListenerBindings(Engine engine, IEventTarget window) { _engine = engine; _window = window; }
 
     internal JsValue Add => new ClrFunction(_engine, "addEventListener", (receiver, args) => {
+        if (_disposed) return JsValue.Undefined;
         var target = Target(receiver);
         string type = TypeConverter.ToString(args.ElementAtOrDefault(0) ?? JsValue.Undefined);
         if (args.ElementAtOrDefault(1) is not Function callback) return JsValue.Undefined;
@@ -35,9 +37,11 @@ internal sealed class RuntimeListenerBindings {
                 throw new HtmlScriptRuntimeException("Signal-controlled event listeners are not supported by this runtime profile.");
         }
         var registrations = _targets.GetOrCreateValue(target);
+        if (target is EventTarget native) registrations.RemoveAll(item => !native.HasEventListener(item.Type, item.Handler, item.Capture));
         if (registrations.Any(item => item.Type == type && item.Capture == capture && ReferenceEquals(item.Callback, callback))) return JsValue.Undefined;
         var registration = new Registration(type, capture, callback);
         registration.Handler = (sender, ev) => {
+            if (_disposed) return;
             if (once) Remove(target, registrations, registration);
             if (passive) {
                 using var scope = ev.BeginPassiveListener();
@@ -50,6 +54,15 @@ internal sealed class RuntimeListenerBindings {
         target.AddEventListener(type, registration.Handler, capture);
         return JsValue.Undefined;
     });
+
+    public void Dispose() {
+        if (_disposed) return;
+        _disposed = true;
+        foreach (var pair in _targets)
+            foreach (var registration in pair.Value)
+                pair.Key.RemoveEventListener(registration.Type, registration.Handler, registration.Capture);
+        _targets.Clear();
+    }
 
     internal JsValue RemoveListener => new ClrFunction(_engine, "removeEventListener", (receiver, args) => {
         var target = Target(receiver);
