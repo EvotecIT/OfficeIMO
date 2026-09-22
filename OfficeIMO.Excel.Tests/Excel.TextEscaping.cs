@@ -116,6 +116,51 @@ public class ExcelTextEscapingTests {
         Assert.Equal(value, actual);
     }
 
+    [Fact]
+    public void ExtendedPackageFallbackPreservesCarriageReturnsInWorksheetCells() {
+        const string value = "First\r\nSecond\rThird\nFourth";
+        using var stream = new MemoryStream();
+        using (var document = ExcelDocument.Create(new MemoryStream())) {
+            var sheet = document.AddWorksheet("Text");
+            sheet.CellValue(1, 1, value);
+            sheet.CellValue(1, 2, "inline");
+            sheet.CellValue(1, 3, "plain");
+            sheet.CellValue(1, 4, "#DIV/0!");
+            var cells = sheet.WorksheetPart.Worksheet.Descendants<Cell>()
+                .ToDictionary(cell => cell.CellReference!.Value!);
+            cells["B1"].CellValue = null;
+            cells["B1"].DataType = CellValues.InlineString;
+            cells["B1"].InlineString = new InlineString(new Text(value));
+            cells["C1"].DataType = CellValues.String;
+            cells["C1"].CellValue = new CellValue(value);
+            cells["D1"].DataType = CellValues.Error;
+            sheet.AddChart(
+                new ExcelChartData(new[] { "One" }, new[] { new ExcelChartSeries("Values", new[] { 1.0 }) }),
+                row: 2, column: 3, type: ExcelChartType.ColumnClustered, title: "Values");
+            sheet.MarkRequiresSavePreparation();
+            document.Save(stream);
+            Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
+        }
+
+        stream.Position = 0;
+        using var package = SpreadsheetDocument.Open(stream, false);
+        var textSheetId = package.WorkbookPart!.Workbook.Sheets!.Elements<Sheet>()
+            .Single(sheet => sheet.Name!.Value == "Text").Id!.Value!;
+        var worksheetPart = (WorksheetPart)package.WorkbookPart.GetPartById(textSheetId);
+        var writtenCells = worksheetPart.Worksheet.Descendants<Cell>()
+            .ToDictionary(cell => cell.CellReference!.Value!);
+        Assert.Equal(value, writtenCells["B1"].InlineString!.InnerText);
+        Assert.Equal(value, writtenCells["C1"].CellValue!.Text);
+        Assert.Equal(CellValues.Error, writtenCells["D1"].DataType!.Value);
+
+        stream.Position = 0;
+        using var reopened = ExcelDocument.Load(stream);
+        foreach (int column in new[] { 1, 2, 3 }) {
+            Assert.True(reopened["Text"].TryGetCellText(1, column, out string actual));
+            Assert.Equal(value, actual);
+        }
+    }
+
     private static IEnumerable<string> Values() {
         yield return "";
         yield return " \tŁódź 😀 &<> '\"\n ";
