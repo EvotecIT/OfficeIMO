@@ -687,7 +687,7 @@ public sealed partial class PdfDocument {
     }
 
     private PdfDocument MergeWith(string path, PdfLoadOptions targetReadOptions) {
-        return MergeWith(File.ReadAllBytes(path), targetReadOptions);
+        return MergeWith(PdfDocumentSource.FromPath(path, options: null).Bytes, targetReadOptions);
     }
 
     /// <summary>
@@ -711,9 +711,7 @@ public sealed partial class PdfDocument {
             throw new ArgumentException("Stream must be readable.", nameof(stream));
         }
 
-        using var buffer = new MemoryStream();
-        stream.CopyTo(buffer);
-        return MergeWith(buffer.ToArray(), targetReadOptions);
+        return MergeWith(PdfDocumentSource.FromRemainingStream(stream, options: null).Bytes, targetReadOptions);
     }
 
     /// <summary>
