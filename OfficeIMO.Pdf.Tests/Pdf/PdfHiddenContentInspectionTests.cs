@@ -310,6 +310,56 @@ public sealed class PdfHiddenContentInspectionTests {
     }
 
     [Fact]
+    public void ContentSafetyUsesCeilingSafeRasterScaleForButtonAppearance() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [6 0 R] >> >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 1200 1200] /Contents 4 0 R /Annots [7 0 R] >>\nendobj",
+            StreamObject(4, string.Empty, string.Empty),
+            "6 0 obj\n<< /FT /Btn /T (Approval) /V /On /Kids [7 0 R] >>\nendobj",
+            "7 0 obj\n<< /Type /Annot /Subtype /Widget /Parent 6 0 R /Rect [0 0 1000.1 999.9] /P 3 0 R /F 4 /AS /On /AP << /N << /On 8 0 R >> >> >>\nendobj",
+            StreamObject(8, "/Type /XObject /Subtype /Form /BBox [0 0 1000.1 999.9]", "0 0 1000.1 999.9 re f"),
+            "trailer\n<< /Root 1 0 R /Size 9 >>",
+            "%%EOF"
+        });
+
+        OfficeContentSafetyReport report = PdfDocument.InspectContentSafety(Encoding.ASCII.GetBytes(pdf));
+
+        Assert.DoesNotContain(report.Findings, finding =>
+            finding.Location.EndsWith("/HiddenWidgetValue", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ContentSafetySharesType3GlyphLimitAcrossButtonAppearances() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [6 0 R 9 0 R] >> >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Contents 4 0 R /Annots [7 0 R 10 0 R] >>\nendobj",
+            StreamObject(4, string.Empty, string.Empty),
+            "6 0 obj\n<< /FT /Btn /T (First) /V /On /Kids [7 0 R] >>\nendobj",
+            "7 0 obj\n<< /Type /Annot /Subtype /Widget /Parent 6 0 R /Rect [20 20 60 60] /P 3 0 R /F 4 /AS /On /AP << /N << /On 8 0 R >> >> >>\nendobj",
+            StreamObject(8, "/Type /XObject /Subtype /Form /BBox [0 0 40 40] /Resources << /Font << /FType3 11 0 R >> >>", "BT /FType3 18 Tf 10 10 Td (A) Tj ET"),
+            "9 0 obj\n<< /FT /Btn /T (Second) /V /On /Kids [10 0 R] >>\nendobj",
+            "10 0 obj\n<< /Type /Annot /Subtype /Widget /Parent 9 0 R /Rect [80 20 120 60] /P 3 0 R /F 4 /AS /On /AP << /N << /On 8 0 R >> >> >>\nendobj",
+            "11 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 12 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << >> >>\nendobj",
+            StreamObject(12, string.Empty, "500 0 d0 0 0 500 700 re f"),
+            "trailer\n<< /Root 1 0 R /Size 13 >>",
+            "%%EOF"
+        });
+        var readOptions = new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxType3GlyphInvocationsPerPage = 1 }
+        };
+
+        PdfReadLimitException failure = Assert.Throws<PdfReadLimitException>(() =>
+            PdfDocument.InspectContentSafety(Encoding.ASCII.GetBytes(pdf), readOptions: readOptions));
+
+        Assert.Equal(PdfReadLimitKind.Type3GlyphInvocations, failure.Kind);
+        Assert.Equal(2, failure.Actual);
+    }
+
+    [Fact]
     public void ContentSafetyTreatsUnsupportedButtonImageCodecAsInconclusive() {
         string pdf = string.Join("\n", new[] {
             "%PDF-1.7",

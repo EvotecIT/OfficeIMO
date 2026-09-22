@@ -352,15 +352,15 @@ internal static partial class PdfSyntax {
         if (classicTables.Count == 0 && activeChainOffsets.Count == 0) return false;
         foreach (var table in classicTables) {
             // A hybrid stream belongs to its classic section. Apply its compressed
-            // entries after that section's direct entries, then let newer sections win.
-            for (int i = 0; i < table.Entries.Length; i++)
-                activeEntries.Remove(table.Entries[i].ObjectNumber);
+            // entries before that section's direct entries, then let newer sections win.
             if (table.XrefStreamOffset.HasValue) {
                 var xrefStream = xrefStreams.FirstOrDefault(item => item.Offset == table.XrefStreamOffset.Value);
                 if (xrefStream.Stream is not null)
                     UpdateActiveCompressedEntries(activeEntries, xrefStream.Stream, map, decodedStreamBudget,
                         () => reportUnreadable(xrefStream.ObjectNumber));
             }
+            for (int i = 0; i < table.Entries.Length; i++)
+                activeEntries.Remove(table.Entries[i].ObjectNumber);
         }
         if (activeChainOffsets.Count != 0) {
             foreach (int chainOffset in activeChainOffsets) {

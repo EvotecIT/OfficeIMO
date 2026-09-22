@@ -93,23 +93,18 @@ public sealed partial class PdfReadPage {
             double cropHeight = Math.Min(height, widgetBounds.Bottom) - top;
             if (cropWidth <= 0D || cropHeight <= 0D) return false;
             const long maximumPixels = 1_000_000L;
-            double scale = Math.Min(1D, Math.Sqrt(maximumPixels / (cropWidth * cropHeight)));
-            if (scale <= 0D || double.IsNaN(scale) || double.IsInfinity(scale)) return false;
-            long pixelsToRender = checked((long)Math.Ceiling(cropWidth * scale) * (long)Math.Ceiling(cropHeight * scale));
-            if (!budget.TryConsumeRasterPixels(pixelsToRender)) return false;
+            OfficeRasterScaleLimit rasterLimit = OfficeRasterScaleLimiter.Resolve(cropWidth, cropHeight, 1D, maximumPixels);
+            if (!budget.TryConsumeRasterPixels(rasterLimit.PixelCount)) return false;
             var drawing = new OfficeDrawing(width, height);
             var selected = new PdfArray();
             selected.Items.Add(widget);
-            AddAnnotationAppearances(drawing, height, GetVisualPageTransform(), budget._textOutputBudget,
-                budget._pageContentBudget, new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage),
-                budget._textClippingBudget, new PdfTextClippingBudget(),
-                budget._pageContentBudget.CancellationToken, selected);
+            budget.AddSelectedAnnotationAppearances(this, drawing, height, selected);
             if (drawing.Elements.Count == 0) return false;
             var cropped = new OfficeDrawing(cropWidth, cropHeight);
             cropped.AddClippedDrawingForRendering(drawing, 0D, 0D,
                 OfficeClipPath.Rectangle(cropWidth, cropHeight), -left, -top);
             byte[] pixels = OfficeDrawingRasterRenderer.Render(cropped, new OfficeDrawingRasterRenderOptions {
-                Scale = scale,
+                Scale = rasterLimit.Scale,
                 MaximumRasterPixels = maximumPixels,
                 ThrowOnImageDecodeFailure = true,
                 CancellationToken = budget._pageContentBudget.CancellationToken
@@ -129,6 +124,8 @@ public sealed partial class PdfReadPage {
             return false;
         } catch (NotSupportedException) {
             return false;
+        } catch (OfficeImageExportLimitException) {
+            return false;
         }
     }
 
@@ -136,6 +133,8 @@ public sealed partial class PdfReadPage {
         internal readonly PageContentBudget _pageContentBudget;
         internal readonly TextContentParser.TextOutputBudget _textOutputBudget;
         internal readonly PdfTextClippingBudget _textClippingBudget;
+        private readonly PdfTextClippingBudget _patternClippingBudget;
+        private readonly Type3GlyphBudget _type3GlyphBudget;
         private long _remainingRasterPixels = 10_000_000L;
 
         internal bool TryConsumeRasterPixels(long pixels) {
@@ -144,12 +143,21 @@ public sealed partial class PdfReadPage {
             return true;
         }
 
+        internal void AddSelectedAnnotationAppearances(PdfReadPage page, OfficeDrawing drawing,
+            double height, PdfArray selected) {
+            page.AddAnnotationAppearances(drawing, height, page.GetVisualPageTransform(), _textOutputBudget,
+                _pageContentBudget, _type3GlyphBudget, _textClippingBudget, _patternClippingBudget,
+                _pageContentBudget.CancellationToken, selected);
+        }
+
         internal WidgetAppearanceScanBudget(PdfReadPage page) {
             _pageContentBudget = new PageContentBudget(page);
             _textOutputBudget = new TextContentParser.TextOutputBudget(
                 page._limits.MaxActualTextCharacters,
                 page._limits.MaxDecodedTextCharacters);
             _textClippingBudget = new PdfTextClippingBudget();
+            _patternClippingBudget = new PdfTextClippingBudget();
+            _type3GlyphBudget = new Type3GlyphBudget(page._limits.MaxType3GlyphInvocationsPerPage);
         }
     }
 }

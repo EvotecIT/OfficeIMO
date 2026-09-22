@@ -225,6 +225,18 @@ more diagnostic detail. Duplicate diagnostics do not consume the character
 budget. PDF font inspection also shares its 10,000-diagnostic default across
 font-specific and resource-traversal findings; configure
 `PdfFontInspectionOptions.MaxDiagnostics` for trusted documents that need more.
+Font inspection also stops after 4,096 unique fonts, 32 nested resource levels,
+100,000 font references, or 10,000 Form resource traversals. Resource paths
+are capped at 4,096 characters each and 4 MiB in aggregate. Set
+`PdfFontInspectionOptions.MaxFonts`, `MaxResourceDepth`,
+`MaxResourceReferences`, `MaxFormResourceTraversals`,
+`MaxResourcePathCharacters`, or `MaxTotalResourcePathCharacters` when a
+trusted document needs a larger font inventory.
+
+Search-based redaction now stops if logical-kind verification needs more than
+20,000,000 span intersection or substring comparison work units across the
+document. An `InvalidDataException` means the rewritten file was not verified;
+do not use that output as a completed redaction.
 
 ### Configure PDF drawing fonts before projection
 

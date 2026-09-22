@@ -486,6 +486,33 @@ public partial class PdfExternalDocumentCompatibilityTests {
         return stream.ToArray();
     }
 
+    internal static byte[] BuildHybridClassicXrefWithDirectReplacementOfCompressedPage() {
+        using var stream = new MemoryStream();
+        var offsets = new Dictionary<int, int>();
+        WriteAscii(stream, "%PDF-1.5\n");
+        WriteObject(stream, offsets, 1, "<< /Type /Catalog /Pages 2 0 R >>");
+        WriteObject(stream, offsets, 2, "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F13 7 0 R >> >> >>");
+        WriteObject(stream, offsets, 3, "<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>");
+        WriteStreamObject(stream, offsets, 4, Encoding.ASCII.GetBytes("BT /F13 12 Tf 72 720 Td (Active direct page) Tj ET"));
+        WriteStreamObject(stream, offsets, 6, Encoding.ASCII.GetBytes("BT /F13 12 Tf 72 720 Td (Stale compressed page) Tj ET"));
+        WriteObject(stream, offsets, 7, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+        WriteRawObject(stream, offsets, 10, BuildObjectStreamObject(10, new List<(int ObjectNumber, string Body)> {
+            (3, "<< /Type /Page /Parent 2 0 R /Contents 6 0 R >>")
+        }));
+        offsets[11] = (int)stream.Position;
+        byte[] entries = BuildXrefStreamEntries(new[] { 3 }, new Dictionary<int, (int Type, int Field1, int Field2)> {
+            [3] = (2, 10, 0)
+        });
+        WriteAscii(stream, "11 0 obj\n<< /Type /XRef /Size 12 /Root 1 0 R /W [1 4 2] /Index [3 1] /Length " +
+            entries.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>\nstream\n");
+        stream.Write(entries, 0, entries.Length);
+        WriteAscii(stream, "\nendstream\nendobj\n");
+        int classicXrefOffset = (int)stream.Position;
+        WriteClassicXrefTableWithXRefStm(stream, offsets, size: 12, rootObjectNumber: 1, xrefStreamOffset: offsets[11]);
+        WriteAscii(stream, "startxref\n" + classicXrefOffset.ToString(System.Globalization.CultureInfo.InvariantCulture) + "\n%%EOF\n");
+        return stream.ToArray();
+    }
+
     private static byte[] BuildXrefStreamWithHybridCompressedPredecessor() {
         using var stream = new MemoryStream();
         var offsets = new Dictionary<int, int>();
