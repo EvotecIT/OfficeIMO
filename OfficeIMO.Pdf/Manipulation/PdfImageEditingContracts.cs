@@ -11,6 +11,16 @@ public enum PdfImageEditLayer {
 /// <summary>Options for adding, replacing, or moving an image on an existing PDF page.</summary>
 public sealed class PdfImageEditOptions {
     private PdfImageEditLayer _layer = PdfImageEditLayer.AboveExistingContent;
+    private long _maximumEncodedImageBytes = PdfImageInput.DefaultMaximumEncodedBytes;
+
+    /// <summary>Maximum encoded bytes accepted when adding, replacing, or restamping an image. Defaults to 128 MiB.</summary>
+    public long MaximumEncodedImageBytes {
+        get => _maximumEncodedImageBytes;
+        set {
+            PdfImageInput.ValidateMaximum(value);
+            _maximumEncodedImageBytes = value;
+        }
+    }
 
     /// <summary>
     /// Placement layer for the newly written image. Existing exact paint order cannot be preserved by a portable
@@ -26,7 +36,10 @@ public sealed class PdfImageEditOptions {
         }
     }
 
-    internal PdfImageEditOptions Snapshot() => new PdfImageEditOptions { Layer = Layer };
+    internal PdfImageEditOptions Snapshot() => new PdfImageEditOptions {
+        Layer = Layer,
+        MaximumEncodedImageBytes = MaximumEncodedImageBytes
+    };
 }
 
 /// <summary>Result of an existing-page image edit.</summary>

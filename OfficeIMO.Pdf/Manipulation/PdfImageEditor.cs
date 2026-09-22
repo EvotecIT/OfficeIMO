@@ -259,6 +259,7 @@ internal static partial class PdfImageEditor {
             Width = width,
             Height = height,
             RotationDegrees = rotationDegrees,
+            MaximumEncodedImageBytes = options.MaximumEncodedImageBytes,
             BehindContent = options.Layer == PdfImageEditLayer.BehindExistingContent
         };
 
