@@ -46,6 +46,7 @@ internal static class WordListNumberingResolver {
             DefaultStyleId = ById.Values.FirstOrDefault(style => style.Default?.Value == true)?.StyleId?.Value;
             LinkedLevels = new Dictionary<(int NumberId, string StyleId), int>();
             LinkedStyles = new Dictionary<string, ResolvedNumbering>(StringComparer.Ordinal);
+            ListDefinitions = WordDocumentTraversal.BuildListNumberingDefinitions(mainPart);
             Numbering? numbering = mainPart?.NumberingDefinitionsPart?.Numbering;
             if (numbering == null) return;
             Dictionary<int, AbstractNum> abstracts = numbering.Elements<AbstractNum>()
@@ -81,6 +82,7 @@ internal static class WordListNumberingResolver {
         internal string? DefaultStyleId { get; }
         internal Dictionary<(int NumberId, string StyleId), int> LinkedLevels { get; }
         internal Dictionary<string, ResolvedNumbering> LinkedStyles { get; }
+        internal IReadOnlyDictionary<int, WordDocumentTraversal.ListNumberingDefinition> ListDefinitions { get; }
         internal Dictionary<string, NumberingProperties?>? NumberingByStyle { get; }
         internal Dictionary<string, ResolvedNumbering?>? LinkedStyleByStyle { get; }
         internal Dictionary<(int NumberId, string StyleId), int?>? LinkedLevelByStyle { get; }

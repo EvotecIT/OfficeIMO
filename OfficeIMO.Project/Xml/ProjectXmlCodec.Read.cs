@@ -29,7 +29,7 @@ internal static partial class ProjectXmlCodec {
             var calendar = new ProjectCalendar(document, RequiredUid(element));
             if (document.CalendarIndex.ContainsKey(calendar.Uid)) throw new InvalidDataException("Duplicate calendar UID " + calendar.Uid);
             document.Calendars.Items.Add(calendar); document.CalendarIndex.Add(calendar.Uid, calendar); Attach(document, calendar, element);
-            ReadCalendar(calendar, element, token);
+            ReadCalendar(calendar, element, options, ref entities, token);
         }
         BindCalendars(document, token);
         if (document.Settings.SourceCalendarUid is int projectCalendar && document.CalendarIndex.TryGetValue(projectCalendar, out var mainCalendar)) document.Calendar = mainCalendar;
@@ -67,7 +67,7 @@ internal static partial class ProjectXmlCodec {
             if (document.ResourceIndex.ContainsKey(resource.Uid)) throw new InvalidDataException("Duplicate resource UID " + resource.Uid);
             document.Resources.Items.Add(resource); document.ResourceIndex.Add(resource.Uid, resource); Attach(document, resource, element);
             ReadFields(resource, element, document, ProjectXmlFields.Resource);
-            ReadResourceCapacity(resource, element, token);
+            ReadResourceCapacity(resource, element, options, ref entities, token);
             resource.SourceCalendarUid = (int?)element.Element(ns + "CalendarUID");
             if (resource.SourceCalendarUid is int calendarUid && document.CalendarIndex.TryGetValue(calendarUid, out var calendar)) resource.Calendar = calendar;
             ReadRich(resource.Baselines, resource.CustomFields, resource.TimephasedData, element, document, options, ref entities, ref timephased, token);

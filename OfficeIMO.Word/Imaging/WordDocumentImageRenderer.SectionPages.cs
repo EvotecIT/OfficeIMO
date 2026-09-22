@@ -139,7 +139,8 @@ namespace OfficeIMO.Word {
                 bodyFrameProvider: CreateBodyFrameProvider(section, drawing, document.Sections.IndexOf(section), 1, 1, 1, 0, headerFooterFrame),
                 cancellationToken: cancellationToken,
                 cancellationCheckpoint: cancellationCheckpoint);
-            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers = WordDocumentTraversal.BuildListMarkers(document);
+            using WordDocumentTraversal.ListMarkerRenderScope listMarkerScope = WordDocumentTraversal.BuildListMarkersForRendering(document, cancellationToken);
+            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers = listMarkerScope.Markers;
             var diagnostics = new List<OfficeImageExportDiagnostic>();
 
             for (int index = 0; index < sectionElements.Count; index++) {

@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
@@ -9,6 +10,31 @@ namespace OfficeIMO.Word {
     /// Provides helper methods for traversing documents and resolving list markers.
     /// </summary>
     public static class WordDocumentTraversal {
+        private static readonly AsyncLocal<ListInfoSnapshot?> ActiveListInfoSnapshot = new();
+
+        private sealed class ListInfoSnapshot {
+            internal ListInfoSnapshot(WordDocument document,
+                IReadOnlyDictionary<WordParagraph, ResolvedListMarker> markers) {
+                Document = document;
+                Markers = markers;
+            }
+            internal WordDocument Document { get; }
+            internal IReadOnlyDictionary<WordParagraph, ResolvedListMarker> Markers { get; }
+        }
+
+        private sealed class ListInfoSnapshotScope : IDisposable {
+            private readonly ListInfoSnapshot? _previous;
+            internal ListInfoSnapshotScope(ListInfoSnapshot? previous) => _previous = previous;
+            public void Dispose() => ActiveListInfoSnapshot.Value = _previous;
+        }
+
+        internal static IDisposable UseResolvedListMarkers(WordDocument document,
+            IReadOnlyDictionary<WordParagraph, ResolvedListMarker> markers) {
+            ListInfoSnapshot? previous = ActiveListInfoSnapshot.Value;
+            ActiveListInfoSnapshot.Value = new ListInfoSnapshot(document, markers);
+            return new ListInfoSnapshotScope(previous);
+        }
+
         /// <summary>
         /// Describes list information for a paragraph.
         /// </summary>
@@ -125,6 +151,9 @@ namespace OfficeIMO.Word {
         /// <returns>List info for the paragraph or null when paragraph isn't a list item.</returns>
         public static ListInfo? GetListInfo(WordParagraph paragraph) {
             if (paragraph?._paragraph == null || paragraph._document == null) return null;
+            ListInfoSnapshot? snapshot = ActiveListInfoSnapshot.Value;
+            if (snapshot != null && ReferenceEquals(snapshot.Document, paragraph._document))
+                return snapshot.Markers.TryGetValue(paragraph, out ResolvedListMarker marker) ? marker.Info : null;
             NumberingProperties? direct = paragraph._paragraph?.ParagraphProperties?.NumberingProperties;
             WordListNumberingResolver.StyleCatalog? styleCatalog = direct?.NumberingId?.Val?.Value > 0 &&
                 direct.NumberingLevelReference?.Val?.Value != null
@@ -134,7 +163,7 @@ namespace OfficeIMO.Word {
                 return null;
             }
 
-            Dictionary<int, ListNumberingDefinition> definitions = BuildListNumberingDefinitions(paragraph._document);
+            Dictionary<int, ListNumberingDefinition> definitions = BuildListNumberingDefinitions(paragraph._document._wordprocessingDocument.MainDocumentPart);
             return GetListInfo(paragraph, numbering, definitions);
         }
 
@@ -222,6 +251,26 @@ namespace OfficeIMO.Word {
             return result;
         }
 
+        internal sealed class ListMarkerRenderScope : IDisposable {
+            private readonly IDisposable _listInfoScope;
+            internal ListMarkerRenderScope(Dictionary<WordParagraph, (int Level, string Marker)> markers,
+                IDisposable listInfoScope) {
+                Markers = markers;
+                _listInfoScope = listInfoScope;
+            }
+            internal IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> Markers { get; }
+            public void Dispose() => _listInfoScope.Dispose();
+        }
+
+        internal static ListMarkerRenderScope BuildListMarkersForRendering(
+            WordDocument document, CancellationToken cancellationToken = default) {
+            Dictionary<WordParagraph, ResolvedListMarker> resolved = BuildResolvedListMarkers(document, cancellationToken);
+            var result = new Dictionary<WordParagraph, (int, string)>(ParagraphReferenceComparer.Instance);
+            foreach (KeyValuePair<WordParagraph, ResolvedListMarker> item in resolved)
+                result[item.Key] = (item.Value.Level, item.Value.Marker);
+            return new ListMarkerRenderScope(result, UseResolvedListMarkers(document, resolved));
+        }
+
         internal static IReadOnlyList<int> GetPictureBulletFallbackIds(WordDocument document) =>
             GetPictureBulletFallbackIds(BuildResolvedListMarkers(document).Values);
 
@@ -242,7 +291,7 @@ namespace OfficeIMO.Word {
             CancellationToken cancellationToken = default) {
             Dictionary<WordParagraph, ResolvedListMarker> result = new(ParagraphReferenceComparer.Instance);
             WordListNumberingResolver.StyleCatalog styleCatalog = WordListNumberingResolver.CreateStyleCatalog(document);
-            Dictionary<int, ListNumberingDefinition> definitions = BuildListNumberingDefinitions(document);
+            IReadOnlyDictionary<int, ListNumberingDefinition> definitions = styleCatalog.ListDefinitions;
             List<List<WordParagraph>> itemsByStoryAndNumberId = BuildListItemsByStoryAndNumberId(document, styleCatalog, cancellationToken);
 
             foreach (List<WordParagraph> listItems in itemsByStoryAndNumberId) {
@@ -336,7 +385,7 @@ namespace OfficeIMO.Word {
         public static Dictionary<WordParagraph, (int Level, int Index)> BuildListIndices(WordDocument document) {
             Dictionary<WordParagraph, (int, int)> result = new(ParagraphReferenceComparer.Instance);
             WordListNumberingResolver.StyleCatalog styleCatalog = WordListNumberingResolver.CreateStyleCatalog(document);
-            Dictionary<int, ListNumberingDefinition> definitions = BuildListNumberingDefinitions(document);
+            IReadOnlyDictionary<int, ListNumberingDefinition> definitions = styleCatalog.ListDefinitions;
             List<List<WordParagraph>> itemsByStoryAndNumberId = BuildListItemsByStoryAndNumberId(document, styleCatalog);
 
             foreach (List<WordParagraph> listItems in itemsByStoryAndNumberId) {
@@ -369,9 +418,9 @@ namespace OfficeIMO.Word {
             return result;
         }
 
-        private static Dictionary<int, ListNumberingDefinition> BuildListNumberingDefinitions(WordDocument? document) {
+        internal static Dictionary<int, ListNumberingDefinition> BuildListNumberingDefinitions(MainDocumentPart? mainPart) {
             var result = new Dictionary<int, ListNumberingDefinition>();
-            Numbering? numbering = document?._wordprocessingDocument.MainDocumentPart?.NumberingDefinitionsPart?.Numbering;
+            Numbering? numbering = mainPart?.NumberingDefinitionsPart?.Numbering;
             if (numbering == null) {
                 return result;
             }
@@ -571,7 +620,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private sealed class ListNumberingDefinition {
+        internal sealed class ListNumberingDefinition {
             internal ListNumberingDefinition(
                 int numberId,
                 WordListStyle style,
@@ -592,7 +641,7 @@ namespace OfficeIMO.Word {
             internal IReadOnlyDictionary<int, ListLevelDefinition> Levels { get; }
         }
 
-        private readonly struct ListLevelDefinition {
+        internal readonly struct ListLevelDefinition {
             internal ListLevelDefinition(
                 int level,
                 int start,

@@ -20,6 +20,19 @@ public class XmlContracts {
     }
 
     [Theory]
+    [InlineData("<Calendars><Calendar><UID>1</UID><WeekDays><WeekDay><DayType>1</DayType></WeekDay></WeekDays></Calendar></Calendars>")]
+    [InlineData("<Calendars><Calendar><UID>1</UID><Exceptions><Exception/></Exceptions></Calendar></Calendars>")]
+    [InlineData("<Calendars><Calendar><UID>1</UID><WorkWeeks><WorkWeek/></WorkWeeks></Calendar></Calendars>")]
+    [InlineData("<Calendars><Calendar><UID>1</UID><WeekDays><WeekDay><DayType>1</DayType><WorkingTimes><WorkingTime/></WorkingTimes></WeekDay></WeekDays></Calendar></Calendars>")]
+    [InlineData("<Resources><Resource><UID>1</UID><Rates><Rate/></Rates></Resource></Resources>")]
+    [InlineData("<Resources><Resource><UID>1</UID><AvailabilityPeriods><AvailabilityPeriod/></AvailabilityPeriods></Resource></Resources>")]
+    public void CalendarAndResourceChildrenCountTowardTheEntityLimit(string content) {
+        var error = Assert.Throws<InvalidDataException>(() => ProjectDocument.Parse(Wrap(content),
+            new ProjectLoadOptions { MaxEntities = 1 }));
+        Assert.Contains("MaxEntities", error.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void OutOfRangeCalendarDayTypesAreRejected(bool workWeek) {

@@ -210,7 +210,9 @@ namespace OfficeIMO.Word {
 
         private static void AddHeaderFooterContent(WordHeaderFooter headerFooter, WordImageFlowContext context, List<OfficeImageExportDiagnostic> diagnostics, string kind) {
             WordDocument document = headerFooter.Document;
-            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers = WordDocumentTraversal.BuildListMarkers(document);
+            using WordDocumentTraversal.ListMarkerRenderScope listMarkerScope =
+                WordDocumentTraversal.BuildListMarkersForRendering(document);
+            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers = listMarkerScope.Markers;
             foreach (OpenXmlElement element in headerFooter.ChildElements) {
                 bool added = AddHeaderFooterElementContent(document, element, context, diagnostics, listMarkers, kind);
 

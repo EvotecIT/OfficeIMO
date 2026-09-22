@@ -280,7 +280,9 @@ namespace OfficeIMO.Word {
                     fragments,
                     cancellationToken,
                     cancellationCheckpoint);
-            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers = WordDocumentTraversal.BuildListMarkers(document);
+            using WordDocumentTraversal.ListMarkerRenderScope listMarkerScope =
+                WordDocumentTraversal.BuildListMarkersForRendering(document, cancellationToken);
+            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers = listMarkerScope.Markers;
             IReadOnlyList<WordSectionBodyElement> bodyEntries = GetSectionBodyElementEntries(
                 document,
                 sectionIndex,
