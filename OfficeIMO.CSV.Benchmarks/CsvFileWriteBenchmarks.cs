@@ -25,7 +25,7 @@ public class CsvFileWriteBenchmarks {
     private string _officePath = "";
     private string _peerPath = "";
 
-    [Params("ShortAscii", "ShortUnicode", "DenseJson", "QuoteRuns", "LongNotes", "TypedValues")]
+    [Params("ShortAscii", "ShortUnicode", "DenseJson", "QuoteRuns", "LongNotes", "TypedValues", "MixedJson25K")]
     public string Shape { get; set; } = "ShortAscii";
 
     [Params(CsvQuoteMode.AsNeeded, CsvQuoteMode.Always)]
@@ -35,7 +35,7 @@ public class CsvFileWriteBenchmarks {
     public void Setup() {
         string? priority = Environment.GetEnvironmentVariable("OFFICEIMO_BENCHMARK_PROCESS_PRIORITY");
         if (!string.IsNullOrEmpty(priority)) BenchmarkProcessorAffinity.ApplyPriority(priority);
-        _typedValues = Shape == "TypedValues";
+        _typedValues = Shape is "TypedValues" or "MixedJson25K";
         _headers = Headers;
         _types = Types;
         (string delimiter, string payload) = Shape switch {
@@ -45,6 +45,7 @@ public class CsvFileWriteBenchmarks {
             "QuoteRuns" => ("※", new string('"', 4096)),
             "LongNotes" => (";", new string('n', 2048) + ";\"Łódź 🚀\"\n" + new string('x', 2048)),
             "TypedValues" => (";", ""),
+            "MixedJson25K" => ("||", ""),
             _ => throw new InvalidOperationException($"Unknown file-write shape: {Shape}.")
         };
         _delimiter = delimiter;
@@ -52,8 +53,13 @@ public class CsvFileWriteBenchmarks {
             _headers = ["Id", "Label", "Score", "Created", "Enabled"];
             _types = [typeof(int), typeof(string), typeof(decimal), typeof(DateTime), typeof(bool)];
             var start = new DateTime(2026, 1, 1, 12, 30, 0, DateTimeKind.Utc);
-            _rows = Enumerable.Range(0, 1000).Select(index => new object?[] {
-                index, index % 11 == 0 ? null : "Łódź; \"row " + index.ToString(CultureInfo.InvariantCulture) + "\"",
+            int rowCount = Shape == "MixedJson25K" ? 25_000 : 1_000;
+            _rows = Enumerable.Range(0, rowCount).Select(index => new object?[] {
+                index,
+                index % 11 == 0 ? null : Shape == "MixedJson25K"
+                    ? "{\"row\":" + index.ToString(CultureInfo.InvariantCulture)
+                        + ",\"city\":\"Łódź 🚀 || 漢字\",\"note\":\"quoted value\"}"
+                    : "Łódź; \"row " + index.ToString(CultureInfo.InvariantCulture) + "\"",
                 index * 1.25m, start.AddMinutes(index), (index & 1) == 0
             }).ToArray();
         } else {
