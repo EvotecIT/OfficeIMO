@@ -17,6 +17,7 @@ public static partial class OfficeSvgDrawingReader {
         ref int visited,
         ref int unsupported) {
         if (HasUnsupportedForeignObjectEffect(element)) unsupported++;
+        if (style.Opacity <= 0D) return;
 
         OfficeSvgForeignObjectRenderer? renderer = references.ForeignObjectRenderer;
         if (renderer == null

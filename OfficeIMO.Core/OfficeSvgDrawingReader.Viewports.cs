@@ -115,6 +115,7 @@ public static partial class OfficeSvgDrawingReader {
         }
         if (!TryParsePreserveAspectRatio(element.Attribute("preserveAspectRatio")?.Value,
                 out SvgAspectAlignment alignment, out bool slice)) return false;
+        var viewportBudget = references.CaptureSurfaceBudget();
         if (!references.TryChargeNestedViewport(width, height, childViewWidth, childViewHeight)) return false;
 
         bool hasEffects = TryResolveSvgEffects(
@@ -139,7 +140,10 @@ public static partial class OfficeSvgDrawingReader {
             out OfficeBlendMode blendMode,
             out OfficeDrawingSoftMask? softMask,
             out SvgFilterEffect? filterEffect);
-        if (softMask != null && !references.TryChargeIntermediateSurface(width, height, 3)) return false;
+        if (softMask != null && !references.TryChargeIntermediateSurface(width, height, 3)) {
+            references.RestoreSurfaceBudget(viewportBudget);
+            return false;
+        }
 
         var scene = new OfficeDrawing(childViewWidth, childViewHeight);
         scene.Fonts.AddRange(drawing.Fonts);
@@ -165,6 +169,7 @@ public static partial class OfficeSvgDrawingReader {
         OfficeDrawing viewport = FitSvgViewport(scene, width, height, viewportTransform,
             maximumViewportDimension, maximumViewportPixels, ref unsupported, out double retainedScenePixels);
         if (!references.TryChargeNestedViewportExpansion(retainedScenePixels - childViewWidth * childViewHeight)) {
+            references.RestoreSurfaceBudget(viewportBudget);
             unsupported++;
             return false;
         }

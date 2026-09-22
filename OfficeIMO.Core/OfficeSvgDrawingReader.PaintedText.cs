@@ -127,6 +127,7 @@ public static partial class OfficeSvgDrawingReader {
             ? run.Transform
             : OfficeTransform.RotateDegrees(run.RotationDegrees, run.RotationCenterX, run.RotationCenterY).Then(run.Transform);
         ApplyTransform(positioned, textTransform);
+        var featureBudget = references.CaptureSurfaceBudget();
         bool hasPattern = TryAddSvgPatternFill(
             run.Style.FillPattern,
             positioned,
@@ -146,6 +147,8 @@ public static partial class OfficeSvgDrawingReader {
             ref pathCommandLimitExceeded,
             ref unsupported,
             out OfficeDrawing? patternLayer);
+        if (!hasPattern) references.RestoreSurfaceBudget(featureBudget);
+        featureBudget = references.CaptureSurfaceBudget();
         bool hasStrokePattern = TryAddSvgPatternStroke(
             run.Style.StrokePattern,
             positioned,
@@ -166,6 +169,7 @@ public static partial class OfficeSvgDrawingReader {
             ref unsupported,
             out OfficeDrawing? strokePatternLayer);
 
+        if (!hasStrokePattern) references.RestoreSurfaceBudget(featureBudget);
         var paint = new OfficeDrawing(drawing.Width, drawing.Height);
         paint.Fonts.AddRange(drawing.Fonts);
         if (hasPattern && patternLayer != null) paint.AddEffectDrawing(patternLayer, OfficeTransform.Identity);

@@ -13,6 +13,7 @@ public static partial class OfficeSvgDrawingReader {
         OfficeTransform transform,
         double viewX,
         double viewY) {
+        if (style.Opacity <= 0D) return true;
         XAttribute[] hrefAttributes = element.Attributes()
             .Where(attribute => attribute.Name.LocalName.Equals("href", StringComparison.Ordinal))
             .ToArray();

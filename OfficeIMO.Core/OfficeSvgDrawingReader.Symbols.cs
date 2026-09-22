@@ -45,6 +45,7 @@ public static partial class OfficeSvgDrawingReader {
             return;
         }
 
+        var symbolBudget = references.CaptureSurfaceBudget();
         if (!references.TryChargeNestedViewport(width, height, viewBox[2], viewBox[3])) {
             unsupported++;
             return;
@@ -63,6 +64,7 @@ public static partial class OfficeSvgDrawingReader {
         OfficeDrawing viewport = FitSvgViewport(scene, width, height, viewportTransform,
             maximumViewportDimension, maximumViewportPixels, ref unsupported, out double retainedScenePixels);
         if (!references.TryChargeNestedViewportExpansion(retainedScenePixels - viewBox[2] * viewBox[3])) {
+            references.RestoreSurfaceBudget(symbolBudget);
             unsupported++;
             return;
         }

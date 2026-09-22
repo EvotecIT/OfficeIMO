@@ -41,7 +41,7 @@ public static partial class OfficeSvgDrawingReader {
 
         var layer = new OfficeDrawing(drawing.Width, drawing.Height);
         layer.Fonts.AddRange(drawing.Fonts);
-        var layerBudget = references.CaptureMarkerSurfaceBudget();
+        var layerBudget = references.CaptureSurfaceBudget();
         bool rendered = false;
         foreach (SvgMarkerPlacement placement in placements) {
             string? reference = placement.Kind switch {
@@ -50,21 +50,21 @@ public static partial class OfficeSvgDrawingReader {
                 _ => style.MarkerEnd
             };
             if (reference == null) continue;
-            var placementBudget = references.CaptureMarkerSurfaceBudget();
+            var placementBudget = references.CaptureSurfaceBudget();
             if (!TryRenderSvgMarker(reference, placement, elementTransform, layer, style, paintServers, references,
                     maximumElements, maximumViewportDimension, maximumViewportPixels, depth,
                     ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupported)) {
-                references.RestoreMarkerSurfaceBudget(placementBudget);
+                references.RestoreSurfaceBudget(placementBudget);
                 continue;
             }
             rendered = true;
         }
         if (!rendered) {
-            references.RestoreMarkerSurfaceBudget(layerBudget);
+            references.RestoreSurfaceBudget(layerBudget);
             return false;
         }
         if (!references.TryChargeIntermediateSurface(drawing.Width, drawing.Height)) {
-            references.RestoreMarkerSurfaceBudget(layerBudget);
+            references.RestoreSurfaceBudget(layerBudget);
             unsupported++;
             return false;
         }

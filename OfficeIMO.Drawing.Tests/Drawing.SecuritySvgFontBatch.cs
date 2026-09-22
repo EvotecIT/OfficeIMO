@@ -353,6 +353,88 @@ public partial class DrawingTests {
         Assert.True(unsupported > 0);
     }
 
+    [Theory]
+    [InlineData("fill", "fill-opacity='0'")]
+    [InlineData("fill", "opacity='0'")]
+    [InlineData("stroke", "stroke-opacity='0'")]
+    [InlineData("stroke", "opacity='0'")]
+    public void InvisiblePatternsLeaveSurfaceBudgetForVisibleImages(string paint, string opacity) {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Red));
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4000 4000'><defs>" +
+            "<pattern id='p' patternUnits='userSpaceOnUse' width='4000' height='4000'>" +
+            "<rect width='1' height='1'/></pattern></defs>" +
+            "<rect width='1' height='1' " + paint + "='url(#p)' " + opacity + " " +
+            (paint == "stroke" ? "fill='none' stroke-width='1'" : string.Empty) + "/>" +
+            "<image href='data:image/png;base64," + Convert.ToBase64String(png) + "' width='1' height='1'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out _));
+        Assert.Single(EnumerateDrawingImages(drawing!));
+    }
+
+    [Fact]
+    public void InvisibleEmbeddedImagesLeaveSurfaceBudgetForVisibleImages() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Red));
+        string source = "data:image/png;base64," + Convert.ToBase64String(png);
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4000 4000'>" +
+            string.Concat(Enumerable.Repeat("<image href='" + source + "' width='1' height='1' opacity='0'/>", 4)) +
+            "<image href='" + source + "' width='1' height='1'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out _));
+        Assert.Single(EnumerateDrawingImages(drawing!));
+    }
+
+    [Fact]
+    public void InvisibleForeignObjectsDoNotCallTheRendererOrReserveSurfaces() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Red));
+        string foreign = "<foreignObject width='1' height='1' opacity='0'>" +
+            "<div xmlns='http://www.w3.org/1999/xhtml'>Text</div></foreignObject>";
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4000 4000'>" +
+            string.Concat(Enumerable.Repeat(foreign, 4)) +
+            "<image href='data:image/png;base64," + Convert.ToBase64String(png) + "' width='1' height='1'/></svg>";
+        int calls = 0;
+        var options = new OfficeSvgDrawingReaderOptions {
+            ForeignObjectRenderer = context => {
+                calls++;
+                return new OfficeDrawing(context.Width, context.Height);
+            }
+        };
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), options, out OfficeDrawing? drawing, out _));
+        Assert.Equal(0, calls);
+        Assert.Single(EnumerateDrawingImages(drawing!));
+    }
+
+    [Fact]
+    public void DiscardedPatternAndMarkerShapeReleasesItsFeatureSurfaces() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Red));
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 1000'><defs>" +
+            "<pattern id='p' patternUnits='userSpaceOnUse' width='4000' height='4000'>" +
+            "<rect width='1' height='1'/></pattern>" +
+            "<marker id='m' markerWidth='1' markerHeight='1' viewBox='0 0 3350 3350'>" +
+            "<rect width='1' height='1'/></marker></defs>" +
+            "<polyline points='0,0 1,1 2,2 3,3 4,4 5,5' fill='url(#p)' marker-mid='url(#m)'/>" +
+            "<image href='data:image/png;base64," + Convert.ToBase64String(png) + "' width='1' height='1'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.True(unsupported > 0);
+        Assert.Single(EnumerateDrawingImages(drawing!));
+    }
+
+    [Fact]
+    public void DiscardedMaskedViewportReleasesItsSceneReservation() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Red));
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4096 4096'><defs>" +
+            "<mask id='m' maskUnits='userSpaceOnUse' x='0' y='0' width='4096' height='4096'>" +
+            "<rect width='4096' height='4096' fill='white'/></mask></defs>" +
+            "<svg width='4096' height='4096' viewBox='0 0 4096 4096' mask='url(#m)'>" +
+            "<rect width='1' height='1'/></svg>" +
+            "<image href='data:image/png;base64," + Convert.ToBase64String(png) + "' width='1' height='1'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.True(unsupported > 0);
+        Assert.Single(EnumerateDrawingImages(drawing!));
+    }
+
     [Fact]
     public void RepeatedEmbeddedImagesChargeFullCanvasEffectSurfaces() {
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Red));

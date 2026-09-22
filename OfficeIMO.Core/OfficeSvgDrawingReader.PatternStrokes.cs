@@ -26,6 +26,10 @@ public static partial class OfficeSvgDrawingReader {
         out OfficeDrawing? patternLayer) {
         patternLayer = null;
         if (pattern == null) return false;
+        if (style.Opacity <= 0D || style.StrokeOpacity <= 0D) {
+            ClearShapeStroke(shape.Shape);
+            return false;
+        }
         if (!TryResolveSvgPatternGeometry(pattern, shape, drawing.Width, drawing.Height, viewX, viewY,
                 out double originX, out double originY, out double tileWidth, out double tileHeight,
                 out OfficeTransform patternTransform, out bool objectBoundingBoxContent)

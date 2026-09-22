@@ -238,10 +238,10 @@ public static partial class OfficeSvgDrawingReader {
             return true;
         }
 
-        internal (double IntermediatePixels, double MarkerPixels) CaptureMarkerSurfaceBudget() =>
+        internal (double IntermediatePixels, double MarkerPixels) CaptureSurfaceBudget() =>
             (_intermediateSurfacePixels, _markerScenePixels);
 
-        internal void RestoreMarkerSurfaceBudget((double IntermediatePixels, double MarkerPixels) budget) {
+        internal void RestoreSurfaceBudget((double IntermediatePixels, double MarkerPixels) budget) {
             _intermediateSurfacePixels = budget.IntermediatePixels;
             _markerScenePixels = budget.MarkerPixels;
         }
