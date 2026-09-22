@@ -25,11 +25,16 @@ public enum OdtInlineNodeKind {
 /// child nodes in document order so nested formatting can be resolved by consumers.
 /// </summary>
 public sealed class OdtInlineNode {
-    private OdtInlineNode(OdtInlineNodeKind kind, string text, OdtSpan? span = null,
+    private string? _text;
+    private readonly string? _textContribution;
+
+    private OdtInlineNode(OdtInlineNodeKind kind, string? text, OdtSpan? span = null,
         OdtHyperlink? hyperlink = null, OdtImage? image = null, string? name = null,
-        string? qualifiedName = null, IReadOnlyList<OdtInlineNode>? children = null) {
+        string? qualifiedName = null, IReadOnlyList<OdtInlineNode>? children = null,
+        string? textContribution = null) {
         Kind = kind;
-        Text = text;
+        _text = text;
+        _textContribution = textContribution;
         Span = span;
         Hyperlink = hyperlink;
         Image = image;
@@ -41,7 +46,14 @@ public sealed class OdtInlineNode {
     /// <summary>Node kind.</summary>
     public OdtInlineNodeKind Kind { get; }
     /// <summary>Decoded text contributed by this node.</summary>
-    public string Text { get; }
+    public string Text {
+        get {
+            if (_text != null) return _text;
+            var builder = new StringBuilder();
+            AppendSnapshotText(Children, builder);
+            return _text = builder.ToString();
+        }
+    }
     /// <summary>Styled span for <see cref="OdtInlineNodeKind.Span"/>.</summary>
     public OdtSpan? Span { get; }
     /// <summary>Hyperlink for <see cref="OdtInlineNodeKind.Hyperlink"/>.</summary>
@@ -92,16 +104,17 @@ public sealed class OdtInlineNode {
             FlushPlain();
             if (element.Name == OdfNamespaces.Text + "span") {
                 var span = new OdtSpan(document, element, partPath);
-                result.Add(new OdtInlineNode(OdtInlineNodeKind.Span, span.Text, span: span,
+                result.Add(new OdtInlineNode(OdtInlineNodeKind.Span, null, span: span,
                     children: ReadChildren(document, element, partPath)));
             } else if (element.Name == OdfNamespaces.Text + "a") {
                 var hyperlink = new OdtHyperlink(document, element, partPath);
-                result.Add(new OdtInlineNode(OdtInlineNodeKind.Hyperlink, hyperlink.Text, hyperlink: hyperlink,
+                result.Add(new OdtInlineNode(OdtInlineNodeKind.Hyperlink, null, hyperlink: hyperlink,
                     children: ReadChildren(document, element, partPath)));
             } else if (element.Name == OdfNamespaces.Draw + "frame"
                 && element.Element(OdfNamespaces.Draw + "image") != null) {
                 var image = new OdtImage(document, element, partPath);
-                result.Add(new OdtInlineNode(OdtInlineNodeKind.Image, string.Empty, image: image));
+                result.Add(new OdtInlineNode(OdtInlineNodeKind.Image, string.Empty, image: image,
+                    textContribution: OdfTextCodec.Read(element)));
             } else if (element.Name == OdfNamespaces.Text + "bookmark") {
                 result.Add(BookmarkNode(OdtInlineNodeKind.Bookmark, element));
             } else if (element.Name == OdfNamespaces.Text + "bookmark-start") {
@@ -120,5 +133,15 @@ public sealed class OdtInlineNode {
     private static OdtInlineNode BookmarkNode(OdtInlineNodeKind kind, XElement element) =>
         new OdtInlineNode(kind, string.Empty,
             name: (string?)element.Attribute(OdfNamespaces.Text + "name"));
+
+    private static void AppendSnapshotText(IReadOnlyList<OdtInlineNode> children, StringBuilder builder) {
+        foreach (OdtInlineNode child in children) {
+            if (child.Kind == OdtInlineNodeKind.Span || child.Kind == OdtInlineNodeKind.Hyperlink) {
+                AppendSnapshotText(child.Children, builder);
+            } else {
+                builder.Append(child._textContribution ?? child._text);
+            }
+        }
+    }
 
 }

@@ -208,6 +208,11 @@ public sealed class OpenDocumentConversionContracts {
         Assert.True(output.Runs[5].Bold);
         Assert.Equal("https://example.test/outer", output.Runs[5].HyperlinkUri);
         Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "inline-formatting");
+
+        OdtInlineNode snapshotNode = actual.InlineNodes[0];
+        snapshotNode.Span!.Text = "Changed";
+        Assert.Equal("Outer inner linked", snapshotNode.Text);
+        Assert.Equal("Outer ", snapshotNode.Children[0].Text);
     }
 
     [Fact]
@@ -234,6 +239,52 @@ public sealed class OpenDocumentConversionContracts {
         Assert.Equal("Yellow", runs[0].HighlightColor);
         Assert.Null(runs[1].HighlightColor);
     }
+
+#if NET8_0_OR_GREATER
+    [Fact]
+    public void DeepNestedInlineNodesUseBoundedAllocationInOdtAndOdp() {
+        const int depth = 96;
+        const long allocationLimit = 32 * 1024 * 1024;
+        var characters = new char[256 * 1024];
+        var random = new Random(12345);
+        for (int index = 0; index < characters.Length; index++) {
+            characters[index] = (char)('a' + random.Next(26));
+        }
+        string payload = new string(characters);
+
+        OdtDocument odt = OdtDocument.Create();
+        OdtSpan span = odt.AddParagraph().AddSpan();
+        for (int index = 1; index < depth; index++) span = span.AddSpan();
+        span.AddText(payload);
+        OdtParagraph odtParagraph = Assert.Single(OdtDocument.Load(new MemoryStream(odt.ToBytes())).Paragraphs);
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        IReadOnlyList<OdtInlineNode> odtNodes = odtParagraph.InlineNodes;
+        long odtAllocation = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.InRange(odtAllocation, 0, allocationLimit);
+        OdtInlineNode odtNode = Assert.Single(odtNodes);
+        for (int index = 1; index < depth; index++) odtNode = Assert.Single(odtNode.Children);
+        Assert.Equal(payload, Assert.Single(odtNode.Children).Text);
+        Assert.Equal(payload, odtNodes[0].Text);
+
+        OdpPresentation odp = OdpPresentation.Create();
+        OdpRun run = odp.AddSlide("Depth").AddTextBox(
+            OdfRect.FromCentimeters(1, 1, 10, 3)).AddParagraph().AddRun();
+        for (int index = 1; index < depth; index++) run = run.AddRun();
+        run.AddText(payload);
+        OdpParagraph odpParagraph = Assert.Single(Assert.IsType<OdpTextBox>(
+            Assert.Single(OdpPresentation.Load(new MemoryStream(odp.ToBytes())).Slides[0].Shapes)).Paragraphs);
+
+        before = GC.GetAllocatedBytesForCurrentThread();
+        IReadOnlyList<OdpInlineNode> odpNodes = odpParagraph.InlineNodes;
+        long odpAllocation = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.InRange(odpAllocation, 0, allocationLimit);
+        OdpInlineNode odpNode = Assert.Single(odpNodes);
+        for (int index = 1; index < depth; index++) odpNode = Assert.Single(odpNode.Children);
+        Assert.Equal(payload, Assert.Single(odpNode.Children).Text);
+        Assert.Equal(payload, odpNodes[0].Text);
+    }
+#endif
 
     [Fact]
     public void OdtToWordDecodesPercentEncodedBookmarkLinks() {
@@ -523,6 +574,11 @@ public sealed class OpenDocumentConversionContracts {
         Assert.True(runs[5].Bold);
         Assert.Equal("https://example.test/outer", runs[5].Hyperlink?.ToString());
         Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "inline-formatting");
+
+        OdpInlineNode snapshotNode = actual.InlineNodes[0];
+        snapshotNode.Run!.Text = "Changed";
+        Assert.Equal("Outer inner linked", snapshotNode.Text);
+        Assert.Equal("Outer ", snapshotNode.Children[0].Text);
     }
 
     [Fact]

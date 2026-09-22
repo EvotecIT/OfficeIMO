@@ -17,11 +17,13 @@ public enum OdpInlineNodeKind {
 /// child nodes in document order so nested formatting can be resolved by consumers.
 /// </summary>
 public sealed class OdpInlineNode {
-    private OdpInlineNode(OdpInlineNodeKind kind, string text, OdpRun? run = null,
+    private string? _text;
+
+    private OdpInlineNode(OdpInlineNodeKind kind, string? text, OdpRun? run = null,
         OdpHyperlink? hyperlink = null, string? qualifiedName = null,
         IReadOnlyList<OdpInlineNode>? children = null) {
         Kind = kind;
-        Text = text;
+        _text = text;
         Run = run;
         Hyperlink = hyperlink;
         QualifiedName = qualifiedName;
@@ -31,7 +33,14 @@ public sealed class OdpInlineNode {
     /// <summary>Node kind.</summary>
     public OdpInlineNodeKind Kind { get; }
     /// <summary>Decoded text contributed by this node.</summary>
-    public string Text { get; }
+    public string Text {
+        get {
+            if (_text != null) return _text;
+            var builder = new StringBuilder();
+            AppendSnapshotText(Children, builder);
+            return _text = builder.ToString();
+        }
+    }
     /// <summary>Styled run for <see cref="OdpInlineNodeKind.Run"/>.</summary>
     public OdpRun? Run { get; }
     /// <summary>Hyperlink for <see cref="OdpInlineNodeKind.Hyperlink"/>.</summary>
@@ -69,11 +78,11 @@ public sealed class OdpInlineNode {
             FlushPlain();
             if (element.Name == OdfNamespaces.Text + "span") {
                 var run = new OdpRun(presentation, element);
-                result.Add(new OdpInlineNode(OdpInlineNodeKind.Run, run.Text, run: run,
+                result.Add(new OdpInlineNode(OdpInlineNodeKind.Run, null, run: run,
                     children: ReadChildren(presentation, element)));
             } else if (element.Name == OdfNamespaces.Text + "a") {
                 var hyperlink = new OdpHyperlink(presentation, element);
-                result.Add(new OdpInlineNode(OdpInlineNodeKind.Hyperlink, hyperlink.Text, hyperlink: hyperlink,
+                result.Add(new OdpInlineNode(OdpInlineNodeKind.Hyperlink, null, hyperlink: hyperlink,
                     children: ReadChildren(presentation, element)));
             } else {
                 result.Add(new OdpInlineNode(OdpInlineNodeKind.Other, OdfTextCodec.Read(element),
@@ -82,6 +91,16 @@ public sealed class OdpInlineNode {
         }
         FlushPlain();
         return result;
+    }
+
+    private static void AppendSnapshotText(IReadOnlyList<OdpInlineNode> children, StringBuilder builder) {
+        foreach (OdpInlineNode child in children) {
+            if (child.Kind == OdpInlineNodeKind.Run || child.Kind == OdpInlineNodeKind.Hyperlink) {
+                AppendSnapshotText(child.Children, builder);
+            } else {
+                builder.Append(child._text);
+            }
+        }
     }
 
 }
