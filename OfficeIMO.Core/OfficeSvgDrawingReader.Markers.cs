@@ -117,8 +117,7 @@ public static partial class OfficeSvgDrawingReader {
                 unsupported++;
                 return false;
             }
-            if (!IsSupportedSvgViewport(viewBox[2], viewBox[3], maximumViewportDimension, maximumViewportPixels)
-                || !references.TryChargeMarkerScene(viewBox[2], viewBox[3])) {
+            if (!IsSupportedSvgViewport(viewBox[2], viewBox[3], maximumViewportDimension, maximumViewportPixels)) {
                 unsupported++;
                 return false;
             }
@@ -141,6 +140,10 @@ public static partial class OfficeSvgDrawingReader {
                 maximumElements, maximumViewportDimension, maximumViewportPixels, depth + 1,
                 ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupported);
             if (scene.Elements.Count == 0) return false;
+            if (!references.TryChargeMarkerScene(viewBox[2], viewBox[3])) {
+                unsupported++;
+                return false;
+            }
 
             OfficeTransform viewportTransform = ResolveViewportTransform(viewBox[2], viewBox[3], markerWidth, markerHeight, alignment, slice);
             OfficePoint refPoint = viewportTransform.TransformPoint(new OfficePoint(refX - viewBox[0], refY - viewBox[1]));

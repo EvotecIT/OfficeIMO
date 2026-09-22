@@ -230,7 +230,7 @@ public static partial class OfficeSvgDrawingReader {
         ref int strokeOperations) {
         double cycle = 0D;
         for (int index = 0; index < pattern.Count; index++) {
-            if (pattern[index] <= 0D || double.IsNaN(pattern[index]) || double.IsInfinity(pattern[index])) return false;
+            if (pattern[index] < 0D || double.IsNaN(pattern[index]) || double.IsInfinity(pattern[index])) return false;
             cycle += pattern[index];
         }
         if (cycle <= 0D || double.IsNaN(cycle) || double.IsInfinity(cycle)) return false;

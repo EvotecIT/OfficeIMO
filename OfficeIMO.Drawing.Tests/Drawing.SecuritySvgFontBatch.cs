@@ -103,6 +103,30 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void EmptyMarkersDoNotConsumeTheScenePixelBudget() {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs>" +
+            "<marker id='empty' markerWidth='1' markerHeight='1' viewBox='0 0 4000 4000'/>" +
+            "<marker id='visible' markerWidth='1' markerHeight='1' viewBox='0 0 4000 4000'>" +
+            "<rect width='1' height='1'/></marker></defs>" +
+            "<polyline points='0,0 1,1 2,2 3,3 4,4 5,5 6,6 7,7 8,8' marker-mid='url(#empty)'/>" +
+            "<polyline points='10,10 11,11 12,12' marker-mid='url(#visible)'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out _));
+        Assert.Contains(drawing!.Elements, element => element is OfficeDrawingEffectGroup);
+    }
+
+    [Fact]
+    public void InvalidNestedViewportsDoNotConsumeThePixelBudget() {
+        string invalid = "<svg width='4000' height='4000' viewBox='bad'><rect width='1' height='1'/></svg>";
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4000 4000'>" +
+            string.Concat(Enumerable.Repeat(invalid, 4)) +
+            "<svg width='4000' height='4000'><rect width='1' height='1'/></svg></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out _));
+        Assert.NotEmpty(drawing!.Elements);
+    }
+
+    [Fact]
     public void OversizedSvgTextPathIsOmittedBeforeGlyphSplitting() {
         string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 20'><defs>" +
             "<path id='p' d='M0 10 H100'/></defs><text><textPath href='#p'>" +
@@ -152,6 +176,19 @@ public partial class DrawingTests {
             "<rect width='0.01' height='0.01'/></pattern></defs>" +
             "<path d='M0 0.05 H0.05' fill='none' stroke='url(#p)' stroke-width='0.01' " +
             "stroke-dasharray='0.005 0.005'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.Equal(0, unsupported);
+        Assert.NotEmpty(drawing!.Elements);
+    }
+
+    [Fact]
+    public void PatternedStrokeAcceptsZeroLengthDashArrayEntries() {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 20'><defs>" +
+            "<pattern id='p' patternUnits='userSpaceOnUse' width='5' height='5'>" +
+            "<rect width='5' height='5'/></pattern></defs>" +
+            "<path d='M0 10 H100' fill='none' stroke='url(#p)' stroke-width='1' " +
+            "stroke-dasharray='5 0'/></svg>";
 
         Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
         Assert.Equal(0, unsupported);
