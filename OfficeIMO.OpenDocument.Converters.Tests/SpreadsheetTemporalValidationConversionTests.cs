@@ -1,3 +1,5 @@
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.OpenDocument;
 using OfficeIMO.OpenDocument;
@@ -10,6 +12,60 @@ using Xunit;
 namespace OfficeIMO.OpenDocument.Converters.Tests;
 
 public sealed class SpreadsheetTemporalValidationConversionTests {
+    [Fact]
+    public void EarlyOutOfRangeAndFractionalExcelDatesReportUnsupported() {
+        byte[] package;
+        using (ExcelDocument authored = ExcelDocument.Create()) {
+            ExcelSheet sheet = authored.AddWorksheet("Data");
+            for (int index = 0; index < 3; index++) {
+                sheet.ValidationDate(((char)('A' + index)).ToString() + "1",
+                    ExcelDataValidationOperator.Equal, new DateTime(2024, 1, 1));
+            }
+            sheet.ValidationDate("D1", ExcelDataValidationOperator.Equal, new DateTime(9957, 1, 1));
+            package = authored.ToBytes();
+        }
+
+        using (var stream = new MemoryStream(package)) {
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(stream, true)) {
+                Worksheet worksheet = spreadsheet.WorkbookPart!.WorksheetParts.Single().Worksheet
+                    ?? throw new InvalidDataException("The regression workbook has no worksheet XML.");
+                foreach (DataValidation validation in worksheet.Descendants<DataValidation>()) {
+                    string address = validation.SequenceOfReferences?.InnerText
+                        ?? throw new InvalidDataException("The regression validation has no target range.");
+                    if (address == "A1") validation.Formula1 = new Formula1("1");
+                    else if (address == "B1") validation.Formula1 = new Formula1("60");
+                    else if (address == "C1") validation.Formula1 = new Formula1("45292.000000004");
+                }
+                worksheet.Save();
+            }
+            package = stream.ToArray();
+        }
+
+        using ExcelDocument source = ExcelDocument.Load(new MemoryStream(package));
+        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+        Assert.Empty(conversion.Value.Validations);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "validations"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 4);
+    }
+
+    [Fact]
+    public void OutOfRangeOdsDateConstantsReportUnsupportedWithoutAbortingConversion() {
+        OdsDocument source = OdsDocument.Create();
+        OdsSheet sheet = source.AddSheet("Data");
+        string[] dates = { "DATE(99;1;1)", "DATE(1900;1;1)", "DATE(9957;1;1)" };
+        for (int index = 0; index < dates.Length; index++) {
+            OdsValidation validation = source.AddValidation("Date" + index, OdsValidationConditionSyntax.Create(
+                OdsValidationValueKind.Date, OdsValidationComparison.Equal, dates[index]));
+            sheet.Cell(0, index).ValidationName = validation.Name;
+        }
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        using ExcelDocument target = conversion.Value;
+        Assert.Empty(target.Sheets.Single().GetDataValidations());
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "validations"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 3);
+    }
+
     [Theory]
     [InlineData(ExcelDateSystem.NineteenHundred)]
     [InlineData(ExcelDateSystem.NineteenFour)]

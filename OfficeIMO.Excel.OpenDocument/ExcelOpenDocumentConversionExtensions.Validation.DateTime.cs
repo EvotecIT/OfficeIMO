@@ -5,6 +5,9 @@ using System.Globalization;
 namespace OfficeIMO.Excel.OpenDocument;
 
 public static partial class ExcelOpenDocumentConversionExtensions {
+    private const int MinimumOpenFormulaDateYear = 1904;
+    private const int MaximumOpenFormulaDateYear = 9956;
+
     private static bool TryFormatTemporalOperand(string? formula, OdsValidationValueKind kind,
         ExcelDateSystem dateSystem, out string? operand) {
         operand = null;
@@ -12,13 +15,16 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             || double.IsNaN(serial) || double.IsInfinity(serial)) return false;
 
         if (kind == OdsValidationValueKind.Date) {
+            // The OLE and Excel 1900 calendars differ before March 1900. OpenFormula
+            // guarantees DATE only for years 1904 through 9956.
+            if (serial != Math.Truncate(serial)) return false;
             DateTime date;
             try {
                 date = ExcelDateSystemConverter.FromSerial(serial, dateSystem);
             } catch (ArgumentException) {
                 return false;
             }
-            if (date.TimeOfDay != TimeSpan.Zero) return false;
+            if (date.Year < MinimumOpenFormulaDateYear || date.Year > MaximumOpenFormulaDateYear) return false;
             operand = string.Format(CultureInfo.InvariantCulture, "DATE({0};{1};{2})",
                 date.Year, date.Month, date.Day);
             return true;
@@ -40,7 +46,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         if (!TrySplitTemporalFunction(operand, "DATE", out string[]? arguments)
             || !int.TryParse(arguments![0], NumberStyles.Integer, CultureInfo.InvariantCulture, out int year)
             || !int.TryParse(arguments[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int month)
-            || !int.TryParse(arguments[2], NumberStyles.Integer, CultureInfo.InvariantCulture, out int day)) return false;
+            || !int.TryParse(arguments[2], NumberStyles.Integer, CultureInfo.InvariantCulture, out int day)
+            || year < MinimumOpenFormulaDateYear || year > MaximumOpenFormulaDateYear) return false;
         try {
             value = new DateTime(year, month, day);
             return true;
