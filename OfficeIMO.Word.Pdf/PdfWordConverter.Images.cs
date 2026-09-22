@@ -4,6 +4,47 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     internal static partial class PdfWordConverter {
+        private sealed class ImageImportContext {
+            private const uint BaseZOrder = 251658240U;
+            private readonly Dictionary<PdfCore.PdfImagePlacement, uint> _zOrders = new();
+            private readonly ImageOverlapBudget _budget;
+
+            internal ImageImportContext(PdfCore.PdfLogicalPage page, ImageOverlapBudget budget) {
+                _budget = budget;
+                int rank = 0;
+                foreach (PdfCore.PdfImagePlacement placement in page.Images
+                    .SelectMany(static image => image.Placements)
+                    .OrderBy(static candidate => candidate.PaintOrder)
+                    .ThenBy(static candidate => candidate.ObjectNumber)
+                    .ThenBy(static candidate => candidate.ResourceName, StringComparer.Ordinal)) {
+                    if (!_zOrders.ContainsKey(placement))
+                        _zOrders.Add(placement, BaseZOrder + (uint)Math.Min(rank, (long)uint.MaxValue - BaseZOrder));
+                    rank++;
+                }
+            }
+
+            internal uint GetZOrder(PdfCore.PdfImagePlacement placement) =>
+                _zOrders.TryGetValue(placement, out uint zOrder) ? zOrder : BaseZOrder;
+
+            internal void ChargeOverlapComparison() {
+                _budget.Charge();
+            }
+        }
+
+        private sealed class ImageOverlapBudget {
+            private readonly PdfToWordOptions _options;
+            private long _comparisons;
+
+            internal ImageOverlapBudget(PdfToWordOptions options) => _options = options;
+
+            internal void Charge() {
+                if ((_comparisons & 255L) == 0L) _options.CancellationToken.ThrowIfCancellationRequested();
+                _comparisons++;
+                if (_comparisons > _options.MaxImageTextOverlapComparisons)
+                    throw new IOException("PDF image/text overlap analysis exceeded the configured work limit.");
+            }
+        }
+
         private static bool ShouldQueueImage(
             PdfCore.PdfLogicalPage page,
             PdfCore.PdfLogicalImage image,
@@ -35,7 +76,8 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfLogicalImage image,
             PdfCore.PdfImagePlacement? placement,
             bool sourcePageSizeApplied,
-            PdfToWordOptions options) {
+            PdfToWordOptions options,
+            ImageImportContext imageContext) {
             PdfCore.PdfImagePlacementImportAssessment assessment =
                 PdfCore.PdfImagePlacementImportPolicy.Analyze(page, image, placement);
             if (assessment.IsSuppressed) {
@@ -56,7 +98,7 @@ namespace OfficeIMO.Word.Pdf {
                 return false;
             }
 
-            if (options.ImportImages && TryAddEmbeddedImage(document, page, image, placement, assessment, sourcePageSizeApplied, options)) {
+            if (options.ImportImages && TryAddEmbeddedImage(document, page, image, placement, assessment, sourcePageSizeApplied, options, imageContext)) {
                 return true;
             }
 
@@ -91,7 +133,8 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfImagePlacement? placement,
             PdfCore.PdfImagePlacementImportAssessment assessment,
             bool sourcePageSizeApplied,
-            PdfToWordOptions options) {
+            PdfToWordOptions options,
+            ImageImportContext imageContext) {
             PdfCore.PdfExtractedImage source = image.SourceImage;
             if (!source.IsImageFile || source.Bytes.Length == 0) {
                 AddImageSkippedWarning(image, "PDF image stream is not exposed as a complete image file payload.");
@@ -147,6 +190,7 @@ namespace OfficeIMO.Word.Pdf {
                     GetOverlappingTextPaintOrder(
                         page,
                         placement,
+                        imageContext,
                         out bool hasOverlappingTextBefore,
                         out bool hasOverlappingTextAfter);
                     WordImageTextWrapping wrapping = hasOverlappingTextAfter
@@ -176,7 +220,7 @@ namespace OfficeIMO.Word.Pdf {
                     embeddedImage.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
                     embeddedImage.HorizontalPositionOffset = PdfPointsToEmu(visual.Left);
                     embeddedImage.VerticalPositionOffset = PdfPointsToEmu(visual.Top);
-                    embeddedImage.ZOrder = GetWordImageZOrder(page, placement);
+                    embeddedImage.ZOrder = imageContext.GetZOrder(placement);
                 } else {
                     embeddedImage = imageParagraph.InsertImage(stream, fileName, width, height, description: description);
                     if (placement != null && page.RotationDegrees != 0) {
@@ -225,23 +269,10 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static uint GetWordImageZOrder(
-            PdfCore.PdfLogicalPage page,
-            PdfCore.PdfImagePlacement placement) {
-            const uint baseZOrder = 251658240U;
-            int rank = page.Images
-                .SelectMany(static image => image.Placements)
-                .OrderBy(static candidate => candidate.PaintOrder)
-                .ThenBy(static candidate => candidate.ObjectNumber)
-                .ThenBy(static candidate => candidate.ResourceName, StringComparer.Ordinal)
-                .TakeWhile(candidate => !ReferenceEquals(candidate, placement))
-                .Count();
-            return baseZOrder + (uint)Math.Min(rank, (long)uint.MaxValue - baseZOrder);
-        }
-
         private static void GetOverlappingTextPaintOrder(
             PdfCore.PdfLogicalPage page,
             PdfCore.PdfImagePlacement placement,
+            ImageImportContext imageContext,
             out bool hasBefore,
             out bool hasAfter) {
             hasBefore = false;
@@ -253,6 +284,7 @@ namespace OfficeIMO.Word.Pdf {
             for (int blockIndex = 0; blockIndex < page.TextBlocks.Count; blockIndex++) {
                 IReadOnlyList<PdfCore.PdfTextSpan> spans = page.TextBlocks[blockIndex].Spans;
                 for (int spanIndex = 0; spanIndex < spans.Count; spanIndex++) {
+                    imageContext.ChargeOverlapComparison();
                     PdfCore.PdfTextSpan span = spans[spanIndex];
                     if (!span.IsVisible || string.IsNullOrEmpty(span.Text)) {
                         continue;

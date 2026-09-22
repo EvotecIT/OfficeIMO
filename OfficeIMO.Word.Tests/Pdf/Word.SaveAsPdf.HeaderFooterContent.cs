@@ -378,6 +378,20 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Bounds_Header_PictureControls_Per_Paragraph() {
+        string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
+        using WordDocument document = WordDocument.Create();
+        document.AddHeadersAndFooters();
+        WordParagraph header = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph();
+        header.AddPictureControl(imagePath, 32, 32, "First", "First");
+        header.AddPictureControl(imagePath, 32, 32, "Second", "Second");
+        document.AddParagraph("Body");
+
+        Assert.Throws<InvalidDataException>(() => document.ToPdfDocumentResult(
+            new WordToPdfOptions { MaxImagesPerParagraph = 1 }));
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Maps_HeaderFooter_RepeatingSections_To_Text_Items() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterRepeatingSections.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterRepeatingSections.pdf");

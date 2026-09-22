@@ -108,6 +108,13 @@ public sealed partial class PdfDocument {
         return PdfInspector.Inspect(snapshot.Bytes, snapshot.Document, cancellationToken);
     }
 
+    internal PdfDocumentInfo InspectSelectedPages(IReadOnlyList<int> pageNumbers, CancellationToken cancellationToken) {
+        Guard.NotNull(pageNumbers, nameof(pageNumbers));
+        var snapshot = GetReadSnapshot(ReadOptions, cancellationToken);
+        snapshot.Document.DemandContentExtraction("logical object");
+        return PdfInspector.InspectSelectedPages(snapshot.Bytes, snapshot.Document, pageNumbers.ToArray(), cancellationToken);
+    }
+
     /// <summary>
     /// Reports read and rewrite capabilities for this PDF.
     /// </summary>

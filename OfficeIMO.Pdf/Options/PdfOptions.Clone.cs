@@ -29,6 +29,8 @@ public sealed partial class PdfOptions {
             ObjectSerializationMode = ObjectSerializationMode,
             ObjectBufferMemoryLimitBytes = ObjectBufferMemoryLimitBytes,
             PageContentMemoryLimitBytes = PageContentMemoryLimitBytes,
+            MaxGeneratedPages = MaxGeneratedPages,
+            MaxGeneratedOutputBytes = MaxGeneratedOutputBytes,
             IncludeStandardFontToUnicodeMaps = IncludeStandardFontToUnicodeMaps,
             CompressEmbeddedFonts = CompressEmbeddedFonts,
             IncludeXmpMetadata = IncludeXmpMetadata,
