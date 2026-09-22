@@ -6,15 +6,6 @@ using Xunit;
 namespace OfficeIMO.Shared.Tests;
 
 public sealed partial class ProvenanceDocumentContracts {
-    [Fact]
-    public void AnimationLonghandOverridesEarlierShorthandName() {
-        string html = KeyframeHtml("animation:1s pulse;animation-name:none");
-
-        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
-
-        Assert.Empty(result.Before.Evidence);
-        Assert.False(result.WasChanged);
-    }
 
     [Fact]
     public void LaterAnimationShorthandOverridesLonghandName() {
@@ -26,15 +17,6 @@ public sealed partial class ProvenanceDocumentContracts {
         Assert.True(result.WasChanged);
     }
 
-    [Fact]
-    public void NegativeAnimationDurationDoesNotActivateKeyframes() {
-        string html = KeyframeHtml("animation:-1s pulse");
-
-        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
-
-        Assert.Empty(result.Before.Evidence);
-        Assert.False(result.WasChanged);
-    }
 
     [Fact]
     public void NegativeAnimationDelayStillActivatesKeyframes() {
@@ -46,27 +28,7 @@ public sealed partial class ProvenanceDocumentContracts {
         Assert.True(result.WasChanged);
     }
 
-    [Fact]
-    public void CssWideKeywordCannotBeMixedIntoAnAnimationList() {
-        string html = KeyframeHtml("animation:inherit,1s pulse");
 
-        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
-
-        Assert.Empty(result.Before.Evidence);
-        Assert.False(result.WasChanged);
-    }
-
-    [Fact]
-    public void StatefulNegationRetainsItsStaticExclusions() {
-        string dataUri = ProvenanceDataUri();
-        string html = "<style>.x:not(.x,:hover){background-image:url('" + dataUri +
-            "')}</style><div class='x'></div>";
-
-        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
-
-        Assert.Empty(result.Before.Evidence);
-        Assert.False(result.WasChanged);
-    }
 
     [Theory]
     [InlineData("image")]

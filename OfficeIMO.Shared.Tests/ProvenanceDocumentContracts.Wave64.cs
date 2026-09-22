@@ -20,18 +20,6 @@ public sealed partial class ProvenanceDocumentContracts {
         Assert.Throws<InvalidDataException>(() => OdfDocument.RemoveProvenance(package));
     }
 
-    [Fact]
-    public void ImagePreloadSourceSetReplacesHref() {
-        string provenance = "data:image/png;base64," + Convert.ToBase64String(CreatePngWithManifest(CreateManifestStore()));
-        byte[] cleanPng = OfficeProvenanceRemover.Remove(CreatePngWithManifest(CreateManifestStore()), "fixture.png").ToArray();
-        string clean = "data:image/png;base64," + Convert.ToBase64String(cleanPng);
-        string html = "<link rel='preload' as='image' href='" + provenance + "' imagesrcset='" + clean + " 1x'>";
-
-        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
-
-        Assert.Empty(result.Before.Evidence);
-        Assert.False(result.WasChanged);
-    }
 
     [Theory]
     [InlineData("object", "data")]

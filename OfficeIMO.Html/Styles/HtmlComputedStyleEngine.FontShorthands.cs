@@ -44,13 +44,14 @@ public static partial class HtmlComputedStyleEngine {
     }
 
     private static void ResolveDeferredFontLonghands(Dictionary<string, string> properties, ISet<string> deferred,
-        IReadOnlyDictionary<string, string>? parentProperties, ISet<string> inherited, ISet<string> reset) {
+        IReadOnlyDictionary<string, string>? parentProperties, ISet<string> inherited, ISet<string> reset,
+        bool enforceResolutionLimits) {
         foreach (string name in deferred) {
             string value = "unset";
             if (HtmlCssCustomPropertyResolver.TryResolve(properties[name],
                     customName => properties.TryGetValue(customName, out string? local) ? local
                         : parentProperties != null && parentProperties.TryGetValue(customName, out string? parent) ? parent : null,
-                    out string shorthand)
+                    out string shorthand, enforceResolutionLimits)
                 && TryExpandFontShorthand(shorthand, out IReadOnlyList<KeyValuePair<string, string>> longhands)) {
                 value = longhands.First(item => item.Key == name).Value;
             }

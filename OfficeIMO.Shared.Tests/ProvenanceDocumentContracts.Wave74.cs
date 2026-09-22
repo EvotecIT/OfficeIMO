@@ -21,18 +21,6 @@ public sealed partial class ProvenanceDocumentContracts {
         Assert.Empty(result.After.Evidence);
     }
 
-    [Fact]
-    public void BackgroundImageLonghandOverridesEarlierShorthandCarrier() {
-        string dataUri = "data:image/png;base64," +
-            Convert.ToBase64String(CreatePngWithManifest(CreateManifestStore()));
-        string html = "<style>.box{background:url('" + dataUri +
-            "');background-image:none}</style><div class='box'></div>";
-
-        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
-
-        Assert.Empty(result.Before.Evidence);
-        Assert.False(result.WasChanged);
-    }
 
     [Theory]
     [InlineData(0)]

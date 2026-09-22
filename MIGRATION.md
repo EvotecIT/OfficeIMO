@@ -9,6 +9,27 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## HTML style and rendering limits
+
+`HtmlComputedStyleEngine.Compute(HtmlDocument)` now applies the untrusted HTML and CSS limits to prepared documents. Applications that intentionally process trusted or larger documents can retain their chosen policy by wrapping the prepared document before computing styles:
+
+```csharp
+var conversion = HtmlConversionDocument.FromDocument(
+    preparedDocument,
+    HtmlConversionDocumentOptions.CreateTrustedProfile());
+var styles = HtmlComputedStyleEngine.Compute(conversion);
+```
+
+To set specific limits, pass `new HtmlConversionDocumentOptions { Limits = yourLimits }` to `FromDocument` instead. Continue using the direct overload for untrusted prepared documents.
+
+`HtmlRenderOptions.MaxTextShadowLayers` now accepts values from 1 through 64. If an application set a value above 64, reduce it to 64 or less before rendering; larger values now throw `ArgumentOutOfRangeException` during option validation.
+
+A `text-shadow` declaration with more than 64 authored layers now falls back as an unsupported value instead of retaining the first configured layers. Simplify the declaration to at most 64 layers; `MaxTextShadowLayers` controls how many of those layers render.
+
+`HtmlRenderOptions.MaxLeaderCharacters` now limits each generated CSS `leader()` to 65,536 characters by default. Applications that render wider leaders can raise this positive limit on their render options. When the limit is exceeded, rendering throws `HtmlDomLimitException` instead of materializing the leader text.
+
+Quoted `leader()` patterns now accept at most 1,024 decoded characters and 2,048 source characters. Shorten longer patterns; raising `MaxLeaderCharacters` does not change these pattern limits.
+
 ## Native ChartForgeX topology placement
 
 `OfficeVisioVisualOptions.LayoutMode` defaults to `Auto`. A topology envelope with complete viewport, node, and included-group bounds now keeps those bounds instead of being laid out again. `PixelsPerInch` controls their physical size. Set `LayoutMode = OfficeVisioVisualLayoutMode.Reflow` to retain the previous native-layout behavior. Flow, sequence, and incomplete topology envelopes continue to use native layout in `Auto` mode. Native graph styling now uses source theme colors with portable Arial text; set `NativeTheme = VisioStyleTheme.Technical()` to retain the previous native palette and typography.

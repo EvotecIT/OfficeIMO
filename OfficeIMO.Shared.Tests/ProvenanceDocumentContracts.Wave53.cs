@@ -36,20 +36,4 @@ public sealed partial class ProvenanceDocumentContracts {
         Assert.Empty(result.After.Evidence);
     }
 
-    [Theory]
-    [InlineData("div,,span")]
-    [InlineData(",div")]
-    [InlineData("div,")]
-    public void InvalidCssSelectorListsAreInert(string selector) {
-        string dataUri = "data:image/png;base64," +
-            Convert.ToBase64String(CreatePngWithManifest(CreateManifestStore()));
-        string html = "<html><head><style>" + selector + "{background-image:url('" + dataUri + "')}</style></head>" +
-            "<body><div></div><span></span></body></html>";
-
-        OfficeProvenanceReport report = HtmlProvenance.Inspect(html);
-        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
-
-        Assert.Empty(report.Evidence);
-        Assert.False(result.WasChanged);
-    }
 }

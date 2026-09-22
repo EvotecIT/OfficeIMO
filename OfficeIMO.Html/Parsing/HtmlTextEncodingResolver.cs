@@ -93,6 +93,8 @@ internal sealed class HtmlTextEncodingResolver {
         return charset == null ? Utf8 : GetEncoding(charset);
     }
 
+    internal bool HasDataUriCharset(string metadata) => ReadContentTypeCharset(metadata) != null;
+
     internal bool TryDecodeCss(byte[] bytes, string? contentType, out string css) {
         if (bytes == null) throw new ArgumentNullException(nameof(bytes));
         try {

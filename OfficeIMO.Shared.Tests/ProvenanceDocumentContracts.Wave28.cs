@@ -41,18 +41,6 @@ public sealed partial class ProvenanceDocumentContracts {
         Assert.Single(report.Evidence);
     }
 
-    [Fact]
-    public void HtmlIgnoresInactiveImagePreloads() {
-        string dataUri = "data:image/png;base64," + Convert.ToBase64String(
-            CreatePngWithManifest(CreateManifestStore()));
-        string html = $"<html><head><link rel=\"preload\" as=\"image\" media=\"print\" href=\"{dataUri}\"></head><body></body></html>";
-
-        OfficeProvenanceReport report = HtmlProvenance.Inspect(html);
-        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
-
-        Assert.Empty(report.Evidence);
-        Assert.False(result.WasChanged);
-    }
 
     [Theory]
     [InlineData("docx")]

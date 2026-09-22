@@ -27,8 +27,6 @@ Completion evidence: a visitor can choose a task, find the supported surface, in
 
 ## Image engine
 
-- [ ] Add bounded ICC-to-sRGB conversion only after representative matrix, LUT, RGB, CMYK, and malformed profiles have an explicit color-correctness corpus. Keep the current byte-preservation and metadata-loss report separate from color conversion, and reject profiles that exceed the declared parser, pixel, or allocation limits.
-- [ ] Evaluate lossy or animated WebP, JPEG-in-TIFF, and BigTIFF as separate products only when real consumer files establish the required decode, encode, fallback, animation/page-loss, and memory contracts.
 - [ ] Add bounded EMF/WMF rasterization when older Office-document fixtures demonstrate a material fidelity gain. Keep ICO, PCX, BMP/GIF encoding, and uncommon or expensive codecs behind the caller-codec boundary until a first-party consumer justifies ownership.
 
 ## PDF engine and conversion fidelity

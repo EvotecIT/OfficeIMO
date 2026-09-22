@@ -246,10 +246,7 @@ public sealed partial class EpubDocument {
             MaxTotalRawHtmlBytes = Math.Min(source.MaxTotalRawHtmlBytes, safety.MaxExpandedPackageBytes),
             IncludeRawHtml = false,
             IncludeResourceData = true,
-            ResourceDataFilter = static (path, mediaType) =>
-                !string.IsNullOrWhiteSpace(mediaType)
-                    ? IsHtmlMediaType(mediaType)
-                    : IsHtmlPath(path),
+            ResourceDataFilter = static (path, mediaType) => IsHtmlMediaType(mediaType) || IsHtmlPath(path),
             MaxResources = Math.Min(source.MaxResources, safety.MaxPackageEntries),
             MaxResourceBytes = Math.Min(source.MaxResourceBytes, safety.MaxInputBytes),
             MaxTotalResourceBytes = Math.Min(source.MaxTotalResourceBytes, safety.MaxExpandedPackageBytes),
@@ -288,14 +285,12 @@ public sealed partial class EpubDocument {
 
     private static bool IsHtmlResource(EpubResource resource) =>
         !resource.IsRemote
-        && (!string.IsNullOrWhiteSpace(resource.MediaType)
-            ? IsHtmlMediaType(resource.MediaType)
-            : IsHtmlPath(resource.Path));
+        && (IsHtmlMediaType(resource.MediaType) || IsHtmlPath(resource.Path));
 
     private static bool IsXhtmlResource(EpubResource resource) =>
-        !string.IsNullOrWhiteSpace(resource.MediaType)
-            ? string.Equals(resource.MediaType, "application/xhtml+xml", StringComparison.OrdinalIgnoreCase)
-            : resource.Path.EndsWith(".xhtml", StringComparison.OrdinalIgnoreCase);
+        string.Equals(resource.MediaType, "application/xhtml+xml", StringComparison.OrdinalIgnoreCase) ||
+        (!string.Equals(resource.MediaType, "text/html", StringComparison.OrdinalIgnoreCase) &&
+         resource.Path.EndsWith(".xhtml", StringComparison.OrdinalIgnoreCase));
 
     private static bool IsHtmlMediaType(string? mediaType) =>
         string.Equals(mediaType, "application/xhtml+xml", StringComparison.OrdinalIgnoreCase)
@@ -320,9 +315,7 @@ public sealed partial class EpubDocument {
     private static void ThrowForIncompleteContentSafetyRead(EpubDocument document) {
         EpubDiagnostic? missingHtml = document.Diagnostics.FirstOrDefault(item =>
             item.Code.Equals("epub.resource.missing", StringComparison.Ordinal)
-            && (!string.IsNullOrWhiteSpace(item.MediaType)
-                ? IsHtmlMediaType(item.MediaType)
-                : IsHtmlPath(item.Path ?? string.Empty)));
+            && (IsHtmlMediaType(item.MediaType) || IsHtmlPath(item.Path ?? string.Empty)));
         if (missingHtml != null) {
             throw new InvalidDataException(
                 "EPUB content-safety inspection requires every local manifest HTML resource. " + missingHtml.Message);

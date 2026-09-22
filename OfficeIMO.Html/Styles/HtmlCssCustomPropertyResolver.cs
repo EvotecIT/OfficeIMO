@@ -2,17 +2,39 @@ namespace OfficeIMO.Html;
 
 internal static class HtmlCssCustomPropertyResolver {
     private const int MaximumDepth = 32;
+    private const int MaximumSyntaxDepth = 256;
+    private const int MaximumSyntaxCharacters = 262144;
+    private const int MaximumResolvedCharacters = 262144;
+    private const int MaximumResolutionWork = 8 * 1024 * 1024;
+    private const int MaximumSubstitutions = 4096;
 
-    internal static bool TryResolve(string value, Func<string, string?> lookup, out string resolved) {
+    private sealed class ResolutionBudget {
+        private readonly bool _enforceLimits;
+        internal ResolutionBudget(bool enforceLimits) => _enforceLimits = enforceLimits;
+        internal int RemainingWork = MaximumResolutionWork;
+        internal int RemainingSubstitutions = MaximumSubstitutions;
+
+        internal bool Charge(int characters) {
+            if (!_enforceLimits) return true;
+            if (characters > RemainingWork || RemainingSubstitutions-- <= 0) return false;
+            RemainingWork -= characters;
+            return true;
+        }
+    }
+
+    internal static bool TryResolve(string value, Func<string, string?> lookup, out string resolved,
+        bool enforceLimits = true) {
         if (lookup == null) throw new ArgumentNullException(nameof(lookup));
-        return TryResolve(value ?? string.Empty, lookup, new HashSet<string>(StringComparer.Ordinal), 0, out resolved);
+        return TryResolve(value ?? string.Empty, lookup, new HashSet<string>(StringComparer.Ordinal),
+            new ResolutionBudget(enforceLimits), enforceLimits, 0, out resolved);
     }
 
     internal static bool ContainsVarFunction(string value) =>
         !string.IsNullOrEmpty(value) && value.IndexOf("var(", StringComparison.OrdinalIgnoreCase) >= 0;
 
     internal static bool HasValidVarFunctionSyntax(string value) {
-        if (string.IsNullOrWhiteSpace(value) || !HasBalancedComponentValueSyntax(value)) return false;
+        if (string.IsNullOrWhiteSpace(value) || value.Length > MaximumSyntaxCharacters ||
+            !ContainsVarFunction(value) || !TryBuildMatchedDelimiters(value, out int[] matchingCloses)) return false;
         bool found = false;
         char quote = '\0';
         for (int index = 0; index <= value.Length - 4; index++) {
@@ -33,10 +55,23 @@ internal static class HtmlCssCustomPropertyResolver {
 
             found = true;
             int open = index + 3;
-            int close = FindMatchingParenthesis(value, open);
+            int close = matchingCloses[open];
             if (close <= open) return false;
-            string arguments = value.Substring(open + 1, close - open - 1);
-            SplitArguments(arguments, out string propertyName, out _);
+            int nameEnd = close;
+            for (int argumentIndex = open + 1; argumentIndex < close; argumentIndex++) {
+                if (value[argumentIndex] == '\\' && argumentIndex + 1 < close) {
+                    argumentIndex++;
+                    continue;
+                }
+                if (value[argumentIndex] == ',') {
+                    nameEnd = argumentIndex;
+                    break;
+                }
+                if (matchingCloses[argumentIndex] > argumentIndex) {
+                    argumentIndex = matchingCloses[argumentIndex];
+                }
+            }
+            string propertyName = value.Substring(open + 1, nameEnd - open - 1).Trim();
             if (!HtmlCssIdentifierParser.TryParse(propertyName, out string identifier)
                 || !identifier.StartsWith("--", StringComparison.Ordinal)
                 || identifier.Length <= 2) {
@@ -54,8 +89,9 @@ internal static class HtmlCssCustomPropertyResolver {
     private static bool IsIdentifierCharacter(char value) =>
         char.IsLetterOrDigit(value) || value == '_' || value == '-' || value == '\\' || value >= 0x80;
 
-    private static bool HasBalancedComponentValueSyntax(string value) {
-        var delimiters = new Stack<char>();
+    private static bool TryBuildMatchedDelimiters(string value, out int[] matchingCloses) {
+        matchingCloses = new int[value.Length];
+        var delimiters = new Stack<(char Open, int Index)>();
         char quote = '\0';
         for (int index = 0; index < value.Length; index++) {
             char current = value[index];
@@ -72,9 +108,13 @@ internal static class HtmlCssCustomPropertyResolver {
             } else if (current == '\'' || current == '"') {
                 quote = current;
             } else if (current == '(' || current == '[' || current == '{') {
-                delimiters.Push(current);
+                if (delimiters.Count >= MaximumSyntaxDepth) return false;
+                delimiters.Push((current, index));
             } else if (current == ')' || current == ']' || current == '}') {
-                if (delimiters.Count == 0 || !IsMatchingDelimiter(delimiters.Pop(), current)) return false;
+                if (delimiters.Count == 0) return false;
+                (char open, int openIndex) = delimiters.Pop();
+                if (!IsMatchingDelimiter(open, current)) return false;
+                matchingCloses[openIndex] = index;
             }
         }
         return quote == '\0' && delimiters.Count == 0;
@@ -83,11 +123,17 @@ internal static class HtmlCssCustomPropertyResolver {
     private static bool IsMatchingDelimiter(char open, char close) =>
         open == '(' && close == ')' || open == '[' && close == ']' || open == '{' && close == '}';
 
-    private static bool TryResolve(string value, Func<string, string?> lookup, ISet<string> resolving, int depth, out string resolved) {
+    private static bool TryResolve(string value, Func<string, string?> lookup, ISet<string> resolving,
+        ResolutionBudget budget, bool enforceLimits, int depth, out string resolved) {
         resolved = value;
-        if (depth > MaximumDepth) return false;
+        // Trusted documents may have deeper finite dependency chains, while a bounded
+        // recursion ceiling still protects the host stack from malicious cycles.
+        if (depth > (enforceLimits ? MaximumDepth : MaximumSyntaxDepth)
+            || enforceLimits && value.Length > MaximumResolvedCharacters) return false;
         int searchStart = 0;
-        while (TryFindVarFunction(resolved, searchStart, out int start, out int open, out int close)) {
+        while (true) {
+            if (!budget.Charge(resolved.Length)) return false;
+            if (!TryFindVarFunction(resolved, searchStart, out int start, out int open, out int close)) break;
             string arguments = resolved.Substring(open + 1, close - open - 1);
             SplitArguments(arguments, out string propertyName, out string? fallback);
             if (!propertyName.StartsWith("--", StringComparison.Ordinal) || propertyName.Length <= 2) return false;
@@ -96,18 +142,19 @@ internal static class HtmlCssCustomPropertyResolver {
             bool added = resolving.Add(propertyName);
             if (added) {
                 string? customValue = lookup(propertyName);
-                if (customValue != null && TryResolve(customValue, lookup, resolving, depth + 1, out string customResolved)) {
+                if (customValue != null && TryResolve(customValue, lookup, resolving, budget, enforceLimits, depth + 1, out string customResolved)) {
                     replacement = customResolved;
                 }
 
                 resolving.Remove(propertyName);
             }
 
-            if (replacement == null && fallback != null && TryResolve(fallback, lookup, resolving, depth + 1, out string fallbackResolved)) {
+            if (replacement == null && fallback != null && TryResolve(fallback, lookup, resolving, budget, enforceLimits, depth + 1, out string fallbackResolved)) {
                 replacement = fallbackResolved;
             }
 
             if (replacement == null) return false;
+            if (enforceLimits && replacement.Length > MaximumResolvedCharacters - (resolved.Length - (close - start + 1))) return false;
             resolved = resolved.Substring(0, start) + replacement + resolved.Substring(close + 1);
             searchStart = Math.Max(0, start + replacement.Length);
         }
