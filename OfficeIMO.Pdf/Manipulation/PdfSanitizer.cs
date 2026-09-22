@@ -171,19 +171,14 @@ internal static partial class PdfSanitizer {
 
     /// <summary>Sanitizes a PDF from the current position of a readable stream.</summary>
     public static PdfSanitizationResult Sanitize(Stream stream, PdfSanitizationOptions? options = null) {
-        Guard.NotNull(stream, nameof(stream));
-        if (!stream.CanRead) {
-            throw new ArgumentException("Stream must be readable.", nameof(stream));
-        }
-
-        using var buffer = new MemoryStream();
-        stream.CopyTo(buffer);
-        return Sanitize(buffer.ToArray(), options);
+        System.Threading.CancellationToken cancellationToken = options?.CancellationToken ?? default;
+        return Sanitize(PdfDocumentSource.FromRemainingStream(stream, null, cancellationToken).Bytes, options);
     }
 
     /// <summary>Sanitizes a PDF file and returns the result without writing output automatically.</summary>
     public static PdfSanitizationResult Sanitize(string inputPath, PdfSanitizationOptions? options = null) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return Sanitize(File.ReadAllBytes(inputPath), options);
+        System.Threading.CancellationToken cancellationToken = options?.CancellationToken ?? default;
+        return Sanitize(PdfDocumentSource.FromPath(inputPath, null, cancellationToken).Bytes, options);
     }
 }
