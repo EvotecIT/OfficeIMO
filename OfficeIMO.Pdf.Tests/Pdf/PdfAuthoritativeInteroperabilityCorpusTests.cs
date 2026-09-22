@@ -22,7 +22,7 @@ public sealed class PdfAuthoritativeInteroperabilityCorpusTests {
         var sourceIds = sources.Select(source => RequireString(source, "id")).ToHashSet(StringComparer.Ordinal);
 
         JsonElement[] cases = root.GetProperty("cases").EnumerateArray().ToArray();
-        Assert.Equal(14, cases.Length);
+        Assert.Equal(15, cases.Length);
         Assert.Equal(cases.Length, cases.Select(item => RequireString(item, "id")).Distinct(StringComparer.Ordinal).Count());
         Assert.Contains(cases, item => RequireString(item, "source") == "openpreserve-format-corpus");
         Assert.Contains(cases, item => RequireString(item, "source") == "verapdf-corpus");
@@ -62,14 +62,15 @@ public sealed class PdfAuthoritativeInteroperabilityCorpusTests {
             PdfReadDocument document = PdfReadDocument.Open(bytes);
             PdfDocumentInfo info = PdfInspector.Inspect(bytes);
             string text = document.ExtractText();
-            PdfPageRenderResult render = Assert.Single(PdfPageImageRenderer.RenderPages(bytes, options: new PdfPageRenderOptions {
+            IReadOnlyList<PdfPageRenderResult> renders = PdfPageImageRenderer.RenderPages(bytes, options: new PdfPageRenderOptions {
                 Format = PdfPageRenderFormat.Svg,
                 ContinueOnError = true,
                 MaxPages = 4
-            }));
+            });
             PdfMutationPlan plan = PdfMutationPlanner.Plan(bytes, PdfMutationOperation.UpdateMetadata);
 
             Assert.Equal(item.GetProperty("pageCount").GetInt32(), document.Pages.Count);
+            Assert.Equal(document.Pages.Count, renders.Count);
             Assert.True(
                 text.Length >= item.GetProperty("minimumTextCharacters").GetInt32(),
                 id + " extracted too little text.");
@@ -88,18 +89,24 @@ public sealed class PdfAuthoritativeInteroperabilityCorpusTests {
             Assert.Equal(
                 ReadStringArray(item, "expectedRepairCodes"),
                 document.RepairReport.Diagnostics.Select(diagnostic => diagnostic.Code).ToArray());
-            Assert.Equal(item.GetProperty("expectedRenderSucceeded").GetBoolean(), render.Succeeded);
+            Assert.Equal(item.GetProperty("expectedRenderSucceeded").GetBoolean(), renders.All(render => render.Succeeded));
             Assert.True(
                 ReadStringArray(item, "expectedRenderDiagnosticCodes").SequenceEqual(
-                    render.CapabilityDiagnostics.Select(diagnostic => diagnostic.Code).Distinct(StringComparer.Ordinal),
+                    renders.SelectMany(render => render.CapabilityDiagnostics)
+                        .Select(diagnostic => diagnostic.Code)
+                        .Distinct(StringComparer.Ordinal)
+                        .OrderBy(code => code, StringComparer.Ordinal),
                     StringComparer.Ordinal),
-                id + " produced unexpected render diagnostics: " + string.Join(", ", render.CapabilityDiagnostics.Select(diagnostic => diagnostic.Code).Distinct(StringComparer.Ordinal)));
-            PdfPageRenderResult repeatedRender = Assert.Single(PdfPageImageRenderer.RenderPages(bytes, options: new PdfPageRenderOptions {
+                id + " produced unexpected render diagnostics: " + string.Join(", ", renders.SelectMany(render => render.CapabilityDiagnostics).Select(diagnostic => diagnostic.Code).Distinct(StringComparer.Ordinal)));
+            IReadOnlyList<PdfPageRenderResult> repeatedRenders = PdfPageImageRenderer.RenderPages(bytes, options: new PdfPageRenderOptions {
                 Format = PdfPageRenderFormat.Svg,
                 ContinueOnError = true,
                 MaxPages = 4
-            }));
-            Assert.Equal(render.Bytes, repeatedRender.Bytes);
+            });
+            Assert.Equal(renders.Count, repeatedRenders.Count);
+            for (int pageIndex = 0; pageIndex < renders.Count; pageIndex++) {
+                Assert.Equal(renders[pageIndex].Bytes, repeatedRenders[pageIndex].Bytes);
+            }
             if (item.TryGetProperty("minimumOptionalContentGroups", out JsonElement minimumGroups)) {
                 Assert.True(
                     info.OptionalContentGroupCount >= minimumGroups.GetInt32(),

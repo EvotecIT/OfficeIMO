@@ -116,14 +116,7 @@ public static class PdfLongTermValidationEnricher {
         PdfLongTermValidationEvidence evidence,
         IPdfSignatureCryptographyProvider cryptographyProvider,
         PdfLoadOptions? readOptions = null) {
-        Guard.NotNull(input, nameof(input));
-        if (!input.CanRead) {
-            throw new ArgumentException("Stream must be readable.", nameof(input));
-        }
-
-        using var buffer = new MemoryStream();
-        input.CopyTo(buffer);
-        return Enrich(buffer.ToArray(), evidence, cryptographyProvider, readOptions);
+        return Enrich(PdfDocumentSource.FromRemainingStream(input, readOptions).Bytes, evidence, cryptographyProvider, readOptions);
     }
 
     /// <summary>Enriches a PDF file and writes the verified append-only result.</summary>
@@ -135,7 +128,7 @@ public static class PdfLongTermValidationEnricher {
         PdfLoadOptions? readOptions = null) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         Guard.NotNullOrWhiteSpace(outputPath, nameof(outputPath));
-        PdfLongTermValidationEnrichmentResult result = Enrich(File.ReadAllBytes(inputPath), evidence, cryptographyProvider, readOptions);
+        PdfLongTermValidationEnrichmentResult result = Enrich(PdfDocumentSource.FromPath(inputPath, readOptions).Bytes, evidence, cryptographyProvider, readOptions);
         OfficeFileCommit.WriteAllBytes(outputPath, result.Pdf);
         return result;
     }

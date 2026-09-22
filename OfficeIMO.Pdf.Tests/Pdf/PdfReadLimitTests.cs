@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using OfficeIMO.Pdf;
 using OfficeIMO.Pdf.Filters;
+using OfficeIMO.Security;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -558,6 +559,110 @@ public class PdfReadLimitTests {
         } finally {
             File.Delete(path);
         }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RewriteProofBoundsPathsAndNonSeekableStreamsBeforeBuffering(bool assertPreserved) {
+        byte[] pdf = BuildPdf();
+        PdfDocumentProof proof = PdfDocument.Load(pdf).Proof;
+        var options = new PdfRewritePreservationOptions {
+            RewrittenReadOptions = new PdfLoadOptions {
+                Limits = new PdfReadLimits { MaxInputBytes = 16 }
+            }
+        };
+        string path = Path.Combine(Path.GetTempPath(), "officeimo-pdf-proof-limit-" + Guid.NewGuid().ToString("N") + ".pdf");
+
+        try {
+            File.WriteAllBytes(path, pdf);
+            PdfReadLimitException pathException = Assert.Throws<PdfReadLimitException>(() =>
+                assertPreserved ? proof.AssertRewritePreserved(path, options) : proof.AssessRewritePreservation(path, options));
+            Assert.Equal(PdfReadLimitKind.InputBytes, pathException.Kind);
+
+            using var stream = new ChunkedNonSeekableStream(pdf, maximumChunkSize: 3);
+            PdfReadLimitException streamException = Assert.Throws<PdfReadLimitException>(() =>
+                assertPreserved ? proof.AssertRewritePreserved(stream, options) : proof.AssessRewritePreservation(stream, options));
+            Assert.Equal(PdfReadLimitKind.InputBytes, streamException.Kind);
+            Assert.InRange(stream.BytesRead, 17, 19);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RewriteProofRejectsOversizedSeekableStreamBeforeReading(bool assertPreserved) {
+        using var stream = new LengthOnlyReadStream(PdfLoadOptions.Default.Limits.MaxInputBytes + 1L);
+        PdfDocumentProof proof = PdfDocument.Load(BuildPdf()).Proof;
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            assertPreserved ? proof.AssertRewritePreserved(stream) : proof.AssessRewritePreservation(stream));
+
+        Assert.Equal(PdfReadLimitKind.InputBytes, exception.Kind);
+        Assert.False(stream.WasRead);
+    }
+
+    [Fact]
+    public void RewriteProofReadsOnlyRemainingStreamBytes() {
+        byte[] pdf = BuildPdf();
+        byte[] prefixed = new byte[pdf.Length + 7];
+        Buffer.BlockCopy(pdf, 0, prefixed, 7, pdf.Length);
+        using var stream = new MemoryStream(prefixed);
+        stream.Position = 7;
+        var options = new PdfRewritePreservationOptions {
+            RewrittenReadOptions = new PdfLoadOptions {
+                Limits = new PdfReadLimits { MaxInputBytes = pdf.Length }
+            }
+        };
+
+        PdfRewritePreservationReport report = PdfDocument.Load(pdf).Proof.AssessRewritePreservation(stream, options);
+
+        Assert.True(report.IsPreserved);
+        Assert.Equal(stream.Length, stream.Position);
+    }
+
+    [Fact]
+    public void LongTermValidationEnrichmentBoundsPathAndStreamBeforeWritingOutput() {
+        byte[] pdf = BuildPdf();
+        var evidence = new PdfLongTermValidationEvidence(1, certificates: new[] { new byte[] { 0x30, 0x00 } });
+        var provider = new PdfCmsSignatureCryptographyProvider(OfficeSecurityProvider.Default, new CmsVerificationOptions());
+        var readOptions = new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxInputBytes = 16 }
+        };
+        string inputPath = Path.Combine(Path.GetTempPath(), "officeimo-pdf-ltv-limit-" + Guid.NewGuid().ToString("N") + ".pdf");
+        string outputPath = Path.Combine(Path.GetTempPath(), "officeimo-pdf-ltv-output-" + Guid.NewGuid().ToString("N") + ".pdf");
+
+        try {
+            File.WriteAllBytes(inputPath, pdf);
+            PdfReadLimitException pathException = Assert.Throws<PdfReadLimitException>(() =>
+                PdfLongTermValidationEnricher.Enrich(inputPath, outputPath, evidence, provider, readOptions));
+            Assert.Equal(PdfReadLimitKind.InputBytes, pathException.Kind);
+            Assert.False(File.Exists(outputPath));
+
+            using var stream = new ChunkedNonSeekableStream(pdf, maximumChunkSize: 3);
+            PdfReadLimitException streamException = Assert.Throws<PdfReadLimitException>(() =>
+                PdfLongTermValidationEnricher.Enrich(stream, evidence, provider, readOptions));
+            Assert.Equal(PdfReadLimitKind.InputBytes, streamException.Kind);
+            Assert.InRange(stream.BytesRead, 17, 19);
+        } finally {
+            File.Delete(inputPath);
+            if (File.Exists(outputPath)) File.Delete(outputPath);
+        }
+    }
+
+    [Fact]
+    public void LongTermValidationEnrichmentRejectsOversizedSeekableStreamBeforeReading() {
+        using var stream = new LengthOnlyReadStream(PdfLoadOptions.Default.Limits.MaxInputBytes + 1L);
+        var evidence = new PdfLongTermValidationEvidence(1, certificates: new[] { new byte[] { 0x30, 0x00 } });
+        var provider = new PdfCmsSignatureCryptographyProvider(OfficeSecurityProvider.Default, new CmsVerificationOptions());
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfLongTermValidationEnricher.Enrich(stream, evidence, provider));
+
+        Assert.Equal(PdfReadLimitKind.InputBytes, exception.Kind);
+        Assert.False(stream.WasRead);
     }
 
     [Fact]
