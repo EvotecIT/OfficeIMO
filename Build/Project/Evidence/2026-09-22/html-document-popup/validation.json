@@ -1,0 +1,121 @@
+{
+  "schema": 1,
+  "date": "2026-09-22",
+  "qualification": "Bounded integration evidence; complete navigation milestone remains unqualified",
+  "environment": {
+    "os": "macOS 27.0 (26A428)",
+    "architecture": "arm64",
+    "sdk": "10.0.303",
+    "runtimeFrameworks": [
+      "net10.0",
+      "net8.0"
+    ]
+  },
+  "source": {
+    "office": "95556f503d5d0d09d4dbffe8acf128f6119bb496",
+    "angleSharp": "6f8dbd0c084eb8d41f411a404faf0f9806097f1a",
+    "angleSharpJs": "2aaa705edf934d1f93009977de4acab49b4fc614",
+    "jint": "2339be034e48b1f2195987fff27cda225582b7b7",
+    "upstreamSandboxForm": "da1b9d4885985dd9028f086ee8f2ea3335e9c2cd"
+  },
+  "validation": [
+    {
+      "name": "runtimeCheckpoint",
+      "framework": "net10.0",
+      "passed": 83,
+      "failed": 0,
+      "filter": "FullyQualifiedName~RuntimeAuxiliaryWindowTests|FullyQualifiedName~RuntimeMutationCheckpointTests|FullyQualifiedName~RuntimeMutationRegistrationTests|FullyQualifiedName~RuntimeEventHandlerContractsTests|FullyQualifiedName~RuntimeForm|FullyQualifiedName~RuntimeDocumentOpenTests&FullyQualifiedName!~OpenWriteClose"
+    },
+    {
+      "name": "runtimePopupAndForms",
+      "framework": "net8.0",
+      "passed": 41,
+      "failed": 0,
+      "filter": "FullyQualifiedName~RuntimeAuxiliaryWindowTests|FullyQualifiedName~RuntimeForm",
+      "sourceNote": "Executed before the source checkpoint; production source bytes were preserved across native pin promotion and commit."
+    },
+    {
+      "name": "nativeInitialAndSandbox",
+      "framework": "net10.0",
+      "passed": 11,
+      "failed": 0,
+      "filter": "FullyQualifiedName~SandboxFormTests|FullyQualifiedName~InitialWindowTests"
+    },
+    {
+      "name": "nativeNetStandardBuild",
+      "framework": "netstandard2.0",
+      "warnings": 0,
+      "errors": 0
+    },
+    {
+      "name": "standaloneUpstreamForm",
+      "framework": "net10.0",
+      "passed": 54,
+      "failed": 0,
+      "filter": "FullyQualifiedName~SandboxFormTests|FullyQualifiedName~FormSubmit|FullyQualifiedName~FormSubmission"
+    },
+    {
+      "name": "incrementalInputStream",
+      "framework": "net10.0",
+      "passed": 0,
+      "failed": 1,
+      "filter": "FullyQualifiedName~OpenWriteCloseCreatesAnActiveDocumentInTheSameRealm",
+      "failure": "Timeout waiting for readyState complete and a script written into the document to execute. Test remains enabled. The passing selection explicitly excludes it."
+    }
+  ],
+  "commands": {
+    "runtime": "dotnet test OfficeIMO.Html.Runtime.Tests/OfficeIMO.Html.Runtime.Tests.csproj -c Release -f <framework> --filter <filter>",
+    "native": "dotnet test src/AngleSharp.Core.Tests/AngleSharp.Core.Tests.csproj -c Release -f net10.0 --filter <filter>",
+    "nativeCompatibility": "dotnet build src/AngleSharp/AngleSharp.Core.csproj -c Release -f netstandard2.0"
+  },
+  "render": {
+    "cases": [
+      "integrated",
+      "reloaded"
+    ],
+    "widths": [
+      360,
+      720
+    ],
+    "height": 440,
+    "assertions": [
+      "Shared history buffer and view alias identity",
+      "Tracking length14 and fixed length6 after growth",
+      "Frame document URL rewritten from entry document",
+      "Document removal mutation record",
+      "Popup inherited base, message origin and source",
+      "Popup closure before root reload"
+    ],
+    "visuallyInspected": true,
+    "source": "RenderProof.cs.txt"
+  },
+  "review": {
+    "callbackRetirement": "One independent pass and targeted confirmation; queued promise/timer findings reproduced and fixed, including detached-frame sibling.",
+    "documentAndInitialContext": "One independent pass and targeted confirmation; live popup-name lookup finding reproduced and fixed.",
+    "sandboxedForms": "One independent pass and targeted confirmation; rejected native asynchronous submission and runtime argument precedence findings reproduced and fixed."
+  },
+  "upstream": [
+    "https://github.com/AngleSharp/AngleSharp/pull/1356",
+    "https://github.com/AngleSharp/AngleSharp/pull/1357",
+    "https://github.com/AngleSharp/AngleSharp/pull/1358",
+    "https://github.com/sebastienros/jint/pull/4148"
+  ],
+  "limits": [
+    "Full runtime suite was not reported as passing.",
+    "Incremental document.open/write/close parsing is not implemented.",
+    "Auxiliary windows retire on root document replacement; this evidence closes them before reload.",
+    "Reverse about:blank/srcdoc child-to-parent URL/base behavior is not qualified for browser equivalence.",
+    "Popup navigation, window features, noopener/noreferrer and sandbox escape are unsupported.",
+    "These checks do not execute the upstream web-platform-test suite or qualify general browser compatibility.",
+    "This checkpoint was executed on macOS arm64; it does not establish a complete cross-platform runtime gate."
+  ],
+  "artifacts": {
+    "README.md": "09474f294636bea770a86bb782d3f1904170eab7fbbf87de4a7803d5d0f2c6a2",
+    "RenderProof.cs.txt": "457e01e6e67e3816c1f5f3bde00dc386e1a3453f230ec2e5f0074a8b7df12d89",
+    "integrated-360.png": "fe59bec72feca56f321da817b9dba6d20dd20dc43bb3b75bdc5770a3ae030eea",
+    "integrated-720.png": "fa5f5f315f73bec09b89331e059ff71571847110287064fa7a9079d533639c60",
+    "reloaded-360.png": "fe59bec72feca56f321da817b9dba6d20dd20dc43bb3b75bdc5770a3ae030eea",
+    "reloaded-720.png": "fa5f5f315f73bec09b89331e059ff71571847110287064fa7a9079d533639c60",
+    "source.html": "359176af56e7d6e1e58ec75c1f5e36de74d086d2a2a98e55e0785538edd465d9"
+  }
+}
