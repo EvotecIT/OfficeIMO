@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
@@ -12,14 +13,16 @@ internal static partial class PdfPageExtractor {
         CatalogRewriteState? catalogState = null,
         PdfFileVersion fileVersion = PdfFileVersion.Pdf14,
         long? maximumOutputBytes = null,
-        Action<IReadOnlyDictionary<int, int>>? captureObjectNumbers = null) {
+        Action<IReadOnlyDictionary<int, int>>? captureObjectNumbers = null,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (maximumOutputBytes <= 0L) throw new ArgumentOutOfRangeException(nameof(maximumOutputBytes));
         catalogState ??= CatalogRewriteState.Empty;
         var copiedPageObjectIds = new HashSet<int>(pageObjectNumbers);
         catalogState = PruneCatalogStateForPages(sourceObjects, catalogState, copiedPageObjectIds, pageObjectNumbers);
         pageOverrides = BuildPageOverridesWithFilteredDestinationLinks(sourceObjects, pageObjectNumbers, pageOverrides, catalogState, copiedPageObjectIds);
     
-        var collector = new ObjectCollector(sourceObjects, pageOverrides);
+        var collector = new ObjectCollector(sourceObjects, pageOverrides, cancellationToken);
         foreach (int pageObjectNumber in pageObjectNumbers) {
             collector.CollectPage(pageObjectNumber);
         }
@@ -43,6 +46,7 @@ internal static partial class PdfPageExtractor {
         int numberMapCapacity = GetBoundedExtractionCollectionCount(sourceIds.Count, extraObjects.Length);
         var numberMap = new Dictionary<int, int>(numberMapCapacity);
         for (int i = 0; i < sourceIds.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             numberMap[sourceIds[i]] = i + 1;
         }
     
@@ -59,6 +63,7 @@ internal static partial class PdfPageExtractor {
         var seenPages = PdfCollectionSizing.CreateHashSet<int>(pageObjectNumbers.Length, pageObjectNumbers.Length);
         var outputPageObjectIds = new int[pageObjectNumbers.Length];
         for (int i = 0; i < pageObjectNumbers.Length; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             int pageObjectNumber = pageObjectNumbers[i];
             if (seenPages.Add(pageObjectNumber)) {
                 outputPageObjectIds[i] = numberMap[pageObjectNumber];
@@ -85,6 +90,7 @@ internal static partial class PdfPageExtractor {
         long objectBytesLimit = maximumOutputBytes ?? long.MaxValue;
     
         foreach (int sourceId in sourceIds) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!sourceObjects.TryGetValue(sourceId, out var sourceObject)) {
                 throw new InvalidOperationException("PDF object " + sourceId.ToString(CultureInfo.InvariantCulture) + " was referenced but not found.");
             }
@@ -108,6 +114,7 @@ internal static partial class PdfPageExtractor {
         }
     
         foreach (var extraObject in extraObjects) {
+            cancellationToken.ThrowIfCancellationRequested();
             int newId = numberMap[extraObject.PseudoObjectNumber];
             if (enforceOutputLimit) {
                 EnsureSerializedIndirectObjectWithinLimit(
@@ -121,6 +128,7 @@ internal static partial class PdfPageExtractor {
         }
     
         foreach (var clonedPage in clonedPages) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!sourceObjects.TryGetValue(clonedPage.SourcePageObjectNumber, out var sourceObject) ||
                 sourceObject.Value is not PdfDictionary dictionary) {
                 throw new InvalidOperationException("PDF page object " + clonedPage.SourcePageObjectNumber.ToString(CultureInfo.InvariantCulture) + " was referenced but not found.");
@@ -153,6 +161,7 @@ internal static partial class PdfPageExtractor {
             AddBoundedObject(objects, serializedPage, objectBytesLimit, ref serializedObjectBytes);
     
             foreach (var annotation in clonedPage.AnnotationObjectMap) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (!sourceObjects.TryGetValue(annotation.Key, out var annotationObject)) {
                     throw new InvalidOperationException("PDF annotation object " + annotation.Key.ToString(CultureInfo.InvariantCulture) + " was referenced but not found.");
                 }
@@ -174,8 +183,9 @@ internal static partial class PdfPageExtractor {
         AddBoundedObject(objects, PdfSerializedObject.FromBytes(WrapObject(infoId, PdfEncoding.Latin1GetBytes(BuildInfoDictionary(metadata)))), objectBytesLimit, ref serializedObjectBytes);
     
         byte[] result = maximumOutputBytes.HasValue
-            ? AssembleBounded(objects, catalogId, infoId, fileVersion, maximumOutputBytes.Value)
-            : Assemble(objects, catalogId, infoId, fileVersion);
+            ? AssembleBounded(objects, catalogId, infoId, fileVersion, maximumOutputBytes.Value, cancellationToken)
+            : Assemble(objects, catalogId, infoId, fileVersion, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         captureObjectNumbers?.Invoke(numberMap);
         return result;
     }
@@ -218,8 +228,11 @@ internal static partial class PdfPageExtractor {
         int catalogId,
         int infoId,
         PdfFileVersion fileVersion,
-        long maximumOutputBytes) {
-        long assembledLength = PdfFileAssembler.GetAssembledLength(objects, catalogId, infoId, fileVersion);
+        long maximumOutputBytes,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        long assembledLength = PdfFileAssembler.GetAssembledLength(objects, catalogId, infoId, fileVersion,
+            cancellationToken: cancellationToken);
         if (assembledLength > maximumOutputBytes) {
             throw new InvalidDataException("The extracted PDF exceeds the configured output limit.");
         }
@@ -236,7 +249,8 @@ internal static partial class PdfPageExtractor {
             objects,
             catalogId,
             infoId,
-            fileVersion);
+            fileVersion,
+            cancellationToken: cancellationToken);
         boundedOutput.Flush();
         if (output.Length > int.MaxValue) {
             throw new InvalidDataException("The extracted PDF exceeds the supported in-memory result size.");
@@ -245,6 +259,7 @@ internal static partial class PdfPageExtractor {
         output.Position = 0L;
         int read = 0;
         while (read < bytes.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
             int count = output.Read(bytes, read, bytes.Length - read);
             if (count == 0) throw new EndOfStreamException("The temporary extracted PDF ended unexpectedly.");
             read += count;

@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
@@ -38,8 +39,17 @@ internal static partial class PdfPageExtractor {
     /// Creates a new PDF containing the selected one-based page numbers in the requested order, using read options for password-protected sources.
     /// </summary>
     public static byte[] ExtractPages(byte[] pdf, IEnumerable<int> pageNumbers, PdfLoadOptions? options, Func<PdfReadDocument>? documentFactory = null) {
-        return ExtractPagesCore(pdf, pageNumbers, options, maximumOutputBytes: null, documentFactory);
+        return ExtractPagesCore(pdf, pageNumbers, options, maximumOutputBytes: null, documentFactory, CancellationToken.None);
     }
+
+    /// <summary>Extracts selected pages with cooperative cancellation through parsing and serialization.</summary>
+    internal static byte[] ExtractPages(
+        byte[] pdf,
+        IEnumerable<int> pageNumbers,
+        PdfLoadOptions? options,
+        Func<PdfReadDocument>? documentFactory,
+        CancellationToken cancellationToken) =>
+        ExtractPagesCore(pdf, pageNumbers, options, maximumOutputBytes: null, documentFactory, cancellationToken);
 
     internal static byte[] ExtractPages(
         byte[] pdf,
@@ -48,7 +58,7 @@ internal static partial class PdfPageExtractor {
         long maximumOutputBytes,
         Func<PdfReadDocument>? documentFactory = null) {
         Guard.Positive(maximumOutputBytes, nameof(maximumOutputBytes));
-        return ExtractPagesCore(pdf, pageNumbers, options, maximumOutputBytes, documentFactory);
+        return ExtractPagesCore(pdf, pageNumbers, options, maximumOutputBytes, documentFactory, CancellationToken.None);
     }
 
     private static byte[] ExtractPagesCore(
@@ -56,7 +66,9 @@ internal static partial class PdfPageExtractor {
         IEnumerable<int> pageNumbers,
         PdfLoadOptions? options,
         long? maximumOutputBytes,
-        Func<PdfReadDocument>? documentFactory) {
+        Func<PdfReadDocument>? documentFactory,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
 
@@ -65,15 +77,38 @@ internal static partial class PdfPageExtractor {
             throw new ArgumentException("At least one page number must be specified.", nameof(pageNumbers));
         }
 
-        return new ExtractionSession(pdf, options, documentFactory).Extract(selected, maximumOutputBytes);
+        return new ExtractionSession(pdf, options, documentFactory, cancellationToken).Extract(selected, maximumOutputBytes);
     }
 
     /// <summary>
     /// Creates a new PDF containing the selected one-based page numbers in the requested order from the current position of a readable stream.
     /// </summary>
     public static byte[] ExtractPages(Stream stream, IEnumerable<int> pageNumbers) {
+        return ExtractPages(stream, pageNumbers, options: null, CancellationToken.None);
+    }
+
+    /// <summary>Extracts selected pages from the current stream position with cooperative cancellation.</summary>
+    internal static byte[] ExtractPages(
+        Stream stream,
+        IEnumerable<int> pageNumbers,
+        PdfLoadOptions? options,
+        CancellationToken cancellationToken) {
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
-        return ExtractPages(ReadStream(stream, nameof(stream)), pageNumbers);
+        byte[] pdf = ReadStream(stream, nameof(stream), options, cancellationToken);
+        return ExtractPages(pdf, pageNumbers, options, documentFactory: null, cancellationToken);
+    }
+
+    /// <summary>Writes selected pages only after the source has been read and extraction has completed.</summary>
+    internal static void ExtractPages(
+        Stream inputStream,
+        Stream outputStream,
+        IEnumerable<int> pageNumbers,
+        PdfLoadOptions? options,
+        CancellationToken cancellationToken) {
+        ValidateWritableOutputStream(outputStream);
+        byte[] output = ExtractPages(inputStream, pageNumbers, options, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        WriteOutput(outputStream, output);
     }
 
     /// <summary>
@@ -87,7 +122,7 @@ internal static partial class PdfPageExtractor {
     /// Writes a new PDF containing the selected one-based page numbers from the current position of a readable stream to <paramref name="outputStream"/>.
     /// </summary>
     public static void ExtractPages(Stream inputStream, Stream outputStream, params int[] pageNumbers) {
-        WriteOutput(outputStream, ExtractPages(inputStream, pageNumbers));
+        ExtractPages(inputStream, outputStream, pageNumbers, options: null, CancellationToken.None);
     }
 
     /// <summary>
