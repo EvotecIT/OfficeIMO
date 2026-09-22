@@ -406,6 +406,15 @@ public static partial class HtmlProvenance {
             foreach (IElement element in elements) {
                 options.Limits.CancellationToken.ThrowIfCancellationRequested();
                 cssScope.DataStylesheets.TryGetValue(element, out HtmlProvenanceDataStylesheet? dataStylesheet);
+                string? rewrittenStylesheetMetadata = null;
+                if (dataStylesheet != null) {
+                    try {
+                        rewrittenStylesheetMetadata = CreateRewrittenCssDataUriMetadata(dataStylesheet.Metadata);
+                    } catch (FormatException) {
+                        // Preserve an embedded stylesheet whose metadata cannot be rewritten safely.
+                        continue;
+                    }
+                }
                 EmbeddedImageReference[] references = GetEmbeddedImageReferences(document, element, dataStylesheet).ToArray();
                 var replacements = new List<(EmbeddedImageReference Reference, string Value)>();
                 foreach (EmbeddedImageReference reference in references) {
@@ -445,12 +454,12 @@ public static partial class HtmlProvenance {
                                 0));
                         }
                     } catch (Exception exception) when (
-                        (exception is InvalidDataException || exception is System.Xml.XmlException) &&
+                        (exception is InvalidDataException || exception is System.Xml.XmlException || exception is FormatException) &&
                         !OfficeProvenanceLimitException.Is(exception)) {
                         // Preserve malformed embedded data; structural diagnostics are available through Inspect.
                     }
                 }
-                ApplyEmbeddedImageReplacements(element, replacements);
+                ApplyEmbeddedImageReplacements(element, replacements, rewrittenStylesheetMetadata);
             }
         }
         if (srcDocDepth >= HtmlConversionInputGuard.MaxSrcDocDepth) {
@@ -732,7 +741,8 @@ public static partial class HtmlProvenance {
 
     private static void ApplyEmbeddedImageReplacements(
         IElement element,
-        List<(EmbeddedImageReference Reference, string Value)> replacements) {
+        List<(EmbeddedImageReference Reference, string Value)> replacements,
+        string? rewrittenStylesheetMetadata) {
         foreach (IGrouping<string, (EmbeddedImageReference Reference, string Value)> group in replacements.GroupBy(item => item.Reference.AttributeName)) {
             IAttr? exactAttribute = group.Key is "href" or "xlink:href" ? HtmlDocumentParser.GetExactAttribute(element, group.Key) : null;
             string value = group.Key == "css"
@@ -748,10 +758,9 @@ public static partial class HtmlProvenance {
             }
             if (group.Key == "css") element.TextContent = value;
             else if (group.Key == "stylesheet-css") {
-                string metadata = CreateRewrittenCssDataUriMetadata(group.First().Reference.ContainerMetadata ?? "text/css");
                 element.SetAttribute(
                     "href",
-                    "data:" + metadata + "," + Convert.ToBase64String(Encoding.UTF8.GetBytes(value)) +
+                    "data:" + rewrittenStylesheetMetadata + "," + Convert.ToBase64String(Encoding.UTF8.GetBytes(value)) +
                     (group.First().Reference.ContainerFragment ?? string.Empty));
             }
             else if (exactAttribute != null) exactAttribute.Value = value;

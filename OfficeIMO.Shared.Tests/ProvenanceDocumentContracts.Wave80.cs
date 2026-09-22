@@ -49,4 +49,38 @@ public sealed partial class ProvenanceDocumentContracts {
         Assert.Empty(result.After.Evidence);
         Assert.Contains("profile=\\\"a;b\\\"", Encoding.UTF8.GetString(result.ToArray()), StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void MalformedTrailingSvgDataUriMetadataPreservesTheCarrier() {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' xmlns:x='adobe:ns:meta/' " +
+            "xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#' " +
+            "xmlns:iptc='http://iptc.org/std/Iptc4xmpExt/2008-02-29/'>" +
+            "<metadata><x:xmpmeta><rdf:RDF><rdf:Description " +
+            "iptc:DigitalSourceType='http://cv.iptc.org/newscodes/digitalsourcetype/trainedAlgorithmicMedia'/>" +
+            "</rdf:RDF></x:xmpmeta></metadata></svg>";
+        string carrier = "data:image/svg+xml;charset=utf-8;profile=\"unterminated;base64," +
+            Convert.ToBase64String(Encoding.UTF8.GetBytes(svg));
+        string html = "<img src='" + carrier + "'>";
+
+        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
+
+        Assert.NotEmpty(result.Before.Evidence);
+        Assert.False(result.WasChanged);
+        Assert.Contains(carrier, Encoding.UTF8.GetString(result.ToArray()), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MalformedTrailingCssDataUriMetadataPreservesTheStylesheet() {
+        string image = "data:image/png;base64," + Convert.ToBase64String(CreatePngWithManifest(CreateManifestStore()));
+        string css = ".box{background-image:url('" + image + "')}";
+        string carrier = "data:text/css;charset=utf-8;profile=\"unterminated;base64," +
+            Convert.ToBase64String(Encoding.UTF8.GetBytes(css));
+        string html = "<link rel='stylesheet' href='" + carrier + "'><div class='box'></div>";
+
+        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
+
+        Assert.NotEmpty(result.Before.Evidence);
+        Assert.False(result.WasChanged);
+        Assert.Contains(carrier, Encoding.UTF8.GetString(result.ToArray()), StringComparison.Ordinal);
+    }
 }
