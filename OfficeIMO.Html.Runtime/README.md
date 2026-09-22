@@ -206,8 +206,8 @@ fallback base URI is captured from the creator when the frame document is create
 later parent base or history changes do not alter it. A child `base` element can
 change relative URL resolution without changing the child's inherited origin.
 Classic scripts, modules, fetch, storage, messaging and nested captures use these
-separate identities. Empty frames also have an initial `about:blank` document. Frames created in a
-detached container initialize when that container is attached. HTTP frame sources
+separate identities. Empty frames also have an initial `about:blank` document.
+Frames created in a detached container initialize when that container is attached. HTTP frame sources
 matching an ancestor document are suppressed to prevent recursive embedding.
 This qualification covers iframe creation; popup initiators, `document.open()` URL
 rewriting and child-frame navigation remain outside the supported contract.

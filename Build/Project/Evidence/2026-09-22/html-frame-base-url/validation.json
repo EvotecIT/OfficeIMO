@@ -1,0 +1,91 @@
+{
+  "schema": 1,
+  "date": "2026-09-22",
+  "environment": {
+    "os": "macOS 27.0 (26A428)",
+    "architecture": "arm64",
+    "sdk": "10.0.303",
+    "runtimeNet10": "10.0.11",
+    "runtimeNet8": "8.0.23"
+  },
+  "source": {
+    "officeCode": "2ee73c6548b33572113a136641291b4014ce2cbe",
+    "angleSharpPin": "784a4e9d61a1ad6d3dafa324990cd00820e2a879",
+    "angleSharpJsPin": "2aaa705edf934d1f93009977de4acab49b4fc614"
+  },
+  "validation": [
+    {
+      "name": "coreFull",
+      "passed": 4144,
+      "skipped": 1,
+      "failed": 0,
+      "log": "review-core.log",
+      "command": "dotnet test src/AngleSharp.Core.Tests/AngleSharp.Core.Tests.csproj -f net10.0 --no-restore"
+    },
+    {
+      "name": "coreNetstandard",
+      "warnings": 0,
+      "errors": 0,
+      "log": "review-netstandard.log",
+      "command": "dotnet build src/AngleSharp/AngleSharp.Core.csproj -f netstandard2.0 --no-restore"
+    },
+    {
+      "name": "workerNet10",
+      "passed": 61,
+      "failed": 0,
+      "log": "review-worker.log",
+      "command": "dotnet test OfficeIMO.Html.Runtime.Tests/OfficeIMO.Html.Runtime.Tests.csproj -f net10.0 --no-restore --filter 'FullyQualifiedName~RuntimeFrameBaseUrlTests|FullyQualifiedName~RuntimeResourceTests|FullyQualifiedName~ChildFrame|FullyQualifiedName~CapturedFrame|FullyQualifiedName~RuntimeBaseUrlTests' -- xUnit.MaxParallelThreads=1"
+    },
+    {
+      "name": "workerNet8",
+      "passed": 25,
+      "failed": 0,
+      "log": "review-worker-net8.log",
+      "command": "dotnet test OfficeIMO.Html.Runtime.Tests/OfficeIMO.Html.Runtime.Tests.csproj -f net8.0 --no-restore --filter 'FullyQualifiedName~RuntimeFrameBaseUrlTests|FullyQualifiedName~ChildFrame|FullyQualifiedName~CapturedFrame' -- xUnit.MaxParallelThreads=1"
+    }
+  ],
+  "regressionProof": {
+    "coreBeforeFix": "review-red.log: six new cases failed, nine existing passed",
+    "fixedClasses": [
+      "detached-container frame initialization",
+      "direct and indirect ancestor HTTP embedding"
+    ]
+  },
+  "render": {
+    "viewports": [
+      360,
+      720
+    ],
+    "height": 300,
+    "states": [
+      "loaded",
+      "parent-changed"
+    ],
+    "inspected": true,
+    "log": "render-reviewed.log"
+  },
+  "standards": {
+    "wptRevision": "95448d45c5291187f19555a4c6a786ef1ac9885b",
+    "sources": [
+      "html/infrastructure/urls/base-url/initial-about-blank-baseURI.window.js",
+      "html/infrastructure/urls/base-url/matches-about-blank-base-url.window.js",
+      "html/infrastructure/urls/base-url/document-base-url-changes-about-srcdoc-2.https.html"
+    ],
+    "qualification": "Original focused regressions; no claim of running the full WPT tests. The document.open fixture informs inherited-base stability only."
+  },
+  "artifacts": {
+    "child.html": "b297614da9abff65cf84e2a461c308d49e96dc5ed974a72c8562b84ea11f468a",
+    "loaded-720.png": "fdac45106c3bc717e5b06fd196b94f03b832876d2721a840e72ea6c3a990b946",
+    "parent-changed-720.png": "05f94dc16811984dc487f0ed98967808bcec0cdeaa8af1fc0b5c1390eb99bd19",
+    "loaded-360.png": "2c4c50999d33cf3c709c099b902741a65da202c7f94b4b019f63ba772e841e1b",
+    "source.html": "c6c21f44ebf1b6dcca1e4839933bbe8a75f6c52b876e9c8e947635e9b87464be",
+    "parent-changed-360.png": "221f00f50abbd7849ce8d2c47095ee2e157afe1e310a024b74ad439ec4417faa"
+  },
+  "localReview": {
+    "fullPass": "Two P2 findings, both reproduced and fixed",
+    "targetedConfirmation": "Both addressed; no additional actionable remediation regressions",
+    "reviewedCoreHead": "784a4e9d61a1ad6d3dafa324990cd00820e2a879",
+    "reviewedOfficeHead": "2ee73c6548b33572113a136641291b4014ce2cbe",
+    "scope": "Inherited local-frame identity, base and origin; connected subtree insertion and HTTP ancestor recursion. Render and net8 verification by coordinator."
+  }
+}

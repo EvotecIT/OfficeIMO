@@ -1,0 +1,27 @@
+using System.Net;
+using OfficeIMO.Html;
+using OfficeIMO.Html.Runtime;
+using OfficeIMO.Html.Providers;
+
+var output=args[1];Directory.CreateDirectory(output);
+var start=new Uri("https://frames.example/reports/start.html");
+const string child="<style>body{margin:16px;background:#edf7f0;font-family:Arial;color:#163d2a}h2{font-size:20px;margin:0 0 12px}p{font-size:14px}</style><h2 id='result'>Loading</h2><p>Inherited resources: /assets/</p><script>fetch('data.txt').then(r=>r.text()).then(t=>document.querySelector('#result').textContent=t)</script>";
+string source="<base href='/assets/'><style>body{margin:20px;font-family:Arial;color:#193448;background:#f4f7fa}h1{font-size:24px}p{font-size:14px}iframe{width:280px;height:130px;border:1px solid #a8bfb0}</style><h1>Inherited frame URLs</h1><p id='status'>Parent route: /reports/start.html</p><iframe srcdoc=\""+WebUtility.HtmlEncode(child)+"\"></iframe>";
+File.WriteAllText(Path.Combine(output,"source.html"),source);
+File.WriteAllText(Path.Combine(output,"child.html"),child);
+var provider=new HtmlProcessRuntimeProvider(args[0],AngleSharpDomServices.Instance);
+await using var session=await provider.OpenTrustedAsync(new HtmlScriptRequest {
+ DocumentUrl=start,Profile=HtmlRuntimeProfile.WebApplicationV1,Html=source,
+ Resources=[HtmlRuntimeResource.FromText(new Uri(start,"/assets/data.txt"),"Frame report ready","text/plain")]
+});
+await session.WaitForAsync("document.querySelector('iframe').contentDocument.querySelector('#result').textContent==='Frame report ready'");
+var loaded=await session.CaptureAsync();
+await session.ExecuteAsync("document.querySelector('base').href='/later/';history.pushState(null,'','/moved/page');document.querySelector('#status').textContent='Parent route changed; frame resources stayed fixed.'");
+var changed=await session.CaptureAsync();
+foreach(var entry in new[]{("loaded",loaded),("parent-changed",changed)}) {
+ var frame=entry.Item2.Frames.Single();
+ if(frame.DocumentUrl.AbsoluteUri!="about:srcdoc" || frame.BaseUri.AbsoluteUri!="https://frames.example/assets/")throw new Exception("Frame identity/base contract failed");
+ var document=HtmlConversionDocument.FromDocument(entry.Item2.CreateRenderDocument());
+ foreach(var width in new[]{360,720})File.WriteAllBytes(Path.Combine(output,$"{entry.Item1}-{width}.png"),document.ToPng(new HtmlRenderOptions{ViewportWidth=width,ViewportHeight=300,Margins=HtmlRenderMargins.All(0)}));
+}
+Console.WriteLine("Inherited frame fetch, separate capture identity and unchanged base verified; rendered loaded/parent-changed at 360 and 720 pixels.");
