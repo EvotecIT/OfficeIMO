@@ -200,6 +200,16 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void NestedViewportsRetainBothScenesWithinTheIntermediateBudget() {
+        string nested = "<svg width='4000' height='4000' viewBox='0 0 4000 4000'><rect width='1' height='1'/></svg>";
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4000 4000'>" + nested + nested + "</svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.Equal(0, unsupported);
+        Assert.Equal(2, drawing!.Elements.Count);
+    }
+
+    [Fact]
     public void TinyNestedViewportsChargeTheirLargeViewBoxScenes() {
         string nested = "<svg width='1' height='1' viewBox='0 0 4096 4096'><rect width='1' height='1'/></svg>";
         string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4096 4096'>" +
@@ -217,6 +227,57 @@ public partial class DrawingTests {
 
         Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out _, out int unsupported));
         Assert.True(unsupported > 0);
+    }
+
+    [Fact]
+    public void RepeatedSymbolsRetainBothScenesWithinTheIntermediateBudget() {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4000 4000'><defs>" +
+            "<symbol id='s' viewBox='0 0 4000 4000'><rect width='1' height='1'/></symbol></defs>" +
+            "<use href='#s' width='4000' height='4000'/><use href='#s' width='4000' height='4000'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.Equal(0, unsupported);
+        Assert.Equal(2, drawing!.Elements.Count);
+    }
+
+    [Fact]
+    public void OffsetFiltersChargeOnlyTheAdditionalIntermediateSurface() {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1024 1024'><defs>" +
+            "<filter id='offset'><feOffset dx='1' dy='1'/></filter></defs>" +
+            string.Concat(Enumerable.Repeat("<rect width='1' height='1' filter='url(#offset)'/>", 24)) + "</svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.Equal(0, unsupported);
+        Assert.Equal(24, drawing!.Elements.Count);
+    }
+
+    [Theory]
+    [InlineData("feGaussianBlur stdDeviation='1'", 950)]
+    [InlineData("feDropShadow dx='1' dy='1' stdDeviation='1'", 920)]
+    public void BlurredFiltersChargeOnlyTheirAdditionalIntermediateSurfaces(string primitive, int size) {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 " + size + " " + size + "'><defs>" +
+            "<filter id='effect'><" + primitive + "/></filter></defs>" +
+            string.Concat(Enumerable.Repeat("<rect width='1' height='1' filter='url(#effect)'/>", 6)) + "</svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.Equal(0, unsupported);
+        Assert.Equal(6, drawing!.Elements.Count);
+    }
+
+    [Theory]
+    [InlineData("fill")]
+    [InlineData("stroke")]
+    public void PatternLayersChargeOnlyTheAdditionalIntermediateSurfaces(string paint) {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 1000'><defs>" +
+            "<pattern id='p' patternUnits='userSpaceOnUse' width='1000' height='1000'>" +
+            "<rect width='1' height='1'/></pattern></defs>" +
+            string.Concat(Enumerable.Repeat(
+                "<rect width='1' height='1' " + paint + "='url(#p)' " +
+                (paint == "stroke" ? "fill='none' stroke-width='1'" : string.Empty) + "/>", 20)) + "</svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.Equal(0, unsupported);
+        Assert.Equal(20, drawing!.Elements.Count);
     }
 
     [Fact]

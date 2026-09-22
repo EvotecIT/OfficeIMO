@@ -225,8 +225,9 @@ public static partial class OfficeSvgDrawingReader {
             unsupported++;
             return false;
         }
-        int surfaceCount = effect.Kind == SvgFilterEffectKind.Offset ? 2
-            : samples.Count + (effect.Kind == SvgFilterEffectKind.DropShadow ? 3 : 2);
+        // The caller already reserves the outer effect drawing surface.
+        int surfaceCount = effect.Kind == SvgFilterEffectKind.Offset ? 1
+            : samples.Count + (effect.Kind == SvgFilterEffectKind.DropShadow ? 2 : 1);
         if (!references.TryChargeIntermediateSurface(source.Width, source.Height, surfaceCount)) {
             unsupported++;
             return false;

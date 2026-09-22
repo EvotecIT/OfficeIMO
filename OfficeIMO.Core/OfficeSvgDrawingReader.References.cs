@@ -119,8 +119,9 @@ public static partial class OfficeSvgDrawingReader {
 
         internal bool TryChargeNestedViewport(double width, double height, double sceneWidth, double sceneHeight) {
             // The viewBox scene can be much larger than its displayed viewport.
-            // Raster rendering retains that full scene before fitting and clipping it.
-            return TryChargeIntermediatePixels(width * height * 2D + sceneWidth * sceneHeight);
+            // Raster rendering retains that full scene before fitting. The clipped
+            // group draws into its parent without another viewport-sized surface.
+            return TryChargeIntermediatePixels(width * height + sceneWidth * sceneHeight);
         }
 
         internal bool TryChargeNestedViewportExpansion(double extraPixels) {
