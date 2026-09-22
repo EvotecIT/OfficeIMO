@@ -315,9 +315,18 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
-    public void RenderPages_UsesOptionalSharedCodecWhenManagedJpegDecodeFails() {
+    public void RenderPages_UsesOptionalSharedCodecForCompleteJpegOutsideManagedSubset() {
+        byte[] jpeg = OfficeJpegCodec.Encode(new OfficeRasterImage(1, 1, OfficeColor.Red));
+        int frameMarker = -1;
+        for (int index = 0; index < jpeg.Length - 1; index++) {
+            if (jpeg[index] != 0xFF || jpeg[index + 1] != 0xC0) continue;
+            frameMarker = index + 1;
+            break;
+        }
+        Assert.True(frameMarker > 0);
+        jpeg[frameMarker] = 0xC1; // Complete JPEG outside the managed SOF0/SOF2 subset.
         byte[] pdf = BuildSingleStreamPdfWithBinaryImageXObject(
-            CreateMinimalJpeg(1, 1),
+            jpeg,
             colorSpace: "/DeviceRGB",
             imageWidth: 1,
             imageFilterEntry: "/Filter /DCTDecode");

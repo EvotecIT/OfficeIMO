@@ -69,7 +69,7 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
             scalars[index] = tokens[index].Scalar;
         }
         OfficeOpenTypeGlyphPositioning[] positioning = kerningEnabled
-            ? PositionGlyphRun(font, glyphIds, scalars)
+            ? PositionGlyphRun(font, glyphIds, scalars, request.CancellationToken)
             : new OfficeOpenTypeGlyphPositioning[tokens.Count];
         var glyphs = new List<OfficeShapedGlyph>(tokens.Count);
         var advanceAdjustments = new List<int>(tokens.Count);
@@ -146,9 +146,10 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
     private static OfficeOpenTypeGlyphPositioning[] PositionGlyphRun(
         IOfficeFontProgram font,
         IReadOnlyList<int> glyphIds,
-        IReadOnlyList<int> scalars) {
-        if (font is OfficeTrueTypeFont trueType) return trueType.PositionGlyphRun(glyphIds, scalars);
-        if (font is OfficeOpenTypeCffFont cff) return cff.PositionGlyphRun(glyphIds, scalars);
+        IReadOnlyList<int> scalars,
+        System.Threading.CancellationToken cancellationToken) {
+        if (font is OfficeTrueTypeFont trueType) return trueType.PositionGlyphRun(glyphIds, scalars, cancellationToken);
+        if (font is OfficeOpenTypeCffFont cff) return cff.PositionGlyphRun(glyphIds, scalars, cancellationToken);
         return new OfficeOpenTypeGlyphPositioning[glyphIds.Count];
     }
 

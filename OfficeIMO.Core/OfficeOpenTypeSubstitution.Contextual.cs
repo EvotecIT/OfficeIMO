@@ -9,6 +9,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
     private const int MaximumContextGlyphs = 256;
     private const int MaximumContextLookupRecords = 256;
     private const int MaximumLookupRecursion = 8;
+    private const int MaximumPreflightInspections = 100_000;
 
     internal bool CanApply(OfficeTextFeatureSettings settings) {
         if (settings == null) throw new ArgumentNullException(nameof(settings));
@@ -27,6 +28,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         int featureCount = _reader.ReadUInt16(_featureList);
         if (featureCount > MaximumFeatureRecords) return false;
         Ensure(_featureList + 2, checked(featureCount * 6));
+        int inspections = 0;
         for (int featureIndex = 0; featureIndex < featureCount; featureIndex++) {
             int record = _featureList + 2 + featureIndex * 6;
             string tag = ReadTag(record);
@@ -36,14 +38,14 @@ internal sealed partial class OfficeOpenTypeSubstitution {
             if (lookupCount > MaximumLookupRecords) return false;
             Ensure(feature + 4, checked(lookupCount * 2));
             for (int index = 0; index < lookupCount; index++) {
-                if (!CanApplyLookup(_reader.ReadUInt16(feature + 4 + index * 2), 0)) return false;
+                if (!CanApplyLookup(_reader.ReadUInt16(feature + 4 + index * 2), 0, ref inspections)) return false;
             }
         }
         return true;
     }
 
-    private bool CanApplyLookup(int lookupIndex, int depth) {
-        if (depth >= MaximumLookupRecursion) return false;
+    private bool CanApplyLookup(int lookupIndex, int depth, ref int inspections) {
+        if (depth >= MaximumLookupRecursion || ++inspections > MaximumPreflightInspections) return false;
         Ensure(_lookupList, 2);
         int lookupCount = _reader.ReadUInt16(_lookupList);
         if (lookupIndex < 0 || lookupIndex >= lookupCount) return false;
@@ -56,6 +58,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         if (subtableCount > MaximumSubtablesPerLookup) return false;
         Ensure(lookup + 6, checked(subtableCount * 2));
         for (int index = 0; index < subtableCount; index++) {
+            if (++inspections > MaximumPreflightInspections) return false;
             int subtable = Relative(lookup, _reader.ReadUInt16(lookup + 6 + index * 2), 2);
             int effectiveType = lookupType;
             if (lookupType == 7) {
@@ -71,12 +74,12 @@ internal sealed partial class OfficeOpenTypeSubstitution {
             if ((effectiveType == 5 || effectiveType == 6) && _reader.ReadUInt16(subtable) != 3) return false;
             if (effectiveType == 8 && _reader.ReadUInt16(subtable) != 1) return false;
             if ((effectiveType == 5 || effectiveType == 6)
-                && !CanApplyContextLookupRecords(effectiveType, subtable, depth)) return false;
+                && !CanApplyContextLookupRecords(effectiveType, subtable, depth, ref inspections)) return false;
         }
         return true;
     }
 
-    private bool CanApplyContextLookupRecords(int lookupType, int subtable, int depth) {
+    private bool CanApplyContextLookupRecords(int lookupType, int subtable, int depth, ref int inspections) {
         int records;
         int recordCount;
         int inputGlyphCount;
@@ -111,7 +114,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         for (int record = 0; record < recordCount; record++) {
             int sequenceIndex = _reader.ReadUInt16(records + record * 4);
             int nestedLookup = _reader.ReadUInt16(records + record * 4 + 2);
-            if (sequenceIndex >= inputGlyphCount || !CanApplyLookup(nestedLookup, depth + 1)) return false;
+            if (sequenceIndex >= inputGlyphCount || !CanApplyLookup(nestedLookup, depth + 1, ref inspections)) return false;
         }
         return true;
     }
@@ -321,7 +324,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         if (lookupType == 1) ApplySingle(glyphs, index, subtable);
         else if (lookupType == 2) ApplyMultiple(glyphs, index, subtable);
         else if (lookupType == 3) ApplyAlternate(glyphs, index, subtable, featureValue);
-        else if (lookupType == 4) ApplyLigature(glyphs, index, subtable);
+        else if (lookupType == 4) ApplyLigature(glyphs, index, subtable, ref operations);
         else if (lookupType == 5) ApplyContextual(glyphs, index, subtable, featureValue, cancellationToken, ref operations, recursionDepth);
         else if (lookupType == 6) ApplyChainedContextual(glyphs, index, subtable, featureValue, cancellationToken, ref operations, recursionDepth);
     }

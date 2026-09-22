@@ -26,10 +26,14 @@ public static partial class OfficeSvgDrawingReader {
         out OfficeDrawing? patternLayer) {
         patternLayer = null;
         if (pattern == null) return false;
+        if (style.Opacity <= 0D || style.StrokeOpacity <= 0D) {
+            ClearShapeStroke(shape.Shape);
+            return false;
+        }
         if (!TryResolveSvgPatternGeometry(pattern, shape, drawing.Width, drawing.Height, viewX, viewY,
                 out double originX, out double originY, out double tileWidth, out double tileHeight,
                 out OfficeTransform patternTransform, out bool objectBoundingBoxContent)
-            || !TryCreateShapeStrokeClipPath(shape.Shape, out OfficeClipPath? strokeClip)) {
+            || !TryCreateShapeStrokeClipPath(shape.Shape, references, out OfficeClipPath? strokeClip)) {
             unsupported++;
             ClearShapeStroke(shape.Shape);
             return false;
@@ -83,6 +87,11 @@ public static partial class OfficeSvgDrawingReader {
             ClearShapeStroke(shape.Shape);
             return false;
         }
+        if (!references.TryChargePatternSurfaces(drawing.Width, drawing.Height, tileWidth, tileHeight)) {
+            unsupported++;
+            ClearShapeStroke(shape.Shape);
+            return false;
+        }
         patternLayer = new OfficeDrawing(drawing.Width, drawing.Height);
         patternLayer.AddEffectDrawing(
             clipped,
@@ -92,12 +101,12 @@ public static partial class OfficeSvgDrawingReader {
         return true;
     }
 
-    private static bool TryCreateShapeStrokeClipPath(OfficeShape shape, out OfficeClipPath? clipPath) {
+    private static bool TryCreateShapeStrokeClipPath(OfficeShape shape, SvgElementReferenceRegistry references, out OfficeClipPath? clipPath) {
         clipPath = null;
         if (shape.StrokeWidth <= 0D) return false;
         var commands = new List<OfficePathCommand>();
         foreach (OfficeFlattenedPathContour contour in GetStrokeContours(shape)) {
-            AppendStrokeOutline(commands, contour.Points, contour.Closed, shape);
+            if (!AppendStrokeOutline(commands, contour.Points, contour.Closed, shape, references)) return false;
             if (commands.Count > MaximumSvgPathCommands) return false;
         }
         if (commands.Count == 0) return false;
@@ -165,19 +174,18 @@ public static partial class OfficeSvgDrawingReader {
         }
     }
 
-    private static void AppendStrokeOutline(List<OfficePathCommand> commands, IReadOnlyList<OfficePoint> source, bool closed, OfficeShape shape) {
-        if (source.Count < 2) return;
+    private static bool AppendStrokeOutline(List<OfficePathCommand> commands, IReadOnlyList<OfficePoint> source, bool closed, OfficeShape shape, SvgElementReferenceRegistry references) {
+        if (source.Count < 2) return true;
         var points = new List<OfficePoint>(source.Count);
         for (int index = 0; index < source.Count; index++) {
             if (index == source.Count - 1 && source[index] == source[0]) continue;
             points.Add(source[index]);
         }
-        if (points.Count < 2) return;
+        if (points.Count < 2) return true;
 
         double half = shape.StrokeWidth / 2D;
         if (TryGetStrokeDashPattern(shape, out IReadOnlyList<double>? dashPattern)) {
-            AppendDashedStrokeOutline(commands, points, closed, shape, half, dashPattern!);
-            return;
+            return AppendDashedStrokeOutline(commands, points, closed, shape, half, dashPattern!, references);
         }
         int segmentCount = closed ? points.Count : points.Count - 1;
         for (int index = 0; index < segmentCount; index++) {
@@ -201,6 +209,7 @@ public static partial class OfficeSvgDrawingReader {
             AppendCircle(commands, points[0], half);
             AppendCircle(commands, points[points.Count - 1], half);
         }
+        return true;
     }
 
     private static bool TryGetStrokeDashPattern(OfficeShape shape, out IReadOnlyList<double>? pattern) {
@@ -219,16 +228,20 @@ public static partial class OfficeSvgDrawingReader {
         return true;
     }
 
-    private static void AppendDashedStrokeOutline(
+    private static bool AppendDashedStrokeOutline(
         List<OfficePathCommand> commands,
         IReadOnlyList<OfficePoint> points,
         bool closed,
         OfficeShape shape,
         double half,
-        IReadOnlyList<double> pattern) {
+        IReadOnlyList<double> pattern,
+        SvgElementReferenceRegistry references) {
         double cycle = 0D;
-        for (int index = 0; index < pattern.Count; index++) cycle += pattern[index];
-        if (cycle <= 0D || double.IsNaN(cycle) || double.IsInfinity(cycle)) return;
+        for (int index = 0; index < pattern.Count; index++) {
+            if (pattern[index] < 0D || double.IsNaN(pattern[index]) || double.IsInfinity(pattern[index])) return false;
+            cycle += pattern[index];
+        }
+        if (cycle <= 0D || double.IsNaN(cycle) || double.IsInfinity(cycle)) return false;
         double patternPosition = shape.StrokeDashOffset % cycle;
         if (patternPosition < 0D) patternPosition += cycle;
         int segmentCount = closed ? points.Count : points.Count - 1;
@@ -238,17 +251,16 @@ public static partial class OfficeSvgDrawingReader {
             double dx = end.X - start.X;
             double dy = end.Y - start.Y;
             double length = Math.Sqrt((dx * dx) + (dy * dy));
-            if (length <= 0.000000001D) continue;
+            if (length <= 0D) continue;
             double consumed = 0D;
-            while (consumed < length - 0.000000001D) {
+            while (consumed < length) {
+                if (!references.TryChargePatternStrokeOperation() || commands.Count > MaximumSvgPathCommands) return false;
                 ResolveDashPosition(pattern, patternPosition, out int patternIndex, out double within);
                 double available = pattern[patternIndex] - within;
-                if (available <= 0.000000001D) {
-                    patternPosition = AdvanceDashPosition(patternPosition, Math.Max(available, 0.000000001D), cycle);
-                    continue;
-                }
+                if (available <= 0D) return false;
                 double take = Math.Min(length - consumed, available);
-                if ((patternIndex & 1) == 0 && take > 0.000000001D) {
+                if (take <= 0D || consumed + take <= consumed) return false;
+                if ((patternIndex & 1) == 0) {
                     double startRatio = consumed / length;
                     double endRatio = (consumed + take) / length;
                     var dashStart = new OfficePoint(start.X + (dx * startRatio), start.Y + (dy * startRatio));
@@ -264,6 +276,7 @@ public static partial class OfficeSvgDrawingReader {
                 patternPosition = AdvanceDashPosition(patternPosition, take, cycle);
             }
         }
+        return true;
     }
 
     private static void ResolveDashPosition(IReadOnlyList<double> pattern, double position, out int index, out double within) {
@@ -284,7 +297,7 @@ public static partial class OfficeSvgDrawingReader {
         double dx = end.X - start.X;
         double dy = end.Y - start.Y;
         double length = Math.Sqrt((dx * dx) + (dy * dy));
-        if (length <= 0.000000001D) return;
+        if (length <= 0D) return;
         double ux = dx / length;
         double uy = dy / length;
         double sx = start.X - (extendStart ? ux * half : 0D);

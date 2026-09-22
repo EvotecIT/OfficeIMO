@@ -19,6 +19,7 @@ public static partial class OfficeDrawingRasterRenderer {
                 canvas.TextShapingLanguage,
                 canvas.DiagnosticSink,
                 canvas.DiagnosticSource,
+                canvas.TransformedTextBudget,
                 maximumRasterPixels,
                 cancellationToken,
                 out OfficeRasterImage? image) ||
@@ -27,6 +28,7 @@ public static partial class OfficeDrawingRasterRenderer {
         }
 
         if (pattern.Opacity < 1D) {
+            canvas.ChargeIntermediateSurfacePixels((long)image.Width * image.Height, maximumRasterPixels);
             image = ApplyImageOpacity(image, pattern.Opacity);
         }
 

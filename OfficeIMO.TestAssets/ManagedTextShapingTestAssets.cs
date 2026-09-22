@@ -37,6 +37,38 @@ internal static class ManagedTextShapingTestAssets {
             gsub: CreateLigatureGsub(featureTag, 1, 2, 3));
     }
 
+    internal static byte[] CreateFontWithSelfReferentialLigature(int firstScalar, int secondScalar) {
+        if (firstScalar == secondScalar) throw new ArgumentException("Ligature test scalars must be distinct.", nameof(secondScalar));
+        return CreateFontFromCmap(
+            CreateFormat12Cmap(firstScalar, 1, secondScalar, 2),
+            glyphCount: 3,
+            gsub: CreateLigatureGsub("liga", 1, 2, 1));
+    }
+
+    internal static byte[] CreateColorFontWithOverlappingLayerRanges() {
+        const int baseGlyphCount = 200;
+        const int layerCount = 4096;
+        var colr = new byte[14 + baseGlyphCount * 6 + layerCount * 4];
+        WriteUInt16(colr, 0, 0);
+        WriteUInt16(colr, 2, baseGlyphCount);
+        WriteUInt32(colr, 4, 14);
+        WriteUInt32(colr, 8, (uint)(14 + baseGlyphCount * 6));
+        WriteUInt16(colr, 12, layerCount);
+        for (int index = 0; index < baseGlyphCount; index++) {
+            int offset = 14 + index * 6;
+            WriteUInt16(colr, offset, (ushort)(index + 1));
+            WriteUInt16(colr, offset + 2, 0);
+            WriteUInt16(colr, offset + 4, layerCount);
+        }
+        for (int index = 0; index < layerCount; index++) {
+            int offset = 14 + baseGlyphCount * 6 + index * 4;
+            WriteUInt16(colr, offset, 1);
+            WriteUInt16(colr, offset + 2, 0);
+        }
+        return CreateFontFromCmap(CreateFormat12Cmap(new[] { (int)'A' }),
+            glyphCount: baseGlyphCount + 1, colr: colr, cpal: CreateCpalV1());
+    }
+
     internal static byte[] CreateFontWithPairPositioning(int firstScalar, int secondScalar) {
         if (firstScalar == secondScalar) throw new ArgumentException("Positioning test scalars must be distinct.", nameof(secondScalar));
         return CreateFontFromCmap(
