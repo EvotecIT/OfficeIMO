@@ -1,0 +1,120 @@
+{
+  "schema": 1,
+  "date": "2026-09-22",
+  "environment": {
+    "os": "macOS 27.0 (26A428)",
+    "architecture": "arm64",
+    "officeSdk": "10.0.303",
+    "upstreamJintSdk": "10.0.401"
+  },
+  "source": {
+    "office": "9745c90d787dc877251bf1c7beb7a639c05d82f3",
+    "angleSharp": "784a4e9d61a1ad6d3dafa324990cd00820e2a879",
+    "angleSharpJs": "2aaa705edf934d1f93009977de4acab49b4fc614",
+    "jint": "592b2f367f63c1ecf2dfbff7a7a5663da5a06163",
+    "jintUpstreamCandidate": "45bf2d10ae33f42d8f52b5a28f587eb222342fab"
+  },
+  "upstream": "https://github.com/sebastienros/jint/pull/4146",
+  "validation": [
+    {
+      "name": "upstreamJintNet10",
+      "passed": 20,
+      "failed": 0,
+      "scope": "Host metadata, all five public API baselines, XML documentation"
+    },
+    {
+      "name": "upstreamJintNet8",
+      "passed": 10,
+      "failed": 0,
+      "scope": "Host metadata"
+    },
+    {
+      "name": "jint416Backport",
+      "passed": 10,
+      "failed": 0,
+      "scope": "Host metadata"
+    },
+    {
+      "name": "workerNet10Broad",
+      "passed": 77,
+      "failed": 1,
+      "scope": "History, navigation, frame base, frame messages",
+      "failure": "10-second startup deadline in ScriptlessAncestorInitializationCannotBypassSandbox; both theory cases passed in isolated confirmation"
+    },
+    {
+      "name": "workerNet10Final",
+      "passed": 17,
+      "failed": 0,
+      "filter": "FullyQualifiedName~RuntimeResizableHistoryStateTests|FullyQualifiedName~RuntimeHistoryStateTests|FullyQualifiedName~FrameMessagingUsesIndependentStructuredCloneGraphs|FullyQualifiedName~ScriptlessAncestorInitializationCannotBypassSandbox"
+    },
+    {
+      "name": "workerNet8FinalIsolated",
+      "passed": 15,
+      "failed": 0,
+      "filter": "FullyQualifiedName~RuntimeResizableHistoryStateTests|FullyQualifiedName~RuntimeHistoryStateTests|FullyQualifiedName~FrameMessagingUsesIndependentStructuredCloneGraphs"
+    }
+  ],
+  "commands": {
+    "worker": "dotnet test OfficeIMO.Html.Runtime.Tests/OfficeIMO.Html.Runtime.Tests.csproj -c Release -f <framework> --filter <filter> -- xUnit.MaxParallelThreads=1",
+    "upstreamJint": "dotnet test --project Jint.Tests.PublicInterface/Jint.Tests.PublicInterface.csproj -c Release -f <framework> --filter <filter>"
+  },
+  "startupObservation": {
+    "description": "Intermittent 10-second startup deadlines occurred in mixed validation runs and one separate net8 run. No deadline was relaxed in the committed tests. Subsequent isolated tests and rendering passed. Root cause is not established.",
+    "diagnosticProbe": "Five sequential net8 worker startups with a diagnostic-only 60-second ceiling",
+    "seconds": [
+      3.575,
+      2.026,
+      2.18,
+      1.494,
+      1.322
+    ]
+  },
+  "review": {
+    "nativeApi": "Independent read-only review: no findings",
+    "serializer": "One introduced inherited-array-setter defect reproduced for fixed and resizable buffers, then fixed with captured defineProperty; targeted confirmation found no remaining findings"
+  },
+  "render": {
+    "viewports": [
+      360,
+      720
+    ],
+    "height": 280,
+    "states": [
+      "saved",
+      "reloaded",
+      "restored"
+    ],
+    "inspected": true
+  },
+  "workerIdentity": {
+    "dependencyKind": "project",
+    "dependencyId": "Jint/4.16.0-beta-0",
+    "net10DllSha256": "1cc63e6f483e235c57988f6510e9fb2d8460b6aed4fd83e2068cf905b687c781",
+    "matchesPinnedSourceBuild": true,
+    "licenses": [
+      "AngleSharp.LICENSE.txt",
+      "AngleSharp.Js.LICENSE.txt",
+      "Jint.LICENSE.txt"
+    ]
+  },
+  "standards": [
+    "https://html.spec.whatwg.org/multipage/structured-data.html#structuredserializeinternal",
+    "https://tc39.es/ecma262/multipage/indexed-collections.html#sec-initializetypedarrayfromarraybuffer",
+    "https://tc39.es/ecma262/multipage/structured-data.html#sec-properties-of-dataview-instances"
+  ],
+  "limits": [
+    "Original standards-derived regressions, not the complete WPT suite",
+    "macOS runtime proof; no new Windows/Linux runtime qualification",
+    "Shared buffers, transfer and general structuredClone remain outside the storage contract"
+  ],
+  "artifacts": {
+    "RenderProof.cs.txt": "197231b2c29a4e0583e17c4585e1c59b45c7ec065d6f0d769f5c443fcd055687",
+    "reloaded-360.png": "ee9821ce93f65d53e9bc2d5ffdc8978383dc56b512b33e61064d0c3b3b8816db",
+    "reloaded-720.png": "bf40804e716429b984dc3354a939ddc5ee6e0d8d5e4d6674e499e25593e3ab39",
+    "restored-360.png": "6cb314050248ce838545fa877b94563f8421a0749b7e486f22017f33dc51607f",
+    "restored-720.png": "d2ff63c146a320cdfa3db958a7ae66b87c30c3bb853ae38f496a6b6409ebc292",
+    "saved-360.png": "639bd5a2aff73349e7f32153614b3d05ffd7012220a2858d97237025818fce89",
+    "saved-720.png": "6430da1984debd2e3effafb5ce6b09c2f6c963fc252fa0a6cae0be66927e5f5a",
+    "source.html": "30c270dce77491d865398e330482c72bb79a354f36e2f3ab5fb049a934d177d7"
+  }
+}

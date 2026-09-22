@@ -1,0 +1,23 @@
+using OfficeIMO.Html;
+using OfficeIMO.Html.Runtime;
+using OfficeIMO.Html.Providers;
+var output=args[1];Directory.CreateDirectory(output);
+var first=new Uri("https://buffers.example/first");var second=new Uri(first,"/second");
+const string source="""
+<!doctype html><style>body{font-family:Arial;margin:20px;background:#f4f7fa;color:#193448}h1{font-size:24px}section{padding:16px;background:#edf7f0;border:1px solid #a8bfb0}h2{font-size:20px;margin:0 0 12px}p{font-size:14px}</style><h1>Resizable history state</h1><section><h2 id='title'>Waiting</h2><p id='bytes'></p><p id='views'></p><p id='alias'></p></section>
+""";
+File.WriteAllText(Path.Combine(output,"source.html"),source);
+var provider=new HtmlProcessRuntimeProvider(args[0],AngleSharpDomServices.Instance);
+await using var session=await provider.OpenTrustedAsync(new(){Profile=HtmlRuntimeProfile.WebApplicationV1,DocumentUrl=first,Html=source,Resources=[HtmlRuntimeResource.FromText(second,"<h1>Other page</h1>","text/html")]});
+await session.ExecuteAsync("const buffer=new ArrayBuffer(8,{maxByteLength:24});const tracking=new Uint8Array(buffer,2),fixed=new Uint8Array(buffer,2,6);tracking[0]=73;history.replaceState({buffer,tracking,fixed},'')");
+foreach(var state in new[]{"saved","reloaded","restored"}){
+ if(state=="reloaded")await session.ReloadAsync();
+ if(state=="restored"){await session.NavigateAsync(second);await session.ExecuteAsync("history.back()");await session.WaitForAsync("location.pathname==='/first'");}
+ if(!(await session.EvaluateAsync("history.state.buffer instanceof ArrayBuffer && history.state.buffer.resizable && history.state.buffer.byteLength===8 && history.state.buffer.maxByteLength===24 && history.state.tracking.buffer===history.state.buffer && history.state.fixed.buffer===history.state.buffer && history.state.tracking[0]===73")).GetBoolean())throw new Exception("Restored buffer contract failed");
+ await session.ExecuteAsync("history.state.buffer.resize(16)");
+ if(!(await session.EvaluateAsync("history.state.tracking.length===14 && history.state.fixed.length===6")).GetBoolean())throw new Exception("View construction mode lost");
+ await session.ExecuteAsync($"document.querySelector('#title').textContent='{state}: state verified';document.querySelector('#bytes').textContent='Buffer: 8 → '+history.state.buffer.byteLength+' bytes / maximum '+history.state.buffer.maxByteLength;document.querySelector('#views').textContent='Tracking view: '+history.state.tracking.length+' items; fixed view: '+history.state.fixed.length+' items';document.querySelector('#alias').textContent='Shared buffer identity retained; saved value: '+history.state.tracking[0]");
+ var capture=await session.CaptureAsync();
+ foreach(var width in new[]{360,720})File.WriteAllBytes(Path.Combine(output,$"{state}-{width}.png"),HtmlConversionDocument.FromDocument(capture.CreateRenderDocument()).ToPng(new(){ViewportWidth=width,ViewportHeight=280,Margins=HtmlRenderMargins.All(0)}));
+}
+Console.WriteLine("Resizable buffer metadata, aliases and tracking modes verified through reload and back navigation; six renders produced.");
