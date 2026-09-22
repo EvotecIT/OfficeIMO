@@ -210,7 +210,10 @@ internal static partial class PdfAnnotationEditor {
     public static PdfAnnotationEditResult RemoveAnnotations(string inputPath, string outputPath, PdfAnnotationRemovalOptions? options, PdfLoadOptions? readOptions) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         string fullOutputPath = ValidateOutputPath(outputPath);
-        PdfAnnotationEditResult result = RemoveAnnotations(File.ReadAllBytes(inputPath), options, readOptions);
+        PdfAnnotationEditResult result = RemoveAnnotations(
+            PdfDocumentSource.FromPath(inputPath, readOptions).Bytes,
+            options,
+            readOptions);
         WriteFile(fullOutputPath, result.Bytes);
         return result;
     }
@@ -222,7 +225,11 @@ internal static partial class PdfAnnotationEditor {
     public static PdfAnnotationEditResult UpdateAnnotation(string inputPath, string outputPath, int objectNumber, PdfAnnotationUpdateOptions options, PdfLoadOptions? readOptions) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         string fullOutputPath = ValidateOutputPath(outputPath);
-        PdfAnnotationEditResult result = UpdateAnnotation(File.ReadAllBytes(inputPath), objectNumber, options, readOptions);
+        PdfAnnotationEditResult result = UpdateAnnotation(
+            PdfDocumentSource.FromPath(inputPath, readOptions).Bytes,
+            objectNumber,
+            options,
+            readOptions);
         WriteFile(fullOutputPath, result.Bytes);
         return result;
     }
