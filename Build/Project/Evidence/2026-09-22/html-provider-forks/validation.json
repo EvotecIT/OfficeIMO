@@ -1,0 +1,135 @@
+{
+  "date": "2026-09-22",
+  "environment": {
+    "os": "macOS",
+    "architecture": "arm64",
+    "sdk": "10.0.303",
+    "sdkSelection": "Explicit SDK invocation; repository global.json unchanged"
+  },
+  "sources": {
+    "officeimo": "67fab75c518b5a82c499ae1512d0be92f592f838",
+    "officeimoBase": "01bc28c70925a505cbaa000589478fec82548fdd",
+    "angleSharp": "ff2c89c3264b75508aee1cfa5b9c8071e4c73474",
+    "angleSharpUpstreamTag": "v1.8.2",
+    "angleSharpJs": "2539ba8a42329673f80c8cc55877f985ba78cea1",
+    "angleSharpJsUpstreamTag": "v1.1.0",
+    "jintPackage": "4.16.0"
+  },
+  "qualificationLimits": [
+    "No Windows/Linux execution in this run",
+    "No package publication",
+    "No new isolated-container qualification",
+    "No full standards or performance certification"
+  ],
+  "renderedArtifacts": {
+    "nesting.html": "0a079fac6d96c605021408cf551143698d4478631da2316986adc0b0a0de49cd",
+    "nesting-360.png": "0268217fc39d8c22c5d23722388a400236068f6c49a325bf852b0dd2d53d8f58",
+    "nesting-720.png": "4dddc9f4640a7f1670ac0fc5dad826e4cd9a2d38b0d70b7cd982f85471122792"
+  },
+  "observations": [
+    {
+      "intermediateRuntimeSuites": [
+        {
+          "passed": 519,
+          "failed": 1
+        },
+        {
+          "passed": 514,
+          "failed": 6
+        }
+      ],
+      "failure": "Open command timeouts when document completion had not happened before the availability wait",
+      "isolatedXhrRepetitionPasses": 11,
+      "cause": "AngleSharp.Js availability helper awaited document load while the DOM dispatched load to window. ReadyState.Complete fast path made this timing dependent.",
+      "regressionProof": "Three standalone readiness/cancellation cases failed before correction and passed afterward.",
+      "timeoutChanged": false
+    }
+  ],
+  "checks": [
+    {
+      "repository": "OfficeIMO",
+      "command": "dotnet test OfficeIMO.Html.Runtime.Tests/OfficeIMO.Html.Runtime.Tests.csproj -f net10.0 --nologo -- xUnit.MaxParallelThreads=2",
+      "passed": 520,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "repository": "AngleSharp",
+      "command": "dotnet test src/AngleSharp.Core.Tests/AngleSharp.Core.Tests.csproj -f net10.0 --no-build --nologo",
+      "passed": 4112,
+      "failed": 0,
+      "skipped": 1
+    },
+    {
+      "repository": "AngleSharp.Js",
+      "command": "dotnet test src/AngleSharp.Js.Tests/AngleSharp.Js.Tests.csproj -f net10.0 --nologo",
+      "passed": 306,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "repository": "OfficeIMO",
+      "command": "dotnet test OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj -f net10.0 --no-build --nologo",
+      "passed": 3215,
+      "failed": 0,
+      "skipped": 0,
+      "source": "1f2d329a834098c282d0cdee8c4bd3bf44a94cde",
+      "note": "Static HTML implementation unchanged by later runtime-provider pins."
+    },
+    {
+      "repository": "AngleSharp",
+      "command": "dotnet build src/AngleSharp/AngleSharp.Core.csproj -f netstandard2.0 --nologo",
+      "errors": 0,
+      "warnings": 0
+    },
+    {
+      "repository": "AngleSharp.Js",
+      "command": "dotnet build src/AngleSharp.Js/AngleSharp.Js.csproj -f netstandard2.0 --nologo",
+      "errors": 0,
+      "warnings": 0
+    },
+    {
+      "repository": "OfficeIMO",
+      "command": "dotnet publish OfficeIMO.Html.Runtime.Worker/OfficeIMO.Html.Runtime.Worker.csproj -f net8.0 -c Release -o <task-output>/publish-net8 --nologo",
+      "result": "passed"
+    }
+  ],
+  "reviews": [
+    {
+      "scope": "Provider migration, standalone DOM/JS contracts, OfficeIMO storage/message/CSS fixes",
+      "findings": "Integrity metadata legacy caller bypass; observer callback exception isolation; explicit-empty integrity sibling. Reproduced and fixed.",
+      "visuals": "Both nested-selector screenshots inspected."
+    },
+    {
+      "scope": "New document readiness and cancellation implementation only",
+      "findings": "No actionable finding.",
+      "limits": "Standalone tests use no event loop; final runtime suite supplies integration with the real loop. Cancellation queues listener removal, which may not execute if the loop is stopped immediately."
+    }
+  ],
+  "publishedWorkerSmoke": {
+    "framework": "net8.0",
+    "result": "passed",
+    "checks": [
+      "script execution",
+      "shared-owner storage",
+      "NodeList identity",
+      "independent capture",
+      "AngleSharp.LICENSE.txt",
+      "AngleSharp.Js.LICENSE.txt"
+    ],
+    "observed": {
+      "text": "after",
+      "storage": "yes",
+      "nodeList": true
+    },
+    "retainedLocalHarness": "/tmp/officeimo-provider-validation/Smoke",
+    "invocation": "dotnet build Smoke.csproj; dotnet bin/Debug/net8.0/Smoke.dll",
+    "artifacts": {
+      "OfficeIMO.Html.Runtime.Worker.dll": "4be5bac8f63d85ad4b0887b5d6d7343f28ef14b8adcdfac6665789699333fb7f",
+      "AngleSharp.dll": "249612d831f905f0e0355d4179705b4494f8a6d0d3d3aabbb0dc202bbbb029f8",
+      "AngleSharp.Js.dll": "723ccea53f34940775559b252e3ffe3d871b355ac1bf5c52f7ded402d34468f4",
+      "AngleSharp.LICENSE.txt": "6da3ab781b570d2c45102e74b366c0be0eb758ed0205c3b23093d6ac2231d394",
+      "AngleSharp.Js.LICENSE.txt": "6da3ab781b570d2c45102e74b366c0be0eb758ed0205c3b23093d6ac2231d394"
+    }
+  }
+}

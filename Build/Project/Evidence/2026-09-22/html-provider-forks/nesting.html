@@ -1,0 +1,11 @@
+<style>
+body { margin: 20px; font-family: sans-serif; background:white; color: black; }
+h1 { font-size: 24px; } p { font-size: 20px; margin: 12px 0; }
+.a .b { color: blue; .x & { color: red; } }
+.c .d { color: blue; & + & { color: red; } }
+.x :is(.control .result) { color: red; }
+</style>
+<h1>Nested selector checks</h1>
+<div class="a"><div class="x"><p class="b">Nested: red</p></div></div>
+<div class="control"><div class="x"><p class="result">Explicit control: red</p></div></div>
+<div class="c"><p class="d">First sibling: blue</p><p class="d">Nested next sibling: red</p></div>
