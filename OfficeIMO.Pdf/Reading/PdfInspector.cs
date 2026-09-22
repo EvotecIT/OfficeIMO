@@ -77,6 +77,21 @@ internal static class PdfInspector {
             cancellationToken: cancellationToken);
     }
 
+    internal static PdfDocumentInfo InspectSelectedPages(
+        byte[] pdf,
+        PdfReadDocument document,
+        int[] pageNumbers,
+        CancellationToken cancellationToken) {
+        Guard.NotNull(pageNumbers, nameof(pageNumbers));
+        cancellationToken.ThrowIfCancellationRequested();
+        return FromReadDocument(
+            document,
+            Probe(pdf, document, cancellationToken),
+            pageNumbers,
+            includeDocumentWideObjects: true,
+            cancellationToken: cancellationToken);
+    }
+
     /// <summary>
     /// Inspects selected source page ranges from a PDF byte array, preserving caller order and overlaps.
     /// </summary>
@@ -670,10 +685,12 @@ internal static class PdfInspector {
         PdfReadDocument document,
         PdfDocumentProbe probe,
         int[]? pageNumbers = null,
+        bool includeDocumentWideObjects = false,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         pageNumbers ??= PdfPageRangeObjectFilter.GetAllPageNumbers(document.Pages.Count);
-        bool useDocumentWideObjects = PdfPageRangeObjectFilter.ShouldUseDocumentWideObjects(document.Pages.Count, pageNumbers);
+        bool useDocumentWideObjects = includeDocumentWideObjects ||
+            PdfPageRangeObjectFilter.ShouldUseDocumentWideObjects(document.Pages.Count, pageNumbers);
         IReadOnlyList<PdfFormField> formFields = useDocumentWideObjects
             ? document.UncheckedFormFields
             : PdfPageRangeObjectFilter.FilterFormFieldsByPageNumbers(document.UncheckedFormFields, pageNumbers, preservePageDuplicates: true);

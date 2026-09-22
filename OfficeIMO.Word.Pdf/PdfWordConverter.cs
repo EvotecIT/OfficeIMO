@@ -40,6 +40,8 @@ namespace OfficeIMO.Word.Pdf {
             if (options == null) {
                 throw new ArgumentNullException(nameof(options));
             }
+            if (options.MaxImageTextOverlapComparisons <= 0)
+                throw new ArgumentOutOfRangeException(nameof(options.MaxImageTextOverlapComparisons));
 
             if (options.IncludeMetadata) {
                 CopyMetadata(source.Metadata, target);
@@ -50,12 +52,14 @@ namespace OfficeIMO.Word.Pdf {
             WordList? bulletList = null;
             WordList? numberedList = null;
             ImportNavigationMap navigation = BuildNavigationMap(source, options);
+            var imageOverlapBudget = new ImageOverlapBudget(options);
 
             for (int pageIndex = 0; pageIndex < source.Pages.Count; pageIndex++) {
                 options.CancellationToken.ThrowIfCancellationRequested();
                 PdfCore.PdfLogicalPage page = source.Pages[pageIndex];
                 ReportPageReconstructionBoundaries(page, options);
                 List<ImportItem> items = BuildImportItems(page, options, navigation);
+                var imageContext = new ImageImportContext(page, imageOverlapBudget);
                 bool hasNavigationAnchor = navigation.HasAnchorsForPage(page.PageNumber);
                 bool hasPageOutputCandidate = items.Count > 0 || options.IncludeEmptyPages || hasNavigationAnchor;
                 WordParagraph? provisionalPageBreak = null;
@@ -111,7 +115,7 @@ namespace OfficeIMO.Word.Pdf {
                             AddTable(target, item.TableExtraction!, options, typographyScale);
                             break;
                         case ImportItemKind.Image:
-                            itemEmitted = AddImage(target, page, item.Image!, item.ImagePlacement, sourcePageSizeApplied, options);
+                            itemEmitted = AddImage(target, page, item.Image!, item.ImagePlacement, sourcePageSizeApplied, options, imageContext);
                             break;
                         case ImportItemKind.FormWidget:
                             AddFormWidgetPlaceholder(target, item.FormWidget!, options);

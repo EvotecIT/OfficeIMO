@@ -15,7 +15,7 @@ public static partial class PdfHtmlConverterExtensions {
         builder.Append(Number(geometry.Width));
         builder.Append(' ');
         builder.Append(Number(geometry.Height));
-        builder.Append("\" style=\"position:absolute;inset:0;width:100%;height:100%;overflow:visible\">");
+        builder.Append("\" style=\"position:absolute;inset:0;width:100%;height:100%;overflow:hidden\">");
         var emitted = new HashSet<PdfCore.PdfTextSpan>();
         foreach (var block in page.TextBlocks) {
             if (headingLevels.TryGetValue(block, out int headingLevel)) {
@@ -25,7 +25,7 @@ public static partial class PdfHtmlConverterExtensions {
             }
             foreach (var span in block.Spans) {
                 options.CancellationToken.ThrowIfCancellationRequested();
-                if (!emitted.Add(span) || !span.IsVisible || string.IsNullOrEmpty(span.Text)) continue;
+                if (!emitted.Add(span) || !span.CanProjectPositionedHtmlText(page)) continue;
                 PositionedPoint point = geometry.TransformPoint(span.X, span.Y);
                 builder.Append("<text x=\"").Append(Number(point.Left)).Append("\" y=\"").Append(Number(point.Top));
                 builder.Append("\" font-family=\"Arial, sans-serif\" font-size=\"").Append(Number(geometry.ScaleLength(span.FontSize)));
@@ -56,29 +56,58 @@ public static partial class PdfHtmlConverterExtensions {
         IReadOnlyDictionary<PdfCore.PdfLogicalTextBlock, int> headingLevels = BuildPositionedHeadingLevels(page);
         builder.Append("<svg class=\"pdf-text-overlay\" fill=\"transparent\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 ");
         builder.Append(Number(geometry.Width)).Append(' ').Append(Number(geometry.Height));
-        builder.AppendLine("\" style=\"position:absolute;inset:0;width:100%;height:100%;overflow:visible\">");
+        builder.AppendLine("\" style=\"position:absolute;inset:0;width:100%;height:100%;overflow:hidden\">");
         foreach (PdfCore.PdfLogicalTextBlock block in page.TextBlocks) {
             options.CancellationToken.ThrowIfCancellationRequested();
-            PdfCore.PdfTextSpan? sourceSpan = block.Spans.FirstOrDefault(span => !string.IsNullOrEmpty(span.Text));
-            if (sourceSpan is null || string.IsNullOrEmpty(block.Text)) continue;
-            PositionedPoint point = geometry.TransformPoint(block.XStart, block.BaselineY);
-            if (headingLevels.TryGetValue(block, out int headingLevel)) {
-                builder.Append("<text role=\"heading\" aria-level=\"").Append(headingLevel).Append('"');
-            } else {
-                builder.Append("<text");
+            bool heading = headingLevels.TryGetValue(block, out int headingLevel);
+            builder.Append(heading ? "<g role=\"heading\" aria-level=\"" : "<g");
+            if (heading) builder.Append(headingLevel).Append('"');
+            builder.AppendLine(">");
+            if (!string.IsNullOrEmpty(block.Text) && block.Spans.Count > 0 &&
+                block.Spans.All(span => span.CanProjectPositionedHtmlText(page))) {
+                // The logical block preserves spaces inferred between adjacent visible
+                // spans; emitting each span separately drops those separators.
+                PdfCore.PdfTextSpan first = block.Spans[0];
+                PositionedPoint blockPoint = geometry.TransformPoint(block.XStart, block.BaselineY);
+                builder.Append("<text x=\"").Append(Number(blockPoint.Left)).Append("\" y=\"").Append(Number(blockPoint.Top));
+                builder.Append("\" font-family=\"Arial, sans-serif\" font-size=\"").Append(Number(geometry.ScaleLength(block.FontSize)));
+                builder.Append("\" font-weight=\"").Append(first.IsBold ? "700" : "400");
+                builder.Append("\" font-style=\"").Append(first.IsItalic ? "italic" : "normal").Append('"');
+                double blockWidth = block.XEnd - block.XStart;
+                if (blockWidth > 0D) builder.Append(" textLength=\"").Append(Number(geometry.ScaleLength(blockWidth)))
+                    .Append("\" lengthAdjust=\"spacingAndGlyphs\"");
+                double blockRotation = geometry.RotationDegrees - first.RotationDegrees;
+                if (blockRotation != 0D) builder.Append(" transform=\"rotate(").Append(Number(blockRotation)).Append(' ')
+                    .Append(Number(blockPoint.Left)).Append(' ').Append(Number(blockPoint.Top)).Append(")\"");
+                builder.Append(" xml:space=\"preserve\">");
+                AppendHtmlText(builder, block.Text);
+                builder.AppendLine("</text>");
+                builder.AppendLine("</g>");
+                continue;
             }
-            builder.Append(" x=\"").Append(Number(point.Left)).Append("\" y=\"").Append(Number(point.Top));
-            builder.Append("\" font-family=\"Arial, sans-serif\" font-size=\"").Append(Number(geometry.ScaleLength(block.FontSize)));
-            builder.Append("\" font-weight=\"").Append(sourceSpan.IsBold ? "700" : "400");
-            builder.Append("\" font-style=\"").Append(sourceSpan.IsItalic ? "italic" : "normal").Append('"');
-            double width = block.XEnd - block.XStart;
-            if (width > 0D) builder.Append(" textLength=\"").Append(Number(geometry.ScaleLength(width))).Append("\" lengthAdjust=\"spacingAndGlyphs\"");
-            double rotation = geometry.RotationDegrees - sourceSpan.RotationDegrees;
-            if (rotation != 0D) builder.Append(" transform=\"rotate(").Append(Number(rotation)).Append(' ')
-                .Append(Number(point.Left)).Append(' ').Append(Number(point.Top)).Append(")\"");
-            builder.Append(" xml:space=\"preserve\">");
-            AppendHtmlText(builder, block.Text);
-            builder.AppendLine("</text>");
+            foreach (PdfCore.PdfTextSpan span in block.Spans) {
+                options.CancellationToken.ThrowIfCancellationRequested();
+                if (string.IsNullOrEmpty(span.Text)) continue;
+                if (span.IsVisible) {
+                    if (!span.CanProjectPositionedHtmlText(page)) continue;
+                } else if (!options.IncludeInvisibleTextInAppearanceOverlay ||
+                    !span.IntersectsPageBoundary(page)) {
+                    continue;
+                }
+                PositionedPoint point = geometry.TransformPoint(span.X, span.Y);
+                builder.Append("<text x=\"").Append(Number(point.Left)).Append("\" y=\"").Append(Number(point.Top));
+                builder.Append("\" font-family=\"Arial, sans-serif\" font-size=\"").Append(Number(geometry.ScaleLength(span.FontSize)));
+                builder.Append("\" font-weight=\"").Append(span.IsBold ? "700" : "400");
+                builder.Append("\" font-style=\"").Append(span.IsItalic ? "italic" : "normal").Append('"');
+                if (span.Advance > 0D) builder.Append(" textLength=\"").Append(Number(geometry.ScaleLength(span.Advance))).Append("\" lengthAdjust=\"spacingAndGlyphs\"");
+                double rotation = geometry.RotationDegrees - span.RotationDegrees;
+                if (rotation != 0D) builder.Append(" transform=\"rotate(").Append(Number(rotation)).Append(' ')
+                    .Append(Number(point.Left)).Append(' ').Append(Number(point.Top)).Append(")\"");
+                builder.Append(" xml:space=\"preserve\">");
+                AppendHtmlText(builder, span.Text);
+                builder.AppendLine("</text>");
+            }
+            builder.AppendLine("</g>");
         }
         builder.AppendLine("</svg>");
     }

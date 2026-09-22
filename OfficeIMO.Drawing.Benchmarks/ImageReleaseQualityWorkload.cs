@@ -104,7 +104,7 @@ public sealed class ImageReleaseQualityWorkload {
     public long PeakWorkingSetBytes { get; private set; }
     /// <summary>Peak process private-byte growth during the measured operation.</summary>
     public long PeakPrivateBytes { get; private set; }
-    /// <summary>Private-byte growth remaining after observed managed-heap growth.</summary>
+    /// <summary>Diagnostic private-minus-live-managed-heap estimate; GC activity can change it without native allocation growth.</summary>
     public long PeakNativeBytesEstimate { get; private set; }
     /// <summary>One when a repeated operation produces the same logical output.</summary>
     public int Deterministic { get; private set; }

@@ -149,6 +149,15 @@ public class PdfCiiInvoiceDocumentTests {
     }
 
     [Fact]
+    public void ShallowNodeFloodIsRejectedBeforeTreeMaterialization() {
+        string xml = "<rsm:CrossIndustryInvoice xmlns:rsm='" + Rsm + "'>" +
+            string.Concat(Enumerable.Repeat("<a/>", PdfCiiInvoiceDocument.MaximumXmlNodes)) +
+            "</rsm:CrossIndustryInvoice>";
+
+        Assert.Throws<InvalidDataException>(() => Load(xml));
+    }
+
+    [Fact]
     public void UnsupportedDateRepresentationIsPreservedWithoutReinterpretation() {
         var document = Load(Invoice("INV-1").Replace("format='102'", "format='610'"));
         Assert.Null(document.IssueDate);

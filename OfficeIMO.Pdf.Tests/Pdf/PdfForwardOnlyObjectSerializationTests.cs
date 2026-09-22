@@ -47,6 +47,26 @@ public sealed class PdfForwardOnlyObjectSerializationTests {
         Assert.Contains("Non-seekable destination", PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(PdfObjectSerializationMode.Buffered)]
+    [InlineData(PdfObjectSerializationMode.ForwardOnly)]
+    public void OutputLimitSupportsNonSeekableDestination(PdfObjectSerializationMode mode) {
+        var options = new PdfOptions {
+            FileVersion = PdfFileVersion.Pdf17,
+            ObjectSerializationMode = mode,
+            MaxGeneratedOutputBytes = 1_000_000
+        };
+        using var destination = new NonSeekableWriteStream();
+        PdfDocument document = PdfDocument.Create(options)
+            .Paragraph(paragraph => paragraph.Text("Bounded non-seekable destination"));
+
+        PdfSaveResult result = document.Save(destination);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains("Bounded non-seekable destination",
+            PdfReadDocument.Open(destination.ToArray()).ExtractText(), StringComparison.Ordinal);
+    }
+
     [Fact]
     public void ForwardOnlyObjectSerialization_RequiresExplicitModernHeader() {
         var options = new PdfOptions {

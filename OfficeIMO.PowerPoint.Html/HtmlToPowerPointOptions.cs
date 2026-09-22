@@ -48,6 +48,13 @@ public sealed class HtmlToPowerPointOptions {
     /// <summary>Maps bounded positioned, floating, flex, and grid regions to editable slide geometry.</summary>
     public bool ImportEditableLayoutRegions { get; set; } = true;
 
+    /// <summary>Policy applied to imported hyperlinks, including target-specific run metadata.</summary>
+    public HtmlUrlPolicy HyperlinkUrlPolicy { get; set; } = HtmlUrlPolicy.CreateHyperlinkProfile();
+
+    // Ordinary href values have already passed the document policy during HTML
+    // normalization. Target-specific metadata still uses the complete policy.
+    internal HtmlUrlPolicy? NormalizedHyperlinkUrlPolicy { get; set; }
+
     internal HtmlToPowerPointOptions Clone() => new HtmlToPowerPointOptions {
         Limits = Limits.Clone(),
         Mode = Mode,
@@ -55,6 +62,8 @@ public sealed class HtmlToPowerPointOptions {
         ImportPictures = ImportPictures,
         ImportChartInventory = ImportChartInventory,
         ImportNotes = ImportNotes,
-        ImportEditableLayoutRegions = ImportEditableLayoutRegions
+        ImportEditableLayoutRegions = ImportEditableLayoutRegions,
+        HyperlinkUrlPolicy = HyperlinkUrlPolicy.Clone(),
+        NormalizedHyperlinkUrlPolicy = NormalizedHyperlinkUrlPolicy?.Clone()
     };
 }

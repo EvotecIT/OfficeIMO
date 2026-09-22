@@ -32,6 +32,8 @@ namespace OfficeIMO.Word.Pdf {
         public long MaxOutputBytesPerPage { get; set; } = 64L * 1024L * 1024L;
         /// <summary>Maximum aggregate encoded page-image bytes in VisualPages mode.</summary>
         public long MaxTotalOutputBytes { get; set; } = 256L * 1024L * 1024L;
+        /// <summary>Maximum image versus text-span comparisons during editable import.</summary>
+        public long MaxImageTextOverlapComparisons { get; set; } = 1_000_000;
 
         /// <summary>Creates an appearance-preserving profile using rendered page images.</summary>
         public static PdfToWordOptions CreateVisualPages() => new PdfToWordOptions { Mode = PdfWordImportMode.VisualPages };
@@ -167,6 +169,7 @@ namespace OfficeIMO.Word.Pdf {
         public PdfToWordOptions Clone() => new PdfToWordOptions {
             Mode = Mode, Dpi = Dpi, MaxPages = MaxPages, MaxPixelsPerPage = MaxPixelsPerPage,
             MaxOutputBytesPerPage = MaxOutputBytesPerPage, MaxTotalOutputBytes = MaxTotalOutputBytes,
+            MaxImageTextOverlapComparisons = MaxImageTextOverlapComparisons,
             CancellationToken = CancellationToken,
             ReadOptions = ReadOptions?.Clone(),
             IncludeMetadata = IncludeMetadata,

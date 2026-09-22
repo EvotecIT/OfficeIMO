@@ -407,15 +407,30 @@ if ($psWriteOfficeSource.Count -ne 1 -or
     $psWriteOfficeSource[0].Repo -ne 'EvotecIT/PSWriteOffice' -or
     $psWriteOfficeSource[0].Clean -ne $true -or
     $psWriteOfficeVersion -notmatch '^\d+\.\d+\.\d+$' -or
-    $psWriteOfficeSource[0].Ref -cne "v$psWriteOfficeVersion") {
-    Add-Failure 'The PSWriteOffice source tag must match the imported three-part module version.'
+    $psWriteOfficeSource[0].Ref -cnotmatch '^[0-9a-f]{40}$') {
+    Add-Failure 'The PSWriteOffice source must use an exact commit and the imported module must have a three-part version.'
 }
 $sourceSyncStep = @($pipeline.steps | Where-Object id -eq 'sync-sources')
 if ($sourceSyncStep.Count -ne 1 -or
-    $sourceSyncStep[0].lockMode -ne 'off' -or
+    $sourceSyncStep[0].lockMode -ne 'verify' -or
     $sourceSyncStep[0].writeManifest -ne $true -or
-    -not [string]::IsNullOrWhiteSpace([string] $sourceSyncStep[0].lockPath)) {
-    Add-Failure 'The default source sync must follow remote repositories without a commit lock and record the resolved source manifest.'
+    $sourceSyncStep[0].lockPath -cne './.powerforge/git-sync-lock.json') {
+    Add-Failure 'The default source sync must verify the committed PSWriteOffice source lock and record the resolved source manifest.'
+}
+$sourceLockPath = Join-Path $SiteRoot '.powerforge/git-sync-lock.json'
+if (-not (Test-Path -LiteralPath $sourceLockPath -PathType Leaf)) {
+    Add-Failure 'The committed PSWriteOffice source lock is missing.'
+} else {
+    $sourceLock = Get-Content -LiteralPath $sourceLockPath -Raw | ConvertFrom-Json
+    $lockedSources = @($sourceLock.entries | Where-Object {
+        $_.repoInput -ceq 'EvotecIT/PSWriteOffice' -and
+        $_.repo -ceq 'https://github.com/EvotecIT/PSWriteOffice.git' -and
+        $_.destination -ceq './projects/pswriteoffice' -and
+        $_.commit -ceq $psWriteOfficeSource[0].Ref
+    })
+    if ($sourceLock.entries.Count -ne 1 -or $lockedSources.Count -ne 1) {
+        Add-Failure 'The PSWriteOffice source lock must contain one exact commit for its configured destination.'
+    }
 }
 $expectedApiDocsHomes = [ordered]@{
     'build-apidocs-html-rtf' = '/docs/html/'

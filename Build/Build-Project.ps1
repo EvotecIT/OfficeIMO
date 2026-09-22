@@ -6,14 +6,13 @@ param(
     [Nullable[bool]] $PublishGitHub = $false,
     [Nullable[bool]] $Plan,
     [string] $PlanPath,
-    [bool] $RequireHtmlPdfReleaseProof = $false,
     [string] $PdfComplianceProofPath = $env:OFFICEIMO_PDF_COMPLIANCE_PROOF_PATH
 )
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
-if ($RequireHtmlPdfReleaseProof -and $Plan -ne $true) {
+if (($PublishNuget -eq $true -or $PublishGitHub -eq $true) -and $Plan -ne $true) {
     & "$PSScriptRoot/Test-HtmlPdfReleaseGate.ps1" -PdfComplianceProofPath $PdfComplianceProofPath
 }
 
