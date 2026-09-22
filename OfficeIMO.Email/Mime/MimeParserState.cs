@@ -1,6 +1,7 @@
 namespace OfficeIMO.Email;
 
 internal sealed class MimeParserState {
+    private readonly HashSet<(int Offset, int Count)> _lookaheadEntities = new();
     internal MimeParserState(EmailReaderOptions options, IList<EmailDiagnostic> diagnostics,
         CancellationToken cancellationToken, EmailProcessingBudget? budget = null) {
         Options = options;
@@ -32,6 +33,15 @@ internal sealed class MimeParserState {
     internal void EnsurePendingPartCount(int pendingPartCount) {
         ThrowIfCancellationRequested();
         Budget.EnsurePendingParts(pendingPartCount);
+    }
+
+    internal void CountLookaheadEntity(int bodyOffset, int bodyCount) {
+        ThrowIfCancellationRequested();
+        if (!_lookaheadEntities.Add((bodyOffset, bodyCount))) return;
+        if (_lookaheadEntities.Count > Options.MaxPartCount) {
+            throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxPartCount),
+                _lookaheadEntities.Count, Options.MaxPartCount);
+        }
     }
 
     internal void CountAttachment() {

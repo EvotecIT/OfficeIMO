@@ -130,6 +130,16 @@ public sealed class OpmlDocumentTests {
     }
 
     [Fact]
+    public void CommentsCannotBypassTheOpmlNodeBudget() {
+        string source = "<opml version=\"2.0\"><head/>" +
+            string.Concat(Enumerable.Repeat("<!--padding-->", 32)) + "<body/></opml>";
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            OpmlDocument.Parse(source, new OpmlReadOptions { MaxElements = 3 }));
+        Assert.Contains("MaxMaterializedNodes", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MaxOutlinesStopsParsingBeforeTheRemainingXmlIsMaterialized() {
         const string source = "<opml version=\"2.0\"><head/><body><outline text=\"a\"/><outline text=\"b\"/><";
         var options = new OpmlReadOptions { MaxOutlines = 1 };

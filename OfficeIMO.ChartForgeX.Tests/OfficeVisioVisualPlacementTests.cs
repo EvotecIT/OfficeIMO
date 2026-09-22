@@ -211,6 +211,43 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
     }
 
     [Fact]
+    public void BookBoundsRequestedLinksAndCoalescedRelationshipMetadata() {
+        var pages = new[] { PlacementEnvelope(), PlacementEnvelope() };
+        var links = Enumerable.Range(0, 3)
+            .Select(index => new OfficeVisioVisualBookLink(1, "api", 2, "database", "edge-" + index))
+            .ToArray();
+
+        Assert.Throws<ArgumentException>(() => pages.ToOfficeVisioBookWithNavigation(links,
+            new OfficeVisioVisualBookOptions { MaximumRequestedLinks = 2 }));
+        Assert.Throws<ArgumentException>(() => pages.ToOfficeVisioBookWithNavigation(links,
+            new OfficeVisioVisualBookOptions { MaximumRelationshipIdsPerNavigation = 2 }));
+        Assert.Throws<ArgumentException>(() => pages.ToOfficeVisioBookWithNavigation(links,
+            new OfficeVisioVisualBookOptions { MaximumRelationshipIdCharactersPerNavigation = 10 }));
+
+        OfficeVisioVisualBookResult book = pages.ToOfficeVisioBookWithNavigation(links);
+        Assert.Equal(new[] { "edge-0", "edge-1", "edge-2" },
+            Assert.Single(book.Navigations, navigation => !navigation.IsReturnLink).RelationshipIds);
+    }
+
+    [Theory]
+    [InlineData(0, nameof(OfficeVisioVisualBookOptions.MaximumRequestedLinks))]
+    [InlineData(1, nameof(OfficeVisioVisualBookOptions.MaximumRelationshipIdsPerNavigation))]
+    [InlineData(2, nameof(OfficeVisioVisualBookOptions.MaximumRelationshipIdCharactersPerNavigation))]
+    public void BookRejectsInvalidLimitsWithTheirOwnParameterName(int invalidLimit, string expectedParameter) {
+        var options = new OfficeVisioVisualBookOptions();
+        switch (invalidLimit) {
+            case 0: options.MaximumRequestedLinks = 0; break;
+            case 1: options.MaximumRelationshipIdsPerNavigation = 0; break;
+            default: options.MaximumRelationshipIdCharactersPerNavigation = 0; break;
+        }
+
+        var exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new[] { PlacementEnvelope(), PlacementEnvelope() }.ToOfficeVisioBookWithNavigation(
+                Array.Empty<OfficeVisioVisualBookLink>(), options));
+        Assert.Equal(expectedParameter, exception.ParamName);
+    }
+
+    [Fact]
     public void BookResolvesOriginalChartForgeXIdsAfterInterchangeBoundsThem() {
         var first = PlacementEnvelope();
         first.Nodes[0].Id = "bounded-node-id";

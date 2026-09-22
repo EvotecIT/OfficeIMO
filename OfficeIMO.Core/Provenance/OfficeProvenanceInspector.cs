@@ -247,7 +247,7 @@ public static class OfficeProvenanceInspector {
                     throw new InvalidDataException("SVG format detection exceeds the configured XML node limit.");
                 }
                 nodeCount += currentCount;
-                if (reader.Depth > 256) throw new InvalidDataException("SVG format detection exceeds the supported XML depth limit.");
+                if (reader.NodeType == XmlNodeType.Element && reader.Depth > 256) throw new InvalidDataException("SVG format detection exceeds the supported XML depth limit.");
                 if (reader.NodeType != XmlNodeType.Element) continue;
                 return reader.LocalName.Equals("svg", StringComparison.OrdinalIgnoreCase) &&
                     reader.NamespaceURI.Equals("http://www.w3.org/2000/svg", StringComparison.Ordinal);

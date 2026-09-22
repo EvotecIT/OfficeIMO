@@ -598,9 +598,13 @@ public sealed partial class ProvenanceDocumentContracts {
 
     [Theory]
     [InlineData("odt", "META-INF/documentsignatures.xml")]
+    [InlineData("odt", "META-INF/customsignatures.xml")]
     [InlineData("epub", "META-INF/signatures.xml")]
     public void ZipDocumentOwnersRemoveInvalidatedNativeSignatures(string extension, string signaturePath) {
-        byte[] package = CreateZipPackage(extension, signaturePath, CreatePngWithManifest(CreateManifestStore()));
+        byte[]? signatureContent = extension == "odt"
+            ? Encoding.UTF8.GetBytes("<document-signatures xmlns='urn:oasis:names:tc:opendocument:xmlns:digitalsignature:1.0'/>")
+            : null;
+        byte[] package = CreateZipPackage(extension, signaturePath, CreatePngWithManifest(CreateManifestStore()), signatureContent);
         var options = new OfficeProvenanceRemovalOptions {
             SignatureMutationPolicy = OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures
         };
@@ -728,7 +732,7 @@ public sealed partial class ProvenanceDocumentContracts {
     }
 
     [Fact]
-    public void VisioSignatureMetadataUsesTheConfiguredAssetLimit() {
+    public void VisioSignatureMetadataRejectsOversizedXmlDespiteLargerAssetLimit() {
         byte[] package = CreateSignedVisioProvenancePackage(16 * 1024 * 1024 + 1);
         var options = new OfficeProvenanceRemovalOptions {
             SignatureMutationPolicy = OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures
@@ -737,10 +741,9 @@ public sealed partial class ProvenanceDocumentContracts {
         options.Limits.MaxManifestBytes = 1024L * 1024L;
         options.Limits.MaxExpandedContainerBytes = 64L * 1024L * 1024L;
 
-        OfficeProvenanceRemovalResult result = VisioDocument.RemoveProvenance(package, options: options);
-
-        Assert.True(result.WereInvalidatedSignaturesRemoved);
-        Assert.Empty(result.After.Evidence);
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            VisioDocument.RemoveProvenance(package, options: options));
+        Assert.Contains("app metadata exceeds", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -934,7 +937,7 @@ public sealed partial class ProvenanceDocumentContracts {
         output.Write(data, 0, data.Length);
     }
 
-    private static byte[] CreateZipPackage(string extension, string signaturePath, byte[] image) {
+    private static byte[] CreateZipPackage(string extension, string signaturePath, byte[] image, byte[]? signatureContent = null) {
         using var output = new MemoryStream();
         using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {
             WriteEntry(archive, "mimetype", extension == "odt" ? "application/vnd.oasis.opendocument.text" : "application/epub+zip", CompressionLevel.NoCompression);
@@ -951,7 +954,7 @@ public sealed partial class ProvenanceDocumentContracts {
                     "<metadata><identifier xmlns=\"http://purl.org/dc/elements/1.1/\" id=\"id\">fixture</identifier></metadata>" +
                     "<manifest/><spine/></package>", CompressionLevel.Optimal);
             }
-            WriteEntry(archive, signaturePath, "<signatures/>", CompressionLevel.Optimal);
+            WriteEntry(archive, signaturePath, signatureContent ?? Encoding.UTF8.GetBytes("<signatures/>"), CompressionLevel.Optimal);
             if (extension != "odt") {
                 WriteEntry(archive, signaturePath, "<signatures duplicate=\"true\"/>", CompressionLevel.Optimal);
             }

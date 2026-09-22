@@ -65,6 +65,26 @@ public static partial class OfficeTiffCodec {
         int expectedCount,
         CancellationToken cancellationToken) {
         if (expectedCount <= 0 || outputOffset < 0 || outputOffset > output.Length - expectedCount) return false;
+        return TryDecodeLzwCore(input, inputOffset, inputCount, output, outputOffset, expectedCount, cancellationToken);
+    }
+
+    private static bool TryValidateLzwPayload(
+        byte[] input,
+        int inputOffset,
+        int inputCount,
+        int expectedCount,
+        CancellationToken cancellationToken) =>
+        TryDecodeLzwCore(input, inputOffset, inputCount, null, 0, expectedCount, cancellationToken);
+
+    private static bool TryDecodeLzwCore(
+        byte[] input,
+        int inputOffset,
+        int inputCount,
+        byte[]? output,
+        int outputOffset,
+        int expectedCount,
+        CancellationToken cancellationToken) {
+        if (expectedCount <= 0) return false;
         var reader = new TiffLzwBitReader(input, inputOffset, inputCount);
         var prefixes = new short[4096];
         var suffixes = new byte[4096];
@@ -113,7 +133,8 @@ public static partial class OfficeTiffCodec {
             if (stackCount >= stack.Length) return false;
             stack[stackCount++] = first;
             if (target > outputEnd - stackCount) return false;
-            for (int index = stackCount - 1; index >= 0; index--) output[target++] = stack[index];
+            if (output == null) target += stackCount;
+            else for (int index = stackCount - 1; index >= 0; index--) output[target++] = stack[index];
 
             if (previousCode >= 0 && nextCode <= LzwMaximumCode) {
                 prefixes[nextCode] = (short)previousCode;

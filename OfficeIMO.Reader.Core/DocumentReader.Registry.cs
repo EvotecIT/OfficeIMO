@@ -47,7 +47,8 @@ internal static partial class DocumentReaderEngine {
 
     internal static long? ResolveInitialMaxInputBytes(string? sourceName, ReaderOptions options) {
         if (options == null) throw new ArgumentNullException(nameof(options));
-        if (options.DetectionMode == ReaderDetectionMode.PreferContent) return options.MaxInputBytes;
+        if (options.DetectionMode == ReaderDetectionMode.PreferContent)
+            return options.MaxInputBytes ?? DefaultUnidentifiedStreamMaxInputBytes;
         if (!TryResolveCustomHandlerBySourceName(sourceName, out ReaderHandlerDescriptor handler) ||
             !handler.SupportsPathInput) return options.MaxInputBytes;
         long? configured = options.MaxInputBytes ?? handler.ResolveDefaultMaxInputBytes(sourceName);
@@ -56,7 +57,7 @@ internal static partial class DocumentReaderEngine {
 
     internal static long? ResolveStreamMaxInputBytes(string? sourceName, ReaderOptions options, bool streamCanSeek) {
         if (options.DetectionMode == ReaderDetectionMode.PreferContent) {
-            return options.MaxInputBytes ?? (streamCanSeek ? null : DefaultUnidentifiedStreamMaxInputBytes);
+            return options.MaxInputBytes ?? DefaultUnidentifiedStreamMaxInputBytes;
         }
         long? configured;
         if (options.MaxInputBytes.HasValue) configured = options.MaxInputBytes;

@@ -75,7 +75,12 @@ internal static partial class PdfWriter {
                 int? markedContentId;
                 if ((hasLinkTarget || take < lines.Count) && emitGeneratedStructure && currentPage != null) {
                     logicalHeading ??= RegisterStructureContainer(structureType, parentElement: null);
-                    if (logicalHeading != null && lineIndex > 0) logicalHeading.SpansPages = true;
+                    if (logicalHeading != null && lineIndex > 0) {
+                        logicalHeading.SpansPages = true;
+                        // The heading keeps its first-page parent; notify active ancestor scopes
+                        // that their descendant has continued onto this page.
+                        ResolveFlowSemanticParent();
+                    }
                     if (hasLinkTarget) linkStructElementIndex = currentPage.StructElements.Count;
                     markedStructureType = hasLinkTarget ? "Link" : "Span";
                     markedContentId = RegisterTextStructureElement(markedStructureType, logicalHeading);

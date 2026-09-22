@@ -57,12 +57,12 @@ internal sealed class IWorkProjectionBudget {
     }
 
     internal long RemainingDecodedImageBytes =>
-        _options.MaximumPackageBytes - _decodedImageByteCount;
+        _options.MaximumDecodedImageBytes - _decodedImageByteCount;
 
     internal void AddDecodedImageBytes(long count) {
-        if (count < 0 || _decodedImageByteCount > _options.MaximumPackageBytes - count) {
+        if (count < 0 || _decodedImageByteCount > _options.MaximumDecodedImageBytes - count) {
             throw new InvalidDataException(
-                $"Decoded image data exceeds the configured package limit of {_options.MaximumPackageBytes} bytes.");
+                $"Decoded image data exceeds the configured image limit of {_options.MaximumDecodedImageBytes} bytes.");
         }
         _decodedImageByteCount += count;
     }

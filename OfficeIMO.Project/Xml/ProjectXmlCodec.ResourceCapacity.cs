@@ -3,15 +3,16 @@ using System.Xml.Linq;
 namespace OfficeIMO.Project;
 
 internal static partial class ProjectXmlCodec {
-    private static void ReadResourceCapacity(ProjectResource resource, XElement element, CancellationToken token) {
+    private static void ReadResourceCapacity(ProjectResource resource, XElement element, ProjectLoadOptions options,
+        ref int entities, CancellationToken token) {
         var document = resource.Document;
         foreach (var period in Children(element, "AvailabilityPeriods", "AvailabilityPeriod")) {
-            token.ThrowIfCancellationRequested();
+            token.ThrowIfCancellationRequested(); CheckEntities(++entities, options);
             var item = resource.AvailabilityPeriods.Add(); Attach(document, item, period);
             ReadFields(item, period, document, ProjectXmlFields.ResourceAvailability);
         }
         foreach (var period in Children(element, "Rates", "Rate")) {
-            token.ThrowIfCancellationRequested();
+            token.ThrowIfCancellationRequested(); CheckEntities(++entities, options);
             var item = resource.Rates.Add(); Attach(document, item, period);
             ReadFields(item, period, document, ProjectXmlFields.ResourceRate);
         }

@@ -5,21 +5,22 @@ namespace OfficeIMO.Project;
 internal static partial class ProjectXmlCodec {
     private static readonly string[] DayOrder = "DayType DayWorking TimePeriod WorkingTimes".Split(' ');
     private static readonly string[] ExceptionOrder = "EnteredByOccurrences TimePeriod Occurrences Name Type Period DaysOfWeek MonthItem MonthPosition Month DayWorking WorkingTimes".Split(' ');
-    private static void ReadCalendar(ProjectCalendar calendar, XElement element, CancellationToken token) {
+    private static void ReadCalendar(ProjectCalendar calendar, XElement element, ProjectLoadOptions options,
+        ref int entities, CancellationToken token) {
         var ns = element.Name.Namespace;
         calendar.Name = (string?)element.Element(ns + "Name");
         calendar.Guid = element.Element(ns + "GUID") is XElement guid ? ProjectXmlValue.ParseGuid(guid.Value) : (Guid?)null;
         calendar.IsBaseCalendar = (bool?)element.Element(ns + "IsBaseCalendar");
         calendar.SourceBaseCalendarUid = (int?)element.Element(ns + "BaseCalendarUID");
         foreach (var day in Children(element, "WeekDays", "WeekDay")) {
-            token.ThrowIfCancellationRequested();
+            token.ThrowIfCancellationRequested(); CheckEntities(++entities, options);
             var item = calendar.WeekDays.Add(); Attach(calendar.Document, item, day);
             item.Day = ParseDayType(day.Element(ns + "DayType"), true);
             item.IsWorking = (bool?)day.Element(ns + "DayWorking");
             var legacyPeriod = day.Element(ns + "TimePeriod");
             item.FromDate = legacyPeriod?.Element(ns + "FromDate") is XElement legacyFrom ? ProjectXmlValue.ParseDate(legacyFrom.Value) : (DateTime?)null;
             item.ToDate = legacyPeriod?.Element(ns + "ToDate") is XElement legacyTo ? ProjectXmlValue.ParseDate(legacyTo.Value) : (DateTime?)null;
-            ReadWorkingTimes(item.WorkingTimes, day, calendar.Document, token);
+            ReadWorkingTimes(item.WorkingTimes, day, calendar.Document, options, ref entities, token);
         }
         var legacyByPattern = new Dictionary<string, Queue<ProjectWeekDay>>(StringComparer.Ordinal);
         foreach (var day in calendar.WeekDays.Where(day => day.Day == null)) {
@@ -30,14 +31,14 @@ internal static partial class ProjectXmlCodec {
         }
         var mirrored = new HashSet<ProjectWeekDay>();
         foreach (var exception in Children(element, "Exceptions", "Exception")) {
-            token.ThrowIfCancellationRequested();
+            token.ThrowIfCancellationRequested(); CheckEntities(++entities, options);
             var item = calendar.Exceptions.Add(); Attach(calendar.Document, item, exception);
             item.Name = (string?)exception.Element(ns + "Name");
             item.IsWorking = (bool?)exception.Element(ns + "DayWorking");
             var period = exception.Element(ns + "TimePeriod");
             item.FromDate = period?.Element(ns + "FromDate") is XElement from ? ProjectXmlValue.ParseDate(from.Value) : (DateTime?)null;
             item.ToDate = period?.Element(ns + "ToDate") is XElement to ? ProjectXmlValue.ParseDate(to.Value) : (DateTime?)null;
-            ReadWorkingTimes(item.WorkingTimes, exception, calendar.Document, token);
+            ReadWorkingTimes(item.WorkingTimes, exception, calendar.Document, options, ref entities, token);
             string key = CalendarPattern(item.FromDate, item.ToDate, item.IsWorking, item.WorkingTimes, token);
             if (legacyByPattern.TryGetValue(key, out var queue) && queue.Count != 0) {
                 var mirror = queue.Dequeue();
@@ -50,7 +51,7 @@ internal static partial class ProjectXmlCodec {
             }
         }
         calendar.WeekDays.Items.RemoveAll(day => mirrored.Contains(day));
-        ReadWorkWeeks(calendar, element, token);
+        ReadWorkWeeks(calendar, element, options, ref entities, token);
     }
     private static DayOfWeek? ParseDayType(XElement? element, bool allowLegacyException) {
         int? value = (int?)element;
@@ -59,9 +60,10 @@ internal static partial class ProjectXmlCodec {
         if (allowLegacyException && value == 0) return null;
         throw new InvalidDataException("Project XML calendar DayType must be " + (allowLegacyException ? "between 0 and 7." : "between 1 and 7."));
     }
-    private static void ReadWorkingTimes(ProjectCollection<ProjectWorkingInterval> intervals, XElement element, ProjectDocument document, CancellationToken token) {
+    private static void ReadWorkingTimes(ProjectCollection<ProjectWorkingInterval> intervals, XElement element, ProjectDocument document,
+        ProjectLoadOptions options, ref int entities, CancellationToken token) {
         foreach (var time in Children(element, "WorkingTimes", "WorkingTime")) {
-            token.ThrowIfCancellationRequested();
+            token.ThrowIfCancellationRequested(); CheckEntities(++entities, options);
             var item = intervals.Add(); Attach(document, item, time);
             item.From = time.Element(time.Name.Namespace + "FromTime") is XElement from ? ProjectXmlValue.ParseClock(from.Value) : (TimeSpan?)null;
             item.To = time.Element(time.Name.Namespace + "ToTime") is XElement to ? ProjectXmlValue.ParseClock(to.Value) : (TimeSpan?)null;

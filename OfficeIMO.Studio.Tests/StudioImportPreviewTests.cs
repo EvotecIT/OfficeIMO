@@ -6,11 +6,49 @@ using Avalonia.VisualTree;
 using OfficeIMO.Pdf;
 using OfficeIMO.Studio.Features.Organizer;
 using OfficeIMO.Studio.Features.Shell;
+using OfficeIMO.Studio.Features.Workspace;
+using OfficeIMO.Studio.Infrastructure.Localization;
 using OfficeIMO.Studio.Infrastructure.Preferences;
+using System.Globalization;
 
 namespace OfficeIMO.Studio.Tests;
 
 public sealed class StudioImportPreviewTests {
+    [Fact]
+    public void ImportPreviewRejectsResultBeyondReaderPageLimit() {
+        var preparation = new PdfImportPreparation(null!, 0, 999, [new PdfImportSource("source.pdf", [], null, 2)]);
+        var preview = new PageImportPreviewViewModel(preparation, 1000, new StudioLocalizer(CultureInfo.InvariantCulture));
+
+        Assert.False(preview.CanApply);
+        Assert.NotNull(preview.ErrorMessage);
+        preview.Sources[0].PageRange = "1";
+        Assert.True(preview.CanApply);
+        Assert.Equal(1, preview.ImportedPageCount);
+    }
+
+    [Fact]
+    public async Task ImportSourceUsesTheStudioPdfReadPolicyDuringPreparationAndSelection() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-import-limit-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            string target = Path.Combine(root, "target.pdf");
+            string source = Path.Combine(root, "source.pdf");
+            CreatePdf(150).Save(target);
+            PdfDocument.Create(document => {
+                for (int page = 0; page <= 1000; page++) document.Page(current => current.Size(200, 300));
+            }).Save(source);
+            byte[] bytes = await File.ReadAllBytesAsync(source);
+            using var workspace = await PdfWorkspace.OpenAsync(target, CancellationToken.None);
+
+            await Assert.ThrowsAsync<PdfReadLimitException>(() => workspace.PrepareImportAsync([source], CancellationToken.None));
+            var captured = new PdfImportSource("source.pdf", bytes, null, 1001);
+            Assert.Throws<PdfReadLimitException>(() => captured.Select([1]));
+            Assert.Single(workspace.Pages);
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

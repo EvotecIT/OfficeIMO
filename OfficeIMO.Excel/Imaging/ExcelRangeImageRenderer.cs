@@ -123,19 +123,15 @@ namespace OfficeIMO.Excel {
                     image,
                     format,
                     rasterState.EncodingOptions,
-                    ResolveEncodingByteCeiling(finalOutput, options),
+                    ResolveEncodingByteCeiling(options),
                     cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             var result = new OfficeImageExportResult(format, image.Width, image.Height, bytes, snapshot.SheetName, source, diagnostics.AsReadOnly());
             return finalOutput ? options.EnsureAccepted(result) : result;
         }
 
-        internal static long ResolveEncodingByteCeiling(
-            bool finalOutput,
-            ExcelImageExportOptions options) =>
-            finalOutput
-                ? options.MaximumTotalEncodedBytes
-                : Math.Max(options.MaximumTotalEncodedBytes, OfficeImageExportOptions.DefaultMaximumTotalEncodedBytes);
+        internal static long ResolveEncodingByteCeiling(ExcelImageExportOptions options) =>
+            options.MaximumTotalEncodedBytes;
 
         private static byte[] EncodeSvgWithinLimit(string svg, long maximumBytes) {
             long byteCount = Encoding.UTF8.GetByteCount(svg);

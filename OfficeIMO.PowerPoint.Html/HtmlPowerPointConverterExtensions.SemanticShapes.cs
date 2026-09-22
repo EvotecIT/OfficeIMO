@@ -66,10 +66,10 @@ public static partial class HtmlPowerPointConverterExtensions {
             .ThenBy(item => item.FallbackOrder)) {
             switch (item.Kind) {
                 case PowerPointSemanticImportKind.TextBox:
-                    contentTop = ImportSemanticTextBox(item.Element, item.SemanticBlock, slide, contentTop, result, budget);
+                    contentTop = ImportSemanticTextBox(item.Element, item.SemanticBlock, slide, contentTop, result, budget, options);
                     break;
                 case PowerPointSemanticImportKind.Table:
-                    contentTop = ImportTable(item.Element, slide, contentTop, result, budget, item.SemanticBlock);
+                    contentTop = ImportTable(item.Element, slide, contentTop, result, budget, options, item.SemanticBlock);
                     break;
                 case PowerPointSemanticImportKind.Picture:
                     ImportPicture(item.Element, slide, result, budget, ref pictureTop);
@@ -93,9 +93,10 @@ public static partial class HtmlPowerPointConverterExtensions {
         PptCore.PowerPointSlide slide,
         double fallbackTop,
         HtmlToPowerPointResult result,
-        HtmlImportBudget budget) {
+        HtmlImportBudget budget,
+        HtmlToPowerPointOptions options) {
         string text = PreserveText(ReadTextWithBreaks(paragraph));
-        return ImportTextBox(paragraph, text, slide, fallbackTop, result, budget, 48D, semanticBlock);
+        return ImportTextBox(paragraph, text, slide, fallbackTop, result, budget, 48D, options, semanticBlock);
     }
 
     private static double ImportTextBox(
@@ -106,6 +107,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         HtmlToPowerPointResult result,
         HtmlImportBudget budget,
         double fallbackHeight,
+        HtmlToPowerPointOptions options,
         HtmlSemanticBlock? semanticBlock = null) {
         if (text.Length == 0) {
             return fallbackTop;
@@ -135,10 +137,12 @@ public static partial class HtmlPowerPointConverterExtensions {
         }
         PptCore.PowerPointTextBox textBox = slide.AddTextBoxPoints(text, left, top, width, height);
         if (semanticBlock?.Kind == HtmlSemanticBlockKind.List) {
-            ApplySemanticList(textBox, semanticBlock, result);
-        } else if (source != null && TryApplyTargetSemanticRuns(textBox, source)) {
+            ApplySemanticList(textBox, semanticBlock, result,
+                options.NormalizedHyperlinkUrlPolicy ?? options.HyperlinkUrlPolicy);
+        } else if (source != null && TryApplyTargetSemanticRuns(textBox, source, options.HyperlinkUrlPolicy)) {
         } else if (semanticBlock != null && semanticBlock.Runs.Count > 0) {
-            ApplySemanticRuns(textBox, semanticBlock.Runs);
+            ApplySemanticRuns(textBox, semanticBlock.Runs,
+                options.NormalizedHyperlinkUrlPolicy ?? options.HyperlinkUrlPolicy);
         }
         if (source != null) ApplyShapeTransforms(source, textBox, budget, result);
         result.TextBoxes++;
@@ -154,7 +158,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         return text.ToString();
     }
 
-    private static bool TryApplyTargetSemanticRuns(PptCore.PowerPointTextBox textBox, IElement source) {
+    private static bool TryApplyTargetSemanticRuns(PptCore.PowerPointTextBox textBox, IElement source, HtmlUrlPolicy hyperlinkPolicy) {
         if (!TryReadTargetSemanticInlines(source, allowLegacyParagraphBreaks: true, out List<List<TargetSemanticInline>> paragraphs)) {
             return false;
         }
@@ -162,10 +166,10 @@ public static partial class HtmlPowerPointConverterExtensions {
         string paragraphText = string.Join("\n", paragraphs.Select(items =>
             string.Concat(items.Where(item => !item.IsLineBreak).Select(item => item.Text))));
         textBox.Text = paragraphText;
-        return ApplyTargetSemanticInlines(textBox.Paragraphs, paragraphs);
+        return ApplyTargetSemanticInlines(textBox.Paragraphs, paragraphs, hyperlinkPolicy);
     }
 
-    private static bool TryApplyTargetSemanticRuns(PptCore.PowerPointTableCell cell, IElement source) {
+    private static bool TryApplyTargetSemanticRuns(PptCore.PowerPointTableCell cell, IElement source, HtmlUrlPolicy hyperlinkPolicy) {
         IElement[] inlineElements = source.Children
             .Where(element => IsElement(element, "span") || IsElement(element, "br"))
             .ToArray();
@@ -183,7 +187,7 @@ public static partial class HtmlPowerPointConverterExtensions {
 
         cell.SetParagraphs(paragraphs.Select(items =>
             string.Concat(items.Where(item => !item.IsLineBreak).Select(item => item.Text))));
-        return ApplyTargetSemanticInlines(cell.Paragraphs, paragraphs);
+        return ApplyTargetSemanticInlines(cell.Paragraphs, paragraphs, hyperlinkPolicy);
     }
 
     private static bool TryReadTargetSemanticInlines(
@@ -219,7 +223,8 @@ public static partial class HtmlPowerPointConverterExtensions {
 
     private static bool ApplyTargetSemanticInlines(
         IReadOnlyList<PptCore.PowerPointParagraph> targetParagraphs,
-        IReadOnlyList<List<TargetSemanticInline>> paragraphs) {
+        IReadOnlyList<List<TargetSemanticInline>> paragraphs,
+        HtmlUrlPolicy hyperlinkPolicy) {
         if (targetParagraphs.Count != paragraphs.Count) return false;
         int paragraphCount = paragraphs.Count;
         for (int paragraphIndex = 0; paragraphIndex < paragraphCount; paragraphIndex++) {
@@ -239,17 +244,17 @@ public static partial class HtmlPowerPointConverterExtensions {
                         span.TextContent,
                         fieldType,
                         span.GetAttribute("data-officeimo-powerpoint-field-id"),
-                        run => ApplyTargetSemanticRun(run, span));
+                        run => ApplyTargetSemanticRun(run, span, hyperlinkPolicy));
                 } else {
                     PptCore.PowerPointTextRun target = paragraph.AddRun(span.TextContent);
-                    ApplyTargetSemanticRun(target, span);
+                    ApplyTargetSemanticRun(target, span, hyperlinkPolicy);
                 }
             }
         }
         return true;
     }
 
-    private static void ApplyTargetSemanticRun(PptCore.PowerPointTextRun target, IElement source) {
+    private static void ApplyTargetSemanticRun(PptCore.PowerPointTextRun target, IElement source, HtmlUrlPolicy hyperlinkPolicy) {
         IReadOnlyDictionary<string, string> css = ParseTargetInlineStyle(source.GetAttribute("style"));
         target.Text = source.TextContent;
         target.Bold = TryGetTargetCss(css, "font-weight", out string weight)
@@ -284,8 +289,9 @@ public static partial class HtmlPowerPointConverterExtensions {
         string language = source.GetAttribute("data-officeimo-powerpoint-language") ?? string.Empty;
         if (!string.IsNullOrWhiteSpace(language)) target.Language = language;
         string hyperlink = source.GetAttribute("data-officeimo-powerpoint-hyperlink") ?? string.Empty;
-        if (!string.IsNullOrWhiteSpace(hyperlink)
-            && Uri.TryCreate(hyperlink, UriKind.RelativeOrAbsolute, out Uri? targetUri)) {
+        string allowedHyperlink = HtmlUrlPolicyEvaluator.ResolveUrl(hyperlink, null, hyperlinkPolicy);
+        if (!string.IsNullOrWhiteSpace(allowedHyperlink)
+            && Uri.TryCreate(allowedHyperlink, UriKind.RelativeOrAbsolute, out Uri? targetUri)) {
             target.Hyperlink = targetUri;
         }
     }
@@ -339,7 +345,8 @@ public static partial class HtmlPowerPointConverterExtensions {
     private static void ApplySemanticList(
         PptCore.PowerPointTextBox textBox,
         HtmlSemanticBlock list,
-        HtmlToPowerPointResult result) {
+        HtmlToPowerPointResult result,
+        HtmlUrlPolicy hyperlinkPolicy) {
         var items = new List<SemanticListItem>();
         AppendSemanticListItems(list, 0, items, result);
         if (items.Count == 0) return;
@@ -358,7 +365,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                 paragraph.SetBullet();
             }
             paragraph.Level = Math.Min(8, item.Level);
-            ApplySemanticRuns(paragraph, item.Block.Runs);
+            ApplySemanticRuns(paragraph, item.Block.Runs, hyperlinkPolicy);
         }
     }
 
@@ -399,22 +406,24 @@ public static partial class HtmlPowerPointConverterExtensions {
         return normalized;
     }
 
-    private static void ApplySemanticRuns(PptCore.PowerPointParagraph paragraph, IReadOnlyList<HtmlSemanticRun> runs) {
+    private static void ApplySemanticRuns(PptCore.PowerPointParagraph paragraph, IReadOnlyList<HtmlSemanticRun> runs,
+        HtmlUrlPolicy hyperlinkPolicy) {
         if (runs.Count == 0) return;
         paragraph.Text = string.Concat(runs.Select(run => run.Text));
         IReadOnlyList<PptCore.PowerPointTextRun> targetRuns = paragraph.Runs;
         PptCore.PowerPointTextRun first = targetRuns[0];
-        ApplySemanticRun(first, runs[0]);
+        ApplySemanticRun(first, runs[0], hyperlinkPolicy);
         for (int index = 1; index < runs.Count; index++) {
             HtmlSemanticRun source = runs[index];
             PptCore.PowerPointTextRun target = paragraph.AddRun(source.Text);
-            ApplySemanticRun(target, source);
+            ApplySemanticRun(target, source, hyperlinkPolicy);
         }
     }
 
     private static void ApplySemanticRun(
         PptCore.PowerPointTextRun target,
         HtmlSemanticRun source,
+        HtmlUrlPolicy hyperlinkPolicy,
         bool preserveTargetText = false) {
         if (!preserveTargetText) target.Text = source.Text;
         target.Bold = source.Bold;
@@ -442,17 +451,19 @@ public static partial class HtmlPowerPointConverterExtensions {
         if (TryParseSemanticPixels(source.Style?.GetValue("font-size"), out double pixels)) {
             target.FontSizePoints = Math.Max(1D, pixels * 0.75D);
         }
-        if (!string.IsNullOrWhiteSpace(source.Hyperlink)
-            && Uri.TryCreate(source.Hyperlink, UriKind.RelativeOrAbsolute, out Uri? hyperlink)) {
+        string resolvedHyperlink = HtmlUrlPolicyEvaluator.ResolveUrl(source.Hyperlink, null, hyperlinkPolicy);
+        if (!string.IsNullOrWhiteSpace(resolvedHyperlink)
+            && Uri.TryCreate(resolvedHyperlink, UriKind.RelativeOrAbsolute, out Uri? hyperlink)) {
             target.Hyperlink = hyperlink;
         }
     }
 
-    private static void ApplySemanticRuns(PptCore.PowerPointTextBox textBox, IReadOnlyList<HtmlSemanticRun> runs) {
+    private static void ApplySemanticRuns(PptCore.PowerPointTextBox textBox, IReadOnlyList<HtmlSemanticRun> runs,
+        HtmlUrlPolicy hyperlinkPolicy) {
         if (runs.Count == 1) {
             foreach (PptCore.PowerPointParagraph paragraph in textBox.Paragraphs) {
                 foreach (PptCore.PowerPointTextRun run in paragraph.Runs) {
-                    ApplySemanticRun(run, runs[0], preserveTargetText: true);
+                    ApplySemanticRun(run, runs[0], hyperlinkPolicy, preserveTargetText: true);
                 }
             }
             return;
@@ -474,7 +485,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         }
         if (targetParagraphs.Count != paragraphRuns.Count) return;
         for (int index = 0; index < Math.Min(targetParagraphs.Count, paragraphRuns.Count); index++) {
-            ApplySemanticRuns(targetParagraphs[index], paragraphRuns[index]);
+            ApplySemanticRuns(targetParagraphs[index], paragraphRuns[index], hyperlinkPolicy);
         }
     }
 

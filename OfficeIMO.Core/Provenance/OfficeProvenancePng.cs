@@ -86,7 +86,7 @@ internal static class OfficeProvenancePng {
                 if (remove) changes!.Add(new OfficeProvenanceChange(OfficeProvenanceCarrierKind.C2paManifest, location, total));
                 else output?.Write(data, offset, total);
             } else if (OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "iTXt") &&
-                TryGetXmpPacket(data, offset + 8, payloadLength, out int packetOffset, out int packetLength, out bool fieldsValid)) {
+                TryGetXmpPacket(data, offset + 8, payloadLength, options, out int packetOffset, out int packetLength, out bool fieldsValid)) {
                 bool carrierValid = xmpCount == 1 && validStructure && fieldsValid && HasValidCrc(data, offset, payloadLength);
                 byte[] packet = new byte[packetLength];
                 Buffer.BlockCopy(data, packetOffset, packet, 0, packetLength);
@@ -247,6 +247,7 @@ internal static class OfficeProvenancePng {
         byte[] data,
         int payloadOffset,
         int payloadLength,
+        OfficeProvenanceOptions options,
         out int packetOffset,
         out int packetLength,
         out bool fieldsValid) {
@@ -270,6 +271,9 @@ internal static class OfficeProvenancePng {
         cursor = terminator + 1;
         packetOffset = cursor;
         packetLength = end - cursor;
+        if (packetLength > options.MaxManifestBytes) {
+            throw OfficeProvenanceLimitException.Create("PNG XMP packet exceeds the configured manifest limit.");
+        }
         fieldsValid = languageValid && translatedKeywordValid && IsValidUtf8(data, packetOffset, packetLength);
         return packetLength > 0;
     }
@@ -294,7 +298,7 @@ internal static class OfficeProvenancePng {
 
     private static bool IsValidUtf8(byte[] data, int offset, int count) {
         try {
-            _ = OfficeProvenanceBinary.DecodeUtf8(data, offset, count);
+            _ = new System.Text.UTF8Encoding(false, true).GetCharCount(data, offset, count);
             return true;
         } catch (System.Text.DecoderFallbackException) {
             return false;

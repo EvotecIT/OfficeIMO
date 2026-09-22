@@ -15,6 +15,41 @@ OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup.
 
 ## OfficeIMO 3.4: one document and conversion grammar
 
+### iWork image inspection budget
+
+`IWorkReadOptions.MaximumDecodedImageBytes` now limits cumulative decoded image
+work to 64 MiB by default during preview inspection and, separately, during
+each semantic projection. Failed image validation consumes work it already
+performed. Set this option higher for trusted Pages, Numbers, or Keynote files
+with unusually large raster images; `MaximumPackageBytes` still limits source
+package size independently.
+
+### Excel image export encoded-byte ceiling
+
+`MaximumTotalEncodedBytes` now applies to intermediate PNG encodes used by
+worksheet batch export and page, print-title, and header/footer composition.
+An export can fail with `OfficeImageExportBatchLimitException` even when its
+final JPEG or page image would fit the configured ceiling. For trusted
+workbooks, raise this limit to cover the largest intermediate image or reduce
+the rendered range and raster dimensions.
+
+### Document format processing limits
+
+`OfficeVisioVisualBookOptions` now limits one book to 10,000 requested links,
+64 distinct relationship IDs per navigation, and 4,096 relationship ID
+characters per navigation. Set `MaximumRequestedLinks`,
+`MaximumRelationshipIdsPerNavigation`, and
+`MaximumRelationshipIdCharactersPerNavigation` for larger trusted books.
+Preserved Visio route endpoints are indexed while retaining near-coordinate
+reuse behavior.
+
+Word list conversion rejects paragraph style inheritance deeper than 256
+levels. Shorter chains are resolved once per style during an export. Project
+XML `MaxEntities` now includes baselines, custom field values and definitions,
+lookup values, predecessor links, and timephased records as well as top-level
+entities. Raise `ProjectLoadOptions.MaxEntities` for trusted projects with a
+large number of these records.
+
 ### Arrow C stream ownership
 
 `OfficeIMO.Data.Arrow` no longer exposes an unmanaged `ArrowArrayStream*` directly from
@@ -44,6 +79,15 @@ For PDF publication, use `ToBytesLossless`, `SaveLossless`, or `SaveLosslessAsyn
 must reject the artifact before bytes are returned or written. The existing save methods continue
 to permit reported loss for callers that inspect and accept diagnostics themselves.
 
+### Redaction batch publication paths
+
+Directory batches capture the physical evidence, output, and manifest destinations during planning.
+Publication fails if a directory is replaced by a link before staging, instead of following the new
+target. Keep these directories stable through the batch. On Linux and macOS, the destination
+filesystem must support atomic no-replace renames; an unsupported filesystem fails publication
+before replacing an existing artifact. Batch verification also requires the opened output file to
+remain inside its captured output root.
+
 ### PDF-to-Word editable layout defaults
 
 Editable PDF-to-Word conversion now preserves each source page's physical size, removes Word style spacing that would inflate explicitly positioned PDF text, and keeps supported axis-aligned images at their source page positions on unrotated, uncropped pages when their bounds fit the page. Other images remain in the document flow. These defaults improve dense business documents but can change pagination and image flow in applications that relied on the earlier Word defaults.
@@ -59,6 +103,14 @@ var options = new PdfToWordOptions {
 ```
 
 `PreserveImagePlacementSize` remains independent. Set it to `false` to use an image's natural pixel dimensions even when `PreserveImagePlacementPosition` keeps the image floating at its recovered page position.
+
+### Conversion and invoice resource limits
+
+PDF-to-Word now stops image/text overlap analysis after one million comparisons per conversion by default. Set `PdfToWordOptions.MaxImageTextOverlapComparisons` higher for a trusted document that needs it. PDF-to-HTML annotation matching has a separate `PdfToHtmlOptions.MaximumAnnotationMatchWork` limit. PDF-to-HTML output is capped at 32 million characters by default; set `MaximumOutputCharacters` higher for trusted large exports, or `null` to disable that guard. Positioned page-appearance HTML emits visible text only; set `IncludeInvisibleTextInAppearanceOverlay` only when a caller intentionally needs hidden OCR text in the output.
+
+Word-to-PDF export accepts at most 1,000 images in one paragraph by default. `WordToPdfOptions.MaxImagesPerParagraph` can be raised for trusted documents. Generated PDFs can use `PdfOptions.MaxGeneratedPages` and `MaxGeneratedOutputBytes` to stop layout and serialization before excessive output is retained.
+
+Invoice PDF presentation now caps source XML, line text, line count, generated pages, and output bytes through `InvoicePdfLayoutOptions`. Pass explicit higher limits for known large invoices. `PdfInvoiceDocument.ToPdfBytes` and `ToPresentationPdfBytes` also accept a cancellation token. CII XML loading rejects documents with more than 100,000 nodes or 200,000 attributes before constructing an XML tree.
 
 ### Word image rotation uses DrawingML degrees
 

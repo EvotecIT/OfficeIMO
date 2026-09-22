@@ -1543,21 +1543,23 @@ public sealed partial class IWorkBoundaryTests {
     private static byte[] ValidPreviewPng() => Convert.FromBase64String(
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
 
-    private static byte[] CreateSizedPreviewPng(int width, int height, byte bitDepth = 8) {
+    private static byte[] CreateSizedPreviewPng(int width, int height, byte bitDepth = 8,
+        byte colorType = 0) {
         var header = new byte[13];
         WriteBigEndian32(header, 0, width);
         WriteBigEndian32(header, 4, height);
         header[8] = bitDepth;
-        header[9] = 0;
+        header[9] = colorType;
         using var imageData = new MemoryStream();
         imageData.WriteByte(0x78);
         imageData.WriteByte(0x9c);
         using (var deflate = new DeflateStream(imageData, CompressionMode.Compress, leaveOpen: true)) {
-            int rowBytes = checked((int)(((long)width * bitDepth + 7) / 8));
+            int channels = colorType == 6 ? 4 : 1;
+            int rowBytes = checked((int)(((long)width * channels * bitDepth + 7) / 8));
             var row = new byte[checked(rowBytes + 1)];
             for (int index = 0; index < height; index++) deflate.Write(row, 0, row.Length);
         }
-        long decodedLength = checked((((long)width * bitDepth + 7) / 8 + 1) * height);
+        long decodedLength = checked((((long)width * (colorType == 6 ? 4 : 1) * bitDepth + 7) / 8 + 1) * height);
         uint adler = (uint)(decodedLength % 65521) << 16 | 1u;
         var checksum = new byte[4];
         WriteBigEndian32(checksum, 0, unchecked((int)adler));

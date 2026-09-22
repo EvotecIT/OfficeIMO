@@ -9,7 +9,8 @@
       "task": "sources-sync",
       "id": "sync-sources",
       "config": "./site.json",
-      "lockMode": "off",
+      "lockMode": "verify",
+      "lockPath": "./.powerforge/git-sync-lock.json",
       "writeManifest": true
     },
     {
