@@ -49,5 +49,24 @@ namespace OfficeIMO.Tests {
             Assert.Throws<ArgumentOutOfRangeException>(() => table.SetCellText(2, 0, "x"));
             Assert.Throws<ArgumentOutOfRangeException>(() => table.SetCellText(0, 2, "x"));
         }
+
+        [Fact]
+        public void SetCellText_ReplacesExistingFirstParagraphWithoutChangingLaterParagraphs() {
+            using WordDocument document = WordDocument.Create();
+            WordTable table = document.AddTable(1, 1);
+            WordTableCell cell = table.Rows[0].Cells[0];
+            cell.Paragraphs[0].AddText("Old text");
+            cell.AddParagraph("Keep this paragraph");
+
+            table.SetCellText(0, 0, "New text", bold: true);
+            Assert.Equal("New text", cell.Paragraphs[0].Text);
+            Assert.True(cell.Paragraphs[0].Bold);
+            Assert.Equal("Keep this paragraph", cell.Paragraphs[1].Text);
+
+            table.SetCellText(0, 0, "Final text");
+            Assert.Equal("Final text", cell.Paragraphs[0].Text);
+            Assert.False(cell.Paragraphs[0].Bold);
+            Assert.Equal("Keep this paragraph", cell.Paragraphs[1].Text);
+        }
     }
 }

@@ -78,6 +78,8 @@ The isolated runner records source commit and dirty-tree state together with
 elapsed time, allocation, retained heap, sampled managed peak, absolute process
 peak, input bytes, and output bytes. The current Windows result is documented
 in [`Docs/benchmarks/officeimo.word-openxml-2026-08-24.md`](../Docs/benchmarks/officeimo.word-openxml-2026-08-24.md).
+The [2026-09-22 structured-report cell-writing run](../Docs/benchmarks/officeimo.word-table-report-2026-09-22.md)
+records a three-platform allocation reduction and its remaining timing limits.
 
 The shared repository runner adds provenance capture and PowerForge-normalized
 JSON/CSV/Markdown evidence. Word workloads are excluded from the default `all`
