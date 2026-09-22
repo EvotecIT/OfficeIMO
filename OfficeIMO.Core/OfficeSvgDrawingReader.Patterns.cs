@@ -30,6 +30,10 @@ public static partial class OfficeSvgDrawingReader {
         out OfficeDrawing? patternLayer) {
         patternLayer = null;
         if (pattern == null) return false;
+        if (style.Opacity <= 0D || style.FillOpacity <= 0D) {
+            ClearShapeFill(shape.Shape);
+            return false;
+        }
         if (!TryResolveSvgPatternGeometry(pattern, shape, drawing.Width, drawing.Height, viewX, viewY,
                 out double originX, out double originY, out double tileWidth, out double tileHeight,
                 out OfficeTransform patternTransform, out bool objectBoundingBoxContent)) {
@@ -97,6 +101,11 @@ public static partial class OfficeSvgDrawingReader {
         try {
             clipped.AddClippedDrawing(repeated, shape.X, shape.Y, clipPath!, -shape.X, -shape.Y);
         } catch (ArgumentOutOfRangeException) {
+            unsupported++;
+            ClearShapeFill(shape.Shape);
+            return false;
+        }
+        if (!references.TryChargePatternSurfaces(drawing.Width, drawing.Height, tileWidth, tileHeight)) {
             unsupported++;
             ClearShapeFill(shape.Shape);
             return false;

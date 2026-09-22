@@ -11,6 +11,13 @@ public static partial class OfficeDrawingRasterRenderer {
         if (effectGroup.Opacity <= 0D) return;
         canvas = canvas.WithDrawingTextProfile(effectGroup.InnerDrawing);
         cancellationToken.ThrowIfCancellationRequested();
+        double width = System.Math.Ceiling(effectGroup.InnerDrawing.Width * scale);
+        double height = System.Math.Ceiling(effectGroup.InnerDrawing.Height * scale);
+        if (width > long.MaxValue || height > long.MaxValue || width * height > long.MaxValue) {
+            throw new OfficeImageExportLimitException(scale, long.MaxValue, maximumRasterPixels,
+                OfficeRasterImageEncoder.GetMaximumDimension(OfficeImageExportFormat.Png));
+        }
+        canvas.ChargeIntermediateSurfacePixels((long)width * (long)height, maximumRasterPixels);
         OfficeRasterImage layer = Render(effectGroup.InnerDrawing, new OfficeDrawingRasterRenderOptions {
             Scale = scale,
             ImageCodec = imageCodec,
@@ -18,6 +25,7 @@ public static partial class OfficeDrawingRasterRenderer {
             TextShapingLanguage = canvas.TextShapingLanguage,
             DiagnosticSink = canvas.DiagnosticSink,
             DiagnosticSource = canvas.DiagnosticSource,
+            TransformedTextBudget = canvas.TransformedTextBudget,
             MaximumRasterPixels = maximumRasterPixels,
             CancellationToken = cancellationToken
         });
@@ -31,6 +39,7 @@ public static partial class OfficeDrawingRasterRenderer {
                 canvas.TextShapingLanguage,
                 canvas.DiagnosticSink,
                 canvas.DiagnosticSource,
+                canvas.TransformedTextBudget,
                 maximumRasterPixels,
                 cancellationToken);
         }
@@ -260,8 +269,11 @@ public static partial class OfficeDrawingRasterRenderer {
         string? textShapingLanguage,
         System.Collections.Generic.ICollection<OfficeImageExportDiagnostic>? diagnosticSink,
         string? diagnosticSource,
+        OfficeRasterTransformedTextBudget transformedTextBudget,
         long maximumRasterPixels,
         System.Threading.CancellationToken cancellationToken) {
+        long surfacePixels = (long)source.Width * source.Height;
+        transformedTextBudget.ChargeIntermediateSurfacePixels(surfacePixels * 2L, maximumRasterPixels);
         var maskScene = new OfficeDrawing(source.Width / scale, source.Height / scale);
         maskScene.AddEffectDrawing(softMask.InnerDrawing, softMask.Transform);
         OfficeRasterImage mask = Render(maskScene, new OfficeDrawingRasterRenderOptions {
@@ -271,6 +283,7 @@ public static partial class OfficeDrawingRasterRenderer {
             TextShapingLanguage = textShapingLanguage,
             DiagnosticSink = diagnosticSink,
             DiagnosticSource = diagnosticSource,
+            TransformedTextBudget = transformedTextBudget,
             MaximumRasterPixels = maximumRasterPixels,
             CancellationToken = cancellationToken
         });

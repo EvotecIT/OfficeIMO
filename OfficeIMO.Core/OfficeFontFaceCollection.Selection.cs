@@ -23,20 +23,17 @@ public sealed partial class OfficeFontFaceCollection {
             if (addedFamilies.Add(family)) families.Add(family);
         }
         foreach (string family in families) {
-            var available = new List<OfficeFontFace>();
+            var available = new List<(OfficeFontFace Face, int RegistrationIndex)>();
             for (int index = _faces.Count - 1; index >= 0; index--) {
                 OfficeFontFace face = _faces[index];
                 if (!MatchesFamily(face, family)) continue;
-                int insertionIndex = available.Count;
-                for (int candidateIndex = 0; candidateIndex < available.Count; candidateIndex++) {
-                    if (CompareFaceSelection(face, available[candidateIndex], descriptor) < 0) {
-                        insertionIndex = candidateIndex;
-                        break;
-                    }
-                }
-                available.Insert(insertionIndex, face);
+                available.Add((face, index));
             }
-            foreach (OfficeFontFace face in available) {
+            available.Sort((left, right) => {
+                int rank = CompareFaceSelection(left.Face, right.Face, descriptor);
+                return rank != 0 ? rank : right.RegistrationIndex.CompareTo(left.RegistrationIndex);
+            });
+            foreach ((OfficeFontFace face, _) in available) {
                 if (added.Add(face)) result.Add(face);
             }
         }

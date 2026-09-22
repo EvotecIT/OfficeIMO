@@ -28,4 +28,5 @@ public sealed class OfficeDrawingRasterRenderOptions {
     public long MaximumRasterPixels { get; set; } = OfficeImageExportOptions.DefaultMaximumRasterPixels;
     /// <summary>Cancellation observed between drawing elements and nested render stages.</summary>
     public System.Threading.CancellationToken CancellationToken { get; set; }
+    internal OfficeRasterTransformedTextBudget? TransformedTextBudget { get; set; }
 }

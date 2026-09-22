@@ -3,8 +3,8 @@
   "generatedFrom": "Build/CorpusEvidence/corpus-evidence.json",
   "summary": {
     "corpusCount": 5,
-    "recordCount": 62,
-    "verifiedArtifactCount": 89
+    "recordCount": 63,
+    "verifiedArtifactCount": 90
   },
   "corpora": [
     {
@@ -101,8 +101,8 @@
       "id": "pdf-interoperability",
       "owner": "OfficeIMO.Pdf",
       "manifest": "OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/corpus-manifest.json",
-      "manifestSha256": "bf37abf6ffefca16cf880d6b7cff09213bbc4f39bfc1b320a9212b44df8f73fb",
-      "recordCount": 14,
+      "manifestSha256": "5fff26489865325f7231ae646ba50984d9e7a88c480cff65ee7427835a546582",
+      "recordCount": 15,
       "diffPolicy": {
         "kind": "package-and-semantic",
         "stableFields": [

@@ -18,6 +18,8 @@ public sealed class PdfEmbeddedFont {
             throw new ArgumentException("PDF embedded font data cannot be empty.", nameof(data));
         }
 
+        PdfFontInput.EnsureWithinLimit(data.LongLength);
+
         Font = font;
         _data = cloneData ? (byte[])data.Clone() : data;
         FontName = string.IsNullOrWhiteSpace(fontName) ? null : fontName;

@@ -17,6 +17,7 @@ namespace OfficeIMO.PowerPoint {
         private readonly List<PowerPointShape> _shapes = new();
         private readonly SlidePart _slidePart;
         private PowerPointNotes? _notes;
+        private bool _shapesLoaded;
         private uint _nextShapeId = 2;
         private bool _shapeIdsExhausted;
         private const string P14Namespace = "http://schemas.microsoft.com/office/powerpoint/2010/main";
@@ -25,7 +26,6 @@ namespace OfficeIMO.PowerPoint {
 
         internal PowerPointSlide(SlidePart slidePart) {
             _slidePart = slidePart;
-            LoadExistingShapes();
         }
 
         internal SlidePart SlidePart => _slidePart;
@@ -33,50 +33,50 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Collection of shapes on the slide.
         /// </summary>
-        public IReadOnlyList<PowerPointShape> Shapes => _shapes;
+        public IReadOnlyList<PowerPointShape> Shapes => ShapeList;
 
         /// <summary>
         ///     Enumerates all textbox shapes on the slide.
         /// </summary>
-        public IEnumerable<PowerPointTextBox> TextBoxes => _shapes.OfType<PowerPointTextBox>();
+        public IEnumerable<PowerPointTextBox> TextBoxes => ShapeList.OfType<PowerPointTextBox>();
 
         /// <summary>
         ///     Enumerates all picture shapes on the slide.
         /// </summary>
-        public IEnumerable<PowerPointPicture> Pictures => _shapes.OfType<PowerPointPicture>();
+        public IEnumerable<PowerPointPicture> Pictures => ShapeList.OfType<PowerPointPicture>();
 
         /// <summary>
         ///     Enumerates all embedded audio and video media shapes on the slide.
         /// </summary>
-        public IEnumerable<PowerPointMedia> Media => _shapes.OfType<PowerPointMedia>();
+        public IEnumerable<PowerPointMedia> Media => ShapeList.OfType<PowerPointMedia>();
 
         /// <summary>
         ///     Enumerates all table shapes on the slide.
         /// </summary>
-        public IEnumerable<PowerPointTable> Tables => _shapes.OfType<PowerPointTable>();
+        public IEnumerable<PowerPointTable> Tables => ShapeList.OfType<PowerPointTable>();
 
         /// <summary>
         ///     Enumerates all charts on the slide.
         /// </summary>
-        public IEnumerable<PowerPointChart> Charts => _shapes.OfType<PowerPointChart>();
+        public IEnumerable<PowerPointChart> Charts => ShapeList.OfType<PowerPointChart>();
 
         /// <summary>
         ///     Enumerates all SmartArt diagrams on the slide.
         /// </summary>
-        public IEnumerable<PowerPointSmartArt> SmartArts => _shapes.OfType<PowerPointSmartArt>();
+        public IEnumerable<PowerPointSmartArt> SmartArts => ShapeList.OfType<PowerPointSmartArt>();
 
         /// <summary>
         ///     Enumerates all embedded OLE compound objects on the slide.
         /// </summary>
         public IEnumerable<PowerPointOleObject> OleObjects =>
-            _shapes.OfType<PowerPointOleObject>();
+            ShapeList.OfType<PowerPointOleObject>();
 
         /// <summary>
         ///     Retrieves shapes that are within or intersect the provided bounds.
         /// </summary>
         public IReadOnlyList<PowerPointShape> GetShapesInBounds(PowerPointLayoutBox bounds, bool includePartial = true) {
             if (includePartial) {
-                return _shapes
+                return ShapeList
                     .Where(shape =>
                         shape.Right >= bounds.Left &&
                         shape.Left <= bounds.Right &&
@@ -85,7 +85,7 @@ namespace OfficeIMO.PowerPoint {
                     .ToList();
             }
 
-            return _shapes
+            return ShapeList
                 .Where(shape =>
                     shape.Left >= bounds.Left &&
                     shape.Top >= bounds.Top &&
@@ -120,13 +120,37 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointNotes Notes => _notes ??= new PowerPointNotes(_slidePart);
 
+        private List<PowerPointShape> ShapeList {
+            get {
+                EnsureShapesLoaded();
+                return _shapes;
+            }
+        }
+
+        private void EnsureShapesLoaded() {
+            if (_shapesLoaded) return;
+
+            _shapesLoaded = true;
+            try {
+                LoadExistingShapes();
+            } catch {
+                _shapes.Clear();
+                _notes = null;
+                _nextShapeId = 2;
+                _shapeIdsExhausted = false;
+                _shapesLoaded = false;
+                throw;
+            }
+        }
+
         private T TrackShape<T>(T shape) where T : PowerPointShape {
             shape.AttachTo(this);
-            _shapes.Add(shape);
+            ShapeList.Add(shape);
             return shape;
         }
 
         internal void ReserveShapeIdsThrough(uint nextShapeId) {
+            EnsureShapesLoaded();
             if (_shapeIdsExhausted) return;
             if (nextShapeId > _nextShapeId) _nextShapeId = nextShapeId;
         }
@@ -134,6 +158,7 @@ namespace OfficeIMO.PowerPoint {
         private uint AllocateShapeId() => AllocateShapeIds(1);
 
         private uint AllocateShapeIds(int count) {
+            EnsureShapesLoaded();
             if (count <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(count));
             }
@@ -154,12 +179,12 @@ namespace OfficeIMO.PowerPoint {
 
         private void InsertTrackedShape(int index, PowerPointShape shape) {
             shape.AttachTo(this);
-            _shapes.Insert(index, shape);
+            ShapeList.Insert(index, shape);
         }
 
         private void InsertRangeTrackedShapes(int index, IEnumerable<PowerPointShape> shapes) {
             PowerPointShape[] tracked = shapes.Select(shape => shape.AttachTo(this)).ToArray();
-            _shapes.InsertRange(index, tracked);
+            ShapeList.InsertRange(index, tracked);
         }
 
         private string GenerateUniqueName(string baseName) {
@@ -167,12 +192,19 @@ namespace OfficeIMO.PowerPoint {
             string name;
             do {
                 name = baseName + " " + index++;
-            } while (_shapes.Any(s => s.Name == name));
+            } while (ShapeList.Any(s => s.Name == name));
 
             return name;
         }
 
         internal void Save() {
+            SlideId slideId = GetSlideId();
+            if (!_slidePart.IsRootElementLoaded
+                && GetLegacySlideIdShowValue(slideId) == null) {
+                _notes?.Save();
+                return;
+            }
+
             NormalizeHiddenSlideMarkup();
             SlideRoot.Save();
             _notes?.Save();

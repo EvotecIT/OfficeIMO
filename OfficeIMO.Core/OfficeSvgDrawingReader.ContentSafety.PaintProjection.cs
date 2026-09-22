@@ -62,11 +62,13 @@ public static partial class OfficeSvgDrawingReader {
 
     private static ISet<XElement> CollectSvgActivePaintElements(XElement root, SvgDefinitionRegistry definitions) {
         var active = new HashSet<XElement>();
+        var traversed = new HashSet<XElement>();
         var pending = new Stack<XElement>();
         pending.Push(root);
         while (pending.Count > 0) {
             XElement element = pending.Pop();
-            if (!active.Add(element)) continue;
+            if (!traversed.Add(element)) continue;
+            active.Add(element);
             foreach (string property in new[] {
                 "fill", "stroke", "clip-path", "mask", "filter", "marker-start", "marker-mid", "marker-end"
             }) {

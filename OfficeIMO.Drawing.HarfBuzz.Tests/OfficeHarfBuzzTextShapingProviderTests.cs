@@ -579,22 +579,33 @@ public sealed class OfficeHarfBuzzTextShapingProviderTests {
     }
 
     [Fact]
-    public void LanguageInterningIsNormalizedAndBoundedPerProvider() {
+    public void LanguageInterningIsNormalizedAndSharedAcrossProviders() {
         const string text = "office";
         byte[] fontData = File.ReadAllBytes(FontPath("Carlito-Regular.ttf"));
         var provider = new OfficeHarfBuzzTextShapingProvider();
         var fontCacheKey = new object();
-        OfficeTextShapingResult noLanguage = ShapeWithLanguage(provider, fontData, fontCacheKey, text, null);
-
         OfficeTextShapingResult normalized = ShapeWithLanguage(provider, fontData, fontCacheKey, text, " EN ");
         Assert.Same(normalized, ShapeWithLanguage(provider, fontData, fontCacheKey, text, "en"));
 
-        for (int index = 1; index < OfficeHarfBuzzTextShapingProvider.MaxInternedLanguagesPerProvider; index++) {
+        for (int index = 1; index < OfficeHarfBuzzTextShapingProvider.MaxInternedLanguagesPerProcess / 4; index++) {
             ShapeWithLanguage(provider, fontData, fontCacheKey, text, $"x-{index:x4}");
         }
 
         OfficeTextShapingResult overflow = ShapeWithLanguage(provider, fontData, fontCacheKey, text, "x-overflow");
-        Assert.Same(noLanguage, overflow);
+        Assert.Same(overflow, ShapeWithLanguage(provider, fontData, fontCacheKey, text, "x-overflow"));
+    }
+
+    [Fact]
+    public void NewLanguageHintsFallBackAfterTheProcessCacheFills() {
+        byte[] fontData = File.ReadAllBytes(FontPath("Carlito-Regular.ttf"));
+        var provider = new OfficeHarfBuzzTextShapingProvider();
+        var fontCacheKey = new object();
+        OfficeTextShapingResult inferred = ShapeWithLanguage(provider, fontData, fontCacheKey, "office", null);
+        for (int index = 0; index < OfficeHarfBuzzTextShapingProvider.MaxInternedLanguagesPerProcess; index++) {
+            ShapeWithLanguage(provider, fontData, fontCacheKey, "office", $"q-{index:x4}");
+        }
+
+        Assert.Same(inferred, ShapeWithLanguage(provider, fontData, fontCacheKey, "office", "q-after"));
     }
 
     [Fact]

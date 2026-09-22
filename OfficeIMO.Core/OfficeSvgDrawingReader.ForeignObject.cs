@@ -17,6 +17,7 @@ public static partial class OfficeSvgDrawingReader {
         ref int visited,
         ref int unsupported) {
         if (HasUnsupportedForeignObjectEffect(element)) unsupported++;
+        if (style.Opacity <= 0D) return;
 
         OfficeSvgForeignObjectRenderer? renderer = references.ForeignObjectRenderer;
         if (renderer == null
@@ -30,28 +31,45 @@ public static partial class OfficeSvgDrawingReader {
 
         double x = ReadViewportCoordinate(element, "x", viewX, drawing.Width);
         double y = ReadViewportCoordinate(element, "y", viewY, drawing.Height);
-        string html = string.Concat(element.Nodes().Select(node => node.ToString(SaveOptions.DisableFormatting)));
-        if (string.IsNullOrWhiteSpace(html)) return;
-
-        OfficeDrawing? content;
-        try {
-            content = renderer(new OfficeSvgForeignObjectContext(html, width, height));
-        } catch (OperationCanceledException) {
-            throw;
-        } catch (Exception exception) when (exception is not OutOfMemoryException && exception is not StackOverflowException) {
-            unsupported++;
-            return;
+        if (!references.TryGetForeignObject(element, width, height, out OfficeDrawing content,
+                out int contentElements, out double nestedPixels)) {
+            if (!references.HasForeignObjectContent(element)) return;
+            if (!references.TryReserveForeignObject(element, width, height)) {
+                unsupported++;
+                return;
+            }
+            string html = string.Concat(element.Nodes().Select(node => node.ToString(SaveOptions.DisableFormatting)));
+            if (!references.TryChargeSerializedForeignObject(html.Length)) {
+                unsupported++;
+                return;
+            }
+            OfficeDrawing? rendered;
+            try {
+                rendered = renderer(new OfficeSvgForeignObjectContext(html, width, height));
+            } catch (OperationCanceledException) {
+                throw;
+            } catch (Exception exception) when (exception is not OutOfMemoryException && exception is not StackOverflowException) {
+                unsupported++;
+                return;
+            }
+            if (rendered == null
+                || Math.Abs(rendered.Width - width) > 0.0001D
+                || Math.Abs(rendered.Height - height) > 0.0001D) {
+                unsupported++;
+                return;
+            }
+            content = rendered;
+            if (!TryMeasureForeignObjectSurfaces(content, maximumElements, out contentElements, out nestedPixels)) {
+                unsupported++;
+                return;
+            }
+            references.CacheForeignObject(element, width, height, content, contentElements, nestedPixels);
         }
-
-        if (content == null
-            || Math.Abs(content.Width - width) > 0.0001D
-            || Math.Abs(content.Height - height) > 0.0001D) {
-            unsupported++;
-            return;
-        }
-
-        int contentElements = CountDrawingElements(content, maximumElements);
         if (contentElements > maximumElements - visited) {
+            unsupported++;
+            return;
+        }
+        if (!references.TryChargeForeignObjectPlacement(drawing.Width, drawing.Height, nestedPixels)) {
             unsupported++;
             return;
         }

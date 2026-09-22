@@ -1440,10 +1440,9 @@ regenerate it with `RegenerateAppearance`.
 ```csharp
 using OfficeIMO.Pdf;
 
-byte[] fontBytes = File.ReadAllBytes("SourceSerif4-Regular.otf");
 var options = new PdfOptions()
     .UsePdfA(PdfComplianceProfile.PdfA2B)
-    .EmbedStandardFont(PdfStandardFont.Helvetica, fontBytes, "Source Serif 4")
+    .EmbedStandardFont(PdfStandardFont.Helvetica, "SourceSerif4-Regular.otf", "Source Serif 4")
     .RequireCompliance(PdfComplianceProfile.PdfA2B);
 
 PdfComplianceArtifact artifact = PdfDocument.Create(pdf => pdf.Content(content => content
@@ -1475,6 +1474,8 @@ if (!proof.CanClaimConformance || !declaredClaims.CanClaimAllDeclaredConformance
 ```
 
 Formal generation gates are available for PDF/A-2a/b/u, PDF/A-3a/b/u, PDF/A-4/4e/4f, PDF/UA-1, PDF/UA-2, PDF/X-1a:2003, PDF/X-4, Factur-X, and ZUGFeRD. `RequireCompliance(...)` rejects incomplete generation settings. PDF/X additionally inspects the complete serialized artifact before any bytes are returned or committed to a destination. A conformance claim still requires a passing external result for the same profile, SHA-256, and byte length; validators are build-time tools and are not runtime dependencies of `OfficeIMO.Pdf`.
+
+PDF authoring accepts font faces up to 128 MiB each. `EmbedStandardFont` and `PdfEmbeddedFontFamily.FromFiles` check file size before reading and recheck while reading, so use their path overloads when loading files. Byte-array inputs are checked before OfficeIMO copies them. An oversized face throws `InvalidDataException` without changing the authoring options.
 
 ### Generate a fail-closed PDF/X artifact
 

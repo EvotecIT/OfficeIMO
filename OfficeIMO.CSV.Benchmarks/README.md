@@ -22,10 +22,11 @@ records the long-note improvement and the limits of short-row timing on a busy P
 
 ## UTF-8 file export
 
-`CsvFileWriteBenchmarks` writes and closes complete files containing 1,000 rows.
-The fixtures cover short ASCII text, Unicode, dense JSON, quote runs, long notes,
-and typed integers, decimals, UTC dates, booleans, and nullable strings. Delimiters
-include comma, semicolon, `||`, and `※`; both quote modes are measured.
+`CsvFileWriteBenchmarks` writes and closes complete files. Most fixtures contain
+1,000 rows and cover short ASCII text, Unicode, dense JSON, quote runs, long
+notes, and typed integers, decimals, UTC dates, booleans, and nullable strings.
+`MixedJson25K` adds 25,000 rows with short JSON and Unicode text in a nullable
+field alongside typed values and a `||` delimiter. Both quote modes are measured.
 
 Both libraries use matching 64 KiB file and text-writer buffers and UTF-8 without
 a byte-order mark. Timing includes file creation, serialization, encoding, and
@@ -37,6 +38,9 @@ Each benchmark instance removes its own two output files and temporary folder.
 $env:OFFICEIMO_BENCHMARK_OUTPUT = Join-Path (Get-Location) 'Ignore/Benchmarks/csv-files'
 dotnet run -c Release -f net10.0 --project ./OfficeIMO.CSV.Benchmarks -- --filter "*CsvFileWriteBenchmarks*" --priority Normal --invocationCount 16 --unrollFactor 1 --warmupCount 8 --iterationCount 16 --launchCount 1 --outliers DontRemove --artifacts ./Ignore/Benchmarks/csv-file-results
 ```
+
+To run only the larger mixed-field file workload, use
+`--filter "*CsvFileWriteBenchmarks.*MixedJson25K*"` with the same command.
 
 The [2026-09-08 measurement](../Docs/benchmarks/officeimo.excel-csv-buffering-2026-09-08.md)
 records the file workloads, repeated comparisons, and reader allocation analysis.

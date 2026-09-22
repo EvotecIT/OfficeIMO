@@ -74,7 +74,7 @@ dotnet run --project Build/RealWorldCorpus/OfficeIMO.RealWorldCorpus.Tool.csproj
 
 Keep both report paths outside the input directory so evidence from an earlier run cannot become part of a later inventory.
 
-The strict release gate uses 14 redistributed fixtures from checksum-pinned Open Preservation Foundation and veraPDF commits. Each case binds its source path, license, SHA-256, byte length, expected semantic facts, render diagnostics, and mutation mode. It runs the same deep API stages in isolated processes, adds a 1 GiB peak-working-set budget, rejects unproven compliance claims, and writes atomic JSON and Markdown scorecards:
+The strict release gate uses 15 redistributed fixtures from checksum-pinned Open Preservation Foundation and veraPDF commits. Each case binds its source path, license, SHA-256, byte length, expected semantic facts, render diagnostics, and mutation mode. It runs the same deep API stages in isolated processes, adds a 1 GiB peak-working-set budget, rejects unproven compliance claims, and writes atomic JSON and Markdown scorecards:
 
 ```powershell
 pwsh -NoProfile -File Build/Test-PdfQualityCorpus.ps1 `

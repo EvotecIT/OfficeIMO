@@ -84,18 +84,18 @@ namespace OfficeIMO.PowerPoint {
             }
 
             int index = EnsureShapeOnSlide(shape);
-            if (index >= _shapes.Count - 1) {
+            if (index >= ShapeList.Count - 1) {
                 return;
             }
 
-            PowerPointShape next = _shapes[index + 1];
+            PowerPointShape next = ShapeList[index + 1];
             OpenXmlElement parent = shape.Element.Parent ?? throw new InvalidOperationException("Shape is not attached to a slide.");
 
             shape.Element.Remove();
             parent.InsertAfter(shape.Element, next.Element);
 
-            _shapes[index] = next;
-            _shapes[index + 1] = shape;
+            ShapeList[index] = next;
+            ShapeList[index + 1] = shape;
         }
 
         /// <summary>
@@ -111,14 +111,14 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
-            PowerPointShape previous = _shapes[index - 1];
+            PowerPointShape previous = ShapeList[index - 1];
             OpenXmlElement parent = shape.Element.Parent ?? throw new InvalidOperationException("Shape is not attached to a slide.");
 
             shape.Element.Remove();
             parent.InsertBefore(shape.Element, previous.Element);
 
-            _shapes[index] = previous;
-            _shapes[index - 1] = shape;
+            ShapeList[index] = previous;
+            ShapeList[index - 1] = shape;
         }
 
         /// <summary>
@@ -130,7 +130,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             int index = EnsureShapeOnSlide(shape);
-            if (index >= _shapes.Count - 1) {
+            if (index >= ShapeList.Count - 1) {
                 return;
             }
 
@@ -139,8 +139,8 @@ namespace OfficeIMO.PowerPoint {
             shape.Element.Remove();
             parent.Append(shape.Element);
 
-            _shapes.RemoveAt(index);
-            _shapes.Add(shape);
+            ShapeList.RemoveAt(index);
+            ShapeList.Add(shape);
         }
 
         /// <summary>
@@ -157,17 +157,17 @@ namespace OfficeIMO.PowerPoint {
             }
 
             OpenXmlElement parent = shape.Element.Parent ?? throw new InvalidOperationException("Shape is not attached to a slide.");
-            OpenXmlElement insertBefore = _shapes[0].Element;
+            OpenXmlElement insertBefore = ShapeList[0].Element;
 
             shape.Element.Remove();
             parent.InsertBefore(shape.Element, insertBefore);
 
-            _shapes.RemoveAt(index);
-            _shapes.Insert(0, shape);
+            ShapeList.RemoveAt(index);
+            ShapeList.Insert(0, shape);
         }
 
         private int EnsureShapeOnSlide(PowerPointShape shape) {
-            int index = _shapes.IndexOf(shape);
+            int index = ShapeList.IndexOf(shape);
             if (index < 0) {
                 throw new ArgumentException("Shape does not belong to this slide.", nameof(shape));
             }

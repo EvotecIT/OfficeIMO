@@ -58,9 +58,9 @@ namespace OfficeIMO.PowerPoint {
                 group.Append(shape.Element);
             }
 
-            int insertIndex = _shapes.IndexOf(ordered[0]);
+            int insertIndex = ShapeList.IndexOf(ordered[0]);
             foreach (PowerPointShape shape in ordered) {
-                _shapes.Remove(shape);
+                ShapeList.Remove(shape);
             }
 
             PowerPointGroupShape grouped = new PowerPointGroupShape(group, _slidePart);
@@ -99,7 +99,7 @@ namespace OfficeIMO.PowerPoint {
 
             group.Remove();
 
-            _shapes.RemoveAt(index);
+            ShapeList.RemoveAt(index);
             InsertRangeTrackedShapes(index, results);
             return results;
         }

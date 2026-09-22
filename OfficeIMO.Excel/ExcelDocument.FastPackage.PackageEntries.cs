@@ -218,13 +218,13 @@ namespace OfficeIMO.Excel {
         }
 
         private static void WriteSharedStringsEntry(ZipArchive archive, SharedStringTable sharedStrings) {
-            WriteOpenXmlElementEntry(archive, "xl/sharedStrings.xml", sharedStrings);
+            WriteOpenXmlElementEntry(archive, "xl/sharedStrings.xml", sharedStrings, preserveLineEndings: true);
         }
 
-        private static void WriteOpenXmlElementEntry(ZipArchive archive, string path, OpenXmlElement element) {
+        private static void WriteOpenXmlElementEntry(ZipArchive archive, string path, OpenXmlElement element, bool preserveLineEndings = false) {
             var entry = archive.CreateEntry(path, CompressionLevel.Fastest);
             using var stream = entry.Open();
-            using var writer = CreateFastXmlWriter(stream);
+            using var writer = CreateFastXmlWriter(stream, preserveLineEndings);
             writer.WriteStartDocument();
             element.WriteTo(writer);
         }

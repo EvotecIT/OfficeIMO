@@ -1,8 +1,9 @@
-# PowerPoint package-workflow evidence — 2026-08-24
+# PowerPoint package-workflow evidence — 2026-09-22
 
 This evidence covers package create/save and open/edit/save only. Image and PDF
-export have separate owners and are intentionally excluded. The production
-candidate is `6ff903bb2`; the benchmark runner and comparison projects are
+export have separate owners and are intentionally excluded. The original
+comparison implementation is `6ff903bb2`; the current large open/edit/save
+reduction is `950f0fc2c7`. The benchmark runner and comparison projects are
 opt-in and keep third-party dependencies outside the normal solution.
 
 The comparison policy is strict: a lane is a contender only when both elapsed
@@ -83,19 +84,50 @@ does not finalize compressed-part lengths early enough for a safe live-stream
 snapshot. The full PowerPoint suite passes on net472, net8.0, and net10.0 with
 that boundary.
 
+## Large open/edit/save reduction — 2026-09-22
+
+Opening a presentation previously materialized every slide's shape tree before
+the caller accessed or edited it. Saving also loaded every untouched slide to
+count hidden slides and rewrite its root. The current path defers shape wrappers
+until a shape operation needs them, preserves untouched slide XML, and reads the
+root `show` attribute through the bounded XML reader when hidden-slide metadata
+is refreshed. Loaded and legacy-visibility slides still use the normal save and
+normalization paths; notes retain their separate save path.
+
+The measurements compare clean exact commits `0f8249112d` and `950f0fc2c7`
+with .NET 10.0.12. Each cell is the median of five isolated child processes for
+the 120-slide, 1,492-shape corpus. Every output reopened, passed the semantic
+oracle, and passed Open XML validation.
+
+| Host | Base ms | Current ms | Current allocation MiB | Current managed peak MiB | Current process peak MiB | Current output bytes |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Windows 10 x64 | 411.42 | 272.41 | 25.86 | 25.95 | 81.07 | 339,911 |
+| Ubuntu 24.04 x64 | 496.25 | 485.48 | 25.85 | 25.94 | 100.86 | 338,010 |
+| macOS 27 Apple M4 | 517.62 | 226.19 | 25.88 | 19.04 | unavailable | 340,149 |
+
+The base allocation was 42.0 MiB on all three hosts. Current allocation is
+38.5% lower. Managed peak fell 38.5% on Windows and Linux and 53.1% on macOS;
+process peak fell 16.7% on Windows and 13.9% on Linux. macOS returned zero for
+the process peak counter, so that metric is unavailable there. Output size is
+unchanged within normal ZIP variation.
+
+Elapsed time improved 33.8% on Windows, 2.2% on the selected Linux repeat, and
+56.3% on Apple M4. The Linux candidate samples ranged from 294 to 637 ms while
+allocations stayed within 0.1 MiB, so the Linux timing is directional rather
+than a stable throughput claim.
+
 ## Regression gates
 
-`powerpoint-performance-budgets.json` covers all six package lanes. Allocation
-ceilings are now 8-62 MiB and managed-heap-growth ceilings are 16-64 MiB, with
-roughly 30% headroom on the normal and large current measurements. Output size
-is also a hard ceiling. Elapsed time and process peak use wider ceilings to
-catch gross stalls and runaway memory without turning workstation noise into a
-throughput claim.
+`powerpoint-performance-budgets.json` covers all six package lanes. The large
+open/edit/save ceilings are now 1,500 ms, 36 MiB allocation, 40 MiB managed-heap
+growth, 192 MiB process peak, and 352 KiB output. Allocation, managed peak, and
+output size are hard ceilings. Elapsed time and process peak retain wider
+headroom to catch gross stalls and runaway memory without turning workstation
+noise into a throughput claim.
 
 ```powershell
 dotnet run -c Release -f net8.0 --project .\OfficeIMO.PowerPoint.Benchmarks -- --verify-budgets
 ```
 
 Use repeated same-machine comparisons for smaller timing changes. The checked-in
-budget is a regression guard, not a claim that the remaining 1.36-1.38× margins
-cannot improve.
+budget is a regression guard, not a throughput guarantee.

@@ -61,7 +61,7 @@ if ($report.configuration.PSObject.Properties.Name -contains 'manifestPath' -or
     $report.configuration.PSObject.Properties.Name -contains 'markdownReportPath') {
     throw 'PDF quality corpus report leaked machine-specific paths.'
 }
-if ($report.totals.cases -ne 14) { throw "Expected 14 provenance-bound cases, received $($report.totals.cases)." }
+if ($report.totals.cases -ne 15) { throw "Expected 15 provenance-bound cases, received $($report.totals.cases)." }
 if ($report.totals.passed -ne $report.totals.cases -or $report.totals.failed -ne 0 -or $report.totals.timedOut -ne 0) {
     throw 'PDF quality corpus did not complete every manifested case successfully.'
 }

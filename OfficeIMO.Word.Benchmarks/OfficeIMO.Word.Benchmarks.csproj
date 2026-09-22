@@ -19,4 +19,7 @@
     <ProjectReference Include="..\OfficeIMO.Word\OfficeIMO.Word.csproj" />
     <ProjectReference Include="..\OfficeIMO.Word.Html\OfficeIMO.Word.Html.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\Build\Benchmarks\OfficeEvidenceBudget.cs" Link="OfficeEvidenceBudget.cs" />
+  </ItemGroup>
 </Project>

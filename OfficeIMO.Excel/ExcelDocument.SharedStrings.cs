@@ -66,6 +66,11 @@ namespace OfficeIMO.Excel {
             return GetSharedStringIndex(text, validateNewString: false);
         }
 
+        private void SaveSharedStringsPreservingLineEndings() {
+            if (_sharedStringTablePart?.SharedStringTable is not SharedStringTable table) return;
+            ExcelXmlPartWriter.SavePreservingLineEndings(_sharedStringTablePart, table);
+        }
+
         internal int GetSharedStringIndex(string text, bool validateNewString) {
             if (Locking.IsNoLock || (_lock != null && _lock.IsWriteLockHeld)) {
                 return GetSharedStringIndexCore(text, validateNewString);

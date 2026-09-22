@@ -41,7 +41,8 @@ public sealed partial class OfficeTrueTypeFont {
 
     internal OfficeOpenTypeGlyphPositioning[] PositionGlyphRun(
         IReadOnlyList<int> glyphs,
-        IReadOnlyList<int> scalars) => _kerning.PositionRun(glyphs, scalars);
+        IReadOnlyList<int> scalars,
+        System.Threading.CancellationToken cancellationToken = default) => _kerning.PositionRun(glyphs, scalars, cancellationToken);
 
     bool IOfficeColorFontProgram.HasColorGlyph(int glyphId) => _colorGlyphs?.HasColorGlyph(glyphId) == true;
 

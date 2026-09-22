@@ -46,8 +46,17 @@ public static partial class OfficeSvgDrawingReader {
         string? filterValue = ReadPresentationProperty(element, "filter");
         if (!string.IsNullOrWhiteSpace(filterValue)
             && !filterValue!.Trim().Equals("none", StringComparison.OrdinalIgnoreCase)) {
-            if (TryResolveSvgFilter(filterValue, references, out filterEffect)) hasEffects = true;
-            else unsupported++;
+            if (TryResolveSvgFilter(filterValue, references, out filterEffect)) {
+                // A zero-alpha shadow leaves the source unchanged. Omitting it
+                // avoids retaining sample and wrapper scenes that never render.
+                if (filterEffect?.Kind == SvgFilterEffectKind.DropShadow && filterEffect.Opacity <= 0D) {
+                    filterEffect = null;
+                } else {
+                    hasEffects = true;
+                }
+            } else {
+                unsupported++;
+            }
         }
 
         string? maskValue = ReadPresentationProperty(element, "mask");
@@ -202,6 +211,7 @@ public static partial class OfficeSvgDrawingReader {
     private static bool TryApplySvgFilter(
         OfficeDrawing source,
         SvgFilterEffect? effect,
+        SvgElementReferenceRegistry references,
         OfficeTransform transform,
         int maximumElements,
         ref int visited,
@@ -221,6 +231,13 @@ public static partial class OfficeSvgDrawingReader {
             : 0;
         long additionalElements = (long)sourceElements * copyCount;
         if (additionalElements > maximumElements - visited) {
+            unsupported++;
+            return false;
+        }
+        // The caller already reserves the outer effect drawing surface.
+        int surfaceCount = effect.Kind == SvgFilterEffectKind.Offset ? 1
+            : samples.Count + (effect.Kind == SvgFilterEffectKind.DropShadow ? 2 : 1);
+        if (!references.TryChargeIntermediateSurface(source.Width, source.Height, surfaceCount)) {
             unsupported++;
             return false;
         }

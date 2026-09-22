@@ -1,6 +1,6 @@
 # OfficeIMO.PowerPoint workflow baselines
 
-This project measures complete PowerPoint workflows against a deterministic editable deck corpus. It records elapsed time, total managed allocations, sampled managed-heap growth, process peak working set, input/output size, slide count, and shape count. Package create/save and open/edit/save have checked-in Windows- and Linux-informed regression budgets.
+This project measures complete PowerPoint workflows against a deterministic editable deck corpus. It records elapsed time, total managed allocations, sampled managed-heap growth, process peak working set, input/output size, slide count, and shape count. Package create/save and open/edit/save have checked-in Windows-, Linux-, and macOS-informed regression budgets.
 
 ## Run the baseline
 
