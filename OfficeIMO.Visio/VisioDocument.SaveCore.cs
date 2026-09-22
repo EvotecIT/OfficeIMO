@@ -20,9 +20,7 @@ namespace OfficeIMO.Visio {
         /// </summary>
         /// <param name="filePath">Target path.</param>
         private void SaveInternalCore(string filePath) {
-            using var destination = new MemoryStream();
-            SaveInternalCore(destination);
-            OfficeFileCommit.WriteAllBytes(filePath, destination.ToArray());
+            OfficeFileCommit.WriteAllBytes(filePath, CreatePackageBytes());
         }
 
         /// <summary>
@@ -30,6 +28,16 @@ namespace OfficeIMO.Visio {
         /// </summary>
         /// <param name="destination">Target stream.</param>
         private void SaveInternalCore(Stream destination) {
+            using MemoryStream packageStream = CreatePackageStream();
+            OfficeStreamWriter.Write(destination, output => packageStream.CopyTo(output));
+        }
+
+        private byte[] CreatePackageBytes() {
+            using MemoryStream packageStream = CreatePackageStream();
+            return packageStream.ToArray();
+        }
+
+        private MemoryStream CreatePackageStream() {
             ApplySignatureMutationPolicy();
             bool includeTheme = PackageTheme != null;
             List<VisioPage> pagesToSave = _pages.Count > 0
@@ -48,19 +56,24 @@ namespace OfficeIMO.Visio {
             List<string> pagePartNames = new();
             int masterCount;
 
-            using var packageStream = new MemoryStream();
-            using (Package package = Package.Open(packageStream, FileMode.Create, FileAccess.ReadWrite)) {
-                masterCount = WritePackage(package, includeTheme, includeComments, pagesToSave, pageCount, pagePartNames);
+            var packageStream = new MemoryStream();
+            try {
+                using (Package package = Package.Open(packageStream, FileMode.Create, FileAccess.ReadWrite)) {
+                    masterCount = WritePackage(package, includeTheme, includeComments, pagesToSave, pageCount, pagePartNames);
+                }
+
+                FixContentTypes(packageStream, masterCount, includeTheme,
+                    includeComments, pagePartNames, _packageType,
+                    _vbaProjectBytes != null && _vbaProjectBytes.Length > 0,
+                    _vbaProjectContentType, _vbaProjectPartUri,
+                    _preservedVbaParts.Values);
+
+                packageStream.Seek(0, SeekOrigin.Begin);
+                return packageStream;
+            } catch {
+                packageStream.Dispose();
+                throw;
             }
-
-            FixContentTypes(packageStream, masterCount, includeTheme,
-                includeComments, pagePartNames, _packageType,
-                _vbaProjectBytes != null && _vbaProjectBytes.Length > 0,
-                _vbaProjectContentType, _vbaProjectPartUri,
-                _preservedVbaParts.Values);
-
-            packageStream.Seek(0, SeekOrigin.Begin);
-            OfficeStreamWriter.Write(destination, output => packageStream.CopyTo(output));
         }
 
         private int WritePackage(

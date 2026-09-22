@@ -82,9 +82,7 @@ namespace OfficeIMO.Visio {
         /// <summary>Encodes the document using its current Visio package family.</summary>
         public byte[] ToBytes() {
             ThrowIfInvalidForSave();
-            using var stream = new MemoryStream();
-            SaveInternal(stream);
-            return stream.ToArray();
+            return CreatePackageBytes();
         }
 
         /// <summary>Encodes the document in a new writable memory stream positioned at the beginning.</summary>
