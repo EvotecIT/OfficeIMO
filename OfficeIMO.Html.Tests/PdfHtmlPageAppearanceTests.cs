@@ -129,9 +129,39 @@ public sealed class PdfHtmlPageAppearanceTests {
         }
     }
 
-    [Fact]
-    public void OpenedPdfKeepsInvisibleOcrTextWhenAppearanceRenders() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OpenedPdfIncludesInvisibleOcrTextOnlyWhenRequested(bool includeInvisibleText) {
         const string content = "0.1 0.5 0.9 rg 40 70 140 45 re f BT /F1 12 Tf 3 Tr 40 140 Td (Searchable OCR text) Tj ET";
+        byte[] source = Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7", "1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj",
+            "2 0 obj << /Type /Pages /Count 1 /Kids [3 0 R] >> endobj",
+            "3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >> endobj",
+            $"4 0 obj << /Length {content.Length} >> stream", content, "endstream endobj",
+            "5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj",
+            "trailer << /Root 1 0 R /Size 6 >>", "%%EOF"
+        }));
+
+        PdfToHtmlOptions options = PdfToHtmlOptions.CreatePositionedReviewProfile();
+        options.IncludeInvisibleTextInAppearanceOverlay = includeInvisibleText;
+        var result = PdfDocument.Load(source).ToHtmlResult(options);
+        using var html = new HtmlParser().ParseDocument(result.Value);
+
+        Assert.Single(html.QuerySelectorAll("img.pdf-page-appearance"));
+        if (includeInvisibleText) {
+            var textOverlay = Assert.Single(html.QuerySelectorAll("svg.pdf-text-overlay"));
+            Assert.Contains("Searchable OCR text", textOverlay.TextContent);
+            Assert.Equal(1, CountOccurrences(html.Body!.TextContent, "Searchable OCR text"));
+        } else {
+            Assert.Empty(html.QuerySelectorAll("svg.pdf-text-overlay"));
+            Assert.DoesNotContain("Searchable OCR text", html.Body!.TextContent, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public void AppearanceOverlayDoesNotIncludeInvisibleTextOnTheSameLineAsVisibleText() {
+        const string content = "BT /F1 12 Tf 40 140 Td (Visible ) Tj 3 Tr (hidden instruction) Tj ET";
         byte[] source = Encoding.ASCII.GetBytes(string.Join("\n", new[] {
             "%PDF-1.7", "1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj",
             "2 0 obj << /Type /Pages /Count 1 /Kids [3 0 R] >> endobj",
@@ -144,10 +174,52 @@ public sealed class PdfHtmlPageAppearanceTests {
         var result = PdfDocument.Load(source).ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
         using var html = new HtmlParser().ParseDocument(result.Value);
 
-        Assert.Single(html.QuerySelectorAll("img.pdf-page-appearance"));
-        var textOverlay = Assert.Single(html.QuerySelectorAll("svg.pdf-text-overlay"));
-        Assert.Contains("Searchable OCR text", textOverlay.TextContent);
-        Assert.Equal(1, CountOccurrences(html.Body!.TextContent, "Searchable OCR text"));
+        Assert.Contains("Visible", html.Body!.TextContent, StringComparison.Ordinal);
+        Assert.DoesNotContain("hidden instruction", html.Body.TextContent, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PositionedHtmlOmitsTextCompletelyOutsideThePage(bool includeArtwork) {
+        string content = (includeArtwork ? "0.1 0.5 0.9 rg 40 70 140 45 re f " : string.Empty) +
+            "BT /F1 12 Tf 40 140 Td (Visible text) Tj 600 0 Td (Off-page secret) Tj ET";
+        byte[] source = Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7", "1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj",
+            "2 0 obj << /Type /Pages /Count 1 /Kids [3 0 R] >> endobj",
+            "3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >> endobj",
+            $"4 0 obj << /Length {content.Length} >> stream", content, "endstream endobj",
+            "5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj",
+            "trailer << /Root 1 0 R /Size 6 >>", "%%EOF"
+        }));
+        var pdf = PdfDocument.Load(source);
+
+        using var html = new HtmlParser().ParseDocument(pdf.ToHtml(PdfToHtmlOptions.CreatePositionedReviewProfile()));
+        Assert.Contains("Visible text", html.Body!.TextContent, StringComparison.Ordinal);
+        Assert.DoesNotContain("Off-page secret", html.Body.TextContent, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PositionedHtmlOmitsFullyTransparentText() {
+        const string content = "0.1 0.5 0.9 rg 40 70 140 45 re f BT /F1 12 Tf 40 140 Td (Visible text) Tj ET q /GS0 gs BT /F1 12 Tf 40 110 Td (Transparent secret) Tj ET Q";
+        byte[] source = Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7", "1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj",
+            "2 0 obj << /Type /Pages /Count 1 /Kids [3 0 R] >> endobj",
+            "3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 5 0 R >> /ExtGState << /GS0 6 0 R >> >> /Contents 4 0 R >> endobj",
+            $"4 0 obj << /Length {content.Length} >> stream", content, "endstream endobj",
+            "5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj",
+            "6 0 obj << /Type /ExtGState /ca 0 >> endobj",
+            "trailer << /Root 1 0 R /Size 7 >>", "%%EOF"
+        }));
+
+        foreach (string output in new[] {
+            PdfDocument.Load(source).ToHtml(PdfToHtmlOptions.CreatePositionedReviewProfile()),
+            PdfDocumentReadResult.Load(source).ToHtml(PdfToHtmlOptions.CreatePositionedReviewProfile())
+        }) {
+            using var html = new HtmlParser().ParseDocument(output);
+            Assert.Contains("Visible text", html.Body!.TextContent, StringComparison.Ordinal);
+            Assert.DoesNotContain("Transparent secret", html.Body.TextContent, StringComparison.Ordinal);
+        }
     }
 
     [Fact]

@@ -230,7 +230,7 @@ public static partial class PdfHtmlConverterExtensions {
         int omittedDocumentActionCount = document.SourceFidelityFacts.CatalogActionCount -
             (document.SourceFidelityFacts.HasOpenAction && document.SourceFidelityFacts.CatalogContainsOpenAction ? 1 : 0) +
             actionSummary.SelectedPageActionCount +
-            CountOmittedAnnotationActions(pages, selectedPageNumbers, options.IncludeLinkAnnotations) +
+            CountOmittedAnnotationActions(pages, selectedPageNumbers, options) +
             (document.SourceFidelityFacts.HasOpenAction ? 1 : 0);
         if (omittedDocumentActionCount > 0) {
             AddWarning(
@@ -466,24 +466,32 @@ public static partial class PdfHtmlConverterExtensions {
     private static int CountOmittedAnnotationActions(
         IReadOnlyList<PdfCore.PdfLogicalPage> pages,
         ISet<int> selectedPageNumbers,
-        bool includeLinkAnnotations) {
+        PdfToHtmlOptions options) {
         int omittedCount = 0;
+        long comparisonWork = 0;
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
             PdfCore.PdfLogicalPage page = pages[pageIndex];
             var representedLinks = new HashSet<int>();
+            int nextLinkIndex = 0;
             for (int annotationIndex = 0; annotationIndex < page.Annotations.Count; annotationIndex++) {
+                options.CancellationToken.ThrowIfCancellationRequested();
                 PdfCore.PdfAnnotation annotation = page.Annotations[annotationIndex];
                 omittedCount += annotation.AdditionalActions.Count;
                 omittedCount += annotation.ChainedActions.Count;
-                bool hasDirectLinkDestination = !annotation.HasAction &&
-                    string.Equals(annotation.Subtype, "Link", StringComparison.OrdinalIgnoreCase) &&
-                    page.Links.Any(link => HasSameRectangle(annotation, link) && link.IsInternalDestinationLink);
+                if (!annotation.HasAction &&
+                    !string.Equals(annotation.Subtype, "Link", StringComparison.OrdinalIgnoreCase)) continue;
+                if (annotation.HasAction && !options.IncludeLinkAnnotations) {
+                    omittedCount++;
+                    continue;
+                }
+                bool represented = TryMatchRepresentedPrimaryLinkAction(
+                    page, annotation, selectedPageNumbers, representedLinks, options,
+                    ref nextLinkIndex, ref comparisonWork, out bool hasDirectLinkDestination);
                 if (!annotation.HasAction && !hasDirectLinkDestination) {
                     continue;
                 }
 
-                if (!includeLinkAnnotations ||
-                    !TryMatchRepresentedPrimaryLinkAction(page, annotation, selectedPageNumbers, representedLinks)) {
+                if (!represented) {
                     omittedCount++;
                 }
             }
@@ -496,24 +504,34 @@ public static partial class PdfHtmlConverterExtensions {
         PdfCore.PdfLogicalPage page,
         PdfCore.PdfAnnotation annotation,
         ISet<int> selectedPageNumbers,
-        HashSet<int> representedLinks) {
+        HashSet<int> representedLinks,
+        PdfToHtmlOptions options,
+        ref int nextLinkIndex,
+        ref long comparisonWork,
+        out bool hasDirectLinkDestination) {
+        hasDirectLinkDestination = false;
         if (!string.Equals(annotation.Subtype, "Link", StringComparison.OrdinalIgnoreCase)) {
             return false;
         }
 
-        for (int linkIndex = 0; linkIndex < page.Links.Count; linkIndex++) {
-            if (representedLinks.Contains(linkIndex)) {
-                continue;
+        for (int pass = 0; pass < 2; pass++) {
+            int first = pass == 0 ? nextLinkIndex : 0;
+            int last = pass == 0 ? page.Links.Count : nextLinkIndex;
+            for (int linkIndex = first; linkIndex < last; linkIndex++) {
+                if ((comparisonWork & 255L) == 0L) options.CancellationToken.ThrowIfCancellationRequested();
+                comparisonWork++;
+                if (comparisonWork > options.MaximumAnnotationMatchWork)
+                    throw new InvalidOperationException("PDF annotation matching exceeded the configured work limit.");
+                if (representedLinks.Contains(linkIndex)) continue;
+                PdfCore.PdfLogicalLinkAnnotation link = page.Links[linkIndex];
+                if (!HasSameRectangle(annotation, link)) continue;
+                if (!annotation.HasAction && link.IsInternalDestinationLink) hasDirectLinkDestination = true;
+                if (!options.IncludeLinkAnnotations ||
+                    !IsPrimaryLinkActionRepresented(annotation, link, selectedPageNumbers)) continue;
+                representedLinks.Add(linkIndex);
+                nextLinkIndex = linkIndex + 1;
+                return true;
             }
-
-            PdfCore.PdfLogicalLinkAnnotation link = page.Links[linkIndex];
-            if (!HasSameRectangle(annotation, link) ||
-                !IsPrimaryLinkActionRepresented(annotation, link, selectedPageNumbers)) {
-                continue;
-            }
-
-            representedLinks.Add(linkIndex);
-            return true;
         }
 
         return false;

@@ -12,6 +12,10 @@ public sealed partial class PdfCiiInvoiceDocument {
     /// <summary>Maximum accepted XML byte length, including any byte order mark.</summary>
     public const int MaximumXmlBytes = 16 * 1024 * 1024;
     private const int MaximumDepth = 128;
+    /// <summary>Maximum XML nodes retained by the invoice tree.</summary>
+    public const int MaximumXmlNodes = 100_000;
+    /// <summary>Maximum XML attributes retained by the invoice tree.</summary>
+    public const int MaximumXmlAttributes = 200_000;
     private static readonly XNamespace Rsm = "urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100";
     private static readonly XNamespace Ram = "urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100";
     private static readonly XNamespace Udt = "urn:un:unece:uncefact:data:standard:UnqualifiedDataType:100";
@@ -64,8 +68,17 @@ public sealed partial class PdfCiiInvoiceDocument {
         // Check depth before constructing a tree, including content that is unknown to the header model.
         using (var stream = new MemoryStream(bytes, false))
         using (XmlReader reader = XmlReader.Create(stream, ReaderSettings())) {
+            int nodeCount = 0;
+            int attributeCount = 0;
             while (reader.Read()) {
                 if (reader.Depth > MaximumDepth) throw new InvalidDataException("CII XML exceeds the supported depth of 128.");
+                if (++nodeCount > MaximumXmlNodes)
+                    throw new InvalidDataException("CII XML exceeds the supported node count.");
+                if (reader.HasAttributes) {
+                    attributeCount += reader.AttributeCount;
+                    if (attributeCount > MaximumXmlAttributes)
+                        throw new InvalidDataException("CII XML exceeds the supported attribute count.");
+                }
             }
         }
         XDocument document;

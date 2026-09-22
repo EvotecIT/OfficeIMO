@@ -108,9 +108,12 @@ public sealed class PdfToHtmlOptions {
     public long? MaxEmbeddedImageBytes { get; set; } = 10L * 1024L * 1024L;
 
     /// <summary>
-    /// Maximum UTF-16 characters retained by generated HTML. Set to null for the existing unbounded output behavior.
+    /// Maximum UTF-16 characters retained by generated HTML. Defaults to 32 million; set to null to disable this guard for trusted input.
     /// </summary>
-    public int? MaximumOutputCharacters { get; set; }
+    public int? MaximumOutputCharacters { get; set; } = 32_000_000;
+
+    /// <summary>Maximum link comparisons while accounting for annotation actions in one conversion.</summary>
+    public long MaximumAnnotationMatchWork { get; set; } = 1_000_000;
 
     /// <summary>
     /// Emit link annotation placeholders. Semantic output emits a links section; positioned output emits positioned link frames.
@@ -121,6 +124,9 @@ public sealed class PdfToHtmlOptions {
     /// Emit AcroForm widget placeholders. Semantic output emits a form-fields section; positioned output emits positioned form field frames.
     /// </summary>
     public bool IncludeFormWidgets { get; set; }
+
+    /// <summary>Include PDF text that is invisible in the rendered page in the searchable appearance overlay. Defaults to false.</summary>
+    public bool IncludeInvisibleTextInAppearanceOverlay { get; set; }
 
     /// <summary>
     /// Emit a complete HTML document with doctype, html, head, and body wrappers.
@@ -160,8 +166,10 @@ public sealed class PdfToHtmlOptions {
         ImageExportMode = ImageExportMode,
         MaxEmbeddedImageBytes = MaxEmbeddedImageBytes,
         MaximumOutputCharacters = MaximumOutputCharacters,
+        MaximumAnnotationMatchWork = MaximumAnnotationMatchWork,
         IncludeLinkAnnotations = IncludeLinkAnnotations,
         IncludeFormWidgets = IncludeFormWidgets,
+        IncludeInvisibleTextInAppearanceOverlay = IncludeInvisibleTextInAppearanceOverlay,
     };
 
     internal void Validate() {
@@ -174,6 +182,9 @@ public sealed class PdfToHtmlOptions {
         }
         if (MaximumOutputCharacters.HasValue && MaximumOutputCharacters.Value <= 0) {
             throw new ArgumentOutOfRangeException(nameof(MaximumOutputCharacters), "Maximum output characters must be positive.");
+        }
+        if (MaximumAnnotationMatchWork <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(MaximumAnnotationMatchWork), "Maximum annotation matching work must be positive.");
         }
     }
 }
