@@ -9,8 +9,8 @@ The objective is to parse, inspect, query, edit, style, lay out, render, and con
 Delivery prioritizes usable components. Keep AngleSharp, AngleSharp.Css, Jint,
 HarfBuzz, CodePages, and other effective providers behind OfficeIMO-owned contracts.
 Contribute reusable corrections and extension points upstream where practical.
-The interactive runtime consumes exact revisions of the EvotecIT AngleSharp and
-AngleSharp.Js forks; [the provider development guide](../External/README.md) defines
+The interactive runtime consumes exact revisions of the EvotecIT AngleSharp,
+AngleSharp.Js and Jint forks; [the provider development guide](../External/README.md) defines
 source setup and ownership. OfficeIMO does not maintain copied implementations.
 A qualified upstream release can replace a fork. An owned implementation can replace
 a provider when measured product needs justify the work. Neither is a prerequisite
@@ -507,7 +507,7 @@ The September 2026 provider baseline and the subsequent owned-document budget ga
 | --- | --- | --- |
 | AngleSharp HTML parser and static adapter | Retain as the default parser behind `HtmlDocumentEngine`; do not start an HTML parser rewrite without a measured product or qualification trigger | Weak provider projections reduced directly comparable Windows owned-document retention from 638.9 KiB to 204.3 KiB and conversion native-plus-owned retention from 641.9 KiB to 207.0 KiB. Parse, query, edit, serialization and conversion budgets pass at 10, 100 and 1,000 rows on Windows, Linux and macOS; separate in-flight cancellation workloads cover 10,000, 25,000 and 100,000 rows. Reconsider the default only when an owned parser passes the selected HTML recovery, fragment, encoding, hostile-input and performance gates. |
 | AngleSharp.Css syntax provider | Retain for selectors, cascade and computed values; use the owned syntax tree for source-preserving syntax consumers and future migration slices | The first owned lane preserves exact source, trivia, unknown rules and declarations, nested component values, source spans and invalid-input recovery. On the 105-rule Windows workload it takes a 5.400 ms median versus 15.070 ms for AngleSharp.Css syntax, while its richer retained graph is 2,241.2 KiB versus 691.0 KiB. Add property grammar and migrate selected selector/cascade slices before changing the default style path. |
-| Retained AngleSharp DOM runtime fork | Maintain reusable changes in upstream-based forks and consume exact revisions | AngleSharp and AngleSharp.Js forks own their source, tests and patch notes. Qualify upgrades against standalone and OfficeIMO runtime tests. Prefer upstream fixes and extension points; track remaining divergence and return to official packages when qualified. Static-parser replacement alone does not retire runtime dependencies. |
+| Retained AngleSharp DOM runtime fork | Maintain reusable changes in upstream-based forks and consume exact revisions | AngleSharp, AngleSharp.Js and Jint forks own their source, tests and patch notes. Qualify upgrades against standalone and OfficeIMO runtime tests. Prefer upstream fixes and extension points; track remaining divergence and return to official packages when qualified. Static-parser replacement alone does not retire runtime dependencies. |
 
 Package and source evidence accompanies the baseline in `Build/Project/Evidence/2026-09-15/html-provider-decision`. The enforced current budgets and provider delta are in `Build/Project/Evidence/2026-09-15/html-owned-document-budgets`. Dependency updates remain ordinary qualified maintenance. A newer upstream release is a reason to test and update the retained provider, not by itself a reason to replace or freeze it.
 

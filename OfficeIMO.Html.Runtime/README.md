@@ -593,8 +593,10 @@ documents retain the resolved base for independent conversion.
 History state is copied on insertion and restored independently on traversal.
 The state graph supports ordinary objects, sparse arrays, cycles, shared references,
 maps, sets, dates, regular expressions, errors with string stack traces and causes, boxed primitives,
-BigInt, fixed-length ArrayBuffers, typed arrays and DataViews. Functions, symbols,
-proxies, promises, DOM nodes, shared/resizable buffers and other unsupported objects
+BigInt, fixed-length and resizable ArrayBuffers, typed arrays and DataViews. Buffer
+maximum lengths, view offsets, fixed lengths and length-tracking modes survive copies,
+reload and traversal. Detached buffers and out-of-bounds views are rejected. Functions, symbols,
+proxies, promises, DOM nodes, shared buffers and other unsupported objects
 fail with `DataCloneError`. This is history-state storage; it does not expose a
 general `structuredClone` or transferable-object API.
 

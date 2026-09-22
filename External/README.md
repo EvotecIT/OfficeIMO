@@ -1,6 +1,6 @@
 # HTML runtime providers
 
-The interactive worker builds the AngleSharp and AngleSharp.Js forks from the exact
+The interactive worker builds the AngleSharp, AngleSharp.Js and Jint forks from the exact
 Git revisions recorded by this repository. The submodules own the dependency source;
 OfficeIMO owns rendering, resource policy, session budgets, module resolution,
 automation, and the adapters that connect those capabilities.
@@ -21,7 +21,7 @@ not need the runtime providers.
 | --- | --- | --- |
 | AngleSharp DOM | [EvotecIT/AngleSharp](https://github.com/EvotecIT/AngleSharp), [fork notes](AngleSharp/FORK.md) | Runtime worker |
 | AngleSharp.Js bindings | [EvotecIT/AngleSharp.Js](https://github.com/EvotecIT/AngleSharp.Js), [fork notes](AngleSharp.Js/FORK.md) | Runtime worker |
-| Jint | Unmodified NuGet dependency | Runtime worker and AngleSharp.Js |
+| Jint interpreter | [EvotecIT/jint](https://github.com/EvotecIT/jint), [fork notes](Jint/FORK.md) | Runtime worker and AngleSharp.Js |
 
 Implement reusable fixes and their standalone regression tests in the owning fork.
 Keep upstream history intact. Push the fork commit before updating its OfficeIMO

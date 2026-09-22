@@ -10,6 +10,7 @@
   <ItemGroup>
     <None Include="../External/AngleSharp/LICENSE" Link="AngleSharp.LICENSE.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <None Include="../External/AngleSharp.Js/LICENSE" Link="AngleSharp.Js.LICENSE.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="../External/Jint/LICENSE.txt" Link="Jint.LICENSE.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <None Update="OfficeIMO.Html.Runtime.Worker.manifest.json" CopyToOutputDirectory="PreserveNewest" />
     <EmbeddedResource Include="RuntimeBootstrap.js" LogicalName="OfficeIMO.RuntimeBootstrap.js" />
     <EmbeddedResource Include="RuntimeFetchBootstrap.js" LogicalName="OfficeIMO.RuntimeFetchBootstrap.js" />
@@ -19,6 +20,7 @@
     <EmbeddedResource Include="RuntimeStorageBootstrap.js" LogicalName="OfficeIMO.RuntimeStorageBootstrap.js" />
     <EmbeddedResource Include="RuntimeWindowBootstrap.js" LogicalName="OfficeIMO.RuntimeWindowBootstrap.js" />
     <EmbeddedResource Include="RuntimeHistoryBootstrap.js" LogicalName="OfficeIMO.RuntimeHistoryBootstrap.js" />
+    <EmbeddedResource Include="RuntimeStructuredCloneBuffers.js" LogicalName="OfficeIMO.RuntimeStructuredCloneBuffers.js" />
     <EmbeddedResource Include="RuntimeStructuredCloneErrors.js" LogicalName="OfficeIMO.RuntimeStructuredCloneErrors.js" />
     <EmbeddedResource Include="RuntimeStructuredClone.js" LogicalName="OfficeIMO.RuntimeStructuredClone.js" />
     <EmbeddedResource Include="RuntimeStructuredCloneTransport.js" LogicalName="OfficeIMO.RuntimeStructuredCloneTransport.js" />
@@ -30,6 +32,7 @@
     <PackageReference Include="AngleSharp" Version="1.8.2" ExcludeAssets="all" />
     <PackageReference Include="AngleSharp.Css" Version="1.0.1" />
     <ProjectReference Include="../External/AngleSharp.Js/src/AngleSharp.Js/AngleSharp.Js.csproj" />
-    <PackageReference Include="Jint" Version="4.16.0" />
+    <ProjectReference Include="../External/Jint/Jint/Jint.csproj" />
+    <PackageReference Include="Jint" Version="4.16.0" ExcludeAssets="all" />
   </ItemGroup>
 </Project>

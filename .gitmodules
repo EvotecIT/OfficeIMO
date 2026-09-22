@@ -6,3 +6,7 @@
 	path = External/AngleSharp.Js
 	url = https://github.com/EvotecIT/AngleSharp.Js.git
 	branch = feature/runtime-integration
+[submodule "External/Jint"]
+	path = External/Jint
+	url = https://github.com/EvotecIT/jint.git
+	branch = feature/runtime-integration

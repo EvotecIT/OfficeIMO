@@ -1,24 +1,14 @@
-((brand, maximumBytes, errorFields) => {
+((brand, maximumBytes, errorFields, buffers) => {
     "use strict";
     const apply = Reflect.apply, keys = Object.keys, define = Object.defineProperty;
     const descriptor = Object.getOwnPropertyDescriptor, prototype = Object.getPrototypeOf;
     const ArrayCtor = Array, MapCtor = Map, SetCtor = Set, DateCtor = Date, RegExpCtor = RegExp;
-    const BufferCtor = ArrayBuffer, ViewCtor = DataView, BytesCtor = Uint8Array;
     const mapEntries = Map.prototype.entries, mapSet = Map.prototype.set, setValues = Set.prototype.values, setAdd = Set.prototype.add;
     const mapHas = Map.prototype.has, mapGet = Map.prototype.get, from = Array.from;
     const mapSize = descriptor(Map.prototype,'size').get, setSize = descriptor(Set.prototype,'size').get;
     const dateValue = Date.prototype.getTime, regexpSource = descriptor(RegExp.prototype, 'source').get;
     const regexpFlags = ['hasIndices','global','ignoreCase','multiline','dotAll','unicode','unicodeSets','sticky']
         .map((name,i) => [descriptor(RegExp.prototype,name)?.get, 'dgimsuvy'[i]]);
-    const bufferLength = descriptor(ArrayBuffer.prototype,'byteLength').get;
-    const bufferResizable = descriptor(ArrayBuffer.prototype,'resizable')?.get;
-    const typedPrototype = prototype(Uint8Array.prototype);
-    const typed = Object.fromEntries(['buffer','byteOffset','length'].map(name => [name,descriptor(typedPrototype,name).get]));
-    const typedName = descriptor(typedPrototype,Symbol.toStringTag).get;
-    const views = Object.fromEntries(['Int8Array','Uint8Array','Uint8ClampedArray','Int16Array','Uint16Array','Int32Array','Uint32Array','Float16Array','Float32Array','Float64Array','BigInt64Array','BigUint64Array']
-        .filter(name => typeof globalThis[name] === 'function').map(name => [name,globalThis[name]]));
-    const dataView = Object.fromEntries(['buffer','byteOffset','byteLength'].map(name => [name,descriptor(DataView.prototype,name).get]));
-    const isView = ArrayBuffer.isView;
     const boxes = [Boolean,Number,String,BigInt].map(type => type.prototype.valueOf);
     const objectBox = Object;
     const ErrorCtor = Error;
@@ -38,25 +28,16 @@
             charge(64);
             let result, kind = brand(value);
             if (kind === 'buffer') {
-                const length = apply(bufferLength,value,[]);
-                if (bufferResizable && apply(bufferResizable,value,[])) fail('Resizable buffers are not supported in history state');
-                charge(length);
-                try {
-                    const original = new BytesCtor(value);
-                    result = new BufferCtor(length);
-                    const target = new BytesCtor(result);
-                    for(let i=0;i<length;i++) target[i]=original[i];
-                } catch (_) { fail('Detached buffers cannot be cloned'); }
-            } else if (isView(value)) {
-                const name = apply(typedName,value,[]);
-                const getters = name ? typed : dataView;
-                let buffer, offset, length;
-                try {
-                    buffer = apply(getters.buffer,value,[]);
-                    offset = apply(getters.byteOffset,value,[]);
-                    length = apply(name ? getters.length : getters.byteLength,value,[]);
-                } catch (_) { fail('Detached or out-of-bounds views cannot be cloned'); }
-                result = new (name ? views[name] : ViewCtor)(copy(buffer,depth+1),offset,length);
+                let fields;
+                try { fields = buffers.readBuffer(value); }
+                catch (_) { fail('Detached buffers cannot be cloned'); }
+                charge(fields.length);
+                result = buffers.createBuffer(fields.bytes, fields.maximum);
+            } else if (buffers.isView(value)) {
+                let fields;
+                try { fields = buffers.readView(value); }
+                catch (_) { fail('Detached or out-of-bounds views cannot be cloned'); }
+                result = buffers.createView(fields, copy(fields.buffer,depth+1));
             } else if (kind === 'date') result = new DateCtor(apply(dateValue,value,[]));
             else if (kind === 'regexp') {
                 const source = apply(regexpSource,value,[]);

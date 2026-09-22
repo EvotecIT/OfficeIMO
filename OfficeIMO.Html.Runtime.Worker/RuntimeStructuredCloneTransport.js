@@ -1,16 +1,10 @@
-((brand, maximumCharacters, errorFields) => {
+((brand, maximumCharacters, errorFields, buffers) => {
     "use strict";
     const apply = Reflect.apply, descriptor = Object.getOwnPropertyDescriptor, prototype = Object.getPrototypeOf;
     const mapEntries = Map.prototype.entries, mapSet = Map.prototype.set, setValues = Set.prototype.values, setAdd = Set.prototype.add;
     const dateValue = Date.prototype.getTime, regexpSource = descriptor(RegExp.prototype, 'source').get;
     const regexpFlags = ['hasIndices','global','ignoreCase','multiline','dotAll','unicode','unicodeSets','sticky']
         .map((name,i) => [descriptor(RegExp.prototype,name)?.get, 'dgimsuvy'[i]]);
-    const typedPrototype = prototype(Uint8Array.prototype);
-    const typed = Object.fromEntries(['buffer','byteOffset','length'].map(name => [name,descriptor(typedPrototype,name).get]));
-    const typedName = descriptor(typedPrototype,Symbol.toStringTag).get;
-    const dataView = Object.fromEntries(['buffer','byteOffset','byteLength'].map(name => [name,descriptor(DataView.prototype,name).get]));
-    const views = Object.fromEntries(['Int8Array','Uint8Array','Uint8ClampedArray','Int16Array','Uint16Array','Int32Array','Uint32Array','Float16Array','Float32Array','Float64Array','BigInt64Array','BigUint64Array']
-        .filter(name => typeof globalThis[name] === 'function').map(name => [name,globalThis[name]]));
     function fail(message) { const error=new Error(message);error.name='DataCloneError';throw error; }
     function encode(input) {
         const seen=new Map(), nodes=[];let estimate=0;
@@ -36,12 +30,14 @@
             const index=nodes.length;seen.set(item,index);nodes.push(null);
             let node, kind=brand(item);
             if(kind==='buffer') {
-                let bytes;try{const view=new Uint8Array(item);charge(view.byteLength*4);bytes=Array.from(view);}catch(error){if(error?.name==='DataCloneError')throw error;fail('Detached buffers cannot be cloned');}
-                node={t:'b',v:bytes};
-            } else if(ArrayBuffer.isView(item)) {
-                const name=apply(typedName,item,[]), getters=name?typed:dataView;
-                let buffer,offset,length;try{buffer=apply(getters.buffer,item,[]);offset=apply(getters.byteOffset,item,[]);length=apply(name?getters.length:getters.byteLength,item,[]);}catch(_){fail('Detached views cannot be cloned');}
-                node={t:'v',n:name||'DataView',b:value(buffer,depth+1),o:offset,l:length};
+                let fields;
+                try{fields=buffers.readBuffer(item);}catch(_){fail('Detached buffers cannot be cloned');}
+                charge(fields.length*4);
+                node={t:'b',v:buffers.bytesToArray(fields.bytes),m:fields.maximum};
+            } else if(buffers.isView(item)) {
+                let fields;
+                try{fields=buffers.readView(item);}catch(_){fail('Detached or out-of-bounds views cannot be cloned');}
+                node={t:'v',n:fields.name,b:value(fields.buffer,depth+1),o:fields.offset,l:fields.length,a:fields.tracking};
             } else if(kind==='date') node={t:'d',v:apply(dateValue,item,[])};
             else if(kind==='regexp') node={t:'r',s:apply(regexpSource,item,[]),f:regexpFlags.filter(([getter])=>getter&&apply(getter,item,[])).map(([,flag])=>flag).join('')};
             else if(kind==='map') {const entries=[];for(const pair of apply(mapEntries,item,[])){charge(16);entries.push([value(pair[0],depth+1),value(pair[1],depth+1)]);}node={t:'m',v:entries};}
@@ -73,7 +69,7 @@
         }
         for(let i=0;i<nodes.length;i++) {
             const node=nodes[i];if(!node||typeof node.t!=='string')fail('The frame message graph is invalid');
-            if(node.t==='b') values[i]=new Uint8Array(node.v).buffer;
+            if(node.t==='b') values[i]=buffers.createBuffer(node.v,node.m);
             else if(node.t==='d') values[i]=new Date(node.v);
             else if(node.t==='r') values[i]=new RegExp(node.s,node.f);
             else if(node.t==='m') values[i]=new Map();
@@ -83,9 +79,8 @@
             else if(node.t==='e') values[i]=errorFields.create(node.v);
         }
         for(let i=0;i<nodes.length;i++) if(nodes[i].t==='v') {
-            const node=nodes[i], buffer=primitive(node.b), ctor=node.n==='DataView'?DataView:views[node.n];
-            if(!ctor) fail('The typed array is not supported');
-            values[i]=new ctor(buffer,node.o,node.l);
+            const node=nodes[i];
+            values[i]=buffers.createView({name:node.n,offset:node.o,length:node.l,tracking:node.a},primitive(node.b));
         }
         for(let i=0;i<nodes.length;i++) {
             const node=nodes[i], target=values[i];
