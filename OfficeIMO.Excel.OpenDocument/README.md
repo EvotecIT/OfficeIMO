@@ -16,7 +16,7 @@ foreach (var mapping in conversion.Report.Mappings) {
 }
 ```
 
-The adapter maps worksheets, typed cell values, formulas, hyperlinks, comments and ODF annotations, merges, row/column layout, named ranges, number-format categories, and a basic style subset. List, whole-number, decimal, and text-length validations round-trip with input/error messages and error severity. Date, time, custom-formula, and implementation-specific validation expressions are preserved by ODF editing but reported as unsupported when an exact Excel mapping is unavailable.
+The adapter maps worksheets, typed cell values, formulas, hyperlinks, comments and ODF annotations, merges, row/column layout, named ranges, number-format categories, and a basic style subset. List, whole-number, decimal, text-length, constant-date, and whole-second time validations round-trip with input/error messages and error severity. Date and time rules with dynamic formulas or unsupported precision, custom-formula rules, and implementation-specific validation expressions are preserved by ODF editing but reported as unsupported when an exact Excel mapping is unavailable.
 
 ODF permits one annotation per spreadsheet cell. An Excel threaded discussion is therefore flattened into one readable annotation transcript per cell, retaining available author, timestamp, identity, parent, resolved-state, and body metadata while reporting the thread mapping as an approximation.
 

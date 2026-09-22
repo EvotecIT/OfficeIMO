@@ -163,7 +163,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             int validationOrdinal = 0;
             foreach (ExcelDataValidationSnapshot validation in worksheet.Validations) {
                 validationOrdinal++;
-                if (!TryCreateOdsValidationCondition(validation, out OdsValidationConditionSyntax? condition)) {
+                if (!TryCreateOdsValidationCondition(validation, source.DateSystem,
+                    out OdsValidationConditionSyntax? condition)) {
                     skippedValidations++;
                     continue;
                 }
