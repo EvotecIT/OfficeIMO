@@ -6,7 +6,7 @@ if ([Environment]::Version.Major -lt 10) { throw 'Run this suite with PowerShell
 
 New-BenchmarkSuite 'officeimo-release-quality-images' -OutputRoot (Join-Path $repositoryRoot '.validation/release-quality-images') {
     Set-BenchmarkPolicy -Warmup 1 -Iteration 3 -Order Rotated -OutlierMode None
-    Add-BenchmarkMetadata Contract 'Provenance-bound encode, decode, metadata, optimization, and resampling evidence with fidelity, determinism, cancellation, elapsed-time, allocation, and process/native-memory metrics.'
+    Add-BenchmarkMetadata Contract 'Provenance-bound encode, decode, metadata, optimization, and resampling evidence with fidelity, determinism, cancellation, elapsed time, allocation, peak process memory, and a diagnostic native-memory estimate.'
     Add-BenchmarkMetadata BenchmarkAssemblySha256 (Get-FileHash (Join-Path $binaryRoot 'OfficeIMO.Drawing.Benchmarks.dll') -Algorithm SHA256).Hash
     Add-BenchmarkMetadata OperatingSystem ([Runtime.InteropServices.RuntimeInformation]::OSDescription)
     Add-BenchmarkMetadata Runtime ([Runtime.InteropServices.RuntimeInformation]::FrameworkDescription)

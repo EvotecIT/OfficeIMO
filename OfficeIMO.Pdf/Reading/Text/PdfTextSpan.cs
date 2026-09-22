@@ -245,7 +245,7 @@ public sealed class PdfTextSpan {
     };
 
     internal bool CanProjectCompleteText(double? pageHeight) {
-        if (_completeTextProjectionSuppressed || !IsVisible || string.IsNullOrEmpty(Text)) return false;
+        if (_completeTextProjectionSuppressed || !IsVisible || Color?.A <= 3 || string.IsNullOrEmpty(Text)) return false;
         if (!ClipPath.HasValue) return true;
         if (!pageHeight.HasValue || Math.Abs(RotationDegrees) > 0.01D) return false;
 
@@ -263,5 +263,50 @@ public sealed class PdfTextSpan {
                top + tolerance >= clip.Y &&
                left + width <= clip.X + clip.Width + tolerance &&
                top + height <= clip.Y + clip.Height + tolerance;
+    }
+
+    internal bool CanProjectCompleteText(PdfLogicalPage page) {
+        return CanProjectCompleteText(page.Height) && IntersectsPageBoundary(page);
+    }
+
+    internal bool CanProjectPositionedHtmlText(PdfLogicalPage page) {
+        if (!IsVisible || Color?.A <= 3 || string.IsNullOrEmpty(Text) ||
+            !IntersectsPageBoundary(page)) return false;
+        if (!ClipPath.HasValue) return !_completeTextProjectionSuppressed;
+        if (Math.Abs(RotationDegrees) > 0.01D) return false;
+
+        PdfPageClipPath clip = ClipPath.Value;
+        if (!clip.IsRectangle || !clip.IsExact || clip.ContainsTextClipping) return false;
+        // Positioned review uses a browser font. The cap-height approximation keeps
+        // legitimately visible canvas text inside tight producer rectangles.
+        double width = Advance > 0D ? Advance : PdfUnicodeScalarAnalysis.CountScalars(Text) * FontSize * 0.55D;
+        double top = page.Height - Y - FontSize * 0.7D;
+        const double tolerance = 0.05D;
+        return X + tolerance >= clip.X &&
+            top + tolerance >= clip.Y &&
+            X + width <= clip.X + clip.Width + tolerance &&
+            top + Math.Max(1D, FontSize) <= clip.Y + clip.Height + tolerance;
+    }
+
+    internal bool IsCompletelyWithinPageBoundary(PdfLogicalPage page) {
+        PdfPageBox? boundary = page.Geometry.EffectiveBox;
+        if (boundary == null) return false;
+        PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetAxisAlignedBounds(this);
+        const double tolerance = 0.05D;
+        return bounds.Left >= boundary.Left - tolerance &&
+            bounds.Right <= boundary.Right + tolerance &&
+            bounds.Bottom >= boundary.Bottom - tolerance &&
+            bounds.Top <= boundary.Top + tolerance;
+    }
+
+    internal bool IntersectsPageBoundary(PdfLogicalPage page) {
+        PdfPageBox? boundary = page.Geometry.EffectiveBox;
+        if (boundary == null) return false;
+        PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetAxisAlignedBounds(this);
+        const double tolerance = 0.05D;
+        return bounds.Right > boundary.Left + tolerance &&
+            bounds.Left < boundary.Right - tolerance &&
+            bounds.Top > boundary.Bottom + tolerance &&
+            bounds.Bottom < boundary.Top - tolerance;
     }
 }

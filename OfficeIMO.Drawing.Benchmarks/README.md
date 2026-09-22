@@ -48,7 +48,7 @@ provenance hash, and the benchmark-assembly hash, then validates dimensions, fid
 output, and bounded cancellation where that API exposes cancellation. Regression comparisons require
 matching workload provenance for every operation, including encode and resample.
 Evidence separates elapsed time, encoded bytes, managed allocation, peak working set, peak private
-bytes, a conservative native/private-memory estimate, cancellation latency, and mean absolute
+bytes, a diagnostic private-minus-live-managed-heap estimate, cancellation latency, and mean absolute
 error. Memory sampling starts before and stops after the PowerForge-timed operation, so sampler thread
 startup and shutdown are excluded from elapsed time. Managed allocation is captured immediately
 around the workload operation on its executing thread, excluding host dispatch and process-sampler
@@ -58,8 +58,13 @@ setup or teardown. A non-planning run fails when any case is not
 Pull-request runs download the matching operating-system artifact from the latest successful
 `master` workflow and use PowerForge `Test-BenchmarkGate` comparisons. The first run permits new
 scenario keys; after they are present on `master`, subsequent Windows, Linux, and macOS runs gate
-the full matrix. Process-memory metrics use an absolute noise allowance as well as relative
-tolerance because a zero baseline is common for short operations. Pass a reference summary when
+the full matrix. Process-memory gates use an absolute noise allowance as well as relative
+tolerance because a zero baseline is common for short operations. Hosted CI gates validated output,
+managed allocation, peak working set, peak private bytes, cancellation, and image error. It reports
+elapsed time and the native estimate without gating them: hosted-runner timing varies between runs,
+and subtracting the live managed heap from process private bytes cannot reliably attribute memory
+to native allocations when garbage collection changes the live heap. Use controlled repeat runs
+to investigate those diagnostics. Pass a reference summary when
 reproducing the same comparison locally:
 
 ```powershell

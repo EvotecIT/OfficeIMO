@@ -128,4 +128,18 @@ public sealed class PdfAnchoredImagePaginationTests {
                 File.WriteAllBytes(Path.Combine(output, $"anchor-{kind}-{columns}-{page.PageNumber}.png"), page.Bytes!);
         }
     }
+
+    [Fact]
+    public void ParagraphImageLimitRejectsExcessImagesBeforePdfRendering() {
+        using WordDocument word = WordDocument.Create();
+        WordParagraph paragraph = word.AddParagraph();
+        byte[] bytes = OfficeIMO.Drawing.OfficeRasterImageEncoder.Encode(
+            new OfficeIMO.Drawing.OfficeRasterImage(2, 2, OfficeIMO.Drawing.OfficeColor.Black),
+            OfficeIMO.Drawing.OfficeImageExportFormat.Png);
+        using (var first = new MemoryStream(bytes)) paragraph.InsertImage(first, "first.png", 10, 10);
+        using (var second = new MemoryStream(bytes)) paragraph.AddText(string.Empty).InsertImage(second, "second.png", 10, 10);
+
+        Assert.Throws<InvalidDataException>(() => word.ToPdfDocumentResult(
+            new WordToPdfOptions { MaxImagesPerParagraph = 1 }));
+    }
 }

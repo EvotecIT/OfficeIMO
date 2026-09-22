@@ -878,6 +878,33 @@ public partial class Word {
             .Value;
     }
 
+    [Fact]
+    public void PdfSemanticImportBoundsImageTextOverlapComparisons() {
+        byte[] pdf = PdfCore.PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("First visible line"))
+            .Paragraph(paragraph => paragraph.Text("Second visible line"))
+            .Image(PdfPngTestImages.CreateRgbPng(1, 1), 24, 24)
+            .ToBytes();
+        var options = new PdfToWordOptions { MaxImageTextOverlapComparisons = 1 };
+
+        Assert.Throws<IOException>(() => LoadSemanticPdf(pdf).ToWordDocumentResult(options));
+    }
+
+    [Fact]
+    public void PdfSemanticImportSharesImageTextOverlapBudgetAcrossPages() {
+        byte[] image = PdfPngTestImages.CreateRgbPng(1, 1);
+        byte[] pdf = PdfCore.PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("First page text"))
+            .Image(image, 24, 24)
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Second page text"))
+            .Image(image, 24, 24)
+            .ToBytes();
+        var options = new PdfToWordOptions { MaxImageTextOverlapComparisons = 1 };
+
+        Assert.Throws<IOException>(() => LoadSemanticPdf(pdf).ToWordDocumentResult(options));
+    }
+
     private static byte[] BuildRawDeviceRgbImagePdf() {
         return BuildDeviceRgbImagePdf("abc", string.Empty);
     }
