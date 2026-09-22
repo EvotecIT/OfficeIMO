@@ -122,6 +122,51 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void ForeignObjectCallbackNestedEffectsShareTheRasterBudget() {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'>" +
+            "<foreignObject width='10' height='10'><div xmlns='http://www.w3.org/1999/xhtml'>Text</div></foreignObject></svg>";
+        var options = new OfficeSvgDrawingReaderOptions {
+            ForeignObjectRenderer = context => {
+                var content = new OfficeDrawing(context.Width, context.Height);
+                var large = new OfficeDrawing(4000, 4000);
+                for (int i = 0; i < 5; i++) content.AddEffectDrawing(large, OfficeTransform.Identity);
+                return content;
+            }
+        };
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), options, out OfficeDrawing? drawing, out int unsupported));
+        Assert.True(unsupported > 0);
+        Assert.Empty(drawing!.Elements);
+    }
+
+    [Theory]
+    [InlineData("effect")]
+    [InlineData("tile")]
+    [InlineData("image")]
+    public void CachedForeignObjectNestedSurfacesAreChargedForEachPlacement(string kind) {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'><defs>" +
+            "<foreignObject id='f' width='1' height='1'><div xmlns='http://www.w3.org/1999/xhtml'>Text</div></foreignObject>" +
+            "</defs>" + string.Concat(Enumerable.Repeat("<use href='#f'/>", 70)) + "</svg>";
+        byte[]? png = kind == "image" ? OfficePngWriter.Encode(new OfficeRasterImage(1000, 1000, OfficeColor.Red)) : null;
+        int calls = 0;
+        var options = new OfficeSvgDrawingReaderOptions {
+            ForeignObjectRenderer = context => {
+                calls++;
+                var content = new OfficeDrawing(context.Width, context.Height);
+                if (kind == "effect") content.AddEffectDrawing(new OfficeDrawing(1000, 1000), OfficeTransform.Identity);
+                else if (kind == "tile") content.AddTilingPattern(new OfficeDrawing(1000, 1000),
+                    new OfficeImagePlacement(0, 0, 1, 1), 1000, 1000);
+                else content.AddImage(png!, "image/png", new OfficeImageProjection(new OfficeImagePlacement(0, 0, 1, 1)));
+                return content;
+            }
+        };
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), options, out _, out int unsupported));
+        Assert.Equal(1, calls);
+        Assert.True(unsupported > 0);
+    }
+
+    [Fact]
     public void EmptyForeignObjectsDoNotExhaustRendererCalls() {
         string empty = string.Concat(Enumerable.Repeat("<foreignObject width='1' height='1'/>", 129));
         string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'>" + empty +
@@ -273,11 +318,25 @@ public partial class DrawingTests {
             "<rect width='1' height='1'/></pattern></defs>" +
             string.Concat(Enumerable.Repeat(
                 "<rect width='1' height='1' " + paint + "='url(#p)' " +
-                (paint == "stroke" ? "fill='none' stroke-width='1'" : string.Empty) + "/>", 20)) + "</svg>";
+                (paint == "stroke" ? "fill='none' stroke-width='1'" : string.Empty) + "/>", 16)) + "</svg>";
 
         Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
         Assert.Equal(0, unsupported);
-        Assert.Equal(20, drawing!.Elements.Count);
+        Assert.Equal(16, drawing!.Elements.Count);
+    }
+
+    [Theory]
+    [InlineData("fill")]
+    [InlineData("stroke")]
+    public void PatternTileAndCanvasSurfacesShareOneBudget(string paint) {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 1000'><defs>" +
+            "<pattern id='p' patternUnits='userSpaceOnUse' width='4000' height='4000'>" +
+            "<rect width='1' height='1'/></pattern></defs>" +
+            string.Concat(Enumerable.Repeat("<rect width='1' height='1' " + paint + "='url(#p)' " +
+                (paint == "stroke" ? "fill='none' stroke-width='1'" : string.Empty) + "/>", 4)) + "</svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out _, out int unsupported));
+        Assert.True(unsupported > 0);
     }
 
     [Fact]
@@ -357,6 +416,18 @@ public partial class DrawingTests {
             "<marker id='m' markerWidth='1' markerHeight='1' viewBox='0 0 4000 4000'>" +
             "<rect width='1' height='1'/></marker></defs>" +
             "<polyline points='0,0 1,1 2,2 3,3 4,4 5,5 6,6 7,7 8,8 9,9' marker-mid='url(#m)'/>" +
+            "</svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out _, out int unsupported));
+        Assert.True(unsupported > 0);
+    }
+
+    [Fact]
+    public void MarkerScenesAndTheirPlacementLayersShareTheRasterBudget() {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs>" +
+            "<marker id='m' markerWidth='1' markerHeight='1' viewBox='0 0 4000 4000'>" +
+            "<rect width='1' height='1'/></marker></defs>" +
+            string.Concat(Enumerable.Repeat("<line x1='0' y1='0' x2='1' y2='1' marker-end='url(#m)'/>", 4)) +
             "</svg>";
 
         Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out _, out int unsupported));

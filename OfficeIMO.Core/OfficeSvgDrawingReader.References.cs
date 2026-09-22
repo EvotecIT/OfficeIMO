@@ -92,8 +92,8 @@ public static partial class OfficeSvgDrawingReader {
         private double _foreignObjectPixels;
         private const double MaximumMarkerScenePixels = 64_000_000D;
         private double _markerScenePixels;
-        private readonly Dictionary<(XElement Element, double Width, double Height), (OfficeDrawing Drawing, int Elements)> _foreignObjects =
-            new Dictionary<(XElement Element, double Width, double Height), (OfficeDrawing Drawing, int Elements)>();
+        private readonly Dictionary<(XElement Element, double Width, double Height), (OfficeDrawing Drawing, int Elements, double NestedPixels)> _foreignObjects =
+            new Dictionary<(XElement Element, double Width, double Height), (OfficeDrawing Drawing, int Elements, double NestedPixels)>();
         private readonly Dictionary<XElement, bool> _foreignObjectHasContent = new Dictionary<XElement, bool>();
         internal OfficeCffOperationBudget CffOperationBudget { get; } = new OfficeCffOperationBudget();
 
@@ -140,6 +140,11 @@ public static partial class OfficeSvgDrawingReader {
             TryChargeIntermediatePixels(canvasWidth * canvasHeight +
                 (double)imageWidth * imageHeight * (opacity < 1D ? 2D : 1D));
 
+        internal bool TryChargePatternSurfaces(double canvasWidth, double canvasHeight,
+            double tileWidth, double tileHeight) =>
+            TryChargeIntermediatePixels(canvasWidth * canvasHeight * 2D +
+                Math.Ceiling(tileWidth) * Math.Ceiling(tileHeight));
+
         private bool TryChargeIntermediatePixels(double pixels) {
             // Full-size effect, image, viewport, and symbol layers all reach the
             // raster renderer; count their retained surfaces in one document budget.
@@ -169,14 +174,17 @@ public static partial class OfficeSvgDrawingReader {
             return true;
         }
 
-        internal bool TryGetForeignObject(XElement element, double width, double height, out OfficeDrawing drawing, out int elements) {
+        internal bool TryGetForeignObject(XElement element, double width, double height,
+            out OfficeDrawing drawing, out int elements, out double nestedPixels) {
             if (_foreignObjects.TryGetValue((element, width, height), out var cached)) {
                 drawing = cached.Drawing;
                 elements = cached.Elements;
+                nestedPixels = cached.NestedPixels;
                 return true;
             }
             drawing = null!;
             elements = 0;
+            nestedPixels = 0D;
             return false;
         }
 
@@ -205,12 +213,13 @@ public static partial class OfficeSvgDrawingReader {
             return true;
         }
 
-        internal void CacheForeignObject(XElement element, double width, double height, OfficeDrawing drawing, int elements) =>
-            _foreignObjects[(element, width, height)] = (drawing, elements);
+        internal void CacheForeignObject(XElement element, double width, double height,
+            OfficeDrawing drawing, int elements, double nestedPixels) =>
+            _foreignObjects[(element, width, height)] = (drawing, elements, nestedPixels);
 
-        internal bool TryChargeForeignObjectPlacement(double drawingWidth, double drawingHeight) {
-            // Every placement creates a full-size effect surface, including cache hits.
-            return TryChargeIntermediateSurface(drawingWidth, drawingHeight);
+        internal bool TryChargeForeignObjectPlacement(double drawingWidth, double drawingHeight, double nestedPixels) {
+            // Every placement renders its cached nested scene and outer effect surface.
+            return TryChargeIntermediatePixels(drawingWidth * drawingHeight + nestedPixels);
         }
 
         internal bool TryChargeSerializedForeignObject(int characters) {
@@ -222,8 +231,10 @@ public static partial class OfficeSvgDrawingReader {
         internal bool TryChargeMarkerScene(double width, double height) {
             double pixels = width * height;
             if (double.IsNaN(pixels) || double.IsInfinity(pixels) || pixels <= 0D
-                || pixels > MaximumMarkerScenePixels - _markerScenePixels) return false;
+                || pixels > MaximumMarkerScenePixels - _markerScenePixels
+                || pixels > MaximumIntermediateSurfacePixels - _intermediateSurfacePixels) return false;
             _markerScenePixels += pixels;
+            _intermediateSurfacePixels += pixels;
             return true;
         }
 

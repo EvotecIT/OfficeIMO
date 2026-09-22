@@ -30,7 +30,8 @@ public static partial class OfficeSvgDrawingReader {
 
         double x = ReadViewportCoordinate(element, "x", viewX, drawing.Width);
         double y = ReadViewportCoordinate(element, "y", viewY, drawing.Height);
-        if (!references.TryGetForeignObject(element, width, height, out OfficeDrawing content, out int contentElements)) {
+        if (!references.TryGetForeignObject(element, width, height, out OfficeDrawing content,
+                out int contentElements, out double nestedPixels)) {
             if (!references.HasForeignObjectContent(element)) return;
             if (!references.TryReserveForeignObject(element, width, height)) {
                 unsupported++;
@@ -57,14 +58,17 @@ public static partial class OfficeSvgDrawingReader {
                 return;
             }
             content = rendered;
-            contentElements = CountDrawingElements(content, maximumElements);
-            references.CacheForeignObject(element, width, height, content, contentElements);
+            if (!TryMeasureForeignObjectSurfaces(content, maximumElements, out contentElements, out nestedPixels)) {
+                unsupported++;
+                return;
+            }
+            references.CacheForeignObject(element, width, height, content, contentElements, nestedPixels);
         }
         if (contentElements > maximumElements - visited) {
             unsupported++;
             return;
         }
-        if (!references.TryChargeForeignObjectPlacement(drawing.Width, drawing.Height)) {
+        if (!references.TryChargeForeignObjectPlacement(drawing.Width, drawing.Height, nestedPixels)) {
             unsupported++;
             return;
         }

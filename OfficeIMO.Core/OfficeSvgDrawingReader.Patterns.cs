@@ -101,7 +101,7 @@ public static partial class OfficeSvgDrawingReader {
             ClearShapeFill(shape.Shape);
             return false;
         }
-        if (!references.TryChargeIntermediateSurface(drawing.Width, drawing.Height, 2)) {
+        if (!references.TryChargePatternSurfaces(drawing.Width, drawing.Height, tileWidth, tileHeight)) {
             unsupported++;
             ClearShapeFill(shape.Shape);
             return false;
