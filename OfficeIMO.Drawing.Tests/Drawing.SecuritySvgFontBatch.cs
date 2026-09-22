@@ -62,12 +62,26 @@ public partial class DrawingTests {
     }
 
     [Fact]
-    public void FaxFillScanRejectsMissingEndOfLineWithoutScanningTheWholePayload() {
+    public void FaxFillScanRejectsMissingEndOfLineWithinBoundedWork() {
         byte[] encoded = new byte[8 * 1024 * 1024];
 
         Assert.Throws<InvalidDataException>(() => OfficeFaxDecoder.Decode(
             encoded, columns: 1, rows: 1, k: 0, endOfLine: true, byteAligned: false,
             blackIsOne: true, endOfBlock: false, maximumBytes: 1, CancellationToken.None));
+    }
+
+    [Fact]
+    public void FaxFillScanAcceptsLongValidGroupThreeFill() {
+        string bits = new string('0', 4096) + "000000000001" + "000111";
+        bits = bits.PadRight((bits.Length + 7) / 8 * 8, '0');
+        byte[] encoded = Enumerable.Range(0, bits.Length / 8)
+            .Select(index => Convert.ToByte(bits.Substring(index * 8, 8), 2)).ToArray();
+
+        byte[] decoded = OfficeFaxDecoder.Decode(encoded, columns: 1, rows: 1, k: 0,
+            endOfLine: true, byteAligned: false, blackIsOne: true, endOfBlock: false,
+            maximumBytes: 1, CancellationToken.None);
+
+        Assert.Equal(new byte[] { 0 }, decoded);
     }
 
     [Fact]
@@ -432,6 +446,19 @@ public partial class DrawingTests {
 
         Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out _, out int unsupported));
         Assert.True(unsupported > 0);
+    }
+
+    [Fact]
+    public void DiscardedMarkerLayerReleasesItsSceneReservations() {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs>" +
+            "<marker id='m' markerWidth='1' markerHeight='1' viewBox='0 0 4000 4000'>" +
+            "<rect width='1' height='1'/></marker></defs>" +
+            "<polyline points='0,0 1,1 2,2 3,3 4,4 5,5' marker-mid='url(#m)'/>" +
+            "<g style='mix-blend-mode:multiply'><rect width='1' height='1'/></g></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.True(unsupported > 0);
+        Assert.Contains(drawing!.Elements, element => element is OfficeDrawingEffectGroup);
     }
 
     [Fact]

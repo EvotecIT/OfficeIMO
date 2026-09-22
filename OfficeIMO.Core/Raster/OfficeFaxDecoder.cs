@@ -149,8 +149,16 @@ internal static partial class OfficeFaxDecoder {
     private sealed class FaxBits {
         private readonly byte[] _bytes;
         private readonly CancellationToken _token;
+        private readonly long _maximumEndOfLineScanBits;
+        private long _endOfLineScanBits;
         private long _position;
-        internal FaxBits(byte[] bytes, CancellationToken token) { _bytes = bytes; _token = token; }
+        internal FaxBits(byte[] bytes, CancellationToken token) {
+            _bytes = bytes;
+            _token = token;
+            // Successful markers consume their input once. Allow one extra pass for
+            // speculative probes that restore the bit position on failure.
+            _maximumEndOfLineScanBits = (long)bytes.Length * 16L;
+        }
         internal int Read() {
             if (_position >= (long)_bytes.Length * 8) throw new InvalidDataException("Truncated fax image.");
             int value = (_bytes[(int)(_position / 8)] >> (7 - (int)(_position & 7))) & 1;
@@ -160,19 +168,28 @@ internal static partial class OfficeFaxDecoder {
         internal bool TryReadEndOfLine() {
             long saved = _position;
             int zeros = 0;
-            const int maximumFillBits = 4096;
-            while (_position < (long)_bytes.Length * 8 && _position - saved < maximumFillBits) {
+            while (_position < (long)_bytes.Length * 8) {
                 if ((_position & 4095) == 0) _token.ThrowIfCancellationRequested();
+                if ((_position & 7) == 0 && _bytes[(int)(_position / 8)] == 0) {
+                    _position += 8;
+                    zeros = Math.Min(11, zeros + 8);
+                    ChargeScan(8);
+                    continue;
+                }
+                ChargeScan(1);
                 if (Read() != 0) {
                     if (zeros >= 11) return true;
                     break;
                 }
-                // T.4 fill is variable length, but malformed streams cannot scan the
-                // entire decoded filter output looking for a marker.
                 if (zeros < 11) zeros++;
             }
             _position = saved;
             return false;
+        }
+        private void ChargeScan(int bits) {
+            _endOfLineScanBits += bits;
+            if (_endOfLineScanBits > _maximumEndOfLineScanBits)
+                throw new InvalidDataException("Fax end-of-line scan exceeded the encoded input work budget.");
         }
         internal void Align() { _position = (_position + 7) & ~7L; }
     }
