@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "date": "2026-09-22",
+  "date": "2026-09-23",
   "qualification": "Selected combined popup-history, root reload, document-input and rendered-state workflow; broader navigation remains open",
   "environment": {
     "os": "macOS 27.0",
@@ -8,17 +8,18 @@
     "sdk": "10.0.303"
   },
   "source": {
-    "office": "f383bf030f9983c76d577597e39cb5460f303be4",
-    "angleSharp": "549a9465056161c130b03607b4147aec06339d58",
-    "angleSharpJs": "2aaa705edf934d1f93009977de4acab49b4fc614",
+    "office": "bae43290fbfce8485e6cc6ca038749dc1696f5d3",
+    "angleSharp": "85941d3d35aba79da852f9c64b60e193b9a42206",
+    "angleSharpJs": "1190abed8991e0aafb29664462a7177ef64d66d2",
     "jint": "2339be034e48b1f2195987fff27cda225582b7b7"
   },
   "validation": [
     {
-      "name": "focusedRuntimeNavigationAndDocument",
-      "filter": "FullyQualifiedName~RuntimeAuxiliaryWindowTests|FullyQualifiedName~RuntimeDocumentOpenTests|FullyQualifiedName~RuntimeResizableHistoryStateTests|FullyQualifiedName~RuntimeNavigationTests",
-      "net10.0": { "passed": 84, "failed": 0 },
-      "net8.0": { "passed": 84, "failed": 0 }
+      "name": "focusedDocumentOpenAndMutation",
+      "filter": "FullyQualifiedName~RuntimeDocumentOpenTests|FullyQualifiedName~RuntimeMutationCheckpointTests|FullyQualifiedName~RuntimeMutationRegistrationTests",
+      "execution": "Each test class ran separately on each framework to avoid cross-class fixture contention.",
+      "net10.0": { "passed": 42, "failed": 0 },
+      "net8.0": { "passed": 42, "failed": 0 }
     },
     {
       "name": "combinedRenderProof",
@@ -28,7 +29,7 @@
       "failed": 0,
       "widths": [360, 720],
       "height": 440,
-      "visualInspection": "Four PNGs inspected; status text and frame content fit both viewports."
+      "visualInspection": "Four PNGs inspected; history, popup and frame status text fit both viewports. Final rerun produced identical PNG hashes."
     }
   ],
   "render": {
@@ -36,7 +37,7 @@
     "readiness": "Wait for root completion and the committed about:srcdoc frame URL and completion before frame replacement.",
     "assertions": [
       "Root history buffer aliases and resizable tracking/fixed views before and after reload",
-      "Frame document replacement URL, disconnected original root, and incremental write identity",
+      "Loaded frame replacement URL, disconnected original root, parent-realm mutation record, and incremental write identity",
       "Popup inherited base, message origin/source, history length and buffer aliases",
       "Popup and opener identity survive root reload",
       "Parent popup document.open retains history state and rewrites URL/base",
@@ -44,17 +45,17 @@
     ]
   },
   "artifactsSha256": {
-    "RenderProof.cs.txt": "a3af4833e1df95cd6e6e944c2be7cd7102cd1de0337ae71b6920ca0c7c3d996e",
+    "RenderProof.cs.txt": "f2b8ea9e7a97fcfc16b0acd63e02595ab8351d323f9c4f0efb5ba377c166d4d3",
     "source.html": "359176af56e7d6e1e58ec75c1f5e36de74d086d2a2a98e55e0785538edd465d9",
-    "integrated-360.png": "cfe4476e225660dada56ed4559fb07f801586a880896eda12cd3c8b60bb16138",
-    "integrated-720.png": "4c92b65195726a33f2387392ac54555ffcf81c4028a1a3a95f5c5bfa919ac285",
-    "reloaded-360.png": "a74156c14bcdcaaa88d9734e996127c596fdad56b11421ef2af8598eff38e1b2",
-    "reloaded-720.png": "c6cefb6c68a4ceba569ff87b34b29ecd1d10a3afa19577dfd60d237c45a0886a"
+    "integrated-360.png": "74de19abe3d087d18a36ef85c3a848c14ce9c3c74a6676c150c2a57f731aa590",
+    "integrated-720.png": "ec38d63f8369866340cadfe8e09cdf28e9af4bbb376fe6b9be14c0ffe3654913",
+    "reloaded-360.png": "b215eb132de8b2faf1564edbbab0702c96d6ce78ae1444a1ee3709a411b6ceda",
+    "reloaded-720.png": "970126e0533bb25f28242708b2e31f9c25c00fc6843b4aecab0aa0af66038193"
   },
   "limits": [
     "Not an official WPT harness run or a complete navigation qualification.",
     "Cross-realm child-defined window functions and wider Navigation API behavior remain open.",
     "Popup itself is asserted in script but not separately rendered.",
-    "The earlier combined proof's cross-document MutationObserver assertion was intermittent under repeated fresh sessions; this proof uses direct DOM replacement assertions, while the focused native/document tests cover observer behavior separately."
+    "The mutation-record proof covers a same-origin parent-created observer on a loaded srcdoc frame; wider cross-agent observer scheduling remains unqualified."
   ]
 }
