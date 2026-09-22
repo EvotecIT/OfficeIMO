@@ -59,11 +59,22 @@ candidate's preservation or snapshot behavior.
 
 ## Reproduce
 
-From a clean checkout of either commit:
+For the load-and-inspect comparison, run the following commands from clean
+checkouts of `456fe132b9f015e5cce67500dd8987e5fb6f4b9a` and
+`50ab5b3180d539f53ee897b4d256dc1d8926ec1b`:
 
 ```powershell
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Visio.Benchmarks -- validate
-dotnet run -c Release -f net10.0 --no-build --project .\OfficeIMO.Visio.Benchmarks -- evidence --repeat 3 --json .\.benchmark-artifacts\visio\evidence.json
+dotnet run -c Release -f net10.0 --no-build --project .\OfficeIMO.Visio.Benchmarks -- evidence --repeat 3 --json .\.benchmark-artifacts\visio\load-inspect-evidence.json
+```
+
+For the create/save package-buffer comparison, run these commands from clean
+checkouts of `0f8249112db9dab17d5d8dda6e8c433d7aa881f0` and
+`26cd501ba3f58e50a00d73bb02c279da91c40a2a`:
+
+```powershell
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Visio.Benchmarks -- validate
+dotnet run -c Release -f net10.0 --no-build --project .\OfficeIMO.Visio.Benchmarks -- evidence --repeat 5 --json .\.benchmark-artifacts\visio\package-buffer-evidence.json
 ```
 
 The isolated runner records its source commit, dirty-tree state, runtime,
