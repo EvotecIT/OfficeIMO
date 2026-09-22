@@ -24,10 +24,30 @@ public sealed class HtmlSecurityLayoutBatchTests {
     }
 
     [Fact]
+    public void CustomPropertyExpansionStopsBeforeExponentialOutput() {
+        var values = new Dictionary<string, string>(StringComparer.Ordinal) { ["--p0"] = "x" };
+        for (int index = 1; index <= 20; index++)
+            values[$"--p{index}"] = $"var(--p{index - 1})var(--p{index - 1})";
+
+        Assert.False(HtmlCssCustomPropertyResolver.TryResolve("var(--p20)",
+            name => values.TryGetValue(name, out string? value) ? value : null, out _));
+        Assert.True(HtmlCssCustomPropertyResolver.TryResolve("var(--p4)",
+            name => values.TryGetValue(name, out string? value) ? value : null, out string resolved));
+        Assert.Equal(new string('x', 16), resolved);
+    }
+
+    [Fact]
     public void ClipPathRejectsExcessivePolygonVerticesBeforeMaterializingThem() {
         string polygon = "polygon(" + string.Join(",", Enumerable.Repeat("1px 1px", 4097)) + ")";
 
         Assert.False(HtmlCssClipPathParser.IsSupportedSyntax(polygon));
+    }
+
+    [Fact]
+    public void ClipPathCountsOnlyTopLevelPolygonCommas() {
+        string polygon = "polygon(" + string.Join(",", Enumerable.Repeat("clamp(0px,1px,2px) 1px", 2049)) + ")";
+
+        Assert.True(HtmlCssClipPathParser.IsSupportedSyntax(polygon));
     }
 
     [Fact]
@@ -131,6 +151,18 @@ public sealed class HtmlSecurityLayoutBatchTests {
     }
 
     [Fact]
+    public void TrustedRegistrationsCanUseLongSyntaxWithMoreThanSixteenAlternatives() {
+        string syntax = string.Join("|", Enumerable.Repeat("<color>", 40));
+        string html = "<style>@property --tone{syntax:'" + syntax +
+            "';inherits:false;initial-value:red}div{--tone:blue}p{color:var(--tone)}</style>" +
+            "<div><p>Text</p></div>";
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            html, HtmlConversionDocumentOptions.CreateTrustedProfile());
+
+        Assert.Equal("red", HtmlComputedStyleEngine.Compute(document)[document.Document.QuerySelector("p")!].GetValue("color"));
+    }
+
+    [Fact]
     public void ZeroWidthLeaderCannotExpandIntoAnUnboundedString() {
         string html = "<style>p::before{content:leader('" + new string('\u200b', 1000) +
             "')}</style><p>x</p>";
@@ -206,7 +238,7 @@ public sealed class HtmlSecurityLayoutBatchTests {
 
         HtmlRenderTestDriver.Render(html, options);
 
-        Assert.Contains(callbackInputs, value => value.Length == 16385 && char.IsLowSurrogate(value[value.Length - 1]));
+        Assert.Contains(token, callbackInputs);
         Assert.DoesNotContain(callbackInputs, value => value.Length > 0 && char.IsHighSurrogate(value[value.Length - 1]));
     }
 

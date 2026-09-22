@@ -11,6 +11,8 @@ internal sealed class HtmlCssProcessingBudget {
         _limits = (limits ?? HtmlConversionLimits.CreateTrustedProfile()).Clone();
     }
 
+    internal bool HasDeclarationLimit => _limits.MaxCssDeclarations.HasValue;
+
     internal void RecordRule(int declarationCount) {
         _rules++;
         if (_limits.MaxCssRules.HasValue && _rules > _limits.MaxCssRules.Value) {

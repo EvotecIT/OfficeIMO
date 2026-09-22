@@ -104,8 +104,8 @@ public static partial class HtmlComputedStyleEngine {
         }
 
         if (!validName || string.IsNullOrWhiteSpace(syntax) || !inherits.HasValue) return false;
-        if (syntax!.Length > 256 || initialValue?.Length > 1024
-            || syntax.Split('|').Length > 16) return false;
+        if (budget.HasDeclarationLimit && (syntax!.Length > 256 || initialValue?.Length > 1024
+            || syntax.Split('|').Length > 16)) return false;
         if (syntax != "*" && string.IsNullOrWhiteSpace(initialValue)) return false;
         if (!string.IsNullOrWhiteSpace(initialValue)
             && (HtmlCssCustomPropertyResolver.ContainsVarFunction(initialValue!)

@@ -4,10 +4,25 @@ internal static class HtmlCssCustomPropertyResolver {
     private const int MaximumDepth = 32;
     private const int MaximumSyntaxDepth = 256;
     private const int MaximumSyntaxCharacters = 262144;
+    private const int MaximumResolvedCharacters = 262144;
+    private const int MaximumResolutionWork = 8 * 1024 * 1024;
+    private const int MaximumSubstitutions = 4096;
+
+    private sealed class ResolutionBudget {
+        internal int RemainingWork = MaximumResolutionWork;
+        internal int RemainingSubstitutions = MaximumSubstitutions;
+
+        internal bool Charge(int characters) {
+            if (characters > RemainingWork || RemainingSubstitutions-- <= 0) return false;
+            RemainingWork -= characters;
+            return true;
+        }
+    }
 
     internal static bool TryResolve(string value, Func<string, string?> lookup, out string resolved) {
         if (lookup == null) throw new ArgumentNullException(nameof(lookup));
-        return TryResolve(value ?? string.Empty, lookup, new HashSet<string>(StringComparer.Ordinal), 0, out resolved);
+        return TryResolve(value ?? string.Empty, lookup, new HashSet<string>(StringComparer.Ordinal),
+            new ResolutionBudget(), 0, out resolved);
     }
 
     internal static bool ContainsVarFunction(string value) =>
@@ -104,11 +119,14 @@ internal static class HtmlCssCustomPropertyResolver {
     private static bool IsMatchingDelimiter(char open, char close) =>
         open == '(' && close == ')' || open == '[' && close == ']' || open == '{' && close == '}';
 
-    private static bool TryResolve(string value, Func<string, string?> lookup, ISet<string> resolving, int depth, out string resolved) {
+    private static bool TryResolve(string value, Func<string, string?> lookup, ISet<string> resolving,
+        ResolutionBudget budget, int depth, out string resolved) {
         resolved = value;
-        if (depth > MaximumDepth) return false;
+        if (depth > MaximumDepth || value.Length > MaximumResolvedCharacters) return false;
         int searchStart = 0;
-        while (TryFindVarFunction(resolved, searchStart, out int start, out int open, out int close)) {
+        while (true) {
+            if (!budget.Charge(resolved.Length)) return false;
+            if (!TryFindVarFunction(resolved, searchStart, out int start, out int open, out int close)) break;
             string arguments = resolved.Substring(open + 1, close - open - 1);
             SplitArguments(arguments, out string propertyName, out string? fallback);
             if (!propertyName.StartsWith("--", StringComparison.Ordinal) || propertyName.Length <= 2) return false;
@@ -117,18 +135,19 @@ internal static class HtmlCssCustomPropertyResolver {
             bool added = resolving.Add(propertyName);
             if (added) {
                 string? customValue = lookup(propertyName);
-                if (customValue != null && TryResolve(customValue, lookup, resolving, depth + 1, out string customResolved)) {
+                if (customValue != null && TryResolve(customValue, lookup, resolving, budget, depth + 1, out string customResolved)) {
                     replacement = customResolved;
                 }
 
                 resolving.Remove(propertyName);
             }
 
-            if (replacement == null && fallback != null && TryResolve(fallback, lookup, resolving, depth + 1, out string fallbackResolved)) {
+            if (replacement == null && fallback != null && TryResolve(fallback, lookup, resolving, budget, depth + 1, out string fallbackResolved)) {
                 replacement = fallbackResolved;
             }
 
             if (replacement == null) return false;
+            if (replacement.Length > MaximumResolvedCharacters - (resolved.Length - (close - start + 1))) return false;
             resolved = resolved.Substring(0, start) + replacement + resolved.Substring(close + 1);
             searchStart = Math.Max(0, start + replacement.Length);
         }

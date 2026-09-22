@@ -147,10 +147,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         split = -1;
         ChargeLayoutOperations(token.Length, "first-line token search");
         string searchToken = GetFirstLineSearchToken(token, firstLineStyle, width);
-        HyphenationToken hyphenation = PrepareHyphenationToken(searchToken, searchToken, layoutStyle);
+        HyphenationToken hyphenation = PrepareHyphenationToken(token, token, layoutStyle);
         if (hyphenation.HasBreaks) {
             int[] candidates = hyphenation.PrimaryBreaks.Concat(hyphenation.SecondaryBreaks)
-                .Where(point => point > 0 && point < hyphenation.LogicalText.Length &&
+                .Where(point => point > 0 && point < searchToken.Length &&
                     point < hyphenation.SourceBoundaries.Count)
                 .Distinct().OrderBy(point => point).ToArray();
             int point = FindLargestFittingFirstLineBreak(

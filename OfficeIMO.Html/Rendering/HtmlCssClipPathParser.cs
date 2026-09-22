@@ -202,8 +202,8 @@ internal static class HtmlCssClipPathParser {
         double containerHeight,
         out HtmlCssResolvedClipPath? resolved) {
         resolved = null;
-        if (arguments.Count(character => character == ',') > MaximumPolygonVertices) return false;
-        IReadOnlyList<string> entries = HtmlRenderCssValues.SplitTopLevelCommas(arguments);
+        if (!HtmlRenderCssValues.TrySplitTopLevelCommas(arguments, MaximumPolygonVertices + 1,
+            out IReadOnlyList<string> entries)) return false;
         if (entries.Count < 3) return false;
         OfficeFillRule fillRule = OfficeFillRule.NonZero;
         int start = 0;

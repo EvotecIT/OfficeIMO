@@ -24,7 +24,11 @@ To set specific limits, pass `new HtmlConversionDocumentOptions { Limits = yourL
 
 `HtmlRenderOptions.MaxTextShadowLayers` now accepts values from 1 through 64. If an application set a value above 64, reduce it to 64 or less before rendering; larger values now throw `ArgumentOutOfRangeException` during option validation.
 
+A `text-shadow` declaration with more than 64 authored layers now falls back as an unsupported value instead of retaining the first configured layers. Simplify the declaration to at most 64 layers; `MaxTextShadowLayers` controls how many of those layers render.
+
 `HtmlRenderOptions.MaxLeaderCharacters` now limits each generated CSS `leader()` to 65,536 characters by default. Applications that render wider leaders can raise this positive limit on their render options. When the limit is exceeded, rendering throws `HtmlDomLimitException` instead of materializing the leader text.
+
+Quoted `leader()` patterns now accept at most 1,024 decoded characters and 2,048 source characters. Shorten longer patterns; raising `MaxLeaderCharacters` does not change these pattern limits.
 
 ## Native ChartForgeX topology placement
 
