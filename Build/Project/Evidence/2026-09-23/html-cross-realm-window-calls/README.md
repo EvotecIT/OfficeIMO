@@ -35,8 +35,15 @@ new receiver regression covers direct, extracted, primitive, DOM, parent-window
 and unsupported-object calls. The surrounding tests cover stable function
 identity, reentry, child errors, popup and frame retirement, and origin checks.
 
-The earlier [combined document and popup proof](../../2026-09-22/html-document-popup/README.md)
+At OfficeIMO code revision `f157343dc3f0be6bc3da71692675e1498d19943c`, the
+full single-worker .NET 10 runtime suite passed 646/646 with no skips. Final
+.NET 8 focused selections passed 68/68 for document input and auxiliary
+windows, and 43/43 for resizable/history state and traversal. These checks use
+the same provider commits listed above; they do not constitute a full .NET 8
+runtime-suite or Windows/Linux runtime run.
+
+The earlier [combined navigation proof](../../2026-09-22/html-navigation-combined/README.md)
 contains the representative rendered workflow at 360 and 720 pixels. This
 checkpoint changes a nonvisual script-call boundary; it does not add a new
-render. The full runtime suite, general cross-realm object/property semantics,
-and remaining navigation milestones are not qualified by these checks.
+render. General cross-realm object/property semantics and broader navigation
+milestones remain outside this bounded qualification.
