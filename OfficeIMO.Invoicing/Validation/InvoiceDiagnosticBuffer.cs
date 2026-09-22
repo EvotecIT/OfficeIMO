@@ -13,6 +13,11 @@ internal sealed class InvoiceDiagnosticBuffer {
     internal void MarkWorkStopped() => _workStopped = true;
 
     internal void Add(InvoiceDiagnostic diagnostic) {
+        if (diagnostic.Code == IncompleteCode) {
+            MarkWorkStopped();
+            Omit(InvoiceDiagnosticSeverity.Error);
+            return;
+        }
         if (diagnostic.Severity == InvoiceDiagnosticSeverity.Error) HasErrors = true;
         if (_details.Count < MaximumDetails) _details.Add(diagnostic);
         else Omit(diagnostic.Severity);
@@ -35,11 +40,12 @@ internal sealed class InvoiceDiagnosticBuffer {
 
     internal List<InvoiceDiagnostic> ToList() {
         var result = new List<InvoiceDiagnostic>(_details);
-        if (_omitted != 0) result.Add(new InvoiceDiagnostic(_workStopped ? IncompleteCode : "INV-DIAGNOSTICS-TRUNCATED",
-            _workStopped
+        bool incomplete = _workStopped && !HasErrors;
+        if (_omitted != 0) result.Add(new InvoiceDiagnostic(incomplete ? IncompleteCode : "INV-DIAGNOSTICS-TRUNCATED",
+            incomplete
                 ? "Diagnostic work stopped at the report limit; additional findings may have been omitted."
                 : _omitted + " additional diagnostics were omitted; this summary retains their highest severity.",
-            "Invoice", _workStopped ? InvoiceDiagnosticSeverity.Error : _omittedSeverity));
+            "Invoice", incomplete ? InvoiceDiagnosticSeverity.Error : _omittedSeverity));
         return result;
     }
 }

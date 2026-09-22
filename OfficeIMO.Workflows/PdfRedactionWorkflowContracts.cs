@@ -260,6 +260,9 @@ public sealed class PdfRedactionWorkflowRequest {
     /// <summary>Input PDF path.</summary>
     public required string InputPath { get; set; }
     internal string? PhysicalInputRoot { get; set; }
+    internal string? PhysicalOutputRoot { get; set; }
+    internal string? PhysicalOutputPublicationPath { get; set; }
+    internal string? PhysicalEvidencePublicationPath { get; set; }
     /// <summary>Output PDF path for apply, or existing output PDF path for verify.</summary>
     public string? OutputPath { get; set; }
     /// <summary>Optional privacy-safe JSON result/evidence path.</summary>

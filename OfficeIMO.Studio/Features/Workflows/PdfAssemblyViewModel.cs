@@ -208,9 +208,11 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
                 Status = _localizer.GetOrDefault($"Workflow.Progress.{update.Stage}", update.Message);
                 job?.Report(update);
             });
-            ownerStarted = true;
             PdfAssemblyResult result = await Task.Run(
-                () => _runner.AssemblePdfAsync(request, progress, operation.Token), operation.Token).ConfigureAwait(true);
+                () => {
+                    ownerStarted = true;
+                    return _runner.AssemblePdfAsync(request, progress, operation.Token);
+                }, operation.Token).ConfigureAwait(true);
             job?.Complete(result.Status, result.OutputPath, result.Summary, result.Recovery);
             HasRecovery = result.Recovery is not null;
             Summary = result.Summary;

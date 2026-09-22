@@ -1,4 +1,5 @@
 using OfficeIMO.Pdf;
+using OfficeIMO.Studio.Features.Reader;
 
 namespace OfficeIMO.Studio.Features.Workspace;
 
@@ -16,7 +17,8 @@ internal sealed partial class PdfWorkspace {
         foreach (string source in sources) {
             token.ThrowIfCancellationRequested();
             if (remainingBytes == 0) throw new IOException("The selected PDFs exceed the 512 MiB import limit. Import fewer documents at a time.");
-            var snapshot = await _storage.ReadSnapshotAsync(source, token, remainingBytes).ConfigureAwait(true);
+            var snapshot = await _storage.ReadSnapshotAsync(source, token,
+                Math.Min(remainingBytes, StudioPdfSecurityPolicy.MaximumInputBytes)).ConfigureAwait(true);
             remainingBytes -= snapshot.Bytes.LongLength;
             string name = _storage.Describe(source).Name;
             string? password = null;
@@ -24,7 +26,7 @@ internal sealed partial class PdfWorkspace {
                 bool invalidPassword;
                 try {
                     int count = await RunCancellableCpuWorkAsync(() => PdfDocument.Load(snapshot.Bytes,
-                        new PdfLoadOptions { Password = password }).Inspect().PageCount, token).ConfigureAwait(true);
+                        StudioPdfSecurityPolicy.CreateLoadOptions(password)).Inspect().PageCount, token).ConfigureAwait(true);
                     captured.Add(new(name, snapshot.Bytes, password, count));
                     break;
                 } catch (PdfPasswordRequiredException) when (promptPassword is not null) { invalidPassword = false; }
@@ -47,7 +49,8 @@ internal sealed partial class PdfWorkspace {
             selected.Any(item => item.SourceIndex < 0 || item.SourceIndex >= preparation.Sources.Count || item.Pages.Length == 0))
             throw new ArgumentException("Choose distinct import sources and their pages.", nameof(selections));
         long imported = selected.Sum(item => (long)item.Pages.Length);
-        if (imported > PdfImportPreparation.MaximumImportedPages) throw new ArgumentException("An import cannot exceed 100,000 selected pages.");
+        if (imported < 1 || preparation.TargetPageCount + imported > PdfImportPreparation.MaximumImportedPages)
+            throw new ArgumentException($"The resulting PDF cannot exceed {PdfImportPreparation.MaximumImportedPages:N0} pages.", nameof(selections));
         string description = $"Imported {imported} pages from {selected.Length} PDF documents";
         await MutateAsync(PdfWorkspaceOperationKind.Import, description, [], document => {
             if (preparation.Revision != Revision) throw new InvalidOperationException("The document changed after import preparation.");

@@ -10,10 +10,13 @@ public sealed partial class OfficeWorkflowRunner {
         IProgress<OfficeWorkflowProgress>? progress = null,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
-        PdfRedactionWorkflowRequest[] items = await BuildBatchItemsAsync(request, cancellationToken).ConfigureAwait(false);
+        BuiltRedactionBatch built = await BuildBatchItemsAsync(request, cancellationToken).ConfigureAwait(false);
+        PdfRedactionWorkflowRequest[] items = built.Items;
+        string manifestPath = Path.GetFullPath(request.ManifestPath);
+        string physicalManifestPath = built.PhysicalManifestPath;
         PdfRedactionBatchResult result;
         if (request.PublicationPolicy == PdfRedactionBatchPublicationPolicy.AtomicAll) {
-            return await RunAtomicRedactionBatchAsync(items, Path.GetFullPath(request.ManifestPath), request.Limits.MaximumEvidenceBytes, request.ConflictPolicy, progress, cancellationToken).ConfigureAwait(false);
+            return await RunAtomicRedactionBatchAsync(items, physicalManifestPath, request.Limits.MaximumEvidenceBytes, request.ConflictPolicy, progress, cancellationToken).ConfigureAwait(false);
         } else {
             result = await RunContinuePerItemBatchAsync(items, progress, cancellationToken).ConfigureAwait(false);
         }
@@ -21,23 +24,32 @@ public sealed partial class OfficeWorkflowRunner {
         byte[] manifest = JsonSerializer.SerializeToUtf8Bytes(new PdfRedactionBatchRecord(result), PdfRedactionWorkflowJsonContext.Default.PdfRedactionBatchRecord);
         if (manifest.LongLength > request.Limits.MaximumEvidenceBytes) throw new InvalidOperationException("Privacy-safe redaction batch manifest exceeds the configured evidence-byte limit.");
         try {
-            PublishPreparedFiles(new[] { new PreparedFile(Path.GetFullPath(request.ManifestPath), manifest) }, request.ConflictPolicy, cancellationToken);
+            PublishPreparedFiles(new[] { new PreparedFile(manifestPath, manifest, physicalManifestPath) }, request.ConflictPolicy, cancellationToken);
             return result;
         } catch (Exception exception) when (exception is not OutOfMemoryException and not StackOverflowException and not OperationCanceledException) {
             return new PdfRedactionBatchResult(OfficeWorkflowStatus.Failed, result.Items, result.PublishedAtomically, "Batch items completed, but the consolidated privacy-safe manifest could not be published: " + exception.GetType().Name + ".");
         }
     }
 
-    private static async Task<PdfRedactionWorkflowRequest[]> BuildBatchItemsAsync(PdfRedactionBatchRequest batch, CancellationToken cancellationToken) {
+    private static async Task<BuiltRedactionBatch> BuildBatchItemsAsync(PdfRedactionBatchRequest batch, CancellationToken cancellationToken) {
         ValidateBatchRequest(batch);
         string inputRoot = Path.GetFullPath(batch.InputRoot);
         string evidenceRoot = Path.GetFullPath(batch.EvidenceRoot);
+        string physicalEvidenceRoot = OfficeWorkflowPathIdentity.ResolvePhysicalPath(evidenceRoot);
         string? outputRoot = NormalizeOptionalPath(batch.OutputRoot);
+        string? physicalOutputRoot = outputRoot is null ? null : OfficeWorkflowPathIdentity.ResolvePhysicalPath(outputRoot);
         string? decisionsRoot = NormalizeOptionalPath(batch.DecisionsRoot);
         string? physicalDecisionsRoot = decisionsRoot is null ? null : OfficeWorkflowPathIdentity.ResolvePhysicalPath(decisionsRoot);
         string manifestPath = Path.GetFullPath(batch.ManifestPath);
         var protectedPaths = batch.ProtectedInputPaths.Select(Path.GetFullPath).ToArray();
         string physicalInputRoot = OfficeWorkflowPathIdentity.ResolvePhysicalPath(inputRoot);
+        var physicalProtectedInputs = protectedPaths.Select(OfficeWorkflowPathIdentity.ResolvePhysicalPath).ToList();
+        string physicalManifestPath = Path.Combine(
+            OfficeWorkflowPathIdentity.ResolvePhysicalPath(Path.GetDirectoryName(manifestPath)!),
+            Path.GetFileName(manifestPath));
+        if (IsPathWithin(physicalInputRoot, physicalManifestPath) ||
+            IsPathWithin(inputRoot, manifestPath))
+            throw new ArgumentException("The redaction batch manifest cannot replace an input.");
 
         string[] sourcePaths;
         if (batch.InputPaths.Count == 0) {
@@ -64,6 +76,8 @@ public sealed partial class OfficeWorkflowRunner {
         EnsurePortableUniquePaths(sourcePaths, "Batch inputs");
         var requests = new PdfRedactionWorkflowRequest[sourcePaths.Length];
         var destinations = new List<string>(sourcePaths.Length * 2 + 1) { manifestPath };
+        var physicalDestinations = new List<string>(sourcePaths.Length * 2 + 1) { physicalManifestPath };
+        var physicalSources = new List<string>(sourcePaths.Length);
         var decisionPaths = new List<string>(sourcePaths.Length);
         for (int index = 0; index < sourcePaths.Length; index++) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -71,24 +85,29 @@ public sealed partial class OfficeWorkflowRunner {
             if (!File.Exists(sourcePath)) throw new FileNotFoundException("A selected redaction batch input was not found.", sourcePath);
             if (!string.Equals(Path.GetExtension(sourcePath), ".pdf", StringComparison.OrdinalIgnoreCase)) throw new ArgumentException("Every redaction batch input must be a PDF.");
             string physicalSourcePath = OfficeWorkflowPathIdentity.ResolvePhysicalPath(sourcePath);
-            if (!OfficeWorkflowPathIdentity.IsSameOrDescendant(physicalSourcePath, physicalInputRoot)) throw new ArgumentException("A selected redaction batch input physically escapes its configured input root.");
+            if (!IsPathWithin(physicalInputRoot, physicalSourcePath)) throw new ArgumentException("A selected redaction batch input physically escapes its configured input root.");
+            physicalSources.Add(physicalSourcePath);
             string relativePath = Path.GetRelativePath(inputRoot, sourcePath);
             string relativeDirectory = Path.GetDirectoryName(relativePath) ?? string.Empty;
             string stem = Path.GetFileNameWithoutExtension(relativePath);
             string evidencePath = Path.Combine(evidenceRoot, relativeDirectory, stem + batch.EvidenceSuffix);
             string? outputPath = outputRoot is null ? null : Path.Combine(outputRoot, relativeDirectory, stem + batch.OutputSuffix);
             string? decisionsPath = decisionsRoot is null ? null : Path.Combine(decisionsRoot, relativeDirectory, stem + batch.DecisionsSuffix);
-            EnsureGeneratedPathWithinRoot(evidencePath, evidenceRoot, "evidence");
-            if (outputPath is not null) EnsureGeneratedPathWithinRoot(outputPath, outputRoot!, "output");
+            string physicalEvidencePath = ResolveGeneratedPathWithinRoot(evidencePath, physicalEvidenceRoot, "evidence");
+            string? physicalOutputPath = outputPath is null ? null : ResolveGeneratedPathWithinRoot(outputPath, physicalOutputRoot!, "output");
             if (decisionsPath is not null) {
-                EnsureGeneratedPathWithinRoot(decisionsPath, decisionsRoot!, "decision");
+                physicalProtectedInputs.Add(ResolveGeneratedPathWithinRoot(decisionsPath, physicalDecisionsRoot!, "decision"));
                 decisionPaths.Add(decisionsPath);
             }
             PdfRedactionDecisionManifest? decisions = decisionsPath is null
                 ? null
                 : await ReadDecisionManifestAsync(decisionsPath, physicalDecisionsRoot!, cancellationToken).ConfigureAwait(false);
             destinations.Add(evidencePath);
-            if (outputPath is not null && batch.Mode == PdfRedactionWorkflowMode.ApplyAndVerify) destinations.Add(outputPath);
+            physicalDestinations.Add(physicalEvidencePath);
+            if (outputPath is not null && batch.Mode == PdfRedactionWorkflowMode.ApplyAndVerify) {
+                destinations.Add(outputPath);
+                physicalDestinations.Add(physicalOutputPath!);
+            }
             var itemProtectedPaths = protectedPaths.Append(sourcePath);
             if (decisionsPath is not null) itemProtectedPaths = itemProtectedPaths.Append(decisionsPath);
             requests[index] = new PdfRedactionWorkflowRequest {
@@ -96,6 +115,9 @@ public sealed partial class OfficeWorkflowRunner {
                 Mode = batch.Mode,
                 InputPath = sourcePath,
                 PhysicalInputRoot = physicalInputRoot,
+                PhysicalOutputRoot = physicalOutputRoot,
+                PhysicalOutputPublicationPath = physicalOutputPath,
+                PhysicalEvidencePublicationPath = physicalEvidencePath,
                 OutputPath = outputPath,
                 EvidencePath = evidencePath,
                 ProtectedInputPaths = itemProtectedPaths.ToArray(),
@@ -114,9 +136,15 @@ public sealed partial class OfficeWorkflowRunner {
             };
         }
         EnsurePortableUniquePaths(destinations, "Batch destinations");
+        EnsurePortableUniquePaths(physicalDestinations, "Physical batch destinations");
         EnsurePortableUniquePaths(decisionPaths, "Batch decision inputs");
         EnsureDestinationsOutsideInputs(destinations, sourcePaths, protectedPaths.Concat(decisionPaths));
-        return requests;
+        foreach (string destination in physicalDestinations) {
+            if (physicalSources.Concat(physicalProtectedInputs).Any(path =>
+                string.Equals(destination, path, StringComparison.OrdinalIgnoreCase)))
+                throw new ArgumentException("A physical redaction batch destination cannot replace a reviewed input.");
+        }
+        return new BuiltRedactionBatch(requests, physicalManifestPath);
     }
 
     private static async Task<PdfRedactionDecisionManifest> ReadDecisionManifestAsync(string path, string physicalRoot, CancellationToken cancellationToken) {
@@ -191,10 +219,10 @@ public sealed partial class OfficeWorkflowRunner {
         return !Path.IsPathRooted(relative) && relative != ".." && !relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal) && !relative.StartsWith(".." + Path.AltDirectorySeparatorChar, StringComparison.Ordinal);
     }
 
-    private static void EnsureGeneratedPathWithinRoot(string path, string root, string kind) {
-        string physicalRoot = OfficeWorkflowPathIdentity.ResolvePhysicalPath(root);
+    private static string ResolveGeneratedPathWithinRoot(string path, string physicalRoot, string kind) {
         string physicalPath = OfficeWorkflowPathIdentity.ResolvePhysicalPath(path);
-        if (!OfficeWorkflowPathIdentity.IsSameOrDescendant(physicalPath, physicalRoot)) throw new ArgumentException($"A redaction batch {kind} path physically escapes its configured root.");
+        if (!IsPathWithin(physicalRoot, physicalPath)) throw new ArgumentException($"A redaction batch {kind} path physically escapes its configured root.");
+        return physicalPath;
     }
 
     private static void EnsurePortableUniquePaths(IEnumerable<string> paths, string kind) {
@@ -211,4 +239,6 @@ public sealed partial class OfficeWorkflowRunner {
             if (forbidden.Any(path => OfficeWorkflowPathIdentity.AreEquivalentWithPortableFallback(destination, path))) throw new ArgumentException("A redaction batch destination cannot replace a source, decision, manifest definition, or protected host input.");
         }
     }
+
+    private sealed record BuiltRedactionBatch(PdfRedactionWorkflowRequest[] Items, string PhysicalManifestPath);
 }

@@ -18,6 +18,20 @@ public class InvoiceValidationBoundaryTests {
     }
 
     [Fact]
+    public void ExcessiveKnownInvalidSvrlRetainsTruncationStatus() {
+        var xml = new StringBuilder("<s:schematron-output xmlns:s='http://purl.oclc.org/dsdl/svrl'><s:fired-rule context='Invoice'/>");
+        for (int index = 0; index < 1100; index++)
+            xml.Append("<s:failed-assert id='invalid' flag='fatal'><s:text>Invalid</s:text></s:failed-assert>");
+        xml.Append("</s:schematron-output>");
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(xml.ToString()));
+
+        IReadOnlyList<InvoiceDiagnostic> result = SaxonInvoiceRulesRunner.ReadSvrl(stream, new Dictionary<string, InvoiceDiagnosticSeverity>());
+
+        Assert.Contains(result, d => d.Code == "INV-DIAGNOSTICS-TRUNCATED" && d.Severity == InvoiceDiagnosticSeverity.Error);
+        Assert.DoesNotContain(result, d => d.Code == "INV-DIAGNOSTICS-INCOMPLETE");
+    }
+
+    [Fact]
     public void EmptySvrlDoesNotCountAsExecutedRules() {
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes("<svrl:schematron-output xmlns:svrl='http://purl.oclc.org/dsdl/svrl'/>"));
         Assert.Throws<InvalidDataException>(() => SaxonInvoiceRulesRunner.ReadSvrl(stream, new Dictionary<string, InvoiceDiagnosticSeverity>()));
