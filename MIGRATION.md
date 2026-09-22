@@ -43,6 +43,14 @@ A `text-shadow` declaration with more than 64 authored layers now falls back as 
 
 Quoted `leader()` patterns now accept at most 1,024 decoded characters and 2,048 source characters. Shorten longer patterns; raising `MaxLeaderCharacters` does not change these pattern limits.
 
+## PDF invoice XML size
+
+The low-level Factur-X/ZUGFeRD XML carrier methods now reject invoice XML
+larger than 16 MiB, matching `PdfCiiInvoiceDocument.MaximumXmlBytes`.
+File overloads reject an oversized source before buffering. Applications that
+previously attached larger XML must reduce or split the payload before using
+these methods.
+
 ## Native ChartForgeX topology placement
 
 `OfficeVisioVisualOptions.LayoutMode` defaults to `Auto`. A topology envelope with complete viewport, node, and included-group bounds now keeps those bounds instead of being laid out again. `PixelsPerInch` controls their physical size. Set `LayoutMode = OfficeVisioVisualLayoutMode.Reflow` to retain the previous native-layout behavior. Flow, sequence, and incomplete topology envelopes continue to use native layout in `Auto` mode. Native graph styling now uses source theme colors with portable Arial text; set `NativeTheme = VisioStyleTheme.Technical()` to retain the previous native palette and typography.

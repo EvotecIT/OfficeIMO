@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Text;
 using OfficeIMO.Pdf;
 using Xunit;
@@ -245,6 +246,35 @@ public class PdfAIdentificationMetadataTests {
             if (System.IO.File.Exists(invoicePath)) {
                 System.IO.File.Delete(invoicePath);
             }
+        }
+    }
+
+    [Fact]
+    public void FacturXInvoiceXmlBytesRejectOversizedPayloadBeforeOptionsMutation() {
+        byte[] oversized = new byte[PdfCiiInvoiceDocument.MaximumXmlBytes + 1];
+        var options = new PdfOptions();
+
+        Assert.Throws<InvalidDataException>(() => options.AddFacturXInvoiceXml(oversized));
+        Assert.Empty(options.EmbeddedFiles);
+        Assert.Null(options.ElectronicInvoiceMetadata);
+    }
+
+    [Fact]
+    public void FacturXInvoiceXmlFileHelpersRejectOversizedPayloadBeforeReading() {
+        string path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "officeimo-facturx-limit-" + Guid.NewGuid().ToString("N") + ".xml");
+        using (var stream = System.IO.File.Create(path)) {
+            stream.SetLength(PdfCiiInvoiceDocument.MaximumXmlBytes + 1L);
+        }
+        try {
+            var options = new PdfOptions();
+            Assert.Throws<InvalidDataException>(() => options.AddFacturXInvoiceXmlFile(path));
+            Assert.Throws<InvalidDataException>(() => options.ConfigureFacturXGroundworkFile(path));
+            Assert.Throws<InvalidDataException>(() => options.UseFacturXFile(path));
+            Assert.Throws<InvalidDataException>(() => options.ConfigureElectronicInvoiceGroundworkFile(PdfComplianceProfile.FacturX, path));
+            Assert.Empty(options.EmbeddedFiles);
+            Assert.Null(options.ElectronicInvoiceMetadata);
+        } finally {
+            System.IO.File.Delete(path);
         }
     }
 
