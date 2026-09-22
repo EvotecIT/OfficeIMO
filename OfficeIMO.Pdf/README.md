@@ -1578,6 +1578,10 @@ carrier configuration. Omit `conformanceLevel` to derive canonical XMP metadata
 from the XML guideline. An explicit conflicting profile, an unknown guideline,
 or an ambiguous declaration is rejected. Generation and exact PDF readback also
 check XML/XMP agreement when metadata and attachments are supplied separately.
+The low-level Factur-X/ZUGFeRD carrier methods accept at most 16 MiB of invoice
+XML, matching `PdfCiiInvoiceDocument.MaximumXmlBytes`. File overloads check
+this limit before buffering. Split or reduce a larger XML payload before
+attaching it; this limit does not establish schema or business-rule validity.
 The XMP `version` is `1.0`, not a Factur-X release number.
 The application must keep visible invoice content and
 XML consistent and validate the resulting invoice/PDF pair for its declared profile.

@@ -768,7 +768,7 @@ public sealed partial class PdfOptions {
         PdfAssociatedFileRelationship relationship = PdfAssociatedFileRelationship.Data,
         string? description = "Factur-X/ZUGFeRD invoice XML") {
         Guard.NotNullOrWhiteSpace(ciiXmlPath, nameof(ciiXmlPath));
-        return AddFacturXInvoiceXml(System.IO.File.ReadAllBytes(ciiXmlPath), conformanceLevel, version, relationship, description);
+        return AddFacturXInvoiceXml(ReadFacturXInvoiceXmlFile(ciiXmlPath), conformanceLevel, version, relationship, description);
     }
 
     /// <summary>
@@ -841,7 +841,7 @@ public sealed partial class PdfOptions {
         string? description = "Factur-X/ZUGFeRD invoice XML",
         bool useDocumentFontFallback = true) {
         Guard.NotNullOrWhiteSpace(ciiXmlPath, nameof(ciiXmlPath));
-        return ConfigureFacturXGroundwork(System.IO.File.ReadAllBytes(ciiXmlPath), conformanceLevel, version, relationship, description, useDocumentFontFallback);
+        return ConfigureFacturXGroundwork(ReadFacturXInvoiceXmlFile(ciiXmlPath), conformanceLevel, version, relationship, description, useDocumentFontFallback);
     }
 
     /// <summary>
@@ -855,7 +855,7 @@ public sealed partial class PdfOptions {
         string? description = "Factur-X/ZUGFeRD invoice XML",
         PdfTextFallbackFeatures textFallbacks = PdfTextFallbackFeatures.DocumentFont) {
         Guard.NotNullOrWhiteSpace(ciiXmlPath, nameof(ciiXmlPath));
-        return UseFacturX(System.IO.File.ReadAllBytes(ciiXmlPath), conformanceLevel, version, relationship, description, textFallbacks);
+        return UseFacturX(ReadFacturXInvoiceXmlFile(ciiXmlPath), conformanceLevel, version, relationship, description, textFallbacks);
     }
 
     /// <summary>
@@ -885,7 +885,7 @@ public sealed partial class PdfOptions {
         string? description = "Factur-X/ZUGFeRD invoice XML",
         bool useDocumentFontFallback = true) {
         Guard.NotNullOrWhiteSpace(ciiXmlPath, nameof(ciiXmlPath));
-        return ConfigureElectronicInvoiceGroundwork(profile, System.IO.File.ReadAllBytes(ciiXmlPath), conformanceLevel, version, relationship, description, useDocumentFontFallback);
+        return ConfigureElectronicInvoiceGroundwork(profile, ReadFacturXInvoiceXmlFile(ciiXmlPath), conformanceLevel, version, relationship, description, useDocumentFontFallback);
     }
 
     /// <summary>Removes all embedded files associated with the generated PDF catalog.</summary>
@@ -1108,8 +1108,20 @@ public sealed partial class PdfOptions {
         PdfAssociatedFileRelationship relationship,
         string? description) {
         Guard.NotNullOrEmpty(ciiXml, nameof(ciiXml));
+        if (ciiXml.Length > PdfCiiInvoiceDocument.MaximumXmlBytes) {
+            throw new System.IO.InvalidDataException("CII XML exceeds the maximum byte length.");
+        }
         ValidateFacturXInvoiceRelationship(relationship);
         return new PdfEmbeddedFile("factur-x.xml", ciiXml, "application/xml", relationship, description);
+    }
+
+    private static byte[] ReadFacturXInvoiceXmlFile(string path) {
+        var file = new System.IO.FileInfo(System.IO.Path.GetFullPath(path));
+        if (file.Length > PdfCiiInvoiceDocument.MaximumXmlBytes) {
+            throw new System.IO.InvalidDataException("CII XML exceeds the maximum byte length.");
+        }
+        using var stream = new System.IO.FileStream(file.FullName, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.ReadWrite | System.IO.FileShare.Delete);
+        return OfficeIMO.Core.Internal.OfficeStreamReader.ReadRemainingBytes(stream, default, PdfCiiInvoiceDocument.MaximumXmlBytes);
     }
 
     private static void ValidateFacturXInvoiceRelationship(PdfAssociatedFileRelationship relationship) {
