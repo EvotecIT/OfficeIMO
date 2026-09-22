@@ -224,7 +224,7 @@ public sealed partial class BrowserConversionService {
         int pageCount,
         PdfDocument pdf,
         PdfImageExportOptions options) {
-        string baseName = Path.GetFileNameWithoutExtension(sourceFileName);
+        string baseName = CreatePortableArchiveBaseName(sourceFileName);
         int digits = Math.Max(3, pageCount.ToString(System.Globalization.CultureInfo.InvariantCulture).Length);
         int nextPageNumber = 1;
         var warnings = new List<PdfConversionWarning>();
@@ -254,6 +254,29 @@ public sealed partial class BrowserConversionService {
                 $"The PNG archive exceeds the browser output limit of {FormatBytes(MaximumPngArchiveBytes)}.");
         }
         return (output.ToArray(), warnings.AsReadOnly());
+    }
+
+    private static string CreatePortableArchiveBaseName(string sourceFileName) {
+        string leaf = sourceFileName[(sourceFileName.LastIndexOfAny(['/', '\\']) + 1)..];
+        int extensionStart = leaf.LastIndexOf('.');
+        string stem = extensionStart > 0 ? leaf[..extensionStart] : leaf;
+        var safe = new StringBuilder(Math.Min(stem.Length, 80));
+        foreach (char character in stem) {
+            if (safe.Length == 80) break;
+            safe.Append(char.IsLetterOrDigit(character) || character is '-' or '_'
+                ? character : '_');
+        }
+        string result = safe.ToString().Trim('_');
+        if (result.Length == 0) return "document";
+        if (result.Equals("CON", StringComparison.OrdinalIgnoreCase) ||
+            result.Equals("PRN", StringComparison.OrdinalIgnoreCase) ||
+            result.Equals("AUX", StringComparison.OrdinalIgnoreCase) ||
+            result.Equals("NUL", StringComparison.OrdinalIgnoreCase) ||
+            (result.Length == 4 && (result.StartsWith("COM", StringComparison.OrdinalIgnoreCase) ||
+                                    result.StartsWith("LPT", StringComparison.OrdinalIgnoreCase)) &&
+             result[3] is >= '1' and <= '9'))
+            return "document-" + result;
+        return result;
     }
 
     private static IReadOnlyList<PdfConversionWarning> MapImageDiagnostics(

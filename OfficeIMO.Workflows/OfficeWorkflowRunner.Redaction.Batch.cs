@@ -34,6 +34,7 @@ public sealed partial class OfficeWorkflowRunner {
         string evidenceRoot = Path.GetFullPath(batch.EvidenceRoot);
         string? outputRoot = NormalizeOptionalPath(batch.OutputRoot);
         string? decisionsRoot = NormalizeOptionalPath(batch.DecisionsRoot);
+        string? physicalDecisionsRoot = decisionsRoot is null ? null : OfficeWorkflowPathIdentity.ResolvePhysicalPath(decisionsRoot);
         string manifestPath = Path.GetFullPath(batch.ManifestPath);
         var protectedPaths = batch.ProtectedInputPaths.Select(Path.GetFullPath).ToArray();
         string physicalInputRoot = OfficeWorkflowPathIdentity.ResolvePhysicalPath(inputRoot);
@@ -85,7 +86,7 @@ public sealed partial class OfficeWorkflowRunner {
             }
             PdfRedactionDecisionManifest? decisions = decisionsPath is null
                 ? null
-                : await ReadDecisionManifestAsync(decisionsPath, cancellationToken).ConfigureAwait(false);
+                : await ReadDecisionManifestAsync(decisionsPath, physicalDecisionsRoot!, cancellationToken).ConfigureAwait(false);
             destinations.Add(evidencePath);
             if (outputPath is not null && batch.Mode == PdfRedactionWorkflowMode.ApplyAndVerify) destinations.Add(outputPath);
             var itemProtectedPaths = protectedPaths.Append(sourcePath);
@@ -94,6 +95,7 @@ public sealed partial class OfficeWorkflowRunner {
                 Id = "batch-" + ComputeSha256(System.Text.Encoding.UTF8.GetBytes(relativePath.Replace('\\', '/')))[..24],
                 Mode = batch.Mode,
                 InputPath = sourcePath,
+                PhysicalInputRoot = physicalInputRoot,
                 OutputPath = outputPath,
                 EvidencePath = evidencePath,
                 ProtectedInputPaths = itemProtectedPaths.ToArray(),
@@ -117,8 +119,8 @@ public sealed partial class OfficeWorkflowRunner {
         return requests;
     }
 
-    private static async Task<PdfRedactionDecisionManifest> ReadDecisionManifestAsync(string path, CancellationToken cancellationToken) {
-        byte[] bytes = await ReadFileBoundedAsync(path, 8L * 1024L * 1024L, cancellationToken).ConfigureAwait(false);
+    private static async Task<PdfRedactionDecisionManifest> ReadDecisionManifestAsync(string path, string physicalRoot, CancellationToken cancellationToken) {
+        byte[] bytes = await ReadFileBoundedAsync(path, 8L * 1024L * 1024L, cancellationToken, physicalRoot).ConfigureAwait(false);
         return JsonSerializer.Deserialize(bytes, PdfRedactionWorkflowJsonContext.Default.PdfRedactionDecisionManifest)
             ?? throw new JsonException("Redaction decision manifest was empty.");
     }

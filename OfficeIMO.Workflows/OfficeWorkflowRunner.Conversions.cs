@@ -12,6 +12,40 @@ using OfficeIMO.Word.Pdf;
 namespace OfficeIMO.Workflows;
 
 public sealed partial class OfficeWorkflowRunner {
+    private const long MaximumOpenXmlPartCharacters = 10L * 1024L * 1024L;
+
+    private static OfficePackageSecurityOptions CreateOpenXmlPackageSecurity(OfficeWorkflowLimits limits) {
+        OfficePackageSecurityOptions security = OfficePackageSecurityOptions.SecureDefaults;
+        security.MaxPackageBytes = limits.MaximumInputBytes;
+        security.MaxXmlCharactersInPart = MaximumOpenXmlPartCharacters;
+        return security;
+    }
+
+    private static OfficeOpenXmlLoadSettings CreateOpenXmlLoadSettings() => new() {
+        MaxCharactersInPart = MaximumOpenXmlPartCharacters
+    };
+
+    private static WordLoadOptions CreateWordLoadOptions(OfficeWorkflowLimits limits) => new() {
+        AccessMode = DocumentAccessMode.ReadOnly,
+        MaxInputBytes = limits.MaximumInputBytes,
+        PackageSecurity = CreateOpenXmlPackageSecurity(limits),
+        OpenSettings = CreateOpenXmlLoadSettings()
+    };
+
+    private static ExcelLoadOptions CreateExcelLoadOptions(OfficeWorkflowLimits limits) => new() {
+        AccessMode = DocumentAccessMode.ReadOnly,
+        MaxInputBytes = limits.MaximumInputBytes,
+        PackageSecurity = CreateOpenXmlPackageSecurity(limits),
+        OpenSettings = CreateOpenXmlLoadSettings()
+    };
+
+    private static PowerPointLoadOptions CreatePowerPointLoadOptions(OfficeWorkflowLimits limits) => new() {
+        AccessMode = DocumentAccessMode.ReadOnly,
+        MaxInputBytes = limits.MaximumInputBytes,
+        PackageSecurity = CreateOpenXmlPackageSecurity(limits),
+        OpenSettings = CreateOpenXmlLoadSettings()
+    };
+
     private static OperationArtifact Convert(
         ValidatedRequest request,
         List<OfficeWorkflowDiagnostic> diagnostics,
@@ -43,6 +77,7 @@ public sealed partial class OfficeWorkflowRunner {
                 using (var source = new MemoryStream(input, writable: false))
                 using (WordDocument document = WordDocument.LoadAsync(
                     source,
+                    CreateWordLoadOptions(request.Limits),
                     cancellationToken: cancellationToken).GetAwaiter().GetResult()) {
                     var options = new WordToPdfOptions();
                     options.UseProfile(ToPdfExportProfile(request.OutputProfile));
@@ -56,6 +91,7 @@ public sealed partial class OfficeWorkflowRunner {
                 using (var source = new MemoryStream(input, writable: false))
                 using (ExcelDocument document = ExcelDocument.LoadAsync(
                     source,
+                    CreateExcelLoadOptions(request.Limits),
                     cancellationToken: cancellationToken).GetAwaiter().GetResult()) {
                     var options = new ExcelToPdfOptions();
                     options.UseProfile(ToPdfExportProfile(request.OutputProfile));
@@ -70,6 +106,7 @@ public sealed partial class OfficeWorkflowRunner {
                 using (var source = new MemoryStream(input, writable: false))
                 using (PowerPointPresentation document = PowerPointPresentation.LoadAsync(
                     source,
+                    CreatePowerPointLoadOptions(request.Limits),
                     cancellationToken: cancellationToken).GetAwaiter().GetResult()) {
                     var options = new PowerPointToPdfOptions();
                     options.UseProfile(ToPdfExportProfile(request.OutputProfile));

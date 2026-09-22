@@ -169,7 +169,8 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
         CancellationToken cancellationToken) {
         ValidateRedactionRequest(request);
         Report(progress, request.Id, "validate", "Validating source, recipe, and resource limits", 0.05D);
-        byte[] originalSource = await ReadFileBoundedAsync(request.InputPath, request.Limits.MaximumInputBytes, cancellationToken).ConfigureAwait(false);
+        byte[] originalSource = await ReadFileBoundedAsync(request.InputPath, request.Limits.MaximumInputBytes,
+            cancellationToken, request.PhysicalInputRoot).ConfigureAwait(false);
         string originalSourceSha = ComputeSha256(originalSource);
         string recipeSha = ComputeRecipeSha256(request.Recipe);
         PdfLoadOptions loadOptions = new() { Password = request.OwnerPassword };
@@ -641,10 +642,12 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
         _ => fallback + " The privacy-safe result omits detailed exception text; inspect the exception type and host logs."
     };
 
-    private static async Task<byte[]> ReadFileBoundedAsync(string path, long maximumBytes, CancellationToken cancellationToken) {
-        var info = new FileInfo(path);
-        if (info.Length > maximumBytes) throw new RedactionWorkflowException($"Input is {info.Length} bytes, above the configured {maximumBytes}-byte limit.");
-        await using var input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 81_920, FileOptions.Asynchronous | FileOptions.SequentialScan);
+    private static async Task<byte[]> ReadFileBoundedAsync(string path, long maximumBytes, CancellationToken cancellationToken,
+        string? physicalRoot = null) {
+        await using FileStream input = physicalRoot is null
+            ? new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 81_920, FileOptions.Asynchronous | FileOptions.SequentialScan)
+            : OfficeWorkflowPathIdentity.OpenRegularFileForRead(path, physicalRoot, 81_920);
+        if (input.Length > maximumBytes) throw new RedactionWorkflowException($"Input is {input.Length} bytes, above the configured {maximumBytes}-byte limit.");
         using var output = new MemoryStream();
         byte[] buffer = new byte[81_920];
         long total = 0;

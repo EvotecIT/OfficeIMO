@@ -140,6 +140,10 @@ public sealed class SaxonInvoiceRulesRunner {
             string? flag = (string?)element.Attribute("flag") ?? (string?)element.Attribute("role");
             InvoiceDiagnosticSeverity severity = overrides.TryGetValue(code, out InvoiceDiagnosticSeverity value) ? value : InvoiceRuleBundle.ParseSeverity(flag);
             diagnostics.Add(code, text, (string?)element.Attribute("location") ?? "Invoice", severity);
+            if (diagnostics.HasTruncated) {
+                diagnostics.MarkWorkStopped();
+                break;
+            }
         }
         return diagnostics.ToList().AsReadOnly();
     }
