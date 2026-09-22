@@ -12,7 +12,7 @@ namespace OfficeIMO.Html.Runtime.Worker;
 // The provider creates a new CLR delegate each time a JS callback crosses its method
 // boundary. Own registration identity so removal and duplicate suppression are reliable.
 internal sealed class RuntimeListenerBindings : IDisposable {
-    private readonly ConditionalWeakTable<IEventTarget, List<Registration>> _targets = new();
+    private readonly ConditionalWeakTable<IEventTarget, TargetListeners> _targets = new();
     private readonly Engine _engine;
     private readonly IEventTarget _window;
     private bool _disposed;
@@ -36,8 +36,7 @@ internal sealed class RuntimeListenerBindings : IDisposable {
             if (!signal.IsNull() && !signal.IsUndefined())
                 throw new HtmlScriptRuntimeException("Signal-controlled event listeners are not supported by this runtime profile.");
         }
-        var registrations = _targets.GetOrCreateValue(target);
-        if (target is EventTarget native) registrations.RemoveAll(item => !native.HasEventListener(item.Type, item.Handler, item.Capture));
+        var registrations = _targets.GetValue(target, CreateListeners).Registrations;
         if (registrations.Any(item => item.Type == type && item.Capture == capture && ReferenceEquals(item.Callback, callback))) return JsValue.Undefined;
         var registration = new Registration(type, capture, callback);
         registration.Handler = (sender, ev) => {
@@ -58,9 +57,11 @@ internal sealed class RuntimeListenerBindings : IDisposable {
     public void Dispose() {
         if (_disposed) return;
         _disposed = true;
-        foreach (var pair in _targets)
-            foreach (var registration in pair.Value)
+        foreach (var pair in _targets) {
+            if (pair.Key is EventTarget native) native.EventListenerRemoved -= pair.Value.OnRemoved;
+            foreach (var registration in pair.Value.Registrations)
                 pair.Key.RemoveEventListener(registration.Type, registration.Handler, registration.Capture);
+        }
         _targets.Clear();
     }
 
@@ -69,9 +70,9 @@ internal sealed class RuntimeListenerBindings : IDisposable {
         string type = TypeConverter.ToString(args.ElementAtOrDefault(0) ?? JsValue.Undefined);
         var callback = args.ElementAtOrDefault(1);
         bool capture = Capture(args.ElementAtOrDefault(2) ?? JsValue.Undefined);
-        if (_targets.TryGetValue(target, out var registrations)) {
-            var registration = registrations.FirstOrDefault(item => item.Type == type && item.Capture == capture && ReferenceEquals(item.Callback, callback));
-            if (registration != null) Remove(target, registrations, registration);
+        if (_targets.TryGetValue(target, out var listeners)) {
+            var registration = listeners.Registrations.FirstOrDefault(item => item.Type == type && item.Capture == capture && ReferenceEquals(item.Callback, callback));
+            if (registration != null) Remove(target, listeners.Registrations, registration);
         }
         return JsValue.Undefined;
     });
@@ -84,6 +85,19 @@ internal sealed class RuntimeListenerBindings : IDisposable {
     private static void Remove(IEventTarget target, List<Registration> registrations, Registration registration) {
         target.RemoveEventListener(registration.Type, registration.Handler, registration.Capture);
         registrations.Remove(registration);
+    }
+
+    private static TargetListeners CreateListeners(IEventTarget target) {
+        var state = new TargetListeners();
+        if (target is EventTarget native) native.EventListenerRemoved += state.OnRemoved;
+        return state;
+    }
+
+    private sealed class TargetListeners {
+        internal readonly List<Registration> Registrations = new();
+
+        internal void OnRemoved(string type, DomEventHandler handler, bool capture) =>
+            Registrations.RemoveAll(item => item.Type == type && item.Capture == capture && ReferenceEquals(item.Handler, handler));
     }
 
     private sealed class Registration(string type, bool capture, Function callback) {

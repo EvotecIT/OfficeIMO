@@ -32,6 +32,12 @@ The worker copies each dependency's license into its output. Its isolated direct
 contains the fork AngleSharp assembly; ordinary static consumers retain the official
 package. Do not combine those assemblies in one application load context.
 
+With both submodules present, the AngleSharp.Js integration build selects the
+adjacent AngleSharp core project so its native listener-removal hook comes from
+the pinned source. A standalone AngleSharp.Js checkout needs the matching core
+source path passed as `AngleSharpTestProject`; its current branch is not a
+standalone package against the published AngleSharp 1.8.0 API.
+
 Source revision pins make development builds reproducible without publishing a
 package. A later package release needs a distinct fork package identity, artifact
 validation and an explicitly chosen publication destination. Fork assemblies must

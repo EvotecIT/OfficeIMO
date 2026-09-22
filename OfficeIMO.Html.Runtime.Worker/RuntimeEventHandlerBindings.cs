@@ -13,7 +13,7 @@ namespace OfficeIMO.Html.Runtime.Worker;
 // preserves its listener position; clearing and assigning again creates a new position.
 internal sealed class RuntimeEventHandlerBindings(Engine engine, IEventTarget window, Action<string> report) : IDisposable {
     private bool _disposed;
-    private readonly ConditionalWeakTable<IEventTarget, Dictionary<string, Registration>> _targets = new();
+    private readonly ConditionalWeakTable<IEventTarget, TargetHandlers> _targets = new();
     private readonly Dictionary<string, (JsValue Get, JsValue Set)> _accessors = new(StringComparer.Ordinal);
     private static readonly HashSet<string> WindowBodyEvents = new(StringComparer.Ordinal) {
         "blur", "error", "focus", "load", "resize", "scroll", "afterprint", "beforeprint", "beforeunload",
@@ -32,15 +32,15 @@ internal sealed class RuntimeEventHandlerBindings(Engine engine, IEventTarget wi
         };
         var getter = new ClrFunction(engine, "get " + propertyName, (receiver, _) => {
             var target = Target(receiver, eventType);
-            return target != null && _targets.TryGetValue(target, out var handlers) && Current(target, handlers, eventType) is { } registration
+            return target != null && _targets.TryGetValue(target, out var handlers) && handlers.Registrations.TryGetValue(eventType, out var registration)
                 ? registration.Callback : JsValue.Null;
         });
         var setter = new ClrFunction(engine, "set " + propertyName, (receiver, args) => {
             if (_disposed) return JsValue.Undefined;
             var target = Target(receiver, eventType);
             if (target == null) return JsValue.Undefined;
-            var handlers = _targets.GetValue(target, _ => new(StringComparer.Ordinal));
-            var registration = Current(target, handlers, eventType);
+            var handlers = _targets.GetValue(target, CreateHandlers).Registrations;
+            handlers.TryGetValue(eventType, out var registration);
             if (args.ElementAtOrDefault(0) is Function callback) {
                 if (registration != null) registration.Callback = callback;
                 else {
@@ -72,19 +72,18 @@ internal sealed class RuntimeEventHandlerBindings(Engine engine, IEventTarget wi
     public void Dispose() {
         if (_disposed) return;
         _disposed = true;
-        foreach (var pair in _targets)
-            foreach (var registration in pair.Value)
+        foreach (var pair in _targets) {
+            if (pair.Key is EventTarget native) native.EventListenerRemoved -= pair.Value.OnRemoved;
+            foreach (var registration in pair.Value.Registrations)
                 pair.Key.RemoveEventListener(registration.Key, registration.Value.Handler);
+        }
         _targets.Clear();
     }
 
-    private static Registration? Current(IEventTarget target, Dictionary<string, Registration> handlers, string eventType) {
-        if (!handlers.TryGetValue(eventType, out var registration)) return null;
-        if (target is EventTarget native && !native.HasEventListener(eventType, registration.Handler)) {
-            handlers.Remove(eventType);
-            return null;
-        }
-        return registration;
+    private static TargetHandlers CreateHandlers(IEventTarget target) {
+        var state = new TargetHandlers();
+        if (target is EventTarget native) native.EventListenerRemoved += state.OnRemoved;
+        return state;
     }
 
     private IEventTarget? Target(JsValue receiver, string eventType) {
@@ -101,5 +100,14 @@ internal sealed class RuntimeEventHandlerBindings(Engine engine, IEventTarget wi
     private sealed class Registration(Function callback) {
         internal Function Callback { get; set; } = callback;
         internal DomEventHandler Handler { get; set; } = null!;
+    }
+
+    private sealed class TargetHandlers {
+        internal readonly Dictionary<string, Registration> Registrations = new(StringComparer.Ordinal);
+
+        internal void OnRemoved(string type, DomEventHandler handler, bool capture) {
+            if (!capture && Registrations.TryGetValue(type, out var registration) && ReferenceEquals(registration.Handler, handler))
+                Registrations.Remove(type);
+        }
     }
 }
