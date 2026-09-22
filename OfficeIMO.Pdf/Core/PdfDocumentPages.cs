@@ -34,7 +34,8 @@ public sealed partial class PdfDocumentPages {
             _document.GetOpenedReadDocumentFactory(cancellationToken),
             cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        PdfDocument extracted = AdoptExtractedOutput(input, output, pageNumbers.Length, _document.ReadOptions);
+        PdfDocument extracted = AdoptExtractedOutput(input, output, pageNumbers.Length, _document.ReadOptions,
+            cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         return extracted;
     }
@@ -228,16 +229,19 @@ public sealed partial class PdfDocumentPages {
         byte[] input,
         byte[] output,
         int outputPageCount,
-        PdfLoadOptions? options) {
+        PdfLoadOptions? options,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         PdfArtifactSnapshot inputArtifact = _document.Pipeline.Output ??
-            PdfArtifactSnapshot.Capture(input, _document.ReadOptions);
+            PdfArtifactSnapshot.Capture(input, _document.ReadOptions, cancellationToken);
         return _document.WithCanonicalBytesKnownPageCount(
             input,
             inputArtifact,
             output,
             outputPageCount,
             options,
-            "Extract");
+            "Extract",
+            cancellationToken);
     }
 
     /// <summary>

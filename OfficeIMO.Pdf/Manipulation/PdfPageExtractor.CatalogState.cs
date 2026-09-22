@@ -1,9 +1,12 @@
 using System.Globalization;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfPageExtractor {
-    internal static CatalogRewriteState ExtractCatalogRewriteState(Dictionary<int, PdfIndirectObject> sourceObjects, string? trailerRaw = null) {
+    internal static CatalogRewriteState ExtractCatalogRewriteState(Dictionary<int, PdfIndirectObject> sourceObjects,
+        string? trailerRaw = null, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         PdfDictionary? dictionary = PdfSyntax.FindCatalog(sourceObjects, trailerRaw);
         if (dictionary is not null) {
             string? pageMode = dictionary.Get<PdfName>("PageMode")?.Name;
@@ -21,7 +24,7 @@ internal static partial class PdfPageExtractor {
             dictionary.Items.TryGetValue("Names", out var names);
             dictionary.Items.TryGetValue("AF", out var associatedFiles);
             dictionary.Items.TryGetValue("OCProperties", out var optionalContent);
-            return new CatalogRewriteState(pageMode, pageLayout, BuildCatalogVersion(sourceObjects, catalogVersion), BuildCatalogLanguage(sourceObjects, catalogLanguage), BuildOutlines(sourceObjects, outlines), pageLabels, namedDestinations, BuildNamedDestinationNameTree(sourceObjects, names), openAction, BuildViewerPreferences(sourceObjects, viewerPreferences), BuildXmpMetadata(sourceObjects, xmpMetadata), BuildCatalogUri(sourceObjects, catalogUri), BuildOutputIntents(sourceObjects, outputIntents), BuildEmbeddedFiles(sourceObjects, names), BuildAssociatedFiles(sourceObjects, associatedFiles), BuildOptionalContent(sourceObjects, optionalContent), GetPageObjectNumbersInDocumentOrder(sourceObjects, dictionary), sourceObjects);
+            return new CatalogRewriteState(pageMode, pageLayout, BuildCatalogVersion(sourceObjects, catalogVersion), BuildCatalogLanguage(sourceObjects, catalogLanguage), BuildOutlines(sourceObjects, outlines, cancellationToken), pageLabels, namedDestinations, BuildNamedDestinationNameTree(sourceObjects, names, cancellationToken), openAction, BuildViewerPreferences(sourceObjects, viewerPreferences), BuildXmpMetadata(sourceObjects, xmpMetadata), BuildCatalogUri(sourceObjects, catalogUri), BuildOutputIntents(sourceObjects, outputIntents, cancellationToken), BuildEmbeddedFiles(sourceObjects, names, cancellationToken), BuildAssociatedFiles(sourceObjects, associatedFiles, cancellationToken), BuildOptionalContent(sourceObjects, optionalContent, cancellationToken), GetPageObjectNumbersInDocumentOrder(sourceObjects, dictionary, cancellationToken), sourceObjects, cancellationToken);
         }
     
         return CatalogRewriteState.Empty;
@@ -33,12 +36,15 @@ internal static partial class PdfPageExtractor {
         HashSet<int> copiedPageObjectIds,
         IReadOnlyList<int>? orderedPageObjectNumbers = null,
         int outputPageIndexOffset = 0,
-        IReadOnlyDictionary<int, int>? outputPageIndexByPageObjectNumber = null) {
-        var namedDestinations = BuildNamedDestinationsForPages(sourceObjects, catalogState.NamedDestinations, copiedPageObjectIds, catalogState.GetDirectNamedDestinationPageIndexForRepeatedUse());
-        var namedDestinationNameTree = BuildNamedDestinationNameTreeForPages(sourceObjects, catalogState.NamedDestinationNameTree, copiedPageObjectIds, catalogState.GetNamedDestinationPageIndexForRepeatedUse());
+        IReadOnlyDictionary<int, int>? outputPageIndexByPageObjectNumber = null,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        var namedDestinations = BuildNamedDestinationsForPages(sourceObjects, catalogState.NamedDestinations, copiedPageObjectIds, catalogState.GetDirectNamedDestinationPageIndexForRepeatedUse(), cancellationToken);
+        var namedDestinationNameTree = BuildNamedDestinationNameTreeForPages(sourceObjects, catalogState.NamedDestinationNameTree, copiedPageObjectIds, catalogState.GetNamedDestinationPageIndexForRepeatedUse(), cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         var openAction = BuildOpenActionForPages(sourceObjects, catalogState.OpenAction, copiedPageObjectIds);
-        var outlines = BuildOutlinesForPages(sourceObjects, catalogState.Outlines, copiedPageObjectIds);
-        var pageLabels = BuildPageLabelsForPages(sourceObjects, catalogState.PageLabels, orderedPageObjectNumbers, outputPageIndexOffset, outputPageIndexByPageObjectNumber, catalogState.SourcePageIndexes, catalogState.PageLabelEntries);
+        var outlines = BuildOutlinesForPages(sourceObjects, catalogState.Outlines, copiedPageObjectIds, cancellationToken);
+        var pageLabels = BuildPageLabelsForPages(sourceObjects, catalogState.PageLabels, orderedPageObjectNumbers, outputPageIndexOffset, outputPageIndexByPageObjectNumber, catalogState.SourcePageIndexes, catalogState.PageLabelEntries, cancellationToken);
         string? pageMode = outlines is null && string.Equals(catalogState.PageMode, "UseOutlines", StringComparison.Ordinal)
             ? null
             : catalogState.PageMode;
@@ -50,19 +56,22 @@ internal static partial class PdfPageExtractor {
         IReadOnlyList<int> pageObjectNumbers,
         Dictionary<int, Dictionary<string, PdfObject>>? pageOverrides,
         CatalogRewriteState catalogState,
-        HashSet<int> copiedPageObjectIds) {
-        var availableDestinationNames = GetNamedDestinationNames(sourceObjects, catalogState);
+        HashSet<int> copiedPageObjectIds,
+        CancellationToken cancellationToken = default) {
+        var availableDestinationNames = GetNamedDestinationNames(sourceObjects, catalogState, cancellationToken);
         Dictionary<int, Dictionary<string, PdfObject>>? result = null;
     
         if (pageOverrides is not null && pageOverrides.Count > 0) {
             result = new Dictionary<int, Dictionary<string, PdfObject>>();
             foreach (var pageEntry in pageOverrides) {
+                cancellationToken.ThrowIfCancellationRequested();
                 result[pageEntry.Key] = new Dictionary<string, PdfObject>(pageEntry.Value);
             }
         }
     
         var visitedPages = new HashSet<int>();
         foreach (int pageObjectNumber in pageObjectNumbers) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!visitedPages.Add(pageObjectNumber) ||
                 !sourceObjects.TryGetValue(pageObjectNumber, out var pageObject) ||
                 pageObject.Value is not PdfDictionary pageDictionary) {
@@ -77,7 +86,7 @@ internal static partial class PdfPageExtractor {
                 ? overrideAnnotations
                 : pageDictionary.Items.TryGetValue("Annots", out var pageAnnotations) ? pageAnnotations : null;
     
-            if (!TryFilterLinkAnnotations(sourceObjects, annotationsObject, availableDestinationNames, copiedPageObjectIds, out var filteredAnnotations)) {
+            if (!TryFilterLinkAnnotations(sourceObjects, annotationsObject, availableDestinationNames, copiedPageObjectIds, out var filteredAnnotations, cancellationToken)) {
                 continue;
             }
     
@@ -95,11 +104,14 @@ internal static partial class PdfPageExtractor {
     
     private static HashSet<string> GetNamedDestinationNames(
         Dictionary<int, PdfIndirectObject> sourceObjects,
-        CatalogRewriteState catalogState) {
+        CatalogRewriteState catalogState,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         var names = new HashSet<string>(StringComparer.Ordinal);
     
         if (ResolveDictionary(sourceObjects, catalogState.NamedDestinations) is PdfDictionary directDestinations) {
             foreach (var name in directDestinations.Items.Keys) {
+                cancellationToken.ThrowIfCancellationRequested();
                 names.Add(name);
             }
         }
@@ -108,6 +120,7 @@ internal static partial class PdfPageExtractor {
             nameTree.Items.TryGetValue("Names", out var namesObject) &&
             ResolveObject(sourceObjects, namesObject) is PdfArray nameArray) {
             for (int i = 0; i + 1 < nameArray.Items.Count; i += 2) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (TryGetNamedDestinationName(sourceObjects, nameArray.Items[i], out string? destinationName)) {
                     names.Add(destinationName!);
                 }
@@ -122,7 +135,8 @@ internal static partial class PdfPageExtractor {
         PdfObject? annotationsObject,
         HashSet<string> availableDestinationNames,
         HashSet<int> copiedPageObjectIds,
-        out PdfArray filteredAnnotations) {
+        out PdfArray filteredAnnotations,
+        CancellationToken cancellationToken = default) {
         filteredAnnotations = new PdfArray();
         if (ResolveObject(sourceObjects, annotationsObject) is not PdfArray annotations) {
             return false;
@@ -130,6 +144,7 @@ internal static partial class PdfPageExtractor {
     
         bool removed = false;
         foreach (var annotation in annotations.Items) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (TryGetNamedDestinationLinkName(sourceObjects, annotation, out string? destinationName) &&
                 !availableDestinationNames.Contains(destinationName!)) {
                 removed = true;

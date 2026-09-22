@@ -417,7 +417,7 @@ internal static class PdfInspector {
         cancellationToken.ThrowIfCancellationRequested();
         Dictionary<int, PdfIndirectObject> objects = document.Objects;
         string trailerRaw = document.TrailerRaw;
-        var catalogState = PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw);
+        var catalogState = PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw, cancellationToken);
         var collector = new PdfPageExtractor.ObjectCollector(objects, cancellationToken: cancellationToken);
 
         for (int i = 0; i < document.Pages.Count; i++) {

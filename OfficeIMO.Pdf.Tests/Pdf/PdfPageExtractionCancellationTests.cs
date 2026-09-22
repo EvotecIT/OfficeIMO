@@ -64,6 +64,21 @@ public class PdfPageExtractionCancellationTests {
         Assert.Contains("Page extraction cancellation", PdfTextExtractor.ExtractAllText(extracted.ToBytes()), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void ArtifactCaptureKeepsExactDigestAndHonorsCancellation() {
+        byte[] pdf = CreatePdf();
+        using var cancellation = new CancellationTokenSource();
+
+        PdfArtifactSnapshot expected = PdfArtifactSnapshot.CaptureKnownPageCount(pdf, 1);
+        PdfArtifactSnapshot actual = PdfArtifactSnapshot.CaptureKnownPageCount(pdf, 1, cancellation.Token);
+        Assert.Equal(expected.Sha256, actual.Sha256);
+        Assert.Equal(expected.ByteCount, actual.ByteCount);
+
+        cancellation.Cancel();
+        Assert.Throws<OperationCanceledException>(() =>
+            PdfArtifactSnapshot.CaptureKnownPageCount(pdf, 1, cancellation.Token));
+    }
+
     private static byte[] CreatePdf() => PdfDocument.Create()
         .Paragraph(paragraph => paragraph.Text("Page extraction cancellation"))
         .ToBytes();

@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
@@ -118,7 +119,7 @@ internal static partial class PdfPageExtractor {
         private int _namedDestinationFilterCount;
         private int _directNamedDestinationFilterCount;
     
-        public CatalogRewriteState(string? pageMode, string? pageLayout, PdfObject? catalogVersion, PdfObject? catalogLanguage, PdfObject? outlines, PdfObject? pageLabels, PdfObject? namedDestinations, PdfObject? namedDestinationNameTree, PdfObject? openAction, PdfObject? viewerPreferences, PdfObject? xmpMetadata, PdfObject? catalogUri, PdfObject? outputIntents, PdfObject? embeddedFiles, PdfObject? associatedFiles, PdfObject? optionalContent, List<int>? sourcePageObjectNumbers = null, Dictionary<int, PdfIndirectObject>? sourceObjects = null) {
+        public CatalogRewriteState(string? pageMode, string? pageLayout, PdfObject? catalogVersion, PdfObject? catalogLanguage, PdfObject? outlines, PdfObject? pageLabels, PdfObject? namedDestinations, PdfObject? namedDestinationNameTree, PdfObject? openAction, PdfObject? viewerPreferences, PdfObject? xmpMetadata, PdfObject? catalogUri, PdfObject? outputIntents, PdfObject? embeddedFiles, PdfObject? associatedFiles, PdfObject? optionalContent, List<int>? sourcePageObjectNumbers = null, Dictionary<int, PdfIndirectObject>? sourceObjects = null, CancellationToken cancellationToken = default) {
             PageMode = string.IsNullOrEmpty(pageMode) ? null : pageMode;
             PageLayout = string.IsNullOrEmpty(pageLayout) ? null : pageLayout;
             CatalogVersion = catalogVersion;
@@ -138,21 +139,21 @@ internal static partial class PdfPageExtractor {
             SourcePageObjectNumbers = sourcePageObjectNumbers;
             if (pageLabels is not null && sourcePageObjectNumbers is not null) {
                 _sourcePageIndexes = new Lazy<Dictionary<int, int>>(
-                    () => BuildSourcePageIndexes(sourcePageObjectNumbers));
+                    () => BuildSourcePageIndexes(sourcePageObjectNumbers, cancellationToken));
             }
             if (pageLabels is not null && sourceObjects is not null) {
                 _pageLabelEntries = new Lazy<List<PageLabelEntry>?>(
-                    () => ReadPageLabelEntries(sourceObjects, pageLabels));
+                    () => ReadPageLabelEntries(sourceObjects, pageLabels, cancellationToken));
             }
             if (namedDestinationNameTree is not null && sourceObjects is not null) {
                 _namedDestinationPageIndex = new Lazy<Dictionary<int, List<NamedDestinationNameTreeEntry>>?>(
-                    () => BuildNamedDestinationPageIndex(sourceObjects, namedDestinationNameTree));
+                    () => BuildNamedDestinationPageIndex(sourceObjects, namedDestinationNameTree, cancellationToken));
             }
             if (namedDestinations is not null &&
                 sourceObjects is not null &&
                 ResolveDictionary(sourceObjects, namedDestinations) is { Items.Count: >= MinimumIndexedDestinationCount }) {
                 _directNamedDestinationPageIndex = new Lazy<Dictionary<int, List<DirectNamedDestinationEntry>>?>(
-                    () => BuildDirectNamedDestinationPageIndex(sourceObjects, namedDestinations));
+                    () => BuildDirectNamedDestinationPageIndex(sourceObjects, namedDestinations, cancellationToken));
             }
         }
     

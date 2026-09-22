@@ -569,18 +569,20 @@ internal static partial class PdfMerger {
         var copiedPageObjectIds = new HashSet<int>(pageObjectNumbers);
         var catalogState = PdfPageExtractor.PruneCatalogStateForPages(
             objects,
-            PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw),
+            PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw, cancellationToken),
             copiedPageObjectIds,
             pageObjectNumbers,
             mergedPageOffset,
-            outputPageIndexByPageObjectNumber);
+            outputPageIndexByPageObjectNumber,
+            cancellationToken);
         Dictionary<int, Dictionary<string, PdfObject>>? pageOverrides =
             PdfPageExtractor.BuildPageOverridesWithFilteredDestinationLinks(
                 objects,
                 pageObjectNumbers,
                 pageOverrides: null,
                 catalogState,
-                copiedPageObjectIds);
+                copiedPageObjectIds,
+                cancellationToken);
         var collector = new PdfPageExtractor.ObjectCollector(objects, pageOverrides, cancellationToken);
         foreach (int pageObjectNumber in pageObjectNumbers) {
             cancellationToken.ThrowIfCancellationRequested();

@@ -19,8 +19,10 @@ internal static partial class PdfPageExtractor {
         if (maximumOutputBytes <= 0L) throw new ArgumentOutOfRangeException(nameof(maximumOutputBytes));
         catalogState ??= CatalogRewriteState.Empty;
         var copiedPageObjectIds = new HashSet<int>(pageObjectNumbers);
-        catalogState = PruneCatalogStateForPages(sourceObjects, catalogState, copiedPageObjectIds, pageObjectNumbers);
-        pageOverrides = BuildPageOverridesWithFilteredDestinationLinks(sourceObjects, pageObjectNumbers, pageOverrides, catalogState, copiedPageObjectIds);
+        catalogState = PruneCatalogStateForPages(sourceObjects, catalogState, copiedPageObjectIds, pageObjectNumbers,
+            cancellationToken: cancellationToken);
+        pageOverrides = BuildPageOverridesWithFilteredDestinationLinks(sourceObjects, pageObjectNumbers, pageOverrides,
+            catalogState, copiedPageObjectIds, cancellationToken);
     
         var collector = new ObjectCollector(sourceObjects, pageOverrides, cancellationToken);
         foreach (int pageObjectNumber in pageObjectNumbers) {
