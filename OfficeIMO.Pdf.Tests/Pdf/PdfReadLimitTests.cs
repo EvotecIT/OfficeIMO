@@ -11,6 +11,17 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfReadLimitTests {
     [Fact]
+    public void ComposedOutputAddsDocumentWidePrintInspectionBudgets() {
+        PdfReadLimits combined = PdfReadLimits.ForComposedOutput([
+            new PdfReadLimits { MaxPrintProductionContexts = 3, MaxPrintProductionOperations = 20 },
+            new PdfReadLimits { MaxPrintProductionContexts = 4, MaxPrintProductionOperations = 30 }
+        ], minimumInputBytes: 1, minimumIndirectObjects: 1);
+
+        Assert.Equal(7, combined.MaxPrintProductionContexts);
+        Assert.Equal(50, combined.MaxPrintProductionOperations);
+    }
+
+    [Fact]
     public void TrailerFallbackDoesNotCopyTheUnboundedRemainderOfTheInput() {
         string source = "%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\ntrailer\n<< /Root 1 0 R /Size 2 >>\n" +
             new string('X', 2_000_000);

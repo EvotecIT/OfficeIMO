@@ -421,14 +421,23 @@ public sealed class PdfHtmlPageSelectionTests {
         Assert.Equal(2, exception.Actual);
     }
 
+    [Fact]
+    public void OptionalContentScanResolvesDirectExtGStateType3FontWithoutFontResources() {
+        byte[] pdf = BuildType3OptionalContentPdf("A", useExtGStateFont: true,
+            useDirectExtGStateFont: true);
+
+        Assert.True(Assert.Single(PdfReadDocument.Open(pdf).Pages).HasOptionalContentUsage());
+    }
+
     private static byte[] BuildType3OptionalContentPdf(string layeredGlyph, bool useExtGStateFont = false,
-        string pageText = "A") {
+        string pageText = "A", bool useDirectExtGStateFont = false) {
         string pageContent = useExtGStateFont
             ? "BT /FontState gs 20 100 Td (" + pageText + ") Tj ET"
             : "BT /F3 24 Tf 20 100 Td (" + pageText + ") Tj ET";
         string extGState = useExtGStateFont
-            ? " /ExtGState << /FontState << /Font [/F3 24] >> >>"
+            ? " /ExtGState << /FontState << /Font [" + (useDirectExtGStateFont ? "5 0 R" : "/F3") + " 24] >> >>"
             : string.Empty;
+        string fontResources = useDirectExtGStateFont ? string.Empty : "/Font << /F3 5 0 R >>";
         const string ordinaryGlyph = "0 0 500 700 d1 0 0 500 700 re f";
         const string layeredGlyphContent = "0 0 500 700 d1 /OC /Layer BDC 0 0 500 700 re f EMC";
         string glyphA = string.Equals(layeredGlyph, "A", StringComparison.Ordinal) ? layeredGlyphContent : ordinaryGlyph;
@@ -442,7 +451,7 @@ public sealed class PdfHtmlPageSelectionTests {
             "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
             "endobj",
             "3 0 obj",
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F3 5 0 R >>" + extGState + " >> /Contents 4 0 R >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << " + fontResources + extGState + " >> /Contents 4 0 R >>",
             "endobj",
             "4 0 obj",
             "<< /Length " + pageContent.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",

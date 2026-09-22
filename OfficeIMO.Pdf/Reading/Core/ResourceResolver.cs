@@ -1217,6 +1217,7 @@ internal static partial class ResourceResolver {
         bool inheritedHasAuthoredRenderingIntent = false,
         int maxImageReferenceSteps = PdfReadLimits.DefaultMaxImageReferenceSteps,
         CancellationToken cancellationToken = default) {
+        PreflightImageFilterReferences(stream.Dictionary, objects, maxImageReferenceSteps, cancellationToken);
         int width = (int)(stream.Dictionary.Get<PdfNumber>("Width")?.Value ?? 0);
         int height = (int)(stream.Dictionary.Get<PdfNumber>("Height")?.Value ?? 0);
         int bitsPerComponent = (int)(stream.Dictionary.Get<PdfNumber>("BitsPerComponent")?.Value ?? 0);
@@ -1361,6 +1362,20 @@ internal static partial class ResourceResolver {
             hasAuthoredRenderingIntent: hasAuthoredRenderingIntent || inheritedHasAuthoredRenderingIntent,
             requiresScanDecode: HasScanFilter(filterObj, objects, maxImageReferenceSteps, cancellationToken),
             hasUnsafePassThroughDecode: hasUnsafePassThroughDecode);
+    }
+
+    private static void PreflightImageFilterReferences(PdfDictionary dictionary,
+        Dictionary<int, PdfIndirectObject> objects, int maxImageReferenceSteps, CancellationToken cancellationToken) {
+        BoundedArrayReferenceResolver? resolver = null;
+        foreach (string key in new[] { "Filter", "DecodeParms", "DP" }) {
+            if (!dictionary.Items.TryGetValue(key, out PdfObject? value)) continue;
+            if (value is not PdfReference &&
+                (value is not PdfArray directArray || !directArray.Items.Any(static item => item is PdfReference))) continue;
+            resolver ??= new BoundedArrayReferenceResolver(objects, maxImageReferenceSteps, cancellationToken);
+            PdfObject? resolved = resolver.Resolve(value);
+            if (resolved is not PdfArray array) continue;
+            foreach (PdfObject item in array.Items) resolver.Resolve(item);
+        }
     }
 
     private static bool HasResolvedDecodeParametersEntry(

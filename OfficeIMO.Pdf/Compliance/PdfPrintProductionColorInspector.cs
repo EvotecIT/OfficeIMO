@@ -302,6 +302,7 @@ internal static partial class PdfPrintProductionColorInspector {
                     decodedContent,
                     document.ReadOptions.Limits.MaxContentOperations,
                     operation => {
+                        contentStreams.ChargeOperation();
                         if (operation.HasInvalidOperands) {
                             contextWasUninspectable = true;
                             return;
@@ -572,7 +573,9 @@ internal static partial class PdfPrintProductionColorInspector {
                 }
             } catch (Exception exception) when (
                 exception is InvalidDataException ||
-                exception is PdfReadLimitException ||
+                exception is PdfReadLimitException limit &&
+                    limit.Kind != PdfReadLimitKind.PrintProductionOperations &&
+                    limit.Kind != PdfReadLimitKind.PrintProductionContexts ||
                 exception is FormatException) {
                 colorState.IsIncomplete = true;
                 uninspectable++;

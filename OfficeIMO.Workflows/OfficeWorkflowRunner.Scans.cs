@@ -18,8 +18,6 @@ public sealed partial class OfficeWorkflowRunner {
         if (pages.Length == 0 || pages.Length > preparation.MaxPages) throw new InvalidOperationException("Scan page selection exceeds its page limit.");
         var documents = new List<PdfDocument>();
         long retainedBytes = 0;
-        const int maximumScanDiagnostics = 10_000;
-        const int maximumScanDiagnosticCharacters = 8 * 1024 * 1024;
         long diagnosticCount = 0;
         long diagnosticCharacters = 0;
         foreach (int page in pages) {
@@ -33,7 +31,7 @@ public sealed partial class OfficeWorkflowRunner {
                 token.ThrowIfCancellationRequested();
                 diagnosticCount++;
                 diagnosticCharacters += message.Length;
-                if (diagnosticCount > maximumScanDiagnostics || diagnosticCharacters > maximumScanDiagnosticCharacters)
+                if (diagnosticCount > settings.MaximumDiagnostics || diagnosticCharacters > settings.MaximumDiagnosticCharacters)
                     throw new IOException("Prepared scan diagnostics exceed the workflow budget.");
                 diagnostics.Add(new OfficeWorkflowDiagnostic("ScanPreparation", $"Page {page}: {message}", OfficeWorkflowDiagnosticSeverity.Warning, "scan"));
             }

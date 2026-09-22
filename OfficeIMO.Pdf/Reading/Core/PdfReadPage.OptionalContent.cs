@@ -107,7 +107,7 @@ public sealed partial class PdfReadPage {
         bool found = false;
         string? fontName = null;
         var fontStack = new Stack<string?>();
-        Dictionary<string, PdfFontResource>? fonts = null;
+        PdfFontResourceSet? fontResources = null;
         Dictionary<PdfDictionary, string> declaredFontNames = GetDeclaredFontNames(resources);
         PdfContentStreamInterpreter.Interpret(content, _limits.MaxContentOperations, operation => {
             budget.CancellationToken.ThrowIfCancellationRequested();
@@ -134,7 +134,7 @@ public sealed partial class PdfReadPage {
                     return;
                 case "Tj": case "TJ": case "'": case "\"":
                     if (fontName is string activeFontName &&
-                        (fonts ??= ResourceResolver.GetFontsForResources(resources, _objects))
+                        (fontResources ??= _fontResourceCache.GetOrCreate(resources, _objects)).Fonts
                             .TryGetValue(activeFontName, out PdfFontResource? font) &&
                         font.Type3 is PdfType3FontResource type3) {
                         foreach (byte[] bytes in GetShownTextBytes(operation)) {
@@ -179,8 +179,10 @@ public sealed partial class PdfReadPage {
                     graphicsStates?.Items.TryGetValue(name, out PdfObject? graphicsStateObject) == true
                         ? graphicsStateObject
                         : null);
+                fontResources ??= _fontResourceCache.GetOrCreate(resources, _objects);
                 if (graphicsState != null &&
-                    TryReadExtGStateFont(graphicsState, declaredFontNames, null, null, null,
+                    TryReadExtGStateFont(graphicsState, declaredFontNames,
+                        fontResources.Decoders, fontResources.WidthProviders, fontResources.Fonts,
                         out string? graphicsStateFont, out _) &&
                     !string.IsNullOrEmpty(graphicsStateFont)) {
                     fontName = graphicsStateFont;

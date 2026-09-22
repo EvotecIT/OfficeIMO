@@ -270,8 +270,8 @@ public sealed class PdfReadLimits {
             MaxPositionedTextWorkCharactersPerPage = sources.Max(static limits => limits.MaxPositionedTextWorkCharactersPerPage),
             MaxPositionedTextProjectionCharactersPerPage = sources.Max(static limits => limits.MaxPositionedTextProjectionCharactersPerPage),
             MaxClippedTextFontCopyWorkPerPage = sources.Max(static limits => limits.MaxClippedTextFontCopyWorkPerPage),
-            MaxPrintProductionContexts = sources.Max(static limits => limits.MaxPrintProductionContexts),
-            MaxPrintProductionOperations = sources.Max(static limits => limits.MaxPrintProductionOperations),
+            MaxPrintProductionContexts = SaturatingSum(sources, static limits => limits.MaxPrintProductionContexts),
+            MaxPrintProductionOperations = SaturatingSum(sources, static limits => limits.MaxPrintProductionOperations),
             MaxType3GlyphInvocationsPerPage = sources.Max(static limits => limits.MaxType3GlyphInvocationsPerPage),
             MaxImageReferenceSteps = sources.Max(static limits => limits.MaxImageReferenceSteps)
         };
