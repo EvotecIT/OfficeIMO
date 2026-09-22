@@ -66,4 +66,15 @@ public sealed class RuntimeBaseUrlTests {
         Assert.Equal("https://other.example/assets/item", (await session.EvaluateAsync("otherHref")).GetString());
         Assert.Equal("https://base.example/active/item", (await session.EvaluateAsync("document.querySelector('a').href")).GetString());
     }
+
+    [Fact]
+    public async Task InertTemplateBasesDoNotRedirectRelativeResources() {
+        await using var session = await Runtime().OpenTrustedAsync(new() {
+            DocumentUrl = Start, Html = "<template><base href='/inert/'></template><p>Ready</p>",
+            Resources = new[] { HtmlRuntimeResource.FromText(new Uri(Start, "data.txt"), "Expected data", "text/plain") }
+        });
+        await session.ExecuteAsync("document.querySelector('template').innerHTML='<base href=\"/also-inert/\">';fetch('data.txt').then(r=>r.text()).then(text=>window.data=text)");
+        await session.WaitForAsync("window.data==='Expected data'");
+        Assert.Equal(Start, (await session.CaptureAsync()).BaseUri);
+    }
 }
