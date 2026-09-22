@@ -260,8 +260,12 @@ Window names are limited
 to 256 characters. Only initially blank URLs, empty features and new or named
 auxiliary targets are supported. Navigation of a popup, nonempty features,
 `noopener`, `noreferrer` and reserved targets other than `_blank` are rejected.
-Auxiliary windows currently belong to the active root document and retire when
-that document is replaced; they are not separate host pages or frame captures.
+Auxiliary windows belong to the browsing session and survive root reloads and
+navigation. Their globals and timers remain live. A captured reference to the
+root opener resolves to its current document. Cross-origin root
+navigation revokes DOM access while preserving `postMessage`. Root replacement
+retires the old root and its frame callbacks without retiring popup realms.
+Auxiliary windows are not separate host pages or frame captures.
 
 The zero-, one- and two-argument forms of `document.open()` clear the connected
 DOM and its event listeners while preserving the document, JavaScript realm,
@@ -274,10 +278,15 @@ parser-executed scripts or navigation lifecycle handlers leave the document
 unchanged. A detached frame or closed popup cannot use the three-argument
 window-opening overload.
 
-This document replacement contract does not include incremental
-`document.write()`/`document.close()` parsing. DOM APIs can rebuild the emptied
-document. Reverse calls from an `about:blank` or `about:srcdoc` child into its
-parent are not qualified for browser-equivalent URL and base behavior.
+After `document.open()`, `document.write()` parses completed input incrementally.
+Existing nodes retain their identity across writes; incomplete tokens wait for
+more input, and `document.close()` finishes the stream. Written scripts use the
+same realm and respect blocking stylesheets. Reopening abandons the previous
+input stream and its pending scripts and completion events.
+
+Reverse calls from an `about:blank` or `about:srcdoc` child into its parent are not
+qualified for browser-equivalent URL and base behavior. Performance of very long
+unfinished tokens supplied through many small writes has not been qualified.
 
 Use `CreateStandaloneDocument()` when only the root snapshot is needed. Use
 `CreateRenderDocument()` to create an independent clone that projects the captured

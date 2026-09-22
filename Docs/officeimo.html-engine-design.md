@@ -314,10 +314,11 @@ work after a realm retires. These responsibilities remain in their existing
 owners rather than being copied into a second DOM or script engine.
 
 The [runtime contract](../OfficeIMO.Html.Runtime/README.md) states the current
-limits: auxiliary windows belong to the active root document, and input-stream
-replacement does not provide incremental `document.write()` parsing. Neither
-boundary establishes general browser-compatible popup navigation or parser
-lifecycle behavior.
+limits: auxiliary realms belong to the browsing session and survive root
+replacement, while AngleSharp incrementally parses script-created input streams.
+OfficeIMO forwards retained opener references to the current root and checks
+origin access. Popup navigation, reverse about-child opening semantics and
+unfinished-token performance remain separate qualification work.
 
 Freeze time and disable unrelated animations in reproducibility tests; separately test real scheduling and animation behavior when those become supported. Define readiness using explicit lifecycle events, application predicates, resource/font completion and layout stability under a deadline. Network-idle alone cannot establish that a page is complete.
 

@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "date": "2026-09-22",
-  "qualification": "Bounded integration evidence; complete navigation milestone remains unqualified",
+  "qualification": "Incremental document-input and session-owned auxiliary-window contracts; complete navigation milestone remains unqualified",
   "environment": {
     "os": "macOS 27.0 (26A428)",
     "architecture": "arm64",
@@ -12,34 +12,32 @@
     ]
   },
   "source": {
-    "office": "95556f503d5d0d09d4dbffe8acf128f6119bb496",
-    "angleSharp": "6f8dbd0c084eb8d41f411a404faf0f9806097f1a",
+    "office": "9dbd87b36563c83f2c47cbfb668f8dc151449478",
+    "angleSharp": "d46ba0bdd78f0256e0128dc3e0a4da4b890f688e",
     "angleSharpJs": "2aaa705edf934d1f93009977de4acab49b4fc614",
     "jint": "2339be034e48b1f2195987fff27cda225582b7b7",
     "upstreamSandboxForm": "da1b9d4885985dd9028f086ee8f2ea3335e9c2cd"
   },
   "validation": [
     {
-      "name": "runtimeCheckpoint",
+      "name": "nativeInputAndScripting",
       "framework": "net10.0",
-      "passed": 83,
-      "failed": 0,
-      "filter": "FullyQualifiedName~RuntimeAuxiliaryWindowTests|FullyQualifiedName~RuntimeMutationCheckpointTests|FullyQualifiedName~RuntimeMutationRegistrationTests|FullyQualifiedName~RuntimeEventHandlerContractsTests|FullyQualifiedName~RuntimeForm|FullyQualifiedName~RuntimeDocumentOpenTests&FullyQualifiedName!~OpenWriteClose"
+      "passed": 53,
+      "failed": 0
     },
     {
-      "name": "runtimePopupAndForms",
-      "framework": "net8.0",
-      "passed": 41,
-      "failed": 0,
-      "filter": "FullyQualifiedName~RuntimeAuxiliaryWindowTests|FullyQualifiedName~RuntimeForm",
-      "sourceNote": "Executed before the source checkpoint; production source bytes were preserved across native pin promotion and commit."
+      "name": "nativeFullStandardInput",
+      "framework": "net10.0",
+      "passed": 4198,
+      "skipped": 1,
+      "failed": 0
     },
     {
-      "name": "nativeInitialAndSandbox",
+      "name": "nativeFullPrefetchedInput",
       "framework": "net10.0",
-      "passed": 11,
-      "failed": 0,
-      "filter": "FullyQualifiedName~SandboxFormTests|FullyQualifiedName~InitialWindowTests"
+      "passed": 4195,
+      "skipped": 4,
+      "failed": 0
     },
     {
       "name": "nativeNetStandardBuild",
@@ -48,19 +46,52 @@
       "errors": 0
     },
     {
-      "name": "standaloneUpstreamForm",
+      "name": "finalPopupOwnershipRegressions",
       "framework": "net10.0",
-      "passed": 54,
+      "passed": 5,
       "failed": 0,
-      "filter": "FullyQualifiedName~SandboxFormTests|FullyQualifiedName~FormSubmit|FullyQualifiedName~FormSubmission"
+      "filter": "FullyQualifiedName~RuntimeAuxiliaryNavigationIsolationTests|FullyQualifiedName~RootReloadRetiresOnlyRootCallbacksAndPreservesPopupTimers"
     },
     {
-      "name": "incrementalInputStream",
+      "name": "finalScriptLifecycle",
       "framework": "net10.0",
-      "passed": 0,
-      "failed": 1,
-      "filter": "FullyQualifiedName~OpenWriteCloseCreatesAnActiveDocumentInTheSameRealm",
-      "failure": "Timeout waiting for readyState complete and a script written into the document to execute. Test remains enabled. The passing selection explicitly excludes it."
+      "passed": 33,
+      "failed": 0,
+      "filter": "FullyQualifiedName~RuntimeScriptLifecycleTests"
+    },
+    {
+      "name": "finalAuxiliaryCompatibility",
+      "framework": "net8.0",
+      "passed": 32,
+      "failed": 0,
+      "filter": "FullyQualifiedName~RuntimeAuxiliary"
+    },
+    {
+      "name": "finalDocumentInputCompatibility",
+      "framework": "net8.0",
+      "passed": 10,
+      "failed": 0,
+      "filter": "FullyQualifiedName~RuntimeDocumentOpenTests"
+    },
+    {
+      "name": "expandedRuntimeOwnerChecks",
+      "framework": "net10.0",
+      "passedByFilter": {
+        "RuntimeAuxiliary": 32,
+        "RuntimeEventHandlerContractsTests": 13,
+        "RuntimeNavigationTests": 21,
+        "RuntimeModule": 56
+      },
+      "failed": 0,
+      "sourceNote": "Before final restriction of prototype scanning to window methods and event-handler accessors. Final regression and compatibility checks above include that restriction."
+    },
+    {
+      "name": "resourceOriginChecks",
+      "framework": "net10.0",
+      "passed": 42,
+      "failed": 0,
+      "filter": "FullyQualifiedName~RuntimeFetchTests",
+      "sourceNote": "After request-origin/resource-ownership changes; before event/timer/module-settlement review remediation."
     }
   ],
   "commands": {
@@ -79,20 +110,25 @@
     ],
     "height": 440,
     "assertions": [
-      "Shared history buffer and view alias identity",
+      "Shared history buffer/view alias identity",
       "Tracking length14 and fixed length6 after growth",
       "Frame document URL rewritten from entry document",
-      "Document removal mutation record",
+      "Document-removal mutation record",
+      "Incremental writes preserve paragraph identity and complete split character reference",
       "Popup inherited base, message origin and source",
-      "Popup closure before root reload"
+      "Popup remains open across root reload; counter advances from1to2",
+      "Saved opener reference accesses and messages replacement root"
     ],
     "visuallyInspected": true,
-    "source": "RenderProof.cs.txt"
+    "source": "RenderProof.cs.txt",
+    "readiness": "Explicit complete root and frame readiness before accessing the frame"
   },
   "review": {
     "callbackRetirement": "One independent pass and targeted confirmation; queued promise/timer findings reproduced and fixed, including detached-frame sibling.",
     "documentAndInitialContext": "One independent pass and targeted confirmation; live popup-name lookup finding reproduced and fixed.",
-    "sandboxedForms": "One independent pass and targeted confirmation; rejected native asynchronous submission and runtime argument precedence findings reproduced and fixed."
+    "sandboxedForms": "One independent pass and targeted confirmation; rejected native asynchronous submission and runtime argument precedence findings reproduced and fixed.",
+    "incrementalParser": "Independent native pass and targeted confirmation; script lifetime, stylesheet barriers, token-boundary emission and generation/cancellation ordering addressed. Full native input modes pass.",
+    "popupSessionLifetime": "Independent runtime pass and targeted confirmation; window event origin checks/receiver forwarding, timer callback realm ownership and module settlement isolation reproduced and fixed. Confirmation found no remaining actionable findings."
   },
   "upstream": [
     "https://github.com/AngleSharp/AngleSharp/pull/1356",
@@ -102,20 +138,29 @@
   ],
   "limits": [
     "Full runtime suite was not reported as passing.",
-    "Incremental document.open/write/close parsing is not implemented.",
-    "Auxiliary windows retire on root document replacement; this evidence closes them before reload.",
     "Reverse about:blank/srcdoc child-to-parent URL/base behavior is not qualified for browser equivalence.",
     "Popup navigation, window features, noopener/noreferrer and sandbox escape are unsupported.",
+    "Long unfinished lexical tokens supplied through many small writes have not been performance-qualified.",
     "These checks do not execute the upstream web-platform-test suite or qualify general browser compatibility.",
-    "This checkpoint was executed on macOS arm64; it does not establish a complete cross-platform runtime gate."
+    "macOS arm64 validation does not establish a complete cross-platform runtime gate."
   ],
   "artifacts": {
-    "README.md": "09474f294636bea770a86bb782d3f1904170eab7fbbf87de4a7803d5d0f2c6a2",
-    "RenderProof.cs.txt": "457e01e6e67e3816c1f5f3bde00dc386e1a3453f230ec2e5f0074a8b7df12d89",
-    "integrated-360.png": "fe59bec72feca56f321da817b9dba6d20dd20dc43bb3b75bdc5770a3ae030eea",
-    "integrated-720.png": "fa5f5f315f73bec09b89331e059ff71571847110287064fa7a9079d533639c60",
-    "reloaded-360.png": "fe59bec72feca56f321da817b9dba6d20dd20dc43bb3b75bdc5770a3ae030eea",
-    "reloaded-720.png": "fa5f5f315f73bec09b89331e059ff71571847110287064fa7a9079d533639c60",
-    "source.html": "359176af56e7d6e1e58ec75c1f5e36de74d086d2a2a98e55e0785538edd465d9"
+    "RenderProof.cs.txt": "98a8077d791bb0afec897f778e96a9431f47d0e0e3b83cd74b9addaaf0b42cad",
+    "integrated-360.png": "21e982503e4e41b86f7c6ca5ce68f4ff3146d90c62d570835f8fa03537cf7809",
+    "reloaded-360.png": "21e982503e4e41b86f7c6ca5ce68f4ff3146d90c62d570835f8fa03537cf7809",
+    "README.md": "63ed2225fa7e7f3335338dc58c8d116eab1d93753f8807ac1d465ad6b7f6bdb6",
+    "source.html": "359176af56e7d6e1e58ec75c1f5e36de74d086d2a2a98e55e0785538edd465d9",
+    "reloaded-720.png": "b5fc32a4fb5698349d37f2fc2cf06bc587ae83b7f87e796a3830d1247f7d44af",
+    "integrated-720.png": "b5fc32a4fb5698349d37f2fc2cf06bc587ae83b7f87e796a3830d1247f7d44af"
+  },
+  "validationNotes": [
+    "One concurrent broad runtime run had154pass/15timeout failures. Every affected class passed sequentially without changing deadlines; full runtime suite is not claimed as passing.",
+    "Four review regressions reproduced before remediation: cross-origin window event access, stale opener listener target, retired-root timer on popup, and popup module blocking root reload.",
+    "One combined-render attempt threw an unlocalized null-reference error before an explicit readiness wait was added. Three diagnostic reruns passed without a product-code change; the final harness now waits for root/frame readiness and passes. This does not establish an exhaustive diagnosis of that transient failure."
+  ],
+  "forkPatch": {
+    "repository": "https://github.com/EvotecIT/AngleSharp",
+    "commit": "d46ba0bdd78f0256e0128dc3e0a4da4b890f688e",
+    "contract": "Incremental script-created document input; retained on integration fork. Not submitted as a standalone upstream PR because extraction must account for preceding document lifecycle/reentry changes."
   }
 }

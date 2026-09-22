@@ -18,6 +18,7 @@ await using var session = await provider.OpenTrustedAsync(new() { Profile = Html
 await session.ExecuteAsync("(()=>{const buffer=new ArrayBuffer(8,{maxByteLength:24});history.replaceState({buffer,tracking:new Uint8Array(buffer,2),fixed:new Uint8Array(buffer,2,6)},'')})()");
 foreach (var stage in new[] { "integrated", "reloaded" }) {
     if (stage == "reloaded") await session.ReloadAsync();
+    await session.WaitForAsync("document.readyState==='complete' && document.getElementById('preview').contentDocument?.readyState==='complete'");
     await session.ExecuteAsync("""
         (()=>{
             const state=history.state;
@@ -29,21 +30,30 @@ foreach (var stage in new[] { "integrated", "reloaded" }) {
             const observer=new MutationObserver(()=>{});observer.observe(frame,{childList:true});frame.open();
             const observed=observer.takeRecords().some(record=>Array.from(record.removedNodes).includes(original));observer.disconnect();
             if(!observed || frame.URL!=='https://navigation.example/reports/start')throw new Error('Document replacement contract');
-            const html=frame.createElement('html'),head=frame.createElement('head'),body=frame.createElement('body');
-            html.append(head,body);frame.append(html);body.textContent='Frame rebuilt through DOM APIs. URL and observer notification verified.';
-            document.getElementById('replacement').textContent='Document replacement: caller URL applied; removal observed.';
+            frame.write('<!doctype html><p id=stream>First chunk ');
+            const paragraph=frame.getElementById('stream');
+            frame.write('&amp; second chunk.</p>');frame.close();
+            if(frame.getElementById('stream')!==paragraph || paragraph.textContent!=='First chunk & second chunk.')throw new Error('Incremental identity contract');
+            document.getElementById('replacement').textContent='Document stream: node identity retained across writes; URL and removal verified.';
             window.popupReady=false;window.popup=open('','proof');
             addEventListener('message',event=>{
                 if(event.source!==popup || event.origin!=='https://navigation.example' || event.data!=='https://navigation.example/assets/')throw new Error('Popup inheritance contract');
                 document.getElementById('popup').textContent='Popup: inherited /assets/ base; message source and origin verified.';
-                popup.close();popupReady=true;
+                popupReady=true;
             },{once:true});
-            const script=popup.document.createElement('script');script.textContent="opener.postMessage(document.baseURI,'https://navigation.example')";popup.document.body.append(script);
+            if(!popup.document.getElementById('setup')) {
+                const script=popup.document.createElement('script');script.id='setup';
+                script.textContent="const savedOpener=opener; let count=0; addEventListener('message',()=>{count++;if(savedOpener!==opener)throw new Error('Opener identity'); savedOpener.document.body.setAttribute('data-popup-count',String(count)); savedOpener.postMessage(document.baseURI,'https://navigation.example')})";
+                popup.document.body.append(script);
+            }
+            popup.postMessage('probe','https://navigation.example');
         })()
         """);
     await session.WaitForAsync("popupReady");
+    var count = (await session.EvaluateAsync("Number(document.body.getAttribute('data-popup-count'))")).GetInt32();
+    if (count != (stage == "integrated" ? 1 : 2)) throw new Exception("Popup realm did not survive reload");
     var capture = await session.CaptureAsync();
     foreach (var width in new[] { 360, 720 }) File.WriteAllBytes(Path.Combine(output, $"{stage}-{width}.png"),
         HtmlConversionDocument.FromDocument(capture.CreateRenderDocument()).ToPng(new() { ViewportWidth = width, ViewportHeight = 440, Margins = HtmlRenderMargins.All(0) }));
 }
-Console.WriteLine("Integrated history, popup message/inheritance/closure, frame document.open URL and mutation-record contracts passed before and after reload; four renders produced.");
+Console.WriteLine("Incremental document writes retain nodes; popup realm and captured opener survive reload; history aliases, frame URL and mutation records verified. Four renders produced.");
