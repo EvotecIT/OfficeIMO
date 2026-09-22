@@ -119,11 +119,11 @@ namespace OfficeIMO.Core.Internal {
                     cancellationToken).ConfigureAwait(false);
                 if (trailingRead == 0) return result;
 
+                long expandedTotal = checked((long)result.Length + 1);
+                EnsureWithinLimit(expandedTotal, maxBytes);
                 using var expanded = new MemoryStream(checked(result.Length + 1));
                 expanded.Write(result, 0, result.Length);
                 expanded.WriteByte(trailingByte[0]);
-                long expandedTotal = checked((long)result.Length + 1);
-                EnsureWithinLimit(expandedTotal, maxBytes);
                 var expandedBuffer = new byte[BufferSize];
                 int expandedRead;
                 while ((expandedRead = await source.ReadAsync(
@@ -179,11 +179,11 @@ namespace OfficeIMO.Core.Internal {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (trailingByte < 0) return result;
 
+                long expandedTotal = checked((long)result.Length + 1);
+                EnsureWithinLimit(expandedTotal, maxBytes);
                 using var expanded = new MemoryStream(checked(result.Length + 1));
                 expanded.Write(result, 0, result.Length);
                 expanded.WriteByte(checked((byte)trailingByte));
-                long expandedTotal = checked((long)result.Length + 1);
-                EnsureWithinLimit(expandedTotal, maxBytes);
                 var expandedBuffer = new byte[BufferSize];
                 int expandedRead;
                 while ((expandedRead = source.Read(expandedBuffer, 0, expandedBuffer.Length)) > 0) {

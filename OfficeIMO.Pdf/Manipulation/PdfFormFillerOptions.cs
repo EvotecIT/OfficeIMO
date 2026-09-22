@@ -131,7 +131,7 @@ public sealed class PdfFormFillerOptions {
     /// <returns>The current options instance for fluent configuration.</returns>
     public PdfFormFillerOptions UseAppearanceFontFile(string familyName, string regularPath) {
         Guard.NotNullOrWhiteSpace(regularPath, nameof(regularPath));
-        _appearanceFontFamily = new PdfEmbeddedFontFamily(familyName, System.IO.File.ReadAllBytes(regularPath));
+        _appearanceFontFamily = PdfEmbeddedFontFamily.FromFiles(familyName, regularPath);
         return this;
     }
 }

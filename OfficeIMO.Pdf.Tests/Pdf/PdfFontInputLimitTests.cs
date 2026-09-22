@@ -14,6 +14,9 @@ public class PdfFontInputLimitTests {
             Assert.Throws<InvalidDataException>(() => PdfEmbeddedFontFamily.FromFiles("Oversized", path));
             Assert.Throws<InvalidDataException>(() => options.UseFontFamily("Oversized", path));
             Assert.Empty(options.EmbeddedFonts);
+            var formOptions = new PdfFormFillerOptions();
+            Assert.Throws<InvalidDataException>(() => formOptions.UseAppearanceFontFile("Oversized", path));
+            Assert.Null(formOptions.AppearanceFontFamily);
         } finally {
             File.Delete(path);
         }
