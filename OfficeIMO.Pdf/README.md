@@ -1641,8 +1641,7 @@ PdfDocument.Create(pdf => pdf.Content(content => content
 ```csharp
 using OfficeIMO.Pdf;
 
-byte[] bytes = File.ReadAllBytes("incoming.pdf");
-PdfDocument pdf = PdfDocument.Load(bytes);
+PdfDocument pdf = PdfDocument.Load("incoming.pdf");
 PdfDocumentPreflight preflight = pdf.Preflight();
 
 if (!preflight.Can(PdfPreflightCapability.ManipulatePages)) {

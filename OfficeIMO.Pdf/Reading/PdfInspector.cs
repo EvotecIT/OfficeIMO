@@ -114,8 +114,8 @@ internal static class PdfInspector {
     /// Inspects a PDF from a file path.
     /// </summary>
     public static PdfDocumentInfo Inspect(string path, PdfLoadOptions? options = null) {
-        Guard.NotNullOrWhiteSpace(path, nameof(path));
-        return Inspect(File.ReadAllBytes(path), options);
+        PdfDocumentSource source = PdfDocumentSource.FromPath(path, options);
+        return Inspect(source.Bytes, source.Options);
     }
 
     /// <summary>
@@ -129,20 +129,16 @@ internal static class PdfInspector {
     /// Inspects selected source page ranges from a PDF file path, preserving caller order and overlaps.
     /// </summary>
     public static PdfDocumentInfo InspectPageRanges(string path, PdfLoadOptions? options, params PdfPageRange[] pageRanges) {
-        Guard.NotNullOrWhiteSpace(path, nameof(path));
-        return InspectPageRanges(File.ReadAllBytes(path), options, pageRanges);
+        PdfDocumentSource source = PdfDocumentSource.FromPath(path, options);
+        return InspectPageRanges(source.Bytes, source.Options, pageRanges);
     }
 
     /// <summary>
     /// Inspects a PDF from the current position of a readable stream.
     /// </summary>
     public static PdfDocumentInfo Inspect(Stream stream, PdfLoadOptions? options = null) {
-        Guard.NotNull(stream, nameof(stream));
-        if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
-
-        using var buffer = new MemoryStream();
-        stream.CopyTo(buffer);
-        return Inspect(buffer.ToArray(), options);
+        PdfDocumentSource source = PdfDocumentSource.FromRemainingStream(stream, options);
+        return Inspect(source.Bytes, source.Options);
     }
 
     /// <summary>
@@ -156,12 +152,8 @@ internal static class PdfInspector {
     /// Inspects selected source page ranges from the current position of a readable stream, preserving caller order and overlaps.
     /// </summary>
     public static PdfDocumentInfo InspectPageRanges(Stream stream, PdfLoadOptions? options, params PdfPageRange[] pageRanges) {
-        Guard.NotNull(stream, nameof(stream));
-        if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
-
-        using var buffer = new MemoryStream();
-        stream.CopyTo(buffer);
-        return InspectPageRanges(buffer.ToArray(), options, pageRanges);
+        PdfDocumentSource source = PdfDocumentSource.FromRemainingStream(stream, options);
+        return InspectPageRanges(source.Bytes, source.Options, pageRanges);
     }
 
     /// <summary>
@@ -457,31 +449,8 @@ internal static class PdfInspector {
     /// Reports whether OfficeIMO.Pdf can read or safely rewrite a PDF from the current position of a readable stream.
     /// </summary>
     public static PdfDocumentPreflight Preflight(Stream stream, PdfLoadOptions? options = null) {
-        Guard.NotNull(stream, nameof(stream));
-        if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
-
-        PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options);
-        long limit = effectiveOptions.Limits.MaxInputBytes;
-        if (stream.CanSeek) {
-            long remaining = stream.Length - stream.Position;
-            if (remaining > limit) {
-                throw PdfReadLimitException.Create(PdfReadLimitKind.InputBytes, limit, remaining);
-            }
-        }
-
-        using var buffer = new MemoryStream();
-        var chunk = new byte[81920];
-        int read;
-        while ((read = stream.Read(chunk, 0, chunk.Length)) > 0) {
-            long nextLength = buffer.Length + read;
-            if (nextLength > limit) {
-                throw PdfReadLimitException.Create(PdfReadLimitKind.InputBytes, limit, nextLength);
-            }
-
-            buffer.Write(chunk, 0, read);
-        }
-
-        return Preflight(buffer.ToArray(), effectiveOptions);
+        PdfDocumentSource source = PdfDocumentSource.FromRemainingStream(stream, options);
+        return Preflight(source.Bytes, source.Options);
     }
 
     private static List<string> GetUnsupportedContentStreamFilters(
@@ -665,20 +634,16 @@ internal static class PdfInspector {
     /// Reads lightweight PDF markers from a file path without full document parsing.
     /// </summary>
     public static PdfDocumentProbe Probe(string path, PdfLoadOptions? options = null) {
-        Guard.NotNullOrWhiteSpace(path, nameof(path));
-        return Probe(File.ReadAllBytes(path), options);
+        PdfDocumentSource source = PdfDocumentSource.FromPath(path, options);
+        return Probe(source.Bytes, source.Options);
     }
 
     /// <summary>
     /// Reads lightweight PDF markers from the current position of a readable stream without full document parsing.
     /// </summary>
     public static PdfDocumentProbe Probe(Stream stream, PdfLoadOptions? options = null) {
-        Guard.NotNull(stream, nameof(stream));
-        if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
-
-        using var buffer = new MemoryStream();
-        stream.CopyTo(buffer);
-        return Probe(buffer.ToArray(), options);
+        PdfDocumentSource source = PdfDocumentSource.FromRemainingStream(stream, options);
+        return Probe(source.Bytes, source.Options);
     }
 
     internal static PdfDocumentInfo FromReadDocument(

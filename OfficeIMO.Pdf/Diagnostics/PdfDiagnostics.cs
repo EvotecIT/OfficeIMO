@@ -53,20 +53,14 @@ internal static class PdfDiagnostics {
 
     /// <summary>Analyzes a PDF file.</summary>
     public static PdfDiagnosticReport Analyze(string path, PdfLoadOptions? options = null) {
-        Guard.NotNullOrWhiteSpace(path, nameof(path));
-        return Analyze(File.ReadAllBytes(path), options);
+        PdfDocumentSource source = PdfDocumentSource.FromPath(path, options);
+        return Analyze(source.Bytes, source.Options);
     }
 
     /// <summary>Analyzes a readable PDF stream from its current position.</summary>
     public static PdfDiagnosticReport Analyze(Stream stream, PdfLoadOptions? options = null) {
-        Guard.NotNull(stream, nameof(stream));
-        if (!stream.CanRead) {
-            throw new ArgumentException("Stream must be readable.", nameof(stream));
-        }
-
-        using var buffer = new MemoryStream();
-        stream.CopyTo(buffer);
-        return Analyze(buffer.ToArray(), options);
+        PdfDocumentSource source = PdfDocumentSource.FromRemainingStream(stream, options);
+        return Analyze(source.Bytes, source.Options);
     }
 
     /// <summary>Reports optimization opportunities for a PDF byte array without modifying it.</summary>
@@ -81,20 +75,14 @@ internal static class PdfDiagnostics {
 
     /// <summary>Reports optimization opportunities for a PDF file without modifying it.</summary>
     public static PdfOptimizationReport AnalyzeOptimization(string path, PdfLoadOptions? options = null) {
-        Guard.NotNullOrWhiteSpace(path, nameof(path));
-        return AnalyzeOptimization(File.ReadAllBytes(path), options);
+        PdfDocumentSource source = PdfDocumentSource.FromPath(path, options);
+        return AnalyzeOptimization(source.Bytes, source.Options);
     }
 
     /// <summary>Reports optimization opportunities for a readable PDF stream without modifying it.</summary>
     public static PdfOptimizationReport AnalyzeOptimization(Stream stream, PdfLoadOptions? options = null) {
-        Guard.NotNull(stream, nameof(stream));
-        if (!stream.CanRead) {
-            throw new ArgumentException("Stream must be readable.", nameof(stream));
-        }
-
-        using var buffer = new MemoryStream();
-        stream.CopyTo(buffer);
-        return AnalyzeOptimization(buffer.ToArray(), options);
+        PdfDocumentSource source = PdfDocumentSource.FromRemainingStream(stream, options);
+        return AnalyzeOptimization(source.Bytes, source.Options);
     }
 
     internal static PdfOptimizationReport BuildOptimizationReport(
