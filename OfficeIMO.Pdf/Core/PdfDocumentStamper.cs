@@ -141,9 +141,7 @@ public sealed partial class PdfDocumentStamper {
     /// <summary>Imports one page from a readable PDF stream using explicit target read options.</summary>
     public PdfDocument OverlayPage(Stream sourceStream, PdfPageOverlayOptions? options, PdfLoadOptions? targetReadOptions) {
         Guard.NotNull(sourceStream, nameof(sourceStream));
-        using var buffer = new MemoryStream();
-        sourceStream.CopyTo(buffer);
-        return OverlayPage(buffer.ToArray(), options, targetReadOptions);
+        return OverlayPage(PdfDocumentSource.FromRemainingStream(sourceStream, options?.SourceReadOptions).Bytes, options, targetReadOptions);
     }
 
     /// <summary>Imports one page from a PDF file above selected pages.</summary>
@@ -154,7 +152,7 @@ public sealed partial class PdfDocumentStamper {
     /// <summary>Imports one page from a PDF file using explicit target read options.</summary>
     public PdfDocument OverlayPage(string sourcePath, PdfPageOverlayOptions? options, PdfLoadOptions? targetReadOptions) {
         Guard.NotNullOrWhiteSpace(sourcePath, nameof(sourcePath));
-        return OverlayPage(File.ReadAllBytes(sourcePath), options, targetReadOptions);
+        return OverlayPage(PdfDocumentSource.FromPath(sourcePath, options?.SourceReadOptions).Bytes, options, targetReadOptions);
     }
 
     /// <summary>Attempts to import one page from another PDF above selected pages.</summary>
@@ -192,9 +190,7 @@ public sealed partial class PdfDocumentStamper {
     /// <summary>Imports one page from a readable PDF stream below selected pages using explicit target read options.</summary>
     public PdfDocument UnderlayPage(Stream sourceStream, PdfPageOverlayOptions? options, PdfLoadOptions? targetReadOptions) {
         Guard.NotNull(sourceStream, nameof(sourceStream));
-        using var buffer = new MemoryStream();
-        sourceStream.CopyTo(buffer);
-        return UnderlayPage(buffer.ToArray(), options, targetReadOptions);
+        return UnderlayPage(PdfDocumentSource.FromRemainingStream(sourceStream, options?.SourceReadOptions).Bytes, options, targetReadOptions);
     }
 
     /// <summary>Imports one page from a PDF file below selected pages.</summary>
@@ -205,7 +201,7 @@ public sealed partial class PdfDocumentStamper {
     /// <summary>Imports one page from a PDF file below selected pages using explicit target read options.</summary>
     public PdfDocument UnderlayPage(string sourcePath, PdfPageOverlayOptions? options, PdfLoadOptions? targetReadOptions) {
         Guard.NotNullOrWhiteSpace(sourcePath, nameof(sourcePath));
-        return UnderlayPage(File.ReadAllBytes(sourcePath), options, targetReadOptions);
+        return UnderlayPage(PdfDocumentSource.FromPath(sourcePath, options?.SourceReadOptions).Bytes, options, targetReadOptions);
     }
 
     /// <summary>Attempts to import one page from another PDF below selected pages.</summary>

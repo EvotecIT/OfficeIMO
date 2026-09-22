@@ -485,6 +485,81 @@ public class PdfReadLimitTests {
         }
     }
 
+    [Theory]
+    [InlineData("append")]
+    [InlineData("prepend")]
+    [InlineData("insert")]
+    public void PageImportBoundsSourcePathsAndNonSeekableStreamsBeforeBuffering(string placement) {
+        byte[] source = BuildPdf();
+        PdfDocument target = PdfDocument.Load(BuildPdf());
+        var importOptions = new PdfPageImportOptions {
+            SourceReadOptions = new PdfLoadOptions {
+                Limits = new PdfReadLimits { MaxInputBytes = 16 }
+            }
+        };
+        string path = Path.Combine(Path.GetTempPath(), "officeimo-pdf-import-limit-" + Guid.NewGuid().ToString("N") + ".pdf");
+
+        try {
+            File.WriteAllBytes(path, source);
+            PdfReadLimitException pathException = Assert.Throws<PdfReadLimitException>(() => placement switch {
+                "append" => target.Pages.Append(path, importOptions),
+                "prepend" => target.Pages.Prepend(path, importOptions),
+                _ => target.Pages.Insert(1, path, importOptions)
+            });
+            Assert.Equal(PdfReadLimitKind.InputBytes, pathException.Kind);
+
+            using var stream = new ChunkedNonSeekableStream(source, maximumChunkSize: 3);
+            PdfReadLimitException streamException = Assert.Throws<PdfReadLimitException>(() => placement switch {
+                "append" => target.Pages.Append(stream, importOptions),
+                "prepend" => target.Pages.Prepend(stream, importOptions),
+                _ => target.Pages.Insert(1, stream, importOptions)
+            });
+            Assert.Equal(PdfReadLimitKind.InputBytes, streamException.Kind);
+            Assert.InRange(stream.BytesRead, 17, 19);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void MergeWithRejectsOversizedSeekableSourceBeforeReading() {
+        using var stream = new LengthOnlyReadStream(PdfLoadOptions.Default.Limits.MaxInputBytes + 1L);
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(
+            () => PdfDocument.Load(BuildPdf()).MergeWith(stream));
+
+        Assert.Equal(PdfReadLimitKind.InputBytes, exception.Kind);
+        Assert.False(stream.WasRead);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ImportedPageStampBoundsSourcePathsAndStreamsBeforeBuffering(bool overlay) {
+        byte[] source = BuildPdf();
+        PdfDocument target = PdfDocument.Load(BuildPdf());
+        var options = new PdfPageOverlayOptions {
+            SourceReadOptions = new PdfLoadOptions {
+                Limits = new PdfReadLimits { MaxInputBytes = 16 }
+            }
+        };
+        string path = Path.Combine(Path.GetTempPath(), "officeimo-pdf-stamp-limit-" + Guid.NewGuid().ToString("N") + ".pdf");
+
+        try {
+            File.WriteAllBytes(path, source);
+            PdfReadLimitException pathException = Assert.Throws<PdfReadLimitException>(() =>
+                overlay ? target.Stamp.OverlayPage(path, options) : target.Stamp.UnderlayPage(path, options));
+            Assert.Equal(PdfReadLimitKind.InputBytes, pathException.Kind);
+
+            using var stream = new ChunkedNonSeekableStream(source, maximumChunkSize: 3);
+            PdfReadLimitException streamException = Assert.Throws<PdfReadLimitException>(() =>
+                overlay ? target.Stamp.OverlayPage(stream, options) : target.Stamp.UnderlayPage(stream, options));
+            Assert.Equal(PdfReadLimitKind.InputBytes, streamException.Kind);
+            Assert.InRange(stream.BytesRead, 17, 19);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
     [Fact]
     public void PdfDocumentPreflightConsumesSeekableStreamsFromTheirCurrentPosition() {
         byte[] pdf = BuildPdf();
