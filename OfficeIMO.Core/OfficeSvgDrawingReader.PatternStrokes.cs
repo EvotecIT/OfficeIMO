@@ -52,12 +52,6 @@ public static partial class OfficeSvgDrawingReader {
             return false;
         }
 
-        if (!references.TryChargeIntermediateSurface(drawing.Width, drawing.Height, 3)) {
-            unsupported++;
-            ClearShapeStroke(shape.Shape);
-            return false;
-        }
-
         var repeated = new OfficeDrawing(drawing.Width, drawing.Height);
         try {
             repeated.AddTilingPattern(
@@ -85,6 +79,11 @@ public static partial class OfficeSvgDrawingReader {
         try {
             clipped.AddClippedDrawing(repeated, shape.X, shape.Y, strokeClip!, -shape.X, -shape.Y);
         } catch (ArgumentOutOfRangeException) {
+            unsupported++;
+            ClearShapeStroke(shape.Shape);
+            return false;
+        }
+        if (!references.TryChargeIntermediateSurface(drawing.Width, drawing.Height, 3)) {
             unsupported++;
             ClearShapeStroke(shape.Shape);
             return false;

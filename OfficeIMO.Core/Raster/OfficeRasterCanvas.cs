@@ -138,6 +138,9 @@ public sealed partial class OfficeRasterCanvas {
 
     internal OfficeRasterTransformedTextBudget TransformedTextBudget => _transformedTextBudget;
 
+    internal void ChargeIntermediateSurfacePixels(long pixels, long maximumRasterPixels) =>
+        _transformedTextBudget.ChargeIntermediateSurfacePixels(pixels, maximumRasterPixels);
+
     internal void ShareTransformedTextBudget(OfficeRasterTransformedTextBudget budget) =>
         _transformedTextBudget = budget;
 
@@ -1428,4 +1431,16 @@ public sealed partial class OfficeRasterCanvas {
 
 internal sealed class OfficeRasterTransformedTextBudget {
     internal long Pixels;
+    internal long IntermediatePixels;
+
+    internal void ChargeIntermediateSurfacePixels(long pixels, long maximumRasterPixels) {
+        long consumed = IntermediatePixels;
+        if (pixels < 0L || pixels > maximumRasterPixels - consumed) {
+            throw new OfficeImageExportLimitException(1D,
+                pixels > long.MaxValue - consumed ? long.MaxValue : consumed + pixels,
+                maximumRasterPixels,
+                OfficeRasterImageEncoder.GetMaximumDimension(OfficeImageExportFormat.Png));
+        }
+        IntermediatePixels = consumed + pixels;
+    }
 }

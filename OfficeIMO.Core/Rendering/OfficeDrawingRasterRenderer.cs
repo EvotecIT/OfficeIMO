@@ -314,6 +314,7 @@ public static partial class OfficeDrawingRasterRenderer {
                 out OfficeRasterImage? image) &&
             image != null) {
             if (drawingImage.Opacity < 1D) {
+                canvas.ChargeIntermediateSurfacePixels((long)image.Width * image.Height, maximumRasterPixels);
                 image = ApplyImageOpacity(image, drawingImage.Opacity);
             }
 
@@ -336,13 +337,22 @@ public static partial class OfficeDrawingRasterRenderer {
         System.Threading.CancellationToken cancellationToken,
         out OfficeRasterImage? image) {
         if (OfficeRasterImageDecoder.TryDecode(
-                bytes, maximumRasterPixels, cancellationToken, out image) && image != null) return true;
+                bytes, maximumRasterPixels, cancellationToken, out image) && image != null) {
+            transformedTextBudget.ChargeIntermediateSurfacePixels((long)image.Width * image.Height, maximumRasterPixels);
+            return true;
+        }
         if (IsSvg(bytes, contentType) &&
             OfficeSvgDrawingReader.TryRead(bytes, out OfficeDrawing? vector, out int unsupportedFeatureCount) &&
             vector != null &&
             unsupportedFeatureCount == 0) {
             cancellationToken.ThrowIfCancellationRequested();
             double scale = ResolveNestedVectorScale(vector, targetWidth, targetHeight);
+            double vectorPixels = Math.Ceiling(vector.Width * scale) * Math.Ceiling(vector.Height * scale);
+            if (vectorPixels > long.MaxValue) {
+                throw new OfficeImageExportLimitException(scale, long.MaxValue, maximumRasterPixels,
+                    OfficeRasterImageEncoder.GetMaximumDimension(OfficeImageExportFormat.Png));
+            }
+            transformedTextBudget.ChargeIntermediateSurfacePixels((long)vectorPixels, maximumRasterPixels);
             image = Render(vector, new OfficeDrawingRasterRenderOptions {
                 Scale = scale,
                 Background = OfficeColor.Transparent,
@@ -360,7 +370,10 @@ public static partial class OfficeDrawingRasterRenderer {
         if (imageCodec == null ||
             !imageCodec.TryDecode((byte[])bytes.Clone(), contentType, out image) ||
             image == null) return false;
-        if (OfficeRasterImageDecoder.IsWithinPixelLimit(image.Width, image.Height, maximumRasterPixels)) return true;
+        if (OfficeRasterImageDecoder.IsWithinPixelLimit(image.Width, image.Height, maximumRasterPixels)) {
+            transformedTextBudget.ChargeIntermediateSurfacePixels((long)image.Width * image.Height, maximumRasterPixels);
+            return true;
+        }
         image = null;
         return false;
     }

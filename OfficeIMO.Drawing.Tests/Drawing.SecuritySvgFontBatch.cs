@@ -5,11 +5,51 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using OfficeIMO.Drawing;
+using OfficeIMO.TestAssets;
 using Xunit;
 
 namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
+    [Fact]
+    public void RasterEffectsShareActualScaledIntermediatePixelBudget() {
+        var inner = new OfficeDrawing(1, 1).AddText("A", 0, 0, 1, 1, new OfficeFontInfo("Arial", 1));
+        var drawing = new OfficeDrawing(1, 1)
+            .AddEffectDrawing(inner, OfficeTransform.Identity)
+            .AddEffectDrawing(inner, OfficeTransform.Identity);
+        var budget = new OfficeRasterTransformedTextBudget { IntermediatePixels = 64_000_000L - 4L };
+
+        Assert.Throws<OfficeImageExportLimitException>(() => OfficeDrawingRasterRenderer.Render(drawing,
+            new OfficeDrawingRasterRenderOptions { Scale = 2, TransformedTextBudget = budget }));
+    }
+
+    [Fact]
+    public void RejectedPatternDoesNotConsumeTheRetainedSurfaceBudget() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Red));
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4096 4096'><defs>" +
+            "<pattern id='p' patternUnits='userSpaceOnUse' width='1' height='1'>" +
+            "<rect width='1' height='1'/></pattern></defs>" +
+            "<rect width='1' height='1' fill='url(#p)'/>" +
+            "<image href='data:image/png;base64," + Convert.ToBase64String(png) + "' width='1' height='1'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.True(unsupported > 0);
+        Assert.Single(EnumerateDrawingImages(drawing!));
+    }
+
+    [Fact]
+    public void EmptyMarkersDoNotConsumeFullCanvasSurfaceBudget() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Red));
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4000 4000'><defs>" +
+            "<marker id='empty' markerWidth='1' markerHeight='1'/></defs>" +
+            string.Concat(Enumerable.Repeat(
+                "<path d='M0 0 L1 1' marker-end='url(#empty)'/>", 4)) +
+            "<image href='data:image/png;base64," + Convert.ToBase64String(png) + "' width='1' height='1'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out _));
+        Assert.Single(EnumerateDrawingImages(drawing!));
+    }
+
     [Fact]
     public void NestedEffectTextSharesTheRenderWideIntermediatePixelBudget() {
         var inner = new OfficeDrawing(20, 20).AddPositionedText("A", 0, 0, 10, 10,
@@ -209,10 +249,12 @@ public partial class DrawingTests {
     [Fact]
     public void PaintedTextMeasuresTheNormalizedRunBeforeApplyingTheOutlineLimit() {
         string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 20'>" +
-            "<text x='1' y='12' fill='none' stroke='black'>A" + new string(' ', 4096) +
+            "<text x='1' y='12' font-family='Scoped' fill='none' stroke='black'>A" + new string(' ', 4096) +
             "<tspan>B</tspan></text></svg>";
+        var options = new OfficeSvgDrawingReaderOptions();
+        options.Fonts.Add("Scoped", ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A', 'B'));
 
-        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), options, out OfficeDrawing? drawing, out int unsupported));
         Assert.Equal(0, unsupported);
         Assert.NotEmpty(drawing!.Elements);
     }

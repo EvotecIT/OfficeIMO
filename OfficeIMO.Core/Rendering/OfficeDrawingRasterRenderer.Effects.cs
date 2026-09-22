@@ -11,6 +11,13 @@ public static partial class OfficeDrawingRasterRenderer {
         if (effectGroup.Opacity <= 0D) return;
         canvas = canvas.WithDrawingTextProfile(effectGroup.InnerDrawing);
         cancellationToken.ThrowIfCancellationRequested();
+        double width = System.Math.Ceiling(effectGroup.InnerDrawing.Width * scale);
+        double height = System.Math.Ceiling(effectGroup.InnerDrawing.Height * scale);
+        if (width > long.MaxValue || height > long.MaxValue || width * height > long.MaxValue) {
+            throw new OfficeImageExportLimitException(scale, long.MaxValue, maximumRasterPixels,
+                OfficeRasterImageEncoder.GetMaximumDimension(OfficeImageExportFormat.Png));
+        }
+        canvas.ChargeIntermediateSurfacePixels((long)width * (long)height, maximumRasterPixels);
         OfficeRasterImage layer = Render(effectGroup.InnerDrawing, new OfficeDrawingRasterRenderOptions {
             Scale = scale,
             ImageCodec = imageCodec,
@@ -265,6 +272,8 @@ public static partial class OfficeDrawingRasterRenderer {
         OfficeRasterTransformedTextBudget transformedTextBudget,
         long maximumRasterPixels,
         System.Threading.CancellationToken cancellationToken) {
+        long surfacePixels = (long)source.Width * source.Height;
+        transformedTextBudget.ChargeIntermediateSurfacePixels(surfacePixels * 2L, maximumRasterPixels);
         var maskScene = new OfficeDrawing(source.Width / scale, source.Height / scale);
         maskScene.AddEffectDrawing(softMask.InnerDrawing, softMask.Transform);
         OfficeRasterImage mask = Render(maskScene, new OfficeDrawingRasterRenderOptions {
