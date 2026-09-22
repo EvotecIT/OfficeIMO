@@ -311,6 +311,8 @@ public sealed partial class PdfOptions {
             throw new ArgumentException("PDF embedded font data cannot be empty.", nameof(data));
         }
 
+        PdfFontInput.EnsureWithinLimit(data.LongLength);
+
         string? normalizedFontName = string.IsNullOrWhiteSpace(fontName) ? null : fontName;
         if (_embeddedFonts != null &&
             _embeddedFonts.TryGetValue(font, out PdfEmbeddedFont? existingFont) &&
@@ -350,7 +352,7 @@ public sealed partial class PdfOptions {
     /// <summary>Embeds a TrueType font file from disk for a generated standard-font slot.</summary>
     public PdfOptions EmbedStandardFont(PdfStandardFont font, string path, string? fontName = null) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
-        return EmbedStandardFont(font, System.IO.File.ReadAllBytes(path), fontName);
+        return EmbedStandardFont(font, PdfFontInput.ReadFile(path), fontName);
     }
 
     /// <summary>

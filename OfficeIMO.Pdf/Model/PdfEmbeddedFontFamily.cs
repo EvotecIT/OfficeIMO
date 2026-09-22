@@ -35,6 +35,11 @@ public sealed partial class PdfEmbeddedFontFamily {
             Guard.NotNullOrEmpty(boldItalic, nameof(boldItalic));
         }
 
+        PdfFontInput.EnsureWithinLimit(regular.LongLength);
+        if (bold != null) PdfFontInput.EnsureWithinLimit(bold.LongLength);
+        if (italic != null) PdfFontInput.EnsureWithinLimit(italic.LongLength);
+        if (boldItalic != null) PdfFontInput.EnsureWithinLimit(boldItalic.LongLength);
+
         FamilyName = familyName.Trim();
         _regular = (byte[])regular.Clone();
         _bold = CloneOptional(bold);
@@ -77,10 +82,10 @@ public sealed partial class PdfEmbeddedFontFamily {
         Guard.NotNullOrWhiteSpace(regularPath, nameof(regularPath));
         return new PdfEmbeddedFontFamily(
             familyName,
-            System.IO.File.ReadAllBytes(regularPath),
-            string.IsNullOrWhiteSpace(boldPath) ? null : System.IO.File.ReadAllBytes(boldPath!),
-            string.IsNullOrWhiteSpace(italicPath) ? null : System.IO.File.ReadAllBytes(italicPath!),
-            string.IsNullOrWhiteSpace(boldItalicPath) ? null : System.IO.File.ReadAllBytes(boldItalicPath!));
+            PdfFontInput.ReadFile(regularPath),
+            string.IsNullOrWhiteSpace(boldPath) ? null : PdfFontInput.ReadFile(boldPath!),
+            string.IsNullOrWhiteSpace(italicPath) ? null : PdfFontInput.ReadFile(italicPath!),
+            string.IsNullOrWhiteSpace(boldItalicPath) ? null : PdfFontInput.ReadFile(boldItalicPath!));
     }
 
     private static byte[]? CloneOptional(byte[]? data) =>

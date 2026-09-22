@@ -22,6 +22,10 @@ edits use `PdfImageEditOptions.MaximumEncodedImageBytes`, including moves that
 restamp the extracted image. Choose a value no greater than `int.MaxValue`.
 Image stamp streams continue to read from their current position.
 
+## PDF embedded-font input limit
+
+PDF authoring now rejects caller-supplied font faces larger than 128 MiB before copying them. File-path overloads check the size before buffering and again while reading. Applications that previously supplied larger fonts must reduce or subset each face before embedding it. Use the `EmbedStandardFont` or `PdfEmbeddedFontFamily.FromFiles` path overload to avoid reading an oversized font into application memory first.
+
 ## HTML style and rendering limits
 
 `HtmlComputedStyleEngine.Compute(HtmlDocument)` now applies the untrusted HTML and CSS limits to prepared documents. Applications that intentionally process trusted or larger documents can retain their chosen policy by wrapping the prepared document before computing styles:
