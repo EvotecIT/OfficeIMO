@@ -72,7 +72,7 @@ internal sealed class ScriptedDocumentSession : IDisposable {
                 }
             })
             .WithEventLoop(context => new RuntimeEventLoop(context, () => _realms.EngineFor(context), _errors, _realmSync, _realms.RetireDetached))
-            .With(new RuntimeDocumentUrls.MutationListener(markRevision))
+            .With(new RuntimeDomRevisionListener(markRevision))
             .With(new RuntimeDomSynchronization(() => _realmSync))
             .With(new RuntimeScriptBlockingStyleSheetEvaluator(options))
             .WithOnly<IIntegrityProvider>(_integrity)

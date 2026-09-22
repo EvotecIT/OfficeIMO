@@ -87,19 +87,6 @@ internal sealed class RuntimeHistoryBindings {
         var history = exports.Get("history");
         var location = exports.Get("location");
         var nativeWindow = JsValue.FromObject(engine, document.DefaultView).AsObject();
-        foreach (var property in engine.Global.GetOwnProperties().ToArray()) {
-            if (property.Value.Value is not Function constructor || constructor.Get("prototype") is not ObjectInstance prototype) continue;
-            foreach(string name in new[]{"baseURI","href","src","action","formAction"}) {
-                var descriptor=prototype.GetOwnProperty(name);
-                if (descriptor.Get is not Function getter) continue;
-                prototype.FastSetProperty(name,new GetSetPropertyDescriptor(new ClrFunction(engine,"get "+name,(receiver,args)=>{
-                    RuntimeDocumentUrls.Base(document);
-                    if(name=="href" && receiver.ToObject() is AngleSharp.Html.Dom.IHtmlBaseElement element)
-                        return new Url(new Url(element.Owner?.Url ?? document.Url),element.GetAttribute("href") ?? "").Href;
-                    return engine.Invoke(getter,receiver,args);
-                }),descriptor.Set,descriptor.Enumerable,descriptor.Configurable));
-            }
-        }
         foreach (var target in new[] { engine.Global, nativeWindow }) {
             foreach(string name in new[]{"History","Location","PopStateEvent","HashChangeEvent"})
                 target.FastSetProperty(name,new PropertyDescriptor(exports.Get(name),true,false,true));

@@ -572,6 +572,12 @@ document URL and capture identity without replacing the DOM or interpreter.
 Relative fetches and newly executed scripts use the active document base. An
 active base element keeps its resolved URL across history rewrites; changing or
 removing it updates subsequent URL reads and runtime loads.
+The DOM provider freezes that URL when the first connected HTML base becomes
+active or its `href` changes, including changes made before the next URL read.
+An invalid, `data:` or `javascript:` base freezes the document fallback URL.
+Later or detached bases do not override the active one. Insertion, removal and
+adoption of a subtree containing a base update the owning document; captured
+documents retain the resolved base for independent conversion.
 
 History state is copied on insertion and restored independently on traversal.
 The state graph supports ordinary objects, sparse arrays, cycles, shared references,
