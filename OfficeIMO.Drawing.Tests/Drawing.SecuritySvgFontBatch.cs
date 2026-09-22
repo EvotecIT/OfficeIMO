@@ -217,6 +217,36 @@ public partial class DrawingTests {
     }
 
     [Theory]
+    [InlineData(100, 4000, 4, false)]
+    [InlineData(4000, 1, 1, true)]
+    public void ForeignObjectSoftMasksChargeTheirOwnCanvasSize(
+        int sourceSize, int maskSize, int count, bool retained) {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'>" +
+            "<foreignObject width='10' height='10'><div xmlns='http://www.w3.org/1999/xhtml'>Text</div></foreignObject></svg>";
+        var options = new OfficeSvgDrawingReaderOptions {
+            ForeignObjectRenderer = context => {
+                var content = new OfficeDrawing(context.Width, context.Height);
+                var source = new OfficeDrawing(sourceSize, sourceSize);
+                var mask = new OfficeDrawingSoftMask(new OfficeDrawing(maskSize, maskSize));
+                for (int index = 0; index < count; index++) {
+                    content.AddEffectDrawing(source, OfficeTransform.Identity, OfficeBlendMode.Normal, mask);
+                }
+                return content;
+            }
+        };
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), options,
+            out OfficeDrawing? drawing, out int unsupported));
+        if (retained) {
+            Assert.Equal(0, unsupported);
+            Assert.NotEmpty(drawing!.Elements);
+        } else {
+            Assert.True(unsupported > 0);
+            Assert.Empty(drawing!.Elements);
+        }
+    }
+
+    [Theory]
     [InlineData("effect")]
     [InlineData("tile")]
     [InlineData("image")]

@@ -360,7 +360,7 @@ public static partial class OfficeSvgDrawingReader {
                      FindSvgLogicalTextOwner(candidate.SourceText))) {
             // The candidate set omits whitespace-only native text nodes. Retain those
             // nodes when scanning the logical owner so adjacent words stay separated.
-            IEnumerable<XText> logicalNodes = group.Key.Name.LocalName.Equals("text", StringComparison.Ordinal)
+            IEnumerable<XText> logicalNodes = group.Key.Name.LocalName.Equals("text", StringComparison.OrdinalIgnoreCase)
                 ? group.Key.DescendantNodes().OfType<XText>()
                 : group.Key.Nodes().OfType<XText>();
             string logicalText = string.Concat(logicalNodes.Select(text => text.Value));
@@ -373,7 +373,7 @@ public static partial class OfficeSvgDrawingReader {
         XElement parent = text.Parent ?? throw new InvalidDataException("The SVG text node has no owning element.");
         // Outermost text owners are disjoint, so each bounded payload is aggregated and scanned once.
         return parent.AncestorsAndSelf().LastOrDefault(element =>
-                   element.Name.LocalName.Equals("text", StringComparison.Ordinal)) ?? parent;
+                   element.Name.LocalName.Equals("text", StringComparison.OrdinalIgnoreCase)) ?? parent;
     }
 
     private static bool HasSvgLayoutCoupledText(SvgContentSafetyCandidate candidate) {

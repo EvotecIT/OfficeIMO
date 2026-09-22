@@ -17,7 +17,10 @@ public static partial class OfficeSvgDrawingReader {
                     if (effect.Opacity <= 0D) continue;
                     OfficeDrawing inner = effect.InnerDrawing;
                     double surface = Math.Ceiling(inner.Width) * Math.Ceiling(inner.Height);
-                    pixels += surface * (effect.SoftMask == null ? 1D : 4D);
+                    // The effect layer and ApplySoftMask's mask-scene/result buffers
+                    // use three source-sized surfaces; the nested mask uses its own size.
+                    pixels += effect.SoftMask == null ? surface : surface * 3D +
+                        Math.Ceiling(effect.SoftMask.InnerDrawing.Width) * Math.Ceiling(effect.SoftMask.InnerDrawing.Height);
                     pending.Push(inner);
                     if (effect.SoftMask != null) pending.Push(effect.SoftMask.InnerDrawing);
                 } else if (element is OfficeDrawingGroup group) {
