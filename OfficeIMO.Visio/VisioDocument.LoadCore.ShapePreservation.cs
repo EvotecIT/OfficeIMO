@@ -23,7 +23,7 @@ namespace OfficeIMO.Visio {
                 if (string.Equals(localName, "Cell", StringComparison.OrdinalIgnoreCase)) {
                     string? cellName = child.Attribute("N")?.Value;
                     if (IsModeledShapeCell(cellName)) {
-                        shape.PreservedShapeChildren.Add(new VisioShape.PreservedShapeChildEntry($"Cell:{cellName}"));
+                        shape.PreservedShapeChildren.Add(new VisioShape.PreservedShapeChildEntry(GetModeledCellToken(cellName!)));
                     } else {
                         shape.PreservedShapeChildren.Add(new VisioShape.PreservedShapeChildEntry(child));
                     }

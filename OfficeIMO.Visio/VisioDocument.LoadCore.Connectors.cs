@@ -260,7 +260,7 @@ namespace OfficeIMO.Visio {
                             connector.PreservedEndpointCellElements[cellName!] =
                                 new XElement(child);
                         }
-                        connector.PreservedShapeChildren.Add(new VisioConnector.PreservedShapeChildEntry($"Cell:{cellName}"));
+                        connector.PreservedShapeChildren.Add(new VisioConnector.PreservedShapeChildEntry(GetModeledCellToken(cellName!)));
                     } else {
                         connector.PreservedShapeChildren.Add(new VisioConnector.PreservedShapeChildEntry(child));
                     }
