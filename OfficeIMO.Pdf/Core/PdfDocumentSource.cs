@@ -228,7 +228,7 @@ internal sealed class PdfDocumentSource {
         long actual = limit + 1;
         if (stream.CanSeek) {
             try {
-                actual = remainingOnly ? stream.Length - stream.Position : stream.Length;
+                actual = Math.Max(actual, remainingOnly ? stream.Length - stream.Position : stream.Length);
             } catch (NotSupportedException) {
                 // The bounded reader already proved the limit was exceeded.
             }

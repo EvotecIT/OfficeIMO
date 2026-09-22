@@ -58,9 +58,9 @@ internal static partial class PdfIncrementalUpdater {
                 input,
                 effectiveOptions.CancellationToken,
                 effectiveOptions.MaxInputBytes);
-        } catch (InvalidDataException) {
+        } catch (InvalidDataException exception) when (OfficeStreamReader.IsSizeLimitException(exception)) {
             long observedBytes = input.CanSeek
-                ? Math.Max(0L, input.Length - input.Position)
+                ? Math.Max(checked(effectiveOptions.MaxInputBytes + 1L), input.Length - input.Position)
                 : checked(effectiveOptions.MaxInputBytes + 1L);
             throw PdfReadLimitException.Create(PdfReadLimitKind.InputBytes,
                 effectiveOptions.MaxInputBytes, observedBytes);

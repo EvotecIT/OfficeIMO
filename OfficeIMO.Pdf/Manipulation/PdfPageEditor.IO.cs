@@ -19,8 +19,8 @@ internal static partial class PdfPageEditor {
         }
         try {
             return OfficeStreamReader.ReadRemainingBytes(stream, limit);
-        } catch (InvalidDataException) {
-            throw PdfReadLimitException.Create(PdfReadLimitKind.InputBytes, limit, observedBytes);
+        } catch (InvalidDataException exception) when (OfficeStreamReader.IsSizeLimitException(exception)) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.InputBytes, limit, Math.Max(observedBytes, limit + 1L));
         }
     }
 

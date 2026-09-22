@@ -71,6 +71,17 @@ public sealed class PdfAuthoritativeInteroperabilityCorpusTests {
 
             Assert.Equal(item.GetProperty("pageCount").GetInt32(), document.Pages.Count);
             Assert.Equal(document.Pages.Count, renders.Count);
+            bool hasMinimumFonts = item.TryGetProperty("minimumFonts", out JsonElement minimumFonts);
+            bool hasMinimumEmbeddedFonts = item.TryGetProperty("minimumEmbeddedFonts", out JsonElement minimumEmbeddedFonts);
+            if (hasMinimumFonts || hasMinimumEmbeddedFonts) {
+                PdfFontInventory fonts = PdfFontInspector.Inspect(document);
+                if (hasMinimumFonts) {
+                    Assert.True(fonts.FontCount >= minimumFonts.GetInt32(), id + " lost expected fonts.");
+                }
+                if (hasMinimumEmbeddedFonts) {
+                    Assert.True(fonts.EmbeddedFontCount >= minimumEmbeddedFonts.GetInt32(), id + " lost expected embedded fonts.");
+                }
+            }
             Assert.True(
                 text.Length >= item.GetProperty("minimumTextCharacters").GetInt32(),
                 id + " extracted too little text.");
