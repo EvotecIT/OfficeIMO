@@ -40,7 +40,12 @@ public static partial class OfficeVisioVisualConversionExtensions {
         bookOptions.Validate();
         options ??= new OfficeVisioVisualOptions();
         var source = envelopes.ToList();
-        var requestedLinks = links.ToList();
+        var requestedLinks = new List<OfficeVisioVisualBookLink>();
+        foreach (OfficeVisioVisualBookLink link in links) {
+            if (requestedLinks.Count >= bookOptions.MaximumRequestedLinks)
+                throw new ArgumentException("The book exceeds MaximumRequestedLinks.", nameof(links));
+            requestedLinks.Add(link);
+        }
         if (source.Count == 0) throw new ArgumentException("At least one page is required.", nameof(envelopes));
         foreach (var envelope in source) {
             if (envelope == null) throw new ArgumentException("Pages cannot contain a null envelope.", nameof(envelopes));
@@ -60,8 +65,8 @@ public static partial class OfficeVisioVisualConversionExtensions {
             projections.Add(new BookPageProjection(envelope, page));
         }
 
-        List<PendingNavigation> requestedNavigations = BuildRequestedNavigations(requestedLinks, projections, bookOptions.IncludeReturnLinks);
-        List<PendingNavigation> distinctNavigations = CoalesceNavigations(requestedNavigations);
+        List<PendingNavigation> requestedNavigations = BuildRequestedNavigations(requestedLinks, projections, bookOptions);
+        List<PendingNavigation> distinctNavigations = CoalesceNavigations(requestedNavigations, bookOptions);
         var applied = new List<OfficeVisioVisualBookNavigationResult>();
         int omitted = ApplyNavigationLinks(distinctNavigations, pages, bookOptions, applied);
         return new OfficeVisioVisualBookResult(
@@ -76,7 +81,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
     private static List<PendingNavigation> BuildRequestedNavigations(
         IReadOnlyList<OfficeVisioVisualBookLink> links,
         IReadOnlyList<BookPageProjection> pages,
-        bool includeReturnLinks) {
+        OfficeVisioVisualBookOptions options) {
         var result = new List<PendingNavigation>();
         for (int index = 0; index < links.Count; index++) {
             OfficeVisioVisualBookLink link = links[index] ?? throw new ArgumentException("Links cannot contain a null value.", nameof(links));
@@ -90,8 +95,8 @@ public static partial class OfficeVisioVisualConversionExtensions {
                 targetShape,
                 link.RelationshipId,
                 link.Description,
-                false));
-            if (includeReturnLinks) {
+                false, options));
+            if (options.IncludeReturnLinks) {
                 result.Add(new PendingNavigation(
                     link.TargetPageNumber,
                     link.TargetEntityId,
@@ -101,7 +106,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
                     sourceShape,
                     link.RelationshipId,
                     link.ReturnDescription,
-                    true));
+                    true, options));
             }
         }
         return result;
@@ -131,7 +136,8 @@ public static partial class OfficeVisioVisualConversionExtensions {
         return (source, target);
     }
 
-    private static List<PendingNavigation> CoalesceNavigations(IEnumerable<PendingNavigation> requested) {
+    private static List<PendingNavigation> CoalesceNavigations(IEnumerable<PendingNavigation> requested,
+        OfficeVisioVisualBookOptions options) {
         var result = new List<PendingNavigation>();
         foreach (IGrouping<string, PendingNavigation> group in requested.GroupBy(
                      item => NavigationKey(item.SourcePageNumber, item.SourceShape.Id),
@@ -144,9 +150,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
                     result.Add(item);
                 } else {
                     foreach (string relationshipId in item.RelationshipIds) {
-                        if (!existing.RelationshipIds.Contains(relationshipId, StringComparer.Ordinal)) {
-                            existing.RelationshipIds.Add(relationshipId);
-                        }
+                        existing.AddRelationshipId(relationshipId, options);
                     }
                 }
             }
@@ -222,7 +226,8 @@ public static partial class OfficeVisioVisualConversionExtensions {
             VisioShape targetShape,
             string? relationshipId,
             string? description,
-            bool isReturnLink) {
+            bool isReturnLink,
+            OfficeVisioVisualBookOptions options) {
             SourcePageNumber = sourcePageNumber;
             SourceEntityId = sourceEntityId;
             SourceShape = sourceShape;
@@ -231,7 +236,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
             TargetShape = targetShape;
             Description = description;
             IsReturnLink = isReturnLink;
-            if (!string.IsNullOrWhiteSpace(relationshipId)) RelationshipIds.Add(relationshipId!);
+            if (!string.IsNullOrWhiteSpace(relationshipId)) AddRelationshipId(relationshipId!, options);
         }
 
         public int SourcePageNumber { get; }
@@ -243,6 +248,18 @@ public static partial class OfficeVisioVisualConversionExtensions {
         public string? Description { get; }
         public bool IsReturnLink { get; }
         public List<string> RelationshipIds { get; } = new();
+        private readonly HashSet<string> _relationshipIds = new(StringComparer.Ordinal);
+        private int _relationshipIdCharacters;
+
+        public void AddRelationshipId(string relationshipId, OfficeVisioVisualBookOptions options) {
+            if (_relationshipIds.Contains(relationshipId)) return;
+            if (RelationshipIds.Count >= options.MaximumRelationshipIdsPerNavigation ||
+                relationshipId.Length > options.MaximumRelationshipIdCharactersPerNavigation - _relationshipIdCharacters)
+                throw new ArgumentException("Book navigation exceeds its relationship identifier limit.", nameof(relationshipId));
+            _relationshipIds.Add(relationshipId);
+            RelationshipIds.Add(relationshipId);
+            _relationshipIdCharacters += relationshipId.Length;
+        }
     }
 
     private sealed class BookPageProjection {

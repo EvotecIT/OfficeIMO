@@ -10,6 +10,7 @@ namespace OfficeIMO.Word;
 /// through paragraph styles and direct <c>w:numId="0"</c> cancellation.
 /// </summary>
 internal static class WordListNumberingResolver {
+    private const int MaximumStyleInheritanceDepth = 256;
     private static readonly ConditionalWeakTable<MainDocumentPart, CachedStyleCatalog> StyleCatalogs = new();
     private static readonly ConditionalWeakTable<Numbering, NumberingRevision> NumberingRevisions = new();
 
@@ -29,7 +30,12 @@ internal static class WordListNumberingResolver {
     }
 
     internal sealed class StyleCatalog {
-        internal StyleCatalog(MainDocumentPart? mainPart) {
+        internal StyleCatalog(MainDocumentPart? mainPart, bool memoizeResolutions = false) {
+            if (memoizeResolutions) {
+                NumberingByStyle = new Dictionary<string, NumberingProperties?>(StringComparer.Ordinal);
+                LinkedStyleByStyle = new Dictionary<string, ResolvedNumbering?>(StringComparer.Ordinal);
+                LinkedLevelByStyle = new Dictionary<(int NumberId, string StyleId), int?>();
+            }
             IEnumerable<Style> styles =
                 (mainPart?.StyleDefinitionsPart?.Styles?.Elements<Style>() ?? Enumerable.Empty<Style>())
                 .Concat(mainPart?.StylesWithEffectsPart?.Styles?.Elements<Style>() ?? Enumerable.Empty<Style>());
@@ -75,10 +81,13 @@ internal static class WordListNumberingResolver {
         internal string? DefaultStyleId { get; }
         internal Dictionary<(int NumberId, string StyleId), int> LinkedLevels { get; }
         internal Dictionary<string, ResolvedNumbering> LinkedStyles { get; }
+        internal Dictionary<string, NumberingProperties?>? NumberingByStyle { get; }
+        internal Dictionary<string, ResolvedNumbering?>? LinkedStyleByStyle { get; }
+        internal Dictionary<(int NumberId, string StyleId), int?>? LinkedLevelByStyle { get; }
     }
 
     internal static StyleCatalog CreateStyleCatalog(WordDocument document) =>
-        new(document._wordprocessingDocument.MainDocumentPart);
+        new(document._wordprocessingDocument.MainDocumentPart, memoizeResolutions: true);
 
     internal static StyleCatalog GetCachedStyleCatalog(WordDocument document) {
         MainDocumentPart? mainPart = document._wordprocessingDocument.MainDocumentPart;
@@ -126,7 +135,9 @@ internal static class WordListNumberingResolver {
         internal int Level { get; }
     }
 
-    internal static bool TryResolve(WordParagraph paragraph, out ResolvedNumbering numbering, StyleCatalog? styleCatalog = null) {
+    internal static bool TryResolve(WordParagraph paragraph, out ResolvedNumbering numbering, StyleCatalog? styleCatalog = null,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         numbering = default;
         if (paragraph?._paragraph == null || paragraph._document == null) {
             return false;
@@ -150,14 +161,14 @@ internal static class WordListNumberingResolver {
         if (!numberId.HasValue || !level.HasValue) {
             styleCatalog ??= GetCachedStyleCatalog(paragraph._document);
             string? styleId = paragraph._paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
-            NumberingProperties? inherited = ResolveStyleNumbering(styleCatalog, styleId);
+            NumberingProperties? inherited = ResolveStyleNumbering(styleCatalog, styleId, cancellationToken);
             numberId ??= ReadNumberId(inherited);
-            if (!numberId.HasValue && ResolveLinkedStyle(styleCatalog, styleId) is { } linked) {
+            if (!numberId.HasValue && ResolveLinkedStyle(styleCatalog, styleId, cancellationToken) is { } linked) {
                 numberId = linked.NumberId;
                 level ??= linked.Level;
             }
             if (numberId > 0) {
-                int? linkedLevel = ResolveLinkedLevel(styleCatalog, numberId.Value, styleId);
+                int? linkedLevel = ResolveLinkedLevel(styleCatalog, numberId.Value, styleId, cancellationToken);
                 if (!hasDirectNumberId && !hasDirectLevel && linkedLevel.HasValue) {
                     level = linkedLevel.Value;
                 } else if (!level.HasValue) {
@@ -174,14 +185,18 @@ internal static class WordListNumberingResolver {
         return true;
     }
 
-    private static NumberingProperties? ResolveStyleNumbering(StyleCatalog catalog, string? styleId) {
+    private static NumberingProperties? ResolveStyleNumbering(StyleCatalog catalog, string? styleId, CancellationToken cancellationToken) {
         if (string.IsNullOrWhiteSpace(styleId)) styleId = catalog.DefaultStyleId;
+        if (string.IsNullOrWhiteSpace(styleId)) return null;
+        if (catalog.NumberingByStyle?.TryGetValue(styleId!, out NumberingProperties? cached) == true) return cached;
 
         int? numberId = null;
         int? level = null;
         string? currentStyleId = styleId;
         var visited = new HashSet<string>(StringComparer.Ordinal);
         while (!string.IsNullOrWhiteSpace(currentStyleId) && visited.Add(currentStyleId!)) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (visited.Count > MaximumStyleInheritanceDepth) throw new InvalidDataException("Word style inheritance exceeds the supported depth.");
             if (!catalog.ById.TryGetValue(currentStyleId!, out Style? style)) {
                 break;
             }
@@ -197,6 +212,7 @@ internal static class WordListNumberingResolver {
         }
 
         if (!numberId.HasValue && !level.HasValue) {
+            if (catalog.NumberingByStyle != null) catalog.NumberingByStyle[styleId!] = null;
             return null;
         }
 
@@ -207,30 +223,49 @@ internal static class WordListNumberingResolver {
         if (numberId.HasValue) {
             resolved.Append(new NumberingId { Val = numberId.Value });
         }
+        if (catalog.NumberingByStyle != null) catalog.NumberingByStyle[styleId!] = resolved;
         return resolved;
     }
 
-    private static int? ResolveLinkedLevel(StyleCatalog catalog, int numberId, string? styleId) {
+    private static int? ResolveLinkedLevel(StyleCatalog catalog, int numberId, string? styleId, CancellationToken cancellationToken) {
         string? currentStyleId = string.IsNullOrWhiteSpace(styleId) ? catalog.DefaultStyleId : styleId;
+        if (string.IsNullOrWhiteSpace(currentStyleId)) return null;
+        (int NumberId, string StyleId) key = (numberId, currentStyleId!);
+        if (catalog.LinkedLevelByStyle?.TryGetValue(key, out int? cached) == true) return cached;
         var visited = new HashSet<string>(StringComparer.Ordinal);
         while (!string.IsNullOrWhiteSpace(currentStyleId) && visited.Add(currentStyleId!)) {
-            if (catalog.LinkedLevels.TryGetValue((numberId, currentStyleId!), out int level)) return level;
+            cancellationToken.ThrowIfCancellationRequested();
+            if (visited.Count > MaximumStyleInheritanceDepth) throw new InvalidDataException("Word style inheritance exceeds the supported depth.");
+            if (catalog.LinkedLevels.TryGetValue((numberId, currentStyleId!), out int level)) {
+                if (catalog.LinkedLevelByStyle != null) catalog.LinkedLevelByStyle[key] = level;
+                return level;
+            }
             currentStyleId = catalog.ById.TryGetValue(currentStyleId!, out Style? style)
                 ? style.BasedOn?.Val?.Value
                 : null;
         }
+        if (catalog.LinkedLevelByStyle != null) catalog.LinkedLevelByStyle[key] = null;
         return null;
     }
 
-    private static ResolvedNumbering? ResolveLinkedStyle(StyleCatalog catalog, string? styleId) {
+    private static ResolvedNumbering? ResolveLinkedStyle(StyleCatalog catalog, string? styleId, CancellationToken cancellationToken) {
         string? currentStyleId = string.IsNullOrWhiteSpace(styleId) ? catalog.DefaultStyleId : styleId;
+        if (string.IsNullOrWhiteSpace(currentStyleId)) return null;
+        string cacheKey = currentStyleId!;
+        if (catalog.LinkedStyleByStyle?.TryGetValue(cacheKey, out ResolvedNumbering? cached) == true) return cached;
         var visited = new HashSet<string>(StringComparer.Ordinal);
         while (!string.IsNullOrWhiteSpace(currentStyleId) && visited.Add(currentStyleId!)) {
-            if (catalog.LinkedStyles.TryGetValue(currentStyleId!, out ResolvedNumbering numbering)) return numbering;
+            cancellationToken.ThrowIfCancellationRequested();
+            if (visited.Count > MaximumStyleInheritanceDepth) throw new InvalidDataException("Word style inheritance exceeds the supported depth.");
+            if (catalog.LinkedStyles.TryGetValue(currentStyleId!, out ResolvedNumbering numbering)) {
+                if (catalog.LinkedStyleByStyle != null) catalog.LinkedStyleByStyle[cacheKey] = numbering;
+                return numbering;
+            }
             currentStyleId = catalog.ById.TryGetValue(currentStyleId!, out Style? style)
                 ? style.BasedOn?.Val?.Value
                 : null;
         }
+        if (catalog.LinkedStyleByStyle != null) catalog.LinkedStyleByStyle[cacheKey] = null;
         return null;
     }
 

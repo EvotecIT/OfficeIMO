@@ -58,7 +58,7 @@ internal static partial class ProjectXmlCodec {
             if (task.Uid != 0) levels.Push(new KeyValuePair<int, ProjectTask>(level, task));
             task.SourceCalendarUid = (int?)element.Element(ns + "CalendarUID");
             if (task.SourceCalendarUid is int calendarUid && document.CalendarIndex.TryGetValue(calendarUid, out var calendar)) task.Calendar = calendar;
-            ReadRich(task.Baselines, task.CustomFields, task.TimephasedData, element, document, options, ref timephased, token);
+            ReadRich(task.Baselines, task.CustomFields, task.TimephasedData, element, document, options, ref entities, ref timephased, token);
             ReadOutlineSelections(task.OutlineCodes, element, options, ref entities, token);
         }
         foreach (var element in Children(root, "Resources", "Resource")) {
@@ -70,7 +70,7 @@ internal static partial class ProjectXmlCodec {
             ReadResourceCapacity(resource, element, token);
             resource.SourceCalendarUid = (int?)element.Element(ns + "CalendarUID");
             if (resource.SourceCalendarUid is int calendarUid && document.CalendarIndex.TryGetValue(calendarUid, out var calendar)) resource.Calendar = calendar;
-            ReadRich(resource.Baselines, resource.CustomFields, resource.TimephasedData, element, document, options, ref timephased, token);
+            ReadRich(resource.Baselines, resource.CustomFields, resource.TimephasedData, element, document, options, ref entities, ref timephased, token);
             ReadOutlineSelections(resource.OutlineCodes, element, options, ref entities, token);
         }
         var assignmentIds = new HashSet<int>();
@@ -86,11 +86,12 @@ internal static partial class ProjectXmlCodec {
             document.Assignments.Items.Add(assignment);
             document.AssignmentIndex.Add(assignment.Uid, assignment);
             if (assignment.Task != null && assignment.Resource != null) document.AssignmentPairs.Add(ProjectDocument.PairKey(assignment.Task.Uid, assignment.Resource.Uid));
-            ReadRich(assignment.Baselines, assignment.CustomFields, assignment.TimephasedData, element, document, options, ref timephased, token);
+            ReadRich(assignment.Baselines, assignment.CustomFields, assignment.TimephasedData, element, document, options, ref entities, ref timephased, token);
         }
         foreach (var task in document.AllTasks) {
             token.ThrowIfCancellationRequested();
             foreach (var element in document.Source.Element(task)!.Elements(ns + "PredecessorLink")) {
+                CheckEntities(++entities, options);
                 var link = new ProjectDependency(document) { Successor = task, SourcePredecessorUid = (int?)element.Element(ns + "PredecessorUID") ?? -1 };
                 Attach(document, link, element); ReadDependency(link, element);
                 if (link.CrossProject != true && document.TaskIndex.TryGetValue(link.SourcePredecessorUid, out var predecessor)) link.Predecessor = predecessor;
@@ -99,10 +100,11 @@ internal static partial class ProjectXmlCodec {
             }
         }
         foreach (var element in Children(root, "ExtendedAttributes", "ExtendedAttribute")) {
-            token.ThrowIfCancellationRequested();
+            token.ThrowIfCancellationRequested(); CheckEntities(++entities, options);
             var definition = document.CustomFields.Add(); Attach(document, definition, element);
             ReadFields(definition, element, document, ProjectXmlFields.CustomFieldDefinition);
             foreach (var value in Children(element, "ValueList", "Value")) {
+                token.ThrowIfCancellationRequested(); CheckEntities(++entities, options);
                 var item = definition.LookupValues.Add(); Attach(document, item, value);
                 ReadFields(item, value, document, ProjectXmlFields.LookupValue);
             }
@@ -112,24 +114,25 @@ internal static partial class ProjectXmlCodec {
         if (count > options.MaxEntities) throw new InvalidDataException("Project exceeds MaxEntities.");
     }
     private static void ReadRich(ProjectCollection<ProjectBaseline> baselines, ProjectCollection<ProjectCustomFieldValue> custom,
-        ProjectCollection<ProjectTimephasedValue> timephased, XElement parent, ProjectDocument document, ProjectLoadOptions options, ref int intervals, CancellationToken token) {
+        ProjectCollection<ProjectTimephasedValue> timephased, XElement parent, ProjectDocument document, ProjectLoadOptions options,
+        ref int entities, ref int intervals, CancellationToken token) {
         foreach (var element in parent.Elements(parent.Name.Namespace + "Baseline")) {
-            token.ThrowIfCancellationRequested();
+            token.ThrowIfCancellationRequested(); CheckEntities(++entities, options);
             var baseline = baselines.Add(); Attach(document, baseline, element);
             ReadFields(baseline, element, document, ProjectXmlFields.Baseline);
-            ReadTimephased(baseline.TimephasedData, element, document, options, ref intervals, token);
+            ReadTimephased(baseline.TimephasedData, element, document, options, ref entities, ref intervals, token);
         }
         foreach (var element in parent.Elements(parent.Name.Namespace + "ExtendedAttribute")) {
-            token.ThrowIfCancellationRequested();
+            token.ThrowIfCancellationRequested(); CheckEntities(++entities, options);
             var value = custom.Add(); Attach(document, value, element);
             ReadFields(value, element, document, ProjectXmlFields.CustomFieldValue);
         }
-        ReadTimephased(timephased, parent, document, options, ref intervals, token);
+        ReadTimephased(timephased, parent, document, options, ref entities, ref intervals, token);
     }
     private static void ReadTimephased(ProjectCollection<ProjectTimephasedValue> values, XElement parent, ProjectDocument document,
-        ProjectLoadOptions options, ref int count, CancellationToken token) {
+        ProjectLoadOptions options, ref int entities, ref int count, CancellationToken token) {
         foreach (var element in parent.Elements(parent.Name.Namespace + "TimephasedData")) {
-            token.ThrowIfCancellationRequested();
+            token.ThrowIfCancellationRequested(); CheckEntities(++entities, options);
             if (++count > options.MaxTimephasedValues) throw new InvalidDataException("Project exceeds MaxTimephasedValues.");
             var item = values.Add(); Attach(document, item, element);
             ReadFields(item, element, document, ProjectXmlFields.TimephasedValue);

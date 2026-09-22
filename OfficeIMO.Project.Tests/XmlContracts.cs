@@ -8,6 +8,18 @@ public class XmlContracts {
     internal static string TaskXml(string content = "", int uid = 7) => "<Tasks><Task><UID>" + uid + "</UID><ID>42</ID><Name>Original</Name><OutlineLevel>1</OutlineLevel>" + content + "</Task></Tasks>";
 
     [Theory]
+    [InlineData("<Baseline><Number>0</Number></Baseline>")]
+    [InlineData("<ExtendedAttribute><FieldID>188743731</FieldID><Value>value</Value></ExtendedAttribute>")]
+    [InlineData("<TimephasedData><Type>1</Type><UID>1</UID></TimephasedData>")]
+    [InlineData("<PredecessorLink><PredecessorUID>7</PredecessorUID></PredecessorLink>")]
+    public void NestedTaskRecordsCountTowardTheEntityLimit(string child) {
+        string xml = Wrap(TaskXml(child));
+        var error = Assert.Throws<InvalidDataException>(() => ProjectDocument.Parse(xml,
+            new ProjectLoadOptions { MaxEntities = 1 }));
+        Assert.Contains("MaxEntities", error.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void OutOfRangeCalendarDayTypesAreRejected(bool workWeek) {

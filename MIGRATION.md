@@ -15,6 +15,41 @@ OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup.
 
 ## OfficeIMO 3.4: one document and conversion grammar
 
+### iWork image inspection budget
+
+`IWorkReadOptions.MaximumDecodedImageBytes` now limits cumulative decoded image
+work to 64 MiB by default during preview inspection and, separately, during
+each semantic projection. Failed image validation consumes work it already
+performed. Set this option higher for trusted Pages, Numbers, or Keynote files
+with unusually large raster images; `MaximumPackageBytes` still limits source
+package size independently.
+
+### Excel image export encoded-byte ceiling
+
+`MaximumTotalEncodedBytes` now applies to intermediate PNG encodes used by
+worksheet batch export and page, print-title, and header/footer composition.
+An export can fail with `OfficeImageExportBatchLimitException` even when its
+final JPEG or page image would fit the configured ceiling. For trusted
+workbooks, raise this limit to cover the largest intermediate image or reduce
+the rendered range and raster dimensions.
+
+### Document format processing limits
+
+`OfficeVisioVisualBookOptions` now limits one book to 10,000 requested links,
+64 distinct relationship IDs per navigation, and 4,096 relationship ID
+characters per navigation. Set `MaximumRequestedLinks`,
+`MaximumRelationshipIdsPerNavigation`, and
+`MaximumRelationshipIdCharactersPerNavigation` for larger trusted books.
+Preserved Visio route endpoints are indexed while retaining near-coordinate
+reuse behavior.
+
+Word list conversion rejects paragraph style inheritance deeper than 256
+levels. Shorter chains are resolved once per style during an export. Project
+XML `MaxEntities` now includes baselines, custom field values and definitions,
+lookup values, predecessor links, and timephased records as well as top-level
+entities. Raise `ProjectLoadOptions.MaxEntities` for trusted projects with a
+large number of these records.
+
 ### Arrow C stream ownership
 
 `OfficeIMO.Data.Arrow` no longer exposes an unmanaged `ArrowArrayStream*` directly from

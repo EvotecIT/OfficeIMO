@@ -6,10 +6,13 @@ namespace OfficeIMO.IWork.Tests;
 
 public sealed partial class IWorkBoundaryTests {
     [Fact]
-    public void Failed_semantic_image_decodes_do_not_consume_the_shared_budget() {
+    public void Failed_semantic_image_decodes_consume_the_shared_budget() {
         using MemoryStream package = CreatePagesImagePackage(duplicateMetadata: false,
             imageCount: 1, imageBytes: CreateInvalidAdlerPng(20, 20));
-        var options = new IWorkReadOptions { MaximumPackageBytes = 2_000 };
+        var options = new IWorkReadOptions {
+            MaximumPackageBytes = 2_000,
+            MaximumDecodedImageBytes = 2_000
+        };
         IWorkSourceDocument source = IWorkSourceDocument.Open(
             package, IWorkDocumentKind.Pages, options);
         IWorkArchiveRecord image = Assert.Single(source.Records,
@@ -21,7 +24,7 @@ public sealed partial class IWorkBoundaryTests {
 
         Assert.Null(asset);
         Assert.False(complete);
-        Assert.Equal(options.MaximumPackageBytes, budget.RemainingDecodedImageBytes);
+        Assert.Equal(1_580, budget.RemainingDecodedImageBytes);
     }
 
     [Fact]
@@ -92,8 +95,9 @@ public sealed partial class IWorkBoundaryTests {
             IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers));
     }
 
-    private static byte[] CreateInvalidAdlerPng(int width, int height) {
-        byte[] bytes = CreateSizedPreviewPng(width, height);
+    private static byte[] CreateInvalidAdlerPng(int width, int height,
+        byte colorType = 0) {
+        byte[] bytes = CreateSizedPreviewPng(width, height, colorType: colorType);
         int offset = 8;
         while (offset <= bytes.Length - 12) {
             int dataLength = checked((int)((uint)bytes[offset] << 24

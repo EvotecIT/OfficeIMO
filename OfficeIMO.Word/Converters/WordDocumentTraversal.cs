@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -237,11 +238,12 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Builds portable marker details for all effective list paragraphs in the document.
         /// </summary>
-        internal static Dictionary<WordParagraph, ResolvedListMarker> BuildResolvedListMarkers(WordDocument document) {
+        internal static Dictionary<WordParagraph, ResolvedListMarker> BuildResolvedListMarkers(WordDocument document,
+            CancellationToken cancellationToken = default) {
             Dictionary<WordParagraph, ResolvedListMarker> result = new(ParagraphReferenceComparer.Instance);
             WordListNumberingResolver.StyleCatalog styleCatalog = WordListNumberingResolver.CreateStyleCatalog(document);
             Dictionary<int, ListNumberingDefinition> definitions = BuildListNumberingDefinitions(document);
-            List<List<WordParagraph>> itemsByStoryAndNumberId = BuildListItemsByStoryAndNumberId(document, styleCatalog);
+            List<List<WordParagraph>> itemsByStoryAndNumberId = BuildListItemsByStoryAndNumberId(document, styleCatalog, cancellationToken);
 
             foreach (List<WordParagraph> listItems in itemsByStoryAndNumberId) {
                 Dictionary<int, int> indices = new();
@@ -464,12 +466,15 @@ namespace OfficeIMO.Word {
                 pictureBulletId: effectiveLevel.GetFirstChild<LevelPictureBulletId>()?.Val?.Value);
         }
 
-        private static List<List<WordParagraph>> BuildListItemsByStoryAndNumberId(WordDocument document, WordListNumberingResolver.StyleCatalog styleCatalog) {
+        private static List<List<WordParagraph>> BuildListItemsByStoryAndNumberId(WordDocument document,
+            WordListNumberingResolver.StyleCatalog styleCatalog, CancellationToken cancellationToken = default) {
             var result = new List<List<WordParagraph>>();
             foreach (IEnumerable<WordParagraph> story in EnumerateListStories(document)) {
                 var itemsByNumberId = new Dictionary<int, List<WordParagraph>>();
                 foreach (WordParagraph paragraph in story) {
-                    if (!WordListNumberingResolver.TryResolve(paragraph, out WordListNumberingResolver.ResolvedNumbering numbering, styleCatalog)) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (!WordListNumberingResolver.TryResolve(paragraph, out WordListNumberingResolver.ResolvedNumbering numbering,
+                            styleCatalog, cancellationToken)) {
                         continue;
                     }
 
