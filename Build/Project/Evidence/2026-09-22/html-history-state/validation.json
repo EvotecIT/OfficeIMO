@@ -1,0 +1,77 @@
+{
+  "schema": 1,
+  "date": "2026-09-22",
+  "environment": {
+    "os": "macOS 27.0 (26A428)",
+    "architecture": "arm64",
+    "sdk": "10.0.303",
+    "net10": "10.0.11",
+    "net8": "8.0.23"
+  },
+  "source": {
+    "office": "4c07f9355a1bddacd77c41e87f117f11812c30a6",
+    "angleSharp": "784a4e9d61a1ad6d3dafa324990cd00820e2a879",
+    "angleSharpJs": "2aaa705edf934d1f93009977de4acab49b4fc614",
+    "jint": "4.16.0"
+  },
+  "validation": [
+    {
+      "name": "workerNet10",
+      "passed": 105,
+      "failed": 0,
+      "log": "regression-net10.log",
+      "command": "dotnet test OfficeIMO.Html.Runtime.Tests/OfficeIMO.Html.Runtime.Tests.csproj -f net10.0 --no-restore --filter 'FullyQualifiedName~RuntimeHistory|FullyQualifiedName~RuntimeNavigationTests|FullyQualifiedName~RuntimeResourceTests|FullyQualifiedName~RuntimeFrameBaseUrlTests' -- xUnit.MaxParallelThreads=1"
+    },
+    {
+      "name": "workerNet8",
+      "passed": 29,
+      "failed": 0,
+      "log": "regression-net8.log",
+      "command": "dotnet test OfficeIMO.Html.Runtime.Tests/OfficeIMO.Html.Runtime.Tests.csproj -f net8.0 --no-restore --filter 'FullyQualifiedName~RuntimeHistoryStateTests|FullyQualifiedName~RuntimeNavigationTests|FullyQualifiedName~FrameMessagingUsesIndependentStructuredCloneGraphs' -- xUnit.MaxParallelThreads=1"
+    }
+  ],
+  "regressionProof": {
+    "log": "red.log",
+    "failed": 4,
+    "defects": [
+      "Error stack lost while cloning",
+      "Symbol-valued Error.message incorrectly accepted"
+    ]
+  },
+  "render": {
+    "viewports": [
+      360,
+      720
+    ],
+    "height": 260,
+    "states": [
+      "saved",
+      "reloaded",
+      "restored"
+    ],
+    "inspected": true,
+    "log": "render.log"
+  },
+  "standards": [
+    "https://html.spec.whatwg.org/multipage/structured-data.html#structuredserializeinternal"
+  ],
+  "interpreterBoundary": [
+    "https://github.com/sebastienros/jint/blob/v4.16.0/Jint/Native/JsTypedArray.cs",
+    "https://github.com/sebastienros/jint/blob/v4.16.0/Jint/Native/JsDataView.cs"
+  ],
+  "artifacts": {
+    "saved-360.png": "4204a99ae095734cd2727bee2f3b455ec2274ab356d21afa676bb5a436b53d93",
+    "restored-720.png": "5fc55c72ce85398dccb454b241973daf8a7b0b1563b61696fa2cec9af6086ed8",
+    "reloaded-360.png": "4204a99ae095734cd2727bee2f3b455ec2274ab356d21afa676bb5a436b53d93",
+    "saved-720.png": "5fc55c72ce85398dccb454b241973daf8a7b0b1563b61696fa2cec9af6086ed8",
+    "source.html": "bbc817875bdbe41adfb2b0d71110f42db95d34e57dfd93420ef00628c053858b",
+    "restored-360.png": "4204a99ae095734cd2727bee2f3b455ec2274ab356d21afa676bb5a436b53d93",
+    "reloaded-720.png": "5fc55c72ce85398dccb454b241973daf8a7b0b1563b61696fa2cec9af6086ed8"
+  },
+  "localReview": {
+    "base": "9414b448994cb037e9f6a22b74b9005693d45bec",
+    "head": "4c07f9355a1bddacd77c41e87f117f11812c30a6",
+    "result": "One independent read-only pass; no actionable P0-P3 findings. No targeted confirmation needed.",
+    "scope": "Error payloads, history restoration, frame transport, budgets and failure propagation. Visual and net8 checks performed by coordinator."
+  }
+}

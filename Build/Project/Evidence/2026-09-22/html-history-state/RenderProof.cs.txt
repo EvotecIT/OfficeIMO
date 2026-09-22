@@ -1,0 +1,21 @@
+using OfficeIMO.Html;
+using OfficeIMO.Html.Runtime;
+using OfficeIMO.Html.Providers;
+var output=args[1];Directory.CreateDirectory(output);
+var first=new Uri("https://state.example/first");var second=new Uri(first,"/second");
+const string source="""
+<!doctype html><style>body{font-family:Arial;margin:20px;background:#f4f7fa;color:#193448}h1{font-size:24px}section{padding:16px;background:#edf7f0;border:1px solid #a8bfb0}h2{font-size:20px;margin:0 0 12px}p{font-size:14px}pre{font-size:12px;white-space:pre-wrap}</style><h1>Saved report state</h1><section><h2 id='title'>Waiting</h2><p id='detail'></p><pre id='trace'></pre></section>
+""";
+File.WriteAllText(Path.Combine(output,"source.html"),source);
+var provider=new HtmlProcessRuntimeProvider(args[0],AngleSharpDomServices.Instance);
+await using var session=await provider.OpenTrustedAsync(new(){Profile=HtmlRuntimeProfile.WebApplicationV1,DocumentUrl=first,Html=source,Resources=[HtmlRuntimeResource.FromText(second,"<h1>Other page</h1>","text/html")]});
+await session.ExecuteAsync("const key={id:42};const error=new TypeError('Report validation failed',{cause:key});error.stack='Report validator: row 42';history.replaceState({error,key,rows:new Map([[key,73]])},'')");
+const string render="document.querySelector('#title').textContent=history.state.error.message;document.querySelector('#detail').textContent='Saved row '+history.state.error.cause.id+': '+history.state.rows.get(history.state.key)+' items';document.querySelector('#trace').textContent=history.state.error.stack";
+foreach(var state in new[]{"saved","reloaded","restored"}){
+ if(state=="reloaded")await session.ReloadAsync();
+ if(state=="restored"){await session.NavigateAsync(second);await session.ExecuteAsync("history.back()");await session.WaitForAsync("location.pathname==='/first'");}
+ if(!(await session.EvaluateAsync("history.state.error instanceof TypeError && history.state.error.cause===history.state.key && history.state.rows instanceof Map && history.state.error.stack==='Report validator: row 42'")).GetBoolean())throw new Exception("Restored state contract failed");
+ await session.ExecuteAsync(render);var capture=await session.CaptureAsync();
+ foreach(var width in new[]{360,720})File.WriteAllBytes(Path.Combine(output,$"{state}-{width}.png"),HtmlConversionDocument.FromDocument(capture.CreateRenderDocument()).ToPng(new(){ViewportWidth=width,ViewportHeight=260,Margins=HtmlRenderMargins.All(0)}));
+}
+Console.WriteLine("Saved, reloaded and cross-document restored report state verified and rendered at 360/720 pixels.");
