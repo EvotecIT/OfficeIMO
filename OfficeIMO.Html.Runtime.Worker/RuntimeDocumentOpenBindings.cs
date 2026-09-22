@@ -26,9 +26,30 @@ internal static class RuntimeDocumentOpenBindings {
                 throw Error(engine, error.Name + "Error", error.Message);
             }
         });
+        ClrFunction Write(string name, bool lineFeed) => new(engine, name, (receiver, args) => {
+            if (receiver.ToObject() is not Document target) throw Error(engine, "TypeError", $"Document.{name} requires a Document receiver.");
+            var content = string.Concat(args.Select(TypeConverter.ToString));
+            var wasReady = target.IsReady;
+            try {
+                if (lineFeed) target.WriteLineFrom(entry.Document ?? document, content);
+                else target.WriteFrom(entry.Document ?? document, content);
+                if (wasReady && !target.IsReady) opened(target);
+                return JsValue.Undefined;
+            } catch (DomException error) {
+                throw Error(engine, error.Name + "Error", error.Message);
+            }
+        });
+        var write = Write("write", false);
+        var writeln = Write("writeln", true);
         for (var prototype = JsValue.FromObject(engine, document).AsObject().Prototype; prototype != null; prototype = prototype.Prototype) {
             if (prototype.GetOwnProperty("open").Value is Function) {
                 prototype.FastSetProperty("open", new PropertyDescriptor(open, true, false, true));
+            }
+            if (prototype.GetOwnProperty("write").Value is Function) {
+                prototype.FastSetProperty("write", new PropertyDescriptor(write, true, false, true));
+            }
+            if (prototype.GetOwnProperty("writeln").Value is Function) {
+                prototype.FastSetProperty("writeln", new PropertyDescriptor(writeln, true, false, true));
             }
         }
     }
