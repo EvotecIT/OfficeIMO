@@ -59,6 +59,44 @@ public sealed class RuntimeFrameBaseUrlTests {
     }
 
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task DetachedContainerFramesInitializeWhenAttached(bool srcdoc, bool fragment) {
+        await using var session = await Runtime().OpenTrustedAsync(new() {
+            DocumentUrl = Start, Html = "<base href='/assets/'><body></body>"
+        });
+        await session.ExecuteAsync("""
+            const wrapper=document.createElement('div');
+            const frame=document.createElement('iframe');
+            """ + (srcdoc ? "frame.setAttribute('srcdoc','<p>Child</p>');" : "") + """
+            wrapper.appendChild(frame);
+            if(frame.contentDocument!==null) throw new Error('Detached frame initialized');
+            document.querySelector('base').href='/attached/';
+            """ + (fragment ? "const fragment=document.createDocumentFragment();fragment.appendChild(wrapper);document.body.appendChild(fragment);" : "document.body.appendChild(wrapper);") + """
+            const child=frame.contentDocument;
+            const script=child.createElement('script');
+            script.textContent="document.body.dataset.ready=document.baseURI";
+            child.body.appendChild(script);
+            """);
+        await session.WaitForAsync("document.querySelector('iframe').contentDocument.body.dataset.ready==='https://frames.example/attached/'");
+        var captured = Assert.Single((await session.CaptureAsync()).Frames);
+        Assert.Equal(srcdoc ? "about:srcdoc" : "about:blank", captured.DocumentUrl.AbsoluteUri);
+    }
+
+    [Fact]
+    public async Task SelfEmbeddingFrameDoesNotConsumeTheResourceBudget() {
+        await using var session = await Runtime().OpenTrustedAsync(new() {
+            DocumentUrl = Start,
+            Html = "<body><iframe src='start.html#again'></iframe><p>Parent ready</p></body>",
+            Resources = new[] { HtmlRuntimeResource.FromText(Start, "<iframe src='start.html#again'></iframe>", "text/html") }
+        });
+        Assert.True((await session.EvaluateAsync("document.querySelector('iframe').contentDocument===null")).GetBoolean());
+        Assert.Empty((await session.CaptureAsync()).Frames);
+    }
+
+    [Theory]
     [InlineData("allow-scripts", false)]
     [InlineData("allow-same-origin", false)]
     [InlineData("allow-scripts allow-same-origin", true)]
