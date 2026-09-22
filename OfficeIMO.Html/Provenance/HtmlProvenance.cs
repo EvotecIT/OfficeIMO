@@ -2,6 +2,7 @@ using AngleSharp;
 using AngleSharp.Html.Dom;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Provenance;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 
@@ -30,7 +31,7 @@ public static partial class HtmlProvenance {
         Uri? documentUri = null) {
         OfficeProvenanceBinary.ValidateLimits(options);
         options.CancellationToken.ThrowIfCancellationRequested();
-        if (enforceUtf8Size && Encoding.UTF8.GetByteCount(html) > options.MaxAssetBytes) {
+        if (enforceUtf8Size && CountHtmlBytes(html, Encoding.UTF8, options.MaxAssetBytes, options.CancellationToken) > options.MaxAssetBytes) {
             throw new InvalidDataException("The HTML document exceeds the configured asset limit.");
         }
 
@@ -93,7 +94,7 @@ public static partial class HtmlProvenance {
                 options.MaxExpandedContainerBytes,
                 ref expandedBytes,
                 out byte[] manifest);
-            bool valid = manifestElements.Length == 1 && manifest.Length != 0 &&
+            bool valid = manifest.Length != 0 &&
                 OfficeC2paManifestStore.IsValid(
                     manifest, 0, manifest.Length, options.MaxManifestBytes, options.MaxContainerEntries, out _);
             AddEvidence(evidence, options, new OfficeProvenanceEvidence(
@@ -108,7 +109,7 @@ public static partial class HtmlProvenance {
             if (!HasRelationship(link.GetAttribute("rel"), "c2pa-manifest")) continue;
             string value = TrimAsciiWhitespace(link.GetAttribute("href"));
             bool safeReference = IsSafeManifestReference(value, out Uri? uri);
-            bool valid = manifestElements.Length == 1 && safeReference;
+            bool valid = safeReference;
             var item = new OfficeProvenanceEvidence(
                 OfficeProvenanceCarrierKind.C2paExternalManifest,
                 $"{documentLocation}/link[rel=c2pa-manifest][{carrierIndex++}]",
@@ -170,7 +171,7 @@ public static partial class HtmlProvenance {
         OfficeProvenanceBinary.ValidateLimits(options);
         byte[] data = ReadBounded(filePath, options.MaxAssetBytes, options.CancellationToken);
         return InspectCore(
-            DecodeHtml(data, out _, out _),
+            DecodeHtml(data, options.CancellationToken, out _, out _),
             options,
             enforceUtf8Size: false,
             new Uri(Path.GetFullPath(logicalFilePath)));
@@ -207,9 +208,8 @@ public static partial class HtmlProvenance {
             if (outputEncoding != null) {
                 original = Array.Empty<byte>();
             } else {
-                int byteCount = Encoding.UTF8.GetByteCount(html);
-                OfficeProvenanceBinary.EnsureOutputWithinLimit(byteCount, options.EffectiveMaxOutputBytes);
-                original = Encoding.UTF8.GetBytes(html);
+                original = EncodeHtml(html, Encoding.UTF8, false, options.EffectiveMaxOutputBytes,
+                    options.Limits.CancellationToken, useCharacterReferenceFallback: false);
             }
             return new OfficeProvenanceRemovalResult(original, before, before, changes.AsReadOnly(), false);
         }
@@ -218,11 +218,11 @@ public static partial class HtmlProvenance {
         string outputHtml = document.ToHtml();
         byte[] output;
         if (outputEncoding == null) {
-            int byteCount = Encoding.UTF8.GetByteCount(outputHtml);
-            OfficeProvenanceBinary.EnsureOutputWithinLimit(byteCount, options.EffectiveMaxOutputBytes);
-            output = Encoding.UTF8.GetBytes(outputHtml);
+            output = EncodeHtml(outputHtml, Encoding.UTF8, false, options.EffectiveMaxOutputBytes,
+                options.Limits.CancellationToken, useCharacterReferenceFallback: false);
         } else {
-            output = EncodeHtml(outputHtml, outputEncoding, outputHadPreamble, options.EffectiveMaxOutputBytes);
+            output = EncodeHtml(outputHtml, outputEncoding, outputHadPreamble,
+                options.EffectiveMaxOutputBytes, options.Limits.CancellationToken);
         }
         OfficeProvenanceReport after = InspectCore(
             outputHtml,
@@ -244,8 +244,6 @@ public static partial class HtmlProvenance {
         IEnumerable<IElement> links = head == null
             ? Enumerable.Empty<IElement>()
             : head.QuerySelectorAll("link[rel][href]");
-        int manifestElementCount = head?.QuerySelectorAll("script[type],link[rel][href]").Count(IsManifestElement) ?? 0;
-
         int carrierIndex = 0;
         foreach (IElement script in scripts.ToArray()) {
             if (!string.Equals(TrimAsciiWhitespace(script.GetAttribute("type")), "application/c2pa", StringComparison.OrdinalIgnoreCase)) continue;
@@ -255,7 +253,7 @@ public static partial class HtmlProvenance {
                 options.Limits.MaxExpandedContainerBytes,
                 ref expandedBytes,
                 out byte[] manifest);
-            bool valid = manifestElementCount == 1 && manifest.Length != 0 &&
+            bool valid = manifest.Length != 0 &&
                 OfficeC2paManifestStore.IsValid(
                     manifest, 0, manifest.Length, options.Limits.MaxManifestBytes, options.Limits.MaxContainerEntries, out _);
             string location = $"{documentLocation}/script[type=application/c2pa][{carrierIndex++}]";
@@ -267,7 +265,7 @@ public static partial class HtmlProvenance {
         foreach (IElement link in links.ToArray()) {
             if (!HasRelationship(link.GetAttribute("rel"), "c2pa-manifest")) continue;
             string value = TrimAsciiWhitespace(link.GetAttribute("href"));
-            bool valid = manifestElementCount == 1 && IsSafeManifestReference(value, out _);
+            bool valid = IsSafeManifestReference(value, out _);
             string location = $"{documentLocation}/link[rel=c2pa-manifest][{carrierIndex++}]";
             if (!options.RemoveExternalC2paReferences || (!valid && options.RequireStructurallyValidCarrier)) continue;
             RemoveRelationship(link, "c2pa-manifest");
@@ -285,7 +283,7 @@ public static partial class HtmlProvenance {
         if (string.IsNullOrWhiteSpace(outputPath)) throw new ArgumentException("An output path is required.", nameof(outputPath));
         options ??= new OfficeProvenanceRemovalOptions();
         byte[] input = ReadBounded(inputPath, options.Limits.MaxAssetBytes, options.Limits.CancellationToken);
-        string html = DecodeHtml(input, out Encoding encoding, out bool hadPreamble);
+        string html = DecodeHtml(input, options.Limits.CancellationToken, out Encoding encoding, out bool hadPreamble);
         OfficeProvenanceRemovalResult result = RemoveCore(
             html, options, enforceUtf8Size: false, outputEncoding: encoding, outputHadPreamble: hadPreamble);
         if (!result.WasChanged) {
@@ -316,7 +314,7 @@ public static partial class HtmlProvenance {
         string documentLocation,
         int srcDocDepth) {
         if (options.ProcessEmbeddedAssets) {
-            IElement[] elements = GetEmbeddedImageElements(document, options).ToArray();
+            IElement[] elements = GetEmbeddedImageElements(document).ToArray();
             HtmlProvenanceCssScope cssScope = HtmlResourcePipeline.CollectProvenanceCssImageScope(
                 document,
                 options.MaxAssetBytes,
@@ -324,12 +322,8 @@ public static partial class HtmlProvenance {
             ReserveExpandedBytes(ref expandedBytes, cssScope.DecodedStylesheetBytes, options.MaxExpandedContainerBytes);
             foreach (IElement element in elements) {
                 options.CancellationToken.ThrowIfCancellationRequested();
-                cssScope.UsedCustomPropertyDeclarations.TryGetValue(element, out HashSet<int>? usedDeclarations);
-                cssScope.ResolvedVarFallbackStarts.TryGetValue(element, out HashSet<int>? resolvedFallbacks);
                 cssScope.DataStylesheets.TryGetValue(element, out HtmlProvenanceDataStylesheet? dataStylesheet);
-                foreach (EmbeddedImageReference reference in GetEmbeddedImageReferences(
-                    document, element, usedDeclarations, resolvedFallbacks, cssScope.ComputedStyles,
-                    cssScope.ComputedStyleSet, dataStylesheet)) {
+                foreach (EmbeddedImageReference reference in GetEmbeddedImageReferences(document, element, dataStylesheet)) {
                     options.CancellationToken.ThrowIfCancellationRequested();
                     if (!HtmlImageDataUri.TryParse(reference.Value, out HtmlImageDataUri dataUri)) continue;
                     if (!IsSupportedProvenanceImage(dataUri.MediaType)) continue;
@@ -403,7 +397,7 @@ public static partial class HtmlProvenance {
         int srcDocDepth) {
         if (options.ProcessEmbeddedAssets && options.Limits.ProcessEmbeddedAssets) {
             int maxEmbeddedAssets = Math.Min(options.MaxEmbeddedAssets, options.Limits.MaxEmbeddedAssets);
-            IElement[] elements = GetEmbeddedImageElements(document, options.Limits).ToArray();
+            IElement[] elements = GetEmbeddedImageElements(document).ToArray();
             HtmlProvenanceCssScope cssScope = HtmlResourcePipeline.CollectProvenanceCssImageScope(
                 document,
                 options.Limits.MaxAssetBytes,
@@ -411,12 +405,17 @@ public static partial class HtmlProvenance {
             ReserveExpandedBytes(ref expandedBytes, cssScope.DecodedStylesheetBytes, options.Limits.MaxExpandedContainerBytes);
             foreach (IElement element in elements) {
                 options.Limits.CancellationToken.ThrowIfCancellationRequested();
-                cssScope.UsedCustomPropertyDeclarations.TryGetValue(element, out HashSet<int>? usedDeclarations);
-                cssScope.ResolvedVarFallbackStarts.TryGetValue(element, out HashSet<int>? resolvedFallbacks);
                 cssScope.DataStylesheets.TryGetValue(element, out HtmlProvenanceDataStylesheet? dataStylesheet);
-                EmbeddedImageReference[] references = GetEmbeddedImageReferences(
-                    document, element, usedDeclarations, resolvedFallbacks, cssScope.ComputedStyles,
-                    cssScope.ComputedStyleSet, dataStylesheet).ToArray();
+                string? rewrittenStylesheetMetadata = null;
+                if (dataStylesheet != null) {
+                    try {
+                        rewrittenStylesheetMetadata = CreateRewrittenCssDataUriMetadata(dataStylesheet.Metadata);
+                    } catch (FormatException) {
+                        // Preserve an embedded stylesheet whose metadata cannot be rewritten safely.
+                        continue;
+                    }
+                }
+                EmbeddedImageReference[] references = GetEmbeddedImageReferences(document, element, dataStylesheet).ToArray();
                 var replacements = new List<(EmbeddedImageReference Reference, string Value)>();
                 foreach (EmbeddedImageReference reference in references) {
                     options.Limits.CancellationToken.ThrowIfCancellationRequested();
@@ -455,12 +454,12 @@ public static partial class HtmlProvenance {
                                 0));
                         }
                     } catch (Exception exception) when (
-                        (exception is InvalidDataException || exception is System.Xml.XmlException) &&
+                        (exception is InvalidDataException || exception is System.Xml.XmlException || exception is FormatException) &&
                         !OfficeProvenanceLimitException.Is(exception)) {
                         // Preserve malformed embedded data; structural diagnostics are available through Inspect.
                     }
                 }
-                ApplyEmbeddedImageReplacements(element, replacements);
+                ApplyEmbeddedImageReplacements(element, replacements, rewrittenStylesheetMetadata);
             }
         }
         if (srcDocDepth >= HtmlConversionInputGuard.MaxSrcDocDepth) {
@@ -485,10 +484,6 @@ public static partial class HtmlProvenance {
     private static IEnumerable<EmbeddedImageReference> GetEmbeddedImageReferences(
         IHtmlDocument document,
         IElement element,
-        ISet<int>? usedImageProperties,
-        ISet<int>? resolvedVarFallbacks,
-        IReadOnlyDictionary<IElement, HtmlComputedStyle> computedStyles,
-        HtmlComputedStyleSet computedStyleSet,
         HtmlProvenanceDataStylesheet? dataStylesheet) {
         const string htmlNamespace = "http://www.w3.org/1999/xhtml";
         const string svgNamespace = "http://www.w3.org/2000/svg";
@@ -496,15 +491,7 @@ public static partial class HtmlProvenance {
         bool isHtmlElement = string.Equals(element.NamespaceUri, htmlNamespace, StringComparison.Ordinal);
         bool isSvgElement = string.Equals(element.NamespaceUri, svgNamespace, StringComparison.Ordinal);
         if (dataStylesheet != null) {
-            foreach (HtmlCssImageReference reference in HtmlResourcePipeline.EnumerateProvenanceCssImageReferences(
-                document,
-                "css",
-                dataStylesheet.Css,
-                usedImageProperties,
-                resolvedVarFallbacks,
-                computedStyles,
-                computedStyleSet,
-                element)) {
+            foreach (HtmlCssImageReference reference in HtmlResourcePipeline.EnumerateProvenanceCssImageReferences(dataStylesheet.Css)) {
                 yield return new EmbeddedImageReference(
                     "stylesheet-css", reference.Value, reference.Start, reference.Length,
                     dataStylesheet.Css, dataStylesheet.Metadata, dataStylesheet.Fragment);
@@ -512,16 +499,8 @@ public static partial class HtmlProvenance {
             yield break;
         }
         if (localName == "style") {
-            if (!HtmlResourcePipeline.IsActiveProvenanceStyleElement(element)) yield break;
-            foreach (HtmlCssImageReference reference in HtmlResourcePipeline.EnumerateProvenanceCssImageReferences(
-                document,
-                "css",
-                element.TextContent,
-                usedImageProperties,
-                resolvedVarFallbacks,
-                computedStyles,
-                computedStyleSet,
-                element)) {
+            if (!HtmlResourcePipeline.IsProvenanceStyleElement(element)) yield break;
+            foreach (HtmlCssImageReference reference in HtmlResourcePipeline.EnumerateProvenanceCssImageReferences(element.TextContent)) {
                 yield return new EmbeddedImageReference("css", reference.Value, reference.Start, reference.Length);
             }
             yield break;
@@ -529,15 +508,7 @@ public static partial class HtmlProvenance {
 
         string? inlineStyle = element.GetAttribute("style");
         if (inlineStyle != null) {
-            foreach (HtmlCssImageReference reference in HtmlResourcePipeline.EnumerateProvenanceCssImageReferences(
-                document,
-                "style",
-                inlineStyle,
-                usedImageProperties,
-                resolvedVarFallbacks,
-                computedStyles,
-                computedStyleSet,
-                element)) {
+            foreach (HtmlCssImageReference reference in HtmlResourcePipeline.EnumerateProvenanceCssImageReferences(inlineStyle)) {
                 yield return new EmbeddedImageReference("style", reference.Value, reference.Start, reference.Length);
             }
         }
@@ -550,14 +521,11 @@ public static partial class HtmlProvenance {
         if (localName is "img" or "source" or "video" or "input" or "link" or "object" or "embed" && !isHtmlElement) yield break;
         if (localName is "image" or "feimage" or "use" && !isSvgElement) yield break;
         if (localName == "source" && !IsSupportedPictureSource(element)) yield break;
-        if (localName == "img" && !HtmlResourcePipeline.IsActivePictureFallbackImage(element)) yield break;
         if (localName is "img" or "source") {
-            if (localName == "img") {
-                foreach (string attributeName in EmbeddedImageSourceAttributes) {
-                    string? source = element.GetAttribute(attributeName);
-                    if (source != null && !SourceSetReplacesDirectSource(element, attributeName)) {
-                        yield return CreateDirectUrlReference(attributeName, source);
-                    }
+            foreach (string attributeName in EmbeddedImageSourceAttributes) {
+                string? source = element.GetAttribute(attributeName);
+                if (source != null) {
+                    yield return CreateDirectUrlReference(attributeName, source);
                 }
             }
             foreach (string attributeName in EmbeddedImageSourceSetAttributes) {
@@ -581,8 +549,7 @@ public static partial class HtmlProvenance {
         } else if (localName is "feimage" or "use") {
             attributeNames = HtmlDocumentParser.GetExactAttributeValue(element, "href") != null ? new[] { "href" } : new[] { "xlink:href" };
         } else if (localName == "link" && IsImageLink(element)) {
-            if (IsPreloadedImage(element) && HasUsableImageSourceSet(element)) attributeNames = Array.Empty<string>();
-            else attributeNames = new[] { "href" };
+            attributeNames = new[] { "href" };
         } else if (localName == "object" && HasSupportedDeclaredOrInferredImageType(element, "data")) {
             attributeNames = new[] { "data" };
         } else if (localName == "embed" && HasSupportedDeclaredOrInferredImageType(element, "src")) {
@@ -615,74 +582,16 @@ public static partial class HtmlProvenance {
     private static bool IsHtmlIframe(IElement element) =>
         string.Equals(element.NamespaceUri, "http://www.w3.org/1999/xhtml", StringComparison.Ordinal);
 
-    private static IEnumerable<IElement> GetEmbeddedImageElements(
-        IHtmlDocument document,
-        OfficeProvenanceOptions options) {
-        var activeObjectImages = new Dictionary<IElement, bool>();
+    private static IEnumerable<IElement> GetEmbeddedImageElements(IHtmlDocument document) {
         return document.QuerySelectorAll("img,source,video,input,object,embed,image,feImage,use,link,[background],style,[style]")
-            .Where(element => !element.LocalName.Equals("style", StringComparison.OrdinalIgnoreCase) ||
-                HtmlResourcePipeline.IsActiveProvenanceStyleElement(element))
             .Where(element => !element.LocalName.Equals("source", StringComparison.OrdinalIgnoreCase) ||
                 IsSupportedPictureSource(element))
-            .Where(element => !HasActiveObjectImageAncestor(element, options, activeObjectImages))
             .Distinct();
-    }
-
-    private static bool HasActiveObjectImageAncestor(
-        IElement element,
-        OfficeProvenanceOptions options,
-        IDictionary<IElement, bool> cache) {
-        for (IElement? ancestor = element.ParentElement; ancestor != null; ancestor = ancestor.ParentElement) {
-            if (!ancestor.LocalName.Equals("object", StringComparison.OrdinalIgnoreCase) ||
-                !string.Equals(ancestor.NamespaceUri, "http://www.w3.org/1999/xhtml", StringComparison.Ordinal)) continue;
-            if (!cache.TryGetValue(ancestor, out bool active)) {
-                active = HasLoadableSupportedObjectImage(ancestor, options);
-                cache.Add(ancestor, active);
-            }
-            if (active) return true;
-        }
-        return false;
-    }
-
-    private static bool HasLoadableSupportedObjectImage(IElement element, OfficeProvenanceOptions options) {
-        if (!HasSupportedDeclaredOrInferredImageType(element, "data")) return false;
-        string? source = element.GetAttribute("data");
-        if (source == null || !HtmlImageDataUri.TryParse(source, out HtmlImageDataUri dataUri) ||
-            !IsSupportedProvenanceImage(dataUri.MediaType) ||
-            !dataUri.TryEstimateDecodedByteCount(out long estimatedBytes) ||
-            estimatedBytes > options.MaxAssetBytes) return false;
-        try {
-            if (!TryDecodeEmbeddedImage(dataUri, options.MaxAssetBytes, out byte[] image) ||
-                image.LongLength > options.MaxAssetBytes) return false;
-            OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(
-                image,
-                "asset" + dataUri.FileExtension,
-                CreateNestedOptions(options));
-            return IsMatchingImageFormat(dataUri.MediaType, report.Format);
-        } catch (Exception exception) when (
-            (exception is InvalidDataException || exception is System.Xml.XmlException) &&
-            !OfficeProvenanceLimitException.Is(exception)) {
-            return false;
-        }
-    }
-
-    private static bool IsMatchingImageFormat(string mediaType, OfficeProvenanceAssetFormat format) {
-        switch (mediaType.ToLowerInvariant()) {
-            case "image/jpeg":
-            case "image/jpg": return format == OfficeProvenanceAssetFormat.Jpeg;
-            case "image/png": return format == OfficeProvenanceAssetFormat.Png;
-            case "image/gif": return format == OfficeProvenanceAssetFormat.Gif;
-            case "image/tiff": return format == OfficeProvenanceAssetFormat.Tiff;
-            case "image/webp": return format == OfficeProvenanceAssetFormat.Webp;
-            case "image/svg+xml": return format == OfficeProvenanceAssetFormat.Svg;
-            default: return false;
-        }
     }
 
     private static bool IsSupportedPictureSource(IElement element) {
         string? parentName = element.ParentElement?.LocalName;
-        return string.Equals(parentName, "picture", StringComparison.OrdinalIgnoreCase) &&
-            HtmlResourcePipeline.IsActivePictureImageSource(element);
+        return string.Equals(parentName, "picture", StringComparison.OrdinalIgnoreCase);
     }
 
     private static void NormalizeDeclaredEncodingToUtf8(IHtmlDocument document) {
@@ -743,44 +652,14 @@ public static partial class HtmlProvenance {
 
     private static bool IsImageLink(IElement element) {
         string? rel = element.GetAttribute("rel");
-        return HtmlResourcePipeline.IsApplicableProvenanceMedia(element) &&
-            (HasRelationship(rel, "icon") || HasRelationship(rel, "apple-touch-icon") ||
+        return HasRelationship(rel, "icon") || HasRelationship(rel, "apple-touch-icon") ||
             HasRelationship(rel, "shortcut icon") ||
-            HasRelationship(rel, "shortcut") && HasRelationship(rel, "icon") || IsPreloadedImage(element));
-    }
-
-    private static bool SourceSetReplacesDirectSource(IElement element, string sourceAttribute) {
-        string? sourceSetAttribute = sourceAttribute switch {
-            "src" => "srcset",
-            "data-src" => "data-srcset",
-            "data-original" or "data-original-src" => "data-original-srcset",
-            "data-lazy-src" => "data-lazy-srcset",
-            _ => null
-        };
-        if (sourceSetAttribute == null) return false;
-        string? sourceSet = element.GetAttribute(sourceSetAttribute);
-        if (string.IsNullOrEmpty(sourceSet)) return false;
-        foreach (HtmlSrcSetCandidate candidate in HtmlSrcSetParser.Enumerate(sourceSet)) {
-            string descriptor = candidate.Descriptor.Trim();
-            if (descriptor.Length == 0 || descriptor.EndsWith("w", StringComparison.Ordinal)) return true;
-            if (descriptor.EndsWith("x", StringComparison.Ordinal) && double.TryParse(
-                    descriptor.Substring(0, descriptor.Length - 1),
-                    System.Globalization.NumberStyles.Float,
-                    System.Globalization.CultureInfo.InvariantCulture,
-                    out double density) && density == 1D) return true;
-        }
-        return false;
+            HasRelationship(rel, "shortcut") && HasRelationship(rel, "icon") || IsPreloadedImage(element);
     }
 
     private static bool IsPreloadedImage(IElement element) =>
         HasRelationship(element.GetAttribute("rel"), "preload") &&
-        string.Equals(TrimAsciiWhitespace(element.GetAttribute("as")), "image", StringComparison.OrdinalIgnoreCase) &&
-        HtmlResourcePipeline.IsApplicableProvenanceMedia(element);
-
-    private static bool HasUsableImageSourceSet(IElement element) {
-        string? sourceSet = element.GetAttribute("imagesrcset");
-        return !string.IsNullOrEmpty(sourceSet) && HtmlSrcSetParser.Enumerate(sourceSet).Any();
-    }
+        string.Equals(TrimAsciiWhitespace(element.GetAttribute("as")), "image", StringComparison.OrdinalIgnoreCase);
 
     private static bool HasSupportedDeclaredImageType(IElement element) {
         string value = TrimAsciiWhitespace(element.GetAttribute("type"));
@@ -806,14 +685,13 @@ public static partial class HtmlProvenance {
     }
 
     private static string CreateRewrittenDataUriMetadata(HtmlImageDataUri dataUri) {
-        string[] parts = dataUri.Metadata.Split(';');
-        var metadata = new List<string>(parts.Length + 1);
+        var metadata = new List<string>();
         bool svg = string.Equals(dataUri.MediaType, "image/svg+xml", StringComparison.OrdinalIgnoreCase);
         bool hasCharset = false;
-        foreach (string part in parts) {
+        foreach (string part in EnumerateDataUriMetadataParameters(dataUri.Metadata)) {
             string trimmed = TrimAsciiWhitespace(part);
             if (trimmed.Equals("base64", StringComparison.OrdinalIgnoreCase)) continue;
-            if (svg && trimmed.StartsWith("charset=", StringComparison.OrdinalIgnoreCase)) {
+            if (svg && HtmlTextEncodingResolver.Default.HasDataUriCharset(trimmed)) {
                 metadata.Add("charset=utf-8");
                 hasCharset = true;
             } else {
@@ -829,8 +707,13 @@ public static partial class HtmlProvenance {
         if (!string.Equals(dataUri.MediaType, "image/svg+xml", StringComparison.OrdinalIgnoreCase)) {
             return dataUri.TryDecodeBytes(out image);
         }
-        bool hasDeclaredCharset = dataUri.Metadata.Split(';')
-            .Any(part => TrimAsciiWhitespace(part).StartsWith("charset=", StringComparison.OrdinalIgnoreCase));
+        bool hasDeclaredCharset;
+        try {
+            hasDeclaredCharset = HtmlTextEncodingResolver.Default.HasDataUriCharset(dataUri.Metadata);
+        } catch (FormatException) {
+            image = Array.Empty<byte>();
+            return false;
+        }
         if (!hasDeclaredCharset) return dataUri.TryDecodeBytes(out image);
         if (!dataUri.TryDecodeText(out string text)) {
             image = Array.Empty<byte>();
@@ -858,7 +741,8 @@ public static partial class HtmlProvenance {
 
     private static void ApplyEmbeddedImageReplacements(
         IElement element,
-        List<(EmbeddedImageReference Reference, string Value)> replacements) {
+        List<(EmbeddedImageReference Reference, string Value)> replacements,
+        string? rewrittenStylesheetMetadata) {
         foreach (IGrouping<string, (EmbeddedImageReference Reference, string Value)> group in replacements.GroupBy(item => item.Reference.AttributeName)) {
             IAttr? exactAttribute = group.Key is "href" or "xlink:href" ? HtmlDocumentParser.GetExactAttribute(element, group.Key) : null;
             string value = group.Key == "css"
@@ -867,14 +751,16 @@ public static partial class HtmlProvenance {
                     ? group.First().Reference.ContainerText ?? string.Empty
                     : exactAttribute?.Value ?? element.GetAttribute(group.Key) ?? string.Empty;
             foreach ((EmbeddedImageReference reference, string replacement) in group.OrderByDescending(item => item.Reference.Start)) {
-                value = value.Substring(0, reference.Start) + replacement + value.Substring(reference.Start + reference.Length);
+                string inserted = group.Key is "css" or "stylesheet-css" or "style"
+                    ? EscapeCssDataUri(replacement)
+                    : replacement;
+                value = value.Substring(0, reference.Start) + inserted + value.Substring(reference.Start + reference.Length);
             }
             if (group.Key == "css") element.TextContent = value;
             else if (group.Key == "stylesheet-css") {
-                string metadata = CreateRewrittenCssDataUriMetadata(group.First().Reference.ContainerMetadata ?? "text/css");
                 element.SetAttribute(
                     "href",
-                    "data:" + metadata + "," + Convert.ToBase64String(Encoding.UTF8.GetBytes(value)) +
+                    "data:" + rewrittenStylesheetMetadata + "," + Convert.ToBase64String(Encoding.UTF8.GetBytes(value)) +
                     (group.First().Reference.ContainerFragment ?? string.Empty));
             }
             else if (exactAttribute != null) exactAttribute.Value = value;
@@ -882,18 +768,44 @@ public static partial class HtmlProvenance {
         }
     }
 
+    private static string EscapeCssDataUri(string value) {
+        var escaped = new StringBuilder(value.Length);
+        foreach (char character in value) {
+            if (character is '\\' or '"' or '\'' or '(' or ')' || char.IsWhiteSpace(character)) escaped.Append('\\');
+            escaped.Append(character);
+        }
+        return escaped.ToString();
+    }
+
     private static string CreateRewrittenCssDataUriMetadata(string originalMetadata) {
         var metadata = new List<string>();
-        foreach (string part in originalMetadata.Split(';')) {
+        foreach (string part in EnumerateDataUriMetadataParameters(originalMetadata)) {
             string trimmed = TrimAsciiWhitespace(part);
             if (trimmed.Length == 0 || trimmed.Equals("base64", StringComparison.OrdinalIgnoreCase) ||
-                trimmed.StartsWith("charset=", StringComparison.OrdinalIgnoreCase)) continue;
+                HtmlTextEncodingResolver.Default.HasDataUriCharset(trimmed)) continue;
             metadata.Add(trimmed);
         }
         if (metadata.Count == 0) metadata.Add("text/css");
         metadata.Add("charset=utf-8");
         metadata.Add("base64");
         return string.Join(";", metadata);
+    }
+
+    private static IEnumerable<string> EnumerateDataUriMetadataParameters(string metadata) {
+        int start = 0;
+        bool quoted = false;
+        for (int i = 0; i < metadata.Length; i++) {
+            char current = metadata[i];
+            if (quoted && current == '\\' && i + 1 < metadata.Length) {
+                i++;
+            } else if (current == '"') {
+                quoted = !quoted;
+            } else if (current == ';' && !quoted) {
+                yield return metadata.Substring(start, i - start);
+                start = i + 1;
+            }
+        }
+        yield return metadata.Substring(start);
     }
 
     private static bool TryDecodeManifest(
@@ -1007,7 +919,7 @@ public static partial class HtmlProvenance {
     private static void ValidatePotentialElementCount(string html, int maximumEntries) =>
         ValidatePotentialElementCountCore(html, maximumEntries, CancellationToken.None);
 
-    private static void ValidatePotentialElementCountCore(
+    internal static void ValidatePotentialElementCountCore(
         string html,
         int maximumEntries,
         CancellationToken cancellationToken) {
@@ -1017,6 +929,9 @@ public static partial class HtmlProvenance {
         bool sawHeadElement = false;
         bool sawBodyElement = false;
         var openElements = new List<HtmlPreflightElement>();
+        var selectPositions = new List<int>();
+        var templatePositions = new List<int>();
+        long remainingStackComparisons = Math.Max(4096L, (long)maximumEntries * 16L);
         while (index < html.Length - 1) {
             cancellationToken.ThrowIfCancellationRequested();
             int markup = html.IndexOf('<', index);
@@ -1051,10 +966,17 @@ public static partial class HtmlProvenance {
                 int nameStart = markup + 2;
                 int closingNameEnd = FindHtmlTagNameEnd(html, nameStart);
                 string closingName = html.Substring(nameStart, closingNameEnd - nameStart);
-                if (!HandleEndTagInSelect(openElements, closingName)) {
+                bool inSelect = HasActivePreflightSelect(selectPositions, templatePositions);
+                bool handledInSelect = inSelect && HandleEndTagInSelect(openElements, closingName, ref remainingStackComparisons);
+                PrunePreflightPositions(selectPositions, openElements.Count);
+                PrunePreflightPositions(templatePositions, openElements.Count);
+                if (!handledInSelect) {
                     for (int elementIndex = openElements.Count - 1; elementIndex >= 0; elementIndex--) {
+                        ConsumePreflightStackComparison(ref remainingStackComparisons);
                         if (!openElements[elementIndex].Name.Equals(closingName, StringComparison.OrdinalIgnoreCase)) continue;
                         openElements.RemoveRange(elementIndex, openElements.Count - elementIndex);
+                        PrunePreflightPositions(selectPositions, openElements.Count);
+                        PrunePreflightPositions(templatePositions, openElements.Count);
                         break;
                     }
                 }
@@ -1075,14 +997,20 @@ public static partial class HtmlProvenance {
                 while (openElements.Count > 0 && ChildNamespace(openElements) != HtmlPreflightNamespace.Html) {
                     openElements.RemoveAt(openElements.Count - 1);
                 }
+                PrunePreflightPositions(selectPositions, openElements.Count);
+                PrunePreflightPositions(templatePositions, openElements.Count);
             }
-            if (ShouldIgnoreStartTagInSelect(openElements, tagName)) {
+            bool ignoreInSelect = HasActivePreflightSelect(selectPositions, templatePositions) &&
+                ShouldIgnoreStartTagInSelect(openElements, tagName, ref remainingStackComparisons);
+            PrunePreflightPositions(selectPositions, openElements.Count);
+            PrunePreflightPositions(templatePositions, openElements.Count);
+            if (ignoreInSelect) {
                 index = tagEnd + 1;
                 continue;
             }
             HtmlPreflightNamespace elementNamespace = ChildNamespace(openElements, tagName);
             if (elementNamespace == HtmlPreflightNamespace.Html &&
-                ShouldIgnoreNestedFormStart(openElements, tagName)) {
+                ShouldIgnoreNestedFormStart(openElements, tagName, ref remainingStackComparisons)) {
                 index = tagEnd + 1;
                 continue;
             }
@@ -1102,6 +1030,10 @@ public static partial class HtmlProvenance {
                 IsHtmlIntegrationPoint(html, tagName, elementNamespace, nameEnd, tagEnd);
             if (!selfClosing && !(elementNamespace == HtmlPreflightNamespace.Html && IsHtmlVoidElement(tagName))) {
                 openElements.Add(new HtmlPreflightElement(tagName, elementNamespace, childrenUseHtml));
+                if (elementNamespace == HtmlPreflightNamespace.Html) {
+                    if (tagName.Equals("select", StringComparison.OrdinalIgnoreCase)) selectPositions.Add(openElements.Count - 1);
+                    if (tagName.Equals("template", StringComparison.OrdinalIgnoreCase)) templatePositions.Add(openElements.Count - 1);
+                }
             }
             index = tagEnd + 1;
             if (elementNamespace == HtmlPreflightNamespace.Html && tagName.Equals("plaintext", StringComparison.OrdinalIgnoreCase)) return;
@@ -1134,10 +1066,22 @@ public static partial class HtmlProvenance {
         return false;
     }
 
-    private static bool ShouldIgnoreNestedFormStart(List<HtmlPreflightElement> elements, string tagName) {
+    private static void ConsumePreflightStackComparison(ref long remaining) {
+        if (--remaining < 0) throw new InvalidDataException("The HTML document exceeds the configured preflight scan limit.");
+    }
+
+    private static bool HasActivePreflightSelect(List<int> selects, List<int> templates) =>
+        selects.Count > 0 && (templates.Count == 0 || selects[selects.Count - 1] > templates[templates.Count - 1]);
+
+    private static void PrunePreflightPositions(List<int> positions, int openCount) {
+        while (positions.Count > 0 && positions[positions.Count - 1] >= openCount) positions.RemoveAt(positions.Count - 1);
+    }
+
+    private static bool ShouldIgnoreNestedFormStart(List<HtmlPreflightElement> elements, string tagName, ref long remaining) {
         if (!tagName.Equals("form", StringComparison.OrdinalIgnoreCase)) return false;
         bool hasForm = false;
         foreach (HtmlPreflightElement element in elements) {
+            ConsumePreflightStackComparison(ref remaining);
             if (element.Namespace != HtmlPreflightNamespace.Html) continue;
             if (element.Name.Equals("template", StringComparison.OrdinalIgnoreCase)) return false;
             if (element.Name.Equals("form", StringComparison.OrdinalIgnoreCase)) hasForm = true;
@@ -1145,9 +1089,10 @@ public static partial class HtmlProvenance {
         return hasForm;
     }
 
-    private static bool ShouldIgnoreStartTagInSelect(List<HtmlPreflightElement> elements, string tagName) {
+    private static bool ShouldIgnoreStartTagInSelect(List<HtmlPreflightElement> elements, string tagName, ref long remaining) {
         int selectIndex = -1;
         for (int index = elements.Count - 1; index >= 0; index--) {
+            ConsumePreflightStackComparison(ref remaining);
             HtmlPreflightElement element = elements[index];
             if (element.Namespace != HtmlPreflightNamespace.Html) continue;
             if (element.Name.Equals("template", StringComparison.OrdinalIgnoreCase)) return false;
@@ -1156,6 +1101,11 @@ public static partial class HtmlProvenance {
             break;
         }
         if (selectIndex < 0) return false;
+
+        if (IsTableSelectBreakoutTag(tagName) && SelectHasTableAncestor(elements, selectIndex, ref remaining)) {
+            elements.RemoveRange(selectIndex, elements.Count - selectIndex);
+            return false;
+        }
 
         if (tagName.Equals("option", StringComparison.OrdinalIgnoreCase)) {
             RemoveCurrentSelectChild(elements, "option");
@@ -1185,9 +1135,10 @@ public static partial class HtmlProvenance {
         return true;
     }
 
-    private static bool HandleEndTagInSelect(List<HtmlPreflightElement> elements, string tagName) {
+    private static bool HandleEndTagInSelect(List<HtmlPreflightElement> elements, string tagName, ref long remaining) {
         int selectIndex = -1;
         for (int index = elements.Count - 1; index >= 0; index--) {
+            ConsumePreflightStackComparison(ref remaining);
             HtmlPreflightElement element = elements[index];
             if (element.Namespace != HtmlPreflightNamespace.Html) continue;
             if (element.Name.Equals("template", StringComparison.OrdinalIgnoreCase)) return false;
@@ -1196,6 +1147,16 @@ public static partial class HtmlProvenance {
             break;
         }
         if (selectIndex < 0) return false;
+
+        if (IsTableSelectEndTag(tagName)) {
+            if (tagName.Equals("tr", StringComparison.OrdinalIgnoreCase) &&
+                TryCloseImpliedTableRow(elements, selectIndex, ref remaining)) return true;
+            if (tagName.Equals("tbody", StringComparison.OrdinalIgnoreCase) &&
+                TryCloseImpliedTableBody(elements, selectIndex, ref remaining)) return true;
+            if (!SelectHasNamedTableAncestor(elements, selectIndex, tagName, ref remaining)) return true;
+            elements.RemoveRange(selectIndex, elements.Count - selectIndex);
+            return false;
+        }
 
         if (tagName.Equals("option", StringComparison.OrdinalIgnoreCase)) {
             RemoveCurrentSelectChild(elements, "option");
@@ -1216,6 +1177,85 @@ public static partial class HtmlProvenance {
         }
         if (tagName.Equals("template", StringComparison.OrdinalIgnoreCase)) return false;
         return true;
+    }
+
+    private static bool IsTableSelectBreakoutTag(string tagName) =>
+        tagName.Equals("table", StringComparison.OrdinalIgnoreCase) ||
+        tagName.Equals("caption", StringComparison.OrdinalIgnoreCase) ||
+        tagName.Equals("tbody", StringComparison.OrdinalIgnoreCase) ||
+        tagName.Equals("tfoot", StringComparison.OrdinalIgnoreCase) ||
+        tagName.Equals("thead", StringComparison.OrdinalIgnoreCase) ||
+        tagName.Equals("tr", StringComparison.OrdinalIgnoreCase) ||
+        tagName.Equals("td", StringComparison.OrdinalIgnoreCase) ||
+        tagName.Equals("th", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsTableSelectEndTag(string tagName) =>
+        IsTableSelectBreakoutTag(tagName) && !tagName.Equals("caption", StringComparison.OrdinalIgnoreCase);
+
+    private static bool SelectHasTableAncestor(List<HtmlPreflightElement> elements, int selectIndex, ref long remaining) {
+        for (int index = selectIndex - 1; index >= 0; index--) {
+            ConsumePreflightStackComparison(ref remaining);
+            if (elements[index].Namespace != HtmlPreflightNamespace.Html) continue;
+            if (elements[index].Name.Equals("template", StringComparison.OrdinalIgnoreCase)) return false;
+            if (elements[index].Name.Equals("table", StringComparison.OrdinalIgnoreCase)) return true;
+        }
+        return false;
+    }
+
+    private static bool SelectHasNamedTableAncestor(
+        List<HtmlPreflightElement> elements, int selectIndex, string tagName, ref long remaining) {
+        for (int index = selectIndex - 1; index >= 0; index--) {
+            ConsumePreflightStackComparison(ref remaining);
+            if (elements[index].Namespace != HtmlPreflightNamespace.Html) continue;
+            if (elements[index].Name.Equals("template", StringComparison.OrdinalIgnoreCase)) return false;
+            if (elements[index].Name.Equals(tagName, StringComparison.OrdinalIgnoreCase)) return true;
+            if (elements[index].Name.Equals("table", StringComparison.OrdinalIgnoreCase)) return false;
+        }
+        return false;
+    }
+
+    private static bool TryCloseImpliedTableBody(
+        List<HtmlPreflightElement> elements, int selectIndex, ref long remaining) {
+        bool hasRow = false;
+        for (int index = selectIndex - 1; index >= 0; index--) {
+            ConsumePreflightStackComparison(ref remaining);
+            if (elements[index].Namespace != HtmlPreflightNamespace.Html) continue;
+            string name = elements[index].Name;
+            if (name.Equals("template", StringComparison.OrdinalIgnoreCase) ||
+                name.Equals("tbody", StringComparison.OrdinalIgnoreCase) ||
+                name.Equals("thead", StringComparison.OrdinalIgnoreCase) ||
+                name.Equals("tfoot", StringComparison.OrdinalIgnoreCase)) return false;
+            if (name.Equals("tr", StringComparison.OrdinalIgnoreCase) ||
+                name.Equals("td", StringComparison.OrdinalIgnoreCase) ||
+                name.Equals("th", StringComparison.OrdinalIgnoreCase)) hasRow = true;
+            if (!name.Equals("table", StringComparison.OrdinalIgnoreCase)) continue;
+            if (!hasRow) return false;
+            elements.RemoveRange(index + 1, elements.Count - index - 1);
+            return true;
+        }
+        return false;
+    }
+
+    private static bool TryCloseImpliedTableRow(
+        List<HtmlPreflightElement> elements, int selectIndex, ref long remaining) {
+        bool hasCell = false;
+        for (int index = selectIndex - 1; index >= 0; index--) {
+            ConsumePreflightStackComparison(ref remaining);
+            if (elements[index].Namespace != HtmlPreflightNamespace.Html) continue;
+            string name = elements[index].Name;
+            if (name.Equals("template", StringComparison.OrdinalIgnoreCase) ||
+                name.Equals("tr", StringComparison.OrdinalIgnoreCase)) return false;
+            if (name.Equals("td", StringComparison.OrdinalIgnoreCase) ||
+                name.Equals("th", StringComparison.OrdinalIgnoreCase)) hasCell = true;
+            if (!name.Equals("tbody", StringComparison.OrdinalIgnoreCase) &&
+                !name.Equals("thead", StringComparison.OrdinalIgnoreCase) &&
+                !name.Equals("tfoot", StringComparison.OrdinalIgnoreCase) &&
+                !name.Equals("table", StringComparison.OrdinalIgnoreCase)) continue;
+            if (!hasCell) return false;
+            elements.RemoveRange(index + 1, elements.Count - index - 1);
+            return true;
+        }
+        return false;
     }
 
     private static void RemoveCurrentSelectChild(List<HtmlPreflightElement> elements, string name) {
@@ -1541,31 +1581,91 @@ public static partial class HtmlProvenance {
         return encoding;
     }
 
-    private static string DecodeHtml(byte[] data, out Encoding encoding, out bool hadPreamble) {
+    private static string DecodeHtml(byte[] data, CancellationToken cancellationToken, out Encoding encoding, out bool hadPreamble) {
         using var stream = new MemoryStream(data, writable: false);
         encoding = HtmlTextEncodingResolver.Default.ResolveHtmlEncoding(stream);
         byte[] preamble = encoding.GetPreamble();
         hadPreamble = preamble.Length != 0 && data.Length >= preamble.Length &&
             preamble.SequenceEqual(data.Take(preamble.Length));
         int offset = hadPreamble ? preamble.Length : 0;
-        return encoding.GetString(data, offset, data.Length - offset);
+        Decoder decoder = encoding.GetDecoder();
+        var characters = new char[encoding.GetMaxCharCount(8192)];
+        var output = new StringBuilder(Math.Min(data.Length - offset, 8192));
+        while (offset < data.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = Math.Min(8192, data.Length - offset);
+            int decoded = decoder.GetChars(data, offset, count, characters, 0, offset + count == data.Length);
+            output.Append(characters, 0, decoded);
+            offset += count;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return output.ToString();
     }
 
-    private static byte[] EncodeHtml(string html, Encoding encoding, bool includePreamble, long maximumBytes) {
-        Encoding strictEncoding = (Encoding)encoding.Clone();
-        strictEncoding.EncoderFallback = EncoderFallback.ExceptionFallback;
-        string encodableHtml = OfficeCharacterReferenceEncoding.EscapeUnrepresentableCharacters(html, strictEncoding);
+    private static long CountHtmlBytes(string html, Encoding encoding, long maximumBytes, CancellationToken cancellationToken) {
+        Encoder encoder = encoding.GetEncoder();
+        var chunk = new char[8192];
+        long length = 0;
+        for (int offset = 0; offset < html.Length;) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = Math.Min(chunk.Length, html.Length - offset);
+            html.CopyTo(offset, chunk, 0, count);
+            length += encoder.GetByteCount(chunk, 0, count, offset + count == html.Length);
+            if (length > maximumBytes) return length;
+            offset += count;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return length;
+    }
+
+    private static byte[] EncodeHtml(
+        string html,
+        Encoding encoding,
+        bool includePreamble,
+        long maximumBytes,
+        CancellationToken cancellationToken,
+        bool useCharacterReferenceFallback = true) {
+        Encoding boundedEncoding = useCharacterReferenceFallback
+            ? OfficeCharacterReferenceEncoding.WithCharacterReferenceFallback(encoding)
+            : encoding;
         byte[] preamble = includePreamble ? encoding.GetPreamble() : Array.Empty<byte>();
-        int bodyLength = strictEncoding.GetByteCount(encodableHtml);
-        if (bodyLength > maximumBytes - preamble.Length) {
+        long availableBodyBytes = maximumBytes - preamble.Length;
+        if (availableBodyBytes < 0) {
             throw OfficeProvenanceLimitException.CreateOutput(
                 $"The rewritten HTML document exceeds the configured output limit of {maximumBytes} bytes.");
         }
-        byte[] body = strictEncoding.GetBytes(encodableHtml);
-        if (preamble.Length == 0) return body;
-        byte[] output = new byte[preamble.Length + body.Length];
+        Encoder encoder = boundedEncoding.GetEncoder();
+        var chunk = new char[8192];
+        long bodyLength = 0;
+        for (int offset = 0; offset < html.Length;) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = Math.Min(chunk.Length, html.Length - offset);
+            html.CopyTo(offset, chunk, 0, count);
+            int encoded = encoder.GetByteCount(chunk, 0, count, offset + count == html.Length);
+            if (encoded > availableBodyBytes - bodyLength) {
+                throw OfficeProvenanceLimitException.CreateOutput(
+                    $"The rewritten HTML document exceeds the configured output limit of {maximumBytes} bytes.");
+            }
+            bodyLength += encoded;
+            offset += count;
+        }
+        if (bodyLength > int.MaxValue - preamble.Length) {
+            throw OfficeProvenanceLimitException.CreateOutput(
+                $"The rewritten HTML document exceeds the supported output size.");
+        }
+        byte[] output = new byte[preamble.Length + (int)bodyLength];
         Buffer.BlockCopy(preamble, 0, output, 0, preamble.Length);
-        Buffer.BlockCopy(body, 0, output, preamble.Length, body.Length);
+        encoder = boundedEncoding.GetEncoder();
+        int written = preamble.Length;
+        for (int offset = 0; offset < html.Length;) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = Math.Min(chunk.Length, html.Length - offset);
+            html.CopyTo(offset, chunk, 0, count);
+            written += encoder.GetBytes(chunk, 0, count, output, written, offset + count == html.Length);
+            offset += count;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        if (written != output.Length) throw new InvalidDataException("The rewritten HTML encoding length changed unexpectedly.");
         return output;
     }
 

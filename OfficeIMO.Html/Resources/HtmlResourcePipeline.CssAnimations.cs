@@ -130,7 +130,22 @@ public static partial class HtmlResourcePipeline {
             char current = value[index];
             if (current == '\\') {
                 token.Append(current);
-                if (index + 1 < value.Length) token.Append(value[++index]);
+                if (index + 1 < value.Length) {
+                    token.Append(value[++index]);
+                    if (IsCssHexDigit(value[index])) {
+                        int digits = 1;
+                        while (digits < 6 && index + 1 < value.Length && IsCssHexDigit(value[index + 1])) {
+                            token.Append(value[++index]);
+                            digits++;
+                        }
+                        if (index + 1 < value.Length && IsCssWhitespace(value[index + 1])) {
+                            token.Append(value[++index]);
+                            if (value[index] == '\r' && index + 1 < value.Length && value[index + 1] == '\n') {
+                                token.Append(value[++index]);
+                            }
+                        }
+                    }
+                }
                 continue;
             }
             if (quote != '\0') {

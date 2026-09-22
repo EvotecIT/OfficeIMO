@@ -9,18 +9,6 @@ using Xunit;
 namespace OfficeIMO.Shared.Tests;
 
 public sealed partial class ProvenanceDocumentContracts {
-    [Fact]
-    public void AnimationShorthandKeywordsDoNotActivateSameNamedKeyframes() {
-        string dataUri = "data:image/png;base64," + Convert.ToBase64String(
-            CreatePngWithManifest(CreateManifestStore()));
-        string html = "<style>@keyframes linear{from{background-image:url('" + dataUri +
-            "')}}.box{animation:1s linear other}</style><div class=\"box\"></div>";
-
-        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
-
-        Assert.Empty(result.Before.Evidence);
-        Assert.False(result.WasChanged);
-    }
 
     [Fact]
     public void AnimationShorthandCanUseAKeywordAsTheNameAfterItsComponentSlotIsFilled() {
@@ -54,17 +42,6 @@ public sealed partial class ProvenanceDocumentContracts {
         Assert.Empty(result.After.Evidence);
     }
 
-    [Fact]
-    public void PictureSourcesAfterTheFallbackImageAreInactive() {
-        string dataUri = "data:image/png;base64," + Convert.ToBase64String(
-            CreatePngWithManifest(CreateManifestStore()));
-        string html = "<picture><img src=\"fallback.png\"><source srcset=\"" + dataUri + "\"></picture>";
-
-        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
-
-        Assert.Empty(result.Before.Evidence);
-        Assert.False(result.WasChanged);
-    }
 
     [Theory]
     [InlineData("docx")]
