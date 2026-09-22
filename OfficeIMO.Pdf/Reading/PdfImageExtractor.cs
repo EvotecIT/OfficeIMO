@@ -28,7 +28,7 @@ internal static class PdfImageExtractor {
     /// </summary>
     public static IReadOnlyList<PdfExtractedImage> ExtractImages(string path) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
-        return ExtractImages(File.ReadAllBytes(path));
+        return ExtractImages(PdfReadDocument.Open(path));
     }
 
     /// <summary>
@@ -59,48 +59,28 @@ internal static class PdfImageExtractor {
     /// Extracts image XObjects from all pages in page order from the current position of a readable stream.
     /// </summary>
     public static IReadOnlyList<PdfExtractedImage> ExtractImages(Stream stream) {
-        Guard.NotNull(stream, nameof(stream));
-        if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
-
-        using var buffer = new MemoryStream();
-        stream.CopyTo(buffer);
-        return ExtractImages(buffer.ToArray());
+        return ExtractImages(PdfDocumentSource.FromRemainingStream(stream, null).Read());
     }
 
     /// <summary>
     /// Extracts image XObject placement invocations from all pages in page order from the current position of a readable stream.
     /// </summary>
     public static IReadOnlyList<PdfImagePlacement> ExtractImagePlacements(Stream stream) {
-        Guard.NotNull(stream, nameof(stream));
-        if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
-
-        using var buffer = new MemoryStream();
-        stream.CopyTo(buffer);
-        return ExtractImagePlacements(buffer.ToArray());
+        return ExtractImagePlacements(PdfDocumentSource.FromRemainingStream(stream, null).Read());
     }
 
     /// <summary>
     /// Extracts image XObjects from the supplied inclusive one-based page ranges from the current position of a readable stream.
     /// </summary>
     public static IReadOnlyList<PdfExtractedImage> ExtractImagesByPageRanges(Stream stream, params PdfPageRange[] pageRanges) {
-        Guard.NotNull(stream, nameof(stream));
-        if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
-
-        using var buffer = new MemoryStream();
-        stream.CopyTo(buffer);
-        return ExtractImagesByPageRanges(buffer.ToArray(), pageRanges);
+        return ExtractImagesByPageRanges(PdfDocumentSource.FromRemainingStream(stream, null).Read(), pageRanges);
     }
 
     /// <summary>
     /// Extracts image XObject placement invocations from the supplied inclusive one-based page ranges from the current position of a readable stream.
     /// </summary>
     public static IReadOnlyList<PdfImagePlacement> ExtractImagePlacementsByPageRanges(Stream stream, params PdfPageRange[] pageRanges) {
-        Guard.NotNull(stream, nameof(stream));
-        if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
-
-        using var buffer = new MemoryStream();
-        stream.CopyTo(buffer);
-        return ExtractImagePlacementsByPageRanges(buffer.ToArray(), pageRanges);
+        return ExtractImagePlacementsByPageRanges(PdfDocumentSource.FromRemainingStream(stream, null).Read(), pageRanges);
     }
 
     /// <summary>
@@ -174,6 +154,7 @@ internal static class PdfImageExtractor {
     }
 
     private static List<string> WriteImageFiles(IReadOnlyList<PdfExtractedImage> images, string fullOutputDirectory, string baseName) {
+        Directory.CreateDirectory(fullOutputDirectory);
         string safeBaseName = GetSafeBaseName(baseName, "image");
 
         var paths = new List<string>(images.Count);
@@ -224,7 +205,6 @@ internal static class PdfImageExtractor {
             throw new ArgumentException("Output directory refers to a file; a directory path is required.", nameof(outputDirectory));
         }
 
-        Directory.CreateDirectory(fullOutputDirectory);
         return fullOutputDirectory;
     }
 
