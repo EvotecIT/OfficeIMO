@@ -107,13 +107,17 @@ public static partial class OfficeSvgDrawingReader {
                 out OfficeBlendMode rootBlendMode,
                 out OfficeDrawingSoftMask? rootSoftMask,
                 out SvgFilterEffect? rootFilterEffect);
+            if (rootHasEffects && !references.TryChargeIntermediateSurface(viewWidth, viewHeight)) {
+                unsupportedFeatureCount++;
+                rootHasEffects = false;
+            }
             OfficeDrawing rootContent = rootHasEffects ? new OfficeDrawing(viewWidth, viewHeight) : scene;
             rootContent.Fonts.AddRange(options?.Fonts);
             AddChildren(root, rootContent, context, paintServers, references, rootTransform, viewX, viewY,
                 maximumElements, maximumViewportDimension, maximumViewportPixels, 0,
                 ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupportedFeatureCount);
             if (rootHasEffects) {
-                TryApplySvgFilter(rootContent, rootFilterEffect, rootTransform, maximumElements, ref visited, ref unsupportedFeatureCount, out rootContent);
+                TryApplySvgFilter(rootContent, rootFilterEffect, references, rootTransform, maximumElements, ref visited, ref unsupportedFeatureCount, out rootContent);
                 scene.AddEffectDrawing(rootContent, OfficeTransform.Identity, rootBlendMode, rootSoftMask);
             }
             string? rootClip = ReadPresentationProperty(root, "clip-path");

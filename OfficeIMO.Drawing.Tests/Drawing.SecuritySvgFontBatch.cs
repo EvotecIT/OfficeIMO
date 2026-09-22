@@ -64,6 +64,24 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void CachedForeignObjectPlacementsChargeTheirFullEffectSurface() {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4096 4096'><defs>" +
+            "<foreignObject id='f' width='1' height='1'><div xmlns='http://www.w3.org/1999/xhtml'>Text</div></foreignObject>" +
+            "</defs>" + string.Concat(Enumerable.Repeat("<use href='#f'/>", 5)) + "</svg>";
+        int calls = 0;
+        var options = new OfficeSvgDrawingReaderOptions {
+            ForeignObjectRenderer = context => {
+                calls++;
+                return new OfficeDrawing(context.Width, context.Height);
+            }
+        };
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), options, out _, out int unsupported));
+        Assert.Equal(1, calls);
+        Assert.True(unsupported > 0);
+    }
+
+    [Fact]
     public void EmptyForeignObjectsDoNotExhaustRendererCalls() {
         string empty = string.Concat(Enumerable.Repeat("<foreignObject width='1' height='1'/>", 129));
         string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'>" + empty +
@@ -85,6 +103,58 @@ public partial class DrawingTests {
     public void NestedFullSizeViewportsUseAnAggregateIntermediateBudget() {
         string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4096 4096'>" +
             "<svg><svg><svg><rect width='1' height='1'/></svg></svg></svg></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out _, out int unsupported));
+        Assert.True(unsupported > 0);
+    }
+
+    [Fact]
+    public void TinyNestedViewportsChargeTheirLargeViewBoxScenes() {
+        string nested = "<svg width='1' height='1' viewBox='0 0 4096 4096'><rect width='1' height='1'/></svg>";
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4096 4096'>" +
+            string.Concat(Enumerable.Repeat(nested, 5)) + "</svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out _, out int unsupported));
+        Assert.True(unsupported > 0);
+    }
+
+    [Fact]
+    public void RepeatedSymbolsChargeTheirLargeViewBoxScenes() {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4096 4096'><defs>" +
+            "<symbol id='s' viewBox='0 0 4096 4096'><rect width='1' height='1'/></symbol></defs>" +
+            string.Concat(Enumerable.Repeat("<use href='#s' width='1' height='1'/>", 5)) + "</svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out _, out int unsupported));
+        Assert.True(unsupported > 0);
+    }
+
+    [Fact]
+    public void RepeatedEmbeddedImagesChargeFullCanvasEffectSurfaces() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Red));
+        string image = "data:image/png;base64," + Convert.ToBase64String(png);
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4096 4096'><defs>" +
+            "<image id='i' href='" + image + "' width='1' height='1'/></defs>" +
+            string.Concat(Enumerable.Repeat("<use href='#i'/>", 5)) + "</svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out _, out int unsupported));
+        Assert.True(unsupported > 0);
+    }
+
+    [Fact]
+    public void BlendedGroupsShareTheFullCanvasEffectSurfaceBudget() {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4096 4096'>" +
+            string.Concat(Enumerable.Repeat(
+                "<g style='mix-blend-mode:multiply'><rect width='1' height='1'/></g>", 5)) + "</svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out _, out int unsupported));
+        Assert.True(unsupported > 0);
+    }
+
+    [Fact]
+    public void BlurSamplesChargeTheirFullCanvasIntermediateSurfaces() {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4096 4096'><defs>" +
+            "<filter id='blur'><feGaussianBlur stdDeviation='2'/></filter></defs>" +
+            "<rect width='1' height='1' filter='url(#blur)'/></svg>";
 
         Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out _, out int unsupported));
         Assert.True(unsupported > 0);
@@ -134,6 +204,17 @@ public partial class DrawingTests {
 
         Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out _, out int unsupported));
         Assert.True(unsupported > 0);
+    }
+
+    [Fact]
+    public void PaintedTextMeasuresTheNormalizedRunBeforeApplyingTheOutlineLimit() {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 20'>" +
+            "<text x='1' y='12' fill='none' stroke='black'>A" + new string(' ', 4096) +
+            "<tspan>B</tspan></text></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.Equal(0, unsupported);
+        Assert.NotEmpty(drawing!.Elements);
     }
 
     [Fact]

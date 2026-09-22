@@ -39,6 +39,11 @@ public static partial class OfficeSvgDrawingReader {
             return false;
         }
 
+        if (!references.TryChargeIntermediateSurface(drawing.Width, drawing.Height)) {
+            unsupported++;
+            return false;
+        }
+
         var layer = new OfficeDrawing(drawing.Width, drawing.Height);
         layer.Fonts.AddRange(drawing.Fonts);
         bool rendered = false;

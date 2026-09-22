@@ -52,6 +52,12 @@ public static partial class OfficeSvgDrawingReader {
             return false;
         }
 
+        if (!references.TryChargeIntermediateSurface(drawing.Width, drawing.Height, 3)) {
+            unsupported++;
+            ClearShapeStroke(shape.Shape);
+            return false;
+        }
+
         var repeated = new OfficeDrawing(drawing.Width, drawing.Height);
         try {
             repeated.AddTilingPattern(

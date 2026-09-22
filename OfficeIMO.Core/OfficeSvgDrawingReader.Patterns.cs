@@ -62,6 +62,12 @@ public static partial class OfficeSvgDrawingReader {
             return false;
         }
 
+        if (!references.TryChargeIntermediateSurface(drawing.Width, drawing.Height, 3)) {
+            unsupported++;
+            ClearShapeFill(shape.Shape);
+            return false;
+        }
+
         var repeated = new OfficeDrawing(drawing.Width, drawing.Height);
         double localOriginX = originX - viewX;
         double localOriginY = originY - viewY;

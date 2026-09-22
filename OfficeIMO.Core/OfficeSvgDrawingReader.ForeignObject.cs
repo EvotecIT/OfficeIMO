@@ -64,6 +64,10 @@ public static partial class OfficeSvgDrawingReader {
             unsupported++;
             return;
         }
+        if (!references.TryChargeForeignObjectPlacement(drawing.Width, drawing.Height)) {
+            unsupported++;
+            return;
+        }
         visited += contentElements;
 
         var layer = new OfficeDrawing(drawing.Width, drawing.Height);

@@ -202,6 +202,7 @@ public static partial class OfficeSvgDrawingReader {
     private static bool TryApplySvgFilter(
         OfficeDrawing source,
         SvgFilterEffect? effect,
+        SvgElementReferenceRegistry references,
         OfficeTransform transform,
         int maximumElements,
         ref int visited,
@@ -221,6 +222,12 @@ public static partial class OfficeSvgDrawingReader {
             : 0;
         long additionalElements = (long)sourceElements * copyCount;
         if (additionalElements > maximumElements - visited) {
+            unsupported++;
+            return false;
+        }
+        int surfaceCount = effect.Kind == SvgFilterEffectKind.Offset ? 2
+            : samples.Count + (effect.Kind == SvgFilterEffectKind.DropShadow ? 3 : 2);
+        if (!references.TryChargeIntermediateSurface(source.Width, source.Height, surfaceCount)) {
             unsupported++;
             return false;
         }

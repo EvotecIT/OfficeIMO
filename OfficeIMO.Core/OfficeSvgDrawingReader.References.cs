@@ -77,8 +77,8 @@ public static partial class OfficeSvgDrawingReader {
         private readonly ISet<string> _activeIds = new HashSet<string>(StringComparer.Ordinal);
         private const int MaximumExpandedTextCharacters = 131_072;
         private int _expandedTextCharacters;
-        private const double MaximumNestedViewportIntermediatePixels = 64_000_000D;
-        private double _nestedViewportIntermediatePixels;
+        private const double MaximumIntermediateSurfacePixels = 64_000_000D;
+        private double _intermediateSurfacePixels;
         private const long MaximumEmbeddedRasterBytes = 64L * 1024L * 1024L;
         private long _embeddedRasterBytes;
         private readonly Dictionary<XAttribute, (byte[] Bytes, string ContentType, OfficeImageInfo Info)> _embeddedRasters =
@@ -117,12 +117,26 @@ public static partial class OfficeSvgDrawingReader {
             return true;
         }
 
-        internal bool TryChargeNestedViewport(double width, double height) {
-            // A nested viewport retains a transformed scene and a clipped effect surface.
-            double pixels = width * height * 2D;
+        internal bool TryChargeNestedViewport(double width, double height, double sceneWidth, double sceneHeight) {
+            // The viewBox scene can be much larger than its displayed viewport.
+            // Raster rendering retains that full scene before fitting and clipping it.
+            return TryChargeIntermediatePixels(width * height * 2D + sceneWidth * sceneHeight);
+        }
+
+        internal bool TryChargeNestedViewportExpansion(double extraPixels) {
+            return !double.IsNaN(extraPixels) && !double.IsInfinity(extraPixels)
+                && (extraPixels <= 0D || TryChargeIntermediatePixels(extraPixels));
+        }
+
+        internal bool TryChargeIntermediateSurface(double width, double height, int surfaces = 1) =>
+            TryChargeIntermediatePixels(width * height * surfaces);
+
+        private bool TryChargeIntermediatePixels(double pixels) {
+            // Full-size effect, image, viewport, and symbol layers all reach the
+            // raster renderer; count their retained surfaces in one document budget.
             if (double.IsNaN(pixels) || double.IsInfinity(pixels) || pixels < 0D
-                || pixels > MaximumNestedViewportIntermediatePixels - _nestedViewportIntermediatePixels) return false;
-            _nestedViewportIntermediatePixels += pixels;
+                || pixels > MaximumIntermediateSurfacePixels - _intermediateSurfacePixels) return false;
+            _intermediateSurfacePixels += pixels;
             return true;
         }
 
@@ -184,6 +198,11 @@ public static partial class OfficeSvgDrawingReader {
 
         internal void CacheForeignObject(XElement element, double width, double height, OfficeDrawing drawing, int elements) =>
             _foreignObjects[(element, width, height)] = (drawing, elements);
+
+        internal bool TryChargeForeignObjectPlacement(double drawingWidth, double drawingHeight) {
+            // Every placement creates a full-size effect surface, including cache hits.
+            return TryChargeIntermediateSurface(drawingWidth, drawingHeight);
+        }
 
         internal bool TryChargeSerializedForeignObject(int characters) {
             if (characters < 0 || characters > MaximumForeignObjectSourceCharacters - _foreignObjectSerializedCharacters) return false;

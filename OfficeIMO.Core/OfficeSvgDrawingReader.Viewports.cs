@@ -6,7 +6,12 @@ namespace OfficeIMO.Drawing;
 
 public static partial class OfficeSvgDrawingReader {
     private static OfficeDrawing FitSvgViewport(OfficeDrawing scene, double width, double height,
-        OfficeTransform transform, double maximumDimension, double maximumPixels, ref int unsupported) {
+        OfficeTransform transform, double maximumDimension, double maximumPixels, ref int unsupported) =>
+        FitSvgViewport(scene, width, height, transform, maximumDimension, maximumPixels, ref unsupported, out _);
+
+    private static OfficeDrawing FitSvgViewport(OfficeDrawing scene, double width, double height,
+        OfficeTransform transform, double maximumDimension, double maximumPixels, ref int unsupported,
+        out double retainedScenePixels) {
         if (HasOverflowingLocalShapes(scene) && transform.TryInvert(out OfficeTransform inverse)) {
             var visible = inverse.TransformRectangleBounds(0D, 0D, width, height);
             if (scene.TryExpandViewportCanvas(visible.Left, visible.Top, visible.Right, visible.Bottom,
@@ -17,6 +22,7 @@ public static partial class OfficeSvgDrawingReader {
                 unsupported++;
             }
         }
+        retainedScenePixels = scene.Width * scene.Height;
         return new OfficeDrawing(width, height).AddEffectDrawing(scene, transform);
     }
 
@@ -109,7 +115,7 @@ public static partial class OfficeSvgDrawingReader {
         }
         if (!TryParsePreserveAspectRatio(element.Attribute("preserveAspectRatio")?.Value,
                 out SvgAspectAlignment alignment, out bool slice)) return false;
-        if (!references.TryChargeNestedViewport(width, height)) return false;
+        if (!references.TryChargeNestedViewport(width, height, childViewWidth, childViewHeight)) return false;
 
         bool hasEffects = TryResolveSvgEffects(
             element,
@@ -156,14 +162,18 @@ public static partial class OfficeSvgDrawingReader {
         OfficeTransform viewportTransform = ResolveViewportTransform(
             childViewWidth, childViewHeight, width, height, alignment, slice);
         OfficeDrawing viewport = FitSvgViewport(scene, width, height, viewportTransform,
-            maximumViewportDimension, maximumViewportPixels, ref unsupported);
+            maximumViewportDimension, maximumViewportPixels, ref unsupported, out double retainedScenePixels);
+        if (!references.TryChargeNestedViewportExpansion(retainedScenePixels - childViewWidth * childViewHeight)) {
+            unsupported++;
+            return false;
+        }
         viewport.Fonts.AddRange(drawing.Fonts);
         var clipped = new OfficeDrawing(width, height);
         clipped.Fonts.AddRange(drawing.Fonts);
         clipped.AddClippedDrawing(viewport, 0D, 0D, OfficeClipPath.Rectangle(width, height));
         OfficeDrawing content = clipped;
         if (hasEffects) {
-            TryApplySvgFilter(content, filterEffect, OfficeTransform.Identity, maximumElements,
+            TryApplySvgFilter(content, filterEffect, references, OfficeTransform.Identity, maximumElements,
                 ref visited, ref unsupported, out content);
         }
         drawing.AddEffectDrawing(

@@ -120,13 +120,16 @@ public static partial class OfficeSvgDrawingReader {
                 return;
             }
             if (node is XText textNode) {
-                if (!references.TryChargeTextCharacters(textNode.Value.Length)
-                    || RequiresPaintedTextOutline(style) && textNode.Value.Length > 4096) {
+                if (!references.TryChargeTextCharacters(textNode.Value.Length)) {
                     ReportTextRunLimit(ref cursor, ref unsupported);
                     return;
                 }
                 string text = NormalizeText(textNode.Value, preserve, ref cursor);
                 if (text.Length == 0) continue;
+                if (RequiresPaintedTextOutline(style) && text.Length > 4096) {
+                    ReportTextRunLimit(ref cursor, ref unsupported);
+                    return;
+                }
                 int firstTextRun = runs.Count;
                 double fontSize = Math.Max(0.1D, style.FontSize);
                 if (style.WritingMode != SvgWritingMode.HorizontalTb) {
@@ -552,6 +555,10 @@ public static partial class OfficeSvgDrawingReader {
             ? run.Transform
             : OfficeTransform.RotateDegrees(run.RotationDegrees, run.RotationCenterX, run.RotationCenterY).Then(run.Transform);
         bool usesEffect = textTransform != OfficeTransform.Identity || Math.Abs(run.GlyphScale - 1D) > 0.0000001D;
+        if (usesEffect && !references.TryChargeIntermediateSurface(drawing.Width, drawing.Height)) {
+            unsupported++;
+            return;
+        }
         OfficeDrawing target = usesEffect ? new OfficeDrawing(drawing.Width, drawing.Height) : drawing;
         if (usesEffect) target.Fonts.AddRange(drawing.Fonts);
         try {
