@@ -201,6 +201,15 @@ further frame captures in containing-document order. Node and output-text
 budgets apply cumulatively to the root and every captured frame. Frames with an
 opaque sandbox origin and cross-origin frames are not exposed.
 
+Local frames retain `about:srcdoc` or `about:blank` as their document URL. Their
+fallback base URI is captured from the creator when the frame document is created;
+later parent base or history changes do not alter it. A child `base` element can
+change relative URL resolution without changing the child's inherited origin.
+Classic scripts, modules, fetch, storage, messaging and nested captures use these
+separate identities. Empty frames also have an initial `about:blank` document.
+This qualification covers iframe creation; popup initiators, `document.open()` URL
+rewriting and child-frame navigation remain outside the supported contract.
+
 Same-origin child frames run classic and module scripts in distinct JavaScript
 globals when their sandbox permits both scripts and same-origin access. Each
 frame has its own import map and module map; static and dynamic imports use the

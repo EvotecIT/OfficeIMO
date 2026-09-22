@@ -16,7 +16,7 @@ public sealed class HtmlFrameCapture {
         if (!document.IsReadOnly) throw new ArgumentException("A captured frame document must be frozen.", nameof(document));
         FrameElementNodeId = frameElementNodeId;
         Document = document;
-        DocumentUrl = HtmlRuntimeResourcePolicy.ValidateUrl(documentUrl);
+        DocumentUrl = ValidateDocumentUrl(documentUrl);
         BaseUri = ValidateBaseUri(baseUri);
         Frames = Array.AsReadOnly((frames ?? Array.Empty<HtmlFrameCapture>()).ToArray());
         ValidateChildren(document, Frames);
@@ -26,7 +26,7 @@ public sealed class HtmlFrameCapture {
     public int FrameElementNodeId { get; }
     /// <summary>Frozen owned child document. Child scripts are not executed during capture or conversion.</summary>
     public HtmlDocument Document { get; }
-    /// <summary>Final HTTP(S) identity of the child document.</summary>
+    /// <summary>Final HTTP(S), about:blank, or about:srcdoc identity of the child document.</summary>
     public Uri DocumentUrl { get; }
     /// <summary>Effective base URI frozen with the child document.</summary>
     public Uri BaseUri { get; }
@@ -44,6 +44,15 @@ public sealed class HtmlFrameCapture {
                 throw new ArgumentException("A captured frame identity must reference an iframe in its containing document.", nameof(frames));
             }
         }
+    }
+
+    internal static Uri ValidateDocumentUrl(Uri value) {
+        ArgumentNullException.ThrowIfNull(value);
+        if (value.IsAbsoluteUri && value.AbsoluteUri.Length <= 8192 && value.Scheme == "about"
+            && value.Host.Length == 0 && value.UserInfo.Length == 0
+            && (value.AbsolutePath == "blank" || value.AbsolutePath == "srcdoc" && value.Query.Length == 0))
+            return value;
+        return HtmlRuntimeResourcePolicy.ValidateUrl(value);
     }
 
     internal static Uri ValidateBaseUri(Uri value) {

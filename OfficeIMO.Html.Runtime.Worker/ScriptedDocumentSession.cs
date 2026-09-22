@@ -94,8 +94,10 @@ internal sealed class ScriptedDocumentSession : IDisposable {
         var scriptObservers = configuration.Services.OfType<IAttributeObserver>().Where(observer => observer.GetType().Assembly == typeof(JsScriptingService).Assembly).ToArray();
         // Replace only the script observer; retain CSS and native DOM attribute observers.
         configuration = configuration.Without(scriptObservers)
-            .With(new RuntimeEventAttributeObserver(_realms.EngineFor))
-            .With(new RuntimeFrameNavigationObserver(_realms));
+            .With(new RuntimeEventAttributeObserver(_realms.EngineFor));
+        // Local frame loads can complete inside the native attribute observer.
+        // Retire the previous realm before that observer can create its replacement.
+        configuration = new Configuration(configuration.Services.Prepend(new RuntimeFrameNavigationObserver(_realms)));
         _context = BrowsingContext.New(configuration);
         _loop = _context.GetService<IEventLoop>() ?? throw new HtmlScriptRuntimeException("The provider did not create an event loop.");
         _context.GetService<IHtmlParser>()!.Parsing += (_, args) => {
@@ -107,6 +109,18 @@ internal sealed class ScriptedDocumentSession : IDisposable {
     private Engine? EnsureEngine(IDocument document) {
         lock (_realmSync) {
             if (_realms.EngineFor(document.Context) is { } existing) return existing;
+            // A scriptless local parent still needs a realm before a nested
+            // child's scripts can use its window. Initialize ancestors root-first.
+            var ancestors = new Stack<IDocument>();
+            for (var parent = document.Context.Parent?.Active;
+                 parent != null && _realms.EngineFor(parent.Context) == null;
+                 parent = parent.Context.Parent?.Active) {
+                if (ancestors.Count >= _options.MaxChildFrameRealms) return null;
+                ancestors.Push(parent);
+            }
+            while (ancestors.TryPop(out var parent)) {
+                if (EnsureEngine(parent) == null) return null;
+            }
             if (!_realms.Reserve(document)) return _realms.EngineFor(document.Context);
             Engine engine = _providerScripting.GetOrCreateJint(document);
             var loop = document.Context.GetService<IEventLoop>() as RuntimeEventLoop
@@ -135,7 +149,7 @@ internal sealed class ScriptedDocumentSession : IDisposable {
             RuntimeConsoleBindings.Install(engine, _diagnostics);
             RuntimeObserverBindings.Install(engine, document, _errors.Report, loop.EnqueueMicrotask);
             RuntimeStorageBindings.Install(engine, _options.MaxStorageCharacters, _storage,
-                HtmlRuntimeResourcePolicy.Origin(new Uri(document.Url)));
+                RuntimeDocumentUrls.Origin(document));
             var fetch = new RuntimeFetchBindings(engine, document, loop, _resources, _options, _errors);
             _realms.Own(document, fetch);
             if (!root) return engine;

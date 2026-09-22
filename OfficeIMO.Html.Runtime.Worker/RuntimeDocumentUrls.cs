@@ -5,6 +5,8 @@ namespace OfficeIMO.Html.Runtime.Worker;
 internal static class RuntimeDocumentUrls {
     internal static string Base(IDocument document) => document.BaseUri;
 
+    internal static string Origin(IDocument document) => document.Origin ?? "null";
+
     internal static void Rewrite(IDocument document, string url) {
         var native=(Document)document;
         var parsed=new Url(url);

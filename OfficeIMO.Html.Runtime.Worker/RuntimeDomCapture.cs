@@ -12,7 +12,7 @@ internal static class RuntimeDomCapture {
 
     internal static HtmlRuntimeWireDocument Capture(IDocument document, HtmlScriptRequest request, CancellationToken token) {
         var budget = new CaptureBudget(request);
-        return CaptureDocument(document, request, token, budget, frameDepth: 0, inheritedDocumentUrl: null);
+        return CaptureDocument(document, request, token, budget, frameDepth: 0);
     }
 
     private static HtmlRuntimeWireDocument CaptureDocument(
@@ -20,10 +20,9 @@ internal static class RuntimeDomCapture {
         HtmlScriptRequest request,
         CancellationToken token,
         CaptureBudget budget,
-        int frameDepth,
-        Uri? inheritedDocumentUrl) {
+        int frameDepth) {
         var mode = ((IConstructableDocument)document).QuirksMode;
-        Uri documentUrl = ResolveDocumentUrl(document, inheritedDocumentUrl);
+        Uri documentUrl = ResolveDocumentUrl(document, isFrame: frameDepth != 0);
         var result = new HtmlRuntimeWireDocument {
             ProviderId = "AngleSharp/" + typeof(IDocument).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion
                 + "; AngleSharp.Js/" + typeof(AngleSharp.Js.JsScriptingOptions).Assembly.GetName().Version + "; Jint/" + typeof(Jint.Engine).Assembly.GetName().Version,
@@ -117,7 +116,7 @@ internal static class RuntimeDomCapture {
         if (frameDepth >= MaxFrameDepth) {
             foreach ((IHtmlInlineFrameElement frame, _) in frames) {
                 IDocument? child = frame.ContentDocument;
-                if (child != null && CanCaptureFrame(documentUrl, child, out _)) {
+                if (child != null && CanCaptureFrame(document, child, out _)) {
                     throw new HtmlScriptRuntimeException("Captured frame depth budget exceeded.");
                 }
             }
@@ -126,8 +125,8 @@ internal static class RuntimeDomCapture {
         foreach ((IHtmlInlineFrameElement frame, int nodeId) in frames) {
             token.ThrowIfCancellationRequested();
             IDocument? child = frame.ContentDocument;
-            if (child == null || !CanCaptureFrame(documentUrl, child, out Uri childUrl)) continue;
-            HtmlRuntimeWireDocument captured = CaptureDocument(child, request, token, budget, frameDepth + 1, childUrl);
+            if (child == null || !CanCaptureFrame(document, child, out Uri childUrl)) continue;
+            HtmlRuntimeWireDocument captured = CaptureDocument(child, request, token, budget, frameDepth + 1);
             captured.DocumentUrl = childUrl;
             captured.BaseUri = ResolveBaseUri(child, childUrl);
             result.Frames.Add(new HtmlRuntimeWireFrame { FrameElementNodeId = nodeId, Document = captured });
@@ -136,23 +135,23 @@ internal static class RuntimeDomCapture {
     }
 
     private static bool CanCaptureFrame(
-        Uri containingUrl,
+        IDocument containingDocument,
         IDocument child,
         out Uri childUrl) {
-        childUrl = ResolveDocumentUrl(child, containingUrl);
-        if ((child.Context.Security & Sandboxes.Origin) == Sandboxes.Origin) return false;
-        return string.Equals(
-            containingUrl.GetLeftPart(UriPartial.Authority),
-            childUrl.GetLeftPart(UriPartial.Authority),
-            StringComparison.OrdinalIgnoreCase);
+        childUrl = null!;
+        if ((child.Context.Security & Sandboxes.Origin) == Sandboxes.Origin || !string.Equals(
+            RuntimeDocumentUrls.Origin(containingDocument), RuntimeDocumentUrls.Origin(child),
+            StringComparison.OrdinalIgnoreCase)) return false;
+        childUrl = ResolveDocumentUrl(child, isFrame: true);
+        return true;
     }
 
-    private static Uri ResolveDocumentUrl(IDocument document, Uri? inherited) {
+    private static Uri ResolveDocumentUrl(IDocument document, bool isFrame) {
         if (Uri.TryCreate(document.Url, UriKind.Absolute, out Uri? parsed)
             && (parsed.Scheme == Uri.UriSchemeHttp || parsed.Scheme == Uri.UriSchemeHttps)) {
             return HtmlRuntimeResourcePolicy.ValidateUrl(parsed);
         }
-        if (inherited != null) return inherited;
+        if (isFrame && parsed != null) return HtmlFrameCapture.ValidateDocumentUrl(parsed);
         throw new HtmlScriptRuntimeException("Captured documents require an HTTP(S) identity.");
     }
 

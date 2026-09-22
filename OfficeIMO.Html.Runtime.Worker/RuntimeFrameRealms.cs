@@ -264,7 +264,7 @@ internal sealed class RuntimeFrameRealms(HtmlScriptRequest options, RuntimeFrame
         string.Equals(Origin(left), Origin(right), StringComparison.OrdinalIgnoreCase);
 
     private static string Origin(IDocument document) =>
-        new Uri(document.Url).GetLeftPart(UriPartial.Authority);
+        RuntimeDocumentUrls.Origin(document);
 
     private static void CollectAttachedContexts(IDocument document, HashSet<IBrowsingContext> attached) {
         foreach (IHtmlInlineFrameElement frame in document.QuerySelectorAll("iframe").OfType<IHtmlInlineFrameElement>()) {
