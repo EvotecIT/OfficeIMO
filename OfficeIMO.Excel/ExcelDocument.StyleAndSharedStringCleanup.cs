@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Excel.Utilities;
 using System.Globalization;
 
 namespace OfficeIMO.Excel {
@@ -147,7 +148,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (sharedStringTableChanged) {
-                sharedStringTable.Save();
+                ExcelXmlPartWriter.SavePreservingLineEndings(sharedStringTablePart, sharedStringTable);
                 _sharedStringCache.Clear();
                 _sharedStringTableCount = itemCount;
             }

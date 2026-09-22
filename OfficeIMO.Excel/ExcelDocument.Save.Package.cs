@@ -116,14 +116,7 @@ namespace OfficeIMO.Excel {
 
         private SavePayload PreparePackageForSave(ExcelSaveOptions? options, bool closeDocument = true) {
             PrepareWorkbookForSave(options);
-            var carriageReturnWorksheets = new Dictionary<string, Worksheet>(StringComparer.Ordinal);
-            foreach (var part in WorkbookPartRoot.WorksheetParts) {
-                Worksheet? worksheet = part.Worksheet;
-                if (worksheet?.Descendants<OpenXmlLeafTextElement>()
-                    .Any(text => text.Text?.IndexOf('\r') >= 0) != true) continue;
-
-                carriageReturnWorksheets.Add(part.Uri.OriginalString.TrimStart('/'), worksheet);
-            }
+            var carriageReturnParts = CollectLoadedCarriageReturnParts(WorkbookPartRoot);
 
             PackagePropertiesSnapshot propertiesSnapshot = PackagePropertiesSnapshot.Capture(_spreadSheetDocument);
             using FileStream snapshot = OfficeTemporaryFile.Create(
@@ -133,13 +126,13 @@ namespace OfficeIMO.Excel {
             ThrowIfPackageMaterializationExceedsLimit(snapshot.Length, options);
 
             byte[] packageBytes;
-            if (carriageReturnWorksheets.Count == 0) {
+            if (carriageReturnParts.Count == 0) {
                 snapshot.Position = 0;
                 packageBytes = ReadPackageBytes(snapshot, options);
             } else {
                 using FileStream rewritten = OfficeTemporaryFile.Create(
                     "OfficeIMO.Excel-Rewritten-", ".tmp", FileOptions.SequentialScan, out _);
-                RewritePackageWithPreservedWorksheetCarriageReturns(snapshot, rewritten, carriageReturnWorksheets);
+                RewritePackageWithPreservedCarriageReturns(snapshot, rewritten, carriageReturnParts);
                 ThrowIfPackageMaterializationExceedsLimit(rewritten.Length, options);
                 rewritten.Position = 0;
                 packageBytes = ReadPackageBytes(rewritten, options);
@@ -152,8 +145,31 @@ namespace OfficeIMO.Excel {
             return new SavePayload(packageBytes, propertiesSnapshot, closeDocument, normalizeContentTypes: !_packageContentTypesKnownNormalized, applyPackageProperties: _packagePropertiesDirty);
         }
 
-        private static void RewritePackageWithPreservedWorksheetCarriageReturns(
-            FileStream source, FileStream destination, IReadOnlyDictionary<string, Worksheet> affected) {
+        internal static Dictionary<string, OpenXmlElement> CollectLoadedCarriageReturnParts(WorkbookPart workbookPart) {
+            var carriageReturnParts = new Dictionary<string, OpenXmlElement>(StringComparer.Ordinal);
+            foreach (var part in workbookPart.WorksheetParts) {
+                if (!part.IsRootElementLoaded) continue;
+
+                Worksheet? worksheet = part.Worksheet;
+                if (worksheet?.Descendants<OpenXmlLeafTextElement>()
+                    .Any(text => text.Text?.IndexOf('\r') >= 0) != true) continue;
+
+                carriageReturnParts.Add(part.Uri.OriginalString.TrimStart('/'), worksheet);
+            }
+
+            SharedStringTablePart? sharedStringsPart = workbookPart.SharedStringTablePart;
+            if (sharedStringsPart?.IsRootElementLoaded == true
+                && sharedStringsPart.SharedStringTable is SharedStringTable sharedStrings
+                && sharedStrings.Descendants<OpenXmlLeafTextElement>()
+                    .Any(text => text.Text?.IndexOf('\r') >= 0)) {
+                carriageReturnParts.Add(sharedStringsPart.Uri.OriginalString.TrimStart('/'), sharedStrings);
+            }
+
+            return carriageReturnParts;
+        }
+
+        private static void RewritePackageWithPreservedCarriageReturns(
+            FileStream source, FileStream destination, IReadOnlyDictionary<string, OpenXmlElement> affected) {
             source.Position = 0;
             int replaced = 0;
             using (var input = new ZipArchive(source, ZipArchiveMode.Read, leaveOpen: true))
@@ -165,8 +181,8 @@ namespace OfficeIMO.Excel {
                     written.ExternalAttributes = entry.ExternalAttributes;
 #endif
                     using Stream target = written.Open();
-                    if (affected.TryGetValue(entry.FullName, out Worksheet? worksheet)) {
-                        ExcelXmlPartWriter.WritePreservingLineEndings(target, worksheet);
+                    if (affected.TryGetValue(entry.FullName, out OpenXmlElement? root)) {
+                        ExcelXmlPartWriter.WritePreservingLineEndings(target, root);
                         replaced++;
                     } else {
                         using Stream original = entry.Open();
@@ -175,7 +191,7 @@ namespace OfficeIMO.Excel {
                 }
             }
             if (replaced != affected.Count)
-                throw new InvalidDataException("A worksheet part was missing from the saved package.");
+                throw new InvalidDataException("A text-bearing part was missing from the saved package.");
             destination.Flush();
         }
 

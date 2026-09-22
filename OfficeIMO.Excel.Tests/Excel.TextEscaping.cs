@@ -7,6 +7,7 @@ using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
+using OfficeIMO.Excel.Utilities;
 using Xunit;
 
 namespace OfficeIMO.Excel.Tests;
@@ -195,6 +196,70 @@ public class ExcelTextEscapingTests {
             Assert.True(reopened["Text" + index].TryGetCellText(1, 1, out string actual));
             Assert.Equal("Sheet" + index + "\r\nLine\rEnd", actual);
         }
+    }
+
+    [Fact]
+    public void CarriageReturnScanDoesNotMaterializeUntouchedWorksheets() {
+        using var source = new MemoryStream();
+        using (var created = ExcelDocument.Create(new MemoryStream())) {
+            created.AddWorksheet("Changed").CellValue(1, 1, "before");
+            created.AddWorksheet("Untouched").CellValue(1, 1, "raw");
+            created.Save(source, new ExcelSaveOptions { DisableFastPackageWriter = true });
+        }
+
+        source.Position = 0;
+        using var document = ExcelDocument.Load(source);
+        Sheet untouchedSheet = document.WorkbookPartRoot.Workbook.Sheets!.Elements<Sheet>()
+            .Single(sheet => sheet.Name!.Value == "Untouched");
+        var untouchedPart = (WorksheetPart)document.WorkbookPartRoot.GetPartById(untouchedSheet.Id!.Value!);
+        Assert.False(untouchedPart.IsRootElementLoaded);
+
+        var changed = document["Changed"];
+        changed.CellValue(1, 1, "after\rvalue");
+        Cell changedCell = changed.WorksheetPart.Worksheet.Descendants<Cell>().Single();
+        changedCell.CellValue = null;
+        changedCell.DataType = CellValues.InlineString;
+        changedCell.InlineString = new InlineString(new Text("after\rvalue"));
+        changed.MarkRequiresSavePreparation();
+        var affected = ExcelDocument.CollectLoadedCarriageReturnParts(document.WorkbookPartRoot);
+
+        Assert.Contains(changed.WorksheetPart.Uri.OriginalString.TrimStart('/'), affected.Keys);
+        Assert.DoesNotContain(untouchedPart.Uri.OriginalString.TrimStart('/'), affected.Keys);
+        Assert.False(untouchedPart.IsRootElementLoaded);
+    }
+
+    [Fact]
+    public void SafePreflightPreservesCarriageReturnsWhenRepairingSharedStringCounts() {
+        const string value = "First\r\nSecond\rThird";
+        using var source = new MemoryStream();
+        using (var created = ExcelDocument.Create(new MemoryStream())) {
+            created.AddWorksheet("Text").CellValue(1, 1, value);
+            created.Save(source, new ExcelSaveOptions { DisableFastPackageWriter = true });
+        }
+
+        source.Position = 0;
+        using (var package = SpreadsheetDocument.Open(source, true, new OpenSettings { AutoSave = false })) {
+            SharedStringTablePart part = package.WorkbookPart!.SharedStringTablePart!;
+            SharedStringTable table = part.SharedStringTable!;
+            table.Count = 99U;
+            table.UniqueCount = 99U;
+            ExcelXmlPartWriter.SavePreservingLineEndings(part, table);
+        }
+
+        source.Position = 0;
+        using var document = ExcelDocument.Load(source);
+        using var output = new MemoryStream();
+        document.Save(output, new ExcelSaveOptions {
+            DisableFastPackageWriter = true,
+            SafePreflight = true
+        });
+
+        output.Position = 0;
+        using var written = SpreadsheetDocument.Open(output, false);
+        SharedStringTable repaired = written.WorkbookPart!.SharedStringTablePart!.SharedStringTable!;
+        Assert.Equal(1U, repaired.Count!.Value);
+        Assert.Equal(1U, repaired.UniqueCount!.Value);
+        Assert.Equal(value, repaired.Elements<SharedStringItem>().Single().InnerText);
     }
 
     private static IEnumerable<string> Values() {
