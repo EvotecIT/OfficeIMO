@@ -8,6 +8,8 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
+    <None Include="../External/AngleSharp/LICENSE" Link="AngleSharp.LICENSE.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="../External/AngleSharp.Js/LICENSE" Link="AngleSharp.Js.LICENSE.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <None Update="OfficeIMO.Html.Runtime.Worker.manifest.json" CopyToOutputDirectory="PreserveNewest" />
     <EmbeddedResource Include="RuntimeBootstrap.js" LogicalName="OfficeIMO.RuntimeBootstrap.js" />
     <EmbeddedResource Include="RuntimeFetchBootstrap.js" LogicalName="OfficeIMO.RuntimeFetchBootstrap.js" />
@@ -21,12 +23,12 @@
     <EmbeddedResource Include="RuntimeStructuredCloneTransport.js" LogicalName="OfficeIMO.RuntimeStructuredCloneTransport.js" />
     <ProjectReference Include="../OfficeIMO.Html.Runtime/OfficeIMO.Html.Runtime.csproj" />
     <ProjectReference Include="../OfficeIMO.Html/OfficeIMO.Html.csproj" />
-    <ProjectReference Include="../OfficeIMO.Html.Runtime.AngleSharpDom/OfficeIMO.Html.Runtime.AngleSharpDom.csproj" />
-    <!-- This isolated worker uses the pinned source provider. Keep transitive
-         consumers' package graph without copying its original DOM assembly here. -->
-    <PackageReference Include="AngleSharp" Version="1.7.1" ExcludeAssets="all" />
+    <ProjectReference Include="../External/AngleSharp/src/AngleSharp/AngleSharp.Core.csproj" />
+    <!-- The isolated worker loads the pinned fork assembly; static consumers retain
+         their normal package dependency. Do not copy that package DLL into this worker. -->
+    <PackageReference Include="AngleSharp" Version="1.8.2" ExcludeAssets="all" />
     <PackageReference Include="AngleSharp.Css" Version="1.0.1" />
-    <ProjectReference Include="../OfficeIMO.Html.Runtime.AngleSharpJs/OfficeIMO.Html.Runtime.AngleSharpJs.csproj" />
+    <ProjectReference Include="../External/AngleSharp.Js/src/AngleSharp.Js/AngleSharp.Js.csproj" />
     <PackageReference Include="Jint" Version="4.16.0" />
   </ItemGroup>
 </Project>

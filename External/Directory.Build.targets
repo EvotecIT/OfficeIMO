@@ -1,0 +1,3 @@
+<Project>
+  <!-- External projects own their build contracts; do not inherit OfficeIMO targets. -->
+</Project>

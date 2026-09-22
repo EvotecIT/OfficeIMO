@@ -38,6 +38,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
+        with:
+          submodules: true
 
       - name: Setup .NET SDK
         if: matrix.build-mode == 'manual'
@@ -68,7 +70,7 @@ jobs:
         if: matrix.build-mode == 'manual'
         shell: pwsh
         run: |
-          $excludedProjects = '[\\\\/](output|bin|obj|OfficeIMO\.Examples|OfficeIMO\.Studio|OfficeIMO\.AI(\.IntelligenceX|\.Example)?|OfficeIMO(\..+)?\.Tests|OfficeIMO\.VerifyTests|OfficeIMO(\..+)?\.Benchmarks(\..+)?|Build[\\\\/]PackageSmoke|Website[\\\\/]Apps[\\\\/]OfficeIMO\.Web\.Converter)[\\\\/]'
+          $excludedProjects = '[\\\\/](output|bin|obj|External|OfficeIMO\.Examples|OfficeIMO\.Studio|OfficeIMO\.AI(\.IntelligenceX|\.Example)?|OfficeIMO(\..+)?\.Tests|OfficeIMO\.VerifyTests|OfficeIMO(\..+)?\.Benchmarks(\..+)?|Build[\\\\/]PackageSmoke|Website[\\\\/]Apps[\\\\/]OfficeIMO\.Web\.Converter)[\\\\/]'
           $projects = Get-ChildItem -Recurse -Filter *.csproj | Where-Object {
             $_.FullName -notmatch $excludedProjects
           } | Sort-Object FullName

@@ -300,10 +300,8 @@ public static partial class HtmlComputedStyleEngine {
             budget.ValidateResolvedSelectorList(children.Length, resolvedCharacters);
             return children;
         }
-        long parentCharacters = parentSelectors.Count == 1 ? parentSelectors[0].Length : 5L + parentSelectors.Count - 1L;
-        if (parentSelectors.Count > 1) {
-            foreach (string parentSelector in parentSelectors) parentCharacters += parentSelector.Length;
-        }
+        long parentCharacters = 5L + parentSelectors.Count - 1L;
+        foreach (string parentSelector in parentSelectors) parentCharacters += parentSelector.Length;
         foreach (string child in children) {
             long nestingSelectors = CountNestingSelectorTokens(child);
             resolvedCharacters += nestingSelectors > 0
@@ -311,9 +309,7 @@ public static partial class HtmlComputedStyleEngine {
                 : parentCharacters + 1L + child.Length;
         }
         budget.ValidateResolvedSelectorList(children.Length, resolvedCharacters);
-        string parent = parentSelectors.Count == 1
-            ? parentSelectors[0]
-            : ":is(" + string.Join(",", parentSelectors) + ")";
+        string parent = ":is(" + string.Join(",", parentSelectors) + ")";
         var resolved = new List<string>(children.Length);
         foreach (string child in children) {
             string nested = ReplaceNestingSelectorTokens(child, parent, out bool replaced);

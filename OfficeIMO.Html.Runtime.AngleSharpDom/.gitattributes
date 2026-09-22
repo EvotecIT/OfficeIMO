@@ -1,3 +1,0 @@
-# Preserve upstream source bytes so the recorded Git blob hashes remain useful.
-Upstream/** -text
-AngleSharp.LICENSE.txt -text

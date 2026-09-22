@@ -205,6 +205,7 @@ public sealed class RuntimeResourceTests {
                 addEventListener('message',event=>{
                   if(event.data.kind!=='ready')return;
                   document.body.dataset.received=event.data.value;
+                  document.body.dataset.messageTrusted=event.isTrusted;
                   document.body.dataset.origin=event.origin;
                   document.body.dataset.source=event.source===document.querySelector('#child').contentWindow;
                   event.source.postMessage({kind:'reply',value:42},event.origin);
@@ -248,6 +249,7 @@ public sealed class RuntimeResourceTests {
         Assert.Equal("true,true,true,true", state.GetProperty("identities").GetString());
         Assert.Equal("true", state.GetProperty("childSource").GetString());
         Assert.Equal("reply:42", state.GetProperty("result").GetString());
+        Assert.Equal("true", (await session.EvaluateAsync("document.body.dataset.messageTrusted")).GetString());
     }
 
     [Fact]

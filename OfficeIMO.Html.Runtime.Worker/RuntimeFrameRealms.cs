@@ -89,9 +89,15 @@ internal sealed class RuntimeFrameRealms(HtmlScriptRequest options, RuntimeFrame
                 throw new HtmlScriptRuntimeException("The script realm does not have a module loader.");
             _reserved.Remove(window);
             ObjectInstance cloneTransport = RuntimeStructuredClone.CreateTransport(engine, options.MaxFrameMessageCharacters);
+            var dispatch = new ClrFunction(engine, "dispatchMessageEvent", (_, args) => {
+                var message = (AngleSharp.Dom.Events.Event)args[0].ToObject()!;
+                RuntimeEventTrust.Set(message, true);
+                window.Dispatch(message);
+                return JsValue.Undefined;
+            });
             var realm = new Realm(window, document.Context, engine, loop,
                 cloneTransport.Get("decode"),
-                engine.Evaluate("(data,origin,source)=>{const event=new MessageEvent('message');Object.defineProperties(event,{data:{value:data,enumerable:true},origin:{value:origin,enumerable:true},source:{value:source,enumerable:true},ports:{value:Object.freeze([]),enumerable:true}});dispatchEvent(event)}"),
+                engine.Invoke(engine.Evaluate("dispatch=>(data,origin,source)=>{const event=new MessageEvent('message');Object.defineProperties(event,{data:{value:data,enumerable:true},origin:{value:origin,enumerable:true},source:{value:source,enumerable:true},ports:{value:Object.freeze([]),enumerable:true}});dispatch(event)}"), new JsValue[] { dispatch }),
                 modules, new CancellationTokenSource());
             _realms[window] = realm;
             _contexts[document.Context] = realm;

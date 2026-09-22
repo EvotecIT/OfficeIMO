@@ -24,7 +24,7 @@ internal static class RuntimeStorageBindings {
         });
         using var stream = typeof(RuntimeStorageBindings).Assembly.GetManifestResourceStream("OfficeIMO.RuntimeStorageBootstrap.js")!;
         using var reader = new StreamReader(stream);
-        var exports = engine.Invoke(engine.Evaluate(reader.ReadToEnd()), new JsValue[] { maxCharacters, read, write }).AsObject();
+        var exports = engine.Invoke(engine.Evaluate(reader.ReadToEnd()), new JsValue[] { read, write }).AsObject();
         foreach (var property in exports.GetOwnProperties()) {
             if (property.Key == "Storage") engine.Global.FastSetProperty(property.Key, new PropertyDescriptor(property.Value.Value, true, false, true));
             else {

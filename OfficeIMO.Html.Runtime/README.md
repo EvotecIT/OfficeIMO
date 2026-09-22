@@ -2,10 +2,12 @@
 
 Execute a trusted local scripted document in a persistent, disposable session and
 capture independent OfficeIMO documents. The optional worker uses AngleSharp, AngleSharp.Css,
-retained AngleSharp.Js DOM bindings and Jint; ordinary HTML parsing and conversion
-do not depend on it. The worker builds pinned source dependencies with mutation
-and engine-configuration hooks; see [DOM provider provenance](../OfficeIMO.Html.Runtime.AngleSharpDom/README.md)
-and [binding provenance](../OfficeIMO.Html.Runtime.AngleSharpJs/README.md).
+AngleSharp.Js DOM bindings and Jint; ordinary HTML parsing and conversion
+do not depend on it. The worker builds exact revisions of the
+[AngleSharp](https://github.com/EvotecIT/AngleSharp) and
+[AngleSharp.Js](https://github.com/EvotecIT/AngleSharp.Js) forks with mutation,
+lifecycle, and engine-configuration hooks. See the
+[provider development guide](../External/README.md) for source setup and patch ownership.
 The [React 18 application acceptance](../Build/Project/Evidence/2026-09-16/html-react-application/README.md)
 shows one pinned fetch, interaction, capture, screen, print and screen-to-page
 workflow on Windows, Linux and macOS. It does not establish general framework

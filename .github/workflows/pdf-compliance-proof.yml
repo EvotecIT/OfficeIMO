@@ -139,6 +139,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          submodules: true
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v6

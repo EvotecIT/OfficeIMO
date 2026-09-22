@@ -1,4 +1,4 @@
-(function (limit, read, write) {
+(function (read, write) {
     "use strict";
     const areas = new WeakMap();
     function text(value) {
@@ -10,40 +10,24 @@
         if (!result) throw new TypeError("Illegal invocation");
         return result;
     }
-    function put(state, key, value) {
-        const previous = state.values.get(key);
-        const size = state.size + value.length + (previous === undefined ? key.length : -previous.length);
-        if (size > limit) {
-            const error = new Error("The session storage area exceeds MaxStorageCharacters.");
-            error.name = "QuotaExceededError";
-            throw error;
-        }
-        write(state.local, 'set', key, value);
-        state.values.set(key, value);
-        state.size = size;
-    }
-    function remove(state, key) {
-        const value = state.values.get(key);
-        if (value !== undefined) {
-            write(state.local, 'remove', key, '');
-            state.values.delete(key);
-            state.size -= key.length + value.length;
-        }
-    }
+    function values(state) { return new Map(JSON.parse(read(state.local))); }
+    function put(state, key, value) { write(state.local, 'set', key, value); }
+    function remove(state, key) { write(state.local, 'remove', key, ''); }
     class Storage {
         constructor() { throw new TypeError("Illegal constructor"); }
-        get length() { return area(this).values.size; }
+        get length() { return values(area(this)).size; }
         key(index) {
             const state = area(this);
             if (!arguments.length) throw new TypeError("An index is required");
             if (typeof index === 'bigint') throw new TypeError("Cannot convert a BigInt to a number");
             index = Number(index) >>> 0;
-            return Array.from(state.values.keys())[index] ?? null;
+            return Array.from(values(state).keys())[index] ?? null;
         }
         getItem(key) {
             const state = area(this);
             if (!arguments.length) throw new TypeError("A key is required");
-            return state.values.get(text(key)) ?? null;
+            key = text(key);
+            return values(state).get(key) ?? null;
         }
         setItem(key, value) {
             const state = area(this);
@@ -60,18 +44,15 @@
         clear() {
             const state = area(this);
             write(state.local, 'clear', '', '');
-            state.values.clear();
-            state.size = 0;
         }
         get [Symbol.toStringTag]() { return "Storage"; }
     }
     function create(local) {
         const target = Object.create(Storage.prototype);
-        const values = new Map(JSON.parse(read(local)));
-        const state = { values, size: Array.from(values).reduce((size,[key,value])=>size+key.length+value.length,0), local };
-        function visible(key) { return typeof key === "string" && !Reflect.has(target, key) && state.values.has(key); }
+        const state = { local };
+        function visible(key) { return typeof key === "string" && !Reflect.has(target, key) && values(state).has(key); }
         const proxy = new Proxy(target, {
-            get(target, key, receiver) { return visible(key) ? state.values.get(key) : Reflect.get(target, key, receiver); },
+            get(target, key, receiver) { return visible(key) ? values(state).get(key) : Reflect.get(target, key, receiver); },
             has(target, key) { return Reflect.has(target, key) || visible(key); },
             set(target, key, value) {
                 if (typeof key !== "string") return Reflect.set(target, key, value);
@@ -83,9 +64,9 @@
                 remove(state, key);
                 return true;
             },
-            ownKeys(target) { return [...state.values.keys()].filter(visible).concat(Reflect.ownKeys(target)); },
+            ownKeys(target) { return [...values(state).keys()].filter(visible).concat(Reflect.ownKeys(target)); },
             getOwnPropertyDescriptor(target, key) {
-                return visible(key) ? { value: state.values.get(key), writable: true, enumerable: true, configurable: true } : Reflect.getOwnPropertyDescriptor(target, key);
+                return visible(key) ? { value: values(state).get(key), writable: true, enumerable: true, configurable: true } : Reflect.getOwnPropertyDescriptor(target, key);
             },
             defineProperty(target, key, descriptor) {
                 if (typeof key !== "string") return Reflect.defineProperty(target, key, descriptor);

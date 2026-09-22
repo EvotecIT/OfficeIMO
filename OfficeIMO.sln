@@ -508,9 +508,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Html.Runtime.Test
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Html.Runtime.Examples", "OfficeIMO.Html.Runtime.Examples\OfficeIMO.Html.Runtime.Examples.csproj", "{1ACB7DAC-3A2C-4347-A806-A4B80602E570}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Html.Runtime.AngleSharpJs", "OfficeIMO.Html.Runtime.AngleSharpJs\OfficeIMO.Html.Runtime.AngleSharpJs.csproj", "{69628F59-6D8D-4CFA-9D7A-3AADD098B79D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AngleSharp.Js", "External\AngleSharp.Js\src\AngleSharp.Js\AngleSharp.Js.csproj", "{69628F59-6D8D-4CFA-9D7A-3AADD098B79D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Html.Runtime.AngleSharpDom", "OfficeIMO.Html.Runtime.AngleSharpDom\OfficeIMO.Html.Runtime.AngleSharpDom.csproj", "{9F5D521A-1F39-4683-81E2-348B0CA3EDC4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AngleSharp.Core", "External\AngleSharp\src\AngleSharp\AngleSharp.Core.csproj", "{9F5D521A-1F39-4683-81E2-348B0CA3EDC4}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Html.Runtime.Conformance", "OfficeIMO.Html.Runtime.Conformance\OfficeIMO.Html.Runtime.Conformance.csproj", "{E308BCF1-3706-4095-858A-A7B769F5998C}"
 EndProject

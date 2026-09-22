@@ -46,6 +46,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
+        with:
+          submodules: true
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
@@ -128,6 +130,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          submodules: true
 
       - name: Validate benchmark evidence policy
         shell: pwsh
@@ -1657,6 +1661,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          submodules: true
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
@@ -1751,6 +1757,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          submodules: true
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v6

@@ -5,6 +5,15 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class HtmlCssNestingConformanceTests {
+    [Theory]
+    [InlineData(".x &", "<div class='a'><div class='x'><p class='b'>text</p></div></div>")]
+    [InlineData("& + &", "<div class='a'><p class='b'>first</p><p class='b'>second</p></div>")]
+    public void ComplexParentSelectorsRemainOneUnitWhenSubstitutingNesting(string nested, string html) {
+        var document = HtmlConversionDocument.Parse("<style>.a .b { color: blue; " + nested + " { color: red; } }</style>" + html);
+        var target = document.Document.QuerySelector(".b:last-child")!;
+        Assert.Equal("rgba(255, 0, 0, 1)", HtmlComputedStyleEngine.Compute(document)[target].GetValue("color"));
+    }
+
     [Fact]
     public void FileBackedNestingCorpusMatchesTheDeclaredComputedValues() {
         string path = Path.Combine(AppContext.BaseDirectory, "Documents", "Html", "Css", "css-nesting-corpus.json");

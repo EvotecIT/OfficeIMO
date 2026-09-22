@@ -1,0 +1,8 @@
+[submodule "External/AngleSharp"]
+	path = External/AngleSharp
+	url = https://github.com/EvotecIT/AngleSharp.git
+	branch = feature/runtime-integration
+[submodule "External/AngleSharp.Js"]
+	path = External/AngleSharp.Js
+	url = https://github.com/EvotecIT/AngleSharp.Js.git
+	branch = feature/runtime-integration
