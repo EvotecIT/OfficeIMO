@@ -93,7 +93,7 @@ internal static partial class PdfStamper {
     public static byte[] StampTextToBytes(string inputPath, string text, PdfTextStampOptions? options = null) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
 
-        return StampText(File.ReadAllBytes(inputPath), text, options);
+        return StampText(ReadPath(inputPath), text, options);
     }
 
     /// <summary>
@@ -103,7 +103,7 @@ internal static partial class PdfStamper {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        WriteOutput(outputStream, StampText(File.ReadAllBytes(inputPath), text, options));
+        WriteOutput(outputStream, StampText(ReadPath(inputPath), text, options));
     }
 
     /// <summary>
@@ -114,7 +114,7 @@ internal static partial class PdfStamper {
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        WriteOutput(fullOutputPath, StampText(File.ReadAllBytes(inputPath), text, options));
+        WriteOutput(fullOutputPath, StampText(ReadPath(inputPath), text, options));
     }
 
     /// <summary>
@@ -208,7 +208,7 @@ internal static partial class PdfStamper {
     public static byte[] WatermarkTextToBytes(string inputPath, string text, PdfTextStampOptions? options = null) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
 
-        return WatermarkText(File.ReadAllBytes(inputPath), text, options);
+        return WatermarkText(ReadPath(inputPath), text, options);
     }
 
     /// <summary>
@@ -218,7 +218,7 @@ internal static partial class PdfStamper {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        WriteOutput(outputStream, WatermarkText(File.ReadAllBytes(inputPath), text, options));
+        WriteOutput(outputStream, WatermarkText(ReadPath(inputPath), text, options));
     }
 
     /// <summary>
@@ -229,7 +229,7 @@ internal static partial class PdfStamper {
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        WriteOutput(fullOutputPath, WatermarkText(File.ReadAllBytes(inputPath), text, options));
+        WriteOutput(fullOutputPath, WatermarkText(ReadPath(inputPath), text, options));
     }
     private static PdfTextStampOptions BuildWatermarkOptions(PdfTextStampOptions? options) {
         if (options is null) {
