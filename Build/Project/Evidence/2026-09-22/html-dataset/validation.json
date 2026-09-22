@@ -1,0 +1,147 @@
+{
+  "date": "2026-09-22",
+  "platform": "macOS arm64",
+  "sdk": "10.0.303",
+  "consumerSourceCommit": "566bfde2a069c5b800af89f1dde51462137e0b89",
+  "angleSharpCommit": "ff2c89c3264b75508aee1cfa5b9c8071e4c73474",
+  "angleSharpJsCommit": "517c4a38da9f32186657bdd0d1fc91924258ab62",
+  "upstreamCandidate": {
+    "base": "0255dd4d87f17770a7ff1db4f0e962cbdf26f1f8",
+    "head": "cac9d8a0d1ee5f15e6f59804897668e98b0ae534",
+    "branch": "EvotecIT/AngleSharp.Js:feature/dom-node-identity",
+    "regressionBefore": "target.id returned undefined",
+    "regressionAfter": "concrete element API, canonical identity and expandos preserved",
+    "upstreamPrSubmitted": false
+  },
+  "dependencyGraphs": {
+    "standalone": {
+      "AngleSharp": "1.8.0",
+      "Jint": "4.15.3"
+    },
+    "consumer": {
+      "AngleSharp": "pinned core fork",
+      "AngleSharp.Js": "pinned binding fork",
+      "Jint": "4.16.0"
+    }
+  },
+  "checks": [
+    {
+      "name": "upstream identity reproduction",
+      "framework": "net10.0",
+      "expectedFailuresBefore": 1,
+      "passedAfterFullSuite": 301,
+      "log": "identity-green-full.log"
+    },
+    {
+      "name": "upstream identity build",
+      "framework": "netstandard2.0",
+      "warnings": 0,
+      "errors": 0,
+      "log": "identity-netstandard.log"
+    },
+    {
+      "name": "dataset binding full suite",
+      "framework": "net10.0",
+      "passed": 317,
+      "failed": 0,
+      "log": "dataset-final-full.log"
+    },
+    {
+      "name": "dataset binding build",
+      "framework": "netstandard2.0",
+      "warnings": 0,
+      "errors": 0,
+      "log": "dataset-final-netstandard.log"
+    },
+    {
+      "name": "consumer focused dataset and camel-case",
+      "framework": "net10.0",
+      "passed": 3,
+      "failed": 0,
+      "log": "consumer-final-focused.log"
+    },
+    {
+      "name": "consumer focused dataset and camel-case",
+      "framework": "net8.0",
+      "passed": 3,
+      "failed": 0,
+      "log": "consumer-net8-focused.log"
+    },
+    {
+      "name": "consumer full runtime",
+      "framework": "net10.0",
+      "passed": 522,
+      "failed": 0,
+      "duration": "5m14s",
+      "xunitMaxParallelThreads": 2,
+      "log": "consumer-final-full.log"
+    },
+    {
+      "name": "rendered independent capture",
+      "widths": [
+        360,
+        720
+      ],
+      "height": 280,
+      "visualInspection": "Both final PNGs inspected; scripted heading, status and current fields visible without clipping.",
+      "log": "render-final.log"
+    }
+  ],
+  "commands": [
+    "dotnet test src/AngleSharp.Js.Tests/AngleSharp.Js.Tests.csproj -f net10.0",
+    "dotnet build src/AngleSharp.Js/AngleSharp.Js.csproj -f netstandard2.0",
+    "dotnet test OfficeIMO.Html.Runtime.Tests/OfficeIMO.Html.Runtime.Tests.csproj -f net10.0 --no-build --no-restore --settings runtime.runsettings",
+    "dotnet test OfficeIMO.Html.Runtime.Tests/OfficeIMO.Html.Runtime.Tests.csproj -f net8.0 --no-restore -m:1 --filter \"FullyQualifiedName~RuntimeDatasetTests|FullyQualifiedName~ScriptedDocumentTests.DatasetCamelCaseMapsToDashedAttributes\" --settings runtime.runsettings"
+  ],
+  "sdkSelection": "Executed through the installed SDK 10.0.303 dotnet.dll explicitly; repository global.json unchanged.",
+  "runSettings": "<RunSettings><xUnit><MaxParallelThreads>2</MaxParallelThreads></xUnit></RunSettings>",
+  "initialBroadAttempt": "Interrupted after runtime deadline failures under heavy concurrent machine activity; superseded by completed lower-concurrency run, no application timeout changes.",
+  "review": {
+    "task": "dataset_contract_review",
+    "initialBoundary": "AngleSharp.Js 2539ba8..fe8f7a0 and upstream identity 0255dd4..cac9d8a",
+    "finding": "P3 distinct-receiver writes incorrectly consulted dataset named properties",
+    "reproduced": true,
+    "fix": "517c4a3",
+    "targetedConfirmation": "resolved; no concrete remediation defects",
+    "finalBoundary": "candidate-reviewed",
+    "upstreamCandidateFindings": 0
+  },
+  "limits": [
+    "Windows and Linux not exercised in this run",
+    "No full Web IDL or browser compatibility claim",
+    "DOMException constructor behavior outside this bounded qualification",
+    "No package publication or upstream PR submission"
+  ],
+  "artifacts": {
+    "dataset.html": {
+      "bytes": 869,
+      "sha256": "f7ad0d50ee4a5e6d1dc27dd1dc5b13441f5ab16d16ccdc6afd89abddc5469688"
+    },
+    "dataset-360.png": {
+      "bytes": 7183,
+      "sha256": "ede4cd5fa59afe52219998c6b17aa72bb86f028c5af3136292c8375f2bba6467"
+    },
+    "dataset-720.png": {
+      "bytes": 7661,
+      "sha256": "70336bacc357e8e2b7daea1a642affe9937441922bd6d1bea4c9d47a80d73cfe"
+    },
+    "RenderProof.cs.txt": {
+      "bytes": 1984,
+      "sha256": "ca03e31a40570fc4ae8ce0508a6e04a362b83c83b68ae82a8db5cb79ed53a6c7"
+    }
+  },
+  "logHashes": {
+    "identity-red.log": "db4fe73bd76bc94db8bd1302048f4efad574c2c54128f498f12d21d277253718",
+    "identity-green-full.log": "9dfdb4d7be3c4b69ea4675bfe6795fbd39a78155a7088462b55b34b99f832420",
+    "identity-netstandard.log": "39f33e18435cd427d1cd5da46897b9d7fc877c344d9cb66d8072df2a82537c32",
+    "dataset-red.log": "f8104e270a5914a3d3fcc942febadf50aeff8a2ec10b3ad0e757fdc89e0dcbec",
+    "receiver-red.log": "e239331e43c9ba5b771ef20986a70d207fc1cefa4d098488c18a9acb59eb7884",
+    "dataset-final-full.log": "f743a8163520cdfc6e9d240d992d9cd1033efabbbf6ba60f4a8204909a1f093f",
+    "dataset-final-netstandard.log": "84895cdfdf13b0ac77dffce3feac45cf016cce50dbcde24a261122d3046b4b10",
+    "consumer-full.log": "9370b59b541cce9808e636d45786ad5ac32b403d2b581a136c78c41226b7b015",
+    "consumer-final-focused.log": "cf6c08802263e903fe4ec45bf8637d117f06f810bd669aeb43ef9c1715528fde",
+    "consumer-net8-focused.log": "2bbdf9985b6f0c6df6c04f422331a8d3fbc2700978f945265de3c264a98ca518",
+    "consumer-final-full.log": "0518a4269be483534381506ee2b5a2d972fa69acb7825ab09bfebd83207fcd55",
+    "render-final.log": "47093b00aa59c06acdc856410c055a162c24f69d98885124176df725f7dead4c"
+  }
+}

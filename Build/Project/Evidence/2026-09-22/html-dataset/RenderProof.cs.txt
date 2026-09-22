@@ -1,0 +1,37 @@
+using OfficeIMO.Html;
+using OfficeIMO.Html.Runtime;
+using OfficeIMO.Html.Providers;
+var worker=args[0];
+var output=args[1];
+Directory.CreateDirectory(output);
+var source="""
+<!doctype html><html><head><style>
+body { margin: 24px; color: #183348; font-family: Arial; background: #f3f6fa; }
+article { padding: 20px; background: white; border: 1px solid #c3d4e0; }
+h1 { font-size: 24px; margin: 0 0 14px; }
+p { font-size: 16px; line-height: 1.5; }
+</style></head><body><article data-report-name="Quarterly summary" data-state="draft" data-obsolete="remove">
+<h1>Preparing report</h1><p id="status">Waiting</p><p id="fields"></p></article>
+<script>
+const card=document.querySelector('article');
+const data=card.dataset;
+delete data.obsolete;
+data.state='ready';
+data.itemCount=3;
+document.querySelector('h1').textContent=data.reportName;
+document.querySelector('#status').textContent='Status: '+data.state+' / '+data.itemCount+' items';
+document.querySelector('#fields').textContent='Fields: '+Object.keys(data).join(', ');
+</script></body></html>
+""";
+File.WriteAllText(Path.Combine(output,"dataset.html"),source);
+var provider=new HtmlProcessRuntimeProvider(worker,AngleSharpDomServices.Instance);
+var capture=await provider.CaptureTrustedAsync(new HtmlScriptRequest { Html=source });
+var card=capture.Document.QuerySelector("article")!;
+if(card.GetAttribute("data-obsolete")!=null || card.GetAttribute("data-item-count")!="3")throw new Exception("Dataset capture mismatch");
+if(capture.Document.QuerySelector("h1")!.TextContent!="Quarterly summary")throw new Exception("Script did not execute");
+var document=HtmlConversionDocument.FromDocument(capture.Document);
+foreach(var width in new[]{360,720}) {
+ var png=document.ToPng(new HtmlRenderOptions {ViewportWidth=width,ViewportHeight=280, Margins=HtmlRenderMargins.All(0)});
+ File.WriteAllBytes(Path.Combine(output,$"dataset-{width}.png"),png);
+}
+Console.WriteLine("Dataset script, independent capture and 360/720px render passed.");
