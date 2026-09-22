@@ -66,6 +66,7 @@ internal static partial class PdfStamper {
         }
 
         var effectiveOptions = options ?? new PdfImageStampOptions();
+        PdfImageInput.EnsureWithinLimit(imageBytes.LongLength, effectiveOptions.MaximumEncodedImageBytes);
         ValidateImageOptions(effectiveOptions);
         PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageBytes(imageBytes);
 
@@ -387,6 +388,7 @@ internal static partial class PdfStamper {
             Width = options.Width,
             Height = options.Height,
             RotationDegrees = options.RotationDegrees,
+            MaximumEncodedImageBytes = options.MaximumEncodedImageBytes,
             BehindContent = true
         };
 

@@ -9,6 +9,16 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## PDF image input budget
+
+PDF image-file pages and image stamps now limit each encoded image source to
+128 MiB before buffering. Applications that intentionally use larger trusted
+images can set `PdfImageDocumentOptions.MaximumEncodedImageBytes` for
+`CreateFromImages`, `PdfImageStampOptions.MaximumEncodedImageBytes` for stamps,
+or call `PdfImageDocumentSource.FromFile(path, maximumEncodedImageBytes)`.
+Choose a value no greater than `int.MaxValue`. Image stamp streams continue to
+read from their current position.
+
 ## HTML style and rendering limits
 
 `HtmlComputedStyleEngine.Compute(HtmlDocument)` now applies the untrusted HTML and CSS limits to prepared documents. Applications that intentionally process trusted or larger documents can retain their chosen policy by wrapping the prepared document before computing styles:

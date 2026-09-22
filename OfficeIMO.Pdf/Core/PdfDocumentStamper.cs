@@ -52,6 +52,7 @@ public sealed partial class PdfDocumentStamper {
     /// <summary>Creates a new PDF with an image stamped above existing content using explicit target read options.</summary>
     public PdfDocument Image(byte[] imageBytes, PdfImageStampOptions? options, PdfLoadOptions? readOptions) {
         Guard.NotNull(imageBytes, nameof(imageBytes));
+        PdfImageInput.EnsureWithinLimit(imageBytes.LongLength, (options ?? new PdfImageStampOptions()).MaximumEncodedImageBytes);
         return _document.ApplyMutation(input => PdfStamper.StampImage(input, imageBytes, options, readOptions ?? _document.ReadOptions));
     }
 
@@ -70,10 +71,7 @@ public sealed partial class PdfDocumentStamper {
 
     /// <summary>Creates a new PDF with an image stream stamped using explicit target read options.</summary>
     public PdfDocument Image(Stream imageStream, PdfImageStampOptions? options, PdfLoadOptions? readOptions) {
-        Guard.NotNull(imageStream, nameof(imageStream));
-        using var buffer = new MemoryStream();
-        imageStream.CopyTo(buffer);
-        return Image(buffer.ToArray(), options, readOptions);
+        return Image(PdfImageInput.ReadRemainingStream(imageStream, (options ?? new PdfImageStampOptions()).MaximumEncodedImageBytes), options, readOptions);
     }
 
     /// <summary>
@@ -92,6 +90,7 @@ public sealed partial class PdfDocumentStamper {
     /// <summary>Creates an image watermark behind existing content using explicit target read options.</summary>
     public PdfDocument ImageWatermark(byte[] imageBytes, PdfImageStampOptions? options, PdfLoadOptions? readOptions) {
         Guard.NotNull(imageBytes, nameof(imageBytes));
+        PdfImageInput.EnsureWithinLimit(imageBytes.LongLength, (options ?? new PdfImageStampOptions()).MaximumEncodedImageBytes);
         return _document.ApplyMutation(input => PdfStamper.WatermarkImage(input, imageBytes, options, readOptions ?? _document.ReadOptions));
     }
 
@@ -110,10 +109,7 @@ public sealed partial class PdfDocumentStamper {
 
     /// <summary>Creates an image-stream watermark using explicit target read options.</summary>
     public PdfDocument ImageWatermark(Stream imageStream, PdfImageStampOptions? options, PdfLoadOptions? readOptions) {
-        Guard.NotNull(imageStream, nameof(imageStream));
-        using var buffer = new MemoryStream();
-        imageStream.CopyTo(buffer);
-        return ImageWatermark(buffer.ToArray(), options, readOptions);
+        return ImageWatermark(PdfImageInput.ReadRemainingStream(imageStream, (options ?? new PdfImageStampOptions()).MaximumEncodedImageBytes), options, readOptions);
     }
 
     /// <summary>

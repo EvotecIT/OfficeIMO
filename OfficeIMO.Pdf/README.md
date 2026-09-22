@@ -56,6 +56,25 @@ For incremental authoring, use `var document = PdfDocument.Create(options)` and
 add blocks through `document.Content`. The same builder supports both ordinary
 statements and fluent chains; callbacks remain useful for grouping and page setup.
 
+Image-file pages and image stamps accept at most 128 MiB of encoded data per
+image by default. Increase the limit for a trusted source when needed:
+
+```csharp
+var images = PdfDocument.CreateFromImages(
+    new[] { "scan-1.png", "scan-2.png" },
+    new PdfImageDocumentOptions { MaximumEncodedImageBytes = 256L * 1024 * 1024 });
+
+using var imageStream = System.IO.File.OpenRead("stamp.png");
+var stamped = PdfDocument.Load("input.pdf").Stamp.Image(
+    imageStream,
+    new PdfImageStampOptions { MaximumEncodedImageBytes = 256L * 1024 * 1024 });
+```
+
+`PdfImageDocumentSource.FromFile(path, maximumEncodedImageBytes)` applies the
+same budget when creating a source directly. Stamp streams are read from their
+current position. The byte budget applies before image decoding; decoded
+image and PDF output limits remain separate.
+
 ```csharp
 PdfDocument.Create(document => document
     .Settings(options => {

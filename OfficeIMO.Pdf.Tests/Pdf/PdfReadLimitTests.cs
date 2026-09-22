@@ -560,6 +560,63 @@ public class PdfReadLimitTests {
         }
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ImageStampBoundsNonSeekableEncodedInputBeforeBuffering(bool watermark) {
+        byte[] image = PdfPngTestImages.CreateRgbPng(25, 50, 75);
+        using var stream = new ChunkedNonSeekableStream(image, maximumChunkSize: 3);
+        PdfDocument document = PdfDocument.Load(BuildPdf());
+        var options = new PdfImageStampOptions { MaximumEncodedImageBytes = 16 };
+
+        Assert.Throws<InvalidDataException>(() => watermark
+            ? document.Stamp.ImageWatermark(stream, options)
+            : document.Stamp.Image(stream, options));
+        Assert.InRange(stream.BytesRead, 17, 19);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ImageStampRejectsOversizedSeekableInputBeforeReading(bool watermark) {
+        using var stream = new LengthOnlyReadStream(PdfImageInput.DefaultMaximumEncodedBytes + 1L);
+        PdfDocument document = PdfDocument.Load(BuildPdf());
+
+        Assert.Throws<InvalidDataException>(() => watermark
+            ? document.Stamp.ImageWatermark(stream)
+            : document.Stamp.Image(stream));
+        Assert.False(stream.WasRead);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ImageStampBoundsCallerBytesBeforeMutation(bool watermark) {
+        byte[] image = PdfPngTestImages.CreateRgbPng(25, 50, 75);
+        PdfDocument document = PdfDocument.Load(BuildPdf());
+        var options = new PdfImageStampOptions { MaximumEncodedImageBytes = image.Length - 1L };
+
+        Assert.Throws<InvalidDataException>(() => watermark
+            ? document.Stamp.ImageWatermark(image, options)
+            : document.Stamp.Image(image, options));
+        Assert.Empty(document.Images.Extract());
+    }
+
+    [Fact]
+    public void ImageStampReadsOnlyRemainingEncodedStreamBytes() {
+        byte[] image = PdfPngTestImages.CreateRgbPng(25, 50, 75);
+        byte[] prefixed = new byte[image.Length + 7];
+        Buffer.BlockCopy(image, 0, prefixed, 7, image.Length);
+        using var stream = new MemoryStream(prefixed);
+        stream.Position = 7;
+        var options = new PdfImageStampOptions { MaximumEncodedImageBytes = image.Length };
+
+        PdfDocument stamped = PdfDocument.Load(BuildPdf()).Stamp.Image(stream, options);
+
+        Assert.Single(stamped.Images.Extract());
+        Assert.Equal(stream.Length, stream.Position);
+    }
+
     [Fact]
     public void PdfDocumentPreflightConsumesSeekableStreamsFromTheirCurrentPosition() {
         byte[] pdf = BuildPdf();

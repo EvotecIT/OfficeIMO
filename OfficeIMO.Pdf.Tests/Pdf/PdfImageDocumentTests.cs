@@ -163,6 +163,34 @@ public sealed class PdfImageDocumentTests {
                 cancellation.Token));
     }
 
+    [Fact]
+    public void ImageFileSourceAndImageDocumentRejectEncodedInputOverTheConfiguredBudget() {
+        byte[] image = PdfPngTestImages.CreateRgbPng(25, 50, 75);
+        string path = Path.Combine(Path.GetTempPath(), "officeimo-pdf-image-limit-" + Guid.NewGuid().ToString("N") + ".png");
+        var options = new PdfImageDocumentOptions { MaximumEncodedImageBytes = image.Length - 1L };
+
+        try {
+            File.WriteAllBytes(path, image);
+            Assert.Throws<InvalidDataException>(() => PdfImageDocumentSource.FromFile(path, options.MaximumEncodedImageBytes));
+            Assert.Throws<InvalidDataException>(() => PdfDocument.CreateFromImages(new[] { path }, options));
+            Assert.Throws<InvalidDataException>(() => PdfDocument.CreateFromImages(
+                new[] { new PdfImageDocumentSource(image, "in-memory.png") }, options));
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void ImageFileSourceRejectsEmptyFilesAtCreation() {
+        string path = Path.Combine(Path.GetTempPath(), "officeimo-pdf-empty-image-" + Guid.NewGuid().ToString("N") + ".png");
+        try {
+            File.WriteAllBytes(path, Array.Empty<byte>());
+            Assert.Throws<ArgumentException>(() => PdfImageDocumentSource.FromFile(path));
+        } finally {
+            File.Delete(path);
+        }
+    }
+
     private static byte[] CreateExifOrientation(ushort orientation) => [
         (byte)'I', (byte)'I', 0x2A, 0x00, 0x08, 0x00, 0x00, 0x00,
         0x01, 0x00,

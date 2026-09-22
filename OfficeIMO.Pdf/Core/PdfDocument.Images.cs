@@ -38,32 +38,27 @@ public sealed class PdfImageDocumentSource {
     }
 
     /// <summary>Creates an image source from a file snapshot.</summary>
-    public static PdfImageDocumentSource FromFile(string path) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Image path cannot be empty.", nameof(path));
-        string fullPath = Path.GetFullPath(path);
-        return new PdfImageDocumentSource(File.ReadAllBytes(fullPath), Path.GetFileName(fullPath));
+    public static PdfImageDocumentSource FromFile(string path) =>
+        FromFile(path, PdfImageInput.DefaultMaximumEncodedBytes);
+
+    /// <summary>Creates an image source from a file snapshot within an encoded-byte limit.</summary>
+    public static PdfImageDocumentSource FromFile(string path, long maximumEncodedImageBytes) =>
+        FromFile(path, maximumEncodedImageBytes, CancellationToken.None);
+
+    internal static PdfImageDocumentSource FromFile(string path, long maximumEncodedImageBytes, CancellationToken cancellationToken) {
+        byte[] bytes = PdfImageInput.ReadFile(path, maximumEncodedImageBytes, cancellationToken);
+        if (bytes.Length == 0) throw new ArgumentException("Image bytes cannot be empty.", nameof(path));
+        return new PdfImageDocumentSource(bytes, Path.GetFileName(path), takeOwnership: true);
     }
 
-    internal static PdfImageDocumentSource FromFile(string path, CancellationToken cancellationToken) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Image path cannot be empty.", nameof(path));
-        string fullPath = Path.GetFullPath(path);
-        using var stream = File.OpenRead(fullPath);
-        if (stream.Length > int.MaxValue) throw new IOException("Image source is too large to read into memory.");
-        var bytes = new byte[(int)stream.Length];
-        int offset = 0;
-        while (offset < bytes.Length) {
-            cancellationToken.ThrowIfCancellationRequested();
-            int read = stream.Read(bytes, offset, Math.Min(64 * 1024, bytes.Length - offset));
-            if (read == 0) throw new EndOfStreamException("Image source ended before its declared length.");
-            offset += read;
-        }
-        cancellationToken.ThrowIfCancellationRequested();
-        return new PdfImageDocumentSource(bytes, Path.GetFileName(fullPath), takeOwnership: true);
-    }
+    internal long EncodedByteLength => _bytes.LongLength;
 }
 
 /// <summary>Options for creating one PDF page per source image.</summary>
 public sealed class PdfImageDocumentOptions {
+    /// <summary>Maximum encoded bytes accepted from each image source. Defaults to 128 MiB.</summary>
+    public long MaximumEncodedImageBytes { get; set; } = PdfImageInput.DefaultMaximumEncodedBytes;
+
     /// <summary>
     /// Optional fixed paper size. When omitted, each page uses the image physical dimensions derived from its DPI.
     /// Images without usable dimensions fall back to <see cref="FallbackPageSize"/>.
@@ -86,6 +81,7 @@ public sealed class PdfImageDocumentOptions {
     public double MaximumPageDimension { get; set; } = 14_400D;
 
     internal PdfImageDocumentOptions CloneAndValidate() {
+        PdfImageInput.ValidateMaximum(MaximumEncodedImageBytes);
         if (Margin < 0D || double.IsNaN(Margin) || double.IsInfinity(Margin)) {
             throw new ArgumentOutOfRangeException(nameof(Margin));
         }
@@ -98,6 +94,7 @@ public sealed class PdfImageDocumentOptions {
         ValidatePageSize(FallbackPageSize, nameof(FallbackPageSize), validatePrintableArea: false);
         if (FixedPageSize.HasValue) ValidatePageSize(FixedPageSize.Value, nameof(FixedPageSize), validatePrintableArea: true);
         return new PdfImageDocumentOptions {
+            MaximumEncodedImageBytes = MaximumEncodedImageBytes,
             FixedPageSize = FixedPageSize,
             FallbackPageSize = FallbackPageSize,
             AutoOrientPage = AutoOrientPage,
@@ -123,7 +120,8 @@ public sealed partial class PdfDocument {
         IEnumerable<string> imagePaths,
         PdfImageDocumentOptions? options = null) {
         Guard.NotNull(imagePaths, nameof(imagePaths));
-        return CreateFromImages(imagePaths.Select(PdfImageDocumentSource.FromFile), options);
+        PdfImageDocumentOptions effective = (options ?? new PdfImageDocumentOptions()).CloneAndValidate();
+        return CreateFromImagesCore(imagePaths.Select(path => PdfImageDocumentSource.FromFile(path, effective.MaximumEncodedImageBytes)), effective, CancellationToken.None);
     }
 
     /// <summary>Creates one PDF page per image file in caller order with cooperative cancellation.</summary>
@@ -133,9 +131,10 @@ public sealed partial class PdfDocument {
         CancellationToken cancellationToken) {
         Guard.NotNull(imagePaths, nameof(imagePaths));
         cancellationToken.ThrowIfCancellationRequested();
-        return CreateFromImages(
-            imagePaths.Select(path => PdfImageDocumentSource.FromFile(path, cancellationToken)),
-            options,
+        PdfImageDocumentOptions effective = (options ?? new PdfImageDocumentOptions()).CloneAndValidate();
+        return CreateFromImagesCore(
+            imagePaths.Select(path => PdfImageDocumentSource.FromFile(path, effective.MaximumEncodedImageBytes, cancellationToken)),
+            effective,
             cancellationToken);
     }
 
@@ -153,21 +152,20 @@ public sealed partial class PdfDocument {
         CancellationToken cancellationToken) {
         Guard.NotNull(images, nameof(images));
         cancellationToken.ThrowIfCancellationRequested();
-        var sourceList = new List<PdfImageDocumentSource>();
+        PdfImageDocumentOptions effective = (options ?? new PdfImageDocumentOptions()).CloneAndValidate();
+        return CreateFromImagesCore(images, effective, cancellationToken);
+    }
+
+    private static PdfDocument CreateFromImagesCore(
+        IEnumerable<PdfImageDocumentSource> images,
+        PdfImageDocumentOptions effective,
+        CancellationToken cancellationToken) {
+        var document = new PdfDocument();
+        int sourceCount = 0;
         foreach (PdfImageDocumentSource source in images) {
             cancellationToken.ThrowIfCancellationRequested();
-            sourceList.Add(source);
-        }
-        PdfImageDocumentSource[] sources = sourceList.ToArray();
-        if (sources.Length == 0) throw new ArgumentException("At least one image is required.", nameof(images));
-        if (sources.Any(static source => source is null)) {
-            throw new ArgumentException("Image sources cannot contain null entries.", nameof(images));
-        }
-
-        PdfImageDocumentOptions effective = (options ?? new PdfImageDocumentOptions()).CloneAndValidate();
-        var document = new PdfDocument();
-        foreach (PdfImageDocumentSource source in sources) {
-            cancellationToken.ThrowIfCancellationRequested();
+            if (source is null) throw new ArgumentException("Image sources cannot contain null entries.", nameof(images));
+            PdfImageInput.EnsureWithinLimit(source.EncodedByteLength, effective.MaximumEncodedImageBytes);
             byte[] sourceBytes = source.GetBytes(cancellationToken);
             PreparedImage prepared = PrepareImageDocumentSource(sourceBytes, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
@@ -191,7 +189,9 @@ public sealed partial class PdfDocument {
                     frameHeight,
                     new PdfImageStyle { Fit = placementFit },
                     alternativeText: alternativeText)));
+            sourceCount++;
         }
+        if (sourceCount == 0) throw new ArgumentException("At least one image is required.", nameof(images));
         cancellationToken.ThrowIfCancellationRequested();
         return document;
     }
