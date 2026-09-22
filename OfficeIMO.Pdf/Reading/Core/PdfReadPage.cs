@@ -134,9 +134,15 @@ public sealed partial class PdfReadPage {
             if (characterCount > maximumCharacters)
                 throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, maximumCharacters, characterCount);
         }
+        var nativeBudget = new TextContentParser.TextOutputBudget(
+            Math.Min(_limits.MaxActualTextCharacters, maximumCharacters),
+            Math.Min(_limits.MaxDecodedTextCharacters, maximumCharacters),
+            maximumCharacters < _limits.MaxActualTextCharacters ? PdfReadLimitKind.OcrArtifacts : PdfReadLimitKind.ActualTextCharacters,
+            maximumCharacters < _limits.MaxDecodedTextCharacters ? PdfReadLimitKind.OcrArtifacts : PdfReadLimitKind.DecodedTextCharacters);
         return GetVisualTextSpans(
             size.Height,
             GetVisualPageTransform(),
+            textOutputBudget: nativeBudget,
             useLogicalTextFilters: true,
             includeArtifactText: true,
             onTextSpan: ChargeSpan,
@@ -792,10 +798,19 @@ public sealed partial class PdfReadPage {
             _limits.MaxActualTextCharacters,
             _limits.MaxDecodedTextCharacters);
         textClippingBudget ??= new PdfTextClippingBudget();
-        string DecodeWithFontWithinLimit(string fontRes, byte[] bytes, int maximumCharacters) =>
-            decoders.TryGetValue(fontRes, out var dec)
-                ? dec(bytes, maximumCharacters)
-                : PdfWinAnsiEncoding.Decode(bytes, maximumCharacters);
+        string DecodeWithFontWithinLimit(string fontRes, byte[] bytes, int maximumCharacters) {
+            try {
+                return decoders.TryGetValue(fontRes, out var dec)
+                    ? dec(bytes, maximumCharacters)
+                    : PdfWinAnsiEncoding.Decode(bytes, maximumCharacters);
+            } catch (PdfReadLimitException exception) when (
+                exception.Kind == PdfReadLimitKind.DecodedTextCharacters
+                && textOutputBudget.DecodedTextLimitKind == PdfReadLimitKind.OcrArtifacts) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts,
+                    textOutputBudget.MaxDecodedTextCharacters,
+                    (long)textOutputBudget.MaxDecodedTextCharacters + 1L);
+            }
+        }
         string DecodeWithFont(string fontRes, byte[] bytes) =>
             DecodeWithFontWithinLimit(fontRes, bytes, _limits.MaxDecodedTextCharacters);
         double SumWidth1000(string fontRes, byte[] bytes) =>

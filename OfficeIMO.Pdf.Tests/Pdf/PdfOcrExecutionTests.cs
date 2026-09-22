@@ -133,6 +133,22 @@ public class PdfOcrExecutionTests {
     }
 
     [Fact]
+    public void Ocr_NativeTextBudgetStopsDecodingBeforeTheBroaderReadLimit() {
+        byte[] pdf = PdfDocument.Create()
+            .Paragraph(p => p.Text(new string('A', 1000)))
+            .ToBytes();
+        PdfReadPage page = PdfReadDocument.Open(pdf, new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxDecodedTextCharacters = 100 }
+        }).Pages[0];
+
+        PdfReadLimitException error = Assert.Throws<PdfReadLimitException>(() =>
+            PdfPageInteractionMap.GetOcrOverlapTextSpanBounds(page, 100, 10, CancellationToken.None));
+
+        Assert.Equal(PdfReadLimitKind.OcrArtifacts, error.Kind);
+        Assert.Equal(10, error.Limit);
+    }
+
+    [Fact]
     public void Ocr_NativeSpanExtractionHonorsCancellationBeforeParsing() {
         byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("Native text")).ToBytes();
         PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];

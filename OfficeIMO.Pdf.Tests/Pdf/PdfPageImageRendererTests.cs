@@ -25,6 +25,21 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderFailurePreservesTheErrorBeforeCapabilityWarnings() {
+        byte[] pdf = BuildSingleStreamPdf("unknownOne\n0 0 10 10 re f");
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf,
+            options: new PdfPageRenderOptions {
+                MaxPixelsPerPage = 1,
+                MaxDiagnosticCharactersPerPage = 200,
+                ContinueOnError = true
+            }));
+
+        Assert.False(result.Succeeded);
+        Assert.StartsWith("PdfReadLimitException: PDF render pixel count", result.Diagnostics[0]);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.StartsWith("render.operator.unsupported:"));
+    }
+
+    [Fact]
     public void RenderCapabilityDiagnosticsStopWhileCollectingDistinctOperators() {
         byte[] pdf = BuildSingleStreamPdf("unknownOne\nunknownTwo\nunknownThree");
         PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];

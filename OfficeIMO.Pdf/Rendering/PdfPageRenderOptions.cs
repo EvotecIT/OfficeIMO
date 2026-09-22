@@ -93,9 +93,9 @@ public sealed class PdfPageRenderResult {
         CapabilityDiagnostics = capabilityDiagnostics.ToArray();
         var diagnostics = new List<string>(capabilityDiagnostics.Count + (errors?.Count ?? 0));
         int remainingCharacters = maximumDiagnosticCharacters;
+        if (errors != null) foreach (string error in errors) AddDiagnostic(error);
         for (int i = 0; i < capabilityDiagnostics.Count; i++)
             AddDiagnostic(capabilityDiagnostics[i].Code + ": " + capabilityDiagnostics[i].Message);
-        if (errors != null) foreach (string error in errors) AddDiagnostic(error);
         Diagnostics = diagnostics.Count == 0 ? Array.Empty<string>() : diagnostics.AsReadOnly();
 
         void AddDiagnostic(string value) {
