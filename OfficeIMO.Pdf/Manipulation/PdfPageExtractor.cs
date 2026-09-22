@@ -158,7 +158,7 @@ internal static partial class PdfPageExtractor {
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        var bytes = ExtractPageRange(File.ReadAllBytes(inputPath), firstPage, lastPage);
+        var bytes = ExtractPageRange(ReadPath(inputPath), firstPage, lastPage);
         WriteOutput(fullOutputPath, bytes);
     }
 
@@ -169,7 +169,7 @@ internal static partial class PdfPageExtractor {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        var bytes = ExtractPageRange(File.ReadAllBytes(inputPath), firstPage, lastPage);
+        var bytes = ExtractPageRange(ReadPath(inputPath), firstPage, lastPage);
         WriteOutput(outputStream, bytes);
     }
 
@@ -181,7 +181,7 @@ internal static partial class PdfPageExtractor {
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        var bytes = ExtractPageRange(File.ReadAllBytes(inputPath), pageRange);
+        var bytes = ExtractPageRange(ReadPath(inputPath), pageRange);
         WriteOutput(fullOutputPath, bytes);
     }
 
@@ -192,7 +192,7 @@ internal static partial class PdfPageExtractor {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        var bytes = ExtractPageRange(File.ReadAllBytes(inputPath), pageRange);
+        var bytes = ExtractPageRange(ReadPath(inputPath), pageRange);
         WriteOutput(outputStream, bytes);
     }
 
@@ -201,7 +201,7 @@ internal static partial class PdfPageExtractor {
     /// </summary>
     public static byte[] ExtractPageRange(string inputPath, int firstPage, int lastPage) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return ExtractPageRange(File.ReadAllBytes(inputPath), firstPage, lastPage);
+        return ExtractPageRange(ReadPath(inputPath), firstPage, lastPage);
     }
 
     /// <summary>
@@ -209,7 +209,7 @@ internal static partial class PdfPageExtractor {
     /// </summary>
     public static byte[] ExtractPageRange(string inputPath, PdfPageRange pageRange) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return ExtractPageRange(File.ReadAllBytes(inputPath), pageRange);
+        return ExtractPageRange(ReadPath(inputPath), pageRange);
     }
 
     /// <summary>
@@ -285,7 +285,7 @@ internal static partial class PdfPageExtractor {
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        var bytes = ExtractPageRanges(File.ReadAllBytes(inputPath), pageRanges);
+        var bytes = ExtractPageRanges(ReadPath(inputPath), pageRanges);
         WriteOutput(fullOutputPath, bytes);
     }
 
@@ -296,7 +296,7 @@ internal static partial class PdfPageExtractor {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        var bytes = ExtractPageRanges(File.ReadAllBytes(inputPath), pageRanges);
+        var bytes = ExtractPageRanges(ReadPath(inputPath), pageRanges);
         WriteOutput(outputStream, bytes);
     }
 
@@ -305,7 +305,7 @@ internal static partial class PdfPageExtractor {
     /// </summary>
     public static byte[] ExtractPageRanges(string inputPath, params PdfPageRange[] pageRanges) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return ExtractPageRanges(File.ReadAllBytes(inputPath), pageRanges);
+        return ExtractPageRanges(ReadPath(inputPath), pageRanges);
     }
 
     /// <summary>
@@ -404,7 +404,7 @@ internal static partial class PdfPageExtractor {
         Guard.NotNull(outputDirectory, nameof(outputDirectory));
 
         string fullOutputDirectory = ValidateOutputDirectory(outputDirectory);
-        var pages = SplitPages(File.ReadAllBytes(inputPath));
+        var pages = SplitPages(ReadPath(inputPath));
         string baseName = Path.GetFileNameWithoutExtension(inputPath);
         return WriteSplitPages(pages, fullOutputDirectory, baseName);
     }
@@ -414,7 +414,7 @@ internal static partial class PdfPageExtractor {
     /// </summary>
     public static IReadOnlyList<byte[]> SplitPages(string inputPath) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return SplitPages(File.ReadAllBytes(inputPath));
+        return SplitPages(ReadPath(inputPath));
     }
 
     /// <summary>
@@ -423,7 +423,7 @@ internal static partial class PdfPageExtractor {
     public static IReadOnlyList<byte[]> SplitPageRanges(string inputPath, params PdfPageRange[] pageRanges) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         var ranges = ValidatePageRangeArguments(pageRanges, nameof(pageRanges));
-        return SplitPageRanges(File.ReadAllBytes(inputPath), ranges);
+        return SplitPageRanges(ReadPath(inputPath), ranges);
     }
 
     /// <summary>
@@ -446,7 +446,7 @@ internal static partial class PdfPageExtractor {
 
         var ranges = ValidatePageRangeArguments(pageRanges, nameof(pageRanges));
         string fullOutputDirectory = ValidateOutputDirectory(outputDirectory);
-        var pages = SplitPageRanges(File.ReadAllBytes(inputPath), ranges);
+        var pages = SplitPageRanges(ReadPath(inputPath), ranges);
         string baseName = Path.GetFileNameWithoutExtension(inputPath);
         return WriteSplitPageRanges(pages, fullOutputDirectory, baseName, ranges);
     }
@@ -471,7 +471,7 @@ internal static partial class PdfPageExtractor {
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        var bytes = ExtractPages(File.ReadAllBytes(inputPath), pageNumbers);
+        var bytes = ExtractPages(ReadPath(inputPath), pageNumbers);
         WriteOutput(fullOutputPath, bytes);
     }
 
@@ -482,7 +482,7 @@ internal static partial class PdfPageExtractor {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        var bytes = ExtractPages(File.ReadAllBytes(inputPath), pageNumbers);
+        var bytes = ExtractPages(ReadPath(inputPath), pageNumbers);
         WriteOutput(outputStream, bytes);
     }
 
@@ -491,7 +491,7 @@ internal static partial class PdfPageExtractor {
     /// </summary>
     public static byte[] ExtractPages(string inputPath, params int[] pageNumbers) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return ExtractPages(File.ReadAllBytes(inputPath), pageNumbers);
+        return ExtractPages(ReadPath(inputPath), pageNumbers);
     }
 
 }
