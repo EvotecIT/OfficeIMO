@@ -2123,8 +2123,7 @@ public sealed class HtmlPdfTests {
     public void PdfToHtmlMatchesRepeatedLinkAnnotationsWithinLinearWorkBudget() {
         byte[] single = CreateLinkAnnotationPdf("https://example.com/repeated");
         string repeated = System.Text.Encoding.ASCII.GetString(single).Replace(
-            "/Annots [4 0 R]", "/Annots [" + string.Concat(Enumerable.Repeat("4 0 R ", 1_000)) + "]",
-            StringComparison.Ordinal);
+            "/Annots [4 0 R]", "/Annots [" + string.Concat(Enumerable.Repeat("4 0 R ", 1_000)) + "]");
         byte[] pdf = System.Text.Encoding.ASCII.GetBytes(repeated);
         var options = PdfToHtmlOptions.CreatePositionedReviewProfile();
         options.MaximumAnnotationMatchWork = 1_500;
@@ -2134,12 +2133,34 @@ public sealed class HtmlPdfTests {
         Assert.Equal(1_000, result.Summary.SelectedAnnotationActionCount);
     }
 
+    [Theory]
+    [InlineData(185, true)]
+    [InlineData(250, false)]
+    public void Pdf_ToHtml_PositionedReviewProfile_ProjectsOnlyTextIntersectingThePage(int x, bool expected) {
+        string content = $"BT /F1 20 Tf {x} 100 Td (Edge) Tj ET";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", $"<< /Length {content.Length} >>", "stream", content, "endstream", "endobj",
+            "5 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF"
+        }) + "\n";
+        byte[] bytes = Encoding.ASCII.GetBytes(pdf);
+        PdfToHtmlOptions options = PdfToHtmlOptions.CreatePositionedReviewProfile();
+
+        string html = PdfCore.PdfDocumentReadResult.Load(bytes).ToHtml(options);
+        using var parsed = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(html);
+        string text = string.Join(" ", parsed.QuerySelectorAll("svg text").Select(node => node.TextContent));
+        Assert.Equal(expected, text.IndexOf("Edge", StringComparison.Ordinal) >= 0);
+    }
+
     [Fact]
     public void PdfToHtmlRejectsAnnotationMatchingAboveConfiguredWorkBudget() {
         byte[] single = CreateLinkAnnotationPdf("https://example.com/repeated");
         string repeated = System.Text.Encoding.ASCII.GetString(single).Replace(
-            "/Annots [4 0 R]", "/Annots [" + string.Concat(Enumerable.Repeat("4 0 R ", 20)) + "]",
-            StringComparison.Ordinal);
+            "/Annots [4 0 R]", "/Annots [" + string.Concat(Enumerable.Repeat("4 0 R ", 20)) + "]");
         byte[] pdf = System.Text.Encoding.ASCII.GetBytes(repeated);
         var options = PdfToHtmlOptions.CreatePositionedReviewProfile();
         options.MaximumAnnotationMatchWork = 10;

@@ -26,6 +26,19 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
+    public void GeneratedPageLimitAlsoAppliesToPagesComposedBeforeSettings() {
+        PdfDocument document = PdfDocument.Create(_ => { });
+        document.Compose(compose => compose.Page(page => page
+            .Size(300, 180)
+            .Margin(24)
+            .Content(content => content.Item(item => item.Paragraph(paragraph =>
+                paragraph.Text(string.Join(" ", Enumerable.Repeat("A long paragraph", 80))))))));
+        document.Compose(compose => compose.Settings(settings => settings.MaxGeneratedPages = 1));
+
+        Assert.Throws<InvalidDataException>(() => document.ToBytes());
+    }
+
+    [Fact]
     public void GeneratedOutputLimitStopsSerializationBeforeTheBufferGrows() {
         var options = new PdfOptions { MaxGeneratedOutputBytes = 128 };
         PdfDocument document = PdfDocument.Create(options).Paragraph(p => p.Text("Bounded output"));

@@ -266,12 +266,12 @@ public sealed class PdfTextSpan {
     }
 
     internal bool CanProjectCompleteText(PdfLogicalPage page) {
-        return CanProjectCompleteText(page.Height) && IsCompletelyWithinPageBoundary(page);
+        return CanProjectCompleteText(page.Height) && IntersectsPageBoundary(page);
     }
 
     internal bool CanProjectPositionedHtmlText(PdfLogicalPage page) {
         if (!IsVisible || Color?.A <= 3 || string.IsNullOrEmpty(Text) ||
-            !IsCompletelyWithinPageBoundary(page)) return false;
+            !IntersectsPageBoundary(page)) return false;
         if (!ClipPath.HasValue) return !_completeTextProjectionSuppressed;
         if (Math.Abs(RotationDegrees) > 0.01D) return false;
 
@@ -297,5 +297,16 @@ public sealed class PdfTextSpan {
             bounds.Right <= boundary.Right + tolerance &&
             bounds.Bottom >= boundary.Bottom - tolerance &&
             bounds.Top <= boundary.Top + tolerance;
+    }
+
+    internal bool IntersectsPageBoundary(PdfLogicalPage page) {
+        PdfPageBox? boundary = page.Geometry.EffectiveBox;
+        if (boundary == null) return false;
+        PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetAxisAlignedBounds(this);
+        const double tolerance = 0.05D;
+        return bounds.Right > boundary.Left + tolerance &&
+            bounds.Left < boundary.Right - tolerance &&
+            bounds.Top > boundary.Bottom + tolerance &&
+            bounds.Bottom < boundary.Top - tolerance;
     }
 }

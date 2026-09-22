@@ -39,7 +39,8 @@ public static partial class HtmlPowerPointConverterExtensions {
             }
         }
 
-        if (semanticBlock?.Table != null) ApplySemanticTableFormatting(table, semanticBlock.Table, grid.Cells);
+        if (semanticBlock?.Table != null) ApplySemanticTableFormatting(table, semanticBlock.Table, grid.Cells,
+            options.HyperlinkUrlPolicy);
         foreach (PowerPointHtmlTableCell cell in grid.Cells) {
             TryApplyTargetSemanticRuns(table.GetCell(cell.Row, cell.Column), cell.Element, options.HyperlinkUrlPolicy);
         }
@@ -52,7 +53,8 @@ public static partial class HtmlPowerPointConverterExtensions {
     private static void ApplySemanticTableFormatting(
         PptCore.PowerPointTable target,
         HtmlSemanticTable source,
-        IReadOnlyList<PowerPointHtmlTableCell> layoutCells) {
+        IReadOnlyList<PowerPointHtmlTableCell> layoutCells,
+        HtmlUrlPolicy hyperlinkPolicy) {
         int layoutIndex = 0;
         foreach (HtmlSemanticTableRow row in source.Rows) {
             foreach (HtmlSemanticTableCell cell in row.Cells) {
@@ -60,7 +62,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                 PowerPointHtmlTableCell layoutCell = layoutCells[layoutIndex++];
                 PptCore.PowerPointTableCell targetCell = target.GetCell(layoutCell.Row, layoutCell.Column);
                 if (RequiresSemanticTableRunProjection(cell.Runs)) {
-                    ApplySemanticRuns(targetCell.Paragraphs[0], cell.Runs);
+                    ApplySemanticRuns(targetCell.Paragraphs[0], cell.Runs, hyperlinkPolicy);
                 }
                 if (cell.IsHeader) {
                     foreach (PptCore.PowerPointTextRun run in targetCell.Runs) run.Bold = true;

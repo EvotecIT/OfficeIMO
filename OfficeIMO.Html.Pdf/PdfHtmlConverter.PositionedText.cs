@@ -15,7 +15,7 @@ public static partial class PdfHtmlConverterExtensions {
         builder.Append(Number(geometry.Width));
         builder.Append(' ');
         builder.Append(Number(geometry.Height));
-        builder.Append("\" style=\"position:absolute;inset:0;width:100%;height:100%;overflow:visible\">");
+        builder.Append("\" style=\"position:absolute;inset:0;width:100%;height:100%;overflow:hidden\">");
         var emitted = new HashSet<PdfCore.PdfTextSpan>();
         foreach (var block in page.TextBlocks) {
             if (headingLevels.TryGetValue(block, out int headingLevel)) {
@@ -56,20 +56,42 @@ public static partial class PdfHtmlConverterExtensions {
         IReadOnlyDictionary<PdfCore.PdfLogicalTextBlock, int> headingLevels = BuildPositionedHeadingLevels(page);
         builder.Append("<svg class=\"pdf-text-overlay\" fill=\"transparent\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 ");
         builder.Append(Number(geometry.Width)).Append(' ').Append(Number(geometry.Height));
-        builder.AppendLine("\" style=\"position:absolute;inset:0;width:100%;height:100%;overflow:visible\">");
+        builder.AppendLine("\" style=\"position:absolute;inset:0;width:100%;height:100%;overflow:hidden\">");
         foreach (PdfCore.PdfLogicalTextBlock block in page.TextBlocks) {
             options.CancellationToken.ThrowIfCancellationRequested();
             bool heading = headingLevels.TryGetValue(block, out int headingLevel);
             builder.Append(heading ? "<g role=\"heading\" aria-level=\"" : "<g");
             if (heading) builder.Append(headingLevel).Append('"');
             builder.AppendLine(">");
+            if (!string.IsNullOrEmpty(block.Text) && block.Spans.Count > 0 &&
+                block.Spans.All(span => span.CanProjectPositionedHtmlText(page))) {
+                // The logical block preserves spaces inferred between adjacent visible
+                // spans; emitting each span separately drops those separators.
+                PdfCore.PdfTextSpan first = block.Spans[0];
+                PositionedPoint blockPoint = geometry.TransformPoint(block.XStart, block.BaselineY);
+                builder.Append("<text x=\"").Append(Number(blockPoint.Left)).Append("\" y=\"").Append(Number(blockPoint.Top));
+                builder.Append("\" font-family=\"Arial, sans-serif\" font-size=\"").Append(Number(geometry.ScaleLength(block.FontSize)));
+                builder.Append("\" font-weight=\"").Append(first.IsBold ? "700" : "400");
+                builder.Append("\" font-style=\"").Append(first.IsItalic ? "italic" : "normal").Append('"');
+                double blockWidth = block.XEnd - block.XStart;
+                if (blockWidth > 0D) builder.Append(" textLength=\"").Append(Number(geometry.ScaleLength(blockWidth)))
+                    .Append("\" lengthAdjust=\"spacingAndGlyphs\"");
+                double blockRotation = geometry.RotationDegrees - first.RotationDegrees;
+                if (blockRotation != 0D) builder.Append(" transform=\"rotate(").Append(Number(blockRotation)).Append(' ')
+                    .Append(Number(blockPoint.Left)).Append(' ').Append(Number(blockPoint.Top)).Append(")\"");
+                builder.Append(" xml:space=\"preserve\">");
+                AppendHtmlText(builder, block.Text);
+                builder.AppendLine("</text>");
+                builder.AppendLine("</g>");
+                continue;
+            }
             foreach (PdfCore.PdfTextSpan span in block.Spans) {
                 options.CancellationToken.ThrowIfCancellationRequested();
                 if (string.IsNullOrEmpty(span.Text)) continue;
                 if (span.IsVisible) {
                     if (!span.CanProjectPositionedHtmlText(page)) continue;
                 } else if (!options.IncludeInvisibleTextInAppearanceOverlay ||
-                    !span.IsCompletelyWithinPageBoundary(page)) {
+                    !span.IntersectsPageBoundary(page)) {
                     continue;
                 }
                 PositionedPoint point = geometry.TransformPoint(span.X, span.Y);
