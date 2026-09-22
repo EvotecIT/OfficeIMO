@@ -24,6 +24,8 @@ To set specific limits, pass `new HtmlConversionDocumentOptions { Limits = yourL
 
 `HtmlRenderOptions.MaxTextShadowLayers` now accepts values from 1 through 64. If an application set a value above 64, reduce it to 64 or less before rendering; larger values now throw `ArgumentOutOfRangeException` during option validation.
 
+`HtmlRenderOptions.MaxLeaderCharacters` now limits each generated CSS `leader()` to 65,536 characters by default. Applications that render wider leaders can raise this positive limit on their render options. When the limit is exceeded, rendering throws `HtmlDomLimitException` instead of materializing the leader text.
+
 ## Native ChartForgeX topology placement
 
 `OfficeVisioVisualOptions.LayoutMode` defaults to `Auto`. A topology envelope with complete viewport, node, and included-group bounds now keeps those bounds instead of being laid out again. `PixelsPerInch` controls their physical size. Set `LayoutMode = OfficeVisioVisualLayoutMode.Reflow` to retain the previous native-layout behavior. Flow, sequence, and incomplete topology envelopes continue to use native layout in `Auto` mode. Native graph styling now uses source theme colors with portable Arial text; set `NativeTheme = VisioStyleTheme.Technical()` to retain the previous native palette and typography.

@@ -21,7 +21,13 @@ internal sealed class HtmlCssProcessingBudget {
                 _limits.MaxCssRules.Value);
         }
 
-        _declarations += declarationCount;
+        RecordDeclarations(declarationCount);
+    }
+
+    internal void RecordDeclaration() => RecordDeclarations(1);
+
+    private void RecordDeclarations(int count) {
+        _declarations += count;
         if (_limits.MaxCssDeclarations.HasValue && _declarations > _limits.MaxCssDeclarations.Value) {
             throw Limit(
                 HtmlConversionDiagnosticCodes.CssDeclarationLimitExceeded,

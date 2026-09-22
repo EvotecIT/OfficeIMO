@@ -98,6 +98,28 @@ public sealed class HtmlSecurityLayoutBatchTests {
     }
 
     [Fact]
+    public void PropertyDescriptorsConsumeTheCssDeclarationBudget() {
+        var options = new HtmlConversionDocumentOptions { Trust = HtmlInputTrust.Untrusted };
+        options.Limits.MaxCssDeclarations = 4;
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<style>@property --tone { syntax:'<color>'; inherits:false; initial-value:red;"
+            + " unknown:1; unknown:2; unknown:3; }</style><p>x</p>", options);
+
+        Assert.Equal("MaxCssDeclarations", Assert.Throws<HtmlDomLimitException>(
+            () => HtmlComputedStyleEngine.Compute(document)).LimitSource);
+    }
+
+    [Fact]
+    public void PropertyDescriptorsAtTheExactCssDeclarationBudgetRemainValid() {
+        var options = new HtmlConversionDocumentOptions { Trust = HtmlInputTrust.Untrusted };
+        options.Limits.MaxCssDeclarations = 5;
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<style>@property --tone { syntax:'<color>'; inherits:false; initial-value:red; unknown:1; unknown:2; }</style><p>x</p>", options);
+
+        HtmlComputedStyleEngine.Compute(document);
+    }
+
+    [Fact]
     public void TrustedStylesCanRegisterMoreThanTheFormerFixedPropertyCap() {
         string registrations = string.Concat(Enumerable.Range(0, 257).Select(index =>
             $"@property --p{index} {{ syntax:'<color>'; inherits:false; initial-value:red; }}"));
@@ -137,6 +159,36 @@ public sealed class HtmlSecurityLayoutBatchTests {
             MaxLayoutOperations = 10000
         });
         Assert.Contains('漢', rendered.Text);
+    }
+
+    [Fact]
+    public void FirstLineWithNegativeLetterSpacingFindsTheLaterFittingPrefix() {
+        const string html = "<style>p::first-line{color:red;letter-spacing:-6px}</style>" +
+            "<p style='width:20px;margin:0;font-family:Arial;font-size:12px;overflow-wrap:anywhere'>" +
+            "WWWWWWiiiiiiiiWWWWWW</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        static IEnumerable<HtmlRenderVisual> Flatten(IEnumerable<HtmlRenderVisual> visuals) {
+            foreach (HtmlRenderVisual visual in visuals) {
+                yield return visual;
+                IEnumerable<HtmlRenderVisual>? children = visual switch {
+                    HtmlRenderClipGroup clip => clip.Visuals,
+                    HtmlRenderPathClipGroup path => path.Visuals,
+                    HtmlRenderEffectGroup effect => effect.Visuals,
+                    HtmlRenderSemanticGroup semantic => semantic.Visuals,
+                    HtmlRenderLogicalTextGroup logical => logical.Visuals,
+                    _ => null
+                };
+                if (children == null) continue;
+                foreach (HtmlRenderVisual child in Flatten(children)) yield return child;
+            }
+        }
+        string firstLine = string.Concat(Flatten(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderText>()
+            .Where(item => item.Color == OfficeColor.Red)
+            .Select(item => item.Text));
+
+        Assert.True(firstLine.Length >= 14, $"Expected the later fitting prefix; got '{firstLine}'.");
     }
 
     [Fact]

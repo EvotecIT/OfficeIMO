@@ -173,6 +173,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private string GetFirstLineSearchToken(string token, HtmlRenderBoxStyle style, double width) {
         const int initialSearchCharacters = 16384;
+        if (style.LetterSpacing < 0D) return token;
         if (token.Length <= initialSearchCharacters) return token;
 
         int target = initialSearchCharacters;
@@ -196,6 +197,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string suffix,
         HtmlRenderBoxStyle style,
         double width) {
+        if (style.LetterSpacing < 0D) {
+            for (int index = points.Count - 1; index >= 0; index--) {
+                CheckCancellation();
+                int point = points[index];
+                if (point <= 0 || point >= text.Length) continue;
+                ChargeLayoutOperations((long)point + suffix.Length, "first-line token splitting");
+                if (MeasureInlineText(text.Substring(0, point) + suffix, style) <= width + 0.0001D) {
+                    return point;
+                }
+            }
+            return -1;
+        }
         int low = 0;
         int high = points.Count - 1;
         int best = -1;
