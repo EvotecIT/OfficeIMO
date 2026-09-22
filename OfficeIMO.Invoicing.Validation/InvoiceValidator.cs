@@ -42,8 +42,11 @@ public sealed class InvoiceValidator {
             reader.MoveToContent(); credit = reader.LocalName == "CreditNote";
         }
         try {
-            diagnostics.AddRange(InvoiceSchemaValidation.Validate(snapshot, _bundle, release, declaration.Profile!.Value, declaration.Syntax, credit, cancellationToken));
-            schema = diagnostics.HasErrors ? InvoiceValidationStatus.Invalid : InvoiceValidationStatus.Passed;
+            List<InvoiceDiagnostic> schemaDiagnostics = InvoiceSchemaValidation.Validate(snapshot, _bundle, release, declaration.Profile!.Value, declaration.Syntax, credit, cancellationToken);
+            diagnostics.AddRange(schemaDiagnostics);
+            schema = schemaDiagnostics.Any(static diagnostic => diagnostic.Code == InvoiceDiagnosticBuffer.IncompleteCode)
+                ? InvoiceValidationStatus.Failed
+                : diagnostics.HasErrors ? InvoiceValidationStatus.Invalid : InvoiceValidationStatus.Passed;
         } catch (Exception exception) when (exception is XmlException or System.Xml.Schema.XmlSchemaException or InvalidDataException) {
             schema = InvoiceValidationStatus.Failed; diagnostics.Add(new InvoiceDiagnostic("INV-SCHEMA-ENGINE", exception.Message, "Schema"));
         }
@@ -57,13 +60,19 @@ public sealed class InvoiceValidator {
         }
         try {
             var overrides = _bundle.SeverityOverrides(release, declaration.Syntax, credit);
+            bool incompleteRules = false;
             foreach (InvoiceRuleSource rule in _bundle.Rules(release, declaration.Profile.Value, declaration.Syntax)) {
                 IReadOnlyList<InvoiceDiagnostic> result = await _runner.RunAsync(snapshot, rule.Bytes, rule.Compile, overrides, cancellationToken,
                     rule.SupportingFiles, rule.SourcePath,
                     () => runnerIdentity = _runner.Identity).ConfigureAwait(false);
                 diagnostics.AddRange(result);
+                if (result.Any(static diagnostic => diagnostic.Code == InvoiceDiagnosticBuffer.IncompleteCode)) {
+                    incompleteRules = true;
+                    break;
+                }
             }
-            rules = diagnostics.HasErrors ? InvoiceValidationStatus.Invalid : InvoiceValidationStatus.Passed;
+            rules = incompleteRules ? InvoiceValidationStatus.Failed
+                : diagnostics.HasErrors ? InvoiceValidationStatus.Invalid : InvoiceValidationStatus.Passed;
         } catch (Exception exception) when (exception is not OperationCanceledException) {
             rules = InvoiceValidationStatus.Failed; diagnostics.Add(new InvoiceDiagnostic("INV-RULES-ENGINE", exception.Message, "BusinessRules"));
         }

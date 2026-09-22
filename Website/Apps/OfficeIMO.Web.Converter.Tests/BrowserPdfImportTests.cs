@@ -137,6 +137,31 @@ public sealed class BrowserPdfImportTests {
     }
 
     [Theory]
+    [InlineData("..\\..\\target.pdf", "target.page-001.png")]
+    [InlineData("../../target.pdf", "target.page-001.png")]
+    [InlineData("C:unsafe.pdf", "C_unsafe.page-001.png")]
+    [InlineData("CON.pdf", "document-CON.page-001.png")]
+    public void PdfToPng_MultiplePages_UsesPortableSafeArchiveEntries(string uploadName, string expectedEntry) {
+        PdfDocument document = PdfDocument.Create(compose => {
+            compose.Page(page => page.Content(content => content.Paragraph(paragraph => paragraph.Text("one"))));
+            compose.Page(page => page.Content(content => content.Paragraph(paragraph => paragraph.Text("two"))));
+        });
+        byte[] pdf = document.ToBytes();
+        var source = new SelectedDocument(uploadName, ".pdf", "PDF", pdf.LongLength, pdf);
+
+        ConversionResult result = _service.ConvertFile(ConversionRouteCatalog.Find("pdf-png"), source,
+            limitExcelRows: false);
+
+        using var archive = new ZipArchive(new MemoryStream(result.Bytes), ZipArchiveMode.Read);
+        Assert.Equal(expectedEntry, archive.Entries[0].FullName);
+        Assert.All(archive.Entries, entry => {
+            Assert.DoesNotContain('/', entry.FullName);
+            Assert.DoesNotContain('\\', entry.FullName);
+            Assert.DoesNotContain(":", entry.FullName);
+        });
+    }
+
+    [Theory]
     [InlineData(PdfPowerPointImportMode.VisualPages, "Visual", "visual-page-slides", true, false)]
     [InlineData(PdfPowerPointImportMode.HybridVisualAndEditableTables, "Hybrid", "hybrid-visual-table-slides", true, true)]
     [InlineData(PdfPowerPointImportMode.EditableTables, "Partial", "editable-table-slides", false, true)]

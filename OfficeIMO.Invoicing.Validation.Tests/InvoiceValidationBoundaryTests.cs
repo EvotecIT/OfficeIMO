@@ -4,17 +4,31 @@ namespace OfficeIMO.Invoicing.Validation.Tests;
 
 public class InvoiceValidationBoundaryTests {
     [Theory]
-    [InlineData("warning", InvoiceDiagnosticSeverity.Warning)]
-    [InlineData("fatal", InvoiceDiagnosticSeverity.Error)]
-    public void ExcessiveSvrlDiagnosticsRetainLateSeverity(string finalFlag, InvoiceDiagnosticSeverity expected) {
+    [InlineData("warning")]
+    [InlineData("fatal")]
+    public void ExcessiveSvrlDiagnosticsReportIncompleteValidation(string finalFlag) {
         var xml = new StringBuilder("<s:schematron-output xmlns:s='http://purl.oclc.org/dsdl/svrl'><s:fired-rule context='Invoice'/>");
         for (int index = 0; index < 1100; index++) xml.Append("<s:failed-assert id='warning' flag='warning'><s:text>Warning</s:text></s:failed-assert>");
         xml.Append("<s:failed-assert id='last' flag='").Append(finalFlag).Append("'><s:text>Final finding</s:text></s:failed-assert></s:schematron-output>");
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(xml.ToString()));
         IReadOnlyList<InvoiceDiagnostic> result = SaxonInvoiceRulesRunner.ReadSvrl(stream, new Dictionary<string, InvoiceDiagnosticSeverity>());
         Assert.Equal(1000, result.Count);
-        InvoiceDiagnostic summary = Assert.Single(result, d => d.Code == "INV-DIAGNOSTICS-TRUNCATED");
-        Assert.Equal(expected, summary.Severity);
+        InvoiceDiagnostic summary = Assert.Single(result, d => d.Code == "INV-DIAGNOSTICS-INCOMPLETE");
+        Assert.Equal(InvoiceDiagnosticSeverity.Error, summary.Severity);
+    }
+
+    [Fact]
+    public void ExcessiveKnownInvalidSvrlRetainsTruncationStatus() {
+        var xml = new StringBuilder("<s:schematron-output xmlns:s='http://purl.oclc.org/dsdl/svrl'><s:fired-rule context='Invoice'/>");
+        for (int index = 0; index < 1100; index++)
+            xml.Append("<s:failed-assert id='invalid' flag='fatal'><s:text>Invalid</s:text></s:failed-assert>");
+        xml.Append("</s:schematron-output>");
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(xml.ToString()));
+
+        IReadOnlyList<InvoiceDiagnostic> result = SaxonInvoiceRulesRunner.ReadSvrl(stream, new Dictionary<string, InvoiceDiagnosticSeverity>());
+
+        Assert.Contains(result, d => d.Code == "INV-DIAGNOSTICS-TRUNCATED" && d.Severity == InvoiceDiagnosticSeverity.Error);
+        Assert.DoesNotContain(result, d => d.Code == "INV-DIAGNOSTICS-INCOMPLETE");
     }
 
     [Fact]

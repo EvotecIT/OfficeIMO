@@ -21,12 +21,21 @@ internal static class InvoiceSchemaValidation {
         settings.ValidationEventHandler += (_, args) => {
             diagnostics.Add("XSD", args.Message, "line " + args.Exception.LineNumber + ":" + args.Exception.LinePosition,
                 args.Severity == XmlSeverityType.Warning ? InvoiceDiagnosticSeverity.Warning : InvoiceDiagnosticSeverity.Error);
+            if (diagnostics.HasTruncated) {
+                diagnostics.MarkWorkStopped();
+                throw new DiagnosticBudgetReachedException();
+            }
         };
         using var input = new MemoryStream(xml, false);
         using XmlReader reader = XmlReader.Create(input, settings);
-        while (reader.Read()) cancellationToken.ThrowIfCancellationRequested();
+        try {
+            while (reader.Read()) cancellationToken.ThrowIfCancellationRequested();
+        } catch (DiagnosticBudgetReachedException) {
+            cancellationToken.ThrowIfCancellationRequested();
+        }
         return diagnostics.ToList();
     }
+    private sealed class DiagnosticBudgetReachedException : Exception { }
     private sealed class BundleResolver(InvoiceRuleBundle bundle) : XmlResolver {
         public override ICredentials? Credentials { set { } }
         public override object GetEntity(Uri absoluteUri, string? role, Type? ofObjectToReturn) {

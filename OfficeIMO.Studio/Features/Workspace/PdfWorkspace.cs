@@ -3,6 +3,7 @@ using OfficeIMO.Core.Internal;
 using OfficeIMO.Internal;
 using System.Security.Cryptography;
 using OfficeIMO.Studio.Features.Editor;
+using OfficeIMO.Studio.Features.Reader;
 using OfficeIMO.Studio.Infrastructure;
 
 namespace OfficeIMO.Studio.Features.Workspace;
@@ -153,7 +154,7 @@ internal sealed partial class PdfWorkspace : IDisposable {
         StudioStorageSnapshot source = await storage.ReadSnapshotAsync(fullPath, cancellationToken).ConfigureAwait(false);
         byte[] bytes = source.Bytes;
         string sourceIdentityKey = source.Identity;
-        var readOptions = new PdfLoadOptions { Password = password };
+        PdfLoadOptions readOptions = StudioPdfSecurityPolicy.CreateLoadOptions(password);
         (PdfDocumentViewInfo Info, PdfDocumentPreflight Preflight) analysis = await Task.Run(
             () => Analyze(bytes, readOptions),
             cancellationToken).ConfigureAwait(false);
@@ -494,6 +495,8 @@ internal sealed partial class PdfWorkspace : IDisposable {
             (PdfDocumentViewInfo Info, PdfDocumentPreflight Preflight) analysis = await Task.Run(
                 () => Analyze(recovered, _readOptions),
                 cancellationToken).ConfigureAwait(false);
+            if (_documentInfo.Security.HasEncryption && !analysis.Info.Security.HasEncryption)
+                throw new InvalidDataException("The recovery snapshot removes the open document's encryption.");
             PushHistory(_undo, new Snapshot(_bytes, _revision, _annotationIdentities));
             ClearHistory(_redo);
             _bytes = recovered;
@@ -579,6 +582,8 @@ internal sealed partial class PdfWorkspace : IDisposable {
                 () => Analyze(candidateBytes, _readOptions),
                 cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
+            if (_documentInfo.Security.HasEncryption && !candidateAnalysis.Info.Security.HasEncryption)
+                throw new InvalidOperationException("This edit would remove PDF encryption. Use the owner-authorized decrypted-copy workflow instead.");
 
             long nextRevision = ++_nextRevision;
             await _recoveryStore

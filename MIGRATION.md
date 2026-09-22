@@ -44,6 +44,15 @@ For PDF publication, use `ToBytesLossless`, `SaveLossless`, or `SaveLosslessAsyn
 must reject the artifact before bytes are returned or written. The existing save methods continue
 to permit reported loss for callers that inspect and accept diagnostics themselves.
 
+### Redaction batch publication paths
+
+Directory batches capture the physical evidence, output, and manifest destinations during planning.
+Publication fails if a directory is replaced by a link before staging, instead of following the new
+target. Keep these directories stable through the batch. On Linux and macOS, the destination
+filesystem must support atomic no-replace renames; an unsupported filesystem fails publication
+before replacing an existing artifact. Batch verification also requires the opened output file to
+remain inside its captured output root.
+
 ### PDF-to-Word editable layout defaults
 
 Editable PDF-to-Word conversion now preserves each source page's physical size, removes Word style spacing that would inflate explicitly positioned PDF text, and keeps supported axis-aligned images at their source page positions on unrotated, uncropped pages when their bounds fit the page. Other images remain in the document flow. These defaults improve dense business documents but can change pagination and image flow in applications that relied on the earlier Word defaults.

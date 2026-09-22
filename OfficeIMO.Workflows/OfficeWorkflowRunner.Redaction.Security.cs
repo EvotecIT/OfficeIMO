@@ -25,7 +25,8 @@ public sealed partial class OfficeWorkflowRunner {
             : PdfDocument.Load(output, readOptions).Security.ValidateSignatures(request.OutputSignatureValidator);
         bool shouldBeSigned = request.Recipe.SignaturePolicy == PdfRedactionSignaturePolicy.CreateAndSignDerivative;
         if (shouldBeSigned) {
-            if (report.SignatureCount != 1 || !report.IsStructurallyValid) {
+            if (report.SignatureCount != 1 || !report.IsStructurallyValid ||
+                !report.Signatures.All(static signature => signature.ByteRangeCoversEndOfFile)) {
                 throw new RedactionWorkflowException("The signed derivative did not contain exactly one structurally valid output signature.");
             }
             if (request.OutputSignatureValidator is not null && (!report.MathematicalSignaturesVerified || !report.DigestVerified)) {
@@ -61,7 +62,8 @@ public sealed partial class OfficeWorkflowRunner {
             ? PdfDocument.Load(output, readOptions).Security.ValidateSignatures()
             : PdfDocument.Load(output, readOptions).Security.ValidateSignatures(request.OutputSignatureValidator);
         bool shouldBeSigned = request.Recipe.SignaturePolicy == PdfRedactionSignaturePolicy.CreateAndSignDerivative;
-        if (shouldBeSigned && (report.SignatureCount != 1 || !report.IsStructurallyValid)) {
+        if (shouldBeSigned && (report.SignatureCount != 1 || !report.IsStructurallyValid ||
+                !report.Signatures.All(static signature => signature.ByteRangeCoversEndOfFile))) {
             throw new RedactionWorkflowException("The existing derivative does not contain exactly one structurally valid output signature.");
         }
         if (!shouldBeSigned && report.HasSignatures) throw new RedactionWorkflowException("The existing output contains a signature not allowed by the selected derivative policy.");

@@ -70,8 +70,7 @@ public sealed partial class MainWindowViewModel {
             PdfVisualComparisonReport report = await workspace.RunNonDetachableCpuWorkAsync(() => primary.CompareTo(actual,
                 new PdfVisualComparisonOptions {
                     Scale = 1, MaxPages = MaximumComparisonPages, MaxPixelsPerImage = MaximumComparisonRasterPixels,
-                    // Each pair charges the two source rasters and the difference raster.
-                    MaxTotalPixels = 3L * MaximumComparisonPages * MaximumComparisonRasterPixels,
+                    MaxTotalPixels = 200_000_000,
                     MaxTotalOutputBytes = 64 * 1024 * 1024
                 }, operation.Token), operation.Token).ConfigureAwait(true);
             operation.Token.ThrowIfCancellationRequested();
