@@ -35,7 +35,7 @@ internal static partial class PdfRedactionApplier {
             .ToDictionary(static group => group.Key, static group => group.ToArray());
         var selectedKinds = new HashSet<PdfLogicalElementKind>(kinds);
         StringComparison comparison = plan.SearchMatchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
-        long remainingLogicalVerificationWork = 20_000_000L;
+        var workBudget = new PdfRedactionSearchWorkBudget("search verification");
         foreach (KeyValuePair<int, PdfRedactionArea[]> page in areasByPage) {
             int pageNumber = page.Key;
             cancellationToken.ThrowIfCancellationRequested();
@@ -44,6 +44,7 @@ internal static partial class PdfRedactionApplier {
             string remaining = rewritten.Pages[pageNumber - 1].ExtractText(cancellationToken);
             foreach (string literal in literals) {
                 cancellationToken.ThrowIfCancellationRequested();
+                workBudget.ChargeTextScan(remaining, literal);
                 if (Contains(remaining, literal, comparison)) ThrowSurvivingText(pageNumber);
             }
             PdfLogicalTextBlock[] rewrittenBlocks = rewrittenBlocksByPage != null &&
@@ -52,7 +53,7 @@ internal static partial class PdfRedactionApplier {
             if (rewrittenLogical != null) {
                 foreach (PdfLogicalTextBlock block in rewrittenBlocks) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    foreach (Regex regex in regexes) if (regex.IsMatch(block.Text)) ThrowSurvivingText(pageNumber);
+                    foreach (Regex regex in regexes) if (workBudget.IsMatch(regex, block.Text)) ThrowSurvivingText(pageNumber);
                 }
             }
             if (sourceLogical != null) {
@@ -67,21 +68,25 @@ internal static partial class PdfRedactionApplier {
                 }
                 foreach (PdfLogicalTextBlock block in sourceBlocks) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    bool selected = selectedKinds.Contains(block.Kind) ||
-                        literals.Any(literal => Contains(block.Text, literal, comparison)) ||
-                        regexes.Any(regex => regex.IsMatch(block.Text));
+                    bool selected = selectedKinds.Contains(block.Kind);
+                    for (int i = 0; !selected && i < literals.Length; i++) {
+                        workBudget.ChargeTextScan(block.Text, literals[i]);
+                        selected = Contains(block.Text, literals[i], comparison);
+                    }
+                    for (int i = 0; !selected && i < regexes.Length; i++)
+                        selected = workBudget.IsMatch(regexes[i], block.Text);
                     if (!selected) continue;
                     foreach (PdfTextSpan span in block.Spans) {
                         if (string.IsNullOrEmpty(span.Text)) continue;
                         PdfTextSpanBounds sourceBounds = PdfTextSpanGeometry.GetAxisAlignedBounds(span);
                         foreach (PdfRedactionArea area in page.Value) {
                             cancellationToken.ThrowIfCancellationRequested();
-                            ConsumeLogicalVerificationWork(ref remainingLogicalVerificationWork, 1L);
+                            workBudget.Charge(1L);
                             if (!area.IntersectsRectangle(sourceBounds.Left, sourceBounds.Bottom, sourceBounds.Width, sourceBounds.Height))
                                 continue;
                             foreach ((PdfTextSpan candidateSpan, PdfTextSpanBounds candidateBounds) in rewrittenSpans) {
                                 cancellationToken.ThrowIfCancellationRequested();
-                                ConsumeLogicalVerificationWork(ref remainingLogicalVerificationWork, 1L);
+                                workBudget.Charge(1L);
                                 if (!string.IsNullOrWhiteSpace(candidateSpan.Text) &&
                                     sourceBounds.Left < candidateBounds.Right && sourceBounds.Right > candidateBounds.Left &&
                                     sourceBounds.Bottom < candidateBounds.Top && sourceBounds.Top > candidateBounds.Bottom)
@@ -92,12 +97,6 @@ internal static partial class PdfRedactionApplier {
                 }
             }
         }
-    }
-
-    private static void ConsumeLogicalVerificationWork(ref long remaining, long work) {
-        if (work > remaining)
-            throw new InvalidDataException("PDF redaction search verification exceeds its logical text work limit.");
-        remaining -= work;
     }
 
     private static bool Contains(string text, string value, StringComparison comparison) {

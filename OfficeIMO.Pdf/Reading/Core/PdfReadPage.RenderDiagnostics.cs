@@ -15,6 +15,8 @@ public sealed partial class PdfReadPage {
         internal int MaximumCharacters { get; }
         internal bool SuppressRetention { get; }
         internal long RetainedCharacters { get; set; }
+        internal bool TrackUnsupportedPaint { get; set; }
+        internal bool HasUnsupportedPaint { get; set; }
     }
 
     internal IReadOnlyList<PdfRenderCapabilityDiagnostic> GetRenderCapabilityDiagnostics(CancellationToken cancellationToken = default) =>
@@ -22,10 +24,22 @@ public sealed partial class PdfReadPage {
 
     internal IReadOnlyList<PdfRenderCapabilityDiagnostic> GetRenderCapabilityDiagnostics(
         int maximumDiagnostics, int maximumDiagnosticCharacters, CancellationToken cancellationToken) {
+        BoundedRenderDiagnostics diagnostics = ScanRenderCapabilityDiagnostics(
+            maximumDiagnostics, maximumDiagnosticCharacters, trackUnsupportedPaint: false, cancellationToken);
+        return diagnostics.Count == 0 ? Array.Empty<PdfRenderCapabilityDiagnostic>() : diagnostics.AsReadOnly();
+    }
+
+    private bool HasUnboundedUnsupportedPaint() => ScanRenderCapabilityDiagnostics(
+        1, 1, trackUnsupportedPaint: true, default).HasUnsupportedPaint;
+
+    private BoundedRenderDiagnostics ScanRenderCapabilityDiagnostics(
+        int maximumDiagnostics, int maximumDiagnosticCharacters, bool trackUnsupportedPaint,
+        CancellationToken cancellationToken) {
         Guard.PositiveInteger(maximumDiagnostics, nameof(maximumDiagnostics));
         Guard.PositiveInteger(maximumDiagnosticCharacters, nameof(maximumDiagnosticCharacters));
         cancellationToken.ThrowIfCancellationRequested();
-        var diagnostics = new BoundedRenderDiagnostics(maximumDiagnostics, maximumDiagnosticCharacters);
+        var diagnostics = new BoundedRenderDiagnostics(maximumDiagnostics, maximumDiagnosticCharacters,
+            suppressRetention: trackUnsupportedPaint) { TrackUnsupportedPaint = trackUnsupportedPaint };
         var seen = new HashSet<string>(StringComparer.Ordinal);
         PdfOutputIntentColorTransform? outputIntentColorTransform = _outputIntentColorTransform;
         if (outputIntentColorTransform != null) {
@@ -62,7 +76,7 @@ public sealed partial class PdfReadPage {
             0,
             GetVisualPageTransform());
         CollectAnnotationCapabilityDiagnostics(diagnostics, seen, activeForms, pageContentBudget, type3GlyphBudget, textClippingBudget);
-        return diagnostics.Count == 0 ? Array.Empty<PdfRenderCapabilityDiagnostic>() : diagnostics.AsReadOnly();
+        return diagnostics;
     }
 
     private void CollectRenderCapabilityDiagnostics(
@@ -1598,6 +1612,9 @@ public sealed partial class PdfReadPage {
 
     private static void AddRenderDiagnostic(List<PdfRenderCapabilityDiagnostic> diagnostics, HashSet<string> seen, string capabilityId, string subject) {
         var bounded = (BoundedRenderDiagnostics)diagnostics;
+        if (bounded.TrackUnsupportedPaint &&
+            (capabilityId == PdfRenderCapabilities.UnknownOperatorId ||
+             capabilityId == PdfRenderCapabilities.UnsupportedShadingId)) bounded.HasUnsupportedPaint = true;
         // Capability validation needs the Boolean result, not a second diagnostic
         // collection. The public render scan retains and bounds diagnostics.
         if (bounded.SuppressRetention) return;

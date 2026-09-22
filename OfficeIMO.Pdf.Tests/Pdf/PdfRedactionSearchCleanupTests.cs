@@ -7,6 +7,39 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfRedactionSearchCleanupTests {
     [Fact]
+    public void SearchRejectsCriterionMultiplicationBeforeScanningEveryBlock() {
+        byte[] source = PdfDocument.Create()
+            .Paragraph(p => p.Text(new string('A', 4_096)))
+            .ToBytes();
+        var search = new PdfRedactionSearchOptions();
+        for (int i = 0; i < 5_000; i++) search.AddLiteral("unmatched-" + i);
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => PdfRedactionPlanner.Search(source, search));
+
+        Assert.Contains("logical text work limit", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ApplyChargesSourceCriteriaBeforeCheckingRedactionGeometry() {
+        byte[] source = PdfDocument.Create()
+            .Paragraph(p => p.Text(new string('A', 4_096) + " SECRET"))
+            .ToBytes();
+        PdfRedactionPlan searched = PdfRedactionPlanner.Search(source,
+            new PdfRedactionSearchOptions().AddLiteral("SECRET"));
+        Assert.NotEmpty(searched.Areas);
+        string[] criteria = Enumerable.Range(0, 20_000)
+            .Select(i => "literal:unmatched-" + i)
+            .Concat(["literal:SECRET"]).ToArray();
+        var plan = new PdfRedactionPlan(searched.Preflight, searched.Areas, searched.Matches,
+            searched.Findings, criteria, searched.SourceSha256,
+            searched.PageIdentities, searched.ReviewedTextObjectScopes, searched.SearchMatchCase);
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => PdfRedactionApplier.Apply(source, plan));
+
+        Assert.Contains("logical text work limit", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SearchAndApply_RemovesLiteralRegexFieldMetadataAndAttachmentResidue() {
         var pdfOptions = new PdfOptions().AddEmbeddedFile("secret.txt", Encoding.UTF8.GetBytes("ATTACHMENT-SECRET"), "text/plain", PdfAssociatedFileRelationship.Data);
         byte[] source = PdfDocument.Create(pdfOptions)

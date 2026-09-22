@@ -45,10 +45,10 @@ public partial class PdfPageImageRendererTests {
         Assert.Equal(PdfReadLimitKind.RenderDiagnostics, Assert.Throws<PdfReadLimitException>(() =>
             document.Reader.RenderCapabilityDiagnostics(1, renderOptions: strict)).Kind);
         Assert.Equal(PdfReadLimitKind.RenderDiagnostics, Assert.Throws<PdfReadLimitException>(() =>
-            document.AssessRenderCompatibility(renderOptions: strict)).Kind);
+            document.AssessRenderCompatibility(options: null, renderOptions: strict)).Kind);
         Assert.Equal(2, document.Reader.RenderCapabilityDiagnostics(1, renderOptions: generous).Count);
         Assert.Equal(2, document.Render.CapabilityDiagnostics(1, generous).Count);
-        Assert.Equal(2, Assert.Single(document.AssessRenderCompatibility(renderOptions: generous).Pages).Diagnostics.Count);
+        Assert.Equal(2, Assert.Single(document.AssessRenderCompatibility(options: null, renderOptions: generous).Pages).Diagnostics.Count);
 
         Assert.Equal(PdfReadLimitKind.RenderDiagnostics, Assert.Throws<PdfReadLimitException>(() =>
             document.ExportImages(OfficeImageExportFormat.Svg,

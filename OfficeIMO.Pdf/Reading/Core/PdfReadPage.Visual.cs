@@ -86,10 +86,6 @@ public sealed partial class PdfReadPage {
         return (x.Min(), pageHeight - y.Max(), x.Max(), pageHeight - y.Min());
     }
 
-    private bool HasUnboundedUnsupportedPaint() => GetRenderCapabilityDiagnostics().Any(static diagnostic =>
-        diagnostic.Code == PdfRenderCapabilities.UnknownOperatorId ||
-        diagnostic.Code == PdfRenderCapabilities.UnsupportedShadingId);
-
     internal readonly struct PdfAppendedTextBounds {
         internal PdfAppendedTextBounds(double left, double bottom, double right, double top, double paintOrder) {
             Left = left;

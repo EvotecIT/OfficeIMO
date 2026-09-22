@@ -462,7 +462,9 @@ internal static partial class PdfRedactionApplier {
             additionalPageContentBytes: additionalContentBytes,
             additionalRetainedContentBytes: additionalDecodedStreamBytes,
             additionalContentOperations: additionalContentBytes,
-            additionalContentOperands: additionalContentBytes);
+            additionalContentOperands: additionalContentBytes,
+            additionalPrintProductionOperations: additionalContentBytes > int.MaxValue / 2
+                ? int.MaxValue : additionalContentBytes * 2);
     }
 
     private static int SaturatingAdd(int value, int added) =>

@@ -211,7 +211,9 @@ The visible-element and measured-glyph budgets remain separate.
 PDF/X color inspection now limits one document to 4,096 distinct content contexts
 and 5,000,000 aggregate content operations. Configure
 `MaxPrintProductionContexts` and `MaxPrintProductionOperations` in
-`PdfReadLimits` for trusted documents that need more. OCR merge limits raw native
+`PdfReadLimits` for trusted documents that need more. OfficeIMO-generated output
+grows these allowances for the content contexts and operations it adds; the
+source document's configured limits remain unchanged. OCR merge limits raw native
 text spans before overlap analysis and caps retained intersections per OCR word
 with `MaxNativeTextOverlapIntersectionsPerWord` (default 10,000). An interaction
 map also uses `MaxNativeTextCharactersPerPage` (default 8,388,608) for the
@@ -248,8 +250,10 @@ are capped at 4,096 characters each and 4 MiB in aggregate. Set
 trusted document needs a larger font inventory.
 
 Search-based redaction now stops if logical-kind verification needs more than
-20,000,000 span intersection or substring comparison work units across the
-document. An `InvalidDataException` means the rewritten file was not verified;
+20,000,000 text scan and span intersection work units across the document.
+Planning uses the same work ceiling; each planning or verification phase also
+has a 30-second elapsed limit in addition to the per-match regex timeout.
+An `InvalidDataException` means the search or rewritten file was not verified;
 do not use that output as a completed redaction.
 
 ### Configure PDF drawing fonts before projection

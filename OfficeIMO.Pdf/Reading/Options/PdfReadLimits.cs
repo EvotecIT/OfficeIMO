@@ -211,8 +211,8 @@ public sealed class PdfReadLimits {
             MaxPositionedTextWorkCharactersPerPage = MaxPositionedTextWorkCharactersPerPage,
             MaxPositionedTextProjectionCharactersPerPage = MaxPositionedTextProjectionCharactersPerPage,
             MaxClippedTextFontCopyWorkPerPage = MaxClippedTextFontCopyWorkPerPage,
-            MaxPrintProductionContexts = MaxPrintProductionContexts,
-            MaxPrintProductionOperations = MaxPrintProductionOperations,
+            MaxPrintProductionContexts = SaturatingAdd(MaxPrintProductionContexts, growth.AdditionalPrintProductionContexts),
+            MaxPrintProductionOperations = SaturatingAdd(MaxPrintProductionOperations, growth.AdditionalPrintProductionOperations),
             MaxType3GlyphInvocationsPerPage = MaxType3GlyphInvocationsPerPage,
             MaxImageReferenceSteps = MaxImageReferenceSteps
         };

@@ -12,6 +12,8 @@ internal static partial class PdfAnnotationFlattener {
         long totalContentBytes = 0L;
         int maximumContentOperations = 0;
         int maximumContentOperands = 0;
+        int addedContentContexts = 0;
+        int totalContentOperations = 0;
         foreach (var entry in objects.OrderBy(pair => pair.Key).ToArray()) {
             if (entry.Value.Value is not PdfDictionary page ||
                 page.Get<PdfName>("Type")?.Name != "Page" ||
@@ -71,6 +73,10 @@ internal static partial class PdfAnnotationFlattener {
             int contentObjectNumber = nextObjectNumber++;
             PdfStream contentStream = CreateContentStream(content);
             objects[contentObjectNumber] = new PdfIndirectObject(contentObjectNumber, 0, contentStream);
+            addedContentContexts++;
+            int addedOperations = SaturatingMultiply(pageAnnotations.Count, 4);
+            totalContentOperations = totalContentOperations > int.MaxValue - addedOperations
+                ? int.MaxValue : totalContentOperations + addedOperations;
             AppendPageContent(objects, page, contentObjectNumber);
             flattenedCount += pageAnnotations.Count;
             maximumContentBytes = Math.Max(maximumContentBytes, contentStream.Data.Length);
@@ -89,7 +95,10 @@ internal static partial class PdfAnnotationFlattener {
             additionalRetainedContentBytes: totalContentBytes,
             additionalContentOperations: maximumContentOperations,
             additionalContentOperands: maximumContentOperands,
-            additionalContentNestingDepth: flattenedCount == 0 ? 0 : 1);
+            additionalContentNestingDepth: flattenedCount == 0 ? 0 : 1,
+            additionalPrintProductionContexts: addedContentContexts,
+            additionalPrintProductionOperations: totalContentOperations > int.MaxValue / 2
+                ? int.MaxValue : totalContentOperations * 2);
         return flattenedCount;
     }
 

@@ -94,7 +94,9 @@ public sealed class PdfLoadOptions {
             minimumObjectNestingDepth: growth.MinimumObjectNestingDepth,
             additionalContentOperations: growth.AdditionalContentOperations,
             additionalContentOperands: growth.AdditionalContentOperands,
-            additionalContentNestingDepth: growth.AdditionalContentNestingDepth);
+            additionalContentNestingDepth: growth.AdditionalContentNestingDepth,
+            additionalPrintProductionContexts: Math.Max(growth.AdditionalPrintProductionContexts, addedHeaders),
+            additionalPrintProductionOperations: growth.AdditionalPrintProductionOperations);
 
         return new PdfLoadOptions {
             ParsingMode = source.ParsingMode,

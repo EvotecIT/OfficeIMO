@@ -87,7 +87,10 @@ internal static partial class PdfStamper {
             minimumObjectNestingDepth: 16,
             additionalContentOperations: maximumGeneratedPageBytes,
             additionalContentOperands: maximumGeneratedPageBytes,
-            additionalContentNestingDepth: maximumGeneratedPageBytes == 0 ? 0 : 1);
+            additionalContentNestingDepth: maximumGeneratedPageBytes == 0 ? 0 : 1,
+            additionalPrintProductionContexts: selectedPages.Count,
+            additionalPrintProductionOperations: totalGeneratedBytes >= int.MaxValue / 2L
+                ? int.MaxValue : (int)(totalGeneratedBytes * 2L));
         return StampPageSetCore(pdf, requests, readOptions);
     }
 
