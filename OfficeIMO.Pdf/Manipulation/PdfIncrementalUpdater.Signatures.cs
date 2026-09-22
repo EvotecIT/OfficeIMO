@@ -231,7 +231,8 @@ internal static partial class PdfIncrementalUpdater {
     public static void ApplyExternalSignature(string inputPath, string outputPath, byte[] signatureContents) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         Guard.NotNullOrWhiteSpace(outputPath, nameof(outputPath));
-        OfficeFileCommit.WriteAllBytes(outputPath, ApplyExternalSignature(File.ReadAllBytes(inputPath), signatureContents));
+        PdfDocumentSource source = PdfDocumentSource.FromPath(inputPath, null);
+        OfficeFileCommit.WriteAllBytes(outputPath, ApplyExternalSignature(source.Bytes, signatureContents, source.Options));
     }
 
     private static void ValidateExternalSignatureOptions(PdfExternalSignatureOptions options) {
