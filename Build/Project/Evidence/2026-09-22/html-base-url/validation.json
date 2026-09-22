@@ -10,11 +10,11 @@
   },
   "source": {
     "officeCode": "cda3b77d40924a34dc19f4fc44b9d573dde54a5c",
-    "angleSharpCode": "61af3274b64438f6365209071197d3b1cc867bb6",
-    "angleSharpPin": "a355eb5de7a635ae2f7ffc5945bc813e03ec774b",
+    "angleSharpCode": "72d7bad7ca7045eafaedfb13fb59bc9867ea9a69",
+    "angleSharpPin": "72d7bad7ca7045eafaedfb13fb59bc9867ea9a69",
     "angleSharpJsCode": "3d8c1de6fd6e4d37bb0e1dad9f495e711685bbd4",
     "angleSharpJsPin": "2aaa705edf934d1f93009977de4acab49b4fc614",
-    "upstreamCandidate": "d4cb91d4fe7f866972ee358ac9f590bfa78f1d5a"
+    "upstreamCandidate": "56c89e6f733f043a8f29d35b6814b358a82b1ea2"
   },
   "broaderWorkerSource": {
     "office": "b62cb3f9e",
@@ -27,48 +27,94 @@
       "passed": 55,
       "skipped": 0,
       "failed": 0,
-      "log": "core-focused-closure.log"
+      "log": "core-focused-closure.log",
+      "sourceSet": "preMaintainerStructureSource"
     },
     {
       "name": "standaloneUpstream",
       "passed": 4118,
       "skipped": 1,
       "failed": 0,
-      "log": "upstream-base-qualified.log"
+      "log": "upstream-base-qualified.log",
+      "sourceSet": "preMaintainerStructureSource"
     },
     {
       "name": "bindingSuite",
       "passed": 333,
       "skipped": 0,
       "failed": 0,
-      "log": "js-qualified-final.log"
+      "log": "js-qualified-final.log",
+      "sourceSet": "preMaintainerStructureSource"
     },
     {
       "name": "workerNet10",
       "passed": 53,
       "skipped": 0,
       "failed": 0,
-      "log": "runtime-pinned-final.log"
+      "log": "runtime-pinned-final.log",
+      "sourceSet": "preMaintainerStructureSource"
     },
     {
       "name": "workerNet8",
       "passed": 53,
       "skipped": 0,
       "failed": 0,
-      "log": "runtime-net8-final.log"
+      "log": "runtime-net8-final.log",
+      "sourceSet": "preMaintainerStructureSource"
     },
     {
       "name": "broaderWorkerBeforeFinalTemplateFix",
       "passed": 215,
       "skipped": 0,
       "failed": 0,
-      "log": "runtime-final.log"
+      "log": "runtime-final.log",
+      "sourceSet": "preMaintainerStructureSource"
+    },
+    {
+      "name": "upstreamAfterMaintainerStructure",
+      "passed": 4118,
+      "skipped": 1,
+      "failed": 0,
+      "log": "upstream-base-maintainer-final.log",
+      "sourceSet": "source"
+    },
+    {
+      "name": "forkCoreAfterMaintainerStructure",
+      "passed": 4129,
+      "skipped": 1,
+      "failed": 0,
+      "log": "fork-core-maintainer-final.log",
+      "sourceSet": "source"
+    },
+    {
+      "name": "workerNet10AfterMaintainerStructure",
+      "passed": 53,
+      "skipped": 0,
+      "failed": 0,
+      "log": "runtime-maintainer-net10.log",
+      "sourceSet": "source"
+    },
+    {
+      "name": "styleReplacementNet10AfterMaintainerStructure",
+      "passed": 1,
+      "skipped": 0,
+      "failed": 0,
+      "log": "runtime-maintainer-style.log",
+      "sourceSet": "source"
+    },
+    {
+      "name": "workerNet8WithStyleReplacementAfterMaintainerStructure",
+      "passed": 54,
+      "skipped": 0,
+      "failed": 0,
+      "log": "runtime-maintainer-net8.log",
+      "sourceSet": "source"
     }
   ],
   "netstandardBuild": {
     "warnings": 0,
     "errors": 0,
-    "log": "upstream-base-netstandard.log"
+    "log": "upstream-base-maintainer-netstandard.log"
   },
   "render": {
     "widths": [
@@ -81,7 +127,7 @@
       "navigated"
     ],
     "finalByteIdenticalToInspectedImages": true,
-    "log": "render-proof-final.log"
+    "log": "render-proof-maintainer-final.log"
   },
   "review": {
     "reviewer": "/root/base_url_review",
@@ -116,5 +162,21 @@
     "loaded-360.png": "e004e567d5f0fc3b764598522a1ec8adb69334ddeacf47366e33f0436216f522",
     "next.html": "08c83989827c1c104269870a702f3754017cca00d299e526567a90fcd1106a70",
     "navigated-360.png": "207228b17660202dca45d338658ea845b7dfe5a0c4d01e82a1c702dadeea2ebb"
+  },
+  "preMaintainerStructureSource": {
+    "officeCode": "cda3b77d40924a34dc19f4fc44b9d573dde54a5c",
+    "angleSharpCode": "61af3274b64438f6365209071197d3b1cc867bb6",
+    "angleSharpPin": "a355eb5de7a635ae2f7ffc5945bc813e03ec774b",
+    "angleSharpJsCode": "3d8c1de6fd6e4d37bb0e1dad9f495e711685bbd4",
+    "angleSharpJsPin": "2aaa705edf934d1f93009977de4acab49b4fc614",
+    "upstreamCandidate": "d4cb91d4fe7f866972ee358ac9f590bfa78f1d5a"
+  },
+  "maintainerFeedback": {
+    "partialDocument": "Replaced with a lazy internal DocumentBaseUrl helper.",
+    "perNodeAllocation": "Removed replacement depth from Node. Template and fork-only style replacement state stays on the respective element.",
+    "threads": [
+      "https://github.com/AngleSharp/AngleSharp/pull/1355#discussion_r4071137527",
+      "https://github.com/AngleSharp/AngleSharp/pull/1355#discussion_r4071165518"
+    ]
   }
 }

@@ -17,10 +17,14 @@ dotnet test OfficeIMO.Html.Runtime.Tests/OfficeIMO.Html.Runtime.Tests.csproj \
   -- xUnit.MaxParallelThreads=1
 ```
 
-Repeat with `-f net8.0` for the older runtime. The provider's
+Repeat with `-f net8.0` for the older runtime. After moving replacement state
+onto the owning elements, also run
+`ReplacingParserStyleContentRetiresTheOldImportAndCannotRestoreItsSheet` from
+`RuntimeScriptLifecycleTests` on both frameworks. The provider's
 `DocumentBaseUrlTests`, `MutationVersionTests` and `DOMEventsTests` cover the native
 contract. The standalone upstream candidate also runs the full AngleSharp suite.
-Exact revisions and results are recorded in `validation.json`.
+Exact revisions and results are recorded in `validation.json`, distinguishing
+validation before and after the maintainer-requested structural changes.
 
 `RenderProof.cs.txt` is a standalone console fixture referencing `OfficeIMO.Html`,
 `OfficeIMO.Html.Runtime` and `OfficeIMO.Html.AngleSharp`. Pass the built runtime
@@ -44,6 +48,12 @@ choose the document base, and replacing template content cannot re-freeze anothe
 active base. Tests also distinguish ordinary template DOM children and content
 moved into the document. One full review and one targeted confirmation were used;
 the final follow-up fix was validated by the owning agent's regression checks.
+
+Upstream review requested a single `Document` class and no replacement-depth
+field on every node. The final implementation keeps frozen-base state in a lazy
+internal document helper and replacement state on the template element. The
+maintained fork also keeps its stylesheet replacement state on the style element.
+Both complete core suites were rerun after these structural changes.
 
 An early concurrent worker run encountered five deadline failures while the host
 was running heavy unrelated builds. The serial rerun passed all 215 cases without
