@@ -116,55 +116,44 @@ namespace OfficeIMO.Excel {
 
         private SavePayload PreparePackageForSave(ExcelSaveOptions? options, bool closeDocument = true) {
             PrepareWorkbookForSave(options);
-            var carriageReturnWorksheets = new Dictionary<string, FileStream>(StringComparer.Ordinal);
-            try {
-                foreach (var part in WorkbookPartRoot.WorksheetParts) {
-                    if (part.Worksheet?.Descendants<OpenXmlLeafTextElement>()
-                        .Any(text => text.Text?.IndexOf('\r') >= 0) != true) continue;
+            var carriageReturnWorksheets = new Dictionary<string, Worksheet>(StringComparer.Ordinal);
+            foreach (var part in WorkbookPartRoot.WorksheetParts) {
+                Worksheet? worksheet = part.Worksheet;
+                if (worksheet?.Descendants<OpenXmlLeafTextElement>()
+                    .Any(text => text.Text?.IndexOf('\r') >= 0) != true) continue;
 
-                    FileStream xml = OfficeTemporaryFile.Create(
-                        "OfficeIMO.Excel-Worksheet-", ".xml", FileOptions.SequentialScan, out _);
-                    try {
-                        ExcelXmlPartWriter.WritePreservingLineEndings(xml, part.Worksheet);
-                        carriageReturnWorksheets.Add(part.Uri.OriginalString.TrimStart('/'), xml);
-                    } catch {
-                        xml.Dispose();
-                        throw;
-                    }
-                }
-
-                PackagePropertiesSnapshot propertiesSnapshot = PackagePropertiesSnapshot.Capture(_spreadSheetDocument);
-                using FileStream snapshot = OfficeTemporaryFile.Create(
-                    "OfficeIMO.Excel-Save-", ".tmp", FileOptions.SequentialScan, out _);
-                using (_spreadSheetDocument.Clone(snapshot)) { }
-                snapshot.Flush();
-                ThrowIfPackageMaterializationExceedsLimit(snapshot.Length, options);
-
-                byte[] packageBytes;
-                if (carriageReturnWorksheets.Count == 0) {
-                    snapshot.Position = 0;
-                    packageBytes = ReadPackageBytes(snapshot, options);
-                } else {
-                    using FileStream rewritten = OfficeTemporaryFile.Create(
-                        "OfficeIMO.Excel-Rewritten-", ".tmp", FileOptions.SequentialScan, out _);
-                    RewritePackageWithPreservedWorksheetCarriageReturns(snapshot, rewritten, carriageReturnWorksheets);
-                    ThrowIfPackageMaterializationExceedsLimit(rewritten.Length, options);
-                    rewritten.Position = 0;
-                    packageBytes = ReadPackageBytes(rewritten, options);
-                }
-
-                if (closeDocument) {
-                    try { _spreadSheetDocument.Dispose(); } catch { }
-                }
-
-                return new SavePayload(packageBytes, propertiesSnapshot, closeDocument, normalizeContentTypes: !_packageContentTypesKnownNormalized, applyPackageProperties: _packagePropertiesDirty);
-            } finally {
-                foreach (FileStream xml in carriageReturnWorksheets.Values) xml.Dispose();
+                carriageReturnWorksheets.Add(part.Uri.OriginalString.TrimStart('/'), worksheet);
             }
+
+            PackagePropertiesSnapshot propertiesSnapshot = PackagePropertiesSnapshot.Capture(_spreadSheetDocument);
+            using FileStream snapshot = OfficeTemporaryFile.Create(
+                "OfficeIMO.Excel-Save-", ".tmp", FileOptions.SequentialScan, out _);
+            using (_spreadSheetDocument.Clone(snapshot)) { }
+            snapshot.Flush();
+            ThrowIfPackageMaterializationExceedsLimit(snapshot.Length, options);
+
+            byte[] packageBytes;
+            if (carriageReturnWorksheets.Count == 0) {
+                snapshot.Position = 0;
+                packageBytes = ReadPackageBytes(snapshot, options);
+            } else {
+                using FileStream rewritten = OfficeTemporaryFile.Create(
+                    "OfficeIMO.Excel-Rewritten-", ".tmp", FileOptions.SequentialScan, out _);
+                RewritePackageWithPreservedWorksheetCarriageReturns(snapshot, rewritten, carriageReturnWorksheets);
+                ThrowIfPackageMaterializationExceedsLimit(rewritten.Length, options);
+                rewritten.Position = 0;
+                packageBytes = ReadPackageBytes(rewritten, options);
+            }
+
+            if (closeDocument) {
+                try { _spreadSheetDocument.Dispose(); } catch { }
+            }
+
+            return new SavePayload(packageBytes, propertiesSnapshot, closeDocument, normalizeContentTypes: !_packageContentTypesKnownNormalized, applyPackageProperties: _packagePropertiesDirty);
         }
 
         private static void RewritePackageWithPreservedWorksheetCarriageReturns(
-            FileStream source, FileStream destination, IReadOnlyDictionary<string, FileStream> affected) {
+            FileStream source, FileStream destination, IReadOnlyDictionary<string, Worksheet> affected) {
             source.Position = 0;
             int replaced = 0;
             using (var input = new ZipArchive(source, ZipArchiveMode.Read, leaveOpen: true))
@@ -176,9 +165,8 @@ namespace OfficeIMO.Excel {
                     written.ExternalAttributes = entry.ExternalAttributes;
 #endif
                     using Stream target = written.Open();
-                    if (affected.TryGetValue(entry.FullName, out FileStream? xml)) {
-                        xml.Position = 0;
-                        xml.CopyTo(target);
+                    if (affected.TryGetValue(entry.FullName, out Worksheet? worksheet)) {
+                        ExcelXmlPartWriter.WritePreservingLineEndings(target, worksheet);
                         replaced++;
                     } else {
                         using Stream original = entry.Open();

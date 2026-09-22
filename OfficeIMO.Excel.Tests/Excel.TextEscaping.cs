@@ -161,6 +161,42 @@ public class ExcelTextEscapingTests {
         }
     }
 
+    [Fact]
+    public void StandardPackagePreservesCarriageReturnsAcrossMultipleWorksheets() {
+        using var stream = new MemoryStream();
+        using (var document = ExcelDocument.Create(new MemoryStream())) {
+            for (int index = 0; index < 12; index++) {
+                var sheet = document.AddWorksheet("Text" + index);
+                sheet.CellValue(1, 1, "Sheet" + index + "\r\nLine\rEnd");
+                var cell = sheet.WorksheetPart.Worksheet.Descendants<Cell>().Single();
+                cell.CellValue = null;
+                cell.DataType = CellValues.InlineString;
+                cell.InlineString = new InlineString(new Text("Sheet" + index + "\r\nLine\rEnd"));
+                sheet.MarkRequiresSavePreparation();
+            }
+            document.Save(stream, new ExcelSaveOptions { DisableFastPackageWriter = true });
+            Assert.Equal(ExcelSavePackageWriter.StandardPackage, document.LastSaveDiagnostics.Writer);
+        }
+
+        stream.Position = 0;
+        using (var package = SpreadsheetDocument.Open(stream, false)) {
+            foreach (var sheet in package.WorkbookPart!.Workbook.Sheets!.Elements<Sheet>()) {
+                int index = int.Parse(sheet.Name!.Value!.Substring(4), CultureInfo.InvariantCulture);
+                var part = (WorksheetPart)package.WorkbookPart.GetPartById(sheet.Id!.Value!);
+                var cell = part.Worksheet.Descendants<Cell>().Single();
+                string actual = cell.InlineString!.InnerText;
+                Assert.Equal("Sheet" + index + "\r\nLine\rEnd", actual);
+            }
+        }
+
+        stream.Position = 0;
+        using var reopened = ExcelDocument.Load(stream);
+        for (int index = 0; index < 12; index++) {
+            Assert.True(reopened["Text" + index].TryGetCellText(1, 1, out string actual));
+            Assert.Equal("Sheet" + index + "\r\nLine\rEnd", actual);
+        }
+    }
+
     private static IEnumerable<string> Values() {
         yield return "";
         yield return " \tŁódź 😀 &<> '\"\n ";
