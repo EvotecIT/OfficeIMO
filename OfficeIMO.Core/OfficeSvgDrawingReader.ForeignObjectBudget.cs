@@ -8,10 +8,11 @@ public static partial class OfficeSvgDrawingReader {
         out int elementCount, out double pixels) {
         elementCount = 0;
         pixels = 0D;
-        var pending = new Stack<OfficeDrawing>();
-        pending.Push(drawing);
+        var pending = new Stack<(OfficeDrawing Drawing, bool FrameTransform)>();
+        pending.Push((drawing, false));
         while (pending.Count > 0) {
-            foreach (OfficeDrawingElement element in pending.Pop().Elements) {
+            (OfficeDrawing current, bool inheritedFrameTransform) = pending.Pop();
+            foreach (OfficeDrawingElement element in current.Elements) {
                 if (++elementCount > maximumElements) return false;
                 if (element is OfficeDrawingEffectGroup effect) {
                     if (effect.Opacity <= 0D) continue;
@@ -21,21 +22,30 @@ public static partial class OfficeSvgDrawingReader {
                     // use three source-sized surfaces; the nested mask uses its own size.
                     pixels += effect.SoftMask == null ? surface : surface * 3D +
                         Math.Ceiling(effect.SoftMask.InnerDrawing.Width) * Math.Ceiling(effect.SoftMask.InnerDrawing.Height);
-                    pending.Push(inner);
-                    if (effect.SoftMask != null) pending.Push(effect.SoftMask.InnerDrawing);
+                    // A parent frame transforms the completed effect surfaces,
+                    // not text while its inner scene is being rendered.
+                    pending.Push((inner, false));
+                    if (effect.SoftMask != null) pending.Push((effect.SoftMask.InnerDrawing, false));
                 } else if (element is OfficeDrawingGroup group) {
-                    if (group.ClipPath.Kind != OfficeClipPathKind.Empty) pending.Push(group.InnerDrawing);
+                    if (group.ClipPath.Kind != OfficeClipPathKind.Empty) pending.Push((group.InnerDrawing,
+                        inheritedFrameTransform || group.FrameTransform.HasValue && group.FrameTransform.Value.HasTransform));
                 } else if (element is OfficeDrawingTilingPattern pattern) {
                     if (pattern.Opacity <= 0D) continue;
                     OfficeDrawing tile = pattern.InnerTile;
                     pixels += Math.Ceiling(tile.Width) * Math.Ceiling(tile.Height);
-                    pending.Push(tile);
+                    // Tiling likewise transforms its finished tile surface.
+                    pending.Push((tile, false));
                 } else if (element is OfficeDrawingImage image) {
                     if (!TryMeasureEncodedImage(image.EncodedBytes, image.Opacity, out double imagePixels)) return false;
                     pixels += imagePixels;
                 } else if (element is OfficeDrawingImagePattern imagePattern) {
                     if (!TryMeasureEncodedImage(imagePattern.EncodedBytes, imagePattern.Opacity, out double patternPixels)) return false;
                     pixels += patternPixels;
+                } else if (element is OfficeDrawingText text && (text.HasFrameTransform || inheritedFrameTransform)) {
+                    // A positioned or vertical text layer can be larger than its
+                    // declared frame once the font is shaped. The callback has no
+                    // renderer-independent bound for that intermediate surface.
+                    return false;
                 }
                 if (double.IsNaN(pixels) || double.IsInfinity(pixels)) return false;
             }

@@ -77,6 +77,7 @@ public static partial class OfficeSvgDrawingReader {
         private readonly ISet<string> _activeIds = new HashSet<string>(StringComparer.Ordinal);
         private const int MaximumExpandedTextCharacters = 131_072;
         private int _expandedTextCharacters;
+        private int _patternStrokeOperations;
         private const double MaximumIntermediateSurfacePixels = 64_000_000D;
         private double _intermediateSurfacePixels;
         private const long MaximumEmbeddedRasterBytes = 64L * 1024L * 1024L;
@@ -114,6 +115,12 @@ public static partial class OfficeSvgDrawingReader {
         internal bool TryChargeTextCharacters(int count) {
             if (!CanChargeTextCharacters(count)) return false;
             _expandedTextCharacters += count;
+            return true;
+        }
+
+        internal bool TryChargePatternStrokeOperation() {
+            if (_patternStrokeOperations >= MaximumSvgPathCommands) return false;
+            _patternStrokeOperations++;
             return true;
         }
 

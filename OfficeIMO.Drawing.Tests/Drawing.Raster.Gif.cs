@@ -10,9 +10,64 @@ namespace OfficeIMO.Tests {
                 new OfficeImageProjection(new OfficeImagePlacement(0, 0, 1, 1)));
 
             OfficeRasterImage rendered = OfficeDrawingRasterRenderer.Render(drawing,
-                new OfficeDrawingRasterRenderOptions { MaximumRasterPixels = 1 });
+                new OfficeDrawingRasterRenderOptions {
+                    MaximumRasterPixels = 1,
+                    ImageCodec = new UnexpectedGifCodec()
+                });
 
             Assert.Equal(OfficeColor.Transparent, rendered.GetPixel(0, 0));
+            Assert.Throws<NotSupportedException>(() => OfficeDrawingRasterRenderer.Render(drawing,
+                new OfficeDrawingRasterRenderOptions {
+                    MaximumRasterPixels = 1,
+                    ThrowOnImageDecodeFailure = true,
+                    ImageCodec = new UnexpectedGifCodec()
+                }));
+        }
+
+        [Fact]
+        public void StaticLossyWebpStillUsesCallerCodecAfterManagedInspectionDeclines() {
+            byte[] webp = Convert.FromBase64String(
+                "UklGRjwAAABXRUJQVlA4IDAAAADQAQCdASoCAAIAAUAmJaACdLoB+AADsAD+8ut//NgVzXPv9//S4P0uD9Lg/9KQAAA=");
+            Assert.True(OfficeImageReader.TryIdentifyByContent(webp, null, out OfficeImageInfo info));
+            Assert.Equal(OfficeImageFormat.Webp, info.Format);
+            var codec = new LossyWebpCodec();
+            var drawing = new OfficeDrawing(2, 2).AddImage(webp, "image/webp",
+                new OfficeImageProjection(new OfficeImagePlacement(0, 0, 2, 2)));
+
+            OfficeRasterImage rendered = OfficeDrawingRasterRenderer.Render(drawing,
+                new OfficeDrawingRasterRenderOptions { ImageCodec = codec });
+
+            Assert.Equal(1, codec.Calls);
+            Assert.Equal(OfficeColor.Red, rendered.GetPixel(0, 0));
+        }
+
+        [Fact]
+        public void RequiredManagedImageDecodeReportsIdentifiedSizeLimit() {
+            byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.Red));
+            var drawing = new OfficeDrawing(1, 1).AddImage(png, "image/png",
+                new OfficeImageProjection(new OfficeImagePlacement(0, 0, 1, 1)));
+
+            Assert.Throws<NotSupportedException>(() => OfficeDrawingRasterRenderer.Render(drawing,
+                new OfficeDrawingRasterRenderOptions {
+                    MaximumRasterPixels = 1,
+                    ThrowOnImageDecodeFailure = true,
+                    ImageCodec = new UnexpectedGifCodec()
+                }));
+        }
+
+        private sealed class UnexpectedGifCodec : IOfficeRasterImageCodec {
+            public bool TryDecode(byte[] encodedBytes, string? contentType, out OfficeRasterImage? image) {
+                throw new InvalidOperationException("Rejected GIF inspection must not reach the caller codec.");
+            }
+        }
+
+        private sealed class LossyWebpCodec : IOfficeRasterImageCodec {
+            internal int Calls;
+            public bool TryDecode(byte[] encodedBytes, string? contentType, out OfficeRasterImage? image) {
+                Calls++;
+                image = new OfficeRasterImage(2, 2, OfficeColor.Red);
+                return true;
+            }
         }
 
         [Fact]

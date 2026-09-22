@@ -197,6 +197,78 @@ public partial class DrawingTests {
         Assert.Empty(drawing!.Elements);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ForeignObjectCallbackRejectsUnboundedTransformedTextLayers(bool vertical) {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'>" +
+            "<foreignObject width='10' height='10'><div xmlns='http://www.w3.org/1999/xhtml'>Text</div></foreignObject></svg>";
+        var options = new OfficeSvgDrawingReaderOptions {
+            ForeignObjectRenderer = context => {
+                if (!vertical) return new OfficeDrawing(context.Width, context.Height)
+                    .AddPositionedText("A", 0, 0, 10, 10, new OfficeImageFrameTransform(90, 5, 5),
+                        new OfficeFontInfo("Arial", 12), textAdvanceWidth: 8);
+                var source = new OfficeDrawing(10, 10).AddVerticalText("A", 0, 0, 10, 10,
+                    new OfficeFontInfo("Arial", 12));
+                return new OfficeDrawing(context.Width, context.Height)
+                    .AddDrawing(source, 0, 0, new OfficeImageFrameTransform(90, 5, 5));
+            }
+        };
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), options,
+            out OfficeDrawing? drawing, out int unsupported));
+        Assert.True(unsupported > 0);
+        Assert.Empty(drawing!.Elements);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ForeignObjectCallbackRejectsTextTransformedByClippedGroup(bool vertical) {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'>" +
+            "<foreignObject width='10' height='10'><div xmlns='http://www.w3.org/1999/xhtml'>Text</div></foreignObject></svg>";
+        var options = new OfficeSvgDrawingReaderOptions {
+            ForeignObjectRenderer = context => {
+                var source = new OfficeDrawing(10, 10);
+                if (vertical) source.AddVerticalText("A", 0, 0, 10, 10, new OfficeFontInfo("Arial", 12));
+                else source.AddPositionedText("A", 0, 0, 10, 10, new OfficeFontInfo("Arial", 12),
+                    textAdvanceWidth: 8);
+                return new OfficeDrawing(context.Width, context.Height).AddClippedDrawing(source, 0, 0,
+                    OfficeClipPath.Rectangle(10, 10), new OfficeImageFrameTransform(90, 5, 5));
+            }
+        };
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), options,
+            out OfficeDrawing? drawing, out int unsupported));
+        Assert.True(unsupported > 0);
+        Assert.Empty(drawing!.Elements);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ForeignObjectCallbackKeepsTextInsideTransformedRasterizedGroup(bool tiling) {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'>" +
+            "<foreignObject width='10' height='10'><div xmlns='http://www.w3.org/1999/xhtml'>Text</div></foreignObject></svg>";
+        var options = new OfficeSvgDrawingReaderOptions {
+            ForeignObjectRenderer = context => {
+                var text = new OfficeDrawing(10, 10).AddText("A", 0, 0, 10, 10,
+                    new OfficeFontInfo("Arial", 8));
+                var rasterized = new OfficeDrawing(10, 10);
+                if (tiling) rasterized.AddTilingPattern(text,
+                    new OfficeImagePlacement(0, 0, 10, 10), 10, 10);
+                else rasterized.AddEffectDrawing(text, OfficeTransform.Identity);
+                return new OfficeDrawing(context.Width, context.Height).AddClippedDrawing(rasterized, 0, 0,
+                    OfficeClipPath.Rectangle(10, 10), new OfficeImageFrameTransform(90, 5, 5));
+            }
+        };
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), options,
+            out OfficeDrawing? drawing, out int unsupported));
+        Assert.Equal(0, unsupported);
+        Assert.NotEmpty(drawing!.Elements);
+    }
+
     [Fact]
     public void TransparentForeignObjectEffectsDoNotChargeUnrenderedNestedSurfaces() {
         string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'>" +
@@ -724,6 +796,22 @@ public partial class DrawingTests {
 
         Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out _, out int unsupported));
         Assert.True(unsupported > 0);
+    }
+
+    [Fact]
+    public void PatternedDashWorkIsBoundedAcrossAllShapesInOneSvg() {
+        const string shape = "<path d='M0 0.05 H0.01' fill='none' stroke='url(#p)' " +
+            "stroke-width='0.001' stroke-dasharray='0.00001 0.00001'/>";
+        string prefix = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 0.1 0.1'><defs>" +
+            "<pattern id='p' patternUnits='userSpaceOnUse' width='0.01' height='0.01'>" +
+            "<rect width='0.01' height='0.01'/></pattern></defs>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(prefix + shape + "</svg>"),
+            out _, out int singleUnsupported));
+        Assert.Equal(0, singleUnsupported);
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(prefix +
+            string.Concat(Enumerable.Repeat(shape, 25)) + "</svg>"), out _, out int repeatedUnsupported));
+        Assert.True(repeatedUnsupported > 0);
     }
 
     [Fact]

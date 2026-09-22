@@ -345,12 +345,15 @@ public static partial class OfficeDrawingRasterRenderer {
             MaximumInspectionWorkPixels = Math.Max(1L, Math.Min(remainingPixels, OfficeRasterGuards.MaximumPixels)),
             CancellationToken = cancellationToken
         };
-        if (OfficeImageReader.TryIdentifyByContent(bytes, null, out OfficeImageInfo identified) &&
+        bool identifiedManagedRaster = OfficeImageReader.TryIdentifyByContent(bytes, null, out OfficeImageInfo identified) &&
             (identified.Format == OfficeImageFormat.Png || identified.Format == OfficeImageFormat.Jpeg ||
              identified.Format == OfficeImageFormat.Bmp || identified.Format == OfficeImageFormat.Webp ||
-             identified.Format == OfficeImageFormat.Gif || identified.Format == OfficeImageFormat.Tiff)) {
+             identified.Format == OfficeImageFormat.Gif || identified.Format == OfficeImageFormat.Tiff);
+        if (identifiedManagedRaster) {
             if (!OfficeRasterImageDecoder.IsWithinPixelLimit(identified.Width, identified.Height, maximumRasterPixels)) {
                 image = null;
+                if (imageCodec is RequiredImageCodec) throw new NotSupportedException(
+                    "Raster rendering cannot decode the image within the raster limit.");
                 return false;
             }
             // Identification reports the first TIFF page and the output canvas
@@ -361,8 +364,9 @@ public static partial class OfficeDrawingRasterRenderer {
         }
         bool decoded = false;
         image = null;
+        OfficeRasterDecodeInfo decodeInfo;
         try {
-            decoded = OfficeRasterImageDecoder.TryDecode(bytes, decodeOptions, out image, out _) && image != null;
+            decoded = OfficeRasterImageDecoder.TryDecode(bytes, decodeOptions, out image, out decodeInfo) && image != null;
         } finally {
             if (!decoded && reservedPixels > 0L) transformedTextBudget.ReleaseIntermediateSurfacePixels(reservedPixels);
         }
@@ -378,6 +382,18 @@ public static partial class OfficeDrawingRasterRenderer {
                 }
             }
             return true;
+        }
+        // Only validated animated WebP intentionally delegates pixel decoding
+        // to a caller codec. A rejected managed raster must not bypass its
+        // container and aggregate inspection limits through that fallback.
+        bool callerDecodedWebp = decodeInfo.Container?.Format == OfficeImageFormat.Webp &&
+            decodeInfo.Container.IsAnimated ||
+            identifiedManagedRaster && identified.Format == OfficeImageFormat.Webp &&
+            IsCallerDecodedLossyWebp(bytes);
+        if (identifiedManagedRaster && !callerDecodedWebp) {
+            if (imageCodec is RequiredImageCodec) throw new NotSupportedException(
+                "Raster rendering cannot decode the image within the managed raster limits.");
+            return false;
         }
         if (IsSvg(bytes, contentType) &&
             OfficeSvgDrawingReader.TryRead(bytes, out OfficeDrawing? vector, out int unsupportedFeatureCount) &&
@@ -420,6 +436,31 @@ public static partial class OfficeDrawingRasterRenderer {
         OfficeImageInfo.FromMimeType(contentType) == OfficeImageFormat.Svg ||
         (OfficeImageReader.TryIdentifyByContent(bytes, null, out OfficeImageInfo info) &&
          info.Format == OfficeImageFormat.Svg);
+
+    private static bool IsCallerDecodedLossyWebp(byte[] bytes) {
+        // Managed WebP handles VP8L and inspects every animated frame. A static
+        // VP8 payload belongs to the caller codec; never delegate a mixed or
+        // animated container after managed inspection has rejected it.
+        bool hasLossyImage = false;
+        int cursor = 12;
+        while (cursor <= bytes.Length - 8) {
+            uint length = (uint)(bytes[cursor + 4] | bytes[cursor + 5] << 8 |
+                bytes[cursor + 6] << 16 | bytes[cursor + 7] << 24);
+            if (length > bytes.Length - cursor - 8) return false;
+            bool vp8 = bytes[cursor] == (byte)'V' && bytes[cursor + 1] == (byte)'P' &&
+                bytes[cursor + 2] == (byte)'8';
+            if (vp8 && bytes[cursor + 3] == (byte)'X' &&
+                (length < 10 || (bytes[cursor + 8] & 0x02) != 0)) return false;
+            if (vp8 && bytes[cursor + 3] == (byte)'L' ||
+                bytes[cursor] == (byte)'A' && bytes[cursor + 1] == (byte)'N' &&
+                bytes[cursor + 2] == (byte)'I' && (bytes[cursor + 3] == (byte)'M' || bytes[cursor + 3] == (byte)'F')) return false;
+            if (vp8 && bytes[cursor + 3] == (byte)' ') hasLossyImage = true;
+            long next = cursor + 8L + length + (length & 1);
+            if (next > bytes.Length) return false;
+            cursor = (int)next;
+        }
+        return hasLossyImage && cursor == bytes.Length;
+    }
 
     private static double ResolveNestedVectorScale(
         OfficeDrawing drawing,

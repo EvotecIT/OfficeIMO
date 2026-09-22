@@ -33,7 +33,7 @@ public static partial class OfficeSvgDrawingReader {
         if (!TryResolveSvgPatternGeometry(pattern, shape, drawing.Width, drawing.Height, viewX, viewY,
                 out double originX, out double originY, out double tileWidth, out double tileHeight,
                 out OfficeTransform patternTransform, out bool objectBoundingBoxContent)
-            || !TryCreateShapeStrokeClipPath(shape.Shape, out OfficeClipPath? strokeClip)) {
+            || !TryCreateShapeStrokeClipPath(shape.Shape, references, out OfficeClipPath? strokeClip)) {
             unsupported++;
             ClearShapeStroke(shape.Shape);
             return false;
@@ -101,13 +101,12 @@ public static partial class OfficeSvgDrawingReader {
         return true;
     }
 
-    private static bool TryCreateShapeStrokeClipPath(OfficeShape shape, out OfficeClipPath? clipPath) {
+    private static bool TryCreateShapeStrokeClipPath(OfficeShape shape, SvgElementReferenceRegistry references, out OfficeClipPath? clipPath) {
         clipPath = null;
         if (shape.StrokeWidth <= 0D) return false;
         var commands = new List<OfficePathCommand>();
-        int strokeOperations = 0;
         foreach (OfficeFlattenedPathContour contour in GetStrokeContours(shape)) {
-            if (!AppendStrokeOutline(commands, contour.Points, contour.Closed, shape, ref strokeOperations)) return false;
+            if (!AppendStrokeOutline(commands, contour.Points, contour.Closed, shape, references)) return false;
             if (commands.Count > MaximumSvgPathCommands) return false;
         }
         if (commands.Count == 0) return false;
@@ -175,7 +174,7 @@ public static partial class OfficeSvgDrawingReader {
         }
     }
 
-    private static bool AppendStrokeOutline(List<OfficePathCommand> commands, IReadOnlyList<OfficePoint> source, bool closed, OfficeShape shape, ref int strokeOperations) {
+    private static bool AppendStrokeOutline(List<OfficePathCommand> commands, IReadOnlyList<OfficePoint> source, bool closed, OfficeShape shape, SvgElementReferenceRegistry references) {
         if (source.Count < 2) return true;
         var points = new List<OfficePoint>(source.Count);
         for (int index = 0; index < source.Count; index++) {
@@ -186,7 +185,7 @@ public static partial class OfficeSvgDrawingReader {
 
         double half = shape.StrokeWidth / 2D;
         if (TryGetStrokeDashPattern(shape, out IReadOnlyList<double>? dashPattern)) {
-            return AppendDashedStrokeOutline(commands, points, closed, shape, half, dashPattern!, ref strokeOperations);
+            return AppendDashedStrokeOutline(commands, points, closed, shape, half, dashPattern!, references);
         }
         int segmentCount = closed ? points.Count : points.Count - 1;
         for (int index = 0; index < segmentCount; index++) {
@@ -236,7 +235,7 @@ public static partial class OfficeSvgDrawingReader {
         OfficeShape shape,
         double half,
         IReadOnlyList<double> pattern,
-        ref int strokeOperations) {
+        SvgElementReferenceRegistry references) {
         double cycle = 0D;
         for (int index = 0; index < pattern.Count; index++) {
             if (pattern[index] < 0D || double.IsNaN(pattern[index]) || double.IsInfinity(pattern[index])) return false;
@@ -255,7 +254,7 @@ public static partial class OfficeSvgDrawingReader {
             if (length <= 0D) continue;
             double consumed = 0D;
             while (consumed < length) {
-                if (++strokeOperations > MaximumSvgPathCommands || commands.Count > MaximumSvgPathCommands) return false;
+                if (!references.TryChargePatternStrokeOperation() || commands.Count > MaximumSvgPathCommands) return false;
                 ResolveDashPosition(pattern, patternPosition, out int patternIndex, out double within);
                 double available = pattern[patternIndex] - within;
                 if (available <= 0D) return false;
