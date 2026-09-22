@@ -5,13 +5,24 @@ internal static partial class PdfStamper {
     private static byte[] ReadPath(string path) =>
         PdfDocumentSource.FromPath(path, null).Bytes;
 
-    private static byte[] ReadStream(Stream stream, string paramName) {
+    private static byte[] ReadStream(Stream stream, string paramName, PdfLoadOptions? readOptions = null) {
         Guard.NotNull(stream, paramName);
         if (!stream.CanRead) {
             throw new ArgumentException("Stream must be readable.", paramName);
         }
 
-        return PdfDocumentSource.FromRemainingStream(stream, null).Bytes;
+        return PdfDocumentSource.FromRemainingStream(stream, readOptions).Bytes;
+    }
+
+    private static byte[] ReadImageStream(Stream stream, string paramName, PdfImageStampOptions? options) {
+        Guard.NotNull(stream, paramName);
+        if (!stream.CanRead) {
+            throw new ArgumentException("Stream must be readable.", paramName);
+        }
+
+        return PdfImageInput.ReadRemainingStream(
+            stream,
+            (options ?? new PdfImageStampOptions()).MaximumEncodedImageBytes);
     }
 
     private static void WriteOutput(Stream outputStream, byte[] bytes) {

@@ -12,7 +12,7 @@ internal static partial class PdfStamper {
     /// Adds an image stamp from the current position of a readable image stream to selected pages, or every page when no page selection is supplied.
     /// </summary>
     public static byte[] StampImage(byte[] pdf, Stream imageStream, PdfImageStampOptions? options = null) {
-        return StampImage(pdf, ReadStream(imageStream, nameof(imageStream)), options);
+        return StampImage(pdf, ReadImageStream(imageStream, nameof(imageStream), options), options);
     }
 
     /// <summary>
@@ -26,7 +26,10 @@ internal static partial class PdfStamper {
     /// Adds an image stamp from the current position of readable PDF and image streams to selected pages, or every page when no page selection is supplied.
     /// </summary>
     public static byte[] StampImage(Stream stream, Stream imageStream, PdfImageStampOptions? options = null) {
-        return StampImage(ReadStream(stream, nameof(stream)), ReadStream(imageStream, nameof(imageStream)), options);
+        return StampImage(
+            ReadStream(stream, nameof(stream)),
+            ReadImageStream(imageStream, nameof(imageStream), options),
+            options);
     }
 
     /// <summary>
@@ -235,7 +238,7 @@ internal static partial class PdfStamper {
     /// Simple PNG alpha and transparency soft masks are supported for compatible PNG inputs.
     /// </summary>
     public static byte[] WatermarkImage(byte[] pdf, Stream imageStream, PdfImageStampOptions? options = null) {
-        return WatermarkImage(pdf, ReadStream(imageStream, nameof(imageStream)), options);
+        return WatermarkImage(pdf, ReadImageStream(imageStream, nameof(imageStream), options), options);
     }
 
     /// <summary>
@@ -251,7 +254,10 @@ internal static partial class PdfStamper {
     /// Simple PNG alpha and transparency soft masks are supported for compatible PNG inputs.
     /// </summary>
     public static byte[] WatermarkImage(Stream stream, Stream imageStream, PdfImageStampOptions? options = null) {
-        return WatermarkImage(ReadStream(stream, nameof(stream)), ReadStream(imageStream, nameof(imageStream)), options);
+        return WatermarkImage(
+            ReadStream(stream, nameof(stream)),
+            ReadImageStream(imageStream, nameof(imageStream), options),
+            options);
     }
 
     /// <summary>
