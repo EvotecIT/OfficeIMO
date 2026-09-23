@@ -135,6 +135,7 @@ public static class MhtmlPdfConverterExtensions {
 
     private static HtmlToPdfOptions PrepareMhtmlOptions(MhtmlDocument document, HtmlToPdfOptions? options) {
         HtmlToPdfOptions operation = options?.ClonePdf() ?? new HtmlToPdfOptions();
+        operation.ProjectSerializedShadowRoots ??= true;
         operation.BaseUri ??= document.BaseUri;
         bool allowEmbeddedResources = operation.ResourcePolicy.AllowEmbeddedPackageResources;
         operation.EmbeddedPackageResourceResolver = allowEmbeddedResources

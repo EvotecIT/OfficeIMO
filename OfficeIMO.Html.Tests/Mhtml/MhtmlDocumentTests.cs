@@ -10,6 +10,81 @@ using Xunit;
 namespace OfficeIMO.Html.Tests;
 
 public sealed class MhtmlDocumentTests {
+    [Fact]
+    public async Task ChromiumSerializedShadowRootsRenderAssignedSlotsAndNestedSnapshots() {
+        const string html = """
+            <p>Before</p>
+            <sample-card><template shadowmode="open"><div>ShadowStart <slot name="title">Unused title</slot>
+            <slot>Unused default</slot> <slot name="missing">Fallback</slot>
+            <sample-code><template shadowmode="closed"><pre>NestedCode</pre></template></sample-code>
+            ShadowEnd</div></template><strong slot="title">AssignedTitle</strong> AssignedBody</sample-card>
+            <template><p>OrdinaryTemplateMustStayInert</p></template>
+            <p>After</p>
+            """;
+        var archive = new MhtmlDocument(html);
+
+        PdfCore.PdfDocumentConversionResult first = await archive.ToPdfDocumentResultAsync();
+        string text = PdfCore.PdfReadDocument.Open(first.ToBytes()).ExtractText();
+        PdfCore.PdfDocumentConversionResult second = await archive.ToPdfDocumentResultAsync();
+
+        Assert.Contains("AssignedTitle", text, StringComparison.Ordinal);
+        Assert.Contains("AssignedBody", text, StringComparison.Ordinal);
+        Assert.Contains("Fallback", text, StringComparison.Ordinal);
+        Assert.Contains("NestedCode", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Unused title", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Unused default", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("OrdinaryTemplateMustStayInert", text, StringComparison.Ordinal);
+        Assert.Contains(first.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.SerializedShadowRootApproximated);
+        Assert.Equal(text, PdfCore.PdfReadDocument.Open(second.ToBytes()).ExtractText());
+        Assert.Contains("<template shadowmode", archive.HtmlDocument.SourceHtml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SerializedShadowRootProjectionRequiresExplicitRenderOptionForOrdinaryHtml() {
+        const string html = "<sample-card><template shadowmode='open'><p>HiddenSnapshot</p></template>VisibleLight</sample-card>";
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
+
+        string ordinary = PdfCore.PdfReadDocument.Open(document.ToPdfBytes()).ExtractText();
+        string projected = PdfCore.PdfReadDocument.Open(document.ToPdfBytes(new HtmlToPdfOptions {
+            ProjectSerializedShadowRoots = true
+        })).ExtractText();
+
+        Assert.Contains("VisibleLight", ordinary, StringComparison.Ordinal);
+        Assert.DoesNotContain("HiddenSnapshot", ordinary, StringComparison.Ordinal);
+        Assert.Contains("HiddenSnapshot", projected, StringComparison.Ordinal);
+        Assert.DoesNotContain("VisibleLight", projected, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task MhtmlCallerCanDisableSerializedShadowRootProjection() {
+        var archive = new MhtmlDocument("<sample-card><template shadowmode='open'><p>HiddenSnapshot</p></template>VisibleLight</sample-card>");
+
+        PdfCore.PdfDocumentConversionResult result = await archive.ToPdfDocumentResultAsync(new HtmlToPdfOptions {
+            ProjectSerializedShadowRoots = false
+        });
+        string text = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
+
+        Assert.Contains("VisibleLight", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("HiddenSnapshot", text, StringComparison.Ordinal);
+        Assert.DoesNotContain(result.Warnings,
+            warning => warning.Code == HtmlRenderDiagnosticCodes.SerializedShadowRootApproximated);
+    }
+
+    [Fact]
+    public async Task ShadowScopedStylesDoNotLeakIntoUnrelatedMhtmlContent() {
+        var archive = new MhtmlDocument("""
+            <shadow-card><template shadowmode="open"><style>p { display:none }</style><p>InsideVisible</p></template></shadow-card>
+            <p>OutsideVisible</p>
+            """);
+
+        PdfCore.PdfDocumentConversionResult result = await archive.ToPdfDocumentResultAsync();
+        string text = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
+
+        Assert.Contains("InsideVisible", text, StringComparison.Ordinal);
+        Assert.Contains("OutsideVisible", text, StringComparison.Ordinal);
+        Assert.Contains(result.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.SerializedShadowStyleOmitted);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

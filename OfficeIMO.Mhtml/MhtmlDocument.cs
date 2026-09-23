@@ -183,6 +183,7 @@ public sealed partial class MhtmlDocument {
         if (options == null) throw new ArgumentNullException(nameof(options));
         remoteResourcePolicy ??= MhtmlRemoteResourcePolicy.CreateEmbeddedOnlyProfile();
         remoteResourcePolicy.ApplyLimits(options);
+        options.ProjectSerializedShadowRoots ??= true;
         options.BaseUri ??= BaseUri;
         options.UrlPolicy ??= HtmlUrlPolicy.CreateOfficeIMOProfile();
         HtmlUrlPolicy fallbackResourceUrlPolicy = (options.ResourceUrlPolicy ?? options.UrlPolicy).Clone();

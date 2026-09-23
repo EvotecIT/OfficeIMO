@@ -142,11 +142,12 @@ public static class HtmlRenderEngine {
         CancellationToken cancellationToken) {
         resolved.ResponsiveImageCandidateLimit = limits.MaxResponsiveImageCandidates;
         resolved.ResponsiveImageSizesCharacterLimit = limits.MaxResponsiveImageSizesCharacters;
+        var diagnostics = new HtmlDiagnosticReport();
+        if (initialDiagnostics != null) diagnostics.AddRange(initialDiagnostics);
+        HtmlSerializedShadowRootProjector.Apply(document, resolved, diagnostics, cancellationToken);
         HtmlRenderAdditionalStylesheetApplier.Apply(document, resolved.AdditionalStylesheets.ToList());
         HtmlCssRuleBlockScanner.ValidateDocument(document, limits);
         HtmlRenderInputGuard.ValidateDocument(document, resolved, cancellationToken);
-        var diagnostics = new HtmlDiagnosticReport();
-        if (initialDiagnostics != null) diagnostics.AddRange(initialDiagnostics);
         var resourceOptions = new HtmlResourcePipelineOptions {
             BaseUri = resolved.BaseUri,
             UrlPolicy = (resolved.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile()).Clone(),
@@ -291,11 +292,12 @@ public static class HtmlRenderEngine {
         CancellationToken cancellationToken) {
         resolved.ResponsiveImageCandidateLimit = limits.MaxResponsiveImageCandidates;
         resolved.ResponsiveImageSizesCharacterLimit = limits.MaxResponsiveImageSizesCharacters;
+        var diagnostics = new HtmlDiagnosticReport();
+        if (initialDiagnostics != null) diagnostics.AddRange(initialDiagnostics);
+        HtmlSerializedShadowRootProjector.Apply(document, resolved, diagnostics, cancellationToken);
         HtmlRenderAdditionalStylesheetApplier.Apply(document, resolved.AdditionalStylesheets.ToList());
         HtmlCssRuleBlockScanner.ValidateDocument(document, limits);
         HtmlRenderInputGuard.ValidateDocument(document, resolved, cancellationToken);
-        var diagnostics = new HtmlDiagnosticReport();
-        if (initialDiagnostics != null) diagnostics.AddRange(initialDiagnostics);
         var resourceOptions = new HtmlResourcePipelineOptions {
             BaseUri = resolved.BaseUri,
             UrlPolicy = (resolved.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile()).Clone(),

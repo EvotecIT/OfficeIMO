@@ -8,6 +8,10 @@ namespace OfficeIMO.Html;
 public static class HtmlRenderDiagnosticCodes {
     /// <summary>A fragment hyperlink referenced an element that is absent from the document.</summary>
     public const string HyperlinkTargetUnavailable = "HtmlRenderHyperlinkTargetUnavailable";
+    /// <summary>A serialized shadow tree was flattened for static rendering without shadow-scoped CSS or live behavior.</summary>
+    public const string SerializedShadowRootApproximated = "HtmlRenderSerializedShadowRootApproximated";
+    /// <summary>A shadow-scoped stylesheet was omitted instead of applying its rules to the whole document.</summary>
+    public const string SerializedShadowStyleOmitted = "HtmlRenderSerializedShadowStyleOmitted";
     /// <summary>CSS background-image layers beyond the configured per-element limit were omitted.</summary>
     public const string BackgroundImageLayerLimit = "HtmlRenderBackgroundImageLayerLimit";
     /// <summary>A CSS background-repeat value used a single-image fallback.</summary>
@@ -228,6 +232,8 @@ public static class HtmlRenderDiagnosticCodes {
 
     /// <summary>All stable renderer diagnostic codes.</summary>
     public static IReadOnlyList<string> All { get; } = new ReadOnlyCollection<string>(new[] {
+        SerializedShadowRootApproximated,
+        SerializedShadowStyleOmitted,
         BackgroundImageLayerLimit,
         BackgroundImageRepeatUnsupported,
         BackgroundImageValueUnsupported,

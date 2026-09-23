@@ -22,6 +22,8 @@ archive.Save("copy.mht");
 
 `ConfigureRenderOptions` resolves `cid:` and `Content-Location` references first. Its default policy is offline and never invokes a caller resolver for missing network resources. Remote retrieval is explicit, same-origin by default, redirect-bounded, and still subject to the shared HTML count, byte, timeout, and URL policies:
 
+Chromium MHTML snapshots can include rendered web-component content in `template shadowmode` elements. Configured rendering projects that saved content and its named/default slots into a static render tree without changing the archive source. Ordinary templates remain inert. The result reports `HtmlRenderSerializedShadowRootApproximated`; shadow-scoped stylesheets are omitted with `HtmlRenderSerializedShadowStyleOmitted` so their rules cannot affect unrelated content. Use browser-backed output when exact shadow styling, layout, or live behavior is required.
+
 ```csharp
 var renderOptions = new HtmlRenderOptions();
 MhtmlRemoteResourcePolicy remote = MhtmlRemoteResourcePolicy.CreateSameOriginProfile(maximumRedirects: 2);

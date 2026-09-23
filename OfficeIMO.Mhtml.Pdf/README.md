@@ -19,6 +19,8 @@ await result.SaveAsync("quarterly-update.pdf");
 
 The result combines MIME, HTML-rendering, and PDF diagnostics. Local-file and remote-network access remain governed by the HTML resource policy; embedded archive resources do not silently widen it.
 
+Saved `template shadowmode` component content is projected into the static PDF, including slot-assigned text. The report diagnoses the approximation and any omitted shadow-scoped stylesheets; browser-backed printing remains the path for exact component styling or live behavior. Ordinary templates stay inert.
+
 Conversion is offline by default. To allow missing archive resources, apply an explicit bounded MHTML policy to the same options before conversion. The application fetcher must return exactly one response with automatic redirects disabled so OfficeIMO can approve every redirect target before requesting it:
 
 ```csharp

@@ -33,6 +33,13 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
     /// </summary>
     public HtmlRenderFidelityPolicy FidelityPolicy { get; set; } = HtmlRenderFidelityPolicy.AllowDiagnosedLoss;
 
+    /// <summary>
+    /// Projects Chromium MHTML <c>template shadowmode</c> snapshots into static render content.
+    /// Null uses the source-format default (enabled for MHTML, disabled for ordinary HTML).
+    /// This is a diagnosed approximation of shadow DOM composition, not a live shadow tree.
+    /// </summary>
+    public bool? ProjectSerializedShadowRoots { get; set; }
+
     /// <summary>Viewport width for continuous rendering, in CSS pixels.</summary>
     public double ViewportWidth { get; set; } = 816D;
 
@@ -237,6 +244,7 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         CopyImageExportOptionsTo(target);
         target.Mode = Mode;
         target.FidelityPolicy = FidelityPolicy;
+        target.ProjectSerializedShadowRoots = ProjectSerializedShadowRoots;
         target.ViewportWidth = ViewportWidth;
         target.ViewportHeight = ViewportHeight;
         target.PageSize = PageSize;

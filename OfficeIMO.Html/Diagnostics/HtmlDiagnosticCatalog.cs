@@ -80,6 +80,8 @@ public static class HtmlDiagnosticCatalog {
             HtmlDiagnosticSeverity.Warning,
             "A document-internal hyperlink referenced a fragment target that does not exist.",
             "Add an element with the referenced id, update the fragment, or remove the broken link."),
+        [HtmlRenderDiagnosticCodes.SerializedShadowRootApproximated] = RenderDefinition(HtmlRenderDiagnosticCodes.SerializedShadowRootApproximated, "LayoutFidelity", HtmlDiagnosticSeverity.Warning, "Serialized shadow-root content was projected into the static render tree; scoped styling and live behavior may differ.", "Use a browser-backed renderer when exact shadow DOM styling or interactivity is required."),
+        [HtmlRenderDiagnosticCodes.SerializedShadowStyleOmitted] = RenderDefinition(HtmlRenderDiagnosticCodes.SerializedShadowStyleOmitted, "CssFidelity", HtmlDiagnosticSeverity.Warning, "Shadow-scoped stylesheets were omitted to prevent their rules from changing unrelated document content.", "Use a browser-backed renderer when shadow-scoped CSS is required."),
         ["ScriptResourceRejectedByPolicy"] = new HtmlDiagnosticDefinition(
             "ScriptResourceRejectedByPolicy",
             "ResourcePolicy",
