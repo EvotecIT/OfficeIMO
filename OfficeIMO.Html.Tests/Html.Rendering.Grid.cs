@@ -9,6 +9,29 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlGrid_AutoTrackWrapsLongTextWithinDefiniteContainer() {
+        const string html = """
+            <div style="display:grid;width:280px;grid-template-columns:auto;grid-template-areas:'body'">
+              <main style="display:contents">
+                <section style="grid-area:body;background:#eeeeee">
+                  <p>Grid layout introduces a two-dimensional system. This paragraph contains enough ordinary words to wrap across several lines inside the available page width.</p>
+                </section>
+              </main>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderGrid(html, 300D);
+        HtmlRenderText[] lines = rendered.Pages[0].Visuals.OfType<HtmlRenderText>()
+            .Where(text => text.Text.Contains("Grid", StringComparison.Ordinal)
+                || text.Text.Contains("ordinary", StringComparison.Ordinal))
+            .ToArray();
+
+        Assert.NotEmpty(lines);
+        Assert.All(lines, line => Assert.True(line.X + line.Width <= 300D,
+            $"Text extends past the 300px canvas: {line.X + line.Width} ({line.Text})."));
+    }
+
+    [Fact]
     public void HtmlGrid_AutoTrackHonorsAutomaticItemMinimumBeforeStretching() {
         const string html = """
             <div style="display:grid;width:240px;grid-template-columns:auto 1fr;column-gap:10px">
@@ -1064,6 +1087,22 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(first.X + first.Width, second.X, 3);
         Assert.True(after.X >= second.X + second.Width);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported);
+    }
+
+    [Fact]
+    public void HtmlInlineGrid_AutoTrackUsesMaxContentWhenLineHasRoom() {
+        const string html = """
+            <p style="margin:0"><span style="display:inline-grid;grid-template-columns:auto">
+              <span id="auto-inline-cell" style="background:#ff0000">two words together</span>
+            </span> After</p>
+            """;
+
+        HtmlRenderDocument rendered = RenderGrid(html, 320D);
+        HtmlRenderShape cell = FindGridShape(rendered, "span#auto-inline-cell");
+        HtmlRenderText after = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("After", StringComparison.Ordinal));
+
+        Assert.True(cell.Width > 100D, $"The auto track collapsed to min-content width: {cell.Width}.");
+        Assert.True(after.X >= cell.X + cell.Width);
     }
 
     [Fact]

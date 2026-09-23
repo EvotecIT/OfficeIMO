@@ -33,7 +33,7 @@ A static page can be complex and still require no JavaScript. A simple-looking p
 
 Playwright is an automation layer over Chromium, Firefox and WebKit. Rendering replacement and automation replacement therefore have different owners and tests. A new engine also cannot prove how a website behaves in those other browsers; cross-browser testing remains a valid development dependency even after the runtime is independent. See [Playwright browser support](https://playwright.dev/docs/browsers).
 
-No stage promises all websites or an identical Playwright API. The browser stage is part of the long-term design, with its own executable scope rather than an indefinite promise hidden inside HTML-to-PDF. The default managed provider ultimately owns HTML, CSS, JavaScript and the selected web platform without third-party runtime packages or a browser binary; optional external providers remain explicit compatibility choices.
+No stage promises all websites or an identical Playwright API. The browser stage is part of the long-term design, with its own executable scope rather than an indefinite promise hidden inside HTML-to-PDF. The default managed route owns its document, rendering and web-platform contracts while continuing to use qualified upstream libraries behind provider boundaries. A no-third-party runtime profile is a conditional future product, not the default completion gate. Browser execution remains an explicit compatibility choice.
 
 ## Public adoption boundary
 
@@ -43,7 +43,7 @@ External consumers can adopt the platform at the smallest layer that owns their 
 
 | Adoption mode | Consumer outcome | Required package boundary |
 | --- | --- | --- |
-| Web document | Parse, query, inspect, edit and serialize HTML without graphics, PDF, networking or a browser | `OfficeIMO.Html.Core`, using the selected parser provider until the managed parser becomes the default |
+| Web document | Parse, query, inspect, edit and serialize HTML without graphics, PDF, networking or a browser | `OfficeIMO.Html.Core` with a qualified selected parser provider |
 | CSS analysis | Tokenize and inspect stylesheets, match selectors, explain cascade results and report parsed-but-unsupported features | Owned syntax and style contracts; no layout or output encoder required |
 | Static rendering | Resolve resources, compute styles, create continuous or paged layout and return a reusable display list | `OfficeIMO.Html` over Core and shared drawing primitives |
 | Output encoding | Write PNG and other raster images, SVG, PDF, previews, geometry maps or hit-test data from one render result | A target adapter over the owned display list; target-specific policy stays explicit |
@@ -401,7 +401,7 @@ The structured tool surface should include navigation, page observation, locator
 
 The same automation contract supports three providers during migration:
 
-1. The OfficeIMO managed runtime, which becomes the dependency-free default after H6 and H9.
+1. The OfficeIMO managed runtime over qualified retained providers. H6 and H9 are optional independence profiles if separately justified and completed.
 2. An explicitly selected external-browser adapter for websites outside the managed compatibility profile.
 3. A consumer-supplied provider implementing the published host/page/action contracts.
 
@@ -424,9 +424,9 @@ The managed parser gate covers the selected WHATWG behavior as an integrated sys
 
 The public document product also needs declared selector and DOM scope. Publish the supported selector levels and pseudo-classes, mutation and snapshot rules, collection behavior, namespace handling and source-preservation guarantees. Browser-only APIs such as layout properties, event dispatch, custom elements and shadow DOM belong to separately qualified runtime profiles; they must not appear as empty compatibility members just to resemble another DOM API.
 
-Use standards fixtures as the primary contract and differential testing as a diagnostic tool. Compare the managed parser with the temporary provider and independent browser trees, minimize disagreements and resolve them against the chosen standards scope. Add grammar-aware fuzzing, round-trip and mutation fuzzing, allocation and retained-graph measurements, deep/wide/adversarial limits, cancellation latency, trimming/AOT checks and supported-platform runs. Benchmark equivalent parse, query, edit and serialization workloads without changing the requested outcome for one implementation.
+If a managed parser is pursued, use standards fixtures as the primary contract and differential testing as a diagnostic tool. Compare it with the retained provider and independent browser trees, minimize disagreements and resolve them against the chosen standards scope. Add grammar-aware fuzzing, round-trip and mutation fuzzing, allocation and retained-graph measurements, deep/wide/adversarial limits, cancellation latency, trimming/AOT checks and supported-platform runs. Benchmark equivalent parse, query, edit and serialization workloads without changing the requested outcome for one implementation.
 
-Provider retirement is a packaging change only after the public contract is stable. Keep `OfficeIMO.Html.AngleSharp` as an optional migration, comparison or fallback adapter if users need it, version it separately where practical, and require explicit provider selection. Do not silently fall back to it when the managed parser rejects or limits input; return a typed unsupported or failure result so users can make the policy decision.
+If provider retirement is justified, make the packaging change only after the public contract is stable. Keep `OfficeIMO.Html.AngleSharp` as an optional migration, comparison or fallback adapter if users need it, version it separately where practical, and require explicit provider selection. Do not silently fall back to it when a managed parser rejects or limits input; return a typed unsupported or failure result so users can make the policy decision.
 
 ## Compatibility profiles and specification governance
 
@@ -469,7 +469,7 @@ Support is recorded per processing stage. Recognizing or preserving syntax is di
 
 Evolve the existing `HtmlRenderCapabilityCatalog` into the package-wide executable source of truth instead of creating another registry. A capability record needs a stable ID, owning profile/version, specification references and pinned revisions, applicable processing stages, exact supported subset, support outcome, implementation provider, test-manifest evidence, platform/output scope, limits, fallbacks and diagnostics. Generate the package support matrix, runtime capability inspection and website documentation from that owner.
 
-Do not overload one support label with several meanings. Track coverage (`Qualified`, `Partial`, `Unsupported`, `Unqualified`), handling (`Native`, `Preserved`, `Fallback`, `Ignored`, `Rejected`) and maturity (`Required`, `Optional`, `Experimental`) independently. Provider ownership is another field: provider-backed behavior can be qualified while still remaining scheduled for managed replacement.
+Do not overload one support label with several meanings. Track coverage (`Qualified`, `Partial`, `Unsupported`, `Unqualified`), handling (`Native`, `Preserved`, `Fallback`, `Ignored`, `Rejected`) and maturity (`Required`, `Optional`, `Experimental`) independently. Provider ownership is another field: provider-backed behavior can be qualified without scheduling its replacement.
 
 The initial standards families are:
 
@@ -552,7 +552,7 @@ Use capability-specific contracts rather than mirroring every third-party method
 
 ### Removal gates
 
-Here, independence means no third-party runtime packages or browser binaries in the advertised default profile. The .NET runtime/BCL, OS services and clearly declared font/Unicode/data resources remain. Test tools and optional providers are separate. If a stronger goal excludes OS text, TLS, codecs or all external data, it requires a different platform scope.
+These gates apply only if a dependency-free profile is pursued because measured product, maintenance, packaging or performance evidence justifies it. They do not gate the retained-provider product. In that optional profile, independence means no third-party runtime packages or browser binaries; the .NET runtime/BCL, OS services and clearly declared font/Unicode/data resources remain. Test tools and optional providers are separate.
 
 | Dependency | Short-term role | Replacement/removal gate |
 | --- | --- | --- |
@@ -603,7 +603,7 @@ Diagnostics should locate the earliest divergent stage: source/token, DOM, winni
 
 The owned document boundary is the stable consumer surface. Continue widening real document and runtime workflows through it rather than exposing provider nodes or creating product-specific DOMs. Keep HtmlTinkerX and other hosts thin; migrate them only when the owning OfficeIMO component is usable and available through an explicit package or source relationship.
 
-Strengthen style, layout, conversion and runtime components through OfficeIMO-owned contracts while the temporary providers remain behind them. The lossless CSS syntax tree is now the owned input for future declaration/property grammar and selector/cascade slices; it is not yet the renderer's default style path. Move HTML parser replacement ahead when measured recovery or capability failures obstruct a required workflow. Advance managed typography in the shared graphics owner. Treat static rendering, the selected application profile and dependency retirement as separately qualified outcomes.
+Strengthen style, layout, conversion and runtime components through OfficeIMO-owned contracts while effective upstream providers remain behind them. The lossless CSS syntax tree is now the owned input for future declaration/property grammar and selector/cascade slices; it is not yet the renderer's default style path. Consider HTML parser replacement only when measured recovery or capability failures obstruct a required workflow and upstream correction is inadequate. Advance managed typography in the shared graphics owner. Treat static rendering, the selected application profile and optional dependency retirement as separately qualified outcomes.
 
 The owned render request, six named profiles, explicit page selection and retained
 result now form the common static output boundary. Existing continuous image calls
@@ -623,10 +623,10 @@ Deliver the remaining work in reviewable vertical slices:
 
 1. Add selected declaration/property grammar over the owned CSS syntax tree, then migrate selector, cascade-trace and computed-value slices with exact conformance manifests.
 2. Close remaining H4 layout, fragmentation and output gaps profile by profile against frozen browser, geometry, semantic and artifact references.
-3. Complete H5 as an integrated managed parser and serializer, switch the default only after conformance, bounds and performance gates pass, and retain the adapter only where real migration demand exists.
+3. If evidence justifies H5, complete an integrated managed parser and serializer and switch the default only after conformance, bounds and performance gates pass.
 4. Productize the existing H7-H8 runtime and locator foundation as typed contexts, pages, observations, actions, events, traces and optional agent tools while retained providers remain effective.
-5. Complete H6 by removing AngleSharp, AngleSharp.Css and other third-party runtime dependencies from the advertised static graph, with packed transitive-graph proof on every supported target.
-6. Complete H9 by replacing the JavaScript and remaining runtime providers over the H6 engine. The resulting managed HTML/CSS/JavaScript runtime has no third-party runtime package or browser binary; broader browser compatibility continues through explicit profiles.
+5. Pursue H6 only if the retained-provider static graph presents a measured problem that upstream work cannot resolve; require packed transitive-graph proof on every supported target before advertising independence.
+6. Pursue H9 only if an owned JavaScript implementation has a concrete product case and passes its separate language and web-platform gates. Broader browser compatibility continues through explicit profiles.
 
 Preserve explicit bounds, provider identity and unsupported results throughout. Competitive claims attach to the completed profile or adoption stage, never to the repository as a whole.
 

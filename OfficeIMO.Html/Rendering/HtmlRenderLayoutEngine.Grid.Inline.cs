@@ -59,7 +59,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             items,
             availableBoxWidth,
             style.ColumnGap,
-            includeFractionTracks: true);
+            includeFractionTracks: true,
+            autoTracksUseMaxContent: true);
 
         double intrinsicContentWidth = sizes.Sum() + style.ColumnGap * CountGridBaseGaps(tracks);
         double intrinsicBoxWidth = intrinsicContentWidth + style.HorizontalInsets;

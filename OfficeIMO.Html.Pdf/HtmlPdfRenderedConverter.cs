@@ -718,6 +718,10 @@ internal static partial class HtmlPdfRenderedConverter {
             });
         if (clipX < 0D || clipY < 0D) {
             canvas.Effect(OfficeTransform.Identity, 1D, addClip);
+        } else if (!activeClip.HasValue
+                   && (clipX + clipPath.Width > surfaceWidth * PointsPerCssPixel
+                       || clipY + clipPath.Height > surfaceHeight * PointsPerCssPixel)) {
+            canvas.Clip(0D, 0D, surfaceWidth * PointsPerCssPixel, surfaceHeight * PointsPerCssPixel, addClip);
         } else {
             addClip(canvas);
         }
@@ -897,7 +901,7 @@ internal static partial class HtmlPdfRenderedConverter {
             style,
             linkUri: fragmentLink ? null : visual.LinkUri,
             linkContents: visual.LinkUri == null || fragmentLink ? null : visual.Source,
-            alternativeText: visual.AlternativeText);
+            alternativeText: string.IsNullOrWhiteSpace(visual.AlternativeText) ? null : visual.AlternativeText);
         if (fragmentLink) {
             canvas.LinkToNamedDestination(
                 MapNamedDestination(visual.LinkUri!.Substring(1)),
@@ -1048,7 +1052,7 @@ internal static partial class HtmlPdfRenderedConverter {
                         image.Projection.Width * scaleX * PointsPerCssPixel,
                         image.Projection.Height * scaleY * PointsPerCssPixel,
                         imageStyle,
-                        alternativeText: image.AlternativeText);
+                        alternativeText: string.IsNullOrWhiteSpace(image.AlternativeText) ? null : image.AlternativeText);
                     OfficeTransform imageTransform = image.Projection.CreateFrameTransform().CreateDestinationTransform();
                     if (imageTransform == OfficeTransform.Identity && image.Opacity >= 1D) {
                         addImage(target);

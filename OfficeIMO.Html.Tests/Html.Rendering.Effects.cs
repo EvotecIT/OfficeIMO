@@ -404,6 +404,21 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlPdf_PathClipCrossingPhysicalPageEdgeStillWritesPdf() {
+        const string html = "<body style='margin:0'><div style='margin-left:15px;width:20px;height:20px;background:red;clip-path:inset(-5px)'>Edge marker</div></body>";
+        var options = new HtmlToPdfOptions {
+            PageSize = new OfficePageSize(30D / 96D, 30D / 96D),
+            ViewportWidth = 30D,
+            ViewportHeight = 30D,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(options);
+
+        Assert.Equal(1, PdfCore.PdfInspector.Inspect(pdf).PageCount);
+    }
+
+    [Fact]
     public void HtmlClipPath_GeometryBoxesResolveShapePercentagesAndOrigins() {
         const string shared = "width:40px;height:20px;padding:10px;border:2px solid black;margin:5px;background:red;";
         string html = "<div id='content' style='" + shared + "clip-path:inset(0) content-box'></div>"

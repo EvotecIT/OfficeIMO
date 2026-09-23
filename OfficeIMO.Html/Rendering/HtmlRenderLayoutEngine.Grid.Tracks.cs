@@ -242,11 +242,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IReadOnlyList<GridItem> items,
         double availableSize,
         double gap,
-        bool includeFractionTracks) {
+        bool includeFractionTracks,
+        bool autoTracksUseMaxContent = false) {
         var sizes = tracks.Select(track => track.IsCollapsed ? 0D : Math.Max(0D, track.Kind == GridTrackKind.Fixed ? Math.Max(track.Value, track.Minimum) : track.Minimum)).ToList();
         foreach (GridItem item in items.OrderBy(item => item.ColumnSpan)) {
             IReadOnlyList<GridTrack> spannedTracks = tracks.Skip(item.Column).Take(item.ColumnSpan).ToList();
-            bool usesMaxContentContribution = includeFractionTracks && spannedTracks.Any(track => track.Kind == GridTrackKind.Fraction)
+            bool usesMaxContentContribution = autoTracksUseMaxContent && spannedTracks.Any(track => track.Kind == GridTrackKind.Auto)
+                || includeFractionTracks && spannedTracks.Any(track => track.Kind == GridTrackKind.Fraction)
                 || GridTracksUseMaxContentContribution(spannedTracks);
             double required = usesMaxContentContribution
                 ? ResolveGridMaxContentContribution(item.Item, availableSize)
@@ -323,8 +325,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private static bool GridTracksUseMaxContentContribution(IReadOnlyList<GridTrack> tracks) =>
         tracks.Any(track =>
             track.MaximumSizing == GridIntrinsicSizing.MaxContent
-            || track.MinimumSizing == GridIntrinsicSizing.MaxContent
-            || track.Kind == GridTrackKind.Auto);
+            || track.MinimumSizing == GridIntrinsicSizing.MaxContent);
 
     private double ResolveGridMinContentContribution(FlexItem item, double availableSize) {
         HtmlRenderBoxStyle style = item.Style;

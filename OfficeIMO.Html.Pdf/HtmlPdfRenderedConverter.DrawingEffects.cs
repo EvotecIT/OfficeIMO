@@ -31,7 +31,7 @@ internal static partial class HtmlPdfRenderedConverter {
                 visual.Height * PointsPerCssPixel,
                 linkUri: fragmentLink ? null : visual.LinkUri,
                 linkContents: visual.LinkUri == null || fragmentLink ? null : visual.Source,
-                alternativeText: visual.AlternativeText);
+                alternativeText: string.IsNullOrWhiteSpace(visual.AlternativeText) ? null : visual.AlternativeText);
             if (fragmentLink) {
                 canvas.LinkToNamedDestination(
                     MapNamedDestination(visual.LinkUri!.Substring(1)),

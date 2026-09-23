@@ -126,6 +126,38 @@ Pass `--corpus representative` to use the established qualification corpus.
 `--require-clean-source` fails closed unless Git proves both an exact commit and an
 empty tracked and untracked status.
 
+For an unfamiliar public page, use the opt-in MHTML lane to freeze the loaded
+document and its captured resources, then replay those exact bytes with network
+access disabled in Chromium. OfficeIMO and PeachPDF read the same archive through
+their MHTML resource loaders:
+
+```powershell
+$capture = Join-Path ([System.IO.Path]::GetTempPath()) ('OfficeIMO-html-capture-' + [guid]::NewGuid())
+$replay = Join-Path ([System.IO.Path]::GetTempPath()) ('OfficeIMO-html-replay-' + [guid]::NewGuid())
+dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj `
+    -c Release -f net10.0 -- html-mhtml-evidence `
+    --url https://www.w3.org/WAI/tutorials/tables/ --output $capture
+
+dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj `
+    -c Release -f net10.0 -- html-mhtml-evidence `
+    --mhtml (Join-Path $capture 'source.mhtml') --output $replay `
+    --replay-browser --require-clean-source
+```
+
+Choose a page you are permitted to capture and retain, and use new output
+directories. The live capture waits for `DOMContentLoaded` plus one second; it
+does not establish readiness for every scripted application. The replay is the
+comparable input: Chromium opens the frozen MHTML offline, while OfficeIMO emits
+print, screen-media-paged and screen-snapshot-paged PDFs and PeachPDF emits a
+print PDF. Browser print and screen-media print are separate references;
+page-count differences across intents are not failures by themselves. The JSON
+records the archive hash, versions, source commit and dirty state, page counts,
+and operation failures. `--require-clean-source` also checks that the loaded
+HTML, HTML PDF, MHTML, PDF and evidence-runner assemblies identify the clean
+commit. Inspect PDF text and rendered
+pages before making a compatibility claim. This lane is a diagnostic first pass,
+not the H10 corpus acceptance gate or a sandbox for arbitrary hostile sites.
+
 Measure and enforce the H4/advanced-held-out OfficeIMO static-rendering budgets separately from
 the reference-engine comparison:
 

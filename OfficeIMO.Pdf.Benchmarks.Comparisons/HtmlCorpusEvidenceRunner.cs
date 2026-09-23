@@ -504,7 +504,7 @@ internal static partial class HtmlCorpusEvidenceRunner {
         ?? assembly.GetName().Version?.ToString()
         ?? "unknown";
 
-    private static string DependencyVersion(string packageId, Assembly assembly) {
+    internal static string DependencyVersion(string packageId, Assembly assembly) {
         string? configuredDepsFiles = AppContext.GetData("APP_CONTEXT_DEPS_FILES") as string;
         IEnumerable<string> depsFiles = (configuredDepsFiles ?? string.Empty)
             .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
