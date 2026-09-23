@@ -62,6 +62,8 @@ public sealed class SpreadsheetCustomValidationConversionTests {
     [InlineData("(D4)>0")]
     [InlineData("D4>(0)")]
     [InlineData("(D4>0)")]
+    [InlineData("AND(D4>0,D4<10)")]
+    [InlineData("OR(D4=\"\",AND(D4>=-1,D4<=1))")]
     public void TextAndCellComparisonOperandsRoundTrip(string formula) {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddWorksheet("Data");
@@ -70,6 +72,7 @@ public sealed class SpreadsheetCustomValidationConversionTests {
         OdfConversionResult<OdsDocument> toOds = source.ToOpenDocumentResult();
         OdsDocument ods = OdsDocument.Load(new MemoryStream(toOds.Value.ToBytes()));
         Assert.Single(ods.Validations);
+        Assert.True(ods.Validate().IsValid);
         OdfConversionResult<ExcelDocument> toExcel = ods.ToExcelDocumentResult();
         using ExcelDocument reopened = ExcelDocument.Load(new MemoryStream(toExcel.Value.ToBytes()));
         Assert.Equal(formula, Assert.Single(reopened.Sheets.Single().GetDataValidations()).Formula1);
@@ -94,6 +97,20 @@ public sealed class SpreadsheetCustomValidationConversionTests {
     public void MalformedCustomComparisonRemainsExplicitLoss() {
         using ExcelDocument source = ExcelDocument.Create();
         source.AddWorksheet("Data").ValidationCustomFormula("C5", "C5>0()");
+
+        OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
+        Assert.Empty(result.Value.Validations);
+        Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "validations"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported);
+    }
+
+    [Theory]
+    [InlineData("AND(C5>0)")]
+    [InlineData("OR(C5>0,)")]
+    [InlineData("AND(C5>0,SUM(C5)>1)")]
+    public void UnsupportedBooleanCustomFormulaRemainsExplicitLoss(string formula) {
+        using ExcelDocument source = ExcelDocument.Create();
+        source.AddWorksheet("Data").ValidationCustomFormula("C5", formula);
 
         OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
         Assert.Empty(result.Value.Validations);

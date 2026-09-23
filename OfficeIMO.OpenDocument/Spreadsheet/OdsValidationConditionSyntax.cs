@@ -101,7 +101,7 @@ public sealed class OdsValidationConditionSyntax {
             OdsValidationValueKind.List, null, null, null, new ReadOnlyCollection<string>(list));
     }
 
-    /// <summary>Creates a portable OpenFormula local-cell comparison whose expression must evaluate to true.</summary>
+    /// <summary>Creates a portable OpenFormula local-cell comparison or AND/OR combination whose expression must evaluate to true.</summary>
     public static OdsValidationConditionSyntax CreateFormula(string expression) {
         if (string.IsNullOrWhiteSpace(expression)) throw new ArgumentException("A formula expression is required.", nameof(expression));
         string value = expression.Trim();
