@@ -33,20 +33,35 @@ internal static partial class PdfPageExtractor {
             _cancellationToken.ThrowIfCancellationRequested();
             Guard.NotNull(pageNumbers, nameof(pageNumbers));
             if (pageNumbers.Length == 0) throw new ArgumentException("At least one page number must be specified.", nameof(pageNumbers));
-            ValidatePageNumbers(pageNumbers, PageCount, nameof(pageNumbers));
-            int[] objects = pageNumbers.Select(number => _document.Pages[number - 1].ObjectNumber).ToArray();
+            ValidatePageNumbers(pageNumbers, PageCount, nameof(pageNumbers), _cancellationToken);
+            var objects = new int[pageNumbers.Length];
+            for (int index = 0; index < pageNumbers.Length; index++) {
+                _cancellationToken.ThrowIfCancellationRequested();
+                objects[index] = _document.Pages[pageNumbers[index] - 1].ObjectNumber;
+            }
             return ExtractPages(_document.Objects, _metadata ??= _document.UncheckedMetadata, objects,
                 catalogState: _catalog, fileVersion: _fileVersion, maximumOutputBytes: maximumOutputBytes,
                 cancellationToken: _cancellationToken);
         }
 
         internal byte[] Extract(PdfPageRange[] ranges) {
+            _cancellationToken.ThrowIfCancellationRequested();
             Guard.NotNull(ranges, nameof(ranges));
-            ValidatePageRanges(ranges, PageCount, "pageRanges");
-            int[] pages = new int[ranges.Sum(static range => range.PageCount)];
+            ValidatePageRanges(ranges, PageCount, "pageRanges", _cancellationToken);
+            long totalPages = 0L;
+            foreach (PdfPageRange range in ranges) {
+                _cancellationToken.ThrowIfCancellationRequested();
+                totalPages += range.PageCount;
+                if (totalPages > int.MaxValue) throw new ArgumentOutOfRangeException(nameof(ranges), "Selected page count exceeds the supported in-memory size.");
+            }
+            int[] pages = new int[(int)totalPages];
             int index = 0;
             foreach (PdfPageRange range in ranges) {
-                for (int number = range.FirstPage; number <= range.LastPage; number++) pages[index++] = number;
+                _cancellationToken.ThrowIfCancellationRequested();
+                for (int number = range.FirstPage; number <= range.LastPage; number++) {
+                    _cancellationToken.ThrowIfCancellationRequested();
+                    pages[index++] = number;
+                }
             }
             return Extract(pages);
         }

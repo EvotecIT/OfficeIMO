@@ -523,6 +523,18 @@ internal static partial class PdfSyntax {
         ContainsAnyParsedPdfName(objects, names) ||
         (repairReport.HasIncompleteObjectCoverage && ContainsAnyPdfName(PdfEncoding.Latin1GetString(pdf), names));
 
+    internal static bool ContainsAnyDocumentPdfName(byte[] pdf, IReadOnlyDictionary<int, PdfIndirectObject> objects,
+        PdfRepairReport repairReport, CancellationToken cancellationToken, params string[] names) {
+        var requested = new HashSet<string>(StringComparer.Ordinal);
+        foreach (string name in names) {
+            cancellationToken.ThrowIfCancellationRequested();
+            requested.Add(name);
+        }
+        if (CollectParsedPdfNames(objects, requested, cancellationToken).Count > 0) return true;
+        return repairReport.HasIncompleteObjectCoverage &&
+            ContainsAnyPdfName(PdfEncoding.Latin1GetStringCancellable(pdf, cancellationToken), cancellationToken, names);
+    }
+
     internal static bool ContainsAnyParsedPdfName(
         IReadOnlyDictionary<int, PdfIndirectObject> objects,
         params string[] names) {

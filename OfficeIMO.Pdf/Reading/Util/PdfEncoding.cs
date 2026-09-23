@@ -1,8 +1,31 @@
 using System.Text;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
 internal static class PdfEncoding {
+    internal static string Latin1GetStringCancellable(byte[] bytes, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!cancellationToken.CanBeCanceled) return Latin1GetString(bytes);
+#if NET8_0_OR_GREATER
+        return string.Create(bytes.Length, (Bytes: bytes, Token: cancellationToken), (chars, state) => {
+            for (int i = 0; i < state.Bytes.Length; i++) {
+                if ((i & 4095) == 0) state.Token.ThrowIfCancellationRequested();
+                chars[i] = (char)state.Bytes[i];
+            }
+            state.Token.ThrowIfCancellationRequested();
+        });
+#else
+        var chars = new char[bytes.Length];
+        for (int i = 0; i < bytes.Length; i++) {
+            if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            chars[i] = (char)bytes[i];
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return new string(chars);
+#endif
+    }
+
     // Preserve the one-byte-to-one-character mapping on older target frameworks.
     public static string Latin1GetString(byte[] bytes) {
 #if NET8_0_OR_GREATER

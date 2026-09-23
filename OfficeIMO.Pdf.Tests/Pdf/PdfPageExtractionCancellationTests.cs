@@ -80,6 +80,21 @@ public class PdfPageExtractionCancellationTests {
     }
 
     [Fact]
+    public void PageSelectionStopsWhenTheCallerCancelsEnumeration() {
+        byte[] source = CreatePdf();
+        using var cancellation = new CancellationTokenSource();
+
+        IEnumerable<int> Selection() {
+            yield return 1;
+            cancellation.Cancel();
+            yield return 1;
+        }
+
+        Assert.Throws<OperationCanceledException>(() =>
+            PdfPageExtractor.ExtractPages(source, Selection(), options: null, documentFactory: null, cancellation.Token));
+    }
+
+    [Fact]
     public void ArtifactCaptureKeepsExactDigestAndHonorsCancellation() {
         byte[] pdf = CreatePdf();
         using var cancellation = new CancellationTokenSource();

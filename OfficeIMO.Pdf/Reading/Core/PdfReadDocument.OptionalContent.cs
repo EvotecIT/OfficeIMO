@@ -34,10 +34,10 @@ public sealed partial class PdfReadDocument {
         IReadOnlyList<int> offGroups = defaultConfig is null ? Array.Empty<int>() : ReadReferenceObjectNumbers(defaultConfig, "OFF", includeNestedArrays: false, cancellationToken);
         IReadOnlyList<int> lockedGroups = defaultConfig is null ? Array.Empty<int>() : ReadReferenceObjectNumbers(defaultConfig, "Locked", includeNestedArrays: false, cancellationToken);
         IReadOnlyList<int> orderGroups = defaultConfig is null ? Array.Empty<int>() : ReadReferenceObjectNumbers(defaultConfig, "Order", includeNestedArrays: true, cancellationToken);
-        var onSet = new HashSet<int>(onGroups);
-        var offSet = new HashSet<int>(offGroups);
-        var lockedSet = new HashSet<int>(lockedGroups);
-        var orderSet = new HashSet<int>(orderGroups);
+        var onSet = CreateReferenceSet(onGroups, cancellationToken);
+        var offSet = CreateReferenceSet(offGroups, cancellationToken);
+        var lockedSet = CreateReferenceSet(lockedGroups, cancellationToken);
+        var orderSet = CreateReferenceSet(orderGroups, cancellationToken);
 
         var groups = new List<PdfOptionalContentGroup>();
         for (int i = 0; i < groupArray.Items.Count; i++) {
@@ -107,6 +107,15 @@ public sealed partial class PdfReadDocument {
         }
     }
 
+    private static HashSet<int> CreateReferenceSet(IReadOnlyList<int> objectNumbers, System.Threading.CancellationToken cancellationToken) {
+        var result = new HashSet<int>();
+        foreach (int objectNumber in objectNumbers) {
+            cancellationToken.ThrowIfCancellationRequested();
+            result.Add(objectNumber);
+        }
+        return result;
+    }
+
     private IReadOnlyList<string> ReadNameList(PdfDictionary dictionary, string key, System.Threading.CancellationToken cancellationToken) {
         if (!dictionary.Items.TryGetValue(key, out PdfObject? value)) {
             return Array.Empty<string>();
@@ -142,17 +151,18 @@ public sealed partial class PdfReadDocument {
         }
 
         var objectNumbers = new List<int>();
-        AddReferenceObjectNumbers(array, objectNumbers, includeNestedArrays, cancellationToken);
+        var seen = new HashSet<int>();
+        AddReferenceObjectNumbers(array, objectNumbers, seen, includeNestedArrays, cancellationToken);
         return objectNumbers.Count == 0 ? Array.Empty<int>() : objectNumbers.AsReadOnly();
     }
 
-    private void AddReferenceObjectNumbers(PdfArray array, List<int> objectNumbers, bool includeNestedArrays, System.Threading.CancellationToken cancellationToken) {
+    private void AddReferenceObjectNumbers(PdfArray array, List<int> objectNumbers, HashSet<int> seen, bool includeNestedArrays, System.Threading.CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         for (int i = 0; i < array.Items.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
             PdfObject item = array.Items[i];
             if (item is PdfReference reference) {
-                if (!objectNumbers.Contains(reference.ObjectNumber)) {
+                if (seen.Add(reference.ObjectNumber)) {
                     objectNumbers.Add(reference.ObjectNumber);
                 }
 
@@ -160,7 +170,7 @@ public sealed partial class PdfReadDocument {
             }
 
             if (includeNestedArrays && ResolveArray(item) is PdfArray nested) {
-                AddReferenceObjectNumbers(nested, objectNumbers, includeNestedArrays, cancellationToken);
+                AddReferenceObjectNumbers(nested, objectNumbers, seen, includeNestedArrays, cancellationToken);
             }
         }
     }

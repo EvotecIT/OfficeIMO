@@ -1,9 +1,13 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfSyntax {
     private static PdfDocumentDssInfo ReadDocumentSecurityStoreInfo(
         Dictionary<int, PdfIndirectObject> objects,
-        PdfDictionary catalog) {
+        PdfDictionary catalog,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (!catalog.Items.TryGetValue("DSS", out PdfObject? dssObject)) {
             return PdfDocumentDssInfo.Empty;
         }
@@ -28,15 +32,15 @@ internal static partial class PdfSyntax {
         var vriOcsps = new List<int>();
         var vriCrls = new List<int>();
         var timestamps = new List<int>();
-        ReadVriEvidence(objects, dss, vriKeys, vriCerts, vriOcsps, vriCrls, timestamps);
+        ReadVriEvidence(objects, dss, vriKeys, vriCerts, vriOcsps, vriCrls, timestamps, cancellationToken);
 
         return new PdfDocumentDssInfo(
             true,
             objectNumber,
             ToReadOnly(vriKeys),
-            ReadReferenceArrayObjectNumbers(objects, dss, "Certs"),
-            ReadReferenceArrayObjectNumbers(objects, dss, "OCSPs"),
-            ReadReferenceArrayObjectNumbers(objects, dss, "CRLs"),
+            ReadReferenceArrayObjectNumbers(objects, dss, "Certs", cancellationToken),
+            ReadReferenceArrayObjectNumbers(objects, dss, "OCSPs", cancellationToken),
+            ReadReferenceArrayObjectNumbers(objects, dss, "CRLs", cancellationToken),
             ToReadOnly(vriCerts),
             ToReadOnly(vriOcsps),
             ToReadOnly(vriCrls),
@@ -50,14 +54,34 @@ internal static partial class PdfSyntax {
         List<int> certs,
         List<int> ocsps,
         List<int> crls,
-        List<int> timestamps) {
+        List<int> timestamps,
+        CancellationToken cancellationToken) {
         if (!dss.Items.TryGetValue("VRI", out PdfObject? vriObject) ||
             ResolveObject(objects, vriObject) is not PdfDictionary vri) {
             return;
         }
 
-        foreach (var entry in vri.Items.OrderBy(static item => item.Key, StringComparer.Ordinal)) {
-            if (!string.IsNullOrEmpty(entry.Key) && !vriKeys.Contains(entry.Key)) {
+        var ordered = new List<KeyValuePair<string, PdfObject>>(vri.Items.Count);
+        foreach (var entry in vri.Items) {
+            cancellationToken.ThrowIfCancellationRequested();
+            ordered.Add(entry);
+        }
+        try {
+            ordered.Sort((left, right) => {
+                cancellationToken.ThrowIfCancellationRequested();
+                return StringComparer.Ordinal.Compare(left.Key, right.Key);
+            });
+        } catch (InvalidOperationException) when (cancellationToken.IsCancellationRequested) {
+            cancellationToken.ThrowIfCancellationRequested();
+            throw;
+        }
+        var seenCerts = new HashSet<int>();
+        var seenOcsps = new HashSet<int>();
+        var seenCrls = new HashSet<int>();
+        var seenTimestamps = new HashSet<int>();
+        foreach (var entry in ordered) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!string.IsNullOrEmpty(entry.Key)) {
                 vriKeys.Add(entry.Key);
             }
 
@@ -65,19 +89,20 @@ internal static partial class PdfSyntax {
                 continue;
             }
 
-            AddReferenceArrayObjectNumbers(objects, vriEntry, "Cert", certs);
-            AddReferenceArrayObjectNumbers(objects, vriEntry, "OCSP", ocsps);
-            AddReferenceArrayObjectNumbers(objects, vriEntry, "CRL", crls);
-            AddSingleReferenceObjectNumber(vriEntry, "TS", timestamps);
+            AddReferenceArrayObjectNumbers(objects, vriEntry, "Cert", certs, seenCerts, cancellationToken);
+            AddReferenceArrayObjectNumbers(objects, vriEntry, "OCSP", ocsps, seenOcsps, cancellationToken);
+            AddReferenceArrayObjectNumbers(objects, vriEntry, "CRL", crls, seenCrls, cancellationToken);
+            AddSingleReferenceObjectNumber(vriEntry, "TS", timestamps, seenTimestamps);
         }
     }
 
     private static IReadOnlyList<int> ReadReferenceArrayObjectNumbers(
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary dictionary,
-        string key) {
+        string key,
+        CancellationToken cancellationToken) {
         var objectNumbers = new List<int>();
-        AddReferenceArrayObjectNumbers(objects, dictionary, key, objectNumbers);
+        AddReferenceArrayObjectNumbers(objects, dictionary, key, objectNumbers, new HashSet<int>(), cancellationToken);
         return ToReadOnly(objectNumbers);
     }
 
@@ -85,7 +110,10 @@ internal static partial class PdfSyntax {
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary dictionary,
         string key,
-        List<int> objectNumbers) {
+        List<int> objectNumbers,
+        HashSet<int> seen,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (!dictionary.Items.TryGetValue(key, out PdfObject? value)) {
             return;
         }
@@ -93,23 +121,24 @@ internal static partial class PdfSyntax {
         PdfObject? resolved = ResolveObject(objects, value);
         if (resolved is PdfArray array) {
             for (int i = 0; i < array.Items.Count; i++) {
-                AddReferenceObjectNumber(array.Items[i], objectNumbers);
+                cancellationToken.ThrowIfCancellationRequested();
+                AddReferenceObjectNumber(array.Items[i], objectNumbers, seen);
             }
 
             return;
         }
 
-        AddReferenceObjectNumber(value, objectNumbers);
+        AddReferenceObjectNumber(value, objectNumbers, seen);
     }
 
-    private static void AddSingleReferenceObjectNumber(PdfDictionary dictionary, string key, List<int> objectNumbers) {
+    private static void AddSingleReferenceObjectNumber(PdfDictionary dictionary, string key, List<int> objectNumbers, HashSet<int> seen) {
         if (dictionary.Items.TryGetValue(key, out PdfObject? value)) {
-            AddReferenceObjectNumber(value, objectNumbers);
+            AddReferenceObjectNumber(value, objectNumbers, seen);
         }
     }
 
-    private static void AddReferenceObjectNumber(PdfObject? value, List<int> objectNumbers) {
-        if (value is PdfReference reference && !objectNumbers.Contains(reference.ObjectNumber)) {
+    private static void AddReferenceObjectNumber(PdfObject? value, List<int> objectNumbers, HashSet<int> seen) {
+        if (value is PdfReference reference && seen.Add(reference.ObjectNumber)) {
             objectNumbers.Add(reference.ObjectNumber);
         }
     }

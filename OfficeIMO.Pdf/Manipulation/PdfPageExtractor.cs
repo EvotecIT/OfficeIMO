@@ -72,7 +72,16 @@ internal static partial class PdfPageExtractor {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
 
-        var selected = pageNumbers.ToArray();
+        var selectedPages = new List<int>();
+        foreach (int pageNumber in pageNumbers) {
+            cancellationToken.ThrowIfCancellationRequested();
+            selectedPages.Add(pageNumber);
+        }
+        var selected = new int[selectedPages.Count];
+        for (int index = 0; index < selected.Length; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            selected[index] = selectedPages[index];
+        }
         if (selected.Length == 0) {
             throw new ArgumentException("At least one page number must be specified.", nameof(pageNumbers));
         }
