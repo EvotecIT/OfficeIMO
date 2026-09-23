@@ -9,13 +9,14 @@ internal static class OdsPortableValidationFormula {
         var tokens = new List<SpreadsheetFormulaSyntaxNode>();
         if (!TryCollectTokens(syntax.Root, tokens, 0)) return false;
         int cursor = 0;
-        return TryReadComparison(tokens, ref cursor, 0) && cursor == tokens.Count;
+        return TryReadPredicate(tokens, ref cursor, 0) && cursor == tokens.Count;
     }
 
     private static bool TryCollectTokens(SpreadsheetFormulaSyntaxNode node,
         ICollection<SpreadsheetFormulaSyntaxNode> tokens, int depth) {
-        if (depth > 32 || node.Kind is SpreadsheetFormulaSyntaxKind.FunctionCall
-            or SpreadsheetFormulaSyntaxKind.InlineArray) return false;
+        if (depth > 32 || node.Kind == SpreadsheetFormulaSyntaxKind.InlineArray) return false;
+        if (node.Kind == SpreadsheetFormulaSyntaxKind.FunctionCall
+            && !IsBooleanFunction(node.Name)) return false;
         if (node.Kind == SpreadsheetFormulaSyntaxKind.Token) {
             if (node.TokenKind is SpreadsheetFormulaTokenKind.Prefix or SpreadsheetFormulaTokenKind.Whitespace)
                 return true;
@@ -25,7 +26,8 @@ internal static class OdsPortableValidationFormula {
                     || reference.End != null) return false;
             } else if (node.TokenKind is not (SpreadsheetFormulaTokenKind.Operator
                 or SpreadsheetFormulaTokenKind.NumberLiteral or SpreadsheetFormulaTokenKind.StringLiteral
-                or SpreadsheetFormulaTokenKind.OpenDelimiter or SpreadsheetFormulaTokenKind.CloseDelimiter)) {
+                or SpreadsheetFormulaTokenKind.OpenDelimiter or SpreadsheetFormulaTokenKind.CloseDelimiter
+                or SpreadsheetFormulaTokenKind.Identifier or SpreadsheetFormulaTokenKind.ArgumentSeparator)) {
                 return false;
             }
             tokens.Add(node);
@@ -37,20 +39,39 @@ internal static class OdsPortableValidationFormula {
         return true;
     }
 
-    private static bool TryReadComparison(IReadOnlyList<SpreadsheetFormulaSyntaxNode> tokens,
+    private static bool TryReadPredicate(IReadOnlyList<SpreadsheetFormulaSyntaxNode> tokens,
         ref int cursor, int depth) {
         if (depth > 32) return false;
+        if (cursor < tokens.Count && tokens[cursor].TokenKind == SpreadsheetFormulaTokenKind.Identifier
+            && IsBooleanFunction(tokens[cursor].Text)) {
+            cursor++;
+            if (!TakeDelimiter(tokens, ref cursor, "(")) return false;
+            int arguments = 0;
+            do {
+                if (++arguments > 16 || !TryReadPredicate(tokens, ref cursor, depth + 1)) return false;
+            } while (TakeKind(tokens, ref cursor, SpreadsheetFormulaTokenKind.ArgumentSeparator));
+            return arguments >= 2 && TakeDelimiter(tokens, ref cursor, ")");
+        }
         int start = cursor;
         if (TakeDelimiter(tokens, ref cursor, "(")
-            && TryReadComparison(tokens, ref cursor, depth + 1)
+            && TryReadPredicate(tokens, ref cursor, depth + 1)
             && TakeDelimiter(tokens, ref cursor, ")")) return true;
         cursor = start;
+        return TryReadComparison(tokens, ref cursor, depth);
+    }
+
+    private static bool TryReadComparison(IReadOnlyList<SpreadsheetFormulaSyntaxNode> tokens,
+        ref int cursor, int depth) {
         if (!TryReadOperand(tokens, ref cursor, left: true, depth)) return false;
         if (cursor == tokens.Count || tokens[cursor].TokenKind != SpreadsheetFormulaTokenKind.Operator
             || tokens[cursor].Text is not ("=" or "<>" or "!=" or "<" or "<=" or ">" or ">=")) return false;
         cursor++;
         return TryReadOperand(tokens, ref cursor, left: false, depth);
     }
+
+    private static bool IsBooleanFunction(string? name) =>
+        string.Equals(name, "AND", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(name, "OR", StringComparison.OrdinalIgnoreCase);
 
     private static bool TryReadOperand(IReadOnlyList<SpreadsheetFormulaSyntaxNode> tokens,
         ref int cursor, bool left, int depth) {
