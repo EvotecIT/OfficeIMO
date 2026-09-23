@@ -101,3 +101,37 @@ MHTML tests passed 32/32 on both .NET 8 and 10, and the full .NET 10 HTML suite
 passed 3,230/3,230 after the nested-slot fixes. This closes the observed static
 content omission, not the remaining component-style or general unfamiliar-page
 qualification gaps.
+
+## W3C print-intent qualification on the frozen archive
+
+Source `007a58e4125fe77ea48dc1f1a44b0d5d37ee5d12` adds explicit
+zero-margin and opt-in local-font print diagnostics without changing OfficeIMO's
+default PDF settings. It also reads packed SVG arc flags in the WAI wordmark,
+keeps replaced and definite-width descendants at their automatic flex minimum,
+and embeds a document-selected installed font when the caller explicitly allows
+it, even for ASCII-only text. The source and runner received a read-only review;
+its two flex findings were fixed with row and column regressions. The full
+.NET 10 HTML suite passed 3,235/3,235, the SVG parser regression passed, and
+the H4 advanced-held-out acceptance gate passed 8/8 at the clean source commit.
+
+Both offline replays used unchanged archive hashes, a clean worktree, and exact
+owner/runner assembly versions. They reported no operation failures:
+
+| Frozen page and print intent | Chromium | OfficeIMO default | OfficeIMO zero margin | OfficeIMO zero margin with local fonts | PeachPDF 0.9.19 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| W3C WAI Tables, pages | 3 | 4 | 3 | 3 | 3 |
+| MDN Grid layout, pages | 16 | 21 | 20 | 20 | 25 |
+
+The W3C default-page difference is largely the margin setting: OfficeIMO
+defaults to 48 CSS-pixel outer margins, while this Chromium print reference
+uses zero. Matching that setting yields three pages. The local-font lane embeds
+Trebuchet MS on this macOS host; font availability is host-dependent and does
+not alter the default policy. Visual comparison of the first W3C print page
+still shows a substantive layout gap: breadcrumb URLs wrap, heading treatment
+and text density differ, and fewer tutorial entries fit on page one than in
+Chromium. Equal page count is therefore not visual parity. The restored WAI
+logo and 120px tutorial illustrations render in the expected positions. MDN's
+saved code remains present (`wrapper` appears 29 times in extracted OfficeIMO
+print text), but its component styling and pagination still differ. These
+residuals, broader independently chosen page classes, editable target routes,
+and cross-platform qualification remain open in the roadmap.
