@@ -89,7 +89,7 @@ internal static class PdfTextString {
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        return builder.ToString();
+        return PdfEncoding.StringBuilderToStringCancellable(builder, 0, builder.Length, cancellationToken);
     }
 
     private static string DecodeUtf16LittleEndian(byte[] bytes, int offset,
@@ -101,7 +101,7 @@ internal static class PdfTextString {
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        return builder.ToString();
+        return PdfEncoding.StringBuilderToStringCancellable(builder, 0, builder.Length, cancellationToken);
     }
 
     internal static byte[] DecodeHexBytes(string raw) => DecodeHexBytes(raw, 0, raw.Length);

@@ -21,7 +21,7 @@ internal static class PdfEncoding {
             index += chunk;
         }
         cancellationToken.ThrowIfCancellationRequested();
-        return builder.ToString();
+        return StringBuilderToStringCancellable(builder, 0, builder.Length, cancellationToken);
     }
 
     internal static string Latin1GetStringCancellable(byte[] bytes, CancellationToken cancellationToken) {
@@ -42,7 +42,7 @@ internal static class PdfEncoding {
             chars[i] = (char)bytes[i];
         }
         cancellationToken.ThrowIfCancellationRequested();
-        return new string(chars);
+        return CharArrayToStringCancellable(chars, cancellationToken);
 #endif
     }
 
@@ -77,7 +77,7 @@ internal static class PdfEncoding {
             chars[i] = (char)bytes[index + i];
         }
         cancellationToken.ThrowIfCancellationRequested();
-        return new string(chars);
+        return CharArrayToStringCancellable(chars, cancellationToken);
     }
 
     public static byte[] Latin1GetBytes(string s) {
@@ -151,6 +151,24 @@ internal static class PdfEncoding {
             builder.CopyTo(start + offset, characters, offset, count);
         }
         cancellationToken.ThrowIfCancellationRequested();
+        return new string(characters);
+#endif
+    }
+
+    internal static string CharArrayToStringCancellable(char[] characters, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!cancellationToken.CanBeCanceled) return new string(characters);
+#if NET8_0_OR_GREATER
+        return string.Create(characters.Length, (Characters: characters, Token: cancellationToken), static (destination, state) => {
+            for (int offset = 0; offset < destination.Length; offset += 4096) {
+                state.Token.ThrowIfCancellationRequested();
+                int count = Math.Min(4096, destination.Length - offset);
+                state.Characters.AsSpan(offset, count).CopyTo(destination.Slice(offset, count));
+            }
+            state.Token.ThrowIfCancellationRequested();
+        });
+#else
+        // Older framework string constructors cannot poll during the final copy.
         return new string(characters);
 #endif
     }

@@ -17,7 +17,7 @@ internal static class PdfJavaScriptStringEncoding {
                     offset += count;
                 }
                 cancellationToken.ThrowIfCancellationRequested();
-                value = decoded.ToString();
+                value = PdfEncoding.StringBuilderToStringCancellable(decoded, 0, decoded.Length, cancellationToken);
                 return IsWellFormedUtf16(value, cancellationToken);
             } catch (System.Text.DecoderFallbackException) {
                 value = string.Empty;
@@ -40,7 +40,7 @@ internal static class PdfJavaScriptStringEncoding {
                     : (char)(bytes[offset] | (bytes[offset + 1] << 8));
             }
             cancellationToken.ThrowIfCancellationRequested();
-            value = new string(characters);
+            value = PdfEncoding.CharArrayToStringCancellable(characters, cancellationToken);
             return IsWellFormedUtf16(value, cancellationToken);
         }
         return PdfDocEncoding.TryDecode(bytes, out value, cancellationToken);

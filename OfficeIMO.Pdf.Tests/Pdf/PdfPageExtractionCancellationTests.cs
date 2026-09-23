@@ -81,12 +81,26 @@ public class PdfPageExtractionCancellationTests {
     }
 
     [Fact]
+    public void CancellableUnicodeAndPdfDocStringsKeepTheirDecodedText() {
+        string unicode = new string('a', 9000) + "😀";
+        byte[] unicodeBytes = PdfTextString.Encode(unicode);
+        using var cancellation = new CancellationTokenSource();
+
+        Assert.Equal(unicode, PdfTextString.Decode(unicodeBytes, cancellation.Token));
+        Assert.True(PdfJavaScriptStringEncoding.TryDecode(unicodeBytes, out string javaScript, cancellation.Token));
+        Assert.Equal(unicode, javaScript);
+        Assert.True(PdfDocEncoding.TryDecode(new byte[] { (byte)'A', 0x80 }, out string pdfDoc, cancellation.Token));
+        Assert.Equal("A•", pdfDoc);
+    }
+
+    [Fact]
     public void JavaScriptDecoderPreservesUnicodeAcrossChunksAndHonorsCancellation() {
         string source = new string('x', 8191) + "😀" + new string('y', 8192);
         byte[] utf8 = new byte[] { 0xEF, 0xBB, 0xBF }
             .Concat(System.Text.Encoding.UTF8.GetBytes(source))
             .ToArray();
-        Assert.True(PdfJavaScriptStringEncoding.TryDecode(utf8, out string decoded));
+        using var validCancellation = new CancellationTokenSource();
+        Assert.True(PdfJavaScriptStringEncoding.TryDecode(utf8, out string decoded, validCancellation.Token));
         Assert.Equal(source, decoded);
 
         using var cancellation = new CancellationTokenSource();

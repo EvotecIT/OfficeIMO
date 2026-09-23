@@ -22,7 +22,7 @@ internal static class PdfDocEncoding {
             }
             characters[i] = Map[encoded];
         }
-        value = new string(characters);
+        value = PdfEncoding.CharArrayToStringCancellable(characters, cancellationToken);
         return true;
     }
 

@@ -41,7 +41,7 @@ internal static class PdfWinAnsiEncoding {
             chars[i] = Map[bytes[i]];
         }
         cancellationToken.ThrowIfCancellationRequested();
-        return new string(chars);
+        return PdfEncoding.CharArrayToStringCancellable(chars, cancellationToken);
     }
 
     public static char Decode(byte value) => Map[value];
