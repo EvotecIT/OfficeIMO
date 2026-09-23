@@ -128,6 +128,8 @@ public sealed class OpenDocumentValidationContractTests {
     [InlineData("of:cell-content-is-decimal-number() and cell-content() >= -2.5", "of:cell-content-is-decimal-number() and cell-content()>=-2.5")]
     [InlineData("of:cell-content-text-length-is-not-between(2,12)", "of:cell-content-text-length-is-not-between(2,12)")]
     [InlineData("of:cell-content-is-in-list(\"New\";\"On \"\"Hold\"\"\";\"Done\")", "of:cell-content-is-in-list(\"New\";\"On \"\"Hold\"\"\";\"Done\")")]
+    [InlineData("of:is-true-formula([.C5]>0)", "of:is-true-formula([.C5]>0)")]
+    [InlineData("of:is-true-formula(([.C5]>0))", "of:is-true-formula(([.C5]>0))")]
     public void ValidationConditionSyntax_RoundTripsSupportedGrammar(string text, string canonical) {
         OdsValidationConditionSyntax condition = OdsValidationConditionSyntax.Parse(text);
 
@@ -144,6 +146,9 @@ public sealed class OpenDocumentValidationContractTests {
     [InlineData("of:cell-content-is-in-list(\"A\";)")]
     [InlineData("of:cell-content-is-in-list(\"A\";   )")]
     [InlineData("of:cell-content-is-between(1)")]
+    [InlineData("of:is-true-formula()")]
+    [InlineData("of:is-true-formula(1+)")]
+    [InlineData("of:is-true-formula([.C5]>0())")]
     public void ValidationConditionSyntax_RejectsUnsupportedOrMalformedExpressions(string text) {
         Assert.False(OdsValidationConditionSyntax.TryParse(text, out _));
     }
