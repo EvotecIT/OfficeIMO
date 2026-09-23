@@ -49,3 +49,22 @@ This is diagnostic evidence from two documentation pages, not an H10 corpus
 acceptance claim or a general PeachPDF parity claim. The open corpus, editable
 format, resource-report and cross-platform gates remain in the
 [roadmap](../../../../../Docs/ROADMAP.md#unfamiliar-page-conversion-qualification).
+
+## W3C follow-up on the same frozen bytes
+
+Source `cb2f25f0fddd851b82478ee5a446d80abe3cd3ca` fixes two additional
+engine defects exposed by the W3C print comparison. The media-query length
+parser previously treated the `e` in `35em` as an incomplete scientific
+exponent, so the page's wide-layout breakpoint never applied. The flex auto
+basis also measured only DOM text, excluding generated print URLs from nested
+`::after` content; breadcrumb items therefore received overly narrow widths.
+Focused regressions cover both, the full .NET 10 HTML suite passed 3,225/3,225,
+and exact-commit offline replay again completed all six operations without
+runner failures. The H4 advanced-held-out gate passed 8/8 at this commit.
+
+First-page visual inspection now shows 120px tutorial illustrations beside
+their copy and substantially less breadcrumb wrapping. OfficeIMO print still
+uses four pages versus three for Chromium and PeachPDF; its breadcrumb occupies
+more lines and the header differs. MDN's omitted code examples remain. These
+residual differences need further layout and shadow-root qualification before
+any print-fidelity claim.
