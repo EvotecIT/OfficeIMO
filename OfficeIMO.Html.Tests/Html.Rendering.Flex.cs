@@ -631,6 +631,24 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlFlexAutoBasisIncludesDescendantGeneratedText() {
+        const string html = """
+            <style>a::after { content: ' (https://example.com/a-long-path/)' }</style>
+            <ul style="display:flex;flex-wrap:wrap;width:500px;gap:10px;margin:0;padding:0;list-style:none">
+              <li id="first" style="background:#ff0000"><a>Home</a></li>
+              <li id="second" style="background:#0000ff">Next</li>
+            </ul>
+            """;
+
+        HtmlRenderDocument rendered = RenderFlex(html, 520D);
+        HtmlRenderShape first = FindFlexShape(rendered, "li#first");
+        HtmlRenderShape second = FindFlexShape(rendered, "li#second");
+
+        Assert.True(first.Width > 180D, $"Generated link text did not contribute to the flex basis: {first.Width}.");
+        Assert.True(second.X >= first.X + first.Width + 10D);
+    }
+
+    [Fact]
     public void HtmlFlexAutoMargins_AbsorbMainAndCrossAxisFreeSpace() {
         HtmlRenderDocument row = RenderFlex("""
             <div style="display:flex;width:300px">

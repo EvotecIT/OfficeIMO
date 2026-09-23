@@ -544,7 +544,13 @@ public static partial class HtmlComputedStyleEngine {
             }
         }
         if (!hasDigit) return false;
-        if (cursor < value.Length && (value[cursor] == 'e' || value[cursor] == 'E')) {
+        // An 'e' starts an exponent only when digits follow; otherwise it may
+        // begin a unit such as em.
+        bool hasExponentDigits = cursor + 1 < value.Length && char.IsDigit(value[cursor + 1])
+            || cursor + 2 < value.Length && (value[cursor + 1] == '+' || value[cursor + 1] == '-')
+                && char.IsDigit(value[cursor + 2]);
+        if (cursor < value.Length && (value[cursor] == 'e' || value[cursor] == 'E')
+            && hasExponentDigits) {
             cursor++;
             if (cursor < value.Length && (value[cursor] == '+' || value[cursor] == '-')) cursor++;
             int exponentStart = cursor;
