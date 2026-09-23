@@ -17,6 +17,9 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             condition = OdsValidationConditionSyntax.CreateList(values!);
             return true;
         }
+        if (string.Equals(type, "custom", StringComparison.OrdinalIgnoreCase)) {
+            return TryCreateOdsCustomValidationCondition(validation, out condition);
+        }
 
         OdsValidationValueKind valueKind;
         if (string.Equals(type, "whole", StringComparison.OrdinalIgnoreCase)) valueKind = OdsValidationValueKind.WholeNumber;
@@ -100,9 +103,13 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         return true;
     }
 
-    private static bool TryApplyOdsValidation(ExcelSheet sheet, string references, OdsValidation validation) {
+    private static bool TryApplyOdsValidation(ExcelSheet sheet, string sourceSheetName,
+        string references, OdsValidation validation) {
         OdsValidationConditionSyntax? condition = validation.ParsedCondition;
         if (condition == null) return false;
+        if (condition.ValueKind == OdsValidationValueKind.CustomFormula) {
+            return TryApplyOdsCustomValidation(sheet, sourceSheetName, references, validation, condition);
+        }
         if (condition.ValueKind == OdsValidationValueKind.List) {
             if (condition.ListValues.Any(static item => item.IndexOf(',') >= 0)) return false;
             long formulaLength = 2L + Math.Max(0, condition.ListValues.Count - 1);

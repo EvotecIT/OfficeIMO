@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Text;
+using OfficeIMO.Spreadsheet;
 
 namespace OfficeIMO.OpenDocument;
 
@@ -18,7 +19,9 @@ public enum OdsValidationValueKind {
     /// <summary>Length of text cell content.</summary>
     TextLength,
     /// <summary>An explicit list of text values.</summary>
-    List
+    List,
+    /// <summary>A formula that must evaluate to true for the validated cell.</summary>
+    CustomFormula
 }
 
 /// <summary>Comparison performed by an OpenDocument validation condition.</summary>
@@ -63,7 +66,7 @@ public sealed class OdsValidationConditionSyntax {
 
     /// <summary>Constrained value category.</summary>
     public OdsValidationValueKind ValueKind { get; }
-    /// <summary>Comparison operation, or null for a list condition.</summary>
+    /// <summary>Comparison operation, or null for a list or custom-formula condition.</summary>
     public OdsValidationComparison? Comparison { get; }
     /// <summary>First authored scalar/formula operand.</summary>
     public string? FirstOperand { get; }
@@ -79,6 +82,7 @@ public sealed class OdsValidationConditionSyntax {
         string firstOperand,
         string? secondOperand = null) {
         if (valueKind == OdsValidationValueKind.List) throw new ArgumentException("Use CreateList for list validation.", nameof(valueKind));
+        if (valueKind == OdsValidationValueKind.CustomFormula) throw new ArgumentException("Use CreateFormula for custom-formula validation.", nameof(valueKind));
         if (string.IsNullOrWhiteSpace(firstOperand)) throw new ArgumentException("A first operand is required.", nameof(firstOperand));
         bool requiresSecond = comparison == OdsValidationComparison.Between || comparison == OdsValidationComparison.NotBetween;
         if (requiresSecond != !string.IsNullOrWhiteSpace(secondOperand)) {
@@ -95,6 +99,16 @@ public sealed class OdsValidationConditionSyntax {
         if (list.Count == 0) throw new ArgumentException("At least one list value is required.", nameof(values));
         return new OdsValidationConditionSyntax(
             OdsValidationValueKind.List, null, null, null, new ReadOnlyCollection<string>(list));
+    }
+
+    /// <summary>Creates an OpenFormula condition whose expression must evaluate to true.</summary>
+    public static OdsValidationConditionSyntax CreateFormula(string expression) {
+        if (string.IsNullOrWhiteSpace(expression)) throw new ArgumentException("A formula expression is required.", nameof(expression));
+        string value = expression.Trim();
+        if (!SpreadsheetFormulaSyntaxTree.Parse("of:=" + value, SpreadsheetFormulaDialect.OpenFormula).IsValid) {
+            throw new ArgumentException("The expression is not valid OpenFormula syntax.", nameof(expression));
+        }
+        return new OdsValidationConditionSyntax(OdsValidationValueKind.CustomFormula, null, value, null, null);
     }
 
     /// <summary>Parses a complete interoperable validation condition.</summary>
@@ -120,6 +134,15 @@ public sealed class OdsValidationConditionSyntax {
             return true;
         }
 
+        const string formulaPrefix = "is-true-formula(";
+        if (StartsWith(value, formulaPrefix) && value.EndsWith(")", StringComparison.Ordinal)) {
+            string expression = value.Substring(formulaPrefix.Length, value.Length - formulaPrefix.Length - 1);
+            if (string.IsNullOrWhiteSpace(expression)
+                || !SpreadsheetFormulaSyntaxTree.Parse("of:=" + expression, SpreadsheetFormulaDialect.OpenFormula).IsValid) return false;
+            condition = CreateFormula(expression);
+            return true;
+        }
+
         if (TryParseTextLength(value, out condition)) return true;
 
         foreach ((string Prefix, OdsValidationValueKind Kind) item in TypePrefixes) {
@@ -137,6 +160,7 @@ public sealed class OdsValidationConditionSyntax {
         if (ValueKind == OdsValidationValueKind.List) {
             return "of:cell-content-is-in-list(" + string.Join(";", ListValues.Select(Quote)) + ")";
         }
+        if (ValueKind == OdsValidationValueKind.CustomFormula) return "of:is-true-formula(" + FirstOperand + ")";
 
         string subject = ValueKind == OdsValidationValueKind.TextLength
             ? "cell-content-text-length"

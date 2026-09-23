@@ -168,6 +168,13 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                     skippedValidations++;
                     continue;
                 }
+                string? customBaseCellAddress = null;
+                if (condition!.ValueKind == OdsValidationValueKind.CustomFormula
+                    && !TryFormatExcelValidationBaseCell(validation.A1Ranges[0], worksheet.Name,
+                        out customBaseCellAddress)) {
+                    skippedValidations++;
+                    continue;
+                }
 
                 string validationName = "validation_" + worksheetOrdinal.ToString(CultureInfo.InvariantCulture)
                     + "_" + validationOrdinal.ToString(CultureInfo.InvariantCulture);
@@ -225,6 +232,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 }
                 if (assigned) {
                     OdsValidation convertedValidation = target.AddValidation(validationName, condition!, validation.AllowBlank);
+                    if (customBaseCellAddress != null) convertedValidation.BaseCellAddress = customBaseCellAddress;
                     if (string.Equals(validation.Type, "list", StringComparison.OrdinalIgnoreCase)) {
                         convertedValidation.DisplayList = validation.SuppressDropDown
                             ? OdsValidationDisplayList.None
@@ -543,7 +551,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             foreach (KeyValuePair<string, List<string>> entry in validationTargets) {
                 string references = string.Join(" ", entry.Value.Distinct(StringComparer.Ordinal));
                 if (!sourceValidations.TryGetValue(entry.Key, out OdsValidation? validation)
-                    || !TryApplyOdsValidation(sheet, references, validation)) {
+                    || !TryApplyOdsValidation(sheet, odsSheet.Name, references, validation)) {
                     unsupportedValidationAssignments += entry.Value.Count;
                     continue;
                 }
