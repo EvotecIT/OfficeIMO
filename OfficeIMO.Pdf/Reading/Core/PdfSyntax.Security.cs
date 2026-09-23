@@ -130,7 +130,7 @@ internal static partial class PdfSyntax {
                     encryptionLengthBits = TryReadInteger(parsedEncryptionDictionary, "Length");
                     encryptionPermissions = TryReadPermissionMask(parsedEncryptionDictionary);
                     encryptMetadata = TryReadBoolean(parsedEncryptionDictionary, "EncryptMetadata");
-                    if (TryCreateDecryptor(objects, trailerRaw, options, out PdfStandardSecurityHandler? authenticatedHandler) &&
+                    if (TryCreateDecryptor(objects, trailerRaw, options, out PdfStandardSecurityHandler? authenticatedHandler, cancellationToken) &&
                         authenticatedHandler is not null) {
                         passwordAuthenticationRole = authenticatedHandler.AuthenticationRole;
                     }
@@ -464,7 +464,7 @@ internal static partial class PdfSyntax {
                     if (dictEnd > dictStart) {
                         string dictText = SafeSlice(text, dictStart + 2, dictEnd - (dictStart + 2), 1_000_000);
                         try {
-                            dictionary = ParseDictionary(dictText);
+                            dictionary = ParseDictionary(dictText, cancellationToken: cancellationToken);
                             return true;
                         } catch (Exception ex) when (ex is not OperationCanceledException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
                             return false;

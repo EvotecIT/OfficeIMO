@@ -20,26 +20,27 @@ internal static class PdfTextString {
         return bytes.Length;
     }
 
-    public static string Decode(byte[] bytes) {
+    public static string Decode(byte[] bytes, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (bytes == null || bytes.Length == 0) {
             return string.Empty;
         }
 
         if (bytes.Length >= 2) {
             if (bytes[0] == 0xFE && bytes[1] == 0xFF) {
-                return DecodeUtf16BigEndian(bytes, 2);
+                return DecodeUtf16BigEndian(bytes, 2, cancellationToken);
             }
 
             if (bytes[0] == 0xFF && bytes[1] == 0xFE) {
-                return DecodeUtf16LittleEndian(bytes, 2);
+                return DecodeUtf16LittleEndian(bytes, 2, cancellationToken);
             }
         }
 
         if (bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF) {
-            return Encoding.UTF8.GetString(bytes, 3, bytes.Length - 3);
+            return PdfEncoding.DecodeCancellable(Encoding.UTF8, bytes, 3, bytes.Length - 3, cancellationToken);
         }
 
-        return PdfWinAnsiEncoding.Decode(bytes);
+        return PdfWinAnsiEncoding.Decode(bytes, int.MaxValue, cancellationToken);
     }
 
     public static byte[] Encode(string value) {
@@ -79,31 +80,40 @@ internal static class PdfTextString {
         return Decode(PdfStringParser.ParseLiteralToBytes(inner));
     }
 
-    private static string DecodeUtf16BigEndian(byte[] bytes, int offset) {
+    private static string DecodeUtf16BigEndian(byte[] bytes, int offset,
+        System.Threading.CancellationToken cancellationToken) {
         var builder = new StringBuilder((bytes.Length - offset) / 2);
         for (int i = offset; i + 1 < bytes.Length; i += 2) {
+            if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             builder.Append((char)((bytes[i] << 8) | bytes[i + 1]));
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         return builder.ToString();
     }
 
-    private static string DecodeUtf16LittleEndian(byte[] bytes, int offset) {
+    private static string DecodeUtf16LittleEndian(byte[] bytes, int offset,
+        System.Threading.CancellationToken cancellationToken) {
         var builder = new StringBuilder((bytes.Length - offset) / 2);
         for (int i = offset; i + 1 < bytes.Length; i += 2) {
+            if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             builder.Append((char)(bytes[i] | (bytes[i + 1] << 8)));
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         return builder.ToString();
     }
 
     internal static byte[] DecodeHexBytes(string raw) => DecodeHexBytes(raw, 0, raw.Length);
 
-    internal static byte[] DecodeHexBytes(string source, int start, int length) {
+    internal static byte[] DecodeHexBytes(string source, int start, int length,
+        System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (start < 0 || length < 0 || start > source.Length - length) throw new ArgumentOutOfRangeException(nameof(start));
         int end = start + length;
         int nibbleCount = 0;
         for (int i = start; i < end; i++) {
+            if (((i - start) & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (!char.IsWhiteSpace(source[i])) nibbleCount++;
         }
 
@@ -112,6 +122,7 @@ internal static class PdfTextString {
         int highNibble = -1;
         int byteIndex = 0;
         for (int i = start; i < end; i++) {
+            if (((i - start) & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             char ch = source[i];
             if (char.IsWhiteSpace(ch)) continue;
             int nibble = HexNibble(ch);
@@ -123,6 +134,7 @@ internal static class PdfTextString {
             }
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         if (highNibble >= 0) bytes[byteIndex] = (byte)(highNibble << 4);
         return bytes;
     }

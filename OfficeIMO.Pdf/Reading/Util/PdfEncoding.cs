@@ -4,6 +4,26 @@ using System.Threading;
 namespace OfficeIMO.Pdf;
 
 internal static class PdfEncoding {
+    internal static string DecodeCancellable(Encoding encoding, byte[] bytes, int index, int count,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!cancellationToken.CanBeCanceled) return encoding.GetString(bytes, index, count);
+
+        var decoder = encoding.GetDecoder();
+        var chars = new char[8192];
+        var builder = new StringBuilder(count);
+        int end = index + count;
+        while (index < end) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int chunk = Math.Min(4096, end - index);
+            int charsUsed = decoder.GetChars(bytes, index, chunk, chars, 0, index + chunk == end);
+            builder.Append(chars, 0, charsUsed);
+            index += chunk;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return builder.ToString();
+    }
+
     internal static string Latin1GetStringCancellable(byte[] bytes, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         if (!cancellationToken.CanBeCanceled) return Latin1GetString(bytes);
@@ -45,6 +65,19 @@ internal static class PdfEncoding {
         for (int i = 0; i < count; i++) chars[i] = (char)bytes[index + i];
         return new string(chars);
 #endif
+    }
+
+    internal static string Latin1GetStringCancellable(byte[] bytes, int index, int count,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!cancellationToken.CanBeCanceled) return Latin1GetString(bytes, index, count);
+        var chars = new char[count];
+        for (int i = 0; i < count; i++) {
+            if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            chars[i] = (char)bytes[index + i];
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return new string(chars);
     }
 
     public static byte[] Latin1GetBytes(string s) {

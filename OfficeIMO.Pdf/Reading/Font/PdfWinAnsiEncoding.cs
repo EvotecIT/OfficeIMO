@@ -29,12 +29,18 @@ internal static class PdfWinAnsiEncoding {
         return Decode(bytes, int.MaxValue);
     }
 
-    public static string Decode(byte[] bytes, int maxOutputCharacters) {
+    public static string Decode(byte[] bytes, int maxOutputCharacters,
+        System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (bytes.LongLength > maxOutputCharacters) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.DecodedTextCharacters, maxOutputCharacters, bytes.LongLength);
         }
         var chars = new char[bytes.Length];
-        for (int i = 0; i < bytes.Length; i++) chars[i] = Map[bytes[i]];
+        for (int i = 0; i < bytes.Length; i++) {
+            if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            chars[i] = Map[bytes[i]];
+        }
+        cancellationToken.ThrowIfCancellationRequested();
         return new string(chars);
     }
 

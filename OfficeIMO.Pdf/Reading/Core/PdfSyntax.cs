@@ -98,9 +98,9 @@ internal static partial class PdfSyntax {
         }
 
         var parseTimer = System.Diagnostics.Stopwatch.StartNew();
-        string text = decodedText ?? PdfEncoding.Latin1GetString(pdf);
+        string text = decodedText ?? PdfEncoding.Latin1GetStringCancellable(pdf, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        IndirectObjectHeader[] matches = FindIndirectObjectHeaders(text, parseTimer, limits);
+        IndirectObjectHeader[] matches = FindIndirectObjectHeaders(text, parseTimer, limits, cancellationToken);
         // The structural header scan has already enforced MaxIndirectObjects. Reserve
         // for ordinary multi-page documents without trusting a hostile stream full
         // of false headers to dictate an unbounded initial allocation.
@@ -119,7 +119,8 @@ internal static partial class PdfSyntax {
                 matches,
                 parseTimer,
                 limits,
-                out Dictionary<int, PdfDictionary> preparsedDictionaries);
+                out Dictionary<int, PdfDictionary> preparsedDictionaries,
+                cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
 
         for (int i = 0; i < matches.Length; i++) {
@@ -142,7 +143,8 @@ internal static partial class PdfSyntax {
                 declaredLengthValues,
                 limits,
                 preparsedDictionaries: preparsedDictionaries,
-                objectBodyStart: bodyStart);
+                objectBodyStart: bodyStart,
+                cancellationToken: cancellationToken);
             if (end < 0) {
                 HandleStructuralDefect(
                     parsingMode,
@@ -175,7 +177,7 @@ internal static partial class PdfSyntax {
                 }
 
                 string preliminaryArrayBody = SafeSlice(text, bodyStart, preliminaryBodyCharacters, limits.MaxObjectCharacters).Trim();
-                var parsedArray = ParseTopLevelObject(preliminaryArrayBody, limits);
+                var parsedArray = ParseTopLevelObject(preliminaryArrayBody, limits, cancellationToken: cancellationToken);
                 if (parsedArray is not null) {
                     if (parsedArray.HasIncompleteSyntax) ReportUnreadableObject();
                     map[id] = new PdfIndirectObject(id, gen, parsedArray);
@@ -198,8 +200,8 @@ internal static partial class PdfSyntax {
 
                     PdfDictionary? dict;
                     if (!preparsedDictionaries.TryGetValue(start, out dict)) {
-                        try { dict = ParseDictionary(text, dictStart + 2, dictionaryCharacters, limits); }
-                        catch (Exception ex) when (ex is not OutOfMemoryException && ex is not PdfReadLimitException) { dict = null; }
+                        try { dict = ParseDictionary(text, dictStart + 2, dictionaryCharacters, limits, cancellationToken: cancellationToken); }
+                        catch (Exception ex) when (ex is not OutOfMemoryException and not PdfReadLimitException and not OperationCanceledException) { dict = null; }
                     }
                     if (dict is null) {
                         ReportUnreadableObject();
@@ -208,7 +210,7 @@ internal static partial class PdfSyntax {
                     if (dict.HasIncompleteSyntax) ReportUnreadableObject();
 
                     // Check for stream section; prefer dictionary /Length when available
-                    int streamKw = IndexOfKeyword(text, "stream", dictEnd, end);
+                    int streamKw = IndexOfKeywordCancellable(text, "stream", dictEnd, end, cancellationToken);
                     int tailStart = SkipWhitespaceAndComments(text, dictEnd, preliminaryBodyEnd, cancellationToken);
                     if (tailStart < preliminaryBodyEnd && tailStart != streamKw) ReportUnreadableObject();
                     if (streamKw >= 0) {
@@ -223,7 +225,7 @@ internal static partial class PdfSyntax {
                         int endStream = hasResolvedLength &&
                             TryGetDeclaredEndStreamIndex(text, dataStart, byteLen, end, out int declaredEndStream)
                                 ? declaredEndStream
-                                : IndexOfKeyword(text, "endstream", dataStart, end);
+                                : IndexOfKeywordCancellable(text, "endstream", dataStart, end, cancellationToken);
                         if (endStream > dataStart) streamDataRanges.Add((dataStart, endStream));
                         if (hasResolvedLength &&
                             endStream > dataStart &&
@@ -280,7 +282,7 @@ internal static partial class PdfSyntax {
                 }
 
                 string preliminaryBody = SafeSlice(text, bodyStart, preliminaryBodyCharacters, limits.MaxObjectCharacters).Trim();
-                var parsed = ParseTopLevelObject(preliminaryBody, limits);
+                var parsed = ParseTopLevelObject(preliminaryBody, limits, cancellationToken: cancellationToken);
                 if (parsed is not null) {
                     map[id] = new PdfIndirectObject(id, gen, parsed);
                     parsedOffsets[id] = start;
@@ -288,9 +290,9 @@ internal static partial class PdfSyntax {
             }
         }
         cancellationToken.ThrowIfCancellationRequested();
-        ValidateActiveCrossReference(text, map, parsedOffsets, parsingMode, repairDiagnostics);
+        ValidateActiveCrossReference(text, map, parsedOffsets, parsingMode, repairDiagnostics, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        ResolveIndirectStreamLengths(map, pdf, streamLocations, limits);
+        ResolveIndirectStreamLengths(map, pdf, streamLocations, limits, cancellationToken);
         HashSet<int> activeClassicObjectNumbers = PdfCollectionSizing.CreateHashSet<int>(map.Count, map.Count);
         var xrefScanBudget = new XrefObjectScanBudget(limits);
         var decodedStreamBudget = new PdfDecodedStreamBudget(limits);
@@ -301,9 +303,9 @@ internal static partial class PdfSyntax {
             HandleStructuralDefect(parsingMode, repairDiagnostics, "UnreadableIndirectObject",
                 "Cross-reference stream entries could not be read completely.", null);
         }
-        bool appliedXrefStreamEntries = ApplyClassicXrefEntries(map, pdf, text, parsedOffsets, activeClassicObjectNumbers, limits, xrefScanBudget, decodedStreamBudget, ReportIncompleteXref, out bool appliedClassicEntries);
+        bool appliedXrefStreamEntries = ApplyClassicXrefEntries(map, pdf, text, parsedOffsets, activeClassicObjectNumbers, limits, xrefScanBudget, decodedStreamBudget, ReportIncompleteXref, out bool appliedClassicEntries, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        appliedXrefStreamEntries = ApplyXrefStreamEntries(map, pdf, parsedOffsets, limits, xrefScanBudget, decodedStreamBudget, ReportIncompleteXref) || appliedXrefStreamEntries;
+        appliedXrefStreamEntries = ApplyXrefStreamEntries(map, pdf, parsedOffsets, limits, xrefScanBudget, decodedStreamBudget, ReportIncompleteXref, cancellationToken) || appliedXrefStreamEntries;
         cancellationToken.ThrowIfCancellationRequested();
         string trailerRaw = GetActiveTrailerRaw(text, map, parsedOffsets, limits.MaxObjectCharacters, cancellationToken);
         if (IndexOfSecurityMarker(trailerRaw, "/Prev", 0, cancellationToken) < 0) {
@@ -317,7 +319,7 @@ internal static partial class PdfSyntax {
         PdfStandardSecurityHandler? decryptor = null;
         int? encryptObjectNumber = ReadTrailerReference(trailerRaw, "Encrypt", limits, cancellationToken)?.ObjectNumber;
         if (encryptObjectNumber.HasValue) {
-            TryCreateDecryptor(map, trailerRaw, options, out decryptor);
+            TryCreateDecryptor(map, trailerRaw, options, out decryptor, cancellationToken);
             if (decryptor is not null) {
                 DecryptObjects(map, decryptor, encryptObjectNumber.Value, cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
@@ -328,17 +330,20 @@ internal static partial class PdfSyntax {
             // Xref streams are never encrypted, but the object streams they reference can be.
             // Materialize compressed objects only after authentication and decryption so their
             // decoded bytes are charged exactly once and no encrypted payload is parsed as data.
-            ApplyCompressedXrefStreamEntries(map, pdf, parsedOffsets, limits, decodedStreamBudget, ReportUnreadableCompressedObject);
+            ApplyCompressedXrefStreamEntries(map, pdf, parsedOffsets, limits, decodedStreamBudget, ReportUnreadableCompressedObject, cancellationToken);
         } else {
             // Compatibility fallback for simple parser-supported files whose compressed objects are only discoverable by scanning.
-            ExpandObjectStreams(map, pdf, parsedOffsets, appliedClassicEntries ? activeClassicObjectNumbers : null, limits, decodedStreamBudget, ReportUnreadableCompressedObject);
+            ExpandObjectStreams(map, pdf, parsedOffsets, appliedClassicEntries ? activeClassicObjectNumbers : null, limits, decodedStreamBudget, ReportUnreadableCompressedObject, cancellationToken);
         }
         void ReportUnreadableCompressedObject(int objectNumber) => HandleStructuralDefect(parsingMode, repairDiagnostics,
             "UnreadableIndirectObject", "Compressed object content could not be read completely.", objectNumber);
-        var unreadableObjects = new HashSet<int?>(repairDiagnostics
-            .Where(static diagnostic => diagnostic.Code == "UnreadableIndirectObject")
-            .Select(static diagnostic => diagnostic.ObjectNumber));
+        var unreadableObjects = new HashSet<int?>();
+        foreach (PdfRepairDiagnostic diagnostic in repairDiagnostics) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (diagnostic.Code == "UnreadableIndirectObject") unreadableObjects.Add(diagnostic.ObjectNumber);
+        }
         foreach (var entry in map.Values) {
+            cancellationToken.ThrowIfCancellationRequested();
             bool incomplete = entry.Value.HasIncompleteSyntax ||
                 (entry.Value is PdfStream stream && stream.Dictionary.HasIncompleteSyntax);
             if (incomplete && unreadableObjects.Add(entry.ObjectNumber))
@@ -348,7 +353,7 @@ internal static partial class PdfSyntax {
         cancellationToken.ThrowIfCancellationRequested();
 
         if (decryptor is null) {
-            ThrowIfEncryptedXrefStream(map);
+            ThrowIfEncryptedXrefStream(map, cancellationToken);
         }
 
         if (map.Count > limits.MaxIndirectObjects) {
@@ -395,8 +400,10 @@ internal static partial class PdfSyntax {
         Dictionary<int, PdfIndirectObject> map,
         Dictionary<int, int> parsedOffsets,
         PdfParsingMode parsingMode,
-        List<PdfRepairDiagnostic> diagnostics) {
-        if (!TryGetLatestStartXrefOffset(text, out int activeOffset)) {
+        List<PdfRepairDiagnostic> diagnostics,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!TryGetLatestStartXrefOffset(text, out int activeOffset, cancellationToken)) {
             HandleStructuralDefect(
                 parsingMode,
                 diagnostics,
@@ -406,8 +413,9 @@ internal static partial class PdfSyntax {
             return;
         }
 
-        if (TryParseClassicXrefTable(text, activeOffset, out _, out _, out _, out _)) return;
+        if (TryParseClassicXrefTable(text, activeOffset, out _, out _, out _, out _, cancellationToken)) return;
         foreach (KeyValuePair<int, int> parsedOffset in parsedOffsets) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (parsedOffset.Value == activeOffset &&
                 map.TryGetValue(parsedOffset.Key, out PdfIndirectObject? indirect) &&
                 indirect.Value is PdfStream stream &&

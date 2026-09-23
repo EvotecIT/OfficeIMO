@@ -3,8 +3,10 @@ using System.Threading;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfSyntax {
-    private static void ThrowIfEncryptedXrefStream(Dictionary<int, PdfIndirectObject> map) {
+    private static void ThrowIfEncryptedXrefStream(Dictionary<int, PdfIndirectObject> map,
+        CancellationToken cancellationToken) {
         foreach (var entry in map.Values) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfDictionary? dictionary = entry.Value switch {
                 PdfDictionary directDictionary => directDictionary,
                 PdfStream stream => stream.Dictionary,

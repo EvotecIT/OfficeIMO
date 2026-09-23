@@ -93,7 +93,8 @@ internal static partial class PdfSyntax {
         try {
             dictionary = ParseDictionary(
                 raw.Substring(dictionaryStart + 2, dictionaryEnd - dictionaryStart - 2),
-                limits);
+                limits,
+                cancellationToken: cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             searchIndex = dictionaryEnd;
             return true;

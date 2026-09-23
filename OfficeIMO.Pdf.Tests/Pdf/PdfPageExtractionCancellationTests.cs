@@ -1,10 +1,56 @@
 using OfficeIMO.Pdf;
 using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
 public class PdfPageExtractionCancellationTests {
+    [Fact]
+    public void LargeFalseHeaderScanHonorsCancellation() {
+        string source = "%PDF-1.7\n" + string.Concat(Enumerable.Repeat("x obj", 5_000_000));
+        byte[] pdf = System.Text.Encoding.ASCII.GetBytes(source);
+        var options = new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxObjectParsingTime = TimeSpan.FromSeconds(20) }
+        };
+        using var cancellation = new CancellationTokenSource();
+        using var entered = new ManualResetEventSlim();
+        Task parse = Task.Run(() => {
+            entered.Set();
+            PdfSyntax.ParseObjects(pdf, options, out _, out _, source, cancellation.Token);
+        });
+
+        Assert.True(entered.Wait(TimeSpan.FromSeconds(5)));
+        cancellation.CancelAfter(TimeSpan.FromMilliseconds(5));
+        Assert.ThrowsAny<OperationCanceledException>(() => parse.GetAwaiter().GetResult());
+    }
+
+    [Fact]
+    public void LargeHexStringDecodeHonorsCancellation() {
+        string hex = new string('A', 40_000_000);
+        using var cancellation = new CancellationTokenSource();
+        using var entered = new ManualResetEventSlim();
+        Task decode = Task.Run(() => {
+            entered.Set();
+            PdfTextString.DecodeHexBytes(hex, 0, hex.Length, cancellation.Token);
+        });
+
+        Assert.True(entered.Wait(TimeSpan.FromSeconds(5)));
+        cancellation.CancelAfter(TimeSpan.FromMilliseconds(5));
+        Assert.ThrowsAny<OperationCanceledException>(() => decode.GetAwaiter().GetResult());
+    }
+
+    [Fact]
+    public void ChunkedPdfTextStringDecodePreservesSplitUtf8Sequences() {
+        string expected = new string('a', 4095) + "😀" + new string('b', 4096);
+        byte[] bytes = new byte[] { 0xEF, 0xBB, 0xBF }
+            .Concat(System.Text.Encoding.UTF8.GetBytes(expected))
+            .ToArray();
+        using var cancellation = new CancellationTokenSource();
+
+        Assert.Equal(expected, PdfTextString.Decode(bytes, cancellation.Token));
+    }
+
     [Fact]
     public void JavaScriptDecoderPreservesUnicodeAcrossChunksAndHonorsCancellation() {
         string source = new string('x', 8191) + "😀" + new string('y', 8192);

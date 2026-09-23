@@ -1,18 +1,26 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfSyntax {
-    private static IEnumerable<XrefStreamEntry> ReadXrefStreamEntries(PdfDictionary dictionary, byte[] data, Action reportIncomplete) {
-        if (!TryReadXrefLayout(dictionary, out int[] widths, out var ranges)) {
+    private static IEnumerable<XrefStreamEntry> ReadXrefStreamEntries(PdfDictionary dictionary, byte[] data, Action reportIncomplete,
+        System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!TryReadXrefLayout(dictionary, out int[] widths, out var ranges, cancellationToken)) {
             reportIncomplete();
             yield break;
         }
         int entryWidth = widths[0] + widths[1] + widths[2];
-        long declaredCount = ranges.Sum(static range => (long)range.Count);
+        long declaredCount = 0;
+        foreach (var range in ranges) {
+            cancellationToken.ThrowIfCancellationRequested();
+            declaredCount += range.Count;
+        }
         if (declaredCount * entryWidth > data.LongLength) reportIncomplete();
 
         int dataOffset = 0;
         foreach (var range in ranges) {
+            cancellationToken.ThrowIfCancellationRequested();
             for (int i = 0; i < range.Count; i++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (dataOffset > data.Length - entryWidth) yield break;
                 long type = widths[0] == 0 ? 1 : ReadBigEndian(data, dataOffset, widths[0]);
                 dataOffset += widths[0];
@@ -28,7 +36,9 @@ internal static partial class PdfSyntax {
     }
 
     private static bool TryReadXrefLayout(PdfDictionary dictionary, out int[] widths,
-        out List<(int FirstObjectNumber, int Count)> ranges) {
+        out List<(int FirstObjectNumber, int Count)> ranges,
+        System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         widths = new int[3];
         ranges = new();
         if (dictionary.Get<PdfArray>("W") is not PdfArray widthsArray || widthsArray.Items.Count != 3) return false;
@@ -40,12 +50,16 @@ internal static partial class PdfSyntax {
         if (dictionary.Items.TryGetValue("Index", out PdfObject? indexValue)) {
             if (indexValue is not PdfArray indexArray || indexArray.Items.Count == 0 || indexArray.Items.Count % 2 != 0) return false;
             for (int index = 0; index < indexArray.Items.Count; index += 2) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (!TryReadXrefInteger(indexArray.Items[index], out int first) ||
                     !TryReadXrefInteger(indexArray.Items[index + 1], out int count) || (long)first + count > size) return false;
                 if (count > 0) ranges.Add((first, count));
             }
             long previousEnd = -1;
-            foreach (var range in ranges.OrderBy(static range => range.FirstObjectNumber)) {
+            foreach (var range in ranges.OrderBy(range => {
+                cancellationToken.ThrowIfCancellationRequested();
+                return range.FirstObjectNumber;
+            })) {
                 if (range.FirstObjectNumber < previousEnd) return false;
                 previousEnd = (long)range.FirstObjectNumber + range.Count;
             }

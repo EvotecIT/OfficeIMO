@@ -7,9 +7,11 @@ internal static partial class PdfSyntax {
         Dictionary<int, PdfIndirectObject> map,
         string trailerRaw,
         PdfLoadOptions? options,
-        out PdfStandardSecurityHandler? decryptor) {
+        out PdfStandardSecurityHandler? decryptor,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         decryptor = null;
-        PdfReference? encryptReference = ReadTrailerReference(trailerRaw, "Encrypt", options?.Limits);
+        PdfReference? encryptReference = ReadTrailerReference(trailerRaw, "Encrypt", options?.Limits, cancellationToken);
         if (encryptReference is null) {
             return false;
         }
@@ -19,7 +21,7 @@ internal static partial class PdfSyntax {
             throw new PdfUnsupportedEncryptionException("PDF encryption dictionary could not be read.");
         }
 
-        byte[] fileId = ReadFirstFileId(map, trailerRaw);
+        byte[] fileId = ReadFirstFileId(map, trailerRaw, cancellationToken);
         bool supplied = options != null && options.Password != null;
         decryptor = PdfStandardSecurityHandler.Create(
             encryptionDictionary,
@@ -27,11 +29,14 @@ internal static partial class PdfSyntax {
             options?.Password,
             supplied,
             options?.AesCryptographyProvider);
+        cancellationToken.ThrowIfCancellationRequested();
         return true;
     }
 
-    private static byte[] ReadFirstFileId(Dictionary<int, PdfIndirectObject> map, string trailerRaw) {
+    private static byte[] ReadFirstFileId(Dictionary<int, PdfIndirectObject> map, string trailerRaw,
+        CancellationToken cancellationToken) {
         foreach (PdfIndirectObject indirect in map.Values) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (indirect.Value is PdfStream stream &&
                 stream.Dictionary.Get<PdfName>("Type")?.Name == "XRef" &&
                 TryReadFirstFileId(stream.Dictionary, out byte[] fileId)) {
@@ -39,7 +44,7 @@ internal static partial class PdfSyntax {
             }
         }
 
-        return ReadFirstFileId(trailerRaw);
+        return ReadFirstFileId(trailerRaw, cancellationToken);
     }
 
     private static bool TryReadFirstFileId(PdfDictionary dictionary, out byte[] fileId) {
@@ -54,19 +59,20 @@ internal static partial class PdfSyntax {
         return false;
     }
 
-    private static byte[] ReadFirstFileId(string trailerRaw) {
+    private static byte[] ReadFirstFileId(string trailerRaw, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         int dictStart = trailerRaw.IndexOf("<<", StringComparison.Ordinal);
         if (dictStart < 0) {
             return Array.Empty<byte>();
         }
 
-        int dictEnd = FindDictEnd(trailerRaw, dictStart, trailerRaw.Length);
+        int dictEnd = FindDictEnd(trailerRaw, dictStart, trailerRaw.Length, cancellationToken);
         if (dictEnd <= dictStart) {
             return Array.Empty<byte>();
         }
 
         string dictText = SafeSlice(trailerRaw, dictStart + 2, dictEnd - (dictStart + 2), 1_000_000);
-        PdfDictionary trailer = ParseDictionary(dictText);
+        PdfDictionary trailer = ParseDictionary(dictText, cancellationToken: cancellationToken);
         if (trailer.Get<PdfArray>("ID") is PdfArray idArray &&
             idArray.Items.Count > 0 &&
             idArray.Items[0] is PdfStringObj firstId) {
