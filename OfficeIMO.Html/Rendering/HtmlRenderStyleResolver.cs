@@ -66,6 +66,14 @@ internal sealed partial class HtmlRenderStyleResolver {
         return ResolveCore(element, computed, containingWidth, parent, false, string.Empty);
     }
 
+    internal double? ResolvePositionedPercentageHeight(IElement element, double containingHeight, double fontSize) {
+        if (!_computedStyles.Elements.TryGetValue(element, out HtmlComputedStyle? computed)) return null;
+        string height = computed.GetValue("height");
+        return height.IndexOf('%') >= 0
+            ? ReadVerticalLength(height, null, containingHeight, fontSize)
+            : null;
+    }
+
     internal bool TryResolvePseudo(
         IElement element,
         HtmlPseudoElementKind kind,

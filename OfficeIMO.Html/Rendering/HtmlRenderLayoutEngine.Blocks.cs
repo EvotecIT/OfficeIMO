@@ -133,7 +133,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     continue;
                 }
 
-                if (HtmlRenderStyleResolver.IsBlockElement(element, childStyle)) {
+                if (HtmlRenderStyleResolver.IsBlockElement(element, childStyle)
+                    || IsInlineAnchorWithBlockChildren(element, childStyle, width, depth + 1)) {
                     double inlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth);
                     flowHeight += inlineHeight;
                     if (inlineHeight > 0D) {
@@ -676,6 +677,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private bool HasBlockChildren(IElement element, double width, HtmlRenderBoxStyle parentStyle, int depth) {
         EnsureDepth(depth, element);
+        if (HasBlockGeneratedContent(element, HtmlPseudoElementKind.Before, width, parentStyle)
+            || HasBlockGeneratedContent(element, HtmlPseudoElementKind.After, width, parentStyle)) return true;
         foreach (IElement child in element.Children) {
             if (ShouldSkipElement(child)) continue;
             HtmlRenderBoxStyle style = _styleResolver.Resolve(child, width, parentStyle);
@@ -683,10 +686,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (style.Display == "contents" && HasBlockChildren(child, width, style, depth + 1)) return true;
             if (style.Display != "none" && ShouldExtractOutOfFlow(style) && !UsesInlineStaticPosition(child, style)) return true;
             if (style.Display != "none" && HtmlRenderStyleResolver.IsBlockElement(child, style)) return true;
+            if (IsInlineAnchorWithBlockChildren(child, style, width, depth + 1)) return true;
             if (style.Display != "none" && ContainsFloatingDescendant(child, width, style, depth + 1)) return true;
         }
 
         return false;
+    }
+
+    private bool IsInlineAnchorWithBlockChildren(IElement element, HtmlRenderBoxStyle style, double width, int depth) =>
+        style.Display == "inline"
+        && string.Equals(element.LocalName, "a", StringComparison.OrdinalIgnoreCase)
+        && HasBlockChildren(element, width, style, depth);
+
+    private bool HasBlockGeneratedContent(IElement element, HtmlPseudoElementKind kind, double width, HtmlRenderBoxStyle parentStyle) {
+        if (!_generatedContent.TryGetContent(element, kind, out _)
+            || !_styleResolver.TryResolvePseudo(element, kind, width, parentStyle, out HtmlRenderBoxStyle style)) return false;
+        return style.Display is "block" or "flow-root" or "list-item" or "flex" or "grid";
     }
 
     private static bool UsesInlineStaticPosition(IElement element, HtmlRenderBoxStyle style) {

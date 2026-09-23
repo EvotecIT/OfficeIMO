@@ -59,9 +59,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         AddBoxPaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
         double imageX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft;
         double imageY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
-        string? link = inheritedLink ?? (element.ParentElement != null && string.Equals(element.ParentElement.TagName, "a", StringComparison.OrdinalIgnoreCase)
-            ? ResolveSafeLink(element.ParentElement.GetAttribute("href"), element.ParentElement)
-            : null);
+        string? link = inheritedLink ?? ResolveAncestorLink(element);
         string? alternativeText = element.GetAttribute("alt") ?? element.GetAttribute("aria-label");
         ReplacedObjectPlacement placement = ResolveReplacedObjectPlacement(
             style,

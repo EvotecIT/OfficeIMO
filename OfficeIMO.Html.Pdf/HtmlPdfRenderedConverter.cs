@@ -383,7 +383,14 @@ internal static partial class HtmlPdfRenderedConverter {
                 destination.X * PointsPerCssPixel,
                 destination.Y * PointsPerCssPixel);
         } else if (visual is HtmlRenderImage image) {
-            AddImage(canvas, image);
+            try {
+                if (!AddImage(canvas, image)) {
+                    ReportImagePayloadOmitted(conversionReport, image,
+                        "The image payload could not be prepared as a PDF raster resource.");
+                }
+            } catch (System.NotSupportedException exception) {
+                ReportImagePayloadOmitted(conversionReport, image, exception.Message);
+            }
         } else if (visual is HtmlRenderDrawing drawing) {
             AddDrawing(canvas, drawing, webFonts, conversionReport, cancellationToken);
         } else if (visual is HtmlRenderImagePattern imagePattern) {
@@ -905,10 +912,20 @@ internal static partial class HtmlPdfRenderedConverter {
         _ => PdfCore.PdfTextBaseline.Normal
     };
 
-    private static void AddImage(PdfCore.PdfPageCanvas canvas, HtmlRenderImage visual) {
+    private static void ReportImagePayloadOmitted(PdfCore.PdfConversionReport report, HtmlRenderImage image, string reason) {
+        report.Add(new PdfCore.PdfConversionWarning(
+            "OfficeIMO.Html.Pdf",
+            HtmlPdfDiagnosticCodes.ImagePayloadOmitted,
+            image.Source ?? "html-image",
+            "An image payload could not be embedded in the PDF: " + reason,
+            PdfCore.PdfConversionWarningSeverity.Warning,
+            OfficeConversionLossKind.Omission));
+    }
+
+    private static bool AddImage(PdfCore.PdfPageCanvas canvas, HtmlRenderImage visual) {
         PdfCore.PdfCanvasImageResource? imageResource = GetSharedPdfImageResource(
             visual.EncodedBytes, visual.ContentType);
-        if (imageResource == null) return;
+        if (imageResource == null) return false;
         PdfCore.PdfImageStyle? style = visual.SourceCrop.HasCrop
             ? new PdfCore.PdfImageStyle {
                 SourceCrop = new PdfCore.PdfImageSourceCrop(
@@ -938,6 +955,7 @@ internal static partial class HtmlPdfRenderedConverter {
                 visual.Height * PointsPerCssPixel,
                 visual.Source);
         }
+        return true;
     }
 
     private static void AddDrawing(

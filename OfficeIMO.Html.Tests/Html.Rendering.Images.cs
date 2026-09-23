@@ -11,6 +11,42 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlPdf_UnpreparableImageReportsOmission() {
+        string data = Convert.ToBase64String(Encoding.ASCII.GetBytes("GIF89a"));
+        string html = "<p>Before image</p><img src='data:image/gif;base64," + data
+            + "' alt='Unpreparable thumbnail'><p>After image</p>";
+
+        HtmlPdfRenderRequestResult result = HtmlConversionDocument.Parse(html).RenderToPdfResult(
+            HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf));
+        byte[] pdf = result.ToBytes();
+
+        Assert.Contains("After image", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains(result.Output.Warnings, warning =>
+            warning.Code == HtmlPdfDiagnosticCodes.ImagePayloadOmitted
+            && warning.LossKind == OfficeConversionLossKind.Omission);
+    }
+
+    [Fact]
+    public void HtmlPdf_TruncatedImageOmitsPayloadWithReportedLoss() {
+        byte[] invalidPng = PdfPngTestImages.CreateRgbPng(10, 10);
+        int imageDataChunk = Encoding.ASCII.GetString(invalidPng).IndexOf("IDAT", StringComparison.Ordinal);
+        Assert.True(imageDataChunk >= 4);
+        invalidPng[imageDataChunk - 4] = 0x7F;
+        string html = "<p>Before image</p><img src='data:image/png;base64,"
+            + Convert.ToBase64String(invalidPng) + "' alt='Broken thumbnail'><p>After image</p>";
+
+        HtmlPdfRenderRequestResult result = HtmlConversionDocument.Parse(html).RenderToPdfResult(
+            HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf));
+        byte[] pdf = result.ToBytes();
+
+        Assert.Equal("%PDF-", Encoding.ASCII.GetString(pdf, 0, 5));
+        Assert.Contains("After image", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains(result.Output.Warnings, warning =>
+            warning.Code == HtmlPdfDiagnosticCodes.ImagePayloadOmitted
+            && warning.LossKind == OfficeConversionLossKind.Omission);
+    }
+
+    [Fact]
     public void HtmlPdf_MissingImageAlternativeWithLineBreaksRemainsPrintable() {
         const string html = "<img src='missing.png' alt='Heliopause movie&#13;&#10;  unavailable' style='width:180px;height:40px'>";
 

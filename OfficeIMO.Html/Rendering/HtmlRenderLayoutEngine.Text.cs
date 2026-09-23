@@ -21,16 +21,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         double? containingHeight = ResolveContainingBlockHeight(parentStyle);
+        string? inheritedLink = generatedContentOwner == null ? null : ResolveAncestorLink(generatedContentOwner);
         if (generatedContentOwner != null) {
-            AddGeneratedInlineRun(generatedContentOwner, HtmlPseudoElementKind.Before, width, containingHeight, parentStyle, null, 0D, 0D, runs);
+            AddGeneratedInlineRun(generatedContentOwner, HtmlPseudoElementKind.Before, width, containingHeight, parentStyle, inheritedLink, 0D, 0D, runs);
         }
 
         foreach (INode node in nodes) {
-            CollectInlineRuns(node, width, containingHeight, parentStyle, null, depth, 0D, 0D, runs);
+            CollectInlineRuns(node, width, containingHeight, parentStyle, inheritedLink, depth, 0D, 0D, runs);
         }
 
         if (generatedContentOwner != null) {
-            AddGeneratedInlineRun(generatedContentOwner, HtmlPseudoElementKind.After, width, containingHeight, parentStyle, null, 0D, 0D, runs);
+            AddGeneratedInlineRun(generatedContentOwner, HtmlPseudoElementKind.After, width, containingHeight, parentStyle, inheritedLink, 0D, 0D, runs);
         }
 
         ApplyPendingInlineTextTransforms(runs);

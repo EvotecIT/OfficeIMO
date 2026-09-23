@@ -2,12 +2,95 @@ using System.Text;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
+using OfficeIMO.Tests.Pdf;
 using PdfCore = OfficeIMO.Pdf;
 using Xunit;
 
 namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
+    [Fact]
+    public void HtmlGeneratedContent_EmptyInlineBlockPaintsItsBox() {
+        const string html = """
+            <style>body{margin:0}.badge::before{content:"";display:inline-block;width:16px;height:16px;background:#ff0000}</style>
+            <span class="badge">Label</span>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            ViewportWidth = 100D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        HtmlRenderShape box = Assert.Single(EnumerateRenderVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderShape>(),
+            shape => shape.Source == "span.badge::before" && shape.Shape.FillColor == OfficeColor.FromRgb(0xFF, 0, 0));
+        HtmlRenderText label = Assert.Single(EnumerateRenderVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderText>(),
+            text => text.Text == "Label");
+        Assert.Equal(16D, box.Width, 3);
+        Assert.Equal(16D, box.Height, 3);
+        Assert.True(label.X >= box.X + box.Width);
+    }
+
+    [Fact]
+    public void HtmlInlineAnchorWithBlockChildPreservesTextLink() {
+        const string html = "<a href='https://example.com/card'><div>Linked card title</div></a>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            ViewportWidth = 200D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        HtmlRenderText title = Assert.Single(EnumerateRenderVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderText>(),
+            text => text.Text == "Linked card title");
+        Assert.Equal("https://example.com/card", title.LinkUri);
+    }
+
+    [Fact]
+    public void HtmlGeneratedContent_EmptyBeforeReservesRatioWrapperHeight() {
+        const string html = """
+            <style>
+              body { margin:0; }
+              .ratio { width:320px; --bs-aspect-ratio:56.25%; }
+              .ratio::before { content:""; display:block; padding-top:var(--bs-aspect-ratio); background:#ff0000; }
+              p { margin:0; }
+            </style>
+            <div class="ratio"></div><p>After ratio</p>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            ViewportWidth = 400D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        HtmlRenderShape pseudo = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Source == "div.ratio::before" && shape.Shape.FillColor == OfficeColor.FromRgb(0xFF, 0, 0));
+        HtmlRenderText after = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            text => text.Text == "After ratio");
+        Assert.Equal(180D, pseudo.Height, 3);
+        Assert.True(after.Y >= 180D, $"Following text started at {after.Y} before the ratio box ended.");
+    }
+
+    [Fact]
+    public void HtmlGeneratedContent_RatioWrapperPaintsPositionedImage() {
+        string data = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(10, 10));
+        string html = "<style>body{margin:0}ul{display:flex;flex-wrap:wrap;list-style:none;margin:0;padding:0}"
+            + "li{position:relative;overflow:hidden;width:320px;flex:none}a{width:100%}"
+            + ".ratio{position:relative;width:100%;--bs-aspect-ratio:56.25%}"
+            + ".ratio::before{content:\"\";display:block;padding-top:var(--bs-aspect-ratio)}"
+            + ".ratio>img{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover}</style>"
+            + "<ul><li><div><a href='https://example.com/card'><div class='ratio'><img src='data:image/png;base64," + data
+            + "' alt='gallery tile'></div></a></div></li></ul>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            ViewportWidth = 400D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        HtmlRenderImage image = Assert.Single(EnumerateRenderVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderImage>());
+        Assert.Equal(320D, image.Width, 3);
+        Assert.Equal(180D, image.Height, 3);
+        Assert.Equal("https://example.com/card", image.LinkUri);
+    }
+
     [Fact]
     public void HtmlGeneratedContent_RendersStyledBeforeAfterTextAndAttributes() {
         const string html = """

@@ -23,6 +23,27 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string source = DescribePseudoSource(element, kind);
         ReportUnsupportedGeneratedLayout(style, source);
         ResolvePositionPaintOffset(style, width, containingHeight, source, out double offsetX, out double offsetY);
+        if (content.Fragments.Count == 1
+            && content.Fragments[0].Kind == HtmlGeneratedContentFragmentKind.Text
+            && content.Fragments[0].Value.Length == 0
+            && style.Display is "inline-block" or "inline-flex" or "inline-grid") {
+            double boxWidth = ResolveBoxWidth(Math.Max(1D, width - style.MarginLeft - style.MarginRight), style);
+            double boxHeight = ResolveBoxHeight(0D, boxWidth, style);
+            var visuals = new List<HtmlRenderVisual>();
+            AddGeneratedBoxPaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element, source);
+            AddGeneratedBoxOutlinePaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element, source);
+            var box = new HtmlRenderFlowBlock(
+                style.MarginLeft + boxWidth + style.MarginRight,
+                Math.Max(0.01D, style.MarginTop + boxHeight + style.MarginBottom),
+                visuals,
+                style.BreakBefore,
+                style.BreakAfter,
+                style.AvoidBreakInside,
+                source);
+            runs.Add(new HtmlInlineRun(box, style, link, source,
+                inheritedPaintOffsetX + offsetX, inheritedPaintOffsetY + offsetY, element));
+            return;
+        }
         AddGeneratedInlineFragments(
             content,
             element,

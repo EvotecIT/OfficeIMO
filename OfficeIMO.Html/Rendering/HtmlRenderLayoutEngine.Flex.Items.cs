@@ -15,7 +15,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (string.IsNullOrWhiteSpace(text.Data)) return true;
             string source = HtmlRenderStyleResolver.DescribeSource(text.ParentElement ?? throw new InvalidOperationException("A flex text node has no parent element.")) + "::anonymous-flex-item";
             IElement owner = text.ParentElement!;
-            items.Add(new FlexItem(text.Data, owner, source, ResolveFlexItemLink(owner), CreateAnonymousFlexStyle(parentStyle), sourceIndex++, paintAnonymousBox: false));
+            items.Add(new FlexItem(text.Data, owner, source, ResolveAncestorLink(owner), CreateAnonymousFlexStyle(parentStyle), sourceIndex++, paintAnonymousBox: false));
             return true;
         }
 
@@ -83,7 +83,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             content,
             element,
             source,
-            ResolveFlexItemLink(element),
+            ResolveAncestorLink(element),
             BlockifyFlexItemStyle(style),
             sourceIndex++,
             paintAnonymousBox: true));
@@ -131,7 +131,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return ApplyPositioning(block, style, containingWidth, ResolveContainingBlockHeight(parentStyle), item.Source);
     }
 
-    private string? ResolveFlexItemLink(IElement element) {
+    private string? ResolveAncestorLink(IElement element) {
         for (IElement? current = element; current != null; current = current.ParentElement) {
             if (string.Equals(current.TagName, "a", StringComparison.OrdinalIgnoreCase)) {
                 return ResolveSafeLink(current.GetAttribute("href"), current);

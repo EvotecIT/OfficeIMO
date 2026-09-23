@@ -154,7 +154,11 @@ internal static partial class HtmlGeneratedContentResolver {
                 OfficeConversionLossKind.Approximation);
         }
 
-        if (fragments.Count == 0) return;
+        // Empty content still creates a pseudo-element box. Layouts such as Bootstrap's
+        // aspect-ratio wrapper use that box's percentage padding to reserve space.
+        if (fragments.Count == 0) {
+            fragments = new[] { new HtmlGeneratedContentFragment(HtmlGeneratedContentFragmentKind.Text, string.Empty) };
+        }
         HtmlGeneratedPseudoContentPair pair = GetOrCreateContentPair(element, content);
         var generatedContent = new HtmlGeneratedContent(fragments);
 
