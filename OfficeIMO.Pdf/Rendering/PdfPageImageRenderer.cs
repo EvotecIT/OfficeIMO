@@ -21,23 +21,23 @@ internal static partial class PdfPageImageRenderer {
     /// <summary>
     /// Projects a one-based PDF page from the current stream position into the shared OfficeIMO drawing scene.
     /// </summary>
-    public static OfficeDrawing RenderPage(Stream stream, int pageNumber = 1) {
-        Guard.NotNull(stream, nameof(stream));
-        if (!stream.CanRead) {
-            throw new ArgumentException("Stream must be readable.", nameof(stream));
-        }
+    public static OfficeDrawing RenderPage(Stream stream, int pageNumber = 1) =>
+        RenderPage(stream, pageNumber, readOptions: null);
 
-        using var buffer = new MemoryStream();
-        stream.CopyTo(buffer);
-        return RenderPage(buffer.ToArray(), pageNumber);
+    internal static OfficeDrawing RenderPage(Stream stream, int pageNumber, PdfLoadOptions? readOptions) {
+        PdfDocumentSource source = PdfDocumentSource.FromRemainingStream(stream, readOptions);
+        return RenderPage(PdfReadDocument.Open(source.Bytes, source.Options), pageNumber);
     }
 
     /// <summary>
     /// Projects a one-based PDF page from a file into the shared OfficeIMO drawing scene.
     /// </summary>
-    public static OfficeDrawing RenderPage(string path, int pageNumber = 1) {
-        Guard.NotNullOrWhiteSpace(path, nameof(path));
-        return RenderPage(File.ReadAllBytes(path), pageNumber);
+    public static OfficeDrawing RenderPage(string path, int pageNumber = 1) =>
+        RenderPage(path, pageNumber, readOptions: null);
+
+    internal static OfficeDrawing RenderPage(string path, int pageNumber, PdfLoadOptions? readOptions) {
+        PdfDocumentSource source = PdfDocumentSource.FromPath(path, readOptions);
+        return RenderPage(PdfReadDocument.Open(source.Bytes, source.Options), pageNumber);
     }
 
     /// <summary>
