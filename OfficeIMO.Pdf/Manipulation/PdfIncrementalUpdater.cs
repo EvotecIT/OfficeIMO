@@ -33,20 +33,24 @@ internal static partial class PdfIncrementalUpdater {
 
     /// <summary>Analyzes append-only mutation support for a readable PDF stream.</summary>
     public static PdfAppendOnlyMutationReport AnalyzeAppendOnlyMutation(Stream input) {
-        Guard.NotNull(input, nameof(input));
-        if (!input.CanRead) {
-            throw new ArgumentException("Stream must be readable.", nameof(input));
-        }
+        return AnalyzeAppendOnlyMutation(input, null);
+    }
 
-        using var buffer = new MemoryStream();
-        input.CopyTo(buffer);
-        return AnalyzeAppendOnlyMutation(buffer.ToArray());
+    /// <summary>Analyzes append-only mutation support for a readable PDF stream with caller-selected read limits.</summary>
+    public static PdfAppendOnlyMutationReport AnalyzeAppendOnlyMutation(Stream input, PdfLoadOptions? readOptions) {
+        PdfDocumentSource source = PdfDocumentSource.FromRemainingStream(input, readOptions);
+        return AnalyzeAppendOnlyMutation(source.Bytes, source.Options);
     }
 
     /// <summary>Analyzes append-only mutation support for a PDF file.</summary>
     public static PdfAppendOnlyMutationReport AnalyzeAppendOnlyMutation(string inputPath) {
-        Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return AnalyzeAppendOnlyMutation(File.ReadAllBytes(inputPath));
+        return AnalyzeAppendOnlyMutation(inputPath, null);
+    }
+
+    /// <summary>Analyzes append-only mutation support for a PDF file with caller-selected read limits.</summary>
+    public static PdfAppendOnlyMutationReport AnalyzeAppendOnlyMutation(string inputPath, PdfLoadOptions? readOptions) {
+        PdfDocumentSource source = PdfDocumentSource.FromPath(inputPath, readOptions);
+        return AnalyzeAppendOnlyMutation(source.Bytes, source.Options);
     }
 
     /// <summary>
@@ -160,14 +164,8 @@ internal static partial class PdfIncrementalUpdater {
         string? keywords = null,
         PdfLoadOptions? readOptions = null,
         bool createXmpMetadata = false) {
-        Guard.NotNull(input, nameof(input));
-        if (!input.CanRead) {
-            throw new ArgumentException("Stream must be readable.", nameof(input));
-        }
-
-        using var buffer = new MemoryStream();
-        input.CopyTo(buffer);
-        return UpdateMetadata(buffer.ToArray(), title, author, subject, keywords, readOptions, createXmpMetadata);
+        PdfDocumentSource source = PdfDocumentSource.FromRemainingStream(input, readOptions);
+        return UpdateMetadata(source.Bytes, title, author, subject, keywords, source.Options, createXmpMetadata);
     }
 
     /// <summary>Appends a metadata-only revision to a PDF file and writes the result to <paramref name="outputPath"/>.</summary>
@@ -182,7 +180,8 @@ internal static partial class PdfIncrementalUpdater {
         bool createXmpMetadata = false) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         Guard.NotNullOrWhiteSpace(outputPath, nameof(outputPath));
-        OfficeFileCommit.WriteAllBytes(outputPath, UpdateMetadata(File.ReadAllBytes(inputPath), title, author, subject, keywords, readOptions, createXmpMetadata));
+        PdfDocumentSource source = PdfDocumentSource.FromPath(inputPath, readOptions);
+        OfficeFileCommit.WriteAllBytes(outputPath, UpdateMetadata(source.Bytes, title, author, subject, keywords, source.Options, createXmpMetadata));
     }
 
     private static void SynchronizeXmpMetadata(

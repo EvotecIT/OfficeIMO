@@ -177,33 +177,8 @@ internal static class PdfMutationPlanner {
         PdfLoadOptions? options = null,
         IEnumerable<string>? fieldNames = null,
         PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic) {
-        Guard.NotNull(input, nameof(input));
-        if (!input.CanRead) {
-            throw new ArgumentException("Stream must be readable.", nameof(input));
-        }
-
-        PdfReadLimits limits = options?.Limits ?? new PdfReadLimits();
-        limits.Validate();
-        if (input.CanSeek) {
-            long remaining = input.Length - input.Position;
-            if (remaining > limits.MaxInputBytes) {
-                throw PdfReadLimitException.Create(PdfReadLimitKind.InputBytes, limits.MaxInputBytes, remaining);
-            }
-        }
-
-        using var buffer = new MemoryStream();
-        var chunk = new byte[81920];
-        int read;
-        while ((read = input.Read(chunk, 0, chunk.Length)) > 0) {
-            long nextLength = buffer.Length + read;
-            if (nextLength > limits.MaxInputBytes) {
-                throw PdfReadLimitException.Create(PdfReadLimitKind.InputBytes, limits.MaxInputBytes, nextLength);
-            }
-
-            buffer.Write(chunk, 0, read);
-        }
-
-        return Plan(buffer.ToArray(), operation, options, fieldNames, executionPreference);
+        PdfDocumentSource source = PdfDocumentSource.FromRemainingStream(input, options);
+        return Plan(source.Bytes, operation, source.Options, fieldNames, executionPreference);
     }
 
     /// <summary>Plans a mutation for a PDF file.</summary>
@@ -213,8 +188,8 @@ internal static class PdfMutationPlanner {
         PdfLoadOptions? options = null,
         IEnumerable<string>? fieldNames = null,
         PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic) {
-        Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return Plan(File.ReadAllBytes(inputPath), operation, options, fieldNames, executionPreference);
+        PdfDocumentSource source = PdfDocumentSource.FromPath(inputPath, options);
+        return Plan(source.Bytes, operation, source.Options, fieldNames, executionPreference);
     }
 
     /// <summary>Plans a mutation from an existing general preflight report.</summary>

@@ -10,6 +10,7 @@ public sealed class PdfVisibleSignatureAppearanceOptions {
     private double _fontSize = 10;
     private double _imagePadding = 4;
     private byte[]? _imageBytes;
+    private long _maximumEncodedImageBytes = PdfImageInput.DefaultMaximumEncodedBytes;
 
     /// <summary>One-based page number that receives the signature widget.</summary>
     public int PageNumber {
@@ -68,7 +69,20 @@ public sealed class PdfVisibleSignatureAppearanceOptions {
     /// </summary>
     public byte[]? ImageBytes {
         get => _imageBytes is null ? null : (byte[])_imageBytes.Clone();
-        set => _imageBytes = value is null ? null : (byte[])value.Clone();
+        set {
+            if (value is not null) PdfImageInput.EnsureWithinLimit(value.LongLength, MaximumEncodedImageBytes);
+            _imageBytes = value is null ? null : (byte[])value.Clone();
+        }
+    }
+
+    /// <summary>Maximum encoded appearance image bytes, 128 MiB by default.</summary>
+    public long MaximumEncodedImageBytes {
+        get => _maximumEncodedImageBytes;
+        set {
+            PdfImageInput.ValidateMaximum(value);
+            if (_imageBytes is not null) PdfImageInput.EnsureWithinLimit(_imageBytes.LongLength, value);
+            _maximumEncodedImageBytes = value;
+        }
     }
 
     /// <summary>How the image is fitted into the padded signature rectangle.</summary>
@@ -80,7 +94,11 @@ public sealed class PdfVisibleSignatureAppearanceOptions {
         set => _imagePadding = ValidateNonNegative(value, nameof(value));
     }
 
-    internal byte[]? GetImageBytes() => _imageBytes is null ? null : (byte[])_imageBytes.Clone();
+    internal byte[]? GetImageBytes() {
+        if (_imageBytes is null) return null;
+        PdfImageInput.EnsureWithinLimit(_imageBytes.LongLength, MaximumEncodedImageBytes);
+        return (byte[])_imageBytes.Clone();
+    }
 
     private static double ValidatePositive(double value, string parameterName) {
         if (double.IsNaN(value) || double.IsInfinity(value) || value <= 0) {

@@ -19,7 +19,8 @@ internal static class PdfIncrementalObjectWriter {
         IReadOnlyList<(int ObjectNumber, byte[] Bytes)>? rawObjects = null,
         int? infoObjectNumberOverride = null,
         PdfIncrementalXrefFormat format = PdfIncrementalXrefFormat.Automatic,
-        PdfStandardSecurityHandler? encryptionHandler = null) {
+        PdfStandardSecurityHandler? encryptionHandler = null,
+        long? maximumOutputBytes = null) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(objects, nameof(objects));
         Guard.NotNull(security, nameof(security));
@@ -54,7 +55,18 @@ internal static class PdfIncrementalObjectWriter {
             throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported incremental cross-reference format.");
         }
 
-        using var output = new MemoryStream(pdf.Length + serialized.Sum(static item => item.Bytes.Length) + (serialized.Count * 48) + 512);
+        long serializedBytes = 0;
+        foreach (SerializedObject item in serialized) {
+            serializedBytes = checked(serializedBytes + item.Bytes.LongLength);
+            if (maximumOutputBytes.HasValue && pdf.LongLength + serializedBytes > maximumOutputBytes.Value) {
+                throw PdfOutputLimitErrors.Create("The prepared PDF exceeds the configured output limit.");
+            }
+        }
+        long estimatedBytes = checked(pdf.LongLength + serializedBytes + (serialized.Count * 48L) + 512L);
+        if (estimatedBytes > int.MaxValue) {
+            throw PdfOutputLimitErrors.Create("The incremental PDF exceeds the supported in-memory output limit.");
+        }
+        using var output = new MemoryStream((int)estimatedBytes);
         output.Write(pdf, 0, pdf.Length);
         EnsureLineBreak(output, pdf);
 
@@ -63,6 +75,9 @@ internal static class PdfIncrementalObjectWriter {
             SerializedObject item = serialized[i];
             offsets.Add(item.ObjectNumber, output.Position);
             output.Write(item.Bytes, 0, item.Bytes.Length);
+            if (maximumOutputBytes.HasValue && output.Length > maximumOutputBytes.Value) {
+                throw PdfOutputLimitErrors.Create("The prepared PDF exceeds the configured output limit.");
+            }
         }
 
         int maximumObjectNumber = Math.Max(objects.Count == 0 ? 0 : objects.Keys.Max(), serialized.Max(static item => item.ObjectNumber));
@@ -73,6 +88,9 @@ internal static class PdfIncrementalObjectWriter {
             WriteXrefStream(output, objects, security, trailerRaw, serialized, offsets, maximumObjectNumber, infoObjectNumber);
         }
 
+        if (maximumOutputBytes.HasValue && output.Length > maximumOutputBytes.Value) {
+            throw PdfOutputLimitErrors.Create("The prepared PDF exceeds the configured output limit.");
+        }
         return output.ToArray();
     }
 
