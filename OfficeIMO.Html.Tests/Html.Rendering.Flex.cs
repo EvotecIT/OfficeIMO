@@ -456,6 +456,49 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlFlexColumnBody_DoesNotInsertGapPageBeforeNamedChild() {
+        const string html = """
+            <style>@page appendix { size:3in 2in; margin:0 }
+              body{display:flex;flex-direction:column;row-gap:10px;margin:0}
+              header{break-after:page}main{page:appendix}</style>
+            <body><header>First page</header><main>Named page</main></body>
+            """;
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(2D, 80D / HtmlRenderOptions.CssPixelsPerInch),
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+
+        Assert.Equal(2, rendered.Pages.Count);
+        Assert.Equal("appendix", rendered.Pages[1].PageName);
+        Assert.Contains(rendered.Pages[1].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("Named page", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void HtmlFlexColumnBody_PreservesNestedNamedPageGeometry() {
+        const string html = """
+            <style>@page appendix { size:3in 2in; margin:0 }
+              body{display:flex;flex-direction:column;margin:0}
+              section{page:appendix}</style>
+            <body><header>First page</header><main><section>Nested named page</section></main></body>
+            """;
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(2D, 80D / HtmlRenderOptions.CssPixelsPerInch),
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+
+        Assert.Equal(2, rendered.Pages.Count);
+        Assert.Equal("appendix", rendered.Pages[1].PageName);
+        Assert.Equal(3D * HtmlRenderOptions.CssPixelsPerInch, rendered.Pages[1].Width, 3);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PagePseudoGeometryPending);
+    }
+
+    [Fact]
     public void HtmlFlexColumn_AppliesMainDistributionAndCrossAlignment() {
         const string html = """
             <div style="display:flex;flex-direction:column;width:100px;height:300px;gap:10px;justify-content:space-between;align-items:center">

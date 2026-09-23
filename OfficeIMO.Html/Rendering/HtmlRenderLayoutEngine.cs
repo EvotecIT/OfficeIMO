@@ -298,7 +298,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool pagedColumnBody = _options.Mode == HtmlRenderMode.Paged
             && (rootStyle.Display == "flex" || rootStyle.Display == "inline-flex")
             && rootStyle.FlexDirection == "column"
-            && rootStyle.FlexWrap == "nowrap";
+            && rootStyle.FlexWrap == "nowrap"
+            && !HasDescendantPageDirective(root)
+            && SamePageGeometry(_pageRules.ResolveGeometry(1, null, _options), _pageRules.ResolveGeometry(2, null, _options))
+            && SamePageGeometry(_pageRules.ResolveGeometry(2, null, _options), _pageRules.ResolveGeometry(3, null, _options));
         if (string.Equals(root.LocalName, "body", StringComparison.OrdinalIgnoreCase)
             && (_options.UserAgentStyles == HtmlRenderUserAgentStyleMode.Browser || pagedColumnBody)) {
             return new[] { LayoutElement(root, contentWidth, rootStyle, rootStyle, 0) };
@@ -308,6 +311,25 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         return new[] { LayoutElement(root, contentWidth, rootStyle, rootStyle, 0) };
     }
+
+    private bool HasDescendantPageDirective(IElement root) {
+        foreach (IElement element in root.QuerySelectorAll("*")) {
+            CheckCancellation();
+            if (!_computedStyles.Elements.TryGetValue(element, out HtmlComputedStyle? computed)) continue;
+            if (IsPageDirective(computed.GetValue("page"))
+                || IsPageDirective(computed.GetValue("break-before"))
+                || IsPageDirective(computed.GetValue("page-break-before"))
+                || IsPageDirective(computed.GetValue("break-after"))
+                || IsPageDirective(computed.GetValue("page-break-after"))) return true;
+        }
+        return false;
+    }
+
+    private static bool IsPageDirective(string value) =>
+        !string.IsNullOrWhiteSpace(value)
+        && !string.Equals(value, "auto", StringComparison.OrdinalIgnoreCase)
+        && !string.Equals(value, "avoid", StringComparison.OrdinalIgnoreCase)
+        && !string.Equals(value, "avoid-page", StringComparison.OrdinalIgnoreCase);
 
     private bool HasAuthoredRootBoxGeometry(IElement root, HtmlRenderBoxStyle style) {
         bool effectiveGeometry = style.ExplicitWidth.HasValue
@@ -862,19 +884,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         reflowed = source;
         if (source.OwnerElement == null || continuation.OwnerElement == null) return false;
         IElement root = _document.Body ?? _document.DocumentElement ?? source.OwnerElement;
-        bool sourceIsRoot = ReferenceEquals(source.OwnerElement, root);
-        if (!sourceIsRoot && !ReferenceEquals(source.OwnerElement.ParentElement, root)) return false;
+        if (!ReferenceEquals(source.OwnerElement.ParentElement, root)) return false;
         if (!ContainsElementOrSelf(source.OwnerElement, continuation.OwnerElement)) return false;
         HtmlRenderBoxStyle rootStyle = _styleResolver.Resolve(root, geometry.ContentWidth);
-        HtmlRenderBoxStyle style = sourceIsRoot
-            ? rootStyle
-            : _styleResolver.Resolve(source.OwnerElement, geometry.ContentWidth, rootStyle);
+        HtmlRenderBoxStyle style = _styleResolver.Resolve(source.OwnerElement, geometry.ContentWidth, rootStyle);
         reflowed = LayoutElement(
             source.OwnerElement,
             geometry.ContentWidth,
             style,
             rootStyle,
-            sourceIsRoot ? 0 : 1,
+            1,
             continuation.OwnerElement,
             continuation.LogicalCharacters);
         return true;
