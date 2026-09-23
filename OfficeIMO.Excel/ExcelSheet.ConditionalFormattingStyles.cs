@@ -71,9 +71,11 @@ namespace OfficeIMO.Excel {
 
             if (HasProjectedConditionalFormattingFont(definition)) {
                 var font = new Font();
-                if (definition.DifferentialFontBold == true) font.Append(new Bold());
-                if (definition.DifferentialFontItalic == true) font.Append(new Italic());
-                if (definition.DifferentialFontUnderline == true) font.Append(new Underline());
+                if (definition.DifferentialFontBold.HasValue) font.Append(new Bold { Val = definition.DifferentialFontBold.Value });
+                if (definition.DifferentialFontItalic.HasValue) font.Append(new Italic { Val = definition.DifferentialFontItalic.Value });
+                if (definition.DifferentialFontUnderline.HasValue) font.Append(new Underline {
+                    Val = definition.DifferentialFontUnderline.Value ? UnderlineValues.Single : UnderlineValues.None
+                });
                 if (!string.IsNullOrWhiteSpace(definition.DifferentialFontColorArgb)) {
                     font.Append(new DocumentFormat.OpenXml.Spreadsheet.Color {
                         Rgb = NormalizeHexColor(definition.DifferentialFontColorArgb!)
