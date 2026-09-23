@@ -14,7 +14,7 @@ public sealed class OpenDocumentConditionalStyleTests {
         OdfStyle highlight = document.Styles.CreateNamed("Highlight", OdfStyleFamily.TableCell);
         highlight.BackgroundColor = OdfColor.Parse("#FFE699");
         OdfStyle ordinary = document.Styles.CreateAutomatic(OdfStyleFamily.TableCell);
-        ordinary.AddConditionalMap("of:cell-content()>0", highlight.Name, "$'Data'.$A$1");
+        ordinary.AddConditionalMap("cell-content()>0", highlight.Name, "$'Data'.$A$1");
         ordinary.Bold = true;
         ordinary.BackgroundColor = OdfColor.Parse("#FFFFFF");
         ordinary.TextAlign = "center";
@@ -24,7 +24,7 @@ public sealed class OpenDocumentConditionalStyleTests {
         Assert.True(reopened.Validate().IsValid);
         OdfStyle mappedStyle = reopened.Styles.Find(OdfStyleFamily.TableCell, ordinary.Name)!;
         OdfStyleMap map = Assert.Single(mappedStyle.ConditionalMaps);
-        Assert.Equal("of:cell-content()>0", map.Condition);
+        Assert.Equal("cell-content()>0", map.Condition);
         Assert.Equal("Highlight", map.ApplyStyleName);
         Assert.Equal("$'Data'.$A$1", map.BaseCellAddress);
         XNamespace styleNamespace = "urn:oasis:names:tc:opendocument:xmlns:style:1.0";
@@ -38,13 +38,13 @@ public sealed class OpenDocumentConditionalStyleTests {
             finding => finding.Name == "conditional-style-maps" && finding.Count == 1);
 
         reopened.Styles.CreateNamed("Changed", OdfStyleFamily.TableCell).BackgroundColor = OdfColor.Parse("#A9D18E");
-        map.Condition = "of:cell-content()<0";
+        map.Condition = "cell-content()<0";
         map.ApplyStyleName = "Changed";
         map.BaseCellAddress = "$'Data'.$B$2";
         OdsDocument edited = OdsDocument.Load(new MemoryStream(reopened.ToBytes()));
         Assert.True(edited.Validate().IsValid);
         OdfStyleMap editedMap = Assert.Single(edited.Styles.Find(OdfStyleFamily.TableCell, ordinary.Name)!.ConditionalMaps);
-        Assert.Equal("of:cell-content()<0", editedMap.Condition);
+        Assert.Equal("cell-content()<0", editedMap.Condition);
         Assert.Equal("Changed", editedMap.ApplyStyleName);
         Assert.Equal("$'Data'.$B$2", editedMap.BaseCellAddress);
     }
@@ -54,7 +54,7 @@ public sealed class OpenDocumentConditionalStyleTests {
         OdsDocument document = OdsDocument.Create();
         document.AddSheet("Data");
         OdfStyle baseStyle = document.Styles.CreateAutomatic(OdfStyleFamily.TableCell);
-        OdfStyleMap map = baseStyle.AddConditionalMap("of:cell-content()>0", "Later", "$'Data'.$A$1");
+        OdfStyleMap map = baseStyle.AddConditionalMap("cell-content()>0", "Later", "$'Data'.$A$1");
 
         Assert.Contains(document.Validate().Diagnostics, diagnostic => diagnostic.Id == "ODF204");
         document.Styles.CreateNamed("Later", OdfStyleFamily.TableCell);

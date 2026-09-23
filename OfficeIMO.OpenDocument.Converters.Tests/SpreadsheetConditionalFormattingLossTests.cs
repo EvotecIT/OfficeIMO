@@ -26,7 +26,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
         OdfStyle highlight = source.Styles.CreateNamed("Highlight", OdfStyleFamily.TableCell);
         highlight.BackgroundColor = OdfColor.Parse("#FFE699");
         OdfStyle ordinary = source.Styles.CreateAutomatic(OdfStyleFamily.TableCell);
-        ordinary.AddConditionalMap("of:cell-content()>0", highlight.Name, "$'Data'.$A$1");
+        ordinary.AddConditionalMap("cell-content()>0", highlight.Name, "$'Data'.$A$1");
         sheet.Cell(0, 0).StyleName = ordinary.Name;
 
         OdsDocument reopened = OdsDocument.Load(new MemoryStream(source.ToBytes()));
