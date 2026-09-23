@@ -9,14 +9,17 @@ public static partial class ExcelOpenDocumentConversionExtensions {
     private const int MaximumConditionalFormattingCellsPerStyle = 4096;
 
     private sealed class OdsConditionalStylePlan {
-        internal OdsConditionalStylePlan(ExcelConditionalFormattingOperator comparison, string threshold, string fillColor) {
+        internal OdsConditionalStylePlan(ExcelConditionalFormattingOperator comparison, string formula1,
+            string? formula2, string fillColor) {
             Comparison = comparison;
-            Threshold = threshold;
+            Formula1 = formula1;
+            Formula2 = formula2;
             FillColor = fillColor;
         }
 
         internal ExcelConditionalFormattingOperator Comparison { get; }
-        internal string Threshold { get; }
+        internal string Formula1 { get; }
+        internal string? Formula2 { get; }
         internal string FillColor { get; }
     }
 
@@ -45,7 +48,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         if (baseStyle == null) return null;
         IReadOnlyList<OdfStyleMap> maps = baseStyle.ConditionalMaps;
         if (maps.Count != 1 || !TryParseNumericCellCondition(maps[0].Condition,
-                out ExcelConditionalFormattingOperator comparison, out string threshold)) return null;
+                out ExcelConditionalFormattingOperator comparison, out string formula1,
+                out string? formula2)) return null;
         OdfStyle[] appliedStyles = source.Styles.Named.Where(style =>
             style.Family == OdfStyleFamily.TableCell &&
             string.Equals(style.Name, maps[0].ApplyStyleName, StringComparison.Ordinal))
@@ -58,14 +62,20 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             return null;
         }
         return fill.HasValue
-            ? new OdsConditionalStylePlan(comparison, threshold, "FF" + fill.Value.ToString().Substring(1))
+            ? new OdsConditionalStylePlan(comparison, formula1, formula2,
+                "FF" + fill.Value.ToString().Substring(1))
             : null;
     }
 
     private static bool TryParseNumericCellCondition(string condition,
-        out ExcelConditionalFormattingOperator comparison, out string threshold) {
+        out ExcelConditionalFormattingOperator comparison, out string formula1, out string? formula2) {
         comparison = default;
-        threshold = string.Empty;
+        formula1 = string.Empty;
+        formula2 = null;
+        condition = condition.Trim();
+        if (TryParseNumericRangeCondition(condition, out comparison, out formula1, out formula2)) {
+            return true;
+        }
         const string function = "cell-content()";
         if (!condition.StartsWith(function, StringComparison.Ordinal)) return false;
         string remainder = condition.Substring(function.Length).TrimStart();
@@ -95,7 +105,41 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         string operand = remainder.Substring(comparisonToken.Length).Trim();
         if (!decimal.TryParse(operand, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint,
                 CultureInfo.InvariantCulture, out decimal number)) return false;
-        threshold = number.ToString(CultureInfo.InvariantCulture);
+        formula1 = number.ToString(CultureInfo.InvariantCulture);
+        return true;
+    }
+
+    private static bool TryParseNumericRangeCondition(string condition,
+        out ExcelConditionalFormattingOperator comparison, out string formula1, out string? formula2) {
+        comparison = default;
+        formula1 = string.Empty;
+        formula2 = null;
+        const string between = "cell-content-is-between(";
+        const string notBetween = "cell-content-is-not-between(";
+        string arguments;
+        if (condition.StartsWith(between, StringComparison.Ordinal)) {
+            comparison = ExcelConditionalFormattingOperator.Between;
+            arguments = condition.Substring(between.Length);
+        } else if (condition.StartsWith(notBetween, StringComparison.Ordinal)) {
+            comparison = ExcelConditionalFormattingOperator.NotBetween;
+            arguments = condition.Substring(notBetween.Length);
+        } else {
+            return false;
+        }
+
+        if (!arguments.EndsWith(")", StringComparison.Ordinal)) return false;
+        arguments = arguments.Substring(0, arguments.Length - 1);
+        int separator = arguments.IndexOf(',');
+        if (separator < 0 || arguments.IndexOf(',', separator + 1) >= 0) return false;
+        if (!decimal.TryParse(arguments.Substring(0, separator).Trim(),
+                NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint,
+                CultureInfo.InvariantCulture, out decimal lower)
+            || !decimal.TryParse(arguments.Substring(separator + 1).Trim(),
+                NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint,
+                CultureInfo.InvariantCulture, out decimal upper)
+            || lower > upper) return false;
+        formula1 = lower.ToString(CultureInfo.InvariantCulture);
+        formula2 = upper.ToString(CultureInfo.InvariantCulture);
         return true;
     }
 
@@ -107,7 +151,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             if (limits.Contains(entry.Key) || entry.Value.Count == 0) continue;
             OdsConditionalStylePlan plan = plans[entry.Key]!;
             sheet.AddConditionalRule(string.Join(" ", entry.Value), plan.Comparison,
-                plan.Threshold, formula2: null, fillColor: plan.FillColor);
+                plan.Formula1, formula2: plan.Formula2, fillColor: plan.FillColor);
             convertedStyles.Add(entry.Key);
         }
     }

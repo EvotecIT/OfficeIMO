@@ -30,9 +30,12 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
     }
 
     [Theory]
-    [InlineData("cell-content()>0", "GreaterThan")]
-    [InlineData("cell-content()!=0", "NotEqual")]
-    public void OdsNumericConditionalFillMapsToExcelRule(string condition, string expectedOperator) {
+    [InlineData("cell-content()>0", "GreaterThan", "0", null)]
+    [InlineData("cell-content()!=0", "NotEqual", "0", null)]
+    [InlineData("cell-content-is-between(-1.5, 3)", "Between", "-1.5", "3")]
+    [InlineData("cell-content-is-not-between(-1.5, 3)", "NotBetween", "-1.5", "3")]
+    public void OdsNumericConditionalFillMapsToExcelRule(string condition, string expectedOperator,
+        string expectedFormula1, string? expectedFormula2) {
         OdsDocument source = OdsDocument.Create();
         OdsSheet sheet = source.AddSheet("Data");
         OdfStyle highlight = source.Styles.CreateNamed("Highlight", OdfStyleFamily.TableCell);
@@ -45,15 +48,18 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
         OdsDocument reopened = OdsDocument.Load(new MemoryStream(source.ToBytes()));
         OdfConversionResult<ExcelDocument> result = reopened.ToExcelDocumentResult();
         using ExcelDocument output = result.Value;
+        using ExcelDocument reopenedExcel = ExcelDocument.Load(new MemoryStream(output.ToBytes()));
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "source-conditional-style-maps"
             && mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
         Assert.DoesNotContain(result.Report.Mappings, mapping => mapping.Feature == "source-conditional-style-maps"
             && mapping.Status == OdfConversionMappingStatus.Unsupported);
-        ExcelConditionalFormattingInfo rule = Assert.Single(output.Sheets.Single().GetConditionalFormattingRules());
+        ExcelConditionalFormattingInfo rule = Assert.Single(reopenedExcel.Sheets.Single().GetConditionalFormattingRules());
         Assert.Equal("A1 A2", rule.Range);
         Assert.Equal("CellIs", rule.Type, ignoreCase: true);
         Assert.Equal(expectedOperator, rule.Operator, ignoreCase: true);
-        Assert.Equal("0", Assert.Single(rule.Formulas));
+        Assert.Equal(expectedFormula2 == null
+            ? new[] { expectedFormula1 }
+            : new[] { expectedFormula1, expectedFormula2 }, rule.Formulas);
         Assert.Equal("FFFFE699", rule.DifferentialFillColorArgb);
     }
 
@@ -75,6 +81,23 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
     }
 
     [Fact]
+    public void OdsReversedNumericRangeRemainsAnExplicitLoss() {
+        OdsDocument source = OdsDocument.Create();
+        OdsSheet sheet = source.AddSheet("Data");
+        OdfStyle fill = source.Styles.CreateNamed("Fill", OdfStyleFamily.TableCell);
+        fill.BackgroundColor = OdfColor.Parse("#D9EAD3");
+        OdfStyle mapped = source.Styles.CreateAutomatic(OdfStyleFamily.TableCell);
+        mapped.AddConditionalMap("cell-content-is-between(3,1)", fill.Name);
+        sheet.Cell(0, 0).StyleName = mapped.Name;
+
+        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        using ExcelDocument output = result.Value;
+        Assert.Empty(output.Sheets.Single().GetConditionalFormattingRules());
+        Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "source-conditional-style-maps"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+    }
+
+    [Fact]
     public void OdsMixedConditionalMapsReportOnlyTheUnmappedRuleAsUnsupported() {
         OdsDocument source = OdsDocument.Create();
         OdsSheet sheet = source.AddSheet("Data");
@@ -83,7 +106,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
         OdfStyle mapped = source.Styles.CreateAutomatic(OdfStyleFamily.TableCell);
         mapped.AddConditionalMap("cell-content()<=-1.5", fill.Name);
         OdfStyle unmodeled = source.Styles.CreateAutomatic(OdfStyleFamily.TableCell);
-        unmodeled.AddConditionalMap("cell-content-is-between(1,3)", fill.Name);
+        unmodeled.AddConditionalMap("cell-content-is-whole-number()", fill.Name);
         sheet.Cell(0, 0).StyleName = mapped.Name;
         sheet.Cell(0, 1).StyleName = unmodeled.Name;
 
