@@ -68,3 +68,36 @@ uses four pages versus three for Chromium and PeachPDF; its breadcrumb occupies
 more lines and the header differs. MDN's omitted code examples remain. These
 residual differences need further layout and shadow-root qualification before
 any print-fidelity claim.
+
+## MDN saved-component follow-up on the same frozen bytes
+
+Source `823ef0b292a4517ce15debc75ffe843adc84aa51` projects Chromium MHTML
+`template shadowmode` snapshots into the managed static render tree. It retains
+named/default slot content, including nested slot chains, without changing
+ordinary HTML templates or the archive source. The PDF operation reports the
+shadow-root approximation and omits shadow-scoped stylesheets with a separate
+warning so their CSS cannot leak into unrelated content. Callers can disable
+projection explicitly; exact scoped styling and live behavior remain browser
+workflows. A read-only review found two nested-slot and scaling defects in the
+first candidate; both were fixed and confirmed before this source commit.
+
+The exact-commit offline replay used the unchanged MDN archive SHA
+`b7e01055e9c6ea917f9e095eba221616cf3abfd5c313485dc4104ff692f1d55a`.
+The runner recorded a clean source, zero failures across six operations, and
+these print results:
+
+| Engine | Pages | `wrapper` occurrences in Poppler text | Extracted words |
+| --- | ---: | ---: | ---: |
+| Chromium | 16 | 29 | 2,837 |
+| OfficeIMO | 21 | 29 | 2,722 |
+| PeachPDF 0.9.19 | 25 | 29 | 2,783 |
+
+Before projection, OfficeIMO printed nine pages and `wrapper` appeared only
+twice in surrounding prose. Visual inspection of the replayed first and second
+pages confirms that code blocks now appear, while OfficeIMO's breadcrumb, Copy
+control, preview spacing and pagination still differ from Chromium. The H4
+advanced-held-out gate passed 8/8 on the initial projection commit, the final
+MHTML tests passed 32/32 on both .NET 8 and 10, and the full .NET 10 HTML suite
+passed 3,230/3,230 after the nested-slot fixes. This closes the observed static
+content omission, not the remaining component-style or general unfamiliar-page
+qualification gaps.
