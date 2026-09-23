@@ -308,48 +308,54 @@ internal static class PdfActionPayloadFingerprint {
 
     private sealed class PageNumberLookupCache {
         private readonly Dictionary<int, PdfIndirectObject> _objects;
-        private readonly Dictionary<(int Depth, int Nodes), PageNumberLookup> _values = new();
+        private readonly Dictionary<(int Depth, int Nodes), PdfReadCache<PageNumberLookup>> _values = new();
 
         internal PageNumberLookupCache(Dictionary<int, PdfIndirectObject> objects) { _objects = objects; }
 
         internal PageNumberLookup Get(PdfReadLimits limits, CancellationToken cancellationToken) {
             cancellationToken.ThrowIfCancellationRequested();
             var key = (limits.MaxPageTreeDepth, limits.MaxPageTreeNodes);
+            PdfReadCache<PageNumberLookup> entry;
             lock (_values) {
-                if (!_values.TryGetValue(key, out PageNumberLookup? value)) {
-                    value = BuildPageNumberLookup(_objects, limits, cancellationToken);
-                    _values.Add(key, value);
+                if (!_values.TryGetValue(key, out entry!)) {
+                    entry = new PdfReadCache<PageNumberLookup>();
+                    _values.Add(key, entry);
                 }
-                return value;
             }
+            return entry.GetOrCreate((Objects: _objects, Limits: limits),
+                static (state, token) => BuildPageNumberLookup(state.Objects, state.Limits, token), cancellationToken);
         }
     }
 
     private sealed class StreamHashCache {
-        private readonly Dictionary<PdfStream, string> _values = new();
+        private readonly Dictionary<PdfStream, PdfReadCache<string>> _values = new();
 
         internal string Get(PdfStream stream, CancellationToken cancellationToken) {
             cancellationToken.ThrowIfCancellationRequested();
+            PdfReadCache<string> entry;
             lock (_values) {
-                if (_values.TryGetValue(stream, out string? value)) return value;
-                value = HashBase64(stream.Data, cancellationToken);
-                _values.Add(stream, value);
-                return value;
+                if (!_values.TryGetValue(stream, out entry!)) {
+                    entry = new PdfReadCache<string>();
+                    _values.Add(stream, entry);
+                }
             }
+            return entry.GetOrCreate(stream, static (source, token) => HashBase64(source.Data, token), cancellationToken);
         }
     }
 
     private sealed class StringHashCache {
-        private readonly Dictionary<PdfStringObj, string> _values = new();
+        private readonly Dictionary<PdfStringObj, PdfReadCache<string>> _values = new();
 
         internal string Get(PdfStringObj text, CancellationToken cancellationToken) {
             cancellationToken.ThrowIfCancellationRequested();
+            PdfReadCache<string> entry;
             lock (_values) {
-                if (_values.TryGetValue(text, out string? value)) return value;
-                value = HashBase64(text.RawBytes, cancellationToken);
-                _values.Add(text, value);
-                return value;
+                if (!_values.TryGetValue(text, out entry!)) {
+                    entry = new PdfReadCache<string>();
+                    _values.Add(text, entry);
+                }
             }
+            return entry.GetOrCreate(text, static (source, token) => HashBase64(source.RawBytes, token), cancellationToken);
         }
     }
 
