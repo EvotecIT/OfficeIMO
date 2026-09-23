@@ -95,6 +95,21 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
+    public void TableBlock_SnapshotsMutableCellImageStyle() {
+        var image = new PdfTableCellImage(
+            PdfPngTestImages.CreateRgbaPng(24, 48, 72, 255),
+            12,
+            12,
+            new PdfImageStyle { AlternativeText = "Original logo" });
+        PdfTableCell cell = PdfTableCell.WithImages("Logo", new[] { image });
+        var block = new TableBlock(new[] { new[] { cell } }, PdfAlign.Left, null);
+
+        cell.Images[0].Style!.AlternativeText = "Changed logo";
+
+        Assert.Equal("Original logo", block.Cells[0][0].Images[0].Style!.AlternativeText);
+    }
+
+    [Fact]
     public void PdfDocument_DefaultTableStyleAppliesToFollowingTablesAndSnapshotsInput() {
         var options = new PdfOptions {
             PageWidth = 300,

@@ -359,15 +359,43 @@ internal static partial class PdfWriter {
         int totalPages = pageCount;
         var pageNumberInfos = BuildPageNumberInfos(layout.Pages);
         int nextStructParentIndex = 0;
-        // Written images, compared exactly: hashing every placement's full payload cost more than the
-        // few length-matched comparisons a document ever needs.
+        // Compare small image sets directly, then index larger sets so related images with equal base
+        // streams and different masks do not require a full comparison against every earlier image.
+        const int DirectImageComparisonLimit = 8;
         var imageXObjectIds = new List<(PdfImageStream Stream, int Id)>();
+        Dictionary<string, List<(PdfImageStream Stream, int Id)>>? imageXObjectIdsByHash = null;
         var optimizedImageCache = new Dictionary<string, OfficeImageOptimizationResult>(StringComparer.Ordinal);
 
         int EnsureImageXObject(PdfImageStream imageStream) {
-            foreach ((PdfImageStream written, int existingImageId) in imageXObjectIds) {
-                if (SameImageStream(written, imageStream)) {
-                    return existingImageId;
+            if (imageXObjectIdsByHash == null) {
+                foreach ((PdfImageStream written, int existingImageId) in imageXObjectIds) {
+                    if (SameImageStream(written, imageStream)) return existingImageId;
+                }
+
+                if (imageXObjectIds.Count >= DirectImageComparisonLimit) {
+                    imageXObjectIdsByHash = new Dictionary<string, List<(PdfImageStream Stream, int Id)>>(StringComparer.Ordinal);
+                    foreach ((PdfImageStream written, int existingImageId) in imageXObjectIds) {
+                        AddImageXObjectToHashIndex(imageXObjectIdsByHash, BuildImageXObjectCacheKey(written), written, existingImageId);
+                    }
+                }
+            }
+
+            string? cacheKey = null;
+            if (imageXObjectIdsByHash != null) {
+                // Prepared streams are cloned as descriptors but retain their payload arrays. Keep common
+                // repeated placements of the first images on the reference-fast path.
+                for (int index = 0; index < DirectImageComparisonLimit; index++) {
+                    PdfImageStream written = imageXObjectIds[index].Stream;
+                    if (ReferenceEquals(written.Data, imageStream.Data) && SameImageStream(written, imageStream)) {
+                        return imageXObjectIds[index].Id;
+                    }
+                }
+
+                cacheKey = BuildImageXObjectCacheKey(imageStream);
+                if (imageXObjectIdsByHash.TryGetValue(cacheKey, out List<(PdfImageStream Stream, int Id)>? matches)) {
+                    foreach ((PdfImageStream written, int existingImageId) in matches) {
+                        if (SameImageStream(written, imageStream)) return existingImageId;
+                    }
                 }
             }
 
@@ -380,6 +408,9 @@ internal static partial class PdfWriter {
             string imageDictionary = PdfImageXObjectDictionaryBuilder.BuildStreamDictionary(imageStream, softMaskId);
             int imageId = AddStreamObject(objects, imageDictionary, imageStream.Data);
             imageXObjectIds.Add((imageStream, imageId));
+            if (imageXObjectIdsByHash != null) {
+                AddImageXObjectToHashIndex(imageXObjectIdsByHash, cacheKey ?? BuildImageXObjectCacheKey(imageStream), imageStream, imageId);
+            }
             return imageId;
         }
 

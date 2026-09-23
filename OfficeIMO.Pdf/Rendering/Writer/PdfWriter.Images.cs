@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Linq;
@@ -821,6 +822,56 @@ internal static partial class PdfWriter {
         string.Equals(a.DictionarySuffix, b.DictionarySuffix, StringComparison.Ordinal) &&
         BytesEqual(a.Data, b.Data) &&
         (a.SoftMask == null ? b.SoftMask == null : b.SoftMask != null && SameImageStream(a.SoftMask, b.SoftMask));
+
+    private static void AddImageXObjectToHashIndex(
+        Dictionary<string, List<(PdfImageStream Stream, int Id)>> index,
+        string key,
+        PdfImageStream stream,
+        int id) {
+        if (!index.TryGetValue(key, out List<(PdfImageStream Stream, int Id)>? matches)) {
+            matches = new List<(PdfImageStream Stream, int Id)>();
+            index.Add(key, matches);
+        }
+
+        matches.Add((stream, id));
+    }
+
+    private static string BuildImageXObjectCacheKey(PdfImageStream image) {
+        using var hash = System.Security.Cryptography.SHA256.Create();
+        AppendImageStreamHash(hash, image);
+        hash.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+        return ToHex(hash.Hash ?? Array.Empty<byte>());
+    }
+
+    private static void AppendImageStreamHash(System.Security.Cryptography.HashAlgorithm hash, PdfImageStream image) {
+        AppendHashInt(hash, image.PixelWidth);
+        AppendHashInt(hash, image.PixelHeight);
+        AppendHashString(hash, image.DictionarySuffix);
+        AppendHashBytes(hash, image.Data);
+        if (image.SoftMask == null) {
+            AppendHashByte(hash, 0);
+            return;
+        }
+
+        AppendHashByte(hash, 1);
+        AppendImageStreamHash(hash, image.SoftMask);
+    }
+
+    private static void AppendHashString(System.Security.Cryptography.HashAlgorithm hash, string value) =>
+        AppendHashBytes(hash, Encoding.UTF8.GetBytes(value ?? string.Empty));
+
+    private static void AppendHashByte(System.Security.Cryptography.HashAlgorithm hash, byte value) =>
+        AppendHashBytes(hash, new[] { value });
+
+    private static void AppendHashInt(System.Security.Cryptography.HashAlgorithm hash, int value) {
+        byte[] bytes = new byte[] {
+            (byte)((value >> 24) & 0xFF),
+            (byte)((value >> 16) & 0xFF),
+            (byte)((value >> 8) & 0xFF),
+            (byte)(value & 0xFF)
+        };
+        AppendHashBytes(hash, bytes);
+    }
 
     private static bool BytesEqual(byte[] a, byte[] b) {
         if (ReferenceEquals(a, b)) return true;

@@ -81,6 +81,38 @@ public class PdfDocumentPngImageTests {
     }
 
     [Fact]
+    public void Image_WithEqualRgbaBytesInDifferentArrays_PreparesOnceAcrossDocuments() {
+        int alphaSplitPasses = 0;
+        byte[] source = PdfPngTestImages.CreateRgbaPng(23, 47, 81, 123);
+        PdfWriter.PngRowLoopObserverForTesting = (kind, index) => {
+            if (kind == PngRowLoopKind.AlphaSplit && index == 0) alphaSplitPasses++;
+        };
+
+        try {
+            byte[] first = PdfDocument.Create().Image(source, 24, 24).ToBytes();
+            byte[] second = PdfDocument.Create().Image((byte[])source.Clone(), 24, 24).ToBytes();
+
+            Assert.Equal(1, alphaSplitPasses);
+            Assert.Equal(first, second);
+        } finally {
+            PdfWriter.PngRowLoopObserverForTesting = null;
+        }
+    }
+
+    [Fact]
+    public void Images_WithSharedRgbAndDifferentAlpha_KeepDistinctMasksAndDeduplicateRepeats() {
+        PdfDocument document = PdfDocument.Create();
+        for (byte alpha = 1; alpha <= 12; alpha++) {
+            document.Image(PdfPngTestImages.CreateRgbaPng(24, 48, 72, alpha), 24, 24);
+        }
+        document.Image(PdfPngTestImages.CreateRgbaPng(24, 48, 72, 1), 24, 24);
+
+        byte[] pdf = document.ToBytes();
+
+        Assert.Equal(24, GetImageStreams(pdf).Count);
+    }
+
+    [Fact]
     public void Image_WithMutatedRgbaSource_InvalidatesPreparedImageCache() {
         int alphaSplitPasses = 0;
         byte[] source = PdfPngTestImages.CreateRgbaPng(19, 51, 85, 127);
