@@ -63,6 +63,24 @@ public sealed class PdfLoadOptions {
         };
     }
 
+    internal static PdfLoadOptions WithGeneratedOutputGrowth(
+        PdfLoadOptions? options,
+        int minimumIndirectObjects,
+        PdfGeneratedOutputGrowth growth) {
+        PdfLoadOptions effective = Resolve(options);
+        return new PdfLoadOptions {
+            ParsingMode = effective.ParsingMode,
+            Limits = effective.Limits.WithGeneratedOutput(effective.Limits.MaxInputBytes, minimumIndirectObjects, growth),
+            Password = effective.Password,
+            AesCryptographyProvider = effective.AesCryptographyProvider,
+            PermissionPolicy = effective.PermissionPolicy,
+            PreferToUnicode = effective.PreferToUnicode,
+            UseWinAnsiFallback = effective.UseWinAnsiFallback,
+            AdjustKerningFromTJ = effective.AdjustKerningFromTJ,
+            IncludeArtifactText = effective.IncludeArtifactText
+        };
+    }
+
     internal static PdfLoadOptions ForGeneratedOutput(
         PdfLoadOptions? sourceOptions,
         byte[] sourcePdf,

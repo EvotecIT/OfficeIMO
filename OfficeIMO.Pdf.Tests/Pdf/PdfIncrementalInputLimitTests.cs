@@ -152,6 +152,34 @@ public class PdfIncrementalInputLimitTests {
     }
 
     [Fact]
+    public void PersistedSignatureCompletionAdmitsGeneratedObjectsAndRevisionAtSourceLimits() {
+        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Persisted tight signature limits")).ToBytes();
+        int sourceObjectCount = PdfSyntax.ParseObjects(source, null).Map.Count;
+        var readOptions = new PdfLoadOptions {
+            Limits = new PdfReadLimits {
+                MaxIndirectObjects = sourceObjectCount,
+                MaxRevisions = 1
+            }
+        };
+        PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
+            source, new PdfExternalSignatureOptions(), readOptions);
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-persisted-signature-" + Guid.NewGuid().ToString("N"));
+        try {
+            Directory.CreateDirectory(root);
+            string preparedPath = Path.Combine(root, "prepared.pdf");
+            string signedPath = Path.Combine(root, "signed.pdf");
+            File.WriteAllBytes(preparedPath, preparation.PreparedPdf);
+
+            PdfIncrementalUpdater.ApplyExternalSignature(preparedPath, signedPath, new byte[] { 0x30, 0x01, 0x00 }, readOptions);
+
+            Assert.Equal(preparation.PreparedPdf.LongLength, new FileInfo(signedPath).Length);
+            Assert.Single(PdfInspector.Inspect(File.ReadAllBytes(signedPath)).FormFields);
+        } finally {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public void SignatureCompletionAdmitsTheAddedFieldAtTheSourceFieldLimit() {
         byte[] source = PdfDocument.Create().TextField("Existing", value: "Ada").ToBytes();
         var readOptions = new PdfLoadOptions {

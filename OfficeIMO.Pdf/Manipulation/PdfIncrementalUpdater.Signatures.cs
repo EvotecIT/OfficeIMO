@@ -274,9 +274,24 @@ internal static partial class PdfIncrementalUpdater {
         // Preserve caller-selected smaller input caps. A default-size cap supplied
         // only because other read settings were customized still gets the normal
         // persisted-preparation allowance.
-        return effective.Limits.MaxInputBytes == PdfExternalSignatureOptions.DefaultMaxInputBytes
+        effective = effective.Limits.MaxInputBytes == PdfExternalSignatureOptions.DefaultMaxInputBytes
             ? PdfLoadOptions.WithMinimumInputBytes(effective, DefaultMaxPreparedSignatureBytes)
             : effective;
+        // The persisted form has no preparation object to carry the generated-output
+        // policy. Admit only the bounded structural growth of one signature revision.
+        PdfReadLimits limits = effective.Limits;
+        int maximumObjects = limits.MaxIndirectObjects > int.MaxValue - 64
+            ? int.MaxValue
+            : limits.MaxIndirectObjects + 64;
+        var growth = new PdfGeneratedOutputGrowth(
+            additionalRevisions: 1,
+            additionalFormFields: 1,
+            additionalAnnotationsPerPage: 1,
+            minimumRawStreamBytes: 128 * 1024 * 1024,
+            minimumDecodedStreamBytes: 128 * 1024 * 1024,
+            additionalTotalDecodedStreamBytes: 128L * 1024L * 1024L,
+            minimumObjectNestingDepth: 16);
+        return PdfLoadOptions.WithGeneratedOutputGrowth(effective, maximumObjects, growth);
     }
 
     private static void ValidateExternalSignatureOptions(PdfExternalSignatureOptions options) {
