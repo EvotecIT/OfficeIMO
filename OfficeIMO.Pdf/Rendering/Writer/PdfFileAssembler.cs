@@ -48,7 +48,7 @@ internal static class PdfFileAssembler {
 
         byte[] fileId = FinalizeFileId(fileIdHash);
         long xrefPos = written;
-        byte[] trailerBytes = BuildTrailerBytes(offsets, catalogId, infoId, xrefPos, encryptionAssembly: null, fileId, trailerIdEntry, permanentFileId: null);
+        byte[] trailerBytes = BuildTrailerBytes(offsets, catalogId, infoId, xrefPos, encryptionAssembly: null, fileId, trailerIdEntry, permanentFileId: null, cancellationToken);
         destination.Write(trailerBytes, 0, trailerBytes.Length);
         return checked(written + trailerBytes.LongLength);
     }
@@ -243,7 +243,7 @@ internal static class PdfFileAssembler {
         byte[] fileId = encryptionAssembly?.FileId ?? FinalizeFileId(fileIdHash!);
 
         long xrefPos = written;
-        byte[] trailerBytes = BuildTrailerBytes(offsets, catalogId, infoId, xrefPos, encryptionAssembly, fileId, trailerIdEntry, permanentFileId);
+        byte[] trailerBytes = BuildTrailerBytes(offsets, catalogId, infoId, xrefPos, encryptionAssembly, fileId, trailerIdEntry, permanentFileId, cancellationToken);
         destination.Write(trailerBytes, 0, trailerBytes.Length);
         return written + trailerBytes.LongLength;
     }
@@ -256,13 +256,15 @@ internal static class PdfFileAssembler {
         PdfEncryptionAssembly? encryptionAssembly,
         byte[] fileId,
         string? trailerIdEntry,
-        byte[]? permanentFileId) {
+        byte[]? permanentFileId,
+        CancellationToken cancellationToken) {
         int objectCount = offsets.Count - 1;
         var trailer = new StringBuilder();
         trailer.Append("xref\n");
         trailer.Append("0 ").Append((objectCount + 1).ToString(CultureInfo.InvariantCulture)).Append('\n');
         trailer.Append("0000000000 65535 f \n");
         for (int i = 1; i <= objectCount; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             trailer.Append(offsets[i].ToString("0000000000", CultureInfo.InvariantCulture)).Append(" 00000 n \n");
         }
 
@@ -272,7 +274,16 @@ internal static class PdfFileAssembler {
             .Append(infoId > 0 ? " /Info " + PdfSyntaxEscaper.IndirectReference(infoId) : string.Empty)
             .Append(BuildTrailerEntries(encryptionAssembly, fileId, trailerIdEntry, permanentFileId)).Append(" >>\n");
         trailer.Append("startxref\n").Append(xrefPos.ToString(CultureInfo.InvariantCulture)).Append("\n%%EOF\n");
-        return Encoding.ASCII.GetBytes(trailer.ToString());
+        byte[] bytes = new byte[trailer.Length];
+        char[] characters = new char[Math.Min(64 * 1024, trailer.Length)];
+        for (int offset = 0; offset < trailer.Length; offset += characters.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = Math.Min(characters.Length, trailer.Length - offset);
+            trailer.CopyTo(offset, characters, 0, count);
+            Encoding.ASCII.GetBytes(characters, 0, count, bytes, offset);
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return bytes;
     }
 
     private static MemoryStream CreateOutputMemoryStream(
@@ -385,7 +396,7 @@ internal static class PdfFileAssembler {
         }
 
         byte[] placeholderId = new byte[16];
-        long trailerLength = BuildTrailerBytes(offsets, catalogId, infoId, written, encryptionAssembly: null, placeholderId, trailerIdEntry, permanentFileId).LongLength;
+        long trailerLength = BuildTrailerBytes(offsets, catalogId, infoId, written, encryptionAssembly: null, placeholderId, trailerIdEntry, permanentFileId, cancellationToken).LongLength;
         if (written > long.MaxValue - trailerLength) {
             throw new InvalidDataException("The assembled PDF exceeds the supported output size.");
         }

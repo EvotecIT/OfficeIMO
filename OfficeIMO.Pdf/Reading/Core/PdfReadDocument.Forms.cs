@@ -145,7 +145,7 @@ public sealed partial class PdfReadDocument {
     private static void AddXfaPayloadStats(PdfObject? value, ref int streamCount, ref int stringCount, ref int dictionaryCount, ref int totalPayloadBytes) {
         if (value is PdfStream stream) {
             streamCount++;
-            totalPayloadBytes += stream.Data.Length;
+            totalPayloadBytes += stream.DataLength;
         } else if (value is PdfStringObj text) {
             stringCount++;
             totalPayloadBytes += text.RawBytes.Length;

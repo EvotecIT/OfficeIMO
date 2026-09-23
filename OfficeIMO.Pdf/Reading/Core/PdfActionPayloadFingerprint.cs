@@ -339,7 +339,7 @@ internal static class PdfActionPayloadFingerprint {
                     _values.Add(stream, entry);
                 }
             }
-            return entry.GetOrCreate(stream, static (source, token) => HashBase64(source.Data, token), cancellationToken);
+            return entry.GetOrCreate(stream, static (source, token) => HashBase64(source.GetData(token), token), cancellationToken);
         }
     }
 
