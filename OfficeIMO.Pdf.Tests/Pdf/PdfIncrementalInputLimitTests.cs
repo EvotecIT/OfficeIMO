@@ -129,6 +129,53 @@ public class PdfIncrementalInputLimitTests {
     }
 
     [Fact]
+    public void SignaturePreparationRejectsOutputBeyondItsConfiguredCompletionBudget() {
+        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Bound the prepared revision")).ToBytes();
+        var options = new PdfExternalSignatureOptions {
+            MaxInputBytes = source.LongLength,
+            MaxPreparedOutputBytes = source.LongLength
+        };
+
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
+            PdfIncrementalUpdater.PrepareExternalSignature(source, options));
+        Assert.True(PdfOutputLimitErrors.IsOutputLimitExceeded(error));
+
+        options.MaxPreparedOutputBytes = PdfIncrementalUpdater.DefaultMaxPreparedSignatureBytes;
+        PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(source, options);
+        Assert.True(preparation.PreparedPdf.LongLength <= options.MaxPreparedOutputBytes);
+        Assert.Equal(preparation.PreparedPdf.LongLength,
+            PdfIncrementalUpdater.ApplyExternalSignature(preparation.PreparedPdf, new byte[] { 0x30, 0x01, 0x00 }).LongLength);
+    }
+
+    [Fact]
+    public void SignaturePreparationCarriesTheAdmittedSourceLimitThroughVisibleReadback() {
+        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Visible signing read budget")).ToBytes();
+        var tooSmallReadPolicy = new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxInputBytes = source.LongLength - 1 }
+        };
+        var options = new PdfExternalSignatureOptions {
+            MaxInputBytes = source.LongLength,
+            VisibleAppearance = new PdfVisibleSignatureAppearanceOptions { Text = "Signed" }
+        };
+
+        PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
+            source, options, tooSmallReadPolicy);
+
+        Assert.True(preparation.PreparedPdf.LongLength > source.LongLength);
+        Assert.True(PdfInspector.Inspect(preparation.PreparedPdf).HasSignatures);
+    }
+
+    [Fact]
+    public void VisibleSignatureImageChecksTheEncodedBudgetBeforeCopying() {
+        var appearance = new PdfVisibleSignatureAppearanceOptions { MaximumEncodedImageBytes = 3 };
+
+        Assert.Throws<InvalidDataException>(() => appearance.ImageBytes = new byte[4]);
+        appearance.ImageBytes = new byte[3];
+        Assert.Throws<InvalidDataException>(() => appearance.MaximumEncodedImageBytes = 2);
+        Assert.Equal(3, appearance.MaximumEncodedImageBytes);
+    }
+
+    [Fact]
     public void IncrementalStreamEntrypointsContinueFromCallerPosition() {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("incremental source"))

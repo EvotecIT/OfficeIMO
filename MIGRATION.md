@@ -26,6 +26,10 @@ Image stamp streams continue to read from their current position.
 
 PDF authoring now rejects caller-supplied font faces larger than 128 MiB before copying them. File-path overloads check the size before buffering and again while reading. Applications that previously supplied larger fonts must reduce or subset each face before embedding it. Use the `EmbedStandardFont` or `PdfEmbeddedFontFamily.FromFiles` path overload to avoid reading an oversized font into application memory first.
 
+## PDF external-signature preparation limits
+
+External signature preparation now limits the prepared PDF to 768 MiB by default, matching the default limit used to complete a saved preparation. Set `PdfExternalSignatureOptions.MaxPreparedOutputBytes` higher for a trusted larger document, then supply matching `PdfLoadOptions.Limits.MaxInputBytes` when completing it from a file. A visible signature image now has a 128 MiB encoded input limit; set `PdfVisibleSignatureAppearanceOptions.MaximumEncodedImageBytes` when a trusted image needs more. The source budget remains `PdfExternalSignatureOptions.MaxInputBytes`, and a source admitted by that option is now also admitted by the preparation parser.
+
 ## HTML style and rendering limits
 
 `HtmlComputedStyleEngine.Compute(HtmlDocument)` now applies the untrusted HTML and CSS limits to prepared documents. Applications that intentionally process trusted or larger documents can retain their chosen policy by wrapping the prepared document before computing styles:

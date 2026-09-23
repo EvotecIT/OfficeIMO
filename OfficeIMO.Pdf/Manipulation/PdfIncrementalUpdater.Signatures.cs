@@ -37,24 +37,28 @@ internal static partial class PdfIncrementalUpdater {
         ValidateSigningInput(pdf.LongLength, effectiveOptions);
         effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
         ValidateExternalSignatureOptions(effectiveOptions);
+        if (pdf.LongLength > effectiveOptions.MaxPreparedOutputBytes) {
+            throw PdfOutputLimitErrors.Create("The PDF source exceeds the configured prepared signature output limit.");
+        }
+        PdfLoadOptions effectiveReadOptions = PdfLoadOptions.WithMinimumInputBytes(readOptions, pdf.LongLength);
         PdfSignatureProfile signatureProfile = ResolveSignatureProfile(effectiveOptions);
         _ = PdfMutationPlanner.RequireAppendOnly(
             pdf,
             PdfMutationOperation.PrepareExternalSignature,
-            readOptions,
+            effectiveReadOptions,
             new[] { effectiveOptions.FieldName },
             signatureProfile);
 
-        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf, readOptions);
+        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf, effectiveReadOptions);
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, effectiveReadOptions);
         if (!security.RootObjectNumber.HasValue ||
             !objects.TryGetValue(security.RootObjectNumber.Value, out PdfIndirectObject? rootObject) ||
             rootObject.Value is not PdfDictionary catalog) {
             throw new InvalidOperationException("PDF root catalog dictionary is required for external signature preparation.");
         }
 
-        EnsureSignatureFieldNameAvailable(pdf, effectiveOptions.FieldName, readOptions);
+        EnsureSignatureFieldNameAvailable(pdf, effectiveOptions.FieldName, effectiveReadOptions);
 
         int nextObjectNumber = objects.Keys.Count == 0 ? 1 : objects.Keys.Max() + 1;
         int signatureObjectNumber = nextObjectNumber++;
@@ -80,6 +84,7 @@ internal static partial class PdfIncrementalUpdater {
             signatureObjectNumber,
             effectiveOptions,
             signatureProfile,
+            effectiveReadOptions,
             ref nextObjectNumber,
             ref catalogChanged,
             profileChangedObjects,
@@ -111,9 +116,10 @@ internal static partial class PdfIncrementalUpdater {
             security,
             trailerRaw,
             changedObjects,
-            new[] { (ObjectNumber: signatureObjectNumber, Bytes: signatureBytes) });
+            new[] { (ObjectNumber: signatureObjectNumber, Bytes: signatureBytes) },
+            effectiveOptions.MaxPreparedOutputBytes);
 
-        return PatchSignatureByteRange(prepared, effectiveOptions, signatureObjectNumber, readOptions);
+        return PatchSignatureByteRange(prepared, effectiveOptions, signatureObjectNumber, effectiveReadOptions);
     }
 
     /// <summary>Appends an external signature placeholder to a readable PDF stream.</summary>
@@ -248,6 +254,10 @@ internal static partial class PdfIncrementalUpdater {
         readOptions ?? PdfLoadOptions.WithMinimumInputBytes(null, DefaultMaxPreparedSignatureBytes);
 
     private static void ValidateExternalSignatureOptions(PdfExternalSignatureOptions options) {
+        if (options.MaxPreparedOutputBytes <= 0 || options.MaxPreparedOutputBytes > int.MaxValue) {
+            throw new ArgumentOutOfRangeException(nameof(options), options.MaxPreparedOutputBytes,
+                "Maximum prepared PDF bytes must be between 1 and Int32.MaxValue.");
+        }
         if (string.IsNullOrWhiteSpace(options.FieldName)) {
             throw new ArgumentException("Signature field name cannot be empty.", nameof(options));
         }
@@ -1004,13 +1014,15 @@ internal static partial class PdfIncrementalUpdater {
         PdfDocumentSecurityInfo security,
         string trailerRaw,
         HashSet<int> changedObjectNumbers,
-        IReadOnlyList<(int ObjectNumber, byte[] Bytes)> rawObjects) {
+        IReadOnlyList<(int ObjectNumber, byte[] Bytes)> rawObjects,
+        long maximumOutputBytes) {
         return PdfIncrementalObjectWriter.Append(
             pdf,
             objects,
             security,
             trailerRaw,
             changedObjectNumbers,
-            rawObjects);
+            rawObjects,
+            maximumOutputBytes: maximumOutputBytes);
     }
 }
