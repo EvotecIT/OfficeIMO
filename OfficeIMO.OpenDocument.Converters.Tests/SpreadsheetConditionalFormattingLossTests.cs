@@ -29,14 +29,16 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
             && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 2);
     }
 
-    [Fact]
-    public void OdsNumericConditionalFillMapsToExcelRule() {
+    [Theory]
+    [InlineData("cell-content()>0", "GreaterThan")]
+    [InlineData("cell-content()!=0", "NotEqual")]
+    public void OdsNumericConditionalFillMapsToExcelRule(string condition, string expectedOperator) {
         OdsDocument source = OdsDocument.Create();
         OdsSheet sheet = source.AddSheet("Data");
         OdfStyle highlight = source.Styles.CreateNamed("Highlight", OdfStyleFamily.TableCell);
         highlight.BackgroundColor = OdfColor.Parse("#FFE699");
         OdfStyle ordinary = source.Styles.CreateAutomatic(OdfStyleFamily.TableCell);
-        ordinary.AddConditionalMap("cell-content()>0", highlight.Name, "$'Data'.$A$1");
+        ordinary.AddConditionalMap(condition, highlight.Name, "$'Data'.$A$1");
         sheet.Cell(0, 0).StyleName = ordinary.Name;
         sheet.Cell(1, 0).StyleName = ordinary.Name;
 
@@ -50,7 +52,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
         ExcelConditionalFormattingInfo rule = Assert.Single(output.Sheets.Single().GetConditionalFormattingRules());
         Assert.Equal("A1 A2", rule.Range);
         Assert.Equal("CellIs", rule.Type, ignoreCase: true);
-        Assert.Equal("GreaterThan", rule.Operator, ignoreCase: true);
+        Assert.Equal(expectedOperator, rule.Operator, ignoreCase: true);
         Assert.Equal("0", Assert.Single(rule.Formulas));
         Assert.Equal("FFFFE699", rule.DifferentialFillColorArgb);
     }

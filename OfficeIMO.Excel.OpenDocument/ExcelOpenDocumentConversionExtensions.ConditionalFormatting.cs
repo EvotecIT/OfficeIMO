@@ -76,6 +76,9 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         } else if (remainder.StartsWith(">=", StringComparison.Ordinal)) {
             comparison = ExcelConditionalFormattingOperator.GreaterThanOrEqual;
             comparisonToken = ">=";
+        } else if (remainder.StartsWith("!=", StringComparison.Ordinal)) {
+            comparison = ExcelConditionalFormattingOperator.NotEqual;
+            comparisonToken = "!=";
         } else if (remainder.StartsWith("<>", StringComparison.Ordinal)) {
             comparison = ExcelConditionalFormattingOperator.NotEqual;
             comparisonToken = "<>";
