@@ -4,6 +4,10 @@ using System.Globalization;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfIncrementalUpdater {
+    // Prepared files include a new revision, a reserved signature, and possibly a visible appearance.
+    // Keep persisted completion bounded while allowing growth beyond the source's 512 MiB default.
+    internal const long DefaultMaxPreparedSignatureBytes = PdfExternalSignatureOptions.DefaultMaxInputBytes + 256L * 1024L * 1024L;
+
     private const string SignatureByteRangePlaceholder =
         "00000000000000000000 00000000000000000000 00000000000000000000 00000000000000000000";
     private static readonly byte[] SignatureContentsMarker = PdfEncoding.Latin1GetBytes("/Contents <");
@@ -161,7 +165,8 @@ internal static partial class PdfIncrementalUpdater {
         PdfLoadOptions? readOptions) {
         Guard.NotNull(preparedPdf, nameof(preparedPdf));
         Guard.NotNull(signatureContents, nameof(signatureContents));
-        _ = PdfReadDocument.Open(preparedPdf, readOptions);
+        PdfLoadOptions effectiveReadOptions = ResolveCompletionReadOptions(readOptions);
+        _ = PdfReadDocument.Open(preparedPdf, effectiveReadOptions);
         int placeholderCount = FindZeroFilledSignatureContents(preparedPdf, out int contentsHexOffset, out int contentsHexLength, out _);
         if (placeholderCount == 0) {
             throw new ArgumentException("PDF does not contain a zero-filled external signature /Contents placeholder.", nameof(preparedPdf));
@@ -174,7 +179,7 @@ internal static partial class PdfIncrementalUpdater {
         _ = PdfMutationPlanner.RequireAppendOnly(
             preparedPdf,
             PdfMutationOperation.FinalizeExternalSignature,
-            readOptions);
+            effectiveReadOptions);
         return ApplyExternalSignature(preparedPdf, signatureContents, contentsHexOffset, contentsHexLength);
     }
 
@@ -228,12 +233,19 @@ internal static partial class PdfIncrementalUpdater {
     }
 
     /// <summary>Injects externally produced CMS/CAdES/TSA bytes into a prepared signature placeholder in a file.</summary>
-    public static void ApplyExternalSignature(string inputPath, string outputPath, byte[] signatureContents) {
+    /// <param name="inputPath">Path to the prepared PDF.</param>
+    /// <param name="outputPath">Path for the completed PDF.</param>
+    /// <param name="signatureContents">External signature bytes.</param>
+    /// <param name="readOptions">Optional read limits for the prepared PDF. Set <see cref="PdfReadLimits.MaxInputBytes"/> to admit a preparation larger than the default completion budget.</param>
+    public static void ApplyExternalSignature(string inputPath, string outputPath, byte[] signatureContents, PdfLoadOptions? readOptions = null) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         Guard.NotNullOrWhiteSpace(outputPath, nameof(outputPath));
-        PdfDocumentSource source = PdfDocumentSource.FromPath(inputPath, null);
+        PdfDocumentSource source = PdfDocumentSource.FromPath(inputPath, ResolveCompletionReadOptions(readOptions));
         OfficeFileCommit.WriteAllBytes(outputPath, ApplyExternalSignature(source.Bytes, signatureContents, source.Options));
     }
+
+    private static PdfLoadOptions ResolveCompletionReadOptions(PdfLoadOptions? readOptions) =>
+        readOptions ?? PdfLoadOptions.WithMinimumInputBytes(null, DefaultMaxPreparedSignatureBytes);
 
     private static void ValidateExternalSignatureOptions(PdfExternalSignatureOptions options) {
         if (string.IsNullOrWhiteSpace(options.FieldName)) {

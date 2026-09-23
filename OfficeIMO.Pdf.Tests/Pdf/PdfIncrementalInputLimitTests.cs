@@ -54,6 +54,7 @@ public class PdfIncrementalInputLimitTests {
     public void IncrementalPathEntrypointsRejectOversizedInputWithoutChangingOutputs() {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-incremental-limit-" + Guid.NewGuid().ToString("N"));
         string inputPath = Path.Combine(root, "oversized.pdf");
+        string oversizedPreparedPath = Path.Combine(root, "oversized-prepared.pdf");
         string existingOutput = Path.Combine(root, "existing.pdf");
         string absentOutputDirectory = Path.Combine(root, "outputs");
         byte[] sentinel = { 8, 2, 8, 2 };
@@ -76,11 +77,52 @@ public class PdfIncrementalInputLimitTests {
                 new Dictionary<string, string>()));
             Assert.Equal(sentinel, File.ReadAllBytes(existingOutput));
 
+            using (var file = new FileStream(oversizedPreparedPath, FileMode.CreateNew, FileAccess.Write)) {
+                file.SetLength(PdfIncrementalUpdater.DefaultMaxPreparedSignatureBytes + 1);
+            }
             AssertInputLimit(() => PdfIncrementalUpdater.ApplyExternalSignature(
-                inputPath,
+                oversizedPreparedPath,
                 Path.Combine(absentOutputDirectory, "signed.pdf"),
                 new byte[] { 0x30, 0x01, 0x00 }));
             Assert.False(Directory.Exists(absentOutputDirectory));
+        } finally {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void PersistedSignaturePreparationCanBeFinalizedAfterSourceBudgetGrowth() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-signature-prepared-limit-" + Guid.NewGuid().ToString("N"));
+        string sourcePath = Path.Combine(root, "source.pdf");
+        string preparedPath = Path.Combine(root, "prepared.pdf");
+        string signedPath = Path.Combine(root, "signed.pdf");
+        try {
+            Directory.CreateDirectory(root);
+            byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Prepared signature budget")).ToBytes();
+            File.WriteAllBytes(sourcePath, source);
+            var options = new PdfExternalSignatureOptions {
+                MaxInputBytes = source.LongLength,
+                ReservedSignatureContentsBytes = 4096
+            };
+
+            PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(sourcePath, preparedPath, options);
+            Assert.True(preparation.PreparedPdf.LongLength > options.MaxInputBytes);
+
+            byte[] signature = { 0x30, 0x01, 0x00 };
+            var tooSmall = new PdfLoadOptions {
+                Limits = new PdfReadLimits { MaxInputBytes = source.LongLength }
+            };
+            AssertInputLimit(() => PdfIncrementalUpdater.ApplyExternalSignature(preparedPath, signedPath, signature, tooSmall));
+            Assert.False(File.Exists(signedPath));
+
+            var completionOptions = new PdfLoadOptions {
+                Limits = new PdfReadLimits { MaxInputBytes = preparation.PreparedPdf.LongLength }
+            };
+            PdfIncrementalUpdater.ApplyExternalSignature(preparedPath, signedPath, signature, completionOptions);
+            byte[] completed = File.ReadAllBytes(signedPath);
+            Assert.Equal(preparation.PreparedPdf.LongLength, completed.LongLength);
+            Assert.False(preparation.PreparedPdf.SequenceEqual(completed));
+            Assert.Equal(completed, PdfIncrementalUpdater.ApplyExternalSignature(preparation.PreparedPdf, signature));
         } finally {
             if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
         }
