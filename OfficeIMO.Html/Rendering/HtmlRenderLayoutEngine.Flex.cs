@@ -19,7 +19,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool column = style.FlexDirection == "column" || style.FlexDirection == "column-reverse";
         if (!row && !column) return false;
         if (!TryCollectFlexItems(element, containingWidth, style, depth, captureRunningElements: true, out List<FlexItem> items, out List<HtmlCssRunningStringAssignment> runningElementAssignments)) return false;
-        if (column) return TryLayoutColumnFlexContainer(element, containingWidth, style, depth, items, runningElementAssignments, out block);
+        if (column) return TryLayoutColumnFlexContainer(element, containingWidth, style, depth, items, runningElementAssignments, continuationTarget, out block);
 
         return TryLayoutRowFlexContainer(element, containingWidth, style, depth, items, runningElementAssignments, continuationTarget, out block);
     }
@@ -149,6 +149,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             })))
             .Distinct()
             .OrderBy(offset => offset);
+        IEnumerable<HtmlRenderLineBreakGroup> lineBreakGroups = lines.SelectMany(line => line.Items.SelectMany(item =>
+            item.Block!.LineBreakGroups.Select(group => group.Translate(contentY + line.CrossOffset + item.CrossOffset))));
         IReadOnlyList<HtmlInlineBreakProgress> continuationBreakProgress = style.FlexWrap == "wrap"
             ? lines.Skip(1)
                 .Where(line => line.Items.Count > 0 && line.Items[0].Element != null)
@@ -165,6 +167,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.AvoidBreakInside,
             HtmlRenderStyleResolver.DescribeSource(element),
             breakOffsets,
+            lineBreakGroups: lineBreakGroups,
             pageName: style.PageName,
             runningStringAssignments: NormalizeRunningElementAssignmentOrder(
                 PlaceDirectRunningElementAssignments(

@@ -10,6 +10,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int depth,
         List<FlexItem> items,
         IReadOnlyList<HtmlCssRunningStringAssignment> runningElementAssignments,
+        IElement? continuationTarget,
         out HtmlRenderFlowBlock block) {
         double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
         double boxWidth = ResolveBoxWidth(availableWidth, style);
@@ -19,6 +20,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (wrapping && style.UnsupportedColumnGap.Length > 0) ReportUnsupportedFlexValue(element, "column-gap=" + style.UnsupportedColumnGap);
 
         List<FlexItem> orderedItems = items.OrderBy(item => item.Style.Order).ThenBy(item => item.SourceIndex).ToList();
+        if (continuationTarget != null) {
+            int continuationIndex = orderedItems.FindIndex(item =>
+                item.Element != null && ContainsElementOrSelf(item.Element, continuationTarget));
+            if (continuationIndex >= 0) orderedItems = orderedItems.Skip(continuationIndex).ToList();
+        }
         foreach (FlexItem item in orderedItems) {
             CheckCancellation();
             item.HasExplicitCrossSize = item.Style.ExplicitWidth.HasValue;
@@ -118,6 +124,30 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         .Concat(item.Block!.BreakOffsets.Select(offset => contentY + item.MainOffset + offset)))
                 .Distinct()
                 .OrderBy(offset => offset);
+        IReadOnlyList<FlexItem> placedItems = lines.Count == 1
+            ? lines[0].Items.OrderBy(item => item.MainOffset).ToList()
+            : Array.Empty<FlexItem>();
+        var forcedBreaks = new List<HtmlRenderForcedBreak>();
+        string? firstPageName = placedItems.Count > 0 ? placedItems[0].Block!.PageName : null;
+        string? previousPageName = firstPageName;
+        foreach (FlexItem item in placedItems) {
+            HtmlRenderFlowBlock child = item.Block!;
+            double start = contentY + item.MainOffset;
+            if (!string.Equals(previousPageName, child.PageName, StringComparison.Ordinal))
+                forcedBreaks.Add(new HtmlRenderForcedBreak(start, HtmlPageBreakTarget.Page, child.PageName, changesPageName: true));
+            previousPageName = child.PageName;
+            if (child.BreakBefore != HtmlPageBreakTarget.None)
+                forcedBreaks.Add(new HtmlRenderForcedBreak(start, child.BreakBefore));
+            forcedBreaks.AddRange(child.ForcedBreaks.Select(itemBreak => itemBreak.Translate(start)));
+            if (child.BreakAfter != HtmlPageBreakTarget.None)
+                forcedBreaks.Add(new HtmlRenderForcedBreak(start + child.Height, child.BreakAfter));
+        }
+        IEnumerable<HtmlRenderLineBreakGroup> lineBreakGroups = placedItems.SelectMany(item =>
+            item.Block!.LineBreakGroups.Select(group => group.Translate(contentY + item.MainOffset)));
+        IReadOnlyList<HtmlInlineBreakProgress> continuationBreakProgress = placedItems.Skip(1)
+            .Where(item => item.Element != null)
+            .Select(item => new HtmlInlineBreakProgress(contentY + item.MainOffset, 0, item.Element))
+            .ToList();
         block = new HtmlRenderFlowBlock(
             containingWidth,
             outerHeight,
@@ -127,7 +157,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.AvoidBreakInside,
             source,
             breakOffsets,
-            pageName: style.PageName,
+            lineBreakGroups: lineBreakGroups,
+            pageName: style.PageName ?? firstPageName,
+            forcedBreaks: forcedBreaks,
+            inlineBreakProgress: continuationBreakProgress,
+            supportsInlineContinuationReflow: continuationBreakProgress.Count > 0,
             runningStringAssignments: NormalizeRunningElementAssignmentOrder(
                 PlaceDirectRunningElementAssignments(
                         runningElementAssignments,

@@ -295,10 +295,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double contentWidth,
         HtmlRenderBoxStyle rootStyle) {
         if (rootStyle.Display == "none") return Array.Empty<HtmlRenderFlowBlock>();
+        bool pagedColumnBody = _options.Mode == HtmlRenderMode.Paged
+            && (rootStyle.Display == "flex" || rootStyle.Display == "inline-flex")
+            && rootStyle.FlexDirection == "column"
+            && rootStyle.FlexWrap == "nowrap";
         if (string.Equals(root.LocalName, "body", StringComparison.OrdinalIgnoreCase)
-            && (_options.UserAgentStyles == HtmlRenderUserAgentStyleMode.Browser
-                || rootStyle.Display == "flex" || rootStyle.Display == "inline-flex"
-                || rootStyle.Display == "grid" || rootStyle.Display == "inline-grid")) {
+            && (_options.UserAgentStyles == HtmlRenderUserAgentStyleMode.Browser || pagedColumnBody)) {
             return new[] { LayoutElement(root, contentWidth, rootStyle, rootStyle, 0) };
         }
         if (_options.Mode == HtmlRenderMode.Paged || !HasAuthoredRootBoxGeometry(root, rootStyle)) {
@@ -860,16 +862,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
         reflowed = source;
         if (source.OwnerElement == null || continuation.OwnerElement == null) return false;
         IElement root = _document.Body ?? _document.DocumentElement ?? source.OwnerElement;
-        if (!ReferenceEquals(source.OwnerElement.ParentElement, root)) return false;
+        bool sourceIsRoot = ReferenceEquals(source.OwnerElement, root);
+        if (!sourceIsRoot && !ReferenceEquals(source.OwnerElement.ParentElement, root)) return false;
         if (!ContainsElementOrSelf(source.OwnerElement, continuation.OwnerElement)) return false;
         HtmlRenderBoxStyle rootStyle = _styleResolver.Resolve(root, geometry.ContentWidth);
-        HtmlRenderBoxStyle style = _styleResolver.Resolve(source.OwnerElement, geometry.ContentWidth, rootStyle);
+        HtmlRenderBoxStyle style = sourceIsRoot
+            ? rootStyle
+            : _styleResolver.Resolve(source.OwnerElement, geometry.ContentWidth, rootStyle);
         reflowed = LayoutElement(
             source.OwnerElement,
             geometry.ContentWidth,
             style,
             rootStyle,
-            1,
+            sourceIsRoot ? 0 : 1,
             continuation.OwnerElement,
             continuation.LogicalCharacters);
         return true;

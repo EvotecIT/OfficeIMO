@@ -392,6 +392,70 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlFlexRow_RespectsWidowsAndOrphansInNestedParagraph() {
+        const string html = """
+            <div style="height:30px">Before</div>
+            <div style="display:flex;width:150px">
+              <aside style="width:30px">Menu</aside>
+              <p style="width:100px;line-height:20px;margin:0">First<br>Second<br>Third</p>
+            </div>
+            """;
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(2D, 55D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+
+        Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("First", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void HtmlFlexColumnBody_PreservesChildPageBreaks() {
+        const string html = """
+            <style>body{display:flex;flex-direction:column;margin:0}header{break-after:page}</style>
+            <body><header>First page</header><main>Second page</main></body>
+            """;
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(2D, 80D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+
+        Assert.Equal(2, rendered.Pages.Count);
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("First page", StringComparison.Ordinal));
+        Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("Second page", StringComparison.Ordinal));
+        Assert.Contains(rendered.Pages[1].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("Second page", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void HtmlFlexColumnBody_PreservesNamedChildPage() {
+        const string html = """
+            <style>@page appendix { size:3in 2in; margin:0 }body{display:flex;flex-direction:column;margin:0}main{page:appendix}</style>
+            <body><header>First page</header><main>Named page</main></body>
+            """;
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(2D, 80D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = true,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+
+        Assert.Equal(2, rendered.Pages.Count);
+        Assert.Equal("appendix", rendered.Pages[1].PageName);
+        Assert.Equal(3D * HtmlRenderOptions.CssPixelsPerInch, rendered.Pages[1].Width, 3);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PagePseudoGeometryPending);
+        Assert.Contains(rendered.Pages[1].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("Named page", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void HtmlFlexColumn_AppliesMainDistributionAndCrossAlignment() {
         const string html = """
             <div style="display:flex;flex-direction:column;width:100px;height:300px;gap:10px;justify-content:space-between;align-items:center">

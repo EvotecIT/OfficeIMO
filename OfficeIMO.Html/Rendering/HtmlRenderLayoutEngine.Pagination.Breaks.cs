@@ -48,7 +48,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             int firstFragmentLine = UpperBound(offsets, start + 0.0001D);
             int fragmentLines = candidateIndex >= firstFragmentLine ? candidateIndex - firstFragmentLine + 1 : 0;
             int remainingLines = offsets.Count - candidateIndex - 1 + (group.HasImplicitFinalLine ? 1 : 0);
-            return fragmentLines >= group.Orphans && remainingLines >= group.Widows;
+            if (fragmentLines < group.Orphans || remainingLines < group.Widows) return false;
         }
 
         return true;

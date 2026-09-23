@@ -270,8 +270,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int continuationLogicalCharacters = 0) {
         IElement? root = _document.Body ?? _document.DocumentElement;
         bool tracksPageViewport = _options.Mode == HtmlRenderMode.Paged
-            && depth == 1
-            && ReferenceEquals(element.ParentElement, root);
+            && (depth == 1 && ReferenceEquals(element.ParentElement, root)
+                || depth == 0 && ReferenceEquals(element, root));
         HtmlRenderFlowBlock StampViewport(HtmlRenderFlowBlock block) =>
             tracksPageViewport
                 ? block.WithLayoutViewport(_activePageGeometry.Width, _activePageGeometry.Height)
