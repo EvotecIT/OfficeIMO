@@ -18,6 +18,15 @@ internal static partial class PdfSyntax {
         return ParseObjects(pdf, options, out _, out _);
     }
 
+    // Used only to validate the other objects of a persisted signature before
+    // admitting an oversized generated /Contents reservation.
+    internal static Dictionary<int, PdfIndirectObject> ParseObjectsSkippingObject(
+        byte[] pdf,
+        PdfLoadOptions options,
+        int skippedObjectOffset) =>
+        ParseObjectsCore(pdf, options, out _, out _, null, retainOwnedStreamSlices: false,
+            CancellationToken.None, skippedObjectOffset).Map;
+
     internal static (Dictionary<int, PdfIndirectObject> Map, string TrailerRaw) ParseObjects(
         byte[] pdf,
         PdfLoadOptions? options,
@@ -72,7 +81,8 @@ internal static partial class PdfSyntax {
         out long decodedStreamBytes,
         string? decodedText,
         bool retainOwnedStreamSlices,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        int skippedObjectOffset = -1) {
         cancellationToken.ThrowIfCancellationRequested();
         decodedStreamBytes = 0;
         PdfReadLimits limits = options?.Limits ?? new PdfReadLimits();
@@ -142,6 +152,8 @@ internal static partial class PdfSyntax {
                     id);
                 end = (i + 1 < matches.Length) ? matches[i + 1].Index : text.Length;
             }
+
+            if (start == skippedObjectOffset) continue;
 
             int preliminaryBodyEnd = end;
             if (preliminaryBodyEnd - 6 >= bodyStart && string.CompareOrdinal(text, preliminaryBodyEnd - 6, "endobj", 0, 6) == 0) {

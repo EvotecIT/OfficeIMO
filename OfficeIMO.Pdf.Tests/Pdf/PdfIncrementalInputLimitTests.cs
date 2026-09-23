@@ -152,6 +152,23 @@ public class PdfIncrementalInputLimitTests {
     }
 
     [Fact]
+    public void AppendOnlyAnalysisAcceptsCallerLimitsForPathsAndStreams() {
+        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Caller limit for append-only analysis")).ToBytes();
+        var tooSmall = new PdfLoadOptions { Limits = new PdfReadLimits { MaxInputBytes = source.LongLength - 1 } };
+        var admitted = new PdfLoadOptions { Limits = new PdfReadLimits { MaxInputBytes = source.LongLength } };
+        string path = Path.Combine(Path.GetTempPath(), "officeimo-append-analysis-" + Guid.NewGuid().ToString("N") + ".pdf");
+        try {
+            File.WriteAllBytes(path, source);
+            AssertInputLimit(() => PdfIncrementalUpdater.AnalyzeAppendOnlyMutation(path, tooSmall));
+            Assert.NotNull(PdfIncrementalUpdater.AnalyzeAppendOnlyMutation(path, admitted));
+            using var input = new MemoryStream(source);
+            Assert.NotNull(PdfIncrementalUpdater.AnalyzeAppendOnlyMutation(input, admitted));
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void PersistedSignatureCompletionAdmitsGeneratedObjectsAndRevisionAtSourceLimits() {
         byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Persisted tight signature limits")).ToBytes();
         int sourceObjectCount = PdfSyntax.ParseObjects(source, null).Map.Count;
@@ -177,6 +194,80 @@ public class PdfIncrementalInputLimitTests {
         } finally {
             if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
         }
+    }
+
+    [Fact]
+    public void PersistedSignatureCompletionDoesNotApplyGeneratedGrowthTwice() {
+        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Revision cap for completion")).ToBytes();
+        byte[] revised = PdfIncrementalUpdater.UpdateMetadata(source, title: "Second revision");
+        PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(revised);
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-signature-revision-cap-" + Guid.NewGuid().ToString("N"));
+        try {
+            Directory.CreateDirectory(root);
+            string preparedPath = Path.Combine(root, "prepared.pdf");
+            string signedPath = Path.Combine(root, "signed.pdf");
+            File.WriteAllBytes(preparedPath, preparation.PreparedPdf);
+            var readOptions = new PdfLoadOptions { Limits = new PdfReadLimits { MaxRevisions = 1 } };
+
+            Assert.Throws<PdfReadLimitException>(() => PdfIncrementalUpdater.ApplyExternalSignature(
+                preparedPath, signedPath, new byte[] { 0x30, 0x01, 0x00 }, readOptions));
+            Assert.False(File.Exists(signedPath));
+        } finally {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void PersistedSignatureCompletionDerivesBoundedAppearanceAndContentsBudgets() {
+        PdfLoadOptions input = PdfIncrementalUpdater.ResolveCompletionReadOptions(null);
+        PdfLoadOptions completion = PdfIncrementalUpdater.ResolvePersistedCompletionReadOptions(
+            input, 300 * 1024 * 1024, 1_020_000);
+
+        Assert.Equal(input.Limits.MaxInputBytes, completion.Limits.MaxInputBytes);
+        Assert.Equal(input.Limits.MaxIndirectObjects + 64, completion.Limits.MaxIndirectObjects);
+        Assert.Equal(input.Limits.MaxRevisions + 1, completion.Limits.MaxRevisions);
+        Assert.Equal(300 * 1024 * 1024, completion.Limits.MaxRawStreamBytes);
+        Assert.True(completion.Limits.MaxObjectCharacters >= 1_020_000);
+    }
+
+    [Fact]
+    public void PersistedSignatureCompletionAdmitsLargeContentsReservation() {
+        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Large reserved signature")).ToBytes();
+        PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
+            source, new PdfExternalSignatureOptions { ReservedSignatureContentsBytes = 510_000 });
+
+        byte[] signed = PdfIncrementalUpdater.ApplyExternalSignature(
+            preparation.PreparedPdf, new byte[] { 0x30, 0x01, 0x00 });
+
+        Assert.Equal(preparation.PreparedPdf.LongLength, signed.LongLength);
+    }
+
+    [Fact]
+    public void PersistedSignatureCompletionEnforcesCallerStreamBudgetBeforePlaceholderScan() {
+        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Signature stream budget")).ToBytes();
+        PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(source);
+        var readOptions = new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxRawStreamBytes = 1 }
+        };
+
+        PdfReadLimitException error = Assert.Throws<PdfReadLimitException>(() =>
+            PdfIncrementalUpdater.ApplyExternalSignature(preparation.PreparedPdf, new byte[] { 0x30, 0x01, 0x00 }, readOptions));
+        Assert.Equal(PdfReadLimitKind.RawStreamBytes, error.Kind);
+    }
+
+    [Fact]
+    public void PersistedSignatureCompletionDoesNotExpandNonSignatureObjectBudget() {
+        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Ordinary object budget")).ToBytes();
+        PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
+            source, new PdfExternalSignatureOptions { ReservedSignatureContentsBytes = 510_000 });
+        byte[] oversizedObject = System.Text.Encoding.ASCII.GetBytes(
+            "\n999 0 obj\n(" + new string('x', 1_100_000) + ")\nendobj\n");
+        byte[] preparedWithOversizedObject = preparation.PreparedPdf.Concat(oversizedObject).ToArray();
+
+        PdfReadLimitException error = Assert.Throws<PdfReadLimitException>(() =>
+            PdfIncrementalUpdater.ApplyExternalSignature(preparedWithOversizedObject, new byte[] { 0x30, 0x01, 0x00 }));
+        Assert.Equal(PdfReadLimitKind.ObjectCharacters, error.Kind);
+        Assert.Equal(PdfReadLimits.Default.MaxObjectCharacters, error.Limit);
     }
 
     [Fact]

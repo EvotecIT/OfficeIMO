@@ -33,13 +33,23 @@ internal static partial class PdfIncrementalUpdater {
 
     /// <summary>Analyzes append-only mutation support for a readable PDF stream.</summary>
     public static PdfAppendOnlyMutationReport AnalyzeAppendOnlyMutation(Stream input) {
-        PdfDocumentSource source = PdfDocumentSource.FromRemainingStream(input, null);
+        return AnalyzeAppendOnlyMutation(input, null);
+    }
+
+    /// <summary>Analyzes append-only mutation support for a readable PDF stream with caller-selected read limits.</summary>
+    public static PdfAppendOnlyMutationReport AnalyzeAppendOnlyMutation(Stream input, PdfLoadOptions? readOptions) {
+        PdfDocumentSource source = PdfDocumentSource.FromRemainingStream(input, readOptions);
         return AnalyzeAppendOnlyMutation(source.Bytes, source.Options);
     }
 
     /// <summary>Analyzes append-only mutation support for a PDF file.</summary>
     public static PdfAppendOnlyMutationReport AnalyzeAppendOnlyMutation(string inputPath) {
-        PdfDocumentSource source = PdfDocumentSource.FromPath(inputPath, null);
+        return AnalyzeAppendOnlyMutation(inputPath, null);
+    }
+
+    /// <summary>Analyzes append-only mutation support for a PDF file with caller-selected read limits.</summary>
+    public static PdfAppendOnlyMutationReport AnalyzeAppendOnlyMutation(string inputPath, PdfLoadOptions? readOptions) {
+        PdfDocumentSource source = PdfDocumentSource.FromPath(inputPath, readOptions);
         return AnalyzeAppendOnlyMutation(source.Bytes, source.Options);
     }
 
