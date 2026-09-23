@@ -240,7 +240,8 @@ public sealed partial class PdfReadPage {
         return GetLinkAnnotationsUnchecked();
     }
 
-    internal IReadOnlyList<PdfLinkAnnotation> GetLinkAnnotationsUnchecked() {
+    internal IReadOnlyList<PdfLinkAnnotation> GetLinkAnnotationsUnchecked(CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (!_pageDict.Items.TryGetValue("Annots", out var annotsObject)) {
             return Array.Empty<PdfLinkAnnotation>();
         }
@@ -253,6 +254,7 @@ public sealed partial class PdfReadPage {
 
         var result = new List<PdfLinkAnnotation>();
         foreach (var item in annotations.Items) {
+            cancellationToken.ThrowIfCancellationRequested();
             var annotation = ResolveDictionary(item);
             if (annotation is null ||
                 annotation.Get<PdfName>("Subtype")?.Name != "Link" ||
@@ -307,11 +309,12 @@ public sealed partial class PdfReadPage {
         return GetAnnotationsUnchecked();
     }
 
-    internal IReadOnlyList<PdfAnnotation> GetAnnotationsUnchecked() => GetAnnotationsUnchecked(includeUnreadableRectangles: false);
+    internal IReadOnlyList<PdfAnnotation> GetAnnotationsUnchecked(CancellationToken cancellationToken = default) => GetAnnotationsUnchecked(includeUnreadableRectangles: false, cancellationToken);
 
     internal IReadOnlyList<PdfAnnotation> GetAnnotationsForContentSafety() => GetAnnotationsUnchecked(includeUnreadableRectangles: true);
 
-    private IReadOnlyList<PdfAnnotation> GetAnnotationsUnchecked(bool includeUnreadableRectangles) {
+    private IReadOnlyList<PdfAnnotation> GetAnnotationsUnchecked(bool includeUnreadableRectangles, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (!_pageDict.Items.TryGetValue("Annots", out var annotsObject)) {
             return Array.Empty<PdfAnnotation>();
         }
@@ -324,6 +327,7 @@ public sealed partial class PdfReadPage {
 
         var result = new List<PdfAnnotation>();
         foreach (var item in annotations.Items) {
+            cancellationToken.ThrowIfCancellationRequested();
             int? objectNumber = item is PdfReference reference ? reference.ObjectNumber : null;
             var annotation = ResolveDictionary(item);
             string? subtype = annotation?.Get<PdfName>("Subtype")?.Name;
@@ -345,13 +349,13 @@ public sealed partial class PdfReadPage {
             annotation.Items.TryGetValue("A", out var actionObject);
             annotation.Items.TryGetValue("AA", out var additionalActionsObject);
             string? actionType = TryReadActionType(actionObject);
-            IReadOnlyList<PdfAnnotationAdditionalAction> additionalActions = ReadAdditionalActions(additionalActionsObject);
-            IReadOnlyList<PdfAnnotationChainedAction> chainedActions = ReadAnnotationChainedActions(actionObject, additionalActionsObject);
+            IReadOnlyList<PdfAnnotationAdditionalAction> additionalActions = ReadAdditionalActions(additionalActionsObject, cancellationToken);
+            IReadOnlyList<PdfAnnotationChainedAction> chainedActions = ReadAnnotationChainedActions(actionObject, additionalActionsObject, cancellationToken);
             int? flags = TryReadInteger(annotation.Items.TryGetValue("F", out var flagsObject) ? flagsObject : null);
             TryGetString(annotation.Items.TryGetValue("NM", out var nameObject) ? nameObject : null, out string? name);
             TryGetString(annotation.Items.TryGetValue("T", out var titleObject) ? titleObject : null, out string? title);
             TryGetString(annotation.Items.TryGetValue("M", out var modifiedObject) ? modifiedObject : null, out string? modified);
-            IReadOnlyList<double> color = ReadNumberArray(annotation.Items.TryGetValue("C", out var colorObject) ? colorObject : null);
+            IReadOnlyList<double> color = ReadNumberArray(annotation.Items.TryGetValue("C", out var colorObject) ? colorObject : null, cancellationToken);
             ReadAnnotationAppearanceMetadata(
                 annotation,
                 subtype!,
@@ -361,7 +365,8 @@ public sealed partial class PdfReadPage {
                 out string? richContentsPlainText,
                 out double? effectiveFontSize,
                 out PdfColor? effectiveTextColor,
-                out PdfAlign? effectiveTextAlign);
+                out PdfAlign? effectiveTextAlign,
+                cancellationToken);
             ReadAnnotationVisualStyleMetadata(
                 annotation,
                 subtype!,
@@ -378,13 +383,15 @@ public sealed partial class PdfReadPage {
                 out IReadOnlyList<double> calloutLine,
                 out string? calloutLineEnding,
                 out string? lineStartEnding,
-                out string? lineEndEnding);
+                out string? lineEndEnding,
+                cancellationToken);
             ReadAnnotationPathGeometryMetadata(
                 annotation,
                 out IReadOnlyList<double> quadPoints,
                 out IReadOnlyList<double> lineCoordinates,
                 out IReadOnlyList<double> vertices,
-                out IReadOnlyList<IReadOnlyList<double>> inkList);
+                out IReadOnlyList<IReadOnlyList<double>> inkList,
+                cancellationToken);
             PdfAnnotationReviewInfo? review = ReadAnnotationReviewInfo(annotation);
             string? appearanceState = annotation.Get<PdfName>("AS")?.Name;
             result.Add(new PdfAnnotation(objectNumber, null, subtype!, contents, rect.X1, rect.Y1, rect.X2, rect.Y2, hasNormalAppearance, actionType, additionalActions, chainedActions, flags, name, title, modified, color, defaultAppearance, defaultStyle, richContents, richContentsPlainText, effectiveFontSize, effectiveTextColor, effectiveTextAlign, interiorColor, opacity, borderWidth, borderStyle, borderDashPattern, borderEffectStyle, borderEffectIntensity, rectangleDifferences, calloutLine, calloutLineEnding, lineStartEnding, lineEndEnding, quadPoints, lineCoordinates, vertices, inkList, review, normalAppearanceObject, appearanceState, annotation, hasReadableRectangle));
@@ -435,7 +442,8 @@ public sealed partial class PdfReadPage {
         return new PdfAnnotationReviewInfo(inReplyToObjectNumber, replyType, state, stateModel, subject, intent);
     }
 
-    internal IReadOnlyList<int> GetAnnotationObjectNumbers(string subtypeName) {
+    internal IReadOnlyList<int> GetAnnotationObjectNumbers(string subtypeName, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (!_pageDict.Items.TryGetValue("Annots", out var annotsObject)) {
             return Array.Empty<int>();
         }
@@ -448,6 +456,7 @@ public sealed partial class PdfReadPage {
 
         var result = new List<int>();
         foreach (var item in annotations.Items) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (item is not PdfReference reference) {
                 continue;
             }
@@ -1717,7 +1726,9 @@ public sealed partial class PdfReadPage {
         out string? richContentsPlainText,
         out double? effectiveFontSize,
         out PdfColor? effectiveTextColor,
-        out PdfAlign? effectiveTextAlign) {
+        out PdfAlign? effectiveTextAlign,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         defaultAppearance = null;
         defaultStyle = null;
         richContents = null;
@@ -1726,7 +1737,7 @@ public sealed partial class PdfReadPage {
         effectiveTextColor = null;
         effectiveTextAlign = null;
         TryGetString(annotation.Items.TryGetValue("RC", out PdfObject? richContentsObject) ? richContentsObject : null, out richContents);
-        richContentsPlainText = PdfFreeTextStyleParser.ExtractPlainText(richContents);
+        richContentsPlainText = PdfFreeTextStyleParser.ExtractPlainText(richContents, cancellationToken);
         if (!string.Equals(subtype, "FreeText", StringComparison.Ordinal)) {
             return;
         }
@@ -1756,7 +1767,8 @@ public sealed partial class PdfReadPage {
                 : PdfAlign.Left;
     }
 
-    private IReadOnlyList<double> ReadNumberArray(PdfObject? obj) {
+    private IReadOnlyList<double> ReadNumberArray(PdfObject? obj, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         PdfArray? array = ResolveArray(obj);
         if (array is null || array.Items.Count == 0) {
             return Array.Empty<double>();
@@ -1764,6 +1776,7 @@ public sealed partial class PdfReadPage {
 
         var values = new List<double>();
         for (int i = 0; i < array.Items.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (ResolveObject(array.Items[i]) is PdfNumber number) {
                 values.Add(number.Value);
             }
@@ -1772,7 +1785,8 @@ public sealed partial class PdfReadPage {
         return values.Count == 0 ? Array.Empty<double>() : values.AsReadOnly();
     }
 
-    private IReadOnlyList<PdfAnnotationAdditionalAction> ReadAdditionalActions(PdfObject? obj) {
+    private IReadOnlyList<PdfAnnotationAdditionalAction> ReadAdditionalActions(PdfObject? obj, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         var additionalActions = ResolveDictionary(obj);
         if (additionalActions is null || additionalActions.Items.Count == 0) {
             return Array.Empty<PdfAnnotationAdditionalAction>();
@@ -1780,6 +1794,7 @@ public sealed partial class PdfReadPage {
 
         var actions = new List<PdfAnnotationAdditionalAction>();
         foreach (var item in additionalActions.Items) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (string.IsNullOrEmpty(item.Key)) {
                 continue;
             }

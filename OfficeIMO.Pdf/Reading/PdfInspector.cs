@@ -546,7 +546,7 @@ internal static class PdfInspector {
         PdfRepairReport repairReport,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        PdfDictionary? catalog = PdfSyntax.FindCatalog(objects, trailerRaw);
+        PdfDictionary? catalog = PdfSyntax.FindCatalog(objects, trailerRaw, cancellationToken);
         // A single parsed walk replaces a separate full graph scan for every feature.
         HashSet<string> presentNames = PdfSyntax.CollectParsedPdfNames(objects, ParsedProbeMarkerNames, cancellationToken);
         int reachableMarkerGroups = catalog is null
@@ -701,7 +701,7 @@ internal static class PdfInspector {
             PdfPageGeometry geometry = page.GetGeometry();
             var (width, height) = PdfReadPage.GetPageSize(geometry);
             int rotation = page.GetRotationDegrees();
-            var pageLinks = page.GetLinkAnnotationsUnchecked();
+            var pageLinks = page.GetLinkAnnotationsUnchecked(cancellationToken);
             var links = new List<PdfLinkAnnotation>(pageLinks.Count);
             for (int j = 0; j < pageLinks.Count; j++) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -713,14 +713,14 @@ internal static class PdfInspector {
                 links.Add(link);
             }
 
-            var pageAnnotations = page.GetAnnotationsUnchecked();
+            var pageAnnotations = page.GetAnnotationsUnchecked(cancellationToken);
             var annotations = new List<PdfAnnotation>(pageAnnotations.Count);
             for (int j = 0; j < pageAnnotations.Count; j++) {
                 cancellationToken.ThrowIfCancellationRequested();
                 annotations.Add(pageAnnotations[j].WithPageNumber(pageNumber));
             }
 
-            var pageActions = page.GetPageActionsUnchecked();
+            var pageActions = page.GetPageActionsUnchecked(cancellationToken);
             var actions = new List<PdfPageAction>(pageActions.Count);
             for (int j = 0; j < pageActions.Count; j++) {
                 cancellationToken.ThrowIfCancellationRequested();

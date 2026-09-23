@@ -142,7 +142,7 @@ internal static partial class PdfSyntax {
                     }
                 }
 
-                PdfDictionary? catalog = FindCatalog(objects, trailerRaw);
+                PdfDictionary? catalog = FindCatalog(objects, trailerRaw, cancellationToken);
                 if (catalog is not null) {
                     documentSecurityStore = ReadDocumentSecurityStoreInfo(objects, catalog);
                     ReadCatalogSecurityState(

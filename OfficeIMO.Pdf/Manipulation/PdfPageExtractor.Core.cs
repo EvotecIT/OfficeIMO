@@ -77,7 +77,7 @@ internal static partial class PdfPageExtractor {
             Dictionary<string, PdfObject>? sourcePageOverrides = pageOverrides is not null && pageOverrides.TryGetValue(pageObjectNumber, out var overrides)
                 ? overrides
                 : null;
-            var clonedAnnotationState = BuildClonedAnnotationState(sourceObjects, pageObjectNumber, sourcePageOverrides, ref nextObjectId);
+            var clonedAnnotationState = BuildClonedAnnotationState(sourceObjects, pageObjectNumber, sourcePageOverrides, ref nextObjectId, cancellationToken);
             clonedPages.Add(new ClonedPageObject(pageObjectNumber, clonedPageObjectId, clonedAnnotationState.PageOverrides, clonedAnnotationState.AnnotationObjectMap));
         }
     
@@ -276,7 +276,9 @@ internal static partial class PdfPageExtractor {
         Dictionary<int, PdfIndirectObject> sourceObjects,
         int pageObjectNumber,
         Dictionary<string, PdfObject>? pageOverrides,
-        ref int nextObjectId) {
+        ref int nextObjectId,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         PdfObject? annotationsObject = pageOverrides is not null && pageOverrides.TryGetValue("Annots", out var overrideAnnotations)
             ? overrideAnnotations
             : null;
@@ -299,6 +301,7 @@ internal static partial class PdfPageExtractor {
         bool hasClonedIndirectAnnotation = false;
     
         foreach (var annotation in annotations.Items) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (annotation is PdfReference annotationReference &&
                 PdfObjectLookup.TryGet(sourceObjects, annotationReference, out _)) {
                 if (!annotationObjectMap.TryGetValue(annotationReference.ObjectNumber, out int clonedAnnotationObjectNumber)) {
@@ -318,9 +321,13 @@ internal static partial class PdfPageExtractor {
             return ClonedAnnotationState.Empty;
         }
 
-        var clonedPageOverrides = pageOverrides is null
-            ? new Dictionary<string, PdfObject>(StringComparer.Ordinal)
-            : new Dictionary<string, PdfObject>(pageOverrides, StringComparer.Ordinal);
+        var clonedPageOverrides = new Dictionary<string, PdfObject>(StringComparer.Ordinal);
+        if (pageOverrides is not null) {
+            foreach (KeyValuePair<string, PdfObject> entry in pageOverrides) {
+                cancellationToken.ThrowIfCancellationRequested();
+                clonedPageOverrides.Add(entry.Key, entry.Value);
+            }
+        }
         clonedPageOverrides["Annots"] = clonedAnnotations;
 
         return new ClonedAnnotationState(

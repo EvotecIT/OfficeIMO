@@ -7,7 +7,7 @@ internal static partial class PdfPageExtractor {
     internal static CatalogRewriteState ExtractCatalogRewriteState(Dictionary<int, PdfIndirectObject> sourceObjects,
         string? trailerRaw = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        PdfDictionary? dictionary = PdfSyntax.FindCatalog(sourceObjects, trailerRaw);
+        PdfDictionary? dictionary = PdfSyntax.FindCatalog(sourceObjects, trailerRaw, cancellationToken);
         if (dictionary is not null) {
             string? pageMode = dictionary.Get<PdfName>("PageMode")?.Name;
             string? pageLayout = dictionary.Get<PdfName>("PageLayout")?.Name;

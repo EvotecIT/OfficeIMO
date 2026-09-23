@@ -136,7 +136,7 @@ internal static partial class PdfSyntax {
         bool hasParsedSignatureMarker = false;
         bool hasParsedByteRangeMarker = false;
 
-        PdfDictionary? catalog = FindCatalog(objects, trailerRaw);
+        PdfDictionary? catalog = FindCatalog(objects, trailerRaw, cancellationToken);
         if (catalog is not null) {
             cancellationToken.ThrowIfCancellationRequested();
             documentSecurityStore = ReadDocumentSecurityStoreInfo(objects, catalog);

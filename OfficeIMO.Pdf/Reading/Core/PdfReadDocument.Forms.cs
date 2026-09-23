@@ -191,7 +191,7 @@ public sealed partial class PdfReadDocument {
         var widgetPageNumbers = new Dictionary<int, int>();
         for (int i = 0; i < Pages.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
-            IReadOnlyList<int> annotationObjectNumbers = Pages[i].GetAnnotationObjectNumbers("Widget");
+            IReadOnlyList<int> annotationObjectNumbers = Pages[i].GetAnnotationObjectNumbers("Widget", cancellationToken);
             for (int j = 0; j < annotationObjectNumbers.Count; j++) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!widgetPageNumbers.ContainsKey(annotationObjectNumbers[j])) {
@@ -567,7 +567,7 @@ public sealed partial class PdfReadDocument {
             }
 
             sourceBytes = text.RawBytes.LongLength;
-            bool decoded = PdfJavaScriptStringEncoding.TryDecode(text.RawBytes, out javaScript!);
+            bool decoded = PdfJavaScriptStringEncoding.TryDecode(text.RawBytes, out javaScript!, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             return decoded;
         }
@@ -576,7 +576,7 @@ public sealed partial class PdfReadDocument {
             try {
                 byte[] decoded = _decodedStreamBudget.DecodeRequired(stream, _objects, maximumBytes, cancellationToken);
                 sourceBytes = decoded.LongLength;
-                bool readable = PdfJavaScriptStringEncoding.TryDecode(decoded, out javaScript!);
+                bool readable = PdfJavaScriptStringEncoding.TryDecode(decoded, out javaScript!, cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
                 return readable;
             } catch (PdfReadLimitException) {

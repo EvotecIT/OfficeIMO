@@ -5,7 +5,8 @@ internal static class PdfDocEncoding {
     private static readonly char[] Map = BuildMap();
     private static readonly bool[] Defined = BuildDefinedMap();
 
-    internal static bool TryDecode(byte[] bytes, out string value) {
+    internal static bool TryDecode(byte[] bytes, out string value, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (bytes.Length == 0) {
             value = string.Empty;
             return true;
@@ -13,6 +14,7 @@ internal static class PdfDocEncoding {
 
         var characters = new char[bytes.Length];
         for (int i = 0; i < bytes.Length; i++) {
+            if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             byte encoded = bytes[i];
             if (!Defined[encoded]) {
                 value = string.Empty;

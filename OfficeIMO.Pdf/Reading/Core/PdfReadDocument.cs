@@ -62,7 +62,7 @@ public sealed partial class PdfReadDocument {
         _decodedStreamBudget = new PdfDecodedStreamBudget(_options.Limits, decodedStreamBytes);
         _outputIntentMetadataRetentionBudget = new PdfIccProfileRetentionBudget(_options.Limits.MaxDecodedStreamBytes);
         Security = security;
-        _catalog = PdfSyntax.FindCatalog(_objects, _trailerRaw);
+        _catalog = PdfSyntax.FindCatalog(_objects, _trailerRaw, cancellationToken);
         _optionalContentVisibilityState = PdfPageOptionalContentVisibility.CreateDocumentState(
             _catalog,
             _objects,

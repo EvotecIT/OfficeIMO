@@ -178,7 +178,7 @@ internal static class PdfAttachmentExtractor {
             initialDecodedStreamBytes, sharedDecodedStreamBudget, cancellationToken);
         budget.Checkpoint();
         budget.ValidateStructuralObjects(objects);
-        PdfDictionary? catalog = PdfSyntax.FindCatalog(objects, trailerRaw);
+        PdfDictionary? catalog = PdfSyntax.FindCatalog(objects, trailerRaw, cancellationToken);
         if (catalog is null) {
             return Array.Empty<AttachmentDescriptor>();
         }

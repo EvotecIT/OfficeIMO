@@ -6,6 +6,21 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfPageExtractionCancellationTests {
     [Fact]
+    public void JavaScriptDecoderPreservesUnicodeAcrossChunksAndHonorsCancellation() {
+        string source = new string('x', 8191) + "😀" + new string('y', 8192);
+        byte[] utf8 = new byte[] { 0xEF, 0xBB, 0xBF }
+            .Concat(System.Text.Encoding.UTF8.GetBytes(source))
+            .ToArray();
+        Assert.True(PdfJavaScriptStringEncoding.TryDecode(utf8, out string decoded));
+        Assert.Equal(source, decoded);
+
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        Assert.Throws<OperationCanceledException>(() =>
+            PdfJavaScriptStringEncoding.TryDecode(utf8, out _, cancellation.Token));
+    }
+
+    [Fact]
     public void ExtractPagesReadsNonSeekableInputFromCurrentPositionWithExactLimit() {
         byte[] pdf = CreatePdf();
         byte[] inputBytes = new byte[pdf.Length + 3];

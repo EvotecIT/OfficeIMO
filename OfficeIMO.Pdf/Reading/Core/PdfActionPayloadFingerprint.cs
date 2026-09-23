@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Runtime.CompilerServices;
@@ -159,8 +158,28 @@ internal static class PdfActionPayloadFingerprint {
         bool isActionRoot,
         bool useReferenceHashes,
         CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (dictionary.Items.Count > MaximumNodes + (isActionRoot ? 2 : 0)) {
+            complete = false;
+            return;
+        }
         builder.Append('{');
-        foreach (string key in dictionary.Items.Keys.OrderBy(static key => key, StringComparer.Ordinal)) {
+        var keys = new List<string>(dictionary.Items.Count);
+        foreach (string key in dictionary.Items.Keys) {
+            cancellationToken.ThrowIfCancellationRequested();
+            keys.Add(key);
+        }
+        try {
+            keys.Sort((left, right) => {
+                cancellationToken.ThrowIfCancellationRequested();
+                return StringComparer.Ordinal.Compare(left, right);
+            });
+        } catch (InvalidOperationException error) when (error.InnerException is OperationCanceledException) {
+            cancellationToken.ThrowIfCancellationRequested();
+            throw;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        foreach (string key in keys) {
             cancellationToken.ThrowIfCancellationRequested();
             if (isActionRoot &&
                 (string.Equals(key, "S", StringComparison.Ordinal) ||
@@ -186,15 +205,14 @@ internal static class PdfActionPayloadFingerprint {
         bool complete = true;
         AppendObject(builder, value, objects, pageNumbers, activeReferences, depth, ref nodes, ref complete, useReferenceHashes: false, cancellationToken);
         if (!complete) return new ReferenceHashResult(string.Empty, nodes, complete: false);
-        byte[] bytes = Encoding.UTF8.GetBytes(builder.ToString());
-        string hash = HashBase64(bytes, cancellationToken);
+        string hash = HashUtf8(builder, cancellationToken);
         return new ReferenceHashResult(hash, nodes, complete: true);
     }
 
     private static PageNumberLookup BuildPageNumberLookup(Dictionary<int, PdfIndirectObject> objects, PdfReadLimits limits, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         var result = new Dictionary<int, int>();
-        PdfDictionary? catalog = PdfSyntax.FindCatalog(objects);
+        PdfDictionary? catalog = PdfSyntax.FindCatalog(objects, cancellationToken: cancellationToken);
         if (catalog == null || !catalog.Items.TryGetValue("Pages", out PdfObject? pages)) return new PageNumberLookup(result, isComplete: true);
         var visited = new HashSet<int>();
         bool complete = true;
@@ -259,6 +277,23 @@ internal static class PdfActionPayloadFingerprint {
             cancellationToken.ThrowIfCancellationRequested();
             int count = Math.Min(chunkSize, bytes.Length - offset);
             hash.AppendData(bytes, offset, count);
+            offset += count;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return Convert.ToBase64String(hash.GetHashAndReset());
+    }
+
+    private static string HashUtf8(StringBuilder builder, CancellationToken cancellationToken) {
+        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        var characters = new char[16 * 1024];
+        var bytes = new byte[Encoding.UTF8.GetMaxByteCount(characters.Length)];
+        var encoder = Encoding.UTF8.GetEncoder();
+        for (int offset = 0; offset < builder.Length;) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = Math.Min(characters.Length, builder.Length - offset);
+            builder.CopyTo(offset, characters, 0, count);
+            int written = encoder.GetBytes(characters, 0, count, bytes, 0, offset + count == builder.Length);
+            hash.AppendData(bytes, 0, written);
             offset += count;
         }
         cancellationToken.ThrowIfCancellationRequested();

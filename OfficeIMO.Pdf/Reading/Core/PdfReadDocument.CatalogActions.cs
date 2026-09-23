@@ -51,9 +51,32 @@ public sealed partial class PdfReadDocument {
             }
         }
 
-        javaScripts = scripts.Count == 0
-            ? Array.Empty<PdfJavaScript>()
-            : scripts.OrderBy(static script => script.Name, StringComparer.Ordinal).ToList().AsReadOnly();
+        if (scripts.Count == 0) {
+            javaScripts = Array.Empty<PdfJavaScript>();
+        } else {
+            var ordered = new List<(PdfJavaScript Script, int Index)>(scripts.Count);
+            for (int index = 0; index < scripts.Count; index++) {
+                cancellationToken.ThrowIfCancellationRequested();
+                ordered.Add((scripts[index], index));
+            }
+            try {
+                ordered.Sort((left, right) => {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    int comparison = StringComparer.Ordinal.Compare(left.Script.Name, right.Script.Name);
+                    return comparison != 0 ? comparison : left.Index.CompareTo(right.Index);
+                });
+            } catch (InvalidOperationException error) when (error.InnerException is OperationCanceledException) {
+                cancellationToken.ThrowIfCancellationRequested();
+                throw;
+            }
+            cancellationToken.ThrowIfCancellationRequested();
+            var sorted = new List<PdfJavaScript>(ordered.Count);
+            foreach (var entry in ordered) {
+                cancellationToken.ThrowIfCancellationRequested();
+                sorted.Add(entry.Script);
+            }
+            javaScripts = sorted.AsReadOnly();
+        }
         return result.Count == 0 ? Array.Empty<PdfCatalogAction>() : result.AsReadOnly();
     }
 
@@ -94,7 +117,7 @@ public sealed partial class PdfReadDocument {
                 if (discoveredJavaScripts > _options.Limits.MaxJavaScripts) {
                     throw PdfReadLimitException.Create(PdfReadLimitKind.JavaScripts, _options.Limits.MaxJavaScripts, discoveredJavaScripts);
                 }
-                if (TryReadCatalogActionName(actionNames.Items[i], out string? name)) {
+                if (TryReadCatalogActionName(actionNames.Items[i], out string? name, cancellationToken)) {
                     AddCatalogAction(name!, "Names/JavaScript", null, actionNames.Items[i + 1], result, new HashSet<int>(), cancellationToken);
                     bool hasReadableSource = TryReadJavaScriptSource(actionNames.Items[i + 1], out string? script, out long sourceBytes, cancellationToken);
                     totalJavaScriptBytes = checked(totalJavaScriptBytes + sourceBytes);
@@ -145,7 +168,7 @@ public sealed partial class PdfReadDocument {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.DecodedStreamBytes, maximumBytes, byteCount);
             }
             sourceBytes = byteCount;
-            bool decoded = PdfJavaScriptStringEncoding.TryDecode(text.RawBytes, out script!);
+            bool decoded = PdfJavaScriptStringEncoding.TryDecode(text.RawBytes, out script!, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             return decoded;
         }
@@ -158,7 +181,7 @@ public sealed partial class PdfReadDocument {
                     Math.Min(_options.Limits.MaxJavaScriptBytes, _options.Limits.MaxDecodedStreamBytes),
                     cancellationToken);
                 sourceBytes = decoded.LongLength;
-                bool readable = PdfJavaScriptStringEncoding.TryDecode(decoded, out script!);
+                bool readable = PdfJavaScriptStringEncoding.TryDecode(decoded, out script!, cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
                 return readable;
             } catch (PdfReadLimitException) {
@@ -175,10 +198,11 @@ public sealed partial class PdfReadDocument {
         return false;
     }
 
-    private bool TryReadCatalogActionName(PdfObject obj, out string? name) {
+    private bool TryReadCatalogActionName(PdfObject obj, out string? name, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         switch (ResolveObject(obj)) {
             case PdfStringObj text:
-                return PdfJavaScriptStringEncoding.TryDecode(text.RawBytes, out name!) && !string.IsNullOrEmpty(name);
+                return PdfJavaScriptStringEncoding.TryDecode(text.RawBytes, out name!, cancellationToken) && !string.IsNullOrEmpty(name);
             case PdfName pdfName:
                 name = pdfName.Name;
                 return !string.IsNullOrEmpty(name);

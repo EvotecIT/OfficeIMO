@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadPage {
@@ -7,13 +9,15 @@ public sealed partial class PdfReadPage {
         return GetPageActionsUnchecked();
     }
 
-    internal IReadOnlyList<PdfPageAction> GetPageActionsUnchecked() {
+    internal IReadOnlyList<PdfPageAction> GetPageActionsUnchecked(CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         return _pageDict.Items.TryGetValue("AA", out var additionalActionsObject)
-            ? ReadPageActions(additionalActionsObject)
+            ? ReadPageActions(additionalActionsObject, cancellationToken)
             : Array.Empty<PdfPageAction>();
     }
 
-    private IReadOnlyList<PdfPageAction> ReadPageActions(PdfObject? obj) {
+    private IReadOnlyList<PdfPageAction> ReadPageActions(PdfObject? obj, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         var additionalActions = ResolveDictionary(obj);
         if (additionalActions is null || additionalActions.Items.Count == 0) {
             return Array.Empty<PdfPageAction>();
@@ -21,11 +25,12 @@ public sealed partial class PdfReadPage {
 
         var actions = new List<PdfPageAction>();
         foreach (var item in additionalActions.Items) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (string.IsNullOrEmpty(item.Key)) {
                 continue;
             }
 
-            AddPageAction(item.Key, item.Key, item.Value, actions, new HashSet<int>());
+            AddPageAction(item.Key, item.Key, item.Value, actions, new HashSet<int>(), cancellationToken);
         }
 
         return actions.Count == 0 ? Array.Empty<PdfPageAction>() : actions.AsReadOnly();
@@ -36,7 +41,9 @@ public sealed partial class PdfReadPage {
         string actionPath,
         PdfObject? actionObject,
         List<PdfPageAction> result,
-        HashSet<int> visitedReferences) {
+        HashSet<int> visitedReferences,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         bool enteredReference = TryEnterActionReference(actionObject, visitedReferences);
         if (!enteredReference) {
             return;
@@ -56,11 +63,11 @@ public sealed partial class PdfReadPage {
                     ResolveObject(uriObject) is PdfStringObj uriText) {
                     uri = uriText.Value;
                 }
-                result.Add(new PdfPageAction(null, triggerName, actionType!, actionPath, uri, PdfActionPayloadFingerprint.Create(dictionary, _objects, _limits)));
+                result.Add(new PdfPageAction(null, triggerName, actionType!, actionPath, uri, PdfActionPayloadFingerprint.Create(dictionary, _objects, _limits, cancellationToken)));
             }
 
             if (dictionary.Items.TryGetValue("Next", out var nextAction)) {
-                AddPageNextActions(triggerName, actionPath + ".Next", nextAction, result, visitedReferences);
+                AddPageNextActions(triggerName, actionPath + ".Next", nextAction, result, visitedReferences, cancellationToken);
             }
         } finally {
             LeaveActionReference(actionObject, visitedReferences);
@@ -72,7 +79,9 @@ public sealed partial class PdfReadPage {
         string actionPath,
         PdfObject? actionObject,
         List<PdfPageAction> result,
-        HashSet<int> visitedReferences) {
+        HashSet<int> visitedReferences,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         bool enteredReference = TryEnterActionReference(actionObject, visitedReferences);
         if (!enteredReference) {
             return;
@@ -83,8 +92,9 @@ public sealed partial class PdfReadPage {
             if (resolved is PdfArray array) {
                 int activeIndex = 0;
                 for (int i = 0; i < array.Items.Count; i++) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     int before = result.Count;
-                    AddPageAction(triggerName, actionPath + "." + activeIndex.ToString(System.Globalization.CultureInfo.InvariantCulture), array.Items[i], result, visitedReferences);
+                    AddPageAction(triggerName, actionPath + "." + activeIndex.ToString(System.Globalization.CultureInfo.InvariantCulture), array.Items[i], result, visitedReferences, cancellationToken);
                     if (result.Count > before) {
                         activeIndex++;
                     }
@@ -93,7 +103,7 @@ public sealed partial class PdfReadPage {
                 return;
             }
 
-            AddPageAction(triggerName, actionPath, resolved, result, visitedReferences);
+            AddPageAction(triggerName, actionPath, resolved, result, visitedReferences, cancellationToken);
         } finally {
             LeaveActionReference(actionObject, visitedReferences);
         }
