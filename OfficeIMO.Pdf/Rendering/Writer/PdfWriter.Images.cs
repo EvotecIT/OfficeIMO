@@ -815,41 +815,24 @@ internal static partial class PdfWriter {
         return TryBuildImageStream(img.Data, img.Info, img.W, img.H, out image, out unsupportedReason);
     }
 
-    private static string BuildImageXObjectCacheKey(PdfImageStream image) {
-        using var hash = System.Security.Cryptography.SHA256.Create();
-        AppendImageStreamHash(hash, image);
-        hash.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
-        return ToHex(hash.Hash ?? Array.Empty<byte>());
-    }
+    private static bool SameImageStream(PdfImageStream a, PdfImageStream b) =>
+        a.PixelWidth == b.PixelWidth &&
+        a.PixelHeight == b.PixelHeight &&
+        string.Equals(a.DictionarySuffix, b.DictionarySuffix, StringComparison.Ordinal) &&
+        BytesEqual(a.Data, b.Data) &&
+        (a.SoftMask == null ? b.SoftMask == null : b.SoftMask != null && SameImageStream(a.SoftMask, b.SoftMask));
 
-    private static void AppendImageStreamHash(System.Security.Cryptography.HashAlgorithm hash, PdfImageStream image) {
-        AppendHashInt(hash, image.PixelWidth);
-        AppendHashInt(hash, image.PixelHeight);
-        AppendHashString(hash, image.DictionarySuffix);
-        AppendHashBytes(hash, image.Data);
-        if (image.SoftMask == null) {
-            AppendHashByte(hash, 0);
-            return;
+    private static bool BytesEqual(byte[] a, byte[] b) {
+        if (ReferenceEquals(a, b)) return true;
+        if (a.Length != b.Length) return false;
+#if NET6_0_OR_GREATER
+        return a.AsSpan().SequenceEqual(b);
+#else
+        for (int i = 0; i < a.Length; i++) {
+            if (a[i] != b[i]) return false;
         }
-
-        AppendHashByte(hash, 1);
-        AppendImageStreamHash(hash, image.SoftMask);
-    }
-
-    private static void AppendHashString(System.Security.Cryptography.HashAlgorithm hash, string value) =>
-        AppendHashBytes(hash, Encoding.UTF8.GetBytes(value ?? string.Empty));
-
-    private static void AppendHashByte(System.Security.Cryptography.HashAlgorithm hash, byte value) =>
-        AppendHashBytes(hash, new[] { value });
-
-    private static void AppendHashInt(System.Security.Cryptography.HashAlgorithm hash, int value) {
-        byte[] bytes = new byte[] {
-            (byte)((value >> 24) & 0xFF),
-            (byte)((value >> 16) & 0xFF),
-            (byte)((value >> 8) & 0xFF),
-            (byte)(value & 0xFF)
-        };
-        AppendHashBytes(hash, bytes);
+        return true;
+#endif
     }
 
     private static void AppendHashBytes(System.Security.Cryptography.HashAlgorithm hash, byte[] data) {

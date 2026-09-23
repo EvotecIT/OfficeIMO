@@ -16,7 +16,7 @@ public class PdfDocumentPngImageTests {
     [Fact]
     public void InlineImage_WithRgbaPng_ReusesPreparedStreamDuringSerialization() {
         int alphaSplitPasses = 0;
-        byte[] source = PdfPngTestImages.CreateRgbaPng(18, 52, 86, 128);
+        byte[] source = PdfPngTestImages.CreateRgbaPng(17, 53, 87, 129);
         PdfWriter.PngRowLoopObserverForTesting = (kind, index) => {
             if (kind == PngRowLoopKind.AlphaSplit && index == 0) alphaSplitPasses++;
         };
@@ -36,7 +36,7 @@ public class PdfDocumentPngImageTests {
     [Fact]
     public async Task Image_WithSharedRgbaSource_PreparesOnceAcrossConcurrentDocuments() {
         int alphaSplitPasses = 0;
-        byte[] source = PdfPngTestImages.CreateRgbaPng(18, 52, 86, 128);
+        byte[] source = PdfPngTestImages.CreateRgbaPng(20, 50, 84, 126);
         PdfWriter.PngRowLoopObserverForTesting = (kind, index) => {
             if (kind == PngRowLoopKind.AlphaSplit && index == 0) {
                 Interlocked.Increment(ref alphaSplitPasses);
@@ -60,7 +60,7 @@ public class PdfDocumentPngImageTests {
     [Fact]
     public void Image_WithRgbaPng_ReusesPreparedImageStreamAcrossWrites() {
         int alphaSplitPasses = 0;
-        byte[] source = PdfPngTestImages.CreateRgbaPng(18, 52, 86, 128);
+        byte[] source = PdfPngTestImages.CreateRgbaPng(21, 49, 83, 125);
         PdfWriter.PngRowLoopObserverForTesting = (kind, index) => {
             if (kind == PngRowLoopKind.AlphaSplit && index == 0) alphaSplitPasses++;
         };
@@ -83,8 +83,8 @@ public class PdfDocumentPngImageTests {
     [Fact]
     public void Image_WithMutatedRgbaSource_InvalidatesPreparedImageCache() {
         int alphaSplitPasses = 0;
-        byte[] source = PdfPngTestImages.CreateRgbaPng(18, 52, 86, 128);
-        byte[] replacement = PdfPngTestImages.CreateRgbaPng(86, 52, 18, 192);
+        byte[] source = PdfPngTestImages.CreateRgbaPng(19, 51, 85, 127);
+        byte[] replacement = PdfPngTestImages.CreateRgbaPng(85, 51, 19, 191);
         Assert.Equal(source.Length, replacement.Length);
         PdfWriter.PngRowLoopObserverForTesting = (kind, index) => {
             if (kind == PngRowLoopKind.AlphaSplit && index == 0) alphaSplitPasses++;

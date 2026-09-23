@@ -359,13 +359,16 @@ internal static partial class PdfWriter {
         int totalPages = pageCount;
         var pageNumberInfos = BuildPageNumberInfos(layout.Pages);
         int nextStructParentIndex = 0;
-        var imageXObjectIds = new Dictionary<string, int>(StringComparer.Ordinal);
+        // Written images, compared exactly: hashing every placement's full payload cost more than the
+        // few length-matched comparisons a document ever needs.
+        var imageXObjectIds = new List<(PdfImageStream Stream, int Id)>();
         var optimizedImageCache = new Dictionary<string, OfficeImageOptimizationResult>(StringComparer.Ordinal);
 
         int EnsureImageXObject(PdfImageStream imageStream) {
-            string cacheKey = BuildImageXObjectCacheKey(imageStream);
-            if (imageXObjectIds.TryGetValue(cacheKey, out int existingImageId)) {
-                return existingImageId;
+            foreach ((PdfImageStream written, int existingImageId) in imageXObjectIds) {
+                if (SameImageStream(written, imageStream)) {
+                    return existingImageId;
+                }
             }
 
             int? softMaskId = null;
@@ -376,7 +379,7 @@ internal static partial class PdfWriter {
 
             string imageDictionary = PdfImageXObjectDictionaryBuilder.BuildStreamDictionary(imageStream, softMaskId);
             int imageId = AddStreamObject(objects, imageDictionary, imageStream.Data);
-            imageXObjectIds[cacheKey] = imageId;
+            imageXObjectIds.Add((imageStream, imageId));
             return imageId;
         }
 
