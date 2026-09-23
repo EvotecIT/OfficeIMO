@@ -285,9 +285,7 @@ internal static partial class PdfMerger {
                 throw new ArgumentException("PDF stream input " + i.ToString(CultureInfo.InvariantCulture) + " must be readable.", nameof(streams));
             }
 
-            using var buffer = new MemoryStream();
-            stream.CopyTo(buffer);
-            pdfs[i] = buffer.ToArray();
+            pdfs[i] = PdfDocumentSource.FromRemainingStream(stream, null).Bytes;
         }
 
         return Merge((IEnumerable<byte[]>)pdfs);
@@ -316,9 +314,7 @@ internal static partial class PdfMerger {
                 throw new ArgumentException("PDF stream input " + i.ToString(CultureInfo.InvariantCulture) + " must be readable.", nameof(streams));
             }
 
-            using var buffer = new MemoryStream();
-            stream.CopyTo(buffer);
-            pdfs[i] = buffer.ToArray();
+            pdfs[i] = PdfDocumentSource.FromRemainingStream(stream, null).Bytes;
         }
 
         return Merge(options, (IEnumerable<byte[]>)pdfs);
@@ -435,7 +431,7 @@ internal static partial class PdfMerger {
                 throw new ArgumentException("Input path " + i.ToString(CultureInfo.InvariantCulture) + " cannot be empty or whitespace.", nameof(inputPaths));
             }
 
-            pdfs[i] = File.ReadAllBytes(inputPath);
+            pdfs[i] = PdfDocumentSource.FromPath(inputPath, null).Bytes;
         }
 
         return Merge(pdfs);
@@ -464,7 +460,7 @@ internal static partial class PdfMerger {
                 throw new ArgumentException("Input path " + i.ToString(CultureInfo.InvariantCulture) + " cannot be empty or whitespace.", nameof(inputPaths));
             }
 
-            pdfs[i] = File.ReadAllBytes(inputPath);
+            pdfs[i] = PdfDocumentSource.FromPath(inputPath, null).Bytes;
         }
 
         return Merge(options, (IEnumerable<byte[]>)pdfs);
