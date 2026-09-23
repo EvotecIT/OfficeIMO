@@ -42,18 +42,20 @@ public sealed class PdfPageBackgroundImage {
         }
     }
 
-    internal byte[] DataSnapshot => (byte[])_data.Clone();
+    // _data is the prepared image's private copy and is never written, so snapshots and clones share it
+    // instead of copying a (large-object-heap) cover photo several times per page.
+    internal byte[] DataSnapshot => _data;
     internal OfficeImageInfo ImageInfo => _info;
     internal PdfWriter.PdfImageStream? PreparedStream => _preparedStream;
 
     private PdfPageBackgroundImage(PdfPageBackgroundImage source) {
         _info = source._info;
-        _data = (byte[])source._data.Clone();
+        _data = source._data;
         _preparedStream = source._preparedStream;
         _fit = source._fit;
         _opacity = source._opacity;
     }
 
-    /// <summary>Creates a deep copy of this page background image.</summary>
+    /// <summary>Creates a copy of this page background image. The image bytes are never modified, so the copy shares them.</summary>
     public PdfPageBackgroundImage Clone() => new(this);
 }

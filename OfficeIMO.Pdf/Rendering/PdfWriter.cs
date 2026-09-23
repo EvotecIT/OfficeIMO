@@ -359,13 +359,44 @@ internal static partial class PdfWriter {
         int totalPages = pageCount;
         var pageNumberInfos = BuildPageNumberInfos(layout.Pages);
         int nextStructParentIndex = 0;
-        var imageXObjectIds = new Dictionary<string, int>(StringComparer.Ordinal);
+        // Compare small image sets directly, then index larger sets so related images with equal base
+        // streams and different masks do not require a full comparison against every earlier image.
+        const int DirectImageComparisonLimit = 8;
+        var imageXObjectIds = new List<(PdfImageStream Stream, int Id)>();
+        Dictionary<string, List<(PdfImageStream Stream, int Id)>>? imageXObjectIdsByHash = null;
         var optimizedImageCache = new Dictionary<string, OfficeImageOptimizationResult>(StringComparer.Ordinal);
 
         int EnsureImageXObject(PdfImageStream imageStream) {
-            string cacheKey = BuildImageXObjectCacheKey(imageStream);
-            if (imageXObjectIds.TryGetValue(cacheKey, out int existingImageId)) {
-                return existingImageId;
+            if (imageXObjectIdsByHash == null) {
+                foreach ((PdfImageStream written, int existingImageId) in imageXObjectIds) {
+                    if (SameImageStream(written, imageStream)) return existingImageId;
+                }
+
+                if (imageXObjectIds.Count >= DirectImageComparisonLimit) {
+                    imageXObjectIdsByHash = new Dictionary<string, List<(PdfImageStream Stream, int Id)>>(StringComparer.Ordinal);
+                    foreach ((PdfImageStream written, int existingImageId) in imageXObjectIds) {
+                        AddImageXObjectToHashIndex(imageXObjectIdsByHash, BuildImageXObjectCacheKey(written), written, existingImageId);
+                    }
+                }
+            }
+
+            string? cacheKey = null;
+            if (imageXObjectIdsByHash != null) {
+                // Prepared streams are cloned as descriptors but retain their payload arrays. Keep common
+                // repeated placements of the first images on the reference-fast path.
+                for (int index = 0; index < DirectImageComparisonLimit; index++) {
+                    PdfImageStream written = imageXObjectIds[index].Stream;
+                    if (ReferenceEquals(written.Data, imageStream.Data) && SameImageStream(written, imageStream)) {
+                        return imageXObjectIds[index].Id;
+                    }
+                }
+
+                cacheKey = BuildImageXObjectCacheKey(imageStream);
+                if (imageXObjectIdsByHash.TryGetValue(cacheKey, out List<(PdfImageStream Stream, int Id)>? matches)) {
+                    foreach ((PdfImageStream written, int existingImageId) in matches) {
+                        if (SameImageStream(written, imageStream)) return existingImageId;
+                    }
+                }
             }
 
             int? softMaskId = null;
@@ -376,7 +407,10 @@ internal static partial class PdfWriter {
 
             string imageDictionary = PdfImageXObjectDictionaryBuilder.BuildStreamDictionary(imageStream, softMaskId);
             int imageId = AddStreamObject(objects, imageDictionary, imageStream.Data);
-            imageXObjectIds[cacheKey] = imageId;
+            imageXObjectIds.Add((imageStream, imageId));
+            if (imageXObjectIdsByHash != null) {
+                AddImageXObjectToHashIndex(imageXObjectIdsByHash, cacheKey ?? BuildImageXObjectCacheKey(imageStream), imageStream, imageId);
+            }
             return imageId;
         }
 
@@ -1292,18 +1326,37 @@ internal static partial class PdfWriter {
             return content;
         }
 
-        string result = content;
+        // One pass over the page for all of its images: a Replace per image copies the whole page once
+        // per image. Tokens are unique per page and no image draw contains one, so this is the same text.
+        Dictionary<string, PageImage>? byToken = null;
         foreach (PageImage image in images) {
-            if (string.IsNullOrEmpty(image.InlineDrawToken)) {
+            if (!string.IsNullOrEmpty(image.InlineDrawToken)) {
+                byToken ??= new Dictionary<string, PageImage>(StringComparer.Ordinal);
+                if (!byToken.ContainsKey(image.InlineDrawToken!)) byToken[image.InlineDrawToken!] = image;
+            }
+        }
+
+        if (byToken == null) {
+            return content;
+        }
+
+        const string tokenPrefix = InlineImageDrawTokenPrefix;
+        StringBuilder? result = null;
+        int copied = 0;
+        for (int at = content.IndexOf(tokenPrefix, StringComparison.Ordinal); at >= 0; at = content.IndexOf(tokenPrefix, at + 1, StringComparison.Ordinal)) {
+            int end = content.IndexOf('\n', at + tokenPrefix.Length);
+            if (end < 0 || !byToken.TryGetValue(content.Substring(at, end + 1 - at), out PageImage? image)) {
                 continue;
             }
 
-            var imageDraw = new StringBuilder();
-            AppendPageImageDraw(imageDraw, image);
-            result = result.Replace(image.InlineDrawToken!, imageDraw.ToString());
+            result ??= new StringBuilder(content.Length + byToken.Count * 64);
+            result.Append(content, copied, at - copied);
+            AppendPageImageDraw(result, image);
+            copied = end + 1;
+            at = end;
         }
 
-        return result;
+        return result == null ? content : result.Append(content, copied, content.Length - copied).ToString();
     }
 
     private static string ReplaceInlineEffectGroupTokens(string content, IReadOnlyList<PageEffectGroup> effects, int availableCount) {
