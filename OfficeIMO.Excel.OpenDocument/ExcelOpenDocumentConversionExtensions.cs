@@ -407,9 +407,14 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         bool truncated = false;
         ExcelSheet? activeTarget = null;
         ExcelSheet? firstTarget = null;
+        var conditionalPlans = new Dictionary<string, OdsConditionalStylePlan?>(StringComparer.Ordinal);
+        var convertedConditionalStyles = new HashSet<string>(StringComparer.Ordinal);
+        int conditionalTargetLimitFailures = 0;
         foreach (OdsSheet odsSheet in source.Sheets) {
             ExcelSheet sheet = target.AddWorksheet(odsSheet.Name);
             var validationTargets = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+            var conditionalTargets = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+            var conditionalTargetLimits = new HashSet<string>(StringComparer.Ordinal);
             firstTarget ??= sheet;
             worksheetCount++;
             if (!string.Equals(sheet.Name, odsSheet.Name, StringComparison.Ordinal)) renamedSheets++;
@@ -506,6 +511,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                                     ref unsupportedCapitalization, textCaseCulture);
                                 if (unsupportedDataStyleFormat) unsupportedDataStyleFormats++;
                                 styles++;
+                                CollectOdsConditionalTarget(source, cellRun.StyleName, excelRow, excelColumn,
+                                    conditionalPlans, conditionalTargets, conditionalTargetLimits);
                             } else if (cellRun.StyleName != null) {
                                 skippedStyles++;
                             }
@@ -563,6 +570,9 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                     && validation.DisplayList == OdsValidationDisplayList.SortAscending) sortedValidationLists++;
                 convertedValidations++;
             }
+            ApplyOdsConditionalStyles(sheet, conditionalPlans, conditionalTargets,
+                conditionalTargetLimits, convertedConditionalStyles);
+            conditionalTargetLimitFailures += conditionalTargetLimits.Count;
         }
 
         if (target.Sheets.Count == 0) activeTarget = target.AddWorksheet("Sheet1");
@@ -620,6 +630,11 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         if (forcedVisibleWorksheets > 0) report.Add("worksheet-visibility", OdfConversionMappingStatus.Approximated,
             forcedVisibleWorksheets, "The first worksheet was made visible because XLSX requires at least one visible worksheet.");
         AddConverted(report, "validations", convertedValidations);
+        if (convertedConditionalStyles.Count > 0) report.Add("source-conditional-style-maps",
+            OdfConversionMappingStatus.Approximated, convertedConditionalStyles.Count,
+            "Single numeric cell-content comparisons with a fill are mapped to Excel differential-fill rules; other applied-style properties and ODF evaluation details are not transferred.");
+        AddUnsupported(report, "conditional-formatting-cell-limits", conditionalTargetLimitFailures,
+            "A source style used on more than 4,096 cells in one sheet was not mapped to an Excel conditional-formatting rule for that sheet.");
         if (unsupportedValidationAssignments > 0) report.Add("validations", OdfConversionMappingStatus.Unsupported,
             unsupportedValidationAssignments,
             "Only explicit lists, scalar whole-number, decimal, text-length, constant-date, and whole-second time conditions, and bounded local-cell custom formulas have an exact Excel mapping.");
@@ -635,7 +650,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         if (truncated) report.Add("expansion-limits", OdfConversionMappingStatus.Skipped, 1,
             "Content outside the configured row, column, or expanded-cell limits was not materialized.");
         AddUnmappedOdfFindings(source.InspectFeatures(), report, formulas, convertedValidations,
-            externalHyperlinks, comments, namedRanges);
+            externalHyperlinks, comments, namedRanges, convertedConditionalStyles.Count);
         target = Normalize(target);
         return new OdfConversionResult<ExcelDocument>(target, report).ApplyPolicy(effective.LossPolicy);
     }
