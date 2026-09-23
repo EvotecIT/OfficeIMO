@@ -50,6 +50,11 @@ internal static partial class HtmlCorpusEvidenceRunner {
         if (requireCleanSource && (sourceCommit == null || !statusResult.Succeeded || worktreeDirty)) {
             throw new InvalidOperationException("Clean, commit-addressable OfficeIMO source is required for H4 visual acceptance evidence.");
         }
+        string officeImoVersion = AssemblyVersion(typeof(HtmlRenderEngine).Assembly);
+        if (requireCleanSource && !officeImoVersion.EndsWith("+" + sourceCommit, StringComparison.OrdinalIgnoreCase)) {
+            throw new InvalidOperationException(
+                "The OfficeIMO renderer assembly does not identify the clean source commit. Rebuild before recording evidence.");
+        }
         string? caseFilter = ReadOption(args, "--case");
         string corpusSelection = ReadOption(args, "--corpus") ?? "representative";
         HtmlCorpusEvidenceInputSet corpus = LoadCorpus(corpusSelection);
@@ -97,7 +102,7 @@ internal static partial class HtmlCorpusEvidenceRunner {
                 RuntimeInformation.OSDescription,
                 RuntimeInformation.ProcessArchitecture.ToString(),
                 RuntimeInformation.FrameworkDescription,
-                AssemblyVersion(typeof(HtmlRenderEngine).Assembly),
+                officeImoVersion,
                 DependencyVersion("PeachPDF", typeof(PeachPDF.PdfGenerator).Assembly),
                 DependencyVersion("HtmlTinkerX", typeof(HtmlBrowser).Assembly),
                 chromiumVersion,

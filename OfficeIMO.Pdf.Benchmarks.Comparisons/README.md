@@ -98,6 +98,9 @@ interleave cells without allowing marker words to pass out of order; the policy 
 result for every marker are recorded. With `--verify-acceptance`, the runner also writes the
 human-readable `html-corpus-acceptance.md` report and exits unsuccessfully when a
 required criterion, case, or capability selection fails.
+With `--require-clean-source`, the runner also requires the loaded OfficeIMO renderer
+assembly to identify the same Git commit as the clean checkout; rebuild after a commit
+instead of reusing a `--no-build` result from an older head.
 
 Poppler's `pdftoppm` and `pdftotext` must be on `PATH`. External PDF page images,
 page counts, and text are observed through Poppler so OfficeIMO.Pdf is not its own
