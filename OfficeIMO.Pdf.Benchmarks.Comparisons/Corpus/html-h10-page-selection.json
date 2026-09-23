@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "selectionDate": "2026-09-23",
+  "purpose": "First H10 expansion beyond the two documentation pages selected in the initial comparison, before inspecting OfficeIMO output for these sources.",
+  "capture": {
+    "viewportWidthCssPixels": 816,
+    "viewportHeightCssPixels": 900,
+    "liveReadiness": "DOMContentLoaded plus 1000 ms",
+    "offlineReference": "Chromium MHTML replay with network disabled",
+    "maximumArchiveBytes": 33554432,
+    "archiveStorage": "Ignored task-owned directory; do not commit third-party page bytes"
+  },
+  "pages": [
+    {
+      "id": "w3c-html-guide-legacy",
+      "sourceClass": "legacy-markup",
+      "role": "development",
+      "url": "https://www.w3.org/MarkUp/Guide/",
+      "rightsUrl": "https://www.w3.org/copyright/",
+      "requiredVisibleMarkers": ["Getting started with HTML", "Dave Raggett"],
+      "reason": "A long-lived HTML 4-era instructional page with old structural markup and little script dependence."
+    },
+    {
+      "id": "nasa-svs-voyager-gallery",
+      "sourceClass": "resource-heavy-gallery",
+      "role": "held-out",
+      "url": "https://svs.gsfc.nasa.gov/gallery/voyager/",
+      "rightsUrl": "https://svs.gsfc.nasa.gov/",
+      "requiredVisibleMarkers": ["Voyager", "Overview"],
+      "reason": "A public-domain NASA image gallery with repeated media cards and a longer scrolling layout; keep it held out from fixes selected on the other pages."
+    },
+    {
+      "id": "playwright-todomvc-scripted",
+      "sourceClass": "scripted-application",
+      "role": "development",
+      "url": "https://demo.playwright.dev/todomvc/",
+      "rightsUrl": "https://github.com/tastejs/todomvc/blob/master/license.md",
+      "requiredVisibleMarkers": ["todos", "What needs to be done?"],
+      "reason": "A small JavaScript-created application surface whose frozen post-load DOM can be compared with static MHTML and the browser-backed route."
+    }
+  ]
+}
