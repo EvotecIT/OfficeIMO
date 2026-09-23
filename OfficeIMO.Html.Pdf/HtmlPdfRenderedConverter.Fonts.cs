@@ -51,6 +51,7 @@ internal static partial class HtmlPdfRenderedConverter {
         if (byFamily.Count == 0) return new RegisteredWebFonts(
             mappings,
             faces,
+            pdf.Options,
             diagnostics,
             outlineBudget,
             textShapingProvider,
@@ -77,6 +78,7 @@ internal static partial class HtmlPdfRenderedConverter {
         return new RegisteredWebFonts(
             mappings,
             faces,
+            pdf.Options,
             diagnostics,
             outlineBudget,
             textShapingProvider,
@@ -368,12 +370,14 @@ internal static partial class HtmlPdfRenderedConverter {
         internal RegisteredWebFonts(
             IReadOnlyDictionary<string, PdfCore.PdfStandardFont> slots,
             OfficeFontFaceCollection faces,
+            PdfCore.PdfOptions options,
             HtmlDiagnosticReport diagnostics,
             OutlinedTextBudget outlineBudget,
             IOfficeTextShapingProvider? textShapingProvider,
             string? textShapingLanguage) {
             Slots = slots;
             Faces = faces;
+            Options = options;
             Diagnostics = diagnostics;
             OutlineBudget = outlineBudget;
             TextShapingProvider = textShapingProvider;
@@ -382,6 +386,9 @@ internal static partial class HtmlPdfRenderedConverter {
 
         internal IReadOnlyDictionary<string, PdfCore.PdfStandardFont> Slots { get; }
         internal OfficeFontFaceCollection Faces { get; }
+        internal PdfCore.PdfOptions Options { get; }
+        internal HashSet<string> ReportedPrivateUseOmissions { get; } = new(StringComparer.Ordinal);
+        internal Dictionary<string, bool> PrivateUsePaintability { get; } = new(StringComparer.Ordinal);
         internal HtmlDiagnosticReport Diagnostics { get; }
         internal OutlinedTextBudget OutlineBudget { get; }
         internal IOfficeTextShapingProvider? TextShapingProvider { get; }

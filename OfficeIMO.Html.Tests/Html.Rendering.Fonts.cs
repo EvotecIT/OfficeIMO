@@ -10,6 +10,113 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlPdf_UnavailableIconFontOmitsPrivateUseGlyphWithLossReport() {
+        const string html = "<style>.icon::before{font-family:MissingIcon;content:'\\F42B'}</style>"
+            + "<p class='icon'>Voyager Overview</p>";
+
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult();
+        string extracted = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
+
+        Assert.Contains("Voyager Overview", extracted, StringComparison.Ordinal);
+        Assert.DoesNotContain("\uF42B", extracted, StringComparison.Ordinal);
+        PdfCore.PdfConversionWarning omission = Assert.Single(result.Report.Warnings,
+            warning => warning.Code == HtmlPdfDiagnosticCodes.UnavailablePrivateUseGlyphOmitted);
+        Assert.Equal(OfficeConversionLossKind.Omission, omission.LossKind);
+        Assert.Equal("U+F42B", omission.Details["CodePoint"]);
+        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+
+        HtmlConversionException strictFailure = Assert.Throws<HtmlConversionException>(() =>
+            HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {
+                FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            }));
+        Assert.Contains(strictFailure.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlPdfDiagnosticCodes.UnavailablePrivateUseGlyphOmitted);
+    }
+
+    [Fact]
+    public void HtmlPdf_UnregisteredIconFontReportsPrivateUseOmission() {
+        byte[] iconFont = CreateHtmlRenderTestFont(0xF42B);
+        string html = "<style>@font-face{font-family:Icon;src:url('data:font/ttf;base64,"
+            + Convert.ToBase64String(iconFont)
+            + "')}.icon::before{font-family:Icon;content:'\\F42B'}</style><p class='icon'>Voyager Overview</p>";
+
+        var options = new HtmlToPdfOptions();
+        options.ResourcePolicy.AllowDocumentFontEmbedding = true;
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
+        Assert.Contains(result.Report.Warnings,
+            warning => warning.Code == HtmlPdfDiagnosticCodes.UnavailablePrivateUseGlyphOmitted);
+        string extracted = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
+
+        Assert.DoesNotContain("\uF42B", extracted, StringComparison.Ordinal);
+        Assert.Contains("Voyager Overview", extracted, StringComparison.Ordinal);
+        Assert.Contains(result.Report.Warnings,
+            warning => warning.Code == HtmlPdfDiagnosticCodes.UnavailablePrivateUseGlyphOmitted);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HtmlPdf_CallerFontKeepsCoveredPrivateUseGlyph(bool namedFamily) {
+        const string glyph = "\uF50E";
+        string fontPath = Path.Combine(AppContext.BaseDirectory, "Fonts", "RobotoFlex.ttf");
+        var options = new HtmlToPdfOptions();
+        var font = new PdfCore.PdfEmbeddedFontFamily("CallerIcon", File.ReadAllBytes(fontPath));
+        if (namedFamily) options.PdfOptions.RegisterNamedFontFamily(font);
+        else options.FontFamily = font;
+
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument
+            .Parse("<p style='font-family:CallerIcon'>" + glyph + " Voyager</p>")
+            .ToPdfDocumentResult(options);
+        string extracted = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
+
+        Assert.Contains(glyph, extracted, StringComparison.Ordinal);
+        Assert.Contains("Voyager", extracted, StringComparison.Ordinal);
+        Assert.DoesNotContain(result.Report.Warnings,
+            warning => warning.Code == HtmlPdfDiagnosticCodes.UnavailablePrivateUseGlyphOmitted);
+    }
+
+    [Fact]
+    public void HtmlPdf_MixedFontVerticalPrivateUseTextExtractsOnlyPaintedGlyph() {
+        const string glyph = "\uF50E";
+        string fontPath = Path.Combine(AppContext.BaseDirectory, "Fonts", "RobotoFlex.ttf");
+        var options = new HtmlToPdfOptions();
+        options.PdfOptions.RegisterNamedFontFamily(
+            new PdfCore.PdfEmbeddedFontFamily("CallerIcon", File.ReadAllBytes(fontPath)));
+        string html = "<p style='writing-mode:vertical-rl;text-orientation:upright'>"
+            + "<span style='font-family:CallerIcon'>" + glyph + "</span>"
+            + "<span style='font-family:MissingIcon'>" + glyph + "</span></p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        Assert.Contains(EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderLogicalTextGroup>(),
+            group => group.Text.Contains(glyph + glyph, StringComparison.Ordinal));
+
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
+        string extracted = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
+
+        Assert.Equal(1, extracted.Count(character => character == glyph[0]));
+        Assert.Contains(result.Report.Warnings,
+            warning => warning.Code == HtmlPdfDiagnosticCodes.UnavailablePrivateUseGlyphOmitted);
+    }
+
+    [Theory]
+    [InlineData("\uF42B", "")]
+    [InlineData("A\uF42BB", "AB")]
+    public void HtmlPdf_VerticalLogicalTextOmitsUnavailableIconWithoutStaleActualText(
+        string sourceText,
+        string expectedText) {
+        string html = "<p style='writing-mode:vertical-rl;text-orientation:upright;font-family:MissingIcon'>"
+            + sourceText + "</p>";
+
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult();
+        string extracted = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
+
+        Assert.DoesNotContain("\uF42B", extracted, StringComparison.Ordinal);
+        if (expectedText.Length > 0) Assert.Contains(expectedText, extracted, StringComparison.Ordinal);
+        Assert.Contains(result.Report.Warnings,
+            warning => warning.Code == HtmlPdfDiagnosticCodes.UnavailablePrivateUseGlyphOmitted);
+    }
+
+    [Fact]
     public void HtmlRender_KeepsRtlGlyphPositionsAlignedWithScopedFontKerning() {
         byte[] fontData = CreateHtmlRenderTestFont(0x05D0, kerningAdjustment: -100);
         string encoded = Convert.ToBase64String(fontData);

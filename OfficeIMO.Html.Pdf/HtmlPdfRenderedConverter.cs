@@ -312,6 +312,18 @@ internal static partial class HtmlPdfRenderedConverter {
                 || diagnostic.Severity == HtmlDiagnosticSeverity.Error)) {
             throw new HtmlConversionException(diagnostics);
         }
+        if (options.FidelityPolicy == HtmlRenderFidelityPolicy.RequireNoLoss && conversionReport.HasLoss) {
+            throw new HtmlConversionException(diagnostics.Concat(conversionReport.Warnings
+                .Where(static warning => warning.LossKind != OfficeConversionLossKind.None)
+                .Select(static warning => new HtmlDiagnostic(
+                    warning.Converter,
+                    warning.Code,
+                    warning.Message,
+                    warning.Severity == PdfCore.PdfConversionWarningSeverity.Error
+                        ? HtmlDiagnosticSeverity.Error : HtmlDiagnosticSeverity.Warning,
+                    warning.Source,
+                    lossKind: warning.LossKind))));
+        }
 
         cancellationToken.ThrowIfCancellationRequested();
         return new HtmlPdfRenderResult(pdf, diagnostics, conversionReport);
@@ -497,7 +509,7 @@ internal static partial class HtmlPdfRenderedConverter {
                 AddVisual(target, child, webFonts, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, textAsSpan, activeClip, logicalTextOwned: true);
             }
         }
-        if (!group.Visuals.Any(child => ContainsRenderableVisual(child, surfaceWidth, surfaceHeight, activeClip))) {
+        if (!group.Visuals.Any(child => ContainsPdfRenderableVisual(child, webFonts, surfaceWidth, surfaceHeight, activeClip, cancellationToken))) {
             AddChildren(canvas);
             return;
         }
@@ -505,16 +517,25 @@ internal static partial class HtmlPdfRenderedConverter {
             canvas.Artifact(AddChildren);
             return;
         }
+        string? logicalText = FilterLogicalPrivateUseGlyphs(group.Text, group.Visuals, webFonts, cancellationToken);
+        if (logicalText == null) {
+            AddChildren(canvas);
+            return;
+        }
+        if (logicalText.Length == 0) {
+            AddChildren(canvas);
+            return;
+        }
         if (logicalTextOwned) AddChildren(canvas);
         else canvas.ActualText(
-            group.Text,
+            logicalText,
             group.X * PointsPerCssPixel,
             (group.Y + Math.Min(group.Height, 12D)) * PointsPerCssPixel,
             AddChildren);
     }
 
     private static void AddSemanticGroup(PdfCore.PdfPageCanvas canvas, HtmlRenderSemanticGroup group, RegisteredWebFonts webFonts, PdfCore.PdfConversionReport conversionReport, double surfaceWidth, double surfaceHeight, bool interactiveFormControls, CancellationToken cancellationToken, bool textAsSpan, ClipBounds? activeClip, bool logicalTextOwned) {
-        if (!group.Visuals.Any(child => ContainsRenderableVisual(child, surfaceWidth, surfaceHeight, activeClip))) {
+        if (!group.Visuals.Any(child => ContainsPdfRenderableVisual(child, webFonts, surfaceWidth, surfaceHeight, activeClip, cancellationToken))) {
             // Navigation-only groups still carry named destinations. They cannot create
             // an empty structure element. The same path handles groups whose paint is
             // entirely outside the page, while non-painting children still reach the
@@ -550,7 +571,12 @@ internal static partial class HtmlPdfRenderedConverter {
 
             if (IsTextContentGroup(group.Role)
                 && TryResolveReorderedLogicalText(group.Visuals, out string logicalText)) {
-                nested.ActualText(logicalText, target => AddChildren(target, childLogicalTextOwned: true));
+                string? printableText = FilterLogicalPrivateUseGlyphs(logicalText, group.Visuals, webFonts, cancellationToken);
+                if (printableText != null && printableText.Length > 0) {
+                    nested.ActualText(printableText, target => AddChildren(target, childLogicalTextOwned: true));
+                } else {
+                    AddChildren(nested, logicalTextOwned);
+                }
             } else {
                 AddChildren(nested, logicalTextOwned);
             }
@@ -811,7 +837,9 @@ internal static partial class HtmlPdfRenderedConverter {
         }
         OfficeFontStyle requestedStyle = (visual.Font.IsBold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
             | (visual.Font.IsItalic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
-        var runs = webFonts.Faces.PlanFallbackRuns(visual.Text, visual.Font.FamilyName, requestedStyle)
+        string pdfText = OmitUnavailablePrivateUseGlyphs(visual, webFonts, conversionReport, requestedStyle, cancellationToken);
+        if (pdfText.Length == 0) return;
+        var runs = webFonts.Faces.PlanFallbackRuns(pdfText, visual.Font.FamilyName, requestedStyle)
             .Select(fallbackRun => new PdfCore.PdfTextRun(
             fallbackRun.Text,
             bold: visual.Font.IsBold,
@@ -826,7 +854,7 @@ internal static partial class HtmlPdfRenderedConverter {
                 requestedStyle,
                 webFonts),
             linkUri: link,
-            linkContents: link == null ? null : visual.Text,
+            linkContents: link == null ? null : pdfText,
             linkDestinationName: linkDestination,
             fontFamily: fallbackRun.FamilyName,
             baseline: MapTextBaseline(visual.Baseline),

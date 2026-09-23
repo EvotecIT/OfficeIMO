@@ -11,6 +11,35 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlPdf_MissingImageAlternativeWithLineBreaksRemainsPrintable() {
+        const string html = "<img src='missing.png' alt='Heliopause movie&#13;&#10;  unavailable' style='width:180px;height:40px'>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 200D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        HtmlRenderText alternative = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            text => text.SemanticRole == "figure-alternative-text");
+        Assert.Equal("Heliopause movie unavailable", alternative.Text);
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        Assert.Contains("Heliopause movie unavailable", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlRender_MissingImageAlternativePreservesNonbreakingSpace() {
+        const string html = "<img src='missing.png' alt='Heliopause&#160;movie&#13;&#10; unavailable' style='width:180px;height:40px'>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 200D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        HtmlRenderText alternative = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            text => text.SemanticRole == "figure-alternative-text");
+        Assert.Equal("Heliopause\u00A0movie unavailable", alternative.Text);
+    }
+
+    [Fact]
     public void HtmlRender_InlineSvgReceivesHostDocumentCssAndCustomProperties() {
         const string html = "<style>svg{--accent:#ff0000} svg .host-painted{fill:var(--accent);stroke:#0000ff;stroke-width:2}</style>"
             + "<svg id='art' viewBox='0 0 20 10' style='width:40px;height:20px'>"
