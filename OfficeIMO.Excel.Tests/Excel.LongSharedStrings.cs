@@ -29,7 +29,21 @@ public sealed class ExcelLongSharedStringsTests {
         using (var spreadsheet = SpreadsheetDocument.Open(new MemoryStream(package, writable: false), false)) {
             SharedStringTablePart? shared = spreadsheet.WorkbookPart!.SharedStringTablePart;
             Assert.NotNull(shared);
-            Assert.Contains(shared!.SharedStringTable!.Elements<SharedStringItem>(), item => item.InnerText == repeated);
+            SharedStringTable sharedTable = shared!.SharedStringTable!;
+            Assert.Equal(201U, sharedTable.Count!.Value);
+            Assert.Equal(2U, sharedTable.UniqueCount!.Value);
+            Assert.Equal(new[] { "Notes", repeated }, sharedTable.Elements<SharedStringItem>().Select(item => item.InnerText));
+            WorksheetPart sheet = spreadsheet.WorkbookPart.WorksheetParts.Single();
+            Cell[] repeatedCells = sheet.Worksheet.Descendants<Cell>()
+                .Where(cell => cell.CellReference is not null
+                    && int.TryParse(cell.CellReference.Value!.Substring(1), out int row)
+                    && row >= 602 && row <= 801)
+                .ToArray();
+            Assert.Equal(200, repeatedCells.Length);
+            Assert.All(repeatedCells, cell => {
+                Assert.Equal(CellValues.SharedString, cell.DataType!.Value);
+                Assert.Equal("1", cell.CellValue!.Text);
+            });
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet));
         }
 
