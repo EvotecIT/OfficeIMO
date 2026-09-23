@@ -19,6 +19,20 @@ await result.SaveAsync("quarterly-update.pdf");
 
 The result combines MIME, HTML-rendering, and PDF diagnostics. Local-file and remote-network access remain governed by the HTML resource policy; embedded archive resources do not silently widen it.
 
+For a screen-media or screen-snapshot PDF, pass an explicit render request. The archive's embedded stylesheets and images remain available to both intents:
+
+```csharp
+using OfficeIMO.Html;
+
+var options = new HtmlToPdfOptions { ViewportWidth = 816, ViewportHeight = 900 };
+var request = HtmlRenderRequest.Create(
+    HtmlRenderIntentProfile.ScreenSnapshotPaged, HtmlRenderEncoder.Pdf, options);
+PdfDocumentConversionResult screen = await archive.RenderToPdfDocumentResultAsync(request);
+await screen.SaveAsync("quarterly-update-screen.pdf");
+```
+
+This renders the saved document state. It does not run page scripts; use a browser-backed capture when live execution is required.
+
 Saved `template shadowmode` component content is projected into the static PDF, including slot-assigned text. The report diagnoses the approximation and any omitted shadow-scoped stylesheets; browser-backed printing remains the path for exact component styling or live behavior. Ordinary templates stay inert.
 
 Conversion is offline by default. To allow missing archive resources, apply an explicit bounded MHTML policy to the same options before conversion. The application fetcher must return exactly one response with automatic redirects disabled so OfficeIMO can approve every redirect target before requesting it:

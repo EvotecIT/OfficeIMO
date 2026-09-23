@@ -158,8 +158,12 @@ those lanes with their explicit settings; equal page counts do not establish
 equal layout. Browser print and screen-media print are separate references;
 page-count differences across intents are not failures by themselves. The JSON
 records the archive hash, versions, source commit and dirty state, page counts,
-and operation failures. `--require-clean-source` also checks that the loaded
-HTML, HTML PDF, MHTML, PDF and evidence-runner assemblies identify the clean
+MIME diagnostics, operation failures, and each OfficeIMO PDF intent's conversion
+warnings and loss status. Explicit screen intents use the MHTML-aware resource
+path, so embedded stylesheets and images remain available under the same archive
+policy as print. `--require-clean-source` also checks that the loaded
+Core, Email, HTML Core, HTML AngleSharp, HTML, HTML PDF, MHTML, MHTML PDF,
+PDF and evidence-runner assemblies identify the clean
 commit. Inspect PDF text and rendered
 pages before making a compatibility claim. This lane is a diagnostic first pass,
 not the H10 corpus acceptance gate or a sandbox for arbitrary hostile sites.

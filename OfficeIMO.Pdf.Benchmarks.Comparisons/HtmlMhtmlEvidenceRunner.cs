@@ -10,6 +10,7 @@ using OfficeIMO.Html.Pdf;
 using OfficeIMO.Mhtml;
 using PeachPDF;
 using PeachPDF.Network;
+using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Pdf.Benchmarks.Comparisons;
 
@@ -44,9 +45,14 @@ internal static class HtmlMhtmlEvidenceRunner {
         string sourceCommit = GitOutput(repositoryRoot, "rev-parse", "HEAD");
         bool worktreeDirty = GitOutput(repositoryRoot, "status", "--porcelain", "--untracked-files=normal").Length > 0;
         var ownerVersions = new Dictionary<string, string?> {
+            ["Core"] = InformationalVersion(typeof(OfficeFontFaceCollection).Assembly),
+            ["Email"] = InformationalVersion(typeof(OfficeIMO.Email.EmailDocumentReader).Assembly),
+            ["HTML Core"] = InformationalVersion(typeof(OfficeIMO.Html.Dom.HtmlDocument).Assembly),
+            ["HTML AngleSharp"] = InformationalVersion(typeof(OfficeIMO.Html.Providers.AngleSharpHtmlParser).Assembly),
             ["HTML"] = InformationalVersion(typeof(HtmlRenderEngine).Assembly),
             ["HTML PDF"] = InformationalVersion(typeof(HtmlToPdfOptions).Assembly),
             ["MHTML"] = InformationalVersion(typeof(MhtmlDocument).Assembly),
+            ["MHTML PDF"] = InformationalVersion(typeof(MhtmlPdfConverterExtensions).Assembly),
             ["PDF"] = InformationalVersion(typeof(OfficeIMO.Pdf.PdfDocument).Assembly),
             ["evidence runner"] = InformationalVersion(typeof(HtmlMhtmlEvidenceRunner).Assembly)
         };
@@ -117,17 +123,17 @@ internal static class HtmlMhtmlEvidenceRunner {
             failures.Add("OfficeIMO MHTML load: " + exception);
         }
         if (document != null) {
-            await RunAsync("officeimo-print", () => Task.FromResult(document.ToPdfBytes()), output, results, failures).ConfigureAwait(false);
-            await RunAsync("officeimo-print-zero-margin", () => Task.FromResult(document.ToPdfBytes(new HtmlToPdfOptions {
+            await RunConversionAsync("officeimo-print", () => document.ToPdfDocumentResultAsync(), output, results, failures).ConfigureAwait(false);
+            await RunConversionAsync("officeimo-print-zero-margin", () => document.ToPdfDocumentResultAsync(new HtmlToPdfOptions {
                 Margins = HtmlRenderMargins.All(0)
-            })), output, results, failures).ConfigureAwait(false);
-            await RunAsync("officeimo-print-zero-margin-local-fonts", () => {
+            }), output, results, failures).ConfigureAwait(false);
+            await RunConversionAsync("officeimo-print-zero-margin-local-fonts", () => {
                 var options = new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0) };
                 options.ResourcePolicy.AllowDocumentFontEmbedding = true;
-                return Task.FromResult(document.ToPdfBytes(options));
+                return document.ToPdfDocumentResultAsync(options);
             }, output, results, failures).ConfigureAwait(false);
-            await RunAsync("officeimo-screen-media", () => Task.FromResult(RenderScreenPdf(document, HtmlRenderIntentProfile.ScreenMediaPaged)), output, results, failures).ConfigureAwait(false);
-            await RunAsync("officeimo-screen-snapshot", () => Task.FromResult(RenderScreenPdf(document, HtmlRenderIntentProfile.ScreenSnapshotPaged)), output, results, failures).ConfigureAwait(false);
+            await RunConversionAsync("officeimo-screen-media", () => RenderScreenPdfAsync(document, HtmlRenderIntentProfile.ScreenMediaPaged), output, results, failures).ConfigureAwait(false);
+            await RunConversionAsync("officeimo-screen-snapshot", () => RenderScreenPdfAsync(document, HtmlRenderIntentProfile.ScreenSnapshotPaged), output, results, failures).ConfigureAwait(false);
         }
         await RunAsync("peachpdf-print", async () => {
             using var source = new MemoryStream(archive, writable: false);
@@ -146,7 +152,7 @@ internal static class HtmlMhtmlEvidenceRunner {
         }, output, results, failures).ConfigureAwait(false);
 
         var report = new {
-            schemaVersion = 1,
+            schemaVersion = 2,
             sourceUrl = url?.ToString() ?? document?.BaseUri.ToString(),
             finalUrl,
             runUtc = DateTimeOffset.UtcNow,
@@ -161,6 +167,12 @@ internal static class HtmlMhtmlEvidenceRunner {
             viewport = new { width = ViewportWidth, height = ViewportHeight },
             archive = new { path = "source.mhtml", bytes = archive.Length, sha256 = Sha256(archive) },
             resourceCount = document?.Resources.Count,
+            mimeDiagnostics = document?.MimeDiagnostics.Select(diagnostic => new {
+                diagnostic.Code,
+                diagnostic.Message,
+                diagnostic.Location,
+                severity = diagnostic.Severity.ToString()
+            }).ToArray(),
             operations = results,
             failures
         };
@@ -171,7 +183,7 @@ internal static class HtmlMhtmlEvidenceRunner {
         return failures.Count == 0 ? 0 : 1;
     }
 
-    private static byte[] RenderScreenPdf(MhtmlDocument document, HtmlRenderIntentProfile profile) {
+    private static Task<PdfCore.PdfDocumentConversionResult> RenderScreenPdfAsync(MhtmlDocument document, HtmlRenderIntentProfile profile) {
         var options = new HtmlToPdfOptions {
             ViewportWidth = ViewportWidth,
             ViewportHeight = ViewportHeight,
@@ -183,9 +195,8 @@ internal static class HtmlMhtmlEvidenceRunner {
                 ViewportWidth / HtmlRenderOptions.CssPixelsPerInch,
                 ViewportHeight / HtmlRenderOptions.CssPixelsPerInch);
         }
-        document.ConfigureRenderOptions(options);
         HtmlRenderRequest request = HtmlRenderRequest.Create(profile, HtmlRenderEncoder.Pdf, options);
-        return document.HtmlDocument.RenderToPdfBytes(request);
+        return document.RenderToPdfDocumentResultAsync(request);
     }
 
     private static async Task<(string? ChromiumVersion, string FinalUrl)> CaptureOfflineBrowserOutputsAsync(
@@ -248,6 +259,36 @@ internal static class HtmlMhtmlEvidenceRunner {
         }
     }
 
+    private static async Task RunConversionAsync(
+        string name,
+        Func<Task<PdfCore.PdfDocumentConversionResult>> render,
+        string output,
+        ICollection<OperationEvidence> results,
+        ICollection<string> failures) {
+        try {
+            var timer = Stopwatch.StartNew();
+            PdfCore.PdfDocumentConversionResult result = await render().ConfigureAwait(false);
+            byte[] bytes = result.ToBytes();
+            timer.Stop();
+            string file = name + ".pdf";
+            await File.WriteAllBytesAsync(Path.Combine(output, file), bytes).ConfigureAwait(false);
+            int pageCount = PdfCore.PdfDocument.Load(bytes).Inspect().PageCount;
+            var warnings = result.Report.Warnings.Select(warning => new WarningEvidence(
+                warning.Converter,
+                warning.Code,
+                warning.Source,
+                warning.Message,
+                warning.Severity.ToString(),
+                warning.LossKind.ToString(),
+                warning.Details)).ToArray();
+            results.Add(new OperationEvidence(name, file, bytes.Length, Sha256(bytes), pageCount,
+                timer.Elapsed.TotalMilliseconds,
+                new ConversionReportEvidence(result.HasLoss, result.Report.FidelityStatus.ToString(), warnings)));
+        } catch (Exception exception) {
+            failures.Add(name + ": " + exception);
+        }
+    }
+
     private static string Sha256(byte[] bytes) => Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
 
     private static string? InformationalVersion(System.Reflection.Assembly assembly) =>
@@ -280,5 +321,9 @@ internal static class HtmlMhtmlEvidenceRunner {
         return output;
     }
 
-    private sealed record OperationEvidence(string Intent, string File, int Bytes, string Sha256, int PageCount, double ElapsedMilliseconds);
+    private sealed record OperationEvidence(string Intent, string File, int Bytes, string Sha256, int PageCount,
+        double ElapsedMilliseconds, ConversionReportEvidence? ConversionReport = null);
+    private sealed record ConversionReportEvidence(bool HasLoss, string FidelityStatus, WarningEvidence[] Warnings);
+    private sealed record WarningEvidence(string Converter, string Code, string Source, string Message,
+        string Severity, string LossKind, IReadOnlyDictionary<string, string> Details);
 }

@@ -57,6 +57,21 @@ public static class MhtmlPdfConverterExtensions {
         return AddMhtmlDiagnostics(result, document);
     }
 
+    /// <summary>Renders an explicit PDF intent using the archive's embedded resources and returns conversion diagnostics.</summary>
+    public static async Task<PdfCore.PdfDocumentConversionResult> RenderToPdfDocumentResultAsync(
+        this MhtmlDocument document,
+        HtmlRenderRequest request,
+        CancellationToken cancellationToken = default) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        if (request == null) throw new ArgumentNullException(nameof(request));
+        cancellationToken.ThrowIfCancellationRequested();
+        HtmlToPdfOptions options = PrepareMhtmlOptions(document, new HtmlToPdfOptions(request.Options));
+        PdfCore.PdfDocumentConversionResult result = await document.HtmlDocument
+            .RenderToPdfDocumentResultAsync(request.WithOptions(options), cancellationToken)
+            .ConfigureAwait(false);
+        return AddMhtmlDiagnostics(result, document);
+    }
+
     /// <summary>Converts an MHTML archive and saves it as a PDF file.</summary>
     public static PdfCore.PdfSaveResult SaveAsPdf(this MhtmlDocument document, string path, HtmlToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
         document.ToPdfDocumentResult(options, cancellationToken).Save(path, cancellationToken);

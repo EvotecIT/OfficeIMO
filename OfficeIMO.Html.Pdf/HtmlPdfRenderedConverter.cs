@@ -332,7 +332,7 @@ internal static partial class HtmlPdfRenderedConverter {
     private static void AddPageOutlines(PdfCore.PdfPageCanvas canvas, IEnumerable<HtmlRenderHeading> headings, IReadOnlyDictionary<HtmlRenderHeading, int> headingDocumentOrder, CancellationToken cancellationToken) {
         foreach (HtmlRenderHeading heading in headings) {
             cancellationToken.ThrowIfCancellationRequested();
-            canvas.Outline(heading.Text, heading.Level, heading.Y * PointsPerCssPixel, heading.BookmarkState switch {
+            canvas.Outline(heading.Text, heading.Level, Math.Max(0D, heading.Y * PointsPerCssPixel), heading.BookmarkState switch {
                 HtmlRenderBookmarkState.Open => PdfCore.PdfOutlineState.Open,
                 HtmlRenderBookmarkState.Closed => PdfCore.PdfOutlineState.Closed,
                 _ => PdfCore.PdfOutlineState.Default
