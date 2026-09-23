@@ -163,7 +163,7 @@ internal static partial class PdfSyntax {
             }
 
             int preliminaryBodyCharacters = preliminaryBodyEnd - bodyStart;
-            int firstBodyCharacter = SkipWhitespaceAndComments(text, bodyStart, preliminaryBodyEnd);
+            int firstBodyCharacter = SkipWhitespaceAndComments(text, bodyStart, preliminaryBodyEnd, cancellationToken);
 
             void ReportUnreadableObject() => HandleStructuralDefect(parsingMode, repairDiagnostics,
                 "UnreadableIndirectObject", "Indirect object " + id.ToString(System.Globalization.CultureInfo.InvariantCulture) +
@@ -189,7 +189,7 @@ internal static partial class PdfSyntax {
             // Extract dictionary (balanced << >>) within object bounds
             int dictStart = firstBodyCharacter;
             if (dictStart >= 0) {
-                int dictEnd = FindDictEnd(text, dictStart, end);
+                int dictEnd = FindDictEnd(text, dictStart, end, cancellationToken);
                 if (dictEnd > dictStart) {
                     int dictionaryCharacters = dictEnd - (dictStart + 2);
                     if (dictionaryCharacters > limits.MaxObjectCharacters) {
@@ -209,7 +209,7 @@ internal static partial class PdfSyntax {
 
                     // Check for stream section; prefer dictionary /Length when available
                     int streamKw = IndexOfKeyword(text, "stream", dictEnd, end);
-                    int tailStart = SkipWhitespaceAndComments(text, dictEnd, preliminaryBodyEnd);
+                    int tailStart = SkipWhitespaceAndComments(text, dictEnd, preliminaryBodyEnd, cancellationToken);
                     if (tailStart < preliminaryBodyEnd && tailStart != streamKw) ReportUnreadableObject();
                     if (streamKw >= 0) {
                         int dataStart = SkipEOL(text, streamKw + 6, end);
@@ -305,16 +305,17 @@ internal static partial class PdfSyntax {
         cancellationToken.ThrowIfCancellationRequested();
         appliedXrefStreamEntries = ApplyXrefStreamEntries(map, pdf, parsedOffsets, limits, xrefScanBudget, decodedStreamBudget, ReportIncompleteXref) || appliedXrefStreamEntries;
         cancellationToken.ThrowIfCancellationRequested();
-        string trailerRaw = GetActiveTrailerRaw(text, map, parsedOffsets, limits.MaxObjectCharacters);
-        if (trailerRaw.IndexOf("/Prev", StringComparison.Ordinal) < 0) {
+        string trailerRaw = GetActiveTrailerRaw(text, map, parsedOffsets, limits.MaxObjectCharacters, cancellationToken);
+        if (IndexOfSecurityMarker(trailerRaw, "/Prev", 0, cancellationToken) < 0) {
             foreach (KeyValuePair<(int Id, int Generation), int> definition in definitionCounts) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (definition.Value <= 1) continue;
                 string identifier = definition.Key.Id.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" + definition.Key.Generation.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 HandleStructuralDefect(parsingMode, repairDiagnostics, "DuplicateObjectIdentifier", "Indirect object " + identifier + " is defined " + definition.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) + " times without an incremental /Prev chain; lenient parsing retained the last readable definition.", definition.Key.Id);
             }
         }
         PdfStandardSecurityHandler? decryptor = null;
-        int? encryptObjectNumber = ReadTrailerReference(trailerRaw, "Encrypt", limits)?.ObjectNumber;
+        int? encryptObjectNumber = ReadTrailerReference(trailerRaw, "Encrypt", limits, cancellationToken)?.ObjectNumber;
         if (encryptObjectNumber.HasValue) {
             TryCreateDecryptor(map, trailerRaw, options, out decryptor);
             if (decryptor is not null) {

@@ -239,12 +239,12 @@ public sealed partial class PdfReadDocument {
         string? fieldType = TryReadName(field, "FT") ?? inherited.FieldType;
         bool hasOwnValueEntry = field.Items.ContainsKey("V");
         bool hasValueEntry = hasOwnValueEntry || inherited.HasValueEntry;
-        string? value = hasOwnValueEntry ? TryReadSimpleFieldValue(field, "V") : inherited.Value;
+        string? value = hasOwnValueEntry ? TryReadSimpleFieldValue(field, "V", cancellationToken) : inherited.Value;
         IReadOnlyList<string> values = hasOwnValueEntry ? ReadSimpleFieldValues(field, "V", cancellationToken) : inherited.Values;
         int? valueOwnerKey = hasOwnValueEntry ? objectNumber ?? nextDirectValueOwnerKey-- : inherited.ValueOwnerKey;
         bool hasOwnDefaultValueEntry = field.Items.ContainsKey("DV");
         bool hasDefaultValueEntry = hasOwnDefaultValueEntry || inherited.HasDefaultValueEntry;
-        string? defaultValue = hasOwnDefaultValueEntry ? TryReadSimpleFieldValue(field, "DV") : inherited.DefaultValue;
+        string? defaultValue = hasOwnDefaultValueEntry ? TryReadSimpleFieldValue(field, "DV", cancellationToken) : inherited.DefaultValue;
         IReadOnlyList<string> defaultValues = hasOwnDefaultValueEntry ? ReadSimpleFieldValues(field, "DV", cancellationToken) : inherited.DefaultValues;
         int? defaultValueOwnerKey = hasOwnDefaultValueEntry ? objectNumber ?? nextDirectValueOwnerKey-- : inherited.DefaultValueOwnerKey;
         bool hasOwnRichValueEntry = field.Items.ContainsKey("RV");
@@ -627,7 +627,16 @@ public sealed partial class PdfReadDocument {
             return Array.Empty<string>();
         }
 
-        states.Sort(StringComparer.Ordinal);
+        try {
+            states.Sort((left, right) => {
+                cancellationToken.ThrowIfCancellationRequested();
+                return StringComparer.Ordinal.Compare(left, right);
+            });
+        } catch (InvalidOperationException error) when (error.InnerException is OperationCanceledException) {
+            cancellationToken.ThrowIfCancellationRequested();
+            throw;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
         return states.AsReadOnly();
     }
 

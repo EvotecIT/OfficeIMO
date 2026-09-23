@@ -556,7 +556,7 @@ internal static class PdfInspector {
                 objects,
                 ReachableProbeMarkerGroups,
                 cancellationToken);
-        string? rawFallback = repairReport.HasIncompleteObjectCoverage ? PdfEncoding.Latin1GetString(pdf) : null;
+        string? rawFallback = repairReport.HasIncompleteObjectCoverage ? PdfEncoding.Latin1GetStringCancellable(pdf, cancellationToken) : null;
         bool Has(ProbeMarker marker) {
             cancellationToken.ThrowIfCancellationRequested();
             // Parsed dictionaries are authoritative here. Stream bytes and string values
@@ -603,7 +603,7 @@ internal static class PdfInspector {
         PdfDocumentSecurityInfo security,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        string text = PdfEncoding.Latin1GetString(pdf);
+        string text = PdfEncoding.Latin1GetStringCancellable(pdf, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         bool Has(ProbeMarker marker) => PdfSyntax.ContainsAnyPdfName(text, cancellationToken, ProbeMarkerNames[(int)marker]);
 

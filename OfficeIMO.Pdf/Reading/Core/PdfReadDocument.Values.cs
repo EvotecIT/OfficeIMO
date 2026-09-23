@@ -25,10 +25,10 @@ public sealed partial class PdfReadDocument {
             : null;
     }
 
-    private string? TryReadSimpleFieldValue(PdfDictionary dictionary, string key) {
+    private string? TryReadSimpleFieldValue(PdfDictionary dictionary, string key, System.Threading.CancellationToken cancellationToken) {
         if (!dictionary.Items.TryGetValue(key, out var value) ||
             ResolveObject(value) is null or PdfNull ||
-            !TryFormatSimpleValue(value, out string? text)) {
+            !TryFormatSimpleValue(value, out string? text, cancellationToken)) {
             return null;
         }
 
@@ -46,7 +46,7 @@ public sealed partial class PdfReadDocument {
             var values = new List<string>();
             for (int i = 0; i < array.Items.Count; i++) {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (TryFormatSimpleValue(array.Items[i], out string? itemText)) {
+                if (TryFormatSimpleValue(array.Items[i], out string? itemText, cancellationToken)) {
                     values.Add(itemText!);
                 }
             }
@@ -54,7 +54,7 @@ public sealed partial class PdfReadDocument {
             return values.Count == 0 ? Array.Empty<string>() : values.AsReadOnly();
         }
 
-        if (resolved is not null && TryFormatSimpleValue(resolved, out string? text)) {
+        if (resolved is not null && TryFormatSimpleValue(resolved, out string? text, cancellationToken)) {
             return new[] { text! };
         }
 
@@ -163,7 +163,12 @@ public sealed partial class PdfReadDocument {
         return false;
     }
 
-    private bool TryFormatSimpleValue(PdfObject value, out string? text) {
+    private bool TryFormatSimpleValue(PdfObject value, out string? text, System.Threading.CancellationToken cancellationToken = default) =>
+        TryFormatSimpleValueCore(value, out text, activeArrays: null, cancellationToken);
+
+    private bool TryFormatSimpleValueCore(PdfObject value, out string? text, HashSet<PdfArray>? activeArrays,
+        System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         switch (ResolveObject(value)) {
             case PdfNumber number:
                 text = number.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
@@ -181,21 +186,76 @@ public sealed partial class PdfReadDocument {
                 text = "null";
                 return true;
             case PdfArray array:
-                var parts = new List<string>(array.Items.Count);
-                for (int i = 0; i < array.Items.Count; i++) {
-                    if (!TryFormatSimpleValue(array.Items[i], out string? itemText)) {
-                        text = null;
-                        return false;
-                    }
-
-                    parts.Add(itemText!);
+                activeArrays ??= new HashSet<PdfArray>();
+                if (activeArrays.Count >= 128) {
+                    text = null;
+                    return false;
                 }
-
-                text = "[" + string.Join(" ", parts) + "]";
-                return true;
+                if (!activeArrays.Add(array)) {
+                    text = null;
+                    return false;
+                }
+                try {
+                    var parts = new List<string>(array.Items.Count);
+                    for (int i = 0; i < array.Items.Count; i++) {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        if (!TryFormatSimpleValueCore(array.Items[i], out string? itemText, activeArrays, cancellationToken)) {
+                            text = null;
+                            return false;
+                        }
+                        parts.Add(itemText!);
+                    }
+                    text = JoinSimpleArrayParts(parts, cancellationToken);
+                    return text is not null;
+                } finally {
+                    activeArrays.Remove(array);
+                }
             default:
                 text = null;
                 return false;
         }
+    }
+
+    private static string? JoinSimpleArrayParts(List<string> parts, System.Threading.CancellationToken cancellationToken) {
+        long length = 2L + Math.Max(0, parts.Count - 1);
+        foreach (string part in parts) {
+            cancellationToken.ThrowIfCancellationRequested();
+            length += part.Length;
+            if (length > int.MaxValue) return null;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+#if NET8_0_OR_GREATER
+        return string.Create((int)length, (Parts: parts, Token: cancellationToken), (destination, state) => {
+            int position = 0;
+            destination[position++] = '[';
+            for (int index = 0; index < state.Parts.Count; index++) {
+                state.Token.ThrowIfCancellationRequested();
+                if (index > 0) destination[position++] = ' ';
+                string part = state.Parts[index];
+                for (int offset = 0; offset < part.Length; offset++) {
+                    if ((offset & 4095) == 0) state.Token.ThrowIfCancellationRequested();
+                    destination[position++] = part[offset];
+                }
+            }
+            state.Token.ThrowIfCancellationRequested();
+            destination[position] = ']';
+        });
+#else
+        var destination = new char[(int)length];
+        int position = 0;
+        destination[position++] = '[';
+        for (int index = 0; index < parts.Count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (index > 0) destination[position++] = ' ';
+            string part = parts[index];
+            for (int offset = 0; offset < part.Length; offset++) {
+                if ((offset & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                destination[position++] = part[offset];
+            }
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        destination[position] = ']';
+        return new string(destination);
+#endif
     }
 }

@@ -77,7 +77,7 @@ public sealed partial class PdfReadDocument {
         Pages = CollectPages(cancellationToken);
         RepairReport = repairReport.Append(PdfSemanticRepairDiagnostics.AnalyzeAndRepair(_objects, _catalog, Pages, _options, cancellationToken));
         cancellationToken.ThrowIfCancellationRequested();
-        _metadata = ExtractMetadata();
+        _metadata = ExtractMetadata(cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         _pageLabels = ExtractPageLabels(cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
@@ -99,7 +99,7 @@ public sealed partial class PdfReadDocument {
         _outlines = ExtractOutlines(cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         _openAction = ExtractOpenAction();
-        ViewerPreferences = ExtractViewerPreferences();
+        ViewerPreferences = ExtractViewerPreferences(cancellationToken);
         _portfolio = ExtractPortfolio(cancellationToken);
         _acroFormDefaultAppearance = ExtractAcroFormText("DA");
         _acroFormQuadding = ExtractAcroFormInteger("Q");

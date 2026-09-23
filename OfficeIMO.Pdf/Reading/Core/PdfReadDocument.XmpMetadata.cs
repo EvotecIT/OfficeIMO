@@ -56,7 +56,7 @@ public sealed partial class PdfReadDocument {
             objectNumber,
             TryReadName(stream.Dictionary, "Type"),
             TryReadName(stream.Dictionary, "Subtype"),
-            TryReadStreamFilter(stream),
+            TryReadStreamFilter(stream, cancellationToken),
             stream.Data.Length,
             decodedSizeBytes,
             StreamDecoder.GetUnsupportedFilters(stream.Dictionary, _objects).AsReadOnly(),

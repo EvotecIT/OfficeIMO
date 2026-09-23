@@ -24,7 +24,16 @@ public sealed partial class PdfReadDocument {
                     ReadBoolean(field, "V"),
                     ReadBoolean(field, "E")));
             }
-            fields.Sort((left, right) => Nullable.Compare(left.Order, right.Order));
+            try {
+                fields.Sort((left, right) => {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    return Nullable.Compare(left.Order, right.Order);
+                });
+            } catch (InvalidOperationException error) when (error.InnerException is OperationCanceledException) {
+                cancellationToken.ThrowIfCancellationRequested();
+                throw;
+            }
+            cancellationToken.ThrowIfCancellationRequested();
         }
 
         string? sortField = null;

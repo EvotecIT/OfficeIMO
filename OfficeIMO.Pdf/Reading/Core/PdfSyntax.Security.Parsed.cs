@@ -86,7 +86,7 @@ internal static partial class PdfSyntax {
         cancellationToken.ThrowIfCancellationRequested();
 
         PdfReadLimits limits = options?.Limits ?? new PdfReadLimits();
-        var trailerReferences = ReadTrailerReferences(trailerRaw, "Encrypt", "Root", "Info", limits);
+        var trailerReferences = ReadTrailerReferences(trailerRaw, "Encrypt", "Root", "Info", limits, cancellationToken);
         PdfReference? encryptReference = trailerReferences.First;
         int? encryptObjectNumber = encryptReference?.ObjectNumber;
         bool hasEncryption = encryptObjectNumber.HasValue;

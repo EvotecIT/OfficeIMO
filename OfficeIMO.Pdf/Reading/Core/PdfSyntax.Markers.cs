@@ -451,6 +451,7 @@ internal static partial class PdfSyntax {
 
     internal static string? GetHeaderVersion(byte[] pdf) {
         Guard.NotNull(pdf, nameof(pdf));
+        const int maximumVersionTokenLength = 16;
 
         if (pdf.Length < 8 ||
             pdf[0] != (byte)'%' ||
@@ -463,7 +464,7 @@ internal static partial class PdfSyntax {
 
         int start = 5;
         int end = start;
-        while (end < pdf.Length) {
+        while (end < pdf.Length && end - start <= maximumVersionTokenLength) {
             byte value = pdf[end];
             if (value == (byte)'\r' || value == (byte)'\n' || value == (byte)' ' || value == (byte)'\t') {
                 break;
@@ -472,6 +473,8 @@ internal static partial class PdfSyntax {
             end++;
         }
 
+        // A PDF version is a short token. Do not scan or allocate an entire malformed input line.
+        if (end - start > maximumVersionTokenLength) return null;
         return end > start ? PdfEncoding.Latin1GetString(pdf, start, end - start) : null;
     }
 

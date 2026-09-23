@@ -59,7 +59,7 @@ public sealed partial class PdfReadDocument {
                 profileObjectNumber,
                 profileStream is null ? null : TryReadStreamColorComponents(profileStream),
                 profileStream is null ? null : TryReadStreamAlternateColorSpace(profileStream),
-                profileStream is null ? null : TryReadStreamFilter(profileStream),
+                profileStream is null ? null : TryReadStreamFilter(profileStream, cancellationToken),
                 profileStream != null,
                 metadataFactory));
         }
@@ -105,9 +105,9 @@ public sealed partial class PdfReadDocument {
         return TryReadName(stream.Dictionary, "Alternate");
     }
 
-    private string? TryReadStreamFilter(PdfStream stream) {
+    private string? TryReadStreamFilter(PdfStream stream, System.Threading.CancellationToken cancellationToken) {
         if (!stream.Dictionary.Items.TryGetValue("Filter", out PdfObject? value) ||
-            !TryFormatSimpleValue(value, out string? filter)) {
+            !TryFormatSimpleValue(value, out string? filter, cancellationToken)) {
             return null;
         }
 

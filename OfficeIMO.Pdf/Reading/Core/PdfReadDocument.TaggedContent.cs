@@ -62,7 +62,7 @@ public sealed partial class PdfReadDocument {
         var values = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var entry in roleMap.Items) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (TryFormatSimpleValue(entry.Value, out string? value) && !string.IsNullOrEmpty(value)) {
+            if (TryFormatSimpleValue(entry.Value, out string? value, cancellationToken) && !string.IsNullOrEmpty(value)) {
                 values[entry.Key] = value!;
             }
         }

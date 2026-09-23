@@ -19,7 +19,7 @@ internal static partial class PdfSyntax {
 
     internal static PdfDictionary? FindCatalog(Dictionary<int, PdfIndirectObject> map, string? trailerRaw = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (TryGetTrailerRootReference(trailerRaw, out PdfReference rootReference) &&
+        if (TryGetTrailerRootReference(trailerRaw, out PdfReference rootReference, cancellationToken) &&
             PdfObjectLookup.TryGet(map, rootReference, out var rootObject) &&
             rootObject.Value is PdfDictionary rootDictionary &&
             rootDictionary.Get<PdfName>("Type")?.Name == "Catalog") {
@@ -48,8 +48,8 @@ internal static partial class PdfSyntax {
         return null;
     }
 
-    private static bool TryGetTrailerRootReference(string? trailerRaw, out PdfReference reference) {
-        return TryGetTrailerReference(trailerRaw, "Root", limits: null, out reference);
+    private static bool TryGetTrailerRootReference(string? trailerRaw, out PdfReference reference, CancellationToken cancellationToken) {
+        return TryGetTrailerReference(trailerRaw, "Root", limits: null, out reference, cancellationToken);
     }
 
     private static bool TryGetXrefStreamRootReference(Dictionary<int, PdfIndirectObject> map, out PdfReference reference, CancellationToken cancellationToken) {

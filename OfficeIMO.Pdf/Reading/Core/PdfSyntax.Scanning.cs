@@ -153,9 +153,11 @@ internal static partial class PdfSyntax {
         return -1;
     }
 
-    private static int SkipWhitespaceAndComments(string text, int index, int limit) {
+    private static int SkipWhitespaceAndComments(string text, int index, int limit,
+        System.Threading.CancellationToken cancellationToken = default) {
         while (index < limit) {
             while (index < limit && char.IsWhiteSpace(text[index])) {
+                if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
                 index++;
             }
 
@@ -164,6 +166,7 @@ internal static partial class PdfSyntax {
             }
 
             while (index < limit && text[index] != '\r' && text[index] != '\n') {
+                if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
                 index++;
             }
         }
@@ -954,9 +957,11 @@ internal static partial class PdfSyntax {
         return -1;
     }
 
-    private static int FindDictEnd(string text, int dictStart, int limit) {
+    private static int FindDictEnd(string text, int dictStart, int limit,
+        System.Threading.CancellationToken cancellationToken = default) {
         int depth = 0;
         for (int i = dictStart; i + 1 < limit; i++) {
+            if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             char c = text[i]; char n = text[i + 1];
             if (c == '<' && n == '<') { depth++; i++; continue; }
             if (c == '>' && n == '>') { depth--; i++; if (depth == 0) return i + 1; continue; }
@@ -988,6 +993,24 @@ internal static partial class PdfSyntax {
             searchFrom = idx + 1;
         }
 
+        return -1;
+    }
+
+    private static int IndexOfKeywordCancellable(string text, string keyword, int start, int limit,
+        System.Threading.CancellationToken cancellationToken) {
+        const int window = 65536;
+        for (int index = start; index < limit; index += window) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = Math.Min(limit - index, window + keyword.Length - 1);
+            int found = text.IndexOf(keyword, index, count, StringComparison.Ordinal);
+            while (found >= 0) {
+                if (HasKeywordBoundary(text, found - 1, start, limit) &&
+                    HasKeywordBoundary(text, found + keyword.Length, start, limit)) return found;
+                int next = found + 1;
+                int end = index + count;
+                found = next < end ? text.IndexOf(keyword, next, end - next, StringComparison.Ordinal) : -1;
+            }
+        }
         return -1;
     }
 

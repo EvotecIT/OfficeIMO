@@ -157,7 +157,9 @@ internal static partial class PdfSyntax {
         return newestToOldest;
     }
 
-    private static bool TryParseClassicXrefTable(string text, int offset, out (int ObjectNumber, int Offset, int Generation, bool InUse)[] entries, out int? previousOffset, out string trailerRaw, out int? xrefStreamOffset) {
+    private static bool TryParseClassicXrefTable(string text, int offset, out (int ObjectNumber, int Offset, int Generation, bool InUse)[] entries, out int? previousOffset, out string trailerRaw, out int? xrefStreamOffset,
+        System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         entries = Array.Empty<(int ObjectNumber, int Offset, int Generation, bool InUse)>();
         previousOffset = null;
         trailerRaw = string.Empty;
@@ -170,7 +172,7 @@ internal static partial class PdfSyntax {
             return false;
         }
 
-        int trailerIndex = IndexOfKeyword(text, "trailer", offset + 4, text.Length);
+        int trailerIndex = IndexOfKeywordCancellable(text, "trailer", offset + 4, text.Length, cancellationToken);
         if (trailerIndex < 0) {
             return false;
         }
@@ -181,7 +183,8 @@ internal static partial class PdfSyntax {
         // arrays, and only the observed entries become a retained managed array.
         using var entryBuilder = new PdfPooledValueBuilder<(int ObjectNumber, int Offset, int Generation, bool InUse)>(
             PdfCollectionSizing.BoundedInitialCapacity((sectionEnd - position) / 20, 256));
-        while (TryReadXrefLine(text, ref position, sectionEnd, out int lineStart, out int lineEnd)) {
+        while (TryReadXrefLine(text, ref position, sectionEnd, out int lineStart, out int lineEnd, cancellationToken)) {
+            cancellationToken.ThrowIfCancellationRequested();
             int tokenPosition = lineStart;
             if (!TryReadXrefToken(text, ref tokenPosition, lineEnd, out int firstStart, out int firstLength) ||
                 !TryReadXrefToken(text, ref tokenPosition, lineEnd, out int countStart, out int countLength) ||
@@ -194,7 +197,8 @@ internal static partial class PdfSyntax {
             }
 
             for (int i = 0; i < count; i++) {
-                if (!TryReadXrefLine(text, ref position, sectionEnd, out lineStart, out lineEnd)) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!TryReadXrefLine(text, ref position, sectionEnd, out lineStart, out lineEnd, cancellationToken)) {
                     entries = entryBuilder.ToArray();
                     return entries.Length > 0;
                 }
@@ -221,10 +225,18 @@ internal static partial class PdfSyntax {
             return false;
         }
 
-        int dictStart = text.IndexOf("<<", trailerIndex, StringComparison.Ordinal);
+        int dictStart = -1;
+        int trailerSearchLimit = text.Length;
+        const int searchWindow = 65536;
+        for (long search = trailerIndex; search < trailerSearchLimit; search += searchWindow) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = (int)Math.Min(trailerSearchLimit - search, searchWindow + 1L);
+            dictStart = text.IndexOf("<<", (int)search, count, StringComparison.Ordinal);
+            if (dictStart >= 0) break;
+        }
         if (dictStart >= 0) {
             int dictionaryLimit = (int)Math.Min((long)text.Length, (long)dictStart + 1_000_002L);
-            int dictEnd = FindDictEnd(text, dictStart, dictionaryLimit);
+            int dictEnd = FindDictEnd(text, dictStart, dictionaryLimit, cancellationToken);
             if (dictEnd > dictStart) {
                 trailerRaw = SafeSlice(text, trailerIndex, dictEnd - trailerIndex, 1_000_000);
                 string dictText = SafeSlice(text, dictStart + 2, dictEnd - (dictStart + 2), 1_000_000);
@@ -241,7 +253,7 @@ internal static partial class PdfSyntax {
                         xrefStream.Value <= int.MaxValue) {
                         xrefStreamOffset = (int)Math.Floor(xrefStream.Value);
                     }
-                } catch (Exception ex) when (ex is not OutOfMemoryException) {
+                } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not OperationCanceledException) {
                     previousOffset = null;
                     xrefStreamOffset = null;
                 }
@@ -251,14 +263,18 @@ internal static partial class PdfSyntax {
         return true;
     }
 
-    private static bool TryReadXrefLine(string text, ref int position, int end, out int start, out int lineEnd) {
+    private static bool TryReadXrefLine(string text, ref int position, int end, out int start, out int lineEnd,
+        System.Threading.CancellationToken cancellationToken) {
         start = position;
         if (position >= end) {
             lineEnd = end;
             return false;
         }
 
-        while (position < end && text[position] != '\r' && text[position] != '\n') position++;
+        while (position < end && text[position] != '\r' && text[position] != '\n') {
+            if ((position & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            position++;
+        }
         lineEnd = position;
         if (position < end && text[position++] == '\r' && position < end && text[position] == '\n') position++;
         return true;
@@ -551,21 +567,24 @@ internal static partial class PdfSyntax {
         return newestToOldest;
     }
 
-    private static bool TryGetLatestStartXrefOffset(string text, out int offset) {
+    private static bool TryGetLatestStartXrefOffset(string text, out int offset,
+        System.Threading.CancellationToken cancellationToken = default) {
         offset = 0;
-        int startXrefIndex = text.LastIndexOf("startxref", StringComparison.Ordinal);
+        int startXrefIndex = LastIndexOfTrailerMarker(text, "startxref", StringComparison.Ordinal, cancellationToken);
         if (startXrefIndex < 0) {
             return false;
         }
 
         int index = startXrefIndex + "startxref".Length;
         while (index < text.Length && char.IsWhiteSpace(text[index])) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             index++;
         }
 
         long value = 0;
         int firstDigit = index;
         while (index < text.Length && char.IsDigit(text[index])) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             value = (value * 10) + (text[index] - '0');
             if (value > int.MaxValue) {
                 return false;

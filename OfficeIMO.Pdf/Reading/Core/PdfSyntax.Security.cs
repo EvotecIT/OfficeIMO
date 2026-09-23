@@ -1,14 +1,8 @@
-using System.Text.RegularExpressions;
 using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfSyntax {
-#if NET8_0_OR_GREATER
-    private static readonly Regex ObjectHeaderTemplateRegex = new Regex(@"^\s*(\d+)\s+(\d+)\s+obj\b", RegexOptions.Compiled | RegexOptions.NonBacktracking, RegexTimeout);
-#else
-    private static readonly Regex ObjectHeaderTemplateRegex = new Regex(@"^\s*(\d+)\s+(\d+)\s+obj\b", RegexOptions.Compiled, RegexTimeout);
-#endif
 
     internal static PdfDocumentSecurityInfo ReadDocumentSecurityInfo(
         byte[] pdf,
@@ -104,19 +98,19 @@ internal static partial class PdfSyntax {
                     out _,
                     cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
-                rootReference = ReadTrailerReference(trailerRaw, "Root", limits);
+                rootReference = ReadTrailerReference(trailerRaw, "Root", limits, cancellationToken);
                 if (rootReference is not null) {
                     rootObjectNumber = rootReference.ObjectNumber;
                     rootObjectGeneration = rootReference.Generation;
                 }
 
-                infoReference = ReadTrailerReference(trailerRaw, "Info", limits);
+                infoReference = ReadTrailerReference(trailerRaw, "Info", limits, cancellationToken);
                 if (infoReference is not null) {
                     infoObjectNumber = infoReference.ObjectNumber;
                     infoObjectGeneration = infoReference.Generation;
                 }
 
-                PdfReference? encryptReference = ReadTrailerReference(trailerRaw, "Encrypt", limits);
+                PdfReference? encryptReference = ReadTrailerReference(trailerRaw, "Encrypt", limits, cancellationToken);
                 encryptObjectNumber = encryptReference?.ObjectNumber;
                 hasEncryption = encryptReference is not null;
                 encryptionFilter = null;
@@ -441,7 +435,6 @@ internal static partial class PdfSyntax {
     }
 
     private static bool TryReadObjectDictionary(string text, int objectNumber, out PdfDictionary? dictionary, CancellationToken cancellationToken = default) {
-        const int maximumHeaderLineLength = 1024;
         dictionary = null;
         int searchIndex = 0;
         while (searchIndex < text.Length) {
@@ -452,34 +445,18 @@ internal static partial class PdfSyntax {
             }
 
             int lineStart = candidateIndex;
-            while (lineStart > 0 && candidateIndex - lineStart < maximumHeaderLineLength &&
-                   text[lineStart - 1] != '\n' && text[lineStart - 1] != '\r') {
+            while (lineStart > 0 && text[lineStart - 1] != '\n' && text[lineStart - 1] != '\r') {
                 if ((lineStart & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
                 lineStart--;
             }
 
-            if (lineStart > 0 && text[lineStart - 1] != '\n' && text[lineStart - 1] != '\r') {
-                searchIndex = candidateIndex + 1;
-                continue;
-            }
-
             int lineEnd = candidateIndex;
-            while (lineEnd < text.Length && lineEnd - lineStart < maximumHeaderLineLength &&
-                   text[lineEnd] != '\n' && text[lineEnd] != '\r') {
+            while (lineEnd < text.Length && text[lineEnd] != '\n' && text[lineEnd] != '\r') {
                 if ((lineEnd & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
                 lineEnd++;
             }
 
-            if (lineEnd < text.Length && text[lineEnd] != '\n' && text[lineEnd] != '\r') {
-                searchIndex = candidateIndex + 1;
-                continue;
-            }
-
-            string headerLine = text.Substring(lineStart, lineEnd - lineStart);
-            Match headerMatch = ObjectHeaderTemplateRegex.Match(headerLine);
-            if (headerMatch.Success &&
-                int.TryParse(headerMatch.Groups[1].Value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int foundObjectNumber) &&
-                foundObjectNumber == objectNumber) {
+            if (IsSecurityObjectHeader(text, lineStart, lineEnd, objectNumber, cancellationToken)) {
                 int dictStart = IndexOfSecurityMarker(text, "<<", lineEnd, cancellationToken);
                 int objectEnd = IndexOfSecurityMarker(text, "endobj", lineEnd, cancellationToken);
                 if (dictStart >= 0 && objectEnd > dictStart) {
@@ -496,10 +473,34 @@ internal static partial class PdfSyntax {
                 }
             }
 
-            searchIndex = candidateIndex + 1;
+            // A line has only one possible object header. Do not rescan a long
+            // malformed line for each later occurrence of the object number.
+            searchIndex = lineEnd < text.Length ? lineEnd + 1 : text.Length;
         }
 
         return false;
+    }
+
+    private static bool IsSecurityObjectHeader(string text, int lineStart, int lineEnd, int objectNumber,
+        CancellationToken cancellationToken) {
+        int cursor = lineStart;
+        while (cursor < lineEnd && char.IsWhiteSpace(text[cursor])) {
+            if ((cursor & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            cursor++;
+        }
+
+        if (!TryReadNonNegativeInteger(text, ref cursor, out int foundObjectNumber, cancellationToken) ||
+            cursor > lineEnd || foundObjectNumber != objectNumber ||
+            !TrySkipRequiredWhitespace(text, ref cursor, cancellationToken) || cursor > lineEnd ||
+            !TryReadNonNegativeInteger(text, ref cursor, out _, cancellationToken) || cursor > lineEnd ||
+            !TrySkipRequiredWhitespace(text, ref cursor, cancellationToken) || cursor > lineEnd ||
+            cursor + 3 > lineEnd || string.CompareOrdinal(text, cursor, "obj", 0, 3) != 0) {
+            return false;
+        }
+
+        int afterObjectKeyword = cursor + 3;
+        return afterObjectKeyword == lineEnd ||
+            (!char.IsLetterOrDigit(text[afterObjectKeyword]) && text[afterObjectKeyword] != '_');
     }
 
     private static IReadOnlyList<int> ReadStartXrefOffsets(string text, int maxRevisions, CancellationToken cancellationToken = default) {

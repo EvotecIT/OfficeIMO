@@ -42,7 +42,16 @@ public sealed partial class PdfReadDocument {
                 if (IsLeafPageByParent(dict)) AddPageWithinBudget(result, CreateReadPage(kv.Key, dict));
             }
         }
-        result.Sort((a, b) => a.ObjectNumber.CompareTo(b.ObjectNumber));
+        try {
+            result.Sort((a, b) => {
+                cancellationToken.ThrowIfCancellationRequested();
+                return a.ObjectNumber.CompareTo(b.ObjectNumber);
+            });
+        } catch (InvalidOperationException error) when (error.InnerException is OperationCanceledException) {
+            cancellationToken.ThrowIfCancellationRequested();
+            throw;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
         return result;
     }
 

@@ -24,7 +24,8 @@ public sealed partial class PdfReadDocument {
         return null;
     }
 
-    private PdfViewerPreferences? ExtractViewerPreferences() {
+    private PdfViewerPreferences? ExtractViewerPreferences(System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         PdfDictionary? catalog = FindCatalog();
         if (catalog is null ||
             !catalog.Items.TryGetValue("ViewerPreferences", out var viewerPreferencesObject) ||
@@ -34,7 +35,8 @@ public sealed partial class PdfReadDocument {
 
         var values = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var entry in dictionary.Items) {
-            if (!TryFormatSimpleValue(entry.Value, out string? value)) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!TryFormatSimpleValue(entry.Value, out string? value, cancellationToken)) {
                 return null;
             }
 

@@ -95,6 +95,30 @@ public class PdfPageExtractionCancellationTests {
     }
 
     [Fact]
+    public void HeaderProbeRejectsAnUnboundedVersionToken() {
+        byte[] header = System.Text.Encoding.ASCII.GetBytes("%PDF-" + new string('9', 1_000_000) + "\n");
+
+        Assert.Null(PdfSyntax.GetHeaderVersion(header));
+    }
+
+    [Fact]
+    public void RawSecurityProbeKeepsEncryptionDetailsAfterLongObjectHeader() {
+        byte[] pdf = System.Text.Encoding.ASCII.GetBytes(
+            "%PDF-1.7\n" + new string('7', 100_000) + "\n" +
+            "7 0 obj" + new string(' ', 2048) + "\n" +
+            "<< /Filter /Standard /V 2 /R 3 /Length 128 /P -4 >>\nendobj\n" +
+            "trailer\n<< /Encrypt 7 0 R >>\n%%EOF");
+
+        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf, includeParsedDetails: false);
+
+        Assert.True(security.HasEncryption);
+        Assert.Equal("Standard", security.EncryptionFilter);
+        Assert.Equal(3, security.EncryptionRevision);
+        Assert.Equal(128, security.EncryptionLengthBits);
+        Assert.Equal(-4, security.EncryptionPermissions);
+    }
+
+    [Fact]
     public void ArtifactCaptureKeepsExactDigestAndHonorsCancellation() {
         byte[] pdf = CreatePdf();
         using var cancellation = new CancellationTokenSource();

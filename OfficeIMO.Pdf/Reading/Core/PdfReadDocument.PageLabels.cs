@@ -43,7 +43,16 @@ public sealed partial class PdfReadDocument {
             labels.Add(new PdfPageLabel(pageIndex, style, prefix, startNumber));
         }
 
-        labels.Sort((left, right) => left.StartPageIndex.CompareTo(right.StartPageIndex));
+        try {
+            labels.Sort((left, right) => {
+                cancellationToken.ThrowIfCancellationRequested();
+                return left.StartPageIndex.CompareTo(right.StartPageIndex);
+            });
+        } catch (InvalidOperationException error) when (error.InnerException is OperationCanceledException) {
+            cancellationToken.ThrowIfCancellationRequested();
+            throw;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
         return labels.Count == 0 ? Array.Empty<PdfPageLabel>() : labels.AsReadOnly();
     }
 }
