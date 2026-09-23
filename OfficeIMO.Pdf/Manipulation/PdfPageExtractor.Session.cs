@@ -39,7 +39,7 @@ internal static partial class PdfPageExtractor {
                 _cancellationToken.ThrowIfCancellationRequested();
                 objects[index] = _document.Pages[pageNumbers[index] - 1].ObjectNumber;
             }
-            return ExtractPages(_document.Objects, _metadata ??= _document.UncheckedMetadata, objects,
+            return ExtractPages(_document.Objects, _metadata ??= _document.GetUncheckedMetadata(_cancellationToken), objects,
                 catalogState: _catalog, fileVersion: _fileVersion, maximumOutputBytes: maximumOutputBytes,
                 cancellationToken: _cancellationToken);
         }

@@ -366,8 +366,7 @@ internal static partial class PdfSyntax {
                 result.Append(part, offset, Math.Min(65536, part.Length - offset));
             }
         }
-        cancellationToken.ThrowIfCancellationRequested();
-        return result.ToString();
+        return PdfEncoding.StringBuilderToStringCancellable(result, 0, result.Length, cancellationToken);
     }
 
 }

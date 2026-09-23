@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>
@@ -186,6 +188,7 @@ public sealed partial class PdfReadDocument {
     internal IReadOnlyList<PdfOutlineItem> UncheckedOutlines => _outlines;
     // Rewrites and inspection must read the parsed source, since Metadata is a mutable read model.
     internal PdfMetadata UncheckedMetadata => ExtractMetadata();
+    internal PdfMetadata GetUncheckedMetadata(CancellationToken cancellationToken) => ExtractMetadata(cancellationToken);
     internal PdfXmpMetadataInfo? UncheckedXmpMetadata => _xmpMetadata;
     internal IReadOnlyList<PdfOutputIntentInfo> UncheckedOutputIntents => _outputIntents;
     internal bool UncheckedOutputIntentsAreComplete => _outputIntentsAreComplete;

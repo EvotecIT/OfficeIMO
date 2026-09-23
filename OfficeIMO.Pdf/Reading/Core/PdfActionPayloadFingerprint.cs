@@ -32,7 +32,7 @@ internal static class PdfActionPayloadFingerprint {
         int nodes = 0;
         bool complete = true;
         AppendDictionary(builder, action, objects, pageNumbers, activeReferences, depth: 0, ref nodes, ref complete, isActionRoot: true, useReferenceHashes: true, cancellationToken);
-        return complete ? builder.ToString() : null;
+        return complete ? PdfEncoding.StringBuilderToStringCancellable(builder, 0, builder.Length, cancellationToken) : null;
     }
 
     private static void AppendObject(

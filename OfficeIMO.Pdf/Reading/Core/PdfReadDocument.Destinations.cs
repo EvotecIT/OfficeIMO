@@ -41,7 +41,7 @@ public sealed partial class PdfReadDocument {
         if (directDestinations is not null) {
             foreach (var entry in directDestinations.Items) {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (TryCreateNamedDestination(entry.Key, entry.Value, out var destination)) {
+                if (TryCreateNamedDestination(entry.Key, entry.Value, out var destination, cancellationToken)) {
                     AddNamedDestination(result, destination, PdfNamedDestinationTokenKind.Name);
                 }
             }
@@ -86,7 +86,7 @@ public sealed partial class PdfReadDocument {
             for (int i = 0; i + 1 < destinationNames.Items.Count; i += 2) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (TryReadDestinationName(destinationNames.Items[i], out string? name, out _) &&
-                    TryCreateNamedDestination(name!, destinationNames.Items[i + 1], out var destination)) {
+                    TryCreateNamedDestination(name!, destinationNames.Items[i + 1], out var destination, cancellationToken)) {
                     AddNamedDestination(result, destination, PdfNamedDestinationTokenKind.String);
                 }
             }
@@ -151,10 +151,11 @@ public sealed partial class PdfReadDocument {
         }
     }
 
-    private bool TryCreateNamedDestination(string name, PdfObject destinationObject, out PdfNamedDestination destination) {
+    private bool TryCreateNamedDestination(string name, PdfObject destinationObject, out PdfNamedDestination destination,
+        System.Threading.CancellationToken cancellationToken) {
         destination = null!;
         if (string.IsNullOrEmpty(name) ||
-            !TryReadDestination(destinationObject, out int? pageNumber, out double? destinationTop, out PdfOpenActionDestinationMode? destinationMode, out double? destinationLeft, out double? destinationBottom, out double? destinationRight, out double? destinationZoom)) {
+            !TryReadDestination(destinationObject, out int? pageNumber, out double? destinationTop, out PdfOpenActionDestinationMode? destinationMode, out double? destinationLeft, out double? destinationBottom, out double? destinationRight, out double? destinationZoom, cancellationToken)) {
             return false;
         }
 
@@ -245,7 +246,8 @@ public sealed partial class PdfReadDocument {
         out double? destinationLeft,
         out double? destinationBottom,
         out double? destinationRight,
-        out double? destinationZoom) {
+        out double? destinationZoom,
+        System.Threading.CancellationToken cancellationToken = default) {
         pageNumber = null;
         destinationTop = null;
         destinationMode = null;
@@ -265,7 +267,7 @@ public sealed partial class PdfReadDocument {
         }
 
         if (destination.Items[0] is PdfReference pageRef) {
-            pageNumber = GetPageNumberForObject(pageRef.ObjectNumber);
+            pageNumber = GetPageNumberForObject(pageRef.ObjectNumber, cancellationToken);
         }
 
         if (destination.Items.Count > 1 && ResolveObject(destination.Items[1]) is PdfName fitName) {
@@ -358,17 +360,20 @@ public sealed partial class PdfReadDocument {
         String
     }
 
-    internal int? GetPageNumberForObject(int objectNumber) {
+    internal int? GetPageNumberForObject(int objectNumber, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         Dictionary<int, int>? pageNumbers = System.Threading.Volatile.Read(ref _pageNumberByObject);
         if (pageNumbers is null) {
             var built = new Dictionary<int, int>(Pages.Count);
             for (int i = 0; i < Pages.Count; i++) {
+                if ((i & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
                 int pageObjectNumber = Pages[i].ObjectNumber;
                 if (!built.ContainsKey(pageObjectNumber)) {
                     built[pageObjectNumber] = i + 1;
                 }
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             pageNumbers = System.Threading.Interlocked.CompareExchange(ref _pageNumberByObject, built, null) ?? built;
         }
 

@@ -474,7 +474,7 @@ public sealed partial class PdfReadDocument {
         HashSet<int> pathReferences = visitedReferences;
         if (actionObject is PdfReference reference) {
             if (!visitedReferences.Add(reference.ObjectNumber)) return;
-            pathReferences = new HashSet<int>(visitedReferences);
+            pathReferences = CopyReferencePath(visitedReferences, cancellationToken);
         }
 
         if (ResolveObject(actionObject) is not PdfDictionary action ||
@@ -528,7 +528,7 @@ public sealed partial class PdfReadDocument {
         HashSet<int> pathReferences = visitedReferences;
         if (actionObject is PdfReference reference) {
             if (!visitedReferences.Add(reference.ObjectNumber)) return;
-            pathReferences = new HashSet<int>(visitedReferences);
+            pathReferences = CopyReferencePath(visitedReferences, cancellationToken);
         }
 
         PdfObject? resolved = ResolveObject(actionObject);
@@ -540,7 +540,7 @@ public sealed partial class PdfReadDocument {
                     actionArray.Items[index],
                     actions,
                     budget,
-                    new HashSet<int>(pathReferences),
+                    CopyReferencePath(pathReferences, cancellationToken),
                     depth + 1,
                     cancellationToken);
             }

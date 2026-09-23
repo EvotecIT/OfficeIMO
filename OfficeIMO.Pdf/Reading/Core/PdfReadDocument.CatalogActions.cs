@@ -230,7 +230,8 @@ public sealed partial class PdfReadDocument {
                 return;
             }
 
-            pathReferences = new HashSet<int>(visitedReferences) { reference.ObjectNumber };
+            pathReferences = CopyReferencePath(visitedReferences, cancellationToken);
+            pathReferences.Add(reference.ObjectNumber);
         }
 
         if (resolved is not PdfDictionary dictionary) {
@@ -263,7 +264,8 @@ public sealed partial class PdfReadDocument {
                 return;
             }
 
-            pathReferences = new HashSet<int>(visitedReferences) { reference.ObjectNumber };
+            pathReferences = CopyReferencePath(visitedReferences, cancellationToken);
+            pathReferences.Add(reference.ObjectNumber);
         }
 
         if (resolved is PdfArray actions) {
@@ -272,7 +274,7 @@ public sealed partial class PdfReadDocument {
                 cancellationToken.ThrowIfCancellationRequested();
                 int before = result.Count;
                 string nextPath = name + "." + activeIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                AddCatalogAction(nextPath, source, triggerName, actions.Items[i], result, new HashSet<int>(pathReferences), cancellationToken, nextPath, isChainedAction: true);
+                AddCatalogAction(nextPath, source, triggerName, actions.Items[i], result, CopyReferencePath(pathReferences, cancellationToken), cancellationToken, nextPath, isChainedAction: true);
                 if (result.Count > before) {
                     activeIndex++;
                 }
@@ -305,6 +307,17 @@ public sealed partial class PdfReadDocument {
 
         actionType = null;
         return false;
+    }
+
+    private static HashSet<int> CopyReferencePath(HashSet<int> source,
+        System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        var copy = new HashSet<int>();
+        foreach (int objectNumber in source) {
+            cancellationToken.ThrowIfCancellationRequested();
+            copy.Add(objectNumber);
+        }
+        return copy;
     }
 
 }
