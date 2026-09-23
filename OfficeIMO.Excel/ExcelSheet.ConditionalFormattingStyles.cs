@@ -71,21 +71,21 @@ namespace OfficeIMO.Excel {
 
             if (HasProjectedConditionalFormattingFont(definition)) {
                 var font = new Font();
-                if (definition.DifferentialFontBold.HasValue) font.Append(new Bold { Val = definition.DifferentialFontBold.Value });
-                if (definition.DifferentialFontItalic.HasValue) font.Append(new Italic { Val = definition.DifferentialFontItalic.Value });
-                if (definition.DifferentialFontUnderline.HasValue) font.Append(new Underline {
+                if (definition.DifferentialFontBold.HasValue) font.AddChild(new Bold { Val = definition.DifferentialFontBold.Value }, true);
+                if (definition.DifferentialFontItalic.HasValue) font.AddChild(new Italic { Val = definition.DifferentialFontItalic.Value }, true);
+                if (definition.DifferentialFontUnderline.HasValue) font.AddChild(new Underline {
                     Val = definition.DifferentialFontUnderline.Value ? UnderlineValues.Single : UnderlineValues.None
-                });
+                }, true);
                 if (!string.IsNullOrWhiteSpace(definition.DifferentialFontColorArgb)) {
-                    font.Append(new DocumentFormat.OpenXml.Spreadsheet.Color {
+                    font.AddChild(new DocumentFormat.OpenXml.Spreadsheet.Color {
                         Rgb = NormalizeHexColor(definition.DifferentialFontColorArgb!)
-                    });
-                }
-                if (!string.IsNullOrWhiteSpace(definition.DifferentialFontName)) {
-                    font.Append(new FontName { Val = definition.DifferentialFontName });
+                    }, true);
                 }
                 if (definition.DifferentialFontSize.HasValue) {
-                    font.Append(new FontSize { Val = definition.DifferentialFontSize.Value });
+                    font.AddChild(new FontSize { Val = definition.DifferentialFontSize.Value }, true);
+                }
+                if (!string.IsNullOrWhiteSpace(definition.DifferentialFontName)) {
+                    font.AddChild(new FontName { Val = definition.DifferentialFontName }, true);
                 }
                 if (font.ChildElements.Any()) InsertDifferentialStyleChild(differential, font);
             }

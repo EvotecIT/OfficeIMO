@@ -408,7 +408,9 @@ namespace OfficeIMO.Tests {
                     Formulas = new[] { "0" },
                     DifferentialFontBold = false,
                     DifferentialFontItalic = false,
-                    DifferentialFontUnderline = false
+                    DifferentialFontUnderline = false,
+                    DifferentialFontName = "Liberation Serif",
+                    DifferentialFontSize = 11.5D
                 });
                 document.Save();
             }
@@ -418,8 +420,31 @@ namespace OfficeIMO.Tests {
                 Assert.False(rule.DifferentialFontBold);
                 Assert.False(rule.DifferentialFontItalic);
                 Assert.False(rule.DifferentialFontUnderline);
+                Assert.Equal("Liberation Serif", rule.DifferentialFontName);
+                Assert.Equal(11.5D, rule.DifferentialFontSize);
                 Assert.Empty(document.ValidateOpenXml());
             }
+        }
+
+        [Theory]
+        [InlineData(false, 0.5D)]
+        [InlineData(false, 410D)]
+        [InlineData(true, 0.5D)]
+        [InlineData(true, 410D)]
+        public void ConditionalFormattingLifecycle_RejectsOutOfRangeFontSize(bool officeExtension, double fontSize) {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Styles");
+            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddConditionalFormattingRule(
+                new ExcelConditionalFormattingInfo {
+                    Source = officeExtension
+                        ? ExcelConditionalFormattingSource.Office2010Extension
+                        : ExcelConditionalFormattingSource.Standard,
+                    Range = "A1",
+                    Type = "CellIs",
+                    Operator = "GreaterThan",
+                    Formulas = new[] { "0" },
+                    DifferentialFontSize = fontSize
+                }));
         }
     }
 }

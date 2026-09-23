@@ -11,7 +11,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
     private sealed class OdsConditionalStylePlan {
         internal OdsConditionalStylePlan(ExcelConditionalFormattingOperator comparison, string formula1,
             string? formula2, string? fillColor, string? fontColor,
-            bool? bold, bool? italic, bool? underline) {
+            bool? bold, bool? italic, bool? underline, string? fontName, double? fontSizePoints) {
             Comparison = comparison;
             Formula1 = formula1;
             Formula2 = formula2;
@@ -20,6 +20,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             Bold = bold;
             Italic = italic;
             Underline = underline;
+            FontName = fontName;
+            FontSizePoints = fontSizePoints;
         }
 
         internal ExcelConditionalFormattingOperator Comparison { get; }
@@ -30,6 +32,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         internal bool? Bold { get; }
         internal bool? Italic { get; }
         internal bool? Underline { get; }
+        internal string? FontName { get; }
+        internal double? FontSizePoints { get; }
     }
 
     private static void CollectOdsConditionalTarget(OdsDocument source, string styleName,
@@ -71,16 +75,31 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             fontColor = appliedStyles[0].Color;
         } catch (FormatException) {
             return null;
+        } catch (ArgumentException) {
+            return null;
         }
         bool? bold = appliedStyles[0].Bold;
         bool? italic = appliedStyles[0].Italic;
         bool? underline = appliedStyles[0].Underline;
-        if (!fill.HasValue && !fontColor.HasValue && !bold.HasValue && !italic.HasValue && !underline.HasValue)
+        string? fontName = OdfFontFamilySyntax.TryParse(appliedStyles[0].FontFamily, out OdfFontFamilySyntax? family)
+            && !family!.HasFallbacks ? family.PrimaryFamily : null;
+        double? fontSizePoints = null;
+        try {
+            OdfLength? fontSize = appliedStyles[0].FontSize;
+            if (fontSize.HasValue && fontSize.Value.TryToPoints(out double points)
+                && points >= 1D && points <= 409D) fontSizePoints = points;
+        } catch (FormatException) {
+            // A malformed optional size does not discard other supported conditional styling.
+        } catch (ArgumentException) {
+            // A malformed optional size does not discard other supported conditional styling.
+        }
+        if (!fill.HasValue && !fontColor.HasValue && !bold.HasValue && !italic.HasValue && !underline.HasValue
+            && fontName == null && !fontSizePoints.HasValue)
             return null;
         return new OdsConditionalStylePlan(comparison, formula1, formula2,
             fill.HasValue ? "FF" + fill.Value.ToString().Substring(1) : null,
             fontColor.HasValue ? "FF" + fontColor.Value.ToString().Substring(1) : null,
-            bold, italic, underline);
+            bold, italic, underline, fontName, fontSizePoints);
     }
 
     private static bool TryParseNumericCellCondition(string condition,
@@ -178,7 +197,9 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 DifferentialFontColorArgb = plan.FontColor,
                 DifferentialFontBold = plan.Bold,
                 DifferentialFontItalic = plan.Italic,
-                DifferentialFontUnderline = plan.Underline
+                DifferentialFontUnderline = plan.Underline,
+                DifferentialFontName = plan.FontName,
+                DifferentialFontSize = plan.FontSizePoints
             });
             convertedStyles.Add(entry.Key);
         }

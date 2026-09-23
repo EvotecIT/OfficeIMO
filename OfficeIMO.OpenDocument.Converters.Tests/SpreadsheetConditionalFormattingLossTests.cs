@@ -126,12 +126,103 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
             && mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
     }
 
+    [Theory]
+    [InlineData("1pt", 1.0)]
+    [InlineData("11.5pt", 11.5)]
+    [InlineData("2.54cm", 72.0)]
+    [InlineData("409pt", 409.0)]
+    public void OdsConditionalFontFamilyAndAbsoluteSizeMapToExcel(string size, double expectedPoints) {
+        OdsDocument source = OdsDocument.Create();
+        OdsSheet sheet = source.AddSheet("Data");
+        OdfStyle typography = source.Styles.CreateNamed("Typography", OdfStyleFamily.TableCell);
+        typography.FontFamily = "Liberation Serif";
+        typography.FontSize = OdfLength.Parse(size);
+        typography.Color = OdfColor.Parse("#C00000");
+        typography.Bold = true;
+        OdfStyle ordinary = source.Styles.CreateAutomatic(OdfStyleFamily.TableCell);
+        ordinary.AddConditionalMap("cell-content()>0", typography.Name);
+        sheet.Cell(0, 0).StyleName = ordinary.Name;
+
+        OdsDocument reopened = OdsDocument.Load(new MemoryStream(source.ToBytes()));
+        OdfConversionResult<ExcelDocument> result = reopened.ToExcelDocumentResult();
+        using ExcelDocument output = result.Value;
+        using ExcelDocument reopenedExcel = ExcelDocument.Load(new MemoryStream(output.ToBytes()));
+
+        ExcelConditionalFormattingInfo rule = Assert.Single(reopenedExcel.Sheets.Single().GetConditionalFormattingRules());
+        Assert.Equal("Liberation Serif", rule.DifferentialFontName);
+        Assert.Equal("FFC00000", rule.DifferentialFontColorArgb);
+        Assert.True(rule.DifferentialFontBold);
+        Assert.NotNull(rule.DifferentialFontSize);
+        Assert.InRange(rule.DifferentialFontSize.Value, expectedPoints - 0.001D, expectedPoints + 0.001D);
+        var schemaErrors = reopenedExcel.ValidateOpenXml();
+        Assert.True(schemaErrors.Count == 0, string.Join("\n", schemaErrors));
+        Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "source-conditional-style-maps"
+            && mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
+    }
+
+    [Theory]
+    [InlineData("Liberation Serif, Arial", null)]
+    [InlineData(null, "120%")]
+    [InlineData(null, "0.5pt")]
+    [InlineData(null, "410pt")]
+    public void OdsUnrepresentableConditionalTypographyRemainsUnsupported(string? family, string? size) {
+        OdsDocument source = OdsDocument.Create();
+        OdsSheet sheet = source.AddSheet("Data");
+        OdfStyle typography = source.Styles.CreateNamed("Typography", OdfStyleFamily.TableCell);
+        typography.FontFamily = family;
+        typography.FontSize = size == null ? null : OdfLength.Parse(size);
+        OdfStyle ordinary = source.Styles.CreateAutomatic(OdfStyleFamily.TableCell);
+        ordinary.AddConditionalMap("cell-content()>0", typography.Name);
+        sheet.Cell(0, 0).StyleName = ordinary.Name;
+
+        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        using ExcelDocument output = result.Value;
+        Assert.Empty(output.Sheets.Single().GetConditionalFormattingRules());
+        Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "source-conditional-style-maps"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OdsMalformedConditionalFontSizePreservesOtherSupportedStyles(bool includeFill) {
+        OdsDocument source = OdsDocument.Create();
+        OdsSheet sheet = source.AddSheet("Data");
+        OdfStyle typography = source.Styles.CreateNamed("Typography", OdfStyleFamily.TableCell);
+        typography.FontSize = OdfLength.Points(12);
+        if (includeFill) typography.BackgroundColor = OdfColor.Parse("#D9EAD3");
+        OdfStyle ordinary = source.Styles.CreateAutomatic(OdfStyleFamily.TableCell);
+        ordinary.AddConditionalMap("cell-content()>0", typography.Name);
+        sheet.Cell(0, 0).StyleName = ordinary.Name;
+        XNamespace styleNamespace = "urn:oasis:names:tc:opendocument:xmlns:style:1.0";
+        XNamespace foNamespace = "urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0";
+        source.Package.GetXml("styles.xml").Descendants(styleNamespace + "style")
+            .Single(element => (string?)element.Attribute(styleNamespace + "name") == typography.Name)
+            .Element(styleNamespace + "text-properties")!
+            .SetAttributeValue(foNamespace + "font-size", "");
+        source.Package.MarkXmlDirty("styles.xml");
+
+        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        using ExcelDocument output = result.Value;
+        if (includeFill) {
+            ExcelConditionalFormattingInfo rule = Assert.Single(output.Sheets.Single().GetConditionalFormattingRules());
+            Assert.Equal("FFD9EAD3", rule.DifferentialFillColorArgb);
+            Assert.Null(rule.DifferentialFontSize);
+            Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "source-conditional-style-maps"
+                && mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
+        } else {
+            Assert.Empty(output.Sheets.Single().GetConditionalFormattingRules());
+            Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "source-conditional-style-maps"
+                && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+        }
+    }
+
     [Fact]
     public void OdsConditionalMapWithUnmappedStyleRemainsUnsupported() {
         OdsDocument source = OdsDocument.Create();
         OdsSheet sheet = source.AddSheet("Data");
         OdfStyle highlight = source.Styles.CreateNamed("Highlight", OdfStyleFamily.TableCell);
-        highlight.FontFamily = "Arial";
+        highlight.StrikeThrough = true;
         OdfStyle ordinary = source.Styles.CreateAutomatic(OdfStyleFamily.TableCell);
         ordinary.AddConditionalMap("cell-content()>0", highlight.Name);
         sheet.Cell(0, 0).StyleName = ordinary.Name;
