@@ -10,17 +10,26 @@ public static partial class ExcelOpenDocumentConversionExtensions {
 
     private sealed class OdsConditionalStylePlan {
         internal OdsConditionalStylePlan(ExcelConditionalFormattingOperator comparison, string formula1,
-            string? formula2, string fillColor) {
+            string? formula2, string? fillColor, string? fontColor,
+            bool? bold, bool? italic, bool? underline) {
             Comparison = comparison;
             Formula1 = formula1;
             Formula2 = formula2;
             FillColor = fillColor;
+            FontColor = fontColor;
+            Bold = bold;
+            Italic = italic;
+            Underline = underline;
         }
 
         internal ExcelConditionalFormattingOperator Comparison { get; }
         internal string Formula1 { get; }
         internal string? Formula2 { get; }
-        internal string FillColor { get; }
+        internal string? FillColor { get; }
+        internal string? FontColor { get; }
+        internal bool? Bold { get; }
+        internal bool? Italic { get; }
+        internal bool? Underline { get; }
     }
 
     private static void CollectOdsConditionalTarget(OdsDocument source, string styleName,
@@ -56,15 +65,22 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             .Take(2).ToArray();
         if (appliedStyles.Length != 1) return null;
         OdfColor? fill;
+        OdfColor? fontColor;
         try {
             fill = appliedStyles[0].BackgroundColor;
+            fontColor = appliedStyles[0].Color;
         } catch (FormatException) {
             return null;
         }
-        return fill.HasValue
-            ? new OdsConditionalStylePlan(comparison, formula1, formula2,
-                "FF" + fill.Value.ToString().Substring(1))
-            : null;
+        bool? bold = appliedStyles[0].Bold == true ? true : (bool?)null;
+        bool? italic = appliedStyles[0].Italic == true ? true : (bool?)null;
+        bool? underline = appliedStyles[0].Underline == true ? true : (bool?)null;
+        if (!fill.HasValue && !fontColor.HasValue && !bold.HasValue && !italic.HasValue && !underline.HasValue)
+            return null;
+        return new OdsConditionalStylePlan(comparison, formula1, formula2,
+            fill.HasValue ? "FF" + fill.Value.ToString().Substring(1) : null,
+            fontColor.HasValue ? "FF" + fontColor.Value.ToString().Substring(1) : null,
+            bold, italic, underline);
     }
 
     private static bool TryParseNumericCellCondition(string condition,
@@ -150,8 +166,20 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         foreach (KeyValuePair<string, List<string>> entry in targets) {
             if (limits.Contains(entry.Key) || entry.Value.Count == 0) continue;
             OdsConditionalStylePlan plan = plans[entry.Key]!;
-            sheet.AddConditionalRule(string.Join(" ", entry.Value), plan.Comparison,
-                plan.Formula1, formula2: plan.Formula2, fillColor: plan.FillColor);
+            sheet.AddConditionalFormattingRule(new ExcelConditionalFormattingInfo {
+                Source = ExcelConditionalFormattingSource.Standard,
+                Range = string.Join(" ", entry.Value),
+                Type = "CellIs",
+                Operator = plan.Comparison.ToString(),
+                Formulas = plan.Formula2 == null
+                    ? new[] { plan.Formula1 }
+                    : new[] { plan.Formula1, plan.Formula2 },
+                DifferentialFillColorArgb = plan.FillColor,
+                DifferentialFontColorArgb = plan.FontColor,
+                DifferentialFontBold = plan.Bold,
+                DifferentialFontItalic = plan.Italic,
+                DifferentialFontUnderline = plan.Underline
+            });
             convertedStyles.Add(entry.Key);
         }
     }
