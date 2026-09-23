@@ -632,7 +632,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         AddConverted(report, "validations", convertedValidations);
         if (convertedConditionalStyles.Count > 0) report.Add("source-conditional-style-maps",
             OdfConversionMappingStatus.Approximated, convertedConditionalStyles.Count,
-            "Single numeric cell-content comparisons and literal numeric between/not-between conditions with direct fill or supported font styling are mapped to Excel differential styles; other applied-style properties and ODF evaluation details are not transferred.");
+            "Single numeric cell-content comparisons and literal numeric between/not-between conditions with direct fill or supported font styling are mapped to Excel differential styles; one font family and absolute sizes up to 409 points are supported, while other applied-style properties and ODF evaluation details are not transferred.");
         AddUnsupported(report, "conditional-formatting-cell-limits", conditionalTargetLimitFailures,
             "A source style used on more than 4,096 cells in one sheet was not mapped to an Excel conditional-formatting rule for that sheet.");
         if (unsupportedValidationAssignments > 0) report.Add("validations", OdfConversionMappingStatus.Unsupported,

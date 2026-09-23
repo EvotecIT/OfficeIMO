@@ -408,7 +408,9 @@ namespace OfficeIMO.Tests {
                     Formulas = new[] { "0" },
                     DifferentialFontBold = false,
                     DifferentialFontItalic = false,
-                    DifferentialFontUnderline = false
+                    DifferentialFontUnderline = false,
+                    DifferentialFontName = "Liberation Serif",
+                    DifferentialFontSize = 11.5D
                 });
                 document.Save();
             }
@@ -418,6 +420,8 @@ namespace OfficeIMO.Tests {
                 Assert.False(rule.DifferentialFontBold);
                 Assert.False(rule.DifferentialFontItalic);
                 Assert.False(rule.DifferentialFontUnderline);
+                Assert.Equal("Liberation Serif", rule.DifferentialFontName);
+                Assert.Equal(11.5D, rule.DifferentialFontSize);
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
