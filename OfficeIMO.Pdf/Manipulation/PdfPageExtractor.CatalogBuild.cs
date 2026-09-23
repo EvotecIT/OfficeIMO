@@ -309,7 +309,14 @@ internal static partial class PdfPageExtractor {
             entries.Add(new PageLabelEntry(pageIndex, labelDictionary));
         }
 
-        entries.Sort((left, right) => left.StartPageIndex.CompareTo(right.StartPageIndex));
+        try {
+            entries.Sort((left, right) => {
+                cancellationToken.ThrowIfCancellationRequested();
+                return left.StartPageIndex.CompareTo(right.StartPageIndex);
+            });
+        } catch (InvalidOperationException error) when (error.InnerException is OperationCanceledException) {
+            throw error.InnerException!;
+        }
         return entries;
     }
 

@@ -57,8 +57,15 @@ internal static class PdfStringParser {
 
         cancellationToken.ThrowIfCancellationRequested();
         if (count == bytes.Length) return bytes;
-        Array.Resize(ref bytes, count);
-        return bytes;
+        var result = new byte[count];
+        for (int offset = 0; offset < count;) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int chunkLength = Math.Min(64 * 1024, count - offset);
+            Buffer.BlockCopy(bytes, offset, result, offset, chunkLength);
+            offset += chunkLength;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return result;
     }
 
     private static bool IsOctalDigit(char c) => c >= '0' && c <= '7';
