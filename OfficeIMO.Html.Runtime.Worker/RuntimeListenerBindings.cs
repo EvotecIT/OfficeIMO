@@ -58,7 +58,7 @@ internal sealed class RuntimeListenerBindings : IDisposable {
         if (_disposed) return;
         _disposed = true;
         foreach (var pair in _targets) {
-            if (pair.Key is EventTarget native) native.EventListenerRemoved -= pair.Value.OnRemoved;
+            if (pair.Key is EventTarget native) native.OnReset -= pair.Value.OnReset;
             foreach (var registration in pair.Value.Registrations)
                 pair.Key.RemoveEventListener(registration.Type, registration.Handler, registration.Capture);
         }
@@ -89,15 +89,14 @@ internal sealed class RuntimeListenerBindings : IDisposable {
 
     private static TargetListeners CreateListeners(IEventTarget target) {
         var state = new TargetListeners();
-        if (target is EventTarget native) native.EventListenerRemoved += state.OnRemoved;
+        if (target is EventTarget native) native.OnReset += state.OnReset;
         return state;
     }
 
     private sealed class TargetListeners {
         internal readonly List<Registration> Registrations = new();
 
-        internal void OnRemoved(string type, DomEventHandler handler, bool capture) =>
-            Registrations.RemoveAll(item => item.Type == type && item.Capture == capture && ReferenceEquals(item.Handler, handler));
+        internal void OnReset(object? sender, EventArgs args) => Registrations.Clear();
     }
 
     private sealed class Registration(string type, bool capture, Function callback) {
