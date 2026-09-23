@@ -37,7 +37,7 @@ public sealed partial class PdfReadDocument {
 
             remainingItems--;
             string title = current.Get<PdfStringObj>("Title")?.Value ?? string.Empty;
-            var (pageNumber, destinationTop, destinationMode, destinationLeft, destinationBottom, destinationRight, destinationZoom) = GetOutlineDestination(current);
+            var (pageNumber, destinationTop, destinationMode, destinationLeft, destinationBottom, destinationRight, destinationZoom) = GetOutlineDestination(current, cancellationToken);
             bool isExpanded = !current.Items.TryGetValue("Count", out var countObject) ||
                 ResolveObject(countObject) is not PdfNumber countNumber ||
                 countNumber.Value >= 0D;

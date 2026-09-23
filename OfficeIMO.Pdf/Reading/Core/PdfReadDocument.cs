@@ -100,7 +100,7 @@ public sealed partial class PdfReadDocument {
         cancellationToken.ThrowIfCancellationRequested();
         _outlines = ExtractOutlines(cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        _openAction = ExtractOpenAction();
+        _openAction = ExtractOpenAction(cancellationToken);
         ViewerPreferences = ExtractViewerPreferences(cancellationToken);
         _portfolio = ExtractPortfolio(cancellationToken);
         _acroFormDefaultAppearance = ExtractAcroFormText("DA");

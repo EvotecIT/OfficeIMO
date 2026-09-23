@@ -197,7 +197,7 @@ internal static partial class PdfDocumentSemanticEnricher {
                 PdfMarkedContentReference reference = current.MarkedContentReferences[referenceIndex];
                 int? pageObjectNumber = reference.PageObjectNumber ?? inheritedPageObjectNumber;
                 int? pageNumber = pageObjectNumber.HasValue
-                    ? document.GetPageNumberForObject(pageObjectNumber.Value)
+                    ? document.GetPageNumberForObject(pageObjectNumber.Value, workBudget.CancellationToken)
                     : null;
                 if (!pageNumber.HasValue) continue;
                 var item = new PageMarkedContent(
