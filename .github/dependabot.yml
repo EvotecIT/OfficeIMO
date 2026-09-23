@@ -28,6 +28,11 @@ updates:
       include:
         - "*"
     open-pull-requests-limit: 1
+    # Match VS Code declarations to the minimum runtime in package.json.
+    # Remove this bound when engines.vscode moves beyond 1.136.
+    ignore:
+      - dependency-name: "@types/vscode"
+        versions: [">=1.137.0"]
     groups:
       all-dependencies:
         patterns:
