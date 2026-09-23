@@ -21,3 +21,19 @@ The NASA archive exposed two PDF conversion failures before `4d5009b39`: a missi
 The NASA page was predeclared held-out, but its first capture exposed the failures and informed the fix. It is now a development case; a new independently chosen source must replace its held-out role before a held-out acceptance claim. Resource/loss reports for each replay lane, editable Word/Excel/PowerPoint/OneNote/RTF/Markdown artifacts, visual comparisons beyond the inspected first pages, and supported-platform time/allocation/peak-memory budgets remain open in the [roadmap](../../../../../Docs/ROADMAP.md#unfamiliar-page-conversion-qualification). This evidence neither establishes general browser equivalence nor a blanket PeachPDF parity claim.
 
 Reproduce a page from its retained `source.mhtml` with `html-mhtml-evidence --mhtml <archive> --output <new-directory> --replay-browser --require-clean-source`, as documented in the [comparison runner](../../../../../OfficeIMO.Pdf.Benchmarks.Comparisons/README.md). The clean replay directories are `h10-w3c-guide-clean-4d5009b39`, `h10-nasa-voyager-clean-4d5009b39`, and `h10-playwright-todomvc-clean-4d5009b39` under `Ignore/HtmlUnknownPageQualification/`.
+
+## Explicit screen-resource and report follow-up
+
+Source `666c0b77ab28e607cae10ebc9d80488c2f47e51a` adds an MHTML-aware explicit PDF request path. The previous comparison runner sent screen intents through the generic HTML adapter, which blocked archived stylesheets and images as remote resources. The runner now uses the MHTML bridge for both screen intents and records MIME diagnostics plus per-operation PDF warnings and loss status in schema-2 JSON. A heading shifted above the first snapshot page also no longer aborts PDF bookmark creation. The independent read-only review found a missing exact-head check for the MHTML/PDF bridge; the final gate includes that bridge and the relevant Email, HTML-core, AngleSharp-adapter and Core assemblies.
+
+All three unchanged archives replayed with `--require-clean-source`, matching owner versions and zero operation failures. The full .NET 10 HTML suite passed 3,247/3,247; the MHTML/PDF bridge built for netstandard2.0 and net8.0 with no warnings; the H4 advanced held-out visual gate passed 8/8. The replay directories use the suffix `clean-666c0b77a` under `Ignore/HtmlUnknownPageQualification/`.
+
+| NASA intent | Chromium | OfficeIMO before MHTML screen routing | OfficeIMO at `666c0b77a` | PeachPDF |
+| --- | ---: | ---: | ---: | ---: |
+| Screen-media paged | 4 pages | 17 pages | 3 pages | Not measured |
+| Screen snapshot paged | Frozen screen reference | 20 pages | 2 pages | Not measured |
+| Print | 4 pages | 3 pages | 3 pages | 3 pages |
+
+The screen counts changed because the archived CSS and images now reach the managed renderer. First-page raster inspection confirms that the screen snapshot has the sidebar and overview layout absent from the previous unstyled output. It still clips the title and mispaints or omits gallery cards. Print still puts a dark field over the first page and displaces content. These are layout and paint gaps, not proof of a remaining screen-resource routing failure. The NASA archive has only 23 saved resources; the OfficeIMO report records 50 unavailable resource references per print or screen-media operation, including assets outside the saved archive. Some gallery assets are saved yet still do not appear correctly, so capture completeness and paint/layout require separate investigation. W3C and TodoMVC page counts did not change. W3C still reports one missing CID stylesheet resource; TodoMVC reports a form-field typography approximation.
+
+The schema-2 report measures operation-level loss, but raw warning counts include favicons and offscreen references and should not be read as visible-content loss counts. Editable-format artifacts, full-page visual scoring, and supported-platform allocation and peak-memory budgets remain open.
