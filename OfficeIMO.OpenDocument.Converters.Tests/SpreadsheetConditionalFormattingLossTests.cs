@@ -99,6 +99,31 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
     }
 
     [Fact]
+    public void RepeatedConditionalCellsAtRuleBudgetRemainMappedAfterSave() {
+        OdsDocument source = OdsDocument.Create();
+        OdsSheet sheet = source.AddSheet("Data");
+        OdfStyle fill = source.Styles.CreateNamed("Fill", OdfStyleFamily.TableCell);
+        fill.BackgroundColor = OdfColor.Parse("#D9EAD3");
+        OdfStyle mapped = source.Styles.CreateAutomatic(OdfStyleFamily.TableCell);
+        mapped.AddConditionalMap("cell-content()>0", fill.Name);
+        sheet.Cell(0, 0).StyleName = mapped.Name;
+        XNamespace tableNamespace = "urn:oasis:names:tc:opendocument:xmlns:table:1.0";
+        source.Package.GetXml("content.xml").Descendants(tableNamespace + "table-cell").Single()
+            .SetAttributeValue(tableNamespace + "number-columns-repeated", 4096);
+        source.Package.MarkXmlDirty("content.xml");
+
+        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        using ExcelDocument output = result.Value;
+        using ExcelDocument reopened = ExcelDocument.Load(new MemoryStream(output.ToBytes()));
+
+        ExcelConditionalFormattingInfo rule = Assert.Single(reopened.Sheets.Single().GetConditionalFormattingRules());
+        Assert.Equal(4096, rule.Range.Split(' ').Length);
+        Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "source-conditional-style-maps"
+            && mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
+        Assert.DoesNotContain(result.Report.Mappings, mapping => mapping.Feature == "conditional-formatting-cell-limits");
+    }
+
+    [Fact]
     public void RepeatedConditionalCellsBeyondRuleBudgetRemainUnsupported() {
         OdsDocument source = OdsDocument.Create();
         OdsSheet sheet = source.AddSheet("Data");
