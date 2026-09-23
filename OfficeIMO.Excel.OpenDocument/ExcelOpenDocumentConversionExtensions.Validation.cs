@@ -8,6 +8,7 @@ namespace OfficeIMO.Excel.OpenDocument;
 public static partial class ExcelOpenDocumentConversionExtensions {
     private static bool TryCreateOdsValidationCondition(
         ExcelDataValidationSnapshot validation,
+        ExcelDateSystem dateSystem,
         out OdsValidationConditionSyntax? condition) {
         condition = null;
         string type = validation.Type?.Trim() ?? string.Empty;
@@ -21,13 +22,26 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         if (string.Equals(type, "whole", StringComparison.OrdinalIgnoreCase)) valueKind = OdsValidationValueKind.WholeNumber;
         else if (string.Equals(type, "decimal", StringComparison.OrdinalIgnoreCase)) valueKind = OdsValidationValueKind.DecimalNumber;
         else if (string.Equals(type, "textLength", StringComparison.OrdinalIgnoreCase)) valueKind = OdsValidationValueKind.TextLength;
+        else if (string.Equals(type, "date", StringComparison.OrdinalIgnoreCase)) valueKind = OdsValidationValueKind.Date;
+        else if (string.Equals(type, "time", StringComparison.OrdinalIgnoreCase)) valueKind = OdsValidationValueKind.Time;
         else return false;
 
-        if (!TryMapValidationOperator(validation.Operator, out OdsValidationComparison comparison)
-            || !IsInvariantValidationNumber(validation.Formula1, valueKind)
-            || ((comparison == OdsValidationComparison.Between || comparison == OdsValidationComparison.NotBetween)
-                && !IsInvariantValidationNumber(validation.Formula2, valueKind))) return false;
-        condition = OdsValidationConditionSyntax.Create(valueKind, comparison, validation.Formula1!, validation.Formula2);
+        if (!TryMapValidationOperator(validation.Operator, out OdsValidationComparison comparison)) return false;
+        bool requiresSecond = comparison == OdsValidationComparison.Between
+            || comparison == OdsValidationComparison.NotBetween;
+        if (valueKind == OdsValidationValueKind.Date || valueKind == OdsValidationValueKind.Time) {
+            string? second = null;
+            if (!TryFormatTemporalOperand(validation.Formula1, valueKind, dateSystem, out string? first)
+                || (requiresSecond && !TryFormatTemporalOperand(validation.Formula2, valueKind, dateSystem,
+                    out second))) return false;
+            condition = OdsValidationConditionSyntax.Create(valueKind, comparison, first!, second);
+            return true;
+        }
+
+        if (!IsInvariantValidationNumber(validation.Formula1, valueKind)
+            || (requiresSecond && !IsInvariantValidationNumber(validation.Formula2, valueKind))) return false;
+        condition = OdsValidationConditionSyntax.Create(valueKind, comparison, validation.Formula1!,
+            requiresSecond ? validation.Formula2 : null);
         return true;
     }
 
@@ -117,6 +131,16 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 if (!int.TryParse(condition.FirstOperand, NumberStyles.Integer, CultureInfo.InvariantCulture, out int lengthFirst)
                     || !TryParseOptionalInteger(condition.SecondOperand, out int? lengthSecond)) return false;
                 sheet.ValidationTextLength(references, comparison, lengthFirst, lengthSecond, validation.AllowEmptyCell);
+                return true;
+            case OdsValidationValueKind.Date:
+                if (!TryParseDateOperand(condition.FirstOperand, out DateTime dateFirst)
+                    || !TryParseOptionalDateOperand(condition.SecondOperand, out DateTime? dateSecond)) return false;
+                sheet.ValidationDate(references, comparison, dateFirst, dateSecond, validation.AllowEmptyCell);
+                return true;
+            case OdsValidationValueKind.Time:
+                if (!TryParseTimeOperand(condition.FirstOperand, out TimeSpan timeFirst)
+                    || !TryParseOptionalTimeOperand(condition.SecondOperand, out TimeSpan? timeSecond)) return false;
+                sheet.ValidationTime(references, comparison, timeFirst, timeSecond, validation.AllowEmptyCell);
                 return true;
             default:
                 return false;

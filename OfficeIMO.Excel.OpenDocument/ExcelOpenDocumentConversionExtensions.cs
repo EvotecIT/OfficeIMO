@@ -163,7 +163,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             int validationOrdinal = 0;
             foreach (ExcelDataValidationSnapshot validation in worksheet.Validations) {
                 validationOrdinal++;
-                if (!TryCreateOdsValidationCondition(validation, out OdsValidationConditionSyntax? condition)) {
+                if (!TryCreateOdsValidationCondition(validation, source.DateSystem,
+                    out OdsValidationConditionSyntax? condition)) {
                     skippedValidations++;
                     continue;
                 }
@@ -610,7 +611,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         AddConverted(report, "validations", convertedValidations);
         if (unsupportedValidationAssignments > 0) report.Add("validations", OdfConversionMappingStatus.Unsupported,
             unsupportedValidationAssignments,
-            "Only explicit lists and scalar whole-number, decimal, and text-length ODF validation conditions have an exact Excel mapping.");
+            "Only explicit lists and scalar whole-number, decimal, text-length, constant-date, and whole-second time ODF validation conditions have an exact Excel mapping.");
         AddUnsupported(report, "validation-display-lists", sortedValidationLists,
             "Excel preserves the authored validation-list order but cannot request ODF's ascending display order.");
         AddUnsupported(report, "invalid-values", invalidValues, "Invalid typed lexemes were transferred as display text.");
