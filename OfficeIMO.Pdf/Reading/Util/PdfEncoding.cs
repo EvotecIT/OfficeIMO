@@ -86,6 +86,43 @@ internal static class PdfEncoding {
         return bytes;
     }
 
+    internal static byte[] Latin1GetBytesCancellable(string value, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        var bytes = new byte[value.Length];
+        for (int i = 0; i < value.Length; i++) {
+            if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            bytes[i] = (byte)(value[i] & 0xFF);
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return bytes;
+    }
+
+    internal static byte[] Latin1GetBytesCancellable(StringBuilder value, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        var bytes = new byte[value.Length];
+#if NET6_0_OR_GREATER
+        int offset = 0;
+        foreach (System.ReadOnlyMemory<char> chunk in value.GetChunks()) {
+            System.ReadOnlySpan<char> span = chunk.Span;
+            for (int index = 0; index < span.Length; index++) {
+                if (((offset + index) & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                bytes[offset + index] = (byte)(span[index] & 0xFF);
+            }
+            offset += span.Length;
+        }
+#else
+        var chars = new char[4096];
+        for (int offset = 0; offset < bytes.Length; offset += chars.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = Math.Min(chars.Length, bytes.Length - offset);
+            value.CopyTo(offset, chars, 0, count);
+            for (int index = 0; index < count; index++) bytes[offset + index] = (byte)(chars[index] & 0xFF);
+        }
+#endif
+        cancellationToken.ThrowIfCancellationRequested();
+        return bytes;
+    }
+
     // Encodes a StringBuilder's content to Latin1 bytes without materializing an intermediate string.
     // Page content streams are large and built in a StringBuilder, so skipping the ToString() saves a
     // full-length string allocation per page.

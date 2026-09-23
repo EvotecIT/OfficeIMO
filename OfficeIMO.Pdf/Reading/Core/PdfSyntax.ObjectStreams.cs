@@ -50,8 +50,7 @@ internal static partial class PdfSyntax {
                 continue;
             }
             // Header: pairs of objectNumber and offset (ASCII)
-            var headerBytes = new byte[first];
-            Buffer.BlockCopy(data, 0, headerBytes, 0, first);
+            byte[] headerBytes = CopyBytes(data, 0, first, cancellationToken);
             string header = PdfEncoding.Latin1GetStringCancellable(headerBytes, cancellationToken);
             var pairs = ParsePairs(header, n, out bool completeHeader, cancellationToken);
             if (!completeHeader) { reportUnreadable(id); continue; }
@@ -72,8 +71,7 @@ internal static partial class PdfSyntax {
                     continue;
                 }
                 int len = end - start;
-                var sliceBytes = new byte[len];
-                Buffer.BlockCopy(data, start, sliceBytes, 0, len);
+                byte[] sliceBytes = CopyBytes(data, start, len, cancellationToken);
                 var slice = PdfEncoding.Latin1GetStringCancellable(sliceBytes, cancellationToken);
                 var parsed = ParseTopLevelObject(
                     slice,

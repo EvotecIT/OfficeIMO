@@ -52,8 +52,7 @@ internal static partial class PdfSyntax {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.RawStreamBytes, limits.MaxRawStreamBytes, byteLen);
             }
 
-            var data = new byte[byteLen];
-            Buffer.BlockCopy(pdf, byteStart, data, 0, byteLen);
+            byte[] data = CopyBytes(pdf, byteStart, byteLen, cancellationToken);
             map[streamLocation.Id] = new PdfIndirectObject(streamLocation.Id, streamLocation.Generation, new PdfStream(stream.Dictionary, data, stream.DecodingFailed, stream.DecodingError));
         }
     }
@@ -329,7 +328,7 @@ internal static partial class PdfSyntax {
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        xrefStreams.Sort(static (left, right) => left.Offset.CompareTo(right.Offset));
+        SortXrefStreams(xrefStreams, cancellationToken);
         var activeChainOffsets = GetXrefStreamChainOffsets(xrefStreams, activeXrefOffset, cancellationToken);
         if (activeChainOffsets.Count == 0) {
             return false;
@@ -376,7 +375,7 @@ internal static partial class PdfSyntax {
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        xrefStreams.Sort(static (left, right) => left.Offset.CompareTo(right.Offset));
+        SortXrefStreams(xrefStreams, cancellationToken);
         var activeChainOffsets = GetXrefStreamChainOffsets(xrefStreams, activeXrefOffset, cancellationToken);
         var activeEntries = new Dictionary<int, XrefStreamEntry>();
         var classicTables = activeChainOffsets.Count == 0
@@ -706,8 +705,7 @@ internal static partial class PdfSyntax {
                     }
 
                     if (byteLen >= 0 && dataStart >= 0 && dataStart + byteLen <= pdf.Length) {
-                        var data = new byte[byteLen];
-                        Buffer.BlockCopy(pdf, dataStart, data, 0, byteLen);
+                        byte[] data = CopyBytes(pdf, dataStart, byteLen, cancellationToken);
                         parsed = new PdfIndirectObject(id, gen, new PdfStream(dict, data));
                         return true;
                     }
@@ -765,8 +763,7 @@ internal static partial class PdfSyntax {
             return false;
         }
 
-        var headerBytes = new byte[first];
-        Buffer.BlockCopy(data, 0, headerBytes, 0, first);
+        byte[] headerBytes = CopyBytes(data, 0, first, cancellationToken);
         string header = PdfEncoding.Latin1GetStringCancellable(headerBytes, cancellationToken);
         var pairs = ParsePairs(header, n, out bool completeHeader, cancellationToken);
         if (!completeHeader ||
@@ -781,8 +778,7 @@ internal static partial class PdfSyntax {
         }
 
         int len = end - start;
-        var sliceBytes = new byte[len];
-        Buffer.BlockCopy(data, start, sliceBytes, 0, len);
+        byte[] sliceBytes = CopyBytes(data, start, len, cancellationToken);
         var slice = PdfEncoding.Latin1GetStringCancellable(sliceBytes, cancellationToken);
         var parsedObject = ParseTopLevelObject(
             slice,
@@ -810,5 +806,19 @@ internal static partial class PdfSyntax {
         public long Type { get; }
         public long Field1 { get; }
         public long Field2 { get; }
+    }
+
+    private static void SortXrefStreams(
+        List<(int ObjectNumber, int Offset, PdfStream Stream)> streams,
+        System.Threading.CancellationToken cancellationToken) {
+        try {
+            streams.Sort((left, right) => {
+                cancellationToken.ThrowIfCancellationRequested();
+                return left.Offset.CompareTo(right.Offset);
+            });
+        } catch (InvalidOperationException error) when (error.InnerException is OperationCanceledException) {
+            throw error.InnerException!;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
     }
 }

@@ -108,7 +108,7 @@ internal sealed partial class PdfStandardSecurityHandler {
     public PdfObject DecryptObject(int objectNumber, int generation, PdfObject value, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         if (value is PdfStringObj text) {
-            return DecryptString(objectNumber, generation, text);
+            return DecryptString(objectNumber, generation, text, cancellationToken);
         }
 
         if (value is PdfArray array) {
@@ -127,9 +127,10 @@ internal sealed partial class PdfStandardSecurityHandler {
         if (value is PdfStream stream) {
             PdfDictionary streamDictionary = (PdfDictionary)DecryptDictionary(objectNumber, generation, stream.Dictionary, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
+            byte[] sourceData = stream.GetData(cancellationToken);
             byte[] data = ShouldSkipStreamData(streamDictionary)
-                ? stream.Data
-                : DecryptData(objectNumber, generation, stream.Data, _streamMethod);
+                ? sourceData
+                : DecryptData(objectNumber, generation, sourceData, _streamMethod, cancellationToken);
             return new PdfStream(streamDictionary, data, stream.DecodingFailed, stream.DecodingError) {
                 HasIncompleteSyntax = stream.HasIncompleteSyntax
             };
@@ -138,12 +139,16 @@ internal sealed partial class PdfStandardSecurityHandler {
         return value;
     }
 
-    private PdfStringObj DecryptString(int objectNumber, int generation, PdfStringObj text) {
-        byte[] decrypted = DecryptData(objectNumber, generation, text.RawBytes, _stringMethod);
-        return new PdfStringObj(
+    private PdfStringObj DecryptString(int objectNumber, int generation, PdfStringObj text, CancellationToken cancellationToken) {
+        if (_stringMethod == PdfCryptMethod.Identity) return text;
+        byte[] decrypted = DecryptData(objectNumber, generation, text.RawBytes, _stringMethod, cancellationToken);
+        PdfStringObj result = PdfStringObj.FromParsedBytes(
             decrypted,
+            PdfTextString.Decode(decrypted, cancellationToken),
             text.UseTextStringEncoding,
-            text.EncodedTokenLength) { HasIncompleteSyntax = text.HasIncompleteSyntax };
+            text.EncodedTokenLength);
+        result.HasIncompleteSyntax = text.HasIncompleteSyntax;
+        return result;
     }
 
     private PdfDictionary DecryptDictionary(int objectNumber, int generation, PdfDictionary dictionary, CancellationToken cancellationToken) {
@@ -167,22 +172,23 @@ internal sealed partial class PdfStandardSecurityHandler {
         return _streamMethod == PdfCryptMethod.Identity;
     }
 
-    private byte[] DecryptData(int objectNumber, int generation, byte[] data, PdfCryptMethod method) {
+    private byte[] DecryptData(int objectNumber, int generation, byte[] data, PdfCryptMethod method, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (method == PdfCryptMethod.Identity || data.Length == 0) {
             return data;
         }
 
         if (method == PdfCryptMethod.AesV3) {
-            return DecryptAesV2(_fileKey, data);
+            return DecryptAesV2(_fileKey, data, cancellationToken);
         }
 
         byte[] objectKey = ComputeObjectKey(objectNumber, generation, method == PdfCryptMethod.AesV2);
         if (method == PdfCryptMethod.Rc4) {
-            return Rc4.Transform(objectKey, data);
+            return Rc4.Transform(objectKey, data, cancellationToken);
         }
 
         if (method == PdfCryptMethod.AesV2) {
-            return DecryptAesV2(objectKey, data);
+            return DecryptAesV2(objectKey, data, cancellationToken);
         }
 
         throw new PdfUnsupportedEncryptionException("Unsupported PDF crypt filter method.");
@@ -358,7 +364,7 @@ internal sealed partial class PdfStandardSecurityHandler {
         }
     }
 
-    private byte[] DecryptAesV2(byte[] key, byte[] data) {
+    private byte[] DecryptAesV2(byte[] key, byte[] data, CancellationToken cancellationToken) {
         if (data.Length < 16 || (data.Length % 16) != 0) {
             throw new PdfUnsupportedEncryptionException("Invalid AESV2 encrypted stream length.");
         }
@@ -366,12 +372,16 @@ internal sealed partial class PdfStandardSecurityHandler {
         byte[] iv = new byte[16];
         Buffer.BlockCopy(data, 0, iv, 0, iv.Length);
         var ciphertext = new byte[data.Length - 16];
-        Buffer.BlockCopy(data, 16, ciphertext, 0, ciphertext.Length);
-        byte[] decrypted = PdfAesCryptography.DecryptNoPadding(key, iv, ciphertext, _aesCryptographyProvider);
-        return RemovePkcs7Padding(decrypted);
+        for (int offset = 0; offset < ciphertext.Length; offset += 65536) {
+            cancellationToken.ThrowIfCancellationRequested();
+            Buffer.BlockCopy(data, 16 + offset, ciphertext, offset, Math.Min(65536, ciphertext.Length - offset));
+        }
+        byte[] decrypted = PdfAesCryptography.DecryptNoPadding(key, iv, ciphertext, _aesCryptographyProvider, cancellationToken);
+        return RemovePkcs7Padding(decrypted, cancellationToken);
     }
 
-    private static byte[] RemovePkcs7Padding(byte[] data) {
+    private static byte[] RemovePkcs7Padding(byte[] data, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (data.Length == 0) {
             return data;
         }
@@ -387,7 +397,7 @@ internal sealed partial class PdfStandardSecurityHandler {
             }
         }
 
-        return Take(data, data.Length - count);
+        return Take(data, data.Length - count, cancellationToken);
     }
 
     private static byte[] PadPassword(string password) {
@@ -494,9 +504,15 @@ internal sealed partial class PdfStandardSecurityHandler {
         return result;
     }
 
-    private static byte[] Take(byte[] value, int count) {
+    private static byte[] Take(byte[] value, int count, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         var result = new byte[count];
-        Buffer.BlockCopy(value, 0, result, 0, Math.Min(value.Length, count));
+        int length = Math.Min(value.Length, count);
+        for (int offset = 0; offset < length; offset += 65536) {
+            cancellationToken.ThrowIfCancellationRequested();
+            Buffer.BlockCopy(value, offset, result, offset, Math.Min(65536, length - offset));
+        }
+        cancellationToken.ThrowIfCancellationRequested();
         return result;
     }
 
@@ -524,7 +540,7 @@ internal sealed partial class PdfStandardSecurityHandler {
     }
 
     private static class Rc4 {
-        public static byte[] Transform(byte[] key, byte[] data) {
+        public static byte[] Transform(byte[] key, byte[] data, CancellationToken cancellationToken = default) {
             var state = new byte[256];
             for (int i = 0; i < state.Length; i++) {
                 state[i] = (byte)i;
@@ -540,6 +556,7 @@ internal sealed partial class PdfStandardSecurityHandler {
             int x = 0;
             int y = 0;
             for (int i = 0; i < data.Length; i++) {
+                if ((i & 0xFFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
                 x = (x + 1) & 0xFF;
                 y = (y + state[x]) & 0xFF;
                 Swap(state, x, y);

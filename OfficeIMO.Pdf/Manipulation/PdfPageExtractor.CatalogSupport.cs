@@ -302,9 +302,10 @@ internal static partial class PdfPageExtractor {
     private static PdfObject? BuildOpenActionForPages(
         Dictionary<int, PdfIndirectObject> sourceObjects,
         PdfObject? openAction,
-        HashSet<int> copiedPageObjectIds) {
+        HashSet<int> copiedPageObjectIds,
+        CancellationToken cancellationToken) {
         PdfObject? destination = ResolveObject(sourceObjects, openAction);
-        if (destination is PdfArray array && IsDestinationForCopiedPages(array, copiedPageObjectIds)) {
+        if (destination is PdfArray array && IsDestinationForCopiedPages(array, copiedPageObjectIds, cancellationToken)) {
             return array;
         }
     
@@ -312,7 +313,7 @@ internal static partial class PdfPageExtractor {
             dictionary.Items.Count == 2 &&
             dictionary.Get<PdfName>("S")?.Name == "GoTo" &&
             dictionary.Items.TryGetValue("D", out var actionDestination) &&
-            IsDestinationForCopiedPages(actionDestination, copiedPageObjectIds)) {
+            IsDestinationForCopiedPages(actionDestination, copiedPageObjectIds, cancellationToken)) {
             var result = new PdfDictionary();
             result.Items["S"] = new PdfName("GoTo");
             result.Items["D"] = actionDestination;
@@ -342,12 +343,22 @@ internal static partial class PdfPageExtractor {
             foreach (int pageObjectId in copiedPageObjectIds) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (pageIndex.TryGetValue(pageObjectId, out var entries)) {
-                    candidates.AddRange(entries);
+                    foreach (DirectNamedDestinationEntry entry in entries) {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        candidates.Add(entry);
+                    }
                 }
             }
 
             if (candidates.Count == 0) return null;
-            candidates.Sort((left, right) => left.Order.CompareTo(right.Order));
+            try {
+                candidates.Sort((left, right) => {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    return left.Order.CompareTo(right.Order);
+                });
+            } catch (InvalidOperationException error) when (error.InnerException is OperationCanceledException) {
+                throw error.InnerException!;
+            }
             return BuildIndexedNamedDestinations(sourceObjects, copiedPageObjectIds, candidates, cancellationToken);
         }
 
@@ -364,7 +375,7 @@ internal static partial class PdfPageExtractor {
                 continue;
             }
     
-            if (IsDestinationForCopiedPages(destination, copiedPageObjectIds)) {
+            if (IsDestinationForCopiedPages(destination, copiedPageObjectIds, cancellationToken)) {
                 result.Items[entry.Key] = destination;
             }
         }
@@ -383,7 +394,7 @@ internal static partial class PdfPageExtractor {
             DirectNamedDestinationEntry entry = entries[index];
             PdfObject? destination = ResolveObject(sourceObjects, entry.Destination);
             if (destination is null) return null;
-            if (IsDestinationForCopiedPages(destination, copiedPageObjectIds)) {
+            if (IsDestinationForCopiedPages(destination, copiedPageObjectIds, cancellationToken)) {
                 result.Items[entry.Name] = destination;
             }
         }
@@ -417,18 +428,20 @@ internal static partial class PdfPageExtractor {
         return index;
     }
     
-    private static bool IsDestinationForCopiedPages(PdfObject destination, HashSet<int> copiedPageObjectIds) {
+    private static bool IsDestinationForCopiedPages(PdfObject destination, HashSet<int> copiedPageObjectIds,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (destination is PdfArray array) {
             return array.Items.Count > 0 &&
                 array.Items[0] is PdfReference pageReference &&
                 copiedPageObjectIds.Contains(pageReference.ObjectNumber) &&
-                ReferencesOnlyCopiedPages(array, copiedPageObjectIds);
+                ReferencesOnlyCopiedPages(array, copiedPageObjectIds, cancellationToken);
         }
     
         if (destination is PdfDictionary dictionary &&
             dictionary.Items.TryGetValue("D", out var explicitDestination)) {
-            return IsDestinationForCopiedPages(explicitDestination, copiedPageObjectIds) &&
-                ReferencesOnlyCopiedPages(dictionary, copiedPageObjectIds);
+            return IsDestinationForCopiedPages(explicitDestination, copiedPageObjectIds, cancellationToken) &&
+                ReferencesOnlyCopiedPages(dictionary, copiedPageObjectIds, cancellationToken);
         }
     
         return false;
@@ -461,13 +474,15 @@ internal static partial class PdfPageExtractor {
         }
     }
     
-    private static bool ReferencesOnlyCopiedPages(PdfObject value, HashSet<int> copiedPageObjectIds) {
+    private static bool ReferencesOnlyCopiedPages(PdfObject value, HashSet<int> copiedPageObjectIds,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         switch (value) {
             case PdfReference reference:
                 return copiedPageObjectIds.Contains(reference.ObjectNumber);
             case PdfArray array:
                 foreach (var item in array.Items) {
-                    if (!ReferencesOnlyCopiedPages(item, copiedPageObjectIds)) {
+                    if (!ReferencesOnlyCopiedPages(item, copiedPageObjectIds, cancellationToken)) {
                         return false;
                     }
                 }
@@ -475,7 +490,7 @@ internal static partial class PdfPageExtractor {
                 return true;
             case PdfDictionary dictionary:
                 foreach (var item in dictionary.Items.Values) {
-                    if (!ReferencesOnlyCopiedPages(item, copiedPageObjectIds)) {
+                    if (!ReferencesOnlyCopiedPages(item, copiedPageObjectIds, cancellationToken)) {
                         return false;
                     }
                 }

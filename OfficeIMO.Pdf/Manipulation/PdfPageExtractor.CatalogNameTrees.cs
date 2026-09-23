@@ -31,7 +31,10 @@ internal static partial class PdfPageExtractor {
             foreach (int pageObjectId in copiedPageObjectIds) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (pageIndex.TryGetValue(pageObjectId, out var entries)) {
-                    candidates.AddRange(entries);
+                    foreach (NamedDestinationNameTreeEntry entry in entries) {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        candidates.Add(entry);
+                    }
                 }
             }
 
@@ -39,7 +42,14 @@ internal static partial class PdfPageExtractor {
                 return null;
             }
 
-            candidates.Sort((left, right) => left.Order.CompareTo(right.Order));
+            try {
+                candidates.Sort((left, right) => {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    return left.Order.CompareTo(right.Order);
+                });
+            } catch (InvalidOperationException error) when (error.InnerException is OperationCanceledException) {
+                throw error.InnerException!;
+            }
             var names = new PdfArray();
             foreach (var entry in candidates) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -48,7 +58,7 @@ internal static partial class PdfPageExtractor {
                     return null;
                 }
 
-                if (IsDestinationForCopiedPages(destination, copiedPageObjectIds)) {
+                if (IsDestinationForCopiedPages(destination, copiedPageObjectIds, cancellationToken)) {
                     names.Items.Add(entry.Name);
                     names.Items.Add(entry.Destination);
                 }
@@ -171,7 +181,7 @@ internal static partial class PdfPageExtractor {
     
             bool supportedDestination = copiedPageObjectIds is null
                 ? IsDestinationForKnownPage(sourceObjects, resolvedDestination)
-                : IsDestinationForCopiedPages(resolvedDestination, copiedPageObjectIds);
+                : IsDestinationForCopiedPages(resolvedDestination, copiedPageObjectIds, cancellationToken);
             if (!supportedDestination) {
                 if (copiedPageObjectIds is null) {
                     return false;

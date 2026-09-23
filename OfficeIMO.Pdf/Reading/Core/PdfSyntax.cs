@@ -176,7 +176,7 @@ internal static partial class PdfSyntax {
                     throw PdfReadLimitException.Create(PdfReadLimitKind.ObjectCharacters, limits.MaxObjectCharacters, preliminaryBodyCharacters);
                 }
 
-                string preliminaryArrayBody = SafeSlice(text, bodyStart, preliminaryBodyCharacters, limits.MaxObjectCharacters).Trim();
+                string preliminaryArrayBody = SafeTrimmedSliceCancellable(text, bodyStart, preliminaryBodyCharacters, limits.MaxObjectCharacters, cancellationToken);
                 var parsedArray = ParseTopLevelObject(preliminaryArrayBody, limits, cancellationToken: cancellationToken);
                 if (parsedArray is not null) {
                     if (parsedArray.HasIncompleteSyntax) ReportUnreadableObject();
@@ -262,7 +262,7 @@ internal static partial class PdfSyntax {
                             if (byteStart >= 0 && byteLen >= 0 && byteStart + byteLen <= pdf.Length) {
                                 PdfStream stream = retainOwnedStreamSlices
                                     ? PdfStream.FromOwnedSource(dict, pdf, byteStart, byteLen)
-                                    : new PdfStream(dict, CopyBytes(pdf, byteStart, byteLen));
+                                    : new PdfStream(dict, CopyBytes(pdf, byteStart, byteLen, cancellationToken));
                                 map[id] = new PdfIndirectObject(id, gen, stream);
                                 parsedOffsets[id] = start;
                                 continue;
@@ -281,7 +281,7 @@ internal static partial class PdfSyntax {
                     throw PdfReadLimitException.Create(PdfReadLimitKind.ObjectCharacters, limits.MaxObjectCharacters, preliminaryBodyCharacters);
                 }
 
-                string preliminaryBody = SafeSlice(text, bodyStart, preliminaryBodyCharacters, limits.MaxObjectCharacters).Trim();
+                string preliminaryBody = SafeTrimmedSliceCancellable(text, bodyStart, preliminaryBodyCharacters, limits.MaxObjectCharacters, cancellationToken);
                 var parsed = ParseTopLevelObject(preliminaryBody, limits, cancellationToken: cancellationToken);
                 if (parsed is not null) {
                     map[id] = new PdfIndirectObject(id, gen, parsed);
@@ -367,9 +367,18 @@ internal static partial class PdfSyntax {
         return (map, trailerRaw);
     }
 
-    private static byte[] CopyBytes(byte[] source, int offset, int count) {
+    private static byte[] CopyBytes(byte[] source, int offset, int count,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         var data = new byte[count];
-        Buffer.BlockCopy(source, offset, data, 0, count);
+        const int chunkSize = 64 * 1024;
+        for (int copied = 0; copied < count;) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int chunk = Math.Min(chunkSize, count - copied);
+            Buffer.BlockCopy(source, offset + copied, data, copied, chunk);
+            copied += chunk;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
         return data;
     }
 

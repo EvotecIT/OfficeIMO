@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
@@ -10,6 +11,23 @@ internal static class PdfObjectBytes {
 
     internal static byte[] WrapIndirectObject(int objectNumber, byte[] body) {
         return WrapIndirectObject(objectNumber, 0, body);
+    }
+
+    internal static byte[] WrapIndirectObjectCancellable(int objectNumber, byte[] body, CancellationToken cancellationToken) {
+        Guard.NotNull(body, nameof(body));
+        if (objectNumber < 1) throw new ArgumentOutOfRangeException(nameof(objectNumber), "PDF object number must be positive.");
+        cancellationToken.ThrowIfCancellationRequested();
+        byte[] prefix = PdfEncoding.Latin1GetBytes(objectNumber.ToString(CultureInfo.InvariantCulture) + " 0 obj\n");
+        byte[] suffix = PdfEncoding.Latin1GetBytes("endobj\n");
+        var result = new byte[checked(prefix.Length + body.Length + suffix.Length)];
+        Buffer.BlockCopy(prefix, 0, result, 0, prefix.Length);
+        for (int offset = 0; offset < body.Length; offset += 65536) {
+            cancellationToken.ThrowIfCancellationRequested();
+            Buffer.BlockCopy(body, offset, result, prefix.Length + offset, Math.Min(65536, body.Length - offset));
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        Buffer.BlockCopy(suffix, 0, result, prefix.Length + body.Length, suffix.Length);
+        return result;
     }
 
     internal static byte[] WrapIndirectObject(int objectNumber, int generation, byte[] body) {

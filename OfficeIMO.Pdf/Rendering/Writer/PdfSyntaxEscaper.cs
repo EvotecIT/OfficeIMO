@@ -112,6 +112,34 @@ internal static class PdfSyntaxEscaper {
         return HexString(bytes, cancellationToken);
     }
 
+    internal static void AppendTextStringCancellable(StringBuilder destination, string value, CancellationToken cancellationToken) {
+        Guard.NotNull(destination, nameof(destination));
+        Guard.NotNull(value, nameof(value));
+        cancellationToken.ThrowIfCancellationRequested();
+        destination.Append('<');
+        if (PdfWinAnsiEncoding.CanEncode(value, out _, cancellationToken)) {
+            byte[] bytes = PdfWinAnsiEncoding.Encode(value, cancellationToken);
+            for (int index = 0; index < bytes.Length; index++) {
+                if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
+                AppendHexByte(destination, bytes[index]);
+            }
+        } else {
+            destination.Append("FEFF");
+            for (int index = 0; index < value.Length; index++) {
+                if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
+                AppendHexByte(destination, (byte)(value[index] >> 8));
+                AppendHexByte(destination, (byte)value[index]);
+            }
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        destination.Append('>');
+    }
+
+    private static void AppendHexByte(StringBuilder destination, byte value) {
+        const string digits = "0123456789ABCDEF";
+        destination.Append(digits[value >> 4]).Append(digits[value & 0x0F]);
+    }
+
     internal static string HexString(byte[] bytes, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         var sb = new StringBuilder(bytes.Length * 2 + 2);

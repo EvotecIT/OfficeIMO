@@ -42,7 +42,7 @@ internal static partial class PdfPageExtractor {
         var namedDestinations = BuildNamedDestinationsForPages(sourceObjects, catalogState.NamedDestinations, copiedPageObjectIds, catalogState.GetDirectNamedDestinationPageIndexForRepeatedUse(), cancellationToken);
         var namedDestinationNameTree = BuildNamedDestinationNameTreeForPages(sourceObjects, catalogState.NamedDestinationNameTree, copiedPageObjectIds, catalogState.GetNamedDestinationPageIndexForRepeatedUse(), cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        var openAction = BuildOpenActionForPages(sourceObjects, catalogState.OpenAction, copiedPageObjectIds);
+        var openAction = BuildOpenActionForPages(sourceObjects, catalogState.OpenAction, copiedPageObjectIds, cancellationToken);
         var outlines = BuildOutlinesForPages(sourceObjects, catalogState.Outlines, copiedPageObjectIds, cancellationToken);
         var pageLabels = BuildPageLabelsForPages(sourceObjects, catalogState.PageLabels, orderedPageObjectNumbers, outputPageIndexOffset, outputPageIndexByPageObjectNumber, catalogState.SourcePageIndexes, catalogState.PageLabelEntries, cancellationToken);
         string? pageMode = outlines is null && string.Equals(catalogState.PageMode, "UseOutlines", StringComparison.Ordinal)
@@ -152,7 +152,7 @@ internal static partial class PdfPageExtractor {
             }
 
             if (TryGetDirectDestinationLink(sourceObjects, annotation, out PdfObject? destination) &&
-                !IsDestinationForCopiedPages(destination!, copiedPageObjectIds)) {
+                !IsDestinationForCopiedPages(destination!, copiedPageObjectIds, cancellationToken)) {
                 removed = true;
                 continue;
             }

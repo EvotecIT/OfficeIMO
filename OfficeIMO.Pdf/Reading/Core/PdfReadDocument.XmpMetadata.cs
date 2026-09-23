@@ -47,7 +47,7 @@ public sealed partial class PdfReadDocument {
             decoded = Array.Empty<byte>();
             decodedWithinLimit = false;
         }
-        string? rawXml = decodedWithinLimit ? DecodeMetadataText(decoded) : null;
+        string? rawXml = decodedWithinLimit ? DecodeMetadataText(decoded, cancellationToken) : null;
         int decodedSizeBytes = decodedWithinLimit ? decoded.Length : MaxXmpMetadataBytes + 1;
         cancellationToken.ThrowIfCancellationRequested();
         XDocument? document = rawXml is null ? null : TryParseXml(rawXml, cancellationToken);
@@ -87,7 +87,8 @@ public sealed partial class PdfReadDocument {
             document is null ? null : ReadElementTextByNamespace(document, "ConformanceLevel", PdfElectronicInvoiceMetadata.FacturXNamespaceUri, cancellationToken));
     }
 
-    private static string? DecodeMetadataText(byte[] data) {
+    private static string? DecodeMetadataText(byte[] data, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (data.Length == 0) {
             return string.Empty;
         }
@@ -97,22 +98,22 @@ public sealed partial class PdfReadDocument {
                 data[0] == 0xEF &&
                 data[1] == 0xBB &&
                 data[2] == 0xBF) {
-                return StrictUtf8.GetString(data, 3, data.Length - 3);
+                return PdfEncoding.DecodeCancellable(StrictUtf8, data, 3, data.Length - 3, cancellationToken);
             }
 
             if (data.Length >= 2 &&
                 data[0] == 0xFE &&
                 data[1] == 0xFF) {
-                return StrictBigEndianUnicode.GetString(data, 2, data.Length - 2);
+                return PdfEncoding.DecodeCancellable(StrictBigEndianUnicode, data, 2, data.Length - 2, cancellationToken);
             }
 
             if (data.Length >= 2 &&
                 data[0] == 0xFF &&
                 data[1] == 0xFE) {
-                return StrictLittleEndianUnicode.GetString(data, 2, data.Length - 2);
+                return PdfEncoding.DecodeCancellable(StrictLittleEndianUnicode, data, 2, data.Length - 2, cancellationToken);
             }
 
-            return StrictUtf8.GetString(data);
+            return PdfEncoding.DecodeCancellable(StrictUtf8, data, 0, data.Length, cancellationToken);
         } catch (DecoderFallbackException) {
             return null;
         }

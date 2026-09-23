@@ -410,6 +410,10 @@ internal static partial class PdfPageExtractor {
     internal static string BuildInfoDictionary(PdfMetadata metadata) {
         return PdfInfoDictionaryBuilder.Build(metadata);
     }
+
+    internal static byte[] BuildInfoDictionaryBytesCancellable(PdfMetadata metadata, CancellationToken cancellationToken) {
+        return PdfInfoDictionaryBuilder.BuildBytesCancellable(metadata, cancellationToken);
+    }
     
     internal static byte[] WrapObject(int objectNumber, byte[] body) {
         return PdfObjectBytes.WrapIndirectObject(objectNumber, body);

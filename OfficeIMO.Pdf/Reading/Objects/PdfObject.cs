@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 internal abstract class PdfObject {
@@ -124,6 +126,18 @@ internal sealed class PdfStream : PdfObject {
             Buffer.BlockCopy(_source!, _sourceOffset, data, 0, data.Length);
             return System.Threading.Interlocked.CompareExchange(ref _data, data, null) ?? data;
         }
+    }
+    internal byte[] GetData(CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        byte[]? data = System.Threading.Volatile.Read(ref _data);
+        if (data is not null) return data;
+        data = new byte[_sourceLength];
+        for (int offset = 0; offset < data.Length; offset += 65536) {
+            cancellationToken.ThrowIfCancellationRequested();
+            Buffer.BlockCopy(_source!, _sourceOffset + offset, data, offset, Math.Min(65536, data.Length - offset));
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return System.Threading.Interlocked.CompareExchange(ref _data, data, null) ?? data;
     }
     internal int DataLength => _data?.Length ?? _sourceLength;
     internal long DataLongLength => DataLength;

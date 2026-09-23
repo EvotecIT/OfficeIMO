@@ -7,6 +7,35 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfPageExtractionCancellationTests {
     [Fact]
+    public void CancellableInfoSerializationPreservesTextStringBytes() {
+        var metadata = new PdfMetadata {
+            Title = "Zażółć 😀",
+            Author = "OfficeIMO",
+            Keywords = "PDF, cancellation"
+        };
+
+        Assert.Equal(
+            PdfEncoding.Latin1GetBytes(PdfInfoDictionaryBuilder.Build(metadata)),
+            PdfInfoDictionaryBuilder.BuildBytesCancellable(metadata, CancellationToken.None));
+    }
+
+    [Fact]
+    public void LargeEncryptedStreamChunksPreserveCbcAndHonorCancellation() {
+        var key = Enumerable.Range(0, 16).Select(static value => (byte)value).ToArray();
+        var iv = Enumerable.Range(16, 16).Select(static value => (byte)value).ToArray();
+        var plaintext = Enumerable.Range(0, 131072).Select(static value => (byte)value).ToArray();
+        byte[] ciphertext = PdfAesCryptography.EncryptNoPadding(key, iv, plaintext, provider: null);
+
+        Assert.Equal(plaintext,
+            PdfAesCryptography.DecryptNoPadding(key, iv, ciphertext, provider: null, CancellationToken.None));
+
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        Assert.Throws<OperationCanceledException>(() =>
+            PdfAesCryptography.DecryptNoPadding(key, iv, ciphertext, provider: null, cancellation.Token));
+    }
+
+    [Fact]
     public void LargeFalseHeaderScanHonorsCancellation() {
         string source = "%PDF-1.7\n" + string.Concat(Enumerable.Repeat("x obj", 5_000_000));
         byte[] pdf = System.Text.Encoding.ASCII.GetBytes(source);
@@ -21,7 +50,7 @@ public class PdfPageExtractionCancellationTests {
         });
 
         Assert.True(entered.Wait(TimeSpan.FromSeconds(5)));
-        cancellation.CancelAfter(TimeSpan.FromMilliseconds(5));
+        cancellation.Cancel();
         Assert.ThrowsAny<OperationCanceledException>(() => parse.GetAwaiter().GetResult());
     }
 
@@ -36,7 +65,7 @@ public class PdfPageExtractionCancellationTests {
         });
 
         Assert.True(entered.Wait(TimeSpan.FromSeconds(5)));
-        cancellation.CancelAfter(TimeSpan.FromMilliseconds(5));
+        cancellation.Cancel();
         Assert.ThrowsAny<OperationCanceledException>(() => decode.GetAwaiter().GetResult());
     }
 
