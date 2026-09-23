@@ -53,6 +53,14 @@ public class OpenDocumentSchemaArtifactTests {
                         OdsValidationComparison.GreaterThan, "0"));
                 validation.SetHelpMessage("Input", "Enter a positive whole number.");
                 formula.ValidationName = validation.Name;
+                OdfStyle highlight = spreadsheet.Styles.CreateNamed("PositiveValue", OdfStyleFamily.TableCell);
+                highlight.BackgroundColor = OdfColor.Parse("#D9EAD3");
+                OdfStyle conditional = spreadsheet.Styles.CreateAutomatic(OdfStyleFamily.TableCell);
+                conditional.AddConditionalMap("cell-content()>0", highlight.Name, "$'Data'.$A$2");
+                conditional.Bold = true;
+                conditional.TextAlign = "center";
+                conditional.BackgroundColor = OdfColor.Parse("#FFFFFF");
+                formula.StyleName = conditional.Name;
                 spreadsheet.Save(Path.Combine(output, "schema-proof-1.4.ods"));
                 spreadsheet.SaveFlatXml(Path.Combine(output, "schema-proof-1.4.fods"));
                 spreadsheet.Save(Path.Combine(output, "schema-proof-1.3.ods"), new OdfSaveOptions { CompatibilityProfile = OdfCompatibilityProfile.Odf13 });
@@ -117,6 +125,11 @@ public class OpenDocumentSchemaArtifactTests {
                 Assert.Contains(formula.Annotations, annotation => annotation.Text == "Calculated value" && annotation.Creator == "OfficeIMO");
                 Assert.False(string.IsNullOrWhiteSpace(formula.ValidationName));
                 Assert.Contains(spreadsheet.Validations, item => item.ParsedCondition?.ValueKind == OdsValidationValueKind.WholeNumber);
+                OdfStyle? conditional = spreadsheet.Styles.Find(OdfStyleFamily.TableCell, formula.StyleName!);
+                Assert.Contains(conditional!.ConditionalMaps, map =>
+                    map.Condition.EndsWith("cell-content()>0", StringComparison.Ordinal) &&
+                    spreadsheet.Styles.Named.Any(style => style.Family == OdfStyleFamily.TableCell &&
+                        style.Name == map.ApplyStyleName));
             } else if (document is OdpPresentation presentation) {
                 OdpParagraph rich = presentation.Slides.SelectMany(slide => slide.Shapes).OfType<OdpTextBox>()
                     .SelectMany(box => box.Paragraphs).Single(paragraph => paragraph.Text.IndexOf("Native ODP", StringComparison.Ordinal) >= 0);

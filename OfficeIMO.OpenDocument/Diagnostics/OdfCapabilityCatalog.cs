@@ -34,6 +34,8 @@ public static class OdfCapabilityCatalog {
     private static readonly IReadOnlyList<OdfCapability> Capabilities = new[] {
         new OdfCapability("formula-evaluation", "OpenFormula evaluation", OdfCapabilityLevel.Limited,
             "Bounded arithmetic, comparison, concatenation, local and cross-sheet references, ranges, and common aggregate/math functions; no external data, volatile functions, or script execution."),
+        new OdfCapability("conditional-style-maps", "Conditional style maps", OdfCapabilityLevel.Limited,
+            "Native style maps on repository-backed common and automatic style families can be authored, edited, and preserved in order. Applied styles must be common named styles in the same family. OfficeIMO renderers do not evaluate map conditions; maps in other style families, data styles, and embedded objects are preservation-only."),
         new OdfCapability("tracked-change-editing", "Tracked-change editing", OdfCapabilityLevel.Limited,
             "Paragraph insertion and deletion changes can be authored, inspected, accepted, and rejected; arbitrary inline merge/conflict editing remains outside the typed surface."),
         new OdfCapability("advanced-charts", "Advanced charts", OdfCapabilityLevel.Preserved,

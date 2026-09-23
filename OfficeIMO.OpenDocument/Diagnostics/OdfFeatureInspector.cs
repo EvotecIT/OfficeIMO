@@ -32,6 +32,12 @@ internal static class OdfFeatureInspector {
             if (scripts > 0) findings.Add(new OdfFeatureFinding(
                 "scripts", OdfFeatureSupport.Preserved, entry.Name, scripts));
             AddElementFinding(document, OdfNamespaces.Office + "annotation", "annotations", OdfFeatureSupport.Inspected, entry.Name, findings);
+            int editableStyleMaps = CountEditableStyleMaps(document, entry.Name);
+            if (editableStyleMaps > 0) findings.Add(new OdfFeatureFinding(
+                "conditional-style-maps", OdfFeatureSupport.Editable, entry.Name, editableStyleMaps));
+            int otherStyleMaps = document.Descendants(OdfNamespaces.Style + "map").Count() - editableStyleMaps;
+            if (otherStyleMaps > 0) findings.Add(new OdfFeatureFinding(
+                "unmodeled-style-maps", OdfFeatureSupport.Preserved, entry.Name, otherStyleMaps));
             AddElementFinding(document, OdfNamespaces.Text + "tracked-changes", "tracked-changes", OdfFeatureSupport.Editable, entry.Name, findings);
             AddElementFinding(document, OdfNamespaces.Draw + "object", "embedded-objects", OdfFeatureSupport.Preserved, entry.Name, findings);
             int eventListeners = document.Descendants().Count(element => element.Name.LocalName == "event-listener");
@@ -89,6 +95,21 @@ internal static class OdfFeatureInspector {
         string partPath, List<OdfFeatureFinding> findings) {
         int count = document.Descendants(elementName).Count();
         if (count > 0) findings.Add(new OdfFeatureFinding(featureName, support, partPath, count));
+    }
+
+    private static int CountEditableStyleMaps(XDocument document, string partPath) {
+        XElement? root = document.Root;
+        if (root == null) return 0;
+        IEnumerable<XElement> containers = partPath == "content.xml"
+            ? root.Elements(OdfNamespaces.Office + "automatic-styles")
+            : partPath == "styles.xml"
+                ? root.Elements(OdfNamespaces.Office + "styles")
+                    .Concat(root.Elements(OdfNamespaces.Office + "automatic-styles"))
+                : Enumerable.Empty<XElement>();
+        return containers.SelectMany(container => container.Elements(OdfNamespaces.Style + "style"))
+            .Where(style => OdfStyleRepository.TryParseFamily(
+                (string?)style.Attribute(OdfNamespaces.Style + "family"), out _))
+            .Sum(style => style.Elements(OdfNamespaces.Style + "map").Count());
     }
 
     private static bool IsExternalHref(string href) {
