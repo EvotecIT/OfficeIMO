@@ -127,6 +127,11 @@ internal static class HtmlMhtmlEvidenceRunner {
             await RunConversionAsync("officeimo-print-zero-margin", () => document.ToPdfDocumentResultAsync(new HtmlToPdfOptions {
                 Margins = HtmlRenderMargins.All(0)
             }), output, results, failures).ConfigureAwait(false);
+            await RunConversionAsync("officeimo-print-browser-ua", () => {
+                var options = new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0) };
+                options.UseBrowserUserAgentStyles();
+                return document.ToPdfDocumentResultAsync(options);
+            }, output, results, failures).ConfigureAwait(false);
             await RunConversionAsync("officeimo-print-zero-margin-local-fonts", () => {
                 var options = new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0) };
                 options.ResourcePolicy.AllowDocumentFontEmbedding = true;

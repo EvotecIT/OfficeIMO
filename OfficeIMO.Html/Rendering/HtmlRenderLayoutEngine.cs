@@ -295,8 +295,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double contentWidth,
         HtmlRenderBoxStyle rootStyle) {
         if (rootStyle.Display == "none") return Array.Empty<HtmlRenderFlowBlock>();
-        if (_options.UserAgentStyles == HtmlRenderUserAgentStyleMode.Browser
-            && string.Equals(root.LocalName, "body", StringComparison.OrdinalIgnoreCase)) {
+        if (string.Equals(root.LocalName, "body", StringComparison.OrdinalIgnoreCase)
+            && (_options.UserAgentStyles == HtmlRenderUserAgentStyleMode.Browser
+                || rootStyle.Display == "flex" || rootStyle.Display == "inline-flex"
+                || rootStyle.Display == "grid" || rootStyle.Display == "inline-grid")) {
             return new[] { LayoutElement(root, contentWidth, rootStyle, rootStyle, 0) };
         }
         if (_options.Mode == HtmlRenderMode.Paged || !HasAuthoredRootBoxGeometry(root, rootStyle)) {

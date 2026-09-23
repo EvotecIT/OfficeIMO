@@ -137,12 +137,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
             positionedRunningStringAssignments);
         AddBoxOutlinePaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
 
-        IEnumerable<double>? breakOffsets = style.FlexWrap == "nowrap"
-            ? null
-            : lines.Select(line => contentY + line.CrossOffset)
-                .Distinct()
-                .OrderBy(offset => offset)
-                .Skip(1);
+        var atomicVisualBottoms = new Dictionary<HtmlRenderFlowBlock, double>();
+        IEnumerable<double> breakOffsets = lines.SelectMany(line => line.Items.SelectMany(item =>
+                item.Block!.BreakOffsets.Select(offset => contentY + line.CrossOffset + item.CrossOffset + offset)))
+            .Concat(style.FlexWrap == "nowrap"
+                ? Array.Empty<double>()
+                : lines.Skip(1).Select(line => contentY + line.CrossOffset))
+            .Where(offset => lines.All(line => line.Items.All(item => {
+                double localOffset = offset - contentY - line.CrossOffset - item.CrossOffset;
+                return IsSafeFlexRowBreak(item.Block!, localOffset, atomicVisualBottoms);
+            })))
+            .Distinct()
+            .OrderBy(offset => offset);
         IReadOnlyList<HtmlInlineBreakProgress> continuationBreakProgress = style.FlexWrap == "wrap"
             ? lines.Skip(1)
                 .Where(line => line.Items.Count > 0 && line.Items[0].Element != null)
@@ -174,6 +180,40 @@ internal sealed partial class HtmlRenderLayoutEngine {
             inlineBreakProgress: continuationBreakProgress,
             supportsInlineContinuationReflow: continuationBreakProgress.Count > 0);
         return true;
+    }
+
+    private static bool IsSafeFlexRowBreak(
+        HtmlRenderFlowBlock item,
+        double offset,
+        IDictionary<HtmlRenderFlowBlock, double> atomicVisualBottoms) {
+        if (offset <= 0.0001D || offset >= item.Height - 0.0001D) return true;
+        if (item.BreakOffsets.Any(candidate => Math.Abs(candidate - offset) <= 0.0001D)) return true;
+        // A stretched column can have a large painted but content-free tail. Its background
+        // may fragment while the neighboring column supplies the actual page break.
+        if (!atomicVisualBottoms.TryGetValue(item, out double bottom)) {
+            bottom = LastAtomicFlexVisualBottom(item.Visuals);
+            atomicVisualBottoms[item] = bottom;
+        }
+        return offset >= bottom - 0.0001D;
+    }
+
+    private static double LastAtomicFlexVisualBottom(IEnumerable<HtmlRenderVisual> visuals) {
+        double bottom = 0D;
+        foreach (HtmlRenderVisual visual in visuals) {
+            IReadOnlyList<HtmlRenderVisual>? children = visual switch {
+                HtmlRenderClipGroup group => group.Visuals,
+                HtmlRenderEffectGroup group => group.Visuals,
+                HtmlRenderLogicalTextGroup group => group.Visuals,
+                HtmlRenderPathClipGroup group => group.Visuals,
+                HtmlRenderLayoutRegion group => group.Visuals,
+                HtmlRenderSemanticGroup group => group.Visuals,
+                _ => null
+            };
+            if (children != null) bottom = Math.Max(bottom, LastAtomicFlexVisualBottom(children));
+            else if (visual is HtmlRenderText or HtmlRenderImage or HtmlRenderDrawing or HtmlRenderFormField)
+                bottom = Math.Max(bottom, visual.LayoutY + visual.Height);
+        }
+        return bottom;
     }
 
     private double ResolveFlexBasis(FlexItem item, double availableWidth) {

@@ -355,6 +355,42 @@ public sealed partial class HtmlRenderingTests {
             || diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HtmlFlexRow_PaginatesTallContentAlongsideAShortSidebar(bool browserUserAgentStyles) {
+        const string html = """
+            <html><head><style>
+              html { background:#22272b }
+              body { display:flex; flex-direction:column; margin:0; background:white }
+              header { height:20px; background:#22272b; color:white }
+              main { display:flex }
+              aside { width:30px; background:#eeeeee }
+              article { width:100px }
+              article p { height:35px; margin:0 }
+            </style></head><body>
+              <header>Header</header>
+              <main><aside><div style="height:25px">Menu</div></aside><article><p>First item</p><p>Second item</p><p>Third item</p></article></main>
+            </body></html>
+            """;
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(2D, 80D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+        if (browserUserAgentStyles) options.UseBrowserUserAgentStyles();
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+
+        Assert.Equal(2, rendered.Pages.Count);
+        Assert.Contains("First item", rendered.Pages[0].Visuals.OfType<HtmlRenderText>().Select(text => text.Text));
+        Assert.Contains("Third item", rendered.Pages[1].Visuals.OfType<HtmlRenderText>().Select(text => text.Text));
+        OfficeRasterImage firstPage = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        Assert.Equal(OfficeColor.White, firstPage.GetPixel(150, 40));
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment);
+    }
+
     [Fact]
     public void HtmlFlexColumn_AppliesMainDistributionAndCrossAlignment() {
         const string html = """
