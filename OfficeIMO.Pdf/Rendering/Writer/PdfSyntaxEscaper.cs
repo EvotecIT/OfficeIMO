@@ -75,14 +75,26 @@ internal static class PdfSyntaxEscaper {
     internal static string LiteralString(string value, CancellationToken cancellationToken = default) {
         Guard.NotNull(value, nameof(value));
         cancellationToken.ThrowIfCancellationRequested();
+        var builder = new StringBuilder(value.Length + 2);
+        AppendLiteralStringCancellable(builder, value, cancellationToken);
+        return PdfEncoding.StringBuilderToStringCancellable(builder, 0, builder.Length, cancellationToken);
+    }
+
+    internal static void AppendLiteralStringCancellable(StringBuilder destination, string value, CancellationToken cancellationToken) {
+        Guard.NotNull(destination, nameof(destination));
+        Guard.NotNull(value, nameof(value));
+        cancellationToken.ThrowIfCancellationRequested();
         for (int index = 0; index < value.Length; index++) {
             if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (value[index] > byte.MaxValue) {
-                return TextString(value, cancellationToken);
+                AppendTextStringCancellable(destination, value, cancellationToken);
+                return;
             }
         }
 
-        return "(" + EscapeLiteralContent(value, cancellationToken) + ")";
+        destination.Append('(');
+        AppendLiteralContentCancellable(destination, value, cancellationToken);
+        destination.Append(')');
     }
 
     internal static string WinAnsiHexString(string value, CancellationToken cancellationToken = default) {
@@ -143,23 +155,32 @@ internal static class PdfSyntaxEscaper {
     internal static string HexString(byte[] bytes, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         var sb = new StringBuilder(bytes.Length * 2 + 2);
-        sb.Append('<');
+        AppendHexStringCancellable(sb, bytes, cancellationToken);
+        return PdfEncoding.StringBuilderToStringCancellable(sb, 0, sb.Length, cancellationToken);
+    }
+
+    internal static void AppendHexStringCancellable(StringBuilder destination, byte[] bytes, CancellationToken cancellationToken) {
+        Guard.NotNull(destination, nameof(destination));
+        Guard.NotNull(bytes, nameof(bytes));
+        cancellationToken.ThrowIfCancellationRequested();
+        destination.Append('<');
         for (int i = 0; i < bytes.Length; i++) {
             if ((i & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
-            sb.Append(bytes[i].ToString("X2", CultureInfo.InvariantCulture));
+            AppendHexByte(destination, bytes[i]);
         }
-
-        sb.Append('>');
-        return sb.ToString();
+        destination.Append('>');
     }
 
     internal static string EscapeLiteralContent(string value, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (string.IsNullOrEmpty(value)) {
-            return string.Empty;
-        }
-
+        if (string.IsNullOrEmpty(value)) return string.Empty;
         var sb = new StringBuilder(value.Length + 8);
+        AppendLiteralContentCancellable(sb, value, cancellationToken);
+        return PdfEncoding.StringBuilderToStringCancellable(sb, 0, sb.Length, cancellationToken);
+    }
+
+    private static void AppendLiteralContentCancellable(StringBuilder sb, string value, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         for (int i = 0; i < value.Length; i++) {
             if ((i & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
             char ch = value[i];
@@ -187,7 +208,6 @@ internal static class PdfSyntaxEscaper {
             }
         }
 
-        return sb.ToString();
     }
 
     internal static string Name(string value) {

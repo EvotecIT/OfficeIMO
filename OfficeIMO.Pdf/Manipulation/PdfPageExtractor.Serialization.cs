@@ -337,11 +337,13 @@ internal static partial class PdfPageExtractor {
                 PdfSyntaxEscaper.AppendName(sb, name.Name, context.CancellationToken);
                 break;
             case PdfStringObj text:
-                sb.Append(context.PreserveRawStringBytes
-                    ? PdfSyntaxEscaper.HexString(text.RawBytes, context.CancellationToken)
-                    : text.UseTextStringEncoding
-                        ? PdfSyntaxEscaper.TextString(text.Value, context.CancellationToken)
-                        : PdfSyntaxEscaper.LiteralString(text.Value, context.CancellationToken));
+                if (context.PreserveRawStringBytes) {
+                    PdfSyntaxEscaper.AppendHexStringCancellable(sb, text.RawBytes, context.CancellationToken);
+                } else if (text.UseTextStringEncoding) {
+                    PdfSyntaxEscaper.AppendTextStringCancellable(sb, text.Value, context.CancellationToken);
+                } else {
+                    PdfSyntaxEscaper.AppendLiteralStringCancellable(sb, text.Value, context.CancellationToken);
+                }
                 break;
             case PdfNull:
                 sb.Append("null");

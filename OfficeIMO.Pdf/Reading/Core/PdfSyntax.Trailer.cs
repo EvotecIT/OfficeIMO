@@ -92,7 +92,7 @@ internal static partial class PdfSyntax {
             dictionaryEnd - dictionaryStart - 2 > limits.MaxObjectCharacters) return false;
         try {
             dictionary = ParseDictionary(
-                raw.Substring(dictionaryStart + 2, dictionaryEnd - dictionaryStart - 2),
+                PdfEncoding.StringSliceCancellable(raw, dictionaryStart + 2, dictionaryEnd - dictionaryStart - 2, cancellationToken),
                 limits,
                 cancellationToken: cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
@@ -162,7 +162,7 @@ internal static partial class PdfSyntax {
         int trailerIdx = LastIndexOfTrailerMarker(text, "trailer", StringComparison.OrdinalIgnoreCase, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         return trailerIdx >= 0
-            ? SafeSlice(text, trailerIdx, text.Length - trailerIdx, maximumTrailerCharacters)
+            ? SafeSliceCancellable(text, trailerIdx, text.Length - trailerIdx, maximumTrailerCharacters, cancellationToken)
             : string.Empty;
     }
 
@@ -228,14 +228,14 @@ internal static partial class PdfSyntax {
         AppendTrailerEntry(parts, dictionary, "Encrypt", cancellationToken);
         AppendTrailerEntry(parts, dictionary, "Prev", cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        return "trailer\n<< " + JoinTrailerParts(parts, " ", cancellationToken) + " >>";
+        return JoinTrailerParts(parts, " ", cancellationToken, "trailer\n<< ", " >>");
     }
 
     private static void AppendTrailerEntry(List<string> parts, PdfDictionary dictionary, string key, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         if (dictionary.Items.TryGetValue(key, out PdfObject? value) &&
             TryFormatTrailerValue(value, out string? formatted, cancellationToken)) {
-            parts.Add("/" + key + " " + formatted);
+            parts.Add(JoinTrailerParts(new List<string> { "/", key, " ", formatted ?? string.Empty }, string.Empty, cancellationToken));
         }
     }
 
@@ -250,17 +250,10 @@ internal static partial class PdfSyntax {
                 formatted = number.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 return true;
             case PdfName name:
-                formatted = "/" + name.Name;
+                formatted = JoinTrailerParts(new List<string> { "/", name.Name }, string.Empty, cancellationToken);
                 return true;
             case PdfStringObj text:
-                var hex = new System.Text.StringBuilder(text.RawBytes.Length * 2 + 2);
-                hex.Append('<');
-                foreach (byte valueByte in text.RawBytes) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    hex.Append(valueByte.ToString("X2", System.Globalization.CultureInfo.InvariantCulture));
-                }
-                hex.Append('>');
-                formatted = hex.ToString();
+                formatted = PdfSyntaxEscaper.HexString(text.RawBytes, cancellationToken);
                 return true;
             case PdfArray array:
                 var items = new List<string>();
@@ -279,7 +272,7 @@ internal static partial class PdfSyntax {
                     items.Add(itemText);
                 }
 
-                formatted = "[" + JoinTrailerParts(items, " ", cancellationToken) + "]";
+                formatted = JoinTrailerParts(items, " ", cancellationToken, "[", "]");
                 return true;
             case PdfNull:
                 formatted = "null";
@@ -355,8 +348,9 @@ internal static partial class PdfSyntax {
     }
 
     private static string JoinTrailerParts(List<string> parts, string separator,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken, string prefix = "", string suffix = "") {
         var result = new System.Text.StringBuilder();
+        result.Append(prefix);
         for (int partIndex = 0; partIndex < parts.Count; partIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
             if (partIndex > 0) result.Append(separator);
@@ -366,6 +360,7 @@ internal static partial class PdfSyntax {
                 result.Append(part, offset, Math.Min(65536, part.Length - offset));
             }
         }
+        result.Append(suffix);
         return PdfEncoding.StringBuilderToStringCancellable(result, 0, result.Length, cancellationToken);
     }
 

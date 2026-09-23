@@ -462,7 +462,7 @@ internal static partial class PdfSyntax {
                 if (dictStart >= 0 && objectEnd > dictStart) {
                     int dictEnd = FindSecurityDictionaryEnd(text, dictStart, objectEnd, cancellationToken);
                     if (dictEnd > dictStart) {
-                        string dictText = SafeSlice(text, dictStart + 2, dictEnd - (dictStart + 2), 1_000_000);
+                        string dictText = SafeSliceCancellable(text, dictStart + 2, dictEnd - (dictStart + 2), 1_000_000, cancellationToken);
                         try {
                             dictionary = ParseDictionary(dictText, cancellationToken: cancellationToken);
                             return true;

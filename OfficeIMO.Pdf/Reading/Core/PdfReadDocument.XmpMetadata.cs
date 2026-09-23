@@ -267,7 +267,7 @@ public sealed partial class PdfReadDocument {
             }
         }
         cancellationToken.ThrowIfCancellationRequested();
-        return text.ToString();
+        return PdfEncoding.StringBuilderToStringCancellable(text, 0, text.Length, cancellationToken);
     }
 
     private static string? NormalizeXmlText(string? value, CancellationToken cancellationToken) {
@@ -286,7 +286,7 @@ public sealed partial class PdfReadDocument {
             end--;
         }
         cancellationToken.ThrowIfCancellationRequested();
-        return value.Substring(start, end - start);
+        return PdfEncoding.StringSliceCancellable(value, start, end - start, cancellationToken);
     }
 
     private static IEnumerable<XElement> DescendantsWithCancellation(XContainer container, CancellationToken cancellationToken) =>

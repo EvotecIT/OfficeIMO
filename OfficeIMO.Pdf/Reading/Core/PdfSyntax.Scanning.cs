@@ -494,6 +494,7 @@ internal static partial class PdfSyntax {
                     tokens[0].TryParseDouble(
                         tokens.Source,
                         out double value,
+                        cancellationToken,
                         System.Globalization.NumberStyles.Float) &&
                     TryNormalizeStreamLength(value, out int byteLength)) {
                     values[(match.ObjectNumber, match.Generation)] = byteLength;
@@ -1085,12 +1086,14 @@ internal static partial class PdfSyntax {
         return idx;
     }
 
-    private static string SafeSlice(string s, int start, int length, int maxLen) {
+    private static string SafeSliceCancellable(string s, int start, int length, int maxLen,
+        System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         int len = Math.Min(length, Math.Max(0, maxLen));
         if (start < 0) start = 0;
         if (start + len > s.Length) len = s.Length - start;
         if (len <= 0) return string.Empty;
-        return s.Substring(start, len);
+        return PdfEncoding.StringSliceCancellable(s, start, len, cancellationToken);
     }
 
     private static string SafeTrimmedSliceCancellable(string source, int start, int length, int maxLength,
@@ -1110,23 +1113,6 @@ internal static partial class PdfSyntax {
             end--;
         }
         count = end - start;
-#if NET8_0_OR_GREATER
-        return string.Create(count, (Source: source, Start: start, Token: cancellationToken), (destination, state) => {
-            for (int offset = 0; offset < destination.Length; offset++) {
-                if ((offset & 4095) == 0) state.Token.ThrowIfCancellationRequested();
-                destination[offset] = state.Source[state.Start + offset];
-            }
-            state.Token.ThrowIfCancellationRequested();
-        });
-#else
-        // Older frameworks cannot fill a new string directly; poll while populating the source array.
-        var chars = new char[count];
-        for (int offset = 0; offset < count; offset++) {
-            if ((offset & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
-            chars[offset] = source[start + offset];
-        }
-        cancellationToken.ThrowIfCancellationRequested();
-        return new string(chars);
-#endif
+        return PdfEncoding.StringSliceCancellable(source, start, count, cancellationToken);
     }
 }

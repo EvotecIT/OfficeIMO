@@ -246,8 +246,8 @@ internal static partial class PdfSyntax {
             int dictionaryLimit = (int)Math.Min((long)text.Length, (long)dictStart + 1_000_002L);
             int dictEnd = FindDictEnd(text, dictStart, dictionaryLimit, cancellationToken);
             if (dictEnd > dictStart) {
-                trailerRaw = SafeSlice(text, trailerIndex, dictEnd - trailerIndex, 1_000_000);
-                string dictText = SafeSlice(text, dictStart + 2, dictEnd - (dictStart + 2), 1_000_000);
+                trailerRaw = SafeSliceCancellable(text, trailerIndex, dictEnd - trailerIndex, 1_000_000, cancellationToken);
+                string dictText = SafeSliceCancellable(text, dictStart + 2, dictEnd - (dictStart + 2), 1_000_000, cancellationToken);
                 try {
                     PdfDictionary trailer = ParseDictionary(dictText, cancellationToken: cancellationToken);
                     if (trailer.Get<PdfNumber>("Prev") is PdfNumber previous &&
@@ -672,7 +672,7 @@ internal static partial class PdfSyntax {
             int dictEnd = FindDictEnd(text, dictStart, scanLimit, cancellationToken);
             ChargeThrough(dictEnd > dictStart ? dictEnd + 2 : scanLimit);
             if (dictEnd > dictStart) {
-                string dictText = SafeSlice(text, dictStart + 2, dictEnd - (dictStart + 2), 1_000_000);
+                string dictText = SafeSliceCancellable(text, dictStart + 2, dictEnd - (dictStart + 2), 1_000_000, cancellationToken);
                 PdfDictionary? dict;
                 try { dict = ParseDictionary(dictText, cancellationToken: cancellationToken); }
                 catch (Exception ex) when (ex is not OutOfMemoryException and not OperationCanceledException) { dict = null; }
@@ -727,7 +727,7 @@ internal static partial class PdfSyntax {
             bodyEnd -= 6;
         }
 
-        string body = SafeSlice(text, bodyStart, bodyEnd - bodyStart, 1_000_000).Trim();
+        string body = SafeTrimmedSliceCancellable(text, bodyStart, bodyEnd - bodyStart, 1_000_000, cancellationToken);
         var topLevelObject = ParseTopLevelObject(body, cancellationToken: cancellationToken);
         if (topLevelObject is null) {
             return false;

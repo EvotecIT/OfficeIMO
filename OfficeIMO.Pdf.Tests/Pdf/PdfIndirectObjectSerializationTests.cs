@@ -7,6 +7,21 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfIndirectObjectSerializationTests {
     [Fact]
+    public void StringSerializationPreservesLiteralUnicodeAndRawBytes() {
+        var numberMap = new Dictionary<int, int>();
+        var materializedPageValues = new Dictionary<int, Dictionary<string, PdfObject>>();
+        var normal = new PdfPageExtractor.SerializationContext(numberMap, 0, materializedPageValues);
+        var raw = new PdfPageExtractor.SerializationContext(numberMap, 0, materializedPageValues, preserveRawStringBytes: true);
+
+        Assert.Equal("(A\\(B\\)\\\\C)\n", PdfEncoding.Latin1GetString(
+            PdfPageExtractor.SerializeObject(new PdfStringObj(@"A(B)\C"), normal)));
+        Assert.Equal("<FEFF03BB>\n", PdfEncoding.Latin1GetString(
+            PdfPageExtractor.SerializeObject(new PdfStringObj("λ", useTextStringEncoding: true), normal)));
+        Assert.Equal("<000AFF>\n", PdfEncoding.Latin1GetString(
+            PdfPageExtractor.SerializeObject(new PdfStringObj(new byte[] { 0, 10, 255 }), raw)));
+    }
+
+    [Fact]
     public void ObjectSerializationEscapesDictionaryKeysAndNamesWithoutChangingBytes() {
         var context = new PdfPageExtractor.SerializationContext(
             new Dictionary<int, int>(),

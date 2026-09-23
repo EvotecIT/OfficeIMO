@@ -71,7 +71,7 @@ internal static partial class PdfSyntax {
             return Array.Empty<byte>();
         }
 
-        string dictText = SafeSlice(trailerRaw, dictStart + 2, dictEnd - (dictStart + 2), 1_000_000);
+        string dictText = SafeSliceCancellable(trailerRaw, dictStart + 2, dictEnd - (dictStart + 2), 1_000_000, cancellationToken);
         PdfDictionary trailer = ParseDictionary(dictText, cancellationToken: cancellationToken);
         if (trailer.Get<PdfArray>("ID") is PdfArray idArray &&
             idArray.Items.Count > 0 &&

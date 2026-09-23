@@ -135,7 +135,11 @@ internal static class PdfEncoding {
                 int skip = Math.Max(0, state.Start - sourceOffset);
                 int count = Math.Min(Math.Max(0, chunk.Length - skip), destination.Length - destinationOffset);
                 if (count > 0) {
-                    chunk.Span.Slice(skip, count).CopyTo(destination.Slice(destinationOffset, count));
+                    for (int copied = 0; copied < count; copied += 4096) {
+                        state.Token.ThrowIfCancellationRequested();
+                        int copyCount = Math.Min(4096, count - copied);
+                        chunk.Span.Slice(skip + copied, copyCount).CopyTo(destination.Slice(destinationOffset + copied, copyCount));
+                    }
                     destinationOffset += count;
                 }
                 sourceOffset += chunk.Length;
@@ -149,6 +153,34 @@ internal static class PdfEncoding {
             cancellationToken.ThrowIfCancellationRequested();
             int count = Math.Min(65536, length - offset);
             builder.CopyTo(start + offset, characters, offset, count);
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return new string(characters);
+#endif
+    }
+
+    internal static string StringSliceCancellable(string source, int start, int length, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (start < 0 || length < 0 || start > source.Length - length) {
+            throw new ArgumentOutOfRangeException(nameof(start));
+        }
+        if (length == 0) return string.Empty;
+        if (start == 0 && length == source.Length) return source;
+#if NET8_0_OR_GREATER
+        return string.Create(length, (Source: source, Start: start, Token: cancellationToken), static (destination, state) => {
+            for (int offset = 0; offset < destination.Length; offset += 4096) {
+                state.Token.ThrowIfCancellationRequested();
+                int count = Math.Min(4096, destination.Length - offset);
+                state.Source.AsSpan(state.Start + offset, count).CopyTo(destination.Slice(offset, count));
+            }
+            state.Token.ThrowIfCancellationRequested();
+        });
+#else
+        var characters = new char[length];
+        for (int offset = 0; offset < length; offset += 4096) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = Math.Min(4096, length - offset);
+            source.CopyTo(start + offset, characters, offset, count);
         }
         cancellationToken.ThrowIfCancellationRequested();
         return new string(characters);

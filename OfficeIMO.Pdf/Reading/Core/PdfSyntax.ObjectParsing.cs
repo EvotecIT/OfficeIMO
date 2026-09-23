@@ -204,14 +204,14 @@ internal static partial class PdfSyntax {
         if (token.Length > 0 && IsPdfNumberStart(token.GetCharacter(source, 0))) {
             // reference (obj gen R) or number
             if (i + 2 < tokens.Count && tokens[i + 2].Equals(source, "R") &&
-                token.TryParseInt32(source, out int obj) && tokens[i + 1].TryParseInt32(source, out int gen)) {
+                token.TryParseInt32(source, out int obj, cancellationToken) && tokens[i + 1].TryParseInt32(source, out int gen, cancellationToken)) {
                 return (new PdfReference(obj, gen), 2);
             }
-            if (token.TryParseDouble(source, out double val)) {
+            if (token.TryParseDouble(source, out double val, cancellationToken)) {
                 return (new PdfNumber(val), 0);
             }
         }
-        return (new PdfName(token.GetText(source)) { HasIncompleteSyntax = true }, 0);
+        return (new PdfName(token.GetText(source, cancellationToken)) { HasIncompleteSyntax = true }, 0);
     }
 
     private static int EstimateArrayItemCount(in PooledTokenBuffer tokens, int arrayStart,
@@ -232,8 +232,8 @@ internal static partial class PdfSyntax {
 
             if (index + 2 < tokens.Count &&
                 tokens[index + 2].Equals(source, "R") &&
-                tokens[index].TryParseInt32(source, out _) &&
-                tokens[index + 1].TryParseInt32(source, out _)) {
+                tokens[index].TryParseInt32(source, out _, cancellationToken) &&
+                tokens[index + 1].TryParseInt32(source, out _, cancellationToken)) {
                 index += 3;
                 continue;
             }
@@ -486,7 +486,8 @@ internal static partial class PdfSyntax {
             return _text is not null ? _text[index] : source[_sourceStart + index];
         }
 
-        internal string GetText(string source) => _text ?? source.Substring(_sourceStart, _length);
+        internal string GetText(string source, System.Threading.CancellationToken cancellationToken) =>
+            _text ?? PdfEncoding.StringSliceCancellable(source, _sourceStart, _length, cancellationToken);
 
         internal bool Equals(string source, string value) {
             if (_length != value.Length) return false;
@@ -494,13 +495,14 @@ internal static partial class PdfSyntax {
             return string.CompareOrdinal(source, _sourceStart, value, 0, _length) == 0;
         }
 
-        internal bool TryParseInt32(string source, out int value) {
+        internal bool TryParseInt32(string source, out int value, System.Threading.CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
 #if NET8_0_OR_GREATER
             ReadOnlySpan<char> span = _text is not null ? _text.AsSpan() : source.AsSpan(_sourceStart, _length);
             return int.TryParse(span, System.Globalization.NumberStyles.Integer,
                 System.Globalization.CultureInfo.InvariantCulture, out value);
 #else
-            return int.TryParse(GetText(source), System.Globalization.NumberStyles.Integer,
+            return int.TryParse(GetText(source, cancellationToken), System.Globalization.NumberStyles.Integer,
                 System.Globalization.CultureInfo.InvariantCulture, out value);
 #endif
         }
@@ -508,13 +510,15 @@ internal static partial class PdfSyntax {
         internal bool TryParseDouble(
             string source,
             out double value,
+            System.Threading.CancellationToken cancellationToken,
             System.Globalization.NumberStyles styles = System.Globalization.NumberStyles.Any) {
+            cancellationToken.ThrowIfCancellationRequested();
 #if NET8_0_OR_GREATER
             ReadOnlySpan<char> span = _text is not null ? _text.AsSpan() : source.AsSpan(_sourceStart, _length);
             return double.TryParse(span, styles,
                 System.Globalization.CultureInfo.InvariantCulture, out value);
 #else
-            return double.TryParse(GetText(source), styles,
+            return double.TryParse(GetText(source, cancellationToken), styles,
                 System.Globalization.CultureInfo.InvariantCulture, out value);
 #endif
         }
@@ -573,7 +577,7 @@ internal static partial class PdfSyntax {
         // Older targets do not expose span-based numeric parsing. Preserve their
         // single materialization rather than recreating the same slice at each parse.
         cancellationToken.ThrowIfCancellationRequested();
-        return new PdfToken(source.Substring(start, length));
+        return new PdfToken(PdfEncoding.StringSliceCancellable(source, start, length, cancellationToken));
 #endif
     }
 
@@ -691,7 +695,7 @@ internal static partial class PdfSyntax {
 
         cancellationToken.ThrowIfCancellationRequested();
         if (!requiresDecoding) {
-            string decoded = source.Substring(start, length);
+            string decoded = PdfEncoding.StringSliceCancellable(source, start, length, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             return decoded;
         }
@@ -712,7 +716,7 @@ internal static partial class PdfSyntax {
 
             if (ch > byte.MaxValue) {
                 cancellationToken.ThrowIfCancellationRequested();
-                string fallback = source.Substring(start, length);
+                string fallback = PdfEncoding.StringSliceCancellable(source, start, length, cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
                 return fallback;
             }
