@@ -6,9 +6,11 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfPageExtractor {
     internal static PdfDictionary BuildPageDictionaryForSizeCheck(PdfDictionary dictionary, int sourceId, SerializationContext context) {
+        context.CancellationToken.ThrowIfCancellationRequested();
         var result = new PdfDictionary();
         context.PageOverrides.TryGetValue(sourceId, out var pageOverrides);
         foreach (var entry in dictionary.Items) {
+            context.CancellationToken.ThrowIfCancellationRequested();
             if (string.Equals(entry.Key, "Parent", StringComparison.Ordinal) ||
                 pageOverrides is not null && pageOverrides.ContainsKey(entry.Key)) {
                 continue;
@@ -19,23 +21,29 @@ internal static partial class PdfPageExtractor {
         if (!result.Items.ContainsKey("Type")) result.Items["Type"] = new PdfName("Page");
         if (context.MaterializedPageValues.TryGetValue(sourceId, out var inherited)) {
             foreach (var entry in inherited) {
+                context.CancellationToken.ThrowIfCancellationRequested();
                 if (pageOverrides is not null && pageOverrides.ContainsKey(entry.Key)) continue;
                 if (!result.Items.ContainsKey(entry.Key)) result.Items[entry.Key] = entry.Value;
             }
         }
         if (pageOverrides is not null) {
-            foreach (var entry in pageOverrides) result.Items[entry.Key] = entry.Value;
+            foreach (var entry in pageOverrides) {
+                context.CancellationToken.ThrowIfCancellationRequested();
+                result.Items[entry.Key] = entry.Value;
+            }
         }
         return result;
     }
 
     internal static byte[] SerializePageDictionary(PdfDictionary dictionary, int sourceId, SerializationContext context) {
+        context.CancellationToken.ThrowIfCancellationRequested();
         var sb = new StringBuilder();
         sb.Append("<< ");
     
         bool hasType = false;
         context.PageOverrides.TryGetValue(sourceId, out var pageOverrides);
         foreach (var entry in dictionary.Items) {
+            context.CancellationToken.ThrowIfCancellationRequested();
             if (string.Equals(entry.Key, "Parent", StringComparison.Ordinal)) {
                 continue;
             }
@@ -61,6 +69,7 @@ internal static partial class PdfPageExtractor {
     
         if (context.MaterializedPageValues.TryGetValue(sourceId, out var inherited)) {
             foreach (var entry in inherited) {
+                context.CancellationToken.ThrowIfCancellationRequested();
                 if (pageOverrides is not null && pageOverrides.ContainsKey(entry.Key)) {
                     continue;
                 }
@@ -73,6 +82,7 @@ internal static partial class PdfPageExtractor {
     
         if (pageOverrides is not null) {
             foreach (var entry in pageOverrides) {
+                context.CancellationToken.ThrowIfCancellationRequested();
                 AppendDictionaryEntry(sb, entry.Key, entry.Value, context);
             }
         }
@@ -82,6 +92,7 @@ internal static partial class PdfPageExtractor {
     }
     
     internal static byte[] SerializeObject(PdfObject value, SerializationContext context) {
+        context.CancellationToken.ThrowIfCancellationRequested();
         if (value is PdfStream stream) {
             return SerializeStream(stream, context);
         }
@@ -134,6 +145,7 @@ internal static partial class PdfPageExtractor {
     }
 
     private static long CountValueBytes(PdfObject value, SerializationContext context, long maximumBytes) {
+        context.CancellationToken.ThrowIfCancellationRequested();
         switch (value) {
             case PdfStream:
                 throw new NotSupportedException("Direct PDF streams inside arrays or dictionaries are not supported by page extraction yet.");
@@ -142,13 +154,13 @@ internal static partial class PdfPageExtractor {
             case PdfBoolean boolean:
                 return boolean.Value ? 4L : 5L;
             case PdfName name:
-                return AddCounted(1L, CountNameBytes(name.Name, maximumBytes), maximumBytes);
+                return AddCounted(1L, CountNameBytes(name.Name, maximumBytes, context.CancellationToken), maximumBytes);
             case PdfStringObj text:
                 return context.PreserveRawStringBytes
                     ? CountHexStringBytes(text.RawBytes.LongLength, maximumBytes)
                     : text.UseTextStringEncoding
-                        ? CountTextStringBytes(text.Value, maximumBytes)
-                        : CountLiteralStringBytes(text.Value, maximumBytes);
+                        ? CountTextStringBytes(text.Value, maximumBytes, context.CancellationToken)
+                        : CountLiteralStringBytes(text.Value, maximumBytes, context.CancellationToken);
             case PdfNull:
                 return 4L;
             case PdfReference reference:
@@ -164,6 +176,7 @@ internal static partial class PdfPageExtractor {
             case PdfArray array:
                 long arrayBytes = 2L;
                 foreach (PdfObject item in array.Items) {
+                    context.CancellationToken.ThrowIfCancellationRequested();
                     arrayBytes = AddCounted(arrayBytes, CountValueBytes(item, context, maximumBytes), maximumBytes);
                     arrayBytes = AddCounted(arrayBytes, 1L, maximumBytes);
                 }
@@ -178,9 +191,10 @@ internal static partial class PdfPageExtractor {
     private static long CountStreamBytes(PdfStream stream, SerializationContext context, long maximumBytes) {
         long dictionaryBytes = 3L;
         foreach (KeyValuePair<string, PdfObject> entry in stream.Dictionary.Items) {
+            context.CancellationToken.ThrowIfCancellationRequested();
             if (string.Equals(entry.Key, "Length", StringComparison.Ordinal)) continue;
             dictionaryBytes = AddCounted(dictionaryBytes, 2L, maximumBytes);
-            dictionaryBytes = AddCounted(dictionaryBytes, CountNameBytes(entry.Key, maximumBytes), maximumBytes);
+            dictionaryBytes = AddCounted(dictionaryBytes, CountNameBytes(entry.Key, maximumBytes, context.CancellationToken), maximumBytes);
             dictionaryBytes = AddCounted(dictionaryBytes, CountValueBytes(entry.Value, context, maximumBytes), maximumBytes);
             dictionaryBytes = AddCounted(dictionaryBytes, 1L, maximumBytes);
         }
@@ -195,34 +209,51 @@ internal static partial class PdfPageExtractor {
     private static long CountDictionaryBytes(PdfDictionary dictionary, SerializationContext context, long maximumBytes, bool excludeLength) {
         long total = 3L;
         foreach (KeyValuePair<string, PdfObject> entry in dictionary.Items) {
+            context.CancellationToken.ThrowIfCancellationRequested();
             if (excludeLength && string.Equals(entry.Key, "Length", StringComparison.Ordinal)) continue;
             total = AddCounted(total, 2L, maximumBytes);
-            total = AddCounted(total, CountNameBytes(entry.Key, maximumBytes), maximumBytes);
+            total = AddCounted(total, CountNameBytes(entry.Key, maximumBytes, context.CancellationToken), maximumBytes);
             total = AddCounted(total, CountValueBytes(entry.Value, context, maximumBytes), maximumBytes);
             total = AddCounted(total, 1L, maximumBytes);
         }
         return AddCounted(total, 2L, maximumBytes);
     }
 
-    private static long CountNameBytes(string value, long maximumBytes) {
+    private static long CountNameBytes(string value, long maximumBytes, CancellationToken cancellationToken) {
         long asciiBytes = 0L;
         long escapedAsciiBytes = 0L;
         foreach (char character in value) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (character >= 0x80) continue;
             asciiBytes++;
             if (character <= 0x20 || character == 0x7F || IsNameDelimiter(character)) escapedAsciiBytes++;
         }
 
-        long utf8Bytes = Encoding.UTF8.GetByteCount(value);
+        long utf8Bytes = 0L;
+        for (int index = 0; index < value.Length;) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int length = Math.Min(1024, value.Length - index);
+            if (index + length < value.Length && char.IsHighSurrogate(value[index + length - 1]) && char.IsLowSurrogate(value[index + length])) length++;
+#if NET6_0_OR_GREATER
+            utf8Bytes += Encoding.UTF8.GetByteCount(value.AsSpan(index, length));
+#else
+            utf8Bytes += Encoding.UTF8.GetByteCount(value.Substring(index, length));
+#endif
+            index += length;
+        }
         long encodedNonAsciiBytes = utf8Bytes - asciiBytes;
         long total = AddCounted(asciiBytes, MultiplyCounted(escapedAsciiBytes, 2L, maximumBytes), maximumBytes);
         return AddCounted(total, MultiplyCounted(encodedNonAsciiBytes, 3L, maximumBytes), maximumBytes);
     }
 
-    private static long CountLiteralStringBytes(string value, long maximumBytes) {
-        if (value.Any(character => character > byte.MaxValue)) return CountTextStringBytes(value, maximumBytes);
+    private static long CountLiteralStringBytes(string value, long maximumBytes, CancellationToken cancellationToken) {
+        foreach (char character in value) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (character > byte.MaxValue) return CountTextStringBytes(value, maximumBytes, cancellationToken);
+        }
         long total = 2L;
         foreach (char character in value) {
+            cancellationToken.ThrowIfCancellationRequested();
             long count;
             if (character is '\\' or '(' or ')' or '\r' or '\n' or '\t' or '\b' or '\f') count = 2L;
             else if (character < 32 || character == 127) count = 4L;
@@ -232,10 +263,12 @@ internal static partial class PdfPageExtractor {
         return total;
     }
 
-    private static long CountTextStringBytes(string value, long maximumBytes) {
-        long encodedBytes = PdfWinAnsiEncoding.CanEncode(value, out _)
+    private static long CountTextStringBytes(string value, long maximumBytes, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        long encodedBytes = PdfWinAnsiEncoding.CanEncode(value, out _, cancellationToken)
             ? value.Length
             : AddCounted(2L, MultiplyCounted(value.Length, 2L, maximumBytes), maximumBytes);
+        cancellationToken.ThrowIfCancellationRequested();
         return CountHexStringBytes(encodedBytes, maximumBytes);
     }
 
@@ -260,9 +293,11 @@ internal static partial class PdfPageExtractor {
     }
     
     private static string BuildStreamDictionary(PdfStream stream, SerializationContext context) {
+        context.CancellationToken.ThrowIfCancellationRequested();
         var sb = new StringBuilder();
         sb.Append("<< ");
         foreach (var entry in stream.Dictionary.Items) {
+            context.CancellationToken.ThrowIfCancellationRequested();
             if (!string.Equals(entry.Key, "Length", StringComparison.Ordinal)) {
                 AppendDictionaryEntry(sb, entry.Key, entry.Value, context);
             }
@@ -280,14 +315,16 @@ internal static partial class PdfPageExtractor {
     }
     
     private static void AppendDictionaryEntry(StringBuilder sb, string key, PdfObject value, SerializationContext context) {
+        context.CancellationToken.ThrowIfCancellationRequested();
         sb.Append('/');
-        PdfSyntaxEscaper.AppendName(sb, key);
+        PdfSyntaxEscaper.AppendName(sb, key, context.CancellationToken);
         sb.Append(' ');
         AppendObject(sb, value, context);
         sb.Append(' ');
     }
     
     private static void AppendObject(StringBuilder sb, PdfObject value, SerializationContext context) {
+        context.CancellationToken.ThrowIfCancellationRequested();
         switch (value) {
             case PdfNumber number:
                 AppendNumber(sb, number.Value);
@@ -297,14 +334,14 @@ internal static partial class PdfPageExtractor {
                 break;
             case PdfName name:
                 sb.Append('/');
-                PdfSyntaxEscaper.AppendName(sb, name.Name);
+                PdfSyntaxEscaper.AppendName(sb, name.Name, context.CancellationToken);
                 break;
             case PdfStringObj text:
                 sb.Append(context.PreserveRawStringBytes
-                    ? PdfSyntaxEscaper.HexString(text.RawBytes)
+                    ? PdfSyntaxEscaper.HexString(text.RawBytes, context.CancellationToken)
                     : text.UseTextStringEncoding
-                        ? PdfSyntaxEscaper.TextString(text.Value)
-                        : PdfSyntaxEscaper.LiteralString(text.Value));
+                        ? PdfSyntaxEscaper.TextString(text.Value, context.CancellationToken)
+                        : PdfSyntaxEscaper.LiteralString(text.Value, context.CancellationToken));
                 break;
             case PdfNull:
                 sb.Append("null");
@@ -323,6 +360,7 @@ internal static partial class PdfPageExtractor {
             case PdfArray array:
                 sb.Append("[ ");
                 foreach (var item in array.Items) {
+                    context.CancellationToken.ThrowIfCancellationRequested();
                     AppendObject(sb, item, context);
                     sb.Append(' ');
                 }
@@ -331,6 +369,7 @@ internal static partial class PdfPageExtractor {
             case PdfDictionary dictionary:
                 sb.Append("<< ");
                 foreach (var entry in dictionary.Items) {
+                    context.CancellationToken.ThrowIfCancellationRequested();
                     AppendDictionaryEntry(sb, entry.Key, entry.Value, context);
                 }
                 sb.Append(">>");

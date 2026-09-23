@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Net;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
@@ -122,13 +123,15 @@ internal static class PdfFreeTextStyleParser {
         return new PdfFreeTextDefaultStyle(fontSize, textColor, textAlign);
     }
 
-    public static string? ExtractPlainText(string? richContents) {
-        if (string.IsNullOrWhiteSpace(richContents)) {
+    public static string? ExtractPlainText(string? richContents, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (string.IsNullOrEmpty(richContents)) {
             return null;
         }
 
         var builder = new System.Text.StringBuilder(richContents!.Length);
         for (int i = 0; i < richContents.Length; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             char current = richContents[i];
             if (current != '<') {
                 builder.Append(current);
@@ -141,12 +144,16 @@ internal static class PdfFreeTextStyleParser {
                 continue;
             }
 
-            AppendLineBreakForTag(builder, richContents, i + 1, tagEnd);
+            AppendLineBreakForTag(builder, richContents, i + 1, tagEnd, cancellationToken);
             i = tagEnd;
         }
 
-        string decoded = WebUtility.HtmlDecode(builder.ToString());
-        string normalized = NormalizeExtractedText(decoded);
+        cancellationToken.ThrowIfCancellationRequested();
+        var decoded = new System.Text.StringBuilder(builder.Length);
+        using (var writer = new CancellationCheckingStringWriter(decoded, cancellationToken)) {
+            WebUtility.HtmlDecode(builder.ToString(), writer);
+        }
+        string normalized = NormalizeExtractedText(decoded.ToString(), cancellationToken);
         return normalized.Length == 0 ? null : normalized;
     }
 
@@ -696,9 +703,10 @@ internal static class PdfFreeTextStyleParser {
         return value > 1D ? 1D : value;
     }
 
-    private static void AppendLineBreakForTag(System.Text.StringBuilder builder, string richContents, int tagStart, int tagEnd) {
+    private static void AppendLineBreakForTag(System.Text.StringBuilder builder, string richContents, int tagStart, int tagEnd, CancellationToken cancellationToken) {
         int index = tagStart;
         while (index < tagEnd && char.IsWhiteSpace(richContents[index])) {
+            if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
             index++;
         }
 
@@ -708,13 +716,17 @@ internal static class PdfFreeTextStyleParser {
         }
 
         while (index < tagEnd && char.IsWhiteSpace(richContents[index])) {
+            if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
             index++;
         }
 
         int nameStart = index;
         while (index < tagEnd && char.IsLetterOrDigit(richContents[index])) {
+            if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
             index++;
         }
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         if (index <= nameStart) {
             return;
@@ -740,12 +752,57 @@ internal static class PdfFreeTextStyleParser {
         builder.Append('\n');
     }
 
-    private static string NormalizeExtractedText(string value) {
-        value = value.Replace("\r\n", "\n").Replace('\r', '\n').Trim();
-        while (value.Contains("\n\n\n")) {
-            value = value.Replace("\n\n\n", "\n\n");
+    private static string NormalizeExtractedText(string value, CancellationToken cancellationToken) {
+        var normalized = new System.Text.StringBuilder(value.Length);
+        int consecutiveNewLines = 0;
+        for (int i = 0; i < value.Length; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            char current = value[i];
+            if (current == '\r') {
+                if (i + 1 < value.Length && value[i + 1] == '\n') i++;
+                current = '\n';
+            }
+            if (current == '\n') {
+                if (++consecutiveNewLines > 2) continue;
+            } else {
+                consecutiveNewLines = 0;
+            }
+            normalized.Append(current);
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return normalized.ToString().Trim();
+    }
+
+    private sealed class CancellationCheckingStringWriter : StringWriter {
+        private readonly CancellationToken _cancellationToken;
+
+        internal CancellationCheckingStringWriter(System.Text.StringBuilder builder, CancellationToken cancellationToken)
+            : base(builder, CultureInfo.InvariantCulture) => _cancellationToken = cancellationToken;
+
+        public override void Write(char value) {
+            _cancellationToken.ThrowIfCancellationRequested();
+            base.Write(value);
         }
 
-        return value;
+        public override void Write(char[] buffer, int index, int count) {
+            for (int end = index + count; index < end;) {
+                _cancellationToken.ThrowIfCancellationRequested();
+                int length = Math.Min(4096, end - index);
+                base.Write(buffer, index, length);
+                index += length;
+            }
+        }
+
+        public override void Write(string? value) {
+            if (value is null) return;
+            for (int index = 0; index < value.Length; index += 4096) {
+                _cancellationToken.ThrowIfCancellationRequested();
+#if NET8_0_OR_GREATER
+                base.Write(value.AsSpan(index, Math.Min(4096, value.Length - index)));
+#else
+                base.Write(value.Substring(index, Math.Min(4096, value.Length - index)));
+#endif
+            }
+        }
     }
 }

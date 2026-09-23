@@ -72,12 +72,17 @@ public sealed partial class PdfReadDocument {
 
     private IReadOnlyList<PdfStructureElementInfo> ReadStructureElements(System.Threading.CancellationToken cancellationToken) {
         var elements = new List<PdfStructureElementInfo>();
-        foreach (var item in _objects.OrderBy(entry => entry.Key)) {
+        var orderedElements = new SortedDictionary<int, PdfIndirectObject>();
+        foreach (var item in _objects) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (item.Value.Value is not PdfDictionary dictionary ||
-                TryReadName(dictionary, "Type") != "StructElem") {
-                continue;
+            if (item.Value.Value is PdfDictionary dictionary && TryReadName(dictionary, "Type") == "StructElem") {
+                orderedElements.Add(item.Key, item.Value);
             }
+        }
+
+        foreach (var item in orderedElements) {
+            cancellationToken.ThrowIfCancellationRequested();
+            var dictionary = (PdfDictionary)item.Value.Value;
 
             int? pageObjectNumber = ReadReferenceObjectNumber(dictionary, "Pg");
             int objectReferenceCount = 0;

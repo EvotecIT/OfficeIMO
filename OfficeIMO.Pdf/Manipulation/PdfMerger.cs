@@ -670,7 +670,7 @@ internal static partial class PdfMerger {
         foreach (var plan in plans) {
             cancellationToken.ThrowIfCancellationRequested();
             var source = plan.Source;
-            var context = new PdfPageExtractor.SerializationContext(plan.NumberMap, pagesId, source.Collector.MaterializedPageValues, source.Objects, source.PageOverrides);
+            var context = new PdfPageExtractor.SerializationContext(plan.NumberMap, pagesId, source.Collector.MaterializedPageValues, source.Objects, source.PageOverrides, cancellationToken: cancellationToken);
             foreach (int sourceId in source.Collector.ObjectIds) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!source.Objects.TryGetValue(sourceId, out var sourceObject)) {
@@ -686,9 +686,9 @@ internal static partial class PdfMerger {
             }
         }
 
-        objects.Add(PdfSerializedObject.FromBytes(PdfPageExtractor.WrapObject(pagesId, PdfEncoding.Latin1GetBytes(PdfPageTreeBuilder.BuildPagesDictionary(allPageObjectIds)))));
+        objects.Add(PdfSerializedObject.FromBytes(PdfPageExtractor.WrapObject(pagesId, PdfEncoding.Latin1GetBytes(PdfPageTreeBuilder.BuildPagesDictionary(allPageObjectIds, cancellationToken)))));
         var primaryPlan = plans[primarySourceIndex];
-        var primaryCatalogContext = new PdfPageExtractor.SerializationContext(primaryPlan.NumberMap, pagesId, primaryPlan.Source.Collector.MaterializedPageValues, primaryPlan.Source.Objects);
+        var primaryCatalogContext = new PdfPageExtractor.SerializationContext(primaryPlan.NumberMap, pagesId, primaryPlan.Source.Collector.MaterializedPageValues, primaryPlan.Source.Objects, cancellationToken: cancellationToken);
         objects.Add(PdfSerializedObject.FromBytes(PdfPageExtractor.WrapObject(catalogId, PdfEncoding.Latin1GetBytes(PdfPageExtractor.BuildCatalogDictionary(pagesId, sources[primarySourceIndex].CatalogState, primaryCatalogContext)))));
         objects.Add(PdfSerializedObject.FromBytes(PdfPageExtractor.WrapObject(infoId, PdfEncoding.Latin1GetBytes(PdfPageExtractor.BuildInfoDictionary(BuildMergedMetadata(sources, primarySourceIndex))))));
 

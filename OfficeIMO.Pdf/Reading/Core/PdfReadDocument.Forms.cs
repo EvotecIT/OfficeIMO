@@ -251,7 +251,7 @@ public sealed partial class PdfReadDocument {
         bool hasRichValueEntry = hasOwnRichValueEntry || inherited.HasRichValueEntry;
         string? richValue = hasOwnRichValueEntry ? TryReadText(field, "RV") : inherited.RichValue;
         string? richValuePlainText = hasOwnRichValueEntry
-            ? PdfFreeTextStyleParser.ExtractPlainText(richValue)
+            ? PdfFreeTextStyleParser.ExtractPlainText(richValue, cancellationToken)
             : inherited.RichValuePlainText;
         int? richValueOwnerKey = hasOwnRichValueEntry ? objectNumber ?? nextDirectValueOwnerKey-- : inherited.RichValueOwnerKey;
         string? alternateName = TryReadText(field, "TU");

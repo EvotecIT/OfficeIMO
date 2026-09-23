@@ -5,6 +5,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfPageExtractor {
     internal static string BuildCatalogDictionary(int pagesId, CatalogRewriteState? catalogState, SerializationContext? context = null) {
+        if (context is not null) context.CancellationToken.ThrowIfCancellationRequested();
         var sb = new StringBuilder();
         PdfCatalogDictionaryBuilder.AppendCatalogStart(sb, pagesId);
     

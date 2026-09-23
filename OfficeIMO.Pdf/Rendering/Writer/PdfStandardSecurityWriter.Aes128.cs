@@ -169,7 +169,7 @@ internal static partial class PdfStandardSecurityWriter {
         OfficeIMO.Security.IOfficeAesCryptographyProvider? provider,
         CancellationToken cancellationToken) {
         byte[] encrypted = EncryptAesCbc(objectKey, value, provider, cancellationToken);
-        byte[] hex = PdfEncoding.Latin1GetBytes(PdfSyntaxEscaper.HexString(encrypted));
+        byte[] hex = PdfEncoding.Latin1GetBytes(PdfSyntaxEscaper.HexString(encrypted, cancellationToken));
         output.Write(hex, 0, hex.Length);
     }
 

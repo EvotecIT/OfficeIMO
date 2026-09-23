@@ -84,7 +84,8 @@ internal static partial class PdfPageExtractor {
         int pagesId = nextObjectId++;
         int catalogId = nextObjectId++;
         int infoId = nextObjectId;
-        var context = new SerializationContext(numberMap, pagesId, collector.MaterializedPageValues, sourceObjects, pageOverrides);
+        var context = new SerializationContext(numberMap, pagesId, collector.MaterializedPageValues, sourceObjects, pageOverrides,
+            cancellationToken: cancellationToken);
         int serializedObjectCapacity = GetSerializedObjectCapacity(sourceIds.Count, extraObjects.Length, clonedPages);
         var objects = new List<PdfSerializedObject>(serializedObjectCapacity);
         long serializedObjectBytes = 0L;
@@ -148,7 +149,8 @@ internal static partial class PdfPageExtractor {
                 : new Dictionary<int, Dictionary<string, PdfObject>> {
                     [clonedPage.SourcePageObjectNumber] = clonedPage.PageOverrides
             };
-            var clonedContext = new SerializationContext(clonedNumberMap, pagesId, collector.MaterializedPageValues, sourceObjects, clonedPageOverrides);
+            var clonedContext = new SerializationContext(clonedNumberMap, pagesId, collector.MaterializedPageValues, sourceObjects, clonedPageOverrides,
+                cancellationToken: cancellationToken);
             if (enforceOutputLimit) {
                 PdfDictionary clonedSizeCheckDictionary = BuildPageDictionaryForSizeCheck(dictionary, clonedPage.SourcePageObjectNumber, clonedContext);
                 EnsureSerializedIndirectObjectWithinLimit(
@@ -180,7 +182,7 @@ internal static partial class PdfPageExtractor {
             }
         }
     
-        AddBoundedObject(objects, PdfSerializedObject.FromBytes(WrapObject(pagesId, PdfEncoding.Latin1GetBytes(PdfPageTreeBuilder.BuildPagesDictionary(outputPageObjectIds)))), objectBytesLimit, ref serializedObjectBytes);
+        AddBoundedObject(objects, PdfSerializedObject.FromBytes(WrapObject(pagesId, PdfEncoding.Latin1GetBytes(PdfPageTreeBuilder.BuildPagesDictionary(outputPageObjectIds, cancellationToken)))), objectBytesLimit, ref serializedObjectBytes);
         AddBoundedObject(objects, PdfSerializedObject.FromBytes(WrapObject(catalogId, PdfEncoding.Latin1GetBytes(BuildCatalogDictionary(pagesId, catalogState, context)))), objectBytesLimit, ref serializedObjectBytes);
         AddBoundedObject(objects, PdfSerializedObject.FromBytes(WrapObject(infoId, PdfEncoding.Latin1GetBytes(BuildInfoDictionary(metadata)))), objectBytesLimit, ref serializedObjectBytes);
     
