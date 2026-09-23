@@ -39,7 +39,7 @@
     <PackageReference Include="itext.pdfhtml" Version="6.3.3" />
     <PackageReference Include="PdfPig" Version="0.1.15" />
     <PackageReference Include="PDFsharp-MigraDoc" Version="6.2.4" />
-    <PackageReference Include="PeachPDF" Version="0.9.18" />
+    <PackageReference Include="PeachPDF" Version="0.9.19" />
     <!--
       2026.5.0 is the last QuestPDF release whose embedded Community license
       grants eligible open-source projects the MIT license. Starting with

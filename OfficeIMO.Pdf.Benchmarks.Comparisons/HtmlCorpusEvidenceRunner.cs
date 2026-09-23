@@ -91,7 +91,7 @@ internal static partial class HtmlCorpusEvidenceRunner {
         }
 
         var report = new HtmlCorpusEvidenceReport(
-            SchemaVersion: 3,
+            SchemaVersion: 4,
             GeneratedUtc: DateTimeOffset.UtcNow,
             Environment: new HtmlCorpusEvidenceEnvironment(
                 RuntimeInformation.OSDescription,
@@ -159,6 +159,11 @@ internal static partial class HtmlCorpusEvidenceRunner {
                 () => CompareTextAsync(peachPdf.Pdf, officeImo.PrintPdf, caseDirectory, rasterizer),
                 "OfficeIMO-to-PeachPDF text comparison", failures).ConfigureAwait(false)
             : null;
+        HtmlCorpusTextComparison? peachToChromiumTextComparison = peachPdf != null && chromium != null
+            ? await TryRenderAsync(
+                () => CompareTextAsync(chromium.PrintPdf, peachPdf.Pdf, caseDirectory, rasterizer),
+                "PeachPDF-to-Chromium text comparison", failures).ConfigureAwait(false)
+            : null;
         HtmlCorpusGeometryComparison? screenGeometry = officeImo != null && chromium != null
             ? TryRender(() => CompareGeometry(officeImo.ScreenElements, chromium.ScreenElements),
                 "screen geometry comparison", failures)
@@ -190,14 +195,21 @@ internal static partial class HtmlCorpusEvidenceRunner {
                 () => ComparePdfPages(officeImo.PrintPdf.Pages, peachPdf.Pdf.Pages, caseDirectory, "print-peachpdf"),
                 "OfficeIMO-to-PeachPDF page comparison", failures) ?? Array.Empty<HtmlCorpusPageComparison>()
             : Array.Empty<HtmlCorpusPageComparison>();
+        IReadOnlyList<HtmlCorpusPageComparison> peachToChromiumPageComparisons = peachPdf != null && chromium != null
+            ? TryRender(
+                () => ComparePdfPages(peachPdf.Pdf.Pages, chromium.PrintPdf.Pages, caseDirectory, "print-peachpdf-chromium"),
+                "PeachPDF-to-Chromium page comparison", failures) ?? Array.Empty<HtmlCorpusPageComparison>()
+            : Array.Empty<HtmlCorpusPageComparison>();
         HtmlCorpusComparisonEvidence comparisons = new(
             chromiumTextComparison,
             peachTextComparison,
+            peachToChromiumTextComparison,
             screenGeometry,
             screenPixels,
             screenToPage,
             chromiumPageComparisons,
-            peachPageComparisons);
+            peachPageComparisons,
+            peachToChromiumPageComparisons);
 
         return new HtmlCorpusCaseEvidence(
             scenario.Id,
@@ -221,6 +233,7 @@ internal static partial class HtmlCorpusEvidenceRunner {
         using var sourceStream = new MemoryStream(input.SourceBytes, writable: false);
         HtmlConversionDocument source = HtmlConversionDocument.Load(sourceStream);
         HtmlToPdfOptions printOptions = new(scenario.CreateOptions());
+        printOptions.Margins = HtmlRenderMargins.All(0D);
         HtmlRenderRequest printRequest = HtmlRenderRequest.Create(
             HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, printOptions);
 
@@ -487,8 +500,14 @@ internal static partial class HtmlCorpusEvidenceRunner {
         ?? "unknown";
 
     private static string DependencyVersion(string packageId, Assembly assembly) {
-        string? depsFiles = AppContext.GetData("APP_CONTEXT_DEPS_FILES") as string;
-        foreach (string depsFile in (depsFiles ?? string.Empty).Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)) {
+        string? configuredDepsFiles = AppContext.GetData("APP_CONTEXT_DEPS_FILES") as string;
+        IEnumerable<string> depsFiles = (configuredDepsFiles ?? string.Empty)
+            .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
+        string? entryAssemblyName = Assembly.GetEntryAssembly()?.GetName().Name;
+        if (!string.IsNullOrEmpty(entryAssemblyName)) {
+            depsFiles = depsFiles.Append(Path.Combine(AppContext.BaseDirectory, entryAssemblyName + ".deps.json"));
+        }
+        foreach (string depsFile in depsFiles) {
             if (!File.Exists(depsFile)) continue;
             try {
                 using JsonDocument document = JsonDocument.Parse(File.ReadAllBytes(depsFile));

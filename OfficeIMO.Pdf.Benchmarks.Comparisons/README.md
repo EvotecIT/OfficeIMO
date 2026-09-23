@@ -88,7 +88,11 @@ screen-to-PDF artifact, and per-page scene PNG/SVG; a PeachPDF print PDF; and a
 Chromium screen PNG and print PDF. It records text-marker preservation, normalized
 text overlap, selected-element geometry, page counts, pixel differences, versions,
 hashes, timings, allocations, diagnostics, and individual provider failures in
-the schema-3 `html-corpus-evidence.json`. Screen markers require an exact normalized
+the schema-4 `html-corpus-evidence.json`. The report compares both managed print PDFs
+directly with Chromium print as well as with each other, so a difference between
+the managed engines cannot be mistaken for browser accuracy. The comparison
+uses A4 pages and zero caller-supplied outer margins for OfficeIMO; authored
+`@page` rules still apply. Screen markers require an exact normalized
 phrase. PDF extraction uses ordered normalized tokens so table reading order may
 interleave cells without allowing marker words to pass out of order; the policy and
 result for every marker are recorded. With `--verify-acceptance`, the runner also writes the

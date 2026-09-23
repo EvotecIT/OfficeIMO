@@ -78,11 +78,13 @@ internal sealed record HtmlCorpusBrowserEvidence(
 internal sealed record HtmlCorpusComparisonEvidence(
     HtmlCorpusTextComparison? OfficeImoPrintToChromiumPrint,
     HtmlCorpusTextComparison? OfficeImoPrintToPeachPdf,
+    HtmlCorpusTextComparison? PeachPdfPrintToChromiumPrint,
     HtmlCorpusGeometryComparison? ScreenGeometry,
     HtmlCorpusPixelComparison? ScreenPixels,
     HtmlCorpusScreenToPageComparison? ScreenToPage,
     IReadOnlyList<HtmlCorpusPageComparison> PrintPagesToChromium,
-    IReadOnlyList<HtmlCorpusPageComparison> PrintPagesToPeachPdf);
+    IReadOnlyList<HtmlCorpusPageComparison> PrintPagesToPeachPdf,
+    IReadOnlyList<HtmlCorpusPageComparison> PeachPdfPrintPagesToChromium);
 
 internal sealed record HtmlCorpusOutputEvidence(
     string RelativePath,

@@ -54,10 +54,19 @@ internal static class HtmlCorpusAcceptanceReportWriter {
                 HtmlCorpusPageComparison page = printPages[index];
                 HtmlCorpusPageArtifact? officePage = item.OfficeImo?.PrintPdf.Pages.FirstOrDefault(value => value.PageNumber == page.PageNumber);
                 HtmlCorpusPageArtifact? browserPage = item.Browser?.PrintPdf.Pages.FirstOrDefault(value => value.PageNumber == page.PageNumber);
+                HtmlCorpusPageArtifact? peachPage = item.PeachPdf?.Pdf.Pages.FirstOrDefault(value => value.PageNumber == page.PageNumber);
+                HtmlCorpusPageComparison? peachToBrowser = item.Comparisons.PeachPdfPrintPagesToChromium
+                    .FirstOrDefault(value => value.PageNumber == page.PageNumber);
                 builder.Append("- Print page ").Append(page.PageNumber.ToString(CultureInfo.InvariantCulture))
                     .Append(": [OfficeIMO](").Append(item.Id).Append('/').Append(officePage?.RelativePath)
                     .Append("), [Chromium](").Append(item.Id).Append('/').Append(browserPage?.RelativePath)
-                    .Append("), [difference](").Append(item.Id).Append('/').Append(page.Pixels?.DifferenceRelativePath).AppendLine(")");
+                    .Append("), [OfficeIMO difference](").Append(item.Id).Append('/').Append(page.Pixels?.DifferenceRelativePath).Append(')');
+                if (peachPage != null && peachToBrowser?.Pixels?.DifferenceRelativePath != null) {
+                    builder.Append(", [PeachPDF](").Append(item.Id).Append('/').Append(peachPage.RelativePath)
+                        .Append("), [PeachPDF difference](").Append(item.Id).Append('/')
+                        .Append(peachToBrowser.Pixels.DifferenceRelativePath).Append(')');
+                }
+                builder.AppendLine();
             }
             builder.AppendLine();
         }
