@@ -143,6 +143,37 @@ internal static class PdfTextDiagnostics {
         Guard.NotNull(text, nameof(text));
         Guard.NotNull(options, nameof(options));
         Guard.StandardFont(font, nameof(font), "Generated PDF text diagnostics require a supported PDF font.");
+        // Standard-font text made only of WinAnsi characters and layout controls has no diagnostic on either
+        // path below: the WinAnsi scan flags only characters it cannot encode, and the fallback scan accepts
+        // every WinAnsi text element before it consults a fallback font. Skip building the fallback programs
+        // and a string per text element for it.
+        if (IsWinAnsiText(text) &&
+            !options.TryGetEmbeddedStandardFontProgram(font, out _) &&
+            !options.TryGetEmbeddedStandardOpenTypeCffFontProgram(font, out _)) {
+            return new List<PdfTextEncodingDiagnostic>();
+        }
+
+        return AnalyzeGeneratedTextCoreSlow(text, options, font, source, location, runIndex, fallbackSet);
+    }
+
+    private static bool IsWinAnsiText(string text) {
+        foreach (char ch in text) {
+            if ((ch < ' ' || ch >= '\u007F') && ch != '\n' && ch != '\r' && ch != '\t' && !PdfWinAnsiEncoding.CanEncodeCharacter(ch)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static List<PdfTextEncodingDiagnostic> AnalyzeGeneratedTextCoreSlow(
+        string text,
+        PdfOptions options,
+        PdfStandardFont font,
+        string source,
+        string location,
+        int? runIndex,
+        PdfEmbeddedFontFallbackSet? fallbackSet) {
         PdfTextShapingMode shapingMode = options.TextShapingModeSnapshot;
 
         fallbackSet ??= options.EmbeddedFontFallbacksSnapshot;

@@ -14,9 +14,13 @@ internal static partial class PdfWriter {
 
     private static string EncodeWinAnsiHex(string s) {
         var bytes = PdfWinAnsiEncoding.Encode(s);
-        var sb = new StringBuilder(bytes.Length * 2);
-        for (int i = 0; i < bytes.Length; i++) sb.Append(bytes[i].ToString("X2", CultureInfo.InvariantCulture));
-        return sb.ToString();
+        const string digits = "0123456789ABCDEF";
+        var hex = new char[bytes.Length * 2];
+        for (int i = 0; i < bytes.Length; i++) {
+            hex[2 * i] = digits[bytes[i] >> 4];
+            hex[2 * i + 1] = digits[bytes[i] & 0xF];
+        }
+        return new string(hex);
     }
 
     private static PdfTextShowCommand EncodeTextShowCommand(string text, PdfStandardFont font, PdfOptions? options,
@@ -80,9 +84,10 @@ internal static partial class PdfWriter {
 
         if (options?.HasDiagnosticsReport == true) {
             options.AddTextShapingDiagnostics(PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text), text, deferProviderCoverable: false);
+            // Only a diagnostics report keeps these; without one the scan and its list were discarded.
+            options.AddTextDiagnostics(PdfTextDiagnostics.AnalyzeWinAnsiText(text));
         }
 
-        options?.AddTextDiagnostics(PdfTextDiagnostics.AnalyzeWinAnsiText(text));
         return new PdfTextShowCommand(EncodeWinAnsiHex(text));
     }
 
