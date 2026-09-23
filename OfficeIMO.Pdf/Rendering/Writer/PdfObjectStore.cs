@@ -34,6 +34,7 @@ internal sealed class PdfObjectStore : IPdfObjectStore {
             ThrowIfDisposed();
             Entry entry = _entries[index];
             if (entry.Bytes != null) return entry.Bytes;
+            if (entry.Segments != null) return Join(entry.Segments, entry.Length);
             FileStream stream = _spillStream ?? throw new InvalidOperationException("PDF object spill storage is unavailable.");
             var bytes = new byte[entry.Length];
             stream.Position = entry.Offset;
@@ -87,14 +88,10 @@ internal sealed class PdfObjectStore : IPdfObjectStore {
         if (totalLength > int.MaxValue) throw new InvalidOperationException("A serialized PDF object cannot exceed the supported two-gigabyte object size.");
 
         if (_spillStream == null && _memoryBytes + totalLength <= _memoryLimitBytes) {
-            var bytes = new byte[(int)totalLength];
-            int offset = 0;
-            for (int index = 0; index < segments.Length; index++) {
-                byte[] segment = segments[index];
-                Buffer.BlockCopy(segment, 0, bytes, offset, segment.Length);
-                offset += segment.Length;
-            }
-            _entries.Add(Entry.InMemory(bytes));
+            // Keep the pieces: an object is only ever copied out whole and in order, so joining them here
+            // would copy every stream (page content, image, font) once more per document. Callers never
+            // write to a segment once it is handed over.
+            _entries.Add(Entry.InMemory(segments, (int)totalLength));
             _memoryBytes += totalLength;
             _peakMemoryBytes = Math.Max(_peakMemoryBytes, _memoryBytes);
             return;
@@ -122,6 +119,11 @@ internal sealed class PdfObjectStore : IPdfObjectStore {
         Entry entry = _entries[index];
         if (entry.Bytes != null) {
             CopyBytes(entry.Bytes, destination, hash, cancellationToken);
+            return;
+        }
+
+        if (entry.Segments != null) {
+            foreach (byte[] segment in entry.Segments) CopyBytes(segment, destination, hash, cancellationToken);
             return;
         }
 
@@ -224,6 +226,7 @@ internal sealed class PdfObjectStore : IPdfObjectStore {
         _spillStream = stream;
         for (int index = 0; index < _entries.Count; index++) {
             Entry entry = _entries[index];
+            if (entry.Segments != null) _entries[index] = AppendSegmentsToSpill(entry.Segments, entry.Length);
             if (entry.Bytes == null) continue;
             _entries[index] = AppendToSpill(entry.Bytes);
         }
@@ -255,17 +258,30 @@ internal sealed class PdfObjectStore : IPdfObjectStore {
     }
     #pragma warning restore CA1513
 
+    private static byte[] Join(byte[][] segments, int length) {
+        var bytes = new byte[length];
+        int offset = 0;
+        foreach (byte[] segment in segments) {
+            Buffer.BlockCopy(segment, 0, bytes, offset, segment.Length);
+            offset += segment.Length;
+        }
+        return bytes;
+    }
+
     private readonly struct Entry {
-        private Entry(byte[]? bytes, long offset, int length) {
+        private Entry(byte[]? bytes, byte[][]? segments, long offset, int length) {
             Bytes = bytes;
+            Segments = segments;
             Offset = offset;
             Length = length;
         }
 
         internal byte[]? Bytes { get; }
+        internal byte[][]? Segments { get; }
         internal long Offset { get; }
         internal int Length { get; }
-        internal static Entry InMemory(byte[] bytes) => new Entry(bytes, 0L, bytes.Length);
-        internal static Entry Spilled(long offset, int length) => new Entry(null, offset, length);
+        internal static Entry InMemory(byte[] bytes) => new Entry(bytes, null, 0L, bytes.Length);
+        internal static Entry InMemory(byte[][] segments, int length) => new Entry(null, segments, 0L, length);
+        internal static Entry Spilled(long offset, int length) => new Entry(null, null, offset, length);
     }
 }
