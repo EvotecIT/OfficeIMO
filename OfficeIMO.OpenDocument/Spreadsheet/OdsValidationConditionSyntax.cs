@@ -101,12 +101,13 @@ public sealed class OdsValidationConditionSyntax {
             OdsValidationValueKind.List, null, null, null, new ReadOnlyCollection<string>(list));
     }
 
-    /// <summary>Creates an OpenFormula condition whose expression must evaluate to true.</summary>
+    /// <summary>Creates a portable OpenFormula local-cell comparison whose expression must evaluate to true.</summary>
     public static OdsValidationConditionSyntax CreateFormula(string expression) {
         if (string.IsNullOrWhiteSpace(expression)) throw new ArgumentException("A formula expression is required.", nameof(expression));
         string value = expression.Trim();
-        if (!SpreadsheetFormulaSyntaxTree.Parse("of:=" + value, SpreadsheetFormulaDialect.OpenFormula).IsValid) {
-            throw new ArgumentException("The expression is not valid OpenFormula syntax.", nameof(expression));
+        if (!OdsPortableValidationFormula.IsSupported(
+                SpreadsheetFormulaSyntaxTree.Parse("of:=" + value, SpreadsheetFormulaDialect.OpenFormula))) {
+            throw new ArgumentException("The expression is not a supported local-cell comparison.", nameof(expression));
         }
         return new OdsValidationConditionSyntax(OdsValidationValueKind.CustomFormula, null, value, null, null);
     }
@@ -138,7 +139,8 @@ public sealed class OdsValidationConditionSyntax {
         if (StartsWith(value, formulaPrefix) && value.EndsWith(")", StringComparison.Ordinal)) {
             string expression = value.Substring(formulaPrefix.Length, value.Length - formulaPrefix.Length - 1);
             if (string.IsNullOrWhiteSpace(expression)
-                || !SpreadsheetFormulaSyntaxTree.Parse("of:=" + expression, SpreadsheetFormulaDialect.OpenFormula).IsValid) return false;
+                || !OdsPortableValidationFormula.IsSupported(
+                    SpreadsheetFormulaSyntaxTree.Parse("of:=" + expression, SpreadsheetFormulaDialect.OpenFormula))) return false;
             condition = CreateFormula(expression);
             return true;
         }

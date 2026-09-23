@@ -16,7 +16,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         if (!formula.StartsWith("=", StringComparison.Ordinal)) formula = "=" + formula;
         SpreadsheetFormulaSyntaxTree syntax = SpreadsheetFormulaSyntaxTree.Parse(
             formula, SpreadsheetFormulaDialect.ExcelA1);
-        if (!IsPortableCustomValidationFormula(syntax)) return false;
+        if (!OdsPortableValidationFormula.IsSupported(syntax)) return false;
         SpreadsheetFormulaTranslationResult translated = syntax.TranslateTo(SpreadsheetFormulaDialect.OpenFormula);
         if (!translated.IsSuccessful || !translated.Formula.StartsWith("of:=", StringComparison.Ordinal)) return false;
         condition = OdsValidationConditionSyntax.CreateFormula(translated.Formula.Substring(4));
@@ -54,7 +54,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
 
         SpreadsheetFormulaSyntaxTree syntax = SpreadsheetFormulaSyntaxTree.Parse(
             "of:=" + condition.FirstOperand, SpreadsheetFormulaDialect.OpenFormula);
-        if (!IsPortableCustomValidationFormula(syntax)) return false;
+        if (!OdsPortableValidationFormula.IsSupported(syntax)) return false;
         SpreadsheetFormulaTranslationResult translated = syntax.TranslateTo(SpreadsheetFormulaDialect.ExcelA1);
         if (!translated.IsSuccessful || !translated.Formula.StartsWith("=", StringComparison.Ordinal)) return false;
         string formula = translated.Formula.Substring(1);
@@ -91,45 +91,4 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         return true;
     }
 
-    private static bool IsPortableCustomValidationFormula(SpreadsheetFormulaSyntaxTree syntax) {
-        if (!syntax.IsValid) return false;
-        var tokens = new List<SpreadsheetFormulaSyntaxNode>();
-        if (!TryCollectCustomValidationTokens(syntax.Root, tokens) || tokens.Count != 3) return false;
-        return tokens[0].TokenKind == SpreadsheetFormulaTokenKind.Reference
-            && tokens[1].TokenKind == SpreadsheetFormulaTokenKind.Operator
-            && tokens[1].Text is "=" or "<>" or "!=" or "<" or "<=" or ">" or ">="
-            && tokens[2].TokenKind is SpreadsheetFormulaTokenKind.NumberLiteral
-                or SpreadsheetFormulaTokenKind.StringLiteral or SpreadsheetFormulaTokenKind.Reference;
-    }
-
-    private static bool TryCollectCustomValidationTokens(SpreadsheetFormulaSyntaxNode node,
-        ICollection<SpreadsheetFormulaSyntaxNode> tokens) {
-        if (node.Kind is SpreadsheetFormulaSyntaxKind.FunctionCall or SpreadsheetFormulaSyntaxKind.InlineArray) return false;
-        if (node.Kind == SpreadsheetFormulaSyntaxKind.Token) {
-            switch (node.TokenKind) {
-                case SpreadsheetFormulaTokenKind.Prefix:
-                case SpreadsheetFormulaTokenKind.Whitespace:
-                case SpreadsheetFormulaTokenKind.OpenDelimiter:
-                case SpreadsheetFormulaTokenKind.CloseDelimiter:
-                    return true;
-                case SpreadsheetFormulaTokenKind.Reference:
-                    SpreadsheetRangeReference? reference = node.Reference;
-                    if (reference == null || !reference.Start.IsCell || reference.Start.SheetName != null
-                        || reference.End != null) return false;
-                    break;
-                case SpreadsheetFormulaTokenKind.NumberLiteral:
-                case SpreadsheetFormulaTokenKind.StringLiteral:
-                case SpreadsheetFormulaTokenKind.Operator:
-                    break;
-                default:
-                    return false;
-            }
-            tokens.Add(node);
-            return true;
-        }
-        foreach (SpreadsheetFormulaSyntaxNode child in node.Children) {
-            if (!TryCollectCustomValidationTokens(child, tokens)) return false;
-        }
-        return true;
-    }
 }

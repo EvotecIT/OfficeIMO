@@ -57,6 +57,11 @@ public sealed class SpreadsheetCustomValidationConversionTests {
     [Theory]
     [InlineData("D4<>\"\"")]
     [InlineData("D4<E4")]
+    [InlineData("D4>=-1")]
+    [InlineData("D4<+2.5")]
+    [InlineData("(D4)>0")]
+    [InlineData("D4>(0)")]
+    [InlineData("(D4>0)")]
     public void TextAndCellComparisonOperandsRoundTrip(string formula) {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddWorksheet("Data");
@@ -81,6 +86,17 @@ public sealed class SpreadsheetCustomValidationConversionTests {
 
         OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
         Assert.Empty(result.Value.Sheets.Single().GetDataValidations());
+        Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "validations"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported);
+    }
+
+    [Fact]
+    public void MalformedCustomComparisonRemainsExplicitLoss() {
+        using ExcelDocument source = ExcelDocument.Create();
+        source.AddWorksheet("Data").ValidationCustomFormula("C5", "C5>0()");
+
+        OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
+        Assert.Empty(result.Value.Validations);
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "validations"
             && mapping.Status == OdfConversionMappingStatus.Unsupported);
     }

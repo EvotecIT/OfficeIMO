@@ -55,7 +55,7 @@ if (calculation.FailedCells > 0) {
 workbook.Save("metrics.ods");
 ```
 
-For a formula-based validation, use `OdsValidationConditionSyntax.CreateFormula("[.B2]>0")` and set `OdsValidation.BaseCellAddress` to an absolute sheet-qualified address such as `$'Metrics'.$B$2`. The base cell determines how relative formula references apply to the validated cells.
+For a formula-based validation, use `OdsValidationConditionSyntax.CreateFormula("[.B2]>0")` and set `OdsValidation.BaseCellAddress` to an absolute sheet-qualified address such as `$'Metrics'.$B$2`. The typed formula condition accepts a local cell compared with a number, text value, or another local cell; numbers may have a leading sign. Other OpenFormula expressions can be stored in the raw `Condition` property. The base cell determines how relative formula references apply to the validated cells.
 
 Create an ODP presentation:
 
