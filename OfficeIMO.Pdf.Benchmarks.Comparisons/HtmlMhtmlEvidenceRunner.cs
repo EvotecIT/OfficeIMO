@@ -118,6 +118,14 @@ internal static class HtmlMhtmlEvidenceRunner {
         }
         if (document != null) {
             await RunAsync("officeimo-print", () => Task.FromResult(document.ToPdfBytes()), output, results, failures).ConfigureAwait(false);
+            await RunAsync("officeimo-print-zero-margin", () => Task.FromResult(document.ToPdfBytes(new HtmlToPdfOptions {
+                Margins = HtmlRenderMargins.All(0)
+            })), output, results, failures).ConfigureAwait(false);
+            await RunAsync("officeimo-print-zero-margin-local-fonts", () => {
+                var options = new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0) };
+                options.ResourcePolicy.AllowDocumentFontEmbedding = true;
+                return Task.FromResult(document.ToPdfBytes(options));
+            }, output, results, failures).ConfigureAwait(false);
             await RunAsync("officeimo-screen-media", () => Task.FromResult(RenderScreenPdf(document, HtmlRenderIntentProfile.ScreenMediaPaged)), output, results, failures).ConfigureAwait(false);
             await RunAsync("officeimo-screen-snapshot", () => Task.FromResult(RenderScreenPdf(document, HtmlRenderIntentProfile.ScreenSnapshotPaged)), output, results, failures).ConfigureAwait(false);
         }

@@ -41,7 +41,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double boxHeight = ResolveBoxHeight(naturalContentHeight, boxWidth, style);
         double contentHeight = Math.Max(0D, boxHeight - style.VerticalInsets);
         string effectiveWrap = wrapping && hasDefiniteHeight ? style.FlexWrap : "nowrap";
-        List<FlexLine> lines = CreateFlexLines(orderedItems, effectiveWrap, contentHeight, mainGap);
+        List<FlexLine> lines = CreateFlexLines(orderedItems, effectiveWrap, contentHeight, mainGap, vertical: true);
         foreach (FlexLine line in lines) {
             CheckCancellation();
             double availableForItems = Math.Max(0D, contentHeight - mainGap * Math.Max(0, line.Items.Count - 1));

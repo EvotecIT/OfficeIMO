@@ -69,8 +69,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (continuationIndex >= 0) orderedItems = orderedItems.Skip(continuationIndex).ToList();
         }
         double gap = orderedItems.Count > 1 ? style.ColumnGap : 0D;
-        foreach (FlexItem item in orderedItems) item.Basis = ResolveFlexBasis(item, contentWidth);
-        List<FlexLine> lines = CreateFlexLines(orderedItems, style.FlexWrap, contentWidth, gap);
+        foreach (FlexItem item in orderedItems) {
+            item.Basis = ResolveFlexBasis(item, contentWidth);
+            item.AutomaticMinimumMainSize = ResolveFlexAutomaticMinimumWidth(item, contentWidth);
+        }
+        List<FlexLine> lines = CreateFlexLines(orderedItems, style.FlexWrap, contentWidth, gap, vertical: false);
         foreach (FlexLine line in lines) {
             double availableForItems = Math.Max(0D, contentWidth - gap * Math.Max(0, line.Items.Count - 1));
             ResolveFlexMainSizes(line.Items, availableForItems, vertical: false);
@@ -204,6 +207,51 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return Math.Min(availableWidth, measured + style.HorizontalInsets);
     }
 
+    private double ResolveFlexAutomaticMinimumWidth(FlexItem item, double availableWidth) {
+        HtmlRenderBoxStyle style = item.Style;
+        if (style.MinWidth.HasValue || style.OverflowX is not ("visible" or "clip")) return 0D;
+
+        double minimum;
+        if (IsReplacedImageElementTag(item.TagName) && item.Element != null) {
+            minimum = ResolveReplacedImageBoxWidth(item.Element, style);
+        } else {
+            IReadOnlyList<GridIntrinsicTextRun> runs = ResolveGridInFlowTextRuns(item, availableWidth);
+            double content = runs.Count == 0 ? 0D : MeasureGridMinContentRuns(runs);
+            content = Math.Max(content, ResolveDescendantReplacedGridContribution(item, availableWidth));
+            content = Math.Max(content, ResolveDescendantDefiniteFlexWidth(item, availableWidth));
+            minimum = content + style.HorizontalInsets;
+        }
+        if (style.ExplicitWidth.HasValue)
+            minimum = Math.Min(minimum, style.ExplicitWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
+        if (style.MaxWidth.HasValue)
+            minimum = Math.Min(minimum, style.MaxWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
+        return Math.Max(0D, minimum + style.MarginLeft + style.MarginRight);
+    }
+
+    private double ResolveDescendantDefiniteFlexWidth(FlexItem item, double availableWidth) =>
+        item.Element == null ? 0D : ResolveDescendantDefiniteFlexWidth(item.Element, item.Style, availableWidth, 1);
+
+    private double ResolveDescendantDefiniteFlexWidth(IElement parent, HtmlRenderBoxStyle parentStyle, double availableWidth, int depth) {
+        double maximum = 0D;
+        foreach (IElement child in parent.Children) {
+            EnsureDepth(depth, child);
+            if (ShouldSkipElement(child)) continue;
+            HtmlRenderBoxStyle childStyle = _styleResolver.Resolve(child, availableWidth, parentStyle);
+            if (childStyle.Display == "none" || childStyle.Position == "absolute" || childStyle.Position == "fixed") continue;
+            if (IsReplacedImageElement(child)) continue;
+
+            double contribution;
+            if (childStyle.ExplicitWidth.HasValue && !childStyle.ExplicitWidthUsesPercentage && childStyle.Display != "inline") {
+                contribution = ResolveBoxWidth(availableWidth, childStyle) + childStyle.MarginLeft + childStyle.MarginRight;
+            } else {
+                double descendant = ResolveDescendantDefiniteFlexWidth(child, childStyle, availableWidth, depth + 1);
+                contribution = descendant > 0D ? ResolveGridMeasuredContribution(childStyle, descendant) : 0D;
+            }
+            maximum = Math.Max(maximum, contribution);
+        }
+        return maximum;
+    }
+
     private static string CollapseFlexText(string value) {
         if (string.IsNullOrWhiteSpace(value)) return string.Empty;
         return string.Join(" ", value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
@@ -219,7 +267,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         foreach (FlexItem item in items) {
             item.MainSize = ClampFlexMainSize(item, item.Basis, vertical);
             double factor = growing ? item.Style.FlexGrow : item.Style.FlexShrink * item.Basis;
-            if (!growing && !shrinking || factor <= 0D || Math.Abs(item.MainSize - item.Basis) > 0.0001D) {
+            bool constrainedAgainstGrowth = growing && item.MainSize + 0.0001D < item.Basis;
+            bool constrainedAgainstShrink = shrinking && item.MainSize > item.Basis + 0.0001D;
+            if (!growing && !shrinking || factor <= 0D || constrainedAgainstGrowth || constrainedAgainstShrink) {
                 unfrozen.Remove(item);
             }
         }
@@ -259,7 +309,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             : (style.BorderBox ? 0D : style.HorizontalInsets) + style.MarginLeft + style.MarginRight;
         double? declaredMinimum = vertical ? style.MinHeight : style.MinWidth;
         double? declaredMaximum = vertical ? style.MaxHeight : style.MaxWidth;
-        double minimum = declaredMinimum.HasValue ? declaredMinimum.Value + nonContent : 0D;
+        double minimum = declaredMinimum.HasValue ? declaredMinimum.Value + nonContent
+            : vertical ? 0D : item.AutomaticMinimumMainSize;
         double maximum = declaredMaximum.HasValue ? declaredMaximum.Value + nonContent : double.PositiveInfinity;
         return Math.Max(minimum, Math.Min(maximum, Math.Max(0D, value)));
     }
@@ -428,6 +479,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal HtmlRenderBoxStyle Style { get; set; }
         internal int SourceIndex { get; }
         internal double Basis { get; set; }
+        internal double AutomaticMinimumMainSize { get; set; }
         internal double MainSize { get; set; }
         internal double MainOffset { get; set; }
         internal double CrossBasis { get; set; }

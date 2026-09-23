@@ -131,6 +131,58 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlFlexRow_KeepsIntrinsicSvgWidthForZeroBasisLinks() {
+        const string html = """
+            <div style="display:flex;width:300px">
+              <a id="first" style="display:flex;flex:0 1 0%;background:#ff0000"><svg xmlns="http://www.w3.org/2000/svg" width="46" height="46"><rect width="46" height="46"/></svg></a>
+              <a id="second" style="display:flex;flex:0 1 0%;background:#0000ff"><svg xmlns="http://www.w3.org/2000/svg" width="162" height="46"><rect width="162" height="46"/></svg></a>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderFlex(html, 320D);
+
+        HtmlRenderShape first = FindFlexShape(rendered, "a#first");
+        HtmlRenderShape second = FindFlexShape(rendered, "a#second");
+        Assert.Equal(46D, first.Width, 3);
+        Assert.Equal(162D, second.Width, 3);
+        Assert.Equal(first.X + first.Width, second.X, 3);
+    }
+
+    [Fact]
+    public void HtmlFlexRow_WrapsZeroBasisItemsAtTheirAutomaticMinimumWidth() {
+        const string html = """
+            <div style="display:flex;flex-wrap:wrap;width:200px">
+              <a id="first" style="display:flex;flex:0 1 0%;background:#ff0000"><svg xmlns="http://www.w3.org/2000/svg" width="120" height="20"><rect width="120" height="20"/></svg></a>
+              <a id="second" style="display:flex;flex:0 1 0%;background:#0000ff"><svg xmlns="http://www.w3.org/2000/svg" width="120" height="20"><rect width="120" height="20"/></svg></a>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderFlex(html, 220D);
+
+        HtmlRenderShape first = FindFlexShape(rendered, "a#first");
+        HtmlRenderShape second = FindFlexShape(rendered, "a#second");
+        Assert.Equal(first.X, second.X, 3);
+        Assert.Equal(first.Y + first.Height, second.Y, 3);
+    }
+
+    [Fact]
+    public void HtmlFlexRow_KeepsNestedDefiniteBlockWidthAtAutomaticMinimum() {
+        const string html = """
+            <div style="display:flex;width:200px">
+              <div id="outer" style="flex:0 1 0%;background:#ff0000"><div style="width:180px;height:20px"></div></div>
+              <div id="next" style="flex:0 1 0%;background:#0000ff"><div style="width:20px;height:20px"></div></div>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderFlex(html, 220D);
+
+        HtmlRenderShape outer = FindFlexShape(rendered, "div#outer");
+        HtmlRenderShape next = FindFlexShape(rendered, "div#next");
+        Assert.Equal(180D, outer.Width, 3);
+        Assert.Equal(outer.X + outer.Width, next.X, 3);
+    }
+
+    [Fact]
     public void HtmlFlexRow_CombinesOrderWithRowReverseWithoutChangingPaintOrder() {
         const string html = """
             <div style="display:flex;flex-direction:row-reverse;width:200px">
@@ -496,6 +548,31 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlFlexColumnWrap_UsesHeightRatherThanWidthConstraintsToBuildLines() {
+        const string html = """
+            <div style="display:flex;flex-direction:column;flex-wrap:wrap;width:100px;height:120px;align-content:flex-start;align-items:flex-start">
+              <div id="tall-a" style="height:80px;max-width:40px;width:80px;background:#ff0000"></div>
+              <div id="tall-b" style="height:80px;max-width:40px;width:80px;background:#0000ff"></div>
+            </div>
+            <div style="display:flex;flex-direction:column;flex-wrap:wrap;width:250px;height:120px;align-content:flex-start;align-items:flex-start">
+              <div id="short-a" style="height:40px;min-width:200px;background:#00ff00"></div>
+              <div id="short-b" style="height:40px;min-width:200px;background:#ffff00"></div>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderFlex(html, 270D);
+
+        HtmlRenderShape tallA = FindFlexShape(rendered, "div#tall-a");
+        HtmlRenderShape tallB = FindFlexShape(rendered, "div#tall-b");
+        Assert.Equal(tallA.X + tallA.Width, tallB.X, 3);
+        Assert.Equal(tallA.Y, tallB.Y, 3);
+        HtmlRenderShape shortA = FindFlexShape(rendered, "div#short-a");
+        HtmlRenderShape shortB = FindFlexShape(rendered, "div#short-b");
+        Assert.Equal(shortA.X, shortB.X, 3);
+        Assert.Equal(shortA.Y + shortA.Height, shortB.Y, 3);
+    }
+
+    [Fact]
     public void HtmlFlexColumnWrapReverse_ReversesColumnsAndGrowsItemsPerColumn() {
         const string html = """
             <div style="display:flex;flex-direction:column;flex-wrap:wrap-reverse;width:220px;height:120px;gap:10px 20px;align-content:space-between;align-items:flex-start">
@@ -563,10 +640,10 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlRenderDocument rendered = RenderFlex(html, 220D);
 
-        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Item");
+        HtmlRenderText text = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), run => run.Text == "Item");
         Assert.Single(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FlexValueUnsupported);
         HtmlRenderShape item = FindFlexShape(rendered, "div#item");
-        Assert.Equal(25D, item.Width, 3);
+        Assert.True(item.Width >= Math.Max(25D, text.Width));
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FlexLayoutPending);
     }
 

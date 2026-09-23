@@ -149,7 +149,13 @@ directories. The live capture waits for `DOMContentLoaded` plus one second; it
 does not establish readiness for every scripted application. The replay is the
 comparable input: Chromium opens the frozen MHTML offline, while OfficeIMO emits
 print, screen-media-paged and screen-snapshot-paged PDFs and PeachPDF emits a
-print PDF. Browser print and screen-media print are separate references;
+print PDF. The print diagnostics also include `officeimo-print-zero-margin`,
+which removes OfficeIMO's default page margins, and
+`officeimo-print-zero-margin-local-fonts`, which additionally opts in to
+embedding document-selected fonts installed on the host. The local-font lane
+can differ across machines and does not change the library default. Compare
+those lanes with their explicit settings; equal page counts do not establish
+equal layout. Browser print and screen-media print are separate references;
 page-count differences across intents are not failures by themselves. The JSON
 records the archive hash, versions, source commit and dirty state, page counts,
 and operation failures. `--require-clean-source` also checks that the loaded

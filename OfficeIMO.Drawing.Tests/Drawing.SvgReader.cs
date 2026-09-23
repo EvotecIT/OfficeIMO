@@ -332,6 +332,18 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgReaderAcceptsPackedArcFlagsAndAdjacentCoordinates() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 20'>"
+            + "<path d='M10 10 a8 8 0 001.631-.151 a8 8 0 0110 0' fill='none' stroke='blue'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeShape path = Assert.Single(drawing!.Shapes).Shape;
+        Assert.True(path.PathCommands.Count(command => command.Kind == OfficePathCommandKind.CubicBezierTo) >= 2);
+    }
+
+    [Fact]
     public void SvgReaderComposesOrderedNestedTransformsInViewBoxCoordinates() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='10 20 100 50'>"
             + "<g transform='translate(10 0)'><g transform='scale(2)'><rect x='10' y='20' width='10' height='10' fill='red'/></g></g>"

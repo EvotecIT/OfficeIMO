@@ -5,18 +5,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IReadOnlyList<FlexItem> items,
         string flexWrap,
         double contentWidth,
-        double gap) {
+        double gap,
+        bool vertical) {
         var lines = new List<FlexLine>();
         if (items.Count == 0) return lines;
         var current = new FlexLine();
         double used = 0D;
         foreach (FlexItem item in items) {
-            double required = item.Basis + (current.Items.Count > 0 ? gap : 0D);
+            double required = ClampFlexMainSize(item, item.Basis, vertical)
+                + (current.Items.Count > 0 ? gap : 0D);
             if (flexWrap != "nowrap" && current.Items.Count > 0 && used + required > contentWidth + 0.0001D) {
                 lines.Add(current);
                 current = new FlexLine();
                 used = 0D;
-                required = item.Basis;
+                required = ClampFlexMainSize(item, item.Basis, vertical);
             }
 
             current.Items.Add(item);

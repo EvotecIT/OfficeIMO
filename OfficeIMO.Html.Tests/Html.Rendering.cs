@@ -603,6 +603,22 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlPdf_ExplicitDocumentFontPolicyEmbedsSelectedFontForAsciiText() {
+        string? installedFamily = new[] { "Trebuchet MS", "Arial", "Calibri", "Liberation Sans", "DejaVu Sans" }
+            .FirstOrDefault(candidate => PdfCore.PdfEmbeddedFontFamily.TryFromSystem(candidate, out _));
+        if (installedFamily == null) return;
+
+        var options = new HtmlToPdfOptions();
+        options.ResourcePolicy.AllowDocumentFontEmbedding = true;
+        byte[] pdf = HtmlConversionDocument
+            .Parse("<p style=\"font-family:'" + installedFamily + "'\">Selected ASCII font</p>")
+            .ToPdfBytes(options);
+
+        Assert.True(PdfCore.PdfDiagnostics.Analyze(pdf).EmbeddedFontCount > 0);
+        Assert.Contains("Selected ASCII font", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlPdf_TrustedResourcePolicyDoesNotRelaxCallerHyperlinkPolicy() {
         const string webUri = "https://example.test/report";
         const string fileUri = "file:///secret/report.pdf";
