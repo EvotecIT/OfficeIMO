@@ -127,8 +127,10 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
     }
 
     [Theory]
+    [InlineData("1pt", 1.0)]
     [InlineData("11.5pt", 11.5)]
     [InlineData("2.54cm", 72.0)]
+    [InlineData("409pt", 409.0)]
     public void OdsConditionalFontFamilyAndAbsoluteSizeMapToExcel(string size, double expectedPoints) {
         OdsDocument source = OdsDocument.Create();
         OdsSheet sheet = source.AddSheet("Data");
@@ -161,6 +163,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
     [Theory]
     [InlineData("Liberation Serif, Arial", null)]
     [InlineData(null, "120%")]
+    [InlineData(null, "0.5pt")]
     [InlineData(null, "410pt")]
     public void OdsUnrepresentableConditionalTypographyRemainsUnsupported(string? family, string? size) {
         OdsDocument source = OdsDocument.Create();

@@ -87,7 +87,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         try {
             OdfLength? fontSize = appliedStyles[0].FontSize;
             if (fontSize.HasValue && fontSize.Value.TryToPoints(out double points)
-                && points > 0D && points <= 409D) fontSizePoints = points;
+                && points >= 1D && points <= 409D) fontSizePoints = points;
         } catch (FormatException) {
             // A malformed optional size does not discard other supported conditional styling.
         } catch (ArgumentException) {
