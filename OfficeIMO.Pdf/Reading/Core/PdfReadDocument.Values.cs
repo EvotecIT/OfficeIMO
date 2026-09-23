@@ -187,7 +187,7 @@ public sealed partial class PdfReadDocument {
                 return true;
             case PdfArray array:
                 activeArrays ??= new HashSet<PdfArray>();
-                if (activeArrays.Count >= 128) {
+                if (activeArrays.Count > _options.Limits.MaxObjectNestingDepth) {
                     text = null;
                     return false;
                 }

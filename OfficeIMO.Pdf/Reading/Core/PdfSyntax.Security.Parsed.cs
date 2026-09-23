@@ -11,17 +11,19 @@ internal static partial class PdfSyntax {
     internal static PdfDocumentSecurityInfo ReadRewrittenOutputSecurityInfo(
         string decodedText,
         string trailerRaw,
-        PdfLoadOptions options) {
+        PdfLoadOptions options,
+        CancellationToken cancellationToken = default) {
         Guard.NotNull(decodedText, nameof(decodedText));
         Guard.NotNull(trailerRaw, nameof(trailerRaw));
         Guard.NotNull(options, nameof(options));
+        cancellationToken.ThrowIfCancellationRequested();
         PdfReadLimits limits = options.Limits;
-        var trailerReferences = ReadTrailerReferences(trailerRaw, "Encrypt", "Root", "Info", limits);
+        var trailerReferences = ReadTrailerReferences(trailerRaw, "Encrypt", "Root", "Info", limits, cancellationToken);
         if (trailerReferences.First is not null) {
             throw new InvalidDataException("The canonical clear-text rewrite unexpectedly emitted an encryption reference.");
         }
 
-        if (!TryGetLatestStartXrefOffset(decodedText, out int startXrefOffset)) {
+        if (!TryGetLatestStartXrefOffset(decodedText, out int startXrefOffset, cancellationToken)) {
             throw new InvalidDataException("The canonical full rewrite did not contain a readable terminal cross-reference pointer.");
         }
 
@@ -30,6 +32,7 @@ internal static partial class PdfSyntax {
         IReadOnlyList<int> startXrefOffsets = new[] { startXrefOffset };
         IReadOnlyList<int> previousXrefOffsets = Array.Empty<int>();
         IReadOnlyList<PdfDocumentRevisionInfo> revisions = BuildRevisionInfo(startXrefOffsets, previousXrefOffsets);
+        cancellationToken.ThrowIfCancellationRequested();
         return new PdfDocumentSecurityInfo(
             hasEncryption: false,
             encryptObjectNumber: null,

@@ -205,11 +205,19 @@ internal static class PdfSemanticRepairDiagnostics {
             // bounded trees by the parser, so reference-identity hashing here only
             // repeats work for every container in otherwise valid documents.
             if (value is PdfArray array) {
-                for (int i = 0; i < array.Items.Count; i++) pending.Push(array.Items[i]);
+                for (int i = 0; i < array.Items.Count; i++) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    pending.Push(array.Items[i]);
+                }
                 continue;
             }
             PdfDictionary? dictionary = value is PdfDictionary direct ? direct : value is PdfStream stream ? stream.Dictionary : null;
-            if (dictionary != null) foreach (PdfObject item in dictionary.Items.Values) pending.Push(item);
+            if (dictionary != null) {
+                foreach (PdfObject item in dictionary.Items.Values) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    pending.Push(item);
+                }
+            }
         }
     }
 

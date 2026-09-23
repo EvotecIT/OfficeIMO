@@ -119,6 +119,21 @@ public class PdfPageExtractionCancellationTests {
     }
 
     [Fact]
+    public void ViewerPreferenceArrayUsesTheConfiguredNestingLimit() {
+        string nested = new string('[', 130) + "1" + new string(']', 130);
+        byte[] pdf = System.Text.Encoding.ASCII.GetBytes(
+            "%PDF-1.7\n" +
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /ViewerPreferences << /Custom " + nested + " >> >>\nendobj\n" +
+            "2 0 obj\n<< /Type /Pages /Count 0 /Kids [] >>\nendobj\n" +
+            "trailer\n<< /Root 1 0 R >>\n%%EOF");
+        var options = new PdfLoadOptions { Limits = new PdfReadLimits { MaxObjectNestingDepth = 160 } };
+
+        PdfReadDocument readback = PdfReadDocument.Open(pdf, options);
+
+        Assert.Equal(nested, readback.ViewerPreferences?.GetValue("Custom"));
+    }
+
+    [Fact]
     public void ArtifactCaptureKeepsExactDigestAndHonorsCancellation() {
         byte[] pdf = CreatePdf();
         using var cancellation = new CancellationTokenSource();
