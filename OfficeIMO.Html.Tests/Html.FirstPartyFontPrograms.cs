@@ -86,6 +86,31 @@ public sealed class HtmlFirstPartyFontProgramTests {
     }
 
     [Fact]
+    public void HtmlPdfOutlinedTextAppliesForegroundAlphaOnce() {
+        byte[] fontData = ReadFont("RobotoFlex.ttf");
+        string html = FontHtml("Roboto Flex", "font/ttf", fontData, "Pale", link: false)
+            .Replace("<p", "<p style='color:rgba(175,47,47,.2)'", StringComparison.Ordinal);
+        var options = new HtmlToPdfOptions();
+        options.Fonts.FontVariationResolver = _ => new Dictionary<string, float> { ["wght"] = 725F };
+
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
+        byte[] pdf = result.ToBytes();
+        string raw = System.Text.Encoding.GetEncoding(28591).GetString(pdf);
+        OfficeShape[] glyphs = PdfCore.PdfDocument.Load(pdf).Render.Drawing(1).Shapes
+            .Select(item => item.Shape)
+            .Where(shape => shape.FillColor.HasValue)
+            .ToArray();
+
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == HtmlPdfDiagnosticCodes.FontProgramOutlined);
+        Assert.NotEmpty(glyphs);
+        Assert.All(glyphs, shape => {
+            Assert.Equal(OfficeColor.FromRgb(175, 47, 47), shape.FillColor);
+            Assert.Equal(0.2D, shape.FillOpacity!.Value, 3);
+        });
+        Assert.DoesNotContain("/ca 0.04", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlPdfTrueTypeCollectionUsesAccessibleVectorOutlines() {
         const string text = "OfficeIMO 0123456789";
         byte[] collection = ManagedTextShapingTestAssets.CreateFontCollection(

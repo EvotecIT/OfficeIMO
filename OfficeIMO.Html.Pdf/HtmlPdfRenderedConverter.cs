@@ -807,7 +807,8 @@ internal static partial class HtmlPdfRenderedConverter {
         bool asSpan,
         bool logicalTextOwned,
         CancellationToken cancellationToken,
-        double? baselineFontSize = null) {
+        double? baselineFontSize = null,
+        bool colorOpacityApplied = false) {
         if (visual.Text.Length == 0) return;
         // Canvas and outline writers must anchor a script to the original line's metrics.
         baselineFontSize ??= visual.Font.Size;
@@ -840,6 +841,12 @@ internal static partial class HtmlPdfRenderedConverter {
                 logicalTextOwned,
                 cancellationToken,
                 baselineFontSize.Value)) {
+            return;
+        }
+        if (!colorOpacityApplied && visual.Color.A < 255) {
+            canvas.Effect(OfficeTransform.Identity, visual.Color.A / 255D,
+                nested => AddText(nested, visual, webFonts, conversionReport, surfaceWidth,
+                    asSpan, logicalTextOwned, cancellationToken, baselineFontSize, colorOpacityApplied: true));
             return;
         }
         OfficeFontStyle requestedStyle = (visual.Font.IsBold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)

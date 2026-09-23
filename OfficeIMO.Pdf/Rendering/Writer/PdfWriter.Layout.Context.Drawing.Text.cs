@@ -11,6 +11,19 @@ internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private void DrawDrawingTextAt(OfficeDrawingText text, double originX, double originTopY, OfficeDrawingTextMetrics textMetrics) {
             if (string.IsNullOrEmpty(text.Text)) return;
+            double textOpacity = (text.Color ?? OfficeColor.Black).A / 255D;
+            string? opacityState = EnsureGraphicsState(textOpacity, textOpacity);
+            if (opacityState != null) {
+                new ContentStreamBuilder(sb).SaveState().GraphicsState(opacityState);
+            }
+            try {
+                DrawDrawingTextContentAt(text, originX, originTopY, textMetrics);
+            } finally {
+                if (opacityState != null) new ContentStreamBuilder(sb).RestoreState();
+            }
+        }
+
+        private void DrawDrawingTextContentAt(OfficeDrawingText text, double originX, double originTopY, OfficeDrawingTextMetrics textMetrics) {
             if (!text.WrapText && !text.ShrinkToFit && !text.StackedText && !text.HasPadding
                 && text.VerticalAlignment == OfficeTextVerticalAlignment.Top) {
                 DrawDrawingPositionedText(text, originX, originTopY, textMetrics.MeasureText);

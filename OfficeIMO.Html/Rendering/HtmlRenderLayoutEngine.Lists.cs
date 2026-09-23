@@ -212,7 +212,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             children,
             logicalText.PaintOrder,
             logicalText.Source,
-            logicalText.LayoutY);
+            logicalText.LayoutY,
+            logicalText.LayoutHeight);
     }
 
     private static (double X, double Y, double Width, double Height) ResolveSemanticBounds(

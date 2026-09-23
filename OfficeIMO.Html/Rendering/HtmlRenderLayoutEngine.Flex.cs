@@ -214,7 +214,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             };
             if (children != null) bottom = Math.Max(bottom, LastAtomicFlexVisualBottom(children));
             else if (visual is HtmlRenderText or HtmlRenderImage or HtmlRenderDrawing or HtmlRenderFormField)
-                bottom = Math.Max(bottom, visual.LayoutY + visual.Height);
+                bottom = Math.Max(bottom, visual.LayoutY + visual.LayoutHeight);
         }
         return bottom;
     }

@@ -7,6 +7,25 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfDrawingInteropTests {
     [Fact]
+    public void PdfDrawingText_PreservesForegroundAlpha() {
+        var drawing = new OfficeDrawing(160, 70)
+            .AddText("Pale", 4, 4, 120, 24, color: OfficeColor.FromRgba(175, 47, 47, 51))
+            .AddText("Opaque", 4, 34, 120, 24, color: OfficeColor.Black);
+        byte[] pdf = PdfDocument.Create(new PdfOptions {
+            PageWidth = 200,
+            PageHeight = 120,
+            MarginLeft = 10,
+            MarginRight = 10,
+            MarginTop = 10,
+            MarginBottom = 10
+        }).Drawing(drawing).ToBytes();
+        string rawPdf = Encoding.ASCII.GetString(pdf);
+
+        Assert.Contains("/Type /ExtGState /ca 0.2 /CA 0.2", rawPdf, StringComparison.Ordinal);
+        Assert.Contains("/GS1 gs", rawPdf, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PdfColor_ConvertsToAndFromOfficeColor() {
         OfficeColor officeColor = OfficeColor.Parse("#336699CC");
 

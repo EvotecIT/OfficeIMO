@@ -201,7 +201,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             Alignment = tag == "caption" && (string.IsNullOrWhiteSpace(computed.GetValue("text-align")) || computed.IsImplicitlyInheritedValue("text-align"))
                 ? OfficeTextAlignment.Center
                 : ResolveAlignment(computed.GetValue("text-align"), direction, parent?.Alignment),
-            LineHeight = ResolveLineHeight(computed.GetValue("line-height"), fontSize),
+            LineHeight = ResolveComputedLineHeight(computed, fontSize, parent),
             LetterSpacing = ResolveTextSpacing(computed.GetValue("letter-spacing"), fontSize, parent?.LetterSpacing ?? 0D),
             WordSpacing = ResolveTextSpacing(computed.GetValue("word-spacing"), fontSize, parent?.WordSpacing ?? 0D),
             SemanticRole = pseudoElement ? pseudoSemanticRole : ResolveSemanticRole(tag),
@@ -781,6 +781,19 @@ internal sealed partial class HtmlRenderStyleResolver {
         return TryResolveLength(value, fontSize, fontSize, _options.DefaultFontSize, out double lineHeight) && lineHeight > 0D
             ? lineHeight
             : fontSize * _options.DefaultLineHeight;
+    }
+
+    private double ResolveComputedLineHeight(HtmlComputedStyle computed, double fontSize, HtmlRenderBoxStyle? parent) {
+        string value = computed.GetValue("line-height");
+        // A length or percentage becomes an absolute computed line height on its
+        // originating element. A unitless number remains a multiplier when inherited.
+        if (parent != null && computed.IsInheritedValue("line-height")
+            && !string.IsNullOrWhiteSpace(value)
+            && !string.Equals(value, "normal", StringComparison.OrdinalIgnoreCase)
+            && !double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out _)) {
+            return parent.LineHeight;
+        }
+        return ResolveLineHeight(value, fontSize);
     }
 
     private static string ResolveSemanticRole(string tag) {

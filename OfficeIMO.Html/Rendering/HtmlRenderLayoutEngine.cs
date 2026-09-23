@@ -1108,7 +1108,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var fragment = new List<HtmlRenderVisual>();
         foreach (HtmlRenderVisual visual in sourceVisuals) {
             double visualTop = visual.LayoutY;
-            double visualBottom = visual.LayoutY + visual.Height;
+            double visualBottom = visual.LayoutY + visual.LayoutHeight;
             double intersectionTop = Math.Max(start, visualTop);
             double intersectionBottom = Math.Min(end, visualBottom);
             if (intersectionBottom <= intersectionTop + 0.0001D) continue;

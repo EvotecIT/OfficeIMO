@@ -141,7 +141,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             null,
             text.Source,
             null,
-            layoutY: null,
+            layoutY: text.LayoutY,
             semanticNodeId: null,
             textAdvanceWidth: text.TextAdvanceWidth,
             bidiVisualOrderResolved: text.BidiVisualOrderResolved,
@@ -156,7 +156,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             textPaintWidth: text.TextPaintWidth,
             decorationColor: color,
             featureSettings: text.FeatureSettings,
-            fontPalette: text.FontPalette);
+            fontPalette: text.FontPalette,
+            layoutHeight: text.LayoutHeight);
 
     private static string TextShadowSource(string source, int index, int count) =>
         count == 1

@@ -409,7 +409,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             visual.PaintOrder,
             run.Source,
             layoutY: visual.LayoutY,
-            structureElementKey: run.InlineSemanticGroupKey);
+            structureElementKey: run.InlineSemanticGroupKey,
+            layoutHeight: visual.LayoutHeight);
     }
 
     private static bool ContainsBookmarkAnchor(IEnumerable<HtmlRenderVisual> visuals, int semanticNodeId) {

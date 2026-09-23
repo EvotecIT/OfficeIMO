@@ -4,12 +4,13 @@ namespace OfficeIMO.Html;
 /// Immutable positioned visual emitted by the shared HTML layout engine.
 /// </summary>
 public abstract class HtmlRenderVisual {
-    internal HtmlRenderVisual(HtmlRenderVisualKind kind, double x, double y, double width, double height, int paintOrder, string? linkUri, string? source, double? layoutY = null) {
+    internal HtmlRenderVisual(HtmlRenderVisualKind kind, double x, double y, double width, double height, int paintOrder, string? linkUri, string? source, double? layoutY = null, double? layoutHeight = null) {
         ValidateFinite(x, nameof(x));
         ValidateFinite(y, nameof(y));
         ValidateFinite(layoutY ?? y, nameof(layoutY));
         ValidatePositive(width, nameof(width));
         ValidatePositive(height, nameof(height));
+        ValidatePositive(layoutHeight ?? height, nameof(layoutHeight));
         Kind = kind;
         X = x;
         Y = y;
@@ -19,6 +20,7 @@ public abstract class HtmlRenderVisual {
         LinkUri = linkUri;
         Source = source;
         LayoutY = layoutY ?? y;
+        LayoutHeight = layoutHeight ?? height;
     }
 
     /// <summary>Visual operation kind.</summary>
@@ -50,6 +52,9 @@ public abstract class HtmlRenderVisual {
     /// Paint-only CSS positioning deliberately leaves this coordinate unchanged.
     /// </summary>
     internal double LayoutY { get; }
+
+    /// <summary>Normal-flow height used for fragmentation, independent of paint overhang.</summary>
+    internal double LayoutHeight { get; }
 
     internal abstract HtmlRenderVisual Translate(double offsetX, double offsetY, int paintOrder);
 

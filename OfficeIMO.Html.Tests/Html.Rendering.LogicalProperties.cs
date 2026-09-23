@@ -324,15 +324,15 @@ public sealed partial class HtmlRenderingTests {
             .OfType<HtmlRenderText>()
             .ToList();
         HtmlRenderText firstLetter = Assert.Single(text, item => item.Text == "H");
-        double firstLineY = text.Min(item => item.Y);
+        HtmlRenderText firstLineRemainder = Assert.Single(text, item =>
+            item.Text.Contains("ello", StringComparison.Ordinal)
+            && item.Color == OfficeColor.FromRgb(0x00, 0x00, 0xCC)
+            && item.Font.IsBold);
 
         Assert.Equal(30D, firstLetter.Font.Size, 3);
         Assert.Equal(OfficeColor.FromRgb(0xCC, 0x00, 0x00), firstLetter.Color);
-        Assert.Contains(text, item => item.Y <= firstLineY + 0.001D
-            && item.Text.Contains("ello", StringComparison.Ordinal)
-            && item.Color == OfficeColor.FromRgb(0x00, 0x00, 0xCC)
-            && item.Font.IsBold);
-        Assert.Contains(text, item => item.Y > firstLineY + 0.001D
+        Assert.True(firstLetter.Y < firstLineRemainder.Y);
+        Assert.Contains(text, item => item.Y > firstLineRemainder.Y + 0.001D
             && item.Color == OfficeColor.Black);
     }
 

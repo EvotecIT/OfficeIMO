@@ -515,8 +515,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     double textLineHeight = current.HasReplacedImage ? segment.Run.Style.LineHeight : lineHeight;
                     double textY = current.HasReplacedImage
                         ? lineY + Math.Max(0D, baseline - ResolveTextAscent(segment.Run.Style))
-                        : lineY;
-                    RecordInlineOwnerGeometry(segment.Run, formattingContainer, x, textY, Math.Max(0.01D, segment.Width), textLineHeight, inlineBounds);
+                        : lineY + Math.Min(0D, (textLineHeight - segment.Run.Style.Font.Size) / 2D);
+                    double paintHeight = Math.Max(textLineHeight, segment.Run.Style.Font.Size);
+                    RecordInlineOwnerGeometry(segment.Run, formattingContainer, x, textY, Math.Max(0.01D, segment.Width), paintHeight, inlineBounds);
                     if (!segment.Run.Style.PaintVisible) {
                         cursor += rightToLeftLine ? -segment.Width : segment.Width;
                         continue;
@@ -531,7 +532,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             paintSegment.X,
                             textY,
                             Math.Max(0.01D, frameWidth),
-                            Math.Max(0.01D, textLineHeight),
+                            Math.Max(0.01D, paintHeight),
                             segment.Run.Style.Font,
                             segment.Run.Style.Color,
                             OfficeTextAlignment.Left,
@@ -540,7 +541,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             segment.Run.LinkUri,
                             segment.Run.Source,
                             segment.Run.SemanticRole,
-                            layoutY: null,
+                            layoutY: lineY,
                             semanticNodeId: segment.Run.SemanticNodeId,
                             textAdvanceWidth: paintSegment.Advance,
                             bidiVisualOrderResolved: segment.BidiResolved,
@@ -555,7 +556,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             textPaintWidth: paintSegment.Width,
                             decorationColor: segment.Run.Style.DecorationColor,
                             featureSettings: segment.Run.Style.TextFeatureSettings,
-                            fontPalette: segment.Run.Style.FontPalette));
+                            fontPalette: segment.Run.Style.FontPalette,
+                            layoutHeight: textLineHeight));
                     }
                     HtmlRenderVisual textVisual = paintSegments.Count > 1 || segment.BidiResolved ||
                         !string.Equals(segment.Text, segment.LogicalText, StringComparison.Ordinal) ||
@@ -567,10 +569,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             x,
                             textY,
                             Math.Max(0.01D, segment.Width),
-                            Math.Max(0.01D, textLineHeight),
+                            Math.Max(0.01D, paintHeight),
                             textVisuals,
                             visuals.Count,
-                            segment.Run.Source)
+                            segment.Run.Source,
+                            layoutY: lineY,
+                            layoutHeight: textLineHeight)
                         : textVisuals[0];
                     AddTextShadowVisuals(
                         visuals,

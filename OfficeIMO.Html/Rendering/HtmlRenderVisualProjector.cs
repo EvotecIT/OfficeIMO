@@ -82,7 +82,8 @@ internal sealed class HtmlRenderVisualProjector {
             return new HtmlRenderSemanticGroup(
                 HtmlRenderSemanticGroupRole.Artifact,
                 translated.X, translated.Y, translated.Width, translated.Height,
-                new[] { translated }, paintOrder, translated.Source, layoutY: translated.LayoutY);
+                new[] { translated }, paintOrder, translated.Source,
+                layoutY: translated.LayoutY, layoutHeight: translated.LayoutHeight);
         }
 
         CountVisual();

@@ -83,8 +83,9 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
         double? textPaintWidth = null,
         OfficeColor? decorationColor = null,
         OfficeTextFeatureSettings? featureSettings = null,
-        string? fontPalette = null)
-        : base(HtmlRenderVisualKind.Text, x, y, width, height, paintOrder, linkUri, source, layoutY) {
+        string? fontPalette = null,
+        double? layoutHeight = null)
+        : base(HtmlRenderVisualKind.Text, x, y, width, height, paintOrder, linkUri, source, layoutY, layoutHeight) {
         if (textAdvanceWidth.HasValue && (double.IsNaN(textAdvanceWidth.Value) || double.IsInfinity(textAdvanceWidth.Value))) {
             throw new ArgumentOutOfRangeException(nameof(textAdvanceWidth));
         }
@@ -188,15 +189,15 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
                 LinkUri, Source, SemanticRole, LayoutY, SemanticNodeId, TextAdvanceWidth,
                 BidiVisualOrderResolved, SemanticFragmentOrder, LogicalTextOrder,
                 UnderlineStyle, StrikethroughStyle, OfficeTextBaseline.Normal, 0, 1D, 0D,
-                TextPaintWidth, DecorationColor, FeatureSettings, FontPalette);
+                TextPaintWidth, DecorationColor, FeatureSettings, FontPalette, LayoutHeight);
 
     internal bool BidiVisualOrderResolved { get; }
 
     internal override HtmlRenderVisual Translate(double offsetX, double offsetY, int paintOrder) =>
         offsetX == 0D && offsetY == 0D && paintOrder == PaintOrder ? this :
-        new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole, LayoutY + offsetY, SemanticNodeId, TextAdvanceWidth, BidiVisualOrderResolved, SemanticFragmentOrder, LogicalTextOrder, UnderlineStyle, StrikethroughStyle, Baseline, BaselineLevel, BaselineScale, BaselineOffset, TextPaintWidth, DecorationColor, FeatureSettings, FontPalette);
+        new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole, LayoutY + offsetY, SemanticNodeId, TextAdvanceWidth, BidiVisualOrderResolved, SemanticFragmentOrder, LogicalTextOrder, UnderlineStyle, StrikethroughStyle, Baseline, BaselineLevel, BaselineScale, BaselineOffset, TextPaintWidth, DecorationColor, FeatureSettings, FontPalette, LayoutHeight);
 
     internal override HtmlRenderVisual TranslatePaint(double offsetX, double offsetY, int paintOrder) =>
         offsetX == 0D && offsetY == 0D && paintOrder == PaintOrder ? this :
-        new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole, LayoutY, SemanticNodeId, TextAdvanceWidth, BidiVisualOrderResolved, SemanticFragmentOrder, LogicalTextOrder, UnderlineStyle, StrikethroughStyle, Baseline, BaselineLevel, BaselineScale, BaselineOffset, TextPaintWidth, DecorationColor, FeatureSettings, FontPalette);
+        new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole, LayoutY, SemanticNodeId, TextAdvanceWidth, BidiVisualOrderResolved, SemanticFragmentOrder, LogicalTextOrder, UnderlineStyle, StrikethroughStyle, Baseline, BaselineLevel, BaselineScale, BaselineOffset, TextPaintWidth, DecorationColor, FeatureSettings, FontPalette, LayoutHeight);
 }

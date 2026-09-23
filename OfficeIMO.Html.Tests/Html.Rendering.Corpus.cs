@@ -9,6 +9,60 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Theory]
+    [InlineData("1.5em", 30D)]
+    [InlineData("150%", 30D)]
+    [InlineData("1.5", 150D)]
+    public void StaticRendererInheritsComputedLineHeightAcrossFontSizeChanges(string lineHeight, double expected) {
+        string html = "<div style='font-size:20px;line-height:" + lineHeight
+            + "'><h1 style='font-size:100px;margin:0'>Heading</h1></div>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
+            new HtmlRenderOptions { ViewportWidth = 640D });
+        HtmlRenderText heading = Assert.Single(rendered.Pages
+            .SelectMany(page => EnumerateCorpusVisuals(page.Scene))
+            .OfType<HtmlRenderText>(), item => item.Text == "Heading");
+
+        Assert.Equal(expected, heading.LineHeight, 3);
+    }
+
+    [Fact]
+    public void StaticRendererCentersOversizedGlyphPaintAroundInheritedShortLineBox() {
+        static HtmlRenderText RenderHeading(string inheritedLineHeight) {
+            string html = "<div style='margin-top:100px;font-size:20px;line-height:"
+                + inheritedLineHeight + "'><h1 style='font-size:100px;margin:0'>Heading</h1></div>";
+            HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
+                new HtmlRenderOptions { ViewportWidth = 640D });
+            return Assert.Single(rendered.Pages.SelectMany(page => EnumerateCorpusVisuals(page.Scene))
+                .OfType<HtmlRenderText>(), item => item.Text == "Heading");
+        }
+
+        HtmlRenderText shortLine = RenderHeading("20px");
+        HtmlRenderText fullLine = RenderHeading("100px");
+
+        Assert.Equal(20D, shortLine.LineHeight, 3);
+        Assert.Equal(100D, shortLine.Height, 3);
+        Assert.Equal(fullLine.Y - 40D, shortLine.Y, 3);
+    }
+
+    [Fact]
+    public void StaticRendererKeepsOversizedGlyphsWhenShortLineBoxesCrossPages() {
+        const string html = "<style>@page{size:300px 60px;margin:0}html,body,p{margin:0}"
+            + "p{font:100px/20px Arial}</style><p>I<br>J<br>K<br>L</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+        HtmlRenderText[] glyphs = rendered.Pages
+            .SelectMany(page => EnumerateCorpusVisuals(page.Scene))
+            .OfType<HtmlRenderText>()
+            .Where(item => item.Text is "I" or "J" or "K" or "L")
+            .ToArray();
+
+        Assert.Equal(2, rendered.Pages.Count);
+        Assert.Equal(new[] { "I", "J", "K", "L" }, glyphs.Select(item => item.Text).ToArray());
+        Assert.DoesNotContain(rendered.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
+    }
+
+    [Theory]
     [InlineData("margin:0 auto", 30D)]
     [InlineData("margin-left:auto;margin-right:0", 60D)]
     [InlineData("margin-left:0;margin-right:auto", 0D)]
