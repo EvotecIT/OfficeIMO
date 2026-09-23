@@ -98,6 +98,35 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
     }
 
     [Fact]
+    public void OdsConditionalFontOffValuesRemainExplicitInExcel() {
+        OdsDocument source = OdsDocument.Create();
+        OdsSheet sheet = source.AddSheet("Data");
+        OdfStyle baseStyle = source.Styles.CreateAutomatic(OdfStyleFamily.TableCell);
+        baseStyle.Bold = true;
+        baseStyle.Italic = true;
+        baseStyle.Underline = true;
+        OdfStyle normal = source.Styles.CreateNamed("Normal", OdfStyleFamily.TableCell);
+        normal.Bold = false;
+        normal.Italic = false;
+        normal.Underline = false;
+        baseStyle.AddConditionalMap("cell-content()>0", normal.Name);
+        sheet.Cell(0, 0).StyleName = baseStyle.Name;
+
+        OdsDocument reopened = OdsDocument.Load(new MemoryStream(source.ToBytes()));
+        OdfConversionResult<ExcelDocument> result = reopened.ToExcelDocumentResult();
+        using ExcelDocument output = result.Value;
+        using ExcelDocument reopenedExcel = ExcelDocument.Load(new MemoryStream(output.ToBytes()));
+
+        ExcelConditionalFormattingInfo rule = Assert.Single(reopenedExcel.Sheets.Single().GetConditionalFormattingRules());
+        Assert.False(rule.DifferentialFontBold);
+        Assert.False(rule.DifferentialFontItalic);
+        Assert.False(rule.DifferentialFontUnderline);
+        Assert.Null(rule.DifferentialFillColorArgb);
+        Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "source-conditional-style-maps"
+            && mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
+    }
+
+    [Fact]
     public void OdsConditionalMapWithUnmappedStyleRemainsUnsupported() {
         OdsDocument source = OdsDocument.Create();
         OdsSheet sheet = source.AddSheet("Data");

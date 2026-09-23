@@ -72,9 +72,9 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         } catch (FormatException) {
             return null;
         }
-        bool? bold = appliedStyles[0].Bold == true ? true : (bool?)null;
-        bool? italic = appliedStyles[0].Italic == true ? true : (bool?)null;
-        bool? underline = appliedStyles[0].Underline == true ? true : (bool?)null;
+        bool? bold = appliedStyles[0].Bold;
+        bool? italic = appliedStyles[0].Italic;
+        bool? underline = appliedStyles[0].Underline;
         if (!fill.HasValue && !fontColor.HasValue && !bold.HasValue && !italic.HasValue && !underline.HasValue)
             return null;
         return new OdsConditionalStylePlan(comparison, formula1, formula2,

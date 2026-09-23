@@ -388,5 +388,38 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ConditionalFormattingLifecycle_PreservesExplicitFontOffValues(bool officeExtension) {
+            string path = Path.Combine(_directoryWithFiles,
+                officeExtension ? "ConditionalFontOffExtension.xlsx" : "ConditionalFontOffStandard.xlsx");
+            using (var document = ExcelDocument.Create(path)) {
+                ExcelSheet sheet = document.AddWorksheet("Styles");
+                sheet.CellAt(1, 1).SetValue(1);
+                sheet.AddConditionalFormattingRule(new ExcelConditionalFormattingInfo {
+                    Source = officeExtension
+                        ? ExcelConditionalFormattingSource.Office2010Extension
+                        : ExcelConditionalFormattingSource.Standard,
+                    Range = "A1",
+                    Type = "CellIs",
+                    Operator = "GreaterThan",
+                    Formulas = new[] { "0" },
+                    DifferentialFontBold = false,
+                    DifferentialFontItalic = false,
+                    DifferentialFontUnderline = false
+                });
+                document.Save();
+            }
+
+            using (var document = ExcelDocument.Load(path)) {
+                ExcelConditionalFormattingInfo rule = Assert.Single(document.Sheets[0].GetConditionalFormattingRules());
+                Assert.False(rule.DifferentialFontBold);
+                Assert.False(rule.DifferentialFontItalic);
+                Assert.False(rule.DifferentialFontUnderline);
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
     }
 }
