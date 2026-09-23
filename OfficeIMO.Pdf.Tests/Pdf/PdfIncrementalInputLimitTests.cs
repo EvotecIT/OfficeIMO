@@ -231,6 +231,23 @@ public class PdfIncrementalInputLimitTests {
     }
 
     [Fact]
+    public void PersistedSignatureCompletionPreservesCallerDecodedStreamBudgets() {
+        var input = new PdfLoadOptions {
+            Limits = new PdfReadLimits {
+                MaxDecodedStreamBytes = 1024,
+                MaxTotalDecodedStreamBytes = 2048
+            }
+        };
+
+        PdfLoadOptions completion = PdfIncrementalUpdater.ResolvePersistedCompletionReadOptions(
+            input, 300 * 1024 * 1024, 1_020_000);
+
+        Assert.Equal(300 * 1024 * 1024, completion.Limits.MaxRawStreamBytes);
+        Assert.Equal(1024, completion.Limits.MaxDecodedStreamBytes);
+        Assert.Equal(2048, completion.Limits.MaxTotalDecodedStreamBytes);
+    }
+
+    [Fact]
     public void PersistedSignatureCompletionAdmitsLargeContentsReservation() {
         byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Large reserved signature")).ToBytes();
         PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
@@ -266,6 +283,26 @@ public class PdfIncrementalInputLimitTests {
 
         PdfReadLimitException error = Assert.Throws<PdfReadLimitException>(() =>
             PdfIncrementalUpdater.ApplyExternalSignature(preparedWithOversizedObject, new byte[] { 0x30, 0x01, 0x00 }));
+        Assert.Equal(PdfReadLimitKind.ObjectCharacters, error.Kind);
+        Assert.Equal(PdfReadLimits.Default.MaxObjectCharacters, error.Limit);
+    }
+
+    [Fact]
+    public void PersistedSignatureCompletionDoesNotAdmitOversizedReasonBesideContents() {
+        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Signature dictionary budget")).ToBytes();
+        PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
+            source, new PdfExternalSignatureOptions { ReservedSignatureContentsBytes = 510_000 });
+        byte[] marker = System.Text.Encoding.ASCII.GetBytes("/Contents <");
+        int markerOffset = preparation.PreparedPdf.AsSpan().IndexOf(marker);
+        Assert.True(markerOffset > 0);
+        byte[] reason = System.Text.Encoding.ASCII.GetBytes("/Reason (" + new string('x', 1_100_000) + ") ");
+        byte[] preparedWithOversizedReason = preparation.PreparedPdf.AsSpan(0, markerOffset).ToArray()
+            .Concat(reason)
+            .Concat(preparation.PreparedPdf.AsSpan(markerOffset).ToArray())
+            .ToArray();
+
+        PdfReadLimitException error = Assert.Throws<PdfReadLimitException>(() =>
+            PdfIncrementalUpdater.ApplyExternalSignature(preparedWithOversizedReason, new byte[] { 0x30, 0x01, 0x00 }));
         Assert.Equal(PdfReadLimitKind.ObjectCharacters, error.Kind);
         Assert.Equal(PdfReadLimits.Default.MaxObjectCharacters, error.Limit);
     }

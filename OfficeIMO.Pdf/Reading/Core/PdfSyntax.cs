@@ -20,12 +20,12 @@ internal static partial class PdfSyntax {
 
     // Used only to validate the other objects of a persisted signature before
     // admitting an oversized generated /Contents reservation.
-    internal static Dictionary<int, PdfIndirectObject> ParseObjectsSkippingObject(
+    internal static Dictionary<int, PdfIndirectObject> ParseObjectsWithSignatureReservation(
         byte[] pdf,
         PdfLoadOptions options,
-        int skippedObjectOffset) =>
+        Func<byte[], int, int, bool> isOversizedSignatureReservation) =>
         ParseObjectsCore(pdf, options, out _, out _, null, retainOwnedStreamSlices: false,
-            CancellationToken.None, skippedObjectOffset).Map;
+            CancellationToken.None, isOversizedSignatureReservation).Map;
 
     internal static (Dictionary<int, PdfIndirectObject> Map, string TrailerRaw) ParseObjects(
         byte[] pdf,
@@ -82,7 +82,7 @@ internal static partial class PdfSyntax {
         string? decodedText,
         bool retainOwnedStreamSlices,
         CancellationToken cancellationToken,
-        int skippedObjectOffset = -1) {
+        Func<byte[], int, int, bool>? isOversizedSignatureReservation = null) {
         cancellationToken.ThrowIfCancellationRequested();
         decodedStreamBytes = 0;
         PdfReadLimits limits = options?.Limits ?? new PdfReadLimits();
@@ -153,7 +153,9 @@ internal static partial class PdfSyntax {
                 end = (i + 1 < matches.Length) ? matches[i + 1].Index : text.Length;
             }
 
-            if (start == skippedObjectOffset) continue;
+            if (isOversizedSignatureReservation is not null &&
+                end - start > limits.MaxObjectCharacters &&
+                isOversizedSignatureReservation(pdf, start, end)) continue;
 
             int preliminaryBodyEnd = end;
             if (preliminaryBodyEnd - 6 >= bodyStart && string.CompareOrdinal(text, preliminaryBodyEnd - 6, "endobj", 0, 6) == 0) {

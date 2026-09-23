@@ -195,19 +195,12 @@ internal static partial class PdfIncrementalUpdater {
         // Validate every ordinary object under the caller's character and stream
         // budgets before allowing the generated signature reservation to grow.
         PdfLoadOptions preliminaryOptions = ResolvePersistedCompletionReadOptions(inputOptions, preparedPdf.Length, 0);
-        Dictionary<int, PdfIndirectObject> preliminaryObjects;
-        try {
-            preliminaryObjects = PdfSyntax.ParseObjects(preparedPdf, preliminaryOptions).Map;
-        } catch (PdfReadLimitException error) when (error.Kind == PdfReadLimitKind.ObjectCharacters &&
-            inputOptions.Limits.MaxObjectCharacters == PdfReadLimits.Default.MaxObjectCharacters) {
-            // The only permitted oversized object is a signable /Contents
-            // reservation. Locate its number without parsing with raised limits,
-            // then parse every other object using the original character cap.
-            int rawCount = FindZeroFilledSignatureContentsWithObjectLength(
-                preparedPdf, new Dictionary<int, PdfIndirectObject>(), out _, out _, out _, out _, out int candidateObjectOffset);
-            if (rawCount == 0) throw;
-            preliminaryObjects = PdfSyntax.ParseObjectsSkippingObject(preparedPdf, preliminaryOptions, candidateObjectOffset);
-        }
+        Dictionary<int, PdfIndirectObject> preliminaryObjects =
+            inputOptions.Limits.MaxObjectCharacters == PdfReadLimits.Default.MaxObjectCharacters
+                ? PdfSyntax.ParseObjectsWithSignatureReservation(preparedPdf, preliminaryOptions,
+                    (bytes, start, end) => IsBoundedOversizedSignatureReservation(
+                        bytes, start, end, inputOptions.Limits.MaxObjectCharacters))
+                : PdfSyntax.ParseObjects(preparedPdf, preliminaryOptions).Map;
         int placeholderCount = FindZeroFilledSignatureContentsWithObjectLength(preparedPdf, preliminaryObjects, out int contentsHexOffset, out int contentsHexLength, out _, out int signatureObjectLength, out _);
         if (placeholderCount == 0) {
             throw new ArgumentException("PDF does not contain a zero-filled external signature /Contents placeholder.", nameof(preparedPdf));
@@ -310,6 +303,12 @@ internal static partial class PdfIncrementalUpdater {
         int generatedStreamBytes = limits.MaxRawStreamBytes == PdfReadLimits.Default.MaxRawStreamBytes
             ? preparedLength
             : 0;
+        int generatedDecodedStreamBytes = limits.MaxDecodedStreamBytes == PdfReadLimits.Default.MaxDecodedStreamBytes
+            ? preparedLength
+            : 0;
+        long addedTotalDecodedStreamBytes = limits.MaxTotalDecodedStreamBytes == PdfReadLimits.Default.MaxTotalDecodedStreamBytes
+            ? preparedLength
+            : 0;
         int generatedObjectCharacters = limits.MaxObjectCharacters == PdfReadLimits.Default.MaxObjectCharacters
             ? signatureObjectLength
             : 0;
@@ -318,8 +317,8 @@ internal static partial class PdfIncrementalUpdater {
             additionalFormFields: 1,
             additionalAnnotationsPerPage: 1,
             minimumRawStreamBytes: generatedStreamBytes,
-            minimumDecodedStreamBytes: generatedStreamBytes,
-            additionalTotalDecodedStreamBytes: generatedStreamBytes,
+            minimumDecodedStreamBytes: generatedDecodedStreamBytes,
+            additionalTotalDecodedStreamBytes: addedTotalDecodedStreamBytes,
             minimumObjectCharacters: generatedObjectCharacters,
             minimumObjectNestingDepth: 16);
         return PdfLoadOptions.WithGeneratedOutputGrowth(inputOptions, maximumObjects, growth);
@@ -637,6 +636,41 @@ internal static partial class PdfIncrementalUpdater {
             IndexOf(pdf, DocumentTimestampTypeMarker, objectStart, objectEnd) >= 0;
         return hasSignatureType &&
             IndexOf(pdf, SignatureByteRangeMarker, objectStart, objectEnd) >= 0;
+    }
+
+    private static bool IsBoundedOversizedSignatureReservation(
+        byte[] pdf,
+        int objectStart,
+        int objectEnd,
+        int maxOtherCharacters) {
+        // This exception is valid only for a signature dictionary, never for a
+        // stream body containing signature-looking bytes.
+        int lexicalOffset = objectStart;
+        while (lexicalOffset < objectEnd) {
+            if (MatchesPdfKeyword(pdf, lexicalOffset, objectEnd, PdfStreamKeyword)) return false;
+            if (SkipPdfLexicalValue(pdf, ref lexicalOffset, objectEnd, null)) continue;
+            lexicalOffset++;
+        }
+
+        int markerOffset = IndexOf(pdf, SignatureContentsMarker, objectStart, objectEnd);
+        while (markerOffset >= 0) {
+            int start = markerOffset + SignatureContentsMarker.Length;
+            int end = start;
+            while (end < objectEnd && IsHexDigit(pdf[end])) end++;
+            if (end < objectEnd && pdf[end] == (byte)'>' && end > start &&
+                IsZeroFilled(pdf, start, end - start) &&
+                IsSignatureContentsPlaceholder(pdf, markerOffset, objectStart, objectEnd, out _)) {
+                int ordinaryCharacters = objectEnd - objectStart - (end - start);
+                if (ordinaryCharacters > maxOtherCharacters) {
+                    throw PdfReadLimitException.Create(PdfReadLimitKind.ObjectCharacters,
+                        maxOtherCharacters, ordinaryCharacters);
+                }
+                return true;
+            }
+            markerOffset = IndexOf(pdf, SignatureContentsMarker,
+                markerOffset + SignatureContentsMarker.Length, objectEnd);
+        }
+        return false;
     }
 
     private static bool TryReadIndirectObjectNumber(
