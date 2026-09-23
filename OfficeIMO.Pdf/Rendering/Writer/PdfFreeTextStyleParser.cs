@@ -130,16 +130,25 @@ internal static class PdfFreeTextStyleParser {
         }
 
         var builder = new System.Text.StringBuilder(richContents!.Length);
+        bool noMoreTags = false;
         for (int i = 0; i < richContents.Length; i++) {
             cancellationToken.ThrowIfCancellationRequested();
             char current = richContents[i];
-            if (current != '<') {
+            if (current != '<' || noMoreTags) {
                 builder.Append(current);
                 continue;
             }
 
-            int tagEnd = richContents.IndexOf('>', i + 1);
+            int tagEnd = -1;
+            for (int next = i + 1; next < richContents.Length; next++) {
+                if ((next & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                if (richContents[next] == '>') {
+                    tagEnd = next;
+                    break;
+                }
+            }
             if (tagEnd < 0) {
+                noMoreTags = true;
                 builder.Append(current);
                 continue;
             }
@@ -151,9 +160,9 @@ internal static class PdfFreeTextStyleParser {
         cancellationToken.ThrowIfCancellationRequested();
         var decoded = new System.Text.StringBuilder(builder.Length);
         using (var writer = new CancellationCheckingStringWriter(decoded, cancellationToken)) {
-            WebUtility.HtmlDecode(builder.ToString(), writer);
+            WebUtility.HtmlDecode(MaterializeText(builder, 0, builder.Length, cancellationToken), writer);
         }
-        string normalized = NormalizeExtractedText(decoded.ToString(), cancellationToken);
+        string normalized = NormalizeExtractedText(MaterializeText(decoded, 0, decoded.Length, cancellationToken), cancellationToken);
         return normalized.Length == 0 ? null : normalized;
     }
 
@@ -769,9 +778,21 @@ internal static class PdfFreeTextStyleParser {
             }
             normalized.Append(current);
         }
-        cancellationToken.ThrowIfCancellationRequested();
-        return normalized.ToString().Trim();
+        int start = 0;
+        int end = normalized.Length;
+        while (start < end && char.IsWhiteSpace(normalized[start])) {
+            cancellationToken.ThrowIfCancellationRequested();
+            start++;
+        }
+        while (end > start && char.IsWhiteSpace(normalized[end - 1])) {
+            cancellationToken.ThrowIfCancellationRequested();
+            end--;
+        }
+        return MaterializeText(normalized, start, end - start, cancellationToken);
     }
+
+    private static string MaterializeText(System.Text.StringBuilder builder, int start, int length, CancellationToken cancellationToken) =>
+        PdfEncoding.StringBuilderToStringCancellable(builder, start, length, cancellationToken);
 
     private sealed class CancellationCheckingStringWriter : StringWriter {
         private readonly CancellationToken _cancellationToken;

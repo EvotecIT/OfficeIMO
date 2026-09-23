@@ -190,8 +190,8 @@ internal static partial class PdfPageExtractor {
             }
         }
     
-        AddBoundedObject(objects, PdfSerializedObject.FromBytes(WrapObject(pagesId, PdfEncoding.Latin1GetBytes(PdfPageTreeBuilder.BuildPagesDictionary(outputPageObjectIds, cancellationToken)))), objectBytesLimit, ref serializedObjectBytes);
-        AddBoundedObject(objects, PdfSerializedObject.FromBytes(WrapObject(catalogId, PdfEncoding.Latin1GetBytes(BuildCatalogDictionary(pagesId, catalogState, context)))), objectBytesLimit, ref serializedObjectBytes);
+        AddBoundedObject(objects, PdfSerializedObject.FromBytes(WrapObject(pagesId, PdfPageTreeBuilder.BuildPagesDictionaryBytes(outputPageObjectIds, cancellationToken))), objectBytesLimit, ref serializedObjectBytes);
+        AddBoundedObject(objects, PdfSerializedObject.FromBytes(WrapObject(catalogId, BuildCatalogDictionaryBytes(pagesId, catalogState, context))), objectBytesLimit, ref serializedObjectBytes);
         AddBoundedObject(objects, PdfSerializedObject.FromBytes(PdfObjectBytes.WrapIndirectObjectCancellable(
             infoId, BuildInfoDictionaryBytesCancellable(metadata, cancellationToken), cancellationToken)),
             objectBytesLimit, ref serializedObjectBytes);

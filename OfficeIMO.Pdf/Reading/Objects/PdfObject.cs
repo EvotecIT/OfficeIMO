@@ -183,6 +183,17 @@ internal sealed class PdfStream : PdfObject {
         Buffer.BlockCopy(_source!, _sourceOffset, destination, destinationOffset, _sourceLength);
     }
 
+    internal void CopyDataTo(byte[] destination, int destinationOffset, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        GetDataSegment(out byte[] source, out int sourceOffset, out int length);
+        for (int offset = 0; offset < length; offset += 65536) {
+            cancellationToken.ThrowIfCancellationRequested();
+            Buffer.BlockCopy(source, sourceOffset + offset, destination, destinationOffset + offset,
+                Math.Min(65536, length - offset));
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+    }
+
     internal void GetDataSegment(out byte[] buffer, out int offset, out int length) {
         byte[]? data = System.Threading.Volatile.Read(ref _data);
         if (data is not null) {

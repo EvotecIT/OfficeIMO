@@ -88,7 +88,7 @@ internal static partial class PdfPageExtractor {
         }
     
         sb.Append(">>\n");
-        return PdfEncoding.Latin1GetBytes(sb);
+        return PdfEncoding.Latin1GetBytesCancellable(sb, context.CancellationToken);
     }
     
     internal static byte[] SerializeObject(PdfObject value, SerializationContext context) {
@@ -100,13 +100,13 @@ internal static partial class PdfPageExtractor {
         var sb = new StringBuilder();
         AppendObject(sb, value, context);
         sb.Append('\n');
-        return PdfEncoding.Latin1GetBytes(sb);
+        return PdfEncoding.Latin1GetBytesCancellable(sb, context.CancellationToken);
     }
 
     /// <summary>Serializes an indirect object without buffering a stream body a second time.</summary>
     internal static byte[] SerializeIndirectObject(int objectNumber, PdfObject value, SerializationContext context) =>
         value is PdfStream stream
-            ? PdfObjectBytes.WrapStreamObject(objectNumber, BuildStreamDictionary(stream, context), stream)
+            ? PdfObjectBytes.WrapStreamObject(objectNumber, BuildStreamDictionary(stream, context), stream, context.CancellationToken)
             : WrapObject(objectNumber, SerializeObject(value, context));
 
     /// <summary>Serializes an indirect object for final assembly without copying a retained stream payload.</summary>
@@ -115,7 +115,7 @@ internal static partial class PdfPageExtractor {
         PdfObject value,
         SerializationContext context) =>
         value is PdfStream stream
-            ? PdfObjectBytes.SegmentStreamObject(objectNumber, BuildStreamDictionary(stream, context), stream)
+            ? PdfObjectBytes.SegmentStreamObject(objectNumber, BuildStreamDictionary(stream, context), stream, context.CancellationToken)
             : PdfSerializedObject.FromBytes(WrapObject(objectNumber, SerializeObject(value, context)));
 
     internal static void EnsureSerializedObjectWithinLimit(PdfObject value, SerializationContext context, long maximumBytes) {
@@ -289,7 +289,7 @@ internal static partial class PdfPageExtractor {
     
     private static byte[] SerializeStream(PdfStream stream, SerializationContext context) {
         string dictionary = BuildStreamDictionary(stream, context);
-        return PdfObjectBytes.WrapStreamBody(dictionary, stream);
+        return PdfObjectBytes.WrapStreamBody(dictionary, stream, context.CancellationToken);
     }
     
     private static string BuildStreamDictionary(PdfStream stream, SerializationContext context) {
@@ -307,7 +307,7 @@ internal static partial class PdfPageExtractor {
             .Append(stream.DataLength.ToString(CultureInfo.InvariantCulture))
             .Append(" >>");
     
-        return sb.ToString();
+        return PdfEncoding.StringBuilderToStringCancellable(sb, 0, sb.Length, context.CancellationToken);
     }
     
     private static byte[] SerializeStreamBody(string dictionary, byte[] data) {

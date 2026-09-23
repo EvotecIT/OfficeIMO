@@ -123,6 +123,38 @@ internal static class PdfEncoding {
         return bytes;
     }
 
+    internal static string StringBuilderToStringCancellable(StringBuilder builder, int start, int length, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (length == 0) return string.Empty;
+#if NET8_0_OR_GREATER
+        return string.Create(length, (Builder: builder, Start: start, Token: cancellationToken), static (destination, state) => {
+            int sourceOffset = 0;
+            int destinationOffset = 0;
+            foreach (System.ReadOnlyMemory<char> chunk in state.Builder.GetChunks()) {
+                state.Token.ThrowIfCancellationRequested();
+                int skip = Math.Max(0, state.Start - sourceOffset);
+                int count = Math.Min(Math.Max(0, chunk.Length - skip), destination.Length - destinationOffset);
+                if (count > 0) {
+                    chunk.Span.Slice(skip, count).CopyTo(destination.Slice(destinationOffset, count));
+                    destinationOffset += count;
+                }
+                sourceOffset += chunk.Length;
+                if (destinationOffset == destination.Length) break;
+            }
+            state.Token.ThrowIfCancellationRequested();
+        });
+#else
+        char[] characters = new char[length];
+        for (int offset = 0; offset < length; offset += 65536) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = Math.Min(65536, length - offset);
+            builder.CopyTo(start + offset, characters, offset, count);
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return new string(characters);
+#endif
+    }
+
     // Encodes a StringBuilder's content to Latin1 bytes without materializing an intermediate string.
     // Page content streams are large and built in a StringBuilder, so skipping the ToString() saves a
     // full-length string allocation per page.

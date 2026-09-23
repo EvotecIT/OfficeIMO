@@ -686,11 +686,11 @@ internal static partial class PdfMerger {
             }
         }
 
-        objects.Add(PdfSerializedObject.FromBytes(PdfPageExtractor.WrapObject(pagesId, PdfEncoding.Latin1GetBytes(PdfPageTreeBuilder.BuildPagesDictionary(allPageObjectIds, cancellationToken)))));
+        objects.Add(PdfSerializedObject.FromBytes(PdfPageExtractor.WrapObject(pagesId, PdfPageTreeBuilder.BuildPagesDictionaryBytes(allPageObjectIds, cancellationToken))));
         var primaryPlan = plans[primarySourceIndex];
         var primaryCatalogContext = new PdfPageExtractor.SerializationContext(primaryPlan.NumberMap, pagesId, primaryPlan.Source.Collector.MaterializedPageValues, primaryPlan.Source.Objects, cancellationToken: cancellationToken);
-        objects.Add(PdfSerializedObject.FromBytes(PdfPageExtractor.WrapObject(catalogId, PdfEncoding.Latin1GetBytes(PdfPageExtractor.BuildCatalogDictionary(pagesId, sources[primarySourceIndex].CatalogState, primaryCatalogContext)))));
-        objects.Add(PdfSerializedObject.FromBytes(PdfPageExtractor.WrapObject(infoId, PdfEncoding.Latin1GetBytes(PdfPageExtractor.BuildInfoDictionary(BuildMergedMetadata(sources, primarySourceIndex))))));
+        objects.Add(PdfSerializedObject.FromBytes(PdfPageExtractor.WrapObject(catalogId, PdfPageExtractor.BuildCatalogDictionaryBytes(pagesId, sources[primarySourceIndex].CatalogState, primaryCatalogContext))));
+        objects.Add(PdfSerializedObject.FromBytes(PdfPageExtractor.WrapObject(infoId, PdfPageExtractor.BuildInfoDictionaryBytesCancellable(BuildMergedMetadata(sources, primarySourceIndex), cancellationToken))));
 
         outputObjectCount = objects.Count;
         return PdfPageExtractor.Assemble(objects, catalogId, infoId, cancellationToken: cancellationToken);

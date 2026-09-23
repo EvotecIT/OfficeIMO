@@ -4,7 +4,10 @@ using System.Threading;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfPageExtractor {
-    internal static string BuildCatalogDictionary(int pagesId, CatalogRewriteState? catalogState, SerializationContext? context = null) {
+    internal static byte[] BuildCatalogDictionaryBytes(int pagesId, CatalogRewriteState? catalogState, SerializationContext context) =>
+        PdfEncoding.Latin1GetBytesCancellable(BuildCatalogDictionaryBuilder(pagesId, catalogState, context), context.CancellationToken);
+
+    private static StringBuilder BuildCatalogDictionaryBuilder(int pagesId, CatalogRewriteState? catalogState, SerializationContext? context = null) {
         if (context is not null) context.CancellationToken.ThrowIfCancellationRequested();
         var sb = new StringBuilder();
         PdfCatalogDictionaryBuilder.AppendCatalogStart(sb, pagesId);
@@ -161,7 +164,7 @@ internal static partial class PdfPageExtractor {
         }
     
         sb.Append(" >>\n");
-        return sb.ToString();
+        return sb;
     }
     
     private static PdfObject? BuildOutlines(
