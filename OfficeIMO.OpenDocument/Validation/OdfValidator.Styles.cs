@@ -71,6 +71,11 @@ internal static partial class OdfValidator {
             foreach (XElement style in document.Descendants(OdfNamespaces.Style + "style")) {
                 string family = (string?)style.Attribute(OdfNamespaces.Style + "family") ?? string.Empty;
                 foreach (XElement map in style.Elements(OdfNamespaces.Style + "map")) {
+                    string? condition = (string?)map.Attribute(OdfNamespaces.Style + "condition");
+                    if (string.IsNullOrWhiteSpace(condition)) {
+                        diagnostics.Add(new OdfDiagnostic("ODF205", OdfDiagnosticSeverity.Error,
+                            "Conditional style map has no condition.", partPath));
+                    }
                     string? target = (string?)map.Attribute(OdfNamespaces.Style + "apply-style-name");
                     if (string.IsNullOrWhiteSpace(target) || !namedStyles.Contains(family + "\0" + target)) {
                         diagnostics.Add(new OdfDiagnostic("ODF204", OdfDiagnosticSeverity.Error,

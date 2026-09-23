@@ -11,12 +11,21 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
     [Fact]
     public void ExcelConditionalRuleIsReportedWhenConvertingToOds() {
         using ExcelDocument source = ExcelDocument.Create();
-        source.AddWorksheet("Data").AddConditionalRule("A1:A3",
+        ExcelSheet sheet = source.AddWorksheet("Data");
+        sheet.AddConditionalRule("A1:A3",
             ExcelConditionalFormattingOperator.GreaterThan, "0", fillColor: "FFFF0000");
+        sheet.AddConditionalFormattingRule(new ExcelConditionalFormattingInfo {
+            Source = ExcelConditionalFormattingSource.Office2010Extension,
+            Range = "A1:A3",
+            Type = "Expression",
+            Formulas = new[] { "A1<0" },
+            DifferentialFillColorArgb = "FFC6EFCE"
+        });
+        Assert.Equal(2, source.CreateInspectionSnapshot().Worksheets.Single().ConditionalFormattingRuleCount);
 
         OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "conditional-formatting"
-            && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+            && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 2);
     }
 
     [Fact]

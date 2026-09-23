@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Xml.Linq;
 using Xunit;
 
@@ -68,6 +69,28 @@ public sealed class OpenDocumentConditionalStyleTests {
         Assert.Contains(document.Validate().Diagnostics, diagnostic => diagnostic.Id == "ODF204");
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData(" ")]
+    public void ImportedConditionalStyleMapRequiresCondition(string? condition) {
+        OdsDocument document = OdsDocument.Create();
+        document.AddSheet("Data");
+        OdfStyle highlight = document.Styles.CreateNamed("Highlight", OdfStyleFamily.TableCell);
+        document.Styles.CreateAutomatic(OdfStyleFamily.TableCell)
+            .AddConditionalMap("cell-content()>0", highlight.Name, "$'Data'.$A$1");
+        XNamespace styleNamespace = "urn:oasis:names:tc:opendocument:xmlns:style:1.0";
+        document.Package.GetXml("content.xml").Descendants(styleNamespace + "map").Single()
+            .SetAttributeValue(styleNamespace + "condition", condition);
+        document.Package.MarkXmlDirty("content.xml");
+
+        OdfValidationResult result = document.Validate();
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Id == "ODF205" &&
+            diagnostic.PartPath == "content.xml");
+    }
+
     [Fact]
     public void InspectorKeepsUnmodeledDataStyleMapsSeparate() {
         OdsDocument document = OdsDocument.Create();
@@ -87,5 +110,28 @@ public sealed class OpenDocumentConditionalStyleTests {
         Assert.Contains(report.Findings, finding => finding.Name == "unmodeled-style-maps" &&
             finding.Support == OdfFeatureSupport.Preserved && finding.Count == 1);
         Assert.DoesNotContain(report.Findings, finding => finding.Name == "conditional-style-maps");
+    }
+
+    [Fact]
+    public void InspectorKeepsEmbeddedObjectStyleMapsPreservationOnly() {
+        OdsDocument document = OdsDocument.Create();
+        XNamespace officeNamespace = "urn:oasis:names:tc:opendocument:xmlns:office:1.0";
+        XNamespace styleNamespace = "urn:oasis:names:tc:opendocument:xmlns:style:1.0";
+        var embedded = new XElement(officeNamespace + "document-content",
+            new XElement(officeNamespace + "automatic-styles",
+                new XElement(styleNamespace + "style",
+                    new XAttribute(styleNamespace + "name", "EmbeddedCell"),
+                    new XAttribute(styleNamespace + "family", "table-cell"),
+                    new XElement(styleNamespace + "map",
+                        new XAttribute(styleNamespace + "condition", "cell-content()>0"),
+                        new XAttribute(styleNamespace + "apply-style-name", "Highlight")))));
+        document.Package.AddOrReplaceEntry("Object 1/content.xml", Encoding.UTF8.GetBytes(embedded.ToString()), "text/xml");
+
+        OdfFeatureReport report = document.InspectFeatures();
+
+        Assert.Contains(report.Findings, finding => finding.Name == "unmodeled-style-maps" &&
+            finding.PartPath == "Object 1/content.xml" && finding.Support == OdfFeatureSupport.Preserved);
+        Assert.DoesNotContain(report.Findings, finding => finding.Name == "conditional-style-maps" &&
+            finding.PartPath == "Object 1/content.xml");
     }
 }

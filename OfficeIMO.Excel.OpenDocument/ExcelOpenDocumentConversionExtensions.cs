@@ -321,7 +321,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
 
         AddConverted(report, "worksheets", snapshot.Worksheets.Count);
         AddUnsupported(report, "conditional-formatting",
-            source.Sheets.Sum(sheet => sheet.GetConditionalFormattingRules().Count),
+            snapshot.Worksheets.Sum(sheet => sheet.ConditionalFormattingRuleCount),
             "Excel conditional-formatting rules are not projected to ODF conditional style maps.");
         AddConverted(report, "cells", cells);
         AddConverted(report, "rows", rows);

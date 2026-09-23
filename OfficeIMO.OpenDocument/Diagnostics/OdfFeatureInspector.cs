@@ -32,8 +32,10 @@ internal static class OdfFeatureInspector {
             if (scripts > 0) findings.Add(new OdfFeatureFinding(
                 "scripts", OdfFeatureSupport.Preserved, entry.Name, scripts));
             AddElementFinding(document, OdfNamespaces.Office + "annotation", "annotations", OdfFeatureSupport.Inspected, entry.Name, findings);
-            int editableStyleMaps = document.Descendants(OdfNamespaces.Style + "style")
-                .Sum(style => style.Elements(OdfNamespaces.Style + "map").Count());
+            int editableStyleMaps = entry.Name == "content.xml" || entry.Name == "styles.xml"
+                ? document.Descendants(OdfNamespaces.Style + "style")
+                    .Sum(style => style.Elements(OdfNamespaces.Style + "map").Count())
+                : 0;
             if (editableStyleMaps > 0) findings.Add(new OdfFeatureFinding(
                 "conditional-style-maps", OdfFeatureSupport.Editable, entry.Name, editableStyleMaps));
             int otherStyleMaps = document.Descendants(OdfNamespaces.Style + "map").Count() - editableStyleMaps;

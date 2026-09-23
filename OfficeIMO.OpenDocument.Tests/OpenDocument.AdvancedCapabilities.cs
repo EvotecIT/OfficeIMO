@@ -214,8 +214,9 @@ public sealed class OpenDocumentAdvancedCapabilityTests {
 
     [Fact]
     public void AdvancedCapabilityLinesAreStableAndDistinct() {
-        string[] expected = { "formula-evaluation", "tracked-change-editing", "advanced-charts", "presentation-animations", "flat-xml", "encryption", "digital-signatures" };
+        string[] expected = { "formula-evaluation", "conditional-style-maps", "tracked-change-editing", "advanced-charts", "presentation-animations", "flat-xml", "encryption", "digital-signatures" };
         Assert.Equal(expected, OdfCapabilityCatalog.Advanced.Select(capability => capability.Id));
+        Assert.Equal(OdfCapabilityLevel.Limited, OdfCapabilityCatalog.Find("conditional-style-maps")!.Level);
         Assert.Equal(OdfCapabilityLevel.DetectedUnsupported, OdfCapabilityCatalog.Find("encryption")!.Level);
         Assert.Equal(OdfCapabilityLevel.Limited, OdfCapabilityCatalog.Find("digital-signatures")!.Level);
     }
