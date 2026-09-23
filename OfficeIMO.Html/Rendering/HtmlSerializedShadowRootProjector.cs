@@ -64,22 +64,39 @@ internal static class HtmlSerializedShadowRootProjector {
         int omittedStylesheets = RemoveScopedStyles(shadowChildren, cancellationToken);
 
         IElement[] slots = host.QuerySelectorAll("slot").ToArray();
-        var assigned = new HashSet<INode>();
+        var nestedShadowHosts = new HashSet<IElement>(host.QuerySelectorAll("template[shadowmode]")
+            .OfType<IHtmlTemplateElement>()
+            .Where(template => IsShadowMode(template.GetAttribute("shadowmode")))
+            .Select(template => template.ParentElement)
+            .OfType<IElement>()
+            .Where(parent => !ReferenceEquals(parent, host)));
+        var lightBySlot = new Dictionary<string, List<INode>>(StringComparer.Ordinal);
+        foreach (INode child in lightChildren) {
+            if (!IsSlotAssignable(child)) continue;
+            string name = SlotName(child);
+            if (!lightBySlot.TryGetValue(name, out List<INode>? matches)) {
+                matches = new List<INode>();
+                lightBySlot.Add(name, matches);
+            }
+            matches.Add(child);
+        }
         var filledNames = new HashSet<string>(StringComparer.Ordinal);
         foreach (IElement slot in slots) {
             cancellationToken.ThrowIfCancellationRequested();
             if (!IsDescendantOf(slot, host) || slot.Parent == null) continue;
             string name = slot.GetAttribute("name") ?? string.Empty;
-            INode[] content = !filledNames.Add(name)
-                ? Array.Empty<INode>()
-                : lightChildren.Where(child => !assigned.Contains(child)
-                    && IsSlotAssignable(child)
-                    && string.Equals(SlotName(child), name, StringComparison.Ordinal)).ToArray();
-            if (content.Length > 0) {
-                foreach (INode child in content) assigned.Add(child);
-            } else {
-                content = slot.ChildNodes.ToArray();
+            INode[] assigned = filledNames.Add(name)
+                && lightBySlot.TryGetValue(name, out List<INode>? matches)
+                ? matches.ToArray()
+                : Array.Empty<INode>();
+            if (IsInsideNestedShadowHost(slot, host, nestedShadowHosts)) {
+                if (assigned.Length > 0) {
+                    foreach (INode child in slot.ChildNodes.ToArray()) slot.RemoveChild(child);
+                    foreach (INode child in assigned) slot.AppendChild(child);
+                }
+                continue;
             }
+            INode[] content = assigned.Length > 0 ? assigned : slot.ChildNodes.ToArray();
             INode parent = slot.Parent;
             foreach (INode child in content) parent.InsertBefore(child, slot);
             parent.RemoveChild(slot);
@@ -118,6 +135,15 @@ internal static class HtmlSerializedShadowRootProjector {
     private static bool IsDescendantOf(INode node, INode ancestor) {
         for (INode? current = node.Parent; current != null; current = current.Parent) {
             if (ReferenceEquals(current, ancestor)) return true;
+        }
+        return false;
+    }
+
+    private static bool IsInsideNestedShadowHost(INode slot, IElement outerHost,
+        HashSet<IElement> nestedShadowHosts) {
+        for (IElement? ancestor = slot.ParentElement; ancestor != null
+             && !ReferenceEquals(ancestor, outerHost); ancestor = ancestor.ParentElement) {
+            if (nestedShadowHosts.Contains(ancestor)) return true;
         }
         return false;
     }

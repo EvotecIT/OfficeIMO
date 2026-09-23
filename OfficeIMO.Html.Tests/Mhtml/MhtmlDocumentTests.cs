@@ -71,6 +71,23 @@ public sealed class MhtmlDocumentTests {
     }
 
     [Fact]
+    public async Task NestedSerializedShadowSlotsRetainOuterAssignmentThroughInnerDefaultSlot() {
+        var archive = new MhtmlDocument("""
+            <outer-el><template shadowmode="open">
+              <inner-el><template shadowmode="open"><slot>InnerFallback</slot></template>
+                <slot name="x">OuterFallback</slot></inner-el>
+            </template><b slot="x">ChainedValue</b></outer-el>
+            """);
+
+        PdfCore.PdfDocumentConversionResult result = await archive.ToPdfDocumentResultAsync();
+        string text = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
+
+        Assert.Contains("ChainedValue", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("InnerFallback", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("OuterFallback", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task ShadowScopedStylesDoNotLeakIntoUnrelatedMhtmlContent() {
         var archive = new MhtmlDocument("""
             <shadow-card><template shadowmode="open"><style>p { display:none }</style><p>InsideVisible</p></template></shadow-card>
