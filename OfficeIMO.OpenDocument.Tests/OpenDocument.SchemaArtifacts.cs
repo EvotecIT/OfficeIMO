@@ -53,6 +53,14 @@ public class OpenDocumentSchemaArtifactTests {
                         OdsValidationComparison.GreaterThan, "0"));
                 validation.SetHelpMessage("Input", "Enter a positive whole number.");
                 formula.ValidationName = validation.Name;
+                OdfStyle highlight = spreadsheet.Styles.CreateNamed("PositiveValue", OdfStyleFamily.TableCell);
+                highlight.BackgroundColor = OdfColor.Parse("#D9EAD3");
+                OdfStyle conditional = spreadsheet.Styles.CreateAutomatic(OdfStyleFamily.TableCell);
+                conditional.AddConditionalMap("of:cell-content()>0", highlight.Name, "$'Data'.$A$2");
+                conditional.Bold = true;
+                conditional.TextAlign = "center";
+                conditional.BackgroundColor = OdfColor.Parse("#FFFFFF");
+                formula.StyleName = conditional.Name;
                 spreadsheet.Save(Path.Combine(output, "schema-proof-1.4.ods"));
                 spreadsheet.SaveFlatXml(Path.Combine(output, "schema-proof-1.4.fods"));
                 spreadsheet.Save(Path.Combine(output, "schema-proof-1.3.ods"), new OdfSaveOptions { CompatibilityProfile = OdfCompatibilityProfile.Odf13 });

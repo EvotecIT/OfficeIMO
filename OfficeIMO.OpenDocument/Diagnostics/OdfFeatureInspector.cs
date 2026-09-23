@@ -32,6 +32,13 @@ internal static class OdfFeatureInspector {
             if (scripts > 0) findings.Add(new OdfFeatureFinding(
                 "scripts", OdfFeatureSupport.Preserved, entry.Name, scripts));
             AddElementFinding(document, OdfNamespaces.Office + "annotation", "annotations", OdfFeatureSupport.Inspected, entry.Name, findings);
+            int editableStyleMaps = document.Descendants(OdfNamespaces.Style + "style")
+                .Sum(style => style.Elements(OdfNamespaces.Style + "map").Count());
+            if (editableStyleMaps > 0) findings.Add(new OdfFeatureFinding(
+                "conditional-style-maps", OdfFeatureSupport.Editable, entry.Name, editableStyleMaps));
+            int otherStyleMaps = document.Descendants(OdfNamespaces.Style + "map").Count() - editableStyleMaps;
+            if (otherStyleMaps > 0) findings.Add(new OdfFeatureFinding(
+                "unmodeled-style-maps", OdfFeatureSupport.Preserved, entry.Name, otherStyleMaps));
             AddElementFinding(document, OdfNamespaces.Text + "tracked-changes", "tracked-changes", OdfFeatureSupport.Editable, entry.Name, findings);
             AddElementFinding(document, OdfNamespaces.Draw + "object", "embedded-objects", OdfFeatureSupport.Preserved, entry.Name, findings);
             int eventListeners = document.Descendants().Count(element => element.Name.LocalName == "event-listener");

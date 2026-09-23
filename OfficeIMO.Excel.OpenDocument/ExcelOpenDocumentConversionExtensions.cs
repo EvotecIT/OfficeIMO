@@ -320,6 +320,9 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         int disambiguatedNames = namedRangePlan.DisambiguatedCount;
 
         AddConverted(report, "worksheets", snapshot.Worksheets.Count);
+        AddUnsupported(report, "conditional-formatting",
+            source.Sheets.Sum(sheet => sheet.GetConditionalFormattingRules().Count),
+            "Excel conditional-formatting rules are not projected to ODF conditional style maps.");
         AddConverted(report, "cells", cells);
         AddConverted(report, "rows", rows);
         if (columns > 0) report.Add("column-layout", OdfConversionMappingStatus.Approximated, columns,
