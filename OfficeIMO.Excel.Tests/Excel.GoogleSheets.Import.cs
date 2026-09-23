@@ -298,7 +298,7 @@ namespace OfficeIMO.Tests {
                 }));
                 var session = GoogleTestSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
 
-                foreach (int version in new[] { 0, 2 }) {
+                foreach (int version in new[] { 0, 1, 3 }) {
                     legacyCheckpoint.HashFormatVersion = version;
                     InvalidOperationException error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
                         GoogleSheetsDiffPlanner.BuildAsync(document, "sheet-legacy", session, legacyCheckpoint));

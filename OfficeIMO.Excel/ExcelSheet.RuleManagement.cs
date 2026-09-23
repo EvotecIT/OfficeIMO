@@ -169,6 +169,7 @@ namespace OfficeIMO.Excel {
                 DifferentialFontColorArgb = ReadDifferentialFontColor(stylesheet, workbookPart, differentialFormatId),
                 DifferentialFontBold = ReadDifferentialFontBold(stylesheet, differentialFormatId),
                 DifferentialFontItalic = ReadDifferentialFontItalic(stylesheet, differentialFormatId),
+                DifferentialFontStrike = ReadDifferentialFontStrike(stylesheet, differentialFormatId),
                 DifferentialFontUnderline = ReadDifferentialFontUnderline(stylesheet, differentialFormatId),
                 DifferentialFontName = ReadDifferentialFontName(stylesheet, differentialFormatId),
                 DifferentialFontSize = ReadDifferentialFontSize(stylesheet, differentialFormatId),
@@ -798,6 +799,11 @@ namespace OfficeIMO.Excel {
         private static bool? ReadDifferentialFontUnderline(Stylesheet? stylesheet, uint? differentialFormatId) {
             DifferentialFormat? format = GetDifferentialFormat(stylesheet, differentialFormatId);
             return ReadDifferentialBoolean(format?.Font?.Underline);
+        }
+
+        private static bool? ReadDifferentialFontStrike(Stylesheet? stylesheet, uint? differentialFormatId) {
+            DifferentialFormat? format = GetDifferentialFormat(stylesheet, differentialFormatId);
+            return ReadDifferentialBoolean(format?.Font?.Strike);
         }
 
         private static bool? ReadDifferentialBoolean(OpenXmlElement? element) {

@@ -174,6 +174,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
             return new GoogleSheetsCellStyle {
                 Bold = rule.DifferentialFontBold == true,
                 Italic = rule.DifferentialFontItalic == true,
+                Strikethrough = rule.DifferentialFontStrike == true,
+                StrikethroughSpecified = rule.DifferentialFontStrike.HasValue,
                 FontColorArgb = rule.DifferentialFontColorArgb,
                 FillColorArgb = rule.DifferentialFillColorArgb,
             };

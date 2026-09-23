@@ -1128,6 +1128,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportAppliesConditionalStrike() {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("ConditionalStrike");
+            sheet.CellValue(1, 1, 1);
+            sheet.AddConditionalFormattingRule(new ExcelConditionalFormattingInfo {
+                Range = "A1",
+                Type = "CellIs",
+                Operator = "GreaterThan",
+                Formulas = new[] { "0" },
+                DifferentialFontStrike = true
+            });
+
+            ExcelRangeVisualSnapshot snapshot = sheet.Range("A1").CreateVisualSnapshot();
+
+            Assert.True(Assert.Single(snapshot.Cells).Style.Strikethrough);
+            string svg = System.Text.Encoding.UTF8.GetString(
+                sheet.Range("A1").ExportImage(OfficeImageExportFormat.Svg).Bytes);
+            Assert.Contains("text-decoration=\"line-through\"", svg, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportHonorsThreeColorScaleMiddleStop() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {

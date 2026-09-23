@@ -306,6 +306,7 @@ namespace OfficeIMO.Excel {
                 info.DifferentialFontColorArgb ?? string.Empty,
                 info.DifferentialFontBold?.ToString() ?? string.Empty,
                 info.DifferentialFontItalic?.ToString() ?? string.Empty,
+                info.DifferentialFontStrike?.ToString() ?? string.Empty,
                 info.DifferentialFontUnderline?.ToString() ?? string.Empty,
                 info.DifferentialFontName ?? string.Empty,
                 info.DifferentialFontSize?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,

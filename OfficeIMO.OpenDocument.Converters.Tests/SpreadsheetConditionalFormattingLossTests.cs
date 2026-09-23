@@ -127,6 +127,32 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
     }
 
     [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void OdsConditionalStrikeRemainsExplicitInExcel(bool strike) {
+        OdsDocument source = OdsDocument.Create();
+        OdsSheet sheet = source.AddSheet("Data");
+        OdfStyle baseStyle = source.Styles.CreateAutomatic(OdfStyleFamily.TableCell);
+        baseStyle.StrikeThrough = !strike;
+        OdfStyle applied = source.Styles.CreateNamed("Strike", OdfStyleFamily.TableCell);
+        applied.StrikeThrough = strike;
+        baseStyle.AddConditionalMap("cell-content()>0", applied.Name);
+        sheet.Cell(0, 0).StyleName = baseStyle.Name;
+
+        OdsDocument reopened = OdsDocument.Load(new MemoryStream(source.ToBytes()));
+        OdfConversionResult<ExcelDocument> result = reopened.ToExcelDocumentResult();
+        using ExcelDocument output = result.Value;
+        using ExcelDocument reopenedExcel = ExcelDocument.Load(new MemoryStream(output.ToBytes()));
+
+        ExcelConditionalFormattingInfo rule = Assert.Single(reopenedExcel.Sheets.Single().GetConditionalFormattingRules());
+        Assert.Equal(strike, rule.DifferentialFontStrike);
+        Assert.Null(rule.DifferentialFillColorArgb);
+        Assert.Empty(reopenedExcel.ValidateOpenXml());
+        Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "source-conditional-style-maps"
+            && mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
+    }
+
+    [Theory]
     [InlineData("1pt", 1.0)]
     [InlineData("11.5pt", 11.5)]
     [InlineData("2.54cm", 72.0)]
@@ -222,7 +248,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
         OdsDocument source = OdsDocument.Create();
         OdsSheet sheet = source.AddSheet("Data");
         OdfStyle highlight = source.Styles.CreateNamed("Highlight", OdfStyleFamily.TableCell);
-        highlight.StrikeThrough = true;
+        highlight.TextAlign = "center";
         OdfStyle ordinary = source.Styles.CreateAutomatic(OdfStyleFamily.TableCell);
         ordinary.AddConditionalMap("cell-content()>0", highlight.Name);
         sheet.Cell(0, 0).StyleName = ordinary.Name;
@@ -232,6 +258,24 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "source-conditional-style-maps"
             && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
         Assert.Empty(output.Sheets.Single().GetConditionalFormattingRules());
+    }
+
+    [Fact]
+    public void OdsConditionalDoubleStrikeRemainsUnsupported() {
+        OdsDocument source = OdsDocument.Create();
+        OdsSheet sheet = source.AddSheet("Data");
+        OdfStyle applied = source.Styles.CreateNamed("DoubleStrike", OdfStyleFamily.TableCell);
+        applied.StrikeThrough = true;
+        applied.LineThroughType = OdfTextDecorationType.Double;
+        OdfStyle baseStyle = source.Styles.CreateAutomatic(OdfStyleFamily.TableCell);
+        baseStyle.AddConditionalMap("cell-content()>0", applied.Name);
+        sheet.Cell(0, 0).StyleName = baseStyle.Name;
+
+        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        using ExcelDocument output = result.Value;
+        Assert.Empty(output.Sheets.Single().GetConditionalFormattingRules());
+        Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "source-conditional-style-maps"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
     }
 
     [Fact]

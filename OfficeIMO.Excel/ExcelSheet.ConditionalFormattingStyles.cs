@@ -73,6 +73,7 @@ namespace OfficeIMO.Excel {
                 var font = new Font();
                 if (definition.DifferentialFontBold.HasValue) font.AddChild(new Bold { Val = definition.DifferentialFontBold.Value }, true);
                 if (definition.DifferentialFontItalic.HasValue) font.AddChild(new Italic { Val = definition.DifferentialFontItalic.Value }, true);
+                if (definition.DifferentialFontStrike.HasValue) font.AddChild(new Strike { Val = definition.DifferentialFontStrike.Value }, true);
                 if (definition.DifferentialFontUnderline.HasValue) font.AddChild(new Underline {
                     Val = definition.DifferentialFontUnderline.Value ? UnderlineValues.Single : UnderlineValues.None
                 }, true);
@@ -145,6 +146,7 @@ namespace OfficeIMO.Excel {
             !string.IsNullOrWhiteSpace(definition.DifferentialFontColorArgb) ||
             definition.DifferentialFontBold.HasValue ||
             definition.DifferentialFontItalic.HasValue ||
+            definition.DifferentialFontStrike.HasValue ||
             definition.DifferentialFontUnderline.HasValue ||
             !string.IsNullOrWhiteSpace(definition.DifferentialFontName) ||
             definition.DifferentialFontSize.HasValue;

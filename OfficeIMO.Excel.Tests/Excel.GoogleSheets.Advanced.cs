@@ -93,6 +93,39 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void Test_GoogleSheetsBatch_PreservesConditionalStrike(bool strike) {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            sheet.CellValue(1, 1, 1);
+            sheet.AddConditionalFormattingRule(new ExcelConditionalFormattingInfo {
+                Range = "A1",
+                Type = "CellIs",
+                Operator = "GreaterThan",
+                Formulas = new[] { "0" },
+                DifferentialFontStrike = strike
+            });
+
+            GoogleSheetsBatch batch = new GoogleSheetsExporter().BuildBatch(document);
+            GoogleSheetsAddConditionalFormatRuleRequest conditional = Assert.Single(
+                batch.Requests.OfType<GoogleSheetsAddConditionalFormatRuleRequest>());
+            Assert.Equal(strike, conditional.Format!.Strikethrough);
+            Assert.True(conditional.Format.StrikethroughSpecified);
+            Assert.DoesNotContain(batch.Report.Notices,
+                notice => notice.Code == "SHEETS.CONDITIONAL_FORMAT.STYLE_REDUCED");
+
+            GoogleSheetsApiBatchUpdatePayload payload = GoogleSheetsApiPayloadBuilder.BuildBatchUpdatePayload(
+                batch, GoogleSheetsApiPayloadBuilder.BuildSheetIdMap(batch));
+            GoogleSheetsApiCellFormatPayload format = Assert.Single(payload.Requests,
+                request => request.AddConditionalFormatRule != null).AddConditionalFormatRule!.Rule.BooleanRule.Format;
+            Assert.Equal(strike, format.TextFormat!.Strikethrough);
+            string json = System.Text.Json.JsonSerializer.Serialize(payload,
+                GoogleSheetsJsonSerializerContext.Default.GoogleSheetsApiBatchUpdatePayload);
+            Assert.Contains("\"strikethrough\":" + (strike ? "true" : "false"), json, StringComparison.Ordinal);
+        }
+
         [Fact]
         public void Test_GoogleSheetsBatch_CompilesSupportedChartThroughHiddenDataRange() {
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsChart.xlsx");
