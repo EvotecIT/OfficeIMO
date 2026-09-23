@@ -51,7 +51,7 @@ internal static partial class PdfMetadataEditor {
         string? author = null,
         string? subject = null,
         string? keywords = null) {
-        return UpdateMetadata(ReadStream(stream, nameof(stream)), title, author, subject, keywords);
+        return UpdateMetadata(ReadStream(stream), title, author, subject, keywords);
     }
 
     /// <summary>
@@ -94,7 +94,7 @@ internal static partial class PdfMetadataEditor {
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        var bytes = UpdateMetadata(File.ReadAllBytes(inputPath), title, author, subject, keywords);
+        var bytes = UpdateMetadata(PdfDocumentSource.FromPath(inputPath, null).Bytes, title, author, subject, keywords);
         WriteOutput(fullOutputPath, bytes);
     }
 
@@ -111,7 +111,7 @@ internal static partial class PdfMetadataEditor {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        var bytes = UpdateMetadata(File.ReadAllBytes(inputPath), title, author, subject, keywords);
+        var bytes = UpdateMetadata(PdfDocumentSource.FromPath(inputPath, null).Bytes, title, author, subject, keywords);
         WriteOutput(outputStream, bytes);
     }
 
@@ -125,7 +125,7 @@ internal static partial class PdfMetadataEditor {
         string? subject = null,
         string? keywords = null) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return UpdateMetadata(File.ReadAllBytes(inputPath), title, author, subject, keywords);
+        return UpdateMetadata(PdfDocumentSource.FromPath(inputPath, null).Bytes, title, author, subject, keywords);
     }
 
     /// <summary>
@@ -148,7 +148,7 @@ internal static partial class PdfMetadataEditor {
     /// </summary>
     public static byte[] ReplaceMetadata(Stream stream, PdfMetadata metadata) {
         Guard.NotNull(metadata, nameof(metadata));
-        return ReplaceMetadata(ReadStream(stream, nameof(stream)), metadata);
+        return ReplaceMetadata(ReadStream(stream), metadata);
     }
 
     /// <summary>
@@ -174,7 +174,7 @@ internal static partial class PdfMetadataEditor {
         Guard.NotNull(metadata, nameof(metadata));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        var bytes = ReplaceMetadata(File.ReadAllBytes(inputPath), metadata);
+        var bytes = ReplaceMetadata(PdfDocumentSource.FromPath(inputPath, null).Bytes, metadata);
         WriteOutput(fullOutputPath, bytes);
     }
 
@@ -186,7 +186,7 @@ internal static partial class PdfMetadataEditor {
         ValidateWritableOutputStream(outputStream);
         Guard.NotNull(metadata, nameof(metadata));
 
-        var bytes = ReplaceMetadata(File.ReadAllBytes(inputPath), metadata);
+        var bytes = ReplaceMetadata(PdfDocumentSource.FromPath(inputPath, null).Bytes, metadata);
         WriteOutput(outputStream, bytes);
     }
 
@@ -196,7 +196,7 @@ internal static partial class PdfMetadataEditor {
     public static byte[] ReplaceMetadataToBytes(string inputPath, PdfMetadata metadata) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         Guard.NotNull(metadata, nameof(metadata));
-        return ReplaceMetadata(File.ReadAllBytes(inputPath), metadata);
+        return ReplaceMetadata(PdfDocumentSource.FromPath(inputPath, null).Bytes, metadata);
     }
 
     private static byte[] RewriteWithMetadata(byte[] pdf, PdfMetadata metadata, PdfLoadOptions? readOptions) {
@@ -211,16 +211,8 @@ internal static partial class PdfMetadataEditor {
         return PdfPageExtractor.ExtractPages(objects, metadata, pageObjectNumbers, catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw), fileVersion: fileVersion);
     }
 
-    private static byte[] ReadStream(Stream stream, string paramName) {
-        Guard.NotNull(stream, paramName);
-        if (!stream.CanRead) {
-            throw new ArgumentException("Stream must be readable.", paramName);
-        }
-
-        using var buffer = new MemoryStream();
-        stream.CopyTo(buffer);
-        return buffer.ToArray();
-    }
+    private static byte[] ReadStream(Stream stream) =>
+        PdfDocumentSource.FromRemainingStream(stream, null).Bytes;
 
     private static void WriteOutput(Stream outputStream, byte[] bytes) {
         ValidateWritableOutputStream(outputStream);
