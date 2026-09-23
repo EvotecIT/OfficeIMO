@@ -3,6 +3,7 @@ namespace OfficeIMO.Pdf;
 internal readonly struct PdfGeneratedOutputGrowth {
     internal PdfGeneratedOutputGrowth(
         int additionalRevisions = 0,
+        int additionalFormFields = 0,
         int additionalAnnotationsPerPage = 0,
         int minimumRawStreamBytes = 0,
         int minimumDecodedStreamBytes = 0,
@@ -19,6 +20,7 @@ internal readonly struct PdfGeneratedOutputGrowth {
         int additionalPrintProductionContexts = 0,
         int additionalPrintProductionOperations = 0) {
         AdditionalRevisions = RequireNonNegative(additionalRevisions, nameof(additionalRevisions));
+        AdditionalFormFields = RequireNonNegative(additionalFormFields, nameof(additionalFormFields));
         AdditionalAnnotationsPerPage = RequireNonNegative(additionalAnnotationsPerPage, nameof(additionalAnnotationsPerPage));
         MinimumRawStreamBytes = RequireNonNegative(minimumRawStreamBytes, nameof(minimumRawStreamBytes));
         MinimumDecodedStreamBytes = RequireNonNegative(minimumDecodedStreamBytes, nameof(minimumDecodedStreamBytes));
@@ -37,6 +39,7 @@ internal readonly struct PdfGeneratedOutputGrowth {
     }
 
     internal int AdditionalRevisions { get; }
+    internal int AdditionalFormFields { get; }
     internal int AdditionalAnnotationsPerPage { get; }
     internal int MinimumRawStreamBytes { get; }
     internal int MinimumDecodedStreamBytes { get; }
@@ -57,7 +60,8 @@ internal readonly struct PdfGeneratedOutputGrowth {
         Dictionary<int, PdfIndirectObject> objects,
         IEnumerable<int> objectNumbers,
         int additionalAnnotationsPerPage = 0,
-        int additionalRevisions = 0) {
+        int additionalRevisions = 0,
+        int additionalFormFields = 0) {
         Guard.NotNull(objects, nameof(objects));
         Guard.NotNull(objectNumbers, nameof(objectNumbers));
         int maximumStreamBytes = 0;
@@ -84,6 +88,7 @@ internal readonly struct PdfGeneratedOutputGrowth {
 
         return new PdfGeneratedOutputGrowth(
             additionalRevisions: additionalRevisions,
+            additionalFormFields: additionalFormFields,
             additionalAnnotationsPerPage: additionalAnnotationsPerPage,
             minimumRawStreamBytes: maximumStreamBytes,
             minimumDecodedStreamBytes: maximumStreamBytes,

@@ -79,7 +79,7 @@ public sealed class PdfExternalSignaturePreparation {
 
     /// <summary>
     /// Completes this in-memory preparation with detached CMS or timestamp bytes.
-    /// The original read policy is preserved, while the input budget is expanded only for bytes appended by preparation.
+    /// The original read policy is preserved with budget for the generated signature revision.
     /// </summary>
     public PdfDocument Complete(byte[] signatureContents, PdfLoadOptions? readOptions = null) {
         Guard.NotNull(signatureContents, nameof(signatureContents));

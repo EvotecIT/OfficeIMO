@@ -191,7 +191,7 @@ public sealed class PdfReadLimits {
             MaxPageTreeNodes = MaxPageTreeNodes,
             MaxPageTreeDepth = MaxPageTreeDepth,
             MaxPages = MaxPages,
-            MaxFormFields = MaxFormFields,
+            MaxFormFields = SaturatingAdd(MaxFormFields, growth.AdditionalFormFields),
             MaxFormFieldDepth = MaxFormFieldDepth,
             MaxNameTreeNodes = MaxNameTreeNodes,
             MaxNameTreeDepth = MaxNameTreeDepth,

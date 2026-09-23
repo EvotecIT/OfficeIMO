@@ -82,6 +82,7 @@ public sealed class PdfLoadOptions {
         int addedStartXrefMarkers = Math.Max(0, outputMarkers.StartXrefMarkers - sourceMarkers.StartXrefMarkers);
         PdfGeneratedOutputGrowth effectiveGrowth = new PdfGeneratedOutputGrowth(
             additionalRevisions: Math.Max(growth.AdditionalRevisions, addedStartXrefMarkers),
+            additionalFormFields: growth.AdditionalFormFields,
             additionalAnnotationsPerPage: growth.AdditionalAnnotationsPerPage,
             minimumRawStreamBytes: growth.MinimumRawStreamBytes,
             minimumDecodedStreamBytes: growth.MinimumDecodedStreamBytes,

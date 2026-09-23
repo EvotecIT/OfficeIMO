@@ -129,6 +129,93 @@ public class PdfIncrementalInputLimitTests {
     }
 
     [Fact]
+    public void SignatureCompletionAdmitsGeneratedObjectsAndRevisionAtSourceLimits() {
+        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Tight signature source limits")).ToBytes();
+        int sourceObjectCount = PdfSyntax.ParseObjects(source, null).Map.Count;
+        var readOptions = new PdfLoadOptions {
+            Limits = new PdfReadLimits {
+                MaxInputBytes = source.LongLength,
+                MaxIndirectObjects = sourceObjectCount,
+                MaxRevisions = 1
+            }
+        };
+
+        PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
+            source, new PdfExternalSignatureOptions(), readOptions);
+        PdfLoadOptions completionOptions = preparation.GetCompletionReadOptions(preparation.PreparedPdf.LongLength);
+        Assert.True(completionOptions.Limits.MaxIndirectObjects > sourceObjectCount);
+        Assert.True(completionOptions.Limits.MaxRevisions > readOptions.Limits.MaxRevisions);
+
+        byte[] signature = { 0x30, 0x01, 0x00 };
+        byte[] completed = PdfIncrementalUpdater.ApplyExternalSignature(preparation, signature);
+        Assert.Equal(completed, preparation.Complete(signature).ToBytes());
+    }
+
+    [Fact]
+    public void SignatureCompletionAdmitsTheAddedFieldAtTheSourceFieldLimit() {
+        byte[] source = PdfDocument.Create().TextField("Existing", value: "Ada").ToBytes();
+        var readOptions = new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxFormFields = 1 }
+        };
+
+        PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
+            source, new PdfExternalSignatureOptions(), readOptions);
+        PdfLoadOptions completionOptions = preparation.GetCompletionReadOptions(preparation.PreparedPdf.LongLength);
+
+        Assert.Equal(2, completionOptions.Limits.MaxFormFields);
+        byte[] completed = preparation.Complete(new byte[] { 0x30, 0x01, 0x00 }).ToBytes();
+        Assert.Equal(2, PdfInspector.Inspect(completed, completionOptions).FormFields.Count);
+    }
+
+    [Fact]
+    public void VisibleSignatureCompletionAdmitsTheWidgetAndAppearanceStream() {
+        byte[] source = PdfDocument.Create().TextField("Existing", value: "Ada").ToBytes();
+        int sourceMaximumStream = PdfSyntax.ParseObjects(source, null).Map.Values
+            .Select(static item => item.Value)
+            .OfType<PdfStream>()
+            .Select(static stream => stream.DataLength)
+            .DefaultIfEmpty(1)
+            .Max();
+        var readOptions = new PdfLoadOptions {
+            Limits = new PdfReadLimits {
+                MaxFormFields = 1,
+                MaxAnnotationsPerPage = 1,
+                MaxRawStreamBytes = sourceMaximumStream
+            }
+        };
+        var signatureOptions = new PdfExternalSignatureOptions {
+            VisibleAppearance = new PdfVisibleSignatureAppearanceOptions {
+                Text = new string('A', sourceMaximumStream + 256)
+            }
+        };
+
+        PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
+            source, signatureOptions, readOptions);
+        PdfLoadOptions completionOptions = preparation.GetCompletionReadOptions(preparation.PreparedPdf.LongLength);
+
+        Assert.Equal(2, completionOptions.Limits.MaxFormFields);
+        Assert.Equal(2, completionOptions.Limits.MaxAnnotationsPerPage);
+        Assert.True(completionOptions.Limits.MaxRawStreamBytes > sourceMaximumStream);
+        byte[] completed = preparation.Complete(new byte[] { 0x30, 0x01, 0x00 }).ToBytes();
+        Assert.Equal(2, PdfInspector.Inspect(completed, completionOptions).FormFields.Count);
+    }
+
+    [Fact]
+    public void PersistedSignatureCompletionKeepsDefaultAllowanceWithNonLimitOptions() {
+        var strictOptions = new PdfLoadOptions { ParsingMode = PdfParsingMode.Strict };
+        PdfLoadOptions completion = PdfIncrementalUpdater.ResolveCompletionReadOptions(strictOptions);
+
+        Assert.Equal(PdfParsingMode.Strict, completion.ParsingMode);
+        Assert.Equal(PdfIncrementalUpdater.DefaultMaxPreparedSignatureBytes, completion.Limits.MaxInputBytes);
+
+        var lowerExplicitCap = new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxInputBytes = 1024 }
+        };
+        Assert.Equal(1024,
+            PdfIncrementalUpdater.ResolveCompletionReadOptions(lowerExplicitCap).Limits.MaxInputBytes);
+    }
+
+    [Fact]
     public void SignaturePreparationRejectsOutputBeyondItsConfiguredCompletionBudget() {
         byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Bound the prepared revision")).ToBytes();
         var options = new PdfExternalSignatureOptions {

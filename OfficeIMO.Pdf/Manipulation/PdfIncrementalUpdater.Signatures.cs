@@ -119,7 +119,26 @@ internal static partial class PdfIncrementalUpdater {
             new[] { (ObjectNumber: signatureObjectNumber, Bytes: signatureBytes) },
             effectiveOptions.MaxPreparedOutputBytes);
 
-        return PatchSignatureByteRange(prepared, effectiveOptions, signatureObjectNumber, effectiveReadOptions);
+        int maximumGeneratedStreamBytes = 0;
+        long totalGeneratedStreamBytes = 0;
+        foreach (int objectNumber in changedObjects) {
+            if (!objects.TryGetValue(objectNumber, out PdfIndirectObject? indirect) ||
+                indirect.Value is not PdfStream stream) continue;
+            maximumGeneratedStreamBytes = Math.Max(maximumGeneratedStreamBytes, stream.DataLength);
+            totalGeneratedStreamBytes = totalGeneratedStreamBytes > long.MaxValue - stream.DataLongLength
+                ? long.MaxValue
+                : totalGeneratedStreamBytes + stream.DataLongLength;
+        }
+        PdfGeneratedOutputGrowth generatedGrowth = new PdfGeneratedOutputGrowth(
+            additionalFormFields: 1,
+            additionalAnnotationsPerPage: effectiveOptions.VisibleAppearance is null ? 0 : 1,
+            minimumRawStreamBytes: maximumGeneratedStreamBytes,
+            minimumDecodedStreamBytes: maximumGeneratedStreamBytes,
+            additionalTotalDecodedStreamBytes: totalGeneratedStreamBytes,
+            minimumObjectNestingDepth: 16);
+        PdfLoadOptions completionReadOptions = PdfLoadOptions.ForGeneratedOutput(
+            effectiveReadOptions, pdf, prepared, generatedGrowth);
+        return PatchSignatureByteRange(prepared, effectiveOptions, signatureObjectNumber, completionReadOptions);
     }
 
     /// <summary>Appends an external signature placeholder to a readable PDF stream.</summary>
@@ -250,8 +269,15 @@ internal static partial class PdfIncrementalUpdater {
         OfficeFileCommit.WriteAllBytes(outputPath, ApplyExternalSignature(source.Bytes, signatureContents, source.Options));
     }
 
-    private static PdfLoadOptions ResolveCompletionReadOptions(PdfLoadOptions? readOptions) =>
-        readOptions ?? PdfLoadOptions.WithMinimumInputBytes(null, DefaultMaxPreparedSignatureBytes);
+    internal static PdfLoadOptions ResolveCompletionReadOptions(PdfLoadOptions? readOptions) {
+        PdfLoadOptions effective = PdfLoadOptions.Resolve(readOptions);
+        // Preserve caller-selected smaller input caps. A default-size cap supplied
+        // only because other read settings were customized still gets the normal
+        // persisted-preparation allowance.
+        return effective.Limits.MaxInputBytes == PdfExternalSignatureOptions.DefaultMaxInputBytes
+            ? PdfLoadOptions.WithMinimumInputBytes(effective, DefaultMaxPreparedSignatureBytes)
+            : effective;
+    }
 
     private static void ValidateExternalSignatureOptions(PdfExternalSignatureOptions options) {
         if (options.MaxPreparedOutputBytes <= 0 || options.MaxPreparedOutputBytes > int.MaxValue) {
