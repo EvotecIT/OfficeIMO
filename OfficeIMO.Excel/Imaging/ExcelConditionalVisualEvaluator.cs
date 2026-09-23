@@ -1045,6 +1045,7 @@ namespace OfficeIMO.Excel {
             !string.IsNullOrWhiteSpace(rule.DifferentialFontColorArgb) ||
             rule.DifferentialFontBold.HasValue ||
             rule.DifferentialFontItalic.HasValue ||
+            rule.DifferentialFontStrike.HasValue ||
             rule.DifferentialFontUnderline.HasValue ||
             !string.IsNullOrWhiteSpace(rule.DifferentialFontName) ||
             rule.DifferentialFontSize.HasValue ||
@@ -1069,6 +1070,7 @@ namespace OfficeIMO.Excel {
 
             format.FontBold ??= rule.DifferentialFontBold;
             format.FontItalic ??= rule.DifferentialFontItalic;
+            format.FontStrike ??= rule.DifferentialFontStrike;
             format.FontUnderline ??= rule.DifferentialFontUnderline;
 
             if (string.IsNullOrWhiteSpace(format.FontName) && !string.IsNullOrWhiteSpace(rule.DifferentialFontName)) {
@@ -1155,6 +1157,7 @@ namespace OfficeIMO.Excel {
         internal bool? FontItalic { get; set; }
 
         internal bool? FontUnderline { get; set; }
+        internal bool? FontStrike { get; set; }
 
         internal string? FontName { get; set; }
 

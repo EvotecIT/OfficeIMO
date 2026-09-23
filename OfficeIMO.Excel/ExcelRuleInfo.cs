@@ -49,6 +49,8 @@ namespace OfficeIMO.Excel {
         public bool? DifferentialFontItalic { get; set; }
         /// <summary>Gets or sets whether the rule's differential format requests underlined text, when present.</summary>
         public bool? DifferentialFontUnderline { get; set; }
+        /// <summary>Gets or sets whether the rule's differential format requests struck-through text, when present.</summary>
+        public bool? DifferentialFontStrike { get; set; }
         /// <summary>Gets or sets the rule's differential format font family, when present.</summary>
         public string? DifferentialFontName { get; set; }
         /// <summary>Gets or sets the rule's differential format font size in points, when present.</summary>

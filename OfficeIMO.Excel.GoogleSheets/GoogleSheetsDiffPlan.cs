@@ -55,7 +55,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
 
     /// <summary>Builds source fingerprints and compares an Excel document with native Google Sheets data.</summary>
     public static class GoogleSheetsDiffPlanner {
-        private const int CurrentHashFormatVersion = 1;
+        private const int CurrentHashFormatVersion = 2;
 
         /// <summary>Captures source content hashes and an optional observed remote Drive version.</summary>
         /// <remarks>Persist the checkpoint only when it accurately represents a synchronized baseline.</remarks>
@@ -202,7 +202,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             int index = 0;
             foreach (ExcelConditionalFormattingInfo rule in sourceSheet.GetConditionalFormattingRules().OrderBy(rule => rule.Priority)) {
                 if (!GoogleSheetsBatchCompiler.TryMapConditionalRule(rule, out string conditionType, out IReadOnlyList<string> values)) continue;
-                string format = GoogleWorkspaceCheckpointFormat.Format($"{rule.DifferentialFontBold == true}|{rule.DifferentialFontItalic == true}|{rule.DifferentialFontColorArgb}|{rule.DifferentialFillColorArgb}");
+                string format = GoogleWorkspaceCheckpointFormat.Format($"{rule.DifferentialFontBold == true}|{rule.DifferentialFontItalic == true}|{rule.DifferentialFontStrike?.ToString() ?? string.Empty}|{rule.DifferentialFontColorArgb}|{rule.DifferentialFillColorArgb}");
                 result[GoogleWorkspaceCheckpointFormat.Format($"sheet/{sheetName}/conditionalFormat/{index++}")] = Hash(
                     $"{rule.Range}|{conditionType}|{string.Join("~", values)}|{format}");
             }
