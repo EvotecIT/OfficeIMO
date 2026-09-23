@@ -76,6 +76,11 @@ internal static partial class OdfValidator {
                         diagnostics.Add(new OdfDiagnostic("ODF205", OdfDiagnosticSeverity.Error,
                             "Conditional style map has no condition.", partPath));
                     }
+                    string? baseCellAddress = (string?)map.Attribute(OdfNamespaces.Style + "base-cell-address");
+                    if (!OdfStyleMap.IsValidBaseCellAddress(baseCellAddress)) {
+                        diagnostics.Add(new OdfDiagnostic("ODF206", OdfDiagnosticSeverity.Error,
+                            $"Conditional style map base cell address '{baseCellAddress}' must identify one sheet-qualified OpenDocument cell.", partPath));
+                    }
                     string? target = (string?)map.Attribute(OdfNamespaces.Style + "apply-style-name");
                     if (string.IsNullOrWhiteSpace(target) || !namedStyles.Contains(family + "\0" + target)) {
                         diagnostics.Add(new OdfDiagnostic("ODF204", OdfDiagnosticSeverity.Error,

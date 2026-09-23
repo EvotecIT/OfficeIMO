@@ -32,10 +32,7 @@ internal static class OdfFeatureInspector {
             if (scripts > 0) findings.Add(new OdfFeatureFinding(
                 "scripts", OdfFeatureSupport.Preserved, entry.Name, scripts));
             AddElementFinding(document, OdfNamespaces.Office + "annotation", "annotations", OdfFeatureSupport.Inspected, entry.Name, findings);
-            int editableStyleMaps = entry.Name == "content.xml" || entry.Name == "styles.xml"
-                ? document.Descendants(OdfNamespaces.Style + "style")
-                    .Sum(style => style.Elements(OdfNamespaces.Style + "map").Count())
-                : 0;
+            int editableStyleMaps = CountEditableStyleMaps(document, entry.Name);
             if (editableStyleMaps > 0) findings.Add(new OdfFeatureFinding(
                 "conditional-style-maps", OdfFeatureSupport.Editable, entry.Name, editableStyleMaps));
             int otherStyleMaps = document.Descendants(OdfNamespaces.Style + "map").Count() - editableStyleMaps;
@@ -98,6 +95,21 @@ internal static class OdfFeatureInspector {
         string partPath, List<OdfFeatureFinding> findings) {
         int count = document.Descendants(elementName).Count();
         if (count > 0) findings.Add(new OdfFeatureFinding(featureName, support, partPath, count));
+    }
+
+    private static int CountEditableStyleMaps(XDocument document, string partPath) {
+        XElement? root = document.Root;
+        if (root == null) return 0;
+        IEnumerable<XElement> containers = partPath == "content.xml"
+            ? root.Elements(OdfNamespaces.Office + "automatic-styles")
+            : partPath == "styles.xml"
+                ? root.Elements(OdfNamespaces.Office + "styles")
+                    .Concat(root.Elements(OdfNamespaces.Office + "automatic-styles"))
+                : Enumerable.Empty<XElement>();
+        return containers.SelectMany(container => container.Elements(OdfNamespaces.Style + "style"))
+            .Where(style => OdfStyleRepository.TryParseFamily(
+                (string?)style.Attribute(OdfNamespaces.Style + "family"), out _))
+            .Sum(style => style.Elements(OdfNamespaces.Style + "map").Count());
     }
 
     private static bool IsExternalHref(string href) {

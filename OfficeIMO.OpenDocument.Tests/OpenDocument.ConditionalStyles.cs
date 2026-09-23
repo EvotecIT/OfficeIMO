@@ -91,6 +91,55 @@ public sealed class OpenDocumentConditionalStyleTests {
             diagnostic.PartPath == "content.xml");
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData("not-an-address")]
+    [InlineData(".A1")]
+    [InlineData("$'Data'.$A$1:$'Data'.$B$2")]
+    public void ImportedConditionalStyleMapRequiresSingleSheetQualifiedBaseCell(string baseCellAddress) {
+        OdsDocument document = OdsDocument.Create();
+        document.AddSheet("Data");
+        OdfStyle highlight = document.Styles.CreateNamed("Highlight", OdfStyleFamily.TableCell);
+        OdfStyleMap map = document.Styles.CreateAutomatic(OdfStyleFamily.TableCell)
+            .AddConditionalMap("cell-content()>0", highlight.Name, "$'Data'.$A$1");
+        Assert.Throws<ArgumentException>(() => map.BaseCellAddress = baseCellAddress);
+        XNamespace styleNamespace = "urn:oasis:names:tc:opendocument:xmlns:style:1.0";
+        document.Package.GetXml("content.xml").Descendants(styleNamespace + "map").Single()
+            .SetAttributeValue(styleNamespace + "base-cell-address", baseCellAddress);
+        document.Package.MarkXmlDirty("content.xml");
+
+        OdfValidationResult result = document.Validate();
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Id == "ODF206" &&
+            diagnostic.PartPath == "content.xml");
+    }
+
+    [Fact]
+    public void InspectorCountsOnlyRepositoryBackedStyleMapsAsEditable() {
+        OdsDocument document = OdsDocument.Create();
+        OdfStyle target = document.Styles.CreateNamed("Highlight", OdfStyleFamily.TableCell);
+        document.Styles.CreateNamed("MappedCell", OdfStyleFamily.TableCell)
+            .AddConditionalMap("cell-content()>0", target.Name);
+        XNamespace styleNamespace = "urn:oasis:names:tc:opendocument:xmlns:style:1.0";
+        XNamespace officeNamespace = "urn:oasis:names:tc:opendocument:xmlns:office:1.0";
+        document.Package.GetXml("styles.xml").Root!.Element(officeNamespace + "styles")!.Add(
+            new XElement(styleNamespace + "style",
+                new XAttribute(styleNamespace + "name", "SectionStyle"),
+                new XAttribute(styleNamespace + "family", "section"),
+                new XElement(styleNamespace + "map",
+                    new XAttribute(styleNamespace + "condition", "true()"),
+                    new XAttribute(styleNamespace + "apply-style-name", "SectionStyle"))));
+        document.Package.MarkXmlDirty("styles.xml");
+
+        OdfFeatureReport report = document.InspectFeatures();
+
+        Assert.Contains(report.Findings, finding => finding.Name == "conditional-style-maps" &&
+            finding.PartPath == "styles.xml" && finding.Support == OdfFeatureSupport.Editable && finding.Count == 1);
+        Assert.Contains(report.Findings, finding => finding.Name == "unmodeled-style-maps" &&
+            finding.PartPath == "styles.xml" && finding.Support == OdfFeatureSupport.Preserved && finding.Count == 1);
+    }
+
     [Fact]
     public void InspectorKeepsUnmodeledDataStyleMapsSeparate() {
         OdsDocument document = OdsDocument.Create();

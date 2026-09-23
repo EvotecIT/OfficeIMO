@@ -50,12 +50,16 @@ public sealed class OdfStyleMap {
     }
 
     internal static void ValidateBaseCellAddress(string? value) {
-        if (value == null) return;
-        if (!SpreadsheetRangeReference.TryParse(value, SpreadsheetAddressDialect.OpenDocument,
-                out SpreadsheetRangeReference? reference)
-            || reference!.End != null || !reference.Start.IsCell || reference.Start.SheetName == null) {
+        if (!IsValidBaseCellAddress(value)) {
             throw new ArgumentException("Base cell address must identify one sheet-qualified OpenDocument cell.", nameof(value));
         }
+    }
+
+    internal static bool IsValidBaseCellAddress(string? value) {
+        if (value == null) return true;
+        return SpreadsheetRangeReference.TryParse(value, SpreadsheetAddressDialect.OpenDocument,
+                out SpreadsheetRangeReference? reference)
+            && reference!.End == null && reference.Start.IsCell && reference.Start.SheetName != null;
     }
 
     private void SetAttribute(XName name, string? value) {
