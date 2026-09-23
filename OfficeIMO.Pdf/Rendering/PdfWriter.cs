@@ -1292,18 +1292,37 @@ internal static partial class PdfWriter {
             return content;
         }
 
-        string result = content;
+        // One pass over the page for all of its images: a Replace per image copies the whole page once
+        // per image. Tokens are unique per page and no image draw contains one, so this is the same text.
+        Dictionary<string, PageImage>? byToken = null;
         foreach (PageImage image in images) {
-            if (string.IsNullOrEmpty(image.InlineDrawToken)) {
+            if (!string.IsNullOrEmpty(image.InlineDrawToken)) {
+                byToken ??= new Dictionary<string, PageImage>(StringComparer.Ordinal);
+                if (!byToken.ContainsKey(image.InlineDrawToken!)) byToken[image.InlineDrawToken!] = image;
+            }
+        }
+
+        if (byToken == null) {
+            return content;
+        }
+
+        const string tokenPrefix = InlineImageDrawTokenPrefix;
+        StringBuilder? result = null;
+        int copied = 0;
+        for (int at = content.IndexOf(tokenPrefix, StringComparison.Ordinal); at >= 0; at = content.IndexOf(tokenPrefix, at + 1, StringComparison.Ordinal)) {
+            int end = content.IndexOf('\n', at + tokenPrefix.Length);
+            if (end < 0 || !byToken.TryGetValue(content.Substring(at, end + 1 - at), out PageImage? image)) {
                 continue;
             }
 
-            var imageDraw = new StringBuilder();
-            AppendPageImageDraw(imageDraw, image);
-            result = result.Replace(image.InlineDrawToken!, imageDraw.ToString());
+            result ??= new StringBuilder(content.Length + byToken.Count * 64);
+            result.Append(content, copied, at - copied);
+            AppendPageImageDraw(result, image);
+            copied = end + 1;
+            at = end;
         }
 
-        return result;
+        return result == null ? content : result.Append(content, copied, content.Length - copied).ToString();
     }
 
     private static string ReplaceInlineEffectGroupTokens(string content, IReadOnlyList<PageEffectGroup> effects, int availableCount) {
