@@ -2,26 +2,16 @@ using OfficeIMO.Core.Internal;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfPageEditor {
+    private static byte[] ReadPath(string path) =>
+        PdfDocumentSource.FromPath(path, null).Bytes;
+
     private static byte[] ReadStream(Stream stream, string paramName) {
         Guard.NotNull(stream, paramName);
         if (!stream.CanRead) {
             throw new ArgumentException("Stream must be readable.", paramName);
         }
 
-        long limit = PdfLoadOptions.Default.Limits.MaxInputBytes;
-        long observedBytes = limit + 1L;
-        if (stream.CanSeek) {
-            try {
-                observedBytes = Math.Max(0L, stream.Length - stream.Position);
-            } catch (NotSupportedException) {
-                // The bounded reader will still enforce the limit while consuming the stream.
-            }
-        }
-        try {
-            return OfficeStreamReader.ReadRemainingBytes(stream, limit);
-        } catch (InvalidDataException exception) when (OfficeStreamReader.IsSizeLimitException(exception)) {
-            throw PdfReadLimitException.Create(PdfReadLimitKind.InputBytes, limit, Math.Max(observedBytes, limit + 1L));
-        }
+        return PdfDocumentSource.FromRemainingStream(stream, null).Bytes;
     }
 
     private static void WriteOutput(Stream outputStream, byte[] bytes) {

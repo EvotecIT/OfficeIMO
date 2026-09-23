@@ -89,14 +89,14 @@ internal static partial class PdfPageEditor {
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        byte[] bytes = SetPageBox(File.ReadAllBytes(inputPath), boxName, left, bottom, right, top, pageNumbers);
+        byte[] bytes = SetPageBox(ReadPath(inputPath), boxName, left, bottom, right, top, pageNumbers);
         WriteOutput(fullOutputPath, bytes);
     }
 
     /// <summary>Creates a new PDF file with the selected pages updated to the supplied production boundary box.</summary>
     public static byte[] SetPageBox(string inputPath, string boxName, double left, double bottom, double right, double top, params int[] pageNumbers) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return SetPageBox(File.ReadAllBytes(inputPath), boxName, left, bottom, right, top, pageNumbers);
+        return SetPageBox(ReadPath(inputPath), boxName, left, bottom, right, top, pageNumbers);
     }
 
     private static PdfArray CreatePageBoxArray(double left, double bottom, double right, double top) {

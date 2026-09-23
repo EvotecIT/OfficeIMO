@@ -66,7 +66,7 @@ internal static partial class PdfPageEditor {
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        var bytes = ReorderPages(File.ReadAllBytes(inputPath), pageNumbers);
+        var bytes = ReorderPages(ReadPath(inputPath), pageNumbers);
         WriteOutput(fullOutputPath, bytes);
     }
 
@@ -77,7 +77,7 @@ internal static partial class PdfPageEditor {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        WriteOutput(outputStream, ReorderPages(File.ReadAllBytes(inputPath), pageNumbers));
+        WriteOutput(outputStream, ReorderPages(ReadPath(inputPath), pageNumbers));
     }
 
     /// <summary>
@@ -85,7 +85,7 @@ internal static partial class PdfPageEditor {
     /// </summary>
     public static byte[] ReorderPages(string inputPath, params int[] pageNumbers) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return ReorderPages(File.ReadAllBytes(inputPath), pageNumbers);
+        return ReorderPages(ReadPath(inputPath), pageNumbers);
     }
 
     /// <summary>
@@ -124,7 +124,7 @@ internal static partial class PdfPageEditor {
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        var bytes = ReorderPageRanges(File.ReadAllBytes(inputPath), pageRanges);
+        var bytes = ReorderPageRanges(ReadPath(inputPath), pageRanges);
         WriteOutput(fullOutputPath, bytes);
     }
 
@@ -135,7 +135,7 @@ internal static partial class PdfPageEditor {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        WriteOutput(outputStream, ReorderPageRanges(File.ReadAllBytes(inputPath), pageRanges));
+        WriteOutput(outputStream, ReorderPageRanges(ReadPath(inputPath), pageRanges));
     }
 
     /// <summary>
@@ -143,6 +143,6 @@ internal static partial class PdfPageEditor {
     /// </summary>
     public static byte[] ReorderPageRanges(string inputPath, params PdfPageRange[] pageRanges) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return ReorderPageRanges(File.ReadAllBytes(inputPath), pageRanges);
+        return ReorderPageRanges(ReadPath(inputPath), pageRanges);
     }
 }

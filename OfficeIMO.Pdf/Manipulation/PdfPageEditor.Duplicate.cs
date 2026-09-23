@@ -76,7 +76,7 @@ internal static partial class PdfPageEditor {
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        var bytes = DuplicatePages(File.ReadAllBytes(inputPath), pageNumbers);
+        var bytes = DuplicatePages(ReadPath(inputPath), pageNumbers);
         WriteOutput(fullOutputPath, bytes);
     }
 
@@ -87,7 +87,7 @@ internal static partial class PdfPageEditor {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        WriteOutput(outputStream, DuplicatePages(File.ReadAllBytes(inputPath), pageNumbers));
+        WriteOutput(outputStream, DuplicatePages(ReadPath(inputPath), pageNumbers));
     }
 
     /// <summary>
@@ -95,7 +95,7 @@ internal static partial class PdfPageEditor {
     /// </summary>
     public static byte[] DuplicatePages(string inputPath, params int[] pageNumbers) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return DuplicatePages(File.ReadAllBytes(inputPath), pageNumbers);
+        return DuplicatePages(ReadPath(inputPath), pageNumbers);
     }
 
     /// <summary>
@@ -162,7 +162,7 @@ internal static partial class PdfPageEditor {
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        var bytes = DuplicatePageRange(File.ReadAllBytes(inputPath), firstPage, lastPage);
+        var bytes = DuplicatePageRange(ReadPath(inputPath), firstPage, lastPage);
         WriteOutput(fullOutputPath, bytes);
     }
 
@@ -173,7 +173,7 @@ internal static partial class PdfPageEditor {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        WriteOutput(outputStream, DuplicatePageRange(File.ReadAllBytes(inputPath), firstPage, lastPage));
+        WriteOutput(outputStream, DuplicatePageRange(ReadPath(inputPath), firstPage, lastPage));
     }
 
     /// <summary>
@@ -184,7 +184,7 @@ internal static partial class PdfPageEditor {
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        var bytes = DuplicatePageRange(File.ReadAllBytes(inputPath), pageRange);
+        var bytes = DuplicatePageRange(ReadPath(inputPath), pageRange);
         WriteOutput(fullOutputPath, bytes);
     }
 
@@ -195,7 +195,7 @@ internal static partial class PdfPageEditor {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        WriteOutput(outputStream, DuplicatePageRange(File.ReadAllBytes(inputPath), pageRange));
+        WriteOutput(outputStream, DuplicatePageRange(ReadPath(inputPath), pageRange));
     }
 
     /// <summary>
@@ -203,7 +203,7 @@ internal static partial class PdfPageEditor {
     /// </summary>
     public static byte[] DuplicatePageRange(string inputPath, int firstPage, int lastPage) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return DuplicatePageRange(File.ReadAllBytes(inputPath), firstPage, lastPage);
+        return DuplicatePageRange(ReadPath(inputPath), firstPage, lastPage);
     }
 
     /// <summary>
@@ -211,7 +211,7 @@ internal static partial class PdfPageEditor {
     /// </summary>
     public static byte[] DuplicatePageRange(string inputPath, PdfPageRange pageRange) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return DuplicatePageRange(File.ReadAllBytes(inputPath), pageRange);
+        return DuplicatePageRange(ReadPath(inputPath), pageRange);
     }
 
     /// <summary>
@@ -255,7 +255,7 @@ internal static partial class PdfPageEditor {
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        var bytes = DuplicatePageRanges(File.ReadAllBytes(inputPath), pageRanges);
+        var bytes = DuplicatePageRanges(ReadPath(inputPath), pageRanges);
         WriteOutput(fullOutputPath, bytes);
     }
 
@@ -267,7 +267,7 @@ internal static partial class PdfPageEditor {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        WriteOutput(outputStream, DuplicatePageRanges(File.ReadAllBytes(inputPath), pageRanges));
+        WriteOutput(outputStream, DuplicatePageRanges(ReadPath(inputPath), pageRanges));
     }
 
     /// <summary>
@@ -276,6 +276,6 @@ internal static partial class PdfPageEditor {
     /// </summary>
     public static byte[] DuplicatePageRanges(string inputPath, params PdfPageRange[] pageRanges) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return DuplicatePageRanges(File.ReadAllBytes(inputPath), pageRanges);
+        return DuplicatePageRanges(ReadPath(inputPath), pageRanges);
     }
 }

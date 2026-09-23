@@ -147,7 +147,7 @@ internal static partial class PdfPageEditor {
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        WriteOutput(fullOutputPath, ResizePages(File.ReadAllBytes(inputPath), pageSize, pageNumbers));
+        WriteOutput(fullOutputPath, ResizePages(ReadPath(inputPath), pageSize, pageNumbers));
     }
 
     /// <summary>Writes a new PDF file with selected pages scaled into the target page size described by <paramref name="options"/>.</summary>
@@ -156,19 +156,19 @@ internal static partial class PdfPageEditor {
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        WriteOutput(fullOutputPath, ResizePages(File.ReadAllBytes(inputPath), options, pageNumbers));
+        WriteOutput(fullOutputPath, ResizePages(ReadPath(inputPath), options, pageNumbers));
     }
 
     /// <summary>Creates a new PDF with selected pages scaled into the supplied target page size from a file path.</summary>
     public static byte[] ResizePages(string inputPath, PageSize pageSize, params int[] pageNumbers) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return ResizePages(File.ReadAllBytes(inputPath), pageSize, pageNumbers);
+        return ResizePages(ReadPath(inputPath), pageSize, pageNumbers);
     }
 
     /// <summary>Creates a new PDF with selected pages scaled into the target page size described by <paramref name="options"/> from a file path.</summary>
     public static byte[] ResizePages(string inputPath, PdfPageResizeOptions options, params int[] pageNumbers) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return ResizePages(File.ReadAllBytes(inputPath), options, pageNumbers);
+        return ResizePages(ReadPath(inputPath), options, pageNumbers);
     }
 
     /// <summary>Creates a new PDF with the inclusive one-based page range scaled into the supplied target page size.</summary>

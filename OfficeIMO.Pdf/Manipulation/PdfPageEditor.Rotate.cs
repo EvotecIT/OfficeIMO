@@ -67,7 +67,7 @@ internal static partial class PdfPageEditor {
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        var bytes = RotatePages(File.ReadAllBytes(inputPath), rotationDegrees, pageNumbers);
+        var bytes = RotatePages(ReadPath(inputPath), rotationDegrees, pageNumbers);
         WriteOutput(fullOutputPath, bytes);
     }
 
@@ -78,7 +78,7 @@ internal static partial class PdfPageEditor {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        WriteOutput(outputStream, RotatePages(File.ReadAllBytes(inputPath), rotationDegrees, pageNumbers));
+        WriteOutput(outputStream, RotatePages(ReadPath(inputPath), rotationDegrees, pageNumbers));
     }
 
     /// <summary>
@@ -86,7 +86,7 @@ internal static partial class PdfPageEditor {
     /// </summary>
     public static byte[] RotatePages(string inputPath, int rotationDegrees, params int[] pageNumbers) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return RotatePages(File.ReadAllBytes(inputPath), rotationDegrees, pageNumbers);
+        return RotatePages(ReadPath(inputPath), rotationDegrees, pageNumbers);
     }
 
     /// <summary>
@@ -153,7 +153,7 @@ internal static partial class PdfPageEditor {
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        var bytes = RotatePageRange(File.ReadAllBytes(inputPath), rotationDegrees, firstPage, lastPage);
+        var bytes = RotatePageRange(ReadPath(inputPath), rotationDegrees, firstPage, lastPage);
         WriteOutput(fullOutputPath, bytes);
     }
 
@@ -164,7 +164,7 @@ internal static partial class PdfPageEditor {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        WriteOutput(outputStream, RotatePageRange(File.ReadAllBytes(inputPath), rotationDegrees, firstPage, lastPage));
+        WriteOutput(outputStream, RotatePageRange(ReadPath(inputPath), rotationDegrees, firstPage, lastPage));
     }
 
     /// <summary>
@@ -175,7 +175,7 @@ internal static partial class PdfPageEditor {
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        var bytes = RotatePageRange(File.ReadAllBytes(inputPath), rotationDegrees, pageRange);
+        var bytes = RotatePageRange(ReadPath(inputPath), rotationDegrees, pageRange);
         WriteOutput(fullOutputPath, bytes);
     }
 
@@ -186,7 +186,7 @@ internal static partial class PdfPageEditor {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        WriteOutput(outputStream, RotatePageRange(File.ReadAllBytes(inputPath), rotationDegrees, pageRange));
+        WriteOutput(outputStream, RotatePageRange(ReadPath(inputPath), rotationDegrees, pageRange));
     }
 
     /// <summary>
@@ -194,7 +194,7 @@ internal static partial class PdfPageEditor {
     /// </summary>
     public static byte[] RotatePageRange(string inputPath, int rotationDegrees, int firstPage, int lastPage) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return RotatePageRange(File.ReadAllBytes(inputPath), rotationDegrees, firstPage, lastPage);
+        return RotatePageRange(ReadPath(inputPath), rotationDegrees, firstPage, lastPage);
     }
 
     /// <summary>
@@ -202,7 +202,7 @@ internal static partial class PdfPageEditor {
     /// </summary>
     public static byte[] RotatePageRange(string inputPath, int rotationDegrees, PdfPageRange pageRange) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return RotatePageRange(File.ReadAllBytes(inputPath), rotationDegrees, pageRange);
+        return RotatePageRange(ReadPath(inputPath), rotationDegrees, pageRange);
     }
 
     /// <summary>
@@ -246,7 +246,7 @@ internal static partial class PdfPageEditor {
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        var bytes = RotatePageRanges(File.ReadAllBytes(inputPath), rotationDegrees, pageRanges);
+        var bytes = RotatePageRanges(ReadPath(inputPath), rotationDegrees, pageRanges);
         WriteOutput(fullOutputPath, bytes);
     }
 
@@ -258,7 +258,7 @@ internal static partial class PdfPageEditor {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        WriteOutput(outputStream, RotatePageRanges(File.ReadAllBytes(inputPath), rotationDegrees, pageRanges));
+        WriteOutput(outputStream, RotatePageRanges(ReadPath(inputPath), rotationDegrees, pageRanges));
     }
 
     /// <summary>
@@ -267,6 +267,6 @@ internal static partial class PdfPageEditor {
     /// </summary>
     public static byte[] RotatePageRanges(string inputPath, int rotationDegrees, params PdfPageRange[] pageRanges) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return RotatePageRanges(File.ReadAllBytes(inputPath), rotationDegrees, pageRanges);
+        return RotatePageRanges(ReadPath(inputPath), rotationDegrees, pageRanges);
     }
 }
