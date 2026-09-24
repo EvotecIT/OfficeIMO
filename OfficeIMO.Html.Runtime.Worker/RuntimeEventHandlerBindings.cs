@@ -32,8 +32,9 @@ internal sealed class RuntimeEventHandlerBindings(Engine engine, IEventTarget wi
         };
         var getter = new ClrFunction(engine, "get " + propertyName, (receiver, _) => {
             var target = Target(receiver, eventType);
-            return target != null && _targets.TryGetValue(target, out var handlers) && handlers.Registrations.TryGetValue(eventType, out var registration)
-                ? registration.Callback : JsValue.Null;
+            if (target == null || !_targets.TryGetValue(target, out var handlers)
+                || !handlers.Registrations.TryGetValue(eventType, out var registration)) return JsValue.Null;
+            return registration.Callback;
         });
         var setter = new ClrFunction(engine, "set " + propertyName, (receiver, args) => {
             if (_disposed) return JsValue.Undefined;
@@ -73,7 +74,7 @@ internal sealed class RuntimeEventHandlerBindings(Engine engine, IEventTarget wi
         if (_disposed) return;
         _disposed = true;
         foreach (var pair in _targets) {
-            if (pair.Key is EventTarget native) native.EventListenerRemoved -= pair.Value.OnRemoved;
+            if (pair.Key is EventTarget native) native.OnReset -= pair.Value.OnReset;
             foreach (var registration in pair.Value.Registrations)
                 pair.Key.RemoveEventListener(registration.Key, registration.Value.Handler);
         }
@@ -82,7 +83,7 @@ internal sealed class RuntimeEventHandlerBindings(Engine engine, IEventTarget wi
 
     private static TargetHandlers CreateHandlers(IEventTarget target) {
         var state = new TargetHandlers();
-        if (target is EventTarget native) native.EventListenerRemoved += state.OnRemoved;
+        if (target is EventTarget native) native.OnReset += state.OnReset;
         return state;
     }
 
@@ -105,9 +106,8 @@ internal sealed class RuntimeEventHandlerBindings(Engine engine, IEventTarget wi
     private sealed class TargetHandlers {
         internal readonly Dictionary<string, Registration> Registrations = new(StringComparer.Ordinal);
 
-        internal void OnRemoved(string type, DomEventHandler handler, bool capture) {
-            if (!capture && Registrations.TryGetValue(type, out var registration) && ReferenceEquals(registration.Handler, handler))
-                Registrations.Remove(type);
+        internal void OnReset(object? sender, EventArgs args) {
+            Registrations.Clear();
         }
     }
 }
