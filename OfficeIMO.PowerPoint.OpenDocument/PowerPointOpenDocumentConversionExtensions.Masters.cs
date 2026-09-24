@@ -67,6 +67,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         bool hasSlideText) =>
         HasDrawingContent(masterPart.SlideMaster?.CommonSlideData?.ShapeTree) ||
         HasDrawingContent(layoutPart.SlideLayout?.CommonSlideData?.ShapeTree) ||
+        HasAuthoredPowerPointLayoutContent(layoutPart) ||
         hasSlideText && masterPart.SlideMaster?.TextStyles?.ChildElements.Any(style =>
             style.HasAttributes || style.HasChildren) == true ||
         masterPart.SlideMaster?.CommonSlideData?.Background != null &&
@@ -100,16 +101,16 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                 count++;
             foreach (SlideLayoutPart layout in master.SlideLayoutParts) {
                 if (!usedLayouts.ContainsKey(layout) &&
-                    (HasAuthoredUnusedLayoutContent(layout) ||
+                    (HasAuthoredPowerPointLayoutContent(layout) ||
                      layout.SlideLayout?.CommonSlideData?.Background != null)) count++;
             }
         }
         return count;
     }
 
-    private static bool HasAuthoredUnusedLayoutContent(SlideLayoutPart layout) {
+    private static bool HasAuthoredPowerPointLayoutContent(SlideLayoutPart layout) {
         P.SlideLayout? source = layout.SlideLayout;
-        if (source == null || !HasDrawingContent(source.CommonSlideData?.ShapeTree)) return false;
+        if (source == null) return false;
         // The stock layouts are unedited skeletons. Any change to an unused
         // layout's placeholder geometry, appearance, or metadata is lost.
         return !DefaultPowerPointLayoutXml.Value.Contains(source.OuterXml);

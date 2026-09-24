@@ -14,6 +14,149 @@ namespace OfficeIMO.OpenDocument.Converters.Tests;
 
 public sealed class PowerPointOdpPresentationSemanticsTests {
     [Fact]
+    public void PowerPointSectionsRemainExplicitLoss() {
+        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
+        source.AddSlide(PowerPointSlideLayoutType.Blank);
+        source.AddSection("Results", startSlideIndex: 0);
+
+        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "sections" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+            new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void AuthoredUnusedBlankLayoutMetadataAddsMasterLayoutLoss() {
+        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
+        source.AddSlide(PowerPointSlideLayoutType.Title);
+        int before = source.ToOpenDocumentResult().Report.Mappings
+            .Where(mapping => mapping.Feature == "masters-layouts")
+            .Sum(mapping => mapping.Count);
+        SlideLayout blank = source.OpenXmlDocument.PresentationPart!.SlideMasterParts.First()
+            .SlideLayoutParts.Select(part => part.SlideLayout!)
+            .Single(layout => layout.Type?.Value == SlideLayoutValues.Blank);
+        blank.CommonSlideData!.Name = "Authored unused blank layout";
+
+        int after = source.ToOpenDocumentResult().Report.Mappings
+            .Where(mapping => mapping.Feature == "masters-layouts")
+            .Sum(mapping => mapping.Count);
+        Assert.True(after > before);
+    }
+
+    [Fact]
+    public void AuthoredSelectedBlankLayoutMetadataIsExplicitLoss() {
+        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
+        source.AddSlide(PowerPointSlideLayoutType.Blank);
+        source.OpenXmlDocument.PresentationPart!.SlideParts.First().SlideLayoutPart!
+            .SlideLayout!.CommonSlideData!.Name = "Authored selected blank layout";
+
+        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "masters-layouts" &&
+            mapping.Status == OdfConversionMappingStatus.Approximated);
+        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+            new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void OdpSpeakerNoteFrameGeometryIsExplicitLoss() {
+        OdpPresentation source = OdpPresentation.Create();
+        source.AddSlide().GetOrCreateSpeakerNotes().AddParagraph("Presenter note");
+        XNamespace presentation = "urn:oasis:names:tc:opendocument:xmlns:presentation:1.0";
+        XNamespace draw = "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0";
+        XNamespace svg = "urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0";
+        XElement frame = source.Package.GetXml("content.xml").Descendants(presentation + "notes")
+            .Descendants(draw + "frame").Single();
+        frame.SetAttributeValue(svg + "x", "2cm");
+        source.Package.MarkXmlDirty("content.xml");
+
+        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
+        using PowerPointPresentation target = conversion.Value;
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "speaker-notes" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+        Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointPresentationResult(
+            new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void OdpSpeakerNotesPageStyleIsExplicitLoss() {
+        OdpPresentation source = OdpPresentation.Create();
+        source.AddSlide().GetOrCreateSpeakerNotes().AddParagraph("Presenter note");
+        XNamespace presentation = "urn:oasis:names:tc:opendocument:xmlns:presentation:1.0";
+        XNamespace draw = "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0";
+        source.Package.GetXml("content.xml").Descendants(presentation + "notes").Single()
+            .SetAttributeValue(draw + "style-name", "NotesPageStyle");
+        source.Package.MarkXmlDirty("content.xml");
+
+        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
+        using PowerPointPresentation target = conversion.Value;
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "speaker-notes" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+        Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointPresentationResult(
+            new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void OdpSpeakerNotesInheritedDefaultFrameStyleIsExplicitLoss() {
+        OdpPresentation source = OdpPresentation.Create();
+        source.AddSlide().GetOrCreateSpeakerNotes().AddParagraph("Presenter note");
+        XNamespace office = "urn:oasis:names:tc:opendocument:xmlns:office:1.0";
+        XNamespace style = "urn:oasis:names:tc:opendocument:xmlns:style:1.0";
+        XNamespace draw = "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0";
+        source.Package.GetXml("styles.xml").Root!.Element(office + "styles")!.Add(
+            new XElement(style + "default-style", new XAttribute(style + "family", "graphic"),
+                new XElement(style + "graphic-properties", new XAttribute(draw + "fill", "solid"),
+                    new XAttribute(draw + "fill-color", "#336699"))));
+        source.Package.MarkXmlDirty("styles.xml");
+
+        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
+        using PowerPointPresentation target = conversion.Value;
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "speaker-notes" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+        Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointPresentationResult(
+            new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void OdpNonTextPresentationClassIsExplicitLoss() {
+        OdpPresentation source = OdpPresentation.Create();
+        source.AddSlide().AddRectangle(OdfRect.FromCentimeters(1, 1, 4, 2));
+        XNamespace draw = "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0";
+        XNamespace presentation = "urn:oasis:names:tc:opendocument:xmlns:presentation:1.0";
+        source.Package.GetXml("content.xml").Descendants(draw + "rect").Single()
+            .SetAttributeValue(presentation + "class", "graphic");
+        source.Package.MarkXmlDirty("content.xml");
+
+        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
+        using PowerPointPresentation target = conversion.Value;
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "placeholder-roles" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+        Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointPresentationResult(
+            new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void OdpDefaultGraphicStyleMapsDirectSolidFill() {
+        OdpPresentation source = OdpPresentation.Create();
+        OdpRectangle rectangle = source.AddSlide().AddRectangle(OdfRect.FromCentimeters(1, 1, 4, 2));
+        XNamespace office = "urn:oasis:names:tc:opendocument:xmlns:office:1.0";
+        XNamespace style = "urn:oasis:names:tc:opendocument:xmlns:style:1.0";
+        XNamespace draw = "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0";
+        source.Package.GetXml("styles.xml").Root!.Element(office + "styles")!.Add(
+            new XElement(style + "default-style", new XAttribute(style + "family", "graphic"),
+                new XElement(style + "graphic-properties", new XAttribute(draw + "fill", "solid"),
+                    new XAttribute(draw + "fill-color", "#336699"))));
+        source.Package.MarkXmlDirty("styles.xml");
+
+        Assert.Equal("#336699", rectangle.FillColor?.ToString());
+        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
+        using PowerPointPresentation target = conversion.Value;
+        Assert.NotNull(target.Slides[0].Shapes.OfType<PowerPointAutoShape>().Single().FillColor);
+        Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "shape-appearance" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+    }
+
+    [Fact]
     public void TextBodyPictureEffectsAndTextGeometryHaveExplicitLoss() {
         using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
         PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);

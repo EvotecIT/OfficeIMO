@@ -83,7 +83,6 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
 
     private static bool HasUnmappedOdpShapeAppearance(OdpPresentation source, OdpShape shape) {
         string? styleName = (string?)shape.Element.Attribute(OdfNamespaces.Draw + "style-name");
-        if (styleName == null) return false;
         XElement? properties = EffectiveOdfStyleProperties(source, OdfStyleFamily.Graphic, styleName,
             OdfNamespaces.Style + "graphic-properties");
         if (properties == null) return false;
@@ -98,14 +97,24 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             attribute.Name != OdfNamespaces.Svg + "stroke-width");
     }
 
-    private static bool HasUnmappedOdpNoteContent(OdpSlide slide) {
+    private static bool HasUnmappedOdpNoteContent(OdpPresentation source, OdpSlide slide) {
         XElement? notes = slide.Element.Element(OdfNamespaces.Presentation + "notes");
-        return notes != null && notes.Descendants().Any(element =>
+        if (notes == null) return false;
+        bool defaultFrameAppearance = notes.Descendants(OdfNamespaces.Draw + "frame").Any() &&
+            source.Package.GetXml("styles.xml").Descendants(OdfNamespaces.Style + "default-style")
+                .Any(candidate => (string?)candidate.Attribute(OdfNamespaces.Style + "family") == "graphic" &&
+                    candidate.Element(OdfNamespaces.Style + "graphic-properties") is XElement properties &&
+                    (properties.HasAttributes || properties.HasElements));
+        return notes.HasAttributes || defaultFrameAppearance || notes.Descendants().Any(element =>
             element.Name.Namespace == OdfNamespaces.Table ||
             element.Name.Namespace == OdfNamespaces.Draw &&
             element.Name != OdfNamespaces.Draw + "frame" &&
             element.Name != OdfNamespaces.Draw + "text-box" &&
-            element.Name != OdfNamespaces.Draw + "page-thumbnail");
+            element.Name != OdfNamespaces.Draw + "page-thumbnail" ||
+            element.Name == OdfNamespaces.Draw + "frame" && element.Attributes().Any(attribute =>
+                attribute.Name != OdfNamespaces.Draw + "name" &&
+                (attribute.Name != OdfNamespaces.Presentation + "class" || attribute.Value != "notes")) ||
+            element.Name == OdfNamespaces.Draw + "text-box" && element.HasAttributes);
     }
 
     private static bool HasUnmappedOdpTransitionTiming(OdpPresentation source, OdpSlide slide) {
@@ -176,11 +185,10 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
 
     private static XElement? EffectiveOdfStyleProperties(OdpPresentation source, OdfStyleFamily family,
         string? styleName, XName propertiesName, string partPath = "content.xml") {
-        if (string.IsNullOrWhiteSpace(styleName)) return null;
-        OdfStyle? style = source.Styles.FindInPart(family, styleName!, partPath);
-        if (style == null) return null;
         var effective = new XElement(propertiesName);
-        foreach (OdfStyle candidate in source.Styles.Resolve(style)) {
+        OdfStyle? style = string.IsNullOrWhiteSpace(styleName) ? null :
+            source.Styles.FindInPart(family, styleName!, partPath);
+        foreach (OdfStyle candidate in style == null ? Array.Empty<OdfStyle>() : source.Styles.Resolve(style)) {
             XElement? properties = candidate.Element.Element(propertiesName);
             if (properties == null) continue;
             foreach (XAttribute attribute in properties.Attributes()) {
@@ -188,6 +196,21 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                     effective.SetAttributeValue(attribute.Name, attribute.Value);
             }
             foreach (XElement child in properties.Elements()) effective.Add(new XElement(child));
+        }
+        string familyName = family == OdfStyleFamily.DrawingPage ? "drawing-page" :
+            family.ToString().ToLowerInvariant();
+        XElement? defaultProperties = source.Package.GetXml("styles.xml")
+            .Descendants(OdfNamespaces.Style + "default-style")
+            .FirstOrDefault(candidate => (string?)candidate.Attribute(OdfNamespaces.Style + "family") ==
+                familyName)?.Element(propertiesName);
+        if (defaultProperties != null) {
+            foreach (XAttribute attribute in defaultProperties.Attributes()) {
+                if (effective.Attribute(attribute.Name) == null)
+                    effective.SetAttributeValue(attribute.Name, attribute.Value);
+            }
+            foreach (XElement child in defaultProperties.Elements()) {
+                if (!effective.Elements(child.Name).Any()) effective.Add(new XElement(child));
+            }
         }
         if ((string?)effective.Attribute(OdfNamespaces.Draw + "fill") == "solid") {
             effective.SetAttributeValue(OdfNamespaces.Draw + "fill-gradient-name", null);

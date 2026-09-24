@@ -215,6 +215,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         if (approximatedMasterLayouts > 0) report.Add("masters-layouts", OdfConversionMappingStatus.Approximated,
             approximatedMasterLayouts,
             "Master and layout links are retained, but inherited drawing content, placeholder geometry and indexes, and layout-specific formatting are not reconstructed.");
+        AddUnsupported(report, "sections", source.GetSections().Count,
+            "PowerPoint slide sections and their names are not represented in the current ODP presentation surface.");
         AddAdvancedPowerPointFindings(source.InspectFeatures(), report);
         return new OdfConversionResult<OdpPresentation>(target, report).ApplyPolicy(effective.LossPolicy);
     }
@@ -276,6 +278,9 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                 unsupportedShapes++;
 
             foreach (OdpShape shape in sourceSlide.Shapes) {
+                if (shape is not OdpTextBox &&
+                    shape.Element.Attribute(OdfNamespaces.Presentation + "class") != null)
+                    unsupportedPlaceholderRoles++;
                 if (shape is OdpTextBox textBox) {
                     if (!TryToPowerPointBox(textBox.Bounds, out PowerPointLayoutBox textBoxBounds)) {
                         unsupportedMeasurements++;
@@ -404,7 +409,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
 
             if (sourceSlide.SpeakerNotes != null) {
                 noteContainers++;
-                if (HasUnmappedOdpNoteContent(sourceSlide)) unsupportedNoteContent++;
+                if (HasUnmappedOdpNoteContent(source, sourceSlide)) unsupportedNoteContent++;
             }
             if (effective.IncludeSpeakerNotes && sourceSlide.SpeakerNotes != null) {
                 IReadOnlyList<OdpParagraph> noteParagraphs = sourceSlide.SpeakerNotes.Paragraphs;
@@ -438,7 +443,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         AddConverted(report, "speaker-notes", notes);
         AddConverted(report, "placeholder-roles", mappedPlaceholderRoles);
         AddUnsupported(report, "placeholder-roles", unsupportedPlaceholderRoles,
-            "This ODP presentation class has no matching PowerPoint textbox placeholder role.");
+            "This ODP presentation class has no matching PowerPoint shape placeholder role.");
         if (transitions > 0) report.Add("slide-transitions", OdfConversionMappingStatus.Approximated, transitions,
             "Common ODF transition styles are mapped to PowerPoint transition families.");
         if (listParagraphs > 0) report.Add("text-lists", OdfConversionMappingStatus.Approximated, listParagraphs,
@@ -466,7 +471,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             "Speaker notes were omitted because IncludeSpeakerNotes is disabled.");
         AddUnsupported(report, "slide-transitions", unsupportedTransitions, "The ODF transition family is not supported by the PowerPoint adapter.");
         AddUnsupported(report, "speaker-notes", unsupportedNoteContent,
-            "ODP speaker-note drawings, images, and tables outside text paragraphs were omitted.");
+            "ODP speaker-note drawings, frame geometry and style, images, and tables outside plain text paragraphs were omitted.");
         AddUnsupported(report, "images", unsupportedPictures, "Images disabled by options or using an unsupported PowerPoint image format were skipped.");
         AddUnsupported(report, "shapes", unsupportedShapes, "Groups, explicit ODF z-order, and unsupported drawing elements are not translated.");
         AddUnsupported(report, "shapes", unsupportedRawDrawingShapes,

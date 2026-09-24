@@ -60,6 +60,7 @@ public abstract class OdpShape {
                 .Select(candidate => (string?)candidate.Element
                     .Element(OdfNamespaces.Style + "graphic-properties")?.Attribute(OdfNamespaces.Svg + "stroke-width"))
                 .FirstOrDefault(width => width != null);
+            value ??= (string?)GetDefaultGraphicProperties()?.Attribute(OdfNamespaces.Svg + "stroke-width");
             return value == null ? (OdfLength?)null : OdfLength.Parse(value);
         }
         set => EnsureGraphicStyle().SetProperty(OdfNamespaces.Style + "graphic-properties", OdfNamespaces.Svg + "stroke-width", value?.ToString());
@@ -111,12 +112,19 @@ public abstract class OdpShape {
         string? mode = chain.Select(candidate => (string?)candidate.Element
             .Element(OdfNamespaces.Style + "graphic-properties")?.Attribute(modeName))
             .FirstOrDefault(value => value != null);
+        XElement? defaults = GetDefaultGraphicProperties();
+        mode ??= (string?)defaults?.Attribute(modeName);
         if (mode != null && !string.Equals(mode, "solid", StringComparison.Ordinal)) return null;
         string? value = chain.Select(candidate => (string?)candidate.Element
             .Element(OdfNamespaces.Style + "graphic-properties")?.Attribute(colorName))
             .FirstOrDefault(color => color != null);
+        value ??= (string?)defaults?.Attribute(colorName);
         return value == null ? (OdfColor?)null : OdfColor.Parse(value);
     }
+    private XElement? GetDefaultGraphicProperties() => Presentation.Package.GetXml("styles.xml")
+        .Descendants(OdfNamespaces.Style + "default-style")
+        .FirstOrDefault(element => (string?)element.Attribute(OdfNamespaces.Style + "family") == "graphic")?
+        .Element(OdfNamespaces.Style + "graphic-properties");
     private OdfLength ReadLength(string localName) => OdfLength.Parse((string?)Element.Attribute(OdfNamespaces.Svg + localName) ?? "0cm");
 }
 
