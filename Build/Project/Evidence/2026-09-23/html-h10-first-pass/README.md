@@ -225,3 +225,25 @@ warm iteration. Reports and inspected rasters are retained under
 `h10-wai-float-after-text-clean-64d1f971c`,
 `h10-h4-float-after-text-64d1f971c`, and
 `h10-h4-budget-float-after-text-64d1f971c`.
+
+## W3C tutorial-card float containment
+
+Source `272f1fc2f82d9c7c595c0dce92e75b782e2f1ad2` corrects a further
+16-pixel gap after each tutorial card. The card list uses `overflow:auto` to
+contain images floated inside paragraphs. When the float extends below the
+paragraph's text, its overhang now consumes the paragraph's final bottom
+margin inside the containing list item. Explicitly sized paragraphs and
+paragraphs that contain their own floats retain that margin.
+
+The unchanged W3C archive was replayed offline from clean source. In the
+zero-margin local-font print comparison, OfficeIMO and Chromium both produce
+three pages, and the fifth card begins on page one in both. The first four
+card images align closely at normal reading size. OfficeIMO's default-margin
+print still has four pages; text weight, footer layout and some density differ,
+so the W3C print-fidelity item remains open. The .NET 10 HTML suite passed
+3,332/3,332, H4 advanced-held-out acceptance passed 8/8, and the macOS static
+budget passed with a 5,350 ms cold process, 1,974 ms maximum warm iteration,
+and matching cold/warm fingerprints. Reports and the inspected page raster are
+retained under `Ignore/HtmlUnknownPageQualification/` in
+`h10-wai-float-bfc-clean-272f1fc2f`, `h10-h4-float-bfc-272f1fc2f`, and
+`h10-h4-budget-float-bfc-272f1fc2f`.
