@@ -61,7 +61,8 @@ public sealed class OdsChart {
             XElement[] plots = chartElement?.Elements(chart + "plot-area").Take(2).ToArray() ?? Array.Empty<XElement>();
             if (chartElement == null || plots.Length != 1) return null;
             XElement plot = plots[0];
-            string chartClass = (string?)chartElement.Attribute(chart + "class") ?? string.Empty;
+            string chartClass = NormalizeChartClass(chartElement,
+                (string?)chartElement.Attribute(chart + "class")) ?? string.Empty;
             string? title = chartElement.Element(chart + "title")?.Element(OdfNamespaces.Text + "p")?.Value;
             string[] categoryAddresses = plot.Elements(chart + "axis")
                 .Select(axis => (string?)axis.Element(chart + "categories")?.Attribute(OdfNamespaces.Table + "cell-range-address"))
@@ -71,7 +72,7 @@ public sealed class OdsChart {
             var series = seriesElements.Select(element => new OdsChartSeries(
                 (string?)element.Attribute(chart + "values-cell-range-address") ?? string.Empty,
                 (string?)element.Attribute(chart + "label-cell-address"),
-                (string?)element.Attribute(chart + "class"))).ToArray();
+                NormalizeChartClass(element, (string?)element.Attribute(chart + "class")))).ToArray();
             XDocument? stylesPart = document.Package.ContainsEntry(directory + "styles.xml")
                 ? document.Package.GetXml(directory + "styles.xml") : null;
             XElement? Style(string? name) => FindChartStyle(part, name)
@@ -138,6 +139,17 @@ public sealed class OdsChart {
                 || element.Name == OdfNamespaces.Office + "styles")
             .SelectMany(element => element.Elements(OdfNamespaces.Style + "style"))
             .FirstOrDefault(element => string.Equals((string?)element.Attribute(OdfNamespaces.Style + "name"), styleName, StringComparison.Ordinal));
+
+    private static string? NormalizeChartClass(XElement owner, string? lexical) {
+        if (lexical == null) return null;
+        int separator = lexical.IndexOf(':');
+        if (separator <= 0 || separator == lexical.Length - 1 || lexical.IndexOf(':', separator + 1) >= 0)
+            return lexical;
+        string prefix = lexical.Substring(0, separator);
+        return owner.GetNamespaceOfPrefix(prefix) == OdfNamespaces.Chart
+            ? "chart:" + lexical.Substring(separator + 1)
+            : lexical;
+    }
 }
 
 /// <summary>Cell references for one embedded ODS chart series.</summary>

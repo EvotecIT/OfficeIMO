@@ -77,6 +77,36 @@ public sealed class SpreadsheetChartConversionTests {
     }
 
     [Fact]
+    public void ChartDataRespectsTheHiddenWorksheetRowLimit() {
+        string path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "microsoft-excel-column-chart.ods");
+        OdsDocument source = OdsDocument.Load(path);
+        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult(
+            new ExcelOpenDocumentConversionOptions { MaximumRows = 4 });
+        using ExcelDocument converted = result.Value;
+
+        Assert.Empty(converted["Data"].Charts);
+        Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "source-embedded-objects"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported);
+        Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "expansion-limits"
+            && mapping.Status == OdfConversionMappingStatus.Skipped);
+    }
+
+    [Fact]
+    public void ChartClassPrefixAliasesConvertByNamespace() {
+        byte[] package = RewritePart("Object 1/content.xml", xml => {
+            XNamespace chart = "urn:oasis:names:tc:opendocument:xmlns:chart:1.0";
+            xml.Root!.SetAttributeValue(XNamespace.Xmlns + "c", chart.NamespaceName);
+            xml.Descendants(chart + "chart").Single().SetAttributeValue(chart + "class", "c:bar");
+            foreach (XElement series in xml.Descendants(chart + "series"))
+                series.SetAttributeValue(chart + "class", "c:bar");
+        });
+        OdsDocument source = OdsDocument.Load(new MemoryStream(package));
+        Assert.Equal("chart:bar", Assert.Single(source.GetSheet("Data")!.Charts).ChartClass);
+        using ExcelDocument converted = source.ToExcelDocumentResult().Value;
+        Assert.Single(converted["Data"].Charts);
+    }
+
+    [Fact]
     public void StackedChartPropertyInSeriesStyleRemainsAnExplicitLoss() {
         byte[] package = RewritePart("Object 1/content.xml", xml => {
             XNamespace chart = "urn:oasis:names:tc:opendocument:xmlns:chart:1.0";

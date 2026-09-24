@@ -13,6 +13,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         IReadOnlyList<(OdsSheet Source, ExcelSheet Target)> chartTargets,
         ExcelOpenDocumentConversionOptions options, ref long expandedCells, ref bool truncated) {
         int converted = 0;
+        long nextChartDataRow = 1;
         var readers = new Dictionary<string, ChartCellReader>(StringComparer.Ordinal);
         foreach ((OdsSheet odsSheet, ExcelSheet excelSheet) in chartTargets) {
             foreach (OdsChart chart in odsSheet.Charts) {
@@ -23,8 +24,14 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                     truncated = true;
                     continue;
                 }
+                long reservedRows = (long)data.Categories.Count + 3;
+                if (nextChartDataRow + reservedRows - 1 > options.MaximumRows) {
+                    truncated = true;
+                    continue;
+                }
                 excelSheet.AddChart(data!, row, column, width, height, chartType, chart.Title);
                 expandedCells += chartCells;
+                nextChartDataRow += reservedRows;
                 converted++;
             }
         }
