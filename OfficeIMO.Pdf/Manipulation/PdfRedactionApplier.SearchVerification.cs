@@ -45,7 +45,7 @@ internal static partial class PdfRedactionApplier {
             foreach (string literal in literals) {
                 cancellationToken.ThrowIfCancellationRequested();
                 workBudget.ChargeTextScan(remaining, literal);
-                if (Contains(remaining, literal, comparison)) ThrowSurvivingText(pageNumber);
+                if (PdfTextSearchNormalization.ContainsExact(remaining, literal, comparison)) ThrowSurvivingText(pageNumber);
             }
             PdfLogicalTextBlock[] rewrittenBlocks = rewrittenBlocksByPage != null &&
                 rewrittenBlocksByPage.TryGetValue(pageNumber, out PdfLogicalTextBlock[]? pageRewrittenBlocks)
@@ -66,9 +66,12 @@ internal static partial class PdfRedactionApplier {
                     foreach (PdfTextSpan span in block.Spans)
                         rewrittenSpans.Add((span, PdfTextSpanGeometry.GetAxisAlignedBounds(span)));
                 }
-                foreach (PdfLogicalTextBlock block in sourceBlocks) {
+                Dictionary<int, string> wrappedLiterals = PdfRedactionPlanner.MatchLiteralsAcrossBlocks(
+                    sourceBlocks, literals, comparison, workBudget, static _ => true, cancellationToken);
+                for (int blockIndex = 0; blockIndex < sourceBlocks.Length; blockIndex++) {
+                    PdfLogicalTextBlock block = sourceBlocks[blockIndex];
                     cancellationToken.ThrowIfCancellationRequested();
-                    bool selected = selectedKinds.Contains(block.Kind);
+                    bool selected = selectedKinds.Contains(block.Kind) || wrappedLiterals.ContainsKey(blockIndex);
                     for (int i = 0; !selected && i < literals.Length; i++) {
                         workBudget.ChargeTextScan(block.Text, literals[i]);
                         selected = Contains(block.Text, literals[i], comparison);
@@ -99,13 +102,9 @@ internal static partial class PdfRedactionApplier {
         }
     }
 
-    private static bool Contains(string text, string value, StringComparison comparison) {
-#if NET6_0_OR_GREATER
-        return text.Contains(value, comparison);
-#else
-        return text.IndexOf(value, comparison) >= 0;
-#endif
-    }
+    // Select source blocks with the planner's line-break and hyphenation-tolerant matching so wrapped occurrences stay covered.
+    private static bool Contains(string text, string value, StringComparison comparison) =>
+        PdfTextSearchNormalization.Contains(text, value, comparison);
 
     private static PdfLogicalElementKind ParseLogicalKind(string criterion) {
 #if NET6_0_OR_GREATER

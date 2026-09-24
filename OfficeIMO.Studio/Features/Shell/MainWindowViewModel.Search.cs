@@ -90,7 +90,7 @@ public sealed partial class MainWindowViewModel {
             var results = await session.SearchAsync(query, token, progress).ConfigureAwait(true);
             if (generation != _searchGeneration || !ReferenceEquals(session, _session)) return;
             foreach (var result in results) SearchResults.Add(result.WithLocalizer(_localizer));
-            var pageMatches = SearchResults.GroupBy(hit => hit.PageNumber).ToDictionary(group => group.Key, group => group.Select(hit => hit.Bounds).ToArray());
+            var pageMatches = SearchResults.GroupBy(hit => hit.PageNumber).ToDictionary(group => group.Key, group => group.SelectMany(hit => hit.Highlights).ToArray());
             foreach (var page in Pages) page.SearchHighlights = pageMatches.TryGetValue(page.PageNumber, out var highlights) ? highlights : Array.Empty<Avalonia.Rect>();
             _searchCompleted = true;
             NotifySearchResultsChanged();
