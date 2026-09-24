@@ -8,6 +8,15 @@ using P = DocumentFormat.OpenXml.Presentation;
 namespace OfficeIMO.PowerPoint.OpenDocument;
 
 public static partial class PowerPointOpenDocumentConversionExtensions {
+    private static readonly Lazy<HashSet<string>> DefaultPowerPointLayoutXml = new(() => {
+        using PowerPointPresentation baseline = PowerPointPresentation.Create(new MemoryStream(),
+            new PowerPointCreateOptions());
+        return new HashSet<string>(baseline.OpenXmlDocument.PresentationPart!.SlideMasterParts
+            .SelectMany(master => master.SlideLayoutParts)
+            .Select(layout => layout.SlideLayout?.OuterXml)
+            .Where(xml => xml != null).Select(xml => xml!), StringComparer.Ordinal);
+    });
+
     private static bool MapPowerPointMasterAndLayout(PresentationPart? presentation, SlideId? slideId,
         bool hasSlideText,
         OdpPresentation target, OdpSlide targetSlide,
@@ -78,6 +87,34 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
     private static bool HasDrawingContent(P.ShapeTree? tree) => tree?.ChildElements.Any(child =>
         child is not P.NonVisualGroupShapeProperties and not P.GroupShapeProperties) == true;
 
+    private static int CountUnmappedUnusedPowerPointMastersAndLayouts(PresentationPart? presentation,
+        IReadOnlyDictionary<SlideMasterPart, string> usedMasters,
+        IReadOnlyDictionary<SlideLayoutPart, string> usedLayouts) {
+        if (presentation == null) return 0;
+        int count = 0;
+        foreach (SlideMasterPart master in presentation.SlideMasterParts) {
+            if (!usedMasters.ContainsKey(master) &&
+                (HasDrawingContent(master.SlideMaster?.CommonSlideData?.ShapeTree) ||
+                 master.SlideMaster?.CommonSlideData?.Background != null ||
+                 master.SlideMaster?.TextStyles?.ChildElements.Any(style => style.HasAttributes || style.HasChildren) == true))
+                count++;
+            foreach (SlideLayoutPart layout in master.SlideLayoutParts) {
+                if (!usedLayouts.ContainsKey(layout) &&
+                    (HasAuthoredUnusedLayoutContent(layout) ||
+                     layout.SlideLayout?.CommonSlideData?.Background != null)) count++;
+            }
+        }
+        return count;
+    }
+
+    private static bool HasAuthoredUnusedLayoutContent(SlideLayoutPart layout) {
+        P.SlideLayout? source = layout.SlideLayout;
+        if (source == null || !HasDrawingContent(source.CommonSlideData?.ShapeTree)) return false;
+        // The stock layouts are unedited skeletons. Any change to an unused
+        // layout's placeholder geometry, appearance, or metadata is lost.
+        return !DefaultPowerPointLayoutXml.Value.Contains(source.OuterXml);
+    }
+
     private static int CountUnmappedOdpMasterLayouts(OdpPresentation source) {
         IReadOnlyList<OdpMasterPage> masters = source.MasterPages;
         IReadOnlyList<OdpPresentationLayout> layouts = source.Layouts;
@@ -93,10 +130,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         bool hasUnsupportedBackground = styles.Descendants(style + "master-page").Any(master => {
             string? styleName = (string?)master.Attribute(draw + "style-name");
             if (styleName == null) return false;
-            XElement? drawingStyle = styles.Descendants(style + "style").FirstOrDefault(candidate =>
-                (string?)candidate.Attribute(style + "name") == styleName &&
-                (string?)candidate.Attribute(style + "family") == "drawing-page");
-            XElement? properties = drawingStyle?.Element(style + "drawing-page-properties");
+            XElement? properties = EffectiveOdfStyleProperties(source, OdfStyleFamily.DrawingPage,
+                styleName, style + "drawing-page-properties", "styles.xml");
             if (properties == null) return false;
             string? fill = (string?)properties.Attribute(draw + "fill");
             if (fill != null && fill != "none" && fill != "solid") return true;

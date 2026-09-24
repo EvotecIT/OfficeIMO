@@ -55,7 +55,11 @@ public abstract class OdpShape {
     /// <summary>Shape stroke width.</summary>
     public OdfLength? StrokeWidth {
         get {
-            string? value = (string?)GetGraphicStyle()?.Element.Element(OdfNamespaces.Style + "graphic-properties")?.Attribute(OdfNamespaces.Svg + "stroke-width");
+            OdfStyle? style = GetGraphicStyle();
+            string? value = style == null ? null : Presentation.Styles.Resolve(style)
+                .Select(candidate => (string?)candidate.Element
+                    .Element(OdfNamespaces.Style + "graphic-properties")?.Attribute(OdfNamespaces.Svg + "stroke-width"))
+                .FirstOrDefault(width => width != null);
             return value == null ? (OdfLength?)null : OdfLength.Parse(value);
         }
         set => EnsureGraphicStyle().SetProperty(OdfNamespaces.Style + "graphic-properties", OdfNamespaces.Svg + "stroke-width", value?.ToString());
@@ -102,10 +106,15 @@ public abstract class OdpShape {
         return name == null ? null : Presentation.Styles.Find(OdfStyleFamily.Graphic, name);
     }
     private OdfColor? ReadGraphicColor(XName modeName, XName colorName) {
-        XElement? properties = GetGraphicStyle()?.Element.Element(OdfNamespaces.Style + "graphic-properties");
-        string? mode = (string?)properties?.Attribute(modeName);
+        OdfStyle? style = GetGraphicStyle();
+        IReadOnlyList<OdfStyle> chain = style == null ? Array.Empty<OdfStyle>() : Presentation.Styles.Resolve(style);
+        string? mode = chain.Select(candidate => (string?)candidate.Element
+            .Element(OdfNamespaces.Style + "graphic-properties")?.Attribute(modeName))
+            .FirstOrDefault(value => value != null);
         if (mode != null && !string.Equals(mode, "solid", StringComparison.Ordinal)) return null;
-        string? value = (string?)properties?.Attribute(colorName);
+        string? value = chain.Select(candidate => (string?)candidate.Element
+            .Element(OdfNamespaces.Style + "graphic-properties")?.Attribute(colorName))
+            .FirstOrDefault(color => color != null);
         return value == null ? (OdfColor?)null : OdfColor.Parse(value);
     }
     private OdfLength ReadLength(string localName) => OdfLength.Parse((string?)Element.Attribute(OdfNamespaces.Svg + localName) ?? "0cm");

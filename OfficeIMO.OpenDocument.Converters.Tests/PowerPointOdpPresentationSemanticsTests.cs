@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.Drawing;
 using OfficeIMO.OpenDocument;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.OpenDocument;
@@ -12,6 +13,219 @@ using Xunit;
 namespace OfficeIMO.OpenDocument.Converters.Tests;
 
 public sealed class PowerPointOdpPresentationSemanticsTests {
+    [Fact]
+    public void TextBodyPictureEffectsAndTextGeometryHaveExplicitLoss() {
+        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
+        PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
+        PowerPointTextBox box = slide.AddTextBoxPoints("Inset text", 20, 20, 200, 40);
+        box.TextMarginLeftPoints = 18;
+        slide.AddTextShape(OfficePresetShapeType.Ellipse, "Oval text");
+        byte[] png = Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+        using var image = new MemoryStream(png, writable: false);
+        slide.AddPicture(image, OfficeImageFormat.Png).GrayScale = true;
+
+        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "shape-appearance" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "shape-geometry" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+            new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void UnusedAuthoredLayoutHasExplicitLoss() {
+        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
+        source.AddSlide(PowerPointSlideLayoutType.Blank);
+        var master = source.OpenXmlDocument.PresentationPart!.SlideMasterParts.First();
+        var used = source.OpenXmlDocument.PresentationPart.SlideParts.Single().SlideLayoutPart;
+        var unused = master.SlideLayoutParts.First(layout => !ReferenceEquals(layout, used));
+        unused.SlideLayout!.CommonSlideData!.Background = new Background(new BackgroundProperties(
+            new A.SolidFill(new A.RgbColorModelHex { Val = "336699" })));
+
+        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "masters-layouts" &&
+            mapping.Status == OdfConversionMappingStatus.Approximated);
+        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+            new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void UnusedLayoutPlaceholderGeometryHasExplicitLoss() {
+        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
+        source.AddSlide(PowerPointSlideLayoutType.Blank);
+        var master = source.OpenXmlDocument.PresentationPart!.SlideMasterParts.First();
+        var unused = master.SlideLayoutParts.First(layout => layout.SlideLayout!
+            .CommonSlideData!.ShapeTree!.Elements<Shape>().Any());
+        Shape placeholder = unused.SlideLayout!.CommonSlideData!.ShapeTree!.Elements<Shape>().First();
+        A.Offset offset = placeholder.ShapeProperties!.GetFirstChild<A.Transform2D>()!.Offset!;
+        offset.X = offset.X!.Value + 1000L;
+
+        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "masters-layouts" &&
+            mapping.Status == OdfConversionMappingStatus.Approximated);
+    }
+
+    [Fact]
+    public void InheritedGraphicStrokeWidthReachesPowerPoint() {
+        OdpPresentation source = OdpPresentation.Create();
+        OdpRectangle rectangle = source.AddSlide().AddRectangle(OdfRect.FromCentimeters(1, 1, 5, 3));
+        rectangle.StrokeColor = OdfColor.Parse("#336699");
+        XNamespace office = "urn:oasis:names:tc:opendocument:xmlns:office:1.0";
+        XNamespace style = "urn:oasis:names:tc:opendocument:xmlns:style:1.0";
+        XNamespace svg = "urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0";
+        source.Package.GetXml("styles.xml").Root!.Element(office + "styles")!.Add(
+            new XElement(style + "style", new XAttribute(style + "name", "WideStroke"),
+                new XAttribute(style + "family", "graphic"),
+                new XElement(style + "graphic-properties", new XAttribute(svg + "stroke-width", "3pt"))));
+        XElement child = source.Package.GetXml("content.xml").Descendants(style + "style")
+            .Single(item => (string?)item.Attribute(style + "family") == "graphic");
+        child.SetAttributeValue(style + "parent-style-name", "WideStroke");
+        source.Package.MarkXmlDirty("styles.xml");
+        source.Package.MarkXmlDirty("content.xml");
+
+        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
+        using PowerPointPresentation target = conversion.Value;
+        Assert.Equal(3, Assert.Single(target.Slides[0].Shapes.OfType<PowerPointAutoShape>()).OutlineWidthPoints);
+        Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "shape-appearance");
+    }
+
+    [Fact]
+    public void InheritedSlideOpacityWithoutFillHasExplicitLoss() {
+        OdpPresentation source = OdpPresentation.Create();
+        OdpSlide slide = source.AddSlide();
+        source.MasterPages[0].BackgroundColor = OdfColor.Parse("#336699");
+        slide.BackgroundColor = OdfColor.Parse("#CC5500");
+        XNamespace office = "urn:oasis:names:tc:opendocument:xmlns:office:1.0";
+        XNamespace style = "urn:oasis:names:tc:opendocument:xmlns:style:1.0";
+        XNamespace draw = "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0";
+        source.Package.GetXml("styles.xml").Root!.Element(office + "styles")!.Add(
+            new XElement(style + "style", new XAttribute(style + "name", "FadedSlide"),
+                new XAttribute(style + "family", "drawing-page"),
+                new XElement(style + "drawing-page-properties", new XAttribute(draw + "opacity", "50%"))));
+        XElement child = source.Package.GetXml("content.xml").Descendants(style + "style")
+            .Single(item => (string?)item.Attribute(style + "family") == "drawing-page");
+        child.SetAttributeValue(style + "parent-style-name", "FadedSlide");
+        child.Element(style + "drawing-page-properties")!.Remove();
+        source.Package.MarkXmlDirty("styles.xml");
+        source.Package.MarkXmlDirty("content.xml");
+
+        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
+        using PowerPointPresentation target = conversion.Value;
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "slide-backgrounds" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+        Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointPresentationResult(
+            new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void RawOdpCustomShapeHasExplicitLoss() {
+        OdpPresentation source = OdpPresentation.Create();
+        source.AddSlide();
+        XNamespace draw = "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0";
+        source.Package.GetXml("content.xml").Descendants(draw + "page").Single()
+            .Add(new XElement(draw + "custom-shape", new XAttribute(draw + "name", "Star")));
+        source.Package.MarkXmlDirty("content.xml");
+
+        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
+        using PowerPointPresentation target = conversion.Value;
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "shapes" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+        Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointPresentationResult(
+            new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void GradientMasterWithStaleSolidColorDoesNotProjectColor() {
+        OdpPresentation source = OdpPresentation.Create();
+        source.AddSlide();
+        source.MasterPages[0].BackgroundColor = OdfColor.Parse("#336699");
+        XNamespace style = "urn:oasis:names:tc:opendocument:xmlns:style:1.0";
+        XNamespace draw = "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0";
+        XElement properties = source.Package.GetXml("styles.xml")
+            .Descendants(style + "drawing-page-properties").Single();
+        properties.SetAttributeValue(draw + "fill", "gradient");
+        source.Package.MarkXmlDirty("styles.xml");
+
+        Assert.Null(source.MasterPages[0].BackgroundColor);
+        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
+        using PowerPointPresentation target = conversion.Value;
+        Assert.Null(target.Slides[0].GetBackground().Color);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "masters-layouts" &&
+            mapping.Status == OdfConversionMappingStatus.Approximated);
+    }
+
+    [Fact]
+    public void InheritedOdpGradientStylesAreReportedForMasterAndShape() {
+        OdpPresentation source = OdpPresentation.Create();
+        OdpRectangle rectangle = source.AddSlide().AddRectangle(OdfRect.FromCentimeters(1, 1, 5, 3));
+        source.MasterPages[0].BackgroundColor = OdfColor.Parse("#336699");
+        rectangle.FillColor = OdfColor.Parse("#CC5500");
+        XNamespace office = "urn:oasis:names:tc:opendocument:xmlns:office:1.0";
+        XNamespace style = "urn:oasis:names:tc:opendocument:xmlns:style:1.0";
+        XNamespace draw = "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0";
+        XDocument styles = source.Package.GetXml("styles.xml");
+        XElement named = styles.Root!.Element(office + "styles")!;
+        named.Add(new XElement(style + "style",
+            new XAttribute(style + "name", "GradientMaster"), new XAttribute(style + "family", "drawing-page"),
+            new XElement(style + "drawing-page-properties", new XAttribute(draw + "fill", "gradient"))));
+        named.Add(new XElement(style + "style",
+            new XAttribute(style + "name", "GradientShape"), new XAttribute(style + "family", "graphic"),
+            new XElement(style + "graphic-properties", new XAttribute(draw + "fill", "gradient"))));
+        XElement masterStyle = styles.Descendants(style + "style").Single(item =>
+            (string?)item.Attribute(style + "family") == "drawing-page" &&
+            (string?)item.Attribute(style + "name") != "GradientMaster");
+        masterStyle.SetAttributeValue(style + "parent-style-name", "GradientMaster");
+        masterStyle.Element(style + "drawing-page-properties")!.Remove();
+        XDocument content = source.Package.GetXml("content.xml");
+        XElement shapeStyle = content.Descendants(style + "style").Single(item =>
+            (string?)item.Attribute(style + "family") == "graphic");
+        shapeStyle.SetAttributeValue(style + "parent-style-name", "GradientShape");
+        shapeStyle.Element(style + "graphic-properties")!.Remove();
+        source.Package.MarkXmlDirty("styles.xml");
+        source.Package.MarkXmlDirty("content.xml");
+
+        Assert.Null(source.MasterPages[0].BackgroundColor);
+        Assert.Null(rectangle.FillColor);
+        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
+        using PowerPointPresentation target = conversion.Value;
+        Assert.Null(target.Slides[0].GetBackground().Color);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "masters-layouts" &&
+            mapping.Status == OdfConversionMappingStatus.Approximated);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "shape-appearance" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+        Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointPresentationResult(
+            new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void SolidChildMasterDoesNotInheritInactiveGradientMetadata() {
+        OdpPresentation source = OdpPresentation.Create();
+        source.AddSlide();
+        source.MasterPages[0].BackgroundColor = OdfColor.Parse("#336699");
+        XNamespace office = "urn:oasis:names:tc:opendocument:xmlns:office:1.0";
+        XNamespace style = "urn:oasis:names:tc:opendocument:xmlns:style:1.0";
+        XNamespace draw = "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0";
+        XDocument styles = source.Package.GetXml("styles.xml");
+        styles.Root!.Element(office + "styles")!.Add(new XElement(style + "style",
+            new XAttribute(style + "name", "ParentGradient"),
+            new XAttribute(style + "family", "drawing-page"),
+            new XElement(style + "drawing-page-properties",
+                new XAttribute(draw + "fill", "gradient"),
+                new XAttribute(draw + "fill-gradient-name", "UnusedGradient"))));
+        XElement child = styles.Descendants(style + "style").Single(item =>
+            (string?)item.Attribute(style + "family") == "drawing-page" &&
+            (string?)item.Attribute(style + "name") != "ParentGradient");
+        child.SetAttributeValue(style + "parent-style-name", "ParentGradient");
+        source.Package.MarkXmlDirty("styles.xml");
+
+        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
+        using PowerPointPresentation target = conversion.Value;
+        Assert.Equal("336699", target.Slides[0].GetBackground().Color);
+        Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "masters-layouts");
+    }
+
     [Fact]
     public void EmptyMasterAndLayoutDoNotTriggerStrictLoss() {
         using PowerPointPresentation powerPoint = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
