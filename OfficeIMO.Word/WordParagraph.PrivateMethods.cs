@@ -130,6 +130,17 @@ namespace OfficeIMO.Word {
             string[] splitStrings = { Environment.NewLine, "\r\n", "\n" };
             string[] textSplit = text.Split(splitStrings, StringSplitOptions.RemoveEmptyEntries);
             var list = new List<string>();
+            if (textSplit.Length == 0) {
+                // Newline-only input still represents one or more breaks. Without an
+                // entry here, AddText returns no run and callers cannot format it.
+                for (int index = 0; index < text.Length; index++) {
+                    if (text[index] == '\r' && index + 1 < text.Length && text[index + 1] == '\n') {
+                        index++;
+                    }
+                    list.Add("");
+                }
+                return list;
+            }
             for (int i = 0; i < textSplit.Length; i++) {
                 // check if there's new line at the beginning of the text
                 // if there is add empty string to the list
@@ -161,7 +172,7 @@ namespace OfficeIMO.Word {
             return list;
         }
 
-        private WordParagraph ConvertToTextWithBreaks(string text) {
+        private WordParagraph ConvertToTextWithBreaks(string text, Action<WordParagraph>? format = null) {
             string[] splitStrings = { Environment.NewLine, "\r\n", "\n" };
 
             WordParagraph? wordParagraph = null;
@@ -179,11 +190,13 @@ namespace OfficeIMO.Word {
                         wordParagraph.Text = line;
                         this._paragraph.Append(wordParagraph._run!);
                     }
+                    format?.Invoke(wordParagraph);
                 }
             } else {
                 wordParagraph = new WordParagraph(this._document, this._paragraph, new Run(), Parent);
                 wordParagraph.Text = text;
                 this._paragraph.Append(wordParagraph._run!);
+                format?.Invoke(wordParagraph);
             }
 
             return wordParagraph!;

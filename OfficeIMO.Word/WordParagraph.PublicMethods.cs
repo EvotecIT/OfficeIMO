@@ -38,17 +38,11 @@ namespace OfficeIMO.Word {
         /// <param name="underline">Optional underline style.</param>
         /// <returns>The run containing the formatted text.</returns>
         public WordParagraph AddFormattedText(string text, bool bold = false, bool italic = false, WordUnderlineStyle? underline = null) {
-            var run = AddText(text);
-            if (bold) {
-                run.SetBold();
-            }
-            if (italic) {
-                run.SetItalic();
-            }
-            if (underline != null) {
-                run.SetUnderline(underline.Value);
-            }
-            return run;
+            return ConvertToTextWithBreaks(text, run => {
+                if (bold) run.SetBold();
+                if (italic) run.SetItalic();
+                if (underline != null) run.SetUnderline(underline.Value);
+            });
         }
     }
 }

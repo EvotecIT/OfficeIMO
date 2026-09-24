@@ -21,13 +21,14 @@ namespace OfficeIMO.Word {
         /// <param name="breakType">Optional argument to add a specific type of break.</param>
         /// <returns>The new WordParagraph that this method creates.</returns>
         public WordParagraph AddBreak(WordBreakType? breakType = null) {
-            WordParagraph wordParagraph = new WordParagraph(this._document, this._paragraph, new Run(), Parent);
+            Run run;
             if (breakType != null) {
-                this._paragraph.Append(new Run(new Break() { Type = breakType.Value.ToOpenXml() }));
+                run = new Run(new Break() { Type = breakType.Value.ToOpenXml() });
             } else {
-                this._paragraph.Append(new Run(new Break()));
+                run = new Run(new Break());
             }
-            return wordParagraph;
+            this._paragraph.Append(run);
+            return new WordParagraph(this._document, this._paragraph, run, Parent);
         }
 
         /// <summary>
