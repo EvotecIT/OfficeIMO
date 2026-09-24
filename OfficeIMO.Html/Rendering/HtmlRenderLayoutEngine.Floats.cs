@@ -571,7 +571,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             decorationColor: segment.Run.Style.DecorationColor,
                             featureSettings: segment.Run.Style.TextFeatureSettings,
                             fontPalette: segment.Run.Style.FontPalette,
-                            layoutHeight: textLineHeight));
+                            layoutHeight: textLineHeight,
+                            fontDescriptor: segment.Run.Style.FontDescriptor));
                     }
                     HtmlRenderVisual textVisual = paintSegments.Count > 1 || segment.BidiResolved ||
                         !string.Equals(segment.Text, segment.LogicalText, StringComparison.Ordinal) ||
@@ -682,7 +683,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 textAdvanceWidth: Math.Max(0.01D, count * unitWidth),
                 textPaintWidth: Math.Max(0.01D, count * unitWidth),
                 featureSettings: run.Style.TextFeatureSettings,
-                fontPalette: run.Style.FontPalette);
+                fontPalette: run.Style.FontPalette,
+                fontDescriptor: run.Style.FontDescriptor);
         }
 
         return new HtmlRenderSemanticGroup(

@@ -372,7 +372,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             semanticNodeId: null,
                             textAdvanceWidth: null,
                             featureSettings: entry.MarkerStyle.TextFeatureSettings,
-                            fontPalette: entry.MarkerStyle.FontPalette));
+                            fontPalette: entry.MarkerStyle.FontPalette,
+                            fontDescriptor: entry.MarkerStyle.FontDescriptor));
                     }
                 } else {
                     children.Add(new HtmlRenderText(
@@ -393,7 +394,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         semanticNodeId: null,
                         textAdvanceWidth: null,
                         featureSettings: entry.MarkerStyle.TextFeatureSettings,
-                        fontPalette: entry.MarkerStyle.FontPalette));
+                        fontPalette: entry.MarkerStyle.FontPalette,
+                        fontDescriptor: entry.MarkerStyle.FontDescriptor));
                 }
             }
             foreach (HtmlRenderVisual visual in body) {

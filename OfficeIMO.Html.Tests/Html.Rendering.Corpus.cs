@@ -207,6 +207,24 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void PositionedTextRetainsRequestedNumericFaceAcrossInlineAndControlText() {
+        const string html = "<style>body{font-weight:300}h1{font-weight:100}"
+            + "input::placeholder{font-style:italic}</style>"
+            + "<h1>Light heading</h1><p>Light body</p>"
+            + "<input placeholder='Light prompt'>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
+            new HtmlRenderOptions { ViewportWidth = 640D });
+        HtmlRenderText[] text = rendered.Pages.SelectMany(page => EnumerateCorpusVisuals(page.Scene))
+            .OfType<HtmlRenderText>().ToArray();
+
+        Assert.Equal(100, Assert.Single(text, item => item.Text == "Light heading").FontDescriptor.Weight);
+        Assert.Equal(300, Assert.Single(text, item => item.Text == "Light body").FontDescriptor.Weight);
+        HtmlRenderText prompt = Assert.Single(text, item => item.Text == "Light prompt");
+        Assert.Equal(300, prompt.FontDescriptor.Weight);
+        Assert.Equal(OfficeFontSlant.Italic, prompt.FontDescriptor.Slant);
+    }
+
+    [Fact]
     public void HtmlRenderingRepresentativeCorpus_CoversEveryPublishedMarketScenario() {
         Assert.Equal(
             HtmlMarketScenarioCatalog.All.Select(item => item.Id),

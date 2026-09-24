@@ -106,7 +106,36 @@ internal sealed partial class HtmlRenderLayoutEngine {
             objectVisuals.Add(new HtmlRenderShape(placeholder, imageX + placement.X, imageY + placement.Y, objectVisuals.Count, link, sourceDescription));
             if (!string.IsNullOrWhiteSpace(alternativeText)) {
                 double textHeight = Math.Min(placement.Height, style.LineHeight);
-                objectVisuals.Add(new HtmlRenderText(CollapseImageAlternativeText(alternativeText!), imageX + placement.X + 4D, imageY + placement.Y + 4D, Math.Max(1D, placement.Width - 8D), Math.Max(1D, textHeight), style.Font, style.Color, OfficeTextAlignment.Left, style.LineHeight, objectVisuals.Count, link, sourceDescription, "figure-alternative-text", null, null, null, false, null, null, style.UnderlineStyle, style.StrikethroughStyle, style.Baseline, style.BaselineLevel, style.BaselineScale, style.BaselineOffset, decorationColor: style.DecorationColor, featureSettings: style.TextFeatureSettings, fontPalette: style.FontPalette));
+                objectVisuals.Add(new HtmlRenderText(
+                    CollapseImageAlternativeText(alternativeText!),
+                    imageX + placement.X + 4D,
+                    imageY + placement.Y + 4D,
+                    Math.Max(1D, placement.Width - 8D),
+                    Math.Max(1D, textHeight),
+                    style.Font,
+                    style.Color,
+                    OfficeTextAlignment.Left,
+                    style.LineHeight,
+                    objectVisuals.Count,
+                    link,
+                    sourceDescription,
+                    "figure-alternative-text",
+                    null,
+                    null,
+                    null,
+                    false,
+                    null,
+                    null,
+                    style.UnderlineStyle,
+                    style.StrikethroughStyle,
+                    style.Baseline,
+                    style.BaselineLevel,
+                    style.BaselineScale,
+                    style.BaselineOffset,
+                    decorationColor: style.DecorationColor,
+                    featureSettings: style.TextFeatureSettings,
+                    fontPalette: style.FontPalette,
+                    fontDescriptor: style.FontDescriptor));
             }
         }
         HtmlResolvedBorderRadii outerRadii = ResolveBoxRadii(style, boxWidth, boxHeight, element, sourceDescription);

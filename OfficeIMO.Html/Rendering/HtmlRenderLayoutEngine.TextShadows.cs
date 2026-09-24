@@ -157,7 +157,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             decorationColor: color,
             featureSettings: text.FeatureSettings,
             fontPalette: text.FontPalette,
-            layoutHeight: text.LayoutHeight);
+            layoutHeight: text.LayoutHeight,
+            fontDescriptor: text.FontDescriptor);
 
     private static string TextShadowSource(string source, int index, int count) =>
         count == 1

@@ -305,7 +305,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             baseline: style.Baseline,
             decorationColor: style.DecorationColor,
             featureSettings: style.TextFeatureSettings,
-            fontPalette: style.FontPalette));
+            fontPalette: style.FontPalette,
+            fontDescriptor: style.FontDescriptor));
     }
 
     private void AddMultilineControlText(
@@ -351,7 +352,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 baseline: style.Baseline,
                 decorationColor: style.DecorationColor,
                 featureSettings: style.TextFeatureSettings,
-                fontPalette: style.FontPalette));
+                fontPalette: style.FontPalette,
+                fontDescriptor: style.FontDescriptor));
         }
     }
 
