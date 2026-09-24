@@ -18,7 +18,7 @@ public sealed class PdfStandardEncryptionOptions {
         UserPassword = userPassword;
     }
 
-    /// <summary>Password required to open the generated PDF.</summary>
+    /// <summary>Password required to open the generated PDF. AES-256 accepts at most 4096 UTF-16 characters before normalization.</summary>
     public string UserPassword {
         get => _userPassword;
         set {
@@ -27,7 +27,7 @@ public sealed class PdfStandardEncryptionOptions {
         }
     }
 
-    /// <summary>Optional owner password. When omitted, the user password is reused as the owner password.</summary>
+    /// <summary>Optional owner password. When omitted, the user password is reused. AES-256 accepts at most 4096 UTF-16 characters before normalization.</summary>
     public string? OwnerPassword {
         get => _ownerPassword;
         set {

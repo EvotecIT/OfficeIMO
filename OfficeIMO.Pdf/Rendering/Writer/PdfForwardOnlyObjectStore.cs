@@ -97,24 +97,15 @@ internal sealed class PdfForwardOnlyObjectStore : IPdfObjectStore {
         var fileId = new byte[16];
         Buffer.BlockCopy(fullHash, 0, fileId, 0, fileId.Length);
 
-        long xrefPosition = _written;
-        var trailer = new System.Text.StringBuilder();
-        trailer.Append("xref\n0 ").Append((Count + 1).ToString(CultureInfo.InvariantCulture)).Append('\n');
-        trailer.Append("0000000000 65535 f \n");
+        var offsets = new List<long>(_offsets.Count + 1) { 0L };
         for (int index = 0; index < _offsets.Count; index++) {
-            trailer.Append(_offsets[index].ToString("0000000000", CultureInfo.InvariantCulture)).Append(" 00000 n \n");
+            _cancellationToken.ThrowIfCancellationRequested();
+            offsets.Add(_offsets[index]);
         }
-
-        string idEntry = string.IsNullOrWhiteSpace(trailerIdEntry)
-            ? " /ID [" + PdfSyntaxEscaper.HexString(fileId) + " " + PdfSyntaxEscaper.HexString(fileId) + "]"
-            : trailerIdEntry!;
-        trailer.Append("trailer\n<< /Size ").Append((Count + 1).ToString(CultureInfo.InvariantCulture))
-            .Append(" /Root ").Append(PdfSyntaxEscaper.IndirectReference(catalogId))
-            .Append(infoId > 0 ? " /Info " + PdfSyntaxEscaper.IndirectReference(infoId) : string.Empty)
-            .Append(idEntry).Append(" >>\n")
-            .Append("startxref\n").Append(xrefPosition.ToString(CultureInfo.InvariantCulture)).Append("\n%%EOF\n");
-        byte[] trailerBytes = System.Text.Encoding.ASCII.GetBytes(trailer.ToString());
-        _destination.Write(trailerBytes, 0, trailerBytes.Length);
+        byte[] trailerBytes = PdfFileAssembler.BuildTrailerBytes(
+            offsets, catalogId, infoId, _written, encryptionAssembly: null, fileId,
+            trailerIdEntry, permanentFileId: null, _cancellationToken);
+        PdfFileAssembler.WriteBytesCancellable(_destination, trailerBytes, _cancellationToken);
         _written += trailerBytes.LongLength;
         _completed = true;
         return _written;
@@ -150,9 +141,7 @@ internal sealed class PdfForwardOnlyObjectStore : IPdfObjectStore {
 
     private void WriteSegment(byte[] bytes) {
         _cancellationToken.ThrowIfCancellationRequested();
-        _fileIdHash.TransformBlock(bytes, 0, bytes.Length, bytes, 0);
-        _destination.Write(bytes, 0, bytes.Length);
-        _cancellationToken.ThrowIfCancellationRequested();
+        PdfFileAssembler.WriteBytesCancellable(_destination, bytes, _cancellationToken, _fileIdHash);
         _written += bytes.LongLength;
     }
 

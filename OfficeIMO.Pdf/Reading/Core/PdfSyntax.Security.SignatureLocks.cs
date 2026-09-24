@@ -1,20 +1,24 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfSyntax {
     private static PdfSignatureFieldLockInfo? ReadSignatureFieldLockInfo(
         Dictionary<int, PdfIndirectObject> objects,
-        PdfDictionary signatureField) {
+        PdfDictionary signatureField,
+        CancellationToken cancellationToken) {
         if (!signatureField.Items.TryGetValue("Lock", out PdfObject? lockObject) ||
             ResolveObject(objects, lockObject) is not PdfDictionary lockDictionary) {
             return null;
         }
 
-        return ReadFieldLockTransformParameters(objects, lockDictionary);
+        return ReadFieldLockTransformParameters(objects, lockDictionary, cancellationToken);
     }
 
     private static PdfSignatureFieldLockInfo? ReadSignatureFieldMdpInfo(
         Dictionary<int, PdfIndirectObject> objects,
-        PdfDictionary signature) {
+        PdfDictionary signature,
+        CancellationToken cancellationToken) {
         if (!signature.Items.TryGetValue("Reference", out PdfObject? referenceObject)) {
             return null;
         }
@@ -25,6 +29,7 @@ internal static partial class PdfSyntax {
 
         PdfSignatureFieldLockInfo? fieldLock = null;
         for (int i = 0; i < references.Items.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (ResolveObject(objects, references.Items[i]) is not PdfDictionary reference) {
                 return CreateFailClosedFieldLock();
             }
@@ -44,7 +49,7 @@ internal static partial class PdfSyntax {
                 return CreateFailClosedFieldLock();
             }
 
-            fieldLock = ReadFieldLockTransformParameters(objects, transformParams);
+            fieldLock = ReadFieldLockTransformParameters(objects, transformParams, cancellationToken);
         }
 
         return fieldLock;
@@ -52,7 +57,8 @@ internal static partial class PdfSyntax {
 
     private static PdfSignatureFieldLockInfo ReadFieldLockTransformParameters(
         Dictionary<int, PdfIndirectObject> objects,
-        PdfDictionary transformParameters) {
+        PdfDictionary transformParameters,
+        CancellationToken cancellationToken) {
         string? action = TryReadName(objects, transformParameters, "Action");
         if (!string.Equals(action, "All", StringComparison.Ordinal) &&
             !string.Equals(action, "Include", StringComparison.Ordinal) &&
@@ -62,7 +68,7 @@ internal static partial class PdfSyntax {
 
         IReadOnlyList<string> fields = Array.Empty<string>();
         if (!string.Equals(action, "All", StringComparison.Ordinal) &&
-            !TryReadFieldLockNames(objects, transformParameters, out fields)) {
+            !TryReadFieldLockNames(objects, transformParameters, out fields, cancellationToken)) {
             return CreateFailClosedFieldLock();
         }
 
@@ -72,7 +78,8 @@ internal static partial class PdfSyntax {
     private static bool TryReadFieldLockNames(
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary transformParameters,
-        out IReadOnlyList<string> fields) {
+        out IReadOnlyList<string> fields,
+        CancellationToken cancellationToken) {
         fields = Array.Empty<string>();
         if (!transformParameters.Items.TryGetValue("Fields", out PdfObject? fieldsObject) ||
             ResolveObject(objects, fieldsObject) is not PdfArray fieldsArray ||
@@ -81,13 +88,15 @@ internal static partial class PdfSyntax {
         }
 
         var values = new List<string>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
         for (int i = 0; i < fieldsArray.Items.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             string? field = ReadNameOrText(objects, fieldsArray.Items[i]);
             if (string.IsNullOrEmpty(field)) {
                 return false;
             }
 
-            if (!values.Contains(field!)) {
+            if (seen.Add(field!)) {
                 values.Add(field!);
             }
         }

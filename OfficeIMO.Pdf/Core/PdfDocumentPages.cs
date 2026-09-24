@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>
@@ -18,6 +20,24 @@ public sealed partial class PdfDocumentPages {
         byte[] input = _document.GetBytesForOperation();
         byte[] output = PdfPageExtractor.ExtractPages(input, pageNumbers, _document.ReadOptions, _document.GetOpenedReadDocumentFactory());
         return AdoptExtractedOutput(input, output, pageNumbers.Length, _document.ReadOptions);
+    }
+
+    /// <summary>Creates a new PDF containing selected pages in caller order with cooperative cancellation.</summary>
+    public PdfDocument Extract(CancellationToken cancellationToken, params int[] pageNumbers) {
+        Guard.NotNull(pageNumbers, nameof(pageNumbers));
+        cancellationToken.ThrowIfCancellationRequested();
+        byte[] input = _document.GetBytesForOperation(cancellationToken);
+        byte[] output = PdfPageExtractor.ExtractPages(
+            input,
+            pageNumbers,
+            _document.ReadOptions,
+            _document.GetOpenedReadDocumentFactory(cancellationToken),
+            cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        PdfDocument extracted = AdoptExtractedOutput(input, output, pageNumbers.Length, _document.ReadOptions,
+            cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        return extracted;
     }
 
     /// <summary>Extracts pages with a byte budget enforced during the first canonical serialization.</summary>
@@ -209,16 +229,19 @@ public sealed partial class PdfDocumentPages {
         byte[] input,
         byte[] output,
         int outputPageCount,
-        PdfLoadOptions? options) {
+        PdfLoadOptions? options,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         PdfArtifactSnapshot inputArtifact = _document.Pipeline.Output ??
-            PdfArtifactSnapshot.Capture(input, _document.ReadOptions);
+            PdfArtifactSnapshot.Capture(input, _document.ReadOptions, cancellationToken);
         return _document.WithCanonicalBytesKnownPageCount(
             input,
             inputArtifact,
             output,
             outputPageCount,
             options,
-            "Extract");
+            "Extract",
+            cancellationToken);
     }
 
     /// <summary>

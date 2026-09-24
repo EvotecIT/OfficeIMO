@@ -25,6 +25,7 @@
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <LangVersion>Latest</LangVersion>
     <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net472'">true</AllowUnsafeBlocks>
     <AnalysisLevel>latest-recommended</AnalysisLevel>
     <WarningsAsErrors>nullable</WarningsAsErrors>
   </PropertyGroup>

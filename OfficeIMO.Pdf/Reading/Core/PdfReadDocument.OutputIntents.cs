@@ -9,7 +9,8 @@ public sealed partial class PdfReadDocument {
     /// <summary>True when every entry in the catalog /OutputIntents array resolved to a dictionary typed as /OutputIntent.</summary>
     public bool OutputIntentsAreComplete => ReadLogicalContent(_outputIntentsAreComplete);
 
-    private IReadOnlyList<PdfOutputIntentInfo> ExtractOutputIntents(out bool isComplete) {
+    private IReadOnlyList<PdfOutputIntentInfo> ExtractOutputIntents(out bool isComplete, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         isComplete = true;
         PdfDictionary? catalog = FindCatalog();
         if (catalog is null || !catalog.Items.TryGetValue("OutputIntents", out PdfObject? outputIntentsObject)) {
@@ -23,6 +24,7 @@ public sealed partial class PdfReadDocument {
 
         var result = new List<PdfOutputIntentInfo>();
         for (int i = 0; i < outputIntentsArray.Items.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfObject item = outputIntentsArray.Items[i];
             int? objectNumber = item is PdfReference reference ? reference.ObjectNumber : null;
             PdfDictionary? outputIntent = ResolveDict(item);
@@ -57,7 +59,7 @@ public sealed partial class PdfReadDocument {
                 profileObjectNumber,
                 profileStream is null ? null : TryReadStreamColorComponents(profileStream),
                 profileStream is null ? null : TryReadStreamAlternateColorSpace(profileStream),
-                profileStream is null ? null : TryReadStreamFilter(profileStream),
+                profileStream is null ? null : TryReadStreamFilter(profileStream, cancellationToken),
                 profileStream != null,
                 metadataFactory));
         }
@@ -103,9 +105,9 @@ public sealed partial class PdfReadDocument {
         return TryReadName(stream.Dictionary, "Alternate");
     }
 
-    private string? TryReadStreamFilter(PdfStream stream) {
+    private string? TryReadStreamFilter(PdfStream stream, System.Threading.CancellationToken cancellationToken) {
         if (!stream.Dictionary.Items.TryGetValue("Filter", out PdfObject? value) ||
-            !TryFormatSimpleValue(value, out string? filter)) {
+            !TryFormatSimpleValue(value, out string? filter, cancellationToken)) {
             return null;
         }
 

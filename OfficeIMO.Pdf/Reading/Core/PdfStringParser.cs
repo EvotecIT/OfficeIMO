@@ -5,7 +5,9 @@ internal static class PdfStringParser {
     public static byte[] ParseLiteralToBytes(string inner) =>
         ParseLiteralToBytes(inner, 0, inner.Length);
 
-    internal static byte[] ParseLiteralToBytes(string source, int start, int length) {
+    internal static byte[] ParseLiteralToBytes(string source, int start, int length,
+        System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (length == 0) return Array.Empty<byte>();
         if (start < 0 || length < 0 || start > source.Length - length) throw new ArgumentOutOfRangeException(nameof(start));
 
@@ -15,6 +17,7 @@ internal static class PdfStringParser {
         int count = 0;
         int end = start + length;
         for (int i = start; i < end; i++) {
+            if (((i - start) & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             char c = source[i];
             if (c == '\\') {
                 if (i + 1 >= end) break;
@@ -52,9 +55,17 @@ internal static class PdfStringParser {
             }
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         if (count == bytes.Length) return bytes;
-        Array.Resize(ref bytes, count);
-        return bytes;
+        var result = new byte[count];
+        for (int offset = 0; offset < count;) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int chunkLength = Math.Min(64 * 1024, count - offset);
+            Buffer.BlockCopy(bytes, offset, result, offset, chunkLength);
+            offset += chunkLength;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return result;
     }
 
     private static bool IsOctalDigit(char c) => c >= '0' && c <= '7';

@@ -15,7 +15,10 @@ public sealed class PdfLoadOptions {
     /// <summary>Resource budgets for object scanning and raw stream allocation.</summary>
     public PdfReadLimits Limits { get; init; } = new PdfReadLimits();
 
-    /// <summary>Password used to open encrypted PDFs. The same value is tried as user and owner password for Standard security handler files.</summary>
+    /// <summary>
+    /// Password used to open encrypted PDFs. The same value is tried as user and owner password for Standard security handler files.
+    /// For Standard security revisions 5 and 6, passwords longer than 4096 UTF-16 characters are rejected before normalization.
+    /// </summary>
     public string? Password { get; init; }
 
     /// <summary>
