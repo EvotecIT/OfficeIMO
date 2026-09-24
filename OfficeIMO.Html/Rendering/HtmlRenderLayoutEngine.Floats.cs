@@ -113,7 +113,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 } else {
                     line = CreateFloatLine(context, ref y, paragraphStyle.LineHeight);
                 }
-                previousWasCollapsibleSpace = false;
+                if (!sharesCurrentLine) previousWasCollapsibleSpace = false;
                 continue;
             }
             bool runPreventsWrapping = !paragraphStyle.PreventTextWrapping && run.Style.PreventTextWrapping;

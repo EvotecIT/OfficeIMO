@@ -78,6 +78,23 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(floating.Y >= heading.Y + 9.999D);
     }
 
+    [Theory]
+    [InlineData("left")]
+    [InlineData("right")]
+    public void HtmlFloatFollowingText_CollapsesWhitespaceAcrossTheSharedLine(string side) {
+        string html = "<p style='width:200px;margin:0;font-size:10px;line-height:10px'>"
+            + "Lead <span style='float:" + side + ";width:20px;height:20px'></span> tail</p>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 200D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        HtmlRenderText[] text = rendered.Pages[0].Visuals.OfType<HtmlRenderText>()
+            .OrderBy(fragment => fragment.X).ToArray();
+
+        Assert.All(text, fragment => Assert.Equal(text[0].Y, fragment.Y, 3));
+        Assert.Equal("Lead tail", string.Concat(text.Select(fragment => fragment.Text)));
+    }
+
     [Fact]
     public void HtmlFloatRight_WrapsTextAgainstRightEdge() {
         const string html = "<p style='width:100px;margin:0;font-size:10px;line-height:10px;direction:rtl'>"
