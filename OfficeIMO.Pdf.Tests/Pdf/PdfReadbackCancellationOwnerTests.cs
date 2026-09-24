@@ -8,6 +8,33 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public class PdfReadbackCancellationOwnerTests {
+    [Fact]
+    public void FreeTextStyleAndAppearanceKeepValuesThroughCancellableScans() {
+        using var cancellation = new CancellationTokenSource();
+        string style = new string('x', 100_000) + ";font-size:12px;color:rgb(255,0,0);text-align:right";
+        PdfFreeTextDefaultStyle parsed = PdfFreeTextStyleParser.ParseDefaultStyle(style, cancellation.Token);
+        Assert.Equal(12D, parsed.FontSize);
+        Assert.Equal(PdfAlign.Right, parsed.TextAlign);
+        Assert.Equal(new PdfColor(1D, 0D, 0D), parsed.TextColor);
+
+        string appearance = new string('x', 100_000) + " /F1 13 Tf 1 0 0 rg";
+        Assert.True(PdfDefaultAppearanceParser.TryReadFontSize(appearance, out double fontSize, cancellation.Token));
+        Assert.Equal(13D, fontSize);
+        Assert.True(PdfDefaultAppearanceParser.TryReadTextColor(appearance, out PdfColor color, cancellation.Token));
+        Assert.Equal(new PdfColor(1D, 0D, 0D), color);
+    }
+
+    [Fact]
+    public void ReadbackUriAndOptionalContentChecksStayBounded() {
+        using var cancellation = new CancellationTokenSource();
+        Assert.True(Guard.IsUriAction("https://example.test/path", cancellation.Token));
+        Assert.False(Guard.IsUriAction(new string('a', 66_000), cancellation.Token));
+        Assert.True(Guard.IsNullOrWhiteSpaceCancellable(new string(' ', 100_000), cancellation.Token));
+        cancellation.Cancel();
+        Assert.ThrowsAny<OperationCanceledException>(() => Guard.IsUriAction("https://example.test", cancellation.Token));
+        Assert.ThrowsAny<OperationCanceledException>(() => Guard.IsNullOrWhiteSpaceCancellable(" ", cancellation.Token));
+    }
+
     [Theory]
     [InlineData("A &amp; B &#x1F600;", "A & B \uD83D\uDE00")]
     [InlineData("&unknown; &copy; &amp", "&unknown; \u00A9 &amp")]

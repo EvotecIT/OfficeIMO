@@ -50,7 +50,7 @@ public sealed partial class PdfReadDocument {
             }
 
             string? name = TryReadText(group, "Name");
-            if (string.IsNullOrWhiteSpace(name)) {
+            if (Guard.IsNullOrWhiteSpaceCancellable(name, cancellationToken)) {
                 continue;
             }
 

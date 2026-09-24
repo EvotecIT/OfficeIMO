@@ -24,6 +24,13 @@ incomplete syntax, even when a caller raises `PdfReadLimits.MaxObjectCharacters`
 If a trusted source emits such tokens, shorten or repair them before reading;
 raising the object-character budget does not raise this numeric-token limit.
 
+## PDF link URI inspection length
+
+PDF link inspection now omits URI actions longer than 65,519 characters. This
+keeps URI validation bounded when a caller raises the PDF object-character
+limit. Shorten or repair an oversized URI in the source PDF if your application
+needs it in link metadata. PDF link authoring is unchanged.
+
 ## PDF image input budget
 
 PDF image-file pages and image stamps now limit each encoded image source to

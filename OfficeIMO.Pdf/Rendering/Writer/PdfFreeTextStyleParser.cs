@@ -74,53 +74,91 @@ internal static class PdfFreeTextStyleParser {
     private static readonly char[] DeclarationSeparators = { ';' };
     private static readonly char[] RgbSeparators = { ',' };
 
-    public static PdfFreeTextDefaultStyle ParseDefaultStyle(string? defaultStyle) {
-        if (string.IsNullOrWhiteSpace(defaultStyle)) {
+    public static PdfFreeTextDefaultStyle ParseDefaultStyle(string? defaultStyle, CancellationToken cancellationToken = default) {
+        if (Guard.IsNullOrWhiteSpaceCancellable(defaultStyle, cancellationToken)) {
             return new PdfFreeTextDefaultStyle(null, null, null);
         }
 
         double? fontSize = null;
         PdfColor? textColor = null;
         PdfAlign? textAlign = null;
-        string[] declarations = defaultStyle!.Split(DeclarationSeparators, StringSplitOptions.RemoveEmptyEntries);
-        for (int i = 0; i < declarations.Length; i++) {
-            string declaration = declarations[i];
-            int separator = declaration.IndexOf(':');
-            if (separator <= 0 || separator >= declaration.Length - 1) {
-                continue;
+        for (int start = 0; start < defaultStyle!.Length;) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int end = start;
+            int separator = -1;
+            while (end < defaultStyle.Length && defaultStyle[end] != ';') {
+                if ((end & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                if (separator < 0 && defaultStyle[end] == ':') separator = end;
+                end++;
             }
-
-            string property = declaration.Substring(0, separator).Trim();
-            string value = declaration.Substring(separator + 1).Trim();
-            if (property.Length == 0 || value.Length == 0) {
-                continue;
+            if (separator > start && separator < end - 1) {
+                int propertyStart = start;
+                int propertyEnd = separator;
+                int valueStart = separator + 1;
+                int valueEnd = end;
+                TrimCssRange(defaultStyle, ref propertyStart, ref propertyEnd, cancellationToken);
+                TrimCssRange(defaultStyle, ref valueStart, ref valueEnd, cancellationToken);
+                if (propertyEnd > propertyStart && valueEnd > valueStart) {
+                    int propertyLength = propertyEnd - propertyStart;
+                    if ((MatchesCssProperty(defaultStyle, propertyStart, propertyLength, "font-size") ||
+                         MatchesCssProperty(defaultStyle, propertyStart, propertyLength, "font")) &&
+                        TryReadCssFontSizeCancellable(defaultStyle, valueStart, valueEnd, cancellationToken, out double parsedFontSize)) {
+                        fontSize = parsedFontSize;
+                    } else if (valueEnd - valueStart <= 4096) {
+                        string value = PdfEncoding.StringSliceCancellable(defaultStyle, valueStart, valueEnd - valueStart, cancellationToken);
+                        if (MatchesCssProperty(defaultStyle, propertyStart, propertyLength, "color") &&
+                            TryReadCssColor(value, out PdfColor parsedColor)) {
+                            textColor = parsedColor;
+                        } else if (MatchesCssProperty(defaultStyle, propertyStart, propertyLength, "text-align") &&
+                                   TryReadCssTextAlign(value, out PdfAlign parsedAlign)) {
+                            textAlign = parsedAlign;
+                        }
+                    }
+                }
             }
-
-            if (string.Equals(property, "font-size", StringComparison.OrdinalIgnoreCase) &&
-                TryReadCssFontSize(value, out double parsedFontSize)) {
-                fontSize = parsedFontSize;
-                continue;
-            }
-
-            if (string.Equals(property, "font", StringComparison.OrdinalIgnoreCase) &&
-                TryReadCssFontSize(value, out parsedFontSize)) {
-                fontSize = parsedFontSize;
-                continue;
-            }
-
-            if (string.Equals(property, "color", StringComparison.OrdinalIgnoreCase) &&
-                TryReadCssColor(value, out PdfColor parsedColor)) {
-                textColor = parsedColor;
-                continue;
-            }
-
-            if (string.Equals(property, "text-align", StringComparison.OrdinalIgnoreCase) &&
-                TryReadCssTextAlign(value, out PdfAlign parsedAlign)) {
-                textAlign = parsedAlign;
-            }
+            if (end == defaultStyle.Length) break;
+            start = end + 1;
         }
 
         return new PdfFreeTextDefaultStyle(fontSize, textColor, textAlign);
+    }
+
+    private static void TrimCssRange(string source, ref int start, ref int end, CancellationToken cancellationToken) {
+        while (start < end && char.IsWhiteSpace(source[start])) {
+            if ((start & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            start++;
+        }
+        while (end > start && char.IsWhiteSpace(source[end - 1])) {
+            if ((end & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            end--;
+        }
+    }
+
+    private static bool MatchesCssProperty(string source, int start, int length, string property) =>
+        length == property.Length && string.Compare(source, start, property, 0, length, StringComparison.OrdinalIgnoreCase) == 0;
+
+    private static bool TryReadCssFontSizeCancellable(string source, int start, int end, CancellationToken cancellationToken, out double fontSize) {
+        fontSize = 0D;
+        for (int index = start; index < end; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (!char.IsDigit(source[index]) && source[index] != '.') continue;
+            int numberStart = index;
+            index++;
+            while (index < end && (char.IsDigit(source[index]) || source[index] == '.')) {
+                if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                index++;
+            }
+            int numberLength = index - numberStart;
+            if (numberLength <= 4096) {
+                string number = PdfEncoding.StringSliceCancellable(source, numberStart, numberLength, cancellationToken);
+                if (double.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed) &&
+                    parsed > 0D && !double.IsNaN(parsed) && !double.IsInfinity(parsed)) {
+                    fontSize = parsed;
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     public static string? ExtractPlainText(string? richContents, CancellationToken cancellationToken = default) {
