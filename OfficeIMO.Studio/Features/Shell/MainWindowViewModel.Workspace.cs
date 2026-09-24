@@ -476,7 +476,7 @@ public sealed partial class MainWindowViewModel {
         if (_workspace is null) return;
         int nextId = 0;
         IReadOnlyList<PdfOutlineItem> roots = _workspace.DocumentInfo?.Outlines ?? [];
-        for (int index = 0; index < roots.Count; index++) AddBookmark(roots[index], parentId: null, index, editable: true, ref nextId);
+        AddBookmarks(roots, parentId: null, editable: true, ref nextId);
         // Keep the selection across edits without jumping the reader to its page.
         _restoringBookmarkSelection = true;
         try { SelectedBookmark = selectedId is null ? null : Bookmarks.FirstOrDefault(bookmark => bookmark.Id == selectedId); }
@@ -486,11 +486,15 @@ public sealed partial class MainWindowViewModel {
     }
 
     // Mirrors the engine edit session, which numbers resolvable entries depth-first and drops unresolved subtrees.
-    private void AddBookmark(PdfOutlineItem item, string? parentId, int index, bool editable, ref int nextId) {
-        bool resolved = editable && item.PageNumber.HasValue;
-        string? id = resolved ? "bookmark-" + (++nextId).ToString(System.Globalization.CultureInfo.InvariantCulture) : null;
-        Bookmarks.Add(new PdfBookmarkViewModel(item.Title, item.Level, item.PageNumber, id, parentId, index));
-        for (int child = 0; child < item.Children.Count; child++) AddBookmark(item.Children[child], id, child, resolved, ref nextId);
+    private void AddBookmarks(IReadOnlyList<PdfOutlineItem> items, string? parentId, bool editable, ref int nextId) {
+        int editableIndex = 0;
+        foreach (PdfOutlineItem item in items) {
+            bool resolved = editable && item.PageNumber.HasValue;
+            string? id = resolved ? "bookmark-" + (++nextId).ToString(System.Globalization.CultureInfo.InvariantCulture) : null;
+            Bookmarks.Add(new PdfBookmarkViewModel(item.Title, item.Level, item.PageNumber, id, parentId,
+                resolved ? editableIndex++ : -1));
+            AddBookmarks(item.Children, id, resolved, ref nextId);
+        }
     }
 
     private void NavigateToPage(int pageNumber) {

@@ -125,6 +125,9 @@ public sealed partial class MainWindowViewModel {
         AddAttachmentCommand.NotifyCanExecuteChanged();
         CheckComplianceCommand.NotifyCanExecuteChanged();
         ApplyHeaderFooterCommand.NotifyCanExecuteChanged();
+        ExportDocumentCommand.NotifyCanExecuteChanged();
+        ConvertDocumentCommand.NotifyCanExecuteChanged();
+        ImportFormDataCommand.NotifyCanExecuteChanged();
         NotifyBookmarkActions();
         NotifyAttachmentActions();
     }
@@ -412,7 +415,7 @@ public sealed partial class MainWindowViewModel {
         if (IsDirty) OperationStatus = UiText("Export.SavedCopyOnly");
     }
 
-    private bool CanImportFormData() => CanFillForms && FormFields.Count > 0 && !IsWorkspaceBusy;
+    private bool CanImportFormData() => _workspace?.CanFillForms == true && FormFields.Any(field => field.CanFill) && !IsWorkspaceBusy;
 
     [RelayCommand(CanExecute = nameof(CanImportFormData))]
     private async Task ImportFormDataAsync(CancellationToken cancellationToken) {

@@ -8,6 +8,32 @@ namespace OfficeIMO.Studio.Tests;
 
 public sealed partial class PdfWorkspaceTests {
     [Fact]
+    public async Task ImageExportKeepsExistingFilesAndUsesOneNewBatchName() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-image-export-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string source = Path.Combine(root, "image.pdf");
+        string output = Path.Combine(root, "images");
+        Directory.CreateDirectory(output);
+        PdfDocument baseDocument = PdfDocument.Create(compose => compose.Page(page => page.Size(600D, 800D)));
+        baseDocument.Images.Add(new PdfPageRegion(1, 50D, 60D, 40D, 20D), TinyPng).Document.Save(source);
+        string occupied = Path.Combine(output, "image-p1-1.png");
+        byte[] sentinel = [1, 2, 3, 4];
+        File.WriteAllBytes(occupied, sentinel);
+        try {
+            using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None);
+            Assert.Equal(1, await workspace.ExportDocumentAsync(PdfExportKind.Images, output, CancellationToken.None));
+            Assert.Equal(sentinel, File.ReadAllBytes(occupied));
+            string[] first = Directory.GetFiles(output);
+            Assert.Equal(2, first.Length);
+            Assert.Contains(first, path => path != occupied && File.ReadAllBytes(path).Length > sentinel.Length);
+
+            Assert.Equal(1, await workspace.ExportDocumentAsync(PdfExportKind.Images, output, CancellationToken.None));
+            Assert.Equal(sentinel, File.ReadAllBytes(occupied));
+            Assert.Equal(3, Directory.GetFiles(output).Length);
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
     public async Task ExistingTextSelectionSupportsReplaceMoveDeleteAndDocumentWideReplace() {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-existing-text-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);

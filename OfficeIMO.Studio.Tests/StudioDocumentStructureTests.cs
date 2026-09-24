@@ -9,6 +9,79 @@ namespace OfficeIMO.Studio.Tests;
 
 public sealed class StudioDocumentStructureTests {
     [Fact]
+    public async Task OpeningDocumentRefreshesExportAndConvertCommandState() {
+        string root = CreateRoot();
+        string path = CreateDocument(root);
+        try {
+            using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
+            int exportChanges = 0;
+            int convertChanges = 0;
+            model.ExportDocumentCommand.CanExecuteChanged += (_, _) => exportChanges++;
+            model.ConvertDocumentCommand.CanExecuteChanged += (_, _) => convertChanges++;
+            Assert.False(model.ExportDocumentCommand.CanExecute("Text"));
+            Assert.False(model.ConvertDocumentCommand.CanExecute("docx"));
+
+            await model.OpenDocumentAsync(path);
+
+            Assert.True(exportChanges > 0);
+            Assert.True(convertChanges > 0);
+            Assert.True(model.ExportDocumentCommand.CanExecute("Text"));
+            Assert.True(model.ConvertDocumentCommand.CanExecute("docx"));
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
+    public async Task FormImportRemainsAvailableWhenSelectedFieldIsReadOnly() {
+        string root = CreateRoot();
+        string path = Path.Combine(root, "forms.pdf");
+        File.WriteAllBytes(path, PdfDocument.Create(compose => compose.Page(page => page.Size(300, 400))).Forms.Edit(edit => edit
+            .Create(new() { Name = "Account.Fixed", Value = "Locked", X = 30, Y = 300,
+                Style = new() { IsReadOnly = true } })
+            .Create(new() { Name = "Account.Code", Value = "", X = 30, Y = 240 })).ToBytes());
+        try {
+            using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
+            int importChanges = 0;
+            model.ImportFormDataCommand.CanExecuteChanged += (_, _) => importChanges++;
+            await model.OpenDocumentAsync(path);
+            model.SelectedFormField = model.FormFields.Single(field => field.Name == "Account.Fixed");
+
+            Assert.True(importChanges > 0);
+            Assert.False(model.CanFillForms);
+            Assert.True(model.ImportFormDataCommand.CanExecute(null));
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
+    public async Task BrokenOutlineDoesNotShiftEditableBookmarkPositions() {
+        string root = CreateRoot();
+        string path = Path.Combine(root, "outlines.pdf");
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /Outlines 5 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj",
+            "5 0 obj", "<< /Type /Outlines /First 6 0 R /Last 8 0 R /Count 3 >>", "endobj",
+            "6 0 obj", "<< /Title (Broken) /Parent 5 0 R /Dest [99 0 R /Fit] /Next 7 0 R >>", "endobj",
+            "7 0 obj", "<< /Title (First) /Parent 5 0 R /Dest [3 0 R /Fit] /Prev 6 0 R /Next 8 0 R >>", "endobj",
+            "8 0 obj", "<< /Title (Second) /Parent 5 0 R /Dest [3 0 R /Fit] /Prev 7 0 R >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 9 >>", "%%EOF"
+        }) + "\n";
+        File.WriteAllText(path, pdf, System.Text.Encoding.ASCII);
+        try {
+            using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
+            await model.OpenDocumentAsync(path);
+            Assert.Equal(3, model.Bookmarks.Count);
+            Assert.False(model.Bookmarks[0].IsEditable);
+            Assert.Equal(0, model.Bookmarks[1].Index);
+            Assert.Equal(1, model.Bookmarks[2].Index);
+
+            Assert.Equal(["First", "Second"], model.Bookmarks.Where(bookmark => bookmark.IsEditable)
+                .Select(bookmark => bookmark.Title));
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
     public async Task PropertiesBookmarksAndAttachmentsAreRecordedAsUndoableEdits() {
         string root = CreateRoot();
         string path = CreateDocument(root);
