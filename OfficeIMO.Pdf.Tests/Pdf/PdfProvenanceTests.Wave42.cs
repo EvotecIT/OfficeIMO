@@ -12,6 +12,7 @@ public sealed partial class PdfProvenanceTests {
         var source = new PdfReadLimits {
             MaxRetainedContentBytes = 123,
             MaxTextSearchMatches = 17,
+            MaxTextSearchFlowComparisons = 23,
             MaxWidgetActions = 7
         };
 
@@ -19,6 +20,7 @@ public sealed partial class PdfProvenanceTests {
 
         Assert.Equal(123, effective.MaxRetainedContentBytes);
         Assert.Equal(17, effective.MaxTextSearchMatches);
+        Assert.Equal(23, effective.MaxTextSearchFlowComparisons);
         Assert.Equal(7, effective.MaxWidgetActions);
     }
 

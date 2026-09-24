@@ -153,5 +153,8 @@ public enum PdfReadLimitKind {
     RenderDiagnostics = 49,
 
     /// <summary>Diagnostics retained while inspecting PDF fonts.</summary>
-    FontInspectionDiagnostics = 50
+    FontInspectionDiagnostics = 50,
+
+    /// <summary>Geometric line-pair comparisons while grouping text-search flows on one page.</summary>
+    TextSearchFlowComparisons = 51
 }

@@ -25,7 +25,7 @@ internal static partial class PdfTextEditor {
                 .ToArray();
             List<TextLayoutEngine.TextLine> lines = BuildSearchLines(spans);
             var pageHits = new List<(int LineOrder, int Offset, TextSearchHit Hit)>();
-            foreach (int[] flow in BuildSearchFlows(lines)) {
+            foreach (int[] flow in BuildSearchFlows(lines, limits.MaxTextSearchFlowComparisons)) {
                 PdfTextSpan[][] flowLines = flow.Select(lineIndex => lines[lineIndex].Spans.ToArray()).ToArray();
                 var unit = new TextSearchUnit(flowLines);
                 if (unit.Text.Length == 0) continue;
@@ -71,8 +71,9 @@ internal static partial class PdfTextEditor {
     /// it within a line-spacing distance; links are kept only when both lines choose each other, which keeps independent
     /// columns and side-by-side regions apart. Every line belongs to exactly one returned flow, listed in reading order.
     /// </summary>
-    internal static List<int[]> BuildSearchFlows(List<TextLayoutEngine.TextLine> lines) {
+    internal static List<int[]> BuildSearchFlows(List<TextLayoutEngine.TextLine> lines, int maxComparisons = PdfReadLimits.DefaultMaxTextSearchFlowComparisons) {
         int count = lines.Count;
+        long comparisons = 0;
         var geometry = new SearchLineGeometry[count];
         for (int index = 0; index < count; index++) geometry[index] = SearchLineGeometry.Create(lines[index]);
         int[] next = Enumerable.Repeat(-1, count).ToArray();
@@ -92,6 +93,9 @@ internal static partial class PdfTextEditor {
                     int lower = ordered[lowerOrdinal];
                     double distance = geometry[upper].Normal - geometry[lower].Normal;
                     if (distance > maximumFontSize * 2D) break;
+                    if (++comparisons > maxComparisons) {
+                        throw PdfReadLimitException.Create(PdfReadLimitKind.TextSearchFlowComparisons, maxComparisons, comparisons);
+                    }
                     double fontSize = Math.Max(geometry[upper].FontSize, geometry[lower].FontSize);
                     if (distance < fontSize * 0.6D || distance > fontSize * 2D) continue;
                     double overlap = Math.Min(geometry[upper].End, geometry[lower].End) - Math.Max(geometry[upper].Start, geometry[lower].Start);

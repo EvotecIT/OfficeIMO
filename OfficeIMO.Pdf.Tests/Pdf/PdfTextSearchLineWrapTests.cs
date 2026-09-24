@@ -9,6 +9,24 @@ public sealed class PdfTextSearchLineWrapTests {
         "BT /F1 12 Tf 50 700 Td (The quick brown needle) Tj 0 -14 Td (marker appears here) Tj ET\n";
 
     [Fact]
+    public void DenseLineFragmentsStopAtTheConfiguredFlowComparisonBudget() {
+        byte[] pdf = BuildRawTextPdf(
+            "BT /F1 12 Tf 50 700 Td (alpha) Tj ET\n" +
+            "BT /F1 12 Tf 250 700 Td (beta) Tj ET\n" +
+            "BT /F1 12 Tf 450 700 Td (gamma) Tj ET\n");
+        var options = new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxTextSearchFlowComparisons = 1 }
+        };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfDocument.Load(pdf).Text.Find("alpha", readOptions: options));
+
+        Assert.Equal(PdfReadLimitKind.TextSearchFlowComparisons, exception.Kind);
+        Assert.Equal(1, exception.Limit);
+        Assert.Equal(2, exception.Actual);
+    }
+
+    [Fact]
     public void PhraseWrappedAcrossLinesIsOneHitWithBoundsForEachLine() {
         PdfDocument document = PdfDocument.Load(BuildRawTextPdf(WrappedContent));
         PdfTextMatch needle = Assert.Single(document.Text.Find("needle"));
