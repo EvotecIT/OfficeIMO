@@ -181,7 +181,7 @@ public abstract partial class OdfDocument {
     }
 
     internal void MarkPartDirty(string partPath) {
-        Package.MarkXmlDirty(partPath);
+        Package.MarkXmlDirtyFromDocument(partPath);
     }
 
     internal void AddDiagnostic(OdfDiagnostic diagnostic) {

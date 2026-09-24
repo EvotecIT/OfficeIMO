@@ -80,6 +80,7 @@ public sealed partial class OdtDocument {
         region.Element(OdfNamespaces.Text + "deletion")!.Add(new XElement(source));
         GetTrackedChangesContainer(create: true)!.Add(region);
         source.ReplaceWith(new XElement(OdfNamespaces.Text + "change", new XAttribute(OdfNamespaces.Text + "change-id", id)));
+        RefreshNoteIndexAfterMutation();
         MarkPartDirty("content.xml");
         return new OdtTrackedChange(this, region);
     }
@@ -91,6 +92,7 @@ public sealed partial class OdtDocument {
         if (change.Kind == OdtTrackedChangeKind.Insertion) RemoveInsertionMarkers(id, removeContent: false);
         else RemoveDeletionMarker(id);
         change.Region.Remove();
+        RefreshNoteIndexAfterMutation();
         RemoveEmptyTrackedChangesContainer();
         MarkPartDirty("content.xml");
         return true;
@@ -113,6 +115,7 @@ public sealed partial class OdtDocument {
             }
         }
         change.Region.Remove();
+        RefreshNoteIndexAfterMutation();
         RemoveEmptyTrackedChangesContainer();
         MarkPartDirty("content.xml");
         return true;

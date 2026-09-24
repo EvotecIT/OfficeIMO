@@ -6,6 +6,55 @@ namespace OfficeIMO.Word.OpenDocument;
 
 public static partial class WordOpenDocumentConversionExtensions {
     private sealed class NoteMappingStats {
+        internal NoteMappingStats(WordDocument? source = null) {
+            WordSource = source;
+            W.Body? body = source?.OpenXmlDocument.MainDocumentPart?.Document?.Body;
+            if (body != null) {
+                foreach (W.Run run in body.Descendants<W.Run>()) {
+                    foreach (W.FootnoteReference reference in run.Elements<W.FootnoteReference>()) {
+                        if (reference.Id != null) AddAnchor(FootnoteAnchors, reference.Id.Value, run);
+                    }
+                    foreach (W.EndnoteReference reference in run.Elements<W.EndnoteReference>()) {
+                        if (reference.Id != null) AddAnchor(EndnoteAnchors, reference.Id.Value, run);
+                    }
+                }
+            }
+            if (source != null) {
+                foreach (W.Footnote note in source.OpenXmlDocument.MainDocumentPart?.FootnotesPart?.Footnotes?
+                    .Elements<W.Footnote>() ?? Enumerable.Empty<W.Footnote>()) {
+                    if (note.Id != null && !FootnoteBodies.ContainsKey(note.Id.Value)) FootnoteBodies.Add(note.Id.Value, note);
+                }
+                foreach (W.Endnote note in source.OpenXmlDocument.MainDocumentPart?.EndnotesPart?.Endnotes?
+                    .Elements<W.Endnote>() ?? Enumerable.Empty<W.Endnote>()) {
+                    if (note.Id != null && !EndnoteBodies.ContainsKey(note.Id.Value)) EndnoteBodies.Add(note.Id.Value, note);
+                }
+            }
+        }
+
+        private static void AddAnchor(Dictionary<long, List<W.Run>> index, long id, W.Run run) {
+            if (!index.TryGetValue(id, out List<W.Run>? anchors)) index.Add(id, anchors = new List<W.Run>());
+            anchors.Add(run);
+        }
+
+        internal IReadOnlyList<W.Run> Anchors(OdtNoteKind kind, long? id) {
+            if (!id.HasValue) return Array.Empty<W.Run>();
+            Dictionary<long, List<W.Run>> index = kind == OdtNoteKind.Footnote ? FootnoteAnchors : EndnoteAnchors;
+            return index.TryGetValue(id.Value, out List<W.Run>? runs) ? runs : Array.Empty<W.Run>();
+        }
+
+        internal DocumentFormat.OpenXml.OpenXmlElement? Body(OdtNoteKind kind, long? id) {
+            if (!id.HasValue) return null;
+            Dictionary<long, DocumentFormat.OpenXml.OpenXmlElement> index = kind == OdtNoteKind.Footnote
+                ? FootnoteBodies : EndnoteBodies;
+            return index.TryGetValue(id.Value, out DocumentFormat.OpenXml.OpenXmlElement? note) ? note : null;
+        }
+
+        private readonly Dictionary<long, List<W.Run>> FootnoteAnchors = new Dictionary<long, List<W.Run>>();
+        private readonly Dictionary<long, List<W.Run>> EndnoteAnchors = new Dictionary<long, List<W.Run>>();
+        private readonly Dictionary<long, DocumentFormat.OpenXml.OpenXmlElement> FootnoteBodies =
+            new Dictionary<long, DocumentFormat.OpenXml.OpenXmlElement>();
+        private readonly Dictionary<long, DocumentFormat.OpenXml.OpenXmlElement> EndnoteBodies =
+            new Dictionary<long, DocumentFormat.OpenXml.OpenXmlElement>();
         internal int SeenWordFootnotes;
         internal int SeenWordEndnotes;
         internal int SeenOdtNotes;
@@ -33,31 +82,50 @@ public static partial class WordOpenDocumentConversionExtensions {
             notes.SeenWordFootnotes++;
             CopyWordNote(run.Footnote.Paragraphs, run.Footnote.ReferenceId, OdtNoteKind.Footnote, target, notes);
             if (HasAmbiguousWordNotePosition(run)) notes.ApproximatedReferencePositions++;
-            if (HasCustomWordNoteMark(notes.WordSource, run.Footnote.ReferenceId, OdtNoteKind.Footnote))
+            if (HasCustomWordNoteMark(notes, run.Footnote.ReferenceId, OdtNoteKind.Footnote))
                 notes.ApproximatedCitations++;
+            if (HasStyledWordNoteAnchor(notes, run.Footnote.ReferenceId, OdtNoteKind.Footnote))
+                notes.ApproximatedReferenceFormatting++;
         }
         if (run.Endnote != null) {
             notes.SeenWordEndnotes++;
             CopyWordNote(run.Endnote.Paragraphs, run.Endnote.ReferenceId, OdtNoteKind.Endnote, target, notes);
             if (HasAmbiguousWordNotePosition(run)) notes.ApproximatedReferencePositions++;
-            if (HasCustomWordNoteMark(notes.WordSource, run.Endnote.ReferenceId, OdtNoteKind.Endnote))
+            if (HasCustomWordNoteMark(notes, run.Endnote.ReferenceId, OdtNoteKind.Endnote))
                 notes.ApproximatedCitations++;
+            if (HasStyledWordNoteAnchor(notes, run.Endnote.ReferenceId, OdtNoteKind.Endnote))
+                notes.ApproximatedReferenceFormatting++;
         }
     }
 
-    private static bool HasCustomWordNoteMark(WordDocument? source, long? referenceId, OdtNoteKind kind) {
-        if (source == null || !referenceId.HasValue) return false;
-        W.Body? body = source.OpenXmlDocument.MainDocumentPart?.Document?.Body;
+    private static bool HasCustomWordNoteMark(NoteMappingStats notes, long? referenceId, OdtNoteKind kind) {
+        IReadOnlyList<W.Run> runs = notes.Anchors(kind, referenceId);
         return kind == OdtNoteKind.Footnote
-            ? body?.Descendants<W.FootnoteReference>().Any(reference =>
-                reference.Id?.Value == referenceId.Value && reference.CustomMarkFollows?.Value == true) == true
-            : body?.Descendants<W.EndnoteReference>().Any(reference =>
-                reference.Id?.Value == referenceId.Value && reference.CustomMarkFollows?.Value == true) == true;
+            ? runs.Any(run => run.Elements<W.FootnoteReference>().Any(reference =>
+                reference.Id?.Value == referenceId && reference.CustomMarkFollows?.Value == true))
+            : runs.Any(run => run.Elements<W.EndnoteReference>().Any(reference =>
+                reference.Id?.Value == referenceId && reference.CustomMarkFollows?.Value == true));
+    }
+
+    private static bool HasStyledWordNoteAnchor(NoteMappingStats notes, long? referenceId, OdtNoteKind kind) {
+        string defaultStyle = kind == OdtNoteKind.Footnote ? "FootnoteReference" : "EndnoteReference";
+        return notes.Anchors(kind, referenceId).Any(run =>
+            run.RunProperties?.ChildElements.Any(child =>
+                child is not W.RunStyle style || style.Val?.Value != defaultStyle) == true);
     }
 
     private static bool HasAmbiguousWordNotePosition(WordRunSnapshot run) =>
         run.Text.Length > 0 || run.PositionedImages.Count > 0 || run.NonTextBreaks?.Count > 0 ||
         (run.Footnote != null && run.Endnote != null);
+
+    private static bool HasOdtParagraphNoteReferenceFormatting(OdtParagraph paragraph) =>
+        paragraph.Bold.HasValue || paragraph.Italic.HasValue || paragraph.Underline.HasValue ||
+        paragraph.StrikeThrough.HasValue || paragraph.SmallCaps.HasValue ||
+        paragraph.FontSize.HasValue || paragraph.TextPosition.HasValue ||
+        paragraph.TextTransform.HasValue || paragraph.Color.HasValue ||
+        paragraph.TextBackgroundColor.HasValue || paragraph.FontFamily != null ||
+        paragraph.UnderlineStyle.HasValue || paragraph.UnderlineType.HasValue ||
+        paragraph.LineThroughStyle.HasValue || paragraph.LineThroughType.HasValue;
 
     private static void CopyWordNote(IReadOnlyList<WordParagraphSnapshot> paragraphs, long? referenceId, OdtNoteKind kind,
         OdtParagraph target, NoteMappingStats notes) {
@@ -70,12 +138,11 @@ public static partial class WordOpenDocumentConversionExtensions {
             : target.AddEndnote(paragraphs[0].Text);
         for (int index = 1; index < paragraphs.Count; index++) result.AddParagraph(paragraphs[index].Text);
         if (paragraphs.Any(paragraph => HasNonPlainWordNoteContent(paragraph, kind)) ||
-            notes.WordSource != null && HasNonDefaultWordNoteReferenceMark(notes.WordSource, referenceId, kind))
+            HasNonDefaultWordNoteReferenceMark(notes, referenceId, kind))
             notes.ApproximatedBodies++;
         bool unsupportedInline = paragraphs.Any(paragraph => paragraph.Runs.Any(run =>
             run.InlineImage != null || run.Footnote != null || run.Endnote != null));
-        bool unsupportedBlock = notes.WordSource != null &&
-            HasUnsupportedWordNoteBlocks(notes.WordSource, referenceId, kind);
+        bool unsupportedBlock = HasUnsupportedWordNoteBlocks(notes, referenceId, kind);
         if (unsupportedInline || unsupportedBlock) notes.UnsupportedBodyContent++;
         if (kind == OdtNoteKind.Footnote) {
             notes.ConvertedFootnotes++;
@@ -89,23 +156,13 @@ public static partial class WordOpenDocumentConversionExtensions {
     private static void Increment(Dictionary<int, int> counts, int key) =>
         counts[key] = counts.TryGetValue(key, out int count) ? count + 1 : 1;
 
-    private static bool HasUnsupportedWordNoteBlocks(WordDocument source, long? referenceId, OdtNoteKind kind) {
-        if (!referenceId.HasValue) return false;
-        DocumentFormat.OpenXml.OpenXmlElement? note = kind == OdtNoteKind.Footnote
-            ? source.OpenXmlDocument.MainDocumentPart?.FootnotesPart?.Footnotes?
-                .Elements<W.Footnote>().FirstOrDefault(item => item.Id?.Value == referenceId.Value)
-            : source.OpenXmlDocument.MainDocumentPart?.EndnotesPart?.Endnotes?
-                .Elements<W.Endnote>().FirstOrDefault(item => item.Id?.Value == referenceId.Value);
+    private static bool HasUnsupportedWordNoteBlocks(NoteMappingStats notes, long? referenceId, OdtNoteKind kind) {
+        DocumentFormat.OpenXml.OpenXmlElement? note = notes.Body(kind, referenceId);
         return note != null && note.ChildElements.Any(child => child is not W.Paragraph);
     }
 
-    private static bool HasNonDefaultWordNoteReferenceMark(WordDocument source, long? referenceId, OdtNoteKind kind) {
-        if (!referenceId.HasValue) return false;
-        DocumentFormat.OpenXml.OpenXmlElement? note = kind == OdtNoteKind.Footnote
-            ? source.OpenXmlDocument.MainDocumentPart?.FootnotesPart?.Footnotes?
-                .Elements<W.Footnote>().FirstOrDefault(item => item.Id?.Value == referenceId.Value)
-            : source.OpenXmlDocument.MainDocumentPart?.EndnotesPart?.Endnotes?
-                .Elements<W.Endnote>().FirstOrDefault(item => item.Id?.Value == referenceId.Value);
+    private static bool HasNonDefaultWordNoteReferenceMark(NoteMappingStats notes, long? referenceId, OdtNoteKind kind) {
+        DocumentFormat.OpenXml.OpenXmlElement? note = notes.Body(kind, referenceId);
         string defaultStyle = kind == OdtNoteKind.Footnote ? "FootnoteReference" : "EndnoteReference";
         return note?.Descendants<W.Run>().Any(run =>
             run.ChildElements.Any(child => kind == OdtNoteKind.Footnote
@@ -329,7 +386,7 @@ public static partial class WordOpenDocumentConversionExtensions {
             notes.ApproximatedReferencePositions,
             "A Word run contained a note reference with text, another note, a break, or an image; relative inline order may have changed.");
         if (notes.ApproximatedReferenceFormatting > 0) report.Add("note-reference-formatting", OdfConversionMappingStatus.Approximated,
-            notes.ApproximatedReferenceFormatting, "A styled or linked ODT note reference was replaced by Word's default note reference.");
+            notes.ApproximatedReferenceFormatting, "Direct or inherited note-reference formatting was replaced by the destination's default note reference.");
         if (notes.ApproximatedCitations > 0) report.Add("note-citations", OdfConversionMappingStatus.Approximated,
             notes.ApproximatedCitations, "Custom Word or ODT note marks were replaced with automatic numbering.");
         if (notes.ApproximatedSeparators > 0) report.Add("note-separators", OdfConversionMappingStatus.Approximated,

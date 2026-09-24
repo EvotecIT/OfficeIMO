@@ -52,6 +52,56 @@ public sealed class WordOdtNotesConversionTests {
     }
 
     [Fact]
+    public void StyledWordNoteAnchorIsExplicitLoss() {
+        using WordDocument source = WordDocument.Create();
+        source.AddParagraph("Anchor").AddFootNote("Body");
+        W.Run anchor = source.OpenXmlDocument.MainDocumentPart!.Document!.Body!
+            .Descendants<W.Run>().Single(run => run.GetFirstChild<W.FootnoteReference>() != null);
+        anchor.RunProperties ??= new W.RunProperties();
+        anchor.RunProperties.Append(new W.Color { Val = "AA0000" });
+        Assert.Empty(source.ValidateDocument());
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-reference-formatting" &&
+            mapping.Status == OdfConversionMappingStatus.Approximated);
+        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void InheritedOdtNoteReferenceFormattingIsExplicitLoss() {
+        OdtDocument source = OdtDocument.Create();
+        OdtParagraph paragraph = source.AddParagraph("Anchor");
+        paragraph.Bold = true;
+        paragraph.AddFootnote("Body");
+
+        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        using WordDocument word = conversion.Value;
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-reference-formatting" &&
+            mapping.Status == OdfConversionMappingStatus.Approximated);
+        Assert.Throws<OdfConversionLossException>(() => source.ToWordDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void NestedOdtSpanKeepsOuterNoteReferenceStyleLoss() {
+        OdtDocument source = OdtDocument.Create();
+        source.AddParagraph("Anchor").AddFootnote("Body");
+        XNamespace text = "urn:oasis:names:tc:opendocument:xmlns:text:1.0";
+        XElement note = source.Package.GetXml("content.xml").Descendants(text + "note").Single();
+        note.ReplaceWith(new XElement(text + "span", new XAttribute(text + "style-name", "OuterStyle"),
+            new XElement(text + "span", note)));
+        source.Package.MarkXmlDirty("content.xml");
+
+        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        using WordDocument word = conversion.Value;
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-reference-formatting" &&
+            mapping.Status == OdfConversionMappingStatus.Approximated);
+        Assert.Throws<OdfConversionLossException>(() => source.ToWordDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
     public void WordCustomMarkAndCustomizedSeparatorAreExplicitLoss() {
         using WordDocument source = WordDocument.Create();
         source.AddParagraph("Anchor").AddFootNote("Body");

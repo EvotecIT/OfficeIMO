@@ -23,7 +23,7 @@ public static partial class WordOpenDocumentConversionExtensions {
 
         int paragraphs = 0, headings = 0, lists = 0, tables = 0, hyperlinks = 0, images = 0, unsupportedImages = 0, bookmarks = 0;
         int nestedListLevels = 0;
-        var notes = new NoteMappingStats { WordSource = source };
+        var notes = new NoteMappingStats(source);
         var imageValidationBudget = new OdfImageValidationBudget();
         IReadOnlyList<WordParagraphSnapshot> sourceParagraphs = EnumerateParagraphs(snapshot).ToList();
         IReadOnlyList<WordParagraphSnapshot> convertedHeaderFooterParagraphs = effective.IncludeHeadersAndFooters && snapshot.Sections.Count > 0
@@ -358,7 +358,8 @@ public static partial class WordOpenDocumentConversionExtensions {
                     break;
                 case OdtInlineNodeKind.Note:
                     if (allowNotes) {
-                        if (leaf.Span?.StyleName != null || leaf.StyleLink != null || leaf.TargetLink != null)
+                        if (leaf.Span?.StyleName != null || leaf.StyleLink != null || leaf.TargetLink != null ||
+                            HasOdtParagraphNoteReferenceFormatting(source))
                             notes.ApproximatedReferenceFormatting++;
                         CopyOdtNote(node.Note!, target, notes);
                     }
@@ -379,8 +380,9 @@ public static partial class WordOpenDocumentConversionExtensions {
         OdtHyperlink? styleLink = null, OdtHyperlink? targetLink = null) {
         foreach (OdtInlineNode node in nodes) {
             if (node.Kind == OdtInlineNodeKind.Span) {
-                if (node.Children.Count == 0) yield return new OdtInlineLeaf(node, node.Span, null, targetLink);
-                else foreach (OdtInlineLeaf child in FlattenOdtInlineNodes(node.Children, node.Span, null, targetLink))
+                OdtSpan? styledSpan = node.Span?.StyleName != null ? node.Span : span;
+                if (node.Children.Count == 0) yield return new OdtInlineLeaf(node, styledSpan, null, targetLink);
+                else foreach (OdtInlineLeaf child in FlattenOdtInlineNodes(node.Children, styledSpan, null, targetLink))
                     yield return child;
             } else if (node.Kind == OdtInlineNodeKind.Hyperlink) {
                 if (node.Children.Count == 0) yield return new OdtInlineLeaf(node, null, node.Hyperlink, node.Hyperlink);

@@ -50,6 +50,60 @@ public sealed class OpenDocumentOdtNotesTests {
     }
 
     [Fact]
+    public void ConfiguredNumberingRejectsNewNotesWithoutChangingExistingCitations() {
+        OdtDocument source = OdtDocument.Create();
+        OdtParagraph anchor = source.AddParagraph("Anchor");
+        anchor.AddFootnote("Existing");
+        var office = (System.Xml.Linq.XNamespace)"urn:oasis:names:tc:opendocument:xmlns:office:1.0";
+        var text = (System.Xml.Linq.XNamespace)"urn:oasis:names:tc:opendocument:xmlns:text:1.0";
+        source.Package.GetXml("styles.xml").Root!.Element(office + "styles")!.Add(
+            new System.Xml.Linq.XElement(text + "notes-configuration",
+                new System.Xml.Linq.XAttribute(text + "note-class", "footnote"),
+                new System.Xml.Linq.XAttribute(text + "start-value", "5")));
+        source.Package.MarkXmlDirty("styles.xml");
+        byte[] before = source.ToBytes();
+
+        Assert.Throws<NotSupportedException>(() => anchor.AddFootnote("New"));
+        Assert.Equal(before, source.ToBytes());
+        Assert.Equal("1", Assert.Single(anchor.Notes).Citation);
+        anchor.AddEndnote("An unrelated note kind");
+    }
+
+    [Fact]
+    public void ManyAppendedNotesAndEarlierInsertionKeepPackageOrder() {
+        OdtDocument source = OdtDocument.Create();
+        OdtParagraph first = source.AddParagraph("First");
+        for (int index = 0; index < 300; index++)
+            source.AddParagraph("Anchor " + index).AddFootnote("Note " + index);
+        first.AddFootnote("Inserted first");
+
+        OdtDocument reopened = OdtDocument.Load(new MemoryStream(source.ToBytes()));
+        string[] citations = reopened.Paragraphs.SelectMany(paragraph => paragraph.Notes)
+            .Select(note => note.Citation).ToArray();
+        Assert.Equal(301, citations.Length);
+        Assert.Equal(Enumerable.Range(1, 301).Select(number => number.ToString()).ToArray(), citations);
+        Assert.Equal(301, reopened.Paragraphs.SelectMany(paragraph => paragraph.Notes)
+            .Select(note => note.Id).Distinct().Count());
+    }
+
+    [Fact]
+    public void ReplacingParagraphTextRebuildsNoteOrdinals() {
+        OdtDocument source = OdtDocument.Create();
+        OdtParagraph first = source.AddParagraph("First");
+        OdtParagraph second = source.AddParagraph("Second");
+        OdtParagraph third = source.AddParagraph("Third");
+        first.AddFootnote("Removed");
+        second.AddFootnote("Kept");
+
+        first.Text = "Replaced";
+        third.AddFootnote("Appended");
+
+        OdtDocument reopened = OdtDocument.Load(new MemoryStream(source.ToBytes()));
+        Assert.Equal(new[] { "1", "2" }, reopened.Paragraphs.SelectMany(paragraph => paragraph.Notes)
+            .Select(note => note.Citation));
+    }
+
+    [Fact]
     public void NoteBodyInlineCollectionsBelongToNoteParagraphOnly() {
         OdtDocument source = OdtDocument.Create();
         OdtParagraph anchor = source.AddParagraph("Anchor");

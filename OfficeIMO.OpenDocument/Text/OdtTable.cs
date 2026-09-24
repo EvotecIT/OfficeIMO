@@ -179,11 +179,13 @@ public sealed class OdtTableCell {
         set {
             if (IsCovered) throw new InvalidOperationException("Covered table cells cannot contain text.");
             EnsureMaterialized();
+            bool hadNotes = _element.Descendants(OdfNamespaces.Text + "note").Any();
             _element.RemoveNodes();
             var paragraph = new XElement(OdfNamespaces.Text + "p");
             OdfTextCodec.Append(paragraph, value);
             _element.Add(paragraph);
             _element.SetAttributeValue(OdfNamespaces.Office + "value-type", "string");
+            if (hadNotes) _document.RefreshNoteIndexAfterMutation();
             Dirty();
         }
     }
@@ -215,9 +217,11 @@ public sealed class OdtTableCell {
 
     internal void ReplaceWithCoveredCell() {
         EnsureMaterialized();
+        bool hadNotes = _element.Descendants(OdfNamespaces.Text + "note").Any();
         var covered = new XElement(OdfNamespaces.Table + "covered-table-cell");
         _element.ReplaceWith(covered);
         _element = covered;
+        if (hadNotes) _document.RefreshNoteIndexAfterMutation();
         Dirty();
     }
 

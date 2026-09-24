@@ -32,7 +32,9 @@ public sealed class OdtParagraph {
     public string Text {
         get => OdfTextCodec.Read(_element);
         set {
+            bool hadNotes = _element.Descendants(OdfNamespaces.Text + "note").Any();
             OdfTextCodec.Replace(_element, value);
+            if (hadNotes) _document.RefreshNoteIndexAfterMutation();
             Dirty();
         }
     }
@@ -325,48 +327,7 @@ public sealed class OdtParagraph {
     /// <summary>Appends a native endnote at the current inline position.</summary>
     public OdtNote AddEndnote(string text) => AddNote(OdtNoteKind.Endnote, text);
 
-    private OdtNote AddNote(OdtNoteKind kind, string text) {
-        if (text == null) throw new ArgumentNullException(nameof(text));
-        string prefix = kind == OdtNoteKind.Footnote ? "ftn" : "endn";
-        string noteClass = kind == OdtNoteKind.Footnote ? "footnote" : "endnote";
-        XElement[] existing = GetNotesInPackageOrder().ToArray();
-        XElement[] existingKind = existing.Where(note =>
-            (string?)note.Attribute(OdfNamespaces.Text + "note-class") == noteClass).ToArray();
-        var generatedCitations = new HashSet<XElement>();
-        for (int index = 0; index < existingKind.Length; index++) {
-            if (existingKind[index].Element(OdfNamespaces.Text + "note-citation")?.Attribute(OdfNamespaces.Text + "label") == null &&
-                existingKind[index].Element(OdfNamespaces.Text + "note-citation")?.Value ==
-                (index + 1).ToString(CultureInfo.InvariantCulture)) generatedCitations.Add(existingKind[index]);
-        }
-        int idNumber = existingKind.Length + 1;
-        string id;
-        do { id = prefix + idNumber++.ToString(CultureInfo.InvariantCulture); }
-        while (existing.Any(note => (string?)note.Attribute(OdfNamespaces.Text + "id") == id));
-        OdtNote result = OdtNote.Create(_document, kind, id, "0", text, _partPath);
-        _element.Add(result.Element);
-        XDocument? stylesDocument = _document.Package.ContainsEntry("styles.xml")
-            ? _document.GetXml("styles.xml") : null;
-        bool changedStyles = false;
-        int ordinal = 0;
-        foreach (XElement note in GetNotesInPackageOrder().Where(note =>
-            (string?)note.Attribute(OdfNamespaces.Text + "note-class") == noteClass)) {
-            ordinal++;
-            if (note == result.Element || generatedCitations.Contains(note)) {
-                note.Element(OdfNamespaces.Text + "note-citation")!.Value = ordinal.ToString(CultureInfo.InvariantCulture);
-                if (note.Document == stylesDocument) changedStyles = true;
-            }
-        }
-        if (changedStyles) _document.MarkPartDirty("styles.xml");
-        Dirty();
-        return result;
-    }
-
-    private IEnumerable<XElement> GetNotesInPackageOrder() {
-        foreach (XElement note in _document.GetXml("content.xml").Descendants(OdfNamespaces.Text + "note")) yield return note;
-        if (_document.Package.ContainsEntry("styles.xml")) {
-            foreach (XElement note in _document.GetXml("styles.xml").Descendants(OdfNamespaces.Text + "note")) yield return note;
-        }
-    }
+    private OdtNote AddNote(OdtNoteKind kind, string text) => _document.AddNote(_element, _partPath, kind, text);
 
     /// <summary>Appends an inline or paragraph-anchored image.</summary>
     public OdtImage AddImage(byte[] data, string fileName, OdfLength width, OdfLength height,
