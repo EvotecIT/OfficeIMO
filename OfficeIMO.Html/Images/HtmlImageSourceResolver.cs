@@ -64,7 +64,7 @@ public static partial class HtmlImageSourceResolver {
         bool selectedPictureSource = false;
         IElement? picture = element.ParentElement;
         if (picture != null && picture.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase)) {
-            double mediaWidth = options.Mode == HtmlRenderMode.Paged ? options.PageWidth : options.ViewportWidth;
+            double mediaWidth = options.CssMediaWidth;
             double mediaHeight = options.Mode == HtmlRenderMode.Paged ? options.PageHeight : options.ViewportHeight ?? 1056D;
             foreach (IElement child in picture.Children) {
                 if (ReferenceEquals(child, element)) break;
@@ -106,7 +106,7 @@ public static partial class HtmlImageSourceResolver {
     }
 
     private static HtmlResponsiveImageSelectionOptions CreateResponsiveSelectionOptions(HtmlRenderOptions options) {
-        double width = options.Mode == HtmlRenderMode.Paged ? options.PageWidth : options.ViewportWidth;
+        double width = options.CssMediaWidth;
         double height = options.Mode == HtmlRenderMode.Paged ? options.PageHeight : options.ViewportHeight ?? 1056D;
         return new HtmlResponsiveImageSelectionOptions {
             ViewportWidth = width,

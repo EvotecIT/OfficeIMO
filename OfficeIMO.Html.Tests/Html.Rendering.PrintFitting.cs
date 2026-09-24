@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+using System.Threading.Tasks;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
@@ -7,6 +9,73 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
+    [Fact]
+    public void HtmlPdf_PrintLayoutWidthKeepsCapturedViewportForMediaQueries() {
+        const string html = """
+            <style>
+              #medium, #large, #medium-element, #large-element { display:none }
+              @media (min-width:768px) and (max-width:991px) { #medium { display:block } }
+              @media (min-width:992px) { #large { display:block } }
+            </style>
+            <style media="(min-width:768px) and (max-width:991px)">#medium-element { display:block }</style>
+            <style media="(min-width:992px)">#large-element { display:block }</style>
+            <p id="medium">MediumViewport</p><p id="large">LargeViewport</p>
+            <p id="medium-element">MediumStyleElement</p><p id="large-element">LargeStyleElement</p>
+            """;
+        var options = new HtmlToPdfOptions {
+            PageSize = OfficePageSizes.A4,
+            Margins = HtmlRenderMargins.All(0D),
+            HonorCssPageRules = false,
+            ViewportWidth = 816D,
+            PrintLayoutWidthCssPixels = 1200D
+        };
+
+        string text = PdfCore.PdfReadDocument.Open(HtmlConversionDocument.Parse(html).ToPdfBytes(options)).ExtractText();
+
+        Assert.Contains("MediumViewport", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("LargeViewport", text, StringComparison.Ordinal);
+        Assert.Contains("MediumStyleElement", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("LargeStyleElement", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task HtmlPdf_PrintLayoutWidthSelectsViewportStylesheetAndPictureSource() {
+        const string html = """
+            <link rel="stylesheet" href="https://assets.example.test/medium.css" media="(min-width:768px) and (max-width:991px)">
+            <link rel="stylesheet" href="https://assets.example.test/large.css" media="(min-width:992px)">
+            <picture>
+              <source media="(min-width:768px) and (max-width:991px)" srcset="https://assets.example.test/medium.svg" type="image/svg+xml">
+              <source media="(min-width:992px)" srcset="https://assets.example.test/large.svg" type="image/svg+xml">
+              <img src="https://assets.example.test/fallback.svg" width="8" height="8" alt="Fallback">
+            </picture>
+            """;
+        var requested = new ConcurrentBag<string>();
+        var options = new HtmlToPdfOptions {
+            PageSize = OfficePageSizes.A4,
+            HonorCssPageRules = false,
+            ViewportWidth = 816D,
+            PrintLayoutWidthCssPixels = 1200D,
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost(),
+            ResourceResolver = (request, cancellationToken) => {
+                cancellationToken.ThrowIfCancellationRequested();
+                requested.Add(request.Uri.AbsoluteUri);
+                bool stylesheet = request.Kind == HtmlResourceKind.Stylesheet;
+                byte[] bytes = System.Text.Encoding.UTF8.GetBytes(stylesheet
+                    ? "body { color: #123456 }"
+                    : "<svg xmlns='http://www.w3.org/2000/svg' width='8' height='8'></svg>");
+                return Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(bytes,
+                    stylesheet ? "text/css" : "image/svg+xml"));
+            }
+        };
+
+        await HtmlConversionDocument.Parse(html).ToPdfBytesAsync(options);
+
+        Assert.Contains("https://assets.example.test/medium.css", requested);
+        Assert.Contains("https://assets.example.test/medium.svg", requested);
+        Assert.DoesNotContain("https://assets.example.test/large.css", requested);
+        Assert.DoesNotContain("https://assets.example.test/large.svg", requested);
+    }
+
     [Fact]
     public void HtmlPdf_PrintLayoutWidthFitsWideRowsOnPhysicalA4() {
         const string html = """

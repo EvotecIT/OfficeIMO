@@ -40,7 +40,7 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
     /// </summary>
     public bool? ProjectSerializedShadowRoots { get; set; }
 
-    /// <summary>Viewport width for continuous rendering, in CSS pixels.</summary>
+    /// <summary>Viewport width for continuous rendering and print-fit media selection, in CSS pixels.</summary>
     public double ViewportWidth { get; set; } = 816D;
 
     /// <summary>Optional minimum continuous-surface height, in CSS pixels.</summary>
@@ -300,6 +300,7 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         target.ResponsiveImageSizesCharacterLimit = ResponsiveImageSizesCharacterLimit;
         target.EnableEditableLayoutRegions = EnableEditableLayoutRegions;
         target.CssMediaContextOverride = CssMediaContextOverride;
+        target.CssMediaWidthOverride = CssMediaWidthOverride;
         target.ClipContinuousSurfaceToViewport = ClipContinuousSurfaceToViewport;
         return target;
     }
@@ -314,6 +315,13 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
     // Render requests decouple CSS media from continuous or paged geometry. Legacy callers
     // leave this unset and retain the historical continuous/screen and paged/print mapping.
     internal HtmlCssMediaContext? CssMediaContextOverride { get; set; }
+
+    // Print fitting can lay out a wider page without changing the viewport
+    // against which CSS width media queries were selected.
+    internal double? CssMediaWidthOverride { get; set; }
+
+    internal double CssMediaWidth => CssMediaWidthOverride
+        ?? (Mode == HtmlRenderMode.Paged ? PageWidth : ViewportWidth);
 
     // A viewport is a bounded continuous layout surface. Legacy ViewportHeight remains a
     // minimum height so existing full-page output does not become clipped.
@@ -334,6 +342,7 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
             throw new ArgumentOutOfRangeException(nameof(MediaContext));
         }
         ValidatePositive(ViewportWidth, nameof(ViewportWidth));
+        if (CssMediaWidthOverride.HasValue) ValidatePositive(CssMediaWidthOverride.Value, nameof(CssMediaWidthOverride));
         if (ViewportHeight.HasValue) {
             ValidatePositive(ViewportHeight.Value, nameof(ViewportHeight));
         }

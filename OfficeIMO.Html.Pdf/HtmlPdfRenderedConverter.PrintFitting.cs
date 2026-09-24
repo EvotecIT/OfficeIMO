@@ -21,6 +21,7 @@ internal static partial class HtmlPdfRenderedConverter {
             throw new ArgumentOutOfRangeException(nameof(HtmlToPdfOptions.PrintLayoutWidthCssPixels),
                 "The scaled page height exceeds the configured surface limit.");
 
+        renderOptions.CssMediaWidthOverride = renderOptions.ViewportWidth;
         renderOptions.PrintOutputPageSize = renderOptions.PageSize;
         renderOptions.PageSize = new OfficePageSize(layoutWidth / HtmlRenderOptions.CssPixelsPerInch,
             layoutHeight / HtmlRenderOptions.CssPixelsPerInch);

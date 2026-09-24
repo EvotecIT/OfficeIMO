@@ -88,7 +88,8 @@ operation deadline.
 For a wide print layout that should fit a fixed paper size, set a CSS layout
 width explicitly. The PDF keeps the physical `PageSize`; content and margins are
 scaled uniformly after layout. This changes wrapping and page breaks, so choose
-the width for the source rather than assuming one width fits every page.
+the width for the source rather than assuming one width fits every page. CSS
+media queries and responsive resources still use the captured `ViewportWidth`.
 
 ```csharp
 var fitted = new HtmlToPdfOptions {
