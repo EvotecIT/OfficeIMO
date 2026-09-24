@@ -1167,6 +1167,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         }
 
         if (key == "courier") {
+            yield return family;
             yield return "Courier New";
             yield return "Liberation Mono";
             yield break;

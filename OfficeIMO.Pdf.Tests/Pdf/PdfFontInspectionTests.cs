@@ -517,6 +517,25 @@ public sealed class PdfFontInspectionTests {
         Assert.Equal("AA", Assert.Single(page.ToDrawing().Elements.OfType<OfficeDrawingText>()).Text);
     }
 
+    [Theory]
+    [InlineData("TrueType", "/FontFile2 7 0 R", "")]
+    [InlineData("Type1", "/FontFile3 7 0 R", "/Subtype /Type1C")]
+    public void UnusableEmbeddedSimpleFontStillDrawsItsEncodingGlyph(string fontSubtype, string fontFile, string programSubtype) {
+        byte[] pdf = BuildPdf(
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 100] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /" + fontSubtype + " /BaseFont /Helvetica /Encoding /WinAnsiEncoding /FirstChar 65 /LastChar 65 /Widths [600] /FontDescriptor 8 0 R /ToUnicode 6 0 R >>",
+            StreamObject("BT /F1 18 Tf 20 30 Td (A) Tj ET"),
+            StreamObject("begincmap\n1 beginbfchar\n<41> <0042>\nendbfchar\nendcmap"),
+            StreamObject("invalid-font-program", programSubtype),
+            "<< /Type /FontDescriptor /FontName /Helvetica /Flags 32 /FontBBox [0 -200 1000 900] /ItalicAngle 0 /Ascent 800 /Descent -200 /CapHeight 700 /StemV 80 " + fontFile + " >>");
+
+        PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
+        Assert.Equal("B", Assert.Single(page.GetTextSpans()).Text);
+        Assert.Equal("A", Assert.Single(page.ToDrawing().Elements.OfType<OfficeDrawingText>()).Text);
+    }
+
     [Fact]
     public void SynthesizedCmapResolvesMappingsBeyondTheFirstFormat12GroupLimit() {
         byte[] source = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A', 'B');

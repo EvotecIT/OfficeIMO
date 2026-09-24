@@ -1,9 +1,29 @@
 using OfficeIMO.Pdf;
+using OfficeIMO.TestAssets;
+using System.Text;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfTrueTypeUnicodeCmapTests {
+    [Fact]
+    public void UnicodeOnlySimpleFontUsesEncodingDifferenceForItsPaintedGlyph() {
+        byte[] source = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A', 'B');
+        Assert.True(ToUnicodeCMap.TryParse(Encoding.ASCII.GetBytes(
+            "begincmap\n1 beginbfchar\n<41> <0051>\nendbfchar\nendcmap"), out ToUnicodeCMap? cmap));
+        var font = new PdfFontResource("F1", "Subset", "WinAnsiEncoding", true, cmap,
+            new Dictionary<int, string> { [65] = "B" }, fontSubtype: "TrueType",
+            embeddedProgramSubtype: "TrueType", fontDescriptorFlags: 32);
+
+        PdfDrawingFontProgram drawing = Assert.IsType<PdfDrawingFontProgram>(
+            PdfTrueTypeUnicodeCmap.TryCreate(font, source, null));
+
+        Assert.Equal(2, drawing.GlyphForCode(65));
+        Assert.Equal(2, drawing.UnicodeGlyphs['Q']);
+        Assert.Equal(2, drawing.UnicodeGlyphs['B']);
+        Assert.True(OfficeIMO.Drawing.OfficeTrueTypeFont.TryLoad(drawing.Program)?.HasGlyphs("Q"));
+    }
+
     [Fact]
     public void LargeBmpMapUsesFullUnicodeSubtableWithoutTruncatingLength() {
         var mappings = new SortedDictionary<int, int>();

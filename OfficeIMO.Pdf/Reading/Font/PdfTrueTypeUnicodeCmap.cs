@@ -8,7 +8,8 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 /// <remarks>
 /// A PDF simple TrueType font selects glyphs by character code through a (3,0) symbolic or (1,0)
-/// Macintosh cmap (ISO 32000-1, 9.6.6.4). Drawing scenes carry Unicode text, so a program without a
+/// Macintosh cmap (ISO 32000-1, 9.6.6.4). Some producers provide only a Unicode cmap, in which case
+/// the PDF encoding's glyph name supplies the lookup scalar. Drawing scenes carry Unicode text, so a program without a
 /// Unicode subtable cannot resolve the glyph; a program with one can resolve a different glyph.
 /// This helper maps each code's decoded text to the glyph that code paints and rebuilds the cmap.
 /// </remarks>
@@ -28,8 +29,9 @@ internal static class PdfTrueTypeUnicodeCmap {
         int cmapIndex = tables.FindIndex(static table => string.Equals(table.Tag, "cmap", StringComparison.Ordinal));
         int? symbolic = null;
         int? macintosh = null;
+        int? unicode = null;
         if (cmapIndex >= 0 &&
-            !TryReadCodeSubtables(program, tables[cmapIndex].Offset, tables[cmapIndex].Length, out symbolic, out macintosh, out _)) return null;
+            !TryReadCodeSubtables(program, tables[cmapIndex].Offset, tables[cmapIndex].Length, out symbolic, out macintosh, out unicode)) return null;
         int glyphCount = ReadGlyphCount(program, tables);
         Func<int, bool> isEmptyGlyph = CreateEmptyGlyphTest(program, tables, glyphCount);
 
@@ -42,13 +44,13 @@ internal static class PdfTrueTypeUnicodeCmap {
             glyphForCode = cid => GlyphForCid(cidToGlyphMap, cid, glyphCount);
         } else if (string.Equals(font.FontSubtype, "TrueType", StringComparison.Ordinal) &&
             string.Equals(font.EmbeddedProgramSubtype, "TrueType", StringComparison.Ordinal) &&
-            (symbolic.HasValue || macintosh.HasValue)) {
+            (symbolic.HasValue || macintosh.HasValue || unicode.HasValue)) {
             // PDF character codes select through the symbolic or Macintosh table. A Unicode
             // subtable can name a different glyph than the one that the PDF actually paints.
-            mappings = CreateSimpleMappings(font, program, symbolic, macintosh, glyphCount, isEmptyGlyph);
+            mappings = CreateSimpleMappings(font, program, symbolic, macintosh, unicode, glyphCount, isEmptyGlyph);
             bool isSymbolic = ((font.FontDescriptorFlags ?? SymbolicFlag) & SymbolicFlag) != 0;
             Func<byte, string> decodeEncoding = ResourceResolver.CreateSimpleEncodingDecoder(font);
-            glyphForCode = code => code is < 0 or > 255 ? 0 : ResolveGlyph(program, (byte)code, symbolic, macintosh, isSymbolic, decodeEncoding);
+            glyphForCode = code => code is < 0 or > 255 ? 0 : ResolveGlyph(program, (byte)code, symbolic, macintosh, unicode, isSymbolic, decodeEncoding);
         } else {
             return null;
         }
@@ -89,7 +91,7 @@ internal static class PdfTrueTypeUnicodeCmap {
         return OfficeTrueTypeFont.TryLoad(rebuilt) == null ? null : rebuilt;
     }
 
-    private static SortedDictionary<int, int> CreateSimpleMappings(PdfFontResource font, byte[] program, int? symbolic, int? macintosh,
+    private static SortedDictionary<int, int> CreateSimpleMappings(PdfFontResource font, byte[] program, int? symbolic, int? macintosh, int? unicode,
         int glyphCount, Func<int, bool> isEmptyGlyph) {
         bool isSymbolic = ((font.FontDescriptorFlags ?? SymbolicFlag) & SymbolicFlag) != 0;
         Func<byte[], int, string> decodeText = ResourceResolver.CreateBudgetedDecoder(font);
@@ -97,7 +99,7 @@ internal static class PdfTrueTypeUnicodeCmap {
         var mappings = new SortedDictionary<int, int>();
         int fallbackGlyph = 0;
         for (int code = 0; code < 256; code++) {
-            int glyph = ResolveGlyph(program, (byte)code, symbolic, macintosh, isSymbolic, decodeEncoding);
+            int glyph = ResolveGlyph(program, (byte)code, symbolic, macintosh, unicode, isSymbolic, decodeEncoding);
             if (glyph <= 0 || glyph >= glyphCount) continue;
             if (fallbackGlyph == 0 && !isEmptyGlyph(glyph)) fallbackGlyph = glyph;
             string text;
@@ -152,7 +154,7 @@ internal static class PdfTrueTypeUnicodeCmap {
         return mappings;
     }
 
-    private static int ResolveGlyph(byte[] data, byte code, int? symbolic, int? macintosh, bool isSymbolic,
+    private static int ResolveGlyph(byte[] data, byte code, int? symbolic, int? macintosh, int? unicode, bool isSymbolic,
         Func<byte, string> decodeEncoding) {
         if (!isSymbolic && macintosh.HasValue) {
             // A nonsymbolic font selects its PDF-encoded name through Mac Roman before any
@@ -168,6 +170,10 @@ internal static class PdfTrueTypeUnicodeCmap {
                 int glyph = LookupSubtable(data, symbolic.Value, prefix | code);
                 if (glyph > 0) return glyph;
             }
+        }
+        if (!isSymbolic && unicode.HasValue && TryGetSingleScalar(decodeEncoding(code), out int scalar)) {
+            int glyph = LookupSubtable(data, unicode.Value, scalar);
+            if (glyph > 0) return glyph;
         }
         if (!macintosh.HasValue) return 0;
         return LookupSubtable(data, macintosh.Value, code);
@@ -206,10 +212,11 @@ internal static class PdfTrueTypeUnicodeCmap {
     }
 
     private static bool TryReadCodeSubtables(byte[] data, int cmap, int length, out int? symbolic, out int? macintosh,
-        out bool hasUnicodeCmap) {
+        out int? unicode) {
         symbolic = null;
         macintosh = null;
-        hasUnicodeCmap = false;
+        unicode = null;
+        int unicodeScore = -1;
         if (length < 4) return false;
         int count = ReadUInt16(data, cmap + 2);
         if (count > OfficeOpenTypeCmap.MaximumSubtables || 4 + count * 8 > length) return false;
@@ -226,8 +233,14 @@ internal static class PdfTrueTypeUnicodeCmap {
             int table = cmap + (int)offset;
             int format = ReadUInt16(data, table);
             if (platform == 0 || platform == 3 && (encoding == 1 || encoding == 10)) {
-                hasUnicodeCmap |= format == 4 && validFormat4.Contains(table) ||
-                    format == 12 && validFormat12.Contains(table);
+                if (format == 4 && validFormat4.Contains(table) ||
+                    format == 12 && validFormat12.Contains(table)) {
+                    int score = OfficeOpenTypeCmap.ScoreSubtable(format, platform, encoding, preferFormat12: true);
+                    if (score > unicodeScore) {
+                        unicode = table;
+                        unicodeScore = score;
+                    }
+                }
                 continue;
             }
             if (format != 0 && format != 4 && format != 6 || !HasSubtableBody(data, table, cmap + length)) continue;
@@ -246,6 +259,24 @@ internal static class PdfTrueTypeUnicodeCmap {
     private static int LookupSubtable(byte[] data, int table, int code) {
         int length = ReadUInt16(data, table + 2);
         switch (ReadUInt16(data, table)) {
+            case 12: {
+                int groups = checked((int)ReadUInt32(data, table + 12));
+                int low = 0;
+                int high = groups - 1;
+                while (low <= high) {
+                    int middle = low + (high - low) / 2;
+                    int group = table + 16 + middle * 12;
+                    uint start = ReadUInt32(data, group);
+                    uint end = ReadUInt32(data, group + 4);
+                    if (code < start) high = middle - 1;
+                    else if (code > end) low = middle + 1;
+                    else {
+                        uint glyph = ReadUInt32(data, group + 8) + (uint)code - start;
+                        return glyph <= ushort.MaxValue ? (int)glyph : 0;
+                    }
+                }
+                return 0;
+            }
             case 0:
                 return code < 256 && length >= 262 ? data[table + 6 + code] : 0;
             case 6: {
@@ -256,7 +287,7 @@ internal static class PdfTrueTypeUnicodeCmap {
                 return ReadUInt16(data, table + 10 + (code - first) * 2);
             }
             case 4: {
-                if (length < 16) return 0;
+                if (length < 16 || code > 0xFFFF) return 0;
                 int segments = ReadUInt16(data, table + 6) / 2;
                 int ends = table + 14;
                 int starts = ends + segments * 2 + 2;

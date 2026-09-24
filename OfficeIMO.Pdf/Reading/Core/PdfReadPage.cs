@@ -754,7 +754,7 @@ public sealed partial class PdfReadPage {
     // A non-embedded simple font is drawn with a substitute face by the glyph names its encoding and
     // Differences give; ToUnicode does not select what is painted. Symbolic fonts use built-in encodings.
     private static bool PaintsSubstitutedEncodingGlyphs(PdfFontResource font) {
-        if (!font.HasToUnicode || font.EmbeddedProgramSubtype != null || font.EmbeddedTrueTypeFont != null ||
+        if (!font.HasToUnicode || font.EmbeddedTrueTypeFont != null ||
             font.DrawingFontFamily != null || font.Type3 != null ||
             string.Equals(font.FontSubtype, "Type0", StringComparison.Ordinal)) return false;
         if (font.FontDescriptorFlags is int flags && (flags & 4) != 0) return false;
