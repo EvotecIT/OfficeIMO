@@ -7,6 +7,7 @@ using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.OpenDocument;
 using OfficeIMO.OpenDocument;
+using OfficeIMO.Spreadsheet;
 using Xunit;
 
 namespace OfficeIMO.OpenDocument.Converters.Tests;
@@ -30,6 +31,15 @@ public sealed class ExcelOdsChartAuthoringTests {
         Assert.DoesNotContain(result.Report.Mappings, mapping => mapping.Feature == "charts" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
         OdsChart chart = Assert.Single(result.Value.GetSheet("Summary")!.Charts);
+        SpreadsheetRangeReference categories = SpreadsheetRangeReference.Parse(
+            chart.CategoriesAddress!, SpreadsheetAddressDialect.OpenDocument);
+        string sourceSheetName = categories.Start.SheetName!;
+        Assert.NotEqual("Summary", sourceSheetName);
+        Assert.NotNull(result.Value.GetSheet(sourceSheetName));
+        Assert.Equal(sourceSheetName, categories.End!.SheetName);
+        SpreadsheetRangeReference values = SpreadsheetRangeReference.Parse(
+            Assert.Single(chart.Series).ValuesAddress, SpreadsheetAddressDialect.OpenDocument);
+        Assert.Equal(sourceSheetName, values.End!.SheetName);
         Assert.Equal(chartClass, chart.ChartClass);
         Assert.Equal(vertical, chart.VerticalBars);
         Assert.Equal("Sales", chart.Title);
@@ -128,6 +138,39 @@ public sealed class ExcelOdsChartAuthoringTests {
             Assert.Empty(result.Value.GetSheet("Summary")!.Charts);
             Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "charts" &&
                 mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void CaseVariantExcelSheetReferencesUseCanonicalOdsSheetName() {
+        string path = Path.Combine(Path.GetTempPath(), "officeimo-chart-case-" + Guid.NewGuid().ToString("N") + ".xlsx");
+        string dataSheet;
+        try {
+            using (ExcelDocument source = ExcelDocument.Create(path)) {
+                ExcelSheet sheet = source.AddWorksheet("Summary");
+                ExcelChart sourceChart = sheet.AddChart(new ExcelChartData(new[] { "Jan", "Feb" },
+                    new[] { new ExcelChartSeries("Sales", new[] { 10d, 20d }) }),
+                    row: 5, column: 4, type: ExcelChartType.ColumnClustered);
+                dataSheet = sourceChart.DataRange!.SheetName;
+                source.Save();
+            }
+            using (SpreadsheetDocument package = SpreadsheetDocument.Open(path, true)) {
+                C.ChartSpace space = package.WorkbookPart!.WorksheetParts
+                    .SelectMany(part => part.DrawingsPart?.ChartParts ?? Enumerable.Empty<ChartPart>())
+                    .Single().ChartSpace!;
+                foreach (C.Formula formula in space.Descendants<C.Formula>())
+                    if (formula.Text is string text)
+                        formula.Text = text.Replace(dataSheet, dataSheet.ToLowerInvariant());
+                space.Save();
+            }
+            using ExcelDocument reloaded = ExcelDocument.Load(path);
+            OdsChart chart = Assert.Single(reloaded.ToOpenDocumentResult().Value.GetSheet("Summary")!.Charts);
+            SpreadsheetRangeReference address = SpreadsheetRangeReference.Parse(
+                chart.CategoriesAddress!, SpreadsheetAddressDialect.OpenDocument);
+            Assert.Equal(dataSheet, address.Start.SheetName);
+            Assert.Equal(dataSheet, address.End!.SheetName);
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }

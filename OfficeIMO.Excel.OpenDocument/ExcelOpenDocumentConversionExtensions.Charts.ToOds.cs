@@ -34,9 +34,11 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                     || snapshot.WidthPixels < 1 || snapshot.HeightPixels < 1
                     || snapshot.WidthPixels > 2000 || snapshot.HeightPixels > 2000
                     || snapshot.Title?.Length > 32767
-                    || !convertedCellsBySheet.TryGetValue(range.SheetName,
+                    || source.Sheets.FirstOrDefault(sheet => string.Equals(sheet.Name, range.SheetName,
+                        StringComparison.OrdinalIgnoreCase)) is not ExcelSheet dataSourceSheet
+                    || !convertedCellsBySheet.TryGetValue(dataSourceSheet.Name,
                         out HashSet<(int Row, int Column)>? dataCells)
-                    || target.GetSheet(range.SheetName) is not OdsSheet dataSheet
+                    || target.GetSheet(dataSourceSheet.Name) is not OdsSheet dataSheet
                     || !HasAllChartSourceCells(range, dataCells, dataSheet, snapshot.Data)) continue;
                 var series = new OdsChartSeries[range.SeriesCount];
                 bool valid = true;
@@ -47,15 +49,15 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                         break;
                     }
                     string values = SpreadsheetAddressConverter.ExcelRangeToOpenAddress(
-                        range.SeriesValuesRangeA1(index), range.SheetName);
+                        range.SeriesValuesRangeA1(index), dataSourceSheet.Name);
                     string label = SpreadsheetAddressConverter.ExcelRangeToOpenAddress(
-                        range.SeriesNameCellA1(index), range.SheetName);
+                        range.SeriesNameCellA1(index), dataSourceSheet.Name);
                     if (values.Length == 0 || label.Length == 0) { valid = false; break; }
                     series[index] = new OdsChartSeries(values, label);
                 }
                 if (!valid) continue;
                 string categories = SpreadsheetAddressConverter.ExcelRangeToOpenAddress(
-                    range.CategoriesRangeA1, range.SheetName);
+                    range.CategoriesRangeA1, dataSourceSheet.Name);
                 if (categories.Length == 0) continue;
                 var coordinate = (snapshot.RowIndex, snapshot.ColumnIndex);
                 if (!anchorCells.Contains(coordinate) && materializedCells >= options.MaximumExpandedCells) {

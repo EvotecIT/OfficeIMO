@@ -1,6 +1,8 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Text;
+using System.Xml.Linq;
 using OfficeIMO.OpenDocument;
 using Xunit;
 
@@ -48,5 +50,27 @@ public sealed class OpenDocumentOdsChartAuthoringTests {
             new[] { new OdsChartSeries("Data.$B$1:.$B$3") }, 0, 0,
             OdfRect.FromCentimeters(1, 1, 10, 6)));
         Assert.Empty(sheet.Charts);
+    }
+
+    [Fact]
+    public void VersionRewriteKeepsManifestOnlyEmbeddedChartDirectory() {
+        string path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "microsoft-excel-column-chart.ods");
+        OdsDocument imported = OdsDocument.Load(path);
+        byte[] rewritten = imported.ToBytes(new OdfSaveOptions {
+            CompatibilityProfile = OdfCompatibilityProfile.Odf13
+        });
+        OdsDocument reopened = OdsDocument.Load(new MemoryStream(rewritten));
+        XNamespace office = "urn:oasis:names:tc:opendocument:xmlns:office:1.0";
+        XNamespace manifest = "urn:oasis:names:tc:opendocument:xmlns:manifest:1.0";
+        XDocument embedded = XDocument.Parse(Encoding.UTF8.GetString(
+            reopened.GetPackageEntryBytes("Object 1/content.xml")));
+        XDocument listing = XDocument.Parse(Encoding.UTF8.GetString(
+            reopened.GetPackageEntryBytes("META-INF/manifest.xml")));
+        Assert.Equal("1.3", (string?)embedded.Root!.Attribute(office + "version"));
+        XElement directory = Assert.Single(listing.Descendants(manifest + "file-entry"),
+            entry => (string?)entry.Attribute(manifest + "full-path") == "Object 1/");
+        Assert.Equal("application/vnd.oasis.opendocument.chart",
+            (string?)directory.Attribute(manifest + "media-type"));
+        Assert.Single(reopened.GetSheet("Data")!.Charts);
     }
 }
