@@ -306,13 +306,26 @@ internal sealed partial class HtmlRenderLayoutEngine {
             && (_options.UserAgentStyles == HtmlRenderUserAgentStyleMode.Browser || pagedColumnBody
                 || (_options.Mode == HtmlRenderMode.Paged && rootStyle.MaxWidth.HasValue
                     && HasAuthoredRootBoxGeometry(root, rootStyle)))) {
-            HtmlRenderBoxStyle constrainedBody = ResolveNormalFlowHorizontalAutoMargins(root, rootStyle, contentWidth);
-            return new[] { LayoutElement(root, contentWidth, constrainedBody, constrainedBody, 0) };
+            return new[] { LayoutRootElement(root, contentWidth, rootStyle) };
         }
         if (_options.Mode == HtmlRenderMode.Paged || !HasAuthoredRootBoxGeometry(root, rootStyle)) {
             return BuildChildBlocks(root, contentWidth, rootStyle, 0);
         }
-        return new[] { LayoutElement(root, contentWidth, rootStyle, rootStyle, 0) };
+        return new[] { LayoutRootElement(root, contentWidth, rootStyle) };
+    }
+
+    private HtmlRenderFlowBlock LayoutRootElement(
+        IElement root,
+        double contentWidth,
+        HtmlRenderBoxStyle rootStyle,
+        IElement? continuationTarget = null,
+        int continuationLogicalCharacters = 0) {
+        HtmlRenderBoxStyle resolved = ResolveNormalFlowHorizontalAutoMargins(root, rootStyle, contentWidth);
+        HtmlRenderFlowBlock block = LayoutElement(root, contentWidth, resolved, resolved, 0,
+            continuationTarget, continuationLogicalCharacters);
+        return _options.Mode == HtmlRenderMode.Paged
+            ? block.WithLayoutViewport(_activePageGeometry.Width, _activePageGeometry.Height)
+            : block;
     }
 
     private bool HasDescendantPageDirective(IElement root) {
@@ -833,6 +846,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return block;
         }
         IElement root = _document.Body ?? _document.DocumentElement ?? block.OwnerElement;
+        if (ReferenceEquals(block.OwnerElement, root)) {
+            HtmlRenderBoxStyle bodyStyle = _styleResolver.Resolve(root, geometry.ContentWidth);
+            return LayoutRootElement(root, geometry.ContentWidth, bodyStyle);
+        }
         if (!ReferenceEquals(block.OwnerElement.ParentElement, root)) {
             ReportPageContinuationReflowPending(block, geometry);
             return block;
@@ -887,6 +904,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         reflowed = source;
         if (source.OwnerElement == null || continuation.OwnerElement == null) return false;
         IElement root = _document.Body ?? _document.DocumentElement ?? source.OwnerElement;
+        if (ReferenceEquals(source.OwnerElement, root)) {
+            HtmlRenderBoxStyle bodyStyle = _styleResolver.Resolve(root, geometry.ContentWidth);
+            reflowed = LayoutRootElement(root, geometry.ContentWidth, bodyStyle,
+                continuation.OwnerElement, continuation.LogicalCharacters);
+            return true;
+        }
         if (!ReferenceEquals(source.OwnerElement.ParentElement, root)) return false;
         if (!ContainsElementOrSelf(source.OwnerElement, continuation.OwnerElement)) return false;
         HtmlRenderBoxStyle rootStyle = _styleResolver.Resolve(root, geometry.ContentWidth);

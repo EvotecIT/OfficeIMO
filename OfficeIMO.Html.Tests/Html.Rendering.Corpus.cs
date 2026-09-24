@@ -95,6 +95,29 @@ public sealed partial class HtmlRenderingTests {
         }
     }
 
+    [Theory]
+    [InlineData(HtmlRenderUserAgentStyleMode.Document)]
+    [InlineData(HtmlRenderUserAgentStyleMode.Browser)]
+    public void PagedRendererRecentersBodyWhenLaterPageWidthChanges(HtmlRenderUserAgentStyleMode userAgentStyles) {
+        const string html = "<style>@page{size:500px 100px;margin:0}@page:first{size:300px 100px;margin:0}"
+            + "body{max-width:200px;margin:0 auto}div{height:90px;background:red}"
+            + "#first{break-after:page}</style>"
+            + "<body><div id='first'></div><div id='second'></div></body>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Paged, UserAgentStyles = userAgentStyles });
+
+        Assert.Equal(2, rendered.Pages.Count);
+        Assert.Equal(new[] { 300D, 500D }, rendered.Pages.Select(page => page.Width).ToArray());
+        for (int index = 0; index < 2; index++) {
+            HtmlRenderShape box = Assert.Single(rendered.Pages[index].Visuals.OfType<HtmlRenderShape>(),
+                shape => shape.Shape.FillColor == OfficeColor.Red);
+            Assert.Equal(index == 0 ? 50D : 150D, box.X, 3);
+            Assert.Equal(200D, box.Shape.Width, 3);
+        }
+        Assert.DoesNotContain(rendered.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PagePseudoGeometryPending);
+    }
+
     [Fact]
     public void StaticRendererCentersIntrinsicBlockImageWithAutoMargins() {
         string image = "data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(40, 20));
