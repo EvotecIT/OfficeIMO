@@ -12,6 +12,8 @@ public sealed class PdfReadLimits {
     internal const int DefaultMaxActualTextCharacters = 1_000_000;
     internal const int DefaultMaxDecodedTextCharacters = 10_000_000;
     internal const int DefaultMaxTextSearchMatches = 100_000;
+    internal const int DefaultMaxTextSearchFlowComparisons = 1_000_000;
+    internal const int DefaultMaxTextSearchTableDetectionWork = 1_000_000;
     internal const int DefaultMaxNameTreeNodes = 100_000;
     internal const int DefaultMaxNameTreeDepth = 128;
     internal const int DefaultMaxJavaScriptBytes = 4_000_000;
@@ -61,6 +63,12 @@ public sealed class PdfReadLimits {
 
     /// <summary>Maximum text-search matches materialized by one Find or ReplaceAll operation. Default: 100,000.</summary>
     public int MaxTextSearchMatches { get; init; } = DefaultMaxTextSearchMatches;
+
+    /// <summary>Maximum geometric line-pair comparisons while grouping text-search flows on one page. Default: 1,000,000.</summary>
+    public int MaxTextSearchFlowComparisons { get; init; } = DefaultMaxTextSearchFlowComparisons;
+
+    /// <summary>Maximum layout work spent detecting table cells for text search on one page. Default: 1,000,000.</summary>
+    public int MaxTextSearchTableDetectionWork { get; init; } = DefaultMaxTextSearchTableDetectionWork;
 
     /// <summary>Maximum characters tokenized from one object or dictionary. Default: 1,000,000.</summary>
     public int MaxObjectCharacters { get; init; } = 1_000_000;
@@ -183,6 +191,8 @@ public sealed class PdfReadLimits {
             MaxActualTextCharacters = MaxActualTextCharacters,
             MaxDecodedTextCharacters = SaturatingAdd(MaxDecodedTextCharacters, growth.AdditionalDecodedTextCharacters),
             MaxTextSearchMatches = MaxTextSearchMatches,
+            MaxTextSearchFlowComparisons = MaxTextSearchFlowComparisons,
+            MaxTextSearchTableDetectionWork = MaxTextSearchTableDetectionWork,
             MaxObjectCharacters = Math.Max(MaxObjectCharacters, growth.MinimumObjectCharacters),
             MaxTokensPerObject = Math.Max(MaxTokensPerObject, growth.MinimumTokensPerObject),
             MaxObjectNestingDepth = Math.Max(MaxObjectNestingDepth, growth.MinimumObjectNestingDepth),
@@ -242,6 +252,8 @@ public sealed class PdfReadLimits {
             MaxActualTextCharacters = sources.Max(static limits => limits.MaxActualTextCharacters),
             MaxDecodedTextCharacters = sources.Max(static limits => limits.MaxDecodedTextCharacters),
             MaxTextSearchMatches = SaturatingSum(sources, static limits => limits.MaxTextSearchMatches),
+            MaxTextSearchFlowComparisons = sources.Max(static limits => limits.MaxTextSearchFlowComparisons),
+            MaxTextSearchTableDetectionWork = sources.Max(static limits => limits.MaxTextSearchTableDetectionWork),
             MaxObjectCharacters = sources.Max(static limits => limits.MaxObjectCharacters),
             MaxTokensPerObject = sources.Max(static limits => limits.MaxTokensPerObject),
             MaxObjectNestingDepth = sources.Max(static limits => limits.MaxObjectNestingDepth),
@@ -343,6 +355,8 @@ public sealed class PdfReadLimits {
             MaxActualTextCharacters = MaxActualTextCharacters,
             MaxDecodedTextCharacters = MaxDecodedTextCharacters,
             MaxTextSearchMatches = MaxTextSearchMatches,
+            MaxTextSearchFlowComparisons = MaxTextSearchFlowComparisons,
+            MaxTextSearchTableDetectionWork = MaxTextSearchTableDetectionWork,
             MaxObjectCharacters = MaxObjectCharacters,
             MaxTokensPerObject = MaxTokensPerObject,
             MaxObjectNestingDepth = MaxObjectNestingDepth,
@@ -406,6 +420,8 @@ public sealed class PdfReadLimits {
         ValidatePositive(MaxActualTextCharacters, nameof(MaxActualTextCharacters), "Maximum ActualText characters must be positive.");
         ValidatePositive(MaxDecodedTextCharacters, nameof(MaxDecodedTextCharacters), "Maximum decoded text characters must be positive.");
         ValidatePositive(MaxTextSearchMatches, nameof(MaxTextSearchMatches), "Maximum text-search matches must be positive.");
+        ValidatePositive(MaxTextSearchFlowComparisons, nameof(MaxTextSearchFlowComparisons), "Maximum text-search flow comparisons must be positive.");
+        ValidatePositive(MaxTextSearchTableDetectionWork, nameof(MaxTextSearchTableDetectionWork), "Maximum text-search table detection work must be positive.");
 
         if (MaxObjectCharacters <= 0) {
             throw new ArgumentOutOfRangeException(nameof(MaxObjectCharacters), MaxObjectCharacters, "Maximum object characters must be positive.");

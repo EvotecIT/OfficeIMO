@@ -1313,8 +1313,15 @@ edited.Document.Text.Add(
 ```
 
 `Text.Find(...)` supports case and whole-word filters over visible, unclipped
-text, while `Text.ReplaceAll(...)` preserves unmatched source-span text and
-keeps wide same-baseline runs such as columns independent. Edits fail closed
+text. A phrase can continue across consecutive visual lines in the same
+paragraph, including a line-end hyphen; separate columns and explicit paragraph
+breaks are not joined. `PdfTextMatch.Text` is the matched text after search
+normalization, so whitespace may be collapsed and a line-end hyphen may be
+retained as `-` or omitted. It is not an exact source-text excerpt.
+`PdfTextMatch.VisualLineBounds` gives one quad per matched visual line for
+highlighting; `VisualBounds` and `X`/`Y`/`Width`/`Height` remain the combined
+bounds. `Text.ReplaceAll(...)` preserves unmatched source-span text and keeps
+wide same-baseline runs such as columns independent. Edits fail closed
 when an atomic PDF text object would require invisible or clipped text to be
 recreated without its original rendering state.
 Region-based add and replace operations preserve the resolved font size by

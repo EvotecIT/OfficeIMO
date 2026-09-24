@@ -9,6 +9,18 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## PDF text search results across visual lines
+
+`PdfTextMatch.Text` now contains the matched text after search normalization,
+instead of the literal source substring. Search collapses whitespace across
+consecutive visual lines and recognizes retained or omitted line-end hyphens.
+Applications that compare or store `Text` as an exact source excerpt should
+switch to a normalized comparison or inspect decoded source spans through
+`PdfReadPage.GetTextSpans()`. `PdfTextMatch.VisualLineBounds` provides one visual quad
+per matched line for highlighting; the existing `VisualBounds` and
+`X`/`Y`/`Width`/`Height` still describe the combined bounds. Searches do not
+join separate columns or explicit paragraph breaks.
+
 ## PDF AES-256 password length
 
 PDF Standard security revisions 5 and 6 now reject read passwords longer than
