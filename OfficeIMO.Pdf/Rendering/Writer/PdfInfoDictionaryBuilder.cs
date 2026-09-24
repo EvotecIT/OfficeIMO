@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 internal static class PdfInfoDictionaryBuilder {
@@ -42,23 +44,30 @@ internal static class PdfInfoDictionaryBuilder {
         return sb.ToString();
     }
 
-    internal static string Build(PdfMetadata metadata) {
+    internal static string Build(PdfMetadata metadata) => BuildMetadataBuilder(metadata, CancellationToken.None).ToString();
+
+    internal static byte[] BuildBytesCancellable(PdfMetadata metadata, CancellationToken cancellationToken) =>
+        PdfEncoding.Latin1GetBytesCancellable(BuildMetadataBuilder(metadata, cancellationToken), cancellationToken);
+
+    private static StringBuilder BuildMetadataBuilder(PdfMetadata metadata, CancellationToken cancellationToken) {
         Guard.NotNull(metadata, nameof(metadata));
+        cancellationToken.ThrowIfCancellationRequested();
         var sb = new StringBuilder("<< ");
-        AppendInfoString(sb, "Title", metadata.Title);
-        AppendInfoString(sb, "Author", metadata.Author);
-        AppendInfoString(sb, "Subject", metadata.Subject);
-        AppendInfoString(sb, "Keywords", metadata.Keywords);
+        AppendInfoString(sb, "Title", metadata.Title, cancellationToken);
+        AppendInfoString(sb, "Author", metadata.Author, cancellationToken);
+        AppendInfoString(sb, "Subject", metadata.Subject, cancellationToken);
+        AppendInfoString(sb, "Keywords", metadata.Keywords, cancellationToken);
         sb.Append("/Producer (OfficeIMO.Pdf) ");
         AppendInfoString(sb, "CreationDate", metadata.CreationDateRaw ??
-            (metadata.CreationDate.HasValue ? PdfDateCodec.Format(metadata.CreationDate.Value) : null));
+            (metadata.CreationDate.HasValue ? PdfDateCodec.Format(metadata.CreationDate.Value) : null), cancellationToken);
         AppendInfoString(sb, "ModDate", metadata.ModificationDateRaw ??
-            (metadata.ModificationDate.HasValue ? PdfDateCodec.Format(metadata.ModificationDate.Value) : null));
-        AppendInfoString(sb, "GTS_PDFXVersion", metadata.PdfXVersion);
-        AppendInfoString(sb, "GTS_PDFXConformance", metadata.PdfXConformance);
+            (metadata.ModificationDate.HasValue ? PdfDateCodec.Format(metadata.ModificationDate.Value) : null), cancellationToken);
+        AppendInfoString(sb, "GTS_PDFXVersion", metadata.PdfXVersion, cancellationToken);
+        AppendInfoString(sb, "GTS_PDFXConformance", metadata.PdfXConformance, cancellationToken);
         AppendTrappingStatus(sb, metadata.TrappingStatus);
         sb.Append(">>\n");
-        return sb.ToString();
+        cancellationToken.ThrowIfCancellationRequested();
+        return sb;
     }
 
     internal static PdfDictionary BuildDictionary(PdfMetadata metadata) {
@@ -86,16 +95,15 @@ internal static class PdfInfoDictionaryBuilder {
         return dictionary;
     }
 
-    private static void AppendInfoString(StringBuilder sb, string key, string? value) {
+    private static void AppendInfoString(StringBuilder sb, string key, string? value, CancellationToken cancellationToken = default) {
         if (string.IsNullOrEmpty(value)) {
             return;
         }
 
-        sb.Append('/')
-            .Append(PdfSyntaxEscaper.Name(key))
-            .Append(' ')
-            .Append(PdfSyntaxEscaper.TextString(value!))
-            .Append(' ');
+        sb.Append('/').Append(PdfSyntaxEscaper.Name(key)).Append(' ');
+        PdfSyntaxEscaper.AppendTextStringCancellable(sb, value!, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        sb.Append(' ');
     }
 
     private static void AddInfoString(PdfDictionary dictionary, string key, string? value) {

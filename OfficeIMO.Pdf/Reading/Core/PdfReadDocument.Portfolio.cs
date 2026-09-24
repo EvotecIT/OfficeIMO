@@ -1,7 +1,8 @@
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadDocument {
-    private PdfPortfolioInfo? ExtractPortfolio() {
+    private PdfPortfolioInfo? ExtractPortfolio(System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         PdfDictionary? catalog = FindCatalog();
         if (catalog == null || !catalog.Items.TryGetValue("Collection", out PdfObject? collectionObject) ||
             ResolveObject(collectionObject) is not PdfDictionary collection) {
@@ -13,6 +14,7 @@ public sealed partial class PdfReadDocument {
         var fields = new List<PdfPortfolioFieldInfo>();
         if (collection.Items.TryGetValue("Schema", out PdfObject? schemaObject) && ResolveObject(schemaObject) is PdfDictionary schema) {
             foreach (KeyValuePair<string, PdfObject> entry in schema.Items) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (ResolveObject(entry.Value) is not PdfDictionary field) continue;
                 fields.Add(new PdfPortfolioFieldInfo(
                     entry.Key,
@@ -22,7 +24,16 @@ public sealed partial class PdfReadDocument {
                     ReadBoolean(field, "V"),
                     ReadBoolean(field, "E")));
             }
-            fields.Sort((left, right) => Nullable.Compare(left.Order, right.Order));
+            try {
+                fields.Sort((left, right) => {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    return Nullable.Compare(left.Order, right.Order);
+                });
+            } catch (InvalidOperationException error) when (error.InnerException is OperationCanceledException) {
+                cancellationToken.ThrowIfCancellationRequested();
+                throw;
+            }
+            cancellationToken.ThrowIfCancellationRequested();
         }
 
         string? sortField = null;

@@ -50,6 +50,7 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
             SceneProperty,
             SearchHighlightsProperty,
             ActiveSearchHighlightProperty,
+            ActiveSearchHighlightsProperty,
             FallbackImageProperty,
             EditorToolProperty,
             SelectedObjectProperty,

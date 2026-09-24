@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadPage {
@@ -17,12 +19,14 @@ public sealed partial class PdfReadPage {
         out IReadOnlyList<double> calloutLine,
         out string? calloutLineEnding,
         out string? lineStartEnding,
-        out string? lineEndEnding) {
-        interiorColor = ReadNumberArray(annotation.Items.TryGetValue("IC", out PdfObject? interiorColorObject) ? interiorColorObject : null);
+        out string? lineEndEnding,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        interiorColor = ReadNumberArray(annotation.Items.TryGetValue("IC", out PdfObject? interiorColorObject) ? interiorColorObject : null, cancellationToken);
         opacity = TryReadAnnotationOpacity(annotation);
         borderWidth = TryReadAnnotationBorderWidth(annotation);
         borderStyle = TryReadAnnotationBorderStyle(annotation);
-        borderDashPattern = TryReadAnnotationBorderDashPattern(annotation) ?? Array.Empty<double>();
+        borderDashPattern = TryReadAnnotationBorderDashPattern(annotation, cancellationToken) ?? Array.Empty<double>();
         TryReadAnnotationBorderEffect(annotation, out borderEffectStyle, out borderEffectIntensity);
         rectangleDifferences = string.Equals(subtype, "FreeText", StringComparison.Ordinal)
             ? TryReadFreeTextRectangleDifferences(annotation, width, height) ?? Array.Empty<double>()
@@ -86,7 +90,8 @@ public sealed partial class PdfReadPage {
         }
     }
 
-    private double[]? TryReadAnnotationBorderDashPattern(PdfDictionary annotation) {
+    private double[]? TryReadAnnotationBorderDashPattern(PdfDictionary annotation, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         PdfDictionary? borderStyle = ResolveDictionary(annotation.Items.TryGetValue("BS", out PdfObject? borderStyleObject) ? borderStyleObject : null);
         if (borderStyle?.Get<PdfName>("S")?.Name != "D") {
             return null;
@@ -96,10 +101,11 @@ public sealed partial class PdfReadPage {
             return new[] { 3D };
         }
 
-        return TryReadDashPattern(dashObject);
+        return TryReadDashPattern(dashObject, cancellationToken);
     }
 
-    private double[]? TryReadDashPattern(PdfObject dashObject) {
+    private double[]? TryReadDashPattern(PdfObject dashObject, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         PdfArray? dashArray = ResolveArray(dashObject);
         if (dashArray == null || dashArray.Items.Count == 0) {
             return null;
@@ -108,6 +114,7 @@ public sealed partial class PdfReadPage {
         var values = new double[dashArray.Items.Count];
         bool hasPositiveSegment = false;
         for (int i = 0; i < dashArray.Items.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!TryReadNonNegativeFiniteNumber(dashArray.Items[i], out double segment)) {
                 return null;
             }

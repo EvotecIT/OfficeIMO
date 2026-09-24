@@ -60,6 +60,7 @@
                               Scene="{Binding Scene}"
                               SearchHighlights="{Binding SearchHighlights}"
                               ActiveSearchHighlight="{Binding ActiveSearchHighlight}"
+                              ActiveSearchHighlights="{Binding ActiveSearchHighlights}"
                               EditorTool="{Binding EditorTool}"
                               SelectedObject="{Binding SelectedObject}"
                               CommentAnchorObjectNumber="{Binding CommentAnchorObjectNumber}"

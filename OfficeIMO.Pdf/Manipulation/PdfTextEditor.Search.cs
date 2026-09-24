@@ -1,10 +1,12 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfTextEditor {
-    private static IReadOnlyList<TextSearchHit> FindHits(byte[] pdf, string text, PdfTextSearchOptions? options, PdfLoadOptions? readOptions) {
+    private static IReadOnlyList<TextSearchHit> FindHits(byte[] pdf, string text, PdfTextSearchOptions? options,
+        PdfLoadOptions? readOptions, PdfRedactionSearchWorkBudget? workBudget = null) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(text, nameof(text));
         if (text.Length == 0) return Array.Empty<TextSearchHit>();
+        workBudget?.Charge((long)pdf.Length + text.Length + 1_000L);
         PdfTextSearchOptions snapshot = (options ?? new PdfTextSearchOptions()).Snapshot();
         PdfReadLimits limits = readOptions?.Limits ?? new PdfReadLimits();
         PdfReadDocument document = OpenForVisualTextEditing(pdf, readOptions);
@@ -13,23 +15,48 @@ internal static partial class PdfTextEditor {
             : snapshot.PageNumbers;
         for (int index = 0; index < pages.Length; index++) ValidatePage(pages[index], document.Pages.Count, nameof(options));
         StringComparison comparison = snapshot.MatchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
-        string query = PdfTextSearchNormalization.NormalizeQuery(text);
+        string[] queries = PdfTextSearchNormalization.NormalizeQueries(text);
         var hits = new List<TextSearchHit>();
         for (int pageIndex = 0; pageIndex < pages.Length; pageIndex++) {
+            workBudget?.Charge(0L);
             int pageNumber = pages[pageIndex];
             PdfReadPage page = document.Pages[pageNumber - 1];
             (double originX, double originY) = page.GetPageBoundaryOrigin();
-            IReadOnlyList<PdfTextSpan> spans = page
+            PdfTextSpan[] spans = page
                 .GetTextSpans()
                 .Where(span => IsSearchSpan(span, snapshot.IncludeTextRenderingMode3))
                 .ToArray();
+            workBudget?.Charge(spans.Length);
             List<TextLayoutEngine.TextLine> lines = BuildSearchLines(spans);
             var pageHits = new List<(int LineOrder, int Offset, TextSearchHit Hit)>();
-            foreach (int[] flow in BuildSearchFlows(lines)) {
+            long flowComparisons = 0;
+            List<int[]> flows = BuildSearchFlows(lines, limits.MaxTextSearchFlowComparisons, ref flowComparisons);
+            if (flows.Any(static flow => flow.Length > 1) || lines.Any(static line => line.Spans.Count > 1)) {
+                long tableWork = 0;
+                void ChargeTableWork(long work) {
+                    tableWork += work;
+                    workBudget?.Charge(work);
+                    if (tableWork > limits.MaxTextSearchTableDetectionWork)
+                        throw PdfReadLimitException.Create(PdfReadLimitKind.TextSearchTableDetectionWork,
+                            limits.MaxTextSearchTableDetectionWork, tableWork);
+                }
+                var layoutOptions = new TextLayoutEngine.Options();
+                List<TextLayoutEngine.TextLine> layoutLines = TextLayoutEngine.BuildLines(spans, layoutOptions, ChargeTableWork, null)
+                    .Where(static line => !string.IsNullOrWhiteSpace(line.Text)).ToList();
+                List<List<TextLayoutEngine.TextLine>> bands = TextLayoutEngine.BandLines(layoutLines, layoutOptions, ChargeTableWork, null);
+                var tables = TableDetector.DetectTablesFromBands(bands, page.GetPageSize().Height, ChargeTableWork);
+                if (tables.Count > 0) flows = SplitTableSearchFlows(ref lines, spans, tables,
+                    limits.MaxTextSearchFlowComparisons, ref flowComparisons, ChargeTableWork);
+            }
+            workBudget?.Charge(flowComparisons);
+            foreach (int[] flow in flows) {
+                workBudget?.Charge(flow.Length);
                 PdfTextSpan[][] flowLines = flow.Select(lineIndex => lines[lineIndex].Spans.ToArray()).ToArray();
                 var unit = new TextSearchUnit(flowLines);
                 if (unit.Text.Length == 0) continue;
-                foreach (TextSearchRange range in unit.FindRanges(query, comparison, snapshot.WholeWords)) {
+                workBudget?.Charge((long)unit.Text.Length + queries.Sum(static query => query.Length));
+                foreach (TextSearchRange range in unit.FindRanges(queries, comparison, snapshot.WholeWords)) {
+                    workBudget?.Charge(1L);
                     IReadOnlyList<TextSourceSegment> segments = unit.GetSourceSegments(range.Start, range.Length);
                     if (segments.Count == 0) continue;
                     if (hits.Count + pageHits.Count >= limits.MaxTextSearchMatches) {
@@ -58,6 +85,103 @@ internal static partial class PdfTextEditor {
         return hits;
     }
 
+    private static List<int[]> SplitTableSearchFlows(ref List<TextLayoutEngine.TextLine> lines,
+        IReadOnlyList<PdfTextSpan> spans,
+        List<StructuredTable> tables, int maxFlowComparisons, ref long flowComparisons,
+        Action<long> chargeTableWork) {
+        var cells = new Dictionary<PdfTextSpan, (int Table, int Row, int Column)>();
+        for (int tableIndex = 0; tableIndex < tables.Count; tableIndex++) {
+            StructuredTable table = tables[tableIndex];
+            var rowBySpan = new Dictionary<PdfTextSpan, int>();
+            for (int rowIndex = 0; rowIndex < table.SourceLines.Count; rowIndex++) {
+                foreach (PdfTextSpan span in table.SourceLines[rowIndex].Spans) rowBySpan[span] = rowIndex;
+            }
+            double[] rowBaselines = table.SourceRuns.Select(static span => span.Y).Distinct()
+                .OrderByDescending(static y => y).ToArray();
+            double[] columnCenters = table.Columns.Select(static column => (column.From + column.To) / 2D).ToArray();
+            foreach (PdfTextSpan span in table.SourceRuns) {
+                int row = rowBySpan.TryGetValue(span, out int mappedRow)
+                    ? mappedRow
+                    : Array.FindIndex(rowBaselines, y => y == span.Y);
+                int column = columnCenters.Length == 0 ? 0 : FindNearestIndex(columnCenters, span.X, chargeTableWork);
+                cells[span] = (tableIndex, row, column);
+            }
+            double[] anchors = table.SourceLines.Count > 0
+                ? table.SourceLines.Select(static line => line.Y).ToArray()
+                : rowBaselines;
+            if (anchors.Length == 0 || table.Columns.Count == 0) continue;
+            double rowPitch = anchors.Length > 1
+                ? anchors.Zip(anchors.Skip(1), static (upper, lower) => Math.Abs(upper - lower)).Where(static gap => gap > 0D)
+                    .DefaultIfEmpty(0D).Average()
+                : 0D;
+            if (rowPitch <= 0D) continue;
+            foreach (PdfTextSpan span in spans) {
+                chargeTableWork(1L);
+                if (cells.ContainsKey(span)) continue;
+                int row = FindNearestIndex(anchors, span.Y, chargeTableWork);
+                if (Math.Abs(anchors[row] - span.Y) > rowPitch / 2D) continue;
+                int column = FindNearestIndex(columnCenters, span.X, chargeTableWork);
+                StructuredTableColumn columnBounds = table.Columns[column];
+                if (span.X < Math.Min(columnBounds.From, columnBounds.To) - 2D ||
+                    span.X > Math.Max(columnBounds.From, columnBounds.To) + 2D) continue;
+                cells[span] = (tableIndex, row, column);
+            }
+        }
+        // A search line can contain two adjacent cells when their gap is narrower than the
+        // generic line-splitting threshold. Split it before building text units or flow links.
+        var partitioned = new List<TextLayoutEngine.TextLine>();
+        foreach (TextLayoutEngine.TextLine line in lines) {
+            var segment = new List<PdfTextSpan>();
+            (int Table, int Row, int Column)? previous = null;
+            foreach (PdfTextSpan span in line.Spans) {
+                (int Table, int Row, int Column)? cell = cells.TryGetValue(span, out var mapped) ? mapped : null;
+                if (segment.Count > 0 && cell != previous) {
+                    partitioned.Add(BuildSearchLine(segment));
+                    segment.Clear();
+                }
+                segment.Add(span);
+                previous = cell;
+            }
+            if (segment.Count > 0) partitioned.Add(BuildSearchLine(segment));
+        }
+        lines = partitioned.OrderByDescending(static line => line.Y).ThenBy(static line => line.XStart).ToList();
+        List<int[]> flows = BuildSearchFlows(lines, maxFlowComparisons, ref flowComparisons);
+        var separated = new List<int[]>(flows.Count);
+        foreach (int[] flow in flows) {
+            var paragraph = new List<int>();
+            (int Table, int Row, int Column)? previousCell = null;
+            foreach (int lineIndex in flow) {
+                (int Table, int Row, int Column)? cell = null;
+                foreach (PdfTextSpan span in lines[lineIndex].Spans) {
+                    if (!cells.TryGetValue(span, out var mappedCell)) continue;
+                    cell = mappedCell;
+                    break;
+                }
+                if (paragraph.Count > 0 && cell != previousCell) {
+                    separated.Add(paragraph.ToArray());
+                    paragraph.Clear();
+                }
+                paragraph.Add(lineIndex);
+                previousCell = cell;
+            }
+            if (paragraph.Count > 0) separated.Add(paragraph.ToArray());
+        }
+        return separated;
+    }
+
+    private static int FindNearestIndex(double[] values, double target, Action<long> chargeWork) {
+        int nearest = 0;
+        double minimum = double.PositiveInfinity;
+        for (int index = 0; index < values.Length; index++) {
+            chargeWork(1L);
+            double distance = Math.Abs(values[index] - target);
+            if (distance >= minimum) continue;
+            minimum = distance;
+            nearest = index;
+        }
+        return nearest;
+    }
+
     private static PdfSelectionQuad ToVisualQuad(PdfReadPage page, SpanBounds bounds) {
         PdfVisualBounds visual = page.TransformBoundsToVisual(bounds.X, bounds.Y, bounds.X + bounds.Width, bounds.Y + bounds.Height);
         return new PdfSelectionQuad(
@@ -71,7 +195,12 @@ internal static partial class PdfTextEditor {
     /// it within a line-spacing distance; links are kept only when both lines choose each other, which keeps independent
     /// columns and side-by-side regions apart. Every line belongs to exactly one returned flow, listed in reading order.
     /// </summary>
-    private static List<int[]> BuildSearchFlows(List<TextLayoutEngine.TextLine> lines) {
+    internal static List<int[]> BuildSearchFlows(List<TextLayoutEngine.TextLine> lines, int maxComparisons = PdfReadLimits.DefaultMaxTextSearchFlowComparisons) {
+        long comparisons = 0;
+        return BuildSearchFlows(lines, maxComparisons, ref comparisons);
+    }
+
+    internal static List<int[]> BuildSearchFlows(List<TextLayoutEngine.TextLine> lines, int maxComparisons, ref long comparisons) {
         int count = lines.Count;
         var geometry = new SearchLineGeometry[count];
         for (int index = 0; index < count; index++) geometry[index] = SearchLineGeometry.Create(lines[index]);
@@ -92,6 +221,10 @@ internal static partial class PdfTextEditor {
                     int lower = ordered[lowerOrdinal];
                     double distance = geometry[upper].Normal - geometry[lower].Normal;
                     if (distance > maximumFontSize * 2D) break;
+                    if (++comparisons > maxComparisons) {
+                        throw PdfReadLimitException.Create(PdfReadLimitKind.TextSearchFlowComparisons, maxComparisons, comparisons);
+                    }
+                    if (lines[lower].LogicalLineBreaksBefore >= 2) continue;
                     double fontSize = Math.Max(geometry[upper].FontSize, geometry[lower].FontSize);
                     if (distance < fontSize * 0.6D || distance > fontSize * 2D) continue;
                     double overlap = Math.Min(geometry[upper].End, geometry[lower].End) - Math.Max(geometry[upper].Start, geometry[lower].Start);
@@ -240,7 +373,7 @@ internal static partial class PdfTextEditor {
 
     private sealed class TextSearchUnit {
         private readonly TextCharacterSource?[] _sources;
-        private readonly bool[] _lineBreaks;
+        private readonly int[] _lineBreakCounts;
         private readonly Dictionary<PdfTextSpan, int> _lineIndexes = new Dictionary<PdfTextSpan, int>();
 
         internal TextSearchUnit(IReadOnlyList<PdfTextSpan> spans) : this(new[] { spans }) {
@@ -250,14 +383,14 @@ internal static partial class PdfTextEditor {
         internal TextSearchUnit(IReadOnlyList<IReadOnlyList<PdfTextSpan>> lines) {
             var text = new System.Text.StringBuilder();
             var sources = new List<TextCharacterSource?>();
-            var lineBreaks = new List<bool>();
+            var lineBreakCounts = new List<int>();
             for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
                 PdfTextSpan[] orderedSpans = OrderSpansInReadingDirection(lines[lineIndex]);
                 if (orderedSpans.Length == 0) continue;
                 if (text.Length > 0) {
                     text.Append('\n');
                     sources.Add(null);
-                    lineBreaks.Add(true);
+                    lineBreakCounts.Add(1);
                 }
                 bool rightToLeft = UsesRightToLeftReadingOrder(orderedSpans);
                 PdfTextSpan? previous = null;
@@ -267,19 +400,21 @@ internal static partial class PdfTextEditor {
                     if (previous != null && NeedsSyntheticSpace(previous, span, text, rightToLeft)) {
                         text.Append(' ');
                         sources.Add(null);
-                        lineBreaks.Add(false);
+                        lineBreakCounts.Add(0);
                     }
                     for (int characterIndex = 0; characterIndex < span.Text.Length; characterIndex++) {
                         text.Append(span.Text[characterIndex]);
                         sources.Add(new TextCharacterSource(span, characterIndex));
-                        lineBreaks.Add(false);
+                        lineBreakCounts.Add(span.EmbeddedLineBreakCounts?[characterIndex] ??
+                            (span.Text[characterIndex] is '\r' or '\n' or '\u2028' or '\u2029' &&
+                             !(span.Text[characterIndex] == '\n' && characterIndex > 0 && span.Text[characterIndex - 1] == '\r') ? 1 : 0));
                     }
                     previous = span;
                 }
             }
             Text = text.ToString();
             _sources = sources.ToArray();
-            _lineBreaks = lineBreaks.ToArray();
+            _lineBreakCounts = lineBreakCounts.ToArray();
         }
 
         internal string Text { get; }
@@ -296,26 +431,44 @@ internal static partial class PdfTextEditor {
         /// chained lines, match one query space. A letter-hyphen-line-break-letter junction matches both the joined word
         /// ("hyphenation") and the hyphenated compound without the break ("well-known").
         /// </summary>
-        internal List<TextSearchRange> FindRanges(string query, StringComparison comparison, bool wholeWords) {
-            var candidates = new List<TextSearchRange>();
-            PdfNormalizedSearchText joined = PdfNormalizedSearchText.Create(Text, _lineBreaks, removeLineEndHyphens: false, out bool hasHyphenJunction);
-            CollectRanges(joined, query, comparison, wholeWords, candidates);
+        internal IEnumerable<TextSearchRange> FindRanges(IReadOnlyList<string> queries, StringComparison comparison, bool wholeWords) {
+            PdfNormalizedSearchText joined = PdfNormalizedSearchText.Create(Text, _lineBreakCounts, removeLineEndHyphens: false, out bool hasHyphenJunction);
+            var sources = new List<IEnumerator<TextSearchRange>>();
+            foreach (string query in queries) sources.Add(EnumerateRanges(joined, query, comparison, wholeWords).GetEnumerator());
             if (hasHyphenJunction) {
-                PdfNormalizedSearchText dehyphenated = PdfNormalizedSearchText.Create(Text, _lineBreaks, removeLineEndHyphens: true, out _);
-                CollectRanges(dehyphenated, query, comparison, wholeWords, candidates);
+                PdfNormalizedSearchText dehyphenated = PdfNormalizedSearchText.Create(Text, _lineBreakCounts, removeLineEndHyphens: true, out _);
+                foreach (string query in queries) sources.Add(EnumerateRanges(dehyphenated, query, comparison, wholeWords).GetEnumerator());
             }
-            if (candidates.Count <= 1) return candidates;
-            var accepted = new List<TextSearchRange>(candidates.Count);
-            int acceptedEnd = 0;
-            foreach (TextSearchRange candidate in candidates.OrderBy(static range => range.Start).ThenByDescending(static range => range.Length)) {
-                if (accepted.Count > 0 && candidate.Start < acceptedEnd) continue;
-                accepted.Add(candidate);
-                acceptedEnd = candidate.Start + candidate.Length;
+            try {
+                for (int index = sources.Count - 1; index >= 0; index--) {
+                    if (sources[index].MoveNext()) continue;
+                    sources[index].Dispose();
+                    sources.RemoveAt(index);
+                }
+                int acceptedEnd = 0;
+                while (sources.Count > 0) {
+                    int selected = 0;
+                    for (int index = 1; index < sources.Count; index++) {
+                        TextSearchRange candidate = sources[index].Current;
+                        TextSearchRange best = sources[selected].Current;
+                        if (candidate.Start < best.Start || candidate.Start == best.Start && candidate.Length > best.Length)
+                            selected = index;
+                    }
+                    TextSearchRange next = sources[selected].Current;
+                    if (!sources[selected].MoveNext()) {
+                        sources[selected].Dispose();
+                        sources.RemoveAt(selected);
+                    }
+                    if (next.Start < acceptedEnd) continue;
+                    acceptedEnd = next.Start + next.Length;
+                    yield return next;
+                }
+            } finally {
+                foreach (IEnumerator<TextSearchRange> source in sources) source.Dispose();
             }
-            return accepted;
         }
 
-        private void CollectRanges(PdfNormalizedSearchText normalized, string query, StringComparison comparison, bool wholeWords, List<TextSearchRange> ranges) {
+        private IEnumerable<TextSearchRange> EnumerateRanges(PdfNormalizedSearchText normalized, string query, StringComparison comparison, bool wholeWords) {
             string value = normalized.Text;
             int start = 0;
             while (start <= value.Length - query.Length) {
@@ -326,7 +479,7 @@ internal static partial class PdfTextEditor {
                 int sourceStart = normalized.GetSourceStart(found);
                 int sourceEnd = normalized.GetSourceEnd(found + query.Length - 1);
                 if (HasUnmappedBoundary(sourceStart, sourceEnd - sourceStart)) continue;
-                ranges.Add(new TextSearchRange(sourceStart, sourceEnd - sourceStart, value.Substring(found, query.Length)));
+                yield return new TextSearchRange(sourceStart, sourceEnd - sourceStart, value.Substring(found, query.Length));
             }
         }
 

@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Threading;
 using OfficeIMO.Security;
 
 namespace OfficeIMO.Pdf;
@@ -18,6 +19,37 @@ internal static class PdfAesCryptography {
         byte[] ciphertext,
         IOfficeAesCryptographyProvider? provider) =>
         Transform(key, initializationVector, ciphertext, OfficeAesPadding.None, provider, encrypt: false);
+
+    internal static byte[] DecryptNoPadding(
+        byte[] key,
+        byte[] initializationVector,
+        byte[] ciphertext,
+        IOfficeAesCryptographyProvider? provider,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (ciphertext.Length <= 65536) {
+            byte[] result = DecryptNoPadding(key, initializationVector, ciphertext, provider);
+            cancellationToken.ThrowIfCancellationRequested();
+            return result;
+        }
+
+        ValidateInputs(key, initializationVector, ciphertext, OfficeAesPadding.None, encrypt: false);
+        var plaintext = new byte[ciphertext.Length];
+        byte[] iv = initializationVector;
+        for (int offset = 0; offset < ciphertext.Length; offset += 65536) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = Math.Min(65536, ciphertext.Length - offset);
+            var chunk = new byte[count];
+            Buffer.BlockCopy(ciphertext, offset, chunk, 0, count);
+            byte[] decrypted = DecryptNoPadding(key, iv, chunk, provider);
+            if (decrypted.Length != count) throw new InvalidOperationException("AES provider returned an unexpected output length.");
+            Buffer.BlockCopy(decrypted, 0, plaintext, offset, count);
+            iv = new byte[16];
+            Buffer.BlockCopy(chunk, count - iv.Length, iv, 0, iv.Length);
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return plaintext;
+    }
 
     internal static byte[] EncryptPkcs7(
         byte[] key,

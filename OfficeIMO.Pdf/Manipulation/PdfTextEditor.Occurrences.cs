@@ -129,11 +129,12 @@ internal static partial class PdfTextEditor {
         return Math.Abs(span.Advance) * characterIndex / Math.Max(1, span.Text.Length);
     }
 
-    private static double GetMatchedBaselineExtent(IReadOnlyList<TextSourceSegment> segments) {
+    private static double GetMatchedBaselineExtent(IReadOnlyList<TextSourceSegment> segments, IReadOnlyList<PdfTextSpan> insertionLine) {
         double radians = segments[0].Span.RotationDegrees * Math.PI / 180D;
         double ux = Math.Cos(radians), uy = Math.Sin(radians);
         double minimum = double.PositiveInfinity, maximum = double.NegativeInfinity;
         foreach (TextSourceSegment segment in segments) {
+            if (!insertionLine.Contains(segment.Span)) continue;
             PdfTextSpan span = segment.Span;
             double rotation = span.RotationDegrees * Math.PI / 180D;
             double projection = Math.Cos(rotation) * ux + Math.Sin(rotation) * uy;

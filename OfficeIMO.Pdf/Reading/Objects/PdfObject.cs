@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 internal abstract class PdfObject {
@@ -125,6 +127,18 @@ internal sealed class PdfStream : PdfObject {
             return System.Threading.Interlocked.CompareExchange(ref _data, data, null) ?? data;
         }
     }
+    internal byte[] GetData(CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        byte[]? data = System.Threading.Volatile.Read(ref _data);
+        if (data is not null) return data;
+        data = new byte[_sourceLength];
+        for (int offset = 0; offset < data.Length; offset += 65536) {
+            cancellationToken.ThrowIfCancellationRequested();
+            Buffer.BlockCopy(_source!, _sourceOffset + offset, data, offset, Math.Min(65536, data.Length - offset));
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return System.Threading.Interlocked.CompareExchange(ref _data, data, null) ?? data;
+    }
     internal int DataLength => _data?.Length ?? _sourceLength;
     internal long DataLongLength => DataLength;
     /// <summary>True when a decode filter failed; <see cref="Data"/> contains original undecoded bytes.</summary>
@@ -167,6 +181,17 @@ internal sealed class PdfStream : PdfObject {
             return;
         }
         Buffer.BlockCopy(_source!, _sourceOffset, destination, destinationOffset, _sourceLength);
+    }
+
+    internal void CopyDataTo(byte[] destination, int destinationOffset, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        GetDataSegment(out byte[] source, out int sourceOffset, out int length);
+        for (int offset = 0; offset < length; offset += 65536) {
+            cancellationToken.ThrowIfCancellationRequested();
+            Buffer.BlockCopy(source, sourceOffset + offset, destination, destinationOffset + offset,
+                Math.Min(65536, length - offset));
+        }
+        cancellationToken.ThrowIfCancellationRequested();
     }
 
     internal void GetDataSegment(out byte[] buffer, out int offset, out int length) {
@@ -219,16 +244,29 @@ internal static class PdfObjectLookup {
 
     public static PdfObject? ResolveChain(
         System.Collections.Generic.Dictionary<int, PdfIndirectObject> objects,
-        PdfObject? value) =>
-        TryResolveReferenceChain(objects, value, out PdfObject? resolved) ? resolved : null;
+        PdfObject? value) => ResolveChainCancellable(objects, value, default);
+
+    public static PdfObject? ResolveChainCancellable(
+        System.Collections.Generic.Dictionary<int, PdfIndirectObject> objects,
+        PdfObject? value,
+        System.Threading.CancellationToken cancellationToken) =>
+        TryResolveReferenceChainCancellable(objects, value, out PdfObject? resolved, cancellationToken) ? resolved : null;
 
     public static bool TryResolveReferenceChain(
         System.Collections.Generic.Dictionary<int, PdfIndirectObject> objects,
         PdfObject? value,
-        out PdfObject? resolved) {
+        out PdfObject? resolved) => TryResolveReferenceChainCancellable(objects, value, out resolved, default);
+
+    public static bool TryResolveReferenceChainCancellable(
+        System.Collections.Generic.Dictionary<int, PdfIndirectObject> objects,
+        PdfObject? value,
+        out PdfObject? resolved,
+        System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         var visited = new System.Collections.Generic.HashSet<(int ObjectNumber, int Generation)>();
         resolved = value;
         while (resolved is PdfReference reference) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!visited.Add((reference.ObjectNumber, reference.Generation)) ||
                 !TryGet(objects, reference, out PdfIndirectObject indirect)) {
                 resolved = null;

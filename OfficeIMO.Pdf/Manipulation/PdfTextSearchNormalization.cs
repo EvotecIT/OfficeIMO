@@ -1,3 +1,5 @@
+using System.Linq;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>
@@ -6,62 +8,64 @@ namespace OfficeIMO.Pdf;
 /// ("hyphenation") and the hyphenated compound without the break ("well-known").
 /// </summary>
 internal static class PdfTextSearchNormalization {
-    /// <summary>Collapses every whitespace run in a query to one space.</summary>
-    internal static string NormalizeQuery(string text) {
-        var builder = new System.Text.StringBuilder(text.Length);
-        bool inWhitespace = false;
-        for (int index = 0; index < text.Length; index++) {
-            if (char.IsWhiteSpace(text[index])) {
-                if (!inWhitespace) builder.Append(' ');
-                inWhitespace = true;
-            } else {
-                builder.Append(text[index]);
-                inWhitespace = false;
-            }
-        }
-        return builder.ToString();
+    /// <summary>Collapses whitespace and retains a line-end hyphen in the query.</summary>
+    internal static string NormalizeQuery(string text) => NormalizeQueries(text)[0];
+
+    /// <summary>Also accepts the joined spelling when the query itself contains a hyphenated line break.</summary>
+    internal static string[] NormalizeQueries(string text) {
+        int[] lineBreaks = GetLineBreakCounts(text);
+        PdfNormalizedSearchText joined = PdfNormalizedSearchText.Create(text, lineBreaks, removeLineEndHyphens: false, out bool hasHyphenJunction);
+        if (!hasHyphenJunction) return new[] { joined.Text };
+        string dehyphenated = PdfNormalizedSearchText.Create(text, lineBreaks, removeLineEndHyphens: true, out _).Text;
+        return new[] { joined.Text, dehyphenated };
     }
 
     /// <summary>Returns true when <paramref name="text"/> contains <paramref name="value"/> under line-break and hyphenation-tolerant matching.</summary>
     internal static bool Contains(string text, string value, StringComparison comparison) {
         if (ContainsExact(text, value, comparison)) return true;
-        string query = NormalizeQuery(value);
-        if (query.Length == 0) return false;
+        string[] queries = NormalizeQueries(value);
+        if (queries[0].Length == 0) return false;
         bool hasWhitespace = false;
         for (int index = 0; index < text.Length && !hasWhitespace; index++) hasWhitespace = char.IsWhiteSpace(text[index]);
-        if (!hasWhitespace) return false;
-        bool[] lineBreaks = GetLineBreaks(text);
+        if (!hasWhitespace) return queries.Any(query => ContainsExact(text, query, comparison));
+        int[] lineBreaks = GetLineBreakCounts(text);
         PdfNormalizedSearchText joined = PdfNormalizedSearchText.Create(text, lineBreaks, removeLineEndHyphens: false, out bool hasHyphenJunction);
-        if (ContainsExact(joined.Text, query, comparison)) return true;
-        return hasHyphenJunction &&
-            ContainsExact(PdfNormalizedSearchText.Create(text, lineBreaks, removeLineEndHyphens: true, out _).Text, query, comparison);
+        if (queries.Any(query => ContainsExact(joined.Text, query, comparison))) return true;
+        return hasHyphenJunction && queries.Any(query =>
+            ContainsExact(PdfNormalizedSearchText.Create(text, lineBreaks, removeLineEndHyphens: true, out _).Text, query, comparison));
     }
 
-    /// <summary>Returns the source ranges of every line-break and hyphenation-tolerant occurrence of <paramref name="value"/>.</summary>
-    internal static List<(int Start, int End)> FindSourceRanges(string text, string value, StringComparison comparison) {
-        var ranges = new List<(int Start, int End)>();
-        string query = NormalizeQuery(value);
-        if (query.Length == 0 || text.Length == 0) return ranges;
-        bool[] lineBreaks = GetLineBreaks(text);
+    /// <summary>Enumerates source ranges without collecting dense occurrences before a caller can stop.</summary>
+    internal static IEnumerable<(int Start, int End)> FindSourceRanges(string text, string value, StringComparison comparison) {
+        string[] queries = NormalizeQueries(value);
+        if (queries[0].Length == 0 || text.Length == 0) yield break;
+        int[] lineBreaks = GetLineBreakCounts(text);
         PdfNormalizedSearchText joined = PdfNormalizedSearchText.Create(text, lineBreaks, removeLineEndHyphens: false, out bool hasHyphenJunction);
-        AddSourceRanges(joined, query, comparison, ranges);
-        if (hasHyphenJunction) AddSourceRanges(PdfNormalizedSearchText.Create(text, lineBreaks, removeLineEndHyphens: true, out _), query, comparison, ranges);
-        return ranges;
+        foreach (string query in queries)
+            foreach ((int Start, int End) range in EnumerateSourceRanges(joined, query, comparison)) yield return range;
+        if (hasHyphenJunction) {
+            PdfNormalizedSearchText dehyphenated = PdfNormalizedSearchText.Create(text, lineBreaks, removeLineEndHyphens: true, out _);
+            foreach (string query in queries)
+                foreach ((int Start, int End) range in EnumerateSourceRanges(dehyphenated, query, comparison)) yield return range;
+        }
     }
 
-    private static void AddSourceRanges(PdfNormalizedSearchText normalized, string query, StringComparison comparison, List<(int Start, int End)> ranges) {
+    private static IEnumerable<(int Start, int End)> EnumerateSourceRanges(PdfNormalizedSearchText normalized, string query, StringComparison comparison) {
         int start = 0;
         while (start <= normalized.Text.Length - query.Length) {
             int found = normalized.Text.IndexOf(query, start, comparison);
             if (found < 0) break;
-            ranges.Add((normalized.GetSourceStart(found), normalized.GetSourceEnd(found + query.Length - 1)));
+            yield return (normalized.GetSourceStart(found), normalized.GetSourceEnd(found + query.Length - 1));
             start = found + 1;
         }
     }
 
-    private static bool[] GetLineBreaks(string text) {
-        var lineBreaks = new bool[text.Length];
-        for (int index = 0; index < text.Length; index++) lineBreaks[index] = (int)text[index] is 0x000A or 0x000D or 0x2028 or 0x2029;
+    private static int[] GetLineBreakCounts(string text) {
+        var lineBreaks = new int[text.Length];
+        for (int index = 0; index < text.Length; index++) {
+            if (text[index] == '\r' && index + 1 < text.Length && text[index + 1] == '\n') continue;
+            if (text[index] is '\r' or '\n' or '\u2028' or '\u2029') lineBreaks[index] = 1;
+        }
         return lineBreaks;
     }
 
@@ -92,9 +96,9 @@ internal sealed class PdfNormalizedSearchText {
 
     /// <summary>
     /// Collapses whitespace runs to one space. A run that contains a line break and follows a letter-hyphen pair before
-    /// another letter is dropped; with <paramref name="removeLineEndHyphens"/> the hyphen is dropped too, so the word reads joined.
+    /// another letter is dropped when there is exactly one logical line break; with <paramref name="removeLineEndHyphens"/> the hyphen is dropped too.
     /// </summary>
-    internal static PdfNormalizedSearchText Create(string source, bool[] lineBreaks, bool removeLineEndHyphens, out bool hasHyphenJunction) {
+    internal static PdfNormalizedSearchText Create(string source, int[] lineBreaks, bool removeLineEndHyphens, out bool hasHyphenJunction) {
         hasHyphenJunction = false;
         var text = new System.Text.StringBuilder(source.Length);
         var starts = new List<int>(source.Length);
@@ -109,17 +113,21 @@ internal sealed class PdfNormalizedSearchText {
                 continue;
             }
             int runEnd = index;
-            bool containsLineBreak = false;
+            int lineBreakCount = 0;
             while (runEnd < source.Length && char.IsWhiteSpace(source[runEnd])) {
-                containsLineBreak |= lineBreaks[runEnd];
+                lineBreakCount += lineBreaks[runEnd];
                 runEnd++;
             }
-            if (containsLineBreak && IsLineEndHyphenJunction(source, index, runEnd)) {
+            if (lineBreakCount == 1 && IsLineEndHyphenJunction(source, index, runEnd)) {
                 hasHyphenJunction = true;
                 if (removeLineEndHyphens) {
                     text.Length--;
                     starts.RemoveAt(starts.Count - 1);
                     ends.RemoveAt(ends.Count - 1);
+                } else {
+                    // Keep the source range, but match every supported line-end hyphen against
+                    // the ordinary hyphen callers use in copied or typed queries.
+                    text[text.Length - 1] = '-';
                 }
             } else {
                 text.Append(' ');
@@ -131,12 +139,20 @@ internal sealed class PdfNormalizedSearchText {
         return new PdfNormalizedSearchText(text.ToString(), starts.ToArray(), ends.ToArray());
     }
 
-    private static bool IsLineEndHyphenJunction(string source, int runStart, int runEnd) =>
-        runStart >= 2 &&
-        runEnd < source.Length &&
-        IsLineEndHyphen(source[runStart - 1]) &&
-        char.IsLetter(source, runStart - 2) &&
-        char.IsLetter(source, runEnd);
+    private static bool IsLineEndHyphenJunction(string source, int runStart, int runEnd) {
+        if (runStart < 2 || runEnd >= source.Length || !IsLineEndHyphen(source[runStart - 1]) ||
+            !char.IsLetter(source, runEnd)) return false;
+        int letterIndex = runStart - 2;
+        while (letterIndex >= 0 && IsCombiningMark(source, letterIndex)) letterIndex--;
+        if (letterIndex > 0 && char.IsLowSurrogate(source[letterIndex]) && char.IsHighSurrogate(source[letterIndex - 1]))
+            letterIndex--;
+        return letterIndex >= 0 && char.IsLetter(source, letterIndex);
+    }
+
+    private static bool IsCombiningMark(string source, int index) => char.GetUnicodeCategory(source, index) is
+        System.Globalization.UnicodeCategory.NonSpacingMark or
+        System.Globalization.UnicodeCategory.SpacingCombiningMark or
+        System.Globalization.UnicodeCategory.EnclosingMark;
 
     private static bool IsLineEndHyphen(char value) => (int)value is 0x002D or 0x00AD or 0x2010 or 0x2011;
 }

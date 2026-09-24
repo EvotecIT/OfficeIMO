@@ -83,6 +83,9 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
     [ObservableProperty]
     private Rect? _activeSearchHighlight;
 
+    [ObservableProperty]
+    private IReadOnlyList<Rect> _activeSearchHighlights = Array.Empty<Rect>();
+
     private double _zoom;
 
     internal PdfPageViewModel(

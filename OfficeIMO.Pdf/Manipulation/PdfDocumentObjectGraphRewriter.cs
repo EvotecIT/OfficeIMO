@@ -138,7 +138,8 @@ internal static class PdfDocumentObjectGraphRewriter {
             pagesObjectId: 0,
             new Dictionary<int, Dictionary<string, PdfObject>>(),
             objects,
-            preserveRawStringBytes: true);
+            preserveRawStringBytes: true,
+            cancellationToken: cancellationToken);
         if (maximumOutputBytes.HasValue) {
             return RewriteBounded(
                 objects,

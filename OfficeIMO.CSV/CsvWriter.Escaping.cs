@@ -316,6 +316,20 @@ internal static partial class CsvWriter
         AppendQuotedSpan(writer, text);
     }
 
+    private static void AppendEscapedSpan(StringBuilder writer, ReadOnlySpan<char> text, string delimiter, bool prefixApostrophe, CsvQuoteMode quoteMode, bool forceQuote)
+    {
+        if (quoteMode == CsvQuoteMode.Never || !(quoteMode == CsvQuoteMode.Always || forceQuote || NeedsQuotes(text, delimiter)))
+        {
+            if (prefixApostrophe) writer.Append('\'');
+            writer.Append(text);
+            return;
+        }
+
+        writer.Append('"');
+        if (prefixApostrophe) writer.Append('\'');
+        AppendQuotedSpan(writer, text);
+    }
+
     private static void AppendEscapedSpanDefault(StringBuilder writer, ReadOnlySpan<char> text, char delimiter)
     {
         if (!NeedsQuotes(text, delimiter))
@@ -379,5 +393,9 @@ internal static partial class CsvWriter
 
         return false;
     }
+
+    private static bool NeedsQuotes(ReadOnlySpan<char> text, string delimiter) =>
+        text.IndexOf(delimiter.AsSpan()) >= 0 ||
+        text.IndexOf('"') >= 0 || text.IndexOf('\n') >= 0 || text.IndexOf('\r') >= 0;
 #endif
 }

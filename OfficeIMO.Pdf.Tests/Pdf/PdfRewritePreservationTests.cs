@@ -311,6 +311,23 @@ public class PdfRewritePreservationTests {
     }
 
     [Fact]
+    public void ActionPayloadFingerprintHashesLongUnicodeReferenceWithoutChangingItsDigest() {
+        string name = new string('x', 16378) + "😀" + new string('y', 16);
+        var objects = new Dictionary<int, PdfIndirectObject> {
+            [7] = new PdfIndirectObject(7, 0, new PdfName(name))
+        };
+        var action = new PdfDictionary();
+        action.Items["S"] = new PdfName("Named");
+        action.Items["N"] = new PdfReference(7, 0);
+
+        string fingerprint = Assert.IsType<string>(PdfActionPayloadFingerprint.Create(action, objects, new PdfReadLimits()));
+        byte[] encoded = System.Text.Encoding.UTF8.GetBytes("N" + name.Length + ":" + name);
+        using var sha256 = System.Security.Cryptography.SHA256.Create();
+        string expected = Convert.ToBase64String(sha256.ComputeHash(encoded));
+        Assert.Contains(expected, fingerprint, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ActionPayloadFingerprintHashesSharedIndirectContainerPayloads() {
         var shared = new PdfArray();
         for (int index = 0; index < 4000; index++) shared.Items.Add(new PdfNumber(index));

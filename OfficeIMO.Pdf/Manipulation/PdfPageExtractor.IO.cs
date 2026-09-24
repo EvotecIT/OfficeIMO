@@ -1,5 +1,6 @@
 using OfficeIMO.Core.Internal;
 using System.Globalization;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
@@ -17,13 +18,13 @@ internal static partial class PdfPageExtractor {
         }
     }
     
-    private static byte[] ReadStream(Stream stream, string paramName) {
+    private static byte[] ReadStream(Stream stream, string paramName, PdfLoadOptions? options = null, CancellationToken cancellationToken = default) {
         Guard.NotNull(stream, paramName);
         if (!stream.CanRead) {
             throw new ArgumentException("Stream must be readable.", paramName);
         }
 
-        return PdfDocumentSource.FromRemainingStream(stream, null).Bytes;
+        return PdfDocumentSource.FromRemainingStream(stream, options, cancellationToken).Bytes;
     }
 
     private static byte[] ReadPath(string path) =>
