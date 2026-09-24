@@ -25,10 +25,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         HtmlRenderBoxStyle controlStyle = CreateFormControlStyle(element, style);
-        double defaultContentWidth = ResolveDefaultFormControlContentWidth(element, controlStyle);
+        double defaultContentWidth = ResolveDefaultFormControlContentWidth(element, controlStyle, availableWidth);
         double availableBoxWidth = Math.Max(1D, availableWidth - controlStyle.MarginLeft - controlStyle.MarginRight);
         double boxWidth = ResolveFormControlBoxWidth(controlStyle, defaultContentWidth, availableBoxWidth);
         return Math.Max(1D, Math.Min(availableWidth, controlStyle.MarginLeft + boxWidth + controlStyle.MarginRight));
+    }
+
+    private double ResolveFormControlIntrinsicOuterWidth(IElement element, HtmlRenderBoxStyle style, double availableWidth) {
+        if (style.ExplicitWidthUsesPercentage) {
+            style = style.Clone();
+            style.ExplicitWidth = null;
+            style.ExplicitWidthUsesPercentage = false;
+        }
+        return ResolveFormControlOuterWidth(element, style, availableWidth);
     }
 
     private HtmlRenderFlowBlock LayoutFormControl(IElement element, double containingWidth, HtmlRenderBoxStyle authoredStyle) {
@@ -39,7 +48,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string source = HtmlRenderStyleResolver.DescribeSource(element);
         HtmlRenderBoxStyle style = CreateFormControlStyle(element, authoredStyle);
         double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
-        double defaultContentWidth = ResolveDefaultFormControlContentWidth(element, style);
+        double defaultContentWidth = ResolveDefaultFormControlContentWidth(element, style, availableWidth);
         double boxWidth = ResolveFormControlBoxWidth(style, defaultContentWidth, availableWidth);
         double defaultContentHeight = ResolveDefaultFormControlContentHeight(element, style);
         double boxHeight = ResolveFormControlBoxHeight(style, defaultContentHeight);
@@ -114,7 +123,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return fallback;
     }
 
-    private double ResolveDefaultFormControlContentWidth(IElement element, HtmlRenderBoxStyle style) {
+    private double ResolveDefaultFormControlContentWidth(IElement element, HtmlRenderBoxStyle style, double availableWidth) {
         string tag = element.TagName.ToLowerInvariant();
         string type = NormalizeInputType(element);
         if (tag == "input" && (type == "checkbox" || type == "radio")) return 14D;
@@ -127,6 +136,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         if (tag == "button" || tag == "input" && IsButtonInputType(type)) {
             string label = ResolveButtonLabel(element, type);
+            if (tag == "button" && label.Length == 0) {
+                IReadOnlyList<GridIntrinsicTextRun> content = ResolveGridInFlowTextRuns(
+                    new FlexItem(element, style, 0), availableWidth);
+                return content.Count == 0 ? 0D : MeasureGridMaxContentRuns(content);
+            }
             return Math.Max(44D, MeasureInlineText(label, style) + 12D);
         }
         if (tag == "select") {
@@ -626,8 +640,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private static string ResolveButtonLabel(IElement element, string type) {
         if (string.Equals(element.TagName, "button", StringComparison.OrdinalIgnoreCase)) {
-            string content = NormalizeControlText(element.TextContent);
-            return content.Length == 0 ? "Button" : content;
+            return NormalizeControlText(element.TextContent);
         }
         string value = NormalizeControlText(HtmlFormControlSemantics.GetValues(element).FirstOrDefault());
         if (value.Length > 0) return value;

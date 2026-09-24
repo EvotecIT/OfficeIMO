@@ -539,7 +539,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             bool establishesLineBoundary = HtmlRenderStyleResolver.IsBlockElement(child, childStyle);
             if (establishesLineBoundary) result.Add(GridIntrinsicTextRun.ForcedBreak(childStyle));
-            if (IsReplacedImageElement(child)) {
+            if (IsFormControlElement(child.LocalName.ToLowerInvariant())) {
+                result.Add(GridIntrinsicTextRun.Replaced(
+                    ResolveFormControlIntrinsicOuterWidth(child, childStyle, availableSize), childStyle));
+            } else if (IsReplacedImageElement(child)) {
                 double width = ResolveReplacedImageBoxWidth(child, childStyle) + childStyle.MarginLeft + childStyle.MarginRight;
                 result.Add(GridIntrinsicTextRun.Replaced(width, childStyle));
             } else {

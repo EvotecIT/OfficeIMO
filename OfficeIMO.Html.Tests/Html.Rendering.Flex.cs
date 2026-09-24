@@ -1145,6 +1145,37 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(expectedWidth, first.Width, 3);
     }
 
+    [Fact]
+    public void HtmlFlexRow_NestedSearchControlsContributeToAutoWidth() {
+        HtmlRenderDocument rendered = RenderFlex("""
+            <style>*{box-sizing:border-box}body{margin:0}</style>
+            <div id="bar" style="display:flex;width:816px;background:#222222">
+              <div style="width:40px;flex-shrink:0;height:40px;background:#cc0000"></div>
+              <div style="width:60px;flex-shrink:0;height:40px;background:#00cc00"></div>
+              <div style="display:flex;flex-grow:1;flex-shrink:0;width:auto">
+                <div style="display:flex;width:100%">
+                  <div id="nav" style="display:flex;margin-left:auto;background:#cccccc">
+                    <div style="width:70px;height:40px;background:#dddddd"></div>
+                    <div style="width:50px;height:40px;background:#eeeeee"></div>
+                    <form id="search" style="background:#aaaaaa">
+                      <div style="display:flex;flex-wrap:nowrap">
+                        <input type="text" size="20" placeholder="Search...">
+                        <button type="reset">X</button><button type="submit">Go</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </div>
+            """, 816D);
+
+        HtmlRenderShape bar = FindFlexShape(rendered, "div#bar");
+        HtmlRenderShape nav = FindFlexShape(rendered, "div#nav");
+        HtmlRenderShape search = FindFlexShape(rendered, "form#search");
+        Assert.True(search.Width >= 250D, "the input and both buttons need their combined intrinsic width");
+        Assert.True(nav.X + nav.Width <= bar.X + bar.Width + 0.001D);
+    }
+
     private static HtmlRenderDocument RenderFlex(string html, double viewportWidth) =>
         HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = viewportWidth,

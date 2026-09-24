@@ -381,6 +381,30 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain("Button", rendered.Text, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void HtmlRendering_EmptyButtonKeepsItsAuthoredBoxWithoutInventingVisibleText() {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<button id='icon' aria-label='Search' style='display:block;padding:0 12px;border:1px solid #000;background:#eee;height:24px'><span></span></button>",
+            new HtmlRenderOptions { ViewportWidth = 200D, Margins = HtmlRenderMargins.All(0D) });
+
+        HtmlRenderShape button = Assert.Single(rendered.Pages.SelectMany(page => page.Visuals)
+            .OfType<HtmlRenderShape>(), shape => shape.Source == "button#icon" && shape.Shape.FillColor.HasValue);
+        Assert.InRange(button.Width, 25D, 30D);
+        Assert.DoesNotContain(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(),
+            text => text.Source == "button#icon");
+    }
+
+    [Fact]
+    public void HtmlRendering_IconButtonIncludesSvgIntrinsicWidth() {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<button id='icon' style='display:block;padding:0 6px;border:1px solid #000'><svg width='24' height='24' viewBox='0 0 24 24'><circle cx='12' cy='12' r='8'/></svg></button>",
+            new HtmlRenderOptions { ViewportWidth = 200D, Margins = HtmlRenderMargins.All(0D) });
+
+        HtmlRenderShape button = Assert.Single(rendered.Pages.SelectMany(page => page.Visuals)
+            .OfType<HtmlRenderShape>(), shape => shape.Source == "button#icon" && shape.Shape.FillColor.HasValue);
+        Assert.InRange(button.Width, 37D, 39D);
+    }
+
     private static double RangeThumbX(string html) {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
         return Assert.Single(

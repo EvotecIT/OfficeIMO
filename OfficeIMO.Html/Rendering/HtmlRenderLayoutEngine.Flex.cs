@@ -242,6 +242,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle style = item.Style;
         string tag = item.TagName;
         if (IsReplacedImageElementTag(tag) && item.Element != null) return ResolveReplacedImageBoxWidth(item.Element, style);
+        if (IsFormControlElement(tag) && item.Element != null) {
+            double outerWidth = intrinsicDepth > 0
+                ? ResolveFormControlIntrinsicOuterWidth(item.Element, style, availableWidth)
+                : ResolveFormControlOuterWidth(item.Element, style, availableWidth);
+            return Math.Max(0D, outerWidth - style.MarginLeft - style.MarginRight);
+        }
         if (style.ExplicitWidth.HasValue) {
             return style.ExplicitWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets);
         }
@@ -264,8 +270,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
             foreach (IElement child in item.Element.Children) {
                 HtmlRenderBoxStyle childStyle = _styleResolver.Resolve(child, availableWidth, style);
                 if (childStyle.Display == "none" || childStyle.Position == "absolute" || childStyle.Position == "fixed"
-                    || childStyle.ExplicitWidthUsesPercentage
                     || !HtmlRenderStyleResolver.IsBlockElement(child, childStyle)) continue;
+                if (childStyle.Display == "flex" && childStyle.FlexDirection is "row" or "row-reverse") {
+                    HtmlRenderBoxStyle intrinsicStyle = childStyle;
+                    if (intrinsicStyle.ExplicitWidthUsesPercentage) {
+                        intrinsicStyle = intrinsicStyle.Clone();
+                        intrinsicStyle.ExplicitWidth = null;
+                        intrinsicStyle.ExplicitWidthUsesPercentage = false;
+                    }
+                    measured = Math.Max(measured,
+                        ResolveFlexAutoBoxBasis(new FlexItem(child, intrinsicStyle, 0), availableWidth, intrinsicDepth + 1)
+                        + intrinsicStyle.MarginLeft + intrinsicStyle.MarginRight);
+                    continue;
+                }
+                if (childStyle.ExplicitWidthUsesPercentage) continue;
                 // The flattened text runs omit an in-flow block child's own padding.
                 measured = Math.Max(measured, ResolveGridMaxContentContribution(new FlexItem(child, childStyle, 0), availableWidth));
             }
