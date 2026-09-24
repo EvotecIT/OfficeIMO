@@ -39,7 +39,7 @@ public static class OdfCapabilityCatalog {
         new OdfCapability("tracked-change-editing", "Tracked-change editing", OdfCapabilityLevel.Limited,
             "Paragraph insertion and deletion changes can be authored, inspected, accepted, and rejected; arbitrary inline merge/conflict editing remains outside the typed surface."),
         new OdfCapability("advanced-charts", "Advanced charts", OdfCapabilityLevel.Preserved,
-            "Chart and embedded-object XML is preserved when untouched; a complete typed chart authoring model is not provided."),
+            "ODS embedded charts expose read-only structure and source ranges; chart XML is preserved, while typed chart authoring is not provided."),
         new OdfCapability("presentation-animations", "Presentation animations", OdfCapabilityLevel.Limited,
             "Basic shape attribute animations and fade-in effects can be authored and inspected; advanced timing trees remain preservation-oriented."),
         new OdfCapability("flat-xml", "Flat OpenDocument XML", OdfCapabilityLevel.Limited,
