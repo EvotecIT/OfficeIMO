@@ -168,3 +168,28 @@ passed 8/8, and the clean-source macOS H4 budget passed with a 6,097 ms cold
 process and a 2,647 ms maximum warm iteration. The replay, inspected rasters
 and budget report are retained under `Ignore/HtmlUnknownPageQualification/`
 in `h10-wai-list-inset-clean-da4900016` and `h10-h4-budget-da4900016`.
+
+## W3C positioned breadcrumb separators
+
+Source `cfffdbd1bc7e9cd3d0ea81032e68c9282c4e50ca` positions explicitly sized
+absolute block pseudo-elements within a relative or sticky host without adding
+their height to normal flow. It paints them in the host's positioned stacking
+bands, including the order relative to absolute and in-flow positioned children.
+Other pseudo-element positioning forms remain outside this qualified path.
+
+The exact frozen W3C archive above replayed offline from a clean worktree with
+no operation failures across ten output and reference operations. Chromium and
+OfficeIMO's zero-margin local-font print each produced three pages; OfficeIMO's
+default print still produced four. All three print pages from both engines were
+rasterized and inspected. The breadcrumb separators now sit beside their links,
+and the local-font OfficeIMO report has no `li::after` positioning warnings.
+Text weight, tutorial-card density and footer layout still differ visibly from
+Chromium, so the W3C print-fidelity item remains open.
+
+The full .NET 10 HTML suite passed 3,320/3,320, focused .NET 8 positioning
+tests passed 3/3, the H4 advanced-held-out acceptance gate passed 8/8, and the
+clean-source macOS static budget passed with a 5,374 ms cold process and a
+2,008 ms maximum warm iteration. The replay, inspected rasters, acceptance
+report and budget report are retained under `Ignore/HtmlUnknownPageQualification/`
+in `h10-wai-positioned-pseudo-clean-cfffdbd1b`,
+`h10-h4-acceptance-cfffdbd1b` and `h10-h4-budget-cfffdbd1b`.
