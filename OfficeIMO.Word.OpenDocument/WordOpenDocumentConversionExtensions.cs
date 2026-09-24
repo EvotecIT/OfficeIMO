@@ -357,7 +357,11 @@ public static partial class WordOpenDocumentConversionExtensions {
                 case OdtInlineNodeKind.BookmarkEnd:
                     break;
                 case OdtInlineNodeKind.Note:
-                    if (allowNotes) CopyOdtNote(node.Note!, target, notes);
+                    if (allowNotes) {
+                        if (leaf.Span?.StyleName != null || leaf.StyleLink != null || leaf.TargetLink != null)
+                            notes.ApproximatedReferenceFormatting++;
+                        CopyOdtNote(node.Note!, target, notes);
+                    }
                     else CountUnsupportedHeaderFooterNote(notes);
                     break;
             }

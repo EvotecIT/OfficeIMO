@@ -31,7 +31,12 @@ public sealed class OdtNote {
     };
 
     /// <summary>The displayed citation stored in the native note.</summary>
-    public string Citation => _element.Element(OdfNamespaces.Text + "note-citation")?.Value ?? string.Empty;
+    public string Citation {
+        get {
+            XElement? citation = _element.Element(OdfNamespaces.Text + "note-citation");
+            return (string?)citation?.Attribute(OdfNamespaces.Text + "label") ?? citation?.Value ?? string.Empty;
+        }
+    }
 
     /// <summary>Direct paragraphs in the note body, in source order.</summary>
     public IReadOnlyList<OdtParagraph> Paragraphs => Body?.Elements(OdfNamespaces.Text + "p")

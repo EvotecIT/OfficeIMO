@@ -38,7 +38,7 @@ paragraph.AddText(" in the appendix.");
 paragraph.AddEndnote("Additional context.");
 ```
 
-`OdtParagraph.Notes` and `InlineNodes` expose note bodies and reference order after reopening the file. Note-body paragraphs are separate from document-body paragraphs.
+`OdtParagraph.Notes` and `InlineNodes` expose note bodies and reference order after reopening the file. Note-body paragraphs are separate from document-body paragraphs, and their spans, links, and images stay on the note-body paragraph. Native note citations follow document order when notes are added to earlier paragraphs later; an imported custom citation label remains the displayed `OdtNote.Citation`.
 
 Create a sparse ODS workbook:
 
