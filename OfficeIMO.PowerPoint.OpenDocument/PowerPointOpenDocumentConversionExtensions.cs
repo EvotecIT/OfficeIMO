@@ -32,6 +32,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         var masterNames = new Dictionary<SlideMasterPart, string>();
         var layoutNames = new Dictionary<SlideLayoutPart, string>();
         var solidMasters = new HashSet<SlideMasterPart>();
+        var usedSlideNames = new HashSet<string>(StringComparer.Ordinal);
+        int renamedSlides = 0;
         PresentationPart? sourcePresentation = source.OpenXmlDocument.PresentationPart;
         DocumentFormat.OpenXml.Presentation.SlideId[] sourceSlideIds = sourcePresentation?.Presentation?
             .SlideIdList?.Elements<DocumentFormat.OpenXml.Presentation.SlideId>().ToArray()
@@ -43,12 +45,23 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         var imageValidationBudget = new OdfImageValidationBudget();
         for (int slideIndex = 0; slideIndex < source.Slides.Count; slideIndex++) {
             PowerPointSlide sourceSlide = source.Slides[slideIndex];
-            OdpSlide targetSlide = target.AddSlide(sourceSlide.Name ??
-                "Slide" + (slideIndex + 1).ToString(System.Globalization.CultureInfo.InvariantCulture));
+            string requestedSlideName = sourceSlide.Name ??
+                "Slide" + (slideIndex + 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
+            string targetSlideName = requestedSlideName;
+            if (!usedSlideNames.Add(targetSlideName)) {
+                int suffix = 2;
+                do {
+                    targetSlideName = requestedSlideName + "_" +
+                        suffix.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    suffix++;
+                } while (!usedSlideNames.Add(targetSlideName));
+                if (sourceSlide.Name != null) renamedSlides++;
+            }
+            OdpSlide targetSlide = target.AddSlide(targetSlideName);
             targetSlide.Hidden = sourceSlide.Hidden;
             bool inheritsMasterBackground = MapPowerPointMasterAndLayout(sourcePresentation,
                 slideIndex < sourceSlideIds.Length ? sourceSlideIds[slideIndex] : null,
-                sourceSlide.TextBoxes.Any(), target, targetSlide,
+                target, targetSlide,
                 masterNames, layoutNames, solidMasters,
                 ref mappedMasters, ref mappedLayouts, ref mappedMasterBackgrounds, ref approximatedMasterLayouts,
                 out bool suppressInheritedBackground);
@@ -220,6 +233,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             "PowerPoint slide sections and their names are not represented in the current ODP presentation surface.");
         AddUnsupported(report, "notes-master", CountUnmappedPowerPointNotesMaster(sourcePresentation),
             "Authored notes-master appearance and placeholder geometry are not transferred to ODP.");
+        if (renamedSlides > 0) report.Add("slide-names", OdfConversionMappingStatus.Approximated,
+            renamedSlides, "PowerPoint permits duplicate slide names; ODP requires unique names, so colliding names were changed.");
         AddAdvancedPowerPointFindings(source.InspectFeatures(), report);
         return new OdfConversionResult<OdpPresentation>(target, report).ApplyPolicy(effective.LossPolicy);
     }

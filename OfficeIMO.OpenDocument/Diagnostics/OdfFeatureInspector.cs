@@ -1,9 +1,6 @@
 namespace OfficeIMO.OpenDocument;
 
 internal static class OdfFeatureInspector {
-    private static readonly HashSet<string> PresentationAnimationActions = new(StringComparer.Ordinal) {
-        "animate", "animateMotion", "animateColor", "animateTransform", "set", "transitionFilter"
-    };
     private static readonly HashSet<string> KnownNamespaces = new HashSet<string>(StringComparer.Ordinal) {
         OdfNamespaces.Office.NamespaceName, OdfNamespaces.Text.NamespaceName, OdfNamespaces.Table.NamespaceName,
         OdfNamespaces.Draw.NamespaceName, OdfNamespaces.Presentation.NamespaceName, OdfNamespaces.Style.NamespaceName,
@@ -73,7 +70,7 @@ internal static class OdfFeatureInspector {
             if (transitions > 0) findings.Add(new OdfFeatureFinding("presentation-transitions", OdfFeatureSupport.Editable, entry.Name, transitions));
             int animations = document.Descendants().Count(element =>
                 element.Name.Namespace == OdfNamespaces.Anim &&
-                PresentationAnimationActions.Contains(element.Name.LocalName));
+                element.Name.LocalName is not ("par" or "seq" or "iterate"));
             if (animations > 0) findings.Add(new OdfFeatureFinding("presentation-animations", OdfFeatureSupport.Editable, entry.Name, animations));
 
             var foreign = document.Root.DescendantsAndSelf()

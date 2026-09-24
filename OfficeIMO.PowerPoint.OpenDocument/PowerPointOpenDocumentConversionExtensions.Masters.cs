@@ -30,6 +30,26 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             .Select(master => master.SlideMaster?.ColorMap?.OuterXml ?? string.Empty), StringComparer.Ordinal);
     });
 
+    private static readonly Lazy<HashSet<string>> DefaultPowerPointMasterTextStyles = new(() => {
+        using PowerPointPresentation baseline = PowerPointPresentation.Create(new MemoryStream(),
+            new PowerPointCreateOptions());
+        return new HashSet<string>(baseline.OpenXmlDocument.PresentationPart!.SlideMasterParts
+            .Select(master => master.SlideMaster?.TextStyles?.OuterXml ?? string.Empty), StringComparer.Ordinal);
+    });
+
+    private static readonly Lazy<HashSet<string>> DefaultPowerPointMasterMetadata = new(() => {
+        using PowerPointPresentation baseline = PowerPointPresentation.Create(new MemoryStream(),
+            new PowerPointCreateOptions());
+        return new HashSet<string>(baseline.OpenXmlDocument.PresentationPart!.SlideMasterParts
+            .Select(master => MasterMetadataSignature(master.SlideMaster)), StringComparer.Ordinal);
+    });
+
+    private static string MasterMetadataSignature(P.SlideMaster? master) => string.Join(";",
+        (master?.GetAttributes() ?? new List<DocumentFormat.OpenXml.OpenXmlAttribute>())
+            .Concat(master?.CommonSlideData?.GetAttributes() ?? new List<DocumentFormat.OpenXml.OpenXmlAttribute>())
+            .Select(attribute => attribute.NamespaceUri + "|" + attribute.LocalName + "|" + attribute.Value)
+            .OrderBy(value => value, StringComparer.Ordinal));
+
     private static readonly Lazy<(string Master, string Layout)> DefaultOdpMasterLayoutNames = new(() => {
         OdpPresentation baseline = OdpPresentation.Create();
         baseline.AddSlide("Baseline");
@@ -45,7 +65,6 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
     }
 
     private static bool MapPowerPointMasterAndLayout(PresentationPart? presentation, SlideId? slideId,
-        bool hasSlideText,
         OdpPresentation target, OdpSlide targetSlide,
         Dictionary<SlideMasterPart, string> masterNames, Dictionary<SlideLayoutPart, string> layoutNames,
         HashSet<SlideMasterPart> solidMasters,
@@ -58,7 +77,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         SlideLayoutPart? layoutPart = slidePart.SlideLayoutPart;
         SlideMasterPart? masterPart = layoutPart?.SlideMasterPart;
         if (masterPart == null || layoutPart == null) return false;
-        if (HasUnmappedMasterOrLayoutContent(masterPart, layoutPart, hasSlideText)) approximatedMasterLayouts++;
+        if (HasUnmappedMasterOrLayoutContent(masterPart, layoutPart)) approximatedMasterLayouts++;
 
         if (!masterNames.TryGetValue(masterPart, out string? masterName)) {
             OdpMasterPage targetMaster = masterNames.Count == 0
@@ -90,14 +109,13 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         return solidMasters.Contains(masterPart) && !slideOverride && !layoutOverride;
     }
 
-    private static bool HasUnmappedMasterOrLayoutContent(SlideMasterPart masterPart, SlideLayoutPart layoutPart,
-        bool hasSlideText) =>
+    private static bool HasUnmappedMasterOrLayoutContent(SlideMasterPart masterPart, SlideLayoutPart layoutPart) =>
         HasDrawingContent(masterPart.SlideMaster?.CommonSlideData?.ShapeTree) ||
         HasDrawingContent(layoutPart.SlideLayout?.CommonSlideData?.ShapeTree) ||
         HasAuthoredPowerPointLayoutContent(layoutPart) ||
         HasAuthoredPowerPointMasterColorMap(masterPart) ||
-        hasSlideText && masterPart.SlideMaster?.TextStyles?.ChildElements.Any(style =>
-            style.HasAttributes || style.HasChildren) == true ||
+        HasAuthoredPowerPointMasterTextStyles(masterPart) ||
+        HasAuthoredPowerPointMasterMetadata(masterPart) ||
         masterPart.SlideMaster?.CommonSlideData?.Background != null &&
             !TryGetDirectMasterBackground(masterPart, out _) ||
         layoutPart.SlideLayout?.CommonSlideData?.Background != null;
@@ -119,6 +137,12 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
     private static bool HasAuthoredPowerPointMasterColorMap(SlideMasterPart masterPart) =>
         !DefaultPowerPointMasterColorMaps.Value.Contains(masterPart.SlideMaster?.ColorMap?.OuterXml ?? string.Empty);
 
+    private static bool HasAuthoredPowerPointMasterTextStyles(SlideMasterPart masterPart) =>
+        !DefaultPowerPointMasterTextStyles.Value.Contains(masterPart.SlideMaster?.TextStyles?.OuterXml ?? string.Empty);
+
+    private static bool HasAuthoredPowerPointMasterMetadata(SlideMasterPart masterPart) =>
+        !DefaultPowerPointMasterMetadata.Value.Contains(MasterMetadataSignature(masterPart.SlideMaster));
+
     private static int CountUnmappedUnusedPowerPointMastersAndLayouts(PresentationPart? presentation,
         IReadOnlyDictionary<SlideMasterPart, string> usedMasters,
         IReadOnlyDictionary<SlideLayoutPart, string> usedLayouts) {
@@ -128,8 +152,9 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             if (!usedMasters.ContainsKey(master) &&
                 (HasDrawingContent(master.SlideMaster?.CommonSlideData?.ShapeTree) ||
                  HasAuthoredPowerPointMasterColorMap(master) ||
+                 HasAuthoredPowerPointMasterMetadata(master) ||
                  master.SlideMaster?.CommonSlideData?.Background != null ||
-                 master.SlideMaster?.TextStyles?.ChildElements.Any(style => style.HasAttributes || style.HasChildren) == true))
+                 HasAuthoredPowerPointMasterTextStyles(master)))
                 count++;
             foreach (SlideLayoutPart layout in master.SlideLayoutParts) {
                 if (!usedLayouts.ContainsKey(layout) &&
@@ -160,6 +185,30 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             styles.Descendants(style + "presentation-page-layout").Any(layout =>
                 layout.Elements(presentation + "placeholder").Any() || layout.Elements().Any(element =>
                     element.Name != presentation + "placeholder"));
+        bool hasUnsupportedAttributes = styles.Descendants(style + "master-page").Any(master =>
+            master.Attributes().Any(attribute => !attribute.IsNamespaceDeclaration &&
+                attribute.Name != style + "name" && attribute.Name != style + "page-layout-name" &&
+                attribute.Name != draw + "style-name")) ||
+            styles.Descendants(style + "presentation-page-layout").Any(layout =>
+                layout.Attributes().Any(attribute => !attribute.IsNamespaceDeclaration &&
+                    attribute.Name != style + "name"));
+        XNamespace fo = "urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0";
+        XElement[] pageLayouts = styles.Descendants(style + "page-layout").ToArray();
+        bool hasUnsupportedPageLayout = pageLayouts.Length > 1 || pageLayouts.Any(layout => {
+            XElement? properties = layout.Element(style + "page-layout-properties");
+            return layout.Attributes().Any(attribute => !attribute.IsNamespaceDeclaration &&
+                    attribute.Name != style + "name") ||
+                properties == null || properties.HasElements ||
+                properties.Attributes().Any(attribute => !attribute.IsNamespaceDeclaration &&
+                    attribute.Name != fo + "page-width" && attribute.Name != fo + "page-height" &&
+                    !(attribute.Name == style + "print-orientation" && attribute.Value == "landscape") &&
+                    !(attribute.Name == fo + "margin" && IsZeroOdfPageMargin(attribute.Value)));
+        });
+        bool hasUnknownPageLayoutReference = styles.Descendants(style + "master-page").Any(master => {
+            string? name = (string?)master.Attribute(style + "page-layout-name");
+            return !string.IsNullOrWhiteSpace(name) && !pageLayouts.Any(layout =>
+                string.Equals((string?)layout.Attribute(style + "name"), name, StringComparison.Ordinal));
+        });
         bool hasUnsupportedBackground = styles.Descendants(style + "master-page").Any(master => {
             string? styleName = (string?)master.Attribute(draw + "style-name");
             if (styleName == null) return false;
@@ -177,8 +226,14 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             !string.Equals(masters[0].Name, DefaultOdpMasterLayoutNames.Value.Master, StringComparison.Ordinal) ||
             layouts.Count == 1 &&
             !string.Equals(layouts[0].Name, DefaultOdpMasterLayoutNames.Value.Layout, StringComparison.Ordinal);
-        return hasContent || hasUnsupportedBackground || hasAuthoredNames || masters.Count > 1 || layouts.Count > 1
+        return hasContent || hasUnsupportedAttributes || hasUnsupportedPageLayout ||
+            hasUnknownPageLayoutReference || hasUnsupportedBackground ||
+            hasAuthoredNames || masters.Count > 1 || layouts.Count > 1
             ? masters.Count + layouts.Count
             : 0;
     }
+
+    private static bool IsZeroOdfPageMargin(string value) =>
+        !string.IsNullOrWhiteSpace(value) && OdfLength.Parse(value).TryToPoints(out double points) &&
+        points == 0D;
 }
