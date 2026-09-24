@@ -260,7 +260,7 @@ internal static class HtmlMhtmlEvidenceRunner {
             int pageCount = OfficeIMO.Pdf.PdfDocument.Load(bytes).Inspect().PageCount;
             results.Add(new OperationEvidence(name, file, bytes.Length, Sha256(bytes), pageCount, timer.Elapsed.TotalMilliseconds));
         } catch (Exception exception) {
-            failures.Add(name + ": " + exception);
+            failures.Add(FormatFailure(name, exception));
         }
     }
 
@@ -290,9 +290,14 @@ internal static class HtmlMhtmlEvidenceRunner {
                 timer.Elapsed.TotalMilliseconds,
                 new ConversionReportEvidence(result.HasLoss, result.Report.FidelityStatus.ToString(), warnings)));
         } catch (Exception exception) {
-            failures.Add(name + ": " + exception);
+            failures.Add(FormatFailure(name, exception));
         }
     }
+
+    private static string FormatFailure(string operation, Exception exception) =>
+        exception is HtmlDomLimitException limit
+            ? operation + ": " + limit.Code + " (" + limit.LimitSource + ", actual=" + limit.Actual + ", limit=" + limit.Limit + ")"
+            : operation + ": " + exception;
 
     private static string Sha256(byte[] bytes) => Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
 
