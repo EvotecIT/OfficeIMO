@@ -302,6 +302,10 @@ public sealed class OfficeProvenanceRemovalResult {
 
     /// <summary>Gets the inspection before removal.</summary>
     public OfficeProvenanceReport Before { get; }
+    /// <summary>Expanded bytes charged by the before and after inspections; an unchanged owner may reuse one report for both.</summary>
+    internal long ExpandedInspectionBytes => ReferenceEquals(Before, After)
+        ? Before.ExpandedInspectionBytes
+        : checked(Before.ExpandedInspectionBytes + After.ExpandedInspectionBytes);
     /// <summary>Gets the inspection after removal.</summary>
     public OfficeProvenanceReport After { get; }
     /// <summary>Gets format-native changes in source order.</summary>

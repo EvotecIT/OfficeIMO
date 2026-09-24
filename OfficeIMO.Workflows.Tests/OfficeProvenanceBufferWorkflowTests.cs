@@ -103,8 +103,8 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         }
         byte[] bytes = File.ReadAllBytes(path);
         var ownerResult = WordDocument.RemoveProvenance(bytes, "budget.docx");
-        // These small packages contain XML and a PNG, so inspection expands every entry once
-        // and validates each embedded PNG by decoding its scanlines once.
+        // These small packages contain XML and a PNG, so inspection expands every entry once. A PNG that
+        // carries provenance is decoded once to validate its carriers; a carrier-free PNG is not decoded.
         static long InspectionBytes(byte[] package) {
             using var stream = new MemoryStream(package);
             using var archive = new System.IO.Compression.ZipArchive(stream);
@@ -114,9 +114,20 @@ public sealed partial class OfficeProvenanceWorkflowTests {
                 using var content = new MemoryStream();
                 using (Stream entryStream = entry.Open()) entryStream.CopyTo(content);
                 byte[] data = content.ToArray();
-                if (data.AsSpan().StartsWith(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A })) total += PngDecodeBytes(data);
+                if (data.AsSpan().StartsWith(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A }) && HasPngProvenanceCarrier(data))
+                    total += PngDecodeBytes(data);
             }
             return total;
+        }
+        static bool HasPngProvenanceCarrier(byte[] png) {
+            for (int offset = 8; offset + 12 <= png.Length;) {
+                int length = System.Buffers.Binary.BinaryPrimitives.ReadInt32BigEndian(png.AsSpan(offset));
+                ReadOnlySpan<byte> type = png.AsSpan(offset + 4, 4);
+                if (type.SequenceEqual("caBX"u8) ||
+                    type.SequenceEqual("iTXt"u8) && png.AsSpan(offset + 8, length).StartsWith("XML:com.adobe.xmp\0"u8)) return true;
+                offset += 12 + length;
+            }
+            return false;
         }
         // Non-interlaced PNG validation holds the unfiltered scanlines plus the current and previous rows.
         static long PngDecodeBytes(byte[] png) {

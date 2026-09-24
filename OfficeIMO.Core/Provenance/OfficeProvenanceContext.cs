@@ -34,7 +34,7 @@ internal sealed class OfficeProvenanceContext {
 
     internal void ReserveExpandedBytes(long additionalBytes, string limitMessage) {
         if (additionalBytes < 0 || ExpandedInspectionBytes > _options.MaxExpandedContainerBytes - additionalBytes) {
-            throw new InvalidDataException(limitMessage);
+            throw OfficeProvenanceLimitException.Create(limitMessage);
         }
         ExpandedInspectionBytes += additionalBytes;
     }
