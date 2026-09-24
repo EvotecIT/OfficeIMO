@@ -95,10 +95,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     noWrapRangeStart = -1;
                     noWrapRangeStartedAfterContent = false;
                 }
-                if (line.Segments.Count > 0) CommitFloatLine(lines, ref line, ref y, context, paragraphStyle.LineHeight);
+                HtmlRenderFlowBlock floatingBlock = run.FloatingBlock;
+                InlineFloatBand floatBand = context.ResolveBand(y, floatingBlock.Height);
+                bool sharesCurrentLine = line.HasFlowContent
+                    && run.ClearSide == "none"
+                    && Math.Abs(floatBand.Left - line.X) <= 0.0001D
+                    && Math.Abs(floatBand.Width - line.AvailableWidth) <= 0.0001D
+                    && line.Width + Math.Max(0.01D, floatingBlock.Width) <= floatBand.Width + 0.0001D;
+                if (!sharesCurrentLine && line.Segments.Count > 0) {
+                    CommitFloatLine(lines, ref line, ref y, context, paragraphStyle.LineHeight);
+                }
                 InlineFloatPlacement placement = context.Place(run, y);
                 placements.Add(placement);
-                line = CreateFloatLine(context, ref y, paragraphStyle.LineHeight);
+                if (sharesCurrentLine) {
+                    InlineFloatBand remainingBand = context.ResolveBand(y, paragraphStyle.LineHeight);
+                    line.Place(remainingBand.Left, y, remainingBand.Width);
+                } else {
+                    line = CreateFloatLine(context, ref y, paragraphStyle.LineHeight);
+                }
                 previousWasCollapsibleSpace = false;
                 continue;
             }

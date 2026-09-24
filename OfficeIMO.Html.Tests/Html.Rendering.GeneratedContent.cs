@@ -141,6 +141,30 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlGeneratedContent_FloatAfterLinkTextKeepsGeneratedUrlOnAvailableLine() {
+        string png = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(10, 10));
+        string html = "<style>body,p{margin:0}p{width:440px;padding-left:120px}"
+            + "img{float:left;width:100px;height:60px;margin-left:-120px}"
+            + "a::after{content:' (example.test)'}</style>"
+            + "<p><strong><a href='https://example.test'>Tables with one header"
+            + "<img alt='' src='data:image/png;base64," + png + "'></a></strong> for rows and columns.</p>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 600D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        HtmlRenderVisual[] visuals = EnumerateRenderVisuals(rendered.Pages[0].Scene).ToArray();
+        HtmlRenderText title = Assert.Single(visuals.OfType<HtmlRenderText>(),
+            text => text.Text.Contains("Tables with one header", StringComparison.Ordinal));
+        HtmlRenderText url = Assert.Single(visuals.OfType<HtmlRenderText>(),
+            text => text.Source == "a::after" && text.Text.Contains("example.test", StringComparison.Ordinal));
+        HtmlRenderImage image = Assert.Single(visuals.OfType<HtmlRenderImage>());
+
+        Assert.Equal(title.Y, url.Y, 3);
+        Assert.True(url.X > title.X);
+        Assert.True(image.X < title.X);
+    }
+
+    [Fact]
     public void HtmlGeneratedContent_RatioWrapperPaintsPositionedImage() {
         string data = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(10, 10));
         string html = "<style>body{margin:0}ul{display:flex;flex-wrap:wrap;list-style:none;margin:0;padding:0}"

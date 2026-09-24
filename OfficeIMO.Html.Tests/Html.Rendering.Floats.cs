@@ -42,6 +42,43 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlFloatFollowingText_SharesTheLineWhenTheFloatFits() {
+        const string html = "<p style='width:100px;margin:0;font-size:10px;line-height:10px'>"
+            + "<span>Lead</span><span id='float' style='float:left;width:30px;height:20px;background:red'></span>"
+            + "<span> tail</span></p>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 100D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        HtmlRenderShape floating = FindPositionedShape(rendered, "span#float");
+        HtmlRenderText lead = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            text => text.Text == "Lead");
+        HtmlRenderText tail = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            text => text.Text.Contains("tail", StringComparison.Ordinal));
+
+        Assert.Equal(lead.Y, floating.Y, 3);
+        Assert.Equal(lead.Y, tail.Y, 3);
+        Assert.True(lead.X >= floating.X + floating.Width - 0.001D);
+        Assert.True(tail.X > lead.X);
+    }
+
+    [Fact]
+    public void HtmlFloatFollowingText_StartsBelowTheLineWhenItDoesNotFit() {
+        const string html = "<p style='width:100px;margin:0;font-size:10px;line-height:10px'>"
+            + "<span>Long heading</span><span id='float' style='float:left;width:70px;height:20px;background:red'></span>"
+            + "<span> tail</span></p>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 100D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        HtmlRenderShape floating = FindPositionedShape(rendered, "span#float");
+        HtmlRenderText heading = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            text => text.Text == "Long heading");
+
+        Assert.True(floating.Y >= heading.Y + 9.999D);
+    }
+
+    [Fact]
     public void HtmlFloatRight_WrapsTextAgainstRightEdge() {
         const string html = "<p style='width:100px;margin:0;font-size:10px;line-height:10px;direction:rtl'>"
             + "<span id='right-float' style='float:inline-start;width:25px;height:20px;background:#0000ff'></span>"
