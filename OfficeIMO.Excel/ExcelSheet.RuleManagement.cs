@@ -165,6 +165,7 @@ namespace OfficeIMO.Excel {
                 Priority = (int)(rule.Priority?.Value ?? 0),
                 StopIfTrue = rule.StopIfTrue?.Value ?? false,
                 DifferentialFormatId = differentialFormatId,
+                IsSolidFillOnlyDifferentialStyle = IsSolidFillOnlyDifferentialStyle(stylesheet, differentialFormatId),
                 DifferentialFillColorArgb = ReadDifferentialFillColor(stylesheet, workbookPart, differentialFormatId),
                 DifferentialFontColorArgb = ReadDifferentialFontColor(stylesheet, workbookPart, differentialFormatId),
                 DifferentialFontBold = ReadDifferentialFontBold(stylesheet, differentialFormatId),
@@ -764,6 +765,19 @@ namespace OfficeIMO.Excel {
 
         private static uint? ReadDifferentialFormatId(ConditionalFormattingRule rule) {
             return rule.FormatId?.Value;
+        }
+
+        private static bool IsSolidFillOnlyDifferentialStyle(Stylesheet? stylesheet, uint? differentialFormatId) {
+            DifferentialFormat? format = GetDifferentialFormat(stylesheet, differentialFormatId);
+            if (format == null || format.ExtendedAttributes.Any() || format.ChildElements.Count != 1
+                || format.Fill == null) return false;
+            Fill fill = format.Fill;
+            PatternFill? pattern = fill.PatternFill;
+            return !fill.ExtendedAttributes.Any() && fill.ChildElements.Count == 1
+                && pattern != null && !pattern.ExtendedAttributes.Any()
+                && pattern.PatternType?.Value == PatternValues.Solid
+                && pattern.ChildElements.Count > 0
+                && pattern.ChildElements.All(child => child is ForegroundColor or BackgroundColor);
         }
 
         private static string? ReadDifferentialFillColor(Stylesheet? stylesheet, DocumentFormat.OpenXml.Packaging.WorkbookPart? workbookPart, uint? differentialFormatId) {
