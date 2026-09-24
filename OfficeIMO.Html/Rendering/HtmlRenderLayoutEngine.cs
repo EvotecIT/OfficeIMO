@@ -303,8 +303,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             && SamePageGeometry(_pageRules.ResolveGeometry(1, null, _options), _pageRules.ResolveGeometry(2, null, _options))
             && SamePageGeometry(_pageRules.ResolveGeometry(2, null, _options), _pageRules.ResolveGeometry(3, null, _options));
         if (string.Equals(root.LocalName, "body", StringComparison.OrdinalIgnoreCase)
-            && (_options.UserAgentStyles == HtmlRenderUserAgentStyleMode.Browser || pagedColumnBody)) {
-            return new[] { LayoutElement(root, contentWidth, rootStyle, rootStyle, 0) };
+            && (_options.UserAgentStyles == HtmlRenderUserAgentStyleMode.Browser || pagedColumnBody
+                || (_options.Mode == HtmlRenderMode.Paged && rootStyle.MaxWidth.HasValue
+                    && HasAuthoredRootBoxGeometry(root, rootStyle)))) {
+            HtmlRenderBoxStyle constrainedBody = ResolveNormalFlowHorizontalAutoMargins(root, rootStyle, contentWidth);
+            return new[] { LayoutElement(root, contentWidth, constrainedBody, constrainedBody, 0) };
         }
         if (_options.Mode == HtmlRenderMode.Paged || !HasAuthoredRootBoxGeometry(root, rootStyle)) {
             return BuildChildBlocks(root, contentWidth, rootStyle, 0);

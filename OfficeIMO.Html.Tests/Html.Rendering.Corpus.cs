@@ -76,6 +76,25 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(expectedX, box.X, 3);
     }
 
+    [Theory]
+    [InlineData(HtmlRenderUserAgentStyleMode.Document)]
+    [InlineData(HtmlRenderUserAgentStyleMode.Browser)]
+    public void PagedRendererKeepsCenteredBodyMaxWidthAcrossPages(HtmlRenderUserAgentStyleMode userAgentStyles) {
+        const string html = "<style>@page{size:300px 100px;margin:0}body{max-width:200px;margin:0 auto}"
+            + "div{height:90px;background:red;break-after:page}</style>"
+            + "<body><div id='first'></div><div id='second'></div></body>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Paged, UserAgentStyles = userAgentStyles });
+
+        Assert.Equal(2, rendered.Pages.Count);
+        foreach (HtmlRenderPage page in rendered.Pages) {
+            HtmlRenderShape box = Assert.Single(page.Visuals.OfType<HtmlRenderShape>(),
+                shape => shape.Shape.FillColor == OfficeColor.Red);
+            Assert.Equal(50D, box.X, 3);
+            Assert.Equal(200D, box.Shape.Width, 3);
+        }
+    }
+
     [Fact]
     public void StaticRendererCentersIntrinsicBlockImageWithAutoMargins() {
         string image = "data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(40, 20));
