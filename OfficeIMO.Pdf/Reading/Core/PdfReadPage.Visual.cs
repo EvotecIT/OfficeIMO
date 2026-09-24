@@ -249,18 +249,16 @@ public sealed partial class PdfReadPage {
             if (span.Text.Length > 1 && !(span.Text.Length == 2 && char.IsSurrogatePair(span.Text, 0))) {
                 if (string.IsNullOrWhiteSpace(span.Text)) continue;
                 // One glyph decoded to several letters (a ligature): a Unicode cmap cannot select it.
-                char? ligature = map.Alias(glyph);
-                if (ligature.HasValue) {
-                    PdfTextSpan visual = span.WithVisualGlyph(ligature.Value);
-                    visual.MarkPaintedGlyphProjection();
-                    elements[index] = PdfPageDrawingElement.FromText(visual, element.Sequence).WithEffect(element.Effect);
-                }
+                int ligature = map.Alias(glyph);
+                PdfTextSpan visual = span.WithVisualGlyph(ligature);
+                visual.MarkPaintedGlyphProjection();
+                elements[index] = PdfPageDrawingElement.FromText(visual, element.Sequence).WithEffect(element.Effect);
                 continue;
             }
             int scalar = span.Text.Length == 2 ? char.ConvertToUtf32(span.Text, 0) : span.Text[0];
             int resolved = map.Resolve(scalar, glyph);
             if (resolved != scalar) {
-                PdfTextSpan visual = span.WithVisualText(char.ConvertFromUtf32(resolved));
+                PdfTextSpan visual = span.WithVisualGlyph(resolved);
                 visual.MarkPaintedGlyphProjection();
                 elements[index] = PdfPageDrawingElement.FromText(visual, element.Sequence).WithEffect(element.Effect);
             } else {
@@ -271,7 +269,8 @@ public sealed partial class PdfReadPage {
             if (map.Value.Additions.Count == 0) continue;
             var registered = registeredFonts[map.Key];
             byte[]? program = PdfTrueTypeUnicodeCmap.TryAddMappings(registered.DrawingProgram!, map.Value.Additions);
-            if (program != null) drawing.Fonts.TryAdd(map.Key.Family, program, map.Key.Style);
+            if (program == null || !drawing.Fonts.TryAdd(map.Key.Family, program, map.Key.Style))
+                throw new InvalidDataException("The embedded font could not register its painted glyph mapping.");
         }
     }
 
@@ -293,12 +292,16 @@ public sealed partial class PdfReadPage {
         }
     }
 
-    private sealed class PaintedGlyphMap {
-        private const char FirstAlias = '\uE000';
-        private const char LastAlias = '\uF8FF';
+    internal sealed class PaintedGlyphMap {
+        private const int FirstAlias = 0xE000;
+        private const int LastBmpAlias = 0xF8FF;
+        private const int FirstSupplementaryAlias = 0xF0000;
+        private const int LastSupplementaryAlias = 0xFFFFD;
+        private const int SecondSupplementaryAlias = 0x100000;
+        private const int LastAlias = 0x10FFFD;
         private readonly PdfDrawingFontProgram _program;
-        private readonly Dictionary<int, char> _aliases = new();
-        private char _nextAlias = FirstAlias;
+        private readonly Dictionary<int, int> _aliases = new();
+        private int _nextAlias = FirstAlias;
 
         internal PaintedGlyphMap(PdfDrawingFontProgram program) => _program = program;
 
@@ -307,7 +310,7 @@ public sealed partial class PdfReadPage {
         internal int Resolve(int scalar, int glyph) {
             if (scalar == PdfPaintedGlyphRuns.UndecodedGlyph || scalar <= char.MaxValue && char.IsWhiteSpace((char)scalar)) {
                 // Producers map colour-font layers and other inked glyphs to a space.
-                return _program.IsEmptyGlyph(glyph) ? scalar : Alias(glyph) is char alias ? alias : scalar;
+                return _program.IsEmptyGlyph(glyph) ? scalar : Alias(glyph);
             }
             if (TryGetGlyph(scalar, out int mapped)) {
                 if (mapped == glyph) return scalar;
@@ -316,13 +319,21 @@ public sealed partial class PdfReadPage {
                 Additions.Add(scalar, glyph);
                 return scalar;
             }
-            return Alias(glyph) is char alternate ? alternate : scalar;
+            return Alias(glyph);
         }
 
-        internal char? Alias(int glyph) {
-            if (_aliases.TryGetValue(glyph, out char alias)) return alias;
-            while (_nextAlias <= LastAlias && TryGetGlyph(_nextAlias, out _)) _nextAlias++;
-            if (_nextAlias > LastAlias) return null;
+        internal int Alias(int glyph) {
+            if (_aliases.TryGetValue(glyph, out int alias)) return alias;
+            while (true) {
+                if (_nextAlias > LastBmpAlias && _nextAlias < FirstSupplementaryAlias)
+                    _nextAlias = FirstSupplementaryAlias;
+                if (_nextAlias > LastSupplementaryAlias && _nextAlias < SecondSupplementaryAlias)
+                    _nextAlias = SecondSupplementaryAlias;
+                if (_nextAlias > LastAlias)
+                    throw new InvalidDataException("The embedded font exhausted the painted glyph alias range.");
+                if (!TryGetGlyph(_nextAlias, out _)) break;
+                _nextAlias++;
+            }
             alias = _nextAlias++;
             _aliases.Add(glyph, alias);
             Additions.Add(alias, glyph);

@@ -7,6 +7,28 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfPaintedGlyphRenderingTests {
     [Fact]
+    public void PaintedAliasUsesSupplementaryPrivateUseWhenBmpRangeIsClaimed() {
+        byte[] source = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A', 'B');
+        var claimed = new SortedDictionary<int, int>();
+        for (int scalar = 0xE000; scalar <= 0xF8FF; scalar++) claimed.Add(scalar, 1);
+        var program = new PdfDrawingFontProgram(source, claimed, _ => 2, _ => false);
+        var aliases = new PdfReadPage.PaintedGlyphMap(program);
+
+        int alias = aliases.Alias(2);
+        Assert.Equal(0xF0000, alias);
+        Assert.Equal(alias, aliases.Alias(2));
+        Assert.Equal(2, aliases.Additions[alias]);
+        byte[] rebuilt = Assert.IsType<byte[]>(PdfTrueTypeUnicodeCmap.TryAddMappings(program, aliases.Additions));
+        Assert.True(OfficeTrueTypeFont.TryLoad(rebuilt)?.HasGlyphs(char.ConvertFromUtf32(alias)));
+
+        PdfTextSpan visual = CreateGlyphRun("ffi", new[] { 3 }).WithVisualGlyph(alias);
+        Assert.Equal(char.ConvertFromUtf32(alias), visual.Text);
+        Assert.Equal("ffi", visual.LogicalDrawingText);
+        Assert.Equal(new[] { 2 }, visual.GlyphCharacterLengths);
+        Assert.Equal(2, visual.CharacterAdvances?.Count);
+    }
+
+    [Fact]
     public void VisualTextProjectionRetainsMatchingLogicalBreakProvenance() {
         var span = new PdfTextSpan("A B", "F1", 12, 10, 10, 24, null, true, 0, "Subset", null,
             embeddedLineBreakCounts: new[] { 0, 1, 0 });

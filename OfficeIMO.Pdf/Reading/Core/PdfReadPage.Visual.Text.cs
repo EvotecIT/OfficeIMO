@@ -71,7 +71,6 @@ public sealed partial class PdfReadPage {
                 ToOfficeFontInfo(span.BaseFont, span.FontSize, span.DrawingFontFamily, span.IsBold, span.IsItalic),
                 span.Color ?? OfficeColor.Black,
                 textAdvanceWidth: textAdvance);
-            MarkPaintedGlyphs(drawing, span);
         } else {
             drawing.AddText(
                 span.Text,
@@ -86,6 +85,7 @@ public sealed partial class PdfReadPage {
                 rotationCenterY: baselineY,
                 wrapText: false);
         }
+        MarkPaintedGlyphs(drawing, span);
     }
 
     private static bool TryAddClippedTextSpan(OfficeDrawing drawing, PdfTextSpan span, double x, double y, double width, double height, double baselineY, PdfPageClipPath? overrideClipPath = null,
@@ -154,7 +154,6 @@ public sealed partial class PdfReadPage {
                 ToOfficeFontInfo(span.BaseFont, span.FontSize, span.DrawingFontFamily, span.IsBold, span.IsItalic),
                 span.Color ?? OfficeColor.Black,
                 textAdvanceWidth: textAdvance);
-            MarkPaintedGlyphs(drawing, span);
         } else {
             drawing.AddClippedText(
                 span.Text,
@@ -172,6 +171,7 @@ public sealed partial class PdfReadPage {
                 rotationCenterY: baselineY,
                 wrapText: false);
         }
+        MarkPaintedGlyphs(drawing, span);
         return true;
     }
 
