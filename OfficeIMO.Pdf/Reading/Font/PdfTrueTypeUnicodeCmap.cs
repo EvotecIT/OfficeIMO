@@ -77,6 +77,7 @@ internal static class PdfTrueTypeUnicodeCmap {
     }
 
     private static byte[]? Rebuild(byte[] program, SortedDictionary<int, int> mappings) {
+        if (mappings.Count > OfficeOpenTypeCmap.MaximumFormat12Groups) return null;
         if (!TryReadTables(program, out List<(string Tag, int Offset, int Length)> tables)) return null;
         var bodies = new List<(string Tag, byte[] Body)>(tables.Count + 1);
         foreach (var table in tables) {
@@ -345,9 +346,9 @@ internal static class PdfTrueTypeUnicodeCmap {
         // accepts at most MaximumSubtables * 16 segments, below the ushort length limit.
         byte[]? format4 = basic.Count < OfficeOpenTypeCmap.MaximumSubtables * 16 ? BuildFormat4(basic) : null;
         bool needsFull = format4 == null || basic.Count != mappings.Count;
-        List<byte[]> format12 = needsFull ? BuildFormat12Parts(mappings) : new List<byte[]>();
+        byte[]? format12 = needsFull ? BuildFormat12(mappings) : null;
         using var output = new MemoryStream();
-        int records = (format4 == null ? 0 : 1) + format12.Count;
+        int records = (format4 == null ? 0 : 1) + (format12 == null ? 0 : 1);
         WriteUInt16(output, 0);
         WriteUInt16(output, (ushort)records);
         int offset = 4 + records * 8;
@@ -357,14 +358,13 @@ internal static class PdfTrueTypeUnicodeCmap {
             WriteUInt32(output, (uint)offset);
         }
         int fullOffset = offset + (format4?.Length ?? 0);
-        foreach (byte[] table in format12) {
+        if (format12 != null) {
             WriteUInt16(output, 3);
             WriteUInt16(output, 10);
             WriteUInt32(output, (uint)fullOffset);
-            fullOffset += table.Length;
         }
         if (format4 != null) output.Write(format4, 0, format4.Length);
-        foreach (byte[] table in format12) output.Write(table, 0, table.Length);
+        if (format12 != null) output.Write(format12, 0, format12.Length);
         return output.ToArray();
     }
 
@@ -396,7 +396,7 @@ internal static class PdfTrueTypeUnicodeCmap {
         return output.ToArray();
     }
 
-    private static List<byte[]> BuildFormat12Parts(SortedDictionary<int, int> mappings) {
+    private static byte[] BuildFormat12(SortedDictionary<int, int> mappings) {
         var groups = new List<(int Start, int End, int Glyph)>();
         foreach (var mapping in mappings) {
             if (groups.Count > 0) {
@@ -408,25 +408,20 @@ internal static class PdfTrueTypeUnicodeCmap {
             }
             groups.Add((mapping.Key, mapping.Key, mapping.Value));
         }
-        int maximumGroups = (int)OfficeOpenTypeCmap.MaximumFormat12Groups;
-        var parts = new List<byte[]>((groups.Count + maximumGroups - 1) / maximumGroups);
-        for (int first = 0; first < groups.Count; first += maximumGroups) {
-            int count = Math.Min(maximumGroups, groups.Count - first);
-            using var output = new MemoryStream();
-            WriteUInt16(output, 12);
-            WriteUInt16(output, 0);
-            WriteUInt32(output, (uint)(16 + count * 12));
-            WriteUInt32(output, 0);
-            WriteUInt32(output, (uint)count);
-            for (int index = first; index < first + count; index++) {
-                var group = groups[index];
-                WriteUInt32(output, (uint)group.Start);
-                WriteUInt32(output, (uint)group.End);
-                WriteUInt32(output, (uint)group.Glyph);
-            }
-            parts.Add(output.ToArray());
+        if (groups.Count > OfficeOpenTypeCmap.MaximumFormat12Groups)
+            throw new InvalidOperationException("The synthesized cmap exceeds the format-12 group budget.");
+        using var output = new MemoryStream(16 + groups.Count * 12);
+        WriteUInt16(output, 12);
+        WriteUInt16(output, 0);
+        WriteUInt32(output, (uint)(16 + groups.Count * 12));
+        WriteUInt32(output, 0);
+        WriteUInt32(output, (uint)groups.Count);
+        foreach (var group in groups) {
+            WriteUInt32(output, (uint)group.Start);
+            WriteUInt32(output, (uint)group.End);
+            WriteUInt32(output, (uint)group.Glyph);
         }
-        return parts;
+        return output.ToArray();
     }
 
     private static byte[] Assemble(List<(string Tag, byte[] Body)> tables) {

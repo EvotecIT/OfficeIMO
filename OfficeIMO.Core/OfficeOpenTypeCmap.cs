@@ -6,7 +6,9 @@ namespace OfficeIMO.Drawing;
 /// <summary>Shared cmap platform and encoding classification.</summary>
 internal static class OfficeOpenTypeCmap {
     internal const int MaximumSubtables = 64;
-    internal const uint MaximumFormat12Groups = 4096;
+    // A synthesized CID drawing cmap can contain one group per decoded code (at most 65,536).
+    // A single bounded subtable remains usable by external OpenType consumers.
+    internal const uint MaximumFormat12Groups = 65536;
     private const uint MaximumVariationSelectorRecords = 256;
 
     internal static bool IsUnicodeEncoding(int platform, int encoding) =>

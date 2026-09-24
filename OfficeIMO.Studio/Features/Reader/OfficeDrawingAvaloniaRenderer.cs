@@ -195,7 +195,9 @@ internal sealed class OfficeDrawingAvaloniaRenderer : IDisposable {
         // inside its box drops glyphs, so an unwrapped run stays on one line and is compressed.
         (double offsetX, double scaleX) = text.WrapText
             ? (0D, 1D)
-            : FitSingleLine(formatted.WidthIncludingTrailingWhitespace, text.Width, text.Alignment);
+            : text.TextAdvanceWidth is double advance
+                ? FitPositionedSingleLine(formatted.WidthIncludingTrailingWhitespace, advance)
+                : FitSingleLine(formatted.WidthIncludingTrailingWhitespace, text.Width, text.Alignment);
         IDisposable? transform = text.HasFrameTransform
             ? context.PushTransform(ToMatrix(text.CreateFrameTransform().CreateDestinationTransform()))
             : null;
@@ -207,6 +209,12 @@ internal sealed class OfficeDrawingAvaloniaRenderer : IDisposable {
             transform?.Dispose();
         }
     }
+
+    /// <summary>Scales a positioned PDF run to the advance recorded by the source font.</summary>
+    internal static (double OffsetX, double ScaleX) FitPositionedSingleLine(double measuredWidth, double advance) =>
+        measuredWidth > 0D && !double.IsInfinity(measuredWidth) && advance > 0D && !double.IsInfinity(advance)
+            ? (0D, advance / measuredWidth)
+            : (0D, 1D);
 
     /// <summary>Returns the horizontal offset and compression that fit a single-line run in its box.</summary>
     internal static (double OffsetX, double ScaleX) FitSingleLine(

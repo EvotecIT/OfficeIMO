@@ -5,6 +5,16 @@ namespace OfficeIMO.Studio.Tests;
 
 public sealed class OfficeDrawingAvaloniaRendererTests {
     [Theory]
+    [InlineData(60D, 100D)]
+    [InlineData(120D, 80D)]
+    public void PositionedRunFitsItsSourceAdvanceInBothDirections(double measuredWidth, double advance) {
+        (double offsetX, double scaleX) = OfficeDrawingAvaloniaRenderer.FitPositionedSingleLine(measuredWidth, advance);
+
+        Assert.Equal(0D, offsetX);
+        Assert.Equal(advance, measuredWidth * scaleX, 6);
+    }
+
+    [Theory]
     [InlineData(OfficeTextAlignment.Left)]
     [InlineData(OfficeTextAlignment.Justify)]
     [InlineData(OfficeTextAlignment.Center)]

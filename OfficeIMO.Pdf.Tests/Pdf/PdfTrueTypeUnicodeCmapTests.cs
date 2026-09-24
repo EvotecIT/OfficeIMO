@@ -6,6 +6,31 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfTrueTypeUnicodeCmapTests {
+    [Fact]
+    public void LargeSparseMapKeepsEveryGlyphInOneFormat12Subtable() {
+        var mappings = new SortedDictionary<int, int>();
+        for (int index = 0; index < 9000; index++) mappings.Add(0x1000 + index * 2, index % 2 + 1);
+
+        byte[] cmap = PdfTrueTypeUnicodeCmap.BuildUnicodeCmap(mappings);
+
+        Assert.Equal(1, ReadUInt16(cmap, 2));
+        Assert.Equal(3, ReadUInt16(cmap, 4));
+        Assert.Equal(10, ReadUInt16(cmap, 6));
+        int subtable = checked((int)ReadUInt32(cmap, 8));
+        Assert.Equal(12, ReadUInt16(cmap, subtable));
+        Assert.Equal(9000U, ReadUInt32(cmap, subtable + 12));
+        int lastGroup = subtable + 16 + 8999 * 12;
+        Assert.Equal((uint)(0x1000 + 8999 * 2), ReadUInt32(cmap, lastGroup));
+        Assert.Equal(2U, ReadUInt32(cmap, lastGroup + 8));
+
+        byte[] source = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A', 'B');
+        var drawing = new PdfDrawingFontProgram(source, new SortedDictionary<int, int> { ['A'] = 1 },
+            _ => 1, _ => false);
+        byte[] rebuilt = Assert.IsType<byte[]>(PdfTrueTypeUnicodeCmap.TryAddMappings(drawing, mappings));
+        Assert.True(OfficeIMO.Drawing.OfficeTrueTypeFont.TryLoad(rebuilt)?.HasGlyphs(
+            char.ConvertFromUtf32(0x1000 + 8999 * 2)));
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
