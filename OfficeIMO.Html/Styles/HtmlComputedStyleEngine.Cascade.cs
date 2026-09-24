@@ -202,13 +202,19 @@ public static partial class HtmlComputedStyleEngine {
 
         if (string.Equals(trimmed, "initial", StringComparison.OrdinalIgnoreCase)
             || string.Equals(trimmed, "revert", StringComparison.OrdinalIgnoreCase)) {
+            if (string.Equals(trimmed, "initial", StringComparison.OrdinalIgnoreCase)
+                && string.Equals(name, "display", StringComparison.OrdinalIgnoreCase)) {
+                return CssKeywordResolution.ForValue("inline");
+            }
             return string.Equals(name, "visibility", StringComparison.OrdinalIgnoreCase)
                 ? CssKeywordResolution.ForValue("visible")
                 : CssKeywordResolution.Clear;
         }
 
         if (string.Equals(trimmed, "unset", StringComparison.OrdinalIgnoreCase)) {
-            return CssKeywordResolution.Clear;
+            return string.Equals(name, "display", StringComparison.OrdinalIgnoreCase)
+                ? CssKeywordResolution.ForValue("inline")
+                : CssKeywordResolution.Clear;
         }
 
         return CssKeywordResolution.ForValue(value);

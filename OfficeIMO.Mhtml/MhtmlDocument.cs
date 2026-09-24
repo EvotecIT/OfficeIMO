@@ -299,8 +299,14 @@ public sealed partial class MhtmlDocument {
         if (request.Uri.Scheme.Equals("cid", StringComparison.OrdinalIgnoreCase)) {
             string contentId = Uri.UnescapeDataString(retrievalSource.Substring("cid:".Length))
                 .Trim().Trim('<', '>');
-            return _resources.FirstOrDefault(resource => string.Equals(resource.ContentId, contentId,
-                StringComparison.OrdinalIgnoreCase));
+            MhtmlResource? byContentId = _resources.FirstOrDefault(resource => string.Equals(
+                resource.ContentId, contentId, StringComparison.OrdinalIgnoreCase));
+            if (byContentId != null) return byContentId;
+
+            // Chromium MHTML can use a cid: Content-Location without a Content-ID.
+            return _resources.FirstOrDefault(resource => !string.IsNullOrWhiteSpace(resource.ContentLocation)
+                && HtmlResourceIdentityComparer.Instance.Equals(
+                    RemoveUriFragment(resource.ContentLocation!), retrievalUri.AbsoluteUri));
         }
 
         foreach (MhtmlResource resource in _resources) {

@@ -678,7 +678,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         }
     }
 
-    private static string ResolveDisplay(IElement element, string value) {
+    internal static string ResolveDisplay(IElement element, string value) {
         string tag = element.TagName.ToLowerInvariant();
         if (tag == "dialog" && !element.HasAttribute("open") && string.IsNullOrWhiteSpace(value)) return "none";
         if (!string.IsNullOrWhiteSpace(value)) return value.Trim().ToLowerInvariant();

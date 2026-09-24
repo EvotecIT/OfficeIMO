@@ -488,6 +488,8 @@ public static partial class HtmlComputedStyleEngine {
         double? containingHeight,
         IReadOnlyList<ContainerQueryContext> containerContexts) {
         var properties = new Dictionary<string, CascadedProperty>(HtmlCssPropertyNameComparer.Instance);
+        IReadOnlyDictionary<string, string>? parentProperties =
+            GetParentPropertiesWithEffectiveDisplay(parent, element.ParentElement);
 
         string? directionAttribute = element.GetAttribute("dir")?.Trim();
         if (string.Equals(directionAttribute, "ltr", StringComparison.OrdinalIgnoreCase)
@@ -522,7 +524,7 @@ public static partial class HtmlComputedStyleEngine {
                 if (!MatchesSelector(element, rule, budget)) continue;
                 foreach (var declaration in rule.Declarations) {
                     if (declaration.Value.IsSupported) {
-                        ApplyDeclaration(properties, parent?.Properties, declaration.Key, declaration.Value.Value,
+                        ApplyDeclaration(properties, parentProperties, declaration.Key, declaration.Value.Value,
                             declaration.Value.IsImportant, rule.Specificity, rule.Order, rule.LayerOrder,
                             valueAlreadyValidated: true, declarationOrder: declaration.Value.DeclarationOrder,
                             customPropertyRegistrations: rules.CustomPropertyRegistrations,
@@ -533,8 +535,8 @@ public static partial class HtmlComputedStyleEngine {
             }
         }
 
-        ApplyInlineDeclarations(properties, parent?.Properties, element.GetAttribute("style"), rules.CustomPropertyRegistrations, budget);
-        Dictionary<string, string> resolvedProperties = ResolveComputedProperties(properties, parent?.Properties,
+        ApplyInlineDeclarations(properties, parentProperties, element.GetAttribute("style"), rules.CustomPropertyRegistrations, budget);
+        Dictionary<string, string> resolvedProperties = ResolveComputedProperties(properties, parentProperties,
             out HashSet<string> inheritedProperties, out HashSet<string> resetProperties,
             out HashSet<string> originRevertedProperties,
             out HashSet<string> specifiedProperties,
@@ -621,13 +623,15 @@ public static partial class HtmlComputedStyleEngine {
 
         if (matchedRules == null) return null;
         var properties = new Dictionary<string, CascadedProperty>(HtmlCssPropertyNameComparer.Instance);
+        IReadOnlyDictionary<string, string>? originatingProperties =
+            GetParentPropertiesWithEffectiveDisplay(originatingStyle, element);
 
         foreach (StyleRule rule in matchedRules) {
             foreach (KeyValuePair<string, StyleDeclaration> declaration in rule.Declarations) {
                 if (!declaration.Value.IsSupported) continue;
                 ApplyDeclaration(
                     properties,
-                    originatingStyle.Properties,
+                    originatingProperties,
                     declaration.Key,
                     declaration.Value.Value,
                     declaration.Value.IsImportant,
@@ -642,7 +646,7 @@ public static partial class HtmlComputedStyleEngine {
             }
         }
 
-        Dictionary<string, string> resolvedProperties = ResolveComputedProperties(properties, originatingStyle.Properties,
+        Dictionary<string, string> resolvedProperties = ResolveComputedProperties(properties, originatingProperties,
             out HashSet<string> inheritedProperties, out HashSet<string> resetProperties,
             out HashSet<string> originRevertedProperties,
             out HashSet<string> specifiedProperties,
