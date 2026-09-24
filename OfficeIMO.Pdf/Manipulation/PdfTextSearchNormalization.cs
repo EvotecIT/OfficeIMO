@@ -121,6 +121,10 @@ internal sealed class PdfNormalizedSearchText {
                     text.Length--;
                     starts.RemoveAt(starts.Count - 1);
                     ends.RemoveAt(ends.Count - 1);
+                } else {
+                    // Keep the source range, but match every supported line-end hyphen against
+                    // the ordinary hyphen callers use in copied or typed queries.
+                    text[text.Length - 1] = '-';
                 }
             } else {
                 text.Append(' ');

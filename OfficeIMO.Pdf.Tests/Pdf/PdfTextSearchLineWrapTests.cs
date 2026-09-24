@@ -68,6 +68,21 @@ public sealed class PdfTextSearchLineWrapTests {
         Assert.Single(document.Text.Find("hyph-\nenation", new PdfTextSearchOptions { WholeWords = true }));
     }
 
+    [Theory]
+    [InlineData('\u00AD')]
+    [InlineData('\u2010')]
+    [InlineData('\u2011')]
+    public void RetainedLineEndHyphensMatchOrdinaryHyphenatedQueries(char lineEndHyphen) {
+        string source = "hyph" + lineEndHyphen + "\nenation";
+
+        Assert.True(PdfTextSearchNormalization.Contains(source, "hyph-enation", StringComparison.Ordinal));
+        Assert.True(PdfTextSearchNormalization.Contains(source, "hyphenation", StringComparison.Ordinal));
+        Assert.True(PdfTextSearchNormalization.Contains(source, "hyph-\nenation", StringComparison.Ordinal));
+        Assert.Equal((0, source.Length), Assert.Single(PdfTextSearchNormalization.FindSourceRanges(
+            source, "hyph-enation", StringComparison.Ordinal)));
+        Assert.False(PdfTextSearchNormalization.Contains("hyph" + lineEndHyphen + " next", "hyph-next", StringComparison.Ordinal));
+    }
+
     [Fact]
     public void PhrasesDoNotJoinIndependentColumns() {
         PdfDocument document = PdfDocument.Load(BuildRawTextPdf(
