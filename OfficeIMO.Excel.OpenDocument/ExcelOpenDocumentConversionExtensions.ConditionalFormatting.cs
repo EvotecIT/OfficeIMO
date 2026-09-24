@@ -7,6 +7,7 @@ namespace OfficeIMO.Excel.OpenDocument;
 
 public static partial class ExcelOpenDocumentConversionExtensions {
     private const int MaximumConditionalFormattingCellsPerStyle = 4096;
+    private const int MaximumConditionalFormattingMapsPerStyle = 16;
 
     private sealed class OdsConditionalStylePlan {
         internal OdsConditionalStylePlan(ExcelConditionalFormattingOperator comparison, string formula1,
@@ -39,13 +40,13 @@ public static partial class ExcelOpenDocumentConversionExtensions {
     }
 
     private static void CollectOdsConditionalTarget(OdsDocument source, string styleName,
-        int row, int column, Dictionary<string, OdsConditionalStylePlan?> plans,
+        int row, int column, Dictionary<string, IReadOnlyList<OdsConditionalStylePlan>?> plans,
         Dictionary<string, List<string>> targets, HashSet<string> limits) {
-        if (!plans.TryGetValue(styleName, out OdsConditionalStylePlan? plan)) {
-            plan = CreateOdsConditionalStylePlan(source, styleName);
-            plans.Add(styleName, plan);
+        if (!plans.TryGetValue(styleName, out IReadOnlyList<OdsConditionalStylePlan>? stylePlans)) {
+            stylePlans = CreateOdsConditionalStylePlans(source, styleName);
+            plans.Add(styleName, stylePlans);
         }
-        if (plan == null || limits.Contains(styleName)) return;
+        if (stylePlans == null || limits.Contains(styleName)) return;
         if (!targets.TryGetValue(styleName, out List<string>? references)) {
             references = new List<string>();
             targets.Add(styleName, references);
@@ -58,16 +59,27 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         references.Add(SpreadsheetAddressConverter.ToA1(row, column));
     }
 
-    private static OdsConditionalStylePlan? CreateOdsConditionalStylePlan(OdsDocument source, string styleName) {
+    private static IReadOnlyList<OdsConditionalStylePlan>? CreateOdsConditionalStylePlans(OdsDocument source, string styleName) {
         OdfStyle? baseStyle = source.Styles.Find(OdfStyleFamily.TableCell, styleName);
         if (baseStyle == null) return null;
         IReadOnlyList<OdfStyleMap> maps = baseStyle.ConditionalMaps;
-        if (maps.Count != 1 || !TryParseNumericCellCondition(maps[0].Condition,
+        if (maps.Count == 0 || maps.Count > MaximumConditionalFormattingMapsPerStyle) return null;
+        var plans = new List<OdsConditionalStylePlan>(maps.Count);
+        foreach (OdfStyleMap map in maps) {
+            OdsConditionalStylePlan? plan = CreateOdsConditionalStylePlan(source, map);
+            if (plan == null) return null;
+            plans.Add(plan);
+        }
+        return plans;
+    }
+
+    private static OdsConditionalStylePlan? CreateOdsConditionalStylePlan(OdsDocument source, OdfStyleMap map) {
+        if (!TryParseNumericCellCondition(map.Condition,
                 out ExcelConditionalFormattingOperator comparison, out string formula1,
                 out string? formula2)) return null;
         OdfStyle[] appliedStyles = source.Styles.Named.Where(style =>
             style.Family == OdfStyleFamily.TableCell &&
-            string.Equals(style.Name, maps[0].ApplyStyleName, StringComparison.Ordinal))
+            string.Equals(style.Name, map.ApplyStyleName, StringComparison.Ordinal))
             .Take(2).ToArray();
         if (appliedStyles.Length != 1) return null;
         OdfColor? fill;
@@ -184,29 +196,32 @@ public static partial class ExcelOpenDocumentConversionExtensions {
     }
 
     private static void ApplyOdsConditionalStyles(ExcelSheet sheet,
-        Dictionary<string, OdsConditionalStylePlan?> plans,
+        Dictionary<string, IReadOnlyList<OdsConditionalStylePlan>?> plans,
         Dictionary<string, List<string>> targets, HashSet<string> limits,
         HashSet<string> convertedStyles) {
         foreach (KeyValuePair<string, List<string>> entry in targets) {
             if (limits.Contains(entry.Key) || entry.Value.Count == 0) continue;
-            OdsConditionalStylePlan plan = plans[entry.Key]!;
-            sheet.AddConditionalFormattingRule(new ExcelConditionalFormattingInfo {
-                Source = ExcelConditionalFormattingSource.Standard,
-                Range = string.Join(" ", entry.Value),
-                Type = "CellIs",
-                Operator = plan.Comparison.ToString(),
-                Formulas = plan.Formula2 == null
-                    ? new[] { plan.Formula1 }
-                    : new[] { plan.Formula1, plan.Formula2 },
-                DifferentialFillColorArgb = plan.FillColor,
-                DifferentialFontColorArgb = plan.FontColor,
-                DifferentialFontBold = plan.Bold,
-                DifferentialFontItalic = plan.Italic,
-                DifferentialFontUnderline = plan.Underline,
-                DifferentialFontStrike = plan.Strike,
-                DifferentialFontName = plan.FontName,
-                DifferentialFontSize = plan.FontSizePoints
-            });
+            // Excel inserts each new rule before existing rules on the sheet.
+            foreach (OdsConditionalStylePlan plan in plans[entry.Key]!.Reverse()) {
+                sheet.AddConditionalFormattingRule(new ExcelConditionalFormattingInfo {
+                    Source = ExcelConditionalFormattingSource.Standard,
+                    Range = string.Join(" ", entry.Value),
+                    Type = "CellIs",
+                    StopIfTrue = true,
+                    Operator = plan.Comparison.ToString(),
+                    Formulas = plan.Formula2 == null
+                        ? new[] { plan.Formula1 }
+                        : new[] { plan.Formula1, plan.Formula2 },
+                    DifferentialFillColorArgb = plan.FillColor,
+                    DifferentialFontColorArgb = plan.FontColor,
+                    DifferentialFontBold = plan.Bold,
+                    DifferentialFontItalic = plan.Italic,
+                    DifferentialFontUnderline = plan.Underline,
+                    DifferentialFontStrike = plan.Strike,
+                    DifferentialFontName = plan.FontName,
+                    DifferentialFontSize = plan.FontSizePoints
+                });
+            }
             convertedStyles.Add(entry.Key);
         }
     }

@@ -28,7 +28,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
 
         int cells = 0, formulas = 0, formulaTranslationFailures = 0, styles = 0, hyperlinks = 0, unsupportedHyperlinks = 0, hyperlinkTooltips = 0, comments = 0, richComments = 0, threadedComments = 0, merges = 0;
         int rows = 0, columns = 0, convertedValidations = 0, skippedValidations = 0, overlappingValidationAssignments = 0;
-        int tables = 0, filters = 0, unsupportedStyles = 0, skippedStyles = 0;
+        int tables = 0, filters = 0, unsupportedStyles = 0, skippedStyles = 0, convertedConditionalRules = 0;
         long materializedCells = 0, skippedCells = 0, skippedRows = 0, skippedColumns = 0, skippedMerges = 0;
         bool truncated = false;
         var dataStyles = new Dictionary<uint, string>();
@@ -298,6 +298,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 materializedCells += newlyMaterializedCells;
                 merges++;
             }
+            convertedConditionalRules += ApplyExcelConditionalFormatting(source.Sheets[worksheetOrdinal - 1],
+                worksheet, target, sheet, effective, materializedCoordinates, ref materializedCells, ref truncated);
             tables += worksheet.Tables.Count;
             if (worksheet.AutoFilter != null) filters++;
             if (worksheet.FrozenRowCount > 0 || worksheet.FrozenColumnCount > 0 || worksheet.RightToLeft || !worksheet.ShowGridlines) {
@@ -320,9 +322,12 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         int disambiguatedNames = namedRangePlan.DisambiguatedCount;
 
         AddConverted(report, "worksheets", snapshot.Worksheets.Count);
+        if (convertedConditionalRules > 0) report.Add("conditional-formatting",
+            OdfConversionMappingStatus.Approximated, convertedConditionalRules,
+            "Bounded numeric cell-value rules with solid fills are represented by ODF conditional style maps.");
         AddUnsupported(report, "conditional-formatting",
-            snapshot.Worksheets.Sum(sheet => sheet.ConditionalFormattingRuleCount),
-            "Excel conditional-formatting rules are not projected to ODF conditional style maps.");
+            snapshot.Worksheets.Sum(sheet => sheet.ConditionalFormattingRuleCount) - convertedConditionalRules,
+            "Excel conditional-formatting rules outside the bounded numeric solid-fill subset are not projected to ODF conditional style maps.");
         AddConverted(report, "cells", cells);
         AddConverted(report, "rows", rows);
         if (columns > 0) report.Add("column-layout", OdfConversionMappingStatus.Approximated, columns,
@@ -407,7 +412,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         bool truncated = false;
         ExcelSheet? activeTarget = null;
         ExcelSheet? firstTarget = null;
-        var conditionalPlans = new Dictionary<string, OdsConditionalStylePlan?>(StringComparer.Ordinal);
+        var conditionalPlans = new Dictionary<string, IReadOnlyList<OdsConditionalStylePlan>?>(StringComparer.Ordinal);
         var convertedConditionalStyles = new HashSet<string>(StringComparer.Ordinal);
         int conditionalTargetLimitFailures = 0;
         foreach (OdsSheet odsSheet in source.Sheets) {
@@ -630,9 +635,10 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         if (forcedVisibleWorksheets > 0) report.Add("worksheet-visibility", OdfConversionMappingStatus.Approximated,
             forcedVisibleWorksheets, "The first worksheet was made visible because XLSX requires at least one visible worksheet.");
         AddConverted(report, "validations", convertedValidations);
-        if (convertedConditionalStyles.Count > 0) report.Add("source-conditional-style-maps",
-            OdfConversionMappingStatus.Approximated, convertedConditionalStyles.Count,
-            "Single numeric cell-content comparisons and literal numeric between/not-between conditions with direct fill or supported font styling, including direct single strikethrough, are mapped to Excel differential styles; one font family and absolute sizes from 1 to 409 points are supported, while other applied-style properties and ODF evaluation details are not transferred.");
+        int convertedConditionalMapCount = convertedConditionalStyles.Sum(styleName => conditionalPlans[styleName]!.Count);
+        if (convertedConditionalMapCount > 0) report.Add("source-conditional-style-maps",
+            OdfConversionMappingStatus.Approximated, convertedConditionalMapCount,
+            "Up to 16 ordered numeric cell-content comparisons or literal numeric between/not-between conditions per style, each with direct fill or supported font styling, are mapped to Excel differential styles with stop-if-true priority. Other applied-style properties and ODF evaluation details are not transferred.");
         AddUnsupported(report, "conditional-formatting-cell-limits", conditionalTargetLimitFailures,
             "A source style used on more than 4,096 cells in one sheet was not mapped to an Excel conditional-formatting rule for that sheet.");
         if (unsupportedValidationAssignments > 0) report.Add("validations", OdfConversionMappingStatus.Unsupported,
@@ -650,7 +656,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         if (truncated) report.Add("expansion-limits", OdfConversionMappingStatus.Skipped, 1,
             "Content outside the configured row, column, or expanded-cell limits was not materialized.");
         AddUnmappedOdfFindings(source.InspectFeatures(), report, formulas, convertedValidations,
-            externalHyperlinks, comments, namedRanges, convertedConditionalStyles.Count);
+            externalHyperlinks, comments, namedRanges, convertedConditionalMapCount);
         target = Normalize(target);
         return new OdfConversionResult<ExcelDocument>(target, report).ApplyPolicy(effective.LossPolicy);
     }
