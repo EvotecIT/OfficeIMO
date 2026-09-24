@@ -1420,7 +1420,8 @@ internal static class TextContentParser {
         }
 
         static IReadOnlyList<bool>? GetEmbeddedLineBreaks(string source, int normalizedLength) {
-            if (source.IndexOf('\n') < 0 && source.IndexOf('\r') < 0) return null;
+            if (source.IndexOf('\n') < 0 && source.IndexOf('\r') < 0 &&
+                source.IndexOf('\u2028') < 0 && source.IndexOf('\u2029') < 0) return null;
             var breaks = new bool[normalizedLength];
             int outputIndex = 0;
             bool sawText = false;
@@ -1433,7 +1434,7 @@ internal static class TextContentParser {
                 }
                 bool containsLineBreak = false;
                 while (index < source.Length && char.IsWhiteSpace(source[index])) {
-                    containsLineBreak |= source[index] is '\r' or '\n';
+                    containsLineBreak |= source[index] is '\r' or '\n' or '\u2028' or '\u2029';
                     index++;
                 }
                 if (sawText && index < source.Length && outputIndex < breaks.Length) {

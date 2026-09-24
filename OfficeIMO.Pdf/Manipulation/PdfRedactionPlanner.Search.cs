@@ -51,10 +51,10 @@ internal static partial class PdfRedactionPlanner {
         }
         int[] nativePages = tablePages.Concat(embeddedBreakSpans.Keys).Distinct().ToArray();
         if (nativePages.Length > 0 && search.LiteralText.Count > 0) {
-            var nativeOptions = new PdfTextSearchOptions { MatchCase = search.MatchCase, PageNumbers = nativePages };
+            var nativeOptions = new PdfTextSearchOptions { MatchCase = search.MatchCase, IncludeTextRenderingMode3 = true, PageNumbers = nativePages };
             foreach (string literal in search.LiteralText) {
                 search.CancellationToken.ThrowIfCancellationRequested();
-                foreach (PdfTextMatch hit in PdfTextEditor.Find(pdf, literal, nativeOptions, readOptions)) {
+                foreach (PdfTextMatch hit in PdfTextEditor.Find(pdf, literal, nativeOptions, readOptions, workBudget)) {
                     PdfReadPage page = readDocument.Pages[hit.PageNumber - 1];
                     PdfSelectionQuad visual = hit.VisualBounds;
                     PdfVisualBounds whole = page.TransformVisualBoundsToUser(visual.Left, visual.Top, visual.Right, visual.Bottom);

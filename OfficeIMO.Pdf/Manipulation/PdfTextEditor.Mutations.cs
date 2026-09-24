@@ -16,6 +16,10 @@ internal static partial class PdfTextEditor {
         return FindHits(pdf, text, options, readOptions).Select(static hit => hit.Match).ToArray();
     }
 
+    internal static IReadOnlyList<PdfTextMatch> Find(byte[] pdf, string text, PdfTextSearchOptions? options,
+        PdfLoadOptions? readOptions, PdfRedactionSearchWorkBudget workBudget) =>
+        FindHits(pdf, text, options, readOptions, workBudget).Select(static hit => hit.Match).ToArray();
+
     internal static TextMutationResult Add(byte[] pdf, PdfPageRegion region, string text, PdfTextEditOptions? options, PdfLoadOptions? readOptions) {
         Guard.NotNull(text, nameof(text));
         if (!HasRenderableTextLine(text)) throw new ArgumentException("Added text must contain at least one renderable line.", nameof(text));

@@ -165,7 +165,30 @@ public sealed class PdfTextSearchLineWrapTests {
         Assert.Empty(document.Text.Find("Beta Gamma"));
         PdfRedactionPlan plan = document.Redactions.Search(new PdfRedactionSearchOptions().AddLiteral("Alpha Beta"));
         Assert.True(plan.Areas.Count >= 2);
+        Assert.Throws<InvalidOperationException>(() => PdfRedactionApplier.VerifySearchedTextRemoved(
+            pdf, pdf, plan, null, null, default, CancellationToken.None));
         Assert.Empty(document.Redactions.Apply(plan).Text.Find("Alpha Beta"));
+    }
+
+    [Fact]
+    public void AdjacentTableCellsDoNotFormOneSameLineSearchPhrase() {
+        byte[] pdf = BuildRawTextPdf(
+            "100 680 m 400 680 l 400 520 l 100 520 l h " +
+            "250 680 m 250 520 l " +
+            "100 650 m 400 650 l 100 610 m 400 610 l " +
+            "100 570 m 400 570 l S\n" +
+            "BT /F1 12 Tf 110 660 Td (Name) Tj ET\n" +
+            "BT /F1 12 Tf 260 660 Td (Code) Tj ET\n" +
+            "BT /F1 12 Tf 110 630 Td (Alpha) Tj ET\n" +
+            "BT /F1 12 Tf 260 630 Td (100) Tj ET\n" +
+            "BT /F1 12 Tf 201 615 Td (A) Tj ET\n" +
+            "BT /F1 12 Tf 223 615 Td (B) Tj ET\n");
+        Assert.NotEmpty(PdfReadDocument.Open(pdf).Pages[0].ExtractStructured().TablesDetailed);
+
+        PdfDocument document = PdfDocument.Load(pdf);
+        Assert.Empty(document.Text.Find("A B"));
+        Assert.NotEmpty(document.Text.Find("A"));
+        Assert.Single(document.Text.Find("B"));
     }
 
     [Fact]
@@ -197,6 +220,32 @@ public sealed class PdfTextSearchLineWrapTests {
         PdfRedactionPlan plan = document.Redactions.Search(new PdfRedactionSearchOptions().AddLiteral("hyphenation"));
         Assert.NotEmpty(plan.Areas);
         Assert.Empty(document.Redactions.Apply(plan).Text.Find("hyphenation"));
+    }
+
+    [Theory]
+    [InlineData("2028")]
+    [InlineData("2029")]
+    public void UnicodeActualTextBreakSurvivesSpanCloningAndSearchesAsJoinedWord(string breakCode) {
+        byte[] pdf = BuildRawTextPdf(
+            "/Span << /ActualText <FEFF0068007900700068002D" + breakCode + "0065006E006100740069006F006E> >> BDC " +
+            "BT /F1 12 Tf 50 700 Td (X) Tj ET EMC\n");
+        PdfTextSpan source = Assert.Single(PdfReadDocument.Open(pdf).Pages[0].GetTextSpans());
+        Assert.Contains(true, Assert.IsAssignableFrom<IReadOnlyList<bool>>(source.EmbeddedLineBreaks));
+        Assert.Equal(source.EmbeddedLineBreaks, source.WithCanRestamp(false).EmbeddedLineBreaks);
+        Assert.Equal(source.EmbeddedLineBreaks, source.WithOffset(1D, 1D).EmbeddedLineBreaks);
+        Assert.Equal(source.EmbeddedLineBreaks, source.WithVisualFontSize(13D).EmbeddedLineBreaks);
+        Assert.Equal(source.EmbeddedLineBreaks, source.WithLayoutGeometry(50D, 700D, 0D, 800D).EmbeddedLineBreaks);
+        Assert.Single(PdfDocument.Load(pdf).Text.Find("hyphenation"));
+    }
+
+    [Fact]
+    public void InvisibleActualTextWithEmbeddedBreakIsIncludedInRedactionSearch() {
+        byte[] pdf = BuildRawTextPdf(
+            "/Span << /ActualText <FEFF0068007900700068002D000A0065006E006100740069006F006E> >> BDC " +
+            "BT /F1 12 Tf 3 Tr 50 700 Td (X) Tj ET EMC\n");
+        PdfRedactionPlan plan = PdfDocument.Load(pdf).Redactions.Search(
+            new PdfRedactionSearchOptions().AddLiteral("hyphenation"));
+        Assert.NotEmpty(plan.Areas);
     }
 
     [Fact]

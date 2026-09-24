@@ -7,7 +7,7 @@ internal static partial class PdfRedactionApplier {
     // Search rectangles depend on source text geometry. Recheck every requested
     // criterion on affected pages after rewriting, even when several criteria
     // matched the same source block and only the first one labelled its area.
-    private static void VerifySearchedTextRemoved(byte[] output, byte[] source, PdfRedactionPlan plan,
+    internal static void VerifySearchedTextRemoved(byte[] output, byte[] source, PdfRedactionPlan plan,
         PdfTextLayoutOptions? layoutOptions, PdfLoadOptions? readOptions,
         PdfGeneratedOutputGrowth generatedGrowth, CancellationToken cancellationToken) {
         if (plan.SearchCriteria.Count == 0 || plan.Areas.Count == 0) return;
@@ -46,6 +46,15 @@ internal static partial class PdfRedactionApplier {
                 cancellationToken.ThrowIfCancellationRequested();
                 workBudget.ChargeTextScan(remaining, literal);
                 if (PdfTextSearchNormalization.ContainsExact(remaining, literal, comparison)) ThrowSurvivingText(pageNumber);
+                // ExtractText does not preserve every cell wrap or embedded /ActualText line break.
+                // Reuse the planner's native normalization so a surviving wrapped occurrence fails closed.
+                var nativeOptions = new PdfTextSearchOptions {
+                    MatchCase = plan.SearchMatchCase,
+                    IncludeTextRenderingMode3 = true,
+                    PageNumbers = new[] { pageNumber }
+                };
+                if (PdfTextEditor.Find(output, literal, nativeOptions, outputOptions, workBudget).Count > 0)
+                    ThrowSurvivingText(pageNumber);
             }
             PdfLogicalTextBlock[] rewrittenBlocks = rewrittenBlocksByPage != null &&
                 rewrittenBlocksByPage.TryGetValue(pageNumber, out PdfLogicalTextBlock[]? pageRewrittenBlocks)
