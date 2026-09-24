@@ -939,7 +939,7 @@ internal static class TextContentParser {
                 string t = NormalizeDecodedGlyphText(DecodeRun(g, remainingGlyphCharacters) ?? string.Empty);
                 if (!useLogicalTextFilters && visualEncodingForResource != null) {
                     string? encoded = visualEncodingForResource(font, g);
-                    if (!string.IsNullOrEmpty(encoded) && encoded.Length <= remainingGlyphCharacters) {
+                    if (encoded != null && encoded.Length > 0 && encoded.Length <= remainingGlyphCharacters) {
                         t = NormalizeDecodedGlyphText(encoded);
                         usedVisualEncoding = true;
                     }

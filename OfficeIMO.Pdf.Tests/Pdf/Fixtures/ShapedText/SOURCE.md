@@ -14,6 +14,7 @@ each painted letter by the presentation form the Unicode joining rules select.
 | `poppler-chrome-devanagari.png` | `chrome-devanagari.pdf` | Chrome/Skia output with multi-glyph Devanagari runs, conjunct glyphs mapped to clusters, and glyphs whose ToUnicode text is U+0000 (the text is carried by ActualText). |
 | `poppler-space-coded-glyph.png` | `space-coded-glyph.pdf` | An inked glyph whose ToUnicode text is a space, painted over a letter like a colour-font layer, next to a real space glyph and at both ends of multi-glyph text runs. |
 | `poppler-ligature-run.png` | `ligature-run.pdf` | Multi-glyph Latin runs containing ligature glyphs mapped to their letters. |
+| `poppler-ligature-only.png` | `ligature-only.pdf` | CIDFontType2 subset whose only ToUnicode entry is an `ffi` cluster; no single-scalar mapping can seed the drawing font. |
 | `poppler-ghostscript-ligature-run.png` | `ghostscript-ligature-run.pdf` | Ghostscript redistillation of `ligature-run.pdf`: its ToUnicode maps the ffi ligature to `f` plus U+00CF, so the glyph must be drawn by id. |
 | `poppler-cairo-rtl-0.png` | `OfficeIMO.TestAssets/MultilingualLayout/rtl-0-native.pdf` | Pango/Cairo output: CIDFontType2 subsets without cmap, logical-order TJ glyph runs whose ToUnicode maps every contextual form to its base letter. |
 | `poppler-cairo-rtl-90.png` | `OfficeIMO.TestAssets/MultilingualLayout/rtl-90-native.pdf` | The same content on a page rotated 90 degrees. |
@@ -29,6 +30,7 @@ each painted letter by the presentation form the Unicode joining rules select.
 | `cairo-arabic-extended.pdf` | `96b1b29603c2937c194c000bc05da1db856629f5f675e671ee01fb85f170c38a` | `generate_cairo_extended.py` with Cairo 1.18.0 and Pango 1.52.1 (Ubuntu) |
 | `space-coded-glyph.pdf` | `cc42204fe1329b4077c463d6b4258c5a6c13ae14286bf1a573c54bda4f0a4089` | `create_space_coded_glyph_fixture.py` |
 | `ligature-run.pdf` | `224fec268284175e96103e12b76e89b2ad7261ef120435d8b6cb50d25c65f259` | `create_ligature_run_fixture.py` |
+| `ligature-only.pdf` | `8963ecf8826ed41f23b73a84d5ae800a4795a0427720ef2d67a6078ee6aaf3d9` | `create_ligature_run_fixture.py` with fontTools 4.65.0 |
 | `ghostscript-ligature-run.pdf` | `07c80e9df7b07cbe997aaf4d22886c721bbed93244d0ed7194cdfbf70a3d9b68` | GPL Ghostscript 10.02.1 (Ubuntu) `pdfwrite` of `ligature-run.pdf` |
 
 Fonts: the Arabic fixtures embed subsets of the repository's

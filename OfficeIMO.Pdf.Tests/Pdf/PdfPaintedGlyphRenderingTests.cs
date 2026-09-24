@@ -5,6 +5,18 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfPaintedGlyphRenderingTests {
+    [Fact]
+    public void LigatureOnlySubsetRegistersItsPaintedGlyph() {
+        string root = VisualBaselineTestSupport.GetTestsProjectRoot();
+        string path = Path.Combine(root, "Pdf", "Fixtures", "ShapedText", "ligature-only.pdf");
+        OfficeDrawing drawing = PdfReadDocument.Open(File.ReadAllBytes(path)).Pages[0].ToDrawing();
+
+        OfficeDrawingText visual = Assert.Single(drawing.Elements.OfType<OfficeDrawingText>());
+        Assert.Single(visual.Text);
+        Assert.InRange(visual.Text[0], '\uE000', '\uF8FF');
+        Assert.NotEmpty(drawing.Fonts.Faces);
+    }
+
     // A PDF paints shaped, positioned glyphs. Rendering must reproduce those exact glyphs: contextual
     // Arabic, Persian and Urdu forms, font-specific alternates, words painted across two fonts,
     // clipped glyphs at a line edge, rotated right-to-left lines, Devanagari clusters and glyphs whose
@@ -19,6 +31,7 @@ public sealed class PdfPaintedGlyphRenderingTests {
     [InlineData("chrome-devanagari", "Pdf/Fixtures/ShapedText/chrome-devanagari.pdf")]
     [InlineData("space-coded-glyph", "Pdf/Fixtures/ShapedText/space-coded-glyph.pdf")]
     [InlineData("ligature-run", "Pdf/Fixtures/ShapedText/ligature-run.pdf")]
+    [InlineData("ligature-only", "Pdf/Fixtures/ShapedText/ligature-only.pdf")]
     [InlineData("ghostscript-ligature-run", "Pdf/Fixtures/ShapedText/ghostscript-ligature-run.pdf")]
     [InlineData("cairo-rtl-0", "../OfficeIMO.TestAssets/MultilingualLayout/rtl-0-native.pdf")]
     [InlineData("cairo-rtl-90", "../OfficeIMO.TestAssets/MultilingualLayout/rtl-90-native.pdf")]

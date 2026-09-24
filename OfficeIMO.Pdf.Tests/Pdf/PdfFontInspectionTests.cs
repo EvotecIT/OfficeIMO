@@ -499,9 +499,11 @@ public sealed class PdfFontInspectionTests {
         Assert.Equal(expectedItalic, span.IsItalic);
     }
 
-    [Fact]
-    public void SubstitutedSimpleFontDrawsEncodingWhileExtractionKeepsToUnicode() {
-        const string toUnicode = "begincmap\n1 beginbfchar\n<41> <0042>\nendbfchar\nendcmap";
+    [Theory]
+    [InlineData("0042", "BB")]
+    [InlineData("00660069", "fifi")]
+    public void SubstitutedSimpleFontDrawsEncodingWhileExtractionKeepsToUnicode(string mappedUnicode, string extracted) {
+        string toUnicode = "begincmap\n1 beginbfchar\n<41> <" + mappedUnicode + ">\nendbfchar\nendcmap";
         byte[] pdf = BuildPdf(
             "<< /Type /Catalog /Pages 2 0 R >>",
             "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
@@ -511,8 +513,24 @@ public sealed class PdfFontInspectionTests {
             StreamObject(toUnicode));
 
         PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
-        Assert.Equal("BB", Assert.Single(page.GetTextSpans()).Text);
+        Assert.Equal(extracted, Assert.Single(page.GetTextSpans()).Text);
         Assert.Equal("AA", Assert.Single(page.ToDrawing().Elements.OfType<OfficeDrawingText>()).Text);
+    }
+
+    [Fact]
+    public void SynthesizedCmapResolvesMappingsBeyondTheFirstFormat12GroupLimit() {
+        byte[] source = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A', 'B');
+        var original = new PdfDrawingFontProgram(source, new SortedDictionary<int, int> { ['A'] = 1 },
+            _ => 1, _ => false);
+        var additions = new Dictionary<int, int>();
+        for (int scalar = 0x1000; scalar < 0x1000 + 9000; scalar++)
+            additions.Add(scalar, (scalar & 1) == 0 ? 1 : 2);
+
+        byte[] rebuilt = Assert.IsType<byte[]>(PdfTrueTypeUnicodeCmap.TryAddMappings(original, additions));
+        OfficeTrueTypeFont font = Assert.IsType<OfficeTrueTypeFont>(OfficeTrueTypeFont.TryLoad(rebuilt));
+
+        Assert.NotEmpty(font.GetTextContours(char.ConvertFromUtf32(0x1000), 0, 0, 12));
+        Assert.NotEmpty(font.GetTextContours(char.ConvertFromUtf32(0x1000 + 8999), 0, 0, 12));
     }
 
     private static byte[] BuildFontPdf() {

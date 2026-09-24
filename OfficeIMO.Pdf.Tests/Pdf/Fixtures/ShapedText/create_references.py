@@ -30,6 +30,7 @@ CASES = {
     "chrome-devanagari": HERE / "chrome-devanagari.pdf",
     "space-coded-glyph": HERE / "space-coded-glyph.pdf",
     "ligature-run": HERE / "ligature-run.pdf",
+    "ligature-only": HERE / "ligature-only.pdf",
     "ghostscript-ligature-run": HERE / "ghostscript-ligature-run.pdf",
     "cairo-rtl-0": ROOT / "OfficeIMO.TestAssets" / "MultilingualLayout" / "rtl-0-native.pdf",
     "cairo-rtl-90": ROOT / "OfficeIMO.TestAssets" / "MultilingualLayout" / "rtl-90-native.pdf",

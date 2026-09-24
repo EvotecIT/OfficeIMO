@@ -119,10 +119,16 @@ internal static class PdfTrueTypeUnicodeCmap {
             !string.Equals(font.Encoding, "Identity-H", StringComparison.Ordinal) &&
             !string.Equals(font.Encoding, "Identity-V", StringComparison.Ordinal)) return null;
         var entries = new List<(int Cid, int Scalar)>();
+        int fallbackGlyph = 0;
         foreach (KeyValuePair<string, string> mapping in font.CMap.Mappings) {
             if (mapping.Key.Length != 4 ||
-                !int.TryParse(mapping.Key, System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out int cid) ||
-                !TryGetSingleScalar(mapping.Value, out int scalar)) continue;
+                !int.TryParse(mapping.Key, System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out int cid)) continue;
+            if (!TryGetSingleScalar(mapping.Value, out int scalar)) {
+                int clusterGlyph = GlyphForCid(cidToGlyphMap, cid, glyphCount);
+                if (fallbackGlyph == 0 && mapping.Value.Length > 0 && clusterGlyph > 0 && !isEmptyGlyph(clusterGlyph))
+                    fallbackGlyph = clusterGlyph;
+                continue;
+            }
             entries.Add((cid, scalar));
         }
         entries.Sort(static (left, right) => left.Cid.CompareTo(right.Cid));
@@ -138,6 +144,9 @@ internal static class PdfTrueTypeUnicodeCmap {
                 IsWhiteSpaceScalar(entry.Scalar) && !isEmptyGlyph(glyph)) continue;
             mappings.Add(entry.Scalar, glyph);
         }
+        // A subset can contain only ligatures or clusters. Seed one private-use entry so the
+        // drawing font is registered; the painted-glyph mapper assigns aliases for each run.
+        if (mappings.Count == 0 && fallbackGlyph > 0) mappings.Add(0xE000, fallbackGlyph);
         return mappings;
     }
 
@@ -298,9 +307,9 @@ internal static class PdfTrueTypeUnicodeCmap {
         // sentinel fits only through 8,188 BMP mappings; larger subsets use format 12.
         byte[]? format4 = basic.Count <= 8188 ? BuildFormat4(basic) : null;
         bool needsFull = format4 == null || basic.Count != mappings.Count;
-        byte[]? format12 = needsFull ? BuildFormat12(mappings) : null;
+        List<byte[]> format12 = needsFull ? BuildFormat12Parts(mappings) : new List<byte[]>();
         using var output = new MemoryStream();
-        int records = (format4 == null ? 0 : 1) + (format12 == null ? 0 : 1);
+        int records = (format4 == null ? 0 : 1) + format12.Count;
         WriteUInt16(output, 0);
         WriteUInt16(output, (ushort)records);
         int offset = 4 + records * 8;
@@ -309,13 +318,15 @@ internal static class PdfTrueTypeUnicodeCmap {
             WriteUInt16(output, 1);
             WriteUInt32(output, (uint)offset);
         }
-        if (format12 != null) {
+        int fullOffset = offset + (format4?.Length ?? 0);
+        foreach (byte[] table in format12) {
             WriteUInt16(output, 3);
             WriteUInt16(output, 10);
-            WriteUInt32(output, (uint)(offset + (format4?.Length ?? 0)));
+            WriteUInt32(output, (uint)fullOffset);
+            fullOffset += table.Length;
         }
         if (format4 != null) output.Write(format4, 0, format4.Length);
-        if (format12 != null) output.Write(format12, 0, format12.Length);
+        foreach (byte[] table in format12) output.Write(table, 0, table.Length);
         return output.ToArray();
     }
 
@@ -347,19 +358,37 @@ internal static class PdfTrueTypeUnicodeCmap {
         return output.ToArray();
     }
 
-    private static byte[] BuildFormat12(SortedDictionary<int, int> mappings) {
-        using var output = new MemoryStream();
-        WriteUInt16(output, 12);
-        WriteUInt16(output, 0);
-        WriteUInt32(output, (uint)(16 + mappings.Count * 12));
-        WriteUInt32(output, 0);
-        WriteUInt32(output, (uint)mappings.Count);
+    private static List<byte[]> BuildFormat12Parts(SortedDictionary<int, int> mappings) {
+        var groups = new List<(int Start, int End, int Glyph)>();
         foreach (var mapping in mappings) {
-            WriteUInt32(output, (uint)mapping.Key);
-            WriteUInt32(output, (uint)mapping.Key);
-            WriteUInt32(output, (uint)mapping.Value);
+            if (groups.Count > 0) {
+                var previous = groups[groups.Count - 1];
+                if (mapping.Key == previous.End + 1 && mapping.Value == previous.Glyph + mapping.Key - previous.Start) {
+                    groups[groups.Count - 1] = (previous.Start, mapping.Key, previous.Glyph);
+                    continue;
+                }
+            }
+            groups.Add((mapping.Key, mapping.Key, mapping.Value));
         }
-        return output.ToArray();
+        int maximumGroups = (int)OfficeOpenTypeCmap.MaximumFormat12Groups;
+        var parts = new List<byte[]>((groups.Count + maximumGroups - 1) / maximumGroups);
+        for (int first = 0; first < groups.Count; first += maximumGroups) {
+            int count = Math.Min(maximumGroups, groups.Count - first);
+            using var output = new MemoryStream();
+            WriteUInt16(output, 12);
+            WriteUInt16(output, 0);
+            WriteUInt32(output, (uint)(16 + count * 12));
+            WriteUInt32(output, 0);
+            WriteUInt32(output, (uint)count);
+            for (int index = first; index < first + count; index++) {
+                var group = groups[index];
+                WriteUInt32(output, (uint)group.Start);
+                WriteUInt32(output, (uint)group.End);
+                WriteUInt32(output, (uint)group.Glyph);
+            }
+            parts.Add(output.ToArray());
+        }
+        return parts;
     }
 
     private static byte[] Assemble(List<(string Tag, byte[] Body)> tables) {
