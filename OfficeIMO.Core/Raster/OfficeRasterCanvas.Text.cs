@@ -740,7 +740,7 @@ public sealed partial class OfficeRasterCanvas {
             return _font;
         }
 
-        return OfficeTrueTypeFont.TryLoadFontFamily(fontFamily, style, out resolvedStyle) ?? _font;
+        return OfficeTrueTypeFont.TryLoadFontFamilyForText(fontFamily, style, text, out resolvedStyle) ?? _font;
     }
 
     private void DrawStrokeText(

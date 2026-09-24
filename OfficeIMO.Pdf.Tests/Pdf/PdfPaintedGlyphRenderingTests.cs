@@ -1,5 +1,6 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
+using OfficeIMO.TestAssets;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -53,6 +54,44 @@ public sealed class PdfPaintedGlyphRenderingTests {
         Assert.Single(visual.Text);
         Assert.InRange(visual.Text[0], '\uE000', '\uF8FF');
         Assert.NotEmpty(drawing.Fonts.Faces);
+    }
+
+    [Fact]
+    public void CallerSuppliedFaceRemainsSelectedWhenPaintedGlyphNeedsAnAlias() {
+        string root = VisualBaselineTestSupport.GetTestsProjectRoot();
+        string path = Path.Combine(root, "Pdf", "Fixtures", "ShapedText", "ligature-only.pdf");
+        PdfReadPage page = PdfReadDocument.Open(File.ReadAllBytes(path)).Pages[0];
+        OfficeFontFace embedded = Assert.Single(page.ToDrawing().Fonts.Faces);
+        byte[] replacement = ManagedTextShapingTestAssets.CreateFont(' ', 'A', 'B');
+        var fonts = new OfficeFontFaceCollection().Add(embedded.FamilyName, replacement, embedded.Style);
+
+        OfficeDrawing configured = page.ToDrawing(fonts);
+
+        OfficeFontFace face = Assert.Single(configured.Fonts.Faces);
+        Assert.Equal(replacement, face.Data);
+    }
+
+    [Fact]
+    public void FullEmbeddedTrueTypeFontReceivesAnIsolatedDrawingFamily() {
+        byte[] program = ManagedTextShapingTestAssets.CreateFont(' ', 'A');
+        var resource = new PdfFontResource("F1", "FullFont", "WinAnsiEncoding", false,
+            embeddedTrueTypeFont: program, fontSubtype: "TrueType", embeddedProgramSubtype: "TrueType");
+        var drawingProgram = new PdfDrawingFontProgram(program, new SortedDictionary<int, int>(),
+            _ => 0, _ => false);
+
+        Assert.StartsWith("FullFont-", resource.DrawingFontFamily, StringComparison.Ordinal);
+        Assert.StartsWith("FullFont-", resource.WithDrawingProgram(drawingProgram).DrawingFontFamily,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FullEmbeddedFontsWithTheSamePdfNameKeepDistinctDrawingFamilies() {
+        var pageFont = new PdfFontResource("F1", "SharedBase", "WinAnsiEncoding", false,
+            embeddedTrueTypeFont: ManagedTextShapingTestAssets.CreateFont(' ', 'A'));
+        var annotationFont = new PdfFontResource("F2", "SharedBase", "WinAnsiEncoding", false,
+            embeddedTrueTypeFont: ManagedTextShapingTestAssets.CreateFont(' ', 'B'));
+
+        Assert.NotEqual(pageFont.DrawingFontFamily, annotationFont.DrawingFontFamily);
     }
 
     [Fact]

@@ -61,6 +61,58 @@ public sealed partial class OfficeTrueTypeFont {
         return TryLoadFontFamily(fontFamily);
     }
 
+    /// <summary>Resolves an installed face that covers the actual text before accepting a styled or fallback face.</summary>
+    internal static OfficeTrueTypeFont? TryLoadFontFamilyForText(string? fontFamily, OfficeFontStyle style,
+        string? text, out OfficeFontStyle resolvedStyle) {
+        resolvedStyle = OfficeFontStyle.Regular;
+        if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(fontFamily))
+            return TryLoadFontFamily(fontFamily, style, out resolvedStyle);
+
+        foreach (string family in ExpandFontFamilyFallbacks(fontFamily!)) {
+            OfficeTrueTypeFont? styled = TryLoadFontFamily(family, style, out OfficeFontStyle faceStyle);
+            OfficeFontStyle requested = style & (OfficeFontStyle.Bold | OfficeFontStyle.Italic);
+            bool styledCoversText = styled != null && styled.HasGlyphs(text!);
+            if (styledCoversText && faceStyle == requested) {
+                resolvedStyle = faceStyle;
+                return styled;
+            }
+            if (requested != OfficeFontStyle.Regular) {
+                string key = NormalizeFontFamilyKey(family);
+                OfficeTrueTypeFont? partial = null;
+                foreach (string path in CandidateStyledFamilyPaths(key, requested)) {
+                    foreach (OfficeTrueTypeFont face in LoadFaces(path)) {
+                        OfficeFontStyle candidateStyle = face.FaceStyle;
+                        if (candidateStyle == OfficeFontStyle.Regular || (candidateStyle & ~requested) != 0 ||
+                            !face.HasFamilyKey(key) || !face.HasGlyphs(text!)) continue;
+                        if (candidateStyle == requested) {
+                            resolvedStyle = candidateStyle;
+                            return face;
+                        }
+                        partial ??= face;
+                    }
+                }
+                if (partial != null) {
+                    resolvedStyle = partial.FaceStyle;
+                    return partial;
+                }
+            }
+            if (styledCoversText && faceStyle != OfficeFontStyle.Regular) {
+                resolvedStyle = faceStyle;
+                return styled;
+            }
+            OfficeTrueTypeFont? regular = TryLoadFontFamily(family);
+            if (regular != null && regular.HasGlyphs(text!)) return regular;
+            string regularKey = NormalizeFontFamilyKey(family);
+            foreach (string path in CandidateFamilyPaths(family)) {
+                foreach (OfficeTrueTypeFont face in LoadFaces(path)) {
+                    if (face.FaceStyle == OfficeFontStyle.Regular && face.HasFamilyKey(regularKey) && face.HasGlyphs(text!))
+                        return face;
+                }
+            }
+        }
+        return null;
+    }
+
     /// <summary>Gets the bold and italic style the face declares in its <c>head</c> table.</summary>
     internal OfficeFontStyle FaceStyle {
         get {

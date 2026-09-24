@@ -152,8 +152,8 @@ endbfchar
         byte[] decoded = new byte[65536 * 2 + 2];
         decoded[1] = 1;
         using var compressed = new MemoryStream();
-        using (var zlib = new ZLibStream(compressed, CompressionLevel.SmallestSize, leaveOpen: true))
-            zlib.Write(decoded);
+        using (var deflate = new DeflateStream(compressed, CompressionLevel.Optimal, leaveOpen: true))
+            deflate.Write(decoded, 0, decoded.Length);
         var streamDictionary = new PdfDictionary();
         streamDictionary.Items["Filter"] = new PdfName("FlateDecode");
         descendant.Items["CIDToGIDMap"] = new PdfStream(streamDictionary, compressed.ToArray());
@@ -199,6 +199,22 @@ endbfchar
         Assert.False(PdfOpenTypeFontInspector.TryInspect(fontData, out PdfOpenTypeFontInfo? info, out string? error, "OfficeIMO Security Font"));
         Assert.Null(info);
         Assert.Contains("cmap mapping count exceeds supported limits", error, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DrawingCmapRejectsOverlappingTableCopyAmplification() {
+        byte[] font = new byte[120];
+        WriteUInt32(font, 0, 0x00010000);
+        WriteUInt16(font, 4, 2);
+        WriteUInt32(font, 12 + 8, 44);
+        WriteUInt32(font, 12 + 12, 76);
+        WriteUInt32(font, 28 + 8, 44);
+        WriteUInt32(font, 28 + 12, 76);
+        MethodInfo reader = typeof(PdfTrueTypeUnicodeCmap).GetMethod("TryReadTables",
+            BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        object?[] arguments = { font, null };
+        Assert.False((bool)reader.Invoke(null, arguments)!);
     }
 
     private static byte[] CreateLargeRangeFormat12Cmap() {

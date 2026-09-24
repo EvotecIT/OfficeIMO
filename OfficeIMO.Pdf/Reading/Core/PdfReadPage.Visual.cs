@@ -150,9 +150,19 @@ public sealed partial class PdfReadPage {
         var registeredFonts = new Dictionary<(string Family, OfficeFontStyle Style), PdfFontResource>();
         var paintedGlyphMaps = new Dictionary<(string Family, OfficeFontStyle Style), PaintedGlyphMap>();
         RegisterEmbeddedFonts(drawing, ResolveDictionary(GetInheritedValue("Resources")), new HashSet<PdfStream>(), 0, registeredFonts);
+        OfficeFontFace[] embeddedFaces = drawing.Fonts.Faces.ToArray();
         // Visibility must use the same font and shaping profile as the final rasterizer.
         // Configure after embedded fonts so each caller retains its font precedence policy.
         pageContentBudget.ConfigureDrawing(drawing);
+        // A caller may replace an embedded family/style. Its glyph map must then remain authoritative.
+        foreach ((string Family, OfficeFontStyle Style) key in registeredFonts.Keys.ToArray()) {
+            if (!drawing.Fonts.Faces.Any(face => embeddedFaces.Any(original =>
+                    ReferenceEquals(face, original) &&
+                    string.Equals(face.FamilyName, key.Family, StringComparison.OrdinalIgnoreCase) &&
+                    face.Style == key.Style))) {
+                registeredFonts.Remove(key);
+            }
+        }
 
         cancellationToken.ThrowIfCancellationRequested();
         List<PdfPageDrawingElement> pageElements = GetOrderedPageDrawingElements(size.Width, size.Height, pageTransform, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget, cancellationToken);
@@ -324,7 +334,8 @@ public sealed partial class PdfReadPage {
     }
 
     private void RegisterEmbeddedFonts(OfficeDrawing drawing, PdfDictionary? resources, HashSet<PdfStream> activeForms, int depth,
-        Dictionary<(string Family, OfficeFontStyle Style), PdfFontResource>? registeredFonts = null) {
+        Dictionary<(string Family, OfficeFontStyle Style), PdfFontResource>? registeredFonts = null,
+        bool preserveExistingFaces = false) {
         EnsureContentNestingBudget(depth);
         if (resources == null) return;
 
@@ -336,6 +347,9 @@ public sealed partial class PdfReadPage {
                 font.DrawingFontFamily,
                 font.IsBold,
                 font.IsItalic);
+            if (preserveExistingFaces && drawing.Fonts.Faces.Any(face =>
+                    string.Equals(face.FamilyName, info.FamilyName, StringComparison.OrdinalIgnoreCase) &&
+                    face.Style == info.Style)) continue;
             if (drawing.Fonts.TryAdd(info.FamilyName, font.EmbeddedTrueTypeFont, info.Style) && registeredFonts != null) {
                 registeredFonts[(info.FamilyName, info.Style)] = font;
             }
@@ -349,7 +363,7 @@ public sealed partial class PdfReadPage {
                 !activeForms.Add(form)) continue;
             try {
                 PdfDictionary? formResources = ResolveDictionary(form.Dictionary.Items.TryGetValue("Resources", out PdfObject? formResourceValue) ? formResourceValue : null) ?? resources;
-                RegisterEmbeddedFonts(drawing, formResources, activeForms, depth + 1, registeredFonts);
+                RegisterEmbeddedFonts(drawing, formResources, activeForms, depth + 1, registeredFonts, preserveExistingFaces);
             } finally {
                 activeForms.Remove(form);
             }
@@ -2614,7 +2628,8 @@ public sealed partial class PdfReadPage {
             }
 
             PdfDictionary? appearanceResources = ResolveDictionary(appearanceStream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null) ?? pageResources;
-            RegisterEmbeddedFonts(drawing, appearanceResources, new HashSet<PdfStream>(), 0, registeredFonts);
+            RegisterEmbeddedFonts(drawing, appearanceResources, new HashSet<PdfStream>(), 0, registeredFonts,
+                preserveExistingFaces: true);
             cancellationToken.ThrowIfCancellationRequested();
             string appearanceContent = WrapFormContentWithBoundingBoxClip(PdfEncoding.Latin1GetString(pageContentBudget.Decode(appearanceStream)), appearanceStream.Dictionary);
             if (appearanceContent.Length == 0) {

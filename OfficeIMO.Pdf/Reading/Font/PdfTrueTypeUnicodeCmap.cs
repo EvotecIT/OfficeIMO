@@ -189,12 +189,17 @@ internal static class PdfTrueTypeUnicodeCmap {
         uint version = ReadUInt32(data, 0);
         if (version != 0x00010000 && version != 0x74727565) return false;
         int count = ReadUInt16(data, 4);
-        if (count == 0 || 12 + count * 16 > data.Length) return false;
+        // Match the core font reader's table ceiling. Every table is copied when the drawing
+        // cmap is rebuilt, so overlapping or repeated records must not amplify a small input.
+        if (count == 0 || count > 512 || 12 + count * 16 > data.Length) return false;
+        long copiedTableBytes = 0;
         for (int index = 0; index < count; index++) {
             int record = 12 + index * 16;
             uint offset = ReadUInt32(data, record + 8);
             uint length = ReadUInt32(data, record + 12);
             if (offset > (uint)data.Length || length > (uint)data.Length - offset) return false;
+            copiedTableBytes += length;
+            if (copiedTableBytes > data.Length) return false;
             tables.Add((Encoding.ASCII.GetString(data, record, 4), (int)offset, (int)length));
         }
         return true;

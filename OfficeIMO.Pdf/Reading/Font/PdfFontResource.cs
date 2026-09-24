@@ -86,8 +86,9 @@ internal sealed class PdfFontResource {
     internal PdfFontResource WithDrawingProgram(PdfDrawingFontProgram drawingProgram) =>
         new PdfFontResource(ResourceName, this, drawingProgram);
 
+    // Embedded programs with the same PDF base name can differ between page and annotation resources.
     private static string? CreateDrawingFontFamily(string baseFont, byte[]? fontData) {
-        if (fontData == null || !HasSubsetPrefix(baseFont)) return null;
+        if (fontData == null) return null;
         using SHA256 sha256 = SHA256.Create();
         byte[] hash = sha256.ComputeHash(fontData);
         var family = new StringBuilder(string.IsNullOrWhiteSpace(baseFont) ? "PDF embedded font-" : baseFont + "-");
@@ -98,13 +99,4 @@ internal sealed class PdfFontResource {
         return family.ToString();
     }
 
-    private static bool HasSubsetPrefix(string baseFont) {
-        if (string.IsNullOrWhiteSpace(baseFont) || baseFont.Length <= 7 || baseFont[6] != '+') return false;
-        for (int i = 0; i < 6; i++) {
-            char ch = baseFont[i];
-            if (ch < 'A' || ch > 'Z') return false;
-        }
-
-        return true;
-    }
 }
