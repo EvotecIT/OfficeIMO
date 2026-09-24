@@ -12,6 +12,7 @@ internal static partial class HtmlPdfRenderedConverter {
     private const double PointsPerCssPixel = 72D / HtmlRenderOptions.CssPixelsPerInch;
     private const int MaximumSystemFontFamilyCandidates = 512;
     private const int MaximumLoadedSystemFontFamilies = 32;
+    private const int MaximumCssFontFamilyCandidates = 32;
     private static readonly ConditionalWeakTable<byte[], CachedPdfImageResources> PdfImageResources = new();
 
     internal static HtmlPdfRenderResult Convert(HtmlConversionDocument document, HtmlToPdfOptions options, CancellationToken cancellationToken = default) {
@@ -112,9 +113,7 @@ internal static partial class HtmlPdfRenderedConverter {
         PdfCore.PdfOptions measurementOptions = options.PdfOptions.Clone();
         measurementOptions.SetTextShapingMode(options.TextShapingMode).SetTextShapingProvider(options.TextShapingProvider);
         if (options.FontFamily != null) measurementOptions.RegisterFontFamily(PdfCore.PdfStandardFont.Helvetica, options.FontFamily);
-        renderOptions.FallbackTextMeasurement = (text, font) => PdfCore.PdfWriter.MeasurePositionedText(
-            new PdfCore.PdfTextRun(text, bold: font.IsBold, italic: font.IsItalic,
-                fontSize: font.Size, font: MapStandardFont(font.FamilyName), fontFamily: font.FamilyName), measurementOptions);
+        renderOptions.FallbackTextMeasurement = CreateFallbackTextMeasurement(options, measurementOptions);
         HtmlRenderResourceResolver? embeddedPackageResolver = options.EmbeddedPackageResourceResolver;
         HtmlUrlPolicy hostResourceUrlPolicy = (options.EmbeddedPackageHostResourceUrlPolicy ?? renderOptions.GetResourceUrlPolicy()).Clone();
         ApplyResourceAccessPolicy(
@@ -259,7 +258,7 @@ internal static partial class HtmlPdfRenderedConverter {
         PdfCore.PdfTextFallbackFeatures activeTextFallbacks = ResolveTextFallbackFeatures(rendered, options.TextFallbacks);
         if (options.ResourcePolicy.AllowSystemFontEmbedding) {
             if (options.ResourcePolicy.AllowDocumentFontEmbedding) {
-                RegisterUsedSystemFontFamilies(pdf, rendered, activeWebFontFamilies, reservedFontSlots, cancellationToken);
+                RegisterUsedSystemFontFamilies(pdf, rendered, reservedFontSlots, cancellationToken);
             } else if (activeTextFallbacks != PdfCore.PdfTextFallbackFeatures.None && options.FontFamily == null) {
                 RegisterLibrarySelectedDefaultSystemFontFamily(
                     pdf,
@@ -871,28 +870,32 @@ internal static partial class HtmlPdfRenderedConverter {
         string pdfText = OmitUnavailablePrivateUseGlyphs(visual, webFonts, conversionReport, requestedStyle, cancellationToken);
         if (pdfText.Length == 0) return;
         var runs = webFonts.Faces.PlanFallbackRuns(pdfText, visual.Font.FamilyName, requestedStyle)
-            .Select(fallbackRun => new PdfCore.PdfTextRun(
-            fallbackRun.Text,
-            bold: visual.Font.IsBold,
-            underline: visual.Font.IsUnderline,
-            color: PdfCore.PdfColor.FromOfficeColorOrNull(visual.Color),
-            italic: visual.Font.IsItalic,
-            strike: visual.Font.IsStrikethrough,
-            fontSize: visual.Font.Size * PointsPerCssPixel,
-            font: MapFont(
-                fallbackRun.FamilyName,
-                fallbackRun.Text,
-                requestedStyle,
-                webFonts),
-            linkUri: link,
-            linkContents: link == null ? null : pdfText,
-            linkDestinationName: linkDestination,
-            fontFamily: fallbackRun.FamilyName,
-            baseline: MapTextBaseline(visual.Baseline),
-            underlineStyle: visual.UnderlineStyle,
-            strikeStyle: visual.StrikethroughStyle,
-            decorationColor: PdfCore.PdfColor.FromOfficeColorOrNull(visual.DecorationColor))
-            .WithFeatureSettings(visual.FeatureSettings)).ToArray();
+            .Select(fallbackRun => {
+                string family = ResolvePdfFontFamilyForText(
+                    fallbackRun.FamilyName,
+                    fallbackRun.Text,
+                    visual.Font.IsBold,
+                    visual.Font.IsItalic,
+                    webFonts.Options);
+                return new PdfCore.PdfTextRun(
+                    fallbackRun.Text,
+                    bold: visual.Font.IsBold,
+                    underline: visual.Font.IsUnderline,
+                    color: PdfCore.PdfColor.FromOfficeColorOrNull(visual.Color),
+                    italic: visual.Font.IsItalic,
+                    strike: visual.Font.IsStrikethrough,
+                    fontSize: visual.Font.Size * PointsPerCssPixel,
+                    font: MapFont(family, fallbackRun.Text, requestedStyle, webFonts),
+                    linkUri: link,
+                    linkContents: link == null ? null : pdfText,
+                    linkDestinationName: linkDestination,
+                    fontFamily: family,
+                    baseline: MapTextBaseline(visual.Baseline),
+                    underlineStyle: visual.UnderlineStyle,
+                    strikeStyle: visual.StrikethroughStyle,
+                    decorationColor: PdfCore.PdfColor.FromOfficeColorOrNull(visual.DecorationColor))
+                    .WithFeatureSettings(visual.FeatureSettings);
+            }).ToArray();
         canvas.PositionedText(
             runs,
             asSpan ? PdfCore.PdfCanvasTextStructureRole.Span : MapStructureRole(visual.SemanticRole),

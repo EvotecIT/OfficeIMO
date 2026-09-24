@@ -100,6 +100,17 @@ internal sealed partial class PdfTrueTypeFontProgram {
     public bool TryGetGlyphId(int unicodeScalar, out int glyphId) =>
         _cmap.TryGetValue(unicodeScalar, out glyphId);
 
+    // A face chosen for layout must retain every glyph the regular face could paint later.
+    internal bool HasCoverageWithin(PdfTrueTypeFontProgram other) {
+        foreach (KeyValuePair<int, int> mapping in _cmap) {
+            if (mapping.Value > 0
+                && (!other._cmap.TryGetValue(mapping.Key, out int glyphId) || glyphId <= 0)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public int GetGlyphWidth1000(int glyphId) {
         if (glyphId < 0 || glyphId >= _advanceWidths.Length) {
             return _advanceWidths.Length == 0 ? 500 : ScaleMetric(_advanceWidths[_advanceWidths.Length - 1], UnitsPerEm);

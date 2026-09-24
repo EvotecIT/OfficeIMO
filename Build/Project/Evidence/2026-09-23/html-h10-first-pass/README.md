@@ -126,12 +126,25 @@ The W3C default-page difference is largely the margin setting: OfficeIMO
 defaults to 48 CSS-pixel outer margins, while this Chromium print reference
 uses zero. Matching that setting yields three pages. The local-font lane embeds
 Trebuchet MS on this macOS host; font availability is host-dependent and does
-not alter the default policy. Visual comparison of the first W3C print page
-still shows a substantive layout gap: breadcrumb URLs wrap, heading treatment
-and text density differ, and fewer tutorial entries fit on page one than in
-Chromium. Equal page count is therefore not visual parity. The restored WAI
-logo and 120px tutorial illustrations render in the expected positions. MDN's
+not alter the default policy. At that source commit, visual comparison of the
+first W3C print page showed a substantive layout gap: breadcrumb URLs wrap,
+heading treatment and text density differ, and fewer tutorial entries fit on
+page one than in Chromium. Equal page count is therefore not visual parity.
+The restored WAI logo and 120px tutorial illustrations render in the expected
+positions. MDN's
 saved code remains present (`wrapper` appears 29 times in extracted OfficeIMO
 print text), but its component styling and pagination still differ. These
 residuals, broader independently chosen page classes, editable target routes,
 and cross-platform qualification remain open in the roadmap.
+
+## W3C installed-font measurement follow-up
+
+The opt-in local-font PDF lane now measures text with the same installed face
+that it embeds. On the unchanged W3C archive, this keeps the printed breadcrumb
+URLs for Home, Design & Develop, Tutorials and Tables on their respective lines,
+as in the frozen Chromium print. Both outputs remain three pages with zero
+margins. The default font policy is unchanged and may still wrap the URLs.
+First-page inspection still shows misplaced breadcrumb separators and different
+tutorial-card text flow and vertical spacing; matching page counts and link
+lines do not establish full visual parity. The other frozen pages, editable
+projections and supported-platform budgets remain open in the roadmap.

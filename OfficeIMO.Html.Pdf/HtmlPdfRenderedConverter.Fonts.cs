@@ -8,6 +8,77 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Html.Pdf;
 
 internal static partial class HtmlPdfRenderedConverter {
+    private static Func<string, OfficeFontInfo, double?> CreateFallbackTextMeasurement(
+        HtmlToPdfOptions options,
+        PdfCore.PdfOptions measurementOptions) {
+        bool useInstalledFonts = options.ResourcePolicy.AllowSystemFontEmbedding
+            && options.ResourcePolicy.AllowDocumentFontEmbedding;
+        var attemptedFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        int loadedFamilies = 0;
+        return (text, font) => {
+            string measuredFamily = font.FamilyName;
+            if (useInstalledFonts && font.FamilyName.Length > 0
+                && HtmlRenderCssValues.TrySplitTopLevelCommas(
+                    font.FamilyName, MaximumCssFontFamilyCandidates, out _)) {
+                IReadOnlyList<string> families = EnumerateFamilies(font.FamilyName).ToList();
+                foreach (string familyName in families) {
+                    if (!measurementOptions.HasNamedFontFamily(familyName)
+                        && loadedFamilies < MaximumLoadedSystemFontFamilies
+                        && attemptedFamilies.Count < MaximumSystemFontFamilyCandidates
+                        && familyName.Length <= 256
+                        && attemptedFamilies.Add(familyName)
+                        && PdfCore.PdfEmbeddedFontFamily.TryFromSystem(
+                            familyName, out PdfCore.PdfEmbeddedFontFamily? family)
+                        && family != null
+                        && measurementOptions.TryRegisterNamedFontFamily(
+                            CreateCoverageStableFontFamily(family))) {
+                        loadedFamilies++;
+                    }
+                    if (NamedFontCoversText(measurementOptions, familyName, text, font.IsBold, font.IsItalic)) {
+                        measuredFamily = familyName;
+                        break;
+                    }
+                }
+            }
+            return PdfCore.PdfWriter.MeasurePositionedText(
+                new PdfCore.PdfTextRun(text, bold: font.IsBold, italic: font.IsItalic,
+                    fontSize: font.Size, font: MapStandardFont(measuredFamily), fontFamily: measuredFamily),
+                measurementOptions);
+        };
+    }
+
+    private static string ResolvePdfFontFamilyForText(
+        string familyNames,
+        string text,
+        bool bold,
+        bool italic,
+        PdfCore.PdfOptions options) {
+        if (familyNames.IndexOf(',') < 0) return familyNames;
+        foreach (string familyName in EnumerateBoundedSystemFamilies(familyNames)) {
+            if (NamedFontCoversText(options, familyName, text, bold, italic)) return familyName;
+        }
+        return familyNames;
+    }
+
+    private static bool NamedFontCoversText(
+        PdfCore.PdfOptions options,
+        string familyName,
+        string text,
+        bool bold,
+        bool italic) {
+        if (!options.TryResolveNamedFontFace(familyName, bold, italic, out PdfCore.PdfNamedFontFace face)) {
+            return false;
+        }
+        if (options.TryGetNamedFontProgram(face, out PdfCore.PdfTrueTypeFontProgram? trueType)
+            && trueType != null
+            && PdfCore.PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, trueType).Count == 0) {
+            return true;
+        }
+        return options.TryGetNamedOpenTypeCffFontProgram(face, out PdfCore.PdfOpenTypeCffFontProgram? cff)
+            && cff != null
+            && PdfCore.PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, cff).Count == 0;
+    }
+
     private static PdfCore.PdfStandardFont MapFont(
         string familyName,
         string text,
@@ -98,29 +169,27 @@ internal static partial class HtmlPdfRenderedConverter {
     private static void RegisterUsedSystemFontFamilies(
         PdfCore.PdfDocument pdf,
         HtmlRenderDocument rendered,
-        ISet<string> activeWebFontFamilies,
         ISet<PdfCore.PdfStandardFont> reservedFontSlots,
         CancellationToken cancellationToken) {
         List<HtmlRenderText> textRuns = EnumerateVisuals(rendered.Pages.SelectMany(page => page.Visuals))
             .OfType<HtmlRenderText>()
-            .Where(text => !EnumerateFamilies(text.Font.FamilyName).Any(activeWebFontFamilies.Contains))
             .ToList();
         int loadedFamilyCount = 0;
 
         foreach (string familyName in textRuns
-                     .SelectMany(text => EnumerateFamilies(text.Font.FamilyName))
+                     .SelectMany(text => EnumerateBoundedSystemFamilies(text.Font.FamilyName))
                      .Distinct(StringComparer.OrdinalIgnoreCase)
                      .Take(MaximumSystemFontFamilyCandidates)) {
             cancellationToken.ThrowIfCancellationRequested();
             List<HtmlRenderText> familyRuns = textRuns
-                .Where(text => EnumerateFamilies(text.Font.FamilyName).Contains(familyName, StringComparer.OrdinalIgnoreCase))
+                .Where(text => EnumerateBoundedSystemFamilies(text.Font.FamilyName).Contains(familyName, StringComparer.OrdinalIgnoreCase))
                 .ToList();
             if (familyRuns.Count == 0 || pdf.Options.HasNamedFontFamily(familyName)) continue;
             if (loadedFamilyCount >= MaximumLoadedSystemFontFamilies) break;
             if (!PdfCore.PdfEmbeddedFontFamily.TryFromSystem(familyName, out PdfCore.PdfEmbeddedFontFamily? family)
                 || family == null) continue;
 
-            if (!pdf.Options.TryRegisterNamedFontFamily(CreateCoverageSafeFontFamily(family, familyRuns))) break;
+            if (!pdf.Options.TryRegisterNamedFontFamily(CreateCoverageStableFontFamily(family))) break;
             reservedFontSlots.Add(PdfCore.PdfStandardFontMapper.GetFontFamily(MapStandardFont(familyName)));
             loadedFamilyCount++;
         }
@@ -162,6 +231,27 @@ internal static partial class HtmlPdfRenderedConverter {
                 CreateCoverageSafeFontFamily(family, textRuns));
             reservedFontSlots.Add(PdfCore.PdfStandardFont.Helvetica);
             return;
+        }
+    }
+
+    private static PdfCore.PdfEmbeddedFontFamily CreateCoverageStableFontFamily(
+        PdfCore.PdfEmbeddedFontFamily family) {
+        byte[] regular = family.Regular;
+        byte[]? bold = SelectCoverageStableFace(family.Bold, regular);
+        byte[]? italic = SelectCoverageStableFace(family.Italic, regular);
+        byte[]? boldItalic = SelectCoverageStableFace(
+            family.BoldItalic ?? family.Bold ?? family.Italic, regular);
+        return new PdfCore.PdfEmbeddedFontFamily(family.FamilyName, regular, bold, italic, boldItalic);
+    }
+
+    private static byte[]? SelectCoverageStableFace(byte[]? styledFace, byte[] regularFace) {
+        if (styledFace == null) return null;
+        try {
+            PdfCore.PdfTrueTypeFontProgram regular = PdfCore.PdfFontProgramCache.GetTrueType(regularFace, null);
+            PdfCore.PdfTrueTypeFontProgram styled = PdfCore.PdfFontProgramCache.GetTrueType(styledFace, null);
+            return regular.HasCoverageWithin(styled) ? styledFace : regularFace;
+        } catch (Exception exception) when (PdfCore.PdfFontDiagnostics.IsFontProgramException(exception)) {
+            return regularFace;
         }
     }
 
@@ -365,6 +455,12 @@ internal static partial class HtmlPdfRenderedConverter {
 
     private static IEnumerable<string> EnumerateFamilies(string? familyNames) =>
         HtmlRenderCssValues.FontFamilyNames(familyNames);
+
+    private static IEnumerable<string> EnumerateBoundedSystemFamilies(string? familyNames) =>
+        HtmlRenderCssValues.TrySplitTopLevelCommas(
+            familyNames, MaximumCssFontFamilyCandidates, out _)
+            ? EnumerateFamilies(familyNames)
+            : Enumerable.Empty<string>();
 
     private sealed class RegisteredWebFonts {
         internal RegisteredWebFonts(
