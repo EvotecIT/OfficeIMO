@@ -14,13 +14,14 @@ public sealed partial class HtmlRenderingTests {
         const string html = """
             <style>
               body { margin: 0 }
+              header { display: flex }
               .brand { font-size: 24px }
               @media (max-width: 991px) {
                 .brand { font-size: 0 }
                 .brand::after { content: 'SVS'; font-size: 24px }
               }
             </style>
-            <a class="brand" href="https://example.test/brand">Scientific Visualization Studio</a>
+            <header><a class="brand" href="https://example.test/brand">Scientific Visualization Studio</a></header>
             """;
 
         HtmlRenderDocument narrow = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
@@ -34,12 +35,22 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(24D, replacement.Font.Size, 3);
         Assert.Equal("https://example.test/brand", replacement.LinkUri);
 
+        HtmlPdfRenderRequestResult pdf = HtmlConversionDocument.Parse(html).RenderToPdfResult(
+            HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf,
+                new HtmlRenderOptions { ViewportWidth = 816D, Margins = HtmlRenderMargins.All(0D) }));
+        string printedText = PdfCore.PdfReadDocument.Open(pdf.ToBytes()).ExtractText();
+        Assert.Contains("SVS", printedText, StringComparison.Ordinal);
+        Assert.DoesNotContain("Scientific Visualization Studio", printedText, StringComparison.Ordinal);
+
         HtmlRenderDocument wide = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
             ViewportWidth = 1200D,
             Margins = HtmlRenderMargins.All(0D)
         });
-        Assert.Equal("Scientific Visualization Studio", Assert.Single(
-            EnumerateRenderVisuals(wide.Pages[0].Scene).OfType<HtmlRenderText>()).Text);
+        string[] wideText = EnumerateRenderVisuals(wide.Pages[0].Scene)
+            .OfType<HtmlRenderText>().Select(text => text.Text).ToArray();
+        Assert.Contains(wideText, text => text.Contains("Scientific Visualization", StringComparison.Ordinal));
+        Assert.Contains(wideText, text => text.Contains("Studio", StringComparison.Ordinal));
+        Assert.DoesNotContain(wideText, text => text == "SVS");
     }
 
     [Fact]

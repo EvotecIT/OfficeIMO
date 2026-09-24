@@ -196,7 +196,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     + "[" + index.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]";
             if (fragment.Kind == HtmlGeneratedContentFragmentKind.Text) {
                 string text = ApplyTextTransform(fragment.Value, style);
-                if (text.Length > 0) {
+                if (text.Length > 0 && style.Font.Size > 0D) {
                     runs.Add(new HtmlInlineRun(text, style, link, fragmentSource, paintOffsetX, paintOffsetY, element));
                 }
                 continue;

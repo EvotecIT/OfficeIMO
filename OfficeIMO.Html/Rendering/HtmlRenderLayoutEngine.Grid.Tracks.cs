@@ -440,7 +440,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private IReadOnlyList<GridIntrinsicTextRun> ResolveGridInFlowTextRuns(FlexItem item, double availableSize) {
         var rawRuns = new List<GridIntrinsicTextRun>();
         if (item.Element == null) {
-            rawRuns.Add(new GridIntrinsicTextRun(item.TextContent, item.Style));
+            if (item.Style.Font.Size > 0D) rawRuns.Add(new GridIntrinsicTextRun(item.TextContent, item.Style));
         } else {
             AppendGridInFlowTextRuns(item.Element, item.Style, availableSize, 1, rawRuns);
         }
@@ -526,7 +526,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         AppendGeneratedGridIntrinsicText(parent, HtmlPseudoElementKind.Before, parentStyle, availableSize, result);
         foreach (INode node in parent.ChildNodes) {
             if (node is IText text) {
-                if (text.Data.Length > 0) result.Add(new GridIntrinsicTextRun(text.Data, parentStyle));
+                if (text.Data.Length > 0 && parentStyle.Font.Size > 0D) result.Add(new GridIntrinsicTextRun(text.Data, parentStyle));
                 continue;
             }
             if (node is not IElement child || ShouldSkipElement(child)) continue;
@@ -561,7 +561,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             || !_styleResolver.TryResolvePseudo(element, kind, availableSize, parentStyle, out HtmlRenderBoxStyle style)
             || style.Display == "none"
             || style.Position == "absolute"
-            || style.Position == "fixed") return;
+            || style.Position == "fixed"
+            || style.Font.Size <= 0D) return;
         bool establishesLineBoundary = style.Display == "block" || style.Display == "flow-root" || style.Display == "list-item" || style.Display == "table" || style.Display == "flex" || style.Display == "grid";
         if (establishesLineBoundary) result.Add(GridIntrinsicTextRun.ForcedBreak(style));
         result.Add(new GridIntrinsicTextRun(content, style));

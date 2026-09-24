@@ -1353,6 +1353,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private double MeasureInlineText(string value, HtmlRenderBoxStyle style) {
+        if (style.Font.Size <= 0D) return 0D;
         double measured = TryMeasureWithConfiguredProvider(value, style, out double shapedWidth)
             ? shapedWidth
             : MeasureText(value, GetEffectiveTextFont(style), style.FontDescriptor);
