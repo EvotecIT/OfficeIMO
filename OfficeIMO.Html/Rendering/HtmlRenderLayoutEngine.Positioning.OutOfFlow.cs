@@ -248,6 +248,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             parentStyle = ResolveFixedPositionedParentStyle(request);
             style = _styleResolver.Resolve(request.Element, containingWidth, parentStyle);
         }
+        double? percentageWidth = _styleResolver.ResolvePositionedPercentageWidth(request.Element, containingWidth, style.Font.Size);
+        if (percentageWidth.HasValue) style.ExplicitWidth = percentageWidth.Value;
         double? percentageHeight = _styleResolver.ResolvePositionedPercentageHeight(request.Element, containingHeight, style.Font.Size);
         if (percentageHeight.HasValue) style.ExplicitHeight = percentageHeight.Value;
         string source = HtmlRenderStyleResolver.DescribeSource(request.Element);

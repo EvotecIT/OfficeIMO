@@ -74,6 +74,14 @@ internal sealed partial class HtmlRenderStyleResolver {
             : null;
     }
 
+    internal double? ResolvePositionedPercentageWidth(IElement element, double containingWidth, double fontSize) {
+        if (!_computedStyles.Elements.TryGetValue(element, out HtmlComputedStyle? computed)) return null;
+        string width = computed.GetValue("width");
+        return width.IndexOf('%') >= 0
+            ? ReadLength(width, null, containingWidth, fontSize)
+            : null;
+    }
+
     internal bool TryResolvePseudo(
         IElement element,
         HtmlPseudoElementKind kind,
