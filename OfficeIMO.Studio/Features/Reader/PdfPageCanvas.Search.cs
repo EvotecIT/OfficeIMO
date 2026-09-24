@@ -13,6 +13,9 @@ public sealed partial class PdfPageCanvas {
     public static readonly StyledProperty<Rect?> ActiveSearchHighlightProperty =
         AvaloniaProperty.Register<PdfPageCanvas, Rect?>(nameof(ActiveSearchHighlight));
 
+    public static readonly StyledProperty<IReadOnlyList<Rect>> ActiveSearchHighlightsProperty =
+        AvaloniaProperty.Register<PdfPageCanvas, IReadOnlyList<Rect>>(nameof(ActiveSearchHighlights), Array.Empty<Rect>());
+
     public IReadOnlyList<Rect> SearchHighlights {
         get => GetValue(SearchHighlightsProperty);
         set => SetValue(SearchHighlightsProperty, value);
@@ -23,12 +26,22 @@ public sealed partial class PdfPageCanvas {
         set => SetValue(ActiveSearchHighlightProperty, value);
     }
 
+    public IReadOnlyList<Rect> ActiveSearchHighlights {
+        get => GetValue(ActiveSearchHighlightsProperty);
+        set => SetValue(ActiveSearchHighlightsProperty, value);
+    }
+
     private static readonly IBrush SearchBrush = new ImmutableSolidColorBrush(Color.FromArgb(85, 255, 205, 35));
     private static readonly IBrush ActiveSearchBrush = new ImmutableSolidColorBrush(Color.FromArgb(110, 255, 145, 0));
 
     private void DrawSearchHighlights(DrawingContext context) {
         foreach (Rect area in SearchHighlights) context.DrawRectangle(SearchBrush, null, area);
-        if (ActiveSearchHighlight is Rect selected) context.DrawRectangle(ActiveSearchBrush, new Pen(Brushes.DarkOrange, 1.5D), selected);
+        if (ActiveSearchHighlights.Count > 0) {
+            foreach (Rect selected in ActiveSearchHighlights)
+                context.DrawRectangle(ActiveSearchBrush, new Pen(Brushes.DarkOrange, 1.5D), selected);
+        } else if (ActiveSearchHighlight is Rect selected) {
+            context.DrawRectangle(ActiveSearchBrush, new Pen(Brushes.DarkOrange, 1.5D), selected);
+        }
     }
 
     private void QueueSearchReveal() => Dispatcher.UIThread.Post(() => {

@@ -63,6 +63,8 @@ public sealed class PdfTextSearchLineWrapTests {
         Assert.Equal(2, joined.VisualLineBounds.Count);
         Assert.Equal("hyph-enation", hyphenated.Text);
         Assert.Single(document.Text.Find("automatic hyphenation works"));
+        Assert.Single(document.Text.Find("hyph-\nenation"));
+        Assert.Single(document.Text.Find("hyph-\nenation", new PdfTextSearchOptions { WholeWords = true }));
     }
 
     [Fact]
@@ -73,6 +75,22 @@ public sealed class PdfTextSearchLineWrapTests {
 
         Assert.Empty(document.Text.Find("alpha beta"));
         Assert.Equal(2, Assert.Single(document.Text.Find("alpha gamma")).VisualLineBounds.Count);
+        var redaction = new PdfRedactionSearchOptions();
+        redaction.AddLiteral("alpha beta");
+        Assert.Empty(document.Redactions.Search(redaction).Areas);
+    }
+
+    [Fact]
+    public void WrappedReplacementFitsAtTheFirstLineInsertionPoint() {
+        PdfDocument document = PdfDocument.Load(BuildRawTextPdf(WrappedContent));
+        PdfTextMatch match = Assert.Single(document.Text.Find("needle marker"));
+
+        Assert.Throws<NotSupportedException>(() => document.Text.Replace(match, "long replacement",
+            new PdfTextEditOptions { RegionWidthPolicy = PdfTextRegionWidthPolicy.RejectOverflow }));
+        PdfTextEditResult result = document.Text.Replace(match, "long replacement", new PdfTextEditOptions {
+            RegionWidthPolicy = PdfTextRegionWidthPolicy.ShrinkToFit, MinimumFontSize = 1D
+        });
+        Assert.True(Assert.Single(result.Document.Text.Find("long replacement")).FontSize < match.FontSize);
     }
 
     [Fact]

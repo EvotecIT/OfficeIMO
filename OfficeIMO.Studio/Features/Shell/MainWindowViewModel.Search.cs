@@ -27,7 +27,10 @@ public sealed partial class MainWindowViewModel {
     partial void OnSearchQueryChanged(string value) => ClearSearchResults();
 
     partial void OnSelectedSearchResultChanged(PdfSearchHit? value) {
-        foreach (var page in Pages) page.ActiveSearchHighlight = page.PageNumber == value?.PageNumber ? value.Bounds : null;
+        foreach (var page in Pages) {
+            page.ActiveSearchHighlight = page.PageNumber == value?.PageNumber ? value.Bounds : null;
+            page.ActiveSearchHighlights = page.PageNumber == value?.PageNumber ? value.Highlights : Array.Empty<Avalonia.Rect>();
+        }
         OnPropertyChanged(nameof(SearchPosition));
         if (value is not null) NavigateToPage(value.PageNumber);
     }
@@ -42,6 +45,7 @@ public sealed partial class MainWindowViewModel {
         foreach (var page in Pages) {
             page.SearchHighlights = Array.Empty<Avalonia.Rect>();
             page.ActiveSearchHighlight = null;
+            page.ActiveSearchHighlights = Array.Empty<Avalonia.Rect>();
         }
         NotifySearchResultsChanged();
     }

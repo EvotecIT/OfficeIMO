@@ -1,3 +1,5 @@
+using System.Linq;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>
@@ -6,46 +8,45 @@ namespace OfficeIMO.Pdf;
 /// ("hyphenation") and the hyphenated compound without the break ("well-known").
 /// </summary>
 internal static class PdfTextSearchNormalization {
-    /// <summary>Collapses every whitespace run in a query to one space.</summary>
-    internal static string NormalizeQuery(string text) {
-        var builder = new System.Text.StringBuilder(text.Length);
-        bool inWhitespace = false;
-        for (int index = 0; index < text.Length; index++) {
-            if (char.IsWhiteSpace(text[index])) {
-                if (!inWhitespace) builder.Append(' ');
-                inWhitespace = true;
-            } else {
-                builder.Append(text[index]);
-                inWhitespace = false;
-            }
-        }
-        return builder.ToString();
+    /// <summary>Collapses whitespace and retains a line-end hyphen in the query.</summary>
+    internal static string NormalizeQuery(string text) => NormalizeQueries(text)[0];
+
+    /// <summary>Also accepts the joined spelling when the query itself contains a hyphenated line break.</summary>
+    internal static string[] NormalizeQueries(string text) {
+        bool[] lineBreaks = GetLineBreaks(text);
+        PdfNormalizedSearchText joined = PdfNormalizedSearchText.Create(text, lineBreaks, removeLineEndHyphens: false, out bool hasHyphenJunction);
+        if (!hasHyphenJunction) return new[] { joined.Text };
+        string dehyphenated = PdfNormalizedSearchText.Create(text, lineBreaks, removeLineEndHyphens: true, out _).Text;
+        return new[] { joined.Text, dehyphenated };
     }
 
     /// <summary>Returns true when <paramref name="text"/> contains <paramref name="value"/> under line-break and hyphenation-tolerant matching.</summary>
     internal static bool Contains(string text, string value, StringComparison comparison) {
         if (ContainsExact(text, value, comparison)) return true;
-        string query = NormalizeQuery(value);
-        if (query.Length == 0) return false;
+        string[] queries = NormalizeQueries(value);
+        if (queries[0].Length == 0) return false;
         bool hasWhitespace = false;
         for (int index = 0; index < text.Length && !hasWhitespace; index++) hasWhitespace = char.IsWhiteSpace(text[index]);
-        if (!hasWhitespace) return false;
+        if (!hasWhitespace) return queries.Any(query => ContainsExact(text, query, comparison));
         bool[] lineBreaks = GetLineBreaks(text);
         PdfNormalizedSearchText joined = PdfNormalizedSearchText.Create(text, lineBreaks, removeLineEndHyphens: false, out bool hasHyphenJunction);
-        if (ContainsExact(joined.Text, query, comparison)) return true;
-        return hasHyphenJunction &&
-            ContainsExact(PdfNormalizedSearchText.Create(text, lineBreaks, removeLineEndHyphens: true, out _).Text, query, comparison);
+        if (queries.Any(query => ContainsExact(joined.Text, query, comparison))) return true;
+        return hasHyphenJunction && queries.Any(query =>
+            ContainsExact(PdfNormalizedSearchText.Create(text, lineBreaks, removeLineEndHyphens: true, out _).Text, query, comparison));
     }
 
     /// <summary>Returns the source ranges of every line-break and hyphenation-tolerant occurrence of <paramref name="value"/>.</summary>
     internal static List<(int Start, int End)> FindSourceRanges(string text, string value, StringComparison comparison) {
         var ranges = new List<(int Start, int End)>();
-        string query = NormalizeQuery(value);
-        if (query.Length == 0 || text.Length == 0) return ranges;
+        string[] queries = NormalizeQueries(value);
+        if (queries[0].Length == 0 || text.Length == 0) return ranges;
         bool[] lineBreaks = GetLineBreaks(text);
         PdfNormalizedSearchText joined = PdfNormalizedSearchText.Create(text, lineBreaks, removeLineEndHyphens: false, out bool hasHyphenJunction);
-        AddSourceRanges(joined, query, comparison, ranges);
-        if (hasHyphenJunction) AddSourceRanges(PdfNormalizedSearchText.Create(text, lineBreaks, removeLineEndHyphens: true, out _), query, comparison, ranges);
+        foreach (string query in queries) AddSourceRanges(joined, query, comparison, ranges);
+        if (hasHyphenJunction) {
+            PdfNormalizedSearchText dehyphenated = PdfNormalizedSearchText.Create(text, lineBreaks, removeLineEndHyphens: true, out _);
+            foreach (string query in queries) AddSourceRanges(dehyphenated, query, comparison, ranges);
+        }
         return ranges;
     }
 

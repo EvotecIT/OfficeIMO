@@ -79,6 +79,7 @@ internal static partial class PdfRedactionPlanner {
                 var combined = new System.Text.StringBuilder(blocks[first].Text);
                 int followingLength = 0;
                 for (int last = first + 1; last < blocks.Count && blocks[last].PageNumber == blocks[first].PageNumber && includeBlock(last); last++) {
+                    if (!ContinuesTextFlow(blocks[last - 1], blocks[last])) break;
                     combined.Append('\n');
                     int lastStart = combined.Length;
                     combined.Append(blocks[last].Text);
@@ -100,5 +101,14 @@ internal static partial class PdfRedactionPlanner {
             }
         }
         return matches;
+    }
+
+    private static bool ContinuesTextFlow(PdfLogicalTextBlock upper, PdfLogicalTextBlock lower) {
+        if (upper.PageNumber != lower.PageNumber || upper.SourceKind != lower.SourceKind ||
+            upper.IsTableContent || lower.IsTableContent || upper.Kind != lower.Kind) return false;
+        double fontSize = Math.Max(upper.FontSize, lower.FontSize);
+        double distance = upper.BaselineY - lower.BaselineY;
+        if (fontSize <= 0D || distance < fontSize * 0.6D || distance > fontSize * 2D) return false;
+        return Math.Min(upper.XEnd, lower.XEnd) > Math.Max(upper.XStart, lower.XStart);
     }
 }

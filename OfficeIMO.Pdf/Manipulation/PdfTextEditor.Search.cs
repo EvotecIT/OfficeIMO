@@ -13,7 +13,7 @@ internal static partial class PdfTextEditor {
             : snapshot.PageNumbers;
         for (int index = 0; index < pages.Length; index++) ValidatePage(pages[index], document.Pages.Count, nameof(options));
         StringComparison comparison = snapshot.MatchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
-        string query = PdfTextSearchNormalization.NormalizeQuery(text);
+        string[] queries = PdfTextSearchNormalization.NormalizeQueries(text);
         var hits = new List<TextSearchHit>();
         for (int pageIndex = 0; pageIndex < pages.Length; pageIndex++) {
             int pageNumber = pages[pageIndex];
@@ -29,7 +29,7 @@ internal static partial class PdfTextEditor {
                 PdfTextSpan[][] flowLines = flow.Select(lineIndex => lines[lineIndex].Spans.ToArray()).ToArray();
                 var unit = new TextSearchUnit(flowLines);
                 if (unit.Text.Length == 0) continue;
-                foreach (TextSearchRange range in unit.FindRanges(query, comparison, snapshot.WholeWords)) {
+                foreach (TextSearchRange range in unit.FindRanges(queries, comparison, snapshot.WholeWords)) {
                     IReadOnlyList<TextSourceSegment> segments = unit.GetSourceSegments(range.Start, range.Length);
                     if (segments.Count == 0) continue;
                     if (hits.Count + pageHits.Count >= limits.MaxTextSearchMatches) {
@@ -296,13 +296,13 @@ internal static partial class PdfTextEditor {
         /// chained lines, match one query space. A letter-hyphen-line-break-letter junction matches both the joined word
         /// ("hyphenation") and the hyphenated compound without the break ("well-known").
         /// </summary>
-        internal List<TextSearchRange> FindRanges(string query, StringComparison comparison, bool wholeWords) {
+        internal List<TextSearchRange> FindRanges(IReadOnlyList<string> queries, StringComparison comparison, bool wholeWords) {
             var candidates = new List<TextSearchRange>();
             PdfNormalizedSearchText joined = PdfNormalizedSearchText.Create(Text, _lineBreaks, removeLineEndHyphens: false, out bool hasHyphenJunction);
-            CollectRanges(joined, query, comparison, wholeWords, candidates);
+            foreach (string query in queries) CollectRanges(joined, query, comparison, wholeWords, candidates);
             if (hasHyphenJunction) {
                 PdfNormalizedSearchText dehyphenated = PdfNormalizedSearchText.Create(Text, _lineBreaks, removeLineEndHyphens: true, out _);
-                CollectRanges(dehyphenated, query, comparison, wholeWords, candidates);
+                foreach (string query in queries) CollectRanges(dehyphenated, query, comparison, wholeWords, candidates);
             }
             if (candidates.Count <= 1) return candidates;
             var accepted = new List<TextSearchRange>(candidates.Count);
