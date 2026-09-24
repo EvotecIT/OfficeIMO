@@ -1,3 +1,5 @@
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.OpenDocument;
 using OfficeIMO.OpenDocument;
@@ -9,6 +11,109 @@ using Xunit;
 namespace OfficeIMO.OpenDocument.Converters.Tests;
 
 public sealed class SpreadsheetConditionalFormattingLossTests {
+    [Fact]
+    public void ExcelOrderedNumericFillRulesBecomeOdsStyleMaps() {
+        using ExcelDocument source = ExcelDocument.Create();
+        ExcelSheet sheet = source.AddWorksheet("Data");
+        sheet.AddConditionalRule("A1:A2", ExcelConditionalFormattingOperator.GreaterThan,
+            "10", null, "FFFF0000", stopIfTrue: true, priority: 1);
+        sheet.AddConditionalRule("A1:A2", ExcelConditionalFormattingOperator.Between,
+            "1", "10", "FF00FF00", priority: 2);
+
+        OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
+        OdsDocument reopened = OdsDocument.Load(new MemoryStream(result.Value.ToBytes()));
+        Assert.True(reopened.Validate().IsValid);
+        string? styleName = reopened.Sheets.Single().Cell(0, 0).StyleName;
+        Assert.NotNull(styleName);
+        Assert.Equal(styleName, reopened.Sheets.Single().Cell(1, 0).StyleName);
+        OdfStyle baseStyle = reopened.Styles.Find(OdfStyleFamily.TableCell, styleName!)!;
+        Assert.Equal(new[] { "cell-content()>10", "cell-content-is-between(1,10)" },
+            baseStyle.ConditionalMaps.Select(map => map.Condition));
+        Assert.Equal(new[] { "#FF0000", "#00FF00" }, baseStyle.ConditionalMaps.Select(map =>
+            reopened.Styles.Find(OdfStyleFamily.TableCell, map.ApplyStyleName)!.BackgroundColor!.Value.ToString()));
+        Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "conditional-formatting"
+            && mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 2);
+        Assert.DoesNotContain(result.Report.Mappings, mapping => mapping.Feature == "conditional-formatting"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported);
+
+        using ExcelDocument roundTripped = reopened.ToExcelDocument();
+        using ExcelDocument reopenedExcel = ExcelDocument.Load(new MemoryStream(roundTripped.ToBytes()));
+        ExcelConditionalFormattingInfo[] restored = reopenedExcel.Sheets.Single().GetConditionalFormattingRules()
+            .OrderBy(rule => rule.Priority).ToArray();
+        Assert.Equal(2, restored.Length);
+        Assert.Equal(new[] { "GreaterThan", "Between" }, restored.Select(rule => rule.Operator));
+        Assert.Equal(new[] { "FFFF0000", "FF00FF00" }, restored.Select(rule => rule.DifferentialFillColorArgb));
+    }
+
+    [Fact]
+    public void ExcelRulesWithoutFirstMatchSemanticsRemainExplicitLoss() {
+        using ExcelDocument source = ExcelDocument.Create();
+        ExcelSheet sheet = source.AddWorksheet("Data");
+        sheet.AddConditionalRule("A1:A2", ExcelConditionalFormattingOperator.GreaterThan,
+            "10", fillColor: "FFFF0000");
+        sheet.AddConditionalRule("A1:A2", ExcelConditionalFormattingOperator.LessThan,
+            "0", fillColor: "FF00FF00");
+
+        OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
+        Assert.Null(result.Value.Sheets.Single().Cell(0, 0).StyleName);
+        Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "conditional-formatting"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 2);
+    }
+
+    [Fact]
+    public void ExcelConditionalFillDoesNotReplaceAnExistingCellStyle() {
+        using ExcelDocument source = ExcelDocument.Create();
+        ExcelSheet sheet = source.AddWorksheet("Data");
+        sheet.CellAt(1, 1).SetValue("Styled").SetBold();
+        sheet.AddConditionalRule("A1", ExcelConditionalFormattingOperator.GreaterThan,
+            "0", fillColor: "FFFF0000");
+
+        OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
+        OdsSheet output = result.Value.Sheets.Single();
+        Assert.NotNull(output.Cell(0, 0).StyleName);
+        OdfStyle style = result.Value.Styles.Find(OdfStyleFamily.TableCell, output.Cell(0, 0).StyleName!)!;
+        Assert.Empty(style.ConditionalMaps);
+        Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "conditional-formatting"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+    }
+
+    [Theory]
+    [InlineData("1e-29")]
+    [InlineData("0.00000000000000000000000000001")]
+    public void ExcelNumericBoundsOutsideExactDecimalSubsetRemainExplicitLoss(string bound) {
+        using ExcelDocument source = ExcelDocument.Create();
+        source.AddWorksheet("Data").AddConditionalRule("A1",
+            ExcelConditionalFormattingOperator.GreaterThan, bound, fillColor: "FFFF0000");
+
+        OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
+        Assert.Null(result.Value.Sheets.Single().Cell(0, 0).StyleName);
+        Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "conditional-formatting"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+    }
+
+    [Fact]
+    public void ExcelIndexedDifferentialFillRemainsExplicitLoss() {
+        using ExcelDocument source = ExcelDocument.Create();
+        ExcelSheet sheet = source.AddWorksheet("Data");
+        sheet.AddConditionalRule("A1", ExcelConditionalFormattingOperator.GreaterThan,
+            "0", fillColor: "FFFF0000");
+        using MemoryStream packageStream = new MemoryStream(source.ToBytes());
+        using (SpreadsheetDocument package = SpreadsheetDocument.Open(packageStream, true)) {
+            Stylesheet stylesheet = package.WorkbookPart!.WorkbookStylesPart!.Stylesheet!;
+            DifferentialFormat format = stylesheet.DifferentialFormats!.Elements<DifferentialFormat>().Single();
+            ForegroundColor foreground = format.Fill!.PatternFill!.ForegroundColor!;
+            foreground.Rgb = null;
+            foreground.Indexed = 10U;
+            stylesheet.Save();
+        }
+
+        using ExcelDocument imported = ExcelDocument.Load(new MemoryStream(packageStream.ToArray()));
+        OdfConversionResult<OdsDocument> result = imported.ToOpenDocumentResult();
+        Assert.Null(result.Value.Sheets.Single().Cell(0, 0).StyleName);
+        Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "conditional-formatting"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+    }
+
     [Fact]
     public void ExcelConditionalRuleIsReportedWhenConvertingToOds() {
         using ExcelDocument source = ExcelDocument.Create();

@@ -28,7 +28,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
 
         int cells = 0, formulas = 0, formulaTranslationFailures = 0, styles = 0, hyperlinks = 0, unsupportedHyperlinks = 0, hyperlinkTooltips = 0, comments = 0, richComments = 0, threadedComments = 0, merges = 0;
         int rows = 0, columns = 0, convertedValidations = 0, skippedValidations = 0, overlappingValidationAssignments = 0;
-        int tables = 0, filters = 0, unsupportedStyles = 0, skippedStyles = 0;
+        int tables = 0, filters = 0, unsupportedStyles = 0, skippedStyles = 0, convertedConditionalRules = 0;
         long materializedCells = 0, skippedCells = 0, skippedRows = 0, skippedColumns = 0, skippedMerges = 0;
         bool truncated = false;
         var dataStyles = new Dictionary<uint, string>();
@@ -298,6 +298,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 materializedCells += newlyMaterializedCells;
                 merges++;
             }
+            convertedConditionalRules += ApplyExcelConditionalFormatting(source.Sheets[worksheetOrdinal - 1],
+                worksheet, target, sheet, effective, materializedCoordinates, ref materializedCells, ref truncated);
             tables += worksheet.Tables.Count;
             if (worksheet.AutoFilter != null) filters++;
             if (worksheet.FrozenRowCount > 0 || worksheet.FrozenColumnCount > 0 || worksheet.RightToLeft || !worksheet.ShowGridlines) {
@@ -320,9 +322,12 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         int disambiguatedNames = namedRangePlan.DisambiguatedCount;
 
         AddConverted(report, "worksheets", snapshot.Worksheets.Count);
+        if (convertedConditionalRules > 0) report.Add("conditional-formatting",
+            OdfConversionMappingStatus.Approximated, convertedConditionalRules,
+            "Bounded numeric cell-value rules with solid fills are represented by ODF conditional style maps.");
         AddUnsupported(report, "conditional-formatting",
-            snapshot.Worksheets.Sum(sheet => sheet.ConditionalFormattingRuleCount),
-            "Excel conditional-formatting rules are not projected to ODF conditional style maps.");
+            snapshot.Worksheets.Sum(sheet => sheet.ConditionalFormattingRuleCount) - convertedConditionalRules,
+            "Excel conditional-formatting rules outside the bounded numeric solid-fill subset are not projected to ODF conditional style maps.");
         AddConverted(report, "cells", cells);
         AddConverted(report, "rows", rows);
         if (columns > 0) report.Add("column-layout", OdfConversionMappingStatus.Approximated, columns,
