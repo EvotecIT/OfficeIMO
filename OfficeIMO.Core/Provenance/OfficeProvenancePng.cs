@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Provenance;
@@ -9,10 +10,15 @@ internal static class OfficeProvenancePng {
     private const int SignatureLength = 8;
 
     internal static void Inspect(byte[] data, OfficeProvenanceOptions options, OfficeProvenanceContext context) {
-        Walk(data, options, context, output: null, removalOptions: null, changes: null);
+        Walk(data, options, context, output: null, removalOptions: null, changes: null, inspectedStructureValid: null);
     }
 
-    internal static byte[] Remove(byte[] data, OfficeProvenanceRemovalOptions options, List<OfficeProvenanceChange> changes, out bool reserialized) {
+    internal static byte[] Remove(
+        byte[] data,
+        OfficeProvenanceRemovalOptions options,
+        OfficeProvenanceReport before,
+        List<OfficeProvenanceChange> changes,
+        out bool reserialized) {
         reserialized = false;
         if (!options.RemoveC2paManifests && !options.RemoveAiSourceMetadata) {
             return OfficeProvenanceBinary.CloneForOutput(data, options.EffectiveMaxOutputBytes);
@@ -21,7 +27,10 @@ internal static class OfficeProvenancePng {
             options.EffectiveMaxOutputBytes,
             EstimateRemovalOutputCapacity(data, options));
         output.Write(data, 0, SignatureLength);
-        reserialized = Walk(data, options.Limits, context: null, output, options, changes);
+        // Every carrier's validity includes the image structure, so any valid carrier in the
+        // inspection of these same bytes proves it without decoding the scanlines again.
+        bool inspectedStructureValid = before.Evidence.Any(evidence => evidence.IsStructurallyValid);
+        reserialized = Walk(data, options.Limits, context: null, output, options, changes, inspectedStructureValid);
         return output.ToArray();
     }
 
@@ -52,9 +61,13 @@ internal static class OfficeProvenancePng {
         OfficeProvenanceContext? context,
         Stream? output,
         OfficeProvenanceRemovalOptions? removalOptions,
-        List<OfficeProvenanceChange>? changes) {
+        List<OfficeProvenanceChange>? changes,
+        bool? inspectedStructureValid) {
         bool reserialized = false;
-        int c2paCount = CountC2paChunks(data, options, out int xmpCount, out bool validStructure);
+        int c2paCount = CountC2paChunks(data, options, out int xmpCount, out bool validChunkStructure);
+        // Decoding only establishes carrier validity, so carrier-free images are never decoded.
+        bool validStructure = inspectedStructureValid ?? (
+            (c2paCount != 0 || xmpCount != 0) && validChunkStructure && ValidateDecodedPayload(data, options, context!));
         int offset = SignatureLength;
         bool foundEnd = false;
         bool foundHeader = false;
@@ -194,10 +207,18 @@ internal static class OfficeProvenancePng {
         bool requiredPalettePresent = headerColorType != 3 || paletteCount == 1;
         validStructure = headerCount == 1 && validLeadingHeader && requiredPalettePresent && paletteIsValid &&
             foundImageData && imageDataIsContiguous && validEnd && allChunksHaveValidCrc &&
-            allChunkTypesValid && !hasUnknownCriticalChunk &&
-            OfficePngContainerValidator.TryValidate(data, out _, out _) &&
-            OfficePngReader.TryValidateDecodedPayload(data);
+            allChunkTypesValid && !hasUnknownCriticalChunk;
         return c2paCount;
+    }
+
+    private static bool ValidateDecodedPayload(byte[] data, OfficeProvenanceOptions options, OfficeProvenanceContext context) {
+        // The container check is part of the budget calculation; an image whose decode cannot be bounded is not decoded.
+        // Malformed structure is rejected by the chunk pre-pass before this point, so a container that preserves a
+        // malformed nested image never discards a charge already made here.
+        if (!OfficePngReader.TryGetProvenanceDecodeBudget(
+                data, options.CancellationToken, options.MaxContainerEntries, out long decodedBytes)) return false;
+        context.ReserveExpandedBytes(decodedBytes, "PNG decoding exceeds the configured expanded-byte limit.");
+        return OfficePngReader.TryValidateDecodedPayload(data, options.CancellationToken);
     }
 
     private static bool IsValidChunkType(byte[] data, int offset) {
