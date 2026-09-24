@@ -153,6 +153,10 @@ internal static partial class PdfSyntax {
                 if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
                 i++;
             }
+            if (i - start > MaxNumericTokenCharacters) {
+                val = default;
+                return false;
+            }
 #if NET6_0_OR_GREATER
             return int.TryParse(header.AsSpan(start, i - start), System.Globalization.NumberStyles.AllowLeadingSign,
 #else

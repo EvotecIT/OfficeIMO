@@ -107,7 +107,7 @@ internal static partial class PdfPageExtractor {
     internal static byte[] SerializeIndirectObject(int objectNumber, PdfObject value, SerializationContext context) =>
         value is PdfStream stream
             ? PdfObjectBytes.WrapStreamObject(objectNumber, BuildStreamDictionary(stream, context), stream, context.CancellationToken)
-            : WrapObject(objectNumber, SerializeObject(value, context));
+            : PdfObjectBytes.WrapIndirectObjectCancellable(objectNumber, SerializeObject(value, context), context.CancellationToken);
 
     /// <summary>Serializes an indirect object for final assembly without copying a retained stream payload.</summary>
     internal static PdfSerializedObject SerializeIndirectObjectForAssembly(
@@ -116,7 +116,8 @@ internal static partial class PdfPageExtractor {
         SerializationContext context) =>
         value is PdfStream stream
             ? PdfObjectBytes.SegmentStreamObject(objectNumber, BuildStreamDictionary(stream, context), stream, context.CancellationToken)
-            : PdfSerializedObject.FromBytes(WrapObject(objectNumber, SerializeObject(value, context)));
+            : PdfSerializedObject.FromBytes(PdfObjectBytes.WrapIndirectObjectCancellable(
+                objectNumber, SerializeObject(value, context), context.CancellationToken));
 
     internal static void EnsureSerializedObjectWithinLimit(PdfObject value, SerializationContext context, long maximumBytes) {
         if (maximumBytes < 0 || CountSerializedObjectBytes(value, context, maximumBytes) > maximumBytes) {

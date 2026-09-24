@@ -5,6 +5,9 @@ using System.Runtime.InteropServices;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfSyntax {
+    // Numeric values beyond this length cannot add useful PDF numeric precision and
+    // must not enter tokenless framework parsing after a caller raises object limits.
+    private const int MaxNumericTokenCharacters = 4096;
     private static readonly Encoding StrictUtf8NameEncoding = new UTF8Encoding(
         encoderShouldEmitUTF8Identifier: false,
         throwOnInvalidBytes: true);
@@ -497,6 +500,10 @@ internal static partial class PdfSyntax {
 
         internal bool TryParseInt32(string source, out int value, System.Threading.CancellationToken cancellationToken) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (_length > MaxNumericTokenCharacters) {
+                value = default;
+                return false;
+            }
 #if NET8_0_OR_GREATER
             ReadOnlySpan<char> span = _text is not null ? _text.AsSpan() : source.AsSpan(_sourceStart, _length);
             return int.TryParse(span, System.Globalization.NumberStyles.Integer,
@@ -513,6 +520,10 @@ internal static partial class PdfSyntax {
             System.Threading.CancellationToken cancellationToken,
             System.Globalization.NumberStyles styles = System.Globalization.NumberStyles.Any) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (_length > MaxNumericTokenCharacters) {
+                value = default;
+                return false;
+            }
 #if NET8_0_OR_GREATER
             ReadOnlySpan<char> span = _text is not null ? _text.AsSpan() : source.AsSpan(_sourceStart, _length);
             return double.TryParse(span, styles,

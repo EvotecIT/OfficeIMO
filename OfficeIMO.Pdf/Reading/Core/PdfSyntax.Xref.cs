@@ -194,8 +194,8 @@ internal static partial class PdfSyntax {
         while (TryReadXrefLine(text, ref position, sectionEnd, out int lineStart, out int lineEnd, cancellationToken)) {
             cancellationToken.ThrowIfCancellationRequested();
             int tokenPosition = lineStart;
-            if (!TryReadXrefToken(text, ref tokenPosition, lineEnd, out int firstStart, out int firstLength) ||
-                !TryReadXrefToken(text, ref tokenPosition, lineEnd, out int countStart, out int countLength) ||
+            if (!TryReadXrefToken(text, ref tokenPosition, lineEnd, out int firstStart, out int firstLength, cancellationToken) ||
+                !TryReadXrefToken(text, ref tokenPosition, lineEnd, out int countStart, out int countLength, cancellationToken) ||
                 !TryParseXrefInteger(text, firstStart, firstLength, out int firstObjectNumber) ||
                 !TryParseXrefInteger(text, countStart, countLength, out int count) ||
                 firstObjectNumber < 0 ||
@@ -212,9 +212,9 @@ internal static partial class PdfSyntax {
                 }
 
                 tokenPosition = lineStart;
-                if (!TryReadXrefToken(text, ref tokenPosition, lineEnd, out int offsetStart, out int offsetLength) ||
-                    !TryReadXrefToken(text, ref tokenPosition, lineEnd, out int generationStart, out int generationLength) ||
-                    !TryReadXrefToken(text, ref tokenPosition, lineEnd, out int statusStart, out int statusLength) ||
+                if (!TryReadXrefToken(text, ref tokenPosition, lineEnd, out int offsetStart, out int offsetLength, cancellationToken) ||
+                    !TryReadXrefToken(text, ref tokenPosition, lineEnd, out int generationStart, out int generationLength, cancellationToken) ||
+                    !TryReadXrefToken(text, ref tokenPosition, lineEnd, out int statusStart, out int statusLength, cancellationToken) ||
                     !TryParseXrefInteger(text, offsetStart, offsetLength, out int objectOffset) ||
                     !TryParseXrefInteger(text, generationStart, generationLength, out int generation)) {
                     continue;
@@ -288,15 +288,26 @@ internal static partial class PdfSyntax {
         return true;
     }
 
-    private static bool TryReadXrefToken(string text, ref int position, int end, out int start, out int length) {
-        while (position < end && char.IsWhiteSpace(text[position])) position++;
+    private static bool TryReadXrefToken(string text, ref int position, int end, out int start, out int length,
+        System.Threading.CancellationToken cancellationToken) {
+        while (position < end && char.IsWhiteSpace(text[position])) {
+            if ((position & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            position++;
+        }
         start = position;
-        while (position < end && !char.IsWhiteSpace(text[position])) position++;
+        while (position < end && !char.IsWhiteSpace(text[position])) {
+            if ((position & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            position++;
+        }
         length = position - start;
         return length > 0;
     }
 
     private static bool TryParseXrefInteger(string text, int start, int length, out int value) {
+        if (length > MaxNumericTokenCharacters) {
+            value = default;
+            return false;
+        }
 #if NET8_0_OR_GREATER
         return int.TryParse(text.AsSpan(start, length), System.Globalization.NumberStyles.Integer,
             System.Globalization.CultureInfo.InvariantCulture, out value);

@@ -17,6 +17,13 @@ the same limit to user and owner passwords. Shorten an oversized password before
 opening or generating a PDF; other Standard security revisions keep their
 existing password behavior.
 
+## PDF numeric token length
+
+The PDF object parser now treats numeric tokens longer than 4,096 characters as
+incomplete syntax, even when a caller raises `PdfReadLimits.MaxObjectCharacters`.
+If a trusted source emits such tokens, shorten or repair them before reading;
+raising the object-character budget does not raise this numeric-token limit.
+
 ## PDF image input budget
 
 PDF image-file pages and image stamps now limit each encoded image source to

@@ -7,6 +7,24 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfIndirectObjectSerializationTests {
     [Fact]
+    public void RetainedNonStreamObjectKeepsItsIndirectBytes() {
+        var context = new PdfPageExtractor.SerializationContext(
+            new Dictionary<int, int>(),
+            pagesObjectId: 0,
+            new Dictionary<int, Dictionary<string, PdfObject>>());
+        var value = new PdfStringObj(new string('x', 131072));
+        byte[] expected = PdfPageExtractor.WrapObject(4, PdfPageExtractor.SerializeObject(value, context));
+
+        byte[] direct = PdfPageExtractor.SerializeIndirectObject(4, value, context);
+        PdfSerializedObject assembled = PdfPageExtractor.SerializeIndirectObjectForAssembly(4, value, context);
+        using var output = new MemoryStream();
+        assembled.CopyTo(output, null, CancellationToken.None);
+
+        Assert.Equal(expected, direct);
+        Assert.Equal(expected, output.ToArray());
+    }
+
+    [Fact]
     public void StringSerializationPreservesLiteralUnicodeAndRawBytes() {
         var numberMap = new Dictionary<int, int>();
         var materializedPageValues = new Dictionary<int, Dictionary<string, PdfObject>>();
