@@ -123,6 +123,50 @@ namespace OfficeIMO.Excel {
             return new ExcelChartDataRange(sheetName, startRow, startColumn, categoryCount, seriesList.Count, hasHeaderRow);
         }
 
+        internal static bool HasCanonicalWorksheetReferences(ChartPart chartPart, ExcelChartDataRange range) {
+            PlotArea? plot = chartPart.ChartSpace?.GetFirstChild<Chart>()?.GetFirstChild<PlotArea>();
+            if (plot == null) return false;
+            IReadOnlyList<OpenXmlCompositeElement> series = GetChartSeries(plot);
+            if (series.Count != range.SeriesCount) return false;
+            for (int index = 0; index < series.Count; index++) {
+                OpenXmlCompositeElement item = series[index];
+                string? categories = item.GetFirstChild<CategoryAxisData>()?
+                    .GetFirstChild<StringReference>()?.Formula?.Text
+                    ?? item.GetFirstChild<CategoryAxisData>()?
+                        .GetFirstChild<NumberReference>()?.Formula?.Text;
+                if (!MatchesWorksheetRange(categories, range.SheetName,
+                    range.CategoryStartRow, range.CategoryStartColumn,
+                    range.CategoryEndRow, range.CategoryEndColumn)) return false;
+                NumberReference? values = GetSeriesValuesReference(item);
+                int valueFirstRow = range.Orientation == ExcelChartDataOrientation.Vertical
+                    ? range.SeriesStartRow : range.SeriesStartRow + index;
+                int valueFirstColumn = range.Orientation == ExcelChartDataOrientation.Vertical
+                    ? range.SeriesStartColumn + index : range.SeriesStartColumn;
+                int valueLastRow = range.Orientation == ExcelChartDataOrientation.Vertical
+                    ? range.SeriesEndRow : valueFirstRow;
+                int valueLastColumn = range.Orientation == ExcelChartDataOrientation.Vertical
+                    ? valueFirstColumn : range.SeriesEndColumn;
+                if (!MatchesWorksheetRange(values?.Formula?.Text, range.SheetName,
+                    valueFirstRow, valueFirstColumn, valueLastRow, valueLastColumn)) return false;
+                if (range.HasHeaderRow) {
+                    int labelRow = range.Orientation == ExcelChartDataOrientation.Vertical
+                        ? range.StartRow : valueFirstRow;
+                    int labelColumn = range.Orientation == ExcelChartDataOrientation.Vertical
+                        ? valueFirstColumn : range.StartColumn;
+                    if (!TryParseSeriesNameCell(item, range.SheetName, out int actualRow, out int actualColumn)
+                        || actualRow != labelRow || actualColumn != labelColumn) return false;
+                }
+            }
+            return true;
+        }
+
+        private static bool MatchesWorksheetRange(string? formula, string sheetName,
+            int firstRow, int firstColumn, int lastRow, int lastColumn) =>
+            TryParseSheetQualifiedRange(formula, out string actualSheet, out string actualRange)
+            && string.Equals(sheetName, actualSheet, StringComparison.OrdinalIgnoreCase)
+            && TryParseRange(actualRange, out int row1, out int column1, out int row2, out int column2)
+            && row1 == firstRow && column1 == firstColumn && row2 == lastRow && column2 == lastColumn;
+
         private static bool HorizontalSeriesRangesAreContiguous(IReadOnlyList<OpenXmlCompositeElement> seriesList, string sheetName, int firstSeriesRow, int firstCategoryColumn, int lastCategoryColumn) {
             for (int i = 0; i < seriesList.Count; i++) {
                 NumberReference? reference = GetSeriesValuesReference(seriesList[i]);

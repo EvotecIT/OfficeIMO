@@ -1,5 +1,15 @@
 namespace OfficeIMO.OpenDocument;
 
+/// <summary>Chart forms supported by native ODS chart authoring.</summary>
+public enum OdsChartType {
+    /// <summary>Vertical clustered columns.</summary>
+    Column,
+    /// <summary>Horizontal clustered bars.</summary>
+    Bar,
+    /// <summary>Line series.</summary>
+    Line
+}
+
 /// <summary>One embedded ODS chart and its source-cell references. Chart styling remains preserved package XML.</summary>
 public sealed class OdsChart {
     private OdsChart(string name, string chartClass, string? title, string? titleCellRangeAddress,
@@ -183,6 +193,10 @@ public sealed class OdsChart {
 
 /// <summary>Cell references for one embedded ODS chart series.</summary>
 public sealed class OdsChartSeries {
+    /// <summary>Creates a chart series from an ODF cell range and optional one-cell label address.</summary>
+    public OdsChartSeries(string valuesAddress, string? labelAddress = null)
+        : this(valuesAddress, labelAddress, null) { }
+
     internal OdsChartSeries(string valuesAddress, string? labelAddress, string? chartClass) {
         ValuesAddress = valuesAddress;
         LabelAddress = labelAddress;

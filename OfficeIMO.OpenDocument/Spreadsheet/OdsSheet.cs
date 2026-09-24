@@ -1,7 +1,7 @@
 namespace OfficeIMO.OpenDocument;
 
 /// <summary>An XML-backed ODS worksheet with sparse repeat-run editing.</summary>
-public sealed class OdsSheet {
+public sealed partial class OdsSheet {
     /// <summary>Default maximum number of cells that one merge operation may materialize.</summary>
     public const long DefaultMaximumMergeCells = 100_000;
 

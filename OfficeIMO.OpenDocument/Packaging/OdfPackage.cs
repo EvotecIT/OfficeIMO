@@ -360,10 +360,17 @@ internal sealed partial class OdfPackage {
     }
 
     private void UpdateXmlVersions(OdfVersion outputVersion) {
-        foreach (string path in new[] { "content.xml", "styles.xml", "meta.xml", "settings.xml" }) {
+        IEnumerable<string> chartParts = _entries.Where(entry => !entry.IsRemoved &&
+            (entry.Name.EndsWith("/content.xml", StringComparison.Ordinal) ||
+             entry.Name.EndsWith("/styles.xml", StringComparison.Ordinal)) &&
+            _entriesByName.TryGetValue(entry.Name.Substring(0, entry.Name.LastIndexOf('/') + 1),
+                out OdfPackageEntry? directory) && !directory.IsRemoved &&
+            directory.MediaType == "application/vnd.oasis.opendocument.chart")
+            .Select(entry => entry.Name);
+        foreach (string path in new[] { "content.xml", "styles.xml", "meta.xml", "settings.xml" }.Concat(chartParts)) {
             if (!ContainsEntry(path)) continue;
             XDocument xml = GetXml(path);
-            if (xml.Root != null) {
+            if (xml.Root?.Name.Namespace == OdfNamespaces.Office) {
                 xml.Root.SetAttributeValue(OdfNamespaces.Office + "version", outputVersion.ToToken());
                 MarkXmlDirty(path);
             }

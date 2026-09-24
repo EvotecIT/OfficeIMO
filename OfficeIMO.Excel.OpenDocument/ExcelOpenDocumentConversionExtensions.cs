@@ -32,6 +32,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         long materializedCells = 0, skippedCells = 0, skippedRows = 0, skippedColumns = 0, skippedMerges = 0;
         bool truncated = false;
         var dataStyles = new Dictionary<uint, string>();
+        var convertedCellsBySheet = new Dictionary<string, HashSet<(int Row, int Column)>>(StringComparer.Ordinal);
         int worksheetOrdinal = 0;
         foreach (ExcelWorksheetSnapshot worksheet in snapshot.Worksheets) {
             worksheetOrdinal++;
@@ -300,6 +301,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             }
             convertedConditionalRules += ApplyExcelConditionalFormatting(source.Sheets[worksheetOrdinal - 1],
                 worksheet, target, sheet, effective, materializedCoordinates, ref materializedCells, ref truncated);
+            convertedCellsBySheet.Add(worksheet.Name, materializedCoordinates);
             tables += worksheet.Tables.Count;
             if (worksheet.AutoFilter != null) filters++;
             if (worksheet.FrozenRowCount > 0 || worksheet.FrozenColumnCount > 0 || worksheet.RightToLeft || !worksheet.ShowGridlines) {
@@ -309,6 +311,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             if (worksheet.Protection != null) report.Add("worksheet-protection", OdfConversionMappingStatus.Unsupported, 1);
         }
 
+        int convertedCharts = ConvertExcelCharts(source, target, effective, convertedCellsBySheet,
+            ref materializedCells, ref truncated);
         foreach (NamedRangeConversionEntry named in namedRangePlan.Entries) {
             target.AddNamedRange(named.OutputName, named.Address);
         }
@@ -365,7 +369,10 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         AddUnsupported(report, "built-in-names", builtInNames, "Excel print-area and print-title names are not translated.");
         AddUnsupported(report, "named-expressions", unsupportedNamedExpressions,
             "Excel defined names that contain constants or formulas instead of representable A1 ranges are not translated to ODS.");
-        AddUnsupported(report, "charts", snapshot.ChartPartCount, "Excel chart parts are not translated to ODS.");
+        if (convertedCharts > 0) report.Add("charts", OdfConversionMappingStatus.Approximated, convertedCharts,
+            "Bounded column, bar, and line charts retain worksheet-linked categories, numeric series, title, and approximate placement; Excel chart styling, axes, legends, and interactions are not transferred.");
+        AddUnsupported(report, "charts", Math.Max(0, snapshot.ChartPartCount - convertedCharts),
+            "Excel charts outside the bounded worksheet-linked column, bar, and line subset are not translated to ODS.");
         AddUnsupported(report, "pivot-tables", snapshot.PivotTablePartCount, "Excel pivot-table parts are not translated to ODS.");
         AddUnsupported(report, "slicers", snapshot.SlicerPartCount, null);
         AddUnsupported(report, "timelines", snapshot.TimelinePartCount, null);

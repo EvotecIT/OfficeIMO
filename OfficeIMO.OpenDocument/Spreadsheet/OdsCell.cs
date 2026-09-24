@@ -6,6 +6,7 @@ public sealed class OdsCell {
     private XElement _element;
 
     internal OdsCell(OdsDocument document, XElement element) { _document = document; _element = element; }
+    internal XElement Element => _element;
 
     /// <summary>True when this position is covered by a merged cell.</summary>
     public bool IsCovered => _element.Name == OdfNamespaces.Table + "covered-table-cell";

@@ -48,6 +48,9 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelChartDataRange? DataRange => _dataRange;
 
+        internal bool HasCanonicalWorksheetReferences() => _dataRange != null &&
+            ExcelChartUtils.HasCanonicalWorksheetReferences(GetChartPart(), _dataRange);
+
         /// <summary>
         /// Gets this chart anchor's zero-based order in the worksheet drawing layer.
         /// </summary>
