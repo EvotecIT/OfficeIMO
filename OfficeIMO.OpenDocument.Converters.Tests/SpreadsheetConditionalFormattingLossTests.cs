@@ -103,6 +103,26 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
             && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 2);
     }
 
+    [Theory]
+    [InlineData(16, OdfConversionMappingStatus.Approximated)]
+    [InlineData(17, OdfConversionMappingStatus.Unsupported)]
+    public void DisjointExcelConditionalRangesShareOneRuleBudget(int ruleCount,
+        OdfConversionMappingStatus expectedStatus) {
+        using ExcelDocument source = ExcelDocument.Create();
+        ExcelSheet sheet = source.AddWorksheet("Data");
+        for (int index = 0; index < ruleCount; index++) {
+            string range = ((char)('A' + index)).ToString() + "1";
+            sheet.AddConditionalRule(range, ExcelConditionalFormattingOperator.GreaterThan,
+                "0", null, "FFFF0000", priority: index + 1);
+        }
+
+        OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
+        Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "conditional-formatting"
+            && mapping.Status == expectedStatus && mapping.Count == ruleCount);
+        Assert.Equal(expectedStatus == OdfConversionMappingStatus.Approximated,
+            result.Value.Sheets.Single().Cell(0, 0).StyleName != null);
+    }
+
     [Fact]
     public void ExcelOrderedNumericFillRulesBecomeOdsStyleMaps() {
         using ExcelDocument source = ExcelDocument.Create();
