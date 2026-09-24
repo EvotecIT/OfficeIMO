@@ -47,6 +47,40 @@
       "rightsUrl": "https://www.nps.gov/aboutus/disclaimer.htm",
       "rightsNotes": "NPS-created material is generally public domain; third-party content and government marks are exceptions. Retain source bytes only in ignored local evidence and record any excluded resource after capture.",
       "requiredVisibleMarkers": ["Photo Galleries", "Yellowstone National Park", "Wildlife Photos"],
+      "editableTargetSelectionDate": "2026-09-24",
+      "editableTargets": [
+        {
+          "target": "Word",
+          "profile": "semantic document",
+          "inspect": ["heading hierarchy", "gallery image and caption pairing", "link destinations", "survey text", "saved and reopened content"]
+        },
+        {
+          "target": "Excel",
+          "profile": "generic editable grid",
+          "inspect": ["gallery card text and picture placement", "saved and reopened cells and images"],
+          "scope": "Visual/editable projection; no typed table or formula claim for this source."
+        },
+        {
+          "target": "PowerPoint",
+          "profile": "generic editable slides",
+          "inspect": ["heading and card grouping", "editable text and pictures", "saved and reopened slide order"]
+        },
+        {
+          "target": "OneNote",
+          "profile": "generic semantic pages",
+          "inspect": ["heading and paragraph flow", "links and images", "saved and reopened section content"]
+        },
+        {
+          "target": "RTF",
+          "profile": "editable semantic document",
+          "inspect": ["heading and paragraph flow", "links and images", "saved and reopened content"]
+        },
+        {
+          "target": "Markdown",
+          "profile": "semantic text",
+          "inspect": ["heading hierarchy", "gallery image references and captions", "link destinations", "serialized and reparsed content"]
+        }
+      ],
       "reason": "An independently published, image-card-rich government gallery on a different site and stylesheet system from NASA, selected before inspecting OfficeIMO output."
     }
   ]
