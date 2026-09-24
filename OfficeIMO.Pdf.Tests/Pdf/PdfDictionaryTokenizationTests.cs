@@ -6,6 +6,16 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfDictionaryTokenizationTests {
     [Fact]
+    public void OversizedNumericTokenDoesNotEnterFrameworkNumberParser() {
+        PdfDictionary dictionary = ParseDictionary("/Value " + new string('0', 4097) + " /After 1");
+
+        PdfName invalidNumber = Assert.IsType<PdfName>(dictionary.Items["Value"]);
+        Assert.True(invalidNumber.HasIncompleteSyntax);
+        Assert.Equal(4097, invalidNumber.Name.Length);
+        Assert.Equal(1, Assert.IsType<PdfNumber>(dictionary.Items["After"]).Value);
+    }
+
+    [Fact]
     public void SparseLongStringDictionaryKeepsItsCompleteValue() {
         string payload = new string('A', 65536);
         PdfDictionary dictionary = ParseDictionary("/Payload (" + payload + ")");

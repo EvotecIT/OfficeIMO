@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>
@@ -19,33 +21,39 @@ public sealed class PdfArtifactSnapshot {
     /// <summary>Readable page count, or null when page inspection did not complete.</summary>
     public int? PageCount { get; }
 
-    internal static PdfArtifactSnapshot Capture(byte[] bytes, PdfLoadOptions? readOptions = null) =>
-        Capture(bytes, readOptions, out _);
+    internal static PdfArtifactSnapshot Capture(byte[] bytes, PdfLoadOptions? readOptions = null,
+        CancellationToken cancellationToken = default) =>
+        Capture(bytes, readOptions, out _, cancellationToken);
 
     /// <summary>Retains a successful artifact readback for the next operation on the same output.</summary>
     internal static PdfArtifactSnapshot Capture(
         byte[] bytes,
         PdfLoadOptions? readOptions,
-        out PdfReadDocument? readDocument) {
+        out PdfReadDocument? readDocument,
+        CancellationToken cancellationToken = default) {
         Guard.NotNull(bytes, nameof(bytes));
+        cancellationToken.ThrowIfCancellationRequested();
 
         int? pageCount = null;
         readDocument = null;
         try {
-            PdfReadDocument parsed = PdfReadDocument.Open(bytes, readOptions);
+            PdfReadDocument parsed = PdfReadDocument.Open(bytes, readOptions, cancellationToken);
             pageCount = parsed.Pages.Count;
             readDocument = parsed;
+        } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+            throw;
         } catch {
             // Artifact identity remains useful even when a failed pipeline step produced unreadable bytes.
         }
 
-        return CaptureKnownPageCount(bytes, pageCount);
+        return CaptureKnownPageCount(bytes, pageCount, cancellationToken);
     }
 
     /// <summary>Captures artifact identity when the owning operation already has canonical page-count evidence.</summary>
-    internal static PdfArtifactSnapshot CaptureKnownPageCount(byte[] bytes, int? pageCount) {
+    internal static PdfArtifactSnapshot CaptureKnownPageCount(byte[] bytes, int? pageCount,
+        CancellationToken cancellationToken = default) {
         Guard.NotNull(bytes, nameof(bytes));
-        return new PdfArtifactSnapshot(bytes.LongLength, ComputeSha256Hex(bytes), pageCount);
+        return new PdfArtifactSnapshot(bytes.LongLength, ComputeSha256Hex(bytes, cancellationToken), pageCount);
     }
 
     internal static PdfArtifactSnapshot FromDigest(long byteCount, string sha256, int? pageCount) {
@@ -61,7 +69,21 @@ public sealed class PdfArtifactSnapshot {
         return new PdfArtifactSnapshot(byteCount, sha256, pageCount);
     }
 
-    private static string ComputeSha256Hex(byte[] bytes) {
+    private static string ComputeSha256Hex(byte[] bytes, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (cancellationToken.CanBeCanceled) {
+            using var sha256 = System.Security.Cryptography.IncrementalHash.CreateHash(
+                System.Security.Cryptography.HashAlgorithmName.SHA256);
+            const int chunkSize = 64 * 1024;
+            for (int offset = 0; offset < bytes.Length;) {
+                cancellationToken.ThrowIfCancellationRequested();
+                int count = Math.Min(chunkSize, bytes.Length - offset);
+                sha256.AppendData(bytes, offset, count);
+                offset += count;
+            }
+            cancellationToken.ThrowIfCancellationRequested();
+            return ToLowerHex(sha256.GetHashAndReset());
+        }
 #if NET8_0_OR_GREATER
         return ToLowerHex(System.Security.Cryptography.SHA256.HashData(bytes));
 #else

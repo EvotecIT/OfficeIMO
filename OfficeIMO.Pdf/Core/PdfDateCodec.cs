@@ -15,7 +15,9 @@ internal static class PdfDateCodec {
     }
 
     internal static DateTimeOffset? TryParse(string? value) {
-        if (string.IsNullOrWhiteSpace(value)) {
+        // A PDF date cannot exceed D: plus the full timestamp and timezone.
+        // Reject oversized metadata before scanning or copying an untrusted string.
+        if (value is null || value.Length > 23 || string.IsNullOrWhiteSpace(value)) {
             return null;
         }
 

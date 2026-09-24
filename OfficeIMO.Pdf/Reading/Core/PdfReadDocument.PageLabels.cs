@@ -1,7 +1,8 @@
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadDocument {
-    private IReadOnlyList<PdfPageLabel> ExtractPageLabels() {
+    private IReadOnlyList<PdfPageLabel> ExtractPageLabels(System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         PdfDictionary? catalog = FindCatalog();
         if (catalog is null ||
             !catalog.Items.TryGetValue("PageLabels", out var pageLabelsObject) ||
@@ -15,6 +16,7 @@ public sealed partial class PdfReadDocument {
 
         var labels = new List<PdfPageLabel>();
         for (int i = 0; i < nums.Items.Count; i += 2) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (ResolveObject(nums.Items[i]) is not PdfNumber pageIndexNumber ||
                 !TryGetNonNegativeInteger(pageIndexNumber, out int pageIndex) ||
                 ResolveObject(nums.Items[i + 1]) is not PdfDictionary labelDictionary) {
@@ -41,7 +43,16 @@ public sealed partial class PdfReadDocument {
             labels.Add(new PdfPageLabel(pageIndex, style, prefix, startNumber));
         }
 
-        labels.Sort((left, right) => left.StartPageIndex.CompareTo(right.StartPageIndex));
+        try {
+            labels.Sort((left, right) => {
+                cancellationToken.ThrowIfCancellationRequested();
+                return left.StartPageIndex.CompareTo(right.StartPageIndex);
+            });
+        } catch (InvalidOperationException error) when (error.InnerException is OperationCanceledException) {
+            cancellationToken.ThrowIfCancellationRequested();
+            throw;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
         return labels.Count == 0 ? Array.Empty<PdfPageLabel>() : labels.AsReadOnly();
     }
 }
