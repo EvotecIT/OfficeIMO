@@ -62,7 +62,7 @@ public sealed partial class PdfReadDocument {
             try {
                 ordered.Sort((left, right) => {
                     cancellationToken.ThrowIfCancellationRequested();
-                    int comparison = StringComparer.Ordinal.Compare(left.Script.Name, right.Script.Name);
+                    int comparison = PdfStringComparison.CompareOrdinal(left.Script.Name, right.Script.Name, cancellationToken);
                     return comparison != 0 ? comparison : left.Index.CompareTo(right.Index);
                 });
             } catch (InvalidOperationException error) when (error.InnerException is OperationCanceledException) {

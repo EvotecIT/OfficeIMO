@@ -426,9 +426,7 @@ internal sealed partial class PdfStandardSecurityHandler {
             return Array.Empty<byte>();
         }
 
-        return PdfWinAnsiEncoding.CanEncode(password, out _, cancellationToken)
-            ? PdfWinAnsiEncoding.Encode(password, cancellationToken)
-            : Encoding.UTF8.GetBytes(password);
+        return PdfLegacyPasswordEncoding.EncodePrefix(password, cancellationToken);
     }
 
     private static byte[] TrimPadding(byte[] value, CancellationToken cancellationToken) {

@@ -244,16 +244,29 @@ internal static class PdfObjectLookup {
 
     public static PdfObject? ResolveChain(
         System.Collections.Generic.Dictionary<int, PdfIndirectObject> objects,
-        PdfObject? value) =>
-        TryResolveReferenceChain(objects, value, out PdfObject? resolved) ? resolved : null;
+        PdfObject? value) => ResolveChainCancellable(objects, value, default);
+
+    public static PdfObject? ResolveChainCancellable(
+        System.Collections.Generic.Dictionary<int, PdfIndirectObject> objects,
+        PdfObject? value,
+        System.Threading.CancellationToken cancellationToken) =>
+        TryResolveReferenceChainCancellable(objects, value, out PdfObject? resolved, cancellationToken) ? resolved : null;
 
     public static bool TryResolveReferenceChain(
         System.Collections.Generic.Dictionary<int, PdfIndirectObject> objects,
         PdfObject? value,
-        out PdfObject? resolved) {
+        out PdfObject? resolved) => TryResolveReferenceChainCancellable(objects, value, out resolved, default);
+
+    public static bool TryResolveReferenceChainCancellable(
+        System.Collections.Generic.Dictionary<int, PdfIndirectObject> objects,
+        PdfObject? value,
+        out PdfObject? resolved,
+        System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         var visited = new System.Collections.Generic.HashSet<(int ObjectNumber, int Generation)>();
         resolved = value;
         while (resolved is PdfReference reference) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!visited.Add((reference.ObjectNumber, reference.Generation)) ||
                 !TryGet(objects, reference, out PdfIndirectObject indirect)) {
                 resolved = null;

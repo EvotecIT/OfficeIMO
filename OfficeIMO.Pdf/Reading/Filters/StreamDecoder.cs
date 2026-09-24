@@ -32,9 +32,9 @@ internal static partial class StreamDecoder {
             return originalData;
         }
 
-        if (!TryGetFilterNames(filterObj, objects, out List<string> filterNames) ||
-            !HasValidDecodeParmsDeclaration(dict, filterNames.Count, objects) ||
-            !HasValidDecodeParmsForFilters(dict, filterNames, objects)) {
+        if (!TryGetFilterNames(filterObj, objects, out List<string> filterNames, cancellationToken) ||
+            !HasValidDecodeParmsDeclaration(dict, filterNames.Count, objects, cancellationToken) ||
+            !HasValidDecodeParmsForFilters(dict, filterNames, objects, cancellationToken)) {
             return ReturnWithinDecodedLimit(data, maxOutputBytes);
         }
 
@@ -46,7 +46,7 @@ internal static partial class StreamDecoder {
             try {
                 switch (GetFilterKind(filterName)) {
                     case DecodeFilterKind.Flate:
-                        int flateOutputLimit = GetFilterOutputLimit(dict, filterIndex, objects, maxOutputBytes);
+                        int flateOutputLimit = GetFilterOutputLimit(dict, filterIndex, objects, maxOutputBytes, cancellationToken);
                         if (!FlateDecoder.TryDecode(current, flateOutputLimit, out current, out bool flateLimitExceeded, cancellationToken)) {
                             if (flateLimitExceeded) {
                                 throw CreateDecodedLimitException(maxOutputBytes, (long)maxOutputBytes + 1L);
@@ -79,8 +79,8 @@ internal static partial class StreamDecoder {
                         current = DecodeFax(dict, filterIndex, current, objects, maxOutputBytes, cancellationToken);
                         break;
                     case DecodeFilterKind.Lzw:
-                        int lzwOutputLimit = GetFilterOutputLimit(dict, filterIndex, objects, maxOutputBytes);
-                        if (!LzwDecoder.TryDecode(current, lzwOutputLimit, out current, GetEarlyChange(dict, filterIndex, objects), cancellationToken)) {
+                        int lzwOutputLimit = GetFilterOutputLimit(dict, filterIndex, objects, maxOutputBytes, cancellationToken);
+                        if (!LzwDecoder.TryDecode(current, lzwOutputLimit, out current, GetEarlyChange(dict, filterIndex, objects, cancellationToken), cancellationToken)) {
                             throw CreateDecodedLimitException(maxOutputBytes, (long)maxOutputBytes + 1L);
                         }
 
@@ -117,7 +117,8 @@ internal static partial class StreamDecoder {
             return decoded;
         }
         if (limitException is not null) throw limitException;
-        return ReturnWithinDecodedLimit(stream.Data, maxOutputBytes);
+        ThrowIfDecodedLimitExceeded(stream.DataLongLength, maxOutputBytes);
+        return stream.GetData(cancellationToken);
     }
 
     public static bool TryDecode(PdfDictionary dict, byte[] data, int maxOutputBytes, out byte[] decoded, Dictionary<int, PdfIndirectObject>? objects = null) {
@@ -214,17 +215,17 @@ internal static partial class StreamDecoder {
         }
 
         if (!stream.Dictionary.Items.TryGetValue("Filter", out PdfObject? filterObject) ||
-            ResolveObject(filterObject, objects) is PdfNull) {
+            ResolveObject(filterObject, objects, cancellationToken) is PdfNull) {
             if (stream.DataLongLength > maxOutputBytes) {
                 throw CreateDecodedLimitException(maxOutputBytes, stream.DataLongLength);
             }
             return stream.DataLength;
         }
 
-        PdfObject? resolvedFilter = ResolveObject(filterObject, objects);
+        PdfObject? resolvedFilter = ResolveObject(filterObject, objects, cancellationToken);
         if (resolvedFilter is PdfName filterName &&
             GetFilterKind(filterName.Name) == DecodeFilterKind.Flate &&
-            HasNoEffectiveDecodeParms(stream.Dictionary, objects)) {
+            HasNoEffectiveDecodeParms(stream.Dictionary, objects, cancellationToken)) {
             stream.GetDataSegment(out byte[] data, out int offset, out int length);
             if (FlateDecoder.TryValidate(
                     data,
@@ -247,9 +248,10 @@ internal static partial class StreamDecoder {
 
     private static bool HasNoEffectiveDecodeParms(
         PdfDictionary dictionary,
-        Dictionary<int, PdfIndirectObject>? objects) =>
+        Dictionary<int, PdfIndirectObject>? objects,
+        CancellationToken cancellationToken) =>
         !dictionary.Items.TryGetValue("DecodeParms", out PdfObject? decodeParms) ||
-        ResolveObject(decodeParms, objects) is PdfNull;
+        ResolveObject(decodeParms, objects, cancellationToken) is PdfNull;
 
     private static bool TryDecodeCore(
         PdfDictionary dict,
@@ -290,7 +292,7 @@ internal static partial class StreamDecoder {
         }
 
         if (data == null || !dict.Items.TryGetValue("Filter", out var filterObj)) {
-            byte[] original = GetExactData(data, dataOffset, dataLength);
+            byte[] original = GetExactData(data, dataOffset, dataLength, cancellationToken);
             if (!TryUseOriginal(original, maxOutputBytes, out decoded)) {
                 limitException = CreateDecodedLimitException(maxOutputBytes, original.LongLength);
                 return false;
@@ -299,14 +301,14 @@ internal static partial class StreamDecoder {
             return true;
         }
 
-        if (!TryGetFilterNames(filterObj, objects, out List<string> filterNames) ||
-            !HasValidDecodeParmsDeclaration(dict, filterNames.Count, objects) ||
-            !HasValidDecodeParmsForFilters(dict, filterNames, objects)) {
+        if (!TryGetFilterNames(filterObj, objects, out List<string> filterNames, cancellationToken) ||
+            !HasValidDecodeParmsDeclaration(dict, filterNames.Count, objects, cancellationToken) ||
+            !HasValidDecodeParmsForFilters(dict, filterNames, objects, cancellationToken)) {
             return false;
         }
 
         if (filterNames.Count == 0) {
-            byte[] original = GetExactData(data, dataOffset, dataLength);
+            byte[] original = GetExactData(data, dataOffset, dataLength, cancellationToken);
             if (!TryUseOriginal(original, maxOutputBytes, out decoded)) {
                 limitException = CreateDecodedLimitException(maxOutputBytes, original.LongLength);
                 return false;
@@ -322,7 +324,7 @@ internal static partial class StreamDecoder {
             try {
                 switch (GetFilterKind(filterName)) {
                     case DecodeFilterKind.Flate:
-                        int flateOutputLimit = GetFilterOutputLimit(dict, filterIndex, objects, maxOutputBytes);
+                        int flateOutputLimit = GetFilterOutputLimit(dict, filterIndex, objects, maxOutputBytes, cancellationToken);
                         bool flateDecoded = current is null
                             ? FlateDecoder.TryDecode(data, dataOffset, dataLength, flateOutputLimit, out current, out bool flateLimitExceeded, cancellationToken)
                             : FlateDecoder.TryDecode(current, flateOutputLimit, out current, out flateLimitExceeded, cancellationToken);
@@ -337,7 +339,7 @@ internal static partial class StreamDecoder {
                         current = ApplyDecodeParms(dict, filterIndex, current, objects, maxOutputBytes, cancellationToken);
                         break;
                     case DecodeFilterKind.AsciiHex:
-                        current ??= GetExactData(data, dataOffset, dataLength);
+                        current ??= GetExactData(data, dataOffset, dataLength, cancellationToken);
                         if (!AsciiHexDecoder.TryDecode(current, maxOutputBytes, out current, cancellationToken)) {
                             limitException = CreateDecodedLimitException(maxOutputBytes, (long)maxOutputBytes + 1L);
                             return false;
@@ -345,7 +347,7 @@ internal static partial class StreamDecoder {
 
                         break;
                     case DecodeFilterKind.Ascii85:
-                        current ??= GetExactData(data, dataOffset, dataLength);
+                        current ??= GetExactData(data, dataOffset, dataLength, cancellationToken);
                         if (!Ascii85Decoder.TryDecode(current, maxOutputBytes, out current, cancellationToken)) {
                             limitException = CreateDecodedLimitException(maxOutputBytes, (long)maxOutputBytes + 1L);
                             return false;
@@ -353,7 +355,7 @@ internal static partial class StreamDecoder {
 
                         break;
                     case DecodeFilterKind.RunLength:
-                        current ??= GetExactData(data, dataOffset, dataLength);
+                        current ??= GetExactData(data, dataOffset, dataLength, cancellationToken);
                         if (!RunLengthDecoder.TryDecode(current, maxOutputBytes, out current, cancellationToken)) {
                             limitException = CreateDecodedLimitException(maxOutputBytes, (long)maxOutputBytes + 1L);
                             return false;
@@ -361,13 +363,13 @@ internal static partial class StreamDecoder {
 
                         break;
                     case DecodeFilterKind.Fax:
-                        current ??= GetExactData(data, dataOffset, dataLength);
+                        current ??= GetExactData(data, dataOffset, dataLength, cancellationToken);
                         current = DecodeFax(dict, filterIndex, current, objects, maxOutputBytes, cancellationToken);
                         break;
                     case DecodeFilterKind.Lzw:
-                        current ??= GetExactData(data, dataOffset, dataLength);
-                        int lzwOutputLimit = GetFilterOutputLimit(dict, filterIndex, objects, maxOutputBytes);
-                        if (!LzwDecoder.TryDecode(current, lzwOutputLimit, out current, GetEarlyChange(dict, filterIndex, objects), cancellationToken)) {
+                        current ??= GetExactData(data, dataOffset, dataLength, cancellationToken);
+                        int lzwOutputLimit = GetFilterOutputLimit(dict, filterIndex, objects, maxOutputBytes, cancellationToken);
+                        if (!LzwDecoder.TryDecode(current, lzwOutputLimit, out current, GetEarlyChange(dict, filterIndex, objects, cancellationToken), cancellationToken)) {
                             limitException = CreateDecodedLimitException(maxOutputBytes, (long)maxOutputBytes + 1L);
                             return false;
                         }
@@ -394,15 +396,21 @@ internal static partial class StreamDecoder {
             }
         }
 
-        decoded = current ?? GetExactData(data, dataOffset, dataLength);
+        decoded = current ?? GetExactData(data, dataOffset, dataLength, cancellationToken);
         return true;
     }
 
-    private static byte[] GetExactData(byte[]? data, int offset, int length) {
+    private static byte[] GetExactData(byte[]? data, int offset, int length, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (data is null || length == 0) return Array.Empty<byte>();
         if (offset == 0 && length == data.Length) return data;
         var exact = new byte[length];
-        Buffer.BlockCopy(data, offset, exact, 0, length);
+        for (int copied = 0; copied < length;) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = Math.Min(64 * 1024, length - copied);
+            Buffer.BlockCopy(data, offset + copied, exact, copied, count);
+            copied += count;
+        }
         return exact;
     }
 
@@ -558,12 +566,12 @@ internal static partial class StreamDecoder {
         Dictionary<int, PdfIndirectObject>? objects,
         int maxOutputBytes,
         CancellationToken cancellationToken) {
-        var decodeParms = GetDecodeParms(dict, filterIndex, objects);
+        var decodeParms = GetDecodeParms(dict, filterIndex, objects, cancellationToken);
         if (decodeParms is null) {
             return data;
         }
 
-        int predictor = ReadIntegerParameter(decodeParms, "Predictor", 1, objects);
+        int predictor = ReadIntegerParameter(decodeParms, "Predictor", 1, objects, cancellationToken);
         if (predictor == 1) {
             return data;
         }
@@ -572,9 +580,9 @@ internal static partial class StreamDecoder {
             throw new FormatException($"Unsupported PDF predictor value '{predictor}'.");
         }
 
-        int columns = ReadPositiveIntegerParameter(decodeParms, "Columns", 1, objects);
-        int colors = ReadPositiveIntegerParameter(decodeParms, "Colors", 1, objects);
-        int bitsPerComponent = ReadIntegerParameter(decodeParms, "BitsPerComponent", 8, objects);
+        int columns = ReadPositiveIntegerParameter(decodeParms, "Columns", 1, objects, cancellationToken);
+        int colors = ReadPositiveIntegerParameter(decodeParms, "Colors", 1, objects, cancellationToken);
+        int bitsPerComponent = ReadIntegerParameter(decodeParms, "BitsPerComponent", 8, objects, cancellationToken);
         if (bitsPerComponent != 1 && bitsPerComponent != 2 && bitsPerComponent != 4 && bitsPerComponent != 8 && bitsPerComponent != 16) {
             throw new FormatException($"Unsupported PDF predictor bit depth '{bitsPerComponent}'.");
         }
@@ -590,20 +598,21 @@ internal static partial class StreamDecoder {
         PdfDictionary dict,
         int filterIndex,
         Dictionary<int, PdfIndirectObject>? objects,
-        int maxOutputBytes) {
-        PdfDictionary? decodeParms = GetDecodeParms(dict, filterIndex, objects);
+        int maxOutputBytes,
+        CancellationToken cancellationToken) {
+        PdfDictionary? decodeParms = GetDecodeParms(dict, filterIndex, objects, cancellationToken);
         if (decodeParms is null) {
             return maxOutputBytes;
         }
 
-        int predictor = ReadIntegerParameter(decodeParms, "Predictor", 1, objects);
+        int predictor = ReadIntegerParameter(decodeParms, "Predictor", 1, objects, cancellationToken);
         if (predictor < 10 || predictor > 15) {
             return maxOutputBytes;
         }
 
-        int columns = ReadPositiveIntegerParameter(decodeParms, "Columns", 1, objects);
-        int colors = ReadPositiveIntegerParameter(decodeParms, "Colors", 1, objects);
-        int bitsPerComponent = ReadIntegerParameter(decodeParms, "BitsPerComponent", 8, objects);
+        int columns = ReadPositiveIntegerParameter(decodeParms, "Columns", 1, objects, cancellationToken);
+        int colors = ReadPositiveIntegerParameter(decodeParms, "Colors", 1, objects, cancellationToken);
+        int bitsPerComponent = ReadIntegerParameter(decodeParms, "BitsPerComponent", 8, objects, cancellationToken);
         long rowBits = checked((long)columns * colors * bitsPerComponent);
         long rowBytes = (rowBits + 7L) / 8L;
         if (rowBytes <= 0L) {
@@ -615,13 +624,13 @@ internal static partial class StreamDecoder {
         return predictorInputLimit >= int.MaxValue ? int.MaxValue : (int)predictorInputLimit;
     }
 
-    private static int GetEarlyChange(PdfDictionary dict, int filterIndex, Dictionary<int, PdfIndirectObject>? objects) {
-        var decodeParms = GetDecodeParms(dict, filterIndex, objects);
+    private static int GetEarlyChange(PdfDictionary dict, int filterIndex, Dictionary<int, PdfIndirectObject>? objects, CancellationToken cancellationToken) {
+        var decodeParms = GetDecodeParms(dict, filterIndex, objects, cancellationToken);
         if (decodeParms is null) {
             return 1;
         }
 
-        int earlyChange = ReadIntegerParameter(decodeParms, "EarlyChange", 1, objects);
+        int earlyChange = ReadIntegerParameter(decodeParms, "EarlyChange", 1, objects, cancellationToken);
         if (earlyChange != 0 && earlyChange != 1) {
             throw new FormatException($"Unsupported LZW EarlyChange value '{earlyChange}'.");
         }
@@ -629,12 +638,12 @@ internal static partial class StreamDecoder {
         return earlyChange;
     }
 
-    private static PdfDictionary? GetDecodeParms(PdfDictionary dict, int filterIndex, Dictionary<int, PdfIndirectObject>? objects) {
+    private static PdfDictionary? GetDecodeParms(PdfDictionary dict, int filterIndex, Dictionary<int, PdfIndirectObject>? objects, CancellationToken cancellationToken = default) {
         if (!dict.Items.TryGetValue("DecodeParms", out var decodeParmsObj)) {
             return null;
         }
 
-        PdfObject? resolvedDecodeParms = ResolveObject(decodeParmsObj, objects);
+        PdfObject? resolvedDecodeParms = ResolveObject(decodeParmsObj, objects, cancellationToken);
 
         if (resolvedDecodeParms is PdfDictionary directDict) {
             return filterIndex == 0 ? directDict : null;
@@ -643,29 +652,31 @@ internal static partial class StreamDecoder {
         if (resolvedDecodeParms is PdfArray decodeParmsArray &&
             filterIndex >= 0 &&
             filterIndex < decodeParmsArray.Items.Count &&
-            ResolveDictionary(decodeParmsArray.Items[filterIndex], objects) is PdfDictionary indexedDict) {
+            ResolveDictionary(decodeParmsArray.Items[filterIndex], objects, cancellationToken) is PdfDictionary indexedDict) {
             return indexedDict;
         }
 
         return null;
     }
 
-    private static PdfDictionary? ResolveDictionary(PdfObject? obj, Dictionary<int, PdfIndirectObject>? objects) {
-        if (ResolveObject(obj, objects) is PdfDictionary directDictionary) {
+    private static PdfDictionary? ResolveDictionary(PdfObject? obj, Dictionary<int, PdfIndirectObject>? objects, CancellationToken cancellationToken = default) {
+        if (ResolveObject(obj, objects, cancellationToken) is PdfDictionary directDictionary) {
             return directDictionary;
         }
 
         return null;
     }
 
-    private static PdfObject? ResolveObject(PdfObject? obj, Dictionary<int, PdfIndirectObject>? objects) {
-        return objects is null ? obj : PdfObjectLookup.ResolveChain(objects, obj);
+    private static PdfObject? ResolveObject(PdfObject? obj, Dictionary<int, PdfIndirectObject>? objects, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        return objects is null ? obj : PdfObjectLookup.ResolveChainCancellable(objects, obj, cancellationToken);
     }
 
     private static bool HasValidDecodeParmsDeclaration(
         PdfDictionary dict,
         int filterCount,
-        Dictionary<int, PdfIndirectObject>? objects) {
+        Dictionary<int, PdfIndirectObject>? objects,
+        CancellationToken cancellationToken = default) {
         if (filterCount == 0) {
             return true;
         }
@@ -674,7 +685,7 @@ internal static partial class StreamDecoder {
             return true;
         }
 
-        PdfObject? resolved = ResolveObject(decodeParmsObject, objects);
+        PdfObject? resolved = ResolveObject(decodeParmsObject, objects, cancellationToken);
         if (resolved is PdfNull) {
             return true;
         }
@@ -687,7 +698,7 @@ internal static partial class StreamDecoder {
         }
 
         foreach (PdfObject item in decodeParmsArray.Items) {
-            PdfObject? entry = ResolveObject(item, objects);
+            PdfObject? entry = ResolveObject(item, objects, cancellationToken);
             if (entry is not PdfNull && entry is not PdfDictionary) {
                 return false;
             }
@@ -699,54 +710,58 @@ internal static partial class StreamDecoder {
     private static bool HasValidDecodeParmsForFilters(
         PdfDictionary dict,
         List<string> filterNames,
-        Dictionary<int, PdfIndirectObject>? objects) {
+        Dictionary<int, PdfIndirectObject>? objects,
+        CancellationToken cancellationToken = default) {
         try {
             for (int filterIndex = 0; filterIndex < filterNames.Count; filterIndex++) {
-                PdfDictionary? decodeParms = GetDecodeParms(dict, filterIndex, objects);
+                cancellationToken.ThrowIfCancellationRequested();
+                PdfDictionary? decodeParms = GetDecodeParms(dict, filterIndex, objects, cancellationToken);
                 if (decodeParms is null) {
                     continue;
                 }
 
                 DecodeFilterKind filterKind = GetFilterKind(filterNames[filterIndex]);
                 if (filterKind == DecodeFilterKind.Fax) {
-                    ValidateFaxParameters(decodeParms, objects);
+                    ValidateFaxParameters(decodeParms, objects, cancellationToken);
                     continue;
                 }
                 if (filterKind != DecodeFilterKind.Flate && filterKind != DecodeFilterKind.Lzw) {
-                    if (HasResolvedNonNullEntry(decodeParms, objects)) {
+                    if (HasResolvedNonNullEntry(decodeParms, objects, cancellationToken)) {
                         return false;
                     }
 
                     continue;
                 }
 
-                int predictor = ReadIntegerParameter(decodeParms, "Predictor", 1, objects);
+                int predictor = ReadIntegerParameter(decodeParms, "Predictor", 1, objects, cancellationToken);
                 if (predictor != 1 && predictor != 2 && (predictor < 10 || predictor > 15)) {
                     return false;
                 }
 
-                _ = ReadPositiveIntegerParameter(decodeParms, "Columns", 1, objects);
-                _ = ReadPositiveIntegerParameter(decodeParms, "Colors", 1, objects);
-                int bitsPerComponent = ReadIntegerParameter(decodeParms, "BitsPerComponent", 8, objects);
+                _ = ReadPositiveIntegerParameter(decodeParms, "Columns", 1, objects, cancellationToken);
+                _ = ReadPositiveIntegerParameter(decodeParms, "Colors", 1, objects, cancellationToken);
+                int bitsPerComponent = ReadIntegerParameter(decodeParms, "BitsPerComponent", 8, objects, cancellationToken);
                 if (bitsPerComponent != 1 && bitsPerComponent != 2 && bitsPerComponent != 4 && bitsPerComponent != 8 && bitsPerComponent != 16) {
                     return false;
                 }
 
                 if (filterKind == DecodeFilterKind.Flate) {
-                    if (HasResolvedNonNullParameter(decodeParms, "EarlyChange", objects)) {
+                    if (HasResolvedNonNullParameter(decodeParms, "EarlyChange", objects, cancellationToken)) {
                         return false;
                     }
 
                     continue;
                 }
 
-                int earlyChange = ReadIntegerParameter(decodeParms, "EarlyChange", 1, objects);
+                int earlyChange = ReadIntegerParameter(decodeParms, "EarlyChange", 1, objects, cancellationToken);
                 if (earlyChange != 0 && earlyChange != 1) {
                     return false;
                 }
             }
 
             return true;
+        } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+            throw;
         } catch {
             return false;
         }
@@ -754,9 +769,10 @@ internal static partial class StreamDecoder {
 
     private static bool HasResolvedNonNullEntry(
         PdfDictionary dictionary,
-        Dictionary<int, PdfIndirectObject>? objects) {
+        Dictionary<int, PdfIndirectObject>? objects,
+        CancellationToken cancellationToken = default) {
         foreach (PdfObject value in dictionary.Items.Values) {
-            if (ResolveObject(value, objects) is not PdfNull) {
+            if (ResolveObject(value, objects, cancellationToken) is not PdfNull) {
                 return true;
             }
         }
@@ -767,17 +783,19 @@ internal static partial class StreamDecoder {
     private static bool HasResolvedNonNullParameter(
         PdfDictionary dictionary,
         string name,
-        Dictionary<int, PdfIndirectObject>? objects) {
+        Dictionary<int, PdfIndirectObject>? objects,
+        CancellationToken cancellationToken = default) {
         return dictionary.Items.TryGetValue(name, out PdfObject? value) &&
-            ResolveObject(value, objects) is not PdfNull;
+            ResolveObject(value, objects, cancellationToken) is not PdfNull;
     }
 
     private static bool TryGetFilterNames(
         PdfObject filterObject,
         Dictionary<int, PdfIndirectObject>? objects,
-        out List<string> filterNames) {
+        out List<string> filterNames,
+        CancellationToken cancellationToken = default) {
         filterNames = new List<string>();
-        PdfObject? resolved = ResolveObject(filterObject, objects);
+        PdfObject? resolved = ResolveObject(filterObject, objects, cancellationToken);
         if (resolved is PdfNull) {
             return true;
         }
@@ -792,7 +810,7 @@ internal static partial class StreamDecoder {
         }
 
         foreach (PdfObject item in filterArray.Items) {
-            if (ResolveObject(item, objects) is not PdfName arrayFilterName) {
+            if (ResolveObject(item, objects, cancellationToken) is not PdfName arrayFilterName) {
                 filterNames.Clear();
                 return false;
             }
@@ -807,8 +825,9 @@ internal static partial class StreamDecoder {
         PdfDictionary dictionary,
         string name,
         int defaultValue,
-        Dictionary<int, PdfIndirectObject>? objects) {
-        int value = ReadIntegerParameter(dictionary, name, defaultValue, objects);
+        Dictionary<int, PdfIndirectObject>? objects,
+        CancellationToken cancellationToken = default) {
+        int value = ReadIntegerParameter(dictionary, name, defaultValue, objects, cancellationToken);
         if (value <= 0) {
             throw new FormatException($"PDF decode parameter '{name}' must be positive.");
         }
@@ -820,12 +839,13 @@ internal static partial class StreamDecoder {
         PdfDictionary dictionary,
         string name,
         int defaultValue,
-        Dictionary<int, PdfIndirectObject>? objects) {
+        Dictionary<int, PdfIndirectObject>? objects,
+        CancellationToken cancellationToken = default) {
         if (!dictionary.Items.TryGetValue(name, out PdfObject? parameter)) {
             return defaultValue;
         }
 
-        PdfObject? resolvedParameter = ResolveObject(parameter, objects);
+        PdfObject? resolvedParameter = ResolveObject(parameter, objects, cancellationToken);
         if (resolvedParameter is PdfNull) {
             return defaultValue;
         }

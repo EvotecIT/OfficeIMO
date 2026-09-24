@@ -13,8 +13,8 @@ internal static partial class PdfStandardSecurityWriter {
         cancellationToken.ThrowIfCancellationRequested();
         byte[] fileId = CreateFileId();
         string ownerPassword = options.OwnerPassword ?? options.UserPassword;
-        byte[] ownerEntry = ComputeOwnerEntry(ownerPassword, options.UserPassword);
-        byte[] fileKey = ComputeAes128FileKey(options.UserPassword, ownerEntry, options.Permissions, fileId, options.EncryptMetadata);
+        byte[] ownerEntry = ComputeOwnerEntry(ownerPassword, options.UserPassword, cancellationToken);
+        byte[] fileKey = ComputeAes128FileKey(options.UserPassword, ownerEntry, options.Permissions, fileId, options.EncryptMetadata, cancellationToken);
         byte[] userEntry = ComputeUserEntry(fileKey, fileId);
         int encryptionObjectNumber = sourceObjects.Count + 1;
         var objects = new PdfObjectStore(objectMemoryLimitBytes);
@@ -47,8 +47,9 @@ internal static partial class PdfStandardSecurityWriter {
         byte[] ownerEntry,
         int permissions,
         byte[] fileId,
-        bool encryptMetadata) {
-        byte[] padded = PadPassword(userPassword);
+        bool encryptMetadata,
+        CancellationToken cancellationToken) {
+        byte[] padded = PadPassword(userPassword, cancellationToken);
         var buffer = new List<byte>(padded.Length + ownerEntry.Length + fileId.Length + 8);
         buffer.AddRange(padded);
         buffer.AddRange(ownerEntry);

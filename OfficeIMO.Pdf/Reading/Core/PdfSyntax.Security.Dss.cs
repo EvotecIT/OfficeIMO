@@ -69,7 +69,7 @@ internal static partial class PdfSyntax {
         try {
             ordered.Sort((left, right) => {
                 cancellationToken.ThrowIfCancellationRequested();
-                return StringComparer.Ordinal.Compare(left.Key, right.Key);
+                return PdfStringComparison.CompareOrdinal(left.Key, right.Key, cancellationToken);
             });
         } catch (InvalidOperationException) when (cancellationToken.IsCancellationRequested) {
             cancellationToken.ThrowIfCancellationRequested();

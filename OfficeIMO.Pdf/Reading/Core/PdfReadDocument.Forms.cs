@@ -630,7 +630,7 @@ public sealed partial class PdfReadDocument {
         try {
             states.Sort((left, right) => {
                 cancellationToken.ThrowIfCancellationRequested();
-                return StringComparer.Ordinal.Compare(left, right);
+                return PdfStringComparison.CompareOrdinal(left, right, cancellationToken);
             });
         } catch (InvalidOperationException error) when (error.InnerException is OperationCanceledException) {
             cancellationToken.ThrowIfCancellationRequested();
