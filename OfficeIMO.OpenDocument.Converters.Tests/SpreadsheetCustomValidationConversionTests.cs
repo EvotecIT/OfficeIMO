@@ -66,6 +66,10 @@ public sealed class SpreadsheetCustomValidationConversionTests {
     [InlineData("OR(D4=\"\",AND(D4>=-1,D4<=1))")]
     [InlineData("NOT(D4=\"\")")]
     [InlineData("AND(D4>0,NOT(OR(D4=5,D4=10)))")]
+    [InlineData("ISBLANK(D4)")]
+    [InlineData("ISNUMBER(D4)")]
+    [InlineData("ISTEXT(D4)")]
+    [InlineData("AND(ISNUMBER(D4),NOT(ISBLANK(E4)))")]
     public void TextAndCellComparisonOperandsRoundTrip(string formula) {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddWorksheet("Data");
@@ -113,6 +117,12 @@ public sealed class SpreadsheetCustomValidationConversionTests {
     [InlineData("NOT()")]
     [InlineData("NOT(C5>0,C5<10)")]
     [InlineData("NOT(SUM(C5)>1)")]
+    [InlineData("ISBLANK()")]
+    [InlineData("ISBLANK(C5,D5)")]
+    [InlineData("ISBLANK(C5:D5)")]
+    [InlineData("ISNUMBER(Other!C5)")]
+    [InlineData("ISTEXT(SUM(C5))")]
+    [InlineData("ISBLANK(\"text\")")]
     public void UnsupportedBooleanCustomFormulaRemainsExplicitLoss(string formula) {
         using ExcelDocument source = ExcelDocument.Create();
         source.AddWorksheet("Data").ValidationCustomFormula("C5", formula);

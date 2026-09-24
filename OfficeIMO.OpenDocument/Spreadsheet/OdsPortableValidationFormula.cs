@@ -2,7 +2,7 @@ using OfficeIMO.Spreadsheet;
 
 namespace OfficeIMO.OpenDocument;
 
-/// <summary>The local-cell comparison and Boolean subset that Excel and ODF validation rules can exchange without changing meaning.</summary>
+/// <summary>The local-cell comparison, cell-test, and Boolean subset that Excel and ODF validation rules can exchange without changing meaning.</summary>
 internal static class OdsPortableValidationFormula {
     internal static bool IsSupported(SpreadsheetFormulaSyntaxTree syntax) {
         if (!syntax.IsValid) return false;
@@ -16,7 +16,7 @@ internal static class OdsPortableValidationFormula {
         ICollection<SpreadsheetFormulaSyntaxNode> tokens, int depth) {
         if (depth > 32 || node.Kind == SpreadsheetFormulaSyntaxKind.InlineArray) return false;
         if (node.Kind == SpreadsheetFormulaSyntaxKind.FunctionCall
-            && !IsBooleanFunction(node.Name)) return false;
+            && !IsBooleanFunction(node.Name) && !IsCellTestFunction(node.Name)) return false;
         if (node.Kind == SpreadsheetFormulaSyntaxKind.Token) {
             if (node.TokenKind is SpreadsheetFormulaTokenKind.Prefix or SpreadsheetFormulaTokenKind.Whitespace)
                 return true;
@@ -42,6 +42,13 @@ internal static class OdsPortableValidationFormula {
     private static bool TryReadPredicate(IReadOnlyList<SpreadsheetFormulaSyntaxNode> tokens,
         ref int cursor, int depth) {
         if (depth > 32) return false;
+        if (cursor < tokens.Count && tokens[cursor].TokenKind == SpreadsheetFormulaTokenKind.Identifier
+            && IsCellTestFunction(tokens[cursor].Text)) {
+            cursor++;
+            return TakeDelimiter(tokens, ref cursor, "(")
+                && TakeKind(tokens, ref cursor, SpreadsheetFormulaTokenKind.Reference)
+                && TakeDelimiter(tokens, ref cursor, ")");
+        }
         if (cursor < tokens.Count && tokens[cursor].TokenKind == SpreadsheetFormulaTokenKind.Identifier
             && IsBooleanFunction(tokens[cursor].Text)) {
             bool isNot = string.Equals(tokens[cursor].Text, "NOT", StringComparison.OrdinalIgnoreCase);
@@ -74,6 +81,11 @@ internal static class OdsPortableValidationFormula {
         string.Equals(name, "AND", StringComparison.OrdinalIgnoreCase)
         || string.Equals(name, "OR", StringComparison.OrdinalIgnoreCase)
         || string.Equals(name, "NOT", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsCellTestFunction(string? name) =>
+        string.Equals(name, "ISBLANK", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(name, "ISNUMBER", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(name, "ISTEXT", StringComparison.OrdinalIgnoreCase);
 
     private static bool TryReadOperand(IReadOnlyList<SpreadsheetFormulaSyntaxNode> tokens,
         ref int cursor, bool left, int depth) {
