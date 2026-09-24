@@ -12,6 +12,7 @@ public sealed partial class OfficeRasterCanvas {
             : new OfficeRasterCanvas(_target!, _font, _fonts, provider, language, _diagnosticSink, _diagnosticSource, _cancellationToken);
         child.ShareTransformedTextBudget(_transformedTextBudget);
         child._clipRegion = _clipRegion;
+        child.PreservePaintedGlyphOrder = PreservePaintedGlyphOrder;
         return child;
     }
 }

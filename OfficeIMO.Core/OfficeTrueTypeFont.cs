@@ -314,6 +314,9 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
             uint offsetValue = ReadUInt32(data, record + 8);
             uint lengthValue = ReadUInt32(data, record + 12);
             if (offsetValue > int.MaxValue || lengthValue > int.MaxValue || tables.ContainsKey(tag)) return null;
+            // Subsetters can leave an empty optional table recorded at the end of the file.
+            // It carries no data, so treat it as absent instead of rejecting the whole face.
+            if (lengthValue == 0 && offsetValue <= (uint)data.Length) continue;
             var offset = CheckedOffset(data, offsetValue);
             int length = checked((int)lengthValue);
             if (offset > data.Length - length) return null;

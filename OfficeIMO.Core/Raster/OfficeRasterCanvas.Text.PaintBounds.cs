@@ -12,7 +12,7 @@ public sealed partial class OfficeRasterCanvas {
         if (string.IsNullOrWhiteSpace(text)) return default;
         _cancellationToken.ThrowIfCancellationRequested();
         double size = Math.Max(.1D, fontSize);
-        var key = new TextMeasurementKey(text!, size, family, style);
+        var key = new TextMeasurementKey(text!, size, family, style, PreservePaintedGlyphOrder);
         var cache = _textPaintBoundsCache ??= new Dictionary<TextMeasurementKey, OfficeTextPaintBounds>();
         if (cache.TryGetValue(key, out OfficeTextPaintBounds found)) return found;
         double top = -size * .84D, bottom = size * .16D;

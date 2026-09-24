@@ -43,6 +43,7 @@ public static partial class OfficeDrawingRasterRenderer {
             textShapingProvider: canvas.TextShapingProvider, textShapingLanguage: canvas.TextShapingLanguage,
             diagnosticSink: canvas.DiagnosticSink, diagnosticSource: canvas.DiagnosticSource, cancellationToken: canvas.CancellationToken);
         local.ShareTransformedTextBudget(canvas.TransformedTextBudget);
+        local.PreservePaintedGlyphOrder = canvas.PreservePaintedGlyphOrder;
         RenderPositionedTextLines(local, text, scale, -left, -top, text.Width * scale, text.Height * scale);
         var frame = new OfficeImageFrameTransform(text.RotationDegrees, text.RotationCenterX * scale, text.RotationCenterY * scale,
             text.FlipHorizontal, text.FlipVertical);
@@ -94,6 +95,7 @@ public static partial class OfficeDrawingRasterRenderer {
             diagnosticSink: canvas.DiagnosticSink, diagnosticSource: canvas.DiagnosticSource,
             cancellationToken: canvas.CancellationToken);
         local.ShareTransformedTextBudget(canvas.TransformedTextBudget);
+        local.PreservePaintedGlyphOrder = canvas.PreservePaintedGlyphOrder;
         using (local.PushClipRectangle(0D, 0D, contentWidth, contentHeight)) {
             if (!local.TryDrawVerticalText(
                 text.Text,

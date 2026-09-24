@@ -426,6 +426,19 @@ public partial class PdfPageImageRendererTests {
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
     }
 
+    [Fact]
+    public void RenderPage_VisualRunKeepsPaintedInteriorSpaces() {
+        // A producer can paint repeated spaces ("26  ->  06"). Logical text collapses them, but the
+        // visual run must keep every painted space, or later glyphs are pulled inward to fit its advance.
+        const string font = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj";
+        byte[] pdf = BuildSingleStreamPdf("BT /F1 12 Tf 20 100 Td (A   B) Tj ET", "<< /Font << /F1 5 0 R >> >>", font);
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
+
+        Assert.Equal("A B", Assert.Single(document.Pages[0].GetTextSpans()).Text);
+        OfficeDrawingText text = Assert.Single(document.Pages[0].ToDrawing().Elements.OfType<OfficeDrawingText>());
+        Assert.Equal("A   B", text.Text);
+    }
+
     [Theory]
     [InlineData("06280628", "بب")]
     [InlineData("0915093F", "कि")]

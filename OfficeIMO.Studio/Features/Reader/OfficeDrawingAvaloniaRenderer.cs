@@ -173,29 +173,55 @@ internal sealed class OfficeDrawingAvaloniaRenderer : IDisposable {
             typeface,
             Math.Max(1D, text.Font.Size * text.BaselineScale),
             CreateBrush(text.Color ?? OfficeColor.Black, 1D)!) {
-            MaxTextWidth = Math.Max(1D, text.Width),
-            MaxTextHeight = Math.Max(1D, text.Height),
-            TextAlignment = text.Alignment switch {
+            Trimming = TextTrimming.None
+        };
+        if (text.LineHeight.HasValue) formatted.LineHeight = text.LineHeight.Value;
+        if (text.WrapText) {
+            formatted.MaxTextWidth = Math.Max(1D, text.Width);
+            formatted.TextAlignment = text.Alignment switch {
                 OfficeTextAlignment.Center => TextAlignment.Center,
                 OfficeTextAlignment.Right => TextAlignment.Right,
                 OfficeTextAlignment.Justify => TextAlignment.Justify,
                 _ => TextAlignment.Left
-            }
-        };
-        if (text.LineHeight.HasValue) formatted.LineHeight = text.LineHeight.Value;
+            };
+        }
 
         double y = text.Y + text.BaselineOffset;
         if (text.VerticalAlignment == OfficeTextVerticalAlignment.Center) y += Math.Max(0D, (text.Height - formatted.Height) / 2D);
         if (text.VerticalAlignment == OfficeTextVerticalAlignment.Bottom) y += Math.Max(0D, text.Height - formatted.Height);
 
+        // A substitute family can be wider than the source font. Wrapping or trimming such a run
+        // inside its box drops glyphs, so an unwrapped run stays on one line and is compressed.
+        (double offsetX, double scaleX) = text.WrapText
+            ? (0D, 1D)
+            : FitSingleLine(formatted.WidthIncludingTrailingWhitespace, text.Width, text.Alignment);
         IDisposable? transform = text.HasFrameTransform
             ? context.PushTransform(ToMatrix(text.CreateFrameTransform().CreateDestinationTransform()))
             : null;
         try {
-            context.DrawText(formatted, new Point(text.X, y));
+            using IDisposable fit = context.PushTransform(
+                Matrix.CreateScale(scaleX, 1D) * Matrix.CreateTranslation(text.X + offsetX, y));
+            context.DrawText(formatted, new Point(0D, 0D));
         } finally {
             transform?.Dispose();
         }
+    }
+
+    /// <summary>Returns the horizontal offset and compression that fit a single-line run in its box.</summary>
+    internal static (double OffsetX, double ScaleX) FitSingleLine(
+        double measuredWidth,
+        double boxWidth,
+        OfficeTextAlignment alignment) {
+        if (!(measuredWidth > 0D) || double.IsInfinity(measuredWidth) ||
+            !(boxWidth > 0D) || double.IsInfinity(boxWidth)) return (0D, 1D);
+        double scaleX = Math.Min(1D, boxWidth / measuredWidth);
+        double slack = boxWidth - measuredWidth * scaleX;
+        double offsetX = alignment switch {
+            OfficeTextAlignment.Center => slack / 2D,
+            OfficeTextAlignment.Right => slack,
+            _ => 0D
+        };
+        return (offsetX, scaleX);
     }
 
     private void RenderImage(DrawingContext context, OfficeDrawingImage image) {

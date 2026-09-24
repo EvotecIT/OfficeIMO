@@ -53,7 +53,9 @@ internal sealed class PdfFontResource {
         FontDescriptorFlags = fontDescriptorFlags;
     }
 
-    private PdfFontResource(string resourceName, PdfFontResource source) {
+    private PdfFontResource(string resourceName, PdfFontResource source, PdfDrawingFontProgram? drawingProgram = null) {
+        byte[]? embeddedTrueTypeFont = drawingProgram?.Program;
+        DrawingProgram = drawingProgram ?? source.DrawingProgram;
         ResourceName = resourceName;
         BaseFont = source.BaseFont;
         Encoding = source.Encoding;
@@ -63,8 +65,10 @@ internal sealed class PdfFontResource {
         IsVerticalWriting = source.IsVerticalWriting;
         CMap = source.CMap;
         Differences = source.Differences;
-        EmbeddedTrueTypeFont = source.EmbeddedTrueTypeFont;
-        DrawingFontFamily = source.DrawingFontFamily;
+        EmbeddedTrueTypeFont = embeddedTrueTypeFont ?? source.EmbeddedTrueTypeFont;
+        DrawingFontFamily = embeddedTrueTypeFont == null
+            ? source.DrawingFontFamily
+            : CreateDrawingFontFamily(source.BaseFont, embeddedTrueTypeFont);
         FontWeight = source.FontWeight;
         FontDescriptorFlags = source.FontDescriptorFlags;
         Type3 = source.Type3;
@@ -75,11 +79,21 @@ internal sealed class PdfFontResource {
             ? this
             : new PdfFontResource(resourceName, this);
 
+    /// <summary>Synthesized drawing program and mappings when the embedded program needed a Unicode cmap.</summary>
+    internal PdfDrawingFontProgram? DrawingProgram { get; }
+
+    /// <summary>Returns this resource with a drawing-ready embedded TrueType program.</summary>
+    internal PdfFontResource WithDrawingProgram(PdfDrawingFontProgram drawingProgram) =>
+        new PdfFontResource(ResourceName, this, drawingProgram);
+
     private static string? CreateDrawingFontFamily(string baseFont, byte[]? fontData) {
         if (fontData == null || !HasSubsetPrefix(baseFont)) return null;
         using SHA256 sha256 = SHA256.Create();
         byte[] hash = sha256.ComputeHash(fontData);
         var family = new StringBuilder(string.IsNullOrWhiteSpace(baseFont) ? "PDF embedded font-" : baseFont + "-");
+        // Drawing family names are parsed as CSS-style family lists. PDF names such as "Arial,Bold"
+        // must stay one family, so replace list separators, quotes and escapes.
+        family.Replace(',', '-').Replace('"', '-').Replace('\'', '-').Replace('\\', '-');
         for (int i = 0; i < 12; i++) family.Append(hash[i].ToString("x2", CultureInfo.InvariantCulture));
         return family.ToString();
     }

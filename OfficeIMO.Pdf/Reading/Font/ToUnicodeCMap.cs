@@ -49,6 +49,9 @@ internal sealed class ToUnicodeCMap {
 
     internal int MappingCount => _map.Count;
 
+    /// <summary>Source code hex strings and their mapped text.</summary>
+    internal IEnumerable<KeyValuePair<string, string>> Mappings => _map;
+
     public static bool TryParse(byte[] data, out ToUnicodeCMap? cmap) {
         try {
             string s = PdfEncoding.Latin1GetString(data);

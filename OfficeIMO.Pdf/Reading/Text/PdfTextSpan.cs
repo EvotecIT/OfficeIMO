@@ -224,6 +224,48 @@ public sealed class PdfTextSpan {
         PaintOrder, DrawingFontFamily, LogicalLineBreaksBefore, LogicalLeadingSpace, LogicalTrailingSpace,
         ContentOrderKey, CharacterAdvances, TextRenderingMode, CanRestamp, RestampFontSize, RestampText, CanScaleAggregateAdvance, MarkedContentId, ContentStreamObjectNumber, TextObjectOrderKey, TextToPageTransform, VisualPaintIdentity, GlyphCharacterLengths, GlyphBytes, GlyphPaintedAdvances, CharacterAdvanceDirection, HasActualText, IsType3Font, GlyphSequenceProgressesLeftToRight, IsArtifactContent, FontWeight, FontDescriptorFlags) { _completeTextProjectionSuppressed = this._completeTextProjectionSuppressed };
 
+    /// <summary>Replaces the displayed text with an equal-length visual form, such as an Arabic presentation form.</summary>
+    internal PdfTextSpan WithVisualText(string text) => new PdfTextSpan(
+        text, FontResource, FontSize, X, Y, Advance, Color, IsVisible, RotationDegrees, BaseFont, ClipPath,
+        PaintOrder, DrawingFontFamily, LogicalLineBreaksBefore, LogicalLeadingSpace, LogicalTrailingSpace,
+        ContentOrderKey, CharacterAdvances, TextRenderingMode, CanRestamp, RestampFontSize, RestampText, CanScaleAggregateAdvance, MarkedContentId, ContentStreamObjectNumber, TextObjectOrderKey, TextToPageTransform, VisualPaintIdentity, GlyphCharacterLengths, GlyphBytes, GlyphPaintedAdvances, CharacterAdvanceDirection, HasActualText, IsType3Font, GlyphSequenceProgressesLeftToRight, IsArtifactContent, FontWeight, FontDescriptorFlags) { _completeTextProjectionSuppressed = this._completeTextProjectionSuppressed };
+
+    private static readonly int[] SingleGlyphCharacterLength = { 1 };
+
+    /// <summary>Replaces the displayed text when its length changes; per-character geometry no longer applies.</summary>
+    internal PdfTextSpan WithDisplayTextOnly(string text) => new PdfTextSpan(
+        text, FontResource, FontSize, X, Y, Advance, Color, IsVisible, RotationDegrees, BaseFont, ClipPath,
+        PaintOrder, DrawingFontFamily, LogicalLineBreaksBefore, LogicalLeadingSpace, LogicalTrailingSpace,
+        ContentOrderKey, null, TextRenderingMode, false, RestampFontSize, text, true, MarkedContentId, ContentStreamObjectNumber, TextObjectOrderKey, null, VisualPaintIdentity,
+        null, null, null, CharacterAdvanceDirection, HasActualText, IsType3Font, false, IsArtifactContent, FontWeight, FontDescriptorFlags) {
+        _completeTextProjectionSuppressed = this._completeTextProjectionSuppressed
+    };
+
+    /// <summary>
+    /// Returns one painted glyph of this run at its own origin. The glyph advance is its painted
+    /// width, so the slice can be scaled to its advance even when the run used character spacing.
+    /// </summary>
+    internal PdfTextSpan WithPaintedGlyph(int glyphIndex, int characterOffset, double x, double y) {
+        int characterLength = GlyphCharacterLengths![glyphIndex];
+        string text = Text.Substring(characterOffset, characterLength);
+        double paintedAdvance = GlyphPaintedAdvances![glyphIndex];
+        var characterAdvances = new double[characterLength];
+        for (int index = 0; index < characterLength; index++) characterAdvances[index] = CharacterAdvances![characterOffset + index];
+        return new PdfTextSpan(
+            text, FontResource, FontSize, x, y, paintedAdvance, Color, IsVisible, RotationDegrees, BaseFont, ClipPath,
+            PaintOrder, DrawingFontFamily, 0, false, false,
+            ContentOrderKey, characterAdvances, TextRenderingMode, false, RestampFontSize, text, true, MarkedContentId, ContentStreamObjectNumber, TextObjectOrderKey, null, VisualPaintIdentity,
+            new[] { characterLength }, new[] { GlyphBytes![glyphIndex] }, new[] { paintedAdvance }, CharacterAdvanceDirection, HasActualText, IsType3Font, false, IsArtifactContent, FontWeight, FontDescriptorFlags) {
+            _completeTextProjectionSuppressed = this._completeTextProjectionSuppressed
+        };
+    }
+
+    /// <summary>Displays a single-glyph run as one character, such as an alias for a ligature glyph.</summary>
+    internal PdfTextSpan WithVisualGlyph(char glyphText) => new PdfTextSpan(
+        glyphText.ToString(), FontResource, FontSize, X, Y, Advance, Color, IsVisible, RotationDegrees, BaseFont, ClipPath,
+        PaintOrder, DrawingFontFamily, LogicalLineBreaksBefore, LogicalLeadingSpace, LogicalTrailingSpace,
+        ContentOrderKey, CharacterAdvances == null ? null : new[] { CharacterAdvances.Sum() }, TextRenderingMode, CanRestamp, RestampFontSize, RestampText, CanScaleAggregateAdvance, MarkedContentId, ContentStreamObjectNumber, TextObjectOrderKey, TextToPageTransform, VisualPaintIdentity, SingleGlyphCharacterLength, GlyphBytes, GlyphPaintedAdvances, CharacterAdvanceDirection, HasActualText, IsType3Font, GlyphSequenceProgressesLeftToRight, IsArtifactContent, FontWeight, FontDescriptorFlags) { _completeTextProjectionSuppressed = this._completeTextProjectionSuppressed };
+
     // Layout and rendering measure the transformed glyph height. Raw extraction still exposes
     // the authored Tf operand, which can be 1 when a producer puts scaling in Tm or cm.
     internal PdfTextSpan WithPageFontSize() =>

@@ -22,6 +22,18 @@ public sealed class DrawingFontContainerTests {
     }
 
     [Fact]
+    public void OfficeTrueTypeFont_IgnoresEmptyOptionalTableRecordedAtEndOfFile() {
+        // PDF subsetters can leave an empty optional table whose offset equals the file length.
+        byte[] source = ManagedTextShapingTestAssets.CreateFont('A');
+        int record = FindTableRecord(source, "name");
+        WriteUInt32(source, record + 8, checked((uint)source.Length));
+        WriteUInt32(source, record + 12, 0);
+
+        OfficeTrueTypeFont font = Assert.IsType<OfficeTrueTypeFont>(OfficeTrueTypeFont.TryLoad(source));
+        Assert.True(((IOfficeFontProgram)font).HasGlyphs("A"));
+    }
+
+    [Fact]
     public void OfficeFontContainerDecoder_RoundTripsCompressedWoffIntoReusableOpenType() {
         byte[] source = ManagedTextShapingTestAssets.CreateFont('A', 0x1F600);
         int headOffset = FindTableOffset(source, "head");
@@ -281,13 +293,16 @@ public sealed class DrawingFontContainerTests {
             double fontSize) => GetTextContours(text, x, y, fontSize);
     }
 
-    private static int FindTableOffset(byte[] font, string tag) {
+    private static int FindTableOffset(byte[] font, string tag) =>
+        checked((int)ReadUInt32(font, FindTableRecord(font, tag) + 8));
+
+    private static int FindTableRecord(byte[] font, string tag) {
         int tableCount = (font[4] << 8) | font[5];
         for (int index = 0; index < tableCount; index++) {
             int record = 12 + index * 16;
             if (font[record] == tag[0] && font[record + 1] == tag[1]
                 && font[record + 2] == tag[2] && font[record + 3] == tag[3]) {
-                return checked((int)ReadUInt32(font, record + 8));
+                return record;
             }
         }
         throw new InvalidOperationException("The test font has no " + tag + " table.");
