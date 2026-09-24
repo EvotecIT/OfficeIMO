@@ -1,3 +1,6 @@
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Headless;
 using OfficeIMO.Pdf;
 using OfficeIMO.Studio.Features.Editor;
 using OfficeIMO.Studio.Features.Reader;
@@ -7,6 +10,44 @@ using OfficeIMO.Studio.Infrastructure;
 namespace OfficeIMO.Studio.Tests;
 
 public sealed class StudioShellExperienceTests {
+    [Fact]
+    public async Task OperationToastOffersUndoOnlyForItsOwnEdit() {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(async () => {
+            var services = TestAppBuilder.CreateTestServices();
+            string source = Path.Combine(services.Paths.Root, "toast.pdf");
+            PdfDocument.Create(document => document.Page(page => page.Size(400, 500))).Save(source);
+            var window = new MainWindow(services) { Width = 960, Height = 620 };
+            try {
+                window.Show();
+                await window.TabHost.OpenDocumentAsync(source);
+                var document = window.ViewModel;
+                document.SetOrganizerSelection([document.OrganizerPages[0]]);
+                await document.DuplicateSelectedCommand.ExecuteAsync(null);
+                window.UpdateLayout();
+                var undo = window.FindControl<Button>("ToastUndoButton")!;
+                Assert.True(undo.IsVisible);
+                CaptureToast(window, "edit");
+
+                document.OperationStatus = "Exported to copy.pdf";
+                window.UpdateLayout();
+                Assert.True(document.CanUndo);
+                Assert.False(undo.IsVisible);
+                CaptureToast(window, "export");
+            } finally { window.Close(); }
+            return true;
+        }, CancellationToken.None);
+    }
+
+    private static void CaptureToast(MainWindow window, string state) {
+        string? output = Environment.GetEnvironmentVariable("OFFICEIMO_STUDIO_VISUAL_OUTPUT");
+        if (string.IsNullOrWhiteSpace(output)) return;
+        Directory.CreateDirectory(output);
+        using var frame = window.CaptureRenderedFrame();
+        Assert.NotNull(frame);
+        frame.Save(Path.Combine(output, $"operation-toast-{state}.png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
+    }
+
     [Fact]
     public async Task CommandSearchListsRunnableAndRecentCommandsBeforeUnavailableOnes() {
         using var session = TestAppBuilder.StartSession();

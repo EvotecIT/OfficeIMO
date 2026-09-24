@@ -455,7 +455,7 @@ public sealed partial class MainWindowViewModel {
         }, cancellationToken).ConfigureAwait(true);
         if (!succeeded || proof is null) return;
         LastRedactionSummary = proof.Summary;
-        OperationStatus = proof.Evidence.IsVerified
+        SetMutationStatus(proof.Evidence.IsVerified
             ? UiFormat(
                 "Editor.RedactionVerified",
                 proof.Evidence.VerifiedAbsentCount,
@@ -463,7 +463,7 @@ public sealed partial class MainWindowViewModel {
             : UiFormat(
                 "Editor.RedactionIncomplete",
                 proof.Evidence.ResidualCount,
-                proof.Evidence.InconclusiveCount);
+                proof.Evidence.InconclusiveCount));
     }
 
     [RelayCommand]

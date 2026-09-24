@@ -284,7 +284,7 @@ public sealed partial class MainWindowViewModel {
         if (!succeeded) return;
         SelectedBookmark = selectAfter(Bookmarks);
         NotifyBookmarkActions();
-        if (describe?.Invoke() is { } status) OperationStatus = status;
+        if (describe?.Invoke() is { } status) SetMutationStatus(status);
     }
 
     // Attachments ---------------------------------------------------------------------------------

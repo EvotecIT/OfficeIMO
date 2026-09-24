@@ -1,9 +1,40 @@
 using OfficeIMO.Pdf;
 using OfficeIMO.Studio.Features.Shell;
+using OfficeIMO.Studio.Infrastructure;
 
 namespace OfficeIMO.Studio.Tests;
 
 public sealed class StudioDocumentTabHostTests {
+    [Fact]
+    public async Task ReopenAfterRecoverySaveUsesSavedDestination() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-tab-recovery-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            var services = StudioApplicationServices.Create(new StudioDataPaths(Path.Combine(root, "profile")));
+            string recovery = Path.Combine(services.Paths.WorkflowRecoveryRoot, "recover.pdf");
+            string saved = Path.Combine(root, "saved.pdf");
+            Directory.CreateDirectory(Path.GetDirectoryName(recovery)!);
+            CreateDocument(recovery, 1);
+            using var host = new StudioDocumentTabHost(open => new MainWindowViewModel(
+                _ => Task.FromResult<string?>(null),
+                pickSavePdf: _ => Task.FromResult<string?>(saved),
+                confirmUnsavedChanges: () => Task.FromResult(UnsavedChangesDecision.Save),
+                openDocumentInTab: open, services: services), _ => { });
+            await host.OpenDocumentAsync(recovery);
+            var tab = Assert.Single(host.Tabs);
+            tab.Document.SetOrganizerSelection([tab.Document.OrganizerPages[0]]);
+            await tab.Document.DuplicateSelectedCommand.ExecuteAsync(null);
+            Assert.True(tab.Document.IsDirty);
+            await host.CloseTabAsync(tab);
+            Assert.Empty(host.Tabs);
+            Assert.True(File.Exists(saved));
+            Assert.Equal(2, PdfDocument.Load(saved).Read().Pages.Count);
+
+            await host.ReopenClosedTabAsync();
+            Assert.Equal(Path.GetFullPath(saved), Assert.Single(host.Tabs).Document.DocumentPath);
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
     [Fact]
     public async Task TabsRetainIndependentLiveWorkspacesAndActivateExistingPaths() {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-tabs-" + Guid.NewGuid().ToString("N"));

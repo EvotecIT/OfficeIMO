@@ -113,6 +113,7 @@ public sealed partial class MainWindow {
             case nameof(MainWindowViewModel.HasVisibleOperationStatus):
             case nameof(MainWindowViewModel.HasRecovery):
             case nameof(MainWindowViewModel.CanUndo):
+            case nameof(MainWindowViewModel.CanUndoOperationStatus):
             case nameof(MainWindowViewModel.WorkspaceMode):
                 UpdateOperationToast(restartTimer: false);
                 break;
@@ -126,7 +127,7 @@ public sealed partial class MainWindow {
         // Search progress already lives in the search pane; repeating it as a notice only covers the page.
         bool show = document is { HasVisibleOperationStatus: true, IsQuietOperationStatus: false } && !_toastDismissed;
         bool persistent = document is { IsWorkspaceBusy: true } or { HasRecovery: true };
-        ToastUndoButton.IsVisible = document is { CanUndo: true, IsWorkspaceBusy: false, HasRecovery: false, IsPdfWorkspaceMode: true };
+        ToastUndoButton.IsVisible = document is { CanUndoOperationStatus: true, IsWorkspaceBusy: false, HasRecovery: false, IsPdfWorkspaceMode: true };
         if (show) ShowToast(); else HideToast();
         if (!restartTimer) return;
         _toastTimer?.Stop();

@@ -11,6 +11,12 @@ public sealed partial class MainWindowViewModel {
 
     [RelayCommand]
     private async Task MakeSearchableAsync() {
+        if (_workspace is null || IsWorkspaceBusy || IsOpening) return;
+        if (IsDirty || HasFormDrafts) {
+            ErrorMessage = _localizer.GetOrDefault("Assistant.OcrSaveFirst",
+                "Save your current changes and apply form drafts before opening OCR. OCR reads the saved source and creates a separate output.");
+            return;
+        }
         ShowOcr();
         if (OcrWorkbench.RunCommand.CanExecute(null)) await OcrWorkbench.RunCommand.ExecuteAsync(null).ConfigureAwait(true);
     }

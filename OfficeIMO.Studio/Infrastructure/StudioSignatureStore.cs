@@ -30,6 +30,8 @@ internal sealed class StudioSignatureStore {
         foreach (FileInfo file in new DirectoryInfo(_root).EnumerateFiles(Prefix(kind) + "*.png").OrderByDescending(file => file.LastWriteTimeUtc)) {
             if (file.Length is <= 0 or > MaximumBytes) continue;
             try {
+                RestrictExistingFile(file.FullName);
+                RestrictExistingFile(System.IO.Path.ChangeExtension(file.FullName, ".json"));
                 StudioSignatureShape? shape = ReadShape(file.FullName);
                 result.Add(new StudioSavedSignature(kind, file.FullName, File.ReadAllBytes(file.FullName), shape?.Text,
                     shape?.Strokes?.Select(stroke => (IReadOnlyList<Avalonia.Point>)Enumerable.Range(0, stroke.Length / 2)
@@ -46,24 +48,52 @@ internal sealed class StudioSignatureStore {
         if (png.Length is 0 or > MaximumBytes) throw new ArgumentException("The signature image is empty or too large.", nameof(png));
         Directory.CreateDirectory(_root);
         string path = System.IO.Path.Combine(_root, Prefix(kind) + DateTime.UtcNow.ToString("yyyyMMddHHmmssfff", System.Globalization.CultureInfo.InvariantCulture) + ".png");
-        File.WriteAllBytes(path, png);
-        if (text is not null || strokes is not null) {
-            var shape = new StudioSignatureShape {
-                Text = text,
-                Strokes = strokes?.Select(stroke => stroke.SelectMany(point => new[] { point.X, point.Y }).ToArray()).ToList()
-            };
-            File.WriteAllText(System.IO.Path.ChangeExtension(path, ".json"), System.Text.Json.JsonSerializer.Serialize(shape));
+        string sidecar = System.IO.Path.ChangeExtension(path, ".json");
+        bool createdPng = false;
+        try {
+            WritePrivateFile(path, png);
+            createdPng = true;
+            if (text is not null || strokes is not null) {
+                var shape = new StudioSignatureShape {
+                    Text = text,
+                    Strokes = strokes?.Select(stroke => stroke.SelectMany(point => new[] { point.X, point.Y }).ToArray()).ToList()
+                };
+                WritePrivateFile(sidecar, System.Text.Encoding.UTF8.GetBytes(System.Text.Json.JsonSerializer.Serialize(shape)));
+            }
+        } catch {
+            // A failed sidecar write must not make an incomplete saved signature appear on restart.
+            if (createdPng) {
+                try { File.Delete(path); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+            }
+            throw;
         }
-        foreach (StudioSavedSignature old in List(kind).Skip(MaximumPerKind)) Delete(old);
         return new StudioSavedSignature(kind, path, png, text, strokes);
     }
 
     internal void Delete(StudioSavedSignature signature) {
         string full = System.IO.Path.GetFullPath(signature.Path);
-        if (!full.StartsWith(System.IO.Path.GetFullPath(_root), StringComparison.OrdinalIgnoreCase)) return;
-        try { File.Delete(full); File.Delete(System.IO.Path.ChangeExtension(full, ".json")); }
-        catch (IOException) { }
-        catch (UnauthorizedAccessException) { }
+        string root = System.IO.Path.GetFullPath(_root).TrimEnd(System.IO.Path.DirectorySeparatorChar) + System.IO.Path.DirectorySeparatorChar;
+        StringComparison comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        if (!full.StartsWith(root, comparison)) throw new UnauthorizedAccessException("The saved signature is outside the signature folder.");
+        File.Delete(System.IO.Path.ChangeExtension(full, ".json"));
+        File.Delete(full);
+    }
+
+    private static void WritePrivateFile(string path, byte[] bytes) {
+        var options = new FileStreamOptions { Mode = FileMode.CreateNew, Access = FileAccess.Write, Share = FileShare.None };
+        if (!OperatingSystem.IsWindows()) options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+        using var stream = new FileStream(path, options);
+        try { stream.Write(bytes); }
+        catch {
+            stream.Dispose();
+            try { File.Delete(path); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+            throw;
+        }
+    }
+
+    private static void RestrictExistingFile(string path) {
+        if (!OperatingSystem.IsWindows() && File.Exists(path))
+            File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite);
     }
 
     private static StudioSignatureShape? ReadShape(string pngPath) {

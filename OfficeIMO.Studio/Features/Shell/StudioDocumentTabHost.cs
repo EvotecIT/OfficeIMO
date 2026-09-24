@@ -175,10 +175,10 @@ public sealed partial class StudioDocumentTabHost : ObservableObject, IDisposabl
         if (tab.Document.CanCancelOperation && _prepareActiveClose is not null &&
             !await _prepareActiveClose(tab.Document).ConfigureAwait(true)) return;
         if (_disposed || !Tabs.Contains(tab)) return;
-        string? closedPath = tab.Document.DocumentPath;
         if (!await tab.Document.RequestCloseDocumentAsync().ConfigureAwait(true)) return;
 
         int index = Tabs.IndexOf(tab);
+        string? closedPath = tab.Document.LastClosedDocumentPath;
         if (!string.IsNullOrEmpty(closedPath)) {
             _closedPaths.Remove(closedPath);
             _closedPaths.Add(closedPath);

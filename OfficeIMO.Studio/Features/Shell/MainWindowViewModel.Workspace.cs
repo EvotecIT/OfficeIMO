@@ -15,7 +15,20 @@ public sealed partial class MainWindowViewModel {
 
     private readonly HashSet<int> _organizerSelection = new();
     private CancellationTokenSource? _operationCancellation;
+    private bool _operationAcceptsProgress;
     private bool _disposeWhenIdle;
+    private PdfWorkspaceOperation? _undoOperationForStatus;
+
+    public bool CanUndoOperationStatus => _workspace is { CanUndo: true } workspace &&
+        _undoOperationForStatus is not null && workspace.Journal.Count > 0 &&
+        ReferenceEquals(workspace.Journal[^1], _undoOperationForStatus);
+
+    private void SetMutationStatus(string status) {
+        PdfWorkspaceOperation? operation = CanUndoOperationStatus ? _undoOperationForStatus : null;
+        OperationStatus = status;
+        _undoOperationForStatus = operation;
+        OnPropertyChanged(nameof(CanUndoOperationStatus));
+    }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanStartDocumentTransition))]
@@ -322,14 +335,22 @@ public sealed partial class MainWindowViewModel {
         if (IsWorkspaceBusy) return false;
         var currentCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         _operationCancellation = currentCancellation;
+        _operationAcceptsProgress = true;
         IsWorkspaceBusy = true;
         OperationProgressFraction = 0D;
         ErrorMessage = null;
-        int journalCount = _workspace?.Journal.Count ?? 0;
+        PdfWorkspace? originalWorkspace = _workspace;
+        int journalCount = originalWorkspace?.Journal.Count ?? 0;
         try {
             await operation(currentCancellation.Token).ConfigureAwait(true);
+            _operationAcceptsProgress = false;
             OperationProgressFraction = 1D;
             OperationStatus = successStatus ?? describeSuccess?.Invoke() ?? DescribeLatestOperation(journalCount) ?? UiText("Workspace.OperationCompleted");
+            _undoOperationForStatus = ReferenceEquals(originalWorkspace, _workspace) &&
+                originalWorkspace?.Journal.Count > journalCount && originalWorkspace.Journal[^1].Kind is not
+                    (PdfWorkspaceOperationKind.Undo or PdfWorkspaceOperationKind.Redo)
+                ? originalWorkspace.Journal[^1] : null;
+            OnPropertyChanged(nameof(CanUndoOperationStatus));
             return true;
         } catch (OperationCanceledException) when (currentCancellation.IsCancellationRequested) {
             OperationStatus = UiText("Workspace.OperationCancelled");
@@ -339,6 +360,7 @@ public sealed partial class MainWindowViewModel {
             OperationStatus = UiText("Workspace.OperationFailed");
             return false;
         } finally {
+            _operationAcceptsProgress = false;
             if (ReferenceEquals(_operationCancellation, currentCancellation)) _operationCancellation = null;
             currentCancellation.Dispose();
             IsWorkspaceBusy = false;
@@ -353,7 +375,7 @@ public sealed partial class MainWindowViewModel {
     private IProgress<PdfWorkspaceProgress> CreateProgress() {
         CancellationTokenSource? attempt = _operationCancellation;
         return new Progress<PdfWorkspaceProgress>(progress => {
-            if (!IsWorkspaceBusy || !ReferenceEquals(attempt, _operationCancellation)) return;
+            if (!IsWorkspaceBusy || !_operationAcceptsProgress || !ReferenceEquals(attempt, _operationCancellation)) return;
             OperationStatus = progress.Stage;
             OperationProgressFraction = Math.Clamp(progress.Fraction, 0D, 1D);
         });

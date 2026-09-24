@@ -42,6 +42,7 @@ public sealed partial class StudioJobsViewModel : ObservableObject, IDisposable 
         if (newValue is not null) newValue.PropertyChanged += OnSelectedChanged;
         ActionError = null;
         OpenOutputCommand.NotifyCanExecuteChanged();
+        RevealOutputCommand.NotifyCanExecuteChanged();
     }
     [RelayCommand(CanExecute = nameof(CanOpen))]
     private async Task OpenOutputAsync(StudioJobRecord? job, CancellationToken cancellationToken) {
@@ -92,9 +93,13 @@ public sealed partial class StudioJobsViewModel : ObservableObject, IDisposable 
     private void OnHistoryChanged(object? sender, PropertyChangedEventArgs args) {
         ClearFinishedCommand.NotifyCanExecuteChanged();
         OpenOutputCommand.NotifyCanExecuteChanged();
+        RevealOutputCommand.NotifyCanExecuteChanged();
         if (SelectedJob is not null && !History.Entries.Contains(SelectedJob)) SelectedJob = null;
     }
-    private void OnSelectedChanged(object? sender, PropertyChangedEventArgs args) => OpenOutputCommand.NotifyCanExecuteChanged();
+    private void OnSelectedChanged(object? sender, PropertyChangedEventArgs args) {
+        OpenOutputCommand.NotifyCanExecuteChanged();
+        RevealOutputCommand.NotifyCanExecuteChanged();
+    }
     public void Dispose() {
         History.PropertyChanged -= OnHistoryChanged;
         if (SelectedJob is not null) SelectedJob.PropertyChanged -= OnSelectedChanged;

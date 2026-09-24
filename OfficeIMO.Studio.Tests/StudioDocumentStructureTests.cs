@@ -80,6 +80,7 @@ public sealed class StudioDocumentStructureTests {
             await model.ApplyHeaderFooterCommand.ExecuteAsync(null);
             Assert.Null(model.ErrorMessage);
             Assert.Equal("Header and footer added", model.OperationStatus);
+            Assert.True(model.CanUndoOperationStatus);
 
             string text = Path.Combine(root, "structure.txt");
             dialogs.SaveFile = text;
@@ -89,6 +90,8 @@ public sealed class StudioDocumentStructureTests {
             Assert.Contains("Sheet 2 of 2", exported);
             Assert.Contains("structure", exported);
             Assert.Equal("Exported to structure.txt", model.OperationStatus);
+            Assert.True(model.CanUndo);
+            Assert.False(model.CanUndoOperationStatus);
 
             string markdown = Path.Combine(root, "structure.md");
             dialogs.SaveFile = markdown;
@@ -165,6 +168,72 @@ public sealed class StudioDocumentStructureTests {
                 Assert.NotNull(model.ErrorMessage);
                 return true;
             }, CancellationToken.None);
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
+    public async Task ScannedPageShortcutRequiresSavedSourceBeforeOpeningOcr() {
+        string root = CreateRoot();
+        string path = CreateDocument(root);
+        try {
+            using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
+            await model.OpenDocumentAsync(path);
+            model.SetOrganizerSelection([model.OrganizerPages[0]]);
+            await model.DuplicateSelectedCommand.ExecuteAsync(null);
+            Assert.True(model.IsDirty);
+
+            await model.MakeSearchableCommand.ExecuteAsync(null);
+            Assert.True(model.IsPdfWorkspaceMode);
+            Assert.Contains("Save your current changes", model.ErrorMessage);
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
+    public async Task LockedSavedSignatureRemainsVisibleWhenDeleteFails() {
+        if (!OperatingSystem.IsWindows()) return;
+        string root = CreateRoot();
+        string path = CreateDocument(root);
+        try {
+            using var session = TestAppBuilder.StartSession();
+            await session.Dispatch(async () => {
+                byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAMAAAABCAYAAAAb4BS0AAAAEElEQVR4nGNgYGD4z8DAwAAABQABnEX0RwAAAABJRU5ErkJggg==");
+                var services = StudioApplicationServices.Create(new StudioDataPaths(Path.Combine(root, "profile")));
+                using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services) {
+                    CreateSignatureDialog = _ => Task.FromResult<StudioSignatureDraft?>(new StudioSignatureDraft(png, Remember: true))
+                };
+                await model.OpenDocumentAsync(path);
+                await model.CreateSignatureCommand.ExecuteAsync("Signature");
+                var saved = Assert.Single(model.SavedSignatures);
+                using (var locked = new FileStream(saved.Saved.Path, FileMode.Open, FileAccess.Read, FileShare.None)) {
+                    model.DeleteSavedSignatureCommand.Execute(saved);
+                    Assert.Single(model.SavedSignatures);
+                    Assert.NotNull(model.ErrorMessage);
+                    Assert.True(File.Exists(saved.Saved.Path));
+                }
+                model.DeleteSavedSignatureCommand.Execute(saved);
+                Assert.Empty(model.SavedSignatures);
+                Assert.False(File.Exists(saved.Saved.Path));
+                return true;
+            }, CancellationToken.None);
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
+    public void SavedSignatureAndShapeAreOwnerOnlyOnUnix() {
+        if (OperatingSystem.IsWindows()) return;
+        string root = CreateRoot();
+        try {
+            var store = new StudioSignatureStore(Path.Combine(root, "signatures"));
+            var saved = store.Save(StudioSignatureKind.Signature, [1, 2, 3], text: "Ada");
+            string shape = Path.ChangeExtension(saved.Path, ".json");
+            UnixFileMode ownerOnly = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+            Assert.Equal(ownerOnly, File.GetUnixFileMode(saved.Path));
+            Assert.Equal(ownerOnly, File.GetUnixFileMode(shape));
+            File.SetUnixFileMode(saved.Path, ownerOnly | UnixFileMode.GroupRead | UnixFileMode.OtherRead);
+            File.SetUnixFileMode(shape, ownerOnly | UnixFileMode.GroupRead | UnixFileMode.OtherRead);
+            Assert.Single(store.List(StudioSignatureKind.Signature));
+            Assert.Equal(ownerOnly, File.GetUnixFileMode(saved.Path));
+            Assert.Equal(ownerOnly, File.GetUnixFileMode(shape));
         } finally { Directory.Delete(root, recursive: true); }
     }
 

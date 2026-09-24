@@ -459,10 +459,13 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     }
 
     internal void CompletePreparedClose() {
+        LastClosedDocumentPath = DocumentPath;
         _openCancellation?.Cancel();
         ReplaceDocument(null, null, null, null, Array.Empty<PdfPageViewModel>(), Array.Empty<PdfOrganizerPageViewModel>());
         ErrorMessage = null;
     }
+
+    internal string? LastClosedDocumentPath { get; private set; }
 
     [RelayCommand]
     private void DismissError() {

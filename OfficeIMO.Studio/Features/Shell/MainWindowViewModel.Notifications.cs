@@ -35,6 +35,8 @@ public sealed partial class MainWindowViewModel {
     }
 
     partial void OnOperationStatusChanged(string? value) {
+        _undoOperationForStatus = null;
+        OnPropertyChanged(nameof(CanUndoOperationStatus));
         (_statusWorkspace, _statusDocumentMode) = _notificationContext.Value ?? _activeNotificationScope ?? (WorkspaceMode, DocumentMode);
         NotifyVisibleNotifications();
     }

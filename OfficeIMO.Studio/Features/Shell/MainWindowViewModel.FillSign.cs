@@ -69,8 +69,11 @@ public sealed partial class MainWindowViewModel {
                 var saved = new SavedSignatureViewModel(_services.Signatures.Save(signatureKind, draft.Png, draft.Text, draft.Strokes));
                 var target = signatureKind == StudioSignatureKind.Initials ? SavedInitials : SavedSignatures;
                 target.Insert(0, saved);
-                while (target.Count > StudioSignatureStore.MaximumPerKind) target.RemoveAt(target.Count - 1);
                 NotifySavedSignatures();
+                while (target.Count > StudioSignatureStore.MaximumPerKind) {
+                    _services.Signatures.Delete(target[^1].Saved);
+                    target.RemoveAt(target.Count - 1);
+                }
             } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException) {
                 ErrorMessage = UiFormat("FillSign.SaveFailed", ex.Message);
             }
@@ -87,7 +90,12 @@ public sealed partial class MainWindowViewModel {
     [RelayCommand]
     private void DeleteSavedSignature(SavedSignatureViewModel? signature) {
         if (signature is null) return;
-        _services.Signatures.Delete(signature.Saved);
+        try {
+            _services.Signatures.Delete(signature.Saved);
+        } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) {
+            ErrorMessage = UiFormat("FillSign.SaveFailed", ex.Message);
+            return;
+        }
         SavedSignatures.Remove(signature);
         SavedInitials.Remove(signature);
         NotifySavedSignatures();
