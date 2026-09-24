@@ -84,6 +84,8 @@ public sealed partial class OfficeTrueTypeFont {
                     resolvedStyle = faceStyle;
                     return styled;
                 }
+                OfficeTrueTypeFont? regularAscii = TryLoadFontFamily(family);
+                if (regularAscii != null && regularAscii.HasGlyphs(text!)) return regularAscii;
                 continue;
             }
             if (requested != OfficeFontStyle.Regular) {

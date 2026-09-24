@@ -51,14 +51,32 @@ internal static class PdfArabicPaintedForms {
                     Math.Min(letters[index].Size, letters[lineStart].Size) * LineTolerance) continue;
                 var line = letters.GetRange(lineStart, index - lineStart);
                 line.Sort(static (left, right) => right.Along.CompareTo(left.Along));
+                // Shadow, outline, and faux-bold passes can paint the same glyph more than once.
+                // Shape one logical letter per position, then apply its form to every paint pass.
+                var positions = new List<List<int>>();
+                var representative = new List<(double Along, double Advance, double Size)>();
+                foreach (var letter in line) {
+                    if (positions.Count > 0) {
+                        int last = positions.Count - 1;
+                        var prior = representative[last];
+                        if (Math.Abs(letter.Along - prior.Along) <= Math.Min(letter.Size, prior.Size) * 0.15D &&
+                            Math.Abs(letter.Advance - prior.Advance) <= Math.Max(letter.Advance, prior.Advance) * 0.1D &&
+                            spans[letter.Index].Text == spans[positions[last][0]].Text) {
+                            positions[last].Add(letter.Index);
+                            continue;
+                        }
+                    }
+                    positions.Add(new List<int> { letter.Index });
+                    representative.Add((letter.Along, letter.Advance, letter.Size));
+                }
                 int wordStart = 0;
-                for (int letter = 1; letter <= line.Count; letter++) {
-                    if (letter < line.Count) {
-                        double size = Math.Max(line[letter - 1].Size, line[letter].Size);
-                        double gap = line[letter - 1].Along - (line[letter].Along + line[letter].Advance);
+                for (int letter = 1; letter <= positions.Count; letter++) {
+                    if (letter < positions.Count) {
+                        double size = Math.Max(representative[letter - 1].Size, representative[letter].Size);
+                        double gap = representative[letter - 1].Along - (representative[letter].Along + representative[letter].Advance);
                         if (gap <= size * WordGap && gap >= -size) continue;
                     }
-                    ApplyWord(spans, line.GetRange(wordStart, letter - wordStart).Select(static item => item.Index).ToList());
+                    ApplyWord(spans, positions.GetRange(wordStart, letter - wordStart));
                     wordStart = letter;
                 }
                 lineStart = index;
@@ -66,10 +84,10 @@ internal static class PdfArabicPaintedForms {
         }
     }
 
-    private static void ApplyWord(List<PdfTextSpan> spans, List<int> word) {
+    private static void ApplyWord(List<PdfTextSpan> spans, List<List<int>> word) {
         var logical = new char[word.Count];
         for (int index = 0; index < word.Count; index++) {
-            char painted = spans[word[index]].Text[0];
+            char painted = spans[word[index][0]].Text[0];
             // An isolated lam-alef ligature joins only to the preceding letter, like alef.
             logical[index] = IsIsolatedLamAlef(painted) ? '\u0627' : OfficeArabicTextShaper.ToLogicalText(painted.ToString())[0];
         }
@@ -77,12 +95,14 @@ internal static class PdfArabicPaintedForms {
         if (shaped.Length != word.Count) return;
 
         for (int index = 0; index < word.Count; index++) {
-            PdfTextSpan span = spans[word[index]];
-            char painted = span.Text[0];
-            char form = painted;
-            if (IsBaseLetter(painted)) form = shaped[index];
-            else if (IsIsolatedLamAlef(painted) && shaped[index] == '\uFE8E') form = (char)(painted + 1);
-            if (form != painted) spans[word[index]] = span.WithVisualText(form.ToString());
+            foreach (int paintIndex in word[index]) {
+                PdfTextSpan span = spans[paintIndex];
+                char painted = span.Text[0];
+                char form = painted;
+                if (IsBaseLetter(painted)) form = shaped[index];
+                else if (IsIsolatedLamAlef(painted) && shaped[index] == '\uFE8E') form = (char)(painted + 1);
+                if (form != painted) spans[paintIndex] = span.WithVisualText(form.ToString());
+            }
         }
     }
 

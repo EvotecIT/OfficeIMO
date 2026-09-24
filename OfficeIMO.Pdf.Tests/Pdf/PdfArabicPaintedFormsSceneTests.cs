@@ -5,6 +5,23 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfArabicPaintedFormsSceneTests {
+    [Fact]
+    public void CoincidentArabicPaintPassesShareJoiningContext() {
+        var spans = new List<PdfTextSpan> {
+            new("\u0628", "F1", 12D, 100.6D, 700D, 6D),
+            new("\u0628", "F1", 12D, 100D, 700D, 6D),
+            new("\u0628", "F1", 12D, 94D, 700D, 6D),
+            new("\u0628", "F1", 12D, 94.6D, 700D, 6D)
+        };
+
+        PdfArabicPaintedForms.Apply(spans);
+
+        Assert.Equal(spans[0].Text, spans[1].Text);
+        Assert.Equal(spans[2].Text, spans[3].Text);
+        Assert.Equal("\uFE91", spans[0].Text);
+        Assert.Equal("\uFE90", spans[2].Text);
+    }
+
     // cairo maps every contextual glyph back to its base letter. The page scene must name each
     // painted letter by the presentation form its joining context selects, including Persian and
     // Urdu letters and a word whose middle letters are painted in a second font. Expected forms
