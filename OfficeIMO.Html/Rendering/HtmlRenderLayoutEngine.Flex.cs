@@ -31,13 +31,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int depth,
         bool captureRunningElements,
         out List<FlexItem> items,
-        out List<HtmlCssRunningStringAssignment> runningElementAssignments) {
+        out List<HtmlCssRunningStringAssignment> runningElementAssignments,
+        bool registerPositionedChildren = true) {
         items = new List<FlexItem>();
         runningElementAssignments = new List<HtmlCssRunningStringAssignment>();
         int sourceIndex = 0;
         AddGeneratedFlexItem(element, HtmlPseudoElementKind.Before, containingWidth, style, ref sourceIndex, items);
         foreach (INode node in element.ChildNodes) {
-            if (!TryAddFlexNode(node, containingWidth, style, depth + 1, ref sourceIndex, items, captureRunningElements ? runningElementAssignments : null)) return false;
+            if (!TryAddFlexNode(node, containingWidth, style, depth + 1, ref sourceIndex, items,
+                    captureRunningElements ? runningElementAssignments : null, registerPositionedChildren)) return false;
         }
         AddGeneratedFlexItem(element, HtmlPseudoElementKind.After, containingWidth, style, ref sourceIndex, items);
 
@@ -219,7 +221,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return bottom;
     }
 
-    private double ResolveFlexBasis(FlexItem item, double availableWidth) {
+    private double ResolveFlexBasis(FlexItem item, double availableWidth, int intrinsicDepth = 0) {
         HtmlRenderBoxStyle style = item.Style;
         double boxBasis;
         if (style.FlexBasis != "auto") {
@@ -227,16 +229,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 boxBasis = Math.Max(0D, parsed) + (style.BorderBox ? 0D : style.HorizontalInsets);
             } else {
                 ReportUnsupportedFlexValue(item, "flex-basis=" + style.FlexBasis);
-                boxBasis = ResolveFlexAutoBoxBasis(item, availableWidth);
+                boxBasis = ResolveFlexAutoBoxBasis(item, availableWidth, intrinsicDepth);
             }
         } else {
-            boxBasis = ResolveFlexAutoBoxBasis(item, availableWidth);
+            boxBasis = ResolveFlexAutoBoxBasis(item, availableWidth, intrinsicDepth);
         }
 
         return Math.Max(0D, boxBasis + style.MarginLeft + style.MarginRight);
     }
 
-    private double ResolveFlexAutoBoxBasis(FlexItem item, double availableWidth) {
+    private double ResolveFlexAutoBoxBasis(FlexItem item, double availableWidth, int intrinsicDepth) {
         HtmlRenderBoxStyle style = item.Style;
         string tag = item.TagName;
         if (IsReplacedImageElementTag(tag) && item.Element != null) return ResolveReplacedImageBoxWidth(item.Element, style);
@@ -245,9 +247,44 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         if (tag == "table") return availableWidth;
+        if (item.Element != null
+            && style.Display == "flex"
+            && (style.FlexDirection == "row" || style.FlexDirection == "row-reverse")) {
+            EnsureDepth(intrinsicDepth + 1, item.Element);
+            if (TryCollectFlexItems(item.Element, availableWidth, style, intrinsicDepth + 1,
+                    captureRunningElements: false, out List<FlexItem> nestedItems, out _, registerPositionedChildren: false)) {
+                double nestedWidth = nestedItems.Sum(child => ResolveFlexIntrinsicItemWidth(child, availableWidth, intrinsicDepth + 1))
+                    + style.ColumnGap * Math.Max(0, nestedItems.Count - 1);
+                return Math.Min(availableWidth, nestedWidth + style.HorizontalInsets);
+            }
+        }
         IReadOnlyList<GridIntrinsicTextRun> runs = ResolveGridInFlowTextRuns(item, availableWidth);
         double measured = runs.Count == 0 ? 0D : MeasureGridMaxContentRuns(runs);
+        if (item.Element != null) {
+            foreach (IElement child in item.Element.Children) {
+                HtmlRenderBoxStyle childStyle = _styleResolver.Resolve(child, availableWidth, style);
+                if (childStyle.Display == "none" || childStyle.Position == "absolute" || childStyle.Position == "fixed"
+                    || childStyle.ExplicitWidthUsesPercentage
+                    || !HtmlRenderStyleResolver.IsBlockElement(child, childStyle)) continue;
+                // The flattened text runs omit an in-flow block child's own padding.
+                measured = Math.Max(measured, ResolveGridMaxContentContribution(new FlexItem(child, childStyle, 0), availableWidth));
+            }
+        }
         return Math.Min(availableWidth, measured + style.HorizontalInsets);
+    }
+
+    private double ResolveFlexIntrinsicItemWidth(FlexItem item, double availableWidth, int intrinsicDepth) {
+        if (item.Style.ExplicitWidthUsesPercentage) {
+            // A percentage width cannot define the width of its own indefinite flex parent.
+            item.Style = item.Style.Clone();
+            item.Style.ExplicitWidth = null;
+            item.Style.ExplicitWidthUsesPercentage = false;
+        }
+        double basis = ResolveFlexBasis(item, availableWidth, intrinsicDepth);
+        double maxContent = ResolveFlexAutoBoxBasis(item, availableWidth, intrinsicDepth)
+            + item.Style.MarginLeft + item.Style.MarginRight;
+        item.AutomaticMinimumMainSize = ResolveFlexAutomaticMinimumWidth(item, availableWidth);
+        return ClampFlexMainSize(item, Math.Max(basis, maxContent), vertical: false);
     }
 
     private double ResolveFlexAutomaticMinimumWidth(FlexItem item, double availableWidth) {

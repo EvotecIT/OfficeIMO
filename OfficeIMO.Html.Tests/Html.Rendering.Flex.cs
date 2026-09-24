@@ -869,6 +869,100 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlNestedFlexAutoBasisIncludesBlockLinkPaddingAndInlineIcon() {
+        const string html = """
+            <style>.icon::before { content: '◆'; }</style>
+            <div id="nav" style="display:flex;align-items:center;width:500px;padding:8px;background:#222">
+              <div style="width:40px;height:40px;flex:none">Logo</div>
+              <div id="links" style="display:flex;margin-left:auto;gap:8px;background:#eeeeee">
+                <div id="first"><a style="display:block;padding:8px"><span class="icon"></span> Galleries</a></div>
+                <div id="second"><a style="display:block;padding:8px"><span class="icon"></span> Help</a></div>
+                <form style="min-width:0;flex:1 1 auto"><div style="display:flex;width:100%"><input style="min-width:0;flex:1 1 auto"><button>Go</button></div></form>
+              </div>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderFlex(html, 540D);
+        HtmlRenderShape nav = FindFlexShape(rendered, "div#nav");
+        HtmlRenderShape links = FindFlexShape(rendered, "div#links");
+
+        Assert.InRange(nav.Height, 55D, 57D);
+        Assert.True(links.Width > 160D, $"Nested links collapsed to {links.Width}px.");
+    }
+
+    [Fact]
+    public void HtmlNestedFlexIntrinsicWidthIncludesZeroBasisChildContent() {
+        const string html = """
+            <div id="outer" style="display:flex;width:500px;align-items:flex-start">
+              <div id="links" style="display:flex;gap:8px;background:#eee">
+                <span id="first" style="flex:1 1 0%;min-width:0">Solar system exploration</span>
+                <span id="second" style="flex:1 1 0%;min-width:0">Earth science missions</span>
+              </div>
+              <div style="width:40px;flex:none">Logo</div>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderFlex(html, 520D);
+        HtmlRenderShape links = FindFlexShape(rendered, "div#links");
+        Assert.True(links.Width > 250D, $"Zero-basis children lost their max-content width: {links.Width}px.");
+    }
+
+    [Fact]
+    public void HtmlNestedFlexIntrinsicWidthAppliesChildMinAndMaxConstraints() {
+        const string html = """
+            <div style="display:flex;width:500px">
+              <div id="links" style="display:flex;background:#eee">
+                <span style="flex:0 0 1000px;max-width:40px;height:20px;background:#f00"></span>
+                <span style="flex:0 0 0%;min-width:120px;height:20px;background:#00f"></span>
+              </div>
+              <span style="width:50px;flex:none;height:20px;background:#0f0"></span>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderFlex(html, 520D);
+        HtmlRenderShape links = FindFlexShape(rendered, "div#links");
+
+        Assert.InRange(links.Width, 159D, 161D);
+    }
+
+    [Fact]
+    public void HtmlNestedFlexIntrinsicMeasurementDoesNotRegisterPositionedChildren() {
+        const string html = """
+            <div style="display:flex;width:300px">
+              <div style="width:200px;flex:none">Logo</div>
+              <div id="links" style="display:flex;position:relative;min-width:0;flex:1 1 auto;background:#eee">
+                <span>Help</span>
+                <span style="display:contents"><div id="badge" style="position:absolute;left:0;top:0;width:20px;padding-left:50%;height:10px;background:#f00"></div></span>
+              </div>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderFlex(html, 320D);
+        HtmlRenderShape links = FindFlexShape(rendered, "div#links");
+        HtmlRenderShape badge = FindFlexShape(rendered, "div#badge");
+
+        Assert.InRange(links.Width, 99D, 101D);
+        Assert.InRange(badge.Width, 69D, 71D);
+    }
+
+    [Fact]
+    public void HtmlInlineFlexIntrinsicMeasurementDoesNotRegisterPositionedChildren() {
+        const string html = """
+            <p>Before <span id="inline" style="display:inline-flex;position:relative;background:#eee">
+              <span style="width:80px;flex:none;height:20px">Help</span>
+              <span id="badge" style="position:absolute;left:0;top:0;width:20px;padding-left:50%;height:10px;background:#f00"></span>
+            </span> After</p>
+            """;
+
+        HtmlRenderDocument rendered = RenderFlex(html, 320D);
+        HtmlRenderShape inline = FindFlexShape(rendered, "span#inline");
+        HtmlRenderShape badge = FindFlexShape(rendered, "span#badge");
+
+        Assert.InRange(inline.Width, 79D, 81D);
+        Assert.InRange(badge.Width, 59D, 61D);
+    }
+
+    [Fact]
     public void HtmlFlexAutoMargins_AbsorbMainAndCrossAxisFreeSpace() {
         HtmlRenderDocument row = RenderFlex("""
             <div style="display:flex;width:300px">
