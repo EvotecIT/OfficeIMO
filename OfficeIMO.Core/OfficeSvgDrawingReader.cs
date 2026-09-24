@@ -211,7 +211,9 @@ public static partial class OfficeSvgDrawingReader {
 
         try {
             var settings = new XmlReaderSettings {
-                DtdProcessing = DtdProcessing.Prohibit,
+                // Legacy SVG exports commonly declare the SVG 1.1 DTD. Ignore the
+                // declaration without resolving it or expanding custom entities.
+                DtdProcessing = DtdProcessing.Ignore,
                 XmlResolver = null,
                 MaxCharactersInDocument = Math.Min(MaximumInputBytes, maximumCharactersInDocument)
             };

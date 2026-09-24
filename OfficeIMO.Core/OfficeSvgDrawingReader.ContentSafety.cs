@@ -134,7 +134,7 @@ public static partial class OfficeSvgDrawingReader {
         }
 
         var settings = new XmlReaderSettings {
-            DtdProcessing = DtdProcessing.Prohibit,
+            DtdProcessing = DtdProcessing.Ignore,
             XmlResolver = null,
             MaxCharactersInDocument = Math.Min(options.MaxCharacters, Math.Min(options.MaxInputBytes, MaximumInputBytes)),
             MaxCharactersFromEntities = 0,

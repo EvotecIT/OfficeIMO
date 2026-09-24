@@ -1384,11 +1384,22 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
-    public void SvgReaderRejectsDocumentsWithDoctypeOrExternalEntities() {
+    public void SvgReaderRejectsExternalEntities() {
         const string svg = "<!DOCTYPE svg [<!ENTITY xxe SYSTEM 'file:///secret.txt'>]><svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'><text>&xxe;</text></svg>";
 
         Assert.False(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing));
         Assert.Null(drawing);
+    }
+
+    [Fact]
+    public void SvgReaderIgnoresExternalDtdDeclarationWithoutFetchingIt() {
+        const string svg = "<!DOCTYPE svg PUBLIC '-//W3C//DTD SVG 1.1//EN' 'https://invalid.example.test/svg11.dtd'>"
+            + "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'><circle cx='5' cy='5' r='4'/></svg>";
+        byte[] bytes = Encoding.UTF8.GetBytes(svg);
+
+        Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(bytes));
+        Assert.True(OfficeSvgDrawingReader.TryRead(bytes, out OfficeDrawing? drawing));
+        Assert.NotNull(drawing);
     }
 
     [Fact]
