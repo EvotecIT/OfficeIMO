@@ -10,6 +10,39 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlGeneratedContent_ZeroFontSizeReplacesResponsiveBrandText() {
+        const string html = """
+            <style>
+              body { margin: 0 }
+              .brand { font-size: 24px }
+              @media (max-width: 991px) {
+                .brand { font-size: 0 }
+                .brand::after { content: 'SVS'; font-size: 24px }
+              }
+            </style>
+            <a class="brand" href="https://example.test/brand">Scientific Visualization Studio</a>
+            """;
+
+        HtmlRenderDocument narrow = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 816D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        HtmlRenderText[] narrowText = EnumerateRenderVisuals(narrow.Pages[0].Scene)
+            .OfType<HtmlRenderText>().ToArray();
+        HtmlRenderText replacement = Assert.Single(narrowText);
+        Assert.Equal("SVS", replacement.Text);
+        Assert.Equal(24D, replacement.Font.Size, 3);
+        Assert.Equal("https://example.test/brand", replacement.LinkUri);
+
+        HtmlRenderDocument wide = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 1200D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        Assert.Equal("Scientific Visualization Studio", Assert.Single(
+            EnumerateRenderVisuals(wide.Pages[0].Scene).OfType<HtmlRenderText>()).Text);
+    }
+
+    [Fact]
     public void HtmlGeneratedContent_EmptyInlineBlockPaintsItsBox() {
         const string html = """
             <style>body{margin:0}.badge::before{content:"";display:inline-block;width:16px;height:16px;background:#ff0000}</style>

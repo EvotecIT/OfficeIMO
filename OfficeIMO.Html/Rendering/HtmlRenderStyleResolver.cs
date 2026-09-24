@@ -604,7 +604,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         }
 
         return TryResolveLength(normalized, parentFontSize, parentFontSize, _options.DefaultFontSize, out double size) &&
-            !double.IsNaN(size) && !double.IsInfinity(size) && size > 0D
+            !double.IsNaN(size) && !double.IsInfinity(size) && size >= 0D
             ? size
             : parentFontSize;
     }

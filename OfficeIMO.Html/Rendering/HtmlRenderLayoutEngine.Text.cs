@@ -224,7 +224,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         if (node is IText textNode) {
-            if (textNode.Data.Length > 0) {
+            if (textNode.Data.Length > 0 && inheritedStyle.Font.Size > 0D) {
                 ReportUnsupportedComplexTextShaping(textNode, inheritedStyle);
                 string source = textNode.ParentElement != null
                     && HtmlRenderSourceIdentity.TryGet(textNode.ParentElement, out string interactionSource)
