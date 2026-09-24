@@ -67,7 +67,8 @@ internal static partial class PdfRedactionApplier {
                         rewrittenSpans.Add((span, PdfTextSpanGeometry.GetAxisAlignedBounds(span)));
                 }
                 Dictionary<int, string> wrappedLiterals = PdfRedactionPlanner.MatchLiteralsAcrossBlocks(
-                    sourceBlocks, literals, comparison, workBudget, static _ => true, cancellationToken);
+                    sourceBlocks, literals, comparison, workBudget, static _ => true, cancellationToken,
+                    readOptions?.Limits.MaxTextSearchFlowComparisons ?? PdfReadLimits.DefaultMaxTextSearchFlowComparisons);
                 for (int blockIndex = 0; blockIndex < sourceBlocks.Length; blockIndex++) {
                     PdfLogicalTextBlock block = sourceBlocks[blockIndex];
                     cancellationToken.ThrowIfCancellationRequested();

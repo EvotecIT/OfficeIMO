@@ -35,27 +35,27 @@ internal static class PdfTextSearchNormalization {
             ContainsExact(PdfNormalizedSearchText.Create(text, lineBreaks, removeLineEndHyphens: true, out _).Text, query, comparison));
     }
 
-    /// <summary>Returns the source ranges of every line-break and hyphenation-tolerant occurrence of <paramref name="value"/>.</summary>
-    internal static List<(int Start, int End)> FindSourceRanges(string text, string value, StringComparison comparison) {
-        var ranges = new List<(int Start, int End)>();
+    /// <summary>Enumerates source ranges without collecting dense occurrences before a caller can stop.</summary>
+    internal static IEnumerable<(int Start, int End)> FindSourceRanges(string text, string value, StringComparison comparison) {
         string[] queries = NormalizeQueries(value);
-        if (queries[0].Length == 0 || text.Length == 0) return ranges;
+        if (queries[0].Length == 0 || text.Length == 0) yield break;
         bool[] lineBreaks = GetLineBreaks(text);
         PdfNormalizedSearchText joined = PdfNormalizedSearchText.Create(text, lineBreaks, removeLineEndHyphens: false, out bool hasHyphenJunction);
-        foreach (string query in queries) AddSourceRanges(joined, query, comparison, ranges);
+        foreach (string query in queries)
+            foreach ((int Start, int End) range in EnumerateSourceRanges(joined, query, comparison)) yield return range;
         if (hasHyphenJunction) {
             PdfNormalizedSearchText dehyphenated = PdfNormalizedSearchText.Create(text, lineBreaks, removeLineEndHyphens: true, out _);
-            foreach (string query in queries) AddSourceRanges(dehyphenated, query, comparison, ranges);
+            foreach (string query in queries)
+                foreach ((int Start, int End) range in EnumerateSourceRanges(dehyphenated, query, comparison)) yield return range;
         }
-        return ranges;
     }
 
-    private static void AddSourceRanges(PdfNormalizedSearchText normalized, string query, StringComparison comparison, List<(int Start, int End)> ranges) {
+    private static IEnumerable<(int Start, int End)> EnumerateSourceRanges(PdfNormalizedSearchText normalized, string query, StringComparison comparison) {
         int start = 0;
         while (start <= normalized.Text.Length - query.Length) {
             int found = normalized.Text.IndexOf(query, start, comparison);
             if (found < 0) break;
-            ranges.Add((normalized.GetSourceStart(found), normalized.GetSourceEnd(found + query.Length - 1)));
+            yield return (normalized.GetSourceStart(found), normalized.GetSourceEnd(found + query.Length - 1));
             start = found + 1;
         }
     }

@@ -84,6 +84,9 @@ public sealed class PdfTextSearchLineWrapTests {
         Assert.Single(document.Text.Find("automatic hyphenation works"));
         Assert.Single(document.Text.Find("hyph-\nenation"));
         Assert.Single(document.Text.Find("hyph-\nenation", new PdfTextSearchOptions { WholeWords = true }));
+        Assert.Single(document.Text.Find("hyph-\nenation", readOptions: new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxTextSearchMatches = 1 }
+        }));
     }
 
     [Theory]
@@ -165,6 +168,62 @@ public sealed class PdfTextSearchLineWrapTests {
             _ => true, CancellationToken.None);
 
         Assert.Empty(matches);
+    }
+
+    [Fact]
+    public void RedactionFlowBudgetAppliesOnlyToLiteralSearchAndUsesTheConfiguredLimit() {
+        static PdfLogicalTextBlock Block(string text, double x) =>
+            new(1, PdfLogicalElementKind.TextBlock, text, x, x + 80D, 700D, 12D,
+                new[] { new PdfTextSpan(text, "F1", 12D, x, 700D, 80D) });
+        PdfLogicalTextBlock[] blocks = { Block("alpha", 50D), Block("beta", 150D), Block("gamma", 250D) };
+        var budget = new PdfRedactionSearchWorkBudget("test");
+
+        Assert.Empty(PdfRedactionPlanner.MatchLiteralsAcrossBlocks(blocks, Array.Empty<string>(),
+            StringComparison.Ordinal, budget, static _ => true, CancellationToken.None, maxFlowComparisons: 1));
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfRedactionPlanner.MatchLiteralsAcrossBlocks(blocks, new[] { "alpha beta" },
+                StringComparison.Ordinal, budget, static _ => true, CancellationToken.None, maxFlowComparisons: 1));
+        Assert.Equal(PdfReadLimitKind.TextSearchFlowComparisons, exception.Kind);
+        Assert.Equal(1, exception.Limit);
+    }
+
+    [Fact]
+    public void PublicRedactionSearchPassesTheConfiguredFlowBudgetOnlyForLiterals() {
+        byte[] pdf = BuildRawTextPdf(
+            "BT /F1 12 Tf 50 700 Td (alpha) Tj ET\n" +
+            "BT /F1 12 Tf 250 700 Td (beta) Tj ET\n" +
+            "BT /F1 12 Tf 450 700 Td (gamma) Tj ET\n");
+        PdfDocument document = PdfDocument.Load(pdf);
+        var options = new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxTextSearchFlowComparisons = 1 }
+        };
+
+        Assert.NotEmpty(document.Redactions.Search(new PdfRedactionSearchOptions().AddRegex("alpha"),
+            options: options).Areas);
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            document.Redactions.Search(new PdfRedactionSearchOptions().AddLiteral("alpha beta"), options: options));
+        Assert.Equal(PdfReadLimitKind.TextSearchFlowComparisons, exception.Kind);
+        Assert.Equal(1, exception.Limit);
+    }
+
+    [Fact]
+    public void RedactionFlowBudgetIsSharedAcrossNativeAndOcrBlocksOnOnePage() {
+        static PdfLogicalTextBlock Block(string text, double x, PdfLogicalContentSourceKind sourceKind) =>
+            new(1, PdfLogicalElementKind.TextBlock, text, x, x + 80D, 700D, 12D,
+                new[] { new PdfTextSpan(text, "F1", 12D, x, 700D, 80D) }, sourceKind);
+        PdfLogicalTextBlock[] blocks = {
+            Block("native alpha", 50D, PdfLogicalContentSourceKind.Native),
+            Block("native beta", 150D, PdfLogicalContentSourceKind.Native),
+            Block("ocr alpha", 50D, PdfLogicalContentSourceKind.Ocr),
+            Block("ocr beta", 150D, PdfLogicalContentSourceKind.Ocr)
+        };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfRedactionPlanner.MatchLiteralsAcrossBlocks(blocks, new[] { "alpha beta" },
+                StringComparison.Ordinal, new PdfRedactionSearchWorkBudget("test"), static _ => true,
+                CancellationToken.None, maxFlowComparisons: 1));
+        Assert.Equal(PdfReadLimitKind.TextSearchFlowComparisons, exception.Kind);
+        Assert.Equal(2, exception.Actual);
     }
 
     [Fact]

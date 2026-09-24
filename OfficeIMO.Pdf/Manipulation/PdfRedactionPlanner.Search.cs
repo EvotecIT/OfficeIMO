@@ -24,7 +24,8 @@ internal static partial class PdfRedactionPlanner {
         var workBudget = new PdfRedactionSearchWorkBudget("search planning");
         IReadOnlyList<PdfLogicalTextBlock> textBlocks = logical.TextBlocks;
         Dictionary<int, string> wrappedLiterals = MatchLiteralsAcrossBlocks(textBlocks, search.LiteralText, comparison, workBudget,
-            index => search.PageNumbers.Count == 0 || search.PageNumbers.Contains(textBlocks[index].PageNumber), search.CancellationToken);
+            index => search.PageNumbers.Count == 0 || search.PageNumbers.Contains(textBlocks[index].PageNumber), search.CancellationToken,
+            readOptions?.Limits.MaxTextSearchFlowComparisons ?? PdfReadLimits.DefaultMaxTextSearchFlowComparisons);
         for (int blockIndex = 0; blockIndex < textBlocks.Count; blockIndex++) {
             PdfLogicalTextBlock block = textBlocks[blockIndex];
             search.CancellationToken.ThrowIfCancellationRequested();
@@ -67,10 +68,13 @@ internal static partial class PdfRedactionPlanner {
     /// Returns the criterion label for every participating block index.
     /// </summary>
     internal static Dictionary<int, string> MatchLiteralsAcrossBlocks(IReadOnlyList<PdfLogicalTextBlock> blocks, IEnumerable<string> literals,
-        StringComparison comparison, PdfRedactionSearchWorkBudget workBudget, Func<int, bool> includeBlock, CancellationToken cancellationToken) {
+        StringComparison comparison, PdfRedactionSearchWorkBudget workBudget, Func<int, bool> includeBlock, CancellationToken cancellationToken,
+        int maxFlowComparisons = PdfReadLimits.DefaultMaxTextSearchFlowComparisons) {
         var matches = new Dictionary<int, string>();
-        List<int[]> flows = BuildLogicalSearchFlows(blocks, includeBlock, cancellationToken);
-        foreach (string literal in literals) {
+        string[] requestedLiterals = literals as string[] ?? literals.ToArray();
+        if (requestedLiterals.Length == 0) return matches;
+        List<int[]> flows = BuildLogicalSearchFlows(blocks, includeBlock, maxFlowComparisons, cancellationToken);
+        foreach (string literal in requestedLiterals) {
             int queryLength = PdfTextSearchNormalization.NormalizeQuery(literal).Length;
             foreach (int[] flow in flows) {
                 for (int first = 0; first < flow.Length; first++) {
@@ -108,14 +112,16 @@ internal static partial class PdfRedactionPlanner {
     }
 
     private static List<int[]> BuildLogicalSearchFlows(IReadOnlyList<PdfLogicalTextBlock> blocks,
-        Func<int, bool> includeBlock, CancellationToken cancellationToken) {
+        Func<int, bool> includeBlock, int maxFlowComparisons, CancellationToken cancellationToken) {
         var flows = new List<int[]>();
+        var comparisonsByPage = new Dictionary<int, long>();
         foreach (IGrouping<(int PageNumber, PdfLogicalContentSourceKind SourceKind), int> group in Enumerable.Range(0, blocks.Count)
                      .Where(index => blocks[index].Spans.Count > 0 ||
                          blocks[index].FontSize > 0D && blocks[index].XEnd > blocks[index].XStart)
                      .GroupBy(index => (blocks[index].PageNumber, blocks[index].SourceKind))) {
             cancellationToken.ThrowIfCancellationRequested();
             int[] indexes = group.ToArray();
+            if (!indexes.Any(includeBlock)) continue;
             var lines = indexes.Select(index => {
                 PdfLogicalTextBlock block = blocks[index];
                 List<PdfTextSpan> spans = block.Spans.Count > 0
@@ -125,7 +131,10 @@ internal static partial class PdfRedactionPlanner {
                 return new TextLayoutEngine.TextLine(block.BaselineY, block.XStart, block.XEnd,
                     block.Text, spans);
             }).ToList();
-            foreach (int[] flow in PdfTextEditor.BuildSearchFlows(lines)) {
+            comparisonsByPage.TryGetValue(group.Key.PageNumber, out long comparisons);
+            List<int[]> groupedFlows = PdfTextEditor.BuildSearchFlows(lines, maxFlowComparisons, ref comparisons);
+            comparisonsByPage[group.Key.PageNumber] = comparisons;
+            foreach (int[] flow in groupedFlows) {
                 var eligible = new List<int>();
                 foreach (int line in flow) {
                     int index = indexes[line];

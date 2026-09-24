@@ -72,8 +72,12 @@ internal static partial class PdfTextEditor {
     /// columns and side-by-side regions apart. Every line belongs to exactly one returned flow, listed in reading order.
     /// </summary>
     internal static List<int[]> BuildSearchFlows(List<TextLayoutEngine.TextLine> lines, int maxComparisons = PdfReadLimits.DefaultMaxTextSearchFlowComparisons) {
-        int count = lines.Count;
         long comparisons = 0;
+        return BuildSearchFlows(lines, maxComparisons, ref comparisons);
+    }
+
+    internal static List<int[]> BuildSearchFlows(List<TextLayoutEngine.TextLine> lines, int maxComparisons, ref long comparisons) {
+        int count = lines.Count;
         var geometry = new SearchLineGeometry[count];
         for (int index = 0; index < count; index++) geometry[index] = SearchLineGeometry.Create(lines[index]);
         int[] next = Enumerable.Repeat(-1, count).ToArray();
@@ -300,26 +304,44 @@ internal static partial class PdfTextEditor {
         /// chained lines, match one query space. A letter-hyphen-line-break-letter junction matches both the joined word
         /// ("hyphenation") and the hyphenated compound without the break ("well-known").
         /// </summary>
-        internal List<TextSearchRange> FindRanges(IReadOnlyList<string> queries, StringComparison comparison, bool wholeWords) {
-            var candidates = new List<TextSearchRange>();
+        internal IEnumerable<TextSearchRange> FindRanges(IReadOnlyList<string> queries, StringComparison comparison, bool wholeWords) {
             PdfNormalizedSearchText joined = PdfNormalizedSearchText.Create(Text, _lineBreaks, removeLineEndHyphens: false, out bool hasHyphenJunction);
-            foreach (string query in queries) CollectRanges(joined, query, comparison, wholeWords, candidates);
+            var sources = new List<IEnumerator<TextSearchRange>>();
+            foreach (string query in queries) sources.Add(EnumerateRanges(joined, query, comparison, wholeWords).GetEnumerator());
             if (hasHyphenJunction) {
                 PdfNormalizedSearchText dehyphenated = PdfNormalizedSearchText.Create(Text, _lineBreaks, removeLineEndHyphens: true, out _);
-                foreach (string query in queries) CollectRanges(dehyphenated, query, comparison, wholeWords, candidates);
+                foreach (string query in queries) sources.Add(EnumerateRanges(dehyphenated, query, comparison, wholeWords).GetEnumerator());
             }
-            if (candidates.Count <= 1) return candidates;
-            var accepted = new List<TextSearchRange>(candidates.Count);
-            int acceptedEnd = 0;
-            foreach (TextSearchRange candidate in candidates.OrderBy(static range => range.Start).ThenByDescending(static range => range.Length)) {
-                if (accepted.Count > 0 && candidate.Start < acceptedEnd) continue;
-                accepted.Add(candidate);
-                acceptedEnd = candidate.Start + candidate.Length;
+            try {
+                for (int index = sources.Count - 1; index >= 0; index--) {
+                    if (sources[index].MoveNext()) continue;
+                    sources[index].Dispose();
+                    sources.RemoveAt(index);
+                }
+                int acceptedEnd = 0;
+                while (sources.Count > 0) {
+                    int selected = 0;
+                    for (int index = 1; index < sources.Count; index++) {
+                        TextSearchRange candidate = sources[index].Current;
+                        TextSearchRange best = sources[selected].Current;
+                        if (candidate.Start < best.Start || candidate.Start == best.Start && candidate.Length > best.Length)
+                            selected = index;
+                    }
+                    TextSearchRange next = sources[selected].Current;
+                    if (!sources[selected].MoveNext()) {
+                        sources[selected].Dispose();
+                        sources.RemoveAt(selected);
+                    }
+                    if (next.Start < acceptedEnd) continue;
+                    acceptedEnd = next.Start + next.Length;
+                    yield return next;
+                }
+            } finally {
+                foreach (IEnumerator<TextSearchRange> source in sources) source.Dispose();
             }
-            return accepted;
         }
 
-        private void CollectRanges(PdfNormalizedSearchText normalized, string query, StringComparison comparison, bool wholeWords, List<TextSearchRange> ranges) {
+        private IEnumerable<TextSearchRange> EnumerateRanges(PdfNormalizedSearchText normalized, string query, StringComparison comparison, bool wholeWords) {
             string value = normalized.Text;
             int start = 0;
             while (start <= value.Length - query.Length) {
@@ -330,7 +352,7 @@ internal static partial class PdfTextEditor {
                 int sourceStart = normalized.GetSourceStart(found);
                 int sourceEnd = normalized.GetSourceEnd(found + query.Length - 1);
                 if (HasUnmappedBoundary(sourceStart, sourceEnd - sourceStart)) continue;
-                ranges.Add(new TextSearchRange(sourceStart, sourceEnd - sourceStart, value.Substring(found, query.Length)));
+                yield return new TextSearchRange(sourceStart, sourceEnd - sourceStart, value.Substring(found, query.Length));
             }
         }
 
