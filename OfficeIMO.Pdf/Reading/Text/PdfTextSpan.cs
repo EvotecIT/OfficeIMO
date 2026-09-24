@@ -48,6 +48,7 @@ public sealed class PdfTextSpan {
     internal int LogicalLineBreaksBefore { get; }
     internal bool LogicalLeadingSpace { get; }
     internal bool LogicalTrailingSpace { get; }
+    internal IReadOnlyList<bool>? EmbeddedLineBreaks { get; }
     internal IReadOnlyList<double>? CharacterAdvances { get; }
     internal IReadOnlyList<int>? GlyphCharacterLengths { get; }
     internal IReadOnlyList<byte[]>? GlyphBytes { get; }
@@ -162,7 +163,8 @@ public sealed class PdfTextSpan {
         bool glyphSequenceProgressesLeftToRight = false,
         bool isArtifactContent = false,
         int? fontWeight = null,
-        int? fontDescriptorFlags = null) {
+        int? fontDescriptorFlags = null,
+        IReadOnlyList<bool>? embeddedLineBreaks = null) {
         if (fontWeight.HasValue && (fontWeight.Value < 1 || fontWeight.Value > 1000)) {
             throw new ArgumentOutOfRangeException(nameof(fontWeight));
         }
@@ -187,6 +189,7 @@ public sealed class PdfTextSpan {
         LogicalLineBreaksBefore = logicalLineBreaksBefore;
         LogicalLeadingSpace = logicalLeadingSpace;
         LogicalTrailingSpace = logicalTrailingSpace;
+        EmbeddedLineBreaks = embeddedLineBreaks;
         ContentOrderKey = contentOrderKey;
         TextObjectOrderKey = textObjectOrderKey;
         CharacterAdvances = characterAdvances?.ToArray();

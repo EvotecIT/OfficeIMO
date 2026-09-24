@@ -36,6 +36,42 @@ internal static partial class PdfRedactionPlanner {
             PdfTextSpanBounds bounds = GetTextBlockBounds(block, logical.Pages[block.PageNumber - 1]);
             AddArea(areas, keys, new PdfRedactionArea(block.PageNumber, bounds.Left, bounds.Bottom, bounds.Width, bounds.Height, criterion), search.MaximumCandidates);
         }
+        int[] tablePages = textBlocks.Where(static block => block.IsTableContent)
+            .Select(static block => block.PageNumber)
+            .Where(page => search.PageNumbers.Count == 0 || search.PageNumbers.Contains(page))
+            .Distinct().ToArray();
+        var embeddedBreakSpans = new Dictionary<int, PdfTextSpan[]>();
+        if (search.LiteralText.Count > 0) {
+            for (int pageNumber = 1; pageNumber <= readDocument.Pages.Count; pageNumber++) {
+                if (search.PageNumbers.Count > 0 && !search.PageNumbers.Contains(pageNumber)) continue;
+                PdfTextSpan[] withBreaks = readDocument.Pages[pageNumber - 1].GetTextSpans()
+                    .Where(static span => span.EmbeddedLineBreaks?.Any(static isBreak => isBreak) == true).ToArray();
+                if (withBreaks.Length > 0) embeddedBreakSpans[pageNumber] = withBreaks;
+            }
+        }
+        int[] nativePages = tablePages.Concat(embeddedBreakSpans.Keys).Distinct().ToArray();
+        if (nativePages.Length > 0 && search.LiteralText.Count > 0) {
+            var nativeOptions = new PdfTextSearchOptions { MatchCase = search.MatchCase, PageNumbers = nativePages };
+            foreach (string literal in search.LiteralText) {
+                search.CancellationToken.ThrowIfCancellationRequested();
+                foreach (PdfTextMatch hit in PdfTextEditor.Find(pdf, literal, nativeOptions, readOptions)) {
+                    PdfReadPage page = readDocument.Pages[hit.PageNumber - 1];
+                    PdfSelectionQuad visual = hit.VisualBounds;
+                    PdfVisualBounds whole = page.TransformVisualBoundsToUser(visual.Left, visual.Top, visual.Right, visual.Bottom);
+                    bool tableHit = hit.VisualLineBounds.Count > 1 &&
+                        textBlocks.Any(block => block.PageNumber == hit.PageNumber && block.IsTableContent &&
+                            Intersects(GetTextBlockBounds(block, logical.Pages[hit.PageNumber - 1]), whole));
+                    bool embeddedBreakHit = embeddedBreakSpans.TryGetValue(hit.PageNumber, out PdfTextSpan[]? sourceSpans) &&
+                        sourceSpans.Any(span => Intersects(PdfTextSpanGeometry.GetAxisAlignedBounds(span), whole));
+                    if (!tableHit && !embeddedBreakHit) continue;
+                    foreach (PdfSelectionQuad line in hit.VisualLineBounds) {
+                        PdfVisualBounds bounds = page.TransformVisualBoundsToUser(line.Left, line.Top, line.Right, line.Bottom);
+                        AddArea(areas, keys, new PdfRedactionArea(hit.PageNumber, bounds.Left, bounds.Top,
+                            bounds.Width, bounds.Height, "literal:" + literal), search.MaximumCandidates);
+                    }
+                }
+            }
+        }
         var requestedFields = new HashSet<string>(search.FormFieldNames, StringComparer.Ordinal);
         foreach (PdfLogicalFormWidget widget in logical.FormWidgets) {
             search.CancellationToken.ThrowIfCancellationRequested();
@@ -61,6 +97,10 @@ internal static partial class PdfRedactionPlanner {
     private static string[] DescribeCriteria(PdfRedactionSearchOptions search) => search.LiteralText.Select(value => "literal:" + value).Concat(search.RegularExpressions.Select(value => "regex:" + value)).Concat(search.FormFieldNames.Select(value => "field:" + value)).Concat(search.LogicalElementKinds.Select(value => "logical-kind:" + value.ToString())).ToArray();
     private static bool ContainsText(string text, string value, StringComparison comparison) =>
         PdfTextSearchNormalization.Contains(text, value, comparison);
+
+    private static bool Intersects(PdfTextSpanBounds block, PdfVisualBounds match) =>
+        block.Left < match.Right && block.Right > match.Left &&
+        block.Bottom < match.Bottom && block.Top > match.Top;
 
     /// <summary>
     /// Finds literal occurrences across logical blocks in the same geometric text flow. The editor's

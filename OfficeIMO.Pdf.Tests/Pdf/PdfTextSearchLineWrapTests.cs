@@ -142,6 +142,61 @@ public sealed class PdfTextSearchLineWrapTests {
         Assert.NotEmpty(PdfReadDocument.Open(pdf).Pages[0].ExtractStructured().TablesDetailed);
         Assert.Empty(PdfDocument.Load(pdf).Text.Find("Alpha Beta"));
         Assert.Single(PdfDocument.Load(pdf).Text.Find("Alpha"));
+        Assert.Empty(PdfDocument.Load(pdf).Redactions.Search(
+            new PdfRedactionSearchOptions().AddLiteral("Alpha Beta")).Areas);
+    }
+
+    [Fact]
+    public void WrappedTextWithinOneTableCellRemainsSearchable() {
+        byte[] pdf = BuildRawTextPdf(
+            "100 660 m 400 660 l 400 560 l 100 560 l h " +
+            "250 660 m 250 560 l " +
+            "100 630 m 400 630 l 100 590 m 400 590 l S\n" +
+            "BT /F1 12 Tf 110 640 Td (Name) Tj ET\n" +
+            "BT /F1 12 Tf 260 640 Td (Code) Tj ET\n" +
+            "BT /F1 12 Tf 110 610 Td (Alpha) Tj 0 -14 Td (Beta) Tj ET\n" +
+            "BT /F1 12 Tf 260 610 Td (100) Tj ET\n" +
+            "BT /F1 12 Tf 110 570 Td (Gamma) Tj ET\n" +
+            "BT /F1 12 Tf 260 570 Td (200) Tj ET\n");
+        Assert.NotEmpty(PdfReadDocument.Open(pdf).Pages[0].ExtractStructured().TablesDetailed);
+        PdfDocument document = PdfDocument.Load(pdf);
+
+        Assert.Single(document.Text.Find("Alpha Beta"));
+        Assert.Empty(document.Text.Find("Beta Gamma"));
+        PdfRedactionPlan plan = document.Redactions.Search(new PdfRedactionSearchOptions().AddLiteral("Alpha Beta"));
+        Assert.True(plan.Areas.Count >= 2);
+        Assert.Empty(document.Redactions.Apply(plan).Text.Find("Alpha Beta"));
+    }
+
+    [Fact]
+    public void TableDetectionHasItsOwnWorkBudget() {
+        byte[] pdf = BuildRawTextPdf(WrappedContent);
+        var limits = new PdfLoadOptions { Limits = new PdfReadLimits {
+            MaxTextSearchFlowComparisons = 1,
+            MaxTextSearchTableDetectionWork = 1
+        } };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfDocument.Load(pdf).Text.Find("needle marker", readOptions: limits));
+        Assert.Equal(PdfReadLimitKind.TextSearchTableDetectionWork, exception.Kind);
+        Assert.Single(PdfDocument.Load(pdf).Text.Find("needle marker", readOptions: new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxTextSearchFlowComparisons = 1 }
+        }));
+    }
+
+    [Fact]
+    public void ActualTextLineEndHyphenationMatchesJoinedWord() {
+        byte[] pdf = BuildRawTextPdf(
+            "/Span << /ActualText <FEFF0068007900700068002D000A0065006E006100740069006F006E> >> BDC " +
+            "BT /F1 12 Tf 50 700 Td (X) Tj ET EMC\n");
+        PdfDocument document = PdfDocument.Load(pdf);
+
+        Assert.Equal("hyph- enation", Assert.Single(PdfReadDocument.Open(pdf).Pages[0].GetTextSpans()).Text);
+        Assert.Single(document.Text.Find("hyphenation"));
+        Assert.Single(document.Text.Find("hyph-enation"));
+        PdfRedactionPlan plan = document.Redactions.Search(new PdfRedactionSearchOptions().AddLiteral("hyphenation"));
+        Assert.NotEmpty(plan.Areas);
+        Assert.Empty(document.Redactions.Apply(plan).Text.Find("hyphenation"));
     }
 
     [Fact]

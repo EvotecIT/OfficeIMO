@@ -1117,7 +1117,8 @@ internal static class TextContentParser {
                         endX - dx > Math.Max(0.000001D, Math.Abs(endY - dy)),
                     isArtifactContent: hasActiveArtifact,
                     fontWeight: fontWeightForResource?.Invoke(font),
-                    fontDescriptorFlags: fontDescriptorFlagsForResource?.Invoke(font)));
+                    fontDescriptorFlags: fontDescriptorFlagsForResource?.Invoke(font),
+                    embeddedLineBreaks: GetEmbeddedLineBreaks(rawText, normalizedText.Length)));
                 sbOutGlobal.Append(normalizedText);
                 emittedTextInTextObject = true;
                 pendingLineBreaks = 0;
@@ -1416,6 +1417,30 @@ internal static class TextContentParser {
             string normalized = System.Text.RegularExpressions.Regex.Replace(s, "\\s+", " ");
             string trimmed = normalized.Trim();
             return trimmed.Length == 0 && normalized.Length > 0 ? " " : trimmed;
+        }
+
+        static IReadOnlyList<bool>? GetEmbeddedLineBreaks(string source, int normalizedLength) {
+            if (source.IndexOf('\n') < 0 && source.IndexOf('\r') < 0) return null;
+            var breaks = new bool[normalizedLength];
+            int outputIndex = 0;
+            bool sawText = false;
+            for (int index = 0; index < source.Length;) {
+                if (!char.IsWhiteSpace(source[index])) {
+                    sawText = true;
+                    outputIndex++;
+                    index++;
+                    continue;
+                }
+                bool containsLineBreak = false;
+                while (index < source.Length && char.IsWhiteSpace(source[index])) {
+                    containsLineBreak |= source[index] is '\r' or '\n';
+                    index++;
+                }
+                if (sawText && index < source.Length && outputIndex < breaks.Length) {
+                    breaks[outputIndex++] = containsLineBreak;
+                }
+            }
+            return breaks;
         }
     }
 

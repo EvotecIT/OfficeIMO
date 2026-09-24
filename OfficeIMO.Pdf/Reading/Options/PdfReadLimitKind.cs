@@ -156,5 +156,8 @@ public enum PdfReadLimitKind {
     FontInspectionDiagnostics = 50,
 
     /// <summary>Geometric line-pair comparisons while grouping text-search flows on one page.</summary>
-    TextSearchFlowComparisons = 51
+    TextSearchFlowComparisons = 51,
+
+    /// <summary>Work spent detecting table cell boundaries for text search on one page.</summary>
+    TextSearchTableDetectionWork = 52
 }

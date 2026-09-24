@@ -28,14 +28,18 @@ internal static partial class PdfTextEditor {
             List<int[]> flows = BuildSearchFlows(lines, limits.MaxTextSearchFlowComparisons);
             if (flows.Any(static flow => flow.Length > 1)) {
                 long tableWork = 0;
-                StructuredPage structure = page.ExtractStructured(spans, null, default, work => {
+                void ChargeTableWork(long work) {
                     tableWork += work;
-                    if (tableWork > limits.MaxTextSearchFlowComparisons)
-                        throw PdfReadLimitException.Create(PdfReadLimitKind.TextSearchFlowComparisons,
-                            limits.MaxTextSearchFlowComparisons, tableWork);
-                });
-                var tableRuns = new HashSet<PdfTextSpan>(structure.TablesDetailed.SelectMany(static table => table.SourceRuns));
-                if (tableRuns.Count > 0) flows = SplitTableSearchFlows(flows, lines, tableRuns);
+                    if (tableWork > limits.MaxTextSearchTableDetectionWork)
+                        throw PdfReadLimitException.Create(PdfReadLimitKind.TextSearchTableDetectionWork,
+                            limits.MaxTextSearchTableDetectionWork, tableWork);
+                }
+                var layoutOptions = new TextLayoutEngine.Options();
+                List<TextLayoutEngine.TextLine> layoutLines = TextLayoutEngine.BuildLines(spans, layoutOptions, ChargeTableWork, null)
+                    .Where(static line => !string.IsNullOrWhiteSpace(line.Text)).ToList();
+                List<List<TextLayoutEngine.TextLine>> bands = TextLayoutEngine.BandLines(layoutLines, layoutOptions, ChargeTableWork, null);
+                var tables = TableDetector.DetectTablesFromBands(bands, page.GetPageSize().Height, ChargeTableWork);
+                if (tables.Count > 0) flows = SplitTableSearchFlows(flows, lines, spans, tables);
             }
             foreach (int[] flow in flows) {
                 PdfTextSpan[][] flowLines = flow.Select(lineIndex => lines[lineIndex].Spans.ToArray()).ToArray();
@@ -71,18 +75,66 @@ internal static partial class PdfTextEditor {
     }
 
     private static List<int[]> SplitTableSearchFlows(List<int[]> flows, List<TextLayoutEngine.TextLine> lines,
-        HashSet<PdfTextSpan> tableRuns) {
+        IReadOnlyList<PdfTextSpan> spans,
+        List<StructuredTable> tables) {
+        var cells = new Dictionary<PdfTextSpan, (int Table, int Row, int Column)>();
+        for (int tableIndex = 0; tableIndex < tables.Count; tableIndex++) {
+            StructuredTable table = tables[tableIndex];
+            var rowBySpan = new Dictionary<PdfTextSpan, int>();
+            for (int rowIndex = 0; rowIndex < table.SourceLines.Count; rowIndex++) {
+                foreach (PdfTextSpan span in table.SourceLines[rowIndex].Spans) rowBySpan[span] = rowIndex;
+            }
+            double[] rowBaselines = table.SourceRuns.Select(static span => span.Y).Distinct()
+                .OrderByDescending(static y => y).ToArray();
+            foreach (PdfTextSpan span in table.SourceRuns) {
+                int row = rowBySpan.TryGetValue(span, out int mappedRow)
+                    ? mappedRow
+                    : Array.FindIndex(rowBaselines, y => y == span.Y);
+                int column = table.Columns.Count == 0 ? 0 : Enumerable.Range(0, table.Columns.Count)
+                    .OrderBy(index => Math.Abs((table.Columns[index].From + table.Columns[index].To) / 2D - span.X))
+                    .First();
+                cells[span] = (tableIndex, row, column);
+            }
+            double[] anchors = table.SourceLines.Count > 0
+                ? table.SourceLines.Select(static line => line.Y).ToArray()
+                : rowBaselines;
+            if (anchors.Length == 0 || table.Columns.Count == 0) continue;
+            double rowPitch = anchors.Length > 1
+                ? anchors.Zip(anchors.Skip(1), static (upper, lower) => Math.Abs(upper - lower)).Where(static gap => gap > 0D)
+                    .DefaultIfEmpty(0D).Average()
+                : 0D;
+            if (rowPitch <= 0D) continue;
+            foreach (PdfTextSpan span in spans) {
+                if (cells.ContainsKey(span)) continue;
+                int row = Enumerable.Range(0, anchors.Length)
+                    .OrderBy(index => Math.Abs(anchors[index] - span.Y)).First();
+                if (Math.Abs(anchors[row] - span.Y) > rowPitch / 2D) continue;
+                int column = Enumerable.Range(0, table.Columns.Count)
+                    .OrderBy(index => Math.Abs((table.Columns[index].From + table.Columns[index].To) / 2D - span.X))
+                    .First();
+                StructuredTableColumn columnBounds = table.Columns[column];
+                if (span.X < Math.Min(columnBounds.From, columnBounds.To) - 2D ||
+                    span.X > Math.Max(columnBounds.From, columnBounds.To) + 2D) continue;
+                cells[span] = (tableIndex, row, column);
+            }
+        }
         var separated = new List<int[]>(flows.Count);
         foreach (int[] flow in flows) {
             var paragraph = new List<int>();
+            (int Table, int Row, int Column)? previousCell = null;
             foreach (int lineIndex in flow) {
-                if (lines[lineIndex].Spans.Any(tableRuns.Contains)) {
-                    if (paragraph.Count > 0) separated.Add(paragraph.ToArray());
-                    paragraph.Clear();
-                    separated.Add(new[] { lineIndex });
-                } else {
-                    paragraph.Add(lineIndex);
+                (int Table, int Row, int Column)? cell = null;
+                foreach (PdfTextSpan span in lines[lineIndex].Spans) {
+                    if (!cells.TryGetValue(span, out var mappedCell)) continue;
+                    cell = mappedCell;
+                    break;
                 }
+                if (paragraph.Count > 0 && cell != previousCell) {
+                    separated.Add(paragraph.ToArray());
+                    paragraph.Clear();
+                }
+                paragraph.Add(lineIndex);
+                previousCell = cell;
             }
             if (paragraph.Count > 0) separated.Add(paragraph.ToArray());
         }
@@ -312,7 +364,8 @@ internal static partial class PdfTextEditor {
                     for (int characterIndex = 0; characterIndex < span.Text.Length; characterIndex++) {
                         text.Append(span.Text[characterIndex]);
                         sources.Add(new TextCharacterSource(span, characterIndex));
-                        lineBreaks.Add(false);
+                        lineBreaks.Add(span.Text[characterIndex] is '\r' or '\n' ||
+                            span.EmbeddedLineBreaks?[characterIndex] == true);
                     }
                     previous = span;
                 }
