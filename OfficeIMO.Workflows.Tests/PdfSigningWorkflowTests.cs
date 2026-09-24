@@ -9,7 +9,7 @@ public sealed class PdfSigningWorkflowTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task ExistingSignaturePolicyRejectsAnotherSignatureAndPreservesTheOriginal(bool certified) {
+    public async Task ExistingSignaturePolicyDecidesAnotherSignatureAndPreservesTheOriginal(bool certified) {
         await InDirectory(async root => {
             using var certificate = CreateCertificate();
             using var signer = new PdfCmsExternalSigner(OfficeSecurityProvider.Default, certificate);
@@ -21,11 +21,17 @@ public sealed class PdfSigningWorkflowTests {
             string source = Path.Combine(root, "source.pdf"), output = Path.Combine(root, "output.pdf");
             File.WriteAllBytes(source, original);
             var result = await OfficeWorkflow.SignPdf(source, signer, new() { FieldName = "Second" }, verifier).To(output).RunAsync();
-            Assert.False(PdfDocument.Load(original).PlanMutation(PdfMutationOperation.PrepareExternalSignature).CanExecute);
-            Assert.False(result.Succeeded);
+            // Certification with NoChanges forbids another signature; an approval signature permits an appended one.
+            Assert.Equal(!certified, PdfDocument.Load(original).PlanMutation(PdfMutationOperation.PrepareExternalSignature).CanExecute);
+            Assert.Equal(!certified, result.Succeeded);
             Assert.Equal(original, File.ReadAllBytes(source));
-            Assert.False(File.Exists(output));
             Assert.True(PdfDocument.Load(File.ReadAllBytes(source)).Security.ValidateSignatures(verifier).MathematicalSignaturesVerified);
+            if (certified) { Assert.False(File.Exists(output)); return; }
+            byte[] signed = File.ReadAllBytes(output);
+            Assert.True(signed.AsSpan(0, original.Length).SequenceEqual(original));
+            var report = PdfDocument.Load(signed).Security.ValidateSignatures(verifier);
+            Assert.True(report.MathematicalSignaturesVerified); Assert.True(report.DigestVerified);
+            Assert.Equal(new[] { "First", "Second" }, report.Signatures.Select(signature => signature.Signature.FieldName).OrderBy(name => name, StringComparer.Ordinal));
         });
     }
 

@@ -103,14 +103,32 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         }
         byte[] bytes = File.ReadAllBytes(path);
         var ownerResult = WordDocument.RemoveProvenance(bytes, "budget.docx");
-        // These small packages contain XML and a PNG, so inspection expands every entry once.
-        static long ExpandedBytes(byte[] package) {
+        // These small packages contain XML and a PNG, so inspection expands every entry once
+        // and validates each embedded PNG by decoding its scanlines once.
+        static long InspectionBytes(byte[] package) {
             using var stream = new MemoryStream(package);
             using var archive = new System.IO.Compression.ZipArchive(stream);
-            return archive.Entries.Sum(entry => entry.Length);
+            long total = 0;
+            foreach (var entry in archive.Entries) {
+                total += entry.Length;
+                using var content = new MemoryStream();
+                using (Stream entryStream = entry.Open()) entryStream.CopyTo(content);
+                byte[] data = content.ToArray();
+                if (data.AsSpan().StartsWith(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A })) total += PngDecodeBytes(data);
+            }
+            return total;
         }
-        long reopenBytes = ExpandedBytes(ownerResult.ToArray());
-        long ownerBytes = ExpandedBytes(bytes) + reopenBytes;
+        // Non-interlaced PNG validation holds the unfiltered scanlines plus the current and previous rows.
+        static long PngDecodeBytes(byte[] png) {
+            int width = System.Buffers.Binary.BinaryPrimitives.ReadInt32BigEndian(png.AsSpan(16));
+            int height = System.Buffers.Binary.BinaryPrimitives.ReadInt32BigEndian(png.AsSpan(20));
+            Assert.Equal(0, png[28]);
+            int channels = png[25] switch { 2 => 3, 4 => 2, 6 => 4, _ => 1 };
+            long stride = ((long)width * channels * png[24] + 7) / 8;
+            return (stride + 1) * height + 2 * stride;
+        }
+        long reopenBytes = InspectionBytes(ownerResult.ToArray());
+        long ownerBytes = InspectionBytes(bytes) + reopenBytes;
         Assert.True(ownerBytes > 0);
         Assert.True(reopenBytes > 0);
         var ownerLimits = new OfficeProvenanceRemovalOptions { Limits = { MaxExpandedContainerBytes = ownerBytes - 1 } };
