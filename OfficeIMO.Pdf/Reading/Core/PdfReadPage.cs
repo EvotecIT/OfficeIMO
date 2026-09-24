@@ -848,7 +848,7 @@ public sealed partial class PdfReadPage {
                 substitutedGlyphDecoders.Add(fontRes, decode);
             }
             string text = decode(code[0]);
-            return text.Length == 1 && !char.IsWhiteSpace(text[0]) && !char.IsControl(text[0]) ? text : null;
+            return text.Length > 0 ? text : null;
         }
         bool IsEmptyPaintedGlyph(string fontRes, byte[] code) {
             if (!fonts.TryGetValue(fontRes, out PdfFontResource? resource) ||

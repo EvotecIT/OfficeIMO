@@ -469,6 +469,19 @@ public partial class PdfPageImageRendererTests {
         Assert.Equal("xA yBz", text.Text);
     }
 
+    [Fact]
+    public void RenderPage_SubstitutedFontUsesClusterAndSpaceDifferencesInsteadOfToUnicode() {
+        const string font = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding << /Type /Encoding /BaseEncoding /WinAnsiEncoding /Differences [65 /fi 66 /space] >> /ToUnicode 6 0 R >>\nendobj";
+        const string cmap = "2 beginbfchar\n<41> <0058>\n<42> <0059>\nendbfchar";
+        byte[] pdf = BuildSingleStreamPdf("BT /F1 20 Tf 20 100 Td (ABA) Tj ET",
+            "<< /Font << /F1 5 0 R >> >>", font, BuildStreamObject(6, "<<", cmap));
+        PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
+
+        Assert.Equal("XYX", Assert.Single(page.GetTextSpans()).Text);
+        OfficeDrawingText visual = Assert.Single(page.ToDrawing().Elements.OfType<OfficeDrawingText>());
+        Assert.Equal("fi fi", visual.Text);
+    }
+
     [Theory]
     [InlineData("06280628", "بب")]
     [InlineData("0915093F", "कि")]

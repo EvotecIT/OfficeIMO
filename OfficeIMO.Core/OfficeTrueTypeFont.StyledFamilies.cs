@@ -76,6 +76,16 @@ public sealed partial class OfficeTrueTypeFont {
                 resolvedStyle = faceStyle;
                 return styled;
             }
+            // The cached installed-face lookup already covers ASCII families. A missing named face
+            // need not rescan every font file for each ordinary text run; script-specific faces still
+            // receive the full coverage search below.
+            if (IsAsciiText(text!)) {
+                if (styledCoversText) {
+                    resolvedStyle = faceStyle;
+                    return styled;
+                }
+                continue;
+            }
             if (requested != OfficeFontStyle.Regular) {
                 string key = NormalizeFontFamilyKey(family);
                 OfficeTrueTypeFont? partial = null;
@@ -111,6 +121,13 @@ public sealed partial class OfficeTrueTypeFont {
             }
         }
         return null;
+    }
+
+    private static bool IsAsciiText(string text) {
+        for (int index = 0; index < text.Length; index++) {
+            if (text[index] > 0x7F) return false;
+        }
+        return true;
     }
 
     /// <summary>Gets the bold and italic style the face declares in its <c>head</c> table.</summary>
