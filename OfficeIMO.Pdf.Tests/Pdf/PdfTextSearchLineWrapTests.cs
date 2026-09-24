@@ -1,3 +1,4 @@
+using System.Threading;
 using OfficeIMO.Pdf;
 using Xunit;
 
@@ -78,6 +79,71 @@ public sealed class PdfTextSearchLineWrapTests {
         var redaction = new PdfRedactionSearchOptions();
         redaction.AddLiteral("alpha beta");
         Assert.Empty(document.Redactions.Search(redaction).Areas);
+    }
+
+    [Fact]
+    public void RedactionFollowsWrappedListTextAcrossLogicalKinds() {
+        byte[] pdf = BuildRawTextPdf(
+            "BT /F1 12 Tf 50 700 Td (- private needle) Tj 0 -14 Td (marker continues) Tj ET\n");
+        PdfDocument document = PdfDocument.Load(pdf);
+        PdfLogicalTextBlock[] blocks = PdfDocumentReadResult.From(PdfReadDocument.Open(pdf)).TextBlocks.ToArray();
+        Assert.Contains(blocks, block => block.Kind == PdfLogicalElementKind.ListItem);
+        Assert.Contains(blocks, block => block.Kind == PdfLogicalElementKind.TextBlock);
+        Assert.Single(document.Text.Find("needle marker"));
+
+        var search = new PdfRedactionSearchOptions().AddLiteral("needle marker");
+        PdfRedactionPlan plan = document.Redactions.Search(search);
+
+        Assert.True(plan.Areas.Count >= 2);
+        Assert.Empty(document.Redactions.Apply(plan).Text.Find("needle marker"));
+    }
+
+    [Fact]
+    public void RedactionFollowsEachColumnPastInterleavedBlocks() {
+        PdfDocument document = PdfDocument.Load(BuildRawTextPdf(
+            "BT /F1 12 Tf 50 700 Td (left alpha) Tj 0 -14 Td (gamma ends) Tj ET\n" +
+            "BT /F1 12 Tf 350 700 Td (right beta) Tj 0 -14 Td (delta ends) Tj ET\n"));
+        Assert.Single(document.Text.Find("alpha gamma"));
+        Assert.Single(document.Text.Find("beta delta"));
+
+        PdfRedactionPlan left = document.Redactions.Search(new PdfRedactionSearchOptions().AddLiteral("alpha gamma"));
+        PdfRedactionPlan right = document.Redactions.Search(new PdfRedactionSearchOptions().AddLiteral("beta delta"));
+
+        Assert.True(left.Areas.Count >= 2);
+        Assert.True(right.Areas.Count >= 2);
+        Assert.All(left.Areas, area => Assert.True(area.X < 300D));
+        Assert.All(right.Areas, area => Assert.True(area.X > 300D));
+    }
+
+    [Fact]
+    public void RedactionDoesNotJoinAcrossExcludedTableLine() {
+        static PdfLogicalTextBlock Block(string text, double baseline, bool table = false) =>
+            new(1, PdfLogicalElementKind.TextBlock, text, 50, 250, baseline, 12,
+                new[] { new PdfTextSpan(text, "F1", 12, 50, baseline, 200) },
+                isTableContent: table);
+
+        PdfLogicalTextBlock[] blocks = {
+            Block("private alpha", 700),
+            Block("table value", 688, table: true),
+            Block("beta public", 676)
+        };
+        Dictionary<int, string> matches = PdfRedactionPlanner.MatchLiteralsAcrossBlocks(blocks,
+            new[] { "alpha beta" }, StringComparison.Ordinal, new PdfRedactionSearchWorkBudget("test"),
+            _ => true, CancellationToken.None);
+
+        Assert.Empty(matches);
+    }
+
+    [Fact]
+    public void RedactionFollowsRotatedWrappedLines() {
+        PdfDocument document = PdfDocument.Load(BuildRawTextPdf(
+            "BT /F1 12 Tf 0 1 -1 0 200 600 Tm (needle) Tj 0 -14 Td (marker) Tj ET\n"));
+        Assert.Single(document.Text.Find("needle marker"));
+
+        PdfRedactionPlan plan = document.Redactions.Search(new PdfRedactionSearchOptions().AddLiteral("needle marker"));
+
+        Assert.True(plan.Areas.Count >= 2);
+        Assert.Empty(document.Redactions.Apply(plan).Text.Find("needle marker"));
     }
 
     [Fact]

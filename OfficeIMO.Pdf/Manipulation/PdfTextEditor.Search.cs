@@ -71,7 +71,7 @@ internal static partial class PdfTextEditor {
     /// it within a line-spacing distance; links are kept only when both lines choose each other, which keeps independent
     /// columns and side-by-side regions apart. Every line belongs to exactly one returned flow, listed in reading order.
     /// </summary>
-    private static List<int[]> BuildSearchFlows(List<TextLayoutEngine.TextLine> lines) {
+    internal static List<int[]> BuildSearchFlows(List<TextLayoutEngine.TextLine> lines) {
         int count = lines.Count;
         var geometry = new SearchLineGeometry[count];
         for (int index = 0; index < count; index++) geometry[index] = SearchLineGeometry.Create(lines[index]);

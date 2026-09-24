@@ -62,53 +62,83 @@ internal static partial class PdfRedactionPlanner {
         PdfTextSearchNormalization.Contains(text, value, comparison);
 
     /// <summary>
-    /// Finds literal occurrences that wrap from one logical text block into the following blocks on the same page, such as
-    /// a phrase broken across lines that layout analysis kept as separate blocks. Blocks are joined in reading order with a
-    /// line break, and only runs whose match needs the first and the last block are reported. Returns the criterion label
-    /// for every participating block index.
+    /// Finds literal occurrences across logical blocks in the same geometric text flow. The editor's
+    /// line-flow builder owns rotation, column separation, and nearest-line ordering for both paths.
+    /// Returns the criterion label for every participating block index.
     /// </summary>
     internal static Dictionary<int, string> MatchLiteralsAcrossBlocks(IReadOnlyList<PdfLogicalTextBlock> blocks, IEnumerable<string> literals,
         StringComparison comparison, PdfRedactionSearchWorkBudget workBudget, Func<int, bool> includeBlock, CancellationToken cancellationToken) {
         var matches = new Dictionary<int, string>();
+        List<int[]> flows = BuildLogicalSearchFlows(blocks, includeBlock, cancellationToken);
         foreach (string literal in literals) {
             int queryLength = PdfTextSearchNormalization.NormalizeQuery(literal).Length;
-            for (int first = 0; first < blocks.Count; first++) {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (!includeBlock(first) || string.IsNullOrEmpty(blocks[first].Text)) continue;
-                int firstEnd = blocks[first].Text.Length;
-                var combined = new System.Text.StringBuilder(blocks[first].Text);
-                int followingLength = 0;
-                for (int last = first + 1; last < blocks.Count && blocks[last].PageNumber == blocks[first].PageNumber && includeBlock(last); last++) {
-                    if (!ContinuesTextFlow(blocks[last - 1], blocks[last])) break;
-                    combined.Append('\n');
-                    int lastStart = combined.Length;
-                    combined.Append(blocks[last].Text);
-                    string joined = combined.ToString();
-                    workBudget.ChargeTextScan(joined, literal);
-                    bool spansRun = PdfTextSearchNormalization.FindSourceRanges(joined, literal, comparison)
-                        .Any(range => range.Start < firstEnd && range.End > lastStart);
-                    if (spansRun) {
-                        for (int index = first; index <= last; index++) {
-                            if (!matches.ContainsKey(index)) matches.Add(index, "literal:" + literal);
+            foreach (int[] flow in flows) {
+                for (int first = 0; first < flow.Length; first++) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    int firstIndex = flow[first];
+                    if (string.IsNullOrEmpty(blocks[firstIndex].Text)) continue;
+                    int firstEnd = blocks[firstIndex].Text.Length;
+                    var combined = new System.Text.StringBuilder(blocks[firstIndex].Text);
+                    int followingLength = 0;
+                    for (int last = first + 1; last < flow.Length; last++) {
+                        int lastIndex = flow[last];
+                        combined.Append('\n');
+                        int lastStart = combined.Length;
+                        combined.Append(blocks[lastIndex].Text);
+                        string joined = combined.ToString();
+                        workBudget.ChargeTextScan(joined, literal);
+                        bool spansRun = PdfTextSearchNormalization.FindSourceRanges(joined, literal, comparison)
+                            .Any(range => range.Start < firstEnd && range.End > lastStart);
+                        if (spansRun) {
+                            for (int position = first; position <= last; position++) {
+                                int index = flow[position];
+                                if (!matches.ContainsKey(index)) matches.Add(index, "literal:" + literal);
+                            }
+                            break;
                         }
-                        break;
+                        // A match starting in the first block and ending past this run contains every following
+                        // block's visible characters (less at most one joined line-end hyphen).
+                        followingLength += Math.Max(0, blocks[lastIndex].Text.Count(static character => !char.IsWhiteSpace(character)) - 1);
+                        if (followingLength + 2 > queryLength) break;
                     }
-                    // A match starting in the first block and ending past this run contains every following block's visible
-                    // characters (less at most one joined line-end hyphen), plus at least one character on each side.
-                    followingLength += Math.Max(0, blocks[last].Text.Count(static character => !char.IsWhiteSpace(character)) - 1);
-                    if (followingLength + 2 > queryLength) break;
                 }
             }
         }
         return matches;
     }
 
-    private static bool ContinuesTextFlow(PdfLogicalTextBlock upper, PdfLogicalTextBlock lower) {
-        if (upper.PageNumber != lower.PageNumber || upper.SourceKind != lower.SourceKind ||
-            upper.IsTableContent || lower.IsTableContent || upper.Kind != lower.Kind) return false;
-        double fontSize = Math.Max(upper.FontSize, lower.FontSize);
-        double distance = upper.BaselineY - lower.BaselineY;
-        if (fontSize <= 0D || distance < fontSize * 0.6D || distance > fontSize * 2D) return false;
-        return Math.Min(upper.XEnd, lower.XEnd) > Math.Max(upper.XStart, lower.XStart);
+    private static List<int[]> BuildLogicalSearchFlows(IReadOnlyList<PdfLogicalTextBlock> blocks,
+        Func<int, bool> includeBlock, CancellationToken cancellationToken) {
+        var flows = new List<int[]>();
+        foreach (IGrouping<(int PageNumber, PdfLogicalContentSourceKind SourceKind), int> group in Enumerable.Range(0, blocks.Count)
+                     .Where(index => blocks[index].Spans.Count > 0 ||
+                         blocks[index].FontSize > 0D && blocks[index].XEnd > blocks[index].XStart)
+                     .GroupBy(index => (blocks[index].PageNumber, blocks[index].SourceKind))) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int[] indexes = group.ToArray();
+            var lines = indexes.Select(index => {
+                PdfLogicalTextBlock block = blocks[index];
+                List<PdfTextSpan> spans = block.Spans.Count > 0
+                    ? block.Spans.ToList()
+                    : new List<PdfTextSpan> { new(block.Text, string.Empty, block.FontSize,
+                        block.XStart, block.BaselineY, block.XEnd - block.XStart) };
+                return new TextLayoutEngine.TextLine(block.BaselineY, block.XStart, block.XEnd,
+                    block.Text, spans);
+            }).ToList();
+            foreach (int[] flow in PdfTextEditor.BuildSearchFlows(lines)) {
+                var eligible = new List<int>();
+                foreach (int line in flow) {
+                    int index = indexes[line];
+                    if (!includeBlock(index) || blocks[index].IsTableContent) {
+                        if (eligible.Count > 0) flows.Add(eligible.ToArray());
+                        eligible.Clear();
+                    } else {
+                        eligible.Add(index);
+                    }
+                }
+                if (eligible.Count > 0) flows.Add(eligible.ToArray());
+            }
+        }
+        return flows;
     }
 }
