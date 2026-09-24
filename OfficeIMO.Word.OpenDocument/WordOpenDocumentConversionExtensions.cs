@@ -693,8 +693,9 @@ public static partial class WordOpenDocumentConversionExtensions {
         var structural = new HashSet<string>(StringComparer.Ordinal) { "Paragraphs", "Tables", "Sections" };
         foreach (WordFeatureFinding finding in features.Features.Where(item => item.Count > 0 && !structural.Contains(item.Name))) {
             int handled = finding.Name == "Images" ? images : finding.Name == "External hyperlinks" ? hyperlinks :
-                finding.Name == "Bookmarks" ? bookmarks : finding.Name == "Footnotes" ? notes.SeenWordFootnotes :
-                finding.Name == "Endnotes" ? notes.SeenWordEndnotes : 0;
+                finding.Name == "Bookmarks" ? bookmarks : finding.Name == "Footnotes" ?
+                    notes.SeenWordFootnotes + notes.UnreferencedFootnoteDefinitions :
+                finding.Name == "Endnotes" ? notes.SeenWordEndnotes + notes.UnreferencedEndnoteDefinitions : 0;
             int remaining = Math.Max(0, finding.Count - handled);
             if (remaining > 0) report.Add("source-" + Slug(finding.Name), OdfConversionMappingStatus.Unsupported, remaining, finding.Note);
         }

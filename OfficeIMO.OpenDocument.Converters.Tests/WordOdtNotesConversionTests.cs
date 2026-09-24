@@ -16,6 +16,62 @@ public sealed class WordOdtNotesConversionTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public void UnreferencedWordNoteDefinitionsRemainExplicitLoss(bool endnote) {
+        using WordDocument source = WordDocument.Create();
+        WordParagraph paragraph = source.AddParagraph("Anchor");
+        if (endnote) {
+            paragraph.AddEndNote("Unreferenced");
+            source.OpenXmlDocument.MainDocumentPart!.Document!.Body!
+                .Descendants<W.EndnoteReference>().Single().Remove();
+        } else {
+            paragraph.AddFootNote("Referenced");
+            source.OpenXmlDocument.MainDocumentPart!.FootnotesPart!.Footnotes!.Append(
+                new W.Footnote(new W.Paragraph(new W.Run(new W.Text("Unreferenced")))) { Id = 99 });
+        }
+
+        OdfConversionResult<OdtDocument> result = source.ToOpenDocumentResult();
+        Assert.Contains(result.Report.Mappings, mapping =>
+            mapping.Feature == (endnote ? "source-endnotes" : "source-footnotes") &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void RepeatedReferenceDoesNotHideAnUnreferencedFootnoteDefinition() {
+        using WordDocument source = WordDocument.Create();
+        source.AddParagraph("Anchor").AddFootNote("Referenced");
+        W.Paragraph paragraph = source.OpenXmlDocument.MainDocumentPart!.Document!.Body!
+            .Descendants<W.Paragraph>().First(item => item.Descendants<W.FootnoteReference>().Any());
+        W.FootnoteReference reference = paragraph.Descendants<W.FootnoteReference>().Single();
+        paragraph.Append(new W.Run((W.FootnoteReference)reference.CloneNode(true)));
+        source.OpenXmlDocument.MainDocumentPart!.FootnotesPart!.Footnotes!.Append(
+            new W.Footnote(new W.Paragraph(new W.Run(new W.Text("Unreferenced")))) { Id = 99 });
+
+        OdfConversionResult<OdtDocument> result = source.ToOpenDocumentResult();
+        Assert.Contains(result.Report.Mappings, mapping =>
+            mapping.Feature == "source-footnotes" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+    }
+
+    [Fact]
+    public void DuplicateWordFootnoteDefinitionRemainsExplicitLoss() {
+        using WordDocument source = WordDocument.Create();
+        source.AddParagraph("Anchor").AddFootNote("First");
+        W.Footnote original = source.OpenXmlDocument.MainDocumentPart!.FootnotesPart!.Footnotes!
+            .Elements<W.Footnote>().Single(note => note.Type == null);
+        source.OpenXmlDocument.MainDocumentPart.FootnotesPart.Footnotes.Append(
+            new W.Footnote(new W.Paragraph(new W.Run(new W.Text("Second")))) { Id = original.Id!.Value });
+
+        OdfConversionResult<OdtDocument> result = source.ToOpenDocumentResult();
+        Assert.Contains(result.Report.Mappings, mapping =>
+            mapping.Feature == "source-footnotes" && mapping.Status == OdfConversionMappingStatus.Unsupported &&
+            mapping.Count == 1);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void WordNoteReferenceWithoutRunPropertiesIsConverted(bool endnote) {
         using WordDocument source = WordDocument.Create();
         WordParagraph paragraph = source.AddParagraph("Anchor");

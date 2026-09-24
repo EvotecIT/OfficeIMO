@@ -38,12 +38,24 @@ public static partial class WordOpenDocumentConversionExtensions {
                 }
             }
             if (source != null) {
+                var seenFootnoteDefinitions = new HashSet<long>();
                 foreach (W.Footnote note in source.OpenXmlDocument.MainDocumentPart?.FootnotesPart?.Footnotes?
                     .Elements<W.Footnote>() ?? Enumerable.Empty<W.Footnote>()) {
+                    if (note.Type?.Value != W.FootnoteEndnoteValues.Separator &&
+                        note.Type?.Value != W.FootnoteEndnoteValues.ContinuationSeparator &&
+                        (note.Id == null || !FootnoteAnchors.ContainsKey(note.Id.Value) ||
+                         !seenFootnoteDefinitions.Add(note.Id.Value)))
+                        UnreferencedFootnoteDefinitions++;
                     if (note.Id != null && !FootnoteBodies.ContainsKey(note.Id.Value)) FootnoteBodies.Add(note.Id.Value, note);
                 }
+                var seenEndnoteDefinitions = new HashSet<long>();
                 foreach (W.Endnote note in source.OpenXmlDocument.MainDocumentPart?.EndnotesPart?.Endnotes?
                     .Elements<W.Endnote>() ?? Enumerable.Empty<W.Endnote>()) {
+                    if (note.Type?.Value != W.FootnoteEndnoteValues.Separator &&
+                        note.Type?.Value != W.FootnoteEndnoteValues.ContinuationSeparator &&
+                        (note.Id == null || !EndnoteAnchors.ContainsKey(note.Id.Value) ||
+                         !seenEndnoteDefinitions.Add(note.Id.Value)))
+                        UnreferencedEndnoteDefinitions++;
                     if (note.Id != null && !EndnoteBodies.ContainsKey(note.Id.Value)) EndnoteBodies.Add(note.Id.Value, note);
                 }
             }
@@ -75,6 +87,8 @@ public static partial class WordOpenDocumentConversionExtensions {
             new Dictionary<long, DocumentFormat.OpenXml.OpenXmlElement>();
         internal int SeenWordFootnotes;
         internal int SeenWordEndnotes;
+        internal int UnreferencedFootnoteDefinitions;
+        internal int UnreferencedEndnoteDefinitions;
         internal int SeenOdtNotes;
         internal int ConvertedFootnotes;
         internal int ConvertedEndnotes;
@@ -461,6 +475,12 @@ public static partial class WordOpenDocumentConversionExtensions {
     private static void AddNoteMappings(OdfConversionReport report, NoteMappingStats notes) {
         AddCount(report, "footnotes", notes.ConvertedFootnotes);
         AddCount(report, "endnotes", notes.ConvertedEndnotes);
+        if (notes.UnreferencedFootnoteDefinitions > 0) report.Add("source-footnotes",
+            OdfConversionMappingStatus.Unsupported, notes.UnreferencedFootnoteDefinitions,
+            "Word footnote definitions without a body reference or with duplicate IDs were omitted.");
+        if (notes.UnreferencedEndnoteDefinitions > 0) report.Add("source-endnotes",
+            OdfConversionMappingStatus.Unsupported, notes.UnreferencedEndnoteDefinitions,
+            "Word endnote definitions without a body reference or with duplicate IDs were omitted.");
         if (notes.UnsupportedFootnotes > 0) report.Add("footnotes", OdfConversionMappingStatus.Unsupported,
             notes.UnsupportedFootnotes, "Note references with unsupported bodies, classes, or repeated references to one Word note were omitted.");
         if (notes.UnsupportedEndnotes > 0) report.Add("endnotes", OdfConversionMappingStatus.Unsupported,
