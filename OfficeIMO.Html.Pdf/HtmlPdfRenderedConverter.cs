@@ -108,6 +108,7 @@ internal static partial class HtmlPdfRenderedConverter {
         }
         HtmlToPdfOptions renderOptions = new HtmlToPdfOptions(request.Options);
         CopyAdapterOptions(options, renderOptions);
+        ApplyPrintLayoutWidth(request, renderOptions);
         PdfCore.PdfOptions measurementOptions = options.PdfOptions.Clone();
         measurementOptions.SetTextShapingMode(options.TextShapingMode).SetTextShapingProvider(options.TextShapingProvider);
         if (options.FontFamily != null) measurementOptions.RegisterFontFamily(PdfCore.PdfStandardFont.Helvetica, options.FontFamily);
@@ -173,6 +174,7 @@ internal static partial class HtmlPdfRenderedConverter {
         target.TextShapingMode = source.TextShapingMode;
         target.FontFamily = source.FontFamily;
         target.InteractiveFormControls = source.InteractiveFormControls;
+        target.PrintLayoutWidthCssPixels = source.PrintLayoutWidthCssPixels;
         target.MaxOutlinedTextCharactersPerRun = source.MaxOutlinedTextCharactersPerRun;
         target.MaxOutlinedTextPathCommands = source.MaxOutlinedTextPathCommands;
         target.PdfOptions = source.PdfOptions.Clone();
@@ -284,23 +286,29 @@ internal static partial class HtmlPdfRenderedConverter {
             .Select((heading, index) => new { Heading = heading, Index = index })
             .ToDictionary(item => item.Heading, item => item.Index);
         ILookup<int, HtmlRenderHeading> headingsByPage = rendered.Headings.ToLookup(heading => heading.PageNumber);
+        double printLayoutScale = ResolvePrintLayoutScale(options);
         foreach (HtmlRenderPage renderedPage in rendered.Pages) {
             cancellationToken.ThrowIfCancellationRequested();
-            double pageWidth = renderedPage.Width * PointsPerCssPixel;
-            double pageHeight = renderedPage.Height * PointsPerCssPixel;
+            double pageWidth = renderedPage.Width * PointsPerCssPixel * printLayoutScale;
+            double pageHeight = renderedPage.Height * PointsPerCssPixel * printLayoutScale;
             pdf.Page(page => {
                 page.Size(pageWidth, pageHeight)
                     .Margin(0D);
                 if (renderedPage.PrintProduction != null) {
-                    double trimInset = renderedPage.PrintProduction.TrimInset * PointsPerCssPixel;
-                    double bleedInset = renderedPage.PrintProduction.BleedInset * PointsPerCssPixel;
+                    double trimInset = renderedPage.PrintProduction.TrimInset * PointsPerCssPixel * printLayoutScale;
+                    double bleedInset = renderedPage.PrintProduction.BleedInset * PointsPerCssPixel * printLayoutScale;
                     page.PrintProductionPageBoxes(new PdfCore.PdfPrintProductionPageBoxes(
                         PdfCore.PageMargins.Uniform(trimInset),
                         PdfCore.PageMargins.Uniform(bleedInset)));
                 }
                 page.Canvas(canvas => {
-                    AddPageVisuals(canvas, renderedPage, webFonts, conversionReport, options.InteractiveFormControls, cancellationToken);
-                    AddPageOutlines(canvas, headingsByPage[renderedPage.PageNumber], headingDocumentOrder, cancellationToken);
+                    if (printLayoutScale == 1D) {
+                        AddPageVisuals(canvas, renderedPage, webFonts, conversionReport, options.InteractiveFormControls, cancellationToken);
+                    } else {
+                        canvas.Effect(OfficeTransform.Scale(printLayoutScale, printLayoutScale), 1D,
+                            content => AddPageVisuals(content, renderedPage, webFonts, conversionReport, options.InteractiveFormControls, cancellationToken));
+                    }
+                    AddPageOutlines(canvas, headingsByPage[renderedPage.PageNumber], headingDocumentOrder, printLayoutScale, cancellationToken);
                 });
             });
         }
@@ -329,10 +337,10 @@ internal static partial class HtmlPdfRenderedConverter {
         return new HtmlPdfRenderResult(pdf, diagnostics, conversionReport);
     }
 
-    private static void AddPageOutlines(PdfCore.PdfPageCanvas canvas, IEnumerable<HtmlRenderHeading> headings, IReadOnlyDictionary<HtmlRenderHeading, int> headingDocumentOrder, CancellationToken cancellationToken) {
+    private static void AddPageOutlines(PdfCore.PdfPageCanvas canvas, IEnumerable<HtmlRenderHeading> headings, IReadOnlyDictionary<HtmlRenderHeading, int> headingDocumentOrder, double pageScale, CancellationToken cancellationToken) {
         foreach (HtmlRenderHeading heading in headings) {
             cancellationToken.ThrowIfCancellationRequested();
-            canvas.Outline(heading.Text, heading.Level, Math.Max(0D, heading.Y * PointsPerCssPixel), heading.BookmarkState switch {
+            canvas.Outline(heading.Text, heading.Level, Math.Max(0D, heading.Y * PointsPerCssPixel * pageScale), heading.BookmarkState switch {
                 HtmlRenderBookmarkState.Open => PdfCore.PdfOutlineState.Open,
                 HtmlRenderBookmarkState.Closed => PdfCore.PdfOutlineState.Closed,
                 _ => PdfCore.PdfOutlineState.Default

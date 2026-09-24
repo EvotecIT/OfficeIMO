@@ -85,6 +85,25 @@ For stitched output, `SourcePlacements` preserves every contributing source page
 or slice and its output offset. Layout, projection, and PDF encoding share one
 operation deadline.
 
+For a wide print layout that should fit a fixed paper size, set a CSS layout
+width explicitly. The PDF keeps the physical `PageSize`; content and margins are
+scaled uniformly after layout. This changes wrapping and page breaks, so choose
+the width for the source rather than assuming one width fits every page.
+
+```csharp
+var fitted = new HtmlToPdfOptions {
+    PageSize = OfficePageSizes.A4,
+    Margins = HtmlRenderMargins.All(24),
+    HonorCssPageRules = false,
+    PrintLayoutWidthCssPixels = 1200
+};
+byte[] fittedPdf = source.ToPdfBytes(fitted);
+```
+
+Fitting applies to print-paged reflow. `HonorCssPageRules` must be `false` so
+authored `@page` geometry is not silently replaced. The retained render result
+uses the wider CSS page dimensions; the PDF is the scaled paper-size artifact.
+
 A prepared HTML report can be exported directly to a file:
 
 ```csharp

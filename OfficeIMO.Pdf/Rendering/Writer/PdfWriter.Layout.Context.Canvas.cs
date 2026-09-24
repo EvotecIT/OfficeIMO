@@ -105,7 +105,8 @@ internal static partial class PdfWriter {
         }
 
         private void RenderCanvasNamedDestination(PdfCanvasNamedDestinationItem item) {
-            AddNamedDestinationName(item.Name, currentOpts.PageHeight - item.Y);
+            OfficePoint position = _canvasEffectToPage.TransformPoint(new OfficePoint(item.X, currentOpts.PageHeight - item.Y));
+            AddNamedDestinationName(item.Name, position.Y);
         }
 
         private void RenderCanvasNamedDestinationLink(PdfCanvasNamedDestinationLinkItem item) {
@@ -726,10 +727,35 @@ internal static partial class PdfWriter {
 
         private static void TransformCanvasRectangle(FormFieldAnnotation annotation, OfficeTransform transform) {
             (annotation.X1, annotation.Y1, annotation.X2, annotation.Y2) = TransformRectangle(annotation.X1, annotation.Y1, annotation.X2, annotation.Y2, transform);
+            // Opaque uniform canvas scaling changes widget geometry and its independent appearance stream.
+            double scale = transform.M11;
+            if (annotation.AppearanceScale == 1D) {
+                annotation.AppearanceSourceStyle = annotation.Style.Clone();
+                annotation.AppearanceSourceOverrideStyle = annotation.AppearanceStyle?.Clone();
+                annotation.AppearanceSourceFontSize = annotation.FontSize;
+            }
+            annotation.AppearanceScale *= scale;
+            annotation.FontSize *= scale;
+            annotation.ButtonSize *= scale;
+            annotation.ButtonGap *= scale;
+            annotation.Style = ScaleFormFieldStyle(annotation.Style, scale);
+            if (annotation.AppearanceStyle != null) annotation.AppearanceStyle = ScaleFormFieldStyle(annotation.AppearanceStyle, scale);
             for (int index = 0; index < annotation.RadioWidgets.Count; index++) {
                 RadioButtonWidgetAnnotation widget = annotation.RadioWidgets[index];
                 (widget.X1, widget.Y1, widget.X2, widget.Y2) = TransformRectangle(widget.X1, widget.Y1, widget.X2, widget.Y2, transform);
+                if (widget.AppearanceScale == 1D) widget.AppearanceSourceStyle = widget.Style.Clone();
+                widget.AppearanceScale *= scale;
+                widget.Style = ScaleFormFieldStyle(widget.Style, scale);
             }
+        }
+
+        private static PdfFormFieldStyle ScaleFormFieldStyle(PdfFormFieldStyle style, double scale) {
+            PdfFormFieldStyle scaled = style.Clone();
+            scaled.BorderWidth *= scale;
+            scaled.CornerRadius *= scale;
+            if (scaled.BorderDashPattern is IReadOnlyList<double> dashPattern)
+                scaled.BorderDashPattern = dashPattern.Select(segment => segment * scale).ToArray();
+            return scaled;
         }
 
         private static (double X1, double Y1, double X2, double Y2) TransformRectangle(double x1, double y1, double x2, double y2, OfficeTransform transform) {

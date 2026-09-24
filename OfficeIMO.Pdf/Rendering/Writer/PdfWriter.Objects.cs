@@ -250,6 +250,10 @@ internal static partial class PdfWriter {
         public double ButtonSize { get; set; }
         public double ButtonGap { get; set; }
         public PdfFormFieldStyle Style { get; set; } = new PdfFormFieldStyle();
+        public double AppearanceScale { get; set; } = 1D;
+        public PdfFormFieldStyle? AppearanceSourceStyle { get; set; }
+        public PdfFormFieldStyle? AppearanceSourceOverrideStyle { get; set; }
+        public double AppearanceSourceFontSize { get; set; }
         public bool IsComboBox { get; set; }
         public bool AllowsMultipleSelection { get; set; }
         public int? StructureParentElementIndex { get; set; }
@@ -275,6 +279,8 @@ internal static partial class PdfWriter {
         public double Y2 { get; set; }
         public string Option { get; set; } = string.Empty;
         public PdfFormFieldStyle Style { get; set; } = new PdfFormFieldStyle();
+        public double AppearanceScale { get; set; } = 1D;
+        public PdfFormFieldStyle? AppearanceSourceStyle { get; set; }
         public int? StructureParentElementIndex { get; set; }
         public PageStructElement? StructureParentElement { get; set; }
     }

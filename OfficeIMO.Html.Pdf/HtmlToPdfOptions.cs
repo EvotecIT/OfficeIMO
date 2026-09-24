@@ -20,6 +20,7 @@ namespace OfficeIMO.Html.Pdf;
 public sealed class HtmlToPdfOptions : HtmlRenderOptions {
     private int _maxOutlinedTextCharactersPerRun = 16_384;
     private int _maxOutlinedTextPathCommands = 1_000_000;
+    private double? _printLayoutWidthCssPixels;
     private PdfCore.PdfResourcePolicy _resourcePolicy = PdfCore.PdfResourcePolicy.CreateDefault();
     private PdfCore.PdfOptions _documentOptions = new PdfCore.PdfOptions {
         CompressContentStreams = true
@@ -27,6 +28,7 @@ public sealed class HtmlToPdfOptions : HtmlRenderOptions {
 
     internal HtmlRenderResourceResolver? EmbeddedPackageResourceResolver { get; set; }
     internal HtmlUrlPolicy? EmbeddedPackageHostResourceUrlPolicy { get; set; }
+    internal DrawingCore.OfficePageSize? PrintOutputPageSize { get; set; }
     /// <summary>Creates direct paged HTML-to-PDF options using the standard defaults.</summary>
     public HtmlToPdfOptions() {
         Mode = HtmlRenderMode.Paged;
@@ -63,6 +65,20 @@ public sealed class HtmlToPdfOptions : HtmlRenderOptions {
     /// Disable this to retain the shared renderer's static control paint in the PDF.
     /// </summary>
     public bool InteractiveFormControls { get; set; } = true;
+
+    /// <summary>
+    /// Optional wider CSS layout width for print-to-page fitting. The PDF keeps <see cref="HtmlRenderOptions.PageSize"/>
+    /// as its physical size while the paged layout is uniformly reduced to fit its width.
+    /// This mode requires <see cref="HtmlRenderOptions.HonorCssPageRules"/> to be false so authored page geometry is not silently changed.
+    /// </summary>
+    public double? PrintLayoutWidthCssPixels {
+        get => _printLayoutWidthCssPixels;
+        set {
+            if (value.HasValue && (value.Value <= 0D || double.IsNaN(value.Value) || double.IsInfinity(value.Value)))
+                throw new ArgumentOutOfRangeException(nameof(value));
+            _printLayoutWidthCssPixels = value;
+        }
+    }
 
     /// <summary>
     /// Maximum UTF-16 characters expanded into vector font outlines for one rendered text run.
@@ -128,6 +144,8 @@ public sealed class HtmlToPdfOptions : HtmlRenderOptions {
         TextShapingMode = source.TextShapingMode;
         FontFamily = source.FontFamily;
         InteractiveFormControls = source.InteractiveFormControls;
+        PrintLayoutWidthCssPixels = source.PrintLayoutWidthCssPixels;
+        PrintOutputPageSize = source.PrintOutputPageSize;
         MaxOutlinedTextCharactersPerRun = source.MaxOutlinedTextCharactersPerRun;
         MaxOutlinedTextPathCommands = source.MaxOutlinedTextPathCommands;
         PdfOptions = source.PdfOptions.Clone();
