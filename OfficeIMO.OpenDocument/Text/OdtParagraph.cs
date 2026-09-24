@@ -82,7 +82,7 @@ public sealed class OdtParagraph {
     /// <summary>Footnotes and endnotes referenced from this paragraph, in source order.</summary>
     public IReadOnlyList<OdtNote> Notes => _element.Descendants(OdfNamespaces.Text + "note")
         .Where(element => !element.Ancestors(OdfNamespaces.Text + "note").Any())
-        .Select(element => new OdtNote(_document, element)).ToList();
+        .Select(element => new OdtNote(_document, element, _partPath)).ToList();
 
     /// <summary>Embedded image frames in this paragraph.</summary>
     public IReadOnlyList<OdtImage> Images => _element.Descendants(OdfNamespaces.Draw + "frame")
@@ -322,16 +322,19 @@ public sealed class OdtParagraph {
     private OdtNote AddNote(OdtNoteKind kind, string text) {
         if (text == null) throw new ArgumentNullException(nameof(text));
         string prefix = kind == OdtNoteKind.Footnote ? "ftn" : "endn";
-        int ordinal = _document.TextBody.Descendants(OdfNamespaces.Text + "note")
+        IEnumerable<XElement> existingNotes = _document.GetXml("content.xml").Descendants(OdfNamespaces.Text + "note");
+        if (_document.Package.ContainsEntry("styles.xml"))
+            existingNotes = existingNotes.Concat(_document.GetXml("styles.xml").Descendants(OdfNamespaces.Text + "note"));
+        XElement[] existing = existingNotes.ToArray();
+        int ordinal = existing
             .Count(note => (string?)note.Attribute(OdfNamespaces.Text + "note-class") ==
                 (kind == OdtNoteKind.Footnote ? "footnote" : "endnote")) + 1;
         int idNumber = ordinal;
         string id;
         do { id = prefix + idNumber++.ToString(CultureInfo.InvariantCulture); }
-        while (_document.TextBody.Descendants(OdfNamespaces.Text + "note")
-            .Any(note => (string?)note.Attribute(OdfNamespaces.Text + "id") == id));
+        while (existing.Any(note => (string?)note.Attribute(OdfNamespaces.Text + "id") == id));
         OdtNote result = OdtNote.Create(_document, kind, id,
-            ordinal.ToString(CultureInfo.InvariantCulture), text);
+            ordinal.ToString(CultureInfo.InvariantCulture), text, _partPath);
         _element.Add(result.Element);
         Dirty();
         return result;

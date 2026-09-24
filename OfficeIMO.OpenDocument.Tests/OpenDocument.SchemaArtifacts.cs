@@ -35,7 +35,7 @@ public class OpenDocumentSchemaArtifactTests {
                 cited.AddEndnote("Endnote schema proof.");
                 text.AddList().AddItem("One");
                 text.AddTable(2, 2, "Proof").Cell(0, 0).Text = "Value";
-                text.PageLayout.Header.AddParagraph("OfficeIMO");
+                text.PageLayout.Header.AddParagraph("OfficeIMO").AddFootnote("Header note schema proof.");
                 text.AddTrackedParagraphInsertion("Tracked schema proof", "OfficeIMO", new DateTimeOffset(2026, 7, 10, 0, 0, 0, TimeSpan.Zero));
                 text.AddParagraph("Embedded image").AddImage(TinyPng, "pixel.png", OdfLength.Centimeters(1), OdfLength.Centimeters(1));
                 text.Save(Path.Combine(output, "schema-proof-1.4.odt"));

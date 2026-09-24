@@ -121,6 +121,7 @@ public static partial class WordOpenDocumentConversionExtensions {
             .Sum(run => run.NonTextBreaks?.Values.Count(kind => kind == WordBreakType.Column) ?? 0);
         if (columnBreaks > 0) report.Add("column-breaks", OdfConversionMappingStatus.Approximated, columnBreaks,
             "Word column breaks are retained as line breaks because the ODT paragraph projection does not preserve column flow.");
+        CountWordNoteSettingsLoss(source, notes);
         AddNoteMappings(report, notes);
         if (nestedListLevels > 0) report.Add("list-levels", OdfConversionMappingStatus.Approximated, nestedListLevels,
             "Nested Word list items are retained as top-level ODT list items because hierarchical list emission is not yet supported.");

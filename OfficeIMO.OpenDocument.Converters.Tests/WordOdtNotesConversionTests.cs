@@ -7,11 +7,85 @@ using OfficeIMO.OpenDocument;
 using OfficeIMO.OpenDocument.Testing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.OpenDocument;
+using W = DocumentFormat.OpenXml.Wordprocessing;
 using Xunit;
 
 namespace OfficeIMO.OpenDocument.Converters.Tests;
 
 public sealed class WordOdtNotesConversionTests {
+    [Fact]
+    public void OdtNoteInsertionWorksWithoutOptionalStylesPart() {
+        OdtDocument source = OdtDocument.Create();
+        source.Package.RemoveEntry("styles.xml");
+        source.AddParagraph("Anchor").AddFootnote("Body");
+
+        OdtDocument reopened = OdtDocument.Load(new MemoryStream(source.ToBytes()));
+        Assert.Equal("Body", Assert.Single(Assert.Single(reopened.Paragraphs).Notes).Paragraphs[0].Text);
+    }
+
+    [Fact]
+    public void WordNoteNumberingAndPlacementSettingsAreExplicitLoss() {
+        using WordDocument source = WordDocument.Create();
+        source.AddFootnoteProperties(WordNumberFormat.UpperRoman, WordFootnotePosition.BeneathText,
+            WordNoteNumberRestart.EachSection, 5);
+        source.AddEndnoteProperties(WordNumberFormat.LowerRoman, WordEndnotePosition.SectionEnd,
+            WordNoteNumberRestart.EachSection, 3);
+        source.AddParagraph("Footnote anchor").AddFootNote("Footnote body");
+        source.AddParagraph("Endnote anchor").AddEndNote("Endnote body");
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-numbering-placement" &&
+            mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 2);
+        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void WordNoteBodyParagraphStylesAreExplicitLoss() {
+        using WordDocument source = WordDocument.Create();
+        source.AddParagraph("Anchor").AddFootNote("Styled note body");
+        var noteParagraphs = source.FootNotes[0].Paragraphs;
+        Assert.NotNull(noteParagraphs);
+        noteParagraphs![0].Style = WordParagraphStyles.Heading1;
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-formatting" &&
+            mapping.Status == OdfConversionMappingStatus.Approximated);
+        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void CustomizedBuiltInWordNoteStyleIsExplicitLoss() {
+        using WordDocument source = WordDocument.Create();
+        source.AddParagraph("Anchor").AddFootNote("Note body");
+        W.Style style = source.OpenXmlDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
+            .Elements<W.Style>().Single(candidate => candidate.StyleId?.Value == "FootnoteText");
+        style.StyleRunProperties!.GetFirstChild<W.FontSize>()!.Val = "28";
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-formatting" &&
+            mapping.Status == OdfConversionMappingStatus.Approximated);
+        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void HeaderAndFooterNoteBodyEditsSurviveSaveAndReopen() {
+        OdtDocument source = OdtDocument.Create();
+        source.PageLayout.Header.AddParagraph("Header").AddFootnote("Header note");
+        source.PageLayout.Footer.AddParagraph("Footer").AddEndnote("Footer note");
+        OdtDocument loaded = OdtDocument.Load(new MemoryStream(source.ToBytes()));
+        loaded.PageLayout.Header.Paragraphs[0].Notes[0].AddParagraph("Additional header detail");
+        loaded.PageLayout.Footer.Paragraphs[0].Notes[0].Paragraphs[0].Text = "Edited footer note";
+
+        OdtDocument reopened = OdtDocument.Load(new MemoryStream(loaded.ToBytes()));
+        Assert.Equal("Additional header detail", reopened.PageLayout.Header.Paragraphs[0].Notes[0].Paragraphs[1].Text);
+        Assert.Equal("Edited footer note", reopened.PageLayout.Footer.Paragraphs[0].Notes[0].Paragraphs[0].Text);
+        Assert.NotEqual(reopened.PageLayout.Header.Paragraphs[0].Notes[0].Id,
+            reopened.PageLayout.Footer.Paragraphs[0].Notes[0].Id);
+    }
+
     [Fact]
     public void ExistingWordNoteFixtureKeepsBothNoteKindsThroughOdt() {
         string path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "DocumentWithFootNotes.docx");

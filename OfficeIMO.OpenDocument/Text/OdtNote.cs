@@ -12,10 +12,12 @@ public enum OdtNoteKind {
 public sealed class OdtNote {
     private readonly OdtDocument _document;
     private readonly XElement _element;
+    private readonly string _partPath;
 
-    internal OdtNote(OdtDocument document, XElement element) {
+    internal OdtNote(OdtDocument document, XElement element, string partPath = "content.xml") {
         _document = document;
         _element = element;
+        _partPath = partPath;
     }
 
     /// <summary>The native note identifier.</summary>
@@ -33,7 +35,7 @@ public sealed class OdtNote {
 
     /// <summary>Direct paragraphs in the note body, in source order.</summary>
     public IReadOnlyList<OdtParagraph> Paragraphs => Body?.Elements(OdfNamespaces.Text + "p")
-        .Select(paragraph => new OdtParagraph(_document, paragraph)).ToList() ?? new List<OdtParagraph>();
+        .Select(paragraph => new OdtParagraph(_document, paragraph, _partPath)).ToList() ?? new List<OdtParagraph>();
 
     /// <summary>Appends a paragraph to this note's body.</summary>
     public OdtParagraph AddParagraph(string? text = null) {
@@ -41,14 +43,15 @@ public sealed class OdtNote {
         var paragraph = new XElement(OdfNamespaces.Text + "p");
         OdfTextCodec.Append(paragraph, text);
         body.Add(paragraph);
-        _document.MarkPartDirty("content.xml");
-        return new OdtParagraph(_document, paragraph);
+        _document.MarkPartDirty(_partPath);
+        return new OdtParagraph(_document, paragraph, _partPath);
     }
 
     /// <summary>Whether the body contains only direct paragraphs that the Word adapter can project.</summary>
     public bool HasOnlyParagraphs => Body != null && Body.Elements().All(child => child.Name == OdfNamespaces.Text + "p");
 
-    internal static OdtNote Create(OdtDocument document, OdtNoteKind kind, string id, string citation, string? text) {
+    internal static OdtNote Create(OdtDocument document, OdtNoteKind kind, string id, string citation,
+        string? text, string partPath) {
         var paragraph = new XElement(OdfNamespaces.Text + "p");
         OdfTextCodec.Append(paragraph, text);
         var element = new XElement(OdfNamespaces.Text + "note",
@@ -56,7 +59,7 @@ public sealed class OdtNote {
             new XAttribute(OdfNamespaces.Text + "note-class", kind == OdtNoteKind.Footnote ? "footnote" : "endnote"),
             new XElement(OdfNamespaces.Text + "note-citation", citation),
             new XElement(OdfNamespaces.Text + "note-body", paragraph));
-        return new OdtNote(document, element);
+        return new OdtNote(document, element, partPath);
     }
 
     internal XElement Element => _element;

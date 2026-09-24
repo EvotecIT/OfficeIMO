@@ -128,7 +128,7 @@ public sealed class OdtInlineNode {
                 result.Add(BookmarkNode(OdtInlineNodeKind.BookmarkEnd, element));
             } else if (element.Name == OdfNamespaces.Text + "note") {
                 result.Add(new OdtInlineNode(OdtInlineNodeKind.Note, string.Empty,
-                    note: new OdtNote(document, element)));
+                    note: new OdtNote(document, element, partPath)));
             } else {
                 result.Add(new OdtInlineNode(OdtInlineNodeKind.Other, OdfTextCodec.Read(element),
                     qualifiedName: element.Name.ToString()));
