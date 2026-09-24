@@ -77,6 +77,32 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlPdf_PrintLayoutWidthUsesNestedFrameViewportForItsMediaQueries() {
+        const string html = """
+            <iframe style="width:300px;height:100px" srcdoc="
+              <style>
+                #narrow, #wide { display:none }
+                @media (max-width:400px) { #narrow { display:block } }
+                @media (min-width:768px) { #wide { display:block } }
+              </style>
+              <p id='narrow'>NarrowFrame</p><p id='wide'>WideFrame</p>
+            "></iframe>
+            """;
+        var options = new HtmlToPdfOptions {
+            PageSize = OfficePageSizes.A4,
+            Margins = HtmlRenderMargins.All(0D),
+            HonorCssPageRules = false,
+            ViewportWidth = 816D,
+            PrintLayoutWidthCssPixels = 1200D
+        };
+
+        string text = PdfCore.PdfReadDocument.Open(HtmlConversionDocument.Parse(html).ToPdfBytes(options)).ExtractText();
+
+        Assert.Contains("NarrowFrame", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("WideFrame", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlPdf_PrintLayoutWidthFitsWideRowsOnPhysicalA4() {
         const string html = """
             <div style="width:66.666%">

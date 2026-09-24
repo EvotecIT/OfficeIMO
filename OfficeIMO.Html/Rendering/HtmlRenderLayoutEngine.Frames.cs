@@ -101,6 +101,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         options.Mode = HtmlRenderMode.Continuous;
         options.CssMediaContextOverride = _options.MediaContext;
         options.ViewportWidth = Math.Max(0.01D, viewportWidth);
+        options.CssMediaWidthOverride = null;
         options.ViewportHeight = Math.Max(0.01D, viewportHeight);
         options.Margins = HtmlRenderMargins.All(0D);
         options.HonorCssPageRules = false;

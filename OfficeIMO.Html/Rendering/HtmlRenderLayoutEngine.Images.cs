@@ -312,6 +312,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderOptions nestedOptions = _options.Clone();
         nestedOptions.Mode = HtmlRenderMode.Continuous;
         nestedOptions.ViewportWidth = context.Width;
+        nestedOptions.CssMediaWidthOverride = null;
         nestedOptions.ViewportHeight = context.Height;
         nestedOptions.Margins = HtmlRenderMargins.All(0D);
         nestedOptions.HonorCssPageRules = false;
