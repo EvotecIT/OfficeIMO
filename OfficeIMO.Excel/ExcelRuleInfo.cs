@@ -39,8 +39,8 @@ namespace OfficeIMO.Excel {
         public bool StopIfTrue { get; set; }
         /// <summary>Gets or sets the differential format id attached to the rule, when present.</summary>
         public uint? DifferentialFormatId { get; set; }
-        /// <summary>Gets whether the resolved differential format contains only a solid background fill.</summary>
-        public bool IsSolidFillOnlyDifferentialStyle { get; internal set; }
+        /// <summary>Gets whether the differential format contains only a solid fill with a direct RGB foreground color.</summary>
+        public bool IsDirectRgbSolidFillOnlyDifferentialStyle { get; internal set; }
         /// <summary>Gets or sets the resolved ARGB fill color from the rule's differential format, when present.</summary>
         public string? DifferentialFillColorArgb { get; set; }
         /// <summary>Gets or sets the resolved ARGB font color from the rule's differential format, when present.</summary>

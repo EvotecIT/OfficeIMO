@@ -29,7 +29,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 || !string.Equals(rule.Type, "CellIs", StringComparison.OrdinalIgnoreCase)
                 || rule.Priority <= 0 || index > 0 && ordered[index - 1].Priority == rule.Priority
                 || index < ordered.Length - 1 && !rule.StopIfTrue
-                || rule.HasPreservedUnknownMarkup || !rule.IsSolidFillOnlyDifferentialStyle
+                || rule.HasPreservedUnknownMarkup || !rule.IsDirectRgbSolidFillOnlyDifferentialStyle
                 || !TryParseOpaqueArgb(rule.DifferentialFillColorArgb, out OdfColor fill)
                 || !TryGetOdfCellCondition(rule, out string? condition)) return 0;
             conditions.Add((condition!, fill));
@@ -122,7 +122,27 @@ public static partial class ExcelOpenDocumentConversionExtensions {
 
     private static bool TryFormatNumericConditionBound(string? text, out string? normalized) {
         normalized = null;
-        if (!decimal.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out decimal value)) return false;
+        if (text == null) return false;
+        string literal = text.Trim();
+        if (literal.Length == 0 || literal.Length > 64) return false;
+        int start = literal[0] == '+' || literal[0] == '-' ? 1 : 0;
+        bool decimalPoint = false, digitSeen = false, significantDigitSeen = false;
+        int fractionDigits = 0, significantDigits = 0;
+        for (int index = start; index < literal.Length; index++) {
+            char character = literal[index];
+            if (character == '.' && !decimalPoint) {
+                decimalPoint = true;
+                continue;
+            }
+            if (character < '0' || character > '9') return false;
+            digitSeen = true;
+            if (decimalPoint) fractionDigits++;
+            if (character != '0') significantDigitSeen = true;
+            if (significantDigitSeen) significantDigits++;
+        }
+        if (!digitSeen || fractionDigits > 28 || significantDigits > 28
+            || !decimal.TryParse(literal, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint,
+                CultureInfo.InvariantCulture, out decimal value)) return false;
         normalized = value.ToString(CultureInfo.InvariantCulture);
         return true;
     }
