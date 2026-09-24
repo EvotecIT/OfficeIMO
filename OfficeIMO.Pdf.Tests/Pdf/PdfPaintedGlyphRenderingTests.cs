@@ -197,6 +197,25 @@ public sealed class PdfPaintedGlyphRenderingTests {
     }
 
     [Fact]
+    public void SharedCidProgramWithDifferentHighCidMappingsKeepsDistinctDrawingFaces() {
+        byte[] bytes = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A', 'B');
+        var source = new PdfFontResource("F1", "SharedCid", "Identity-H", true,
+            embeddedTrueTypeFont: bytes, fontSubtype: "CIDFontType2", embeddedProgramSubtype: "TrueType");
+        var unicode = new SortedDictionary<int, int> { ['A'] = 1 };
+        byte[] firstMap = new byte[514];
+        byte[] secondMap = new byte[514];
+        firstMap[513] = 1;
+        secondMap[513] = 2;
+        var first = new PdfDrawingFontProgram(bytes, unicode, code => code == 256 ? 1 : 0,
+            _ => false, firstMap);
+        var second = new PdfDrawingFontProgram(bytes, unicode, code => code == 256 ? 2 : 0,
+            _ => false, secondMap);
+
+        Assert.NotEqual(source.WithDrawingProgram(first).DrawingFontFamily,
+            source.WithDrawingProgram(second).DrawingFontFamily);
+    }
+
+    [Fact]
     public void SimpleSymbolicSubsetWithOnlyClusterMappingsRegistersItsPaintedGlyphs() {
         string root = VisualBaselineTestSupport.GetTestsProjectRoot();
         string path = Path.Combine(root, "Pdf", "Fixtures", "Fonts", "symbolic-truetype-cluster-only.pdf");

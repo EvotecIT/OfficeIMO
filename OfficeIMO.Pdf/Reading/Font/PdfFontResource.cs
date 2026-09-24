@@ -92,14 +92,20 @@ internal sealed class PdfFontResource {
         using SHA256 sha256 = SHA256.Create();
         byte[] hash = sha256.ComputeHash(fontData);
         if (drawingProgram != null) {
-            // Two PDF resources may share a Unicode cmap but select different glyphs for the same
-            // character code. Keep their drawing faces distinct while sharing identical code maps.
-            var identity = new byte[hash.Length + 256 * 2];
+            // A rebuilt Unicode cmap can omit duplicate or cluster mappings. Keep the full PDF code
+            // map in the face identity, including CID entries above the one-byte simple-font range.
+            byte[]? cidMap = drawingProgram.CidToGlyphMap;
+            var identity = new byte[hash.Length + 1 + (cidMap?.Length ?? 256 * 2)];
             Buffer.BlockCopy(hash, 0, identity, 0, hash.Length);
-            for (int code = 0; code < 256; code++) {
-                int glyph = drawingProgram.GlyphForCode(code);
-                identity[hash.Length + code * 2] = (byte)(glyph >> 8);
-                identity[hash.Length + code * 2 + 1] = (byte)glyph;
+            identity[hash.Length] = cidMap == null ? (byte)0 : (byte)1;
+            if (cidMap != null) {
+                Buffer.BlockCopy(cidMap, 0, identity, hash.Length + 1, cidMap.Length);
+            } else {
+                for (int code = 0; code < 256; code++) {
+                    int glyph = drawingProgram.GlyphForCode(code);
+                    identity[hash.Length + 1 + code * 2] = (byte)(glyph >> 8);
+                    identity[hash.Length + 1 + code * 2 + 1] = (byte)glyph;
+                }
             }
             hash = sha256.ComputeHash(identity);
         }

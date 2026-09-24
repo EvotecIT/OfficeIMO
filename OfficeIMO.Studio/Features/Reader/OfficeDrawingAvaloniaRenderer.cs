@@ -32,6 +32,9 @@ internal sealed class OfficeDrawingAvaloniaRenderer : IDisposable {
                     AnalyzeRasterFallback(shape.Shape, reasons);
                     break;
                 case OfficeDrawingText text:
+                    if (!string.Equals(text.Text, text.RasterText, StringComparison.Ordinal)) {
+                        reasons.Add("Avalonia vector fallback: painted PDF glyphs require the OfficeIMO raster renderer for fidelity.");
+                    }
                     if (text.HasFrameTransform) {
                         reasons.Add("Avalonia vector fallback: transformed text requires the OfficeIMO raster renderer for glyph positioning.");
                     }
@@ -167,7 +170,7 @@ internal sealed class OfficeDrawingAvaloniaRenderer : IDisposable {
             text.Font.IsBold ? FontWeight.Bold : FontWeight.Normal,
             FontStretch.Normal);
         var formatted = new FormattedText(
-            text.Text,
+            text.RasterText,
             CultureInfo.CurrentUICulture,
             FlowDirection.LeftToRight,
             typeface,

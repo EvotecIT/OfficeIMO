@@ -1,9 +1,31 @@
 using OfficeIMO.Drawing;
+using OfficeIMO.Pdf;
 using OfficeIMO.Studio.Features.Reader;
 
 namespace OfficeIMO.Studio.Tests;
 
 public sealed class OfficeDrawingAvaloniaRendererTests {
+    [Fact]
+    public void SubstitutedPdfGlyphsUseTheRasterPreviewPath() {
+        const string content = "BT /F1 20 Tf 20 80 Td (A) Tj ET";
+        const string cmap = "begincmap\n1 begincodespacerange\n<00> <FF>\nendcodespacerange\n1 beginbfchar\n<41> <0051>\nendbfchar\nendcmap";
+        byte[] pdf = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 100] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>", "endobj",
+            "4 0 obj", $"<< /Length {content.Length} >>", "stream", content, "endstream", "endobj",
+            "5 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding << /Type /Encoding /BaseEncoding /WinAnsiEncoding /Differences [65 /B] >> /ToUnicode 6 0 R >>", "endobj",
+            "6 0 obj", $"<< /Length {cmap.Length} >>", "stream", cmap, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 7 >>", "%%EOF"
+        }) + "\n");
+        OfficeDrawing drawing = PdfReadDocument.Open(pdf).Pages[0].ToDrawing();
+
+        Assert.Equal("Q", Assert.Single(drawing.Elements.OfType<OfficeDrawingText>()).Text);
+        Assert.Contains(OfficeDrawingAvaloniaRenderer.AnalyzeRasterFallback(drawing),
+            reason => reason.Contains("painted PDF glyphs", StringComparison.Ordinal));
+    }
+
     [Theory]
     [InlineData(60D, 100D)]
     [InlineData(120D, 80D)]

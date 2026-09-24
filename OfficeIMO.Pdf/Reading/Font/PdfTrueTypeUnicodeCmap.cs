@@ -56,7 +56,7 @@ internal static class PdfTrueTypeUnicodeCmap {
         }
         if (mappings == null || mappings.Count == 0) return null;
         byte[]? rebuilt = Rebuild(program, mappings);
-        return rebuilt == null ? null : new PdfDrawingFontProgram(rebuilt, mappings, glyphForCode, isEmptyGlyph);
+        return rebuilt == null ? null : new PdfDrawingFontProgram(rebuilt, mappings, glyphForCode, isEmptyGlyph, cidToGlyphMap);
     }
 
     /// <summary>Returns the program with additional Unicode-to-glyph mappings, keeping existing entries.</summary>
@@ -504,11 +504,12 @@ internal static class PdfTrueTypeUnicodeCmap {
 /// <summary>A drawing-ready TrueType program with its synthesized Unicode mappings.</summary>
 internal sealed class PdfDrawingFontProgram {
     internal PdfDrawingFontProgram(byte[] program, SortedDictionary<int, int> unicodeGlyphs, Func<int, int> glyphForCode,
-        Func<int, bool> isEmptyGlyph) {
+        Func<int, bool> isEmptyGlyph, byte[]? cidToGlyphMap = null) {
         Program = program;
         UnicodeGlyphs = unicodeGlyphs;
         GlyphForCode = glyphForCode;
         IsEmptyGlyph = isEmptyGlyph;
+        CidToGlyphMap = cidToGlyphMap;
     }
 
     internal byte[] Program { get; }
@@ -521,4 +522,7 @@ internal sealed class PdfDrawingFontProgram {
 
     /// <summary>True when a glyph has no outline data.</summary>
     internal Func<int, bool> IsEmptyGlyph { get; }
+
+    /// <summary>The complete CID-to-glyph map, including CIDs absent from the synthesized Unicode cmap.</summary>
+    internal byte[]? CidToGlyphMap { get; }
 }
