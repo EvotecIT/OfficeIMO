@@ -31,6 +31,8 @@ each painted letter by the presentation form the Unicode joining rules select.
 | `space-coded-glyph.pdf` | `cc42204fe1329b4077c463d6b4258c5a6c13ae14286bf1a573c54bda4f0a4089` | `create_space_coded_glyph_fixture.py` |
 | `ligature-run.pdf` | `224fec268284175e96103e12b76e89b2ad7261ef120435d8b6cb50d25c65f259` | `create_ligature_run_fixture.py` |
 | `ligature-only.pdf` | `8963ecf8826ed41f23b73a84d5ae800a4795a0427720ef2d67a6078ee6aaf3d9` | `create_ligature_run_fixture.py` with fontTools 4.65.0 |
+| `empty-glyph-text-only.pdf` | `a4a089a6845537606fc8e4e19c31a7580f574b7132c6a5449ce3cf610add9f6a` | `create_ligature_run_fixture.py` with fontTools 4.65.0; only painted CID maps to an empty ToUnicode array entry. |
+| `inked-space-only.pdf` | `e1a3722ff79525e1228009d9a58294cb5013f7dbabcdbdec1d301f5657b117e8` | `create_ligature_run_fixture.py` with fontTools 4.65.0; only painted CID maps to Unicode space. |
 | `ghostscript-ligature-run.pdf` | `07c80e9df7b07cbe997aaf4d22886c721bbed93244d0ed7194cdfbf70a3d9b68` | GPL Ghostscript 10.02.1 (Ubuntu) `pdfwrite` of `ligature-run.pdf` |
 
 Fonts: the Arabic fixtures embed subsets of the repository's

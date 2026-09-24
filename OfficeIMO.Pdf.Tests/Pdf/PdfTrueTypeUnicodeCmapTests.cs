@@ -17,10 +17,11 @@ public sealed class PdfTrueTypeUnicodeCmapTests {
         int subtable = checked((int)ReadUInt32(cmap, 8));
         Assert.Equal(12, ReadUInt16(cmap, subtable));
         Assert.Equal((uint)(cmap.Length - subtable), ReadUInt32(cmap, subtable + 4));
-        Assert.Equal((uint)mappings.Count, ReadUInt32(cmap, subtable + 12));
-        int last = subtable + 16 + (mappings.Count - 1) * 12;
-        Assert.Equal((uint)(0x20 + mappings.Count - 1), ReadUInt32(cmap, last));
-        Assert.Equal((uint)mappings.Count, ReadUInt32(cmap, last + 8));
+        // Consecutive code points with consecutive glyph IDs form one format-12 group.
+        Assert.Equal(1U, ReadUInt32(cmap, subtable + 12));
+        Assert.Equal(0x20U, ReadUInt32(cmap, subtable + 16));
+        Assert.Equal((uint)(0x20 + mappings.Count - 1), ReadUInt32(cmap, subtable + 20));
+        Assert.Equal(1U, ReadUInt32(cmap, subtable + 24));
     }
 
     private static ushort ReadUInt16(byte[] data, int offset) => (ushort)((data[offset] << 8) | data[offset + 1]);

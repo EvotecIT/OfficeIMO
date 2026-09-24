@@ -19,6 +19,8 @@ from fontTools.ttLib.tables._c_m_a_p import CmapSubtable
 ROOT = Path(__file__).resolve().parents[4]
 SOURCE = ROOT / "OfficeIMO.TestAssets" / "Fonts" / "OfficeIMOBaselineSans-Regular.ttf"
 OUTPUT = Path(__file__).resolve().parent / "symbolic-truetype-cmap.pdf"
+CLUSTER_OUTPUT = Path(__file__).resolve().parent / "symbolic-truetype-cluster-only.pdf"
+DUAL_CMAP_OUTPUT = Path(__file__).resolve().parent / "symbolic-truetype-conflicting-unicode.pdf"
 TEXT = "Symbolic cmap glyphs"
 
 characters = sorted(set(TEXT))
@@ -41,6 +43,13 @@ font["cmap"].tables = [symbol]
 buffer = io.BytesIO()
 font.save(buffer)
 program = buffer.getvalue()
+conflicting_unicode = CmapSubtable.newSubtable(4)
+conflicting_unicode.platformID, conflicting_unicode.platEncID, conflicting_unicode.language = 3, 1, 0
+conflicting_unicode.cmap = {ord(character): unicode_cmap[ord(" ")] for character in characters}
+font["cmap"].tables = [symbol, conflicting_unicode]
+dual_buffer = io.BytesIO()
+font.save(dual_buffer)
+dual_program = dual_buffer.getvalue()
 
 scale = 1000 / font["head"].unitsPerEm
 widths = [round(font["hmtx"][unicode_cmap[ord(character)]][0] * scale) for character in characters]
@@ -69,25 +78,36 @@ objects = [
     None,
     None,
 ]
-streams = {4: content, 7: to_unicode, 8: zlib.compress(program)}
+def write_pdf(path, unicode_stream, font_program=program):
+    streams = {4: content, 7: unicode_stream, 8: zlib.compress(font_program)}
+    output = io.BytesIO()
+    output.write(b"%PDF-1.7\n%\xe2\xe3\xcf\xd3\n")
+    offsets = []
+    for number in range(1, len(objects) + 1):
+        offsets.append(output.tell())
+        output.write(f"{number} 0 obj\n".encode("ascii"))
+        if number in streams:
+            data = streams[number]
+            extra = f" /Filter /FlateDecode /Length1 {len(font_program)}" if number == 8 else ""
+            output.write(f"<< /Length {len(data)}{extra} >>\nstream\n".encode("ascii") + data + b"\nendstream")
+        else:
+            output.write(objects[number - 1])
+        output.write(b"\nendobj\n")
+    xref = output.tell()
+    output.write(f"xref\n0 {len(objects) + 1}\n0000000000 65535 f \n".encode("ascii"))
+    for offset in offsets:
+        output.write(f"{offset:010d} 00000 n \n".encode("ascii"))
+    output.write(f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n".encode("ascii"))
+    path.write_bytes(output.getvalue())
+    print(f"Wrote {path} ({len(output.getvalue())} bytes)")
 
-output = io.BytesIO()
-output.write(b"%PDF-1.7\n%\xe2\xe3\xcf\xd3\n")
-offsets = []
-for number in range(1, len(objects) + 1):
-    offsets.append(output.tell())
-    output.write(f"{number} 0 obj\n".encode("ascii"))
-    if number in streams:
-        data = streams[number]
-        extra = f" /Filter /FlateDecode /Length1 {len(program)}" if number == 8 else ""
-        output.write(f"<< /Length {len(data)}{extra} >>\nstream\n".encode("ascii") + data + b"\nendstream")
-    else:
-        output.write(objects[number - 1])
-    output.write(b"\nendobj\n")
-xref = output.tell()
-output.write(f"xref\n0 {len(objects) + 1}\n0000000000 65535 f \n".encode("ascii"))
-for offset in offsets:
-    output.write(f"{offset:010d} 00000 n \n".encode("ascii"))
-output.write(f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n".encode("ascii"))
-OUTPUT.write_bytes(output.getvalue())
-print(f"Wrote {OUTPUT} ({len(output.getvalue())} bytes)")
+
+write_pdf(OUTPUT, to_unicode)
+cluster_unicode = to_unicode
+for character in characters:
+    cluster_unicode = cluster_unicode.replace(
+        f"<{codes[character]:02X}> <{ord(character):04X}>".encode("ascii"),
+        f"<{codes[character]:02X}> <006600660069>".encode("ascii"),
+    )
+write_pdf(CLUSTER_OUTPUT, cluster_unicode)
+write_pdf(DUAL_CMAP_OUTPUT, to_unicode, dual_program)

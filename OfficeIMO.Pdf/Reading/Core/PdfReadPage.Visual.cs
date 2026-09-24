@@ -157,7 +157,7 @@ public sealed partial class PdfReadPage {
         cancellationToken.ThrowIfCancellationRequested();
         List<PdfPageDrawingElement> pageElements = GetOrderedPageDrawingElements(size.Width, size.Height, pageTransform, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        AddPaintedGlyphMappings(drawing, registeredFonts, pageElements, paintedGlyphMaps, cancellationToken);
+        AddPaintedGlyphMappings(drawing, registeredFonts, pageElements, paintedGlyphMaps, pageContentBudget, cancellationToken);
         IReadOnlyList<PdfPageDrawingEffectTransition> effects = GetGraphicsEffectTransitions(pageTransform, size.Height, pageContentBudget);
         var softMasks = new Dictionary<(PdfStream Group, PdfDictionary? ParentResources, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height, OfficeIccRenderingIntent Intent), OfficeDrawingSoftMask>();
         var activeSoftMasks = new HashSet<PdfStream>();
@@ -191,14 +191,16 @@ public sealed partial class PdfReadPage {
         Dictionary<(string Family, OfficeFontStyle Style), PdfFontResource> registeredFonts,
         List<PdfPageDrawingElement> elements,
         Dictionary<(string Family, OfficeFontStyle Style), PaintedGlyphMap> maps,
+        PageContentBudget pageContentBudget,
         CancellationToken cancellationToken) {
-        SplitAlternateGlyphRuns(elements, registeredFonts, cancellationToken);
+        SplitAlternateGlyphRuns(elements, registeredFonts, pageContentBudget, cancellationToken);
         MapPaintedGlyphs(drawing, registeredFonts, elements, maps);
         RemoveUnresolvedPlaceholders(elements);
     }
 
     private static void SplitAlternateGlyphRuns(List<PdfPageDrawingElement> elements,
         Dictionary<(string Family, OfficeFontStyle Style), PdfFontResource> registeredFonts,
+        PageContentBudget pageContentBudget,
         CancellationToken cancellationToken) {
         for (int index = elements.Count - 1; index >= 0; index--) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -206,7 +208,8 @@ public sealed partial class PdfReadPage {
             if (element.Kind != PdfPageDrawingElementKind.Text || element.TextSpan is not PdfTextSpan span ||
                 span.DrawingFontFamily == null || !registeredFonts.TryGetValue(PaintedFontKey(span), out PdfFontResource? registered) ||
                 registered.DrawingProgram is not PdfDrawingFontProgram program) continue;
-            List<PdfTextSpan>? glyphs = PdfPaintedGlyphRuns.SplitAlternateGlyphRun(span, program, cancellationToken);
+            List<PdfTextSpan>? glyphs = PdfPaintedGlyphRuns.SplitAlternateGlyphRun(span, program,
+                pageContentBudget.ChargePositionedTextWorkCharacters, cancellationToken);
             if (glyphs == null) continue;
             elements.RemoveAt(index);
             elements.InsertRange(index, glyphs.Select(glyph =>
@@ -2669,7 +2672,8 @@ public sealed partial class PdfReadPage {
                 contentOrderPrefix: PdfContentOrderKey.Root,
                 contentOrderOffset: -transformedAppearanceContentOffset,
                 cancellationCheck: cancellationToken.ThrowIfCancellationRequested);
-            PdfPaintedGlyphRuns.SplitComplexRuns(textSpans, cancellationToken);
+            PdfPaintedGlyphRuns.SplitComplexRuns(textSpans, pageContentBudget.ChargePositionedTextWorkCharacters,
+                cancellationToken);
             PdfArabicPaintedForms.Apply(textSpans, cancellationToken);
             for (int textIndex = 0; textIndex < textSpans.Count; textIndex++) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -2723,7 +2727,7 @@ public sealed partial class PdfReadPage {
             OverlayDrawingEffects(elements, appearanceEffects);
 
             SortDrawingElements(elements);
-            AddPaintedGlyphMappings(drawing, registeredFonts, elements, paintedGlyphMaps, cancellationToken);
+            AddPaintedGlyphMappings(drawing, registeredFonts, elements, paintedGlyphMaps, pageContentBudget, cancellationToken);
             var appearanceSoftMasks = new Dictionary<(PdfStream Group, PdfDictionary? ParentResources, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height, OfficeIccRenderingIntent Intent), OfficeDrawingSoftMask>();
             var activeAppearanceSoftMasks = new HashSet<PdfStream>();
             for (int elementIndex = 0; elementIndex < elements.Count; elementIndex++) {
@@ -2880,7 +2884,8 @@ public sealed partial class PdfReadPage {
             spans[index] = spans[index].WithPageFontSize();
         }
         if (!useLogicalTextFilters) {
-            PdfPaintedGlyphRuns.SplitComplexRuns(spans, pageContentBudget.CancellationToken);
+            PdfPaintedGlyphRuns.SplitComplexRuns(spans, pageContentBudget.ChargePositionedTextWorkCharacters,
+                pageContentBudget.CancellationToken);
             PdfArabicPaintedForms.Apply(spans, pageContentBudget.CancellationToken);
         }
         return spans.Count == 0 ? Array.Empty<PdfTextSpan>() : spans.AsReadOnly();

@@ -21,6 +21,8 @@ ROOT = Path(__file__).resolve().parents[4]
 SOURCE = ROOT / "Website" / "Apps" / "OfficeIMO.Web.Converter" / "Assets" / "Fonts" / "Carlito-Regular.ttf"
 OUTPUT = Path(__file__).resolve().parent / "ligature-run.pdf"
 LIGATURE_ONLY_OUTPUT = Path(__file__).resolve().parent / "ligature-only.pdf"
+EMPTY_ONLY_OUTPUT = Path(__file__).resolve().parent / "empty-glyph-text-only.pdf"
+INKED_SPACE_ONLY_OUTPUT = Path(__file__).resolve().parent / "inked-space-only.pdf"
 # Words as (glyph name, ToUnicode text) sequences; ligature glyphs map to several letters.
 WORDS = [
     [("o", "o"), ("uniFB03", "ffi"), ("c", "c"), ("i", "i"), ("a", "a"), ("l", "l")],
@@ -56,13 +58,20 @@ def write_fixture(words, path, include_spaces):
     if include_spaces:
         to_unicode_entries.append((gid["space"], " "))
     unique = dict(sorted(to_unicode_entries))
+    ordinary = [(code, text) for code, text in unique.items() if text]
+    empty = [code for code, text in unique.items() if not text]
     to_unicode = "\n".join([
         "/CIDInit /ProcSet findresource begin", "12 dict begin", "begincmap",
         "/CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def",
         "/CMapName /Adobe-Identity-UCS def", "/CMapType 2 def",
-        "1 begincodespacerange", "<0000> <FFFF>", "endcodespacerange", f"{len(unique)} beginbfchar",
-        *[f"<{code:04X}> <{''.join(f'{ord(c):04X}' for c in text)}>" for code, text in unique.items()],
-        "endbfchar", "endcmap", "CMapName currentdict /CMap defineresource pop", "end", "end", "",
+        "1 begincodespacerange", "<0000> <FFFF>", "endcodespacerange",
+        *([f"{len(ordinary)} beginbfchar",
+           *[f"<{code:04X}> <{''.join(f'{ord(c):04X}' for c in text)}>" for code, text in ordinary],
+           "endbfchar"] if ordinary else []),
+        *([f"{len(empty)} beginbfrange",
+           *[f"<{code:04X}> <{code:04X}> [<>]" for code in empty],
+           "endbfrange"] if empty else []),
+        "endcmap", "CMapName currentdict /CMap defineresource pop", "end", "end", "",
     ]).encode("ascii")
 
     space = "<" + f"{gid['space']:04X}" + ">"
@@ -107,3 +116,5 @@ def write_fixture(words, path, include_spaces):
 
 write_fixture(WORDS, OUTPUT, True)
 write_fixture([[('uniFB03', 'ffi')]], LIGATURE_ONLY_OUTPUT, False)
+write_fixture([[('uniFB03', '')]], EMPTY_ONLY_OUTPUT, False)
+write_fixture([[('uniFB03', ' ')]], INKED_SPACE_ONLY_OUTPUT, False)

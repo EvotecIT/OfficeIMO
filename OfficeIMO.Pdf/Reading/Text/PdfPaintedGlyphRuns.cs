@@ -23,7 +23,8 @@ internal static class PdfPaintedGlyphRuns {
 
     internal static readonly string UndecodedGlyphText = UndecodedGlyph.ToString();
 
-    internal static void SplitComplexRuns(List<PdfTextSpan> spans, System.Threading.CancellationToken cancellationToken = default) {
+    internal static void SplitComplexRuns(List<PdfTextSpan> spans, Action<int> chargeExpansion,
+        System.Threading.CancellationToken cancellationToken = default) {
         for (int index = spans.Count - 1; index >= 0; index--) {
             cancellationToken.ThrowIfCancellationRequested();
             PdfTextSpan span = spans[index];
@@ -33,6 +34,7 @@ internal static class PdfPaintedGlyphRuns {
                 !OfficeManagedTextShaper.RequiresComplexLayout(span.Text) && span.Text.IndexOf(UndecodedGlyph) < 0 &&
                 !HasMultiCharacterGlyph(span) ||
                 !PdfTextAdvanceProjection.TryGetResolvedDirection(span, cancellationToken, out double direction)) continue;
+            chargeExpansion(span.GlyphCharacterLengths!.Count);
             spans.RemoveAt(index);
             spans.InsertRange(index, SplitSpan(span, direction, cancellationToken));
         }
@@ -40,6 +42,7 @@ internal static class PdfPaintedGlyphRuns {
 
     /// <summary>Splits a simple run when one of its PDF codes paints a glyph other than its Unicode cmap entry.</summary>
     internal static List<PdfTextSpan>? SplitAlternateGlyphRun(PdfTextSpan span, PdfDrawingFontProgram program,
+        Action<int> chargeExpansion,
         System.Threading.CancellationToken cancellationToken = default) {
         if (span.Text.Length < 2 || !HasGlyphGeometry(span) ||
             !PdfTextAdvanceProjection.TryGetResolvedDirection(span, cancellationToken, out double direction)) return null;
@@ -53,7 +56,9 @@ internal static class PdfPaintedGlyphRuns {
             if (painted > 0 && (!program.UnicodeGlyphs.TryGetValue(span.Text[glyphIndex], out int mapped) || mapped != painted))
                 alternate = true;
         }
-        return alternate ? SplitSpan(span, direction, cancellationToken) : null;
+        if (!alternate) return null;
+        chargeExpansion(span.GlyphCharacterLengths!.Count);
+        return SplitSpan(span, direction, cancellationToken);
     }
 
     private static List<PdfTextSpan> SplitSpan(PdfTextSpan span, double direction,

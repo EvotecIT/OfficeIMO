@@ -6,6 +6,44 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfPaintedGlyphRenderingTests {
     [Fact]
+    public void ComplexRunChargesExpansionBeforeReplacingItsSourceSpan() {
+        PdfTextSpan span = CreateGlyphRun("ffiX", new[] { 3, 1 });
+        var spans = new List<PdfTextSpan> { span };
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            PdfPaintedGlyphRuns.SplitComplexRuns(spans, count => {
+                Assert.Equal(2, count);
+                throw new InvalidOperationException("budget exceeded");
+            }));
+
+        Assert.Equal("budget exceeded", exception.Message);
+        Assert.Same(span, Assert.Single(spans));
+    }
+
+    [Fact]
+    public void AlternateRunChargesExpansionBeforeCreatingGlyphSpans() {
+        PdfTextSpan span = CreateGlyphRun("AB", new[] { 1, 1 });
+        var program = new PdfDrawingFontProgram(Array.Empty<byte>(), new SortedDictionary<int, int> {
+            ['A'] = 2, ['B'] = 3
+        }, _ => 4, _ => false);
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            PdfPaintedGlyphRuns.SplitAlternateGlyphRun(span, program, count => {
+                Assert.Equal(2, count);
+                throw new InvalidOperationException("budget exceeded");
+            }));
+
+        Assert.Equal("budget exceeded", exception.Message);
+    }
+
+    private static PdfTextSpan CreateGlyphRun(string text, int[] glyphLengths) => new(
+        text, "F1", 12, 10, 10, 24, null, true, 0, "Subset", null,
+        drawingFontFamily: "Subset", characterAdvances: Enumerable.Repeat(6D, text.Length).ToArray(),
+        glyphCharacterLengths: glyphLengths,
+        glyphBytes: Enumerable.Range(0, glyphLengths.Length).Select(index => new[] { (byte)('A' + index) }).ToArray(),
+        glyphPaintedAdvances: Enumerable.Repeat(12D, glyphLengths.Length).ToArray());
+
+    [Fact]
     public void LigatureOnlySubsetRegistersItsPaintedGlyph() {
         string root = VisualBaselineTestSupport.GetTestsProjectRoot();
         string path = Path.Combine(root, "Pdf", "Fixtures", "ShapedText", "ligature-only.pdf");
@@ -15,6 +53,42 @@ public sealed class PdfPaintedGlyphRenderingTests {
         Assert.Single(visual.Text);
         Assert.InRange(visual.Text[0], '\uE000', '\uF8FF');
         Assert.NotEmpty(drawing.Fonts.Faces);
+    }
+
+    [Fact]
+    public void SimpleSymbolicSubsetWithOnlyClusterMappingsRegistersItsPaintedGlyphs() {
+        string root = VisualBaselineTestSupport.GetTestsProjectRoot();
+        string path = Path.Combine(root, "Pdf", "Fixtures", "Fonts", "symbolic-truetype-cluster-only.pdf");
+        OfficeDrawing drawing = PdfReadDocument.Open(File.ReadAllBytes(path)).Pages[0].ToDrawing();
+
+        Assert.NotEmpty(drawing.Fonts.Faces);
+        Assert.Contains(drawing.Elements.OfType<OfficeDrawingText>(), visual =>
+            visual.Text.Any(character => character >= '\uE000' && character <= '\uF8FF'));
+    }
+
+    [Fact]
+    public void SimpleSymbolicSubsetUsesPaintedCodeWhenItsUnicodeCmapDisagrees() {
+        string root = VisualBaselineTestSupport.GetTestsProjectRoot();
+        string path = Path.Combine(root, "Pdf", "Fixtures", "Fonts", "symbolic-truetype-conflicting-unicode.pdf");
+        OfficeDrawing drawing = PdfReadDocument.Open(File.ReadAllBytes(path)).Pages[0].ToDrawing();
+
+        OfficeFontFace face = Assert.Single(drawing.Fonts.Faces);
+        Assert.True(face.Program.TryGetGlyphMetrics('S', out int paintedGlyph, out _));
+        Assert.True(face.Program.TryGetGlyphMetrics(' ', out int emptyGlyph, out _));
+        Assert.NotEqual(emptyGlyph, paintedGlyph);
+    }
+
+    [Theory]
+    [InlineData("empty-glyph-text-only.pdf")]
+    [InlineData("inked-space-only.pdf")]
+    public void CidSubsetWithOnlyUnusableUnicodeTextStillRegistersPaintedGlyph(string fileName) {
+        string root = VisualBaselineTestSupport.GetTestsProjectRoot();
+        string path = Path.Combine(root, "Pdf", "Fixtures", "ShapedText", fileName);
+        OfficeDrawing drawing = PdfReadDocument.Open(File.ReadAllBytes(path)).Pages[0].ToDrawing();
+
+        Assert.NotEmpty(drawing.Fonts.Faces);
+        Assert.Contains(drawing.Elements.OfType<OfficeDrawingText>(), visual =>
+            visual.Text.Any(character => character >= '\uE000' && character <= '\uF8FF'));
     }
 
     // A PDF paints shaped, positioned glyphs. Rendering must reproduce those exact glyphs: contextual

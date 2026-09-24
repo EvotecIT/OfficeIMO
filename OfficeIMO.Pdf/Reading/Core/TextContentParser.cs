@@ -953,6 +953,7 @@ internal static class TextContentParser {
                     // Visual projection still paints glyphs whose ToUnicode text is empty or U+0000.
                     t = PdfPaintedGlyphRuns.UndecodedGlyphText;
                     ch = t[0];
+                    decodedGlyphCharacters++;
                 }
                 double w1000 = sumWidth1000ForFont(font, g);
                 double advGlyph = ((w1000 / 1000.0) * size + charSpacing + (step == 1 && bytes[idx] == 0x20 ? wordSpacing : 0)) * hScale;

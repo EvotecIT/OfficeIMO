@@ -10,6 +10,20 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfPageImageRendererTests {
+    [Fact]
+    public void RenderPage_ChargesUndecodedPaintedGlyphPlaceholdersToDecodedTextBudget() {
+        const string font = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /ToUnicode 6 0 R >>\nendobj";
+        byte[] pdf = BuildSingleStreamPdf("BT /F1 20 Tf 20 100 Td (AA) Tj ET",
+            "<< /Font << /F1 5 0 R >> >>", font,
+            BuildStreamObject(6, "<<", "1 beginbfchar\n<41> <0000>\nendbfchar"));
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxDecodedTextCharacters = 1 }
+        });
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].ToDrawing());
+        Assert.Equal(PdfReadLimitKind.DecodedTextCharacters, exception.Kind);
+    }
+
     [Theory]
     [InlineData("/ca 0", "")]
     [InlineData("/CA 0", "1 Tr ")]
