@@ -40,14 +40,8 @@ internal static partial class ResourceResolver {
         PdfObject? map = ResolveObject(mapObject, objects);
         if (map is PdfName { Name: "Identity" }) return Array.Empty<byte>();
         if (map is not PdfStream stream || Filters.StreamDecoder.GetUnsupportedFilters(stream.Dictionary, objects).Count != 0) return null;
-        try {
-            byte[] bytes = Filters.StreamDecoder.Decode(stream, objects);
-            return bytes.Length >= 2 && bytes.Length <= MaxCidToGlyphMapBytes ? bytes : null;
-        } catch (InvalidDataException) {
-            return null;
-        } catch (NotSupportedException) {
-            return null;
-        }
+        return Filters.StreamDecoder.TryDecode(stream, MaxCidToGlyphMapBytes, out byte[] bytes, objects) &&
+            bytes.Length >= 2 ? bytes : null;
     }
 
     private static int? TryReadFontDescriptorInteger(

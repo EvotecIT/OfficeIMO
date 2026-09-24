@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO.Compression;
 using System.Reflection;
 using System.Text;
 using OfficeIMO.Pdf;
@@ -136,6 +137,31 @@ endbfchar
         Func<byte[], double> provider = Assert.Contains("F1", providers);
         Assert.Equal(250, provider(new byte[] { 0x00, 0x01 }));
         Assert.Equal(1000, provider(new byte[] { 0x13, 0x87 }));
+    }
+
+    [Fact]
+    public void ResourceResolverRejectsCompressedCidToGlyphMapBeyondItsOwnDecodedLimit() {
+        var font = new PdfDictionary();
+        var descendant = new PdfDictionary();
+        var descendants = new PdfArray();
+        descendants.Items.Add(descendant);
+        font.Items["Subtype"] = new PdfName("Type0");
+        font.Items["DescendantFonts"] = descendants;
+        descendant.Items["Subtype"] = new PdfName("CIDFontType2");
+
+        byte[] decoded = new byte[65536 * 2 + 2];
+        decoded[1] = 1;
+        using var compressed = new MemoryStream();
+        using (var zlib = new ZLibStream(compressed, CompressionLevel.SmallestSize, leaveOpen: true))
+            zlib.Write(decoded);
+        var streamDictionary = new PdfDictionary();
+        streamDictionary.Items["Filter"] = new PdfName("FlateDecode");
+        descendant.Items["CIDToGIDMap"] = new PdfStream(streamDictionary, compressed.ToArray());
+
+        Assert.Null(ResourceResolver.TryReadCidToGlyphMap(font, new Dictionary<int, PdfIndirectObject>()));
+
+        descendant.Items["CIDToGIDMap"] = new PdfStream(new PdfDictionary(), new byte[] { 0, 1 });
+        Assert.Equal(new byte[] { 0, 1 }, ResourceResolver.TryReadCidToGlyphMap(font, new Dictionary<int, PdfIndirectObject>()));
     }
 
     [Fact]

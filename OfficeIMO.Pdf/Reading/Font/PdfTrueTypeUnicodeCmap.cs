@@ -305,9 +305,9 @@ internal static class PdfTrueTypeUnicodeCmap {
 
     internal static byte[] BuildUnicodeCmap(SortedDictionary<int, int> mappings) {
         var basic = mappings.Where(static mapping => mapping.Key <= 0xFFFF).ToList();
-        // Format 4 stores its byte length in a ushort. One segment per mapping plus the
-        // sentinel fits only through 8,188 BMP mappings; larger subsets use format 12.
-        byte[]? format4 = basic.Count <= 8188 ? BuildFormat4(basic) : null;
+        // Format 4 uses one segment per mapping plus the sentinel. The shared reader
+        // accepts at most MaximumSubtables * 16 segments, below the ushort length limit.
+        byte[]? format4 = basic.Count < OfficeOpenTypeCmap.MaximumSubtables * 16 ? BuildFormat4(basic) : null;
         bool needsFull = format4 == null || basic.Count != mappings.Count;
         List<byte[]> format12 = needsFull ? BuildFormat12Parts(mappings) : new List<byte[]>();
         using var output = new MemoryStream();

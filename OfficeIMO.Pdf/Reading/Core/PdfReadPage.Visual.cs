@@ -274,7 +274,10 @@ public sealed partial class PdfReadPage {
                 span.Text.IndexOf(PdfPaintedGlyphRuns.UndecodedGlyph) < 0) continue;
             string text = span.Text.Replace(PdfPaintedGlyphRuns.UndecodedGlyphText, string.Empty);
             if (string.IsNullOrWhiteSpace(text)) elements.RemoveAt(index);
-            else elements[index] = PdfPageDrawingElement.FromText(span.WithDisplayTextOnly(text), elements[index].Sequence)
+            else elements[index] = PdfPageDrawingElement.FromText(
+                // Glyph-aware runs were split at painted positions. When that geometry is absent,
+                // keep a blank slot instead of stretching visible text across the missing advance.
+                span.WithVisualText(span.Text.Replace(PdfPaintedGlyphRuns.UndecodedGlyph, ' ')), elements[index].Sequence)
                 .WithEffect(elements[index].Effect);
         }
     }

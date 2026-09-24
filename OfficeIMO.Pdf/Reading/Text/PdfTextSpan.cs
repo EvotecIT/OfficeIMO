@@ -234,15 +234,6 @@ public sealed class PdfTextSpan {
 
     private static readonly int[] SingleGlyphCharacterLength = { 1 };
 
-    /// <summary>Replaces the displayed text when its length changes; per-character geometry no longer applies.</summary>
-    internal PdfTextSpan WithDisplayTextOnly(string text) => new PdfTextSpan(
-        text, FontResource, FontSize, X, Y, Advance, Color, IsVisible, RotationDegrees, BaseFont, ClipPath,
-        PaintOrder, DrawingFontFamily, LogicalLineBreaksBefore, LogicalLeadingSpace, LogicalTrailingSpace,
-        ContentOrderKey, null, TextRenderingMode, false, RestampFontSize, text, true, MarkedContentId, ContentStreamObjectNumber, TextObjectOrderKey, null, VisualPaintIdentity,
-        null, null, null, CharacterAdvanceDirection, HasActualText, IsType3Font, false, IsArtifactContent, FontWeight, FontDescriptorFlags) {
-        _completeTextProjectionSuppressed = this._completeTextProjectionSuppressed
-    };
-
     /// <summary>
     /// Returns one painted glyph of this run at its own origin. The glyph advance is its painted
     /// width, so the slice can be scaled to its advance even when the run used character spacing.

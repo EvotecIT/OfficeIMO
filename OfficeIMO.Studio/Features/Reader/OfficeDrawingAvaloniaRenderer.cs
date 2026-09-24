@@ -176,15 +176,15 @@ internal sealed class OfficeDrawingAvaloniaRenderer : IDisposable {
             Trimming = TextTrimming.None
         };
         if (text.LineHeight.HasValue) formatted.LineHeight = text.LineHeight.Value;
+        formatted.MaxTextHeight = Math.Max(1D, text.Height);
+        formatted.TextAlignment = text.Alignment switch {
+            OfficeTextAlignment.Center => TextAlignment.Center,
+            OfficeTextAlignment.Right => TextAlignment.Right,
+            OfficeTextAlignment.Justify => TextAlignment.Justify,
+            _ => TextAlignment.Left
+        };
         if (text.WrapText) {
             formatted.MaxTextWidth = Math.Max(1D, text.Width);
-            formatted.MaxTextHeight = Math.Max(1D, text.Height);
-            formatted.TextAlignment = text.Alignment switch {
-                OfficeTextAlignment.Center => TextAlignment.Center,
-                OfficeTextAlignment.Right => TextAlignment.Right,
-                OfficeTextAlignment.Justify => TextAlignment.Justify,
-                _ => TextAlignment.Left
-            };
         }
 
         double y = text.Y + text.BaselineOffset;

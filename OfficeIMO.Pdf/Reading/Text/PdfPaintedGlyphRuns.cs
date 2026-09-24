@@ -10,8 +10,8 @@ namespace OfficeIMO.Pdf;
 /// conjunct, a Latin or Arabic ligature), nothing at all, or a letter that no single-glyph cmap entry
 /// can name. Complex-script runs and runs containing such glyphs are split. Drawing the run as
 /// text would re-map those letters to different glyphs or none. Each glyph is projected at its own
-/// origin so the drawing can name that exact glyph. Only runs painted with an embedded font program
-/// are split. Visual projection only.
+/// origin so the drawing can name that exact glyph. Runs without an embedded font are split only
+/// when an unresolved glyph must be omitted without moving neighbouring glyphs. Visual projection only.
 /// </remarks>
 internal static class PdfPaintedGlyphRuns {
     /// <summary>
@@ -28,10 +28,11 @@ internal static class PdfPaintedGlyphRuns {
         for (int index = spans.Count - 1; index >= 0; index--) {
             cancellationToken.ThrowIfCancellationRequested();
             PdfTextSpan span = spans[index];
-            // Only an embedded program can draw each exact glyph; substituted fonts keep the whole run
-            // so a substitute shaper still sees its joining and cluster context.
-            if (span.Text.Length < 2 || span.DrawingFontFamily == null || !HasGlyphGeometry(span) ||
-                !OfficeManagedTextShaper.RequiresComplexLayout(span.Text) && span.Text.IndexOf(UndecodedGlyph) < 0 &&
+            bool hasUndecodedGlyph = span.Text.Contains(UndecodedGlyph);
+            // Substitute shaping keeps joining context unless a missing glyph needs its own
+            // painted advance between the visible portions of the run.
+            if (span.Text.Length < 2 || span.DrawingFontFamily == null && !hasUndecodedGlyph || !HasGlyphGeometry(span) ||
+                !OfficeManagedTextShaper.RequiresComplexLayout(span.Text) && !hasUndecodedGlyph &&
                 !HasMultiCharacterGlyph(span) ||
                 !PdfTextAdvanceProjection.TryGetResolvedDirection(span, cancellationToken, out double direction)) continue;
             chargeExpansion(span.GlyphCharacterLengths!.Count);

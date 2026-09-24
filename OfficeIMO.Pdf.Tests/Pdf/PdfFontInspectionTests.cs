@@ -533,6 +533,21 @@ public sealed class PdfFontInspectionTests {
         Assert.NotEmpty(font.GetTextContours(char.ConvertFromUtf32(0x1000 + 8999), 0, 0, 12));
     }
 
+    [Fact]
+    public void SynthesizedCmapUsesReadableFormatForSparseBmpSubsetBeyondFormat4SegmentLimit() {
+        byte[] source = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A', 'B');
+        var original = new PdfDrawingFontProgram(source, new SortedDictionary<int, int> { ['A'] = 1 },
+            _ => 1, _ => false);
+        var additions = new Dictionary<int, int>();
+        for (int index = 0; index < 1024; index++) additions.Add(0x1000 + index * 2, index % 2 + 1);
+
+        byte[] rebuilt = Assert.IsType<byte[]>(PdfTrueTypeUnicodeCmap.TryAddMappings(original, additions));
+        OfficeTrueTypeFont font = Assert.IsType<OfficeTrueTypeFont>(OfficeTrueTypeFont.TryLoad(rebuilt));
+
+        Assert.NotEmpty(font.GetTextContours(char.ConvertFromUtf32(0x1000), 0, 0, 12));
+        Assert.NotEmpty(font.GetTextContours(char.ConvertFromUtf32(0x1000 + 1023 * 2), 0, 0, 12));
+    }
+
     private static byte[] BuildFontPdf() {
         const string toUnicode = "/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n1 beginbfchar\n<41> <0041>\nendbfchar\nendcmap\nend\nend";
         return BuildPdf(
