@@ -37,9 +37,8 @@ internal sealed class RuntimeListenerBindings : IDisposable {
                 throw new HtmlScriptRuntimeException("Signal-controlled event listeners are not supported by this runtime profile.");
         }
         var registrations = _targets.GetValue(target, CreateListeners).Registrations;
-        registrations.RemoveAll(item => item.ResetVersion != ResetVersion(target));
         if (registrations.Any(item => item.Type == type && item.Capture == capture && ReferenceEquals(item.Callback, callback))) return JsValue.Undefined;
-        var registration = new Registration(type, capture, callback, ResetVersion(target));
+        var registration = new Registration(type, capture, callback);
         registration.Handler = (sender, ev) => {
             if (_disposed) return;
             if (once) Remove(target, registrations, registration);
@@ -72,7 +71,6 @@ internal sealed class RuntimeListenerBindings : IDisposable {
         var callback = args.ElementAtOrDefault(1);
         bool capture = Capture(args.ElementAtOrDefault(2) ?? JsValue.Undefined);
         if (_targets.TryGetValue(target, out var listeners)) {
-            listeners.Registrations.RemoveAll(item => item.ResetVersion != ResetVersion(target));
             var registration = listeners.Registrations.FirstOrDefault(item => item.Type == type && item.Capture == capture && ReferenceEquals(item.Callback, callback));
             if (registration != null) Remove(target, listeners.Registrations, registration);
         }
@@ -83,8 +81,6 @@ internal sealed class RuntimeListenerBindings : IDisposable {
         ?? throw new HtmlScriptRuntimeException("The event listener receiver must be a DOM event target.");
 
     private static bool Capture(JsValue options) => TypeConverter.ToBoolean(options.IsObject() ? options.AsObject().Get("capture") : options);
-
-    private static long ResetVersion(IEventTarget target) => (target as EventTarget)?.ListenerResetVersion ?? 0;
 
     private static void Remove(IEventTarget target, List<Registration> registrations, Registration registration) {
         target.RemoveEventListener(registration.Type, registration.Handler, registration.Capture);
@@ -101,16 +97,14 @@ internal sealed class RuntimeListenerBindings : IDisposable {
         internal readonly List<Registration> Registrations = new();
 
         internal void OnReset(object? sender, EventArgs args) {
-            if (sender is EventTarget target)
-                Registrations.RemoveAll(item => item.ResetVersion != target.ListenerResetVersion);
+            Registrations.Clear();
         }
     }
 
-    private sealed class Registration(string type, bool capture, Function callback, long resetVersion) {
+    private sealed class Registration(string type, bool capture, Function callback) {
         internal string Type { get; } = type;
         internal bool Capture { get; } = capture;
         internal Function Callback { get; } = callback;
-        internal long ResetVersion { get; } = resetVersion;
         internal DomEventHandler Handler { get; set; } = null!;
     }
 }

@@ -34,9 +34,7 @@ internal sealed class RuntimeEventHandlerBindings(Engine engine, IEventTarget wi
             var target = Target(receiver, eventType);
             if (target == null || !_targets.TryGetValue(target, out var handlers)
                 || !handlers.Registrations.TryGetValue(eventType, out var registration)) return JsValue.Null;
-            if (registration.ResetVersion == ResetVersion(target)) return registration.Callback;
-            handlers.Registrations.Remove(eventType);
-            return JsValue.Null;
+            return registration.Callback;
         });
         var setter = new ClrFunction(engine, "set " + propertyName, (receiver, args) => {
             if (_disposed) return JsValue.Undefined;
@@ -44,14 +42,10 @@ internal sealed class RuntimeEventHandlerBindings(Engine engine, IEventTarget wi
             if (target == null) return JsValue.Undefined;
             var handlers = _targets.GetValue(target, CreateHandlers).Registrations;
             handlers.TryGetValue(eventType, out var registration);
-            if (registration != null && registration.ResetVersion != ResetVersion(target)) {
-                handlers.Remove(eventType);
-                registration = null;
-            }
             if (args.ElementAtOrDefault(0) is Function callback) {
                 if (registration != null) registration.Callback = callback;
                 else {
-                    registration = new Registration(callback, ResetVersion(target));
+                    registration = new Registration(callback);
                     registration.Handler = (sender, ev) => {
                         if (_disposed) return;
                         var result = engine.Invoke(registration.Callback,
@@ -93,8 +87,6 @@ internal sealed class RuntimeEventHandlerBindings(Engine engine, IEventTarget wi
         return state;
     }
 
-    private static long ResetVersion(IEventTarget target) => (target as EventTarget)?.ListenerResetVersion ?? 0;
-
     private IEventTarget? Target(JsValue receiver, string eventType) {
         var target = ReferenceEquals(receiver, engine.Global) ? window
             : receiver.ToObject() as IEventTarget ?? throw new ArgumentException("An event handler requires a DOM event target.");
@@ -106,9 +98,8 @@ internal sealed class RuntimeEventHandlerBindings(Engine engine, IEventTarget wi
         return target;
     }
 
-    private sealed class Registration(Function callback, long resetVersion) {
+    private sealed class Registration(Function callback) {
         internal Function Callback { get; set; } = callback;
-        internal long ResetVersion { get; } = resetVersion;
         internal DomEventHandler Handler { get; set; } = null!;
     }
 
@@ -116,9 +107,7 @@ internal sealed class RuntimeEventHandlerBindings(Engine engine, IEventTarget wi
         internal readonly Dictionary<string, Registration> Registrations = new(StringComparer.Ordinal);
 
         internal void OnReset(object? sender, EventArgs args) {
-            if (sender is not EventTarget target) return;
-            foreach (var type in Registrations.Where(item => item.Value.ResetVersion != target.ListenerResetVersion)
-                         .Select(item => item.Key).ToArray()) Registrations.Remove(type);
+            Registrations.Clear();
         }
     }
 }
