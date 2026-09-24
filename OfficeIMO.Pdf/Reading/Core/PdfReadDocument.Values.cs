@@ -255,7 +255,7 @@ public sealed partial class PdfReadDocument {
         }
         cancellationToken.ThrowIfCancellationRequested();
         destination[position] = ']';
-        return new string(destination);
+        return PdfEncoding.CharArrayToStringCancellable(destination, cancellationToken);
 #endif
     }
 }

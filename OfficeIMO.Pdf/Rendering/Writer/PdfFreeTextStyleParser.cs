@@ -158,10 +158,7 @@ internal static class PdfFreeTextStyleParser {
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        var decoded = new System.Text.StringBuilder(builder.Length);
-        using (var writer = new CancellationCheckingStringWriter(decoded, cancellationToken)) {
-            WebUtility.HtmlDecode(MaterializeText(builder, 0, builder.Length, cancellationToken), writer);
-        }
+        var decoded = DecodeEntitiesCancellable(MaterializeText(builder, 0, builder.Length, cancellationToken), cancellationToken);
         string normalized = NormalizeExtractedText(MaterializeText(decoded, 0, decoded.Length, cancellationToken), cancellationToken);
         return normalized.Length == 0 ? null : normalized;
     }
@@ -794,36 +791,90 @@ internal static class PdfFreeTextStyleParser {
     private static string MaterializeText(System.Text.StringBuilder builder, int start, int length, CancellationToken cancellationToken) =>
         PdfEncoding.StringBuilderToStringCancellable(builder, start, length, cancellationToken);
 
-    private sealed class CancellationCheckingStringWriter : StringWriter {
-        private readonly CancellationToken _cancellationToken;
+    private static System.Text.StringBuilder DecodeEntitiesCancellable(string source, CancellationToken cancellationToken) {
+        var decoded = new System.Text.StringBuilder(source.Length);
+        for (int index = 0; index < source.Length;) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (source[index] != '&') {
+                decoded.Append(source[index++]);
+                continue;
+            }
 
-        internal CancellationCheckingStringWriter(System.Text.StringBuilder builder, CancellationToken cancellationToken)
-            : base(builder, CultureInfo.InvariantCulture) => _cancellationToken = cancellationToken;
-
-        public override void Write(char value) {
-            _cancellationToken.ThrowIfCancellationRequested();
-            base.Write(value);
-        }
-
-        public override void Write(char[] buffer, int index, int count) {
-            for (int end = index + count; index < end;) {
-                _cancellationToken.ThrowIfCancellationRequested();
-                int length = Math.Min(4096, end - index);
-                base.Write(buffer, index, length);
-                index += length;
+            // Scan the candidate ourselves so a malformed, unterminated entity cannot
+            // keep HtmlDecode busy without observing cancellation.
+            int end = index + 1;
+            while (end < source.Length && source[end] != ';' && source[end] != '&') {
+                if ((end & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                end++;
+            }
+            if (end < source.Length && source[end] == ';' && end - index <= 64) {
+                cancellationToken.ThrowIfCancellationRequested();
+                decoded.Append(WebUtility.HtmlDecode(source.Substring(index, end - index + 1)));
+                index = end + 1;
+            } else if (end < source.Length && source[end] == ';' &&
+                       TryDecodeLongNumericEntity(source, index, end, cancellationToken, out string? entity)) {
+                decoded.Append(entity);
+                index = end + 1;
+            } else {
+                decoded.Append('&');
+                index++;
             }
         }
-
-        public override void Write(string? value) {
-            if (value is null) return;
-            for (int index = 0; index < value.Length; index += 4096) {
-                _cancellationToken.ThrowIfCancellationRequested();
-#if NET8_0_OR_GREATER
-                base.Write(value.AsSpan(index, Math.Min(4096, value.Length - index)));
-#else
-                base.Write(value.Substring(index, Math.Min(4096, value.Length - index)));
-#endif
-            }
-        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return decoded;
     }
+
+    private static bool TryDecodeLongNumericEntity(string source, int start, int semicolon, CancellationToken cancellationToken, out string? decoded) {
+        decoded = null;
+        if (start + 2 >= semicolon || source[start + 1] != '#') return false;
+        int position = start + 2;
+        bool hexadecimal = source[position] == 'x' || source[position] == 'X';
+        bool negative = false;
+        if (hexadecimal) {
+            position++;
+        } else {
+            while (position < semicolon && IsNumericSpace(source[position])) position++;
+            if (position < semicolon && (source[position] == '+' || source[position] == '-')) {
+                negative = source[position] == '-';
+                position++;
+            }
+        }
+
+        uint value = 0;
+        bool hasDigit = false;
+        int radix = hexadecimal ? 16 : 10;
+        for (; position < semicolon; position++) {
+            if ((position & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            char current = source[position];
+            if (current == '\0' || !hexadecimal && IsNumericSpace(current)) break;
+            int digit = current >= '0' && current <= '9' ? current - '0'
+                : hexadecimal && current >= 'a' && current <= 'f' ? current - 'a' + 10
+                : hexadecimal && current >= 'A' && current <= 'F' ? current - 'A' + 10 : -1;
+            if (digit < 0 || digit >= radix || value > (uint.MaxValue - (uint)digit) / (uint)radix) return false;
+            value = value * (uint)radix + (uint)digit;
+            hasDigit = true;
+        }
+        if (!hasDigit || negative && value != 0) return false;
+        if (!hexadecimal) {
+            while (position < semicolon && IsNumericSpace(source[position])) {
+                if ((position & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                position++;
+            }
+        }
+        // Numeric parsers ignore terminal NULs even when no whitespace style is enabled.
+        while (position < semicolon && source[position] == '\0') {
+            if ((position & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            position++;
+        }
+        if (position != semicolon) return false;
+
+        string canonical = "&#" + value.ToString(CultureInfo.InvariantCulture) + ";";
+        string result = WebUtility.HtmlDecode(canonical);
+        if (string.Equals(result, canonical, StringComparison.Ordinal)) return false;
+        decoded = result;
+        return true;
+    }
+
+    private static bool IsNumericSpace(char value) =>
+        value == ' ' || value == '\t' || value == '\n' || value == '\r' || value == '\v' || value == '\f';
 }

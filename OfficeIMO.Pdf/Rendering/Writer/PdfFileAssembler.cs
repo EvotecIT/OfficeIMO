@@ -14,7 +14,7 @@ internal static class PdfFileAssembler {
         CancellationToken cancellationToken = default) {
         using var stream = CreateOutputMemoryStream(objects, catalogId, infoId, fileVersion, trailerIdEntry, cancellationToken);
         Assemble(stream, objects, catalogId, infoId, fileVersion, trailerIdEntry, cancellationToken);
-        return GetOutputBytes(stream);
+        return GetOutputBytes(stream, cancellationToken);
     }
 
     internal static long Assemble(
@@ -49,7 +49,7 @@ internal static class PdfFileAssembler {
         byte[] fileId = FinalizeFileId(fileIdHash);
         long xrefPos = written;
         byte[] trailerBytes = BuildTrailerBytes(offsets, catalogId, infoId, xrefPos, encryptionAssembly: null, fileId, trailerIdEntry, permanentFileId: null, cancellationToken);
-        destination.Write(trailerBytes, 0, trailerBytes.Length);
+        WriteBytesCancellable(destination, trailerBytes, cancellationToken);
         return checked(written + trailerBytes.LongLength);
     }
 
@@ -64,7 +64,7 @@ internal static class PdfFileAssembler {
         CancellationToken cancellationToken = default) {
         using var stream = CreateOutputMemoryStream(objects, catalogId, infoId, fileVersion, encryption, trailerIdEntry, permanentFileId: null, cancellationToken);
         Assemble(stream, objects, catalogId, infoId, fileVersion, encryption, objectMemoryLimitBytes, trailerIdEntry, cancellationToken);
-        return GetOutputBytes(stream);
+        return GetOutputBytes(stream, cancellationToken);
     }
 
     internal static long Assemble(
@@ -102,7 +102,7 @@ internal static class PdfFileAssembler {
         using var stream = CreateOutputMemoryStream(objects, catalogId, infoId, fileVersion, encryption, trailerIdEntry: null, permanentFileId, cancellationToken);
         AssemblePreservingPermanentId(
             stream, objects, catalogId, infoId, fileVersion, encryption, permanentFileId, objectMemoryLimitBytes, cancellationToken);
-        return GetOutputBytes(stream);
+        return GetOutputBytes(stream, cancellationToken);
     }
 
     internal static long AssemblePreservingPermanentId(
@@ -152,7 +152,7 @@ internal static class PdfFileAssembler {
             permanentFileId: null,
             cancellationToken,
             out bufferEvidence);
-        return GetOutputBytes(stream);
+        return GetOutputBytes(stream, cancellationToken);
     }
 
     internal static long AssembleWithEvidence(
@@ -234,8 +234,7 @@ internal static class PdfFileAssembler {
                 written += objectStore.GetLength(i);
             } else {
                 byte[] obj = objects[i];
-                fileIdHash?.TransformBlock(obj, 0, obj.Length, obj, 0);
-                destination.Write(obj, 0, obj.Length);
+                WriteBytesCancellable(destination, obj, cancellationToken, fileIdHash);
                 written += obj.LongLength;
             }
         }
@@ -244,11 +243,22 @@ internal static class PdfFileAssembler {
 
         long xrefPos = written;
         byte[] trailerBytes = BuildTrailerBytes(offsets, catalogId, infoId, xrefPos, encryptionAssembly, fileId, trailerIdEntry, permanentFileId, cancellationToken);
-        destination.Write(trailerBytes, 0, trailerBytes.Length);
+        WriteBytesCancellable(destination, trailerBytes, cancellationToken);
         return written + trailerBytes.LongLength;
     }
 
-    private static byte[] BuildTrailerBytes(
+    internal static void WriteBytesCancellable(Stream destination, byte[] bytes, CancellationToken cancellationToken, HashAlgorithm? fileIdHash = null) {
+        for (int offset = 0; offset < bytes.Length;) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = Math.Min(64 * 1024, bytes.Length - offset);
+            fileIdHash?.TransformBlock(bytes, offset, count, bytes, offset);
+            destination.Write(bytes, offset, count);
+            offset += count;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+    }
+
+    internal static byte[] BuildTrailerBytes(
         List<long> offsets,
         int catalogId,
         int infoId,
@@ -403,8 +413,21 @@ internal static class PdfFileAssembler {
         return new PdfFileAssemblyLayout(written + trailerLength);
     }
 
-    private static byte[] GetOutputBytes(MemoryStream stream) =>
-        stream.Length == stream.Capacity ? stream.GetBuffer() : stream.ToArray();
+    private static byte[] GetOutputBytes(MemoryStream stream, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        byte[] buffer = stream.GetBuffer();
+        int length = checked((int)stream.Length);
+        if (length == buffer.Length) return buffer;
+        var result = new byte[length];
+        for (int offset = 0; offset < length;) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = Math.Min(64 * 1024, length - offset);
+            Buffer.BlockCopy(buffer, offset, result, offset, count);
+            offset += count;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return result;
+    }
 
     private readonly struct PdfFileAssemblyLayout {
         internal PdfFileAssemblyLayout(long totalLength) {

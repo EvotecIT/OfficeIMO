@@ -1,4 +1,5 @@
 using System.Text;
+using System.Net;
 using System.Threading;
 using OfficeIMO.Pdf;
 using OfficeIMO.Pdf.Filters;
@@ -7,6 +8,39 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public class PdfReadbackCancellationOwnerTests {
+    [Theory]
+    [InlineData("A &amp; B &#x1F600;", "A & B \uD83D\uDE00")]
+    [InlineData("&unknown; &copy; &amp", "&unknown; \u00A9 &amp")]
+    [InlineData("&abc&copy;", "&abc\u00A9")]
+    public void FreeTextPlainTextPreservesEntityDecoding(string source, string expected) {
+        Assert.Equal(expected, PdfFreeTextStyleParser.ExtractPlainText(source));
+        Assert.Equal(WebUtility.HtmlDecode(source), expected);
+    }
+
+    [Fact]
+    public void FreeTextPlainTextPreservesLongMalformedEntityAndChecksCancellation() {
+        string source = "&" + new string('a', 100_000) + "&amp;";
+        Assert.Equal(WebUtility.HtmlDecode(source), PdfFreeTextStyleParser.ExtractPlainText(source));
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        Assert.ThrowsAny<OperationCanceledException>(() => PdfFreeTextStyleParser.ExtractPlainText(source, cancellation.Token));
+    }
+
+    [Fact]
+    public void FreeTextPlainTextPreservesLongNumericEntityForms() {
+        string[] sources = {
+            "&#" + new string('0', 80) + "65;",
+            "&#x" + new string('0', 80) + "41;",
+            "&#" + new string(' ', 80) + "+65;",
+            "&#65" + new string(' ', 80) + ";",
+            "&#65" + new string('\0', 80) + ";",
+            "&#" + new string('9', 80) + ";"
+        };
+        foreach (string source in sources) {
+            Assert.Equal(WebUtility.HtmlDecode(source), PdfFreeTextStyleParser.ExtractPlainText(source));
+        }
+    }
+
     [Theory]
     [InlineData("\u03BB", "ASCII")]
     [InlineData("\u00E9", "\u03BB")]
