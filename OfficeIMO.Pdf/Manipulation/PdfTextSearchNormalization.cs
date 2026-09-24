@@ -136,12 +136,20 @@ internal sealed class PdfNormalizedSearchText {
         return new PdfNormalizedSearchText(text.ToString(), starts.ToArray(), ends.ToArray());
     }
 
-    private static bool IsLineEndHyphenJunction(string source, int runStart, int runEnd) =>
-        runStart >= 2 &&
-        runEnd < source.Length &&
-        IsLineEndHyphen(source[runStart - 1]) &&
-        char.IsLetter(source, runStart - 2) &&
-        char.IsLetter(source, runEnd);
+    private static bool IsLineEndHyphenJunction(string source, int runStart, int runEnd) {
+        if (runStart < 2 || runEnd >= source.Length || !IsLineEndHyphen(source[runStart - 1]) ||
+            !char.IsLetter(source, runEnd)) return false;
+        int letterIndex = runStart - 2;
+        while (letterIndex >= 0 && IsCombiningMark(source, letterIndex)) letterIndex--;
+        if (letterIndex > 0 && char.IsLowSurrogate(source[letterIndex]) && char.IsHighSurrogate(source[letterIndex - 1]))
+            letterIndex--;
+        return letterIndex >= 0 && char.IsLetter(source, letterIndex);
+    }
+
+    private static bool IsCombiningMark(string source, int index) => char.GetUnicodeCategory(source, index) is
+        System.Globalization.UnicodeCategory.NonSpacingMark or
+        System.Globalization.UnicodeCategory.SpacingCombiningMark or
+        System.Globalization.UnicodeCategory.EnclosingMark;
 
     private static bool IsLineEndHyphen(char value) => (int)value is 0x002D or 0x00AD or 0x2010 or 0x2011;
 }

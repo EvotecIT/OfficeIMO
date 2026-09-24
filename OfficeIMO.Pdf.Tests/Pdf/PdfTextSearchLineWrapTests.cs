@@ -105,6 +105,28 @@ public sealed class PdfTextSearchLineWrapTests {
     }
 
     [Fact]
+    public void CombiningMarkBeforeLineEndHyphenMatchesBothWordForms() {
+        const string source = "cafe\u0301-\nteria";
+
+        Assert.True(PdfTextSearchNormalization.Contains(source, "cafe\u0301teria", StringComparison.Ordinal));
+        Assert.True(PdfTextSearchNormalization.Contains(source, "cafe\u0301-teria", StringComparison.Ordinal));
+        Assert.Equal((0, source.Length), Assert.Single(PdfTextSearchNormalization.FindSourceRanges(
+            source, "cafe\u0301teria", StringComparison.Ordinal)));
+        Assert.False(PdfTextSearchNormalization.Contains("\u0301-\nteria", "\u0301teria", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ExplicitParagraphBreakDoesNotJoinAdjacentTextFlows() {
+        PdfDocument document = PdfDocument.Load(BuildRawTextPdf(
+            "BT /F1 12 Tf 50 700 Td (paragraph end) Tj 0 -12 Td 0 -12 Td (paragraph start) Tj ET\n"));
+
+        Assert.Empty(document.Text.Find("end paragraph"));
+        Assert.Empty(document.Redactions.Search(new PdfRedactionSearchOptions().AddLiteral("end paragraph")).Areas);
+        Assert.Single(document.Text.Find("paragraph end"));
+        Assert.Single(document.Text.Find("paragraph start"));
+    }
+
+    [Fact]
     public void PhrasesDoNotJoinIndependentColumns() {
         PdfDocument document = PdfDocument.Load(BuildRawTextPdf(
             "BT /F1 12 Tf 50 700 Td (left alpha) Tj 0 -14 Td (gamma) Tj ET\n" +

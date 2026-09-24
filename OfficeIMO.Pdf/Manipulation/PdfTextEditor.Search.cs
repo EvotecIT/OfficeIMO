@@ -100,6 +100,7 @@ internal static partial class PdfTextEditor {
                     if (++comparisons > maxComparisons) {
                         throw PdfReadLimitException.Create(PdfReadLimitKind.TextSearchFlowComparisons, maxComparisons, comparisons);
                     }
+                    if (lines[lower].LogicalLineBreaksBefore >= 2) continue;
                     double fontSize = Math.Max(geometry[upper].FontSize, geometry[lower].FontSize);
                     if (distance < fontSize * 0.6D || distance > fontSize * 2D) continue;
                     double overlap = Math.Min(geometry[upper].End, geometry[lower].End) - Math.Max(geometry[upper].Start, geometry[lower].Start);
