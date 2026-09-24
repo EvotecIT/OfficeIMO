@@ -23,11 +23,11 @@
     {
       "id": "nasa-svs-voyager-gallery",
       "sourceClass": "resource-heavy-gallery",
-      "role": "held-out",
+      "role": "development",
       "url": "https://svs.gsfc.nasa.gov/gallery/voyager/",
       "rightsUrl": "https://svs.gsfc.nasa.gov/",
       "requiredVisibleMarkers": ["Voyager", "Overview"],
-      "reason": "A public-domain NASA image gallery with repeated media cards and a longer scrolling layout; keep it held out from fixes selected on the other pages."
+      "reason": "A NASA image gallery with repeated media cards and a longer scrolling layout. Its first capture exposed renderer failures and informed fixes, so it no longer qualifies as held-out."
     },
     {
       "id": "playwright-todomvc-scripted",
@@ -37,6 +37,17 @@
       "rightsUrl": "https://github.com/tastejs/todomvc/blob/master/license.md",
       "requiredVisibleMarkers": ["todos", "What needs to be done?"],
       "reason": "A small JavaScript-created application surface whose frozen post-load DOM can be compared with static MHTML and the browser-backed route."
+    },
+    {
+      "id": "nps-yellowstone-photo-galleries",
+      "sourceClass": "resource-heavy-gallery",
+      "role": "held-out",
+      "selectionDate": "2026-09-24",
+      "url": "https://www.nps.gov/yell/learn/photosmultimedia/photogallery.htm",
+      "rightsUrl": "https://www.nps.gov/aboutus/disclaimer.htm",
+      "rightsNotes": "NPS-created material is generally public domain; third-party content and government marks are exceptions. Retain source bytes only in ignored local evidence and record any excluded resource after capture.",
+      "requiredVisibleMarkers": ["Photo Galleries", "Yellowstone National Park", "Wildlife Photos"],
+      "reason": "An independently published, image-card-rich government gallery on a different site and stylesheet system from NASA, selected before inspecting OfficeIMO output."
     }
   ]
 }
