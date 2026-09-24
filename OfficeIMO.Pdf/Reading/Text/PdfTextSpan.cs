@@ -48,7 +48,7 @@ public sealed class PdfTextSpan {
     internal int LogicalLineBreaksBefore { get; }
     internal bool LogicalLeadingSpace { get; }
     internal bool LogicalTrailingSpace { get; }
-    internal IReadOnlyList<bool>? EmbeddedLineBreaks { get; }
+    internal IReadOnlyList<int>? EmbeddedLineBreakCounts { get; }
     internal IReadOnlyList<double>? CharacterAdvances { get; }
     internal IReadOnlyList<int>? GlyphCharacterLengths { get; }
     internal IReadOnlyList<byte[]>? GlyphBytes { get; }
@@ -164,7 +164,7 @@ public sealed class PdfTextSpan {
         bool isArtifactContent = false,
         int? fontWeight = null,
         int? fontDescriptorFlags = null,
-        IReadOnlyList<bool>? embeddedLineBreaks = null) {
+        IReadOnlyList<int>? embeddedLineBreakCounts = null) {
         if (fontWeight.HasValue && (fontWeight.Value < 1 || fontWeight.Value > 1000)) {
             throw new ArgumentOutOfRangeException(nameof(fontWeight));
         }
@@ -189,7 +189,7 @@ public sealed class PdfTextSpan {
         LogicalLineBreaksBefore = logicalLineBreaksBefore;
         LogicalLeadingSpace = logicalLeadingSpace;
         LogicalTrailingSpace = logicalTrailingSpace;
-        EmbeddedLineBreaks = embeddedLineBreaks;
+        EmbeddedLineBreakCounts = embeddedLineBreakCounts;
         ContentOrderKey = contentOrderKey;
         TextObjectOrderKey = textObjectOrderKey;
         CharacterAdvances = characterAdvances?.ToArray();
@@ -215,17 +215,17 @@ public sealed class PdfTextSpan {
     internal PdfTextSpan WithCanRestamp(bool canRestamp) => new PdfTextSpan(
         Text, FontResource, FontSize, X, Y, Advance, Color, IsVisible, RotationDegrees, BaseFont, ClipPath,
         PaintOrder, DrawingFontFamily, LogicalLineBreaksBefore, LogicalLeadingSpace, LogicalTrailingSpace,
-        ContentOrderKey, CharacterAdvances, TextRenderingMode, canRestamp, RestampFontSize, RestampText, CanScaleAggregateAdvance, MarkedContentId, ContentStreamObjectNumber, TextObjectOrderKey, TextToPageTransform, VisualPaintIdentity, GlyphCharacterLengths, GlyphBytes, GlyphPaintedAdvances, CharacterAdvanceDirection, HasActualText, IsType3Font, GlyphSequenceProgressesLeftToRight, IsArtifactContent, FontWeight, FontDescriptorFlags, EmbeddedLineBreaks) { _completeTextProjectionSuppressed = this._completeTextProjectionSuppressed };
+        ContentOrderKey, CharacterAdvances, TextRenderingMode, canRestamp, RestampFontSize, RestampText, CanScaleAggregateAdvance, MarkedContentId, ContentStreamObjectNumber, TextObjectOrderKey, TextToPageTransform, VisualPaintIdentity, GlyphCharacterLengths, GlyphBytes, GlyphPaintedAdvances, CharacterAdvanceDirection, HasActualText, IsType3Font, GlyphSequenceProgressesLeftToRight, IsArtifactContent, FontWeight, FontDescriptorFlags, EmbeddedLineBreakCounts) { _completeTextProjectionSuppressed = this._completeTextProjectionSuppressed };
 
     internal PdfTextSpan WithOffset(double deltaX, double deltaY) => new PdfTextSpan(
         Text, FontResource, FontSize, X + deltaX, Y + deltaY, Advance, Color, IsVisible, RotationDegrees, BaseFont, ClipPath,
         PaintOrder, DrawingFontFamily, LogicalLineBreaksBefore, LogicalLeadingSpace, LogicalTrailingSpace,
-        ContentOrderKey, CharacterAdvances, TextRenderingMode, CanRestamp, RestampFontSize, RestampText, CanScaleAggregateAdvance, MarkedContentId, ContentStreamObjectNumber, TextObjectOrderKey, TextToPageTransform, VisualPaintIdentity, GlyphCharacterLengths, GlyphBytes, GlyphPaintedAdvances, CharacterAdvanceDirection, HasActualText, IsType3Font, GlyphSequenceProgressesLeftToRight, IsArtifactContent, FontWeight, FontDescriptorFlags, EmbeddedLineBreaks) { _completeTextProjectionSuppressed = this._completeTextProjectionSuppressed };
+        ContentOrderKey, CharacterAdvances, TextRenderingMode, CanRestamp, RestampFontSize, RestampText, CanScaleAggregateAdvance, MarkedContentId, ContentStreamObjectNumber, TextObjectOrderKey, TextToPageTransform, VisualPaintIdentity, GlyphCharacterLengths, GlyphBytes, GlyphPaintedAdvances, CharacterAdvanceDirection, HasActualText, IsType3Font, GlyphSequenceProgressesLeftToRight, IsArtifactContent, FontWeight, FontDescriptorFlags, EmbeddedLineBreakCounts) { _completeTextProjectionSuppressed = this._completeTextProjectionSuppressed };
 
     internal PdfTextSpan WithVisualFontSize(double fontSize) => new PdfTextSpan(
         Text, FontResource, fontSize, X, Y, Advance, Color, IsVisible, RotationDegrees, BaseFont, ClipPath,
         PaintOrder, DrawingFontFamily, LogicalLineBreaksBefore, LogicalLeadingSpace, LogicalTrailingSpace,
-        ContentOrderKey, CharacterAdvances, TextRenderingMode, CanRestamp, RestampFontSize, RestampText, CanScaleAggregateAdvance, MarkedContentId, ContentStreamObjectNumber, TextObjectOrderKey, TextToPageTransform, VisualPaintIdentity, GlyphCharacterLengths, GlyphBytes, GlyphPaintedAdvances, CharacterAdvanceDirection, HasActualText, IsType3Font, GlyphSequenceProgressesLeftToRight, IsArtifactContent, FontWeight, FontDescriptorFlags, EmbeddedLineBreaks) { _completeTextProjectionSuppressed = this._completeTextProjectionSuppressed };
+        ContentOrderKey, CharacterAdvances, TextRenderingMode, CanRestamp, RestampFontSize, RestampText, CanScaleAggregateAdvance, MarkedContentId, ContentStreamObjectNumber, TextObjectOrderKey, TextToPageTransform, VisualPaintIdentity, GlyphCharacterLengths, GlyphBytes, GlyphPaintedAdvances, CharacterAdvanceDirection, HasActualText, IsType3Font, GlyphSequenceProgressesLeftToRight, IsArtifactContent, FontWeight, FontDescriptorFlags, EmbeddedLineBreakCounts) { _completeTextProjectionSuppressed = this._completeTextProjectionSuppressed };
 
     // Layout and rendering measure the transformed glyph height. Raw extraction still exposes
     // the authored Tf operand, which can be 1 when a producer puts scaling in Tm or cm.
@@ -241,7 +241,7 @@ public sealed class PdfTextSpan {
         ContentOrderKey, CharacterAdvances, TextRenderingMode, false, RestampFontSize, RestampText, CanScaleAggregateAdvance,
         MarkedContentId, ContentStreamObjectNumber, TextObjectOrderKey, null, VisualPaintIdentity, GlyphCharacterLengths,
         GlyphBytes, GlyphPaintedAdvances, CharacterAdvanceDirection, HasActualText, IsType3Font,
-        GlyphSequenceProgressesLeftToRight, IsArtifactContent, FontWeight, FontDescriptorFlags, EmbeddedLineBreaks) {
+        GlyphSequenceProgressesLeftToRight, IsArtifactContent, FontWeight, FontDescriptorFlags, EmbeddedLineBreakCounts) {
         // The internal layout proxy has no source-space clip. Retain the original eligibility
         // decision so removing that coordinate-dependent clip cannot expose complete cell text.
         _completeTextProjectionSuppressed = !CanProjectCompleteText(sourcePageHeight)

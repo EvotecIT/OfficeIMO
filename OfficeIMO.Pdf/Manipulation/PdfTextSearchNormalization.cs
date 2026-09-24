@@ -13,7 +13,7 @@ internal static class PdfTextSearchNormalization {
 
     /// <summary>Also accepts the joined spelling when the query itself contains a hyphenated line break.</summary>
     internal static string[] NormalizeQueries(string text) {
-        bool[] lineBreaks = GetLineBreaks(text);
+        int[] lineBreaks = GetLineBreakCounts(text);
         PdfNormalizedSearchText joined = PdfNormalizedSearchText.Create(text, lineBreaks, removeLineEndHyphens: false, out bool hasHyphenJunction);
         if (!hasHyphenJunction) return new[] { joined.Text };
         string dehyphenated = PdfNormalizedSearchText.Create(text, lineBreaks, removeLineEndHyphens: true, out _).Text;
@@ -28,7 +28,7 @@ internal static class PdfTextSearchNormalization {
         bool hasWhitespace = false;
         for (int index = 0; index < text.Length && !hasWhitespace; index++) hasWhitespace = char.IsWhiteSpace(text[index]);
         if (!hasWhitespace) return queries.Any(query => ContainsExact(text, query, comparison));
-        bool[] lineBreaks = GetLineBreaks(text);
+        int[] lineBreaks = GetLineBreakCounts(text);
         PdfNormalizedSearchText joined = PdfNormalizedSearchText.Create(text, lineBreaks, removeLineEndHyphens: false, out bool hasHyphenJunction);
         if (queries.Any(query => ContainsExact(joined.Text, query, comparison))) return true;
         return hasHyphenJunction && queries.Any(query =>
@@ -39,7 +39,7 @@ internal static class PdfTextSearchNormalization {
     internal static IEnumerable<(int Start, int End)> FindSourceRanges(string text, string value, StringComparison comparison) {
         string[] queries = NormalizeQueries(value);
         if (queries[0].Length == 0 || text.Length == 0) yield break;
-        bool[] lineBreaks = GetLineBreaks(text);
+        int[] lineBreaks = GetLineBreakCounts(text);
         PdfNormalizedSearchText joined = PdfNormalizedSearchText.Create(text, lineBreaks, removeLineEndHyphens: false, out bool hasHyphenJunction);
         foreach (string query in queries)
             foreach ((int Start, int End) range in EnumerateSourceRanges(joined, query, comparison)) yield return range;
@@ -60,9 +60,12 @@ internal static class PdfTextSearchNormalization {
         }
     }
 
-    private static bool[] GetLineBreaks(string text) {
-        var lineBreaks = new bool[text.Length];
-        for (int index = 0; index < text.Length; index++) lineBreaks[index] = (int)text[index] is 0x000A or 0x000D or 0x2028 or 0x2029;
+    private static int[] GetLineBreakCounts(string text) {
+        var lineBreaks = new int[text.Length];
+        for (int index = 0; index < text.Length; index++) {
+            if (text[index] == '\r' && index + 1 < text.Length && text[index + 1] == '\n') continue;
+            if (text[index] is '\r' or '\n' or '\u2028' or '\u2029') lineBreaks[index] = 1;
+        }
         return lineBreaks;
     }
 
@@ -93,9 +96,9 @@ internal sealed class PdfNormalizedSearchText {
 
     /// <summary>
     /// Collapses whitespace runs to one space. A run that contains a line break and follows a letter-hyphen pair before
-    /// another letter is dropped; with <paramref name="removeLineEndHyphens"/> the hyphen is dropped too, so the word reads joined.
+    /// another letter is dropped when there is exactly one logical line break; with <paramref name="removeLineEndHyphens"/> the hyphen is dropped too.
     /// </summary>
-    internal static PdfNormalizedSearchText Create(string source, bool[] lineBreaks, bool removeLineEndHyphens, out bool hasHyphenJunction) {
+    internal static PdfNormalizedSearchText Create(string source, int[] lineBreaks, bool removeLineEndHyphens, out bool hasHyphenJunction) {
         hasHyphenJunction = false;
         var text = new System.Text.StringBuilder(source.Length);
         var starts = new List<int>(source.Length);
@@ -110,12 +113,12 @@ internal sealed class PdfNormalizedSearchText {
                 continue;
             }
             int runEnd = index;
-            bool containsLineBreak = false;
+            int lineBreakCount = 0;
             while (runEnd < source.Length && char.IsWhiteSpace(source[runEnd])) {
-                containsLineBreak |= lineBreaks[runEnd];
+                lineBreakCount += lineBreaks[runEnd];
                 runEnd++;
             }
-            if (containsLineBreak && IsLineEndHyphenJunction(source, index, runEnd)) {
+            if (lineBreakCount == 1 && IsLineEndHyphenJunction(source, index, runEnd)) {
                 hasHyphenJunction = true;
                 if (removeLineEndHyphens) {
                     text.Length--;

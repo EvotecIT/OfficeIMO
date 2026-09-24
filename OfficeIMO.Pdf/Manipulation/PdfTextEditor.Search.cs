@@ -373,7 +373,7 @@ internal static partial class PdfTextEditor {
 
     private sealed class TextSearchUnit {
         private readonly TextCharacterSource?[] _sources;
-        private readonly bool[] _lineBreaks;
+        private readonly int[] _lineBreakCounts;
         private readonly Dictionary<PdfTextSpan, int> _lineIndexes = new Dictionary<PdfTextSpan, int>();
 
         internal TextSearchUnit(IReadOnlyList<PdfTextSpan> spans) : this(new[] { spans }) {
@@ -383,14 +383,14 @@ internal static partial class PdfTextEditor {
         internal TextSearchUnit(IReadOnlyList<IReadOnlyList<PdfTextSpan>> lines) {
             var text = new System.Text.StringBuilder();
             var sources = new List<TextCharacterSource?>();
-            var lineBreaks = new List<bool>();
+            var lineBreakCounts = new List<int>();
             for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
                 PdfTextSpan[] orderedSpans = OrderSpansInReadingDirection(lines[lineIndex]);
                 if (orderedSpans.Length == 0) continue;
                 if (text.Length > 0) {
                     text.Append('\n');
                     sources.Add(null);
-                    lineBreaks.Add(true);
+                    lineBreakCounts.Add(1);
                 }
                 bool rightToLeft = UsesRightToLeftReadingOrder(orderedSpans);
                 PdfTextSpan? previous = null;
@@ -400,20 +400,21 @@ internal static partial class PdfTextEditor {
                     if (previous != null && NeedsSyntheticSpace(previous, span, text, rightToLeft)) {
                         text.Append(' ');
                         sources.Add(null);
-                        lineBreaks.Add(false);
+                        lineBreakCounts.Add(0);
                     }
                     for (int characterIndex = 0; characterIndex < span.Text.Length; characterIndex++) {
                         text.Append(span.Text[characterIndex]);
                         sources.Add(new TextCharacterSource(span, characterIndex));
-                        lineBreaks.Add(span.Text[characterIndex] is '\r' or '\n' ||
-                            span.EmbeddedLineBreaks?[characterIndex] == true);
+                        lineBreakCounts.Add(span.EmbeddedLineBreakCounts?[characterIndex] ??
+                            (span.Text[characterIndex] is '\r' or '\n' or '\u2028' or '\u2029' &&
+                             !(span.Text[characterIndex] == '\n' && characterIndex > 0 && span.Text[characterIndex - 1] == '\r') ? 1 : 0));
                     }
                     previous = span;
                 }
             }
             Text = text.ToString();
             _sources = sources.ToArray();
-            _lineBreaks = lineBreaks.ToArray();
+            _lineBreakCounts = lineBreakCounts.ToArray();
         }
 
         internal string Text { get; }
@@ -431,11 +432,11 @@ internal static partial class PdfTextEditor {
         /// ("hyphenation") and the hyphenated compound without the break ("well-known").
         /// </summary>
         internal IEnumerable<TextSearchRange> FindRanges(IReadOnlyList<string> queries, StringComparison comparison, bool wholeWords) {
-            PdfNormalizedSearchText joined = PdfNormalizedSearchText.Create(Text, _lineBreaks, removeLineEndHyphens: false, out bool hasHyphenJunction);
+            PdfNormalizedSearchText joined = PdfNormalizedSearchText.Create(Text, _lineBreakCounts, removeLineEndHyphens: false, out bool hasHyphenJunction);
             var sources = new List<IEnumerator<TextSearchRange>>();
             foreach (string query in queries) sources.Add(EnumerateRanges(joined, query, comparison, wholeWords).GetEnumerator());
             if (hasHyphenJunction) {
-                PdfNormalizedSearchText dehyphenated = PdfNormalizedSearchText.Create(Text, _lineBreaks, removeLineEndHyphens: true, out _);
+                PdfNormalizedSearchText dehyphenated = PdfNormalizedSearchText.Create(Text, _lineBreakCounts, removeLineEndHyphens: true, out _);
                 foreach (string query in queries) sources.Add(EnumerateRanges(dehyphenated, query, comparison, wholeWords).GetEnumerator());
             }
             try {

@@ -45,7 +45,7 @@ internal static partial class PdfRedactionPlanner {
             for (int pageNumber = 1; pageNumber <= readDocument.Pages.Count; pageNumber++) {
                 if (search.PageNumbers.Count > 0 && !search.PageNumbers.Contains(pageNumber)) continue;
                 PdfTextSpan[] withBreaks = readDocument.Pages[pageNumber - 1].GetTextSpans()
-                    .Where(static span => span.EmbeddedLineBreaks?.Any(static isBreak => isBreak) == true).ToArray();
+                    .Where(static span => span.EmbeddedLineBreakCounts?.Any(static count => count > 0) == true).ToArray();
                 if (withBreaks.Length > 0) embeddedBreakSpans[pageNumber] = withBreaks;
             }
         }

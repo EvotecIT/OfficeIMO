@@ -230,14 +230,40 @@ public sealed class PdfTextSearchLineWrapTests {
             "/Span << /ActualText <FEFF0068007900700068002D" + breakCode + "0065006E006100740069006F006E> >> BDC " +
             "BT /F1 12 Tf 50 700 Td (X) Tj ET EMC\n");
         PdfTextSpan source = Assert.Single(PdfReadDocument.Open(pdf).Pages[0].GetTextSpans());
-        Assert.Contains(true, Assert.IsAssignableFrom<IReadOnlyList<bool>>(source.EmbeddedLineBreaks));
-        Assert.Equal(source.EmbeddedLineBreaks, source.WithCanRestamp(false).EmbeddedLineBreaks);
-        Assert.Equal(source.EmbeddedLineBreaks, source.WithOffset(1D, 1D).EmbeddedLineBreaks);
-        Assert.Equal(source.EmbeddedLineBreaks, source.WithVisualFontSize(13D).EmbeddedLineBreaks);
-        Assert.Equal(source.EmbeddedLineBreaks, source.WithLayoutGeometry(50D, 700D, 0D, 800D).EmbeddedLineBreaks);
+        Assert.Contains(1, Assert.IsAssignableFrom<IReadOnlyList<int>>(source.EmbeddedLineBreakCounts));
+        Assert.Equal(source.EmbeddedLineBreakCounts, source.WithCanRestamp(false).EmbeddedLineBreakCounts);
+        Assert.Equal(source.EmbeddedLineBreakCounts, source.WithOffset(1D, 1D).EmbeddedLineBreakCounts);
+        Assert.Equal(source.EmbeddedLineBreakCounts, source.WithVisualFontSize(13D).EmbeddedLineBreakCounts);
+        Assert.Equal(source.EmbeddedLineBreakCounts, source.WithLayoutGeometry(50D, 700D, 0D, 800D).EmbeddedLineBreakCounts);
         Assert.Single(PdfDocument.Load(pdf).Text.Find("hyphenation"));
     }
 
+    [Theory]
+    [InlineData("000A000A")]
+    [InlineData("000D000A000D000A")]
+    [InlineData("2029000A")]
+    public void ActualTextParagraphBoundaryDoesNotJoinHyphenatedWord(string breaks) {
+        byte[] pdf = BuildRawTextPdf(
+            "/Span << /ActualText <FEFF0068007900700068002D" + breaks + "0065006E006100740069006F006E> >> BDC " +
+            "BT /F1 12 Tf 50 700 Td (X) Tj ET EMC\n");
+        PdfTextSpan span = Assert.Single(PdfReadDocument.Open(pdf).Pages[0].GetTextSpans());
+        Assert.Contains(2, Assert.IsAssignableFrom<IReadOnlyList<int>>(span.EmbeddedLineBreakCounts));
+        PdfDocument document = PdfDocument.Load(pdf);
+        Assert.Empty(document.Text.Find("hyphenation"));
+        Assert.Empty(document.Text.Find("hyph-enation"));
+        Assert.Single(document.Text.Find("hyph- enation"));
+        Assert.Empty(document.Redactions.Search(new PdfRedactionSearchOptions().AddLiteral("hyphenation")).Areas);
+    }
+
+    [Fact]
+    public void ActualTextCrLfIsOneWrapAndJoinsHyphenatedWord() {
+        byte[] pdf = BuildRawTextPdf(
+            "/Span << /ActualText <FEFF0068007900700068002D000D000A0065006E006100740069006F006E> >> BDC " +
+            "BT /F1 12 Tf 50 700 Td (X) Tj ET EMC\n");
+        PdfTextSpan span = Assert.Single(PdfReadDocument.Open(pdf).Pages[0].GetTextSpans());
+        Assert.Contains(1, Assert.IsAssignableFrom<IReadOnlyList<int>>(span.EmbeddedLineBreakCounts));
+        Assert.Single(PdfDocument.Load(pdf).Text.Find("hyphenation"));
+    }
     [Fact]
     public void InvisibleActualTextWithEmbeddedBreakIsIncludedInRedactionSearch() {
         byte[] pdf = BuildRawTextPdf(
