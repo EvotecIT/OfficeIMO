@@ -640,7 +640,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             breakOffsets,
             runningStringAssignments.OrderBy(assignment => assignment.OrderOffset),
             breakProgress,
-            supportsContinuationReflow);
+            supportsContinuationReflow,
+            flowY);
     }
 
     private HtmlRenderVisual CreateLeaderVisual(

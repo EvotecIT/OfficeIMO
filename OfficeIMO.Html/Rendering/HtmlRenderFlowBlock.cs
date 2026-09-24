@@ -667,9 +667,11 @@ internal sealed class HtmlInlineLayout {
         IEnumerable<double>? breakOffsets = null,
         IEnumerable<HtmlCssRunningStringAssignment>? runningStringAssignments = null,
         IEnumerable<HtmlInlineBreakProgress>? breakProgress = null,
-        bool supportsContinuationReflow = false) {
+        bool supportsContinuationReflow = false,
+        double? normalFlowHeight = null) {
         Visuals = new List<HtmlRenderVisual>(visuals);
         Height = height;
+        NormalFlowHeight = normalFlowHeight ?? height;
         BreakOffsets = new List<double>(breakOffsets ?? Array.Empty<double>()).AsReadOnly();
         RunningStringAssignments = new List<HtmlCssRunningStringAssignment>(
             runningStringAssignments ?? Array.Empty<HtmlCssRunningStringAssignment>()).AsReadOnly();
@@ -679,6 +681,7 @@ internal sealed class HtmlInlineLayout {
 
     internal IReadOnlyList<HtmlRenderVisual> Visuals { get; }
     internal double Height { get; }
+    internal double NormalFlowHeight { get; }
     internal IReadOnlyList<double> BreakOffsets { get; }
     internal IReadOnlyList<HtmlCssRunningStringAssignment> RunningStringAssignments { get; }
     internal IReadOnlyList<HtmlInlineBreakProgress> BreakProgress { get; }

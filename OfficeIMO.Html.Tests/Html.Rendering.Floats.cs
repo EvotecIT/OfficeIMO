@@ -9,6 +9,61 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlFloat_OverflowAutoListItemDoesNotAddParagraphBottomMarginAfterTallerFloat() {
+        const string html = "<ul style='margin:0;padding:0;list-style:none'>"
+            + "<li id='first' style='overflow:auto;margin:0;padding:0;background:#eee'>"
+            + "<p style='margin:16px 0;font-size:12px;line-height:24px'>"
+            + "<span id='float' style='float:left;width:40px;height:120px;background:red'></span>Short text"
+            + "</p></li><li id='second' style='height:20px;background:#ddd'>Next</li></ul>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 300D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        HtmlRenderShape first = FindPositionedShape(rendered, "li#first");
+        HtmlRenderShape second = FindPositionedShape(rendered, "li#second");
+        Assert.Equal(136D, first.Height, 1);
+        Assert.Equal(first.Y + first.Height, second.Y, 1);
+    }
+
+    [Fact]
+    public void HtmlFloat_ContainedByExplicitParagraphHeightKeepsBottomMargin() {
+        const string html = "<div id='first' style='overflow:auto;background:#eee'>"
+            + "<p style='height:200px;margin:16px 0;font-size:12px;line-height:24px'>"
+            + "<span style='float:left;width:40px;height:120px;background:red'></span>Short text"
+            + "</p></div><div id='second' style='height:20px;background:#ddd'>Next</div>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 300D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        HtmlRenderShape first = FindPositionedShape(rendered, "div#first");
+        HtmlRenderShape second = FindPositionedShape(rendered, "div#second");
+        Assert.Equal(232D, first.Height, 1);
+        Assert.Equal(first.Y + first.Height, second.Y, 1);
+    }
+
+    [Fact]
+    public void HtmlFloat_ContainedByParagraphFormattingContextKeepsBottomMargin() {
+        const string html = "<div id='first' style='overflow:auto;background:#eee'>"
+            + "<p style='overflow:auto;margin:16px 0;font-size:12px;line-height:24px'>"
+            + "<span style='float:left;width:40px;height:120px;background:red'></span>Short text"
+            + "</p></div><div id='second' style='height:20px;background:#ddd'>Next</div>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 300D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        HtmlRenderShape first = FindPositionedShape(rendered, "div#first");
+        HtmlRenderShape second = FindPositionedShape(rendered, "div#second");
+        Assert.Equal(152D, first.Height, 1);
+        Assert.Equal(first.Y + first.Height, second.Y, 1);
+    }
+
+    [Fact]
     public void HtmlFloats_ApplyLayoutDepthBeforeScanningNestedDescendants() {
         string html = "<span>" + string.Concat(Enumerable.Repeat("<span>", 12))
             + "<span style='float:left'>Float</span>"

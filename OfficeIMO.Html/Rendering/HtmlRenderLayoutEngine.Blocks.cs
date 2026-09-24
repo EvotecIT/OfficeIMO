@@ -283,6 +283,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             && ContainsElementOrSelf(element, continuationTarget)
             && (!ReferenceEquals(element, continuationTarget) || continuationLogicalCharacters > 0);
         if (continuesThisBox) style = SuppressContinuationStartDecorations(style);
+        _inlineFloatOverhangs.Remove(element);
         ReportUnsupportedFloatValues(element, style);
         ReportUnsupportedOverflowValues(element, style);
         ReportUnsupportedMultiColumnValues(element, style);
@@ -343,6 +344,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 descendantContinuationTarget,
                 descendantContinuationTarget == null ? 0 : continuationLogicalCharacters).ToList()
             : new List<HtmlRenderFlowBlock>();
+        if (usesBlockFormatting && _inlineFloatOverhangs.ContainsKey(element)
+            && (children.Count != 1 || children[0].OwnerElement != null)) {
+            // An earlier inline run does not establish a float overhang for the
+            // element when subsequent block content follows it.
+            _inlineFloatOverhangs.Remove(element);
+        }
 
         if (!usesVerticalBlockFormatting && children.Count > 0 && CanCollapseParentMargin(style, top: true) && children[0].HasCollapsibleMargins) {
             HtmlRenderFlowBlock first = children[0];
@@ -363,6 +370,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
             children[lastIndex] = last
                 .AdjustTrailingFlowSpace(childMargin)
                 .WithCollapsibleMargins(last.CollapsibleMarginTop, 0D, last.OwnerElement!);
+        }
+        if (!usesVerticalBlockFormatting && children.Count > 0
+            && (style.Display == "flow-root" || style.OverflowX is "auto" or "hidden" or "scroll"
+                || style.OverflowY is "auto" or "hidden" or "scroll")) {
+            int lastIndex = children.Count - 1;
+            HtmlRenderFlowBlock last = children[lastIndex];
+            if (last.OwnerElement != null
+                && _inlineFloatOverhangs.TryGetValue(last.OwnerElement, out double floatOverhang)
+                && _layoutStyles.TryGetValue(last.OwnerElement, out HtmlRenderBoxStyle? lastStyle)) {
+                // The BFC contains the float, so its overhang can consume the final
+                // block margin instead of extending the container below the float.
+                children[lastIndex] = last.AdjustTrailingFlowSpace(Math.Min(Math.Max(0D, lastStyle.MarginBottom), floatOverhang));
+            }
         }
         _layoutStyles[element] = style.Clone();
 
@@ -456,6 +476,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 inline = TransformSidewaysVerticalInlineLayout(inline, style, element);
             }
             inlineLayout = inline;
+            if (inline.Height > inline.NormalFlowHeight + 0.0001D) {
+                _inlineFloatOverhangs[element] = inline.Height - inline.NormalFlowHeight;
+            }
             contentVisuals.AddRange(inline.Visuals);
             contentHeight = inline.Height;
             contentBreakOffsets.AddRange(inline.BreakOffsets);
@@ -469,6 +492,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         bool zeroHeightCollapsible = CanUseZeroHeightForMarginCollapse(style, parentStyle, contentHeight);
         double boxHeight = zeroHeightCollapsible ? 0D : ResolveBoxHeight(contentHeight, boxWidth, style);
+        if (_inlineFloatOverhangs.TryGetValue(element, out double inlineOverhang)) {
+            double normalFlowBoxHeight = ResolveBoxHeight(Math.Max(0D, contentHeight - inlineOverhang), boxWidth, style);
+            double floatBottom = style.BorderTopWidth + style.PaddingTop + contentHeight;
+            double boxOverhang = Math.Max(0D, floatBottom - normalFlowBoxHeight);
+            bool containsOwnFloats = style.Display == "flow-root"
+                || style.OverflowX is "auto" or "hidden" or "scroll"
+                || style.OverflowY is "auto" or "hidden" or "scroll";
+            if (boxOverhang > 0.0001D && !containsOwnFloats) _inlineFloatOverhangs[element] = boxOverhang;
+            else _inlineFloatOverhangs.Remove(element);
+        }
         double unclampedOuterHeight = style.MarginTop + boxHeight + style.MarginBottom;
         double outerHeight = unclampedOuterHeight;
         if (outerHeight <= 0D) outerHeight = 0.01D;
@@ -675,6 +708,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private double FlushInlineNodes(ICollection<HtmlRenderFlowBlock> blocks, List<INode> nodes, double width, HtmlRenderBoxStyle style, IElement sourceElement, int depth) {
         if (nodes.Count == 0) return 0D;
         HtmlInlineLayout inline = LayoutInlineNodes(nodes, width, style, depth + 1, null, null);
+        if (inline.Height > inline.NormalFlowHeight + 0.0001D) {
+            _inlineFloatOverhangs[sourceElement] = Math.Max(
+                _inlineFloatOverhangs.GetValueOrDefault(sourceElement),
+                inline.Height - inline.NormalFlowHeight);
+        }
         nodes.Clear();
         if (inline.Height <= 0D || inline.Visuals.Count == 0) return 0D;
         var block = new HtmlRenderFlowBlock(

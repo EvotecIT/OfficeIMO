@@ -44,6 +44,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly HashSet<IElement> _suppressedEditableLayoutRegionMarkers = new HashSet<IElement>();
     private readonly Dictionary<IElement, HtmlRenderBoxStyle> _layoutStyles = new Dictionary<IElement, HtmlRenderBoxStyle>();
     private readonly Dictionary<IElement, bool> _containsInFlowFloatCache = new Dictionary<IElement, bool>();
+    private readonly Dictionary<IElement, double> _inlineFloatOverhangs = new Dictionary<IElement, double>();
     private readonly Dictionary<int, int> _rootStackingPaintOrders = new Dictionary<int, int>();
     private readonly Dictionary<IElement, int> _positionedSourceOrdersByElement = new Dictionary<IElement, int>();
     private readonly Dictionary<IElement, int> _semanticNodeIds = new Dictionary<IElement, int>();
@@ -462,6 +463,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _suppressedEditableLayoutRegionMarkers.Clear();
         _layoutStyles.Clear();
         _containsInFlowFloatCache.Clear();
+        _inlineFloatOverhangs.Clear();
         _rootStackingPaintOrders.Clear();
         _positionedSourceOrdersByElement.Clear();
         _semanticNodeIds.Clear();
