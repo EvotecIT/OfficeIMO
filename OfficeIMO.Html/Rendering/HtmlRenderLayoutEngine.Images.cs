@@ -105,37 +105,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             placeholder.StrokeWidth = 0D;
             objectVisuals.Add(new HtmlRenderShape(placeholder, imageX + placement.X, imageY + placement.Y, objectVisuals.Count, link, sourceDescription));
             if (!string.IsNullOrWhiteSpace(alternativeText)) {
-                double textHeight = Math.Min(placement.Height, style.LineHeight);
-                objectVisuals.Add(new HtmlRenderText(
-                    CollapseImageAlternativeText(alternativeText!),
-                    imageX + placement.X + 4D,
-                    imageY + placement.Y + 4D,
-                    Math.Max(1D, placement.Width - 8D),
-                    Math.Max(1D, textHeight),
-                    style.Font,
-                    style.Color,
-                    OfficeTextAlignment.Left,
-                    style.LineHeight,
-                    objectVisuals.Count,
-                    link,
-                    sourceDescription,
-                    "figure-alternative-text",
-                    null,
-                    null,
-                    null,
-                    false,
-                    null,
-                    null,
-                    style.UnderlineStyle,
-                    style.StrikethroughStyle,
-                    style.Baseline,
-                    style.BaselineLevel,
-                    style.BaselineScale,
-                    style.BaselineOffset,
-                    decorationColor: style.DecorationColor,
-                    featureSettings: style.TextFeatureSettings,
-                    fontPalette: style.FontPalette,
-                    fontDescriptor: style.FontDescriptor));
+                AddMissingImageAlternativeText(objectVisuals, alternativeText!, imageX + placement.X,
+                    imageY + placement.Y, placement.Width, placement.Height, style, link, sourceDescription);
             }
         }
         HtmlResolvedBorderRadii outerRadii = ResolveBoxRadii(style, boxWidth, boxHeight, element, sourceDescription);
@@ -515,6 +486,66 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private static string CollapseImageAlternativeText(string value) =>
         string.Join(" ", value.Split(new[] { ' ', '\t', '\r', '\n', '\f' }, StringSplitOptions.RemoveEmptyEntries));
+
+    private void AddMissingImageAlternativeText(ICollection<HtmlRenderVisual> visuals, string alternativeText,
+        double x, double y, double width, double height, HtmlRenderBoxStyle style, string? link, string source) {
+        double horizontalInset = Math.Min(4D, width / 4D);
+        double verticalInset = Math.Min(4D, height / 4D);
+        double textWidth = Math.Max(0.01D, width - horizontalInset * 2D);
+        double lineHeight = Math.Max(0.01D, style.LineHeight);
+        string normalized = CollapseImageAlternativeText(alternativeText);
+        // Alternative text can be arbitrarily long, but only a small prefix can paint inside an image.
+        // Keep the remainder as one clipped text visual so PDF text extraction retains the full value.
+        int wrappedLength = Math.Min(normalized.Length, 1024);
+        if (wrappedLength < normalized.Length && char.IsHighSurrogate(normalized[wrappedLength - 1])) wrappedLength--;
+        IReadOnlyList<string> lines = WrapTextToWidth(normalized.Substring(0, wrappedLength), textWidth,
+            style, softWrap: !style.PreventTextWrapping);
+        ChargeLayoutOperations(lines.Count, source);
+        var textVisuals = new List<HtmlRenderVisual>(lines.Count + (wrappedLength < normalized.Length ? 1 : 0));
+        for (int index = 0; index < lines.Count; index++) {
+            if (lines[index].Length == 0) continue;
+            textVisuals.Add(new HtmlRenderText(
+                lines[index],
+                x + horizontalInset,
+                y + verticalInset + index * lineHeight,
+                textWidth,
+                lineHeight,
+                style.Font,
+                style.Color,
+                OfficeTextAlignment.Left,
+                lineHeight,
+                textVisuals.Count,
+                link,
+                source,
+                "figure-alternative-text",
+                null,
+                null,
+                null,
+                false,
+                null,
+                null,
+                style.UnderlineStyle,
+                style.StrikethroughStyle,
+                style.Baseline,
+                style.BaselineLevel,
+                style.BaselineScale,
+                style.BaselineOffset,
+                decorationColor: style.DecorationColor,
+                featureSettings: style.TextFeatureSettings,
+                fontPalette: style.FontPalette,
+                fontDescriptor: style.FontDescriptor));
+        }
+        if (wrappedLength < normalized.Length) {
+            textVisuals.Add(new HtmlRenderText(
+                normalized.Substring(wrappedLength), x + horizontalInset, y + height + lineHeight,
+                textWidth, lineHeight, style.Font, style.Color, OfficeTextAlignment.Left,
+                lineHeight, textVisuals.Count, link, source, "figure-alternative-text"));
+        }
+        if (textVisuals.Count > 0) {
+            visuals.Add(new HtmlRenderClipGroup(x, y, width, height, true, true,
+                textVisuals, visuals.Count, source + ":alternative-clip"));
+        }
+    }
 
     private static string NormalizeImageContentType(string contentType) =>
         OfficeImageInfo.TryNormalizeImageContentType(contentType, out string normalized) ? normalized : contentType.Split(';')[0].Trim();

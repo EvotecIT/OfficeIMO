@@ -76,12 +76,76 @@ public sealed partial class HtmlRenderingTests {
             ViewportWidth = 200D,
             Margins = HtmlRenderMargins.All(0D)
         });
-        HtmlRenderText alternative = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
-            text => text.SemanticRole == "figure-alternative-text");
-        Assert.Equal("Heliopause movie unavailable", alternative.Text);
+        string alternative = string.Concat(EnumerateRenderVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderText>()
+            .Where(text => text.SemanticRole == "figure-alternative-text")
+            .Select(text => text.Text));
+        Assert.Equal("Heliopause movie unavailable", alternative);
 
         byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
-        Assert.Contains("Heliopause movie unavailable", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        string printable = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText()
+            .Where(character => !char.IsWhiteSpace(character)));
+        Assert.Contains("Heliopausemovieunavailable", printable, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlRender_MissingImageAlternativeWrapsWithinItsImageBox() {
+        const string html = """
+            <img src="missing.jpg"
+                 alt="Beginning with a view from above the inner solar system, the camera flies toward the distant planet and its moons."
+                 style="display:block;width:200px;height:96px;object-fit:cover;font:12px/16px Arial;background:#20262c;color:white">
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 220D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        HtmlRenderText[] lines = EnumerateRenderVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderText>()
+            .Where(text => text.SemanticRole == "figure-alternative-text")
+            .ToArray();
+
+        Assert.True(lines.Length >= 3);
+        Assert.All(lines, line => Assert.InRange(line.Y + line.Height, 0D, 96D));
+        Assert.Contains("Beginning with a view", string.Join(" ", lines.Select(line => line.Text)), StringComparison.Ordinal);
+        HtmlRenderClipGroup alternativeClip = Assert.Single(EnumerateRenderVisuals(rendered.Pages[0].Visuals)
+            .OfType<HtmlRenderClipGroup>(), group => group.Source?.EndsWith(":alternative-clip", StringComparison.Ordinal) == true);
+        Assert.Equal(96D, alternativeClip.ClipHeight);
+    }
+
+    [Fact]
+    public void HtmlPdf_ClippedMissingImageRetainsCompleteAlternativeText() {
+        const string html = "<img src='missing.jpg' alt='A distant planet and its moons' "
+            + "style='display:block;width:80px;height:16px;font:12px/16px Arial'>";
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        string extracted = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText()
+            .Where(character => !char.IsWhiteSpace(character)));
+
+        Assert.Contains("Adistantplanetanditsmoons", extracted, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlPdf_LongMissingImageAlternativeHasBoundedWrappedVisualsAndRetainsText() {
+        string alternative = new string('A', 1500) + " END";
+        string html = "<img src='missing.jpg' alt='" + alternative
+            + "' style='display:block;width:80px;height:16px;font:12px/16px Arial'>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 120D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        HtmlRenderText[] text = EnumerateRenderVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderText>()
+            .Where(visual => visual.SemanticRole == "figure-alternative-text")
+            .ToArray();
+        Assert.InRange(text.Length, 2, 1025);
+        Assert.Equal(alternative, string.Concat(text.Select(visual => visual.Text)));
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        string extracted = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
+        Assert.Contains("END", extracted, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -92,9 +156,10 @@ public sealed partial class HtmlRenderingTests {
             ViewportWidth = 200D,
             Margins = HtmlRenderMargins.All(0D)
         });
-        HtmlRenderText alternative = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
-            text => text.SemanticRole == "figure-alternative-text");
-        Assert.Equal("Heliopause\u00A0movie unavailable", alternative.Text);
+        string alternative = string.Concat(EnumerateRenderVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderText>()
+            .Where(text => text.SemanticRole == "figure-alternative-text")
+            .Select(text => text.Text));
+        Assert.Equal("Heliopause\u00A0movie unavailable", alternative);
     }
 
     [Fact]

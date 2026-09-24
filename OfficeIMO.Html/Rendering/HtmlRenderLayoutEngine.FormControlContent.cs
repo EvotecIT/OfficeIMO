@@ -321,7 +321,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string source,
         bool softWrap) {
         if (text.Length == 0 || width <= 0D || height <= 0D) return;
-        IReadOnlyList<string> lines = WrapControlText(text, width, style, softWrap);
+        IReadOnlyList<string> lines = WrapTextToWidth(text, width, style, softWrap);
         double lineHeight = Math.Max(0.01D, style.LineHeight);
         int maximumLines = Math.Max(1, (int)Math.Floor(height / lineHeight));
         for (int index = 0; index < Math.Min(lines.Count, maximumLines); index++) {
@@ -357,7 +357,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    private IReadOnlyList<string> WrapControlText(string text, double width, HtmlRenderBoxStyle style, bool softWrap) {
+    private IReadOnlyList<string> WrapTextToWidth(string text, double width, HtmlRenderBoxStyle style, bool softWrap) {
         var result = new List<string>();
         foreach (string logicalLine in text.Split('\n')) {
             if (!softWrap || logicalLine.Length == 0 || MeasureInlineText(logicalLine, style) <= width + 0.0001D) {
