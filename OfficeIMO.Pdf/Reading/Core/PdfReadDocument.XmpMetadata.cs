@@ -59,7 +59,7 @@ public sealed partial class PdfReadDocument {
             TryReadStreamFilter(stream, cancellationToken),
             stream.DataLength,
             decodedSizeBytes,
-            StreamDecoder.GetUnsupportedFilters(stream.Dictionary, _objects).AsReadOnly(),
+            StreamDecoder.GetUnsupportedFiltersCancellable(stream.Dictionary, _objects, cancellationToken).AsReadOnly(),
             rawXml,
             document is not null,
             document is null ? null : ReadAltText(document, "title", cancellationToken),

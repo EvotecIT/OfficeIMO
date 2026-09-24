@@ -414,18 +414,26 @@ internal static partial class StreamDecoder {
         return exact;
     }
 
-    internal static List<string> GetUnsupportedFilters(PdfDictionary dict, Dictionary<int, PdfIndirectObject>? objects = null) {
+    internal static List<string> GetUnsupportedFilters(PdfDictionary dict, Dictionary<int, PdfIndirectObject>? objects = null) =>
+        GetUnsupportedFiltersCancellable(dict, objects, CancellationToken.None);
+
+    internal static List<string> GetUnsupportedFiltersCancellable(
+        PdfDictionary dict,
+        Dictionary<int, PdfIndirectObject>? objects,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (!dict.Items.TryGetValue("Filter", out var filterObj)) {
             return new List<string>(0);
         }
 
-        if (!TryGetFilterNames(filterObj, objects, out List<string> filterNames)) {
+        if (!TryGetFilterNames(filterObj, objects, out List<string> filterNames, cancellationToken)) {
             return new List<string> { "MalformedFilterDeclaration" };
         }
 
         var unsupported = new List<string>();
         foreach (string filterName in filterNames) {
-            if (!IsSupportedFilter(filterName) && !ContainsFilter(unsupported, filterName)) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!IsSupportedFilter(filterName) && !ContainsFilter(unsupported, filterName, cancellationToken)) {
                 unsupported.Add(filterName);
             }
         }
@@ -521,9 +529,9 @@ internal static partial class StreamDecoder {
         }
     }
 
-    private static bool ContainsFilter(List<string> filters, string filterName) {
+    private static bool ContainsFilter(List<string> filters, string filterName, CancellationToken cancellationToken) {
         for (int i = 0; i < filters.Count; i++) {
-            if (string.Equals(filters[i], filterName, StringComparison.Ordinal)) {
+            if (PdfStringComparison.CompareOrdinal(filters[i], filterName, cancellationToken) == 0) {
                 return true;
             }
         }

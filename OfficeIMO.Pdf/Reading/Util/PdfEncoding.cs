@@ -155,7 +155,7 @@ internal static class PdfEncoding {
             builder.CopyTo(start + offset, characters, offset, count);
         }
         cancellationToken.ThrowIfCancellationRequested();
-        return new string(characters);
+        return CharArrayToStringCancellable(characters, cancellationToken);
 #endif
     }
 
@@ -183,7 +183,7 @@ internal static class PdfEncoding {
             source.CopyTo(start + offset, characters, offset, count);
         }
         cancellationToken.ThrowIfCancellationRequested();
-        return new string(characters);
+        return CharArrayToStringCancellable(characters, cancellationToken);
 #endif
     }
 
@@ -200,8 +200,22 @@ internal static class PdfEncoding {
             state.Token.ThrowIfCancellationRequested();
         });
 #else
-        // Older framework string constructors cannot poll during the final copy.
-        return new string(characters);
+        // string.Create is unavailable on these targets. Fill a fresh string in
+        // chunks so the last, potentially large copy can still observe cancellation.
+        string result = new string('\0', characters.Length);
+        unsafe {
+            fixed (char* destination = result) {
+                for (int offset = 0; offset < characters.Length; offset += 4096) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    int count = Math.Min(4096, characters.Length - offset);
+                    for (int index = 0; index < count; index++) {
+                        destination[offset + index] = characters[offset + index];
+                    }
+                }
+            }
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return result;
 #endif
     }
 

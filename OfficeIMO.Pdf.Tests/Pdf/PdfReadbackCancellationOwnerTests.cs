@@ -81,4 +81,26 @@ public class PdfReadbackCancellationOwnerTests {
         Assert.ThrowsAny<OperationCanceledException>(() => StreamDecoder.DecodeRequired(
             dictionary, Encoding.ASCII.GetBytes("4142>"), objects, cancellationToken: source.Token));
     }
+
+    [Fact]
+    public void UnsupportedFilterReadbackResolvesIndirectArrayAndDeduplicatesLongNames() {
+        string unsupportedName = new string('U', 100_000);
+        var filters = new PdfArray();
+        filters.Items.Add(new PdfName(unsupportedName));
+        filters.Items.Add(new PdfName("FlateDecode"));
+        filters.Items.Add(new PdfName(unsupportedName));
+        var dictionary = new PdfDictionary();
+        dictionary.Items["Filter"] = new PdfReference(1, 0);
+        var objects = new Dictionary<int, PdfIndirectObject> {
+            [1] = new PdfIndirectObject(1, 0, new PdfReference(2, 0)),
+            [2] = new PdfIndirectObject(2, 0, filters)
+        };
+
+        Assert.Equal(new[] { unsupportedName },
+            StreamDecoder.GetUnsupportedFiltersCancellable(dictionary, objects, CancellationToken.None));
+        using var cancelled = new CancellationTokenSource();
+        cancelled.Cancel();
+        Assert.ThrowsAny<OperationCanceledException>(() =>
+            StreamDecoder.GetUnsupportedFiltersCancellable(dictionary, objects, cancelled.Token));
+    }
 }

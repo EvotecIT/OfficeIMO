@@ -119,8 +119,8 @@ public sealed partial class PdfReadDocument {
                 stringCount,
                 dictionaryCount,
                 totalPayloadBytes,
-                ContainsXfaPacket(packetNames, "template"),
-                ContainsXfaPacket(packetNames, "datasets"));
+                ContainsXfaPacket(packetNames, "template", cancellationToken),
+                ContainsXfaPacket(packetNames, "datasets", cancellationToken));
         }
 
         int directStreamCount = 0;
@@ -154,9 +154,11 @@ public sealed partial class PdfReadDocument {
         }
     }
 
-    private static bool ContainsXfaPacket(List<string> packetNames, string packetName) {
+    private static bool ContainsXfaPacket(List<string> packetNames, string packetName, System.Threading.CancellationToken cancellationToken) {
         for (int i = 0; i < packetNames.Count; i++) {
-            if (string.Equals(packetNames[i], packetName, StringComparison.OrdinalIgnoreCase)) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (packetNames[i].Length == packetName.Length &&
+                string.Equals(packetNames[i], packetName, StringComparison.OrdinalIgnoreCase)) {
                 return true;
             }
         }
