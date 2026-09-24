@@ -60,8 +60,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             || widthPoints > 1500 || heightPoints > 1500) return false;
         switch (chart.ChartClass) {
             case "chart:bar":
-                if (!chart.VerticalBars.HasValue) return false;
-                type = chart.VerticalBars.Value ? ExcelChartType.BarClustered : ExcelChartType.ColumnClustered;
+                type = chart.VerticalBars == true ? ExcelChartType.BarClustered : ExcelChartType.ColumnClustered;
                 break;
             case "chart:line": type = ExcelChartType.Line; break;
             default: return false;

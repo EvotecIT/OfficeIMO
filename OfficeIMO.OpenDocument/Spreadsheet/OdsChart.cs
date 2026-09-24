@@ -134,8 +134,7 @@ public sealed class OdsChart {
                 if (token == null) continue;
                 if (!OdfBoolean.TryParseXml(token, out bool parsed)
                     || (vertical.HasValue && vertical.Value != parsed)) {
-                    vertical = null;
-                    break;
+                    return null;
                 }
                 vertical = parsed;
             }

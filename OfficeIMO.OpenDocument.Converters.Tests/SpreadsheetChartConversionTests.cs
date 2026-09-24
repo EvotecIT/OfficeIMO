@@ -62,6 +62,36 @@ public sealed class SpreadsheetChartConversionTests {
     }
 
     [Fact]
+    public void BarChartWithoutVerticalAttributeUsesDefaultColumnOrientation() {
+        byte[] package = RewritePart("Object 1/styles.xml", xml => {
+            XNamespace chart = "urn:oasis:names:tc:opendocument:xmlns:chart:1.0";
+            foreach (XElement properties in xml.Descendants(OdfNamespaces.Style + "chart-properties"))
+                properties.Attribute(chart + "vertical")?.Remove();
+        });
+        OdsDocument source = OdsDocument.Load(new MemoryStream(package));
+        using ExcelDocument converted = source.ToExcelDocumentResult().Value;
+        Assert.Equal(ExcelChartType.ColumnClustered, Assert.Single(converted["Data"].Charts).ChartType);
+    }
+
+    [Fact]
+    public void InvalidBarOrientationRemainsAnExplicitLoss() {
+        byte[] package = RewritePart("Object 1/styles.xml", xml => {
+            XNamespace chart = "urn:oasis:names:tc:opendocument:xmlns:chart:1.0";
+            xml.Root!.Element(OdfNamespaces.Office + "styles")!.AddFirst(
+                new XElement(OdfNamespaces.Style + "default-style",
+                    new XAttribute(OdfNamespaces.Style + "family", "chart"),
+                    new XElement(OdfNamespaces.Style + "chart-properties",
+                        new XAttribute(chart + "vertical", "invalid"))));
+        });
+        OdsDocument source = OdsDocument.Load(new MemoryStream(package));
+        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        using ExcelDocument converted = result.Value;
+        Assert.Empty(converted["Data"].Charts);
+        Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "source-embedded-objects"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported);
+    }
+
+    [Fact]
     public void ChartDataRespectsTheGlobalExpandedCellBudget() {
         string path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "microsoft-excel-column-chart.ods");
         OdsDocument source = OdsDocument.Load(path);
