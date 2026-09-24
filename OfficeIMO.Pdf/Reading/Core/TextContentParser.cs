@@ -334,7 +334,8 @@ internal static class TextContentParser {
         Action? cancellationCheck = null,
         PdfTextStateSnapshot? initialTextState = null,
         Action<int>? onTextSpan = null,
-        System.Func<string, byte[], string?>? substitutedGlyphTextForResource = null) {
+        Func<string, byte[], bool>? isEmptyPaintedGlyphForResource = null,
+        Func<string, byte[], string?>? visualEncodingForResource = null) {
 #if NET8_0_OR_GREATER
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedTextCharacters);
@@ -927,6 +928,7 @@ internal static class TextContentParser {
             int decodedGlyphCount = 0;
             bool eachDecodedGlyphIsOneTextElement = true;
             bool usedWholeDecodedText = false;
+            bool usedVisualEncoding = false;
             for (int idx = 0; idx < bytes.Length;) {
                 int step = twoByte ? (idx + 1 < bytes.Length ? 2 : 1) : 1;
                 byte[] g = step == 1 ? new byte[] { bytes[idx] } : new byte[] { bytes[idx], bytes[idx + 1] };
@@ -935,21 +937,18 @@ internal static class TextContentParser {
                     textOutputBudget.ThrowDecodedTextLimitExceeded();
                 }
                 string t = NormalizeDecodedGlyphText(DecodeRun(g, remainingGlyphCharacters) ?? string.Empty);
+                if (!useLogicalTextFilters && visualEncodingForResource != null) {
+                    string? encoded = visualEncodingForResource(font, g);
+                    if (!string.IsNullOrEmpty(encoded) && encoded.Length <= remainingGlyphCharacters) {
+                        t = NormalizeDecodedGlyphText(encoded);
+                        usedVisualEncoding = true;
+                    }
+                }
                 if (t.Length > remainingGlyphCharacters) {
                     textOutputBudget.ThrowDecodedTextLimitExceeded();
                 }
                 decodedGlyphCharacters += t.Length;
                 char ch = (t.Length > 0) ? t[0] : '\0';
-                if (!useLogicalTextFilters && substitutedGlyphTextForResource != null &&
-                    (ch == '\0' || string.IsNullOrWhiteSpace(t)) &&
-                    substitutedGlyphTextForResource(font, g) is { Length: > 0 } substitutedText &&
-                    substitutedText.Length <= remainingGlyphCharacters) {
-                    // A substituted font draws the glyph its encoding names, even where ToUnicode
-                    // gives no text or a space for that inked glyph.
-                    decodedGlyphCharacters += substitutedText.Length - t.Length;
-                    t = substitutedText;
-                    ch = t[0];
-                }
                 if (ch == '\0' && !useLogicalTextFilters) {
                     // Visual projection still paints glyphs whose ToUnicode text is empty or U+0000.
                     t = PdfPaintedGlyphRuns.UndecodedGlyphText;
@@ -973,7 +972,7 @@ internal static class TextContentParser {
                 idx += step;
             }
             textOutputBudget.ChargeDecodedText(Math.Max(wholeDecoded.Length, decodedGlyphCharacters));
-            if (ShouldUseWholeDecodedText(sbOut.ToString(), wholeDecoded)) {
+            if (!usedVisualEncoding && ShouldUseWholeDecodedText(sbOut.ToString(), wholeDecoded)) {
                 sbOut.Clear();
                 sbOut.Append(wholeDecoded);
                 decodedAdvances.Clear();
@@ -1074,8 +1073,10 @@ internal static class TextContentParser {
                 // Visual projection draws the painted glyphs: interior whitespace runs stay as painted,
                 // while logical text collapses them. Only edge whitespace is removed from the visual run.
                 string spanText = normalizedText;
+                int visualTrimmedLeadingChars = 0;
                 if (!useLogicalTextFilters && actualTextState is null) {
-                    string paintedVisual = paintedText.Trim();
+                    string paintedVisual = TrimUnpaintedEdgeWhitespace(paintedText, decodedGlyphCharacterLengths,
+                        decodedGlyphBytes, font, isEmptyPaintedGlyphForResource, out visualTrimmedLeadingChars);
                     if (paintedVisual.Length > 0 &&
                         string.Equals(NormalizeShatteredSpan(paintedVisual), normalizedText, StringComparison.Ordinal)) {
                         spanText = paintedVisual;
@@ -1100,7 +1101,8 @@ internal static class TextContentParser {
                 if (!useLogicalTextFilters && actualTextState is null && !hasUndecodableGlyph &&
                     transformedCharacterAdvances != null && decodedAdvances.Count == paintedText.Length &&
                     TryGetPaintedEdgeWhitespace(paintedText, spanText, decodedGlyphCharacterLengths,
-                        out int leadingCharacters, out int leadingGlyphs, out int keptGlyphs)) {
+                        visualTrimmedLeadingChars, out int leadingGlyphs, out int keptGlyphs)) {
+                    int leadingCharacters = visualTrimmedLeadingChars;
                     double leadingAdvance = 0D;
                     for (int index = 0; index < leadingCharacters; index++) leadingAdvance += decodedAdvances[index];
                     double keptAdvance = 0D;
@@ -1481,12 +1483,10 @@ internal static class TextContentParser {
         // Reports edge whitespace that NormalizeShatteredSpan removed without changing interior text,
         // when those characters end on decoded glyph boundaries.
         static bool TryGetPaintedEdgeWhitespace(string painted, string normalized, IReadOnlyList<int> glyphCharacterLengths,
-            out int leadingCharacters, out int leadingGlyphs, out int keptGlyphs) {
-            leadingCharacters = 0;
+            int leadingCharacters, out int leadingGlyphs, out int keptGlyphs) {
             leadingGlyphs = 0;
             keptGlyphs = 0;
             if (normalized.Length == 0 || normalized.Length >= painted.Length) return false;
-            while (leadingCharacters < painted.Length && char.IsWhiteSpace(painted[leadingCharacters])) leadingCharacters++;
             if (leadingCharacters + normalized.Length > painted.Length ||
                 string.CompareOrdinal(painted, leadingCharacters, normalized, 0, normalized.Length) != 0) return false;
             int keptEnd = leadingCharacters + normalized.Length;
@@ -1508,6 +1508,32 @@ internal static class TextContentParser {
             if (characterOffset != keptEnd) return false;
             keptGlyphs = glyphEnd - leadingGlyphs;
             return keptGlyphs > 0;
+        }
+
+        static string TrimUnpaintedEdgeWhitespace(string painted, IReadOnlyList<int> glyphLengths,
+            IReadOnlyList<byte[]> glyphBytes, string fontResource, Func<string, byte[], bool>? isEmptyGlyph,
+            out int leadingCharacters) {
+            if (glyphBytes.Count != glyphLengths.Count || glyphLengths.Sum(static length => (long)length) != painted.Length) {
+                leadingCharacters = 0;
+                return painted;
+            }
+            int end = painted.Length;
+            leadingCharacters = 0;
+            int firstGlyph = 0;
+            while (leadingCharacters < end && firstGlyph < glyphLengths.Count && glyphLengths[firstGlyph] == 1 &&
+                   char.IsWhiteSpace(painted[leadingCharacters]) &&
+                   (isEmptyGlyph?.Invoke(fontResource, glyphBytes[firstGlyph]) ?? true)) {
+                leadingCharacters++;
+                firstGlyph++;
+            }
+            int lastGlyph = glyphLengths.Count - 1;
+            while (end > leadingCharacters && lastGlyph >= firstGlyph && glyphLengths[lastGlyph] == 1 &&
+                   char.IsWhiteSpace(painted[end - 1]) &&
+                   (isEmptyGlyph?.Invoke(fontResource, glyphBytes[lastGlyph]) ?? true)) {
+                end--;
+                lastGlyph--;
+            }
+            return painted.Substring(leadingCharacters, end - leadingCharacters);
         }
 
         static string NormalizeShatteredSpan(string s) {

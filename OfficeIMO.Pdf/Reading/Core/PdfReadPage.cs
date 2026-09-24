@@ -850,6 +850,12 @@ public sealed partial class PdfReadPage {
             string text = decode(code[0]);
             return text.Length == 1 && !char.IsWhiteSpace(text[0]) && !char.IsControl(text[0]) ? text : null;
         }
+        bool IsEmptyPaintedGlyph(string fontRes, byte[] code) {
+            if (!fonts.TryGetValue(fontRes, out PdfFontResource? resource) ||
+                resource.DrawingProgram is not PdfDrawingFontProgram program || code.Length is < 1 or > 2) return true;
+            int glyph = program.GlyphForCode(code.Length == 1 ? code[0] : (code[0] << 8) | code[1]);
+            return glyph <= 0 || program.IsEmptyGlyph(glyph);
+        }
         int? ResolveFontWeight(string fontRes) =>
             fonts.TryGetValue(fontRes, out PdfFontResource? font) ? font.FontWeight : null;
         int? ResolveFontDescriptorFlags(string fontRes) =>
@@ -876,6 +882,8 @@ public sealed partial class PdfReadPage {
             baseFontForResource: ResolveBaseFont,
             isType3FontResource: IsType3FontResource,
             drawingFontFamilyForResource: ResolveDrawingFontFamily,
+            isEmptyPaintedGlyphForResource: IsEmptyPaintedGlyph,
+            visualEncodingForResource: DecodeSubstitutedGlyph,
             fontWeightForResource: ResolveFontWeight,
             fontDescriptorFlagsForResource: ResolveFontDescriptorFlags,
             optionalContentVisibility: includeHiddenOptionalContent ? null : optionalContentVisibility,
@@ -915,8 +923,7 @@ public sealed partial class PdfReadPage {
             initialArtifactContent: inheritedArtifactContent,
             cancellationCheck: cancellationCheck,
             initialTextState: initialTextState,
-            onTextSpan: onTextSpan,
-            substitutedGlyphTextForResource: DecodeSubstitutedGlyph));
+            onTextSpan: onTextSpan));
 
         foreach (var invocation in TextContentParser.ExtractFormInvocations(
                      content,

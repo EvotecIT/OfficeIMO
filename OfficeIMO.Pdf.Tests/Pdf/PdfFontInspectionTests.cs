@@ -499,6 +499,22 @@ public sealed class PdfFontInspectionTests {
         Assert.Equal(expectedItalic, span.IsItalic);
     }
 
+    [Fact]
+    public void SubstitutedSimpleFontDrawsEncodingWhileExtractionKeepsToUnicode() {
+        const string toUnicode = "begincmap\n1 beginbfchar\n<41> <0042>\nendbfchar\nendcmap";
+        byte[] pdf = BuildPdf(
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 100] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding /FirstChar 65 /LastChar 65 /Widths [600] /ToUnicode 6 0 R >>",
+            StreamObject("BT /F1 18 Tf 20 30 Td (AA) Tj ET"),
+            StreamObject(toUnicode));
+
+        PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
+        Assert.Equal("BB", Assert.Single(page.GetTextSpans()).Text);
+        Assert.Equal("AA", Assert.Single(page.ToDrawing().Elements.OfType<OfficeDrawingText>()).Text);
+    }
+
     private static byte[] BuildFontPdf() {
         const string toUnicode = "/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n1 beginbfchar\n<41> <0041>\nendbfchar\nendcmap\nend\nend";
         return BuildPdf(

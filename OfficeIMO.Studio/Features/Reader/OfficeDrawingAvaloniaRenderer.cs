@@ -178,6 +178,7 @@ internal sealed class OfficeDrawingAvaloniaRenderer : IDisposable {
         if (text.LineHeight.HasValue) formatted.LineHeight = text.LineHeight.Value;
         if (text.WrapText) {
             formatted.MaxTextWidth = Math.Max(1D, text.Width);
+            formatted.MaxTextHeight = Math.Max(1D, text.Height);
             formatted.TextAlignment = text.Alignment switch {
                 OfficeTextAlignment.Center => TextAlignment.Center,
                 OfficeTextAlignment.Right => TextAlignment.Right,

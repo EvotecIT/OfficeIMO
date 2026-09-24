@@ -71,7 +71,7 @@ public sealed partial class PdfReadPage {
                 ToOfficeFontInfo(span.BaseFont, span.FontSize, span.DrawingFontFamily, span.IsBold, span.IsItalic),
                 span.Color ?? OfficeColor.Black,
                 textAdvanceWidth: textAdvance);
-            MarkPaintedGlyphs(drawing, span.Text);
+            MarkPaintedGlyphs(drawing, span);
         } else {
             drawing.AddText(
                 span.Text,
@@ -154,7 +154,7 @@ public sealed partial class PdfReadPage {
                 ToOfficeFontInfo(span.BaseFont, span.FontSize, span.DrawingFontFamily, span.IsBold, span.IsItalic),
                 span.Color ?? OfficeColor.Black,
                 textAdvanceWidth: textAdvance);
-            MarkPaintedGlyphs(drawing, span.Text);
+            MarkPaintedGlyphs(drawing, span);
         } else {
             drawing.AddClippedText(
                 span.Text,
@@ -289,15 +289,16 @@ public sealed partial class PdfReadPage {
     // PDF glyph runs are already shaped and in painted order. Re-shaping or bidi reordering would
     // replace joining forms or reverse right-to-left runs, so complex-script runs keep their painted
     // glyphs. Simple text keeps the configured shaping profile, which cannot change its glyphs.
-    private static bool PreservesPaintedGlyphs(string text) => OfficeManagedTextShaper.RequiresComplexLayout(text);
+    private static bool PreservesPaintedGlyphs(PdfTextSpan span) =>
+        span.IsPaintedGlyphProjection && OfficeManagedTextShaper.RequiresComplexLayout(span.Text);
 
-    private static void MarkPaintedGlyphs(OfficeDrawing drawing, string text) {
-        if (PreservesPaintedGlyphs(text)) drawing.MarkLastTextAsPaintedGlyphs();
+    private static void MarkPaintedGlyphs(OfficeDrawing drawing, PdfTextSpan span) {
+        if (PreservesPaintedGlyphs(span)) drawing.MarkLastTextAsPaintedGlyphs();
     }
 
     private static (double Left, double Top, double Right, double Bottom) MeasureTextPaintBounds(OfficeRasterCanvas metrics, string text, PdfTextSpan span,
         (double X, double Y, double Width, double Height) frame, double baseline, double advance, bool includeEmptyFrame = true) {
-        metrics.PreservePaintedGlyphOrder = PreservesPaintedGlyphs(text);
+        metrics.PreservePaintedGlyphOrder = PreservesPaintedGlyphs(span);
         var bounds = metrics.MeasurePositionedTextBounds(text, frame.X, frame.Y, frame.Width, frame.Height, Math.Max(1D, span.FontSize),
             ToOfficeFontInfo(span.BaseFont, span.FontSize, span.DrawingFontFamily, span.IsBold, span.IsItalic),
             advance > 0D ? advance : frame.Width, OfficeTextAlignment.Left, OfficeTextFeatureSettings.Default, "", Math.Max(1D, span.FontSize),

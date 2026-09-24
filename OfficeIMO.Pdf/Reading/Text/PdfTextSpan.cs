@@ -64,6 +64,8 @@ public sealed class PdfTextSpan {
     internal bool HasActualText { get; }
     internal bool IsType3Font { get; }
     internal bool GlyphSequenceProgressesLeftToRight { get; }
+    internal bool IsPaintedGlyphProjection { get; private set; }
+    internal void MarkPaintedGlyphProjection() => IsPaintedGlyphProjection = true;
     /// <summary>True when this span came from PDF content explicitly marked as an /Artifact.</summary>
     public bool IsArtifactContent { get; }
     /// <summary>Creates a new text span.</summary>

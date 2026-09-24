@@ -143,6 +143,15 @@ internal static class PdfTrueTypeUnicodeCmap {
 
     private static int ResolveGlyph(byte[] data, byte code, int? symbolic, int? macintosh, bool isSymbolic,
         Func<byte, string> decodeEncoding) {
+        if (!isSymbolic && macintosh.HasValue) {
+            // A nonsymbolic font selects its PDF-encoded name through Mac Roman before any
+            // symbolic table, even when the same program also carries a (3,0) subtable.
+            string named = decodeEncoding(code);
+            if (named.Length == 1 && PdfMacRomanEncoding.TryEncode(named[0], out byte macCode)) {
+                int glyph = LookupSubtable(data, macintosh.Value, macCode);
+                if (glyph > 0) return glyph;
+            }
+        }
         if (symbolic.HasValue) {
             foreach (int prefix in new[] { 0x0000, 0xF000, 0xF100, 0xF200 }) {
                 int glyph = LookupSubtable(data, symbolic.Value, prefix | code);
@@ -150,14 +159,6 @@ internal static class PdfTrueTypeUnicodeCmap {
             }
         }
         if (!macintosh.HasValue) return 0;
-        if (!isSymbolic) {
-            // A nonsymbolic font names its glyph through the encoding; the Macintosh cmap is keyed by Mac Roman.
-            string named = decodeEncoding(code);
-            if (named.Length == 1 && PdfMacRomanEncoding.TryEncode(named[0], out byte macCode)) {
-                int glyph = LookupSubtable(data, macintosh.Value, macCode);
-                if (glyph > 0) return glyph;
-            }
-        }
         return LookupSubtable(data, macintosh.Value, code);
     }
 
@@ -195,19 +196,24 @@ internal static class PdfTrueTypeUnicodeCmap {
         hasUnicodeCmap = false;
         if (length < 4) return false;
         int count = ReadUInt16(data, cmap + 2);
-        if (4 + count * 8 > length) return false;
+        if (count > OfficeOpenTypeCmap.MaximumSubtables || 4 + count * 8 > length) return false;
+        HashSet<int> validFormat4 = OfficeOpenTypeCmap.CollectValidFormat4Subtables(
+            data, cmap, length, OfficeOpenTypeCmap.MaximumSubtables);
+        HashSet<int> validFormat12 = OfficeOpenTypeCmap.CollectValidFormat12Subtables(
+            data, cmap, length, OfficeOpenTypeCmap.MaximumSubtables, OfficeOpenTypeCmap.MaximumFormat12Groups);
         for (int index = 0; index < count; index++) {
             int record = cmap + 4 + index * 8;
             int platform = ReadUInt16(data, record);
             int encoding = ReadUInt16(data, record + 2);
             uint offset = ReadUInt32(data, record + 4);
-            if (platform == 0 || platform == 3 && (encoding == 1 || encoding == 10)) {
-                hasUnicodeCmap = true;
-                continue;
-            }
             if (offset > (uint)(length - 4)) continue;
             int table = cmap + (int)offset;
             int format = ReadUInt16(data, table);
+            if (platform == 0 || platform == 3 && (encoding == 1 || encoding == 10)) {
+                hasUnicodeCmap |= format == 4 && validFormat4.Contains(table) ||
+                    format == 12 && validFormat12.Contains(table);
+                continue;
+            }
             if (format != 0 && format != 4 && format != 6 || !HasSubtableBody(data, table, cmap + length)) continue;
             if (platform == 3 && encoding == 0) symbolic ??= table;
             else if (platform == 1 && encoding == 0) macintosh ??= table;
@@ -286,25 +292,29 @@ internal static class PdfTrueTypeUnicodeCmap {
         return 0;
     }
 
-    private static byte[] BuildUnicodeCmap(SortedDictionary<int, int> mappings) {
+    internal static byte[] BuildUnicodeCmap(SortedDictionary<int, int> mappings) {
         var basic = mappings.Where(static mapping => mapping.Key <= 0xFFFF).ToList();
-        bool needsFull = basic.Count != mappings.Count;
-        byte[] format4 = BuildFormat4(basic);
+        // Format 4 stores its byte length in a ushort. One segment per mapping plus the
+        // sentinel fits only through 8,188 BMP mappings; larger subsets use format 12.
+        byte[]? format4 = basic.Count <= 8188 ? BuildFormat4(basic) : null;
+        bool needsFull = format4 == null || basic.Count != mappings.Count;
         byte[]? format12 = needsFull ? BuildFormat12(mappings) : null;
         using var output = new MemoryStream();
-        int records = needsFull ? 2 : 1;
+        int records = (format4 == null ? 0 : 1) + (format12 == null ? 0 : 1);
         WriteUInt16(output, 0);
         WriteUInt16(output, (ushort)records);
         int offset = 4 + records * 8;
-        WriteUInt16(output, 3);
-        WriteUInt16(output, 1);
-        WriteUInt32(output, (uint)offset);
+        if (format4 != null) {
+            WriteUInt16(output, 3);
+            WriteUInt16(output, 1);
+            WriteUInt32(output, (uint)offset);
+        }
         if (format12 != null) {
             WriteUInt16(output, 3);
             WriteUInt16(output, 10);
-            WriteUInt32(output, (uint)(offset + format4.Length));
+            WriteUInt32(output, (uint)(offset + (format4?.Length ?? 0)));
         }
-        output.Write(format4, 0, format4.Length);
+        if (format4 != null) output.Write(format4, 0, format4.Length);
         if (format12 != null) output.Write(format12, 0, format12.Length);
         return output.ToArray();
     }

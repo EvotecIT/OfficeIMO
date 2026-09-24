@@ -33,20 +33,44 @@ internal static class PdfPaintedGlyphRuns {
                 !OfficeManagedTextShaper.RequiresComplexLayout(span.Text) && span.Text.IndexOf(UndecodedGlyph) < 0 &&
                 !HasMultiCharacterGlyph(span) ||
                 !PdfTextAdvanceProjection.TryGetResolvedDirection(span, cancellationToken, out double direction)) continue;
-            double radians = span.RotationDegrees * Math.PI / 180D;
-            double alongX = Math.Cos(radians);
-            double alongY = Math.Sin(radians);
-            var glyphs = new List<PdfTextSpan>(span.GlyphCharacterLengths!.Count);
-            int characterOffset = 0;
-            double offset = 0D;
-            for (int glyph = 0; glyph < span.GlyphCharacterLengths.Count; glyph++) {
-                glyphs.Add(span.WithPaintedGlyph(glyph, characterOffset, span.X + alongX * offset, span.Y + alongY * offset));
-                int end = characterOffset + span.GlyphCharacterLengths[glyph];
-                for (; characterOffset < end; characterOffset++) offset += span.CharacterAdvances![characterOffset] * direction;
-            }
             spans.RemoveAt(index);
-            spans.InsertRange(index, glyphs);
+            spans.InsertRange(index, SplitSpan(span, direction, cancellationToken));
         }
+    }
+
+    /// <summary>Splits a simple run when one of its PDF codes paints a glyph other than its Unicode cmap entry.</summary>
+    internal static List<PdfTextSpan>? SplitAlternateGlyphRun(PdfTextSpan span, PdfDrawingFontProgram program,
+        System.Threading.CancellationToken cancellationToken = default) {
+        if (span.Text.Length < 2 || !HasGlyphGeometry(span) ||
+            !PdfTextAdvanceProjection.TryGetResolvedDirection(span, cancellationToken, out double direction)) return null;
+        bool alternate = false;
+        for (int glyphIndex = 0; glyphIndex < span.GlyphCharacterLengths!.Count; glyphIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (span.GlyphCharacterLengths[glyphIndex] != 1 || char.IsSurrogate(span.Text[glyphIndex])) return null;
+            byte[] code = span.GlyphBytes![glyphIndex];
+            if (code.Length is < 1 or > 2) continue;
+            int painted = program.GlyphForCode(code.Length == 1 ? code[0] : (code[0] << 8) | code[1]);
+            if (painted > 0 && (!program.UnicodeGlyphs.TryGetValue(span.Text[glyphIndex], out int mapped) || mapped != painted))
+                alternate = true;
+        }
+        return alternate ? SplitSpan(span, direction, cancellationToken) : null;
+    }
+
+    private static List<PdfTextSpan> SplitSpan(PdfTextSpan span, double direction,
+        System.Threading.CancellationToken cancellationToken) {
+        double radians = span.RotationDegrees * Math.PI / 180D;
+        double alongX = Math.Cos(radians);
+        double alongY = Math.Sin(radians);
+        var glyphs = new List<PdfTextSpan>(span.GlyphCharacterLengths!.Count);
+        int characterOffset = 0;
+        double offset = 0D;
+        for (int glyph = 0; glyph < span.GlyphCharacterLengths.Count; glyph++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            glyphs.Add(span.WithPaintedGlyph(glyph, characterOffset, span.X + alongX * offset, span.Y + alongY * offset));
+            int end = characterOffset + span.GlyphCharacterLengths[glyph];
+            for (; characterOffset < end; characterOffset++) offset += span.CharacterAdvances![characterOffset] * direction;
+        }
+        return glyphs;
     }
 
     // A ligature glyph decodes to several letters; drawing those letters would replace the glyph.

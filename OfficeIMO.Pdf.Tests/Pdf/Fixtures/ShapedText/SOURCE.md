@@ -12,7 +12,7 @@ each painted letter by the presentation form the Unicode joining rules select.
 | `poppler-chrome-arabic-extended.png` | `chrome-arabic-extended.pdf` | Chrome/Skia output with Persian and Urdu letters, line-initial glyphs whose ink reaches the page clip, and one word painted across two font subsets. |
 | `poppler-cairo-arabic-extended.png` | `cairo-arabic-extended.pdf` | Pango/Cairo output with Persian and Urdu letters and one word whose middle letters use DejaVu Sans; ToUnicode maps every contextual glyph to its base letter. |
 | `poppler-chrome-devanagari.png` | `chrome-devanagari.pdf` | Chrome/Skia output with multi-glyph Devanagari runs, conjunct glyphs mapped to clusters, and glyphs whose ToUnicode text is U+0000 (the text is carried by ActualText). |
-| `poppler-space-coded-glyph.png` | `space-coded-glyph.pdf` | An inked glyph whose ToUnicode text is a space, painted over a letter like a colour-font layer, next to a real space glyph. |
+| `poppler-space-coded-glyph.png` | `space-coded-glyph.pdf` | An inked glyph whose ToUnicode text is a space, painted over a letter like a colour-font layer, next to a real space glyph and at both ends of multi-glyph text runs. |
 | `poppler-ligature-run.png` | `ligature-run.pdf` | Multi-glyph Latin runs containing ligature glyphs mapped to their letters. |
 | `poppler-ghostscript-ligature-run.png` | `ghostscript-ligature-run.pdf` | Ghostscript redistillation of `ligature-run.pdf`: its ToUnicode maps the ffi ligature to `f` plus U+00CF, so the glyph must be drawn by id. |
 | `poppler-cairo-rtl-0.png` | `OfficeIMO.TestAssets/MultilingualLayout/rtl-0-native.pdf` | Pango/Cairo output: CIDFontType2 subsets without cmap, logical-order TJ glyph runs whose ToUnicode maps every contextual form to its base letter. |
@@ -27,7 +27,7 @@ each painted letter by the presentation form the Unicode joining rules select.
 | `chrome-arabic-extended.pdf` | `962de78f78f8e115ccdea4a78d99f553449ecfe792d6f7bd8ae1053af7460ed3` | Chrome 153.0.8010.53 headless `--print-to-pdf` of `chrome-arabic-extended.html` |
 | `chrome-devanagari.pdf` | `11c9a02849658bbba52d08eb5be61aca37028f92477167951ac82b0f2f67ad6a` | Chrome 153.0.8010.53 headless `--print-to-pdf` of `chrome-devanagari.html` |
 | `cairo-arabic-extended.pdf` | `96b1b29603c2937c194c000bc05da1db856629f5f675e671ee01fb85f170c38a` | `generate_cairo_extended.py` with Cairo 1.18.0 and Pango 1.52.1 (Ubuntu) |
-| `space-coded-glyph.pdf` | `3f99aef8967e28682fe322c0a5374258ad263409ce07cfe56666e7dceb0e9e14` | `create_space_coded_glyph_fixture.py` |
+| `space-coded-glyph.pdf` | `cc42204fe1329b4077c463d6b4258c5a6c13ae14286bf1a573c54bda4f0a4089` | `create_space_coded_glyph_fixture.py` |
 | `ligature-run.pdf` | `224fec268284175e96103e12b76e89b2ad7261ef120435d8b6cb50d25c65f259` | `create_ligature_run_fixture.py` |
 | `ghostscript-ligature-run.pdf` | `07c80e9df7b07cbe997aaf4d22886c721bbed93244d0ed7194cdfbf70a3d9b68` | GPL Ghostscript 10.02.1 (Ubuntu) `pdfwrite` of `ligature-run.pdf` |
 

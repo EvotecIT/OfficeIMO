@@ -53,17 +53,20 @@ def glyphs(text):
 
 
 # Each "K" is drawn in black, then the space-coded "O" layer in red at the same origin.
+# The final runs put that inked whitespace at the leading and trailing edge of one Tj string.
 content = "\n".join([
     "BT /F1 36 Tf 20 30 Td 0 0 0 rg " + glyphs("K") + " Tj ET",
     "BT /F1 36 Tf 20 30 Td 0.85 0.1 0.1 rg " + glyphs("O") + " Tj ET",
     "BT /F1 36 Tf 80 30 Td 0 0 0 rg " + glyphs("K K") + " Tj ET",
     "BT /F1 36 Tf 80 30 Td 0.85 0.1 0.1 rg " + glyphs("O") + " Tj ET",
+    "BT /F1 36 Tf 20 80 Td 0 0 0 rg " + glyphs("OK") + " Tj ET",
+    "BT /F1 36 Tf 100 80 Td 0 0 0 rg " + glyphs("KO") + " Tj ET",
 ]).encode("ascii")
 w_array = " ".join(f"{gid[c]} [{width[c]}]" for c in " KO")
 objects = {
     1: b"<< /Type /Catalog /Pages 2 0 R >>",
     2: b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-    3: b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 80] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
+    3: b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 130] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
     5: b"<< /Type /Font /Subtype /Type0 /BaseFont /OFIMOS+OfficeIMOBaselineSans /Encoding /Identity-H /DescendantFonts [6 0 R] /ToUnicode 8 0 R >>",
     6: (f"<< /Type /Font /Subtype /CIDFontType2 /BaseFont /OFIMOS+OfficeIMOBaselineSans "
         f"/CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /CIDToGIDMap /Identity "
