@@ -7,6 +7,18 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfPaintedGlyphRenderingTests {
     [Fact]
+    public void VisualTextProjectionRetainsMatchingLogicalBreakProvenance() {
+        var span = new PdfTextSpan("A B", "F1", 12, 10, 10, 24, null, true, 0, "Subset", null,
+            embeddedLineBreakCounts: new[] { 0, 1, 0 });
+
+        PdfTextSpan visual = span.WithVisualText("X Y");
+
+        Assert.Equal("A B", visual.LogicalDrawingText);
+        Assert.Equal(new[] { 0, 1, 0 }, visual.EmbeddedLineBreakCounts);
+        Assert.Null(span.WithVisualText("glyph").EmbeddedLineBreakCounts);
+    }
+
+    [Fact]
     public void ComplexRunChargesExpansionBeforeReplacingItsSourceSpan() {
         PdfTextSpan span = CreateGlyphRun("ffiX", new[] { 3, 1 });
         var spans = new List<PdfTextSpan> { span };

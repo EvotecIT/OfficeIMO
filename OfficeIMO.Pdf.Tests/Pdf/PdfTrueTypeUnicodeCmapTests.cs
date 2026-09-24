@@ -6,9 +6,17 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfTrueTypeUnicodeCmapTests {
-    [Fact]
-    public void UnicodeOnlySimpleFontUsesEncodingDifferenceForItsPaintedGlyph() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void UnicodeOnlySimpleFontUsesEncodingDifferenceForItsPaintedGlyph(bool format4) {
         byte[] source = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A', 'B');
+        if (format4) {
+            var original = new PdfDrawingFontProgram(source, new SortedDictionary<int, int> { ['A'] = 1 },
+                _ => 1, _ => false);
+            source = Assert.IsType<byte[]>(PdfTrueTypeUnicodeCmap.TryAddMappings(original,
+                new Dictionary<int, int> { ['B'] = 2 }));
+        }
         Assert.True(ToUnicodeCMap.TryParse(Encoding.ASCII.GetBytes(
             "begincmap\n1 beginbfchar\n<41> <0051>\nendbfchar\nendcmap"), out ToUnicodeCMap? cmap));
         var font = new PdfFontResource("F1", "Subset", "WinAnsiEncoding", true, cmap,
