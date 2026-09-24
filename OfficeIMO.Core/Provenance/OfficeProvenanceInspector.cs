@@ -352,7 +352,7 @@ public static class OfficeProvenanceRemover {
                 output = OfficeProvenanceJpeg.Remove(data, options, changes, out reserialized);
                 break;
             case OfficeProvenanceAssetFormat.Png:
-                output = OfficeProvenancePng.Remove(data, options, changes, out reserialized);
+                output = OfficeProvenancePng.Remove(data, options, before, changes, out reserialized);
                 break;
             case OfficeProvenanceAssetFormat.Webp:
                 output = OfficeProvenanceRiff.Remove(data, options, changes, out reserialized);

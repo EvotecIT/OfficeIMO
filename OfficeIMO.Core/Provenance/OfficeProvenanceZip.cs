@@ -6,7 +6,6 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Xml;
-using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Provenance;
 
@@ -100,10 +99,12 @@ internal static class OfficeProvenanceZip {
             if (!IsSupportedEmbeddedImage(asset, options)) continue;
             embeddedCount++;
             if (embeddedCount > options.MaxEmbeddedAssets) throw new InvalidDataException("ZIP package exceeds the configured embedded-asset limit.");
-            ReserveEmbeddedPngDecodeBudget(asset, options, ref expandedBytes);
             OfficeProvenanceReport nested;
             try {
-                nested = OfficeProvenanceInspector.InspectCore(asset, entryName, CreateNestedOptions(options));
+                nested = OfficeProvenanceInspector.InspectCore(
+                    asset,
+                    entryName,
+                    CreateNestedOptions(options, options.MaxExpandedContainerBytes - expandedBytes));
             } catch (Exception exception) when (
                 (exception is InvalidDataException || exception is XmlException) &&
                 !OfficeProvenanceLimitException.Is(exception)) {
@@ -175,16 +176,19 @@ internal static class OfficeProvenanceZip {
             if (!IsSupportedEmbeddedImage(asset, options.Limits)) continue;
             embeddedCount++;
             if (embeddedCount > Math.Min(options.MaxEmbeddedAssets, options.Limits.MaxEmbeddedAssets)) throw new InvalidDataException("ZIP package exceeds the configured embedded-asset limit.");
-            ReserveEmbeddedPngDecodeBudget(asset, options.Limits, ref inspectionBytes);
             OfficeProvenanceRemovalResult nested;
             try {
-                nested = OfficeProvenanceRemover.Remove(asset, entryName, CreateNestedRemovalOptions(options));
+                nested = OfficeProvenanceRemover.Remove(
+                    asset,
+                    entryName,
+                    CreateNestedRemovalOptions(options, options.Limits.MaxExpandedContainerBytes - inspectionBytes));
             } catch (Exception exception) when (
                 (exception is InvalidDataException || exception is XmlException) &&
                 !OfficeProvenanceLimitException.Is(exception)) {
                 // Malformed embedded assets are preserved; document-level diagnostics are available during inspection.
                 continue;
             }
+            ReserveExpandedBytes(ref inspectionBytes, nested.ExpandedInspectionBytes, options.Limits.MaxExpandedContainerBytes);
             if (!nested.WasChanged) continue;
             if (nested.Changes.Count > options.Limits.MaxCarriers - changes.Count) {
                 throw new InvalidDataException($"The asset exceeds the configured carrier limit of {options.Limits.MaxCarriers}.");
@@ -1096,26 +1100,20 @@ internal static class OfficeProvenanceZip {
             OfficeProvenanceAssetFormat.Tiff or OfficeProvenanceAssetFormat.Svg;
     }
 
-    private static void ReserveEmbeddedPngDecodeBudget(byte[] asset, OfficeProvenanceOptions options, ref long expandedBytes) {
-        if (OfficeProvenanceInspector.DetectFormat(asset, fileName: null, options) != OfficeProvenanceAssetFormat.Png) return;
-        if (OfficePngReader.TryGetProvenanceDecodeBudget(
-            asset, options.CancellationToken, options.MaxContainerEntries, out long decodedBytes)) {
-            ReserveExpandedBytes(ref expandedBytes, decodedBytes, options.MaxExpandedContainerBytes);
-        }
-    }
-
-    private static OfficeProvenanceOptions CreateNestedOptions(OfficeProvenanceOptions source) => new OfficeProvenanceOptions {
+    // Nested assets receive only the container's remaining budget; the container then charges what they used.
+    // Option validation requires a positive limit, and the container's own reservation still rejects any overrun.
+    private static OfficeProvenanceOptions CreateNestedOptions(OfficeProvenanceOptions source, long remainingExpandedBytes) => new OfficeProvenanceOptions {
         MaxAssetBytes = source.MaxAssetBytes,
         MaxManifestBytes = source.MaxManifestBytes,
         MaxCarriers = source.MaxCarriers,
         MaxContainerEntries = source.MaxContainerEntries,
-        MaxExpandedContainerBytes = source.MaxExpandedContainerBytes,
+        MaxExpandedContainerBytes = Math.Max(1, remainingExpandedBytes),
         CancellationToken = source.CancellationToken,
         ProcessEmbeddedAssets = false,
         MaxEmbeddedAssets = source.MaxEmbeddedAssets
     };
 
-    private static OfficeProvenanceRemovalOptions CreateNestedRemovalOptions(OfficeProvenanceRemovalOptions source) {
+    private static OfficeProvenanceRemovalOptions CreateNestedRemovalOptions(OfficeProvenanceRemovalOptions source, long remainingExpandedBytes) {
         var nested = new OfficeProvenanceRemovalOptions {
             RemoveC2paManifests = source.RemoveC2paManifests,
             RemoveExternalC2paReferences = source.RemoveExternalC2paReferences,
@@ -1130,7 +1128,7 @@ internal static class OfficeProvenanceZip {
         nested.Limits.MaxManifestBytes = source.Limits.MaxManifestBytes;
         nested.Limits.MaxCarriers = source.Limits.MaxCarriers;
         nested.Limits.MaxContainerEntries = source.Limits.MaxContainerEntries;
-        nested.Limits.MaxExpandedContainerBytes = source.Limits.MaxExpandedContainerBytes;
+        nested.Limits.MaxExpandedContainerBytes = Math.Max(1, remainingExpandedBytes);
         nested.Limits.CancellationToken = source.Limits.CancellationToken;
         nested.Limits.ProcessEmbeddedAssets = false;
         nested.Limits.MaxEmbeddedAssets = source.Limits.MaxEmbeddedAssets;
