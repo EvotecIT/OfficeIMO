@@ -528,25 +528,28 @@ internal static partial class HtmlPdfRenderedConverter {
             AddChildren(canvas);
             return;
         }
+        var content = new PdfCore.PdfPageCanvas(allowOutOfPageCoordinates: true);
+        AddChildren(content);
+        if (content.Items.Count == 0) return;
         if (group.Text.Length == 0) {
-            canvas.Artifact(AddChildren);
+            canvas.Artifact(nested => nested.AddItems(content.Items));
             return;
         }
         string? logicalText = FilterLogicalPrivateUseGlyphs(group.Text, group.Visuals, webFonts, cancellationToken);
         if (logicalText == null) {
-            AddChildren(canvas);
+            canvas.AddItems(content.Items);
             return;
         }
         if (logicalText.Length == 0) {
-            AddChildren(canvas);
+            canvas.AddItems(content.Items);
             return;
         }
-        if (logicalTextOwned) AddChildren(canvas);
+        if (logicalTextOwned) canvas.AddItems(content.Items);
         else canvas.ActualText(
             logicalText,
             group.X * PointsPerCssPixel,
             (group.Y + Math.Min(group.Height, 12D)) * PointsPerCssPixel,
-            AddChildren);
+            nested => nested.AddItems(content.Items));
     }
 
     private static void AddSemanticGroup(PdfCore.PdfPageCanvas canvas, HtmlRenderSemanticGroup group, RegisteredWebFonts webFonts, PdfCore.PdfConversionReport conversionReport, double surfaceWidth, double surfaceHeight, bool interactiveFormControls, CancellationToken cancellationToken, bool textAsSpan, ClipBounds? activeClip, bool logicalTextOwned) {
@@ -561,12 +564,12 @@ internal static partial class HtmlPdfRenderedConverter {
             return;
         }
         if (group.Role == HtmlRenderSemanticGroupRole.Artifact) {
-            canvas.Artifact(nested => {
-                foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    AddVisual(nested, child, webFonts, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls: false, cancellationToken, textAsSpan: true, activeClip: activeClip, logicalTextOwned: logicalTextOwned);
-                }
-            });
+            var artifactContent = new PdfCore.PdfPageCanvas(allowOutOfPageCoordinates: true);
+            foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
+                cancellationToken.ThrowIfCancellationRequested();
+                AddVisual(artifactContent, child, webFonts, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls: false, cancellationToken, textAsSpan: true, activeClip: activeClip, logicalTextOwned: logicalTextOwned);
+            }
+            if (artifactContent.Items.Count > 0) canvas.Artifact(nested => nested.AddItems(artifactContent.Items));
             return;
         }
         var options = new PdfCore.PdfCanvasStructureOptions {
@@ -576,25 +579,23 @@ internal static partial class HtmlPdfRenderedConverter {
             StructureElementKey = group.StructureElementKey
         };
         bool childTextAsSpan = textAsSpan || IsTextContentGroup(group.Role);
+        string logicalText = string.Empty;
+        bool hasLogicalText = IsTextContentGroup(group.Role)
+            && TryResolveReorderedLogicalText(group.Visuals, out logicalText);
+        string? printableText = hasLogicalText
+            ? FilterLogicalPrivateUseGlyphs(logicalText, group.Visuals, webFonts, cancellationToken)
+            : null;
+        var content = new PdfCore.PdfPageCanvas(allowOutOfPageCoordinates: true);
+        foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
+            cancellationToken.ThrowIfCancellationRequested();
+            AddVisual(content, child, webFonts, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls,
+                cancellationToken, childTextAsSpan, activeClip, logicalTextOwned || !string.IsNullOrEmpty(printableText));
+        }
+        if (content.Items.Count == 0) return;
         canvas.Structure(MapSemanticGroupRole(group.Role), nested => {
-            void AddChildren(PdfCore.PdfPageCanvas target, bool childLogicalTextOwned) {
-                foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    AddVisual(target, child, webFonts, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, childTextAsSpan, activeClip, childLogicalTextOwned);
-                }
-            }
-
-            if (IsTextContentGroup(group.Role)
-                && TryResolveReorderedLogicalText(group.Visuals, out string logicalText)) {
-                string? printableText = FilterLogicalPrivateUseGlyphs(logicalText, group.Visuals, webFonts, cancellationToken);
-                if (printableText != null && printableText.Length > 0) {
-                    nested.ActualText(printableText, target => AddChildren(target, childLogicalTextOwned: true));
-                } else {
-                    AddChildren(nested, logicalTextOwned);
-                }
-            } else {
-                AddChildren(nested, logicalTextOwned);
-            }
+            if (printableText is { Length: > 0 } actualText)
+                nested.ActualText(actualText, target => target.AddItems(content.Items));
+            else nested.AddItems(content.Items);
         }, options);
     }
 

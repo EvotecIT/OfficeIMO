@@ -168,7 +168,9 @@ public static partial class HtmlComputedStyleEngine {
             OfficeIMO.Html.Css.HtmlCssNamespaceContext? namespaceContext = null,
             AngleSharp.Css.Dom.ISelector? providerSelector = null) {
             Selector = selector;
-            string ownedSource = TryParsePseudoElementSelector(selector, out string hostSelector, out _) ? hostSelector : selector;
+            bool isPseudoElement = TryParsePseudoElementSelector(selector, out string hostSelector, out HtmlPseudoElementKind pseudoKind);
+            PseudoElementKind = isPseudoElement ? pseudoKind : null;
+            string ownedSource = isPseudoElement ? hostSelector : selector;
             OfficeIMO.Html.Css.HtmlCssSelector? ownedSelector = null;
             try {
                 var selectorOptions = new OfficeIMO.Html.Css.HtmlCssSelectorOptions { Namespaces = namespaceContext };
@@ -205,6 +207,7 @@ public static partial class HtmlComputedStyleEngine {
         internal string? LayerName { get; }
         internal IReadOnlyList<ContainerRuleCondition> ContainerConditions { get; }
         internal SelectorCandidateKey CandidateKey { get; }
+        internal HtmlPseudoElementKind? PseudoElementKind { get; }
     }
 
     private enum SelectorCandidateKind {
@@ -230,10 +233,8 @@ public static partial class HtmlComputedStyleEngine {
     /// than CSS semantics.
     /// </summary>
     private sealed class StyleRuleIndex {
-        private readonly List<StyleRule> _universal = new List<StyleRule>();
-        private readonly Dictionary<string, List<StyleRule>> _tags = new Dictionary<string, List<StyleRule>>(StringComparer.OrdinalIgnoreCase);
-        private readonly Dictionary<string, List<StyleRule>> _classes = new Dictionary<string, List<StyleRule>>(StringComparer.Ordinal);
-        private readonly Dictionary<string, List<StyleRule>> _ids = new Dictionary<string, List<StyleRule>>(StringComparer.Ordinal);
+        private readonly CandidateBuckets _elements = new CandidateBuckets();
+        private readonly Dictionary<HtmlPseudoElementKind, CandidateBuckets> _pseudoElements = new Dictionary<HtmlPseudoElementKind, CandidateBuckets>();
 
         internal StyleRuleIndex(
             IEnumerable<StyleRule> rules,
@@ -241,24 +242,48 @@ public static partial class HtmlComputedStyleEngine {
             CustomPropertyRegistrations = customPropertyRegistrations
                 ?? new Dictionary<string, CustomPropertyRegistration>(HtmlCssPropertyNameComparer.Instance);
             foreach (StyleRule rule in rules) {
-                switch (rule.CandidateKey.Kind) {
-                    case SelectorCandidateKind.Tag:
-                        Add(_tags, rule.CandidateKey.Value, rule);
-                        break;
-                    case SelectorCandidateKind.Class:
-                        Add(_classes, rule.CandidateKey.Value, rule);
-                        break;
-                    case SelectorCandidateKind.Id:
-                        Add(_ids, rule.CandidateKey.Value, rule);
-                        break;
-                    default:
-                        _universal.Add(rule);
-                        break;
+                if (rule.PseudoElementKind is HtmlPseudoElementKind kind) {
+                    if (!_pseudoElements.TryGetValue(kind, out CandidateBuckets? bucket)) {
+                        bucket = new CandidateBuckets();
+                        _pseudoElements.Add(kind, bucket);
+                    }
+                    bucket.Add(rule);
+                } else {
+                    _elements.Add(rule);
                 }
             }
         }
 
         internal IReadOnlyDictionary<string, CustomPropertyRegistration> CustomPropertyRegistrations { get; }
+
+        internal IReadOnlyList<StyleRule> GetCandidates(AngleSharp.Dom.IElement element) => _elements.GetCandidates(element);
+
+        internal IReadOnlyList<StyleRule> GetPseudoCandidates(AngleSharp.Dom.IElement element, HtmlPseudoElementKind kind) =>
+            _pseudoElements.TryGetValue(kind, out CandidateBuckets? bucket) ? bucket.GetCandidates(element) : Array.Empty<StyleRule>();
+    }
+
+    private sealed class CandidateBuckets {
+        private readonly List<StyleRule> _universal = new List<StyleRule>();
+        private readonly Dictionary<string, List<StyleRule>> _tags = new Dictionary<string, List<StyleRule>>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, List<StyleRule>> _classes = new Dictionary<string, List<StyleRule>>(StringComparer.Ordinal);
+        private readonly Dictionary<string, List<StyleRule>> _ids = new Dictionary<string, List<StyleRule>>(StringComparer.Ordinal);
+
+        internal void Add(StyleRule rule) {
+            switch (rule.CandidateKey.Kind) {
+                case SelectorCandidateKind.Tag:
+                    Add(_tags, rule.CandidateKey.Value, rule);
+                    break;
+                case SelectorCandidateKind.Class:
+                    Add(_classes, rule.CandidateKey.Value, rule);
+                    break;
+                case SelectorCandidateKind.Id:
+                    Add(_ids, rule.CandidateKey.Value, rule);
+                    break;
+                default:
+                    _universal.Add(rule);
+                    break;
+            }
+        }
 
         internal IReadOnlyList<StyleRule> GetCandidates(AngleSharp.Dom.IElement element) {
             var candidates = new List<StyleRule>(_universal.Count + 8);

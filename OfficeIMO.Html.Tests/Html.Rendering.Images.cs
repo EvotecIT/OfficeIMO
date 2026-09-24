@@ -27,6 +27,24 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlPdf_ImageOnlySemanticGroupWithUnpreparablePayloadDoesNotCreateEmptyStructure() {
+        string data = Convert.ToBase64String(Encoding.ASCII.GetBytes("GIF89a"));
+        string html = "<p><img src='data:image/gif;base64," + data + "' alt=''></p>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
+        Assert.Contains(rendered.Pages[0].Scene.OfType<HtmlRenderSemanticGroup>(), group =>
+            group.Visuals.OfType<HtmlRenderImage>().Any());
+
+        HtmlPdfRenderRequestResult result = HtmlConversionDocument.Parse(html).RenderToPdfResult(
+            HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf));
+        byte[] pdf = result.ToBytes();
+
+        Assert.Equal("%PDF-", Encoding.ASCII.GetString(pdf, 0, 5));
+        Assert.Contains(result.Output.Warnings, warning =>
+            warning.Code == HtmlPdfDiagnosticCodes.ImagePayloadOmitted
+            && warning.LossKind == OfficeConversionLossKind.Omission);
+    }
+
+    [Fact]
     public void HtmlPdf_TruncatedImageOmitsPayloadWithReportedLoss() {
         byte[] invalidPng = PdfPngTestImages.CreateRgbPng(10, 10);
         int imageDataChunk = Encoding.ASCII.GetString(invalidPng).IndexOf("IDAT", StringComparison.Ordinal);

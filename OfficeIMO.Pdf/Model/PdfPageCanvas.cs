@@ -16,7 +16,7 @@ public sealed partial class PdfPageCanvas {
     public PdfPageCanvas() {
     }
 
-    private PdfPageCanvas(bool allowOutOfPageCoordinates) {
+    internal PdfPageCanvas(bool allowOutOfPageCoordinates) {
         _allowOutOfPageCoordinates = allowOutOfPageCoordinates;
     }
 

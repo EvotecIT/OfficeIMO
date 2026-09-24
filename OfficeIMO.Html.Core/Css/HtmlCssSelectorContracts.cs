@@ -107,17 +107,22 @@ public sealed class HtmlCssSelector {
         CancellationToken cancellationToken = default) =>
         Matches(element, new HtmlCssSelectorMatchContext(recordEvaluation, cancellationToken));
 
-    internal bool Matches(IHtmlCssSelectorElement element, HtmlCssSelectorMatchContext context) =>
-        MatchAt(_compounds.Count - 1, element, new Dictionary<MatchState, bool>(), context);
+    internal bool Matches(IHtmlCssSelectorElement element, HtmlCssSelectorMatchContext context) {
+        if (_compounds.Count == 1) {
+            context.ThrowIfCancellationRequested();
+            context.RecordEvaluation();
+            return _compounds[0].Matches(element, context);
+        }
+        return MatchAt(_compounds.Count - 1, element, context);
+    }
 
     private bool MatchAt(
         int compoundIndex,
         IHtmlCssSelectorElement element,
-        IDictionary<MatchState, bool> results,
         HtmlCssSelectorMatchContext context) {
         context.ThrowIfCancellationRequested();
         var state = new MatchState(compoundIndex, element.Identity);
-        if (results.TryGetValue(state, out bool retained)) return retained;
+        if (context.TryGetMatchResult(this, state, out bool retained)) return retained;
         context.RecordEvaluation();
         bool result;
         if (!_compounds[compoundIndex].Matches(element, context)) result = false;
@@ -125,29 +130,29 @@ public sealed class HtmlCssSelector {
         else {
         switch (_combinators[compoundIndex - 1]) {
             case HtmlCssCombinator.Child:
-                result = element.ParentElement != null && MatchAt(compoundIndex - 1, element.ParentElement, results, context);
+                result = element.ParentElement != null && MatchAt(compoundIndex - 1, element.ParentElement, context);
                 break;
             case HtmlCssCombinator.NextSibling:
                 IHtmlCssSelectorElement? previous = context.GetPreviousElementSibling(element);
-                result = previous != null && MatchAt(compoundIndex - 1, previous, results, context);
+                result = previous != null && MatchAt(compoundIndex - 1, previous, context);
                 break;
             case HtmlCssCombinator.SubsequentSibling:
                 result = false;
                 for (IHtmlCssSelectorElement? sibling = context.GetPreviousElementSibling(element); sibling != null; sibling = context.GetPreviousElementSibling(sibling))
-                    if (MatchAt(compoundIndex - 1, sibling, results, context)) { result = true; break; }
+                    if (MatchAt(compoundIndex - 1, sibling, context)) { result = true; break; }
                 break;
             default:
                 result = false;
                 for (IHtmlCssSelectorElement? ancestor = element.ParentElement; ancestor != null; ancestor = ancestor.ParentElement)
-                    if (MatchAt(compoundIndex - 1, ancestor, results, context)) { result = true; break; }
+                    if (MatchAt(compoundIndex - 1, ancestor, context)) { result = true; break; }
                 break;
         }
         }
-        results[state] = result;
+        context.SetMatchResult(this, state, result);
         return result;
     }
 
-    private readonly struct MatchState : IEquatable<MatchState> {
+    internal readonly struct MatchState : IEquatable<MatchState> {
         internal MatchState(int compoundIndex, object element) { CompoundIndex = compoundIndex; Element = element; }
         private int CompoundIndex { get; }
         private object Element { get; }
@@ -300,11 +305,15 @@ public sealed class HtmlCssSelectorLimitException : InvalidOperationException {
 /// Shares cancellable, accounted DOM traversal results across selector matches in one operation.
 /// </summary>
 internal sealed class HtmlCssSelectorMatchContext {
+    private const int MaximumRetainedMatchStates = 262_144;
     private readonly Action? _recordEvaluation;
     private readonly CancellationToken _cancellationToken;
     private readonly Func<IHtmlCssSelectorElement, string, bool>? _providerMatcher;
     private readonly Dictionary<object, SiblingSet> _siblings =
         new Dictionary<object, SiblingSet>(ReferenceIdentityComparer.Instance);
+    private readonly Dictionary<HtmlCssSelector, Dictionary<HtmlCssSelector.MatchState, bool>> _matchResults =
+        new Dictionary<HtmlCssSelector, Dictionary<HtmlCssSelector.MatchState, bool>>();
+    private int _retainedMatchStates;
 
     internal HtmlCssSelectorMatchContext(Action? recordEvaluation, CancellationToken cancellationToken,
         Func<IHtmlCssSelectorElement, string, bool>? providerMatcher = null) {
@@ -317,6 +326,29 @@ internal sealed class HtmlCssSelectorMatchContext {
     internal CancellationToken CancellationToken => _cancellationToken;
     internal void RecordEvaluation() => _recordEvaluation?.Invoke();
     internal void ThrowIfCancellationRequested() => _cancellationToken.ThrowIfCancellationRequested();
+    internal bool TryGetMatchResult(HtmlCssSelector selector, HtmlCssSelector.MatchState state, out bool result) {
+        if (_matchResults.TryGetValue(selector, out Dictionary<HtmlCssSelector.MatchState, bool>? matches))
+            return matches.TryGetValue(state, out result);
+        result = false;
+        return false;
+    }
+
+    internal void SetMatchResult(HtmlCssSelector selector, HtmlCssSelector.MatchState state, bool result) {
+        // A context belongs to one selector operation over a stable tree. Retaining a bounded
+        // number of ancestor results avoids repeated walks across sibling elements.
+        if (_retainedMatchStates >= MaximumRetainedMatchStates) {
+            _matchResults.Clear();
+            _retainedMatchStates = 0;
+        }
+        if (!_matchResults.TryGetValue(selector, out Dictionary<HtmlCssSelector.MatchState, bool>? matches)) {
+            matches = new Dictionary<HtmlCssSelector.MatchState, bool>();
+            _matchResults.Add(selector, matches);
+        }
+        if (!matches.ContainsKey(state)) {
+            matches.Add(state, result);
+            _retainedMatchStates++;
+        }
+    }
     internal bool MatchesProviderSelector(IHtmlCssSelectorElement element, string selector) {
         ThrowIfCancellationRequested();
         RecordEvaluation();

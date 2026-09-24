@@ -515,10 +515,11 @@ public static partial class HtmlComputedStyleEngine {
 
         IReadOnlyList<StyleRule> candidateRules = rules.GetCandidates(element);
         foreach (StyleRule rule in candidateRules) {
-            budget.RecordSelectorEvaluation();
-            if (AreContainerConditionsApplicable(rule.ContainerConditions, containerContexts, environment)
-                && !TryParsePseudoElementSelector(rule.Selector, out _, out _)
-                && MatchesSelector(element, rule, budget)) {
+            if (AreContainerConditionsApplicable(rule.ContainerConditions, containerContexts, environment)) {
+                // Owned matching accounts for each compound and DOM traversal itself. Retained
+                // provider matching has no such callback, so count its candidate once here.
+                if (rule.OwnedSelector == null) budget.RecordSelectorEvaluation();
+                if (!MatchesSelector(element, rule, budget)) continue;
                 foreach (var declaration in rule.Declarations) {
                     if (declaration.Value.IsSupported) {
                         ApplyDeclaration(properties, parent?.Properties, declaration.Key, declaration.Value.Value,
@@ -555,7 +556,7 @@ public static partial class HtmlComputedStyleEngine {
         double elementWidth = ResolveContainerElementWidth(style, containingWidth, elementFontSize, rootFontSize, environment, containerUnitWidth, containerUnitHeight);
         double? elementHeight = ResolveContainerElementHeight(style, elementWidth, containingWidth, containingHeight, elementFontSize, rootFontSize, environment, containerUnitWidth, containerUnitHeight);
         IReadOnlyList<ContainerQueryContext> childContainerContexts = AddContainerContext(style, elementWidth, elementHeight, elementFontSize, inheritedFontSize, rootFontSize, containerContexts);
-        if (includePseudoElements) ComputePseudoElementStyles(element, style, candidateRules, pseudoElements, budget,
+        if (includePseudoElements) ComputePseudoElementStyles(element, style, rules, pseudoElements, budget,
             childContainerContexts, environment, rules.CustomPropertyRegistrations, includeCascadeTraces);
 
         foreach (IElement child in element.Children) {
@@ -567,23 +568,23 @@ public static partial class HtmlComputedStyleEngine {
     private static void ComputePseudoElementStyles(
         IElement element,
         HtmlComputedStyle originatingStyle,
-        IReadOnlyList<StyleRule> candidateRules,
+        StyleRuleIndex rules,
         IDictionary<IElement, HtmlPseudoElementStylePair> pseudoElements,
         HtmlCssProcessingBudget budget,
         IReadOnlyList<ContainerQueryContext> containerContexts,
         MediaEnvironment environment,
         IReadOnlyDictionary<string, CustomPropertyRegistration> customPropertyRegistrations,
         bool includeCascadeTraces) {
-        HtmlComputedStyle? before = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.Before, budget, containerContexts, environment, customPropertyRegistrations, includeCascadeTraces);
-        HtmlComputedStyle? after = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.After, budget, containerContexts, environment, customPropertyRegistrations, includeCascadeTraces);
-        HtmlComputedStyle? marker = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.Marker, budget, containerContexts, environment, customPropertyRegistrations, includeCascadeTraces);
-        HtmlComputedStyle? footnoteCall = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.FootnoteCall, budget, containerContexts, environment, customPropertyRegistrations, includeCascadeTraces);
-        HtmlComputedStyle? footnoteMarker = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.FootnoteMarker, budget, containerContexts, environment, customPropertyRegistrations, includeCascadeTraces);
-        HtmlComputedStyle? firstLetter = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.FirstLetter, budget, containerContexts, environment, customPropertyRegistrations, includeCascadeTraces);
-        HtmlComputedStyle? firstLine = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.FirstLine, budget, containerContexts, environment, customPropertyRegistrations, includeCascadeTraces);
+        HtmlComputedStyle? before = ComputePseudoElementStyle(element, originatingStyle, rules.GetPseudoCandidates(element, HtmlPseudoElementKind.Before), HtmlPseudoElementKind.Before, budget, containerContexts, environment, customPropertyRegistrations, includeCascadeTraces);
+        HtmlComputedStyle? after = ComputePseudoElementStyle(element, originatingStyle, rules.GetPseudoCandidates(element, HtmlPseudoElementKind.After), HtmlPseudoElementKind.After, budget, containerContexts, environment, customPropertyRegistrations, includeCascadeTraces);
+        HtmlComputedStyle? marker = ComputePseudoElementStyle(element, originatingStyle, rules.GetPseudoCandidates(element, HtmlPseudoElementKind.Marker), HtmlPseudoElementKind.Marker, budget, containerContexts, environment, customPropertyRegistrations, includeCascadeTraces);
+        HtmlComputedStyle? footnoteCall = ComputePseudoElementStyle(element, originatingStyle, rules.GetPseudoCandidates(element, HtmlPseudoElementKind.FootnoteCall), HtmlPseudoElementKind.FootnoteCall, budget, containerContexts, environment, customPropertyRegistrations, includeCascadeTraces);
+        HtmlComputedStyle? footnoteMarker = ComputePseudoElementStyle(element, originatingStyle, rules.GetPseudoCandidates(element, HtmlPseudoElementKind.FootnoteMarker), HtmlPseudoElementKind.FootnoteMarker, budget, containerContexts, environment, customPropertyRegistrations, includeCascadeTraces);
+        HtmlComputedStyle? firstLetter = ComputePseudoElementStyle(element, originatingStyle, rules.GetPseudoCandidates(element, HtmlPseudoElementKind.FirstLetter), HtmlPseudoElementKind.FirstLetter, budget, containerContexts, environment, customPropertyRegistrations, includeCascadeTraces);
+        HtmlComputedStyle? firstLine = ComputePseudoElementStyle(element, originatingStyle, rules.GetPseudoCandidates(element, HtmlPseudoElementKind.FirstLine), HtmlPseudoElementKind.FirstLine, budget, containerContexts, environment, customPropertyRegistrations, includeCascadeTraces);
         HtmlComputedStyle? placeholder = element.LocalName.Equals("input", StringComparison.OrdinalIgnoreCase)
             || element.LocalName.Equals("textarea", StringComparison.OrdinalIgnoreCase)
-            ? ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.Placeholder, budget, containerContexts, environment, customPropertyRegistrations, includeCascadeTraces)
+            ? ComputePseudoElementStyle(element, originatingStyle, rules.GetPseudoCandidates(element, HtmlPseudoElementKind.Placeholder), HtmlPseudoElementKind.Placeholder, budget, containerContexts, environment, customPropertyRegistrations, includeCascadeTraces)
             : null;
         if (before == null && after == null && marker == null && footnoteCall == null && footnoteMarker == null
             && firstLetter == null && firstLine == null && placeholder == null) return;
@@ -611,13 +612,9 @@ public static partial class HtmlComputedStyleEngine {
         bool includeCascadeTraces) {
         List<StyleRule>? matchedRules = null;
         foreach (StyleRule rule in candidateRules) {
-            budget.RecordSelectorEvaluation();
-            if (!AreContainerConditionsApplicable(rule.ContainerConditions, containerContexts, environment)
-                || !TryParsePseudoElementSelector(rule.Selector, out string hostSelector, out HtmlPseudoElementKind ruleKind)
-                || ruleKind != kind
-                || !MatchesSelector(element, rule, budget)) {
-                continue;
-            }
+            if (!AreContainerConditionsApplicable(rule.ContainerConditions, containerContexts, environment)) continue;
+            if (rule.OwnedSelector == null) budget.RecordSelectorEvaluation();
+            if (!MatchesSelector(element, rule, budget)) continue;
 
             (matchedRules ??= new List<StyleRule>()).Add(rule);
         }
