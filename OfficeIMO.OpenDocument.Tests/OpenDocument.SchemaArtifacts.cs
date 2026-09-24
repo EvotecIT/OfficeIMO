@@ -35,7 +35,7 @@ public class OpenDocumentSchemaArtifactTests {
                 cited.AddEndnote("Endnote schema proof.");
                 text.AddList().AddItem("One");
                 text.AddTable(2, 2, "Proof").Cell(0, 0).Text = "Value";
-                text.PageLayout.Header.AddParagraph("OfficeIMO").AddFootnote("Header note schema proof.");
+                text.PageLayout.Header.AddParagraph("OfficeIMO");
                 text.AddTrackedParagraphInsertion("Tracked schema proof", "OfficeIMO", new DateTimeOffset(2026, 7, 10, 0, 0, 0, TimeSpan.Zero));
                 text.AddParagraph("Embedded image").AddImage(TinyPng, "pixel.png", OdfLength.Centimeters(1), OdfLength.Centimeters(1));
                 text.Save(Path.Combine(output, "schema-proof-1.4.odt"));
@@ -124,9 +124,9 @@ public class OpenDocumentSchemaArtifactTests {
                         UriComponents.AbsoluteUri, UriFormat.SafeUnescaped, StringComparison.OrdinalIgnoreCase) == 0);
                 OdtParagraph cited = text.Paragraphs.Single(paragraph => paragraph.Text.StartsWith("A cited result", StringComparison.Ordinal));
                 Assert.Contains(cited.Notes, note => note.Kind == OdtNoteKind.Footnote &&
-                    note.Paragraphs.Any(paragraph => paragraph.Text.Contains("Footnote schema proof", StringComparison.Ordinal)));
+                    note.Paragraphs.Any(paragraph => paragraph.Text.IndexOf("Footnote schema proof", StringComparison.Ordinal) >= 0));
                 Assert.Contains(cited.Notes, note => note.Kind == OdtNoteKind.Endnote &&
-                    note.Paragraphs.Any(paragraph => paragraph.Text.Contains("Endnote schema proof", StringComparison.Ordinal)));
+                    note.Paragraphs.Any(paragraph => paragraph.Text.IndexOf("Endnote schema proof", StringComparison.Ordinal) >= 0));
             } else if (document is OdsDocument spreadsheet) {
                 OdsSheet sheet = spreadsheet.GetSheet("Data")!;
                 Assert.Equal("Value", sheet.GetValue(0, 0).DisplayText);
