@@ -213,6 +213,8 @@ internal static class OfficeProvenancePng {
 
     private static bool ValidateDecodedPayload(byte[] data, OfficeProvenanceOptions options, OfficeProvenanceContext context) {
         // The container check is part of the budget calculation; an image whose decode cannot be bounded is not decoded.
+        // Malformed structure is rejected by the chunk pre-pass before this point, so a container that preserves a
+        // malformed nested image never discards a charge already made here.
         if (!OfficePngReader.TryGetProvenanceDecodeBudget(
                 data, options.CancellationToken, options.MaxContainerEntries, out long decodedBytes)) return false;
         context.ReserveExpandedBytes(decodedBytes, "PNG decoding exceeds the configured expanded-byte limit.");
