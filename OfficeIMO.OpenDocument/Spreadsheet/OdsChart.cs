@@ -2,12 +2,14 @@ namespace OfficeIMO.OpenDocument;
 
 /// <summary>One embedded ODS chart and its source-cell references. Chart styling remains preserved package XML.</summary>
 public sealed class OdsChart {
-    private OdsChart(string name, string chartClass, string? title, string? categoriesAddress,
+    private OdsChart(string name, string chartClass, string? title, string? titleCellRangeAddress,
+        string? categoriesAddress,
         IReadOnlyList<OdsChartSeries> series, bool isStacked, bool isPercentage, bool isThreeDimensional,
         bool? verticalBars, OdfRect bounds, long? anchorRow, long? anchorColumn) {
         Name = name;
         ChartClass = chartClass;
         Title = title;
+        TitleCellRangeAddress = titleCellRangeAddress;
         CategoriesAddress = categoriesAddress;
         Series = series;
         IsStacked = isStacked;
@@ -25,6 +27,8 @@ public sealed class OdsChart {
     public string ChartClass { get; }
     /// <summary>Chart title text when present.</summary>
     public string? Title { get; }
+    /// <summary>Cell range supplying the title when the chart uses a referenced title.</summary>
+    public string? TitleCellRangeAddress { get; }
     /// <summary>ODF category-cell range referenced by the chart.</summary>
     public string? CategoriesAddress { get; }
     /// <summary>Value ranges and optional label cells in chart order.</summary>
@@ -63,7 +67,13 @@ public sealed class OdsChart {
             XElement plot = plots[0];
             string chartClass = NormalizeChartClass(chartElement,
                 (string?)chartElement.Attribute(chart + "class")) ?? string.Empty;
-            string? title = chartElement.Element(chart + "title")?.Element(OdfNamespaces.Text + "p")?.Value;
+            XElement? titleElement = chartElement.Element(chart + "title");
+            string? titleCellRangeAddress = (string?)titleElement?
+                .Attribute(OdfNamespaces.Table + "cell-range");
+            XElement[] titleParagraphs = titleElement?
+                .Elements(OdfNamespaces.Text + "p").ToArray() ?? Array.Empty<XElement>();
+            string? title = titleCellRangeAddress != null || titleParagraphs.Length == 0 ? null :
+                string.Join("\n", titleParagraphs.Select(OdfTextCodec.Read));
             string[] categoryAddresses = plot.Elements(chart + "axis")
                 .Select(axis => (string?)axis.Element(chart + "categories")?.Attribute(OdfNamespaces.Table + "cell-range-address"))
                 .Where(value => !string.IsNullOrWhiteSpace(value)).Select(value => value!).ToArray();
@@ -77,6 +87,8 @@ public sealed class OdsChart {
                 ? document.Package.GetXml(directory + "styles.xml") : null;
             XElement? Style(string? name) => FindChartStyle(part, name)
                 ?? (stylesPart == null ? null : FindChartStyle(stylesPart, name));
+            XElement? defaultStyle = FindChartDefaultStyle(part)
+                ?? (stylesPart == null ? null : FindChartDefaultStyle(stylesPart));
             var allProperties = new List<XElement>();
             bool AddStyleChain(string? name) {
                 var visited = new HashSet<string>(StringComparer.Ordinal);
@@ -93,6 +105,13 @@ public sealed class OdsChart {
                         }
                     }
                     name = (string?)current.Attribute(OdfNamespaces.Style + "parent-style-name");
+                }
+                XElement? defaults = defaultStyle?.Element(OdfNamespaces.Style + "chart-properties");
+                if (defaults != null) {
+                    foreach (XAttribute attribute in defaults.Attributes()) {
+                        if (effective.Attribute(attribute.Name) == null)
+                            effective.SetAttributeValue(attribute.Name, attribute.Value);
+                    }
                 }
                 if (effective.HasAttributes) allProperties.Add(effective);
                 return true;
@@ -126,7 +145,8 @@ public sealed class OdsChart {
                 OdfLength.Parse((string?)frame.Attribute(OdfNamespaces.Svg + "width") ?? "0cm"),
                 OdfLength.Parse((string?)frame.Attribute(OdfNamespaces.Svg + "height") ?? "0cm"));
             return new OdsChart((string?)frame.Attribute(OdfNamespaces.Draw + "name") ?? string.Empty,
-                chartClass, title, categories, series, stacked, percentage, threeDimensional, vertical, bounds,
+                chartClass, title, titleCellRangeAddress, categories, series, stacked, percentage,
+                threeDimensional, vertical, bounds,
                 anchorRow, anchorColumn);
         } catch (InvalidDataException) {
             return null;
@@ -140,9 +160,18 @@ public sealed class OdsChart {
             .SelectMany(element => element.Elements(OdfNamespaces.Style + "style"))
             .FirstOrDefault(element => string.Equals((string?)element.Attribute(OdfNamespaces.Style + "name"), styleName, StringComparison.Ordinal));
 
+    private static XElement? FindChartDefaultStyle(XDocument part) =>
+        part.Root?.Elements()
+            .Where(element => element.Name == OdfNamespaces.Office + "automatic-styles"
+                || element.Name == OdfNamespaces.Office + "styles")
+            .SelectMany(element => element.Elements(OdfNamespaces.Style + "default-style"))
+            .FirstOrDefault(element => (string?)element.Attribute(OdfNamespaces.Style + "family") == "chart");
+
     private static string? NormalizeChartClass(XElement owner, string? lexical) {
         if (lexical == null) return null;
         int separator = lexical.IndexOf(':');
+        if (separator < 0 && owner.GetDefaultNamespace() == OdfNamespaces.Chart)
+            return "chart:" + lexical;
         if (separator <= 0 || separator == lexical.Length - 1 || lexical.IndexOf(':', separator + 1) >= 0)
             return lexical;
         string prefix = lexical.Substring(0, separator);

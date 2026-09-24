@@ -19,6 +19,10 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             foreach (OdsChart chart in odsSheet.Charts) {
                 if (!TryCreateExcelChartData(source, chart, options, readers, out ExcelChartData? data,
                     out ExcelChartType chartType, out int row, out int column, out int width, out int height)) continue;
+                if (data!.Series.Count + 1 > options.MaximumColumns) {
+                    truncated = true;
+                    continue;
+                }
                 long chartCells = ((long)data!.Categories.Count + 1) * (data.Series.Count + 1);
                 if (chartCells > options.MaximumExpandedCells - expandedCells) {
                     truncated = true;
@@ -46,6 +50,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         type = ExcelChartType.ColumnClustered;
         row = column = width = height = 0;
         if (chart.IsStacked || chart.IsPercentage || chart.IsThreeDimensional
+            || chart.TitleCellRangeAddress != null
             || chart.Series.Count < 1 || chart.Series.Count > MaximumConvertedChartSeries
             || !chart.AnchorRow.HasValue || !chart.AnchorColumn.HasValue
             || chart.AnchorRow.Value >= options.MaximumRows || chart.AnchorColumn.Value >= options.MaximumColumns
@@ -69,17 +74,21 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 ? categories[index].DisplayText : categories[index].LexicalValue;
         }
         var series = new List<ExcelChartSeries>(chart.Series.Count);
-        foreach (OdsChartSeries sourceSeries in chart.Series) {
+        for (int seriesIndex = 0; seriesIndex < chart.Series.Count; seriesIndex++) {
+            OdsChartSeries sourceSeries = chart.Series[seriesIndex];
             if (sourceSeries.ChartClass != null && sourceSeries.ChartClass != chart.ChartClass) return false;
             if (!TryReadChartCells(document, sourceSeries.ValuesAddress, options, readers, out OdsCellValue[] values)
-                || values.Length != labels.Length
-                || !TryReadChartCells(document, sourceSeries.LabelAddress, options, readers, out OdsCellValue[] nameCell)
-                || nameCell.Length != 1) return false;
-            string name = nameCell[0].DisplayText.Length > 0 ? nameCell[0].DisplayText : nameCell[0].LexicalValue;
-            if (string.IsNullOrWhiteSpace(name)) return false;
+                || values.Length != labels.Length) return false;
+            string name = "Series " + (seriesIndex + 1).ToString(CultureInfo.InvariantCulture);
+            if (sourceSeries.LabelAddress != null) {
+                if (!TryReadChartCells(document, sourceSeries.LabelAddress, options, readers,
+                    out OdsCellValue[] nameCell) || nameCell.Length != 1) return false;
+                name = nameCell[0].DisplayText.Length > 0 ? nameCell[0].DisplayText : nameCell[0].LexicalValue;
+                if (string.IsNullOrWhiteSpace(name)) return false;
+            }
             var numbers = new double[values.Length];
             for (int index = 0; index < values.Length; index++) {
-                if (values[index].Kind != OdsCellValueKind.Number
+                if (values[index].Kind is not (OdsCellValueKind.Number or OdsCellValueKind.Percentage or OdsCellValueKind.Currency)
                     || !double.TryParse(values[index].LexicalValue, NumberStyles.Float,
                         CultureInfo.InvariantCulture, out double number)
                     || double.IsNaN(number) || double.IsInfinity(number)) return false;

@@ -92,6 +92,117 @@ public sealed class SpreadsheetChartConversionTests {
     }
 
     [Fact]
+    public void HiddenChartDataWidthRespectsColumnLimit() {
+        byte[] package = RewritePart("Object 1/content.xml", xml => {
+            XNamespace chart = "urn:oasis:names:tc:opendocument:xmlns:chart:1.0";
+            XElement series = xml.Descendants(chart + "series").Single();
+            series.AddAfterSelf(new XElement(series));
+        });
+        OdsDocument source = OdsDocument.Load(new MemoryStream(package));
+        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult(
+            new ExcelOpenDocumentConversionOptions { MaximumColumns = 2 });
+        using ExcelDocument converted = result.Value;
+        Assert.Empty(converted["Data"].Charts);
+        Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "expansion-limits" &&
+            mapping.Status == OdfConversionMappingStatus.Skipped);
+    }
+
+    [Theory]
+    [InlineData("percentage")]
+    [InlineData("currency")]
+    public void NumericPercentageAndCurrencySeriesConvert(string valueType) {
+        byte[] package = RewritePart("content.xml", xml => {
+            XNamespace table = "urn:oasis:names:tc:opendocument:xmlns:table:1.0";
+            XNamespace office = "urn:oasis:names:tc:opendocument:xmlns:office:1.0";
+            XElement[] values = xml.Descendants(table + "table-cell")
+                .Where(cell => (string?)cell.Attribute(office + "value-type") == "float").ToArray();
+            foreach (XElement cell in values) {
+                cell.SetAttributeValue(office + "value-type", valueType);
+                if (valueType == "currency") cell.SetAttributeValue(office + "currency", "USD");
+            }
+        });
+        OdsDocument source = OdsDocument.Load(new MemoryStream(package));
+        using ExcelDocument converted = source.ToExcelDocumentResult().Value;
+        Assert.Single(converted["Data"].Charts);
+    }
+
+    [Fact]
+    public void UnlabeledSeriesUsesGeneratedName() {
+        byte[] package = RewritePart("Object 1/content.xml", xml => {
+            XNamespace chart = "urn:oasis:names:tc:opendocument:xmlns:chart:1.0";
+            xml.Descendants(chart + "series").Single().Attribute(chart + "label-cell-address")!.Remove();
+        });
+        OdsDocument source = OdsDocument.Load(new MemoryStream(package));
+        using ExcelDocument converted = source.ToExcelDocumentResult().Value;
+        ExcelChart chart = Assert.Single(converted["Data"].Charts);
+        Assert.True(chart.TryGetData(out ExcelChartData data));
+        Assert.Equal("Series 1", Assert.Single(data.Series).Name);
+    }
+
+    [Fact]
+    public void ChartDefaultStyleStackingRemainsExplicitLoss() {
+        byte[] package = RewritePart("Object 1/styles.xml", xml => {
+            XNamespace chart = "urn:oasis:names:tc:opendocument:xmlns:chart:1.0";
+            XNamespace style = "urn:oasis:names:tc:opendocument:xmlns:style:1.0";
+            XNamespace office = "urn:oasis:names:tc:opendocument:xmlns:office:1.0";
+            XElement styles = xml.Root!.Element(office + "styles")!;
+            styles.AddFirst(new XElement(style + "default-style",
+                new XAttribute(style + "family", "chart"),
+                new XElement(style + "chart-properties", new XAttribute(chart + "stacked", "true"))));
+        });
+        OdsDocument source = OdsDocument.Load(new MemoryStream(package));
+        using ExcelDocument converted = source.ToExcelDocumentResult().Value;
+        Assert.Empty(converted["Data"].Charts);
+    }
+
+    [Fact]
+    public void MultilineTitleIsInspectedAndConverted() {
+        byte[] package = RewritePart("Object 1/content.xml", xml => {
+            XNamespace chart = "urn:oasis:names:tc:opendocument:xmlns:chart:1.0";
+            XNamespace text = "urn:oasis:names:tc:opendocument:xmlns:text:1.0";
+            xml.Descendants(chart + "title").Single().Add(new XElement(text + "p", "Forecast"));
+        });
+        OdsDocument source = OdsDocument.Load(new MemoryStream(package));
+        Assert.Equal("Sales\nForecast", Assert.Single(source.GetSheet("Data")!.Charts).Title);
+        using ExcelDocument converted = source.ToExcelDocumentResult().Value;
+        Assert.Equal("Sales\nForecast", Assert.Single(converted["Data"].Charts).Title);
+    }
+
+    [Fact]
+    public void ChartTitlePreservesOdfInlineWhitespace() {
+        byte[] package = RewritePart("Object 1/content.xml", xml => {
+            XNamespace chart = "urn:oasis:names:tc:opendocument:xmlns:chart:1.0";
+            XNamespace text = "urn:oasis:names:tc:opendocument:xmlns:text:1.0";
+            XElement paragraph = xml.Descendants(chart + "title").Single()
+                .Element(text + "p")!;
+            paragraph.ReplaceNodes("Net", new XElement(text + "s", new XAttribute(text + "c", "2")), "Sales");
+        });
+        OdsDocument source = OdsDocument.Load(new MemoryStream(package));
+        Assert.Equal("Net  Sales", Assert.Single(source.GetSheet("Data")!.Charts).Title);
+        using ExcelDocument converted = source.ToExcelDocumentResult().Value;
+        Assert.Equal("Net  Sales", Assert.Single(converted["Data"].Charts).Title);
+    }
+
+    [Fact]
+    public void ReferencedChartTitleRemainsExplicitConversionLoss() {
+        byte[] package = RewritePart("Object 1/content.xml", xml => {
+            XNamespace chart = "urn:oasis:names:tc:opendocument:xmlns:chart:1.0";
+            XNamespace table = "urn:oasis:names:tc:opendocument:xmlns:table:1.0";
+            xml.Descendants(chart + "title").Single()
+                .SetAttributeValue(table + "cell-range", "Data.$C$1");
+        });
+        OdsDocument source = OdsDocument.Load(new MemoryStream(package));
+        OdsChart inspected = Assert.Single(source.GetSheet("Data")!.Charts);
+        Assert.Equal("Data.$C$1", inspected.TitleCellRangeAddress);
+        Assert.Null(inspected.Title);
+        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        using ExcelDocument converted = result.Value;
+        Assert.Empty(converted["Data"].Charts);
+        Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "source-embedded-objects"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported);
+    }
+
+    [Fact]
     public void ChartClassPrefixAliasesConvertByNamespace() {
         byte[] package = RewritePart("Object 1/content.xml", xml => {
             XNamespace chart = "urn:oasis:names:tc:opendocument:xmlns:chart:1.0";
@@ -99,6 +210,21 @@ public sealed class SpreadsheetChartConversionTests {
             xml.Descendants(chart + "chart").Single().SetAttributeValue(chart + "class", "c:bar");
             foreach (XElement series in xml.Descendants(chart + "series"))
                 series.SetAttributeValue(chart + "class", "c:bar");
+        });
+        OdsDocument source = OdsDocument.Load(new MemoryStream(package));
+        Assert.Equal("chart:bar", Assert.Single(source.GetSheet("Data")!.Charts).ChartClass);
+        using ExcelDocument converted = source.ToExcelDocumentResult().Value;
+        Assert.Single(converted["Data"].Charts);
+    }
+
+    [Fact]
+    public void UnprefixedChartClassUsesDefaultChartNamespace() {
+        byte[] package = RewritePart("Object 1/content.xml", xml => {
+            XNamespace chart = "urn:oasis:names:tc:opendocument:xmlns:chart:1.0";
+            XElement chartElement = xml.Descendants(chart + "chart").Single();
+            chartElement.SetAttributeValue("xmlns", chart.NamespaceName);
+            chartElement.SetAttributeValue(chart + "class", "bar");
+            xml.Descendants(chart + "series").Single().SetAttributeValue(chart + "class", "bar");
         });
         OdsDocument source = OdsDocument.Load(new MemoryStream(package));
         Assert.Equal("chart:bar", Assert.Single(source.GetSheet("Data")!.Charts).ChartClass);
