@@ -242,7 +242,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         int textBoxes = 0, paragraphs = 0, textRuns = 0, hyperlinks = 0, externalHyperlinks = 0, pictures = 0, tables = 0, basicShapes = 0;
         int notes = 0, transitions = 0, unsupportedTransitions = 0, unsupportedShapes = 0, unsupportedPictures = 0, transformedShapes = 0;
         int listParagraphs = 0, approximatedRuns = 0, unsupportedHyperlinks = 0, unsupportedHyperlinkBehaviors = 0;
-        int skippedBasicFormatting = 0, skippedNotes = 0, noteContainers = 0;
+        int skippedBasicFormatting = 0, skippedNotes = 0, noteContainers = 0, unsupportedNoteContent = 0;
         int mappedPlaceholderRoles = 0, unsupportedPlaceholderRoles = 0;
         int unsupportedSlideBackgrounds = 0;
         int unsupportedShapeAppearance = source.Slides.Sum(slide => slide.Shapes.Count(shape =>
@@ -260,13 +260,20 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             var slideBackground = ReadOdpSlideBackground(source, sourceSlide);
             if (slideBackground.Loss) unsupportedSlideBackgrounds++;
             OdfColor? backgroundColor = slideBackground.Color;
-            if (!slideBackground.Override && !backgroundColor.HasValue && !string.IsNullOrWhiteSpace(sourceSlide.MasterPageName)) {
+            bool suppressesMasterBackground = string.Equals(
+                (string?)sourceSlide.Element.Attribute(OdfNamespaces.Presentation + "background-visible"),
+                "false", StringComparison.OrdinalIgnoreCase);
+            if (suppressesMasterBackground) unsupportedSlideBackgrounds++;
+            if (!suppressesMasterBackground && !slideBackground.Override && !backgroundColor.HasValue && !string.IsNullOrWhiteSpace(sourceSlide.MasterPageName)) {
                 backgroundColor = source.MasterPages.FirstOrDefault(master =>
                     string.Equals(master.Name, sourceSlide.MasterPageName, StringComparison.Ordinal))?.BackgroundColor;
             }
             if (backgroundColor.HasValue) targetSlide.BackgroundColor = backgroundColor.Value.ToString().TrimStart('#');
             if (MapTransition(sourceSlide, targetSlide)) transitions++;
             else if (!string.IsNullOrWhiteSpace(sourceSlide.TransitionStyle) || !string.IsNullOrWhiteSpace(sourceSlide.TransitionType)) unsupportedTransitions++;
+            if (HasUnmappedOdpTransitionTiming(source, sourceSlide)) unsupportedTransitions++;
+            if (sourceSlide.Shapes.Any(shape => shape.Element.Attribute(OdfNamespaces.Draw + "z-index") != null))
+                unsupportedShapes++;
 
             foreach (OdpShape shape in sourceSlide.Shapes) {
                 if (shape is OdpTextBox textBox) {
@@ -384,6 +391,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                         unsupportedShapes++;
                         continue;
                     }
+                    if (x1 > x2 || y1 > y2) transformedShapes++;
                     PowerPointAutoShape converted = targetSlide.AddLinePoints(x1, y1, x2, y2, line.Name);
                     unsupportedMeasurements += CopyShapeAppearance(line, converted, effective);
                     basicShapes++;
@@ -394,7 +402,10 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                 if (!string.IsNullOrWhiteSpace(shape.Transform)) transformedShapes++;
             }
 
-            if (sourceSlide.SpeakerNotes != null) noteContainers++;
+            if (sourceSlide.SpeakerNotes != null) {
+                noteContainers++;
+                if (HasUnmappedOdpNoteContent(sourceSlide)) unsupportedNoteContent++;
+            }
             if (effective.IncludeSpeakerNotes && sourceSlide.SpeakerNotes != null) {
                 IReadOnlyList<OdpParagraph> noteParagraphs = sourceSlide.SpeakerNotes.Paragraphs;
                 if (noteParagraphs.Any(paragraph => paragraph.Text.Length > 0)) {
@@ -454,12 +465,14 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         if (skippedNotes > 0) report.Add("speaker-notes", OdfConversionMappingStatus.Skipped, skippedNotes,
             "Speaker notes were omitted because IncludeSpeakerNotes is disabled.");
         AddUnsupported(report, "slide-transitions", unsupportedTransitions, "The ODF transition family is not supported by the PowerPoint adapter.");
+        AddUnsupported(report, "speaker-notes", unsupportedNoteContent,
+            "ODP speaker-note drawings, images, and tables outside text paragraphs were omitted.");
         AddUnsupported(report, "images", unsupportedPictures, "Images disabled by options or using an unsupported PowerPoint image format were skipped.");
-        AddUnsupported(report, "shapes", unsupportedShapes, "Groups and unsupported ODF drawing elements are not translated.");
+        AddUnsupported(report, "shapes", unsupportedShapes, "Groups, explicit ODF z-order, and unsupported drawing elements are not translated.");
         AddUnsupported(report, "shapes", unsupportedRawDrawingShapes,
             "Unsupported native ODF drawing elements were omitted before typed shape conversion.");
         AddUnsupported(report, "slide-backgrounds", unsupportedSlideBackgrounds,
-            "ODP slide image, gradient, transparency, or unsupported drawing-page background was omitted.");
+            "ODP slide image, gradient, transparency, hidden master background, or unsupported drawing-page background was omitted.");
         AddUnsupported(report, "shape-appearance", unsupportedShapeAppearance,
             "ODP graphic fill, stroke, transparency, dash, or effect styling outside solid colors was omitted.");
         AddUnsupported(report, "table-appearance", unsupportedTableAppearance,
@@ -666,8 +679,11 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
     private static void MapBackground(PowerPointSlide source, OdpSlide target, ref int converted, ref int unsupported) {
         PowerPointSlideBackground background = source.GetBackground();
         if (background.Kind == PowerPointSlideBackgroundKind.SolidColor && !string.IsNullOrWhiteSpace(background.Color)) {
-            target.BackgroundColor = ParseColor(background.Color);
-            converted++;
+            if (background.Color!.Trim().TrimStart('#').Length == 8) unsupported++;
+            else {
+                target.BackgroundColor = ParseColor(background.Color);
+                converted++;
+            }
         } else if (background.Kind != PowerPointSlideBackgroundKind.None) unsupported++;
     }
 

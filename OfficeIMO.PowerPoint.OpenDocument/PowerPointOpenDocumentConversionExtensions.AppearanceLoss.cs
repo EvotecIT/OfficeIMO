@@ -92,11 +92,30 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         if (fill != null && fill != "solid" || stroke != null && stroke != "solid") return true;
         if (fill == "solid" && !OdfColor.TryParse((string?)properties.Attribute(OdfNamespaces.Draw + "fill-color"), out _)) return true;
         if (stroke == "solid" && !OdfColor.TryParse((string?)properties.Attribute(OdfNamespaces.Svg + "stroke-color"), out _)) return true;
-        return properties.Attributes().Any(attribute =>
-            (attribute.Name.Namespace == OdfNamespaces.Draw || attribute.Name.Namespace == OdfNamespaces.Svg) &&
+        return properties.HasElements || properties.Attributes().Any(attribute =>
             attribute.Name != OdfNamespaces.Draw + "fill" && attribute.Name != OdfNamespaces.Draw + "fill-color" &&
             attribute.Name != OdfNamespaces.Draw + "stroke" && attribute.Name != OdfNamespaces.Svg + "stroke-color" &&
             attribute.Name != OdfNamespaces.Svg + "stroke-width");
+    }
+
+    private static bool HasUnmappedOdpNoteContent(OdpSlide slide) {
+        XElement? notes = slide.Element.Element(OdfNamespaces.Presentation + "notes");
+        return notes != null && notes.Descendants().Any(element =>
+            element.Name.Namespace == OdfNamespaces.Table ||
+            element.Name.Namespace == OdfNamespaces.Draw &&
+            element.Name != OdfNamespaces.Draw + "frame" &&
+            element.Name != OdfNamespaces.Draw + "text-box" &&
+            element.Name != OdfNamespaces.Draw + "page-thumbnail");
+    }
+
+    private static bool HasUnmappedOdpTransitionTiming(OdpPresentation source, OdpSlide slide) {
+        string? styleName = (string?)slide.Element.Attribute(OdfNamespaces.Draw + "style-name");
+        XElement? properties = EffectiveOdfStyleProperties(source, OdfStyleFamily.DrawingPage, styleName,
+            OdfNamespaces.Style + "drawing-page-properties");
+        return properties?.Attribute(OdfNamespaces.Presentation + "transition-change") != null ||
+            properties?.Attribute(OdfNamespaces.Presentation + "duration") != null ||
+            slide.Element.Attribute(OdfNamespaces.Presentation + "transition-change") != null ||
+            slide.Element.Attribute(OdfNamespaces.Presentation + "duration") != null;
     }
 
     private static int CountUnmappedPowerPointTableAppearance(PresentationPart? presentation,
