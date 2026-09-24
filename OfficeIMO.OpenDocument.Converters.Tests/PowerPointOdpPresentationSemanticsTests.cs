@@ -375,6 +375,9 @@ public sealed class PowerPointOdpPresentationSemanticsTests {
         powerPoint.AddSlide(PowerPointSlideLayoutType.Blank);
         OdfConversionResult<OdpPresentation> fromPowerPoint = powerPoint.ToOpenDocumentResult();
         Assert.DoesNotContain(fromPowerPoint.Report.Mappings, mapping => mapping.Feature == "masters-layouts");
+        Assert.False(fromPowerPoint.Report.HasLoss, string.Join(", ", fromPowerPoint.Report.Mappings
+            .Where(mapping => mapping.Status != OdfConversionMappingStatus.Converted)
+            .Select(mapping => mapping.Feature + ":" + mapping.Count)));
         OdpPresentation strictOdp = powerPoint.ToOpenDocumentResult(
             new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }).Value;
         Assert.Single(strictOdp.Slides);

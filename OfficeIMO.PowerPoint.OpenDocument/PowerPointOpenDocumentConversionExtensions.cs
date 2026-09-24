@@ -20,7 +20,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         PowerPointOpenDocumentConversionOptions effective = NormalizeOptions(options);
         OdpPresentation target = OdpPresentation.Create();
         var report = new OdfConversionReport("PPTX", "ODP");
-        target.Metadata.Title = source.BuiltinDocumentProperties.Title;
+        CopyPowerPointMetadata(source, target, report);
         target.PageWidth = OdfLength.Points(source.SlideSize.WidthPoints);
         target.PageHeight = OdfLength.Points(source.SlideSize.HeightPoints);
 
@@ -43,7 +43,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         var imageValidationBudget = new OdfImageValidationBudget();
         for (int slideIndex = 0; slideIndex < source.Slides.Count; slideIndex++) {
             PowerPointSlide sourceSlide = source.Slides[slideIndex];
-            OdpSlide targetSlide = target.AddSlide("Slide" + (slideIndex + 1).ToString(System.Globalization.CultureInfo.InvariantCulture));
+            OdpSlide targetSlide = target.AddSlide(sourceSlide.Name ??
+                "Slide" + (slideIndex + 1).ToString(System.Globalization.CultureInfo.InvariantCulture));
             targetSlide.Hidden = sourceSlide.Hidden;
             bool inheritsMasterBackground = MapPowerPointMasterAndLayout(sourcePresentation,
                 slideIndex < sourceSlideIds.Length ? sourceSlideIds[slideIndex] : null,
@@ -217,6 +218,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             "Master and layout links are retained, but inherited drawing content, placeholder geometry and indexes, and layout-specific formatting are not reconstructed.");
         AddUnsupported(report, "sections", source.GetSections().Count,
             "PowerPoint slide sections and their names are not represented in the current ODP presentation surface.");
+        AddUnsupported(report, "notes-master", CountUnmappedPowerPointNotesMaster(sourcePresentation),
+            "Authored notes-master appearance and placeholder geometry are not transferred to ODP.");
         AddAdvancedPowerPointFindings(source.InspectFeatures(), report);
         return new OdfConversionResult<OdpPresentation>(target, report).ApplyPolicy(effective.LossPolicy);
     }
@@ -233,7 +236,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         PowerPointPresentation target = PowerPointPresentation.Create();
         var report = new OdfConversionReport("ODP", "PPTX");
         CultureInfo textCaseCulture = OdfTextCultureResolver.Resolve(source.Metadata.Language);
-        target.BuiltinDocumentProperties.Title = source.Metadata.Title;
+        CopyOdpMetadata(source, target, report);
         int unsupportedMeasurements = 0;
         if (source.PageWidth.TryToPoints(out double pageWidth) && source.PageHeight.TryToPoints(out double pageHeight)) {
             target.SlideSize.SetSizePoints(pageWidth, pageHeight);
@@ -258,14 +261,12 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         var pendingInternalLinks = new List<(PowerPointTextRun Run, int SlideIndex)>();
         foreach (OdpSlide sourceSlide in source.Slides) {
             PowerPointSlide targetSlide = target.AddSlide();
+            targetSlide.Name = sourceSlide.Name;
             targetSlide.Hidden = sourceSlide.Hidden;
             var slideBackground = ReadOdpSlideBackground(source, sourceSlide);
-            if (slideBackground.Loss) unsupportedSlideBackgrounds++;
+            if (slideBackground.Loss || slideBackground.SuppressesMasterBackground) unsupportedSlideBackgrounds++;
             OdfColor? backgroundColor = slideBackground.Color;
-            bool suppressesMasterBackground = string.Equals(
-                (string?)sourceSlide.Element.Attribute(OdfNamespaces.Presentation + "background-visible"),
-                "false", StringComparison.OrdinalIgnoreCase);
-            if (suppressesMasterBackground) unsupportedSlideBackgrounds++;
+            bool suppressesMasterBackground = slideBackground.SuppressesMasterBackground;
             if (!suppressesMasterBackground && !slideBackground.Override && !backgroundColor.HasValue && !string.IsNullOrWhiteSpace(sourceSlide.MasterPageName)) {
                 backgroundColor = source.MasterPages.FirstOrDefault(master =>
                     string.Equals(master.Name, sourceSlide.MasterPageName, StringComparison.Ordinal))?.BackgroundColor;
@@ -810,6 +811,18 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
     private static void AddAdvancedPowerPointFindings(PowerPointFeatureReport source, OdfConversionReport target) {
         foreach (PowerPointFeatureFinding finding in source.PreservedFeatures.Concat(source.UnsupportedFeatures).Where(item => item.Count > 0)) {
             target.Add("source-" + Slug(finding.Name), OdfConversionMappingStatus.Unsupported, finding.Count, finding.Note);
+        }
+        // Editability in the PowerPoint package is not evidence that this
+        // converter has an ODP representation for the same feature.
+        var droppedEditableFeatures = new HashSet<string>(StringComparer.Ordinal) {
+            "Custom shows", "Classic animations", "Typed timeline actions",
+            "Comments", "VBA macros", "Transition and action sounds",
+            "Embedded OLE objects"
+        };
+        foreach (PowerPointFeatureFinding finding in source.EditableFeatures.Where(item =>
+            item.Count > 0 && droppedEditableFeatures.Contains(item.Name))) {
+            target.Add("source-" + Slug(finding.Name), OdfConversionMappingStatus.Unsupported,
+                finding.Count, "This editable PowerPoint feature is not transferred to ODP.");
         }
     }
 

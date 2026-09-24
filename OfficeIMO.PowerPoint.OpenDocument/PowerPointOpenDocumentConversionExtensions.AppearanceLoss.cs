@@ -160,19 +160,23 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             attribute.Name == OdfNamespaces.Table + "style-name" ||
             attribute.Name == OdfNamespaces.Table + "default-cell-style-name"));
 
-    private static (bool Override, bool Loss, OdfColor? Color) ReadOdpSlideBackground(
+    private static (bool Override, bool Loss, OdfColor? Color, bool SuppressesMasterBackground) ReadOdpSlideBackground(
         OdpPresentation source, OdpSlide slide) {
         string? styleName = (string?)slide.Element.Attribute(OdfNamespaces.Draw + "style-name");
-        if (styleName == null) return default;
         XElement? properties = EffectiveOdfStyleProperties(source, OdfStyleFamily.DrawingPage, styleName,
             OdfNamespaces.Style + "drawing-page-properties");
-        if (properties == null) return default;
+        bool suppressesMasterBackground = string.Equals(
+            (string?)slide.Element.Attribute(OdfNamespaces.Presentation + "background-visible"),
+            "false", StringComparison.OrdinalIgnoreCase) || string.Equals(
+            (string?)properties?.Attribute(OdfNamespaces.Presentation + "background-visible"),
+            "false", StringComparison.OrdinalIgnoreCase);
+        if (properties == null) return (false, false, null, suppressesMasterBackground);
         string? fill = (string?)properties.Attribute(OdfNamespaces.Draw + "fill");
         if (fill == null) {
             bool unsupportedInheritedProperties = properties.Attributes().Any(attribute =>
                 attribute.Name.Namespace == OdfNamespaces.Draw &&
                 attribute.Name != OdfNamespaces.Draw + "fill-color");
-            return (false, unsupportedInheritedProperties, null);
+            return (false, unsupportedInheritedProperties, null, suppressesMasterBackground);
         }
         OdfColor? color = fill == "solid" &&
             OdfColor.TryParse((string?)properties.Attribute(OdfNamespaces.Draw + "fill-color"), out OdfColor parsed)
@@ -180,7 +184,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         bool loss = fill != "none" && !color.HasValue || properties.Attributes().Any(attribute =>
             attribute.Name.Namespace == OdfNamespaces.Draw &&
             attribute.Name != OdfNamespaces.Draw + "fill" && attribute.Name != OdfNamespaces.Draw + "fill-color");
-        return (true, loss, color);
+        return (true, loss, color, suppressesMasterBackground);
     }
 
     private static XElement? EffectiveOdfStyleProperties(OdpPresentation source, OdfStyleFamily family,

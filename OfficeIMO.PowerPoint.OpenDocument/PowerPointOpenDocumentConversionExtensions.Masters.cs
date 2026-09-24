@@ -17,6 +17,33 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             .Where(xml => xml != null).Select(xml => xml!), StringComparer.Ordinal);
     });
 
+    private static readonly Lazy<string?> DefaultPowerPointNotesMasterXml = new(() => {
+        using PowerPointPresentation baseline = PowerPointPresentation.Create(new MemoryStream(),
+            new PowerPointCreateOptions());
+        return baseline.OpenXmlDocument.PresentationPart?.NotesMasterPart?.NotesMaster?.OuterXml;
+    });
+
+    private static readonly Lazy<HashSet<string>> DefaultPowerPointMasterColorMaps = new(() => {
+        using PowerPointPresentation baseline = PowerPointPresentation.Create(new MemoryStream(),
+            new PowerPointCreateOptions());
+        return new HashSet<string>(baseline.OpenXmlDocument.PresentationPart!.SlideMasterParts
+            .Select(master => master.SlideMaster?.ColorMap?.OuterXml ?? string.Empty), StringComparer.Ordinal);
+    });
+
+    private static readonly Lazy<(string Master, string Layout)> DefaultOdpMasterLayoutNames = new(() => {
+        OdpPresentation baseline = OdpPresentation.Create();
+        baseline.AddSlide("Baseline");
+        return (baseline.MasterPages[0].Name, baseline.Layouts[0].Name);
+    });
+
+    private static int CountUnmappedPowerPointNotesMaster(PresentationPart? presentation) {
+        string? sourceXml = presentation?.NotesMasterPart?.NotesMaster?.OuterXml;
+        if (sourceXml == null) return 0;
+        string? defaultXml = DefaultPowerPointNotesMasterXml.Value;
+        return defaultXml != null && string.Equals(sourceXml, defaultXml, StringComparison.Ordinal)
+            ? 0 : 1;
+    }
+
     private static bool MapPowerPointMasterAndLayout(PresentationPart? presentation, SlideId? slideId,
         bool hasSlideText,
         OdpPresentation target, OdpSlide targetSlide,
@@ -68,6 +95,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         HasDrawingContent(masterPart.SlideMaster?.CommonSlideData?.ShapeTree) ||
         HasDrawingContent(layoutPart.SlideLayout?.CommonSlideData?.ShapeTree) ||
         HasAuthoredPowerPointLayoutContent(layoutPart) ||
+        HasAuthoredPowerPointMasterColorMap(masterPart) ||
         hasSlideText && masterPart.SlideMaster?.TextStyles?.ChildElements.Any(style =>
             style.HasAttributes || style.HasChildren) == true ||
         masterPart.SlideMaster?.CommonSlideData?.Background != null &&
@@ -88,6 +116,9 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
     private static bool HasDrawingContent(P.ShapeTree? tree) => tree?.ChildElements.Any(child =>
         child is not P.NonVisualGroupShapeProperties and not P.GroupShapeProperties) == true;
 
+    private static bool HasAuthoredPowerPointMasterColorMap(SlideMasterPart masterPart) =>
+        !DefaultPowerPointMasterColorMaps.Value.Contains(masterPart.SlideMaster?.ColorMap?.OuterXml ?? string.Empty);
+
     private static int CountUnmappedUnusedPowerPointMastersAndLayouts(PresentationPart? presentation,
         IReadOnlyDictionary<SlideMasterPart, string> usedMasters,
         IReadOnlyDictionary<SlideLayoutPart, string> usedLayouts) {
@@ -96,6 +127,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         foreach (SlideMasterPart master in presentation.SlideMasterParts) {
             if (!usedMasters.ContainsKey(master) &&
                 (HasDrawingContent(master.SlideMaster?.CommonSlideData?.ShapeTree) ||
+                 HasAuthoredPowerPointMasterColorMap(master) ||
                  master.SlideMaster?.CommonSlideData?.Background != null ||
                  master.SlideMaster?.TextStyles?.ChildElements.Any(style => style.HasAttributes || style.HasChildren) == true))
                 count++;
@@ -141,7 +173,11 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             return properties.Attributes().Any(attribute => attribute.Name != draw + "fill" &&
                 attribute.Name != draw + "fill-color");
         });
-        return hasContent || hasUnsupportedBackground || masters.Count > 1 || layouts.Count > 1
+        bool hasAuthoredNames = masters.Count == 1 &&
+            !string.Equals(masters[0].Name, DefaultOdpMasterLayoutNames.Value.Master, StringComparison.Ordinal) ||
+            layouts.Count == 1 &&
+            !string.Equals(layouts[0].Name, DefaultOdpMasterLayoutNames.Value.Layout, StringComparison.Ordinal);
+        return hasContent || hasUnsupportedBackground || hasAuthoredNames || masters.Count > 1 || layouts.Count > 1
             ? masters.Count + layouts.Count
             : 0;
     }
