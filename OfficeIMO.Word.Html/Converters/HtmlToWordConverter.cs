@@ -6,6 +6,7 @@ using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using AngleSharp.Io;
 using DocumentFormat.OpenXml.Wordprocessing;
+using DocumentFormat.OpenXml;
 using OfficeIMO.Html;
 using System.Collections.Concurrent;
 using System.Net;
@@ -34,7 +35,9 @@ namespace OfficeIMO.Word.Html {
         private readonly HashSet<IElement> _processedRadioInputs = new();
         private readonly List<ICssStyleRule> _cssRules = new();
         private readonly CssParser _cssParser = new();
-        private readonly Dictionary<string, WordImage> _imageCache = new(StringComparer.OrdinalIgnoreCase);
+        // Image relationships belong to a document story (body, header, or footer).
+        // Reuse within one story only; a blip id copied into another part is invalid.
+        private readonly Dictionary<OpenXmlElement, Dictionary<string, WordImage>> _imageCache = new();
         private readonly Dictionary<IElement, double> _computedFontSizePixels = new();
         private readonly Dictionary<IElement, CssStyleMapper.CssProperties> _computedBoxStyles = new();
         private readonly Dictionary<IElement, CssStyleMapper.CssProperties> _inlineStyles = new();

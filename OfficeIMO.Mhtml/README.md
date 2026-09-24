@@ -20,6 +20,18 @@ byte[] png = archive.HtmlDocument.ToPng(renderOptions);
 archive.Save("copy.mht");
 ```
 
+For editable HTML imports, prepare an independent document with direct `img src` resources embedded from the archive:
+
+```csharp
+MhtmlImageEmbeddingResult prepared = archive.CreateEmbeddedImageDocumentResult();
+HtmlConversionDocument editable = prepared.RequireValue();
+foreach (HtmlDiagnostic diagnostic in prepared.Report.Diagnostics) {
+    Console.WriteLine($"{diagnostic.Code}: {diagnostic.Source}");
+}
+```
+
+Pass `editable` to a target adapter, such as `ToWordDocumentResult()` from `OfficeIMO.Word.Html`, and inspect that adapter's report too. Preparation never fetches network resources or changes `archive.HtmlDocument`. It applies the shared resource byte, count, and request limits; missing, rejected, and over-budget images remain as URLs with loss diagnostics. CSS backgrounds, `srcset` candidates, and linked stylesheets are outside this direct-image preparation step. A target adapter may still reject an embedded format such as WebP.
+
 `ConfigureRenderOptions` resolves `cid:` and `Content-Location` references first. Its default policy is offline and never invokes a caller resolver for missing network resources. Remote retrieval is explicit, same-origin by default, redirect-bounded, and still subject to the shared HTML count, byte, timeout, and URL policies:
 
 Chromium MHTML snapshots can include rendered web-component content in `template shadowmode` elements. Configured rendering projects that saved content and its named/default slots into a static render tree without changing the archive source. Ordinary templates remain inert. Set `ProjectSerializedShadowRoots = false` on the render options to keep these saved snapshots inert too. The result reports `HtmlRenderSerializedShadowRootApproximated`; shadow-scoped stylesheets are omitted with `HtmlRenderSerializedShadowStyleOmitted` so their rules cannot affect unrelated content. Use browser-backed output when exact shadow styling, layout, or live behavior is required.

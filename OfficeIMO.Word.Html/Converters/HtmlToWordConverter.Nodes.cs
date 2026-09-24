@@ -775,22 +775,10 @@ namespace OfficeIMO.Word.Html {
                                 currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
                                 var fmtAnchor = formatting;
                                 ApplySpanStyles(element, ref fmtAnchor);
-                                var hasBlockAnchor = HasBlockDescendant(element);
                                 WordParagraph linkParaAnchor;
-                                if (!hasBlockAnchor && element.ChildNodes.Length > 0) {
-                                    var tempParagraph = new WordParagraph(doc, newParagraph: true, newRun: false);
-                                    _suppressAutoLinksDepth++;
-                                    try {
-                                        foreach (var child in element.ChildNodes) {
-                                            ProcessNode(child, doc, section, options, tempParagraph, listStack, fmtAnchor, cell, headerFooter, headingList);
-                                        }
-                                    } finally {
-                                        _suppressAutoLinksDepth--;
-                                    }
-
-                                    var inlineContent = tempParagraph._paragraph.ChildElements
-                                        .Where(child => child is not ParagraphProperties)
-                                        .ToList();
+                                if (element.ChildNodes.Length > 0) {
+                                    var inlineContent = BuildLinkedInlineContent(element, doc, section, options,
+                                        listStack, fmtAnchor, cell, headerFooter, headingList);
                                     linkParaAnchor = inlineContent.Count > 0
                                         ? WordHyperLink.AddHyperLinkContent(currentParagraph!, inlineContent, anchor, tooltip: title ?? string.Empty)
                                         : currentParagraph!.AddHyperLink(element.TextContent, anchor);
@@ -835,22 +823,10 @@ namespace OfficeIMO.Word.Html {
                                 currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
                                 var fmtExternal = formatting;
                                 ApplySpanStyles(element, ref fmtExternal);
-                                var hasBlock = HasBlockDescendant(element);
                                 WordParagraph linkPara;
-                                if (!hasBlock && element.ChildNodes.Length > 0) {
-                                    var tempParagraph = new WordParagraph(doc, newParagraph: true, newRun: false);
-                                    _suppressAutoLinksDepth++;
-                                    try {
-                                        foreach (var child in element.ChildNodes) {
-                                            ProcessNode(child, doc, section, options, tempParagraph, listStack, fmtExternal, cell, headerFooter, headingList);
-                                        }
-                                    } finally {
-                                        _suppressAutoLinksDepth--;
-                                    }
-
-                                    var inlineContent = tempParagraph._paragraph.ChildElements
-                                        .Where(child => child is not ParagraphProperties)
-                                        .ToList();
+                                if (element.ChildNodes.Length > 0) {
+                                    var inlineContent = BuildLinkedInlineContent(element, doc, section, options,
+                                        listStack, fmtExternal, cell, headerFooter, headingList);
                                     linkPara = inlineContent.Count > 0
                                         ? WordHyperLink.AddHyperLinkContent(currentParagraph!, inlineContent, resolvedUri, tooltip: title ?? string.Empty)
                                         : currentParagraph!.AddHyperLink(element.TextContent, resolvedUri);

@@ -1,5 +1,6 @@
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
+using DocumentFormat.OpenXml;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using System.Globalization;
@@ -14,6 +15,19 @@ namespace OfficeIMO.Word.Html {
         private static readonly string[] WordPictureSourceAttributes = { "src", "data-src", "data-original", "data-original-src", "data-lazy-src" };
         private static readonly string[] WordImageLazySourceAttributes = { "data-src", "data-original", "data-original-src", "data-lazy-src" };
         private static readonly string[] WordImageSourceAttributes = { "src" };
+
+        private Dictionary<string, WordImage> GetStoryImageCache(
+            WordParagraph? paragraph, WordHeaderFooter? headerFooter, WordDocument document) {
+            OpenXmlElement story = paragraph != null ? paragraph.Location()
+                : (OpenXmlElement?)headerFooter?._header ?? (OpenXmlElement?)headerFooter?._footer
+                ?? document._wordprocessingDocument.MainDocumentPart?.Document
+                ?? throw new InvalidOperationException("The image has no document story.");
+            if (!_imageCache.TryGetValue(story, out Dictionary<string, WordImage>? cache)) {
+                cache = new Dictionary<string, WordImage>(StringComparer.OrdinalIgnoreCase);
+                _imageCache.Add(story, cache);
+            }
+            return cache;
+        }
 
         private void ProcessImage(
             IHtmlImageElement img,
@@ -70,7 +84,8 @@ namespace OfficeIMO.Word.Html {
 
             WordParagraph? paragraph = currentParagraph;
 
-            if (horizontalAlignment == null && _imageCache.TryGetValue(src, out var cached)) {
+            Dictionary<string, WordImage> storyCache = GetStoryImageCache(paragraph, headerFooter, doc);
+            if (horizontalAlignment == null && storyCache.TryGetValue(src, out var cached)) {
                 paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
                 var clonedImage = cached.Clone(paragraph);
                 ApplyImageMetadata(clonedImage, alt, title);
@@ -182,7 +197,7 @@ namespace OfficeIMO.Word.Html {
             ApplyImageMetadata(image, alt, title);
 
             if (horizontalAlignment == null) {
-                _imageCache[src] = image;
+                storyCache[src] = image;
             }
         }
 
@@ -264,7 +279,7 @@ namespace OfficeIMO.Word.Html {
                     if (paragraph.Image != null) {
                         ApplyImageMetadata(paragraph.Image, alt ?? string.Empty, title);
                     }
-                    _imageCache[src] = paragraph.Image!;
+                    GetStoryImageCache(paragraph, headerFooter, doc)[src] = paragraph.Image!;
                     reservedBytes = 0;
                 } catch (Exception ex) {
                     ReleaseImageBytes(reservedBytes, options);
@@ -1172,7 +1187,7 @@ namespace OfficeIMO.Word.Html {
             try {
                 long estimatedBytes;
                 if (dataUri.IsBase64) {
-                    if (_imageCache.ContainsKey(src)) {
+                    if (_imageCache.Values.Any(cache => cache.ContainsKey(src))) {
                         return true;
                     }
 

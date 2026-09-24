@@ -12,6 +12,8 @@ public sealed partial class MhtmlDocument {
     private readonly EmailDocument _mimeDocument;
     private readonly IReadOnlyList<MhtmlResource> _resources;
     private readonly IReadOnlyList<EmailDiagnostic> _mimeDiagnostics;
+    private readonly HtmlUrlPolicy _imageResourceUrlPolicy;
+    private readonly int? _editableSourceCharacterLimit;
 
     /// <summary>Creates an MHTML document from HTML and optional related resources.</summary>
     public MhtmlDocument(string html, IEnumerable<MhtmlResource>? resources = null,
@@ -24,7 +26,10 @@ public sealed partial class MhtmlDocument {
         Subject = NormalizeOptional(subject);
         BaseUri = ResolveBaseUri(ContentLocation, null);
         _mimeDiagnostics = BuildResourceDiagnostics(_resources, BaseUri, RootContentId, ContentLocation);
-        HtmlDocument = HtmlConversionDocument.Parse(html, PrepareHtmlOptions(htmlOptions, BaseUri, _resources));
+        HtmlConversionDocumentOptions preparedOptions = PrepareHtmlOptions(htmlOptions, BaseUri, _resources);
+        _imageResourceUrlPolicy = preparedOptions.ResourceUrlPolicy;
+        _editableSourceCharacterLimit = preparedOptions.Limits.MaxInputCharacters;
+        HtmlDocument = HtmlConversionDocument.Parse(html, preparedOptions);
         _mimeDocument = CreateMimeDocument(html, _resources, ContentLocation, RootContentId, Subject);
     }
 
@@ -62,7 +67,10 @@ public sealed partial class MhtmlDocument {
         _mimeDiagnostics = readResult.Diagnostics
             .Concat(BuildResourceDiagnostics(_resources, BaseUri, RootContentId, ContentLocation))
             .ToArray();
-        HtmlDocument = HtmlConversionDocument.Parse(html, PrepareHtmlOptions(htmlOptions, BaseUri, _resources));
+        HtmlConversionDocumentOptions preparedOptions = PrepareHtmlOptions(htmlOptions, BaseUri, _resources);
+        _imageResourceUrlPolicy = preparedOptions.ResourceUrlPolicy;
+        _editableSourceCharacterLimit = preparedOptions.Limits.MaxInputCharacters;
+        HtmlDocument = HtmlConversionDocument.Parse(html, preparedOptions);
     }
 
     private static string DecodeHtmlRootWithWebCharsetAliases(EmailBody body, string fallback) {
@@ -278,7 +286,7 @@ public sealed partial class MhtmlDocument {
     private Task<HtmlResolvedResource?> ResolveResourceAsync(HtmlRenderResourceRequest request,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        MhtmlResource? resource = FindResource(request);
+        MhtmlResource? resource = FindResource(request.Source, request.Uri);
         if (resource != null
             && request.Kind == HtmlResourceKind.Stylesheet
             && resource.HasAmbiguousMimeDecoding) {
@@ -290,13 +298,13 @@ public sealed partial class MhtmlDocument {
             : new HtmlResolvedResource(resource.EncodedContent, resource.ContentTypeWithParameters));
     }
 
-    private MhtmlResource? FindResource(HtmlRenderResourceRequest request) {
-        string source = request.Source.Trim();
+    private MhtmlResource? FindResource(string sourceValue, Uri uri) {
+        string source = sourceValue.Trim();
         int fragmentIndex = source.IndexOf('#');
         string retrievalSource = fragmentIndex >= 0 ? source.Substring(0, fragmentIndex) : source;
-        var retrievalUriBuilder = new UriBuilder(request.Uri) { Fragment = string.Empty };
+        var retrievalUriBuilder = new UriBuilder(uri) { Fragment = string.Empty };
         Uri retrievalUri = retrievalUriBuilder.Uri;
-        if (request.Uri.Scheme.Equals("cid", StringComparison.OrdinalIgnoreCase)) {
+        if (uri.Scheme.Equals("cid", StringComparison.OrdinalIgnoreCase)) {
             string contentId = Uri.UnescapeDataString(retrievalSource.Substring("cid:".Length))
                 .Trim().Trim('<', '>');
             MhtmlResource? byContentId = _resources.FirstOrDefault(resource => string.Equals(
