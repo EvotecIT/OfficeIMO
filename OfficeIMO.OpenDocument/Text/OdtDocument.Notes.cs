@@ -3,6 +3,8 @@ namespace OfficeIMO.OpenDocument;
 public sealed partial class OdtDocument {
     private NoteIndex? _noteIndex;
 
+    internal void PrepareNoteIndexForMutation() => _ = GetNoteIndex();
+
     internal void RefreshNoteIndexAfterMutation() {
         NoteIndex? previous = _noteIndex;
         _noteIndex = null;

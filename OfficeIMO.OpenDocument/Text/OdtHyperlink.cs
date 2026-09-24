@@ -17,6 +17,7 @@ public sealed class OdtHyperlink {
         get => OdfTextCodec.Read(_element);
         set {
             bool hadNotes = _element.Descendants(OdfNamespaces.Text + "note").Any();
+            if (hadNotes) _document.PrepareNoteIndexForMutation();
             OdfTextCodec.Replace(_element, value);
             if (hadNotes) _document.RefreshNoteIndexAfterMutation();
             Dirty();

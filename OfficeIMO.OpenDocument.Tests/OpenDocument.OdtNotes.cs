@@ -104,6 +104,22 @@ public sealed class OpenDocumentOdtNotesTests {
     }
 
     [Fact]
+    public void ReplacingParagraphTextAfterLoadRenumbersGeneratedCitations() {
+        OdtDocument source = OdtDocument.Create();
+        source.AddParagraph("First").AddFootnote("Removed");
+        source.AddParagraph("Second").AddFootnote("Kept");
+
+        OdtDocument loaded = OdtDocument.Load(new MemoryStream(source.ToBytes()));
+        loaded.Paragraphs[0].Text = "Replaced";
+        Assert.Equal("1", Assert.Single(loaded.Paragraphs[1].Notes).Citation);
+        loaded.AddParagraph("Third").AddFootnote("Appended");
+
+        OdtDocument reopened = OdtDocument.Load(new MemoryStream(loaded.ToBytes()));
+        Assert.Equal(new[] { "1", "2" }, reopened.Paragraphs.SelectMany(paragraph => paragraph.Notes)
+            .Select(note => note.Citation));
+    }
+
+    [Fact]
     public void NoteBodyInlineCollectionsBelongToNoteParagraphOnly() {
         OdtDocument source = OdtDocument.Create();
         OdtParagraph anchor = source.AddParagraph("Anchor");

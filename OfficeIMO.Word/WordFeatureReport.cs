@@ -344,9 +344,11 @@ namespace OfficeIMO.Word {
             Add(features, "References", "Bibliography sources", OfficeFeatureSupportLevel.Editable, Math.Max(BibliographySources.Count, bibliographyDetails.Count), null,
                 "Bibliography sources can be authored, loaded, and used by citation and bibliography fields.",
                 bibliographyDetails);
-            Add(features, "Content", "Footnotes", OfficeFeatureSupportLevel.PartiallyEditable, FootNotes.Count, null,
+            Add(features, "Content", "Footnotes", OfficeFeatureSupportLevel.PartiallyEditable,
+                Math.Max(FootNotes.Count, document.Body?.Descendants<FootnoteReference>().Count() ?? 0), null,
                 "Footnotes can be authored, inspected, and removed; advanced note numbering and cross-format workflows remain partial.");
-            Add(features, "Content", "Endnotes", OfficeFeatureSupportLevel.PartiallyEditable, EndNotes.Count, null,
+            Add(features, "Content", "Endnotes", OfficeFeatureSupportLevel.PartiallyEditable,
+                Math.Max(EndNotes.Count, document.Body?.Descendants<EndnoteReference>().Count() ?? 0), null,
                 "Endnotes can be authored, inspected, and removed; advanced note numbering and cross-format workflows remain partial.");
             Add(features, "Content", "External hyperlinks", OfficeFeatureSupportLevel.PartiallyEditable, CountExternalHyperlinks(), null,
                 "External hyperlinks can be authored and edited; the report exposes external relationships for round-trip review.",

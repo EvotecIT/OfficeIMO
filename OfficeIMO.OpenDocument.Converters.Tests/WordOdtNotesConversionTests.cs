@@ -14,6 +14,59 @@ namespace OfficeIMO.OpenDocument.Converters.Tests;
 
 public sealed class WordOdtNotesConversionTests {
     [Fact]
+    public void AdditionalFootnoteReferenceInOneRunHasExplicitLoss() {
+        using WordDocument source = WordDocument.Create();
+        source.AddParagraph("Anchor").AddFootNote("First body");
+        source.AddParagraph("Other").AddFootNote("Second body");
+        W.FootnoteReference second = source.OpenXmlDocument.MainDocumentPart!.Document!.Body!
+            .Descendants<W.FootnoteReference>().Last();
+        W.Run firstRun = source.OpenXmlDocument.MainDocumentPart.Document.Body
+            .Descendants<W.Run>().First(run => run.GetFirstChild<W.FootnoteReference>() != null);
+        firstRun.Append((W.FootnoteReference)second.CloneNode(true));
+        second.Remove();
+        Assert.Equal(2, source.InspectFeatures().Features.Single(feature => feature.Name == "Footnotes").Count);
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "footnotes" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void EmptyWordNoteBodyParagraphIsPreserved() {
+        using WordDocument source = WordDocument.Create();
+        source.AddParagraph("Anchor").AddFootNote("First paragraph");
+        W.Footnote note = source.OpenXmlDocument.MainDocumentPart!.FootnotesPart!.Footnotes!
+            .Elements<W.Footnote>().Single(item => item.Id?.Value == source.FootNotes[0].ReferenceId);
+        note.Append(new W.Paragraph());
+
+        OdtDocument converted = source.ToOpenDocument();
+        OdtNote odtNote = Assert.Single(Assert.Single(converted.Paragraphs).Notes);
+        Assert.Equal(new[] { "First paragraph", "" }, odtNote.Paragraphs.Select(paragraph => paragraph.Text));
+    }
+
+    [Fact]
+    public void DefaultOdtParagraphStyleOnNoteBodyHasExplicitLoss() {
+        OdtDocument source = OdtDocument.Create();
+        source.AddParagraph("Anchor").AddFootnote("Body");
+        XNamespace office = "urn:oasis:names:tc:opendocument:xmlns:office:1.0";
+        XNamespace style = "urn:oasis:names:tc:opendocument:xmlns:style:1.0";
+        XNamespace fo = "urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0";
+        source.Package.GetXml("styles.xml").Root!.Element(office + "styles")!.Add(
+            new XElement(style + "default-style", new XAttribute(style + "family", "paragraph"),
+                new XElement(style + "paragraph-properties", new XAttribute(fo + "text-align", "center"))));
+        source.Package.MarkXmlDirty("styles.xml");
+
+        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        using WordDocument word = conversion.Value;
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-formatting" &&
+            mapping.Status == OdfConversionMappingStatus.Approximated);
+        Assert.Throws<OdfConversionLossException>(() => source.ToWordDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
     public void WordNoteRunSemanticsAndPageBreaksAreExplicitLoss() {
         using WordDocument source = WordDocument.Create();
         source.AddParagraph("Anchor").AddFootNote("Body");

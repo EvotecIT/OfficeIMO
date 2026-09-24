@@ -75,6 +75,7 @@ public sealed partial class OdtDocument {
         ValidateCreator(creator);
         XElement source = paragraph.Element;
         if (!ReferenceEquals(source.Parent, TextBody)) throw new ArgumentException("Paragraph must be a top-level block in this document body.", nameof(paragraph));
+        PrepareNoteIndexForMutation();
         string id = NextTrackedChangeId();
         XElement region = CreateChangedRegion(id, OdfNamespaces.Text + "deletion", creator, date);
         region.Element(OdfNamespaces.Text + "deletion")!.Add(new XElement(source));
@@ -89,6 +90,7 @@ public sealed partial class OdtDocument {
     public bool AcceptTrackedChange(string id) {
         OdtTrackedChange? change = FindTrackedChange(id);
         if (change == null) return false;
+        PrepareNoteIndexForMutation();
         if (change.Kind == OdtTrackedChangeKind.Insertion) RemoveInsertionMarkers(id, removeContent: false);
         else RemoveDeletionMarker(id);
         change.Region.Remove();
@@ -102,6 +104,7 @@ public sealed partial class OdtDocument {
     public bool RejectTrackedChange(string id) {
         OdtTrackedChange? change = FindTrackedChange(id);
         if (change == null) return false;
+        PrepareNoteIndexForMutation();
         if (change.Kind == OdtTrackedChangeKind.Insertion) {
             RemoveInsertionMarkers(id, removeContent: true);
         } else {

@@ -146,7 +146,9 @@ public static partial class WordOpenDocumentConversionExtensions {
         int paragraphs = 0, headings = 0, lists = 0, tables = 0, hyperlinks = 0, externalHyperlinks = 0, images = 0, bookmarks = 0;
         int approximatedRuns = 0, approximatedBookmarkRanges = 0, unsupportedMeasurements = 0;
         int approximatedFontFamilyLists = 0, unsupportedFontFamilies = 0;
-        var notes = new NoteMappingStats();
+        var notes = new NoteMappingStats {
+            HasOdtDefaultNoteBodyFormatting = HasOdtDefaultNoteBodyFormatting(source)
+        };
         CultureInfo textCaseCulture = OdfTextCultureResolver.Resolve(source.Metadata.Language);
         int approximatedTextDecorations = CountNonSolidTextDecorations(source);
         int unsupportedWritingModes = CountUnsupportedWritingModes(source);

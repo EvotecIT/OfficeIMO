@@ -11,6 +11,14 @@ public static partial class WordOpenDocumentConversionExtensions {
             W.Body? body = source?.OpenXmlDocument.MainDocumentPart?.Document?.Body;
             if (body != null) {
                 foreach (W.Run run in body.Descendants<W.Run>()) {
+                    // A run may carry more than one reference of the same kind. The
+                    // inspection snapshot currently exposes only its first one.
+                    int extraFootnotes = Math.Max(0, run.Elements<W.FootnoteReference>().Count() - 1);
+                    int extraEndnotes = Math.Max(0, run.Elements<W.EndnoteReference>().Count() - 1);
+                    UnsupportedFootnotes += extraFootnotes;
+                    UnsupportedEndnotes += extraEndnotes;
+                    SeenWordFootnotes += extraFootnotes;
+                    SeenWordEndnotes += extraEndnotes;
                     foreach (W.FootnoteReference reference in run.Elements<W.FootnoteReference>()) {
                         if (reference.Id != null) AddAnchor(FootnoteAnchors, reference.Id.Value, run);
                     }
@@ -71,6 +79,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         internal int ApproximatedSeparators;
         internal int UnsupportedHeaderFooterNotes;
         internal int UnsupportedOdtNoteConfigurations;
+        internal bool HasOdtDefaultNoteBodyFormatting;
         internal int CurrentSectionIndex;
         internal WordDocument? WordSource;
         internal readonly Dictionary<int, int> FootnotesBySection = new Dictionary<int, int>();
@@ -353,8 +362,19 @@ public static partial class WordOpenDocumentConversionExtensions {
             if (source.Citation != notes.ConvertedEndnotes.ToString(System.Globalization.CultureInfo.InvariantCulture))
                 notes.ApproximatedCitations++;
         }
-        if (paragraphs.Count != 1 || paragraphs.Any(paragraph => paragraph.StyleName != null ||
+        if (notes.HasOdtDefaultNoteBodyFormatting || paragraphs.Count != 1 || paragraphs.Any(paragraph => paragraph.StyleName != null ||
             paragraph.InlineNodes.Any(node => node.Kind != OdtInlineNodeKind.Text))) notes.ApproximatedBodies++;
+    }
+
+    private static bool HasOdtDefaultNoteBodyFormatting(OdtDocument source) {
+        if (!source.Package.ContainsEntry("styles.xml")) return false;
+        System.Xml.Linq.XNamespace style = "urn:oasis:names:tc:opendocument:xmlns:style:1.0";
+        return source.Package.GetXml("styles.xml").Descendants(style + "default-style")
+            .Where(element => (string?)element.Attribute(style + "family") is "paragraph" or "text")
+            .SelectMany(element => element.Elements())
+            .Any(element => (element.Name == style + "paragraph-properties" ||
+                             element.Name == style + "text-properties") &&
+                            (element.HasAttributes || element.HasElements));
     }
 
     private static void CountUnsupported(OdtNoteKind kind, NoteMappingStats notes) {
@@ -371,9 +391,9 @@ public static partial class WordOpenDocumentConversionExtensions {
         AddCount(report, "footnotes", notes.ConvertedFootnotes);
         AddCount(report, "endnotes", notes.ConvertedEndnotes);
         if (notes.UnsupportedFootnotes > 0) report.Add("footnotes", OdfConversionMappingStatus.Unsupported,
-            notes.UnsupportedFootnotes, "Note references without a supported body or class were omitted.");
+            notes.UnsupportedFootnotes, "Note references with unsupported bodies, classes, or multiple references in one run were omitted.");
         if (notes.UnsupportedEndnotes > 0) report.Add("endnotes", OdfConversionMappingStatus.Unsupported,
-            notes.UnsupportedEndnotes, "Note references without a supported body were omitted.");
+            notes.UnsupportedEndnotes, "Note references with unsupported bodies or multiple references in one run were omitted.");
         if (notes.ApproximatedBodies > 0) report.Add("note-body-formatting", OdfConversionMappingStatus.Approximated,
             notes.ApproximatedBodies, "Note text was retained, but some note formatting or paragraph structure was flattened.");
         if (notes.UnsupportedBodyContent > 0) report.Add("note-body-content", OdfConversionMappingStatus.Unsupported,
