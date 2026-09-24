@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadPage {
@@ -6,17 +8,20 @@ public sealed partial class PdfReadPage {
         out IReadOnlyList<double> quadPoints,
         out IReadOnlyList<double> lineCoordinates,
         out IReadOnlyList<double> vertices,
-        out IReadOnlyList<IReadOnlyList<double>> inkList) {
-        quadPoints = TryReadEvenNumberArray(annotation, "QuadPoints", minimumCount: 8, requiredMultiple: 8) ?? Array.Empty<double>();
-        lineCoordinates = TryReadEvenNumberArray(annotation, "L", minimumCount: 4, requiredMultiple: 4) ?? Array.Empty<double>();
-        vertices = TryReadEvenNumberArray(annotation, "Vertices", minimumCount: 4, requiredMultiple: 2) ?? Array.Empty<double>();
-        System.Collections.ObjectModel.ReadOnlyCollection<IReadOnlyList<double>>? parsedInkList = TryReadInkList(annotation);
+        out IReadOnlyList<IReadOnlyList<double>> inkList,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        quadPoints = TryReadEvenNumberArray(annotation, "QuadPoints", minimumCount: 8, requiredMultiple: 8, cancellationToken) ?? Array.Empty<double>();
+        lineCoordinates = TryReadEvenNumberArray(annotation, "L", minimumCount: 4, requiredMultiple: 4, cancellationToken) ?? Array.Empty<double>();
+        vertices = TryReadEvenNumberArray(annotation, "Vertices", minimumCount: 4, requiredMultiple: 2, cancellationToken) ?? Array.Empty<double>();
+        System.Collections.ObjectModel.ReadOnlyCollection<IReadOnlyList<double>>? parsedInkList = TryReadInkList(annotation, cancellationToken);
         inkList = parsedInkList != null
             ? parsedInkList
             : Array.Empty<IReadOnlyList<double>>();
     }
 
-    private double[]? TryReadEvenNumberArray(PdfDictionary dictionary, string key, int minimumCount, int requiredMultiple) {
+    private double[]? TryReadEvenNumberArray(PdfDictionary dictionary, string key, int minimumCount, int requiredMultiple, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         PdfArray? array = ResolveArray(dictionary.Items.TryGetValue(key, out PdfObject? value) ? value : null);
         if (array == null ||
             array.Items.Count < minimumCount ||
@@ -26,6 +31,7 @@ public sealed partial class PdfReadPage {
 
         var values = new double[array.Items.Count];
         for (int i = 0; i < array.Items.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (ResolveObject(array.Items[i]) is not PdfNumber number ||
                 !IsFinite(number.Value)) {
                 return null;
@@ -37,7 +43,8 @@ public sealed partial class PdfReadPage {
         return values;
     }
 
-    private System.Collections.ObjectModel.ReadOnlyCollection<IReadOnlyList<double>>? TryReadInkList(PdfDictionary annotation) {
+    private System.Collections.ObjectModel.ReadOnlyCollection<IReadOnlyList<double>>? TryReadInkList(PdfDictionary annotation, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         PdfArray? inkList = ResolveArray(annotation.Items.TryGetValue("InkList", out PdfObject? inkListObject) ? inkListObject : null);
         if (inkList == null || inkList.Items.Count == 0) {
             return null;
@@ -45,6 +52,7 @@ public sealed partial class PdfReadPage {
 
         var paths = new List<IReadOnlyList<double>>();
         for (int i = 0; i < inkList.Items.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfArray? path = ResolveArray(inkList.Items[i]);
             if (path == null ||
                 path.Items.Count < 4 ||
@@ -54,6 +62,7 @@ public sealed partial class PdfReadPage {
 
             var coordinates = new double[path.Items.Count];
             for (int coordinateIndex = 0; coordinateIndex < path.Items.Count; coordinateIndex++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (ResolveObject(path.Items[coordinateIndex]) is not PdfNumber coordinate ||
                     !IsFinite(coordinate.Value)) {
                     return null;

@@ -98,6 +98,7 @@ internal static partial class PdfPageExtractor {
                         break;
                     case PdfArray array:
                         for (int index = array.Items.Count - 1; index >= 0; index--) {
+                            _cancellationToken.ThrowIfCancellationRequested();
                             pending.Push(new TraversalItem(array.Items[index], isPageObject: false, pageOverrides: null));
                         }
 
@@ -127,16 +128,23 @@ internal static partial class PdfPageExtractor {
             bool skipPageParent,
             Dictionary<string, PdfObject>? pageOverrides,
             bool skipStreamLength) {
-            _reverseEntries.AddRange(entries);
-            for (int index = _reverseEntries.Count - 1; index >= 0; index--) {
-                KeyValuePair<string, PdfObject> entry = _reverseEntries[index];
-                if (skipPageParent &&
-                    (string.Equals(entry.Key, "Parent", StringComparison.Ordinal) ||
-                    (pageOverrides is not null && pageOverrides.ContainsKey(entry.Key)))) continue;
-                if (skipStreamLength && string.Equals(entry.Key, "Length", StringComparison.Ordinal)) continue;
-                pending.Push(new TraversalItem(entry.Value, isPageObject: false, pageOverrides: null));
+            try {
+                foreach (KeyValuePair<string, PdfObject> entry in entries) {
+                    _cancellationToken.ThrowIfCancellationRequested();
+                    _reverseEntries.Add(entry);
+                }
+                for (int index = _reverseEntries.Count - 1; index >= 0; index--) {
+                    _cancellationToken.ThrowIfCancellationRequested();
+                    KeyValuePair<string, PdfObject> entry = _reverseEntries[index];
+                    if (skipPageParent &&
+                        (string.Equals(entry.Key, "Parent", StringComparison.Ordinal) ||
+                        (pageOverrides is not null && pageOverrides.ContainsKey(entry.Key)))) continue;
+                    if (skipStreamLength && string.Equals(entry.Key, "Length", StringComparison.Ordinal)) continue;
+                    pending.Push(new TraversalItem(entry.Value, isPageObject: false, pageOverrides: null));
+                }
+            } finally {
+                _reverseEntries.Clear();
             }
-            _reverseEntries.Clear();
         }
     
         private void MaterializeInheritedPageValues(int pageObjectNumber, PdfDictionary pageDictionary) {

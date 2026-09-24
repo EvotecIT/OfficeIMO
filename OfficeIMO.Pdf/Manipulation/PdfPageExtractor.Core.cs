@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
@@ -12,14 +13,22 @@ internal static partial class PdfPageExtractor {
         CatalogRewriteState? catalogState = null,
         PdfFileVersion fileVersion = PdfFileVersion.Pdf14,
         long? maximumOutputBytes = null,
-        Action<IReadOnlyDictionary<int, int>>? captureObjectNumbers = null) {
+        Action<IReadOnlyDictionary<int, int>>? captureObjectNumbers = null,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (maximumOutputBytes <= 0L) throw new ArgumentOutOfRangeException(nameof(maximumOutputBytes));
         catalogState ??= CatalogRewriteState.Empty;
-        var copiedPageObjectIds = new HashSet<int>(pageObjectNumbers);
-        catalogState = PruneCatalogStateForPages(sourceObjects, catalogState, copiedPageObjectIds, pageObjectNumbers);
-        pageOverrides = BuildPageOverridesWithFilteredDestinationLinks(sourceObjects, pageObjectNumbers, pageOverrides, catalogState, copiedPageObjectIds);
+        var copiedPageObjectIds = new HashSet<int>();
+        foreach (int pageObjectNumber in pageObjectNumbers) {
+            cancellationToken.ThrowIfCancellationRequested();
+            copiedPageObjectIds.Add(pageObjectNumber);
+        }
+        catalogState = PruneCatalogStateForPages(sourceObjects, catalogState, copiedPageObjectIds, pageObjectNumbers,
+            cancellationToken: cancellationToken);
+        pageOverrides = BuildPageOverridesWithFilteredDestinationLinks(sourceObjects, pageObjectNumbers, pageOverrides,
+            catalogState, copiedPageObjectIds, cancellationToken);
     
-        var collector = new ObjectCollector(sourceObjects, pageOverrides);
+        var collector = new ObjectCollector(sourceObjects, pageOverrides, cancellationToken);
         foreach (int pageObjectNumber in pageObjectNumbers) {
             collector.CollectPage(pageObjectNumber);
         }
@@ -43,6 +52,7 @@ internal static partial class PdfPageExtractor {
         int numberMapCapacity = GetBoundedExtractionCollectionCount(sourceIds.Count, extraObjects.Length);
         var numberMap = new Dictionary<int, int>(numberMapCapacity);
         for (int i = 0; i < sourceIds.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             numberMap[sourceIds[i]] = i + 1;
         }
     
@@ -59,6 +69,7 @@ internal static partial class PdfPageExtractor {
         var seenPages = PdfCollectionSizing.CreateHashSet<int>(pageObjectNumbers.Length, pageObjectNumbers.Length);
         var outputPageObjectIds = new int[pageObjectNumbers.Length];
         for (int i = 0; i < pageObjectNumbers.Length; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             int pageObjectNumber = pageObjectNumbers[i];
             if (seenPages.Add(pageObjectNumber)) {
                 outputPageObjectIds[i] = numberMap[pageObjectNumber];
@@ -70,21 +81,23 @@ internal static partial class PdfPageExtractor {
             Dictionary<string, PdfObject>? sourcePageOverrides = pageOverrides is not null && pageOverrides.TryGetValue(pageObjectNumber, out var overrides)
                 ? overrides
                 : null;
-            var clonedAnnotationState = BuildClonedAnnotationState(sourceObjects, pageObjectNumber, sourcePageOverrides, ref nextObjectId);
+            var clonedAnnotationState = BuildClonedAnnotationState(sourceObjects, pageObjectNumber, sourcePageOverrides, ref nextObjectId, cancellationToken);
             clonedPages.Add(new ClonedPageObject(pageObjectNumber, clonedPageObjectId, clonedAnnotationState.PageOverrides, clonedAnnotationState.AnnotationObjectMap));
         }
     
         int pagesId = nextObjectId++;
         int catalogId = nextObjectId++;
         int infoId = nextObjectId;
-        var context = new SerializationContext(numberMap, pagesId, collector.MaterializedPageValues, sourceObjects, pageOverrides);
-        int serializedObjectCapacity = GetSerializedObjectCapacity(sourceIds.Count, extraObjects.Length, clonedPages);
+        var context = new SerializationContext(numberMap, pagesId, collector.MaterializedPageValues, sourceObjects, pageOverrides,
+            cancellationToken: cancellationToken);
+        int serializedObjectCapacity = GetSerializedObjectCapacity(sourceIds.Count, extraObjects.Length, clonedPages, cancellationToken);
         var objects = new List<PdfSerializedObject>(serializedObjectCapacity);
         long serializedObjectBytes = 0L;
         bool enforceOutputLimit = maximumOutputBytes.HasValue;
         long objectBytesLimit = maximumOutputBytes ?? long.MaxValue;
     
         foreach (int sourceId in sourceIds) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!sourceObjects.TryGetValue(sourceId, out var sourceObject)) {
                 throw new InvalidOperationException("PDF object " + sourceId.ToString(CultureInfo.InvariantCulture) + " was referenced but not found.");
             }
@@ -101,13 +114,15 @@ internal static partial class PdfPageExtractor {
                     objectBytesLimit - serializedObjectBytes - (ReferenceEquals(sizeCheckValue, sourceObject.Value) ? 0L : 64L));
             }
             PdfSerializedObject serializedObject = sourceObject.Value is PdfDictionary dictionary && collector.PageObjectIds.Contains(sourceId)
-                ? PdfSerializedObject.FromBytes(WrapObject(newId, SerializePageDictionary(dictionary, sourceId, context)))
+                ? PdfSerializedObject.FromBytes(PdfObjectBytes.WrapIndirectObjectCancellable(
+                    newId, SerializePageDictionary(dictionary, sourceId, context), cancellationToken))
                 : SerializeIndirectObjectForAssembly(newId, sourceObject.Value, context);
 
             AddBoundedObject(objects, serializedObject, objectBytesLimit, ref serializedObjectBytes);
         }
     
         foreach (var extraObject in extraObjects) {
+            cancellationToken.ThrowIfCancellationRequested();
             int newId = numberMap[extraObject.PseudoObjectNumber];
             if (enforceOutputLimit) {
                 EnsureSerializedIndirectObjectWithinLimit(
@@ -121,15 +136,20 @@ internal static partial class PdfPageExtractor {
         }
     
         foreach (var clonedPage in clonedPages) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!sourceObjects.TryGetValue(clonedPage.SourcePageObjectNumber, out var sourceObject) ||
                 sourceObject.Value is not PdfDictionary dictionary) {
                 throw new InvalidOperationException("PDF page object " + clonedPage.SourcePageObjectNumber.ToString(CultureInfo.InvariantCulture) + " was referenced but not found.");
             }
     
-            var clonedNumberMap = new Dictionary<int, int>(numberMap) {
-                [clonedPage.SourcePageObjectNumber] = clonedPage.OutputPageObjectNumber
-            };
+            var clonedNumberMap = new Dictionary<int, int>(numberMap.Count);
+            foreach (KeyValuePair<int, int> entry in numberMap) {
+                cancellationToken.ThrowIfCancellationRequested();
+                clonedNumberMap.Add(entry.Key, entry.Value);
+            }
+            clonedNumberMap[clonedPage.SourcePageObjectNumber] = clonedPage.OutputPageObjectNumber;
             foreach (var annotation in clonedPage.AnnotationObjectMap) {
+                cancellationToken.ThrowIfCancellationRequested();
                 clonedNumberMap[annotation.Key] = annotation.Value;
             }
     
@@ -138,7 +158,8 @@ internal static partial class PdfPageExtractor {
                 : new Dictionary<int, Dictionary<string, PdfObject>> {
                     [clonedPage.SourcePageObjectNumber] = clonedPage.PageOverrides
             };
-            var clonedContext = new SerializationContext(clonedNumberMap, pagesId, collector.MaterializedPageValues, sourceObjects, clonedPageOverrides);
+            var clonedContext = new SerializationContext(clonedNumberMap, pagesId, collector.MaterializedPageValues, sourceObjects, clonedPageOverrides,
+                cancellationToken: cancellationToken);
             if (enforceOutputLimit) {
                 PdfDictionary clonedSizeCheckDictionary = BuildPageDictionaryForSizeCheck(dictionary, clonedPage.SourcePageObjectNumber, clonedContext);
                 EnsureSerializedIndirectObjectWithinLimit(
@@ -147,12 +168,13 @@ internal static partial class PdfPageExtractor {
                     clonedPage.OutputPageObjectNumber,
                     objectBytesLimit - serializedObjectBytes - 64L);
             }
-            PdfSerializedObject serializedPage = PdfSerializedObject.FromBytes(WrapObject(
+            PdfSerializedObject serializedPage = PdfSerializedObject.FromBytes(PdfObjectBytes.WrapIndirectObjectCancellable(
                 clonedPage.OutputPageObjectNumber,
-                SerializePageDictionary(dictionary, clonedPage.SourcePageObjectNumber, clonedContext)));
+                SerializePageDictionary(dictionary, clonedPage.SourcePageObjectNumber, clonedContext), cancellationToken));
             AddBoundedObject(objects, serializedPage, objectBytesLimit, ref serializedObjectBytes);
     
             foreach (var annotation in clonedPage.AnnotationObjectMap) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (!sourceObjects.TryGetValue(annotation.Key, out var annotationObject)) {
                     throw new InvalidOperationException("PDF annotation object " + annotation.Key.ToString(CultureInfo.InvariantCulture) + " was referenced but not found.");
                 }
@@ -169,13 +191,18 @@ internal static partial class PdfPageExtractor {
             }
         }
     
-        AddBoundedObject(objects, PdfSerializedObject.FromBytes(WrapObject(pagesId, PdfEncoding.Latin1GetBytes(PdfPageTreeBuilder.BuildPagesDictionary(outputPageObjectIds)))), objectBytesLimit, ref serializedObjectBytes);
-        AddBoundedObject(objects, PdfSerializedObject.FromBytes(WrapObject(catalogId, PdfEncoding.Latin1GetBytes(BuildCatalogDictionary(pagesId, catalogState, context)))), objectBytesLimit, ref serializedObjectBytes);
-        AddBoundedObject(objects, PdfSerializedObject.FromBytes(WrapObject(infoId, PdfEncoding.Latin1GetBytes(BuildInfoDictionary(metadata)))), objectBytesLimit, ref serializedObjectBytes);
+        AddBoundedObject(objects, PdfSerializedObject.FromBytes(PdfObjectBytes.WrapIndirectObjectCancellable(
+            pagesId, PdfPageTreeBuilder.BuildPagesDictionaryBytes(outputPageObjectIds, cancellationToken), cancellationToken)), objectBytesLimit, ref serializedObjectBytes);
+        AddBoundedObject(objects, PdfSerializedObject.FromBytes(PdfObjectBytes.WrapIndirectObjectCancellable(
+            catalogId, BuildCatalogDictionaryBytes(pagesId, catalogState, context), cancellationToken)), objectBytesLimit, ref serializedObjectBytes);
+        AddBoundedObject(objects, PdfSerializedObject.FromBytes(PdfObjectBytes.WrapIndirectObjectCancellable(
+            infoId, BuildInfoDictionaryBytesCancellable(metadata, cancellationToken), cancellationToken)),
+            objectBytesLimit, ref serializedObjectBytes);
     
         byte[] result = maximumOutputBytes.HasValue
-            ? AssembleBounded(objects, catalogId, infoId, fileVersion, maximumOutputBytes.Value)
-            : Assemble(objects, catalogId, infoId, fileVersion);
+            ? AssembleBounded(objects, catalogId, infoId, fileVersion, maximumOutputBytes.Value, cancellationToken)
+            : Assemble(objects, catalogId, infoId, fileVersion, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         captureObjectNumbers?.Invoke(numberMap);
         return result;
     }
@@ -183,9 +210,11 @@ internal static partial class PdfPageExtractor {
     private static int GetSerializedObjectCapacity(
         int sourceObjectCount,
         int additionalObjectCount,
-        IReadOnlyList<ClonedPageObject> clonedPages) {
+        IReadOnlyList<ClonedPageObject> clonedPages,
+        CancellationToken cancellationToken) {
         long total = (long)sourceObjectCount + additionalObjectCount + clonedPages.Count + 3L;
         for (int index = 0; index < clonedPages.Count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
             total += clonedPages[index].AnnotationObjectMap.Count;
         }
         return GetBoundedExtractionCollectionCount(total);
@@ -218,8 +247,11 @@ internal static partial class PdfPageExtractor {
         int catalogId,
         int infoId,
         PdfFileVersion fileVersion,
-        long maximumOutputBytes) {
-        long assembledLength = PdfFileAssembler.GetAssembledLength(objects, catalogId, infoId, fileVersion);
+        long maximumOutputBytes,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        long assembledLength = PdfFileAssembler.GetAssembledLength(objects, catalogId, infoId, fileVersion,
+            cancellationToken: cancellationToken);
         if (assembledLength > maximumOutputBytes) {
             throw new InvalidDataException("The extracted PDF exceeds the configured output limit.");
         }
@@ -236,7 +268,8 @@ internal static partial class PdfPageExtractor {
             objects,
             catalogId,
             infoId,
-            fileVersion);
+            fileVersion,
+            cancellationToken: cancellationToken);
         boundedOutput.Flush();
         if (output.Length > int.MaxValue) {
             throw new InvalidDataException("The extracted PDF exceeds the supported in-memory result size.");
@@ -245,6 +278,7 @@ internal static partial class PdfPageExtractor {
         output.Position = 0L;
         int read = 0;
         while (read < bytes.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
             int count = output.Read(bytes, read, bytes.Length - read);
             if (count == 0) throw new EndOfStreamException("The temporary extracted PDF ended unexpectedly.");
             read += count;
@@ -257,7 +291,9 @@ internal static partial class PdfPageExtractor {
         Dictionary<int, PdfIndirectObject> sourceObjects,
         int pageObjectNumber,
         Dictionary<string, PdfObject>? pageOverrides,
-        ref int nextObjectId) {
+        ref int nextObjectId,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         PdfObject? annotationsObject = pageOverrides is not null && pageOverrides.TryGetValue("Annots", out var overrideAnnotations)
             ? overrideAnnotations
             : null;
@@ -280,6 +316,7 @@ internal static partial class PdfPageExtractor {
         bool hasClonedIndirectAnnotation = false;
     
         foreach (var annotation in annotations.Items) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (annotation is PdfReference annotationReference &&
                 PdfObjectLookup.TryGet(sourceObjects, annotationReference, out _)) {
                 if (!annotationObjectMap.TryGetValue(annotationReference.ObjectNumber, out int clonedAnnotationObjectNumber)) {
@@ -299,9 +336,13 @@ internal static partial class PdfPageExtractor {
             return ClonedAnnotationState.Empty;
         }
 
-        var clonedPageOverrides = pageOverrides is null
-            ? new Dictionary<string, PdfObject>(StringComparer.Ordinal)
-            : new Dictionary<string, PdfObject>(pageOverrides, StringComparer.Ordinal);
+        var clonedPageOverrides = new Dictionary<string, PdfObject>(StringComparer.Ordinal);
+        if (pageOverrides is not null) {
+            foreach (KeyValuePair<string, PdfObject> entry in pageOverrides) {
+                cancellationToken.ThrowIfCancellationRequested();
+                clonedPageOverrides.Add(entry.Key, entry.Value);
+            }
+        }
         clonedPageOverrides["Annots"] = clonedAnnotations;
 
         return new ClonedAnnotationState(
@@ -309,8 +350,9 @@ internal static partial class PdfPageExtractor {
             annotationObjectMap);
     }
     
-    private static void ValidatePageNumbers(int[] pageNumbers, int pageCount, string paramName) {
+    private static void ValidatePageNumbers(int[] pageNumbers, int pageCount, string paramName, CancellationToken cancellationToken) {
         for (int i = 0; i < pageNumbers.Length; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             int pageNumber = pageNumbers[i];
             if (pageNumber < 1 || pageNumber > pageCount) {
                 throw new ArgumentOutOfRangeException(paramName, "Page number " + pageNumber.ToString(CultureInfo.InvariantCulture) + " is outside the document page range 1-" + pageCount.ToString(CultureInfo.InvariantCulture) + ".");
@@ -318,8 +360,9 @@ internal static partial class PdfPageExtractor {
         }
     }
     
-    private static void ValidatePageRanges(PdfPageRange[] ranges, int pageCount, string paramName) {
+    private static void ValidatePageRanges(PdfPageRange[] ranges, int pageCount, string paramName, CancellationToken cancellationToken = default) {
         for (int i = 0; i < ranges.Length; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             var range = ranges[i];
             if (range.FirstPage < 1) {
                 throw new ArgumentOutOfRangeException(paramName, "Page range first page must be 1 or greater.");

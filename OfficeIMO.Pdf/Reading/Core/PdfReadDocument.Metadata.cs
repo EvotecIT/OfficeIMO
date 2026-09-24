@@ -19,9 +19,9 @@ public sealed partial class PdfReadDocument {
         return sb.ToString();
     }
 
-    private PdfMetadata ExtractMetadata() {
+    private PdfMetadata ExtractMetadata(System.Threading.CancellationToken cancellationToken = default) {
         // Trailer has /Info N G R when present.
-        if (!PdfSyntax.TryGetTrailerReference(_trailerRaw, "Info", _options.Limits, out PdfReference infoReference)) {
+        if (!PdfSyntax.TryGetTrailerReference(_trailerRaw, "Info", _options.Limits, out PdfReference infoReference, cancellationToken)) {
             return new PdfMetadata();
         }
         if (!PdfObjectLookup.TryGet(_objects, infoReference, out var infoObj) ||

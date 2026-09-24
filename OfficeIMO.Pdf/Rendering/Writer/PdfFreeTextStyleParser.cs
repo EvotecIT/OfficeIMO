@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Net;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
@@ -73,80 +74,130 @@ internal static class PdfFreeTextStyleParser {
     private static readonly char[] DeclarationSeparators = { ';' };
     private static readonly char[] RgbSeparators = { ',' };
 
-    public static PdfFreeTextDefaultStyle ParseDefaultStyle(string? defaultStyle) {
-        if (string.IsNullOrWhiteSpace(defaultStyle)) {
+    public static PdfFreeTextDefaultStyle ParseDefaultStyle(string? defaultStyle, CancellationToken cancellationToken = default) {
+        if (Guard.IsNullOrWhiteSpaceCancellable(defaultStyle, cancellationToken)) {
             return new PdfFreeTextDefaultStyle(null, null, null);
         }
 
         double? fontSize = null;
         PdfColor? textColor = null;
         PdfAlign? textAlign = null;
-        string[] declarations = defaultStyle!.Split(DeclarationSeparators, StringSplitOptions.RemoveEmptyEntries);
-        for (int i = 0; i < declarations.Length; i++) {
-            string declaration = declarations[i];
-            int separator = declaration.IndexOf(':');
-            if (separator <= 0 || separator >= declaration.Length - 1) {
-                continue;
+        for (int start = 0; start < defaultStyle!.Length;) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int end = start;
+            int separator = -1;
+            while (end < defaultStyle.Length && defaultStyle[end] != ';') {
+                if ((end & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                if (separator < 0 && defaultStyle[end] == ':') separator = end;
+                end++;
             }
-
-            string property = declaration.Substring(0, separator).Trim();
-            string value = declaration.Substring(separator + 1).Trim();
-            if (property.Length == 0 || value.Length == 0) {
-                continue;
+            if (separator > start && separator < end - 1) {
+                int propertyStart = start;
+                int propertyEnd = separator;
+                int valueStart = separator + 1;
+                int valueEnd = end;
+                TrimCssRange(defaultStyle, ref propertyStart, ref propertyEnd, cancellationToken);
+                TrimCssRange(defaultStyle, ref valueStart, ref valueEnd, cancellationToken);
+                if (propertyEnd > propertyStart && valueEnd > valueStart) {
+                    int propertyLength = propertyEnd - propertyStart;
+                    if ((MatchesCssProperty(defaultStyle, propertyStart, propertyLength, "font-size") ||
+                         MatchesCssProperty(defaultStyle, propertyStart, propertyLength, "font")) &&
+                        TryReadCssFontSizeCancellable(defaultStyle, valueStart, valueEnd, cancellationToken, out double parsedFontSize)) {
+                        fontSize = parsedFontSize;
+                    } else if (valueEnd - valueStart <= 4096) {
+                        string value = PdfEncoding.StringSliceCancellable(defaultStyle, valueStart, valueEnd - valueStart, cancellationToken);
+                        if (MatchesCssProperty(defaultStyle, propertyStart, propertyLength, "color") &&
+                            TryReadCssColor(value, out PdfColor parsedColor)) {
+                            textColor = parsedColor;
+                        } else if (MatchesCssProperty(defaultStyle, propertyStart, propertyLength, "text-align") &&
+                                   TryReadCssTextAlign(value, out PdfAlign parsedAlign)) {
+                            textAlign = parsedAlign;
+                        }
+                    }
+                }
             }
-
-            if (string.Equals(property, "font-size", StringComparison.OrdinalIgnoreCase) &&
-                TryReadCssFontSize(value, out double parsedFontSize)) {
-                fontSize = parsedFontSize;
-                continue;
-            }
-
-            if (string.Equals(property, "font", StringComparison.OrdinalIgnoreCase) &&
-                TryReadCssFontSize(value, out parsedFontSize)) {
-                fontSize = parsedFontSize;
-                continue;
-            }
-
-            if (string.Equals(property, "color", StringComparison.OrdinalIgnoreCase) &&
-                TryReadCssColor(value, out PdfColor parsedColor)) {
-                textColor = parsedColor;
-                continue;
-            }
-
-            if (string.Equals(property, "text-align", StringComparison.OrdinalIgnoreCase) &&
-                TryReadCssTextAlign(value, out PdfAlign parsedAlign)) {
-                textAlign = parsedAlign;
-            }
+            if (end == defaultStyle.Length) break;
+            start = end + 1;
         }
 
         return new PdfFreeTextDefaultStyle(fontSize, textColor, textAlign);
     }
 
-    public static string? ExtractPlainText(string? richContents) {
-        if (string.IsNullOrWhiteSpace(richContents)) {
+    private static void TrimCssRange(string source, ref int start, ref int end, CancellationToken cancellationToken) {
+        while (start < end && char.IsWhiteSpace(source[start])) {
+            if ((start & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            start++;
+        }
+        while (end > start && char.IsWhiteSpace(source[end - 1])) {
+            if ((end & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            end--;
+        }
+    }
+
+    private static bool MatchesCssProperty(string source, int start, int length, string property) =>
+        length == property.Length && string.Compare(source, start, property, 0, length, StringComparison.OrdinalIgnoreCase) == 0;
+
+    private static bool TryReadCssFontSizeCancellable(string source, int start, int end, CancellationToken cancellationToken, out double fontSize) {
+        fontSize = 0D;
+        for (int index = start; index < end; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (!char.IsDigit(source[index]) && source[index] != '.') continue;
+            int numberStart = index;
+            index++;
+            while (index < end && (char.IsDigit(source[index]) || source[index] == '.')) {
+                if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                index++;
+            }
+            int numberLength = index - numberStart;
+            if (numberLength <= 4096) {
+                string number = PdfEncoding.StringSliceCancellable(source, numberStart, numberLength, cancellationToken);
+                if (double.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed) &&
+                    parsed > 0D && !double.IsNaN(parsed) && !double.IsInfinity(parsed)) {
+                    fontSize = parsed;
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public static string? ExtractPlainText(string? richContents, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (string.IsNullOrEmpty(richContents)) {
             return null;
         }
 
         var builder = new System.Text.StringBuilder(richContents!.Length);
+        bool noMoreTags = false;
         for (int i = 0; i < richContents.Length; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             char current = richContents[i];
-            if (current != '<') {
+            if (current != '<' || noMoreTags) {
                 builder.Append(current);
                 continue;
             }
 
-            int tagEnd = richContents.IndexOf('>', i + 1);
+            int tagEnd = -1;
+            for (int next = i + 1; next < richContents.Length; next++) {
+                if ((next & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                if (richContents[next] == '>') {
+                    tagEnd = next;
+                    break;
+                }
+            }
             if (tagEnd < 0) {
+                noMoreTags = true;
                 builder.Append(current);
                 continue;
             }
 
-            AppendLineBreakForTag(builder, richContents, i + 1, tagEnd);
+            AppendLineBreakForTag(builder, richContents, i + 1, tagEnd, cancellationToken);
             i = tagEnd;
         }
 
-        string decoded = WebUtility.HtmlDecode(builder.ToString());
-        string normalized = NormalizeExtractedText(decoded);
+        cancellationToken.ThrowIfCancellationRequested();
+        var decoded = DecodeEntitiesCancellable(MaterializeText(builder, 0, builder.Length, cancellationToken), cancellationToken);
+        string normalized = NormalizeExtractedText(MaterializeText(decoded, 0, decoded.Length, cancellationToken), cancellationToken);
         return normalized.Length == 0 ? null : normalized;
     }
 
@@ -696,9 +747,10 @@ internal static class PdfFreeTextStyleParser {
         return value > 1D ? 1D : value;
     }
 
-    private static void AppendLineBreakForTag(System.Text.StringBuilder builder, string richContents, int tagStart, int tagEnd) {
+    private static void AppendLineBreakForTag(System.Text.StringBuilder builder, string richContents, int tagStart, int tagEnd, CancellationToken cancellationToken) {
         int index = tagStart;
         while (index < tagEnd && char.IsWhiteSpace(richContents[index])) {
+            if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
             index++;
         }
 
@@ -708,13 +760,17 @@ internal static class PdfFreeTextStyleParser {
         }
 
         while (index < tagEnd && char.IsWhiteSpace(richContents[index])) {
+            if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
             index++;
         }
 
         int nameStart = index;
         while (index < tagEnd && char.IsLetterOrDigit(richContents[index])) {
+            if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
             index++;
         }
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         if (index <= nameStart) {
             return;
@@ -740,12 +796,123 @@ internal static class PdfFreeTextStyleParser {
         builder.Append('\n');
     }
 
-    private static string NormalizeExtractedText(string value) {
-        value = value.Replace("\r\n", "\n").Replace('\r', '\n').Trim();
-        while (value.Contains("\n\n\n")) {
-            value = value.Replace("\n\n\n", "\n\n");
+    private static string NormalizeExtractedText(string value, CancellationToken cancellationToken) {
+        var normalized = new System.Text.StringBuilder(value.Length);
+        int consecutiveNewLines = 0;
+        for (int i = 0; i < value.Length; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            char current = value[i];
+            if (current == '\r') {
+                if (i + 1 < value.Length && value[i + 1] == '\n') i++;
+                current = '\n';
+            }
+            if (current == '\n') {
+                if (++consecutiveNewLines > 2) continue;
+            } else {
+                consecutiveNewLines = 0;
+            }
+            normalized.Append(current);
+        }
+        int start = 0;
+        int end = normalized.Length;
+        while (start < end && char.IsWhiteSpace(normalized[start])) {
+            cancellationToken.ThrowIfCancellationRequested();
+            start++;
+        }
+        while (end > start && char.IsWhiteSpace(normalized[end - 1])) {
+            cancellationToken.ThrowIfCancellationRequested();
+            end--;
+        }
+        return MaterializeText(normalized, start, end - start, cancellationToken);
+    }
+
+    private static string MaterializeText(System.Text.StringBuilder builder, int start, int length, CancellationToken cancellationToken) =>
+        PdfEncoding.StringBuilderToStringCancellable(builder, start, length, cancellationToken);
+
+    private static System.Text.StringBuilder DecodeEntitiesCancellable(string source, CancellationToken cancellationToken) {
+        var decoded = new System.Text.StringBuilder(source.Length);
+        for (int index = 0; index < source.Length;) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (source[index] != '&') {
+                decoded.Append(source[index++]);
+                continue;
+            }
+
+            // Scan the candidate ourselves so a malformed, unterminated entity cannot
+            // keep HtmlDecode busy without observing cancellation.
+            int end = index + 1;
+            while (end < source.Length && source[end] != ';' && source[end] != '&') {
+                if ((end & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                end++;
+            }
+            if (end < source.Length && source[end] == ';' && end - index <= 64) {
+                cancellationToken.ThrowIfCancellationRequested();
+                decoded.Append(WebUtility.HtmlDecode(source.Substring(index, end - index + 1)));
+                index = end + 1;
+            } else if (end < source.Length && source[end] == ';' &&
+                       TryDecodeLongNumericEntity(source, index, end, cancellationToken, out string? entity)) {
+                decoded.Append(entity);
+                index = end + 1;
+            } else {
+                decoded.Append('&');
+                index++;
+            }
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return decoded;
+    }
+
+    private static bool TryDecodeLongNumericEntity(string source, int start, int semicolon, CancellationToken cancellationToken, out string? decoded) {
+        decoded = null;
+        if (start + 2 >= semicolon || source[start + 1] != '#') return false;
+        int position = start + 2;
+        bool hexadecimal = source[position] == 'x' || source[position] == 'X';
+        bool negative = false;
+        if (hexadecimal) {
+            position++;
+        } else {
+            while (position < semicolon && IsNumericSpace(source[position])) position++;
+            if (position < semicolon && (source[position] == '+' || source[position] == '-')) {
+                negative = source[position] == '-';
+                position++;
+            }
         }
 
-        return value;
+        uint value = 0;
+        bool hasDigit = false;
+        int radix = hexadecimal ? 16 : 10;
+        for (; position < semicolon; position++) {
+            if ((position & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            char current = source[position];
+            if (current == '\0' || !hexadecimal && IsNumericSpace(current)) break;
+            int digit = current >= '0' && current <= '9' ? current - '0'
+                : hexadecimal && current >= 'a' && current <= 'f' ? current - 'a' + 10
+                : hexadecimal && current >= 'A' && current <= 'F' ? current - 'A' + 10 : -1;
+            if (digit < 0 || digit >= radix || value > (uint.MaxValue - (uint)digit) / (uint)radix) return false;
+            value = value * (uint)radix + (uint)digit;
+            hasDigit = true;
+        }
+        if (!hasDigit || negative && value != 0) return false;
+        if (!hexadecimal) {
+            while (position < semicolon && IsNumericSpace(source[position])) {
+                if ((position & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                position++;
+            }
+        }
+        // Numeric parsers ignore terminal NULs even when no whitespace style is enabled.
+        while (position < semicolon && source[position] == '\0') {
+            if ((position & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            position++;
+        }
+        if (position != semicolon) return false;
+
+        string canonical = "&#" + value.ToString(CultureInfo.InvariantCulture) + ";";
+        string result = WebUtility.HtmlDecode(canonical);
+        if (string.Equals(result, canonical, StringComparison.Ordinal)) return false;
+        decoded = result;
+        return true;
     }
+
+    private static bool IsNumericSpace(char value) =>
+        value == ' ' || value == '\t' || value == '\n' || value == '\r' || value == '\v' || value == '\f';
 }
