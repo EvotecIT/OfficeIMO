@@ -22,7 +22,7 @@ internal sealed partial class PdfStandardSecurityHandler {
         int permissions = GetRequiredPermissions(encryptionDictionary);
         bool encryptMetadata = encryptionDictionary.Get<PdfBoolean>("EncryptMetadata")?.Value ?? true;
         ValidateModernEntries(ownerEntry, userEntry, ownerEncryptedFileKey, userEncryptedFileKey, encryptedPermissions);
-        byte[] passwordBytes = NormalizeModernPassword(passwordWasSupplied ? password ?? string.Empty : string.Empty);
+        byte[] passwordBytes = PdfModernPasswordNormalizer.Normalize(passwordWasSupplied ? password ?? string.Empty : string.Empty, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
 
         byte[]? fileKey = TryAuthenticateModernOwner(
@@ -169,11 +169,6 @@ internal sealed partial class PdfStandardSecurityHandler {
         } while (round < 64 || lastByte > round - 32);
 
         return SliceModern(key, 0, 32);
-    }
-
-    private static byte[] NormalizeModernPassword(string password) {
-        byte[] bytes = Encoding.UTF8.GetBytes((password ?? string.Empty).Normalize(NormalizationForm.FormKC));
-        return bytes.Length <= 127 ? bytes : SliceModern(bytes, 0, 127);
     }
 
     private static byte[] DecryptAes256NoPadding(

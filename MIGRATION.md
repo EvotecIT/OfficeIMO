@@ -9,6 +9,14 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## PDF AES-256 password length
+
+PDF Standard security revisions 5 and 6 now reject read passwords longer than
+4,096 UTF-16 characters before normalization. AES-256 PDF generation applies
+the same limit to user and owner passwords. Shorten an oversized password before
+opening or generating a PDF; other Standard security revisions keep their
+existing password behavior.
+
 ## PDF image input budget
 
 PDF image-file pages and image stamps now limit each encoded image source to
