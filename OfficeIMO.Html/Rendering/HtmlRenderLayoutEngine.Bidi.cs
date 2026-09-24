@@ -72,7 +72,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (Math.Abs(segment.Run.Style.LetterSpacing) > 0.0001D) {
             for (int index = 0; index < elements.Count; index++) {
                 string element = elements[index];
-                double glyphWidth = MeasureText(element, effectiveFont);
+                double glyphWidth = MeasureText(element, effectiveFont, segment.Run.Style.FontDescriptor);
                 double advance = glyphWidth
                     + segment.Run.Style.LetterSpacing
                     + (IsWhitespaceToken(element) ? segment.Run.Style.WordSpacing : 0D);
@@ -88,7 +88,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             int end = start + 1;
             while (end < elements.Count && IsWhitespaceToken(elements[end]) == whitespace) end++;
             string text = string.Concat(elements.Skip(start).Take(end - start));
-            double glyphWidth = MeasureText(text, effectiveFont);
+            double glyphWidth = MeasureText(text, effectiveFont, segment.Run.Style.FontDescriptor);
             double advance = glyphWidth + (whitespace ? segment.Run.Style.WordSpacing * (end - start) : 0D);
             result.Add(new InlinePaintSegment(text, cursor, Math.Max(0.01D, glyphWidth), advance, logicalOrder ?? start));
             cursor += advance;
@@ -171,7 +171,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (OfficeTextElements.ContainsBidiControl(paintText)) continue;
                 double elementWidth = hasContextualWidths
                     ? contextualWidths[elementIndex]
-                    : MeasureText(paintText, effectiveFont);
+                    : MeasureText(paintText, effectiveFont, segment.Run.Style.FontDescriptor);
                 widths[elementIndex] = elementWidth;
                 visibleWidth += elementWidth;
             }
@@ -248,11 +248,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         for (int index = 0; index < elements.Count; index++) {
             CheckCancellation();
             string element = elements[index];
-            double advance = (hasContextualWidths ? contextualWidths[index] : MeasureText(element, effectiveFont))
+            double advance = (hasContextualWidths ? contextualWidths[index] : MeasureText(element, effectiveFont, style.FontDescriptor))
                 + style.LetterSpacing
                 + (IsWhitespaceToken(element) ? style.WordSpacing : 0D);
             right -= advance;
-            double glyphWidth = hasContextualWidths ? contextualWidths[index] : MeasureText(element, effectiveFont);
+            double glyphWidth = hasContextualWidths ? contextualWidths[index] : MeasureText(element, effectiveFont, style.FontDescriptor);
             result.Add(new InlinePaintSegment(
                 OfficeBidiTextResolver.MirrorText(element),
                 right,

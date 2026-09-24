@@ -252,13 +252,16 @@ internal static partial class HtmlPdfRenderedConverter {
             options.TextShapingProvider,
             options.TextShapingLanguage,
             cancellationToken);
+        webFonts.AllowInstalledFontFaces = options.ResourcePolicy.AllowSystemFontEmbedding
+            && options.ResourcePolicy.AllowDocumentFontEmbedding;
         var activeWebFontFamilies = new HashSet<string>(
             webFonts.Slots.Keys,
             StringComparer.OrdinalIgnoreCase);
         PdfCore.PdfTextFallbackFeatures activeTextFallbacks = ResolveTextFallbackFeatures(rendered, options.TextFallbacks);
         if (options.ResourcePolicy.AllowSystemFontEmbedding) {
             if (options.ResourcePolicy.AllowDocumentFontEmbedding) {
-                RegisterUsedSystemFontFamilies(pdf, rendered, reservedFontSlots, cancellationToken);
+                RegisterUsedSystemFontFamilies(pdf, rendered, activeWebFontFamilies,
+                    reservedFontSlots, cancellationToken);
             } else if (activeTextFallbacks != PdfCore.PdfTextFallbackFeatures.None && options.FontFamily == null) {
                 RegisterLibrarySelectedDefaultSystemFontFamily(
                     pdf,
@@ -876,6 +879,9 @@ internal static partial class HtmlPdfRenderedConverter {
                     fallbackRun.Text,
                     visual.Font.IsBold,
                     visual.Font.IsItalic,
+                    visual.FontDescriptor,
+                    webFonts.AllowInstalledFontFaces
+                        && !EnumerateFamilies(fallbackRun.FamilyName).Any(webFonts.Slots.ContainsKey),
                     webFonts.Options);
                 return new PdfCore.PdfTextRun(
                     fallbackRun.Text,

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
+using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using OfficeIMO.TestAssets;
 using Xunit;
@@ -588,6 +589,89 @@ public class PdfFontFamilyTests {
         Assert.True(
             PdfEmbeddedFontFamily.GetMetadataStyleScore("Bold") >
             PdfEmbeddedFontFamily.GetMetadataStyleScore("SemiBold"));
+    }
+
+    [Fact]
+    public void PdfEmbeddedFontFamily_SelectsInstalledFaceByNumericWeightAndSlant() {
+        const string familyName = "OfficeIMO Baseline Sans";
+        string fontRoot = Path.Combine(AppContext.BaseDirectory, "Fonts");
+        byte[] light = File.ReadAllBytes(Path.Combine(fontRoot, "OfficeIMOBaselineSans-Regular.ttf"));
+        byte[] regular = (byte[])light.Clone();
+        byte[] italic = File.ReadAllBytes(Path.Combine(fontRoot, "OfficeIMOBaselineSans-Italic.ttf"));
+        SetTrueTypeWeight(light, 100);
+        SetTrueTypeWeight(regular, 300);
+        SetTrueTypeWeight(italic, 300);
+
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Pdf.FontFaces." + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try {
+            string lightPath = Path.Combine(directory, "light.ttf");
+            string regularPath = Path.Combine(directory, "regular.ttf");
+            string italicPath = Path.Combine(directory, "italic.ttf");
+            File.WriteAllBytes(lightPath, light);
+            File.WriteAllBytes(regularPath, regular);
+            File.WriteAllBytes(italicPath, italic);
+            string[] files = { lightPath, regularPath, italicPath };
+
+            Assert.True(PdfEmbeddedFontFamily.TryResolveSystemFaceFromFiles(
+                familyName, files, new OfficeFontFaceDescriptor(100), "Text", out PdfEmbeddedFontFamily? selectedLight));
+            Assert.Equal(light, selectedLight!.Regular);
+            Assert.True(PdfEmbeddedFontFamily.TryResolveSystemFaceFromFiles(
+                familyName, files, new OfficeFontFaceDescriptor(300), "Text", out PdfEmbeddedFontFamily? selectedRegular));
+            Assert.Equal(regular, selectedRegular!.Regular);
+            Assert.True(PdfEmbeddedFontFamily.TryResolveSystemFaceFromFiles(
+                familyName, files, new OfficeFontFaceDescriptor(300, slant: OfficeFontSlant.Italic),
+                "Text", out PdfEmbeddedFontFamily? selectedItalic));
+            Assert.Equal(italic, selectedItalic!.Regular);
+
+            Assert.NotEqual(selectedLight.FamilyName, selectedRegular.FamilyName);
+            var options = new PdfOptions();
+            Assert.True(options.TryRegisterNamedFontFamily(selectedLight));
+            Assert.True(options.TryRegisterNamedFontFamily(selectedRegular));
+            Assert.True(options.TryResolveNamedFontFace(selectedLight.FamilyName, false, false, out PdfNamedFontFace lightFace));
+            Assert.True(options.TryResolveNamedFontFace(selectedRegular.FamilyName, false, false, out PdfNamedFontFace regularFace));
+            Assert.True(options.TryGetNamedFontData(lightFace, out byte[]? registeredLight, out _));
+            Assert.True(options.TryGetNamedFontData(regularFace, out byte[]? registeredRegular, out _));
+            Assert.Equal(light, registeredLight);
+            Assert.Equal(regular, registeredRegular);
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void PdfEmbeddedFontFamily_SelectsFaceForActualRunGlyphs() {
+        const string familyName = "Mixed Coverage";
+        string fontRoot = Path.Combine(AppContext.BaseDirectory, "Fonts");
+        byte[] latin = File.ReadAllBytes(Path.Combine(fontRoot, "OfficeIMOBaselineSans-Regular.ttf"));
+        byte[] arabic = File.ReadAllBytes(Path.Combine(fontRoot, "NotoSansArabic-Regular.ttf"));
+        var faces = new OfficeFontFaceCollection();
+        Assert.True(faces.TryAdd(familyName, latin, new OfficeFontFaceDescriptor(100)));
+        Assert.True(faces.TryAdd(familyName, arabic, new OfficeFontFaceDescriptor(300)));
+        var requested = new OfficeFontFaceDescriptor(200);
+
+        Assert.True(PdfEmbeddedFontFamily.TrySelectSystemFace(
+            faces, familyName, requested, "A", out PdfEmbeddedFontFamily? selectedLatin));
+        Assert.Equal(latin, selectedLatin!.Regular);
+        Assert.True(PdfEmbeddedFontFamily.TrySelectSystemFace(
+            faces, familyName, requested, "مرحبا", out PdfEmbeddedFontFamily? selectedArabic));
+        Assert.Equal(arabic, selectedArabic!.Regular);
+        Assert.NotEqual(selectedLatin.FamilyName, selectedArabic.FamilyName);
+    }
+
+    private static void SetTrueTypeWeight(byte[] font, ushort weight) {
+        int tables = (font[4] << 8) | font[5];
+        for (int index = 0; index < tables; index++) {
+            int record = 12 + index * 16;
+            if (font[record] != 'O' || font[record + 1] != 'S'
+                || font[record + 2] != '/' || font[record + 3] != '2') continue;
+            int offset = (font[record + 8] << 24) | (font[record + 9] << 16)
+                | (font[record + 10] << 8) | font[record + 11];
+            font[offset + 4] = (byte)(weight >> 8);
+            font[offset + 5] = (byte)weight;
+            return;
+        }
+        throw new InvalidDataException("The bundled TrueType fixture lacks an OS/2 weight table.");
     }
 
     [Fact]

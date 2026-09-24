@@ -73,6 +73,8 @@
 
   <ItemGroup>
     <None Include="..\OfficeIMO.TestAssets\Images\**" Link="Images\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Fonts\OfficeIMOBaselineSans-Regular.ttf;..\OfficeIMO.TestAssets\Fonts\OfficeIMOBaselineSans-Italic.ttf" Link="Fonts\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\Website\Apps\OfficeIMO.Web.Converter\Assets\Fonts\NotoSansArabic-Regular.ttf" Link="Fonts\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Documents\Html\Qualification\H4\representative\**\*.html" Link="Documents\Html\Qualification\H4\representative\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\ScanQuality\phototest-skew.pdf" Link="ScanQuality\phototest-skew.pdf" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\MultilingualLayout\*-native.pdf;..\OfficeIMO.TestAssets\MultilingualLayout\manifest.json" Link="MultilingualLayout\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

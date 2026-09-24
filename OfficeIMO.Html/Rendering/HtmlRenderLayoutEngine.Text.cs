@@ -1338,14 +1338,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return OfficeArabicTextShaper.ToLogicalText(token);
     }
 
-    private double MeasureText(string value, OfficeFontInfo font) {
+    private double MeasureText(string value, OfficeFontInfo font, OfficeFontFaceDescriptor descriptor) {
         if (_fonts.TryMeasureText(value, font.Size, font.FamilyName, font.Style, out double scopedWidth)) {
             return scopedWidth;
         }
 
         OfficeTextMeasurer measurer = OfficeTextMeasurer.Create(font);
         if (_options.FallbackTextMeasurement != null) {
-            double? measured = _options.FallbackTextMeasurement(value, font);
+            double? measured = _options.FallbackTextMeasurement(value, font, descriptor);
             if (measured.HasValue) return measured.Value;
         }
         OfficeTextMeasurementStyle style = measurer.CreateStyle(font, 72D);
@@ -1355,7 +1355,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private double MeasureInlineText(string value, HtmlRenderBoxStyle style) {
         double measured = TryMeasureWithConfiguredProvider(value, style, out double shapedWidth)
             ? shapedWidth
-            : MeasureText(value, GetEffectiveTextFont(style));
+            : MeasureText(value, GetEffectiveTextFont(style), style.FontDescriptor);
         if (Math.Abs(style.LetterSpacing) <= 0.000001D && Math.Abs(style.WordSpacing) <= 0.000001D) {
             return Math.Max(0.01D, measured);
         }

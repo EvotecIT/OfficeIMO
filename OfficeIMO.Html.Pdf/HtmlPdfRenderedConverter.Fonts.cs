@@ -8,20 +8,28 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Html.Pdf;
 
 internal static partial class HtmlPdfRenderedConverter {
-    private static Func<string, OfficeFontInfo, double?> CreateFallbackTextMeasurement(
+    private static Func<string, OfficeFontInfo, OfficeFontFaceDescriptor, double?> CreateFallbackTextMeasurement(
         HtmlToPdfOptions options,
         PdfCore.PdfOptions measurementOptions) {
         bool useInstalledFonts = options.ResourcePolicy.AllowSystemFontEmbedding
             && options.ResourcePolicy.AllowDocumentFontEmbedding;
         var attemptedFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         int loadedFamilies = 0;
-        return (text, font) => {
+        return (text, font, descriptor) => {
             string measuredFamily = font.FamilyName;
             if (useInstalledFonts && font.FamilyName.Length > 0
                 && HtmlRenderCssValues.TrySplitTopLevelCommas(
                     font.FamilyName, MaximumCssFontFamilyCandidates, out _)) {
                 IReadOnlyList<string> families = EnumerateFamilies(font.FamilyName).ToList();
                 foreach (string familyName in families) {
+                    if (NeedsNumericSystemFace(descriptor)
+                        && TryRegisterSystemFace(measurementOptions, familyName, text, descriptor,
+                            ref loadedFamilies, attemptedFamilies, out string? selectedFamily)
+                        && NamedFontCoversText(measurementOptions, selectedFamily!, text,
+                            font.IsBold, font.IsItalic)) {
+                        measuredFamily = selectedFamily!;
+                        break;
+                    }
                     if (!measurementOptions.HasNamedFontFamily(familyName)
                         && loadedFamilies < MaximumLoadedSystemFontFamilies
                         && attemptedFamilies.Count < MaximumSystemFontFamilyCandidates
@@ -47,12 +55,52 @@ internal static partial class HtmlPdfRenderedConverter {
         };
     }
 
+    private static bool NeedsNumericSystemFace(OfficeFontFaceDescriptor descriptor) =>
+        descriptor.Weight != (descriptor.Weight >= 600 ? 700 : 400)
+        || descriptor.StretchPercent != 100D
+        || descriptor.Slant == OfficeFontSlant.Oblique;
+
+    private static bool TryRegisterSystemFace(
+        PdfCore.PdfOptions options,
+        string familyName,
+        string text,
+        OfficeFontFaceDescriptor descriptor,
+        ref int loadedFamilies,
+        ISet<string> attemptedFamilies,
+        out string? selectedFamily) {
+        selectedFamily = null;
+        if (familyName.Length > 256
+            || !PdfCore.PdfEmbeddedFontFamily.TryResolveSystemFace(
+                familyName, descriptor, text, out PdfCore.PdfEmbeddedFontFamily? face)
+            || face == null) return false;
+        selectedFamily = face.FamilyName;
+        if (options.HasNamedFontFamily(selectedFamily)) return true;
+        if (loadedFamilies >= MaximumLoadedSystemFontFamilies
+            || attemptedFamilies.Count >= MaximumSystemFontFamilyCandidates
+            || !attemptedFamilies.Add(selectedFamily)) return false;
+        if (!options.TryRegisterNamedFontFamily(face)) return false;
+        loadedFamilies++;
+        return true;
+    }
+
     private static string ResolvePdfFontFamilyForText(
         string familyNames,
         string text,
         bool bold,
         bool italic,
+        OfficeFontFaceDescriptor descriptor,
+        bool allowInstalledFaces,
         PdfCore.PdfOptions options) {
+        if (allowInstalledFaces && NeedsNumericSystemFace(descriptor)) {
+            foreach (string familyName in EnumerateBoundedSystemFamilies(familyNames)) {
+                if (PdfCore.PdfEmbeddedFontFamily.TryResolveSystemFace(
+                        familyName, descriptor, text, out PdfCore.PdfEmbeddedFontFamily? face)
+                    && face != null
+                    && NamedFontCoversText(options, face.FamilyName, text, bold, italic)) {
+                    return face.FamilyName;
+                }
+            }
+        }
         if (familyNames.IndexOf(',') < 0) return familyNames;
         foreach (string familyName in EnumerateBoundedSystemFamilies(familyNames)) {
             if (NamedFontCoversText(options, familyName, text, bold, italic)) return familyName;
@@ -169,12 +217,28 @@ internal static partial class HtmlPdfRenderedConverter {
     private static void RegisterUsedSystemFontFamilies(
         PdfCore.PdfDocument pdf,
         HtmlRenderDocument rendered,
+        ISet<string> activeWebFontFamilies,
         ISet<PdfCore.PdfStandardFont> reservedFontSlots,
         CancellationToken cancellationToken) {
         List<HtmlRenderText> textRuns = EnumerateVisuals(rendered.Pages.SelectMany(page => page.Visuals))
             .OfType<HtmlRenderText>()
             .ToList();
         int loadedFamilyCount = 0;
+        var attemptedFaces = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (HtmlRenderText run in textRuns) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!NeedsNumericSystemFace(run.FontDescriptor)) continue;
+            foreach (string familyName in EnumerateBoundedSystemFamilies(run.Font.FamilyName)) {
+                if (activeWebFontFamilies.Contains(familyName)) continue;
+                if (!TryRegisterSystemFace(pdf.Options, familyName, run.Text, run.FontDescriptor,
+                        ref loadedFamilyCount, attemptedFaces, out string? selectedFamily)) continue;
+                reservedFontSlots.Add(PdfCore.PdfStandardFontMapper.GetFontFamily(MapStandardFont(familyName)));
+                if (NamedFontCoversText(pdf.Options, selectedFamily!, run.Text,
+                        run.Font.IsBold, run.Font.IsItalic)) break;
+            }
+            if (loadedFamilyCount >= MaximumLoadedSystemFontFamilies) break;
+        }
 
         foreach (string familyName in textRuns
                      .SelectMany(text => EnumerateBoundedSystemFamilies(text.Font.FamilyName))
@@ -481,6 +545,7 @@ internal static partial class HtmlPdfRenderedConverter {
         }
 
         internal IReadOnlyDictionary<string, PdfCore.PdfStandardFont> Slots { get; }
+        internal bool AllowInstalledFontFaces { get; set; }
         internal OfficeFontFaceCollection Faces { get; }
         internal PdfCore.PdfOptions Options { get; }
         internal HashSet<string> ReportedPrivateUseOmissions { get; } = new(StringComparer.Ordinal);

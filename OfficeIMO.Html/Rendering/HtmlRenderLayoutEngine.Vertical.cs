@@ -264,7 +264,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var measured = new double[elements.Count];
         double measuredTotal = 0D;
         for (int index = 0; index < elements.Count; index++) {
-            measured[index] = Math.Max(0.01D, MeasureText(elements[index], visual.Font));
+            measured[index] = Math.Max(0.01D, MeasureText(elements[index], visual.Font, visual.FontDescriptor));
             measuredTotal += measured[index];
         }
 
