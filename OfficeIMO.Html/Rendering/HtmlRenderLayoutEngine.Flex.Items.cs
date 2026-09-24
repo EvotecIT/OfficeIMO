@@ -102,6 +102,28 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return block;
     }
 
+    private void ApplyRowFlexMainSize(FlexItem item) {
+        if (item.Element == null) return;
+        HtmlRenderBoxStyle style = item.Style.Clone();
+        double targetBoxWidth = Math.Max(0.01D, item.MainSize - style.MarginLeft - style.MarginRight);
+        double horizontalInsets = IsFormControlElement(item.TagName) && !IsInputType(item.Element, "image")
+            ? CreateFormControlStyle(item.Element, style).HorizontalInsets
+            : style.HorizontalInsets;
+        // LayoutTable treats explicit width as the used border-box width even with content-box sizing.
+        bool table = string.Equals(item.TagName, "table", StringComparison.OrdinalIgnoreCase);
+        style.ExplicitWidth = style.BorderBox || table
+            ? targetBoxWidth
+            : Math.Max(0.01D, targetBoxWidth - horizontalInsets);
+        if (table) {
+            // Flex sizing has already applied these bounds to the border-box width.
+            // Applying them again in LayoutTable would subtract padding a second time.
+            style.MinWidth = null;
+            style.MaxWidth = null;
+        }
+        style.ExplicitWidthUsesPercentage = false;
+        item.Style = style;
+    }
+
     private HtmlRenderFlowBlock LayoutAnonymousFlexItem(FlexItem item, double containingWidth, HtmlRenderBoxStyle parentStyle) {
         HtmlRenderBoxStyle style = item.Style;
         double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);

@@ -1176,6 +1176,59 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(nav.X + nav.Width <= bar.X + bar.Width + 0.001D);
     }
 
+    [Fact]
+    public void HtmlFlexRow_GrowingPercentageInputPaintsItsAllocatedWidth() {
+        HtmlRenderDocument rendered = RenderFlex("""
+            <style>*{box-sizing:border-box}body{margin:0}</style>
+            <div style="display:flex;width:300px">
+              <input id="search" placeholder="Search..." style="width:1%;min-width:0;flex:1 1 auto;padding:0 4px;border:1px solid black">
+              <button id="submit" style="width:40px;flex:0 0 40px;padding:0;border:0">Go</button>
+            </div>
+            """, 300D);
+
+        HtmlRenderShape input = FindFlexShape(rendered, "input#search");
+        HtmlRenderShape button = FindFlexShape(rendered, "button#submit");
+        Assert.Equal(260D, input.Width, 1);
+        Assert.Equal(input.X + input.Width, button.X, 1);
+        Assert.Contains(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(),
+            text => text.Source == "input#search" && text.Text == "Search..." && text.Width > 0D);
+    }
+
+    [Theory]
+    [InlineData(100D)]
+    [InlineData(200D)]
+    public void HtmlFlexRow_ExplicitWidthUsesResolvedGrowOrShrinkSize(double authoredWidth) {
+        string html = "<div style='display:flex;width:300px'>"
+            + "<div id='first' style='width:" + authoredWidth.ToString(System.Globalization.CultureInfo.InvariantCulture) + "px;flex:1 1 auto;height:20px;background:red'></div>"
+            + "<div id='second' style='width:" + authoredWidth.ToString(System.Globalization.CultureInfo.InvariantCulture) + "px;flex:1 1 auto;height:20px;background:blue'></div>"
+            + "</div>";
+
+        HtmlRenderDocument rendered = RenderFlex(html, 300D);
+        HtmlRenderShape first = FindFlexShape(rendered, "div#first");
+        HtmlRenderShape second = FindFlexShape(rendered, "div#second");
+        Assert.Equal(150D, first.Width, 1);
+        Assert.Equal(150D, second.Width, 1);
+        Assert.Equal(first.X + first.Width, second.X, 1);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("max-width:180px")]
+    public void HtmlFlexRow_PaddedTablePaintsItsAllocatedWidth(string widthConstraint) {
+        string html = """
+            <div style="display:flex;width:300px">
+              <table id="table" style="flex:1;min-width:0;padding:0 10px;background:#eeeeee;WIDTH_CONSTRAINT"><tr><td>Data</td></tr></table>
+              <div id="next" style="flex:0 0 100px;width:100px;height:20px;background:#0000ff"></div>
+            </div>
+            """.Replace("WIDTH_CONSTRAINT", widthConstraint, StringComparison.Ordinal);
+        HtmlRenderDocument rendered = RenderFlex(html, 300D);
+
+        HtmlRenderShape table = FindFlexShape(rendered, "table#table");
+        HtmlRenderShape next = FindFlexShape(rendered, "div#next");
+        Assert.Equal(200D, table.Width, 1);
+        Assert.Equal(table.X + table.Width, next.X, 1);
+    }
+
     private static HtmlRenderDocument RenderFlex(string html, double viewportWidth) =>
         HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = viewportWidth,

@@ -80,6 +80,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double availableForItems = Math.Max(0D, contentWidth - gap * Math.Max(0, line.Items.Count - 1));
             ResolveFlexMainSizes(line.Items, availableForItems, vertical: false);
             foreach (FlexItem item in line.Items) {
+                ApplyRowFlexMainSize(item);
                 item.Block = LayoutFlexItem(item, Math.Max(1D, item.MainSize), style, depth + 1);
             }
 
