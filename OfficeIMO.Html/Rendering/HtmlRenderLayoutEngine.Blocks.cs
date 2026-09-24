@@ -429,6 +429,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 contentBreakOffsets.Add(contentHeight);
             }
             AppendFlowPaintLayers(contentVisuals, childPaintLayers);
+            if (tag == "li" && children.Count > 0) {
+                HtmlListMarker? marker = ResolveListMarker(element, style, contentWidth);
+                if (marker?.IsOutside == true) {
+                    AddOutsideMarkerForBlockChildren(contentVisuals, marker, contentWidth, style, element);
+                }
+            }
         } else {
             HtmlListMarker? marker = tag == "li" ? ResolveListMarker(element, style, contentWidth) : null;
             int inlineSkipLogicalCharacters = ReferenceEquals(element, continuationTarget)

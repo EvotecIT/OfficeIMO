@@ -62,6 +62,32 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_ListItemsWithParagraphsKeepOutsideMarkersBesideTheirFirstLines() {
+        const string html = "<style>body{margin:0}ul{margin:0;padding-left:32px}"
+            + "li p{margin:0 0 12px}</style><ul>"
+            + "<li><p><strong>First point</strong> continues on its own paragraph.</p></li>"
+            + "<li><p>Second point</p></li></ul>"
+            + "<ul style='list-style:none'><li><p>Markerless point</p></li></ul>";
+        var options = new HtmlRenderOptions { ViewportWidth = 320D, Margins = HtmlRenderMargins.All(0D) };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        HtmlRenderText[] texts = EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>().ToArray();
+        HtmlRenderText[] markers = texts.Where(text => text.Source == "list-marker").ToArray();
+        HtmlRenderText first = Assert.Single(texts, text => text.Text == "First point");
+        HtmlRenderText second = Assert.Single(texts, text => text.Text == "Second point");
+
+        Assert.Equal(2, markers.Length);
+        Assert.All(markers, marker => Assert.Equal("•", marker.Text));
+        Assert.True(markers[0].X < first.X);
+        Assert.True(markers[1].X < second.X);
+        Assert.InRange(Math.Abs(markers[0].Y - first.Y), 0D, 1D);
+        Assert.InRange(Math.Abs(markers[1].Y - second.Y), 0D, 1D);
+        Assert.True(markers[1].Y > markers[0].Y);
+        Assert.Contains("Second point", PdfCore.PdfReadDocument.Open(
+            HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options))).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlRendering_ListStyleImageUsesSharedResourcePipelineAndFallsBackToTextMarker() {
         string imageData = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(6, 4));
         string source = "data:image/png;base64," + imageData;

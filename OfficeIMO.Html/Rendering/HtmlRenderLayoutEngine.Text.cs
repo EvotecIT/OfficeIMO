@@ -102,6 +102,47 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ? new HtmlInlineRun(marker.Image!, marker.Style, null, "list-marker", ownerElement: owner, isReplacedImage: true)
             : new HtmlInlineRun(marker.Content, marker.Style, null, "list-marker", ownerElement: owner);
 
+    private void AddOutsideMarkerForBlockChildren(
+        ICollection<HtmlRenderVisual> visuals,
+        HtmlListMarker marker,
+        double contentWidth,
+        HtmlRenderBoxStyle itemStyle,
+        IElement owner) {
+        HtmlRenderBoxStyle markerStyle = marker.Style.Clone();
+        markerStyle.PreserveWhitespace = true;
+        markerStyle.BreakSpaces = true;
+        var runs = new List<HtmlInlineRun> { CreateListMarkerRun(marker, owner) };
+        ApplyPendingInlineTextTransforms(runs);
+        runs = ApplyScopedFontFallbacks(runs);
+        double markerAdvance = marker.Image?.Width ?? MeasureInlineText(marker.Content, markerStyle);
+        double gutter = Math.Max(1D, markerAdvance + Math.Max(2D, itemStyle.Font.Size * 0.25D));
+        HtmlInlineLayout layout = LayoutInlineRuns(runs, gutter, markerStyle, owner);
+        if (layout.Visuals.Count == 0) return;
+
+        (double markerX, double markerY, double markerWidth, _) = ResolveSemanticBounds(
+            layout.Visuals, gutter, Math.Max(layout.Height, markerStyle.LineHeight));
+        double gap = Math.Max(2D, itemStyle.Font.Size * 0.25D);
+        double offsetX = string.Equals(itemStyle.Direction, "rtl", StringComparison.OrdinalIgnoreCase)
+            ? contentWidth + gap - markerX
+            : -gap - markerX - markerWidth;
+        double? firstTextY = FindFirstBodyTextY(visuals);
+        double offsetY = (firstTextY ?? 0D) - markerY;
+        foreach (HtmlRenderVisual visual in layout.Visuals) {
+            visuals.Add(visual.Translate(offsetX, offsetY, visuals.Count));
+        }
+    }
+
+    private static double? FindFirstBodyTextY(IEnumerable<HtmlRenderVisual> visuals) {
+        foreach (HtmlRenderVisual visual in visuals) {
+            if (visual is HtmlRenderText text && text.Source != "list-marker") return text.Y;
+            IReadOnlyList<HtmlRenderVisual>? children = GetGroupChildren(visual);
+            if (children == null) continue;
+            double? childY = FindFirstBodyTextY(children);
+            if (childY.HasValue) return childY;
+        }
+        return null;
+    }
+
     private List<HtmlInlineRun> ApplyScopedFontFallbacks(IEnumerable<HtmlInlineRun> sourceRuns) {
         var resolvedRuns = new List<HtmlInlineRun>();
         foreach (HtmlInlineRun run in sourceRuns) {
