@@ -148,3 +148,23 @@ First-page inspection still shows misplaced breadcrumb separators and different
 tutorial-card text flow and vertical spacing; matching page counts and link
 lines do not establish full visual parity. The other frozen pages, editable
 projections and supported-platform budgets remain open in the roadmap.
+
+## W3C paragraph-backed list follow-up
+
+Source `da49000169cb048c76afba32f40cd64fad72f3b9` places outside list
+markers beside the first text line when an item contains block children, and
+reserves the normal 2.5em list inset unless authored CSS overrides it. The
+unchanged W3C archive replayed with a clean worktree and no operation failures;
+the zero-margin local-font print and Chromium print still have three pages each.
+All three OfficeIMO pages were rasterized and inspected. The two bullets in
+"Why is this important?" now appear in the list gutter on page two instead of
+being absent or clipped. The page still differs from Chromium in text weight,
+line flow and spacing, while the breadcrumb separators and footer layout remain
+visibly different. This is a bounded list-layout correction, not page-level
+browser equivalence.
+
+The full .NET 10 HTML suite passed 3,318/3,318, the H4 advanced-held-out gate
+passed 8/8, and the clean-source macOS H4 budget passed with a 6,097 ms cold
+process and a 2,647 ms maximum warm iteration. The replay, inspected rasters
+and budget report are retained under `Ignore/HtmlUnknownPageQualification/`
+in `h10-wai-list-inset-clean-da4900016` and `h10-h4-budget-da4900016`.
