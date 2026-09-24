@@ -131,18 +131,60 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ICollection<HtmlCssRunningStringAssignment> runningStringAssignments) {
         if (!_localPositionedElements.TryGetValue(container, out List<PositionedElementRequest>? requests)) return;
         foreach (PositionedElementRequest request in OrderPositionedRequests(requests, band)) {
-            bool hasRect = _positionedContainingRects.TryGetValue(request.Element, out PositionedContainingRect? rect);
-            double requestWidth = hasRect ? rect!.Width : containingWidth;
-            double requestHeight = hasRect ? rect!.Height : containingHeight;
-            double requestOriginX = hasRect ? rect!.X : 0D;
-            double requestOriginY = hasRect ? rect!.Y : 0D;
-            PositionedLayer layer = request.Resolve(this, requestWidth, requestHeight);
-            foreach (HtmlRenderVisual visual in layer.Block.Visuals) {
-                visuals.Add(visual.Translate(originX + requestOriginX + layer.X, originY + requestOriginY + layer.Y, visuals.Count));
+            AppendLocalPositionedRequest(request, containingWidth, containingHeight, originX, originY, visuals, runningStringAssignments);
+        }
+    }
+
+    private void AppendBlockPositionedVisuals(
+        IElement container,
+        double containingWidth,
+        double containingHeight,
+        double originX,
+        double originY,
+        PositionedPaintBand band,
+        HtmlRenderBoxStyle parentStyle,
+        ICollection<HtmlRenderVisual> visuals,
+        ICollection<HtmlCssRunningStringAssignment> runningStringAssignments) {
+        var layers = new List<(int ZIndex, int SourceOrder, PositionedElementRequest? Request, HtmlPseudoElementKind? Pseudo)>();
+        if (_localPositionedElements.TryGetValue(container, out List<PositionedElementRequest>? requests)) {
+            layers.AddRange(requests.Select(request => (request.ZIndex, request.SourceOrder, (PositionedElementRequest?)request, (HtmlPseudoElementKind?)null)));
+        }
+        foreach (HtmlPseudoElementKind kind in new[] { HtmlPseudoElementKind.Before, HtmlPseudoElementKind.After }) {
+            if (TryGetLocallyPositionedGeneratedContentZIndex(container, kind, containingWidth, parentStyle, out int zIndex)) {
+                layers.Add((zIndex, kind == HtmlPseudoElementKind.Before ? int.MinValue : int.MaxValue, null, kind));
             }
-            foreach (HtmlCssRunningStringAssignment assignment in layer.Block.RunningStringAssignments) {
-                runningStringAssignments.Add(assignment.Translate(originY + requestOriginY + layer.Y));
+        }
+        foreach (var layer in layers
+            .Where(item => band == PositionedPaintBand.Negative ? item.ZIndex < 0 : item.ZIndex >= 0)
+            .OrderBy(item => item.ZIndex)
+            .ThenBy(item => item.SourceOrder)) {
+            if (layer.Request != null) {
+                AppendLocalPositionedRequest(layer.Request, containingWidth, containingHeight, originX, originY, visuals, runningStringAssignments);
+            } else if (layer.Pseudo.HasValue) {
+                AppendLocallyPositionedGeneratedContent(container, layer.Pseudo.Value, containingWidth, containingHeight, originX, originY, parentStyle, visuals);
             }
+        }
+    }
+
+    private void AppendLocalPositionedRequest(
+        PositionedElementRequest request,
+        double containingWidth,
+        double containingHeight,
+        double originX,
+        double originY,
+        ICollection<HtmlRenderVisual> visuals,
+        ICollection<HtmlCssRunningStringAssignment> runningStringAssignments) {
+        bool hasRect = _positionedContainingRects.TryGetValue(request.Element, out PositionedContainingRect? rect);
+        double requestWidth = hasRect ? rect!.Width : containingWidth;
+        double requestHeight = hasRect ? rect!.Height : containingHeight;
+        double requestOriginX = hasRect ? rect!.X : 0D;
+        double requestOriginY = hasRect ? rect!.Y : 0D;
+        PositionedLayer layer = request.Resolve(this, requestWidth, requestHeight);
+        foreach (HtmlRenderVisual visual in layer.Block.Visuals) {
+            visuals.Add(visual.Translate(originX + requestOriginX + layer.X, originY + requestOriginY + layer.Y, visuals.Count));
+        }
+        foreach (HtmlCssRunningStringAssignment assignment in layer.Block.RunningStringAssignments) {
+            runningStringAssignments.Add(assignment.Translate(originY + requestOriginY + layer.Y));
         }
     }
 

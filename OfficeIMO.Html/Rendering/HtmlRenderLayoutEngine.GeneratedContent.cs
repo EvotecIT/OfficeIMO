@@ -136,6 +136,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
         && (!IsAutoInset(style.Left) || !IsAutoInset(style.Right))
         && (!IsAutoInset(style.Top) || !IsAutoInset(style.Bottom));
 
+    private bool TryGetLocallyPositionedGeneratedContentZIndex(
+        IElement element,
+        HtmlPseudoElementKind kind,
+        double containingWidth,
+        HtmlRenderBoxStyle parentStyle,
+        out int zIndex) {
+        zIndex = 0;
+        if (!_generatedContent.TryGetContent(element, kind, out _)
+            || !_styleResolver.TryResolvePseudo(element, kind, containingWidth, parentStyle, out HtmlRenderBoxStyle style)
+            || !CanPositionGeneratedContentLocally(style, parentStyle)) return false;
+        zIndex = ResolvePositionedZIndex(element, style);
+        return true;
+    }
+
     private void AppendLocallyPositionedGeneratedContent(
         IElement element,
         HtmlPseudoElementKind kind,

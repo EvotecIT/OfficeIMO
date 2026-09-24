@@ -100,6 +100,40 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlGeneratedContent_AbsolutePseudosShareHostStackingBandsWithPositionedChildren() {
+        const string html = "<style>body{margin:0}"
+            + ".host{position:relative;width:40px;height:40px;margin:0}"
+            + ".flow{width:40px;height:40px;background:#00ff00}"
+            + "#before::before{content:'';display:block;position:absolute;left:0;top:0;width:40px;height:40px;background:#ff0000;z-index:1}"
+            + "#positive{position:absolute;left:0;top:0;width:40px;height:40px;background:#ffff00;z-index:2}"
+            + "#after::after{content:'';display:block;position:absolute;left:0;top:0;width:40px;height:40px;background:#0000ff;z-index:-1}"
+            + "</style><div class='host' id='before'><div class='flow' id='first-flow'></div>"
+            + "<div id='positive'></div></div><div class='host' id='after'><div class='flow' id='second-flow'></div></div>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 40D,
+            ViewportHeight = 80D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        string[] sources = EnumerateRenderVisuals(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderShape>()
+            .Where(shape => shape.Shape.FillColor != null)
+            .Select(shape => shape.Source!)
+            .ToArray();
+        Assert.Contains("div#first-flow", sources);
+        Assert.Contains("div#before::before", sources);
+        Assert.Contains("div#positive", sources);
+        Assert.Contains("div#after::after", sources);
+        Assert.Contains("div#second-flow", sources);
+        Assert.True(Array.IndexOf(sources, "div#first-flow") < Array.IndexOf(sources, "div#before::before"));
+        Assert.True(Array.IndexOf(sources, "div#before::before") < Array.IndexOf(sources, "div#positive"));
+        Assert.True(Array.IndexOf(sources, "div#after::after") < Array.IndexOf(sources, "div#second-flow"));
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.PositioningModeUnsupported
+            && (diagnostic.Source == "div#before::before" || diagnostic.Source == "div#after::after"));
+    }
+
+    [Fact]
     public void HtmlGeneratedContent_RatioWrapperPaintsPositionedImage() {
         string data = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(10, 10));
         string html = "<style>body{margin:0}ul{display:flex;flex-wrap:wrap;list-style:none;margin:0;padding:0}"

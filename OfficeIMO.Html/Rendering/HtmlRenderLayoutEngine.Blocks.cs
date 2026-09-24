@@ -474,45 +474,33 @@ internal sealed partial class HtmlRenderLayoutEngine {
             geometry.StrokeWidth = 0D;
             visuals.Add(new HtmlRenderShape(geometry, style.MarginLeft, style.MarginTop, visuals.Count, source: interactionSource));
         }
-        AppendLocalPositionedVisuals(
+        AppendBlockPositionedVisuals(
             element,
             Math.Max(1D, boxWidth - style.BorderLeftWidth - style.BorderRightWidth),
             Math.Max(0.01D, boxHeight - style.BorderTopWidth - style.BorderBottomWidth),
             style.MarginLeft + style.BorderLeftWidth,
             style.MarginTop + style.BorderTopWidth,
             PositionedPaintBand.Negative,
+            style,
             overflowContent,
             positionedRunningStringAssignments);
-        AppendLocallyPositionedGeneratedContent(
-            element, HtmlPseudoElementKind.Before,
-            Math.Max(1D, boxWidth - style.BorderLeftWidth - style.BorderRightWidth),
-            Math.Max(0.01D, boxHeight - style.BorderTopWidth - style.BorderBottomWidth),
-            style.MarginLeft + style.BorderLeftWidth,
-            style.MarginTop + style.BorderTopWidth,
-            style, overflowContent);
         double contentX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft;
         double contentY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
         foreach (HtmlRenderVisual visual in contentVisuals) {
             overflowContent.Add(visual.Translate(contentX, contentY, overflowContent.Count));
         }
         if (style.Position != "static" || _localPositionedElements.ContainsKey(element)) {
-            AppendLocalPositionedVisuals(
+            AppendBlockPositionedVisuals(
                 element,
                 Math.Max(1D, boxWidth - style.BorderLeftWidth - style.BorderRightWidth),
                 Math.Max(0.01D, boxHeight - style.BorderTopWidth - style.BorderBottomWidth),
                 style.MarginLeft + style.BorderLeftWidth,
                 style.MarginTop + style.BorderTopWidth,
                 PositionedPaintBand.NonNegative,
+                style,
                 overflowContent,
                 positionedRunningStringAssignments);
         }
-        AppendLocallyPositionedGeneratedContent(
-            element, HtmlPseudoElementKind.After,
-            Math.Max(1D, boxWidth - style.BorderLeftWidth - style.BorderRightWidth),
-            Math.Max(0.01D, boxHeight - style.BorderTopWidth - style.BorderBottomWidth),
-            style.MarginLeft + style.BorderLeftWidth,
-            style.MarginTop + style.BorderTopWidth,
-            style, overflowContent);
         AppendOverflowContent(
             visuals,
             overflowContent,
