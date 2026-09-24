@@ -100,9 +100,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         if (!addedObject && placement.IsVisible) {
             OfficeShape placeholder = OfficeShape.Rectangle(placement.Width, placement.Height);
-            placeholder.FillColor = OfficeColor.FromRgb(245, 245, 245);
-            placeholder.StrokeColor = OfficeColor.FromRgb(160, 160, 160);
-            placeholder.StrokeWidth = 1D;
+            // Keep the missing image's hit area without painting over its authored CSS background.
+            placeholder.FillColor = OfficeColor.Transparent;
+            placeholder.StrokeWidth = 0D;
             objectVisuals.Add(new HtmlRenderShape(placeholder, imageX + placement.X, imageY + placement.Y, objectVisuals.Count, link, sourceDescription));
             if (!string.IsNullOrWhiteSpace(alternativeText)) {
                 double textHeight = Math.Min(placement.Height, style.LineHeight);

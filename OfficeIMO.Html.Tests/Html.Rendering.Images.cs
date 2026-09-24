@@ -76,6 +76,29 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRender_MissingImagePreservesAuthoredBackgroundAndLinkArea() {
+        const string html = """
+            <style>:root{--fallback:#20262c}img{background-color:var(--fallback);color:white}</style>
+            <a href="https://example.com/missing"><img src="missing.png" alt="Unavailable" style="display:block;width:120px;height:70px"></a>
+            """;
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 140D,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.White
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        Assert.Equal(OfficeColor.FromRgb(32, 38, 44), raster.GetPixel(110, 50));
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        Assert.Contains(PdfCore.PdfInspector.Inspect(pdf).LinkAnnotations,
+            link => link.Uri == "https://example.com/missing" && link.X2 - link.X1 > 50D);
+    }
+
+    [Fact]
     public void HtmlRender_InlineSvgReceivesHostDocumentCssAndCustomProperties() {
         const string html = "<style>svg{--accent:#ff0000} svg .host-painted{fill:var(--accent);stroke:#0000ff;stroke-width:2}</style>"
             + "<svg id='art' viewBox='0 0 20 10' style='width:40px;height:20px'>"
