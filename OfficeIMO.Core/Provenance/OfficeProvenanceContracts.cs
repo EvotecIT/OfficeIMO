@@ -182,7 +182,7 @@ public sealed class OfficeProvenanceOptions {
     public int MaxCarriers { get; set; } = 128;
     /// <summary>Maximum structural entries or materialized XML nodes accepted in a container. Defaults to 65,536.</summary>
     public int MaxContainerEntries { get; set; } = 65536;
-    /// <summary>Maximum cumulative expanded bytes inspected or copied across a container or its external provenance dependencies. Defaults to 1 GiB.</summary>
+    /// <summary>Maximum cumulative expanded bytes decoded, inspected, or copied across a container, its embedded assets, or its external provenance dependencies. Defaults to 1 GiB.</summary>
     public long MaxExpandedContainerBytes { get; set; } = 1024L * 1024L * 1024L;
     /// <summary>Whether supported image assets inside ZIP-based documents are inspected. Defaults to true.</summary>
     public bool ProcessEmbeddedAssets { get; set; } = true;
@@ -302,6 +302,10 @@ public sealed class OfficeProvenanceRemovalResult {
 
     /// <summary>Gets the inspection before removal.</summary>
     public OfficeProvenanceReport Before { get; }
+    /// <summary>Expanded bytes charged by the before and after inspections; an unchanged owner may reuse one report for both.</summary>
+    internal long ExpandedInspectionBytes => ReferenceEquals(Before, After)
+        ? Before.ExpandedInspectionBytes
+        : checked(Before.ExpandedInspectionBytes + After.ExpandedInspectionBytes);
     /// <summary>Gets the inspection after removal.</summary>
     public OfficeProvenanceReport After { get; }
     /// <summary>Gets format-native changes in source order.</summary>

@@ -345,7 +345,11 @@ public static partial class HtmlProvenance {
                         ReserveExpandedBytes(ref expandedBytes, image.LongLength - estimatedBytes, options.MaxExpandedContainerBytes);
                     }
                     try {
-                        OfficeProvenanceReport nested = OfficeProvenanceInspector.Inspect(image, "asset" + dataUri.FileExtension, CreateNestedOptions(options));
+                        OfficeProvenanceReport nested = OfficeProvenanceInspector.Inspect(
+                            image,
+                            "asset" + dataUri.FileExtension,
+                            CreateNestedOptions(options, options.MaxExpandedContainerBytes - expandedBytes));
+                        ReserveExpandedBytes(ref expandedBytes, nested.ExpandedInspectionBytes, options.MaxExpandedContainerBytes);
                         foreach (OfficeProvenanceEvidence item in nested.Evidence) AddEvidence(evidence, options, Prefix(location, item));
                         foreach (string diagnostic in nested.Diagnostics) diagnostics.Add($"{location}: {diagnostic}");
                     } catch (Exception exception) when (
@@ -435,7 +439,8 @@ public static partial class HtmlProvenance {
                         OfficeProvenanceRemovalResult nested = OfficeProvenanceRemover.Remove(
                             image,
                             "asset" + dataUri.FileExtension,
-                            CreateNestedRemovalOptions(options));
+                            CreateNestedRemovalOptions(options, options.Limits.MaxExpandedContainerBytes - expandedBytes));
+                        ReserveExpandedBytes(ref expandedBytes, nested.ExpandedInspectionBytes, options.Limits.MaxExpandedContainerBytes);
                         if (!nested.WasChanged) continue;
                         string metadata = CreateRewrittenDataUriMetadata(dataUri);
                         byte[] nestedOutput = nested.ToArray();
@@ -1492,7 +1497,7 @@ public static partial class HtmlProvenance {
 
     private static void ReserveExpandedBytes(ref long expandedBytes, long additionalBytes, long maximumBytes) {
         if (additionalBytes < 0 || expandedBytes > maximumBytes - additionalBytes) {
-            throw new InvalidDataException("HTML provenance payloads exceed the configured expanded-container limit.");
+            throw OfficeProvenanceLimitException.Create("HTML provenance payloads exceed the configured expanded-container limit.");
         }
         expandedBytes += additionalBytes;
     }
@@ -1522,18 +1527,20 @@ public static partial class HtmlProvenance {
         MaxEmbeddedAssets = Math.Min(source.MaxEmbeddedAssets, source.Limits.MaxEmbeddedAssets)
     };
 
-    private static OfficeProvenanceOptions CreateNestedOptions(OfficeProvenanceOptions source) => new OfficeProvenanceOptions {
+    // Embedded images receive only the document's remaining budget; the caller then charges what they used.
+    // Option validation requires a positive limit, and the caller's own reservation still rejects any overrun.
+    private static OfficeProvenanceOptions CreateNestedOptions(OfficeProvenanceOptions source, long remainingExpandedBytes) => new OfficeProvenanceOptions {
         MaxAssetBytes = source.MaxAssetBytes,
         MaxManifestBytes = source.MaxManifestBytes,
         MaxCarriers = source.MaxCarriers,
         MaxContainerEntries = source.MaxContainerEntries,
-        MaxExpandedContainerBytes = source.MaxExpandedContainerBytes,
+        MaxExpandedContainerBytes = Math.Max(1, remainingExpandedBytes),
         CancellationToken = source.CancellationToken,
         ProcessEmbeddedAssets = false,
         MaxEmbeddedAssets = source.MaxEmbeddedAssets
     };
 
-    private static OfficeProvenanceRemovalOptions CreateNestedRemovalOptions(OfficeProvenanceRemovalOptions source) {
+    private static OfficeProvenanceRemovalOptions CreateNestedRemovalOptions(OfficeProvenanceRemovalOptions source, long remainingExpandedBytes) {
         var nested = new OfficeProvenanceRemovalOptions {
             RemoveC2paManifests = source.RemoveC2paManifests,
             RemoveExternalC2paReferences = source.RemoveExternalC2paReferences,
@@ -1547,7 +1554,7 @@ public static partial class HtmlProvenance {
         nested.Limits.MaxManifestBytes = source.Limits.MaxManifestBytes;
         nested.Limits.MaxCarriers = source.Limits.MaxCarriers;
         nested.Limits.MaxContainerEntries = source.Limits.MaxContainerEntries;
-        nested.Limits.MaxExpandedContainerBytes = source.Limits.MaxExpandedContainerBytes;
+        nested.Limits.MaxExpandedContainerBytes = Math.Max(1, remainingExpandedBytes);
         nested.Limits.CancellationToken = source.Limits.CancellationToken;
         nested.Limits.ProcessEmbeddedAssets = false;
         nested.Limits.MaxEmbeddedAssets = source.Limits.MaxEmbeddedAssets;
