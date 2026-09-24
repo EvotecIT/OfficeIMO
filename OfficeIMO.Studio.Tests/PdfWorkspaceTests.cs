@@ -188,6 +188,30 @@ public sealed partial class PdfWorkspaceTests {
     }
 
     [Fact]
+    public async Task FormDataImportReadsUtf16AndRejectsOversizeBeforeMutation() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-xfdf-import-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string source = Path.Combine(root, "form.pdf");
+        string input = Path.Combine(root, "form.xfdf");
+        PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item =>
+            item.TextField("Customer.Name", value: "Before"))))).Save(source);
+        string xml = "<?xml version=\"1.0\" encoding=\"utf-16\"?><xfdf xmlns=\"http://ns.adobe.com/xfdf/\"><fields><field name=\"Customer.Name\"><value>Café</value></field></fields></xfdf>";
+        File.WriteAllBytes(input, System.Text.Encoding.Unicode.GetPreamble()
+            .Concat(System.Text.Encoding.Unicode.GetBytes(xml)).ToArray());
+        try {
+            using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None);
+            await workspace.ImportFormDataAsync(input, CancellationToken.None);
+            Assert.Equal("Café", Assert.Single(PdfDocument.Load(workspace.CopyBytes()).Inspect().FormFields).Value);
+            byte[] after = workspace.CopyBytes();
+
+            using (var stream = new FileStream(input, FileMode.Create, FileAccess.Write))
+                stream.SetLength(PdfFormDataSet.DefaultMaxXfdfDocumentBytes + 1L);
+            await Assert.ThrowsAsync<InvalidDataException>(() => workspace.ImportFormDataAsync(input, CancellationToken.None));
+            Assert.Equal(after, workspace.CopyBytes());
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
     public async Task TypedFormEditingAuthoringAndSelectiveFlatteningUseCanonicalFieldContracts() {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-typed-forms-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);

@@ -20,16 +20,15 @@ internal static class RecentDocumentThumbnails {
             !string.Equals(System.IO.Path.GetExtension(local), ".pdf", StringComparison.OrdinalIgnoreCase)) {
             return Task.FromResult<RecentDocumentPreview?>(null);
         }
-        FileInfo file;
         try {
-            file = new FileInfo(local);
+            var file = new FileInfo(local);
             if (!file.Exists) return Task.FromResult<RecentDocumentPreview?>(null);
+            string key = $"{file.FullName}|{file.Length}|{file.LastWriteTimeUtc.Ticks}";
+            if (Cache.Count > MaximumEntries) Cache.Clear();
+            return Cache.GetOrAdd(key, _ => new Lazy<Task<RecentDocumentPreview?>>(() => RenderAsync(file.FullName))).Value;
         } catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException) {
             return Task.FromResult<RecentDocumentPreview?>(null);
         }
-        string key = $"{file.FullName}|{file.Length}|{file.LastWriteTimeUtc.Ticks}";
-        if (Cache.Count > MaximumEntries) Cache.Clear();
-        return Cache.GetOrAdd(key, _ => new Lazy<Task<RecentDocumentPreview?>>(() => RenderAsync(file.FullName))).Value;
     }
 
     private static async Task<RecentDocumentPreview?> RenderAsync(string path) {

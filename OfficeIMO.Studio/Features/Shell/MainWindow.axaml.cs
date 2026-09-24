@@ -11,6 +11,7 @@ using OfficeIMO.Studio.Features.Reader;
 using OfficeIMO.Studio.Infrastructure;
 using OfficeIMO.Studio.Infrastructure.Preferences;
 using OfficeIMO.Studio.Infrastructure.Diagnostics;
+using OfficeIMO.Workflows;
 
 namespace OfficeIMO.Studio.Features.Shell;
 
@@ -776,9 +777,9 @@ public sealed partial class MainWindow : Window {
 
     private static bool IsPdf(string name) => string.Equals(System.IO.Path.GetExtension(name), ".pdf", StringComparison.OrdinalIgnoreCase);
 
-    private static readonly HashSet<string> ConvertibleExtensions = new(StringComparer.OrdinalIgnoreCase) {
-        ".docx", ".xlsx", ".pptx", ".html", ".htm", ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tif", ".tiff", ".webp", ".ico", ".pcx", ".zip"
-    };
+    private static readonly HashSet<string> ConvertibleExtensions = OfficeWorkflowCatalog.ExecutableRoutes
+        .SelectMany(route => route.SourceExtensions)
+        .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
     private static bool IsConvertible(string name) => ConvertibleExtensions.Contains(System.IO.Path.GetExtension(name));
 

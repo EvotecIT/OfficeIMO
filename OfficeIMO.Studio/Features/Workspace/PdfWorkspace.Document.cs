@@ -160,10 +160,12 @@ internal sealed partial class PdfWorkspace {
 
     internal async Task ImportFormDataAsync(string source, CancellationToken cancellationToken,
         IProgress<PdfWorkspaceProgress>? progress = null) {
-        var snapshot = await _storage.ReadSnapshotAsync(source, cancellationToken).ConfigureAwait(false);
-        string xfdf = Encoding.UTF8.GetString(snapshot.Bytes);
+        var snapshot = await _storage.ReadSnapshotAsync(source, cancellationToken,
+            PdfFormDataSet.DefaultMaxXfdfDocumentBytes).ConfigureAwait(false);
+        PdfFormDataSet data = await RunCancellableCpuWorkAsync(
+            () => PdfFormDataSet.ParseXfdfBytes(snapshot.Bytes), cancellationToken).ConfigureAwait(false);
         await MutateBytesAsync(PdfWorkspaceOperationKind.FormFill, "Imported form data from " + _storage.Describe(source).Name, [],
-            bytes => LoadDocument(bytes).Forms.ImportXfdf(xfdf).ToBytes(), cancellationToken, progress).ConfigureAwait(false);
+            bytes => LoadDocument(bytes).Forms.ImportData(data).ToBytes(), cancellationToken, progress).ConfigureAwait(false);
     }
 
     internal Task WriteTextOutputAsync(string destination, string content, CancellationToken cancellationToken) {
