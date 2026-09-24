@@ -80,6 +80,12 @@ public static partial class HtmlExcelConverterExtensions {
                         if (TrySetCellTextValue(narrativeSheet, row, 1, block.Text, result, budget)) {
                             ApplySemanticCellFormatting(narrativeSheet, row, 1, block.Runs,
                                 block.Kind == HtmlSemanticBlockKind.Heading, block.Style, result, budget);
+                            if (block.Kind == HtmlSemanticBlockKind.Form) {
+                                AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentApproximated,
+                                    "An HTML form was imported as editable visible text without its interactive controls.",
+                                    lossKind: OfficeConversionLossKind.Approximation,
+                                    detail: "block=Form; preserved=visibleText; interaction=omitted");
+                            }
                             row++;
                             result.Cells++;
                         }
@@ -358,7 +364,8 @@ public static partial class HtmlExcelConverterExtensions {
     private static bool IsGenericTextBlock(HtmlSemanticBlockKind kind) =>
         kind == HtmlSemanticBlockKind.Heading || kind == HtmlSemanticBlockKind.Paragraph
         || kind == HtmlSemanticBlockKind.Code || kind == HtmlSemanticBlockKind.Quote
-        || kind == HtmlSemanticBlockKind.List || kind == HtmlSemanticBlockKind.Note;
+        || kind == HtmlSemanticBlockKind.List || kind == HtmlSemanticBlockKind.Note
+        || kind == HtmlSemanticBlockKind.Form;
 
     private static bool IsSectionNarrativeBlock(HtmlSemanticSection section, HtmlSemanticBlock block) =>
         IsGenericTextBlock(block.Kind) && block.Text.Length > 0

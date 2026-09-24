@@ -36,9 +36,16 @@ public static partial class HtmlPowerPointConverterExtensions {
                 bool importTable = options.ImportTables && block.Kind == HtmlSemanticBlockKind.Table;
                 bool importPicture = options.ImportPictures && block.Kind == HtmlSemanticBlockKind.Image;
                 if (importText && !isSectionTitle) {
+                    int previousTextBoxes = result.TextBoxes;
                     contentTop = ImportTextBox(block.SourceElement, block.Text, slide, contentTop, result, budget,
                         block.Kind == HtmlSemanticBlockKind.List ? Math.Max(52D, CountSemanticListItems(block) * 30D) : 52D,
                         block);
+                    if (block.Kind == HtmlSemanticBlockKind.Form && result.TextBoxes > previousTextBoxes) {
+                        AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentApproximated,
+                            "An HTML form was imported as editable visible text without its interactive controls.",
+                            lossKind: OfficeConversionLossKind.Approximation,
+                            detail: "block=Form; preserved=visibleText; interaction=omitted");
+                    }
                 } else if (importTable) {
                     contentTop = ImportTable(block.SourceElement, slide, contentTop, result, budget, block);
                 } else if (importPicture) {
@@ -440,7 +447,8 @@ public static partial class HtmlPowerPointConverterExtensions {
     private static bool IsGenericTextBlock(HtmlSemanticBlockKind kind) =>
         kind == HtmlSemanticBlockKind.Heading || kind == HtmlSemanticBlockKind.Paragraph
         || kind == HtmlSemanticBlockKind.Code || kind == HtmlSemanticBlockKind.Quote
-        || kind == HtmlSemanticBlockKind.List || kind == HtmlSemanticBlockKind.Note;
+        || kind == HtmlSemanticBlockKind.List || kind == HtmlSemanticBlockKind.Note
+        || kind == HtmlSemanticBlockKind.Form;
 
     private static int CountSemanticListItems(HtmlSemanticBlock list) =>
         list.Children.Sum(item => 1 + item.Children
