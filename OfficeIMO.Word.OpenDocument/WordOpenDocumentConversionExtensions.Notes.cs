@@ -26,6 +26,16 @@ public static partial class WordOpenDocumentConversionExtensions {
                         if (reference.Id != null) AddAnchor(EndnoteAnchors, reference.Id.Value, run);
                     }
                 }
+                foreach (List<W.Run> anchors in FootnoteAnchors.Values) {
+                    int repeatedAcrossRuns = Math.Max(0, anchors.Distinct().Count() - 1);
+                    UnsupportedFootnotes += repeatedAcrossRuns;
+                    SeenWordFootnotes += repeatedAcrossRuns;
+                }
+                foreach (List<W.Run> anchors in EndnoteAnchors.Values) {
+                    int repeatedAcrossRuns = Math.Max(0, anchors.Distinct().Count() - 1);
+                    UnsupportedEndnotes += repeatedAcrossRuns;
+                    SeenWordEndnotes += repeatedAcrossRuns;
+                }
             }
             if (source != null) {
                 foreach (W.Footnote note in source.OpenXmlDocument.MainDocumentPart?.FootnotesPart?.Footnotes?
@@ -84,6 +94,8 @@ public static partial class WordOpenDocumentConversionExtensions {
         internal WordDocument? WordSource;
         internal readonly Dictionary<int, int> FootnotesBySection = new Dictionary<int, int>();
         internal readonly Dictionary<int, int> EndnotesBySection = new Dictionary<int, int>();
+        internal readonly HashSet<long> ProcessedFootnoteIds = new HashSet<long>();
+        internal readonly HashSet<long> ProcessedEndnoteIds = new HashSet<long>();
     }
 
     private static void CopyWordNotes(WordRunSnapshot run, OdtParagraph target, NoteMappingStats notes) {
@@ -138,6 +150,10 @@ public static partial class WordOpenDocumentConversionExtensions {
 
     private static void CopyWordNote(IReadOnlyList<WordParagraphSnapshot> paragraphs, long? referenceId, OdtNoteKind kind,
         OdtParagraph target, NoteMappingStats notes) {
+        if (referenceId.HasValue && !(kind == OdtNoteKind.Footnote
+            ? notes.ProcessedFootnoteIds : notes.ProcessedEndnoteIds).Add(referenceId.Value)) {
+            return;
+        }
         if (paragraphs.Count == 0) {
             CountUnsupported(kind, notes);
             return;
@@ -344,12 +360,12 @@ public static partial class WordOpenDocumentConversionExtensions {
             return;
         }
         IReadOnlyList<OdtParagraph> paragraphs = source.Paragraphs;
-        if (paragraphs.Any(paragraph => paragraph.InlineNodes.Any(node => node.Kind == OdtInlineNodeKind.Note))) {
+        if (paragraphs.Any(paragraph => ContainsInlineKind(paragraph.InlineNodes, OdtInlineNodeKind.Note))) {
             CountUnsupported(source.Kind.Value, notes);
             return;
         }
-        if (paragraphs.Any(paragraph => paragraph.InlineNodes.Any(node =>
-            node.Kind == OdtInlineNodeKind.Image || node.Kind == OdtInlineNodeKind.Other))) notes.UnsupportedBodyContent++;
+        if (paragraphs.Any(paragraph => ContainsUnsupportedNoteBodyInline(paragraph.InlineNodes)))
+            notes.UnsupportedBodyContent++;
         string text = string.Join("\n", paragraphs.Select(paragraph => paragraph.Text));
         if (source.Kind == OdtNoteKind.Footnote) {
             target.AddFootNote(text);
@@ -365,6 +381,13 @@ public static partial class WordOpenDocumentConversionExtensions {
         if (notes.HasOdtDefaultNoteBodyFormatting || paragraphs.Count != 1 || paragraphs.Any(paragraph => paragraph.StyleName != null ||
             paragraph.InlineNodes.Any(node => node.Kind != OdtInlineNodeKind.Text))) notes.ApproximatedBodies++;
     }
+
+    private static bool ContainsInlineKind(IReadOnlyList<OdtInlineNode> nodes, OdtInlineNodeKind kind) =>
+        nodes.Any(node => node.Kind == kind || ContainsInlineKind(node.Children, kind));
+
+    private static bool ContainsUnsupportedNoteBodyInline(IReadOnlyList<OdtInlineNode> nodes) =>
+        nodes.Any(node => node.Kind is OdtInlineNodeKind.Image or OdtInlineNodeKind.Other ||
+            ContainsUnsupportedNoteBodyInline(node.Children));
 
     private static bool HasOdtDefaultNoteBodyFormatting(OdtDocument source) {
         if (!source.Package.ContainsEntry("styles.xml")) return false;
@@ -391,9 +414,9 @@ public static partial class WordOpenDocumentConversionExtensions {
         AddCount(report, "footnotes", notes.ConvertedFootnotes);
         AddCount(report, "endnotes", notes.ConvertedEndnotes);
         if (notes.UnsupportedFootnotes > 0) report.Add("footnotes", OdfConversionMappingStatus.Unsupported,
-            notes.UnsupportedFootnotes, "Note references with unsupported bodies, classes, or multiple references in one run were omitted.");
+            notes.UnsupportedFootnotes, "Note references with unsupported bodies, classes, or repeated references to one Word note were omitted.");
         if (notes.UnsupportedEndnotes > 0) report.Add("endnotes", OdfConversionMappingStatus.Unsupported,
-            notes.UnsupportedEndnotes, "Note references with unsupported bodies or multiple references in one run were omitted.");
+            notes.UnsupportedEndnotes, "Note references with unsupported bodies or repeated references to one Word note were omitted.");
         if (notes.ApproximatedBodies > 0) report.Add("note-body-formatting", OdfConversionMappingStatus.Approximated,
             notes.ApproximatedBodies, "Note text was retained, but some note formatting or paragraph structure was flattened.");
         if (notes.UnsupportedBodyContent > 0) report.Add("note-body-content", OdfConversionMappingStatus.Unsupported,

@@ -71,12 +71,13 @@ public sealed partial class OdtDocument {
         return _noteIndex;
     }
 
-    private IEnumerable<XElement> GetNotesInPackageOrder() {
-        foreach (XElement note in GetXml("content.xml").Descendants(OdfNamespaces.Text + "note")
-            .Where(note => !note.Ancestors(OdfNamespaces.Text + "tracked-changes").Any())) yield return note;
+    private IEnumerable<XElement> GetNotesInPackageOrder() => GetAllNotesInPackageOrder()
+        .Where(note => !note.Ancestors(OdfNamespaces.Text + "tracked-changes").Any());
+
+    private IEnumerable<XElement> GetAllNotesInPackageOrder() {
+        foreach (XElement note in GetXml("content.xml").Descendants(OdfNamespaces.Text + "note")) yield return note;
         if (Package.ContainsEntry("styles.xml")) {
-            foreach (XElement note in GetXml("styles.xml").Descendants(OdfNamespaces.Text + "note")
-                .Where(note => !note.Ancestors(OdfNamespaces.Text + "tracked-changes").Any())) yield return note;
+            foreach (XElement note in GetXml("styles.xml").Descendants(OdfNamespaces.Text + "note")) yield return note;
         }
     }
 
@@ -103,9 +104,14 @@ public sealed partial class OdtDocument {
                     else { _configuredKinds.Add(OdtNoteKind.Footnote); _configuredKinds.Add(OdtNoteKind.Endnote); }
                 }
             }
-            foreach (XElement note in document.GetNotesInPackageOrder()) {
+            foreach (XElement note in document.GetAllNotesInPackageOrder()) {
                 string? id = (string?)note.Attribute(OdfNamespaces.Text + "id");
                 if (id != null) _ids.Add(id);
+                if (id != null && note.Ancestors(OdfNamespaces.Text + "tracked-changes").Any() &&
+                    IsGeneratedIdAndCitation(note, id)) _generatedIds.Add(id);
+            }
+            foreach (XElement note in document.GetNotesInPackageOrder()) {
+                string? id = (string?)note.Attribute(OdfNamespaces.Text + "id");
                 OdtNoteKind? kind = GetKind(note);
                 if (!kind.HasValue) continue;
                 int count = Count(kind.Value) + 1;
@@ -118,6 +124,17 @@ public sealed partial class OdtDocument {
                     if (id != null) _generatedIds.Add(id);
                 }
             }
+        }
+
+        private static bool IsGeneratedIdAndCitation(XElement note, string id) {
+            OdtNoteKind? kind = GetKind(note);
+            string prefix = kind == OdtNoteKind.Footnote ? "ftn" : kind == OdtNoteKind.Endnote ? "endn" : string.Empty;
+            if (prefix.Length == 0 || !id.StartsWith(prefix, StringComparison.Ordinal)) return false;
+            string suffix = id.Substring(prefix.Length);
+            XElement? citation = note.Element(OdfNamespaces.Text + "note-citation");
+            return citation?.Attribute(OdfNamespaces.Text + "label") == null &&
+                int.TryParse(suffix, NumberStyles.None, CultureInfo.InvariantCulture, out int number) &&
+                number > 0 && citation?.Value == number.ToString(CultureInfo.InvariantCulture);
         }
 
         internal int ExternalXmlEditVersion { get; }

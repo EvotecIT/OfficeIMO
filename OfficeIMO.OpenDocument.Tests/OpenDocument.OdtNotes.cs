@@ -120,6 +120,24 @@ public sealed class OpenDocumentOdtNotesTests {
     }
 
     [Fact]
+    public void TrackedDeletionReservesItsNoteIdUntilAccepted() {
+        OdtDocument source = OdtDocument.Create();
+        OdtParagraph first = source.AddParagraph("First");
+        string originalId = first.AddFootnote("Temporarily deleted").Id!;
+        OdtTrackedChange deletion = source.DeleteParagraphTracked(first, "Editor");
+        OdtDocument loaded = OdtDocument.Load(new MemoryStream(source.ToBytes()));
+        string newId = loaded.AddParagraph("Second").AddFootnote("New note").Id!;
+
+        Assert.NotEqual(originalId, newId);
+        Assert.True(loaded.RejectTrackedChange(deletion.Id));
+        OdtDocument reopened = OdtDocument.Load(new MemoryStream(loaded.ToBytes()));
+        OdtNote[] notes = reopened.Paragraphs.SelectMany(paragraph => paragraph.Notes).ToArray();
+        Assert.Equal(2, notes.Length);
+        Assert.Equal(2, notes.Select(note => note.Id).Distinct().Count());
+        Assert.Equal(new[] { "1", "2" }, notes.Select(note => note.Citation));
+    }
+
+    [Fact]
     public void NoteBodyInlineCollectionsBelongToNoteParagraphOnly() {
         OdtDocument source = OdtDocument.Create();
         OdtParagraph anchor = source.AddParagraph("Anchor");

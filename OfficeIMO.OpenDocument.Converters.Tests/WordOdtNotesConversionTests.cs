@@ -510,4 +510,48 @@ public sealed class WordOdtNotesConversionTests {
         Assert.Throws<OdfConversionLossException>(() => reopened.ToWordDocumentResult(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
+
+    [Fact]
+    public void NestedOdtNoteBodyImageIsUnsupportedLoss() {
+        OdtDocument source = OdtDocument.Create();
+        OdtParagraph body = source.AddParagraph("Anchor").AddFootnote("Body").Paragraphs[0];
+        body.AddImage(Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="),
+            "pixel.png", OdfLength.Centimeters(1), OdfLength.Centimeters(1));
+        byte[] nested = OdfTestPackageRewriter.Rewrite(source.ToBytes(), (name, bytes) => {
+            if (name != "content.xml") return bytes;
+            XDocument xml = XDocument.Parse(Encoding.UTF8.GetString(bytes));
+            XNamespace draw = "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0";
+            XNamespace text = "urn:oasis:names:tc:opendocument:xmlns:text:1.0";
+            XElement frame = xml.Descendants(draw + "frame").Single();
+            frame.ReplaceWith(new XElement(text + "span", frame));
+            return Encoding.UTF8.GetBytes(xml.ToString());
+        });
+        OdtDocument loaded = OdtDocument.Load(new MemoryStream(nested));
+
+        OdfConversionResult<WordDocument> conversion = loaded.ToWordDocumentResult();
+        using WordDocument word = conversion.Value;
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-content" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+        Assert.Throws<OdfConversionLossException>(() => loaded.ToWordDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported }));
+    }
+
+    [Fact]
+    public void SharedWordFootnoteReferenceAcrossRunsIsUnsupportedLoss() {
+        using WordDocument source = WordDocument.Create();
+        source.AddParagraph("First").AddFootNote("Shared note");
+        source.AddParagraph("Second");
+        long? id = source.OpenXmlDocument.MainDocumentPart!.Document!.Body!
+            .Descendants<W.FootnoteReference>().Single().Id?.Value;
+        Assert.NotNull(id);
+        source.OpenXmlDocument.MainDocumentPart.Document.Body.Elements<W.Paragraph>().Last()
+            .Append(new W.Run(new W.FootnoteReference { Id = id.Value }));
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "footnotes" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported }));
+    }
 }
