@@ -76,23 +76,4 @@ public sealed class MainWindowSmokeTests {
             return true;
         }, CancellationToken.None);
     }
-
-    [Theory]
-    [InlineData("notes.txt", "report.PDF", "report.PDF")]
-    [InlineData("first.pdf", "second.pdf", "first.pdf")]
-    public void DropSelectionUsesFirstPdfCaseInsensitively(
-        string first,
-        string second,
-        string expected) {
-        bool found = MainWindow.TryGetPdfPath([first, second], out string? path);
-
-        Assert.True(found);
-        Assert.Equal(expected, path);
-    }
-
-    [Fact]
-    public void DropSelectionRejectsMissingOrUnsupportedFiles() {
-        Assert.False(MainWindow.TryGetPdfPath([null, "notes.txt", "image.png"], out string? path));
-        Assert.Null(path);
-    }
 }

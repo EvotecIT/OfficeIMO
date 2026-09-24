@@ -1313,7 +1313,10 @@ edited.Document.Text.Add(
 ```
 
 `Text.Find(...)` supports case and whole-word filters over visible, unclipped
-text, while `Text.ReplaceAll(...)` preserves unmatched source-span text and
+text. Phrases match across line breaks within a paragraph and across
+end-of-line hyphenation; a wrapped match is one `PdfTextMatch` whose
+`VisualLineBounds` lists one rectangle per line, while `VisualBounds` remains
+the combined box. `Text.ReplaceAll(...)` preserves unmatched source-span text and
 keeps wide same-baseline runs such as columns independent. Edits fail closed
 when an atomic PDF text object would require invisible or clipped text to be
 recreated without its original rendering state.

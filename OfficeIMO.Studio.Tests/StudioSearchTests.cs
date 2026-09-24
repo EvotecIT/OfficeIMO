@@ -188,7 +188,9 @@ public sealed class StudioSearchTests {
                 Assert.Equal(model.SelectedSearchResult.Bounds, canvas.ActiveSearchHighlight);
                 var location = canvas.TranslatePoint(new Point(0, 0), window)!.Value;
                 double highlightedY = location.Y + model.SelectedSearchResult.Bounds.Center.Y * canvas.Bounds.Height / page.Scene!.Drawing.Height;
-                Assert.InRange(highlightedY, 200, 750);
+                var reader = layout == ReaderLayoutMode.Grid ? window.ReaderGridPagesListControl : window.ReaderPagesListControl;
+                double readerTop = reader.TranslatePoint(new Point(0, 0), window)!.Value.Y;
+                Assert.InRange(highlightedY, readerTop + 24, readerTop + reader.Bounds.Height - 24);
                 Capture(window, $"search-layout-{layout}");
                 var box = window.FindControl<DocumentWorkspaceView>("DocumentWorkspace")!.FindControl<TextBox>("SearchBox")!;
                 box.Focus(); window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.None, null);

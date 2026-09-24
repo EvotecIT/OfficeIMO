@@ -24,7 +24,11 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasScene))]
+    [NotifyPropertyChangedFor(nameof(IsImageOnly))]
     private PdfPageScene? _scene;
+
+    /// <summary>True once the page has loaded and turned out to be an image without a text layer.</summary>
+    public bool IsImageOnly => Scene?.IsImageOnly == true;
 
     [ObservableProperty]
     private Bitmap? _pageImage;
@@ -157,6 +161,11 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
     }
 
     internal void CompleteEditorGesture(PdfEditorGesture gesture) => EditorGestureCompleted?.Invoke(gesture);
+
+    /// <summary>Raised when the reader asks to mark up a selection or place a note without first choosing a tool.</summary>
+    internal event Action<PdfEditorTool, PdfEditorGesture>? MarkupRequested;
+
+    internal void RequestMarkup(PdfEditorTool tool, PdfEditorGesture gesture) => MarkupRequested?.Invoke(tool, gesture);
 
     internal void SelectObject(PdfEditorSelection? selection) => ObjectSelected?.Invoke(selection);
     internal void TransformObject(PdfObjectTransformGesture gesture) => ObjectTransformCompleted?.Invoke(gesture);

@@ -5,32 +5,72 @@
              xmlns:shell="using:OfficeIMO.Studio.Features.Shell"
              x:Class="OfficeIMO.Studio.Features.Home.ToolsView"
              x:DataType="shell:MainWindowViewModel">
-  <ScrollViewer Background="{DynamicResource StudioWindowBrush}" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-    <StackPanel Margin="28,24" Spacing="18" MaxWidth="1080" HorizontalAlignment="Stretch">
-      <TextBlock Text="{loc:Loc Tools.Tools}" Classes="pageTitle" />
-      <TextBlock Text="{loc:Loc Tools.Introduction}" Classes="muted" />
+  <UserControl.Styles>
+    <Style Selector="Button.toolCard">
+      <Setter Property="Background" Value="{DynamicResource StudioPanelRaisedBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource StudioSubtleBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Padding" Value="16" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="VerticalAlignment" Value="Stretch" />
+      <Setter Property="VerticalContentAlignment" Value="Top" />
+    </Style>
+    <Style Selector="Button.toolCard:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource StudioAccentSoftBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" />
+    </Style>
+    <Style Selector="Button.toolCard:pointerover Border.toolGlyph">
+      <Setter Property="Background" Value="{DynamicResource StudioAccentBrush}" />
+    </Style>
+    <Style Selector="Button.toolCard:pointerover Border.toolGlyph PathIcon">
+      <Setter Property="Foreground" Value="{DynamicResource StudioAccentForegroundBrush}" />
+    </Style>
+    <Style Selector="Button.toolCard:disabled /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource StudioPanelRaisedBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource StudioSubtleBorderBrush}" />
+    </Style>
+    <Style Selector="Button.toolCard:disabled"><Setter Property="Opacity" Value="0.7" /></Style>
+  </UserControl.Styles>
+  <ScrollViewer Background="{DynamicResource StudioPanelBrush}" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+    <StackPanel Margin="36,28,36,36" Spacing="18" MaxWidth="1180" HorizontalAlignment="Stretch">
+      <StackPanel Spacing="4">
+        <TextBlock Text="{loc:Loc Tools.Tools}" Classes="pageTitle" />
+        <TextBlock Text="{loc:Loc Tools.Introduction}" Classes="muted" />
+      </StackPanel>
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
         <TextBox Text="{Binding Commands.ToolQuery, Mode=TwoWay}" PlaceholderText="{loc:Loc Commands.SearchTools}"
-                 AutomationProperties.Name="{loc:Loc Commands.SearchTools}" MinHeight="36" />
-        <Button Grid.Column="1" Classes="primary" Command="{Binding Commands[Open]}" Content="{loc:Loc Commands.Open.Title}" />
+                 AutomationProperties.Name="{loc:Loc Commands.SearchTools}" MinHeight="40" VerticalContentAlignment="Center">
+          <TextBox.InnerLeftContent><PathIcon Data="{StaticResource IconSearch}" Width="15" Height="15" Margin="12,0,2,0" Foreground="{DynamicResource StudioMutedTextBrush}" /></TextBox.InnerLeftContent>
+        </TextBox>
+        <Button Grid.Column="1" Classes="primary" Command="{Binding Commands[Open]}">
+          <StackPanel Orientation="Horizontal" Spacing="8"><PathIcon Data="{StaticResource IconOpen}" Width="15" Height="15" /><TextBlock Text="{loc:Loc Commands.Open.Title}" /></StackPanel>
+        </Button>
       </Grid>
-      <TextBlock Text="{loc:Loc Commands.NoResults}" IsVisible="{Binding !Commands.HasTools}" TextWrapping="Wrap" />
+      <TextBlock Text="{loc:Loc Commands.NoResults}" IsVisible="{Binding !Commands.HasTools}" TextWrapping="Wrap" Classes="muted" />
       <ItemsControl ItemsSource="{Binding Commands.FilteredTools}">
         <ItemsControl.ItemsPanel>
-          <ItemsPanelTemplate><infra:AdaptiveCardPanel MinimumCardWidth="270" ColumnSpacing="12" RowSpacing="12" /></ItemsPanelTemplate>
+          <ItemsPanelTemplate><infra:AdaptiveCardPanel MinimumCardWidth="270" ColumnSpacing="14" RowSpacing="14" /></ItemsPanelTemplate>
         </ItemsControl.ItemsPanel>
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="shell:StudioCommandItem">
-            <Button Classes="cardAction" Command="{Binding}" Padding="20" HorizontalAlignment="Stretch"
-                    HorizontalContentAlignment="Stretch" VerticalContentAlignment="Top"
+            <Button Classes="toolCard" Command="{Binding}"
                     AutomationProperties.Name="{Binding Title}" AutomationProperties.HelpText="{Binding Description}">
-              <StackPanel Spacing="8">
-                <TextBlock Text="{Binding Category}" Classes="eyebrow" />
-                <TextBlock Text="{Binding Title}" TextWrapping="Wrap" FontWeight="SemiBold" />
-                <TextBlock Text="{Binding Description}" Classes="muted" TextWrapping="Wrap" />
-                <TextBlock Text="{Binding UnavailableReason}" IsVisible="{Binding HasUnavailableReason}"
-                           Foreground="{DynamicResource StudioWarningBrush}" TextWrapping="Wrap" />
-              </StackPanel>
+              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
+                <Border Classes="toolGlyph" Width="40" Height="40" CornerRadius="10" Background="{DynamicResource StudioAccentSoftBrush}" VerticalAlignment="Top">
+                  <PathIcon Data="{Binding Id, Converter={x:Static infra:StudioConverters.CommandIcon}}" Width="18" Height="18" Foreground="{DynamicResource StudioAccentBrush}" />
+                </Border>
+                <StackPanel Grid.Column="1" Spacing="4">
+                  <TextBlock Text="{Binding Category}" Classes="groupLabel" />
+                  <TextBlock Text="{Binding Title}" TextWrapping="Wrap" FontWeight="SemiBold" FontSize="15" />
+                  <TextBlock Text="{Binding Description}" Classes="muted" TextWrapping="Wrap" FontSize="13" />
+                  <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding HasUnavailableReason}" Margin="0,4,0,0">
+                    <PathIcon Data="{StaticResource IconInfo}" Width="12" Height="12" Foreground="{DynamicResource StudioMutedTextBrush}" VerticalAlignment="Top" Margin="0,2,0,0" />
+                    <TextBlock Text="{Binding UnavailableReason}" Classes="caption" TextWrapping="Wrap" MaxWidth="260" />
+                  </StackPanel>
+                </StackPanel>
+              </Grid>
             </Button>
           </DataTemplate>
         </ItemsControl.ItemTemplate>

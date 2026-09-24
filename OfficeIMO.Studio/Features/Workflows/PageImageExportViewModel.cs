@@ -95,6 +95,7 @@ public sealed partial class PageImageExportViewModel : ObservableObject, IDispos
     private string _summary = string.Empty;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasOutput))]
     private string? _publishedDirectory;
 
     [ObservableProperty]

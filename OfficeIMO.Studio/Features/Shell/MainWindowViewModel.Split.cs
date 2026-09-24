@@ -27,13 +27,17 @@ public sealed partial class MainWindowViewModel {
             bool provider = _services.Storage.UsesProviderPublication(folder);
             string destination = provider ? folder : Path.Combine(OfficeStorageIdentity.GetLocalPath(folder)
                 ?? throw new IOException("Choose an accessible output folder."), "Split PDFs");
+            int topLevel = Bookmarks.Where(bookmark => bookmark.PageNumber.HasValue).Select(bookmark => bookmark.Level).DefaultIfEmpty(1).Min();
+            PdfSplitStart[] starts = Bookmarks.Where(bookmark => bookmark.Level == topLevel && bookmark.PageNumber.HasValue)
+                .Select(bookmark => new PdfSplitStart(bookmark.PageNumber!.Value, bookmark.Title)).ToArray();
             var preview = new PageSplitPreviewViewModel(workspace.Pages.Count, pagesPerPart, destination, provider, _localizer,
-                path => _openDocumentInTab is null ? _openUri(new Uri(path)) : _openDocumentInTab(path, CancellationToken.None));
+                path => _openDocumentInTab is null ? _openUri(new Uri(path)) : _openDocumentInTab(path, CancellationToken.None), starts);
             if (!await _reviewPageSplit(preview).ConfigureAwait(true) || !preview.CanApply) return;
             if (!IsReviewedCopyCurrent(workspace, revision) || !CanExtractPages) return;
             if (provider && !await _confirmProviderWrite(destination).ConfigureAwait(true)) return;
             if (!IsReviewedCopyCurrent(workspace, revision) || !CanExtractPages) return;
             int selectedPartSize = preview.PartSize;
+            PdfSplitPlan? selectedPlan = preview.Plan;
             SplitPagesPerDocument = selectedPartSize;
             PdfSplitWorkflowResult? result = null;
             await RunStandaloneAsync(async token => {
@@ -51,7 +55,7 @@ public sealed partial class MainWindowViewModel {
                         job.Report(new OfficeWorkflowProgress("split", "split", update.Stage, update.Fraction, update.Fraction));
                     });
                     ownerStarted = true;
-                    result = await workspace.SplitAsync(destination, selectedPartSize, token, progress, directory?.Output, _publicationGuard).ConfigureAwait(true);
+                    result = await workspace.SplitAsync(destination, selectedPartSize, token, progress, directory?.Output, _publicationGuard, selectedPlan).ConfigureAwait(true);
                     string? publishedOutput = result.Files.Count == 0 ? null : provider ? result.Files[0].Path : Path.GetDirectoryName(result.Files[0].Path);
                     job.CompleteBatch(result.Status, publishedOutput, result.Summary, result.OutputRecoveries, result.Files.Count > 0);
                 } catch (OperationCanceledException) when (token.IsCancellationRequested) {

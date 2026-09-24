@@ -18,6 +18,28 @@ public sealed partial class RecentDocumentViewModel : ObservableObject {
 
     public string Path { get; }
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasThumbnail))]
+    private Avalonia.Media.Imaging.Bitmap? _thumbnail;
+
+    [ObservableProperty]
+    private string? _pageCountLabel;
+
+    public bool HasThumbnail => Thumbnail is not null;
+
+    private bool _thumbnailRequested;
+
+    /// <summary>Starts loading the first-page preview once; cards without a preview keep the document glyph.</summary>
+    internal async void EnsureThumbnail() {
+        if (_thumbnailRequested) return;
+        _thumbnailRequested = true;
+        RecentDocumentPreview? preview = await RecentDocumentThumbnails.GetAsync(Path);
+        if (preview is null) return;
+        Thumbnail = preview.Image;
+        if (preview.PageCount > 0)
+            PageCountLabel = preview.PageCount == 1 ? _localizer.Get("Home.PageCountOne") : _localizer.Format("Home.PageCount", preview.PageCount);
+    }
+
     internal Infrastructure.StudioStorageReference? StorageReference { get; init; }
 
     public string FileName => StorageReference?.Name ?? OfficeIMO.Internal.OfficeStorageIdentity.GetFileName(Path);

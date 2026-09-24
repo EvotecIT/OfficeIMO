@@ -24,10 +24,20 @@ public sealed partial class PdfPageViewModel {
         _canvasHeight = size.Height > 0 ? size.Height : null;
         UpdateInlineEditorPosition();
     }
-    partial void OnSceneChanged(PdfPageScene? value) => UpdateInlineEditorPosition();
+    partial void OnSceneChanged(PdfPageScene? value) {
+        UpdateInlineEditorPosition();
+        UpdateInlineFormBounds();
+    }
     partial void OnSelectedObjectChanged(PdfEditorSelection? value) => UpdateInlineEditorPosition();
-    partial void OnDisplayWidthChanged(double value) => UpdateInlineEditorPosition();
-    partial void OnDisplayHeightChanged(double value) => UpdateInlineEditorPosition();
+    partial void OnDisplayWidthChanged(double value) {
+        UpdateInlineEditorPosition();
+        UpdateInlineFormBounds();
+    }
+    // Width and height change one after the other on zoom; both editors recompute after each.
+    partial void OnDisplayHeightChanged(double value) {
+        UpdateInlineEditorPosition();
+        UpdateInlineFormBounds();
+    }
     private void UpdateInlineEditorPosition() {
         OnPropertyChanged(nameof(InlineEditorWidth));
         OnPropertyChanged(nameof(InlineEditorLeft));

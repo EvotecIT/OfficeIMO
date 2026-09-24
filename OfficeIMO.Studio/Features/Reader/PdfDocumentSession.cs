@@ -63,6 +63,9 @@ internal sealed class PdfDocumentSession {
                         var bounds = occurrence.VisualBounds;
                         matches.Add(new PdfSearchHit(index + 1, occurrence.Text) {
                             Bounds = new Avalonia.Rect(bounds.Left, bounds.Top, bounds.Width, bounds.Height),
+                            LineBounds = occurrence.VisualLineBounds
+                                .Select(static line => new Avalonia.Rect(line.Left, line.Top, line.Width, line.Height))
+                                .ToArray(),
                             OccurrenceNumber = matches.Count + 1
                         });
                     }

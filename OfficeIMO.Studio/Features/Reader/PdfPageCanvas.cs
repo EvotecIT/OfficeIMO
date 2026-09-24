@@ -109,6 +109,34 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
 
     internal event Action<PdfEditorSelection?>? ObjectSelected;
 
+    /// <summary>Raised when a reader text selection finishes, so the page can offer quick actions near it.</summary>
+    internal event Action? TextSelectionCompleted;
+
+    internal bool HasTextSelection => !string.IsNullOrEmpty(SelectedText);
+
+    /// <summary>The current text selection as page-space editor bounds, for markup created from a selection.</summary>
+    internal PdfEditorGesture? CreateSelectionGesture() {
+        if (Scene is null || !_selectionStart.HasValue || !_selectionEnd.HasValue) return null;
+        Point start = ToPagePoint(_selectionStart.Value);
+        Point end = ToPagePoint(_selectionEnd.Value);
+        return new PdfEditorGesture(Scene.PageNumber,
+            Math.Min(start.X, end.X), Math.Min(start.Y, end.Y), Math.Max(start.X, end.X), Math.Max(start.Y, end.Y),
+            [new PdfEditorVisualPoint(start.X, start.Y), new PdfEditorVisualPoint(end.X, end.Y)]);
+    }
+
+    /// <summary>A single-point gesture at a canvas position, used to place a note from the context menu.</summary>
+    internal PdfEditorGesture? CreatePointGesture(Point canvasPoint) {
+        if (Scene is null) return null;
+        Point point = ToPagePoint(canvasPoint);
+        Rect bounds = EnsureUsableBounds(new Rect(point.X, point.Y, 0D, 0D), PdfEditorTool.Note);
+        return new PdfEditorGesture(Scene.PageNumber, bounds.Left, bounds.Top, bounds.Right, bounds.Bottom,
+            [new PdfEditorVisualPoint(point.X, point.Y)]);
+    }
+
+    internal Task CopySelectedTextAsync() => CopySelectionAsync();
+
+    internal void SelectAllPageText() => SelectAllText();
+
     public override void Render(DrawingContext context) {
         base.Render(context);
         context.DrawRectangle(Brushes.White, null, Bounds);
@@ -251,6 +279,8 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
             if (!SelectObjectAt(_selectionEnd.Value)) ActivateLink(_selectionEnd.Value);
         } else if (SelectionMode == PdfEditorSelectionMode.PageContent) {
             SelectTextObject();
+        } else if (HasTextSelection) {
+            TextSelectionCompleted?.Invoke();
         }
         InvalidateVisual();
     }
@@ -476,14 +506,13 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
         }
     }
 
+    /// <summary>Studio's accent on white paper; pages are white in every theme.</summary>
+    internal static readonly Color PageAccent = Color.FromRgb(47, 99, 233);
+
     private void DrawInteractionOverlay(DrawingContext context) {
         if (_hoverRegion is null) return;
-        Color color = _hoverRegion.Kind switch {
-            PdfInteractionKind.Link => Color.FromRgb(53, 106, 230),
-            PdfInteractionKind.FormWidget => Color.FromRgb(16, 185, 129),
-            PdfInteractionKind.Image => Color.FromRgb(124, 58, 237),
-            _ => Color.FromRgb(245, 158, 11)
-        };
+        // Every selectable object uses the one Studio accent, so handles and hovers read the same everywhere.
+        Color color = PageAccent;
         var fill = new SolidColorBrush(Color.FromArgb(28, color.R, color.G, color.B));
         var stroke = new Pen(new SolidColorBrush(Color.FromArgb(190, color.R, color.G, color.B)), 1D);
         context.DrawRectangle(
@@ -496,12 +525,8 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
         if (SelectedObject is not PdfEditorSelection selected) return;
         PdfEditorVisualBounds bounds = selected.Bounds;
         if (bounds.Width <= 0D || bounds.Height <= 0D) return;
-        Color accent = selected.Kind switch {
-            PdfEditorSelectionKind.Image => Color.FromRgb(124, 58, 237),
-            PdfEditorSelectionKind.Annotation => Color.FromRgb(245, 158, 11),
-            _ => Color.FromRgb(53, 106, 230)
-        };
-        var fill = new SolidColorBrush(Color.FromArgb(32, 53, 106, 230));
+        Color accent = PageAccent;
+        var fill = new SolidColorBrush(Color.FromArgb(32, accent.R, accent.G, accent.B));
         var stroke = new Pen(new SolidColorBrush(accent), 2D);
         var area = new Rect(bounds.Left, bounds.Top, bounds.Width, bounds.Height);
         context.DrawRectangle(fill, stroke, area);
@@ -546,15 +571,16 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
 
     private void DrawEditorPreview(DrawingContext context) {
         if (!_editing || _editorPath.Count == 0) return;
-        var stroke = new Pen(new SolidColorBrush(Color.FromArgb(220, 220, 38, 38)), 1.5D);
-        if (EditorTool == PdfEditorTool.Ink || EditorTool == PdfEditorTool.Line) {
+        Color ink = EditorTool == PdfEditorTool.Redact ? Color.FromRgb(220, 38, 38) : PageAccent;
+        var stroke = new Pen(new SolidColorBrush(Color.FromArgb(220, ink.R, ink.G, ink.B)), 1.5D);
+        if (EditorTool is PdfEditorTool.Ink or PdfEditorTool.Line or PdfEditorTool.Polygon) {
             for (int index = 1; index < _editorPath.Count; index++) {
                 context.DrawLine(stroke, _editorPath[index - 1], _editorPath[index]);
             }
             return;
         }
         Rect bounds = GetEditorBounds();
-        var fill = new SolidColorBrush(Color.FromArgb(EditorTool == PdfEditorTool.Redact ? (byte)90 : (byte)28, 220, 38, 38));
+        var fill = new SolidColorBrush(Color.FromArgb(EditorTool == PdfEditorTool.Redact ? (byte)90 : (byte)28, ink.R, ink.G, ink.B));
         context.DrawRectangle(fill, stroke, bounds);
     }
 

@@ -62,6 +62,10 @@ public sealed partial class MainWindowViewModel {
 
     public int PrimaryReaderColumnSpan => IsComparisonOpen ? 1 : 3;
 
+    public string PageStatusText => SelectedPage is null
+        ? _localizer.Get("Document.NoPage")
+        : _localizer.Format("Document.PagePosition", SelectedPage.PageNumber, Pages.Count);
+
     public string ComparisonPagePosition => ComparisonSelectedPage is null
         ? _localizer.Get("Document.NoPage")
         : _localizer.Format("Document.PagePosition", ComparisonSelectedPage.PageNumber, ComparisonPages.Count);

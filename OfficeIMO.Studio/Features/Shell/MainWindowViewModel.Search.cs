@@ -20,6 +20,9 @@ public sealed partial class MainWindowViewModel {
 
     public bool HasSearchResults => SearchResults.Count > 0;
 
+    /// <summary>True when the current status only restates search progress already shown in the search pane.</summary>
+    public bool IsQuietOperationStatus => _searchStatus is not null && ReferenceEquals(OperationStatus, _searchStatus);
+
     public string SearchPosition => !CanSearchDocument ? UiText("Capability.SearchRestricted") : HasSearchResults
         ? UiFormat("Search.Position", SelectedSearchResult is null ? 0 : SearchResults.IndexOf(SelectedSearchResult) + 1, SearchResults.Count)
         : UiText(_searchCompleted ? "Search.NoResults" : "Search.Prompt");
@@ -81,8 +84,9 @@ public sealed partial class MainWindowViewModel {
         long generation = _searchGeneration;
         if (session is null || string.IsNullOrWhiteSpace(query)) return;
         if (!CanSearchDocument) { ErrorMessage = UiText("Capability.SearchRestricted"); return; }
-        _searchStatus = OperationStatus = UiText("Workspace.SearchingDocument");
-        bool succeeded = await RunStandaloneAsync(async token => {
+        _searchStatus = UiText("Workspace.SearchingDocument");
+        OperationStatus = _searchStatus;
+        await RunStandaloneAsync(async token => {
             CancellationTokenSource? attempt = _operationCancellation;
             var progress = new Progress<double>(fraction => {
                 if (IsWorkspaceBusy && ReferenceEquals(attempt, _operationCancellation)) OperationProgressFraction = Math.Clamp(fraction, 0D, 1D);
@@ -90,14 +94,13 @@ public sealed partial class MainWindowViewModel {
             var results = await session.SearchAsync(query, token, progress).ConfigureAwait(true);
             if (generation != _searchGeneration || !ReferenceEquals(session, _session)) return;
             foreach (var result in results) SearchResults.Add(result.WithLocalizer(_localizer));
-            var pageMatches = SearchResults.GroupBy(hit => hit.PageNumber).ToDictionary(group => group.Key, group => group.Select(hit => hit.Bounds).ToArray());
+            var pageMatches = SearchResults.GroupBy(hit => hit.PageNumber).ToDictionary(group => group.Key, group => group.SelectMany(hit => hit.Highlights).ToArray());
             foreach (var page in Pages) page.SearchHighlights = pageMatches.TryGetValue(page.PageNumber, out var highlights) ? highlights : Array.Empty<Avalonia.Rect>();
             _searchCompleted = true;
             NotifySearchResultsChanged();
             SelectedSearchResult = SearchResults.FirstOrDefault();
             OperationProgressFraction = 1D;
-        }, cancellationToken).ConfigureAwait(true);
-        if (succeeded && generation == _searchGeneration && ReferenceEquals(session, _session))
-            _searchStatus = OperationStatus = HasSearchResults ? UiFormat("Search.MatchCount", SearchResults.Count) : UiText("Workspace.NoMatches");
+            _searchStatus = HasSearchResults ? UiFormat("Search.MatchCount", SearchResults.Count) : UiText("Workspace.NoMatches");
+        }, cancellationToken, describeSuccess: () => _searchCompleted ? _searchStatus : null).ConfigureAwait(true);
     }
 }

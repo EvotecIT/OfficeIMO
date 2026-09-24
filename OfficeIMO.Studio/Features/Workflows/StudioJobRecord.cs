@@ -35,7 +35,21 @@ public sealed partial class StudioJobRecord : ObservableObject {
     [ObservableProperty]
     private double _progress;
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(OutputName))]
     private string? _outputPath;
+
+    /// <summary>The output file or folder name; the full location stays in the tooltip.</summary>
+    public string OutputName => string.IsNullOrWhiteSpace(OutputPath) ? string.Empty
+        : System.IO.Path.GetFileName(OutputPath.TrimEnd('\\', '/')) is { Length: > 0 } name ? name : OutputPath;
+
+    /// <summary>Finished outcome for the progress colour: running, succeeded, failed or cancelled.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsSucceeded), nameof(IsFailed), nameof(IsCancelled))]
+    private OfficeWorkflowStatus? _outcome;
+
+    public bool IsSucceeded => Outcome == OfficeWorkflowStatus.Completed;
+    public bool IsFailed => Outcome is OfficeWorkflowStatus.Failed or OfficeWorkflowStatus.Unconfirmed;
+    public bool IsCancelled => Outcome == OfficeWorkflowStatus.Cancelled;
     [ObservableProperty]
     private string? _summary;
     [ObservableProperty]
@@ -96,6 +110,7 @@ public sealed partial class StudioJobRecord : ObservableObject {
             ? _localizer.GetOrDefault("Jobs.Unconfirmed", "Check output")
             : _localizer.GetOrDefault("Workflow.Status." + status, status.ToString());
         Progress = status == OfficeWorkflowStatus.Cancelled ? Progress : 1D;
+        Outcome = status;
         _cancel = null;
         IsActive = false;
     }
@@ -104,6 +119,8 @@ public sealed partial class StudioJobRecord : ObservableObject {
         if (!IsActive) return;
         Summary = summary;
         Status = _localizer.GetOrDefault("Jobs.Unconfirmed", "Check output");
+        Outcome = OfficeWorkflowStatus.Unconfirmed;
+        Progress = 1D;
         _cancel = null;
         IsActive = false;
     }

@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
@@ -21,10 +22,16 @@ internal static partial class PdfRedactionPlanner {
         StringComparison comparison = search.MatchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
         var areas = new List<PdfRedactionArea>(); var keys = new HashSet<string>(StringComparer.Ordinal);
         var workBudget = new PdfRedactionSearchWorkBudget("search planning");
-        foreach (PdfLogicalTextBlock block in logical.TextBlocks) {
+        IReadOnlyList<PdfLogicalTextBlock> textBlocks = logical.TextBlocks;
+        Dictionary<int, string> wrappedLiterals = MatchLiteralsAcrossBlocks(textBlocks, search.LiteralText, comparison, workBudget,
+            index => search.PageNumbers.Count == 0 || search.PageNumbers.Contains(textBlocks[index].PageNumber), search.CancellationToken);
+        for (int blockIndex = 0; blockIndex < textBlocks.Count; blockIndex++) {
+            PdfLogicalTextBlock block = textBlocks[blockIndex];
             search.CancellationToken.ThrowIfCancellationRequested();
             if (search.PageNumbers.Count > 0 && !search.PageNumbers.Contains(block.PageNumber)) continue;
-            string? criterion = MatchText(block, search, expressions, comparison, workBudget); if (criterion is null) continue;
+            string? criterion = MatchText(block, search, expressions, comparison, workBudget) ??
+                (wrappedLiterals.TryGetValue(blockIndex, out string? wrappedCriterion) ? wrappedCriterion : null);
+            if (criterion is null) continue;
             PdfTextSpanBounds bounds = GetTextBlockBounds(block, logical.Pages[block.PageNumber - 1]);
             AddArea(areas, keys, new PdfRedactionArea(block.PageNumber, bounds.Left, bounds.Bottom, bounds.Width, bounds.Height, criterion), search.MaximumCandidates);
         }
@@ -51,11 +58,47 @@ internal static partial class PdfRedactionPlanner {
 
     private static void AddArea(List<PdfRedactionArea> areas, HashSet<string> keys, PdfRedactionArea area, int maximumCandidates) { string key = area.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" + area.X.ToString("R", System.Globalization.CultureInfo.InvariantCulture) + ":" + area.Y.ToString("R", System.Globalization.CultureInfo.InvariantCulture) + ":" + area.Width.ToString("R", System.Globalization.CultureInfo.InvariantCulture) + ":" + area.Height.ToString("R", System.Globalization.CultureInfo.InvariantCulture); if (keys.Add(key)) { if (areas.Count >= maximumCandidates) throw new InvalidOperationException("Redaction search exceeded the configured candidate limit."); areas.Add(area); } }
     private static string[] DescribeCriteria(PdfRedactionSearchOptions search) => search.LiteralText.Select(value => "literal:" + value).Concat(search.RegularExpressions.Select(value => "regex:" + value)).Concat(search.FormFieldNames.Select(value => "field:" + value)).Concat(search.LogicalElementKinds.Select(value => "logical-kind:" + value.ToString())).ToArray();
-    private static bool ContainsText(string text, string value, StringComparison comparison) {
-#if NET6_0_OR_GREATER
-        return text.Contains(value, comparison);
-#else
-        return text.IndexOf(value, comparison) >= 0;
-#endif
+    private static bool ContainsText(string text, string value, StringComparison comparison) =>
+        PdfTextSearchNormalization.Contains(text, value, comparison);
+
+    /// <summary>
+    /// Finds literal occurrences that wrap from one logical text block into the following blocks on the same page, such as
+    /// a phrase broken across lines that layout analysis kept as separate blocks. Blocks are joined in reading order with a
+    /// line break, and only runs whose match needs the first and the last block are reported. Returns the criterion label
+    /// for every participating block index.
+    /// </summary>
+    internal static Dictionary<int, string> MatchLiteralsAcrossBlocks(IReadOnlyList<PdfLogicalTextBlock> blocks, IEnumerable<string> literals,
+        StringComparison comparison, PdfRedactionSearchWorkBudget workBudget, Func<int, bool> includeBlock, CancellationToken cancellationToken) {
+        var matches = new Dictionary<int, string>();
+        foreach (string literal in literals) {
+            int queryLength = PdfTextSearchNormalization.NormalizeQuery(literal).Length;
+            for (int first = 0; first < blocks.Count; first++) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!includeBlock(first) || string.IsNullOrEmpty(blocks[first].Text)) continue;
+                int firstEnd = blocks[first].Text.Length;
+                var combined = new System.Text.StringBuilder(blocks[first].Text);
+                int followingLength = 0;
+                for (int last = first + 1; last < blocks.Count && blocks[last].PageNumber == blocks[first].PageNumber && includeBlock(last); last++) {
+                    combined.Append('\n');
+                    int lastStart = combined.Length;
+                    combined.Append(blocks[last].Text);
+                    string joined = combined.ToString();
+                    workBudget.ChargeTextScan(joined, literal);
+                    bool spansRun = PdfTextSearchNormalization.FindSourceRanges(joined, literal, comparison)
+                        .Any(range => range.Start < firstEnd && range.End > lastStart);
+                    if (spansRun) {
+                        for (int index = first; index <= last; index++) {
+                            if (!matches.ContainsKey(index)) matches.Add(index, "literal:" + literal);
+                        }
+                        break;
+                    }
+                    // A match starting in the first block and ending past this run contains every following block's visible
+                    // characters (less at most one joined line-end hyphen), plus at least one character on each side.
+                    followingLength += Math.Max(0, blocks[last].Text.Count(static character => !char.IsWhiteSpace(character)) - 1);
+                    if (followingLength + 2 > queryLength) break;
+                }
+            }
+        }
+        return matches;
     }
 }

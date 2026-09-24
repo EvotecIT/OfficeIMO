@@ -117,6 +117,48 @@ public sealed class StudioFormsJourneyTests {
     }
 
     [Fact]
+    public async Task FieldsAreFilledOnThePageAndTabMovesInFieldOrder() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-form-inline-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string source = Path.Combine(root, "form.pdf");
+        try {
+            PdfDocument.Create(compose => compose.Page(page => page.Content(content => {
+                content.Item(item => item.TextField("First", value: "One"));
+                content.Item(item => item.TextField("Second", value: "Two"));
+                content.Item(item => item.TextField("Third", value: "Three"));
+            }))).Save(source);
+            using var session = TestAppBuilder.StartSession();
+            await session.Dispatch(async () => {
+                using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
+                await model.OpenDocumentAsync(source);
+                model.ShowFormsModeCommand.Execute(null);
+                var page = model.Pages[0];
+                page.AttachToViewport();
+                using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+                while (page.Scene is null) await Task.Delay(10, timeout.Token);
+
+                model.SelectedFormField = model.FormFields.Single(field => field.Name == "First");
+                Assert.True(page.HasInlineFormEditor);
+                Assert.Same(model.SelectedFormField, page.InlineFormField);
+                Assert.True(page.InlineFormWidth > 0 && page.InlineFormHeight > 0);
+
+                page.RequestInlineFormNavigation(1);
+                Assert.Equal("Second", model.SelectedFormField?.Name);
+                Assert.Same(model.SelectedFormField, page.InlineFormField);
+                Assert.True(page.FocusInlineFormEditorRequested);
+
+                page.InlineFormField!.TextValue = "Typed on the page";
+                Assert.True(model.HasFormDrafts);
+
+                page.RequestInlineFormNavigation(-1);
+                page.RequestInlineFormNavigation(-1);
+                Assert.Equal("Third", model.SelectedFormField?.Name);
+                return true;
+            }, CancellationToken.None);
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
     public async Task SaveIncludesAllValidDraftsAndRetainsConflictingDraftsAfterUndo() {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-form-save-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);

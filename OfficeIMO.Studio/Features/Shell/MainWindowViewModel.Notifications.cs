@@ -29,6 +29,7 @@ public sealed partial class MainWindowViewModel {
         WorkspaceMode == workspace && (workspace != StudioWorkspaceMode.PdfWorkspace || DocumentMode == documentMode);
 
     partial void OnErrorMessageChanged(string? value) {
+        if (value is null) CanRecoverWithSaveAs = false;
         (_errorWorkspace, _errorDocumentMode) = _notificationContext.Value ?? _activeNotificationScope ?? (WorkspaceMode, DocumentMode);
         NotifyVisibleNotifications();
     }
@@ -39,6 +40,7 @@ public sealed partial class MainWindowViewModel {
     }
 
     partial void OnIsWorkspaceBusyChanged(bool value) {
+        NotifyDocumentStructureActions();
         if (value) {
             _activeNotificationScope = (WorkspaceMode, DocumentMode);
             OperationStatus = null;
@@ -54,5 +56,6 @@ public sealed partial class MainWindowViewModel {
     private void NotifyVisibleNotifications() {
         OnPropertyChanged(nameof(HasVisibleError));
         OnPropertyChanged(nameof(HasVisibleOperationStatus));
+        OnPropertyChanged(nameof(IsQuietOperationStatus));
     }
 }

@@ -47,11 +47,16 @@ public sealed partial class MainWindow : Window {
         };
         DocumentTabs.DataContext = TabHost;
         OpenDocumentTabButton.DataContext = TabHost;
+        AppTitleText.DataContext = TabHost;
         DataContext = ViewModel;
+        CommandSearchShortcut.Text = OperatingSystem.IsMacOS() ? "⌘K" : "Ctrl K";
+        InitializeChrome();
+        AttachOperationToast(ViewModel);
 
         SizeChanged += OnWindowSizeChanged;
         KeyDown += OnWindowKeyDown;
         AddHandler(DragDrop.DragOverEvent, OnDragOver);
+        AddHandler(DragDrop.DragLeaveEvent, OnDragLeave);
         AddHandler(DragDrop.DropEvent, OnDrop);
         PagesList.SizeChanged += (_, _) =>
             ViewModel.SetViewportSize(PagesList.Bounds.Width, PagesList.Bounds.Height);
@@ -100,7 +105,8 @@ public sealed partial class MainWindow : Window {
             confirmWorkflowProviderWrite: location => new ProviderSaveDialog(_services.Storage.Describe(location).Name,
                 _services.Localizer, workflowOutput: true, folderOutput: _services.Storage.IsFolder(location)).ShowDialog<bool>(this),
             pickImage: PickImageAsync,
-            confirmPageDeletion: ConfirmPageDeletionAsync,
+            // Deleting pages stays undoable until save; the result toast offers Undo instead of a blocking dialog.
+            confirmPageDeletion: static _ => Task.FromResult(true),
             reviewPageMove: preview => new PageMoveDialog(preview).ShowDialog<bool>(this),
             reviewPageSplit: preview => new PageSplitDialog(preview).ShowDialog<bool>(this),
             showPageSplitResult: result => new PageSplitDialog(result).ShowDialog(this),
@@ -125,6 +131,8 @@ public sealed partial class MainWindow : Window {
             publicationGuard: new StudioWorkflowPublicationGuard((path, isDirectory) =>
                 isDirectory ? TabHost.CanPublishDirectory(path) : TabHost.CanPublishPath(path)));
         document.Session = _session;
+        document.FileDialogs = FileDialogs;
+        document.CreateSignatureDialog = kind => new Features.Sign.SignatureDialog(kind, _services.Localizer).ShowDialog<StudioSignatureDraft?>(this);
         ConfigureAssistantHost(document);
         return document;
     }
@@ -134,8 +142,10 @@ public sealed partial class MainWindow : Window {
         ViewModel.SaveDocumentViewState();
         _changingActiveDocument = true;
         try {
+            DetachOperationToast(ViewModel);
             ViewModel = document;
             DataContext = document;
+            AttachOperationToast(document);
             ClearOrganizerDrag();
             document.SetViewportSize(PagesList.Bounds.Width, PagesList.Bounds.Height);
         } finally {
@@ -170,7 +180,8 @@ public sealed partial class MainWindow : Window {
     internal void ApplyResponsiveLayout(double width) {
         AssistantHost.DisplayMode = width >= 1500D ? SplitViewDisplayMode.Inline : SplitViewDisplayMode.Overlay;
         IsCompactLayout = width < 1180D;
-        double workspaceWidth = Math.Max(0D, width - 116D - (width >= 1500D && AssistantHost.IsPaneOpen ? 400D : 0D));
+        double workspaceWidth = Math.Max(0D, width - 72D - (width >= 1500D && AssistantHost.IsPaneOpen ? 400D : 0D));
+        CommandSearchButton.Width = width < 1180D ? 200D : 300D;
         DocumentWorkspace.ApplyResponsiveLayout(workspaceWidth);
         ConversionView.ApplyResponsiveLayout(workspaceWidth);
         DocumentHealthView.ApplyResponsiveLayout(workspaceWidth);
@@ -186,12 +197,15 @@ public sealed partial class MainWindow : Window {
 
     private async void OnCommandsClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await ShowCommandPaletteAsync();
 
+    internal StudioCommandPalette CommandPaletteControl => CommandPalette;
+
     internal async Task ShowCommandPaletteAsync() {
         if (_commandPaletteOpen) return;
         _commandPaletteOpen = true;
+        IInputElement? previousFocus = FocusManager?.GetFocusedElement();
         try {
-            var palette = new StudioCommandPalette(ViewModel.Commands);
-            StudioCommandItem? command = await palette.ShowDialog<StudioCommandItem?>(this);
+            StudioCommandItem? command = await CommandPalette.ShowAsync(ViewModel.Commands);
+            (previousFocus as Control)?.Focus();
             if (command is not null) await command.ExecuteAsync();
         } finally {
             _commandPaletteOpen = false;
@@ -207,9 +221,56 @@ public sealed partial class MainWindow : Window {
             ? StudioThemePreference.Dark
             : StudioThemePreference.Light;
         _services.Preferences.Update(current => current with { Theme = preference });
+        SyncThemeToggle();
+    }
+
+    private void InitializeChrome() {
+        ActualThemeVariantChanged += (_, _) => { SyncThemeToggle(); ApplyBackdrop(); };
+        PropertyChanged += (_, change) => {
+            if (change.Property == IsExtendedIntoWindowDecorationsProperty ||
+                change.Property == WindowStateProperty ||
+                change.Property == ActualTransparencyLevelProperty) {
+                UpdateCaptionSpacing();
+                ApplyBackdrop();
+            }
+        };
+        SyncThemeToggle();
+        UpdateCaptionSpacing();
+        if (OperatingSystem.IsWindows()) TransparencyLevelHint = [WindowTransparencyLevel.Mica, WindowTransparencyLevel.None];
+        ApplyBackdrop();
+    }
+
+    private void SyncThemeToggle() => ThemeToggle.Classes.Set("dark", ActualThemeVariant == ThemeVariant.Dark);
+
+    // The operating system draws caption buttons over the extended title bar; keep tabs and actions clear of them.
+    private void UpdateCaptionSpacing() {
+        bool extended = IsExtendedIntoWindowDecorations;
+        if (OperatingSystem.IsMacOS()) {
+            CaptionButtonsSpacer.Width = 0;
+            ShellRoot.ColumnDefinitions[0].Width = new GridLength(extended ? 80 : 72);
+        } else {
+            CaptionButtonsSpacer.Width = extended ? 138 : 0;
+        }
+    }
+
+    // Windows 11 Mica shows through the title bar and rail; every other platform keeps the solid chrome brush.
+    private void ApplyBackdrop() {
+        bool mica = ActualTransparencyLevel == WindowTransparencyLevel.Mica &&
+                    ActualThemeVariant != StudioThemeVariants.HighContrast;
+        if (mica) Background = Avalonia.Media.Brushes.Transparent;
+        else if (this.TryFindResource("StudioChromeBrush", ActualThemeVariant, out object? brush) && brush is Avalonia.Media.IBrush chrome)
+            Background = chrome;
+    }
+
+    private void OnDocumentTabPointerReleased(object? sender, PointerReleasedEventArgs e) {
+        if (e.InitialPressMouseButton != MouseButton.Middle ||
+            sender is not Control { DataContext: StudioDocumentTabViewModel tab }) return;
+        e.Handled = true;
+        tab.CloseCommand.Execute(null);
     }
 
     private async void OnWindowKeyDown(object? sender, KeyEventArgs e) {
+        if (CommandPalette.IsOpen) return;
         if (e.Key == Key.F9) {
             ViewModel.IsAssistantVisible = false;
             await ViewModel.Commands["FocusReading"].ExecuteAsync();
@@ -227,7 +288,7 @@ public sealed partial class MainWindow : Window {
             return;
         }
         bool primaryModifier = e.KeyModifiers.HasFlag(OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Control);
-        if (primaryModifier && e.KeyModifiers.HasFlag(KeyModifiers.Shift) && e.Key == Key.P) {
+        if (primaryModifier && (e.Key == Key.K || (e.KeyModifiers.HasFlag(KeyModifiers.Shift) && e.Key == Key.P))) {
             await ShowCommandPaletteAsync();
             e.Handled = true;
             return;
@@ -240,6 +301,11 @@ public sealed partial class MainWindow : Window {
 
         if (primaryModifier && e.Key == Key.Tab) {
             TabHost.SelectRelativeTab(e.KeyModifiers.HasFlag(KeyModifiers.Shift));
+            e.Handled = true;
+            return;
+        }
+        if (primaryModifier && e.KeyModifiers.HasFlag(KeyModifiers.Shift) && e.Key == Key.T) {
+            await TabHost.ReopenClosedTabAsync();
             e.Handled = true;
             return;
         }
@@ -267,6 +333,11 @@ public sealed partial class MainWindow : Window {
         }
 
         if (IsTextEntryFocused()) return;
+
+        if (e.KeyModifiers == KeyModifiers.None && TrySelectToolShortcut(e.Key)) {
+            e.Handled = true;
+            return;
+        }
 
         if (primaryModifier && e.Key == Key.Z) {
             await ViewModel.Commands[e.KeyModifiers.HasFlag(KeyModifiers.Shift) ? "Redo" : "Undo"].ExecuteAsync();
@@ -344,7 +415,18 @@ public sealed partial class MainWindow : Window {
         }
     }
 
+    /// <summary>True until startup cleanup, session inspection, and any initial document have finished.</summary>
+    internal bool IsStartingUp { get; private set; } = true;
+
     private async void OnOpened(object? sender, EventArgs e) {
+        try {
+            await CompleteStartupAsync();
+        } finally {
+            IsStartingUp = false;
+        }
+    }
+
+    private async Task CompleteStartupAsync() {
         ViewModel.SetViewportSize(PagesList.Bounds.Width, PagesList.Bounds.Height);
         try {
             var cleanup = await _services.Recovery.CleanupExpiredAsync();
@@ -479,11 +561,6 @@ public sealed partial class MainWindow : Window {
     private async Task<UnsavedChangesDecision> ConfirmUnsavedChangesAsync() {
         var dialog = new UnsavedChangesDialog(ViewModel.DocumentName.TrimEnd(' ', '*'), _services.Localizer);
         return await dialog.ShowDialog<UnsavedChangesDecision>(this);
-    }
-
-    private async Task<bool> ConfirmPageDeletionAsync(int pageCount) {
-        var dialog = new PageDeletionDialog(pageCount, _services.Localizer);
-        return await dialog.ShowDialog<bool>(this);
     }
 
     private async Task<string?> PromptPdfPasswordAsync(
@@ -649,30 +726,70 @@ public sealed partial class MainWindow : Window {
     }
 
     private void OnDragOver(object? sender, DragEventArgs e) {
-        e.DragEffects = ViewModel.CanStartDocumentTransition && GetDroppedPdf(e) is not null
-            ? DragDropEffects.Copy
-            : DragDropEffects.None;
+        if (e.Handled) return;
+        DropPlan plan = PlanDrop(e);
+        e.DragEffects = plan.IsEmpty ? DragDropEffects.None : DragDropEffects.Copy;
         e.Handled = true;
+        if (plan.HasFiles) ShowDropOverlay(plan);
     }
 
+    private void OnDragLeave(object? sender, DragEventArgs e) => DropOverlay.IsVisible = false;
+
     private async void OnDrop(object? sender, DragEventArgs e) {
+        DropOverlay.IsVisible = false;
+        if (e.Handled) return;
         e.Handled = true;
-        if (GetDroppedPdf(e) is not { } file) return;
+        DropPlan plan = PlanDrop(e);
+        if (plan.IsEmpty) return;
         try {
-            string location = await _services.Storage.RegisterAsync(file, CancellationToken.None);
-            if (!_windowClosed) await TabHost.OpenDocumentAsync(location);
+            if (plan.Convert.Count > 0) {
+                IReadOnlyList<string> locations = await _services.Storage.RegisterManyAsync(plan.Convert, CancellationToken.None);
+                if (_windowClosed) return;
+                if (ViewModel.ConversionWorkbench.AddDroppedPaths(locations)) ViewModel.ShowConversionWorkbenchCommand.Execute(null);
+            }
+            foreach (IStorageFile file in plan.Open) {
+                string location = await _services.Storage.RegisterAsync(file, CancellationToken.None);
+                if (_windowClosed) return;
+                await TabHost.OpenDocumentAsync(location);
+            }
         } catch (Exception error) when (error is not OutOfMemoryException) {
             if (!_windowClosed) ViewModel.ErrorMessage = error.Message;
         }
     }
 
-    private static IStorageFile? GetDroppedPdf(DragEventArgs e) => e.DataTransfer.TryGetFiles()?
-        .OfType<IStorageFile>().FirstOrDefault(file => string.Equals(System.IO.Path.GetExtension(file.Name), ".pdf", StringComparison.OrdinalIgnoreCase));
+    private sealed record DropPlan(IReadOnlyList<IStorageFile> Open, IReadOnlyList<IStorageFile> Convert, bool HasFiles) {
+        public bool IsEmpty => Open.Count == 0 && Convert.Count == 0;
+    }
 
-    internal static bool TryGetPdfPath(IEnumerable<string?>? candidates, out string? path) {
-        path = candidates?.FirstOrDefault(static candidate =>
-            !string.IsNullOrWhiteSpace(candidate) &&
-            string.Equals(System.IO.Path.GetExtension(candidate), ".pdf", StringComparison.OrdinalIgnoreCase));
-        return path is not null;
+    // PDFs open in tabs; other supported inputs go to the conversion queue. In the conversion
+    // workbench every dropped file joins the queue so PDFs can be converted too.
+    private DropPlan PlanDrop(DragEventArgs e) {
+        IStorageFile[] files = e.DataTransfer.TryGetFiles()?.OfType<IStorageFile>().ToArray() ?? [];
+        if (files.Length == 0) return new([], [], false);
+        if (!ViewModel.CanStartDocumentTransition) return new([], [], true);
+        bool canQueue = ViewModel.ConversionWorkbench.CanEditQueue;
+        if (ViewModel.IsConversionMode) return new([], canQueue ? files : [], true);
+        IStorageFile[] pdfs = files.Where(file => IsPdf(file.Name)).ToArray();
+        IStorageFile[] others = canQueue ? files.Where(file => !IsPdf(file.Name) && IsConvertible(file.Name)).ToArray() : [];
+        return new(pdfs, others, true);
+    }
+
+    private static bool IsPdf(string name) => string.Equals(System.IO.Path.GetExtension(name), ".pdf", StringComparison.OrdinalIgnoreCase);
+
+    private static readonly HashSet<string> ConvertibleExtensions = new(StringComparer.OrdinalIgnoreCase) {
+        ".docx", ".xlsx", ".pptx", ".html", ".htm", ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tif", ".tiff", ".webp", ".ico", ".pcx", ".zip"
+    };
+
+    private static bool IsConvertible(string name) => ConvertibleExtensions.Contains(System.IO.Path.GetExtension(name));
+
+    private void ShowDropOverlay(DropPlan plan) {
+        var text = _services.Localizer;
+        (DropOverlayTitle.Text, DropOverlayDetail.Text) = plan switch {
+            { IsEmpty: true } => (text.Get("Drop.Unsupported"), text.Get("Drop.UnsupportedDetail")),
+            { Convert.Count: 0 } => (text.Format("Drop.OpenPdfs", plan.Open.Count), text.Get("Drop.OpenDetail")),
+            { Open.Count: 0 } => (text.Format("Drop.ConvertFiles", plan.Convert.Count), text.Get("Drop.ConvertDetail")),
+            _ => (text.Format("Drop.OpenAndConvert", plan.Open.Count, plan.Convert.Count), text.Get("Drop.MixedDetail"))
+        };
+        DropOverlay.IsVisible = true;
     }
 }

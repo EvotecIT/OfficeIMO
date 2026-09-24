@@ -88,7 +88,30 @@ public sealed partial class WatermarkPreviewViewModel : ObservableObject, IDispo
             _prepared = null;
             ClearPreviewImage();
             OnPropertyChanged(nameof(CanApply));
+            SchedulePreview();
         }
+    }
+
+    private CancellationTokenSource? _previewDelay;
+
+    /// <summary>When set, the preview refreshes on its own shortly after the last setting changes.</summary>
+    internal bool AutoPreview { get; set; }
+
+    internal void SchedulePreview() {
+        if (!AutoPreview || _disposed) return;
+        _previewDelay?.Cancel();
+        var delay = new CancellationTokenSource();
+        _previewDelay = delay;
+        _ = RefreshAfterDelayAsync(delay.Token);
+    }
+
+    private async Task RefreshAfterDelayAsync(CancellationToken token) {
+        try { await Task.Delay(450, token).ConfigureAwait(true); }
+        catch (OperationCanceledException) { return; }
+        if (_disposed || token.IsCancellationRequested) return;
+        // A running preview reschedules itself when it finishes with stale settings.
+        if (IsBusy) return;
+        await PreviewAsync().ConfigureAwait(true);
     }
 
     partial void OnIsBusyChanged(bool value) {
@@ -146,6 +169,7 @@ public sealed partial class WatermarkPreviewViewModel : ObservableObject, IDispo
         finally {
             if (ReferenceEquals(_cancellation, cancellation)) _cancellation = null;
             if (!_disposed) IsBusy = false;
+            if (!_disposed && version != _settingsVersion) SchedulePreview();
         }
     }
 

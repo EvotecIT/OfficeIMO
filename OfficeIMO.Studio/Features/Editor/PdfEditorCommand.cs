@@ -9,14 +9,16 @@ internal sealed record PdfEditorProperties(
     string StampName,
     string LinkUri,
     double FontSize,
-    byte[]? ImageBytes = null);
+    byte[]? ImageBytes = null,
+    int? LinkPageNumber = null);
 
 internal sealed record PdfEditorCommand(
     PdfEditorTool Tool,
     int PageNumber,
     PdfPageRectangle Bounds,
     IReadOnlyList<PdfPagePoint> Path,
-    PdfEditorProperties Properties);
+    PdfEditorProperties Properties,
+    IReadOnlyList<IReadOnlyList<PdfPagePoint>>? Strokes = null);
 
 internal sealed record PdfVerifiedRedactionResult(
     byte[] Bytes,

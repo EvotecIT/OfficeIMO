@@ -3,12 +3,13 @@
                           xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
              xmlns:shell="using:OfficeIMO.Studio.Features.Shell"
              xmlns:workflow="using:OfficeIMO.Studio.Features.Workflows"
+             xmlns:infra="using:OfficeIMO.Studio.Infrastructure"
              x:Class="OfficeIMO.Studio.Features.Workflows.ConversionWorkbenchView"
              x:DataType="shell:MainWindowViewModel">
   <UserControl.Resources><workflow:ConversionOptionLabelConverter x:Key="ConversionModeLabel" /></UserControl.Resources>
   <Grid x:Name="WorkspaceGrid" ColumnDefinitions="270,*,300" RowDefinitions="*,Auto,Auto"
-        Background="{DynamicResource StudioWindowBrush}">
-    <Border Grid.Column="0" Background="{DynamicResource StudioPanelBrush}"
+        Background="{DynamicResource StudioPanelMutedBrush}">
+    <Border Grid.Column="0" Grid.RowSpan="3" Background="{DynamicResource StudioPanelBrush}"
             BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,1,0">
       <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="18" Spacing="12">
@@ -16,7 +17,7 @@
           <TextBlock Classes="sectionTitle" Text="{loc:Loc ConversionWorkbench.ChooseTheResult}" />
 
           <TextBlock Text="{loc:Loc ConversionWorkbench.Route}" FontWeight="SemiBold" Margin="0,6,0,0" />
-          <ComboBox ItemsSource="{Binding ConversionWorkbench.Routes}"
+          <ComboBox ItemsSource="{Binding ConversionWorkbench.Routes}" HorizontalAlignment="Stretch"
                     SelectedItem="{Binding ConversionWorkbench.SelectedRoute, Mode=TwoWay}">
             <ComboBox.ItemTemplate>
               <DataTemplate x:DataType="workflow:ConversionRouteChoice"><TextBlock Text="{Binding Label}" /></DataTemplate>
@@ -26,7 +27,7 @@
                      FontSize="12" TextWrapping="Wrap" />
 
           <TextBlock Text="{loc:Loc ConversionWorkbench.OutputProfile}" FontWeight="SemiBold" Margin="0,7,0,0" />
-          <ComboBox ItemsSource="{Binding ConversionWorkbench.AvailableProfiles}"
+          <ComboBox ItemsSource="{Binding ConversionWorkbench.AvailableProfiles}" HorizontalAlignment="Stretch"
                     SelectedItem="{Binding ConversionWorkbench.SelectedProfile, Mode=TwoWay}">
             <ComboBox.ItemTemplate>
               <DataTemplate x:DataType="workflow:WorkflowProfileChoice"><TextBlock Text="{Binding Label}" /></DataTemplate>
@@ -36,7 +37,7 @@
                      FontSize="12" TextWrapping="Wrap" />
 
           <TextBlock Text="{loc:Loc ConversionWorkbench.IfAFileExists}" FontWeight="SemiBold" Margin="0,7,0,0" />
-          <ComboBox ItemsSource="{Binding ConversionWorkbench.ConflictPolicies}"
+          <ComboBox ItemsSource="{Binding ConversionWorkbench.ConflictPolicies}" HorizontalAlignment="Stretch"
                     SelectedItem="{Binding ConversionWorkbench.SelectedConflict, Mode=TwoWay}" IsEnabled="{Binding ConversionWorkbench.CanChooseConflictPolicy}">
             <ComboBox.ItemTemplate>
               <DataTemplate x:DataType="workflow:WorkflowConflictChoice"><TextBlock Text="{Binding Label}" /></DataTemplate>
@@ -88,8 +89,7 @@
           <Border IsVisible="{Binding !ConversionWorkbench.HasJobs}" Padding="36">
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" MaxWidth="360">
               <Border Width="58" Height="58" CornerRadius="16" Background="{DynamicResource StudioAccentSoftBrush}">
-                <TextBlock Text="⇄" FontSize="26" Foreground="{DynamicResource StudioAccentBrush}"
-                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                <PathIcon Data="{StaticResource IconConvert}" Width="26" Height="26" Foreground="{DynamicResource StudioAccentBrush}" />
               </Border>
               <TextBlock Text="{loc:Loc ConversionWorkbench.BuildYourConversionQueue}" FontSize="18" FontWeight="SemiBold"
                          HorizontalAlignment="Center" />
@@ -145,8 +145,8 @@
           <Border Height="1" Background="{DynamicResource StudioBorderBrush}" />
           <TextBlock Text="{loc:Loc ConversionWorkbench.Result}" Classes="muted" FontSize="12" Margin="0,5,0,0" />
           <TextBlock Text="{Binding ConversionWorkbench.SelectedJob.Summary}" TextWrapping="Wrap" />
-          <TextBlock Classes="muted" Text="{Binding ConversionWorkbench.SelectedJob.OutputPath}"
-                     FontSize="12" TextWrapping="Wrap" />
+          <TextBlock Classes="muted" Text="{Binding ConversionWorkbench.SelectedJob.OutputPath, Converter={x:Static infra:StudioConverters.FileName}}"
+                     ToolTip.Tip="{Binding ConversionWorkbench.SelectedJob.OutputPath}" FontSize="12" TextTrimming="CharacterEllipsis" />
           <WrapPanel IsVisible="{Binding ConversionWorkbench.SelectedJob.HasOutput}">
             <Button Classes="tool" Content="{loc:Loc Conversion.Preview.Action}" Command="{Binding ConversionWorkbench.PreviewOutputCommand}" Margin="0,0,6,6" />
             <Button Classes="tool" Content="{loc:Loc Conversion.Output.Open}" Command="{Binding ConversionWorkbench.OpenOutputCommand}" Margin="0,0,0,6" />
@@ -202,7 +202,7 @@
               <DataTemplate>
                 <Border Background="{DynamicResource StudioAccentSoftBrush}" CornerRadius="7" Padding="9" Margin="0,2">
                   <StackPanel>
-                    <TextBlock Text="{Binding Code}" FontWeight="SemiBold" FontSize="12" />
+                    <TextBlock Text="{Binding Code, Converter={x:Static infra:StudioConverters.FriendlyCode}}" ToolTip.Tip="{Binding Code}" FontWeight="SemiBold" FontSize="12" />
                     <TextBlock Text="{Binding Message}" TextWrapping="Wrap" FontSize="12" />
                   </StackPanel>
                 </Border>
@@ -214,8 +214,7 @@
                       Margin="22" Spacing="9" VerticalAlignment="Center">
             <Border Width="42" Height="42" CornerRadius="12" HorizontalAlignment="Left"
                     Background="{DynamicResource StudioPanelMutedBrush}">
-              <TextBlock Text="{loc:Loc ConversionWorkbench.I}" FontWeight="Bold" Foreground="{DynamicResource StudioMutedTextBrush}"
-                         HorizontalAlignment="Center" VerticalAlignment="Center" />
+              <PathIcon Data="{StaticResource IconInfo}" Width="18" Height="18" Foreground="{DynamicResource StudioMutedTextBrush}" />
             </Border>
             <TextBlock Classes="sectionTitle" Text="{loc:Loc ConversionWorkbench.NoJobSelected}" />
             <TextBlock Classes="muted" TextWrapping="Wrap"
@@ -230,7 +229,7 @@
       <StackPanel Margin="18,10" Spacing="7">
         <TextBlock Text="{Binding ConversionWorkbench.Status}" TextWrapping="Wrap" />
         <WrapPanel HorizontalAlignment="Right">
-          <ProgressBar Minimum="0" Maximum="1" Value="{Binding ConversionWorkbench.ProgressFraction}"
+          <ProgressBar Minimum="0" Maximum="1" Value="{Binding ConversionWorkbench.ProgressFraction}" IsVisible="{Binding ConversionWorkbench.IsBusy}"
                        Width="140" MinWidth="0" Height="7" VerticalAlignment="Center" Margin="0,0,14,0" />
           <Button Classes="primary" AutomationProperties.Name="{loc:Loc ConversionWorkbench.RunPending}" Content="{loc:Loc ConversionWorkbench.RunPending}"
                   Command="{Binding ConversionWorkbench.RunQueueCommand}" Margin="0,0,7,0" />

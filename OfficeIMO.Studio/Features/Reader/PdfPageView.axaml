@@ -5,16 +5,56 @@
              xmlns:editor="using:OfficeIMO.Studio.Features.Editor"
              x:Class="OfficeIMO.Studio.Features.Reader.PdfPageView"
              x:DataType="reader:PdfPageViewModel">
+  <UserControl.Resources>
+    <Flyout x:Key="SelectionActions" Placement="TopEdgeAlignedLeft" ShowMode="Transient">
+      <StackPanel Orientation="Horizontal" Spacing="2">
+        <Button Classes="cmd" Click="OnCopySelectionClick" AutomationProperties.Name="{loc:Loc PageActions.Copy}" ToolTip.Tip="{loc:Loc PageActions.CopyTip}">
+          <StackPanel Orientation="Horizontal"><PathIcon Data="{StaticResource IconDuplicate}" /><TextBlock Classes="cmdLabel" Text="{loc:Loc PageActions.Copy}" /></StackPanel>
+        </Button>
+        <Border Classes="separator" />
+        <Button Classes="cmd" Click="OnHighlightSelectionClick" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Highlight}" ToolTip.Tip="{loc:Loc DocumentWorkspace.Highlight}">
+          <PathIcon Data="{StaticResource IconHighlight}" />
+        </Button>
+        <Button Classes="cmd" Click="OnUnderlineSelectionClick" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Underline}" ToolTip.Tip="{loc:Loc DocumentWorkspace.Underline}">
+          <PathIcon Data="{StaticResource IconUnderline}" />
+        </Button>
+        <Button Classes="cmd" Click="OnStrikeSelectionClick" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Strikeout}" ToolTip.Tip="{loc:Loc DocumentWorkspace.Strikeout}">
+          <PathIcon Data="{StaticResource IconStrike}" />
+        </Button>
+      </StackPanel>
+    </Flyout>
+    <MenuFlyout x:Key="PageMenu">
+      <MenuItem Tag="selection" Header="{loc:Loc PageActions.Copy}" InputGesture="Ctrl+C" Click="OnCopySelectionClick">
+        <MenuItem.Icon><PathIcon Data="{StaticResource IconDuplicate}" Width="14" Height="14" /></MenuItem.Icon>
+      </MenuItem>
+      <MenuItem Header="{loc:Loc PageActions.SelectAll}" InputGesture="Ctrl+A" Click="OnSelectAllClick">
+        <MenuItem.Icon><PathIcon Data="{StaticResource IconSelectAll}" Width="14" Height="14" /></MenuItem.Icon>
+      </MenuItem>
+      <Separator />
+      <MenuItem Tag="selection" Header="{loc:Loc PageActions.HighlightSelection}" Click="OnHighlightSelectionClick">
+        <MenuItem.Icon><PathIcon Data="{StaticResource IconHighlight}" Width="14" Height="14" /></MenuItem.Icon>
+      </MenuItem>
+      <MenuItem Tag="selection" Header="{loc:Loc PageActions.UnderlineSelection}" Click="OnUnderlineSelectionClick">
+        <MenuItem.Icon><PathIcon Data="{StaticResource IconUnderline}" Width="14" Height="14" /></MenuItem.Icon>
+      </MenuItem>
+      <MenuItem Tag="selection" Header="{loc:Loc PageActions.StrikeSelection}" Click="OnStrikeSelectionClick">
+        <MenuItem.Icon><PathIcon Data="{StaticResource IconStrike}" Width="14" Height="14" /></MenuItem.Icon>
+      </MenuItem>
+      <MenuItem Header="{loc:Loc PageActions.AddNoteHere}" Click="OnAddNoteClick">
+        <MenuItem.Icon><PathIcon Data="{StaticResource IconNote}" Width="14" Height="14" /></MenuItem.Icon>
+      </MenuItem>
+    </MenuFlyout>
+  </UserControl.Resources>
   <StackPanel Width="{Binding DisplayWidth}" Margin="24,14" HorizontalAlignment="Center" Spacing="8">
     <Border Width="{Binding DisplayWidth}"
             Height="{Binding DisplayHeight}"
             Background="White"
-            BorderBrush="{DynamicResource StudioBorderBrush}"
+            BorderBrush="{DynamicResource StudioSubtleBorderBrush}"
             BorderThickness="1"
             CornerRadius="2"
-            BoxShadow="0 5 18 0 #30000000">
+            BoxShadow="{DynamicResource StudioPageShadow}">
       <Grid>
-        <reader:PdfPageCanvas x:Name="PageCanvas"
+        <reader:PdfPageCanvas x:Name="PageCanvas" ContextRequested="OnCanvasContextRequested"
                               AutomationProperties.Name="{Binding PageLabel}"
                               AutomationProperties.HelpText="{loc:Loc PdfPage.KeyboardHelp}"
                               Scene="{Binding Scene}"
@@ -33,6 +73,28 @@
                 IsHitTestVisible="False"
                 Background="White"
                 RenderOptions.BitmapBlendingMode="Difference" />
+
+        <!-- Fill the selected form field in place; Tab and Shift+Tab move between fields. -->
+        <Canvas IsVisible="{Binding HasInlineFormEditor}">
+          <Border x:Name="InlineFormHost" Classes="inlineFormField" Canvas.Left="{Binding InlineFormLeft}" Canvas.Top="{Binding InlineFormTop}"
+                  Width="{Binding InlineFormWidth}" Height="{Binding InlineFormHeight}" KeyDown="OnInlineFormKeyDown">
+            <Panel DataContext="{Binding InlineFormField}" x:DataType="editor:PdfFormFieldViewModel">
+              <TextBox x:Name="InlineFormText" Classes="inlineForm" IsVisible="{Binding IsTextEditor}" Text="{Binding TextValue, Mode=TwoWay}"
+                       AcceptsReturn="{Binding IsMultiline}" TextWrapping="{Binding IsMultiline, Converter={x:Static reader:PdfPageView.WrapWhenMultiline}}"
+                       PasswordChar="{Binding DraftPasswordChar}" IsReadOnly="{Binding !CanFill}"
+                       FontSize="{Binding $parent[UserControl].((reader:PdfPageViewModel)DataContext).InlineFormFontSize}"
+                       AutomationProperties.Name="{Binding DisplayName}" ToolTip.Tip="{Binding ValidationSummary}" />
+              <CheckBox x:Name="InlineFormCheck" IsVisible="{Binding IsCheckBoxEditor}" IsChecked="{Binding IsChecked, Mode=TwoWay}" IsEnabled="{Binding CanFill}"
+                        HorizontalAlignment="Center" VerticalAlignment="Center" MinWidth="0" MinHeight="0" Padding="0"
+                        AutomationProperties.Name="{Binding DisplayName}" />
+              <ComboBox x:Name="InlineFormChoice" IsVisible="{Binding IsSingleChoiceEditor}" ItemsSource="{Binding Choices}" SelectedItem="{Binding SelectedChoice, Mode=TwoWay}"
+                        IsEnabled="{Binding CanFill}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" MinHeight="0" Padding="6,0"
+                        AutomationProperties.Name="{Binding DisplayName}">
+                <ComboBox.ItemTemplate><DataTemplate x:DataType="editor:PdfFormChoiceViewModel"><TextBlock Text="{Binding DisplayText}" /></DataTemplate></ComboBox.ItemTemplate>
+              </ComboBox>
+            </Panel>
+          </Border>
+        </Canvas>
 
         <Canvas IsVisible="{Binding HasInlineTextDraft}" ClipToBounds="True">
           <Border Canvas.Left="{Binding InlineEditorLeft}" Canvas.Top="{Binding InlineEditorTop}" Width="{Binding InlineEditorWidth}">

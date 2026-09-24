@@ -10,7 +10,8 @@ internal sealed record PdfEditorGesture(
     double Top,
     double Right,
     double Bottom,
-    IReadOnlyList<PdfEditorVisualPoint> Path);
+    IReadOnlyList<PdfEditorVisualPoint> Path,
+    IReadOnlyList<IReadOnlyList<PdfEditorVisualPoint>>? Strokes = null);
 
 /// <summary>Kinds of existing page objects that can be selected in the editor.</summary>
 public enum PdfEditorSelectionKind {
