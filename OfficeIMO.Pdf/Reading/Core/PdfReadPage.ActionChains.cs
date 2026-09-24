@@ -1,16 +1,20 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadPage {
-    private IReadOnlyList<PdfAnnotationChainedAction> ReadAnnotationChainedActions(PdfObject? primaryActionObject, PdfObject? additionalActionsObject) {
+    private IReadOnlyList<PdfAnnotationChainedAction> ReadAnnotationChainedActions(PdfObject? primaryActionObject, PdfObject? additionalActionsObject, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         var result = new List<PdfAnnotationChainedAction>();
 
-        AddAnnotationNextActionsFromAction("A", "A.Next", primaryActionObject, result, new HashSet<int>());
+        AddAnnotationNextActionsFromAction("A", "A.Next", primaryActionObject, result, new HashSet<int>(), cancellationToken);
 
         var additionalActions = ResolveDictionary(additionalActionsObject);
         if (additionalActions is not null) {
             foreach (var item in additionalActions.Items) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (!string.IsNullOrEmpty(item.Key)) {
-                    AddAnnotationNextActionsFromAction(item.Key, item.Key + ".Next", item.Value, result, new HashSet<int>());
+                    AddAnnotationNextActionsFromAction(item.Key, item.Key + ".Next", item.Value, result, new HashSet<int>(), cancellationToken);
                 }
             }
         }
@@ -23,7 +27,9 @@ public sealed partial class PdfReadPage {
         string actionPath,
         PdfObject? actionObject,
         List<PdfAnnotationChainedAction> result,
-        HashSet<int> visitedReferences) {
+        HashSet<int> visitedReferences,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         bool enteredReference = TryEnterAnnotationActionReference(actionObject, visitedReferences);
         if (!enteredReference) {
             return;
@@ -33,7 +39,7 @@ public sealed partial class PdfReadPage {
             PdfObject? resolved = ResolveObject(actionObject);
             if (resolved is PdfDictionary dictionary &&
                 dictionary.Items.TryGetValue("Next", out var nextAction)) {
-                AddAnnotationNextActions(sourceName, actionPath, nextAction, result, visitedReferences);
+                AddAnnotationNextActions(sourceName, actionPath, nextAction, result, visitedReferences, cancellationToken);
             }
         } finally {
             LeaveAnnotationActionReference(actionObject, visitedReferences);
@@ -45,7 +51,9 @@ public sealed partial class PdfReadPage {
         string actionPath,
         PdfObject? actionObject,
         List<PdfAnnotationChainedAction> result,
-        HashSet<int> visitedReferences) {
+        HashSet<int> visitedReferences,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         bool enteredReference = TryEnterAnnotationActionReference(actionObject, visitedReferences);
         if (!enteredReference) {
             return;
@@ -56,8 +64,9 @@ public sealed partial class PdfReadPage {
             if (resolved is PdfArray array) {
                 int activeIndex = 0;
                 for (int i = 0; i < array.Items.Count; i++) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     int before = result.Count;
-                    AddAnnotationChainedAction(sourceName, actionPath + "." + activeIndex.ToString(System.Globalization.CultureInfo.InvariantCulture), array.Items[i], result, visitedReferences);
+                    AddAnnotationChainedAction(sourceName, actionPath + "." + activeIndex.ToString(System.Globalization.CultureInfo.InvariantCulture), array.Items[i], result, visitedReferences, cancellationToken);
                     if (result.Count > before) {
                         activeIndex++;
                     }
@@ -66,7 +75,7 @@ public sealed partial class PdfReadPage {
                 return;
             }
 
-            AddAnnotationChainedAction(sourceName, actionPath, resolved, result, visitedReferences);
+            AddAnnotationChainedAction(sourceName, actionPath, resolved, result, visitedReferences, cancellationToken);
         } finally {
             LeaveAnnotationActionReference(actionObject, visitedReferences);
         }
@@ -77,7 +86,9 @@ public sealed partial class PdfReadPage {
         string actionPath,
         PdfObject? actionObject,
         List<PdfAnnotationChainedAction> result,
-        HashSet<int> visitedReferences) {
+        HashSet<int> visitedReferences,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         bool enteredReference = TryEnterAnnotationActionReference(actionObject, visitedReferences);
         if (!enteredReference) {
             return;
@@ -95,7 +106,7 @@ public sealed partial class PdfReadPage {
             }
 
             if (dictionary.Items.TryGetValue("Next", out var nextAction)) {
-                AddAnnotationNextActions(sourceName, actionPath + ".Next", nextAction, result, visitedReferences);
+                AddAnnotationNextActions(sourceName, actionPath + ".Next", nextAction, result, visitedReferences, cancellationToken);
             }
         } finally {
             LeaveAnnotationActionReference(actionObject, visitedReferences);

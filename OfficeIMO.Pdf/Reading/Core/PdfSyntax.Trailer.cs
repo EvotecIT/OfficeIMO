@@ -1,11 +1,14 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfSyntax {
     internal static PdfReference? ReadTrailerReference(
         string? trailerRaw,
         string key,
-        PdfReadLimits? limits = null) =>
-        TryGetTrailerReference(trailerRaw, key, limits, out PdfReference reference)
+        PdfReadLimits? limits = null,
+        CancellationToken cancellationToken = default) =>
+        TryGetTrailerReference(trailerRaw, key, limits, out PdfReference reference, cancellationToken)
             ? reference
             : null;
 
@@ -13,12 +16,14 @@ internal static partial class PdfSyntax {
         string? trailerRaw,
         string key,
         PdfReadLimits? limits,
-        out PdfReference reference) {
+        out PdfReference reference,
+        CancellationToken cancellationToken = default) {
         reference = null!;
-        if (string.IsNullOrWhiteSpace(trailerRaw) || string.IsNullOrWhiteSpace(key)) return false;
+        cancellationToken.ThrowIfCancellationRequested();
+        if (string.IsNullOrEmpty(trailerRaw) || string.IsNullOrWhiteSpace(key)) return false;
         int searchIndex = 0;
         PdfReadLimits effectiveLimits = limits ?? new PdfReadLimits();
-        while (TryReadNextTrailerDictionary(trailerRaw!, ref searchIndex, effectiveLimits, out PdfDictionary dictionary)) {
+        while (TryReadNextTrailerDictionary(trailerRaw!, ref searchIndex, effectiveLimits, out PdfDictionary dictionary, cancellationToken)) {
             if (dictionary.Items.TryGetValue(key, out PdfObject? value)) {
                 if (value is PdfReference found) {
                     reference = found;
@@ -37,8 +42,10 @@ internal static partial class PdfSyntax {
         string firstKey,
         string? secondKey,
         string? thirdKey,
-        PdfReadLimits? limits) {
-        if (string.IsNullOrWhiteSpace(trailerRaw) || string.IsNullOrWhiteSpace(firstKey)) return default;
+        PdfReadLimits? limits,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (string.IsNullOrEmpty(trailerRaw) || string.IsNullOrWhiteSpace(firstKey)) return default;
         PdfReadLimits effectiveLimits = limits ?? new PdfReadLimits();
         PdfReference? first = null;
         PdfReference? second = null;
@@ -47,7 +54,7 @@ internal static partial class PdfSyntax {
         bool foundSecond = string.IsNullOrWhiteSpace(secondKey);
         bool foundThird = string.IsNullOrWhiteSpace(thirdKey);
         int searchIndex = 0;
-        while (TryReadNextTrailerDictionary(trailerRaw!, ref searchIndex, effectiveLimits, out PdfDictionary dictionary)) {
+        while (TryReadNextTrailerDictionary(trailerRaw!, ref searchIndex, effectiveLimits, out PdfDictionary dictionary, cancellationToken)) {
             if (!foundFirst && dictionary.Items.TryGetValue(firstKey, out PdfObject? firstValue)) {
                 foundFirst = true;
                 first = firstValue as PdfReference;
@@ -69,27 +76,55 @@ internal static partial class PdfSyntax {
         string raw,
         ref int searchIndex,
         PdfReadLimits limits,
-        out PdfDictionary dictionary) {
+        out PdfDictionary dictionary,
+        CancellationToken cancellationToken) {
         dictionary = null!;
+        cancellationToken.ThrowIfCancellationRequested();
         if (searchIndex >= raw.Length) return false;
-        int trailerIndex = raw.IndexOf("trailer", searchIndex, StringComparison.OrdinalIgnoreCase);
+        int trailerIndex = IndexOfTrailerMarker(raw, searchIndex, cancellationToken);
         if (trailerIndex < 0) return false;
-        int dictionaryStart = SkipWhitespaceAndComments(raw, trailerIndex + 7, raw.Length);
+        int dictionaryStart = SkipWhitespaceAndComments(raw, trailerIndex + 7, raw.Length, cancellationToken);
         if (dictionaryStart > raw.Length - 2 ||
             raw[dictionaryStart] != '<' ||
             raw[dictionaryStart + 1] != '<') return false;
-        int dictionaryEnd = FindDictEnd(raw, dictionaryStart, raw.Length);
+        int dictionaryEnd = FindDictEnd(raw, dictionaryStart, raw.Length, cancellationToken);
         if (dictionaryEnd <= dictionaryStart ||
             dictionaryEnd - dictionaryStart - 2 > limits.MaxObjectCharacters) return false;
         try {
             dictionary = ParseDictionary(
-                raw.Substring(dictionaryStart + 2, dictionaryEnd - dictionaryStart - 2),
-                limits);
+                PdfEncoding.StringSliceCancellable(raw, dictionaryStart + 2, dictionaryEnd - dictionaryStart - 2, cancellationToken),
+                limits,
+                cancellationToken: cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
             searchIndex = dictionaryEnd;
             return true;
-        } catch (Exception exception) when (exception is not OutOfMemoryException) {
+        } catch (Exception exception) when (exception is not OutOfMemoryException && exception is not OperationCanceledException) {
             return false;
         }
+    }
+
+    private static int IndexOfTrailerMarker(string raw, int searchIndex, CancellationToken cancellationToken) {
+        const string marker = "trailer";
+        const int window = 65536;
+        for (int index = searchIndex; index < raw.Length; index += window) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = Math.Min(raw.Length - index, window + marker.Length - 1);
+            int found = raw.IndexOf(marker, index, count, StringComparison.OrdinalIgnoreCase);
+            if (found >= 0) return found;
+        }
+        return -1;
+    }
+
+    private static int LastIndexOfTrailerMarker(string raw, string marker, StringComparison comparison,
+        CancellationToken cancellationToken) {
+        const int window = 65536;
+        for (int end = raw.Length; end > 0; end -= window) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int start = Math.Max(0, end - window - marker.Length + 1);
+            int found = raw.LastIndexOf(marker, end - 1, end - start, comparison);
+            if (found >= 0) return found;
+        }
+        return -1;
     }
 
     internal static byte[]? ReadPermanentTrailerIdentifier(string trailerRaw) {
@@ -111,20 +146,23 @@ internal static partial class PdfSyntax {
         string text,
         Dictionary<int, PdfIndirectObject> map,
         Dictionary<int, int> parsedOffsets,
-        int maximumTrailerCharacters) {
-        if (TryGetLatestStartXrefOffset(text, out int activeXrefOffset)) {
-            if (TryGetClassicTrailerChainRaw(text, map, parsedOffsets, activeXrefOffset, out string trailerRaw)) {
+        int maximumTrailerCharacters,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (TryGetLatestStartXrefOffset(text, out int activeXrefOffset, cancellationToken)) {
+            if (TryGetClassicTrailerChainRaw(text, map, parsedOffsets, activeXrefOffset, out string trailerRaw, cancellationToken)) {
                 return trailerRaw;
             }
 
-            if (TryGetXrefStreamTrailerChainRaw(text, map, parsedOffsets, activeXrefOffset, out trailerRaw)) {
+            if (TryGetXrefStreamTrailerChainRaw(text, map, parsedOffsets, activeXrefOffset, out trailerRaw, cancellationToken)) {
                 return trailerRaw;
             }
         }
 
-        int trailerIdx = text.LastIndexOf("trailer", StringComparison.OrdinalIgnoreCase);
+        int trailerIdx = LastIndexOfTrailerMarker(text, "trailer", StringComparison.OrdinalIgnoreCase, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         return trailerIdx >= 0
-            ? SafeSlice(text, trailerIdx, text.Length - trailerIdx, maximumTrailerCharacters)
+            ? SafeSliceCancellable(text, trailerIdx, text.Length - trailerIdx, maximumTrailerCharacters, cancellationToken)
             : string.Empty;
     }
 
@@ -133,10 +171,12 @@ internal static partial class PdfSyntax {
         Dictionary<int, PdfIndirectObject> map,
         Dictionary<int, int> parsedOffsets,
         int activeXrefOffset,
-        out string trailerRaw) {
+        out string trailerRaw,
+        CancellationToken cancellationToken) {
         trailerRaw = string.Empty;
         var byOffset = new Dictionary<int, PdfDictionary>();
         foreach (var entry in map.Values) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!parsedOffsets.TryGetValue(entry.ObjectNumber, out int offset)) {
                 continue;
             }
@@ -153,7 +193,8 @@ internal static partial class PdfSyntax {
         while (byOffset.TryGetValue(currentOffset, out PdfDictionary? dictionary) &&
             visited.Add(currentOffset) &&
             trailers.Count < 64) {
-            trailers.Add(BuildXrefStreamTrailerRaw(dictionary));
+            cancellationToken.ThrowIfCancellationRequested();
+            trailers.Add(BuildXrefStreamTrailerRaw(dictionary, cancellationToken));
             if (dictionary.Get<PdfNumber>("Prev") is not PdfNumber previous ||
                 previous.Value < 0 ||
                 previous.Value > int.MaxValue) {
@@ -164,7 +205,7 @@ internal static partial class PdfSyntax {
         }
 
         if (trailers.Count > 0 &&
-            TryGetClassicTrailerChainRaw(text, map, parsedOffsets, currentOffset, out string classicTrailerRaw)) {
+            TryGetClassicTrailerChainRaw(text, map, parsedOffsets, currentOffset, out string classicTrailerRaw, cancellationToken)) {
             trailers.Add(classicTrailerRaw);
         }
 
@@ -172,29 +213,34 @@ internal static partial class PdfSyntax {
             return false;
         }
 
-        trailerRaw = string.Join("\n", trailers);
+        cancellationToken.ThrowIfCancellationRequested();
+        trailerRaw = JoinTrailerParts(trailers, "\n", cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         return true;
     }
 
-    private static string BuildXrefStreamTrailerRaw(PdfDictionary dictionary) {
+    private static string BuildXrefStreamTrailerRaw(PdfDictionary dictionary, CancellationToken cancellationToken) {
         var parts = new List<string>();
-        AppendTrailerEntry(parts, dictionary, "Size");
-        AppendTrailerEntry(parts, dictionary, "Root");
-        AppendTrailerEntry(parts, dictionary, "Info");
-        AppendTrailerEntry(parts, dictionary, "ID");
-        AppendTrailerEntry(parts, dictionary, "Encrypt");
-        AppendTrailerEntry(parts, dictionary, "Prev");
-        return "trailer\n<< " + string.Join(" ", parts) + " >>";
+        AppendTrailerEntry(parts, dictionary, "Size", cancellationToken);
+        AppendTrailerEntry(parts, dictionary, "Root", cancellationToken);
+        AppendTrailerEntry(parts, dictionary, "Info", cancellationToken);
+        AppendTrailerEntry(parts, dictionary, "ID", cancellationToken);
+        AppendTrailerEntry(parts, dictionary, "Encrypt", cancellationToken);
+        AppendTrailerEntry(parts, dictionary, "Prev", cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        return JoinTrailerParts(parts, " ", cancellationToken, "trailer\n<< ", " >>");
     }
 
-    private static void AppendTrailerEntry(List<string> parts, PdfDictionary dictionary, string key) {
+    private static void AppendTrailerEntry(List<string> parts, PdfDictionary dictionary, string key, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (dictionary.Items.TryGetValue(key, out PdfObject? value) &&
-            TryFormatTrailerValue(value, out string? formatted)) {
-            parts.Add("/" + key + " " + formatted);
+            TryFormatTrailerValue(value, out string? formatted, cancellationToken)) {
+            parts.Add(JoinTrailerParts(new List<string> { "/", key, " ", formatted ?? string.Empty }, string.Empty, cancellationToken));
         }
     }
 
-    private static bool TryFormatTrailerValue(PdfObject value, out string? formatted) {
+    private static bool TryFormatTrailerValue(PdfObject value, out string? formatted, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         switch (value) {
             case PdfReference reference:
                 formatted = reference.ObjectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + " " +
@@ -204,21 +250,16 @@ internal static partial class PdfSyntax {
                 formatted = number.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 return true;
             case PdfName name:
-                formatted = "/" + name.Name;
+                formatted = JoinTrailerParts(new List<string> { "/", name.Name }, string.Empty, cancellationToken);
                 return true;
             case PdfStringObj text:
-                var hex = new System.Text.StringBuilder(text.RawBytes.Length * 2 + 2);
-                hex.Append('<');
-                foreach (byte valueByte in text.RawBytes) {
-                    hex.Append(valueByte.ToString("X2", System.Globalization.CultureInfo.InvariantCulture));
-                }
-                hex.Append('>');
-                formatted = hex.ToString();
+                formatted = PdfSyntaxEscaper.HexString(text.RawBytes, cancellationToken);
                 return true;
             case PdfArray array:
                 var items = new List<string>();
                 foreach (PdfObject item in array.Items) {
-                    if (!TryFormatTrailerValue(item, out string? itemText)) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (!TryFormatTrailerValue(item, out string? itemText, cancellationToken)) {
                         formatted = null;
                         return false;
                     }
@@ -231,7 +272,7 @@ internal static partial class PdfSyntax {
                     items.Add(itemText);
                 }
 
-                formatted = "[" + string.Join(" ", items) + "]";
+                formatted = JoinTrailerParts(items, " ", cancellationToken, "[", "]");
                 return true;
             case PdfNull:
                 formatted = "null";
@@ -247,20 +288,22 @@ internal static partial class PdfSyntax {
         Dictionary<int, PdfIndirectObject> map,
         Dictionary<int, int> parsedOffsets,
         int activeXrefOffset,
-        out string trailerRaw) {
+        out string trailerRaw,
+        CancellationToken cancellationToken) {
         trailerRaw = string.Empty;
         var trailers = new List<string>();
         var visited = new HashSet<int>();
         int currentOffset = activeXrefOffset;
         while (visited.Add(currentOffset) &&
             trailers.Count < 64 &&
-            TryParseClassicXrefTable(text, currentOffset, out _, out int? previousOffset, out string currentTrailerRaw, out int? xrefStreamOffset)) {
+            TryParseClassicXrefTable(text, currentOffset, out _, out int? previousOffset, out string currentTrailerRaw, out int? xrefStreamOffset, cancellationToken)) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!string.IsNullOrWhiteSpace(currentTrailerRaw)) {
                 trailers.Add(currentTrailerRaw);
             }
 
             if (xrefStreamOffset.HasValue &&
-                TryGetXrefStreamTrailerRawAtOffset(map, parsedOffsets, xrefStreamOffset.Value, out string xrefStreamTrailerRaw)) {
+                TryGetXrefStreamTrailerRawAtOffset(map, parsedOffsets, xrefStreamOffset.Value, out string xrefStreamTrailerRaw, cancellationToken)) {
                 trailers.Add(xrefStreamTrailerRaw);
             }
 
@@ -275,7 +318,9 @@ internal static partial class PdfSyntax {
             return false;
         }
 
-        trailerRaw = string.Join("\n", trailers);
+        cancellationToken.ThrowIfCancellationRequested();
+        trailerRaw = JoinTrailerParts(trailers, "\n", cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         return true;
     }
 
@@ -283,9 +328,11 @@ internal static partial class PdfSyntax {
         Dictionary<int, PdfIndirectObject> map,
         Dictionary<int, int> parsedOffsets,
         int xrefStreamOffset,
-        out string trailerRaw) {
+        out string trailerRaw,
+        CancellationToken cancellationToken) {
         trailerRaw = string.Empty;
         foreach (var entry in map.Values) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!parsedOffsets.TryGetValue(entry.ObjectNumber, out int offset) ||
                 offset != xrefStreamOffset ||
                 entry.Value is not PdfStream stream ||
@@ -293,11 +340,28 @@ internal static partial class PdfSyntax {
                 continue;
             }
 
-            trailerRaw = BuildXrefStreamTrailerRaw(stream.Dictionary);
+            trailerRaw = BuildXrefStreamTrailerRaw(stream.Dictionary, cancellationToken);
             return true;
         }
 
         return false;
+    }
+
+    private static string JoinTrailerParts(List<string> parts, string separator,
+        CancellationToken cancellationToken, string prefix = "", string suffix = "") {
+        var result = new System.Text.StringBuilder();
+        result.Append(prefix);
+        for (int partIndex = 0; partIndex < parts.Count; partIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (partIndex > 0) result.Append(separator);
+            string part = parts[partIndex];
+            for (int offset = 0; offset < part.Length; offset += 65536) {
+                cancellationToken.ThrowIfCancellationRequested();
+                result.Append(part, offset, Math.Min(65536, part.Length - offset));
+            }
+        }
+        result.Append(suffix);
+        return PdfEncoding.StringBuilderToStringCancellable(result, 0, result.Length, cancellationToken);
     }
 
 }

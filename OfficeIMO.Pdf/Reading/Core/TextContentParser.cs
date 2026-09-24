@@ -1187,7 +1187,8 @@ internal static class TextContentParser {
                         spanEndX - spanX > Math.Max(0.000001D, Math.Abs(spanEndY - spanY)),
                     isArtifactContent: hasActiveArtifact,
                     fontWeight: fontWeightForResource?.Invoke(font),
-                    fontDescriptorFlags: fontDescriptorFlagsForResource?.Invoke(font)));
+                    fontDescriptorFlags: fontDescriptorFlagsForResource?.Invoke(font),
+                    embeddedLineBreakCounts: GetEmbeddedLineBreakCounts(rawText, normalizedText.Length)));
                 sbOutGlobal.Append(normalizedText);
                 emittedTextInTextObject = true;
                 pendingLineBreaks = 0;
@@ -1542,6 +1543,36 @@ internal static class TextContentParser {
             string normalized = System.Text.RegularExpressions.Regex.Replace(s, "\\s+", " ");
             string trimmed = normalized.Trim();
             return trimmed.Length == 0 && normalized.Length > 0 ? " " : trimmed;
+        }
+
+        static IReadOnlyList<int>? GetEmbeddedLineBreakCounts(string source, int normalizedLength) {
+            if (source.IndexOf('\n') < 0 && source.IndexOf('\r') < 0 &&
+                source.IndexOf('\u2028') < 0 && source.IndexOf('\u2029') < 0) return null;
+            var breaks = new int[normalizedLength];
+            int outputIndex = 0;
+            bool sawText = false;
+            for (int index = 0; index < source.Length;) {
+                if (!char.IsWhiteSpace(source[index])) {
+                    sawText = true;
+                    outputIndex++;
+                    index++;
+                    continue;
+                }
+                int lineBreakCount = 0;
+                while (index < source.Length && char.IsWhiteSpace(source[index])) {
+                    if (source[index] == '\r' && index + 1 < source.Length && source[index + 1] == '\n') {
+                        lineBreakCount++;
+                        index += 2;
+                        continue;
+                    }
+                    if (source[index] is '\r' or '\n' or '\u2028' or '\u2029') lineBreakCount++;
+                    index++;
+                }
+                if (sawText && index < source.Length && outputIndex < breaks.Length) {
+                    breaks[outputIndex++] = lineBreakCount;
+                }
+            }
+            return breaks;
         }
     }
 

@@ -16,6 +16,10 @@ internal static partial class PdfTextEditor {
         return FindHits(pdf, text, options, readOptions).Select(static hit => hit.Match).ToArray();
     }
 
+    internal static IReadOnlyList<PdfTextMatch> Find(byte[] pdf, string text, PdfTextSearchOptions? options,
+        PdfLoadOptions? readOptions, PdfRedactionSearchWorkBudget workBudget) =>
+        FindHits(pdf, text, options, readOptions, workBudget).Select(static hit => hit.Match).ToArray();
+
     internal static TextMutationResult Add(byte[] pdf, PdfPageRegion region, string text, PdfTextEditOptions? options, PdfLoadOptions? readOptions) {
         Guard.NotNull(text, nameof(text));
         if (!HasRenderableTextLine(text)) throw new ArgumentException("Added text must contain at least one renderable line.", nameof(text));
@@ -164,7 +168,7 @@ internal static partial class PdfTextEditor {
             PdfResolvedTextStyle? fittedStyle = null;
             if (snapshot.RegionWidthPolicy != PdfTextRegionWidthPolicy.PreserveFontSize && replacement.Length > 0) {
                 PdfResolvedTextStyle style = ResolveStyle(snapshot, BuildRegionText(new[] { hit.Segments[0].Span }));
-                fittedStyle = FitStyleToBaselineExtent(style, replacement, GetMatchedBaselineExtent(hit.Segments),
+                fittedStyle = FitStyleToBaselineExtent(style, replacement, GetMatchedBaselineExtent(hit.Segments, hit.Lines[0]),
                     snapshot, out string? fitWarning);
                 if (fitWarning is not null) fitWarnings.Add(fitWarning);
             }

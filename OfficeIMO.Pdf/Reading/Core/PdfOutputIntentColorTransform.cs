@@ -79,10 +79,12 @@ internal sealed class PdfOutputIntentColorTransform {
         PdfDictionary? catalog,
         Dictionary<int, PdfIndirectObject> objects,
         int maxDecodedStreamBytes,
-        PdfIccProfileRetentionBudget? retentionBudget = null) {
+        PdfIccProfileRetentionBudget? retentionBudget = null,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (catalog == null ||
             !catalog.Items.TryGetValue("OutputIntents", out PdfObject? outputIntentsObject)) return null;
-        if (!TryResolve(objects, outputIntentsObject, out PdfObject? resolvedOutputIntents)) {
+        if (!TryResolve(objects, outputIntentsObject, out PdfObject? resolvedOutputIntents, cancellationToken)) {
             return new PdfOutputIntentColorTransform(null, objects, maxDecodedStreamBytes, "catalog", retentionBudget);
         }
         if (resolvedOutputIntents is PdfNull) return null;
@@ -93,16 +95,17 @@ internal sealed class PdfOutputIntentColorTransform {
 
         string? malformedSubject = null;
         for (int index = 0; index < outputIntents.Items.Count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfObject item = outputIntents.Items[index];
             string subject = item is PdfReference reference
                 ? reference.ObjectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture)
                 : "output-intent[" + index.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]";
-            if (!TryResolve(objects, item, out PdfObject? resolvedItem) || resolvedItem is not PdfDictionary outputIntent) {
+            if (!TryResolve(objects, item, out PdfObject? resolvedItem, cancellationToken) || resolvedItem is not PdfDictionary outputIntent) {
                 if (resolvedItem is not PdfNull) malformedSubject ??= subject;
                 continue;
             }
             if (!outputIntent.Items.TryGetValue("DestOutputProfile", out PdfObject? profileObject)) continue;
-            if (!TryResolve(objects, profileObject, out PdfObject? resolvedProfile)) {
+            if (!TryResolve(objects, profileObject, out PdfObject? resolvedProfile, cancellationToken)) {
                 malformedSubject ??= subject;
                 continue;
             }
@@ -137,7 +140,7 @@ internal sealed class PdfOutputIntentColorTransform {
                 cancellationToken) ||
             profile == null ||
             profile.ComponentCount is not (3 or 4) ||
-            !HasCompatibleDeclaredComponentCount(profile.ComponentCount) ||
+            !HasCompatibleDeclaredComponentCount(profile.ComponentCount, cancellationToken) ||
             !profile.HasOutputTransform) {
             return null;
         }
@@ -145,10 +148,10 @@ internal sealed class PdfOutputIntentColorTransform {
         return profile;
     }
 
-    private bool HasCompatibleDeclaredComponentCount(int profileComponentCount) {
+    private bool HasCompatibleDeclaredComponentCount(int profileComponentCount, CancellationToken cancellationToken) {
         if (_profileStream == null ||
             !_profileStream.Dictionary.Items.TryGetValue("N", out PdfObject? componentCountObject)) return true;
-        if (!TryResolve(_objects, componentCountObject, out PdfObject? resolved)) return false;
+        if (!TryResolve(_objects, componentCountObject, out PdfObject? resolved, cancellationToken)) return false;
         return resolved is PdfNull ||
                (resolved is PdfNumber componentCount && componentCount.Value == profileComponentCount);
     }
@@ -156,10 +159,12 @@ internal sealed class PdfOutputIntentColorTransform {
     private static bool TryResolve(
         Dictionary<int, PdfIndirectObject> objects,
         PdfObject value,
-        out PdfObject? resolved) {
+        out PdfObject? resolved,
+        CancellationToken cancellationToken) {
         var visited = new HashSet<(int ObjectNumber, int Generation)>();
         resolved = value;
         while (resolved is PdfReference reference) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!visited.Add((reference.ObjectNumber, reference.Generation)) ||
                 !PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject indirect)) {
                 resolved = null;

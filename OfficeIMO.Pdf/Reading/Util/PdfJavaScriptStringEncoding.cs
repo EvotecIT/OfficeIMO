@@ -2,11 +2,23 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Text-string encoding used by named PDF JavaScript keys and sources.</summary>
 internal static class PdfJavaScriptStringEncoding {
-    internal static bool TryDecode(byte[] bytes, out string value) {
+    internal static bool TryDecode(byte[] bytes, out string value, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF) {
             try {
-                value = new System.Text.UTF8Encoding(false, true).GetString(bytes, 3, bytes.Length - 3);
-                return IsWellFormedUtf16(value);
+                var decoder = new System.Text.UTF8Encoding(false, true).GetDecoder();
+                var characters = new char[8194];
+                var decoded = new System.Text.StringBuilder();
+                for (int offset = 3; offset < bytes.Length;) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    int count = Math.Min(8192, bytes.Length - offset);
+                    int written = decoder.GetChars(bytes, offset, count, characters, 0, offset + count == bytes.Length);
+                    decoded.Append(characters, 0, written);
+                    offset += count;
+                }
+                cancellationToken.ThrowIfCancellationRequested();
+                value = PdfEncoding.StringBuilderToStringCancellable(decoded, 0, decoded.Length, cancellationToken);
+                return IsWellFormedUtf16(value, cancellationToken);
             } catch (System.Text.DecoderFallbackException) {
                 value = string.Empty;
                 return false;
@@ -18,15 +30,20 @@ internal static class PdfJavaScriptStringEncoding {
                 value = string.Empty;
                 return false;
             }
-            try {
-                value = PdfTextString.Decode(bytes);
-                return IsWellFormedUtf16(value);
-            } catch {
-                value = string.Empty;
-                return false;
+            var characters = new char[(bytes.Length - 2) / 2];
+            bool bigEndian = bytes[0] == 0xFE;
+            for (int index = 0; index < characters.Length; index++) {
+                if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                int offset = 2 + index * 2;
+                characters[index] = bigEndian
+                    ? (char)((bytes[offset] << 8) | bytes[offset + 1])
+                    : (char)(bytes[offset] | (bytes[offset + 1] << 8));
             }
+            cancellationToken.ThrowIfCancellationRequested();
+            value = PdfEncoding.CharArrayToStringCancellable(characters, cancellationToken);
+            return IsWellFormedUtf16(value, cancellationToken);
         }
-        return PdfDocEncoding.TryDecode(bytes, out value);
+        return PdfDocEncoding.TryDecode(bytes, out value, cancellationToken);
     }
 
     internal static byte[] EncodeUnicode(string value, string parameterName) {
@@ -43,8 +60,9 @@ internal static class PdfJavaScriptStringEncoding {
         return bytes;
     }
 
-    private static bool IsWellFormedUtf16(string value) {
+    private static bool IsWellFormedUtf16(string value, System.Threading.CancellationToken cancellationToken = default) {
         for (int i = 0; i < value.Length; i++) {
+            if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             char character = value[i];
             if (char.IsHighSurrogate(character)) {
                 if (i + 1 >= value.Length || !char.IsLowSurrogate(value[++i])) return false;

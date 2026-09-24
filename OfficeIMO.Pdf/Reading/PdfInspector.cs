@@ -330,27 +330,27 @@ internal static class PdfInspector {
 
         var rewriteMarkerSource = new PdfRewriteMarkerSource(pdf, effectiveOptions, readDocument);
 
-        if (probe.HasOutlines && PdfSyntax.HasUnsupportedOutlineRewriteMarkers(pdf, options, rewriteMarkerSource)) {
+        if (probe.HasOutlines && PdfSyntax.HasUnsupportedOutlineRewriteMarkers(pdf, options, rewriteMarkerSource, cancellationToken)) {
             AddRewriteBlocker(PdfRewriteBlockerKind.Outlines, "PDF outlines are not supported for rewriting by OfficeIMO.Pdf yet.");
         }
 
-        if (probe.HasPageLabels && PdfSyntax.HasUnsupportedPageLabelRewriteMarkers(pdf, options, rewriteMarkerSource)) {
+        if (probe.HasPageLabels && PdfSyntax.HasUnsupportedPageLabelRewriteMarkers(pdf, options, rewriteMarkerSource, cancellationToken)) {
             AddRewriteBlocker(PdfRewriteBlockerKind.PageLabels, "PDF page labels are not supported for rewriting by OfficeIMO.Pdf yet.");
         }
 
-        if (probe.HasCatalogNameTrees && PdfSyntax.HasUnsupportedCatalogNameTreeRewriteMarkers(pdf, options, rewriteMarkerSource)) {
+        if (probe.HasCatalogNameTrees && PdfSyntax.HasUnsupportedCatalogNameTreeRewriteMarkers(pdf, options, rewriteMarkerSource, cancellationToken)) {
             AddRewriteBlocker(PdfRewriteBlockerKind.CatalogNameTrees, "PDF catalog name trees are not supported for rewriting by OfficeIMO.Pdf yet.");
         }
 
-        if (probe.HasNamedDestinations && PdfSyntax.HasUnsupportedNamedDestinationRewriteMarkers(pdf, options, rewriteMarkerSource)) {
+        if (probe.HasNamedDestinations && PdfSyntax.HasUnsupportedNamedDestinationRewriteMarkers(pdf, options, rewriteMarkerSource, cancellationToken)) {
             AddRewriteBlocker(PdfRewriteBlockerKind.NamedDestinations, "PDF named destinations are not supported for rewriting by OfficeIMO.Pdf yet.");
         }
 
-        if (probe.HasOpenActions && PdfSyntax.HasUnsupportedOpenActionRewriteMarkers(pdf, options, rewriteMarkerSource)) {
+        if (probe.HasOpenActions && PdfSyntax.HasUnsupportedOpenActionRewriteMarkers(pdf, options, rewriteMarkerSource, cancellationToken)) {
             AddRewriteBlocker(PdfRewriteBlockerKind.OpenActions, "PDF open actions are not supported for rewriting by OfficeIMO.Pdf yet.");
         }
 
-        if (probe.HasViewerPreferences && PdfSyntax.HasUnsupportedViewerPreferenceRewriteMarkers(pdf, options, rewriteMarkerSource)) {
+        if (probe.HasViewerPreferences && PdfSyntax.HasUnsupportedViewerPreferenceRewriteMarkers(pdf, options, rewriteMarkerSource, cancellationToken)) {
             AddRewriteBlocker(PdfRewriteBlockerKind.ViewerPreferences, "PDF viewer preferences are not supported for rewriting by OfficeIMO.Pdf yet.");
         }
 
@@ -358,23 +358,23 @@ internal static class PdfInspector {
             AddRewriteBlocker(PdfRewriteBlockerKind.TaggedContent, "PDF tagged content structure is not supported for rewriting by OfficeIMO.Pdf yet.");
         }
 
-        if (probe.HasXmpMetadata && PdfSyntax.HasUnsupportedXmpMetadataRewriteMarkers(pdf, options, rewriteMarkerSource)) {
+        if (probe.HasXmpMetadata && PdfSyntax.HasUnsupportedXmpMetadataRewriteMarkers(pdf, options, rewriteMarkerSource, cancellationToken)) {
             AddRewriteBlocker(PdfRewriteBlockerKind.XmpMetadata, "PDF XMP metadata is not supported for rewriting by OfficeIMO.Pdf yet.");
         }
 
-        if (probe.HasCatalogUri && PdfSyntax.HasUnsupportedCatalogUriRewriteMarkers(pdf, options, rewriteMarkerSource)) {
+        if (probe.HasCatalogUri && PdfSyntax.HasUnsupportedCatalogUriRewriteMarkers(pdf, options, rewriteMarkerSource, cancellationToken)) {
             AddRewriteBlocker(PdfRewriteBlockerKind.CatalogUri, "PDF catalog URI dictionaries are not supported for rewriting by OfficeIMO.Pdf yet.");
         }
 
-        if (probe.HasOutputIntents && PdfSyntax.HasUnsupportedOutputIntentRewriteMarkers(pdf, options, rewriteMarkerSource)) {
+        if (probe.HasOutputIntents && PdfSyntax.HasUnsupportedOutputIntentRewriteMarkers(pdf, options, rewriteMarkerSource, cancellationToken)) {
             AddRewriteBlocker(PdfRewriteBlockerKind.OutputIntents, "PDF output intents are not supported for rewriting by OfficeIMO.Pdf yet.");
         }
 
-        if (probe.HasEmbeddedFiles && PdfSyntax.HasUnsupportedEmbeddedFileRewriteMarkers(pdf, options, rewriteMarkerSource)) {
+        if (probe.HasEmbeddedFiles && PdfSyntax.HasUnsupportedEmbeddedFileRewriteMarkers(pdf, options, rewriteMarkerSource, cancellationToken)) {
             AddRewriteBlocker(PdfRewriteBlockerKind.EmbeddedFiles, "PDF embedded files are not supported for rewriting by OfficeIMO.Pdf yet.");
         }
 
-        if (probe.HasOptionalContent && PdfSyntax.HasUnsupportedOptionalContentRewriteMarkers(pdf, options, rewriteMarkerSource)) {
+        if (probe.HasOptionalContent && PdfSyntax.HasUnsupportedOptionalContentRewriteMarkers(pdf, options, rewriteMarkerSource, cancellationToken)) {
             AddRewriteBlocker(PdfRewriteBlockerKind.OptionalContent, "PDF optional content layers are not supported for rewriting by OfficeIMO.Pdf yet.");
         }
 
@@ -417,7 +417,7 @@ internal static class PdfInspector {
         cancellationToken.ThrowIfCancellationRequested();
         Dictionary<int, PdfIndirectObject> objects = document.Objects;
         string trailerRaw = document.TrailerRaw;
-        var catalogState = PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw);
+        var catalogState = PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw, cancellationToken);
         var collector = new PdfPageExtractor.ObjectCollector(objects, cancellationToken: cancellationToken);
 
         for (int i = 0; i < document.Pages.Count; i++) {
@@ -546,7 +546,7 @@ internal static class PdfInspector {
         PdfRepairReport repairReport,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        PdfDictionary? catalog = PdfSyntax.FindCatalog(objects, trailerRaw);
+        PdfDictionary? catalog = PdfSyntax.FindCatalog(objects, trailerRaw, cancellationToken);
         // A single parsed walk replaces a separate full graph scan for every feature.
         HashSet<string> presentNames = PdfSyntax.CollectParsedPdfNames(objects, ParsedProbeMarkerNames, cancellationToken);
         int reachableMarkerGroups = catalog is null
@@ -556,7 +556,7 @@ internal static class PdfInspector {
                 objects,
                 ReachableProbeMarkerGroups,
                 cancellationToken);
-        string? rawFallback = repairReport.HasIncompleteObjectCoverage ? PdfEncoding.Latin1GetString(pdf) : null;
+        string? rawFallback = repairReport.HasIncompleteObjectCoverage ? PdfEncoding.Latin1GetStringCancellable(pdf, cancellationToken) : null;
         bool Has(ProbeMarker marker) {
             cancellationToken.ThrowIfCancellationRequested();
             // Parsed dictionaries are authoritative here. Stream bytes and string values
@@ -603,7 +603,7 @@ internal static class PdfInspector {
         PdfDocumentSecurityInfo security,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        string text = PdfEncoding.Latin1GetString(pdf);
+        string text = PdfEncoding.Latin1GetStringCancellable(pdf, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         bool Has(ProbeMarker marker) => PdfSyntax.ContainsAnyPdfName(text, cancellationToken, ProbeMarkerNames[(int)marker]);
 
@@ -701,26 +701,26 @@ internal static class PdfInspector {
             PdfPageGeometry geometry = page.GetGeometry();
             var (width, height) = PdfReadPage.GetPageSize(geometry);
             int rotation = page.GetRotationDegrees();
-            var pageLinks = page.GetLinkAnnotationsUnchecked();
+            var pageLinks = page.GetLinkAnnotationsUnchecked(cancellationToken);
             var links = new List<PdfLinkAnnotation>(pageLinks.Count);
             for (int j = 0; j < pageLinks.Count; j++) {
                 cancellationToken.ThrowIfCancellationRequested();
                 PdfLinkAnnotation link = pageLinks[j].WithPageNumber(pageNumber);
                 if (link.DestinationPageObjectNumber.HasValue) {
-                    link = link.WithDestinationPageNumber(document.GetPageNumberForObject(link.DestinationPageObjectNumber.Value));
+                    link = link.WithDestinationPageNumber(document.GetPageNumberForObject(link.DestinationPageObjectNumber.Value, cancellationToken));
                 }
 
                 links.Add(link);
             }
 
-            var pageAnnotations = page.GetAnnotationsUnchecked();
+            var pageAnnotations = page.GetAnnotationsUnchecked(cancellationToken);
             var annotations = new List<PdfAnnotation>(pageAnnotations.Count);
             for (int j = 0; j < pageAnnotations.Count; j++) {
                 cancellationToken.ThrowIfCancellationRequested();
                 annotations.Add(pageAnnotations[j].WithPageNumber(pageNumber));
             }
 
-            var pageActions = page.GetPageActionsUnchecked();
+            var pageActions = page.GetPageActionsUnchecked(cancellationToken);
             var actions = new List<PdfPageAction>(pageActions.Count);
             for (int j = 0; j < pageActions.Count; j++) {
                 cancellationToken.ThrowIfCancellationRequested();

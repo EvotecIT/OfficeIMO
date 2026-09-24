@@ -440,10 +440,12 @@ public sealed partial class PdfDocument {
         byte[] pdf,
         int outputPageCount,
         PdfLoadOptions? readOptions = null,
-        [System.Runtime.CompilerServices.CallerMemberName] string operationName = "") {
+        [System.Runtime.CompilerServices.CallerMemberName] string operationName = "",
+        CancellationToken cancellationToken = default) {
         Guard.NotNull(inputBytes, nameof(inputBytes));
         Guard.NotNull(input, nameof(input));
         Guard.NotNull(pdf, nameof(pdf));
+        cancellationToken.ThrowIfCancellationRequested();
 #if NET8_0_OR_GREATER
         ArgumentOutOfRangeException.ThrowIfNegative(outputPageCount);
 #else
@@ -455,7 +457,8 @@ public sealed partial class PdfDocument {
         PdfLoadOptions effectiveReadOptions = PdfLoadOptions.WithMinimumInputBytes(
             readOptions ?? ReadOptions,
             pdf.LongLength);
-        PdfArtifactSnapshot output = PdfArtifactSnapshot.CaptureKnownPageCount(pdf, outputPageCount);
+        PdfArtifactSnapshot output = PdfArtifactSnapshot.CaptureKnownPageCount(pdf, outputPageCount, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         return WithBytes(
             inputBytes,
             input,

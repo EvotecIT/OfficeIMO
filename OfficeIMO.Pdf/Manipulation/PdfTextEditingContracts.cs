@@ -189,17 +189,18 @@ public sealed class PdfTextSearchOptions {
 
 /// <summary>One located text occurrence in PDF user space.</summary>
 public sealed class PdfTextMatch {
-    internal PdfTextMatch(int pageNumber, string text, double x, double y, double width, double height, double fontSize, PdfStandardFont suggestedFont, string? sourceFont, PdfColor color, double rotationDegrees, PdfSelectionQuad visualBounds, bool usesTextRenderingMode3 = false) {
+    internal PdfTextMatch(int pageNumber, string text, double x, double y, double width, double height, double fontSize, PdfStandardFont suggestedFont, string? sourceFont, PdfColor color, double rotationDegrees, PdfSelectionQuad visualBounds, bool usesTextRenderingMode3 = false, IReadOnlyList<PdfSelectionQuad>? visualLineBounds = null) {
         PageNumber = pageNumber; Text = text; X = x; Y = y; Width = width; Height = height; FontSize = fontSize; SuggestedFont = suggestedFont; SourceFont = sourceFont; Color = color; RotationDegrees = rotationDegrees;
         IsTextRenderingMode3 = usesTextRenderingMode3;
         VisualBounds = visualBounds;
+        VisualLineBounds = new ReadOnlyCollection<PdfSelectionQuad>(visualLineBounds is { Count: > 0 } ? visualLineBounds.ToArray() : new[] { visualBounds });
     }
 
     /// <summary>One-based page number.</summary>
     public int PageNumber { get; }
-    /// <summary>Matched source text.</summary>
+    /// <summary>Matched text as searched: whitespace runs and line breaks read as single spaces, and a word hyphenated at a line end reads either joined or with its hyphen.</summary>
     public string Text { get; }
-    /// <summary>Left coordinate in PDF points.</summary>
+    /// <summary>Left coordinate in PDF points. <see cref="X"/>, <see cref="Y"/>, <see cref="Width"/>, and <see cref="Height"/> bound the whole occurrence, including every line of a wrapped occurrence.</summary>
     public double X { get; }
     /// <summary>Bottom coordinate in PDF points.</summary>
     public double Y { get; }
@@ -222,6 +223,9 @@ public sealed class PdfTextMatch {
 
     /// <summary>Axis-aligned occurrence bounds in rendered top-left page coordinates, including the effective page box, page rotation, and user-unit scale.</summary>
     public PdfSelectionQuad VisualBounds { get; }
+
+    /// <summary>Per-line occurrence bounds in rendered top-left page coordinates, in reading order. An occurrence that wraps across lines has one entry per line segment; a single-line occurrence has one entry equal to <see cref="VisualBounds"/>.</summary>
+    public IReadOnlyList<PdfSelectionQuad> VisualLineBounds { get; }
 }
 
 /// <summary>Result of an existing-page text edit.</summary>
