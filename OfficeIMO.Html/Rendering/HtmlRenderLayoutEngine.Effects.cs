@@ -9,9 +9,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle style,
         double containingWidth,
         IElement element,
+        out bool createsStackingContext) =>
+        ApplyPaintEffects(block, style, containingWidth, HtmlRenderStyleResolver.DescribeSource(element), out createsStackingContext);
+
+    private HtmlRenderFlowBlock ApplyPaintEffects(
+        HtmlRenderFlowBlock block,
+        HtmlRenderBoxStyle style,
+        double containingWidth,
+        string source,
         out bool createsStackingContext) {
         createsStackingContext = false;
-        string source = HtmlRenderStyleResolver.DescribeSource(element);
         if (style.UnsupportedOpacity.Length > 0) {
             _diagnostics.Add(
                 ComponentName,

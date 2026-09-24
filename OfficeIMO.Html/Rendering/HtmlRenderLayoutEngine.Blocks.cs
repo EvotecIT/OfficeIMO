@@ -483,6 +483,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
             PositionedPaintBand.Negative,
             overflowContent,
             positionedRunningStringAssignments);
+        AppendLocallyPositionedGeneratedContent(
+            element, HtmlPseudoElementKind.Before,
+            Math.Max(1D, boxWidth - style.BorderLeftWidth - style.BorderRightWidth),
+            Math.Max(0.01D, boxHeight - style.BorderTopWidth - style.BorderBottomWidth),
+            style.MarginLeft + style.BorderLeftWidth,
+            style.MarginTop + style.BorderTopWidth,
+            style, overflowContent);
         double contentX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft;
         double contentY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
         foreach (HtmlRenderVisual visual in contentVisuals) {
@@ -499,6 +506,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 overflowContent,
                 positionedRunningStringAssignments);
         }
+        AppendLocallyPositionedGeneratedContent(
+            element, HtmlPseudoElementKind.After,
+            Math.Max(1D, boxWidth - style.BorderLeftWidth - style.BorderRightWidth),
+            Math.Max(0.01D, boxHeight - style.BorderTopWidth - style.BorderBottomWidth),
+            style.MarginLeft + style.BorderLeftWidth,
+            style.MarginTop + style.BorderTopWidth,
+            style, overflowContent);
         AppendOverflowContent(
             visuals,
             overflowContent,
@@ -707,6 +721,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private bool HasBlockGeneratedContent(IElement element, HtmlPseudoElementKind kind, double width, HtmlRenderBoxStyle parentStyle) {
         if (!_generatedContent.TryGetContent(element, kind, out _)
             || !_styleResolver.TryResolvePseudo(element, kind, width, parentStyle, out HtmlRenderBoxStyle style)) return false;
+        if (CanPositionGeneratedContentLocally(style, parentStyle)) return false;
         return style.Display is "block" or "flow-root" or "list-item" or "flex" or "grid";
     }
 

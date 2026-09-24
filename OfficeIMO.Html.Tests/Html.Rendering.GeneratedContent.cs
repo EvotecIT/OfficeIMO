@@ -70,6 +70,36 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlGeneratedContent_AbsoluteAfterUsesItsPositionedHostWithoutAddingFlowHeight() {
+        const string html = "<style>body,ul{margin:0;padding:0}ul{list-style:none}"
+            + "li{position:relative;width:120px;height:30px;padding-right:20px;margin:0}"
+            + "li::after{content:'';display:block;position:absolute;right:4px;top:10px;"
+            + "width:8px;height:8px;background:#ff0000}</style>"
+            + "<ul><li id='first'>First</li><li id='second'>Second</li></ul>"
+            + "<p style='margin:0'>Following</p>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 240D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        HtmlRenderVisual[] visuals = EnumerateRenderVisuals(rendered.Pages[0].Scene).ToArray();
+        HtmlRenderShape firstArrow = Assert.Single(visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Source == "li#first::after" && shape.Shape.FillColor == OfficeColor.Red);
+        HtmlRenderShape secondArrow = Assert.Single(visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Source == "li#second::after" && shape.Shape.FillColor == OfficeColor.Red);
+        HtmlRenderText first = Assert.Single(visuals.OfType<HtmlRenderText>(), text => text.Text == "First");
+        HtmlRenderText second = Assert.Single(visuals.OfType<HtmlRenderText>(), text => text.Text == "Second");
+        HtmlRenderText following = Assert.Single(visuals.OfType<HtmlRenderText>(), text => text.Text == "Following");
+
+        Assert.InRange(firstArrow.X - first.X, 125D, 130D);
+        Assert.InRange(firstArrow.Y - first.Y, 9D, 11D);
+        Assert.InRange(secondArrow.Y - firstArrow.Y, 29D, 31D);
+        Assert.InRange(second.Y - first.Y, 29D, 31D);
+        Assert.InRange(following.Y - first.Y, 59D, 61D);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
+            diagnostic.Source == "li::after" && diagnostic.Code == HtmlRenderDiagnosticCodes.PositioningModeUnsupported);
+    }
+
+    [Fact]
     public void HtmlGeneratedContent_RatioWrapperPaintsPositionedImage() {
         string data = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(10, 10));
         string html = "<style>body{margin:0}ul{display:flex;flex-wrap:wrap;list-style:none;margin:0;padding:0}"
