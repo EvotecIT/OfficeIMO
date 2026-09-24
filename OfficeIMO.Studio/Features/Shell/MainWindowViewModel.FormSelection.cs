@@ -30,7 +30,7 @@ public sealed partial class MainWindowViewModel {
     }
 
     // Text, check box and drop-down fields with one widget are filled on the page; others stay in the side pane.
-    private bool CanFillInPlace(PdfFormFieldViewModel field) => CanFillForms && field.CanFill && !IsFillSignPlacement(ActiveEditorTool) &&
+    private bool CanFillInPlace(PdfFormFieldViewModel field) => _workspace?.CanFillForms == true && field.CanFill && !IsFillSignPlacement(ActiveEditorTool) &&
         (field.IsTextEditor || field.SingleWidget is not null && (field.IsCheckBoxEditor || field.IsSingleChoiceEditor));
 
     // Tab order follows the document's field order, which Studio already keeps in tab order per page.

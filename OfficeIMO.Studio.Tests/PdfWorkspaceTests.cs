@@ -8,6 +8,27 @@ namespace OfficeIMO.Studio.Tests;
 
 public sealed partial class PdfWorkspaceTests {
     [Fact]
+    public async Task ProviderImageExportUsesBoundedPortableBatchNames() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-provider-images-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            PdfDocument document = PdfDocument.Create(compose => compose.Page(page => page.Size(600D, 800D)));
+            document = document.Images.Add(new PdfPageRegion(1, 50D, 60D, 40D, 20D), TinyPng).Document;
+            using var storage = new OfficeIMO.Studio.Infrastructure.StudioStorageAccess();
+            var provider = new TestStorageFile("content://documents/image-export", document.ToBytes(),
+                name: "Q1:Report-" + new string('x', 130) + ".pdf");
+            string location = await storage.RegisterAsync(provider.Item, CancellationToken.None);
+            using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(location, CancellationToken.None, storage: storage);
+            string output = Path.Combine(root, "images");
+
+            Assert.Equal(1, await workspace.ExportDocumentAsync(PdfExportKind.Images, output, CancellationToken.None));
+            string fileName = Path.GetFileName(Assert.Single(Directory.GetFiles(output)));
+            Assert.StartsWith("Q1_Report-", fileName, StringComparison.Ordinal);
+            Assert.True(fileName.Length < 110);
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
     public async Task ImageExportKeepsExistingFilesAndUsesOneNewBatchName() {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-image-export-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);

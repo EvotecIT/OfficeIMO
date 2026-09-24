@@ -12,7 +12,9 @@ namespace OfficeIMO.Studio.Features.Home;
 internal static class RecentDocumentThumbnails {
     internal const double TargetWidth = 176D;
     private const int MaximumEntries = 32;
-    private static readonly ConcurrentDictionary<string, Lazy<Task<RecentDocumentPreview?>>> Cache = new(StringComparer.OrdinalIgnoreCase);
+    // Path spellings may name different files on case-sensitive volumes, including Windows directories.
+    private static readonly ConcurrentDictionary<string, Lazy<Task<RecentDocumentPreview?>>> Cache =
+        new(StringComparer.Ordinal);
     private static readonly SemaphoreSlim Gate = new(2, 2);
 
     internal static Task<RecentDocumentPreview?> GetAsync(string path) {

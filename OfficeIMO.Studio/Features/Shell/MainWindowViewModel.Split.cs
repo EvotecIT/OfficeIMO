@@ -27,8 +27,7 @@ public sealed partial class MainWindowViewModel {
             bool provider = _services.Storage.UsesProviderPublication(folder);
             string destination = provider ? folder : Path.Combine(OfficeStorageIdentity.GetLocalPath(folder)
                 ?? throw new IOException("Choose an accessible output folder."), "Split PDFs");
-            int topLevel = Bookmarks.Where(bookmark => bookmark.PageNumber.HasValue).Select(bookmark => bookmark.Level).DefaultIfEmpty(1).Min();
-            PdfSplitStart[] starts = Bookmarks.Where(bookmark => bookmark.Level == topLevel && bookmark.PageNumber.HasValue)
+            PdfSplitStart[] starts = Bookmarks.Where(bookmark => bookmark.Level == 1 && bookmark.PageNumber.HasValue)
                 .Select(bookmark => new PdfSplitStart(bookmark.PageNumber!.Value, bookmark.Title)).ToArray();
             var preview = new PageSplitPreviewViewModel(workspace.Pages.Count, pagesPerPart, destination, provider, _localizer,
                 path => _openDocumentInTab is null ? _openUri(new Uri(path)) : _openDocumentInTab(path, CancellationToken.None), starts);

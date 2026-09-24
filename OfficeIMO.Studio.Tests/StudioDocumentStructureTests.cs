@@ -272,20 +272,32 @@ public sealed class StudioDocumentStructureTests {
                 byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAMAAAABCAYAAAAb4BS0AAAAEElEQVR4nGNgYGD4z8DAwAAABQABnEX0RwAAAABJRU5ErkJggg==");
                 var services = StudioApplicationServices.Create(new StudioDataPaths(Path.Combine(root, "profile")));
                 using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services) {
-                    CreateSignatureDialog = _ => Task.FromResult<StudioSignatureDraft?>(new StudioSignatureDraft(png, Remember: true))
+                    CreateSignatureDialog = _ => Task.FromResult<StudioSignatureDraft?>(new StudioSignatureDraft(png, Remember: true, Text: "Ada"))
                 };
                 await model.OpenDocumentAsync(path);
                 await model.CreateSignatureCommand.ExecuteAsync("Signature");
                 var saved = Assert.Single(model.SavedSignatures);
+                string sidecar = Path.ChangeExtension(saved.Saved.Path, ".json");
+                Assert.True(File.Exists(sidecar));
                 using (var locked = new FileStream(saved.Saved.Path, FileMode.Open, FileAccess.Read, FileShare.None)) {
                     model.DeleteSavedSignatureCommand.Execute(saved);
                     Assert.Single(model.SavedSignatures);
                     Assert.NotNull(model.ErrorMessage);
                     Assert.True(File.Exists(saved.Saved.Path));
+                    Assert.True(File.Exists(sidecar));
+                }
+                Assert.Equal("Ada", Assert.Single(new StudioSignatureStore(Path.GetDirectoryName(saved.Saved.Path)!)
+                    .List(StudioSignatureKind.Signature)).Text);
+                using (var locked = new FileStream(sidecar, FileMode.Open, FileAccess.Read, FileShare.None)) {
+                    model.DeleteSavedSignatureCommand.Execute(saved);
+                    Assert.Single(model.SavedSignatures);
+                    Assert.True(File.Exists(saved.Saved.Path));
+                    Assert.True(File.Exists(sidecar));
                 }
                 model.DeleteSavedSignatureCommand.Execute(saved);
                 Assert.Empty(model.SavedSignatures);
                 Assert.False(File.Exists(saved.Saved.Path));
+                Assert.False(File.Exists(sidecar));
                 return true;
             }, CancellationToken.None);
         } finally { Directory.Delete(root, recursive: true); }

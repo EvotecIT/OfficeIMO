@@ -406,7 +406,8 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
         double bottom = regions.Max(static region => region.Quad.Bottom);
         _selectionStart = ToControlPoint(new Point(left, top));
         _selectionEnd = ToControlPoint(new Point(right, bottom));
-        SelectTextObject();
+        if (SelectionMode == PdfEditorSelectionMode.PageContent) SelectTextObject();
+        else TextSelectionCompleted?.Invoke();
         InvalidateVisual();
     }
 

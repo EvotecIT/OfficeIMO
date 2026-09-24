@@ -123,7 +123,7 @@ public sealed class StudioFormsJourneyTests {
         string source = Path.Combine(root, "form.pdf");
         try {
             PdfDocument.Create(compose => compose.Page(page => page.Content(content => {
-                content.Item(item => item.TextField("First", value: "One"));
+                content.Item(item => item.TextField("First", value: "On", style: new PdfFormFieldStyle { MaxLength = 2 }));
                 content.Item(item => item.TextField("Second", value: "Two"));
                 content.Item(item => item.TextField("Third", value: "Three"));
             }))).Save(source);
@@ -151,6 +151,9 @@ public sealed class StudioFormsJourneyTests {
                 Assert.Equal(1, repeatedFocusRequests);
                 Assert.True(page.FocusInlineFormEditorRequested);
 
+                model.SelectedFormField.TextValue = "TOO LONG";
+                Assert.False(model.CanFillForms);
+                Assert.True(page.HasInlineFormEditor);
                 page.RequestInlineFormNavigation(1);
                 Assert.Equal("Second", model.SelectedFormField?.Name);
                 Assert.Same(model.SelectedFormField, page.InlineFormField);

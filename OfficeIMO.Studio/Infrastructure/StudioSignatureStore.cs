@@ -75,8 +75,18 @@ internal sealed class StudioSignatureStore {
         string root = System.IO.Path.GetFullPath(_root).TrimEnd(System.IO.Path.DirectorySeparatorChar) + System.IO.Path.DirectorySeparatorChar;
         StringComparison comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
         if (!full.StartsWith(root, comparison)) throw new UnauthorizedAccessException("The saved signature is outside the signature folder.");
-        File.Delete(System.IO.Path.ChangeExtension(full, ".json"));
         File.Delete(full);
+        // Deleting the image first leaves the reusable shape intact if the image is locked.
+        // If the sidecar cannot be removed, restore the image so the remembered signature is
+        // still complete and usable after the next launch.
+        try { File.Delete(System.IO.Path.ChangeExtension(full, ".json")); }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException) {
+            try { WritePrivateFile(full, signature.Png); }
+            catch (Exception restoreError) when (restoreError is IOException or UnauthorizedAccessException) {
+                throw new AggregateException("The signature image could not be restored after sidecar deletion failed.", error, restoreError);
+            }
+            throw;
+        }
     }
 
     private static void WritePrivateFile(string path, byte[] bytes) {

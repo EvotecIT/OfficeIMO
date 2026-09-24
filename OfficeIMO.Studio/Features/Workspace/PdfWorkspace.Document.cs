@@ -107,7 +107,9 @@ internal sealed partial class PdfWorkspace {
             destination = OfficeIMO.Internal.OfficeStorageIdentity.GetLocalPath(destination)
                 ?? throw new System.IO.IOException("Choose a folder on this computer to save the images.");
             System.IO.Directory.CreateDirectory(destination);
-            string baseName = System.IO.Path.GetFileNameWithoutExtension(FileName);
+            string baseName = OfficeIMO.Core.Internal.OfficePortableFileName.SanitizeBaseName(
+                System.IO.Path.GetFileNameWithoutExtension(FileName), maximumLength: 80);
+            if (baseName.Length == 0) baseName = "document";
             string[] names = new string[images.Count];
             for (int batch = 0; ; batch++) {
                 if (batch == int.MaxValue) throw new IOException("No available image export names remain in this folder.");
