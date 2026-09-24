@@ -530,7 +530,10 @@ internal static partial class HtmlPdfRenderedConverter {
         }
         var content = new PdfCore.PdfPageCanvas(allowOutOfPageCoordinates: true);
         AddChildren(content);
-        if (content.Items.Count == 0) return;
+        if (!HasCanvasContent(content.Items)) {
+            canvas.AddItems(content.Items);
+            return;
+        }
         if (group.Text.Length == 0) {
             canvas.Artifact(nested => nested.AddItems(content.Items));
             return;
@@ -569,7 +572,9 @@ internal static partial class HtmlPdfRenderedConverter {
                 cancellationToken.ThrowIfCancellationRequested();
                 AddVisual(artifactContent, child, webFonts, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls: false, cancellationToken, textAsSpan: true, activeClip: activeClip, logicalTextOwned: logicalTextOwned);
             }
-            if (artifactContent.Items.Count > 0) canvas.Artifact(nested => nested.AddItems(artifactContent.Items));
+            if (HasCanvasContent(artifactContent.Items))
+                canvas.Artifact(nested => nested.AddItems(artifactContent.Items));
+            else canvas.AddItems(artifactContent.Items);
             return;
         }
         var options = new PdfCore.PdfCanvasStructureOptions {
@@ -591,7 +596,10 @@ internal static partial class HtmlPdfRenderedConverter {
             AddVisual(content, child, webFonts, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls,
                 cancellationToken, childTextAsSpan, activeClip, logicalTextOwned || !string.IsNullOrEmpty(printableText));
         }
-        if (content.Items.Count == 0) return;
+        if (!HasCanvasContent(content.Items)) {
+            canvas.AddItems(content.Items);
+            return;
+        }
         canvas.Structure(MapSemanticGroupRole(group.Role), nested => {
             if (printableText is { Length: > 0 } actualText)
                 nested.ActualText(actualText, target => target.AddItems(content.Items));
