@@ -137,6 +137,8 @@ print text), but its component styling and pagination still differ. These
 residuals, broader independently chosen page classes, editable target routes,
 and cross-platform qualification remain open in the roadmap.
 
+At clean source `17fc174b4`, the same MDN archive replayed offline with no operation failures. Chromium print remained 16 pages; OfficeIMO's zero-margin local-font print produced 19. All print pages were rasterized and inspected at contact-sheet scale, with the first two page pairs also inspected at higher resolution. The article text and saved code blocks are present throughout, but OfficeIMO's breadcrumb items crowd together and its code/preview components repeatedly retain large bordered boxes where Chromium print uses compact controls and code. These repeated boxes contribute to the extra pages. The managed report explicitly marks the serialized shadow-root projection and unavailable shadow-scoped styling; this is a current static-rendering limit, not evidence that the missing styling can safely be applied as ordinary document CSS. The report also contains 36 unavailable-resource observations and many repeated OpenType feature warnings, whose counts do not measure visible loss. The exact report, PDFs, page rasters and contact sheets are retained under `Ignore/HtmlUnknownPageQualification/h10-mdn-baseline-17fc174b4/`. Fine-detail review beyond the first two page pairs and the separate screen PDF intents remain open; exact component appearance remains a browser-backed route.
+
 ## W3C installed-font measurement follow-up
 
 The opt-in local-font PDF lane now measures text with the same installed face
