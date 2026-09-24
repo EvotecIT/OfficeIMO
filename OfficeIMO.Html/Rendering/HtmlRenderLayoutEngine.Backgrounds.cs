@@ -460,7 +460,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlResolvedBorderRadii normalized = radii.Normalize(width, height);
         if (normalized.IsZero) return OfficeShape.Rectangle(width, height);
         return normalized.IsUniformCircular
-            ? OfficeShape.RoundedRectangle(width, height, normalized.UniformRadius)
+            ? OfficeShape.RoundedRectangle(width, height, normalized.BoundedUniformRadius(width, height))
             : OfficeShape.Path(normalized.CreatePathCommands(width, height));
     }
 

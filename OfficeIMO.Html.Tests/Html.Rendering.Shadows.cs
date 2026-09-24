@@ -9,6 +9,35 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlShadows_HalfHeightRadiusRendersRoundedShadowAndClipInPdf() {
+        const string html = "<body style='margin:0'><div id='rounded' style='width:98.399px;height:52.4px;border-radius:26.200000000000003px;box-shadow:0 2px 4px black;overflow:hidden;background:white'>Rounded shadow</div></body>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 120D,
+            ViewportHeight = 70D,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        HtmlRenderShape shadow = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Source == "div#rounded:box-shadow");
+        Assert.Equal(OfficeShapeKind.RoundedRectangle, shadow.Shape.Kind);
+        Assert.Equal(26.2D, shadow.Shape.CornerRadius, 6);
+        Assert.True(shadow.Shape.CornerRadius <= shadow.Height / 2D);
+        Assert.Contains(EnumerateRenderVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderPathClipGroup>(),
+            group => group.Source == "div#rounded");
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(120D / HtmlRenderOptions.CssPixelsPerInch, 70D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        string pdfText = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
+        Assert.Contains("Rounded", pdfText, StringComparison.Ordinal);
+        Assert.Contains("shadow", pdfText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlShadows_OuterBlurFlowsThroughPngSvgAndSearchablePdf() {
         const string html = "<div id='shadow' style='width:28px;height:16px;margin:4px 0 0 8px;border-radius:4px;background:#ffffff;box-shadow:4px 3px 4px rgba(255,0,0,.5);font-size:6px;line-height:8px'>ShadowPdf</div>";
         var options = new HtmlRenderOptions {

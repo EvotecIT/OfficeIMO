@@ -411,7 +411,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             borderColor,
             style.BorderStyle,
             style.BorderWidth,
-            resolvedRadii.UniformRadius,
+            resolvedRadii.BoundedUniformRadius(width, height),
             x,
             y,
             width,

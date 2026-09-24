@@ -44,6 +44,9 @@ internal readonly struct HtmlResolvedBorderRadii {
 
     internal double UniformRadius => IsUniformCircular ? TopLeftX : 0D;
 
+    internal double BoundedUniformRadius(double width, double height) =>
+        Math.Min(UniformRadius, Math.Min(width, height) / 2D);
+
     private double MaximumRadius => Math.Max(
         Math.Max(Math.Max(TopLeftX, TopLeftY), Math.Max(TopRightX, TopRightY)),
         Math.Max(Math.Max(BottomRightX, BottomRightY), Math.Max(BottomLeftX, BottomLeftY)));
@@ -54,7 +57,7 @@ internal readonly struct HtmlResolvedBorderRadii {
         scale = LimitScale(scale, width, BottomLeftX + BottomRightX);
         scale = LimitScale(scale, height, TopLeftY + BottomLeftY);
         scale = LimitScale(scale, height, TopRightY + BottomRightY);
-        return scale >= 0.999999D ? this : Scale(scale);
+        return scale >= 1D ? this : Scale(scale);
     }
 
     internal HtmlResolvedBorderRadii Inset(

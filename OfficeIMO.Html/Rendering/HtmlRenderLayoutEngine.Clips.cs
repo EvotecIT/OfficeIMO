@@ -29,6 +29,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private static OfficeClipPath CreateBoxClipPath(double width, double height, HtmlResolvedBorderRadii radii) =>
         radii.IsUniformCircular
-            ? OfficeClipPath.RoundedRectangle(width, height, radii.UniformRadius)
+            ? OfficeClipPath.RoundedRectangle(width, height, radii.BoundedUniformRadius(width, height))
             : OfficeClipPath.Path(radii.CreatePathCommands(width, height));
 }

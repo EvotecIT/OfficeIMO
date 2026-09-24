@@ -99,7 +99,7 @@ internal static class HtmlCssClipPathParser {
             path = radii.IsZero
                 ? OfficeClipPath.Rectangle(clipWidth, clipHeight)
                 : radii.IsUniformCircular
-                    ? OfficeClipPath.RoundedRectangle(clipWidth, clipHeight, radii.UniformRadius)
+                    ? OfficeClipPath.RoundedRectangle(clipWidth, clipHeight, radii.BoundedUniformRadius(clipWidth, clipHeight))
                     : OfficeClipPath.Path(radii.CreatePathCommands(clipWidth, clipHeight));
         }
 
