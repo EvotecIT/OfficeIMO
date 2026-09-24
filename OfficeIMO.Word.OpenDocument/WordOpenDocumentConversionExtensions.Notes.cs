@@ -352,10 +352,15 @@ public static partial class WordOpenDocumentConversionExtensions {
         settings.StartNumber.HasValue || settings.NumberingFormat.HasValue;
 
     private static void CountOdtNoteConfigurationLoss(OdtDocument source, NoteMappingStats notes) {
-        if (!source.Package.ContainsEntry("styles.xml")) return;
         System.Xml.Linq.XNamespace text = "urn:oasis:names:tc:opendocument:xmlns:text:1.0";
-        notes.UnsupportedOdtNoteConfigurations = source.Package.GetXml("styles.xml")
-            .Descendants(text + "notes-configuration").Count();
+        System.Xml.Linq.XNamespace style = "urn:oasis:names:tc:opendocument:xmlns:style:1.0";
+        foreach (string part in new[] { "styles.xml", "content.xml" }) {
+            if (!source.Package.ContainsEntry(part)) continue;
+            System.Xml.Linq.XDocument document = source.Package.GetXml(part);
+            notes.UnsupportedOdtNoteConfigurations += document.Descendants(text + "notes-configuration").Count();
+            if (notes.ConvertedFootnotes > 0)
+                notes.UnsupportedOdtNoteConfigurations += document.Descendants(style + "footnote-sep").Count();
+        }
     }
 
     private static bool HasCustomizedDefaultWordNoteStyle(WordDocument source, string styleId) {
@@ -467,7 +472,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         if (notes.UnsupportedHeaderFooterNotes > 0) report.Add("note-headers-footers", OdfConversionMappingStatus.Unsupported,
             notes.UnsupportedHeaderFooterNotes, "ODT header and footer note references were omitted because Word does not permit them there.");
         if (notes.UnsupportedOdtNoteConfigurations > 0) report.Add("note-configuration", OdfConversionMappingStatus.Unsupported,
-            notes.UnsupportedOdtNoteConfigurations, "ODT note numbering and placement configuration was not carried into Word.");
+            notes.UnsupportedOdtNoteConfigurations, "ODT note numbering, placement, or footnote separator configuration was not carried into Word.");
         if (notes.ApproximatedReferencePositions > 0) report.Add("note-reference-position", OdfConversionMappingStatus.Approximated,
             notes.ApproximatedReferencePositions,
             "A Word run contained a note reference with text, another note, a break, or an image; relative inline order may have changed.");

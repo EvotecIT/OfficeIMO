@@ -706,7 +706,8 @@ public static partial class WordOpenDocumentConversionExtensions {
             report.Add("source-inspection", OdfConversionMappingStatus.Unsupported, 1,
                 diagnostic.Code + " in " + diagnostic.PartPath + ": " + diagnostic.Message);
         }
-        int remainingHyperlinks = hyperlinks, remainingBookmarks = bookmarks, remainingPageLayouts = pageLayouts;
+        int remainingHyperlinks = hyperlinks, remainingBookmarks = bookmarks,
+            remainingPageLayouts = pageLayouts, remainingNotes = notes.SeenOdtNotes;
         foreach (OdfFeatureFinding finding in features.Findings) {
             int handled = 0;
             if (finding.Name == "external-links") {
@@ -719,7 +720,8 @@ public static partial class WordOpenDocumentConversionExtensions {
                 handled = Math.Min(remainingPageLayouts, finding.Count);
                 remainingPageLayouts -= handled;
             } else if (finding.Name == "text-notes") {
-                handled = Math.Min(notes.SeenOdtNotes, finding.Count);
+                handled = Math.Min(remainingNotes, finding.Count);
+                remainingNotes -= handled;
             }
             int remaining = Math.Max(0, finding.Count - handled);
             if (remaining > 0) report.Add("source-" + finding.Name, OdfConversionMappingStatus.Unsupported, remaining,

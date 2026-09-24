@@ -358,6 +358,47 @@ public sealed class WordOdtNotesConversionTests {
     }
 
     [Fact]
+    public void OdtNoteInventoryAcrossContentAndStylesPartsIsConsumedOnce() {
+        OdtDocument source = OdtDocument.Create();
+        source.AddParagraph("Body anchor").AddFootnote("Body note");
+        source.PageLayout.Header.AddParagraph("Header anchor").AddFootnote("Nested header note");
+        XElement header = source.Package.GetXml("styles.xml")
+            .Descendants(OdfNamespaces.Style + "header").Single();
+        XElement paragraph = header.Element(OdfNamespaces.Text + "p")!;
+        paragraph.Remove();
+        header.Add(new XElement(OdfNamespaces.Table + "table",
+            new XElement(OdfNamespaces.Table + "table-row",
+                new XElement(OdfNamespaces.Table + "table-cell", paragraph))));
+        source.Package.MarkXmlDirty("styles.xml");
+
+        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        using WordDocument target = conversion.Value;
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "source-text-notes" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+        Assert.Throws<OdfConversionLossException>(() => source.ToWordDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void OdtFootnoteSeparatorConfigurationIsExplicitLoss() {
+        OdtDocument source = OdtDocument.Create();
+        source.AddParagraph("Body anchor").AddFootnote("Body note");
+        _ = source.PageLayout;
+        XElement properties = source.Package.GetXml("styles.xml")
+            .Descendants(OdfNamespaces.Style + "page-layout-properties").First();
+        properties.Add(new XElement(OdfNamespaces.Style + "footnote-sep",
+            new XAttribute(OdfNamespaces.Style + "width", "0.02in")));
+        source.Package.MarkXmlDirty("styles.xml");
+
+        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        using WordDocument target = conversion.Value;
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-configuration" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+        Assert.Throws<OdfConversionLossException>(() => source.ToWordDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
     public void WordNoteBodyTablesAreReportedAsUnsupported() {
         using WordDocument source = WordDocument.Create();
         source.AddParagraph("Anchor").AddFootNote("Note paragraph");
