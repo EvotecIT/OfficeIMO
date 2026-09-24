@@ -180,7 +180,7 @@ internal static partial class PdfPageExtractor {
             }
     
             bool supportedDestination = copiedPageObjectIds is null
-                ? IsDestinationForKnownPage(sourceObjects, resolvedDestination)
+                ? IsDestinationForKnownPage(sourceObjects, resolvedDestination, cancellationToken)
                 : IsDestinationForCopiedPages(resolvedDestination, copiedPageObjectIds, cancellationToken);
             if (!supportedDestination) {
                 if (copiedPageObjectIds is null) {

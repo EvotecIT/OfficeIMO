@@ -152,7 +152,7 @@ internal static partial class PdfPageExtractor {
                 }
     
                 if (dictionary.Items.TryGetValue("A", out var action) &&
-                    !IsSupportedOutlineAction(sourceObjects, action)) {
+                    !IsSupportedOutlineAction(sourceObjects, action, cancellationToken)) {
                     return false;
                 }
     
@@ -169,12 +169,14 @@ internal static partial class PdfPageExtractor {
         }
     }
     
-    private static bool IsSupportedOutlineAction(Dictionary<int, PdfIndirectObject> sourceObjects, PdfObject action) {
+    private static bool IsSupportedOutlineAction(Dictionary<int, PdfIndirectObject> sourceObjects, PdfObject action,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         return ResolveDictionary(sourceObjects, action) is PdfDictionary dictionary &&
             dictionary.Items.Count == 2 &&
             dictionary.Get<PdfName>("S")?.Name == "GoTo" &&
             dictionary.Items.TryGetValue("D", out var destination) &&
-            IsDestinationForKnownPage(sourceObjects, destination);
+            IsDestinationForKnownPage(sourceObjects, destination, cancellationToken);
     }
     
     private static bool OutlineDestinationsReferenceOnlyCopiedPages(
@@ -447,9 +449,11 @@ internal static partial class PdfPageExtractor {
         return false;
     }
     
-    private static bool IsDestinationForKnownPage(Dictionary<int, PdfIndirectObject> sourceObjects, PdfObject destination) {
+    private static bool IsDestinationForKnownPage(Dictionary<int, PdfIndirectObject> sourceObjects, PdfObject destination,
+        CancellationToken cancellationToken) {
         var visitedReferences = new HashSet<int>();
         while (true) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (destination is PdfReference reference) {
                 if (!visitedReferences.Add(reference.ObjectNumber) ||
                     !PdfObjectLookup.TryGet(sourceObjects, reference, out var indirect)) {

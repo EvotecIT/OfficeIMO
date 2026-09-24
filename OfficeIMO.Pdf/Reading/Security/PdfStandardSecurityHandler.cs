@@ -48,7 +48,9 @@ internal sealed partial class PdfStandardSecurityHandler {
         byte[] fileId,
         string? password,
         bool passwordWasSupplied,
-        IOfficeAesCryptographyProvider? aesCryptographyProvider) {
+        IOfficeAesCryptographyProvider? aesCryptographyProvider,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         string filter = encryptionDictionary.Get<PdfName>("Filter")?.Name ?? string.Empty;
         if (!string.Equals(filter, "Standard", StringComparison.Ordinal)) {
             throw new PdfUnsupportedEncryptionException("Only PDF Standard password encryption is supported.");
@@ -57,7 +59,7 @@ internal sealed partial class PdfStandardSecurityHandler {
         int version = GetRequiredInt(encryptionDictionary, "V");
         int revision = GetRequiredInt(encryptionDictionary, "R");
         if ((revision == 5 || revision == 6) && version == 5) {
-            return CreateModern(encryptionDictionary, password, passwordWasSupplied, revision, aesCryptographyProvider);
+            return CreateModern(encryptionDictionary, password, passwordWasSupplied, revision, aesCryptographyProvider, cancellationToken);
         }
 
         if (revision < 2 || revision > 4 || version < 1 || version > 4) {
@@ -74,7 +76,7 @@ internal sealed partial class PdfStandardSecurityHandler {
         PdfCryptMethod stringMethod = ResolveCryptMethod(encryptionDictionary, "StrF", version);
 
         string passwordCandidate = passwordWasSupplied ? password ?? string.Empty : string.Empty;
-        if (TryAuthenticateOwnerPassword(passwordCandidate, revision, keyLengthBytes, ownerEntry, userEntry, permissions, fileId, encryptMetadata, out byte[] fileKey)) {
+        if (TryAuthenticateOwnerPassword(passwordCandidate, revision, keyLengthBytes, ownerEntry, userEntry, permissions, fileId, encryptMetadata, out byte[] fileKey, cancellationToken)) {
             return new PdfStandardSecurityHandler(
                 fileKey,
                 revision,
@@ -86,7 +88,7 @@ internal sealed partial class PdfStandardSecurityHandler {
                 aesCryptographyProvider);
         }
 
-        if (TryAuthenticateUserPassword(passwordCandidate, revision, keyLengthBytes, ownerEntry, userEntry, permissions, fileId, encryptMetadata, out fileKey)) {
+        if (TryAuthenticateUserPassword(passwordCandidate, revision, keyLengthBytes, ownerEntry, userEntry, permissions, fileId, encryptMetadata, out fileKey, cancellationToken)) {
             return new PdfStandardSecurityHandler(
                 fileKey,
                 revision,
@@ -98,6 +100,7 @@ internal sealed partial class PdfStandardSecurityHandler {
                 aesCryptographyProvider);
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         if (!passwordWasSupplied) {
             throw new PdfPasswordRequiredException("Encrypted PDF requires a password.");
         }
@@ -226,9 +229,10 @@ internal sealed partial class PdfStandardSecurityHandler {
         int permissions,
         byte[] fileId,
         bool encryptMetadata,
-        out byte[] fileKey) {
-        fileKey = ComputeFileKey(password, revision, keyLengthBytes, ownerEntry, permissions, fileId, encryptMetadata);
-        byte[] expected = ComputeUserEntry(revision, fileKey, fileId);
+        out byte[] fileKey,
+        CancellationToken cancellationToken) {
+        fileKey = ComputeFileKey(password, revision, keyLengthBytes, ownerEntry, permissions, fileId, encryptMetadata, cancellationToken);
+        byte[] expected = ComputeUserEntry(revision, fileKey, fileId, cancellationToken);
         return revision == 2
             ? StartsWith(userEntry, expected, 32)
             : StartsWith(userEntry, expected, 16);
@@ -243,9 +247,10 @@ internal sealed partial class PdfStandardSecurityHandler {
         int permissions,
         byte[] fileId,
         bool encryptMetadata,
-        out byte[] fileKey) {
-        fileKey = ComputeFileKeyFromPasswordBytes(passwordBytes, revision, keyLengthBytes, ownerEntry, permissions, fileId, encryptMetadata);
-        byte[] expected = ComputeUserEntry(revision, fileKey, fileId);
+        out byte[] fileKey,
+        CancellationToken cancellationToken) {
+        fileKey = ComputeFileKeyFromPasswordBytes(passwordBytes, revision, keyLengthBytes, ownerEntry, permissions, fileId, encryptMetadata, cancellationToken);
+        byte[] expected = ComputeUserEntry(revision, fileKey, fileId, cancellationToken);
         return revision == 2
             ? StartsWith(userEntry, expected, 32)
             : StartsWith(userEntry, expected, 16);
@@ -260,55 +265,53 @@ internal sealed partial class PdfStandardSecurityHandler {
         int permissions,
         byte[] fileId,
         bool encryptMetadata,
-        out byte[] fileKey) {
+        out byte[] fileKey,
+        CancellationToken cancellationToken) {
         fileKey = Array.Empty<byte>();
-        byte[] ownerKey = ComputeOwnerPasswordKey(password, revision, keyLengthBytes);
+        byte[] ownerKey = ComputeOwnerPasswordKey(password, revision, keyLengthBytes, cancellationToken);
         byte[] userPasswordBytes = revision == 2
-            ? Rc4.Transform(ownerKey, ownerEntry)
-            : DecryptOwnerEntryRevision3Or4(ownerKey, ownerEntry);
-        return TryAuthenticateUserPasswordBytes(TrimPadding(userPasswordBytes), revision, keyLengthBytes, ownerEntry, userEntry, permissions, fileId, encryptMetadata, out fileKey);
+            ? Rc4.Transform(ownerKey, ownerEntry, cancellationToken)
+            : DecryptOwnerEntryRevision3Or4(ownerKey, ownerEntry, cancellationToken);
+        return TryAuthenticateUserPasswordBytes(TrimPadding(userPasswordBytes, cancellationToken), revision, keyLengthBytes, ownerEntry, userEntry, permissions, fileId, encryptMetadata, out fileKey, cancellationToken);
     }
 
-    private static byte[] ComputeFileKey(string password, int revision, int keyLengthBytes, byte[] ownerEntry, int permissions, byte[] fileId, bool encryptMetadata) {
-        return ComputeFileKeyFromPasswordBytes(EncodePassword(password), revision, keyLengthBytes, ownerEntry, permissions, fileId, encryptMetadata);
+    private static byte[] ComputeFileKey(string password, int revision, int keyLengthBytes, byte[] ownerEntry, int permissions, byte[] fileId, bool encryptMetadata, CancellationToken cancellationToken) {
+        return ComputeFileKeyFromPasswordBytes(EncodePassword(password, cancellationToken), revision, keyLengthBytes, ownerEntry, permissions, fileId, encryptMetadata, cancellationToken);
     }
 
-    private static byte[] ComputeFileKeyFromPasswordBytes(byte[] passwordBytes, int revision, int keyLengthBytes, byte[] ownerEntry, int permissions, byte[] fileId, bool encryptMetadata) {
+    private static byte[] ComputeFileKeyFromPasswordBytes(byte[] passwordBytes, int revision, int keyLengthBytes, byte[] ownerEntry, int permissions, byte[] fileId, bool encryptMetadata, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         byte[] padded = PadPasswordBytes(passwordBytes);
-        var buffer = new List<byte>(padded.Length + ownerEntry.Length + 16 + fileId.Length + 4);
-        buffer.AddRange(padded);
-        buffer.AddRange(ownerEntry);
-        AppendInt32LittleEndian(buffer, permissions);
-        buffer.AddRange(fileId);
-        if (revision >= 4 && !encryptMetadata) {
-            buffer.AddRange(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF });
-        }
-
-        byte[] digest = Md5(buffer.ToArray());
+        byte[] permissionBytes = {
+            (byte)permissions, (byte)(permissions >> 8), (byte)(permissions >> 16), (byte)(permissions >> 24)
+        };
+        byte[] metadataBytes = revision >= 4 && !encryptMetadata
+            ? new byte[] { 0xFF, 0xFF, 0xFF, 0xFF }
+            : Array.Empty<byte>();
+        byte[] digest = Md5Parts(cancellationToken, padded, ownerEntry, permissionBytes, fileId, metadataBytes);
         if (revision >= 3) {
-            byte[] current = Take(digest, keyLengthBytes);
+            byte[] current = Take(digest, keyLengthBytes, cancellationToken);
             for (int i = 0; i < 50; i++) {
-                current = Md5(Take(current, keyLengthBytes));
+                cancellationToken.ThrowIfCancellationRequested();
+                current = Md5(Take(current, keyLengthBytes, cancellationToken));
             }
 
             digest = current;
         }
 
-        return Take(digest, keyLengthBytes);
+        return Take(digest, keyLengthBytes, cancellationToken);
     }
 
-    private static byte[] ComputeUserEntry(int revision, byte[] fileKey, byte[] fileId) {
+    private static byte[] ComputeUserEntry(int revision, byte[] fileKey, byte[] fileId, CancellationToken cancellationToken) {
         if (revision == 2) {
-            return Rc4.Transform(fileKey, PasswordPadding);
+            return Rc4.Transform(fileKey, PasswordPadding, cancellationToken);
         }
 
-        var buffer = new List<byte>(PasswordPadding.Length + fileId.Length);
-        buffer.AddRange(PasswordPadding);
-        buffer.AddRange(fileId);
-        byte[] value = Take(Md5(buffer.ToArray()), 16);
-        value = Rc4.Transform(fileKey, value);
+        byte[] value = Take(Md5Parts(cancellationToken, PasswordPadding, fileId), 16, cancellationToken);
+        value = Rc4.Transform(fileKey, value, cancellationToken);
         for (int i = 1; i <= 19; i++) {
-            value = Rc4.Transform(XorKey(fileKey, i), value);
+            cancellationToken.ThrowIfCancellationRequested();
+            value = Rc4.Transform(XorKey(fileKey, i), value, cancellationToken);
         }
 
         var result = new byte[32];
@@ -316,21 +319,23 @@ internal sealed partial class PdfStandardSecurityHandler {
         return result;
     }
 
-    private static byte[] ComputeOwnerPasswordKey(string password, int revision, int keyLengthBytes) {
-        byte[] digest = Md5(PadPassword(password));
+    private static byte[] ComputeOwnerPasswordKey(string password, int revision, int keyLengthBytes, CancellationToken cancellationToken) {
+        byte[] digest = Md5(PadPassword(password, cancellationToken));
         if (revision >= 3) {
             for (int i = 0; i < 50; i++) {
-                digest = Md5(Take(digest, keyLengthBytes));
+                cancellationToken.ThrowIfCancellationRequested();
+                digest = Md5(Take(digest, keyLengthBytes, cancellationToken));
             }
         }
 
-        return Take(digest, keyLengthBytes);
+        return Take(digest, keyLengthBytes, cancellationToken);
     }
 
-    private static byte[] DecryptOwnerEntryRevision3Or4(byte[] ownerKey, byte[] ownerEntry) {
-        byte[] current = Take(ownerEntry, ownerEntry.Length);
+    private static byte[] DecryptOwnerEntryRevision3Or4(byte[] ownerKey, byte[] ownerEntry, CancellationToken cancellationToken) {
+        byte[] current = Take(ownerEntry, ownerEntry.Length, cancellationToken);
         for (int i = 19; i >= 0; i--) {
-            current = Rc4.Transform(XorKey(ownerKey, i), current);
+            cancellationToken.ThrowIfCancellationRequested();
+            current = Rc4.Transform(XorKey(ownerKey, i), current, cancellationToken);
         }
 
         return current;
@@ -400,8 +405,8 @@ internal sealed partial class PdfStandardSecurityHandler {
         return Take(data, data.Length - count, cancellationToken);
     }
 
-    private static byte[] PadPassword(string password) {
-        return PadPasswordBytes(EncodePassword(password));
+    private static byte[] PadPassword(string password, CancellationToken cancellationToken) {
+        return PadPasswordBytes(EncodePassword(password, cancellationToken));
     }
 
     private static byte[] PadPasswordBytes(byte[] passwordBytes) {
@@ -415,19 +420,21 @@ internal sealed partial class PdfStandardSecurityHandler {
         return padded;
     }
 
-    private static byte[] EncodePassword(string password) {
+    private static byte[] EncodePassword(string password, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrEmpty(password)) {
             return Array.Empty<byte>();
         }
 
-        return PdfWinAnsiEncoding.CanEncode(password, out _)
-            ? PdfWinAnsiEncoding.Encode(password)
+        return PdfWinAnsiEncoding.CanEncode(password, out _, cancellationToken)
+            ? PdfWinAnsiEncoding.Encode(password, cancellationToken)
             : Encoding.UTF8.GetBytes(password);
     }
 
-    private static byte[] TrimPadding(byte[] value) {
+    private static byte[] TrimPadding(byte[] value, CancellationToken cancellationToken) {
         int length = value.Length;
         for (int i = 0; i <= value.Length - PasswordPadding.Length; i++) {
+            if ((i & 65535) == 0) cancellationToken.ThrowIfCancellationRequested();
             bool match = true;
             for (int j = 0; j < PasswordPadding.Length; j++) {
                 if (value[i + j] != PasswordPadding[j]) {
@@ -442,7 +449,7 @@ internal sealed partial class PdfStandardSecurityHandler {
             }
         }
 
-        return Take(value, length);
+        return Take(value, length, cancellationToken);
     }
 
     private static int GetRequiredInt(PdfDictionary dictionary, string key) {
@@ -516,19 +523,28 @@ internal sealed partial class PdfStandardSecurityHandler {
         return result;
     }
 
-    private static void AppendInt32LittleEndian(List<byte> buffer, int value) {
-        unchecked {
-            buffer.Add((byte)(value & 0xFF));
-            buffer.Add((byte)((value >> 8) & 0xFF));
-            buffer.Add((byte)((value >> 16) & 0xFF));
-            buffer.Add((byte)((value >> 24) & 0xFF));
-        }
-    }
-
     private static byte[] Md5(byte[] data) {
 #pragma warning disable CA5351, CA1850 // Reading PDF standard-security revisions 2-4 requires their MD5 key-derivation algorithm; use Create for legacy targets.
         using MD5 md5 = MD5.Create();
         return md5.ComputeHash(data);
+#pragma warning restore CA5351, CA1850
+    }
+
+    private static byte[] Md5Parts(CancellationToken cancellationToken, params byte[][] parts) {
+#pragma warning disable CA5351, CA1850 // PDF Standard revisions 2-4 require MD5; stream large dictionary values to observe cancellation.
+        using MD5 md5 = MD5.Create();
+        foreach (byte[] part in parts) {
+            for (int offset = 0; offset < part.Length;) {
+                cancellationToken.ThrowIfCancellationRequested();
+                int count = Math.Min(65536, part.Length - offset);
+                md5.TransformBlock(part, offset, count, part, offset);
+                offset += count;
+            }
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        md5.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+        cancellationToken.ThrowIfCancellationRequested();
+        return md5.Hash!;
 #pragma warning restore CA5351, CA1850
     }
 

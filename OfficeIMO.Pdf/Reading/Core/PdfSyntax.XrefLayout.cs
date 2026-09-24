@@ -55,11 +55,22 @@ internal static partial class PdfSyntax {
                     !TryReadXrefInteger(indexArray.Items[index + 1], out int count) || (long)first + count > size) return false;
                 if (count > 0) ranges.Add((first, count));
             }
-            long previousEnd = -1;
-            foreach (var range in ranges.OrderBy(range => {
+            var orderedRanges = new List<(int FirstObjectNumber, int Count)>(ranges.Count);
+            foreach (var range in ranges) {
                 cancellationToken.ThrowIfCancellationRequested();
-                return range.FirstObjectNumber;
-            })) {
+                orderedRanges.Add(range);
+            }
+            try {
+                orderedRanges.Sort((left, right) => {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    return left.FirstObjectNumber.CompareTo(right.FirstObjectNumber);
+                });
+            } catch (InvalidOperationException error) when (error.InnerException is OperationCanceledException) {
+                throw error.InnerException!;
+            }
+            long previousEnd = -1;
+            foreach (var range in orderedRanges) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (range.FirstObjectNumber < previousEnd) return false;
                 previousEnd = (long)range.FirstObjectNumber + range.Count;
             }
