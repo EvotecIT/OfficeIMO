@@ -6,6 +6,36 @@ namespace OfficeIMO.Drawing.Tests;
 
 public sealed class DrawingFontContainerTests {
     [Fact]
+    public void RasterCanvas_DrawsBoldSystemFamilyWithItsInstalledBoldFace() {
+        string windowsFonts = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "Fonts");
+        (string Family, string Path)[] candidates = {
+            ("Arial", Path.Combine(windowsFonts, "arialbd.ttf")),
+            ("Helvetica", Path.Combine(windowsFonts, "arialbd.ttf")),
+            ("Liberation Sans", "/usr/share/fonts/truetype/liberation2/LiberationSans-Bold.ttf"),
+            ("Liberation Sans", "/usr/share/fonts/liberation/LiberationSans-Bold.ttf"),
+            ("DejaVu Sans", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf")
+        };
+        foreach ((string family, string boldPath) in candidates) {
+            if (!File.Exists(boldPath)) continue;
+            var installed = new OfficeFontFaceCollection();
+            Assert.True(installed.TryAdd("Installed Bold", File.ReadAllBytes(boldPath), OfficeFontStyle.Bold));
+
+            byte[] bySystemFamily = DrawBoldText(family, null);
+            byte[] byInstalledFace = DrawBoldText("Installed Bold", installed);
+
+            // A regular face with simulated emboldening paints different, wider stems.
+            Assert.Equal(byInstalledFace, bySystemFamily);
+        }
+
+        static byte[] DrawBoldText(string family, OfficeFontFaceCollection? fonts) {
+            var image = new OfficeRasterImage(220, 40);
+            new OfficeRasterCanvas(image, fonts: fonts).DrawText("Integration checklist", 4D, 4D, 212D, 32D,
+                OfficeColor.Black, 20D, OfficeTextAlignment.Left, OfficeFontStyle.Bold, family);
+            return image.GetPixels();
+        }
+    }
+
+    [Fact]
     public void OfficeTrueTypeFont_RejectsNegativeCollectionIndexesAcrossPublicLoadOverloads() {
         byte[] source = ManagedTextShapingTestAssets.CreateFont('A');
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".ttf");

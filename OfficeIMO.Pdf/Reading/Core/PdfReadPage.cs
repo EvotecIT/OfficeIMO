@@ -751,6 +751,22 @@ public sealed partial class PdfReadPage {
         return streamFilters.Count != 0;
     }
 
+    // A non-embedded simple font is drawn with a substitute face by the glyph names its encoding and
+    // Differences give; ToUnicode does not select what is painted. Symbolic fonts use built-in encodings.
+    private static bool PaintsSubstitutedEncodingGlyphs(PdfFontResource font) {
+        if (!font.HasToUnicode || font.EmbeddedProgramSubtype != null || font.EmbeddedTrueTypeFont != null ||
+            font.DrawingFontFamily != null || font.Type3 != null ||
+            string.Equals(font.FontSubtype, "Type0", StringComparison.Ordinal)) return false;
+        if (font.FontDescriptorFlags is int flags && (flags & 4) != 0) return false;
+        string baseFont = font.BaseFont;
+        int subsetSeparator = baseFont.IndexOf('+');
+        if (subsetSeparator >= 0) baseFont = baseFont.Substring(subsetSeparator + 1);
+        return !baseFont.StartsWith("Symbol", StringComparison.OrdinalIgnoreCase) &&
+            !baseFont.StartsWith("ZapfDingbats", StringComparison.OrdinalIgnoreCase) &&
+            !baseFont.StartsWith("Wingdings", StringComparison.OrdinalIgnoreCase) &&
+            !baseFont.StartsWith("Webdings", StringComparison.OrdinalIgnoreCase);
+    }
+
     private void CollectTextAndForms(
         string content,
         PdfDictionary? resources,
@@ -822,6 +838,18 @@ public sealed partial class PdfReadPage {
             string.Equals(font.FontSubtype, "Type3", StringComparison.Ordinal);
         string? ResolveDrawingFontFamily(string fontRes) =>
             fonts.TryGetValue(fontRes, out PdfFontResource? font) ? font.DrawingFontFamily : null;
+        Dictionary<string, Func<byte, string>>? substitutedGlyphDecoders = null;
+        string? DecodeSubstitutedGlyph(string fontRes, byte[] code) {
+            if (code.Length != 1 || !fonts.TryGetValue(fontRes, out PdfFontResource? font) ||
+                !PaintsSubstitutedEncodingGlyphs(font)) return null;
+            substitutedGlyphDecoders ??= new Dictionary<string, Func<byte, string>>(StringComparer.Ordinal);
+            if (!substitutedGlyphDecoders.TryGetValue(fontRes, out Func<byte, string>? decode)) {
+                decode = ResourceResolver.CreateSimpleEncodingDecoder(font);
+                substitutedGlyphDecoders.Add(fontRes, decode);
+            }
+            string text = decode(code[0]);
+            return text.Length == 1 && !char.IsWhiteSpace(text[0]) && !char.IsControl(text[0]) ? text : null;
+        }
         int? ResolveFontWeight(string fontRes) =>
             fonts.TryGetValue(fontRes, out PdfFontResource? font) ? font.FontWeight : null;
         int? ResolveFontDescriptorFlags(string fontRes) =>
@@ -887,7 +915,8 @@ public sealed partial class PdfReadPage {
             initialArtifactContent: inheritedArtifactContent,
             cancellationCheck: cancellationCheck,
             initialTextState: initialTextState,
-            onTextSpan: onTextSpan));
+            onTextSpan: onTextSpan,
+            substitutedGlyphTextForResource: DecodeSubstitutedGlyph));
 
         foreach (var invocation in TextContentParser.ExtractFormInvocations(
                      content,

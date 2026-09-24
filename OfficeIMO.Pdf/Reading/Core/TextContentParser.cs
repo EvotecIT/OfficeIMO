@@ -333,7 +333,8 @@ internal static class TextContentParser {
         bool initialArtifactContent = false,
         Action? cancellationCheck = null,
         PdfTextStateSnapshot? initialTextState = null,
-        Action<int>? onTextSpan = null) {
+        Action<int>? onTextSpan = null,
+        System.Func<string, byte[], string?>? substitutedGlyphTextForResource = null) {
 #if NET8_0_OR_GREATER
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedTextCharacters);
@@ -939,6 +940,16 @@ internal static class TextContentParser {
                 }
                 decodedGlyphCharacters += t.Length;
                 char ch = (t.Length > 0) ? t[0] : '\0';
+                if (!useLogicalTextFilters && substitutedGlyphTextForResource != null &&
+                    (ch == '\0' || string.IsNullOrWhiteSpace(t)) &&
+                    substitutedGlyphTextForResource(font, g) is { Length: > 0 } substitutedText &&
+                    substitutedText.Length <= remainingGlyphCharacters) {
+                    // A substituted font draws the glyph its encoding names, even where ToUnicode
+                    // gives no text or a space for that inked glyph.
+                    decodedGlyphCharacters += substitutedText.Length - t.Length;
+                    t = substitutedText;
+                    ch = t[0];
+                }
                 if (ch == '\0' && !useLogicalTextFilters) {
                     // Visual projection still paints glyphs whose ToUnicode text is empty or U+0000.
                     t = PdfPaintedGlyphRuns.UndecodedGlyphText;

@@ -1151,6 +1151,26 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
             yield break;
         }
 
+        // PDF standard fonts are drawn with their installed or metric-compatible substitutes.
+        if (key == "helvetica") {
+            yield return family;
+            yield return "Arial";
+            yield return "Liberation Sans";
+            yield break;
+        }
+
+        if (key == "times" || key == "timesroman") {
+            yield return "Times New Roman";
+            yield return "Liberation Serif";
+            yield break;
+        }
+
+        if (key == "courier") {
+            yield return "Courier New";
+            yield return "Liberation Mono";
+            yield break;
+        }
+
         if (key == "monospace" || key == "mono") {
             yield return "Consolas";
             yield return "Courier New";

@@ -439,6 +439,21 @@ public partial class PdfPageImageRendererTests {
         Assert.Equal("A   B", text.Text);
     }
 
+    [Fact]
+    public void RenderPage_SubstitutedFontDrawsInkedGlyphsThatToUnicodeLeavesBlank() {
+        // A non-embedded font is drawn by the glyph names its encoding gives. ToUnicode maps the
+        // inked A to a space and the inked B to U+0000; both are painted, while the real space stays blank.
+        const string font = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding /ToUnicode 6 0 R >>\nendobj";
+        const string cmap = "6 beginbfchar\n<20> <0020>\n<41> <0020>\n<42> <0000>\n<78> <0078>\n<79> <0079>\n<7A> <007A>\nendbfchar";
+        byte[] pdf = BuildSingleStreamPdf("BT /F1 20 Tf 20 100 Td (xA yBz) Tj ET",
+            "<< /Font << /F1 5 0 R >> >>", font, BuildStreamObject(6, "<<", cmap));
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
+
+        Assert.DoesNotContain(document.Pages[0].GetTextSpans(), span => span.Text.Contains('A') || span.Text.Contains('B'));
+        OfficeDrawingText text = Assert.Single(document.Pages[0].ToDrawing().Elements.OfType<OfficeDrawingText>());
+        Assert.Equal("xA yBz", text.Text);
+    }
+
     [Theory]
     [InlineData("06280628", "بب")]
     [InlineData("0915093F", "कि")]
