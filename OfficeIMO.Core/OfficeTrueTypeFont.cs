@@ -1160,6 +1160,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         }
 
         if (key == "times" || key == "timesroman") {
+            yield return family;
             yield return "Times New Roman";
             yield return "Liberation Serif";
             yield break;

@@ -45,14 +45,33 @@ public sealed class PdfPaintedGlyphRenderingTests {
         glyphPaintedAdvances: Enumerable.Repeat(12D, glyphLengths.Length).ToArray());
 
     [Fact]
+    public void SupplementaryScalarWithDifferentPaintedGlyphSplitsAtScalarBoundary() {
+        string value = char.ConvertFromUtf32(0x1F600) + "A";
+        PdfTextSpan span = CreateGlyphRun(value, new[] { 2, 1 });
+        var program = new PdfDrawingFontProgram(Array.Empty<byte>(), new SortedDictionary<int, int> {
+            [0x1F600] = 2, ['A'] = 3
+        }, _ => 4, _ => false);
+
+        List<PdfTextSpan> glyphs = Assert.IsType<List<PdfTextSpan>>(
+            PdfPaintedGlyphRuns.SplitAlternateGlyphRun(span, program, _ => { }));
+        Assert.Equal(2, glyphs.Count);
+        Assert.Equal(char.ConvertFromUtf32(0x1F600), glyphs[0].Text);
+        Assert.Equal("A", glyphs[1].Text);
+    }
+
+    [Fact]
     public void LigatureOnlySubsetRegistersItsPaintedGlyph() {
         string root = VisualBaselineTestSupport.GetTestsProjectRoot();
         string path = Path.Combine(root, "Pdf", "Fixtures", "ShapedText", "ligature-only.pdf");
         OfficeDrawing drawing = PdfReadDocument.Open(File.ReadAllBytes(path)).Pages[0].ToDrawing();
 
         OfficeDrawingText visual = Assert.Single(drawing.Elements.OfType<OfficeDrawingText>());
-        Assert.Single(visual.Text);
-        Assert.InRange(visual.Text[0], '\uE000', '\uF8FF');
+        Assert.Equal("ffi", visual.Text);
+        Assert.Single(visual.RasterText);
+        Assert.InRange(visual.RasterText[0], '\uE000', '\uF8FF');
+        Assert.Equal(visual.Text, visual.Clone().Text);
+        Assert.Equal(visual.RasterText, visual.Clone().RasterText);
+        Assert.Contains(visual.RasterText, OfficeDrawingSvgExporter.ToSvg(drawing));
         Assert.NotEmpty(drawing.Fonts.Faces);
     }
 
@@ -102,7 +121,8 @@ public sealed class PdfPaintedGlyphRenderingTests {
 
         Assert.NotEmpty(drawing.Fonts.Faces);
         Assert.Contains(drawing.Elements.OfType<OfficeDrawingText>(), visual =>
-            visual.Text.Any(character => character >= '\uE000' && character <= '\uF8FF'));
+            visual.RasterText.Any(character => character >= '\uE000' && character <= '\uF8FF') &&
+            !visual.Text.Any(character => character >= '\uE000' && character <= '\uF8FF'));
     }
 
     [Fact]
@@ -127,7 +147,8 @@ public sealed class PdfPaintedGlyphRenderingTests {
 
         Assert.NotEmpty(drawing.Fonts.Faces);
         Assert.Contains(drawing.Elements.OfType<OfficeDrawingText>(), visual =>
-            visual.Text.Any(character => character >= '\uE000' && character <= '\uF8FF'));
+            visual.RasterText.Any(character => character >= '\uE000' && character <= '\uF8FF') &&
+            !visual.Text.Any(character => character >= '\uE000' && character <= '\uF8FF'));
     }
 
     // A PDF paints shaped, positioned glyphs. Rendering must reproduce those exact glyphs: contextual

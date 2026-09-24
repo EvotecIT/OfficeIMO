@@ -38,7 +38,7 @@ public static partial class OfficeDrawingSvgExporter {
                 .AppendClipPathReference(verticalClipPathId)
                 .Append('>');
             sb.AppendSvgVerticalTextElement(
-                text.Text,
+                text.RasterText,
                 verticalContentX + verticalContentWidth / 2D,
                 verticalContentY,
                 text.Color ?? OfficeColor.Black,
@@ -83,7 +83,7 @@ public static partial class OfficeDrawingSvgExporter {
         double lineHeight = text.LineHeight ?? sourceFontSize * 1.2D;
         double? advance = text.TextAdvanceWidth;
         sb.AppendSvgPositionedTextElement(
-            text.Text,
+            text.RasterText,
             x,
             y,
             lineHeight,
@@ -131,7 +131,7 @@ public static partial class OfficeDrawingSvgExporter {
 
         OfficeTextBlockLayout layout = text.StackedText
             ? OfficeTextLayoutEngine.LayoutStackedTextBlockCore(
-                text.Text,
+                text.RasterText,
                 fontSize,
                 contentWidth,
                 contentHeight,
@@ -142,7 +142,7 @@ public static partial class OfficeDrawingSvgExporter {
                 (value, size) => textMetrics.MeasureTextPaintBounds(value, size, text.Font.FamilyName, text.Font.Style))
             : text.ShrinkToFit && text.WrapText
             ? OfficeTextLayoutEngine.FitWrappedTextCore(
-                text.Text,
+                text.RasterText,
                 fontSize,
                 contentWidth,
                 contentHeight,
@@ -152,7 +152,7 @@ public static partial class OfficeDrawingSvgExporter {
                 text.ParagraphIndent,
                 (value, size) => textMetrics.MeasureTextPaintBounds(value, size, text.Font.FamilyName, text.Font.Style))
             : OfficeTextLayoutEngine.LayoutTextBlock(
-                text.Text,
+                text.RasterText,
                 fontSize,
                 contentWidth,
                 contentHeight,

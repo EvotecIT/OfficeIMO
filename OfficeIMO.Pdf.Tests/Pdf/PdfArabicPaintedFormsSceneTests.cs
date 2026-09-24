@@ -20,6 +20,7 @@ public sealed class PdfArabicPaintedFormsSceneTests {
         Assert.Equal(spans[2].Text, spans[3].Text);
         Assert.Equal("\uFE91", spans[0].Text);
         Assert.Equal("\uFE90", spans[2].Text);
+        Assert.All(spans, span => Assert.True(span.IsPaintedGlyphProjection));
     }
 
     // cairo maps every contextual glyph back to its base letter. The page scene must name each
@@ -49,8 +50,8 @@ public sealed class PdfArabicPaintedFormsSceneTests {
     private static void CollectArabicRuns(OfficeDrawing drawing, double offsetX, double offsetY, List<(double X, double Baseline, char Text)> runs) {
         foreach (OfficeDrawingElement element in drawing.Elements) {
             switch (element) {
-                case OfficeDrawingText text when text.Text.Length == 1 && IsArabic(text.Text[0]):
-                    runs.Add((offsetX + text.X, offsetY + text.Y + text.Font.Size, text.Text[0]));
+                case OfficeDrawingText text when text.RasterText.Length == 1 && IsArabic(text.RasterText[0]):
+                    runs.Add((offsetX + text.X, offsetY + text.Y + text.Font.Size, text.RasterText[0]));
                     break;
                 case OfficeDrawingGroup group:
                     CollectArabicRuns(group.Drawing, offsetX + group.X + group.ContentOffsetX, offsetY + group.Y + group.ContentOffsetY, runs);

@@ -91,7 +91,7 @@ public static class OfficeImageExportFontDiagnostics {
                     remainingLookups--;
                     Append(
                         drawing.Fonts.CreateSubstitutionDiagnostic(
-                            text.Text,
+                            text.RasterText,
                             text.Font.FamilyName,
                             text.Font.Style,
                             source),

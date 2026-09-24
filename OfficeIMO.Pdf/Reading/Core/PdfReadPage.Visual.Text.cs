@@ -293,6 +293,7 @@ public sealed partial class PdfReadPage {
         span.IsPaintedGlyphProjection && OfficeManagedTextShaper.RequiresComplexLayout(span.Text);
 
     private static void MarkPaintedGlyphs(OfficeDrawing drawing, PdfTextSpan span) {
+        if (span.LogicalDrawingText != null) drawing.SetLastTextPaintedProjection(span.LogicalDrawingText, span.Text);
         if (PreservesPaintedGlyphs(span)) drawing.MarkLastTextAsPaintedGlyphs();
     }
 

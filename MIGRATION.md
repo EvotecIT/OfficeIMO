@@ -30,6 +30,10 @@ PDF authoring now rejects caller-supplied font faces larger than 128 MiB before 
 
 `PdfReadPage.ToDrawing()` now gives every embedded font program a drawing-local family name derived from its PDF base name and content, including full fonts without a subset prefix. This keeps different page and annotation programs with the same PDF name from replacing each other. If an application matched `OfficeDrawingText.Font.FamilyName` to the original PDF font name, use that name to find the face in the drawing's `Fonts.Faces` instead. Read the PDF name from `PdfTextSpan.BaseFont` when that source label is needed.
 
+## PDF drawing text for painted glyphs
+
+`PdfReadPage.ToDrawing()` and `PdfDocument.Render.Drawing(...)` now keep decoded text in `OfficeDrawingText.Text` when an embedded font paints a ligature or another glyph that needs a private-use raster alias. Code that reads or edits scene text receives the logical string instead of that alias. Raster rendering still paints the source glyph. Applications that used private-use text values to identify PDF glyphs should inspect the source `PdfTextSpan` and embedded font instead.
+
 ## PDF external-signature preparation limits
 
 External signature preparation now limits the prepared PDF to 768 MiB by default, matching the default limit used to complete a saved preparation. Set `PdfExternalSignatureOptions.MaxPreparedOutputBytes` higher for a trusted larger document, then supply matching `PdfLoadOptions.Limits.MaxInputBytes` when completing it from a file. Persisted completion derives bounded signature-revision growth from the prepared file; if you set custom raw-stream or object-character limits below what the generated appearance or signature reservation needs, raise those limits for completion too. A visible signature image now has a 128 MiB encoded input limit; set `PdfVisibleSignatureAppearanceOptions.MaximumEncodedImageBytes` when a trusted image needs more. The source budget remains `PdfExternalSignatureOptions.MaxInputBytes`, and a source admitted by that option is now also admitted by the preparation parser.

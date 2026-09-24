@@ -234,7 +234,7 @@ public sealed partial class PdfReadPage {
         for (int index = 0; index < elements.Count; index++) {
             PdfPageDrawingElement element = elements[index];
             if (element.Kind != PdfPageDrawingElementKind.Text || element.TextSpan is not PdfTextSpan span ||
-                span.Text.Length == 0 || char.IsSurrogate(span.Text[0]) ||
+                span.Text.Length == 0 || span.Text.Length == 1 && char.IsSurrogate(span.Text[0]) ||
                 span.DrawingFontFamily == null ||
                 span.GlyphBytes is not { Count: 1 } glyphBytes || glyphBytes[0].Length is < 1 or > 2 ||
                 !registeredFonts.TryGetValue(PaintedFontKey(span), out PdfFontResource? registered) ||
@@ -246,7 +246,7 @@ public sealed partial class PdfReadPage {
             if (!maps.TryGetValue(key, out PaintedGlyphMap? map)) {
                 maps.Add(key, map = new PaintedGlyphMap(program));
             }
-            if (span.Text.Length > 1) {
+            if (span.Text.Length > 1 && !(span.Text.Length == 2 && char.IsSurrogatePair(span.Text, 0))) {
                 if (string.IsNullOrWhiteSpace(span.Text)) continue;
                 // One glyph decoded to several letters (a ligature): a Unicode cmap cannot select it.
                 char? ligature = map.Alias(glyph);
@@ -257,9 +257,10 @@ public sealed partial class PdfReadPage {
                 }
                 continue;
             }
-            char resolved = map.Resolve(span.Text[0], glyph);
-            if (resolved != span.Text[0]) {
-                PdfTextSpan visual = span.WithVisualText(resolved.ToString());
+            int scalar = span.Text.Length == 2 ? char.ConvertToUtf32(span.Text, 0) : span.Text[0];
+            int resolved = map.Resolve(scalar, glyph);
+            if (resolved != scalar) {
+                PdfTextSpan visual = span.WithVisualText(char.ConvertFromUtf32(resolved));
                 visual.MarkPaintedGlyphProjection();
                 elements[index] = PdfPageDrawingElement.FromText(visual, element.Sequence).WithEffect(element.Effect);
             } else {
@@ -303,20 +304,19 @@ public sealed partial class PdfReadPage {
 
         internal Dictionary<int, int> Additions { get; } = new();
 
-        internal char Resolve(char text, int glyph) {
-            if (text == PdfPaintedGlyphRuns.UndecodedGlyph) return _program.IsEmptyGlyph(glyph) ? text : Alias(glyph) ?? text;
-            if (char.IsWhiteSpace(text)) {
+        internal int Resolve(int scalar, int glyph) {
+            if (scalar == PdfPaintedGlyphRuns.UndecodedGlyph || scalar <= char.MaxValue && char.IsWhiteSpace((char)scalar)) {
                 // Producers map colour-font layers and other inked glyphs to a space.
-                return _program.IsEmptyGlyph(glyph) ? text : Alias(glyph) ?? text;
+                return _program.IsEmptyGlyph(glyph) ? scalar : Alias(glyph) is char alias ? alias : scalar;
             }
-            if (TryGetGlyph(text, out int mapped)) {
-                if (mapped == glyph) return text;
+            if (TryGetGlyph(scalar, out int mapped)) {
+                if (mapped == glyph) return scalar;
             } else {
                 // A letter painted only inside clusters has no cmap entry; name its painted glyph.
-                Additions.Add(text, glyph);
-                return text;
+                Additions.Add(scalar, glyph);
+                return scalar;
             }
-            return Alias(glyph) ?? text;
+            return Alias(glyph) is char alternate ? alternate : scalar;
         }
 
         internal char? Alias(int glyph) {

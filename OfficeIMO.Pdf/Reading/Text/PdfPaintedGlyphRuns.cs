@@ -48,13 +48,19 @@ internal static class PdfPaintedGlyphRuns {
         if (span.Text.Length < 2 || !HasGlyphGeometry(span) ||
             !PdfTextAdvanceProjection.TryGetResolvedDirection(span, cancellationToken, out double direction)) return null;
         bool alternate = false;
+        int characterOffset = 0;
         for (int glyphIndex = 0; glyphIndex < span.GlyphCharacterLengths!.Count; glyphIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (span.GlyphCharacterLengths[glyphIndex] != 1 || char.IsSurrogate(span.Text[glyphIndex])) return null;
+            int characterLength = span.GlyphCharacterLengths[glyphIndex];
+            if (characterLength != 1 && (characterLength != 2 || characterOffset + 1 >= span.Text.Length ||
+                !char.IsHighSurrogate(span.Text[characterOffset]) || !char.IsLowSurrogate(span.Text[characterOffset + 1]))) return null;
+            int scalar = characterLength == 2 ? char.ConvertToUtf32(span.Text, characterOffset) : span.Text[characterOffset];
+            if (characterLength == 1 && char.IsSurrogate((char)scalar)) return null;
+            characterOffset += characterLength;
             byte[] code = span.GlyphBytes![glyphIndex];
             if (code.Length is < 1 or > 2) continue;
             int painted = program.GlyphForCode(code.Length == 1 ? code[0] : (code[0] << 8) | code[1]);
-            if (painted > 0 && (!program.UnicodeGlyphs.TryGetValue(span.Text[glyphIndex], out int mapped) || mapped != painted))
+            if (painted > 0 && (!program.UnicodeGlyphs.TryGetValue(scalar, out int mapped) || mapped != painted))
                 alternate = true;
         }
         if (!alternate) return null;

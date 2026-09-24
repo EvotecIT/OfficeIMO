@@ -63,11 +63,11 @@ public sealed class PdfReferenceBaselineSceneTextTests {
 
         // Every text run in these files is painted by an embedded subset font, so each run must use that
         // font's drawing family and resolve through the registered face rather than a substitute.
-        var runs = texts.Where(text => !string.IsNullOrWhiteSpace(text.Text)).ToList();
+        var runs = texts.Where(text => !string.IsNullOrWhiteSpace(text.RasterText)).ToList();
         Assert.NotEmpty(runs);
         Assert.Empty(runs
             .Where(text => !EmbeddedSubsetFamily.IsMatch(text.Font.FamilyName ?? string.Empty) ||
-                !drawing.Fonts.TryResolveFaceForText(text.Text.Trim(), text.Font.FamilyName, text.Font.Style, out OfficeFontFace? face) ||
+                !drawing.Fonts.TryResolveFaceForText(text.RasterText.Trim(), text.Font.FamilyName, text.Font.Style, out OfficeFontFace? face) ||
                 !string.Equals(face!.FamilyName, text.Font.FamilyName, StringComparison.Ordinal))
             .Select(text => text.Font.FamilyName + ": " + text.Text)
             .Distinct());

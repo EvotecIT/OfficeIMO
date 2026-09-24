@@ -101,7 +101,11 @@ internal static class PdfArabicPaintedForms {
                 char form = painted;
                 if (IsBaseLetter(painted)) form = shaped[index];
                 else if (IsIsolatedLamAlef(painted) && shaped[index] == '\uFE8E') form = (char)(painted + 1);
-                if (form != painted) spans[paintIndex] = span.WithVisualText(form.ToString());
+                if (form != painted) {
+                    PdfTextSpan visual = span.WithVisualText(form.ToString());
+                    visual.MarkPaintedGlyphProjection();
+                    spans[paintIndex] = visual;
+                }
             }
         }
     }
