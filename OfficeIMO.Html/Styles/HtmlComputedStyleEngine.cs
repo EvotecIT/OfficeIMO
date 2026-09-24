@@ -581,8 +581,12 @@ public static partial class HtmlComputedStyleEngine {
         HtmlComputedStyle? footnoteMarker = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.FootnoteMarker, budget, containerContexts, environment, customPropertyRegistrations, includeCascadeTraces);
         HtmlComputedStyle? firstLetter = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.FirstLetter, budget, containerContexts, environment, customPropertyRegistrations, includeCascadeTraces);
         HtmlComputedStyle? firstLine = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.FirstLine, budget, containerContexts, environment, customPropertyRegistrations, includeCascadeTraces);
+        HtmlComputedStyle? placeholder = element.LocalName.Equals("input", StringComparison.OrdinalIgnoreCase)
+            || element.LocalName.Equals("textarea", StringComparison.OrdinalIgnoreCase)
+            ? ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.Placeholder, budget, containerContexts, environment, customPropertyRegistrations, includeCascadeTraces)
+            : null;
         if (before == null && after == null && marker == null && footnoteCall == null && footnoteMarker == null
-            && firstLetter == null && firstLine == null) return;
+            && firstLetter == null && firstLine == null && placeholder == null) return;
         pseudoElements[element] = new HtmlPseudoElementStylePair {
             Before = before,
             After = after,
@@ -590,7 +594,8 @@ public static partial class HtmlComputedStyleEngine {
             FootnoteCall = footnoteCall,
             FootnoteMarker = footnoteMarker,
             FirstLetter = firstLetter,
-            FirstLine = firstLine
+            FirstLine = firstLine,
+            Placeholder = placeholder
         };
     }
 

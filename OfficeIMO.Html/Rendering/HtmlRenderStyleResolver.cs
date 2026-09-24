@@ -92,7 +92,8 @@ internal sealed partial class HtmlRenderStyleResolver {
             HtmlPseudoElementKind.FootnoteCall => "footnote-call",
             HtmlPseudoElementKind.FootnoteMarker => "footnote-marker",
             HtmlPseudoElementKind.FirstLetter => "first-letter",
-            _ => "first-line"
+            HtmlPseudoElementKind.FirstLine => "first-line",
+            _ => "form-control"
         };
         style = ResolveCore(element, computed, containingWidth, parent, true, semanticRole);
         return true;

@@ -53,7 +53,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             bool placeholder = text.Length == 0;
             if (placeholder) text = NormalizeControlMultilineText(element.GetAttribute("placeholder") ?? string.Empty);
             bool softWrap = !string.Equals(element.GetAttribute("wrap"), "off", StringComparison.OrdinalIgnoreCase);
-            AddMultilineControlText(visuals, text, contentX, contentY, contentWidth, contentHeight, style, placeholder, source, softWrap);
+            HtmlRenderBoxStyle textStyle = placeholder ? ResolvePlaceholderTextStyle(element, style, contentWidth) : style;
+            AddMultilineControlText(visuals, text, contentX, contentY, contentWidth, contentHeight, textStyle, placeholder, source, softWrap);
             return;
         }
 
@@ -81,6 +82,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
         }
 
+        HtmlRenderBoxStyle valueStyle = isPlaceholder ? ResolvePlaceholderTextStyle(element, style, contentWidth) : style;
         AddSingleLineControlText(
             visuals,
             value,
@@ -88,7 +90,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             contentY,
             contentWidth,
             contentHeight,
-            style,
+            valueStyle,
             isPlaceholder,
             alignment,
             source);
@@ -285,7 +287,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             Math.Max(0.01D, width),
             Math.Max(0.01D, lineHeight),
             style.Font,
-            placeholder ? ControlPlaceholderColor : style.Color,
+            style.Color,
             alignment,
             lineHeight,
             visuals.Count,
@@ -331,7 +333,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 Math.Max(0.01D, width),
                 Math.Min(lineHeight, Math.Max(0.01D, height - index * lineHeight)),
                 style.Font,
-                placeholder ? ControlPlaceholderColor : style.Color,
+                style.Color,
                 OfficeTextAlignment.Left,
                 lineHeight,
                 visuals.Count,

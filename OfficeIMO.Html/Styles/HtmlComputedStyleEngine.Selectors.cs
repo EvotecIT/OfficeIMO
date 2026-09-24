@@ -195,6 +195,12 @@ public static partial class HtmlComputedStyleEngine {
             return true;
         }
 
+        if (TryTrimPseudoElement(value, "::placeholder", out hostSelector)
+            || TryTrimPseudoElement(value, "::-webkit-input-placeholder", out hostSelector)) {
+            kind = HtmlPseudoElementKind.Placeholder;
+            return true;
+        }
+
         hostSelector = string.Empty;
         kind = HtmlPseudoElementKind.Before;
         return false;

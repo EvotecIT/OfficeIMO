@@ -9,6 +9,7 @@ public static partial class HtmlComputedStyleEngine {
     private const string MarkerPseudoSentinel = "[data-officeimo-internal-marker-pseudo]";
     private const string FootnoteCallPseudoSentinel = "[data-officeimo-internal-footnote-call-pseudo]";
     private const string FootnoteMarkerPseudoSentinel = "[data-officeimo-internal-footnote-marker-pseudo]";
+    private const string PlaceholderPseudoSentinel = "[data-officeimo-internal-placeholder-pseudo]";
     private const string GeneratedContentSentinelPrefix = "__officeimo_generated_content_";
 
     private static IReadOnlyList<StyleRule> ParseStyleRules(
@@ -495,7 +496,9 @@ public static partial class HtmlComputedStyleEngine {
         if (string.IsNullOrEmpty(css)
             || css.IndexOf("::marker", StringComparison.OrdinalIgnoreCase) < 0
                 && css.IndexOf("::footnote-call", StringComparison.OrdinalIgnoreCase) < 0
-                && css.IndexOf("::footnote-marker", StringComparison.OrdinalIgnoreCase) < 0) return css;
+                && css.IndexOf("::footnote-marker", StringComparison.OrdinalIgnoreCase) < 0
+                && css.IndexOf("::placeholder", StringComparison.OrdinalIgnoreCase) < 0
+                && css.IndexOf("::-webkit-input-placeholder", StringComparison.OrdinalIgnoreCase) < 0) return css;
         var result = new System.Text.StringBuilder(css.Length + 16);
         char quote = '\0';
         for (int index = 0; index < css.Length;) {
@@ -519,7 +522,9 @@ public static partial class HtmlComputedStyleEngine {
                 index = end;
                 continue;
             }
-            if (TryProtectPseudoElement(css, index, "::footnote-marker", FootnoteMarkerPseudoSentinel, result, out int consumed)
+            if (TryProtectPseudoElement(css, index, "::-webkit-input-placeholder", PlaceholderPseudoSentinel, result, out int consumed)
+                || TryProtectPseudoElement(css, index, "::placeholder", PlaceholderPseudoSentinel, result, out consumed)
+                || TryProtectPseudoElement(css, index, "::footnote-marker", FootnoteMarkerPseudoSentinel, result, out consumed)
                 || TryProtectPseudoElement(css, index, "::footnote-call", FootnoteCallPseudoSentinel, result, out consumed)
                 || TryProtectPseudoElement(css, index, "::marker", MarkerPseudoSentinel, result, out consumed)) {
                 index += consumed;
@@ -552,7 +557,8 @@ public static partial class HtmlComputedStyleEngine {
     private static string RestoreManagedPseudoElements(string selector) =>
         selector.Replace(MarkerPseudoSentinel, "::marker")
             .Replace(FootnoteCallPseudoSentinel, "::footnote-call")
-            .Replace(FootnoteMarkerPseudoSentinel, "::footnote-marker");
+            .Replace(FootnoteMarkerPseudoSentinel, "::footnote-marker")
+            .Replace(PlaceholderPseudoSentinel, "::placeholder");
 
     private static string PreserveRevertLayerDeclarations(string css) {
         const string keyword = "revert-layer";

@@ -9,7 +9,8 @@ internal enum HtmlPseudoElementKind {
     FootnoteCall,
     FootnoteMarker,
     FirstLetter,
-    FirstLine
+    FirstLine,
+    Placeholder
 }
 
 internal sealed class HtmlComputedStyleSet {
@@ -35,7 +36,8 @@ internal sealed class HtmlComputedStyleSet {
                 HtmlPseudoElementKind.FootnoteCall => pair.FootnoteCall,
                 HtmlPseudoElementKind.FootnoteMarker => pair.FootnoteMarker,
                 HtmlPseudoElementKind.FirstLetter => pair.FirstLetter,
-                _ => pair.FirstLine
+                HtmlPseudoElementKind.FirstLine => pair.FirstLine,
+                _ => pair.Placeholder
             };
             if (found != null) {
                 style = found;
@@ -56,4 +58,5 @@ internal sealed class HtmlPseudoElementStylePair {
     internal HtmlComputedStyle? FootnoteMarker { get; set; }
     internal HtmlComputedStyle? FirstLetter { get; set; }
     internal HtmlComputedStyle? FirstLine { get; set; }
+    internal HtmlComputedStyle? Placeholder { get; set; }
 }

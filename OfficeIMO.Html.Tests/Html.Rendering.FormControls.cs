@@ -1,11 +1,40 @@
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
+using OfficeIMO.Drawing;
 using PdfCore = OfficeIMO.Pdf;
 using Xunit;
 
 namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
+    [Fact]
+    public void HtmlRendering_PlaceholderPseudoStyleAppliesOnlyToEmptyControls() {
+        const string html = """
+            <style>
+              input, textarea { color: red; font-style: normal; }
+              input::-webkit-input-placeholder { color: #e6e6e6; font-style: italic; }
+              textarea::placeholder { color: blue; font-style: italic; }
+            </style>
+            <input id='empty' placeholder='Prompt'>
+            <input id='filled' value='Value' placeholder='Hidden prompt'>
+            <textarea id='notes' placeholder='Notes'></textarea>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 700D });
+        HtmlRenderText[] values = rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().ToArray();
+        HtmlRenderText prompt = Assert.Single(values, value => value.Text == "Prompt");
+        HtmlRenderText filled = Assert.Single(values, value => value.Text == "Value");
+        HtmlRenderText notes = Assert.Single(values, value => value.Text == "Notes");
+
+        Assert.Equal(OfficeColor.FromRgb(230, 230, 230), prompt.Color);
+        Assert.True((prompt.Font.Style & OfficeFontStyle.Italic) != 0);
+        Assert.Equal(OfficeColor.Red, filled.Color);
+        Assert.True((filled.Font.Style & OfficeFontStyle.Italic) == 0);
+        Assert.Equal(OfficeColor.Blue, notes.Color);
+        Assert.True((notes.Font.Style & OfficeFontStyle.Italic) != 0);
+        Assert.DoesNotContain(values, value => value.Text == "Hidden prompt");
+    }
+
     [Fact]
     public void HtmlRendering_FormControlsProduceVectorPaintAndSearchableStaticValues() {
         const string html = """

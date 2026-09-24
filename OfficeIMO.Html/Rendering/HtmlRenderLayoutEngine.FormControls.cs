@@ -101,6 +101,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return style;
     }
 
+    private HtmlRenderBoxStyle ResolvePlaceholderTextStyle(IElement element, HtmlRenderBoxStyle controlStyle, double containingWidth) {
+        if (_styleResolver.TryResolvePseudo(element, HtmlPseudoElementKind.Placeholder, containingWidth, controlStyle, out HtmlRenderBoxStyle pseudoStyle)) {
+            if (!_styleResolver.IsPseudoPropertySpecified(element, HtmlPseudoElementKind.Placeholder, "color")) {
+                pseudoStyle.Color = ControlPlaceholderColor;
+            }
+            return pseudoStyle;
+        }
+
+        HtmlRenderBoxStyle fallback = controlStyle.Clone();
+        fallback.Color = ControlPlaceholderColor;
+        return fallback;
+    }
+
     private double ResolveDefaultFormControlContentWidth(IElement element, HtmlRenderBoxStyle style) {
         string tag = element.TagName.ToLowerInvariant();
         string type = NormalizeInputType(element);
@@ -270,6 +283,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     ? NormalizeControlMultilineText(element.GetAttribute("placeholder") ?? string.Empty)
                     : NormalizeControlText(element.GetAttribute("placeholder"))
                 : string.Empty;
+        HtmlRenderBoxStyle? placeholderStyle = placeholder.Length > 0 && !emptyFileSelect
+            ? ResolvePlaceholderTextStyle(element, style, width)
+            : null;
         IReadOnlyList<string> values = Array.Empty<string>();
         IReadOnlyList<string> options = Array.Empty<string>();
         IReadOnlyList<string> optionValues = Array.Empty<string>();
@@ -356,6 +372,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ReportFormFieldTypographyFallback(source, style.Font);
             return false;
         }
+        if (placeholderStyle != null && placeholderStyle.Font != style.Font) {
+            ReportFormFieldTypographyFallback(source + "::placeholder", placeholderStyle.Font);
+            return false;
+        }
         HtmlResolvedBorderRadii resolvedRadii = ResolveBoxRadii(style, width, height, element, source);
         if (!resolvedRadii.IsZero && !resolvedRadii.IsUniformCircular) {
             ReportNonUniformFormFieldRadiusFallback(source);
@@ -385,7 +405,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             alternateName,
             style.Font,
             style.Color,
-            ControlPlaceholderColor,
+            placeholderStyle?.Color ?? ControlPlaceholderColor,
             style.Alignment,
             style.BackgroundColor,
             borderColor,
