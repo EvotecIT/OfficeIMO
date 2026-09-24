@@ -29,6 +29,10 @@ public class OpenDocumentSchemaArtifactTests {
                 richSpan.BackgroundColor = OdfColor.Parse("#FFF200");
                 richText.AddText(" and ");
                 richText.AddHyperlink("a link", "https://example.com").Italic = true;
+                OdtParagraph cited = text.AddParagraph("A cited result");
+                cited.AddFootnote("Footnote schema proof.");
+                cited.AddText(" and a closing note");
+                cited.AddEndnote("Endnote schema proof.");
                 text.AddList().AddItem("One");
                 text.AddTable(2, 2, "Proof").Cell(0, 0).Text = "Value";
                 text.PageLayout.Header.AddParagraph("OfficeIMO");
@@ -118,6 +122,11 @@ public class OpenDocumentSchemaArtifactTests {
                 Assert.Contains(rich.InlineNodes, node => node.Kind == OdtInlineNodeKind.Hyperlink &&
                     Uri.Compare(new Uri(node.Hyperlink!.Href), new Uri("https://example.com"),
                         UriComponents.AbsoluteUri, UriFormat.SafeUnescaped, StringComparison.OrdinalIgnoreCase) == 0);
+                OdtParagraph cited = text.Paragraphs.Single(paragraph => paragraph.Text.StartsWith("A cited result", StringComparison.Ordinal));
+                Assert.Contains(cited.Notes, note => note.Kind == OdtNoteKind.Footnote &&
+                    note.Paragraphs.Any(paragraph => paragraph.Text.Contains("Footnote schema proof", StringComparison.Ordinal)));
+                Assert.Contains(cited.Notes, note => note.Kind == OdtNoteKind.Endnote &&
+                    note.Paragraphs.Any(paragraph => paragraph.Text.Contains("Endnote schema proof", StringComparison.Ordinal)));
             } else if (document is OdsDocument spreadsheet) {
                 OdsSheet sheet = spreadsheet.GetSheet("Data")!;
                 Assert.Equal("Value", sheet.GetValue(0, 0).DisplayText);

@@ -17,7 +17,9 @@ public enum OdtInlineNodeKind {
     /// <summary>A bookmark range end marker.</summary>
     BookmarkEnd,
     /// <summary>An inline element not represented by the current typed surface.</summary>
-    Other
+    Other,
+    /// <summary>A native footnote or endnote reference and body.</summary>
+    Note
 }
 
 /// <summary>
@@ -29,7 +31,7 @@ public sealed class OdtInlineNode {
     private readonly string? _textContribution;
 
     private OdtInlineNode(OdtInlineNodeKind kind, string? text, OdtSpan? span = null,
-        OdtHyperlink? hyperlink = null, OdtImage? image = null, string? name = null,
+        OdtHyperlink? hyperlink = null, OdtImage? image = null, OdtNote? note = null, string? name = null,
         string? qualifiedName = null, IReadOnlyList<OdtInlineNode>? children = null,
         string? textContribution = null) {
         Kind = kind;
@@ -38,6 +40,7 @@ public sealed class OdtInlineNode {
         Span = span;
         Hyperlink = hyperlink;
         Image = image;
+        Note = note;
         Name = name;
         QualifiedName = qualifiedName;
         Children = children ?? Array.Empty<OdtInlineNode>();
@@ -60,6 +63,8 @@ public sealed class OdtInlineNode {
     public OdtHyperlink? Hyperlink { get; }
     /// <summary>Image for <see cref="OdtInlineNodeKind.Image"/>.</summary>
     public OdtImage? Image { get; }
+    /// <summary>Native note for <see cref="OdtInlineNodeKind.Note"/>.</summary>
+    public OdtNote? Note { get; }
     /// <summary>Bookmark name for bookmark marker nodes.</summary>
     public string? Name { get; }
     /// <summary>Expanded XML name for an unrepresented element.</summary>
@@ -121,6 +126,9 @@ public sealed class OdtInlineNode {
                 result.Add(BookmarkNode(OdtInlineNodeKind.BookmarkStart, element));
             } else if (element.Name == OdfNamespaces.Text + "bookmark-end") {
                 result.Add(BookmarkNode(OdtInlineNodeKind.BookmarkEnd, element));
+            } else if (element.Name == OdfNamespaces.Text + "note") {
+                result.Add(new OdtInlineNode(OdtInlineNodeKind.Note, string.Empty,
+                    note: new OdtNote(document, element)));
             } else {
                 result.Add(new OdtInlineNode(OdtInlineNodeKind.Other, OdfTextCodec.Read(element),
                     qualifiedName: element.Name.ToString()));

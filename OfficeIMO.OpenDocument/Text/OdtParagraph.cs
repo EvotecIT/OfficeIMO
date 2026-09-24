@@ -79,6 +79,11 @@ public sealed class OdtParagraph {
     /// </summary>
     public IReadOnlyList<OdtInlineNode> InlineNodes => OdtInlineNode.Read(_document, _element, _partPath);
 
+    /// <summary>Footnotes and endnotes referenced from this paragraph, in source order.</summary>
+    public IReadOnlyList<OdtNote> Notes => _element.Descendants(OdfNamespaces.Text + "note")
+        .Where(element => !element.Ancestors(OdfNamespaces.Text + "note").Any())
+        .Select(element => new OdtNote(_document, element)).ToList();
+
     /// <summary>Embedded image frames in this paragraph.</summary>
     public IReadOnlyList<OdtImage> Images => _element.Descendants(OdfNamespaces.Draw + "frame")
         .Where(element => element.Element(OdfNamespaces.Draw + "image") != null)
@@ -306,6 +311,30 @@ public sealed class OdtParagraph {
         _element.Add(new XElement(OdfNamespaces.Text + "bookmark-end", new XAttribute(OdfNamespaces.Text + "name", name)));
         Dirty();
         return this;
+    }
+
+    /// <summary>Appends a native footnote at the current inline position.</summary>
+    public OdtNote AddFootnote(string text) => AddNote(OdtNoteKind.Footnote, text);
+
+    /// <summary>Appends a native endnote at the current inline position.</summary>
+    public OdtNote AddEndnote(string text) => AddNote(OdtNoteKind.Endnote, text);
+
+    private OdtNote AddNote(OdtNoteKind kind, string text) {
+        if (text == null) throw new ArgumentNullException(nameof(text));
+        string prefix = kind == OdtNoteKind.Footnote ? "ftn" : "endn";
+        int ordinal = _document.TextBody.Descendants(OdfNamespaces.Text + "note")
+            .Count(note => (string?)note.Attribute(OdfNamespaces.Text + "note-class") ==
+                (kind == OdtNoteKind.Footnote ? "footnote" : "endnote")) + 1;
+        int idNumber = ordinal;
+        string id;
+        do { id = prefix + idNumber++.ToString(CultureInfo.InvariantCulture); }
+        while (_document.TextBody.Descendants(OdfNamespaces.Text + "note")
+            .Any(note => (string?)note.Attribute(OdfNamespaces.Text + "id") == id));
+        OdtNote result = OdtNote.Create(_document, kind, id,
+            ordinal.ToString(CultureInfo.InvariantCulture), text);
+        _element.Add(result.Element);
+        Dirty();
+        return result;
     }
 
     /// <summary>Appends an inline or paragraph-anchored image.</summary>

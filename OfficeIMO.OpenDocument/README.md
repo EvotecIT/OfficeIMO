@@ -26,6 +26,20 @@ table.Cell(1, 1).Text = "42";
 document.Save("summary.odt");
 ```
 
+Add native ODT footnotes or endnotes at the current paragraph position:
+
+```csharp
+using OfficeIMO.OpenDocument;
+
+using OdtDocument document = OdtDocument.Create();
+OdtParagraph paragraph = document.AddParagraph("The result is documented");
+paragraph.AddFootnote("Source and calculation details.");
+paragraph.AddText(" in the appendix.");
+paragraph.AddEndnote("Additional context.");
+```
+
+`OdtParagraph.Notes` and `InlineNodes` expose note bodies and reference order after reopening the file. Note-body paragraphs are separate from document-body paragraphs.
+
 Create a sparse ODS workbook:
 
 ```csharp

@@ -236,6 +236,7 @@ internal static class OdfTextCodec {
                 continue;
             }
             if (!(node is XElement element)) continue;
+            if (element.Name == OdfNamespaces.Text + "note") continue;
             if (element.Name == OdfNamespaces.Text + "s") {
                 int count = ParsePositiveCount((string?)element.Attribute(OdfNamespaces.Text + "c"));
                 EnsureCapacity(builder, count, maximumCharacters);
