@@ -441,7 +441,9 @@ public static partial class HtmlComputedStyleEngine {
                     && (containerNames == "none" || TryParseContainerNameList(containerNames, out _))
                     && IsKnownKeyword(containerType, "normal", "size", "inline-size");
             case "display":
-                return IsKnownKeyword(normalized, "block", "inline", "inline-block", "none", "flex", "inline-flex", "grid", "inline-grid", "table", "table-caption", "table-column-group", "table-column", "table-header-group", "table-row-group", "table-footer-group", "table-row", "table-cell", "list-item", "contents", "flow-root");
+                return IsKnownKeyword(normalized, "block", "inline", "inline-block", "none", "flex", "inline-flex", "grid", "inline-grid", "table", "table-caption", "table-column-group", "table-column", "table-header-group", "table-row", "table-cell", "list-item", "contents", "flow-root", "-webkit-box");
+            case "-webkit-box-orient":
+                return IsKnownKeyword(normalized, "vertical", "horizontal");
             case "visibility":
                 return IsKnownKeyword(normalized, "visible", "hidden", "collapse");
             case "pointer-events":

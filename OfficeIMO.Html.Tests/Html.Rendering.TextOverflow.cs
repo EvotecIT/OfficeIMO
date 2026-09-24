@@ -60,6 +60,36 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Theory]
+    [InlineData("Exploring Planet Uranus Resource Page")]
+    [InlineData("<span>Exploring Planet Uranus Resource Page</span>")]
+    public void HtmlRender_ClampsLegacyWebKitBoxInsideHeading(string content) {
+        string html = "<h3 style='width:110px;margin:0'><a style='display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1;overflow:hidden'>" + content + "</a></h3>";
+
+        var document = HtmlConversionDocument.Parse(html).CreateDocumentForRendering();
+        IReadOnlyDictionary<AngleSharp.Dom.IElement, HtmlComputedStyle> computed = HtmlComputedStyleEngine.Compute(document);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        IReadOnlyList<HtmlRenderText> text = EnumerateTextOverflowVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>().ToList();
+
+        Assert.Equal("-webkit-box", computed[document.QuerySelector("a")!].GetValue("display"));
+        Assert.Equal("vertical", computed[document.QuerySelector("a")!].GetValue("-webkit-box-orient"));
+        Assert.Single(text.Select(run => run.Y).Distinct());
+        Assert.All(text, run => Assert.True(run.Font.IsBold));
+        Assert.EndsWith("\u2026", string.Concat(text.Select(run => run.Text)), StringComparison.Ordinal);
+        Assert.DoesNotContain("Resource Page", string.Concat(text.Select(run => run.Text)), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlRender_LegacyVerticalWebKitBoxStacksChildItems() {
+        const string html = "<div style='display:-webkit-box;-webkit-box-orient:vertical;width:200px'><span>One</span><span>Two</span></div>";
+
+        IReadOnlyList<HtmlRenderText> text = EnumerateTextOverflowVisuals(HtmlRenderTestDriver.Render(html).Pages[0].Scene)
+            .OfType<HtmlRenderText>()
+            .ToList();
+
+        Assert.True(Assert.Single(text, run => run.Text == "Two").Y > Assert.Single(text, run => run.Text == "One").Y);
+    }
+
+    [Theory]
     [InlineData("line-clamp")]
     [InlineData("-webkit-line-clamp")]
     public void HtmlRender_InvalidLaterLineClampKeepsTheEarlierValidDeclaration(string property) {

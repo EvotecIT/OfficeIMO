@@ -11,7 +11,7 @@ public static class HtmlCssPropertyParser {
     private static readonly HashSet<string> DisplayKeywords = Set(
         "block", "inline", "inline-block", "none", "flex", "inline-flex", "grid", "inline-grid",
         "table", "table-caption", "table-column-group", "table-column", "table-header-group",
-        "table-row-group", "table-footer-group", "table-row", "table-cell", "list-item", "contents", "flow-root");
+        "table-row-group", "table-footer-group", "table-row", "table-cell", "list-item", "contents", "flow-root", "-webkit-box");
     private static readonly HashSet<string> VisibilityKeywords = Set("visible", "hidden", "collapse");
     private static readonly HashSet<string> AutoKeyword = Set("auto");
     private static readonly HashSet<string> NoneKeyword = Set("none");

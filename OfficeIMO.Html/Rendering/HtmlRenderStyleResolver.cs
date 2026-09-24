@@ -186,7 +186,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         if (baselineLevel == 0 && Math.Abs(baselineOffset) > 0.000001D) baselineLevel = baselineOffset < 0D ? 1 : -1;
         OfficeColor color = ResolveColor(element, computed.GetValue("color"), parent?.Color ?? OfficeColor.Black, pseudoElement, "color");
         var style = new HtmlRenderBoxStyle {
-            Display = pseudoElement ? ResolvePseudoDisplay(computed.GetValue("display")) : ResolveDisplay(element, computed.GetValue("display")),
+            Display = pseudoElement ? ResolvePseudoDisplay(computed.GetValue("display")) : ResolveDisplay(element, computed.GetValue("display"), computed.GetValue("-webkit-box-orient"), ResolveLineClamp(computed).HasValue),
             DisplayWasSpecified = !string.IsNullOrWhiteSpace(computed.GetValue("display")),
             PaintVisible = ResolvePaintVisibility(computed.GetValue("visibility"), parent),
             Font = new OfficeFontInfo(family, fontSize, fontStyle),
@@ -281,6 +281,11 @@ internal sealed partial class HtmlRenderStyleResolver {
         ApplyFloat(computed, style);
         ApplyPositioning(physicalComputed, style);
         ApplyFlex(computed, containingWidth, fontSize, style);
+        if (style.Display == "flex"
+            && string.Equals(computed.GetValue("display").Trim(), "-webkit-box", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(computed.GetValue("-webkit-box-orient").Trim(), "vertical", StringComparison.OrdinalIgnoreCase)) {
+            style.FlexDirection = "column";
+        }
         ApplyColumns(computed, containingWidth, fontSize, style);
         ApplyGrid(computed, style);
         ApplyTable(computed, style);
@@ -678,9 +683,18 @@ internal sealed partial class HtmlRenderStyleResolver {
         }
     }
 
-    internal static string ResolveDisplay(IElement element, string value) {
+    internal static string ResolveDisplay(IElement element, string value, string webkitBoxOrient = "", bool hasLineClamp = false) {
         string tag = element.TagName.ToLowerInvariant();
         if (tag == "dialog" && !element.HasAttribute("open") && string.IsNullOrWhiteSpace(value)) return "none";
+        if (string.Equals(value.Trim(), "-webkit-box", StringComparison.OrdinalIgnoreCase)) {
+            // A vertical box with one text item uses inline line layout for clamping;
+            // boxes with multiple child items retain their vertical flex stacking.
+            return hasLineClamp
+                && element.Children.Length <= 1
+                && string.Equals(webkitBoxOrient.Trim(), "vertical", StringComparison.OrdinalIgnoreCase)
+                ? "block"
+                : "flex";
+        }
         if (!string.IsNullOrWhiteSpace(value)) return value.Trim().ToLowerInvariant();
         if (tag == "math" && string.Equals(element.GetAttribute("display"), "block", StringComparison.OrdinalIgnoreCase)) return "block";
         if (tag == "li") return "list-item";

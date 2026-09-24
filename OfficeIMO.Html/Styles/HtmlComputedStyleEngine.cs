@@ -350,6 +350,7 @@ public static partial class HtmlComputedStyleEngine {
         "ruby-align",
         "line-clamp",
         "-webkit-line-clamp",
+        "-webkit-box-orient",
         "-officeimo-pdf-tag-type",
         "z-index"
     };
