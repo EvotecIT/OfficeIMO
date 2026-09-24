@@ -190,13 +190,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ICollection<HtmlInlineRun> runs) {
         for (int index = 0; index < content.Fragments.Count; index++) {
             HtmlGeneratedContentFragment fragment = content.Fragments[index];
+            if (style.Font.Size <= 0D && fragment.Kind != HtmlGeneratedContentFragmentKind.Image) continue;
             string fragmentSource = fragment.Kind == HtmlGeneratedContentFragmentKind.Text
                 ? source
                 : source + ":content-" + fragment.Kind.ToString().ToLowerInvariant()
                     + "[" + index.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]";
             if (fragment.Kind == HtmlGeneratedContentFragmentKind.Text) {
                 string text = ApplyTextTransform(fragment.Value, style);
-                if (text.Length > 0 && style.Font.Size > 0D) {
+                if (text.Length > 0) {
                     runs.Add(new HtmlInlineRun(text, style, link, fragmentSource, paintOffsetX, paintOffsetY, element));
                 }
                 continue;

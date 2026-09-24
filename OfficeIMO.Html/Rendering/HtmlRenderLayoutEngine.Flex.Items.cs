@@ -13,7 +13,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ICollection<HtmlCssRunningStringAssignment>? runningElementAssignments,
         bool registerPositionedChildren) {
         if (node is IText text) {
-            if (string.IsNullOrWhiteSpace(text.Data)) return true;
+            if (string.IsNullOrWhiteSpace(text.Data) || parentStyle.Font.Size <= 0D) return true;
             string source = HtmlRenderStyleResolver.DescribeSource(text.ParentElement ?? throw new InvalidOperationException("A flex text node has no parent element.")) + "::anonymous-flex-item";
             IElement owner = text.ParentElement!;
             items.Add(new FlexItem(text.Data, owner, source, ResolveAncestorLink(owner), CreateAnonymousFlexStyle(parentStyle), sourceIndex++, paintAnonymousBox: false));
@@ -107,8 +107,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
         double boxWidth = ResolveBoxWidth(availableWidth, style);
         double contentWidth = Math.Max(1D, boxWidth - style.HorizontalInsets);
-        var run = new HtmlInlineRun(ApplyTextTransform(item.AnonymousText, style), style, item.Link, item.Source);
-        HtmlInlineLayout inline = LayoutInlineRuns(new[] { run }, contentWidth, style);
+        IReadOnlyList<HtmlInlineRun> runs = style.Font.Size <= 0D
+            ? Array.Empty<HtmlInlineRun>()
+            : new[] { new HtmlInlineRun(ApplyTextTransform(item.AnonymousText, style), style, item.Link, item.Source) };
+        HtmlInlineLayout inline = LayoutInlineRuns(runs, contentWidth, style);
         double boxHeight = ResolveBoxHeight(inline.Height, boxWidth, style);
         double outerHeight = Math.Max(0.01D, style.MarginTop + boxHeight + style.MarginBottom);
         var visuals = new List<HtmlRenderVisual>();

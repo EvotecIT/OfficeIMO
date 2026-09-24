@@ -612,6 +612,28 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlGeneratedContent_ZeroSizeTargetPageAndLeaderDoNotPaint() {
+        const string html = """
+            <style>
+              @page { size:240px 90px; margin:10px; }
+              body, p, h1 { margin:0; }
+              .toc::before { content:leader(dotted) target-counter(url(#chapter), page); font-size:0; }
+              h1 { break-before:page; }
+            </style>
+            <p class="toc">Index</p><h1 id="chapter">Chapter</h1>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            HonorCssPageRules = true
+        });
+        Assert.DoesNotContain(rendered.Pages.SelectMany(page => page.Visuals.OfType<HtmlRenderText>()),
+            text => text.Source == "p.toc::before");
+        Assert.DoesNotContain(rendered.Pages.SelectMany(page => page.Visuals.OfType<HtmlRenderShape>()),
+            shape => shape.Source != null && shape.Source.StartsWith("p.toc::before:content-leader", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void HtmlGeneratedContent_UsesTheSharedLayoutDepthLimit() {
         string html = "<style>div::before{content:'x'}</style>"
             + string.Concat(Enumerable.Repeat("<div>", 8))

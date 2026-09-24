@@ -1004,6 +1004,36 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlFlexColumn_ZeroSizeParentKeepsVisibleDescendantIntrinsicWidth() {
+        HtmlRenderDocument rendered = RenderFlex("""
+            <div style="display:flex;flex-direction:column;align-items:flex-start;width:220px">
+              <div id="item" style="font-size:0;background:#eeeeee">
+                Hidden<span style="font-size:24px">Visible</span>
+              </div>
+            </div>
+            """, 240D);
+
+        HtmlRenderShape item = FindFlexShape(rendered, "div#item");
+        Assert.True(item.Width > 50D, "the visible descendant must contribute to the column cross size");
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Visible");
+        Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("Hidden", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void HtmlFlex_ZeroSizeAnonymousTextDoesNotPaint() {
+        HtmlRenderDocument rendered = RenderFlex("""
+            <style>.pseudo::before { content:'Suppressed'; font-size:0; }</style>
+            <div style="display:flex;font-size:0">Hidden<span style="font-size:24px">Visible</span></div>
+            <div class="pseudo" style="display:flex"></div>
+            """, 240D);
+
+        HtmlRenderText[] text = rendered.Pages.SelectMany(page => page.Visuals.OfType<HtmlRenderText>()).ToArray();
+        Assert.Contains(text, visual => visual.Text == "Visible");
+        Assert.DoesNotContain(text, visual => visual.Text.Contains("Hidden", StringComparison.Ordinal)
+            || visual.Text.Contains("Suppressed", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void HtmlInlineFlex_ParticipatesAsAnAtomicInlineBox() {
         const string html = """
             <p style="margin:0">Before <a href="https://example.com/inline"><span id="inline" style="display:inline-flex;width:80px;height:20px;gap:10px">
