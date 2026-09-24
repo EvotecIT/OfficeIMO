@@ -1180,10 +1180,13 @@ internal sealed partial class HtmlRenderStyleResolver {
         style.AlignContent = NormalizeCssValue(computed.GetValue("align-content"), "normal");
         style.AlignSelf = NormalizeCssValue(computed.GetValue("align-self"), "auto");
         ApplyFlexShorthand(computed.GetValue("flex"), style);
-        if (TryNonNegativeNumber(computed.GetValue("flex-grow"), out double grow)) style.FlexGrow = grow;
-        if (TryNonNegativeNumber(computed.GetValue("flex-shrink"), out double shrink)) style.FlexShrink = shrink;
+        if (computed.ShouldOverride("flex-grow", "flex")
+            && TryNonNegativeNumber(computed.GetValue("flex-grow"), out double grow)) style.FlexGrow = grow;
+        if (computed.ShouldOverride("flex-shrink", "flex")
+            && TryNonNegativeNumber(computed.GetValue("flex-shrink"), out double shrink)) style.FlexShrink = shrink;
         string basis = computed.GetValue("flex-basis");
-        if (!string.IsNullOrWhiteSpace(basis)) style.FlexBasis = basis.Trim().ToLowerInvariant();
+        if (computed.ShouldOverride("flex-basis", "flex") && !string.IsNullOrWhiteSpace(basis))
+            style.FlexBasis = basis.Trim().ToLowerInvariant();
         if (int.TryParse(computed.GetValue("order"), NumberStyles.Integer, CultureInfo.InvariantCulture, out int order)) style.Order = order;
         ApplyGap(computed, reference, fontSize, style);
     }

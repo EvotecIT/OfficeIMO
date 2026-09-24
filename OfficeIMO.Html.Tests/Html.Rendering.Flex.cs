@@ -970,6 +970,57 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(first.X + first.Width, second.X, 3);
     }
 
+    [Fact]
+    public void HtmlFlexRow_ImportantShorthandOutranksInlineGrowLonghand() {
+        const string html = """
+            <style>.fixed { flex: none !important; }</style>
+            <div style="display:flex;width:300px">
+              <div id="first" class="fixed" style="flex-grow:1;width:100px;height:20px;background:#ff0000"></div>
+              <div id="second" class="fixed" style="flex-grow:1;width:100px;height:20px;background:#0000ff"></div>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderFlex(html, 320D);
+        HtmlRenderShape first = FindFlexShape(rendered, "div#first");
+        HtmlRenderShape second = FindFlexShape(rendered, "div#second");
+        Assert.Equal(100D, first.Width, 3);
+        Assert.Equal(100D, second.Width, 3);
+        Assert.Equal(first.X + first.Width, second.X, 3);
+    }
+
+    [Fact]
+    public void HtmlFlexRow_ImportantGrowLonghandOutranksInlineShorthand() {
+        const string html = """
+            <style>.growing { flex-grow: 1 !important; }</style>
+            <div style="display:flex;width:300px">
+              <div id="first" class="growing" style="flex:none;height:20px;background:#ff0000"></div>
+              <div id="second" class="growing" style="flex:none;height:20px;background:#0000ff"></div>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderFlex(html, 320D);
+        HtmlRenderShape first = FindFlexShape(rendered, "div#first");
+        HtmlRenderShape second = FindFlexShape(rendered, "div#second");
+        Assert.Equal(150D, first.Width, 3);
+        Assert.Equal(150D, second.Width, 3);
+        Assert.Equal(first.X + first.Width, second.X, 3);
+    }
+
+    [Theory]
+    [InlineData("flex-grow:1;flex:none", 1D)]
+    [InlineData("flex:none;flex-grow:1", 150D)]
+    public void HtmlFlexRow_AuthoredShorthandAndLonghandKeepDeclarationOrder(string declarations, double expectedWidth) {
+        string html = "<style>.item{" + declarations + "}</style>"
+            + "<div style='display:flex;width:300px'>"
+            + "<div id='first' class='item' style='height:20px;background:#ff0000'></div>"
+            + "<div id='second' class='item' style='height:20px;background:#0000ff'></div>"
+            + "</div>";
+
+        HtmlRenderDocument rendered = RenderFlex(html, 320D);
+        HtmlRenderShape first = FindFlexShape(rendered, "div#first");
+        Assert.Equal(expectedWidth, first.Width, 3);
+    }
+
     private static HtmlRenderDocument RenderFlex(string html, double viewportWidth) =>
         HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = viewportWidth,
