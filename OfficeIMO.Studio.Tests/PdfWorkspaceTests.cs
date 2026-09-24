@@ -138,6 +138,30 @@ public sealed partial class PdfWorkspaceTests {
     }
 
     [Fact]
+    public async Task FormDataExportIncludesDraftValuesWithoutApplyingThemToWorkspace() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-form-export-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string source = Path.Combine(root, "form.pdf");
+        string output = Path.Combine(root, "form.xfdf");
+        PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item =>
+            item.TextField("Customer.Name", value: "Before"))))).Save(source);
+        try {
+            using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None);
+            byte[] before = workspace.CopyBytes();
+            var drafts = new Dictionary<string, PdfFormFieldValue>(StringComparer.Ordinal) {
+                ["Customer.Name"] = PdfFormFieldValue.From("Draft")
+            };
+
+            await workspace.ExportDocumentAsync(PdfExportKind.FormData, output, CancellationToken.None, drafts);
+
+            Assert.Contains("Draft", File.ReadAllText(output), StringComparison.Ordinal);
+            Assert.DoesNotContain("Before", File.ReadAllText(output), StringComparison.Ordinal);
+            Assert.Equal(before, workspace.CopyBytes());
+            Assert.False(workspace.IsDirty);
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
     public async Task TypedFormEditingAuthoringAndSelectiveFlatteningUseCanonicalFieldContracts() {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-typed-forms-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);

@@ -142,6 +142,15 @@ public sealed class StudioFormsJourneyTests {
                 Assert.Same(model.SelectedFormField, page.InlineFormField);
                 Assert.True(page.InlineFormWidth > 0 && page.InlineFormHeight > 0);
 
+                int repeatedFocusRequests = 0;
+                page.PropertyChanged += (_, change) => {
+                    if (change.PropertyName == nameof(page.FocusInlineFormEditorRequested)) repeatedFocusRequests++;
+                };
+                page.FocusInlineFormEditorRequested = false; // The page view consumed the first focus request.
+                page.ShowInlineFormField(model.SelectedFormField, focus: true);
+                Assert.Equal(1, repeatedFocusRequests);
+                Assert.True(page.FocusInlineFormEditorRequested);
+
                 page.RequestInlineFormNavigation(1);
                 Assert.Equal("Second", model.SelectedFormField?.Name);
                 Assert.Same(model.SelectedFormField, page.InlineFormField);

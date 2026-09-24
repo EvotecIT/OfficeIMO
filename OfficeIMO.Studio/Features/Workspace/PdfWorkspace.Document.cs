@@ -96,7 +96,8 @@ internal sealed partial class PdfWorkspace {
             bytes => LoadDocument(bytes).Pages.Resize(new PdfPageResizeOptions(size) { Mode = mode }, pageNumbers.ToArray()).ToBytes(),
             cancellationToken, progress);
 
-    internal async Task<int> ExportDocumentAsync(PdfExportKind kind, string destination, CancellationToken cancellationToken) {
+    internal async Task<int> ExportDocumentAsync(PdfExportKind kind, string destination, CancellationToken cancellationToken,
+        IReadOnlyDictionary<string, PdfFormFieldValue>? formDrafts = null) {
         PdfDocument snapshot = CreateDocumentSnapshot();
         if (kind == PdfExportKind.Images) {
             IReadOnlyList<PdfExtractedImage> images = await RunCancellableCpuWorkAsync(
@@ -121,13 +122,22 @@ internal sealed partial class PdfWorkspace {
             PdfExportKind.Markdown => snapshot.Read(cancellationToken: cancellationToken).ExportStructured(PdfStructuredExportFormat.Markdown),
             PdfExportKind.Json => snapshot.Read(cancellationToken: cancellationToken).ExportStructured(PdfStructuredExportFormat.Json),
             PdfExportKind.Text => snapshot.Read(cancellationToken: cancellationToken).Text,
-            PdfExportKind.FormData => snapshot.Forms.ExportXfdf(),
+            PdfExportKind.FormData => ExportFormData(snapshot, formDrafts),
             _ => throw new ArgumentOutOfRangeException(nameof(kind))
         }, cancellationToken).ConfigureAwait(false);
         byte[] bytes = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false).GetBytes(content);
         await WriteWorkspaceOutputAsync(destination,
             (stream, token) => stream.WriteAsync(bytes.AsMemory(), token).AsTask(), cancellationToken).ConfigureAwait(false);
         return 1;
+    }
+
+    private static string ExportFormData(PdfDocument snapshot, IReadOnlyDictionary<string, PdfFormFieldValue>? formDrafts) {
+        if (formDrafts is { Count: > 0 }) {
+            PdfMutationPlan plan = snapshot.PlanMutation(PdfMutationOperation.FillFormFields, formDrafts.Keys);
+            snapshot = plan.ExecutionMode == PdfMutationExecutionMode.AppendOnly
+                ? snapshot.Forms.AppendRevision(formDrafts) : snapshot.Forms.Fill(formDrafts);
+        }
+        return snapshot.Forms.ExportXfdf();
     }
 
     /// <summary>Checks the current revision against a PDF/A, PDF/UA or PDF/X profile without changing it.</summary>

@@ -74,10 +74,8 @@ public sealed partial class SignatureDialog : Window {
         });
         if (files.Count == 0) return;
         try {
-            await using Stream stream = await files[0].OpenReadAsync();
-            using var buffer = new MemoryStream();
-            await stream.CopyToAsync(buffer);
-            SetImage(buffer.ToArray());
+            byte[]? image = await StudioStorageInput.ReadImageAsync(files, CancellationToken.None);
+            if (image is not null) SetImage(image);
         } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or InvalidOperationException) {
             ImageEmptyText.Text = ex.Message;
             ImageEmptyText.IsVisible = true;

@@ -67,7 +67,7 @@
                   <TextBlock Text="{Binding Description}" Classes="muted" TextWrapping="Wrap" FontSize="13" />
                   <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding HasUnavailableReason}" Margin="0,4,0,0">
                     <PathIcon Data="{StaticResource IconInfo}" Width="12" Height="12" Foreground="{DynamicResource StudioMutedTextBrush}" VerticalAlignment="Top" Margin="0,2,0,0" />
-                    <TextBlock Text="{Binding UnavailableReason}" Classes="caption" TextWrapping="Wrap" MaxWidth="260" />
+                    <TextBlock Text="{Binding UnavailableReason}" Classes="caption" TextWrapping="Wrap" MaxWidth="180" />
                   </StackPanel>
                 </StackPanel>
               </Grid>

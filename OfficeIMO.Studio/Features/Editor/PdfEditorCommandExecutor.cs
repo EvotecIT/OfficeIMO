@@ -119,12 +119,13 @@ internal static class PdfEditorCommandExecutor {
             PageNumber = command.PageNumber,
             Subtype = subtype,
             Rectangle = Rectangle(bounds),
-            QuadPoints = new[] {
-                bounds.Left, bounds.Top,
-                bounds.Right, bounds.Top,
-                bounds.Left, bounds.Bottom,
-                bounds.Right, bounds.Bottom
-            },
+            QuadPoints = (command.TextQuads is { Count: > 0 } quads ? quads : new[] { bounds })
+                .SelectMany(quad => new[] {
+                    quad.Left, quad.Top,
+                    quad.Right, quad.Top,
+                    quad.Left, quad.Bottom,
+                    quad.Right, quad.Bottom
+                }).ToArray(),
             Contents = command.Properties.Text,
             Title = command.Properties.Author,
             Color = Color(command.Properties.Color),

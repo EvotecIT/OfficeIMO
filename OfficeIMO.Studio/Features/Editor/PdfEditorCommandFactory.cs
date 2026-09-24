@@ -21,6 +21,9 @@ internal static class PdfEditorCommandFactory {
         IReadOnlyList<IReadOnlyList<PdfPagePoint>>? strokes = gesture.Strokes?
             .Select(stroke => (IReadOnlyList<PdfPagePoint>)stroke.Select(point => page.MapVisualPointToUserSpace(point.X, point.Y)).ToArray())
             .ToArray();
-        return new PdfEditorCommand(tool, gesture.PageNumber, bounds, path, properties, strokes);
+        IReadOnlyList<PdfPageRectangle>? textQuads = gesture.TextQuads?
+            .Select(quad => page.MapVisualRectangleToUserSpace(quad.Left, quad.Top, quad.Right, quad.Bottom))
+            .ToArray();
+        return new PdfEditorCommand(tool, gesture.PageNumber, bounds, path, properties, strokes, textQuads);
     }
 }

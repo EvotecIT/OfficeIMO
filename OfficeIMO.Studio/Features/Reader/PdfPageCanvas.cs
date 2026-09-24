@@ -114,14 +114,40 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
 
     internal bool HasTextSelection => !string.IsNullOrEmpty(SelectedText);
 
-    /// <summary>The current text selection as page-space editor bounds, for markup created from a selection.</summary>
+    /// <summary>The selected text regions in page-space, for markup created from a selection.</summary>
     internal PdfEditorGesture? CreateSelectionGesture() {
-        if (Scene is null || !_selectionStart.HasValue || !_selectionEnd.HasValue) return null;
+        if (Scene?.Interactions is null || !_selectionStart.HasValue || !_selectionEnd.HasValue) return null;
         Point start = ToPagePoint(_selectionStart.Value);
         Point end = ToPagePoint(_selectionEnd.Value);
+        IReadOnlyList<PdfPageInteractionRegion> regions = Scene.Interactions.SelectText(start.X, start.Y, end.X, end.Y);
+        IReadOnlyList<PdfEditorVisualBounds> quads = MergeSelectedTextRegions(regions);
+        if (quads.Count == 0) return null;
         return new PdfEditorGesture(Scene.PageNumber,
-            Math.Min(start.X, end.X), Math.Min(start.Y, end.Y), Math.Max(start.X, end.X), Math.Max(start.Y, end.Y),
-            [new PdfEditorVisualPoint(start.X, start.Y), new PdfEditorVisualPoint(end.X, end.Y)]);
+            quads.Min(static quad => quad.Left), quads.Min(static quad => quad.Top),
+            quads.Max(static quad => quad.Right), quads.Max(static quad => quad.Bottom),
+            [new PdfEditorVisualPoint(start.X, start.Y), new PdfEditorVisualPoint(end.X, end.Y)],
+            TextQuads: quads);
+    }
+
+    internal static IReadOnlyList<PdfEditorVisualBounds> MergeSelectedTextRegions(IReadOnlyList<PdfPageInteractionRegion> regions) {
+        var quads = new List<PdfEditorVisualBounds>();
+        foreach (PdfPageInteractionRegion region in regions.OrderBy(static item => item.Quad.Top).ThenBy(static item => item.Quad.Left)) {
+            PdfSelectionQuad current = region.Quad;
+            if (current.Width <= 0D || current.Height <= 0D) continue;
+            if (quads.Count > 0) {
+                PdfEditorVisualBounds previous = quads[^1];
+                double height = Math.Max(previous.Height, current.Height);
+                if (Math.Abs(previous.Top - current.Top) <= height * 0.45D &&
+                    current.Left - previous.Right <= Math.Max(3D, height * 0.7D)) {
+                    quads[^1] = new PdfEditorVisualBounds(Math.Min(previous.Left, current.Left),
+                        Math.Min(previous.Top, current.Top), Math.Max(previous.Right, current.Right),
+                        Math.Max(previous.Bottom, current.Bottom));
+                    continue;
+                }
+            }
+            quads.Add(new PdfEditorVisualBounds(current.Left, current.Top, current.Right, current.Bottom));
+        }
+        return quads;
     }
 
     /// <summary>A single-point gesture at a canvas position, used to place a note from the context menu.</summary>

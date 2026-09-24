@@ -36,6 +36,7 @@ public sealed partial class PdfPageViewModel {
         else if (focus) FocusInlineFormEditorRequested = true;
         if (!ReferenceEquals(InlineFormField, field)) InlineFormField = field;
         UpdateInlineFormBounds();
+        if (field is not null && focus) OnPropertyChanged(nameof(FocusInlineFormEditorRequested));
     }
 
     private void UpdateInlineFormBounds() {

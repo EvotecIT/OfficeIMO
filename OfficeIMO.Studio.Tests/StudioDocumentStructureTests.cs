@@ -146,6 +146,29 @@ public sealed class StudioDocumentStructureTests {
     }
 
     [Fact]
+    public async Task OversizeSignatureStoreFailureStillBeginsOneTimePlacement() {
+        string root = CreateRoot();
+        string path = CreateDocument(root);
+        try {
+            using var session = TestAppBuilder.StartSession();
+            await session.Dispatch(async () => {
+                byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAMAAAABCAYAAAAb4BS0AAAAEElEQVR4nGNgYGD4z8DAwAAABQABnEX0RwAAAABJRU5ErkJggg==");
+                Array.Resize(ref png, 4 * 1024 * 1024 + 1);
+                var services = StudioApplicationServices.Create(new StudioDataPaths(Path.Combine(root, "profile")));
+                using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services) {
+                    CreateSignatureDialog = _ => Task.FromResult<StudioSignatureDraft?>(new StudioSignatureDraft(png, Remember: true))
+                };
+                await model.OpenDocumentAsync(path);
+                await model.CreateSignatureCommand.ExecuteAsync("Signature");
+                Assert.True(model.IsPlacingFillSignItem);
+                Assert.Empty(model.SavedSignatures);
+                Assert.NotNull(model.ErrorMessage);
+                return true;
+            }, CancellationToken.None);
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
     public async Task DrawnSignatureOnAFormOnlyPdfIsPlacedAsInk() {
         string root = CreateRoot();
         string path = Path.Combine(root, "form.pdf");

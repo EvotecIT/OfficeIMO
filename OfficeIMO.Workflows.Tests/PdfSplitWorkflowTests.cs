@@ -9,6 +9,7 @@ public sealed class PdfSplitWorkflowTests {
         Assert.Equal(2, plan.Parts.Count);
         Assert.Equal(new PdfSplitPart("part-001.pdf", 1, int.MaxValue - 1), plan.Parts[0]);
         Assert.Equal(new PdfSplitPart("part-002.pdf", int.MaxValue, 1), plan.Parts[1]);
+        plan.Validate(int.MaxValue, maximumParts: 1000);
         Assert.Throws<InvalidOperationException>(() => PdfSplitPlan.Create(int.MaxValue, 1));
     }
 
@@ -35,6 +36,24 @@ public sealed class PdfSplitWorkflowTests {
             Assert.Equal(OfficeWorkflowStatus.Completed, result.Status);
             Assert.Equal([1, 4], result.Files.Select(file => file.PageCount));
             Assert.Equal(["001-Cover.pdf", "002-Body.pdf"], result.Files.Select(file => Path.GetFileName(file.Path)));
+        } finally { Directory.Delete(root, true); }
+    }
+
+    [Fact]
+    public async Task ExplicitPlanRejectsUncoveredSourcePagesBeforePublication() {
+        string root = NewRoot();
+        try {
+            string source = Path.Combine(root, "source.pdf");
+            File.WriteAllBytes(source, CreatePdf());
+            string output = Path.Combine(root, "parts");
+            var result = await new OfficeWorkflowRunner().SplitPdfAsync(new() {
+                InputPath = source, OutputDirectory = output,
+                Plan = PdfSplitPlan.FromStarts(3, [new PdfSplitStart(1, "Cover"), new PdfSplitStart(2, "Body")])
+            });
+
+            Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+            Assert.Empty(result.Files);
+            Assert.False(Directory.Exists(output));
         } finally { Directory.Delete(root, true); }
     }
 

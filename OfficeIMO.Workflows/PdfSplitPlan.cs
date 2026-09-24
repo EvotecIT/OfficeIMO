@@ -52,20 +52,23 @@ public sealed class PdfSplitPlan {
         return new(parts);
     }
 
-    /// <summary>Checks that every part is a named, in-range, non-overlapping page run of the document.</summary>
+    /// <summary>Checks that named parts cover every source page exactly once in order.</summary>
     internal void Validate(int pageCount, int maximumParts) {
         if (Parts.Count == 0) throw new ArgumentException("The split plan has no parts.");
         if (Parts.Count > maximumParts) throw new InvalidOperationException($"The split would create {Parts.Count} parts, above the configured {maximumParts}-part limit.");
-        int next = 1;
+        long next = 1;
         var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (PdfSplitPart part in Parts) {
-            if (part.FirstSourcePage < next || part.PageCount < 1 || part.FirstSourcePage + part.PageCount - 1 > pageCount)
-                throw new ArgumentException("Split parts must be ordered, non-overlapping page ranges inside the document.");
+            if (part.FirstSourcePage != next || part.PageCount < 1 ||
+                (long)part.FirstSourcePage + part.PageCount - 1 > pageCount)
+                throw new ArgumentException("Split parts must cover every source page exactly once in order.");
             if (string.IsNullOrWhiteSpace(part.Name) || part.Name != Path.GetFileName(part.Name) || !part.Name.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) ||
                 part.Name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || !names.Add(part.Name))
                 throw new ArgumentException("Split part names must be unique PDF file names.");
-            next = part.FirstSourcePage + part.PageCount;
+            next = (long)part.FirstSourcePage + part.PageCount;
         }
+        if (next != pageCount + 1L)
+            throw new ArgumentException("Split parts must cover every source page exactly once in order.");
     }
 
     private static string SafeTitle(string? title) {

@@ -88,7 +88,9 @@ public sealed partial class PdfPageView : UserControl {
 
     // The on-page editor takes focus when a page click or Tab put it there, not when the list picked the field.
     private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e) {
-        if (e.PropertyName != nameof(PdfPageViewModel.HasInlineFormEditor) && e.PropertyName != nameof(PdfPageViewModel.InlineFormField)) return;
+        if (e.PropertyName != nameof(PdfPageViewModel.HasInlineFormEditor) &&
+            e.PropertyName != nameof(PdfPageViewModel.InlineFormField) &&
+            e.PropertyName != nameof(PdfPageViewModel.FocusInlineFormEditorRequested)) return;
         if (_viewModel is not { HasInlineFormEditor: true, FocusInlineFormEditorRequested: true } model) return;
         model.FocusInlineFormEditorRequested = false;
         Avalonia.Threading.Dispatcher.UIThread.Post(() => {

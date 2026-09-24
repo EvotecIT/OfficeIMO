@@ -380,8 +380,11 @@ public sealed partial class MainWindowViewModel {
             : await _fileDialogs.PickSaveFileAsync(label, baseName + ExportExtension(exportKind),
                 new StudioFileType(label, [ExportExtension(exportKind).TrimStart('.')]), cancellationToken).ConfigureAwait(true);
         if (destination is null || !ReferenceEquals(workspace, _workspace)) return;
+        IReadOnlyDictionary<string, PdfFormFieldValue>? formDrafts = exportKind == PdfExportKind.FormData
+            ? CaptureFormDrafts() : null;
+        if (exportKind == PdfExportKind.FormData && formDrafts is null) return;
         int written = 0;
-        await RunStandaloneAsync(async token => written = await workspace.ExportDocumentAsync(exportKind, destination, token).ConfigureAwait(true),
+        await RunStandaloneAsync(async token => written = await workspace.ExportDocumentAsync(exportKind, destination, token, formDrafts).ConfigureAwait(true),
             cancellationToken, describeSuccess: () => exportKind == PdfExportKind.Images
                 ? UiFormat("Export.ImagesSaved", written, _services.Storage.Describe(destination).Name)
                 : UiFormat("Export.Saved", _services.Storage.Describe(destination).Name)).ConfigureAwait(true);

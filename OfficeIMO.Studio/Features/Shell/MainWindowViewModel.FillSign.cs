@@ -71,7 +71,7 @@ public sealed partial class MainWindowViewModel {
                 target.Insert(0, saved);
                 while (target.Count > StudioSignatureStore.MaximumPerKind) target.RemoveAt(target.Count - 1);
                 NotifySavedSignatures();
-            } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) {
+            } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException) {
                 ErrorMessage = UiFormat("FillSign.SaveFailed", ex.Message);
             }
         }

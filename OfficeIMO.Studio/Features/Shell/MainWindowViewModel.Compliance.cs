@@ -57,7 +57,8 @@ public sealed partial class MainWindowViewModel {
         PdfComplianceReadinessReport? report = null;
         bool succeeded = await RunStandaloneAsync(async token => report = await workspace.AssessComplianceAsync(profile.Profile, token).ConfigureAwait(true),
             cancellationToken, describeSuccess: () => report is null ? null : UiFormat("Compliance.Checked", profile.Label)).ConfigureAwait(true);
-        if (!succeeded || report is null || !ReferenceEquals(workspace, _workspace)) return;
+        if (!succeeded || report is null || !ReferenceEquals(workspace, _workspace) ||
+            !ReferenceEquals(profile, SelectedComplianceProfile)) return;
         ComplianceIssues.Clear();
         foreach (PdfComplianceRequirement requirement in report.Requirements.Where(item => item.Status != PdfComplianceRequirementStatus.Satisfied))
             ComplianceIssues.Add(new ComplianceRequirementViewModel(requirement.DisplayName, requirement.Diagnostic,

@@ -18,7 +18,8 @@ internal sealed record PdfEditorCommand(
     PdfPageRectangle Bounds,
     IReadOnlyList<PdfPagePoint> Path,
     PdfEditorProperties Properties,
-    IReadOnlyList<IReadOnlyList<PdfPagePoint>>? Strokes = null);
+    IReadOnlyList<IReadOnlyList<PdfPagePoint>>? Strokes = null,
+    IReadOnlyList<PdfPageRectangle>? TextQuads = null);
 
 internal sealed record PdfVerifiedRedactionResult(
     byte[] Bytes,
