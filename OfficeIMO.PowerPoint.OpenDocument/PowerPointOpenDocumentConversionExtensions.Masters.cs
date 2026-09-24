@@ -14,7 +14,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         Dictionary<SlideMasterPart, string> masterNames, Dictionary<SlideLayoutPart, string> layoutNames,
         HashSet<SlideMasterPart> solidMasters,
         ref int mappedMasters, ref int mappedLayouts, ref int mappedMasterBackgrounds,
-        ref int approximatedMasterLayouts) {
+        ref int approximatedMasterLayouts, out bool suppressInheritedBackground) {
+        suppressInheritedBackground = false;
         string? relationshipId = slideId?.RelationshipId?.Value;
         if (presentation == null || relationshipId == null || relationshipId.Length == 0 ||
             presentation.GetPartById(relationshipId) is not SlidePart slidePart) return false;
@@ -47,25 +48,29 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         targetSlide.LayoutName = layoutName;
         mappedLayouts++;
 
-        return solidMasters.Contains(masterPart) &&
-            slidePart.Slide?.CommonSlideData?.Background == null &&
-            layoutPart.SlideLayout?.CommonSlideData?.Background == null;
+        bool slideOverride = slidePart.Slide?.CommonSlideData?.Background != null;
+        bool layoutOverride = layoutPart.SlideLayout?.CommonSlideData?.Background != null;
+        suppressInheritedBackground = solidMasters.Contains(masterPart) && (slideOverride || layoutOverride);
+        return solidMasters.Contains(masterPart) && !slideOverride && !layoutOverride;
     }
 
     private static bool HasUnmappedMasterOrLayoutContent(SlideMasterPart masterPart, SlideLayoutPart layoutPart,
         bool hasSlideText) =>
         HasDrawingContent(masterPart.SlideMaster?.CommonSlideData?.ShapeTree) ||
         HasDrawingContent(layoutPart.SlideLayout?.CommonSlideData?.ShapeTree) ||
-        hasSlideText && masterPart.SlideMaster?.TextStyles?.ChildElements.Count > 0 ||
+        hasSlideText && masterPart.SlideMaster?.TextStyles?.ChildElements.Any(style =>
+            style.HasAttributes || style.HasChildren) == true ||
         masterPart.SlideMaster?.CommonSlideData?.Background != null &&
             !TryGetDirectMasterBackground(masterPart, out _) ||
         layoutPart.SlideLayout?.CommonSlideData?.Background != null;
 
     private static bool TryGetDirectMasterBackground(SlideMasterPart masterPart, out OdfColor color) {
-        A.SolidFill? solid = masterPart.SlideMaster?.CommonSlideData?.Background?
-            .BackgroundProperties?.GetFirstChild<A.SolidFill>();
+        P.BackgroundProperties? properties = masterPart.SlideMaster?.CommonSlideData?.Background?.BackgroundProperties;
+        A.SolidFill? solid = properties?.GetFirstChild<A.SolidFill>();
         A.RgbColorModelHex? rgb = solid?.RgbColorModelHex;
-        if (rgb?.ChildElements.Count == 0 && OdfColor.TryParse(rgb.Val?.Value, out color)) return true;
+        if (properties != null && !properties.HasAttributes && properties.ChildElements.Count == 1 &&
+            solid?.ChildElements.Count == 1 && rgb?.ChildElements.Count == 0 &&
+            OdfColor.TryParse(rgb.Val?.Value, out color)) return true;
         color = default;
         return false;
     }

@@ -50,12 +50,25 @@ public sealed class PowerPointOdpPresentationSemanticsTests {
     [Fact]
     public void MasterTextStylesReportInheritedFormattingLoss() {
         using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
+        source.OpenXmlDocument.PresentationPart!.SlideMasterParts.First().SlideMaster!.TextStyles!
+            .ChildElements.First().Append(new A.Level1ParagraphProperties(
+                new A.DefaultRunProperties { Bold = true }));
         source.AddSlide(PowerPointSlideLayoutType.Blank)
             .AddTextBoxPoints("Inherited text", 20, 20, 200, 40);
 
         OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "masters-layouts" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
+    }
+
+    [Fact]
+    public void EmptyMasterTextStyleContainersDoNotReportLossForOrdinaryText() {
+        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
+        source.AddSlide(PowerPointSlideLayoutType.Blank)
+            .AddTextBoxPoints("Ordinary text", 20, 20, 200, 40);
+
+        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+        Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "masters-layouts");
     }
 
     [Fact]
@@ -158,5 +171,161 @@ public sealed class PowerPointOdpPresentationSemanticsTests {
             mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
         Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointPresentationResult(
             new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void UnsupportedSlideOverrideDoesNotExposeMappedMasterColor() {
+        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
+        source.OpenXmlDocument.PresentationPart!.SlideMasterParts.First().SlideMaster!
+            .CommonSlideData!.Background = new Background(new BackgroundProperties(
+                new A.SolidFill(new A.RgbColorModelHex { Val = "336699" })));
+        source.AddSlide(PowerPointSlideLayoutType.Blank).SetBackgroundGradient("FF0000", "0000FF");
+
+        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+        OdpPresentation reopened = OdpPresentation.Load(new MemoryStream(conversion.Value.ToBytes()));
+        Assert.True(reopened.Validate().IsValid);
+        XNamespace draw = "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0";
+        XNamespace style = "urn:oasis:names:tc:opendocument:xmlns:style:1.0";
+        Assert.Equal("#336699", reopened.MasterPages[0].BackgroundColor?.ToString());
+        Assert.Contains(reopened.Package.GetXml("content.xml").Descendants(style + "drawing-page-properties"),
+            properties => (string?)properties.Attribute(draw + "fill") == "none");
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "slide-backgrounds" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+    }
+
+    [Fact]
+    public void OdpGradientSlideBackgroundIsExplicitLossWithoutMasterFallback() {
+        OdpPresentation source = OdpPresentation.Create();
+        OdpSlide slide = source.AddSlide();
+        source.MasterPages[0].BackgroundColor = OdfColor.Parse("#336699");
+        slide.BackgroundColor = OdfColor.Parse("#CC5500");
+        XNamespace style = "urn:oasis:names:tc:opendocument:xmlns:style:1.0";
+        XNamespace draw = "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0";
+        XElement properties = source.Package.GetXml("content.xml")
+            .Descendants(style + "drawing-page-properties").Single();
+        properties.SetAttributeValue(draw + "fill", "gradient");
+        properties.SetAttributeValue(draw + "fill-color", null);
+        properties.SetAttributeValue(draw + "fill-gradient-name", "Gradient1");
+        source.Package.MarkXmlDirty("content.xml");
+
+        Assert.Null(slide.BackgroundColor);
+        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
+        using PowerPointPresentation target = conversion.Value;
+        Assert.Null(target.Slides[0].GetBackground().Color);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "slide-backgrounds" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+        Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointPresentationResult(
+            new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void AbsentPlaceholderTypeUsesObjectRole() {
+        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
+        PowerPointTextBox box = source.AddSlide(PowerPointSlideLayoutType.Blank)
+            .AddTextBoxPoints("Object", 20, 20, 200, 40);
+        box.PlaceholderType = PowerPointPlaceholderType.Object;
+        PlaceholderShape placeholder = source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
+            .Descendants<PlaceholderShape>().Single();
+        placeholder.Type = null;
+
+        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+        Assert.Equal("object", Assert.Single(conversion.Value.Slides[0].Shapes.OfType<OdpTextBox>()).PresentationClass);
+        Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "placeholder-roles" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+    }
+
+    [Fact]
+    public void MasterBackgroundEffectsAreReportedInsteadOfMappedAsPlainColor() {
+        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
+        source.OpenXmlDocument.PresentationPart!.SlideMasterParts.First().SlideMaster!
+            .CommonSlideData!.Background = new Background(new BackgroundProperties(
+                new A.SolidFill(new A.RgbColorModelHex { Val = "336699" }), new A.EffectList()));
+        source.AddSlide(PowerPointSlideLayoutType.Blank);
+
+        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+        Assert.Null(conversion.Value.MasterPages[0].BackgroundColor);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "masters-layouts" &&
+            mapping.Status == OdfConversionMappingStatus.Approximated);
+    }
+
+    [Fact]
+    public void ThemeShapeFillAndTableStyleAreExplicitLoss() {
+        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
+        PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
+        slide.AddRectanglePoints(20, 20, 100, 50);
+        slide.AddTable(1, 1);
+        ShapeProperties shapeProperties = source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
+            .Descendants<ShapeProperties>().Single();
+        shapeProperties.RemoveAllChildren<A.SolidFill>();
+        shapeProperties.Append(new A.SolidFill(new A.SchemeColor { Val = A.SchemeColorValues.Accent1 }));
+
+        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "shape-appearance" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "table-appearance" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+            new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void OdpTableCellStyleIsExplicitLoss() {
+        OdpPresentation source = OdpPresentation.Create();
+        source.AddSlide().AddTable(OdfRect.FromCentimeters(1, 1, 8, 3), 1, 1);
+        XNamespace table = "urn:oasis:names:tc:opendocument:xmlns:table:1.0";
+        XElement cell = source.Package.GetXml("content.xml").Descendants(table + "table-cell").Single();
+        cell.SetAttributeValue(table + "style-name", "CellStyle");
+        source.Package.MarkXmlDirty("content.xml");
+
+        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
+        using PowerPointPresentation target = conversion.Value;
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "table-appearance" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+    }
+
+    [Fact]
+    public void OdpGradientShapeDoesNotProjectStaleSolidColor() {
+        OdpPresentation source = OdpPresentation.Create();
+        OdpRectangle rectangle = source.AddSlide().AddRectangle(OdfRect.FromCentimeters(1, 1, 5, 3));
+        rectangle.FillColor = OdfColor.Parse("#336699");
+        XNamespace style = "urn:oasis:names:tc:opendocument:xmlns:style:1.0";
+        XNamespace draw = "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0";
+        XElement properties = source.Package.GetXml("content.xml")
+            .Descendants(style + "graphic-properties").Single();
+        properties.SetAttributeValue(draw + "fill", "gradient");
+        properties.SetAttributeValue(draw + "fill-gradient-name", "Gradient1");
+        source.Package.MarkXmlDirty("content.xml");
+
+        Assert.Null(rectangle.FillColor);
+        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
+        using PowerPointPresentation target = conversion.Value;
+        Assert.Null(target.Slides[0].Shapes.OfType<PowerPointAutoShape>().Single().FillColor);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "shape-appearance" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+        Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointPresentationResult(
+            new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void ExplicitNoFillShapeIsReportedInBothDirections() {
+        using PowerPointPresentation powerPoint = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
+        powerPoint.AddSlide(PowerPointSlideLayoutType.Blank).AddRectanglePoints(20, 20, 100, 50);
+        ShapeProperties properties = powerPoint.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
+            .Descendants<ShapeProperties>().Single();
+        properties.RemoveAllChildren<A.SolidFill>();
+        properties.Append(new A.NoFill());
+
+        OdfConversionResult<OdpPresentation> fromPowerPoint = powerPoint.ToOpenDocumentResult();
+        Assert.Contains(fromPowerPoint.Report.Mappings, mapping => mapping.Feature == "shape-appearance" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+        Assert.Throws<OdfConversionLossException>(() => powerPoint.ToOpenDocumentResult(
+            new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+
+        OdpPresentation odf = OdpPresentation.Create();
+        odf.AddSlide().AddRectangle(OdfRect.FromCentimeters(1, 1, 5, 3)).FillColor = null;
+        OdfConversionResult<PowerPointPresentation> fromOdp = odf.ToPowerPointPresentationResult();
+        using PowerPointPresentation converted = fromOdp.Value;
+        Assert.Contains(fromOdp.Report.Mappings, mapping => mapping.Feature == "shape-appearance" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
     }
 }

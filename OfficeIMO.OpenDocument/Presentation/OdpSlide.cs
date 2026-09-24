@@ -44,7 +44,8 @@ public sealed class OdpSlide {
         get {
             OdfStyle? style = GetDrawingPageStyle();
             XElement? properties = style?.Element.Element(OdfNamespaces.Style + "drawing-page-properties");
-            if (string.Equals((string?)properties?.Attribute(OdfNamespaces.Draw + "fill"), "none", StringComparison.OrdinalIgnoreCase)) return null;
+            string? fill = (string?)properties?.Attribute(OdfNamespaces.Draw + "fill");
+            if (fill != null && !string.Equals(fill, "solid", StringComparison.OrdinalIgnoreCase)) return null;
             string? value = (string?)properties?.Attribute(OdfNamespaces.Draw + "fill-color");
             return value == null ? (OdfColor?)null : OdfColor.Parse(value);
         }
@@ -53,6 +54,11 @@ public sealed class OdpSlide {
             style.SetProperty(OdfNamespaces.Style + "drawing-page-properties", OdfNamespaces.Draw + "fill", value.HasValue ? "solid" : null);
             style.SetProperty(OdfNamespaces.Style + "drawing-page-properties", OdfNamespaces.Draw + "fill-color", value?.ToString());
         }
+    }
+    internal void SuppressInheritedBackground() {
+        OdfStyle style = EnsureDrawingPageStyle();
+        style.SetProperty(OdfNamespaces.Style + "drawing-page-properties", OdfNamespaces.Draw + "fill", "none");
+        style.SetProperty(OdfNamespaces.Style + "drawing-page-properties", OdfNamespaces.Draw + "fill-color", null);
     }
     /// <summary>Raw ODF transition type on the slide's drawing-page style.</summary>
     public string? TransitionType {

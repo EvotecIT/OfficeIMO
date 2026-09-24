@@ -36,6 +36,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         DocumentFormat.OpenXml.Presentation.SlideId[] sourceSlideIds = sourcePresentation?.Presentation?
             .SlideIdList?.Elements<DocumentFormat.OpenXml.Presentation.SlideId>().ToArray()
             ?? Array.Empty<DocumentFormat.OpenXml.Presentation.SlideId>();
+        int unsupportedShapeAppearance = CountUnmappedPowerPointShapeAppearance(sourcePresentation, sourceSlideIds);
+        int unsupportedTableAppearance = CountUnmappedPowerPointTableAppearance(sourcePresentation, sourceSlideIds);
         var textState = new PowerPointToOdpTextConversionState();
         var imageValidationBudget = new OdfImageValidationBudget();
         for (int slideIndex = 0; slideIndex < source.Slides.Count; slideIndex++) {
@@ -46,8 +48,11 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                 slideIndex < sourceSlideIds.Length ? sourceSlideIds[slideIndex] : null,
                 sourceSlide.TextBoxes.Any(), target, targetSlide,
                 masterNames, layoutNames, solidMasters,
-                ref mappedMasters, ref mappedLayouts, ref mappedMasterBackgrounds, ref approximatedMasterLayouts);
+                ref mappedMasters, ref mappedLayouts, ref mappedMasterBackgrounds, ref approximatedMasterLayouts,
+                out bool suppressInheritedBackground);
             if (!inheritsMasterBackground) MapBackground(sourceSlide, targetSlide, ref backgrounds, ref unsupportedBackgrounds);
+            if (suppressInheritedBackground && !targetSlide.BackgroundColor.HasValue)
+                targetSlide.SuppressInheritedBackground();
             if (MapTransition(sourceSlide.Transition, targetSlide)) transitions++;
 
             foreach (PowerPointShape shape in sourceSlide.Shapes.OrderBy(item => item.DrawingOrder)) {
@@ -197,6 +202,10 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             "PowerPoint run actions, mouse-over interactions, and action sounds outside ordinary click hyperlinks are not represented in ODP.");
         AddUnsupported(report, "images", unsupportedPictures, "Images disabled by options or unavailable from an embedded image part were skipped.");
         AddUnsupported(report, "shapes", unsupportedShapes, "Charts, SmartArt, media, groups, and other advanced drawing shapes are not translated.");
+        AddUnsupported(report, "shape-appearance", unsupportedShapeAppearance,
+            "Theme, image, gradient, transparency, dash, and effect styling outside direct solid RGB fill and outline was omitted.");
+        AddUnsupported(report, "table-appearance", unsupportedTableAppearance,
+            "Table style, cell fill, borders, margins, alignment, or custom row and column sizing was not translated.");
         if (approximatedMasterLayouts > 0) report.Add("masters-layouts", OdfConversionMappingStatus.Approximated,
             approximatedMasterLayouts,
             "Master and layout links are retained, but inherited drawing content, placeholder geometry and indexes, and layout-specific formatting are not reconstructed.");
@@ -229,6 +238,11 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         int listParagraphs = 0, approximatedRuns = 0, unsupportedHyperlinks = 0, unsupportedHyperlinkBehaviors = 0;
         int skippedBasicFormatting = 0, skippedNotes = 0, noteContainers = 0;
         int mappedPlaceholderRoles = 0, unsupportedPlaceholderRoles = 0;
+        int unsupportedSlideBackgrounds = 0;
+        int unsupportedShapeAppearance = source.Slides.Sum(slide => slide.Shapes.Count(shape =>
+            HasUnmappedOdpShapeAppearance(source, shape)));
+        int unsupportedTableAppearance = source.Slides.Sum(slide => slide.Shapes.OfType<OdpTable>()
+            .Count(HasUnmappedOdpTableAppearance));
         int approximatedTextDecorations = CountNonSolidTextDecorations(source);
         int unsupportedWritingModes = 0, approximatedParagraphAlignments = 0;
         int approximatedFontFamilyLists = 0, unsupportedFontFamilies = 0;
@@ -236,8 +250,10 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         foreach (OdpSlide sourceSlide in source.Slides) {
             PowerPointSlide targetSlide = target.AddSlide();
             targetSlide.Hidden = sourceSlide.Hidden;
-            OdfColor? backgroundColor = sourceSlide.BackgroundColor;
-            if (!backgroundColor.HasValue && !string.IsNullOrWhiteSpace(sourceSlide.MasterPageName)) {
+            var slideBackground = ReadOdpSlideBackground(source, sourceSlide);
+            if (slideBackground.Loss) unsupportedSlideBackgrounds++;
+            OdfColor? backgroundColor = slideBackground.Color;
+            if (!slideBackground.Override && !backgroundColor.HasValue && !string.IsNullOrWhiteSpace(sourceSlide.MasterPageName)) {
                 backgroundColor = source.MasterPages.FirstOrDefault(master =>
                     string.Equals(master.Name, sourceSlide.MasterPageName, StringComparison.Ordinal))?.BackgroundColor;
             }
@@ -433,6 +449,12 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         AddUnsupported(report, "slide-transitions", unsupportedTransitions, "The ODF transition family is not supported by the PowerPoint adapter.");
         AddUnsupported(report, "images", unsupportedPictures, "Images disabled by options or using an unsupported PowerPoint image format were skipped.");
         AddUnsupported(report, "shapes", unsupportedShapes, "Groups and unsupported ODF drawing elements are not translated.");
+        AddUnsupported(report, "slide-backgrounds", unsupportedSlideBackgrounds,
+            "ODP slide image, gradient, transparency, or unsupported drawing-page background was omitted.");
+        AddUnsupported(report, "shape-appearance", unsupportedShapeAppearance,
+            "ODP graphic fill, stroke, transparency, dash, or effect styling outside solid colors was omitted.");
+        AddUnsupported(report, "table-appearance", unsupportedTableAppearance,
+            "ODP table, row, column, or cell styles were not translated.");
         AddUnsupported(report, "shape-transforms", transformedShapes, "Raw ODF transform expressions are not translated.");
         AddUnsupported(report, "relative-measurements", unsupportedMeasurements,
             "Relative or unsupported ODF text measurements could not be projected to fixed PowerPoint point sizes and were omitted.");

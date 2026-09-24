@@ -103,7 +103,8 @@ public abstract class OdpShape {
     }
     private OdfColor? ReadGraphicColor(XName modeName, XName colorName) {
         XElement? properties = GetGraphicStyle()?.Element.Element(OdfNamespaces.Style + "graphic-properties");
-        if (string.Equals((string?)properties?.Attribute(modeName), "none", StringComparison.Ordinal)) return null;
+        string? mode = (string?)properties?.Attribute(modeName);
+        if (mode != null && !string.Equals(mode, "solid", StringComparison.Ordinal)) return null;
         string? value = (string?)properties?.Attribute(colorName);
         return value == null ? (OdfColor?)null : OdfColor.Parse(value);
     }

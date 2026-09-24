@@ -10,6 +10,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             type = slide.GetLayoutPlaceholders().FirstOrDefault(placeholder =>
                 placeholder.PlaceholderIndex == textBox.PlaceholderIndex).PlaceholderType;
         }
+        type ??= PowerPointPlaceholderType.Object;
         return type switch {
             PowerPointPlaceholderType.Title or PowerPointPlaceholderType.CenteredTitle => "title",
             PowerPointPlaceholderType.SubTitle => "subtitle",
