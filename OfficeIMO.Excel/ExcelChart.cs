@@ -56,6 +56,8 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public int DrawingOrder => GetDrawingOrder();
 
+        internal bool HasAbsoluteAnchor => _frame.Ancestors<Xdr.AbsoluteAnchor>().Any();
+
         internal bool TryGetAbsoluteAnchorBounds(out int xPixels, out int yPixels, out int widthPixels, out int heightPixels) {
             xPixels = 0;
             yPixels = 0;

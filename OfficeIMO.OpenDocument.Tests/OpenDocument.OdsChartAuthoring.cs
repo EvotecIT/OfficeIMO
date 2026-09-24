@@ -53,6 +53,34 @@ public sealed class OpenDocumentOdsChartAuthoringTests {
     }
 
     [Fact]
+    public void ChartAuthoringRejectsUnqualifiedCrossSheetRangeEnd() {
+        OdsDocument document = OdsDocument.Create();
+        OdsSheet chartSheet = document.AddSheet("Summary");
+        document.AddSheet("Data");
+        Assert.Throws<ArgumentException>(() => chartSheet.AddChart(OdsChartType.Line,
+            "Data.$A$1:.$A$2", new[] { new OdsChartSeries("Data.$B$1:Data.$B$2") },
+            0, 0, OdfRect.FromCentimeters(1, 1, 10, 6)));
+        Assert.Empty(chartSheet.Charts);
+    }
+
+    [Fact]
+    public void AuthoredChartTitleEncodesSignificantWhitespace() {
+        OdsDocument document = OdsDocument.Create();
+        OdsSheet sheet = document.AddSheet("Data");
+        string title = " Net  Sales\tQ1\nWest";
+        sheet.AddChart(OdsChartType.Column, "Data.$A$1:.$A$2",
+            new[] { new OdsChartSeries("Data.$B$1:.$B$2") }, 0, 0,
+            OdfRect.FromCentimeters(1, 1, 10, 6), title);
+        XDocument xml = XDocument.Parse(Encoding.UTF8.GetString(
+            document.GetPackageEntryBytes("Object 1/content.xml")));
+        Assert.NotEmpty(xml.Descendants(OdfNamespaces.Text + "s"));
+        Assert.NotEmpty(xml.Descendants(OdfNamespaces.Text + "tab"));
+        Assert.NotEmpty(xml.Descendants(OdfNamespaces.Text + "line-break"));
+        OdsDocument reopened = OdsDocument.Load(new MemoryStream(document.ToBytes()));
+        Assert.Equal(title, Assert.Single(reopened.GetSheet("Data")!.Charts).Title);
+    }
+
+    [Fact]
     public void VersionRewriteKeepsManifestOnlyEmbeddedChartDirectory() {
         string path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "microsoft-excel-column-chart.ods");
         OdsDocument imported = OdsDocument.Load(path);
@@ -72,5 +100,27 @@ public sealed class OpenDocumentOdsChartAuthoringTests {
         Assert.Equal("application/vnd.oasis.opendocument.chart",
             (string?)directory.Attribute(manifest + "media-type"));
         Assert.Single(reopened.GetSheet("Data")!.Charts);
+    }
+
+    [Fact]
+    public void VersionRewriteUpdatesEmbeddedChartMetadataAndSettings() {
+        string path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "microsoft-excel-column-chart.ods");
+        OdsDocument imported = OdsDocument.Load(path);
+        const string office = "urn:oasis:names:tc:opendocument:xmlns:office:1.0";
+        foreach (string part in new[] { "meta.xml", "settings.xml" }) {
+            string root = part == "meta.xml" ? "document-meta" : "document-settings";
+            imported.Package.AddOrReplaceEntry("Object 1/" + part,
+                Encoding.UTF8.GetBytes("<office:" + root + " xmlns:office=\"" + office +
+                    "\" office:version=\"1.4\"/>"), "text/xml");
+        }
+        byte[] rewritten = imported.ToBytes(new OdfSaveOptions {
+            CompatibilityProfile = OdfCompatibilityProfile.Odf13
+        });
+        OdsDocument reopened = OdsDocument.Load(new MemoryStream(rewritten));
+        foreach (string part in new[] { "meta.xml", "settings.xml" }) {
+            XDocument embedded = XDocument.Parse(Encoding.UTF8.GetString(
+                reopened.GetPackageEntryBytes("Object 1/" + part)));
+            Assert.Equal("1.3", (string?)embedded.Root!.Attribute(OdfNamespaces.Office + "version"));
+        }
     }
 }

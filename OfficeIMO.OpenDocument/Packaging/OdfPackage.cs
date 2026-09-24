@@ -376,7 +376,9 @@ internal sealed partial class OdfPackage {
         }
         IEnumerable<string> chartParts = _entries.Where(entry => !entry.IsRemoved &&
             (entry.Name.EndsWith("/content.xml", StringComparison.Ordinal) ||
-             entry.Name.EndsWith("/styles.xml", StringComparison.Ordinal)) &&
+             entry.Name.EndsWith("/styles.xml", StringComparison.Ordinal) ||
+             entry.Name.EndsWith("/meta.xml", StringComparison.Ordinal) ||
+             entry.Name.EndsWith("/settings.xml", StringComparison.Ordinal)) &&
             chartDirectories.Contains(entry.Name.Substring(0, entry.Name.LastIndexOf('/') + 1)))
             .Select(entry => entry.Name);
         foreach (string path in new[] { "content.xml", "styles.xml", "meta.xml", "settings.xml" }.Concat(chartParts)) {

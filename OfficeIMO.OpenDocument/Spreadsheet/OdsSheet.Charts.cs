@@ -56,8 +56,11 @@ public sealed partial class OdsSheet {
             new XAttribute(chart + "style-name", "ChartStyle"),
             new XAttribute(OdfNamespaces.Svg + "width", bounds.Width.ToString()),
             new XAttribute(OdfNamespaces.Svg + "height", bounds.Height.ToString()));
-        if (!string.IsNullOrEmpty(title))
-            chartElement.Add(new XElement(chart + "title", new XElement(OdfNamespaces.Text + "p", title)));
+        if (!string.IsNullOrEmpty(title)) {
+            var paragraph = new XElement(OdfNamespaces.Text + "p");
+            OdfTextCodec.Append(paragraph, title);
+            chartElement.Add(new XElement(chart + "title", paragraph));
+        }
         chartElement.Add(plot);
         var root = new XElement(OdfNamespaces.Office + "document-content");
         OdfXmlCodec.AddStandardNamespaces(root);
@@ -104,6 +107,8 @@ public sealed partial class OdsSheet {
         SpreadsheetCellReference start = range.Start;
         SpreadsheetCellReference end = range.End ?? start;
         if (!end.IsCell || string.IsNullOrEmpty(start.SheetName) ||
+            (range.End != null && string.IsNullOrEmpty(end.SheetName) &&
+                !string.Equals(start.SheetName, Name, StringComparison.Ordinal)) ||
             (end.SheetName != null && !string.Equals(start.SheetName, end.SheetName, StringComparison.Ordinal)) ||
             _document.GetSheet(start.SheetName!) == null ||
             start.Row!.Value > end.Row!.Value || start.Column!.Value > end.Column!.Value ||

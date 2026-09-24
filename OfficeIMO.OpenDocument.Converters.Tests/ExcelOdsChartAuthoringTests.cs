@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
+using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
@@ -70,6 +71,41 @@ public sealed class ExcelOdsChartAuthoringTests {
         Assert.Empty(result.Value.GetSheet("Summary")!.Charts);
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "charts" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
+    }
+
+    [Fact]
+    public void AbsoluteAnchoredChartRemainsExplicitLoss() {
+        string path = Path.Combine(Path.GetTempPath(), "officeimo-chart-absolute-" +
+            Guid.NewGuid().ToString("N") + ".xlsx");
+        try {
+            using (ExcelDocument source = ExcelDocument.Create(path)) {
+                ExcelSheet sheet = source.AddWorksheet("Summary");
+                sheet.AddChart(new ExcelChartData(new[] { "Jan", "Feb" },
+                    new[] { new ExcelChartSeries("Sales", new[] { 10d, 20d }) }),
+                    row: 5, column: 4, type: ExcelChartType.ColumnClustered);
+                source.Save();
+            }
+            using (SpreadsheetDocument package = SpreadsheetDocument.Open(path, true)) {
+                var drawing = package.WorkbookPart!.WorksheetParts
+                    .Select(part => part.DrawingsPart?.WorksheetDrawing)
+                    .Single(root => root != null)!;
+                Xdr.OneCellAnchor anchor = drawing.Elements<Xdr.OneCellAnchor>().Single();
+                Xdr.GraphicFrame frame = anchor.GetFirstChild<Xdr.GraphicFrame>()!;
+                anchor.InsertAfterSelf(new Xdr.AbsoluteAnchor(
+                    new Xdr.Position { X = 4572000L, Y = 914400L },
+                    new Xdr.Extent { Cx = 4572000L, Cy = 2743200L },
+                    (Xdr.GraphicFrame)frame.CloneNode(true), new Xdr.ClientData()));
+                anchor.Remove();
+                drawing.Save();
+            }
+            using ExcelDocument imported = ExcelDocument.Load(path);
+            OdfConversionResult<OdsDocument> result = imported.ToOpenDocumentResult();
+            Assert.Empty(result.Value.GetSheet("Summary")!.Charts);
+            Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "charts" &&
+                mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
     }
 
     [Fact]

@@ -16,7 +16,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             if (targetSheet == null || !convertedCellsBySheet.TryGetValue(sourceSheet.Name,
                     out HashSet<(int Row, int Column)>? anchorCells)) continue;
             foreach (ExcelChart chart in sourceSheet.Charts) {
-                if (chart.IsPivotChart || !TryGetOdsChartType(chart.ChartType, out OdsChartType type)
+                if (chart.IsPivotChart || chart.HasAbsoluteAnchor
+                    || !TryGetOdsChartType(chart.ChartType, out OdsChartType type)
                     || !chart.TryGetSnapshot(out ExcelChartSnapshot snapshot)
                     || chart.DataRange is not ExcelChartDataRange range
                     || !chart.HasCanonicalWorksheetReferences()
