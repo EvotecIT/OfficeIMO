@@ -193,3 +193,33 @@ clean-source macOS static budget passed with a 5,374 ms cold process and a
 report and budget report are retained under `Ignore/HtmlUnknownPageQualification/`
 in `h10-wai-positioned-pseudo-clean-cfffdbd1b`,
 `h10-h4-acceptance-cfffdbd1b` and `h10-h4-budget-cfffdbd1b`.
+
+## W3C tutorial-card text beside floated images
+
+Source `64d1f971ce29335c44790b57ff8154031936525e` lets a float that follows
+inline text share the current line when its measured box fits. This matters for
+the W3C tutorial cards: each link's illustration floats into the left gutter,
+between the bold title and its generated print URL. The renderer previously
+ended the title line at that image even though the URL had room beside it. The
+shared float path now also collapses whitespace across a same-line float and
+still moves the float below a line that lacks room.
+
+The unchanged frozen W3C archive replayed offline from this clean source with
+no failures across ten operations. Chromium and OfficeIMO's zero-margin
+local-font print still produce three pages; OfficeIMO's default print still
+produces four. All three local-font print pages were rasterized and compared
+with the frozen Chromium pages. Four tutorial cards now fit on OfficeIMO's
+first page, and their title and print URL stay on the same line where space
+permits. Chromium still starts the fifth card on page one, while OfficeIMO
+starts it on page two. Text weight and footer layout also differ, so the W3C
+print-fidelity item remains open. The OfficeIMO screen-media projection moves
+from four pages to three; the screen-snapshot projection remains four.
+
+The full .NET 10 HTML suite passed 3,325/3,325, the focused .NET 8 cases passed
+5/5, and the H4 advanced-held-out acceptance gate passed 8/8. The clean-source
+macOS static budget passed with a 5,364 ms cold process and a 1,920 ms maximum
+warm iteration. Reports and inspected rasters are retained under
+`Ignore/HtmlUnknownPageQualification/` in
+`h10-wai-float-after-text-clean-64d1f971c`,
+`h10-h4-float-after-text-64d1f971c`, and
+`h10-h4-budget-float-after-text-64d1f971c`.
