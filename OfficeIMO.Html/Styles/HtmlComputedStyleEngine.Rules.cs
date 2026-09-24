@@ -226,6 +226,9 @@ public static partial class HtmlComputedStyleEngine {
         if (ownedDeclarations == null) {
             foreach (string propertyName in SupportedProperties) {
                 if (declarations.ContainsKey(propertyName)) continue;
+                // AngleSharp also synthesizes `flex` from a lone `flex-shrink` declaration.
+                // Such a shorthand must not compete with an authored inline `flex` value.
+                if (propertyName == "flex" && !HasAuthoredDeclaration(ownedRule, styleRule.CssText, propertyName)) continue;
                 string propertyValue = styleRule.Style.GetPropertyValue(propertyName);
                 if (string.IsNullOrWhiteSpace(propertyValue)) continue;
                 declarations[propertyName] = new StyleDeclaration(
@@ -1044,6 +1047,23 @@ public static partial class HtmlComputedStyleEngine {
                 StringComparison.OrdinalIgnoreCase)) return;
         }
         declarations.Remove("animation-name");
+    }
+
+    private static bool HasAuthoredDeclaration(
+        OfficeIMO.Html.Css.HtmlCssQualifiedRule? ownedRule,
+        string cssText,
+        string propertyName) {
+        if (ownedRule?.Declarations.Any(declaration => string.Equals(
+                RestoreFontShorthandName(declaration.Name), propertyName, StringComparison.OrdinalIgnoreCase)) == true) return true;
+        int open = cssText.IndexOf('{');
+        int close = cssText.LastIndexOf('}');
+        if (open < 0 || close <= open) return false;
+        foreach (string declaration in SplitCssDeclarations(StripCssCommentsOutsideStrings(cssText.Substring(open + 1, close - open - 1)))) {
+            int separator = declaration.IndexOf(':');
+            if (separator > 0 && string.Equals(declaration.Substring(0, separator).Trim(), propertyName,
+                    StringComparison.OrdinalIgnoreCase)) return true;
+        }
+        return false;
     }
 
     private static void SetDeclarationInSourceOrder(

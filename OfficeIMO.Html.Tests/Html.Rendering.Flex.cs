@@ -948,6 +948,28 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(item.Height * 0.5D, child.Height, 3);
     }
 
+    [Fact]
+    public void HtmlFlexRow_ImportantShrinkDoesNotInventACompetingFlexShorthand() {
+        const string html = """
+            <style>.fixed { flex-shrink: 0 !important; }</style>
+            <div style="display:flex;width:700px">
+              <div id="first" class="fixed" style="flex:none;width:320px;height:20px;background:#ff0000"></div>
+              <div id="second" class="fixed" style="flex:none;width:320px;height:20px;background:#0000ff"></div>
+            </div>
+            """;
+
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
+        HtmlComputedStyle firstStyle = HtmlComputedStyleEngine.Compute(document)[document.Document.QuerySelector("#first")!];
+        Assert.Equal("none", firstStyle.GetValue("flex"));
+        Assert.Equal("0", firstStyle.GetValue("flex-shrink"));
+
+        HtmlRenderDocument rendered = RenderFlex(html, 720D);
+        HtmlRenderShape first = FindFlexShape(rendered, "div#first");
+        HtmlRenderShape second = FindFlexShape(rendered, "div#second");
+        Assert.Equal(320D, first.Width, 3);
+        Assert.Equal(first.X + first.Width, second.X, 3);
+    }
+
     private static HtmlRenderDocument RenderFlex(string html, double viewportWidth) =>
         HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = viewportWidth,
