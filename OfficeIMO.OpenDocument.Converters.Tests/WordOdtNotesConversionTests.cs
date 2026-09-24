@@ -13,6 +13,115 @@ using Xunit;
 namespace OfficeIMO.OpenDocument.Converters.Tests;
 
 public sealed class WordOdtNotesConversionTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void WordNoteReferenceWithoutRunPropertiesIsConverted(bool endnote) {
+        using WordDocument source = WordDocument.Create();
+        WordParagraph paragraph = source.AddParagraph("Anchor");
+        if (endnote) paragraph.AddEndNote("Note body");
+        else paragraph.AddFootNote("Note body");
+        W.Run anchor = source.OpenXmlDocument.MainDocumentPart!.Document!.Body!
+            .Descendants<W.Run>().Single(run => endnote
+                ? run.GetFirstChild<W.EndnoteReference>() != null
+                : run.GetFirstChild<W.FootnoteReference>() != null);
+        anchor.RunProperties?.Remove();
+
+        OdtDocument converted = source.ToOpenDocument();
+        OdtNote note = Assert.Single(Assert.Single(converted.Paragraphs).Notes);
+        Assert.Equal(endnote ? OdtNoteKind.Endnote : OdtNoteKind.Footnote, note.Kind);
+        Assert.Equal("Note body", note.Paragraphs[0].Text);
+    }
+
+    [Fact]
+    public void WordNoteInlineSymbolIsExplicitContentLoss() {
+        using WordDocument source = WordDocument.Create();
+        source.AddParagraph("Anchor").AddFootNote("Body");
+        W.Footnote note = source.OpenXmlDocument.MainDocumentPart!.FootnotesPart!.Footnotes!
+            .Elements<W.Footnote>().Single(item => item.Id?.Value == source.FootNotes[0].ReferenceId);
+        note.Elements<W.Paragraph>().Single().Append(new W.Run(new W.SymbolChar {
+            Font = "Wingdings", Char = "F0A7"
+        }));
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-content" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void WordNoteInlineFieldWrapperIsExplicitContentLoss() {
+        using WordDocument source = WordDocument.Create();
+        source.AddParagraph("Anchor").AddFootNote("Body");
+        W.Footnote note = source.OpenXmlDocument.MainDocumentPart!.FootnotesPart!.Footnotes!
+            .Elements<W.Footnote>().Single(item => item.Id?.Value == source.FootNotes[0].ReferenceId);
+        note.Elements<W.Paragraph>().Single().Append(new W.SimpleField(
+            new W.Run(new W.Text("Field result"))) { Instruction = "DATE" });
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-content" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void WordDocumentDefaultNoteFormattingIsExplicitLoss() {
+        using WordDocument source = WordDocument.Create();
+        source.AddParagraph("Anchor").AddFootNote("Body");
+        source.OpenXmlDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.DocDefaults!
+            .RunPropertiesDefault!.RunPropertiesBaseStyle!.Append(new W.Bold());
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-formatting" &&
+            mapping.Status == OdfConversionMappingStatus.Approximated);
+        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void ChangedWordDocumentDefaultSizeIsExplicitNoteLoss() {
+        using WordDocument source = WordDocument.Create();
+        source.AddParagraph("Anchor").AddFootNote("Body");
+        source.OpenXmlDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.DocDefaults!
+            .RunPropertiesDefault!.RunPropertiesBaseStyle!.GetFirstChild<W.FontSize>()!.Val = "30";
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-formatting" &&
+            mapping.Status == OdfConversionMappingStatus.Approximated);
+        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void WordNoteTabAndWrappingBreakRemainSupportedText() {
+        using WordDocument source = WordDocument.Create();
+        source.AddParagraph("Anchor").AddFootNote("Before");
+        W.Footnote note = source.OpenXmlDocument.MainDocumentPart!.FootnotesPart!.Footnotes!
+            .Elements<W.Footnote>().Single(item => item.Id?.Value == source.FootNotes[0].ReferenceId);
+        note.Elements<W.Paragraph>().Single().Append(new W.Run(new W.TabChar(),
+            new W.Text("Middle"), new W.Break(), new W.Text("After")));
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-content" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+        Assert.Contains("\tMiddle\nAfter", Assert.Single(Assert.Single(conversion.Value.Paragraphs).Notes).Paragraphs[0].Text);
+    }
+
+    [Fact]
+    public void NestedOdtNoteIsVisibleFromItsContainingParagraph() {
+        OdtDocument source = OdtDocument.Create();
+        OdtNote outer = source.AddParagraph("Anchor").AddFootnote("Outer body");
+        OdtParagraph innerParagraph = outer.Paragraphs[0];
+        OdtNote nested = innerParagraph.AddFootnote("Inner body");
+        Assert.Equal(nested.Id, Assert.Single(innerParagraph.Notes).Id);
+
+        OdtDocument reopened = OdtDocument.Load(new MemoryStream(source.ToBytes()));
+        OdtNote reopenedOuter = Assert.Single(Assert.Single(reopened.Paragraphs).Notes);
+        Assert.Equal("Inner body", Assert.Single(reopenedOuter.Paragraphs[0].Notes).Paragraphs[0].Text);
+    }
+
     [Fact]
     public void AdditionalFootnoteReferenceInOneRunHasExplicitLoss() {
         using WordDocument source = WordDocument.Create();

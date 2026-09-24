@@ -86,7 +86,9 @@ public sealed class OdtParagraph {
 
     /// <summary>Footnotes and endnotes referenced from this paragraph, in source order.</summary>
     public IReadOnlyList<OdtNote> Notes => _element.Descendants(OdfNamespaces.Text + "note")
-        .Where(element => !element.Ancestors(OdfNamespaces.Text + "note").Any())
+        .Where(element => !element.Ancestors()
+            .TakeWhile(ancestor => ancestor != _element)
+            .Any(ancestor => ancestor.Name == OdfNamespaces.Text + "note"))
         .Select(element => new OdtNote(_document, element, _partPath)).ToList();
 
     /// <summary>Embedded image frames in this paragraph.</summary>

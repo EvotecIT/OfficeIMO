@@ -166,7 +166,8 @@ public static partial class WordOpenDocumentConversionExtensions {
             HasNonDefaultWordNoteReferenceMark(notes, referenceId, kind))
             notes.ApproximatedBodies++;
         bool unsupportedInline = paragraphs.Any(paragraph => paragraph.Runs.Any(run =>
-            run.InlineImage != null || run.Footnote != null || run.Endnote != null));
+            run.InlineImage != null || run.Footnote != null || run.Endnote != null)) ||
+            HasUnsupportedWordNoteInline(notes, referenceId, kind);
         bool unsupportedBlock = HasUnsupportedWordNoteBlocks(notes, referenceId, kind);
         if (unsupportedInline || unsupportedBlock) notes.UnsupportedBodyContent++;
         if (kind == OdtNoteKind.Footnote) {
@@ -184,6 +185,19 @@ public static partial class WordOpenDocumentConversionExtensions {
     private static bool HasUnsupportedWordNoteBlocks(NoteMappingStats notes, long? referenceId, OdtNoteKind kind) {
         DocumentFormat.OpenXml.OpenXmlElement? note = notes.Body(kind, referenceId);
         return note != null && note.ChildElements.Any(child => child is not W.Paragraph);
+    }
+
+    private static bool HasUnsupportedWordNoteInline(NoteMappingStats notes, long? referenceId, OdtNoteKind kind) {
+        DocumentFormat.OpenXml.OpenXmlElement? note = notes.Body(kind, referenceId);
+        return note?.Elements<W.Paragraph>().Any(paragraph =>
+            paragraph.ChildElements.Any(child => child is not W.ParagraphProperties and not W.Run and
+                not W.Hyperlink)) == true ||
+            note?.Descendants<W.Run>().Any(run => run.ChildElements.Any(child =>
+            child is not W.RunProperties and not W.Text and not W.FootnoteReferenceMark and
+                not W.EndnoteReferenceMark and not W.TabChar and not W.CarriageReturn and
+                not W.NoBreakHyphen and not W.SoftHyphen &&
+                (child is not W.Break lineBreak || lineBreak.Type != null &&
+                    lineBreak.Type.Value != W.BreakValues.TextWrapping))) == true;
     }
 
     private static bool HasNonDefaultWordNoteReferenceMark(NoteMappingStats notes, long? referenceId, OdtNoteKind kind) {
@@ -255,6 +269,35 @@ public static partial class WordOpenDocumentConversionExtensions {
             notes.ApproximatedBodies += notes.ConvertedEndnotes;
         if (notes.ConvertedEndnotes > 0 && HasCustomizedDefaultWordNoteReferenceStyle(source, "EndnoteReference"))
             notes.ApproximatedBodies += notes.ConvertedEndnotes;
+        if (HasAuthoredWordDocumentDefaults(source))
+            notes.ApproximatedBodies += notes.ConvertedFootnotes + notes.ConvertedEndnotes;
+    }
+
+    private static bool HasAuthoredWordDocumentDefaults(WordDocument source) {
+        W.DocDefaults? defaults = source.OpenXmlDocument.MainDocumentPart?.StyleDefinitionsPart?.Styles?.DocDefaults;
+        W.RunPropertiesBaseStyle? run = defaults?.RunPropertiesDefault?.RunPropertiesBaseStyle;
+        W.ParagraphPropertiesBaseStyle? paragraph = defaults?.ParagraphPropertiesDefault?.ParagraphPropertiesBaseStyle;
+        if (run?.ChildElements.Any(child => child is not W.RunFonts and not W.FontSize and
+            not W.FontSizeComplexScript and not W.Languages) == true ||
+            paragraph?.ChildElements.Any(child => child is not W.SpacingBetweenLines) == true)
+            return true;
+        W.RunFonts? fonts = run?.GetFirstChild<W.RunFonts>();
+        if (fonts != null && (fonts.AsciiTheme?.Value != W.ThemeFontValues.MinorHighAnsi ||
+            fonts.HighAnsiTheme?.Value != W.ThemeFontValues.MinorHighAnsi ||
+            fonts.EastAsiaTheme?.Value != W.ThemeFontValues.MinorHighAnsi ||
+            fonts.ComplexScriptTheme?.Value != W.ThemeFontValues.MinorBidi ||
+            fonts.Ascii != null || fonts.HighAnsi != null || fonts.EastAsia != null ||
+            fonts.ComplexScript != null)) return true;
+        W.FontSize? size = run?.GetFirstChild<W.FontSize>();
+        W.FontSizeComplexScript? complexSize = run?.GetFirstChild<W.FontSizeComplexScript>();
+        if (size != null && size.Val?.Value != "22" ||
+            complexSize != null && complexSize.Val?.Value != "22") return true;
+        W.Languages? languages = run?.GetFirstChild<W.Languages>();
+        if (languages != null && (languages.Val?.Value != "en-US" ||
+            languages.EastAsia?.Value != "en-US" || languages.Bidi?.Value != "ar-SA")) return true;
+        W.SpacingBetweenLines? spacing = paragraph?.GetFirstChild<W.SpacingBetweenLines>();
+        return spacing != null && (spacing.After?.Value != "160" || spacing.Line?.Value != "259" ||
+            spacing.LineRule?.Value != W.LineSpacingRuleValues.Auto);
     }
 
     private static int CountCustomizedWordSeparators<T>(IEnumerable<T>? candidates)
