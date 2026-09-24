@@ -58,6 +58,19 @@ public sealed class PdfTrueTypeUnicodeCmapTests {
     }
 
     [Fact]
+    public void GlyfOpenTypeContainerUsesSimpleFontCodeMapping() {
+        byte[] source = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A', 'B');
+        var font = new PdfFontResource("F1", "Subset", "WinAnsiEncoding", false,
+            differences: new Dictionary<int, string> { [65] = "B" }, fontSubtype: "TrueType",
+            embeddedProgramSubtype: "OpenType", fontDescriptorFlags: 32);
+
+        PdfDrawingFontProgram drawing = Assert.IsType<PdfDrawingFontProgram>(
+            PdfTrueTypeUnicodeCmap.TryCreate(font, source, null));
+
+        Assert.Equal(2, drawing.GlyphForCode(65));
+    }
+
+    [Fact]
     public void LargeBmpMapUsesFullUnicodeSubtableWithoutTruncatingLength() {
         var mappings = new SortedDictionary<int, int>();
         for (int scalar = 0x20; scalar < 0x20 + 9000; scalar++) mappings.Add(scalar, scalar - 0x1f);

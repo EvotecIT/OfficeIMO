@@ -43,7 +43,7 @@ internal static class PdfTrueTypeUnicodeCmap {
             mappings = CreateCidMappings(font, cidToGlyphMap, glyphCount, isEmptyGlyph);
             glyphForCode = cid => GlyphForCid(cidToGlyphMap, cid, glyphCount);
         } else if (string.Equals(font.FontSubtype, "TrueType", StringComparison.Ordinal) &&
-            string.Equals(font.EmbeddedProgramSubtype, "TrueType", StringComparison.Ordinal) &&
+            (font.EmbeddedProgramSubtype is "TrueType" or "OpenType") &&
             (symbolic.HasValue || macintosh.HasValue || unicode.HasValue)) {
             // PDF character codes select through the symbolic or Macintosh table. A Unicode
             // subtable can name a different glyph than the one that the PDF actually paints.

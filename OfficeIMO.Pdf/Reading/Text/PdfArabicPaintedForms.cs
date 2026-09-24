@@ -24,7 +24,7 @@ internal static class PdfArabicPaintedForms {
         for (int index = 0; index < spans.Count; index++) {
             PdfTextSpan span = spans[index];
             // Invisible text, such as an OCR layer, must not interleave with painted letters.
-            if (!span.IsVisible || span.Text.Length != 1 || !IsArabicLetterOrForm(span.Text[0]) ||
+            if (!span.IsVisible || span.Color?.A <= 3 || span.Text.Length != 1 || !IsArabicLetterOrForm(span.Text[0]) ||
                 !(span.FontSize > 0D) || !(span.Advance > 0D) || double.IsInfinity(span.Advance)) continue;
             double rotation = Math.Round(span.RotationDegrees);
             if (!groups.TryGetValue(rotation, out List<int>? members)) groups.Add(rotation, members = new List<int>());

@@ -449,8 +449,9 @@ public sealed partial class PdfReadPage {
         var drawing = new OfficeDrawing(width, height);
         consumesInheritedLineState = false;
         hasMalformedStrictInvocation = false;
-        RegisterEmbeddedFonts(drawing, resources, new HashSet<PdfStream>(), 0);
-        pageContentBudget.ConfigureDrawing(drawing);
+        var registeredFonts = new Dictionary<(string Family, OfficeFontStyle Style), PdfFontResource>();
+        RegisterEmbeddedFonts(drawing, resources, new HashSet<PdfStream>(), 0, registeredFonts);
+        ConfigureDrawingFonts(drawing, registeredFonts, pageContentBudget);
         string content = PdfEncoding.Latin1GetString(pageContentBudget.Decode(stream));
         if (content.Length == 0) return drawing;
         hasMalformedStrictInvocation = HasMalformedStrictInvocation(
@@ -582,6 +583,9 @@ public sealed partial class PdfReadPage {
             contentOrderPrefix: PdfContentOrderKey.Root,
             contentOrderOffset: -transformedOffset,
             initialRenderingIntent: renderingIntent);
+        PdfPaintedGlyphRuns.SplitComplexRuns(spans, pageContentBudget.ChargePositionedTextWorkCharacters,
+            pageContentBudget.CancellationToken);
+        PdfArabicPaintedForms.Apply(spans, pageContentBudget.CancellationToken);
         for (int i = 0; i < spans.Count; i++) {
             if (renderedType3PaintOrders.Contains(spans[i].PaintOrder, spans[i].ContentOrderKey)) continue;
             elements.Add(PdfPageDrawingElement.FromText(spans[i], elements.Count));
@@ -629,6 +633,9 @@ public sealed partial class PdfReadPage {
         SortGraphicsEffectTransitions(enclosingEffects);
         OverlayDrawingEffects(elements, enclosingEffects);
         SortDrawingElements(elements);
+        AddPaintedGlyphMappings(drawing, registeredFonts, elements,
+            new Dictionary<(string Family, OfficeFontStyle Style), PaintedGlyphMap>(),
+            pageContentBudget, pageContentBudget.CancellationToken);
         var softMasks = new Dictionary<(PdfStream Group, PdfDictionary? ParentResources, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height, OfficeIccRenderingIntent Intent), OfficeDrawingSoftMask>();
         var activeSoftMasks = new HashSet<PdfStream>();
         for (int i = 0; i < elements.Count; i++) {

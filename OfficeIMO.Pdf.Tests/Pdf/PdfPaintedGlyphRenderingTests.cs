@@ -7,6 +7,28 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfPaintedGlyphRenderingTests {
     [Fact]
+    public void SubstituteEncodingPaintsItsGlyphWithoutReplacingToUnicodeSceneText() {
+        const string content = "BT /F1 20 Tf 20 80 Td (A) Tj ET";
+        const string cmap = "begincmap\n1 begincodespacerange\n<00> <FF>\nendcodespacerange\n1 beginbfchar\n<41> <0051>\nendbfchar\nendcmap";
+        byte[] pdf = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 100] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>", "endobj",
+            "4 0 obj", $"<< /Length {content.Length} >>", "stream", content, "endstream", "endobj",
+            "5 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding << /Type /Encoding /BaseEncoding /WinAnsiEncoding /Differences [65 /B] >> /ToUnicode 6 0 R >>", "endobj",
+            "6 0 obj", $"<< /Length {cmap.Length} >>", "stream", cmap, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 7 >>", "%%EOF"
+        }) + "\n");
+
+        OfficeDrawing drawing = PdfReadDocument.Open(pdf).Pages[0].ToDrawing();
+        OfficeDrawingText visual = Assert.Single(drawing.Elements.OfType<OfficeDrawingText>());
+
+        Assert.Equal("Q", visual.Text);
+        Assert.Equal("B", visual.RasterText);
+    }
+
+    [Fact]
     public void PaintedAliasUsesSupplementaryPrivateUseWhenBmpRangeIsClaimed() {
         byte[] source = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A', 'B');
         var claimed = new SortedDictionary<int, int>();
@@ -52,6 +74,18 @@ public sealed class PdfPaintedGlyphRenderingTests {
             }));
 
         Assert.Equal("budget exceeded", exception.Message);
+        Assert.Same(span, Assert.Single(spans));
+    }
+
+    [Fact]
+    public void InvisibleComplexRunDoesNotSpendPaintedGlyphBudget() {
+        var span = new PdfTextSpan("ffiX", "F1", 12, 10, 10, 24, null, false, 0, "Subset", null,
+            drawingFontFamily: "Subset", characterAdvances: [6D, 6D, 6D, 6D],
+            glyphCharacterLengths: [3, 1], glyphBytes: [[65], [66]], glyphPaintedAdvances: [12D, 12D]);
+        var spans = new List<PdfTextSpan> { span };
+
+        PdfPaintedGlyphRuns.SplitComplexRuns(spans, _ => throw new InvalidOperationException("Invisible text was charged"));
+
         Assert.Same(span, Assert.Single(spans));
     }
 
@@ -145,6 +179,21 @@ public sealed class PdfPaintedGlyphRenderingTests {
             embeddedTrueTypeFont: ManagedTextShapingTestAssets.CreateFont(' ', 'B'));
 
         Assert.NotEqual(pageFont.DrawingFontFamily, annotationFont.DrawingFontFamily);
+    }
+
+    [Fact]
+    public void SharedEmbeddedProgramWithDifferentPdfCodeMapsKeepsDistinctDrawingFaces() {
+        byte[] bytes = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A', 'B');
+        var source = new PdfFontResource("F1", "SharedBase", "WinAnsiEncoding", false,
+            embeddedTrueTypeFont: bytes, fontSubtype: "TrueType", embeddedProgramSubtype: "TrueType");
+        var unicode = new SortedDictionary<int, int> { ['A'] = 1, ['B'] = 2 };
+        var first = new PdfDrawingFontProgram(bytes, unicode, code => code == 65 ? 1 : 0, _ => false);
+        var second = new PdfDrawingFontProgram(bytes, unicode, code => code == 65 ? 2 : 0, _ => false);
+
+        Assert.NotEqual(source.WithDrawingProgram(first).DrawingFontFamily,
+            source.WithDrawingProgram(second).DrawingFontFamily);
+        Assert.Equal(source.WithDrawingProgram(first).DrawingFontFamily,
+            source.WithDrawingProgram(first).DrawingFontFamily);
     }
 
     [Fact]

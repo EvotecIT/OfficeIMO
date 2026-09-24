@@ -1126,7 +1126,7 @@ internal static class TextContentParser {
                     paintedText = spanText;
                 }
 
-                spans.Add(new PdfTextSpan(
+                var span = new PdfTextSpan(
                     spanText,
                     font,
                     size,
@@ -1188,7 +1188,13 @@ internal static class TextContentParser {
                     isArtifactContent: hasActiveArtifact,
                     fontWeight: fontWeightForResource?.Invoke(font),
                     fontDescriptorFlags: fontDescriptorFlagsForResource?.Invoke(font),
-                    embeddedLineBreakCounts: GetEmbeddedLineBreakCounts(rawText, normalizedText.Length)));
+                    embeddedLineBreakCounts: GetEmbeddedLineBreakCounts(rawText, normalizedText.Length));
+                if (usedVisualEncoding && actualTextState is null) {
+                    string logicalText = NormalizeShatteredSpan(wholeDecoded);
+                    if (logicalText.Length > 0 && !string.Equals(logicalText, span.Text, StringComparison.Ordinal))
+                        span.SetLogicalDrawingText(logicalText);
+                }
+                spans.Add(span);
                 sbOutGlobal.Append(normalizedText);
                 emittedTextInTextObject = true;
                 pendingLineBreaks = 0;

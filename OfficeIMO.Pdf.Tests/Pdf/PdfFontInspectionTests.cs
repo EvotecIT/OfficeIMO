@@ -514,7 +514,9 @@ public sealed class PdfFontInspectionTests {
 
         PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
         Assert.Equal(extracted, Assert.Single(page.GetTextSpans()).Text);
-        Assert.Equal("AA", Assert.Single(page.ToDrawing().Elements.OfType<OfficeDrawingText>()).Text);
+        OfficeDrawingText visual = Assert.Single(page.ToDrawing().Elements.OfType<OfficeDrawingText>());
+        Assert.Equal(extracted, visual.Text);
+        Assert.Equal("AA", visual.RasterText);
     }
 
     [Theory]
@@ -533,7 +535,9 @@ public sealed class PdfFontInspectionTests {
 
         PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
         Assert.Equal("B", Assert.Single(page.GetTextSpans()).Text);
-        Assert.Equal("A", Assert.Single(page.ToDrawing().Elements.OfType<OfficeDrawingText>()).Text);
+        OfficeDrawingText visual = Assert.Single(page.ToDrawing().Elements.OfType<OfficeDrawingText>());
+        Assert.Equal("B", visual.Text);
+        Assert.Equal("A", visual.RasterText);
     }
 
     [Fact]

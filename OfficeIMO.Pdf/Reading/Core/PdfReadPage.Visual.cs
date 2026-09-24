@@ -150,19 +150,7 @@ public sealed partial class PdfReadPage {
         var registeredFonts = new Dictionary<(string Family, OfficeFontStyle Style), PdfFontResource>();
         var paintedGlyphMaps = new Dictionary<(string Family, OfficeFontStyle Style), PaintedGlyphMap>();
         RegisterEmbeddedFonts(drawing, ResolveDictionary(GetInheritedValue("Resources")), new HashSet<PdfStream>(), 0, registeredFonts);
-        OfficeFontFace[] embeddedFaces = drawing.Fonts.Faces.ToArray();
-        // Visibility must use the same font and shaping profile as the final rasterizer.
-        // Configure after embedded fonts so each caller retains its font precedence policy.
-        pageContentBudget.ConfigureDrawing(drawing);
-        // A caller may replace an embedded family/style. Its glyph map must then remain authoritative.
-        foreach ((string Family, OfficeFontStyle Style) key in registeredFonts.Keys.ToArray()) {
-            if (!drawing.Fonts.Faces.Any(face => embeddedFaces.Any(original =>
-                    ReferenceEquals(face, original) &&
-                    string.Equals(face.FamilyName, key.Family, StringComparison.OrdinalIgnoreCase) &&
-                    face.Style == key.Style))) {
-                registeredFonts.Remove(key);
-            }
-        }
+        ConfigureDrawingFonts(drawing, registeredFonts, pageContentBudget);
 
         cancellationToken.ThrowIfCancellationRequested();
         List<PdfPageDrawingElement> pageElements = GetOrderedPageDrawingElements(size.Width, size.Height, pageTransform, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget, cancellationToken);
@@ -192,6 +180,24 @@ public sealed partial class PdfReadPage {
         return drawing;
     }
 
+    private static void ConfigureDrawingFonts(OfficeDrawing drawing,
+        Dictionary<(string Family, OfficeFontStyle Style), PdfFontResource> registeredFonts,
+        PageContentBudget pageContentBudget) {
+        OfficeFontFace[] embeddedFaces = drawing.Fonts.Faces.ToArray();
+        // Visibility must use the same font and shaping profile as the final rasterizer.
+        // Configure after embedded fonts so each caller retains its font precedence policy.
+        pageContentBudget.ConfigureDrawing(drawing);
+        // A caller may replace an embedded family/style. Its glyph map must then remain authoritative.
+        foreach ((string Family, OfficeFontStyle Style) key in registeredFonts.Keys.ToArray()) {
+            if (!drawing.Fonts.Faces.Any(face => embeddedFaces.Any(original =>
+                    ReferenceEquals(face, original) &&
+                    string.Equals(face.FamilyName, key.Family, StringComparison.OrdinalIgnoreCase) &&
+                    face.Style == key.Style))) {
+                registeredFonts.Remove(key);
+            }
+        }
+    }
+
     // A PDF paints exact glyphs, while scene text names them by Unicode. Presentation forms restored
     // by PdfArabicPaintedForms, letters whose glyph differs from the synthesized cmap entry, letters
     // painted only inside clusters, ligature glyphs, space-coded inked glyphs and undecoded glyphs
@@ -216,6 +222,7 @@ public sealed partial class PdfReadPage {
             cancellationToken.ThrowIfCancellationRequested();
             PdfPageDrawingElement element = elements[index];
             if (element.Kind != PdfPageDrawingElementKind.Text || element.TextSpan is not PdfTextSpan span ||
+                !span.IsVisible || span.Color?.A <= 3 ||
                 span.DrawingFontFamily == null || !registeredFonts.TryGetValue(PaintedFontKey(span), out PdfFontResource? registered) ||
                 registered.DrawingProgram is not PdfDrawingFontProgram program) continue;
             List<PdfTextSpan>? glyphs = PdfPaintedGlyphRuns.SplitAlternateGlyphRun(span, program,
@@ -234,6 +241,7 @@ public sealed partial class PdfReadPage {
         for (int index = 0; index < elements.Count; index++) {
             PdfPageDrawingElement element = elements[index];
             if (element.Kind != PdfPageDrawingElementKind.Text || element.TextSpan is not PdfTextSpan span ||
+                !span.IsVisible || span.Color?.A <= 3 ||
                 span.Text.Length == 0 || span.Text.Length == 1 && char.IsSurrogate(span.Text[0]) ||
                 span.DrawingFontFamily == null ||
                 span.GlyphBytes is not { Count: 1 } glyphBytes || glyphBytes[0].Length is < 1 or > 2 ||

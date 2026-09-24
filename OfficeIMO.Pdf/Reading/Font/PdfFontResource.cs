@@ -68,7 +68,7 @@ internal sealed class PdfFontResource {
         EmbeddedTrueTypeFont = embeddedTrueTypeFont ?? source.EmbeddedTrueTypeFont;
         DrawingFontFamily = embeddedTrueTypeFont == null
             ? source.DrawingFontFamily
-            : CreateDrawingFontFamily(source.BaseFont, embeddedTrueTypeFont);
+            : CreateDrawingFontFamily(source.BaseFont, embeddedTrueTypeFont, drawingProgram);
         FontWeight = source.FontWeight;
         FontDescriptorFlags = source.FontDescriptorFlags;
         Type3 = source.Type3;
@@ -87,10 +87,22 @@ internal sealed class PdfFontResource {
         new PdfFontResource(ResourceName, this, drawingProgram);
 
     // Embedded programs with the same PDF base name can differ between page and annotation resources.
-    private static string? CreateDrawingFontFamily(string baseFont, byte[]? fontData) {
+    private static string? CreateDrawingFontFamily(string baseFont, byte[]? fontData, PdfDrawingFontProgram? drawingProgram = null) {
         if (fontData == null) return null;
         using SHA256 sha256 = SHA256.Create();
         byte[] hash = sha256.ComputeHash(fontData);
+        if (drawingProgram != null) {
+            // Two PDF resources may share a Unicode cmap but select different glyphs for the same
+            // character code. Keep their drawing faces distinct while sharing identical code maps.
+            var identity = new byte[hash.Length + 256 * 2];
+            Buffer.BlockCopy(hash, 0, identity, 0, hash.Length);
+            for (int code = 0; code < 256; code++) {
+                int glyph = drawingProgram.GlyphForCode(code);
+                identity[hash.Length + code * 2] = (byte)(glyph >> 8);
+                identity[hash.Length + code * 2 + 1] = (byte)glyph;
+            }
+            hash = sha256.ComputeHash(identity);
+        }
         var family = new StringBuilder(string.IsNullOrWhiteSpace(baseFont) ? "PDF embedded font-" : baseFont + "-");
         // Drawing family names are parsed as CSS-style family lists. PDF names such as "Arial,Bold"
         // must stay one family, so replace list separators, quotes and escapes.

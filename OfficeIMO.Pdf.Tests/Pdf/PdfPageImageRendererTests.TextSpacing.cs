@@ -466,7 +466,8 @@ public partial class PdfPageImageRendererTests {
 
         Assert.DoesNotContain(document.Pages[0].GetTextSpans(), span => span.Text.Contains('A') || span.Text.Contains('B'));
         OfficeDrawingText text = Assert.Single(document.Pages[0].ToDrawing().Elements.OfType<OfficeDrawingText>());
-        Assert.Equal("xA yBz", text.Text);
+        Assert.Equal("x y\0z", text.Text);
+        Assert.Equal("xA yBz", text.RasterText);
     }
 
     [Fact]
@@ -479,7 +480,8 @@ public partial class PdfPageImageRendererTests {
 
         Assert.Equal("XYX", Assert.Single(page.GetTextSpans()).Text);
         OfficeDrawingText visual = Assert.Single(page.ToDrawing().Elements.OfType<OfficeDrawingText>());
-        Assert.Equal("fi fi", visual.Text);
+        Assert.Equal("XYX", visual.Text);
+        Assert.Equal("fi fi", visual.RasterText);
     }
 
     [Theory]
