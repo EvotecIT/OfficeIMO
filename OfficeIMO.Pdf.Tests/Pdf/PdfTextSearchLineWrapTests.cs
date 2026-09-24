@@ -127,6 +127,24 @@ public sealed class PdfTextSearchLineWrapTests {
     }
 
     [Fact]
+    public void TableRowsDoNotFormOneWrappedSearchPhrase() {
+        byte[] pdf = BuildRawTextPdf(
+            "100 640 m 400 640 l 400 580 l 100 580 l h " +
+            "250 640 m 250 580 l " +
+            "100 620 m 400 620 l 100 600 m 400 600 l S\n" +
+            "BT /F1 12 Tf 110 625 Td (Name) Tj ET\n" +
+            "BT /F1 12 Tf 260 625 Td (Code) Tj ET\n" +
+            "BT /F1 12 Tf 110 605 Td (Alpha) Tj ET\n" +
+            "BT /F1 12 Tf 260 605 Td (100) Tj ET\n" +
+            "BT /F1 12 Tf 110 585 Td (Beta) Tj ET\n" +
+            "BT /F1 12 Tf 260 585 Td (200) Tj ET\n");
+
+        Assert.NotEmpty(PdfReadDocument.Open(pdf).Pages[0].ExtractStructured().TablesDetailed);
+        Assert.Empty(PdfDocument.Load(pdf).Text.Find("Alpha Beta"));
+        Assert.Single(PdfDocument.Load(pdf).Text.Find("Alpha"));
+    }
+
+    [Fact]
     public void PhrasesDoNotJoinIndependentColumns() {
         PdfDocument document = PdfDocument.Load(BuildRawTextPdf(
             "BT /F1 12 Tf 50 700 Td (left alpha) Tj 0 -14 Td (gamma) Tj ET\n" +

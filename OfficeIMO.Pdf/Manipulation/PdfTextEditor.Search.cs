@@ -25,7 +25,19 @@ internal static partial class PdfTextEditor {
                 .ToArray();
             List<TextLayoutEngine.TextLine> lines = BuildSearchLines(spans);
             var pageHits = new List<(int LineOrder, int Offset, TextSearchHit Hit)>();
-            foreach (int[] flow in BuildSearchFlows(lines, limits.MaxTextSearchFlowComparisons)) {
+            List<int[]> flows = BuildSearchFlows(lines, limits.MaxTextSearchFlowComparisons);
+            if (flows.Any(static flow => flow.Length > 1)) {
+                long tableWork = 0;
+                StructuredPage structure = page.ExtractStructured(spans, null, default, work => {
+                    tableWork += work;
+                    if (tableWork > limits.MaxTextSearchFlowComparisons)
+                        throw PdfReadLimitException.Create(PdfReadLimitKind.TextSearchFlowComparisons,
+                            limits.MaxTextSearchFlowComparisons, tableWork);
+                });
+                var tableRuns = new HashSet<PdfTextSpan>(structure.TablesDetailed.SelectMany(static table => table.SourceRuns));
+                if (tableRuns.Count > 0) flows = SplitTableSearchFlows(flows, lines, tableRuns);
+            }
+            foreach (int[] flow in flows) {
                 PdfTextSpan[][] flowLines = flow.Select(lineIndex => lines[lineIndex].Spans.ToArray()).ToArray();
                 var unit = new TextSearchUnit(flowLines);
                 if (unit.Text.Length == 0) continue;
@@ -56,6 +68,25 @@ internal static partial class PdfTextEditor {
                 .Select(static hit => hit.Hit));
         }
         return hits;
+    }
+
+    private static List<int[]> SplitTableSearchFlows(List<int[]> flows, List<TextLayoutEngine.TextLine> lines,
+        HashSet<PdfTextSpan> tableRuns) {
+        var separated = new List<int[]>(flows.Count);
+        foreach (int[] flow in flows) {
+            var paragraph = new List<int>();
+            foreach (int lineIndex in flow) {
+                if (lines[lineIndex].Spans.Any(tableRuns.Contains)) {
+                    if (paragraph.Count > 0) separated.Add(paragraph.ToArray());
+                    paragraph.Clear();
+                    separated.Add(new[] { lineIndex });
+                } else {
+                    paragraph.Add(lineIndex);
+                }
+            }
+            if (paragraph.Count > 0) separated.Add(paragraph.ToArray());
+        }
+        return separated;
     }
 
     private static PdfSelectionQuad ToVisualQuad(PdfReadPage page, SpanBounds bounds) {
