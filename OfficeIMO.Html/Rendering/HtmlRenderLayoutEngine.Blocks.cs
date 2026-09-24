@@ -310,6 +310,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
         double boxWidth = ResolveBoxWidth(availableWidth, style);
         double contentWidth = Math.Max(1D, boxWidth - style.HorizontalInsets);
+        double positionedContainingWidth = Math.Max(1D, boxWidth - style.BorderLeftWidth - style.BorderRightWidth);
+        bool hasLocallyPositionedPseudo =
+            TryGetLocallyPositionedGeneratedContentZIndex(element, HtmlPseudoElementKind.Before, positionedContainingWidth, style, out _)
+            || TryGetLocallyPositionedGeneratedContentZIndex(element, HtmlPseudoElementKind.After, positionedContainingWidth, style, out _);
         var contentVisuals = new List<HtmlRenderVisual>();
         var childPaintLayers = new List<FlowPaintLayer>();
         var contentBreakOffsets = new List<double>();
@@ -376,7 +380,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 runningStringAssignments,
                 continuationBreakProgress,
                 out contentHeight);
-            AppendFlowPaintLayers(contentVisuals, childPaintLayers);
+            AppendFlowPaintLayers(contentVisuals, hasLocallyPositionedPseudo
+                ? childPaintLayers.Where(layer => !layer.Block.StackingZIndex.HasValue)
+                : childPaintLayers);
         } else if (usesBlockFormatting) {
             string? childPageName = children.Count > 0 ? children[0].PageName : null;
             for (int childIndex = 0; childIndex < children.Count; childIndex++) {
@@ -428,7 +434,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
                 contentBreakOffsets.Add(contentHeight);
             }
-            AppendFlowPaintLayers(contentVisuals, childPaintLayers);
+            AppendFlowPaintLayers(contentVisuals, hasLocallyPositionedPseudo
+                ? childPaintLayers.Where(layer => !layer.Block.StackingZIndex.HasValue)
+                : childPaintLayers);
             if (tag == "li" && children.Count > 0) {
                 HtmlListMarker? marker = ResolveListMarker(element, style, contentWidth);
                 if (marker?.IsOutside == true) {
@@ -474,6 +482,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             geometry.StrokeWidth = 0D;
             visuals.Add(new HtmlRenderShape(geometry, style.MarginLeft, style.MarginTop, visuals.Count, source: interactionSource));
         }
+        double contentX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft;
+        double contentY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
         AppendBlockPositionedVisuals(
             element,
             Math.Max(1D, boxWidth - style.BorderLeftWidth - style.BorderRightWidth),
@@ -482,10 +492,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.MarginTop + style.BorderTopWidth,
             PositionedPaintBand.Negative,
             style,
+            hasLocallyPositionedPseudo ? childPaintLayers : null,
+            contentX,
+            contentY,
             overflowContent,
             positionedRunningStringAssignments);
-        double contentX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft;
-        double contentY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
         foreach (HtmlRenderVisual visual in contentVisuals) {
             overflowContent.Add(visual.Translate(contentX, contentY, overflowContent.Count));
         }
@@ -498,6 +509,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 style.MarginTop + style.BorderTopWidth,
                 PositionedPaintBand.NonNegative,
                 style,
+                hasLocallyPositionedPseudo ? childPaintLayers : null,
+                contentX,
+                contentY,
                 overflowContent,
                 positionedRunningStringAssignments);
         }

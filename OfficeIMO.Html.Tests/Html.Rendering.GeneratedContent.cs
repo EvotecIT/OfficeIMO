@@ -106,9 +106,12 @@ public sealed partial class HtmlRenderingTests {
             + ".flow{width:40px;height:40px;background:#00ff00}"
             + "#before::before{content:'';display:block;position:absolute;left:0;top:0;width:40px;height:40px;background:#ff0000;z-index:1}"
             + "#positive{position:absolute;left:0;top:0;width:40px;height:40px;background:#ffff00;z-index:2}"
+            + "#relative-positive{position:relative;top:-40px;width:40px;height:40px;background:#ff00ff;z-index:3}"
             + "#after::after{content:'';display:block;position:absolute;left:0;top:0;width:40px;height:40px;background:#0000ff;z-index:-1}"
+            + "#relative-negative{position:relative;top:-40px;width:40px;height:40px;background:#00ffff;z-index:-2}"
             + "</style><div class='host' id='before'><div class='flow' id='first-flow'></div>"
-            + "<div id='positive'></div></div><div class='host' id='after'><div class='flow' id='second-flow'></div></div>";
+            + "<div id='positive'></div><div id='relative-positive'></div></div>"
+            + "<div class='host' id='after'><div class='flow' id='second-flow'></div><div id='relative-negative'></div></div>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
             ViewportWidth = 40D,
             ViewportHeight = 80D,
@@ -123,10 +126,14 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("div#first-flow", sources);
         Assert.Contains("div#before::before", sources);
         Assert.Contains("div#positive", sources);
+        Assert.Contains("div#relative-positive", sources);
         Assert.Contains("div#after::after", sources);
         Assert.Contains("div#second-flow", sources);
+        Assert.Contains("div#relative-negative", sources);
         Assert.True(Array.IndexOf(sources, "div#first-flow") < Array.IndexOf(sources, "div#before::before"));
         Assert.True(Array.IndexOf(sources, "div#before::before") < Array.IndexOf(sources, "div#positive"));
+        Assert.True(Array.IndexOf(sources, "div#positive") < Array.IndexOf(sources, "div#relative-positive"));
+        Assert.True(Array.IndexOf(sources, "div#relative-negative") < Array.IndexOf(sources, "div#after::after"));
         Assert.True(Array.IndexOf(sources, "div#after::after") < Array.IndexOf(sources, "div#second-flow"));
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.PositioningModeUnsupported

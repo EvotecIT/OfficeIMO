@@ -143,15 +143,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double originY,
         PositionedPaintBand band,
         HtmlRenderBoxStyle parentStyle,
+        IReadOnlyList<FlowPaintLayer>? flowLayers,
+        double flowOriginX,
+        double flowOriginY,
         ICollection<HtmlRenderVisual> visuals,
         ICollection<HtmlCssRunningStringAssignment> runningStringAssignments) {
-        var layers = new List<(int ZIndex, int SourceOrder, PositionedElementRequest? Request, HtmlPseudoElementKind? Pseudo)>();
+        var layers = new List<(int ZIndex, int SourceOrder, PositionedElementRequest? Request, HtmlPseudoElementKind? Pseudo, FlowPaintLayer? Flow)>();
         if (_localPositionedElements.TryGetValue(container, out List<PositionedElementRequest>? requests)) {
-            layers.AddRange(requests.Select(request => (request.ZIndex, request.SourceOrder, (PositionedElementRequest?)request, (HtmlPseudoElementKind?)null)));
+            layers.AddRange(requests.Select(request => (request.ZIndex, request.SourceOrder, (PositionedElementRequest?)request, (HtmlPseudoElementKind?)null, (FlowPaintLayer?)null)));
+        }
+        if (flowLayers != null) {
+            layers.AddRange(flowLayers
+                .Where(layer => layer.Block.StackingZIndex.HasValue)
+                .Select(layer => (layer.Block.StackingZIndex!.Value, layer.Block.StackingSourceOrder,
+                    (PositionedElementRequest?)null, (HtmlPseudoElementKind?)null, (FlowPaintLayer?)layer)));
         }
         foreach (HtmlPseudoElementKind kind in new[] { HtmlPseudoElementKind.Before, HtmlPseudoElementKind.After }) {
             if (TryGetLocallyPositionedGeneratedContentZIndex(container, kind, containingWidth, parentStyle, out int zIndex)) {
-                layers.Add((zIndex, kind == HtmlPseudoElementKind.Before ? int.MinValue : int.MaxValue, null, kind));
+                layers.Add((zIndex, kind == HtmlPseudoElementKind.Before ? int.MinValue : int.MaxValue, null, kind, null));
             }
         }
         foreach (var layer in layers
@@ -162,6 +171,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 AppendLocalPositionedRequest(layer.Request, containingWidth, containingHeight, originX, originY, visuals, runningStringAssignments);
             } else if (layer.Pseudo.HasValue) {
                 AppendLocallyPositionedGeneratedContent(container, layer.Pseudo.Value, containingWidth, containingHeight, originX, originY, parentStyle, visuals);
+            } else if (layer.Flow != null) {
+                foreach (HtmlRenderVisual visual in layer.Flow.Block.Visuals) {
+                    visuals.Add(visual.Translate(flowOriginX + layer.Flow.X, flowOriginY + layer.Flow.Y, visuals.Count));
+                }
             }
         }
     }
