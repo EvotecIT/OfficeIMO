@@ -2,7 +2,7 @@ using OfficeIMO.Spreadsheet;
 
 namespace OfficeIMO.OpenDocument;
 
-/// <summary>The comparison subset that Excel and ODF validation rules can exchange without changing meaning.</summary>
+/// <summary>The local-cell comparison and Boolean subset that Excel and ODF validation rules can exchange without changing meaning.</summary>
 internal static class OdsPortableValidationFormula {
     internal static bool IsSupported(SpreadsheetFormulaSyntaxTree syntax) {
         if (!syntax.IsValid) return false;
@@ -44,13 +44,14 @@ internal static class OdsPortableValidationFormula {
         if (depth > 32) return false;
         if (cursor < tokens.Count && tokens[cursor].TokenKind == SpreadsheetFormulaTokenKind.Identifier
             && IsBooleanFunction(tokens[cursor].Text)) {
+            bool isNot = string.Equals(tokens[cursor].Text, "NOT", StringComparison.OrdinalIgnoreCase);
             cursor++;
             if (!TakeDelimiter(tokens, ref cursor, "(")) return false;
             int arguments = 0;
             do {
                 if (++arguments > 16 || !TryReadPredicate(tokens, ref cursor, depth + 1)) return false;
             } while (TakeKind(tokens, ref cursor, SpreadsheetFormulaTokenKind.ArgumentSeparator));
-            return arguments >= 2 && TakeDelimiter(tokens, ref cursor, ")");
+            return (isNot ? arguments == 1 : arguments >= 2) && TakeDelimiter(tokens, ref cursor, ")");
         }
         int start = cursor;
         if (TakeDelimiter(tokens, ref cursor, "(")
@@ -71,7 +72,8 @@ internal static class OdsPortableValidationFormula {
 
     private static bool IsBooleanFunction(string? name) =>
         string.Equals(name, "AND", StringComparison.OrdinalIgnoreCase)
-        || string.Equals(name, "OR", StringComparison.OrdinalIgnoreCase);
+        || string.Equals(name, "OR", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(name, "NOT", StringComparison.OrdinalIgnoreCase);
 
     private static bool TryReadOperand(IReadOnlyList<SpreadsheetFormulaSyntaxNode> tokens,
         ref int cursor, bool left, int depth) {
