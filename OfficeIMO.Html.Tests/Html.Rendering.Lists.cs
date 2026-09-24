@@ -88,6 +88,23 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_UnstyledListsReserveSpaceForOutsideMarkersAndHonorAuthoredPadding() {
+        var options = new HtmlRenderOptions { ViewportWidth = 320D, Margins = HtmlRenderMargins.All(0D) };
+        const string item = "<li><p style='margin:0'>List content</p></li>";
+        HtmlRenderDocument defaultList = HtmlRenderTestDriver.Render("<ul>" + item + "</ul>", options);
+        HtmlRenderDocument resetList = HtmlRenderTestDriver.Render("<ul style='padding:0'>" + item + "</ul>", options);
+        HtmlRenderText[] defaultTexts = EnumerateRenderVisuals(defaultList.Pages[0].Scene).OfType<HtmlRenderText>().ToArray();
+        HtmlRenderText[] resetTexts = EnumerateRenderVisuals(resetList.Pages[0].Scene).OfType<HtmlRenderText>().ToArray();
+        HtmlRenderText marker = Assert.Single(defaultTexts, text => text.Source == "list-marker");
+        HtmlRenderText body = Assert.Single(defaultTexts, text => text.Text == "List content");
+        HtmlRenderText resetBody = Assert.Single(resetTexts, text => text.Text == "List content");
+
+        Assert.True(marker.X >= 0D);
+        Assert.True(marker.X < body.X);
+        Assert.InRange(body.X - resetBody.X, 39D, 41D);
+    }
+
+    [Fact]
     public void HtmlRendering_ListStyleImageUsesSharedResourcePipelineAndFallsBackToTextMarker() {
         string imageData = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(6, 4));
         string source = "data:image/png;base64," + imageData;

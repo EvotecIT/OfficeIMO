@@ -840,6 +840,13 @@ internal sealed partial class HtmlRenderStyleResolver {
             style.MarginLeft = fontSize * 2D;
             style.MarginRight = fontSize * 2D;
         }
+        if (tag == "ul" || tag == "ol") {
+            if (string.Equals(style.Direction, "rtl", StringComparison.OrdinalIgnoreCase)) {
+                style.PaddingRight = fontSize * 2.5D;
+            } else {
+                style.PaddingLeft = fontSize * 2.5D;
+            }
+        }
     }
 
     private void ApplyBoxValues(HtmlComputedStyle computed, double reference, double fontSize, HtmlRenderBoxStyle style) {
