@@ -27,20 +27,40 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         int textBoxes = 0, pictures = 0, tables = 0, autoShapes = 0;
         int notes = 0, transitions = 0, backgrounds = 0, unsupportedBackgrounds = 0, unsupportedShapes = 0, unsupportedPictures = 0;
         int transformedShapes = 0, skippedBasicFormatting = 0, skippedNotes = 0;
-        int unsupportedShapeHyperlinks = 0;
+        int unsupportedShapeHyperlinks = 0, mappedPlaceholderRoles = 0, unsupportedPlaceholderRoles = 0;
+        int mappedMasters = 0, mappedLayouts = 0, mappedMasterBackgrounds = 0, approximatedMasterLayouts = 0;
+        var masterNames = new Dictionary<SlideMasterPart, string>();
+        var layoutNames = new Dictionary<SlideLayoutPart, string>();
+        var solidMasters = new HashSet<SlideMasterPart>();
+        PresentationPart? sourcePresentation = source.OpenXmlDocument.PresentationPart;
+        DocumentFormat.OpenXml.Presentation.SlideId[] sourceSlideIds = sourcePresentation?.Presentation?
+            .SlideIdList?.Elements<DocumentFormat.OpenXml.Presentation.SlideId>().ToArray()
+            ?? Array.Empty<DocumentFormat.OpenXml.Presentation.SlideId>();
         var textState = new PowerPointToOdpTextConversionState();
         var imageValidationBudget = new OdfImageValidationBudget();
         for (int slideIndex = 0; slideIndex < source.Slides.Count; slideIndex++) {
             PowerPointSlide sourceSlide = source.Slides[slideIndex];
             OdpSlide targetSlide = target.AddSlide("Slide" + (slideIndex + 1).ToString(System.Globalization.CultureInfo.InvariantCulture));
             targetSlide.Hidden = sourceSlide.Hidden;
-            MapBackground(sourceSlide, targetSlide, ref backgrounds, ref unsupportedBackgrounds);
+            bool inheritsMasterBackground = MapPowerPointMasterAndLayout(sourcePresentation,
+                slideIndex < sourceSlideIds.Length ? sourceSlideIds[slideIndex] : null,
+                sourceSlide.TextBoxes.Any(), target, targetSlide,
+                masterNames, layoutNames, solidMasters,
+                ref mappedMasters, ref mappedLayouts, ref mappedMasterBackgrounds, ref approximatedMasterLayouts);
+            if (!inheritsMasterBackground) MapBackground(sourceSlide, targetSlide, ref backgrounds, ref unsupportedBackgrounds);
             if (MapTransition(sourceSlide.Transition, targetSlide)) transitions++;
 
             foreach (PowerPointShape shape in sourceSlide.Shapes.OrderBy(item => item.DrawingOrder)) {
                 if (shape.Hyperlink != null) unsupportedShapeHyperlinks++;
                 if (shape is PowerPointTextBox textBox) {
                     OdpTextBox converted = targetSlide.AddTextBox(ToOdfRect(textBox), null, textBox.Name);
+                    string? presentationClass = GetOdpPresentationClass(sourceSlide, textBox);
+                    if (presentationClass != null) {
+                        converted.PresentationClass = presentationClass;
+                        mappedPlaceholderRoles++;
+                    } else if (textBox.IsPlaceholder) {
+                        unsupportedPlaceholderRoles++;
+                    }
                     CopyShapeAppearance(textBox, converted, effective);
                     CopyPowerPointParagraphsToOdp(textBox.Paragraphs,
                         () => converted.AddParagraph(), effective, textState);
@@ -143,6 +163,12 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         AddConverted(report, "tables", tables);
         AddConverted(report, "basic-shapes", autoShapes);
         AddConverted(report, "speaker-notes", notes);
+        AddConverted(report, "master-associations", mappedMasters);
+        AddConverted(report, "layout-associations", mappedLayouts);
+        AddConverted(report, "master-backgrounds", mappedMasterBackgrounds);
+        AddConverted(report, "placeholder-roles", mappedPlaceholderRoles);
+        AddUnsupported(report, "placeholder-roles", unsupportedPlaceholderRoles,
+            "This PowerPoint placeholder role has no matching ODP presentation class.");
         AddConverted(report, "solid-backgrounds", backgrounds);
         AddUnsupported(report, "slide-backgrounds", unsupportedBackgrounds, "Image, gradient, theme, and unsupported backgrounds are not translated.");
         if (transitions > 0) report.Add("slide-transitions", OdfConversionMappingStatus.Approximated, transitions,
@@ -171,8 +197,9 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             "PowerPoint run actions, mouse-over interactions, and action sounds outside ordinary click hyperlinks are not represented in ODP.");
         AddUnsupported(report, "images", unsupportedPictures, "Images disabled by options or unavailable from an embedded image part were skipped.");
         AddUnsupported(report, "shapes", unsupportedShapes, "Charts, SmartArt, media, groups, and other advanced drawing shapes are not translated.");
-        report.Add("masters-layouts", OdfConversionMappingStatus.Approximated, source.Slides.Count,
-            "Slide content is placed on one default ODP master and blank layout.");
+        if (approximatedMasterLayouts > 0) report.Add("masters-layouts", OdfConversionMappingStatus.Approximated,
+            approximatedMasterLayouts,
+            "Master and layout links are retained, but inherited drawing content, placeholder geometry and indexes, and layout-specific formatting are not reconstructed.");
         AddAdvancedPowerPointFindings(source.InspectFeatures(), report);
         return new OdfConversionResult<OdpPresentation>(target, report).ApplyPolicy(effective.LossPolicy);
     }
@@ -201,6 +228,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         int notes = 0, transitions = 0, unsupportedTransitions = 0, unsupportedShapes = 0, unsupportedPictures = 0, transformedShapes = 0;
         int listParagraphs = 0, approximatedRuns = 0, unsupportedHyperlinks = 0, unsupportedHyperlinkBehaviors = 0;
         int skippedBasicFormatting = 0, skippedNotes = 0, noteContainers = 0;
+        int mappedPlaceholderRoles = 0, unsupportedPlaceholderRoles = 0;
         int approximatedTextDecorations = CountNonSolidTextDecorations(source);
         int unsupportedWritingModes = 0, approximatedParagraphAlignments = 0;
         int approximatedFontFamilyLists = 0, unsupportedFontFamilies = 0;
@@ -228,6 +256,15 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                     listParagraphs += textBox.Lists.Sum(list => list.Items.Count);
                     PowerPointTextBox converted = targetSlide.AddTextBox(string.Empty, textBoxBounds);
                     converted.Name = textBox.Name;
+                    if (textBox.PresentationClass != null) {
+                        PowerPointPlaceholderType? placeholderType = GetPowerPointPlaceholderType(textBox.PresentationClass);
+                        if (placeholderType.HasValue) {
+                            converted.PlaceholderType = placeholderType.Value;
+                            mappedPlaceholderRoles++;
+                        } else {
+                            unsupportedPlaceholderRoles++;
+                        }
+                    }
                     unsupportedMeasurements += CopyShapeAppearance(textBox, converted, effective);
                     CopyOdpParagraphsToPowerPoint(sourceParagraphs,
                         paragraphTexts => converted.SetParagraphs(paragraphTexts), source.Slides,
@@ -365,6 +402,9 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         AddConverted(report, "tables", tables);
         AddConverted(report, "basic-shapes", basicShapes);
         AddConverted(report, "speaker-notes", notes);
+        AddConverted(report, "placeholder-roles", mappedPlaceholderRoles);
+        AddUnsupported(report, "placeholder-roles", unsupportedPlaceholderRoles,
+            "This ODP presentation class has no matching PowerPoint textbox placeholder role.");
         if (transitions > 0) report.Add("slide-transitions", OdfConversionMappingStatus.Approximated, transitions,
             "Common ODF transition styles are mapped to PowerPoint transition families.");
         if (listParagraphs > 0) report.Add("text-lists", OdfConversionMappingStatus.Approximated, listParagraphs,
@@ -396,8 +436,10 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         AddUnsupported(report, "shape-transforms", transformedShapes, "Raw ODF transform expressions are not translated.");
         AddUnsupported(report, "relative-measurements", unsupportedMeasurements,
             "Relative or unsupported ODF text measurements could not be projected to fixed PowerPoint point sizes and were omitted.");
-        if (source.MasterPages.Count > 0 || source.Layouts.Count > 0) report.Add("masters-layouts", OdfConversionMappingStatus.Approximated,
-            source.MasterPages.Count + source.Layouts.Count, "Content is placed on PowerPoint's default master and layout.");
+        int approximatedOdpMasterLayouts = CountUnmappedOdpMasterLayouts(source);
+        if (approximatedOdpMasterLayouts > 0) report.Add("masters-layouts", OdfConversionMappingStatus.Approximated,
+            approximatedOdpMasterLayouts,
+            "Effective solid backgrounds and common placeholder roles are retained, but distinct ODP masters, layouts, drawing content, and placeholder geometry are not reconstructed.");
         AddUnmappedOdfFindings(source.InspectFeatures(), report, externalHyperlinks, noteContainers,
             source.MasterPages.Count, transitions + unsupportedTransitions);
         return new OdfConversionResult<PowerPointPresentation>(target, report).ApplyPolicy(effective.LossPolicy);

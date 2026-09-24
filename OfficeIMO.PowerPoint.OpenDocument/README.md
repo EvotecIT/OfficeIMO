@@ -16,7 +16,7 @@ foreach (var mapping in conversion.Report.Mappings) {
 }
 ```
 
-The adapter maps slide size and order, hidden slides, text boxes, ordered mixed text/run/hyperlink content, common run formatting, images, tables and merges, basic shapes, solid backgrounds, common transitions, and plain speaker notes. Nested inline markup without an exact typed mapping is flattened with an explicit approximation. Masters, complex geometry, charts, SmartArt, media, advanced animations, unsupported transition families, and other detected features are called out in the conversion report. Set the conversion options' `LossPolicy` to `ThrowOnAnyLoss` when approximated, skipped, or unsupported content must reject the conversion.
+The adapter maps slide size and order, hidden slides, text boxes, ordered mixed text/run/hyperlink content, common run formatting, images, tables and merges, basic shapes, solid backgrounds, common transitions, and plain speaker notes. PPTX-to-ODP conversion also retains each slide's master and layout association, direct RGB master backgrounds, and common title, subtitle, body, and object placeholder roles. ODP-to-PPTX conversion retains those placeholder roles and flattens inherited solid master backgrounds onto the affected slides. Nested inline markup without an exact typed mapping is flattened with an explicit approximation. Master and layout drawing content, placeholder geometry and indexes, complex shapes, charts, SmartArt, media, advanced animations, unsupported transition families, and other detected features remain in the conversion report as loss. Set the conversion options' `LossPolicy` to `ThrowOnAnyLoss` when approximated, skipped, or unsupported content must reject the conversion.
 
 ## Dependency footprint
 
