@@ -9,6 +9,36 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlBorders_ImportantColorLonghandPreservesVariableShorthandWidthAndStyle() {
+        const string html = """
+            <style>
+              :root { --border-width:1px; --border-style:solid; --border-color:#dee2e6; --light-rgb:248,249,250; }
+              .border { border:var(--border-width) var(--border-style) var(--border-color) !important; }
+              .light { border-color:rgba(var(--light-rgb),1) !important; }
+              .end-0 { border-right:0 !important; }
+            </style>
+            <div id="box" class="border light end-0" style="width:100px;height:20px;background:#212529"></div>
+            <div id="color-only" class="light" style="width:100px;height:20px"></div>
+            """;
+
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
+        var styles = HtmlComputedStyleEngine.Compute(document);
+        HtmlComputedStyle computed = styles[document.Document.QuerySelector("#box")!];
+        Assert.Equal("1px", computed.GetValue("border-top-width"));
+        Assert.Equal("solid", computed.GetValue("border-top-style"));
+        Assert.Equal("0", computed.GetValue("border-right"));
+        Assert.Equal(string.Empty, styles[document.Document.QuerySelector("#color-only")!].GetValue("border"));
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(document);
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape =>
+            shape.Source == "div#box:border-top"
+            && shape.Shape.StrokeColor == OfficeColor.FromRgb(248, 249, 250)
+            && shape.Shape.StrokeWidth == 1D);
+        Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape =>
+            shape.Source == "div#box:border-right" || shape.Source == "div#color-only:border-top");
+    }
+
+    [Fact]
     public void HtmlBorders_BoxDecorationBreakPaintsInlineLineFragments() {
         const string html = "<p style='margin:0;width:72px;font-size:10px;line-height:12px'>"
             + "<span id='slice' style='background:#ffeecc;border:1px solid red;padding:1px;box-decoration-break:slice'>alpha beta gamma delta epsilon</span></p>"

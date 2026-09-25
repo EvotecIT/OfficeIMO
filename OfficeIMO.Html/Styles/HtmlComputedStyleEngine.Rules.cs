@@ -227,9 +227,10 @@ public static partial class HtmlComputedStyleEngine {
         if (ownedDeclarations == null) {
             foreach (string propertyName in SupportedProperties) {
                 if (declarations.ContainsKey(propertyName)) continue;
-                // AngleSharp also synthesizes `flex` from a lone `flex-shrink` declaration.
-                // Such a shorthand must not compete with an authored inline `flex` value.
-                if (propertyName == "flex" && !HasAuthoredDeclaration(ownedRule, styleRule.CssText, propertyName)) continue;
+                // AngleSharp can synthesize `flex` from a longhand and `border` from
+                // `border-color`. Those shorthands must not compete with authored values.
+                if ((propertyName == "flex" || propertyName == "border")
+                    && !HasAuthoredDeclaration(ownedRule, styleRule.CssText, propertyName)) continue;
                 string propertyValue = styleRule.Style.GetPropertyValue(propertyName);
                 if (string.IsNullOrWhiteSpace(propertyValue)) continue;
                 declarations[propertyName] = new StyleDeclaration(
