@@ -795,6 +795,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     if (blockOffset < block.Height - 0.0001D) {
                         HtmlInlineBreakProgress? continuationProgress = ResolveInlineContinuationProgress(block, blockOffset);
                         string? nextPageName = ResolvePageNameAt(block.ForcedBreaks, blockOffset, currentPageName);
+                        ExtendPagedBodyBackgroundThroughFragmentSlack(block, pageGeometry, visuals, y);
                         CommitPage(pages, visuals, pageGeometry, currentPageName);
                         BeginPage(nextPageName);
                         currentPageName = nextPageName;
