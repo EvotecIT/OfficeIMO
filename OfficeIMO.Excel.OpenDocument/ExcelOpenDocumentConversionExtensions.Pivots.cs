@@ -93,7 +93,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             || !headerRows.TryGetValue((int)source.Start.Row!.Value, out List<(int Column, string Name)>? headerCells)) return false;
         var headers = new HashSet<string>(headerCells
             .Where(cell => cell.Column >= source.Start.Column && cell.Column <= source.End.Column)
-            .Select(cell => cell.Name), StringComparer.OrdinalIgnoreCase);
+            .Select(cell => cell.Name), StringComparer.Ordinal);
         if (pivot.RowFields.Concat(pivot.ColumnFields).Append(pivot.DataFields[0].FieldName)
             .Any(field => !headers.Contains(field))) return false;
         int low = 0, high = omitted.Count;
