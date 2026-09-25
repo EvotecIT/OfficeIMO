@@ -393,13 +393,28 @@ public abstract partial class OdfDocument {
             columnIndex = checked(columnIndex + ReadOdfRepeat(sibling, OdfNamespaces.Table + "number-columns-repeated"));
         }
         long cursor = 0;
-        foreach (XElement candidate in table.Descendants(OdfNamespaces.Table + "table-column")
-            .Where(item => ReferenceEquals(item.Ancestors(OdfNamespaces.Table + "table").FirstOrDefault(), table))) {
+        foreach (XElement candidate in OdsColumnDefinitions(table)) {
             long repeat = ReadOdfRepeat(candidate, OdfNamespaces.Table + "number-columns-repeated");
             if (columnIndex >= cursor && columnIndex < checked(cursor + repeat)) { column = candidate; return true; }
             cursor = checked(cursor + repeat);
         }
         return false;
+    }
+
+    private static IEnumerable<XElement> OdsColumnDefinitions(XElement container) {
+        foreach (XElement child in container.Elements()) {
+            if (child.Name == OdfNamespaces.Table + "table-row" ||
+                child.Name == OdfNamespaces.Table + "table-row-group" ||
+                child.Name == OdfNamespaces.Table + "table-header-rows" ||
+                child.Name == OdfNamespaces.Table + "table-rows") yield break;
+            if (child.Name == OdfNamespaces.Table + "table-column") {
+                yield return child;
+            } else if (child.Name == OdfNamespaces.Table + "table-column-group" ||
+                       child.Name == OdfNamespaces.Table + "table-header-columns" ||
+                       child.Name == OdfNamespaces.Table + "table-columns") {
+                foreach (XElement column in OdsColumnDefinitions(child)) yield return column;
+            }
+        }
     }
 
     private static long ReadOdfRepeat(XElement element, XName name) {

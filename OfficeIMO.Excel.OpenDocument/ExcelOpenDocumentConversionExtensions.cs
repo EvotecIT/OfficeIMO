@@ -448,6 +448,9 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 (string?)column.Attribute(OdfNamespaces.Table + "visibility") == "filter");
 
             IReadOnlyList<OdsColumnRun> columnRuns = odsSheet.ColumnRuns;
+            var blankStyleCache = new Dictionary<string, bool>(StringComparer.Ordinal);
+            bool AffectsBlankCell(string? styleName) =>
+                HasVisibleBlankCellStyle(source, styleName, blankStyleCache);
             OdfStyle? defaultCellStyle = source.Styles.FindDefault(OdfStyleFamily.TableCell);
             XElement? defaultCellProperties = defaultCellStyle?.Element.Element(OdfNamespaces.Style + "table-cell-properties");
             bool hasDefaultCellStyle = defaultCellProperties != null &&
@@ -478,7 +481,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 if (columnEnd > effective.MaximumColumns) truncated = true;
             }
 
-            IReadOnlyList<OdsRowRun> rowRuns = odsSheet.RowRuns;
+            IReadOnlyList<OdsRowRun> rowRuns = odsSheet.GetRowRuns(columnRuns);
             double? uniformDefaultRowHeight = effective.MaximumRows == 1_048_576
                 ? TryGetUniformRowHeight(rowRuns) : null;
             if (uniformDefaultRowHeight.HasValue) sheet.SetDefaultRowHeight(uniformDefaultRowHeight.Value);
@@ -491,9 +494,9 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 if (emptyRun && (!rowRun.Height.HasValue || uniformDefaultRowHeight.HasValue)) {
                     if (unsupportedInheritedBlankStyles < int.MaxValue && rowRun.StartRow < effective.MaximumRows &&
                         (cellRuns.Any(cellRun => !cellRun.IsCovered && cellRun.StartColumn < effective.MaximumColumns &&
-                            HasInheritedStyleOnBlankRun(rowRun, cellRun, columnRuns, hasDefaultCellStyle)) ||
+                            HasInheritedStyleOnBlankRun(rowRun, cellRun, columnRuns, hasDefaultCellStyle, AffectsBlankCell)) ||
                          HasInheritedStyleOnUnserializedTail(rowRun, cellRuns, columnRuns,
-                             hasDefaultCellStyle, effective.MaximumColumns)))
+                             hasDefaultCellStyle, effective.MaximumColumns, AffectsBlankCell)))
                         unsupportedInheritedBlankStyles++;
                     long count = Math.Min(SaturatingAdd(rowRun.StartRow, rowRun.RepeatCount), effective.MaximumRows)
                         - rowRun.StartRow;
@@ -506,7 +509,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 long lastRowExclusive = Math.Min(rowEnd, effective.MaximumRows);
                 if (rowEnd > effective.MaximumRows) truncated = true;
                 bool inheritedUnserializedTail = HasInheritedStyleOnUnserializedTail(rowRun, cellRuns,
-                    columnRuns, hasDefaultCellStyle, effective.MaximumColumns);
+                    columnRuns, hasDefaultCellStyle, effective.MaximumColumns, AffectsBlankCell);
                 for (long row = rowRun.StartRow; row < lastRowExclusive; row++) {
                     int excelRow = checked((int)row + 1);
                     if (rowRun.Hidden) { sheet.SetRowHidden(excelRow, true); rowLayouts++; }
@@ -525,7 +528,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                         if (cellRun.IsCovered) continue;
                         if (!IsSignificant(cellRun)) {
                             if (unsupportedInheritedBlankStyles < int.MaxValue && cellRun.StartColumn < effective.MaximumColumns &&
-                                HasInheritedStyleOnBlankRun(rowRun, cellRun, columnRuns, hasDefaultCellStyle))
+                                HasInheritedStyleOnBlankRun(rowRun, cellRun, columnRuns, hasDefaultCellStyle, AffectsBlankCell))
                                 unsupportedInheritedBlankStyles++;
                             continue;
                         }
@@ -756,24 +759,38 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         cell.Annotations.Count > 0 || cell.RowSpan > 1 || cell.ColumnSpan > 1;
 
     private static bool HasInheritedStyleOnBlankRun(OdsRowRun row, OdsCellRun cell,
-        IReadOnlyList<OdsColumnRun> columns, bool hasDefaultCellStyle) {
-        if (row.DefaultCellStyleName != null || hasDefaultCellStyle) return true;
+        IReadOnlyList<OdsColumnRun> columns, bool hasDefaultCellStyle,
+        Func<string?, bool> affectsBlankCell) {
+        if (affectsBlankCell(row.DefaultCellStyleName) || hasDefaultCellStyle) return true;
         long cellEnd = SaturatingAdd(cell.StartColumn, cell.RepeatCount);
-        return columns.Any(column => column.DefaultCellStyleName != null &&
+        return columns.Any(column => affectsBlankCell(column.DefaultCellStyleName) &&
             column.StartColumn < cellEnd &&
             SaturatingAdd(column.StartColumn, column.RepeatCount) > cell.StartColumn);
     }
 
     private static bool HasInheritedStyleOnUnserializedTail(OdsRowRun row,
         IReadOnlyList<OdsCellRun> cells, IReadOnlyList<OdsColumnRun> columns,
-        bool hasDefaultCellStyle, int maximumColumns) {
+        bool hasDefaultCellStyle, int maximumColumns, Func<string?, bool> affectsBlankCell) {
         long serializedEnd = cells.Count == 0 ? 0 :
             SaturatingAdd(cells[cells.Count - 1].StartColumn, cells[cells.Count - 1].RepeatCount);
         if (serializedEnd >= maximumColumns) return false;
-        if (row.DefaultCellStyleName != null || hasDefaultCellStyle) return true;
-        return columns.Any(column => column.DefaultCellStyleName != null &&
+        if (affectsBlankCell(row.DefaultCellStyleName) || hasDefaultCellStyle) return true;
+        return columns.Any(column => affectsBlankCell(column.DefaultCellStyleName) &&
             column.StartColumn < maximumColumns &&
             SaturatingAdd(column.StartColumn, column.RepeatCount) > serializedEnd);
+    }
+
+    private static bool HasVisibleBlankCellStyle(OdsDocument source, string? styleName,
+        IDictionary<string, bool> cache) {
+        if (string.IsNullOrWhiteSpace(styleName)) return false;
+        if (cache.TryGetValue(styleName!, out bool visible)) return visible;
+        OdfStyle? style = source.Styles.FindInPart(OdfStyleFamily.TableCell, styleName!, "content.xml");
+        visible = style != null && source.Styles.Resolve(style).Any(candidate => {
+            XElement? properties = candidate.Element.Element(OdfNamespaces.Style + "table-cell-properties");
+            return properties != null && (properties.HasAttributes || properties.HasElements);
+        });
+        cache[styleName!] = visible;
+        return visible;
     }
 
     private static double? TryGetUniformRowHeight(IReadOnlyList<OdsRowRun> runs) {

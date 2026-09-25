@@ -72,18 +72,19 @@ public sealed partial class OdsSheet {
     }
 
     /// <summary>Sparse row runs without expanding <c>table:number-rows-repeated</c>.</summary>
-    public IReadOnlyList<OdsRowRun> RowRuns {
-        get {
-            var runs = new List<OdsRowRun>();
-            long start = 0;
-            foreach (XElement row in RowElements()) {
-                long repeat = OdsRepeatModel.Read(row, OdfNamespaces.Table + "number-rows-repeated");
-                runs.Add(new OdsRowRun(_document, row, start, repeat,
-                    column => GetDefaultCellStyleName(row, column), () => ColumnRuns));
-                start = checked(start + repeat);
-            }
-            return runs;
+    public IReadOnlyList<OdsRowRun> RowRuns => GetRowRuns();
+
+    internal IReadOnlyList<OdsRowRun> GetRowRuns(IReadOnlyList<OdsColumnRun>? columnRuns = null) {
+        var runs = new List<OdsRowRun>();
+        long start = 0;
+        foreach (XElement row in RowElements()) {
+            long repeat = OdsRepeatModel.Read(row, OdfNamespaces.Table + "number-rows-repeated");
+            runs.Add(new OdsRowRun(_document, row, start, repeat,
+                column => GetDefaultCellStyleName(row, column, columnRuns ?? ColumnRuns),
+                () => columnRuns ?? ColumnRuns));
+            start = checked(start + repeat);
         }
+        return runs;
     }
 
     /// <summary>Sparse column definition runs without expanding repeats.</summary>

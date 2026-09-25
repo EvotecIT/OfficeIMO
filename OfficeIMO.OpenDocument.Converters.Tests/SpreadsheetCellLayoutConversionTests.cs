@@ -250,6 +250,21 @@ public sealed class SpreadsheetCellLayoutConversionTests {
     }
 
     [Fact]
+    public void EmptyNamedRowAndColumnDefaultsDoNotReportBlankCellStyleLoss() {
+        OdsDocument source = OdsDocument.Create();
+        OdfStyle empty = source.Styles.CreateNamed("EmptyCell", OdfStyleFamily.TableCell);
+        OdsSheet sheet = source.AddSheet("Layout");
+        sheet.Row(0).DefaultCellStyleName = empty.Name;
+        sheet.Column(1).DefaultCellStyleName = empty.Name;
+        sheet.Cell(0, 0).SetString("Value");
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        using ExcelDocument target = conversion.Value;
+        Assert.DoesNotContain(conversion.Report.ForFeature("blank-cell-styles"), mapping =>
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+    }
+
+    [Fact]
     public void TextOnlyFamilyDefaultStylesPopulatedCellsWithoutBlankCellLoss() {
         OdsDocument source = OdsDocument.Create();
         XElement styles = source.Package.GetXml("styles.xml").Root!
