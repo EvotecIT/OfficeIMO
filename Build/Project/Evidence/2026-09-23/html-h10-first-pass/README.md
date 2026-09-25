@@ -274,3 +274,11 @@ budget passed with a 5,483 ms cold process, 2,060 ms maximum warm iteration,
 rasters are retained under `Ignore/HtmlUnknownPageQualification/` in
 `h10-wai-font-face-clean-a7762d428`, `h4-font-face-clean-a7762d428`, and
 `h4-font-face-budget-a7762d428`.
+
+## W3C tutorial image at a page break
+
+At clean source `0d9f85fdf`, line ends inside a floated box are no longer offered as page breaks. The layout keeps those lines for widow/orphan counting; an initial version that removed them from both lists forced a break through text, so a focused regression now covers that failure too. The full HTML suite passed 3,398/3,398 on .NET 10 and on a .NET 8 rerun. An unrelated concurrent detached-projection test failed once in the first .NET 8 run, passed in isolation, and passed in that full rerun. Independent read-only review identified the widow/orphan regression before the final commit and confirmed the repair.
+
+The unchanged W3C archive replayed offline with no runner failures. Chromium and OfficeIMO zero-margin local-font print each have three pages; default-margin OfficeIMO print has four. All three final managed and Chromium print pages were rasterized at 96 dpi and inspected. The fifth tutorial illustration no longer starts as a sliver at the bottom of managed page one: it begins intact on page two. Chromium leaves that card's title on page one, while OfficeIMO moves the title with the illustration. Text weight, footer placement, and some line flow also differ, so the W3C print-fidelity item remains open. The local-font operation reports 64 warnings and declared loss, with no forced-fragment diagnostic. The report, PDFs, and compared page rasters are retained under `Ignore/HtmlUnknownPageQualification/h10-wai-float-fragment-clean-0d9f85fdf/`.
+
+The exact-head H4 advanced-held-out acceptance gate passed 8/8. The macOS static budget passed with a 6,083.8 ms cold process, 2,071.5 ms slowest warm iteration, 501,465,088-byte sampled peak, and matching cold/warm fingerprints. Those reports are under `h10-h4-float-fragment-clean-0d9f85fdf/` and `h10-h4-float-fragment-budget-clean-0d9f85fdf/` beneath the same ignored parent. Windows and Linux budgets remain open.
