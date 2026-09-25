@@ -132,8 +132,77 @@ public sealed class WordOdtNotesConversionTests {
         OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-formatting" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-reference-formatting" &&
+            mapping.Status == OdfConversionMappingStatus.Approximated);
         Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void CharacterStyleOnWordNoteBodyIsExplicitLoss() {
+        using WordDocument source = WordDocument.Create();
+        source.AddParagraph("Anchor").AddFootNote("Body");
+        W.Footnote note = source.OpenXmlDocument.MainDocumentPart!.FootnotesPart!.Footnotes!
+            .Elements<W.Footnote>().Single(item => item.Id?.Value == source.FootNotes[0].ReferenceId);
+        W.Run body = note.Descendants<W.Run>().First(run => run.Descendants<W.Text>().Any());
+        body.RunProperties ??= new W.RunProperties();
+        body.RunProperties.RunStyle = new W.RunStyle { Val = "Emphasis" };
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-formatting" &&
+            mapping.Status == OdfConversionMappingStatus.Approximated);
+        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void MissingOrRepeatedWordNoteReferenceMarkIsExplicitLoss(bool repeated) {
+        using WordDocument source = WordDocument.Create();
+        source.AddParagraph("Anchor").AddFootNote("Body");
+        W.Footnote note = source.OpenXmlDocument.MainDocumentPart!.FootnotesPart!.Footnotes!
+            .Elements<W.Footnote>().Single(item => item.Id?.Value == source.FootNotes[0].ReferenceId);
+        W.FootnoteReferenceMark mark = note.Descendants<W.FootnoteReferenceMark>().Single();
+        if (repeated) mark.Parent!.Append((W.FootnoteReferenceMark)mark.CloneNode(true));
+        else mark.Remove();
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-formatting" &&
+            mapping.Status == OdfConversionMappingStatus.Approximated);
+        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void WordNoteReferenceMarkAfterBodyTextIsExplicitLoss() {
+        using WordDocument source = WordDocument.Create();
+        source.AddParagraph("Anchor").AddFootNote("Body");
+        W.Footnote note = source.OpenXmlDocument.MainDocumentPart!.FootnotesPart!.Footnotes!
+            .Elements<W.Footnote>().Single(item => item.Id?.Value == source.FootNotes[0].ReferenceId);
+        W.Run markRun = note.Descendants<W.Run>().Single(run => run.Descendants<W.FootnoteReferenceMark>().Any());
+        markRun.Remove();
+        note.Elements<W.Paragraph>().Single().Append(markRun);
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-formatting" &&
+            mapping.Status == OdfConversionMappingStatus.Approximated);
+        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void StyledTextSharingWordNoteReferenceRunIsExplicitLoss() {
+        using WordDocument source = WordDocument.Create();
+        source.AddParagraph("Anchor").AddFootNote("Body");
+        W.Footnote note = source.OpenXmlDocument.MainDocumentPart!.FootnotesPart!.Footnotes!
+            .Elements<W.Footnote>().Single(item => item.Id?.Value == source.FootNotes[0].ReferenceId);
+        W.Run markRun = note.Descendants<W.Run>().Single(run => run.Descendants<W.FootnoteReferenceMark>().Any());
+        markRun.Append(new W.Text("Styled text"));
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-formatting" &&
+            mapping.Status == OdfConversionMappingStatus.Approximated);
     }
 
     [Fact]

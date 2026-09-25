@@ -19,13 +19,16 @@ public enum OdtParagraphAlignment {
 /// <summary>An XML-backed ODT paragraph or heading.</summary>
 public sealed class OdtParagraph {
     private readonly OdtDocument _document;
-    private readonly XElement _element;
+    private XElement _element;
     private readonly string _partPath;
+    private Func<XElement>? _materializeForNote;
 
-    internal OdtParagraph(OdtDocument document, XElement element, string partPath = "content.xml") {
+    internal OdtParagraph(OdtDocument document, XElement element, string partPath = "content.xml",
+        Func<XElement>? materializeForNote = null) {
         _document = document;
         _element = element;
         _partPath = partPath;
+        _materializeForNote = materializeForNote;
     }
 
     /// <summary>Plain text with ODF spaces, tabs, and line breaks decoded.</summary>
@@ -330,7 +333,14 @@ public sealed class OdtParagraph {
     /// <summary>Appends a native endnote at the current inline position.</summary>
     public OdtNote AddEndnote(string text) => AddNote(OdtNoteKind.Endnote, text);
 
-    private OdtNote AddNote(OdtNoteKind kind, string text) => _document.AddNote(_element, _partPath, kind, text);
+    private OdtNote AddNote(OdtNoteKind kind, string text) {
+        if (_materializeForNote != null) {
+            _document.ValidateNoteInsertion(kind, text);
+            _element = _materializeForNote();
+            _materializeForNote = null;
+        }
+        return _document.AddNote(_element, _partPath, kind, text);
+    }
 
     /// <summary>Appends an inline or paragraph-anchored image.</summary>
     public OdtImage AddImage(byte[] data, string fileName, OdfLength width, OdfLength height,

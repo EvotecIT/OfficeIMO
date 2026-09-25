@@ -29,11 +29,8 @@ public sealed partial class OdtDocument {
     }
 
     internal OdtNote AddNote(XElement paragraph, string partPath, OdtNoteKind kind, string text) {
-        if (text == null) throw new ArgumentNullException(nameof(text));
+        ValidateNoteInsertion(kind, text);
         NoteIndex index = GetNoteIndex();
-        if (index.HasConfiguration(kind)) {
-            throw new NotSupportedException("Adding notes to an ODT document with configured note numbering is not supported.");
-        }
 
         string prefix = kind == OdtNoteKind.Footnote ? "ftn" : "endn";
         int ordinal = index.Count(kind) + 1;
@@ -63,6 +60,14 @@ public sealed partial class OdtDocument {
         }
         MarkPartDirty(partPath);
         return result;
+    }
+
+    internal void ValidateNoteInsertion(OdtNoteKind kind, string text) {
+        if (text == null) throw new ArgumentNullException(nameof(text));
+        NoteIndex index = GetNoteIndex();
+        if (index.HasConfiguration(kind)) {
+            throw new NotSupportedException("Adding notes to an ODT document with configured note numbering is not supported.");
+        }
     }
 
     private NoteIndex GetNoteIndex() {

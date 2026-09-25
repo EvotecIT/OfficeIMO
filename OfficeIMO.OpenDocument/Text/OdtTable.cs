@@ -170,12 +170,28 @@ public sealed class OdtTableCell {
     /// <summary>Column span on the anchor cell.</summary>
     public int ColumnSpan => ReadCount(OdfNamespaces.Table + "number-columns-spanned");
     /// <summary>Paragraphs directly stored in this cell.</summary>
-    public IReadOnlyList<OdtParagraph> Paragraphs => _element.Elements()
-        .Where(element => element.Name == OdfNamespaces.Text + "p" || element.Name == OdfNamespaces.Text + "h")
-        .Select(element => new OdtParagraph(_document, element)).ToList();
+    public IReadOnlyList<OdtParagraph> Paragraphs {
+        get {
+            // Reading a repeated cell must remain sparse. A paragraph resolves its
+            // logical row and cell only if a note is actually inserted.
+            return _element.Elements()
+                .Where(element => element.Name == OdfNamespaces.Text + "p" || element.Name == OdfNamespaces.Text + "h")
+                .Select((element, index) => new OdtParagraph(_document, element,
+                    materializeForNote: () => ResolveParagraphForNote(index))).ToList();
+        }
+    }
+
+    private XElement ResolveParagraphForNote(int index) {
+        EnsureMaterialized();
+        return _element.Elements()
+            .Where(element => element.Name == OdfNamespaces.Text + "p" || element.Name == OdfNamespaces.Text + "h")
+            .ElementAt(index);
+    }
     /// <summary>Cell text joined across paragraphs.</summary>
     public string Text {
-        get => string.Join("\n", Paragraphs.Select(paragraph => paragraph.Text));
+        get => string.Join("\n", _element.Elements()
+            .Where(element => element.Name == OdfNamespaces.Text + "p" || element.Name == OdfNamespaces.Text + "h")
+            .Select(element => new OdtParagraph(_document, element).Text));
         set {
             if (IsCovered) throw new InvalidOperationException("Covered table cells cannot contain text.");
             EnsureMaterialized();
@@ -232,14 +248,20 @@ public sealed class OdtTableCell {
     }
 
     private void EnsureMaterialized() {
+        bool resolvedRow = false;
         if (_resolveRowCell != null) {
             OdfRepeatedElementPosition position = _resolveRowCell();
             _element = position.Element;
             _repeatOffset = position.Offset;
             _resolveRowCell = null;
+            resolvedRow = true;
         }
-        if (_element.Attribute(OdfNamespaces.Table + "number-columns-repeated") == null) return;
-        _element = OdsRepeatModel.Split(_element, OdfNamespaces.Table + "number-columns-repeated", _repeatOffset);
+        if (_element.Attribute(OdfNamespaces.Table + "number-columns-repeated") != null) {
+            _element = OdsRepeatModel.Split(_element, OdfNamespaces.Table + "number-columns-repeated", _repeatOffset);
+            Dirty();
+        } else if (resolvedRow) {
+            Dirty();
+        }
     }
 
     private void Dirty() => _document.MarkPartDirty("content.xml");

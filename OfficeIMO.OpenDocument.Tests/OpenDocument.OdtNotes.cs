@@ -1,12 +1,63 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Xml.Linq;
 using OfficeIMO.OpenDocument;
 using Xunit;
 
 namespace OfficeIMO.OpenDocument.Tests;
 
 public sealed class OpenDocumentOdtNotesTests {
+    [Fact]
+    public void NoteInRepeatedTableCellChangesOnlySelectedLogicalCell() {
+        OdtDocument document = OdtDocument.Create();
+        OdtTable table = document.AddTable(1, 1, "RepeatedNotes");
+        table.Cell(0, 0).Text = "Anchor";
+        XElement row = table.Element.Elements(OdfNamespaces.Table + "table-row").Single();
+        row.SetAttributeValue(OdfNamespaces.Table + "number-rows-repeated", 3);
+        row.Elements(OdfNamespaces.Table + "table-cell").Single()
+            .SetAttributeValue(OdfNamespaces.Table + "number-columns-repeated", 3);
+        document.Package.MarkXmlDirty("content.xml");
+
+        OdtDocument reopened = OdtDocument.Load(new MemoryStream(document.ToBytes()));
+        byte[] beforeRead = reopened.ToBytes();
+        Assert.Equal("Anchor", reopened.Tables.Single().Rows[1].Cells[1].Paragraphs[0].Text);
+        Assert.Equal(beforeRead, reopened.ToBytes());
+        reopened.Tables.Single().Rows[1].Cells[1].Paragraphs[0].AddFootnote("Selected note");
+
+        OdtDocument result = OdtDocument.Load(new MemoryStream(reopened.ToBytes()));
+        OdtTable resultTable = result.Tables.Single();
+        for (int rowIndex = 0; rowIndex < 3; rowIndex++) {
+            for (int columnIndex = 0; columnIndex < 3; columnIndex++) {
+                OdtParagraph paragraph = resultTable.Rows[rowIndex].Cells[columnIndex].Paragraphs[0];
+                if (rowIndex == 1 && columnIndex == 1)
+                    Assert.Equal("Selected note", Assert.Single(paragraph.Notes).Paragraphs[0].Text);
+                else Assert.Empty(paragraph.Notes);
+            }
+        }
+        Assert.True(result.Validate().IsValid);
+    }
+
+    [Fact]
+    public void RejectedNoteInRepeatedTableCellDoesNotSplitTable() {
+        OdtDocument document = OdtDocument.Create();
+        OdtTable table = document.AddTable(1, 1, "ConfiguredNotes");
+        table.Element.Descendants(OdfNamespaces.Table + "table-cell").Single()
+            .SetAttributeValue(OdfNamespaces.Table + "number-columns-repeated", 3);
+        document.Package.MarkXmlDirty("content.xml");
+        document.Package.GetXml("styles.xml").Root!.Element(OdfNamespaces.Office + "styles")!.Add(
+            new XElement(OdfNamespaces.Text + "notes-configuration",
+                new XAttribute(OdfNamespaces.Text + "note-class", "footnote"),
+                new XAttribute(OdfNamespaces.Text + "start-value", "5")));
+        document.Package.MarkXmlDirty("styles.xml");
+        OdtDocument reopened = OdtDocument.Load(new MemoryStream(document.ToBytes()));
+        byte[] before = reopened.ToBytes();
+
+        Assert.Throws<NotSupportedException>(() =>
+            reopened.Tables.Single().Rows[0].Cells[1].Paragraphs[0].AddFootnote("Rejected"));
+        Assert.Equal(before, reopened.ToBytes());
+    }
+
     [Fact]
     public void SupportedNotesAreReportedAsEditable() {
         OdtDocument source = OdtDocument.Create();

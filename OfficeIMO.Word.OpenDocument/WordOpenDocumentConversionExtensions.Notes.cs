@@ -177,6 +177,7 @@ public static partial class WordOpenDocumentConversionExtensions {
             : target.AddEndnote(paragraphs[0].Text);
         for (int index = 1; index < paragraphs.Count; index++) result.AddParagraph(paragraphs[index].Text);
         if (paragraphs.Any(paragraph => HasNonPlainWordNoteContent(paragraph, kind)) ||
+            HasStyledWordNoteBodyRun(notes, referenceId, kind) ||
             HasNonDefaultWordNoteReferenceMark(notes, referenceId, kind))
             notes.ApproximatedBodies++;
         bool unsupportedInline = paragraphs.Any(paragraph => paragraph.Runs.Any(run =>
@@ -217,11 +218,32 @@ public static partial class WordOpenDocumentConversionExtensions {
     private static bool HasNonDefaultWordNoteReferenceMark(NoteMappingStats notes, long? referenceId, OdtNoteKind kind) {
         DocumentFormat.OpenXml.OpenXmlElement? note = notes.Body(kind, referenceId);
         string defaultStyle = kind == OdtNoteKind.Footnote ? "FootnoteReference" : "EndnoteReference";
+        if (note == null) return false;
+        int markCount = kind == OdtNoteKind.Footnote
+            ? note.Descendants<W.FootnoteReferenceMark>().Count()
+            : note.Descendants<W.EndnoteReferenceMark>().Count();
+        if (markCount != 1) return true;
+        DocumentFormat.OpenXml.OpenXmlElement? firstVisible = note.Elements<W.Paragraph>()
+            .SelectMany(paragraph => paragraph.Descendants<W.Run>())
+            .SelectMany(run => run.ChildElements)
+            .FirstOrDefault(child => child is W.FootnoteReferenceMark or W.EndnoteReferenceMark or
+                W.TabChar or W.Break || child is W.Text text && !string.IsNullOrEmpty(text.Text));
+        if (kind == OdtNoteKind.Footnote && firstVisible is not W.FootnoteReferenceMark ||
+            kind == OdtNoteKind.Endnote && firstVisible is not W.EndnoteReferenceMark) return true;
         return note?.Descendants<W.Run>().Any(run =>
             run.ChildElements.Any(child => kind == OdtNoteKind.Footnote
                 ? child is W.FootnoteReferenceMark : child is W.EndnoteReferenceMark) &&
             run.RunProperties?.ChildElements.Any(child =>
                 child is not W.RunStyle style || style.Val?.Value != defaultStyle) == true) == true;
+    }
+
+    private static bool HasStyledWordNoteBodyRun(NoteMappingStats notes, long? referenceId, OdtNoteKind kind) {
+        DocumentFormat.OpenXml.OpenXmlElement? note = notes.Body(kind, referenceId);
+        return note?.Descendants<W.Run>().Any(run =>
+            (!run.ChildElements.Any(child => kind == OdtNoteKind.Footnote
+                ? child is W.FootnoteReferenceMark : child is W.EndnoteReferenceMark) ||
+             run.ChildElements.OfType<W.Text>().Any(text => !string.IsNullOrEmpty(text.Text))) &&
+            run.RunProperties?.GetFirstChild<W.RunStyle>() != null) == true;
     }
 
     private static bool HasNonPlainWordNoteContent(WordParagraphSnapshot paragraph, OdtNoteKind kind) =>
@@ -287,16 +309,26 @@ public static partial class WordOpenDocumentConversionExtensions {
             notes.ApproximatedReferenceFormatting += notes.ConvertedEndnotes;
         if (HasAuthoredWordDocumentDefaults(source))
             notes.ApproximatedBodies += notes.ConvertedFootnotes + notes.ConvertedEndnotes;
+        if (HasAuthoredWordDocumentRunDefaults(source))
+            notes.ApproximatedReferenceFormatting += notes.ConvertedFootnotes + notes.ConvertedEndnotes;
     }
 
     private static bool HasAuthoredWordDocumentDefaults(WordDocument source) {
         W.DocDefaults? defaults = source.OpenXmlDocument.MainDocumentPart?.StyleDefinitionsPart?.Styles?.DocDefaults;
-        W.RunPropertiesBaseStyle? run = defaults?.RunPropertiesDefault?.RunPropertiesBaseStyle;
         W.ParagraphPropertiesBaseStyle? paragraph = defaults?.ParagraphPropertiesDefault?.ParagraphPropertiesBaseStyle;
-        if (run?.ChildElements.Any(child => child is not W.RunFonts and not W.FontSize and
-            not W.FontSizeComplexScript and not W.Languages) == true ||
+        if (HasAuthoredWordDocumentRunDefaults(source) ||
             paragraph?.ChildElements.Any(child => child is not W.SpacingBetweenLines) == true)
             return true;
+        W.SpacingBetweenLines? spacing = paragraph?.GetFirstChild<W.SpacingBetweenLines>();
+        return spacing != null && (spacing.After?.Value != "160" || spacing.Line?.Value != "259" ||
+            spacing.LineRule?.Value != W.LineSpacingRuleValues.Auto);
+    }
+
+    private static bool HasAuthoredWordDocumentRunDefaults(WordDocument source) {
+        W.RunPropertiesBaseStyle? run = source.OpenXmlDocument.MainDocumentPart?.StyleDefinitionsPart?
+            .Styles?.DocDefaults?.RunPropertiesDefault?.RunPropertiesBaseStyle;
+        if (run?.ChildElements.Any(child => child is not W.RunFonts and not W.FontSize and
+            not W.FontSizeComplexScript and not W.Languages) == true) return true;
         W.RunFonts? fonts = run?.GetFirstChild<W.RunFonts>();
         if (fonts != null && (fonts.AsciiTheme?.Value != W.ThemeFontValues.MinorHighAnsi ||
             fonts.HighAnsiTheme?.Value != W.ThemeFontValues.MinorHighAnsi ||
@@ -311,9 +343,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         W.Languages? languages = run?.GetFirstChild<W.Languages>();
         if (languages != null && (languages.Val?.Value != "en-US" ||
             languages.EastAsia?.Value != "en-US" || languages.Bidi?.Value != "ar-SA")) return true;
-        W.SpacingBetweenLines? spacing = paragraph?.GetFirstChild<W.SpacingBetweenLines>();
-        return spacing != null && (spacing.After?.Value != "160" || spacing.Line?.Value != "259" ||
-            spacing.LineRule?.Value != W.LineSpacingRuleValues.Auto);
+        return false;
     }
 
     private static int CountCustomizedWordSeparators<T>(IEnumerable<T>? candidates)
@@ -491,7 +521,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         if (notes.UnsupportedEndnotes > 0) report.Add("endnotes", OdfConversionMappingStatus.Unsupported,
             notes.UnsupportedEndnotes, "Note references with unsupported bodies or repeated references to one Word note were omitted.");
         if (notes.ApproximatedBodies > 0) report.Add("note-body-formatting", OdfConversionMappingStatus.Approximated,
-            notes.ApproximatedBodies, "Note text was retained, but some note formatting or paragraph structure was flattened.");
+            notes.ApproximatedBodies, "Note text was retained, but some body formatting, paragraph structure, or reference mark placement was flattened.");
         if (notes.UnsupportedBodyContent > 0) report.Add("note-body-content", OdfConversionMappingStatus.Unsupported,
             notes.UnsupportedBodyContent, "Note text was retained, but embedded media or unsupported block or inline content was omitted.");
         if (notes.UnsupportedHeaderFooterNotes > 0) report.Add("note-headers-footers", OdfConversionMappingStatus.Unsupported,
