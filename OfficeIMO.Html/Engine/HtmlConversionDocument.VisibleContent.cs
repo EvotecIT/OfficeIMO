@@ -7,9 +7,11 @@ namespace OfficeIMO.Html;
 public sealed partial class HtmlConversionDocument {
     /// <summary>
     /// Creates an independent editable source without elements hidden by computed
-    /// <c>display: none</c> or zero opacity in the requested screen or print environment.
-    /// Stylesheets are used only for that bounded visibility decision;
-    /// the returned source keeps its original stylesheet links and bounded import contract.
+    /// <c>display: none</c>, zero opacity, or a closed <c>details</c> element
+    /// in the requested screen or print environment.
+    /// The returned source keeps its original stylesheet links and bounded import contract.
+    /// A supported computed image maximum width is retained as an inline hint so editable
+    /// targets do not expand a captured image to its unconstrained intrinsic size.
     /// </summary>
     public Task<HtmlVisibleContentResult> CreateVisibleContentDocumentResultAsync(
         HtmlRenderOptions? options = null,
@@ -90,6 +92,29 @@ public sealed partial class HtmlConversionDocument {
                 }
             }
         }
+        if (body != null) {
+            foreach (IElement details in body.QuerySelectorAll("details:not([open])")) {
+                if (!body.Contains(details)) continue;
+                IElement? summary = details.Children.FirstOrDefault(child =>
+                    child.LocalName.Equals("summary", StringComparison.OrdinalIgnoreCase));
+                foreach (INode child in details.ChildNodes.ToArray()) {
+                    if (ReferenceEquals(child, summary)) continue;
+                    if (child is IElement) omitted++;
+                    details.RemoveChild(child);
+                }
+            }
+        }
+        if (appliedStyles.Length > 0 && body != null) {
+            foreach (IHtmlImageElement image in body.QuerySelectorAll("img").OfType<IHtmlImageElement>()) {
+                if (!styles.Elements.TryGetValue(image, out HtmlComputedStyle? style)) continue;
+                string maximum = style.GetValue("max-width").Trim();
+                if (!IsPortableImageMaximumWidth(maximum)) continue;
+                string existing = image.GetAttribute("style")?.Trim() ?? string.Empty;
+                image.SetAttribute("style", existing.Length == 0
+                    ? "max-width:" + maximum
+                    : existing.TrimEnd(';') + ";max-width:" + maximum);
+            }
+        }
         foreach (IElement style in appliedStyles) style.Remove();
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -103,5 +128,14 @@ public sealed partial class HtmlConversionDocument {
         string opacity = style.GetValue("opacity").Trim();
         return double.TryParse(opacity, NumberStyles.Float,
             CultureInfo.InvariantCulture, out double alpha) && alpha <= 0D;
+    }
+
+    private static bool IsPortableImageMaximumWidth(string value) {
+        bool pixels = value.EndsWith("px", StringComparison.OrdinalIgnoreCase);
+        bool percentage = value.EndsWith("%", StringComparison.Ordinal);
+        if (!pixels && !percentage) return false;
+        string number = value.Substring(0, value.Length - (pixels ? 2 : 1));
+        return double.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
+            && !double.IsNaN(parsed) && !double.IsInfinity(parsed) && parsed > 0D;
     }
 }

@@ -79,8 +79,15 @@ namespace OfficeIMO.Word.Html {
             double? height = img.DisplayHeight > 0 ? img.DisplayHeight : null;
             width ??= TryResolveImagePercentWidth(decl.GetPropertyValue("width"), doc, resolveContainerWidthTwips);
             width ??= TryResolveImagePercentWidth(img.GetAttribute("width"), doc, resolveContainerWidthTwips);
+            width ??= TryParsePixelValue(decl.GetPropertyValue("width"));
             width ??= TryParsePixelValue(img.GetAttribute("width"));
+            height ??= TryParsePixelValue(decl.GetPropertyValue("height"));
             height ??= TryParsePixelValue(img.GetAttribute("height"));
+            double? maximumWidth = TryResolveImagePercentWidth(decl.GetPropertyValue("max-width"), doc, resolveContainerWidthTwips)
+                ?? TryParsePixelValue(decl.GetPropertyValue("max-width"));
+            double? contentWidth = width == null && height == null
+                ? TryResolveImagePercentWidth("100%", doc, resolveContainerWidthTwips)
+                : null;
 
             WordParagraph? paragraph = currentParagraph;
 
@@ -88,6 +95,8 @@ namespace OfficeIMO.Word.Html {
             if (horizontalAlignment == null && storyCache.TryGetValue(src, out var cached)) {
                 paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
                 var clonedImage = cached.Clone(paragraph);
+                ApplyCachedImageSize(clonedImage, cached, width, height);
+                FitImageToWidthConstraints(clonedImage, contentWidth, maximumWidth, options, src, alt);
                 ApplyImageMetadata(clonedImage, alt, title);
                 return;
             }
@@ -194,6 +203,10 @@ namespace OfficeIMO.Word.Html {
                 }
             }
 
+            if (image.Width is double unscaledWidth && image.Height is double unscaledHeight) {
+                _unscaledImageSizes[image] = (unscaledWidth, unscaledHeight);
+            }
+            FitImageToWidthConstraints(image, contentWidth, maximumWidth, options, src, alt);
             ApplyImageMetadata(image, alt, title);
 
             if (horizontalAlignment == null) {
@@ -214,8 +227,15 @@ namespace OfficeIMO.Word.Html {
             double? height = img.DisplayHeight > 0 ? img.DisplayHeight : null;
             width ??= TryResolveImagePercentWidth(decl.GetPropertyValue("width"), doc, resolveContainerWidthTwips);
             width ??= TryResolveImagePercentWidth(img.GetAttribute("width"), doc, resolveContainerWidthTwips);
+            width ??= TryParsePixelValue(decl.GetPropertyValue("width"));
             width ??= TryParsePixelValue(img.GetAttribute("width"));
+            height ??= TryParsePixelValue(decl.GetPropertyValue("height"));
             height ??= TryParsePixelValue(img.GetAttribute("height"));
+            double? maximumWidth = TryResolveImagePercentWidth(decl.GetPropertyValue("max-width"), doc, resolveContainerWidthTwips)
+                ?? TryParsePixelValue(decl.GetPropertyValue("max-width"));
+            double? contentWidth = width == null && height == null
+                ? TryResolveImagePercentWidth("100%", doc, resolveContainerWidthTwips)
+                : null;
             var alt = img.AlternativeText;
             var title = img.GetAttribute("title") ?? string.Empty;
 
@@ -277,6 +297,7 @@ namespace OfficeIMO.Word.Html {
                     var paragraph = currentParagraph ?? (headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph());
                     SvgHelper.AddSvg(paragraph, svgContent, width, height, alt ?? string.Empty);
                     if (paragraph.Image != null) {
+                        FitImageToWidthConstraints(paragraph.Image, contentWidth, maximumWidth, options, src, alt ?? string.Empty);
                         ApplyImageMetadata(paragraph.Image, alt ?? string.Empty, title);
                     }
                     GetStoryImageCache(paragraph, headerFooter, doc)[src] = paragraph.Image!;

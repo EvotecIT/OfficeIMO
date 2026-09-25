@@ -10,6 +10,23 @@ using Xunit;
 namespace OfficeIMO.Html.Tests;
 
 public sealed class MhtmlEmbeddedImageConversionTests {
+    [Fact]
+    public async Task ClosedDetailsKeepsItsSummaryButNotItsHiddenBody() {
+        const string html = "<details><summary>How this works</summary><p>Closed explanation</p></details>"
+            + "<details open><summary>More detail</summary><p>Open explanation</p></details>"
+            + "<p>Article</p>";
+        HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
+
+        HtmlVisibleContentResult visible = await source.CreateVisibleContentDocumentResultAsync();
+
+        Assert.Contains("How this works", visible.Value.SourceHtml, StringComparison.Ordinal);
+        Assert.DoesNotContain("Closed explanation", visible.Value.SourceHtml, StringComparison.Ordinal);
+        Assert.Contains("Open explanation", visible.Value.SourceHtml, StringComparison.Ordinal);
+        Assert.Contains("Article", visible.Value.SourceHtml, StringComparison.Ordinal);
+        Assert.Contains("Closed explanation", source.SourceHtml, StringComparison.Ordinal);
+        Assert.True(visible.OmittedElementCount > 0);
+    }
+
     [Theory]
     [InlineData("html { opacity: 0 }")]
     [InlineData("body { display: none }")]
@@ -113,6 +130,35 @@ public sealed class MhtmlEmbeddedImageConversionTests {
         HtmlVisibleContentResult screen = await prepared.Value.CreateVisibleContentDocumentResultAsync(screenOptions);
         Assert.Contains("Print navigation", screen.Value.SourceHtml, StringComparison.Ordinal);
         Assert.DoesNotContain("Closed menu", screen.Value.SourceHtml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ArchivedImageMaximumWidthIsCarriedIntoEditableWord() {
+        byte[] png = PdfPngTestImages.CreateRgbPng(800, 300);
+        var archive = new MhtmlDocument(
+            "<link rel='stylesheet' href='styles.css'><img class='logo' src='images/logo.png' alt='Site logo'>",
+            new[] {
+                new MhtmlResource(Encoding.UTF8.GetBytes(".logo{max-width:210px}"), "text/css",
+                    contentLocation: "https://example.test/page/styles.css"),
+                new MhtmlResource(png, "image/png",
+                    contentLocation: "https://example.test/page/images/logo.png")
+            },
+            contentLocation: "https://example.test/page/index.html");
+        var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Paged };
+        archive.ConfigureRenderOptions(options);
+
+        HtmlConversionDocument images = archive.CreateEmbeddedImageDocumentResult().RequireValue();
+        HtmlVisibleContentResult visible = await images.CreateVisibleContentDocumentResultAsync(options);
+        HtmlToWordResult converted = visible.Value.ToWordDocumentResult();
+        using var document = converted.RequireValue();
+
+        Assert.Equal(1, visible.AppliedStylesheetCount);
+        Assert.Contains("max-width:210px", visible.Value.SourceHtml, StringComparison.Ordinal);
+        Assert.Equal(210D, Assert.Single(document.Images).Width!.Value, precision: 2);
+        Assert.Contains(converted.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
+            && diagnostic.Source == "Site logo");
+        Assert.DoesNotContain("max-width:210px", archive.Html, StringComparison.Ordinal);
     }
 
     [Fact]

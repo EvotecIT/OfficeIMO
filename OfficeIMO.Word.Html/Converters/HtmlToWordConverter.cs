@@ -38,6 +38,7 @@ namespace OfficeIMO.Word.Html {
         // Image relationships belong to a document story (body, header, or footer).
         // Reuse within one story only; a blip id copied into another part is invalid.
         private readonly Dictionary<OpenXmlElement, Dictionary<string, WordImage>> _imageCache = new();
+        private readonly Dictionary<WordImage, (double Width, double Height)> _unscaledImageSizes = new();
         private readonly Dictionary<IElement, double> _computedFontSizePixels = new();
         private readonly HashSet<IElement> _materializedRoleTableElements = new();
         private readonly Dictionary<IElement, CssStyleMapper.CssProperties> _computedBoxStyles = new();
