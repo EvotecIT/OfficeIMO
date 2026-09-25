@@ -251,13 +251,13 @@ public sealed partial class PdfReadPage {
                 registered.DrawingProgram is not PdfDrawingFontProgram program) continue;
             byte[] code = glyphBytes[0];
             int glyph = program.GlyphForCode(code.Length == 1 ? code[0] : (code[0] << 8) | code[1]);
-            if (glyph <= 0) continue;
+            if (glyph == 0 && program.IsEmptyGlyph(0)) continue;
             var key = PaintedFontKey(span);
             if (!maps.TryGetValue(key, out PaintedGlyphMap? map)) {
                 maps.Add(key, map = new PaintedGlyphMap(program));
             }
             if (span.Text.Length > 1 && !(span.Text.Length == 2 && char.IsSurrogatePair(span.Text, 0))) {
-                if (string.IsNullOrWhiteSpace(span.Text)) continue;
+                if (string.IsNullOrWhiteSpace(span.Text) && program.IsEmptyGlyph(glyph)) continue;
                 // One glyph decoded to several letters (a ligature): a Unicode cmap cannot select it.
                 int ligature = map.Alias(glyph);
                 PdfTextSpan visual = span.WithVisualGlyph(ligature);

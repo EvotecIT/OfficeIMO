@@ -432,7 +432,8 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
             cancellationToken.ThrowIfCancellationRequested();
             ushort glyph = glyphs[index].Glyph;
             double glyphX = cursor + positioning[index].XPlacement * scale;
-            List<List<OfficePoint>> glyphContours = ReadGlyphContours(
+            List<List<OfficePoint>> glyphContours = glyph == 0 && !HasPaintedNotdefMapping(glyphs[index].Scalar)
+                ? new List<List<OfficePoint>>() : ReadGlyphContours(
                 glyph,
                 new FontTransform(scale, 0, 0, -scale, glyphX, baseline),
                 0,
@@ -461,7 +462,8 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         return OfficeOpenTypeCmap.HasGlyphs(
             value,
             scalar => MapGlyph(scalar),
-            MapVariationGlyph);
+            MapVariationGlyph,
+            HasPaintedNotdefMapping);
     }
 
     private int ReadMappedGlyph(string text, ref int index, out int scalar) =>
@@ -543,6 +545,59 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     }
 
     private static bool IsWhitespaceScalar(int scalar) => scalar <= char.MaxValue && char.IsWhiteSpace((char)scalar);
+
+    // A PDF may explicitly map a character to an inked .notdef glyph. A cmap lookup returns
+    // zero for both that mapping and an absent character, so coverage must inspect the cmap
+    // entry before treating the painted placeholder as missing.
+    private bool HasPaintedNotdefMapping(int scalar) {
+        if (scalar < 0 || scalar > 0x10FFFF || _numGlyphs == 0 ||
+            GlyphOffset(0) == GlyphOffset(1) && _colorGlyphs?.HasColorGlyph(0) != true || _cmapLength < 4)
+            return false;
+        int end = checked(_cmap + _cmapLength);
+        int count = ReadUInt16(_data, _cmap + 2);
+        if (count == 0 || count > OfficeOpenTypeCmap.MaximumSubtables || _cmap + 4 > end - count * 8)
+            return false;
+        for (int index = 0; index < count; index++) {
+            int record = _cmap + 4 + index * 8;
+            if (!OfficeOpenTypeCmap.IsUnicodeEncoding(ReadUInt16(_data, record), ReadUInt16(_data, record + 2))) continue;
+            uint relative = ReadUInt32(_data, record + 4);
+            if (relative > (uint)(_cmapLength - 2)) continue;
+            int table = _cmap + checked((int)relative);
+            int format = ReadUInt16(_data, table);
+            if (format == 4 && scalar <= char.MaxValue && _validFormat4Subtables.Contains(table)) {
+                int segments = ReadUInt16(_data, table + 6) / 2;
+                int endCodes = table + 14;
+                int starts = endCodes + segments * 2 + 2;
+                int low = 0;
+                int high = segments - 1;
+                while (low <= high) {
+                    int segment = low + (high - low) / 2;
+                    int first = ReadUInt16(_data, starts + segment * 2);
+                    int last = ReadUInt16(_data, endCodes + segment * 2);
+                    if (scalar < first) high = segment - 1;
+                    else if (scalar > last) low = segment + 1;
+                    else {
+                        if (scalar != 0xffff && MapFormat4(table, end, scalar) == 0) return true;
+                        break;
+                    }
+                }
+            } else if (format == 12 && _validFormat12Subtables.Contains(table)) {
+                uint groups = ReadUInt32(_data, table + 12);
+                int firstGroup = table + 16;
+                uint low = 0;
+                uint high = groups;
+                while (low < high) {
+                    uint group = low + (high - low) / 2;
+                    int entry = firstGroup + checked((int)group * 12);
+                    uint first = ReadUInt32(_data, entry);
+                    if (first < scalar) low = group + 1;
+                    else if (first > scalar) high = group;
+                    else return ReadUInt32(_data, entry + 8) == 0;
+                }
+            }
+        }
+        return false;
+    }
 
     private ushort MapGlyph(int scalar) {
         if (scalar < 0 || scalar > 0x10FFFF) return 0;
@@ -720,7 +775,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         List<OfficePoint>? attachmentPoints) {
         cancellationToken.ThrowIfCancellationRequested();
         var contours = new List<List<OfficePoint>>();
-        if (glyph == 0 || glyph >= _numGlyphs || depth > 8) return contours;
+        if (glyph >= _numGlyphs || depth > 8) return contours;
         var glyphStart = GlyphOffset(glyph);
         var glyphEnd = GlyphOffset((ushort)(glyph + 1));
         if (glyphStart == glyphEnd) return contours;

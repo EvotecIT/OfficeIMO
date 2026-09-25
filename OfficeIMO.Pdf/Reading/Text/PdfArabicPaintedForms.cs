@@ -28,7 +28,7 @@ internal static class PdfArabicPaintedForms {
             PdfTextSpan span = spans[index];
             // Invisible text, such as an OCR layer, must not interleave with painted letters.
             if (!span.IsVisible || span.Color?.A == 0 || span.Text.Length != 1 || !IsArabicLetterOrForm(span.Text[0]) ||
-                !(span.FontSize > 0D) || !(span.Advance > 0D) || double.IsInfinity(span.Advance) ||
+                !(EffectiveFontSize(span) > 0D) || !(span.Advance > 0D) || double.IsInfinity(span.Advance) ||
                 double.IsNaN(span.RotationDegrees) || double.IsInfinity(span.RotationDegrees)) continue;
             double normalizedRotation = (span.RotationDegrees % 360D + 360D) % 360D;
             int bucket = Math.Min(bucketCount - 1, (int)(normalizedRotation / RotationTolerance));
@@ -61,7 +61,7 @@ internal static class PdfArabicPaintedForms {
                     Along: spans[index].X * cos + spans[index].Y * sin,
                     Across: -spans[index].X * sin + spans[index].Y * cos,
                     spans[index].Advance,
-                    Size: spans[index].FontSize))
+                    Size: EffectiveFontSize(spans[index])))
                 .OrderBy(letter => letter.Across)
                 .ToList();
 
@@ -125,10 +125,14 @@ internal static class PdfArabicPaintedForms {
                     PdfTextSpan visual = span.WithVisualText(form.ToString());
                     visual.MarkPaintedGlyphProjection();
                     spans[paintIndex] = visual;
-                }
+                } else if (IsPresentationForm(painted)) span.MarkPaintedGlyphProjection();
             }
         }
     }
+
+    private static double EffectiveFontSize(PdfTextSpan span) =>
+        span.RestampFontSize > 0D && !double.IsNaN(span.RestampFontSize) && !double.IsInfinity(span.RestampFontSize)
+            ? span.RestampFontSize : span.FontSize;
 
     private static bool IsArabicLetterOrForm(char value) =>
         IsBaseLetter(value) || value >= '\uFB50' && value <= '\uFBFF' || value >= '\uFE80' && value <= '\uFEFC';

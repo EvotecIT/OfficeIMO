@@ -871,7 +871,7 @@ public sealed partial class PdfReadPage {
             if (!fonts.TryGetValue(fontRes, out PdfFontResource? resource) ||
                 resource.DrawingProgram is not PdfDrawingFontProgram program || code.Length is < 1 or > 2) return true;
             int glyph = program.GlyphForCode(code.Length == 1 ? code[0] : (code[0] << 8) | code[1]);
-            return glyph <= 0 || program.IsEmptyGlyph(glyph);
+            return program.IsEmptyGlyph(glyph);
         }
         int? ResolveFontWeight(string fontRes) =>
             fonts.TryGetValue(fontRes, out PdfFontResource? font) ? font.FontWeight : null;

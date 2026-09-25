@@ -98,11 +98,11 @@ internal static class PdfTrueTypeUnicodeCmap {
         Func<byte[], int, string> decodeText = ResourceResolver.CreateBudgetedDecoder(font);
         Func<byte, string> decodeEncoding = ResourceResolver.CreateSimpleEncodingDecoder(font);
         var mappings = new SortedDictionary<int, int>();
-        int fallbackGlyph = 0;
+        int fallbackGlyph = -1;
         for (int code = 0; code < 256; code++) {
             int glyph = ResolveGlyph(program, (byte)code, symbolic, macintosh, unicode, isSymbolic, decodeEncoding);
-            if (glyph <= 0 || glyph >= glyphCount) continue;
-            if (fallbackGlyph == 0 && !isEmptyGlyph(glyph)) fallbackGlyph = glyph;
+            if (glyph >= glyphCount || glyph == 0 && isEmptyGlyph(0)) continue;
+            if (fallbackGlyph < 0 && !isEmptyGlyph(glyph)) fallbackGlyph = glyph;
             string text;
             try {
                 text = decodeText(new[] { (byte)code }, 8);
@@ -115,7 +115,7 @@ internal static class PdfTrueTypeUnicodeCmap {
         }
         // A simple subset may contain only clusters or inked codes mapped to whitespace.
         // A private-use seed registers the face; the painted-run mapper assigns exact aliases.
-        if (mappings.Count == 0 && fallbackGlyph > 0) mappings.Add(0xE000, fallbackGlyph);
+        if (mappings.Count == 0 && fallbackGlyph >= 0) mappings.Add(0xE000, fallbackGlyph);
         return mappings;
     }
 
@@ -127,12 +127,12 @@ internal static class PdfTrueTypeUnicodeCmap {
             !string.Equals(font.Encoding, "Identity-H", StringComparison.Ordinal) &&
             !string.Equals(font.Encoding, "Identity-V", StringComparison.Ordinal)) return null;
         var entries = new List<(int Cid, int Scalar)>();
-        int fallbackGlyph = 0;
+        int fallbackGlyph = -1;
         foreach (KeyValuePair<string, string> mapping in font.CMap.Mappings) {
             if (mapping.Key.Length != 4 ||
                 !int.TryParse(mapping.Key, System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out int cid)) continue;
             int paintedGlyph = GlyphForCid(cidToGlyphMap, cid, glyphCount);
-            if (fallbackGlyph == 0 && paintedGlyph > 0 && !isEmptyGlyph(paintedGlyph)) fallbackGlyph = paintedGlyph;
+            if (fallbackGlyph < 0 && !isEmptyGlyph(paintedGlyph)) fallbackGlyph = paintedGlyph;
             if (!TryGetSingleScalar(mapping.Value, out int scalar)) continue;
             entries.Add((cid, scalar));
         }
@@ -145,13 +145,13 @@ internal static class PdfTrueTypeUnicodeCmap {
             // base letter; drawings add presentation-form entries for the forms a page paints.
             // Producers map colour-font layers and other inked glyphs to a space; whitespace must
             // only select an empty glyph, or every space in the font would paint that ink.
-            if (glyph <= 0 || mappings.ContainsKey(entry.Scalar) ||
+            if (glyph == 0 && isEmptyGlyph(0) || mappings.ContainsKey(entry.Scalar) ||
                 IsWhiteSpaceScalar(entry.Scalar) && !isEmptyGlyph(glyph)) continue;
             mappings.Add(entry.Scalar, glyph);
         }
         // A subset can contain only clusters, undecoded glyphs, or inked whitespace. Seed one private-use entry so the
         // drawing font is registered; the painted-glyph mapper assigns aliases for each run.
-        if (mappings.Count == 0 && fallbackGlyph > 0) mappings.Add(0xE000, fallbackGlyph);
+        if (mappings.Count == 0 && fallbackGlyph >= 0) mappings.Add(0xE000, fallbackGlyph);
         return mappings;
     }
 

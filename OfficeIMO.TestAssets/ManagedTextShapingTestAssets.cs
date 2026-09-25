@@ -21,6 +21,9 @@ internal static class ManagedTextShapingTestAssets {
         return CreateFontFromCmap(CreateDistinctFormat12Cmap(ordered), glyphCount: ordered.Length + 1);
     }
 
+    internal static byte[] CreateFontWithInkedNotdef() =>
+        CreateFontFromCmap(CreateFormat12Cmap(new[] { (int)'A' }), inkedNotdef: true);
+
     internal static byte[] CreateFontWithKerning(int leftScalar, int rightScalar, short adjustment) {
         if (leftScalar == rightScalar) throw new ArgumentException("Kerning test scalars must be distinct.", nameof(rightScalar));
         return CreateFontFromCmap(
@@ -196,17 +199,19 @@ internal static class ManagedTextShapingTestAssets {
         bool distinctSecondGlyph = false,
         byte[]? colr = null,
         byte[]? cpal = null,
-        int baseGlyphHeight = 700) {
+        int baseGlyphHeight = 700,
+        bool inkedNotdef = false) {
         byte[] glyph = CreateVisibleGlyph(400);
-        var glyf = new byte[(glyphCount - 1) * glyph.Length];
+        var glyf = new byte[(glyphCount - (inkedNotdef ? 0 : 1)) * glyph.Length];
         var loca = new byte[(glyphCount + 1) * 2];
         var hmtx = new byte[4 + (glyphCount - 1) * 2];
         Array.Copy(new byte[] { 0x01, 0xF4, 0x00, 0x00 }, hmtx, 4);
-        for (int glyphIndex = 1; glyphIndex < glyphCount; glyphIndex++) {
+        for (int glyphIndex = inkedNotdef ? 0 : 1; glyphIndex < glyphCount; glyphIndex++) {
             byte[] currentGlyph = distinctSecondGlyph && glyphIndex == 2 ? CreateVisibleGlyph(600) : glyph;
             if (glyphIndex == 1 && baseGlyphHeight != 700) currentGlyph = CreateVisibleGlyph(400, baseGlyphHeight);
-            Array.Copy(currentGlyph, 0, glyf, (glyphIndex - 1) * glyph.Length, glyph.Length);
-            WriteUInt16(loca, (glyphIndex + 1) * 2, checked((ushort)(glyphIndex * glyph.Length / 2)));
+            int byteOffset = (glyphIndex - (inkedNotdef ? 0 : 1)) * glyph.Length;
+            Array.Copy(currentGlyph, 0, glyf, byteOffset, glyph.Length);
+            WriteUInt16(loca, (glyphIndex + 1) * 2, checked((ushort)((byteOffset + glyph.Length) / 2)));
         }
         if (!includeTrailingMetric && glyphCount == 2) hmtx = new byte[] { 0x01, 0xF4, 0x00, 0x00 };
         var maxp = new byte[] { 0x00, 0x01, 0x00, 0x00, 0x00, checked((byte)glyphCount) };

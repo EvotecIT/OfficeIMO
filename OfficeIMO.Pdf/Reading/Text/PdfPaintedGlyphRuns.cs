@@ -61,7 +61,8 @@ internal static class PdfPaintedGlyphRuns {
             byte[] code = span.GlyphBytes![glyphIndex];
             if (code.Length is < 1 or > 2) continue;
             int painted = program.GlyphForCode(code.Length == 1 ? code[0] : (code[0] << 8) | code[1]);
-            if (painted > 0 && (!program.UnicodeGlyphs.TryGetValue(scalar, out int mapped) || mapped != painted))
+            if ((painted > 0 || !program.IsEmptyGlyph(0)) &&
+                (!program.UnicodeGlyphs.TryGetValue(scalar, out int mapped) || mapped != painted))
                 alternate = true;
         }
         if (!alternate) return null;

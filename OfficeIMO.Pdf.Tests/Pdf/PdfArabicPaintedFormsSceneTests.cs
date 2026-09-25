@@ -6,6 +6,29 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfArabicPaintedFormsSceneTests {
     [Fact]
+    public void UnchangedPresentationFormStillCarriesPaintedProjection() {
+        var spans = new List<PdfTextSpan> { new("\uFE8F", "F1", 12D, 100D, 20D, 6D) };
+
+        PdfArabicPaintedForms.Apply(spans);
+
+        Assert.Equal("\uFE8F", spans[0].Text);
+        Assert.True(spans[0].IsPaintedGlyphProjection);
+    }
+
+    [Fact]
+    public void NestedTextUsesTransformedFontSizeForArabicBaselineGrouping() {
+        var spans = new List<PdfTextSpan> {
+            new("\u0628", "F1", 1D, 100D, 20D, 6D, null, true, 0D, null, null, restampFontSize: 12D),
+            new("\u0628", "F1", 1D, 94D, 20.5D, 6D, null, true, 0D, null, null, restampFontSize: 12D)
+        };
+
+        PdfArabicPaintedForms.Apply(spans);
+
+        Assert.Equal("\uFE91", spans[0].Text);
+        Assert.Equal("\uFE90", spans[1].Text);
+    }
+
+    [Fact]
     public void FractionalRotationKeepsLongArabicWordOnOneBaseline() {
         const double angle = 12.4D;
         double radians = angle * Math.PI / 180D;

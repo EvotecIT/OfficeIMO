@@ -173,6 +173,33 @@ public sealed class PdfPaintedGlyphRenderingTests {
         Assert.Equal("budget exceeded", exception.Message);
     }
 
+    [Fact]
+    public void InkedNotdefGlyphCanTriggerPerGlyphVisualProjection() {
+        PdfTextSpan span = CreateGlyphRun("AB", new[] { 1, 1 });
+        var inked = new PdfDrawingFontProgram(Array.Empty<byte>(), new SortedDictionary<int, int>(), _ => 0, _ => false);
+        var empty = new PdfDrawingFontProgram(Array.Empty<byte>(), new SortedDictionary<int, int>(), _ => 0, _ => true);
+
+        Assert.Equal(2, Assert.IsType<List<PdfTextSpan>>(
+            PdfPaintedGlyphRuns.SplitAlternateGlyphRun(span, inked, _ => { })).Count);
+        Assert.Null(PdfPaintedGlyphRuns.SplitAlternateGlyphRun(span, empty, _ => { }));
+    }
+
+    [Fact]
+    public void InkedNotdefAliasIsCoveredAndDrawnButAbsentScalarIsNot() {
+        byte[] source = ManagedTextShapingTestAssets.CreateFontWithInkedNotdef();
+        var program = new PdfDrawingFontProgram(source, new SortedDictionary<int, int> { ['A'] = 1 },
+            _ => 0, glyph => glyph != 0);
+        var aliases = new PdfReadPage.PaintedGlyphMap(program);
+        int alias = aliases.Alias(0);
+        byte[] rebuilt = Assert.IsType<byte[]>(PdfTrueTypeUnicodeCmap.TryAddMappings(program, aliases.Additions));
+        OfficeTrueTypeFont font = Assert.IsType<OfficeTrueTypeFont>(OfficeTrueTypeFont.TryLoad(rebuilt));
+        string painted = char.ConvertFromUtf32(alias);
+
+        Assert.True(font.HasGlyphs(painted));
+        Assert.NotEmpty(font.GetTextContours(painted, 0, 0, 12));
+        Assert.False(font.HasGlyphs("\uE001"));
+    }
+
     private static PdfTextSpan CreateGlyphRun(string text, int[] glyphLengths) => new(
         text, "F1", 12, 10, 10, 24, null, true, 0, "Subset", null,
         drawingFontFamily: "Subset", characterAdvances: Enumerable.Repeat(6D, text.Length).ToArray(),
