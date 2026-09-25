@@ -20,10 +20,11 @@ internal static partial class PdfStamper {
         return StampPageCore(targetPdf, sourcePdf, options?.Clone() ?? new PdfPageOverlayOptions(), targetReadOptions);
     }
 
-    internal static byte[] StampPages(byte[] targetPdf, byte[] sourcePdf, IReadOnlyList<PdfPageOverlayOptions> placements) {
+    internal static byte[] StampPages(byte[] targetPdf, byte[] sourcePdf, IReadOnlyList<PdfPageOverlayOptions> placements,
+        long maximumOutputBytes) {
         Guard.NotNull(placements, nameof(placements));
         return StampPageSetCore(targetPdf, placements.Select(options => new PageStampRequest(sourcePdf, options.Clone())).ToArray(),
-            allowVisualOnlySource: true);
+            allowVisualOnlySource: true, maximumOutputBytes: maximumOutputBytes);
     }
 
     /// <summary>Imports a source PDF page onto target pages read from streams.</summary>
@@ -61,9 +62,11 @@ internal static partial class PdfStamper {
         byte[] targetPdf,
         IReadOnlyList<PageStampRequest> requests,
         PdfLoadOptions? targetReadOptions = null,
-        bool allowVisualOnlySource = false) {
+        bool allowVisualOnlySource = false,
+        long? maximumOutputBytes = null) {
         Guard.NotNull(targetPdf, nameof(targetPdf));
         Guard.NotNull(requests, nameof(requests));
+        if (maximumOutputBytes <= 0L) throw new ArgumentOutOfRangeException(nameof(maximumOutputBytes));
         if (requests.Count == 0) {
             return targetPdf;
         }
@@ -73,7 +76,7 @@ internal static partial class PdfStamper {
         var (targetObjects, targetTrailer) = PdfSyntax.ParseObjects(targetPdf, targetReadOptions);
         PdfReadDocument target = PdfReadDocument.Open(targetPdf, targetReadOptions);
         if (target.Pages.Count == 0) throw new ArgumentException("Target PDF does not contain any pages.", nameof(targetPdf));
-        int nextObjectNumber = targetObjects.Count == 0 ? 1 : targetObjects.Keys.Max() + 1;
+        int nextObjectNumber = targetObjects.Count == 0 ? 1 : checked(targetObjects.Keys.Max() + 1);
         int[] pageObjectNumbers = target.Pages.Select(page => page.ObjectNumber).ToArray();
         var overrides = new Dictionary<int, Dictionary<string, PdfObject>>();
         var reservedFormResourceNames = new HashSet<string>(StringComparer.Ordinal);
@@ -86,6 +89,7 @@ internal static partial class PdfStamper {
         Dictionary<int, PdfIndirectObject>? cachedSourceObjects = null;
         PdfReadDocument? cachedSourceDocument = null;
         var cachedImportedObjectNumbers = new Dictionary<int, int>();
+        long retainedPageContentBytes = 0L;
 
         for (int requestIndex = 0; requestIndex < requests.Count; requestIndex++) {
             PageStampRequest request = requests[requestIndex];
@@ -135,7 +139,7 @@ internal static partial class PdfStamper {
             var newlyImportedObjectNumbers = new List<int>();
             foreach (int sourceObjectNumber in sourceCollector.ObjectIds) {
                 if (cachedImportedObjectNumbers.ContainsKey(sourceObjectNumber)) continue;
-                cachedImportedObjectNumbers[sourceObjectNumber] = nextObjectNumber++;
+                cachedImportedObjectNumbers[sourceObjectNumber] = checked(nextObjectNumber++);
                 newlyImportedObjectNumbers.Add(sourceObjectNumber);
             }
             foreach (int sourceObjectNumber in newlyImportedObjectNumbers) {
@@ -151,7 +155,10 @@ internal static partial class PdfStamper {
                 sourceWidth,
                 sourceHeight,
                 normalization,
-                source.ReadOptions.Limits.MaxObjectNestingDepth);
+                source.ReadOptions.Limits.MaxObjectNestingDepth,
+                source.ReadOptions.Limits.MaxDecodedStreamBytes,
+                maximumOutputBytes.HasValue ? maximumOutputBytes.Value - retainedPageContentBytes : null);
+            retainedPageContentBytes = checked(retainedPageContentBytes + formContent.LongLength);
             var formDictionary = new PdfDictionary();
             formDictionary.Items["Type"] = new PdfName("XObject");
             formDictionary.Items["Subtype"] = new PdfName("Form");
@@ -163,7 +170,7 @@ internal static partial class PdfStamper {
             if (options.ContentIdentifier is { } formIdentifier)
                 formDictionary.Items["OfficeIMOWatermarkResource"] = new PdfStringObj(formIdentifier);
             if (sourceGroup != null) formDictionary.Items["Group"] = CloneImportedObject(sourceGroup, cachedImportedObjectNumbers);
-            int formObjectNumber = nextObjectNumber++;
+            int formObjectNumber = checked(nextObjectNumber++);
             targetObjects[formObjectNumber] = new PdfIndirectObject(formObjectNumber, 0, new PdfStream(formDictionary, formContent));
 
             int graphicsStateObjectNumber = 0;
@@ -175,7 +182,7 @@ internal static partial class PdfStamper {
                 if (options.ContentIdentifier is { } stateIdentifier)
                     graphicsState.Items["OfficeIMOWatermarkResource"] = new PdfStringObj(stateIdentifier);
                 if (options.BlendMode != OfficeBlendMode.Normal) graphicsState.Items["BM"] = new PdfName(options.BlendMode.ToString());
-                graphicsStateObjectNumber = nextObjectNumber++;
+                graphicsStateObjectNumber = checked(nextObjectNumber++);
                 targetObjects[graphicsStateObjectNumber] = new PdfIndirectObject(graphicsStateObjectNumber, 0, graphicsState);
             }
 
@@ -201,7 +208,7 @@ internal static partial class PdfStamper {
                     stamp.Dictionary.Items["OfficeIMOWatermarkBehind"] = new PdfBoolean(options.BehindContent);
                     if (options.WatermarkSettings is { } settings) {
                         if (!watermarkSettingsObjects.TryGetValue(identifier, out int settingsNumber)) {
-                            settingsNumber = nextObjectNumber++;
+                            settingsNumber = checked(nextObjectNumber++);
                             var settingsDictionary = BuildWatermarkSettings(settings, targetObjects, ref nextObjectNumber);
                             targetObjects[settingsNumber] = new PdfIndirectObject(settingsNumber, 0, settingsDictionary);
                             watermarkSettingsObjects.Add(identifier, settingsNumber);
@@ -209,7 +216,7 @@ internal static partial class PdfStamper {
                         stamp.Dictionary.Items["OfficeIMOWatermarkSettings"] = new PdfReference(settingsNumber, 0);
                     }
                 }
-                int stampObjectNumber = nextObjectNumber++;
+                int stampObjectNumber = checked(nextObjectNumber++);
                 targetObjects[stampObjectNumber] = new PdfIndirectObject(stampObjectNumber, 0, stamp);
                 Dictionary<string, PdfObject>? existingOverride = overrides.TryGetValue(targetPage.ObjectNumber, out Dictionary<string, PdfObject>? currentOverride)
                     ? currentOverride
@@ -242,7 +249,8 @@ internal static partial class PdfStamper {
             pageObjectNumbers,
             overrides,
             catalogState: PdfPageExtractor.ExtractCatalogRewriteState(targetObjects, targetTrailer),
-            fileVersion: outputVersion);
+            fileVersion: outputVersion,
+            maximumOutputBytes: maximumOutputBytes);
     }
 
     private sealed class PageStampRequest {
@@ -262,17 +270,34 @@ internal static partial class PdfStamper {
         double width,
         double height,
         Matrix2D normalization,
-        int maximumObjectNestingDepth) {
+        int maximumObjectNestingDepth,
+        int maximumDecodedStreamBytes,
+        long? remainingContentBytes) {
+        if (remainingContentBytes <= 0L) throw new InvalidDataException("Imposed page content exceeds the configured output limit.");
         var builder = new StringBuilder();
         var content = new ContentStreamBuilder(builder);
         content.SaveState()
             .Rectangle(0D, 0D, width, height).ClipPath().EndPath()
             .TransformMatrix(normalization.A, normalization.B, normalization.C, normalization.D, normalization.E, normalization.F);
+        if (remainingContentBytes.HasValue && builder.Length > remainingContentBytes.Value)
+            throw new InvalidDataException("Imposed page content exceeds the configured output limit.");
         foreach (PdfStream stream in GetPageContentStreams(sourceObjects, page, maximumObjectNestingDepth)) {
-            byte[] decoded = StreamDecoder.Decode(stream, sourceObjects);
+            int streamLimit = remainingContentBytes.HasValue
+                ? (int)Math.Min(maximumDecodedStreamBytes, Math.Max(1L, remainingContentBytes.Value - builder.Length))
+                : maximumDecodedStreamBytes;
+            byte[] decoded;
+            try {
+                decoded = StreamDecoder.Decode(stream, sourceObjects, streamLimit);
+            } catch (PdfReadLimitException exception) when (remainingContentBytes.HasValue && streamLimit < maximumDecodedStreamBytes) {
+                throw new InvalidDataException("Imposed page content exceeds the configured output limit.", exception);
+            }
+            if (remainingContentBytes.HasValue && decoded.LongLength + 1L > remainingContentBytes.Value - builder.Length)
+                throw new InvalidDataException("Imposed page content exceeds the configured output limit.");
             builder.Append(PdfEncoding.Latin1GetString(decoded)).Append('\n');
         }
         content.RestoreState();
+        if (remainingContentBytes.HasValue && builder.Length > remainingContentBytes.Value)
+            throw new InvalidDataException("Imposed page content exceeds the configured output limit.");
         return PdfEncoding.Latin1GetBytes(builder.ToString());
     }
 

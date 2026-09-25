@@ -194,6 +194,21 @@ public class PdfStampAnnotationEditorTests {
         Assert.Equal(2, result.ToDocument().Reader.Annotations().Count);
     }
 
+    [Fact]
+    public void StampRejectsObjectNumberExhaustionBeforeGeneratingReferences() {
+        byte[] source = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj",
+            "2147483644 0 obj", "<< /Unused true >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 5 >>", "%%EOF"
+        }));
+
+        Assert.Throws<OverflowException>(() => PdfAnnotationEditor.AddStampAnnotation(source));
+    }
+
     private static byte[] Certify(byte[] source, PdfCertificationPermissionLevel permission) {
         PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
             source,

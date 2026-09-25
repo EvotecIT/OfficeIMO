@@ -25,6 +25,8 @@ public sealed class PdfNUpOptions {
     public int MaxSheets { get; set; } = 100;
     /// <summary>Maximum source pages imported by one operation.</summary>
     public int MaxSourcePages { get; set; } = 500;
+    /// <summary>Maximum bytes retained for imposed page content and the finished PDF.</summary>
+    public long MaxOutputBytes { get; set; } = 256L * 1024L * 1024L;
     /// <summary>Allows source annotations, form widgets, and structure tags to be omitted; their appearances can also be lost.</summary>
     public bool AllowSourceFeatureLoss { get; set; }
     /// <summary>Explicit handling for a signed source. The default rejects it.</summary>
@@ -35,6 +37,7 @@ public sealed class PdfNUpOptions {
         if (Rows < 1 || Rows > 8) throw new ArgumentOutOfRangeException(nameof(Rows));
         if (MaxSheets < 1) throw new ArgumentOutOfRangeException(nameof(MaxSheets));
         if (MaxSourcePages < 1) throw new ArgumentOutOfRangeException(nameof(MaxSourcePages));
+        if (MaxOutputBytes < 1L || MaxOutputBytes > int.MaxValue) throw new ArgumentOutOfRangeException(nameof(MaxOutputBytes));
         if (SignaturePolicy != PdfImpositionSignaturePolicy.Reject && SignaturePolicy != PdfImpositionSignaturePolicy.CreateUnsignedDerivative)
             throw new ArgumentOutOfRangeException(nameof(SignaturePolicy));
         if (SheetSize.Width <= 0D || SheetSize.Height <= 0D ||

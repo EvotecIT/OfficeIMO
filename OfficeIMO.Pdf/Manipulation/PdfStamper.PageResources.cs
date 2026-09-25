@@ -19,8 +19,8 @@ internal static partial class PdfStamper {
         PdfObject contentsObject,
         ref int nextObjectNumber) {
         var isolated = new PdfArray();
-        int saveStateObjectNumber = nextObjectNumber++;
-        int restoreStateObjectNumber = nextObjectNumber++;
+        int saveStateObjectNumber = checked(nextObjectNumber++);
+        int restoreStateObjectNumber = checked(nextObjectNumber++);
         objects[saveStateObjectNumber] = new PdfIndirectObject(saveStateObjectNumber, 0, new PdfStream(new PdfDictionary(), PdfEncoding.Latin1GetBytes("q\n")));
         objects[restoreStateObjectNumber] = new PdfIndirectObject(restoreStateObjectNumber, 0, new PdfStream(new PdfDictionary(), PdfEncoding.Latin1GetBytes("\nQ\n")));
         isolated.Items.Add(new PdfReference(saveStateObjectNumber, 0));

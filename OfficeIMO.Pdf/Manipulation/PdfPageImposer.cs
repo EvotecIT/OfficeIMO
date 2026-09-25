@@ -126,7 +126,8 @@ internal static class PdfPageImposer {
         int sheetCount = checked((int)((pageNumbers.LongLength + cellsPerSheet - 1L) / cellsPerSheet));
         if (sheetCount > options.MaxSheets) throw PdfReadLimitException.Create(PdfReadLimitKind.RenderPages, options.MaxSheets, sheetCount);
 
-        var blank = PdfDocument.Create(new PdfOptions { PageSize = options.SheetSize });
+        var blank = PdfDocument.Create(new PdfOptions { PageSize = options.SheetSize,
+            MaxGeneratedOutputBytes = options.MaxOutputBytes });
         for (int index = 0; index < sheetCount; index++) {
             if (index != 0) blank.PageBreak();
             blank.Canvas(static canvas => {
@@ -157,7 +158,7 @@ internal static class PdfPageImposer {
                 Fit = PdfPageOverlayFit.Contain
             });
         }
-        byte[] output = PdfStamper.StampPages(blankSheets, sourcePdf, overlays);
+        byte[] output = PdfStamper.StampPages(blankSheets, sourcePdf, overlays, options.MaxOutputBytes);
         PdfDocumentInfo resultInfo = PdfInspector.Inspect(output);
         if (resultInfo.PageCount != sheetCount) throw new InvalidOperationException("Imposed output page count did not match its placement plan.");
         return new PdfImpositionResult(output, placements, removedSignatureCount, sourceFeatureLoss);
@@ -171,7 +172,8 @@ internal static class PdfPageImposer {
 
     private static bool HasPageFeatures(PdfPageInfo page) =>
         page.HasPageActions || page.HasPageMetadata || page.HasPieceInfo ||
-        page.TabOrder != null || page.DurationSeconds.HasValue || page.Transition != null;
+        page.TabOrder != null || page.DurationSeconds.HasValue || page.Transition != null ||
+        page.TrimBox != null || page.BleedBox != null || page.ArtBox != null;
 
     private static bool HasRawPageFeatures(PdfReadPage page) =>
         page.PageDictionary.Items.ContainsKey("AA") ||
@@ -179,5 +181,8 @@ internal static class PdfPageImposer {
         page.PageDictionary.Items.ContainsKey("PieceInfo") ||
         page.PageDictionary.Items.ContainsKey("Tabs") ||
         page.PageDictionary.Items.ContainsKey("Dur") ||
-        page.PageDictionary.Items.ContainsKey("Trans");
+        page.PageDictionary.Items.ContainsKey("Trans") ||
+        page.PageDictionary.Items.ContainsKey("TrimBox") ||
+        page.PageDictionary.Items.ContainsKey("BleedBox") ||
+        page.PageDictionary.Items.ContainsKey("ArtBox");
 }

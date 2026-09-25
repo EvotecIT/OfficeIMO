@@ -17,6 +17,8 @@ public sealed class PdfBookletOptions {
     public int MaxPhysicalSheets { get; set; } = 100;
     /// <summary>Maximum source pages imported by one operation.</summary>
     public int MaxSourcePages { get; set; } = 500;
+    /// <summary>Maximum bytes retained for imposed page content and the finished PDF.</summary>
+    public long MaxOutputBytes { get; set; } = 256L * 1024L * 1024L;
     /// <summary>Allows source annotations, form widgets, and structure tags to be omitted; their appearances can also be lost.</summary>
     public bool AllowSourceFeatureLoss { get; set; }
     /// <summary>Explicit handling for a signed source. The default rejects it.</summary>
@@ -30,6 +32,7 @@ public sealed class PdfBookletOptions {
             VerticalGutter = 0D,
             MaxSheets = MaxPhysicalSheets * 2,
             MaxSourcePages = MaxSourcePages,
+            MaxOutputBytes = MaxOutputBytes,
             AllowSourceFeatureLoss = AllowSourceFeatureLoss,
             SignaturePolicy = SignaturePolicy
         };

@@ -54,6 +54,41 @@ public sealed class PdfNUpImpositionTests {
     }
 
     [Fact]
+    public void SelectedProductionBoxesRequireFeatureLossApproval() {
+        byte[] source = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /TrimBox [10 10 190 190] /BleedBox [5 5 195 195] /ArtBox [20 20 180 180] /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 5 >>", "%%EOF"
+        }));
+        PdfDocument document = PdfDocument.Load(source);
+        var options = new PdfNUpOptions(new PageSize(600, 400), 2, 1);
+
+        Assert.Throws<NotSupportedException>(() => document.Pages.ImposeNUp(options));
+        options.AllowSourceFeatureLoss = true;
+        Assert.True(document.Pages.ImposeNUp(options).SourceFeatureLoss.HasFlag(PdfImpositionSourceFeatureLoss.PageFeatures));
+    }
+
+    [Fact]
+    public void RepeatedPageContentCannotExceedAggregateImpositionBudget() {
+        string content = "q\n%" + new string('x', 8192) + "\nQ\n";
+        byte[] source = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + content.Length + " >>", "stream", content, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 5 >>", "%%EOF"
+        }));
+        var options = new PdfNUpOptions(new PageSize(600, 400), 2, 1) { MaxOutputBytes = 12000 };
+        PdfDocument document = PdfDocument.Load(source);
+
+        Assert.Throws<InvalidDataException>(() => document.Pages.ImposeNUp(options, PdfPageSelection.From(1, 1)));
+    }
+
+    [Fact]
     public void UnselectedInteractivePagesDoNotRequireFeatureLossApproval() {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Selected page"))

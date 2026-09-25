@@ -46,6 +46,8 @@ internal static partial class PdfAnnotationEditor {
         }
 
         int nextObjectNumber = NextAnnotationObjectNumber(objects);
+        // Reserve every generated object before mutating the graph; post-increment must not wrap.
+        _ = checked(nextObjectNumber + (imageStream?.SoftMask is not null ? 4 : 3));
         var generatedObjects = new List<int>();
         int? fontObjectNumber = null;
         int? imageObjectNumber = null;

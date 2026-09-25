@@ -845,9 +845,12 @@ pages are blank-padded to a multiple of four. Set `RightToLeft` for reverse
 reading order; printer duplex edge, creep, and bleed settings remain with the
 print workflow. Both operations import page
 content as vector Form XObjects, but do not carry source annotations, forms,
-or structure tags onto the new sheets; their visible appearances may also be
-omitted. Set `AllowSourceFeatureLoss = true` to accept that loss and inspect
-`SourceFeatureLoss` on the result. Signed sources are rejected by default; set
+structure tags, or selected TrimBox, BleedBox, and ArtBox boundaries onto the
+new sheets; their visible appearances may also be omitted. Set
+`AllowSourceFeatureLoss = true` to accept that loss and inspect
+`SourceFeatureLoss` on the result. Set `MaxOutputBytes` on either layout option
+to bound retained page content and the finished PDF (256 MiB by default).
+Signed sources are rejected by default; set
 `SignaturePolicy = PdfImpositionSignaturePolicy.CreateUnsignedDerivative` to
 create an unsigned source derivative first. The result reports
 `RemovedSignatureCount`, and the original signed PDF remains unchanged.
