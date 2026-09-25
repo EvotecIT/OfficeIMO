@@ -365,7 +365,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 continue;
             }
             if (run.IsReplaced) {
-                current += run.ReplacedWidth;
+                current += run.ReplacedMinWidth;
                 maximum = Math.Max(maximum, current);
                 if (!run.Style.PreventTextWrapping) current = 0D;
                 continue;
@@ -437,12 +437,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return Math.Max(maximum, current);
     }
 
-    private IReadOnlyList<GridIntrinsicTextRun> ResolveGridInFlowTextRuns(FlexItem item, double availableSize) {
+    private IReadOnlyList<GridIntrinsicTextRun> ResolveGridInFlowTextRuns(FlexItem item, double availableSize, int depth = 1) {
         var rawRuns = new List<GridIntrinsicTextRun>();
         if (item.Element == null) {
             if (item.Style.Font.Size > 0D) rawRuns.Add(new GridIntrinsicTextRun(item.TextContent, item.Style));
         } else {
-            AppendGridInFlowTextRuns(item.Element, item.Style, availableSize, 1, rawRuns);
+            AppendGridInFlowTextRuns(item.Element, item.Style, availableSize, depth, rawRuns);
         }
 
         var normalized = new List<GridIntrinsicTextRun>();
@@ -545,6 +545,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             } else if (IsReplacedImageElement(child)) {
                 double width = ResolveReplacedImageBoxWidth(child, childStyle) + childStyle.MarginLeft + childStyle.MarginRight;
                 result.Add(GridIntrinsicTextRun.Replaced(width, childStyle));
+            } else if (childStyle.Display == "inline-block") {
+                var atomic = new FlexItem(child, childStyle, 0);
+                GridIntrinsicContributions widths = ResolveInlineBlockIntrinsicContributions(atomic, availableSize, depth + 1);
+                result.Add(GridIntrinsicTextRun.Replaced(widths.Minimum, widths.Maximum, parentStyle));
             } else {
                 AppendGridInFlowTextRuns(child, childStyle, availableSize, depth + 1, result);
             }
@@ -627,22 +631,26 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private sealed class GridIntrinsicTextRun {
-        internal GridIntrinsicTextRun(string text, HtmlRenderBoxStyle style, bool isForcedBreak = false, bool isReplaced = false, double replacedWidth = 0D) {
+        internal GridIntrinsicTextRun(string text, HtmlRenderBoxStyle style, bool isForcedBreak = false, bool isReplaced = false, double replacedWidth = 0D, double? replacedMinWidth = null) {
             Text = text;
             Style = style;
             IsForcedBreak = isForcedBreak;
             IsReplaced = isReplaced;
             ReplacedWidth = replacedWidth;
+            ReplacedMinWidth = replacedMinWidth ?? replacedWidth;
         }
 
         internal static GridIntrinsicTextRun ForcedBreak(HtmlRenderBoxStyle style) => new(string.Empty, style, isForcedBreak: true);
         internal static GridIntrinsicTextRun Replaced(double width, HtmlRenderBoxStyle style) => new(string.Empty, style, isReplaced: true, replacedWidth: width);
+        internal static GridIntrinsicTextRun Replaced(double minimum, double maximum, HtmlRenderBoxStyle style) =>
+            new(string.Empty, style, isReplaced: true, replacedWidth: maximum, replacedMinWidth: minimum);
 
         internal string Text { get; }
         internal HtmlRenderBoxStyle Style { get; }
         internal bool IsForcedBreak { get; }
         internal bool IsReplaced { get; }
         internal double ReplacedWidth { get; }
+        internal double ReplacedMinWidth { get; }
     }
 
     private static void DistributeGridFractions(IReadOnlyList<GridTrack> tracks, IList<double> sizes, double trackSpace) {
