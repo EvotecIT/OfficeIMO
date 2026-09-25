@@ -47,6 +47,75 @@ public sealed class PdfStaticFormRecognizerTests {
     }
 
     [Fact]
+    public void OcrEvidenceBelowHalfConfidenceUsesTheConfiguredProposalThreshold() {
+        byte[] source = PdfDocument.Create(new PdfOptions { PageWidth = 400, PageHeight = 300 })
+            .Canvas(canvas => canvas.Shape(Box(140D, 20D), 100D, 30D)).ToBytes();
+        var ocr = new[] { new PdfStaticFormTextEvidence(1, "Customer ID", 20D, 30D, 85D, 49D, 0.49D) };
+
+        PdfStaticFormRecognitionReport accepted = PdfDocument.Load(source).Forms.RecognizeStaticLayout(
+            new PdfStaticFormRecognitionOptions { MinimumConfidence = 0.3D }, ocr);
+        PdfStaticFormRecognitionReport rejected = PdfDocument.Load(source).Forms.RecognizeStaticLayout(
+            new PdfStaticFormRecognitionOptions { MinimumConfidence = 0.4D }, ocr);
+
+        Assert.Single(accepted.Proposals);
+        Assert.Empty(rejected.Proposals);
+        Assert.Contains(rejected.Diagnostics, static diagnostic => diagnostic.Code == "low-confidence");
+    }
+
+    [Fact]
+    public void GradientStrokeIsAVisibleOutlineCandidate() {
+        const string content = "/Pattern CS /P1 SCN 1 w 80 80 120 20 re S";
+        byte[] source = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.4", "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 240 200] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /Resources << /Pattern << /P1 5 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + content.Length + " >>", "stream", content, "endstream", "endobj",
+            "5 0 obj", "<< /Type /Pattern /PatternType 2 /Shading << /ShadingType 2 /ColorSpace /DeviceRGB /Coords [80 80 200 80] /Function << /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 0 1] /N 1 >> /Extend [true true] >> >>", "endobj",
+            "trailer", "<< /Root 1 0 R >>", "%%EOF", ""
+        }));
+
+        IReadOnlyList<PdfPageVisualPrimitive> primitives = PdfReadDocument.Open(source).Pages[0].GetIdentityVisualPrimitives();
+        Assert.Contains(primitives, primitive => primitive.Kind == PdfPageVisualPrimitiveKind.Rectangle && primitive.StrokeGradient != null);
+        var ocr = new[] { new PdfStaticFormTextEvidence(1, "Name", 10D, 100D, 70D, 120D, 1D) };
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: ocr);
+        Assert.Single(report.Proposals);
+    }
+
+    [Fact]
+    public void PartialWhiteRepaintDoesNotClearAnOccupiedField() {
+        OfficeShape painted = OfficeShape.Rectangle(140D, 20D);
+        painted.FillColor = OfficeColor.Red;
+        painted.StrokeColor = null;
+        OfficeShape white = OfficeShape.Rectangle(126D, 20D);
+        white.FillColor = OfficeColor.White;
+        white.StrokeColor = null;
+        OfficeShape outline = Box(140D, 20D);
+        outline.FillColor = null;
+        byte[] source = PdfDocument.Create(new PdfOptions { PageWidth = 400, PageHeight = 300 })
+            .Canvas(canvas => canvas.Shape(painted, 100D, 28D).Shape(white, 100D, 28D)
+                .Shape(outline, 100D, 28D).Text("Name:", 20D, 28D, 70D, 20D)).ToBytes();
+
+        Assert.Empty(PdfDocument.Load(source).Forms.RecognizeStaticLayout().Proposals);
+    }
+
+    [Fact]
+    public void LargerOpaqueWhiteRepaintClearsAnOccupiedField() {
+        OfficeShape painted = OfficeShape.Rectangle(140D, 20D);
+        painted.FillColor = OfficeColor.Red;
+        painted.StrokeColor = null;
+        OfficeShape white = OfficeShape.Rectangle(400D, 300D);
+        white.FillColor = OfficeColor.White;
+        white.StrokeColor = null;
+        OfficeShape outline = Box(140D, 20D);
+        outline.FillColor = null;
+        byte[] source = PdfDocument.Create(new PdfOptions { PageWidth = 400, PageHeight = 300 })
+            .Canvas(canvas => canvas.Shape(painted, 100D, 28D).Shape(white, 0D, 0D)
+                .Shape(outline, 100D, 28D).Text("Name:", 20D, 28D, 70D, 20D)).ToBytes();
+
+        Assert.Single(PdfDocument.Load(source).Forms.RecognizeStaticLayout().Proposals);
+    }
+
+    [Fact]
     public void SuggestedNamesReserveFieldAncestorsAcrossUnselectedPages() {
         byte[] sourceBytes = PdfDocument.Create(new PdfOptions { PageWidth = 400, PageHeight = 300 })
             .Canvas(canvas => canvas.Text("Customer:", 20D, 28D, 85D, 20D).Shape(Box(140D, 20D), 125D, 28D))

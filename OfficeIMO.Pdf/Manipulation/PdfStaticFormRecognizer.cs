@@ -153,7 +153,7 @@ internal static class PdfStaticFormRecognizer {
             labels.Add(new Label(text, new VisualRect(bounds.Left, bounds.Top, bounds.Right, bounds.Bottom), block.Confidence, isOcr: false));
         }
         foreach (PdfStaticFormTextEvidence item in ocrText) {
-            if (item.PageNumber != page.PageNumber || item.Confidence < 0.5D) continue;
+            if (item.PageNumber != page.PageNumber) continue;
             string text = NormalizeLabel(item.Text);
             if (text.Length == 0 || text.Length > 80 || !Valid(item.Left, item.Top, item.Right, item.Bottom, pageWidth, pageHeight)) continue;
             var bounds = new VisualRect(item.Left, item.Top, item.Right, item.Bottom);
@@ -172,7 +172,7 @@ internal static class PdfStaticFormRecognizer {
     private static bool TryGetCandidate(PdfPageVisualPrimitive primitive, double pageWidth, double pageHeight, out VisualRect bounds, out PdfStaticFormEvidenceKind evidence) {
         bounds = default;
         evidence = default;
-        if (primitive.StrokeColor is null || primitive.StrokeOpacity == 0D) return false;
+        if (!primitive.HasStrokePaint || primitive.StrokeOpacity == 0D) return false;
         if (primitive.Kind == PdfPageVisualPrimitiveKind.Rectangle) {
             if (primitive.Width >= 9D && primitive.Width <= 22D && primitive.Height >= 9D && primitive.Height <= 22D &&
                 Math.Abs(primitive.Width - primitive.Height) <= 3D && IsEmptyFill(primitive)) {
@@ -217,13 +217,21 @@ internal static class PdfStaticFormRecognizer {
         CancellationToken cancellationToken) {
         double latestPaintOrder = double.NegativeInfinity;
         bool painted = false;
-        foreach (var (bounds, paintOrder, isEmpty, _) in filledAreas) {
+        foreach (var (bounds, paintOrder, isEmpty, isOpaqueWhite) in filledAreas) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (bounds.Area > candidate.Area * 1.25D ||
-                OverlapArea(bounds, candidate) < candidate.Area * 0.8D ||
-                paintOrder < latestPaintOrder) continue;
-            latestPaintOrder = paintOrder;
-            painted = !isEmpty;
+            if (paintOrder < latestPaintOrder) continue;
+            if (isEmpty) {
+                if (isOpaqueWhite && bounds.Left <= candidate.Left && bounds.Top <= candidate.Top &&
+                    bounds.Right >= candidate.Right && bounds.Bottom >= candidate.Bottom) {
+                    latestPaintOrder = paintOrder;
+                    painted = false;
+                }
+            } else {
+                if (bounds.Area > candidate.Area * 1.25D ||
+                    OverlapArea(bounds, candidate) < candidate.Area * 0.8D) continue;
+                latestPaintOrder = paintOrder;
+                painted = true;
+            }
         }
         return painted;
     }
