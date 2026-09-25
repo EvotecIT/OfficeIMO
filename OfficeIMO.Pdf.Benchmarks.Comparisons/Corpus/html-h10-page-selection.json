@@ -41,7 +41,7 @@
     {
       "id": "nps-yellowstone-photo-galleries",
       "sourceClass": "resource-heavy-gallery",
-      "role": "held-out",
+      "role": "development",
       "selectionDate": "2026-09-24",
       "url": "https://www.nps.gov/yell/learn/photosmultimedia/photogallery.htm",
       "rightsUrl": "https://www.nps.gov/aboutus/disclaimer.htm",
@@ -81,7 +81,52 @@
           "inspect": ["heading hierarchy", "gallery image references and captions", "link destinations", "serialized and reparsed content"]
         }
       ],
-      "reason": "An independently published, image-card-rich government gallery on a different site and stylesheet system from NASA, selected before inspecting OfficeIMO output."
+      "reason": "An independently published, image-card-rich government gallery on a different site and stylesheet system from NASA. Its CSS-cap, layout, resource and breadcrumb failures have informed renderer work, so it is now a development regression rather than an untouched held-out case."
+    },
+    {
+      "id": "noaa-pacific-coral-surveys-2026",
+      "sourceClass": "substantial-illustrated-article",
+      "role": "held-out",
+      "selectionDate": "2026-09-25",
+      "url": "https://www.fisheries.noaa.gov/feature-story/2026-pacific-coral-surveys-complete",
+      "rightsUrl": "https://www.fisheries.noaa.gov/national/about-us/website-policies-and-disclaimers",
+      "rightsNotes": "NOAA Fisheries states that U.S.-government-created information is not subject to U.S. copyright; third-party material, agency marks and external destinations require separate treatment. Retain the page archive only in ignored local evidence, record resource credits and omissions, and do not present the replay as an official NOAA page.",
+      "requiredVisibleMarkers": ["2026 Pacific Coral Surveys Complete", "By the Numbers", "1,006 scuba dives", "Blue marlin larva"],
+      "editableTargetSelectionDate": "2026-09-25",
+      "editableTargets": [
+        {
+          "target": "Word",
+          "profile": "semantic document",
+          "inspect": ["title and section hierarchy", "image and credit pairing", "numbered findings", "link destinations", "saved and reopened content"]
+        },
+        {
+          "target": "Excel",
+          "profile": "generic editable grid",
+          "inspect": ["survey-number labels and values", "article text and image placement", "saved and reopened cells and images"],
+          "scope": "Visual/editable projection; the source has a bullet list of measurements, not a typed table or formula."
+        },
+        {
+          "target": "PowerPoint",
+          "profile": "generic editable slides",
+          "inspect": ["title and section grouping", "editable text and credited pictures", "saved and reopened slide order"]
+        },
+        {
+          "target": "OneNote",
+          "profile": "generic semantic pages",
+          "inspect": ["heading and paragraph flow", "links and credited images", "saved and reopened section content"]
+        },
+        {
+          "target": "RTF",
+          "profile": "editable semantic document",
+          "inspect": ["heading and paragraph flow", "links and images", "saved and reopened content"]
+        },
+        {
+          "target": "Markdown",
+          "profile": "semantic text",
+          "inspect": ["heading hierarchy", "measurement list", "image references and credits", "link destinations", "serialized and reparsed content"]
+        }
+      ],
+      "reason": "A NOAA Fisheries article with a long text flow, measurement list, credited photographs and a navigation system distinct from the gallery pages, selected before any OfficeIMO rendering or conversion of this source."
     }
   ]
 }
