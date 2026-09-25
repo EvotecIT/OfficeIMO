@@ -4,8 +4,9 @@
 {{ api_link = page.api_url ?? page.meta.api_url ?? "" }}
 {{ product_label = page.product_label ?? page.meta.product_label ?? "Document library" }}
 {{ runtime_label = page.runtime_label ?? page.meta.runtime_label ?? "Cross-platform .NET" }}
+{{ product_color = page.product_color ?? page.meta.product_color }}
 <section class="imo-product-hero" aria-labelledby="imo-product-hero-title"
-  {{ if page.product_color }}style="--product-color: {{ page.product_color }}"{{ end }}>
+  {{ if product_color }}style="--product-color: {{ product_color }}"{{ end }}>
   <div class="imo-container imo-product-hero__inner">
     <div class="imo-product-hero__copy">
       <p class="imo-product-hero__eyebrow">{{ product_label }}</p>

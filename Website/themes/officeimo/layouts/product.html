@@ -24,7 +24,7 @@
   {{ include "header" }}
   {{ browser_workflow = data.browser_workflows[page.title] }}
 
-  <main id="content" class="imo-main imo-main--product">
+  <main id="content" class="imo-main imo-main--product"{{ if page.meta.product_color }} style="--product-color: {{ page.meta.product_color }}"{{ end }}>
     {{ include "sections/product-hero" }}
     {{ include "sections/compatibility-family" }}
 

@@ -475,9 +475,7 @@ p { text-wrap: pretty; }
 /* Shared document navigation and product pages */
 .imo-product-hero {
   padding: 3.75rem 0 3.25rem;
-  background:
-    radial-gradient(circle at 78% 40%, color-mix(in srgb, var(--product-color, #2563eb) 10%, transparent), transparent 28%),
-    var(--imo-bg);
+  background: radial-gradient(circle at 78% 40%, color-mix(in srgb, var(--product-color, var(--imo-primary)) 14%, transparent), transparent 32%);
 }
 
 .imo-product-hero__inner {
