@@ -58,20 +58,14 @@ p { text-wrap: pretty; }
   backdrop-filter: blur(14px) saturate(130%);
 }
 
-.imo-header__inner { height: var(--imo-header-height); }
-
 .imo-header__logo {
   gap: 0.55rem;
   color: var(--imo-text);
-  font-size: 1.02rem;
-  font-weight: 800;
-  letter-spacing: -0.025em;
 }
 
 .imo-header__logo svg {
   width: 25px;
   height: 25px;
-  color: var(--imo-primary);
 }
 
 .imo-nav { gap: 0.05rem; }
@@ -582,17 +576,11 @@ p { text-wrap: pretty; }
 [data-theme="dark"] .imo-docs__sidebar { background: rgba(13, 23, 40, 0.96); }
 .imo-docs__nav-intro {
   display: grid;
-  gap: 0.45rem;
-  margin-bottom: 0.9rem;
-  padding-bottom: 0.9rem;
   border-bottom: 1px solid var(--imo-border);
 }
 .imo-docs__nav-intro a {
   display: grid;
   gap: 0.14rem;
-  padding: 0.58rem 0.62rem;
-  border: 1px solid transparent;
-  border-radius: 8px;
   color: var(--imo-text-secondary);
   text-decoration: none;
 }
@@ -602,7 +590,6 @@ p { text-wrap: pretty; }
   background: var(--imo-bg-elevated);
   color: var(--imo-text);
 }
-.imo-docs__nav-intro strong { font-size: 0.76rem; }
 .imo-docs__nav-intro span { color: var(--imo-text-muted); font-size: 0.65rem; line-height: 1.35; }
 .imo-docs__group { margin: 0.16rem 0; }
 .imo-docs__group summary {
@@ -610,24 +597,20 @@ p { text-wrap: pretty; }
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  padding: 0.45rem 0.55rem;
   border-radius: 7px;
-  font-size: 0.78rem;
   line-height: 1.4;
 }
 .imo-docs__group summary:hover { background: var(--imo-bg-elevated); }
 .imo-docs__group summary small {
   min-width: 1.4rem;
   padding: 0.08rem 0.3rem;
-  border: 1px solid var(--imo-border);
   border-radius: 999px;
   color: var(--imo-text-muted);
-  font-size: 0.58rem;
   text-align: center;
 }
 .imo-docs__group[data-current="true"] > summary { background: var(--imo-primary-light); color: var(--imo-primary); }
 .imo-docs__list { margin-left: 0.45rem; padding-left: 0.55rem; }
-.imo-docs__link { padding: 0.34rem 0.5rem; font-size: 0.82rem; line-height: 1.42; }
+.imo-docs__link { line-height: 1.42; }
 
 .imo-docs__main {
   justify-self: center;
@@ -706,39 +689,20 @@ p { text-wrap: pretty; }
 /* Downloads use the same command and action anatomy as product pages. */
 .imo-downloads { gap: clamp(3rem, 6vw, 5rem); }
 
-.imo-download-card__links {
-  align-items: center;
-  gap: 1.15rem;
-  padding-top: 0.15rem;
-  border-top: 1px solid var(--imo-border);
-}
-
 .imo-download-card__links a,
 .imo-download-card__links a:hover { font-size: 0.82rem; }
-
-.imo-body--docs-home .imo-docs { grid-template-columns: 248px minmax(0, 1fr); }
 .imo-docs__main--home { max-width: none; }
 .imo-docs__main--home .imo-docs__article { max-width: 1040px; padding: 0 clamp(2rem, 5vw, 4.5rem) 4rem; }
 
 .imo-docs-home-hero {
-  display: grid;
   grid-template-columns: minmax(0, 0.95fr) minmax(300px, 0.75fr);
   gap: 2.5rem;
   align-items: end;
-  padding: 3.25rem 0 2.6rem;
-  background: none;
 }
 
 .imo-docs-home-hero__eyebrow { grid-column: 1 / -1; margin-bottom: -1.8rem; }
-.imo-docs-home-hero h1 {
-  max-width: 580px;
-  margin: 0;
-  font-size: clamp(2.55rem, 3.5vw, 3.6rem);
-  line-height: 0.98;
-}
 .imo-docs-home-hero h1 span { color: #2563eb; background: none; }
-.imo-docs-home-hero > p:not(.imo-docs-home-hero__eyebrow) { font-size: 0.92rem; line-height: 1.65; }
-.imo-docs-home-hero__actions { grid-column: 2; margin-top: 1rem; }
+.imo-docs-home-hero__actions { grid-column: 2; }
 
 .imo-docs-evidence {
   display: grid;
@@ -832,13 +796,10 @@ body.pf-api-docs {
   grid-template-columns: minmax(0, 0.9fr) minmax(300px, 0.7fr);
   gap: 2.8rem;
   align-items: end;
-  padding: 3.35rem 0 2.7rem;
-  background: none;
 }
 .imo-api-landing__eyebrow { grid-column: 1 / -1; margin-bottom: -1.9rem; }
 .imo-api-landing__hero h1 {
   margin: 0;
-  font-size: clamp(2.65rem, 3.7vw, 3.75rem);
   line-height: 0.98;
 }
 .imo-api-landing__hero h1 span { color: #2563eb; background: none; }
@@ -1048,11 +1009,7 @@ body.pf-api-docs {
 .imo-converter-launch { background: none; }
 .imo-converter-launch__frame-shell { padding-bottom: 1rem; }
 .imo-converter-launch__frame {
-  display: block;
-  width: 100%;
   height: auto;
-  min-height: 720px;
-  border: 0;
   background: var(--imo-bg);
 }
 .imo-body--playground .imo-footer { margin-top: 0; }
@@ -1080,7 +1037,6 @@ body.pf-api-docs {
 .imo-showcase-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1rem;
 }
 
 /* Inline code must remain legible in both themes; blocks keep their syntax palette. */

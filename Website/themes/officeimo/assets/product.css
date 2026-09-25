@@ -5,31 +5,23 @@
 
 /* ---------- Product Hero ---------- */
 .imo-product-hero {
-  padding: 4rem 0 3rem;
   background: linear-gradient(
     170deg,
     var(--imo-bg) 0%,
     color-mix(in srgb, var(--product-color, var(--imo-primary)) 6%, var(--imo-bg)) 50%,
     var(--imo-bg) 100%
   );
-  border-bottom: 1px solid var(--imo-border);
 }
 
 .imo-product-hero__inner {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 3rem;
   align-items: center;
 }
 
 .imo-product-hero__inner > * { min-width: 0; }
 
 .imo-product-hero__title {
-  font-size: 2.75rem;
   font-weight: 800;
-  line-height: 1.12;
-  letter-spacing: -0.02em;
-  margin-bottom: 1rem;
 }
 
 .imo-product-hero__title span {
@@ -37,30 +29,20 @@
 }
 
 .imo-product-hero__desc {
-  font-size: 1.125rem;
   color: var(--imo-text-secondary);
-  line-height: 1.7;
-  max-width: 520px;
-  margin-bottom: 1.5rem;
 }
 
 .imo-product-hero__meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-bottom: 2rem;
 }
 
 .imo-product-hero__meta-item {
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
-  padding: 0.25rem 0.625rem;
-  font-size: 0.8125rem;
   font-weight: 600;
-  background: var(--imo-surface);
   border: 1px solid var(--imo-border);
-  border-radius: 9999px;
   color: var(--imo-text-secondary);
 }
 
@@ -81,14 +63,11 @@
 }
 
 /* Product experience */
-.imo-product-hero{padding:clamp(4.5rem,8vw,7rem) 0 5rem;overflow:hidden;background:radial-gradient(circle at 82% 28%,color-mix(in srgb,var(--product-color,var(--imo-primary)) 20%,transparent),transparent 33%),linear-gradient(180deg,color-mix(in srgb,var(--product-color,var(--imo-primary)) 5%,var(--imo-bg)),var(--imo-bg));border-bottom:1px solid var(--imo-border)}
-.imo-product-hero__inner{grid-template-columns:minmax(0,.92fr) minmax(500px,1.08fr);gap:clamp(3rem,7vw,7rem)}
-.imo-product-hero__copy{max-width:660px}.imo-product-hero__eyebrow{margin:0 0 1rem;color:var(--product-color,var(--imo-primary));font-size:.75rem;font-weight:850;letter-spacing:.14em;text-transform:uppercase}.imo-product-hero__title{font-size:clamp(3.2rem,5vw,5.4rem);line-height:.94;letter-spacing:-.055em;margin-bottom:1.4rem}.imo-product-hero__desc{max-width:620px;font-size:1.16rem}.imo-product-hero__actions{margin-bottom:1.5rem}
-.imo-product-install-command{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;max-width:620px;border:1px solid var(--imo-border);border-radius:12px;background:rgba(4,13,27,.7);overflow:hidden}.imo-product-install-command>span{align-self:stretch;display:grid;place-items:center;padding:.75rem .8rem;background:color-mix(in srgb,var(--product-color,var(--imo-primary)) 14%,transparent);color:var(--product-color,var(--imo-primary));font-size:.65rem;font-weight:850;letter-spacing:.1em;text-transform:uppercase}.imo-product-install-command code{padding:.8rem 1rem;color:#d7e7fb;font-size:.78rem;overflow-x:auto}.imo-product-install-command .imo-install__copy{position:static;background:transparent;border:0;padding:.8rem;color:#94a3b8}
-.imo-product-proof{position:relative;min-height:470px}
-.imo-product-proof__code{position:absolute;right:-20px;bottom:0;width:72%;padding:.9rem 1rem;border:1px solid rgba(56,189,248,.24);border-radius:10px;background:#071426;box-shadow:0 20px 40px rgba(0,0,0,.28);transform:rotate(1.5deg)}.imo-product-proof__code>span{display:block;margin-bottom:.4rem;color:#38bdf8;font-size:.62rem;font-weight:800}.imo-product-proof__code code{color:#cbe6ff;font-size:.7rem;line-height:1.6}
-.imo-product__content{max-width:980px;padding:5rem 0}.imo-product__content>h2{margin-top:3.5rem;font-size:2rem;letter-spacing:-.035em}.imo-product__content>h2:first-child{margin-top:0}.imo-product__content table{display:table;width:100%;border:1px solid var(--imo-border);border-radius:12px;overflow:hidden}.imo-product__content th{background:var(--imo-surface)}
-.imo-product-next{padding:4rem 0;border-top:1px solid var(--imo-border);background:linear-gradient(135deg,rgba(59,130,246,.09),rgba(45,212,191,.05))}.imo-product-next__inner{display:flex;align-items:center;justify-content:space-between;gap:3rem}.imo-product-next__eyebrow{margin:0 0 .7rem;color:var(--imo-accent);font-size:.72rem;font-weight:850;letter-spacing:.13em;text-transform:uppercase}.imo-product-next h2{margin:0 0 .7rem;font-size:2rem;letter-spacing:-.035em}.imo-product-next p{margin:0;color:var(--imo-text-secondary)}.imo-product-next__actions{display:flex;gap:.7rem;flex-shrink:0}
+.imo-product-hero{overflow:hidden;background:radial-gradient(circle at 82% 28%,color-mix(in srgb,var(--product-color,var(--imo-primary)) 20%,transparent),transparent 33%),linear-gradient(180deg,color-mix(in srgb,var(--product-color,var(--imo-primary)) 5%,var(--imo-bg)),var(--imo-bg));border-bottom:1px solid var(--imo-border)}.imo-product-hero__eyebrow{margin:0 0 1rem;color:var(--product-color,var(--imo-primary));font-weight:850;letter-spacing:.14em;text-transform:uppercase}.imo-product-hero__title{letter-spacing:-.055em}
+.imo-product-install-command{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;border:1px solid var(--imo-border);overflow:hidden}.imo-product-install-command>span{align-self:stretch;display:grid;place-items:center;padding:.75rem .8rem;background:color-mix(in srgb,var(--product-color,var(--imo-primary)) 14%,transparent);color:var(--product-color,var(--imo-primary));font-size:.65rem;font-weight:850;letter-spacing:.1em;text-transform:uppercase}.imo-product-install-command code{color:#d7e7fb;overflow-x:auto}.imo-product-install-command .imo-install__copy{position:static;background:transparent;border:0;padding:.8rem;color:#94a3b8}
+.imo-product-proof{position:relative}
+.imo-product-proof__code{position:absolute;bottom:0;padding:.9rem 1rem;border:1px solid rgba(56,189,248,.24)}.imo-product-proof__code>span{display:block;margin-bottom:.4rem;color:#38bdf8;font-size:.62rem;font-weight:800}.imo-product-proof__code code{color:#cbe6ff;font-size:.7rem;line-height:1.6}.imo-product__content>h2{margin-top:3.5rem;font-size:2rem;letter-spacing:-.035em}.imo-product__content>h2:first-child{margin-top:0}.imo-product__content table{display:table;width:100%;border:1px solid var(--imo-border);border-radius:12px;overflow:hidden}.imo-product__content th{background:var(--imo-surface)}
+.imo-product-next{border-top:1px solid var(--imo-border)}.imo-product-next__inner{display:flex;align-items:center;justify-content:space-between;gap:3rem}.imo-product-next__eyebrow{margin:0 0 .7rem;color:var(--imo-accent);font-size:.72rem;font-weight:850;letter-spacing:.13em;text-transform:uppercase}.imo-product-next h2{margin:0 0 .7rem;letter-spacing:-.035em}.imo-product-next p{margin:0;color:var(--imo-text-secondary)}.imo-product-next__actions{display:flex;gap:.7rem;flex-shrink:0}
 @media(max-width:980px){.imo-product-hero__inner{grid-template-columns:1fr}.imo-product-proof{width:min(660px,100%);margin:0 auto}.imo-product-next__inner{align-items:flex-start;flex-direction:column}.imo-product-next__actions{flex-wrap:wrap}}
 @media(max-width:620px){.imo-product-hero{padding:3.7rem 0}.imo-product-hero__title{font-size:2.8rem}.imo-product-install-command{grid-template-columns:auto minmax(0,1fr)}.imo-product-install-command .imo-install__copy{display:none}.imo-product-proof{min-height:400px}.imo-product-proof__code{right:0;width:88%}.imo-product__content{padding:3.5rem 0}.imo-product-next__actions{flex-direction:column;width:100%}.imo-product-next__actions .imo-btn{justify-content:center}}
 
@@ -97,10 +76,6 @@
 /* ---------- Feature Capability Cards ---------- */
 
 .imo-capability-card {
-  padding: 1.5rem;
-  background: var(--imo-surface);
-  border: 1px solid var(--imo-border);
-  border-radius: var(--imo-radius-lg);
   transition: all var(--imo-duration) var(--imo-ease);
 }
 
@@ -162,7 +137,7 @@
 .imo-capability-summary strong{color:var(--imo-accent);font-size:1.05rem}
 .imo-capability-catalog{padding:1rem 0 4rem}
 .imo-capability-grid{display:grid;gap:1rem}
-.imo-capability-card{scroll-margin-top:7rem;padding:1.4rem;border:1px solid var(--imo-glass-border);border-left:4px solid var(--capability-color);border-radius:22px;background:var(--imo-glass-bg);box-shadow:var(--imo-shadow-sm)}
+.imo-capability-card{scroll-margin-top:7rem;border:1px solid var(--imo-glass-border);border-left:4px solid var(--capability-color);background:var(--imo-glass-bg)}
 .imo-capability-card__header{display:flex;align-items:start;justify-content:space-between;gap:1.5rem;margin-bottom:1.3rem}
 .imo-capability-card__header h2{margin:.1rem 0 0;font-size:1.8rem;letter-spacing:-.035em}
 .imo-capability-card__package{margin:0;color:var(--capability-color);font-size:.78rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase}
@@ -172,21 +147,20 @@
 .imo-capability-format-groups h3{margin:0 0 .75rem;font-size:.8rem;letter-spacing:.07em;text-transform:uppercase;color:var(--imo-text-secondary)}
 .imo-capability-chips{display:flex;flex-wrap:wrap;gap:.4rem}
 .imo-capability-contracts{display:grid;gap:.85rem}
-.imo-capability-contract{padding:1rem;border:1px solid var(--imo-glass-border);border-radius:16px;background:color-mix(in srgb,var(--imo-glass-bg) 90%,var(--capability-color) 3%)}
+.imo-capability-contract{border:1px solid var(--imo-glass-border);background:color-mix(in srgb,var(--imo-glass-bg) 90%,var(--capability-color) 3%)}
 .imo-capability-contract__heading{display:flex;align-items:start;justify-content:space-between;gap:1rem;margin-bottom:.85rem}
 .imo-capability-contract__heading h3{margin:0;font-size:1.05rem}
 .imo-capability-contract__heading p{margin:.3rem 0 0;color:var(--imo-text-secondary);font-size:.82rem;line-height:1.5}
 .imo-capability-contract__heading>span{white-space:nowrap;color:var(--imo-text-secondary);font-size:.76rem;font-weight:700}
 .imo-capability-contract__notice{margin:0 0 .85rem;padding:.7rem .8rem;border-left:3px solid #f59e0b;border-radius:8px;background:rgba(245,158,11,.08);color:var(--imo-text-secondary);font-size:.78rem;line-height:1.5}
 .imo-capability-contract__notice strong{color:var(--imo-text)}
-.imo-capability-operations{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.55rem}
-.imo-capability-operation{padding:.8rem .9rem;border-radius:13px;background:rgba(148,163,184,.06)}
+.imo-capability-operations{display:grid}
 .imo-capability-operation>strong{display:block;margin-bottom:.5rem;font-size:.82rem}
 .imo-capability-operation>div{display:flex;flex-wrap:wrap;gap:.35rem}
 .imo-capability-operation span{font-size:.7rem;color:var(--imo-text-secondary)}
 .imo-capability-operation b{color:var(--imo-text)}
-.imo-capability-card__actions{display:flex;flex-wrap:wrap;gap:1rem;margin-top:1.15rem;padding-top:1rem;border-top:1px solid var(--imo-glass-border)}
-.imo-capability-card__actions a{color:var(--capability-color);font-size:.82rem;font-weight:750;text-decoration:none}
+.imo-capability-card__actions{display:flex;flex-wrap:wrap;margin-top:1.15rem;padding-top:1rem;border-top:1px solid var(--imo-glass-border)}
+.imo-capability-card__actions a{color:var(--capability-color);font-weight:750;text-decoration:none}
 .imo-capability-legend{padding:4rem 0;background:rgba(59,130,246,.04)}
 .imo-capability-legend h2{margin:.35rem 0 .7rem;font-size:clamp(1.8rem,3.4vw,2.8rem)}
 .imo-capability-legend>div>p{max-width:790px;color:var(--imo-text-secondary);line-height:1.7}
@@ -540,9 +514,6 @@
   color: var(--imo-text-secondary);
   font-size: .7rem;
   font-weight: 750;
-}
-.imo-capability-operations {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 .imo-capability-operation {
   min-width: 0;
