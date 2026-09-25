@@ -53,6 +53,8 @@ OneNoteSection section = result.RequireValue();
 
 Use `ToOneNoteNotebookResult()` to create a one-section notebook. Convenience methods `ToOneNoteSection()` and `ToOneNoteNotebook()` throw when the result contains an error diagnostic. `HtmlToOneNoteOptions.Limits` applies the shared native import budgets before pages, elements, tables, or image bytes are allocated.
 
+The importer applies supported inline and embedded CSS to semantic text and cells. It does not load external stylesheet links; applicable links appear as omissions in the result's conversion report. Inspect that report when the source page relies on linked CSS for its appearance.
+
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary
 

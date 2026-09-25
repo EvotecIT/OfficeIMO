@@ -21,9 +21,33 @@ public static class HtmlOneNoteConverterExtensions {
         resolved.Limits.Validate();
         var section = new OneNoteSection { Name = CleanName(resolved.SectionName, "Imported") };
         var result = new HtmlToOneNoteSectionResult(section);
+        HtmlSemanticDocument semanticDocument = document.SemanticDocument;
+        AngleSharp.Html.Dom.IHtmlDocument sourceDocument = document.CreateNativeDocumentForConversion();
         foreach (HtmlDiagnostic diagnostic in document.Diagnostics) result.AddImportDiagnostic(diagnostic);
-        ImportPages(document.SemanticDocument, section, resolved, result);
+        ReportSkippedStylesheetLinks(sourceDocument, document.MediaContext, result);
+        ImportPages(semanticDocument, section, resolved, result);
         return result;
+    }
+
+    private static void ReportSkippedStylesheetLinks(
+        AngleSharp.Html.Dom.IHtmlDocument sourceDocument,
+        HtmlCssMediaContext mediaContext,
+        HtmlToOneNoteSectionResult result) {
+        var stylesheetOptions = new HtmlRenderOptions {
+            Mode = mediaContext == HtmlCssMediaContext.Print ? HtmlRenderMode.Paged : HtmlRenderMode.Continuous
+        };
+        foreach (AngleSharp.Dom.IElement link in sourceDocument.QuerySelectorAll("link[href]")) {
+            if (!HtmlRenderStylesheetApplier.IsApplicableStylesheetLink(link, stylesheetOptions)) continue;
+            string href = link.GetAttribute("href") ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(href)) continue;
+            result.AddImportDiagnostic(new HtmlDiagnostic(
+                ComponentName,
+                "HtmlStylesheetLinkSkipped",
+                "An applicable HTML stylesheet link was not loaded by the semantic OneNote importer.",
+                HtmlDiagnosticSeverity.Warning,
+                source: href,
+                lossKind: OfficeConversionLossKind.Omission));
+        }
     }
 
     /// <summary>Imports HTML as a single-section OneNote notebook or throws on conversion errors.</summary>
