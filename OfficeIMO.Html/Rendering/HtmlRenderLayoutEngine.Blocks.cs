@@ -709,8 +709,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (nodes.Count == 0) return 0D;
         HtmlInlineLayout inline = LayoutInlineNodes(nodes, width, style, depth + 1, null, null);
         if (inline.Height > inline.NormalFlowHeight + 0.0001D) {
+            _inlineFloatOverhangs.TryGetValue(sourceElement, out double previousOverhang);
             _inlineFloatOverhangs[sourceElement] = Math.Max(
-                _inlineFloatOverhangs.GetValueOrDefault(sourceElement),
+                previousOverhang,
                 inline.Height - inline.NormalFlowHeight);
         }
         nodes.Clear();

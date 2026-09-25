@@ -19,6 +19,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 
         HtmlToMarkdownResult result = source.ToMarkdownDocumentResult();
         Assert.Equal(2, result.Blocks);
+        Assert.False(result.HasLoss);
         Assert.Contains("# Hello", result.Value.ToMarkdown(), StringComparison.Ordinal);
 
         using var stream = new MemoryStream();
@@ -34,6 +35,27 @@ public sealed class MarkdownHtmlToMarkdownTests {
         cancellation.Cancel();
         await Assert.ThrowsAsync<OperationCanceledException>(() =>
             source.SaveAsMarkdownAsync(new MemoryStream(), cancellationToken: cancellation.Token));
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_ResultReportsHtmlDependentOutput() {
+        HtmlConversionDocument source = HtmlConversionDocument.Parse(
+            "<custom-widget>Block</custom-widget><p>Before <custom-inline>Inline</custom-inline> <u>Underline</u></p>");
+
+        HtmlToMarkdownResult result = source.ToMarkdownDocumentResult(new HtmlToMarkdownOptions {
+            PreserveUnsupportedBlocks = true,
+            PreserveUnsupportedInlineHtml = true
+        });
+
+        Assert.Contains(result.Value.Blocks, block => block is HtmlRawBlock);
+        Assert.Contains("<custom-inline", result.Value.ToMarkdown(), StringComparison.Ordinal);
+        Assert.Contains("<u>Underline</u>", result.Value.ToMarkdown(), StringComparison.Ordinal);
+        Assert.True(result.HasLoss);
+        HtmlDiagnostic diagnostic = Assert.Single(result.Report.Diagnostics,
+            item => item.Component == "OfficeIMO.Markdown.Html"
+                && item.Code == HtmlConversionDiagnosticCodes.ContentApproximated);
+        Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
+        Assert.Equal("rawBlocks=1; rawInlines=1; htmlTagInlines=1", diagnostic.Detail);
     }
 
     [Fact]
