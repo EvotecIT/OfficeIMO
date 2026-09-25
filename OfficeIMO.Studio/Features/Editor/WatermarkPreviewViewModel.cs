@@ -135,6 +135,8 @@ public sealed partial class WatermarkPreviewViewModel : ObservableObject, IDispo
     [RelayCommand(CanExecute = nameof(CanEdit))]
     private async Task PreviewAsync() {
         if (_disposed || IsBusy) return;
+        _previewDelay?.Cancel();
+        _previewDelay = null;
         IsBusy = true; ErrorMessage = null; _prepared = null;
         long version = _settingsVersion;
         using var cancellation = new CancellationTokenSource();

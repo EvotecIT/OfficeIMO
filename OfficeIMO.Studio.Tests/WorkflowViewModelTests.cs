@@ -230,6 +230,39 @@ public sealed class WorkflowViewModelTests {
     }
 
     [Fact]
+    public void DroppedConvertibleInputsUseTheirExecutableRoutes() {
+        using var scope = new TestDirectory();
+        using var viewModel = new ConversionWorkbenchViewModel(
+            _ => Task.FromResult<IReadOnlyList<string>>([]),
+            _ => Task.FromResult<string?>(scope.Path));
+        viewModel.SelectedRoute = viewModel.Routes.Single(route => route.Route.Id == "docx-pdf");
+        string html = Path.Combine(scope.Path, "page.html");
+        string text = Path.Combine(scope.Path, "notes.txt");
+
+        Assert.True(viewModel.AddDroppedPaths([html, text]));
+
+        Assert.Equal(2, viewModel.Jobs.Count);
+        Assert.All(viewModel.Jobs, job => Assert.Contains(
+            Path.GetExtension(job.InputPath), job.Route.Route.SourceExtensions, StringComparer.OrdinalIgnoreCase));
+        Assert.False(viewModel.HasUnmatchedInputs);
+    }
+
+    [Fact]
+    public void AmbiguousDroppedPdfWaitsForAnExplicitRouteChoice() {
+        using var scope = new TestDirectory();
+        using var viewModel = new ConversionWorkbenchViewModel(
+            _ => Task.FromResult<IReadOnlyList<string>>([]),
+            _ => Task.FromResult<string?>(scope.Path));
+        viewModel.SelectedRoute = viewModel.Routes.Single(route => route.Route.Id == "docx-pdf");
+
+        Assert.True(viewModel.AddDroppedPaths([Path.Combine(scope.Path, "report.pdf")]));
+
+        Assert.Empty(viewModel.Jobs);
+        Assert.True(viewModel.HasUnmatchedInputs);
+        Assert.Contains(viewModel.MatchingInputRoutes, choice => choice.Route.Id == "pdf-docx");
+    }
+
+    [Fact]
     public async Task ConversionQueueEnforcesOwnerBatchLimitBeforeRun() {
         string[] paths = Enumerable.Range(1, OfficeWorkflowRunner.MaximumBatchRequestCount + 1)
             .Select(index => Path.Combine(Path.GetTempPath(), $"source-{index}.docx"))

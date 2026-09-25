@@ -45,9 +45,16 @@ public sealed partial class MainWindowViewModel {
     /// <summary>Loads saved signatures the first time the Fill and sign menu opens.</summary>
     internal void EnsureSignaturesLoaded() {
         if (_signaturesLoaded) return;
-        _signaturesLoaded = true;
-        foreach (StudioSavedSignature saved in _services.Signatures.List(StudioSignatureKind.Signature)) SavedSignatures.Add(new SavedSignatureViewModel(saved));
-        foreach (StudioSavedSignature saved in _services.Signatures.List(StudioSignatureKind.Initials)) SavedInitials.Add(new SavedSignatureViewModel(saved));
+        try {
+            IReadOnlyList<StudioSavedSignature> signatures = _services.Signatures.List(StudioSignatureKind.Signature);
+            IReadOnlyList<StudioSavedSignature> initials = _services.Signatures.List(StudioSignatureKind.Initials);
+            foreach (StudioSavedSignature saved in signatures) SavedSignatures.Add(new SavedSignatureViewModel(saved));
+            foreach (StudioSavedSignature saved in initials) SavedInitials.Add(new SavedSignatureViewModel(saved));
+            _signaturesLoaded = true;
+        } catch (Exception error) when (error is IOException or UnauthorizedAccessException) {
+            ErrorMessage = error.Message;
+            return;
+        }
         NotifySavedSignatures();
     }
 

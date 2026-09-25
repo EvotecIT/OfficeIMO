@@ -517,8 +517,12 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
         WatermarkId: region.WatermarkId);
 
     private async Task CopySelectionAsync() {
-        IClipboard? clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
-        if (clipboard is not null) await clipboard.SetTextAsync(SelectedText);
+        try {
+            IClipboard? clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
+            if (clipboard is not null) await clipboard.SetTextAsync(SelectedText);
+        } catch (Exception error) {
+            System.Diagnostics.Trace.TraceWarning("Could not copy selected PDF text: {0}", error.Message);
+        }
     }
 
     private void DrawSelection(DrawingContext context, PdfPageScene scene) {

@@ -9,6 +9,30 @@ namespace OfficeIMO.Studio.Tests;
 
 public sealed class WatermarkPreviewTests {
     [Fact]
+    public async Task ManualPreviewSupersedesPendingAutomaticPreview() {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(async () => {
+            await WithDocument(async workspace => {
+                var localizer = ((App)Application.Current!).Services.Localizer;
+                int renders = 0;
+                using var model = new Features.Editor.WatermarkPreviewViewModel(1, 1, localizer,
+                    async (options, page, token) => {
+                        renders++;
+                        return await workspace.PrepareWatermarkAsync(options, page, token);
+                    }, _ => Task.FromResult<byte[]?>(null)) { AutoPreview = true };
+                model.Text = "REVIEW";
+
+                await model.PreviewCommand.ExecuteAsync(null);
+                await Task.Delay(650);
+
+                Assert.True(model.CanApply, model.ErrorMessage);
+                Assert.Equal(1, renders);
+            });
+            return true;
+        }, CancellationToken.None);
+    }
+
+    [Fact]
     public async Task PreviewFollowsTargetRangeAndCannotReviewAnUnchangedPage() {
         using var session = TestAppBuilder.StartSession();
         await session.Dispatch(async () => {

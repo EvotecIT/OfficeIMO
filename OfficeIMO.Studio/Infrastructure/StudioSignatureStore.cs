@@ -25,10 +25,18 @@ internal sealed class StudioSignatureStore {
     internal StudioSignatureStore(string root) => _root = root ?? throw new ArgumentNullException(nameof(root));
 
     internal IReadOnlyList<StudioSavedSignature> List(StudioSignatureKind kind) {
-        if (!Directory.Exists(_root)) return [];
+        string[] paths;
+        try { paths = Directory.GetFiles(_root, Prefix(kind) + "*.png"); }
+        catch (DirectoryNotFoundException) { return []; }
         var result = new List<StudioSavedSignature>();
-        foreach (FileInfo file in new DirectoryInfo(_root).EnumerateFiles(Prefix(kind) + "*.png").OrderByDescending(file => file.LastWriteTimeUtc)) {
-            if (file.Length is <= 0 or > MaximumBytes) continue;
+        var candidates = new List<(FileInfo File, DateTime Written)>();
+        foreach (string path in paths) {
+            try {
+                var file = new FileInfo(path);
+                if (file.Length is > 0 and <= MaximumBytes) candidates.Add((file, file.LastWriteTimeUtc));
+            } catch (IOException) { } catch (UnauthorizedAccessException) { }
+        }
+        foreach ((FileInfo file, _) in candidates.OrderByDescending(candidate => candidate.Written)) {
             try {
                 RestrictExistingFile(file.FullName);
                 RestrictExistingFile(System.IO.Path.ChangeExtension(file.FullName, ".json"));

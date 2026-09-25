@@ -2317,6 +2317,9 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Resize.Apply" xml:space="preserve"><value>Resize selected pages</value></data>
   <data name="Operation.Resize" xml:space="preserve"><value>Pages resized</value></data>
   <data name="Signing.Certify" xml:space="preserve"><value>Certify this document</value></data>
+  <data name="Signing.ApprovalPreview" xml:space="preserve"><value>Approval signature</value></data>
+  <data name="Signing.CertificationPreview" xml:space="preserve"><value>Certification signature</value></data>
+  <data name="Signing.CertificationPermission" xml:space="preserve"><value>Changes allowed after certification: {0}</value></data>
   <data name="Signing.CertifyTip" xml:space="preserve"><value>A certification signature comes first and states which later changes keep it valid.</value></data>
   <data name="Signing.CertifyAllowed" xml:space="preserve"><value>Changes allowed after certifying</value></data>
   <data name="Signing.Certify.NoChanges" xml:space="preserve"><value>No changes</value></data>

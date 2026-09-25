@@ -143,7 +143,7 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
     /// <summary>Queues files dropped onto Studio through the same route matching as the file picker.</summary>
     internal bool AddDroppedPaths(IReadOnlyList<string> paths) {
         if (IsBusy || !CanEditQueue || paths.Count == 0) return false;
-        AddPaths(_unmatchedInputs.Concat(paths).Distinct(StringComparer.Ordinal).ToArray());
+        AddPaths(_unmatchedInputs.Concat(paths).Distinct(StringComparer.Ordinal).ToArray(), matchAnyRoute: true);
         return true;
     }
 
@@ -163,15 +163,15 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
         return route.Route.SourceExtensions.Any(item => string.Equals(NormalizeExtension(item), extension, StringComparison.OrdinalIgnoreCase));
     }
 
-    private void AddPaths(IReadOnlyList<string> paths) {
+    private void AddPaths(IReadOnlyList<string> paths, bool matchAnyRoute = false) {
         var unmatched = new List<string>();
         int added = 0;
         int skipped = 0;
         int skippedForLimit = 0;
-        var identities = new HashSet<string>(StringComparer.Ordinal);
+        var identities = new HashSet<(string Route, string Input)>();
         try {
-            foreach (ConversionJobViewModel job in Jobs.Where(job => job.Route.Route.Id == SelectedRoute.Route.Id)) {
-                identities.Add(InputIdentity(job.InputPath));
+            foreach (ConversionJobViewModel job in Jobs) {
+                identities.Add((job.Route.Route.Id, InputIdentity(job.InputPath)));
             }
         } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException) {
             Status = _localizer.FormatOrDefault("Conversion.Add.IdentityFailed", "A queued input could not be inspected. Remove or restore it before adding files: {0}", exception.Message);
@@ -179,10 +179,12 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
         }
         foreach (string path in paths) {
             string fileName = _storage?.Describe(path).Name ?? Path.GetFileName(path);
-            string extension = Path.GetExtension(fileName);
-            bool accepts = SelectedRoute.Route.SourceExtensions.Any(item =>
-                string.Equals(NormalizeExtension(item), extension, StringComparison.OrdinalIgnoreCase));
-            if (!accepts) {
+            ConversionRouteChoice? route = Accepts(SelectedRoute, path) ? SelectedRoute : null;
+            if (route is null && matchAnyRoute) {
+                ConversionRouteChoice[] matches = Routes.Where(choice => Accepts(choice, path)).Take(2).ToArray();
+                if (matches.Length == 1) route = matches[0];
+            }
+            if (route is null) {
                 unmatched.Add(path);
                 skipped++;
                 continue;
@@ -190,7 +192,7 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
             string fullPath;
             try {
                 fullPath = OfficeStorageIdentity.Normalize(path);
-                if (!identities.Add(InputIdentity(fullPath))) {
+                if (!identities.Add((route.Route.Id, InputIdentity(fullPath)))) {
                     skipped++;
                     continue;
                 }
@@ -202,8 +204,9 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
                 skippedForLimit++;
                 continue;
             }
-            var job = new ConversionJobViewModel(fullPath, SelectedRoute, _localizer, fileName) {
-                OutputProfile = SelectedProfile.Value
+            var job = new ConversionJobViewModel(fullPath, route, _localizer, fileName) {
+                OutputProfile = route.Route.SupportedOutputProfiles.Contains(SelectedProfile.Value)
+                    ? SelectedProfile.Value : route.Route.SupportedOutputProfiles.First()
             };
             Jobs.Add(job);
             SelectedJob ??= job;

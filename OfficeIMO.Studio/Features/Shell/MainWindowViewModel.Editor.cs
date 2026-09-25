@@ -303,8 +303,14 @@ public sealed partial class MainWindowViewModel {
         PdfWorkspace workspace = _workspace;
         long revision = workspace.Revision;
         PdfEditorTool tool = ActiveEditorTool;
-        PdfEditorProperties properties = CreateEditorProperties();
         ErrorMessage = null;
+        PdfEditorProperties properties;
+        try {
+            properties = CreateEditorProperties(IsFillSignPlacement(tool));
+        } catch (Exception error) {
+            ErrorMessage = error.Message;
+            return;
+        }
         if (tool == PdfEditorTool.Redact) {
             if (!CanRedact) {
                 ErrorMessage = UiText("Editor.RedactionUnavailable");
@@ -336,8 +342,8 @@ public sealed partial class MainWindowViewModel {
         }
 
         if (IsFillSignPlacement(tool)) {
-            (PdfEditorTool placementTool, PdfEditorGesture placed, PdfEditorProperties placement) = PrepareFillSignPlacement(gesture, properties);
             try {
+                (PdfEditorTool placementTool, PdfEditorGesture placed, PdfEditorProperties placement) = PrepareFillSignPlacement(gesture, properties);
                 if (await RunMutationAsync(
                         token => workspace.ApplyEditorGestureAsync(placementTool, placed, placement, token, CreateProgress()),
                         CancellationToken.None, successStatus: UiText(tool == PdfEditorTool.AddText ? "FillSign.DatePlaced" : "FillSign.SignaturePlaced")).ConfigureAwait(true))
@@ -584,7 +590,9 @@ public sealed partial class MainWindowViewModel {
     [RelayCommand]
     private async Task UpdateSelectedAnnotationAsync(CancellationToken cancellationToken) {
         if (_workspace is null || SelectedAnnotationObjectNumber is not int objectNumber) return;
-        PdfColor color = ParseColor(EditorColorHex);
+        PdfColor color;
+        try { color = ParseColor(EditorColorHex); }
+        catch (Exception error) { ErrorMessage = error.Message; return; }
         string contents = SelectedAnnotationContents;
         string author = SelectedAnnotationAuthor;
         ClearObjectSelection();
@@ -597,7 +605,9 @@ public sealed partial class MainWindowViewModel {
     private async Task ReplyToSelectedAnnotationAsync(CancellationToken cancellationToken) {
         if (_workspace is null || SelectedAnnotationObjectNumber is not int objectNumber) return;
         string reply = AnnotationReplyText;
-        PdfColor color = ParseColor(EditorColorHex);
+        PdfColor color;
+        try { color = ParseColor(EditorColorHex); }
+        catch (Exception error) { ErrorMessage = error.Message; return; }
         ClearObjectSelection();
         bool succeeded = await RunMutationAsync(
             token => _workspace.AddAnnotationReplyAsync(objectNumber, reply, EditorAuthor, color, token, CreateProgress()),
@@ -632,10 +642,10 @@ public sealed partial class MainWindowViewModel {
             cancellationToken).ConfigureAwait(true);
     }
 
-    private PdfEditorProperties CreateEditorProperties() => new(
+    private PdfEditorProperties CreateEditorProperties(bool fillSignPlacement = false) => new(
         EditorText ?? string.Empty,
         EditorAuthor ?? string.Empty,
-        ParseColor(EditorColorHex),
+        fillSignPlacement ? OfficeIMO.Pdf.PdfColor.FromRgb(27, 42, 74) : ParseColor(EditorColorHex),
         string.IsNullOrWhiteSpace(EditorStampName) ? "Approved" : EditorStampName.Trim(),
         EditorLinkUri ?? string.Empty,
         Math.Clamp(EditorFontSize, 4D, 144D),
