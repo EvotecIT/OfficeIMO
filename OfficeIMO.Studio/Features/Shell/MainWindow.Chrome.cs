@@ -45,7 +45,7 @@ public sealed partial class MainWindow {
         _jobToastRecord = record;
         JobToastTitle.Text = record.Title;
         JobToastDetail.Text = string.IsNullOrWhiteSpace(record.Summary) ? record.Status : record.Summary;
-        JobToastOpenButton.IsVisible = record.HasOutput;
+        JobToastOpenButton.IsVisible = record.CanOpenOutput;
         // The badge follows the outcome: a check only for verified success.
         (string icon, string tone) = record.IsSucceeded ? ("IconCheck", "Success")
             : record.IsFailed ? ("IconWarning", "Error") : ("IconInfo", "Accent");

@@ -22,10 +22,18 @@ public sealed partial class SignatureDialog : Window {
         ("Lucida Handwriting, Apple Chancery, Georgia, serif", FontStyle.Italic)
     ];
     private byte[]? _image;
+    private bool _closed;
 
     public SignatureDialog() {
         InitializeComponent();
         Pad.InkChanged += (_, _) => UpdateState();
+        Closed += (_, _) => {
+            _closed = true;
+            var preview = ImagePreview.Source as Bitmap;
+            ImagePreview.Source = null;
+            preview?.Dispose();
+            _image = null;
+        };
     }
 
     internal SignatureDialog(StudioSignatureKind kind, IStudioLocalizer localizer) : this() {
@@ -75,7 +83,7 @@ public sealed partial class SignatureDialog : Window {
             });
             if (files.Count == 0) return;
             byte[]? image = await StudioStorageInput.ReadImageAsync(files, CancellationToken.None);
-            if (image is not null) SetImage(image);
+            if (image is not null && !_closed) SetImage(image);
         } catch (Exception ex) when (ex is not OutOfMemoryException) {
             ImageEmptyText.Text = ex.Message;
             ImageEmptyText.IsVisible = true;
@@ -83,6 +91,7 @@ public sealed partial class SignatureDialog : Window {
     }
 
     internal void SetImage(byte[] image) {
+        if (_closed) return;
         if (!StudioSignatureImage.IsWithinPixelBudget(image))
             throw new InvalidDataException("The signature image exceeds the preview pixel limit or is invalid.");
         using var stream = new MemoryStream(image);

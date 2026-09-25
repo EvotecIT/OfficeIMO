@@ -1,3 +1,4 @@
+using Avalonia.Controls;
 using OfficeIMO.Pdf;
 using OfficeIMO.Studio.Features.Editor;
 using OfficeIMO.Studio.Features.Shell;
@@ -414,6 +415,30 @@ public sealed class StudioDocumentStructureTests {
                 return true;
             }, CancellationToken.None);
         } finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
+    public async Task ClosingSignatureDialogReleasesSelectedImagePreview() {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(() => {
+            var source = new SignatureDialog(StudioSignatureKind.Signature, StudioLocalization.Current);
+            source.NameBox.Text = "Ada Lovelace";
+            byte[] png = source.CreateImage()!;
+            var dialog = new SignatureDialog(StudioSignatureKind.Signature, StudioLocalization.Current);
+            dialog.Show();
+            dialog.ShowMethod(2);
+            dialog.SetImage(png);
+            var preview = dialog.FindControl<Avalonia.Controls.Image>("ImagePreview")!;
+            Assert.NotNull(preview.Source);
+            Assert.Equal(png, dialog.CreateImage());
+
+            dialog.Close();
+            Assert.Null(preview.Source);
+            Assert.Null(dialog.CreateImage());
+            dialog.SetImage(png); // A late picker result cannot recreate the preview after close.
+            Assert.Null(preview.Source);
+            return true;
+        }, CancellationToken.None);
     }
 
     [Fact]
