@@ -1,4 +1,5 @@
 using AngleSharp.Dom;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Html;
 
@@ -283,11 +284,41 @@ internal sealed partial class HtmlRenderLayoutEngine {
         PositionedRequestPlacement placement,
         PositionedPaintBand band) {
         PositionedLayer layer = placement.Request.Resolve(this, placement.Width, placement.Height);
+        if (_options.Mode == HtmlRenderMode.Paged && !placement.Request.IsFixed
+            && IsWhollyBeforePagedArea(layer)) return;
         foreach (HtmlRenderVisual visual in layer.Block.Visuals) {
             int fallback = band == PositionedPaintBand.Negative ? -1000000000 : _paintOrder++;
             int paintOrder = ResolveRootStackingPaintOrder(placement.Request.SourceOrder, fallback);
             visuals.Add(visual.Translate(placement.OriginX + layer.X, placement.OriginY + layer.Y, paintOrder));
         }
+    }
+
+    private static bool IsWhollyBeforePagedArea(PositionedLayer layer) {
+        // Root absolute boxes entirely before the initial containing block do not paint in
+        // browser print. Keep partial overlaps and positive overflow into page margins.
+        // The untransformed bounds cannot safely cull descendants moved into view by paint transforms.
+        if (layer.X >= 0D && layer.Y >= 0D) return false;
+        if (HasTransformedPositionedContent(layer.Block.Visuals)) return false;
+        if (layer.X < 0D && layer.X + Math.Max(layer.Block.Width, MaximumScrollRight(layer.Block.Visuals)) <= 0D) return true;
+        return layer.Y < 0D && layer.Y + Math.Max(layer.Block.Height, MaximumScrollBottom(layer.Block.Visuals)) <= 0D;
+    }
+
+    private static bool HasTransformedPositionedContent(IEnumerable<HtmlRenderVisual> visuals) {
+        foreach (HtmlRenderVisual visual in visuals) {
+            if (visual is HtmlRenderEffectGroup translatedEffect && translatedEffect.Transform != OfficeTransform.Identity) return true;
+            IEnumerable<HtmlRenderVisual>? children = visual switch {
+                HtmlRenderEffectGroup effectGroup => effectGroup.Visuals,
+                HtmlRenderClipGroup clip => clip.Visuals,
+                HtmlRenderPathClipGroup pathClip => pathClip.Visuals,
+                HtmlRenderSemanticGroup semantic => semantic.Visuals,
+                HtmlRenderLogicalTextGroup logical => logical.Visuals,
+                HtmlRenderLayoutRegion region => region.Visuals,
+                HtmlRenderFormField form => form.Visuals,
+                _ => null
+            };
+            if (children != null && HasTransformedPositionedContent(children)) return true;
+        }
+        return false;
     }
 
     private static IEnumerable<PositionedElementRequest> OrderPositionedRequests(IEnumerable<PositionedElementRequest> requests, PositionedPaintBand band) =>
