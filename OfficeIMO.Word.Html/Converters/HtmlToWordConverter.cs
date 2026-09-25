@@ -39,6 +39,7 @@ namespace OfficeIMO.Word.Html {
         // Reuse within one story only; a blip id copied into another part is invalid.
         private readonly Dictionary<OpenXmlElement, Dictionary<string, WordImage>> _imageCache = new();
         private readonly Dictionary<IElement, double> _computedFontSizePixels = new();
+        private readonly HashSet<IElement> _materializedRoleTableElements = new();
         private readonly Dictionary<IElement, CssStyleMapper.CssProperties> _computedBoxStyles = new();
         private readonly Dictionary<IElement, CssStyleMapper.CssProperties> _inlineStyles = new();
         private readonly Dictionary<IElement, HashSet<string>> _injectedInheritedCssProperties = new();
@@ -203,6 +204,7 @@ namespace OfficeIMO.Word.Html {
             _cssRules.Clear();
             _imageCache.Clear();
             _computedFontSizePixels.Clear();
+            _materializedRoleTableElements.Clear();
             _computedBoxStyles.Clear();
             _inlineStyles.Clear();
             _ancestorBlockBackgrounds.Clear();
@@ -225,9 +227,19 @@ namespace OfficeIMO.Word.Html {
             await LoadBodyStylesheetsAsync(document, cancellationToken).ConfigureAwait(false);
             _rootFontSizePixels = ResolveRootFontSizePixels(document.DocumentElement);
             _computedFontSizePixels[document.DocumentElement] = _rootFontSizePixels;
+            // Resolve selectors against the original ARIA subtree before its structural
+            // elements become native table elements for the Word importer.
+            WordHtmlConverterExtensions.NormalizeRoleTables(
+                document, options.ConversionReport, ApplyCssToElement,
+                _materializedRoleTableElements, RegisterNativeRoleTableElement);
             await PrefetchRemoteImagesAsync(document, options, cancellationToken).ConfigureAwait(false);
             CaptureNoteSections(document, cancellationToken);
             CaptureCommentSections(document, cancellationToken);
+        }
+
+        private void RegisterNativeRoleTableElement(IElement source, IElement native) {
+            _materializedRoleTableElements.Add(native);
+            _computedFontSizePixels[native] = ResolveComputedFontSizePixels(source);
         }
 
         private static void ValidateResourceConcurrency(HtmlToWordOptions options) {
