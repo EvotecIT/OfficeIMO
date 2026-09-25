@@ -253,10 +253,7 @@ public sealed partial class PdfReadPage {
                     };
                     clippedGlyphDrawing.Fonts.AddRange(drawing.Fonts);
                 }
-                var glyph = new PdfTextSpan(measurement.Text, span.FontResource, span.FontSize,
-                    x, y, paintedAdvances[index], span.Color, span.IsVisible, span.RotationDegrees, span.BaseFont, glyphClip,
-                    drawingFontFamily: span.DrawingFontFamily, fontWeight: span.FontWeight,
-                    fontDescriptorFlags: span.FontDescriptorFlags);
+                PdfTextSpan glyph = span.WithPaintedGlyph(index, characterOffset, x, y, glyphClip);
                 AddTextSpanCore(clippedGlyphDrawing ?? drawing, pageHeight, glyph, pageContentBudget, paint, cancellationToken);
             }
             // Stream origins instead of allocating an array for a potentially huge
@@ -339,6 +336,9 @@ public sealed partial class PdfReadPage {
             count += lengths[index];
         }
         if (count != span.Text.Length) return false;
+        if (span.LogicalDrawingText is { } logical && logical.Length != span.Text.Length && lengths.Count > 1 &&
+            span.LogicalGlyphTexts?.Count != lengths.Count)
+            return false;
         return PdfTextAdvanceProjection.TryGetResolvedDirection(span, cancellationToken, out direction);
     }
 

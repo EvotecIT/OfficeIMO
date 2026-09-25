@@ -28,6 +28,59 @@ public sealed class PdfPaintedGlyphRenderingTests {
         Assert.Equal("B", visual.RasterText);
     }
 
+    [Theory]
+    [InlineData("Helvetica", "3 Tc", "B", "0051", "QQ")]
+    [InlineData("Helvetica", "3 Tc", "B", "00510051", "QQQQ")]
+    [InlineData("Symbol", "", "•", "0051", "QQ")]
+    public void SubstitutedGlyphKeepsLogicalTextAcrossSpacingAndSymbolDifferences(
+        string fontName, string spacing, string painted, string unicodeHex, string logicalText) {
+        string content = $"BT /F1 20 Tf {spacing} 20 80 Td (AA) Tj ET";
+        string cmap = $"begincmap\n1 begincodespacerange\n<00> <FF>\nendcodespacerange\n1 beginbfchar\n<41> <{unicodeHex}>\nendbfchar\nendcmap";
+        string glyphName = fontName == "Symbol" ? "bullet" : "B";
+        byte[] pdf = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 100] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>", "endobj",
+            "4 0 obj", $"<< /Length {content.Length} >>", "stream", content, "endstream", "endobj",
+            "5 0 obj", $"<< /Type /Font /Subtype /Type1 /BaseFont /{fontName} /Encoding << /Type /Encoding /BaseEncoding /WinAnsiEncoding /Differences [65 /{glyphName}] >> /ToUnicode 6 0 R >>", "endobj",
+            "6 0 obj", $"<< /Length {cmap.Length} >>", "stream", cmap, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 7 >>", "%%EOF"
+        }) + "\n");
+
+        OfficeDrawing drawing = PdfReadDocument.Open(pdf).Pages[0].ToDrawing();
+        string logical = string.Concat(drawing.Elements.OfType<OfficeDrawingText>().Select(element => element.Text));
+        string visual = string.Concat(drawing.Elements.OfType<OfficeDrawingText>().Select(element => element.RasterText));
+
+        Assert.Equal(logicalText, logical);
+        Assert.Equal(painted + painted, visual);
+        if (spacing.Length > 0) Assert.Equal(2, drawing.Elements.OfType<OfficeDrawingText>().Count());
+    }
+
+    [Fact]
+    public void PaintedGlyphMapOnlyNeedsRebuildWhenItsAliasesChangeForThatDrawing() {
+        byte[] source = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A', 'B');
+        var program = new PdfDrawingFontProgram(source, new SortedDictionary<int, int>(), _ => 2, _ => false);
+        var aliases = new PdfReadPage.PaintedGlyphMap(program);
+        var root = new OfficeDrawing(100, 100);
+        var nested = new OfficeDrawing(100, 100);
+        root.Fonts.Add("Test", source);
+        nested.Fonts.Add("Test", source);
+
+        aliases.Alias(2);
+        Assert.True(aliases.NeedsApply(root));
+        aliases.MarkApplied(root, ("Test", OfficeFontStyle.Regular));
+        Assert.False(aliases.NeedsApply(root));
+        root.Fonts.AddRange(nested.Fonts);
+        Assert.True(aliases.NeedsApply(root));
+        aliases.MarkApplied(root, ("Test", OfficeFontStyle.Regular));
+        Assert.True(aliases.NeedsApply(nested));
+        aliases.MarkApplied(nested, ("Test", OfficeFontStyle.Regular));
+        aliases.Alias(3);
+        Assert.True(aliases.NeedsApply(root));
+        Assert.True(aliases.NeedsApply(nested));
+    }
+
     [Fact]
     public void PaintedAliasUsesSupplementaryPrivateUseWhenBmpRangeIsClaimed() {
         byte[] source = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A', 'B');

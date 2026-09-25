@@ -634,7 +634,7 @@ public sealed partial class PdfReadPage {
         OverlayDrawingEffects(elements, enclosingEffects);
         SortDrawingElements(elements);
         AddPaintedGlyphMappings(drawing, registeredFonts, elements,
-            new Dictionary<(string Family, OfficeFontStyle Style), PaintedGlyphMap>(),
+            pageContentBudget.PaintedGlyphMaps,
             pageContentBudget, pageContentBudget.CancellationToken);
         var softMasks = new Dictionary<(PdfStream Group, PdfDictionary? ParentResources, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height, OfficeIccRenderingIntent Intent), OfficeDrawingSoftMask>();
         var activeSoftMasks = new HashSet<PdfStream>();

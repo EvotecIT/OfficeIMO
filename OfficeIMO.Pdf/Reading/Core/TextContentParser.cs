@@ -921,6 +921,7 @@ internal static class TextContentParser {
             var decodedGlyphCharacterLengths = new List<int>();
             var decodedGlyphBytes = new List<byte[]>();
             var decodedGlyphPaintedAdvances = new List<double>();
+            var decodedGlyphLogicalTexts = new List<string>();
             bool hasUndecodableGlyph = false;
             double advTotal = 0;
             string wholeDecoded = NormalizeDecodedGlyphText(DecodeRun(bytes) ?? string.Empty);
@@ -937,6 +938,7 @@ internal static class TextContentParser {
                     textOutputBudget.ThrowDecodedTextLimitExceeded();
                 }
                 string t = NormalizeDecodedGlyphText(DecodeRun(g, remainingGlyphCharacters) ?? string.Empty);
+                string logicalGlyphText = t;
                 if (!useLogicalTextFilters && visualEncodingForResource != null) {
                     string? encoded = visualEncodingForResource(font, g);
                     if (encoded != null && encoded.Length > 0 && encoded.Length <= remainingGlyphCharacters) {
@@ -964,6 +966,7 @@ internal static class TextContentParser {
                     decodedGlyphCharacterLengths.Add(t.Length);
                     decodedGlyphBytes.Add(g);
                     decodedGlyphPaintedAdvances.Add(Math.Abs((w1000 / 1000D) * size * hScale));
+                    decodedGlyphLogicalTexts.Add(logicalGlyphText);
                     double perCharacterAdvance = advGlyph / Math.Max(1, t.Length);
                     for (int characterIndex = 0; characterIndex < t.Length; characterIndex++) decodedAdvances.Add(perCharacterAdvance);
                 } else {
@@ -980,6 +983,7 @@ internal static class TextContentParser {
                 decodedGlyphCharacterLengths.Clear();
                 decodedGlyphBytes.Clear();
                 decodedGlyphPaintedAdvances.Clear();
+                decodedGlyphLogicalTexts.Clear();
                 usedWholeDecodedText = true;
             }
             var actualTextState = useLogicalTextFilters ? GetActiveActualTextState() : null;
@@ -1094,6 +1098,7 @@ internal static class TextContentParser {
                     : null;
                 List<int> spanGlyphCharacterLengths = decodedGlyphCharacterLengths;
                 List<byte[]> spanGlyphBytes = decodedGlyphBytes;
+                List<string> spanLogicalGlyphTexts = decodedGlyphLogicalTexts;
                 double[]? spanGlyphPaintedAdvances = transformedGlyphPaintedAdvances;
                 int spanGlyphCount = decodedGlyphCount;
                 // Visual projection paints the trimmed text, so its origin, advance and glyph arrays must
@@ -1119,6 +1124,9 @@ internal static class TextContentParser {
                     spanGlyphBytes = decodedGlyphBytes.Count == decodedGlyphCharacterLengths.Count
                         ? decodedGlyphBytes.GetRange(leadingGlyphs, keptGlyphs)
                         : decodedGlyphBytes;
+                    spanLogicalGlyphTexts = decodedGlyphLogicalTexts.Count == decodedGlyphCharacterLengths.Count
+                        ? decodedGlyphLogicalTexts.GetRange(leadingGlyphs, keptGlyphs)
+                        : decodedGlyphLogicalTexts;
                     spanGlyphPaintedAdvances = transformedGlyphPaintedAdvances?.Length == decodedGlyphCharacterLengths.Count
                         ? transformedGlyphPaintedAdvances.Skip(leadingGlyphs).Take(keptGlyphs).ToArray()
                         : transformedGlyphPaintedAdvances;
@@ -1191,8 +1199,12 @@ internal static class TextContentParser {
                     embeddedLineBreakCounts: GetEmbeddedLineBreakCounts(rawText, normalizedText.Length));
                 if (usedVisualEncoding && actualTextState is null) {
                     string logicalText = NormalizeShatteredSpan(wholeDecoded);
-                    if (logicalText.Length > 0 && !string.Equals(logicalText, span.Text, StringComparison.Ordinal))
+                    if (logicalText.Length > 0 && !string.Equals(logicalText, span.Text, StringComparison.Ordinal)) {
                         span.SetLogicalDrawingText(logicalText);
+                        if (spanLogicalGlyphTexts.Count == spanGlyphCharacterLengths.Count &&
+                            string.Equals(string.Concat(spanLogicalGlyphTexts), logicalText, StringComparison.Ordinal))
+                            span.SetLogicalGlyphTexts(spanLogicalGlyphTexts);
+                    }
                 }
                 spans.Add(span);
                 sbOutGlobal.Append(normalizedText);

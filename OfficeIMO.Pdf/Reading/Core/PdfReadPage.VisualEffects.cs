@@ -1144,7 +1144,7 @@ public sealed partial class PdfReadPage {
 
         SortDrawingElements(elements);
         AddPaintedGlyphMappings(drawing, registeredFonts, elements,
-            new Dictionary<(string Family, OfficeFontStyle Style), PaintedGlyphMap>(),
+            pageContentBudget.PaintedGlyphMaps,
             pageContentBudget, cancellationToken);
         for (int i = 0; i < elements.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
