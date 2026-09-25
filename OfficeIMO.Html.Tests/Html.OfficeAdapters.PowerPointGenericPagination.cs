@@ -7,6 +7,34 @@ namespace OfficeIMO.Html.Tests;
 
 public sealed class HtmlOfficeAdaptersPowerPointGenericPaginationTests {
     [Fact]
+    public void LongDocumentTitleFitsItsEditableTextBoxAcrossSections() {
+        const string title = "Global Drinking Water | Global Water, Sanitation, and Hygiene (WASH) | CDC";
+        string html = "<title>" + title + "</title><main>"
+            + "<section><p>Key points remain editable.</p></section>"
+            + "<section><p>Terms remain editable.</p></section></main>";
+
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult(
+            new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false });
+        using PowerPointPresentation presentation = result.Value;
+
+        Assert.Equal(2, presentation.Slides.Count);
+        Assert.All(presentation.Slides, slide => Assert.Contains(slide.TextBoxes, box => box.Text == title));
+        Assert.DoesNotContain(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Message.Contains("clipped inside its editable text box", StringComparison.Ordinal));
+        Assert.DoesNotContain(presentation.InspectPreflight(new PowerPointDeckPreflightOptions {
+            DetectShapeCollisions = false,
+            DetectMissingVisualAssets = false,
+            IncludeVisualSnapshotDiagnostics = false
+        }).Findings, finding => finding.Code == "Text.Clipped");
+
+        using var stream = new MemoryStream();
+        presentation.Save(stream);
+        using PowerPointPresentation reopened = PowerPointPresentation.Load(new MemoryStream(stream.ToArray()),
+            new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
+        Assert.All(reopened.Slides, slide => Assert.Contains(slide.TextBoxes, box => box.Text == title));
+    }
+
+    [Fact]
     public void LongParagraphsUseMeasuredHeightsAndPreserveLinkedTextAcrossSlides() {
         string opening = string.Join(" ", Enumerable.Repeat("Atmospheric observations span many regions.", 65));
         string closing = string.Join(" ", Enumerable.Repeat("Measured water remains in the atmosphere.", 65));

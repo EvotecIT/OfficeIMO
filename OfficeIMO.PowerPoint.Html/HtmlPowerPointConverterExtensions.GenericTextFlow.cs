@@ -8,6 +8,18 @@ public static partial class HtmlPowerPointConverterExtensions {
     private const int MaximumGenericTextChunkCharacters = 4096;
     private const double GenericTextWidthPoints = 620D;
 
+    private static double MeasureGenericTitleHeight(string title) {
+        const double fontSize = 18D;
+        OfficeTextMeasurer measurer = OfficeTextMeasurer.Create(new OfficeFontInfo("Aptos", fontSize));
+        Func<string?, double, double> measure = (value, size) =>
+            measurer.MeasureWidth(value, measurer.CreateStyle(measurer.FallbackFontInfo.WithSize(size)))
+            * 72D / OfficeTextMeasurer.DefaultDpi;
+        OfficeTextBlockLayout layout = OfficeTextLayoutEngine.LayoutTextBlock(title, fontSize,
+            GenericTextWidthPoints - 14.4D, 100000D, 1.2D, 1D, measure,
+            wrap: true, forceSingleLine: false, shrinkToFit: false);
+        return Math.Max(44D, Math.Ceiling(layout.Height + 12D));
+    }
+
     private static bool TryImportGenericTextBlock(
         HtmlSemanticBlock block,
         PptCore.PowerPointPresentation presentation,
