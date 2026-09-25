@@ -295,3 +295,39 @@ is page-aware float deferral with flow continuation and an intact replaced
 box, followed by a replay of all frozen W3C print pages and H4. The fixture,
 both PDFs, inspected first-two-page rasters and worker reports are retained
 under `Ignore/HtmlUnknownPageQualification/h10-wai-float-break-probe/`.
+
+## W3C tutorial float continuation at the page boundary
+
+At clean source `2eda4f38e`, the layout now defers a floated image that fits a
+fresh page while allowing preceding paragraph lines to use the current page.
+The float starts at the legal break chosen by widow/orphan pagination, and
+subsequent lines wrap around it. If there is no legal break, the original
+paragraph moves intact; sibling and parent margin collapse retain their
+positions. Focused regressions cover these cases. The full HTML suite passed
+3,412/3,412 on both .NET 10 and .NET 8. Independent read-only review found
+the no-break and collapsed-margin cases and confirmed their fixes.
+
+The unchanged W3C archive (`c33e96c21941db20dc750f7dd01b1a9190b34b81460c7e419836dc8a3065abf9`)
+replayed offline at that clean commit with no runner failures. Chromium and
+OfficeIMO zero-margin local-font print each produced three pages; OfficeIMO's
+default-margin print produced four. All three comparable print pages were
+rasterized at 96 dpi and inspected. The fifth card's title and first text
+lines now remain on page one, and its complete illustration begins at the top
+of page two, as in Chromium. The third page is unchanged. Breadcrumb spacing,
+some text wrapping and the footer's line placement still differ. The managed
+report declares degraded fidelity with 74 warnings, including 26 unavailable
+resources, 11 unavailable font faces, 17 unsupported SVG instances and 14
+unsupported OpenType features; these counts are diagnostic observations, not
+distinct visible omissions. The H4 advanced-held-out visual acceptance gate
+passed 8/8. The clean report, PDFs, compared page rasters and H4 acceptance
+report are retained under `Ignore/HtmlUnknownPageQualification/` in
+`h10-wai-page-deferral-clean-2eda4f38e/` and
+`h10-h4-page-deferral-clean-2eda4f38e/`.
+
+The first macOS H4 static time-budget run at the same commit failed: its
+slowest warm iteration was 3,892 ms against a 3,000 ms ceiling. Its sampled
+peak stayed below the memory ceiling, cold and warm fingerprints matched,
+and allocation was within 0.1% of the previous passing run. Concurrent
+Xcode/Swift builds heavily loaded this host during the measurement. The time
+budget remains unqualified until a less contended clean-source rerun; the
+report is retained in `h10-h4-page-deferral-budget-clean-2eda4f38e/`.
