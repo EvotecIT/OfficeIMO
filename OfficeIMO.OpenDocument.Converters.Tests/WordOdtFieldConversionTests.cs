@@ -107,6 +107,40 @@ public sealed class WordOdtFieldConversionTests {
     }
 
     [Fact]
+    public void OdtFieldUsesTransformedCachedTextAndReportsDynamicTransformLoss() {
+        OdtDocument source = OdtDocument.Create();
+        OdtParagraph paragraph = source.AddParagraph();
+        paragraph.TextTransform = OdfTextTransform.Lowercase;
+        paragraph.AddField(OdtFieldKind.Date, "TODAY");
+
+        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        using WordDocument word = conversion.Value;
+        Assert.Equal("today", Assert.Single(word.InspectFields()).ResultText);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "inline-formatting" &&
+            mapping.Status == OdfConversionMappingStatus.Approximated);
+        Assert.Throws<OdfConversionLossException>(() => source.ToWordDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void OdtFieldRetainsParagraphRunFormattingInWordResult() {
+        OdtDocument source = OdtDocument.Create();
+        OdtParagraph paragraph = source.AddParagraph();
+        paragraph.Bold = true;
+        paragraph.Color = OdfColor.Parse("#336699");
+        paragraph.FontSize = OdfLength.Points(14);
+        paragraph.AddField(OdtFieldKind.PageNumber, "3");
+
+        using WordDocument word = source.ToWordDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }).Value;
+        Run run = word.OpenXmlDocument.MainDocumentPart!.Document!.Body!
+            .Descendants<SimpleField>().Single().Elements<Run>().Single();
+        Assert.NotNull(run.RunProperties?.Bold);
+        Assert.Equal("336699", run.RunProperties?.Color?.Val?.Value);
+        Assert.Equal("28", run.RunProperties?.FontSize?.Val?.Value);
+    }
+
+    [Fact]
     public void WordFieldResultTabAndBreakRetainVisibleTextWithLoss() {
         using WordDocument source = WordDocument.Create();
         WordParagraph paragraph = source.AddParagraph();
@@ -205,6 +239,7 @@ public sealed class WordOdtFieldConversionTests {
         using WordDocument target = toWord.Value;
         Assert.Contains(toWord.Report.Mappings, mapping => mapping.Feature == "fields" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
+        Assert.DoesNotContain(toWord.Report.Mappings, mapping => mapping.Feature == "source-text-fields");
         Assert.Empty(target.InspectFields());
         Assert.Throws<OdfConversionLossException>(() => odt.ToWordDocumentResult(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
