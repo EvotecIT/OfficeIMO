@@ -898,9 +898,9 @@ public sealed partial class PdfReadPage {
         return primitives.Count == 0 ? Array.Empty<PdfPageVisualPrimitive>() : primitives.AsReadOnly();
     }
 
-    internal IReadOnlyList<PdfPageVisualPrimitive> GetIdentityVisualPrimitives() {
+    internal IReadOnlyList<PdfPageVisualPrimitive> GetIdentityVisualPrimitives(CancellationToken cancellationToken = default) {
         (double width, double height) = GetVisualPageSize();
-        return GetVisualPrimitives(width, height, GetVisualPageTransform());
+        return GetVisualPrimitives(width, height, GetVisualPageTransform(), cancellationToken: cancellationToken);
     }
 
     private void CollectVisualPrimitivesAndForms(

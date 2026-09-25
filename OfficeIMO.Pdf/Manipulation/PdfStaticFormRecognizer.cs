@@ -1,0 +1,243 @@
+using System.Globalization;
+using System.Text;
+using System.Threading;
+
+namespace OfficeIMO.Pdf;
+
+/// <summary>Finds reviewable field candidates in static PDF page content.</summary>
+internal static class PdfStaticFormRecognizer {
+    /// <summary>Analyzes page geometry and native text, with optional caller-supplied OCR labels, without changing the source PDF.</summary>
+    internal static PdfStaticFormRecognitionReport Analyze(
+        PdfDocument source,
+        PdfStaticFormRecognitionOptions? options = null,
+        IReadOnlyList<PdfStaticFormTextEvidence>? ocrText = null,
+        CancellationToken cancellationToken = default) {
+        Guard.NotNull(source, nameof(source));
+        PdfStaticFormRecognitionOptions effective = options ?? new PdfStaticFormRecognitionOptions();
+        effective.Validate();
+        cancellationToken.ThrowIfCancellationRequested();
+        var snapshot = source.GetReadSnapshot(cancellationToken: cancellationToken);
+        byte[] pdf = snapshot.Bytes;
+        PdfReadDocument document = snapshot.Document;
+        int[] pageNumbers = effective.PageSelection?.ToPageNumbers(document.Pages.Count, nameof(effective.PageSelection))
+            ?? Enumerable.Range(1, document.Pages.Count).ToArray();
+        pageNumbers = pageNumbers.Distinct().ToArray();
+        if (pageNumbers.Length > effective.MaxPages) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.RenderPages, effective.MaxPages, pageNumbers.Length);
+        }
+        IReadOnlyList<PdfStaticFormTextEvidence> suppliedText = ocrText ?? Array.Empty<PdfStaticFormTextEvidence>();
+        if (suppliedText.Count > effective.MaxOcrTextItems) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, effective.MaxOcrTextItems, suppliedText.Count);
+        }
+        foreach (PdfStaticFormTextEvidence item in suppliedText) {
+            Guard.NotNull(item, nameof(ocrText));
+            if (item.PageNumber > document.Pages.Count) throw new ArgumentOutOfRangeException(nameof(ocrText), "OCR evidence names a page outside the PDF.");
+        }
+
+        PdfDocumentReadResult logical = PdfDocumentReadEngine.Read(document, new PdfReadOptions {
+            Profile = PdfReadProfile.Fast,
+            PageSelection = effective.PageSelection
+        }, cancellationToken);
+        var proposed = new List<Candidate>();
+        var diagnostics = new List<PdfStaticFormRecognitionDiagnostic>();
+        foreach (int pageNumber in pageNumbers) {
+            cancellationToken.ThrowIfCancellationRequested();
+            PdfLogicalPage page = logical.PagesBySourcePageNumber[pageNumber][0];
+            (double pageWidth, double pageHeight) = page.GetVisualPageSize();
+            List<Label> labels = GetLabels(page, suppliedText, pageWidth, pageHeight);
+            PdfReadPage readPage = document.Pages[pageNumber - 1];
+            foreach (PdfPageVisualPrimitive primitive in readPage.GetIdentityVisualPrimitives(cancellationToken)) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!TryGetCandidate(primitive, pageWidth, pageHeight, out VisualRect visual, out PdfStaticFormEvidenceKind evidence)) continue;
+                if (OverlapsExistingWidget(page, visual)) {
+                    AddDiagnostic("existing-widget", pageNumber, "A visual candidate overlaps an existing form widget.");
+                    continue;
+                }
+                if (labels.Any(label => OverlapArea(label.Bounds, visual) > visual.Area * 0.05D)) continue;
+                Label? labelMatch = FindLabel(labels, visual, evidence);
+                if (labelMatch is null) continue;
+                double confidence = evidence switch {
+                    PdfStaticFormEvidenceKind.OutlinedField => 0.84D,
+                    PdfStaticFormEvidenceKind.CheckBox => 0.79D,
+                    _ => 0.72D
+                };
+                confidence *= labelMatch.Confidence;
+                if (labelMatch.IsOcr) confidence *= 0.9D;
+                if (confidence < effective.MinimumConfidence) continue;
+                if (proposed.Any(candidate => candidate.PageNumber == pageNumber &&
+                    OverlapArea(candidate.Visual, visual) > Math.Min(candidate.Visual.Area, visual.Area) * 0.6D)) {
+                    AddDiagnostic("overlapping-proposals", pageNumber, "Overlapping visual field candidates need manual review.");
+                    continue;
+                }
+                proposed.Add(new Candidate(pageNumber, visual, evidence, labelMatch, confidence));
+                if (proposed.Count > effective.MaxProposals) {
+                    throw PdfReadLimitException.Create(PdfReadLimitKind.FormFields, effective.MaxProposals, proposed.Count);
+                }
+            }
+        }
+
+        var usedNames = new HashSet<string>(logical.FormFields.Where(static field => !string.IsNullOrWhiteSpace(field.Name)).Select(static field => field.Name!), StringComparer.Ordinal);
+        var proposals = new List<PdfStaticFormFieldProposal>(proposed.Count);
+        int currentPage = 0;
+        int tabIndex = 0;
+        foreach (Candidate candidate in proposed.OrderBy(static candidate => candidate.PageNumber)
+                     .ThenBy(static candidate => candidate.Visual.Top).ThenBy(static candidate => candidate.Visual.Left)) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (candidate.PageNumber != currentPage) { currentPage = candidate.PageNumber; tabIndex = 0; }
+            PdfLogicalPage page = logical.PagesBySourcePageNumber[candidate.PageNumber][0];
+            PdfPageRectangle rectangle = page.MapVisualRectangleToUserSpace(candidate.Visual.Left, candidate.Visual.Top, candidate.Visual.Right, candidate.Visual.Bottom);
+            string name = UniqueName(candidate.Label.Text, usedNames);
+            proposals.Add(new PdfStaticFormFieldProposal(
+                proposals.Count, candidate.PageNumber, ++tabIndex, candidate.Label.Text, name,
+                candidate.Evidence == PdfStaticFormEvidenceKind.CheckBox ? PdfFormFieldCreationKind.CheckBox : PdfFormFieldCreationKind.Text,
+                rectangle,
+                new PdfLogicalVisualBounds(candidate.Visual.Left, candidate.Visual.Top, candidate.Visual.Right, candidate.Visual.Bottom),
+                candidate.Confidence, candidate.Evidence, candidate.Label.IsOcr));
+        }
+        return new PdfStaticFormRecognitionReport(PdfArtifactFingerprint.ComputeSha256(pdf), proposals, diagnostics);
+
+        void AddDiagnostic(string code, int pageNumber, string message) {
+            if (diagnostics.Count < effective.MaxProposals) diagnostics.Add(new PdfStaticFormRecognitionDiagnostic(code, pageNumber, message));
+        }
+    }
+
+    private static List<Label> GetLabels(PdfLogicalPage page, IReadOnlyList<PdfStaticFormTextEvidence> ocrText, double pageWidth, double pageHeight) {
+        var labels = new List<Label>();
+        foreach (PdfLogicalTextBlock block in page.TextBlocks) {
+            string text = NormalizeLabel(block.Text);
+            if (text.Length == 0 || text.Length > 80 || block.XEnd <= block.XStart) continue;
+            PdfLogicalVisualBounds bounds = block.VisualBounds ?? ToVisualBounds(page, block);
+            if (!Valid(bounds.Left, bounds.Top, bounds.Right, bounds.Bottom, pageWidth, pageHeight)) continue;
+            labels.Add(new Label(text, new VisualRect(bounds.Left, bounds.Top, bounds.Right, bounds.Bottom), block.Confidence, isOcr: false));
+        }
+        foreach (PdfStaticFormTextEvidence item in ocrText) {
+            if (item.PageNumber != page.PageNumber || item.Confidence < 0.5D) continue;
+            string text = NormalizeLabel(item.Text);
+            if (text.Length == 0 || text.Length > 80 || !Valid(item.Left, item.Top, item.Right, item.Bottom, pageWidth, pageHeight)) continue;
+            var bounds = new VisualRect(item.Left, item.Top, item.Right, item.Bottom);
+            if (labels.Any(label => OverlapArea(label.Bounds, bounds) > bounds.Area * 0.5D)) continue;
+            labels.Add(new Label(text, bounds, item.Confidence, isOcr: true));
+        }
+        return labels;
+    }
+
+    private static PdfLogicalVisualBounds ToVisualBounds(PdfLogicalPage page, PdfLogicalTextBlock block) {
+        double size = Math.Max(1D, block.FontSize);
+        PdfVisualBounds visual = page.TransformBoundsToVisual(block.XStart, block.BaselineY - size * 0.25D, block.XEnd, block.BaselineY + size * 0.85D);
+        return new PdfLogicalVisualBounds(visual.Left, visual.Top, visual.Right, visual.Bottom);
+    }
+
+    private static bool TryGetCandidate(PdfPageVisualPrimitive primitive, double pageWidth, double pageHeight, out VisualRect bounds, out PdfStaticFormEvidenceKind evidence) {
+        bounds = default;
+        evidence = default;
+        if (primitive.StrokeColor is null || primitive.StrokeOpacity == 0D || primitive.ClipPath is not null) return false;
+        if (primitive.Kind == PdfPageVisualPrimitiveKind.Rectangle) {
+            if (primitive.Width >= 9D && primitive.Width <= 22D && primitive.Height >= 9D && primitive.Height <= 22D &&
+                Math.Abs(primitive.Width - primitive.Height) <= 3D && IsEmptyFill(primitive)) {
+                bounds = new VisualRect(primitive.X, primitive.Y, primitive.X + primitive.Width, primitive.Y + primitive.Height);
+                evidence = PdfStaticFormEvidenceKind.CheckBox;
+            } else if (primitive.Width >= 45D && primitive.Width <= 500D && primitive.Height >= 13D && primitive.Height <= 45D && IsEmptyFill(primitive)) {
+                bounds = new VisualRect(primitive.X, primitive.Y, primitive.X + primitive.Width, primitive.Y + primitive.Height);
+                evidence = PdfStaticFormEvidenceKind.OutlinedField;
+            }
+        } else if (primitive.Kind == PdfPageVisualPrimitiveKind.Line &&
+                   Math.Abs(primitive.Y1 - primitive.Y2) <= 1D &&
+                   Math.Abs(primitive.X2 - primitive.X1) >= 60D && Math.Abs(primitive.X2 - primitive.X1) <= 500D) {
+            double left = Math.Min(primitive.X1, primitive.X2);
+            bounds = new VisualRect(left, primitive.Y1 - 18D, Math.Max(primitive.X1, primitive.X2), primitive.Y1 + 2D);
+            evidence = PdfStaticFormEvidenceKind.Underline;
+        }
+        return bounds.Area > 0D && Valid(bounds.Left, bounds.Top, bounds.Right, bounds.Bottom, pageWidth, pageHeight);
+    }
+
+    private static bool IsEmptyFill(PdfPageVisualPrimitive primitive) =>
+        primitive.FillColor is null || primitive.FillOpacity == 0D ||
+        primitive.FillColor.Value.R >= 245 && primitive.FillColor.Value.G >= 245 && primitive.FillColor.Value.B >= 245;
+
+    private static Label? FindLabel(IReadOnlyList<Label> labels, VisualRect field, PdfStaticFormEvidenceKind evidence) {
+        Label? best = null;
+        double bestDistance = double.MaxValue;
+        foreach (Label label in labels) {
+            VisualRect bounds = label.Bounds;
+            double centerDifference = Math.Abs((bounds.Top + bounds.Bottom) / 2D - (field.Top + field.Bottom) / 2D);
+            double distance = double.MaxValue;
+            if (centerDifference <= Math.Max(10D, field.Height * 0.65D)) {
+                if (bounds.Right <= field.Left && field.Left - bounds.Right <= 120D) distance = field.Left - bounds.Right;
+                if (evidence == PdfStaticFormEvidenceKind.CheckBox && bounds.Left >= field.Right && bounds.Left - field.Right <= 120D) {
+                    distance = Math.Min(distance, bounds.Left - field.Right);
+                }
+            }
+            if (bounds.Bottom <= field.Top && field.Top - bounds.Bottom <= 30D &&
+                bounds.Left <= field.Right && bounds.Right >= field.Left - 15D) {
+                distance = Math.Min(distance, 15D + field.Top - bounds.Bottom);
+            }
+            if (distance < bestDistance) { best = label; bestDistance = distance; }
+        }
+        return best;
+    }
+
+    private static bool OverlapsExistingWidget(PdfLogicalPage page, VisualRect bounds) {
+        foreach (PdfLogicalFormWidget widget in page.FormWidgets) {
+            if (widget.X2 <= widget.X1 || widget.Y2 <= widget.Y1) continue;
+            PdfSelectionQuad visual = page.MapUserSpaceRectangleToVisual(widget.X1, widget.Y1, widget.X2, widget.Y2);
+            if (OverlapArea(bounds, new VisualRect(visual.Left, visual.Top, visual.Right, visual.Bottom)) > bounds.Area * 0.05D) return true;
+        }
+        return false;
+    }
+
+    private static string UniqueName(string label, HashSet<string> used) {
+        var builder = new StringBuilder(label.Length);
+        foreach (char character in label) {
+            if (char.IsLetterOrDigit(character)) builder.Append(char.ToLowerInvariant(character));
+            else if (builder.Length > 0 && builder[builder.Length - 1] != '_') builder.Append('_');
+        }
+        string stem = builder.ToString().Trim('_');
+        if (stem.Length > 50) stem = stem.Substring(0, 50).TrimEnd('_');
+        if (stem.Length == 0) stem = "field";
+        string candidate = stem;
+        int suffix = 2;
+        while (!used.Add(candidate)) {
+            candidate = stem + "_" + suffix.ToString(CultureInfo.InvariantCulture);
+            suffix++;
+        }
+        return candidate;
+    }
+
+    private static string NormalizeLabel(string text) => text.Trim().TrimEnd(':', '：').Trim();
+
+    private static bool Valid(double left, double top, double right, double bottom, double width, double height) =>
+        IsFinite(left) && IsFinite(top) && IsFinite(right) && IsFinite(bottom) && left >= 0D && top >= 0D && right <= width && bottom <= height && right > left && bottom > top;
+    private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
+    private static double OverlapArea(VisualRect first, VisualRect second) =>
+        Math.Max(0D, Math.Min(first.Right, second.Right) - Math.Max(first.Left, second.Left)) *
+        Math.Max(0D, Math.Min(first.Bottom, second.Bottom) - Math.Max(first.Top, second.Top));
+
+    private readonly struct VisualRect {
+        internal VisualRect(double left, double top, double right, double bottom) { Left = left; Top = top; Right = right; Bottom = bottom; }
+        internal double Left { get; }
+        internal double Top { get; }
+        internal double Right { get; }
+        internal double Bottom { get; }
+        internal double Height => Bottom - Top;
+        internal double Area => Math.Max(0D, Right - Left) * Math.Max(0D, Height);
+    }
+
+    private sealed class Label {
+        internal Label(string text, VisualRect bounds, double confidence, bool isOcr) { Text = text; Bounds = bounds; Confidence = confidence; IsOcr = isOcr; }
+        internal string Text { get; }
+        internal VisualRect Bounds { get; }
+        internal double Confidence { get; }
+        internal bool IsOcr { get; }
+    }
+
+    private sealed class Candidate {
+        internal Candidate(int pageNumber, VisualRect visual, PdfStaticFormEvidenceKind evidence, Label label, double confidence) {
+            PageNumber = pageNumber; Visual = visual; Evidence = evidence; Label = label; Confidence = confidence;
+        }
+        internal int PageNumber { get; }
+        internal VisualRect Visual { get; }
+        internal PdfStaticFormEvidenceKind Evidence { get; }
+        internal Label Label { get; }
+        internal double Confidence { get; }
+    }
+}

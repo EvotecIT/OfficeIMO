@@ -316,6 +316,31 @@ PdfAcroFormEditResult edited = PdfDocument.Load("input.pdf").Forms.Edit(form => 
 File.WriteAllBytes("form.pdf", edited.ToBytes());
 ```
 
+For a static paper-style form, inspect proposed fields before creating any widgets:
+
+```csharp
+PdfDocument source = PdfDocument.Load("static-form.pdf");
+PdfStaticFormRecognitionReport proposals = source.Forms.RecognizeStaticLayout();
+foreach (PdfStaticFormFieldProposal field in proposals.Proposals)
+    Console.WriteLine($"{field.Index}: {field.Label} ({field.Kind}, {field.Confidence:0.00})");
+
+int[] accepted = proposals.Proposals
+    .Where(field => field.Confidence >= 0.8)
+    .Select(field => field.Index)
+    .ToArray();
+if (accepted.Length > 0)
+    File.WriteAllBytes("fillable-form.pdf", proposals.ApplySelected(source, accepted).ToBytes());
+```
+
+Recognition proposes text fields from empty outlines or writing lines and check
+boxes from small square outlines. Nearby native text supplies labels; callers
+can also pass bounded positioned OCR text as `PdfStaticFormTextEvidence` without
+installing an OCR runtime in `OfficeIMO.Pdf`. The report includes page-local tab
+order suggestions and collision diagnostics. It does not infer radio groups,
+choice values, calculations, or form actions from static marks. Applying selected
+proposals requires the exact analyzed source bytes and uses the existing form
+mutation and preservation checks.
+
 The same transaction creates text fields, check boxes, combo or list choices,
 radio-button groups, push buttons, and empty signature fields. Generated widget
 appearances use `PdfFormFieldStyle`; widget JavaScript is returned as inert,

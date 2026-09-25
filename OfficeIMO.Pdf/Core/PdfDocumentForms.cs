@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>
@@ -306,6 +308,13 @@ public sealed class PdfDocumentForms {
         Guard.NotNull(appearanceOptions, nameof(appearanceOptions));
         return PdfAcroFormEditor.Edit(_document.GetBytesForOperation(), edit, _document.ReadOptions, appearanceOptions);
     }
+
+    /// <summary>Proposes fields from static page outlines and labels without changing the document.</summary>
+    public PdfStaticFormRecognitionReport RecognizeStaticLayout(
+        PdfStaticFormRecognitionOptions? options = null,
+        IReadOnlyList<PdfStaticFormTextEvidence>? ocrText = null,
+        CancellationToken cancellationToken = default) =>
+        PdfStaticFormRecognizer.Analyze(_document, options, ocrText, cancellationToken);
 
     private static PdfIncrementalFormFieldUpdateOptions CreateIncrementalOptions(PdfFormFillerOptions? formOptions) {
         if (formOptions?.HasAppearanceFontFamily == true || formOptions?.HasAppearanceFontFallbacks == true) {
