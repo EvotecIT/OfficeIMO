@@ -6,6 +6,22 @@ public sealed class PdfDocumentProof {
 
     internal PdfDocumentProof(PdfDocument document) => _document = document;
 
+    /// <summary>Aligns pages with another PDF and reports insertion, deletion, reorder, and visual-change candidates.</summary>
+    public PdfPageChangeReport AnalyzePageChanges(PdfDocument actualDocument, PdfPageChangeOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        Guard.NotNull(actualDocument, nameof(actualDocument));
+        return PdfPageChangeAnalyzer.Analyze(_document.GetBytesForOperation(cancellationToken), actualDocument.GetBytesForOperation(cancellationToken),
+            options, _document.ReadOptions, actualDocument.ReadOptions, cancellationToken);
+    }
+
+    /// <summary>Renders and compares an aligned page pair from two documents.</summary>
+    public PdfVisualPageComparison CompareVisualPages(int expectedPageNumber, PdfDocument actualDocument, int actualPageNumber,
+        PdfVisualComparisonOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        Guard.NotNull(actualDocument, nameof(actualDocument));
+        return PdfVisualComparer.ComparePages(_document.GetBytesForOperation(cancellationToken), expectedPageNumber,
+            actualDocument.GetBytesForOperation(cancellationToken), actualPageNumber, options,
+            _document.ReadOptions, actualDocument.ReadOptions, cancellationToken);
+    }
+
     /// <summary>Compares this document with PDF bytes through the managed renderer.</summary>
     public PdfVisualComparisonReport CompareVisual(byte[] actualPdf, PdfPageSelection? selection = null, PdfVisualComparisonOptions? options = null, PdfLoadOptions? actualReadOptions = null) =>
         _document.CompareVisual(actualPdf, selection, options, actualReadOptions);

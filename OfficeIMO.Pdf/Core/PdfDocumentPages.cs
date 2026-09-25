@@ -12,6 +12,14 @@ public sealed partial class PdfDocumentPages {
         _document = document;
     }
 
+    /// <summary>Places selected source pages onto printable sheets as vector page content and returns their cell mapping.</summary>
+    public PdfImpositionResult ImposeNUp(PdfNUpOptions options, PdfPageSelection? selection = null) =>
+        PdfPageImposer.ImposeNUp(_document.GetBytesForOperation(), options, selection, _document.ReadOptions);
+
+    /// <summary>Creates a two-up duplex booklet in front/back print order. Source pages become visual sheet content.</summary>
+    public PdfImpositionResult ImposeBooklet(PdfBookletOptions options, PdfPageSelection? selection = null) =>
+        PdfPageImposer.ImposeBooklet(_document.GetBytesForOperation(), options, selection, _document.ReadOptions);
+
     /// <summary>
     /// Creates a new PDF containing selected pages in caller order.
     /// </summary>

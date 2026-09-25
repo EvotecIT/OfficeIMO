@@ -827,6 +827,45 @@ selectedRanges[0].Save("packet-front.pdf");
 selectedRanges[1].Save("packet-evidence.pdf");
 ```
 
+To place source pages on printable sheets, use the same page import engine for
+N-up or duplex booklet output:
+
+```csharp
+var nup = source.Pages.ImposeNUp(new PdfNUpOptions(new PageSize(842, 595), columns: 2, rows: 1));
+nup.ToDocument().Save("packet-two-up.pdf");
+
+var booklet = source.Pages.ImposeBooklet(new PdfBookletOptions(new PageSize(842, 595)));
+booklet.ToDocument().Save("packet-booklet.pdf");
+foreach (var placement in booklet.Placements)
+    Console.WriteLine($"Source {placement.SourcePageNumber}: sheet side {placement.SheetPageNumber}, column {placement.Column}");
+```
+
+Booklet pages are ordered front then back for each physical sheet. Missing
+pages are blank-padded to a multiple of four. Set `RightToLeft` for reverse
+reading order; printer duplex edge, creep, and bleed settings remain with the
+print workflow. Both operations import page
+content as vector Form XObjects, but do not carry source annotations, forms,
+signatures, or structure tags onto the new sheets. If the source contains any
+of those features, set `AllowVisualOnlySourceFeatures = true` explicitly.
+
+For review after page insertion or reordering, align pages before comparing
+the ones that need closer inspection:
+
+```csharp
+PdfDocument revised = PdfDocument.Load("packet-revised.pdf");
+PdfPageChangeReport changes = source.Proof.AnalyzePageChanges(revised);
+foreach (PdfPageChange change in changes.Changes) {
+    if (change.Kind != PdfPageChangeKind.ModifiedCandidate) continue;
+    PdfVisualPageComparison detail = source.Proof.CompareVisualPages(
+        change.ExpectedPageNumber!.Value, revised, change.ActualPageNumber!.Value);
+    Console.WriteLine($"Page {change.ExpectedPageNumber}: {detail.DifferentPixels} changed pixels");
+}
+```
+
+Alignment uses exact rendered pixels at the chosen scale. A changed-page pair
+is a review candidate; the report does not claim to identify semantic text or
+image edits.
+
 ### Merge, reorder, delete, duplicate, move, and rotate
 
 ```csharp
@@ -1189,6 +1228,26 @@ PdfDocument.Load("contract.pdf")
     })
     .Save("contract-reviewed.pdf");
 ```
+
+An image-backed Stamp annotation keeps the picture in the annotation layer,
+which can be useful for a handwritten approval mark on an existing page:
+
+```csharp
+using System.IO;
+using OfficeIMO.Pdf;
+
+var result = PdfDocument.Load("contract.pdf").Annotations.AddStamp(
+    new PdfStampAnnotationOptions {
+        PageNumber = 1,
+        X = 72, Y = 700, Width = 144, Height = 48,
+        ImageBytes = File.ReadAllBytes("approval.png"),
+        Contents = "Reviewed"
+    });
+result.ToDocument().Save("contract-marked.pdf");
+```
+
+This is a visual annotation, not a cryptographic PDF signature. The encoded
+image input is limited to 128 MiB by default.
 
 Use `Stamp.Watermark` when you want to reopen and revise a watermark later:
 

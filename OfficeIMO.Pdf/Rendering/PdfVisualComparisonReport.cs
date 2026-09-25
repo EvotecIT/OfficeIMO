@@ -46,7 +46,9 @@ public sealed class PdfVisualComparisonReport {
         }
         foreach (PdfVisualPageComparison page in Pages) {
             cancellationToken.ThrowIfCancellationRequested();
-            html.Append("<section><h2>Page ").Append(page.PageNumber.ToString(CultureInfo.InvariantCulture)).Append(page.IsMatch ? " - match" : " - differs").Append("</h2><p>")
+            html.Append("<section><h2>Page ").Append(page.PageNumber.ToString(CultureInfo.InvariantCulture));
+            if (page.ActualPageNumber != page.PageNumber) html.Append(" vs. ").Append(page.ActualPageNumber.ToString(CultureInfo.InvariantCulture));
+            html.Append(page.IsMatch ? " - match" : " - differs").Append("</h2><p>")
                 .Append(page.DifferentPixels.ToString(CultureInfo.InvariantCulture)).Append(" changed pixels; ratio ").Append(page.DifferenceRatio.ToString("0.######", CultureInfo.InvariantCulture)).Append("</p><div class=\"grid\">");
             AppendImage(html, "Expected", page.ExpectedPng, cancellationToken);
             AppendImage(html, "Actual", page.ActualPng, cancellationToken);
@@ -153,14 +155,16 @@ public sealed class PdfVisualPageComparison {
     private readonly byte[] _actualPng;
     private readonly byte[] _diffPng;
 
-    internal PdfVisualPageComparison(int pageNumber, bool isMatch, int width, int height, long comparedPixels, long differentPixels, int maximumChannelDifference, double meanChannelDifference, byte[] expectedPng, byte[] actualPng, byte[] diffPng, bool hasSizeDifference, PdfPixelRegion? changedBounds) {
-        PageNumber = pageNumber; IsMatch = isMatch; Width = width; Height = height; ComparedPixels = comparedPixels; DifferentPixels = differentPixels;
+    internal PdfVisualPageComparison(int pageNumber, int actualPageNumber, bool isMatch, int width, int height, long comparedPixels, long differentPixels, int maximumChannelDifference, double meanChannelDifference, byte[] expectedPng, byte[] actualPng, byte[] diffPng, bool hasSizeDifference, PdfPixelRegion? changedBounds) {
+        PageNumber = pageNumber; ActualPageNumber = actualPageNumber; IsMatch = isMatch; Width = width; Height = height; ComparedPixels = comparedPixels; DifferentPixels = differentPixels;
         MaximumChannelDifference = maximumChannelDifference; MeanChannelDifference = meanChannelDifference;
         HasSizeDifference = hasSizeDifference; ChangedBounds = changedBounds;
         _expectedPng = (byte[])expectedPng.Clone(); _actualPng = (byte[])actualPng.Clone(); _diffPng = (byte[])diffPng.Clone();
     }
     /// <summary>One-based page number.</summary>
     public int PageNumber { get; }
+    /// <summary>One-based page in the actual document.</summary>
+    public int ActualPageNumber { get; }
     /// <summary>Whether this page satisfies the configured threshold.</summary>
     public bool IsMatch { get; }
     /// <summary>Whether the rendered source dimensions differ, independently of pixel tolerances.</summary>

@@ -1,3 +1,5 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfAnnotationEditor {
@@ -10,6 +12,16 @@ internal static partial class PdfAnnotationEditor {
         Guard.NotNull(pdf, nameof(pdf));
         PdfStampAnnotationOptions effective = options ?? new PdfStampAnnotationOptions();
         ValidateStampOptions(effective);
+        byte[]? imageBytes = effective.GetImageBytes();
+        PdfWriter.PdfImageStream? imageStream = null;
+        if (imageBytes is not null) {
+            PdfImageInput.EnsureWithinLimit(imageBytes.LongLength, effective.MaximumEncodedImageBytes);
+            PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageBytes(imageBytes);
+            if (!PdfWriter.TryBuildImageStream(prepared, effective.Width, effective.Height, out PdfWriter.PdfImageStream builtImage, out string? reason)) {
+                throw new NotSupportedException(reason ?? "Stamp image format is not supported.");
+            }
+            imageStream = builtImage;
+        }
         PdfMutationPlan mutationPlan = PdfMutationPlanner.Require(
             pdf,
             PdfMutationOperation.ModifyAnnotations,
@@ -33,11 +45,28 @@ internal static partial class PdfAnnotationEditor {
             throw new InvalidOperationException("The selected page object is not a dictionary.");
         }
 
-        int fontObjectNumber = NextAnnotationObjectNumber(objects);
-        int appearanceObjectNumber = checked(fontObjectNumber + 1);
-        int annotationObjectNumber = checked(fontObjectNumber + 2);
-        objects[fontObjectNumber] = new PdfIndirectObject(fontObjectNumber, 0, BuildStampFont());
-        PdfStream appearance = BuildStampAppearance(effective, fontObjectNumber);
+        int nextObjectNumber = NextAnnotationObjectNumber(objects);
+        var generatedObjects = new List<int>();
+        int? fontObjectNumber = null;
+        int? imageObjectNumber = null;
+        if (imageStream is null) {
+            fontObjectNumber = nextObjectNumber++;
+            objects[fontObjectNumber.Value] = new PdfIndirectObject(fontObjectNumber.Value, 0, BuildStampFont());
+            generatedObjects.Add(fontObjectNumber.Value);
+        } else {
+            int? softMaskObjectNumber = null;
+            if (imageStream.SoftMask is not null) {
+                softMaskObjectNumber = nextObjectNumber++;
+                objects[softMaskObjectNumber.Value] = new PdfIndirectObject(softMaskObjectNumber.Value, 0, PdfWriter.BuildImageXObject(imageStream.SoftMask));
+                generatedObjects.Add(softMaskObjectNumber.Value);
+            }
+            imageObjectNumber = nextObjectNumber++;
+            objects[imageObjectNumber.Value] = new PdfIndirectObject(imageObjectNumber.Value, 0, PdfWriter.BuildImageXObject(imageStream, softMaskObjectNumber));
+            generatedObjects.Add(imageObjectNumber.Value);
+        }
+        int appearanceObjectNumber = nextObjectNumber++;
+        int annotationObjectNumber = nextObjectNumber++;
+        PdfStream appearance = BuildStampAppearance(effective, fontObjectNumber, imageObjectNumber, imageStream);
         objects[appearanceObjectNumber] = new PdfIndirectObject(
             appearanceObjectNumber,
             0,
@@ -46,6 +75,8 @@ internal static partial class PdfAnnotationEditor {
             annotationObjectNumber,
             0,
             BuildStampAnnotation(effective, pageObject, appearanceObjectNumber));
+        generatedObjects.Add(appearanceObjectNumber);
+        generatedObjects.Add(annotationObjectNumber);
 
         int annotationsOwnerObjectNumber = AddAnnotationReference(
             objects,
@@ -54,16 +85,11 @@ internal static partial class PdfAnnotationEditor {
             new PdfReference(annotationObjectNumber, 0));
         PdfGeneratedOutputGrowth generatedGrowth = BuildGeneratedOutputGrowth(
             objects,
-            new[] { annotationsOwnerObjectNumber, fontObjectNumber, appearanceObjectNumber, annotationObjectNumber },
+            generatedObjects.Concat(new[] { annotationsOwnerObjectNumber }),
             additionalAnnotationsPerPage: 1,
             additionalRevisions: mutationPlan.ExecutionMode == PdfMutationExecutionMode.AppendOnly ? 1 : 0);
         if (mutationPlan.ExecutionMode == PdfMutationExecutionMode.AppendOnly) {
-            var changedObjectNumbers = new[] {
-                annotationsOwnerObjectNumber,
-                fontObjectNumber,
-                appearanceObjectNumber,
-                annotationObjectNumber
-            }.Distinct().ToArray();
+            int[] changedObjectNumbers = generatedObjects.Concat(new[] { annotationsOwnerObjectNumber }).Distinct().ToArray();
             byte[] appended = PdfIncrementalObjectWriter.Append(
                 pdf,
                 objects,
@@ -110,26 +136,44 @@ internal static partial class PdfAnnotationEditor {
         return font;
     }
 
-    private static PdfStream BuildStampAppearance(PdfStampAnnotationOptions options, int fontObjectNumber) {
-        var fontResources = new PdfDictionary();
-        fontResources.Items["Helv"] = new PdfReference(fontObjectNumber, 0);
+    private static PdfStream BuildStampAppearance(PdfStampAnnotationOptions options, int? fontObjectNumber, int? imageObjectNumber, PdfWriter.PdfImageStream? imageStream) {
         var resources = new PdfDictionary();
-        resources.Items["Font"] = fontResources;
+        if (fontObjectNumber.HasValue) {
+            var fontResources = new PdfDictionary();
+            fontResources.Items["Helv"] = new PdfReference(fontObjectNumber.Value, 0);
+            resources.Items["Font"] = fontResources;
+        }
+        if (imageObjectNumber.HasValue) {
+            var xObjects = new PdfDictionary();
+            xObjects.Items["Im1"] = new PdfReference(imageObjectNumber.Value, 0);
+            resources.Items["XObject"] = xObjects;
+        }
         var dictionary = new PdfDictionary();
         dictionary.Items["Type"] = new PdfName("XObject");
         dictionary.Items["Subtype"] = new PdfName("Form");
         dictionary.Items["FormType"] = new PdfNumber(1);
         dictionary.Items["BBox"] = BuildNumberArray(0D, 0D, options.Width, options.Height);
         dictionary.Items["Resources"] = resources;
-        string content = PdfAnnotationDictionaryBuilder.BuildStampAppearanceContent(
-            options.Width,
-            options.Height,
-            options.StampName,
-            options.StrokeColor,
-            options.FillColor,
-            options.BorderWidth);
+        string content;
+        if (imageStream is not null) {
+            OfficeImagePlacement placement = OfficeImageRenderPlan.CreateBottomLeft(
+                imageStream.PixelWidth, imageStream.PixelHeight, 0D, 0D, options.Width, options.Height, OfficeImageFit.Contain).ImagePlacement;
+            content = "q\n" + FormatStampNumber(placement.Width) + " 0 0 " +
+                FormatStampNumber(placement.Height) + " " + FormatStampNumber(placement.X) + " " +
+                FormatStampNumber(placement.Y) + " cm\n/Im1 Do\nQ\n";
+        } else {
+            content = PdfAnnotationDictionaryBuilder.BuildStampAppearanceContent(
+                options.Width,
+                options.Height,
+                options.StampName,
+                options.StrokeColor,
+                options.FillColor,
+                options.BorderWidth);
+        }
         return new PdfStream(dictionary, PdfEncoding.Latin1GetBytes(content));
     }
+
+    private static string FormatStampNumber(double value) => value.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
 
     private static PdfDictionary BuildStampAnnotation(
         PdfStampAnnotationOptions options,
@@ -187,6 +231,7 @@ internal static partial class PdfAnnotationEditor {
         Guard.NotNullOrWhiteSpace(options.StampName, nameof(options.StampName));
         Guard.NonNegative(options.Flags, nameof(options.Flags));
         Guard.NonNegative(options.BorderWidth, nameof(options.BorderWidth));
+        PdfImageInput.ValidateMaximum(options.MaximumEncodedImageBytes);
     }
 
     private static void ValidateFinite(double value, string parameterName) {

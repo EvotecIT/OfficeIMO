@@ -1,9 +1,80 @@
+using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
 public class PdfStampAnnotationEditorTests {
+    [Fact]
+    public void ImageStampIsAReopenableAnnotationWithAnImageAppearance() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Image stamp source")).ToBytes();
+        byte[] image = OfficeRasterImageEncoder.Encode(new OfficeRasterImage(24, 12, OfficeColor.Black), OfficeImageExportFormat.Png);
+        var options = new PdfStampAnnotationOptions {
+            StampName = "Signature", ImageBytes = image, X = 72, Y = 600, Width = 120, Height = 60,
+            Contents = "Visual signature"
+        };
+        image[0] = 0; // The option owns its image bytes after assignment.
+
+        PdfAnnotationEditResult result = PdfDocument.Load(source).Annotations.AddStamp(options);
+
+        PdfAnnotation stamp = Assert.Single(PdfDocument.Load(result.Bytes).Reader.Annotations());
+        Assert.Equal("Stamp", stamp.Subtype);
+        Assert.True(stamp.HasNormalAppearance);
+        Assert.Equal("Visual signature", stamp.Contents);
+        Assert.Equal(72, stamp.X1);
+        Assert.Equal(600, stamp.Y1);
+        Assert.Equal(192, stamp.X2);
+        Assert.Equal(660, stamp.Y2);
+        var (objects, _) = PdfSyntax.ParseObjects(result.Bytes);
+        PdfStream appearance = Assert.Single(objects.Values.Select(static item => item.Value).OfType<PdfStream>(),
+            static stream => stream.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtype) && subtype is PdfName name && name.Name == "Form");
+        Assert.Contains("/Im1 Do", PdfEncoding.Latin1GetString(appearance.Data), StringComparison.Ordinal);
+        Assert.Contains(objects.Values.Select(static item => item.Value).OfType<PdfStream>(),
+            static stream => stream.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtype) && subtype is PdfName name && name.Name == "Image");
+        byte[] beforePng = PdfPageImageRenderer.RenderPageAsPng(source, scale: 0.5D);
+        byte[] afterPng = PdfPageImageRenderer.RenderPageAsPng(result.Bytes, scale: 0.5D);
+        Assert.NotEqual(beforePng, afterPng);
+    }
+
+    [Fact]
+    public void ImageStampCanBeAppendedToAnnotationPermittedCertification() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Signed source")).ToBytes();
+        byte[] certified = Certify(source, PdfCertificationPermissionLevel.FormFillingAnnotationsAndSignatures);
+        byte[] image = OfficeRasterImageEncoder.Encode(new OfficeRasterImage(4, 4, OfficeColor.Black), OfficeImageExportFormat.Png);
+
+        PdfAnnotationEditResult result = PdfDocument.Load(certified).Annotations.AddStamp(
+            new PdfStampAnnotationOptions { StampName = "Signature", ImageBytes = image });
+
+        Assert.Equal(PdfMutationExecutionMode.AppendOnly, result.MutationPlan.ExecutionMode);
+        Assert.True(result.Bytes.AsSpan(0, certified.Length).SequenceEqual(certified));
+        Assert.True(result.SignatureMutationReport!.IsPreservedAppendOnlyMutation);
+        Assert.True(Assert.Single(PdfInspector.Inspect(result.Bytes).GetAnnotationsBySubtype("Stamp")).HasNormalAppearance);
+    }
+
+    [Fact]
+    public void TransparentImageStampEmbedsItsSoftMask() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Signature area")).ToBytes();
+        var raster = new OfficeRasterImage(4, 4, OfficeColor.Transparent);
+        raster.SetPixel(1, 1, OfficeColor.Black);
+        byte[] image = OfficeRasterImageEncoder.Encode(raster, OfficeImageExportFormat.Png);
+
+        PdfAnnotationEditResult result = PdfDocument.Load(source).Annotations.AddStamp(
+            new PdfStampAnnotationOptions { ImageBytes = image, Width = 80, Height = 80 });
+
+        var (objects, _) = PdfSyntax.ParseObjects(result.Bytes);
+        Assert.Contains(objects.Values.Select(static item => item.Value).OfType<PdfStream>(),
+            static stream => stream.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtype) &&
+                             subtype is PdfName { Name: "Image" } && stream.Dictionary.Items.ContainsKey("SMask"));
+    }
+
+    [Fact]
+    public void ImageStampRejectsOversizedInputBeforeProducingAnArtifact() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Source")).ToBytes();
+        byte[] image = OfficeRasterImageEncoder.Encode(new OfficeRasterImage(4, 4, OfficeColor.Black), OfficeImageExportFormat.Png);
+        Assert.Throws<InvalidDataException>(() => PdfDocument.Load(source).Annotations.AddStamp(
+            new PdfStampAnnotationOptions { ImageBytes = image, MaximumEncodedImageBytes = image.Length - 1 }));
+        Assert.Empty(PdfInspector.Inspect(source).Annotations);
+    }
     [Fact]
     public void AddStampAnnotation_CreatesVisualAppearanceDuringFullRewrite() {
         byte[] source = PdfDocument.Create()

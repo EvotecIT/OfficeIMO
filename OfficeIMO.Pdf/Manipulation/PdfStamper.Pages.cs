@@ -20,6 +20,11 @@ internal static partial class PdfStamper {
         return StampPageCore(targetPdf, sourcePdf, options?.Clone() ?? new PdfPageOverlayOptions(), targetReadOptions);
     }
 
+    internal static byte[] StampPages(byte[] targetPdf, byte[] sourcePdf, IReadOnlyList<PdfPageOverlayOptions> placements) {
+        Guard.NotNull(placements, nameof(placements));
+        return StampPageSetCore(targetPdf, placements.Select(options => new PageStampRequest(sourcePdf, options.Clone())).ToArray());
+    }
+
     /// <summary>Imports a source PDF page onto target pages read from streams.</summary>
     public static byte[] StampPage(Stream targetPdf, Stream sourcePdf, PdfPageOverlayOptions? options = null) {
         return StampPage(
@@ -74,6 +79,11 @@ internal static partial class PdfStamper {
         var isolatedOverlayPages = new HashSet<int>();
         var watermarkSettingsObjects = new Dictionary<string, int>(StringComparer.Ordinal);
         PdfFileVersion outputVersion = PdfPageExtractor.GetSourceFileVersion(targetPdf);
+        byte[]? cachedSourcePdf = null;
+        PdfLoadOptions? cachedSourceReadOptions = null;
+        Dictionary<int, PdfIndirectObject>? cachedSourceObjects = null;
+        PdfReadDocument? cachedSourceDocument = null;
+        var cachedImportedObjectNumbers = new Dictionary<int, int>();
 
         for (int requestIndex = 0; requestIndex < requests.Count; requestIndex++) {
             PageStampRequest request = requests[requestIndex];
@@ -82,10 +92,16 @@ internal static partial class PdfStamper {
             Guard.NotNull(sourcePdf, nameof(requests));
             Guard.NotNull(options, nameof(requests));
             PdfLoadOptions? sourceReadOptions = options.SourceReadOptions;
-            _ = PdfMutationPlanner.RequireFullRewrite(sourcePdf, PdfMutationOperation.ExtractPages, sourceReadOptions);
-
-            var (sourceObjects, _) = PdfSyntax.ParseObjects(sourcePdf, sourceReadOptions);
-            PdfReadDocument source = PdfReadDocument.Open(sourcePdf, sourceReadOptions);
+            if (!ReferenceEquals(sourcePdf, cachedSourcePdf) || !ReferenceEquals(sourceReadOptions, cachedSourceReadOptions)) {
+                _ = PdfMutationPlanner.RequireFullRewrite(sourcePdf, PdfMutationOperation.ExtractPages, sourceReadOptions);
+                (cachedSourceObjects, _) = PdfSyntax.ParseObjects(sourcePdf, sourceReadOptions);
+                cachedSourceDocument = PdfReadDocument.Open(sourcePdf, sourceReadOptions);
+                cachedSourcePdf = sourcePdf;
+                cachedSourceReadOptions = sourceReadOptions;
+                cachedImportedObjectNumbers.Clear();
+            }
+            Dictionary<int, PdfIndirectObject> sourceObjects = cachedSourceObjects!;
+            PdfReadDocument source = cachedSourceDocument!;
             if (options.SourcePageNumber > source.Pages.Count) {
                 throw new ArgumentOutOfRangeException(nameof(requests), options.SourcePageNumber, "Source page number exceeds the source PDF page count.");
             }
@@ -102,12 +118,16 @@ internal static partial class PdfStamper {
             var sourceCollector = new PdfPageExtractor.ObjectCollector(sourceObjects);
             sourceCollector.CollectObjectGraph(sourceResources);
             sourceCollector.CollectObjectGraph(sourceGroup);
-            var importedObjectNumbers = new Dictionary<int, int>();
-            foreach (int sourceObjectNumber in sourceCollector.ObjectIds) importedObjectNumbers[sourceObjectNumber] = nextObjectNumber++;
+            var newlyImportedObjectNumbers = new List<int>();
             foreach (int sourceObjectNumber in sourceCollector.ObjectIds) {
+                if (cachedImportedObjectNumbers.ContainsKey(sourceObjectNumber)) continue;
+                cachedImportedObjectNumbers[sourceObjectNumber] = nextObjectNumber++;
+                newlyImportedObjectNumbers.Add(sourceObjectNumber);
+            }
+            foreach (int sourceObjectNumber in newlyImportedObjectNumbers) {
                 PdfIndirectObject sourceObject = sourceObjects[sourceObjectNumber];
-                int importedNumber = importedObjectNumbers[sourceObjectNumber];
-                targetObjects[importedNumber] = new PdfIndirectObject(importedNumber, 0, CloneImportedObject(sourceObject.Value, importedObjectNumbers));
+                int importedNumber = cachedImportedObjectNumbers[sourceObjectNumber];
+                targetObjects[importedNumber] = new PdfIndirectObject(importedNumber, 0, CloneImportedObject(sourceObject.Value, cachedImportedObjectNumbers));
             }
 
             (double sourceWidth, double sourceHeight, Matrix2D normalization) = sourcePage.GetImportGeometry();
@@ -125,10 +145,10 @@ internal static partial class PdfStamper {
             formDictionary.Items["BBox"] = NumberArray(0D, 0D, sourceWidth, sourceHeight);
             formDictionary.Items["Resources"] = sourceResources == null
                 ? new PdfDictionary()
-                : CloneImportedObject(sourceResources, importedObjectNumbers);
+                : CloneImportedObject(sourceResources, cachedImportedObjectNumbers);
             if (options.ContentIdentifier is { } formIdentifier)
                 formDictionary.Items["OfficeIMOWatermarkResource"] = new PdfStringObj(formIdentifier);
-            if (sourceGroup != null) formDictionary.Items["Group"] = CloneImportedObject(sourceGroup, importedObjectNumbers);
+            if (sourceGroup != null) formDictionary.Items["Group"] = CloneImportedObject(sourceGroup, cachedImportedObjectNumbers);
             int formObjectNumber = nextObjectNumber++;
             targetObjects[formObjectNumber] = new PdfIndirectObject(formObjectNumber, 0, new PdfStream(formDictionary, formContent));
 

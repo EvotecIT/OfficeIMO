@@ -72,9 +72,41 @@ public static class PdfVisualComparer {
         return new PdfVisualComparisonReport(pages.AsReadOnly(), structural.AsReadOnly(), expected.Pages.Count, actual.Pages.Count);
     }
 
+    /// <summary>Compares any two one-based pages, including pages aligned after insertion or reordering.</summary>
+    public static PdfVisualPageComparison ComparePages(
+        byte[] expectedPdf,
+        int expectedPageNumber,
+        byte[] actualPdf,
+        int actualPageNumber,
+        PdfVisualComparisonOptions? options = null,
+        PdfLoadOptions? expectedReadOptions = null,
+        PdfLoadOptions? actualReadOptions = null,
+        CancellationToken cancellationToken = default) {
+        Guard.NotNull(expectedPdf, nameof(expectedPdf));
+        Guard.NotNull(actualPdf, nameof(actualPdf));
+        PdfVisualComparisonOptions effective = options ?? new PdfVisualComparisonOptions();
+        effective.Validate();
+        cancellationToken.ThrowIfCancellationRequested();
+        PdfReadDocument expected = PdfReadDocument.Open(expectedPdf, expectedReadOptions, cancellationToken);
+        PdfReadDocument actual = PdfReadDocument.Open(actualPdf, actualReadOptions, cancellationToken);
+        if (expectedPageNumber < 1 || expectedPageNumber > expected.Pages.Count) throw new ArgumentOutOfRangeException(nameof(expectedPageNumber));
+        if (actualPageNumber < 1 || actualPageNumber > actual.Pages.Count) throw new ArgumentOutOfRangeException(nameof(actualPageNumber));
+        long totalPixels = 0;
+        var structural = new List<string>();
+        PdfVisualPageComparison page = ComparePage(expected, actual, expectedPageNumber, actualPageNumber, effective, structural, ref totalPixels, cancellationToken);
+        if (page.OutputByteLength > effective.MaxTotalOutputBytes) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.RenderBytes, effective.MaxTotalOutputBytes, page.OutputByteLength);
+        }
+        return page;
+    }
+
     private static PdfVisualPageComparison ComparePage(PdfReadDocument expectedDocument, PdfReadDocument actualDocument, int pageNumber, PdfVisualComparisonOptions options, List<string> structural, ref long totalPixels, CancellationToken cancellationToken) {
-        OfficeDrawing expectedDrawing = PdfPageImageRenderer.RenderPage(expectedDocument, pageNumber, cancellationToken);
-        OfficeDrawing actualDrawing = PdfPageImageRenderer.RenderPage(actualDocument, pageNumber, cancellationToken);
+        return ComparePage(expectedDocument, actualDocument, pageNumber, pageNumber, options, structural, ref totalPixels, cancellationToken);
+    }
+
+    private static PdfVisualPageComparison ComparePage(PdfReadDocument expectedDocument, PdfReadDocument actualDocument, int expectedPageNumber, int actualPageNumber, PdfVisualComparisonOptions options, List<string> structural, ref long totalPixels, CancellationToken cancellationToken) {
+        OfficeDrawing expectedDrawing = PdfPageImageRenderer.RenderPage(expectedDocument, expectedPageNumber, cancellationToken);
+        OfficeDrawing actualDrawing = PdfPageImageRenderer.RenderPage(actualDocument, actualPageNumber, cancellationToken);
         AddPixelBudget(expectedDrawing.Width, expectedDrawing.Height, options.Scale, options, ref totalPixels);
         AddPixelBudget(actualDrawing.Width, actualDrawing.Height, options.Scale, options, ref totalPixels);
         cancellationToken.ThrowIfCancellationRequested();
@@ -89,7 +121,7 @@ public static class PdfVisualComparer {
 
         bool hasSizeDifference = expectedImage.Width != actualImage.Width || expectedImage.Height != actualImage.Height;
         if (hasSizeDifference) {
-            structural.Add("Page " + pageNumber + " dimensions: expected " + expectedImage.Width + "x" + expectedImage.Height + ", actual " + actualImage.Width + "x" + actualImage.Height + ".");
+            structural.Add("Page " + expectedPageNumber + " dimensions: expected " + expectedImage.Width + "x" + expectedImage.Height + ", actual " + actualImage.Width + "x" + actualImage.Height + ".");
         }
 
         int width = Math.Max(expectedImage.Width, actualImage.Width);
@@ -140,8 +172,9 @@ public static class PdfVisualComparer {
         byte[] actualPng = OfficePngWriter.Encode(actualImage, cancellationToken);
         byte[] diffPng = OfficePngWriter.Encode(diff, cancellationToken);
         return new PdfVisualPageComparison(
-            pageNumber,
-            ratio <= options.AllowedDifferenceRatio,
+            expectedPageNumber,
+            actualPageNumber,
+            !hasSizeDifference && ratio <= options.AllowedDifferenceRatio,
             width,
             height,
             compared,
