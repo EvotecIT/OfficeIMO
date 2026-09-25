@@ -132,6 +132,15 @@ internal static class HtmlMhtmlEvidenceRunner {
                 HonorCssPageRules = false,
                 PrintLayoutWidthCssPixels = 1200D
             }), output, results, failures).ConfigureAwait(false);
+            await RunConversionAsync("officeimo-print-fit-1200-local-fonts", () => {
+                var options = new HtmlToPdfOptions {
+                    Margins = HtmlRenderMargins.All(0),
+                    HonorCssPageRules = false,
+                    PrintLayoutWidthCssPixels = 1200D
+                };
+                options.ResourcePolicy.AllowDocumentFontEmbedding = true;
+                return document.ToPdfDocumentResultAsync(options);
+            }, output, results, failures).ConfigureAwait(false);
             await RunConversionAsync("officeimo-print-browser-ua", () => {
                 var options = new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0) };
                 options.UseBrowserUserAgentStyles();

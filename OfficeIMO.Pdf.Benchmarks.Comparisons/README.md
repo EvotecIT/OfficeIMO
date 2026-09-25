@@ -152,7 +152,9 @@ print, screen-media-paged and screen-snapshot-paged PDFs and PeachPDF emits a
 print PDF. The print diagnostics also include `officeimo-print-zero-margin`,
 which removes OfficeIMO's default page margins, and
 `officeimo-print-zero-margin-local-fonts`, which additionally opts in to
-embedding document-selected fonts installed on the host. The local-font lane
+embedding document-selected fonts installed on the host. The
+`officeimo-print-fit-1200-local-fonts` lane applies the same font policy to
+the explicit 1200px print layout width. The local-font lanes
 can differ across machines and does not change the library default. Compare
 those lanes with their explicit settings; equal page counts do not establish
 equal layout. Browser print and screen-media print are separate references;
