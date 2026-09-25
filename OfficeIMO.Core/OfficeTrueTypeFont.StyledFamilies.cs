@@ -169,8 +169,9 @@ public sealed partial class OfficeTrueTypeFont {
 
     private static bool HasInstalledFace(string family) {
         foreach (string path in CandidateFamilyPaths(family)) {
-            OfficeTrueTypeFont? font = TryLoad(path, null, family) ?? TryLoad(path);
-            if (font != null && font.HasGlyphs("OfficeIMO 0123456789")) return true;
+            foreach (OfficeTrueTypeFont font in LoadFaces(path)) {
+                if (font.HasFamilyKey(NormalizeFontFamilyKey(family)) && font.HasGlyphs("OfficeIMO 0123456789")) return true;
+            }
         }
 
         return false;

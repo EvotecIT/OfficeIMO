@@ -198,6 +198,19 @@ public sealed class PdfPaintedGlyphRenderingTests {
         Assert.True(font.HasGlyphs(painted));
         Assert.NotEmpty(font.GetTextContours(painted, 0, 0, 12));
         Assert.False(font.HasGlyphs("\uE001"));
+
+        // A regular font with the same cmap entry must treat glyph zero as missing.
+        byte[] ordinary = (byte[])rebuilt.Clone();
+        int tableCount = ordinary[4] << 8 | ordinary[5];
+        for (int table = 0; table < tableCount; table++) {
+            int record = 12 + table * 16;
+            if (ordinary[record] == (byte)'p' && ordinary[record + 1] == (byte)'G' &&
+                ordinary[record + 2] == (byte)'0' && ordinary[record + 3] == (byte)'0') {
+                ordinary[record] = (byte)'x';
+                break;
+            }
+        }
+        Assert.False(Assert.IsType<OfficeTrueTypeFont>(OfficeTrueTypeFont.TryLoad(ordinary)).HasGlyphs(painted));
     }
 
     private static PdfTextSpan CreateGlyphRun(string text, int[] glyphLengths) => new(

@@ -6,6 +6,16 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfArabicPaintedFormsSceneTests {
     [Fact]
+    public void AlreadyShapedMultiCharacterRunRetainsPaintedProjection() {
+        var spans = new List<PdfTextSpan> { new("\uFE91\uFE90", "F1", 12D, 100D, 20D, 12D) };
+
+        PdfArabicPaintedForms.Apply(spans);
+
+        Assert.Equal("\uFE91\uFE90", spans[0].Text);
+        Assert.True(spans[0].IsPaintedGlyphProjection);
+    }
+
+    [Fact]
     public void UnchangedPresentationFormStillCarriesPaintedProjection() {
         var spans = new List<PdfTextSpan> { new("\uFE8F", "F1", 12D, 100D, 20D, 6D) };
 

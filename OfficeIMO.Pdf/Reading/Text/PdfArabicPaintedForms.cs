@@ -26,6 +26,8 @@ internal static class PdfArabicPaintedForms {
         const int bucketCount = 3600;
         for (int index = 0; index < spans.Count; index++) {
             PdfTextSpan span = spans[index];
+            if (span.IsVisible && span.Color?.A != 0 && span.Text.Length > 1 &&
+                span.Text.All(IsPresentationForm)) span.MarkPaintedGlyphProjection();
             // Invisible text, such as an OCR layer, must not interleave with painted letters.
             if (!span.IsVisible || span.Color?.A == 0 || span.Text.Length != 1 || !IsArabicLetterOrForm(span.Text[0]) ||
                 !(EffectiveFontSize(span) > 0D) || !(span.Advance > 0D) || double.IsInfinity(span.Advance) ||

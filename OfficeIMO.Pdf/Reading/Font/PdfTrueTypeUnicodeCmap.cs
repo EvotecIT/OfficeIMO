@@ -14,6 +14,9 @@ namespace OfficeIMO.Pdf;
 /// This helper maps each code's decoded text to the glyph that code paints and rebuilds the cmap.
 /// </remarks>
 internal static class PdfTrueTypeUnicodeCmap {
+    // Private provenance for inked glyph zero aliases. Ordinary font cmaps can map a missing
+    // character to glyph zero too; only PDF-selected aliases may paint that outline.
+    private const string PaintedNotdefTable = "pG00";
     private const uint ChecksumMagic = 0xB1B0AFBA;
     private const int SymbolicFlag = 1 << 2;
 
@@ -81,12 +84,20 @@ internal static class PdfTrueTypeUnicodeCmap {
         if (!TryReadTables(program, out List<(string Tag, int Offset, int Length)> tables)) return null;
         var bodies = new List<(string Tag, byte[] Body)>(tables.Count + 1);
         foreach (var table in tables) {
-            if (string.Equals(table.Tag, "cmap", StringComparison.Ordinal)) continue;
+            if (string.Equals(table.Tag, "cmap", StringComparison.Ordinal) ||
+                string.Equals(table.Tag, PaintedNotdefTable, StringComparison.Ordinal)) continue;
             var body = new byte[table.Length];
             Buffer.BlockCopy(program, table.Offset, body, 0, table.Length);
             bodies.Add((table.Tag, body));
         }
         bodies.Add(("cmap", BuildUnicodeCmap(mappings)));
+        int[] paintedNotdefScalars = mappings.Where(static pair => pair.Value == 0).Select(static pair => pair.Key).ToArray();
+        if (paintedNotdefScalars.Length > 0) {
+            using var provenance = new MemoryStream();
+            WriteUInt32(provenance, (uint)paintedNotdefScalars.Length);
+            foreach (int scalar in paintedNotdefScalars) WriteUInt32(provenance, (uint)scalar);
+            bodies.Add((PaintedNotdefTable, provenance.ToArray()));
+        }
         bodies.Sort(static (left, right) => string.CompareOrdinal(left.Tag, right.Tag));
         byte[] rebuilt = Assemble(bodies);
         return OfficeTrueTypeFont.TryLoad(rebuilt) == null ? null : rebuilt;

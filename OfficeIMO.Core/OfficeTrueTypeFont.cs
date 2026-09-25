@@ -36,6 +36,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     private readonly int _name;
     private readonly HashSet<int> _validFormat4Subtables;
     private readonly HashSet<int> _validFormat12Subtables;
+    private readonly HashSet<int> _paintedNotdefScalars;
     private readonly OfficeTrueTypeVariations? _variations;
     private readonly OfficeFontVariationModel _variationModel;
     private readonly int _unitsPerEm;
@@ -89,6 +90,17 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
             _cmapLength,
             OfficeOpenTypeCmap.MaximumSubtables,
             OfficeOpenTypeCmap.MaximumFormat12Groups);
+        _paintedNotdefScalars = new HashSet<int>();
+        if (tables.TryGetValue("pG00", out int provenance) && tableLengths.TryGetValue("pG00", out int provenanceLength) &&
+            provenanceLength >= 4) {
+            uint count = ReadUInt32(_data, provenance);
+            if (count <= OfficeOpenTypeCmap.MaximumFormat12Groups && count <= (uint)((provenanceLength - 4) / 4)) {
+                for (int index = 0; index < count; index++) {
+                    uint scalar = ReadUInt32(_data, provenance + 4 + index * 4);
+                    if (scalar <= 0x10FFFF && !(scalar >= 0xD800 && scalar <= 0xDFFF)) _paintedNotdefScalars.Add((int)scalar);
+                }
+            }
+        }
         _unitsPerEm = ReadUInt16(_data, _head + 18);
         _indexToLocFormat = ReadInt16(_data, _head + 50);
         OfficeOpenTypeMvarMetrics? mvar = reader != null && _variationModel.IsVariable
@@ -550,7 +562,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     // zero for both that mapping and an absent character, so coverage must inspect the cmap
     // entry before treating the painted placeholder as missing.
     private bool HasPaintedNotdefMapping(int scalar) {
-        if (scalar < 0 || scalar > 0x10FFFF || _numGlyphs == 0 ||
+        if (!_paintedNotdefScalars.Contains(scalar) || _numGlyphs == 0 ||
             GlyphOffset(0) == GlyphOffset(1) && _colorGlyphs?.HasColorGlyph(0) != true || _cmapLength < 4)
             return false;
         int end = checked(_cmap + _cmapLength);
