@@ -409,6 +409,8 @@ public sealed class WordOdtFieldConversionTests {
 
         OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
         Assert.Equal("See 5", Assert.Single(conversion.Value.Paragraphs).Text);
+        OdtHyperlink fieldLink = Assert.Single(conversion.Value.Paragraphs.Single().Hyperlinks, link => link.Text == "5");
+        Assert.Equal("#section", fieldLink.Href);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "fields" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
         Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
@@ -449,6 +451,11 @@ public sealed class WordOdtFieldConversionTests {
 
         OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
         using WordDocument target = conversion.Value;
+        Hyperlink linkedField = Assert.Single(target._wordprocessingDocument.MainDocumentPart!.Document!.Body!
+            .Descendants<Hyperlink>());
+        Assert.Equal("https://example.com/", target._wordprocessingDocument.MainDocumentPart!
+            .HyperlinkRelationships.Single(relationship => relationship.Id == linkedField.Id!.Value).Uri.ToString());
+        Assert.Equal("Linked date", string.Concat(linkedField.Descendants<Text>().Select(text => text.Text)));
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "fields" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "source-text-fields" &&

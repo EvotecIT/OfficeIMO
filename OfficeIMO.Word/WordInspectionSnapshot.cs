@@ -206,6 +206,10 @@ namespace OfficeIMO.Word {
         public bool HasFormattedResult { get; internal set; }
         /// <summary>Whether the field is nested in markup that cannot be represented as a native ODT field.</summary>
         public bool HasUnsupportedContainer { get; internal set; }
+        /// <summary>External hyperlink containing this field, when present.</summary>
+        public string? HyperlinkUri { get; internal set; }
+        /// <summary>Bookmark target of the hyperlink containing this field, when present.</summary>
+        public string? HyperlinkAnchor { get; internal set; }
         /// <summary>Whether the field belongs to a complex field instruction rather than its displayed result.</summary>
         public bool IsHiddenInstructionContent { get; internal set; }
     }

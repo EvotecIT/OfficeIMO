@@ -275,7 +275,7 @@ namespace OfficeIMO.Word {
                 if (element is Hyperlink link) {
                     foreach (var child in link.ChildElements) {
                         if (child is Run linkRun) { ObserveFieldMarkers(linkRun); runIndex++; }
-                        else if (child is SimpleField nestedField) AddInlineField(nestedField, runIndex, true);
+                        else if (child is SimpleField nestedField) AddInlineField(nestedField, runIndex, true, link);
                     }
                     continue;
                 }
@@ -305,7 +305,9 @@ namespace OfficeIMO.Word {
                 }
             }
 
-            void AddInlineField(SimpleField field, int index, bool nestedInHyperlink) {
+            void AddInlineField(SimpleField field, int index, bool nestedInHyperlink, Hyperlink? containingLink = null) {
+                WordHyperLink? link = containingLink == null ? null
+                    : new WordHyperLink(paragraph._document, paragraph._paragraph, containingLink);
                 snapshot.AddInlineField(new WordInlineFieldSnapshot {
                     RunIndex = index,
                     Instruction = field.Instruction?.Value ?? string.Empty,
@@ -313,6 +315,8 @@ namespace OfficeIMO.Word {
                     IsLocked = field.FieldLock?.Value ?? false,
                     IsDirty = field.Dirty?.Value ?? false,
                     HasUnsupportedContainer = nestedInHyperlink || complexFieldResults.Count > 0,
+                    HyperlinkUri = link?.Uri?.ToString(),
+                    HyperlinkAnchor = link?.Anchor,
                     IsHiddenInstructionContent = complexFieldResults.Contains(false),
                     HasFormattedResult = field.Descendants<Run>().Any(resultRun =>
                         resultRun.RunProperties?.ChildElements.Any(child => child is not NoProof) == true),

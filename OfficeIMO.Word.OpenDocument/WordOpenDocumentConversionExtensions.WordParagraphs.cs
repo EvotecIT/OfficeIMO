@@ -22,7 +22,10 @@ public static partial class WordOpenDocumentConversionExtensions {
                     target.AddField(kind, field.ResultText).IsFixed = field.IsLocked;
                     wrote = true;
                 } else if (field.ResultText.Length > 0) {
-                    target.AddText(field.ResultText);
+                    if (!string.IsNullOrWhiteSpace(field.HyperlinkUri) || !string.IsNullOrWhiteSpace(field.HyperlinkAnchor)) {
+                        target.AddHyperlink(field.ResultText, field.HyperlinkUri ?? "#" + field.HyperlinkAnchor);
+                        hyperlinks++;
+                    } else target.AddText(field.ResultText);
                     wrote = true;
                 }
             }

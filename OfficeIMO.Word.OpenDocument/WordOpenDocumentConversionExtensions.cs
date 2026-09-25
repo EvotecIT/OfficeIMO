@@ -408,7 +408,22 @@ public static partial class WordOpenDocumentConversionExtensions {
                         if (transforms[nodeIndex] is OdfTextTransform.Lowercase or OdfTextTransform.Capitalize)
                             approximatedRuns++;
                     } else {
-                        WordParagraph result = target.AddText(displayText);
+                        WordParagraph? result = null;
+                        OdtHyperlink? fieldLink = leaf.TargetLink;
+                        if (fieldLink != null) {
+                            if (OdfUriReference.TryDecodeFragment(fieldLink.Href, out string fragment)) {
+                                result = target.AddHyperLink(displayText, fragment, addStyle: true);
+                            } else if (!fieldLink.Href.StartsWith("#", StringComparison.Ordinal)
+                                && Uri.TryCreate(fieldLink.Href, UriKind.RelativeOrAbsolute, out Uri? uri)) {
+                                result = target.AddHyperLink(displayText, uri, addStyle: true);
+                            }
+                            if (result != null && convertedLinks.Add(fieldLink)) {
+                                hyperlinks++;
+                                if (IsExternalOdfHref(fieldLink.Href)) externalHyperlinks++;
+                            }
+                            if (result == null) approximatedRuns++;
+                        }
+                        result ??= target.AddText(displayText);
                         if (leaf.Span != null) {
                             unsupportedMeasurements += ApplyOdtSpanFormatting(leaf.Span, source, result,
                                 ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
