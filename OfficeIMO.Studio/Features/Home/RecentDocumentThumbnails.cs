@@ -18,20 +18,20 @@ internal static class RecentDocumentThumbnails {
     private static readonly SemaphoreSlim Gate = new(2, 2);
 
     internal static async Task<RecentDocumentPreview?> GetAsync(string path, CancellationToken cancellationToken = default) {
-        if (OfficeIMO.Internal.OfficeStorageIdentity.GetLocalPath(path) is not { } local ||
-            !string.Equals(System.IO.Path.GetExtension(local), ".pdf", StringComparison.OrdinalIgnoreCase)) {
-            return null;
-        }
+        string? key = GetFingerprint(path);
+        if (key is null) return null;
         try {
             cancellationToken.ThrowIfCancellationRequested();
-            var file = new FileInfo(local);
-            if (!file.Exists) return null;
-            string key = $"{file.FullName}|{file.Length}|{file.LastWriteTimeUtc.Ticks}";
+            string local = OfficeIMO.Internal.OfficeStorageIdentity.GetLocalPath(path)!;
             if (Cache.Count > MaximumEntries) Cache.Clear();
             for (int attempt = 0; attempt < 2; attempt++) {
                 Lazy<Task<RecentDocumentPreview?>> preview = Cache.GetOrAdd(key,
-                    _ => new Lazy<Task<RecentDocumentPreview?>>(() => RenderAsync(file.FullName, cancellationToken)));
-                try { return await preview.Value.WaitAsync(cancellationToken).ConfigureAwait(false); }
+                    _ => new Lazy<Task<RecentDocumentPreview?>>(() => RenderAsync(local, cancellationToken)));
+                try {
+                    RecentDocumentPreview? result = await preview.Value.WaitAsync(cancellationToken).ConfigureAwait(false);
+                    if (result?.Image is null) Cache.TryRemove(key, out _);
+                    return result;
+                }
                 catch (OperationCanceledException) {
                     // Another Home lifetime may have owned a now-cancelled cached render.
                     // Evict it and let the current lifetime retry with its own token.
@@ -40,6 +40,17 @@ internal static class RecentDocumentThumbnails {
                 }
             }
             return null;
+        } catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException) {
+            return null;
+        }
+    }
+
+    internal static string? GetFingerprint(string path) {
+        try {
+            if (OfficeIMO.Internal.OfficeStorageIdentity.GetLocalPath(path) is not { } local ||
+                !string.Equals(System.IO.Path.GetExtension(local), ".pdf", StringComparison.OrdinalIgnoreCase)) return null;
+            var file = new FileInfo(local);
+            return file.Exists ? $"{file.FullName}|{file.Length}|{file.LastWriteTimeUtc.Ticks}" : null;
         } catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException) {
             return null;
         }

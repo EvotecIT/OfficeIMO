@@ -59,6 +59,36 @@ public sealed partial class PdfWorkspaceTests {
     }
 
     [Fact]
+    public async Task CancelledImageExportReportsFilesAlreadySaved() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-partial-images-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string source = Path.Combine(root, "images.pdf");
+        string output = Path.Combine(root, "images");
+        try {
+            PdfDocument document = PdfDocument.Create(compose => {
+                compose.Page(page => page.Size(600D, 800D));
+                compose.Page(page => page.Size(600D, 800D));
+            });
+            document = document.Images.Add(new PdfPageRegion(1, 50D, 60D, 40D, 20D), TinyPng).Document;
+            document.Images.Add(new PdfPageRegion(2, 50D, 60D, 40D, 20D), TinyPng).Document.Save(source);
+            using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None);
+            using var cancellation = new CancellationTokenSource();
+            var progress = new InlineProgress<PdfWorkspaceProgress>(value => {
+                if (value.Fraction < 1D) cancellation.Cancel();
+            });
+
+            IOException error = await Assert.ThrowsAsync<IOException>(() => workspace.ExportDocumentAsync(
+                PdfExportKind.Images, output, cancellation.Token, progress: progress));
+
+            Assert.Contains("after saving 1 of 2 images", error.Message, StringComparison.Ordinal);
+            Assert.Contains(output, error.Message, StringComparison.Ordinal);
+            Assert.True(File.Exists(Path.Combine(output, "images-p1-1.png")));
+            Assert.False(File.Exists(Path.Combine(output, "images-p2-2.png")));
+            Assert.Empty(Directory.GetDirectories(output, ".officeimo-image-export-*"));
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
     public async Task ImageExportStagesPrivatelyOnUnix() {
         if (OperatingSystem.IsWindows()) return;
         string root = Path.Combine(Path.GetTempPath(), "officeimo-private-image-export-" + Guid.NewGuid().ToString("N"));

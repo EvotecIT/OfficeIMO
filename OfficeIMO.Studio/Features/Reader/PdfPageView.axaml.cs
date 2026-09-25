@@ -91,12 +91,18 @@ public sealed partial class PdfPageView : UserControl {
         if (e.PropertyName != nameof(PdfPageViewModel.HasInlineFormEditor) &&
             e.PropertyName != nameof(PdfPageViewModel.InlineFormField) &&
             e.PropertyName != nameof(PdfPageViewModel.FocusInlineFormEditorRequested)) return;
+        FocusPendingInlineFormEditor();
+    }
+
+    private void FocusPendingInlineFormEditor() {
+        if (!_attached) return;
         if (_viewModel is not { HasInlineFormEditor: true, FocusInlineFormEditorRequested: true } model) return;
-        model.FocusInlineFormEditorRequested = false;
         Avalonia.Threading.Dispatcher.UIThread.Post(() => {
+            if (!_attached || !ReferenceEquals(_viewModel, model) || !model.HasInlineFormEditor ||
+                !model.FocusInlineFormEditorRequested) return;
             Control? editor = InlineFormText.IsVisible ? InlineFormText : InlineFormEditableChoice.IsVisible ? InlineFormEditableChoice : InlineFormCheck.IsVisible ? InlineFormCheck : InlineFormChoice.IsVisible ? InlineFormChoice : null;
-            if (editor is null) return;
-            editor.Focus(NavigationMethod.Tab);
+            if (editor is null || !editor.Focus(NavigationMethod.Tab)) return;
+            model.FocusInlineFormEditorRequested = false;
             if (editor is TextBox text) text.SelectAll();
         }, Avalonia.Threading.DispatcherPriority.Loaded);
     }
@@ -113,7 +119,10 @@ public sealed partial class PdfPageView : UserControl {
 
     private void UpdateViewModel() {
         if (ReferenceEquals(_viewModel, DataContext)) {
-            if (_attached) _viewModel?.AttachToViewport();
+            if (_attached) {
+                _viewModel?.AttachToViewport();
+                FocusPendingInlineFormEditor();
+            }
             return;
         }
 
@@ -122,6 +131,9 @@ public sealed partial class PdfPageView : UserControl {
         _viewModel = DataContext as PdfPageViewModel;
         if (_viewModel is not null) _viewModel.PropertyChanged += OnViewModelPropertyChanged;
         _viewModel?.UpdateCanvasSize(PageCanvas.Bounds.Size);
-        if (_attached) _viewModel?.AttachToViewport();
+        if (_attached) {
+            _viewModel?.AttachToViewport();
+            FocusPendingInlineFormEditor();
+        }
     }
 }

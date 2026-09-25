@@ -97,10 +97,10 @@ internal sealed partial class PdfWorkspace {
             cancellationToken, progress);
 
     internal async Task<int> ExportDocumentAsync(PdfExportKind kind, string destination, CancellationToken cancellationToken,
-        IReadOnlyDictionary<string, PdfFormFieldValue>? formDrafts = null) {
+        IReadOnlyDictionary<string, PdfFormFieldValue>? formDrafts = null, IProgress<PdfWorkspaceProgress>? progress = null) {
         PdfDocument snapshot = CreateDocumentSnapshot();
         if (kind == PdfExportKind.Images) {
-            return await ExportImagesAsync(snapshot, destination, cancellationToken).ConfigureAwait(false);
+            return await ExportImagesAsync(snapshot, destination, cancellationToken, progress).ConfigureAwait(false);
         }
         string content = await RunCancellableCpuWorkAsync(() => kind switch {
             PdfExportKind.Markdown => snapshot.Read(cancellationToken: cancellationToken).ExportStructured(PdfStructuredExportFormat.Markdown),

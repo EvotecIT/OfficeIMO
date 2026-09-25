@@ -28,23 +28,29 @@ public sealed partial class RecentDocumentViewModel : ObservableObject {
     public bool HasThumbnail => Thumbnail is not null;
 
     private bool _thumbnailRequested;
+    private string? _thumbnailFingerprint;
+    private CancellationToken _thumbnailCancellation;
+    private int _thumbnailRequestVersion;
 
     /// <summary>Starts loading the first-page preview once; cards without a preview keep the document glyph.</summary>
     internal async void EnsureThumbnail(CancellationToken cancellationToken = default) {
-        if (_thumbnailRequested) return;
+        string? fingerprint = RecentDocumentThumbnails.GetFingerprint(Path);
+        if (_thumbnailRequested && string.Equals(fingerprint, _thumbnailFingerprint, StringComparison.Ordinal) &&
+            !_thumbnailCancellation.IsCancellationRequested) return;
         _thumbnailRequested = true;
+        _thumbnailFingerprint = fingerprint;
+        _thumbnailCancellation = cancellationToken;
+        int version = ++_thumbnailRequestVersion;
         try {
             RecentDocumentPreview? preview = await RecentDocumentThumbnails.GetAsync(Path, cancellationToken);
-            if (cancellationToken.IsCancellationRequested) {
-                _thumbnailRequested = false;
-                return;
-            }
-            if (preview is null) return;
-            Thumbnail = preview.Image;
-            if (preview.PageCount > 0)
+            if (cancellationToken.IsCancellationRequested || version != _thumbnailRequestVersion) return;
+            Thumbnail = preview?.Image;
+            PageCountLabel = null;
+            if (preview is { PageCount: > 0 })
                 PageCountLabel = preview.PageCount == 1 ? _localizer.Get("Home.PageCountOne") : _localizer.Format("Home.PageCount", preview.PageCount);
+            _thumbnailRequested = preview?.Image is not null;
         } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
-            _thumbnailRequested = false;
+            if (version == _thumbnailRequestVersion) _thumbnailRequested = false;
         }
     }
 

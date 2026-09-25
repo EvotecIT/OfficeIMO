@@ -4,7 +4,8 @@ using OfficeIMO.Pdf;
 namespace OfficeIMO.Studio.Features.Workspace;
 
 internal sealed partial class PdfWorkspace {
-    private async Task<int> ExportImagesAsync(PdfDocument snapshot, string destination, CancellationToken cancellationToken) {
+    private async Task<int> ExportImagesAsync(PdfDocument snapshot, string destination, CancellationToken cancellationToken,
+        IProgress<PdfWorkspaceProgress>? progress) {
         destination = OfficeIMO.Internal.OfficeStorageIdentity.GetLocalPath(destination)
             ?? throw new IOException("Choose a folder on this computer to save the images.");
         Directory.CreateDirectory(destination);
@@ -45,16 +46,25 @@ internal sealed partial class PdfWorkspace {
                 if (names.All(name => !File.Exists(System.IO.Path.Combine(destination, name)) &&
                                       !Directory.Exists(System.IO.Path.Combine(destination, name)))) break;
             }
-            for (int index = 0; index < staged.Count; index++) {
-                cancellationToken.ThrowIfCancellationRequested();
-                string stagedPath = staged[index].Path;
-                await WriteWorkspaceOutputAsync(System.IO.Path.Combine(destination, names[index]),
-                    async (stream, token) => {
-                        using var source = new FileStream(stagedPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-                        await source.CopyToAsync(stream, 64 * 1024, token).ConfigureAwait(false);
-                    }, cancellationToken,
-                    conflictPolicy: OfficeIMO.Core.Internal.OfficeFileCommit.ConflictPolicy.FailIfExists).ConfigureAwait(false);
-                File.Delete(stagedPath);
+            int published = 0;
+            try {
+                for (int index = 0; index < staged.Count; index++) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    string stagedPath = staged[index].Path;
+                    await WriteWorkspaceOutputAsync(System.IO.Path.Combine(destination, names[index]),
+                        async (stream, token) => {
+                            using var source = new FileStream(stagedPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                            await source.CopyToAsync(stream, 64 * 1024, token).ConfigureAwait(false);
+                        }, cancellationToken,
+                        conflictPolicy: OfficeIMO.Core.Internal.OfficeFileCommit.ConflictPolicy.FailIfExists).ConfigureAwait(false);
+                    published++;
+                    File.Delete(stagedPath);
+                    progress?.Report(new PdfWorkspaceProgress($"Saved {published} of {staged.Count} images", published / (double)staged.Count));
+                }
+            } catch (Exception error) when (published > 0 &&
+                                            error is IOException or UnauthorizedAccessException or OperationCanceledException) {
+                throw new IOException($"Image export stopped after saving {published} of {staged.Count} images in '{destination}'. " +
+                    "The saved images remain in that folder; check them before retrying.", error);
             }
             return staged.Count;
         } finally {
