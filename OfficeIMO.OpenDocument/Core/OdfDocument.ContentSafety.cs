@@ -377,7 +377,8 @@ public abstract partial class OdfDocument {
             if (IsZeroOdfLength(length)) state.ZeroGeometryEvidence = "The resolved OpenDocument row or column style has zero visible geometry.";
         }
         string? cellBackground = (string?)style.Element.Element(OdfNamespaces.Style + "table-cell-properties")?.Attribute(OdfNamespaces.Fo + "background-color");
-        if (!string.IsNullOrWhiteSpace(cellBackground) && !string.Equals(cellBackground, "transparent", StringComparison.OrdinalIgnoreCase)) state.Background = cellBackground;
+        if (!string.IsNullOrWhiteSpace(cellBackground)) state.Background = string.Equals(cellBackground, "transparent", StringComparison.OrdinalIgnoreCase)
+            ? null : cellBackground;
         string? paragraphBackground = (string?)style.Element.Element(OdfNamespaces.Style + "paragraph-properties")?.Attribute(OdfNamespaces.Fo + "background-color");
         if (!string.IsNullOrWhiteSpace(paragraphBackground) && !string.Equals(paragraphBackground, "transparent", StringComparison.OrdinalIgnoreCase)) state.Background = paragraphBackground;
     }

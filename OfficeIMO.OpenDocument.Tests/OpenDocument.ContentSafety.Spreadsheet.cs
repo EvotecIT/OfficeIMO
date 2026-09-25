@@ -102,4 +102,28 @@ public sealed class OdsContentSafetyInheritanceTests {
             finding.Kind == OfficeContentConcealmentKind.HiddenByProperty &&
             finding.TextPreview.IndexOf("family style hidden payload", StringComparison.Ordinal) >= 0);
     }
+
+    [Fact]
+    public void TransparentCellBackgroundOverridesDarkFamilyDefaultForContrast() {
+        OdsDocument document = OdsDocument.Create();
+        XElement styles = document.Package.GetXml("styles.xml").Root!
+            .Element(OdfNamespaces.Office + "styles")!;
+        styles.Add(new XElement(OdfNamespaces.Style + "default-style",
+            new XAttribute(OdfNamespaces.Style + "family", "table-cell"),
+            new XElement(OdfNamespaces.Style + "table-cell-properties",
+                new XAttribute(OdfNamespaces.Fo + "background-color", "#000000"))));
+        document.Package.MarkXmlDirty("styles.xml");
+        OdfStyle overrideStyle = document.Styles.CreateNamed("TransparentCell", OdfStyleFamily.TableCell);
+        overrideStyle.Element.Add(new XElement(OdfNamespaces.Style + "table-cell-properties",
+            new XAttribute(OdfNamespaces.Fo + "background-color", "transparent")));
+        document.Package.MarkXmlDirty("styles.xml");
+        OdsCell cell = document.AddSheet("Data").Cell(0, 0);
+        cell.SetString("Visible on white");
+        cell.StyleName = overrideStyle.Name;
+
+        OfficeContentSafetyReport report = OdfDocument.InspectContentSafety(document.ToBytes());
+        Assert.DoesNotContain(report.Findings, finding =>
+            finding.Kind == OfficeContentConcealmentKind.LowContrastText &&
+            finding.TextPreview.Contains("Visible on white"));
+    }
 }

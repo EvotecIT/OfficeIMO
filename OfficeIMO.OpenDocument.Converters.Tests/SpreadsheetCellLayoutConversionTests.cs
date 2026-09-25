@@ -250,6 +250,26 @@ public sealed class SpreadsheetCellLayoutConversionTests {
     }
 
     [Fact]
+    public void TextOnlyFamilyDefaultStylesPopulatedCellsWithoutBlankCellLoss() {
+        OdsDocument source = OdsDocument.Create();
+        XElement styles = source.Package.GetXml("styles.xml").Root!
+            .Element(OdfNamespaces.Office + "styles")!;
+        styles.Add(new XElement(OdfNamespaces.Style + "default-style",
+            new XAttribute(OdfNamespaces.Style + "family", "table-cell"),
+            new XElement(OdfNamespaces.Style + "text-properties",
+                new XAttribute(OdfNamespaces.Fo + "color", "#336699"))));
+        source.Package.MarkXmlDirty("styles.xml");
+        source.AddSheet("Layout").Cell(0, 0).SetString("Styled");
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        using ExcelDocument target = conversion.Value;
+        ExcelCellStyleSnapshot style = target.CreateInspectionSnapshot().Worksheets.Single().Cells.Single().Style!;
+        Assert.Equal("336699", style.FontColorHex);
+        Assert.DoesNotContain(conversion.Report.ForFeature("blank-cell-styles"), mapping =>
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+    }
+
+    [Fact]
     public void ColumnDefaultBeyondLastSerializedCellReportsBlankStyleLoss() {
         OdsDocument source = OdsDocument.Create();
         OdfStyle style = source.Styles.CreateNamed("SparseColumn", OdfStyleFamily.TableCell);

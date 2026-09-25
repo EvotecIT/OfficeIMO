@@ -452,6 +452,9 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             XElement? defaultCellProperties = defaultCellStyle?.Element.Element(OdfNamespaces.Style + "table-cell-properties");
             bool hasDefaultCellStyle = defaultCellProperties != null &&
                 (defaultCellProperties.HasAttributes || defaultCellProperties.HasElements);
+            bool hasPopulatedDefaultCellStyle = defaultCellStyle != null &&
+                (defaultCellStyle.Element.Elements().Any(properties => properties.HasAttributes || properties.HasElements) ||
+                 defaultCellStyle.Element.Attribute(OdfNamespaces.Style + "data-style-name") != null);
             double? uniformDefaultColumnWidth = effective.MaximumColumns == 16_384
                 ? TryGetUniformColumnWidth(columnRuns) : null;
             if (uniformDefaultColumnWidth.HasValue) {
@@ -578,7 +581,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                                     if (IsExternalOdfHref(href)) externalHyperlinks++;
                                 }
                             }
-                            bool hasCellStyle = styledCellRun.EffectiveStyleName != null || hasDefaultCellStyle;
+                            bool hasCellStyle = styledCellRun.EffectiveStyleName != null || hasPopulatedDefaultCellStyle;
                             if (effective.IncludeBasicStyles && hasCellStyle) {
                                 unsupportedMeasurements += ApplyOdsStyle(converted, styledCellRun, dataStyles,
                                     out bool unsupportedDataStyleFormat, ref approximatedFontFamilyLists,
