@@ -138,6 +138,8 @@ public sealed partial class PdfEmbeddedFontFamily {
             if (style.Contains("oblique")) slant = OfficeFontSlant.Oblique;
             else if (style.Contains("italic")) slant = OfficeFontSlant.Italic;
         }
+        if (TryReadSystemFontStyleFlags(candidate.Data, out _, out _, out _, out bool oblique)
+            && oblique) slant = OfficeFontSlant.Oblique;
         return new OfficeFontFaceDescriptor(weight, stretch, slant);
     }
 }

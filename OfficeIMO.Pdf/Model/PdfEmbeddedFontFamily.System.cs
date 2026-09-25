@@ -210,7 +210,7 @@ public sealed partial class PdfEmbeddedFontFamily {
             _ = PdfFontProgramCache.GetTrueType(data, fontNameOverride: null);
             if (TryReadTrueTypeNameMetadata(data, out TrueTypeNameMetadata? metadata) && metadata != null) {
                 if (IsMetadataFamilyMatch(metadata, normalizedMetadataFamily)) {
-                    FontFaceKind kind = ClassifyMetadataFace(metadata, out int metadataScore);
+                    FontFaceKind kind = ClassifyMetadataFace(metadata, data, out int metadataScore);
                     candidate = new SystemFontFaceCandidate(path, kind, metadataScore, data);
                     return true;
                 }
@@ -310,7 +310,7 @@ public sealed partial class PdfEmbeddedFontFamily {
     internal static bool IsMetadataFamilyNameMatch(string fontFamilyName, string requestedFamilyName) =>
         string.Equals(NormalizeFamilyKey(fontFamilyName), NormalizeFamilyKey(requestedFamilyName), System.StringComparison.Ordinal);
 
-    private static FontFaceKind ClassifyMetadataFace(TrueTypeNameMetadata metadata, out int score) {
+    private static FontFaceKind ClassifyMetadataFace(TrueTypeNameMetadata metadata, byte[] data, out int score) {
         string primaryStyle = NormalizeFamilyKey(metadata.TypographicSubfamilyName ?? metadata.SubfamilyName ?? string.Empty);
         string fallbackStyle = NormalizeFamilyKey(
             (metadata.PostScriptName ?? string.Empty) + " " +
@@ -318,7 +318,31 @@ public sealed partial class PdfEmbeddedFontFamily {
 
         string style = primaryStyle.Length == 0 ? fallbackStyle : primaryStyle;
         FontFaceKind kind = ClassifyMetadataStyle(style, primaryStyle, out score);
+        // Name-table style labels may be localized; OS/2 flags identify the face independently of language.
+        if (TryReadSystemFontStyleFlags(data, out int weight, out bool bold, out bool italic, out bool oblique)) {
+            score = 120 - System.Math.Min(80, System.Math.Abs(weight - (bold ? 700 : 400)) / 10);
+            return bold
+                ? (italic || oblique ? FontFaceKind.BoldItalic : FontFaceKind.Bold)
+                : (italic || oblique ? FontFaceKind.Italic : FontFaceKind.Regular);
+        }
         return kind;
+    }
+
+    private static bool TryReadSystemFontStyleFlags(byte[] data, out int weight, out bool bold, out bool italic, out bool oblique) {
+        weight = 0;
+        bold = false;
+        italic = false;
+        oblique = false;
+        System.Collections.Generic.Dictionary<string, FontTableRecord> tables = ReadFontTableDirectory(data);
+        if (!tables.TryGetValue("OS/2", out FontTableRecord os2) || os2.Length < 64) return false;
+        int version = ReadUInt16(data, os2.Offset);
+        weight = ReadUInt16(data, os2.Offset + 4);
+        if (weight < 1 || weight > 1000) return false;
+        int selection = ReadUInt16(data, os2.Offset + 62);
+        bold = weight >= 600 || (selection & 0x20) != 0;
+        italic = (selection & 0x01) != 0;
+        oblique = version >= 4 && (selection & 0x200) != 0;
+        return true;
     }
 
     private static FontFaceKind ClassifyMetadataStyle(string style, string primaryStyle, out int score) {

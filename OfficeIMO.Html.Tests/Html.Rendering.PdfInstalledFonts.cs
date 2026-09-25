@@ -66,6 +66,26 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlPdf_InstalledBoldFaceUsesItsFontProgramForCoveredText() {
+        string? installedFamily = new[] { "Trebuchet MS", "Arial", "Calibri", "Liberation Sans", "DejaVu Sans" }
+            .FirstOrDefault(candidate => PdfCore.PdfEmbeddedFontFamily.TryFromSystem(candidate, out PdfCore.PdfEmbeddedFontFamily? family)
+                && family?.Bold is byte[] bold
+                && !bold.SequenceEqual(family.Regular));
+        if (installedFamily == null) return;
+        Assert.True(PdfCore.PdfEmbeddedFontFamily.TryFromSystem(installedFamily, out PdfCore.PdfEmbeddedFontFamily? expected));
+
+        var options = new HtmlToPdfOptions();
+        options.ResourcePolicy.AllowDocumentFontEmbedding = true;
+        HtmlPdfRenderResult result = HtmlPdfRenderedConverter.Convert(
+            HtmlConversionDocument.Parse("<p style=\"font-family:'" + installedFamily + "'\"><strong>Bold heading</strong> Normal body</p>"),
+            options);
+
+        PdfCore.PdfEmbeddedFontFamily embedded = result.Document.Options.NamedFontFamilies[installedFamily];
+        Assert.Equal(expected!.Bold, embedded.Bold);
+        Assert.Contains("Bold heading", PdfCore.PdfReadDocument.Open(result.Document.ToBytes()).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlPdf_InstalledFontMeasurementUsesNextCssFamilyForMissingWebGlyph() {
         string? installedFamily = new[] { "Trebuchet MS", "Arial", "Calibri", "Liberation Sans", "DejaVu Sans" }
             .FirstOrDefault(candidate => PdfCore.PdfEmbeddedFontFamily.TryFromSystem(candidate, out _));
