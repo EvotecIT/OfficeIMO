@@ -9,6 +9,40 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## PDF text search results across visual lines
+
+`PdfTextMatch.Text` now contains the matched text after search normalization,
+instead of the literal source substring. Search collapses whitespace across
+consecutive visual lines and recognizes retained or omitted line-end hyphens.
+Applications that compare or store `Text` as an exact source excerpt should
+switch to a normalized comparison or inspect decoded source spans through
+`PdfReadPage.GetTextSpans()`. `PdfTextMatch.VisualLineBounds` provides one visual quad
+per matched line for highlighting; the existing `VisualBounds` and
+`X`/`Y`/`Width`/`Height` still describe the combined bounds. Searches do not
+join separate columns or explicit paragraph breaks.
+
+## PDF AES-256 password length
+
+PDF Standard security revisions 5 and 6 now reject read passwords longer than
+4,096 UTF-16 characters before normalization. AES-256 PDF generation applies
+the same limit to user and owner passwords. Shorten an oversized password before
+opening or generating a PDF; other Standard security revisions keep their
+existing password behavior.
+
+## PDF numeric token length
+
+The PDF object parser now treats numeric tokens longer than 4,096 characters as
+incomplete syntax, even when a caller raises `PdfReadLimits.MaxObjectCharacters`.
+If a trusted source emits such tokens, shorten or repair them before reading;
+raising the object-character budget does not raise this numeric-token limit.
+
+## PDF link URI inspection length
+
+PDF link inspection now omits URI actions longer than 65,519 characters. This
+keeps URI validation bounded when a caller raises the PDF object-character
+limit. Shorten or repair an oversized URI in the source PDF if your application
+needs it in link metadata. PDF link authoring is unchanged.
+
 ## PDF image input budget
 
 PDF image-file pages and image stamps now limit each encoded image source to

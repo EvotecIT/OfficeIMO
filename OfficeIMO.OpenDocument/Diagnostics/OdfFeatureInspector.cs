@@ -3,7 +3,7 @@ namespace OfficeIMO.OpenDocument;
 internal static class OdfFeatureInspector {
     private static readonly HashSet<string> KnownNamespaces = new HashSet<string>(StringComparer.Ordinal) {
         OdfNamespaces.Office.NamespaceName, OdfNamespaces.Text.NamespaceName, OdfNamespaces.Table.NamespaceName,
-        OdfNamespaces.Draw.NamespaceName, OdfNamespaces.Presentation.NamespaceName, OdfNamespaces.Style.NamespaceName,
+        OdfNamespaces.Draw.NamespaceName, OdfNamespaces.Chart.NamespaceName, OdfNamespaces.Presentation.NamespaceName, OdfNamespaces.Style.NamespaceName,
         OdfNamespaces.Number.NamespaceName, OdfNamespaces.Fo.NamespaceName, OdfNamespaces.Svg.NamespaceName,
         OdfNamespaces.XLink.NamespaceName, OdfNamespaces.Meta.NamespaceName, OdfNamespaces.Dc.NamespaceName,
         OdfNamespaces.Manifest.NamespaceName, OdfNamespaces.Config.NamespaceName, OdfNamespaces.Of.NamespaceName,

@@ -150,7 +150,8 @@ internal static class PdfLinearizationFileAssembler {
             numbering.NumberMap,
             pagesObjectId: 0,
             new Dictionary<int, Dictionary<string, PdfObject>>(),
-            objects);
+            objects,
+            cancellationToken: options.CancellationToken);
 
         long retainedBytes = 0L;
         byte[] SerializeObject(int sourceId) {

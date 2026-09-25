@@ -1,8 +1,51 @@
 using System.Text;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
 internal static class PdfEncoding {
+    internal static string DecodeCancellable(Encoding encoding, byte[] bytes, int index, int count,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!cancellationToken.CanBeCanceled) return encoding.GetString(bytes, index, count);
+
+        var decoder = encoding.GetDecoder();
+        var chars = new char[8192];
+        var builder = new StringBuilder(count);
+        int end = index + count;
+        while (index < end) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int chunk = Math.Min(4096, end - index);
+            int charsUsed = decoder.GetChars(bytes, index, chunk, chars, 0, index + chunk == end);
+            builder.Append(chars, 0, charsUsed);
+            index += chunk;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return StringBuilderToStringCancellable(builder, 0, builder.Length, cancellationToken);
+    }
+
+    internal static string Latin1GetStringCancellable(byte[] bytes, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!cancellationToken.CanBeCanceled) return Latin1GetString(bytes);
+#if NET8_0_OR_GREATER
+        return string.Create(bytes.Length, (Bytes: bytes, Token: cancellationToken), (chars, state) => {
+            for (int i = 0; i < state.Bytes.Length; i++) {
+                if ((i & 4095) == 0) state.Token.ThrowIfCancellationRequested();
+                chars[i] = (char)state.Bytes[i];
+            }
+            state.Token.ThrowIfCancellationRequested();
+        });
+#else
+        var chars = new char[bytes.Length];
+        for (int i = 0; i < bytes.Length; i++) {
+            if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            chars[i] = (char)bytes[i];
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return CharArrayToStringCancellable(chars, cancellationToken);
+#endif
+    }
+
     // Preserve the one-byte-to-one-character mapping on older target frameworks.
     public static string Latin1GetString(byte[] bytes) {
 #if NET8_0_OR_GREATER
@@ -24,10 +67,156 @@ internal static class PdfEncoding {
 #endif
     }
 
+    internal static string Latin1GetStringCancellable(byte[] bytes, int index, int count,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!cancellationToken.CanBeCanceled) return Latin1GetString(bytes, index, count);
+        var chars = new char[count];
+        for (int i = 0; i < count; i++) {
+            if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            chars[i] = (char)bytes[index + i];
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return CharArrayToStringCancellable(chars, cancellationToken);
+    }
+
     public static byte[] Latin1GetBytes(string s) {
         var bytes = new byte[s.Length];
         for (int i = 0; i < s.Length; i++) bytes[i] = (byte)(s[i] & 0xFF);
         return bytes;
+    }
+
+    internal static byte[] Latin1GetBytesCancellable(string value, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        var bytes = new byte[value.Length];
+        for (int i = 0; i < value.Length; i++) {
+            if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            bytes[i] = (byte)(value[i] & 0xFF);
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return bytes;
+    }
+
+    internal static byte[] Latin1GetBytesCancellable(StringBuilder value, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        var bytes = new byte[value.Length];
+#if NET6_0_OR_GREATER
+        int offset = 0;
+        foreach (System.ReadOnlyMemory<char> chunk in value.GetChunks()) {
+            System.ReadOnlySpan<char> span = chunk.Span;
+            for (int index = 0; index < span.Length; index++) {
+                if (((offset + index) & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                bytes[offset + index] = (byte)(span[index] & 0xFF);
+            }
+            offset += span.Length;
+        }
+#else
+        var chars = new char[4096];
+        for (int offset = 0; offset < bytes.Length; offset += chars.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = Math.Min(chars.Length, bytes.Length - offset);
+            value.CopyTo(offset, chars, 0, count);
+            for (int index = 0; index < count; index++) bytes[offset + index] = (byte)(chars[index] & 0xFF);
+        }
+#endif
+        cancellationToken.ThrowIfCancellationRequested();
+        return bytes;
+    }
+
+    internal static string StringBuilderToStringCancellable(StringBuilder builder, int start, int length, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (length == 0) return string.Empty;
+#if NET8_0_OR_GREATER
+        return string.Create(length, (Builder: builder, Start: start, Token: cancellationToken), static (destination, state) => {
+            int sourceOffset = 0;
+            int destinationOffset = 0;
+            foreach (System.ReadOnlyMemory<char> chunk in state.Builder.GetChunks()) {
+                state.Token.ThrowIfCancellationRequested();
+                int skip = Math.Max(0, state.Start - sourceOffset);
+                int count = Math.Min(Math.Max(0, chunk.Length - skip), destination.Length - destinationOffset);
+                if (count > 0) {
+                    for (int copied = 0; copied < count; copied += 4096) {
+                        state.Token.ThrowIfCancellationRequested();
+                        int copyCount = Math.Min(4096, count - copied);
+                        chunk.Span.Slice(skip + copied, copyCount).CopyTo(destination.Slice(destinationOffset + copied, copyCount));
+                    }
+                    destinationOffset += count;
+                }
+                sourceOffset += chunk.Length;
+                if (destinationOffset == destination.Length) break;
+            }
+            state.Token.ThrowIfCancellationRequested();
+        });
+#else
+        char[] characters = new char[length];
+        for (int offset = 0; offset < length; offset += 65536) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = Math.Min(65536, length - offset);
+            builder.CopyTo(start + offset, characters, offset, count);
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return CharArrayToStringCancellable(characters, cancellationToken);
+#endif
+    }
+
+    internal static string StringSliceCancellable(string source, int start, int length, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (start < 0 || length < 0 || start > source.Length - length) {
+            throw new ArgumentOutOfRangeException(nameof(start));
+        }
+        if (length == 0) return string.Empty;
+        if (start == 0 && length == source.Length) return source;
+#if NET8_0_OR_GREATER
+        return string.Create(length, (Source: source, Start: start, Token: cancellationToken), static (destination, state) => {
+            for (int offset = 0; offset < destination.Length; offset += 4096) {
+                state.Token.ThrowIfCancellationRequested();
+                int count = Math.Min(4096, destination.Length - offset);
+                state.Source.AsSpan(state.Start + offset, count).CopyTo(destination.Slice(offset, count));
+            }
+            state.Token.ThrowIfCancellationRequested();
+        });
+#else
+        var characters = new char[length];
+        for (int offset = 0; offset < length; offset += 4096) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = Math.Min(4096, length - offset);
+            source.CopyTo(start + offset, characters, offset, count);
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return CharArrayToStringCancellable(characters, cancellationToken);
+#endif
+    }
+
+    internal static string CharArrayToStringCancellable(char[] characters, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!cancellationToken.CanBeCanceled) return new string(characters);
+#if NET8_0_OR_GREATER
+        return string.Create(characters.Length, (Characters: characters, Token: cancellationToken), static (destination, state) => {
+            for (int offset = 0; offset < destination.Length; offset += 4096) {
+                state.Token.ThrowIfCancellationRequested();
+                int count = Math.Min(4096, destination.Length - offset);
+                state.Characters.AsSpan(offset, count).CopyTo(destination.Slice(offset, count));
+            }
+            state.Token.ThrowIfCancellationRequested();
+        });
+#else
+        // string.Create is unavailable on these targets. Fill a fresh string in
+        // chunks so the last, potentially large copy can still observe cancellation.
+        string result = new string('\0', characters.Length);
+        unsafe {
+            fixed (char* destination = result) {
+                for (int offset = 0; offset < characters.Length; offset += 4096) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    int count = Math.Min(4096, characters.Length - offset);
+                    for (int index = 0; index < count; index++) {
+                        destination[offset + index] = characters[offset + index];
+                    }
+                }
+            }
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return result;
+#endif
     }
 
     // Encodes a StringBuilder's content to Latin1 bytes without materializing an intermediate string.

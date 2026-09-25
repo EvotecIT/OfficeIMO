@@ -64,6 +64,30 @@ internal static class Guard {
         return System.Uri.TryCreate(uriAction, System.UriKind.RelativeOrAbsolute, out _);
     }
 
+    internal static bool IsUriAction(string? value, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        // Uri.TryCreate cannot be interrupted while parsing. Keep that final call bounded.
+        const int maximumUriLength = 65_519;
+        if (value is null || value.Length > maximumUriLength || IsNullOrWhiteSpaceCancellable(value, cancellationToken)) return false;
+        for (int index = 0; index < value.Length; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (char.IsControl(value[index])) return false;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return System.Uri.TryCreate(value, System.UriKind.RelativeOrAbsolute, out _);
+    }
+
+    internal static bool IsNullOrWhiteSpaceCancellable(string? value, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (value is null) return true;
+        for (int index = 0; index < value.Length; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (!char.IsWhiteSpace(value[index])) return false;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return true;
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void NotNullOrEmpty(byte[]? value, string paramName) {
         if (value is null)

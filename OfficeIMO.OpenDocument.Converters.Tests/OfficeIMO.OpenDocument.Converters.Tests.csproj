@@ -33,6 +33,7 @@
   <ItemGroup>
     <Compile Include="..\TestSupport\OpenDocument\OdfTestPackageRewriter.cs" Link="TestSupport\OdfTestPackageRewriter.cs" />
     <None Include="..\OfficeIMO.TestAssets\Documents\DocumentWithFootNotes.docx" Link="Fixtures\DocumentWithFootNotes.docx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.OpenDocument.Tests\Fixtures\microsoft-excel-*-chart.ods" Link="Fixtures\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">

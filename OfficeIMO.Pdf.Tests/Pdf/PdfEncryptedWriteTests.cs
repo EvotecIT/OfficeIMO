@@ -6,6 +6,18 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfEncryptedWriteTests {
     [Fact]
+    public void Aes256WritingRejectsOversizedPasswordBeforeNormalization() {
+        var encryption = new PdfStandardEncryptionOptions("open") {
+            OwnerPassword = new string('a', 4097)
+        };
+
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PdfDocument.Create(new PdfOptions().SetEncryption(encryption))
+                .Paragraph(paragraph => paragraph.Text("Bounded password"))
+                .ToBytes());
+    }
+
+    [Fact]
     public void GeneratedEncryptionDefaultsToAes256Revision6() {
         byte[] pdf = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
             .Paragraph(paragraph => paragraph.Text("AES default source"))

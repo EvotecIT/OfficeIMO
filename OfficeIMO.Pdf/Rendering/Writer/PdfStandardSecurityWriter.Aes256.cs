@@ -14,8 +14,8 @@ internal static partial class PdfStandardSecurityWriter {
         cancellationToken.ThrowIfCancellationRequested();
         byte[] fileId = CreateFileId();
         byte[] fileKey = RandomBytes(32);
-        byte[] userPassword = NormalizeModernPassword(options.UserPassword);
-        byte[] ownerPassword = NormalizeModernPassword(options.OwnerPassword ?? options.UserPassword);
+        byte[] userPassword = PdfModernPasswordNormalizer.Normalize(options.UserPassword, cancellationToken);
+        byte[] ownerPassword = PdfModernPasswordNormalizer.Normalize(options.OwnerPassword ?? options.UserPassword, cancellationToken);
         byte[] userValidationSalt = RandomBytes(8);
         byte[] userKeySalt = RandomBytes(8);
         byte[] userHash = ComputeRevision6Hash(userPassword, userValidationSalt, Array.Empty<byte>(), options.AesCryptographyProvider, cancellationToken);
@@ -98,12 +98,6 @@ internal static partial class PdfStandardSecurityWriter {
         } while (round < 64 || lastByte > round - 32);
 
         return Take(key, 32);
-    }
-
-    private static byte[] NormalizeModernPassword(string password) {
-        string normalized = (password ?? string.Empty).Normalize(NormalizationForm.FormKC);
-        byte[] bytes = Encoding.UTF8.GetBytes(normalized);
-        return bytes.Length <= 127 ? bytes : Take(bytes, 127);
     }
 
     private static byte[] EncryptAes256NoPadding(

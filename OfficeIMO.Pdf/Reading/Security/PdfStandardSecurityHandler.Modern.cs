@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Threading;
 using OfficeIMO.Security;
 
 namespace OfficeIMO.Pdf;
@@ -10,7 +11,9 @@ internal sealed partial class PdfStandardSecurityHandler {
         string? password,
         bool passwordWasSupplied,
         int revision,
-        IOfficeAesCryptographyProvider? aesCryptographyProvider) {
+        IOfficeAesCryptographyProvider? aesCryptographyProvider,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         byte[] ownerEntry = GetRequiredBytes(encryptionDictionary, "O");
         byte[] userEntry = GetRequiredBytes(encryptionDictionary, "U");
         byte[] ownerEncryptedFileKey = GetRequiredBytes(encryptionDictionary, "OE");
@@ -19,7 +22,8 @@ internal sealed partial class PdfStandardSecurityHandler {
         int permissions = GetRequiredPermissions(encryptionDictionary);
         bool encryptMetadata = encryptionDictionary.Get<PdfBoolean>("EncryptMetadata")?.Value ?? true;
         ValidateModernEntries(ownerEntry, userEntry, ownerEncryptedFileKey, userEncryptedFileKey, encryptedPermissions);
-        byte[] passwordBytes = NormalizeModernPassword(passwordWasSupplied ? password ?? string.Empty : string.Empty);
+        byte[] passwordBytes = PdfModernPasswordNormalizer.Normalize(passwordWasSupplied ? password ?? string.Empty : string.Empty, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
 
         byte[]? fileKey = TryAuthenticateModernOwner(
             passwordBytes,
@@ -27,18 +31,22 @@ internal sealed partial class PdfStandardSecurityHandler {
             ownerEncryptedFileKey,
             userEntry,
             revision,
-            aesCryptographyProvider);
+            aesCryptographyProvider,
+            cancellationToken);
         PdfPasswordAuthenticationRole authenticationRole = PdfPasswordAuthenticationRole.Owner;
+        cancellationToken.ThrowIfCancellationRequested();
         if (fileKey is null) {
             fileKey = TryAuthenticateModernUser(
                 passwordBytes,
                 userEntry,
                 userEncryptedFileKey,
                 revision,
-                aesCryptographyProvider);
+                aesCryptographyProvider,
+                cancellationToken);
             authenticationRole = PdfPasswordAuthenticationRole.User;
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         if (fileKey is null) {
             if (!passwordWasSupplied) {
                 throw new PdfPasswordRequiredException("Encrypted PDF requires a password.");
@@ -47,6 +55,7 @@ internal sealed partial class PdfStandardSecurityHandler {
             throw new PdfInvalidPasswordException("The supplied PDF password is invalid.");
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         ValidateModernPermissions(fileKey, encryptedPermissions, permissions, encryptMetadata, aesCryptographyProvider);
         PdfCryptMethod streamMethod = ResolveCryptMethod(encryptionDictionary, "StmF", version: 5);
         PdfCryptMethod stringMethod = ResolveCryptMethod(encryptionDictionary, "StrF", version: 5);
@@ -66,13 +75,15 @@ internal sealed partial class PdfStandardSecurityHandler {
         byte[] userEntry,
         byte[] encryptedFileKey,
         int revision,
-        IOfficeAesCryptographyProvider? aesCryptographyProvider) {
+        IOfficeAesCryptographyProvider? aesCryptographyProvider,
+        CancellationToken cancellationToken) {
         byte[] validationHash = ComputeModernHash(
             password,
             SliceModern(userEntry, 32, 40),
             Array.Empty<byte>(),
             revision,
-            aesCryptographyProvider);
+            aesCryptographyProvider,
+            cancellationToken);
         if (!StartsWith(userEntry, validationHash, 32)) {
             return null;
         }
@@ -82,7 +93,8 @@ internal sealed partial class PdfStandardSecurityHandler {
             SliceModern(userEntry, 40, 48),
             Array.Empty<byte>(),
             revision,
-            aesCryptographyProvider);
+            aesCryptographyProvider,
+            cancellationToken);
         return DecryptAes256NoPadding(key, encryptedFileKey, aesCryptographyProvider);
     }
 
@@ -92,13 +104,15 @@ internal sealed partial class PdfStandardSecurityHandler {
         byte[] encryptedFileKey,
         byte[] userEntry,
         int revision,
-        IOfficeAesCryptographyProvider? aesCryptographyProvider) {
+        IOfficeAesCryptographyProvider? aesCryptographyProvider,
+        CancellationToken cancellationToken) {
         byte[] validationHash = ComputeModernHash(
             password,
             SliceModern(ownerEntry, 32, 40),
             userEntry,
             revision,
-            aesCryptographyProvider);
+            aesCryptographyProvider,
+            cancellationToken);
         if (!StartsWith(ownerEntry, validationHash, 32)) {
             return null;
         }
@@ -108,7 +122,8 @@ internal sealed partial class PdfStandardSecurityHandler {
             SliceModern(ownerEntry, 40, 48),
             userEntry,
             revision,
-            aesCryptographyProvider);
+            aesCryptographyProvider,
+            cancellationToken);
         return DecryptAes256NoPadding(key, encryptedFileKey, aesCryptographyProvider);
     }
 
@@ -117,20 +132,23 @@ internal sealed partial class PdfStandardSecurityHandler {
         byte[] salt,
         byte[] userEntry,
         int revision,
-        IOfficeAesCryptographyProvider? aesCryptographyProvider) =>
+        IOfficeAesCryptographyProvider? aesCryptographyProvider,
+        CancellationToken cancellationToken) =>
         revision == 5
             ? Sha256Modern(PdfObjectBytes.Concat(password, salt, userEntry))
-            : ComputeRevision6HashModern(password, salt, userEntry, aesCryptographyProvider);
+            : ComputeRevision6HashModern(password, salt, userEntry, aesCryptographyProvider, cancellationToken);
 
     private static byte[] ComputeRevision6HashModern(
         byte[] password,
         byte[] salt,
         byte[] userEntry,
-        IOfficeAesCryptographyProvider? aesCryptographyProvider) {
+        IOfficeAesCryptographyProvider? aesCryptographyProvider,
+        CancellationToken cancellationToken) {
         byte[] key = Sha256Modern(PdfObjectBytes.Concat(password, salt, userEntry));
         int round = 0;
         byte lastByte;
         do {
+            cancellationToken.ThrowIfCancellationRequested();
             byte[] block = PdfObjectBytes.Concat(password, key, userEntry);
             var repeated = new byte[block.Length * 64];
             for (int i = 0; i < 64; i++) {
@@ -151,11 +169,6 @@ internal sealed partial class PdfStandardSecurityHandler {
         } while (round < 64 || lastByte > round - 32);
 
         return SliceModern(key, 0, 32);
-    }
-
-    private static byte[] NormalizeModernPassword(string password) {
-        byte[] bytes = Encoding.UTF8.GetBytes((password ?? string.Empty).Normalize(NormalizationForm.FormKC));
-        return bytes.Length <= 127 ? bytes : SliceModern(bytes, 0, 127);
     }
 
     private static byte[] DecryptAes256NoPadding(

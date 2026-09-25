@@ -5,6 +5,9 @@ using System.Runtime.InteropServices;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfSyntax {
+    // Numeric values beyond this length cannot add useful PDF numeric precision and
+    // must not enter tokenless framework parsing after a caller raises object limits.
+    private const int MaxNumericTokenCharacters = 4096;
     private static readonly Encoding StrictUtf8NameEncoding = new UTF8Encoding(
         encoderShouldEmitUTF8Identifier: false,
         throwOnInvalidBytes: true);
@@ -29,7 +32,9 @@ internal static partial class PdfSyntax {
     private static PdfObject? ParseTopLevelObject(
         string body,
         PdfReadLimits? limits = null,
-        bool trackEncodedStringSourceSpans = true) {
+        bool trackEncodedStringSourceSpans = true,
+        System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         PdfReadLimits effectiveLimits = limits ?? new PdfReadLimits();
         if (string.IsNullOrWhiteSpace(body)) return null;
         if (body.Length > effectiveLimits.MaxObjectCharacters) {
@@ -44,38 +49,39 @@ internal static partial class PdfSyntax {
             // Find matching >> and parse inside
             int dictStart = body.IndexOf("<<", StringComparison.Ordinal);
             if (dictStart >= 0) {
-                int dictEnd = FindDictEnd(body, dictStart, body.Length);
+                int dictEnd = FindDictEnd(body, dictStart, body.Length, cancellationToken);
                 if (dictEnd > dictStart) {
-                    if (SkipWhitespaceAndComments(body, dictEnd, body.Length) < body.Length) return null;
+                    if (SkipWhitespaceAndComments(body, dictEnd, body.Length, cancellationToken) < body.Length) return null;
                     int dictionaryCharacters = dictEnd - (dictStart + 2);
                     if (dictionaryCharacters > effectiveLimits.MaxObjectCharacters) {
                         throw PdfReadLimitException.Create(PdfReadLimitKind.ObjectCharacters, effectiveLimits.MaxObjectCharacters, dictionaryCharacters);
                     }
 
-                    try { return ParseDictionary(body, dictStart + 2, dictionaryCharacters, effectiveLimits, trackEncodedStringSourceSpans); } catch (PdfReadLimitException) { throw; } catch { return null; }
+                    try { return ParseDictionary(body, dictStart + 2, dictionaryCharacters, effectiveLimits, trackEncodedStringSourceSpans, cancellationToken); }
+                    catch (Exception ex) when (ex is not PdfReadLimitException and not OperationCanceledException and not OutOfMemoryException) { return null; }
                 }
             }
             return null;
         }
         if (s.Length > 0 && s[0] == '[') {
-            using var toks = Tokenize(s, effectiveLimits, trackEncodedStringSourceSpans);
-            var (obj, consumed) = ParseObject(toks, 0, effectiveLimits, 0);
+            using var toks = Tokenize(s, effectiveLimits, trackEncodedStringSourceSpans, cancellationToken);
+            var (obj, consumed) = ParseObject(toks, 0, effectiveLimits, 0, cancellationToken);
             return consumed + 1 == toks.Count ? obj : null;
         }
         if (s.Length > 0 && s[0] == '(') {
-            using var stringTokens = Tokenize(s, effectiveLimits, trackEncodedStringSourceSpans);
-            var (obj, consumed) = ParseObject(stringTokens, 0, effectiveLimits, 0);
+            using var stringTokens = Tokenize(s, effectiveLimits, trackEncodedStringSourceSpans, cancellationToken);
+            var (obj, consumed) = ParseObject(stringTokens, 0, effectiveLimits, 0, cancellationToken);
             return consumed + 1 == stringTokens.Count ? obj : null;
         }
         if (s.Length > 0 && s[0] == '<' && (s.Length == 1 || s[1] != '<')) {
-            using var stringTokens = Tokenize(s, effectiveLimits, trackEncodedStringSourceSpans);
-            var (obj, consumed) = ParseObject(stringTokens, 0, effectiveLimits, 0);
+            using var stringTokens = Tokenize(s, effectiveLimits, trackEncodedStringSourceSpans, cancellationToken);
+            var (obj, consumed) = ParseObject(stringTokens, 0, effectiveLimits, 0, cancellationToken);
             return consumed + 1 == stringTokens.Count ? obj : null;
         }
         // number or name fallbacks
-        using var tokens = Tokenize(s, effectiveLimits, trackEncodedStringSourceSpans);
+        using var tokens = Tokenize(s, effectiveLimits, trackEncodedStringSourceSpans, cancellationToken);
         if (tokens.Count > 0) {
-            var (obj0, consumed) = ParseObject(tokens, 0, effectiveLimits, 0);
+            var (obj0, consumed) = ParseObject(tokens, 0, effectiveLimits, 0, cancellationToken);
             return consumed + 1 == tokens.Count ? obj0 : null;
         }
         return null;
@@ -93,29 +99,33 @@ internal static partial class PdfSyntax {
     private static PdfDictionary ParseDictionary(
         string dict,
         PdfReadLimits? limits = null,
-        bool trackEncodedStringSourceSpans = true) =>
-        ParseDictionary(dict, 0, dict.Length, limits, trackEncodedStringSourceSpans);
+        bool trackEncodedStringSourceSpans = true,
+        System.Threading.CancellationToken cancellationToken = default) =>
+        ParseDictionary(dict, 0, dict.Length, limits, trackEncodedStringSourceSpans, cancellationToken);
 
     private static PdfDictionary ParseDictionary(
         string source,
         int start,
         int length,
         PdfReadLimits? limits = null,
-        bool trackEncodedStringSourceSpans = true) {
+        bool trackEncodedStringSourceSpans = true,
+        System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         PdfReadLimits effectiveLimits = limits ?? new PdfReadLimits();
         if (length > effectiveLimits.MaxObjectCharacters) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.ObjectCharacters, effectiveLimits.MaxObjectCharacters, length);
         }
 
         var d = new PdfDictionary();
-        using var tokens = Tokenize(source, start, length, effectiveLimits, trackEncodedStringSourceSpans);
+        using var tokens = Tokenize(source, start, length, effectiveLimits, trackEncodedStringSourceSpans, cancellationToken);
         for (int i = 0; i < tokens.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfToken token = tokens[i];
             if (i == 0 && token.Equals(tokens.Source, "<<")) continue;
             if (token.Length > 0 && token.GetCharacter(tokens.Source, 0) == '/') {
-                string key = DecodeNameToken(token, tokens.Source);
+                string key = DecodeNameToken(token, tokens.Source, cancellationToken);
                 if (i + 1 < tokens.Count && !tokens[i + 1].Equals(tokens.Source, ">>")) {
-                    var (obj, consumed) = ParseObject(tokens, i + 1, effectiveLimits, 0);
+                    var (obj, consumed) = ParseObject(tokens, i + 1, effectiveLimits, 0, cancellationToken);
                     SetDictionaryItem(d, key, obj);
                     i += consumed + 1;
                 } else d.HasIncompleteSyntax = true;
@@ -126,7 +136,9 @@ internal static partial class PdfSyntax {
         return d;
     }
 
-    private static (PdfObject Obj, int Consumed) ParseObject(in PooledTokenBuffer tokens, int i, PdfReadLimits limits, int depth) {
+    private static (PdfObject Obj, int Consumed) ParseObject(in PooledTokenBuffer tokens, int i, PdfReadLimits limits, int depth,
+        System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (i < 0 || i >= tokens.Count) return (new PdfName(""), 0);
         if (depth > limits.MaxObjectNestingDepth) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.ObjectNestingDepth, limits.MaxObjectNestingDepth, depth);
@@ -138,11 +150,12 @@ internal static partial class PdfSyntax {
             var dict = new PdfDictionary();
             int j = i + 1;
             while (j < tokens.Count && !tokens[j].Equals(source, ">>")) {
+                cancellationToken.ThrowIfCancellationRequested();
                 PdfToken keyToken = tokens[j];
                 if (keyToken.Length > 0 && keyToken.GetCharacter(source, 0) == '/') {
-                    string key = DecodeNameToken(keyToken, source);
+                    string key = DecodeNameToken(keyToken, source, cancellationToken);
                     if (j + 1 < tokens.Count && !tokens[j + 1].Equals(source, ">>")) {
-                        var (obj, consumed) = ParseObject(tokens, j + 1, limits, depth + 1);
+                        var (obj, consumed) = ParseObject(tokens, j + 1, limits, depth + 1, cancellationToken);
                         SetDictionaryItem(dict, key, obj);
                         j += consumed + 2;
                         continue;
@@ -155,9 +168,10 @@ internal static partial class PdfSyntax {
             return (dict, j - i);
         }
         if (token.Equals(source, "[")) {
-            var arr = new PdfArray(EstimateArrayItemCount(tokens, i)); int j = i + 1;
+            var arr = new PdfArray(EstimateArrayItemCount(tokens, i, cancellationToken)); int j = i + 1;
             while (j < tokens.Count && !tokens[j].Equals(source, "]")) {
-                var (inner, used) = ParseObject(tokens, j, limits, depth + 1);
+                cancellationToken.ThrowIfCancellationRequested();
+                var (inner, used) = ParseObject(tokens, j, limits, depth + 1, cancellationToken);
                 arr.Items.Add(inner);
                 arr.HasIncompleteSyntax |= inner.HasIncompleteSyntax;
                 j += used + 1;
@@ -165,13 +179,14 @@ internal static partial class PdfSyntax {
             arr.HasIncompleteSyntax |= j >= tokens.Count;
             return (arr, j - i);
         }
-        if (token.Length > 0 && token.GetCharacter(source, 0) == '/') return (new PdfName(DecodeNameToken(token, source)), 0);
+        if (token.Length > 0 && token.GetCharacter(source, 0) == '/') return (new PdfName(DecodeNameToken(token, source, cancellationToken)), 0);
         if (token.IsString && token.Length > 0 && token.GetCharacter(source, 0) == '(') {
             bool isTerminated = token.IsTerminated;
             int innerLength = token.Length - (isTerminated ? 2 : 1);
             var value = CreateParsedString(
-                PdfStringParser.ParseLiteralToBytes(source, token.SourceStart + 1, innerLength),
-                token.EncodedLength);
+                PdfStringParser.ParseLiteralToBytes(source, token.SourceStart + 1, innerLength, cancellationToken),
+                token.EncodedLength,
+                cancellationToken);
             value.HasIncompleteSyntax = !isTerminated;
             return (value, 0);
         }
@@ -180,8 +195,9 @@ internal static partial class PdfSyntax {
             bool isTerminated = token.IsTerminated;
             int innerLength = token.Length - (isTerminated ? 2 : 1);
             var value = CreateParsedString(
-                PdfTextString.DecodeHexBytes(source, token.SourceStart + 1, innerLength),
-                token.EncodedLength);
+                PdfTextString.DecodeHexBytes(source, token.SourceStart + 1, innerLength, cancellationToken),
+                token.EncodedLength,
+                cancellationToken);
             value.HasIncompleteSyntax = !isTerminated;
             return (value, 0);
         }
@@ -191,21 +207,23 @@ internal static partial class PdfSyntax {
         if (token.Length > 0 && IsPdfNumberStart(token.GetCharacter(source, 0))) {
             // reference (obj gen R) or number
             if (i + 2 < tokens.Count && tokens[i + 2].Equals(source, "R") &&
-                token.TryParseInt32(source, out int obj) && tokens[i + 1].TryParseInt32(source, out int gen)) {
+                token.TryParseInt32(source, out int obj, cancellationToken) && tokens[i + 1].TryParseInt32(source, out int gen, cancellationToken)) {
                 return (new PdfReference(obj, gen), 2);
             }
-            if (token.TryParseDouble(source, out double val)) {
+            if (token.TryParseDouble(source, out double val, cancellationToken)) {
                 return (new PdfNumber(val), 0);
             }
         }
-        return (new PdfName(token.GetText(source)) { HasIncompleteSyntax = true }, 0);
+        return (new PdfName(token.GetText(source, cancellationToken)) { HasIncompleteSyntax = true }, 0);
     }
 
-    private static int EstimateArrayItemCount(in PooledTokenBuffer tokens, int arrayStart) {
+    private static int EstimateArrayItemCount(in PooledTokenBuffer tokens, int arrayStart,
+        System.Threading.CancellationToken cancellationToken) {
         int count = 0;
         int index = arrayStart + 1;
         string source = tokens.Source;
         while (index < tokens.Count) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfToken token = tokens[index];
             if (token.Equals(source, "]")) break;
             count++;
@@ -217,8 +235,8 @@ internal static partial class PdfSyntax {
 
             if (index + 2 < tokens.Count &&
                 tokens[index + 2].Equals(source, "R") &&
-                tokens[index].TryParseInt32(source, out _) &&
-                tokens[index + 1].TryParseInt32(source, out _)) {
+                tokens[index].TryParseInt32(source, out _, cancellationToken) &&
+                tokens[index + 1].TryParseInt32(source, out _, cancellationToken)) {
                 index += 3;
                 continue;
             }
@@ -232,15 +250,18 @@ internal static partial class PdfSyntax {
     private static PooledTokenBuffer Tokenize(
         string s,
         PdfReadLimits? limits = null,
-        bool trackEncodedStringSourceSpans = true) =>
-        Tokenize(s, 0, s.Length, limits, trackEncodedStringSourceSpans);
+        bool trackEncodedStringSourceSpans = true,
+        System.Threading.CancellationToken cancellationToken = default) =>
+        Tokenize(s, 0, s.Length, limits, trackEncodedStringSourceSpans, cancellationToken);
 
     private static PooledTokenBuffer Tokenize(
         string s,
         int start,
         int length,
         PdfReadLimits? limits = null,
-        bool trackEncodedStringSourceSpans = true) {
+        bool trackEncodedStringSourceSpans = true,
+        System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         PdfReadLimits effectiveLimits = limits ?? new PdfReadLimits();
         if (length > effectiveLimits.MaxObjectCharacters) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.ObjectCharacters, effectiveLimits.MaxObjectCharacters, length);
@@ -254,7 +275,7 @@ internal static partial class PdfSyntax {
         int estimatedTokens = Math.Min(512, length / 4 + 8);
         var tokens = new PooledTokenBuffer(s, Math.Min(estimatedTokens, effectiveLimits.MaxTokensPerObject));
         try {
-            TokenizeInto(s, start, end, effectiveLimits, trackEncodedStringSourceSpans, ref tokens);
+            TokenizeInto(s, start, end, effectiveLimits, trackEncodedStringSourceSpans, ref tokens, cancellationToken);
             return tokens;
         } catch {
             tokens.Dispose();
@@ -268,9 +289,11 @@ internal static partial class PdfSyntax {
         int end,
         PdfReadLimits effectiveLimits,
         bool trackEncodedStringSourceSpans,
-        ref PooledTokenBuffer tokens) {
+        ref PooledTokenBuffer tokens,
+        System.Threading.CancellationToken cancellationToken) {
         int i = start;
         while (i < end) {
+            if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (tokens.Count > effectiveLimits.MaxTokensPerObject) {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.ObjectTokens, effectiveLimits.MaxTokensPerObject, tokens.Count);
             }
@@ -279,7 +302,10 @@ internal static partial class PdfSyntax {
             if (char.IsWhiteSpace(c)) { i++; continue; }
             if (c == '%') {
                 i++;
-                while (i < end && s[i] != '\n' && s[i] != '\r') i++;
+                while (i < end && s[i] != '\n' && s[i] != '\r') {
+                    if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                    i++;
+                }
                 continue;
             }
             if (c == '<' && i + 1 < end && s[i + 1] == '<') { tokens.Add(new PdfToken("<<")); i += 2; continue; }
@@ -287,7 +313,10 @@ internal static partial class PdfSyntax {
             if (c == '[' || c == ']') { tokens.Add(new PdfToken(c == '[' ? "[" : "]")); i++; continue; }
             if (c == '<') {
                 int tokenStart = i++;
-                while (i < end && s[i] != '>') i++;
+                while (i < end && s[i] != '>') {
+                    if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                    i++;
+                }
                 if (i < end && s[i] == '>') i++;
                 bool isTerminated = i > tokenStart && s[i - 1] == '>';
                 tokens.Add(new PdfToken(
@@ -302,6 +331,7 @@ internal static partial class PdfSyntax {
                 int tokenStart = i; i++;
                 int depth = 1; bool esc = false;
                 while (i < end && depth > 0) {
+                    if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
                     char ch = s[i++];
                     if (esc) { esc = false; } else if (ch == '\\') { esc = true; } else if (ch == '(') {
                         depth++;
@@ -323,10 +353,17 @@ internal static partial class PdfSyntax {
             }
             // name, number, keyword
             int j = i;
-            while (j < end && !char.IsWhiteSpace(s[j]) && s[j] != '%' && s[j] != '/' && s[j] != '[' && s[j] != ']' && s[j] != '<' && s[j] != '>' && s[j] != '(' && s[j] != ')') j++;
+            while (j < end && !char.IsWhiteSpace(s[j]) && s[j] != '%' && s[j] != '/' && s[j] != '[' && s[j] != ']' && s[j] != '<' && s[j] != '>' && s[j] != '(' && s[j] != ')') {
+                if ((j & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                j++;
+            }
             int tokenLength = j - i;
             if (tokenLength == 0 && s[i] == '/') { // name starting here
-                j = i + 1; while (j < end && !char.IsWhiteSpace(s[j]) && s[j] != '%' && s[j] != '/' && s[j] != '[' && s[j] != ']' && s[j] != '<' && s[j] != '>' && s[j] != '(' && s[j] != ')') j++;
+                j = i + 1;
+                while (j < end && !char.IsWhiteSpace(s[j]) && s[j] != '%' && s[j] != '/' && s[j] != '[' && s[j] != ']' && s[j] != '<' && s[j] != '>' && s[j] != '(' && s[j] != ')') {
+                    if ((j & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                    j++;
+                }
                 tokenLength = j - i;
             }
             if (tokenLength == 0) {
@@ -336,7 +373,7 @@ internal static partial class PdfSyntax {
                 tokenLength = 1;
                 j = i + 1;
             }
-            tokens.Add(MaterializeToken(s, i, tokenLength));
+            tokens.Add(MaterializeToken(s, i, tokenLength, cancellationToken));
             if (tokens.Count > effectiveLimits.MaxTokensPerObject) {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.ObjectTokens, effectiveLimits.MaxTokensPerObject, tokens.Count);
             }
@@ -452,7 +489,8 @@ internal static partial class PdfSyntax {
             return _text is not null ? _text[index] : source[_sourceStart + index];
         }
 
-        internal string GetText(string source) => _text ?? source.Substring(_sourceStart, _length);
+        internal string GetText(string source, System.Threading.CancellationToken cancellationToken) =>
+            _text ?? PdfEncoding.StringSliceCancellable(source, _sourceStart, _length, cancellationToken);
 
         internal bool Equals(string source, string value) {
             if (_length != value.Length) return false;
@@ -460,13 +498,18 @@ internal static partial class PdfSyntax {
             return string.CompareOrdinal(source, _sourceStart, value, 0, _length) == 0;
         }
 
-        internal bool TryParseInt32(string source, out int value) {
+        internal bool TryParseInt32(string source, out int value, System.Threading.CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (_length > MaxNumericTokenCharacters) {
+                value = default;
+                return false;
+            }
 #if NET8_0_OR_GREATER
             ReadOnlySpan<char> span = _text is not null ? _text.AsSpan() : source.AsSpan(_sourceStart, _length);
             return int.TryParse(span, System.Globalization.NumberStyles.Integer,
                 System.Globalization.CultureInfo.InvariantCulture, out value);
 #else
-            return int.TryParse(GetText(source), System.Globalization.NumberStyles.Integer,
+            return int.TryParse(GetText(source, cancellationToken), System.Globalization.NumberStyles.Integer,
                 System.Globalization.CultureInfo.InvariantCulture, out value);
 #endif
         }
@@ -474,13 +517,19 @@ internal static partial class PdfSyntax {
         internal bool TryParseDouble(
             string source,
             out double value,
+            System.Threading.CancellationToken cancellationToken,
             System.Globalization.NumberStyles styles = System.Globalization.NumberStyles.Any) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (_length > MaxNumericTokenCharacters) {
+                value = default;
+                return false;
+            }
 #if NET8_0_OR_GREATER
             ReadOnlySpan<char> span = _text is not null ? _text.AsSpan() : source.AsSpan(_sourceStart, _length);
             return double.TryParse(span, styles,
                 System.Globalization.CultureInfo.InvariantCulture, out value);
 #else
-            return double.TryParse(GetText(source), styles,
+            return double.TryParse(GetText(source, cancellationToken), styles,
                 System.Globalization.CultureInfo.InvariantCulture, out value);
 #endif
         }
@@ -514,7 +563,8 @@ internal static partial class PdfSyntax {
     private static readonly string[][] KnownTokenTextsByLength = CreateKnownTokenTextsByLength();
     private static readonly string?[][] KnownDecodedNamesByLength = CreateKnownDecodedNamesByLength();
 
-    private static PdfToken MaterializeToken(string source, int start, int length) {
+    private static PdfToken MaterializeToken(string source, int start, int length,
+        System.Threading.CancellationToken cancellationToken) {
         if ((uint)length < (uint)KnownTokenTextsByLength.Length) {
             string[] candidates = KnownTokenTextsByLength[length];
             for (int candidateIndex = 0; candidateIndex < candidates.Length; candidateIndex++) {
@@ -534,13 +584,17 @@ internal static partial class PdfSyntax {
 #if NET8_0_OR_GREATER
         return new PdfToken(start, length);
 #else
+        if (source[start] == '/') return new PdfToken(start, length);
         // Older targets do not expose span-based numeric parsing. Preserve their
         // single materialization rather than recreating the same slice at each parse.
-        return new PdfToken(source.Substring(start, length));
+        cancellationToken.ThrowIfCancellationRequested();
+        return new PdfToken(PdfEncoding.StringSliceCancellable(source, start, length, cancellationToken));
 #endif
     }
 
-    private static string DecodeNameToken(PdfToken token, string source) {
+    private static string DecodeNameToken(PdfToken token, string source,
+        System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if ((uint)token.Length < (uint)KnownTokenTextsByLength.Length) {
             string[] candidates = KnownTokenTextsByLength[token.Length];
             string?[] decodedNames = KnownDecodedNamesByLength[token.Length];
@@ -552,10 +606,9 @@ internal static partial class PdfSyntax {
             }
         }
 
-        string encodedName = token.SourceStart >= 0
-            ? source.Substring(token.SourceStart + 1, token.Length - 1)
-            : token.GetText(source).Substring(1);
-        return DecodeName(encodedName);
+        return token.SourceStart >= 0
+            ? DecodeName(source, token.SourceStart + 1, token.Length - 1, cancellationToken)
+            : DecodeName(token.MaterializedText!, 1, token.Length - 1, cancellationToken);
     }
 
     private static bool IsPdfNumberStart(char value) =>
@@ -633,27 +686,38 @@ internal static partial class PdfSyntax {
         return false;
     }
 
-    internal static string DecodeName(string raw) {
-        if (string.IsNullOrEmpty(raw)) {
-            return raw;
-        }
+    internal static string DecodeName(string raw,
+        System.Threading.CancellationToken cancellationToken = default) =>
+        DecodeName(raw, 0, raw.Length, cancellationToken);
+
+    private static string DecodeName(string source, int start, int length,
+        System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (length == 0) return string.Empty;
 
         bool requiresDecoding = false;
-        for (int index = 0; index < raw.Length; index++) {
-            if (raw[index] == '#' || raw[index] >= 0x80) {
+        for (int index = 0; index < length; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (source[start + index] == '#' || source[start + index] >= 0x80) {
                 requiresDecoding = true;
                 break;
             }
         }
 
-        if (!requiresDecoding) return raw;
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!requiresDecoding) {
+            string decoded = PdfEncoding.StringSliceCancellable(source, start, length, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            return decoded;
+        }
 
-        var bytes = new byte[raw.Length];
+        var bytes = new byte[length];
         int byteCount = 0;
         bool hasNonAsciiByte = false;
-        for (int i = 0; i < raw.Length; i++) {
-            char ch = raw[i];
-            if (ch == '#' && i + 2 < raw.Length && TryHexNibble(raw[i + 1], out int hi) && TryHexNibble(raw[i + 2], out int lo)) {
+        for (int i = 0; i < length; i++) {
+            if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            char ch = source[start + i];
+            if (ch == '#' && i + 2 < length && TryHexNibble(source[start + i + 1], out int hi) && TryHexNibble(source[start + i + 2], out int lo)) {
                 byte decoded = (byte)((hi << 4) | lo);
                 bytes[byteCount++] = decoded;
                 hasNonAsciiByte |= decoded >= 0x80;
@@ -661,28 +725,34 @@ internal static partial class PdfSyntax {
                 continue;
             }
 
-            if (ch > byte.MaxValue) return raw;
+            if (ch > byte.MaxValue) {
+                cancellationToken.ThrowIfCancellationRequested();
+                string fallback = PdfEncoding.StringSliceCancellable(source, start, length, cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
+                return fallback;
+            }
             bytes[byteCount++] = (byte)ch;
             hasNonAsciiByte |= ch >= 0x80;
         }
 
         if (hasNonAsciiByte) {
             try {
-                return StrictUtf8NameEncoding.GetString(bytes, 0, byteCount);
+                return PdfEncoding.DecodeCancellable(StrictUtf8NameEncoding, bytes, 0, byteCount, cancellationToken);
             } catch (DecoderFallbackException) {
                 // Names are byte sequences. Preserve legacy single-byte names when they are not valid UTF-8.
             }
         }
 
-        return PdfEncoding.Latin1GetString(bytes, 0, byteCount);
+        return PdfEncoding.Latin1GetStringCancellable(bytes, 0, byteCount, cancellationToken);
     }
 
-    private static PdfStringObj CreateParsedString(byte[] bytes, int? encodedTokenLength) {
-        string value = PdfTextString.Decode(bytes);
+    private static PdfStringObj CreateParsedString(byte[] bytes, int? encodedTokenLength,
+        System.Threading.CancellationToken cancellationToken) {
+        string value = PdfTextString.Decode(bytes, cancellationToken);
         return PdfStringObj.FromParsedBytes(
             bytes,
             value,
-            useTextStringEncoding: !PdfWinAnsiEncoding.CanEncode(value, out _),
+            useTextStringEncoding: !PdfWinAnsiEncoding.CanEncode(value, out _, cancellationToken),
             encodedTokenLength);
     }
 

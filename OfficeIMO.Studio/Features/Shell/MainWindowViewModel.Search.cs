@@ -27,7 +27,10 @@ public sealed partial class MainWindowViewModel {
     partial void OnSearchQueryChanged(string value) => ClearSearchResults();
 
     partial void OnSelectedSearchResultChanged(PdfSearchHit? value) {
-        foreach (var page in Pages) page.ActiveSearchHighlight = page.PageNumber == value?.PageNumber ? value.Bounds : null;
+        foreach (var page in Pages) {
+            page.ActiveSearchHighlight = page.PageNumber == value?.PageNumber ? value.Bounds : null;
+            page.ActiveSearchHighlights = page.PageNumber == value?.PageNumber ? value.Highlights : Array.Empty<Avalonia.Rect>();
+        }
         OnPropertyChanged(nameof(SearchPosition));
         if (value is not null) NavigateToPage(value.PageNumber);
     }
@@ -42,6 +45,7 @@ public sealed partial class MainWindowViewModel {
         foreach (var page in Pages) {
             page.SearchHighlights = Array.Empty<Avalonia.Rect>();
             page.ActiveSearchHighlight = null;
+            page.ActiveSearchHighlights = Array.Empty<Avalonia.Rect>();
         }
         NotifySearchResultsChanged();
     }
@@ -90,7 +94,7 @@ public sealed partial class MainWindowViewModel {
             var results = await session.SearchAsync(query, token, progress).ConfigureAwait(true);
             if (generation != _searchGeneration || !ReferenceEquals(session, _session)) return;
             foreach (var result in results) SearchResults.Add(result.WithLocalizer(_localizer));
-            var pageMatches = SearchResults.GroupBy(hit => hit.PageNumber).ToDictionary(group => group.Key, group => group.Select(hit => hit.Bounds).ToArray());
+            var pageMatches = SearchResults.GroupBy(hit => hit.PageNumber).ToDictionary(group => group.Key, group => group.SelectMany(hit => hit.Highlights).ToArray());
             foreach (var page in Pages) page.SearchHighlights = pageMatches.TryGetValue(page.PageNumber, out var highlights) ? highlights : Array.Empty<Avalonia.Rect>();
             _searchCompleted = true;
             NotifySearchResultsChanged();

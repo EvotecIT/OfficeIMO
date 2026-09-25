@@ -73,6 +73,21 @@ public sealed class PdfOwnedStreamSliceTests {
     }
 
     [Fact]
+    public void LenientDecodeChecksSourceLimitBeforeMaterializingOwnedSlice() {
+        byte[] source = { 91, 92, 1, 2, 3, 4, 93 };
+        var dictionary = new PdfDictionary();
+        dictionary.Items["Filter"] = new PdfName("UnsupportedFilter");
+        PdfStream stream = PdfStream.FromOwnedSource(dictionary, source, 2, 4);
+
+        Assert.Throws<PdfReadLimitException>(() => StreamDecoder.Decode(stream, maxOutputBytes: 3));
+        stream.GetDataSegment(out byte[] retained, out int offset, out int length);
+        Assert.Same(source, retained);
+        Assert.Equal(2, offset);
+        Assert.Equal(4, length);
+        Assert.Equal(new byte[] { 1, 2, 3, 4 }, StreamDecoder.Decode(stream, maxOutputBytes: 4));
+    }
+
+    [Fact]
     public void ConcurrentMaterializationPublishesOneStablePayload() {
         byte[] source = Enumerable.Range(0, 1024).Select(static value => (byte)value).ToArray();
         PdfStream stream = PdfStream.FromOwnedSource(new PdfDictionary(), source, 100, 700);
