@@ -613,44 +613,6 @@ img {
   .imo-pricing-cards {
     grid-template-columns: 1fr;
   }
-  .imo-hamburger {
-    display: inline-flex;
-    flex-direction: column;
-  }
-  .imo-nav {
-    position: fixed;
-    inset: 64px 0 auto 0;
-    height: calc(100dvh - 64px);
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.5rem;
-    padding: 1rem;
-    overflow-y: auto;
-    background: var(--imo-bg-alt, #060d1f);
-    transform: translateX(100%);
-  }
-  .imo-dropdown {
-    position: static;
-    display: none;
-    margin-top: 0.25rem;
-    transform: none;
-    border: 0;
-    border-radius: var(--imo-radius, 10px);
-    background: rgba(255, 255, 255, 0.02);
-    box-shadow: none;
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto;
-  }
-  .imo-nav__item.is-open > .imo-dropdown {
-    left: auto;
-    width: 100%;
-    transform: none;
-  }
-  .imo-dropdown--mega {
-    min-width: 0;
-    grid-template-columns: 1fr;
-  }
   .imo-hero__title {
     font-size: 3.25rem;
   }

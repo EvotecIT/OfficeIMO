@@ -9,6 +9,9 @@
   window.Prism.manual = true;
 
   var BACKGROUND_KEY = "imo-bg";
+  // Matches the phone tier in site-shell.css, where the menu becomes a hamburger panel.
+  var phoneNavQuery = window.matchMedia ? window.matchMedia("(max-width: 799px)") : null;
+  function isPhoneNav() { return phoneNavQuery ? phoneNavQuery.matches : window.innerWidth < 800; }
   var BACKGROUNDS = ["blueprint", "paper", "aurora", "plain"];
   var colorSchemeQuery = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
 
@@ -260,7 +263,7 @@
     });
 
     window.addEventListener("resize", function () {
-      if (window.innerWidth >= 1024 && nav.classList.contains("is-open")) {
+      if (!isPhoneNav() && nav.classList.contains("is-open")) {
         closeNav();
       }
     });
@@ -291,7 +294,7 @@
       btn.setAttribute("aria-expanded", open ? "true" : "false");
       var menu = item.querySelector(":scope > .imo-dropdown");
       if (menu) menu.hidden = !open;
-      if (!open || window.innerWidth < 1024) {
+      if (!open || isPhoneNav()) {
         if (menu) menu.style.removeProperty("--imo-menu-shift");
         return;
       }
@@ -334,7 +337,7 @@
       });
 
       item.addEventListener("focusout", function () {
-        if (window.innerWidth < 1024) return;
+        if (isPhoneNav()) return;
         window.requestAnimationFrame(function () {
           if (!item.contains(document.activeElement)) setOpen(item, false);
         });

@@ -253,12 +253,6 @@ pre code{background:none;padding:0;color:inherit}
 
 /* Responsive */
 @media(max-width:1023px){
-  .imo-nav{position:fixed;inset:64px 0 0 0;flex-direction:column;background:var(--imo-deep);padding:1rem;overflow-y:auto;transform:translateX(100%);transition:transform 300ms;z-index:999}
-  .imo-nav.is-open{transform:translateX(0)}
-  .imo-hamburger{display:flex;flex-direction:column;align-items:center;justify-content:center}
-  .imo-dropdown{position:static;transform:none;box-shadow:none;border:none;background:rgba(255,255,255,0.02);border-radius:var(--imo-radius);margin-top:0.25rem;display:none;backdrop-filter:none}
-  .imo-nav__item.is-open>.imo-dropdown{display:grid;opacity:1;visibility:visible;pointer-events:auto}
-  .imo-dropdown--mega{grid-template-columns:1fr;min-width:0}
   .imo-footer__grid{grid-template-columns:1fr 1fr;gap:2rem}
   .imo-downloads__release-panel {grid-template-columns:1fr}
   .imo-downloads__grid {grid-template-columns:1fr}
@@ -266,7 +260,6 @@ pre code{background:none;padding:0;color:inherit}
   .imo-pricing-cards{grid-template-columns:1fr}
   .imo-editorial-list{grid-template-columns:1fr}
 }
-@media(min-width:1024px){.imo-hamburger{display:none!important}}
 @media(max-width:767px){h1{font-size:2rem}h2{font-size:1.5rem}.imo-section{padding:3.5rem 0}.imo-footer__grid{grid-template-columns:1fr}.imo-footer__bottom{flex-direction:column;gap:0.75rem;text-align:center}.imo-downloads{padding-top:1rem}.imo-downloads__release-panel {padding:1.2rem}.imo-download-card__top{display:grid}}
 
 /* Editorial blog */.imo-blog-hero__eyebrow,.imo-blog-featured__eyebrow,.imo-blog-archive__heading p{margin:0 0 .9rem;color:var(--imo-accent);font-size:.7rem;font-weight:850;letter-spacing:.14em;text-transform:uppercase}.imo-blog-hero h1{letter-spacing:-.065em}.imo-blog-hero h1 span{-webkit-background-clip:text;background-clip:text}.imo-blog-hero>div>p:not(.imo-blog-hero__eyebrow){max-width:720px;margin:0;color:var(--imo-text-secondary);font-size:1.13rem;line-height:1.75}.imo-blog-hero aside{border-left:1px solid var(--imo-glass-border)}.imo-blog-hero aside>strong{display:block;margin-bottom:.9rem;color:var(--imo-text);font-size:.78rem;text-transform:uppercase;letter-spacing:.08em}.imo-blog-hero aside>div{display:flex;flex-wrap:wrap;gap:.45rem}.imo-blog-hero aside a{border:1px solid var(--imo-glass-border);color:var(--imo-text-secondary)}.imo-blog-hero aside a:hover{border-color:rgba(56,189,248,.3);color:var(--imo-accent)}

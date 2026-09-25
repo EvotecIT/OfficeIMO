@@ -691,23 +691,33 @@
       "Items": [
         {
           "Title": "Studio",
-          "Url": "/studio/"
+          "Url": "/studio/",
+          "CssClass": "imo-nav__item--product",
+          "Description": "Desktop workspace for PDFs and documents"
         },
         {
           "Title": "Browser",
-          "Url": "/convert/"
+          "Url": "/convert/",
+          "CssClass": "imo-nav__item--product",
+          "Description": "Convert files right in your tab"
         },
         {
           "Title": "CLI",
-          "Url": "/tool/"
+          "Url": "/tool/",
+          "CssClass": "imo-nav__item--product",
+          "Description": "Scripts, CI jobs and MCP"
         },
         {
           "Title": ".NET",
-          "Url": "/libraries/"
+          "Url": "/libraries/",
+          "CssClass": "imo-nav__item--product",
+          "Description": "NuGet packages for every format"
         },
         {
           "Title": "PowerShell",
-          "Url": "/products/pswriteoffice/"
+          "Url": "/products/pswriteoffice/",
+          "CssClass": "imo-nav__item--product",
+          "Description": "PSWriteOffice module"
         },
         {
           "Title": "Docs",
