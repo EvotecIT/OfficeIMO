@@ -307,18 +307,23 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         foreach (P.SlideId slideId in slideIds) {
             if (slideId.RelationshipId?.Value is not string id ||
                 presentation.GetPartById(id) is not SlidePart part || part.Slide == null) continue;
-            count += part.Slide.Descendants<A.ParagraphProperties>().Count(properties =>
-                properties.GetAttributes().Any(attribute =>
-                    attribute.LocalName is not "algn" and not "rtl" &&
-                    (attribute.LocalName != "lvl" || attribute.Value != "0")) ||
-                properties.ChildElements.Any(child => child.LocalName is "spcBef" or "spcAft" or "tabLst"));
-            count += part.Slide.Descendants<A.ListStyle>().Sum(style => style.ChildElements.Count(level =>
-                level.LocalName.StartsWith("lvl", StringComparison.Ordinal) &&
-                level.LocalName.EndsWith("pPr", StringComparison.Ordinal) &&
-                (level.HasAttributes || level.HasChildren)));
+            count += CountUnmappedPowerPointParagraphLayout(part.Slide);
+            if (part.NotesSlidePart?.NotesSlide is P.NotesSlide notes)
+                count += CountUnmappedPowerPointParagraphLayout(notes);
         }
         return count;
     }
+
+    private static int CountUnmappedPowerPointParagraphLayout(OpenXmlElement root) =>
+        root.Descendants<A.ParagraphProperties>().Count(properties =>
+                properties.GetAttributes().Any(attribute =>
+                    attribute.LocalName is not "algn" and not "rtl" &&
+                    (attribute.LocalName != "lvl" || attribute.Value != "0")) ||
+                properties.ChildElements.Any(child => child.LocalName is "spcBef" or "spcAft" or "tabLst")) +
+        root.Descendants<A.ListStyle>().Sum(style => style.ChildElements.Count(level =>
+                level.LocalName.StartsWith("lvl", StringComparison.Ordinal) &&
+                level.LocalName.EndsWith("pPr", StringComparison.Ordinal) &&
+                (level.HasAttributes || level.HasChildren)));
 
     private static int CountUnmappedPowerPointTransitionTiming(PresentationPart? presentation,
         IReadOnlyList<P.SlideId> slideIds) {
@@ -492,6 +497,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
     private static (bool Override, bool Loss, OdfColor? Color, bool SuppressesMasterBackground) ReadOdpSlideBackground(
         OdpPresentation source, OdpSlide slide) {
         string? styleName = (string?)slide.Element.Attribute(OdfNamespaces.Draw + "style-name");
+        XElement? authoredProperties = EffectiveOdfStyleProperties(source, OdfStyleFamily.DrawingPage, styleName,
+            OdfNamespaces.Style + "drawing-page-properties", includeDefault: false);
         XElement? properties = EffectiveOdfStyleProperties(source, OdfStyleFamily.DrawingPage, styleName,
             OdfNamespaces.Style + "drawing-page-properties");
         bool suppressesMasterBackground = string.Equals(
@@ -501,9 +508,12 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             "false", StringComparison.OrdinalIgnoreCase);
         if (properties == null) return (false, false, null, suppressesMasterBackground);
         string? fill = (string?)properties.Attribute(OdfNamespaces.Draw + "fill");
+        if (fill == "none" && authoredProperties?.Attribute(OdfNamespaces.Draw + "fill") == null)
+            fill = null;
         if (fill == null) {
             bool unsupportedInheritedProperties = properties.Attributes().Any(attribute =>
                 attribute.Name.Namespace == OdfNamespaces.Draw &&
+                attribute.Name != OdfNamespaces.Draw + "fill" &&
                 attribute.Name != OdfNamespaces.Draw + "fill-color");
             return (false, unsupportedInheritedProperties, null, suppressesMasterBackground);
         }
@@ -517,7 +527,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
     }
 
     private static XElement? EffectiveOdfStyleProperties(OdpPresentation source, OdfStyleFamily family,
-        string? styleName, XName propertiesName, string partPath = "content.xml") {
+        string? styleName, XName propertiesName, string partPath = "content.xml", bool includeDefault = true) {
         var effective = new XElement(propertiesName);
         OdfStyle? style = string.IsNullOrWhiteSpace(styleName) ? null :
             source.Styles.FindInPart(family, styleName!, partPath);
@@ -530,12 +540,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             }
             foreach (XElement child in properties.Elements()) effective.Add(new XElement(child));
         }
-        string familyName = family == OdfStyleFamily.DrawingPage ? "drawing-page" :
-            family.ToString().ToLowerInvariant();
-        XElement? defaultProperties = source.Package.GetXml("styles.xml")
-            .Descendants(OdfNamespaces.Style + "default-style")
-            .FirstOrDefault(candidate => (string?)candidate.Attribute(OdfNamespaces.Style + "family") ==
-                familyName)?.Element(propertiesName);
+        XElement? defaultProperties = includeDefault
+            ? source.Styles.FindDefaultProperties(family, propertiesName) : null;
         if (defaultProperties != null) {
             foreach (XAttribute attribute in defaultProperties.Attributes()) {
                 if (effective.Attribute(attribute.Name) == null)

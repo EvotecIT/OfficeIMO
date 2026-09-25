@@ -300,6 +300,30 @@ public sealed class PowerPointOdpPresentationSemanticsTests {
     }
 
     [Fact]
+    public void DefaultNoFillDoesNotSuppressSolidMasterBackground() {
+        OdpPresentation source = OdpPresentation.Create();
+        OdpSlide slide = source.AddSlide();
+        source.MasterPages[0].BackgroundColor = OdfColor.Parse("#336699");
+        XNamespace office = "urn:oasis:names:tc:opendocument:xmlns:office:1.0";
+        XNamespace style = "urn:oasis:names:tc:opendocument:xmlns:style:1.0";
+        XNamespace draw = "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0";
+        source.Package.GetXml("styles.xml").Root!.Element(office + "styles")!.Add(
+            new XElement(style + "default-style", new XAttribute(style + "family", "drawing-page"),
+                new XElement(style + "drawing-page-properties", new XAttribute(draw + "fill", "none"))));
+        source.Package.MarkXmlDirty("styles.xml");
+
+        using PowerPointPresentation target = source.ToPowerPointPresentationResult().Value;
+        Assert.Equal("336699", target.Slides[0].GetBackground().Color);
+
+        slide.BackgroundColor = null;
+        XElement page = source.Package.GetXml("content.xml").Descendants(draw + "page").Single();
+        page.SetAttributeValue(OdfNamespaces.Presentation + "background-visible", "false");
+        source.Package.MarkXmlDirty("content.xml");
+        using PowerPointPresentation suppressed = source.ToPowerPointPresentationResult().Value;
+        Assert.Null(suppressed.Slides[0].GetBackground().Color);
+    }
+
+    [Fact]
     public void InheritedOdpGradientStylesAreReportedForMasterAndShape() {
         OdpPresentation source = OdpPresentation.Create();
         OdpRectangle rectangle = source.AddSlide().AddRectangle(OdfRect.FromCentimeters(1, 1, 5, 3));

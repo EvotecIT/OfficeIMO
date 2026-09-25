@@ -242,6 +242,24 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
     }
 
     [Fact]
+    public void SpeakerNoteParagraphLayoutAndTextBodyGeometryAreExplicitLoss() {
+        using PowerPointPresentation source = CreateBlankPowerPoint();
+        source.Slides[0].Notes.Text = "Speaker note";
+        NotesSlide notes = source.OpenXmlDocument.PresentationPart!.SlideParts.First()
+            .NotesSlidePart!.NotesSlide!;
+        A.Paragraph paragraph = notes.Descendants<A.Paragraph>()
+            .Single(item => item.InnerText.Contains("Speaker note", StringComparison.Ordinal));
+        paragraph.ParagraphProperties = new A.ParagraphProperties { LeftMargin = 914400 };
+        AssertLoss(source, "paragraph-layout");
+
+        paragraph.ParagraphProperties = null;
+        A.BodyProperties body = notes.Descendants<Shape>()
+            .Select(shape => shape.TextBody?.BodyProperties).First(item => item != null)!;
+        body.Rotation = 5400000;
+        AssertLoss(source, "notes-slide-appearance");
+    }
+
+    [Fact]
     public void PowerPointShapeLocksAreExplicitLoss() {
         using PowerPointPresentation source = CreateBlankPowerPoint();
         source.Slides[0].AddRectanglePoints(20, 20, 100, 50);

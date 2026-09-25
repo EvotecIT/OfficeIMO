@@ -129,7 +129,11 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             if (slideId.RelationshipId?.Value is not string id ||
                 presentation.GetPartById(id) is not SlidePart part ||
                 part.NotesSlidePart?.NotesSlide is not P.NotesSlide notes) continue;
-            if (notes.CommonSlideData?.Background != null || notes.GetAttributes().Any(attribute =>
+            bool authoredNotesShapes = notes.Descendants<P.Shape>().Any(shape =>
+                shape.ShapeProperties is P.ShapeProperties properties && HasUnmappedPowerPointShapeAppearance(properties) ||
+                shape.ShapeStyle != null ||
+                shape.TextBody?.BodyProperties is A.BodyProperties body && (body.HasAttributes || body.HasChildren));
+            if (notes.CommonSlideData?.Background != null || authoredNotesShapes || notes.GetAttributes().Any(attribute =>
                 attribute.LocalName is "showMasterSp" or "showMasterPhAnim" &&
                 attribute.Value is "0" or "false")) count++;
         }
