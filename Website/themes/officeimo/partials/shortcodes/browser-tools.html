@@ -5,6 +5,23 @@
     <p>Convert a document, organize a PDF, or check file origin data. Your files stay in this browser.</p>
     <p class="imo-browser-tools__loading-note">Tools load only when you open them.</p>
   </header>
+{{~ browser_drop_extensions = [".pdf"] ~}}
+{{~ for route in data.office_conversion_routes.routes ~}}{{~ if route.browserAvailable ~}}{{~ browser_drop_extensions = array.concat browser_drop_extensions route.sourceExtensions ~}}{{~ end ~}}{{~ end ~}}
+{{~ browser_drop_extensions = array.uniq browser_drop_extensions ~}}
+  <div class="imo-file-drop" data-browser-drop hidden>
+    <input class="imo-visually-hidden" id="browser-drop-input" type="file" accept="{{ browser_drop_extensions | array.join "," | html.escape }}" />
+    <label class="imo-file-drop__target" for="browser-drop-input" data-browser-drop-target>
+      <span class="imo-file-drop__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M12 18v-6M9 15l3-3 3 3"/></svg></span>
+      <strong>Drop a document to start</strong>
+      <span>Word, Excel, PowerPoint, PDF, HTML or Markdown. The file stays on your device.</span>
+      <span class="imo-file-drop__button">Choose a file</span>
+    </label>
+    <div class="imo-file-drop__selected" data-browser-drop-selected hidden>
+      <span class="imo-file-drop__file"><strong data-browser-drop-name></strong><span data-browser-drop-size></span></span>
+      <span class="imo-file-drop__hint" data-browser-drop-status role="status"></span>
+      <button type="button" class="imo-file-drop__clear" data-browser-drop-clear>Choose another file</button>
+    </div>
+  </div>
   <div class="imo-browser-tools__toolbar">
     <nav aria-label="Tool categories"><a href="#browser-convert">Convert documents</a><a href="#browser-pdf">PDF tools</a><a href="#browser-inspect">File origin</a></nav>
     <div class="imo-browser-tools__search" hidden><label for="browser-directory-search">Find a tool</label><input id="browser-directory-search" type="search" placeholder="Search tools…" /><span data-tool-count role="status"></span></div>
@@ -17,7 +34,7 @@
 {{~ source_label = route.source; target_label = route.target ~}}
 {{~ if source_label == "DOCX"; source_label = "Word"; else if source_label == "XLSX"; source_label = "Excel"; else if source_label == "PPTX"; source_label = "PowerPoint"; end ~}}
 {{~ if target_label == "DOCX"; target_label = "Word"; else if target_label == "XLSX"; target_label = "Excel"; else if target_label == "PPTX"; target_label = "PowerPoint"; end ~}}
-      <a class="imo-browser-tools__card" data-route="{{ route.id | html.escape }}" href="/convert/?route={{ route.id | html.escape }}">
+      <a class="imo-browser-tools__card" data-route="{{ route.id | html.escape }}" data-accept="{{ route.sourceExtensions | array.join "," | html.escape }}" data-input="{{ route.inputKind | string.downcase | html.escape }}" href="/convert/?route={{ route.id | html.escape }}">
         <span class="imo-browser-tools__badge">{{ route.source | html.escape }} <span aria-hidden="true">→</span> {{ route.target | html.escape }}</span>
         <strong>{{ if route.id == "pdf-xlsx" }}PDF tables to Excel{{ else if route.id == "pdf-html" }}PDF to review HTML{{ else if route.id == "pdf-png" }}PDF to PNG images{{ else }}{{ source_label | html.escape }} to {{ target_label | html.escape }}{{ end }}</strong>
         <span class="imo-browser-tools__open">Open tool <span aria-hidden="true">→</span></span>
@@ -30,7 +47,7 @@
     <h2 id="browser-pdf-title">Work with PDFs</h2>
     <div class="imo-browser-tools__grid">
 {{~ for tool in data.pdf_workflows.operations ~}}
-      <a class="imo-browser-tools__card" data-pdf-tool="{{ tool.id | html.escape }}" href="/convert/?workspace=pdf&amp;tool={{ tool.id | html.escape }}">
+      <a class="imo-browser-tools__card" data-pdf-tool="{{ tool.id | html.escape }}" data-accept=".pdf" data-input="file" href="/convert/?workspace=pdf&amp;tool={{ tool.id | html.escape }}">
         <span class="imo-browser-tools__badge">{{ tool.category | html.escape }}</span>
         <strong>{{ tool.title | html.escape }}</strong><span>{{ tool.summary | html.escape }}</span>
       </a>

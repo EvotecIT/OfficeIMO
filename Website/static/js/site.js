@@ -453,20 +453,37 @@
     var directory = document.querySelector('.imo-browser-tools');
     var search = directory.querySelector('.imo-browser-tools__search');
     var input = search.querySelector('input');
+    var countLabel = search.querySelector('[data-tool-count]');
     var cards = Array.from(directory.querySelectorAll('.imo-browser-tools__card'));
+    var frameShell = document.querySelector('.imo-converter-launch__frame-shell');
+    var frame = null;
+    var workspaceUrl = null;
+    var pendingFile = null;
     search.hidden = false;
+
+    function fileExtension(name) {
+      var dot = name.lastIndexOf('.');
+      return dot > 0 ? name.slice(dot).toLowerCase() : '';
+    }
+
+    function acceptsPendingFile(card) {
+      if (!pendingFile) return true;
+      return (card.getAttribute('data-accept') || '').split(',').indexOf(fileExtension(pendingFile.name)) >= 0;
+    }
+
     function filterTools() {
       var query = input.value.trim().toLowerCase();
       var matches = 0;
       cards.forEach(function (card) {
         var terms = card.textContent.replace(/\s+/g, ' ').trim();
-        card.hidden = !terms.toLowerCase().includes(query);
+        card.hidden = !terms.toLowerCase().includes(query) || !acceptsPendingFile(card);
         if (!card.hidden) matches++;
       });
       directory.querySelectorAll('[data-tool-group]').forEach(function (group) {
         group.hidden = !group.querySelector('.imo-browser-tools__card:not([hidden])');
       });
-      search.querySelector('[data-tool-count]').textContent = matches ? matches + (matches === 1 ? ' tool' : ' tools') : 'No tools match your search.';
+      countLabel.textContent = matches ? matches + (matches === 1 ? ' tool' : ' tools') : 'No tools match your search.';
+      return matches;
     }
     input.addEventListener('input', filterTools);
     directory.querySelectorAll('.imo-browser-tools__toolbar nav a').forEach(function (link) {
@@ -474,26 +491,14 @@
     });
     filterTools();
 
-    var pageParameters = new URLSearchParams(window.location.search);
-    var selectedWorkspace = (pageParameters.get('workspace') || '').toLowerCase();
-    // Browsing the directory never creates a frame or starts the WebAssembly runtime.
-    if (!pageParameters.get('route')?.trim() && selectedWorkspace !== 'pdf' && selectedWorkspace !== 'provenance') return;
-    directory.hidden = true;
-    var frameShell = document.querySelector('.imo-converter-launch__frame-shell');
-    frameShell.appendChild(template.content.cloneNode(true));
-    frameShell.hidden = false;
-    var frame = frameShell.querySelector('iframe');
-
-    // The app owns route validation; the website forwards only its public selection keys.
-    var workspaceUrl = new URL(frame.getAttribute('data-workspace-src'), window.location.href);
-    ['workspace', 'route', 'tool'].forEach(function (key) {
-      if (pageParameters.has(key)) workspaceUrl.searchParams.set(key, pageParameters.get(key));
-    });
-    if (workspaceUrl.href !== frame.src) frame.src = workspaceUrl.href;
+    function hasWorkspaceSelection(parameters) {
+      var workspace = (parameters.get('workspace') || '').toLowerCase();
+      return !!(parameters.get('route') || '').trim() || workspace === 'pdf' || workspace === 'provenance';
+    }
 
     function syncTheme() {
       try {
-        var frameRoot = frame.contentDocument && frame.contentDocument.documentElement;
+        var frameRoot = frame && frame.contentDocument && frame.contentDocument.documentElement;
         if (!frameRoot) return;
         var theme = document.documentElement.getAttribute('data-theme') || 'light';
         frameRoot.setAttribute('data-theme', theme);
@@ -503,36 +508,183 @@
       }
     }
 
-    window.addEventListener('message', function (event) {
-      if (event.source !== frame.contentWindow || event.origin !== workspaceUrl.origin ||
-          !event.data || event.data.type !== 'officeimo:workspace-selection') return;
-      var selection = event.data;
-      if (['workspace', 'route', 'tool'].some(function (key) {
-        return selection[key] != null && (typeof selection[key] !== 'string' || selection[key].length > 100);
-      })) return;
-      if (selection.title != null && (typeof selection.title !== 'string' ||
-          selection.title.length > 160 || selection.title.trim().length === 0)) return;
-      var target = new URL(window.location.href);
-      ['workspace', 'route', 'tool'].forEach(function (key) {
-        var value = selection[key];
-        if (key === 'workspace' && value === 'convert') value = null;
-        if (value) target.searchParams.set(key, value);
-        else target.searchParams.delete(key);
+    function createFrame() {
+      frameShell.appendChild(template.content.cloneNode(true));
+      frame = frameShell.querySelector('iframe');
+      workspaceUrl = new URL(frame.getAttribute('data-workspace-src'), window.location.href);
+
+      window.addEventListener('message', function (event) {
+        if (event.source !== frame.contentWindow || event.origin !== workspaceUrl.origin ||
+            !event.data || event.data.type !== 'officeimo:workspace-selection') return;
+        var selection = event.data;
+        if (['workspace', 'route', 'tool'].some(function (key) {
+          return selection[key] != null && (typeof selection[key] !== 'string' || selection[key].length > 100);
+        })) return;
+        if (selection.title != null && (typeof selection.title !== 'string' ||
+            selection.title.length > 160 || selection.title.trim().length === 0)) return;
+        var target = new URL(window.location.href);
+        ['workspace', 'route', 'tool'].forEach(function (key) {
+          var value = selection[key];
+          if (key === 'workspace' && value === 'convert') value = null;
+          if (value) target.searchParams.set(key, value);
+          else target.searchParams.delete(key);
+        });
+        if (target.href !== window.location.href) {
+          window.history[selection.replace === true ? 'replaceState' : 'pushState'](null, '', target);
+        }
+        if (selection.title) document.title = selection.title;
       });
-      if (target.href !== window.location.href) {
-        window.history[selection.replace === true ? 'replaceState' : 'pushState'](null, '', target);
+      frame.addEventListener('load', syncTheme);
+      new MutationObserver(syncTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    }
+
+    // Browsing the directory never creates a frame or starts the WebAssembly runtime.
+    function openWorkspace(parameters) {
+      directory.hidden = true;
+      frameShell.hidden = false;
+      if (!frame) {
+        createFrame();
+        // The app owns route validation; the website forwards only its public selection keys.
+        var initialUrl = new URL(workspaceUrl.href);
+        ['workspace', 'route', 'tool'].forEach(function (key) {
+          if (parameters.has(key)) initialUrl.searchParams.set(key, parameters.get(key));
+        });
+        frame.src = initialUrl.href;
+        syncTheme();
+      } else {
+        frame.contentWindow.postMessage({ type: 'officeimo:restore-selection',
+          workspace: parameters.get('workspace'), route: parameters.get('route'), tool: parameters.get('tool')
+        }, workspaceUrl.origin);
       }
-      if (selection.title) document.title = selection.title;
-    });
+      window.scrollTo(0, 0);
+    }
+
+    function showDirectory() {
+      frameShell.hidden = true;
+      directory.hidden = false;
+    }
+
+    // Hands a file chosen on the directory to the tool's own input once the workspace renders it.
+    function deliverFile(file, card) {
+      var route = card.getAttribute('data-route');
+      var tool = card.getAttribute('data-pdf-tool');
+      var isText = card.getAttribute('data-input') === 'text';
+      var selector = route
+        ? (isText ? '.ocx-conversion-workspace[data-active-route="' + route + '"] .ocx-textarea' : '#conversion-file-input-' + route)
+        : '#pdf-file-input-' + tool;
+      var started = Date.now();
+      (function attempt() {
+        var element = null;
+        try { element = frame.contentDocument && frame.contentDocument.querySelector(selector); } catch (error) { return; }
+        if (!element) {
+          if (Date.now() - started < 120000 && !frameShell.hidden) setTimeout(attempt, 200);
+          return;
+        }
+        var view = frame.contentWindow;
+        if (isText) {
+          file.text().then(function (text) {
+            if (element.maxLength > 0 && text.length > element.maxLength) return;
+            element.value = text;
+            element.dispatchEvent(new view.Event('input', { bubbles: true }));
+          });
+          return;
+        }
+        var transfer = new view.DataTransfer();
+        transfer.items.add(new view.File([file], file.name, { type: file.type, lastModified: file.lastModified }));
+        element.files = transfer.files;
+        element.dispatchEvent(new view.Event('change', { bubbles: true }));
+      })();
+    }
+
+    function initFileDrop(drop) {
+      var fileInput = drop.querySelector('#browser-drop-input');
+      var target = drop.querySelector('[data-browser-drop-target]');
+      var selected = drop.querySelector('[data-browser-drop-selected]');
+      var status = drop.querySelector('[data-browser-drop-status]');
+      drop.hidden = false;
+
+      function formatSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1048576) return Math.round(bytes / 1024) + ' KB';
+        return (bytes / 1048576).toFixed(1) + ' MB';
+      }
+
+      function choose(file) {
+        pendingFile = file || null;
+        input.value = '';
+        var matches = filterTools();
+        target.hidden = !!pendingFile;
+        selected.hidden = !pendingFile;
+        drop.classList.toggle('has-file', !!pendingFile);
+        if (!pendingFile) return;
+        drop.querySelector('[data-browser-drop-name]').textContent = pendingFile.name;
+        drop.querySelector('[data-browser-drop-size]').textContent = formatSize(pendingFile.size);
+        status.textContent = matches === 0
+          ? 'No browser tool opens this file type yet.'
+          : matches === 1 ? 'Open the tool below to continue.' : 'Pick one of the ' + matches + ' tools below.';
+      }
+
+      function carriesFiles(event) {
+        return event.dataTransfer && Array.prototype.indexOf.call(event.dataTransfer.types, 'Files') >= 0;
+      }
+
+      fileInput.addEventListener('change', function () { choose(fileInput.files[0]); });
+      drop.querySelector('[data-browser-drop-clear]').addEventListener('click', function () {
+        fileInput.value = '';
+        choose(null);
+        target.focus();
+      });
+
+      var dragDepth = 0;
+      document.addEventListener('dragenter', function (event) {
+        if (!carriesFiles(event) || directory.hidden) return;
+        dragDepth++;
+        drop.classList.add('is-dragging');
+      });
+      document.addEventListener('dragleave', function (event) {
+        if (!carriesFiles(event)) return;
+        dragDepth = Math.max(0, dragDepth - 1);
+        if (!dragDepth) drop.classList.remove('is-dragging');
+      });
+      document.addEventListener('dragover', function (event) {
+        if (!carriesFiles(event) || directory.hidden) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'copy';
+      });
+      document.addEventListener('drop', function (event) {
+        if (!carriesFiles(event) || directory.hidden) return;
+        event.preventDefault();
+        dragDepth = 0;
+        drop.classList.remove('is-dragging');
+        choose(event.dataTransfer.files[0]);
+      });
+
+      cards.forEach(function (card) {
+        card.addEventListener('click', function (event) {
+          if (!pendingFile || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+          event.preventDefault();
+          var destination = new URL(card.href, window.location.href);
+          window.history.pushState(null, '', destination);
+          openWorkspace(destination.searchParams);
+          deliverFile(pendingFile, card);
+        });
+      });
+    }
+
+    var drop = directory.querySelector('[data-browser-drop]');
+    if (drop) initFileDrop(drop);
+
     window.addEventListener('popstate', function () {
       var selection = new URLSearchParams(window.location.search);
-      frame.contentWindow.postMessage({ type: 'officeimo:restore-selection',
-        workspace: selection.get('workspace'), route: selection.get('route'), tool: selection.get('tool')
-      }, workspaceUrl.origin);
+      if (!hasWorkspaceSelection(selection)) {
+        showDirectory();
+        return;
+      }
+      openWorkspace(selection);
     });
-    frame.addEventListener('load', syncTheme);
-    new MutationObserver(syncTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-    syncTheme();
+
+    var pageParameters = new URLSearchParams(window.location.search);
+    if (hasWorkspaceSelection(pageParameters)) openWorkspace(pageParameters);
   }
 
   function initDocsSidebar() {
