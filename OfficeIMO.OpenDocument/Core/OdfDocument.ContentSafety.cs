@@ -234,18 +234,52 @@ public abstract partial class OdfDocument {
         };
         XElement[] ancestry = owner.AncestorsAndSelf().Reverse().ToArray();
         foreach (XElement element in ancestry) {
+            if (document.Kind == OdfDocumentKind.Spreadsheet &&
+                (element.Name == OdfNamespaces.Table + "table-cell" ||
+                 element.Name == OdfNamespaces.Table + "covered-table-cell")) {
+                ApplyOdsInheritedCellState(document, element, state);
+            }
             ApplyOdfElementState(document, element, state);
             foreach (OdfStyle style in ResolveOdfElementStyles(document, element)) {
                 foreach (OdfStyle candidate in document.Styles.Resolve(style).Reverse()) ApplyOdfStyleState(candidate, state);
             }
         }
-        if (document.Kind == OdfDocumentKind.Spreadsheet && TryGetOdsColumnElement(owner, out XElement? column)) {
-            ApplyOdfElementState(document, column!, state);
-            foreach (OdfStyle style in ResolveOdfElementStyles(document, column!)) {
-                foreach (OdfStyle candidate in document.Styles.Resolve(style).Reverse()) ApplyOdfStyleState(candidate, state);
-            }
-        }
         return state;
+    }
+
+    private static void ApplyOdsInheritedCellState(OdfDocument document, XElement cell,
+        OdfContentSafetyState state) {
+        OdfStyle? familyDefault = document.Styles.FindDefault(OdfStyleFamily.TableCell);
+        if (familyDefault != null) ApplyOdfStyleState(familyDefault, state);
+
+        TryGetOdsColumnElement(cell, out XElement? column);
+        XElement? table = cell.Ancestors(OdfNamespaces.Table + "table").FirstOrDefault();
+        if (column != null && table != null) {
+            foreach (XElement group in column.Ancestors().TakeWhile(item => !ReferenceEquals(item, table)).Reverse()) {
+                ApplyOdfElementState(document, group, state);
+                ApplyOdfResolvedStyles(document, group, state);
+            }
+            ApplyOdfElementState(document, column, state);
+            ApplyOdfResolvedStyles(document, column, state);
+        }
+
+        if (cell.Attribute(OdfNamespaces.Table + "style-name") != null) return;
+        XElement? row = cell.Ancestors(OdfNamespaces.Table + "table-row").FirstOrDefault();
+        string? inheritedName = (string?)row?.Attribute(OdfNamespaces.Table + "default-cell-style-name")
+            ?? (string?)column?.Attribute(OdfNamespaces.Table + "default-cell-style-name");
+        if (inheritedName == null) return;
+        OdfStyle? inherited = document.Styles.FindInPart(OdfStyleFamily.TableCell, inheritedName, "content.xml")
+            ?? document.Styles.Find(OdfStyleFamily.TableCell, inheritedName);
+        if (inherited != null)
+            foreach (OdfStyle candidate in document.Styles.Resolve(inherited).Reverse())
+                ApplyOdfStyleState(candidate, state);
+    }
+
+    private static void ApplyOdfResolvedStyles(OdfDocument document, XElement element,
+        OdfContentSafetyState state) {
+        foreach (OdfStyle style in ResolveOdfElementStyles(document, element))
+            foreach (OdfStyle candidate in document.Styles.Resolve(style).Reverse())
+                ApplyOdfStyleState(candidate, state);
     }
 
     private static IEnumerable<OdfStyle> ResolveOdfElementStyles(OdfDocument document, XElement element) {
@@ -358,7 +392,8 @@ public abstract partial class OdfDocument {
             columnIndex = checked(columnIndex + ReadOdfRepeat(sibling, OdfNamespaces.Table + "number-columns-repeated"));
         }
         long cursor = 0;
-        foreach (XElement candidate in table.Elements(OdfNamespaces.Table + "table-column")) {
+        foreach (XElement candidate in table.Descendants(OdfNamespaces.Table + "table-column")
+            .Where(item => ReferenceEquals(item.Ancestors(OdfNamespaces.Table + "table").FirstOrDefault(), table))) {
             long repeat = ReadOdfRepeat(candidate, OdfNamespaces.Table + "number-columns-repeated");
             if (columnIndex >= cursor && columnIndex < checked(cursor + repeat)) { column = candidate; return true; }
             cursor = checked(cursor + repeat);

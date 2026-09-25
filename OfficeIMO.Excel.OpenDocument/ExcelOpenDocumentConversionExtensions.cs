@@ -3,6 +3,7 @@ using OfficeIMO.OpenDocument;
 using OfficeIMO.Spreadsheet;
 using System.Globalization;
 using System.Text;
+using System.Xml.Linq;
 
 namespace OfficeIMO.Excel.OpenDocument;
 
@@ -447,7 +448,10 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 (string?)column.Attribute(OdfNamespaces.Table + "visibility") == "filter");
 
             IReadOnlyList<OdsColumnRun> columnRuns = odsSheet.ColumnRuns;
-            bool hasDefaultCellStyle = source.Styles.FindDefault(OdfStyleFamily.TableCell) != null;
+            OdfStyle? defaultCellStyle = source.Styles.FindDefault(OdfStyleFamily.TableCell);
+            XElement? defaultCellProperties = defaultCellStyle?.Element.Element(OdfNamespaces.Style + "table-cell-properties");
+            bool hasDefaultCellStyle = defaultCellProperties != null &&
+                (defaultCellProperties.HasAttributes || defaultCellProperties.HasElements);
             double? uniformDefaultColumnWidth = effective.MaximumColumns == 16_384
                 ? TryGetUniformColumnWidth(columnRuns) : null;
             if (uniformDefaultColumnWidth.HasValue) {
@@ -498,6 +502,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 long rowEnd = SaturatingAdd(rowRun.StartRow, rowRun.RepeatCount);
                 long lastRowExclusive = Math.Min(rowEnd, effective.MaximumRows);
                 if (rowEnd > effective.MaximumRows) truncated = true;
+                bool inheritedUnserializedTail = HasInheritedStyleOnUnserializedTail(rowRun, cellRuns,
+                    columnRuns, hasDefaultCellStyle, effective.MaximumColumns);
                 for (long row = rowRun.StartRow; row < lastRowExclusive; row++) {
                     int excelRow = checked((int)row + 1);
                     if (rowRun.Hidden) { sheet.SetRowHidden(excelRow, true); rowLayouts++; }
@@ -623,9 +629,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                         }
                         if (expandedCells >= effective.MaximumExpandedCells) break;
                     }
-                    if (unsupportedInheritedBlankStyles < int.MaxValue &&
-                        HasInheritedStyleOnUnserializedTail(rowRun, cellRuns, columnRuns,
-                            hasDefaultCellStyle, effective.MaximumColumns))
+                    if (unsupportedInheritedBlankStyles < int.MaxValue && inheritedUnserializedTail)
                         unsupportedInheritedBlankStyles++;
                     if (expandedCells >= effective.MaximumExpandedCells) break;
                 }
