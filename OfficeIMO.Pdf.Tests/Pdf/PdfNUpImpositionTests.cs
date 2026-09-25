@@ -71,6 +71,47 @@ public sealed class PdfNUpImpositionTests {
         Assert.True(document.Pages.ImposeNUp(options).SourceFeatureLoss.HasFlag(PdfImpositionSourceFeatureLoss.PageFeatures));
     }
 
+    [Theory]
+    [InlineData("/TrimBox null", "")]
+    [InlineData("/TrimBox 5 0 R", "5 0 obj\nnull\nendobj")]
+    [InlineData("/Metadata 5 0 R", "5 0 obj\n6 0 R\nendobj\n6 0 obj\nnull\nendobj")]
+    [InlineData("/PieceInfo 5 0 R", "5 0 obj\n6 0 R\nendobj\n6 0 obj\nnull\nendobj")]
+    public void NullPageEntriesDoNotRequireFeatureLossApproval(string pageEntry, string extraObject) {
+        byte[] source = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7", "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] " + pageEntry + " /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj",
+            extraObject, "trailer", "<< /Root 1 0 R /Size 7 >>", "%%EOF", string.Empty
+        }));
+
+        PdfImpositionResult result = PdfDocument.Load(source).Pages.ImposeNUp(
+            new PdfNUpOptions(new PageSize(600, 400), 2, 1));
+
+        Assert.Equal(PdfImpositionSourceFeatureLoss.None, result.SourceFeatureLoss);
+    }
+
+    [Theory]
+    [InlineData("/Producer (Other tool)")]
+    [InlineData("/Creator (Authoring tool)")]
+    [InlineData("/CustomKey (Review value)")]
+    public void RawInfoEntriesRequireMetadataLossApproval(string infoEntry) {
+        byte[] source = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7", "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj",
+            "5 0 obj", "<< " + infoEntry + " >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Info 5 0 R /Size 6 >>", "%%EOF", string.Empty
+        }));
+        PdfDocument document = PdfDocument.Load(source);
+        var options = new PdfNUpOptions(new PageSize(600, 400), 2, 1);
+
+        Assert.Throws<NotSupportedException>(() => document.Pages.ImposeNUp(options));
+        options.AllowSourceFeatureLoss = true;
+        Assert.True(document.Pages.ImposeNUp(options).SourceFeatureLoss.HasFlag(PdfImpositionSourceFeatureLoss.DocumentMetadata));
+    }
+
     [Fact]
     public void RepeatedPageContentCannotExceedAggregateImpositionBudget() {
         string content = "q\n%" + new string('x', 8192) + "\nQ\n";
@@ -298,8 +339,8 @@ public sealed class PdfNUpImpositionTests {
             source, new PdfExternalSignatureOptions { FieldName = "Approval", ReservedSignatureContentsBytes = 512 });
         byte[] signed = PdfIncrementalUpdater.ApplyExternalSignature(preparation, new byte[] { 0x30, 0x01, 0x00 });
         PdfDocument document = PdfDocument.Load(signed);
-        var nupOptions = new PdfNUpOptions(new PageSize(600, 400), 2, 1) { AllowSourceFeatureLoss = true };
-        var bookletOptions = new PdfBookletOptions(new PageSize(600, 400)) { AllowSourceFeatureLoss = true };
+        var nupOptions = new PdfNUpOptions(new PageSize(600, 400), 2, 1);
+        var bookletOptions = new PdfBookletOptions(new PageSize(600, 400));
 
         Assert.Throws<NotSupportedException>(() => document.Pages.ImposeNUp(nupOptions));
         Assert.Throws<NotSupportedException>(() => document.Pages.ImposeBooklet(bookletOptions));
@@ -311,9 +352,31 @@ public sealed class PdfNUpImpositionTests {
         Assert.Equal(1, nup.RemovedSignatureCount);
         Assert.Equal(1, booklet.RemovedSignatureCount);
         Assert.True(nup.SourceFeatureLoss.HasFlag(PdfImpositionSourceFeatureLoss.Signatures));
+        Assert.False(nup.SourceFeatureLoss.HasFlag(PdfImpositionSourceFeatureLoss.Annotations));
+        Assert.False(nup.SourceFeatureLoss.HasFlag(PdfImpositionSourceFeatureLoss.Forms));
         Assert.Contains("Signed sheet source", nup.ToDocument().Reader.Text());
         Assert.Contains("Signed sheet source", booklet.ToDocument().Reader.Text());
         Assert.False(PdfInspector.Inspect(nup.Bytes).HasSignatures);
+    }
+
+    [Fact]
+    public void UnsignedDerivativeStillRequiresApprovalForOtherInteractiveFeatures() {
+        byte[] source = PdfDocument.Create().TextField("Name").TextAnnotation("Review note").ToBytes();
+        PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
+            source, new PdfExternalSignatureOptions { FieldName = "Approval", ReservedSignatureContentsBytes = 512 });
+        byte[] signed = PdfIncrementalUpdater.ApplyExternalSignature(preparation, new byte[] { 0x30, 0x01, 0x00 });
+        PdfDocument document = PdfDocument.Load(signed);
+        var options = new PdfNUpOptions(new PageSize(600, 400), 2, 1) {
+            SignaturePolicy = PdfImpositionSignaturePolicy.CreateUnsignedDerivative
+        };
+
+        Assert.Throws<NotSupportedException>(() => document.Pages.ImposeNUp(options));
+        options.AllowSourceFeatureLoss = true;
+        PdfImpositionResult result = document.Pages.ImposeNUp(options);
+
+        Assert.True(result.SourceFeatureLoss.HasFlag(PdfImpositionSourceFeatureLoss.Signatures));
+        Assert.True(result.SourceFeatureLoss.HasFlag(PdfImpositionSourceFeatureLoss.Forms));
+        Assert.True(result.SourceFeatureLoss.HasFlag(PdfImpositionSourceFeatureLoss.Annotations));
     }
 
     [Fact]
