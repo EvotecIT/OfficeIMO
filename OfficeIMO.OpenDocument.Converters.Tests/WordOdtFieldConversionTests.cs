@@ -110,6 +110,29 @@ public sealed class WordOdtFieldConversionTests {
     }
 
     [Fact]
+    public void ComplexInstructionAcrossParagraphsHidesNestedSimpleField() {
+        using WordDocument source = WordDocument.Create();
+        WordParagraph instruction = source.AddParagraph();
+        instruction._paragraph.Append(
+            new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+            new Run(new FieldCode(" IF ")));
+        WordParagraph resultParagraph = source.AddParagraph();
+        resultParagraph._paragraph.Append(
+            new SimpleField(new Run(new Text("5"))) { Instruction = " PAGE " },
+            new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+            new Run(new Text("Accepted")),
+            new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+        Assert.Same(instruction._paragraph.Ancestors().Last(), resultParagraph._paragraph.Ancestors().Last());
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdtParagraph result = conversion.Value.Paragraphs.Last();
+        Assert.Equal("Accepted", result.Text);
+        Assert.Empty(result.Fields);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "fields" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+    }
+
+    [Fact]
     public void SimpleFieldInsideComplexResultRetainsCachedTextWithLoss() {
         using WordDocument source = WordDocument.Create();
         WordParagraph paragraph = source.AddParagraph();
@@ -390,6 +413,21 @@ public sealed class WordOdtFieldConversionTests {
             mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
         Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void CustomXmlNestedFieldRetainsCachedTextAndReportsLoss() {
+        using WordDocument source = WordDocument.Create();
+        WordParagraph paragraph = source.AddParagraph();
+        paragraph._paragraph.Append(new CustomXmlRun(
+            new Run(new Text("Before ")),
+            new SimpleField(new Run(new Text("5"))) { Instruction = " PAGE " },
+            new Run(new Text(" after"))));
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        Assert.Equal("Before 5 after", Assert.Single(conversion.Value.Paragraphs).Text);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "fields" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
     }
 
     [Fact]

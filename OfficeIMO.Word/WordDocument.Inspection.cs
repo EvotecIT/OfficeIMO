@@ -13,6 +13,32 @@ namespace OfficeIMO.Word {
 
             internal HashSet<string> ActiveNoteKeys { get; } = new(StringComparer.Ordinal);
             internal IReadOnlyDictionary<string, string?> ParagraphStyleNames { get; }
+            private Dictionary<Paragraph, bool[]> ComplexFieldPrefixes { get; } = new();
+            private HashSet<OpenXmlElement> ScannedFieldStories { get; } = new();
+
+            internal Stack<bool> ComplexFieldResultsFor(Paragraph paragraph) {
+                OpenXmlElement story = paragraph.Ancestors().FirstOrDefault(element =>
+                    element is Footnote or Endnote or DocumentFormat.OpenXml.Wordprocessing.Header
+                        or DocumentFormat.OpenXml.Wordprocessing.Footer)
+                    ?? paragraph.Ancestors().LastOrDefault() ?? paragraph;
+                if (ScannedFieldStories.Add(story) && story.Descendants<FieldChar>().Any()) {
+                    var stack = new Stack<bool>();
+                    foreach (Paragraph candidate in story.Descendants<Paragraph>()) {
+                        if (stack.Count > 0) ComplexFieldPrefixes[candidate] = stack.Reverse().ToArray();
+                        foreach (FieldChar marker in candidate.Descendants<FieldChar>()) {
+                            if (marker.FieldCharType?.Value == FieldCharValues.Begin) stack.Push(false);
+                            else if (marker.FieldCharType?.Value == FieldCharValues.Separate && stack.Count > 0) {
+                                stack.Pop();
+                                stack.Push(true);
+                            } else if (marker.FieldCharType?.Value == FieldCharValues.End && stack.Count > 0) {
+                                stack.Pop();
+                            }
+                        }
+                    }
+                }
+                return ComplexFieldPrefixes.TryGetValue(paragraph, out bool[]? prefix)
+                    ? new Stack<bool>(prefix) : new Stack<bool>();
+            }
         }
 
         /// <summary>Creates an independent snapshot of document metadata, sections, stories, paragraphs, tables, notes, and images.</summary>
@@ -242,7 +268,7 @@ namespace OfficeIMO.Word {
             }
 
             int runIndex = 0;
-            var complexFieldResults = new Stack<bool>();
+            Stack<bool> complexFieldResults = expansionContext.ComplexFieldResultsFor(paragraph._paragraph);
             foreach (var element in paragraph._paragraph.ChildElements) {
                 if (element is Run run) { ObserveFieldMarkers(run); runIndex++; continue; }
                 if (element is SdtRun) { runIndex++; continue; }
@@ -250,6 +276,17 @@ namespace OfficeIMO.Word {
                     foreach (var child in link.ChildElements) {
                         if (child is Run linkRun) { ObserveFieldMarkers(linkRun); runIndex++; }
                         else if (child is SimpleField nestedField) AddInlineField(nestedField, runIndex, true);
+                    }
+                    continue;
+                }
+                if (element is CustomXmlRun customXml) {
+                    foreach (OpenXmlElement nested in customXml.Descendants()) {
+                        if (nested is Run nestedRun && !nested.Ancestors().Any(ancestor => ancestor is SimpleField)) {
+                            ObserveFieldMarkers(nestedRun);
+                            if (ReferenceEquals(nested.Parent, customXml)) runIndex++;
+                        } else if (nested is SimpleField nestedField &&
+                            !nested.Ancestors().Any(ancestor => ancestor is SimpleField))
+                            AddInlineField(nestedField, runIndex, true);
                     }
                     continue;
                 }
