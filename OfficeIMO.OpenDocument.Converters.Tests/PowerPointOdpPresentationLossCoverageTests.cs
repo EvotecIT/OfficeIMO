@@ -43,6 +43,87 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
     }
 
     [Fact]
+    public void TextPlaceholderIndexAndOrientationAreExplicitLoss() {
+        using PowerPointPresentation source = CreateBlankPowerPoint();
+        source.Slides[0].AddTextBoxPoints("Agenda", 20, 20, 100, 50);
+        Shape shape = source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
+            .Descendants<Shape>().Single();
+        PlaceholderShape placeholder = shape.NonVisualShapeProperties!
+            .ApplicationNonVisualDrawingProperties!.GetFirstChild<PlaceholderShape>()
+            ?? shape.NonVisualShapeProperties.ApplicationNonVisualDrawingProperties
+                .AppendChild(new PlaceholderShape { Type = PlaceholderValues.Body });
+        placeholder.Index = 7U;
+        placeholder.Orientation = DirectionValues.Vertical;
+
+        Assert.NotNull(shape.TextBody);
+        Assert.Equal(7U, shape.NonVisualShapeProperties.ApplicationNonVisualDrawingProperties
+            .GetFirstChild<PlaceholderShape>()?.Index?.Value);
+
+        AssertLoss(source, "placeholder-metadata");
+    }
+
+    [Fact]
+    public void ThemeRunColorIsExplicitLoss() {
+        using PowerPointPresentation source = CreateBlankPowerPoint();
+        source.Slides[0].AddTextBoxPoints("Theme", 20, 20, 100, 50);
+        A.Run run = source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
+            .Descendants<A.Run>().Single();
+        run.RunProperties ??= new A.RunProperties();
+        run.RunProperties.Append(new A.SolidFill(new A.SchemeColor {
+            Val = A.SchemeColorValues.Accent1 }));
+
+        AssertLoss(source, "text-colors");
+    }
+
+    [Fact]
+    public void TransformedDefaultRunColorIsExplicitLoss() {
+        using PowerPointPresentation source = CreateBlankPowerPoint();
+        source.Slides[0].AddTextBoxPoints("Alpha", 20, 20, 100, 50);
+        A.Paragraph paragraph = source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
+            .Descendants<A.Paragraph>().Single();
+        paragraph.ParagraphProperties ??= new A.ParagraphProperties();
+        paragraph.ParagraphProperties.Append(new A.DefaultRunProperties(
+            new A.SolidFill(new A.RgbColorModelHex(new A.Alpha { Val = 50000 }) {
+                Val = "336699" })));
+
+        AssertLoss(source, "text-colors");
+    }
+
+    [Fact]
+    public void PlainRgbParagraphDefaultColorIsExplicitLoss() {
+        using PowerPointPresentation source = CreateBlankPowerPoint();
+        source.Slides[0].AddTextBoxPoints("Inherited", 20, 20, 100, 50);
+        A.Paragraph paragraph = source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
+            .Descendants<A.Paragraph>().Single();
+        paragraph.ParagraphProperties ??= new A.ParagraphProperties();
+        paragraph.ParagraphProperties.Append(new A.DefaultRunProperties(
+            new A.SolidFill(new A.RgbColorModelHex { Val = "336699" })));
+
+        AssertLoss(source, "text-colors");
+    }
+
+    [Fact]
+    public void ThemeHighlightAndSpeakerNoteColorAreExplicitLoss() {
+        using PowerPointPresentation source = CreateBlankPowerPoint();
+        source.Slides[0].AddTextBoxPoints("Highlight", 20, 20, 100, 50);
+        A.Run run = source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
+            .Descendants<A.Run>().Single();
+        run.RunProperties ??= new A.RunProperties();
+        run.RunProperties.Append(new A.Highlight(new A.SchemeColor {
+            Val = A.SchemeColorValues.Accent1 }));
+        AssertLoss(source, "text-colors");
+
+        run.RunProperties.RemoveAllChildren<A.Highlight>();
+        source.Slides[0].Notes.Text = "Speaker note";
+        A.Run noteRun = source.OpenXmlDocument.PresentationPart!.SlideParts.First()
+            .NotesSlidePart!.NotesSlide!.Descendants<A.Run>().Single();
+        noteRun.RunProperties ??= new A.RunProperties();
+        noteRun.RunProperties.Append(new A.SolidFill(new A.SchemeColor {
+            Val = A.SchemeColorValues.Accent1 }));
+        AssertLoss(source, "text-colors");
+    }
+
+    [Fact]
     public void AuthoredHandoutMasterIsExplicitLoss() {
         using PowerPointPresentation source = CreateBlankPowerPoint();
         PresentationPart presentation = source.OpenXmlDocument.PresentationPart!;
@@ -66,6 +147,17 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
             new ShowProperties { Loop = true });
 
         AssertLoss(source, "slide-show-settings");
+    }
+
+    [Fact]
+    public void AuthoredViewPropertiesAreExplicitLossWithoutFlaggingStockDefaults() {
+        using PowerPointPresentation source = CreateBlankPowerPoint();
+        OdfConversionResult<OdpPresentation> baseline = source.ToOpenDocumentResult();
+        Assert.DoesNotContain(baseline.Report.Mappings, mapping => mapping.Feature == "view-settings");
+        source.OpenXmlDocument.PresentationPart!.ViewPropertiesPart!.ViewProperties!
+            .SlideViewProperties!.CommonSlideViewProperties!.SnapToGrid = true;
+
+        AssertLoss(source, "view-settings");
     }
 
     [Fact]
@@ -122,6 +214,19 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
         source.Package.MarkXmlDirty("content.xml");
 
         AssertLoss(source, "custom-shows");
+    }
+
+    [Fact]
+    public void OdpPlaybackSettingsWithoutNamedShowAreExplicitLoss() {
+        OdpPresentation source = OdpPresentation.Create();
+        source.AddSlide("First");
+        XElement presentation = source.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Office + "presentation").Single();
+        presentation.Add(new XElement(OdfNamespaces.Presentation + "settings",
+            new XAttribute(OdfNamespaces.Presentation + "endless", "true")));
+        source.Package.MarkXmlDirty("content.xml");
+
+        AssertLoss(source, "slide-show-settings");
     }
 
     [Fact]

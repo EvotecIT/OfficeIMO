@@ -39,7 +39,9 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             .SlideIdList?.Elements<DocumentFormat.OpenXml.Presentation.SlideId>().ToArray()
             ?? Array.Empty<DocumentFormat.OpenXml.Presentation.SlideId>();
         unsupportedPlaceholderRoles += CountUnmappedPowerPointNonTextPlaceholders(sourcePresentation, sourceSlideIds);
+        int unsupportedPlaceholderMetadata = CountUnmappedPowerPointTextPlaceholderMetadata(sourcePresentation, sourceSlideIds);
         int unsupportedShapeAppearance = CountUnmappedPowerPointShapeAppearance(sourcePresentation, sourceSlideIds);
+        int unsupportedTextColors = CountUnmappedPowerPointTextColors(sourcePresentation, sourceSlideIds);
         int unsupportedShapeAccessibility = CountUnmappedPowerPointShapeAccessibility(sourcePresentation, sourceSlideIds);
         int unsupportedTableAppearance = CountUnmappedPowerPointTableAppearance(sourcePresentation, sourceSlideIds);
         int unsupportedTextGeometry = CountUnmappedPowerPointTextGeometry(sourcePresentation, sourceSlideIds);
@@ -201,6 +203,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         AddConverted(report, "placeholder-roles", mappedPlaceholderRoles);
         AddUnsupported(report, "placeholder-roles", unsupportedPlaceholderRoles,
             "This PowerPoint placeholder role has no matching ODP presentation class.");
+        AddUnsupported(report, "placeholder-metadata", unsupportedPlaceholderMetadata,
+            "PowerPoint text placeholder index, size, and orientation were not transferred to ODP.");
         AddConverted(report, "solid-backgrounds", backgrounds);
         AddUnsupported(report, "slide-backgrounds", unsupportedBackgrounds, "Image, gradient, theme, and unsupported backgrounds are not translated.");
         if (transitions > 0) report.Add("slide-transitions", OdfConversionMappingStatus.Approximated, transitions,
@@ -233,6 +237,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         AddUnsupported(report, "shapes", unsupportedShapes, "Charts, SmartArt, media, groups, and other advanced drawing shapes are not translated.");
         AddUnsupported(report, "shape-appearance", unsupportedShapeAppearance,
             "Text frame settings, picture effects, and theme, image, gradient, transparency, dash, or shape effect styling outside direct solid RGB fill and outline were omitted.");
+        AddUnsupported(report, "text-colors", unsupportedTextColors,
+            "Inherited, theme, system, transformed, and other unsupported run or highlight colors were not transferred to ODP.");
         AddUnsupported(report, "shape-accessibility", unsupportedShapeAccessibility,
             "Shape accessibility title, description, or decorative metadata was not carried into ODP.");
         AddUnsupported(report, "shape-geometry", unsupportedTextGeometry,
@@ -252,6 +258,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             "Authored handout-master content is not transferred to ODP.");
         AddUnsupported(report, "slide-show-settings", CountUnmappedPowerPointShowProperties(sourcePresentation),
             "PowerPoint slide-show playback settings are not transferred to ODP.");
+        AddUnsupported(report, "view-settings", CountUnmappedPowerPointViewProperties(sourcePresentation),
+            "Authored PowerPoint view settings were not transferred to ODP.");
         if (renamedSlides > 0) report.Add("slide-names", OdfConversionMappingStatus.Approximated,
             renamedSlides, "PowerPoint permits duplicate slide names; ODP requires unique names, so colliding names were changed.");
         AddAdvancedPowerPointFindings(source.InspectFeatures(), report);
@@ -541,6 +549,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             source.MasterPages.Count, transitions + unsupportedTransitions);
         AddUnsupported(report, "custom-shows", CountUnmappedOdpCustomShows(source),
             "ODP named custom slide shows were not transferred to PowerPoint.");
+        AddUnsupported(report, "slide-show-settings", CountUnmappedOdpSlideShowSettings(source),
+            "ODP slide-show playback settings were not transferred to PowerPoint.");
         return new OdfConversionResult<PowerPointPresentation>(target, report).ApplyPolicy(effective.LossPolicy);
     }
 

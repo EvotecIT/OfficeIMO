@@ -49,6 +49,52 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         return count;
     }
 
+    private static int CountUnmappedPowerPointTextPlaceholderMetadata(PresentationPart? presentation,
+        IReadOnlyList<P.SlideId> slideIds) {
+        if (presentation == null) return 0;
+        int count = 0;
+        foreach (P.SlideId slideId in slideIds) {
+            if (slideId.RelationshipId?.Value is not string id ||
+                presentation.GetPartById(id) is not SlidePart part || part.Slide == null) continue;
+            count += part.Slide.Descendants<P.Shape>().Count(shape =>
+                shape.TextBody != null && shape.NonVisualShapeProperties?
+                    .ApplicationNonVisualDrawingProperties?.GetFirstChild<P.PlaceholderShape>() is
+                    P.PlaceholderShape placeholder &&
+                (placeholder.Index != null || placeholder.Size != null || placeholder.Orientation != null));
+        }
+        return count;
+    }
+
+    private static int CountUnmappedPowerPointTextColors(PresentationPart? presentation,
+        IReadOnlyList<P.SlideId> slideIds) {
+        if (presentation == null) return 0;
+        int count = 0;
+        foreach (P.SlideId slideId in slideIds) {
+            if (slideId.RelationshipId?.Value is not string id ||
+                presentation.GetPartById(id) is not SlidePart part || part.Slide == null) continue;
+            count += CountUnmappedPowerPointTextColors(part.Slide);
+            if (part.NotesSlidePart?.NotesSlide is P.NotesSlide notes)
+                count += CountUnmappedPowerPointTextColors(notes);
+        }
+        return count;
+    }
+
+    private static int CountUnmappedPowerPointTextColors(OpenXmlElement root) =>
+        root.Descendants<A.RunProperties>().Count(HasUnmappedPowerPointTextColor) +
+        root.Descendants<A.DefaultRunProperties>().Count(HasUnmappedPowerPointDefaultTextColor) +
+        root.Descendants<A.EndParagraphRunProperties>().Count(HasUnmappedPowerPointDefaultTextColor);
+
+    private static bool HasUnmappedPowerPointTextColor(OpenXmlElement properties) {
+        OpenXmlElement[] fills = properties.ChildElements.Where(IsFillElement).ToArray();
+        return fills.Length > 1 || fills.Length == 1 && !IsDirectRgbFill(fills[0]) ||
+            properties.Elements<A.Highlight>().Any(highlight =>
+                highlight.ChildElements.Count != 1 ||
+                highlight.GetFirstChild<A.RgbColorModelHex>() is not { ChildElements.Count: 0 });
+    }
+
+    private static bool HasUnmappedPowerPointDefaultTextColor(OpenXmlElement properties) =>
+        properties.ChildElements.Any(child => IsFillElement(child) || child is A.Highlight);
+
     private static int CountUnmappedPowerPointShapeAccessibility(PresentationPart? presentation,
         IReadOnlyList<P.SlideId> slideIds) {
         if (presentation == null) return 0;
@@ -258,6 +304,11 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
 
     private static int CountUnmappedOdpCustomShows(OdpPresentation source) =>
         source.Package.GetXml("content.xml").Descendants(OdfNamespaces.Presentation + "show").Count();
+
+    private static int CountUnmappedOdpSlideShowSettings(OdpPresentation source) =>
+        source.Package.GetXml("content.xml").Descendants(OdfNamespaces.Presentation + "settings")
+            .Count(settings => settings.HasAttributes || settings.Elements()
+                .Any(element => element.Name != OdfNamespaces.Presentation + "show"));
 
     private static (bool Override, bool Loss, OdfColor? Color, bool SuppressesMasterBackground) ReadOdpSlideBackground(
         OdpPresentation source, OdpSlide slide) {

@@ -36,6 +36,12 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             .PresentationProperties?.ShowProperties?.OuterXml;
     });
 
+    private static readonly Lazy<string?> DefaultPowerPointViewPropertiesXml = new(() => {
+        using PowerPointPresentation baseline = PowerPointPresentation.Create(new MemoryStream(),
+            new PowerPointCreateOptions());
+        return baseline.OpenXmlDocument.PresentationPart?.ViewPropertiesPart?.ViewProperties?.OuterXml;
+    });
+
     private static readonly Lazy<HashSet<string>> DefaultPowerPointMasterColorMaps = new(() => {
         using PowerPointPresentation baseline = PowerPointPresentation.Create(new MemoryStream(),
             new PowerPointCreateOptions());
@@ -89,6 +95,13 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             .ShowProperties?.OuterXml;
         if (sourceXml == null) return 0;
         return string.Equals(sourceXml, DefaultPowerPointShowPropertiesXml.Value, StringComparison.Ordinal)
+            ? 0 : 1;
+    }
+
+    private static int CountUnmappedPowerPointViewProperties(PresentationPart? presentation) {
+        string? sourceXml = presentation?.ViewPropertiesPart?.ViewProperties?.OuterXml;
+        if (sourceXml == null) return 0;
+        return string.Equals(sourceXml, DefaultPowerPointViewPropertiesXml.Value, StringComparison.Ordinal)
             ? 0 : 1;
     }
 
