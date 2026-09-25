@@ -782,36 +782,45 @@
     });
   }
 
+  var prismLoading = null;
+
+  function prismReady() {
+    return typeof Prism !== "undefined" && (typeof Prism.highlightAllUnder === "function" || typeof Prism.highlightAll === "function");
+  }
+
+  function loadScript(src) {
+    return new Promise(function (resolve, reject) {
+      var existing = document.querySelector('script[src="' + src + '"]');
+      if (existing && existing.getAttribute("data-loaded") === "true") { resolve(); return; }
+      var script = existing || document.createElement("script");
+      script.addEventListener("load", function () { script.setAttribute("data-loaded", "true"); resolve(); });
+      script.addEventListener("error", reject);
+      if (!existing) { script.src = src; document.head.appendChild(script); }
+    });
+  }
+
+  // Loads the highlighter only for pages that show code, so other pages skip it entirely.
+  function ensurePrism() {
+    if (prismReady()) return Promise.resolve();
+    if (!prismLoading) {
+      prismLoading = loadScript("/assets/prism/prism-core.min.js")
+        .then(function () { return loadScript("/assets/prism/prism-autoloader.min.js"); })
+        .then(function () {
+          Prism.manual = true;
+          Prism.plugins = Prism.plugins || {};
+          if (Prism.plugins.autoloader) Prism.plugins.autoloader.languages_path = PRISM_LANGUAGES_PATH;
+        });
+    }
+    return prismLoading;
+  }
+  window.OfficeIMOEnsurePrism = ensurePrism;
+
   function initPrism() {
-    var attempts = 0;
-
-    function configurePrism() {
-      if (typeof Prism === "undefined") return false;
-      Prism.manual = true;
-      Prism.plugins = Prism.plugins || {};
-      if (Prism.plugins.autoloader && Prism.plugins.autoloader.languages_path !== PRISM_LANGUAGES_PATH) {
-        Prism.plugins.autoloader.languages_path = PRISM_LANGUAGES_PATH;
-      }
-      return typeof Prism.highlightAll === "function" || typeof Prism.highlightAllUnder === "function";
-    }
-
-    function highlight() {
-      attempts += 1;
-      if (!configurePrism()) {
-        if (attempts < 10) {
-          setTimeout(highlight, 60);
-        }
-        return;
-      }
-
-      if (typeof Prism.highlightAllUnder === "function") {
-        Prism.highlightAllUnder(document);
-      } else if (typeof Prism.highlightAll === "function") {
-        Prism.highlightAll();
-      }
-    }
-
-    highlight();
+    if (!document.querySelector('code[class*="language-"], pre[class*="language-"]')) return;
+    ensurePrism().then(function () {
+      if (typeof Prism.highlightAllUnder === "function") Prism.highlightAllUnder(document);
+      else Prism.highlightAll();
+    }).catch(function () { /* Code stays readable without highlighting. */ });
   }
 
   function init() {

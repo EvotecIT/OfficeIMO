@@ -353,8 +353,6 @@
         ],
         "Js": [
           "/js/site.js",
-          "/assets/prism/prism-core.min.js",
-          "/assets/prism/prism-autoloader.min.js",
           "/js/source-viewer.js"
         ]
       },
