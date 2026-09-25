@@ -668,11 +668,13 @@ internal sealed class HtmlInlineLayout {
         IEnumerable<HtmlCssRunningStringAssignment>? runningStringAssignments = null,
         IEnumerable<HtmlInlineBreakProgress>? breakProgress = null,
         bool supportsContinuationReflow = false,
-        double? normalFlowHeight = null) {
+        double? normalFlowHeight = null,
+        IEnumerable<double>? lineBreakOffsets = null) {
         Visuals = new List<HtmlRenderVisual>(visuals);
         Height = height;
         NormalFlowHeight = normalFlowHeight ?? height;
         BreakOffsets = new List<double>(breakOffsets ?? Array.Empty<double>()).AsReadOnly();
+        LineBreakOffsets = new List<double>(lineBreakOffsets ?? BreakOffsets).AsReadOnly();
         RunningStringAssignments = new List<HtmlCssRunningStringAssignment>(
             runningStringAssignments ?? Array.Empty<HtmlCssRunningStringAssignment>()).AsReadOnly();
         BreakProgress = new List<HtmlInlineBreakProgress>(breakProgress ?? Array.Empty<HtmlInlineBreakProgress>()).AsReadOnly();
@@ -682,7 +684,10 @@ internal sealed class HtmlInlineLayout {
     internal IReadOnlyList<HtmlRenderVisual> Visuals { get; }
     internal double Height { get; }
     internal double NormalFlowHeight { get; }
+    /// <summary>Page-break candidates; may exclude line ends inside a floated box.</summary>
     internal IReadOnlyList<double> BreakOffsets { get; }
+    /// <summary>All line ends used to count widows and orphans, including lines beside floats.</summary>
+    internal IReadOnlyList<double> LineBreakOffsets { get; }
     internal IReadOnlyList<HtmlCssRunningStringAssignment> RunningStringAssignments { get; }
     internal IReadOnlyList<HtmlInlineBreakProgress> BreakProgress { get; }
     internal bool SupportsContinuationReflow { get; }

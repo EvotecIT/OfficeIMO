@@ -94,7 +94,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             body.BreakOffsets,
             body.RunningStringAssignments,
             body.BreakProgress,
-            body.SupportsContinuationReflow);
+            body.SupportsContinuationReflow,
+            lineBreakOffsets: body.LineBreakOffsets);
     }
 
     private static HtmlInlineRun CreateListMarkerRun(HtmlListMarker marker, IElement? owner) =>

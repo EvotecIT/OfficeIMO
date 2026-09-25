@@ -466,6 +466,55 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlFloat_ThatFitsNextPageDoesNotSplitAtAnInlineLineBreak() {
+        const string html = "<body style='margin:0'><div style='overflow:auto'>"
+            + "<p style='height:40px;margin:0;font-size:10px;line-height:10px'>Prelude</p>"
+            + "<p style='margin:0;font-size:10px;line-height:10px'>"
+            + "<span id='paged-float' style='float:left;width:30px;height:30px;background:red'></span>"
+            + "One two three four five six seven eight nine ten eleven twelve.</p>"
+            + "</div></body>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(100D / HtmlRenderOptions.CssPixelsPerInch, 60D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+
+        Assert.True(rendered.Pages.Count >= 2);
+        Assert.DoesNotContain(EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderShape>(), shape => shape.Source == "span#paged-float");
+        Assert.Contains(EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderShape>(),
+            shape => shape.Source == "span#paged-float" && shape.Height >= 29.99D);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment);
+    }
+
+    [Fact]
+    public void HtmlFloat_ProtectedBreaksStillCountTowardParagraphOrphans() {
+        const string html = "<body style='margin:0'><p style='width:100px;margin:0;font-size:10px;line-height:10px'>"
+            + "<span style='float:left;width:30px;height:30px;background:red'></span>"
+            + "First<br>Second<br>Third<br>Fourth<br>Fifth<br>Sixth<br>Seventh<br>Eighth"
+            + "</p></body>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(100D / HtmlRenderOptions.CssPixelsPerInch, 35D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+
+        Assert.True(rendered.Pages.Count >= 2);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment
+            || diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
+        string text = string.Concat(rendered.Pages.SelectMany(page => EnumerateRenderVisuals(page.Scene))
+            .OfType<HtmlRenderText>().Select(visual => visual.Text));
+        Assert.Contains("Fourth", text, StringComparison.Ordinal);
+        Assert.Contains("Eighth", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlFloat_InvalidValuesUseCatalogedDiagnostics() {
         const string html = "<p style='margin:0'><span id='invalid-float' style='float:up;clear:around'>Text</span></p>";
 

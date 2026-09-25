@@ -482,7 +482,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             contentVisuals.AddRange(inline.Visuals);
             contentHeight = inline.Height;
             contentBreakOffsets.AddRange(inline.BreakOffsets);
-            lineBreakOffsets.AddRange(inline.BreakOffsets);
+            lineBreakOffsets.AddRange(inline.LineBreakOffsets);
             runningStringAssignments.AddRange(inline.RunningStringAssignments);
         }
 
@@ -725,7 +725,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             false,
             HtmlRenderStyleResolver.DescribeSource(sourceElement),
             inline.BreakOffsets,
-            inline.BreakOffsets,
+            inline.LineBreakOffsets,
             style.Orphans,
             style.Widows,
             pageName: style.PageName,

@@ -636,6 +636,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         double height = Math.Max(flowY, minimumHeight);
         if (height > 0D) breakOffsets.Add(height);
+        double[] lineBreakOffsets = breakOffsets.ToArray();
+        if (floatPlacements != null && floatPlacements.Count > 0) {
+            // A line may end while a floated box still occupies the next line band.
+            // That line end is not a safe page break for the float's paint.
+            const double breakTolerance = 0.0001D;
+            bool CrossesFloat(double offset) => floatPlacements.Any(placement =>
+                offset > placement.Y + breakTolerance && offset < placement.Bottom - breakTolerance);
+            breakOffsets.RemoveWhere(CrossesFloat);
+            breakProgress.RemoveAll(progress => CrossesFloat(progress.Offset));
+        }
         return new HtmlInlineLayout(
             ComposeInlinePositionedVisuals(visuals, ownedVisuals, inlineBounds, formattingContainer, isInlineContinuation),
             height,
@@ -643,7 +653,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             runningStringAssignments.OrderBy(assignment => assignment.OrderOffset),
             breakProgress,
             supportsContinuationReflow,
-            flowY);
+            flowY,
+            lineBreakOffsets);
     }
 
     private HtmlRenderVisual CreateLeaderVisual(
