@@ -141,6 +141,42 @@ public sealed class WordOdtFieldConversionTests {
     }
 
     [Fact]
+    public void FieldLocalNamespaceDeclarationDoesNotMakeBasicFieldUnsupported() {
+        OdtDocument source = OdtDocument.Create();
+        OdtField field = source.AddParagraph().AddField(OdtFieldKind.Date, "Today");
+        field.Element.Add(new System.Xml.Linq.XAttribute(System.Xml.Linq.XNamespace.Xmlns + "t",
+            "urn:oasis:names:tc:opendocument:xmlns:text:1.0"));
+        source.Package.MarkXmlDirty("content.xml");
+
+        Assert.True(field.IsBasic);
+        using WordDocument word = source.ToWordDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }).Value;
+        Assert.Equal("Today", Assert.Single(word.InspectFields()).ResultText);
+    }
+
+    [Fact]
+    public void FlattenedUnsupportedFieldRetainsEffectiveParagraphFormatting() {
+        OdtDocument source = OdtDocument.Create();
+        OdtParagraph paragraph = source.AddParagraph();
+        paragraph.Bold = true;
+        paragraph.Color = OdfColor.Parse("#336699");
+        paragraph.AddField(OdtFieldKind.PageNumber, "7");
+        var text = (System.Xml.Linq.XNamespace)"urn:oasis:names:tc:opendocument:xmlns:text:1.0";
+        source.Package.GetXml("content.xml").Descendants(text + "page-number").Single()
+            .SetAttributeValue(text + "page-adjust", "1");
+        source.Package.MarkXmlDirty("content.xml");
+
+        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        using WordDocument word = conversion.Value;
+        Run run = word.OpenXmlDocument.MainDocumentPart!.Document!.Body!.Descendants<Run>()
+            .Single(item => item.InnerText == "7");
+        Assert.NotNull(run.RunProperties?.Bold);
+        Assert.Equal("336699", run.RunProperties?.Color?.Val?.Value);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "fields" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+    }
+
+    [Fact]
     public void WordFieldResultTabAndBreakRetainVisibleTextWithLoss() {
         using WordDocument source = WordDocument.Create();
         WordParagraph paragraph = source.AddParagraph();

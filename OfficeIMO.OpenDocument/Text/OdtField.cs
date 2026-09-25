@@ -61,7 +61,8 @@ public sealed class OdtField {
 
     internal static bool IsBasicElement(XElement element) =>
         TryGetKind(element.Name, out OdtFieldKind kind) && !element.HasElements &&
-        element.Attributes().All(attribute => attribute.Name == OdfNamespaces.Text + "fixed" &&
+        element.Attributes().All(attribute => attribute.IsNamespaceDeclaration ||
+            attribute.Name == OdfNamespaces.Text + "fixed" &&
             kind != OdtFieldKind.PageCount &&
             OdfBoolean.TryParseXml(attribute.Value, out _));
 

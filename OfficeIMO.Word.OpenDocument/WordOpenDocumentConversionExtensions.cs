@@ -393,7 +393,17 @@ public static partial class WordOpenDocumentConversionExtensions {
                         if (transforms[nodeIndex] is OdfTextTransform.Lowercase or OdfTextTransform.Capitalize)
                             approximatedRuns++;
                     } else {
-                        target.AddText(displayText);
+                        WordParagraph result = target.AddText(displayText);
+                        if (leaf.Span != null) {
+                            unsupportedMeasurements += ApplyOdtSpanFormatting(leaf.Span, source, result,
+                                ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
+                        } else if (leaf.StyleLink != null) {
+                            unsupportedMeasurements += ApplyOdtHyperlinkFormatting(leaf.StyleLink, source, result,
+                                ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
+                        } else {
+                            unsupportedMeasurements += ApplyOdtParagraphTextFormatting(source, result,
+                                ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
+                        }
                         unsupportedFields++;
                         handledUnsupportedFieldElements.Add(field.Element);
                     }
