@@ -84,6 +84,65 @@ public sealed class MarkdownHtmlToMarkdownTests {
     }
 
     [Fact]
+    public void HtmlToMarkdown_ConvertsSupportedAriaTableToReparseableMarkdownTable() {
+        const string html = "<main><div role='table' aria-label='Water levels'>"
+            + "<div role='rowgroup'>"
+            + "<div role='row'><div role='columnheader'>Term</div><div role='columnheader'>Definition</div></div>"
+            + "<div role='row'><div role='cell'>Safely managed</div><div role='cell'><p>Available when needed</p></div></div>"
+            + "<div role='row'><div role='cell'>Basic</div><div role='cell'>At most 30 minutes</div></div>"
+            + "</div></div></main>";
+        HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
+
+        HtmlToMarkdownResult result = source.ToMarkdownDocumentResult();
+        TableBlock table = Assert.Single(result.Value.Blocks.OfType<TableBlock>());
+        Assert.Equal(new[] { "Term", "Definition" }, table.Headers);
+        Assert.Equal(2, table.Rows.Count);
+        Assert.Equal("Safely managed", table.Rows[0][0]);
+        Assert.Equal("Available when needed", table.Rows[0][1]);
+        Assert.Equal("Basic", table.Rows[1][0]);
+        Assert.False(result.HasLoss);
+
+        MarkdownDoc reopened = MarkdownReader.Parse(result.Value.ToMarkdown());
+        TableBlock reopenedTable = Assert.Single(reopened.Blocks.OfType<TableBlock>());
+        Assert.Equal(table.Headers, reopenedTable.Headers);
+        Assert.Equal(table.Rows, reopenedTable.Rows);
+        Assert.Equal(result.Value.ToMarkdown(), source.ToMarkdown());
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_ReportsUnsupportedAriaTableInsteadOfClaimingNativeStructure() {
+        const string html = "<div role='table'><p>Unstructured</p>"
+            + "<div role='row'><div role='cell'>Value</div></div></div>";
+
+        HtmlToMarkdownResult result = HtmlConversionDocument.Parse(html).ToMarkdownDocumentResult();
+
+        Assert.Empty(result.Value.Blocks.OfType<TableBlock>());
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Component == "OfficeIMO.Markdown.Html"
+            && diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
+            && diagnostic.LossKind == OfficeConversionLossKind.Approximation
+            && diagnostic.Source == "div[role=table]");
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_PreservesLinksAndImagesHostedByAriaCells() {
+        const string html = "<div role='table'>"
+            + "<div role='row'><div role='columnheader'>Link</div><div role='columnheader'>Picture</div></div>"
+            + "<div role='row'><a role='cell' href='https://example.com/docs'>Docs</a>"
+            + "<img role='cell' src='https://example.com/logo.png' alt='Logo'></div>"
+            + "</div>";
+
+        HtmlToMarkdownResult result = HtmlConversionDocument.Parse(html).ToMarkdownDocumentResult();
+        TableBlock table = Assert.Single(result.Value.Blocks.OfType<TableBlock>());
+
+        Assert.Contains("[Docs](https://example.com/docs)", table.Rows[0][0], StringComparison.Ordinal);
+        Assert.Contains("![Logo](https://example.com/logo.png)", table.Rows[0][1], StringComparison.Ordinal);
+        Assert.False(result.HasLoss);
+        TableBlock reopened = Assert.Single(MarkdownReader.Parse(result.Value.ToMarkdown()).Blocks.OfType<TableBlock>());
+        Assert.Equal(table.Rows[0], reopened.Rows[0]);
+    }
+
+    [Fact]
     public void HtmlToMarkdown_RecoversLazyLoadedInlineImageSources() {
         const string html = """
 <p>Logo <img src="data:image/png;base64,AAAA" data-src="/img/logo.png" alt="Logo" /></p>

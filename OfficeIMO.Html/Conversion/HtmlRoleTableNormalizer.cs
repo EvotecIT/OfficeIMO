@@ -10,7 +10,8 @@ internal static class HtmlRoleTableNormalizer {
         Action<IElement, IElement>? registerNative = null,
         Action<IElement>? materializeCss = null,
         ISet<IElement>? materializedElements = null,
-        Action<IElement>? onUnsupported = null) {
+        Action<IElement>? onUnsupported = null,
+        bool retainOriginalCellElement = true) {
         // A conversion gets its own DOM clone. Work from the innermost table out so a
         // nested table is already native when its containing cell is moved below.
         IElement[] tables = document.QuerySelectorAll("[role]")
@@ -48,7 +49,7 @@ internal static class HtmlRoleTableNormalizer {
                     CopyRoleTableAttributes(child, body);
                     registerNative?.Invoke(child, body);
                     foreach (IElement row in child.Children) {
-                        body.AppendChild(CreateNativeRoleRow(document, row, registerNative));
+                        body.AppendChild(CreateNativeRoleRow(document, row, registerNative, retainOriginalCellElement));
                     }
                     nativeTable.AppendChild(body);
                 } else {
@@ -57,7 +58,7 @@ internal static class HtmlRoleTableNormalizer {
                         registerNative?.Invoke(table, implicitBody);
                         nativeTable.AppendChild(implicitBody);
                     }
-                    implicitBody.AppendChild(CreateNativeRoleRow(document, child, registerNative));
+                    implicitBody.AppendChild(CreateNativeRoleRow(document, child, registerNative, retainOriginalCellElement));
                 }
             }
             table.Parent.ReplaceChild(nativeTable, table);
@@ -112,7 +113,8 @@ internal static class HtmlRoleTableNormalizer {
         element.LocalName is "table" or "thead" or "tbody" or "tfoot" or "tr" or "td" or "th";
 
     private static IElement CreateNativeRoleRow(
-        IHtmlDocument document, IElement row, Action<IElement, IElement>? registerNative) {
+        IHtmlDocument document, IElement row, Action<IElement, IElement>? registerNative,
+        bool retainOriginalCellElement) {
         IElement nativeRow = document.CreateElement("tr");
         CopyRoleTableAttributes(row, nativeRow);
         registerNative?.Invoke(row, nativeRow);
@@ -122,15 +124,24 @@ internal static class HtmlRoleTableNormalizer {
             IElement nativeCell = document.CreateElement(isHeader ? "th" : "td");
             CopyRoleTableAttributes(cell, nativeCell);
             registerNative?.Invoke(cell, nativeCell);
-            nativeCell.RemoveAttribute("id");
-            nativeCell.RemoveAttribute("name");
+            bool keepSourceCell = retainOriginalCellElement || !IsNeutralRoleContainer(cell);
+            if (keepSourceCell) {
+                // The nested source cell owns its anchors on adapters that
+                // still need that element for styling and inline content.
+                nativeCell.RemoveAttribute("id");
+                nativeCell.RemoveAttribute("name");
+            }
             nativeCell.RemoveAttribute("role");
             foreach (string span in new[] { "rowspan", "colspan" }) {
                 if (!nativeCell.HasAttribute(span) && cell.HasAttribute("aria-" + span)) {
                     nativeCell.SetAttribute(span, cell.GetAttribute("aria-" + span));
                 }
             }
-            nativeCell.AppendChild(cell);
+            if (keepSourceCell) {
+                nativeCell.AppendChild(cell);
+            } else {
+                foreach (INode child in cell.ChildNodes.ToArray()) nativeCell.AppendChild(child);
+            }
             nativeRow.AppendChild(nativeCell);
         }
         return nativeRow;

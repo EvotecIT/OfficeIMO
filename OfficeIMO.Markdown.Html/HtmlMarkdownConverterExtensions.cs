@@ -69,7 +69,7 @@ public static class HtmlMarkdownConverterExtensions {
                 operation,
                 document.SourceHtml.Length);
         }
-        return new HtmlToMarkdownResult(value, document.Diagnostics);
+        return new HtmlToMarkdownResult(value, document.Diagnostics.Concat(converter.Diagnostics));
     }
 
     private static bool CanProjectSourceReadOnly(
