@@ -8,8 +8,8 @@ internal sealed partial class PdfWorkspace {
         destination = OfficeIMO.Internal.OfficeStorageIdentity.GetLocalPath(destination)
             ?? throw new IOException("Choose a folder on this computer to save the images.");
         Directory.CreateDirectory(destination);
-        string stagingDirectory = System.IO.Path.Combine(destination, ".officeimo-image-export-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(stagingDirectory);
+        string stagingDirectory = OfficeIMO.Core.Internal.OfficeTemporaryDirectory.Create(
+            ".officeimo-image-export-", destination);
         var staged = new List<(string Path, int PageNumber, string Extension)>();
         try {
             // The snapshot owns one immutable PDF buffer. Visit writes each extracted image to
@@ -20,7 +20,8 @@ internal sealed partial class PdfWorkspace {
                     cancellationToken.ThrowIfCancellationRequested();
                     int index = staged.Count + 1;
                     string path = System.IO.Path.Combine(stagingDirectory, index.ToString(CultureInfo.InvariantCulture) + ".part");
-                    using (var stream = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+                    using (var stream = OfficeIMO.Core.Internal.OfficeTemporaryFile.CreateAtPath(
+                        path, 64 * 1024, FileOptions.SequentialScan))
                         image.CopyTo(stream, cancellationToken);
                     staged.Add((path, image.PageNumber, image.FileExtension ?? ".bin"));
                 }, cancellationToken);
@@ -51,6 +52,7 @@ internal sealed partial class PdfWorkspace {
                         await source.CopyToAsync(stream, 64 * 1024, token).ConfigureAwait(false);
                     }, cancellationToken,
                     conflictPolicy: OfficeIMO.Core.Internal.OfficeFileCommit.ConflictPolicy.FailIfExists).ConfigureAwait(false);
+                File.Delete(stagedPath);
             }
             return staged.Count;
         } finally {

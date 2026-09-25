@@ -56,6 +56,39 @@ public sealed partial class PdfWorkspaceTests {
     }
 
     [Fact]
+    public async Task ImageExportStagesPrivatelyOnUnix() {
+        if (OperatingSystem.IsWindows()) return;
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-private-image-export-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string source = Path.Combine(root, "image.pdf");
+        string output = Path.Combine(root, "images");
+        PdfDocument document = PdfDocument.Create(compose => compose.Page(page => page.Size(600D, 800D)));
+        document.Images.Add(new PdfPageRegion(1, 50D, 60D, 40D, 20D), TinyPng).Document.Save(source);
+        try {
+            using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None);
+            var acquired = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            Task<bool> blocker = workspace.RunNonDetachableCpuWorkAsync(() => {
+                acquired.SetResult();
+                release.Task.GetAwaiter().GetResult();
+                return true;
+            }, CancellationToken.None);
+            await acquired.Task;
+            Task<int> export = workspace.ExportDocumentAsync(PdfExportKind.Images, output, CancellationToken.None);
+            try {
+                string staging = Assert.Single(Directory.GetDirectories(output, ".officeimo-image-export-*"));
+                Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute,
+                    File.GetUnixFileMode(staging));
+            } finally {
+                release.TrySetResult();
+                await blocker;
+                await export;
+            }
+            Assert.Empty(Directory.GetDirectories(output, ".officeimo-image-export-*"));
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
     public async Task ExistingTextSelectionSupportsReplaceMoveDeleteAndDocumentWideReplace() {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-existing-text-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
