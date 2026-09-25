@@ -1,6 +1,8 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Xml.Linq;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.OpenDocument;
 using OfficeIMO.OpenDocument;
@@ -30,6 +32,30 @@ public sealed class ExcelOdsDataPilotConversionTests {
         Assert.Contains(conversion.Report.ForFeature("pivot-tables"),
             mapping => mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
         Assert.True(reopened.Validate().IsValid);
+    }
+
+    [Fact]
+    public void PivotAndNamedRangeKeepOdfSpreadsheetChildOrder() {
+        using ExcelDocument source = ExcelDocument.Create();
+        ExcelSheet sheet = source.AddWorksheet("Data");
+        sheet.CellValue(1, 1, "Region");
+        sheet.CellValue(1, 2, "Sales");
+        sheet.CellValue(2, 1, "North");
+        sheet.CellValue(2, 2, 10d);
+        sheet.AddPivotTable("A1:B2", "D1", name: "SalesPivot",
+            rowFields: new[] { "Region" },
+            dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
+        source.SetNamedRange("SalesValues", "'Data'!$B$2:$B$2", save: false);
+
+        OdsDocument converted = source.ToOpenDocumentResult().Value;
+        XElement spreadsheet = converted.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Office + "spreadsheet").Single();
+        XName[] children = spreadsheet.Elements().Select(child => child.Name).ToArray();
+        Assert.True(Array.IndexOf(children, OdfNamespaces.Table + "named-expressions")
+            < Array.IndexOf(children, OdfNamespaces.Table + "data-pilot-tables"));
+        Assert.Single(converted.NamedRanges);
+        Assert.Single(converted.DataPilotTables);
+        Assert.True(converted.Validate().IsValid);
     }
 
     [Fact]
@@ -110,5 +136,98 @@ public sealed class ExcelOdsDataPilotConversionTests {
             new ExcelOpenDocumentConversionOptions {
                 LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
             }));
+    }
+
+    [Fact]
+    public void EmptyRepeatedTailOutsidePivotDoesNotDiscardItsConvertedRange() {
+        OdsDocument source = OdsDocument.Create();
+        OdsSheet sheet = source.AddSheet("Data");
+        sheet.Cell(0, 0).SetString("Region");
+        sheet.Cell(0, 1).SetString("Sales");
+        sheet.Cell(1, 0).SetString("North");
+        sheet.Cell(1, 1).SetNumber(10);
+        OdsDataPilotTable pivot = source.AddDataPilotTable("SalesPivot", "Data.A1:Data.B2", "Data.D1:Data.E3");
+        pivot.AddField("Region", "row");
+        pivot.AddField("Sales", "data", "sum");
+        XElement table = source.Package.GetXml("content.xml").Descendants(OdfNamespaces.Table + "table").Single();
+        table.Add(new XElement(OdfNamespaces.Table + "table-row",
+            new XAttribute(OdfNamespaces.Table + "number-rows-repeated", 1_100_000),
+            new XElement(OdfNamespaces.Table + "table-cell")));
+        source.MarkPartDirty("content.xml");
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        using ExcelDocument result = conversion.Value;
+        Assert.Single(result.Sheets.Single().GetPivotTables());
+        Assert.Contains(conversion.Report.ForFeature("expansion-limits"),
+            mapping => mapping.Status == OdfConversionMappingStatus.Skipped);
+    }
+
+    [Fact]
+    public void PivotWithClippedSourceCellRemainsExplicitLoss() {
+        OdsDocument source = OdsDocument.Create();
+        OdsSheet sheet = source.AddSheet("Data");
+        sheet.Cell(0, 0).SetString("Region");
+        sheet.Cell(0, 1).SetString("Sales");
+        sheet.Cell(1, 0).SetString("North");
+        sheet.Cell(1, 1).SetNumber(10);
+        OdsDataPilotTable pivot = source.AddDataPilotTable("SalesPivot", "Data.A1:Data.B2", "Data.D1:Data.E3");
+        pivot.AddField("Region", "row");
+        pivot.AddField("Sales", "data", "sum");
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult(
+            new ExcelOpenDocumentConversionOptions { MaximumExpandedCells = 3 });
+        using ExcelDocument result = conversion.Value;
+        Assert.Empty(result.Sheets.Single().GetPivotTables());
+        Assert.Contains(conversion.Report.ForFeature("pivot-tables"),
+            mapping => mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+    }
+
+    [Fact]
+    public void ExcelValuesAxisSentinelRemainsExplicitLoss() {
+        using ExcelDocument source = ExcelDocument.Create();
+        ExcelSheet sheet = source.AddWorksheet("Data");
+        sheet.CellValue(1, 1, "Region");
+        sheet.CellValue(1, 2, "Sales");
+        sheet.CellValue(2, 1, "North");
+        sheet.CellValue(2, 2, 10d);
+        sheet.AddPivotTable("A1:B2", "D1", name: "SalesPivot",
+            rowFields: new[] { "Region" },
+            dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
+        byte[] bytes = source.ToBytes();
+        using (var stream = new MemoryStream(bytes)) {
+            using (SpreadsheetDocument package = SpreadsheetDocument.Open(stream, true)) {
+                var definition = package.WorkbookPart!.WorksheetParts.Single().PivotTableParts.Single().PivotTableDefinition!;
+                definition.RowFields!.AppendChild(new DocumentFormat.OpenXml.Spreadsheet.Field { Index = -2 });
+                definition.RowFields.Count = 2;
+                definition.Save();
+            }
+            bytes = stream.ToArray();
+        }
+        using ExcelDocument imported = ExcelDocument.Load(new MemoryStream(bytes));
+        Assert.Contains("Field-1", imported.Sheets.Single().GetPivotTables().Single().RowFields);
+        Assert.True(imported.Sheets.Single().GetPivotTables().Single().HasValuesAxisField);
+
+        OdfConversionResult<OdsDocument> conversion = imported.ToOpenDocumentResult();
+        Assert.Empty(conversion.Value.DataPilotTables);
+        Assert.Contains(conversion.Report.ForFeature("pivot-tables"),
+            mapping => mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+    }
+
+    [Fact]
+    public void RealHeaderNamedLikeValuesSentinelStillConverts() {
+        using ExcelDocument source = ExcelDocument.Create();
+        ExcelSheet sheet = source.AddWorksheet("Data");
+        sheet.CellValue(1, 1, "Field-1");
+        sheet.CellValue(1, 2, "Sales");
+        sheet.CellValue(2, 1, "North");
+        sheet.CellValue(2, 2, 10d);
+        sheet.AddPivotTable("A1:B2", "D1", name: "SalesPivot",
+            rowFields: new[] { "Field-1" },
+            dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
+        Assert.False(sheet.GetPivotTables().Single().HasValuesAxisField);
+
+        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+        OdsDataPilotTable pivot = Assert.Single(conversion.Value.DataPilotTables);
+        Assert.Equal("Field-1", pivot.Fields[0].SourceFieldName);
     }
 }

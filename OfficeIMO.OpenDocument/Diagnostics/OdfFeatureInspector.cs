@@ -48,7 +48,13 @@ internal static class OdfFeatureInspector {
             AddElementFinding(document, OdfNamespaces.Table + "content-validation", "spreadsheet-validations", OdfFeatureSupport.Editable, entry.Name, findings);
             AddElementFinding(document, OdfNamespaces.Table + "database-range", "spreadsheet-database-ranges", OdfFeatureSupport.Inspected, entry.Name, findings);
             AddElementFinding(document, OdfNamespaces.Table + "filter", "spreadsheet-filters", OdfFeatureSupport.Inspected, entry.Name, findings);
-            AddElementFinding(document, OdfNamespaces.Table + "data-pilot-table", "spreadsheet-data-pilot-tables", OdfFeatureSupport.Inspected, entry.Name, findings);
+            XElement[] dataPilots = document.Descendants(OdfNamespaces.Table + "data-pilot-table").ToArray();
+            int editableDataPilots = dataPilots.Count(OdsDataPilotTable.IsEditableElement);
+            if (editableDataPilots > 0) findings.Add(new OdfFeatureFinding(
+                "spreadsheet-data-pilot-tables", OdfFeatureSupport.Editable, entry.Name, editableDataPilots));
+            if (dataPilots.Length > editableDataPilots) findings.Add(new OdfFeatureFinding(
+                "spreadsheet-data-pilot-tables", OdfFeatureSupport.Inspected, entry.Name,
+                dataPilots.Length - editableDataPilots));
             AddElementFinding(document, OdfNamespaces.Table + "named-range", "spreadsheet-named-ranges", OdfFeatureSupport.Editable, entry.Name, findings);
             AddElementFinding(document, OdfNamespaces.Table + "named-expression", "spreadsheet-named-expressions", OdfFeatureSupport.Inspected, entry.Name, findings);
             AddElementFinding(document, OdfNamespaces.Table + "scenario", "spreadsheet-scenarios", OdfFeatureSupport.Preserved, entry.Name, findings);

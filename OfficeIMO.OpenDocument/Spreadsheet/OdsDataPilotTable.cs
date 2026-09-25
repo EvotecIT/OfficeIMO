@@ -27,18 +27,31 @@ public sealed class OdsDataPilotTable {
         .Select(element => new OdsDataPilotField(element)).ToList();
 
     /// <summary>Whether imported grouping, field references, member selection, or nonlocal sources exceed the simple conversion subset.</summary>
-    public bool HasAdvancedSettings {
-        get {
-            XElement? source = Element.Element(OdfNamespaces.Table + "source-cell-range");
-            return source == null || source.HasElements
-                || HasOtherAttributes(source, OdfNamespaces.Table + "cell-range-address")
-                || HasOtherAttributes(Element, OdfNamespaces.Table + "name",
-                    OdfNamespaces.Table + "target-range-address", OdfNamespaces.Table + "show-filter-button",
-                    OdfNamespaces.Table + "buttons")
-                || Element.Elements().Any(child => child.Name != OdfNamespaces.Table + "source-cell-range"
-                    && child.Name != OdfNamespaces.Table + "data-pilot-field")
-                || Element.Elements(OdfNamespaces.Table + "data-pilot-field").Any(IsAdvancedField);
+    public bool HasAdvancedSettings => HasAdvancedSettingsIn(Element);
+
+    internal static bool IsEditableElement(XElement element) {
+        if (HasAdvancedSettingsIn(element) || string.IsNullOrWhiteSpace((string?)element.Attribute(OdfNamespaces.Table + "name"))) return false;
+        try {
+            ParseLocalRange((string?)element.Element(OdfNamespaces.Table + "source-cell-range")?
+                .Attribute(OdfNamespaces.Table + "cell-range-address") ?? string.Empty, nameof(SourceRangeAddress));
+            ParseLocalRange((string?)element.Attribute(OdfNamespaces.Table + "target-range-address")
+                ?? string.Empty, nameof(TargetRangeAddress));
+            return true;
+        } catch (ArgumentException) {
+            return false;
         }
+    }
+
+    private static bool HasAdvancedSettingsIn(XElement element) {
+        XElement? source = element.Element(OdfNamespaces.Table + "source-cell-range");
+        return source == null || source.HasElements
+            || HasOtherAttributes(source, OdfNamespaces.Table + "cell-range-address")
+            || HasOtherAttributes(element, OdfNamespaces.Table + "name",
+                OdfNamespaces.Table + "target-range-address", OdfNamespaces.Table + "show-filter-button",
+                OdfNamespaces.Table + "buttons")
+            || element.Elements().Any(child => child.Name != OdfNamespaces.Table + "source-cell-range"
+                && child.Name != OdfNamespaces.Table + "data-pilot-field")
+            || element.Elements(OdfNamespaces.Table + "data-pilot-field").Any(IsAdvancedField);
     }
 
     private static bool IsAdvancedField(XElement element) {

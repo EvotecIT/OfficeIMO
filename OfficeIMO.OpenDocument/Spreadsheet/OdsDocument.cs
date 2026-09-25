@@ -151,7 +151,9 @@ public sealed partial class OdsDocument : OdfDocument {
         XElement? element = SpreadsheetBody.Element(OdfNamespaces.Table + "named-expressions");
         if (element == null && create) {
             element = new XElement(OdfNamespaces.Table + "named-expressions");
-            SpreadsheetBody.Add(element);
+            XElement? dataPilots = SpreadsheetBody.Element(OdfNamespaces.Table + "data-pilot-tables");
+            if (dataPilots == null) SpreadsheetBody.Add(element);
+            else dataPilots.AddBeforeSelf(element);
             MarkPartDirty("content.xml");
         }
         return element;

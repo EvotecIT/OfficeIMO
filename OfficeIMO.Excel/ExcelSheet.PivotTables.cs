@@ -88,7 +88,9 @@ namespace OfficeIMO.Excel {
                         refreshOnOpen: cacheDef?.RefreshOnLoad?.Value,
                         saveSourceData: cacheDef?.SaveData?.Value,
                         preserveFormatting: def.PreserveFormatting?.Value,
-                        enableDrill: def.EnableDrill?.Value));
+                        enableDrill: def.EnableDrill?.Value,
+                        hasValuesAxisField: def.RowFields?.Elements<Field>().Any(field => field.Index?.Value == -2) == true
+                            || def.ColumnFields?.Elements<Field>().Any(field => field.Index?.Value == -2) == true));
                 }
 
                 return list;

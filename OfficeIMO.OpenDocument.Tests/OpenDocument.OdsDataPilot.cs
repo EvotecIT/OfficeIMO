@@ -41,6 +41,10 @@ public sealed class OpenDocumentOdsDataPilotTests {
         pivot.AddField("Region", "row");
         pivot.AddField("Sales", "data", "sum");
 
+        Assert.Contains(document.InspectFeatures().Findings,
+            finding => finding.Name == "spreadsheet-data-pilot-tables"
+                && finding.Support == OdfFeatureSupport.Editable && finding.Count == 1);
+
         OdsDocument reopened = OdsDocument.Load(new MemoryStream(document.ToBytes()));
         OdsDataPilotTable actual = Assert.Single(reopened.DataPilotTables);
         Assert.Equal("SalesPivot", actual.Name);
@@ -48,6 +52,12 @@ public sealed class OpenDocumentOdsDataPilotTests {
         Assert.Equal("Data.D1:Data.E3", actual.TargetRangeAddress);
         Assert.Equal("sum", actual.Fields[1].Function);
         Assert.True(reopened.Validate().IsValid);
+
+        actual.Element.Add(new System.Xml.Linq.XElement(OdfNamespaces.Table + "data-pilot-source"));
+        reopened.MarkPartDirty("content.xml");
+        Assert.Contains(reopened.InspectFeatures().Findings,
+            finding => finding.Name == "spreadsheet-data-pilot-tables"
+                && finding.Support == OdfFeatureSupport.Inspected && finding.Count == 1);
     }
 
     [Fact]

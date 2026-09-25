@@ -94,6 +94,7 @@ public class OpenDocumentSchemaArtifactTests {
                     "SalesPivot", "PivotData.A1:PivotData.B2", "PivotData.D1:PivotData.E3");
                 pivot.AddField("Region", "row");
                 pivot.AddField("Sales", "data", "sum");
+                pivotDocument.AddNamedRange("SalesValues", "PivotData.$B$2:.$B$2");
                 pivotDocument.Save(Path.Combine(output, "schema-pivot-1.4.ods"));
                 pivotDocument.Save(Path.Combine(output, "schema-pivot-1.3.ods"),
                     new OdfSaveOptions { CompatibilityProfile = OdfCompatibilityProfile.Odf13 });

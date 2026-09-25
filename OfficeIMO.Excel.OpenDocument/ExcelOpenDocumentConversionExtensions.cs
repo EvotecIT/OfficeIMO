@@ -423,6 +423,15 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         int approximatedTextDecorations = 0, unsupportedCapitalization = 0;
         int forcedVisibleWorksheets = 0;
         var chartTargets = new List<(OdsSheet Source, ExcelSheet Target)>();
+        var pivotConvertedCells = new Dictionary<string, List<long>>(StringComparer.Ordinal);
+        var pivotSourceSheets = new HashSet<string>(StringComparer.Ordinal);
+        foreach (OdsDataPilotTable pivot in source.DataPilotTables) {
+            if (SpreadsheetRangeReference.TryParse(pivot.SourceRangeAddress, SpreadsheetAddressDialect.OpenDocument,
+                    out SpreadsheetRangeReference? range) && range != null
+                && !string.IsNullOrEmpty(range.Start.SheetName)) {
+                pivotSourceSheets.Add(range.Start.SheetName!);
+            }
+        }
         bool truncated = false;
         ExcelSheet? activeTarget = null;
         ExcelSheet? firstTarget = null;
@@ -432,6 +441,11 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         foreach (OdsSheet odsSheet in source.Sheets) {
             ExcelSheet sheet = target.AddWorksheet(odsSheet.Name);
             chartTargets.Add((odsSheet, sheet));
+            List<long>? pivotCells = null;
+            if (pivotSourceSheets.Contains(odsSheet.Name)) {
+                pivotCells = new List<long>();
+                pivotConvertedCells.Add(odsSheet.Name, pivotCells);
+            }
             var validationTargets = new Dictionary<string, List<string>>(StringComparer.Ordinal);
             var conditionalTargets = new Dictionary<string, List<string>>(StringComparer.Ordinal);
             var conditionalTargetLimits = new HashSet<string>(StringComparer.Ordinal);
@@ -588,6 +602,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                                 else if (preserveSingleMetadata) metadataTranscriptComments++;
                             }
                             cells++;
+                            pivotCells?.Add(((long)excelRow << 15) | (uint)excelColumn);
 
                             if (cellRun.RowSpan > 1 || cellRun.ColumnSpan > 1) {
                                 long mergeLastRow = SaturatingAdd(row, cellRun.RowSpan);
@@ -634,7 +649,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         if (activeTarget != null) target.SetActiveWorksheet(activeTarget);
 
         int convertedCharts = ConvertOdsCharts(source, chartTargets, effective, ref expandedCells, ref truncated);
-        int convertedPivots = ConvertOdsDataPilots(source, chartTargets, effective, truncated);
+        int convertedPivots = ConvertOdsDataPilots(source, chartTargets, effective, pivotConvertedCells);
 
         foreach (NamedRangeConversionEntry named in namedRangePlan.Entries) {
             target.SetNamedRange(named.OutputName, named.Address, save: false,

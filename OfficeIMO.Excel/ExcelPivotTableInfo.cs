@@ -116,7 +116,8 @@ namespace OfficeIMO.Excel {
             bool? refreshOnOpen = null,
             bool? saveSourceData = null,
             bool? preserveFormatting = null,
-            bool? enableDrill = null) {
+            bool? enableDrill = null,
+            bool hasValuesAxisField = false) {
             Name = name;
             CacheId = cacheId;
             Location = location;
@@ -156,6 +157,7 @@ namespace OfficeIMO.Excel {
             SaveSourceData = saveSourceData;
             PreserveFormatting = preserveFormatting;
             EnableDrill = enableDrill;
+            HasValuesAxisField = hasValuesAxisField;
         }
 
         /// <summary>
@@ -322,6 +324,9 @@ namespace OfficeIMO.Excel {
         /// Gets column field names.
         /// </summary>
         public IReadOnlyList<string> ColumnFields { get; }
+
+        /// <summary>Whether a row or column axis includes Excel's synthetic Values field.</summary>
+        public bool HasValuesAxisField { get; }
 
         /// <summary>
         /// Gets page field names.
