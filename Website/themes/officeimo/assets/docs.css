@@ -1,7 +1,4 @@
 /* OfficeIMO – Docs – Liquid Glass */
-
-.imo-docs-toolbar{position:sticky;top:64px;z-index:80;border-bottom:1px solid var(--imo-glass-border);background:color-mix(in srgb,var(--imo-bg) 90%,transparent);backdrop-filter:blur(18px)}
-.imo-docs-toolbar__inner{min-height:58px;display:grid;grid-template-columns:auto minmax(260px,620px) auto;align-items:center;justify-content:space-between;gap:1.25rem}.imo-docs-toolbar__brand{font-size:.85rem;font-weight:850;letter-spacing:-.015em}.imo-docs-toolbar__search{display:flex;align-items:center;gap:.65rem;padding:.65rem .8rem;border:1px solid var(--imo-glass-border);border-radius:10px;background:var(--imo-glass);color:var(--imo-text-secondary);font-size:.82rem}.imo-docs-toolbar__search span{flex:1}.imo-docs-toolbar__search kbd{padding:.1rem .38rem;border:1px solid var(--imo-border);border-radius:5px;background:var(--imo-surface);font:inherit;font-size:.7rem}.imo-docs-toolbar__links{display:flex;gap:1rem}.imo-docs-toolbar__links a{color:var(--imo-text-secondary);font-size:.78rem;font-weight:700}.imo-docs-toolbar__links a:hover{color:var(--imo-accent)}
 .imo-docs{display:grid;grid-template-columns:270px minmax(0,1fr) minmax(190px,260px);min-height:calc(100vh - 122px)}
 .imo-docs__sidebar{position:sticky;top:122px;height:calc(100vh - 122px);overflow-y:auto;padding:1.5rem 1rem;border-right:1px solid var(--imo-glass-border);background:rgba(6,13,31,0.6);backdrop-filter:blur(20px) saturate(150%);-webkit-backdrop-filter:blur(20px) saturate(150%);font-size:0.875rem;box-shadow:4px 0 20px rgba(0,0,0,0.2)}
 .imo-docs__sidebar::-webkit-scrollbar{width:4px}
@@ -79,8 +76,8 @@
   [hidden].imo-docs__sidebar-overlay{display:none!important}
   .imo-docs__main{padding:2rem 1.5rem;padding-top:3.5rem}
 }
-@media(max-width:1180px){.imo-docs{grid-template-columns:250px minmax(0,1fr)}.imo-docs__toc{display:none}.imo-docs-toolbar__links{display:none}.imo-docs-toolbar__inner{grid-template-columns:auto minmax(220px,1fr)}}
-@media(max-width:1023px){.imo-docs-toolbar__brand{display:none}.imo-docs-toolbar__inner{grid-template-columns:1fr}.imo-docs__sidebar{top:122px;height:calc(100vh - 122px)}.imo-docs__sidebar-toggle{top:130px}}
+@media(max-width:1180px){.imo-docs{grid-template-columns:250px minmax(0,1fr)}.imo-docs__toc{display:none}}
+@media(max-width:1023px){.imo-docs__sidebar{top:122px;height:calc(100vh - 122px)}.imo-docs__sidebar-toggle{top:130px}}
 
 /* Documentation landing */
 .imo-body--docs-home .imo-docs{grid-template-columns:270px minmax(0,1fr)}.imo-docs__main--home{max-width:none;padding:0}.imo-docs__main--home .imo-docs__article{max-width:1160px;margin-inline:auto;padding:0 clamp(2rem,5vw,5rem) 5rem}
