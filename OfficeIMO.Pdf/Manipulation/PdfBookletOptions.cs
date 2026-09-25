@@ -17,8 +17,10 @@ public sealed class PdfBookletOptions {
     public int MaxPhysicalSheets { get; set; } = 100;
     /// <summary>Maximum source pages imported by one operation.</summary>
     public int MaxSourcePages { get; set; } = 500;
-    /// <summary>Allows a visual-only result when source annotations, forms, signatures, or tags cannot be retained.</summary>
-    public bool AllowVisualOnlySourceFeatures { get; set; }
+    /// <summary>Allows source annotations, form widgets, and structure tags to be omitted; their appearances can also be lost.</summary>
+    public bool AllowSourceFeatureLoss { get; set; }
+    /// <summary>Explicit handling for a signed source. The default rejects it.</summary>
+    public PdfImpositionSignaturePolicy SignaturePolicy { get; set; } = PdfImpositionSignaturePolicy.Reject;
 
     internal PdfNUpOptions ToNUpOptions() {
         if (MaxPhysicalSheets < 1 || MaxPhysicalSheets > int.MaxValue / 2) throw new ArgumentOutOfRangeException(nameof(MaxPhysicalSheets));
@@ -28,7 +30,8 @@ public sealed class PdfBookletOptions {
             VerticalGutter = 0D,
             MaxSheets = MaxPhysicalSheets * 2,
             MaxSourcePages = MaxSourcePages,
-            AllowVisualOnlySourceFeatures = AllowVisualOnlySourceFeatures
+            AllowSourceFeatureLoss = AllowSourceFeatureLoss,
+            SignaturePolicy = SignaturePolicy
         };
     }
 }

@@ -55,8 +55,29 @@ internal static class PdfPageImposer {
 
     private static PdfImpositionResult ImposePlan(byte[] pdf, PdfNUpOptions options, int?[] pageNumbers, PdfLoadOptions? readOptions, PdfDocumentInfo info) {
         (double cellWidth, double cellHeight) = options.Validate();
-        if (!options.AllowVisualOnlySourceFeatures && (info.HasAnnotations || info.HasForms || info.HasSignatures || info.HasTaggedContent)) {
-            throw new NotSupportedException("Imposed output cannot retain source annotations, forms, signatures, or structure tags. Explicitly allow visual-only source features to proceed.");
+        PdfImpositionSourceFeatureLoss sourceFeatureLoss = PdfImpositionSourceFeatureLoss.None;
+        if (info.HasAnnotations) sourceFeatureLoss |= PdfImpositionSourceFeatureLoss.Annotations;
+        if (info.HasForms) sourceFeatureLoss |= PdfImpositionSourceFeatureLoss.Forms;
+        if (info.HasTaggedContent) sourceFeatureLoss |= PdfImpositionSourceFeatureLoss.StructureTags;
+        if (info.HasSignatures) sourceFeatureLoss |= PdfImpositionSourceFeatureLoss.Signatures;
+        if (info.HasOptionalContent) {
+            throw new NotSupportedException("Layered source PDFs cannot be imposed because the sheet output cannot preserve optional-content visibility.");
+        }
+        byte[] sourcePdf = pdf;
+        PdfLoadOptions? sourceReadOptions = readOptions;
+        int removedSignatureCount = 0;
+        if (info.HasSignatures) {
+            if (options.SignaturePolicy != PdfImpositionSignaturePolicy.CreateUnsignedDerivative) {
+                throw new NotSupportedException("Signed source PDFs require SignaturePolicy = CreateUnsignedDerivative before imposition.");
+            }
+            PdfUnsignedDerivativeResult derivative = PdfRedactionApplier.CreateUnsignedDerivative(pdf, readOptions);
+            sourcePdf = derivative.Pdf;
+            sourceReadOptions = null;
+            removedSignatureCount = derivative.RemovedSignatureCount;
+            info = PdfInspector.Inspect(sourcePdf);
+        }
+        if (!options.AllowSourceFeatureLoss && (info.HasAnnotations || info.HasForms || info.HasTaggedContent)) {
+            throw new NotSupportedException("Imposed output cannot retain source annotations, forms, or structure tags. Set AllowSourceFeatureLoss to accept this loss.");
         }
         int cellsPerSheet = checked(options.Columns * options.Rows);
         int sheetCount = checked((int)((pageNumbers.LongLength + cellsPerSheet - 1L) / cellsPerSheet));
@@ -87,15 +108,15 @@ internal static class PdfPageImposer {
             placements.Add(new PdfImpositionPlacement(sourcePage, sheet, row, column, cell));
             overlays.Add(new PdfPageOverlayOptions {
                 SourcePageNumber = sourcePage,
-                SourceReadOptions = readOptions,
+                SourceReadOptions = sourceReadOptions,
                 TargetPages = PdfPageSelector.Parse(sheet.ToString(CultureInfo.InvariantCulture)),
                 X = x, Y = y, Width = cellWidth, Height = cellHeight,
                 Fit = PdfPageOverlayFit.Contain
             });
         }
-        byte[] output = PdfStamper.StampPages(blankSheets, pdf, overlays);
+        byte[] output = PdfStamper.StampPages(blankSheets, sourcePdf, overlays);
         PdfDocumentInfo resultInfo = PdfInspector.Inspect(output);
         if (resultInfo.PageCount != sheetCount) throw new InvalidOperationException("Imposed output page count did not match its placement plan.");
-        return new PdfImpositionResult(output, placements);
+        return new PdfImpositionResult(output, placements, removedSignatureCount, sourceFeatureLoss);
     }
 }

@@ -22,7 +22,8 @@ internal static partial class PdfStamper {
 
     internal static byte[] StampPages(byte[] targetPdf, byte[] sourcePdf, IReadOnlyList<PdfPageOverlayOptions> placements) {
         Guard.NotNull(placements, nameof(placements));
-        return StampPageSetCore(targetPdf, placements.Select(options => new PageStampRequest(sourcePdf, options.Clone())).ToArray());
+        return StampPageSetCore(targetPdf, placements.Select(options => new PageStampRequest(sourcePdf, options.Clone())).ToArray(),
+            allowVisualOnlySource: true);
     }
 
     /// <summary>Imports a source PDF page onto target pages read from streams.</summary>
@@ -59,7 +60,8 @@ internal static partial class PdfStamper {
     private static byte[] StampPageSetCore(
         byte[] targetPdf,
         IReadOnlyList<PageStampRequest> requests,
-        PdfLoadOptions? targetReadOptions = null) {
+        PdfLoadOptions? targetReadOptions = null,
+        bool allowVisualOnlySource = false) {
         Guard.NotNull(targetPdf, nameof(targetPdf));
         Guard.NotNull(requests, nameof(requests));
         if (requests.Count == 0) {
@@ -93,7 +95,19 @@ internal static partial class PdfStamper {
             Guard.NotNull(options, nameof(requests));
             PdfLoadOptions? sourceReadOptions = options.SourceReadOptions;
             if (!ReferenceEquals(sourcePdf, cachedSourcePdf) || !ReferenceEquals(sourceReadOptions, cachedSourceReadOptions)) {
-                _ = PdfMutationPlanner.RequireFullRewrite(sourcePdf, PdfMutationOperation.ExtractPages, sourceReadOptions);
+                if (allowVisualOnlySource) {
+                    PdfDocumentPreflight preflight = PdfInspector.Preflight(sourcePdf, sourceReadOptions);
+                    if (!preflight.CanRead) throw new NotSupportedException("Visual page import requires a readable source PDF.");
+                    PdfDocumentSecurityInfo security = preflight.Probe.Security;
+                    if (!PdfPermissionAuthorization.CanMutate(security, preflight.PermissionPolicy, PdfMutationOperation.ExtractPages)) {
+                        PdfStandardPermissions permission = security.AllowsCopying == true
+                            ? PdfStandardPermissions.AssembleDocument : PdfStandardPermissions.CopyContents;
+                        throw new PdfPermissionDeniedException(permission, security.PasswordAuthenticationRole,
+                            "Visual page import requires content-copy and document-assembly permission. Supply owner authorization or set PermissionPolicy to IgnoreRestrictions after confirming that the operation is authorized.");
+                    }
+                } else {
+                    _ = PdfMutationPlanner.RequireFullRewrite(sourcePdf, PdfMutationOperation.ExtractPages, sourceReadOptions);
+                }
                 (cachedSourceObjects, _) = PdfSyntax.ParseObjects(sourcePdf, sourceReadOptions);
                 cachedSourceDocument = PdfReadDocument.Open(sourcePdf, sourceReadOptions);
                 cachedSourcePdf = sourcePdf;

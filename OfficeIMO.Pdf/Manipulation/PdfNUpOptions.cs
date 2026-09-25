@@ -25,14 +25,18 @@ public sealed class PdfNUpOptions {
     public int MaxSheets { get; set; } = 100;
     /// <summary>Maximum source pages imported by one operation.</summary>
     public int MaxSourcePages { get; set; } = 500;
-    /// <summary>Allows a visual-only result when the source contains annotations, forms, signatures, or tags that cannot be retained on imposed sheets.</summary>
-    public bool AllowVisualOnlySourceFeatures { get; set; }
+    /// <summary>Allows source annotations, form widgets, and structure tags to be omitted; their appearances can also be lost.</summary>
+    public bool AllowSourceFeatureLoss { get; set; }
+    /// <summary>Explicit handling for a signed source. The default rejects it.</summary>
+    public PdfImpositionSignaturePolicy SignaturePolicy { get; set; } = PdfImpositionSignaturePolicy.Reject;
 
     internal (double CellWidth, double CellHeight) Validate() {
         if (Columns < 1 || Columns > 8) throw new ArgumentOutOfRangeException(nameof(Columns));
         if (Rows < 1 || Rows > 8) throw new ArgumentOutOfRangeException(nameof(Rows));
         if (MaxSheets < 1) throw new ArgumentOutOfRangeException(nameof(MaxSheets));
         if (MaxSourcePages < 1) throw new ArgumentOutOfRangeException(nameof(MaxSourcePages));
+        if (SignaturePolicy != PdfImpositionSignaturePolicy.Reject && SignaturePolicy != PdfImpositionSignaturePolicy.CreateUnsignedDerivative)
+            throw new ArgumentOutOfRangeException(nameof(SignaturePolicy));
         if (SheetSize.Width <= 0D || SheetSize.Height <= 0D ||
             double.IsNaN(SheetSize.Width) || double.IsNaN(SheetSize.Height) ||
             double.IsInfinity(SheetSize.Width) || double.IsInfinity(SheetSize.Height)) throw new ArgumentOutOfRangeException(nameof(SheetSize));

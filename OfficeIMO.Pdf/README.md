@@ -845,8 +845,14 @@ pages are blank-padded to a multiple of four. Set `RightToLeft` for reverse
 reading order; printer duplex edge, creep, and bleed settings remain with the
 print workflow. Both operations import page
 content as vector Form XObjects, but do not carry source annotations, forms,
-signatures, or structure tags onto the new sheets. If the source contains any
-of those features, set `AllowVisualOnlySourceFeatures = true` explicitly.
+or structure tags onto the new sheets; their visible appearances may also be
+omitted. Set `AllowSourceFeatureLoss = true` to accept that loss and inspect
+`SourceFeatureLoss` on the result. Signed sources are rejected by default; set
+`SignaturePolicy = PdfImpositionSignaturePolicy.CreateUnsignedDerivative` to
+create an unsigned source derivative first. The result reports
+`RemovedSignatureCount`, and the original signed PDF remains unchanged.
+Layered PDFs are rejected because their visibility settings cannot yet be
+preserved on imposed sheets.
 
 For review after page insertion or reordering, align pages before comparing
 the ones that need closer inspection:

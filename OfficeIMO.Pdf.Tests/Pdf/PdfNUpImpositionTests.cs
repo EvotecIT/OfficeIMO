@@ -38,10 +38,19 @@ public sealed class PdfNUpImpositionTests {
         var options = new PdfNUpOptions(new PageSize(600, 400), 2, 1);
 
         Assert.Throws<NotSupportedException>(() => document.Pages.ImposeNUp(options));
-        options.AllowVisualOnlySourceFeatures = true;
+        options.AllowSourceFeatureLoss = true;
         PdfImpositionResult result = document.Pages.ImposeNUp(options);
         Assert.Single(result.ToDocument().Reader.Pages());
         Assert.Empty(PdfInspector.Inspect(result.Bytes).Annotations);
+        Assert.True(result.SourceFeatureLoss.HasFlag(PdfImpositionSourceFeatureLoss.Annotations));
+
+        PdfDocument formDocument = PdfDocument.Load(PdfDocument.Create().TextField("ReviewedBy", value: "Ada").ToBytes());
+        options.AllowSourceFeatureLoss = false;
+        Assert.Throws<NotSupportedException>(() => formDocument.Pages.ImposeNUp(options));
+        options.AllowSourceFeatureLoss = true;
+        PdfImpositionResult formResult = formDocument.Pages.ImposeNUp(options);
+        Assert.False(PdfInspector.Inspect(formResult.Bytes).HasForms);
+        Assert.True(formResult.SourceFeatureLoss.HasFlag(PdfImpositionSourceFeatureLoss.Forms));
     }
 
     [Fact]
@@ -81,5 +90,54 @@ public sealed class PdfNUpImpositionTests {
 
         Assert.Equal(new[] { 1, 8, 7, 2, 3, 6, 5, 4 }, result.Placements.Select(static placement => placement.SourcePageNumber));
         Assert.Equal(new[] { 1, 1, 2, 2, 3, 3, 4, 4 }, result.Placements.Select(static placement => placement.SheetPageNumber));
+    }
+
+    [Fact]
+    public void SignedSourceRequiresExplicitUnsignedDerivativeForEitherImposition() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Signed sheet source")).ToBytes();
+        PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
+            source, new PdfExternalSignatureOptions { FieldName = "Approval", ReservedSignatureContentsBytes = 512 });
+        byte[] signed = PdfIncrementalUpdater.ApplyExternalSignature(preparation, new byte[] { 0x30, 0x01, 0x00 });
+        PdfDocument document = PdfDocument.Load(signed);
+        var nupOptions = new PdfNUpOptions(new PageSize(600, 400), 2, 1) { AllowSourceFeatureLoss = true };
+        var bookletOptions = new PdfBookletOptions(new PageSize(600, 400)) { AllowSourceFeatureLoss = true };
+
+        Assert.Throws<NotSupportedException>(() => document.Pages.ImposeNUp(nupOptions));
+        Assert.Throws<NotSupportedException>(() => document.Pages.ImposeBooklet(bookletOptions));
+
+        nupOptions.SignaturePolicy = PdfImpositionSignaturePolicy.CreateUnsignedDerivative;
+        bookletOptions.SignaturePolicy = PdfImpositionSignaturePolicy.CreateUnsignedDerivative;
+        PdfImpositionResult nup = document.Pages.ImposeNUp(nupOptions);
+        PdfImpositionResult booklet = document.Pages.ImposeBooklet(bookletOptions);
+        Assert.Equal(1, nup.RemovedSignatureCount);
+        Assert.Equal(1, booklet.RemovedSignatureCount);
+        Assert.True(nup.SourceFeatureLoss.HasFlag(PdfImpositionSourceFeatureLoss.Signatures));
+        Assert.Contains("Signed sheet source", nup.ToDocument().Reader.Text());
+        Assert.Contains("Signed sheet source", booklet.ToDocument().Reader.Text());
+        Assert.False(PdfInspector.Inspect(nup.Bytes).HasSignatures);
+    }
+
+    [Fact]
+    public void LayeredSourceIsRejectedBeforeSheetCreation() {
+        PdfDocument document = PdfDocument.Load(PdfOptionalContentSupport.BuildOptionalContentMetadataPdf());
+        var options = new PdfNUpOptions(new PageSize(600, 400), 2, 1) { AllowSourceFeatureLoss = true };
+
+        Assert.Throws<NotSupportedException>(() => document.Pages.ImposeNUp(options));
+        Assert.Throws<NotSupportedException>(() => document.Pages.ImposeBooklet(
+            new PdfBookletOptions(new PageSize(600, 400)) { AllowSourceFeatureLoss = true }));
+    }
+
+    [Fact]
+    public void VisualPageImportStillHonorsUserPasswordExtractionPermissions() {
+        var encryption = new PdfStandardEncryptionOptions("open") {
+            OwnerPassword = "owner",
+            AllowedPermissions = PdfStandardPermissions.Print
+        };
+        byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption(encryption))
+            .Paragraph(paragraph => paragraph.Text("Restricted source")).ToBytes();
+        PdfDocument document = PdfDocument.Load(source, new PdfLoadOptions { Password = "open" });
+
+        Assert.Throws<PdfPermissionDeniedException>(() => document.Pages.ImposeNUp(
+            new PdfNUpOptions(new PageSize(600, 400), 2, 1)));
     }
 }
