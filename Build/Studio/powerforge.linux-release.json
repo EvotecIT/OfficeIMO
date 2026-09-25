@@ -11,6 +11,7 @@
       "RootPath": "../../Artifacts/Studio/LinuxRelease",
       "PortablePath": "GitHub",
       "InstallerPath": "GitHub",
+      "ToolsPath": "GitHub",
       "MetadataPath": "Metadata"
     }
   },
