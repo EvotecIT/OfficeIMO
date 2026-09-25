@@ -105,9 +105,7 @@ internal static class PdfReviewSemanticComparer {
             string? hash = null;
             foreach (PdfImagePlacement placement in image.Placements) {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (placement.Width <= 0D || placement.Height <= 0D || placement.IsHiddenOptionalContent) continue;
-                PdfVisualBounds mapped = page.TransformBoundsToVisual(placement.X, placement.Y, placement.X + placement.Width, placement.Y + placement.Height);
-                var bounds = new PdfLogicalVisualBounds(mapped.Left, mapped.Top, mapped.Right, mapped.Bottom);
+                if (!TryVisibleImageBounds(page, placement, requireExactClip: false, out PdfLogicalVisualBounds bounds)) continue;
                 if (IsIgnored(bounds, page, visual, options.Visual)) continue;
                 hash ??= Hash(image.SourceImage.EncodedBytes, cancellationToken);
                 output.Add(new ImageFeature(hash, bounds));
@@ -137,25 +135,38 @@ internal static class PdfReviewSemanticComparer {
         foreach (PdfLogicalImage image in page.Images) {
             foreach (PdfImagePlacement placement in image.Placements) {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (placement.Width <= 0D || placement.Height <= 0D || placement.IsHiddenOptionalContent) continue;
-                PdfVisualBounds bounds = page.TransformBoundsToVisual(placement.X, placement.Y, placement.X + placement.Width, placement.Y + placement.Height);
-                double left = Math.Max(0D, bounds.Left);
-                double top = Math.Max(0D, bounds.Top);
-                double right = Math.Min(width, bounds.Right);
-                double bottom = Math.Min(height, bounds.Bottom);
-                if (placement.Clip is { } clip) {
-                    if (!clip.IsRectangle || !clip.IsExact || clip.ContainsTextClipping) continue;
-                    PdfVisualBounds clipped = page.TransformBoundsToVisual(clip.X,
-                        page.Height - clip.Y - clip.Height, clip.X + clip.Width, page.Height - clip.Y);
-                    left = Math.Max(left, clipped.Left);
-                    top = Math.Max(top, clipped.Top);
-                    right = Math.Min(right, clipped.Right);
-                    bottom = Math.Min(bottom, clipped.Bottom);
-                }
-                if (right > left && bottom > top) visible.Add(new PdfLogicalVisualBounds(left, top, right, bottom));
+                if (TryVisibleImageBounds(page, placement, requireExactClip: true, out PdfLogicalVisualBounds bounds)) visible.Add(bounds);
             }
         }
         return UnionArea(visible, cancellationToken) >= area * 0.75D;
+    }
+
+    private static bool TryVisibleImageBounds(PdfLogicalPage page, PdfImagePlacement placement,
+        bool requireExactClip, out PdfLogicalVisualBounds bounds) {
+        bounds = default!;
+        if (placement.Width <= 0D || placement.Height <= 0D || placement.IsHiddenOptionalContent || placement.Opacity <= 0D) return false;
+        (double pageWidth, double pageHeight) = page.GetVisualPageSize();
+        PdfVisualBounds mapped = page.TransformBoundsToVisual(placement.X, placement.Y,
+            placement.X + placement.Width, placement.Y + placement.Height);
+        double left = Math.Max(0D, mapped.Left);
+        double top = Math.Max(0D, mapped.Top);
+        double right = Math.Min(pageWidth, mapped.Right);
+        double bottom = Math.Min(pageHeight, mapped.Bottom);
+        if (placement.Clip is { } clip) {
+            if (!clip.IsRectangle || !clip.IsExact || clip.ContainsTextClipping) {
+                if (requireExactClip) return false;
+            } else {
+                PdfVisualBounds clipped = page.TransformBoundsToVisual(clip.X,
+                    page.Height - clip.Y - clip.Height, clip.X + clip.Width, page.Height - clip.Y);
+                left = Math.Max(left, clipped.Left);
+                top = Math.Max(top, clipped.Top);
+                right = Math.Min(right, clipped.Right);
+                bottom = Math.Min(bottom, clipped.Bottom);
+            }
+        }
+        if (right <= left || bottom <= top) return false;
+        bounds = new PdfLogicalVisualBounds(left, top, right, bottom);
+        return true;
     }
 
     private static double UnionArea(List<PdfLogicalVisualBounds> bounds, CancellationToken cancellationToken) {

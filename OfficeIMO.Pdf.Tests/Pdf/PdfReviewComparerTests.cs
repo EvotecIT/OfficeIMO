@@ -255,6 +255,46 @@ public sealed class PdfReviewComparerTests {
             static change => change.Kind == PdfReviewChangeKind.ImageChangedCandidate);
     }
 
+    [Fact]
+    public void ZeroOpacityImagePayloadDoesNotCreateSemanticChangeOrScan() {
+        PdfDocument expected = PdfDocument.Load(ImageWithPaintStatePdf("ABC",
+            "q /GS0 gs 240 0 0 180 0 0 cm /Im0 Do Q\n", withZeroOpacity: true));
+        PdfDocument actual = PdfDocument.Load(ImageWithPaintStatePdf("DEF",
+            "q /GS0 gs 240 0 0 180 0 0 cm /Im0 Do Q\n", withZeroOpacity: true));
+
+        PdfReviewComparisonReport report = expected.Proof.CompareReview(actual);
+
+        Assert.True(report.IsMatch);
+        Assert.Empty(report.Pages);
+    }
+
+    [Fact]
+    public void IgnoredRegionCoversEffectiveClippedImageBounds() {
+        const string content = "q 20 20 40 40 re W n 240 0 0 180 0 0 cm /Im0 Do Q\n";
+        PdfDocument expected = PdfDocument.Load(ImageWithPaintStatePdf("ABC", content));
+        PdfDocument actual = PdfDocument.Load(ImageWithPaintStatePdf("DEF", content));
+        var options = new PdfReviewComparisonOptions();
+        options.Visual.IgnoredRegions.Add(new PdfPixelRegion(20, 120, 40, 40));
+
+        PdfReviewComparisonReport report = expected.Proof.CompareReview(actual, options);
+
+        Assert.True(report.IsMatch);
+        Assert.Empty(report.Pages);
+    }
+
+    private static byte[] ImageWithPaintStatePdf(string pixels, string content, bool withZeroOpacity = false) =>
+        System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /XObject << /Im0 5 0 R >>" +
+                (withZeroOpacity ? " /ExtGState << /GS0 6 0 R >>" : string.Empty) + " >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + System.Text.Encoding.ASCII.GetByteCount(content) + " >>", "stream", content.TrimEnd('\n'), "endstream", "endobj",
+            "5 0 obj", "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length 3 >>", "stream", pixels, "endstream", "endobj",
+            withZeroOpacity ? "6 0 obj\n<< /Type /ExtGState /ca 0 >>\nendobj" : string.Empty,
+            "trailer", withZeroOpacity ? "<< /Root 1 0 R /Size 7 >>" : "<< /Root 1 0 R /Size 6 >>", "%%EOF", string.Empty
+        }));
+
     private static PdfDocument PageAt(string text, double y) => PdfDocument.Load(PdfDocument.Create(
         new PdfOptions { PageWidth = 240D, PageHeight = 180D })
         .Canvas(canvas => canvas.Text(text, 20D, y, 100D, 20D)).ToBytes());
