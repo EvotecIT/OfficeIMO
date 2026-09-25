@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{{ if page.meta.seo_title }}{{ page.meta.seo_title }}{{ else }}{{ page.title }} | {{ site.name }} Docs{{ end }}</title>
   {{ description_meta_html }}{{ canonical_html }}<link rel="alternate" hreflang="en" href="{{ base_url }}{{ current_path }}" /><link rel="alternate" hreflang="x-default" href="{{ base_url }}{{ current_path }}" />{{ head_html }}
-  <script>(function(){var t=localStorage.getItem('imo-theme');if(t!=='light'&&t!=='dark'){t='light';}document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;})();</script>
+  {{ include "theme-init" }}
   {{ include "theme-tokens" }}{{ assets.critical_css_html }}{{ assets.preloads_html }}{{ extra_css_html }}{{ assets.css_html }}{{ opengraph_html }}{{ structured_data_html }}
 </head>
 <body class="imo-body imo-body--docs imo-body--docs-home">
@@ -30,7 +30,7 @@
             <a class="imo-docs-path" href="/docs/word/"><span>01</span><h3>Create and edit</h3><p>Reports, workbooks, decks, PDFs, forms, diagrams, messages, and notebooks.</p></a>
             <a class="imo-docs-path" href="/docs/converters/word-html/"><span>02</span><h3>Convert and render</h3><p>Office, PDF, HTML, Markdown, RTF, images, and open formats.</p></a>
             <a class="imo-docs-path" href="/docs/reader/"><span>03</span><h3>Read and extract</h3><p>Normalized content for search, review, ingestion, and AI workflows.</p></a>
-            <a class="imo-docs-path" href="/docs/pswriteoffice/"><span>04</span><h3>Automate with PowerShell</h3><p>477 cmdlets across 16 validated command families for script-first jobs.</p></a>
+            <a class="imo-docs-path" href="/docs/pswriteoffice/"><span>04</span><h3>Automate with PowerShell</h3><p>{{ data.pswriteoffice_command_catalog.module.commandCount }} cmdlets across {{ data.pswriteoffice_command_catalog.module.familyCount }} command families for script-first jobs.</p></a>
           </div>
         </section>
 

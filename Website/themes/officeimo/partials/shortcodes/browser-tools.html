@@ -1,25 +1,56 @@
 <section class="imo-browser-tools imo-container" aria-labelledby="browser-tools-title">
-  <header class="imo-browser-tools__heading">
-    <p class="imo-converter-launch__eyebrow">Browser tools</p>
-    <h1 id="browser-tools-title">What would you like to do?</h1>
-    <p>Convert a document, organize a PDF, or check file origin data. Your files stay in this browser.</p>
-    <p class="imo-browser-tools__loading-note">Tools load only when you open them.</p>
-  </header>
+{{~ # Keep in sync with OfficeProvenanceWorkflowCatalog.BrowserExtensions; the converter tests compare them. ~}}
+{{~ provenance_extensions = [".docx", ".jpeg", ".jpg", ".pdf", ".png", ".pptx", ".webp", ".xlsx"] ~}}
+{{~ browser_drop_extensions = array.concat [".pdf"] provenance_extensions ~}}
+{{~ conversion_count = 0 ~}}
+{{~ for route in data.office_conversion_routes.routes ~}}{{~ if route.browserAvailable ~}}{{~ browser_drop_extensions = array.concat browser_drop_extensions route.sourceExtensions; conversion_count = conversion_count + 1 ~}}{{~ end ~}}{{~ end ~}}
+{{~ browser_drop_extensions = array.uniq browser_drop_extensions ~}}
+  <div class="imo-browser-tools__hero">
+    <header class="imo-browser-tools__heading">
+      <p class="imo-workbench__eyebrow">Browser tools · Nothing is uploaded</p>
+      <h1 id="browser-tools-title">Convert and fix documents <span>right in your browser.</span></h1>
+      <p>Convert a document, organize a PDF, or check file origin data. Files stay on your device, and each tool loads only when you open it.</p>
+      <ul class="imo-browser-tools__trust">
+        <li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>Runs on your device</li>
+        <li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg>No upload, no account</li>
+        <li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>{{ conversion_count + data.pdf_workflows.operations.size + 1 }} tools</li>
+        <li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 7-5 5 5 5M16 7l5 5-5 5"/></svg>Open source</li>
+      </ul>
+    </header>
+    <div class="imo-file-drop" data-browser-drop hidden>
+      <input class="imo-visually-hidden" id="browser-drop-input" type="file" accept="{{ browser_drop_extensions | array.join "," | html.escape }}" />
+      <label class="imo-file-drop__target" for="browser-drop-input" data-browser-drop-target>
+        <span class="imo-file-drop__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M12 18v-6M9 15l3-3 3 3"/></svg></span>
+        <strong>Drop a document to start</strong>
+        <span>Word, Excel, PowerPoint, PDF, HTML, Markdown or an image. The file stays on your device.</span>
+        <span class="imo-file-drop__formats" aria-hidden="true"><span class="imo-format-chip" data-format="docx">DOCX</span><span class="imo-format-chip" data-format="xlsx">XLSX</span><span class="imo-format-chip" data-format="pptx">PPTX</span><span class="imo-format-chip" data-format="pdf">PDF</span><span class="imo-format-chip" data-format="html">HTML</span><span class="imo-format-chip" data-format="markdown">MD</span><span class="imo-format-chip" data-format="png">IMG</span></span>
+        <span class="imo-file-drop__button">Choose a file</span>
+        <small>or drop it anywhere on this page</small>
+      </label>
+      <div class="imo-file-drop__selected" data-browser-drop-selected hidden>
+        <span class="imo-file-drop__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 14l2 2 4-4"/></svg></span>
+        <span class="imo-file-drop__file"><strong data-browser-drop-name></strong><span data-browser-drop-size></span></span>
+        <span class="imo-file-drop__hint" data-browser-drop-status role="status"></span>
+        <button type="button" class="imo-file-drop__clear" data-browser-drop-clear>Choose another file</button>
+      </div>
+    </div>
+  </div>
   <div class="imo-browser-tools__toolbar">
-    <nav aria-label="Tool categories"><a href="#browser-convert">Convert documents</a><a href="#browser-pdf">PDF tools</a><a href="#browser-inspect">File origin</a></nav>
+    <nav aria-label="Tool categories"><a href="#browser-convert">Convert documents</a><a href="#browser-pdf">Work with PDFs</a><a href="#browser-inspect">Inspect and clean</a></nav>
     <div class="imo-browser-tools__search" hidden><label for="browser-directory-search">Find a tool</label><input id="browser-directory-search" type="search" placeholder="Search tools…" /><span data-tool-count role="status"></span></div>
   </div>
   <section id="browser-convert" data-tool-group aria-labelledby="browser-convert-title">
-    <h2 id="browser-convert-title">Convert documents</h2>
+    <div class="imo-browser-tools__group-head"><h2 id="browser-convert-title">Convert documents</h2><span class="imo-browser-tools__count">{{ conversion_count }}</span><p>Office, PDF, HTML and Markdown conversions with diagnostics for anything that could not be reproduced.</p></div>
     <div class="imo-browser-tools__grid">
 {{~ for route in data.office_conversion_routes.routes ~}}
 {{~ if route.browserAvailable ~}}
 {{~ source_label = route.source; target_label = route.target ~}}
 {{~ if source_label == "DOCX"; source_label = "Word"; else if source_label == "XLSX"; source_label = "Excel"; else if source_label == "PPTX"; source_label = "PowerPoint"; end ~}}
 {{~ if target_label == "DOCX"; target_label = "Word"; else if target_label == "XLSX"; target_label = "Excel"; else if target_label == "PPTX"; target_label = "PowerPoint"; end ~}}
-      <a class="imo-browser-tools__card" data-route="{{ route.id | html.escape }}" href="/convert/?route={{ route.id | html.escape }}">
-        <span class="imo-browser-tools__badge">{{ route.source | html.escape }} <span aria-hidden="true">→</span> {{ route.target | html.escape }}</span>
+      <a class="imo-browser-tools__card" data-route="{{ route.id | html.escape }}" data-accept="{{ route.sourceExtensions | array.join "," | html.escape }}" data-input="{{ route.inputKind | string.downcase | html.escape }}" data-format="{{ route.source | string.downcase | html.escape }}" href="/convert/?route={{ route.id | html.escape }}">
+        <span class="imo-browser-tools__formats"><span class="imo-format-chip" data-format="{{ route.source | string.downcase | html.escape }}">{{ route.source | html.escape }}</span><span class="imo-browser-tools__arrow" aria-hidden="true">→</span><span class="imo-format-chip" data-format="{{ route.target | string.downcase | html.escape }}">{{ route.target | html.escape }}</span></span>
         <strong>{{ if route.id == "pdf-xlsx" }}PDF tables to Excel{{ else if route.id == "pdf-html" }}PDF to review HTML{{ else if route.id == "pdf-png" }}PDF to PNG images{{ else }}{{ source_label | html.escape }} to {{ target_label | html.escape }}{{ end }}</strong>
+        <span class="imo-browser-tools__desc">{{ route.description | html.escape }}</span>
         <span class="imo-browser-tools__open">Open tool <span aria-hidden="true">→</span></span>
       </a>
 {{~ end ~}}
@@ -27,21 +58,27 @@
     </div>
   </section>
   <section id="browser-pdf" data-tool-group aria-labelledby="browser-pdf-title">
-    <h2 id="browser-pdf-title">Work with PDFs</h2>
+    <div class="imo-browser-tools__group-head"><h2 id="browser-pdf-title">Work with PDFs</h2><span class="imo-browser-tools__count">{{ data.pdf_workflows.operations.size }}</span><p>Inspect, organize, optimize and secure PDFs. Every tool writes a separate file and leaves your original untouched.</p></div>
     <div class="imo-browser-tools__grid">
 {{~ for tool in data.pdf_workflows.operations ~}}
-      <a class="imo-browser-tools__card" data-pdf-tool="{{ tool.id | html.escape }}" href="/convert/?workspace=pdf&amp;tool={{ tool.id | html.escape }}">
-        <span class="imo-browser-tools__badge">{{ tool.category | html.escape }}</span>
-        <strong>{{ tool.title | html.escape }}</strong><span>{{ tool.summary | html.escape }}</span>
+      <a class="imo-browser-tools__card" data-pdf-tool="{{ tool.id | html.escape }}" data-accept=".pdf" data-input="file" data-format="pdf" href="/convert/?workspace=pdf&amp;tool={{ tool.id | html.escape }}">
+        <span class="imo-browser-tools__formats"><span class="imo-browser-tools__glyph" data-category="{{ tool.category | string.downcase | html.escape }}" aria-hidden="true">{{ if tool.category == "Understand" }}<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>{{ else if tool.category == "Organize" }}<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></svg>{{ else if tool.category == "Secure" }}<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>{{ else }}<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3 5 14h6l-1 7 8-11h-6z"/></svg>{{ end }}</span><span class="imo-browser-tools__category">{{ tool.category | html.escape }}</span></span>
+        <strong>{{ tool.title | html.escape }}</strong>
+        <span class="imo-browser-tools__desc">{{ tool.summary | html.escape }}</span>
+        <span class="imo-browser-tools__open">Open tool <span aria-hidden="true">→</span></span>
       </a>
 {{~ end ~}}
     </div>
   </section>
   <section id="browser-inspect" data-tool-group aria-labelledby="browser-inspect-title">
-    <h2 id="browser-inspect-title">Inspect and clean</h2>
-    <p><a href="/provenance/">Learn about file origin checks and supported metadata removal</a>.</p>
+    <div class="imo-browser-tools__group-head"><h2 id="browser-inspect-title">Inspect and clean</h2><span class="imo-browser-tools__count">1</span><p>See embedded origin records in documents and images. <a href="/provenance/">Learn about file origin checks</a>.</p></div>
     <div class="imo-browser-tools__grid">
-      <a class="imo-browser-tools__card" data-workspace="provenance" href="/convert/?workspace=provenance"><span class="imo-browser-tools__badge">File origin</span><strong>File origin data</strong><span>Inspect embedded origin records and create a separate copy with supported records removed.</span></a>
+      <a class="imo-browser-tools__card" data-workspace="provenance" data-accept="{{ provenance_extensions | array.join "," }}" data-input="file" data-format="file" href="/convert/?workspace=provenance">
+        <span class="imo-browser-tools__formats"><span class="imo-browser-tools__glyph" data-category="origin" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 9 9"/><path d="M12 7v5l3 2M17 3h4v4"/></svg></span><span class="imo-browser-tools__category">File origin</span></span>
+        <strong>File origin data</strong>
+        <span class="imo-browser-tools__desc">Inspect embedded origin records in Office files, PDFs and images, and create a copy with supported records removed.</span>
+        <span class="imo-browser-tools__open">Open tool <span aria-hidden="true">→</span></span>
+      </a>
     </div>
   </section>
   <p class="imo-browser-tools__limits">Processing runs on your device. Tool-specific limits and conversion warnings appear in the workspace. <a href="/docs/converters/browser-playground/">Read the browser guide</a>.</p>

@@ -1,11 +1,61 @@
-<section class="imo-platform-hero imo-container">
-  <p class="imo-application-eyebrow">OfficeIMO · Open-source document tools</p>
-  <h1>Create. Convert.<br /><span>Make documents work.</span></h1>
-  <p>Generate reports, organize PDFs, and extract content with open-source document tools.<br />Use .NET, PowerShell, the CLI, or your browser—without Microsoft Office.</p>
-  <div class="imo-application-actions"><a class="imo-btn imo-btn-primary" href="/convert/">Try a sample in your browser</a><a class="imo-btn imo-btn-ghost" href="/showcase/">Explore real output and source</a></div>
+<section class="imo-workbench imo-container" aria-labelledby="workbench-title">
+  <div class="imo-workbench__intro">
+    <h1 id="workbench-title">One document engine. <span>Every way you work.</span></h1>
+    <div class="imo-workbench__lede">
+      <p>Create, convert and read Word, Excel, PowerPoint and PDF files from a desktop app, your browser, the terminal, .NET or PowerShell. No Office install, no COM.</p>
+      <div class="imo-workbench__actions">
+        <a class="imo-btn imo-btn-primary" href="/convert/">Convert a file now</a>
+        <a class="imo-btn imo-btn-ghost" href="/docs/getting-started/">Get started</a>
+      </div>
+      <ul class="imo-workbench__facts">
+        <li>MIT licensed</li>
+        <li>Windows, Linux and macOS</li>
+        <li>NativeAOT tested</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="imo-workbench__stage">
+    <a class="imo-workbench__window" href="/images/studio/workspace-light.png" data-pf-media data-pf-media-caption="Studio · Document workspace" data-pf-media-light="/images/studio/workspace-light.png" data-pf-media-dark="/images/studio/workspace-dark.png" aria-label="Open full-size Studio screenshot">
+      <picture class="imo-theme-light-only">
+        <source srcset="/images/studio/workspace-light.webp" type="image/webp" />
+        <img src="/images/studio/workspace-light.png" width="1440" height="960" alt="OfficeIMO Studio with a sample PDF dashboard open." loading="lazy" decoding="async" fetchpriority="high" />
+      </picture>
+      <picture class="imo-theme-dark-only">
+        <source srcset="/images/studio/workspace-dark.webp" type="image/webp" />
+        <img src="/images/studio/workspace-dark.png" width="1440" height="960" alt="OfficeIMO Studio in dark appearance with a sample PDF dashboard open." loading="lazy" decoding="async" fetchpriority="high" />
+      </picture>
+    </a>
+    <figure class="imo-terminal imo-workbench__float imo-workbench__float--cli" style="--imo-dot: #5bd39a">
+      <figcaption>pwsh · OfficeIMO.Tool</figcaption>
+<pre aria-label="OfficeIMO command line examples"><span class="imo-t-prompt">❯</span> <span class="imo-t-cmd">officeimo</span> convert <span class="imo-t-arg">report.docx</span> <span class="imo-t-arg">report.pdf</span>
+<span class="imo-t-prompt">❯</span> <span class="imo-t-cmd">officeimo</span> convert <span class="imo-t-arg">report.pdf</span> <span class="imo-t-arg">report.md</span>
+<span class="imo-t-prompt">❯</span> <span class="imo-t-cmd">officeimo</span> mcp serve --stdio</pre>
+    </figure>
+    <figure class="imo-terminal imo-workbench__float imo-workbench__float--ps" style="--imo-dot: #e0a948">
+      <figcaption>New-Report.ps1 · PSWriteOffice</figcaption>
+<pre aria-label="PSWriteOffice example"><span class="imo-t-fn">New-OfficeWord</span> <span class="imo-t-muted">-Path</span> <span class="imo-t-str">'.\report.docx'</span> {
+  <span class="imo-t-fn">Add-OfficeWordSection</span> {
+    <span class="imo-t-fn">Add-OfficeWordParagraph</span> <span class="imo-t-muted">-Text</span> <span class="imo-t-str">'Q3 report'</span>
+    <span class="imo-t-fn">Add-OfficeWordTable</span> <span class="imo-t-muted">-InputObject</span> <span class="imo-t-cmd">$Sales</span>
+  }
+}</pre>
+    </figure>
+  </div>
 </section>
-<section class="imo-platform-story imo-container" aria-labelledby="studio-story-title">
-  <div><p class="imo-application-eyebrow">Meet OfficeIMO Studio</p><h2 id="studio-story-title">Keep your document<br />at the center.</h2><p>Follow a comment, find the right passage, or put pages in order. Studio brings document tools into one desktop workspace.</p><a class="imo-btn imo-btn-primary" href="/studio/">Explore the workspace</a><p class="imo-application-availability">Desktop source build · Public downloads in preparation</p></div>
-  <a href="/images/studio/workspace-light.png" data-pf-media data-pf-media-caption="Studio · Document workspace" data-pf-media-light="/images/studio/workspace-light.png" data-pf-media-dark="/images/studio/workspace-dark.png" aria-label="Open full-size Studio screenshot"><img decoding="async" src="/images/studio/workspace-light.png" width="1440" height="960" alt="Actual OfficeIMO Studio window showing a sample PDF dashboard." fetchpriority="high" /></a>
-</section>
-{{ include "sections/entry-points" }}
+
+{{ if data.surfaces && data.surfaces.items }}
+<nav class="imo-surfaces" aria-label="Ways to use OfficeIMO">
+  <div class="imo-surfaces__grid">
+    {{ for surface in data.surfaces.items }}
+    {{ if surface.enabled }}
+    <a class="imo-surface imo-surface--{{ surface.id }}" href="{{ surface.url }}">
+      <h2>{{ surface.name }}</h2>
+      <p>{{ if surface.id == "powershell" && data.pswriteoffice_command_catalog }}PSWriteOffice brings {{ data.pswriteoffice_command_catalog.module.commandCount }} commands to PowerShell 5.1 and 7.{{ else }}{{ surface.description }}{{ end }}</p>
+      <span class="imo-surface__action">{{ surface.action }} <span aria-hidden="true">→</span></span>
+    </a>
+    {{ end }}
+    {{ end }}
+  </div>
+</nav>
+{{ end }}

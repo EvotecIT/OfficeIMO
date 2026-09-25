@@ -4,6 +4,12 @@
       <div class="imo-footer__brand">
         <strong>{{ data.footer.brand.name ?? "OfficeIMO" }}</strong>
         <p>{{ data.footer.brand.tagline ?? "Open source .NET libraries for Office documents." }}</p>
+        {{ if data.community && data.community.repositories }}
+        <div class="imo-footer__social">
+          {{ for repo in data.community.repositories }}<a href="{{ repo.url }}" target="_blank" rel="noopener" data-kind="github" aria-label="{{ repo.name }} on GitHub" title="{{ repo.slug }} on GitHub">{{ if for.first }}<svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38v-1.33c-2.23.48-2.7-1.07-2.7-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.8.06 1.23.83 1.23.83.72 1.22 1.87.87 2.33.66.07-.52.28-.87.5-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.28.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>{{ else }}<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="3" width="20" height="18" rx="3"/><path d="m6 8 5 4-5 4M13 16h5"/></svg>{{ end }}</a>{{ end }}
+          {{ for link in data.community.links }}{{ if link.id == "discord" }}<a href="{{ link.url }}" target="_blank" rel="noopener" data-kind="discord" aria-label="Discord" title="Discord"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2z"/><path d="M9 10h.01M15 10h.01"/></svg></a>{{ else if link.id == "sponsor" }}<a href="{{ link.url }}" target="_blank" rel="noopener" data-kind="sponsor" aria-label="Sponsor OfficeIMO" title="Sponsor"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.7 4.5c2.1 0 3.6 1.2 4.3 2.4.7-1.2 2.2-2.4 4.3-2.4 3.7 0 5.8 3.9 4.3 7.3C19.5 16.4 12 21 12 21z"/></svg></a>{{ end }}{{ end }}
+        </div>
+        {{ end }}
       </div>
 
       {{ fp = null; fd = null; fr = null; fc = null }}

@@ -58,5 +58,6 @@ Additional Microsoft compatibility helpers may appear on older target frameworks
 - We keep the first-party OfficeIMO package license visible across the repo and site.
 - We document the public dependency surface here instead of hiding it in project files.
 - We keep the page scoped to real shipped package dependencies so it stays reviewable and current.
+- The website itself serves the [Hanken Grotesk](https://github.com/marcologous/hanken-grotesk) typeface for headings under the SIL Open Font License 1.1. The [license text](/fonts/OFL-HankenGrotesk.txt) is published next to the font file. No OfficeIMO package includes it.
 
 If you need the exact current references, start with the repository project files such as [`OfficeIMO.Word.csproj`](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Word/OfficeIMO.Word.csproj), [`OfficeIMO.Excel.csproj`](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Excel/OfficeIMO.Excel.csproj), [`OfficeIMO.Word.Pdf.csproj`](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Word.Pdf/OfficeIMO.Word.Pdf.csproj), [`OfficeIMO.Excel.Pdf.csproj`](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Excel.Pdf/OfficeIMO.Excel.Pdf.csproj), and [`OfficeIMO.Visio.csproj`](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Visio/OfficeIMO.Visio.csproj).
