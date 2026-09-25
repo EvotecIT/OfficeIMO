@@ -409,6 +409,7 @@ public static partial class HtmlExcelConverterExtensions {
             sheet.AddImage(row, 1, bytes, dataUri.MediaType, width, height,
                 name: null,
                 altText: string.IsNullOrWhiteSpace(resource.AlternateText) ? null : resource.AlternateText);
+            ReportImageHyperlinkLoss(resource.Hyperlink, result);
             result.Images++;
             imageReservation.Commit();
             row = Math.Min(A1.MaxRows + 1, row + Math.Max(2, (height + 19) / 20 + 1));

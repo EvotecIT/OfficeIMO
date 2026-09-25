@@ -355,7 +355,7 @@ public sealed class HtmlSemanticTableCell {
 public sealed class HtmlSemanticResource {
     internal HtmlSemanticResource(HtmlResourceKind kind, string source, string alternateText,
         string mediaType, double? widthPixels, double? heightPixels,
-        HtmlSemanticSourceLocation? sourceLocation) {
+        HtmlSemanticSourceLocation? sourceLocation, string? hyperlink = null) {
         Kind = kind;
         Source = source;
         AlternateText = alternateText;
@@ -363,6 +363,7 @@ public sealed class HtmlSemanticResource {
         WidthPixels = widthPixels;
         HeightPixels = heightPixels;
         SourceLocation = sourceLocation;
+        Hyperlink = hyperlink;
     }
 
     /// <summary>Resource kind.</summary>
@@ -379,4 +380,6 @@ public sealed class HtmlSemanticResource {
     public double? HeightPixels { get; }
     /// <summary>Source provenance.</summary>
     public HtmlSemanticSourceLocation? SourceLocation { get; }
+    /// <summary>Policy-normalized hyperlink on the nearest enclosing HTML anchor, when present.</summary>
+    public string? Hyperlink { get; }
 }

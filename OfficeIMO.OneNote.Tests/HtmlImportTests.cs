@@ -183,6 +183,18 @@ public sealed class HtmlImportTests {
     }
 
     [Fact]
+    public void LinkedHtmlImageRetainsItsTargetAfterNativeReopen() {
+        const string html = "<p><a href='https://www.cdc.gov/'><img alt='CDC' src='data:image/png;base64,AQID'></a></p>";
+        OneNoteSection section = HtmlConversionDocument.Parse(html).ToOneNoteSectionResult().RequireValue();
+        OneNoteSection reopened = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(section)));
+
+        OneNoteImage image = Assert.Single(reopened.Pages.SelectMany(page => page.Outlines)
+            .SelectMany(outline => outline.Children).OfType<OneNoteImage>());
+        Assert.Equal("https://www.cdc.gov/", image.Hyperlink);
+        Assert.Equal("CDC", image.AltText);
+    }
+
+    [Fact]
     public void OneNoteHtmlExportExposesTheSharedTextResultContract() {
         var section = new OneNoteSection { Name = "Notes" };
         section.Pages.Add(new OneNotePage { Title = "Page" });

@@ -472,6 +472,7 @@ public static class HtmlOneNoteConverterExtensions {
         }
         target.Add(new OneNoteImage {
             AltText = resource.AlternateText,
+            Hyperlink = resource.Hyperlink,
             MediaType = dataUri.MediaType,
             FileName = "image" + dataUri.FileExtension,
             Payload = OneNoteBinaryPayload.FromBytes(bytes)

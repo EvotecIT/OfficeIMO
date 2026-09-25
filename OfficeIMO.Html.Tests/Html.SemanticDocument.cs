@@ -740,6 +740,19 @@ public partial class Html {
     }
 
     [Fact]
+    public void SemanticDocument_RetainsPolicyApprovedImageHyperlinks() {
+        HtmlSemanticDocument semantic = HtmlConversionDocument.Parse("""
+            <p><a href="https://example.test/guide"><img src="data:image/png;base64,AA==" alt="guide"></a>
+            <a href="javascript:alert(1)"><img src="data:image/png;base64,AQ==" alt="unsafe"></a></p>
+            """).SemanticDocument;
+
+        Assert.Equal("https://example.test/guide", Assert.Single(semantic.ResourceOccurrences,
+            resource => resource.AlternateText == "guide").Hyperlink);
+        Assert.Null(Assert.Single(semantic.ResourceOccurrences,
+            resource => resource.AlternateText == "unsafe").Hyperlink);
+    }
+
+    [Fact]
     public void SemanticRuns_NormalizeHtmlWhitespaceAcrossStyleBoundariesAndPreservePreformattedText() {
         HtmlSemanticDocument semantic = HtmlConversionDocument.Parse(
             "<p>  Hello <strong>   brave </strong>\n world  </p><pre>  a\n b  </pre>").SemanticDocument;

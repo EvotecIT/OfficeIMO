@@ -385,7 +385,17 @@ internal static class HtmlSemanticDocumentBuilder {
         return new HtmlSemanticResource(resourceKind, source, alternateText, mediaType,
             ReadPixels(element.GetAttribute("width") ?? style?.GetValue("width")),
             ReadPixels(element.GetAttribute("height") ?? style?.GetValue("height")),
-            location);
+            location,
+            FindEnclosingHyperlink(element));
+    }
+
+    private static string? FindEnclosingHyperlink(IElement element) {
+        for (IElement? parent = element.ParentElement; parent != null; parent = parent.ParentElement) {
+            if (!Is(parent, "a")) continue;
+            string? href = parent.GetAttribute("href")?.Trim();
+            return string.IsNullOrWhiteSpace(href) ? null : href;
+        }
+        return null;
     }
 
     private static double? ReadPixels(string? value) {

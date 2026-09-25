@@ -637,6 +637,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         using var stream = new MemoryStream(bytes);
         PptCore.PowerPointPicture picture = slide.AddPicturePoints(stream, imagePartType, 64D, top, width, height);
         if (!string.IsNullOrWhiteSpace(resource.AlternateText)) picture.AltText = resource.AlternateText;
+        ApplyPictureHyperlink(picture, resource.Hyperlink, result);
         result.Pictures++;
         imageReservation.Commit();
         top += height + 18D;

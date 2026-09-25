@@ -180,10 +180,37 @@ public static partial class HtmlPowerPointConverterExtensions {
             picture.AltText = alt;
         }
 
+        for (IElement? parent = image.ParentElement; parent != null; parent = parent.ParentElement) {
+            if (!IsElement(parent, "a")) continue;
+            ApplyPictureHyperlink(picture, parent.GetAttribute("href"), result);
+            break;
+        }
+
         ApplyPictureTransforms(item, picture, budget, result);
         result.Pictures++;
         imageReservation.Commit();
         fallbackTop = Math.Max(fallbackTop, pictureTop + height + 18D);
+    }
+
+    private static void ApplyPictureHyperlink(PptCore.PowerPointPicture picture, string? target, HtmlToPowerPointResult result) {
+        if (target == null || target.Trim().Length == 0) return;
+        string trimmed = target.Trim();
+        if (Uri.TryCreate(trimmed, UriKind.Absolute, out Uri? hyperlink)) {
+            picture.Hyperlink = hyperlink;
+            return;
+        }
+        if (trimmed.StartsWith("#slide-", StringComparison.OrdinalIgnoreCase)
+            && Uri.TryCreate(trimmed, UriKind.Relative, out hyperlink)) {
+            try {
+                picture.SetHyperlink(hyperlink);
+                return;
+            } catch (ArgumentException) {
+                // The target slide has not been created or the fragment is invalid.
+            }
+        }
+        AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentOmitted,
+            "An image hyperlink was not retained because its relative target cannot be resolved in this presentation.",
+            lossKind: OfficeConversionLossKind.Omission, source: target);
     }
 
     private static void ImportChart(IElement item, PptCore.PowerPointSlide slide, HtmlToPowerPointResult result, HtmlImportBudget budget, ref double fallbackTop) {

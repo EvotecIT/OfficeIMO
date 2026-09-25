@@ -365,8 +365,20 @@ public static partial class HtmlExcelConverterExtensions {
         }
 
         ApplyImageTransforms(item, importedImage, budget, result);
+        for (IElement? parent = image.ParentElement; parent != null; parent = parent.ParentElement) {
+            if (!IsElement(parent, "a")) continue;
+            ReportImageHyperlinkLoss(parent.GetAttribute("href"), result);
+            break;
+        }
         result.Images++;
         imageReservation.Commit();
+    }
+
+    private static void ReportImageHyperlinkLoss(string? target, HtmlToExcelResult result) {
+        if (string.IsNullOrWhiteSpace(target)) return;
+        AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentOmitted,
+            "A worksheet image hyperlink was not retained because Excel picture hyperlinks are not yet supported.",
+            lossKind: OfficeConversionLossKind.Omission, source: target);
     }
 
     private static ExcelImage AddTwoCellImage(
