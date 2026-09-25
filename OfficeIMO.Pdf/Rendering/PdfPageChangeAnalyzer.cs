@@ -66,7 +66,7 @@ public static class PdfPageChangeAnalyzer {
             if (actualPage == 0) continue;
             changes[index] = new PdfPageChange(
                 orderedExactExpectedPages.Contains(index + 1) ? PdfPageChangeKind.Unchanged : PdfPageChangeKind.Moved,
-                index + 1, actualPage);
+                index + 1, actualPage, ignoredRegions.Count > 0);
         }
 
         // Pair residual pages inside ordered exact anchors. These pairs require full visual review;

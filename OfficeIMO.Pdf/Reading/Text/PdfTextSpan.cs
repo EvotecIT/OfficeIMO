@@ -63,6 +63,8 @@ public sealed class PdfTextSpan {
     internal Matrix2D? TextToPageTransform { get; }
     internal string? VisualPaintIdentity { get; }
     internal bool HasActualText { get; }
+    internal string? SourceActualText { get; private set; }
+    internal void SetSourceActualText(string text) => SourceActualText = text;
     internal bool IsType3Font { get; }
     internal bool GlyphSequenceProgressesLeftToRight { get; }
     internal bool IsPaintedGlyphProjection { get; private set; }

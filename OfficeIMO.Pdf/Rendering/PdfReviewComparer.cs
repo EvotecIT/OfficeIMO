@@ -29,11 +29,13 @@ internal static class PdfReviewComparer {
 
         PdfDocumentReadResult expectedLogical = PdfDocumentReadEngine.Read(expected, new PdfReadOptions {
             Profile = PdfReadProfile.Fast,
-            PageSelection = PdfPageSelection.From(pairs.Select(static pair => pair.ExpectedPageNumber!.Value).ToArray())
+            PageSelection = PdfPageSelection.From(pairs.Select(static pair => pair.ExpectedPageNumber!.Value).ToArray()),
+            Pipeline = new PdfUnderstandingPipelineOptions { MaxPages = effective.MaxAlignedPagePairs }
         }, cancellationToken);
         PdfDocumentReadResult actualLogical = PdfDocumentReadEngine.Read(actual, new PdfReadOptions {
             Profile = PdfReadProfile.Fast,
-            PageSelection = PdfPageSelection.From(pairs.Select(static pair => pair.ActualPageNumber!.Value).ToArray())
+            PageSelection = PdfPageSelection.From(pairs.Select(static pair => pair.ActualPageNumber!.Value).ToArray()),
+            Pipeline = new PdfUnderstandingPipelineOptions { MaxPages = effective.MaxAlignedPagePairs }
         }, cancellationToken);
 
         long totalPixels = 0;
@@ -46,18 +48,18 @@ internal static class PdfReviewComparer {
             PdfVisualPageComparison? visual = pair.Kind == PdfPageChangeKind.ModifiedCandidate
                 ? PdfVisualComparer.ComparePages(expected, expectedNumber, actual, actualNumber, effective.Visual, ref totalPixels, cancellationToken)
                 : null;
-            if (visual is not null) {
-                totalOutputBytes = checked(totalOutputBytes + visual.OutputByteLength);
-                if (totalOutputBytes > effective.Visual.MaxTotalOutputBytes) {
-                    throw PdfReadLimitException.Create(PdfReadLimitKind.RenderBytes, effective.Visual.MaxTotalOutputBytes, totalOutputBytes);
-                }
-            }
             PdfLogicalPage expectedPage = expectedLogical.PagesBySourcePageNumber[expectedNumber][0];
             PdfLogicalPage actualPage = actualLogical.PagesBySourcePageNumber[actualNumber][0];
             IReadOnlyList<PdfReviewChange> changes = PdfReviewSemanticComparer.Compare(
                 expectedPage, actualPage, visual, effective, cancellationToken);
             var page = new PdfReviewPageComparison(pair, visual, changes);
             if (!page.IsMatch) {
+                if (visual is not null) {
+                    totalOutputBytes = checked(totalOutputBytes + visual.OutputByteLength);
+                    if (totalOutputBytes > effective.Visual.MaxTotalOutputBytes) {
+                        throw PdfReadLimitException.Create(PdfReadLimitKind.RenderBytes, effective.Visual.MaxTotalOutputBytes, totalOutputBytes);
+                    }
+                }
                 if (pair.Kind != PdfPageChangeKind.ModifiedCandidate && ++changedPairCount > effective.MaxChangedPagePairs) {
                     throw PdfReadLimitException.Create(PdfReadLimitKind.UnderstandingArtifacts, effective.MaxChangedPagePairs, changedPairCount);
                 }

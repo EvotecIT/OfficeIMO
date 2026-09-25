@@ -19,11 +19,15 @@ internal static class PdfReviewSemanticComparer {
         bool scanned = IsScan(expected, cancellationToken) || IsScan(actual, cancellationToken);
         CompareText(expected, actual, visual, options, changes, cancellationToken);
         if (scanned) {
-            if (visual is { IsMatch: false }) changes.Add(new PdfReviewChange(PdfReviewChangeKind.ScannedPageUncertain, expectedPage, actualPage, null, null));
+            if (visual is { IsMatch: false } ||
+                options.Visual.IgnoredRegions.Count > 0 && HasDifferentUnignoredScanImages(expected, actual, visual, options, cancellationToken)) {
+                changes.Add(new PdfReviewChange(PdfReviewChangeKind.ScannedPageUncertain, expectedPage, actualPage, null, null));
+            }
             return OrderChanges(changes);
         }
         CompareImages(expected, actual, visual, options, changes, cancellationToken);
-        if (changes.Count == 0 && visual is { IsMatch: false }) {
+        if (visual is { IsMatch: false } &&
+            (visual.HasSizeDifference || HasUnclassifiedPixels(expected, actual, visual, options.Visual, changes, cancellationToken))) {
             changes.Add(new PdfReviewChange(PdfReviewChangeKind.UnclassifiedVisual, expectedPage, actualPage, null, null));
         }
         return OrderChanges(changes);
@@ -37,8 +41,13 @@ internal static class PdfReviewSemanticComparer {
         bool[] usedAfter = new bool[after.Length];
         MatchIdentical(before, after, static feature => feature.Normalized, usedBefore, usedAfter,
             (i, j, distance) => {
-                if (distance > 4D) changes.Add(new PdfReviewChange(PdfReviewChangeKind.TextMoved, expected.PageNumber, actual.PageNumber,
-                    before[i].Bounds, after[j].Bounds, before[i].Text, after[j].Text));
+                if (!string.Equals(before[i].SemanticText, after[j].SemanticText, StringComparison.Ordinal)) {
+                    changes.Add(new PdfReviewChange(PdfReviewChangeKind.TextChanged, expected.PageNumber, actual.PageNumber,
+                        before[i].Bounds, after[j].Bounds, before[i].SemanticText, after[j].SemanticText));
+                } else if (distance > 0.01D) {
+                    changes.Add(new PdfReviewChange(PdfReviewChangeKind.TextMoved, expected.PageNumber, actual.PageNumber,
+                        before[i].Bounds, after[j].Bounds, before[i].Text, after[j].Text));
+                }
             }, cancellationToken);
         for (int i = 0; i < before.Length; i++) {
             if (usedBefore[i]) continue;
@@ -92,7 +101,10 @@ internal static class PdfReviewSemanticComparer {
             if (string.IsNullOrWhiteSpace(block.Text) || block.VisualBounds is null && block.XEnd <= block.XStart) continue;
             PdfLogicalVisualBounds bounds = block.VisualBounds ?? TextBounds(page, block);
             if (IsIgnored(bounds, page, visual, options.Visual)) continue;
-            output.Add(new TextFeature(block.Text, Normalize(block.Text), bounds));
+            string semanticText = block.Spans.Any(static span => span.HasActualText)
+                ? string.Concat(block.Spans.Select(static span => span.SourceActualText ?? span.Text))
+                : block.Text;
+            output.Add(new TextFeature(block.Text, semanticText, Normalize(block.Text), bounds));
         }
         return output.ToArray();
     }
@@ -105,7 +117,7 @@ internal static class PdfReviewSemanticComparer {
             string? hash = null;
             foreach (PdfImagePlacement placement in image.Placements) {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (!TryVisibleImageBounds(page, placement, requireExactClip: false, out PdfLogicalVisualBounds bounds)) continue;
+                if (!TryVisibleImageBounds(page, placement, requireExactClip: true, out PdfLogicalVisualBounds bounds)) continue;
                 if (IsIgnored(bounds, page, visual, options.Visual)) continue;
                 hash ??= Hash(image.SourceImage.EncodedBytes, cancellationToken);
                 output.Add(new ImageFeature(hash, bounds));
@@ -135,10 +147,55 @@ internal static class PdfReviewSemanticComparer {
         foreach (PdfLogicalImage image in page.Images) {
             foreach (PdfImagePlacement placement in image.Placements) {
                 cancellationToken.ThrowIfCancellationRequested();
+                // A skewed or rotated image can cover far less than its axis-aligned bounds.
+                if (Math.Abs(placement.B) > 0.0001D || Math.Abs(placement.C) > 0.0001D) continue;
                 if (TryVisibleImageBounds(page, placement, requireExactClip: true, out PdfLogicalVisualBounds bounds)) visible.Add(bounds);
             }
         }
         return UnionArea(visible, cancellationToken) >= area * 0.75D;
+    }
+
+    private static bool HasDifferentUnignoredScanImages(PdfLogicalPage expected, PdfLogicalPage actual,
+        PdfVisualPageComparison? visual, PdfReviewComparisonOptions options, CancellationToken cancellationToken) {
+        ImageFeature[] before = GetImages(expected, visual, options, cancellationToken);
+        ImageFeature[] after = GetImages(actual, visual, options, cancellationToken);
+        if (before.Length != after.Length) return true;
+        for (int index = 0; index < before.Length; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!string.Equals(before[index].Hash, after[index].Hash, StringComparison.Ordinal) ||
+                Distance(before[index].Bounds, after[index].Bounds) > 0.01D) return true;
+        }
+        return false;
+    }
+
+    private static bool HasUnclassifiedPixels(PdfLogicalPage expected, PdfLogicalPage actual,
+        PdfVisualPageComparison visual, PdfVisualComparisonOptions options,
+        List<PdfReviewChange> changes, CancellationToken cancellationToken) {
+        var classified = new List<PdfPixelRegion>(changes.Count * 2);
+        foreach (PdfReviewChange change in changes) {
+            if (change.ExpectedBounds is PdfLogicalVisualBounds before &&
+                ToPixelRegion(before, expected, visual, options, out PdfPixelRegion expectedRegion)) classified.Add(expectedRegion);
+            if (change.ActualBounds is PdfLogicalVisualBounds after &&
+                ToPixelRegion(after, actual, visual, options, out PdfPixelRegion actualRegion)) classified.Add(actualRegion);
+        }
+        return visual.HasChangedPixelsOutside(classified, cancellationToken);
+    }
+
+    private static bool ToPixelRegion(PdfLogicalVisualBounds bounds, PdfLogicalPage page,
+        PdfVisualPageComparison visual, PdfVisualComparisonOptions options, out PdfPixelRegion region) {
+        (double pageWidth, double pageHeight) = page.GetVisualPageSize();
+        int rasterWidth = checked((int)Math.Ceiling(pageWidth * options.Scale));
+        int rasterHeight = checked((int)Math.Ceiling(pageHeight * options.Scale));
+        int offsetX = options.Alignment == PdfVisualPageAlignment.Center ? (visual.Width - rasterWidth) / 2 : 0;
+        int offsetY = options.Alignment == PdfVisualPageAlignment.Center ? (visual.Height - rasterHeight) / 2 : 0;
+        const int padding = 2;
+        int left = Math.Max(0, checked((int)Math.Floor(bounds.Left * options.Scale)) + offsetX - padding);
+        int top = Math.Max(0, checked((int)Math.Floor(bounds.Top * options.Scale)) + offsetY - padding);
+        int right = Math.Min(visual.Width, checked((int)Math.Ceiling(bounds.Right * options.Scale)) + offsetX + padding);
+        int bottom = Math.Min(visual.Height, checked((int)Math.Ceiling(bounds.Bottom * options.Scale)) + offsetY + padding);
+        if (right <= left || bottom <= top) { region = default; return false; }
+        region = new PdfPixelRegion(left, top, right - left, bottom - top);
+        return true;
     }
 
     private static bool TryVisibleImageBounds(PdfLogicalPage page, PdfImagePlacement placement,
@@ -307,8 +364,14 @@ internal static class PdfReviewSemanticComparer {
 
     private interface IBoundedFeature { PdfLogicalVisualBounds Bounds { get; } }
     private sealed class TextFeature : IBoundedFeature {
-        internal TextFeature(string text, string normalized, PdfLogicalVisualBounds bounds) { Text = text; Normalized = normalized; Bounds = bounds; }
+        internal TextFeature(string text, string semanticText, string normalized, PdfLogicalVisualBounds bounds) {
+            Text = text;
+            SemanticText = semanticText;
+            Normalized = normalized;
+            Bounds = bounds;
+        }
         internal string Text { get; }
+        internal string SemanticText { get; }
         internal string Normalized { get; }
         public PdfLogicalVisualBounds Bounds { get; }
     }

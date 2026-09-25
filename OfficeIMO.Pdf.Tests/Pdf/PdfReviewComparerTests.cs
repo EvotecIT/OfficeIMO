@@ -26,6 +26,39 @@ public sealed class PdfReviewComparerTests {
     }
 
     [Fact]
+    public void MixedTextAndVectorChangeRetainsUnclassifiedVisualEvidence() {
+        PdfDocument expected = TextAndVector("Original", OfficeIMO.Drawing.OfficeColor.Black);
+        PdfDocument actual = TextAndVector("Revised", OfficeIMO.Drawing.OfficeColor.Red);
+
+        PdfReviewPageComparison page = Assert.Single(expected.Proof.CompareReview(actual).Pages);
+
+        Assert.Contains(page.Changes, static change => change.Kind == PdfReviewChangeKind.TextChanged);
+        Assert.Contains(page.Changes, static change => change.Kind == PdfReviewChangeKind.UnclassifiedVisual);
+    }
+
+    [Fact]
+    public void ToleratedPageDoesNotSpendRetainedArtifactByteBudget() {
+        var options = new PdfReviewComparisonOptions();
+        options.Visual.AllowedDifferenceRatio = 1D;
+        options.Visual.MaxTotalOutputBytes = 1L;
+
+        PdfReviewComparisonReport report = TextAndVector("Same", OfficeIMO.Drawing.OfficeColor.Black)
+            .Proof.CompareReview(TextAndVector("Same", OfficeIMO.Drawing.OfficeColor.Red), options);
+
+        Assert.True(report.IsMatch);
+        Assert.Empty(report.Pages);
+    }
+
+    private static PdfDocument TextAndVector(string text, OfficeIMO.Drawing.OfficeColor color) {
+        var rectangle = OfficeIMO.Drawing.OfficeShape.Rectangle(30D, 30D);
+        rectangle.FillColor = color;
+        rectangle.StrokeColor = null;
+        return PdfDocument.Load(PdfDocument.Create(new PdfOptions { PageWidth = 240D, PageHeight = 180D })
+            .Canvas(canvas => canvas.Text(text, 20D, 20D, 100D, 20D).Shape(rectangle, 180D, 110D))
+            .ToBytes());
+    }
+
+    [Fact]
     public void ClassifiesMovedTextAndReportsPageInsertionSeparately() {
         PdfReviewComparisonReport moved = Page("Move me", 20D).Proof.CompareReview(Page("Move me", 80D));
         Assert.Equal(PdfReviewChangeKind.TextMoved, Assert.Single(Assert.Single(moved.Pages).Changes).Kind);
@@ -91,6 +124,31 @@ public sealed class PdfReviewComparerTests {
     }
 
     [Fact]
+    public void DetectsChangedActualTextWhitespaceWhenRenderedPixelsMatch() {
+        PdfDocument expected = PdfDocument.Load(InvisibleTextPdf("Visible", actualTextHex: "FEFF004100200042"));
+        PdfDocument actual = PdfDocument.Load(InvisibleTextPdf("Visible", actualTextHex: "FEFF004100A00042"));
+
+        Assert.Equal("A B", Assert.Single(PdfReadDocument.Open(expected.ToBytes()).Pages[0].GetTextSpans()).SourceActualText);
+        Assert.Equal("A\u00a0B", Assert.Single(PdfReadDocument.Open(actual.ToBytes()).Pages[0].GetTextSpans()).SourceActualText);
+
+        PdfReviewPageComparison page = Assert.Single(expected.Proof.CompareReview(actual).Pages);
+
+        PdfReviewChange change = Assert.Single(page.Changes);
+        Assert.Equal(PdfReviewChangeKind.TextChanged, change.Kind);
+        Assert.Equal("A B", change.ExpectedText);
+        Assert.Equal("A\u00a0B", change.ActualText);
+    }
+
+    [Fact]
+    public void SmallInvisibleTextMoveRemainsASemanticChange() {
+        PdfDocument expected = PdfDocument.Load(InvisibleTextPdf("Searchable  text", y: 90D));
+        PdfDocument moved = PdfDocument.Load(InvisibleTextPdf("Searchable  text", y: 92D));
+
+        Assert.Contains(Assert.Single(expected.Proof.CompareReview(moved).Pages).Changes,
+            static change => change.Kind == PdfReviewChangeKind.TextMoved);
+    }
+
+    [Fact]
     public void AlignsReorderedPagesUsingTheSelectedIgnoreRegion() {
         PdfDocument expected = PagesWithHeaders(("Old A", "Alpha"), ("Old B", "Bravo"));
         PdfDocument actual = PagesWithHeaders(("New B", "Bravo"), ("New A", "Alpha"));
@@ -101,9 +159,9 @@ public sealed class PdfReviewComparerTests {
 
         Assert.Empty(report.Pages);
         Assert.Contains(report.PageAlignment.Changes, static change =>
-            change.ExpectedPageNumber == 1 && change.ActualPageNumber == 2 && change.IsExactRenderedMatch);
+            change.ExpectedPageNumber == 1 && change.ActualPageNumber == 2 && change.UsesIgnoredRegions && !change.IsExactRenderedMatch);
         Assert.Contains(report.PageAlignment.Changes, static change =>
-            change.ExpectedPageNumber == 2 && change.ActualPageNumber == 1 && change.IsExactRenderedMatch);
+            change.ExpectedPageNumber == 2 && change.ActualPageNumber == 1 && change.UsesIgnoredRegions && !change.IsExactRenderedMatch);
     }
 
     [Fact]
@@ -282,7 +340,22 @@ public sealed class PdfReviewComparerTests {
         Assert.Empty(report.Pages);
     }
 
-    private static byte[] ImageWithPaintStatePdf(string pixels, string content, bool withZeroOpacity = false) =>
+    [Fact]
+    public void PartiallyMaskedScanWithChangedImagePayloadRemainsUncertain() {
+        const string content = "q 240 0 0 180 0 0 cm /Im0 Do Q\n";
+        PdfDocument expected = PdfDocument.Load(ImageWithPaintStatePdf("ABCDEF", content, width: 2));
+        PdfDocument actual = PdfDocument.Load(ImageWithPaintStatePdf("XYZDEF", content, width: 2));
+        var options = new PdfReviewComparisonOptions();
+        options.Visual.IgnoredRegions.Add(new PdfPixelRegion(0, 0, 130, 180));
+
+        PdfReviewComparisonReport report = expected.Proof.CompareReview(actual, options);
+
+        Assert.False(report.IsMatch);
+        Assert.Contains(Assert.Single(report.Pages).Changes,
+            static change => change.Kind == PdfReviewChangeKind.ScannedPageUncertain);
+    }
+
+    private static byte[] ImageWithPaintStatePdf(string pixels, string content, bool withZeroOpacity = false, int width = 1) =>
         System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
             "%PDF-1.7",
             "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
@@ -290,7 +363,7 @@ public sealed class PdfReviewComparerTests {
             "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /XObject << /Im0 5 0 R >>" +
                 (withZeroOpacity ? " /ExtGState << /GS0 6 0 R >>" : string.Empty) + " >> /Contents 4 0 R >>", "endobj",
             "4 0 obj", "<< /Length " + System.Text.Encoding.ASCII.GetByteCount(content) + " >>", "stream", content.TrimEnd('\n'), "endstream", "endobj",
-            "5 0 obj", "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length 3 >>", "stream", pixels, "endstream", "endobj",
+            "5 0 obj", $"<< /Type /XObject /Subtype /Image /Width {width} /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length {pixels.Length} >>", "stream", pixels, "endstream", "endobj",
             withZeroOpacity ? "6 0 obj\n<< /Type /ExtGState /ca 0 >>\nendobj" : string.Empty,
             "trailer", withZeroOpacity ? "<< /Root 1 0 R /Size 7 >>" : "<< /Root 1 0 R /Size 6 >>", "%%EOF", string.Empty
         }));
@@ -354,9 +427,12 @@ public sealed class PdfReviewComparerTests {
         return PdfDocument.Load(document.ToBytes());
     }
 
-    private static byte[] InvisibleTextPdf(string text, bool rotated = false) {
-        string position = rotated ? "0 1 -1 0 100 20 Tm " : "20 90 Td ";
-        byte[] content = System.Text.Encoding.ASCII.GetBytes("BT /F1 12 Tf 3 Tr " + position + "(" + text + ") Tj ET\n");
+    private static byte[] InvisibleTextPdf(string text, bool rotated = false, double y = 90D,
+        string? actualTextHex = null) {
+        string position = rotated ? "0 1 -1 0 100 20 Tm " : "20 " + y.ToString(System.Globalization.CultureInfo.InvariantCulture) + " Td ";
+        string prefix = actualTextHex is null ? string.Empty : "/Span << /ActualText <" + actualTextHex + "> >> BDC ";
+        string suffix = actualTextHex is null ? string.Empty : " EMC";
+        byte[] content = System.Text.Encoding.ASCII.GetBytes(prefix + "BT /F1 12 Tf 3 Tr " + position + "(" + text + ") Tj ET" + suffix + "\n");
         using var stream = new System.IO.MemoryStream();
         void Write(string value) {
             byte[] bytes = System.Text.Encoding.ASCII.GetBytes(value);
