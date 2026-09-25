@@ -5,12 +5,12 @@ public sealed class OdsRowRun {
     private readonly OdsDocument _document;
     private readonly XElement _element;
     private readonly Func<long, string?>? _inheritedStyleResolver;
-    private readonly IReadOnlyList<OdsColumnRun>? _columnRuns;
+    private readonly Func<IReadOnlyList<OdsColumnRun>>? _columnRunsProvider;
     internal OdsRowRun(OdsDocument document, XElement element, long startRow, long repeatCount,
-        Func<long, string?>? inheritedStyleResolver = null, IReadOnlyList<OdsColumnRun>? columnRuns = null) {
+        Func<long, string?>? inheritedStyleResolver = null, Func<IReadOnlyList<OdsColumnRun>>? columnRunsProvider = null) {
         _document = document; _element = element; StartRow = startRow; RepeatCount = repeatCount;
         _inheritedStyleResolver = inheritedStyleResolver;
-        _columnRuns = columnRuns;
+        _columnRunsProvider = columnRunsProvider;
     }
     /// <summary>Zero-based first logical row.</summary>
     public long StartRow { get; }
@@ -20,22 +20,23 @@ public sealed class OdsRowRun {
     public IReadOnlyList<OdsCellRun> CellRuns {
         get {
             var runs = new List<OdsCellRun>();
+            IReadOnlyList<OdsColumnRun>? columnRuns = _columnRunsProvider?.Invoke();
             long start = 0;
             int columnRunIndex = 0;
             foreach (XElement cell in OdsSheet.CellElements(_element)) {
                 long count = OdsRepeatModel.Read(cell, OdfNamespaces.Table + "number-columns-repeated");
                 long end = checked(start + count);
-                bool usesColumnDefault = _columnRuns != null
+                bool usesColumnDefault = columnRuns != null
                     && cell.Attribute(OdfNamespaces.Table + "style-name") == null
                     && _element.Attribute(OdfNamespaces.Table + "default-cell-style-name") == null;
                 for (long column = start; column < end;) {
                     long boundary = end;
                     if (usesColumnDefault) {
-                        while (columnRunIndex < _columnRuns!.Count
-                            && checked(_columnRuns[columnRunIndex].StartColumn + _columnRuns[columnRunIndex].RepeatCount) <= column)
+                        while (columnRunIndex < columnRuns!.Count
+                            && checked(columnRuns[columnRunIndex].StartColumn + columnRuns[columnRunIndex].RepeatCount) <= column)
                             columnRunIndex++;
-                        if (columnRunIndex < _columnRuns.Count) {
-                            OdsColumnRun definition = _columnRuns[columnRunIndex];
+                        if (columnRunIndex < columnRuns.Count) {
+                            OdsColumnRun definition = columnRuns[columnRunIndex];
                             boundary = Math.Min(end, column < definition.StartColumn
                                 ? definition.StartColumn
                                 : checked(definition.StartColumn + definition.RepeatCount));

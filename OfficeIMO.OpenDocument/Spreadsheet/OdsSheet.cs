@@ -75,12 +75,11 @@ public sealed partial class OdsSheet {
     public IReadOnlyList<OdsRowRun> RowRuns {
         get {
             var runs = new List<OdsRowRun>();
-            IReadOnlyList<OdsColumnRun> columns = ColumnRuns;
             long start = 0;
             foreach (XElement row in RowElements()) {
                 long repeat = OdsRepeatModel.Read(row, OdfNamespaces.Table + "number-rows-repeated");
                 runs.Add(new OdsRowRun(_document, row, start, repeat,
-                    column => GetDefaultCellStyleName(row, column), columns));
+                    column => GetDefaultCellStyleName(row, column), () => ColumnRuns));
                 start = checked(start + repeat);
             }
             return runs;

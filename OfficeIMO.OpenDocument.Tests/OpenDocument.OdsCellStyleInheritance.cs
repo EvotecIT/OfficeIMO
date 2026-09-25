@@ -146,6 +146,28 @@ public sealed class OdsCellStyleInheritanceTests {
     }
 
     [Fact]
+    public void RetainedRowRunRecomputesColumnStyleBoundariesAfterEdit() {
+        OdsDocument document = OdsDocument.Create();
+        OdfStyle left = document.Styles.CreateNamed("Left", OdfStyleFamily.TableCell);
+        OdfStyle right = document.Styles.CreateNamed("Right", OdfStyleFamily.TableCell);
+        OdsSheet sheet = document.AddSheet("Data");
+        sheet.Cell(0, 0).SetString("Same");
+        XElement cell = document.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Table + "table-cell").Single();
+        cell.SetAttributeValue(OdfNamespaces.Table + "number-columns-repeated", 4);
+        document.MarkPartDirty("content.xml");
+        OdsRowRun retainedRow = sheet.RowRuns.Single();
+        Assert.DoesNotContain(retainedRow.CellRuns, run => run.StartColumn == 3);
+
+        sheet.Column(0).DefaultCellStyleName = left.Name;
+        sheet.Column(3).DefaultCellStyleName = right.Name;
+
+        OdsCellRun[] runs = retainedRow.CellRuns.ToArray();
+        Assert.Contains(runs, run => run.StartColumn == 3 && run.EffectiveStyleName == right.Name);
+        Assert.Equal(left.Name, runs[0].EffectiveStyleName);
+    }
+
+    [Fact]
     public void ExplicitValueTypeAlignmentSurvivesEitherSetterOrder() {
         OdsDocument document = OdsDocument.Create();
         OdfStyle first = document.Styles.CreateNamed("First", OdfStyleFamily.TableCell);
