@@ -145,10 +145,13 @@ dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmar
 ```
 
 Choose a page you are permitted to capture and retain, and use new output
-directories. The live capture waits for `DOMContentLoaded` plus one second; it
-does not establish readiness for every scripted application. The replay is the
-comparable input: Chromium opens the frozen MHTML offline, while OfficeIMO emits
-print, screen-media-paged and screen-snapshot-paged PDFs and PeachPDF emits a
+directories. The live capture waits for `DOMContentLoaded` plus one second,
+then promotes lazy images in batches of eight and waits up to 15 seconds for
+them to settle. The JSON records the image counts, including failed and pending
+loads; pending images fail the capture. This still does not establish readiness
+for every scripted application, and an origin may reject image requests. The
+replay is the comparable input: Chromium opens the frozen MHTML offline, while
+OfficeIMO emits print, screen-media-paged and screen-snapshot-paged PDFs and PeachPDF emits a
 print PDF. The print diagnostics also include `officeimo-print-zero-margin`,
 which removes OfficeIMO's default page margins, and
 `officeimo-print-zero-margin-local-fonts`, which additionally opts in to

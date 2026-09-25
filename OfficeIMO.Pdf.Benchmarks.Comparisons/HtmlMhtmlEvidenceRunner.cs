@@ -76,6 +76,7 @@ internal static class HtmlMhtmlEvidenceRunner {
         var failures = new List<string>();
         string? finalUrl = null;
         string? chromiumVersion = null;
+        ImageReadiness? imageReadiness = null;
         byte[] archive;
         if (replay) {
             archive = await File.ReadAllBytesAsync(Path.GetFullPath(args[2])).ConfigureAwait(false);
@@ -100,6 +101,10 @@ internal static class HtmlMhtmlEvidenceRunner {
             if (response == null || !response.Ok) throw new InvalidOperationException("Page navigation failed: " + response?.Status);
             finalUrl = browser.Page.Url;
             await browser.Page.WaitForTimeoutAsync(1000).ConfigureAwait(false);
+            imageReadiness = await PrepareImagesForCaptureAsync(browser.Page).ConfigureAwait(false);
+            if (imageReadiness.Pending > 0) {
+                failures.Add("Live image capture left " + imageReadiness.Pending + " image(s) pending after the bounded readiness window.");
+            }
             ICDPSession session = await browser.Page.Context.NewCDPSessionAsync(browser.Page).ConfigureAwait(false);
             try {
                 JsonElement? result = await session.SendAsync("Page.captureSnapshot", new Dictionary<string, object> {
@@ -192,7 +197,9 @@ internal static class HtmlMhtmlEvidenceRunner {
             finalUrl,
             runUtc = DateTimeOffset.UtcNow,
             sourceMode = replay ? "frozen-mhtml-replay" : "live-browser-capture",
-            readinessPolicy = replay ? "offline archive navigation at DOMContentLoaded" : "live navigation at DOMContentLoaded plus 1000 ms",
+            readinessPolicy = replay ? "offline archive navigation at DOMContentLoaded"
+                : "live navigation at DOMContentLoaded plus 1000 ms; eager lazy images in batches of 8 for up to 15000 ms",
+            imageReadiness,
             browserReference = replay && !replayBrowser ? "not-recorded" : "offline-archive-replay",
             sourceCommit,
             worktreeDirty,
@@ -218,6 +225,46 @@ internal static class HtmlMhtmlEvidenceRunner {
         Console.WriteLine("HTML_MHTML_EVIDENCE_REPORT=" + reportPath);
         foreach (string failure in failures) Console.Error.WriteLine("EVIDENCE FAILURE: " + failure);
         return failures.Count == 0 ? 0 : 1;
+    }
+
+    private static Task<ImageReadiness> PrepareImagesForCaptureAsync(IPage page) =>
+        page.EvaluateAsync<ImageReadiness>("""
+            async () => {
+                const images = Array.from(document.images);
+                const deferred = images.filter(image => image.loading === 'lazy');
+                const settle = image => new Promise(resolve => {
+                    if (image.complete) { resolve(); return; }
+                    image.addEventListener('load', resolve, { once: true });
+                    image.addEventListener('error', resolve, { once: true });
+                    if (image.complete) resolve();
+                });
+                const deadline = Date.now() + 15000;
+                let promoted = 0;
+                for (let index = 0; index < deferred.length && Date.now() < deadline; index += 8) {
+                    const batch = deferred.slice(index, index + 8);
+                    for (const image of batch) { image.loading = 'eager'; promoted++; }
+                    await Promise.race([
+                        Promise.all(batch.map(settle)),
+                        new Promise(resolve => setTimeout(resolve, deadline - Date.now()))
+                    ]);
+                }
+                return {
+                    total: images.length,
+                    promoted,
+                    loaded: images.filter(image => image.complete && image.naturalWidth > 0).length,
+                    failed: images.filter(image => image.complete && image.naturalWidth === 0).length,
+                    pending: images.filter(image => !image.complete).length
+                };
+            }
+            """);
+
+    private sealed class ImageReadiness {
+        public ImageReadiness() { }
+        public int Total { get; set; }
+        public int Promoted { get; set; }
+        public int Loaded { get; set; }
+        public int Failed { get; set; }
+        public int Pending { get; set; }
     }
 
     private static Task<PdfCore.PdfDocumentConversionResult> RenderScreenPdfAsync(MhtmlDocument document, HtmlRenderIntentProfile profile, bool allowDocumentFontEmbedding = false) {
