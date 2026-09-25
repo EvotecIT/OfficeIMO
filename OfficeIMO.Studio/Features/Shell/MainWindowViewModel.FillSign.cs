@@ -103,7 +103,7 @@ public sealed partial class MainWindowViewModel {
                 while (target.Count > StudioSignatureStore.MaximumPerKind) {
                     _services.Signatures.Delete(target[^1].Saved);
                 }
-            } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException) {
+            } catch (Exception ex) when (IsSignatureStorageFailure(ex) || ex is ArgumentException) {
                 ErrorMessage = UiFormat("FillSign.SaveFailed", ex.Message);
             }
         }
@@ -121,12 +121,17 @@ public sealed partial class MainWindowViewModel {
         if (signature is null) return;
         try {
             _services.Signatures.Delete(signature.Saved);
-        } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) {
+        } catch (Exception ex) when (IsSignatureStorageFailure(ex)) {
             ErrorMessage = UiFormat("FillSign.SaveFailed", ex.Message);
             return;
         }
         EnsureSignaturesLoaded();
     }
+
+    private static bool IsSignatureStorageFailure(Exception exception) =>
+        exception is IOException or UnauthorizedAccessException ||
+        exception is AggregateException { InnerExceptions.Count: > 0 } aggregate &&
+        aggregate.InnerExceptions.All(IsSignatureStorageFailure);
 
     [RelayCommand]
     private void PlaceDate() {

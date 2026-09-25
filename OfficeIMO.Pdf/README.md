@@ -618,6 +618,11 @@ IReadOnlyList<PdfImagePlacement> placements = pdf.Images.Placements("1-2");
 IReadOnlyList<PdfExtractedAttachment> attachments = pdf.Attachments.Extract();
 ```
 
+For documents with many embedded images, `pdf.Images.Visit(image => { ... }, cancellationToken)`
+processes images one at a time. Inside the callback, `image.CopyTo(output, cancellationToken)`
+copies its file bytes to a stream without cloning the payload. Check `image.IsImageFile`
+before saving it as a standalone image file.
+
 When the application needs only one embedded file, select its metadata from
 `pdf.Inspect().Attachments` and call `pdf.Attachments.Extract(selected, maximumDecodedBytes)`.
 This bounds the selected decoded payload and avoids decoding the other files.

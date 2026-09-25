@@ -51,6 +51,7 @@ public sealed partial class PdfWorkspaceTests {
             Assert.Equal(1, await workspace.ExportDocumentAsync(PdfExportKind.Images, output, CancellationToken.None));
             Assert.Equal(sentinel, File.ReadAllBytes(occupied));
             Assert.Equal(3, Directory.GetFiles(output).Length);
+            Assert.Empty(Directory.GetDirectories(output, ".officeimo-image-export-*"));
         } finally { Directory.Delete(root, recursive: true); }
     }
 

@@ -100,37 +100,7 @@ internal sealed partial class PdfWorkspace {
         IReadOnlyDictionary<string, PdfFormFieldValue>? formDrafts = null) {
         PdfDocument snapshot = CreateDocumentSnapshot();
         if (kind == PdfExportKind.Images) {
-            IReadOnlyList<PdfExtractedImage> images = await RunCancellableCpuWorkAsync(
-                () => PdfReadDocument.Open(snapshot.ToBytes(), _readOptions).ExtractImages().Where(image => image.IsImageFile).ToArray(),
-                cancellationToken).ConfigureAwait(false);
-            if (images.Count == 0) throw new InvalidOperationException("This document has no embedded images that can be saved as image files.");
-            destination = OfficeIMO.Internal.OfficeStorageIdentity.GetLocalPath(destination)
-                ?? throw new System.IO.IOException("Choose a folder on this computer to save the images.");
-            System.IO.Directory.CreateDirectory(destination);
-            string baseName = OfficeIMO.Core.Internal.OfficePortableFileName.SanitizeBaseName(
-                System.IO.Path.GetFileNameWithoutExtension(FileName), maximumLength: 80);
-            if (baseName.Length == 0) baseName = "document";
-            string[] names = new string[images.Count];
-            for (int batch = 0; ; batch++) {
-                if (batch == int.MaxValue) throw new IOException("No available image export names remain in this folder.");
-                string prefix = batch == 0 ? baseName : string.Create(CultureInfo.InvariantCulture, $"{baseName}-{batch}");
-                for (int index = 0; index < images.Count; index++) {
-                    PdfExtractedImage image = images[index];
-                    names[index] = string.Create(CultureInfo.InvariantCulture,
-                        $"{prefix}-p{image.PageNumber}-{index + 1}{image.FileExtension ?? ".bin"}");
-                }
-                if (names.All(name => !System.IO.File.Exists(System.IO.Path.Combine(destination, name)) &&
-                                      !System.IO.Directory.Exists(System.IO.Path.Combine(destination, name)))) break;
-            }
-            for (int index = 0; index < images.Count; index++) {
-                cancellationToken.ThrowIfCancellationRequested();
-                PdfExtractedImage image = images[index];
-                byte[] payload = image.Bytes;
-                await WriteWorkspaceOutputAsync(System.IO.Path.Combine(destination, names[index]),
-                    (stream, token) => stream.WriteAsync(payload.AsMemory(), token).AsTask(), cancellationToken,
-                    conflictPolicy: OfficeIMO.Core.Internal.OfficeFileCommit.ConflictPolicy.FailIfExists).ConfigureAwait(false);
-            }
-            return images.Count;
+            return await ExportImagesAsync(snapshot, destination, cancellationToken).ConfigureAwait(false);
         }
         string content = await RunCancellableCpuWorkAsync(() => kind switch {
             PdfExportKind.Markdown => snapshot.Read(cancellationToken: cancellationToken).ExportStructured(PdfStructuredExportFormat.Markdown),

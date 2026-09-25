@@ -202,9 +202,15 @@ public sealed partial class MainWindowViewModel {
         int page = SelectedPage?.PageNumber ?? 1;
         string title = UiFormat("Bookmarks.DefaultTitle", page);
         PdfBookmarkViewModel? anchor = SelectedBookmark is { IsEditable: true } selected ? selected : null;
+        string? parentId = anchor?.ParentId;
+        int insertionIndex = anchor is null
+            ? Bookmarks.Count(item => item.IsEditable && item.ParentId is null)
+            : anchor.Index + 1;
         // New entries go after the selection at the same level, or at the end of the outline.
-        return EditBookmarksAsync([page], session => session.Move(session.Add(title, page).Id, anchor?.ParentId, anchor is null ? -1 : anchor.Index + 1),
-            cancellationToken, selectAfter: bookmarks => bookmarks.LastOrDefault(item => item.Title == title && item.PageNumber == page));
+        return EditBookmarksAsync([page], session => session.Move(session.Add(title, page).Id, parentId, anchor is null ? -1 : insertionIndex),
+            cancellationToken, selectAfter: bookmarks => bookmarks.FirstOrDefault(item =>
+                item.IsEditable && item.ParentId == parentId && item.Index == insertionIndex &&
+                item.Title == title && item.PageNumber == page));
     }
 
     private bool CanEditSelectedBookmark() => CanEditBookmarks && HasEditableBookmarkSelection;

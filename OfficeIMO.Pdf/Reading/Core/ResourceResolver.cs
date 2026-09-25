@@ -272,6 +272,19 @@ internal static partial class ResourceResolver {
 
     internal static IReadOnlyList<PdfExtractedImage> GetImageXObjectsForResources(PdfDictionary resources, Dictionary<int, PdfIndirectObject> objects, int pageNumber, IReadOnlyList<PdfImagePlacement>? imagePlacements = null, bool colorizeImageMasks = false, PdfReadLimits? limits = null, PdfOutputIntentColorTransform? outputIntentColorTransform = null, Func<int, long, bool>? colorFunctionEvaluationBudget = null, PdfColorFunctionResolutionContext? functionResolutionContext = null, CancellationToken cancellationToken = default) {
         var result = new List<PdfExtractedImage>();
+        VisitImageXObjectsForResources(resources, objects, pageNumber, result.Add, imagePlacements, colorizeImageMasks,
+            limits, outputIntentColorTransform, colorFunctionEvaluationBudget, functionResolutionContext, cancellationToken);
+        return result;
+    }
+
+    internal static void VisitImageXObjectsForResources(PdfDictionary resources, Dictionary<int, PdfIndirectObject> objects,
+        int pageNumber, Action<PdfExtractedImage> emit, IReadOnlyList<PdfImagePlacement>? imagePlacements = null,
+        bool colorizeImageMasks = false, PdfReadLimits? limits = null,
+        PdfOutputIntentColorTransform? outputIntentColorTransform = null,
+        Func<int, long, bool>? colorFunctionEvaluationBudget = null,
+        PdfColorFunctionResolutionContext? functionResolutionContext = null,
+        CancellationToken cancellationToken = default) {
+        Guard.NotNull(emit, nameof(emit));
         Dictionary<string, List<PdfImagePlacement>>? placedImagesByKey = null;
         Dictionary<string, List<PdfImagePlacement>>? placedImagesByResourceNameWithoutIdentity = null;
         if (imagePlacements is not null) {
@@ -291,11 +304,10 @@ internal static partial class ResourceResolver {
 
         PdfReadLimits effectiveLimits = limits ?? PdfReadLimits.Default;
         int traversedObjects = 0;
-        CollectImageXObjectsFromResources(resources, objects, pageNumber, result, new HashSet<(PdfStream Stream, PdfDictionary Resources)>(), new HashSet<string>(System.StringComparer.Ordinal), placedImagesByKey, placedImagesByResourceNameWithoutIdentity, colorizeImageMasks, effectiveLimits, outputIntentColorTransform, colorFunctionEvaluationBudget, functionResolutionContext, depth: 0, ref traversedObjects, cancellationToken);
-        return result;
+        CollectImageXObjectsFromResources(resources, objects, pageNumber, emit, new HashSet<(PdfStream Stream, PdfDictionary Resources)>(), new HashSet<string>(System.StringComparer.Ordinal), placedImagesByKey, placedImagesByResourceNameWithoutIdentity, colorizeImageMasks, effectiveLimits, outputIntentColorTransform, colorFunctionEvaluationBudget, functionResolutionContext, depth: 0, ref traversedObjects, cancellationToken);
     }
 
-    private static void CollectImageXObjectsFromResources(PdfDictionary resources, Dictionary<int, PdfIndirectObject> objects, int pageNumber, List<PdfExtractedImage> result, HashSet<(PdfStream Stream, PdfDictionary Resources)> visitedFormContexts, HashSet<string> addedImageKeys, Dictionary<string, List<PdfImagePlacement>>? placedImagesByKey, Dictionary<string, List<PdfImagePlacement>>? placedImagesByResourceNameWithoutIdentity, bool colorizeImageMasks, PdfReadLimits limits, PdfOutputIntentColorTransform? outputIntentColorTransform, Func<int, long, bool>? colorFunctionEvaluationBudget, PdfColorFunctionResolutionContext? functionResolutionContext, int depth, ref int traversedObjects, CancellationToken cancellationToken) {
+    private static void CollectImageXObjectsFromResources(PdfDictionary resources, Dictionary<int, PdfIndirectObject> objects, int pageNumber, Action<PdfExtractedImage> emit, HashSet<(PdfStream Stream, PdfDictionary Resources)> visitedFormContexts, HashSet<string> addedImageKeys, Dictionary<string, List<PdfImagePlacement>>? placedImagesByKey, Dictionary<string, List<PdfImagePlacement>>? placedImagesByResourceNameWithoutIdentity, bool colorizeImageMasks, PdfReadLimits limits, PdfOutputIntentColorTransform? outputIntentColorTransform, Func<int, long, bool>? colorFunctionEvaluationBudget, PdfColorFunctionResolutionContext? functionResolutionContext, int depth, ref int traversedObjects, CancellationToken cancellationToken) {
         if (depth > limits.MaxContentNestingDepth) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.ContentNestingDepth, limits.MaxContentNestingDepth, depth);
         }
@@ -363,7 +375,7 @@ internal static partial class ResourceResolver {
                             renderingIntent);
                         if (!addedImageKeys.Add(imageKey)) continue;
 
-                        result.Add(BuildExtractedImage(
+                        emit(BuildExtractedImage(
                             pageNumber,
                             kv.Key,
                             objectNumber,
@@ -387,7 +399,7 @@ internal static partial class ResourceResolver {
                             continue;
                         }
 
-                        result.Add(BuildExtractedImage(pageNumber, kv.Key, objectNumber, directStreamIdentity, stream, objects, resources: resources, maxDecodedStreamBytes: limits.MaxDecodedStreamBytes, outputIntentColorTransform: outputIntentColorTransform, colorFunctionEvaluationBudget: colorFunctionEvaluationBudget, functionResolutionContext: functionResolutionContext, cancellationToken: cancellationToken, maxImageReferenceSteps: limits.MaxImageReferenceSteps));
+                        emit(BuildExtractedImage(pageNumber, kv.Key, objectNumber, directStreamIdentity, stream, objects, resources: resources, maxDecodedStreamBytes: limits.MaxDecodedStreamBytes, outputIntentColorTransform: outputIntentColorTransform, colorFunctionEvaluationBudget: colorFunctionEvaluationBudget, functionResolutionContext: functionResolutionContext, cancellationToken: cancellationToken, maxImageReferenceSteps: limits.MaxImageReferenceSteps));
                     } else {
                         List<EffectiveImageIntent> effectiveIntents = GetDistinctImageIntents(
                             matchingPlacements,
@@ -400,7 +412,7 @@ internal static partial class ResourceResolver {
                                 continue;
                             }
 
-                            result.Add(BuildExtractedImage(
+                            emit(BuildExtractedImage(
                                 pageNumber,
                                 kv.Key,
                                 objectNumber,
@@ -436,7 +448,7 @@ internal static partial class ResourceResolver {
                 continue;
             }
 
-            CollectImageXObjectsFromResources(formResources, objects, pageNumber, result, visitedFormContexts, addedImageKeys, placedImagesByKey, placedImagesByResourceNameWithoutIdentity, colorizeImageMasks, limits, outputIntentColorTransform, colorFunctionEvaluationBudget, functionResolutionContext, depth + 1, ref traversedObjects, cancellationToken);
+            CollectImageXObjectsFromResources(formResources, objects, pageNumber, emit, visitedFormContexts, addedImageKeys, placedImagesByKey, placedImagesByResourceNameWithoutIdentity, colorizeImageMasks, limits, outputIntentColorTransform, colorFunctionEvaluationBudget, functionResolutionContext, depth + 1, ref traversedObjects, cancellationToken);
         }
     }
 

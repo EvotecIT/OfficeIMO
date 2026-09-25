@@ -79,6 +79,28 @@ public sealed class StudioDocumentStructureTests {
     }
 
     [Fact]
+    public async Task AddingBetweenDuplicateBookmarksSelectsTheInsertedEntry() {
+        string root = CreateRoot();
+        string path = CreateDocument(root);
+        try {
+            using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
+            await model.OpenDocumentAsync(path);
+            model.SelectedPage = model.Pages[0];
+            await model.AddBookmarkCommand.ExecuteAsync(null);
+            await model.AddBookmarkCommand.ExecuteAsync(null);
+            model.SelectedBookmark = model.Bookmarks[0];
+
+            await model.AddBookmarkCommand.ExecuteAsync(null);
+
+            Assert.Equal(1, model.SelectedBookmark?.Index);
+            Assert.Equal(model.Bookmarks[1], model.SelectedBookmark);
+            model.BookmarkTitleDraft = "Inserted";
+            await model.RenameBookmarkCommand.ExecuteAsync(null);
+            Assert.Equal(["Page 1", "Inserted", "Page 1"], model.Bookmarks.Select(item => item.Title));
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
     public async Task PageNavigationRefreshesBookmarkRetargetAvailability() {
         string root = CreateRoot();
         string path = CreateDocument(root);
