@@ -4,8 +4,11 @@ namespace OfficeIMO.OpenDocument;
 public sealed class OdsRowRun {
     private readonly OdsDocument _document;
     private readonly XElement _element;
-    internal OdsRowRun(OdsDocument document, XElement element, long startRow, long repeatCount) {
+    private readonly Func<long, string?>? _inheritedStyleResolver;
+    internal OdsRowRun(OdsDocument document, XElement element, long startRow, long repeatCount,
+        Func<long, string?>? inheritedStyleResolver = null) {
         _document = document; _element = element; StartRow = startRow; RepeatCount = repeatCount;
+        _inheritedStyleResolver = inheritedStyleResolver;
     }
     /// <summary>Zero-based first logical row.</summary>
     public long StartRow { get; }
@@ -18,7 +21,10 @@ public sealed class OdsRowRun {
             long start = 0;
             foreach (XElement cell in OdsSheet.CellElements(_element)) {
                 long count = OdsRepeatModel.Read(cell, OdfNamespaces.Table + "number-columns-repeated");
-                runs.Add(new OdsCellRun(_document, cell, start, count));
+                long column = start;
+                runs.Add(new OdsCellRun(_document, cell, start, count,
+                    inheritedStyleResolver: _inheritedStyleResolver == null
+                        ? null : () => _inheritedStyleResolver(column)));
                 start = checked(start + count);
             }
             return runs;

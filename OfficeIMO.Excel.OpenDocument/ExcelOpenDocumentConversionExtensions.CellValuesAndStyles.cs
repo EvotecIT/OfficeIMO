@@ -251,12 +251,13 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         if (fontFamily != null) target.SetFontName(fontFamily);
         if (style.Color.HasValue) target.SetFontColor(style.Color.Value.ToString().TrimStart('#'));
         if (style.BackgroundColor.HasValue) target.SetFillColor(style.BackgroundColor.Value.ToString().TrimStart('#'));
-        if (style.TextAlignSource == "value-type") {
-            unsupportedCellLayout++;
-        } else if (style.TextAlignSource != null && style.TextAlignSource != "fix") {
+        string? textAlign = style.TextAlign;
+        string? textAlignSource = style.TextAlignSource;
+        if (textAlign != null && textAlignSource != "fix" ||
+            textAlignSource != null && textAlignSource != "fix" && textAlignSource != "value-type") {
             unsupportedCellLayout++;
         } else {
-            switch (style.TextAlign) {
+            switch (textAlign) {
                 case "left": target.Sheet.CellAlign(target.Row, target.Column, ExcelHorizontalAlignment.Left); break;
                 case "center": target.Sheet.CellAlign(target.Row, target.Column, ExcelHorizontalAlignment.Center); break;
                 case "right": target.Sheet.CellAlign(target.Row, target.Column, ExcelHorizontalAlignment.Right); break;

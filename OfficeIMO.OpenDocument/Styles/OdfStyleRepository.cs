@@ -109,6 +109,17 @@ public sealed class OdfStyleRepository {
             ? (true, color)
             : (false, null));
 
+    internal OdfColor? ResolveCellBackgroundColor(OdfStyle? style) {
+        if (style != null) {
+            foreach (OdfStyle candidate in Resolve(style)) {
+                if (candidate.TryGetBackgroundColor(out OdfColor? color)) return color;
+            }
+        }
+        OdfStyle? defaultStyle = FindDefault(OdfStyleFamily.TableCell);
+        return defaultStyle != null && defaultStyle.TryGetBackgroundColor(out OdfColor? inherited)
+            ? inherited : null;
+    }
+
     internal string? ResolveFontFaceFamily(string? fontName, string preferredPartPath) {
         if (string.IsNullOrWhiteSpace(fontName)) return null;
         foreach (string partPath in new[] { preferredPartPath, "styles.xml", "content.xml" }.Distinct(StringComparer.Ordinal)) {
@@ -141,7 +152,7 @@ public sealed class OdfStyleRepository {
         string? existingName = (string?)owner.Attribute(styleAttribute);
         OdfStyle? existing = existingName == null ? null : FindInPart(family, existingName, partPath);
         if (existing != null && existing.IsAutomatic && existing.PartPath == partPath &&
-            IsUniquelyReferenced(owner, styleAttribute, existingName!, partPath)) return existing;
+            IsUniquelyReferenced(owner, styleAttribute, existingName!, partPath, family)) return existing;
 
         OdfStyle created = existing != null && existing.IsAutomatic
             ? CloneAutomaticIn(partPath, family, prefix, existing)
@@ -161,11 +172,19 @@ public sealed class OdfStyleRepository {
         return clone;
     }
 
-    private bool IsUniquelyReferenced(XElement owner, XName styleAttribute, string styleName, string partPath) {
+    private bool IsUniquelyReferenced(XElement owner, XName styleAttribute, string styleName,
+        string partPath, OdfStyleFamily family) {
         XDocument document = _document.GetXml(partPath);
         if (!ReferenceEquals(owner.Document, document)) return false;
         int references = document.Descendants()
             .Count(element => string.Equals((string?)element.Attribute(styleAttribute), styleName, StringComparison.Ordinal));
+        if (family == OdfStyleFamily.TableCell) {
+            references += document.Descendants()
+                .Count(element => (element.Name == OdfNamespaces.Table + "table-row" ||
+                                   element.Name == OdfNamespaces.Table + "table-column") &&
+                    string.Equals((string?)element.Attribute(OdfNamespaces.Table + "default-cell-style-name"),
+                        styleName, StringComparison.Ordinal));
+        }
         return references == 1;
     }
 

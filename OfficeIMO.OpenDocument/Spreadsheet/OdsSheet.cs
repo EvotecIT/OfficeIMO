@@ -78,7 +78,8 @@ public sealed partial class OdsSheet {
             long start = 0;
             foreach (XElement row in RowElements()) {
                 long repeat = OdsRepeatModel.Read(row, OdfNamespaces.Table + "number-rows-repeated");
-                runs.Add(new OdsRowRun(_document, row, start, repeat));
+                runs.Add(new OdsRowRun(_document, row, start, repeat,
+                    column => GetDefaultCellStyleName(row, column)));
                 start = checked(start + repeat);
             }
             return runs;
@@ -132,10 +133,8 @@ public sealed partial class OdsSheet {
         if (column < 0) throw new ArgumentOutOfRangeException(nameof(column));
         XElement rowElement = GetRowForEdit(row);
         XElement cellElement = GetCellForEdit(rowElement, column);
-        string? inheritedStyle = cellElement.Attribute(OdfNamespaces.Table + "style-name") == null
-            ? GetDefaultCellStyleName(rowElement, column)
-            : null;
-        return new OdsCell(_document, cellElement, inheritedStyle);
+        return new OdsCell(_document, cellElement,
+            inheritedStyleResolver: () => GetDefaultCellStyleName(rowElement, column));
     }
 
     /// <summary>Gets an editable zero-based row, splitting its repeat run without expanding it.</summary>

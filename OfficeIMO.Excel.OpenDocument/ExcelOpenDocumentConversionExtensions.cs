@@ -468,14 +468,17 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 ? TryGetUniformRowHeight(rowRuns) : null;
             if (uniformDefaultRowHeight.HasValue) sheet.SetDefaultRowHeight(uniformDefaultRowHeight.Value);
             foreach (OdsRowRun rowRun in rowRuns) {
+                IReadOnlyList<OdsCellRun> cellRuns = rowRun.CellRuns;
                 // Producer ODS files commonly encode the unused tail as one very large empty row run.
                 // No worksheet output depends on expanding that run.
                 bool emptyRun = !rowRun.Hidden
-                    && rowRun.CellRuns.All(cellRun => cellRun.IsCovered || !IsSignificant(cellRun));
+                    && cellRuns.All(cellRun => cellRun.IsCovered || !IsSignificant(cellRun));
                 if (emptyRun && (!rowRun.Height.HasValue || uniformDefaultRowHeight.HasValue)) {
-                    if (unsupportedInheritedBlankStyles < int.MaxValue && rowRun.StartRow < effective.MaximumRows && rowRun.CellRuns.Any(cellRun =>
-                        !cellRun.IsCovered && cellRun.StartColumn < effective.MaximumColumns &&
-                        HasInheritedStyleOnBlankRun(rowRun, cellRun, columnRuns, hasDefaultCellStyle)))
+                    if (unsupportedInheritedBlankStyles < int.MaxValue && rowRun.StartRow < effective.MaximumRows &&
+                        (cellRuns.Any(cellRun => !cellRun.IsCovered && cellRun.StartColumn < effective.MaximumColumns &&
+                            HasInheritedStyleOnBlankRun(rowRun, cellRun, columnRuns, hasDefaultCellStyle)) ||
+                         HasInheritedStyleOnUnserializedTail(rowRun, cellRuns, columnRuns,
+                             hasDefaultCellStyle, effective.MaximumColumns)))
                         unsupportedInheritedBlankStyles++;
                     long count = Math.Min(SaturatingAdd(rowRun.StartRow, rowRun.RepeatCount), effective.MaximumRows)
                         - rowRun.StartRow;
@@ -498,7 +501,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                         rowLayouts++;
                     }
 
-                    foreach (OdsCellRun cellRun in rowRun.CellRuns) {
+                    foreach (OdsCellRun cellRun in cellRuns) {
                         long cellColumnEnd = SaturatingAdd(cellRun.StartColumn, cellRun.RepeatCount);
                         long lastColumnExclusive = Math.Min(cellColumnEnd, effective.MaximumColumns);
                         if (cellColumnEnd > effective.MaximumColumns) truncated = true;
@@ -612,6 +615,10 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                         }
                         if (expandedCells >= effective.MaximumExpandedCells) break;
                     }
+                    if (unsupportedInheritedBlankStyles < int.MaxValue &&
+                        HasInheritedStyleOnUnserializedTail(rowRun, cellRuns, columnRuns,
+                            hasDefaultCellStyle, effective.MaximumColumns))
+                        unsupportedInheritedBlankStyles++;
                     if (expandedCells >= effective.MaximumExpandedCells) break;
                 }
                 if (expandedCells >= effective.MaximumExpandedCells) break;
@@ -734,6 +741,18 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         return columns.Any(column => column.DefaultCellStyleName != null &&
             column.StartColumn < cellEnd &&
             SaturatingAdd(column.StartColumn, column.RepeatCount) > cell.StartColumn);
+    }
+
+    private static bool HasInheritedStyleOnUnserializedTail(OdsRowRun row,
+        IReadOnlyList<OdsCellRun> cells, IReadOnlyList<OdsColumnRun> columns,
+        bool hasDefaultCellStyle, int maximumColumns) {
+        long serializedEnd = cells.Count == 0 ? 0 :
+            SaturatingAdd(cells[cells.Count - 1].StartColumn, cells[cells.Count - 1].RepeatCount);
+        if (serializedEnd >= maximumColumns) return false;
+        if (row.DefaultCellStyleName != null || hasDefaultCellStyle) return true;
+        return columns.Any(column => column.DefaultCellStyleName != null &&
+            column.StartColumn < maximumColumns &&
+            SaturatingAdd(column.StartColumn, column.RepeatCount) > serializedEnd);
     }
 
     private static double? TryGetUniformRowHeight(IReadOnlyList<OdsRowRun> runs) {

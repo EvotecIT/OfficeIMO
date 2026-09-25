@@ -143,6 +143,28 @@ public sealed class SpreadsheetCellLayoutConversionTests {
     }
 
     [Fact]
+    public void OmittedAlignmentSourceDefaultsToValueTypeAndReportsLoss() {
+        OdsDocument source = OdsDocument.Create();
+        OdfStyle style = source.Styles.CreateNamed("OmittedSource", OdfStyleFamily.TableCell);
+        style.TextAlign = "center";
+        style.CellTextAlignSource = null;
+        OdsCell cell = source.AddSheet("Layout").Cell(0, 0);
+        cell.SetNumber(42);
+        cell.StyleName = style.Name;
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        using ExcelDocument target = conversion.Value;
+        ExcelCellStyleSnapshot? projected = target.CreateInspectionSnapshot().Worksheets.Single().Cells.Single().Style;
+        Assert.NotEqual("center", projected?.HorizontalAlignment);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "cell-layout" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+        Assert.Throws<OdfConversionLossException>(() => source.ToExcelDocumentResult(
+            new ExcelOpenDocumentConversionOptions {
+                LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
+            }));
+    }
+
+    [Fact]
     public void RepeatedCellRunUsesEachColumnsDefaultStyle() {
         OdsDocument source = OdsDocument.Create();
         OdfStyle left = source.Styles.CreateNamed("LeftColumn", OdfStyleFamily.TableCell);
@@ -199,6 +221,25 @@ public sealed class SpreadsheetCellLayoutConversionTests {
         sheet.Column(1).DefaultCellStyleName = style.Name;
         sheet.Cell(1, 0).SetString("Value");
         sheet.Cell(1, 1);
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        using ExcelDocument target = conversion.Value;
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "blank-cell-styles" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+        Assert.Throws<OdfConversionLossException>(() => source.ToExcelDocumentResult(
+            new ExcelOpenDocumentConversionOptions {
+                LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
+            }));
+    }
+
+    [Fact]
+    public void ColumnDefaultBeyondLastSerializedCellReportsBlankStyleLoss() {
+        OdsDocument source = OdsDocument.Create();
+        OdfStyle style = source.Styles.CreateNamed("SparseColumn", OdfStyleFamily.TableCell);
+        style.BackgroundColor = OdfColor.Parse("#FFCC00");
+        OdsSheet sheet = source.AddSheet("Layout");
+        sheet.Cell(0, 0).SetString("Value");
+        sheet.Column(4).DefaultCellStyleName = style.Name;
 
         OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
         using ExcelDocument target = conversion.Value;
