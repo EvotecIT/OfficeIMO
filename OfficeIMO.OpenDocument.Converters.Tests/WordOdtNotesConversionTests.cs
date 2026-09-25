@@ -92,6 +92,24 @@ public sealed class WordOdtNotesConversionTests {
     }
 
     [Fact]
+    public void RepeatedReferenceDoesNotHideADanglingFootnoteReference() {
+        using WordDocument source = WordDocument.Create();
+        source.AddParagraph("Anchor").AddFootNote("Referenced");
+        W.Paragraph paragraph = source.OpenXmlDocument.MainDocumentPart!.Document!.Body!
+            .Descendants<W.Paragraph>().First(item => item.Descendants<W.FootnoteReference>().Any());
+        W.FootnoteReference reference = paragraph.Descendants<W.FootnoteReference>().Single();
+        paragraph.Append(new W.Run((W.FootnoteReference)reference.CloneNode(true)));
+        paragraph.Append(new W.Run(new W.FootnoteReference { Id = 99 }));
+
+        OdfConversionResult<OdtDocument> result = source.ToOpenDocumentResult();
+        Assert.Contains(result.Report.Mappings, mapping =>
+            mapping.Feature == "source-footnotes" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
     public void DuplicateWordFootnoteDefinitionRemainsExplicitLoss() {
         using WordDocument source = WordDocument.Create();
         source.AddParagraph("Anchor").AddFootNote("First");
@@ -802,6 +820,29 @@ public sealed class WordOdtNotesConversionTests {
         W.Style normal = source.OpenXmlDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
             .Elements<W.Style>().Single(candidate => candidate.StyleId?.Value == "Normal");
         normal.Append(new W.StyleRunProperties(new W.Bold()));
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-formatting" &&
+            mapping.Status == OdfConversionMappingStatus.Approximated);
+        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void InheritedNormalBaseStyleFormattingIsExplicitLoss() {
+        using WordDocument source = WordDocument.Create();
+        source.AddParagraph("Anchor").AddFootNote("Note body");
+        W.Styles styles = source.OpenXmlDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        W.Style normal = styles.Elements<W.Style>().Single(candidate => candidate.StyleId?.Value == "Normal");
+        normal.BasedOn = new W.BasedOn { Val = "IntermediateNoteBase" };
+        styles.Append(new W.Style(new W.BasedOn { Val = "InheritedNoteBase" }) {
+            Type = W.StyleValues.Paragraph,
+            StyleId = "IntermediateNoteBase"
+        });
+        styles.Append(new W.Style(new W.StyleRunProperties(new W.Bold())) {
+            Type = W.StyleValues.Paragraph,
+            StyleId = "InheritedNoteBase"
+        });
 
         OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-formatting" &&

@@ -29,12 +29,10 @@ public static partial class WordOpenDocumentConversionExtensions {
                 foreach (List<W.Run> anchors in FootnoteAnchors.Values) {
                     int repeatedAcrossRuns = Math.Max(0, anchors.Distinct().Count() - 1);
                     UnsupportedFootnotes += repeatedAcrossRuns;
-                    SeenWordFootnotes += repeatedAcrossRuns;
                 }
                 foreach (List<W.Run> anchors in EndnoteAnchors.Values) {
                     int repeatedAcrossRuns = Math.Max(0, anchors.Distinct().Count() - 1);
                     UnsupportedEndnotes += repeatedAcrossRuns;
-                    SeenWordEndnotes += repeatedAcrossRuns;
                 }
             }
             if (source != null) {
@@ -436,8 +434,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         if (style == null) return false;
         W.Style? normal = styles?.Elements<W.Style>().FirstOrDefault(candidate =>
             string.Equals(candidate.StyleId?.Value, "Normal", StringComparison.OrdinalIgnoreCase));
-        if (normal?.StyleParagraphProperties?.ChildElements.Count > 0 ||
-            normal?.StyleRunProperties?.ChildElements.Count > 0) return true;
+        if (normal != null && HasInheritedNoteStyleFormatting(styles!, normal)) return true;
         if (style.CustomStyle?.Value == true || style.BasedOn?.Val?.Value != "Normal") return true;
         W.StyleParagraphProperties? paragraph = style.StyleParagraphProperties;
         if (paragraph?.ChildElements.Count != 1 || paragraph.FirstChild is not W.SpacingBetweenLines spacing ||
@@ -447,6 +444,22 @@ public static partial class WordOpenDocumentConversionExtensions {
         return run?.ChildElements.Count != 2 ||
             run.GetFirstChild<W.FontSize>()?.Val?.Value != "20" ||
             run.GetFirstChild<W.FontSizeComplexScript>()?.Val?.Value != "20";
+    }
+
+    private static bool HasInheritedNoteStyleFormatting(W.Styles styles, W.Style normal) {
+        var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        W.Style? current = normal;
+        while (current != null) {
+            if (current.StyleParagraphProperties?.HasChildren == true ||
+                current.StyleRunProperties?.HasChildren == true) return true;
+            string? baseId = current.BasedOn?.Val?.Value;
+            if (baseId == null || baseId.Length == 0) return false;
+            if (!visited.Add(baseId)) return true;
+            current = styles.Elements<W.Style>().FirstOrDefault(candidate =>
+                string.Equals(candidate.StyleId?.Value, baseId, StringComparison.OrdinalIgnoreCase));
+            if (current == null) return true;
+        }
+        return false;
     }
 
     private static bool HasCustomizedDefaultWordNoteReferenceStyle(WordDocument source, string styleId) {
