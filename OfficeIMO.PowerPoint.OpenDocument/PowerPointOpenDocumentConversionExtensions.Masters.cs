@@ -63,6 +63,44 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             .Select(master => MasterMetadataSignature(master.SlideMaster)), StringComparer.Ordinal);
     });
 
+    private static readonly Lazy<HashSet<string>> DefaultPowerPointThemes = new(() => {
+        using PowerPointPresentation baseline = PowerPointPresentation.Create(new MemoryStream(),
+            new PowerPointCreateOptions());
+        PresentationPart? presentation = baseline.OpenXmlDocument.PresentationPart;
+        return new HashSet<string>(new[] { presentation?.ThemePart?.Theme?.OuterXml }
+            .Concat(presentation?.SlideMasterParts.Select(master => master.ThemePart?.Theme?.OuterXml)
+                ?? Enumerable.Empty<string?>())
+            .Concat(new[] { presentation?.NotesMasterPart?.ThemePart?.Theme?.OuterXml,
+                presentation?.HandoutMasterPart?.ThemePart?.Theme?.OuterXml })
+            .Where(xml => xml != null).Select(xml => xml!), StringComparer.Ordinal);
+    });
+
+    private static int CountUnmappedPowerPointThemes(PresentationPart? presentation) {
+        if (presentation == null) return 0;
+        int changedThemes = new[] { presentation.ThemePart?.Theme?.OuterXml,
+                presentation.NotesMasterPart?.ThemePart?.Theme?.OuterXml,
+                presentation.HandoutMasterPart?.ThemePart?.Theme?.OuterXml }
+            .Concat(presentation.SlideMasterParts.Select(master => master.ThemePart?.Theme?.OuterXml))
+            .Count(xml => xml != null && !DefaultPowerPointThemes.Value.Contains(xml));
+        int overrides = presentation.SlideParts.Count(slide =>
+                slide.ThemeOverridePart?.ThemeOverride != null ||
+                HasAuthoredColorMapOverride(slide.Slide?.ColorMapOverride) ||
+                slide.NotesSlidePart?.ThemeOverridePart?.ThemeOverride != null ||
+                HasAuthoredColorMapOverride(slide.NotesSlidePart?.NotesSlide?.ColorMapOverride)) +
+            presentation.SlideMasterParts.Sum(master => master.SlideLayoutParts.Count(layout =>
+                layout.ThemeOverridePart?.ThemeOverride != null ||
+                HasAuthoredColorMapOverride(layout.SlideLayout?.ColorMapOverride)));
+        return changedThemes + overrides;
+    }
+
+    private static bool HasAuthoredColorMapOverride(P.ColorMapOverride? colorMap) =>
+        colorMap != null && (colorMap.HasAttributes || colorMap.ChildElements.Any(child =>
+            child is not A.MasterColorMapping));
+
+    private static int CountUnmappedPowerPointEmbeddedFonts(PresentationPart? presentation) =>
+        presentation?.Presentation?.Descendants()
+            .Count(element => element.LocalName == "embeddedFont") ?? 0;
+
     private static string MasterMetadataSignature(P.SlideMaster? master) => string.Join(";",
         (master?.GetAttributes() ?? new List<DocumentFormat.OpenXml.OpenXmlAttribute>())
             .Concat(master?.CommonSlideData?.GetAttributes() ?? new List<DocumentFormat.OpenXml.OpenXmlAttribute>())

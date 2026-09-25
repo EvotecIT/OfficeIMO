@@ -42,6 +42,9 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         int unsupportedPlaceholderMetadata = CountUnmappedPowerPointTextPlaceholderMetadata(sourcePresentation, sourceSlideIds);
         int unsupportedShapeAppearance = CountUnmappedPowerPointShapeAppearance(sourcePresentation, sourceSlideIds);
         int unsupportedTextColors = CountUnmappedPowerPointTextColors(sourcePresentation, sourceSlideIds);
+        int unsupportedTextTypography = CountUnmappedPowerPointTextTypography(sourcePresentation, sourceSlideIds);
+        int unsupportedEmbeddedFonts = CountUnmappedPowerPointEmbeddedFonts(sourcePresentation);
+        int unsupportedThemes = CountUnmappedPowerPointThemes(sourcePresentation);
         int unsupportedShapeAccessibility = CountUnmappedPowerPointShapeAccessibility(sourcePresentation, sourceSlideIds);
         int unsupportedTableAppearance = CountUnmappedPowerPointTableAppearance(sourcePresentation, sourceSlideIds);
         int unsupportedTextGeometry = CountUnmappedPowerPointTextGeometry(sourcePresentation, sourceSlideIds);
@@ -83,6 +86,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
 
             foreach (PowerPointShape shape in sourceSlide.Shapes.OrderBy(item => item.DrawingOrder)) {
                 if (shape.Hyperlink != null) unsupportedShapeHyperlinks++;
+                if (shape is PowerPointMedia) unsupportedShapes++;
                 if (shape is PowerPointTextBox textBox) {
                     OdpTextBox converted = targetSlide.AddTextBox(ToOdfRect(textBox), null, textBox.Name);
                     string? presentationClass = GetOdpPresentationClass(sourceSlide, textBox);
@@ -210,7 +214,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         if (transitions > 0) report.Add("slide-transitions", OdfConversionMappingStatus.Approximated, transitions,
             "Common transition families are mapped without PowerPoint-specific speed and timing metadata.");
         AddUnsupported(report, "slide-transition-timing", unsupportedTransitionTiming,
-            "PowerPoint slide advance timing and click behavior are not transferred to ODP.");
+            "PowerPoint slide advance timing, click behavior, and transition sound actions are not transferred to ODP.");
         if (textState.ListParagraphs > 0) report.Add("text-lists", OdfConversionMappingStatus.Approximated, textState.ListParagraphs,
             "List text is retained as paragraphs; PowerPoint bullet and numbering definitions are not translated.");
         if (textState.Fields > 0) report.Add("paragraph-fields", OdfConversionMappingStatus.Approximated,
@@ -239,6 +243,12 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             "Text frame settings, picture effects, and theme, image, gradient, transparency, dash, or shape effect styling outside direct solid RGB fill and outline were omitted.");
         AddUnsupported(report, "text-colors", unsupportedTextColors,
             "Inherited, theme, system, transformed, and other unsupported run or highlight colors were not transferred to ODP.");
+        AddUnsupported(report, "text-typography", unsupportedTextTypography,
+            "PowerPoint run character spacing and kerning were not transferred to ODP.");
+        AddUnsupported(report, "embedded-fonts", unsupportedEmbeddedFonts,
+            "Embedded PowerPoint font payloads were not transferred to ODP.");
+        AddUnsupported(report, "theme", unsupportedThemes,
+            "Authored PowerPoint theme colors, fonts, and effects were not transferred to ODP.");
         AddUnsupported(report, "shape-accessibility", unsupportedShapeAccessibility,
             "Shape accessibility title, description, or decorative metadata was not carried into ODP.");
         AddUnsupported(report, "shape-geometry", unsupportedTextGeometry,

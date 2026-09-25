@@ -84,6 +84,28 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         root.Descendants<A.DefaultRunProperties>().Count(HasUnmappedPowerPointDefaultTextColor) +
         root.Descendants<A.EndParagraphRunProperties>().Count(HasUnmappedPowerPointDefaultTextColor);
 
+    private static int CountUnmappedPowerPointTextTypography(PresentationPart? presentation,
+        IReadOnlyList<P.SlideId> slideIds) {
+        if (presentation == null) return 0;
+        int count = 0;
+        foreach (P.SlideId slideId in slideIds) {
+            if (slideId.RelationshipId?.Value is not string id ||
+                presentation.GetPartById(id) is not SlidePart part || part.Slide == null) continue;
+            count += CountUnmappedPowerPointTextTypography(part.Slide);
+            if (part.NotesSlidePart?.NotesSlide is P.NotesSlide notes)
+                count += CountUnmappedPowerPointTextTypography(notes);
+        }
+        return count;
+    }
+
+    private static int CountUnmappedPowerPointTextTypography(OpenXmlElement root) =>
+        root.Descendants<A.RunProperties>().Count(HasUnmappedPowerPointTextTypography) +
+        root.Descendants<A.DefaultRunProperties>().Count(HasUnmappedPowerPointTextTypography) +
+        root.Descendants<A.EndParagraphRunProperties>().Count(HasUnmappedPowerPointTextTypography);
+
+    private static bool HasUnmappedPowerPointTextTypography(OpenXmlElement properties) =>
+        properties.GetAttributes().Any(attribute => attribute.LocalName is "spc" or "kern");
+
     private static bool HasUnmappedPowerPointTextColor(OpenXmlElement properties) {
         OpenXmlElement[] fills = properties.ChildElements.Where(IsFillElement).ToArray();
         return fills.Length > 1 || fills.Length == 1 && !IsDirectRgbFill(fills[0]) ||
@@ -180,8 +202,10 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         foreach (P.SlideId slideId in slideIds) {
             if (slideId.RelationshipId?.Value is not string id ||
                 presentation.GetPartById(id) is not SlidePart part) continue;
-            if (part.Slide?.Transition?.GetAttributes().Any(attribute =>
-                attribute.LocalName is "advTm" or "advClick") == true) count++;
+            if (part.Slide?.Transition is P.Transition transition &&
+                (transition.GetAttributes().Any(attribute =>
+                    attribute.LocalName is "advTm" or "advClick") ||
+                 transition.GetFirstChild<P.SoundAction>() != null)) count++;
         }
         return count;
     }
@@ -202,6 +226,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
     }
 
     private static bool HasUnmappedOdpShapeAppearance(OdpPresentation source, OdpShape shape) {
+        if (shape.Element.Attribute(OdfNamespaces.Presentation + "style-name") != null ||
+            HasUnmappedOdpDirectShapeGeometry(shape)) return true;
         string? styleName = (string?)shape.Element.Attribute(OdfNamespaces.Draw + "style-name");
         XElement? properties = EffectiveOdfStyleProperties(source, OdfStyleFamily.Graphic, styleName,
             OdfNamespaces.Style + "graphic-properties");
@@ -215,6 +241,26 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             attribute.Name != OdfNamespaces.Draw + "fill" && attribute.Name != OdfNamespaces.Draw + "fill-color" &&
             attribute.Name != OdfNamespaces.Draw + "stroke" && attribute.Name != OdfNamespaces.Svg + "stroke-color" &&
             attribute.Name != OdfNamespaces.Svg + "stroke-width");
+    }
+
+    private static bool HasUnmappedOdpDirectShapeGeometry(OdpShape shape) {
+        if (shape is not OdpRectangle and not OdpEllipse and not OdpLine) return false;
+        return shape.Element.Attributes().Any(attribute =>
+            !attribute.IsNamespaceDeclaration &&
+            attribute.Name != OdfNamespaces.Draw + "name" &&
+            attribute.Name != OdfNamespaces.Draw + "style-name" &&
+            attribute.Name != OdfNamespaces.Draw + "transform" &&
+            attribute.Name != OdfNamespaces.Presentation + "visibility" &&
+            attribute.Name != OdfNamespaces.Presentation + "class" &&
+            attribute.Name != XNamespace.Xml + "id" &&
+            attribute.Name != OdfNamespaces.Svg + "x" &&
+            attribute.Name != OdfNamespaces.Svg + "y" &&
+            attribute.Name != OdfNamespaces.Svg + "width" &&
+            attribute.Name != OdfNamespaces.Svg + "height" &&
+            attribute.Name != OdfNamespaces.Svg + "x1" &&
+            attribute.Name != OdfNamespaces.Svg + "y1" &&
+            attribute.Name != OdfNamespaces.Svg + "x2" &&
+            attribute.Name != OdfNamespaces.Svg + "y2");
     }
 
     private static bool HasUnmappedOdpNoteContent(OdpPresentation source, OdpSlide slide) {
@@ -241,7 +287,9 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         string? styleName = (string?)slide.Element.Attribute(OdfNamespaces.Draw + "style-name");
         XElement? properties = EffectiveOdfStyleProperties(source, OdfStyleFamily.DrawingPage, styleName,
             OdfNamespaces.Style + "drawing-page-properties");
-        return properties?.Attribute(OdfNamespaces.Presentation + "transition-change") != null ||
+        return properties?.Element(OdfNamespaces.Presentation + "sound") != null ||
+            slide.Element.Element(OdfNamespaces.Presentation + "sound") != null ||
+            properties?.Attribute(OdfNamespaces.Presentation + "transition-change") != null ||
             properties?.Attribute(OdfNamespaces.Presentation + "duration") != null ||
             slide.Element.Attribute(OdfNamespaces.Presentation + "transition-change") != null ||
             slide.Element.Attribute(OdfNamespaces.Presentation + "duration") != null;

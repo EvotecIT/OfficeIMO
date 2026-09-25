@@ -76,6 +76,68 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
     }
 
     [Fact]
+    public void AuthoredThemeAndRunTypographyAreExplicitLoss() {
+        using PowerPointPresentation source = CreateBlankPowerPoint();
+        source.Slides[0].AddTextBoxPoints("Spaced", 20, 20, 100, 50);
+        A.Run run = source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
+            .Descendants<A.Run>().Single();
+        run.RunProperties ??= new A.RunProperties();
+        run.RunProperties.SetAttribute(new DocumentFormat.OpenXml.OpenXmlAttribute("", "spc", "", "120"));
+        AssertLoss(source, "text-typography");
+
+        var theme = source.OpenXmlDocument.PresentationPart.SlideMasterParts.First().ThemePart!.Theme!;
+        theme.ThemeElements!.ColorScheme!.Descendants<A.RgbColorModelHex>().First().Val = "123456";
+        AssertLoss(source, "theme");
+    }
+
+    [Fact]
+    public void SlideThemeAndColorMapOverridesAreExplicitLoss() {
+        using PowerPointPresentation source = CreateBlankPowerPoint();
+        SlidePart slide = source.OpenXmlDocument.PresentationPart!.SlideParts.First();
+        ThemeOverridePart theme = slide.AddNewPart<ThemeOverridePart>();
+        theme.ThemeOverride = new A.ThemeOverride(new A.ColorScheme { Name = "Authored" });
+        AssertLoss(source, "theme");
+    }
+
+    [Fact]
+    public void AuthoredColorMapOverrideIsExplicitLossWithoutFlaggingDefaultMarker() {
+        using PowerPointPresentation source = CreateBlankPowerPoint();
+        OdfConversionResult<OdpPresentation> baseline = source.ToOpenDocumentResult();
+        Assert.DoesNotContain(baseline.Report.Mappings, mapping => mapping.Feature == "theme");
+        SlidePart slide = source.OpenXmlDocument.PresentationPart!.SlideParts.First();
+        slide.Slide!.ColorMapOverride = new ColorMapOverride(new A.OverrideColorMapping {
+            Accent1 = A.ColorSchemeIndexValues.Accent2
+        });
+        AssertLoss(source, "theme");
+    }
+
+    [Fact]
+    public void SoundOnlyPowerPointTransitionIsExplicitLoss() {
+        using PowerPointPresentation source = CreateBlankPowerPoint();
+        source.Slides[0].StopTransitionSound();
+
+        AssertLoss(source, "slide-transition-timing");
+    }
+
+    [Fact]
+    public void MediaPosterDoesNotHideMediaLoss() {
+        using PowerPointPresentation source = CreateBlankPowerPoint();
+        using var audio = new MemoryStream(new byte[] { 0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0 });
+        source.Slides[0].AddAudio(audio, "audio/wav", ".wav");
+
+        AssertLoss(source, "shapes");
+    }
+
+    [Fact]
+    public void EmbeddedPowerPointFontIsExplicitLoss() {
+        using PowerPointPresentation source = CreateBlankPowerPoint();
+        Presentation presentation = source.OpenXmlDocument.PresentationPart!.Presentation!;
+        presentation.Append(new EmbeddedFontList(new EmbeddedFont()));
+
+        AssertLoss(source, "embedded-fonts");
+    }
+
+    [Fact]
     public void TransformedDefaultRunColorIsExplicitLoss() {
         using PowerPointPresentation source = CreateBlankPowerPoint();
         source.Slides[0].AddTextBoxPoints("Alpha", 20, 20, 100, 50);
@@ -240,6 +302,38 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
         source.Package.MarkXmlDirty("content.xml");
 
         AssertLoss(source, "table-values");
+    }
+
+    [Fact]
+    public void OdpDirectShapeGeometryAndPresentationStyleAreExplicitLoss() {
+        OdpPresentation source = OdpPresentation.Create();
+        source.AddSlide().AddRectangle(OdfRect.FromCentimeters(1, 1, 4, 2));
+        XElement element = source.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Draw + "rect").Single();
+        element.SetAttributeValue(OdfNamespaces.Draw + "corner-radius", "0.2cm");
+        source.Package.MarkXmlDirty("content.xml");
+        AssertLoss(source, "shape-appearance");
+
+        element.Attribute(OdfNamespaces.Draw + "corner-radius")!.Remove();
+        OdfStyle style = source.Styles.CreateNamed("Presentation1", OdfStyleFamily.Presentation);
+        style.SetProperty(OdfNamespaces.Style + "graphic-properties", OdfNamespaces.Draw + "fill", "solid");
+        style.SetProperty(OdfNamespaces.Style + "graphic-properties", OdfNamespaces.Draw + "fill-color", "#FF0000");
+        element.SetAttributeValue(OdfNamespaces.Presentation + "style-name", style.Name);
+        source.Package.MarkXmlDirty("content.xml");
+        AssertLoss(source, "shape-appearance");
+    }
+
+    [Fact]
+    public void OdpTransitionSoundWithoutVisualEffectIsExplicitLoss() {
+        OdpPresentation source = OdpPresentation.Create();
+        source.AddSlide();
+        XElement page = source.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Draw + "page").Single();
+        page.Add(new XElement(OdfNamespaces.Presentation + "sound",
+            new XAttribute(OdfNamespaces.XLink + "href", "Sounds/transition.wav")));
+        source.Package.MarkXmlDirty("content.xml");
+
+        AssertLoss(source, "slide-transitions");
     }
 
     private static PowerPointPresentation CreateBlankPowerPoint() {
