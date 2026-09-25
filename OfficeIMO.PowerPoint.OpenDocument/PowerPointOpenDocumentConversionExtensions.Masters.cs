@@ -23,6 +23,19 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         return baseline.OpenXmlDocument.PresentationPart?.NotesMasterPart?.NotesMaster?.OuterXml;
     });
 
+    private static readonly Lazy<string?> DefaultPowerPointHandoutMasterXml = new(() => {
+        using PowerPointPresentation baseline = PowerPointPresentation.Create(new MemoryStream(),
+            new PowerPointCreateOptions());
+        return baseline.OpenXmlDocument.PresentationPart?.HandoutMasterPart?.HandoutMaster?.OuterXml;
+    });
+
+    private static readonly Lazy<string?> DefaultPowerPointShowPropertiesXml = new(() => {
+        using PowerPointPresentation baseline = PowerPointPresentation.Create(new MemoryStream(),
+            new PowerPointCreateOptions());
+        return baseline.OpenXmlDocument.PresentationPart?.PresentationPropertiesPart?
+            .PresentationProperties?.ShowProperties?.OuterXml;
+    });
+
     private static readonly Lazy<HashSet<string>> DefaultPowerPointMasterColorMaps = new(() => {
         using PowerPointPresentation baseline = PowerPointPresentation.Create(new MemoryStream(),
             new PowerPointCreateOptions());
@@ -61,6 +74,21 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         if (sourceXml == null) return 0;
         string? defaultXml = DefaultPowerPointNotesMasterXml.Value;
         return defaultXml != null && string.Equals(sourceXml, defaultXml, StringComparison.Ordinal)
+            ? 0 : 1;
+    }
+
+    private static int CountUnmappedPowerPointHandoutMaster(PresentationPart? presentation) {
+        string? sourceXml = presentation?.HandoutMasterPart?.HandoutMaster?.OuterXml;
+        if (sourceXml == null) return 0;
+        return string.Equals(sourceXml, DefaultPowerPointHandoutMasterXml.Value, StringComparison.Ordinal)
+            ? 0 : 1;
+    }
+
+    private static int CountUnmappedPowerPointShowProperties(PresentationPart? presentation) {
+        string? sourceXml = presentation?.PresentationPropertiesPart?.PresentationProperties?
+            .ShowProperties?.OuterXml;
+        if (sourceXml == null) return 0;
+        return string.Equals(sourceXml, DefaultPowerPointShowPropertiesXml.Value, StringComparison.Ordinal)
             ? 0 : 1;
     }
 
@@ -116,6 +144,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         HasAuthoredPowerPointMasterColorMap(masterPart) ||
         HasAuthoredPowerPointMasterTextStyles(masterPart) ||
         HasAuthoredPowerPointMasterMetadata(masterPart) ||
+        HasAuthoredPowerPointMasterBehavior(masterPart) ||
         masterPart.SlideMaster?.CommonSlideData?.Background != null &&
             !TryGetDirectMasterBackground(masterPart, out _) ||
         layoutPart.SlideLayout?.CommonSlideData?.Background != null;
@@ -143,6 +172,10 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
     private static bool HasAuthoredPowerPointMasterMetadata(SlideMasterPart masterPart) =>
         !DefaultPowerPointMasterMetadata.Value.Contains(MasterMetadataSignature(masterPart.SlideMaster));
 
+    private static bool HasAuthoredPowerPointMasterBehavior(SlideMasterPart masterPart) =>
+        masterPart.SlideMaster?.ChildElements.Any(child =>
+            child.LocalName is "transition" or "timing" or "hf") == true;
+
     private static int CountUnmappedUnusedPowerPointMastersAndLayouts(PresentationPart? presentation,
         IReadOnlyDictionary<SlideMasterPart, string> usedMasters,
         IReadOnlyDictionary<SlideLayoutPart, string> usedLayouts) {
@@ -153,6 +186,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                 (HasDrawingContent(master.SlideMaster?.CommonSlideData?.ShapeTree) ||
                  HasAuthoredPowerPointMasterColorMap(master) ||
                  HasAuthoredPowerPointMasterMetadata(master) ||
+                 HasAuthoredPowerPointMasterBehavior(master) ||
                  master.SlideMaster?.CommonSlideData?.Background != null ||
                  HasAuthoredPowerPointMasterTextStyles(master)))
                 count++;

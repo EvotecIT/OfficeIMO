@@ -38,7 +38,9 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         DocumentFormat.OpenXml.Presentation.SlideId[] sourceSlideIds = sourcePresentation?.Presentation?
             .SlideIdList?.Elements<DocumentFormat.OpenXml.Presentation.SlideId>().ToArray()
             ?? Array.Empty<DocumentFormat.OpenXml.Presentation.SlideId>();
+        unsupportedPlaceholderRoles += CountUnmappedPowerPointNonTextPlaceholders(sourcePresentation, sourceSlideIds);
         int unsupportedShapeAppearance = CountUnmappedPowerPointShapeAppearance(sourcePresentation, sourceSlideIds);
+        int unsupportedShapeAccessibility = CountUnmappedPowerPointShapeAccessibility(sourcePresentation, sourceSlideIds);
         int unsupportedTableAppearance = CountUnmappedPowerPointTableAppearance(sourcePresentation, sourceSlideIds);
         int unsupportedTextGeometry = CountUnmappedPowerPointTextGeometry(sourcePresentation, sourceSlideIds);
         var textState = new PowerPointToOdpTextConversionState();
@@ -222,6 +224,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         AddUnsupported(report, "shapes", unsupportedShapes, "Charts, SmartArt, media, groups, and other advanced drawing shapes are not translated.");
         AddUnsupported(report, "shape-appearance", unsupportedShapeAppearance,
             "Text frame settings, picture effects, and theme, image, gradient, transparency, dash, or shape effect styling outside direct solid RGB fill and outline were omitted.");
+        AddUnsupported(report, "shape-accessibility", unsupportedShapeAccessibility,
+            "Shape accessibility title, description, or decorative metadata was not carried into ODP.");
         AddUnsupported(report, "shape-geometry", unsupportedTextGeometry,
             "Text-bearing nonrectangular or custom PowerPoint geometry was flattened to an ODP text frame.");
         AddUnsupported(report, "table-appearance", unsupportedTableAppearance,
@@ -233,6 +237,10 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             "PowerPoint slide sections and their names are not represented in the current ODP presentation surface.");
         AddUnsupported(report, "notes-master", CountUnmappedPowerPointNotesMaster(sourcePresentation),
             "Authored notes-master appearance and placeholder geometry are not transferred to ODP.");
+        AddUnsupported(report, "handout-master", CountUnmappedPowerPointHandoutMaster(sourcePresentation),
+            "Authored handout-master content is not transferred to ODP.");
+        AddUnsupported(report, "slide-show-settings", CountUnmappedPowerPointShowProperties(sourcePresentation),
+            "PowerPoint slide-show playback settings are not transferred to ODP.");
         if (renamedSlides > 0) report.Add("slide-names", OdfConversionMappingStatus.Approximated,
             renamedSlides, "PowerPoint permits duplicate slide names; ODP requires unique names, so colliding names were changed.");
         AddAdvancedPowerPointFindings(source.InspectFeatures(), report);
@@ -498,6 +506,9 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             "ODP graphic fill, stroke, transparency, dash, or effect styling outside solid colors was omitted.");
         AddUnsupported(report, "table-appearance", unsupportedTableAppearance,
             "ODP table, row, column, or cell styles were not translated.");
+        AddUnsupported(report, "table-values", source.Slides.Sum(slide => slide.Shapes.OfType<OdpTable>()
+                .Count(HasUnmappedOdpTableValues)),
+            "Typed ODP table-cell values were not transferred to PowerPoint.");
         AddUnsupported(report, "shape-transforms", transformedShapes, "Raw ODF transform expressions are not translated.");
         AddUnsupported(report, "relative-measurements", unsupportedMeasurements,
             "Relative or unsupported ODF text measurements could not be projected to fixed PowerPoint point sizes and were omitted.");
@@ -507,6 +518,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             "Effective solid backgrounds and common placeholder roles are retained, but distinct ODP masters, layouts, drawing content, and placeholder geometry are not reconstructed.");
         AddUnmappedOdfFindings(source.InspectFeatures(), report, externalHyperlinks, noteContainers,
             source.MasterPages.Count, transitions + unsupportedTransitions);
+        AddUnsupported(report, "custom-shows", CountUnmappedOdpCustomShows(source),
+            "ODP named custom slide shows were not transferred to PowerPoint.");
         return new OdfConversionResult<PowerPointPresentation>(target, report).ApplyPolicy(effective.LossPolicy);
     }
 

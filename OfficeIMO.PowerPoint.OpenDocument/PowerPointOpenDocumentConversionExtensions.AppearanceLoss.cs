@@ -26,6 +26,43 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         return count;
     }
 
+    private static int CountUnmappedPowerPointNonTextPlaceholders(PresentationPart? presentation,
+        IReadOnlyList<P.SlideId> slideIds) {
+        if (presentation == null) return 0;
+        int count = 0;
+        foreach (P.SlideId slideId in slideIds) {
+            if (slideId.RelationshipId?.Value is not string id ||
+                presentation.GetPartById(id) is not SlidePart part || part.Slide == null) continue;
+            count += part.Slide.Descendants<P.Picture>().Count(picture =>
+                picture.NonVisualPictureProperties?.ApplicationNonVisualDrawingProperties?
+                    .GetFirstChild<P.PlaceholderShape>() != null);
+            count += part.Slide.Descendants<P.GraphicFrame>().Count(frame =>
+                frame.NonVisualGraphicFrameProperties?.ApplicationNonVisualDrawingProperties?
+                    .GetFirstChild<P.PlaceholderShape>() != null);
+            count += part.Slide.Descendants<P.ConnectionShape>().Count(connection =>
+                connection.NonVisualConnectionShapeProperties?.ApplicationNonVisualDrawingProperties?
+                    .GetFirstChild<P.PlaceholderShape>() != null);
+            count += part.Slide.Descendants<P.Shape>().Count(shape =>
+                shape.TextBody == null && shape.NonVisualShapeProperties?
+                    .ApplicationNonVisualDrawingProperties?.GetFirstChild<P.PlaceholderShape>() != null);
+        }
+        return count;
+    }
+
+    private static int CountUnmappedPowerPointShapeAccessibility(PresentationPart? presentation,
+        IReadOnlyList<P.SlideId> slideIds) {
+        if (presentation == null) return 0;
+        int count = 0;
+        foreach (P.SlideId slideId in slideIds) {
+            if (slideId.RelationshipId?.Value is not string id ||
+                presentation.GetPartById(id) is not SlidePart part || part.Slide == null) continue;
+            count += part.Slide.Descendants<P.NonVisualDrawingProperties>().Count(properties =>
+                properties.GetAttributes().Any(attribute => attribute.LocalName is "title" or "descr") ||
+                properties.Descendants().Any(child => child.LocalName == "decorative"));
+        }
+        return count;
+    }
+
     private static bool HasUnmappedPowerPointShapeAppearance(P.ShapeProperties properties) {
         OpenXmlElement[] fills = properties.ChildElements.Where(IsFillElement).ToArray();
         if (fills.Length > 1 || fills.Length == 1 && !IsDirectRgbFill(fills[0])) return true;
@@ -159,6 +196,15 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         table.Element.DescendantsAndSelf().Any(element => element.Attributes().Any(attribute =>
             attribute.Name == OdfNamespaces.Table + "style-name" ||
             attribute.Name == OdfNamespaces.Table + "default-cell-style-name"));
+
+    private static bool HasUnmappedOdpTableValues(OdpTable table) =>
+        table.Element.Descendants(OdfNamespaces.Table + "table-cell").Any(cell =>
+            cell.Attributes().Any(attribute => attribute.Name.Namespace == OdfNamespaces.Office &&
+                attribute.Name.LocalName is "value-type" or "value" or "date-value" or "time-value" or
+                    "boolean-value" or "string-value" or "currency"));
+
+    private static int CountUnmappedOdpCustomShows(OdpPresentation source) =>
+        source.Package.GetXml("content.xml").Descendants(OdfNamespaces.Presentation + "show").Count();
 
     private static (bool Override, bool Loss, OdfColor? Color, bool SuppressesMasterBackground) ReadOdpSlideBackground(
         OdpPresentation source, OdpSlide slide) {
