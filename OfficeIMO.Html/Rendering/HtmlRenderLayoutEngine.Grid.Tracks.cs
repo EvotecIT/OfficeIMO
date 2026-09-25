@@ -393,9 +393,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         HyphenationToken hyphenation = PrepareHyphenationToken(token, token, run.Style);
                         string paintToken = hyphenation.PaintText;
                         var hyphenationBreaks = new HashSet<int>(hyphenation.PrimaryBreaks.Concat(hyphenation.SecondaryBreaks));
+                        // Chromium's min-content measurement keeps unspaced
+                        // solidus text (including URL paths) together, although
+                        // ordinary constrained line layout may wrap after '/'.
                         IReadOnlyList<int> preferredBreaks = OfficeTextLineBreaks.GetBreakPositions(
-                            paintToken,
-                            run.Style.WordBreak != "keep-all");
+                                paintToken,
+                                run.Style.WordBreak != "keep-all")
+                            .Where(point => paintToken[point - 1] != '/').ToArray();
                         int segmentStart = 0;
                         foreach (int end in preferredBreaks.Concat(hyphenationBreaks).Distinct().OrderBy(point => point)) {
                             if (end <= segmentStart || end > paintToken.Length) continue;

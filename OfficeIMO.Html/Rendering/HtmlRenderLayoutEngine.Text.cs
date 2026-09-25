@@ -667,7 +667,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (!paragraphStyle.PreventTextWrapping
                     && !runPreventsWrapping
                     && line.HasFlowContent
-                    && line.Width + atomicWidth > width) {
+                    && line.Width + atomicWidth > width + 0.0001D) {
                     TrimTrailingWhitespace(line);
                     lines.Add(line);
                     line = new InlineLine();
@@ -748,7 +748,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (!preventTokenWrapping
                     && !whitespace
                     && run.Style.WordBreak != "break-all"
-                    && measured > Math.Max(0D, width - line.Width)
+                    && measured > Math.Max(0D, width - line.Width) + 0.0001D
                     && TryAddHyphenatedToken(
                         lines,
                         ref line,
@@ -762,7 +762,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
                 if (!preventTokenWrapping
                     && !whitespace
-                    && measured > Math.Max(0D, width - line.Width)
+                    && measured > Math.Max(0D, width - line.Width) + 0.0001D
                     && TryAddPreferredBreakToken(
                         lines,
                         ref line,
@@ -775,16 +775,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
                 bool breakAllIntoRemainingSpace = run.Style.WordBreak == "break-all"
                     && line.HasFlowContent
-                    && measured > Math.Max(0D, width - line.Width);
+                    && measured > Math.Max(0D, width - line.Width) + 0.0001D;
                 if (!preventTokenWrapping
                     && !whitespace
                     && AllowsEmergencyTokenBreak(run.Style)
-                    && (measured > width || breakAllIntoRemainingSpace)) {
+                    && (measured > width + 0.0001D || breakAllIntoRemainingSpace)) {
                     AddBrokenToken(lines, ref line, run, paintToken, logicalPaintToken, width, visibleTokenStart);
                     continue;
                 }
 
-                if (!preventTokenWrapping && line.HasFlowContent && line.Width + measured > width) {
+                if (!preventTokenWrapping && line.HasFlowContent && line.Width + measured > width + 0.0001D) {
                     TrimTrailingWhitespace(line);
                     lines.Add(line);
                     line = new InlineLine();
@@ -1086,12 +1086,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             string paintChunk = paintToken.Substring(start, end - start);
             string logicalChunk = logicalToken.Substring(start, end - start);
             double chunkWidth = MeasureInlineText(paintChunk, run.Style);
-            if (chunkWidth > width && AllowsEmergencyTokenBreak(run.Style)) {
+            if (chunkWidth > width + 0.0001D && AllowsEmergencyTokenBreak(run.Style)) {
                 AddBrokenToken(lines, ref line, run, paintChunk, logicalChunk, width, logicalStartProgress + start);
                 start = end;
                 continue;
             }
-            if (line.HasFlowContent && line.Width + chunkWidth > width) {
+            if (line.HasFlowContent && line.Width + chunkWidth > width + 0.0001D) {
                 TrimTrailingWhitespace(line);
                 lines.Add(line);
                 line = new InlineLine();
@@ -1315,7 +1315,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         if (part.Length > 0) {
-            if (line.HasFlowContent && line.Width + partWidth > width) {
+            if (line.HasFlowContent && line.Width + partWidth > width + 0.0001D) {
                 TrimTrailingWhitespace(line);
                 lines.Add(line);
                 line = new InlineLine();

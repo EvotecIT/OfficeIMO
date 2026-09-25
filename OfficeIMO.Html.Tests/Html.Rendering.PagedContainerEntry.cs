@@ -82,4 +82,28 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderNamedDestination>(),
             destination => destination.Name == "target" && destination.Y >= -0.001D);
     }
+
+    [Fact]
+    public void PagedFlexLinkKeepsPrintedUrlTogetherThroughHyphen() {
+        const string html = "<style>@page{size:794px 140px;margin:0}html,body{margin:0;font:16px Arial}"
+            + "nav{border:1px solid #ddd}ul{display:flex;margin:0;padding:8px;list-style:none}"
+            + "li{display:flex;flex:0 1 100%}a{display:flex;flex:1 1 100%;flex-direction:row-reverse;justify-content:flex-end}"
+            + "a::after{content:' (https://www.w3.org/WAI/tutorials/tables/one-header/)'}"
+            + "a span{display:flex;flex:1 1 auto;width:100%;margin:0 8px;flex-direction:column}"
+            + "a span span{margin:0}</style><nav><ul><li><a href='https://www.w3.org/WAI/tutorials/tables/one-header/'>"
+            + "<span><span>Next:</span><span>One Header</span></span></a></li></ul></nav>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+        HtmlRenderText[] generated = EnumerateRenderVisuals(Assert.Single(rendered.Pages).Scene)
+            .OfType<HtmlRenderText>()
+            .Where(text => text.Source?.Contains("::after", StringComparison.Ordinal) == true)
+            .ToArray();
+
+        Assert.NotEmpty(generated);
+        double firstLineY = generated.Min(text => text.Y);
+        string firstLine = string.Concat(generated.Where(text => Math.Abs(text.Y - firstLineY) < 0.01D)
+            .OrderBy(text => text.X).Select(text => text.Text));
+        Assert.Contains("/one-", firstLine, StringComparison.Ordinal);
+    }
 }

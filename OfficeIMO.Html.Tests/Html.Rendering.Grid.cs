@@ -499,7 +499,6 @@ public sealed partial class HtmlRenderingTests {
 
     [Theory]
     [InlineData("alpha-beta")]
-    [InlineData("alpha/beta")]
     [InlineData("alpha\u200Bbeta")]
     [InlineData("漢字仮名")]
     public void HtmlGrid_MinContentUsesSharedUnicodeAndPunctuationBreaks(string content) {
@@ -512,6 +511,19 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderShape maximum = FindGridShape(rendered, "span#maximum");
 
         Assert.True(minimum.Width < maximum.Width, content);
+    }
+
+    [Fact]
+    public void HtmlGrid_MinContentKeepsUnspacedSolidusTokenTogether() {
+        const string html = "<div style='display:grid;width:260px;grid-template-columns:min-content max-content;justify-content:start'>"
+            + "<span id='minimum' style='background:red'>alpha/beta</span>"
+            + "<span id='maximum' style='background:blue'>alpha/beta</span></div>";
+
+        HtmlRenderDocument rendered = RenderGrid(html, 280D);
+        HtmlRenderShape minimum = FindGridShape(rendered, "span#minimum");
+        HtmlRenderShape maximum = FindGridShape(rendered, "span#maximum");
+
+        Assert.Equal(maximum.Width, minimum.Width, 3);
     }
 
     [Fact]
