@@ -18,7 +18,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool row = style.FlexDirection == "row" || style.FlexDirection == "row-reverse";
         bool column = style.FlexDirection == "column" || style.FlexDirection == "column-reverse";
         if (!row && !column) return false;
-        if (!TryCollectFlexItems(element, containingWidth, style, depth, captureRunningElements: true, out List<FlexItem> items, out List<HtmlCssRunningStringAssignment> runningElementAssignments)) return false;
+        double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
+        double boxWidth = ResolveBoxWidth(availableWidth, style);
+        double contentWidth = Math.Max(1D, boxWidth - style.HorizontalInsets);
+        if (!TryCollectFlexItems(element, contentWidth, style, depth, captureRunningElements: true, out List<FlexItem> items, out List<HtmlCssRunningStringAssignment> runningElementAssignments)) return false;
         if (column) return TryLayoutColumnFlexContainer(element, containingWidth, style, depth, items, runningElementAssignments, out block);
 
         return TryLayoutRowFlexContainer(element, containingWidth, style, depth, items, runningElementAssignments, continuationTarget, out block);

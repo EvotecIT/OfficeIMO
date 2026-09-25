@@ -9,6 +9,25 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlFlexRow_PercentageItemsFitInsideBorderedContainerContentWidth() {
+        HtmlRenderDocument rendered = RenderFlex("""
+            <style>body{margin:0}</style>
+            <div style="display:flex;flex-wrap:wrap;width:500px;box-sizing:border-box;border:0.5px solid black">
+              <div id="header" style="min-width:100%;height:20px;background:#eeeeee"></div>
+              <div id="content" style="width:66%;height:40px;background:#ff0000"></div>
+              <div id="image" style="width:34%;height:40px;background:#0000ff"></div>
+            </div>
+            """, 500D);
+
+        HtmlRenderShape header = FindFlexShape(rendered, "div#header");
+        HtmlRenderShape content = FindFlexShape(rendered, "div#content");
+        HtmlRenderShape image = FindFlexShape(rendered, "div#image");
+        Assert.Equal(header.Y + header.Height, content.Y, 3);
+        Assert.Equal(content.Y, image.Y, 3);
+        Assert.Equal(content.X + content.Width, image.X, 3);
+    }
+
+    [Fact]
     public void HtmlFlexColumn_NestedDefaultLayoutsRemainLinear() {
         var html = new StringBuilder();
         for (int index = 0; index < 24; index++) html.Append("<div style='display:flex;flex-direction:column'>");
