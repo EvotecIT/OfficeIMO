@@ -1,3 +1,5 @@
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Html;
 using OfficeIMO.Html;
@@ -111,6 +113,77 @@ public partial class HtmlOfficeAdapters {
         Assert.True(sheet.TryGetCellValueSnapshot(2, 2, out ExcelCellValueSnapshot? definition));
         Assert.Equal("Basic water service level", term!.Text);
         Assert.Equal("Collection time is at most 30 minutes.", definition!.Text);
+    }
+
+    [Fact]
+    public void ExcelHtml_GenericTermDefinitionTableSavesReadableColumnsAndRows() {
+        const string html = "<div role='table' aria-label='Water levels'>"
+            + "<div role='row'><div role='columnheader'>Term</div><div role='columnheader'>Definition</div></div>"
+            + "<div role='row'><div role='cell'>Safely managed water service level</div>"
+            + "<div role='cell'>Drinking water from an improved source accessible on premises, available when needed, and free from fecal and priority chemical contamination.</div></div>"
+            + "</div>";
+
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(new HtmlToExcelOptions {
+            Mode = HtmlImportMode.Generic
+        });
+        using ExcelDocument workbook = result.RequireValue();
+        using MemoryStream artifact = workbook.ToStream();
+        byte[] bytes = artifact.ToArray();
+        using (SpreadsheetDocument package = SpreadsheetDocument.Open(new MemoryStream(bytes), false)) {
+            WorksheetPart worksheetPart = Assert.Single(package.WorkbookPart!.WorksheetParts);
+            Column[] columns = worksheetPart.Worksheet.GetFirstChild<Columns>()!.Elements<Column>().ToArray();
+            Assert.Equal(2, columns.Length);
+            Assert.InRange(columns[0].Width!.Value, 20D, 40D);
+            Assert.InRange(columns[1].Width!.Value, 35D, 55D);
+            Assert.True(columns.Sum(column => column.Width!.Value) <= 80D);
+            Row[] rows = worksheetPart.Worksheet.GetFirstChild<SheetData>()!.Elements<Row>().ToArray();
+            Cell definition = Assert.Single(rows[1].Elements<Cell>(), cell => cell.CellReference!.Value == "B2");
+            CellFormat format = package.WorkbookPart.WorkbookStylesPart!.Stylesheet.CellFormats!
+                .Elements<CellFormat>().ElementAt((int)definition.StyleIndex!.Value);
+            Assert.True(format.Alignment?.WrapText?.Value);
+        }
+
+        using ExcelDocument reopened = ExcelDocument.Load(new MemoryStream(bytes));
+        ExcelSheet sheet = Assert.Single(reopened.Sheets);
+        Assert.Equal("Safely managed water service level", sheet.CellAt(2, 1).GetValue<string>());
+        Assert.Contains("priority chemical contamination", sheet.CellAt(2, 2).GetValue<string>(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ExcelHtml_GenericTablePresentationFollowsImportedRowsAcrossAnEmptySourceRow() {
+        const string html = "<table><tr><th>Term</th><th>Definition</th></tr><tr></tr>"
+            + "<tr><td>Safely managed water service level</td>"
+            + "<td>Drinking water from an improved source accessible on premises, available when needed.</td></tr></table>";
+
+        using ExcelDocument workbook = HtmlConversionDocument.Parse(html).ToExcelDocument(
+            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+        using MemoryStream artifact = workbook.ToStream();
+        using SpreadsheetDocument package = SpreadsheetDocument.Open(artifact, false);
+        WorksheetPart worksheet = Assert.Single(package.WorkbookPart!.WorksheetParts);
+        Cell[] cells = worksheet.Worksheet.Descendants<Cell>().ToArray();
+        Assert.DoesNotContain(cells, cell => cell.CellReference!.Value is "A2" or "B2");
+        Cell definition = Assert.Single(cells, cell => cell.CellReference!.Value == "B3");
+        CellFormat format = package.WorkbookPart.WorkbookStylesPart!.Stylesheet.CellFormats!
+            .Elements<CellFormat>().ElementAt((int)definition.StyleIndex!.Value);
+        Assert.True(format.Alignment?.WrapText?.Value);
+    }
+
+    [Fact]
+    public void ExcelHtml_GenericTablePresentationDoesNotCreateCellsBeyondTheImportLimit() {
+        const string html = "<table><tr><th>Term</th><th>Definition</th></tr>"
+            + "<tr><td>Safely managed water service level</td><td>Omitted definition</td></tr></table>";
+
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
+            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic, MaxTableCells = 3 });
+        using ExcelDocument workbook = result.RequireValue();
+        using MemoryStream artifact = workbook.ToStream();
+        using SpreadsheetDocument package = SpreadsheetDocument.Open(artifact, false);
+        WorksheetPart worksheet = Assert.Single(package.WorkbookPart!.WorksheetParts);
+        string[] references = worksheet.Worksheet.Descendants<Cell>()
+            .Select(cell => cell.CellReference!.Value!).ToArray();
+        Assert.Equal(new[] { "A1", "B1", "A2" }, references);
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded);
     }
 
     [Fact]
