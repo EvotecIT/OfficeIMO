@@ -111,6 +111,43 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         return count;
     }
 
+    private static int CountUnmappedPowerPointParagraphLayout(PresentationPart? presentation,
+        IReadOnlyList<P.SlideId> slideIds) {
+        if (presentation == null) return 0;
+        int count = 0;
+        foreach (P.SlideId slideId in slideIds) {
+            if (slideId.RelationshipId?.Value is not string id ||
+                presentation.GetPartById(id) is not SlidePart part || part.Slide == null) continue;
+            count += part.Slide.Descendants<A.ParagraphProperties>().Count(properties =>
+                properties.GetAttributes().Any(attribute =>
+                    attribute.LocalName is not "algn" and not "rtl" &&
+                    (attribute.LocalName != "lvl" || attribute.Value != "0")) ||
+                properties.ChildElements.Any(child => child.LocalName is "spcBef" or "spcAft" or "tabLst"));
+        }
+        return count;
+    }
+
+    private static int CountUnmappedPowerPointTransitionTiming(PresentationPart? presentation,
+        IReadOnlyList<P.SlideId> slideIds) {
+        if (presentation == null) return 0;
+        int count = 0;
+        foreach (P.SlideId slideId in slideIds) {
+            if (slideId.RelationshipId?.Value is not string id ||
+                presentation.GetPartById(id) is not SlidePart part) continue;
+            if (part.Slide?.Transition?.GetAttributes().Any(attribute =>
+                attribute.LocalName is "advTm" or "advClick") == true) count++;
+        }
+        return count;
+    }
+
+    private static bool HasPowerPointDynamicSlideBackground(PresentationPart? presentation, P.SlideId slideId) {
+        if (presentation == null || slideId.RelationshipId?.Value is not string id ||
+            presentation.GetPartById(id) is not SlidePart part) return false;
+        P.Background? background = part.Slide?.CommonSlideData?.Background;
+        return background?.ChildElements.Any(child => child.LocalName == "bgRef") == true ||
+            background?.Descendants().Any(child => child.LocalName is "schemeClr" or "sysClr") == true;
+    }
+
     private static int CountUnwrappedOdpDrawingElements(OdpSlide slide) {
         var wrapped = new HashSet<XElement>(slide.Shapes.Select(shape => shape.Element));
         return slide.Element.Elements().Count(element =>
@@ -195,7 +232,23 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
     private static bool HasUnmappedOdpTableAppearance(OdpTable table) =>
         table.Element.DescendantsAndSelf().Any(element => element.Attributes().Any(attribute =>
             attribute.Name == OdfNamespaces.Table + "style-name" ||
-            attribute.Name == OdfNamespaces.Table + "default-cell-style-name"));
+                attribute.Name == OdfNamespaces.Table + "default-cell-style-name"));
+
+    private static bool HasUnmappedOdpShapeAccessibility(OdpShape shape) =>
+        shape.Element.DescendantsAndSelf().Any(element =>
+            element.Name == OdfNamespaces.Svg + "title" || element.Name == OdfNamespaces.Svg + "desc");
+
+    private static bool HasUnmappedOdpTableVisibility(OdpTable table) =>
+        table.Element.Descendants().Any(element =>
+            (element.Name == OdfNamespaces.Table + "table-row" ||
+             element.Name == OdfNamespaces.Table + "table-column") &&
+            (string?)element.Attribute(OdfNamespaces.Table + "visibility") is "collapse" or "filter");
+
+    private static int CountUnmappedOdpEmbeddedFonts(OdpPresentation source) =>
+        new[] { "content.xml", "styles.xml" }.Sum(part => source.Package.GetXml(part)
+            .Descendants(OdfNamespaces.Style + "font-face")
+            .Count(face => face.Descendants(OdfNamespaces.Svg + "font-face-src").Any() ||
+                           face.Descendants(OdfNamespaces.Svg + "font-face-uri").Any()));
 
     private static bool HasUnmappedOdpTableValues(OdpTable table) =>
         table.Element.Descendants(OdfNamespaces.Table + "table-cell").Any(cell =>
