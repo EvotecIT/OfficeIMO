@@ -16,7 +16,9 @@ public enum PdfEditorTool {
     AddImage,
     Link,
     SignatureAppearance,
-    Redact
+    Redact,
+    Squiggly,
+    Polygon
 }
 
 public sealed record PdfEditorToolChoice(PdfEditorTool Tool, string Label, string Hint);

@@ -5,12 +5,13 @@
              xmlns:organizer="using:OfficeIMO.Studio.Features.Organizer"
              x:Class="OfficeIMO.Studio.Features.Organizer.PdfOrganizerPageView"
              x:DataType="organizer:PdfOrganizerPageViewModel">
-  <StackPanel Margin="8" Spacing="7" HorizontalAlignment="Center">
+  <StackPanel Margin="6" Spacing="6" HorizontalAlignment="Center">
     <Border Width="124" Height="154"
             Background="White"
-            BorderBrush="{DynamicResource StudioBorderBrush}"
+            BorderBrush="{DynamicResource StudioSubtleBorderBrush}"
             BorderThickness="1"
             CornerRadius="4"
+            BoxShadow="{DynamicResource StudioCardShadow}"
             Padding="5">
       <Grid>
         <reader:PdfPageCanvas x:Name="ThumbnailCanvas"
@@ -37,7 +38,8 @@
       </Grid>
     </Border>
     <TextBlock Text="{Binding Label}"
-               FontSize="12"
+               FontSize="11.5"
+               Foreground="{DynamicResource StudioMutedTextBrush}"
                HorizontalAlignment="Center" />
   </StackPanel>
 </UserControl>

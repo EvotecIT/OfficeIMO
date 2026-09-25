@@ -9,7 +9,10 @@
               PlaceholderText="{loc:Loc Comments.All}" AutomationProperties.Name="{loc:Loc Comments.StatusFilter}" HorizontalAlignment="Stretch">
       <ComboBox.ItemTemplate><DataTemplate x:DataType="comments:CommentStatusChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
     </ComboBox>
-    <Button Classes="tool" Content="{loc:Loc Comments.NextUnresolved}" Command="{Binding NextUnresolvedCommentCommand}" />
+    <WrapPanel ItemSpacing="6" LineSpacing="6">
+      <Button Classes="tool" Content="{loc:Loc Comments.NextUnresolved}" Command="{Binding NextUnresolvedCommentCommand}" />
+      <Button Classes="tool" Content="{loc:Loc Comments.ExportSummary}" Command="{Binding ExportCommentSummaryCommand}" />
+    </WrapPanel>
     <TextBlock IsVisible="{Binding HasCommentCatalogError}" Text="{Binding CommentCatalogError}" TextWrapping="Wrap" />
     <TextBlock IsVisible="{Binding HasNoCommentThreads}" Text="{loc:Loc Comments.Empty}" TextWrapping="Wrap" Classes="muted" />
     <ComboBox x:Name="ThreadPicker" ItemsSource="{Binding CommentThreads}" SelectedItem="{Binding SelectedCommentThread, Mode=TwoWay}"

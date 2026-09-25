@@ -5,12 +5,36 @@ using Avalonia.Input;
 using Avalonia.VisualTree;
 using OfficeIMO.Pdf;
 using OfficeIMO.Studio.Features.Organizer;
+using OfficeIMO.Studio.Features.Reader;
 using OfficeIMO.Studio.Features.Shell;
 using OfficeIMO.Studio.Infrastructure.Preferences;
 
 namespace OfficeIMO.Studio.Tests;
 
 public sealed class StudioSplitPreviewTests {
+    [Fact]
+    public async Task UnresolvedTopLevelBookmarkDoesNotPromoteChildSplitStarts() {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(async () => {
+            var services = ((App)Application.Current!).Services;
+            Directory.CreateDirectory(services.Paths.Root);
+            string source = Path.Combine(services.Paths.Root, "source.pdf");
+            CreatePdf().Save(source);
+            using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services,
+                pickOutputFolder: _ => Task.FromResult<string?>(Path.Combine(services.Paths.Root, "output")),
+                reviewPageSplit: preview => {
+                    Assert.False(preview.CanSplitAtBookmarks);
+                    return Task.FromResult(false);
+                });
+            await model.OpenDocumentAsync(source);
+            model.Bookmarks.Add(new PdfBookmarkViewModel("Unresolved parent", 1, null));
+            model.Bookmarks.Add(new PdfBookmarkViewModel("Resolved child", 2, 2));
+            await model.SplitCommand.ExecuteAsync(null);
+            Assert.Empty(services.Jobs.Entries);
+            return true;
+        }, CancellationToken.None);
+    }
+
     [Fact]
     public async Task CancellingWhileWaitingForTheCpuSlotReportsNoPublication() {
         using var session = TestAppBuilder.StartSession();

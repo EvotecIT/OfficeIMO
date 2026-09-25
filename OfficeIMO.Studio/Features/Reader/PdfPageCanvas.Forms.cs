@@ -21,7 +21,7 @@ public sealed partial class PdfPageCanvas {
             .Select(region => new Rect(region.Quad.Left, region.Quad.Top, region.Quad.Width, region.Quad.Height)).ToArray() ?? [];
 
     private void DrawFormAnchor(DrawingContext context) {
-        foreach (Rect bounds in FormAnchorBounds) context.DrawRectangle(null, new Pen(Brushes.DodgerBlue, 2D), bounds.Inflate(3D));
+        foreach (Rect bounds in FormAnchorBounds) context.DrawRectangle(null, new Pen(new SolidColorBrush(PageAccent), 2D), bounds.Inflate(3D));
     }
 
     private void QueueFormAnchorReveal() => Dispatcher.UIThread.Post(() => {

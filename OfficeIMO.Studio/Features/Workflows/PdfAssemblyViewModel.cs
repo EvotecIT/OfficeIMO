@@ -99,6 +99,7 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
     private string _summary = string.Empty;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasOutput))]
     private string? _publishedPath;
 
     [ObservableProperty]

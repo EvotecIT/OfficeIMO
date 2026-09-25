@@ -211,6 +211,36 @@ public class PdfAnnotationCreationTests {
     }
 
     [Fact]
+    public void AddAnnotation_CreatesPageLinkWithReadback() {
+        byte[] source = PdfDocument.Create(document => {
+            document.Page(page => page.Content(content => content.Text("Contents")));
+            document.Page(page => page.Content(content => content.Text("Chapter two")));
+        }).ToBytes();
+
+        PdfAnnotationEditResult result = PdfDocument.Load(source).Annotations.Add(new PdfAnnotationCreateOptions {
+            Subtype = "Link",
+            Rectangle = new[] { 40D, 50D, 180D, 80D },
+            LinkPageNumber = 2
+        });
+
+        PdfLinkAnnotation link = Assert.Single(PdfInspector.Inspect(result.Bytes).LinkAnnotations);
+        Assert.Equal(1, link.PageNumber);
+        Assert.Equal(2, link.DestinationPageNumber);
+        Assert.Null(link.Uri);
+    }
+
+    [Fact]
+    public void AddLinkAnnotation_RequiresExactlyOneTarget() {
+        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Existing page")).ToBytes();
+        Assert.Throws<ArgumentException>(() => PdfDocument.Load(source).Annotations.Add(new PdfAnnotationCreateOptions {
+            Subtype = "Link", Rectangle = new[] { 40D, 50D, 180D, 80D }, LinkUri = "https://officeimo.com", LinkPageNumber = 1
+        }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Load(source).Annotations.Add(new PdfAnnotationCreateOptions {
+            Subtype = "Link", Rectangle = new[] { 40D, 50D, 180D, 80D }, LinkPageNumber = 5
+        }));
+    }
+
+    [Fact]
     public void AddLinkAnnotation_RejectsRelativeUriWithoutCatalogBase() {
         byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Existing page")).ToBytes();
 

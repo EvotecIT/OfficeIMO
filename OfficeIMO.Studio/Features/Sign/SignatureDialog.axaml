@@ -1,0 +1,76 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:sign="using:OfficeIMO.Studio.Features.Sign"
+        xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
+        x:Class="OfficeIMO.Studio.Features.Sign.SignatureDialog"
+        Title="{loc:Loc FillSign.CreateSignature}" Width="560" Height="480" MinWidth="440" MinHeight="420" CanResize="False"
+        WindowStartupLocation="CenterOwner" Background="{DynamicResource StudioPanelBrush}">
+  <Grid Margin="22,20" RowDefinitions="Auto,Auto,*,Auto,Auto" RowSpacing="12">
+    <StackPanel Spacing="4">
+      <TextBlock x:Name="HeadingText" Text="{loc:Loc FillSign.CreateSignature}" FontSize="19" FontWeight="SemiBold" />
+      <TextBlock Classes="caption" Text="{loc:Loc FillSign.DialogHint}" TextWrapping="Wrap" />
+    </StackPanel>
+
+    <TabControl Grid.Row="1" x:Name="MethodTabs" Classes="paneTabs" SelectionChanged="OnMethodChanged">
+      <TabItem x:Name="TypeTab" Header="{loc:Loc FillSign.Type}" AutomationProperties.Name="{loc:Loc FillSign.Type}" />
+      <TabItem x:Name="DrawTab" Header="{loc:Loc FillSign.Draw}" AutomationProperties.Name="{loc:Loc FillSign.Draw}" />
+      <TabItem x:Name="ImageTab" Header="{loc:Loc FillSign.Image}" AutomationProperties.Name="{loc:Loc FillSign.Image}" />
+    </TabControl>
+
+    <Panel Grid.Row="2">
+      <!-- Type: a name in three handwriting-style faces. -->
+      <Grid x:Name="TypePanel" RowDefinitions="Auto,*" RowSpacing="10">
+        <TextBox x:Name="NameInput" PlaceholderText="{loc:Loc FillSign.NamePlaceholder}" AutomationProperties.Name="{loc:Loc FillSign.NamePlaceholder}" TextChanged="OnNameChanged" MaxLength="80" />
+        <ListBox Grid.Row="1" x:Name="StyleList" SelectionChanged="OnStyleChanged" AutomationProperties.Name="{loc:Loc FillSign.Style}" Background="Transparent">
+          <!-- Signatures are shown as they will look on paper: dark ink on white, with the chosen style outlined. -->
+          <ListBox.Styles>
+            <Style Selector="ListBoxItem"><Setter Property="Padding" Value="0" /><Setter Property="Margin" Value="0,0,0,8" /><Setter Property="Background" Value="Transparent" /></Style>
+            <Style Selector="ListBoxItem /template/ ContentPresenter, ListBoxItem:selected /template/ ContentPresenter, ListBoxItem:pointerover /template/ ContentPresenter, ListBoxItem:selected:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="Transparent" /></Style>
+            <Style Selector="ListBoxItem Border.paper"><Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" /></Style>
+            <Style Selector="ListBoxItem:selected Border.paper"><Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" /><Setter Property="BorderThickness" Value="2" /></Style>
+          </ListBox.Styles>
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="sign:SignatureStyleChoice">
+              <Border Classes="paper" Padding="14,4" Height="64" Background="#FFFFFF" CornerRadius="8" BorderThickness="1">
+                <TextBlock Text="{Binding Preview}" FontFamily="{Binding Family}" FontStyle="{Binding Style}" FontSize="30"
+                           Foreground="#1B2A4A" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+              </Border>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </Grid>
+
+      <!-- Draw: a paper strip with a baseline. -->
+      <Grid x:Name="DrawPanel" IsVisible="False" RowDefinitions="*,Auto" RowSpacing="8">
+        <Border Background="#FFFFFF" CornerRadius="10" BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1" ClipToBounds="True">
+          <Panel>
+            <Border Height="1" Background="#C9D1DC" VerticalAlignment="Bottom" Margin="28,0,28,38" IsHitTestVisible="False" />
+            <sign:SignaturePad x:Name="Pad" AutomationProperties.Name="{loc:Loc FillSign.DrawArea}" />
+          </Panel>
+        </Border>
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
+          <TextBlock Classes="caption" Text="{loc:Loc FillSign.DrawHint}" VerticalAlignment="Center" />
+          <Button Grid.Column="1" Classes="tool" Content="{loc:Loc FillSign.Clear}" Click="OnClearClick" />
+        </Grid>
+      </Grid>
+
+      <!-- Image: a scanned signature, ideally on a transparent or white background. -->
+      <Grid x:Name="ImagePanel" IsVisible="False" RowDefinitions="*,Auto" RowSpacing="8">
+        <Border Background="#FFFFFF" CornerRadius="10" BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1">
+          <Panel>
+            <Image x:Name="ImagePreview" Stretch="Uniform" Margin="16" />
+            <TextBlock x:Name="ImageEmptyText" Foreground="#5E6878" FontSize="12" Text="{loc:Loc FillSign.ImageHint}" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="320" TextAlignment="Center" />
+          </Panel>
+        </Border>
+        <Button Grid.Row="1" Classes="tool" HorizontalAlignment="Left" Content="{loc:Loc FillSign.ChooseImage}" Click="OnChooseImageClick" />
+      </Grid>
+    </Panel>
+
+    <CheckBox Grid.Row="3" x:Name="RememberBox" IsChecked="True" Content="{loc:Loc FillSign.Remember}" />
+
+    <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+      <Button Classes="tool" Content="{loc:Loc Common.Cancel}" IsCancel="True" Click="OnCancelClick" MinWidth="84" />
+      <Button x:Name="UseButton" Classes="primary" Content="{loc:Loc FillSign.Use}" IsDefault="True" IsEnabled="False" Click="OnUseClick" MinWidth="84" />
+    </StackPanel>
+  </Grid>
+</Window>
