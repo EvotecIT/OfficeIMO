@@ -237,6 +237,27 @@ public sealed class WordOdtFieldConversionTests {
     }
 
     [Fact]
+    public void FieldInNestedTableCellListIsExplicitLoss() {
+        OdtDocument source = OdtDocument.Create();
+        source.AddTable(1, 1);
+        var tableNamespace = (System.Xml.Linq.XNamespace)"urn:oasis:names:tc:opendocument:xmlns:table:1.0";
+        var text = (System.Xml.Linq.XNamespace)"urn:oasis:names:tc:opendocument:xmlns:text:1.0";
+        var cell = source.Package.GetXml("content.xml").Descendants(tableNamespace + "table-cell").Single();
+        cell.Add(new System.Xml.Linq.XElement(text + "list",
+            new System.Xml.Linq.XElement(text + "list-item",
+                new System.Xml.Linq.XElement(text + "p",
+                    new System.Xml.Linq.XElement(text + "page-number", "2")))));
+        source.Package.MarkXmlDirty("content.xml");
+
+        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        using WordDocument word = conversion.Value;
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "source-text-fields" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+        Assert.Throws<OdfConversionLossException>(() => source.ToWordDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
     public void HyperlinkNestedFieldRetainsCachedTextAndReportsLoss() {
         using WordDocument source = WordDocument.Create();
         WordParagraph paragraph = source.AddParagraph();

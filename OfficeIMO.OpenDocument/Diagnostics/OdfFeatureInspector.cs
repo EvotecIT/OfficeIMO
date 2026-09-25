@@ -126,6 +126,8 @@ internal static class OdfFeatureInspector {
         for (XElement? container = paragraph.Parent; container != null; container = container.Parent) {
             if (container.Name == OdfNamespaces.Office + "text") return true;
             if (container.Name == OdfNamespaces.Table + "table" && ++tableDepth > 1) return false;
+            if (container.Name == OdfNamespaces.Table + "table-cell" &&
+                !ReferenceEquals(paragraph.Parent, container)) return false;
             if (container.Name != OdfNamespaces.Text + "section" &&
                 container.Name != OdfNamespaces.Text + "list" &&
                 container.Name != OdfNamespaces.Text + "list-item" &&
