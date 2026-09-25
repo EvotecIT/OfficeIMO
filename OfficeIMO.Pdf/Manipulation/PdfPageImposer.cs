@@ -72,6 +72,8 @@ internal static class PdfPageImposer {
         if (selectedForms) sourceFeatureLoss |= PdfImpositionSourceFeatureLoss.Forms;
         if (info.HasTaggedContent) sourceFeatureLoss |= PdfImpositionSourceFeatureLoss.StructureTags;
         if (info.HasSignatures) sourceFeatureLoss |= PdfImpositionSourceFeatureLoss.Signatures;
+        if (info.HasEmbeddedFiles) sourceFeatureLoss |= PdfImpositionSourceFeatureLoss.EmbeddedFiles;
+        if (info.HasOutputIntents) sourceFeatureLoss |= PdfImpositionSourceFeatureLoss.OutputIntents;
         if (info.HasOptionalContent) {
             throw new NotSupportedException("Layered source PDFs cannot be imposed because the sheet output cannot preserve optional-content visibility.");
         }
@@ -88,8 +90,9 @@ internal static class PdfPageImposer {
             removedSignatureCount = derivative.RemovedSignatureCount;
             info = PdfInspector.Inspect(sourcePdf);
         }
-        if (!options.AllowSourceFeatureLoss && (selectedAnnotations || selectedForms || info.HasTaggedContent)) {
-            throw new NotSupportedException("Imposed output cannot retain source annotations, forms, or structure tags. Set AllowSourceFeatureLoss to accept this loss.");
+        if (!options.AllowSourceFeatureLoss &&
+            (sourceFeatureLoss & ~PdfImpositionSourceFeatureLoss.Signatures) != PdfImpositionSourceFeatureLoss.None) {
+            throw new NotSupportedException("Imposed output cannot retain source annotations, forms, structure tags, embedded files, or output intents. Set AllowSourceFeatureLoss to accept this loss.");
         }
         int cellsPerSheet = checked(options.Columns * options.Rows);
         int sheetCount = checked((int)((pageNumbers.LongLength + cellsPerSheet - 1L) / cellsPerSheet));

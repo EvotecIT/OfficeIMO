@@ -12,5 +12,9 @@ public enum PdfImpositionSourceFeatureLoss {
     /// <summary>Document structure tags were not transferred.</summary>
     StructureTags = 4,
     /// <summary>Source signatures were removed in an explicit unsigned derivative.</summary>
-    Signatures = 8
+    Signatures = 8,
+    /// <summary>Document-level embedded files and associated attachments were not transferred.</summary>
+    EmbeddedFiles = 16,
+    /// <summary>Document-level output intent profiles were not transferred.</summary>
+    OutputIntents = 32
 }

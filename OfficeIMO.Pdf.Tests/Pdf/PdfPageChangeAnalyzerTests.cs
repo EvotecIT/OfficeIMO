@@ -56,6 +56,20 @@ public sealed class PdfPageChangeAnalyzerTests {
             .Select(static change => change.ActualPageNumber.GetValueOrDefault()));
     }
 
+    [Fact]
+    public void DuplicatePageInsertionKeepsOrderedExactMatches() {
+        PdfDocument expected = BuildPages("Duplicate", "Content", "Duplicate");
+        PdfDocument actual = BuildPages("Duplicate", "Duplicate", "Content", "Duplicate");
+
+        PdfPageChangeReport report = expected.Proof.AnalyzePageChanges(actual);
+
+        Assert.Equal(new[] { 1, 3, 4 }, report.Changes.Take(3)
+            .Select(static change => change.ActualPageNumber.GetValueOrDefault()));
+        Assert.All(report.Changes.Take(3), static change => Assert.Equal(PdfPageChangeKind.Unchanged, change.Kind));
+        PdfPageChange inserted = Assert.Single(report.Changes, static change => change.Kind == PdfPageChangeKind.Inserted);
+        Assert.Equal(2, inserted.ActualPageNumber);
+    }
+
     private static PdfDocument BuildPages(params string[] texts) {
         PdfDocument document = PdfDocument.Create(new PdfOptions { PageSize = new PageSize(240, 180) });
         for (int index = 0; index < texts.Length; index++) {

@@ -29,8 +29,13 @@ public static class PdfPageChangeAnalyzer {
         long totalPixels = 0;
         string[] expectedFingerprints = FingerprintPages(expected, effective, ref totalPixels, cancellationToken);
         string[] actualFingerprints = FingerprintPages(actual, effective, ref totalPixels, cancellationToken);
+        var expectedToActual = new int[expectedFingerprints.Length];
+        var actualUsed = new bool[actualFingerprints.Length];
+        HashSet<int> orderedExactExpectedPages = FindOrderedExactMatches(
+            expectedFingerprints, actualFingerprints, expectedToActual, actualUsed, cancellationToken);
         var actualByFingerprint = new Dictionary<string, Queue<int>>(StringComparer.Ordinal);
         for (int index = 0; index < actualFingerprints.Length; index++) {
+            if (actualUsed[index]) continue;
             string fingerprint = actualFingerprints[index];
             if (!actualByFingerprint.TryGetValue(fingerprint, out Queue<int>? pages)) {
                 pages = new Queue<int>();
@@ -39,16 +44,14 @@ public static class PdfPageChangeAnalyzer {
             pages.Enqueue(index + 1);
         }
 
-        var expectedToActual = new int[expectedFingerprints.Length];
-        var actualUsed = new bool[actualFingerprints.Length];
         for (int index = 0; index < expectedFingerprints.Length; index++) {
+            if (expectedToActual[index] != 0) continue;
             if (!actualByFingerprint.TryGetValue(expectedFingerprints[index], out Queue<int>? pages) || pages.Count == 0) continue;
             int actualPage = pages.Dequeue();
             expectedToActual[index] = actualPage;
             actualUsed[actualPage - 1] = true;
         }
 
-        HashSet<int> orderedExactExpectedPages = FindLongestOrderedSubsequence(expectedToActual);
         var changes = new PdfPageChange?[expectedFingerprints.Length];
         for (int index = 0; index < expectedToActual.Length; index++) {
             int actualPage = expectedToActual[index];
@@ -118,24 +121,69 @@ public static class PdfPageChangeAnalyzer {
         return fingerprints;
     }
 
-    private static HashSet<int> FindLongestOrderedSubsequence(int[] expectedToActual) {
-        var exactExpected = Enumerable.Range(1, expectedToActual.Length)
-            .Where(page => expectedToActual[page - 1] != 0).ToArray();
-        var length = new int[exactExpected.Length];
-        var previous = new int[exactExpected.Length];
-        int bestIndex = -1;
-        for (int index = 0; index < exactExpected.Length; index++) {
-            length[index] = 1;
-            previous[index] = -1;
-            for (int earlier = 0; earlier < index; earlier++) {
-                if (expectedToActual[exactExpected[earlier] - 1] >= expectedToActual[exactExpected[index] - 1] || length[earlier] + 1 <= length[index]) continue;
-                length[index] = length[earlier] + 1;
-                previous[index] = earlier;
-            }
-            if (bestIndex < 0 || length[index] > length[bestIndex]) bestIndex = index;
-        }
+    private static HashSet<int> FindOrderedExactMatches(string[] expected, string[] actual,
+        int[] expectedToActual, bool[] actualUsed, CancellationToken cancellationToken) {
         var ordered = new HashSet<int>();
-        for (int index = bestIndex; index >= 0; index = previous[index]) ordered.Add(exactExpected[index]);
+        MatchRange(0, expected.Length, 0, actual.Length);
         return ordered;
+
+        void MatchRange(int expectedStart, int expectedLength, int actualStart, int actualLength) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (expectedLength == 0 || actualLength == 0) return;
+            if (expectedLength == 1) {
+                for (int actualIndex = actualStart; actualIndex < actualStart + actualLength; actualIndex++) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (!string.Equals(expected[expectedStart], actual[actualIndex], StringComparison.Ordinal)) continue;
+                    expectedToActual[expectedStart] = actualIndex + 1;
+                    actualUsed[actualIndex] = true;
+                    ordered.Add(expectedStart + 1);
+                    return;
+                }
+                return;
+            }
+
+            int leftLength = expectedLength / 2;
+            int[] before = PrefixLengths(expectedStart, leftLength, actualStart, actualLength);
+            int[] after = SuffixLengths(expectedStart + leftLength, expectedLength - leftLength, actualStart, actualLength);
+            int bestSplit = 0;
+            int bestScore = -1;
+            for (int split = 0; split <= actualLength; split++) {
+                int score = before[split] + after[split];
+                if (score <= bestScore) continue;
+                bestScore = score;
+                bestSplit = split;
+            }
+            MatchRange(expectedStart, leftLength, actualStart, bestSplit);
+            MatchRange(expectedStart + leftLength, expectedLength - leftLength,
+                actualStart + bestSplit, actualLength - bestSplit);
+        }
+
+        int[] PrefixLengths(int expectedStart, int expectedLength, int actualStart, int actualLength) {
+            var previous = new int[actualLength + 1];
+            for (int i = expectedStart; i < expectedStart + expectedLength; i++) {
+                cancellationToken.ThrowIfCancellationRequested();
+                var current = new int[actualLength + 1];
+                for (int j = 1; j <= actualLength; j++) {
+                    current[j] = string.Equals(expected[i], actual[actualStart + j - 1], StringComparison.Ordinal)
+                        ? previous[j - 1] + 1 : Math.Max(previous[j], current[j - 1]);
+                }
+                previous = current;
+            }
+            return previous;
+        }
+
+        int[] SuffixLengths(int expectedStart, int expectedLength, int actualStart, int actualLength) {
+            var previous = new int[actualLength + 1];
+            for (int i = expectedStart + expectedLength - 1; i >= expectedStart; i--) {
+                cancellationToken.ThrowIfCancellationRequested();
+                var current = new int[actualLength + 1];
+                for (int j = actualLength - 1; j >= 0; j--) {
+                    current[j] = string.Equals(expected[i], actual[actualStart + j], StringComparison.Ordinal)
+                        ? previous[j + 1] + 1 : Math.Max(previous[j], current[j + 1]);
+                }
+                previous = current;
+            }
+            return previous;
+        }
     }
 }

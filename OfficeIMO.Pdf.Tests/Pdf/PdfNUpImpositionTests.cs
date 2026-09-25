@@ -120,6 +120,36 @@ public sealed class PdfNUpImpositionTests {
     }
 
     [Fact]
+    public void EmbeddedFileLossRequiresExplicitApproval() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Sheet")).ToBytes();
+        byte[] attached = PdfAttachmentEditor.Add(source,
+            new PdfEmbeddedFile("payload.txt", System.Text.Encoding.UTF8.GetBytes("payload"))).ToBytes();
+        PdfDocument document = PdfDocument.Load(attached);
+        var layout = new PdfNUpOptions(new PageSize(600, 400), 2, 1);
+
+        Assert.Throws<NotSupportedException>(() => document.Pages.ImposeNUp(layout));
+        layout.AllowSourceFeatureLoss = true;
+        PdfImpositionResult result = document.Pages.ImposeNUp(layout);
+
+        Assert.True(result.SourceFeatureLoss.HasFlag(PdfImpositionSourceFeatureLoss.EmbeddedFiles));
+        Assert.False(PdfInspector.Inspect(result.Bytes).HasEmbeddedFiles);
+    }
+
+    [Fact]
+    public void OutputIntentLossRequiresExplicitApproval() {
+        PdfDocument document = PdfDocument.Load(PdfDocument.Create(new PdfOptions().SetSrgbOutputIntent())
+            .Paragraph(paragraph => paragraph.Text("Sheet")).ToBytes());
+        var layout = new PdfNUpOptions(new PageSize(600, 400), 2, 1);
+
+        Assert.Throws<NotSupportedException>(() => document.Pages.ImposeNUp(layout));
+        layout.AllowSourceFeatureLoss = true;
+        PdfImpositionResult result = document.Pages.ImposeNUp(layout);
+
+        Assert.True(result.SourceFeatureLoss.HasFlag(PdfImpositionSourceFeatureLoss.OutputIntents));
+        Assert.False(PdfInspector.Inspect(result.Bytes).HasOutputIntents);
+    }
+
+    [Fact]
     public void BookletPadsToFourAndMapsBothSidesOfDuplexSheets() {
         PdfDocument source = PdfDocument.Create(new PdfOptions { PageSize = new PageSize(240, 180) });
         for (int page = 1; page <= 5; page++) {
