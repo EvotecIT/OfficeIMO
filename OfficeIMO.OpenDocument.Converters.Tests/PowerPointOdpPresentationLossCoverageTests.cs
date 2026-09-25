@@ -392,6 +392,54 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
     }
 
     [Fact]
+    public void OdpTextOutlineAndNumericWeightAreExplicitLoss() {
+        OdpPresentation source = OdpPresentation.Create();
+        OdpTextBox box = source.AddSlide().AddTextBox(OdfRect.FromCentimeters(1, 1, 5, 2), "Text");
+        OdfStyle style = source.Styles.CreateNamed("Outlined", OdfStyleFamily.Paragraph);
+        style.SetProperty(OdfNamespaces.Style + "text-properties", OdfNamespaces.Style + "text-outline", "true");
+        style.SetProperty(OdfNamespaces.Style + "text-properties", OdfNamespaces.Fo + "font-weight", "700");
+        box.Paragraphs[0].StyleName = style.Name;
+
+        AssertLoss(source, "text-effects");
+    }
+
+    [Fact]
+    public void OdpTableProtectionIsExplicitLoss() {
+        OdpPresentation source = OdpPresentation.Create();
+        source.AddSlide().AddTable(OdfRect.FromCentimeters(1, 1, 8, 3), 1, 1);
+        XElement cell = source.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Table + "table-cell").Single();
+        cell.SetAttributeValue(OdfNamespaces.Table + "protected", "true");
+        source.Package.MarkXmlDirty("content.xml");
+
+        AssertLoss(source, "table-protection");
+    }
+
+    [Fact]
+    public void OdpLayerAssignmentAndNavigationOrderAreExplicitLoss() {
+        OdpPresentation source = OdpPresentation.Create();
+        source.AddSlide().AddRectangle(OdfRect.FromCentimeters(1, 1, 4, 2));
+        XDocument content = source.Package.GetXml("content.xml");
+        content.Descendants(OdfNamespaces.Draw + "rect").Single()
+            .SetAttributeValue(OdfNamespaces.Draw + "layer", "hidden");
+        content.Descendants(OdfNamespaces.Draw + "page").Single()
+            .SetAttributeValue(OdfNamespaces.Draw + "nav-order", "shape2 shape1");
+        source.Package.MarkXmlDirty("content.xml");
+
+        AssertLoss(source, "shape-layers");
+        AssertLoss(source, "navigation-order");
+    }
+
+    [Fact]
+    public void PowerPointCompanyAndManagerAreExplicitLoss() {
+        using PowerPointPresentation source = CreateBlankPowerPoint();
+        source.ApplicationProperties.Company = "EvotecIT";
+        source.ApplicationProperties.Manager = "Editor";
+
+        AssertLoss(source, "document-metadata");
+    }
+
+    [Fact]
     public void OdpTypedTableValueIsExplicitLoss() {
         OdpPresentation source = OdpPresentation.Create();
         source.AddSlide().AddTable(OdfRect.FromCentimeters(1, 1, 8, 3), 1, 1);

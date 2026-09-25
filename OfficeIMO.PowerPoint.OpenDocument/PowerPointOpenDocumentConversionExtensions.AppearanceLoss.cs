@@ -217,6 +217,70 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             attribute.Name == OdfNamespaces.Style + "text-rotation-angle") == true;
     }
 
+    private static int CountUnmappedOdpTextEffects(OdpPresentation source) {
+        XDocument content = source.Package.GetXml("content.xml");
+        return content.Descendants().Count(element => {
+            OdfStyleFamily family;
+            if (element.Name == OdfNamespaces.Text + "p" || element.Name == OdfNamespaces.Text + "h")
+                family = OdfStyleFamily.Paragraph;
+            else if (element.Name == OdfNamespaces.Text + "span" || element.Name == OdfNamespaces.Text + "a")
+                family = OdfStyleFamily.Text;
+            else return false;
+            XElement? properties = EffectiveOdfStyleProperties(source, family,
+                (string?)element.Attribute(OdfNamespaces.Text + "style-name"),
+                OdfNamespaces.Style + "text-properties");
+            return properties != null && (properties.HasElements ||
+                properties.Attributes().Any(attribute => !IsMappedOdpTextProperty(attribute)));
+        });
+    }
+
+    private static bool IsMappedOdpTextProperty(XAttribute attribute) {
+        if (attribute.IsNamespaceDeclaration) return true;
+        XName name = attribute.Name;
+        if (name == OdfNamespaces.Fo + "font-weight")
+            return attribute.Value is "bold" or "normal";
+        if (name == OdfNamespaces.Fo + "font-style")
+            return attribute.Value is "italic" or "normal";
+        return name == OdfNamespaces.Fo + "font-size" ||
+            name == OdfNamespaces.Fo + "font-family" ||
+            name == OdfNamespaces.Style + "font-name" ||
+            name == OdfNamespaces.Fo + "color" ||
+            name == OdfNamespaces.Fo + "background-color" ||
+            name == OdfNamespaces.Style + "text-underline-style" ||
+            name == OdfNamespaces.Style + "text-underline-type" ||
+            name == OdfNamespaces.Style + "text-line-through-style" ||
+            name == OdfNamespaces.Style + "text-line-through-type" ||
+            name == OdfNamespaces.Style + "text-position" ||
+            name == OdfNamespaces.Fo + "text-transform" ||
+            name == OdfNamespaces.Fo + "font-variant" ||
+            // These have their own paragraph-layout loss count.
+            name == OdfNamespaces.Fo + "letter-spacing" ||
+            name == OdfNamespaces.Fo + "word-spacing" ||
+            name == OdfNamespaces.Fo + "text-shadow" ||
+            name == OdfNamespaces.Style + "text-rotation-angle";
+    }
+
+    private static int CountUnmappedOdpTableProtection(OdpPresentation source) {
+        int count = 0;
+        foreach (OdpSlide slide in source.Slides) {
+            foreach (OdpTable table in slide.Shapes.OfType<OdpTable>()) {
+                if (table.Element.DescendantsAndSelf().Any(element => element.Attributes().Any(attribute =>
+                    attribute.Name.Namespace == OdfNamespaces.Table &&
+                    ((attribute.Name.LocalName == "protected" && (attribute.Value is "true" or "1")) ||
+                     attribute.Name.LocalName.StartsWith("protection-", StringComparison.Ordinal)))))
+                    count++;
+            }
+        }
+        return count;
+    }
+
+    private static int CountUnmappedOdpShapeLayers(OdpPresentation source) =>
+        source.Slides.Sum(slide => slide.Shapes.Count(shape =>
+            shape.Element.Attribute(OdfNamespaces.Draw + "layer") != null));
+
+    private static int CountUnmappedOdpNavigationOrder(OdpPresentation source) =>
+        source.Slides.Count(slide => slide.Element.Attribute(OdfNamespaces.Draw + "nav-order") != null);
+
     private static int CountUnmappedPowerPointTextGeometry(PresentationPart? presentation,
         IReadOnlyList<P.SlideId> slideIds) {
         if (presentation == null) return 0;

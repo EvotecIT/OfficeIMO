@@ -319,6 +319,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             .Count(HasUnmappedOdpTableVisibility));
         int unsupportedEmbeddedFonts = CountUnmappedOdpEmbeddedFonts(source);
         int unsupportedOdpTextLayout = CountUnmappedOdpTextLayout(source);
+        int unsupportedOdpTextEffects = CountUnmappedOdpTextEffects(source);
         int approximatedTextDecorations = CountNonSolidTextDecorations(source);
         int unsupportedWritingModes = 0, approximatedParagraphAlignments = 0;
         int approximatedFontFamilyLists = 0, unsupportedFontFamilies = 0;
@@ -551,10 +552,18 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             "ODP table, row, column, or cell styles were not translated.");
         AddUnsupported(report, "table-visibility", unsupportedTableVisibility,
             "Collapsed or filtered ODP table rows and columns became visible in PowerPoint.");
+        AddUnsupported(report, "table-protection", CountUnmappedOdpTableProtection(source),
+            "Protected ODP tables or cells became editable in PowerPoint.");
+        AddUnsupported(report, "shape-layers", CountUnmappedOdpShapeLayers(source),
+            "ODP drawing-layer visibility, print, or editing behavior was not transferred to PowerPoint.");
+        AddUnsupported(report, "navigation-order", CountUnmappedOdpNavigationOrder(source),
+            "ODP authored keyboard navigation order was not transferred to PowerPoint.");
         AddUnsupported(report, "embedded-fonts", unsupportedEmbeddedFonts,
             "Embedded ODF font faces were not transferred to PowerPoint.");
         AddUnsupported(report, "paragraph-layout", unsupportedOdpTextLayout,
             "ODP paragraph margins, indent, spacing, tab stops, and character spacing outside the mapped subset were not transferred to PowerPoint.");
+        AddUnsupported(report, "text-effects", unsupportedOdpTextEffects,
+            "ODP text effects and properties outside the mapped formatting subset were not transferred to PowerPoint.");
         AddUnsupported(report, "table-values", source.Slides.Sum(slide => slide.Shapes.OfType<OdpTable>()
                 .Count(HasUnmappedOdpTableValues)),
             "Typed ODP table-cell values were not transferred to PowerPoint.");
