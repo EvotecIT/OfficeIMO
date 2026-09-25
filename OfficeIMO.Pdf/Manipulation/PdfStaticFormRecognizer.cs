@@ -66,7 +66,8 @@ internal static class PdfStaticFormRecognizer {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!TryGetCandidate(primitive, pageWidth, pageHeight, out VisualRect visual, out PdfStaticFormEvidenceKind evidence)) continue;
                 if (HasPaintedInterior(filledAreas, visual, cancellationToken)) continue;
-                if (HasInteriorMark(primitives, filledAreas, visual, cancellationToken)) {
+                if (HasInteriorMark(primitives, filledAreas, visual, cancellationToken) ||
+                    HasImageInterior(page, filledAreas, visual, cancellationToken)) {
                     AddDiagnostic("occupied-field", pageNumber, "A visual field candidate contains a painted mark.");
                     continue;
                 }
@@ -247,12 +248,43 @@ internal static class PdfStaticFormRecognizer {
                 (clip.X >= right || clip.Y >= bottom || clip.X + clip.Width <= left || clip.Y + clip.Height <= top)) continue;
             if (left >= candidate.Left + inset && top >= candidate.Top + inset &&
                 right <= candidate.Right - inset && bottom <= candidate.Bottom - inset &&
-                !filledAreas.Any(area => area.IsOpaqueWhite && area.PaintOrder > primitive.PaintOrder &&
-                    area.Bounds.Left <= left && area.Bounds.Top <= top &&
-                    area.Bounds.Right >= right && area.Bounds.Bottom >= bottom)) return true;
+                !IsCoveredByLaterWhiteFill(filledAreas, new VisualRect(left, top, right, bottom), primitive.PaintOrder)) return true;
         }
         return false;
     }
+
+    private static bool HasImageInterior(PdfLogicalPage page,
+        IReadOnlyList<(VisualRect Bounds, double PaintOrder, bool IsEmpty, bool IsOpaqueWhite)> filledAreas,
+        VisualRect candidate, CancellationToken cancellationToken) {
+        var interior = new VisualRect(candidate.Left + 0.2D, candidate.Top + 0.2D,
+            candidate.Right - 0.2D, candidate.Bottom - 0.2D);
+        foreach (PdfLogicalImage image in page.Images) {
+            foreach (PdfImagePlacement placement in image.Placements) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (placement.IsHiddenOptionalContent || placement.Opacity <= 0D ||
+                    placement.Width <= 0D || placement.Height <= 0D) continue;
+                PdfVisualBounds mapped = page.TransformBoundsToVisual(placement.X, placement.Y,
+                    placement.X + placement.Width, placement.Y + placement.Height);
+                var visible = new VisualRect(mapped.Left, mapped.Top, mapped.Right, mapped.Bottom);
+                if (placement.Clip is { IsRectangle: true, IsExact: true, ContainsTextClipping: false } clip) {
+                    PdfVisualBounds clipped = page.TransformBoundsToVisual(clip.X,
+                        page.Height - clip.Y - clip.Height, clip.X + clip.Width, page.Height - clip.Y);
+                    visible = new VisualRect(Math.Max(visible.Left, clipped.Left), Math.Max(visible.Top, clipped.Top),
+                        Math.Min(visible.Right, clipped.Right), Math.Min(visible.Bottom, clipped.Bottom));
+                }
+                if (OverlapArea(visible, interior) > 0.5D &&
+                    !IsCoveredByLaterWhiteFill(filledAreas, visible, placement.PaintOrder)) return true;
+            }
+        }
+        return false;
+    }
+
+    private static bool IsCoveredByLaterWhiteFill(
+        IReadOnlyList<(VisualRect Bounds, double PaintOrder, bool IsEmpty, bool IsOpaqueWhite)> filledAreas,
+        VisualRect painted, double paintOrder) =>
+        filledAreas.Any(area => area.IsOpaqueWhite && area.PaintOrder > paintOrder &&
+            area.Bounds.Left <= painted.Left && area.Bounds.Top <= painted.Top &&
+            area.Bounds.Right >= painted.Right && area.Bounds.Bottom >= painted.Bottom);
 
     private static Label? FindLabel(IReadOnlyList<Label> labels, VisualRect field, PdfStaticFormEvidenceKind evidence) {
         Label? best = null;

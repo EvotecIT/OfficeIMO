@@ -1,4 +1,5 @@
 using OfficeIMO.Drawing;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
@@ -149,7 +150,8 @@ public sealed partial class PdfReadPage {
                 unsupportedShadingTransformVisitor: () => channels |= PdfType3PaintChannels.Both,
                 requireExactType3ShadingProjection: true,
                 retainPrimitiveData: false,
-                inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array));
+                inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
+                operationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
 
             Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
             Dictionary<string, Func<byte[], double>> widthProviders = ResourceResolver.GetFontWidthProvidersForResources(resources, _objects);
@@ -367,7 +369,7 @@ public sealed partial class PdfReadPage {
         var cacheKey = (softMask.Group, effectiveParentResources, transform, pageWidth, pageHeight);
         if (cache.BlackLuminosityForms.TryGetValue(cacheKey, out bool cached)) return cached;
         string content = PdfEncoding.Latin1GetString(pageContentBudget.Decode(softMask.Group));
-        if (!IsVectorOnlyLuminosityProofContent(content)) {
+        if (!IsVectorOnlyLuminosityProofContent(content, pageContentBudget.CancellationToken)) {
             cache.BlackLuminosityForms[cacheKey] = false;
             return false;
         }
@@ -394,12 +396,13 @@ public sealed partial class PdfReadPage {
         return result;
     }
 
-    private bool IsVectorOnlyLuminosityProofContent(string content) {
+    private bool IsVectorOnlyLuminosityProofContent(string content, CancellationToken cancellationToken) {
         bool vectorOnly = true;
         PdfContentStreamInterpreter.InterpretUntil(
             content,
             _limits.MaxContentOperations,
             operation => {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (operation.HasInvalidOperands || operation.Name is "BT" or "Do" or "BI") {
                     vectorOnly = false;
                     return false;

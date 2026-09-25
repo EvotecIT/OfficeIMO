@@ -231,7 +231,8 @@ public sealed partial class PdfReadPage {
                     inheritedFillColor,
                     inheritedStrokeColor,
                     hasInheritedFillPattern,
-                    hasInheritedStrokePattern)) return false;
+                    hasInheritedStrokePattern,
+                    pageContentBudget.CancellationToken)) return false;
             if (HasUnsupportedInheritedSoftMaskState(inheritedGraphicsState)) return false;
             if (validatedGroups.TryGetValue(cacheKey, out int cachedNestingSpan)) {
                 int cachedMaximumDepth = contentNestingDepth + cachedNestingSpan;
@@ -408,7 +409,8 @@ public sealed partial class PdfReadPage {
             initialFillPattern: initialState?.FillPattern,
             initialStrokePattern: initialState?.StrokePattern,
             textClippingBudget: textClippingBudget,
-            inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array));
+            inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
+            operationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
         if (!supported) return false;
         var validationDiagnostics = new BoundedRenderDiagnostics(1, 1, suppressRetention: true);
         var validationDiagnosticKeys = new HashSet<string>(StringComparer.Ordinal);
@@ -641,7 +643,8 @@ public sealed partial class PdfReadPage {
         OfficeColor inheritedFillColor,
         OfficeColor inheritedStrokeColor,
         bool hasInheritedFillPattern,
-        bool hasInheritedStrokePattern) {
+        bool hasInheritedStrokePattern,
+        CancellationToken cancellationToken) {
         bool inheritedFillDiffers = hasInheritedFillPattern || !inheritedFillColor.Equals(OfficeColor.Black);
         bool inheritedStrokeDiffers = hasInheritedStrokePattern || !inheritedStrokeColor.Equals(OfficeColor.Black);
         if (!inheritedFillDiffers && !inheritedStrokeDiffers) return false;
@@ -655,6 +658,7 @@ public sealed partial class PdfReadPage {
             content,
             _limits.MaxContentOperations,
             operation => {
+                cancellationToken.ThrowIfCancellationRequested();
                 switch (operation.Name) {
                     case "q":
                         stack.Push((fillExplicit, strokeExplicit, textRenderingMode));
@@ -725,7 +729,8 @@ public sealed partial class PdfReadPage {
             fillColor,
             strokeColor,
             hasFillPattern,
-            hasStrokePattern);
+            hasStrokePattern,
+            pageContentBudget.CancellationToken);
     }
 
     private static bool IsSupportedSoftMaskTextFont(PdfFontResource font) {

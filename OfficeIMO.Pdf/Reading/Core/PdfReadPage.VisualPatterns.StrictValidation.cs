@@ -36,12 +36,14 @@ public sealed partial class PdfReadPage {
                     malformed = true;
                 }
             },
-            inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array));
+            inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
+            operationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
         if (malformed) return true;
         PdfContentStreamInterpreter.InterpretUntil(
             content,
             _limits.MaxContentOperations,
             operation => {
+                pageContentBudget.CancellationToken.ThrowIfCancellationRequested();
                 switch (operation.Name) {
                     case "q":
                         fontStack.Push(fontName);

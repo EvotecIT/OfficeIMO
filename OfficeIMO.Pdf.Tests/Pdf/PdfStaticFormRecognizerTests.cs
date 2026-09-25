@@ -137,6 +137,22 @@ public sealed class PdfStaticFormRecognizerTests {
     }
 
     [Fact]
+    public void ImageRenderedValueOccupiesOutlinedField() {
+        byte[] image = PdfPngTestImages.CreateRgbPng(20, 20);
+        byte[] source = PdfDocument.Create(new PdfOptions { PageWidth = 400D, PageHeight = 300D })
+            .Canvas(canvas => canvas
+                .Text("Name:", 20D, 28D, 70D, 20D)
+                .Shape(Box(140D, 20D), 100D, 28D)
+                .Image(image, 110D, 30D, 16D, 16D))
+            .ToBytes();
+
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout();
+
+        Assert.Empty(report.Proposals);
+        Assert.Contains(report.Diagnostics, static diagnostic => diagnostic.Code == "occupied-field");
+    }
+
+    [Fact]
     public void EdgeNearCheckmarkAndSmallFilledDotBothOccupyAStaticBox() {
         OfficeShape mark = OfficeShape.Line(0D, 0D, 13D, 13D);
         mark.StrokeColor = OfficeColor.Black;
