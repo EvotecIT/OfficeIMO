@@ -1032,8 +1032,9 @@ public sealed partial class PdfReadPage {
         PdfDictionary? resources = ResolveDictionary(form.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourceObject) ? resourceObject : null) ??
             fallbackResources ??
             pageResources;
-        RegisterEmbeddedFonts(drawing, resources, new HashSet<PdfStream>(), 0);
-        pageContentBudget.ConfigureDrawing(drawing);
+        var registeredFonts = new Dictionary<(string Family, OfficeFontStyle Style), PdfFontResource>();
+        RegisterEmbeddedFonts(drawing, resources, new HashSet<PdfStream>(), 0, registeredFonts);
+        ConfigureDrawingFonts(drawing, registeredFonts, pageContentBudget);
         string content = WrapFormContentWithBoundingBoxClip(
             decodedContent ?? PdfEncoding.Latin1GetString(pageContentBudget.Decode(form)),
             form.Dictionary);
@@ -1092,6 +1093,9 @@ public sealed partial class PdfReadPage {
             contentOrderPrefix: PdfContentOrderKey.Root,
             contentOrderOffset: -transformedOffset,
             initialRenderingIntent: renderingIntent);
+        PdfPaintedGlyphRuns.SplitComplexRuns(spans, pageContentBudget.ChargePositionedTextWorkCharacters,
+            cancellationToken);
+        PdfArabicPaintedForms.Apply(spans, cancellationToken);
         for (int i = 0; i < spans.Count; i++) {
             if (renderedType3PaintOrders.Contains(spans[i].PaintOrder, spans[i].ContentOrderKey)) continue;
             elements.Add(PdfPageDrawingElement.FromText(spans[i], elements.Count));
@@ -1139,6 +1143,9 @@ public sealed partial class PdfReadPage {
         OverlayDrawingEffects(elements, enclosingEffects);
 
         SortDrawingElements(elements);
+        AddPaintedGlyphMappings(drawing, registeredFonts, elements,
+            pageContentBudget.PaintedGlyphMaps,
+            pageContentBudget, cancellationToken);
         for (int i = 0; i < elements.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
             AddDrawingElement(drawing, height, transform, elements[i], softMasks, activeSoftMasks, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget, allowRedundantPageClipRemoval: false, cancellationToken);

@@ -39,14 +39,15 @@ public static class OfficeImageExportFontDiagnostics {
                     source);
             }
 
-            OfficeTrueTypeFont? platform = OfficeTrueTypeFont.TryLoadFontFamily(family);
-            if (platform != null && platform.HasGlyphs(text!)) {
-                if (index == 0) return null;
+            OfficeTrueTypeFont? platform = OfficeTrueTypeFont.TryLoadFontFamilyForText(
+                family, requestedStyle, text!, out OfficeFontStyle platformStyle);
+            if (platform != null) {
+                if (index == 0 && platformStyle == requestedStyle) return null;
                 return CreateDiagnostic(
                     families[0],
                     requestedStyle,
                     family,
-                    requestedStyle,
+                    platformStyle,
                     scoped: false,
                     source);
             }
@@ -91,7 +92,7 @@ public static class OfficeImageExportFontDiagnostics {
                     remainingLookups--;
                     Append(
                         drawing.Fonts.CreateSubstitutionDiagnostic(
-                            text.Text,
+                            text.RasterText,
                             text.Font.FamilyName,
                             text.Font.Style,
                             source),

@@ -7,6 +7,12 @@ namespace OfficeIMO.Drawing;
 public sealed partial class OfficeRasterCanvas {
     private const int MaxShapedTextCacheEntries = 4096;
     private const int MaximumTextOutlinePointsPerRun = 1_000_000;
+
+    /// <summary>
+    /// Draws text characters as already-shaped glyphs in painted left-to-right order. Contextual
+    /// shaping and bidirectional reordering are skipped; see <see cref="OfficeDrawingText.PreservesPaintedGlyphs"/>.
+    /// </summary>
+    internal bool PreservePaintedGlyphOrder { get; set; }
     private Dictionary<ShapedTextKey, OfficeTextShapingResult?>? _shapedTextCache;
     private Dictionary<ShapedTextKey, OfficeManagedTextFallback>? _managedTextCache;
     private readonly OfficeCffOperationBudget _cffOperationBudget = new OfficeCffOperationBudget();
@@ -28,6 +34,10 @@ public sealed partial class OfficeRasterCanvas {
         OfficeTextFeatureSettings? featureSettings,
         OfficeTextDirection direction,
         out OfficeTextShapingResult shapedRun) {
+        if (PreservePaintedGlyphOrder) {
+            shapedRun = null!;
+            return false;
+        }
         OfficeTextFeatureSettings resolvedFeatures = featureSettings ?? OfficeTextFeatureSettings.Default;
         IOfficeTextShapingProvider? provider = _textShapingProvider;
         if (provider == null && !resolvedFeatures.IsDefault) provider = OfficeManagedTextShapingProvider.Instance;
@@ -350,6 +360,7 @@ public sealed partial class OfficeRasterCanvas {
     private OfficeManagedTextFallback GetManagedTextFallback(string text, IOfficeFontProgram font,
         OfficeTextDirection direction = OfficeTextDirection.Auto) {
         _cancellationToken.ThrowIfCancellationRequested();
+        if (PreservePaintedGlyphOrder) return new OfficeManagedTextFallback(text, used: false, incomplete: false);
         OfficeTextDirection resolvedDirection = ResolveTextDirection(text, direction);
         var key = new ShapedTextKey(text, font, direction: resolvedDirection);
         Dictionary<ShapedTextKey, OfficeManagedTextFallback> cache =
@@ -391,7 +402,7 @@ public sealed partial class OfficeRasterCanvas {
         _diagnosticSink.Add(new OfficeImageExportDiagnostic(
             OfficeImageExportDiagnosticSeverity.Warning,
             OfficeImageExportDiagnosticCodes.TextShapingFallback,
-            "Rendered complex text with the dependency-free core-Arabic and bidirectional fallback. Supply TextShapingProvider for full OpenType shaping.",
+            "Rendered complex text with the dependency-free Arabic-script and bidirectional fallback. Supply TextShapingProvider for full OpenType shaping.",
             _diagnosticSource,
             OfficeConversionLossKind.Approximation));
     }

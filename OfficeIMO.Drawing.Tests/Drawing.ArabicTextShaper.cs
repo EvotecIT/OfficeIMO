@@ -25,6 +25,17 @@ public class DrawingArabicTextShaperTests {
     }
 
     [Fact]
+    public void ArabicTextShaper_ShapesExtendedPersianAndUrduLetters() {
+        // peh + farsi yeh + keheh; heh goal + yeh barree, then tteh + alef (Presentation Forms-A).
+        Assert.Equal("\uFB58\uFBFF\uFB8F", OfficeArabicTextShaper.Shape("\u067E\u06CC\u06A9"));
+        Assert.Equal("\uFBA8\uFBAF\u0020\uFB68\uFE8E", OfficeArabicTextShaper.Shape("\u06C1\u06D2\u0020\u0679\u0627"));
+        Assert.Equal("\uFB8A", OfficeArabicTextShaper.Shape("\u0698"));
+        Assert.Equal("\u06C1\u06D2\u0020\u0679\u0627", OfficeArabicTextShaper.ToLogicalText("\uFBA8\uFBAF\u0020\uFB68\uFE8E"));
+        Assert.True(OfficeArabicTextShaper.CanShapeAllJoiningCharacters("\u067E\u06CC\u06A9"));
+        Assert.True(OfficeArabicTextShaper.CanShapeAllJoiningCharacters("\u06C1\u06D2\u0020\u0679\u0627"));
+    }
+
+    [Fact]
     public void ArabicTextShaper_LeavesUnsupportedJoiningScriptsVisibleToDiagnostics() {
         Assert.False(OfficeArabicTextShaper.CanShapeAllJoiningCharacters("ܫܠܡ"));
         Assert.Equal("ܫܠܡ", OfficeArabicTextShaper.Shape("ܫܠܡ"));
