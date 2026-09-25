@@ -122,6 +122,11 @@ internal static class OdfFeatureInspector {
         XElement? paragraph = element.Ancestors().FirstOrDefault(ancestor =>
             ancestor.Name == OdfNamespaces.Text + "p" || ancestor.Name == OdfNamespaces.Text + "h");
         if (paragraph == null) return false;
+        for (XElement? inline = element.Parent; inline != null && !ReferenceEquals(inline, paragraph);
+            inline = inline.Parent) {
+            if (inline.Name != OdfNamespaces.Text + "span" && inline.Name != OdfNamespaces.Text + "a")
+                return false;
+        }
         if (partPath == "styles.xml") {
             if (paragraph.Parent?.Name != OdfNamespaces.Style + "header" &&
                 paragraph.Parent?.Name != OdfNamespaces.Style + "footer") return false;

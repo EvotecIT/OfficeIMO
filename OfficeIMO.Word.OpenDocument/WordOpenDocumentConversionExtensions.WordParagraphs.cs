@@ -19,7 +19,7 @@ public static partial class WordOpenDocumentConversionExtensions {
                 WordInlineFieldSnapshot field = fields[fieldIndex++];
                 if (field.IsHiddenInstructionContent) continue;
                 if (TryMapWordField(field, out OdtFieldKind kind)) {
-                    target.AddField(kind, field.ResultText);
+                    target.AddField(kind, field.ResultText).IsFixed = field.IsLocked;
                     wrote = true;
                 } else if (field.ResultText.Length > 0) {
                     target.AddText(field.ResultText);

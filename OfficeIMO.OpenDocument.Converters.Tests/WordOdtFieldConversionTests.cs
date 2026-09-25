@@ -37,6 +37,57 @@ public sealed class WordOdtFieldConversionTests {
     }
 
     [Fact]
+    public void LockedSimpleFieldsBecomeFixedOdtFieldsExceptPageCount() {
+        using WordDocument source = WordDocument.Create();
+        WordParagraph paragraph = source.AddParagraph();
+        paragraph._paragraph.Append(
+            new SimpleField(new Run(new Text("4"))) { Instruction = " PAGE ", FieldLock = true },
+            new SimpleField(new Run(new Text("Today"))) { Instruction = " DATE ", FieldLock = true },
+            new SimpleField(new Run(new Text("09:30"))) { Instruction = " TIME ", FieldLock = true },
+            new SimpleField(new Run(new Text("12"))) { Instruction = " NUMPAGES ", FieldLock = true });
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdtParagraph result = Assert.Single(conversion.Value.Paragraphs);
+        Assert.Equal(new[] { OdtFieldKind.PageNumber, OdtFieldKind.Date, OdtFieldKind.Time },
+            result.Fields.Select(field => field.Kind));
+        Assert.All(result.Fields, field => Assert.True(field.IsFixed));
+        Assert.Equal("4Today09:3012", result.Text);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "fields" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+    }
+
+    [Fact]
+    public void FieldInsideUnmodeledInlineWrapperIsInspectedLoss() {
+        OdtDocument source = OdtDocument.Create();
+        source.AddParagraph();
+        XNamespace text = "urn:oasis:names:tc:opendocument:xmlns:text:1.0";
+        source.Package.GetXml("content.xml").Descendants(text + "p").Single().Add(
+            new XElement(text + "meta", new XElement(text + "page-number", "7")));
+        source.Package.MarkXmlDirty("content.xml");
+
+        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "source-text-fields" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+    }
+
+    [Fact]
+    public void WordNoteFieldResultRetainsItsVisibleCachedText() {
+        using WordDocument source = WordDocument.Create();
+        source.AddParagraph("Anchor").AddFootNote("Before ");
+        Footnote note = source.OpenXmlDocument.MainDocumentPart!.FootnotesPart!.Footnotes!
+            .Elements<Footnote>().Single(item => item.Type == null);
+        note.Descendants<Paragraph>().First().Append(
+            new SimpleField(new Run(new Text("7"))) { Instruction = " PAGE " },
+            new Run(new Text(" after")));
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdtNote converted = Assert.Single(conversion.Value.Paragraphs.Single().Notes);
+        Assert.Equal("Before 7 after", converted.Paragraphs.Single().Text);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "fields" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+    }
+
+    [Fact]
     public void SimpleFieldInsideComplexInstructionIsNotConvertedOrDisplayed() {
         using WordDocument source = WordDocument.Create();
         WordParagraph paragraph = source.AddParagraph();

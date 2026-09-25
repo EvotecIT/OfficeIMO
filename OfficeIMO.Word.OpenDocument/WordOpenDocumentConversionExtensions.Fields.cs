@@ -6,7 +6,7 @@ namespace OfficeIMO.Word.OpenDocument;
 public static partial class WordOpenDocumentConversionExtensions {
     private static bool TryMapWordField(WordInlineFieldSnapshot field, out OdtFieldKind kind) {
         kind = default;
-        if (field.IsLocked || field.HasUnsupportedResultContent || field.HasUnsupportedContainer) return false;
+        if (field.HasUnsupportedResultContent || field.HasUnsupportedContainer) return false;
         string[] tokens = field.Instruction.Split(new[] { ' ', '\t', '\r', '\n' },
             StringSplitOptions.RemoveEmptyEntries);
         if (tokens.Length != 1 && !(tokens.Length == 3 && tokens[1] == "\\*" &&
@@ -14,7 +14,9 @@ public static partial class WordOpenDocumentConversionExtensions {
         if (tokens.Length == 0) return false;
         switch (tokens[0].ToUpperInvariant()) {
             case "PAGE": kind = OdtFieldKind.PageNumber; return true;
-            case "NUMPAGES": kind = OdtFieldKind.PageCount; return true;
+            case "NUMPAGES":
+                if (field.IsLocked) return false;
+                kind = OdtFieldKind.PageCount; return true;
             case "DATE": kind = OdtFieldKind.Date; return true;
             case "TIME": kind = OdtFieldKind.Time; return true;
             default: return false;
