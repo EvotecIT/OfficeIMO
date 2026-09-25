@@ -273,6 +273,23 @@ public sealed class OpenDocumentOdtNotesTests {
     }
 
     [Fact]
+    public void DisplacedGeneratedNoteRenumbersAfterTrackedDeletionRoundTrip() {
+        OdtDocument source = OdtDocument.Create();
+        OdtParagraph first = source.AddParagraph("First");
+        OdtParagraph second = source.AddParagraph("Second");
+        second.AddFootnote("Second note");
+        first.AddFootnote("First note");
+        OdtTrackedChange deletion = source.DeleteParagraphTracked(second, "Editor");
+
+        OdtDocument reopened = OdtDocument.Load(new MemoryStream(source.ToBytes()));
+        reopened.Paragraphs[0].Text = "Removed first note";
+        Assert.True(reopened.RejectTrackedChange(deletion.Id));
+
+        OdtDocument result = OdtDocument.Load(new MemoryStream(reopened.ToBytes()));
+        Assert.Equal("1", Assert.Single(result.Paragraphs.SelectMany(paragraph => paragraph.Notes)).Citation);
+    }
+
+    [Fact]
     public void NoteBodyInlineCollectionsBelongToNoteParagraphOnly() {
         OdtDocument source = OdtDocument.Create();
         OdtParagraph anchor = source.AddParagraph("Anchor");

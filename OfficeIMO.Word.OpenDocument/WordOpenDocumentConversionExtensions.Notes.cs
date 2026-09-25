@@ -147,7 +147,26 @@ public static partial class WordOpenDocumentConversionExtensions {
         string defaultStyle = kind == OdtNoteKind.Footnote ? "FootnoteReference" : "EndnoteReference";
         return notes.Anchors(kind, referenceId).Any(run =>
             run.RunProperties?.ChildElements.Any(child =>
-                child is not W.RunStyle style || style.Val?.Value != defaultStyle) == true);
+                child is not W.RunStyle style || style.Val?.Value != defaultStyle) == true ||
+            HasInheritedWordAnchorStyleFormatting(notes.WordSource, run));
+    }
+
+    private static bool HasInheritedWordAnchorStyleFormatting(WordDocument? source, W.Run run) {
+        W.Styles? styles = source?.OpenXmlDocument.MainDocumentPart?.StyleDefinitionsPart?.Styles;
+        if (styles == null) return false;
+        string? id = run.Ancestors<W.Paragraph>().FirstOrDefault()?.ParagraphProperties?
+            .ParagraphStyleId?.Val?.Value;
+        if (id == null) id = styles.Elements<W.Style>().FirstOrDefault(style =>
+            style.Type?.Value == W.StyleValues.Paragraph && style.Default?.Value == true)?.StyleId?.Value;
+        var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        while (id != null && visited.Add(id)) {
+            W.Style? style = styles.Elements<W.Style>().FirstOrDefault(candidate =>
+                string.Equals(candidate.StyleId?.Value, id, StringComparison.OrdinalIgnoreCase));
+            if (style == null) break;
+            if (style.StyleRunProperties?.HasChildren == true) return true;
+            id = style.BasedOn?.Val?.Value;
+        }
+        return false;
     }
 
     private static bool HasAmbiguousWordNotePosition(WordRunSnapshot run) =>
@@ -468,12 +487,14 @@ public static partial class WordOpenDocumentConversionExtensions {
         if (source.Kind == OdtNoteKind.Footnote) {
             target.AddFootNote(text);
             notes.ConvertedFootnotes++;
-            if (source.Citation != notes.ConvertedFootnotes.ToString(System.Globalization.CultureInfo.InvariantCulture))
+            if (source.HasCustomCitationLabel ||
+                source.Citation != notes.ConvertedFootnotes.ToString(System.Globalization.CultureInfo.InvariantCulture))
                 notes.ApproximatedCitations++;
         } else {
             target.AddEndNote(text);
             notes.ConvertedEndnotes++;
-            if (source.Citation != notes.ConvertedEndnotes.ToString(System.Globalization.CultureInfo.InvariantCulture))
+            if (source.HasCustomCitationLabel ||
+                source.Citation != notes.ConvertedEndnotes.ToString(System.Globalization.CultureInfo.InvariantCulture))
                 notes.ApproximatedCitations++;
         }
         if (notes.HasOdtDefaultNoteBodyFormatting || paragraphs.Count != 1 || paragraphs.Any(paragraph => paragraph.StyleName != null ||

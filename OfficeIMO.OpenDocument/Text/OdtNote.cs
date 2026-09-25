@@ -38,6 +38,9 @@ public sealed class OdtNote {
         }
     }
 
+    internal bool HasCustomCitationLabel =>
+        _element.Element(OdfNamespaces.Text + "note-citation")?.Attribute(OdfNamespaces.Text + "label") != null;
+
     /// <summary>Direct paragraphs in the note body, in source order.</summary>
     public IReadOnlyList<OdtParagraph> Paragraphs => Body?.Elements(OdfNamespaces.Text + "p")
         .Select(paragraph => new OdtParagraph(_document, paragraph, _partPath)).ToList() ?? new List<OdtParagraph>();

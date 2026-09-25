@@ -13,6 +13,43 @@ using Xunit;
 namespace OfficeIMO.OpenDocument.Converters.Tests;
 
 public sealed class WordOdtNotesConversionTests {
+    [Fact]
+    public void NumericCustomCitationLabelStillReportsLoss() {
+        OdtDocument source = OdtDocument.Create();
+        source.AddParagraph("Anchor").AddFootnote("Note");
+        var text = (XNamespace)"urn:oasis:names:tc:opendocument:xmlns:text:1.0";
+        source.Package.GetXml("content.xml").Descendants(text + "note-citation").Single()
+            .SetAttributeValue(text + "label", "1");
+        source.Package.MarkXmlDirty("content.xml");
+
+        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        using WordDocument word = conversion.Value;
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-citations" &&
+            mapping.Status == OdfConversionMappingStatus.Approximated);
+        Assert.Throws<OdfConversionLossException>(() => source.ToWordDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void ParagraphStyleRunFormattingOnWordNoteAnchorReportsLoss() {
+        using WordDocument source = WordDocument.Create();
+        source.AddParagraph("Anchor").AddFootNote("Body");
+        W.Styles styles = source.OpenXmlDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        styles.Append(new W.Style(new W.StyleRunProperties(new W.Bold())) {
+            Type = W.StyleValues.Paragraph, StyleId = "StyledNoteAnchor"
+        });
+        W.Paragraph anchor = source.OpenXmlDocument.MainDocumentPart.Document!.Body!
+            .Descendants<W.Paragraph>().First(paragraph => paragraph.Descendants<W.FootnoteReference>().Any());
+        anchor.ParagraphProperties ??= new W.ParagraphProperties();
+        anchor.ParagraphProperties.ParagraphStyleId = new W.ParagraphStyleId { Val = "StyledNoteAnchor" };
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-reference-formatting" &&
+            mapping.Status == OdfConversionMappingStatus.Approximated);
+        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

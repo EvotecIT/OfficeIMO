@@ -32,7 +32,7 @@ public sealed partial class OdtDocument {
         ValidateNoteInsertion(kind, text);
         NoteIndex index = GetNoteIndex();
 
-        string prefix = kind == OdtNoteKind.Footnote ? "ftn" : "endn";
+        string prefix = kind == OdtNoteKind.Footnote ? "ftng" : "endng";
         int ordinal = index.Count(kind) + 1;
         int idNumber = ordinal;
         string id;
@@ -136,10 +136,14 @@ public sealed partial class OdtDocument {
             string prefix = kind == OdtNoteKind.Footnote ? "ftn" : kind == OdtNoteKind.Endnote ? "endn" : string.Empty;
             if (prefix.Length == 0 || !id.StartsWith(prefix, StringComparison.Ordinal)) return false;
             string suffix = id.Substring(prefix.Length);
+            bool markedGenerated = suffix.StartsWith("g", StringComparison.Ordinal);
+            if (markedGenerated) suffix = suffix.Substring(1);
             XElement? citation = note.Element(OdfNamespaces.Text + "note-citation");
             return citation?.Attribute(OdfNamespaces.Text + "label") == null &&
                 int.TryParse(suffix, NumberStyles.None, CultureInfo.InvariantCulture, out int number) &&
-                number > 0 && citation?.Value == number.ToString(CultureInfo.InvariantCulture);
+                number > 0 && (markedGenerated
+                    ? int.TryParse(citation?.Value, NumberStyles.None, CultureInfo.InvariantCulture, out int displayed) && displayed > 0
+                    : citation?.Value == number.ToString(CultureInfo.InvariantCulture));
         }
 
         internal int ExternalXmlEditVersion { get; }
