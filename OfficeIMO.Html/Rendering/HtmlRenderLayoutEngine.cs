@@ -101,6 +101,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private IReadOnlyDictionary<string, int>? _activeSubgridRowLineNames;
     private int? _activeSubgridRowLineCount;
     private double _activeSubgridRowGap;
+    private bool _pagedFloatDeferredInRelayout;
 
     internal HtmlRenderLayoutEngine(IHtmlDocument document, HtmlComputedStyleSet computedStyles, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, HtmlResourceSession? resources = null, HtmlCssPageRuleSet? pageRules = null, OfficeFontFaceCollection? fonts = null, HtmlConversionLimits? limits = null, int logicalTextOrderStart = 0, int semanticNodeIdStart = 0, HtmlRenderOperationBudget? operationBudget = null, CancellationToken cancellationToken = default) {
         _cancellationToken = cancellationToken;
@@ -320,10 +321,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double contentWidth,
         HtmlRenderBoxStyle rootStyle,
         IElement? continuationTarget = null,
-        int continuationLogicalCharacters = 0) {
+        int continuationLogicalCharacters = 0,
+        PagedFloatBoundary? pageBoundary = null) {
         HtmlRenderBoxStyle resolved = ResolveNormalFlowHorizontalAutoMargins(root, rootStyle, contentWidth);
         HtmlRenderFlowBlock block = LayoutElement(root, contentWidth, resolved, resolved, 0,
-            continuationTarget, continuationLogicalCharacters);
+            continuationTarget, continuationLogicalCharacters, pageBoundary);
         return _options.Mode == HtmlRenderMode.Paged
             ? block.WithLayoutViewport(_activePageGeometry.Width, _activePageGeometry.Height)
             : block;
@@ -670,8 +672,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 block = RelayoutTopLevelBlockForPage(block, pageGeometry);
             }
 
+            double remainingHeight = ResolvePageBodyBottom(pages.Count + 1, pageGeometry) - y;
+            HtmlRenderFlowBlock floatAwareBlock = block;
+            bool deferredFloat = false;
+            if (block.Height > remainingHeight + 0.0001D && remainingHeight > 0.0001D && !HasInternalForcedBreak(block)) {
+                HtmlCssPageGeometry nextPageGeometry = _pageRules.ResolveGeometry(pages.Count + 2, block.PageName, _options);
+                if (SamePageGeometry(pageGeometry, nextPageGeometry)
+                    && Math.Abs(contentHeight - ResolvePageBodyContentHeight(pages.Count + 2, nextPageGeometry)) <= 0.0001D) {
+                    deferredFloat = TryRelayoutBlockForDeferredFloat(
+                        block, pageGeometry, remainingHeight, contentHeight, out floatAwareBlock);
+                }
+            }
+            if (deferredFloat) block = floatAwareBlock;
+
             if (block.Height <= contentHeight
                 && hasPageContent
+                && !deferredFloat
                 && !HasInternalForcedBreak(block)
                 && y + block.Height > ResolvePageBodyBottom(pages.Count + 1, pageGeometry)) {
                 CommitPage(pages, visuals, pageGeometry, currentPageName);

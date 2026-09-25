@@ -10,7 +10,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle parentStyle,
         int depth,
         IElement? continuationTarget = null,
-        int continuationLogicalCharacters = 0) =>
+        int continuationLogicalCharacters = 0,
+        PagedFloatBoundary? pageBoundary = null) =>
         BuildChildBlocks(
             container,
             container.ChildNodes,
@@ -20,7 +21,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             includeGeneratedBefore: true,
             includeGeneratedAfter: true,
             continuationTarget,
-            continuationLogicalCharacters);
+            continuationLogicalCharacters,
+            pageBoundary);
 
     private IReadOnlyList<HtmlRenderFlowBlock> BuildChildBlocks(
         IElement container,
@@ -31,7 +33,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool includeGeneratedBefore,
         bool includeGeneratedAfter,
         IElement? continuationTarget = null,
-        int continuationLogicalCharacters = 0) {
+        int continuationLogicalCharacters = 0,
+        PagedFloatBoundary? pageBoundary = null) {
         EnsureDepth(depth, container);
         if (container.TagName.Equals("details", StringComparison.OrdinalIgnoreCase) && !container.HasAttribute("open")) {
             IElement? summary = container.Children.FirstOrDefault(child =>
@@ -61,7 +64,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     continue;
                 }
                 if (HtmlCssRunningElementParser.TryParsePosition(childStyle.Position, out string runningElementName)) {
-                    double inlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth);
+                    double inlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth, pageBoundary?.Shift(flowHeight));
                     flowHeight += inlineHeight;
                     if (inlineHeight > 0D) adjoiningMargins.Clear();
                     IReadOnlyList<HtmlCssRunningStringAssignment> assignments = CaptureRunningElement(
@@ -89,7 +92,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     ? CreateFlattenedSemanticBoundary(element, childStyle)
                     : null;
                 if (childStyle.Display == "contents" && HasBlockChildren(element, width, childStyle, depth + 1)) {
-                    double inlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth);
+                    double inlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth, pageBoundary?.Shift(flowHeight));
                     flowHeight += inlineHeight;
                     bool carriesContinuation = ContainsElementOrSelf(element, continuationTarget);
                     IReadOnlyList<HtmlRenderFlowBlock> flattenedBlocks = BuildChildBlocks(
@@ -98,7 +101,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         childStyle,
                         depth + 1,
                         carriesContinuation ? continuationTarget : null,
-                        carriesContinuation ? continuationLogicalCharacters : 0);
+                        carriesContinuation ? continuationLogicalCharacters : 0,
+                        pageBoundary?.Shift(flowHeight));
                     foreach (HtmlRenderFlowBlock flattenedBlock in ApplyFlattenedElementSemantics(flattenedBlocks, flattenedSemanticBoundary!)) {
                         blocks.Add(flattenedBlock);
                         flowHeight += flattenedBlock.Height;
@@ -116,7 +120,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         inlineNodes.Add(node);
                         continue;
                     }
-                    double inlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth);
+                    double inlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth, pageBoundary?.Shift(flowHeight));
                     flowHeight += inlineHeight;
                     if (inlineHeight > 0D) {
                         adjoiningMargins.Clear();
@@ -135,7 +139,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
                 if (HtmlRenderStyleResolver.IsBlockElement(element, childStyle)
                     || IsInlineAnchorWithBlockChildren(element, childStyle, width, depth + 1)) {
-                    double inlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth);
+                    double inlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth, pageBoundary?.Shift(flowHeight));
                     flowHeight += inlineHeight;
                     if (inlineHeight > 0D) {
                         adjoiningMargins.Clear();
@@ -149,7 +153,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         parentStyle,
                         depth + 1,
                         carriesContinuation ? continuationTarget : null,
-                        carriesContinuation ? continuationLogicalCharacters : 0);
+                        carriesContinuation ? continuationLogicalCharacters : 0,
+                        pageBoundary?.Shift(flowHeight));
                     if (carriesContinuation) {
                         continuationTarget = null;
                         continuationLogicalCharacters = 0;
@@ -196,7 +201,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             inlineNodes.Add(node);
         }
 
-        double trailingInlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth);
+        double trailingInlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth, pageBoundary?.Shift(flowHeight));
         if (trailingInlineHeight > 0D) adjoiningMargins.Clear();
         if (includeGeneratedAfter) AddGeneratedContentBlock(blocks, container, HtmlPseudoElementKind.After, width, parentStyle);
         return blocks;
@@ -268,7 +273,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle parentStyle,
         int depth,
         IElement? continuationTarget = null,
-        int continuationLogicalCharacters = 0) {
+        int continuationLogicalCharacters = 0,
+        PagedFloatBoundary? pageBoundary = null) {
         IElement? root = _document.Body ?? _document.DocumentElement;
         bool tracksPageViewport = _options.Mode == HtmlRenderMode.Paged
             && depth == 1
@@ -342,7 +348,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 style,
                 depth,
                 descendantContinuationTarget,
-                descendantContinuationTarget == null ? 0 : continuationLogicalCharacters).ToList()
+                descendantContinuationTarget == null ? 0 : continuationLogicalCharacters,
+                pageBoundary?.Shift(style.MarginTop + style.BorderTopWidth + style.PaddingTop)).ToList()
             : new List<HtmlRenderFlowBlock>();
         if (usesBlockFormatting && _inlineFloatOverhangs.ContainsKey(element)
             && (children.Count != 1 || children[0].OwnerElement != null)) {
@@ -471,7 +478,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double inlineExtent = IsVerticalWritingMode(style.WritingMode)
                 ? ResolveVerticalInlineExtent(style, parentStyle, contentWidth)
                 : contentWidth;
-            HtmlInlineLayout inline = LayoutInlineNodes(element.ChildNodes, inlineExtent, style, depth, marker, element, inlineSkipLogicalCharacters);
+            HtmlInlineLayout inline = LayoutInlineNodes(element.ChildNodes, inlineExtent, style, depth, marker, element,
+                inlineSkipLogicalCharacters, pageBoundary?.Shift(style.MarginTop + style.BorderTopWidth + style.PaddingTop));
             if (IsVerticalWritingMode(style.WritingMode)) {
                 inline = TransformSidewaysVerticalInlineLayout(inline, style, element);
             }
@@ -705,9 +713,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         && !style.AspectRatio.HasValue
         && (!style.MinHeight.HasValue || style.MinHeight.Value <= 0D);
 
-    private double FlushInlineNodes(ICollection<HtmlRenderFlowBlock> blocks, List<INode> nodes, double width, HtmlRenderBoxStyle style, IElement sourceElement, int depth) {
+    private double FlushInlineNodes(ICollection<HtmlRenderFlowBlock> blocks, List<INode> nodes, double width, HtmlRenderBoxStyle style, IElement sourceElement, int depth, PagedFloatBoundary? pageBoundary = null) {
         if (nodes.Count == 0) return 0D;
-        HtmlInlineLayout inline = LayoutInlineNodes(nodes, width, style, depth + 1, null, null);
+        HtmlInlineLayout inline = LayoutInlineNodes(nodes, width, style, depth + 1, null, null, pageBoundary: pageBoundary);
         if (inline.Height > inline.NormalFlowHeight + 0.0001D) {
             _inlineFloatOverhangs.TryGetValue(sourceElement, out double previousOverhang);
             _inlineFloatOverhangs[sourceElement] = Math.Max(

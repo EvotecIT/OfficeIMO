@@ -489,6 +489,91 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HtmlFloat_TooTallForRemainingPageLetsTextUseTheSpaceBeforeIt(bool nested) {
+        string paragraph = "<p style='margin:0;font:10px/10px Arial'>"
+            + "<strong>Title <span id='deferred-float' style='float:right;width:30px;height:30px;background:red'></span>:</strong>"
+            + " A caption identifies the overall topic of a table and is useful in most situations."
+            + " A summary provides orientation or navigation hints in complex tables.</p>";
+        string html = "<body style='margin:0;font:10px/10px Arial'><div style='height:40px'>Prelude</div>"
+            + (nested
+                ? "<main><ul style='margin:0;padding:0;list-style:none'><li>" + paragraph + "</li></ul></main>"
+                : paragraph)
+            + "</body>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(100D / HtmlRenderOptions.CssPixelsPerInch, 60D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        HtmlRenderText[] firstPageText = EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>().ToArray();
+        HtmlRenderText[] secondPageText = EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderText>().ToArray();
+        HtmlRenderShape[] firstPageShapes = EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderShape>().ToArray();
+        HtmlRenderShape[] secondPageShapes = EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderShape>().ToArray();
+
+        Assert.Contains(firstPageText, text => text.Text.Contains("Title", StringComparison.Ordinal) && text.Y >= 39.99D);
+        Assert.Contains(firstPageText, text => text.Text.Contains("identifies the overall", StringComparison.Ordinal));
+        Assert.DoesNotContain(firstPageShapes, shape => shape.Source == "span#deferred-float");
+        Assert.Contains(secondPageShapes, shape => shape.Source == "span#deferred-float" && shape.Y < 0.01D && shape.Height >= 29.99D);
+        Assert.Contains(secondPageText, text => text.Text.Contains("topic of a table", StringComparison.Ordinal) && text.X < 0.01D);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment);
+    }
+
+    [Fact]
+    public void HtmlFloat_WithoutLegalParagraphBreakMovesToNextPageAtItsTop() {
+        const string html = "<body style='margin:0'><div style='height:40px'>Prelude</div>"
+            + "<p style='overflow:auto;margin:0;font-size:10px;line-height:10px'>"
+            + "<span id='deferred-float' style='float:left;width:30px;height:50px;background:red'></span>Short text"
+            + "</p></body>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(100D / HtmlRenderOptions.CssPixelsPerInch, 60D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+
+        Assert.Equal(2, rendered.Pages.Count);
+        Assert.DoesNotContain(EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderShape>(),
+            shape => shape.Source == "span#deferred-float");
+        Assert.Contains(EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderShape>(),
+            shape => shape.Source == "span#deferred-float" && shape.Y < 0.01D && shape.Height >= 49.99D);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HtmlFloat_DeferredAfterCollapsedMarginsKeepsParagraphPosition(bool nested) {
+        const string paragraph = "<p style='margin:10px 0 0;font-size:10px;line-height:10px'>"
+            + "<span id='deferred-float' style='float:left;width:30px;height:40px;background:red'></span>"
+            + "First<br>Second<br>Third<br>Fourth<br>Fifth</p>";
+        string html = "<body style='margin:0'><div style='height:30px;margin-bottom:10px'>Prelude</div>"
+            + (nested ? "<main>" + paragraph + "</main>" : paragraph) + "</body>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(100D / HtmlRenderOptions.CssPixelsPerInch, 70D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        HtmlRenderText[] firstPageText = EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>().ToArray();
+
+        Assert.Contains(firstPageText, text => text.Text.Contains("First", StringComparison.Ordinal) && Math.Abs(text.Y - 40D) < 0.01D);
+        Assert.Contains(firstPageText, text => text.Text.Contains("Third", StringComparison.Ordinal));
+        Assert.DoesNotContain(EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderShape>(),
+            shape => shape.Source == "span#deferred-float");
+        Assert.Contains(EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderShape>(),
+            shape => shape.Source == "span#deferred-float" && shape.Y < 0.01D && shape.Height >= 39.99D);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment);
+    }
+
     [Fact]
     public void HtmlFloat_ProtectedBreaksStillCountTowardParagraphOrphans() {
         const string html = "<body style='margin:0'><p style='width:100px;margin:0;font-size:10px;line-height:10px'>"

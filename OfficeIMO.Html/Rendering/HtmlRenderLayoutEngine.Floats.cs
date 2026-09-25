@@ -70,7 +70,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IReadOnlyList<HtmlInlineRun> runs,
         double width,
         HtmlRenderBoxStyle paragraphStyle,
-        IElement? formattingContainer) {
+        IElement? formattingContainer,
+        PagedFloatBoundary? pageBoundary) {
         var context = new InlineFloatContext(width);
         var placements = new List<InlineFloatPlacement>();
         var lines = new List<InlineLine>();
@@ -96,6 +97,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     noWrapRangeStartedAfterContent = false;
                 }
                 HtmlRenderFlowBlock floatingBlock = run.FloatingBlock;
+                if (run.ClearSide == "none"
+                    && pageBoundary.HasValue
+                    && pageBoundary.Value.ShouldDefer(y, floatingBlock.Height)) {
+                    placements.Add(context.Place(run, pageBoundary.Value.RemainingHeight));
+                    _pagedFloatDeferredInRelayout = true;
+                    continue;
+                }
                 InlineFloatBand floatBand = context.ResolveBand(y, floatingBlock.Height);
                 bool sharesCurrentLine = line.HasFlowContent
                     && run.ClearSide == "none"
@@ -710,6 +718,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
             new[] { paint },
             paintOrder,
             run.Source);
+    }
+
+    private readonly struct PagedFloatBoundary {
+        internal PagedFloatBoundary(double remainingHeight, double pageHeight) {
+            RemainingHeight = remainingHeight;
+            PageHeight = pageHeight;
+        }
+
+        internal double RemainingHeight { get; }
+        private double PageHeight { get; }
+
+        internal PagedFloatBoundary Shift(double offset) => new PagedFloatBoundary(RemainingHeight - offset, PageHeight);
+
+        internal bool ShouldDefer(double y, double floatHeight) =>
+            RemainingHeight > 0.0001D
+            && y < RemainingHeight - 0.0001D
+            && y + floatHeight > RemainingHeight + 0.0001D
+            && floatHeight <= PageHeight + 0.0001D;
     }
 
     private sealed class InlineFloatContext {

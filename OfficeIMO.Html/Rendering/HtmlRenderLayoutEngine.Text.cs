@@ -13,7 +13,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int depth,
         HtmlListMarker? marker,
         IElement? generatedContentOwner,
-        int skipLogicalCharacters = 0) {
+        int skipLogicalCharacters = 0,
+        PagedFloatBoundary? pageBoundary = null) {
         var runs = new List<HtmlInlineRun>();
         IElement? formattingContainer = generatedContentOwner ?? nodes.FirstOrDefault()?.ParentElement;
         if (marker != null && !marker.IsOutside) {
@@ -46,7 +47,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         AssignSemanticFragmentOrders(runs);
 
         if (marker == null || !marker.IsOutside || skipLogicalCharacters > 0) {
-            return LayoutInlineRuns(runs, width, parentStyle, formattingContainer, skipLogicalCharacters);
+            return LayoutInlineRuns(runs, width, parentStyle, formattingContainer, skipLogicalCharacters, pageBoundary);
         }
 
         HtmlRenderBoxStyle outsideMarkerStyle = marker.Style.Clone();
@@ -63,7 +64,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double markerAdvance = marker.Image?.Width ?? MeasureInlineText(marker.Content, outsideMarkerStyle);
         double gutter = Math.Min(Math.Max(1D, width * 0.5D), markerAdvance + gap);
         HtmlInlineLayout markerLayout = LayoutInlineRuns(markerRuns, gutter, outsideMarkerStyle, formattingContainer);
-        HtmlInlineLayout bodyLayout = LayoutInlineRuns(runs, Math.Max(1D, width - gutter), parentStyle, formattingContainer, skipLogicalCharacters);
+        HtmlInlineLayout bodyLayout = LayoutInlineRuns(runs, Math.Max(1D, width - gutter), parentStyle, formattingContainer, skipLogicalCharacters, pageBoundary);
         return CombineOutsideListMarker(markerLayout, bodyLayout, width, gutter, gap, parentStyle);
     }
 
@@ -604,11 +605,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double width,
         HtmlRenderBoxStyle paragraphStyle,
         IElement? formattingContainer = null,
-        int skipLogicalCharacters = 0) {
+        int skipLogicalCharacters = 0,
+        PagedFloatBoundary? pageBoundary = null) {
         AssignLogicalTextOrders(runs);
         if (runs.Count == 0 || width <= 0D) return new HtmlInlineLayout(Array.Empty<HtmlRenderVisual>(), 0D);
         if (runs.Any(run => run.FloatingBlock != null)) {
-            return LayoutInlineRunsWithFloats(runs, width, paragraphStyle, formattingContainer);
+            return LayoutInlineRunsWithFloats(runs, width, paragraphStyle, formattingContainer, pageBoundary);
         }
         bool supportsContinuationReflow = runs.All(run =>
             run.AtomicBlock == null

@@ -36,7 +36,8 @@ internal sealed class HtmlRenderFlowBlock {
         bool supportsInlineContinuationReflow = false,
         IEnumerable<HtmlRenderForcedBreak>? forcedBreaks = null,
         double layoutViewportWidth = double.NaN,
-        double layoutViewportHeight = double.NaN) {
+        double layoutViewportHeight = double.NaN,
+        double leadingFlowAdjustment = 0D) {
         Width = width;
         Height = height;
         UnclampedHeight = unclampedHeight.HasValue && !double.IsNaN(unclampedHeight.Value) && !double.IsInfinity(unclampedHeight.Value)
@@ -105,6 +106,7 @@ internal sealed class HtmlRenderFlowBlock {
         SupportsInlineContinuationReflow = supportsInlineContinuationReflow;
         LayoutViewportWidth = layoutViewportWidth;
         LayoutViewportHeight = layoutViewportHeight;
+        LeadingFlowAdjustment = leadingFlowAdjustment;
     }
 
     internal double Width { get; }
@@ -134,6 +136,7 @@ internal sealed class HtmlRenderFlowBlock {
     internal bool SupportsInlineContinuationReflow { get; }
     internal double LayoutViewportWidth { get; }
     internal double LayoutViewportHeight { get; }
+    internal double LeadingFlowAdjustment { get; }
 
     internal HtmlRenderFlowBlock WithLayoutViewport(double width, double height) =>
         new HtmlRenderFlowBlock(
@@ -163,7 +166,8 @@ internal sealed class HtmlRenderFlowBlock {
             supportsInlineContinuationReflow: SupportsInlineContinuationReflow,
             forcedBreaks: ForcedBreaks,
             layoutViewportWidth: width,
-            layoutViewportHeight: height);
+            layoutViewportHeight: height,
+            leadingFlowAdjustment: LeadingFlowAdjustment);
 
     internal HtmlRenderFlowBlock TranslatePaint(double offsetX, double offsetY) =>
         new HtmlRenderFlowBlock(
@@ -193,7 +197,8 @@ internal sealed class HtmlRenderFlowBlock {
             supportsInlineContinuationReflow: SupportsInlineContinuationReflow,
             forcedBreaks: ForcedBreaks,
             layoutViewportWidth: LayoutViewportWidth,
-            layoutViewportHeight: LayoutViewportHeight);
+            layoutViewportHeight: LayoutViewportHeight,
+            leadingFlowAdjustment: LeadingFlowAdjustment);
 
     internal HtmlRenderFlowBlock WithStacking(int zIndex, int sourceOrder) =>
         new HtmlRenderFlowBlock(
@@ -223,7 +228,8 @@ internal sealed class HtmlRenderFlowBlock {
             supportsInlineContinuationReflow: SupportsInlineContinuationReflow,
             forcedBreaks: ForcedBreaks,
             layoutViewportWidth: LayoutViewportWidth,
-            layoutViewportHeight: LayoutViewportHeight);
+            layoutViewportHeight: LayoutViewportHeight,
+            leadingFlowAdjustment: LeadingFlowAdjustment);
 
     internal HtmlRenderFlowBlock WithVisuals(IEnumerable<HtmlRenderVisual> visuals) =>
         new HtmlRenderFlowBlock(
@@ -253,7 +259,8 @@ internal sealed class HtmlRenderFlowBlock {
             supportsInlineContinuationReflow: SupportsInlineContinuationReflow,
             forcedBreaks: ForcedBreaks,
             layoutViewportWidth: LayoutViewportWidth,
-            layoutViewportHeight: LayoutViewportHeight);
+            layoutViewportHeight: LayoutViewportHeight,
+            leadingFlowAdjustment: LeadingFlowAdjustment);
 
     internal HtmlRenderFlowBlock AdjustLeadingFlowSpace(double adjustment) {
         if (Math.Abs(adjustment) <= 0.0001D) return this;
@@ -286,7 +293,8 @@ internal sealed class HtmlRenderFlowBlock {
             supportsInlineContinuationReflow: SupportsInlineContinuationReflow,
             forcedBreaks: ForcedBreaks.Select(item => item.Translate(-adjustment)),
             layoutViewportWidth: LayoutViewportWidth,
-            layoutViewportHeight: LayoutViewportHeight);
+            layoutViewportHeight: LayoutViewportHeight,
+            leadingFlowAdjustment: LeadingFlowAdjustment + adjustment);
     }
 
     internal HtmlRenderFlowBlock WithCollapsibleMargins(double top, double bottom, IElement ownerElement, bool collapsesThrough = false) =>
@@ -317,7 +325,8 @@ internal sealed class HtmlRenderFlowBlock {
             supportsInlineContinuationReflow: SupportsInlineContinuationReflow,
             forcedBreaks: ForcedBreaks,
             layoutViewportWidth: LayoutViewportWidth,
-            layoutViewportHeight: LayoutViewportHeight);
+            layoutViewportHeight: LayoutViewportHeight,
+            leadingFlowAdjustment: LeadingFlowAdjustment);
 
     internal HtmlRenderFlowBlock WithRunningStringAssignments(IEnumerable<HtmlCssRunningStringAssignment> assignments) =>
         new HtmlRenderFlowBlock(
@@ -347,7 +356,8 @@ internal sealed class HtmlRenderFlowBlock {
             supportsInlineContinuationReflow: SupportsInlineContinuationReflow,
             forcedBreaks: ForcedBreaks,
             layoutViewportWidth: LayoutViewportWidth,
-            layoutViewportHeight: LayoutViewportHeight);
+            layoutViewportHeight: LayoutViewportHeight,
+            leadingFlowAdjustment: LeadingFlowAdjustment);
 
     internal HtmlRenderFlowBlock AdjustTrailingFlowSpace(double adjustment) {
         if (Math.Abs(adjustment) <= 0.0001D) return this;
@@ -380,7 +390,8 @@ internal sealed class HtmlRenderFlowBlock {
             supportsInlineContinuationReflow: SupportsInlineContinuationReflow,
             forcedBreaks: ForcedBreaks.Where(item => item.Offset <= adjustedHeight + 0.0001D),
             layoutViewportWidth: LayoutViewportWidth,
-            layoutViewportHeight: LayoutViewportHeight);
+            layoutViewportHeight: LayoutViewportHeight,
+            leadingFlowAdjustment: LeadingFlowAdjustment);
     }
 }
 
