@@ -158,6 +158,26 @@ public sealed class ExcelOdsDataPilotConversionTests {
     }
 
     [Fact]
+    public void PivotWhoseGeneratedLocationExceedsWorksheetRemainsExplicitLoss() {
+        OdsDocument source = OdsDocument.Create();
+        OdsSheet sheet = source.AddSheet("Data");
+        sheet.Cell(0, 0).SetString("Region");
+        sheet.Cell(0, 1).SetString("Sales");
+        sheet.Cell(1, 0).SetString("North");
+        sheet.Cell(1, 1).SetNumber(10);
+        OdsDataPilotTable pivot = source.AddDataPilotTable("EdgePivot",
+            "Data.A1:Data.B2", "Data.XFD1048576:Data.XFD1048576");
+        pivot.AddField("Region", "row");
+        pivot.AddField("Sales", "data", "sum");
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        using ExcelDocument result = conversion.Value;
+        Assert.Empty(result.Sheets.Single().GetPivotTables());
+        Assert.Contains(conversion.Report.ForFeature("pivot-tables"), mapping =>
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+    }
+
+    [Fact]
     public void EmptyRepeatedTailOutsidePivotDoesNotDiscardItsConvertedRange() {
         OdsDocument source = OdsDocument.Create();
         OdsSheet sheet = source.AddSheet("Data");

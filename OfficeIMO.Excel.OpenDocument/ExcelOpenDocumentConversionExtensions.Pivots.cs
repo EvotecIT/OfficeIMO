@@ -143,7 +143,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         foreach (OdsDataPilotTable pivot in source.DataPilotTables) {
             if (pivot.HasAdvancedSettings || pivot.Fields.Count == 0 || pivot.Fields.Count > 17
                 || !TryGetLocalPivotRanges(pivot, options, out string? sourceSheetName,
-                    out string? targetSheetName, out string? sourceRange, out string? destination)) continue;
+                    out string? targetSheetName, out string? sourceRange, out string? destination,
+                    out long destinationRow, out long destinationColumn)) continue;
             (OdsSheet Source, ExcelSheet Target) pair = sheets.FirstOrDefault(item =>
                 string.Equals(item.Source.Name, sourceSheetName, StringComparison.Ordinal)
                 && string.Equals(item.Source.Name, targetSheetName, StringComparison.Ordinal));
@@ -175,6 +176,10 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             }
             if (unsupported || data.Count != 1 || rows.Count + columns.Count == 0
                 || rows.Count + columns.Count + data.Count != pivot.Fields.Count) continue;
+            long generatedLastRow = destinationRow + 1;
+            long generatedLastColumn = destinationColumn + rows.Count + columns.Count + data.Count - 1;
+            if (generatedLastRow > Math.Min(options.MaximumRows, 1_048_576)
+                || generatedLastColumn > Math.Min(options.MaximumColumns, 16_384)) continue;
             try {
                 pair.Target.AddPivotTable(sourceRange!, destination!, pivot.Name,
                     rowFields: rows, columnFields: columns, dataFields: data,
@@ -218,8 +223,10 @@ public static partial class ExcelOpenDocumentConversionExtensions {
 
     private static bool TryGetLocalPivotRanges(OdsDataPilotTable pivot,
         ExcelOpenDocumentConversionOptions options, out string? sourceSheetName,
-        out string? targetSheetName, out string? sourceRange, out string? destination) {
+        out string? targetSheetName, out string? sourceRange, out string? destination,
+        out long destinationRow, out long destinationColumn) {
         sourceSheetName = targetSheetName = sourceRange = destination = null;
+        destinationRow = destinationColumn = 0;
         if (!SpreadsheetRangeReference.TryParse(pivot.SourceRangeAddress, SpreadsheetAddressDialect.OpenDocument,
                 out SpreadsheetRangeReference? source)
             || !SpreadsheetRangeReference.TryParse(pivot.TargetRangeAddress, SpreadsheetAddressDialect.OpenDocument,
@@ -237,6 +244,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             || target.End.Row < target.Start.Row || target.End.Column < target.Start.Column) return false;
         sourceRange = SpreadsheetAddressConverter.ToA1((int)source.Start.Row!.Value, source.Start.Column!.Value)
             + ":" + SpreadsheetAddressConverter.ToA1((int)source.End.Row!.Value, source.End.Column!.Value);
+        destinationRow = target.Start.Row!.Value;
+        destinationColumn = target.Start.Column!.Value;
         destination = SpreadsheetAddressConverter.ToA1((int)target.Start.Row!.Value, target.Start.Column!.Value);
         return true;
     }
