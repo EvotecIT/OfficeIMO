@@ -29,6 +29,6 @@ public sealed class OpenDocumentOdsChartTests {
         OdsDocument reopened = OdsDocument.Load(saved);
         Assert.Single(reopened.GetSheet("Data")!.Charts);
         Assert.Equal(originalChartPart, reopened.GetPackageEntryBytes("Object 1/content.xml"));
-        Assert.Equal(OdfCapabilityLevel.Inspected, OdfCapabilityCatalog.Find("advanced-charts")!.Level);
+        Assert.Equal(OdfCapabilityLevel.Limited, OdfCapabilityCatalog.Find("advanced-charts")!.Level);
     }
 }

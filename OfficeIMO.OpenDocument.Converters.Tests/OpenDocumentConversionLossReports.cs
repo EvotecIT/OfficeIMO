@@ -117,7 +117,7 @@ public sealed class OpenDocumentConversionLossReportTests {
             && mapping.Count == 1);
         Assert.Contains(conversion.Report.Mappings, mapping =>
             mapping.Feature == "charts"
-            && mapping.Status == OdfConversionMappingStatus.Unsupported
+            && mapping.Status == OdfConversionMappingStatus.Approximated
             && mapping.Count == 1);
         Assert.Contains(conversion.Report.Mappings, mapping =>
             mapping.Feature == "pivot-tables"
