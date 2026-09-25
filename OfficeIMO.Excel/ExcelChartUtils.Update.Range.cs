@@ -89,7 +89,8 @@ namespace OfficeIMO.Excel {
             int categoryColumns = c2 - c1 + 1;
             int valueRows = valR2 - valR1 + 1;
             int valueColumns = valC2 - valC1 + 1;
-            bool horizontal = categoryRows == 1 && categoryColumns > 1 && valueRows == 1 && valueColumns == categoryColumns && valC1 == c1 && valC2 == c2;
+            bool horizontal = categoryRows == 1 && valueRows == 1 && valueColumns == categoryColumns &&
+                valC1 == c1 && valC2 == c2 && valR1 == r1 + 1;
             int categoryCount = horizontal ? categoryColumns : categoryRows;
             if (categoryCount <= 0 ||
                 (long)categoryCount + ((long)categoryCount * seriesList.Count) > MaxChartDataPoints) return null;

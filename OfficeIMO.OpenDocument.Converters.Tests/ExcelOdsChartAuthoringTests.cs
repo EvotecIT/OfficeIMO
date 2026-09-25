@@ -109,6 +109,88 @@ public sealed class ExcelOdsChartAuthoringTests {
     }
 
     [Fact]
+    public void BrokenChartRelationshipRemainsExplicitLoss() {
+        string path = Path.Combine(Path.GetTempPath(), "officeimo-chart-broken-" +
+            Guid.NewGuid().ToString("N") + ".xlsx");
+        try {
+            using (ExcelDocument source = ExcelDocument.Create(path)) {
+                source.AddWorksheet("Summary").AddChart(new ExcelChartData(new[] { "Jan" },
+                    new[] { new ExcelChartSeries("Sales", new[] { 10d }) }), row: 5, column: 4);
+                source.Save();
+            }
+            using (SpreadsheetDocument package = SpreadsheetDocument.Open(path, true)) {
+                Xdr.GraphicFrame frame = package.WorkbookPart!.WorksheetParts
+                    .Select(part => part.DrawingsPart?.WorksheetDrawing)
+                    .Single(root => root != null)!.Descendants<Xdr.GraphicFrame>().Single();
+                frame.Graphic!.GraphicData!.GetFirstChild<C.ChartReference>()!.Id = "rIdMissing";
+                frame.Ancestors<Xdr.WorksheetDrawing>().Single().Save();
+            }
+            using ExcelDocument imported = ExcelDocument.Load(path);
+            OdfConversionResult<OdsDocument> result = imported.ToOpenDocumentResult();
+            Assert.Empty(result.Value.GetSheet("Summary")!.Charts);
+            Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "charts" &&
+                mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 2);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void SharedChartPartFramesAreCountedSeparately() {
+        string path = Path.Combine(Path.GetTempPath(), "officeimo-chart-shared-" +
+            Guid.NewGuid().ToString("N") + ".xlsx");
+        try {
+            using (ExcelDocument source = ExcelDocument.Create(path)) {
+                source.AddWorksheet("Summary").AddChart(new ExcelChartData(new[] { "Jan", "Feb" },
+                    new[] { new ExcelChartSeries("Sales", new[] { 10d, 20d }) }), row: 5, column: 4);
+                source.Save();
+            }
+            using (SpreadsheetDocument package = SpreadsheetDocument.Open(path, true)) {
+                Xdr.WorksheetDrawing drawing = package.WorkbookPart!.WorksheetParts
+                    .Select(part => part.DrawingsPart?.WorksheetDrawing)
+                    .Single(root => root != null)!;
+                Xdr.GraphicFrame frame = drawing.Descendants<Xdr.GraphicFrame>().Single();
+                drawing.Append(new Xdr.AbsoluteAnchor(new Xdr.Position { X = 4572000L, Y = 914400L },
+                    new Xdr.Extent { Cx = 4572000L, Cy = 2743200L },
+                    (Xdr.GraphicFrame)frame.CloneNode(true), new Xdr.ClientData()));
+                drawing.Save();
+            }
+            using ExcelDocument imported = ExcelDocument.Load(path);
+            OdfConversionResult<OdsDocument> result = imported.ToOpenDocumentResult();
+            Assert.Single(result.Value.GetSheet("Summary")!.Charts);
+            Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "charts" &&
+                mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+            Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "charts" &&
+                mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void SingleCategoryHorizontalChartRoundTripsThroughOds() {
+        string path = Path.Combine(Path.GetTempPath(), "officeimo-chart-horizontal-" +
+            Guid.NewGuid().ToString("N") + ".xlsx");
+        try {
+            using (ExcelDocument source = ExcelDocument.Create(path)) {
+                ExcelSheet sheet = source.AddWorksheet("Summary");
+                var data = new ExcelChartData(new[] { "Jan" },
+                    new[] { new ExcelChartSeries("Sales", new[] { 10d }) });
+                ExcelChartDataRange range = sheet.WriteChartData(data, orientation: ExcelChartDataOrientation.Horizontal);
+                sheet.AddChart(range, row: 5, column: 4, type: ExcelChartType.ColumnClustered);
+                source.Save();
+            }
+            using ExcelDocument imported = ExcelDocument.Load(path);
+            OdfConversionResult<OdsDocument> result = imported.ToOpenDocumentResult();
+            Assert.Single(result.Value.GetSheet("Summary")!.Charts);
+            Assert.DoesNotContain(result.Report.Mappings, mapping => mapping.Feature == "charts" &&
+                mapping.Status == OdfConversionMappingStatus.Unsupported);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void MixedSeriesAndSecondaryAxisRemainExplicitLoss() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddWorksheet("Summary");
