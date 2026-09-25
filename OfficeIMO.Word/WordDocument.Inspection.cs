@@ -258,7 +258,7 @@ namespace OfficeIMO.Word {
                 snapshot.AddInlineField(new WordInlineFieldSnapshot {
                     RunIndex = index,
                     Instruction = field.Instruction?.Value ?? string.Empty,
-                    ResultText = string.Concat(field.Descendants<Text>().Select(text => text.Text)),
+                    ResultText = WordParagraph.ReadVisibleText(field),
                     IsLocked = field.FieldLock?.Value ?? false,
                     IsDirty = field.Dirty?.Value ?? false,
                     HasUnsupportedContainer = nestedInHyperlink,

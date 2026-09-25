@@ -46,8 +46,8 @@ public sealed class OdtField {
 
     /// <summary>Whether the displayed value is fixed instead of refreshed. Page count is always dynamic.</summary>
     public bool IsFixed {
-        get => string.Equals((string?)_element.Attribute(OdfNamespaces.Text + "fixed"), "true",
-            StringComparison.OrdinalIgnoreCase);
+        get => OdfBoolean.TryParseXml((string?)_element.Attribute(OdfNamespaces.Text + "fixed"),
+            out bool value) && value;
         set {
             if (Kind == OdtFieldKind.PageCount && value)
                 throw new NotSupportedException("ODT page-count fields cannot be fixed.");
@@ -63,7 +63,7 @@ public sealed class OdtField {
         TryGetKind(element.Name, out OdtFieldKind kind) && !element.HasElements &&
         element.Attributes().All(attribute => attribute.Name == OdfNamespaces.Text + "fixed" &&
             kind != OdtFieldKind.PageCount &&
-            (attribute.Value == "true" || attribute.Value == "false"));
+            OdfBoolean.TryParseXml(attribute.Value, out _));
 
     internal XElement Element => _element;
 

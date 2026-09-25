@@ -76,6 +76,97 @@ public sealed class WordOdtFieldConversionTests {
     }
 
     [Fact]
+    public void OdtXmlBooleanFixedValuesMapToWordLockState() {
+        OdtDocument source = OdtDocument.Create();
+        source.AddParagraph().AddField(OdtFieldKind.Date, "Today");
+        var text = (System.Xml.Linq.XNamespace)"urn:oasis:names:tc:opendocument:xmlns:text:1.0";
+        var date = source.Package.GetXml("content.xml").Descendants(text + "date").Single();
+        date.SetAttributeValue(text + "fixed", "1");
+        source.Package.MarkXmlDirty("content.xml");
+
+        using WordDocument word = source.ToWordDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }).Value;
+        Assert.True(Assert.Single(word.InspectFields()).IsLocked);
+
+        date.SetAttributeValue(text + "fixed", "0");
+        using WordDocument dynamicWord = source.ToWordDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }).Value;
+        Assert.False(Assert.Single(dynamicWord.InspectFields()).IsLocked);
+    }
+
+    [Fact]
+    public void OdtCachedFieldBoundarySpacesSurviveWordSaveAndReopen() {
+        OdtDocument source = OdtDocument.Create();
+        source.AddParagraph().AddField(OdtFieldKind.Date, "  September 25  ");
+
+        using WordDocument word = source.ToWordDocumentResult().Value;
+        using var output = new MemoryStream();
+        word.Save(output);
+        using WordDocument reopened = WordDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal("  September 25  ", Assert.Single(reopened.InspectFields()).ResultText);
+    }
+
+    [Fact]
+    public void WordFieldResultTabAndBreakRetainVisibleTextWithLoss() {
+        using WordDocument source = WordDocument.Create();
+        WordParagraph paragraph = source.AddParagraph();
+        paragraph._paragraph.Append(new SimpleField(new Run(
+            new Text("A"), new TabChar(), new Text("B"), new Break(), new Text("C"))) {
+            Instruction = " PAGE "
+        });
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        Assert.Equal("A\tB\nC", Assert.Single(conversion.Value.Paragraphs).Text);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "fields" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+    }
+
+    [Fact]
+    public void RepeatedMappedTableFieldsDoNotCancelUnsupportedFieldLoss() {
+        OdtDocument source = OdtDocument.Create();
+        OdtTable table = source.AddTable(1, 1);
+        table.Cell(0, 0).Paragraphs[0].AddField(OdtFieldKind.PageNumber, "1");
+        source.AddParagraph().AddField(OdtFieldKind.Date, "2026-09-25");
+        var tableNamespace = (System.Xml.Linq.XNamespace)"urn:oasis:names:tc:opendocument:xmlns:table:1.0";
+        var text = (System.Xml.Linq.XNamespace)"urn:oasis:names:tc:opendocument:xmlns:text:1.0";
+        var content = source.Package.GetXml("content.xml");
+        content.Descendants(tableNamespace + "table-row").Single()
+            .SetAttributeValue(tableNamespace + "number-rows-repeated", "2");
+        content.Descendants(text + "date").Single().SetAttributeValue(text + "date-value", "2026-09-25");
+        source.Package.MarkXmlDirty("content.xml");
+
+        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        using WordDocument word = conversion.Value;
+        Assert.Equal(2, word.InspectFields().Count);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "fields" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+        Assert.Throws<OdfConversionLossException>(() => source.ToWordDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void FieldInUnconvertedNestedTableIsExplicitLoss() {
+        OdtDocument source = OdtDocument.Create();
+        source.AddTable(1, 1);
+        var tableNamespace = (System.Xml.Linq.XNamespace)"urn:oasis:names:tc:opendocument:xmlns:table:1.0";
+        var text = (System.Xml.Linq.XNamespace)"urn:oasis:names:tc:opendocument:xmlns:text:1.0";
+        var cell = source.Package.GetXml("content.xml").Descendants(tableNamespace + "table-cell").Single();
+        cell.Add(new System.Xml.Linq.XElement(tableNamespace + "table",
+            new System.Xml.Linq.XElement(tableNamespace + "table-row",
+                new System.Xml.Linq.XElement(tableNamespace + "table-cell",
+                    new System.Xml.Linq.XElement(text + "p",
+                        new System.Xml.Linq.XElement(text + "page-number", "2"))))));
+        source.Package.MarkXmlDirty("content.xml");
+
+        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        using WordDocument word = conversion.Value;
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "source-text-fields" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+        Assert.Throws<OdfConversionLossException>(() => source.ToWordDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
     public void HyperlinkNestedFieldRetainsCachedTextAndReportsLoss() {
         using WordDocument source = WordDocument.Create();
         WordParagraph paragraph = source.AddParagraph();
