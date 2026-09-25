@@ -9,6 +9,35 @@ namespace OfficeIMO.OpenDocument.Tests;
 
 public sealed class OpenDocumentOdtNotesTests {
     [Fact]
+    public void DocumentParagraphViewRejectsNoteInsertionIntoRepeatedTableWithoutMutation() {
+        OdtDocument document = OdtDocument.Create();
+        OdtTable table = document.AddTable(1, 1, "RepeatedDocumentView");
+        table.Element.Elements(OdfNamespaces.Table + "table-row").Single()
+            .SetAttributeValue(OdfNamespaces.Table + "number-rows-repeated", 2);
+        document.Package.MarkXmlDirty("content.xml");
+        OdtDocument loaded = OdtDocument.Load(new MemoryStream(document.ToBytes()));
+        byte[] before = loaded.ToBytes();
+
+        Assert.Throws<NotSupportedException>(() => loaded.Paragraphs.Single().AddFootnote("One note"));
+        Assert.Equal(before, loaded.ToBytes());
+    }
+
+    [Fact]
+    public void MergePreflightsLaterRepeatedNoteRowBeforeChangingAnchor() {
+        OdtDocument document = OdtDocument.Create();
+        OdtTable table = document.AddTable(2, 1, "RepeatedMergeTarget");
+        table.Cell(1, 0).Paragraphs[0].AddFootnote("Existing note");
+        table.Element.Elements(OdfNamespaces.Table + "table-row").Last()
+            .SetAttributeValue(OdfNamespaces.Table + "number-rows-repeated", 2);
+        document.Package.MarkXmlDirty("content.xml");
+        OdtDocument loaded = OdtDocument.Load(new MemoryStream(document.ToBytes()));
+        byte[] before = loaded.ToBytes();
+
+        Assert.Throws<NotSupportedException>(() => loaded.Tables.Single().Merge(0, 0, 2, 1));
+        Assert.Equal(before, loaded.ToBytes());
+    }
+
+    [Fact]
     public void NoteInRepeatedTableCellChangesOnlySelectedLogicalCell() {
         OdtDocument document = OdtDocument.Create();
         OdtTable table = document.AddTable(1, 1, "RepeatedNotes");

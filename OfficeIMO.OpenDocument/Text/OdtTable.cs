@@ -55,6 +55,14 @@ public sealed class OdtTable {
     public OdtTableCell Merge(int row, int column, int rowSpan, int columnSpan) {
         if (rowSpan < 1) throw new ArgumentOutOfRangeException(nameof(rowSpan));
         if (columnSpan < 1) throw new ArgumentOutOfRangeException(nameof(columnSpan));
+        // Resolve and validate every logical cell before changing the anchor.
+        // Materializing a repeated row or cell that already contains a note
+        // would clone its identity, so the merge must fail without mutation.
+        for (int rowOffset = 0; rowOffset < rowSpan; rowOffset++) {
+            for (int columnOffset = 0; columnOffset < columnSpan; columnOffset++) {
+                Cell(row + rowOffset, column + columnOffset).PreflightMerge();
+            }
+        }
         OdtTableCell anchor = Cell(row, column);
         anchor.SetSpans(rowSpan, columnSpan);
         for (int rowOffset = 0; rowOffset < rowSpan; rowOffset++) {
@@ -282,6 +290,16 @@ public sealed class OdtTableCell {
             Dirty();
         } else if (resolvedRow) {
             Dirty();
+        }
+    }
+
+    internal void PreflightMerge() {
+        if (OdsRepeatModel.Read(_element, OdfNamespaces.Table + "number-columns-repeated") > 1 &&
+            _element.Descendants(OdfNamespaces.Text + "note").Any() ||
+            _element.Parent is XElement row && row.Name == OdfNamespaces.Table + "table-row" &&
+            OdsRepeatModel.Read(row, OdfNamespaces.Table + "number-rows-repeated") > 1 &&
+            row.Descendants(OdfNamespaces.Text + "note").Any()) {
+            throw new NotSupportedException("Merging a repeated table row or cell containing a note is not supported.");
         }
     }
 

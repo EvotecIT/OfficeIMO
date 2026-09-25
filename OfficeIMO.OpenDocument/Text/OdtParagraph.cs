@@ -338,6 +338,12 @@ public sealed class OdtParagraph {
             _document.ValidateNoteInsertion(kind, text);
             _element = _materializeForNote();
             _materializeForNote = null;
+        } else if (_element.Ancestors().Any(ancestor =>
+            ancestor.Name == OdfNamespaces.Table + "table-row" &&
+            OdsRepeatModel.Read(ancestor, OdfNamespaces.Table + "number-rows-repeated") > 1 ||
+            ancestor.Name == OdfNamespaces.Table + "table-cell" &&
+            OdsRepeatModel.Read(ancestor, OdfNamespaces.Table + "number-columns-repeated") > 1)) {
+            throw new NotSupportedException("Insert notes through the logical table cell when its row or cell is repeated.");
         }
         return _document.AddNote(_element, _partPath, kind, text);
     }

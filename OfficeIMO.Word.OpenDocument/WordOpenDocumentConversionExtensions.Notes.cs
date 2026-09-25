@@ -39,8 +39,7 @@ public static partial class WordOpenDocumentConversionExtensions {
                 var seenFootnoteDefinitions = new HashSet<long>();
                 foreach (W.Footnote note in source.OpenXmlDocument.MainDocumentPart?.FootnotesPart?.Footnotes?
                     .Elements<W.Footnote>() ?? Enumerable.Empty<W.Footnote>()) {
-                    if (note.Type?.Value != W.FootnoteEndnoteValues.Separator &&
-                        note.Type?.Value != W.FootnoteEndnoteValues.ContinuationSeparator &&
+                    if ((note.Type == null || note.Type.Value == W.FootnoteEndnoteValues.Normal) &&
                         (note.Id == null || !FootnoteAnchors.ContainsKey(note.Id.Value) ||
                          !seenFootnoteDefinitions.Add(note.Id.Value)))
                         UnreferencedFootnoteDefinitions++;
@@ -49,8 +48,7 @@ public static partial class WordOpenDocumentConversionExtensions {
                 var seenEndnoteDefinitions = new HashSet<long>();
                 foreach (W.Endnote note in source.OpenXmlDocument.MainDocumentPart?.EndnotesPart?.Endnotes?
                     .Elements<W.Endnote>() ?? Enumerable.Empty<W.Endnote>()) {
-                    if (note.Type?.Value != W.FootnoteEndnoteValues.Separator &&
-                        note.Type?.Value != W.FootnoteEndnoteValues.ContinuationSeparator &&
+                    if ((note.Type == null || note.Type.Value == W.FootnoteEndnoteValues.Normal) &&
                         (note.Id == null || !EndnoteAnchors.ContainsKey(note.Id.Value) ||
                          !seenEndnoteDefinitions.Add(note.Id.Value)))
                         UnreferencedEndnoteDefinitions++;
@@ -367,12 +365,10 @@ public static partial class WordOpenDocumentConversionExtensions {
     private static int CountCustomizedWordSeparators<T>(IEnumerable<T>? candidates)
         where T : DocumentFormat.OpenXml.OpenXmlElement =>
         candidates?.Count(note => {
-            bool separator = note is W.Footnote footnote &&
-                (footnote.Type?.Value == W.FootnoteEndnoteValues.Separator ||
-                 footnote.Type?.Value == W.FootnoteEndnoteValues.ContinuationSeparator) ||
-                note is W.Endnote endnote &&
-                (endnote.Type?.Value == W.FootnoteEndnoteValues.Separator ||
-                 endnote.Type?.Value == W.FootnoteEndnoteValues.ContinuationSeparator);
+            bool separator = note is W.Footnote footnote && footnote.Type != null &&
+                footnote.Type.Value != W.FootnoteEndnoteValues.Normal ||
+                note is W.Endnote endnote && endnote.Type != null &&
+                endnote.Type.Value != W.FootnoteEndnoteValues.Normal;
             if (!separator) return false;
             W.Paragraph[] paragraphs = note.Elements<W.Paragraph>().ToArray();
             if (paragraphs.Length != 1 || note.ChildElements.Count != 1) return true;

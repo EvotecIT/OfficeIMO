@@ -484,6 +484,22 @@ public sealed class WordOdtNotesConversionTests {
     }
 
     [Fact]
+    public void WordContinuationNoticeIsSeparatorLossRatherThanUnreferencedNote() {
+        using WordDocument source = WordDocument.Create();
+        source.AddParagraph("No note reference");
+        source.OpenXmlDocument.MainDocumentPart!.FootnotesPart!.Footnotes!.Append(
+            new W.Footnote(new W.Paragraph(new W.Run(new W.Text("continued")))) {
+                Type = W.FootnoteEndnoteValues.ContinuationNotice, Id = -3
+            });
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-separators" &&
+            mapping.Status == OdfConversionMappingStatus.Approximated);
+        Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "source-footnotes" &&
+            mapping.Message?.StartsWith("Word footnote definitions", StringComparison.Ordinal) == true);
+    }
+
+    [Fact]
     public void AlternateWordSeparatorReferenceIsExplicitLoss() {
         using WordDocument source = WordDocument.Create();
         source.AddParagraph("Anchor").AddFootNote("Body");
@@ -975,6 +991,42 @@ public sealed class WordOdtNotesConversionTests {
             mapping.Status == OdfConversionMappingStatus.Unsupported);
         Assert.Throws<OdfConversionLossException>(() => reopened.ToWordDocumentResult(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void EmbeddedNoteImagePayloadDoesNotBecomeVisibleWordText() {
+        OdtDocument source = OdtDocument.Create();
+        OdtParagraph body = source.AddParagraph("Anchor").AddFootnote("Body").Paragraphs[0];
+        body.AddImage(Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="),
+            "pixel.png", OdfLength.Centimeters(1), OdfLength.Centimeters(1));
+        byte[] embedded = OdfTestPackageRewriter.Rewrite(source.ToBytes(), (name, bytes) => {
+            if (name != "content.xml") return bytes;
+            XDocument xml = XDocument.Parse(Encoding.UTF8.GetString(bytes));
+            XNamespace draw = "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0";
+            XNamespace office = "urn:oasis:names:tc:opendocument:xmlns:office:1.0";
+            XNamespace svg = "urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0";
+            XElement frame = xml.Descendants(draw + "frame").Single();
+            frame.Add(new XElement(svg + "title", "Hidden image title"));
+            frame.Add(new XElement(svg + "desc", "Hidden image description"));
+            xml.Descendants(draw + "image").Single().Add(
+                new XElement(office + "binary-data", "QUJDREVGRw=="));
+            return Encoding.UTF8.GetBytes(xml.ToString());
+        });
+        OdtDocument loaded = OdtDocument.Load(new MemoryStream(embedded));
+
+        OdfConversionResult<WordDocument> conversion = loaded.ToWordDocumentResult();
+        using WordDocument word = conversion.Value;
+        W.Footnote note = word.OpenXmlDocument.MainDocumentPart!.FootnotesPart!.Footnotes!
+            .Elements<W.Footnote>().Single(item => item.Type == null ||
+                item.Type.Value == W.FootnoteEndnoteValues.Normal);
+        string text = string.Concat(note.Descendants<W.Text>().Select(item => item.Text));
+        Assert.Contains("Body", text);
+        Assert.DoesNotContain("QUJDREVGRw==", text);
+        Assert.DoesNotContain("Hidden image title", text);
+        Assert.DoesNotContain("Hidden image description", text);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-content" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
     }
 
     [Fact]

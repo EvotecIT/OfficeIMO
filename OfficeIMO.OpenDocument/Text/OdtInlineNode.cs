@@ -119,7 +119,7 @@ public sealed class OdtInlineNode {
                 && element.Element(OdfNamespaces.Draw + "image") != null) {
                 var image = new OdtImage(document, element, partPath);
                 result.Add(new OdtInlineNode(OdtInlineNodeKind.Image, string.Empty, image: image,
-                    textContribution: OdfTextCodec.Read(element)));
+                    textContribution: string.Empty));
             } else if (element.Name == OdfNamespaces.Text + "bookmark") {
                 result.Add(BookmarkNode(OdtInlineNodeKind.Bookmark, element));
             } else if (element.Name == OdfNamespaces.Text + "bookmark-start") {
