@@ -94,6 +94,11 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         if (!string.IsNullOrWhiteSpace(style.FontName)) target.FontFamily = style.FontName;
         if (!string.IsNullOrWhiteSpace(style.FontColorHex)) target.Color = OdfColor.Parse(style.FontColorHex!);
         if (!string.IsNullOrWhiteSpace(style.FillColorHex)) target.BackgroundColor = OdfColor.Parse(style.FillColorHex!);
+        string? horizontal = ToOdfHorizontalAlignment(style.HorizontalAlignment);
+        if (horizontal != null) target.TextAlign = horizontal;
+        string? vertical = ToOdfVerticalAlignment(style.VerticalAlignment);
+        if (vertical != null) target.VerticalAlign = vertical;
+        if (style.WrapText) target.WrapOption = "wrap";
         if (!string.IsNullOrWhiteSpace(style.NumberFormatCode) && style.NumberFormatCode != "General") {
             if (!dataStyles.TryGetValue(style.StyleIndex, out string? name)) {
                 name = "xlData" + style.StyleIndex.ToString(CultureInfo.InvariantCulture);
@@ -168,9 +173,26 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             !string.Equals(style.FillPatternType, "solid", StringComparison.OrdinalIgnoreCase);
         return style.Border != null ||
             nonSolidPattern || style.FillGradientUnsupported || style.FillGradientStops.Count > 0 ||
-            style.TextRotation.HasValue || style.HorizontalAlignment != null || style.VerticalAlignment != null ||
-            (style.TextIndent.HasValue && style.TextIndent.Value > 0U) || style.WrapText || style.ShrinkToFit;
+            style.TextRotation.HasValue ||
+            (style.HorizontalAlignment != null && ToOdfHorizontalAlignment(style.HorizontalAlignment) == null) ||
+            (style.VerticalAlignment != null && ToOdfVerticalAlignment(style.VerticalAlignment) == null) ||
+            (style.TextIndent.HasValue && style.TextIndent.Value > 0U) || style.ShrinkToFit;
     }
+
+    private static string? ToOdfHorizontalAlignment(string? value) => value switch {
+        "left" => "left",
+        "center" => "center",
+        "right" => "right",
+        "justify" => "justify",
+        _ => null
+    };
+
+    private static string? ToOdfVerticalAlignment(string? value) => value switch {
+        "top" => "top",
+        "center" => "middle",
+        "bottom" => "bottom",
+        _ => null
+    };
 
     private static int ApplyOdsStyle(
         ExcelCell target,
@@ -181,6 +203,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         ref int unsupportedFontFamilies,
         ref int approximatedTextDecorations,
         ref int unsupportedCapitalization,
+        ref int unsupportedCellLayout,
         CultureInfo textCaseCulture) {
         int unsupported = 0;
         unsupportedDataStyleFormat = false;
@@ -228,6 +251,24 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         if (fontFamily != null) target.SetFontName(fontFamily);
         if (style.Color.HasValue) target.SetFontColor(style.Color.Value.ToString().TrimStart('#'));
         if (style.BackgroundColor.HasValue) target.SetFillColor(style.BackgroundColor.Value.ToString().TrimStart('#'));
+        switch (style.TextAlign) {
+            case "left": target.Sheet.CellAlign(target.Row, target.Column, ExcelHorizontalAlignment.Left); break;
+            case "center": target.Sheet.CellAlign(target.Row, target.Column, ExcelHorizontalAlignment.Center); break;
+            case "right": target.Sheet.CellAlign(target.Row, target.Column, ExcelHorizontalAlignment.Right); break;
+            case "justify": target.Sheet.CellAlign(target.Row, target.Column, ExcelHorizontalAlignment.Justify); break;
+            case not null: unsupportedCellLayout++; break;
+        }
+        switch (style.VerticalAlign) {
+            case "top": target.Sheet.CellVerticalAlign(target.Row, target.Column, ExcelVerticalAlignment.Top); break;
+            case "middle": target.Sheet.CellVerticalAlign(target.Row, target.Column, ExcelVerticalAlignment.Center); break;
+            case "bottom": target.Sheet.CellVerticalAlign(target.Row, target.Column, ExcelVerticalAlignment.Bottom); break;
+            case not null: unsupportedCellLayout++; break;
+        }
+        switch (style.WrapOption) {
+            case "wrap": target.Sheet.CellWrapText(target.Row, target.Column); break;
+            case "no-wrap": target.Sheet.CellWrapText(target.Row, target.Column, false); break;
+            case not null: unsupportedCellLayout++; break;
+        }
         if (style.NumberFormatName != null && dataStyles.TryGetValue(style.NumberFormatName, out OdsDataStyle? dataStyle)) {
             if (dataStyle.TryGetExcelNumberFormatCode(out string formatCode)) target.SetNumberFormat(formatCode);
             else unsupportedDataStyleFormat = true;

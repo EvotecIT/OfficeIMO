@@ -59,6 +59,8 @@ public class OpenDocumentSchemaArtifactTests {
                 conditional.AddConditionalMap("cell-content()>0", highlight.Name, "$'Data'.$A$2");
                 conditional.Bold = true;
                 conditional.TextAlign = "center";
+                conditional.CellVerticalAlign = "middle";
+                conditional.CellWrapOption = "wrap";
                 conditional.BackgroundColor = OdfColor.Parse("#FFFFFF");
                 formula.StyleName = conditional.Name;
                 spreadsheet.Save(Path.Combine(output, "schema-proof-1.4.ods"));
@@ -147,6 +149,9 @@ public class OpenDocumentSchemaArtifactTests {
                 OdsCell formula = sheet.Cell(1, 0);
                 Assert.Contains(formula.Annotations, annotation => annotation.Text == "Calculated value" && annotation.Creator == "OfficeIMO");
                 Assert.False(string.IsNullOrWhiteSpace(formula.ValidationName));
+                Assert.Equal("center", formula.TextAlign);
+                Assert.Equal("middle", formula.VerticalAlign);
+                Assert.Equal("wrap", formula.WrapOption);
                 Assert.Contains(spreadsheet.Validations, item => item.ParsedCondition?.ValueKind == OdsValidationValueKind.WholeNumber);
                 OdfStyle? conditional = spreadsheet.Styles.Find(OdfStyleFamily.TableCell, formula.StyleName!);
                 Assert.Contains(conditional!.ConditionalMaps, map =>

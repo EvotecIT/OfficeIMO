@@ -101,6 +101,21 @@ public sealed class OdsCell {
         }
         set => EnsureStyle().BackgroundColor = value;
     }
+    /// <summary>Explicit or inherited horizontal text alignment token.</summary>
+    public string? TextAlign {
+        get => ResolveReference(style => style.TextAlign);
+        set => EnsureStyle().TextAlign = value;
+    }
+    /// <summary>Explicit or inherited table-cell vertical alignment token.</summary>
+    public string? VerticalAlign {
+        get => ResolveReference(style => style.CellVerticalAlign);
+        set => EnsureStyle().CellVerticalAlign = value;
+    }
+    /// <summary>Explicit or inherited table-cell wrapping token.</summary>
+    public string? WrapOption {
+        get => ResolveReference(style => style.CellWrapOption);
+        set => EnsureStyle().CellWrapOption = value;
+    }
 
     /// <summary>Clears value content while retaining style, formula, validation, and annotations.</summary>
     public void ClearValue() {
@@ -421,6 +436,12 @@ public sealed class OdsCellRun {
     public OdfColor? Color => Cell.Color;
     /// <summary>Explicit or inherited prototype cell background color.</summary>
     public OdfColor? BackgroundColor => Cell.BackgroundColor;
+    /// <summary>Explicit or inherited prototype horizontal text alignment token.</summary>
+    public string? TextAlign => Cell.TextAlign;
+    /// <summary>Explicit or inherited prototype vertical alignment token.</summary>
+    public string? VerticalAlign => Cell.VerticalAlign;
+    /// <summary>Explicit or inherited prototype wrapping token.</summary>
+    public string? WrapOption => Cell.WrapOption;
     /// <summary>Simple hyperlink target stored in the prototype cell, when present.</summary>
     public string? HyperlinkHref => (string?)_element
         .Descendants(OdfNamespaces.Text + "a")

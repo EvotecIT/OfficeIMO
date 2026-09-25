@@ -416,7 +416,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         int cells = 0, formulas = 0, formulaTranslationFailures = 0, styles = 0, hyperlinks = 0, externalHyperlinks = 0, comments = 0, combinedComments = 0, metadataTranscriptComments = 0, merges = 0, rowLayouts = 0, columnLayouts = 0;
         int invalidValues = 0, normalizedDateTimeOffsets = 0, validations = 0, convertedValidations = 0, unsupportedValidationAssignments = 0, sortedValidationLists = 0, unsupportedHyperlinks = 0, unsupportedMeasurements = 0, unsupportedDataStyleFormats = 0, skippedStyles = 0, renamedSheets = 0, worksheetCount = 0;
         int approximatedFontFamilyLists = 0, unsupportedFontFamilies = 0;
-        int approximatedTextDecorations = 0, unsupportedCapitalization = 0;
+        int approximatedTextDecorations = 0, unsupportedCapitalization = 0, unsupportedCellLayout = 0;
         int forcedVisibleWorksheets = 0;
         var chartTargets = new List<(OdsSheet Source, ExcelSheet Target)>();
         bool truncated = false;
@@ -550,7 +550,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                                 unsupportedMeasurements += ApplyOdsStyle(converted, cellRun, dataStyles,
                                     out bool unsupportedDataStyleFormat, ref approximatedFontFamilyLists,
                                     ref unsupportedFontFamilies, ref approximatedTextDecorations,
-                                    ref unsupportedCapitalization, textCaseCulture);
+                                    ref unsupportedCapitalization, ref unsupportedCellLayout, textCaseCulture);
                                 if (unsupportedDataStyleFormat) unsupportedDataStyleFormats++;
                                 styles++;
                                 CollectOdsConditionalTarget(source, cellRun.StyleName, excelRow, excelColumn,
@@ -692,6 +692,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             "Offset-bearing ODF date/time values were normalized to their UTC instant before Excel serial storage; Excel cannot retain the authored offset.");
         AddUnsupported(report, "relative-measurements", unsupportedMeasurements,
             "Relative or unsupported ODF row, column, or text measurements could not be projected to fixed Excel sizes and were omitted.");
+        AddUnsupported(report, "cell-layout", unsupportedCellLayout,
+            "ODF cell alignment or wrapping outside the mapped subset was not transferred to Excel.");
         AddUnsupported(report, "cell-format-details", unsupportedDataStyleFormats,
             $"ODF data styles with locale-sensitive or unsupported components, or that exceed Excel's {OdsDataStyle.MaximumExcelNumberFormatCodeLength}-character custom number-format limit, were omitted.");
         if (truncated) report.Add("expansion-limits", OdfConversionMappingStatus.Skipped, 1,

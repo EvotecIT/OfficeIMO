@@ -196,6 +196,20 @@ public sealed class OdfStyle {
         get => (string?)ParagraphProperties?.Attribute(OdfNamespaces.Fo + "text-align");
         set => SetAttribute(GetProperties(OdfNamespaces.Style + "paragraph-properties"), OdfNamespaces.Fo + "text-align", value);
     }
+    /// <summary>Explicit table-cell vertical alignment token.</summary>
+    public string? CellVerticalAlign {
+        get => (string?)_element.Element(OdfNamespaces.Style + "table-cell-properties")?
+            .Attribute(OdfNamespaces.Style + "vertical-align");
+        set => SetAttribute(GetProperties(OdfNamespaces.Style + "table-cell-properties"),
+            OdfNamespaces.Style + "vertical-align", value);
+    }
+    /// <summary>Explicit table-cell text wrapping token.</summary>
+    public string? CellWrapOption {
+        get => (string?)_element.Element(OdfNamespaces.Style + "table-cell-properties")?
+            .Attribute(OdfNamespaces.Fo + "wrap-option");
+        set => SetAttribute(GetProperties(OdfNamespaces.Style + "table-cell-properties"),
+            OdfNamespaces.Fo + "wrap-option", value);
+    }
     /// <summary>Explicit ODF paragraph writing-mode token.</summary>
     public string? WritingMode {
         get => (string?)ParagraphProperties?.Attribute(OdfNamespaces.Style + "writing-mode");
