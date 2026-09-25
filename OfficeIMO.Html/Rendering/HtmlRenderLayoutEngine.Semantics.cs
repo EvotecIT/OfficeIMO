@@ -6,7 +6,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private HtmlRenderFlowBlock ApplyElementSemantics(HtmlRenderFlowBlock block, IElement element, HtmlRenderBoxStyle style) {
         RegisterBookmark(element, style);
         ReportUnsupportedSemanticTag(element, style);
-        block = AddTargetPageAnchor(block, element);
+        block = AddTargetPageAnchor(block, element, Math.Max(0D, style.MarginTop));
         int nodeId = GetSemanticNodeId(element);
         string structureElementKey = "html-element:" + nodeId.ToString(System.Globalization.CultureInfo.InvariantCulture);
         if (ShouldAssignNavigationNode(style) && !style.BookmarkSuppressed) {
@@ -47,9 +47,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return WrapEditableLayoutRegion(semanticBlock, element, style);
     }
 
-    private HtmlRenderFlowBlock AddTargetPageAnchor(HtmlRenderFlowBlock block, IElement element) {
+    private HtmlRenderFlowBlock AddTargetPageAnchor(HtmlRenderFlowBlock block, IElement element, double top = 0D) {
         var destinations = new List<HtmlRenderVisual>();
-        AddElementNamedDestination(destinations, element, 0D, 0D, block.Visuals.Count);
+        AddElementNamedDestination(destinations, element, 0D, top, block.Visuals.Count);
         return destinations.Count == 0 ? block : block.WithVisuals(block.Visuals.Concat(destinations));
     }
 
@@ -112,7 +112,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private HtmlRenderFlowBlock ApplySpecializedElementSemantics(HtmlRenderFlowBlock block, IElement element, HtmlRenderBoxStyle style) {
         RegisterBookmark(element, style);
         ReportUnsupportedSemanticTag(element, style);
-        block = AddTargetPageAnchor(block, element);
+        block = AddTargetPageAnchor(block, element, Math.Max(0D, style.MarginTop));
         int nodeId = GetSemanticNodeId(element);
         string structureElementKey = "html-element:" + nodeId.ToString(System.Globalization.CultureInfo.InvariantCulture);
         if (ShouldAssignNavigationNode(style) && !style.BookmarkSuppressed) {
@@ -257,7 +257,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderFlowBlock block,
         FlattenedSemanticBoundary boundary,
         bool firstFragment) {
-        if (firstFragment) block = AddTargetPageAnchor(block, boundary.Element);
+        double anchorTop = Math.Max(0D, block.CollapsibleMarginTop);
+        if (firstFragment) block = AddTargetPageAnchor(block, boundary.Element, anchorTop);
         string anchorText = boundary.AnchorText.Length > 0
             ? boundary.AnchorText
             : ResolveVisibleBookmarkText(boundary.Element);
@@ -269,7 +270,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     boundary.NodeId,
                     anchorText,
                     0D,
-                    0D,
+                    anchorTop,
                     0.01D,
                     0.01D,
                     block.Visuals.Count,

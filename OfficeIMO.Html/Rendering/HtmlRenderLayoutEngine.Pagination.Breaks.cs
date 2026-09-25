@@ -1,6 +1,28 @@
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
+    private double SkipUnpaintedLeadingMarginAtPageStart(HtmlRenderFlowBlock block, double start) {
+        double discardableMargin = 0D;
+        foreach (HtmlInlineBreakProgress progress in block.InlineBreakProgress) {
+            if (Math.Abs(progress.Offset - start) > 0.0001D || !progress.IsBlockEntry
+                || progress.PageStartDiscardableMargin <= 0.0001D) continue;
+            discardableMargin = progress.PageStartDiscardableMargin;
+            break;
+        }
+        if (discardableMargin <= 0.0001D) return start;
+
+        double afterMargin = Math.Min(block.Height, start + discardableMargin);
+        if (block.ForcedBreaks.Any(item => item.Offset > start + 0.0001D && item.Offset < afterMargin - 0.0001D)
+            || block.RunningStringAssignments.Any(item => item.Offset >= start - 0.0001D && item.Offset < afterMargin - 0.0001D)) {
+            return start;
+        }
+
+        // The container has moved to a new page because its first child could
+        // not fit. Its leading margin is blank space from the previous page,
+        // not a decoration to carry ahead of the child on the new page.
+        return afterMargin;
+    }
+
     private static double FindFragmentEnd(HtmlRenderFlowBlock block, double start, double available, double? maximumEnd = null) {
         double limit = Math.Min(maximumEnd ?? block.Height, Math.Min(block.Height, start + available));
         IReadOnlyList<double> offsets = block.BreakOffsets;

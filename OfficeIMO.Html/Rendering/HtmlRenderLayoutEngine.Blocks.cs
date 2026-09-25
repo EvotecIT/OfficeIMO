@@ -426,7 +426,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     forcedBreaks.Add(forcedBreak.Translate(childStart));
                 }
                 if (childIndex > 0 && child.OwnerElement != null) {
-                    continuationBreakProgress.Add(new HtmlInlineBreakProgress(childStart, 0, child.OwnerElement));
+                    continuationBreakProgress.Add(new HtmlInlineBreakProgress(
+                        childStart,
+                        0,
+                        child.OwnerElement,
+                        isBlockEntry: true,
+                        pageStartDiscardableMargin: child.HasCollapsibleMargins
+                            ? Math.Max(0D, child.CollapsibleMarginTop - child.LeadingFlowAdjustment)
+                            : 0D));
                 }
                 childPaintLayers.Add(new FlowPaintLayer(child, 0D, childStart, childPaintLayers.Count));
 
@@ -435,7 +442,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     forcedBreaks.Add(new HtmlRenderForcedBreak(contentHeight, child.BreakAfter));
                 }
                 foreach (double offset in child.BreakOffsets) {
-                    contentBreakOffsets.Add(childStart + offset);
+                    // A child's zero offset is its entry, not a break inside it. The
+                    // preceding sibling already contributes that boundary; forwarding
+                    // zero through a bordered parent can strand its top edge on the
+                    // previous page before any child content fits.
+                    if (offset > 0.0001D) contentBreakOffsets.Add(childStart + offset);
                 }
 
                 foreach (HtmlRenderLineBreakGroup group in child.LineBreakGroups) {
@@ -456,7 +467,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     continuationBreakProgress.Add(new HtmlInlineBreakProgress(
                         childStart + progress.Offset,
                         progress.LogicalCharacters,
-                        progress.OwnerElement));
+                        progress.OwnerElement,
+                        progress.IsBlockEntry,
+                        progress.PageStartDiscardableMargin));
                 }
 
                 contentBreakOffsets.Add(contentHeight);
@@ -606,7 +619,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 .Concat(positionedRunningStringAssignments)
                 .OrderBy(assignment => assignment.OrderOffset),
             inlineBreakProgress: (inlineLayout?.BreakProgress ?? continuationBreakProgress).Select(progress =>
-                new HtmlInlineBreakProgress(contentYForBreaks + progress.Offset, progress.LogicalCharacters, progress.OwnerElement)),
+                new HtmlInlineBreakProgress(contentYForBreaks + progress.Offset, progress.LogicalCharacters, progress.OwnerElement, progress.IsBlockEntry, progress.PageStartDiscardableMargin)),
             inlineContinuationStart: ReferenceEquals(element, continuationTarget) ? continuationLogicalCharacters : 0,
             supportsInlineContinuationReflow: inlineLayout?.SupportsContinuationReflow == true
                 || continuationBreakProgress.Any(progress => progress.OwnerElement != null),

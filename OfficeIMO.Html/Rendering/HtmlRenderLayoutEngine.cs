@@ -833,6 +833,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             } else {
                                 ReportPageContinuationReflowPending(block, pageGeometry);
                             }
+                        } else {
+                            blockOffset = SkipUnpaintedLeadingMarginAtPageStart(block, blockOffset);
                         }
                     }
                 }

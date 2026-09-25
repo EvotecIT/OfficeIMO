@@ -288,7 +288,7 @@ internal sealed class HtmlRenderFlowBlock {
             collapsesThrough: CollapsesThrough,
             unclampedHeight: adjustedUnclampedHeight,
             runningStringAssignments: RunningStringAssignments.Select(assignment => assignment.Translate(-adjustment)),
-            inlineBreakProgress: InlineBreakProgress.Select(progress => new HtmlInlineBreakProgress(progress.Offset - adjustment, progress.LogicalCharacters, progress.OwnerElement)),
+            inlineBreakProgress: InlineBreakProgress.Select(progress => new HtmlInlineBreakProgress(progress.Offset - adjustment, progress.LogicalCharacters, progress.OwnerElement, progress.IsBlockEntry, progress.PageStartDiscardableMargin)),
             inlineContinuationStart: InlineContinuationStart,
             supportsInlineContinuationReflow: SupportsInlineContinuationReflow,
             forcedBreaks: ForcedBreaks.Select(item => item.Translate(-adjustment)),
@@ -705,13 +705,17 @@ internal sealed class HtmlInlineLayout {
 }
 
 internal readonly struct HtmlInlineBreakProgress {
-    internal HtmlInlineBreakProgress(double offset, int logicalCharacters, IElement? ownerElement = null) {
+    internal HtmlInlineBreakProgress(double offset, int logicalCharacters, IElement? ownerElement = null, bool isBlockEntry = false, double pageStartDiscardableMargin = 0D) {
         Offset = offset;
         LogicalCharacters = logicalCharacters;
         OwnerElement = ownerElement;
+        IsBlockEntry = isBlockEntry;
+        PageStartDiscardableMargin = pageStartDiscardableMargin;
     }
 
     internal double Offset { get; }
     internal int LogicalCharacters { get; }
     internal IElement? OwnerElement { get; }
+    internal bool IsBlockEntry { get; }
+    internal double PageStartDiscardableMargin { get; }
 }
