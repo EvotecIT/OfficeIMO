@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>
@@ -62,7 +64,7 @@ public sealed partial class PdfReadDocument {
         _decodedStreamBudget = new PdfDecodedStreamBudget(_options.Limits, decodedStreamBytes);
         _outputIntentMetadataRetentionBudget = new PdfIccProfileRetentionBudget(_options.Limits.MaxDecodedStreamBytes);
         Security = security;
-        _catalog = PdfSyntax.FindCatalog(_objects, _trailerRaw);
+        _catalog = PdfSyntax.FindCatalog(_objects, _trailerRaw, cancellationToken);
         _optionalContentVisibilityState = PdfPageOptionalContentVisibility.CreateDocumentState(
             _catalog,
             _objects,
@@ -72,33 +74,48 @@ public sealed partial class PdfReadDocument {
             _catalog,
             _objects,
             _options.Limits.MaxDecodedStreamBytes,
-            _outputIntentMetadataRetentionBudget);
-        Pages = CollectPages();
-        RepairReport = repairReport.Append(PdfSemanticRepairDiagnostics.AnalyzeAndRepair(_objects, _catalog, Pages, _options));
-        _metadata = ExtractMetadata();
-        _pageLabels = ExtractPageLabels();
-        _namedDestinations = ExtractNamedDestinations();
-        _catalogActions = ExtractCatalogActions(out _javaScripts);
+            _outputIntentMetadataRetentionBudget,
+            cancellationToken);
+        Pages = CollectPages(cancellationToken);
+        RepairReport = repairReport.Append(PdfSemanticRepairDiagnostics.AnalyzeAndRepair(_objects, _catalog, Pages, _options, cancellationToken));
+        cancellationToken.ThrowIfCancellationRequested();
+        _metadata = ExtractMetadata(cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        _pageLabels = ExtractPageLabels(cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        _namedDestinations = ExtractNamedDestinations(cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        _catalogActions = ExtractCatalogActions(out _javaScripts, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         _attachments = ExtractAttachmentInfos(cancellationToken);
-        _outputIntents = ExtractOutputIntents(out bool outputIntentsAreComplete);
+        cancellationToken.ThrowIfCancellationRequested();
+        _outputIntents = ExtractOutputIntents(out bool outputIntentsAreComplete, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         _outputIntentsAreComplete = outputIntentsAreComplete;
-        _xmpMetadata = ExtractXmpMetadata();
-        _taggedContent = ExtractTaggedContent();
-        _optionalContent = ExtractOptionalContent();
-        _outlines = ExtractOutlines();
-        _openAction = ExtractOpenAction();
-        ViewerPreferences = ExtractViewerPreferences();
-        _portfolio = ExtractPortfolio();
+        _xmpMetadata = ExtractXmpMetadata(cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        _taggedContent = ExtractTaggedContent(cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        _optionalContent = ExtractOptionalContent(cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        _outlines = ExtractOutlines(cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        _openAction = ExtractOpenAction(cancellationToken);
+        ViewerPreferences = ExtractViewerPreferences(cancellationToken);
+        _portfolio = ExtractPortfolio(cancellationToken);
         _acroFormDefaultAppearance = ExtractAcroFormText("DA");
         _acroFormQuadding = ExtractAcroFormInteger("Q");
-        _acroFormXfa = ExtractAcroFormXfaInfo();
-        _formFields = ExtractFormFields(out _formWidgetJavaScriptCount, out _formWidgetJavaScriptBytes);
+        _acroFormXfa = ExtractAcroFormXfaInfo(cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        _formFields = ExtractFormFields(out _formWidgetJavaScriptCount, out _formWidgetJavaScriptBytes, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         _acroFormNeedAppearances = ExtractAcroFormBoolean("NeedAppearances");
         _acroFormSignatureFlags = ExtractAcroFormInteger("SigFlags");
         CatalogPageMode = ExtractCatalogName("PageMode");
         CatalogPageLayout = ExtractCatalogName("PageLayout");
         CatalogVersion = ExtractCatalogName("Version");
         CatalogLanguage = ExtractCatalogString("Lang");
+        cancellationToken.ThrowIfCancellationRequested();
         _decodedStreamBytes = _decodedStreamBudget.UsedBytes;
     }
 
@@ -171,6 +188,7 @@ public sealed partial class PdfReadDocument {
     internal IReadOnlyList<PdfOutlineItem> UncheckedOutlines => _outlines;
     // Rewrites and inspection must read the parsed source, since Metadata is a mutable read model.
     internal PdfMetadata UncheckedMetadata => ExtractMetadata();
+    internal PdfMetadata GetUncheckedMetadata(CancellationToken cancellationToken) => ExtractMetadata(cancellationToken);
     internal PdfXmpMetadataInfo? UncheckedXmpMetadata => _xmpMetadata;
     internal IReadOnlyList<PdfOutputIntentInfo> UncheckedOutputIntents => _outputIntents;
     internal bool UncheckedOutputIntentsAreComplete => _outputIntentsAreComplete;

@@ -1,3 +1,4 @@
+using System.Threading;
 using OfficeIMO.Pdf;
 using Xunit;
 
@@ -18,11 +19,11 @@ public sealed class PdfReadDocumentPageIndexTests {
         PdfReadDocument read = PdfReadDocument.Open(bytes);
         Assert.Equal(pageCount, read.NamedDestinations.Count);
         for (int index = 0; index < pageCount; index++) {
-            Assert.Equal(index + 1, read.GetPageNumberForObject(read.Pages[index].ObjectNumber));
+            Assert.Equal(index + 1, read.GetPageNumberForObject(read.Pages[index].ObjectNumber, CancellationToken.None));
             Assert.Contains(read.NamedDestinations, destination =>
                 destination.Name == "Page " + (index + 1).ToString("D3", System.Globalization.CultureInfo.InvariantCulture) &&
                 destination.PageNumber == index + 1);
         }
-        Assert.Null(read.GetPageNumberForObject(int.MaxValue));
+        Assert.Null(read.GetPageNumberForObject(int.MaxValue, CancellationToken.None));
     }
 }

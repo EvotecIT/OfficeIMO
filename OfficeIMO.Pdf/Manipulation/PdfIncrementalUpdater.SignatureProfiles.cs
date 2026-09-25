@@ -127,7 +127,7 @@ internal static partial class PdfIncrementalUpdater {
         }
 
         string appearanceText = string.IsNullOrWhiteSpace(options.Text) ? fieldName : options.Text!;
-        if (options.ShowText && !PdfWinAnsiEncoding.CanEncode(appearanceText, out int unsupportedIndex)) {
+        if (options.ShowText && !PdfWinAnsiEncoding.CanEncode(appearanceText, out int unsupportedIndex, cancellationToken)) {
             char unsupportedCharacter = appearanceText[unsupportedIndex];
             throw new ArgumentException("Visible signature text contains unsupported Helvetica character '" + unsupportedCharacter + "'.", nameof(options));
         }

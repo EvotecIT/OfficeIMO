@@ -1,9 +1,10 @@
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadDocument {
-    private (int? PageNumber, double? DestinationTop, PdfOpenActionDestinationMode? DestinationMode, double? DestinationLeft, double? DestinationBottom, double? DestinationRight, double? DestinationZoom) GetOutlineDestination(PdfDictionary item) {
+    private (int? PageNumber, double? DestinationTop, PdfOpenActionDestinationMode? DestinationMode, double? DestinationLeft, double? DestinationBottom, double? DestinationRight, double? DestinationZoom) GetOutlineDestination(PdfDictionary item,
+        System.Threading.CancellationToken cancellationToken) {
         if (item.Items.TryGetValue("Dest", out var destObj) &&
-            TryReadDestinationOrNamedDestination(destObj, out int? pageNumber, out double? destinationTop, out PdfOpenActionDestinationMode? destinationMode, out double? destinationLeft, out double? destinationBottom, out double? destinationRight, out double? destinationZoom)) {
+            TryReadDestinationOrNamedDestination(destObj, out int? pageNumber, out double? destinationTop, out PdfOpenActionDestinationMode? destinationMode, out double? destinationLeft, out double? destinationBottom, out double? destinationRight, out double? destinationZoom, cancellationToken)) {
             return (pageNumber, destinationTop, destinationMode, destinationLeft, destinationBottom, destinationRight, destinationZoom);
         }
 
@@ -11,14 +12,15 @@ public sealed partial class PdfReadDocument {
             ResolveObject(actionObject) is PdfDictionary action &&
             action.Get<PdfName>("S")?.Name == "GoTo" &&
             action.Items.TryGetValue("D", out var actionDestination) &&
-            TryReadDestinationOrNamedDestination(actionDestination, out pageNumber, out destinationTop, out destinationMode, out destinationLeft, out destinationBottom, out destinationRight, out destinationZoom)) {
+            TryReadDestinationOrNamedDestination(actionDestination, out pageNumber, out destinationTop, out destinationMode, out destinationLeft, out destinationBottom, out destinationRight, out destinationZoom, cancellationToken)) {
             return (pageNumber, destinationTop, destinationMode, destinationLeft, destinationBottom, destinationRight, destinationZoom);
         }
 
         return (null, null, null, null, null, null, null);
     }
 
-    private IReadOnlyList<PdfNamedDestination> ExtractNamedDestinations() {
+    private IReadOnlyList<PdfNamedDestination> ExtractNamedDestinations(System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         PdfDictionary? catalog = FindCatalog();
         if (catalog is null) {
             return Array.Empty<PdfNamedDestination>();
@@ -39,7 +41,8 @@ public sealed partial class PdfReadDocument {
         var result = new List<PdfNamedDestination>();
         if (directDestinations is not null) {
             foreach (var entry in directDestinations.Items) {
-                if (TryCreateNamedDestination(entry.Key, entry.Value, out var destination)) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (TryCreateNamedDestination(entry.Key, entry.Value, out var destination, cancellationToken)) {
                     AddNamedDestination(result, destination, PdfNamedDestinationTokenKind.Name);
                 }
             }
@@ -47,7 +50,7 @@ public sealed partial class PdfReadDocument {
 
         if (namedDestinationTree is not null) {
             int traversedNameTreeNodes = 0;
-            AddNamedDestinationsFromNameTree(namedDestinationTree, result, new HashSet<int>(), 0, ref traversedNameTreeNodes);
+            AddNamedDestinationsFromNameTree(namedDestinationTree, result, new HashSet<int>(), 0, ref traversedNameTreeNodes, cancellationToken);
         }
 
         return result.Count == 0 ? Array.Empty<PdfNamedDestination>() : result.AsReadOnly();
@@ -58,7 +61,9 @@ public sealed partial class PdfReadDocument {
         List<PdfNamedDestination> result,
         HashSet<int> visitedReferences,
         int depth,
-        ref int traversedNodes) {
+        ref int traversedNodes,
+        System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         EnsureNameTreeBudget(depth, traversedNodes);
         if (treeObject is PdfReference reference) {
             if (!visitedReferences.Add(reference.ObjectNumber)) {
@@ -80,8 +85,9 @@ public sealed partial class PdfReadDocument {
         if (tree.Items.TryGetValue("Names", out var destinationNamesObject) &&
             ResolveArray(destinationNamesObject) is PdfArray destinationNames) {
             for (int i = 0; i + 1 < destinationNames.Items.Count; i += 2) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (TryReadDestinationName(destinationNames.Items[i], out string? name, out _) &&
-                    TryCreateNamedDestination(name!, destinationNames.Items[i + 1], out var destination)) {
+                    TryCreateNamedDestination(name!, destinationNames.Items[i + 1], out var destination, cancellationToken)) {
                     AddNamedDestination(result, destination, PdfNamedDestinationTokenKind.String);
                 }
             }
@@ -90,7 +96,8 @@ public sealed partial class PdfReadDocument {
         if (tree.Items.TryGetValue("Kids", out var kidsObject) &&
             ResolveArray(kidsObject) is PdfArray kids) {
             foreach (var kid in kids.Items) {
-                AddNamedDestinationsFromNameTree(kid, result, visitedReferences, depth + 1, ref traversedNodes);
+                cancellationToken.ThrowIfCancellationRequested();
+                AddNamedDestinationsFromNameTree(kid, result, visitedReferences, depth + 1, ref traversedNodes, cancellationToken);
             }
         }
     }
@@ -145,34 +152,16 @@ public sealed partial class PdfReadDocument {
         }
     }
 
-    private bool TryCreateNamedDestination(string name, PdfObject destinationObject, out PdfNamedDestination destination) {
+    private bool TryCreateNamedDestination(string name, PdfObject destinationObject, out PdfNamedDestination destination,
+        System.Threading.CancellationToken cancellationToken) {
         destination = null!;
         if (string.IsNullOrEmpty(name) ||
-            !TryReadDestination(destinationObject, out int? pageNumber, out double? destinationTop, out PdfOpenActionDestinationMode? destinationMode, out double? destinationLeft, out double? destinationBottom, out double? destinationRight, out double? destinationZoom)) {
+            !TryReadDestination(destinationObject, out int? pageNumber, out double? destinationTop, out PdfOpenActionDestinationMode? destinationMode, out double? destinationLeft, out double? destinationBottom, out double? destinationRight, out double? destinationZoom, cancellationToken)) {
             return false;
         }
 
         destination = new PdfNamedDestination(name, pageNumber, destinationTop, destinationMode, destinationLeft, destinationBottom, destinationRight, destinationZoom);
         return true;
-    }
-
-    private bool TryReadDestinationOrNamedDestination(PdfObject destinationObject, out int? pageNumber, out double? destinationTop) {
-        return TryReadDestinationOrNamedDestination(destinationObject, out pageNumber, out destinationTop, out _);
-    }
-
-    private bool TryReadDestinationOrNamedDestination(PdfObject destinationObject, out int? pageNumber, out double? destinationTop, out PdfOpenActionDestinationMode? destinationMode) {
-        return TryReadDestinationOrNamedDestination(destinationObject, out pageNumber, out destinationTop, out destinationMode, out _, out _, out _);
-    }
-
-    private bool TryReadDestinationOrNamedDestination(
-        PdfObject destinationObject,
-        out int? pageNumber,
-        out double? destinationTop,
-        out PdfOpenActionDestinationMode? destinationMode,
-        out double? destinationLeft,
-        out double? destinationBottom,
-        out double? destinationRight) {
-        return TryReadDestinationOrNamedDestination(destinationObject, out pageNumber, out destinationTop, out destinationMode, out destinationLeft, out destinationBottom, out destinationRight, out _);
     }
 
     private bool TryReadDestinationOrNamedDestination(
@@ -183,8 +172,10 @@ public sealed partial class PdfReadDocument {
         out double? destinationLeft,
         out double? destinationBottom,
         out double? destinationRight,
-        out double? destinationZoom) {
-        if (TryReadDestination(destinationObject, out pageNumber, out destinationTop, out destinationMode, out destinationLeft, out destinationBottom, out destinationRight, out destinationZoom)) {
+        out double? destinationZoom,
+        System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (TryReadDestination(destinationObject, out pageNumber, out destinationTop, out destinationMode, out destinationLeft, out destinationBottom, out destinationRight, out destinationZoom, cancellationToken)) {
             return true;
         }
 
@@ -212,25 +203,6 @@ public sealed partial class PdfReadDocument {
         return false;
     }
 
-    private bool TryReadDestination(PdfObject destinationObject, out int? pageNumber, out double? destinationTop) {
-        return TryReadDestination(destinationObject, out pageNumber, out destinationTop, out _);
-    }
-
-    private bool TryReadDestination(PdfObject destinationObject, out int? pageNumber, out double? destinationTop, out PdfOpenActionDestinationMode? destinationMode) {
-        return TryReadDestination(destinationObject, out pageNumber, out destinationTop, out destinationMode, out _, out _, out _);
-    }
-
-    private bool TryReadDestination(
-        PdfObject destinationObject,
-        out int? pageNumber,
-        out double? destinationTop,
-        out PdfOpenActionDestinationMode? destinationMode,
-        out double? destinationLeft,
-        out double? destinationBottom,
-        out double? destinationRight) {
-        return TryReadDestination(destinationObject, out pageNumber, out destinationTop, out destinationMode, out destinationLeft, out destinationBottom, out destinationRight, out _);
-    }
-
     private bool TryReadDestination(
         PdfObject destinationObject,
         out int? pageNumber,
@@ -239,7 +211,8 @@ public sealed partial class PdfReadDocument {
         out double? destinationLeft,
         out double? destinationBottom,
         out double? destinationRight,
-        out double? destinationZoom) {
+        out double? destinationZoom,
+        System.Threading.CancellationToken cancellationToken) {
         pageNumber = null;
         destinationTop = null;
         destinationMode = null;
@@ -259,7 +232,7 @@ public sealed partial class PdfReadDocument {
         }
 
         if (destination.Items[0] is PdfReference pageRef) {
-            pageNumber = GetPageNumberForObject(pageRef.ObjectNumber);
+            pageNumber = GetPageNumberForObject(pageRef.ObjectNumber, cancellationToken);
         }
 
         if (destination.Items.Count > 1 && ResolveObject(destination.Items[1]) is PdfName fitName) {
@@ -352,17 +325,20 @@ public sealed partial class PdfReadDocument {
         String
     }
 
-    internal int? GetPageNumberForObject(int objectNumber) {
+    internal int? GetPageNumberForObject(int objectNumber, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         Dictionary<int, int>? pageNumbers = System.Threading.Volatile.Read(ref _pageNumberByObject);
         if (pageNumbers is null) {
             var built = new Dictionary<int, int>(Pages.Count);
             for (int i = 0; i < Pages.Count; i++) {
+                if ((i & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
                 int pageObjectNumber = Pages[i].ObjectNumber;
                 if (!built.ContainsKey(pageObjectNumber)) {
                     built[pageObjectNumber] = i + 1;
                 }
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             pageNumbers = System.Threading.Interlocked.CompareExchange(ref _pageNumberByObject, built, null) ?? built;
         }
 

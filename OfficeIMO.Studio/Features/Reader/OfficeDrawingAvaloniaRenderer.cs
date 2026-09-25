@@ -32,6 +32,9 @@ internal sealed class OfficeDrawingAvaloniaRenderer : IDisposable {
                     AnalyzeRasterFallback(shape.Shape, reasons);
                     break;
                 case OfficeDrawingText text:
+                    if (!string.Equals(text.Text, text.RasterText, StringComparison.Ordinal)) {
+                        reasons.Add("Avalonia vector fallback: painted PDF glyphs require the OfficeIMO raster renderer for fidelity.");
+                    }
                     if (text.HasFrameTransform) {
                         reasons.Add("Avalonia vector fallback: transformed text requires the OfficeIMO raster renderer for glyph positioning.");
                     }
@@ -167,35 +170,70 @@ internal sealed class OfficeDrawingAvaloniaRenderer : IDisposable {
             text.Font.IsBold ? FontWeight.Bold : FontWeight.Normal,
             FontStretch.Normal);
         var formatted = new FormattedText(
-            text.Text,
+            text.RasterText,
             CultureInfo.CurrentUICulture,
             FlowDirection.LeftToRight,
             typeface,
             Math.Max(1D, text.Font.Size * text.BaselineScale),
             CreateBrush(text.Color ?? OfficeColor.Black, 1D)!) {
-            MaxTextWidth = Math.Max(1D, text.Width),
-            MaxTextHeight = Math.Max(1D, text.Height),
-            TextAlignment = text.Alignment switch {
-                OfficeTextAlignment.Center => TextAlignment.Center,
-                OfficeTextAlignment.Right => TextAlignment.Right,
-                OfficeTextAlignment.Justify => TextAlignment.Justify,
-                _ => TextAlignment.Left
-            }
+            Trimming = TextTrimming.None
         };
         if (text.LineHeight.HasValue) formatted.LineHeight = text.LineHeight.Value;
+        formatted.MaxTextHeight = Math.Max(1D, text.Height);
+        formatted.TextAlignment = text.Alignment switch {
+            OfficeTextAlignment.Center => TextAlignment.Center,
+            OfficeTextAlignment.Right => TextAlignment.Right,
+            OfficeTextAlignment.Justify => TextAlignment.Justify,
+            _ => TextAlignment.Left
+        };
+        if (text.WrapText) {
+            formatted.MaxTextWidth = Math.Max(1D, text.Width);
+        }
 
         double y = text.Y + text.BaselineOffset;
         if (text.VerticalAlignment == OfficeTextVerticalAlignment.Center) y += Math.Max(0D, (text.Height - formatted.Height) / 2D);
         if (text.VerticalAlignment == OfficeTextVerticalAlignment.Bottom) y += Math.Max(0D, text.Height - formatted.Height);
 
+        // A substitute family can be wider than the source font. Wrapping or trimming such a run
+        // inside its box drops glyphs, so an unwrapped run stays on one line and is compressed.
+        (double offsetX, double scaleX) = text.WrapText
+            ? (0D, 1D)
+            : text.TextAdvanceWidth is double advance
+                ? FitPositionedSingleLine(formatted.WidthIncludingTrailingWhitespace, advance)
+                : FitSingleLine(formatted.WidthIncludingTrailingWhitespace, text.Width, text.Alignment);
         IDisposable? transform = text.HasFrameTransform
             ? context.PushTransform(ToMatrix(text.CreateFrameTransform().CreateDestinationTransform()))
             : null;
         try {
-            context.DrawText(formatted, new Point(text.X, y));
+            using IDisposable fit = context.PushTransform(
+                Matrix.CreateScale(scaleX, 1D) * Matrix.CreateTranslation(text.X + offsetX, y));
+            context.DrawText(formatted, new Point(0D, 0D));
         } finally {
             transform?.Dispose();
         }
+    }
+
+    /// <summary>Scales a positioned PDF run to the advance recorded by the source font.</summary>
+    internal static (double OffsetX, double ScaleX) FitPositionedSingleLine(double measuredWidth, double advance) =>
+        measuredWidth > 0D && !double.IsInfinity(measuredWidth) && advance > 0D && !double.IsInfinity(advance)
+            ? (0D, advance / measuredWidth)
+            : (0D, 1D);
+
+    /// <summary>Returns the horizontal offset and compression that fit a single-line run in its box.</summary>
+    internal static (double OffsetX, double ScaleX) FitSingleLine(
+        double measuredWidth,
+        double boxWidth,
+        OfficeTextAlignment alignment) {
+        if (!(measuredWidth > 0D) || double.IsInfinity(measuredWidth) ||
+            !(boxWidth > 0D) || double.IsInfinity(boxWidth)) return (0D, 1D);
+        double scaleX = Math.Min(1D, boxWidth / measuredWidth);
+        double slack = boxWidth - measuredWidth * scaleX;
+        double offsetX = alignment switch {
+            OfficeTextAlignment.Center => slack / 2D,
+            OfficeTextAlignment.Right => slack,
+            _ => 0D
+        };
+        return (offsetX, scaleX);
     }
 
     private void RenderImage(DrawingContext context, OfficeDrawingImage image) {

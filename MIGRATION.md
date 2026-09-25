@@ -9,6 +9,40 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## PDF text search results across visual lines
+
+`PdfTextMatch.Text` now contains the matched text after search normalization,
+instead of the literal source substring. Search collapses whitespace across
+consecutive visual lines and recognizes retained or omitted line-end hyphens.
+Applications that compare or store `Text` as an exact source excerpt should
+switch to a normalized comparison or inspect decoded source spans through
+`PdfReadPage.GetTextSpans()`. `PdfTextMatch.VisualLineBounds` provides one visual quad
+per matched line for highlighting; the existing `VisualBounds` and
+`X`/`Y`/`Width`/`Height` still describe the combined bounds. Searches do not
+join separate columns or explicit paragraph breaks.
+
+## PDF AES-256 password length
+
+PDF Standard security revisions 5 and 6 now reject read passwords longer than
+4,096 UTF-16 characters before normalization. AES-256 PDF generation applies
+the same limit to user and owner passwords. Shorten an oversized password before
+opening or generating a PDF; other Standard security revisions keep their
+existing password behavior.
+
+## PDF numeric token length
+
+The PDF object parser now treats numeric tokens longer than 4,096 characters as
+incomplete syntax, even when a caller raises `PdfReadLimits.MaxObjectCharacters`.
+If a trusted source emits such tokens, shorten or repair them before reading;
+raising the object-character budget does not raise this numeric-token limit.
+
+## PDF link URI inspection length
+
+PDF link inspection now omits URI actions longer than 65,519 characters. This
+keeps URI validation bounded when a caller raises the PDF object-character
+limit. Shorten or repair an oversized URI in the source PDF if your application
+needs it in link metadata. PDF link authoring is unchanged.
+
 ## PDF image input budget
 
 PDF image-file pages and image stamps now limit each encoded image source to
@@ -25,6 +59,14 @@ Image stamp streams continue to read from their current position.
 ## PDF embedded-font input limit
 
 PDF authoring now rejects caller-supplied font faces larger than 128 MiB before copying them. File-path overloads check the size before buffering and again while reading. Applications that previously supplied larger fonts must reduce or subset each face before embedding it. Use the `EmbedStandardFont` or `PdfEmbeddedFontFamily.FromFiles` path overload to avoid reading an oversized font into application memory first.
+
+## PDF drawing font family names
+
+`PdfReadPage.ToDrawing()` now gives every embedded font program a drawing-local family name derived from its PDF base name and content, including full fonts without a subset prefix. This keeps different page and annotation programs with the same PDF name from replacing each other. If an application matched `OfficeDrawingText.Font.FamilyName` to the original PDF font name, use that name to find the face in the drawing's `Fonts.Faces` instead. Read the PDF name from `PdfTextSpan.BaseFont` when that source label is needed.
+
+## PDF drawing text for painted glyphs
+
+`PdfReadPage.ToDrawing()` and `PdfDocument.Render.Drawing(...)` now keep decoded text in `OfficeDrawingText.Text` when an embedded font paints a ligature or another glyph that needs a private-use raster alias. Code that reads or edits scene text receives the logical string instead of that alias. Raster rendering still paints the source glyph. Applications that used private-use text values to identify PDF glyphs should inspect the source `PdfTextSpan` and embedded font instead.
 
 ## PDF external-signature preparation limits
 

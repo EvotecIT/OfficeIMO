@@ -43,9 +43,11 @@
       code.textContent = text;
       copy.disabled = false;
       status.textContent = text.split(/\r?\n/).length + " lines";
-      if (window.Prism && typeof window.Prism.highlightElement === "function") {
-        window.Prism.highlightElement(code);
-      }
+      var highlight = function () {
+        if (window.Prism && typeof window.Prism.highlightElement === "function") window.Prism.highlightElement(code);
+      };
+      if (window.OfficeIMOEnsurePrism) window.OfficeIMOEnsurePrism().then(highlight, function () {});
+      else highlight();
     } catch (error) {
       if (!current.signal.aborted) status.textContent = "Could not load the preview. Try Download source or reopen it.";
     }

@@ -1,0 +1,12 @@
+{{- # Resolves data.community.repositories into community_repositories, preferring live counts from the ecosystem-stats pipeline step. -}}
+{{- community_repositories = [] -}}
+{{- live_repositories = null -}}
+{{- if data.ecosystem && data.ecosystem.stats && data.ecosystem.stats.gitHub -}}{{- live_repositories = data.ecosystem.stats.gitHub.repositories -}}{{- end -}}
+{{- if data.community && data.community.repositories -}}
+{{- for repo in data.community.repositories -}}
+{{- repo_stars = repo.stars -}}
+{{- repo_forks = repo.forks -}}
+{{- if live_repositories -}}{{- for live in live_repositories -}}{{- if live.fullName == repo.slug -}}{{- repo_stars = live.stars -}}{{- repo_forks = live.forks -}}{{- end -}}{{- end -}}{{- end -}}
+{{- community_repositories = array.add community_repositories { name: repo.name, slug: repo.slug, url: repo.url, description: repo.description, stars: repo_stars, forks: repo_forks } -}}
+{{- end -}}
+{{- end -}}

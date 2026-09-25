@@ -9,7 +9,7 @@ public static partial class OfficeDrawingRasterRenderer {
         canvas.CancellationToken.ThrowIfCancellationRequested();
         double left = 0D, top = 0D, right = text.Width * scale, bottom = text.Height * scale;
         double sourceSize = Math.Max(1D, text.Font.Size * scale);
-        string[] lines = text.Text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+        string[] lines = text.RasterText.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
         double lineHeight = (text.LineHeight ?? text.Font.Size * 1.2D) * scale;
         for (int index = 0; index < lines.Length; index++) {
             double offset = index * lineHeight;
@@ -43,6 +43,7 @@ public static partial class OfficeDrawingRasterRenderer {
             textShapingProvider: canvas.TextShapingProvider, textShapingLanguage: canvas.TextShapingLanguage,
             diagnosticSink: canvas.DiagnosticSink, diagnosticSource: canvas.DiagnosticSource, cancellationToken: canvas.CancellationToken);
         local.ShareTransformedTextBudget(canvas.TransformedTextBudget);
+        local.PreservePaintedGlyphOrder = canvas.PreservePaintedGlyphOrder;
         RenderPositionedTextLines(local, text, scale, -left, -top, text.Width * scale, text.Height * scale);
         var frame = new OfficeImageFrameTransform(text.RotationDegrees, text.RotationCenterX * scale, text.RotationCenterY * scale,
             text.FlipHorizontal, text.FlipVertical);
@@ -55,7 +56,7 @@ public static partial class OfficeDrawingRasterRenderer {
         double sourceSize = Math.Max(1D, text.Font.Size * scale);
         double size = sourceSize * text.BaselineScale;
         double lineHeight = (text.LineHeight ?? text.Font.Size * 1.2D) * scale;
-        string[] lines = text.Text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+        string[] lines = text.RasterText.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
         for (int index = 0; index < lines.Length; index++) {
             double offset = index * lineHeight;
             if (offset >= height) break;
@@ -94,9 +95,10 @@ public static partial class OfficeDrawingRasterRenderer {
             diagnosticSink: canvas.DiagnosticSink, diagnosticSource: canvas.DiagnosticSource,
             cancellationToken: canvas.CancellationToken);
         local.ShareTransformedTextBudget(canvas.TransformedTextBudget);
+        local.PreservePaintedGlyphOrder = canvas.PreservePaintedGlyphOrder;
         using (local.PushClipRectangle(0D, 0D, contentWidth, contentHeight)) {
             if (!local.TryDrawVerticalText(
-                text.Text,
+                text.RasterText,
                 0D,
                 0D,
                 contentWidth,
@@ -152,7 +154,7 @@ public static partial class OfficeDrawingRasterRenderer {
             } else {
                 using (canvas.PushClipRectangle(contentX, contentY, contentWidth, contentHeight)) {
                     if (canvas.TryDrawVerticalText(
-                        text.Text,
+                        text.RasterText,
                         contentX,
                         contentY,
                         contentWidth,
@@ -191,9 +193,9 @@ public static partial class OfficeDrawingRasterRenderer {
             return;
         }
 
-        if (supportsLegacyFastPath && supportsPositionedPath && text.Text.IndexOfAny(new[] { '\r', '\n' }) < 0) {
+        if (supportsLegacyFastPath && supportsPositionedPath && text.RasterText.IndexOfAny(new[] { '\r', '\n' }) < 0) {
             canvas.DrawBaselineText(
-                text.Text,
+                text.RasterText,
                 contentX,
                 contentY,
                 contentWidth,
@@ -215,7 +217,7 @@ public static partial class OfficeDrawingRasterRenderer {
         Func<string?, double, double> measure = (value, size) => canvas.MeasureText(value, size, text.Font.FamilyName, text.Font.Style);
         OfficeTextBlockLayout layout = text.StackedText
             ? OfficeTextLayoutEngine.LayoutStackedTextBlockCore(
-                text.Text,
+                text.RasterText,
                 fontSize,
                 contentWidth,
                 contentHeight,
@@ -226,7 +228,7 @@ public static partial class OfficeDrawingRasterRenderer {
                 (value, size) => canvas.MeasureTextPaintBounds(value, size, text.Font.FamilyName, text.Font.Style))
             : text.ShrinkToFit && text.WrapText
             ? OfficeTextLayoutEngine.FitWrappedTextCore(
-                text.Text,
+                text.RasterText,
                 fontSize,
                 contentWidth,
                 contentHeight,
@@ -236,7 +238,7 @@ public static partial class OfficeDrawingRasterRenderer {
                 paragraphIndent,
                 (value, size) => canvas.MeasureTextPaintBounds(value, size, text.Font.FamilyName, text.Font.Style))
             : OfficeTextLayoutEngine.LayoutTextBlock(
-                text.Text,
+                text.RasterText,
                 fontSize,
                 contentWidth,
                 contentHeight,

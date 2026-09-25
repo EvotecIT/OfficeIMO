@@ -26,6 +26,20 @@ table.Cell(1, 1).Text = "42";
 document.Save("summary.odt");
 ```
 
+Add native ODT footnotes or endnotes at the current paragraph position:
+
+```csharp
+using OfficeIMO.OpenDocument;
+
+using OdtDocument document = OdtDocument.Create();
+OdtParagraph paragraph = document.AddParagraph("The result is documented");
+paragraph.AddFootnote("Source and calculation details.");
+paragraph.AddText(" in the appendix.");
+paragraph.AddEndnote("Additional context.");
+```
+
+`OdtParagraph.Notes` and `InlineNodes` expose note bodies and reference order after reopening the file. Note-body paragraphs are separate from document-body paragraphs, and their spans, links, and images stay on the note-body paragraph. Native note citations follow document order when notes are added to earlier paragraphs later; an imported custom citation label remains the displayed `OdtNote.Citation`. Adding a note to a document with `text:notes-configuration` for that note kind throws `NotSupportedException`, preserving its configured numbering and existing citations.
+
 Create a sparse ODS workbook:
 
 ```csharp
@@ -174,7 +188,7 @@ Unknown XML, vendor extensions, scripts, embedded content, and unsupported drawi
 - Password-encrypted packages using the documented AES-256-CBC profile can be opened and written. Legacy Blowfish and other unsupported profiles fail before content is exposed.
 - Changed signed packages fail by default because saving would invalidate signatures. An explicit save option can remove invalidated signature entries.
 - The bounded OfficeIMO XML package-manifest signature profile can be created and validated through an explicit `IOfficeSecurityProvider`. Arbitrary producer-specific signature profiles remain inspection or preservation oriented.
-- Pivot-table editing and complete chart editing are outside the current surface.
+- ODS exposes embedded chart names, types, titles, source ranges, and frame positions through `OdsSheet.Charts`. `OdsSheet.AddChart` creates column, bar, or line charts with one to sixteen series linked to existing one-dimensional ODS cell ranges of up to 4,096 points. Chart styling is preserved in package XML; editing imported charts and pivot tables is outside the current surface.
 - Flat XML variants (`.fodt`, `.fods`, `.fodp`) can be opened and written, including embedded raster images. Exotic embedded objects and package-only features may not project losslessly.
 - `OdsSheet.Merge` rejects merges above its default 100,000-cell materialization limit. Use the overload with an explicit lower limit when processing untrusted dimensions.
 - Unknown package entries and extension XML are always preserved by package editing. Explicit format conversion and flat XML projection report content they cannot carry through `OdfConversionReport` and `OdfSaveReport.LossyEntries`.

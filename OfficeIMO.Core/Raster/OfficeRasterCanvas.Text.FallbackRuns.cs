@@ -214,6 +214,12 @@ public sealed partial class OfficeRasterCanvas {
     private IReadOnlyList<(OfficeFontFallbackRun Run, OfficeTextDirection Direction)> PlanVisualFallbackRuns(
         string text, string? fontFamily, OfficeFontStyle style, OfficeTextDirection textDirection) {
         var result = new List<(OfficeFontFallbackRun, OfficeTextDirection)>();
+        if (PreservePaintedGlyphOrder) {
+            foreach (OfficeFontFallbackRun face in _fonts!.PlanFallbackRuns(text, fontFamily, style)) {
+                result.Add((face, OfficeTextDirection.LeftToRight));
+            }
+            return result;
+        }
         // Resolve the complete string first. A font-only split does not know which
         // fallback face belongs at the visual left of an authored RTL run.
         foreach (OfficeBidiTextRun bidiRun in OfficeBidiTextResolver.ResolveVisualRuns(text, textDirection, _cancellationToken)) {

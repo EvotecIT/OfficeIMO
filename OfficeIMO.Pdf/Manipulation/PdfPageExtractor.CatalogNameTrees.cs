@@ -1,16 +1,20 @@
 using System.Globalization;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfPageExtractor {
     private static PdfDictionary? BuildNamedDestinationNameTree(
         Dictionary<int, PdfIndirectObject> sourceObjects,
-        PdfObject? names) {
+        PdfObject? names,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (!TryGetNamedDestinationNameTree(sourceObjects, names, out var namedDestinations)) {
             return null;
         }
     
-        return TryBuildFlattenedNamedDestinationNameTree(sourceObjects, namedDestinations, null, out var flattenedTree)
+        return TryBuildFlattenedNamedDestinationNameTree(sourceObjects, namedDestinations, null, out var flattenedTree,
+            cancellationToken: cancellationToken)
             ? flattenedTree
             : null;
     }
@@ -19,12 +23,18 @@ internal static partial class PdfPageExtractor {
         Dictionary<int, PdfIndirectObject> sourceObjects,
         PdfObject? namedDestinationNameTree,
         HashSet<int> copiedPageObjectIds,
-        Dictionary<int, List<NamedDestinationNameTreeEntry>>? pageIndex = null) {
+        Dictionary<int, List<NamedDestinationNameTreeEntry>>? pageIndex = null,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (pageIndex is not null) {
             var candidates = new List<NamedDestinationNameTreeEntry>();
             foreach (int pageObjectId in copiedPageObjectIds) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (pageIndex.TryGetValue(pageObjectId, out var entries)) {
-                    candidates.AddRange(entries);
+                    foreach (NamedDestinationNameTreeEntry entry in entries) {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        candidates.Add(entry);
+                    }
                 }
             }
 
@@ -32,15 +42,23 @@ internal static partial class PdfPageExtractor {
                 return null;
             }
 
-            candidates.Sort((left, right) => left.Order.CompareTo(right.Order));
+            try {
+                candidates.Sort((left, right) => {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    return left.Order.CompareTo(right.Order);
+                });
+            } catch (InvalidOperationException error) when (error.InnerException is OperationCanceledException) {
+                throw error.InnerException!;
+            }
             var names = new PdfArray();
             foreach (var entry in candidates) {
+                cancellationToken.ThrowIfCancellationRequested();
                 PdfObject? destination = ResolveObject(sourceObjects, entry.Destination);
                 if (destination is null) {
                     return null;
                 }
 
-                if (IsDestinationForCopiedPages(destination, copiedPageObjectIds)) {
+                if (IsDestinationForCopiedPages(destination, copiedPageObjectIds, cancellationToken)) {
                     names.Items.Add(entry.Name);
                     names.Items.Add(entry.Destination);
                 }
@@ -55,14 +73,17 @@ internal static partial class PdfPageExtractor {
             return filtered;
         }
 
-        return TryBuildFlattenedNamedDestinationNameTree(sourceObjects, namedDestinationNameTree, copiedPageObjectIds, out var filteredTree)
+        return TryBuildFlattenedNamedDestinationNameTree(sourceObjects, namedDestinationNameTree, copiedPageObjectIds,
+            out var filteredTree, cancellationToken: cancellationToken)
             ? filteredTree
             : null;
     }
 
     private static Dictionary<int, List<NamedDestinationNameTreeEntry>>? BuildNamedDestinationPageIndex(
         Dictionary<int, PdfIndirectObject> sourceObjects,
-        PdfObject namedDestinationNameTree) {
+        PdfObject namedDestinationNameTree,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (ResolveDictionary(sourceObjects, namedDestinationNameTree) is not PdfDictionary tree ||
             !tree.Items.TryGetValue("Names", out var namesObject) ||
             ResolveObject(sourceObjects, namesObject) is not PdfArray names ||
@@ -72,6 +93,7 @@ internal static partial class PdfPageExtractor {
 
         var index = new Dictionary<int, List<NamedDestinationNameTreeEntry>>();
         for (int item = 0; item < names.Items.Count; item += 2) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (names.Items[item] is not PdfStringObj name ||
                 !TryGetNamedDestinationPageObjectId(sourceObjects, names.Items[item + 1], out int pageObjectId)) {
                 return null;
@@ -138,24 +160,28 @@ internal static partial class PdfPageExtractor {
         PdfObject? namedDestinationNameTree,
         HashSet<int>? copiedPageObjectIds,
         out PdfDictionary result,
-        int maximumNodes = PdfReadLimits.DefaultMaxNameTreeNodes) {
+        int maximumNodes = PdfReadLimits.DefaultMaxNameTreeNodes,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         result = new PdfDictionary();
         var entries = new List<NamedDestinationNameTreeEntry>();
         int traversedNodes = 0;
-        if (!TryCollectNamedDestinationNameTreeEntries(sourceObjects, namedDestinationNameTree, entries, new HashSet<int>(), 0, maximumNodes, ref traversedNodes)) {
+        if (!TryCollectNamedDestinationNameTreeEntries(sourceObjects, namedDestinationNameTree, entries,
+            new HashSet<int>(), 0, maximumNodes, ref traversedNodes, cancellationToken)) {
             return false;
         }
     
         var names = new PdfArray();
         foreach (var entry in entries) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfObject? resolvedDestination = ResolveObject(sourceObjects, entry.Destination);
             if (resolvedDestination is null) {
                 return false;
             }
     
             bool supportedDestination = copiedPageObjectIds is null
-                ? IsDestinationForKnownPage(sourceObjects, resolvedDestination)
-                : IsDestinationForCopiedPages(resolvedDestination, copiedPageObjectIds);
+                ? IsDestinationForKnownPage(sourceObjects, resolvedDestination, cancellationToken)
+                : IsDestinationForCopiedPages(resolvedDestination, copiedPageObjectIds, cancellationToken);
             if (!supportedDestination) {
                 if (copiedPageObjectIds is null) {
                     return false;
@@ -183,7 +209,9 @@ internal static partial class PdfPageExtractor {
         HashSet<int> visitedReferences,
         int depth,
         int maximumNodes,
-        ref int traversedNodes) {
+        ref int traversedNodes,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (depth > PdfReadLimits.DefaultMaxNameTreeDepth) {
             return false;
         }
@@ -214,6 +242,7 @@ internal static partial class PdfPageExtractor {
             }
     
             for (int i = 0; i < names.Items.Count; i += 2) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (names.Items[i] is not PdfStringObj name) {
                     return false;
                 }
@@ -230,11 +259,13 @@ internal static partial class PdfPageExtractor {
             }
     
             foreach (var kid in kids.Items) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (kid is not PdfReference) {
                     return false;
                 }
     
-                if (!TryCollectNamedDestinationNameTreeEntries(sourceObjects, kid, entries, visitedReferences, depth + 1, maximumNodes, ref traversedNodes)) {
+                if (!TryCollectNamedDestinationNameTreeEntries(sourceObjects, kid, entries, visitedReferences,
+                    depth + 1, maximumNodes, ref traversedNodes, cancellationToken)) {
                     return false;
                 }
             }
@@ -245,21 +276,23 @@ internal static partial class PdfPageExtractor {
     
     private static PdfObject? BuildEmbeddedFiles(
         Dictionary<int, PdfIndirectObject> sourceObjects,
-        PdfObject? names) {
+        PdfObject? names,
+        CancellationToken cancellationToken = default) {
         if (!TryGetEmbeddedFilesNameTree(sourceObjects, names, out var embeddedFiles)) {
             return null;
         }
     
-        return IsSupportedCatalogMetadataGraph(sourceObjects, embeddedFiles, new HashSet<int>())
+        return IsSupportedCatalogMetadataGraph(sourceObjects, embeddedFiles, new HashSet<int>(), cancellationToken)
             ? embeddedFiles
             : null;
     }
     
     private static PdfObject? BuildAssociatedFiles(
         Dictionary<int, PdfIndirectObject> sourceObjects,
-        PdfObject? associatedFiles) {
+        PdfObject? associatedFiles,
+        CancellationToken cancellationToken = default) {
         return associatedFiles is not null &&
-            IsSupportedCatalogMetadataGraph(sourceObjects, associatedFiles, new HashSet<int>())
+            IsSupportedCatalogMetadataGraph(sourceObjects, associatedFiles, new HashSet<int>(), cancellationToken)
             ? associatedFiles
             : null;
     }
@@ -281,9 +314,10 @@ internal static partial class PdfPageExtractor {
     
     private static PdfObject? BuildOutputIntents(
         Dictionary<int, PdfIndirectObject> sourceObjects,
-        PdfObject? outputIntents) {
+        PdfObject? outputIntents,
+        CancellationToken cancellationToken = default) {
         return outputIntents is not null &&
-            IsSupportedCatalogMetadataGraph(sourceObjects, outputIntents, new HashSet<int>())
+            IsSupportedCatalogMetadataGraph(sourceObjects, outputIntents, new HashSet<int>(), cancellationToken)
             ? outputIntents
             : null;
     }
@@ -303,10 +337,11 @@ internal static partial class PdfPageExtractor {
     
     private static PdfObject? BuildCatalogUri(
         Dictionary<int, PdfIndirectObject> sourceObjects,
-        PdfObject? catalogUri) {
+        PdfObject? catalogUri,
+        CancellationToken cancellationToken = default) {
         return catalogUri is not null &&
             ResolveDictionary(sourceObjects, catalogUri) is PdfDictionary dictionary &&
-            IsSimpleCatalogDictionary(dictionary)
+            IsSimpleCatalogDictionary(dictionary, cancellationToken)
             ? catalogUri
             : null;
     }

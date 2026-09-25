@@ -119,7 +119,7 @@ public sealed partial class PdfDocument {
 
             byte[] bytes = RenderBytesCore(cancellationToken);
             timer.Stop();
-            PdfArtifactSnapshot output = PdfArtifactSnapshot.Capture(bytes, ReadOptions);
+            PdfArtifactSnapshot output = PdfArtifactSnapshot.Capture(bytes, ReadOptions, cancellationToken);
             PdfPipelineReport pipeline = AppendOutputStep("ToBytes", output, timer.Elapsed);
             return PdfBytesResult.Success(bytes, pipeline);
         } catch (OperationCanceledException) {

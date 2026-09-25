@@ -50,6 +50,26 @@ public sealed partial class OfficeDrawing {
         return AddClippedDrawing(clipped, clipX, clipY, clipPath);
     }
 
+    /// <summary>Marks the text run added last, directly or inside its clip group, as painted glyphs.</summary>
+    internal void MarkLastTextAsPaintedGlyphs() {
+        if (Elements.Count == 0) return;
+        OfficeDrawingElement last = Elements[Elements.Count - 1];
+        // Group.Drawing returns a copy; mark the retained inner drawing that renderers read.
+        if (last is OfficeDrawingGroup group && group.InnerDrawing.Elements.Count > 0) {
+            last = group.InnerDrawing.Elements[group.InnerDrawing.Elements.Count - 1];
+        }
+        if (last is OfficeDrawingText text) text.PreservesPaintedGlyphs = true;
+    }
+
+    /// <summary>Keeps editable logical text while the raster path paints the PDF glyph names.</summary>
+    internal void SetLastTextPaintedProjection(string logicalText, string paintedText) {
+        if (Elements.Count == 0) return;
+        OfficeDrawingElement last = Elements[Elements.Count - 1];
+        if (last is OfficeDrawingGroup group && group.InnerDrawing.Elements.Count > 0)
+            last = group.InnerDrawing.Elements[group.InnerDrawing.Elements.Count - 1];
+        if (last is OfficeDrawingText text) text.SetPaintedText(logicalText, paintedText);
+    }
+
     /// <summary>Adds a resolved source text run with its glyph advance and a destination-space rotation or mirror transform. Source text is clipped, never shortened with an ellipsis.</summary>
     public OfficeDrawing AddPositionedText(
         string text, double x, double y, double width, double height,

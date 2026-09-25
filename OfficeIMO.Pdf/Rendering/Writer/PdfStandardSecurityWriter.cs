@@ -61,8 +61,8 @@ internal static partial class PdfStandardSecurityWriter {
         cancellationToken.ThrowIfCancellationRequested();
         byte[] fileId = CreateFileId();
         string ownerPassword = options.OwnerPassword ?? options.UserPassword;
-        byte[] ownerEntry = ComputeOwnerEntry(ownerPassword, options.UserPassword);
-        byte[] fileKey = ComputeFileKey(options.UserPassword, ownerEntry, options.Permissions, fileId);
+        byte[] ownerEntry = ComputeOwnerEntry(ownerPassword, options.UserPassword, cancellationToken);
+        byte[] fileKey = ComputeFileKey(options.UserPassword, ownerEntry, options.Permissions, fileId, cancellationToken);
         byte[] userEntry = ComputeUserEntry(fileKey, fileId);
 
         int encryptionObjectNumber = sourceObjects.Count + 1;
@@ -276,18 +276,18 @@ internal static partial class PdfStandardSecurityWriter {
             " >>";
     }
 
-    private static byte[] ComputeOwnerEntry(string ownerPassword, string userPassword) {
-        byte[] ownerKey = ComputeOwnerPasswordKey(ownerPassword);
-        byte[] value = Rc4.Transform(ownerKey, PadPassword(userPassword));
+    private static byte[] ComputeOwnerEntry(string ownerPassword, string userPassword, CancellationToken cancellationToken) {
+        byte[] ownerKey = ComputeOwnerPasswordKey(ownerPassword, cancellationToken);
+        byte[] value = Rc4.Transform(ownerKey, PadPassword(userPassword, cancellationToken), cancellationToken);
         for (int i = 1; i <= 19; i++) {
-            value = Rc4.Transform(XorKey(ownerKey, i), value);
+            value = Rc4.Transform(XorKey(ownerKey, i), value, cancellationToken);
         }
 
         return value;
     }
 
-    private static byte[] ComputeFileKey(string userPassword, byte[] ownerEntry, int permissions, byte[] fileId) {
-        byte[] padded = PadPassword(userPassword);
+    private static byte[] ComputeFileKey(string userPassword, byte[] ownerEntry, int permissions, byte[] fileId, CancellationToken cancellationToken) {
+        byte[] padded = PadPassword(userPassword, cancellationToken);
         var buffer = new List<byte>(padded.Length + ownerEntry.Length + 4 + fileId.Length);
         buffer.AddRange(padded);
         buffer.AddRange(ownerEntry);
@@ -318,8 +318,8 @@ internal static partial class PdfStandardSecurityWriter {
         return result;
     }
 
-    private static byte[] ComputeOwnerPasswordKey(string password) {
-        byte[] digest = Md5(PadPassword(password));
+    private static byte[] ComputeOwnerPasswordKey(string password, CancellationToken cancellationToken) {
+        byte[] digest = Md5(PadPassword(password, cancellationToken));
         for (int i = 0; i < 50; i++) {
             digest = Md5(Take(digest, KeyLengthBytes));
         }
@@ -341,8 +341,8 @@ internal static partial class PdfStandardSecurityWriter {
         return Take(digest, Math.Min(fileKey.Length + 5, 16));
     }
 
-    private static byte[] PadPassword(string password) {
-        byte[] passwordBytes = EncodePassword(password);
+    private static byte[] PadPassword(string password, CancellationToken cancellationToken) {
+        byte[] passwordBytes = PdfLegacyPasswordEncoding.EncodePrefix(password, cancellationToken);
         var padded = new byte[32];
         int copy = Math.Min(passwordBytes.Length, 32);
         Buffer.BlockCopy(passwordBytes, 0, padded, 0, copy);
@@ -351,16 +351,6 @@ internal static partial class PdfStandardSecurityWriter {
         }
 
         return padded;
-    }
-
-    private static byte[] EncodePassword(string password) {
-        if (string.IsNullOrEmpty(password)) {
-            return Array.Empty<byte>();
-        }
-
-        return PdfWinAnsiEncoding.CanEncode(password, out _)
-            ? PdfWinAnsiEncoding.Encode(password)
-            : Encoding.UTF8.GetBytes(password);
     }
 
     private static byte[] CreateFileId() {

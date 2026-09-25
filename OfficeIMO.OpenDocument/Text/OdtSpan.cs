@@ -15,7 +15,13 @@ public sealed class OdtSpan {
     /// <summary>Decoded span text.</summary>
     public string Text {
         get => OdfTextCodec.Read(_element);
-        set { OdfTextCodec.Replace(_element, value); Dirty(); }
+        set {
+            bool hadNotes = _element.Descendants(OdfNamespaces.Text + "note").Any();
+            if (hadNotes) _document.PrepareNoteIndexForMutation();
+            OdfTextCodec.Replace(_element, value);
+            if (hadNotes) _document.RefreshNoteIndexAfterMutation();
+            Dirty();
+        }
     }
     /// <summary>Ordered text, spans, and hyperlinks inside this span.</summary>
     public IReadOnlyList<OdtInlineNode> InlineNodes => OdtInlineNode.Read(_document, _element, _partPath);

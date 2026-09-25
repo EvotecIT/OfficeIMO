@@ -29,6 +29,10 @@ public class OpenDocumentSchemaArtifactTests {
                 richSpan.BackgroundColor = OdfColor.Parse("#FFF200");
                 richText.AddText(" and ");
                 richText.AddHyperlink("a link", "https://example.com").Italic = true;
+                OdtParagraph cited = text.AddParagraph("A cited result");
+                cited.AddFootnote("Footnote schema proof.");
+                cited.AddText(" and a closing note");
+                cited.AddEndnote("Endnote schema proof.");
                 text.AddList().AddItem("One");
                 text.AddTable(2, 2, "Proof").Cell(0, 0).Text = "Value";
                 text.PageLayout.Header.AddParagraph("OfficeIMO");
@@ -65,6 +69,23 @@ public class OpenDocumentSchemaArtifactTests {
                 spreadsheet.SaveFlatXml(Path.Combine(output, "schema-proof-1.4.fods"));
                 spreadsheet.Save(Path.Combine(output, "schema-proof-1.3.ods"), new OdfSaveOptions { CompatibilityProfile = OdfCompatibilityProfile.Odf13 });
                 Assert.True(spreadsheet.Validate().IsValid);
+            }
+            {
+                OdsDocument chartDocument = OdsDocument.Create();
+                OdsSheet data = chartDocument.AddSheet("ChartData");
+                data.Cell(0, 0).SetString("Month");
+                data.Cell(0, 1).SetString("Sales");
+                data.Cell(1, 0).SetString("Jan");
+                data.Cell(1, 1).SetNumber(10);
+                data.Cell(2, 0).SetString("Feb");
+                data.Cell(2, 1).SetNumber(20);
+                data.AddChart(OdsChartType.Column, "ChartData.$A$2:.$A$3",
+                    new[] { new OdsChartSeries("ChartData.$B$2:.$B$3", "ChartData.$B$1") },
+                    4, 2, OdfRect.FromCentimeters(1, 1, 10, 6), "Sales");
+                chartDocument.Save(Path.Combine(output, "schema-chart-1.4.ods"));
+                chartDocument.Save(Path.Combine(output, "schema-chart-1.3.ods"),
+                    new OdfSaveOptions { CompatibilityProfile = OdfCompatibilityProfile.Odf13 });
+                Assert.True(chartDocument.Validate().IsValid);
             }
             {
                 OdpPresentation presentation = OdpPresentation.Create();
@@ -108,7 +129,7 @@ public class OpenDocumentSchemaArtifactTests {
             .Where(path => path.EndsWith(".odt", StringComparison.OrdinalIgnoreCase) ||
                 path.EndsWith(".ods", StringComparison.OrdinalIgnoreCase) ||
                 path.EndsWith(".odp", StringComparison.OrdinalIgnoreCase)).ToArray();
-        Assert.Equal(6, files.Length);
+        Assert.Equal(8, files.Length);
 
         foreach (string path in files) {
             OdfDocument document = OdfDocument.Load(path);
@@ -121,7 +142,18 @@ public class OpenDocumentSchemaArtifactTests {
                 Assert.Contains(rich.InlineNodes, node => node.Kind == OdtInlineNodeKind.Hyperlink &&
                     Uri.Compare(new Uri(node.Hyperlink!.Href), new Uri("https://example.com"),
                         UriComponents.AbsoluteUri, UriFormat.SafeUnescaped, StringComparison.OrdinalIgnoreCase) == 0);
+                OdtParagraph cited = text.Paragraphs.Single(paragraph => paragraph.Text.StartsWith("A cited result", StringComparison.Ordinal));
+                Assert.Contains(cited.Notes, note => note.Kind == OdtNoteKind.Footnote &&
+                    note.Paragraphs.Any(paragraph => paragraph.Text.IndexOf("Footnote schema proof", StringComparison.Ordinal) >= 0));
+                Assert.Contains(cited.Notes, note => note.Kind == OdtNoteKind.Endnote &&
+                    note.Paragraphs.Any(paragraph => paragraph.Text.IndexOf("Endnote schema proof", StringComparison.Ordinal) >= 0));
             } else if (document is OdsDocument spreadsheet) {
+                if (Path.GetFileName(path).StartsWith("schema-chart", StringComparison.Ordinal)) {
+                    OdsChart chart = Assert.Single(spreadsheet.GetSheet("ChartData")!.Charts);
+                    Assert.Equal("chart:bar", chart.ChartClass);
+                    Assert.Equal("Sales", chart.Title);
+                    continue;
+                }
                 OdsSheet sheet = spreadsheet.GetSheet("Data")!;
                 Assert.Equal("Value", sheet.GetValue(0, 0).DisplayText);
                 OdsCell formula = sheet.Cell(1, 0);

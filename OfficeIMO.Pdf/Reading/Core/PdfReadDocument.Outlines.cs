@@ -4,7 +4,8 @@ public sealed partial class PdfReadDocument {
     private const int MaxReadOutlineDepth = 64;
     private const int MaxReadOutlineItems = 2048;
 
-    private IReadOnlyList<PdfOutlineItem> ExtractOutlines() {
+    private IReadOnlyList<PdfOutlineItem> ExtractOutlines(System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         PdfDictionary? catalog = FindCatalog();
         if (catalog is null ||
             !catalog.Items.TryGetValue("Outlines", out var outlinesObj) ||
@@ -15,10 +16,11 @@ public sealed partial class PdfReadDocument {
 
         var visited = new HashSet<int>();
         int remainingItems = MaxReadOutlineItems;
-        return ReadOutlineSiblings(firstObj, 1, visited, ref remainingItems).AsReadOnly();
+        return ReadOutlineSiblings(firstObj, 1, visited, ref remainingItems, cancellationToken).AsReadOnly();
     }
 
-    private List<PdfOutlineItem> ReadOutlineSiblings(PdfObject firstObj, int level, HashSet<int> visited, ref int remainingItems) {
+    private List<PdfOutlineItem> ReadOutlineSiblings(PdfObject firstObj, int level, HashSet<int> visited, ref int remainingItems, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         var items = new List<PdfOutlineItem>();
         if (level > MaxReadOutlineDepth || remainingItems <= 0) {
             return items;
@@ -27,19 +29,20 @@ public sealed partial class PdfReadDocument {
         PdfObject? currentObj = firstObj;
 
         while (remainingItems > 0 && currentObj is not null && ResolveDict(currentObj) is PdfDictionary current) {
-            int objectNumber = currentObj is PdfReference reference ? reference.ObjectNumber : FindObjectNumberFor(current);
+            cancellationToken.ThrowIfCancellationRequested();
+            int objectNumber = currentObj is PdfReference reference ? reference.ObjectNumber : FindObjectNumberFor(current, cancellationToken);
             if (objectNumber > 0 && !visited.Add(objectNumber)) {
                 break;
             }
 
             remainingItems--;
             string title = current.Get<PdfStringObj>("Title")?.Value ?? string.Empty;
-            var (pageNumber, destinationTop, destinationMode, destinationLeft, destinationBottom, destinationRight, destinationZoom) = GetOutlineDestination(current);
+            var (pageNumber, destinationTop, destinationMode, destinationLeft, destinationBottom, destinationRight, destinationZoom) = GetOutlineDestination(current, cancellationToken);
             bool isExpanded = !current.Items.TryGetValue("Count", out var countObject) ||
                 ResolveObject(countObject) is not PdfNumber countNumber ||
                 countNumber.Value >= 0D;
             var children = level < MaxReadOutlineDepth && current.Items.TryGetValue("First", out var childObj)
-                ? ReadOutlineSiblings(childObj, level + 1, visited, ref remainingItems)
+                ? ReadOutlineSiblings(childObj, level + 1, visited, ref remainingItems, cancellationToken)
                 : new List<PdfOutlineItem>();
 
             items.Add(new PdfOutlineItem(title, level, pageNumber, destinationTop, isExpanded, children.AsReadOnly(), destinationMode, destinationLeft, destinationBottom, destinationRight, destinationZoom));

@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfSyntax {
@@ -45,21 +47,21 @@ internal static partial class PdfSyntax {
         return ContainsParsedOrFallbackPdfName(pdf, "Outlines", "UseOutlines");
     }
 
-    internal static bool HasUnsupportedOutlineRewriteMarkers(byte[] pdf, PdfLoadOptions? options = null, PdfRewriteMarkerSource? source = null) {
+    internal static bool HasUnsupportedOutlineRewriteMarkers(byte[] pdf, PdfLoadOptions? options = null, PdfRewriteMarkerSource? source = null, CancellationToken cancellationToken = default) {
         if (source is null && options is null && !HasOutlineMarkers(pdf)) {
             return false;
         }
 
         try {
-            var (objects, trailerRaw) = ParseRewriteMarkerObjects(pdf, options, source);
-            PdfDictionary? catalog = FindCatalog(objects, trailerRaw);
+            var (objects, trailerRaw) = ParseRewriteMarkerObjects(pdf, options, source, cancellationToken);
+            PdfDictionary? catalog = FindCatalog(objects, trailerRaw, cancellationToken);
             if (catalog is null ||
                 !catalog.Items.TryGetValue("Outlines", out var outlines)) {
                 return false;
             }
 
-            return !IsSupportedOutlineGraph(objects, outlines, new HashSet<int>());
-        } catch (Exception ex) when (ex is not PdfEncryptionException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
+            return !IsSupportedOutlineGraph(objects, outlines, new HashSet<int>(), cancellationToken);
+        } catch (Exception ex) when (ex is not OperationCanceledException && ex is not PdfEncryptionException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
             return true;
         }
     }
@@ -76,21 +78,21 @@ internal static partial class PdfSyntax {
         return ContainsParsedOrFallbackPdfName(pdf, "PageLabels");
     }
 
-    internal static bool HasUnsupportedPageLabelRewriteMarkers(byte[] pdf, PdfLoadOptions? options = null, PdfRewriteMarkerSource? source = null) {
+    internal static bool HasUnsupportedPageLabelRewriteMarkers(byte[] pdf, PdfLoadOptions? options = null, PdfRewriteMarkerSource? source = null, CancellationToken cancellationToken = default) {
         if (source is null && options is null && !HasPageLabelMarkers(pdf)) {
             return false;
         }
 
         try {
-            var (objects, trailerRaw) = ParseRewriteMarkerObjects(pdf, options, source);
-            PdfDictionary? catalog = FindCatalog(objects, trailerRaw);
+            var (objects, trailerRaw) = ParseRewriteMarkerObjects(pdf, options, source, cancellationToken);
+            PdfDictionary? catalog = FindCatalog(objects, trailerRaw, cancellationToken);
             if (catalog is null ||
                 !catalog.Items.TryGetValue("PageLabels", out var pageLabels)) {
                 return catalog is null;
             }
 
-            return !IsSupportedPageLabelTree(objects, pageLabels);
-        } catch (Exception ex) when (ex is not PdfEncryptionException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
+            return !IsSupportedPageLabelTree(objects, pageLabels, cancellationToken);
+        } catch (Exception ex) when (ex is not OperationCanceledException && ex is not PdfEncryptionException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
             return true;
         }
     }
@@ -107,14 +109,14 @@ internal static partial class PdfSyntax {
         return ContainsParsedOrFallbackPdfName(pdf, "Names");
     }
 
-    internal static bool HasUnsupportedCatalogNameTreeRewriteMarkers(byte[] pdf, PdfLoadOptions? options = null, PdfRewriteMarkerSource? source = null) {
+    internal static bool HasUnsupportedCatalogNameTreeRewriteMarkers(byte[] pdf, PdfLoadOptions? options = null, PdfRewriteMarkerSource? source = null, CancellationToken cancellationToken = default) {
         if (source is null && options is null && !HasCatalogNameTreeMarkers(pdf)) {
             return false;
         }
 
         try {
-            var (objects, trailerRaw) = ParseRewriteMarkerObjects(pdf, options, source);
-            PdfDictionary? catalog = FindCatalog(objects, trailerRaw);
+            var (objects, trailerRaw) = ParseRewriteMarkerObjects(pdf, options, source, cancellationToken);
+            PdfDictionary? catalog = FindCatalog(objects, trailerRaw, cancellationToken);
             if (catalog is null ||
                 !catalog.Items.TryGetValue("Names", out var names)) {
                 return false;
@@ -126,6 +128,7 @@ internal static partial class PdfSyntax {
             }
 
             foreach (var key in namesDictionary.Items.Keys) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (string.Equals(key, "Dests", StringComparison.Ordinal) ||
                     string.Equals(key, "EmbeddedFiles", StringComparison.Ordinal) ||
                     string.Equals(key, "JavaScript", StringComparison.Ordinal)) {
@@ -136,20 +139,20 @@ internal static partial class PdfSyntax {
             }
 
             return false;
-        } catch (Exception ex) when (ex is not PdfEncryptionException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
+        } catch (Exception ex) when (ex is not OperationCanceledException && ex is not PdfEncryptionException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
             return true;
         }
     }
 
-    internal static bool HasUnsupportedNamedDestinationRewriteMarkers(byte[] pdf, PdfLoadOptions? options = null, PdfRewriteMarkerSource? source = null) {
+    internal static bool HasUnsupportedNamedDestinationRewriteMarkers(byte[] pdf, PdfLoadOptions? options = null, PdfRewriteMarkerSource? source = null, CancellationToken cancellationToken = default) {
         if (source is null && options is null && !HasNamedDestinationMarkers(pdf)) {
             return false;
         }
 
         try {
-            var (objects, trailerRaw) = ParseRewriteMarkerObjects(pdf, options, source);
+            var (objects, trailerRaw) = ParseRewriteMarkerObjects(pdf, options, source, cancellationToken);
             PdfReadLimits limits = options?.Limits ?? PdfLoadOptions.Default.Limits;
-            PdfDictionary? catalog = FindCatalog(objects, trailerRaw);
+            PdfDictionary? catalog = FindCatalog(objects, trailerRaw, cancellationToken);
             if (catalog is null) {
                 return true;
             }
@@ -166,12 +169,12 @@ internal static partial class PdfSyntax {
 
                 if (namesDictionary.Items.ContainsKey("Dests")) {
                     return !TryGetNamedDestinationNameTree(objects, names, out var namedDestinationTree) ||
-                        !IsSupportedNamedDestinationNameTree(objects, namedDestinationTree, limits);
+                        !IsSupportedNamedDestinationNameTree(objects, namedDestinationTree, limits, cancellationToken);
                 }
             }
 
             return false;
-        } catch (Exception ex) when (ex is not PdfEncryptionException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
+        } catch (Exception ex) when (ex is not OperationCanceledException && ex is not PdfEncryptionException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
             return true;
         }
     }
@@ -182,14 +185,14 @@ internal static partial class PdfSyntax {
         return ContainsParsedOrFallbackPdfName(pdf, "OpenAction");
     }
 
-    internal static bool HasUnsupportedOpenActionRewriteMarkers(byte[] pdf, PdfLoadOptions? options = null, PdfRewriteMarkerSource? source = null) {
+    internal static bool HasUnsupportedOpenActionRewriteMarkers(byte[] pdf, PdfLoadOptions? options = null, PdfRewriteMarkerSource? source = null, CancellationToken cancellationToken = default) {
         if (source is null && options is null && !HasOpenActionMarkers(pdf)) {
             return false;
         }
 
         try {
-            var (objects, trailerRaw) = ParseRewriteMarkerObjects(pdf, options, source);
-            PdfDictionary? catalog = FindCatalog(objects, trailerRaw);
+            var (objects, trailerRaw) = ParseRewriteMarkerObjects(pdf, options, source, cancellationToken);
+            PdfDictionary? catalog = FindCatalog(objects, trailerRaw, cancellationToken);
             if (catalog is null ||
                 !catalog.Items.TryGetValue("OpenAction", out var openAction)) {
                 return catalog is null;
@@ -202,12 +205,12 @@ internal static partial class PdfSyntax {
             }
 
             if (resolved is PdfDictionary dictionary &&
-                IsSupportedGoToActionDictionary(objects, dictionary)) {
+                IsSupportedGoToActionDictionary(objects, dictionary, cancellationToken)) {
                 return false;
             }
 
             return true;
-        } catch (Exception ex) when (ex is not PdfEncryptionException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
+        } catch (Exception ex) when (ex is not OperationCanceledException && ex is not PdfEncryptionException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
             return true;
         }
     }
@@ -218,14 +221,14 @@ internal static partial class PdfSyntax {
         return ContainsParsedOrFallbackPdfName(pdf, "ViewerPreferences");
     }
 
-    internal static bool HasUnsupportedViewerPreferenceRewriteMarkers(byte[] pdf, PdfLoadOptions? options = null, PdfRewriteMarkerSource? source = null) {
+    internal static bool HasUnsupportedViewerPreferenceRewriteMarkers(byte[] pdf, PdfLoadOptions? options = null, PdfRewriteMarkerSource? source = null, CancellationToken cancellationToken = default) {
         if (source is null && options is null && !HasViewerPreferenceMarkers(pdf)) {
             return false;
         }
 
         try {
-            var (objects, trailerRaw) = ParseRewriteMarkerObjects(pdf, options, source);
-            PdfDictionary? catalog = FindCatalog(objects, trailerRaw);
+            var (objects, trailerRaw) = ParseRewriteMarkerObjects(pdf, options, source, cancellationToken);
+            PdfDictionary? catalog = FindCatalog(objects, trailerRaw, cancellationToken);
             if (catalog is null ||
                 !catalog.Items.TryGetValue("ViewerPreferences", out var viewerPreferences)) {
                 return catalog is null;
@@ -233,12 +236,12 @@ internal static partial class PdfSyntax {
 
             PdfObject? resolved = ResolveObject(objects, viewerPreferences);
             if (resolved is PdfDictionary dictionary &&
-                IsSimpleCatalogDictionary(dictionary)) {
+                IsSimpleCatalogDictionary(dictionary, cancellationToken)) {
                 return false;
             }
 
             return true;
-        } catch (Exception ex) when (ex is not PdfEncryptionException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
+        } catch (Exception ex) when (ex is not OperationCanceledException && ex is not PdfEncryptionException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
             return true;
         }
     }
@@ -263,25 +266,25 @@ internal static partial class PdfSyntax {
         return ContainsParsedOrFallbackPdfName(pdf, "Metadata");
     }
 
-    internal static bool HasUnsupportedXmpMetadataRewriteMarkers(byte[] pdf, PdfLoadOptions? options = null, PdfRewriteMarkerSource? source = null) {
+    internal static bool HasUnsupportedXmpMetadataRewriteMarkers(byte[] pdf, PdfLoadOptions? options = null, PdfRewriteMarkerSource? source = null, CancellationToken cancellationToken = default) {
         if (source is null && options is null && !HasXmpMetadataMarkers(pdf)) {
             return false;
         }
 
         try {
-            var (objects, trailerRaw) = ParseRewriteMarkerObjects(pdf, options, source);
-            PdfDictionary? catalog = FindCatalog(objects, trailerRaw);
+            var (objects, trailerRaw) = ParseRewriteMarkerObjects(pdf, options, source, cancellationToken);
+            PdfDictionary? catalog = FindCatalog(objects, trailerRaw, cancellationToken);
             if (catalog is null ||
                 !catalog.Items.TryGetValue("Metadata", out var xmpMetadata)) {
                 return catalog is null;
             }
 
-            if (IsSupportedCatalogXmpMetadataStream(objects, xmpMetadata)) {
+            if (IsSupportedCatalogXmpMetadataStream(objects, xmpMetadata, cancellationToken)) {
                 return false;
             }
 
             return true;
-        } catch (Exception ex) when (ex is not PdfEncryptionException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
+        } catch (Exception ex) when (ex is not OperationCanceledException && ex is not PdfEncryptionException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
             return true;
         }
     }
@@ -298,19 +301,19 @@ internal static partial class PdfSyntax {
             var (objects, trailerRaw) = ParseObjects(pdf, options);
             PdfDictionary? catalog = FindCatalog(objects, trailerRaw);
             return catalog?.Items.ContainsKey("URI") == true;
-        } catch (Exception ex) when (ex is not PdfEncryptionException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
+        } catch (Exception ex) when (ex is not OperationCanceledException && ex is not PdfEncryptionException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
             return true;
         }
     }
 
-    internal static bool HasUnsupportedCatalogUriRewriteMarkers(byte[] pdf, PdfLoadOptions? options = null, PdfRewriteMarkerSource? source = null) {
+    internal static bool HasUnsupportedCatalogUriRewriteMarkers(byte[] pdf, PdfLoadOptions? options = null, PdfRewriteMarkerSource? source = null, CancellationToken cancellationToken = default) {
         if (source is null && options is null && !HasCatalogUriMarkers(pdf)) {
             return false;
         }
 
         try {
-            var (objects, trailerRaw) = ParseRewriteMarkerObjects(pdf, options, source);
-            PdfDictionary? catalog = FindCatalog(objects, trailerRaw);
+            var (objects, trailerRaw) = ParseRewriteMarkerObjects(pdf, options, source, cancellationToken);
+            PdfDictionary? catalog = FindCatalog(objects, trailerRaw, cancellationToken);
             if (catalog is null ||
                 !catalog.Items.TryGetValue("URI", out var catalogUri)) {
                 return catalog is null;
@@ -318,12 +321,12 @@ internal static partial class PdfSyntax {
 
             PdfObject? resolved = ResolveObject(objects, catalogUri);
             if (resolved is PdfDictionary dictionary &&
-                IsSimpleCatalogDictionary(dictionary)) {
+                IsSimpleCatalogDictionary(dictionary, cancellationToken)) {
                 return false;
             }
 
             return true;
-        } catch (Exception ex) when (ex is not PdfEncryptionException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
+        } catch (Exception ex) when (ex is not OperationCanceledException && ex is not PdfEncryptionException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
             return true;
         }
     }
@@ -334,25 +337,25 @@ internal static partial class PdfSyntax {
         return ContainsParsedOrFallbackPdfName(pdf, "OutputIntents", "OutputIntent");
     }
 
-    internal static bool HasUnsupportedOutputIntentRewriteMarkers(byte[] pdf, PdfLoadOptions? options = null, PdfRewriteMarkerSource? source = null) {
+    internal static bool HasUnsupportedOutputIntentRewriteMarkers(byte[] pdf, PdfLoadOptions? options = null, PdfRewriteMarkerSource? source = null, CancellationToken cancellationToken = default) {
         if (source is null && options is null && !HasOutputIntentMarkers(pdf)) {
             return false;
         }
 
         try {
-            var (objects, trailerRaw) = ParseRewriteMarkerObjects(pdf, options, source);
-            PdfDictionary? catalog = FindCatalog(objects, trailerRaw);
+            var (objects, trailerRaw) = ParseRewriteMarkerObjects(pdf, options, source, cancellationToken);
+            PdfDictionary? catalog = FindCatalog(objects, trailerRaw, cancellationToken);
             if (catalog is null ||
                 !catalog.Items.TryGetValue("OutputIntents", out var outputIntents)) {
                 return catalog is null;
             }
 
-            if (IsSupportedCatalogMetadataGraph(objects, outputIntents, new HashSet<int>())) {
+            if (IsSupportedCatalogMetadataGraph(objects, outputIntents, new HashSet<int>(), cancellationToken)) {
                 return false;
             }
 
             return true;
-        } catch (Exception ex) when (ex is not PdfEncryptionException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
+        } catch (Exception ex) when (ex is not OperationCanceledException && ex is not PdfEncryptionException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
             return true;
         }
     }
@@ -363,14 +366,14 @@ internal static partial class PdfSyntax {
         return ContainsParsedOrFallbackPdfName(pdf, "EmbeddedFiles", "Filespec", "EmbeddedFile", "AF");
     }
 
-    internal static bool HasUnsupportedEmbeddedFileRewriteMarkers(byte[] pdf, PdfLoadOptions? options = null, PdfRewriteMarkerSource? source = null) {
+    internal static bool HasUnsupportedEmbeddedFileRewriteMarkers(byte[] pdf, PdfLoadOptions? options = null, PdfRewriteMarkerSource? source = null, CancellationToken cancellationToken = default) {
         if (source is null && options is null && !HasEmbeddedFileMarkers(pdf)) {
             return false;
         }
 
         try {
-            var (objects, trailerRaw) = ParseRewriteMarkerObjects(pdf, options, source);
-            PdfDictionary? catalog = FindCatalog(objects, trailerRaw);
+            var (objects, trailerRaw) = ParseRewriteMarkerObjects(pdf, options, source, cancellationToken);
+            PdfDictionary? catalog = FindCatalog(objects, trailerRaw, cancellationToken);
             if (catalog is null) {
                 return true;
             }
@@ -383,20 +386,20 @@ internal static partial class PdfSyntax {
 
                 if (namesDictionary.Items.ContainsKey("EmbeddedFiles")) {
                     if (!TryGetEmbeddedFilesNameTree(objects, names, out var embeddedFiles) ||
-                        !IsSupportedCatalogMetadataGraph(objects, embeddedFiles, new HashSet<int>())) {
+                        !IsSupportedCatalogMetadataGraph(objects, embeddedFiles, new HashSet<int>(), cancellationToken)) {
                         return true;
                     }
                 }
             }
 
             if (catalog.Items.TryGetValue("AF", out var associatedFiles)) {
-                if (!IsSupportedCatalogMetadataGraph(objects, associatedFiles, new HashSet<int>())) {
+                if (!IsSupportedCatalogMetadataGraph(objects, associatedFiles, new HashSet<int>(), cancellationToken)) {
                     return true;
                 }
             }
 
             return false;
-        } catch (Exception ex) when (ex is not PdfEncryptionException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
+        } catch (Exception ex) when (ex is not OperationCanceledException && ex is not PdfEncryptionException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
             return true;
         }
     }
@@ -407,25 +410,25 @@ internal static partial class PdfSyntax {
         return ContainsParsedOrFallbackPdfName(pdf, "OCProperties", "OCGs", "OCG", "OCMD");
     }
 
-    internal static bool HasUnsupportedOptionalContentRewriteMarkers(byte[] pdf, PdfLoadOptions? options = null, PdfRewriteMarkerSource? source = null) {
+    internal static bool HasUnsupportedOptionalContentRewriteMarkers(byte[] pdf, PdfLoadOptions? options = null, PdfRewriteMarkerSource? source = null, CancellationToken cancellationToken = default) {
         if (source is null && options is null && !HasOptionalContentMarkers(pdf)) {
             return false;
         }
 
         try {
-            var (objects, trailerRaw) = ParseRewriteMarkerObjects(pdf, options, source);
-            PdfDictionary? catalog = FindCatalog(objects, trailerRaw);
+            var (objects, trailerRaw) = ParseRewriteMarkerObjects(pdf, options, source, cancellationToken);
+            PdfDictionary? catalog = FindCatalog(objects, trailerRaw, cancellationToken);
             if (catalog is null ||
                 !catalog.Items.TryGetValue("OCProperties", out var optionalContent)) {
                 return catalog is null;
             }
 
-            if (IsSupportedCatalogMetadataGraph(objects, optionalContent, new HashSet<int>())) {
+            if (IsSupportedCatalogMetadataGraph(objects, optionalContent, new HashSet<int>(), cancellationToken)) {
                 return false;
             }
 
             return true;
-        } catch (Exception ex) when (ex is not PdfEncryptionException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
+        } catch (Exception ex) when (ex is not OperationCanceledException && ex is not PdfEncryptionException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
             return true;
         }
     }
@@ -433,7 +436,11 @@ internal static partial class PdfSyntax {
     private static (Dictionary<int, PdfIndirectObject> Map, string TrailerRaw) ParseRewriteMarkerObjects(
         byte[] pdf,
         PdfLoadOptions? options,
-        PdfRewriteMarkerSource? source) => source?.Parse() ?? ParseObjects(pdf, options);
+        PdfRewriteMarkerSource? source,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        return source?.Parse(cancellationToken) ?? ParseObjects(pdf, options, out _, out _, cancellationToken);
+    }
 
     internal static bool HasActiveContentMarkers(byte[] pdf) {
         return HasActiveContentMarkers(pdf, null);
@@ -451,6 +458,7 @@ internal static partial class PdfSyntax {
 
     internal static string? GetHeaderVersion(byte[] pdf) {
         Guard.NotNull(pdf, nameof(pdf));
+        const int maximumVersionTokenLength = 16;
 
         if (pdf.Length < 8 ||
             pdf[0] != (byte)'%' ||
@@ -463,7 +471,7 @@ internal static partial class PdfSyntax {
 
         int start = 5;
         int end = start;
-        while (end < pdf.Length) {
+        while (end < pdf.Length && end - start <= maximumVersionTokenLength) {
             byte value = pdf[end];
             if (value == (byte)'\r' || value == (byte)'\n' || value == (byte)' ' || value == (byte)'\t') {
                 break;
@@ -472,6 +480,8 @@ internal static partial class PdfSyntax {
             end++;
         }
 
+        // A PDF version is a short token. Do not scan or allocate an entire malformed input line.
+        if (end - start > maximumVersionTokenLength) return null;
         return end > start ? PdfEncoding.Latin1GetString(pdf, start, end - start) : null;
     }
 

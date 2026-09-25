@@ -90,7 +90,7 @@ public sealed partial class PdfReadDocument {
         Guard.NotNull(pdf, nameof(pdf));
         cancellationToken.ThrowIfCancellationRequested();
         PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options);
-        string decodedText = PdfEncoding.Latin1GetString(pdf);
+        string decodedText = PdfEncoding.Latin1GetStringCancellable(pdf, cancellationToken);
         var (map, trailer) = PdfSyntax.ParseOwnedObjects(
             pdf,
             effectiveOptions,
@@ -102,7 +102,8 @@ public sealed partial class PdfReadDocument {
         PdfDocumentSecurityInfo security = PdfSyntax.ReadRewrittenOutputSecurityInfo(
             decodedText,
             trailer,
-            effectiveOptions);
+            effectiveOptions,
+            cancellationToken);
 
         return new PdfReadDocument(map, trailer, security, repairReport, effectiveOptions, decodedStreamBytes, cancellationToken);
     }

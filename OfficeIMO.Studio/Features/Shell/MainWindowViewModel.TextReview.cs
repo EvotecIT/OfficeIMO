@@ -101,7 +101,10 @@ public sealed partial class MainWindowViewModel {
     private void ClearTextReview() {
         _textInspectionCancellation?.Cancel();
         _textInspectionCancellation = null;
-        if (_textReviewIsBatch) foreach (var page in Pages) page.ActiveSearchHighlight = null;
+        if (_textReviewIsBatch) foreach (var page in Pages) {
+            page.ActiveSearchHighlight = null;
+            page.ActiveSearchHighlights = Array.Empty<Avalonia.Rect>();
+        }
         InvalidateTextPreview();
         if (TextEditDraft is { } draft) draft.PropertyChanged -= OnTextDraftChanged;
         TextEditDraft = null;
@@ -162,8 +165,13 @@ public sealed partial class MainWindowViewModel {
         ClearRenderedTextPreview();
         if (value is null) return;
         var bounds = value.Match.VisualBounds;
-        foreach (var page in Pages) page.ActiveSearchHighlight = page.PageNumber == value.PageNumber
-            ? new Avalonia.Rect(bounds.Left, bounds.Top, bounds.Width, bounds.Height) : null;
+        foreach (var page in Pages) {
+            page.ActiveSearchHighlight = page.PageNumber == value.PageNumber
+                ? new Avalonia.Rect(bounds.Left, bounds.Top, bounds.Width, bounds.Height) : null;
+            page.ActiveSearchHighlights = page.PageNumber == value.PageNumber
+                ? value.Match.VisualLineBounds.Select(static line => new Avalonia.Rect(line.Left, line.Top, line.Width, line.Height)).ToArray()
+                : Array.Empty<Avalonia.Rect>();
+        }
         NavigateToPage(value.PageNumber);
         UpdateTextPreviewRegion(value.PageNumber);
         if (_preparedTextEdit is not null) _ = ShowTextPreviewPageAsync(value.PageNumber);

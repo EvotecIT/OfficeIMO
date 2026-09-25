@@ -513,6 +513,17 @@ internal static partial class ResourceResolver {
         return baseDecoder;
     }
 
+    internal static System.Func<byte[], int, string> CreateBudgetedDecoder(PdfFontResource font) => BuildBudgetedDecoderForFont(font);
+
+    /// <summary>Decodes one simple-font code through its encoding and Differences, ignoring ToUnicode.</summary>
+    internal static System.Func<byte, string> CreateSimpleEncodingDecoder(PdfFontResource font) {
+        System.Func<byte[], int, string> baseDecoder = BuildBudgetedBaseEncodingDecoder(font.Encoding);
+        IReadOnlyDictionary<int, string>? differences = font.Differences;
+        return code => differences != null && differences.TryGetValue(code, out string? difference)
+            ? difference
+            : baseDecoder(new[] { code }, 1);
+    }
+
     private static System.Func<byte[], int, string> BuildBudgetedDecoderForFont(PdfFontResource font) {
         if (font.HasToUnicode && font.CMap is not null) {
             return (bytes, maximumCharacters) => font.CMap.MapBytes(bytes, maximumCharacters);
@@ -599,8 +610,9 @@ internal static partial class ResourceResolver {
         }
 
         string? embeddedProgramSubtype = null;
-        byte[]? embeddedTrueTypeFont = includeEmbeddedTrueTypeFont
-            ? TryReadEmbeddedTrueTypeFont(fontVal, objects, out embeddedProgramSubtype)
+        bool embeddedProgramLoads = false;
+        byte[]? embeddedProgram = includeEmbeddedTrueTypeFont
+            ? TryReadEmbeddedTrueTypeFont(fontVal, objects, out embeddedProgramSubtype, out embeddedProgramLoads)
             : null;
         PdfType3FontResource? type3 = string.Equals(fontVal.Get<PdfName>("Subtype")?.Name, "Type3", System.StringComparison.Ordinal)
             ? TryCreateType3FontResource(fontVal, objects)
@@ -608,20 +620,28 @@ internal static partial class ResourceResolver {
         PdfDictionary? descriptor = ResolveFontDescriptor(fontVal, objects, out _);
         int? fontWeight = TryReadFontDescriptorInteger(descriptor, objects, "FontWeight", 1, 1000);
         int? fontDescriptorFlags = TryReadFontDescriptorInteger(descriptor, objects, "Flags", 0, int.MaxValue);
-        return new PdfFontResource(
+        var resource = new PdfFontResource(
             resourceName,
             baseFont,
             encoding,
             hasToUnicode,
             cmap,
             differences,
-            embeddedTrueTypeFont,
+            embeddedProgramLoads ? embeddedProgram : null,
             fontVal.Get<PdfName>("Subtype")?.Name,
             embeddedProgramSubtype,
             type3,
             isVerticalWriting,
             fontWeight,
             fontDescriptorFlags);
+        if (embeddedProgram == null) return resource;
+        // Drawing scenes carry Unicode text. Programs that select glyphs by character code or CID
+        // receive a Unicode cmap so rendering uses the embedded outlines instead of a substitute.
+        PdfDrawingFontProgram? drawingProgram = PdfTrueTypeUnicodeCmap.TryCreate(
+            resource,
+            embeddedProgram,
+            TryReadCidToGlyphMap(fontVal, objects));
+        return drawingProgram == null ? resource : resource.WithDrawingProgram(drawingProgram);
     }
 
     private static bool IsVerticalCMapName(string name) =>
@@ -789,8 +809,10 @@ internal static partial class ResourceResolver {
         return Math.Abs((matrix.A * matrix.D) - (matrix.B * matrix.C)) > 0.000000000001D;
     }
 
-    private static byte[]? TryReadEmbeddedTrueTypeFont(PdfDictionary font, Dictionary<int, PdfIndirectObject> objects, out string? embeddedProgramSubtype) {
+    private static byte[]? TryReadEmbeddedTrueTypeFont(PdfDictionary font, Dictionary<int, PdfIndirectObject> objects,
+        out string? embeddedProgramSubtype, out bool loads) {
         embeddedProgramSubtype = null;
+        loads = false;
         PdfDictionary? descriptor = ResolveFontDescriptor(font, objects, out string? programFontSubtype);
         if (descriptor == null) return null;
 
@@ -822,7 +844,9 @@ internal static partial class ResourceResolver {
         if ((string.Equals(embeddedProgramSubtype, "TrueType", StringComparison.Ordinal) ||
                 string.Equals(embeddedProgramSubtype, "OpenType", StringComparison.Ordinal)) &&
             !PdfFontProgramCompatibility.IsCompatibleOpenTypeProgram(programFontSubtype, bytes)) return null;
-        return OfficeTrueTypeFont.TryLoad(bytes) == null ? null : bytes;
+        loads = OfficeTrueTypeFont.TryLoad(bytes) != null;
+        // CIDFontType2 subsets often omit cmap because glyphs are selected through CIDToGIDMap.
+        return loads || string.Equals(programFontSubtype, "CIDFontType2", StringComparison.Ordinal) ? bytes : null;
     }
 
     private static string GetDefaultEncodingForBaseFont(string baseFont) {
@@ -1094,8 +1118,11 @@ internal static partial class ResourceResolver {
             case "perthousand": value = "\u2030"; return true;
             case "guilsinglleft": value = "\u2039"; return true;
             case "guilsinglright": value = "\u203A"; return true;
+            case "ff": value = "ff"; return true;
             case "fi": value = "fi"; return true;
             case "fl": value = "fl"; return true;
+            case "ffi": value = "ffi"; return true;
+            case "ffl": value = "ffl"; return true;
             default: return false;
         }
     }

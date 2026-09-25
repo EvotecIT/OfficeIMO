@@ -6,7 +6,9 @@ namespace OfficeIMO.Drawing;
 /// <summary>Shared cmap platform and encoding classification.</summary>
 internal static class OfficeOpenTypeCmap {
     internal const int MaximumSubtables = 64;
-    internal const uint MaximumFormat12Groups = 4096;
+    // A synthesized CID drawing cmap can contain one group per decoded code (at most 65,536).
+    // A single bounded subtable remains usable by external OpenType consumers.
+    internal const uint MaximumFormat12Groups = 65536;
     private const uint MaximumVariationSelectorRecords = 256;
 
     internal static bool IsUnicodeEncoding(int platform, int encoding) =>
@@ -25,12 +27,14 @@ internal static class OfficeOpenTypeCmap {
     internal static bool HasGlyphs(
         string text,
         Func<int, int> mapGlyph,
-        Func<int, int, int> mapVariationSequence) {
+        Func<int, int, int> mapVariationSequence,
+        Func<int, bool>? hasPaintedNotdef = null) {
         if (text == null) throw new ArgumentNullException(nameof(text));
         for (int index = 0; index < text.Length;) {
             int glyph = ReadMappedGlyph(text, ref index, mapGlyph, mapVariationSequence, out int scalar);
             if (glyph < 0) continue;
-            if (glyph == 0 && !(scalar <= char.MaxValue && char.IsWhiteSpace((char)scalar))) return false;
+            if (glyph == 0 && !(scalar <= char.MaxValue && char.IsWhiteSpace((char)scalar)) &&
+                hasPaintedNotdef?.Invoke(scalar) != true) return false;
         }
         return true;
     }

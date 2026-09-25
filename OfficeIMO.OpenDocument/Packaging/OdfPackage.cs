@@ -11,6 +11,7 @@ internal sealed partial class OdfPackage {
     private bool _entryGraphChanged;
     private bool _sourceIsEncrypted;
     private bool? _pendingOutputEncrypted;
+    internal int ExternalXmlEditVersion { get; private set; }
 
     private OdfPackage(OdfDocumentKind kind, OdfVersion version, OdfLoadOptions loadOptions) {
         Kind = kind;
@@ -214,7 +215,12 @@ internal sealed partial class OdfPackage {
         return GetXml(name);
     }
 
-    internal void MarkXmlDirty(string name) => GetRequiredEntry(name).MarkDirty();
+    internal void MarkXmlDirty(string name) {
+        GetRequiredEntry(name).MarkDirty();
+        ExternalXmlEditVersion++;
+    }
+
+    internal void MarkXmlDirtyFromDocument(string name) => GetRequiredEntry(name).MarkDirty();
 
     internal void AddDiagnostic(OdfDiagnostic diagnostic) {
         if (diagnostic == null) throw new ArgumentNullException(nameof(diagnostic));
@@ -223,6 +229,7 @@ internal sealed partial class OdfPackage {
 
     internal void AddOrReplaceEntry(string name, byte[] data, string mediaType) {
         ValidateNewEntryName(name);
+        if (name == "content.xml" || name == "styles.xml") ExternalXmlEditVersion++;
         if (_entriesByName.TryGetValue(name, out OdfPackageEntry? existing)) {
             existing.ReplaceBytes(data, mediaType);
         } else {
@@ -235,6 +242,7 @@ internal sealed partial class OdfPackage {
 
     internal void RemoveEntry(string name) {
         if (_entriesByName.TryGetValue(name, out OdfPackageEntry? entry) && !entry.IsRemoved) {
+            if (name == "content.xml" || name == "styles.xml") ExternalXmlEditVersion++;
             entry.Remove();
             _entryGraphChanged = true;
         }
@@ -335,7 +343,10 @@ internal sealed partial class OdfPackage {
         foreach (XElement fileEntry in fileEntries) {
             string? path = (string?)fileEntry.Attribute(OdfNamespaces.Manifest + "full-path");
             if (string.IsNullOrEmpty(path) || path == "/") continue;
-            if (path == "mimetype" || path == "META-INF/manifest.xml" || !actualPaths.Contains(path!)) {
+            bool backedDirectory = path!.EndsWith("/", StringComparison.Ordinal) &&
+                actualPaths.Any(actual => actual.StartsWith(path, StringComparison.Ordinal));
+            if (path == "mimetype" || path == "META-INF/manifest.xml" ||
+                !actualPaths.Contains(path) && !backedDirectory) {
                 fileEntry.Remove();
             }
         }
@@ -360,10 +371,28 @@ internal sealed partial class OdfPackage {
     }
 
     private void UpdateXmlVersions(OdfVersion outputVersion) {
-        foreach (string path in new[] { "content.xml", "styles.xml", "meta.xml", "settings.xml" }) {
+        var chartDirectories = new HashSet<string>(_entries.Where(entry => !entry.IsRemoved &&
+            entry.Name.EndsWith("/", StringComparison.Ordinal) &&
+            entry.MediaType == "application/vnd.oasis.opendocument.chart")
+            .Select(entry => entry.Name), StringComparer.Ordinal);
+        XDocument manifest = GetXml("META-INF/manifest.xml");
+        foreach (XElement fileEntry in manifest.Root!.Elements(OdfNamespaces.Manifest + "file-entry")) {
+            if ((string?)fileEntry.Attribute(OdfNamespaces.Manifest + "media-type") !=
+                "application/vnd.oasis.opendocument.chart") continue;
+            string? path = (string?)fileEntry.Attribute(OdfNamespaces.Manifest + "full-path");
+            if (path != null && path.EndsWith("/", StringComparison.Ordinal)) chartDirectories.Add(path);
+        }
+        IEnumerable<string> chartParts = _entries.Where(entry => !entry.IsRemoved &&
+            (entry.Name.EndsWith("/content.xml", StringComparison.Ordinal) ||
+             entry.Name.EndsWith("/styles.xml", StringComparison.Ordinal) ||
+             entry.Name.EndsWith("/meta.xml", StringComparison.Ordinal) ||
+             entry.Name.EndsWith("/settings.xml", StringComparison.Ordinal)) &&
+            chartDirectories.Contains(entry.Name.Substring(0, entry.Name.LastIndexOf('/') + 1)))
+            .Select(entry => entry.Name);
+        foreach (string path in new[] { "content.xml", "styles.xml", "meta.xml", "settings.xml" }.Concat(chartParts)) {
             if (!ContainsEntry(path)) continue;
             XDocument xml = GetXml(path);
-            if (xml.Root != null) {
+            if (xml.Root?.Name.Namespace == OdfNamespaces.Office) {
                 xml.Root.SetAttributeValue(OdfNamespaces.Office + "version", outputVersion.ToToken());
                 MarkXmlDirty(path);
             }

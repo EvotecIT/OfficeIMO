@@ -23,9 +23,9 @@ public class PdfEmbeddedFontRenderingTests {
             options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg }));
 
         OfficeFontFace face = Assert.Single(drawing.Fonts.Faces);
-        Assert.Equal("ManagedEmbedded", face.FamilyName);
+        Assert.StartsWith("ManagedEmbedded-", face.FamilyName, StringComparison.Ordinal);
         Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == "render.resource.font-substitution");
-        Assert.Contains("font-family=\"ManagedEmbedded\"", System.Text.Encoding.UTF8.GetString(result.Bytes!), StringComparison.Ordinal);
+        Assert.Contains($"font-family=\"{face.FamilyName}\"", System.Text.Encoding.UTF8.GetString(result.Bytes!), StringComparison.Ordinal);
     }
 
     [Fact]

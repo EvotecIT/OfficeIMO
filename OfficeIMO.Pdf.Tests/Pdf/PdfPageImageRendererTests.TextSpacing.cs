@@ -10,6 +10,20 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfPageImageRendererTests {
+    [Fact]
+    public void RenderPage_ChargesUndecodedPaintedGlyphPlaceholdersToDecodedTextBudget() {
+        const string font = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /ToUnicode 6 0 R >>\nendobj";
+        byte[] pdf = BuildSingleStreamPdf("BT /F1 20 Tf 20 100 Td (AA) Tj ET",
+            "<< /Font << /F1 5 0 R >> >>", font,
+            BuildStreamObject(6, "<<", "1 beginbfchar\n<41> <0000>\nendbfchar"));
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxDecodedTextCharacters = 1 }
+        });
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].ToDrawing());
+        Assert.Equal(PdfReadLimitKind.DecodedTextCharacters, exception.Kind);
+    }
+
     [Theory]
     [InlineData("/ca 0", "")]
     [InlineData("/CA 0", "1 Tr ")]
@@ -46,10 +60,11 @@ public partial class PdfPageImageRendererTests {
     [InlineData(1)]
     [InlineData(3)]
     public void ExportImage_MultiCharacterGlyphMappingsChargeMaterializationBeforeMeasurement(int glyphCount) {
-        const string font = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier /ToUnicode 6 0 R >>\nendobj";
-        const string cmap = "1 beginbfchar\n<41> <00410042>\nendbfchar";
-        byte[] pdf = BuildSingleStreamPdf("BT /F1 10 Tf 1 Tc 1000 100 Td (" + new string('A', glyphCount) + ") Tj ET",
-            "<< /Font << /F1 5 0 R >> >>", font, BuildStreamObject(6, "<<", cmap));
+        const string font = "5 0 obj\n<< /Type /Font /Subtype /Type0 /BaseFont /Courier /Encoding /Identity-H /DescendantFonts [7 0 R] /ToUnicode 6 0 R >>\nendobj";
+        const string descendant = "7 0 obj\n<< /Type /Font /Subtype /CIDFontType2 /BaseFont /Courier /DW 600 >>\nendobj";
+        const string cmap = "1 beginbfchar\n<0001> <00410042>\nendbfchar";
+        byte[] pdf = BuildSingleStreamPdf("BT /F1 10 Tf 1 Tc 1000 100 Td <" + string.Concat(Enumerable.Repeat("0001", glyphCount)) + "> Tj ET",
+            "<< /Font << /F1 5 0 R >> >>", font, BuildStreamObject(6, "<<", cmap), descendant);
         var document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxPositionedTextWorkCharactersPerPage = glyphCount * 2 - 1 }
         });
@@ -426,15 +441,59 @@ public partial class PdfPageImageRendererTests {
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
     }
 
+    [Fact]
+    public void RenderPage_VisualRunKeepsPaintedInteriorSpaces() {
+        // A producer can paint repeated spaces ("26  ->  06"). Logical text collapses them, but the
+        // visual run must keep every painted space, or later glyphs are pulled inward to fit its advance.
+        const string font = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj";
+        byte[] pdf = BuildSingleStreamPdf("BT /F1 12 Tf 20 100 Td (A   B) Tj ET", "<< /Font << /F1 5 0 R >> >>", font);
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
+
+        Assert.Equal("A B", Assert.Single(document.Pages[0].GetTextSpans()).Text);
+        OfficeDrawingText text = Assert.Single(document.Pages[0].ToDrawing().Elements.OfType<OfficeDrawingText>());
+        Assert.Equal("A   B", text.Text);
+    }
+
+    [Fact]
+    public void RenderPage_SubstitutedFontDrawsInkedGlyphsThatToUnicodeLeavesBlank() {
+        // A non-embedded font is drawn by the glyph names its encoding gives. ToUnicode maps the
+        // inked A to a space and the inked B to U+0000; both are painted, while the real space stays blank.
+        const string font = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding /ToUnicode 6 0 R >>\nendobj";
+        const string cmap = "6 beginbfchar\n<20> <0020>\n<41> <0020>\n<42> <0000>\n<78> <0078>\n<79> <0079>\n<7A> <007A>\nendbfchar";
+        byte[] pdf = BuildSingleStreamPdf("BT /F1 20 Tf 20 100 Td (xA yBz) Tj ET",
+            "<< /Font << /F1 5 0 R >> >>", font, BuildStreamObject(6, "<<", cmap));
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
+
+        Assert.DoesNotContain(document.Pages[0].GetTextSpans(), span => span.Text.Contains('A') || span.Text.Contains('B'));
+        OfficeDrawingText text = Assert.Single(document.Pages[0].ToDrawing().Elements.OfType<OfficeDrawingText>());
+        Assert.Equal("x y\0z", text.Text);
+        Assert.Equal("xA yBz", text.RasterText);
+    }
+
+    [Fact]
+    public void RenderPage_SubstitutedFontUsesClusterAndSpaceDifferencesInsteadOfToUnicode() {
+        const string font = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding << /Type /Encoding /BaseEncoding /WinAnsiEncoding /Differences [65 /fi 66 /space] >> /ToUnicode 6 0 R >>\nendobj";
+        const string cmap = "2 beginbfchar\n<41> <0058>\n<42> <0059>\nendbfchar";
+        byte[] pdf = BuildSingleStreamPdf("BT /F1 20 Tf 20 100 Td (ABA) Tj ET",
+            "<< /Font << /F1 5 0 R >> >>", font, BuildStreamObject(6, "<<", cmap));
+        PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
+
+        Assert.Equal("XYX", Assert.Single(page.GetTextSpans()).Text);
+        OfficeDrawingText visual = Assert.Single(page.ToDrawing().Elements.OfType<OfficeDrawingText>());
+        Assert.Equal("XYX", visual.Text);
+        Assert.Equal("\uFB01 \uFB01", visual.RasterText);
+    }
+
     [Theory]
     [InlineData("06280628", "بب")]
     [InlineData("0915093F", "कि")]
     [InlineData("00610301", "a\u0301")]
     public void RenderPage_SpacingRetainsContextualTextRuns(string unicode, string expectedText) {
-        const string font = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier /ToUnicode 6 0 R >>\nendobj";
-        string cmap = "2 beginbfchar\n<41> <" + unicode.Substring(0, 4) + ">\n<42> <" + unicode.Substring(4) + ">\nendbfchar";
-        byte[] pdf = BuildSingleStreamPdf("BT /F1 20 Tf 2 Tw 20 100 Td (AB) Tj ET",
-            "<< /Font << /F1 5 0 R >> >>", font, BuildStreamObject(6, "<<", cmap));
+        const string font = "5 0 obj\n<< /Type /Font /Subtype /Type0 /BaseFont /Courier /Encoding /Identity-H /DescendantFonts [7 0 R] /ToUnicode 6 0 R >>\nendobj";
+        const string descendant = "7 0 obj\n<< /Type /Font /Subtype /CIDFontType2 /BaseFont /Courier /DW 600 >>\nendobj";
+        string cmap = "2 beginbfchar\n<0001> <" + unicode.Substring(0, 4) + ">\n<0002> <" + unicode.Substring(4) + ">\nendbfchar";
+        byte[] pdf = BuildSingleStreamPdf("BT /F1 20 Tf 2 Tw 20 100 Td <00010002> Tj ET",
+            "<< /Font << /F1 5 0 R >> >>", font, BuildStreamObject(6, "<<", cmap), descendant);
         PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxPositionedTextCharactersPerPage = 1 }
         });
