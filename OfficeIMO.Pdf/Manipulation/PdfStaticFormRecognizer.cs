@@ -242,6 +242,13 @@ internal static class PdfStaticFormRecognizer {
             double top = primitive.Kind == PdfPageVisualPrimitiveKind.Line ? Math.Min(primitive.Y1, primitive.Y2) : primitive.Y;
             double right = primitive.Kind == PdfPageVisualPrimitiveKind.Line ? Math.Max(primitive.X1, primitive.X2) : primitive.X + primitive.Width;
             double bottom = primitive.Kind == PdfPageVisualPrimitiveKind.Line ? Math.Max(primitive.Y1, primitive.Y2) : primitive.Y + primitive.Height;
+            if (primitive.Kind == PdfPageVisualPrimitiveKind.Line && stroked) {
+                double strokePadding = Math.Max(0D, primitive.StrokeWidth) / 2D;
+                left -= strokePadding;
+                top -= strokePadding;
+                right += strokePadding;
+                bottom += strokePadding;
+            }
             if (right - left < 1D || bottom - top < 1D) continue;
             if (primitive.ClipPath is PdfPageClipPath clip && clip.IsRectangle && clip.IsExact &&
                 !clip.ContainsTextClipping &&

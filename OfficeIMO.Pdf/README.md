@@ -325,7 +325,7 @@ foreach (PdfStaticFormFieldProposal field in proposals.Proposals)
     Console.WriteLine($"{field.Index}: {field.Label} ({field.Kind}, {field.Confidence:0.00})");
 
 int[] accepted = proposals.Proposals
-    .Where(field => field.Confidence >= 0.8)
+    .Where(field => field.Confidence >= 0.6)
     .Select(field => field.Index)
     .ToArray();
 if (accepted.Length > 0)

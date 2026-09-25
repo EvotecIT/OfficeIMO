@@ -136,6 +136,25 @@ public sealed class PdfStaticFormRecognizerTests {
         Assert.Contains(report.Diagnostics, static diagnostic => diagnostic.Code == "occupied-field");
     }
 
+    [Theory]
+    [InlineData(9D, 0D)]
+    [InlineData(0D, 9D)]
+    public void AxisAlignedStrokeInsideStaticBoxCountsAsAnOccupiedField(double deltaX, double deltaY) {
+        OfficeShape mark = OfficeShape.Line(0D, 0D, deltaX, deltaY);
+        mark.StrokeColor = OfficeColor.Black;
+        byte[] source = PdfDocument.Create(new PdfOptions { PageWidth = 400D, PageHeight = 300D })
+            .Canvas(canvas => canvas
+                .Shape(Box(15D, 15D), 100D, 75D)
+                .Shape(mark, 103D, 78D)
+                .Text("I agree", 125D, 72D, 100D, 20D))
+            .ToBytes();
+
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout();
+
+        Assert.Empty(report.Proposals);
+        Assert.Contains(report.Diagnostics, static diagnostic => diagnostic.Code == "occupied-field");
+    }
+
     [Fact]
     public void ImageRenderedValueOccupiesOutlinedField() {
         byte[] image = PdfPngTestImages.CreateRgbPng(20, 20);
