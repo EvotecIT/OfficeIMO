@@ -282,3 +282,16 @@ At clean source `0d9f85fdf`, line ends inside a floated box are no longer offere
 The unchanged W3C archive replayed offline with no runner failures. Chromium and OfficeIMO zero-margin local-font print each have three pages; default-margin OfficeIMO print has four. All three final managed and Chromium print pages were rasterized at 96 dpi and inspected. The fifth tutorial illustration no longer starts as a sliver at the bottom of managed page one: it begins intact on page two. Chromium leaves that card's title on page one, while OfficeIMO moves the title with the illustration. Text weight, footer placement, and some line flow also differ, so the W3C print-fidelity item remains open. The local-font operation reports 64 warnings and declared loss, with no forced-fragment diagnostic. The report, PDFs, and compared page rasters are retained under `Ignore/HtmlUnknownPageQualification/h10-wai-float-fragment-clean-0d9f85fdf/`.
 
 The exact-head H4 advanced-held-out acceptance gate passed 8/8. The macOS static budget passed with a 6,083.8 ms cold process, 2,071.5 ms slowest warm iteration, 501,465,088-byte sampled peak, and matching cold/warm fingerprints. Those reports are under `h10-h4-float-fragment-clean-0d9f85fdf/` and `h10-h4-float-fragment-budget-clean-0d9f85fdf/` beneath the same ignored parent. Windows and Linux budgets remain open.
+
+The remaining title-placement mismatch was reduced to a 100-by-60-pixel
+print fixture. A 40-pixel prelude leaves space for the first lines of a
+paragraph but not its 30-pixel floated image. Chromium keeps the title and
+two text lines on page one, defers the complete image to page two, and flows
+the remaining text around that image. OfficeIMO moves the paragraph and image
+to page two. Both outputs have three pages; page count therefore conceals
+this difference. Moving only the image's painted visual would leave its
+reserved height and subsequent text flow wrong. The remaining renderer work
+is page-aware float deferral with flow continuation and an intact replaced
+box, followed by a replay of all frozen W3C print pages and H4. The fixture,
+both PDFs, inspected first-two-page rasters and worker reports are retained
+under `Ignore/HtmlUnknownPageQualification/h10-wai-float-break-probe/`.
