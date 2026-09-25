@@ -8,6 +8,41 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
+    [Fact]
+    public void StaticRendererAppliesDefaultLinkPaintWithoutOverridingAuthorStyles() {
+        const string html = "<div style='color:#444'>Notice <a href='https://example.test'>Default link</a>"
+            + "<a href='https://example.test' style='color:inherit;text-decoration:none'>Plain link</a>"
+            + "<a href='https://example.test' style='text-decoration:none;text-decoration-line:underline'>Restored underline</a>"
+            + "<a href='https://example.test' style='text-decoration-line:underline;text-decoration:none'>Removed underline</a>"
+            + "<a href='https://example.test' style='text-decoration:underline dotted red'>Decorated link</a>"
+            + "<a>Anchor without href</a></div>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
+            new HtmlRenderOptions { ViewportWidth = 1200D });
+        HtmlRenderText[] text = rendered.Pages.SelectMany(page => EnumerateCorpusVisuals(page.Scene))
+            .OfType<HtmlRenderText>().ToArray();
+
+        HtmlRenderText defaultLink = Assert.Single(text, item => item.Text == "Default link");
+        Assert.Equal(OfficeColor.FromRgb(0, 0, 238), defaultLink.Color);
+        Assert.Equal(OfficeTextDecorationStyle.Single, defaultLink.UnderlineStyle);
+
+        HtmlRenderText plainLink = Assert.Single(text, item => item.Text == "Plain link");
+        Assert.Equal(OfficeColor.FromRgb(0x44, 0x44, 0x44), plainLink.Color);
+        Assert.Equal(OfficeTextDecorationStyle.None, plainLink.UnderlineStyle);
+
+        Assert.Equal(OfficeTextDecorationStyle.Single,
+            Assert.Single(text, item => item.Text == "Restored underline").UnderlineStyle);
+        Assert.Equal(OfficeTextDecorationStyle.None,
+            Assert.Single(text, item => item.Text == "Removed underline").UnderlineStyle);
+
+        HtmlRenderText decoratedLink = Assert.Single(text, item => item.Text == "Decorated link");
+        Assert.Equal(OfficeTextDecorationStyle.Dotted, decoratedLink.UnderlineStyle);
+        Assert.Equal(OfficeColor.Red, decoratedLink.DecorationColor);
+
+        HtmlRenderText anchor = Assert.Single(text, item => item.Text == "Anchor without href");
+        Assert.Equal(OfficeColor.FromRgb(0x44, 0x44, 0x44), anchor.Color);
+        Assert.Equal(OfficeTextDecorationStyle.None, anchor.UnderlineStyle);
+    }
+
     [Theory]
     [InlineData("1.5em", 30D)]
     [InlineData("150%", 30D)]

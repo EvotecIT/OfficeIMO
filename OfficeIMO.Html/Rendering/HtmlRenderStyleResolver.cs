@@ -146,6 +146,10 @@ internal sealed partial class HtmlRenderStyleResolver {
             computed,
             parent?.FontDescriptor ?? OfficeFontFaceDescriptor.Regular);
         OfficeFontStyle fontStyle = ResolveFontStyle(fontTag, computed);
+        bool defaultLink = !pseudoElement && tag == "a" && element.HasAttribute("href");
+        if (defaultLink && !HasAuthoredValue(computed, "text-decoration-line") && !HasAuthoredValue(computed, "text-decoration")) {
+            fontStyle |= OfficeFontStyle.Underline;
+        }
         fontStyle &= ~(OfficeFontStyle.Bold | OfficeFontStyle.Italic);
         fontStyle |= fontDescriptor.ToStyle();
         OfficeTextDecorationStyle decorationStyle = ResolveTextDecorationStyle(computed.GetValue("text-decoration-style"));
@@ -184,7 +188,9 @@ internal sealed partial class HtmlRenderStyleResolver {
             parent?.Font.Size ?? fontSize,
             parent?.LineHeight ?? fontSize * 1.2D);
         if (baselineLevel == 0 && Math.Abs(baselineOffset) > 0.000001D) baselineLevel = baselineOffset < 0D ? 1 : -1;
-        OfficeColor color = ResolveColor(element, computed.GetValue("color"), parent?.Color ?? OfficeColor.Black, pseudoElement, "color");
+        OfficeColor color = defaultLink && !HasAuthoredValue(computed, "color")
+            ? OfficeColor.FromRgb(0, 0, 238)
+            : ResolveColor(element, computed.GetValue("color"), parent?.Color ?? OfficeColor.Black, pseudoElement, "color");
         var style = new HtmlRenderBoxStyle {
             Display = pseudoElement ? ResolvePseudoDisplay(computed.GetValue("display")) : ResolveDisplay(element, computed.GetValue("display"), computed.GetValue("-webkit-box-orient"), ResolveLineClamp(computed).HasValue),
             DisplayWasSpecified = !string.IsNullOrWhiteSpace(computed.GetValue("display")),
@@ -627,6 +633,12 @@ internal sealed partial class HtmlRenderStyleResolver {
         if (tag == "s" || tag == "strike" || tag == "del" || decoration.IndexOf("line-through", StringComparison.OrdinalIgnoreCase) >= 0) result |= OfficeFontStyle.Strikethrough;
         return result;
     }
+
+    private static bool HasAuthoredValue(HtmlComputedStyle computed, string property) =>
+        computed.IsSpecifiedValue(property)
+        || computed.IsResetValue(property)
+        || computed.IsOriginRevertedValue(property)
+        || computed.IsInheritedValue(property) && !computed.IsImplicitlyInheritedValue(property);
 
     private static OfficeTextDecorationStyle ResolveTextDecorationStyle(string value) => value.Trim().ToLowerInvariant() switch {
         "double" => OfficeTextDecorationStyle.Double,

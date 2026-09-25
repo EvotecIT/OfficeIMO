@@ -415,6 +415,8 @@ public static partial class HtmlComputedStyleEngine {
         switch (propertyName.ToLowerInvariant()) {
             case "font":
                 return TryExpandFontShorthand(value, out _);
+            case "text-decoration":
+                return TryExpandTextDecorationShorthand(value, out _);
             case "font-size":
                 return IsKnownKeyword(normalized, "xx-small", "x-small", "small", "medium", "large", "x-large", "xx-large", "xxx-large", "smaller", "larger")
                     || IsSupportedFontLength(value);

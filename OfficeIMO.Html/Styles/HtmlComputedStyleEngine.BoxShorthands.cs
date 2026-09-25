@@ -3,7 +3,7 @@ namespace OfficeIMO.Html;
 public static partial class HtmlComputedStyleEngine {
     private static readonly string[] PhysicalBoxSides = { "top", "right", "bottom", "left" };
 
-    private static readonly string[] CascadeShorthands = { "margin", "padding", "border", "border-width", "border-style", "border-color" };
+    private static readonly string[] CascadeShorthands = { "margin", "padding", "border", "border-width", "border-style", "border-color", "text-decoration" };
     private static readonly string[] MarginLonghands = { "margin-top", "margin-right", "margin-bottom", "margin-left" };
     private static readonly string[] PaddingLonghands = { "padding-top", "padding-right", "padding-bottom", "padding-left" };
     private static readonly string[] BorderWidthLonghands = { "border-top-width", "border-right-width", "border-bottom-width", "border-left-width" };
@@ -16,6 +16,7 @@ public static partial class HtmlComputedStyleEngine {
         out IReadOnlyList<KeyValuePair<string, string>> longhands) {
         string normalizedName = propertyName.Trim().ToLowerInvariant();
         if (normalizedName == "font") return TryExpandFontShorthand(value, out longhands);
+        if (normalizedName == "text-decoration") return TryExpandTextDecorationShorthand(value, out longhands);
         if (normalizedName == "border") {
             string width, style, color;
             if (IsCssWideKeyword(value.Trim())) {

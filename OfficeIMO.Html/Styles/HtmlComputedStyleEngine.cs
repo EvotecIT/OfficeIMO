@@ -276,6 +276,7 @@ public static partial class HtmlComputedStyleEngine {
         "tab-size",
         "text-align",
         "text-indent",
+        "text-decoration",
         "text-decoration-line",
         "text-decoration-color",
         "text-decoration-style",
