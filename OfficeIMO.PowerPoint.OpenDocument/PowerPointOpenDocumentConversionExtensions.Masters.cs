@@ -42,6 +42,26 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         return baseline.OpenXmlDocument.PresentationPart?.ViewPropertiesPart?.ViewProperties?.OuterXml;
     });
 
+    private static readonly Lazy<string> DefaultPowerPointRootSettings = new(() => {
+        using PowerPointPresentation baseline = PowerPointPresentation.Create(new MemoryStream(),
+            new PowerPointCreateOptions());
+        return PowerPointRootSettingsSignature(baseline.OpenXmlDocument.PresentationPart?.Presentation);
+    });
+
+    private static string PowerPointRootSettingsSignature(P.Presentation? root) => root == null
+        ? string.Empty
+        : string.Join(";", root.GetAttributes()
+            .Where(attribute => attribute.LocalName is not ("firstSlideNum" or "rtl" or "showSpecialPlsOnTitleSld"))
+            .Select(attribute => attribute.NamespaceUri + "|" + attribute.LocalName + "=" + attribute.Value)
+            .OrderBy(value => value, StringComparer.Ordinal)) + "|first=" +
+          (root.FirstSlideNum?.Value ?? 1) + "|rtl=" +
+          (root.RightToLeft?.Value ?? false) + "|title=" +
+          (root.ShowSpecialPlaceholderOnTitleSlide?.Value ?? true) + "|notes=" +
+          (root.NotesSize?.Cx?.Value).ToString() + "," + (root.NotesSize?.Cy?.Value).ToString();
+
+    private static int CountUnmappedPowerPointRootSettings(PresentationPart? presentation) =>
+        PowerPointRootSettingsSignature(presentation?.Presentation) == DefaultPowerPointRootSettings.Value ? 0 : 1;
+
     private static readonly Lazy<HashSet<string>> DefaultPowerPointMasterColorMaps = new(() => {
         using PowerPointPresentation baseline = PowerPointPresentation.Create(new MemoryStream(),
             new PowerPointCreateOptions());

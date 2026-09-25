@@ -275,6 +275,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             "PowerPoint slide-show playback settings are not transferred to ODP.");
         AddUnsupported(report, "presentation-properties", CountUnmappedPowerPointPresentationProperties(sourcePresentation),
             "PowerPoint print, web, publishing, and other presentation properties were not transferred to ODP.");
+        AddUnsupported(report, "presentation-settings", CountUnmappedPowerPointRootSettings(sourcePresentation),
+            "PowerPoint root presentation settings and custom notes size were not transferred to ODP.");
         AddUnsupported(report, "view-settings", CountUnmappedPowerPointViewProperties(sourcePresentation),
             "Authored PowerPoint view settings were not transferred to ODP.");
         if (renamedSlides > 0) report.Add("slide-names", OdfConversionMappingStatus.Approximated,

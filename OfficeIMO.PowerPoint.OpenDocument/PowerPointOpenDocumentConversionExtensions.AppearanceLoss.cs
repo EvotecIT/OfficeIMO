@@ -143,7 +143,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
 
     private static bool HasUnmappedPowerPointShapeAppearance(P.ShapeProperties properties) {
         OpenXmlElement[] fills = properties.ChildElements.Where(IsFillElement).ToArray();
-        if (fills.Length > 1 || fills.Length == 1 && !IsDirectRgbFill(fills[0])) return true;
+        if (fills.Length > 1 || fills.Length == 1 && !IsDirectRgbFill(fills[0]) &&
+            !(fills[0] is A.NoFill && IsLineShape(properties))) return true;
         A.Outline? outline = properties.GetFirstChild<A.Outline>();
         if (outline != null && !IsDirectRgbOutline(outline)) return true;
         return properties.ChildElements.Any(child => child.LocalName is "effectLst" or "effectDag" or "scene3d" or "sp3d");
@@ -151,6 +152,10 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
 
     private static bool IsFillElement(OpenXmlElement element) => element is
         A.SolidFill or A.GradientFill or A.BlipFill or A.PatternFill or A.GroupFill or A.NoFill;
+
+    private static bool IsLineShape(P.ShapeProperties properties) =>
+        properties.Parent is P.ConnectionShape ||
+        properties.GetFirstChild<A.PresetGeometry>()?.Preset?.Value == A.ShapeTypeValues.Line;
 
     private static bool IsDirectRgbFill(OpenXmlElement element) =>
         element is A.SolidFill solid && solid.ChildElements.Count == 1 &&

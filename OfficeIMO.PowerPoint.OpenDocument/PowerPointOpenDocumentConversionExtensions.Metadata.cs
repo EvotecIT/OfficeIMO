@@ -5,6 +5,21 @@ using System.Xml.Linq;
 namespace OfficeIMO.PowerPoint.OpenDocument;
 
 public static partial class PowerPointOpenDocumentConversionExtensions {
+    private static readonly Lazy<IReadOnlyDictionary<string, string>> DefaultPowerPointExtendedMetadata = new(() => {
+        using PowerPointPresentation baseline = PowerPointPresentation.Create(new MemoryStream(),
+            new PowerPointCreateOptions());
+        return ReadExtendedMetadata(baseline);
+    });
+
+    private static IReadOnlyDictionary<string, string> ReadExtendedMetadata(PowerPointPresentation presentation) =>
+        presentation.OpenXmlDocument.ExtendedFilePropertiesPart?.Properties?.ChildElements
+            .Where(element => element.LocalName is not (
+                "Company" or "Manager" or "Slides" or "Notes" or "HiddenSlides" or
+                "Words" or "Paragraphs" or "Characters" or "CharactersWithSpaces" or
+                "Lines" or "Pages" or "Bytes" or "HeadingPairs" or "TitlesOfParts"))
+            .ToDictionary(element => element.LocalName, element => element.InnerText, StringComparer.Ordinal)
+        ?? new Dictionary<string, string>(StringComparer.Ordinal);
+
     private static void CopyPowerPointMetadata(PowerPointPresentation source,
         OdpPresentation target, OdfConversionReport report) {
         PowerPointBuiltinDocumentProperties properties = source.BuiltinDocumentProperties;
@@ -30,8 +45,13 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         var applicationProperties = source.OpenXmlDocument.ExtendedFilePropertiesPart?.Properties;
         unsupported += CountNonempty(applicationProperties?.Company?.Text,
             applicationProperties?.Manager?.Text);
+        foreach (KeyValuePair<string, string> property in ReadExtendedMetadata(source)) {
+            if (!string.IsNullOrWhiteSpace(property.Value) &&
+                (!DefaultPowerPointExtendedMetadata.Value.TryGetValue(property.Key, out string? baseline) ||
+                 !string.Equals(property.Value, baseline, StringComparison.Ordinal))) unsupported++;
+        }
         AddUnsupported(report, "document-metadata", unsupported,
-            "PowerPoint keywords, category, revision, version, last-print time, company, manager, package content fields, and custom properties have no exact mapping in the current ODP metadata surface.");
+            "PowerPoint keywords, category, revision, version, last-print time, extended application properties, package content fields, and custom properties have no exact mapping in the current ODP metadata surface.");
     }
 
     private static void CopyOdpMetadata(OdpPresentation source,
@@ -50,11 +70,13 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             OdfNamespaces.Dc + "description", OdfNamespaces.Meta + "initial-creator",
             OdfNamespaces.Dc + "creator",
             OdfNamespaces.Meta + "creation-date", OdfNamespaces.Dc + "date",
-            OdfNamespaces.Meta + "generator", OdfNamespaces.Dc + "language"
+            OdfNamespaces.Dc + "language"
         };
         int unsupported = source.Package.GetXml("meta.xml")
             .Descendants(OdfNamespaces.Office + "meta")
-            .Elements().Count(element => !mapped.Contains(element.Name));
+            .Elements().Count(element => !mapped.Contains(element.Name) &&
+                (element.Name != OdfNamespaces.Meta + "generator" ||
+                 !string.Equals(element.Value, "OfficeIMO.OpenDocument", StringComparison.Ordinal)));
         AddUnsupported(report, "document-metadata", unsupported,
             "ODF keywords, custom properties, and other metadata outside the shared core fields were not transferred to PowerPoint.");
     }
