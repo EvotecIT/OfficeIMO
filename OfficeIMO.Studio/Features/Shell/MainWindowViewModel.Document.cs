@@ -11,7 +11,6 @@ namespace OfficeIMO.Studio.Features.Shell;
 
 /// <summary>Document properties, bookmark editing, attachments, headers and footers, exports and form data.</summary>
 public sealed partial class MainWindowViewModel {
-    private const long MaximumAttachmentBytes = 64L * 1024 * 1024;
     private IStudioFileDialogs _fileDialogs = NoStudioFileDialogs.Instance;
     private PdfWorkspace? _propertiesWorkspace;
     private (string Title, string Author, string Subject, string Keywords) _savedProperties = (string.Empty, string.Empty, string.Empty, string.Empty);
@@ -105,12 +104,15 @@ public sealed partial class MainWindowViewModel {
         OnPropertyChanged(nameof(DocumentCreatedText));
         OnPropertyChanged(nameof(DocumentModifiedText));
 
-        string? selectedAttachment = SelectedAttachment?.FileName;
+        PdfAttachmentInfo? selectedAttachment = SelectedAttachment?.Attachment;
         DocumentAttachments.Clear();
         foreach (PdfAttachmentInfo attachment in _workspace?.Attachments ?? [])
-            DocumentAttachments.Add(new PdfAttachmentItemViewModel(attachment.FileName, attachment.Description,
+            DocumentAttachments.Add(new PdfAttachmentItemViewModel(attachment,
                 FormatByteSize(attachment.DecodedSizeBytes ?? attachment.SizeBytes)));
-        SelectedAttachment = DocumentAttachments.FirstOrDefault(item => item.FileName == selectedAttachment);
+        SelectedAttachment = DocumentAttachments.FirstOrDefault(item => selectedAttachment is not null &&
+            item.Attachment.FileSpecObjectNumber == selectedAttachment.FileSpecObjectNumber &&
+            item.Attachment.EmbeddedFileObjectNumber == selectedAttachment.EmbeddedFileObjectNumber &&
+            item.Attachment.Name == selectedAttachment.Name && item.Attachment.Source == selectedAttachment.Source);
         OnPropertyChanged(nameof(HasDocumentAttachments));
         InvalidateComplianceResult();
         NotifyDocumentStructureActions();
@@ -311,7 +313,7 @@ public sealed partial class MainWindowViewModel {
         string? source = await _fileDialogs.PickOpenFileAsync(UiText("Attachments.Add"), StudioFileType.Any(UiText("Attachments.AllFiles")), cancellationToken).ConfigureAwait(true);
         if (source is null || !ReferenceEquals(workspace, _workspace)) return;
         await RunMutationAsync(async token => {
-            var snapshot = await _services.Storage.ReadSnapshotAsync(source, token, MaximumAttachmentBytes).ConfigureAwait(true);
+            var snapshot = await _services.Storage.ReadSnapshotAsync(source, token, PdfWorkspace.MaximumAttachmentBytes).ConfigureAwait(true);
             await workspace.AddAttachmentAsync(_services.Storage.Describe(source).Name, snapshot.Bytes, token, CreateProgress()).ConfigureAwait(true);
         }, cancellationToken).ConfigureAwait(true);
         RefreshDocumentStructure();
@@ -327,7 +329,7 @@ public sealed partial class MainWindowViewModel {
             [string.IsNullOrEmpty(extension) ? "*" : extension.TrimStart('.')]);
         string? destination = await _fileDialogs.PickSaveFileAsync(UiText("Attachments.Save"), attachment.FileName, type, cancellationToken).ConfigureAwait(true);
         if (destination is null || !ReferenceEquals(workspace, _workspace)) return;
-        await RunStandaloneAsync(token => workspace.SaveAttachmentAsync(attachment.FileName, destination, token), cancellationToken,
+        await RunStandaloneAsync(token => workspace.SaveAttachmentAsync(attachment.Attachment, destination, token), cancellationToken,
             UiFormat("Attachments.Saved", attachment.FileName)).ConfigureAwait(true);
     }
 
@@ -336,7 +338,7 @@ public sealed partial class MainWindowViewModel {
     [RelayCommand(CanExecute = nameof(CanRemoveAttachment))]
     private async Task RemoveAttachmentAsync(PdfAttachmentItemViewModel? item, CancellationToken cancellationToken) {
         if (_workspace is not { } workspace || (item ?? SelectedAttachment) is not { } attachment) return;
-        await RunMutationAsync(token => workspace.RemoveAttachmentAsync(attachment.FileName, token, CreateProgress()), cancellationToken).ConfigureAwait(true);
+        await RunMutationAsync(token => workspace.RemoveAttachmentAsync(attachment.Attachment, token, CreateProgress()), cancellationToken).ConfigureAwait(true);
         RefreshDocumentStructure();
     }
 
@@ -443,6 +445,8 @@ public sealed record PageSizeChoice(string Label, PageSize Size);
 
 public sealed record ResizeModeChoice(PdfPageResizeMode Mode, string Label);
 
-public sealed record PdfAttachmentItemViewModel(string FileName, string? Description, string SizeText) {
+public sealed record PdfAttachmentItemViewModel(PdfAttachmentInfo Attachment, string SizeText) {
+    public string FileName => Attachment.FileName;
+    public string? Description => Attachment.Description;
     public string Detail => string.IsNullOrWhiteSpace(Description) ? SizeText : SizeText + " · " + Description;
 }

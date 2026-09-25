@@ -6,6 +6,31 @@ namespace OfficeIMO.Studio.Tests;
 
 public sealed class StudioDocumentTabHostTests {
     [Fact]
+    public async Task FailedReopenKeepsClosedTabForRetry() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-tab-retry-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string path = Path.Combine(root, "source.pdf");
+        string unavailable = Path.Combine(root, "unavailable.pdf");
+        try {
+            CreateDocument(path, 1);
+            using var host = new StudioDocumentTabHost(open => new MainWindowViewModel(
+                _ => Task.FromResult<string?>(null), openDocumentInTab: open), _ => { });
+            await host.OpenDocumentAsync(path);
+            await host.CloseTabAsync(Assert.Single(host.Tabs));
+            File.Move(path, unavailable);
+
+            await host.ReopenClosedTabAsync();
+            Assert.Empty(host.Tabs);
+            Assert.True(host.CanReopenClosedTab);
+
+            File.Move(unavailable, path);
+            await host.ReopenClosedTabAsync();
+            Assert.Equal(Path.GetFullPath(path), Assert.Single(host.Tabs).Document.DocumentPath);
+            Assert.False(host.CanReopenClosedTab);
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
     public async Task ReopenAfterRecoverySaveUsesSavedDestination() {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-tab-recovery-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);

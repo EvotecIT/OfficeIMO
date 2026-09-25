@@ -618,6 +618,12 @@ IReadOnlyList<PdfImagePlacement> placements = pdf.Images.Placements("1-2");
 IReadOnlyList<PdfExtractedAttachment> attachments = pdf.Attachments.Extract();
 ```
 
+When the application needs only one embedded file, select its metadata from
+`pdf.Inspect().Attachments` and call `pdf.Attachments.Extract(selected, maximumDecodedBytes)`.
+This bounds the selected decoded payload and avoids decoding the other files.
+`pdf.Attachments.Remove(selected)` removes the matching file specification when
+more than one attachment uses the same display name.
+
 `PdfDocument.Read(...)` is the only semantic reconstruction entry point. Both
 profiles return `PdfDocumentReadResult`; they do not maintain separate logical
 models. `Structured` adds document-wide tagged-PDF, outline, repeated-edge,

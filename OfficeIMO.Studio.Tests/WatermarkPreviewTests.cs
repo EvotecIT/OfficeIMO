@@ -9,6 +9,35 @@ namespace OfficeIMO.Studio.Tests;
 
 public sealed class WatermarkPreviewTests {
     [Fact]
+    public async Task NormalizingPreviewPageDoesNotQueueSecondAutomaticRender() {
+        byte[] source = PdfDocument.Create(document => {
+            document.Page(page => page.Content(content => content.Text("First")));
+            document.Page(page => page.Content(content => content.Text("Second")));
+        }).ToBytes();
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(async () => {
+            await WithDocument(async workspace => {
+                int renders = 0;
+                using var model = new Features.Editor.WatermarkPreviewViewModel(2, 1,
+                    ((App)Application.Current!).Services.Localizer,
+                    async (options, page, token) => {
+                        renders++;
+                        return await workspace.PrepareWatermarkAsync(options, page, token);
+                    }, _ => Task.FromResult<byte[]?>(null)) { AutoPreview = true };
+                model.PageRange = "2";
+
+                await model.PreviewCommand.ExecuteAsync(null);
+                await Task.Delay(650);
+
+                Assert.Equal(2, model.PreviewPage);
+                Assert.True(model.CanApply, model.ErrorMessage);
+                Assert.Equal(1, renders);
+            }, source);
+            return true;
+        }, CancellationToken.None);
+    }
+
+    [Fact]
     public async Task ManualPreviewSupersedesPendingAutomaticPreview() {
         using var session = TestAppBuilder.StartSession();
         await session.Dispatch(async () => {

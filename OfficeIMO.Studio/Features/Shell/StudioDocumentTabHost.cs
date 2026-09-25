@@ -162,11 +162,22 @@ public sealed partial class StudioDocumentTabHost : ObservableObject, IDisposabl
     internal async Task ReopenClosedTabAsync() {
         while (_closedPaths.Count > 0 && !_disposed) {
             string path = _closedPaths[^1];
-            _closedPaths.RemoveAt(_closedPaths.Count - 1);
-            if (Tabs.Any(tab => DocumentOwnsPath(tab.Document, path))) continue;
-            await OpenDocumentAsync(path).ConfigureAwait(true);
+            try {
+                if (Tabs.Any(tab => DocumentOwnsPath(tab.Document, path))) {
+                    RemoveClosedPath(path);
+                    continue;
+                }
+                await OpenDocumentAsync(path).ConfigureAwait(true);
+                if (Tabs.Any(tab => DocumentOwnsPath(tab.Document, path))) RemoveClosedPath(path);
+            } catch (Exception exception) when (IsPathIdentityFailure(exception)) {
+                ActiveDocument.ErrorMessage = exception.Message;
+            }
             return;
         }
+    }
+
+    private void RemoveClosedPath(string path) {
+        if (_closedPaths.Remove(path)) OnPropertyChanged(nameof(CanReopenClosedTab));
     }
 
     internal async Task CloseTabAsync(StudioDocumentTabViewModel tab) {
@@ -183,6 +194,7 @@ public sealed partial class StudioDocumentTabHost : ObservableObject, IDisposabl
             _closedPaths.Remove(closedPath);
             _closedPaths.Add(closedPath);
             if (_closedPaths.Count > 10) _closedPaths.RemoveAt(0);
+            OnPropertyChanged(nameof(CanReopenClosedTab));
         }
         Tabs.Remove(tab);
         OnPropertyChanged(nameof(HasTabs));

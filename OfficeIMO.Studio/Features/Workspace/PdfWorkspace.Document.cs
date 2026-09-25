@@ -6,6 +6,7 @@ namespace OfficeIMO.Studio.Features.Workspace;
 
 /// <summary>Document-level structure: properties, bookmarks, attachments, headers and footers, and exports.</summary>
 internal sealed partial class PdfWorkspace {
+    internal const long MaximumAttachmentBytes = 64L * 1024 * 1024;
     internal bool CanEditMetadata => CanPlan(PdfMutationOperation.UpdateMetadata);
 
     internal bool CanEditBookmarks => CanPlan(PdfMutationOperation.ModifyCatalog);
@@ -37,16 +38,15 @@ internal sealed partial class PdfWorkspace {
             bytes => RequireValid(LoadDocument(bytes).Attachments.Add(file)).ToBytes(), cancellationToken, progress);
     }
 
-    internal Task RemoveAttachmentAsync(string fileName, CancellationToken cancellationToken,
+    internal Task RemoveAttachmentAsync(PdfAttachmentInfo attachment, CancellationToken cancellationToken,
         IProgress<PdfWorkspaceProgress>? progress = null) =>
-        MutateBytesAsync(PdfWorkspaceOperationKind.Attachments, "Removed attachment " + fileName, [],
-            bytes => RequireValid(LoadDocument(bytes).Attachments.Remove(fileName)).ToBytes(), cancellationToken, progress);
+        MutateBytesAsync(PdfWorkspaceOperationKind.Attachments, "Removed attachment " + attachment.FileName, [],
+            bytes => RequireValid(LoadDocument(bytes).Attachments.Remove(attachment)).ToBytes(), cancellationToken, progress);
 
-    internal async Task SaveAttachmentAsync(string fileName, string destination, CancellationToken cancellationToken) {
+    internal async Task SaveAttachmentAsync(PdfAttachmentInfo attachment, string destination, CancellationToken cancellationToken) {
         PdfDocument snapshot = CreateDocumentSnapshot();
-        byte[] payload = await RunCancellableCpuWorkAsync(() => snapshot.Attachments.Extract()
-            .FirstOrDefault(item => string.Equals(item.FileName, fileName, StringComparison.Ordinal))?.Bytes
-            ?? throw new InvalidOperationException($"The attachment {fileName} is no longer in this document."),
+        byte[] payload = await RunCancellableCpuWorkAsync(() => snapshot.Attachments.Extract(
+                attachment, MaximumAttachmentBytes, cancellationToken).Bytes,
             cancellationToken).ConfigureAwait(false);
         await WriteWorkspaceOutputAsync(destination,
             (stream, token) => stream.WriteAsync(payload.AsMemory(), token).AsTask(), cancellationToken).ConfigureAwait(false);

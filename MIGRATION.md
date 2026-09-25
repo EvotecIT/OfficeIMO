@@ -9,11 +9,13 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
-## Studio attachment intake limit
+## Studio attachment size limit
 
 Studio now rejects an attachment source larger than 64 MiB before adding it to
-a PDF. Use a smaller source when adding an embedded file through Studio;
-existing attachments remain available for inspection and export.
+a PDF, and limits saving one embedded file to 64 MiB of decoded content. Use a
+smaller source when adding an embedded file through Studio. Existing larger
+attachments remain visible, but must be extracted through a PDF API with an
+appropriate application-owned limit.
 
 ## PDF text search results across visual lines
 

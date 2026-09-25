@@ -17,6 +17,7 @@ public sealed partial class WatermarkPreviewViewModel : ObservableObject, IDispo
     private PdfWatermarkPreview? _prepared;
     private long _settingsVersion;
     private long _preparedVersion = -1;
+    private bool _normalizingPreviewPage;
     private bool _disposed;
     private string _watermarkId = Guid.NewGuid().ToString("N");
     private PdfStandardFont _font = PdfStandardFont.HelveticaBold;
@@ -88,7 +89,7 @@ public sealed partial class WatermarkPreviewViewModel : ObservableObject, IDispo
             _prepared = null;
             ClearPreviewImage();
             OnPropertyChanged(nameof(CanApply));
-            SchedulePreview();
+            if (!_normalizingPreviewPage) SchedulePreview();
         }
     }
 
@@ -157,7 +158,11 @@ public sealed partial class WatermarkPreviewViewModel : ObservableObject, IDispo
             };
             if (options.TargetPages is not null) {
                 var selected = options.TargetPages.Resolve(PageCount);
-                if (!selected.Contains(PreviewPage)) PreviewPage = selected[0];
+                if (!selected.Contains(PreviewPage)) {
+                    _normalizingPreviewPage = true;
+                    try { PreviewPage = selected[0]; }
+                    finally { _normalizingPreviewPage = false; }
+                }
             }
             version = _settingsVersion;
             PdfWatermarkPreview result = await _prepare(options, PreviewPage, cancellation.Token).ConfigureAwait(true);
