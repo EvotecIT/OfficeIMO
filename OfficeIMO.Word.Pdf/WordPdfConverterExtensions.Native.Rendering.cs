@@ -859,11 +859,6 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static string GetNativeHeadingText(string content, IReadOnlyList<WordParagraph> runs, WordParagraph paragraph, NativeFontMap nativeFontMap) {
-            string normalizedContent = NormalizeNativeDirectText(content);
-            if (!string.IsNullOrWhiteSpace(normalizedContent)) {
-                return ApplyNativeTextTransform(normalizedContent, paragraph, nativeFontMap: nativeFontMap);
-            }
-
             var builder = new StringBuilder();
             foreach (WordParagraph run in runs) {
                 if (run.IsImage) {
@@ -886,7 +881,12 @@ namespace OfficeIMO.Word.Pdf {
                 }
             }
 
-            return NormalizeNativeDirectText(builder.ToString());
+            string runText = NormalizeNativeDirectText(builder.ToString());
+            if (!string.IsNullOrWhiteSpace(runText)) {
+                return runText;
+            }
+
+            return ApplyNativeTextTransform(NormalizeNativeDirectText(content), paragraph, nativeFontMap: nativeFontMap);
         }
 
         private static bool IsNativeRenderableTextRun(WordParagraph run, WordParagraph? fallback = null) =>

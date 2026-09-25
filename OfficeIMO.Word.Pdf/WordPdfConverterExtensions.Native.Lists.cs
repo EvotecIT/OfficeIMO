@@ -436,6 +436,8 @@ namespace OfficeIMO.Word.Pdf {
                     runs.Add(new WordParagraph(paragraph._document, paragraph._paragraph, run));
                 } else if (element is W.Hyperlink hyperlink) {
                     AddNativeHyperlinkRuns(runs, paragraph, hyperlink);
+                } else if (element is W.SimpleField simpleField) {
+                    AddNativeSimpleFieldRuns(runs, paragraph, simpleField);
                 } else if (element is W.SdtRun sdtRun && IsNativeSimpleTextContentControl(sdtRun)) {
                     AddNativeSdtRunRuns(runs, paragraph, sdtRun);
                 }
@@ -456,6 +458,8 @@ namespace OfficeIMO.Word.Pdf {
                     runs.Add(new WordParagraph(paragraph._document, paragraph._paragraph!, sdtContentRun));
                 } else if (childElement is W.Hyperlink sdtHyperlink) {
                     AddNativeHyperlinkRuns(runs, paragraph, sdtHyperlink);
+                } else if (childElement is W.SimpleField simpleField) {
+                    AddNativeSimpleFieldRuns(runs, paragraph, simpleField);
                 }
             }
         }
@@ -482,9 +486,22 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void AddNativeHyperlinkRuns(List<WordParagraph> runs, WordParagraph paragraph, W.Hyperlink hyperlink) {
-            foreach (W.Run childRun in hyperlink.Elements<W.Run>()) {
-                var run = new WordParagraph(paragraph._document, paragraph._paragraph!, childRun) { _hyperlink = hyperlink };
-                runs.Add(run);
+            foreach (var child in hyperlink.ChildElements) {
+                if (child is W.Run childRun) {
+                    runs.Add(new WordParagraph(paragraph._document, paragraph._paragraph!, childRun) { _hyperlink = hyperlink });
+                } else if (child is W.SimpleField simpleField) {
+                    AddNativeSimpleFieldRuns(runs, paragraph, simpleField, hyperlink);
+                }
+            }
+        }
+
+        private static void AddNativeSimpleFieldRuns(List<WordParagraph> runs, WordParagraph paragraph, W.SimpleField field, W.Hyperlink? hyperlink = null) {
+            foreach (var child in field.ChildElements) {
+                if (child is W.Run resultRun) {
+                    runs.Add(new WordParagraph(paragraph._document, paragraph._paragraph!, resultRun) { _hyperlink = hyperlink });
+                } else if (child is W.Hyperlink resultHyperlink) {
+                    AddNativeHyperlinkRuns(runs, paragraph, resultHyperlink);
+                }
             }
         }
 

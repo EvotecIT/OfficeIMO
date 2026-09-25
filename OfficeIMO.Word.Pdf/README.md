@@ -47,6 +47,21 @@ var options = new WordToPdfOptions {
 document.SaveAsPdf("proposal.pdf", options);
 ```
 
+### Refresh date fields before export
+
+PDF export uses the field results stored in the Word document. To calculate supported fields such as `DATE`, `CREATEDATE`, and `SAVEDATE` first, refresh them explicitly:
+
+```csharp
+using OfficeIMO.Word;
+using OfficeIMO.Word.Pdf;
+
+using var document = WordDocument.Load("report.docx");
+document.UpdateFieldsAndGetReport();
+document.SaveAsPdf("report.pdf");
+```
+
+`DATE` uses the current clock during the refresh. `CREATEDATE` and `SAVEDATE` use the document's stored properties. Table borders follow the Word style and direct cell settings, including explicit `nil` or `none` borders. Set `DefaultTableBorders = true` only when you want a fallback grid on otherwise borderless tables.
+
 ### Export to bytes or streams
 
 ```csharp
