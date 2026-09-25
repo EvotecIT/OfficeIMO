@@ -1,0 +1,27 @@
+{
+  "$schema": "https://raw.githubusercontent.com/EvotecIT/PSPublishModule/main/Schemas/powerforge.release.schema.json",
+  "SchemaVersion": 1,
+  "Tools": {
+    "DotNetPublishConfigPath": "powerforge.dotnetpublish.json"
+  },
+  "Outputs": {
+    "Staging": {
+      "RootPath": "../../Artifacts/Studio/LinuxRelease",
+      "PortablePath": "GitHub",
+      "InstallerPath": "GitHub",
+      "MetadataPath": "Metadata"
+    }
+  },
+  "GitHub": {
+    "Publish": false,
+    "Owner": "EvotecIT",
+    "Repository": "OfficeIMO",
+    "Commitish": "HEAD",
+    "VersionSource": "Assets",
+    "TagTemplate": "Studio-v{Version}",
+    "ReleaseNameTemplate": "OfficeIMO Studio {Version}",
+    "IsDraft": true,
+    "ReuseExistingRelease": false,
+    "ReplaceExistingAssets": false
+  }
+}
