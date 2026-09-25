@@ -11,6 +11,7 @@ namespace OfficeIMO.Studio.Features.Shell;
 
 /// <summary>Document properties, bookmark editing, attachments, headers and footers, exports and form data.</summary>
 public sealed partial class MainWindowViewModel {
+    private const long MaximumAttachmentBytes = 64L * 1024 * 1024;
     private IStudioFileDialogs _fileDialogs = NoStudioFileDialogs.Instance;
     private PdfWorkspace? _propertiesWorkspace;
     private (string Title, string Author, string Subject, string Keywords) _savedProperties = (string.Empty, string.Empty, string.Empty, string.Empty);
@@ -310,7 +311,7 @@ public sealed partial class MainWindowViewModel {
         string? source = await _fileDialogs.PickOpenFileAsync(UiText("Attachments.Add"), StudioFileType.Any(UiText("Attachments.AllFiles")), cancellationToken).ConfigureAwait(true);
         if (source is null || !ReferenceEquals(workspace, _workspace)) return;
         await RunMutationAsync(async token => {
-            var snapshot = await _services.Storage.ReadSnapshotAsync(source, token).ConfigureAwait(true);
+            var snapshot = await _services.Storage.ReadSnapshotAsync(source, token, MaximumAttachmentBytes).ConfigureAwait(true);
             await workspace.AddAttachmentAsync(_services.Storage.Describe(source).Name, snapshot.Bytes, token, CreateProgress()).ConfigureAwait(true);
         }, cancellationToken).ConfigureAwait(true);
         RefreshDocumentStructure();

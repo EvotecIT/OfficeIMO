@@ -84,7 +84,7 @@ public sealed partial class DocumentWorkspaceView : UserControl {
             e.Handled = true;
         } else if (e.Key == Key.Escape) {
             UpdatePageNumber();
-            PagesList.Focus();
+            (GridPagesList.IsEffectivelyVisible ? GridPagesList : PagesList).Focus();
             e.Handled = true;
         }
     }

@@ -9,6 +9,26 @@ namespace OfficeIMO.Studio.Tests;
 
 public sealed class StudioDocumentStructureTests {
     [Fact]
+    public async Task OversizedAttachmentIsRejectedBeforeDocumentMutation() {
+        string root = CreateRoot();
+        string document = CreateDocument(root);
+        string attachment = Path.Combine(root, "oversized.bin");
+        try {
+            using (var stream = new FileStream(attachment, FileMode.CreateNew, FileAccess.Write))
+                stream.SetLength(64L * 1024 * 1024 + 1);
+            var dialogs = new RecordingFileDialogs { OpenFile = attachment };
+            using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null)) { FileDialogs = dialogs };
+            await model.OpenDocumentAsync(document);
+
+            await model.AddAttachmentCommand.ExecuteAsync(null);
+
+            Assert.Empty(model.DocumentAttachments);
+            Assert.False(model.IsDirty);
+            Assert.NotNull(model.ErrorMessage);
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
     public async Task LoadedMetadataWhitespaceIsNotAnUnsolicitedEdit() {
         string root = CreateRoot();
         string path = CreateDocument(root);

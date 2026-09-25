@@ -94,7 +94,7 @@ public sealed partial class PdfPageView : UserControl {
         if (_viewModel is not { HasInlineFormEditor: true, FocusInlineFormEditorRequested: true } model) return;
         model.FocusInlineFormEditorRequested = false;
         Avalonia.Threading.Dispatcher.UIThread.Post(() => {
-            Control? editor = InlineFormText.IsVisible ? InlineFormText : InlineFormCheck.IsVisible ? InlineFormCheck : InlineFormChoice.IsVisible ? InlineFormChoice : null;
+            Control? editor = InlineFormText.IsVisible ? InlineFormText : InlineFormEditableChoice.IsVisible ? InlineFormEditableChoice : InlineFormCheck.IsVisible ? InlineFormCheck : InlineFormChoice.IsVisible ? InlineFormChoice : null;
             if (editor is null) return;
             editor.Focus(NavigationMethod.Tab);
             if (editor is TextBox text) text.SelectAll();

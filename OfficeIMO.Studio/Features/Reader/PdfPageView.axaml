@@ -88,11 +88,13 @@
               <CheckBox x:Name="InlineFormCheck" IsVisible="{Binding IsCheckBoxEditor}" IsChecked="{Binding IsChecked, Mode=TwoWay}" IsEnabled="{Binding CanFill}"
                         HorizontalAlignment="Center" VerticalAlignment="Center" MinWidth="0" MinHeight="0" Padding="0"
                         AutomationProperties.Name="{Binding DisplayName}" />
-              <ComboBox x:Name="InlineFormChoice" IsVisible="{Binding IsSingleChoiceEditor}" ItemsSource="{Binding Choices}" SelectedItem="{Binding SelectedChoice, Mode=TwoWay}"
+              <ComboBox x:Name="InlineFormChoice" IsVisible="{Binding IsFixedSingleChoiceEditor}" ItemsSource="{Binding Choices}" SelectedItem="{Binding SelectedChoice, Mode=TwoWay}"
                         IsEnabled="{Binding CanFill}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" MinHeight="0" Padding="6,0"
                         AutomationProperties.Name="{Binding DisplayName}">
                 <ComboBox.ItemTemplate><DataTemplate x:DataType="editor:PdfFormChoiceViewModel"><TextBlock Text="{Binding DisplayText}" /></DataTemplate></ComboBox.ItemTemplate>
               </ComboBox>
+              <TextBox x:Name="InlineFormEditableChoice" Classes="inlineForm" IsVisible="{Binding IsEditableChoice}" Text="{Binding TextValue, Mode=TwoWay}"
+                       IsReadOnly="{Binding !CanFill}" AutomationProperties.Name="{Binding DisplayName}" ToolTip.Tip="{Binding ValidationSummary}" />
             </Panel>
           </Border>
         </Canvas>
