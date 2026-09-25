@@ -96,6 +96,7 @@ public sealed partial class PageImageExportViewModel : ObservableObject, IDispos
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasOutput))]
+    [NotifyPropertyChangedFor(nameof(HasBrowsableOutput))]
     private string? _publishedDirectory;
 
     [ObservableProperty]
@@ -105,6 +106,7 @@ public sealed partial class PageImageExportViewModel : ObservableObject, IDispos
     public string InputName => string.IsNullOrWhiteSpace(InputPath) ? string.Empty
         : _storage?.Describe(InputPath).Name ?? OfficeStorageIdentity.GetFileName(InputPath);
     public bool HasOutput => !string.IsNullOrWhiteSpace(PublishedDirectory);
+    public bool HasBrowsableOutput => HasOutput && OfficeStorageIdentity.GetLocalPath(PublishedDirectory!) is not null;
     private bool CanExport => !IsBusy && !string.IsNullOrWhiteSpace(InputPath) && !string.IsNullOrWhiteSpace(OutputDirectory);
 
     internal void UseDocument(string? path) {
@@ -177,7 +179,7 @@ public sealed partial class PageImageExportViewModel : ObservableObject, IDispos
             });
             ownerStarted = true;
             PdfPageImageExportResult result = await _runner.ExportPdfPagesAsync(request, progress, operation.Token).ConfigureAwait(true);
-            job?.CompleteBatch(result.Status, result.OutputDirectory, result.Summary, result.OutputRecoveries, result.Files.Count > 0);
+            job?.CompleteBatch(result.Status, result.OutputDirectory, result.Summary, result.OutputRecoveries, result.Files.Count > 0, isDirectoryOutput: true);
             HasRecovery = result.OutputRecoveries.Count > 0;
             Summary = result.Summary;
             Status = result.Status switch {

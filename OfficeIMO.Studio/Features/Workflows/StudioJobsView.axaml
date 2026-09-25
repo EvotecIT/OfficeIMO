@@ -81,7 +81,7 @@
                     <Button Classes="tool" IsVisible="{Binding IsActive}" Content="{Binding CancelLabel}" Command="{Binding CancelCommand}" />
                     <Button Classes="tool" IsVisible="{Binding HasOutput}" Content="{loc:Loc Jobs.ShowInFolder}"
                             Command="{ReflectionBinding $parent[UserControl].DataContext.RevealOutputCommand}" CommandParameter="{Binding}" />
-                    <Button Classes="primary" IsVisible="{Binding HasOutput}" Content="{loc:Loc Jobs.OpenOutput}"
+                    <Button Classes="primary" IsVisible="{Binding CanOpenOutput}" Content="{loc:Loc Jobs.OpenOutput}"
                             Command="{ReflectionBinding $parent[UserControl].DataContext.OpenOutputCommand}" CommandParameter="{Binding}" />
                   </StackPanel>
                 </Grid>

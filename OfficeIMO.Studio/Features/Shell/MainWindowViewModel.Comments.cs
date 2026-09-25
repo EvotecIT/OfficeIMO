@@ -67,7 +67,7 @@ public sealed partial class MainWindowViewModel {
 
     internal string BuildCommentSummary(string documentName) {
         var text = new System.Text.StringBuilder();
-        text.Append("# ").AppendLine(UiFormat("Comments.SummaryTitle", documentName)).AppendLine();
+        text.Append("# ").AppendLine(UiFormat("Comments.SummaryTitle", EscapeMarkdownText(documentName))).AppendLine();
         int open = _allCommentThreads.Count(thread => !thread.IsResolved);
         text.AppendLine(UiFormat("Comments.SummaryCounts", _allCommentThreads.Count, open)).AppendLine();
         foreach (var page in _allCommentThreads.GroupBy(thread => thread.Annotation.PageNumber).OrderBy(group => group.Key)) {
@@ -75,14 +75,29 @@ public sealed partial class MainWindowViewModel {
             foreach (CommentThreadViewModel thread in page) {
                 for (int index = 0; index < thread.Entries.Count; index++) {
                     CommentEntryViewModel entry = thread.Entries[index];
-                    string contents = string.IsNullOrWhiteSpace(entry.Contents) ? UiText("Comments.SummaryNoText") : entry.Contents.ReplaceLineEndings(" ");
-                    if (index == 0) text.Append("- **").Append(entry.Author).Append("** (").Append(thread.State).Append("): ").AppendLine(contents);
-                    else text.Append("  - ").Append(entry.Author).Append(": ").AppendLine(contents);
+                    string contents = string.IsNullOrWhiteSpace(entry.Contents) ? UiText("Comments.SummaryNoText") : entry.Contents;
+                    if (index == 0) text.Append("- **").Append(EscapeMarkdownText(entry.Author)).Append("** (").Append(EscapeMarkdownText(thread.State)).Append("): ").AppendLine(EscapeMarkdownText(contents));
+                    else text.Append("  - ").Append(EscapeMarkdownText(entry.Author)).Append(": ").AppendLine(EscapeMarkdownText(contents));
                 }
             }
             text.AppendLine();
         }
         return text.ToString();
+    }
+
+    private static string EscapeMarkdownText(string value) {
+        var escaped = new System.Text.StringBuilder(value.Length);
+        foreach (char character in value) {
+            if (char.IsWhiteSpace(character)) escaped.Append(' ');
+            else if (character == '&') escaped.Append("&amp;");
+            else if (character == '<') escaped.Append("&lt;");
+            else if (character == '>') escaped.Append("&gt;");
+            else {
+                if ("\\`*_{}[]()#+-.!|~".Contains(character)) escaped.Append('\\');
+                escaped.Append(character);
+            }
+        }
+        return escaped.ToString();
     }
     partial void OnCommentAuthorFilterChanged(string value) => FilterCommentThreads();
     partial void OnSelectedCommentStatusChanged(CommentStatusChoice? value) => FilterCommentThreads();

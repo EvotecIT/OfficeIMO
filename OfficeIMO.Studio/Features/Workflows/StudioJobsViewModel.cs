@@ -22,7 +22,7 @@ public sealed partial class StudioJobsViewModel : ObservableObject, IDisposable 
     private StudioJobRecord? _selectedJob;
     [ObservableProperty]
     private string? _actionError;
-    private bool CanOpen(StudioJobRecord? job) => job?.HasOutput == true;
+    private bool CanOpen(StudioJobRecord? job) => job?.CanOpenOutput == true;
 
     private bool CanReveal(StudioJobRecord? job) => _revealFolder is not null && job?.HasOutput == true &&
         OfficeIMO.Internal.OfficeStorageIdentity.GetLocalPath(job.OutputPath!) is not null;

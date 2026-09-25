@@ -36,6 +36,7 @@ public sealed partial class StudioJobRecord : ObservableObject {
     private double _progress;
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(OutputName))]
+    [NotifyPropertyChangedFor(nameof(CanOpenOutput))]
     private string? _outputPath;
 
     /// <summary>The output file or folder name; the full location stays in the tooltip.</summary>
@@ -53,7 +54,12 @@ public sealed partial class StudioJobRecord : ObservableObject {
     [ObservableProperty]
     private string? _summary;
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanOpenOutput))]
     private bool _hasOutput;
+
+    public bool CanOpenOutput => HasOutput && (!IsDirectoryOutput ||
+        OutputPath is not null && OfficeIMO.Internal.OfficeStorageIdentity.GetLocalPath(OutputPath) is not null);
+    private bool IsDirectoryOutput { get; set; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasRecovery))]
@@ -72,8 +78,9 @@ public sealed partial class StudioJobRecord : ObservableObject {
     }
 
     internal void CompleteBatch(OfficeWorkflowStatus status, string? outputPath, string summary,
-        IReadOnlyList<OfficeWorkflowOutputRecovery> recoveries, bool hasVerifiedOutput) {
+        IReadOnlyList<OfficeWorkflowOutputRecovery> recoveries, bool hasVerifiedOutput, bool isDirectoryOutput) {
         if (!IsActive) return;
+        IsDirectoryOutput = isDirectoryOutput;
         Complete(status, outputPath, summary, recoveries.FirstOrDefault());
         Recoveries.Clear();
         foreach (var recovery in recoveries) Recoveries.Add(recovery);

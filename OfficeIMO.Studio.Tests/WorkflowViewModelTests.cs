@@ -118,7 +118,12 @@ public sealed class WorkflowViewModelTests {
         await pageExport.ExportCommand.ExecuteAsync(null);
 
         Assert.True(pageExport.HasOutput);
+        Assert.True(pageExport.HasBrowsableOutput);
         Assert.Single(Directory.GetFiles(pageExport.PublishedDirectory!, "*.png"));
+
+        pageExport.PublishedDirectory = "content://provider/exported-pages";
+        Assert.True(pageExport.HasOutput);
+        Assert.False(pageExport.HasBrowsableOutput);
 
         using var assembly = new PdfAssemblyViewModel(
             _ => Task.FromResult<IReadOnlyList<string>>([first, second]),

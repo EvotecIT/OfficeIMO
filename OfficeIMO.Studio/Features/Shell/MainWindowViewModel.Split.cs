@@ -56,7 +56,7 @@ public sealed partial class MainWindowViewModel {
                     ownerStarted = true;
                     result = await workspace.SplitAsync(destination, selectedPartSize, token, progress, directory?.Output, _publicationGuard, selectedPlan).ConfigureAwait(true);
                     string? publishedOutput = result.Files.Count == 0 ? null : provider ? result.Files[0].Path : Path.GetDirectoryName(result.Files[0].Path);
-                    job.CompleteBatch(result.Status, publishedOutput, result.Summary, result.OutputRecoveries, result.Files.Count > 0);
+                    job.CompleteBatch(result.Status, publishedOutput, result.Summary, result.OutputRecoveries, result.Files.Count > 0, isDirectoryOutput: !provider);
                 } catch (OperationCanceledException) when (token.IsCancellationRequested) {
                     // The runner returns typed cancellation/uncertainty after starting; an escaping cancellation
                     // comes from admission to the jobs or workspace CPU gate before output work starts.
