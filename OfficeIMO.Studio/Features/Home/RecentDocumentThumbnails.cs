@@ -17,26 +17,39 @@ internal static class RecentDocumentThumbnails {
         new(StringComparer.Ordinal);
     private static readonly SemaphoreSlim Gate = new(2, 2);
 
-    internal static Task<RecentDocumentPreview?> GetAsync(string path) {
+    internal static async Task<RecentDocumentPreview?> GetAsync(string path, CancellationToken cancellationToken = default) {
         if (OfficeIMO.Internal.OfficeStorageIdentity.GetLocalPath(path) is not { } local ||
             !string.Equals(System.IO.Path.GetExtension(local), ".pdf", StringComparison.OrdinalIgnoreCase)) {
-            return Task.FromResult<RecentDocumentPreview?>(null);
+            return null;
         }
         try {
+            cancellationToken.ThrowIfCancellationRequested();
             var file = new FileInfo(local);
-            if (!file.Exists) return Task.FromResult<RecentDocumentPreview?>(null);
+            if (!file.Exists) return null;
             string key = $"{file.FullName}|{file.Length}|{file.LastWriteTimeUtc.Ticks}";
             if (Cache.Count > MaximumEntries) Cache.Clear();
-            return Cache.GetOrAdd(key, _ => new Lazy<Task<RecentDocumentPreview?>>(() => RenderAsync(file.FullName))).Value;
+            for (int attempt = 0; attempt < 2; attempt++) {
+                Lazy<Task<RecentDocumentPreview?>> preview = Cache.GetOrAdd(key,
+                    _ => new Lazy<Task<RecentDocumentPreview?>>(() => RenderAsync(file.FullName, cancellationToken)));
+                try { return await preview.Value.WaitAsync(cancellationToken).ConfigureAwait(false); }
+                catch (OperationCanceledException) {
+                    // Another Home lifetime may have owned a now-cancelled cached render.
+                    // Evict it and let the current lifetime retry with its own token.
+                    Cache.TryRemove(key, out _);
+                    if (cancellationToken.IsCancellationRequested) throw;
+                }
+            }
+            return null;
         } catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException) {
-            return Task.FromResult<RecentDocumentPreview?>(null);
+            return null;
         }
     }
 
-    private static async Task<RecentDocumentPreview?> RenderAsync(string path) {
-        await Gate.WaitAsync().ConfigureAwait(false);
+    private static async Task<RecentDocumentPreview?> RenderAsync(string path, CancellationToken cancellationToken) {
+        await Gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try {
-            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(8));
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeout.CancelAfter(TimeSpan.FromSeconds(8));
             PdfDocumentSession session = await PdfDocumentSession.OpenAsync(path, timeout.Token).ConfigureAwait(false);
             if (session.Pages.Count == 0) return new RecentDocumentPreview(null, 0);
             PdfPageInfo first = session.Pages[0];
@@ -46,6 +59,8 @@ internal static class RecentDocumentThumbnails {
             PdfRenderedPage rendered = await session.RenderPageAsync(1, scale, timeout.Token).ConfigureAwait(false);
             using var stream = new MemoryStream(rendered.Bytes, writable: false);
             return new RecentDocumentPreview(new Bitmap(stream), session.Pages.Count);
+        } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+            throw;
         } catch (Exception error) when (error is not OutOfMemoryException) {
             // Protected, damaged, or slow documents keep the generic document card.
             return null;

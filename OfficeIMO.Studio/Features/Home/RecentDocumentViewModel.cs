@@ -30,14 +30,22 @@ public sealed partial class RecentDocumentViewModel : ObservableObject {
     private bool _thumbnailRequested;
 
     /// <summary>Starts loading the first-page preview once; cards without a preview keep the document glyph.</summary>
-    internal async void EnsureThumbnail() {
+    internal async void EnsureThumbnail(CancellationToken cancellationToken = default) {
         if (_thumbnailRequested) return;
         _thumbnailRequested = true;
-        RecentDocumentPreview? preview = await RecentDocumentThumbnails.GetAsync(Path);
-        if (preview is null) return;
-        Thumbnail = preview.Image;
-        if (preview.PageCount > 0)
-            PageCountLabel = preview.PageCount == 1 ? _localizer.Get("Home.PageCountOne") : _localizer.Format("Home.PageCount", preview.PageCount);
+        try {
+            RecentDocumentPreview? preview = await RecentDocumentThumbnails.GetAsync(Path, cancellationToken);
+            if (cancellationToken.IsCancellationRequested) {
+                _thumbnailRequested = false;
+                return;
+            }
+            if (preview is null) return;
+            Thumbnail = preview.Image;
+            if (preview.PageCount > 0)
+                PageCountLabel = preview.PageCount == 1 ? _localizer.Get("Home.PageCountOne") : _localizer.Format("Home.PageCount", preview.PageCount);
+        } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+            _thumbnailRequested = false;
+        }
     }
 
     internal Infrastructure.StudioStorageReference? StorageReference { get; init; }

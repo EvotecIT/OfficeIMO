@@ -10,6 +10,29 @@ using OfficeIMO.Studio.Features.Workspace;
 namespace OfficeIMO.Studio.Tests;
 
 public sealed class StudioCommentReviewTests {
+    [Fact]
+    public async Task CommentSummaryAvailabilityTracksWorkspaceBusyState() {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(async () => {
+            var services = ((App)Application.Current!).Services;
+            Directory.CreateDirectory(services.Paths.Root);
+            string source = Path.Combine(services.Paths.Root, "comments.pdf");
+            File.WriteAllBytes(source, CreateSource());
+            using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services);
+            await model.OpenDocumentAsync(source);
+            int changes = 0;
+            model.ExportCommentSummaryCommand.CanExecuteChanged += (_, _) => changes++;
+
+            Assert.True(model.ExportCommentSummaryCommand.CanExecute(null));
+            model.IsWorkspaceBusy = true;
+            Assert.False(model.ExportCommentSummaryCommand.CanExecute(null));
+            model.IsWorkspaceBusy = false;
+            Assert.True(model.ExportCommentSummaryCommand.CanExecute(null));
+            Assert.Equal(2, changes);
+            return true;
+        }, CancellationToken.None);
+    }
+
     [Theory]
     [InlineData(960, false)]
     [InlineData(1280, true)]

@@ -43,6 +43,7 @@ public sealed partial class MainWindowViewModel {
 
     partial void OnIsWorkspaceBusyChanged(bool value) {
         NotifyDocumentStructureActions();
+        ExportCommentSummaryCommand.NotifyCanExecuteChanged();
         if (value) {
             _activeNotificationScope = (WorkspaceMode, DocumentMode);
             OperationStatus = null;
