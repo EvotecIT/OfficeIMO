@@ -538,19 +538,31 @@
       new MutationObserver(syncTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     }
 
+    // The app owns route validation; the website forwards only its public selection keys.
+    function workspaceAddress(parameters) {
+      var address = new URL(workspaceUrl.href);
+      ['workspace', 'route', 'tool'].forEach(function (key) {
+        if (parameters.has(key)) address.searchParams.set(key, parameters.get(key));
+      });
+      return address.href;
+    }
+
+    // The app listens for selection messages only after its workspace has rendered.
+    function workspaceReady() {
+      try { return !!(frame.contentDocument && frame.contentDocument.querySelector('.ocx-workspace-content')); } catch (error) { return false; }
+    }
+
     // Browsing the directory never creates a frame or starts the WebAssembly runtime.
     function openWorkspace(parameters) {
       directory.hidden = true;
       frameShell.hidden = false;
+      showNotice('');
       if (!frame) {
         createFrame();
-        // The app owns route validation; the website forwards only its public selection keys.
-        var initialUrl = new URL(workspaceUrl.href);
-        ['workspace', 'route', 'tool'].forEach(function (key) {
-          if (parameters.has(key)) initialUrl.searchParams.set(key, parameters.get(key));
-        });
-        frame.src = initialUrl.href;
+        frame.src = workspaceAddress(parameters);
         syncTheme();
+      } else if (!workspaceReady()) {
+        frame.src = workspaceAddress(parameters);
       } else {
         frame.contentWindow.postMessage({ type: 'officeimo:restore-selection',
           workspace: parameters.get('workspace'), route: parameters.get('route'), tool: parameters.get('tool')
@@ -564,6 +576,19 @@
       directory.hidden = false;
     }
 
+    var notice = null;
+    function showNotice(message) {
+      if (!notice) {
+        if (!message) return;
+        notice = document.createElement('p');
+        notice.className = 'imo-handoff-notice';
+        notice.setAttribute('role', 'status');
+        frameShell.insertBefore(notice, frameShell.firstChild);
+      }
+      notice.textContent = message;
+      notice.hidden = !message;
+    }
+
     // Hands a file chosen on the directory to the tool's own input once the workspace renders it.
     function deliverFile(file, card) {
       var route = card.getAttribute('data-route');
@@ -571,21 +596,28 @@
       var isText = card.getAttribute('data-input') === 'text';
       var selector = route
         ? (isText ? '.ocx-conversion-workspace[data-active-route="' + route + '"] .ocx-textarea' : '#conversion-file-input-' + route)
-        : '#pdf-file-input-' + tool;
+        : tool ? '#pdf-file-input-' + tool : '#provenance-file-input';
       var started = Date.now();
+      var tooLarge = file.name + ' is too long for this text tool. Paste a shorter section, or convert the file with another tool.';
       (function attempt() {
         var element = null;
         try { element = frame.contentDocument && frame.contentDocument.querySelector(selector); } catch (error) { return; }
         if (!element) {
-          if (Date.now() - started < 120000 && !frameShell.hidden) setTimeout(attempt, 200);
+          if (frameShell.hidden) return;
+          if (Date.now() - started < 120000) setTimeout(attempt, 200);
+          else showNotice('The tool did not finish loading, so ' + file.name + ' was not opened. Choose the file again inside the tool.');
           return;
         }
         var view = frame.contentWindow;
         if (isText) {
+          // UTF-8 uses at most four bytes per character, so larger files cannot fit.
+          if (element.maxLength > 0 && file.size > element.maxLength * 4) { showNotice(tooLarge); return; }
           file.text().then(function (text) {
-            if (element.maxLength > 0 && text.length > element.maxLength) return;
+            if (element.maxLength > 0 && text.length > element.maxLength) { showNotice(tooLarge); return; }
             element.value = text;
             element.dispatchEvent(new view.Event('input', { bubbles: true }));
+          }, function () {
+            showNotice(file.name + ' could not be read. Choose it again inside the tool.');
           });
           return;
         }

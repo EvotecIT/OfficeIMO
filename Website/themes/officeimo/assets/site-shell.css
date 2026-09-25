@@ -614,6 +614,8 @@ body.imo-body::after {
 }
 .imo-file-drop__clear:hover { border-color: var(--imo-p-browser); }
 .imo-file-drop.has-file ~ [data-tool-group] .imo-browser-tools__card { border-color: color-mix(in srgb, var(--imo-p-browser) 45%, var(--imo-border)); }
+.imo-handoff-notice { margin: 12px 16px; padding: 12px 16px; border: 1px solid color-mix(in srgb, var(--imo-warning) 45%, var(--imo-border)); border-radius: 10px; background: color-mix(in srgb, var(--imo-warning) 10%, var(--imo-surface)); color: var(--imo-text); font-size: .92rem; }
+.imo-handoff-notice[hidden] { display: none; }
 @media (prefers-reduced-motion: reduce) { .imo-file-drop__target { transition: none; } }
 
 /* ---------- Workbench hero (home, Studio, CLI) ---------- */

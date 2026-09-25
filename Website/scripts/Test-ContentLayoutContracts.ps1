@@ -186,6 +186,14 @@ foreach ($contentFile in Get-ChildItem -LiteralPath $contentRoot -Recurse -File 
     }
 }
 
+# The API docs generator inserts api-head.html verbatim, so it cannot include theme-init.html.
+$partialRoot = Join-Path $siteRootPath 'themes\officeimo\partials'
+$themeInitScript = [regex]::Match((Get-Content -LiteralPath (Join-Path $partialRoot 'theme-init.html') -Raw), '<script>.*?</script>', 'Singleline').Value
+$apiHead = Get-Content -LiteralPath (Join-Path $partialRoot 'api-head.html') -Raw
+if (-not $themeInitScript -or -not $apiHead.Contains($themeInitScript, [StringComparison]::Ordinal)) {
+    $failures.Add('themes/officeimo/partials/api-head.html must contain the same pre-paint script as partials/theme-init.html.')
+}
+
 if ($failures.Count -gt 0) {
     throw "Content layout contract validation failed:`n - $($failures -join "`n - ")"
 }
