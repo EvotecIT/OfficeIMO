@@ -131,7 +131,7 @@
     {
       "id": "usgs-atmosphere-water-cycle",
       "sourceClass": "substantial-illustrated-article-with-data-table",
-      "role": "held-out",
+      "role": "acquisition-blocked",
       "selectionDate": "2026-09-25",
       "url": "https://www.usgs.gov/water-science-school/science/atmosphere-and-water-cycle",
       "rightsUrl": "https://www.usgs.gov/information-policies-and-instructions/copyrights-and-credits",
@@ -170,7 +170,51 @@
           "inspect": ["heading hierarchy", "data table", "links and image credit", "serialized and reparsed content"]
         }
       ],
-      "reason": "An independently authored USGS Water Science School article with long prose, a measurements table, links and an attributed image on a new site and stylesheet system. Selected from source content only before OfficeIMO capture, rendering or conversion."
+      "reason": "Selected from source content only before OfficeIMO capture, rendering or conversion. The declared Chromium acquisition received HTTP 403 before any archive was created, so this page cannot serve as a frozen held-out case under the current capture policy."
+    },
+    {
+      "id": "cdc-global-drinking-water",
+      "sourceClass": "substantial-illustrated-article-with-definition-table",
+      "role": "held-out",
+      "selectionDate": "2026-09-25",
+      "url": "https://www.cdc.gov/global-water-sanitation-hygiene/about/global-drinking-water.html",
+      "rightsUrl": "https://www.cdc.gov/other/agencymaterials.html",
+      "rightsNotes": "CDC-authored material is generally public domain in the United States, but individual photographs, marks and licensed material can have restrictions. Keep the archive only in ignored local evidence and exclude the article photograph and agency marks from checked-in visual output until their specific reuse terms are verified. Public excerpts must credit CDC and not imply endorsement.",
+      "requiredVisibleMarkers": ["Global Drinking Water", "Why it's important", "Terms to know", "Safely managed water service level"],
+      "editableTargetSelectionDate": "2026-09-25",
+      "editableTargets": [
+        {
+          "target": "Word",
+          "profile": "semantic document",
+          "inspect": ["title and section hierarchy", "service-level definition table", "links and article image credit", "saved and reopened content"]
+        },
+        {
+          "target": "Excel",
+          "profile": "editable term-and-definition table",
+          "inspect": ["service-level rows and definitions in separate cells", "article text and picture placement", "saved and reopened cells and images"]
+        },
+        {
+          "target": "PowerPoint",
+          "profile": "generic editable slides",
+          "inspect": ["ordered article sections", "visible non-overlapping text and service-level table", "editable article picture", "saved and reopened slide order"]
+        },
+        {
+          "target": "OneNote",
+          "profile": "generic semantic pages",
+          "inspect": ["heading and paragraph flow", "table, links and article picture", "saved and reopened section content"]
+        },
+        {
+          "target": "RTF",
+          "profile": "editable semantic document",
+          "inspect": ["heading and paragraph flow", "table, links and article picture", "saved and reopened content"]
+        },
+        {
+          "target": "Markdown",
+          "profile": "semantic text",
+          "inspect": ["heading hierarchy", "service-level definition table", "links and image reference", "serialized and reparsed content"]
+        }
+      ],
+      "reason": "A CDC article with explanatory prose, a five-row term/definition table, links and an article image on a different publisher and stylesheet system from the development pages. Selected from published source content and verified HTTP accessibility, before OfficeIMO capture or conversion."
     }
   ]
 }
