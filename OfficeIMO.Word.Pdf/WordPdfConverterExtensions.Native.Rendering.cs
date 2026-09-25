@@ -179,7 +179,7 @@ namespace OfficeIMO.Word.Pdf {
                     pdf.Bookmark(generatedDestinationName);
                 }
 
-                string headingText = GetNativeHeadingText(renderContent, runs, paragraph, nativeFontMap);
+                string headingText = GetNativeHeadingText(renderContent, runs, paragraph, nativeFontMap, hasEquationContent);
                 RenderNativeHeading(pdf, headingLevel, headingText, objectAlign, headingColor, paragraph, paragraphStyle, nativeFontMap, headingLink.LinkUri, headingLink.LinkDestinationName, headingLink.LinkContents);
                 if (CreateNativeBottomBorderRuleStyle(paragraph, paragraphStyle) is { } headingRuleStyle) {
                     pdf.HR(style: headingRuleStyle);
@@ -275,6 +275,11 @@ namespace OfficeIMO.Word.Pdf {
             NativeFontMap nativeFontMap) {
             NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
             double fontSize = ResolveNativeParagraphFontSize(paragraph, nativeDefaults, styleDefaults);
+            string? paragraphMarkSize = paragraph._paragraph?.ParagraphProperties?
+                .ParagraphMarkRunProperties?.GetFirstChild<W.FontSize>()?.Val?.Value;
+            if (int.TryParse(paragraphMarkSize, NumberStyles.Integer, CultureInfo.InvariantCulture, out int halfPoints) && halfPoints > 0) {
+                fontSize = halfPoints / 2D;
+            }
             double lineHeight = style.LineHeight ?? ResolveNativeParagraphLineHeight(
                 paragraph,
                 fontSize,
@@ -282,7 +287,9 @@ namespace OfficeIMO.Word.Pdf {
                 styleDefaults,
                 nativeFontMap);
             double spacingAfter = style.SpacingAfter ?? nativeDefaults.ParagraphSpacingAfter;
-            double height = style.SpacingBefore + (fontSize * lineHeight) + spacingAfter;
+            // Word does not add paragraph-before spacing to an empty line box.
+            // It still uses the paragraph mark's font size and spacing after.
+            double height = (fontSize * lineHeight) + spacingAfter;
             return double.IsNaN(height) || double.IsInfinity(height) ? 0D : Math.Max(0D, height);
         }
 
@@ -858,7 +865,13 @@ namespace OfficeIMO.Word.Pdf {
             pdf.Heading(level, normalizedText, align, color, style, linkUri, linkDestinationName, linkContents);
         }
 
-        private static string GetNativeHeadingText(string content, IReadOnlyList<WordParagraph> runs, WordParagraph paragraph, NativeFontMap nativeFontMap) {
+        private static string GetNativeHeadingText(string content, IReadOnlyList<WordParagraph> runs, WordParagraph paragraph, NativeFontMap nativeFontMap, bool hasEquationContent) {
+            // Equation content is assembled from the Open XML child order, including field
+            // results. Ordinary text runs alone omit the math node in a mixed heading.
+            if (hasEquationContent) {
+                return ApplyNativeTextTransform(NormalizeNativeDirectText(content), paragraph, nativeFontMap: nativeFontMap);
+            }
+
             var builder = new StringBuilder();
             foreach (WordParagraph run in runs) {
                 if (run.IsImage) {

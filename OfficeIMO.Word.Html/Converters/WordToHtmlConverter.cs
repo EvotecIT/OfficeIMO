@@ -916,7 +916,6 @@ namespace OfficeIMO.Word.Html {
                     tableStyles.Add($"border-spacing:{tableCellSpacing}");
                 }
                 if (TableHasBorder(table)) {
-                    tableStyles.Add("border:1px solid black");
                     tableStyles.Add(!string.IsNullOrEmpty(tableCellSpacing) ? "border-collapse:separate" : "border-collapse:collapse");
                 }
                 if (tableStyles.Count > 0) {

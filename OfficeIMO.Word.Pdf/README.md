@@ -60,7 +60,9 @@ document.UpdateFieldsAndGetReport();
 document.SaveAsPdf("report.pdf");
 ```
 
-`DATE` uses the current clock during the refresh. `CREATEDATE` and `SAVEDATE` use the document's stored properties. Table borders follow the Word style and direct cell settings, including explicit `nil` or `none` borders. Set `DefaultTableBorders = true` only when you want a fallback grid on otherwise borderless tables.
+`DATE` uses the current clock during the refresh. `CREATEDATE` and `SAVEDATE` use the document's stored properties. Table borders follow the Word style and direct cell settings: `nil` suppresses a shared edge while `none` yields to the opposing border. Set `DefaultTableBorders = true` only when you want a fallback grid on otherwise borderless tables.
+
+Positioned tables do not advance the following text's vertical flow. Exact text wrapping around them and explicit vertical anchor offsets remain approximations and are reported in the conversion diagnostics.
 
 ### Export to bytes or streams
 

@@ -198,11 +198,10 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool HasNativeConditionalBorderOverride(W.BorderType? border) =>
             HasNativeBorder(border?.Val?.Value) ||
-            border?.Val?.Value == W.BorderValues.Nil ||
-            border?.Val?.Value == W.BorderValues.None;
+            border?.Val?.Value == W.BorderValues.Nil;
 
         private static PdfCore.PdfCellBorderSide? CreateNativeConditionalBorderSide(W.BorderType? border) {
-            if (border?.Val?.Value == W.BorderValues.Nil || border?.Val?.Value == W.BorderValues.None) {
+            if (border?.Val?.Value == W.BorderValues.Nil) {
                 return new PdfCore.PdfCellBorderSide { Color = null, Width = 0D };
             }
 

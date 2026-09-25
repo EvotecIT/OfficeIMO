@@ -1752,6 +1752,17 @@ namespace OfficeIMO.Word.Markdown {
                 return markdownTable;
             }
 
+            bool hasMergedCells = table.Rows.Any(row => row.Cells.Any(cell =>
+                cell.ColumnSpan > 1 || cell.RowSpan > 1 ||
+                cell.HasHorizontalMerge || cell.HasVerticalMerge));
+            bool hasCellBorders = table.Rows.Any(row => row.Cells.Any(cell =>
+                cell._tableCell.TableCellProperties?.TableCellBorders != null));
+            if (hasMergedCells || hasCellBorders) {
+                options.OnWarning?.Invoke(hasMergedCells
+                    ? "Word table cell merges cannot be represented by a Markdown table; cell layout was flattened."
+                    : "Word table cell borders cannot be represented by a Markdown table; border formatting was omitted.");
+            }
+
             for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
                 var row = table.Rows[rowIndex];
                 var structuredCells = new List<OmdTableCell>(row.Cells.Count);

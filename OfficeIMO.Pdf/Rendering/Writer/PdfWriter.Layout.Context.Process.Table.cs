@@ -23,6 +23,8 @@ internal static partial class PdfWriter {
 
         private void RenderTableFlowBlock(TableBlock tb, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex, bool skipInitialHeaderRows = false, int bodyRowOffset = 0, bool logicalTopBoundary = true, bool logicalBottomBoundary = true) {
             PdfTableStyle style = tb.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light();
+            double flowYBeforeTable = y;
+            LayoutResult.Page? pageBeforeTable = currentPage;
             int cols = GetTableColumnCount(tb);
             if (cols == 0) return;
             double padLeft = GetTableCellPaddingLeft(style);
@@ -653,7 +655,7 @@ internal static partial class PdfWriter {
                         var visibleWidths = SliceTableCellLineWidths(lines, sourceStartLine, visibleLineCount, innerW);
                         double textClipX = xi - TableCellClipBleed;
                         double textClipWidth = cellWidth + (TableCellClipBleed * 2D);
-                        ExpandTableCellTextClip(xi + cellPadLeft, innerW, cell.NoWrap, visibleXOffsets, visibleWidths, ref textClipX, ref textClipWidth);
+                        ExpandTableCellTextClip(xi + cellPadLeft, visibleXOffsets, visibleWidths, ref textClipX, ref textClipWidth);
                         var paragraph = new RichParagraphBlock(StripRunLinksWhenCellLinked(cell.Runs, linkUri, linkDestinationName), MapTableCellAlignment(align), textColor);
                         string structureType = renderAsHeader ? "TH" : "TD";
                         int tableColumnSpan = cell.ColumnSpan > 1 ? cell.ColumnSpan : 1;
@@ -813,6 +815,9 @@ internal static partial class PdfWriter {
             }
 
             y -= style.SpacingAfter;
+            if (!style.ConsumesVerticalFlow && ReferenceEquals(currentPage, pageBeforeTable)) {
+                y = flowYBeforeTable;
+            }
         }
 
     }

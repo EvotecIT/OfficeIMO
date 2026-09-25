@@ -581,6 +581,31 @@ public class PdfFontFamilyTests {
     }
 
     [Fact]
+    public void PdfEmbeddedFontFamily_ArialUsesItsOwnLocalizedBoldAndItalicFaces() {
+        string fonts = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "Fonts");
+        string regular = Path.Combine(fonts, "arial.ttf");
+        string bold = Path.Combine(fonts, "arialbd.ttf");
+        string italic = Path.Combine(fonts, "ariali.ttf");
+        string boldItalic = Path.Combine(fonts, "arialbi.ttf");
+        string narrowBold = Path.Combine(fonts, "ARIALNB.TTF");
+        string narrowItalic = Path.Combine(fonts, "ARIALNI.TTF");
+        string narrowBoldItalic = Path.Combine(fonts, "ARIALNBI.TTF");
+        string[] paths = { regular, narrowBold, narrowItalic, narrowBoldItalic, bold, italic, boldItalic };
+        if (paths.Any(path => !File.Exists(path))) {
+            return;
+        }
+
+        bool found = PdfEmbeddedFontFamily.TryFromSystemFontFiles("Arial", paths, out PdfEmbeddedFontFamily? family);
+
+        Assert.True(found);
+        Assert.NotNull(family);
+        Assert.Equal(File.ReadAllBytes(regular), family!.Regular);
+        Assert.Equal(File.ReadAllBytes(bold), family.Bold);
+        Assert.Equal(File.ReadAllBytes(italic), family.Italic);
+        Assert.Equal(File.ReadAllBytes(boldItalic), family.BoldItalic);
+    }
+
+    [Fact]
     public void PdfEmbeddedFontFamily_MetadataStyleScoringPrefersExactBoldItalic() {
         Assert.True(
             PdfEmbeddedFontFamily.GetMetadataStyleScore("Bold Italic") >

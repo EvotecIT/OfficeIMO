@@ -145,7 +145,7 @@ public sealed partial class PdfEmbeddedFontFamily {
                 metadataFaces != null &&
                 metadataFaces.Count > 0 &&
                 !metadataFaces.Exists(metadata =>
-                    IsMetadataFamilyMatch(metadata, normalizedMetadataFamily))) {
+                    GetMetadataFamilyMatchScore(metadata, normalizedMetadataFamily) >= 0)) {
                 return false;
             }
 
@@ -179,9 +179,10 @@ public sealed partial class PdfEmbeddedFontFamily {
         try {
             _ = PdfFontProgramCache.GetTrueType(data, fontNameOverride: null);
             if (TryReadTrueTypeNameMetadata(data, out TrueTypeNameMetadata? metadata) && metadata != null) {
-                if (IsMetadataFamilyMatch(metadata, normalizedMetadataFamily)) {
+                int familyScore = GetMetadataFamilyMatchScore(metadata, normalizedMetadataFamily);
+                if (familyScore >= 0) {
                     FontFaceKind kind = ClassifyMetadataFace(metadata, out int metadataScore);
-                    candidate = new SystemFontFaceCandidate(path, kind, metadataScore, data);
+                    candidate = new SystemFontFaceCandidate(path, kind, metadataScore + familyScore, data);
                     return true;
                 }
 
@@ -253,15 +254,15 @@ public sealed partial class PdfEmbeddedFontFamily {
     private static int ScoreFileNameFace(FontFaceKind faceKind) =>
         faceKind == FontFaceKind.Regular ? 60 : 70;
 
-    private static bool IsMetadataFamilyMatch(TrueTypeNameMetadata metadata, string normalizedMetadataFamily) {
-        foreach (string? familyName in metadata.GetFamilyNames()) {
-            if (string.IsNullOrWhiteSpace(familyName)) {
-                continue;
-            }
+    private static int GetMetadataFamilyMatchScore(TrueTypeNameMetadata metadata, string normalizedMetadataFamily) {
+        if (!string.IsNullOrWhiteSpace(metadata.FamilyName) &&
+            IsMetadataFamilyNameMatch(metadata.FamilyName!, normalizedMetadataFamily)) {
+            return 200;
+        }
 
-            if (IsMetadataFamilyNameMatch(familyName!, normalizedMetadataFamily)) {
-                return true;
-            }
+        if (!string.IsNullOrWhiteSpace(metadata.TypographicFamilyName) &&
+            IsMetadataFamilyNameMatch(metadata.TypographicFamilyName!, normalizedMetadataFamily)) {
+            return 0;
         }
 
         foreach (string? faceName in metadata.GetFaceNames()) {
@@ -270,11 +271,11 @@ public sealed partial class PdfEmbeddedFontFamily {
             }
 
             if (IsMetadataFamilyNameMatch(faceName!, normalizedMetadataFamily)) {
-                return true;
+                return 0;
             }
         }
 
-        return false;
+        return -1;
     }
 
     internal static bool IsMetadataFamilyNameMatch(string fontFamilyName, string requestedFamilyName) =>
@@ -532,6 +533,7 @@ public sealed partial class PdfEmbeddedFontFamily {
                 EnsureRange(data, record, 12);
                 int platformId = ReadUInt16(data, record);
                 int encodingId = ReadUInt16(data, record + 2);
+                int languageId = ReadUInt16(data, record + 4);
                 int nameId = ReadUInt16(data, record + 6);
                 if (nameId != 1 && nameId != 2 && nameId != 4 && nameId != 6 && nameId != 16 && nameId != 17) {
                     continue;
@@ -545,7 +547,7 @@ public sealed partial class PdfEmbeddedFontFamily {
                     continue;
                 }
 
-                int score = GetNameValueScore(platformId);
+                int score = GetNameValueScore(platformId, languageId);
                 if (!names.TryGetValue(nameId, out TrueTypeNameValue? existing) || score > existing.Score) {
                     names[nameId] = new TrueTypeNameValue(value!.Trim(), score);
                 }
@@ -599,13 +601,13 @@ public sealed partial class PdfEmbeddedFontFamily {
         return null;
     }
 
-    private static int GetNameValueScore(int platformId) {
+    private static int GetNameValueScore(int platformId, int languageId) {
         if (platformId == 3) {
-            return 30;
+            return languageId == 0x0409 ? 50 : (languageId & 0x03ff) == 0x0009 ? 40 : 20;
         }
 
         if (platformId == 0) {
-            return 20;
+            return 30;
         }
 
         return 10;
@@ -692,11 +694,6 @@ public sealed partial class PdfEmbeddedFontFamily {
         public string? TypographicFamilyName { get; }
 
         public string? TypographicSubfamilyName { get; }
-
-        public System.Collections.Generic.IEnumerable<string?> GetFamilyNames() {
-            yield return TypographicFamilyName;
-            yield return FamilyName;
-        }
 
         public System.Collections.Generic.IEnumerable<string?> GetFaceNames() {
             yield return FullName;

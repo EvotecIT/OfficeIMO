@@ -13,6 +13,10 @@ internal static partial class PdfWriter {
         private bool RenderColumnTable(ColTable table, List<ColItem> items, ColumnTableCursor state, double xCol, double wCol, double fullColumnHeight, double columnPageStartY) {
         var tbColumn = table.Block;
         var tableStyle = table.Style;
+        bool tableStartedInThisColumn = state.Line == 0 && state.Subline == 0;
+        double flowYBeforeTable = state.Y;
+        double flowRemainingBeforeTable = state.Remaining;
+        double flowConsumedBeforeTable = state.Consumed;
         double padLeft = GetTableCellPaddingLeft(tableStyle);
         double padRight = GetTableCellPaddingRight(tableStyle);
         double padTop = GetTableCellPaddingTop(tableStyle);
@@ -346,7 +350,7 @@ internal static partial class PdfWriter {
                     var visibleWidths = SliceTableCellLineWidths(lines, sourceStartLine, visibleLineCount, innerW);
                     double textClipX = xi - TableCellClipBleed;
                     double textClipWidth = cellWidth + (TableCellClipBleed * 2D);
-                    ExpandTableCellTextClip(xi + cellPadLeft, innerW, cell.NoWrap, visibleXOffsets, visibleWidths, ref textClipX, ref textClipWidth);
+                    ExpandTableCellTextClip(xi + cellPadLeft, visibleXOffsets, visibleWidths, ref textClipX, ref textClipWidth);
                     var paragraph = new RichParagraphBlock(StripRunLinksWhenCellLinked(cell.Runs, linkUri, linkDestinationName), MapTableCellAlignment(align), textColor);
                     string structureType = renderAsHeader ? "TH" : "TD";
                     int tableColumnSpan = cell.ColumnSpan > 1 ? cell.ColumnSpan : 1;
@@ -579,6 +583,11 @@ internal static partial class PdfWriter {
             state.Index++;
             state.Line = 0;
             state.Subline = 0;
+            if (!tableStyle.ConsumesVerticalFlow && tableStartedInThisColumn) {
+                state.Y = flowYBeforeTable;
+                state.Remaining = flowRemainingBeforeTable;
+                state.Consumed = flowConsumedBeforeTable;
+            }
         } else {
             return false;
         }

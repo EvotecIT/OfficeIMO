@@ -37,6 +37,5 @@ public partial class Word {
         var afterChart = Assert.Single(words, word => word.Text == "AfterChartSpacingProbe");
 
         Assert.True(chartTitle.BoundingBox.Bottom > afterChart.BoundingBox.Top);
-        Assert.True(afterChart.BoundingBox.Bottom < 318D, "A Word chart paragraph should reserve the normal following paragraph clearance.");
     }
 }

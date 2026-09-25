@@ -1,8 +1,10 @@
 using System;
 using System.IO;
 using System.Collections.Generic;
+using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
+using M = DocumentFormat.OpenXml.Math;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using Xunit;
@@ -10,6 +12,147 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class Word {
+    [Fact]
+    public void SaveAsPdf_PositionedTableReportsApproximateWrapping() {
+        using WordDocument document = WordDocument.Create();
+        WordTable table = document.AddTable(1, 1);
+        table.Rows[0].Cells[0].Paragraphs[0].Text = "Positioned";
+        table._tableProperties!.TablePositionProperties = new TablePositionProperties {
+            HorizontalAnchor = HorizontalAnchorValues.Margin,
+            TablePositionXAlignment = HorizontalAlignmentValues.Right
+        };
+        document.AddParagraph("Following text");
+
+        var result = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false });
+
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativePositionedTableWrapApproximation");
+        Assert.Contains("Following text", OfficeIMO.Pdf.PdfTextExtractor.ExtractAllText(result.Value.ToBytes()));
+    }
+
+    [Theory]
+    [InlineData(false, WordBorderStyle.Nil, 0, false, false)]
+    [InlineData(true, WordBorderStyle.Nil, 0, false, false)]
+    [InlineData(false, WordBorderStyle.None, 0, false, true)]
+    [InlineData(true, WordBorderStyle.None, 0, false, true)]
+    [InlineData(false, WordBorderStyle.Nil, 0, true, false)]
+    [InlineData(false, WordBorderStyle.Nil, 100, false, true)]
+    public void SaveAsPdf_OneSidedBorderOverrideResolvesSharedTableEdge(bool horizontal, WordBorderStyle overrideStyle, int cellSpacingTwips, bool opposingDirectVisible, bool expectedStroke) {
+        string name = $"PdfOneSidedBorder{horizontal}-{overrideStyle}-{cellSpacingTwips}-{opposingDirectVisible}";
+        string docPath = Path.Combine(_directoryWithFiles, name + ".docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, name + ".pdf");
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordTable table = document.AddTable(horizontal ? 2 : 1, horizontal ? 1 : 2);
+            table.Style = WordTableStyle.TableGrid;
+            if (cellSpacingTwips > 0) table.StyleDetails!.CellSpacing = (short)cellSpacingTwips;
+            table._tableProperties!.TableBorders = new TableBorders(
+                new TopBorder { Val = BorderValues.Nil },
+                new BottomBorder { Val = BorderValues.Nil },
+                new LeftBorder { Val = BorderValues.Nil },
+                new RightBorder { Val = BorderValues.Nil },
+                new InsideHorizontalBorder { Val = horizontal ? BorderValues.Single : BorderValues.Nil },
+                new InsideVerticalBorder { Val = horizontal ? BorderValues.Nil : BorderValues.Single });
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "Left";
+            (horizontal ? table.Rows[1].Cells[0] : table.Rows[0].Cells[1]).Paragraphs[0].Text = "Right";
+            if (horizontal) {
+                table.Rows[0].Cells[0].Borders.BottomStyle = overrideStyle;
+                if (opposingDirectVisible) table.Rows[1].Cells[0].Borders.TopStyle = WordBorderStyle.Single;
+            } else {
+                table.Rows[0].Cells[0].Borders.RightStyle = overrideStyle;
+                if (opposingDirectVisible) table.Rows[0].Cells[1].Borders.LeftStyle = WordBorderStyle.Single;
+            }
+            document.Save();
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
+        }
+
+        string text = OfficeIMO.Pdf.PdfTextExtractor.ExtractAllText(pdfPath);
+        Assert.Contains("Left", text);
+        Assert.Contains("Right", text);
+        Assert.Equal(expectedStroke, PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath)).Contains(" RG", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void SaveAsPdf_HeadingAndTocPreserveInlineEquationAndSimpleField() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfHeadingEquationAndField.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfHeadingEquationAndField.pdf");
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddTableOfContent();
+            WordParagraph heading = document.AddParagraph("Equation ").SetStyle(WordParagraphStyles.Heading1);
+            heading._paragraph.Append(new M.OfficeMath(new M.Run(new M.Text("math-token"))));
+            heading._paragraph.Append(new SimpleField(new Run(new Text(" 2020") { Space = SpaceProcessingModeValues.Preserve })) {
+                Instruction = " DATE \\@ \"yyyy\" "
+            });
+            document.Save();
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
+        }
+
+        string text = OfficeIMO.Pdf.PdfTextExtractor.ExtractAllText(pdfPath);
+        Assert.True(text.Split(new[] { "Equation math-token 2020" }, StringSplitOptions.None).Length >= 3, text);
+    }
+
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public void SaveAsPdf_ConditionalBorderResolvesInheritedSharedTableEdge(bool isNil, bool expectedStroke) {
+        BorderValues borderStyle = isNil ? BorderValues.Nil : BorderValues.None;
+        string docPath = Path.Combine(_directoryWithFiles, $"PdfConditionalSharedEdge{borderStyle}.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, $"PdfConditionalSharedEdge{borderStyle}.pdf");
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            const string styleId = "PdfConditionalSharedEdge";
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(new Style(
+                new StyleName { Val = styleId },
+                new StyleTableProperties(new TableBorders(
+                    new TopBorder { Val = BorderValues.Nil },
+                    new BottomBorder { Val = BorderValues.Nil },
+                    new LeftBorder { Val = BorderValues.Nil },
+                    new RightBorder { Val = BorderValues.Nil },
+                    new InsideHorizontalBorder { Val = BorderValues.Nil },
+                    new InsideVerticalBorder { Val = BorderValues.Single })),
+                new TableStyleProperties(
+                    new TableStyleConditionalFormattingTableCellProperties(new TableCellBorders(
+                        new RightBorder { Val = borderStyle })))
+                { Type = TableStyleOverrideValues.FirstColumn })
+            { Type = StyleValues.Table, StyleId = styleId });
+
+            WordTable table = document.AddTable(1, 2);
+            table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
+            table.ConditionalFormattingFirstColumn = true;
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "Conditional left";
+            table.Rows[0].Cells[1].Paragraphs[0].Text = "Conditional right";
+            document.Save();
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
+        }
+
+        string text = OfficeIMO.Pdf.PdfTextExtractor.ExtractAllText(pdfPath);
+        Assert.Contains("Conditional left", text);
+        Assert.Contains("Conditional right", text);
+        Assert.Equal(expectedStroke, PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath)).Contains(" RG", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void SaveAsPdf_VerticallyMergedCellUsesContinuationAlignment() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfMergedContinuationAlignment.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfMergedContinuationAlignment.pdf");
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordTable table = document.AddTable(3, 2);
+            for (int row = 0; row < 3; row++) {
+                table.Rows[row].Height = 500;
+                table.Rows[row].Cells[1].Paragraphs[0].Text = "Peer" + row;
+            }
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "Merged";
+            table.Rows[0].Cells[0].MergeVertically(2);
+            table.Rows[2].Cells[0].VerticalAlignment = WordTableVerticalAlignment.Center;
+            document.Save();
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
+        }
+
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open(pdfPath);
+        var words = pdf.GetPage(1).GetWords();
+        double mergedY = Assert.Single(words, word => word.Text == "Merged").BoundingBox.Bottom;
+        double middleY = Assert.Single(words, word => word.Text == "Peer1").BoundingBox.Bottom;
+        Assert.InRange(Math.Abs(mergedY - middleY), 0D, 8D);
+    }
+
     [Theory]
     [InlineData(0, false)]
     [InlineData(1, true)]

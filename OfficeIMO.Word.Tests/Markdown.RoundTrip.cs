@@ -3,10 +3,40 @@ using System.Linq;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Markdown;
 using OfficeIMO.Word.Fluent;
+using DocumentFormat.OpenXml.Wordprocessing;
 using Xunit;
 
 namespace OfficeIMO.Tests {
     public class MarkdownRoundTripTests {
+        [Fact]
+        public void WordToMarkdown_PreservesCachedSimpleDateFieldAndItalicText() {
+            using var document = WordDocument.Create();
+            WordParagraph paragraph = document.AddParagraph("Due ");
+            paragraph._paragraph.Append(new SimpleField(new Run(new Text("2020-01-02"))) {
+                Instruction = " DATE \\@ \"yyyy-MM-dd\" "
+            });
+            paragraph.AddText(" confirmed").SetItalic();
+
+            string markdown = document.ToMarkdown();
+
+            Assert.Contains("Due 2020-01-02", markdown);
+            Assert.Contains("*confirmed*", markdown);
+        }
+
+        [Fact]
+        public void WordToMarkdown_ReportsFlattenedMergedTableCells() {
+            using var document = WordDocument.Create();
+            var table = document.AddTable(2, 2);
+            table.Rows[0].Cells[0].Paragraphs[0].AddText("Combined");
+            table.Rows[0].Cells[0].MergeHorizontally(1);
+
+            WordToMarkdownResult result = document.ToMarkdownDocumentResult();
+
+            Assert.Contains(result.Report.Diagnostics, diagnostic =>
+                diagnostic.Message.Contains("cell merges", StringComparison.Ordinal));
+            Assert.True(result.Report.HasLoss);
+        }
+
         [Fact]
         public void Markdown_To_Word_To_Markdown_RoundTrip_Preserves_CoreFeatures() {
             string md = "" +
