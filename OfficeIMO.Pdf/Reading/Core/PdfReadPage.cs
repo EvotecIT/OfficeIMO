@@ -760,6 +760,28 @@ public sealed partial class PdfReadPage {
         return streamFilters.Count != 0;
     }
 
+    // A non-embedded simple font is drawn with a substitute face by the glyph names its encoding and
+    // Differences give; ToUnicode does not select what is painted. Symbolic fonts use built-in encodings
+    // except where an explicit Difference replaces a code's glyph.
+    private static bool PaintsSubstitutedEncodingGlyphs(PdfFontResource font) {
+        if (!font.HasToUnicode || font.EmbeddedTrueTypeFont != null ||
+            font.DrawingFontFamily != null || font.Type3 != null ||
+            string.Equals(font.FontSubtype, "Type0", StringComparison.Ordinal)) return false;
+        if (IsSymbolicSubstitute(font)) return font.Differences is { Count: > 0 };
+        return true;
+    }
+
+    private static bool IsSymbolicSubstitute(PdfFontResource font) {
+        if (font.FontDescriptorFlags is int flags && (flags & 4) != 0) return true;
+        string baseFont = font.BaseFont;
+        int subsetSeparator = baseFont.IndexOf('+');
+        if (subsetSeparator >= 0) baseFont = baseFont.Substring(subsetSeparator + 1);
+        return baseFont.StartsWith("Symbol", StringComparison.OrdinalIgnoreCase) ||
+            baseFont.StartsWith("ZapfDingbats", StringComparison.OrdinalIgnoreCase) ||
+            baseFont.StartsWith("Wingdings", StringComparison.OrdinalIgnoreCase) ||
+            baseFont.StartsWith("Webdings", StringComparison.OrdinalIgnoreCase);
+    }
+
     private void CollectTextAndForms(
         string content,
         PdfDictionary? resources,
@@ -831,6 +853,33 @@ public sealed partial class PdfReadPage {
             string.Equals(font.FontSubtype, "Type3", StringComparison.Ordinal);
         string? ResolveDrawingFontFamily(string fontRes) =>
             fonts.TryGetValue(fontRes, out PdfFontResource? font) ? font.DrawingFontFamily : null;
+        Dictionary<string, Func<byte, string>>? substitutedGlyphDecoders = null;
+        string? DecodeSubstitutedGlyph(string fontRes, byte[] code) {
+            if (code.Length != 1 || !fonts.TryGetValue(fontRes, out PdfFontResource? font) ||
+                !PaintsSubstitutedEncodingGlyphs(font)) return null;
+            if (IsSymbolicSubstitute(font) &&
+                font.Differences?.ContainsKey(code[0]) != true) return null;
+            substitutedGlyphDecoders ??= new Dictionary<string, Func<byte, string>>(StringComparer.Ordinal);
+            if (!substitutedGlyphDecoders.TryGetValue(fontRes, out Func<byte, string>? decode)) {
+                decode = ResourceResolver.CreateSimpleEncodingDecoder(font);
+                substitutedGlyphDecoders.Add(fontRes, decode);
+            }
+            if (font.Differences?.TryGetValue(code[0], out string? glyphName) == true) {
+                string? ligature = glyphName switch {
+                    "ff" => "\uFB00", "fi" => "\uFB01", "fl" => "\uFB02",
+                    "ffi" => "\uFB03", "ffl" => "\uFB04", _ => null
+                };
+                if (ligature != null) return ligature;
+            }
+            string text = decode(code[0]);
+            return text.Length > 0 ? text : null;
+        }
+        bool IsEmptyPaintedGlyph(string fontRes, byte[] code) {
+            if (!fonts.TryGetValue(fontRes, out PdfFontResource? resource) ||
+                resource.DrawingProgram is not PdfDrawingFontProgram program || code.Length is < 1 or > 2) return true;
+            int glyph = program.GlyphForCode(code.Length == 1 ? code[0] : (code[0] << 8) | code[1]);
+            return program.IsEmptyGlyph(glyph);
+        }
         int? ResolveFontWeight(string fontRes) =>
             fonts.TryGetValue(fontRes, out PdfFontResource? font) ? font.FontWeight : null;
         int? ResolveFontDescriptorFlags(string fontRes) =>
@@ -857,6 +906,8 @@ public sealed partial class PdfReadPage {
             baseFontForResource: ResolveBaseFont,
             isType3FontResource: IsType3FontResource,
             drawingFontFamilyForResource: ResolveDrawingFontFamily,
+            isEmptyPaintedGlyphForResource: IsEmptyPaintedGlyph,
+            visualEncodingForResource: DecodeSubstitutedGlyph,
             fontWeightForResource: ResolveFontWeight,
             fontDescriptorFlagsForResource: ResolveFontDescriptorFlags,
             optionalContentVisibility: includeHiddenOptionalContent ? null : optionalContentVisibility,
@@ -2227,6 +2278,7 @@ public sealed partial class PdfReadPage {
         private long _positionedTextProjectionCharacters;
         private long _clippedTextFontCopyWork;
         private readonly Action<OfficeDrawing>? _configureDrawing;
+        internal Dictionary<(string Family, OfficeFontStyle Style), PaintedGlyphMap> PaintedGlyphMaps { get; } = new();
 
         internal PageContentBudget(PdfReadPage page, CancellationToken cancellationToken = default)
             : this(page, null, cancellationToken) { }

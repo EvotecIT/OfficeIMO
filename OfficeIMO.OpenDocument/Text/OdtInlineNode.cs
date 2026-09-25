@@ -18,6 +18,8 @@ public enum OdtInlineNodeKind {
     BookmarkEnd,
     /// <summary>An inline element not represented by the current typed surface.</summary>
     Other,
+    /// <summary>A native footnote or endnote reference and body.</summary>
+    Note,
     /// <summary>A native page, count, date, or time field.</summary>
     Field
 }
@@ -31,7 +33,7 @@ public sealed class OdtInlineNode {
     private readonly string? _textContribution;
 
     private OdtInlineNode(OdtInlineNodeKind kind, string? text, OdtSpan? span = null,
-        OdtHyperlink? hyperlink = null, OdtImage? image = null, OdtField? field = null, string? name = null,
+        OdtHyperlink? hyperlink = null, OdtImage? image = null, OdtField? field = null, OdtNote? note = null, string? name = null,
         string? qualifiedName = null, IReadOnlyList<OdtInlineNode>? children = null,
         string? textContribution = null) {
         Kind = kind;
@@ -41,6 +43,7 @@ public sealed class OdtInlineNode {
         Hyperlink = hyperlink;
         Image = image;
         Field = field;
+        Note = note;
         Name = name;
         QualifiedName = qualifiedName;
         Children = children ?? Array.Empty<OdtInlineNode>();
@@ -65,6 +68,8 @@ public sealed class OdtInlineNode {
     public OdtImage? Image { get; }
     /// <summary>Native field for <see cref="OdtInlineNodeKind.Field"/>.</summary>
     public OdtField? Field { get; }
+    /// <summary>Native note for <see cref="OdtInlineNodeKind.Note"/>.</summary>
+    public OdtNote? Note { get; }
     /// <summary>Bookmark name for bookmark marker nodes.</summary>
     public string? Name { get; }
     /// <summary>Expanded XML name for an unrepresented element.</summary>
@@ -119,7 +124,7 @@ public sealed class OdtInlineNode {
                 && element.Element(OdfNamespaces.Draw + "image") != null) {
                 var image = new OdtImage(document, element, partPath);
                 result.Add(new OdtInlineNode(OdtInlineNodeKind.Image, string.Empty, image: image,
-                    textContribution: OdfTextCodec.Read(element)));
+                    textContribution: string.Empty));
             } else if (element.Name == OdfNamespaces.Text + "bookmark") {
                 result.Add(BookmarkNode(OdtInlineNodeKind.Bookmark, element));
             } else if (element.Name == OdfNamespaces.Text + "bookmark-start") {
@@ -129,6 +134,9 @@ public sealed class OdtInlineNode {
             } else if (OdtField.TryGetKind(element.Name, out _)) {
                 result.Add(new OdtInlineNode(OdtInlineNodeKind.Field, OdfTextCodec.Read(element),
                     field: new OdtField(document, element, partPath)));
+            } else if (element.Name == OdfNamespaces.Text + "note") {
+                result.Add(new OdtInlineNode(OdtInlineNodeKind.Note, string.Empty,
+                    note: new OdtNote(document, element, partPath)));
             } else {
                 result.Add(new OdtInlineNode(OdtInlineNodeKind.Other, OdfTextCodec.Read(element),
                     qualifiedName: element.Name.ToString()));

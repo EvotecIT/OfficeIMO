@@ -85,6 +85,7 @@ public sealed partial class PdfReadPage {
                 rotationCenterY: baselineY,
                 wrapText: false);
         }
+        MarkPaintedGlyphs(drawing, span);
     }
 
     private static bool TryAddClippedTextSpan(OfficeDrawing drawing, PdfTextSpan span, double x, double y, double width, double height, double baselineY, PdfPageClipPath? overrideClipPath = null,
@@ -170,6 +171,7 @@ public sealed partial class PdfReadPage {
                 rotationCenterY: baselineY,
                 wrapText: false);
         }
+        MarkPaintedGlyphs(drawing, span);
         return true;
     }
 
@@ -251,10 +253,7 @@ public sealed partial class PdfReadPage {
                     };
                     clippedGlyphDrawing.Fonts.AddRange(drawing.Fonts);
                 }
-                var glyph = new PdfTextSpan(measurement.Text, span.FontResource, span.FontSize,
-                    x, y, paintedAdvances[index], span.Color, span.IsVisible, span.RotationDegrees, span.BaseFont, glyphClip,
-                    drawingFontFamily: span.DrawingFontFamily, fontWeight: span.FontWeight,
-                    fontDescriptorFlags: span.FontDescriptorFlags);
+                PdfTextSpan glyph = span.WithPaintedGlyph(index, characterOffset, x, y, glyphClip);
                 AddTextSpanCore(clippedGlyphDrawing ?? drawing, pageHeight, glyph, pageContentBudget, paint, cancellationToken);
             }
             // Stream origins instead of allocating an array for a potentially huge
@@ -284,8 +283,20 @@ public sealed partial class PdfReadPage {
             span.Text, span, frame, baseline, span.Advance);
     }
 
+    // PDF glyph runs are already shaped and in painted order. Re-shaping or bidi reordering would
+    // replace joining forms or reverse right-to-left runs, so complex-script runs keep their painted
+    // glyphs. Simple text keeps the configured shaping profile, which cannot change its glyphs.
+    private static bool PreservesPaintedGlyphs(PdfTextSpan span) =>
+        span.IsPaintedGlyphProjection && OfficeManagedTextShaper.RequiresComplexLayout(span.Text);
+
+    private static void MarkPaintedGlyphs(OfficeDrawing drawing, PdfTextSpan span) {
+        if (span.LogicalDrawingText != null) drawing.SetLastTextPaintedProjection(span.LogicalDrawingText, span.Text);
+        if (PreservesPaintedGlyphs(span)) drawing.MarkLastTextAsPaintedGlyphs();
+    }
+
     private static (double Left, double Top, double Right, double Bottom) MeasureTextPaintBounds(OfficeRasterCanvas metrics, string text, PdfTextSpan span,
         (double X, double Y, double Width, double Height) frame, double baseline, double advance, bool includeEmptyFrame = true) {
+        metrics.PreservePaintedGlyphOrder = PreservesPaintedGlyphs(span);
         var bounds = metrics.MeasurePositionedTextBounds(text, frame.X, frame.Y, frame.Width, frame.Height, Math.Max(1D, span.FontSize),
             ToOfficeFontInfo(span.BaseFont, span.FontSize, span.DrawingFontFamily, span.IsBold, span.IsItalic),
             advance > 0D ? advance : frame.Width, OfficeTextAlignment.Left, OfficeTextFeatureSettings.Default, "", Math.Max(1D, span.FontSize),
@@ -325,6 +336,9 @@ public sealed partial class PdfReadPage {
             count += lengths[index];
         }
         if (count != span.Text.Length) return false;
+        if (span.LogicalDrawingText is { } logical && logical.Length != span.Text.Length && lengths.Count > 1 &&
+            span.LogicalGlyphTexts?.Count != lengths.Count)
+            return false;
         return PdfTextAdvanceProjection.TryGetResolvedDirection(span, cancellationToken, out direction);
     }
 

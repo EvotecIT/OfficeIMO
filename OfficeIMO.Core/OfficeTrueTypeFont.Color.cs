@@ -32,7 +32,8 @@ public sealed partial class OfficeTrueTypeFont {
         for (int textIndex = 0; textIndex < text.Length;) {
             cancellationToken.ThrowIfCancellationRequested();
             int glyph = ReadMappedGlyph(text, ref textIndex, out int scalar);
-            if (glyph > 0) glyphs.Add((checked((ushort)glyph), scalar));
+            if (glyph > 0 || glyph == 0 && HasPaintedNotdefMapping(scalar))
+                glyphs.Add((checked((ushort)glyph), scalar));
         }
         if (glyphs.Count == 0 || !glyphs.Exists(item => _colorGlyphs.HasColorGlyph(item.Glyph))) return false;
 

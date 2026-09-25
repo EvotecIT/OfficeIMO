@@ -7,7 +7,7 @@ public static partial class WordOpenDocumentConversionExtensions {
     private static void CopyParagraph(WordParagraphSnapshot source, OdtParagraph target,
         WordOpenDocumentConversionOptions options, OdfImageValidationBudget imageValidationBudget,
         ref int hyperlinks, ref int images, ref int unsupportedImages,
-        ref int bookmarks, ref int unsupportedFootnotes) {
+        ref int bookmarks, NoteMappingStats notes) {
         bool wrote = false;
         OdtParagraph first = target;
         target.PageBreakBefore = source.PageBreakBefore;
@@ -45,7 +45,7 @@ public static partial class WordOpenDocumentConversionExtensions {
             }
             AppendRunSegment(run, ref start, run.Text.Length, ref imageIndex, target, options,
                 imageValidationBudget, ref hyperlinks, ref images, ref unsupportedImages, ref wrote);
-            if (run.Footnote != null) unsupportedFootnotes++;
+            CopyWordNotes(run, target, notes);
         }
         if (!wrote && source.Text.Length > 0 && source.Runs.All(run => run.NonTextBreaks == null)) target.Text = source.Text;
         if (!string.IsNullOrWhiteSpace(source.BookmarkName)) { first.AddBookmark(source.BookmarkName!); bookmarks++; }

@@ -19,20 +19,26 @@ public enum OdtParagraphAlignment {
 /// <summary>An XML-backed ODT paragraph or heading.</summary>
 public sealed class OdtParagraph {
     private readonly OdtDocument _document;
-    private readonly XElement _element;
+    private XElement _element;
     private readonly string _partPath;
+    private Func<XElement>? _materializeForNote;
 
-    internal OdtParagraph(OdtDocument document, XElement element, string partPath = "content.xml") {
+    internal OdtParagraph(OdtDocument document, XElement element, string partPath = "content.xml",
+        Func<XElement>? materializeForNote = null) {
         _document = document;
         _element = element;
         _partPath = partPath;
+        _materializeForNote = materializeForNote;
     }
 
     /// <summary>Plain text with ODF spaces, tabs, and line breaks decoded.</summary>
     public string Text {
         get => OdfTextCodec.Read(_element);
         set {
+            bool hadNotes = _element.Descendants(OdfNamespaces.Text + "note").Any();
+            if (hadNotes) _document.PrepareNoteIndexForMutation();
             OdfTextCodec.Replace(_element, value);
+            if (hadNotes) _document.RefreshNoteIndexAfterMutation();
             Dirty();
         }
     }
@@ -67,10 +73,12 @@ public sealed class OdtParagraph {
 
     /// <summary>Inline text spans in this paragraph.</summary>
     public IReadOnlyList<OdtSpan> Spans => _element.Descendants(OdfNamespaces.Text + "span")
+        .Where(IsInParagraphStory)
         .Select(element => new OdtSpan(_document, element, _partPath)).ToList();
 
     /// <summary>Hyperlinks in this paragraph.</summary>
     public IReadOnlyList<OdtHyperlink> Hyperlinks => _element.Descendants(OdfNamespaces.Text + "a")
+        .Where(IsInParagraphStory)
         .Select(element => new OdtHyperlink(_document, element, _partPath)).ToList();
 
     /// <summary>Native page, count, date, and time fields in paragraph order.</summary>
@@ -85,10 +93,21 @@ public sealed class OdtParagraph {
     /// </summary>
     public IReadOnlyList<OdtInlineNode> InlineNodes => OdtInlineNode.Read(_document, _element, _partPath);
 
+    /// <summary>Footnotes and endnotes referenced from this paragraph, in source order.</summary>
+    public IReadOnlyList<OdtNote> Notes => _element.Descendants(OdfNamespaces.Text + "note")
+        .Where(element => !element.Ancestors()
+            .TakeWhile(ancestor => ancestor != _element)
+            .Any(ancestor => ancestor.Name == OdfNamespaces.Text + "note"))
+        .Select(element => new OdtNote(_document, element, _partPath)).ToList();
+
     /// <summary>Embedded image frames in this paragraph.</summary>
     public IReadOnlyList<OdtImage> Images => _element.Descendants(OdfNamespaces.Draw + "frame")
-        .Where(element => element.Element(OdfNamespaces.Draw + "image") != null)
+        .Where(element => IsInParagraphStory(element) && element.Element(OdfNamespaces.Draw + "image") != null)
         .Select(element => new OdtImage(_document, element, _partPath)).ToList();
+
+    private bool IsInParagraphStory(XElement element) => !element.Ancestors()
+        .TakeWhile(ancestor => ancestor != _element)
+        .Any(ancestor => ancestor.Name == OdfNamespaces.Text + "note");
 
     /// <summary>Controls whether this paragraph starts on a new page.</summary>
     public bool PageBreakBefore {
@@ -320,6 +339,27 @@ public sealed class OdtParagraph {
         _element.Add(new XElement(OdfNamespaces.Text + "bookmark-end", new XAttribute(OdfNamespaces.Text + "name", name)));
         Dirty();
         return this;
+    }
+
+    /// <summary>Appends a native footnote at the current inline position.</summary>
+    public OdtNote AddFootnote(string text) => AddNote(OdtNoteKind.Footnote, text);
+
+    /// <summary>Appends a native endnote at the current inline position.</summary>
+    public OdtNote AddEndnote(string text) => AddNote(OdtNoteKind.Endnote, text);
+
+    private OdtNote AddNote(OdtNoteKind kind, string text) {
+        if (_materializeForNote != null) {
+            _document.ValidateNoteInsertion(kind, text);
+            _element = _materializeForNote();
+            _materializeForNote = null;
+        } else if (_element.Ancestors().Any(ancestor =>
+            ancestor.Name == OdfNamespaces.Table + "table-row" &&
+            OdsRepeatModel.Read(ancestor, OdfNamespaces.Table + "number-rows-repeated") > 1 ||
+            ancestor.Name == OdfNamespaces.Table + "table-cell" &&
+            OdsRepeatModel.Read(ancestor, OdfNamespaces.Table + "number-columns-repeated") > 1)) {
+            throw new NotSupportedException("Insert notes through the logical table cell when its row or cell is repeated.");
+        }
+        return _document.AddNote(_element, _partPath, kind, text);
     }
 
     /// <summary>Appends an inline or paragraph-anchored image.</summary>

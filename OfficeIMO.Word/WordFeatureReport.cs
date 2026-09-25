@@ -344,9 +344,27 @@ namespace OfficeIMO.Word {
             Add(features, "References", "Bibliography sources", OfficeFeatureSupportLevel.Editable, Math.Max(BibliographySources.Count, bibliographyDetails.Count), null,
                 "Bibliography sources can be authored, loaded, and used by citation and bibliography fields.",
                 bibliographyDetails);
-            Add(features, "Content", "Footnotes", OfficeFeatureSupportLevel.PartiallyEditable, FootNotes.Count, null,
+            FootnoteReference[] footnoteReferences = document.Body?.Descendants<FootnoteReference>().ToArray()
+                ?? Array.Empty<FootnoteReference>();
+            EndnoteReference[] endnoteReferences = document.Body?.Descendants<EndnoteReference>().ToArray()
+                ?? Array.Empty<EndnoteReference>();
+            int footnoteDefinitions = mainPart.FootnotesPart?.Footnotes?.Elements<Footnote>().Count(note =>
+                note.Type?.Value != FootnoteEndnoteValues.Separator &&
+                note.Type?.Value != FootnoteEndnoteValues.ContinuationSeparator) ?? 0;
+            int endnoteDefinitions = mainPart.EndnotesPart?.Endnotes?.Elements<Endnote>().Count(note =>
+                note.Type?.Value != FootnoteEndnoteValues.Separator &&
+                note.Type?.Value != FootnoteEndnoteValues.ContinuationSeparator) ?? 0;
+            int repeatedFootnoteReferences = footnoteReferences.Length - footnoteReferences
+                .Where(reference => reference.Id != null).Select(reference => reference.Id!.Value).Distinct().Count();
+            int repeatedEndnoteReferences = endnoteReferences.Length - endnoteReferences
+                .Where(reference => reference.Id != null).Select(reference => reference.Id!.Value).Distinct().Count();
+            Add(features, "Content", "Footnotes", OfficeFeatureSupportLevel.PartiallyEditable,
+                Math.Max(Math.Max(FootNotes.Count, footnoteReferences.Length),
+                    footnoteDefinitions + repeatedFootnoteReferences), null,
                 "Footnotes can be authored, inspected, and removed; advanced note numbering and cross-format workflows remain partial.");
-            Add(features, "Content", "Endnotes", OfficeFeatureSupportLevel.PartiallyEditable, EndNotes.Count, null,
+            Add(features, "Content", "Endnotes", OfficeFeatureSupportLevel.PartiallyEditable,
+                Math.Max(Math.Max(EndNotes.Count, endnoteReferences.Length),
+                    endnoteDefinitions + repeatedEndnoteReferences), null,
                 "Endnotes can be authored, inspected, and removed; advanced note numbering and cross-format workflows remain partial.");
             Add(features, "Content", "External hyperlinks", OfficeFeatureSupportLevel.PartiallyEditable, CountExternalHyperlinks(), null,
                 "External hyperlinks can be authored and edited; the report exposes external relationships for round-trip review.",

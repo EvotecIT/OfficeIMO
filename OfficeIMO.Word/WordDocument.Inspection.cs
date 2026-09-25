@@ -414,7 +414,8 @@ namespace OfficeIMO.Word {
                     ReferenceId = footNote.ReferenceId,
                 };
 
-                foreach (var paragraphGroup in GroupParagraphs(paragraphs).Where(paragraph => paragraph.GetRuns().Any(run => run.FootNote == null))) {
+                foreach (var paragraphGroup in GroupParagraphs(paragraphs).Where(paragraph =>
+                    !paragraph.GetRuns().Any() || paragraph.GetRuns().Any(run => run.FootNote == null))) {
                     snapshot.AddParagraph(BuildParagraphSnapshot(paragraphGroup, expansionContext));
                 }
 
@@ -445,7 +446,8 @@ namespace OfficeIMO.Word {
                     ReferenceId = endnote.ReferenceId,
                 };
 
-                foreach (var paragraphGroup in GroupParagraphs(paragraphs).Where(paragraph => paragraph.GetRuns().Any(run => run.EndNote == null))) {
+                foreach (var paragraphGroup in GroupParagraphs(paragraphs).Where(paragraph =>
+                    !paragraph.GetRuns().Any() || paragraph.GetRuns().Any(run => run.EndNote == null))) {
                     snapshot.AddParagraph(BuildParagraphSnapshot(paragraphGroup, expansionContext));
                 }
 

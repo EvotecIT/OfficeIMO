@@ -38,6 +38,20 @@ document.Save("summary.odt");
 
 `OdtParagraph.Fields` reads page number, page count, date, and time fields in order. `OdtField.DisplayText` edits the cached text; an office application can refresh a dynamic field later. `OdtField.IsFixed` retains a date, time, or page number value instead of refreshing it. Page count cannot be fixed.
 
+Add native ODT footnotes or endnotes at the current paragraph position:
+
+```csharp
+using OfficeIMO.OpenDocument;
+
+using OdtDocument document = OdtDocument.Create();
+OdtParagraph paragraph = document.AddParagraph("The result is documented");
+paragraph.AddFootnote("Source and calculation details.");
+paragraph.AddText(" in the appendix.");
+paragraph.AddEndnote("Additional context.");
+```
+
+`OdtParagraph.Notes` and `InlineNodes` expose note bodies and reference order after reopening the file. Note-body paragraphs are separate from document-body paragraphs, and their spans, links, and images stay on the note-body paragraph. Native note citations follow document order when notes are added to earlier paragraphs later; an imported custom citation label remains the displayed `OdtNote.Citation`. Adding a note to a document with `text:notes-configuration` for that note kind throws `NotSupportedException`, preserving its configured numbering and existing citations.
+
 Create a sparse ODS workbook:
 
 ```csharp

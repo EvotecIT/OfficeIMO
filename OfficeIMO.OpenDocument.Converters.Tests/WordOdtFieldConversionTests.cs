@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Xml.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.OpenDocument;
 using OfficeIMO.Word;
@@ -295,6 +296,33 @@ public sealed class WordOdtFieldConversionTests {
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "fields" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
         Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void HandledHyperlinkFieldDoesNotHideInspectedDrawingField() {
+        OdtDocument source = OdtDocument.Create();
+        source.AddParagraph();
+        XNamespace text = "urn:oasis:names:tc:opendocument:xmlns:text:1.0";
+        XNamespace office = "urn:oasis:names:tc:opendocument:xmlns:office:1.0";
+        XNamespace draw = "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0";
+        XNamespace xlink = "http://www.w3.org/1999/xlink";
+        XDocument content = source.Package.GetXml("content.xml");
+        content.Descendants(text + "p").Single().Add(new XElement(text + "a",
+            new XAttribute(xlink + "href", "https://example.com"),
+            new XElement(text + "date", "Linked date")));
+        content.Descendants(office + "text").Single().Add(new XElement(draw + "frame",
+            new XElement(draw + "text-box", new XElement(text + "p",
+                new XElement(text + "date", "Drawing date")))));
+        source.Package.MarkXmlDirty("content.xml");
+
+        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        using WordDocument target = conversion.Value;
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "fields" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "source-text-fields" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+        Assert.Throws<OdfConversionLossException>(() => source.ToWordDocumentResult(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 

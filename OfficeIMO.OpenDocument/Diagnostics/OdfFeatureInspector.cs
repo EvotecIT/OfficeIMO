@@ -52,7 +52,6 @@ internal static class OdfFeatureInspector {
             AddElementFinding(document, OdfNamespaces.Table + "named-expression", "spreadsheet-named-expressions", OdfFeatureSupport.Inspected, entry.Name, findings);
             AddElementFinding(document, OdfNamespaces.Table + "scenario", "spreadsheet-scenarios", OdfFeatureSupport.Preserved, entry.Name, findings);
             AddElementFinding(document, OdfNamespaces.Table + "detective", "spreadsheet-detective", OdfFeatureSupport.Preserved, entry.Name, findings);
-            AddElementFinding(document, OdfNamespaces.Text + "note", "text-notes", OdfFeatureSupport.Inspected, entry.Name, findings);
             XElement[] textFields = document.Descendants()
                 .Where(element => OdtField.TryGetKind(element.Name, out _)).ToArray();
             int basicTextFields = textFields.Count(element =>
@@ -61,6 +60,16 @@ internal static class OdfFeatureInspector {
                 "text-fields", OdfFeatureSupport.Editable, entry.Name, basicTextFields));
             if (textFields.Length > basicTextFields) findings.Add(new OdfFeatureFinding(
                 "text-fields", OdfFeatureSupport.Inspected, entry.Name, textFields.Length - basicTextFields));
+            XElement[] notes = document.Descendants(OdfNamespaces.Text + "note").ToArray();
+            int editableNotes = notes.Count(note =>
+                !note.Ancestors(OdfNamespaces.Text + "tracked-changes").Any() &&
+                ((string?)note.Attribute(OdfNamespaces.Text + "note-class") is "footnote" or "endnote") &&
+                note.Element(OdfNamespaces.Text + "note-body") is XElement body &&
+                body.Elements().All(child => child.Name == OdfNamespaces.Text + "p"));
+            if (editableNotes > 0) findings.Add(new OdfFeatureFinding(
+                "text-notes", OdfFeatureSupport.Editable, entry.Name, editableNotes));
+            if (notes.Length > editableNotes) findings.Add(new OdfFeatureFinding(
+                "text-notes", OdfFeatureSupport.Inspected, entry.Name, notes.Length - editableNotes));
             int bookmarks = document.Descendants(OdfNamespaces.Text + "bookmark").Count()
                 + document.Descendants(OdfNamespaces.Text + "bookmark-start").Count();
             if (bookmarks > 0) findings.Add(new OdfFeatureFinding("text-bookmarks", OdfFeatureSupport.Editable, entry.Name, bookmarks));
@@ -105,7 +114,7 @@ internal static class OdfFeatureInspector {
         if (count > 0) findings.Add(new OdfFeatureFinding(featureName, support, partPath, count));
     }
 
-    private static bool IsEditableOdtField(OdfDocumentKind kind, string partPath, XElement element) {
+    internal static bool IsEditableOdtField(OdfDocumentKind kind, string partPath, XElement element) {
         if (kind != OdfDocumentKind.Text ||
             element.Ancestors().Any(ancestor => ancestor.Name == OdfNamespaces.Text + "tracked-changes" ||
                 ancestor.Name == OdfNamespaces.Text + "note" ||
