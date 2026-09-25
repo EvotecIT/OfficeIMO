@@ -409,6 +409,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         int approximatedFontFamilyLists = 0, unsupportedFontFamilies = 0;
         int approximatedTextDecorations = 0, unsupportedCapitalization = 0;
         int forcedVisibleWorksheets = 0;
+        var chartTargets = new List<(OdsSheet Source, ExcelSheet Target)>();
         bool truncated = false;
         ExcelSheet? activeTarget = null;
         ExcelSheet? firstTarget = null;
@@ -417,6 +418,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         int conditionalTargetLimitFailures = 0;
         foreach (OdsSheet odsSheet in source.Sheets) {
             ExcelSheet sheet = target.AddWorksheet(odsSheet.Name);
+            chartTargets.Add((odsSheet, sheet));
             var validationTargets = new Dictionary<string, List<string>>(StringComparer.Ordinal);
             var conditionalTargets = new Dictionary<string, List<string>>(StringComparer.Ordinal);
             var conditionalTargetLimits = new HashSet<string>(StringComparer.Ordinal);
@@ -426,7 +428,15 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             sheet.SetHidden(odsSheet.Hidden);
             if (!odsSheet.Hidden && activeTarget == null) activeTarget = sheet;
 
-            foreach (OdsColumnRun columnRun in odsSheet.ColumnRuns) {
+            IReadOnlyList<OdsColumnRun> columnRuns = odsSheet.ColumnRuns;
+            double? uniformDefaultColumnWidth = effective.MaximumColumns == 16_384
+                ? TryGetUniformColumnWidth(columnRuns) : null;
+            if (uniformDefaultColumnWidth.HasValue) {
+                sheet.SetDefaultColumnWidth(uniformDefaultColumnWidth.Value);
+                columnLayouts = (int)Math.Min(int.MaxValue, (long)columnLayouts + effective.MaximumColumns);
+            }
+            foreach (OdsColumnRun columnRun in uniformDefaultColumnWidth.HasValue
+                ? Array.Empty<OdsColumnRun>() : columnRuns) {
                 long columnEnd = SaturatingAdd(columnRun.StartColumn, columnRun.RepeatCount);
                 long lastExclusive = Math.Min(columnEnd, effective.MaximumColumns);
                 for (long column = columnRun.StartColumn; column < lastExclusive; column++) {
@@ -442,16 +452,34 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 if (columnEnd > effective.MaximumColumns) truncated = true;
             }
 
-            foreach (OdsRowRun rowRun in odsSheet.RowRuns) {
+            IReadOnlyList<OdsRowRun> rowRuns = odsSheet.RowRuns;
+            double? uniformDefaultRowHeight = effective.MaximumRows == 1_048_576
+                ? TryGetUniformRowHeight(rowRuns) : null;
+            if (uniformDefaultRowHeight.HasValue) sheet.SetDefaultRowHeight(uniformDefaultRowHeight.Value);
+            foreach (OdsRowRun rowRun in rowRuns) {
+                // Producer ODS files commonly encode the unused tail as one very large empty row run.
+                // No worksheet output depends on expanding that run.
+                bool emptyRun = !rowRun.Hidden
+                    && rowRun.CellRuns.All(cellRun => cellRun.IsCovered || !IsSignificant(cellRun));
+                if (emptyRun && (!rowRun.Height.HasValue || uniformDefaultRowHeight.HasValue)) {
+                    long count = Math.Min(SaturatingAdd(rowRun.StartRow, rowRun.RepeatCount), effective.MaximumRows)
+                        - rowRun.StartRow;
+                    if (uniformDefaultRowHeight.HasValue && count > 0)
+                        rowLayouts = (int)Math.Min(int.MaxValue, (long)rowLayouts + count);
+                    if (SaturatingAdd(rowRun.StartRow, rowRun.RepeatCount) > effective.MaximumRows) truncated = true;
+                    continue;
+                }
                 long rowEnd = SaturatingAdd(rowRun.StartRow, rowRun.RepeatCount);
                 long lastRowExclusive = Math.Min(rowEnd, effective.MaximumRows);
                 if (rowEnd > effective.MaximumRows) truncated = true;
                 for (long row = rowRun.StartRow; row < lastRowExclusive; row++) {
                     int excelRow = checked((int)row + 1);
                     if (rowRun.Hidden) { sheet.SetRowHidden(excelRow, true); rowLayouts++; }
-                    if (rowRun.Height.HasValue) {
+                    if (rowRun.Height.HasValue && !uniformDefaultRowHeight.HasValue) {
                         if (rowRun.Height.Value.TryToPoints(out double points)) sheet.SetRowHeight(excelRow, points);
                         else unsupportedMeasurements++;
+                        rowLayouts++;
+                    } else if (rowRun.Height.HasValue) {
                         rowLayouts++;
                     }
 
@@ -588,6 +616,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         }
         if (activeTarget != null) target.SetActiveWorksheet(activeTarget);
 
+        int convertedCharts = ConvertOdsCharts(source, chartTargets, effective, ref expandedCells, ref truncated);
+
         foreach (NamedRangeConversionEntry named in namedRangePlan.Entries) {
             target.SetNamedRange(named.OutputName, named.Address, save: false,
                 validationMode: ExcelDefinedNameValidationMode.Strict);
@@ -635,6 +665,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         if (forcedVisibleWorksheets > 0) report.Add("worksheet-visibility", OdfConversionMappingStatus.Approximated,
             forcedVisibleWorksheets, "The first worksheet was made visible because XLSX requires at least one visible worksheet.");
         AddConverted(report, "validations", convertedValidations);
+        if (convertedCharts > 0) report.Add("charts", OdfConversionMappingStatus.Approximated, convertedCharts,
+            "Bounded ODS column, bar, and line charts retain cached categories, numeric series, title, and approximate placement; chart styling, axis settings, legends, and live source links are not transferred.");
         int convertedConditionalMapCount = convertedConditionalStyles.Sum(styleName => conditionalPlans[styleName]!.Count);
         if (convertedConditionalMapCount > 0) report.Add("source-conditional-style-maps",
             OdfConversionMappingStatus.Approximated, convertedConditionalMapCount,
@@ -656,7 +688,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         if (truncated) report.Add("expansion-limits", OdfConversionMappingStatus.Skipped, 1,
             "Content outside the configured row, column, or expanded-cell limits was not materialized.");
         AddUnmappedOdfFindings(source.InspectFeatures(), report, formulas, convertedValidations,
-            externalHyperlinks, comments, namedRanges, convertedConditionalMapCount);
+            externalHyperlinks, comments, namedRanges, convertedConditionalMapCount, convertedCharts);
         target = Normalize(target);
         return new OdfConversionResult<ExcelDocument>(target, report).ApplyPolicy(effective.LossPolicy);
     }
@@ -664,6 +696,33 @@ public static partial class ExcelOpenDocumentConversionExtensions {
     private static bool IsSignificant(OdsCellRun cell) => cell.Value.Kind != OdsCellValueKind.Empty ||
         cell.Formula != null || cell.StyleName != null || cell.ValidationName != null || cell.HyperlinkHref != null ||
         cell.Annotations.Count > 0 || cell.RowSpan > 1 || cell.ColumnSpan > 1;
+
+    private static double? TryGetUniformRowHeight(IReadOnlyList<OdsRowRun> runs) {
+        if (runs.Count == 0 || runs[0].StartRow != 0
+            || SaturatingAdd(runs[runs.Count - 1].StartRow, runs[runs.Count - 1].RepeatCount) != 1_048_576) return null;
+        double? height = null;
+        foreach (OdsRowRun run in runs) {
+            if (run.Hidden || !run.Height.HasValue || !run.Height.Value.TryToPoints(out double points)
+                || points <= 0 || points > 409 ||
+                (height.HasValue && Math.Abs(height.Value - points) > 0.0001D)) return null;
+            height = points;
+        }
+        return height;
+    }
+
+    private static double? TryGetUniformColumnWidth(IReadOnlyList<OdsColumnRun> runs) {
+        if (runs.Count == 0 || runs[0].StartColumn != 0
+            || SaturatingAdd(runs[runs.Count - 1].StartColumn, runs[runs.Count - 1].RepeatCount) != 16_384) return null;
+        double? width = null;
+        foreach (OdsColumnRun run in runs) {
+            if (run.Hidden || !run.Width.HasValue || !run.Width.Value.TryToPoints(out double points)) return null;
+            double converted = PointsToExcelWidth(points);
+            if (converted <= 0 || converted > 255 ||
+                (width.HasValue && Math.Abs(width.Value - converted) > 0.0001D)) return null;
+            width = converted;
+        }
+        return width;
+    }
 
     private static string FormatAnnotationForExcel(OdsAnnotation annotation) {
         var header = new List<string>();

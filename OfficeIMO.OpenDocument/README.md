@@ -170,7 +170,7 @@ Unknown XML, vendor extensions, scripts, embedded content, and unsupported drawi
 - Password-encrypted packages using the documented AES-256-CBC profile can be opened and written. Legacy Blowfish and other unsupported profiles fail before content is exposed.
 - Changed signed packages fail by default because saving would invalidate signatures. An explicit save option can remove invalidated signature entries.
 - The bounded OfficeIMO XML package-manifest signature profile can be created and validated through an explicit `IOfficeSecurityProvider`. Arbitrary producer-specific signature profiles remain inspection or preservation oriented.
-- Pivot-table editing and complete chart editing are outside the current surface.
+- ODS exposes embedded chart names, types, titles, source ranges, and frame positions through `OdsSheet.Charts`. Chart styling is preserved in package XML; native chart editing and pivot-table editing are outside the current surface.
 - Flat XML variants (`.fodt`, `.fods`, `.fodp`) can be opened and written, including embedded raster images. Exotic embedded objects and package-only features may not project losslessly.
 - `OdsSheet.Merge` rejects merges above its default 100,000-cell materialization limit. Use the overload with an explicit lower limit when processing untrusted dimensions.
 - Unknown package entries and extension XML are always preserved by package editing. Explicit format conversion and flat XML projection report content they cannot carry through `OdfConversionReport` and `OdfSaveReport.LossyEntries`.

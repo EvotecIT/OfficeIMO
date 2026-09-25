@@ -32,6 +32,39 @@ public sealed class OdsSheet {
         set { Element.SetAttributeValue(OdfNamespaces.Table + "visibility", value ? "collapse" : null); Dirty(); }
     }
 
+    /// <summary>Embedded charts whose chart content can be read safely from this package.</summary>
+    public IReadOnlyList<OdsChart> Charts {
+        get {
+            var charts = new List<OdsChart>();
+            long rowIndex = 0;
+            foreach (XElement row in RowElements()) {
+                long rowRepeat = OdsRepeatModel.Read(row, OdfNamespaces.Table + "number-rows-repeated");
+                long columnIndex = 0;
+                foreach (XElement cell in CellElements(row)) {
+                    long columnRepeat = OdsRepeatModel.Read(cell, OdfNamespaces.Table + "number-columns-repeated");
+                    if (rowRepeat == 1 && columnRepeat == 1) {
+                        foreach (XElement frame in cell.Descendants(OdfNamespaces.Draw + "frame")) {
+                            if (frame.Element(OdfNamespaces.Draw + "object") == null) continue;
+                            OdsChart? chart = OdsChart.TryRead(_document, frame, rowIndex, columnIndex);
+                            if (chart != null) charts.Add(chart);
+                        }
+                    }
+                    columnIndex = checked(columnIndex + columnRepeat);
+                }
+                rowIndex = checked(rowIndex + rowRepeat);
+            }
+            XElement? shapes = Element.Element(OdfNamespaces.Table + "shapes");
+            if (shapes != null) {
+                foreach (XElement frame in shapes.Descendants(OdfNamespaces.Draw + "frame")) {
+                    if (frame.Element(OdfNamespaces.Draw + "object") == null) continue;
+                    OdsChart? chart = OdsChart.TryRead(_document, frame, null, null);
+                    if (chart != null) charts.Add(chart);
+                }
+            }
+            return charts;
+        }
+    }
+
     /// <summary>Optional ODF print range expression.</summary>
     public string? PrintRanges {
         get => (string?)Element.Attribute(OdfNamespaces.Table + "print-ranges");

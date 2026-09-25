@@ -5,6 +5,7 @@ internal static class OdfNamespaces {
     internal static readonly XNamespace Text = "urn:oasis:names:tc:opendocument:xmlns:text:1.0";
     internal static readonly XNamespace Table = "urn:oasis:names:tc:opendocument:xmlns:table:1.0";
     internal static readonly XNamespace Draw = "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0";
+    internal static readonly XNamespace Chart = "urn:oasis:names:tc:opendocument:xmlns:chart:1.0";
     internal static readonly XNamespace Presentation = "urn:oasis:names:tc:opendocument:xmlns:presentation:1.0";
     internal static readonly XNamespace Style = "urn:oasis:names:tc:opendocument:xmlns:style:1.0";
     internal static readonly XNamespace Number = "urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0";
