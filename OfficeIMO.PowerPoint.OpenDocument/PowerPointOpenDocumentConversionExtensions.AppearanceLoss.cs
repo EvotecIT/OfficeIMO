@@ -312,6 +312,10 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                     attribute.LocalName is not "algn" and not "rtl" &&
                     (attribute.LocalName != "lvl" || attribute.Value != "0")) ||
                 properties.ChildElements.Any(child => child.LocalName is "spcBef" or "spcAft" or "tabLst"));
+            count += part.Slide.Descendants<A.ListStyle>().Sum(style => style.ChildElements.Count(level =>
+                level.LocalName.StartsWith("lvl", StringComparison.Ordinal) &&
+                level.LocalName.EndsWith("pPr", StringComparison.Ordinal) &&
+                (level.HasAttributes || level.HasChildren)));
         }
         return count;
     }
@@ -325,7 +329,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                 presentation.GetPartById(id) is not SlidePart part) continue;
             if (part.Slide?.Transition is P.Transition transition &&
                 (transition.GetAttributes().Any(attribute =>
-                    attribute.LocalName is "advTm" or "advClick") ||
+                    attribute.LocalName is "advTm" or "advClick" or "spd" or "dur") ||
                  transition.GetFirstChild<P.SoundAction>() != null)) count++;
         }
         return count;
@@ -358,10 +362,12 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         if (fill != null && fill != "solid" || stroke != null && stroke != "solid") return true;
         if (fill == "solid" && !OdfColor.TryParse((string?)properties.Attribute(OdfNamespaces.Draw + "fill-color"), out _)) return true;
         if (stroke == "solid" && !OdfColor.TryParse((string?)properties.Attribute(OdfNamespaces.Svg + "stroke-color"), out _)) return true;
+        bool mappedImageClip = shape is OdpImage image && image.Crop.HasValue;
         return properties.HasElements || properties.Attributes().Any(attribute =>
             attribute.Name != OdfNamespaces.Draw + "fill" && attribute.Name != OdfNamespaces.Draw + "fill-color" &&
             attribute.Name != OdfNamespaces.Draw + "stroke" && attribute.Name != OdfNamespaces.Svg + "stroke-color" &&
-            attribute.Name != OdfNamespaces.Svg + "stroke-width");
+            attribute.Name != OdfNamespaces.Svg + "stroke-width" &&
+            (attribute.Name != OdfNamespaces.Fo + "clip" || !mappedImageClip));
     }
 
     private static bool HasUnmappedOdpDirectShapeGeometry(OdpShape shape) {
@@ -458,6 +464,10 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             (element.Name == OdfNamespaces.Table + "table-row" ||
              element.Name == OdfNamespaces.Table + "table-column") &&
             (string?)element.Attribute(OdfNamespaces.Table + "visibility") is "collapse" or "filter");
+
+    private static bool HasUnmappedOdpTableLists(OdpTable table) =>
+        table.Element.Descendants(OdfNamespaces.Table + "table-cell").Any(cell =>
+            cell.Descendants(OdfNamespaces.Text + "list").Any());
 
     private static int CountUnmappedOdpEmbeddedFonts(OdpPresentation source) =>
         new[] { "content.xml", "styles.xml" }.Sum(part => source.Package.GetXml(part)

@@ -557,6 +557,9 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             "ODP table, row, column, or cell styles were not translated.");
         AddUnsupported(report, "table-visibility", unsupportedTableVisibility,
             "Collapsed or filtered ODP table rows and columns became visible in PowerPoint.");
+        AddUnsupported(report, "text-lists", source.Slides.Sum(slide => slide.Shapes.OfType<OdpTable>()
+                .Count(HasUnmappedOdpTableLists)),
+            "Nested ODP lists in table cells were omitted from PowerPoint table text.");
         AddUnsupported(report, "table-protection", CountUnmappedOdpTableProtection(source),
             "Protected ODP tables or cells became editable in PowerPoint.");
         AddUnsupported(report, "shape-layers", CountUnmappedOdpShapeLayers(source),
