@@ -29,14 +29,17 @@ public sealed class OdsDataPilotTable {
     /// <summary>Whether imported grouping, field references, member selection, or nonlocal sources exceed the simple conversion subset.</summary>
     public bool HasAdvancedSettings => HasAdvancedSettingsIn(Element);
 
-    internal static bool IsEditableElement(XElement element) {
+    internal static bool IsEditableElement(OdsDocument document, XElement element) {
         if (HasAdvancedSettingsIn(element) || string.IsNullOrWhiteSpace((string?)element.Attribute(OdfNamespaces.Table + "name"))) return false;
         try {
-            ParseLocalRange((string?)element.Element(OdfNamespaces.Table + "source-cell-range")?
+            SpreadsheetRangeReference source = ParseLocalRange((string?)element.Element(OdfNamespaces.Table + "source-cell-range")?
                 .Attribute(OdfNamespaces.Table + "cell-range-address") ?? string.Empty, nameof(SourceRangeAddress));
-            ParseLocalRange((string?)element.Attribute(OdfNamespaces.Table + "target-range-address")
+            SpreadsheetRangeReference target = ParseLocalRange((string?)element.Attribute(OdfNamespaces.Table + "target-range-address")
                 ?? string.Empty, nameof(TargetRangeAddress));
-            return true;
+            if (document.GetSheet(source.Start.SheetName!) == null || document.GetSheet(target.Start.SheetName!) == null)
+                return false;
+            var pivot = new OdsDataPilotTable(document, element);
+            return pivot.Fields.All(field => pivot.SourceHeaderContains(field.SourceFieldName));
         } catch (ArgumentException) {
             return false;
         }
@@ -98,6 +101,10 @@ public sealed class OdsDataPilotTable {
 
     /// <summary>Adds a source field to this table using an ODF orientation and optional aggregation function.</summary>
     public OdsDataPilotField AddField(string sourceFieldName, string orientation, string? function = null) {
+        if (HasAdvancedSettings)
+            throw new InvalidOperationException("Fields cannot be edited on a data pilot with advanced imported settings.");
+        if (Fields.Any(field => !SourceHeaderContains(field.SourceFieldName)))
+            throw new InvalidOperationException("Fields cannot be edited while an existing source header binding is missing.");
         if (string.IsNullOrWhiteSpace(sourceFieldName)) throw new ArgumentException("Source field name cannot be empty.", nameof(sourceFieldName));
         if (orientation != "row" && orientation != "column" && orientation != "data" && orientation != "page") {
             throw new ArgumentException("Orientation must be row, column, data, or page.", nameof(orientation));

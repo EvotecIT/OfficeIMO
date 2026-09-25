@@ -218,7 +218,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             if (cell.IsCovered || cell.StartColumn > lastColumn) continue;
             long end = Math.Min(lastColumn, SaturatingAdd(cell.StartColumn, cell.RepeatCount) - 1);
             if (end < firstColumn) continue;
-            string name = cell.Value.DisplayText;
+            string name = cell.Value.DisplayText.Trim();
             if (string.IsNullOrWhiteSpace(name) || !names.Add(name) || end > Math.Max(cell.StartColumn, firstColumn))
                 return true;
         }

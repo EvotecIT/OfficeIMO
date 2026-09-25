@@ -113,6 +113,38 @@ public sealed class OpenDocumentOdsDataPilotTests {
     }
 
     [Fact]
+    public void StaleImportedFieldBindingIsInspectedAndCannotBeExtended() {
+        OdsDocument document = OdsDocument.Create();
+        OdsSheet sheet = document.AddSheet("Data");
+        sheet.Cell(0, 0).SetString("Region");
+        sheet.Cell(1, 0).SetString("North");
+        OdsDataPilotTable pivot = document.AddDataPilotTable("Pivot", "Data.A1:Data.A2", "Data.C1:Data.C2");
+        pivot.AddField("Region", "row");
+        sheet.Cell(0, 0).SetString("Area");
+
+        Assert.Contains(document.InspectFeatures().Findings, finding =>
+            finding.Name == "spreadsheet-data-pilot-tables" && finding.Count == 1 &&
+            finding.Support == OdfFeatureSupport.Inspected);
+        Assert.Throws<InvalidOperationException>(() => pivot.AddField("Area", "column"));
+        Assert.Single(pivot.Fields);
+    }
+
+    [Fact]
+    public void ImportedGrandTotalPreventsFieldAppendAfterLaterOrderChild() {
+        OdsDocument document = OdsDocument.Create();
+        OdsSheet sheet = document.AddSheet("Data");
+        sheet.Cell(0, 0).SetString("Region");
+        sheet.Cell(1, 0).SetString("North");
+        OdsDataPilotTable pivot = document.AddDataPilotTable("Pivot", "Data.A1:Data.A2", "Data.C1:Data.C2");
+        pivot.Element.Add(new XElement(OdfNamespaces.Table + "data-pilot-grand-total",
+            new XAttribute(OdfNamespaces.Table + "display", "true")));
+        string before = pivot.Element.ToString();
+
+        Assert.Throws<InvalidOperationException>(() => pivot.AddField("Region", "row"));
+        Assert.Equal(before, pivot.Element.ToString());
+    }
+
+    [Fact]
     public void SourceHeadersAreCheckedBeforeMutationAndDistinctDataAggregationsAreAllowed() {
         OdsDocument document = OdsDocument.Create();
         OdsSheet sheet = document.AddSheet("Data");

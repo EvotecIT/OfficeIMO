@@ -77,6 +77,28 @@ public sealed class ExcelOdsDataPilotConversionTests {
     }
 
     [Fact]
+    public void WhitespaceAmbiguousOdsHeadersRemainExplicitPivotLoss() {
+        OdsDocument source = OdsDocument.Create();
+        OdsSheet sheet = source.AddSheet("Data");
+        sheet.Cell(0, 0).SetString("Sales");
+        sheet.Cell(0, 1).SetString(" Sales ");
+        sheet.Cell(0, 2).SetString("Region");
+        sheet.Cell(1, 0).SetNumber(10);
+        sheet.Cell(1, 1).SetNumber(20);
+        sheet.Cell(1, 2).SetString("North");
+        OdsDataPilotTable pivot = source.AddDataPilotTable("Ambiguous",
+            "Data.A1:Data.C2", "Data.E1:Data.F3");
+        pivot.AddField("Region", "row");
+        pivot.AddField("Sales", "data", "sum");
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        using ExcelDocument result = conversion.Value;
+        Assert.Empty(result.Sheets.Single().GetPivotTables());
+        Assert.Contains(conversion.Report.ForFeature("pivot-tables"), mapping =>
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+    }
+
+    [Fact]
     public void PivotWithStaleCacheHeaderCasingRemainsExplicitLoss() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddWorksheet("Data");
