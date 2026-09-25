@@ -166,7 +166,9 @@ internal static class HtmlMhtmlEvidenceRunner {
                 return document.ToPdfDocumentResultAsync(options);
             }, output, results, failures).ConfigureAwait(false);
             await RunConversionAsync("officeimo-screen-media", () => RenderScreenPdfAsync(document, HtmlRenderIntentProfile.ScreenMediaPaged), output, results, failures).ConfigureAwait(false);
+            await RunConversionAsync("officeimo-screen-media-local-fonts", () => RenderScreenPdfAsync(document, HtmlRenderIntentProfile.ScreenMediaPaged, allowDocumentFontEmbedding: true), output, results, failures).ConfigureAwait(false);
             await RunConversionAsync("officeimo-screen-snapshot", () => RenderScreenPdfAsync(document, HtmlRenderIntentProfile.ScreenSnapshotPaged), output, results, failures).ConfigureAwait(false);
+            await RunConversionAsync("officeimo-screen-snapshot-local-fonts", () => RenderScreenPdfAsync(document, HtmlRenderIntentProfile.ScreenSnapshotPaged, allowDocumentFontEmbedding: true), output, results, failures).ConfigureAwait(false);
         }
         await RunAsync("peachpdf-print", async () => {
             using var source = new MemoryStream(archive, writable: false);
@@ -218,13 +220,14 @@ internal static class HtmlMhtmlEvidenceRunner {
         return failures.Count == 0 ? 0 : 1;
     }
 
-    private static Task<PdfCore.PdfDocumentConversionResult> RenderScreenPdfAsync(MhtmlDocument document, HtmlRenderIntentProfile profile) {
+    private static Task<PdfCore.PdfDocumentConversionResult> RenderScreenPdfAsync(MhtmlDocument document, HtmlRenderIntentProfile profile, bool allowDocumentFontEmbedding = false) {
         var options = new HtmlToPdfOptions {
             ViewportWidth = ViewportWidth,
             ViewportHeight = ViewportHeight,
             Margins = HtmlRenderMargins.All(0),
             HonorCssPageRules = false
         };
+        options.ResourcePolicy.AllowDocumentFontEmbedding = allowDocumentFontEmbedding;
         if (profile == HtmlRenderIntentProfile.ScreenSnapshotPaged) {
             options.PageSize = new OfficePageSize(
                 ViewportWidth / HtmlRenderOptions.CssPixelsPerInch,

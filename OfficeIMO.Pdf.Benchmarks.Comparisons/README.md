@@ -154,7 +154,10 @@ which removes OfficeIMO's default page margins, and
 `officeimo-print-zero-margin-local-fonts`, which additionally opts in to
 embedding document-selected fonts installed on the host. The
 `officeimo-print-fit-1200-local-fonts` lane applies the same font policy to
-the explicit 1200px print layout width. The local-font lanes
+the explicit 1200px print layout width. The
+`officeimo-screen-media-local-fonts` and
+`officeimo-screen-snapshot-local-fonts` lanes apply it to the two screen PDF
+intents. The local-font lanes
 can differ across machines and do not change the library default. Compare
 those lanes with their explicit settings; equal page counts do not establish
 equal layout. Browser print and screen-media print are separate references;
