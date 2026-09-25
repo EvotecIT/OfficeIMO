@@ -3,11 +3,118 @@ using OfficeIMO.Html;
 using OfficeIMO.Mhtml;
 using OfficeIMO.Tests.Pdf;
 using OfficeIMO.Word.Html;
+using System.Text;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Html.Tests;
 
 public sealed class MhtmlEmbeddedImageConversionTests {
+    [Theory]
+    [InlineData("html { opacity: 0 }")]
+    [InlineData("body { display: none }")]
+    public async Task HiddenDocumentRootDoesNotExportBodyContent(string css) {
+        HtmlConversionDocument source = HtmlConversionDocument.Parse(
+            "<style>" + css + "</style><body><p>Hidden article</p></body>");
+
+        HtmlVisibleContentResult result = await source.CreateVisibleContentDocumentResultAsync();
+
+        Assert.True(result.OmittedElementCount > 0);
+        Assert.DoesNotContain("Hidden article", result.Value.SourceHtml, StringComparison.Ordinal);
+        Assert.Contains("Hidden article", source.SourceHtml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ArchivedShadowSnapshotIsProjectedForEditableContent() {
+        const string html = "<sample-card><template shadowmode='open'><p>Shadow article</p>"
+            + "</template><p>Unused light content</p></sample-card>";
+        var archive = new MhtmlDocument(html);
+        var options = new HtmlRenderOptions();
+        archive.ConfigureRenderOptions(options);
+
+        HtmlVisibleContentResult result = await archive.CreateEmbeddedImageDocumentResult(options)
+            .RequireValue().CreateVisibleContentDocumentResultAsync(options);
+
+        Assert.Contains("Shadow article", result.Value.SourceHtml, StringComparison.Ordinal);
+        Assert.DoesNotContain("Unused light content", result.Value.SourceHtml, StringComparison.Ordinal);
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.SerializedShadowRootApproximated);
+        Assert.True(result.Report.HasLoss);
+        Assert.Contains("Unused light content", archive.Html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task PolicyBlockedStylesheetIsReportedAsVisibilityLoss() {
+        HtmlConversionDocument source = HtmlConversionDocument.Parse(
+            "<link rel='stylesheet' href='file:///private/article.css'><p>Article</p>");
+
+        HtmlVisibleContentResult result = await source.CreateVisibleContentDocumentResultAsync();
+
+        Assert.Equal(0, result.AppliedStylesheetCount);
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Source == "file:///private/article.css"
+            && diagnostic.LossKind == OfficeConversionLossKind.Omission);
+        Assert.True(result.Report.HasLoss);
+        Assert.Throws<HtmlConversionException>(() => result.RequireNoLoss());
+    }
+
+    [Fact]
+    public async Task MissingStylesheetResolverIsReportedBeforeEditableImport() {
+        HtmlConversionDocument source = HtmlConversionDocument.Parse(
+            "<link rel='stylesheet' href='https://example.test/article.css'><p>Article</p>");
+
+        HtmlVisibleContentResult result = await source.CreateVisibleContentDocumentResultAsync();
+
+        Assert.Equal(0, result.AppliedStylesheetCount);
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.ExternalStylesheetPending);
+        Assert.True(result.Report.HasLoss);
+        Assert.Contains("Article", result.Value.SourceHtml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ArchivedCssFiltersHiddenEditableContentWithoutImportingTheWholeStylesheet() {
+        const string html = "<html><head><link rel='stylesheet' href='styles.css'></head><body>"
+            + "<p>Visible article</p><div class='print-hidden'>Print navigation</div>"
+            + "<div class='transparent'>Closed menu</div></body></html>";
+        const string css = ".print-hidden{display:block}@media print{.print-hidden{display:none}}"
+            + ".transparent{opacity:0}";
+        var archive = new MhtmlDocument(html,
+            new[] { new MhtmlResource(Encoding.UTF8.GetBytes(css), "text/css",
+                contentLocation: "https://example.test/page/styles.css") },
+            contentLocation: "https://example.test/page/index.html");
+        MhtmlImageEmbeddingResult prepared = archive.CreateEmbeddedImageDocumentResult();
+        var printOptions = new HtmlRenderOptions { Mode = HtmlRenderMode.Paged };
+        archive.ConfigureRenderOptions(printOptions);
+
+        HtmlVisibleContentResult print = await prepared.Value.CreateVisibleContentDocumentResultAsync(printOptions);
+
+        Assert.Equal(1, print.AppliedStylesheetCount);
+        Assert.True(print.OmittedElementCount >= 2);
+        Assert.Contains("Visible article", print.Value.SourceHtml, StringComparison.Ordinal);
+        Assert.DoesNotContain("Print navigation", print.Value.SourceHtml, StringComparison.Ordinal);
+        Assert.DoesNotContain("Closed menu", print.Value.SourceHtml, StringComparison.Ordinal);
+        Assert.DoesNotContain(css, print.Value.SourceHtml, StringComparison.Ordinal);
+        Assert.Contains("styles.css", print.Value.SourceHtml, StringComparison.Ordinal);
+        Assert.Contains("Print navigation", archive.Html, StringComparison.Ordinal);
+
+        HtmlToWordResult word = print.Value.ToWordDocumentResult();
+        using var output = new MemoryStream();
+        using (var document = word.RequireValue()) document.Save(output);
+        using WordprocessingDocument saved = WordprocessingDocument.Open(
+            new MemoryStream(output.ToArray()), false);
+        string savedText = saved.MainDocumentPart!.Document.Body!.InnerText;
+        Assert.Contains("Visible article", savedText, StringComparison.Ordinal);
+        Assert.DoesNotContain("Print navigation", savedText, StringComparison.Ordinal);
+        Assert.DoesNotContain("Closed menu", savedText, StringComparison.Ordinal);
+
+        var screenOptions = new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous };
+        archive.ConfigureRenderOptions(screenOptions);
+        HtmlVisibleContentResult screen = await prepared.Value.CreateVisibleContentDocumentResultAsync(screenOptions);
+        Assert.Contains("Print navigation", screen.Value.SourceHtml, StringComparison.Ordinal);
+        Assert.DoesNotContain("Closed menu", screen.Value.SourceHtml, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void ArchivedImageBecomesAnEditableWordImageWithoutChangingTheArchive() {
         byte[] png = PdfPngTestImages.CreateRgbPng(2, 2);

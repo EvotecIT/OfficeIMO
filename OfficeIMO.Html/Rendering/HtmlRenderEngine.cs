@@ -372,14 +372,14 @@ public static class HtmlRenderEngine {
         }
     }
 
-    private static void ApplyDocumentPolicies(HtmlConversionDocument document, HtmlRenderOptions options) {
+    internal static void ApplyDocumentPolicies(HtmlConversionDocument document, HtmlRenderOptions options) {
         HtmlUrlPolicy requestedHyperlinkPolicy = options.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile();
         HtmlUrlPolicy requestedResourcePolicy = options.ResourceUrlPolicy ?? requestedHyperlinkPolicy;
         options.UrlPolicy = HtmlUrlPolicy.Intersect(document.HyperlinkUrlPolicy, requestedHyperlinkPolicy);
         options.ResourceUrlPolicy = HtmlUrlPolicy.Intersect(document.ResourceUrlPolicy, requestedResourcePolicy);
     }
 
-    private static void AddPendingStylesheetDiagnostics(HtmlResourceManifest manifest, HtmlResourceSession resources, HtmlDiagnosticReport diagnostics) {
+    internal static void AddPendingStylesheetDiagnostics(HtmlResourceManifest manifest, HtmlResourceSession resources, HtmlDiagnosticReport diagnostics) {
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (HtmlResourceReference reference in manifest.Resources) {
             if (!reference.IsAllowed

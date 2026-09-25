@@ -32,6 +32,19 @@ foreach (HtmlDiagnostic diagnostic in prepared.Report.Diagnostics) {
 
 Pass `editable` to a target adapter, such as `ToWordDocumentResult()` from `OfficeIMO.Word.Html`, and inspect that adapter's report too. Preparation never fetches network resources or changes `archive.HtmlDocument`. It applies the shared resource byte, count, and request limits; missing, rejected, and over-budget images remain as URLs with loss diagnostics. CSS backgrounds, `srcset` candidates, and linked stylesheets are outside this direct-image preparation step. A target adapter may still reject an embedded format such as WebP.
 
+For a print-oriented editable import, resolve archived stylesheets before selecting visible content:
+
+```csharp
+var printOptions = new HtmlRenderOptions { Mode = HtmlRenderMode.Paged };
+archive.ConfigureRenderOptions(printOptions);
+MhtmlImageEmbeddingResult images = archive.CreateEmbeddedImageDocumentResult(printOptions);
+HtmlVisibleContentResult visible = await images.RequireValue()
+    .CreateVisibleContentDocumentResultAsync(printOptions);
+HtmlConversionDocument printEditable = visible.RequireValue();
+```
+
+Inspect both preparation reports and the target adapter report. The visibility pass omits elements whose computed `display` is `none` or opacity is zero for the selected media; it does not apply the whole stylesheet to an editable target. Original stylesheet links remain, and unsupported styles are still reported by the target. The two preparation calls each enforce their own resource budgets; callers need an outer budget when combining them into one operation. This is content selection, not browser-equivalent editable layout.
+
 `ConfigureRenderOptions` resolves `cid:` and `Content-Location` references first. Its default policy is offline and never invokes a caller resolver for missing network resources. Remote retrieval is explicit, same-origin by default, redirect-bounded, and still subject to the shared HTML count, byte, timeout, and URL policies:
 
 Chromium MHTML snapshots can include rendered web-component content in `template shadowmode` elements. Configured rendering projects that saved content and its named/default slots into a static render tree without changing the archive source. Ordinary templates remain inert. Set `ProjectSerializedShadowRoots = false` on the render options to keep these saved snapshots inert too. The result reports `HtmlRenderSerializedShadowRootApproximated`; shadow-scoped stylesheets are omitted with `HtmlRenderSerializedShadowStyleOmitted` so their rules cannot affect unrelated content. Use browser-backed output when exact shadow styling, layout, or live behavior is required.
