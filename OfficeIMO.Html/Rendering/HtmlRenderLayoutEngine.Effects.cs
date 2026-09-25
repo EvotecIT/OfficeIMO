@@ -41,7 +41,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 boxWidth,
                 boxHeight,
                 style.Font.Size,
-                _options.DefaultFontSize,
+                _styleResolver.RootFontSize,
                 _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Width : _options.ViewportWidth,
                 _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D,
                 style.ContainerUnitWidth ?? double.NaN,
@@ -160,7 +160,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 bounds.Width,
                 bounds.Height,
                 style.Font.Size,
-                _options.DefaultFontSize,
+                _styleResolver.RootFontSize,
                 _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Width : _options.ViewportWidth,
                 _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D,
                 style.ContainerUnitWidth ?? double.NaN,
@@ -241,14 +241,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double viewportHeight = _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D;
         bool parsed = HtmlCssTransformParser.TryParse(
             style.Transform, style.TransformOrigin, boxX, boxY, boxWidth, boxHeight,
-            style.Font.Size, _options.DefaultFontSize, viewportWidth, viewportHeight,
+            style.Font.Size, _styleResolver.RootFontSize, viewportWidth, viewportHeight,
             style.ContainerUnitWidth ?? double.NaN, style.ContainerUnitHeight ?? double.NaN,
             out transform, out detail);
         retainedScale = false;
         if (parsed || style.IndividualScale == "none") return parsed;
         retainedScale = HtmlCssTransformParser.TryParse(
             style.IndividualScale, style.TransformOrigin, boxX, boxY, boxWidth, boxHeight,
-            style.Font.Size, _options.DefaultFontSize, viewportWidth, viewportHeight,
+            style.Font.Size, _styleResolver.RootFontSize, viewportWidth, viewportHeight,
             style.ContainerUnitWidth ?? double.NaN, style.ContainerUnitHeight ?? double.NaN,
             out OfficeTransform scaleTransform, out _);
         transform = retainedScale ? scaleTransform : OfficeTransform.Identity;

@@ -126,7 +126,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 objectWidth,
                 objectHeight,
                 style.Font.Size,
-                _options.DefaultFontSize,
+                _styleResolver.RootFontSize,
                 ActiveSurfaceWidth,
                 _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D,
                 style.ContainerUnitWidth ?? double.NaN,

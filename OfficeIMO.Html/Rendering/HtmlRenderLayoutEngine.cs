@@ -165,7 +165,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             value,
             reference,
             fontSize,
-            _options.DefaultFontSize,
+            _styleResolver.RootFontSize,
             _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Width : _options.ViewportWidth,
             _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D,
             out result);

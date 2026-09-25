@@ -9,7 +9,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         style.ObjectPosition = HtmlCssReplacedElementParser.NormalizeObjectPosition(
             computed.GetValue("object-position"),
             fontSize,
-            _options.DefaultFontSize,
+            _rootFontSize,
             _viewportWidth,
             _viewportHeight,
             out string unsupportedPosition);
