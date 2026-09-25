@@ -341,6 +341,49 @@ public sealed class PdfStaticFormRecognizerTests {
         Assert.Equal("diagnostics-truncated", Assert.Single(report.Diagnostics).Code);
     }
 
+    [Fact]
+    public void CandidateScanWorkLimitAppliesBeforeAProposalIsAccepted() {
+        Assert.Throws<PdfReadLimitException>(() => PdfDocument.Load(CreateStaticForm()).Forms.RecognizeStaticLayout(
+            new PdfStaticFormRecognitionOptions { MaxCandidateScanWork = 1 }));
+    }
+
+    [Fact]
+    public void RightToLeftLabelsSuggestRightmostTabFirst() {
+        byte[] source = PdfDocument.Create(new PdfOptions { PageWidth = 400, PageHeight = 300 })
+            .Canvas(canvas => canvas.Shape(Box(80D, 20D), 70D, 80D).Shape(Box(80D, 20D), 250D, 80D))
+            .ToBytes();
+        var labels = new[] {
+            new PdfStaticFormTextEvidence(1, "\u05E9\u05DD", 70D, 45D, 140D, 65D, 1D),
+            new PdfStaticFormTextEvidence(1, "\u05E2\u05D9\u05E8", 250D, 45D, 320D, 65D, 1D)
+        };
+
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: labels);
+
+        Assert.Equal(2, report.Proposals.Count);
+        Assert.True(report.Proposals[0].VisualBounds.Left > report.Proposals[1].VisualBounds.Left);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SoftMaskedOutlineIsNotProposedAsAVisibleField(bool validMask) {
+        const string content = "q /GS1 gs 100 205 120 20 re S Q\n";
+        byte[] source = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7", "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 400 300] /Resources << /ExtGState << /GS1 5 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + content.Length + " >>", "stream", content.TrimEnd('\n'), "endstream", "endobj",
+            "5 0 obj", "<< /Type /ExtGState /SMask << /S /Alpha /G 6 0 R >> >>", "endobj",
+            "6 0 obj", "<< " + (validMask ? "/Type /XObject " : string.Empty) + "/Subtype /Form /BBox [0 0 400 300] /Group << /S /Transparency >> /Length 0 >>", "stream", "", "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 7 >>", "%%EOF", string.Empty
+        }));
+        var label = new[] { new PdfStaticFormTextEvidence(1, "Name", 10D, 70D, 80D, 90D, 1D) };
+
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: label);
+
+        Assert.Empty(report.Proposals);
+    }
+
     private static byte[] CreateStaticForm() {
         OfficeShape textBox = Box(140D, 20D);
         OfficeShape checkBox = Box(15D, 15D);

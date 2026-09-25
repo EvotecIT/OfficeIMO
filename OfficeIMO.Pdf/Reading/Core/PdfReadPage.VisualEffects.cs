@@ -788,9 +788,9 @@ public sealed partial class PdfReadPage {
         return transitions.Count == 0 ? Array.Empty<PdfPageDrawingEffectTransition>() : transitions.AsReadOnly();
     }
 
-    internal IReadOnlyList<PdfPageDrawingEffectTransition> GetIdentityGraphicsEffectTransitions() {
+    internal IReadOnlyList<PdfPageDrawingEffectTransition> GetIdentityGraphicsEffectTransitions(System.Threading.CancellationToken cancellationToken = default) {
         (double _, double pageHeight) = GetVisualPageSize();
-        return GetGraphicsEffectTransitions(GetVisualPageTransform(), pageHeight);
+        return GetGraphicsEffectTransitions(GetVisualPageTransform(), pageHeight, new PageContentBudget(this, cancellationToken));
     }
 
     private void CollectGraphicsEffectTransitions(

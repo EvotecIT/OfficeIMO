@@ -1,4 +1,5 @@
 using OfficeIMO.Core.Internal;
+using System.Threading;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfFormFiller {
@@ -36,17 +37,18 @@ internal static partial class PdfFormFiller {
     internal static byte[] FillFields(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options, PdfLoadOptions? readOptions) =>
         FillFieldsCore(pdf, fieldValues, options, readOptions, requireMutationPlan: true);
 
-    internal static byte[] FillFieldsWithinPlannedRewrite(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options = null, PdfLoadOptions? readOptions = null) {
-        return FillFieldsCore(pdf, fieldValues, options, readOptions, requireMutationPlan: false);
+    internal static byte[] FillFieldsWithinPlannedRewrite(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options = null, PdfLoadOptions? readOptions = null, CancellationToken cancellationToken = default) {
+        return FillFieldsCore(pdf, fieldValues, options, readOptions, requireMutationPlan: false, cancellationToken);
     }
 
-    private static byte[] FillFieldsCore(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options, PdfLoadOptions? readOptions, bool requireMutationPlan) {
+    private static byte[] FillFieldsCore(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options, PdfLoadOptions? readOptions, bool requireMutationPlan, CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
+        cancellationToken.ThrowIfCancellationRequested();
         ValidateFieldValues(fieldValues);
-        RejectPushButtonFillValues(pdf, fieldValues.Keys, readOptions);
+        RejectPushButtonFillValues(pdf, fieldValues.Keys, readOptions, cancellationToken);
         if (requireMutationPlan) _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.FillFormFields, readOptions, fieldNames: fieldValues.Keys);
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions, out _, out _, cancellationToken);
         int catalogObjectNumber = FindCatalogObjectNumber(objects, trailerRaw);
         if (catalogObjectNumber == 0 ||
             objects[catalogObjectNumber].Value is not PdfDictionary catalog ||
@@ -63,7 +65,8 @@ internal static partial class PdfFormFiller {
         PdfDictionary? acroFormDefaultResources = TryReadDefaultResources(objects, acroForm);
         string? acroFormDefaultAppearance = TryReadText(objects, acroForm, "DA");
         for (int i = 0; i < fields.Items.Count; i++) {
-            FillField(objects, fields.Items[i], null, null, 0, acroFormQuadding, null, acroFormDefaultResources, acroFormDefaultAppearance, null, fieldValues, options, remaining, new HashSet<int>(), ref nextObjectNumber);
+            cancellationToken.ThrowIfCancellationRequested();
+            FillField(objects, fields.Items[i], null, null, 0, acroFormQuadding, null, acroFormDefaultResources, acroFormDefaultAppearance, null, fieldValues, options, remaining, new HashSet<int>(), ref nextObjectNumber, cancellationToken);
         }
 
         if (remaining.Count > 0) {
@@ -71,12 +74,15 @@ internal static partial class PdfFormFiller {
         }
 
         acroForm.Items["NeedAppearances"] = new PdfBoolean(options?.KeepNeedAppearances == true);
-        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions).UncheckedMetadata, pdf);
+        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions, cancellationToken).UncheckedMetadata, pdf, cancellationToken);
     }
 
-    private static void RejectPushButtonFillValues(byte[] pdf, IEnumerable<string> fieldNames, PdfLoadOptions? readOptions) {
-        IReadOnlyDictionary<string, PdfFormField> fields = PdfInspector.Inspect(pdf, readOptions).FormFieldsByName;
+    private static void RejectPushButtonFillValues(byte[] pdf, IEnumerable<string> fieldNames, PdfLoadOptions? readOptions,
+        CancellationToken cancellationToken) {
+        PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
+        IReadOnlyDictionary<string, PdfFormField> fields = PdfInspector.Inspect(pdf, document, cancellationToken).FormFieldsByName;
         foreach (string fieldName in fieldNames) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (fields.TryGetValue(fieldName, out PdfFormField? field) && field.IsPushButton) {
                 throw new ArgumentException("Push-button fields do not have a fillable value: " + fieldName, nameof(fieldNames));
             }

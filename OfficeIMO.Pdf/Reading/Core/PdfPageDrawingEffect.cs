@@ -8,6 +8,7 @@ internal readonly struct PdfPageDrawingEffect {
         PdfPageSoftMaskResource? softMask,
         bool hasBlendMode,
         bool hasSoftMask,
+        bool hasUnresolvedSoftMask,
         Matrix2D? softMaskTransform,
         OfficeIccRenderingIntent renderingIntent,
         bool hasRenderingIntent) {
@@ -15,12 +16,13 @@ internal readonly struct PdfPageDrawingEffect {
         SoftMask = softMask;
         HasBlendMode = hasBlendMode;
         HasSoftMask = hasSoftMask;
+        HasUnresolvedSoftMask = hasUnresolvedSoftMask;
         SoftMaskTransform = softMaskTransform;
         RenderingIntent = renderingIntent;
         HasRenderingIntent = hasRenderingIntent;
     }
 
-    public static PdfPageDrawingEffect Default => new PdfPageDrawingEffect(OfficeBlendMode.Normal, null, false, false, null, OfficeIccRenderingIntent.RelativeColorimetric, false);
+    public static PdfPageDrawingEffect Default => new PdfPageDrawingEffect(OfficeBlendMode.Normal, null, false, false, false, null, OfficeIccRenderingIntent.RelativeColorimetric, false);
 
     public OfficeBlendMode BlendMode { get; }
 
@@ -29,6 +31,8 @@ internal readonly struct PdfPageDrawingEffect {
     internal bool HasBlendMode { get; }
 
     internal bool HasSoftMask { get; }
+
+    internal bool HasUnresolvedSoftMask { get; }
 
     internal Matrix2D? SoftMaskTransform { get; }
 
@@ -45,6 +49,9 @@ internal readonly struct PdfPageDrawingEffect {
             : SoftMask,
         HasBlendMode || resource.BlendMode.HasValue,
         HasSoftMask || resource.SoftMaskEnabled.HasValue,
+        resource.SoftMaskEnabled.HasValue
+            ? resource.SoftMaskEnabled.Value && resource.SoftMask == null
+            : HasUnresolvedSoftMask,
         resource.SoftMaskEnabled.HasValue ? null : SoftMaskTransform,
         resource.RenderingIntent ?? RenderingIntent,
         HasRenderingIntent || resource.RenderingIntent.HasValue);
@@ -54,6 +61,7 @@ internal readonly struct PdfPageDrawingEffect {
         HasSoftMask ? SoftMask : inherited.SoftMask,
         inherited.HasBlendMode || HasBlendMode,
         inherited.HasSoftMask || HasSoftMask,
+        HasSoftMask ? HasUnresolvedSoftMask : inherited.HasUnresolvedSoftMask,
         HasSoftMask ? SoftMaskTransform : inherited.SoftMaskTransform,
         HasRenderingIntent ? RenderingIntent : inherited.RenderingIntent,
         inherited.HasRenderingIntent || HasRenderingIntent);
@@ -63,6 +71,7 @@ internal readonly struct PdfPageDrawingEffect {
         SoftMask,
         HasBlendMode,
         HasSoftMask,
+        HasUnresolvedSoftMask,
         SoftMask == null ? null : transform,
         RenderingIntent,
         HasRenderingIntent);
@@ -72,6 +81,7 @@ internal readonly struct PdfPageDrawingEffect {
         SoftMask,
         HasBlendMode,
         HasSoftMask,
+        HasUnresolvedSoftMask,
         SoftMaskTransform,
         renderingIntent,
         true);
@@ -81,6 +91,7 @@ internal readonly struct PdfPageDrawingEffect {
         SoftMask,
         HasBlendMode,
         HasSoftMask,
+        HasUnresolvedSoftMask,
         SoftMaskTransform,
         renderingIntent,
         HasRenderingIntent);

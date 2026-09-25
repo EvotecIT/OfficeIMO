@@ -58,6 +58,8 @@ public sealed class PdfStaticFormRecognitionOptions {
     public int MaxPages { get; set; } = 50;
     /// <summary>Maximum proposals retained across the document.</summary>
     public int MaxProposals { get; set; } = 250;
+    /// <summary>Maximum primitive comparisons spent evaluating visual field candidates.</summary>
+    public int MaxCandidateScanWork { get; set; } = 1_000_000;
     /// <summary>Maximum diagnostics retained, including a truncation marker when further diagnostics are omitted.</summary>
     public int MaxDiagnostics { get; set; } = 1_000;
     /// <summary>Maximum supplied OCR text items.</summary>
@@ -68,6 +70,7 @@ public sealed class PdfStaticFormRecognitionOptions {
     internal void Validate() {
         if (MaxPages <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPages));
         if (MaxProposals <= 0) throw new ArgumentOutOfRangeException(nameof(MaxProposals));
+        if (MaxCandidateScanWork <= 0) throw new ArgumentOutOfRangeException(nameof(MaxCandidateScanWork));
         if (MaxDiagnostics <= 0) throw new ArgumentOutOfRangeException(nameof(MaxDiagnostics));
         if (MaxOcrTextItems < 0) throw new ArgumentOutOfRangeException(nameof(MaxOcrTextItems));
         if (double.IsNaN(MinimumConfidence) || MinimumConfidence < 0D || MinimumConfidence > 1D) {

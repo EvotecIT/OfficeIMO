@@ -45,7 +45,7 @@ internal static partial class PdfAcroFormEditor {
         }
         if (refillValues.Count > 0) {
             cancellationToken.ThrowIfCancellationRequested();
-            output = PdfFormFiller.FillFieldsWithinPlannedRewrite(output, ToFieldValues(refillValues), appearanceOptions, savedReadOptions);
+            output = PdfFormFiller.FillFieldsWithinPlannedRewrite(output, ToFieldValues(refillValues), appearanceOptions, savedReadOptions, cancellationToken);
             savedReadOptions = PdfLoadOptions.WithMinimumInputBytes(source.ReadOptions, output.LongLength);
         }
         if (flattenNames.Count > 0) {

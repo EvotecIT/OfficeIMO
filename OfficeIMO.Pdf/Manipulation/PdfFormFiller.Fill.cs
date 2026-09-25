@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfFormFiller {
@@ -16,7 +18,9 @@ internal static partial class PdfFormFiller {
         PdfFormFillerOptions? options,
         HashSet<string> remaining,
         HashSet<int> visited,
-        ref int nextObjectNumber) {
+        ref int nextObjectNumber,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (fieldObject is PdfReference reference && !visited.Add(reference.ObjectNumber)) {
             return;
         }
@@ -45,7 +49,7 @@ internal static partial class PdfFormFiller {
         }
 
         for (int i = 0; i < kids.Items.Count; i++) {
-            FillField(objects, kids.Items[i], fullName, fieldType, fieldFlags, fieldQuadding, fieldMaxLength, defaultResources, defaultAppearance, choiceOptions, fieldValues, options, remaining, visited, ref nextObjectNumber);
+            FillField(objects, kids.Items[i], fullName, fieldType, fieldFlags, fieldQuadding, fieldMaxLength, defaultResources, defaultAppearance, choiceOptions, fieldValues, options, remaining, visited, ref nextObjectNumber, cancellationToken);
         }
     }
 

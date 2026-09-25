@@ -41,13 +41,19 @@ internal static class PdfStaticFormRecognizer {
         }, cancellationToken);
         var proposed = new List<Candidate>();
         var diagnostics = new List<PdfStaticFormRecognitionDiagnostic>();
+        var pageDirections = new Dictionary<int, PdfReadingDirection>();
+        long candidateScanWork = 0;
         foreach (int pageNumber in pageNumbers) {
             cancellationToken.ThrowIfCancellationRequested();
             PdfLogicalPage page = logical.PagesBySourcePageNumber[pageNumber][0];
             (double pageWidth, double pageHeight) = page.GetVisualPageSize();
             List<Label> labels = GetLabels(page, suppliedText, pageWidth, pageHeight);
+            pageDirections[pageNumber] = PdfTextDirectionAnalysis.Resolve(PdfReadingDirection.Auto,
+                labels.Select(static label => label.Text));
             PdfReadPage readPage = document.Pages[pageNumber - 1];
             IReadOnlyList<PdfPageVisualPrimitive> primitives = readPage.GetIdentityVisualPrimitives(cancellationToken);
+            IReadOnlyList<PdfPageDrawingEffectTransition> effects = readPage.GetIdentityGraphicsEffectTransitions(cancellationToken);
+            int imagePlacementCount = page.Images.Sum(static image => image.Placements.Count);
             var filledAreas = new List<(VisualRect Bounds, double PaintOrder, bool IsEmpty, bool IsOpaqueWhite)>();
             foreach (PdfPageVisualPrimitive painted in primitives) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -65,6 +71,17 @@ internal static class PdfStaticFormRecognizer {
             foreach (PdfPageVisualPrimitive primitive in primitives) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!TryGetCandidate(primitive, pageWidth, pageHeight, out VisualRect visual, out PdfStaticFormEvidenceKind evidence)) continue;
+                candidateScanWork = checked(candidateScanWork +
+                    ((long)primitives.Count + imagePlacementCount) * (filledAreas.Count + 1L) +
+                    effects.Count + labels.Count * 2L + proposed.Count + page.FormWidgets.Count +
+                    page.Annotations.Count + page.LinkAnnotations.Count);
+                if (candidateScanWork > effective.MaxCandidateScanWork) {
+                    throw PdfReadLimitException.Create(PdfReadLimitKind.UnderstandingArtifacts,
+                        effective.MaxCandidateScanWork, candidateScanWork);
+                }
+                PdfPageDrawingEffect effect = PdfReadPage.ResolveDrawingEffect(effects, primitive.PaintOrder,
+                    contentOrderKey: primitive.ContentOrderKey);
+                if (effect.SoftMask is not null || effect.HasUnresolvedSoftMask) continue;
                 if (HasPaintedInterior(filledAreas, visual, cancellationToken)) continue;
                 if (HasInteriorMark(primitives, filledAreas, visual, cancellationToken) ||
                     HasImageInterior(page, filledAreas, visual, cancellationToken)) {
@@ -118,7 +135,9 @@ internal static class PdfStaticFormRecognizer {
         int currentPage = 0;
         int tabIndex = 0;
         foreach (Candidate candidate in proposed.OrderBy(static candidate => candidate.PageNumber)
-                     .ThenBy(static candidate => candidate.Visual.Top).ThenBy(static candidate => candidate.Visual.Left)) {
+                     .ThenBy(static candidate => candidate.Visual.Top)
+                     .ThenBy(candidate => pageDirections[candidate.PageNumber] == PdfReadingDirection.RightToLeft
+                         ? -candidate.Visual.Left : candidate.Visual.Left)) {
             cancellationToken.ThrowIfCancellationRequested();
             if (candidate.PageNumber != currentPage) { currentPage = candidate.PageNumber; tabIndex = 0; }
             PdfLogicalPage page = logical.PagesBySourcePageNumber[candidate.PageNumber][0];
