@@ -24,15 +24,19 @@ public static class PdfPageChangeAnalyzer {
         return Analyze(expected, actual, effective, cancellationToken);
     }
 
-    internal static PdfPageChangeReport Analyze(PdfReadDocument expected, PdfReadDocument actual, PdfPageChangeOptions effective, CancellationToken cancellationToken) {
+    internal static PdfPageChangeReport Analyze(PdfReadDocument expected, PdfReadDocument actual, PdfPageChangeOptions effective, CancellationToken cancellationToken) =>
+        Analyze(expected, actual, effective, Array.Empty<PdfPixelRegion>(), cancellationToken);
+
+    internal static PdfPageChangeReport Analyze(PdfReadDocument expected, PdfReadDocument actual, PdfPageChangeOptions effective,
+        IReadOnlyList<PdfPixelRegion> ignoredRegions, CancellationToken cancellationToken) {
         if (expected.Pages.Count > effective.MaxPagesPerDocument || actual.Pages.Count > effective.MaxPagesPerDocument) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.RenderPages, effective.MaxPagesPerDocument,
                 Math.Max(expected.Pages.Count, actual.Pages.Count));
         }
 
         long totalPixels = 0;
-        string[] expectedFingerprints = FingerprintPages(expected, effective, ref totalPixels, "expected", cancellationToken);
-        string[] actualFingerprints = FingerprintPages(actual, effective, ref totalPixels, "actual", cancellationToken);
+        string[] expectedFingerprints = FingerprintPages(expected, effective, ignoredRegions, ref totalPixels, "expected", cancellationToken);
+        string[] actualFingerprints = FingerprintPages(actual, effective, ignoredRegions, ref totalPixels, "actual", cancellationToken);
         var expectedToActual = new int[expectedFingerprints.Length];
         var actualUsed = new bool[actualFingerprints.Length];
         HashSet<int> orderedExactExpectedPages = FindOrderedExactMatches(
@@ -96,8 +100,8 @@ public static class PdfPageChangeAnalyzer {
         return new PdfPageChangeReport(output, expected.Pages.Count, actual.Pages.Count, effective.RenderScale);
     }
 
-    private static string[] FingerprintPages(PdfReadDocument document, PdfPageChangeOptions options, ref long totalPixels,
-        string side, CancellationToken cancellationToken) {
+    private static string[] FingerprintPages(PdfReadDocument document, PdfPageChangeOptions options,
+        IReadOnlyList<PdfPixelRegion> ignoredRegions, ref long totalPixels, string side, CancellationToken cancellationToken) {
         var fingerprints = new string[document.Pages.Count];
         for (int index = 0; index < fingerprints.Length; index++) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -115,6 +119,16 @@ public static class PdfPageChangeAnalyzer {
                 CancellationToken = cancellationToken
             });
             byte[] rgba = image.GetPixels();
+            foreach (PdfPixelRegion region in ignoredRegions) {
+                int left = Math.Min(region.X, image.Width);
+                int top = Math.Min(region.Y, image.Height);
+                int right = (int)Math.Min((long)image.Width, (long)region.X + region.Width);
+                int bottom = (int)Math.Min((long)image.Height, (long)region.Y + region.Height);
+                for (int y = top; y < bottom; y++) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    Array.Clear(rgba, checked((y * image.Width + left) * 4), checked((right - left) * 4));
+                }
+            }
 #if NET6_0_OR_GREATER
             byte[] hash = SHA256.HashData(rgba);
 #else

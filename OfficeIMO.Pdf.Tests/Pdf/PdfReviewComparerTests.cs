@@ -72,7 +72,7 @@ public sealed class PdfReviewComparerTests {
 
         Assert.False(report.IsMatch);
         PdfReviewPageComparison page = Assert.Single(report.Pages);
-        Assert.True(Assert.IsType<PdfVisualPageComparison>(page.Visual).IsMatch);
+        Assert.Null(page.Visual);
         Assert.Equal(PdfReviewChangeKind.TextChanged, Assert.Single(page.Changes).Kind);
     }
 
@@ -88,6 +88,61 @@ public sealed class PdfReviewComparerTests {
         Assert.Null(page.Visual);
         Assert.Equal(PdfReviewChangeKind.TextChanged, Assert.Single(page.Changes).Kind);
         Assert.False(report.IsMatch);
+    }
+
+    [Fact]
+    public void AlignsReorderedPagesUsingTheSelectedIgnoreRegion() {
+        PdfDocument expected = PagesWithHeaders(("Old A", "Alpha"), ("Old B", "Bravo"));
+        PdfDocument actual = PagesWithHeaders(("New B", "Bravo"), ("New A", "Alpha"));
+        var options = new PdfReviewComparisonOptions();
+        options.Visual.IgnoredRegions.Add(new PdfPixelRegion(0, 0, 240, 55));
+
+        PdfReviewComparisonReport report = expected.Proof.CompareReview(actual, options);
+
+        Assert.Empty(report.Pages);
+        Assert.Contains(report.PageAlignment.Changes, static change =>
+            change.ExpectedPageNumber == 1 && change.ActualPageNumber == 2 && change.IsExactRenderedMatch);
+        Assert.Contains(report.PageAlignment.Changes, static change =>
+            change.ExpectedPageNumber == 2 && change.ActualPageNumber == 1 && change.IsExactRenderedMatch);
+    }
+
+    [Fact]
+    public void CountsSemanticOnlyChangedPagesAgainstThePairBudget() {
+        PdfDocument expected = PdfDocument.Merge(new PdfMergeOptions(),
+            PdfDocument.Load(InvisibleTextPdf("Original one")), PdfDocument.Load(InvisibleTextPdf("Original two")));
+        PdfDocument actual = PdfDocument.Merge(new PdfMergeOptions(),
+            PdfDocument.Load(InvisibleTextPdf("Revised one")), PdfDocument.Load(InvisibleTextPdf("Revised two")));
+
+        Assert.Throws<PdfReadLimitException>(() => expected.Proof.CompareReview(actual,
+            new PdfReviewComparisonOptions { MaxChangedPagePairs = 1 }));
+    }
+
+    [Fact]
+    public void KeepsRotatedInvisibleTextInSemanticComparison() {
+        PdfDocument expected = PdfDocument.Load(InvisibleTextPdf("Original", rotated: true));
+        PdfDocument actual = PdfDocument.Load(InvisibleTextPdf("Revised", rotated: true));
+
+        PdfReviewComparisonReport report = expected.Proof.CompareReview(actual);
+
+        Assert.False(report.IsMatch);
+        Assert.Contains(Assert.Single(report.Pages).Changes, static change =>
+            change.Kind == PdfReviewChangeKind.TextChanged);
+    }
+
+    [Fact]
+    public void OrdersMixedTextChangesByPagePosition() {
+        PdfDocument expected = PdfDocument.Load(PdfDocument.Create(new PdfOptions { PageWidth = 240D, PageHeight = 180D })
+            .Canvas(canvas => {
+                canvas.Text("Remove", 20D, 15D, 130D, 20D);
+                canvas.Text("Original", 20D, 90D, 130D, 20D);
+            }).ToBytes());
+        PdfDocument actual = PdfDocument.Load(PdfDocument.Create(new PdfOptions { PageWidth = 240D, PageHeight = 180D })
+            .Canvas(canvas => canvas.Text("Revised", 20D, 90D, 130D, 20D)).ToBytes());
+
+        PdfReviewChangeKind[] kinds = Assert.Single(expected.Proof.CompareReview(actual).Pages).Changes
+            .Select(static change => change.Kind).ToArray();
+
+        Assert.Equal(new[] { PdfReviewChangeKind.TextRemoved, PdfReviewChangeKind.TextChanged }, kinds);
     }
 
     [Fact]
@@ -125,6 +180,10 @@ public sealed class PdfReviewComparerTests {
 
         PdfReviewComparisonReport scanned = ImagePage(blue, scan: true).Proof.CompareReview(ImagePage(red, scan: true));
         Assert.Equal(PdfReviewChangeKind.ScannedPageUncertain, Assert.Single(Assert.Single(scanned.Pages).Changes).Kind);
+
+        PdfReviewComparisonReport stampedScan = ScanWithStamp(blue).Proof.CompareReview(ScanWithStamp(red));
+        Assert.Contains(Assert.Single(stampedScan.Pages).Changes,
+            static change => change.Kind == PdfReviewChangeKind.ScannedPageUncertain);
     }
 
     private static PdfDocument Page(string text, double x) => PdfDocument.Load(PdfDocument.Create(
@@ -139,6 +198,26 @@ public sealed class PdfReviewComparerTests {
                 scan ? 240D : 40D, scan ? 180D : 40D);
         }).ToBytes());
 
+    private static PdfDocument ScanWithStamp(byte[] png) => PdfDocument.Load(PdfDocument.Create(
+        new PdfOptions { PageWidth = 240D, PageHeight = 180D })
+        .Canvas(canvas => {
+            canvas.Image(png, 0D, 0D, 240D, 180D);
+            canvas.Text("Reviewed", 20D, 20D, 100D, 20D);
+        }).ToBytes());
+
+    private static PdfDocument PagesWithHeaders(params (string Header, string Body)[] pages) {
+        PdfDocument document = PdfDocument.Create(new PdfOptions { PageWidth = 240D, PageHeight = 180D });
+        for (int index = 0; index < pages.Length; index++) {
+            if (index > 0) document.PageBreak();
+            (string header, string body) = pages[index];
+            document.Canvas(canvas => {
+                canvas.Text(header, 20D, 10D, 160D, 20D);
+                canvas.Text(body, 20D, 90D, 160D, 25D);
+            });
+        }
+        return PdfDocument.Load(document.ToBytes());
+    }
+
     private static PdfDocument Pages(params string[] texts) {
         PdfDocument document = PdfDocument.Create(new PdfOptions { PageWidth = 240D, PageHeight = 180D });
         for (int index = 0; index < texts.Length; index++) {
@@ -149,8 +228,9 @@ public sealed class PdfReviewComparerTests {
         return PdfDocument.Load(document.ToBytes());
     }
 
-    private static byte[] InvisibleTextPdf(string text) {
-        byte[] content = System.Text.Encoding.ASCII.GetBytes("BT /F1 12 Tf 3 Tr 20 90 Td (" + text + ") Tj ET\n");
+    private static byte[] InvisibleTextPdf(string text, bool rotated = false) {
+        string position = rotated ? "0 1 -1 0 100 20 Tm " : "20 90 Td ";
+        byte[] content = System.Text.Encoding.ASCII.GetBytes("BT /F1 12 Tf 3 Tr " + position + "(" + text + ") Tj ET\n");
         using var stream = new System.IO.MemoryStream();
         void Write(string value) {
             byte[] bytes = System.Text.Encoding.ASCII.GetBytes(value);

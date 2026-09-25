@@ -18,13 +18,13 @@ internal static class PdfReviewSemanticComparer {
         CompareText(expected, actual, visual, options, changes, cancellationToken);
         if (scanned) {
             if (visual is { IsMatch: false }) changes.Add(new PdfReviewChange(PdfReviewChangeKind.ScannedPageUncertain, expectedPage, actualPage, null, null));
-            return changes;
+            return OrderChanges(changes);
         }
         CompareImages(expected, actual, visual, options, changes, cancellationToken);
         if (changes.Count == 0 && visual is { IsMatch: false }) {
             changes.Add(new PdfReviewChange(PdfReviewChangeKind.UnclassifiedVisual, expectedPage, actualPage, null, null));
         }
-        return changes;
+        return OrderChanges(changes);
     }
 
     private static void CompareText(PdfLogicalPage expected, PdfLogicalPage actual, PdfVisualPageComparison? visual,
@@ -66,8 +66,8 @@ internal static class PdfReviewSemanticComparer {
 
     private static void CompareImages(PdfLogicalPage expected, PdfLogicalPage actual, PdfVisualPageComparison? visual,
         PdfReviewComparisonOptions options, List<PdfReviewChange> changes, CancellationToken cancellationToken) {
-        ImageFeature[] before = GetImages(expected, visual, options);
-        ImageFeature[] after = GetImages(actual, visual, options);
+        ImageFeature[] before = GetImages(expected, visual, options, cancellationToken);
+        ImageFeature[] after = GetImages(actual, visual, options, cancellationToken);
         bool[] usedBefore = new bool[before.Length];
         bool[] usedAfter = new bool[after.Length];
         for (int i = 0; i < before.Length; i++) {
@@ -107,7 +107,7 @@ internal static class PdfReviewSemanticComparer {
         }
         var output = new List<TextFeature>(page.TextBlocks.Count);
         foreach (PdfLogicalTextBlock block in page.TextBlocks) {
-            if (string.IsNullOrWhiteSpace(block.Text) || block.XEnd <= block.XStart) continue;
+            if (string.IsNullOrWhiteSpace(block.Text) || block.VisualBounds is null && block.XEnd <= block.XStart) continue;
             PdfLogicalVisualBounds bounds = block.VisualBounds ?? TextBounds(page, block);
             if (IsIgnored(bounds, page, visual, options.Visual)) continue;
             output.Add(new TextFeature(block.Text, Normalize(block.Text), bounds));
@@ -115,19 +115,22 @@ internal static class PdfReviewSemanticComparer {
         return output.ToArray();
     }
 
-    private static ImageFeature[] GetImages(PdfLogicalPage page, PdfVisualPageComparison? visual, PdfReviewComparisonOptions options) {
+    private static ImageFeature[] GetImages(PdfLogicalPage page, PdfVisualPageComparison? visual,
+        PdfReviewComparisonOptions options, CancellationToken cancellationToken) {
         int count = page.Images.Sum(static image => image.Placements.Count);
         if (count > options.MaxImagePlacementsPerPage) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.UnderstandingArtifacts, options.MaxImagePlacementsPerPage, count);
         }
         var output = new List<ImageFeature>(count);
         foreach (PdfLogicalImage image in page.Images) {
-            string hash = Hash(image.SourceImage.EncodedBytes);
+            string? hash = null;
             foreach (PdfImagePlacement placement in image.Placements) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (placement.Width <= 0D || placement.Height <= 0D || placement.IsHiddenOptionalContent) continue;
                 PdfVisualBounds mapped = page.TransformBoundsToVisual(placement.X, placement.Y, placement.X + placement.Width, placement.Y + placement.Height);
                 var bounds = new PdfLogicalVisualBounds(mapped.Left, mapped.Top, mapped.Right, mapped.Bottom);
                 if (IsIgnored(bounds, page, visual, options.Visual)) continue;
+                hash ??= Hash(image.SourceImage.EncodedBytes, cancellationToken);
                 output.Add(new ImageFeature(hash, bounds));
             }
         }
@@ -135,7 +138,6 @@ internal static class PdfReviewSemanticComparer {
     }
 
     private static bool IsScan(PdfLogicalPage page) {
-        if (page.TextBlocks.Any(static block => !string.IsNullOrWhiteSpace(block.Text))) return false;
         (double width, double height) = page.GetVisualPageSize();
         double area = width * height;
         if (area <= 0D) return false;
@@ -201,12 +203,24 @@ internal static class PdfReviewSemanticComparer {
 
     private static string Normalize(string text) => string.Join(" ", text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
 
-    private static string Hash(byte[] bytes) {
-#if NET6_0_OR_GREATER
-        return Convert.ToBase64String(SHA256.HashData(bytes));
-#else
-        using (SHA256 sha = SHA256.Create()) return Convert.ToBase64String(sha.ComputeHash(bytes));
-#endif
+    private static PdfReviewChange[] OrderChanges(List<PdfReviewChange> changes) =>
+        changes.OrderBy(static change => change.ExpectedBounds?.Top ?? change.ActualBounds?.Top ?? double.MaxValue)
+            .ThenBy(static change => change.ExpectedBounds?.Left ?? change.ActualBounds?.Left ?? double.MaxValue)
+            .ToArray();
+
+    private static string Hash(byte[] bytes, CancellationToken cancellationToken) {
+        using (SHA256 sha = SHA256.Create()) {
+            const int chunkSize = 64 * 1024;
+            int offset = 0;
+            while (offset < bytes.Length) {
+                cancellationToken.ThrowIfCancellationRequested();
+                int count = Math.Min(chunkSize, bytes.Length - offset);
+                sha.TransformBlock(bytes, offset, count, bytes, offset);
+                offset += count;
+            }
+            sha.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+            return Convert.ToBase64String(sha.Hash!);
+        }
     }
 
     private interface IBoundedFeature { PdfLogicalVisualBounds Bounds { get; } }

@@ -16,7 +16,8 @@ internal static class PdfReviewComparer {
         cancellationToken.ThrowIfCancellationRequested();
         PdfReadDocument expected = expectedSource.GetReadSnapshot(cancellationToken: cancellationToken).Document;
         PdfReadDocument actual = actualSource.GetReadSnapshot(cancellationToken: cancellationToken).Document;
-        PdfPageChangeReport alignment = PdfPageChangeAnalyzer.Analyze(expected, actual, effective.PageAlignment, cancellationToken);
+        PdfPageChangeReport alignment = PdfPageChangeAnalyzer.Analyze(expected, actual, effective.PageAlignment,
+            effective.Visual.IgnoredRegions.ToArray(), cancellationToken);
         PdfPageChange[] pairs = alignment.Changes.Where(static change => change.ExpectedPageNumber.HasValue && change.ActualPageNumber.HasValue).ToArray();
         if (pairs.Length > effective.MaxAlignedPagePairs) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.UnderstandingArtifacts, effective.MaxAlignedPagePairs, pairs.Length);
@@ -56,7 +57,12 @@ internal static class PdfReviewComparer {
             IReadOnlyList<PdfReviewChange> changes = PdfReviewSemanticComparer.Compare(
                 expectedPage, actualPage, visual, effective, cancellationToken);
             var page = new PdfReviewPageComparison(pair, visual, changes);
-            if (!page.IsMatch) pages.Add(page);
+            if (!page.IsMatch) {
+                if (pair.Kind != PdfPageChangeKind.ModifiedCandidate && ++changedPairCount > effective.MaxChangedPagePairs) {
+                    throw PdfReadLimitException.Create(PdfReadLimitKind.UnderstandingArtifacts, effective.MaxChangedPagePairs, changedPairCount);
+                }
+                pages.Add(page);
+            }
         }
         return new PdfReviewComparisonReport(alignment, pages);
     }
