@@ -31,6 +31,8 @@ public static partial class WordOpenDocumentConversionExtensions {
         IEnumerable<WordParagraphSnapshot> convertedParagraphs = sourceParagraphs.Concat(convertedHeaderFooterParagraphs);
         int paragraphFormatting = convertedParagraphs.Count(HasUnsupportedParagraphFormatting);
         int runFormatting = convertedParagraphs.SelectMany(paragraph => paragraph.Runs).Count(HasUnsupportedRunFormatting);
+        int fieldResultFormatting = convertedParagraphs.SelectMany(paragraph => paragraph.InlineFields)
+            .Count(field => field.HasFormattedResult && field.ResultText.Length > 0);
         int tableFormatting = snapshot.Sections.SelectMany(section => section.Elements).OfType<WordTableSnapshot>().Count(HasUnsupportedTableFormatting);
         int imageLayout = convertedParagraphs.SelectMany(paragraph => paragraph.Runs)
             .SelectMany(run => run.PositionedImages).Count(positioned =>
@@ -110,6 +112,8 @@ public static partial class WordOpenDocumentConversionExtensions {
         int unmappedFields = Math.Max(0, source.InspectFields().Count - mappedFields);
         if (unmappedFields > 0) report.Add("fields", OdfConversionMappingStatus.Unsupported,
             unmappedFields, "Fields outside the basic PAGE, NUMPAGES, DATE, and TIME subset retain only cached display text.");
+        if (fieldResultFormatting > 0) report.Add("field-result-formatting", OdfConversionMappingStatus.Unsupported,
+            fieldResultFormatting, "Direct formatting on cached Word field results is not retained when those results become ODT text.");
         if (snapshot.Sections.Count > 0) report.Add("page-layout", OdfConversionMappingStatus.Converted, 1);
         if (snapshot.Sections.Count > 1) report.Add("sections", OdfConversionMappingStatus.Approximated, snapshot.Sections.Count,
             "Section content is retained in order, but section-specific layout is collapsed to one ODT page layout.");

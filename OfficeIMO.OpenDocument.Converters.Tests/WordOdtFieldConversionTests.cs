@@ -192,6 +192,31 @@ public sealed class WordOdtFieldConversionTests {
     }
 
     [Fact]
+    public void FormattedWordFieldResultReportsFormattingLossAlongsideCachedText() {
+        using WordDocument source = WordDocument.Create();
+        WordParagraph paragraph = source.AddParagraph();
+        paragraph.AddText("Page ");
+        paragraph._paragraph.Append(new SimpleField(new Run(
+            new RunProperties(new Bold(), new Color { Val = "336699" }),
+            new Text("7"))) { Instruction = " PAGE " });
+        paragraph.AddText(" of ");
+        paragraph._paragraph.Append(new SimpleField(new Run(new Text("12"))) {
+            Instruction = " NUMPAGES "
+        });
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        Assert.Equal("Page 7 of 12", Assert.Single(conversion.Value.Paragraphs).Text);
+        Assert.Contains(conversion.Report.Mappings, mapping =>
+            mapping.Feature == "field-result-formatting" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+        Assert.Contains(conversion.Report.Mappings, mapping =>
+            mapping.Feature == "fields" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
     public void RepeatedMappedTableFieldsDoNotCancelUnsupportedFieldLoss() {
         OdtDocument source = OdtDocument.Create();
         OdtTable table = source.AddTable(1, 1);

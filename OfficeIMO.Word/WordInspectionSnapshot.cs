@@ -202,6 +202,8 @@ namespace OfficeIMO.Word {
         public bool IsDirty { get; internal set; }
         /// <summary>Whether the result contains content beyond plain text runs.</summary>
         public bool HasUnsupportedResultContent { get; internal set; }
+        /// <summary>Whether the cached result has direct run formatting that may be lost when flattened.</summary>
+        public bool HasFormattedResult { get; internal set; }
         /// <summary>Whether the field is nested in markup that cannot be represented as a native ODT field.</summary>
         public bool HasUnsupportedContainer { get; internal set; }
     }

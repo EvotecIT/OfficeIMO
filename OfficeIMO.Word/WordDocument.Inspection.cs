@@ -262,6 +262,8 @@ namespace OfficeIMO.Word {
                     IsLocked = field.FieldLock?.Value ?? false,
                     IsDirty = field.Dirty?.Value ?? false,
                     HasUnsupportedContainer = nestedInHyperlink,
+                    HasFormattedResult = field.Descendants<Run>().Any(resultRun =>
+                        resultRun.RunProperties?.ChildElements.Any(child => child is not NoProof) == true),
                     HasUnsupportedResultContent = field.Descendants<SimpleField>().Any() ||
                         field.ChildElements.Any(child => child is not Run) ||
                         field.Descendants<Run>().Any(resultRun => resultRun.ChildElements.Any(child =>
