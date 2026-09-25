@@ -101,4 +101,26 @@ public sealed class PdfProductionPreflightTests {
             finding.Kind == PdfProductionFindingKind.UninspectableImageResolution &&
             finding.Severity == PdfProductionFindingSeverity.Indeterminate);
     }
+
+    [Fact]
+    public void ViewHiddenImageWithPrintUsageKeepsResolutionIndeterminate() {
+        const string content = "q 80 0 0 80 20 20 cm /Im0 Do Q\n";
+        byte[] source = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [6 0 R] /D << /BaseState /ON /OFF [6 0 R] /AS [<< /Event /Print /Category [/Print] /OCGs [6 0 R] >>] >> >> >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Resources << /XObject << /Im0 5 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + System.Text.Encoding.ASCII.GetByteCount(content) + " >>", "stream", content.TrimEnd('\n'), "endstream", "endobj",
+            "5 0 obj", "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /OC 6 0 R /Length 3 >>", "stream", "abc", "endstream", "endobj",
+            "6 0 obj", "<< /Type /OCG /Name (Print image) /Usage << /Print << /PrintState /ON >> >> >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 7 >>", "%%EOF", string.Empty
+        }));
+
+        PdfProductionPreflightReport report = PdfDocument.Load(source).Proof.PreflightProduction();
+
+        Assert.Contains(report.Findings, static finding =>
+            finding.Kind == PdfProductionFindingKind.UninspectableImageResolution &&
+            finding.Severity == PdfProductionFindingSeverity.Indeterminate &&
+            finding.Message.Contains("optional-content image", StringComparison.Ordinal));
+    }
 }

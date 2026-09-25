@@ -24,7 +24,8 @@ internal static class PdfProductionPreflightInspector {
         InspectOutputIntents();
         PdfDocumentReadResult logical = PdfDocumentReadEngine.Read(document, new PdfReadOptions {
             Profile = PdfReadProfile.Fast,
-            PageSelection = PdfPageSelection.From(pageNumbers)
+            PageSelection = PdfPageSelection.From(pageNumbers),
+            Pipeline = new PdfUnderstandingPipelineOptions { MaxPages = effective.MaxPages }
         }, cancellationToken);
         foreach (int pageNumber in pageNumbers) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -162,7 +163,16 @@ internal static class PdfProductionPreflightInspector {
                         new PdfLogicalVisualBounds(visual.Left, visual.Top, visual.Right, visual.Bottom), ppi));
                 }
             }
-            int rawPlacements = readPage.GetImagePlacements(pageNumber).Count;
+            IReadOnlyList<PdfImagePlacement> placements = logicalPage.HasOptionalContentUsage
+                ? readPage.GetImagePlacementsIncludingHiddenOptionalContent(pageNumber)
+                : readPage.GetImagePlacements(pageNumber);
+            int hiddenPlacements = placements.Count(static placement => placement.IsHiddenOptionalContent);
+            if (hiddenPlacements > 0) {
+                AddFinding(new PdfProductionFinding(PdfProductionFindingKind.UninspectableImageResolution,
+                    PdfProductionFindingSeverity.Indeterminate, pageNumber,
+                    $"{hiddenPlacements} optional-content image placement(s) may print despite being hidden in the view configuration."));
+            }
+            int rawPlacements = placements.Count - hiddenPlacements;
             if (understoodPlacements < rawPlacements) {
                 AddFinding(new PdfProductionFinding(PdfProductionFindingKind.UninspectableImageResolution,
                     PdfProductionFindingSeverity.Indeterminate, pageNumber,
