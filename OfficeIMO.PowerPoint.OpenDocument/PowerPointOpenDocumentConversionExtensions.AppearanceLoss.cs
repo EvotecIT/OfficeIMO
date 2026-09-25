@@ -100,11 +100,16 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
 
     private static int CountUnmappedPowerPointTextTypography(OpenXmlElement root) =>
         root.Descendants<A.RunProperties>().Count(HasUnmappedPowerPointTextTypography) +
-        root.Descendants<A.DefaultRunProperties>().Count(HasUnmappedPowerPointTextTypography) +
-        root.Descendants<A.EndParagraphRunProperties>().Count(HasUnmappedPowerPointTextTypography);
+        root.Descendants<A.DefaultRunProperties>().Count(HasUnmappedPowerPointInheritedRunFormatting) +
+        root.Descendants<A.EndParagraphRunProperties>().Count(HasUnmappedPowerPointInheritedRunFormatting);
 
     private static bool HasUnmappedPowerPointTextTypography(OpenXmlElement properties) =>
         properties.GetAttributes().Any(attribute => attribute.LocalName is "spc" or "kern");
+
+    private static bool HasUnmappedPowerPointInheritedRunFormatting(OpenXmlElement properties) =>
+        properties.GetAttributes().Any(attribute => attribute.LocalName is
+            "b" or "i" or "sz" or "u" or "strike" or "baseline" or "cap" or "spc" or "kern") ||
+        properties.HasChildren;
 
     private static bool HasUnmappedPowerPointTextColor(OpenXmlElement properties) {
         OpenXmlElement[] fills = properties.ChildElements.Where(IsFillElement).ToArray();
@@ -124,12 +129,17 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         foreach (P.SlideId slideId in slideIds) {
             if (slideId.RelationshipId?.Value is not string id ||
                 presentation.GetPartById(id) is not SlidePart part || part.Slide == null) continue;
-            count += part.Slide.Descendants<P.NonVisualDrawingProperties>().Count(properties =>
-                properties.GetAttributes().Any(attribute => attribute.LocalName is "title" or "descr") ||
-                properties.Descendants().Any(child => child.LocalName == "decorative"));
+            count += CountUnmappedPowerPointShapeAccessibility(part.Slide);
+            if (part.NotesSlidePart?.NotesSlide is P.NotesSlide notes)
+                count += CountUnmappedPowerPointShapeAccessibility(notes);
         }
         return count;
     }
+
+    private static int CountUnmappedPowerPointShapeAccessibility(OpenXmlElement root) =>
+        root.Descendants<P.NonVisualDrawingProperties>().Count(properties =>
+            properties.GetAttributes().Any(attribute => attribute.LocalName is "title" or "descr") ||
+            properties.Descendants().Any(child => child.LocalName == "decorative"));
 
     private static bool HasUnmappedPowerPointShapeAppearance(P.ShapeProperties properties) {
         OpenXmlElement[] fills = properties.ChildElements.Where(IsFillElement).ToArray();
@@ -199,6 +209,10 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
     private static bool HasUnmappedOdpTextLayout(OdpPresentation source, string? styleName) {
         XElement? paragraph = EffectiveOdfStyleProperties(source, OdfStyleFamily.Paragraph, styleName,
             OdfNamespaces.Style + "paragraph-properties");
+        XElement? authored = EffectiveOdfStyleProperties(source, OdfStyleFamily.Paragraph, styleName,
+            OdfNamespaces.Style + "paragraph-properties", includeDefault: false);
+        if (paragraph?.Attributes().Any(attribute => authored?.Attribute(attribute.Name) == null) == true)
+            return true;
         if (paragraph != null && (paragraph.HasElements || paragraph.Attributes().Any(attribute =>
             attribute.Name != OdfNamespaces.Fo + "text-align" &&
             attribute.Name != OdfNamespaces.Fo + "line-height" &&
@@ -229,10 +243,21 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             XElement? properties = EffectiveOdfStyleProperties(source, family,
                 (string?)element.Attribute(OdfNamespaces.Text + "style-name"),
                 OdfNamespaces.Style + "text-properties");
+            XElement? authored = EffectiveOdfStyleProperties(source, family,
+                (string?)element.Attribute(OdfNamespaces.Text + "style-name"),
+                OdfNamespaces.Style + "text-properties", includeDefault: false);
+            if (properties?.Attributes().Any(attribute =>
+                authored?.Attribute(attribute.Name) == null && !IsEquivalentOdpDefaultTextProperty(attribute)) == true)
+                return true;
             return properties != null && (properties.HasElements ||
                 properties.Attributes().Any(attribute => !IsMappedOdpTextProperty(attribute)));
         });
     }
+
+    private static bool IsEquivalentOdpDefaultTextProperty(XAttribute attribute) =>
+        (attribute.Name == OdfNamespaces.Fo + "font-weight" ||
+         attribute.Name == OdfNamespaces.Fo + "font-style") &&
+        attribute.Value == "normal";
 
     private static bool IsMappedOdpTextProperty(XAttribute attribute) {
         if (attribute.IsNamespaceDeclaration) return true;
@@ -345,7 +370,9 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             presentation.GetPartById(id) is not SlidePart part) return false;
         P.Background? background = part.Slide?.CommonSlideData?.Background;
         return background?.ChildElements.Any(child => child.LocalName == "bgRef") == true ||
-            background?.Descendants().Any(child => child.LocalName is "schemeClr" or "sysClr") == true;
+            background?.Descendants().Any(child => child.LocalName is "schemeClr" or "sysClr" or "effectLst" or "effectDag") == true ||
+            background?.BackgroundProperties?.GetAttributes().Any(attribute =>
+                attribute.LocalName == "shadeToTitle" && attribute.Value is "1" or "true") == true;
     }
 
     private static int CountUnwrappedOdpDrawingElements(OdpSlide slide) {
@@ -404,6 +431,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                     candidate.Element(OdfNamespaces.Style + "graphic-properties") is XElement properties &&
                     (properties.HasAttributes || properties.HasElements));
         return notes.HasAttributes || defaultFrameAppearance || notes.Descendants().Any(element =>
+            element.Name == OdfNamespaces.Text + "h" ||
+            element.Name == OdfNamespaces.Text + "list" ||
             element.Name.Namespace == OdfNamespaces.Table ||
             element.Name.Namespace == OdfNamespaces.Draw &&
             element.Name != OdfNamespaces.Draw + "frame" &&

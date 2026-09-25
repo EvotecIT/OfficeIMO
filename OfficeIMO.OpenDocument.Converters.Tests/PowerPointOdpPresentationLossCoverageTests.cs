@@ -165,6 +165,29 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
     }
 
     [Fact]
+    public void InheritedDefaultRunFormattingIsExplicitLoss() {
+        using PowerPointPresentation source = CreateBlankPowerPoint();
+        source.Slides[0].AddTextBoxPoints("Inherited", 20, 20, 100, 50);
+        A.Paragraph paragraph = source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
+            .Descendants<A.Paragraph>().Single();
+        paragraph.ParagraphProperties ??= new A.ParagraphProperties();
+        paragraph.ParagraphProperties.Append(new A.DefaultRunProperties { Bold = true, FontSize = 1600 });
+
+        AssertLoss(source, "text-typography");
+    }
+
+    [Fact]
+    public void EmptyParagraphEndRunFormattingIsExplicitLoss() {
+        using PowerPointPresentation source = CreateBlankPowerPoint();
+        source.Slides[0].AddTextBoxPoints(string.Empty, 20, 20, 100, 50);
+        A.Paragraph paragraph = source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
+            .Descendants<A.Paragraph>().Single();
+        paragraph.Append(new A.EndParagraphRunProperties { FontSize = 1600 });
+
+        AssertLoss(source, "text-typography");
+    }
+
+    [Fact]
     public void ThemeHighlightAndSpeakerNoteColorAreExplicitLoss() {
         using PowerPointPresentation source = CreateBlankPowerPoint();
         source.Slides[0].AddTextBoxPoints("Highlight", 20, 20, 100, 50);
@@ -257,6 +280,28 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
             .Select(shape => shape.TextBody?.BodyProperties).First(item => item != null)!;
         body.Rotation = 5400000;
         AssertLoss(source, "notes-slide-appearance");
+    }
+
+    [Fact]
+    public void SpeakerNoteShapeDescriptionIsExplicitLoss() {
+        using PowerPointPresentation source = CreateBlankPowerPoint();
+        source.Slides[0].Notes.Text = "Speaker note";
+        NotesSlide notes = source.OpenXmlDocument.PresentationPart!.SlideParts.First()
+            .NotesSlidePart!.NotesSlide!;
+        notes.Descendants<Shape>().First().NonVisualShapeProperties!
+            .NonVisualDrawingProperties!.Description = "Presenter context";
+
+        AssertLoss(source, "shape-accessibility");
+    }
+
+    [Fact]
+    public void SolidSlideBackgroundEffectIsExplicitLoss() {
+        using PowerPointPresentation source = CreateBlankPowerPoint();
+        source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!.CommonSlideData!.Background =
+            new Background(new BackgroundProperties(new A.SolidFill(new A.RgbColorModelHex {
+                Val = "336699" })) { ShadeToTitle = true });
+
+        AssertLoss(source, "slide-backgrounds");
     }
 
     [Fact]
@@ -542,6 +587,51 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
         source.Package.MarkXmlDirty("content.xml");
 
         AssertLoss(source, "slide-transitions");
+    }
+
+    [Fact]
+    public void OdpDefaultParagraphFormattingAndNoteHeadingAreExplicitLoss() {
+        OdpPresentation source = OdpPresentation.Create();
+        OdpSlide slide = source.AddSlide();
+        slide.AddTextBox(OdfRect.FromCentimeters(1, 1, 4, 2)).AddParagraph("Default paragraph");
+        slide.GetOrCreateSpeakerNotes().AddParagraph("Ordinary note");
+        XElement styles = source.Package.GetXml("styles.xml").Root!
+            .Element(OdfNamespaces.Office + "styles")!;
+        styles.Add(new XElement(OdfNamespaces.Style + "default-style",
+            new XAttribute(OdfNamespaces.Style + "family", "paragraph"),
+            new XElement(OdfNamespaces.Style + "paragraph-properties",
+                new XAttribute(OdfNamespaces.Fo + "text-align", "center")),
+            new XElement(OdfNamespaces.Style + "text-properties",
+                new XAttribute(OdfNamespaces.Fo + "font-weight", "bold"))));
+        source.Package.MarkXmlDirty("styles.xml");
+        AssertLoss(source, "paragraph-layout");
+        AssertLoss(source, "text-effects");
+
+        XElement notes = slide.Element.Element(OdfNamespaces.Presentation + "notes")!;
+        notes.Descendants(OdfNamespaces.Draw + "text-box").First().Add(
+            new XElement(OdfNamespaces.Text + "h", "Heading"));
+        source.Package.MarkXmlDirty("content.xml");
+        AssertLoss(source, "speaker-notes");
+    }
+
+    [Fact]
+    public void OdpNormalDefaultTextEmphasisDoesNotReportLoss() {
+        OdpPresentation source = OdpPresentation.Create();
+        source.AddSlide().AddTextBox(OdfRect.FromCentimeters(1, 1, 4, 2))
+            .AddParagraph("Plain text");
+        XElement styles = source.Package.GetXml("styles.xml").Root!
+            .Element(OdfNamespaces.Office + "styles")!;
+        styles.Add(new XElement(OdfNamespaces.Style + "default-style",
+            new XAttribute(OdfNamespaces.Style + "family", "paragraph"),
+            new XElement(OdfNamespaces.Style + "text-properties",
+                new XAttribute(OdfNamespaces.Fo + "font-weight", "normal"),
+                new XAttribute(OdfNamespaces.Fo + "font-style", "normal"))));
+        source.Package.MarkXmlDirty("styles.xml");
+
+        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
+        using PowerPointPresentation target = conversion.Value;
+        Assert.DoesNotContain(conversion.Report.Mappings, mapping =>
+            mapping.Feature == "text-effects" && mapping.Status != OdfConversionMappingStatus.Converted);
     }
 
     private static PowerPointPresentation CreateBlankPowerPoint() {
