@@ -63,7 +63,7 @@
             <div class="imo-example__data-preview"><small>Notebook export</small><strong>{{ card.preview_title }}</strong><p>{{ card.preview_body }}</p><ul><li>{{ card.preview_item }}</li></ul></div>
             {{ else }}
             <a href="{{ card.image }}" data-pf-media data-pf-media-caption="{{ card.title | html.escape }}" aria-label="Open preview: {{ card.title | html.escape }}">
-              <img src="{{ card.image }}" alt="{{ card.image_alt | html.escape }}" width="{{ card.image_width }}" height="{{ card.image_height }}" loading="lazy" decoding="async" />
+              <img sizes="(max-width: 767px) 92vw, (max-width: 1199px) 45vw, 360px" src="{{ card.image }}" alt="{{ card.image_alt | html.escape }}" width="{{ card.image_width }}" height="{{ card.image_height }}" loading="lazy" decoding="async" />
             </a>
             {{ end }}
           </div>
