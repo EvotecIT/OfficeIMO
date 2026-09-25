@@ -114,7 +114,8 @@ internal static class HtmlGenericDocumentProjector {
 
     internal static IReadOnlyList<IElement> SelectRootTables(IHtmlDocument document) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return document.QuerySelectorAll("table")
+        return document.QuerySelectorAll("table, [role]")
+            .Where(IsTable)
             .Where(table => !HasTableAncestor(table))
             .ToList();
     }
@@ -125,7 +126,7 @@ internal static class HtmlGenericDocumentProjector {
         if (title.Length == 0) title = Normalize(table.Id);
         for (IElement? sibling = table.PreviousElementSibling; title.Length == 0 && sibling != null; sibling = sibling.PreviousElementSibling) {
             if (IsHeading(sibling)) title = Normalize(sibling.TextContent);
-            if (Is(sibling, "table")) break;
+            if (IsTable(sibling)) break;
         }
         if (title.Length == 0) {
             for (IElement? parent = table.ParentElement; parent != null; parent = parent.ParentElement) {
@@ -177,7 +178,8 @@ internal static class HtmlGenericDocumentProjector {
         IsHeading(element) || IsParagraph(element) || Is(element, "blockquote") || Is(element, "pre")
         || Is(element, "ul") || Is(element, "ol") || Is(element, "dl");
 
-    internal static bool IsTable(IElement element) => Is(element, "table");
+    internal static bool IsTable(IElement element) =>
+        Is(element, "table") || HtmlAccessibilitySemantics.HasRole(element, "table");
     internal static bool IsImage(IElement element) => Is(element, "img");
 
     internal static bool IsMedia(IElement element) =>
@@ -296,7 +298,7 @@ internal static class HtmlGenericDocumentProjector {
 
     private static bool HasTableAncestor(IElement element) {
         for (IElement? parent = element.ParentElement; parent != null; parent = parent.ParentElement) {
-            if (Is(parent, "table")) return true;
+            if (IsTable(parent)) return true;
         }
         return false;
     }
