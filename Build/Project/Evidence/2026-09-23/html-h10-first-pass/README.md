@@ -324,10 +324,14 @@ report are retained under `Ignore/HtmlUnknownPageQualification/` in
 `h10-wai-page-deferral-clean-2eda4f38e/` and
 `h10-h4-page-deferral-clean-2eda4f38e/`.
 
-The first macOS H4 static time-budget run at the same commit failed: its
-slowest warm iteration was 3,892 ms against a 3,000 ms ceiling. Its sampled
-peak stayed below the memory ceiling, cold and warm fingerprints matched,
-and allocation was within 0.1% of the previous passing run. Concurrent
-Xcode/Swift builds heavily loaded this host during the measurement. The time
-budget remains unqualified until a less contended clean-source rerun; the
-report is retained in `h10-h4-page-deferral-budget-clean-2eda4f38e/`.
+The first macOS H4 static time-budget run at that commit failed: its
+slowest warm iteration was 3,892 ms against a 3,000 ms ceiling. A later run
+under heavy concurrent Xcode/Swift load also exceeded the time ceiling.
+Cold/warm fingerprints and allocation remained stable. On an idle host at
+clean documentation head `d1e6a5866`, the unchanged source passed the H4
+static budget: 6,359.8 ms cold process, 2,835.4 ms slowest warm iteration,
+471,252,992-byte sampled peak, matching cold/warm fingerprints, and passing
+cancellation. The passing report is retained in
+`h10-h4-wai-float-idle-budget-d1e6a5866/`; the first contended run is in
+`h10-h4-page-deferral-budget-clean-2eda4f38e/`. Windows and Linux budgets
+remain open.
