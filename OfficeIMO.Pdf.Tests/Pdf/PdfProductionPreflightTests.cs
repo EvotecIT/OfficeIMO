@@ -342,12 +342,127 @@ public sealed class PdfProductionPreflightTests {
         Assert.Contains(report.Findings, static finding => finding.Kind == PdfProductionFindingKind.UninspectableImageResolution);
     }
 
+    [Fact]
+    public void ColorSelectedBeforeHiddenPrintBlockStillPaintsAfterIt() {
+        const string content = "1 0 0 rg /OC /Hidden BDC 0 1 0 rg 10 10 10 10 re f EMC 40 10 20 20 re f\n";
+        byte[] source = RawPrintLayerPdf(content, "/Properties << /Hidden 6 0 R >>",
+            "6 0 obj\n<< /Type /OCG /Name (Hidden) /Usage << /Print << /PrintState /OFF >> >> >>\nendobj",
+            "[6 0 R]", "[6 0 R]");
+
+        PdfProductionPreflightReport report = PdfDocument.Load(source).Proof.PreflightProduction();
+
+        Assert.Contains(report.Findings, static finding => finding.Kind == PdfProductionFindingKind.DeviceRgbColor);
+    }
+
+    [Fact]
+    public void GraphicsStateSelectedInsideHiddenPrintBlockAffectsLaterPaint() {
+        const string content = "/OC /Hidden BDC 1 0 0 rg /GS0 gs EMC 40 10 20 20 re f\n";
+        byte[] source = RawPrintLayerPdf(content,
+            "/Properties << /Hidden 6 0 R >> /ExtGState << /GS0 7 0 R >>",
+            "6 0 obj\n<< /Type /OCG /Name (Hidden) /Usage << /Print << /PrintState /OFF >> >> >>\nendobj\n" +
+            "7 0 obj\n<< /Type /ExtGState /ca 0.5 >>\nendobj",
+            "[6 0 R]", "[6 0 R]");
+
+        PdfProductionPreflightReport report = PdfDocument.Load(source).Proof.PreflightProduction(
+            new PdfProductionPreflightOptions { Profile = PdfProductionPreflightProfile.PdfX1aCandidate });
+
+        Assert.Contains(report.Findings, static finding => finding.Kind == PdfProductionFindingKind.DeviceRgbColor);
+        Assert.Contains(report.Findings, static finding => finding.Kind == PdfProductionFindingKind.Transparency);
+    }
+
+    [Theory]
+    [InlineData("/ca 0.5", "/ca 1")]
+    [InlineData("/BM /Multiply", "/BM /Normal")]
+    public void GraphicsStateResetInsideHiddenPrintBlockDoesNotMarkLaterPaintTransparent(
+        string firstState, string resetState) {
+        const string content = "/OC /Hidden BDC /GS1 gs /GS2 gs EMC 40 10 20 20 re f\n";
+        byte[] source = RawPrintLayerPdf(content,
+            "/Properties << /Hidden 6 0 R >> /ExtGState << /GS1 << " + firstState + " >> /GS2 << " + resetState + " >> >>",
+            "6 0 obj\n<< /Type /OCG /Name (Hidden) /Usage << /Print << /PrintState /OFF >> >> >>\nendobj",
+            "[6 0 R]", "[6 0 R]");
+
+        PdfProductionPreflightReport report = PdfDocument.Load(source).Proof.PreflightProduction(
+            new PdfProductionPreflightOptions { Profile = PdfProductionPreflightProfile.PdfX1aCandidate });
+
+        Assert.DoesNotContain(report.Findings, static finding => finding.Kind == PdfProductionFindingKind.Transparency);
+        Assert.Contains(report.Findings, static finding => finding.Kind == PdfProductionFindingKind.UninspectableColor);
+    }
+
+    [Fact]
+    public void UnsupportedPrintRuleRetainsUnlayeredImageInsideForm() {
+        const string formContent = "q 72 0 0 72 10 10 cm /Im0 Do Q\n";
+        const string content = "q /Fm0 Do Q /OC /Layer BDC 10 10 10 10 re f EMC\n";
+        byte[] source = RawPrintLayerPdf(content,
+            "/XObject << /Fm0 5 0 R >> /Properties << /Layer 6 0 R >>",
+            "5 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 100 100] /Resources << /XObject << /Im0 7 0 R >> >> /Length " +
+            System.Text.Encoding.ASCII.GetByteCount(formContent) + " >>\nstream\n" + formContent.TrimEnd('\n') + "\nendstream\nendobj\n" +
+            "6 0 obj\n<< /Type /OCG /Name (Layer) >>\nendobj\n" +
+            "7 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length 3 >>\nstream\nabc\nendstream\nendobj",
+            "[6 0 R]", "[6 0 R]", "/Print /View");
+
+        PdfProductionPreflightReport report = PdfDocument.Load(source).Proof.PreflightProduction();
+
+        Assert.Contains(report.Findings, static finding => finding.Kind == PdfProductionFindingKind.LowImageResolution);
+        Assert.Contains(report.Findings, static finding => finding.Kind == PdfProductionFindingKind.UninspectableImageResolution);
+    }
+
+    [Fact]
+    public void UnusedGroupWithUnsupportedPrintStateDoesNotDegradePageEvidence() {
+        const string content = "/OC /Visible BDC q 72 0 0 72 10 10 cm /Im0 Do Q EMC\n";
+        byte[] source = RawPrintLayerPdf(content, "/XObject << /Im0 5 0 R >> /Properties << /Visible 7 0 R >>",
+            "5 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length 3 >>\nstream\nabc\nendstream\nendobj\n" +
+            "6 0 obj\n<< /Type /OCG /Name (Unused) /Usage << /Print << /PrintState /Maybe >> >> >>\nendobj\n" +
+            "7 0 obj\n<< /Type /OCG /Name (Visible) /Usage << /Print << /PrintState /ON >> >> >>\nendobj",
+            "[6 0 R 7 0 R]", "[6 0 R 7 0 R]");
+
+        PdfProductionPreflightReport report = PdfDocument.Load(source).Proof.PreflightProduction();
+
+        Assert.Contains(report.Findings, static finding => finding.Kind == PdfProductionFindingKind.LowImageResolution);
+        Assert.DoesNotContain(report.Findings, static finding => finding.Kind == PdfProductionFindingKind.UninspectableImageResolution);
+    }
+
+    [Fact]
+    public void InactiveAnnotationAppearanceDoesNotContributeFontFinding() {
+        const string active = "";
+        const string inactive = "BT /F1 12 Tf 10 10 Td (Inactive) Tj ET";
+        byte[] source = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7", "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Resources << >> /Contents 4 0 R /Annots [5 0 R] >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", active, "endstream", "endobj",
+            "5 0 obj", "<< /Type /Annot /Subtype /Widget /Rect [10 10 100 30] /F 4 /AS /Off /AP << /N << /Off 6 0 R /On 7 0 R >> >> >>", "endobj",
+            "6 0 obj", "<< /Type /XObject /Subtype /Form /BBox [0 0 90 20] /Length 0 >>", "stream", active, "endstream", "endobj",
+            "7 0 obj", "<< /Type /XObject /Subtype /Form /BBox [0 0 90 20] /Resources << /Font << /F1 8 0 R >> >> /Length " + inactive.Length + " >>", "stream", inactive, "endstream", "endobj",
+            "8 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 9 >>", "%%EOF", string.Empty
+        }));
+
+        PdfProductionPreflightReport report = PdfDocument.Load(source).Proof.PreflightProduction();
+
+        Assert.DoesNotContain(report.Findings, static finding => finding.Kind == PdfProductionFindingKind.UnembeddedFont);
+    }
+
+    [Fact]
+    public void ScreenOnlyAnnotationLayerDoesNotDegradePrintedImageEvidence() {
+        const string content = "q 72 0 0 72 10 10 cm /Im0 Do Q\n";
+        byte[] source = RawPrintLayerPdf(content, "/XObject << /Im0 5 0 R >>",
+            "5 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length 3 >>\nstream\nabc\nendstream\nendobj\n" +
+            "6 0 obj\n<< /Type /OCG /Name (Screen only) >>\nendobj\n" +
+            "7 0 obj\n<< /Type /Annot /Subtype /Text /Rect [0 0 10 10] /F 0 /OC 6 0 R >>\nendobj",
+            "[6 0 R]", "[6 0 R]", "/Print /View", "/Annots [7 0 R]");
+
+        PdfProductionPreflightReport report = PdfDocument.Load(source).Proof.PreflightProduction();
+
+        Assert.Contains(report.Findings, static finding => finding.Kind == PdfProductionFindingKind.LowImageResolution);
+        Assert.DoesNotContain(report.Findings, static finding => finding.Kind == PdfProductionFindingKind.UninspectableImageResolution);
+    }
+
     private static byte[] RawPrintLayerPdf(string content, string resources, string extraObjects,
-        string groups, string printGroups, string categories = "/Print") => System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+        string groups, string printGroups, string categories = "/Print", string pageEntries = "") => System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
             "%PDF-1.7",
             "1 0 obj", $"<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs {groups} /D << /BaseState /ON /AS [<< /Event /Print /Category [{categories}] /OCGs {printGroups} >>] >> >> >>", "endobj",
             "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
-            "3 0 obj", $"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Resources << {resources} >> /Contents 4 0 R >>", "endobj",
+            "3 0 obj", $"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Resources << {resources} >> /Contents 4 0 R {pageEntries} >>", "endobj",
             "4 0 obj", "<< /Length " + System.Text.Encoding.ASCII.GetByteCount(content) + " >>", "stream", content.TrimEnd('\n'), "endstream", "endobj",
             extraObjects, "trailer", "<< /Root 1 0 R /Size 8 >>", "%%EOF", string.Empty
         }));

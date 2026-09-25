@@ -36,10 +36,11 @@ public sealed partial class PdfReadPage {
     internal bool HasOptionalContentUsage(System.Threading.CancellationToken cancellationToken = default) =>
         HasOptionalContentUsage(hiddenOnly: false, cancellationToken);
 
-    internal bool HasOptionalContentUsage(bool hiddenOnly, System.Threading.CancellationToken cancellationToken) {
+    internal bool HasOptionalContentUsage(bool hiddenOnly, System.Threading.CancellationToken cancellationToken,
+        bool printableAnnotationsOnly = false, bool unsupportedOnly = false) {
         cancellationToken.ThrowIfCancellationRequested();
         OptionalContentUsageInspectionObserverForTesting?.Invoke();
-        if (HasRelevantOptionalContentEntry(_pageDict, hiddenOnly)) return true;
+        if (HasRelevantOptionalContentEntry(_pageDict, hiddenOnly, unsupportedOnly)) return true;
 
         PdfDictionary? resources = ResolveDictionary(GetInheritedValue("Resources"));
         var activeStreams = new HashSet<PdfStream>();
@@ -51,7 +52,7 @@ public sealed partial class PdfReadPage {
                 activeStreams,
                 budget,
                 type3GlyphBudget,
-                depth: 0, hiddenOnly)) return true;
+                depth: 0, hiddenOnly, unsupportedOnly)) return true;
 
         PdfArray? annotations = ResolveArray(
             _pageDict.Items.TryGetValue("Annots", out PdfObject? annotationsObject) ? annotationsObject : null);
@@ -61,17 +62,25 @@ public sealed partial class PdfReadPage {
             cancellationToken.ThrowIfCancellationRequested();
             PdfDictionary? annotation = ResolveDictionary(annotations.Items[index]);
             if (annotation == null) continue;
-            if (HasRelevantOptionalContentEntry(annotation, hiddenOnly)) return true;
+            if (printableAnnotationsOnly && !IsPrintableAnnotation(annotation)) continue;
+            if (HasRelevantOptionalContentEntry(annotation, hiddenOnly, unsupportedOnly)) return true;
             if (TryGetNormalAppearanceStream(annotation, out PdfStream appearanceStream) &&
                 AnnotationAppearanceUsesOptionalContent(
                     appearanceStream,
                     resources,
                     activeStreams,
                     budget,
-                    type3GlyphBudget, hiddenOnly)) return true;
+                    type3GlyphBudget, hiddenOnly, unsupportedOnly)) return true;
         }
 
         return false;
+    }
+
+    private bool IsPrintableAnnotation(PdfDictionary annotation) {
+        PdfObject? flagsObject = annotation.Items.TryGetValue("F", out PdfObject? value) ? ResolveObject(value) : null;
+        if (flagsObject is not PdfNumber flags) return false;
+        int bits = (int)flags.Value;
+        return (bits & 4) != 0 && (bits & 3) == 0;
     }
 
     private bool AnnotationAppearanceUsesOptionalContent(
@@ -79,8 +88,8 @@ public sealed partial class PdfReadPage {
         PdfDictionary? pageResources,
         HashSet<PdfStream> activeStreams,
         PageContentBudget budget,
-        Type3GlyphBudget type3GlyphBudget, bool hiddenOnly) {
-        if (HasRelevantOptionalContentEntry(appearanceStream.Dictionary, hiddenOnly)) return true;
+        Type3GlyphBudget type3GlyphBudget, bool hiddenOnly, bool unsupportedOnly) {
+        if (HasRelevantOptionalContentEntry(appearanceStream.Dictionary, hiddenOnly, unsupportedOnly)) return true;
         if (!activeStreams.Add(appearanceStream)) return false;
         try {
             PdfDictionary? appearanceResources = ResolveDictionary(
@@ -93,7 +102,7 @@ public sealed partial class PdfReadPage {
                 activeStreams,
                 budget,
                 type3GlyphBudget,
-                depth: 1, hiddenOnly);
+                depth: 1, hiddenOnly, unsupportedOnly);
         } finally {
             activeStreams.Remove(appearanceStream);
         }
@@ -105,10 +114,10 @@ public sealed partial class PdfReadPage {
         HashSet<PdfStream> activeStreams,
         PageContentBudget budget,
         Type3GlyphBudget type3GlyphBudget,
-        int depth, bool hiddenOnly) {
+        int depth, bool hiddenOnly, bool unsupportedOnly) {
         EnsureContentNestingBudget(depth);
         bool found = false;
-        PdfPageOptionalContentVisibility? visibility = hiddenOnly ? GetOptionalContentVisibility(resources) : null;
+        PdfPageOptionalContentVisibility? visibility = hiddenOnly || unsupportedOnly ? GetOptionalContentVisibility(resources) : null;
         string? fontName = null;
         var fontStack = new Stack<string?>();
         PdfFontResourceSet? fontResources = null;
@@ -121,7 +130,8 @@ public sealed partial class PdfReadPage {
                 int tagIndex = operation.Operands.Count - 2;
                 if (tagIndex >= 0 && operation.Operands[tagIndex] is string tag &&
                     string.Equals(tag, "OC", StringComparison.Ordinal)) {
-                    if (!hiddenOnly || IsHiddenMarkedContent(operation, visibility)) found = true;
+                    if (unsupportedOnly ? IsUnsupportedMarkedContent(operation, visibility)
+                        : !hiddenOnly || IsHiddenMarkedContent(operation, visibility)) found = true;
                 }
                 return;
             }
@@ -151,7 +161,7 @@ public sealed partial class PdfReadPage {
                                         activeStreams,
                                         budget,
                                         type3GlyphBudget,
-                                        depth + 1, hiddenOnly);
+                                        depth + 1, hiddenOnly, unsupportedOnly);
                                 }
                             }
                             if (found) break;
@@ -169,7 +179,7 @@ public sealed partial class PdfReadPage {
                 if (xObjects?.Items.TryGetValue(name, out PdfObject? xObject) == true &&
                     PdfObjectLookup.ResolveChain(_objects, xObject) is PdfStream stream) {
                     found = StreamUsesOptionalContent(stream, resources, activeStreams, budget,
-                        type3GlyphBudget, depth + 1, hiddenOnly);
+                        type3GlyphBudget, depth + 1, hiddenOnly, unsupportedOnly);
                 }
                 return;
             }
@@ -201,7 +211,7 @@ public sealed partial class PdfReadPage {
                             ? groupObject
                             : null) is PdfStream group) {
                     found = StreamUsesOptionalContent(group, resources, activeStreams, budget,
-                        type3GlyphBudget, depth + 1, hiddenOnly);
+                        type3GlyphBudget, depth + 1, hiddenOnly, unsupportedOnly);
                 }
                 return;
             }
@@ -212,7 +222,7 @@ public sealed partial class PdfReadPage {
                 if (patterns?.Items.TryGetValue(name, out PdfObject? patternObject) == true &&
                     PdfObjectLookup.ResolveChain(_objects, patternObject) is PdfStream pattern) {
                     found = StreamUsesOptionalContent(pattern, resources, activeStreams, budget,
-                        type3GlyphBudget, depth + 1, hiddenOnly);
+                        type3GlyphBudget, depth + 1, hiddenOnly, unsupportedOnly);
                 }
             }
         },
@@ -229,8 +239,8 @@ public sealed partial class PdfReadPage {
         HashSet<PdfStream> activeStreams,
         PageContentBudget budget,
         Type3GlyphBudget type3GlyphBudget,
-        int depth, bool hiddenOnly) {
-        if (HasRelevantOptionalContentEntry(glyph.Dictionary, hiddenOnly)) return true;
+        int depth, bool hiddenOnly, bool unsupportedOnly) {
+        if (HasRelevantOptionalContentEntry(glyph.Dictionary, hiddenOnly, unsupportedOnly)) return true;
         if (!activeStreams.Add(glyph)) return false;
         try {
             return ContentUsesOptionalContent(
@@ -239,7 +249,7 @@ public sealed partial class PdfReadPage {
                 activeStreams,
                 budget,
                 type3GlyphBudget,
-                depth, hiddenOnly);
+                depth, hiddenOnly, unsupportedOnly);
         } finally {
             activeStreams.Remove(glyph);
         }
@@ -251,8 +261,8 @@ public sealed partial class PdfReadPage {
         HashSet<PdfStream> activeStreams,
         PageContentBudget budget,
         Type3GlyphBudget type3GlyphBudget,
-        int depth, bool hiddenOnly) {
-        if (HasRelevantOptionalContentEntry(stream.Dictionary, hiddenOnly)) return true;
+        int depth, bool hiddenOnly, bool unsupportedOnly) {
+        if (HasRelevantOptionalContentEntry(stream.Dictionary, hiddenOnly, unsupportedOnly)) return true;
         string? subtype = (PdfObjectLookup.ResolveChain(
             _objects,
             stream.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtypeObject) ? subtypeObject : null) as PdfName)?.Name;
@@ -272,7 +282,7 @@ public sealed partial class PdfReadPage {
                 activeStreams,
                 budget,
                 type3GlyphBudget,
-                depth, hiddenOnly);
+                depth, hiddenOnly, unsupportedOnly);
         } finally {
             activeStreams.Remove(stream);
         }
@@ -282,43 +292,68 @@ public sealed partial class PdfReadPage {
         dictionary.Items.TryGetValue("OC", out PdfObject? optionalContentObject) &&
         PdfObjectLookup.ResolveChain(_objects, optionalContentObject) is not null and not PdfNull;
 
-    private bool HasRelevantOptionalContentEntry(PdfDictionary dictionary, bool hiddenOnly) =>
+    private bool HasRelevantOptionalContentEntry(PdfDictionary dictionary, bool hiddenOnly, bool unsupportedOnly) =>
+        unsupportedOnly ? IsUnsupportedOptionalContent(dictionary) :
         hiddenOnly ? IsHiddenOptionalContent(dictionary) : HasEffectiveOptionalContentEntry(dictionary);
 
-    internal HashSet<int> GetDefiniteUnlayeredRootImageOperatorOffsets(System.Threading.CancellationToken cancellationToken) {
-        cancellationToken.ThrowIfCancellationRequested();
-        var offsets = new HashSet<int>();
-        if (HasEffectiveOptionalContentEntry(_pageDict)) return offsets;
+    private bool IsUnsupportedOptionalContent(PdfDictionary dictionary) {
+        if (!dictionary.Items.TryGetValue("OC", out PdfObject? value)) return false;
         PdfDictionary? resources = ResolveDictionary(GetInheritedValue("Resources"));
-        PdfDictionary? xObjects = ResolveDictionary(resources?.Items.TryGetValue("XObject", out PdfObject? xObjectsObject) == true
-            ? xObjectsObject : null);
-        var markedContent = new Stack<bool>();
-        int layeredDepth = 0;
+        return GetOptionalContentVisibility(resources)?.IsUnsupported(value) == true;
+    }
+
+    internal HashSet<PdfContentOrderKey> GetDefiniteUnlayeredImageContentOrderKeys(System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        var keys = new HashSet<PdfContentOrderKey>();
+        if (HasEffectiveOptionalContentEntry(_pageDict)) return keys;
+        PdfDictionary? resources = ResolveDictionary(GetInheritedValue("Resources"));
         var budget = new PageContentBudget(this, cancellationToken);
-        PdfContentStreamInterpreter.Interpret(GetContentStreamContent(budget), _limits.MaxContentOperations, operation => {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (operation.Name == "BDC") {
-                bool isLayer = operation.Operands.Count > 1 &&
-                    operation.Operands[operation.Operands.Count - 2] is string tag && tag == "OC";
-                markedContent.Push(isLayer);
-                if (isLayer) layeredDepth++;
-                return;
-            }
-            if (operation.Name == "BMC") { markedContent.Push(false); return; }
-            if (operation.Name == "EMC") {
-                if (markedContent.Count > 0 && markedContent.Pop()) layeredDepth--;
-                return;
-            }
-            if (layeredDepth != 0 || operation.HasInvalidOperands) return;
-            if (operation.InlineImage is not null) { offsets.Add(operation.OperatorOffset); return; }
-            if (operation.Name != "Do" || operation.Operands.Count == 0 ||
-                operation.Operands[operation.Operands.Count - 1] is not string name) return;
-            if (PdfObjectLookup.ResolveChain(_objects,
-                    xObjects?.Items.TryGetValue(name, out PdfObject? xObject) == true ? xObject : null) is not PdfStream stream ||
-                HasEffectiveOptionalContentEntry(stream.Dictionary)) return;
-            offsets.Add(operation.OperatorOffset);
-        }, maxNestingDepth: _limits.MaxContentNestingDepth, maxOperands: _limits.MaxContentOperands);
-        return offsets;
+        var activeForms = new HashSet<PdfStream>();
+        Scan(GetContentStreamContent(budget), resources, PdfContentOrderKey.Root, 0);
+        return keys;
+
+        void Scan(string content, PdfDictionary? currentResources, PdfContentOrderKey prefix, int depth) {
+            EnsureContentNestingBudget(depth);
+            PdfDictionary? xObjects = ResolveDictionary(currentResources?.Items.TryGetValue("XObject", out PdfObject? xObjectsObject) == true
+                ? xObjectsObject : null);
+            var markedContent = new Stack<bool>();
+            int layeredDepth = 0;
+            PdfContentStreamInterpreter.Interpret(content, _limits.MaxContentOperations, operation => {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (operation.Name == "BDC") {
+                    bool isLayer = operation.Operands.Count > 1 &&
+                        operation.Operands[operation.Operands.Count - 2] is string tag && tag == "OC";
+                    markedContent.Push(isLayer);
+                    if (isLayer) layeredDepth++;
+                    return;
+                }
+                if (operation.Name == "BMC") { markedContent.Push(false); return; }
+                if (operation.Name == "EMC") {
+                    if (markedContent.Count > 0 && markedContent.Pop()) layeredDepth--;
+                    return;
+                }
+                if (layeredDepth != 0 || operation.HasInvalidOperands) return;
+                PdfContentOrderKey key = prefix.Append(operation.OperatorOffset);
+                if (operation.InlineImage is not null) { keys.Add(key); return; }
+                if (operation.Name != "Do" || operation.Operands.Count == 0 ||
+                    operation.Operands[operation.Operands.Count - 1] is not string name) return;
+                if (PdfObjectLookup.ResolveChain(_objects,
+                        xObjects?.Items.TryGetValue(name, out PdfObject? xObject) == true ? xObject : null) is not PdfStream stream ||
+                    HasEffectiveOptionalContentEntry(stream.Dictionary)) return;
+                string? subtype = (ResolveObject(stream.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtypeObject)
+                    ? subtypeObject : null) as PdfName)?.Name;
+                if (subtype == "Image") {
+                    keys.Add(key);
+                } else if (subtype == "Form" && activeForms.Add(stream)) {
+                    try {
+                        PdfDictionary? formResources = ResolveDictionary(stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? formResourceObject)
+                            ? formResourceObject : null) ?? currentResources;
+                        Scan(WrapFormContentWithBoundingBoxClip(PdfEncoding.Latin1GetString(budget.Decode(stream)), stream.Dictionary),
+                            formResources, key, depth + 1);
+                    } finally { activeForms.Remove(stream); }
+                }
+            }, maxNestingDepth: _limits.MaxContentNestingDepth, maxOperands: _limits.MaxContentOperands);
+        }
     }
 
     private static bool IsHiddenMarkedContent(PdfContentOperation operation, PdfPageOptionalContentVisibility? visibility) {
@@ -327,6 +362,14 @@ public sealed partial class PdfReadPage {
             (property is PdfInlineOptionalContentReferences references && visibility?.IsHidden(references) == true) ||
             (property is PdfContentDictionary dictionary && dictionary.OptionalContentReferences is not null &&
                 visibility?.IsHidden(dictionary.OptionalContentReferences) == true);
+    }
+
+    private static bool IsUnsupportedMarkedContent(PdfContentOperation operation, PdfPageOptionalContentVisibility? visibility) {
+        object? property = operation.Operands.Count > 0 ? operation.Operands[operation.Operands.Count - 1] : null;
+        return (property is string name && visibility?.IsUnsupported(name) == true) ||
+            (property is PdfInlineOptionalContentReferences references && visibility?.IsUnsupported(references) == true) ||
+            (property is PdfContentDictionary dictionary && dictionary.OptionalContentReferences is not null &&
+                visibility?.IsUnsupported(dictionary.OptionalContentReferences) == true);
     }
 
     internal IReadOnlyList<PdfTextSpan> GetHiddenOptionalContentTextSpans(bool includeArtifactText) {

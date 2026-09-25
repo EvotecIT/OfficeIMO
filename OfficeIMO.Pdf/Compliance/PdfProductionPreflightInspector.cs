@@ -30,13 +30,17 @@ internal static class PdfProductionPreflightInspector {
             cancellationToken.ThrowIfCancellationRequested();
             PdfReadPage page = document.Pages[pageNumber - 1];
             PdfReadPage printPage = page.WithOptionalContentVisibility(printVisibility);
-            bool hasOptionalContentUsage = printPage.HasOptionalContentUsage(cancellationToken);
-            bool unresolvedPrintResources = printPage.HasOptionalContentUsage(hiddenOnly: true, cancellationToken) ||
-                printVisibility.HasUnsupportedViewUsageApplications && hasOptionalContentUsage;
+            bool hasOptionalContentUsage = printPage.HasOptionalContentUsage(hiddenOnly: false, cancellationToken,
+                printableAnnotationsOnly: true);
+            bool unsupportedPrintContent = printVisibility.HasUnsupportedViewUsageApplications && hasOptionalContentUsage ||
+                printPage.HasOptionalContentUsage(hiddenOnly: false, cancellationToken,
+                    printableAnnotationsOnly: true, unsupportedOnly: true);
+            bool unresolvedPrintResources = printPage.HasOptionalContentUsage(hiddenOnly: true, cancellationToken,
+                printableAnnotationsOnly: true) || unsupportedPrintContent;
             InspectBoxes(pageNumber, page.GetGeometry());
             InspectFonts(pageNumber, unresolvedPrintResources);
             PdfPrintProductionColorEvidence color = InspectColor(pageNumber, printPage, unresolvedPrintResources);
-            InspectImages(pageNumber, printPage, hasOptionalContentUsage, color);
+            InspectImages(pageNumber, printPage, unsupportedPrintContent, color);
         }
         return new PdfProductionPreflightReport(snapshot.Bytes, snapshot.Options, effective, pageNumbers, findings, fixups);
 
@@ -70,7 +74,7 @@ internal static class PdfProductionPreflightInspector {
                 !string.IsNullOrWhiteSpace(intents[0].OutputConditionIdentifier);
             if (strict) {
                 valid = valid && intents[0].DestinationOutputProfileColorComponents == 4 &&
-                    string.Equals(intents[0].DestinationOutputProfileColorSpace, "CMYK", StringComparison.Ordinal);
+                    string.Equals(intents[0].GetProfileMetadata(cancellationToken)?.ColorSpace, "CMYK", StringComparison.Ordinal);
             }
             if (!valid) {
                 AddFinding(new PdfProductionFinding(PdfProductionFindingKind.InvalidOutputIntent,
@@ -161,9 +165,9 @@ internal static class PdfProductionPreflightInspector {
             return color;
         }
 
-        void InspectImages(int pageNumber, PdfReadPage readPage, bool hasOptionalContentUsage,
+        void InspectImages(int pageNumber, PdfReadPage readPage, bool unsupportedPrintContent,
             PdfPrintProductionColorEvidence color) {
-            if (hasOptionalContentUsage && printVisibility.HasUnsupportedViewUsageApplications) {
+            if (unsupportedPrintContent) {
                 AddFinding(new PdfProductionFinding(PdfProductionFindingKind.UninspectableImageResolution,
                     PdfProductionFindingSeverity.Indeterminate, pageNumber,
                     "The optional-content print configuration could not be evaluated completely."));
@@ -174,10 +178,10 @@ internal static class PdfProductionPreflightInspector {
                 }
             }
             IReadOnlyList<PdfImagePlacement> placements = readPage.GetImagePlacements(pageNumber, cancellationToken);
-            if (hasOptionalContentUsage && printVisibility.HasUnsupportedViewUsageApplications) {
-                HashSet<int> unlayeredOffsets = readPage.GetDefiniteUnlayeredRootImageOperatorOffsets(cancellationToken);
-                placements = placements.Where(placement => placement.ContentOrderKey is { Depth: 1 } key &&
-                    key.RootOperatorOffset is int offset && unlayeredOffsets.Contains(offset)).ToArray();
+            if (unsupportedPrintContent) {
+                HashSet<PdfContentOrderKey> unlayeredImages = readPage.GetDefiniteUnlayeredImageContentOrderKeys(cancellationToken);
+                placements = placements.Where(placement => placement.ContentOrderKey is { } key &&
+                    unlayeredImages.Contains(key)).ToArray();
             }
             int understoodPlacements = 0;
             var matchedPlacements = new HashSet<PdfImagePlacement>();
@@ -220,17 +224,18 @@ internal static class PdfProductionPreflightInspector {
         bool IsInspectablePrintProfile(PdfOutputIntentInfo intent) {
             if (!intent.HasDestinationOutputProfile) return false;
             try {
-                return intent.DestinationOutputProfileSizeBytes is int size && size >= 128 &&
-                    intent.DestinationOutputProfileDeclaredSizeBytes == size &&
-                    intent.DestinationOutputProfileHasIccSignature == true &&
-                    string.Equals(intent.DestinationOutputProfileDeviceClass, "prtr", StringComparison.Ordinal) &&
-                    intent.DestinationOutputProfileColorComponents == (intent.DestinationOutputProfileColorSpace switch {
+                PdfOutputIntentProfileMetadata? metadata = intent.GetProfileMetadata(cancellationToken);
+                return metadata is { SizeBytes: >= 128 } &&
+                    metadata.DeclaredSizeBytes == metadata.SizeBytes &&
+                    metadata.HasIccSignature == true &&
+                    string.Equals(metadata.DeviceClass, "prtr", StringComparison.Ordinal) &&
+                    intent.DestinationOutputProfileColorComponents == (metadata.ColorSpace switch {
                         "RGB " => 3,
                         "CMYK" => 4,
                         "GRAY" => 1,
                         _ => -1
                     }) &&
-                    intent.DestinationOutputProfileHasSupportedOutputTransform == true;
+                    metadata.HasSupportedOutputTransform;
             } catch (InvalidDataException) {
                 return false;
             }

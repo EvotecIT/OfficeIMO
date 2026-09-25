@@ -356,8 +356,20 @@ internal static partial class PdfPrintProductionStructureInspector {
             PdfObject? normal = appearances is PdfDictionary ap && ap.Items.TryGetValue("N", out PdfObject? normalObject)
                 ? ResolveObject(_objects, normalObject, resolvedDepth + 2, _limits.MaxObjectNestingDepth, out _)
                 : null;
-            bool usableNormal = normal is PdfStream || normal is PdfDictionary states && states.Items.Values.Any(state =>
-                ResolveObject(_objects, state, resolvedDepth + 3, _limits.MaxObjectNestingDepth, out _) is PdfStream);
+            if (normal is PdfDictionary states) {
+                PdfObject? appearanceState = dictionary.Items.TryGetValue("AS", out PdfObject? stateObject)
+                    ? ResolveObject(_objects, stateObject, resolvedDepth + 2, _limits.MaxObjectNestingDepth, out _)
+                    : null;
+                normal = appearanceState is PdfName stateName &&
+                    states.Items.TryGetValue(stateName.Name, out PdfObject? selected)
+                    ? ResolveObject(_objects, selected, resolvedDepth + 3, _limits.MaxObjectNestingDepth, out _)
+                    : null;
+                if (normal is not PdfStream) {
+                    _uninspectableContextCount++;
+                    return;
+                }
+            }
+            bool usableNormal = normal is PdfStream;
             if (!usableNormal) {
                 if (dictionary.Items.TryGetValue("Subtype", out PdfObject? subtypeObject) &&
                     ResolveObject(_objects, subtypeObject, resolvedDepth + 1, _limits.MaxObjectNestingDepth, out _) is PdfName subtype &&
@@ -386,11 +398,6 @@ internal static partial class PdfPrintProductionStructureInspector {
                     AddStream(appearance, ResolveStreamResources(appearance, pageResources), contentDepth: 1);
                 } else {
                     _uninspectableContextCount++;
-                }
-            } else if (resolved is PdfDictionary dictionary) {
-                foreach (PdfObject child in dictionary.Items.Values) {
-                    _cancellationToken.ThrowIfCancellationRequested();
-                    AddAppearanceObject(child, pageResources, resolvedDepth + 1, visited);
                 }
             }
         }
