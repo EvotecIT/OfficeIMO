@@ -16,5 +16,19 @@ public enum PdfImpositionSourceFeatureLoss {
     /// <summary>Document-level embedded files and associated attachments were not transferred.</summary>
     EmbeddedFiles = 16,
     /// <summary>Document-level output intent profiles were not transferred.</summary>
-    OutputIntents = 32
+    OutputIntents = 32,
+    /// <summary>Document outline and bookmark navigation was not transferred.</summary>
+    Outlines = 64,
+    /// <summary>Document page numbering labels were not transferred.</summary>
+    PageLabels = 128,
+    /// <summary>Named destinations were not transferred to the new sheet pages.</summary>
+    NamedDestinations = 256,
+    /// <summary>Catalog view settings, actions, name trees, or URI settings were not transferred.</summary>
+    CatalogFeatures = 512,
+    /// <summary>Info-dictionary or XMP metadata was not transferred.</summary>
+    DocumentMetadata = 1024,
+    /// <summary>Selected-page actions, metadata, or presentation settings were not transferred.</summary>
+    PageFeatures = 2048,
+    /// <summary>Source encryption was not transferred to the derivative sheets.</summary>
+    Encryption = 4096
 }

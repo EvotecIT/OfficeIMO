@@ -57,10 +57,16 @@ internal static class PdfPageImposer {
         (double cellWidth, double cellHeight) = options.Validate();
         int[] selectedPages = pageNumbers.OfType<int>().Distinct().ToArray();
         bool selectedAnnotations = selectedPages.Any(page => info.Pages[page - 1].HasAnnotations);
+        bool selectedPageFeatures = selectedPages.Any(page => HasPageFeatures(info.Pages[page - 1]));
+        PdfReadDocument? rawSource = null;
         if (!selectedAnnotations) {
             // The high-level inspector omits annotations with unreadable geometry, but overlay still drops them.
-            PdfReadDocument rawSource = PdfReadDocument.Open(pdf, readOptions);
+            rawSource = PdfReadDocument.Open(pdf, readOptions);
             selectedAnnotations = selectedPages.Any(page => HasRawAnnotations(rawSource.Pages[page - 1], rawSource.Objects));
+        }
+        if (!selectedPageFeatures) {
+            rawSource ??= PdfReadDocument.Open(pdf, readOptions);
+            selectedPageFeatures = selectedPages.Any(page => HasRawPageFeatures(rawSource.Pages[page - 1]));
         }
         // XFA and fields without a placed widget have no page ownership to filter by selection.
         bool documentLevelForms = info.HasForms && (info.HasAcroFormXfa || info.FormFields.Count == 0 ||
@@ -74,6 +80,26 @@ internal static class PdfPageImposer {
         if (info.HasSignatures) sourceFeatureLoss |= PdfImpositionSourceFeatureLoss.Signatures;
         if (info.HasEmbeddedFiles) sourceFeatureLoss |= PdfImpositionSourceFeatureLoss.EmbeddedFiles;
         if (info.HasOutputIntents) sourceFeatureLoss |= PdfImpositionSourceFeatureLoss.OutputIntents;
+        if (info.HasOutlines) sourceFeatureLoss |= PdfImpositionSourceFeatureLoss.Outlines;
+        if (info.HasPageLabels) sourceFeatureLoss |= PdfImpositionSourceFeatureLoss.PageLabels;
+        if (info.HasNamedDestinations) sourceFeatureLoss |= PdfImpositionSourceFeatureLoss.NamedDestinations;
+        if (info.HasCatalogViewSettings || info.HasOpenActions || info.HasViewerPreferences ||
+            info.HasCatalogNameTrees || info.HasCatalogUri || info.HasCatalogActions ||
+            (info.HasActiveContent && !info.HasOnlyWidgetOwnedActiveContent) ||
+            !string.IsNullOrWhiteSpace(info.CatalogLanguage)) {
+            sourceFeatureLoss |= PdfImpositionSourceFeatureLoss.CatalogFeatures;
+        }
+        if (info.Metadata.HasContent || info.HasXmpMetadata) {
+            sourceFeatureLoss |= PdfImpositionSourceFeatureLoss.DocumentMetadata;
+        }
+        if (selectedPageFeatures) {
+            sourceFeatureLoss |= PdfImpositionSourceFeatureLoss.PageFeatures;
+        }
+        if (info.Security.HasEncryption) {
+            // Preserve the source extraction-permission error before reporting a derivative-loss policy error.
+            (rawSource ?? PdfReadDocument.Open(pdf, readOptions)).DemandContentExtraction("page imposition");
+            sourceFeatureLoss |= PdfImpositionSourceFeatureLoss.Encryption;
+        }
         if (info.HasOptionalContent) {
             throw new NotSupportedException("Layered source PDFs cannot be imposed because the sheet output cannot preserve optional-content visibility.");
         }
@@ -92,7 +118,9 @@ internal static class PdfPageImposer {
         }
         if (!options.AllowSourceFeatureLoss &&
             (sourceFeatureLoss & ~PdfImpositionSourceFeatureLoss.Signatures) != PdfImpositionSourceFeatureLoss.None) {
-            throw new NotSupportedException("Imposed output cannot retain source annotations, forms, structure tags, embedded files, or output intents. Set AllowSourceFeatureLoss to accept this loss.");
+            throw new NotSupportedException("Imposed output cannot retain one or more source features: " +
+                (sourceFeatureLoss & ~PdfImpositionSourceFeatureLoss.Signatures) +
+                ". Set AllowSourceFeatureLoss to accept this loss.");
         }
         int cellsPerSheet = checked(options.Columns * options.Rows);
         int sheetCount = checked((int)((pageNumbers.LongLength + cellsPerSheet - 1L) / cellsPerSheet));
@@ -140,4 +168,16 @@ internal static class PdfPageImposer {
         PdfObject? resolved = PdfObjectLookup.Resolve(objects, value);
         return resolved is not PdfNull && (resolved is not PdfArray annotations || annotations.Items.Count > 0);
     }
+
+    private static bool HasPageFeatures(PdfPageInfo page) =>
+        page.HasPageActions || page.HasPageMetadata || page.HasPieceInfo ||
+        page.TabOrder != null || page.DurationSeconds.HasValue || page.Transition != null;
+
+    private static bool HasRawPageFeatures(PdfReadPage page) =>
+        page.PageDictionary.Items.ContainsKey("AA") ||
+        page.PageDictionary.Items.ContainsKey("Metadata") ||
+        page.PageDictionary.Items.ContainsKey("PieceInfo") ||
+        page.PageDictionary.Items.ContainsKey("Tabs") ||
+        page.PageDictionary.Items.ContainsKey("Dur") ||
+        page.PageDictionary.Items.ContainsKey("Trans");
 }

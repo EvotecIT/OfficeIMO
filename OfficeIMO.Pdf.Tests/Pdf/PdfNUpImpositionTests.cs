@@ -150,6 +150,74 @@ public sealed class PdfNUpImpositionTests {
     }
 
     [Fact]
+    public void OutlineOnlySourceRequiresExplicitLossApproval() {
+        PdfDocument document = PdfDocument.Load(PdfDocument.Create(new PdfOptions { CreateOutlineFromHeadings = true })
+            .H1("Bookmark")
+            .Paragraph(paragraph => paragraph.Text("Sheet"))
+            .ToBytes());
+        Assert.True(PdfInspector.Inspect(document.ToBytes()).HasOutlines);
+        var layout = new PdfNUpOptions(new PageSize(600, 400), 2, 1);
+
+        Assert.Throws<NotSupportedException>(() => document.Pages.ImposeNUp(layout));
+        layout.AllowSourceFeatureLoss = true;
+        PdfImpositionResult result = document.Pages.ImposeNUp(layout);
+
+        Assert.True(result.SourceFeatureLoss.HasFlag(PdfImpositionSourceFeatureLoss.Outlines));
+        Assert.False(PdfInspector.Inspect(result.Bytes).HasOutlines);
+    }
+
+    [Fact]
+    public void DocumentAndPagePresentationLossIsReportedTogether() {
+        byte[] source = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /Outlines 5 0 R /PageLabels << /Nums [0 << /S /D /P (A-) >>] >> /Names << /Dests << /Names [(start) [3 0 R /Fit]] >> >> /ViewerPreferences << /HideToolbar true >> /Lang (en-US) >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Dur 2 /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj",
+            "5 0 obj", "<< /Type /Outlines /First 6 0 R /Last 6 0 R /Count 1 >>", "endobj",
+            "6 0 obj", "<< /Title (Start) /Parent 5 0 R /Dest [3 0 R /Fit] >>", "endobj",
+            "7 0 obj", "<< /Title (Source title) >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Info 7 0 R /Size 8 >>", "%%EOF", string.Empty
+        }));
+        PdfDocument document = PdfDocument.Load(source);
+        PdfDocumentInfo input = PdfInspector.Inspect(source);
+        Assert.True(input.HasOutlines);
+        Assert.True(input.HasPageLabels);
+        Assert.True(input.HasNamedDestinations);
+        Assert.True(input.HasViewerPreferences);
+        Assert.Equal("Source title", input.Metadata.Title);
+        Assert.Equal(2D, input.Pages[0].DurationSeconds);
+        var layout = new PdfNUpOptions(new PageSize(600, 400), 2, 1);
+
+        Assert.Throws<NotSupportedException>(() => document.Pages.ImposeNUp(layout));
+        layout.AllowSourceFeatureLoss = true;
+        PdfImpositionResult result = document.Pages.ImposeNUp(layout);
+
+        Assert.True(result.SourceFeatureLoss.HasFlag(PdfImpositionSourceFeatureLoss.Outlines));
+        Assert.True(result.SourceFeatureLoss.HasFlag(PdfImpositionSourceFeatureLoss.PageLabels));
+        Assert.True(result.SourceFeatureLoss.HasFlag(PdfImpositionSourceFeatureLoss.NamedDestinations));
+        Assert.True(result.SourceFeatureLoss.HasFlag(PdfImpositionSourceFeatureLoss.CatalogFeatures));
+        Assert.True(result.SourceFeatureLoss.HasFlag(PdfImpositionSourceFeatureLoss.DocumentMetadata));
+        Assert.True(result.SourceFeatureLoss.HasFlag(PdfImpositionSourceFeatureLoss.PageFeatures));
+    }
+
+    [Fact]
+    public void EncryptedSourceRequiresExplicitApprovalBeforeCreatingUnencryptedSheets() {
+        byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption(new PdfStandardEncryptionOptions("reader") {
+            OwnerPassword = "owner"
+        })).Paragraph(paragraph => paragraph.Text("Confidential sheet")).ToBytes();
+        PdfDocument document = PdfDocument.Load(source, new PdfLoadOptions { Password = "owner" });
+        var layout = new PdfNUpOptions(new PageSize(600, 400), 2, 1);
+
+        Assert.Throws<NotSupportedException>(() => document.Pages.ImposeNUp(layout));
+        layout.AllowSourceFeatureLoss = true;
+        PdfImpositionResult result = document.Pages.ImposeNUp(layout);
+
+        Assert.True(result.SourceFeatureLoss.HasFlag(PdfImpositionSourceFeatureLoss.Encryption));
+        Assert.False(PdfInspector.Inspect(result.Bytes).Security.HasEncryption);
+    }
+
+    [Fact]
     public void BookletPadsToFourAndMapsBothSidesOfDuplexSheets() {
         PdfDocument source = PdfDocument.Create(new PdfOptions { PageSize = new PageSize(240, 180) });
         for (int page = 1; page <= 5; page++) {
