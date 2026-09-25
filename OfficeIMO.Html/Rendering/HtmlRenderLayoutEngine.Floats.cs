@@ -527,10 +527,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     }
                 } else if (segment.Text.Length > 0) {
                     double textLineHeight = current.HasReplacedImage ? segment.Run.Style.LineHeight : lineHeight;
-                    double textY = current.HasReplacedImage
-                        ? lineY + Math.Max(0D, baseline - ResolveTextAscent(segment.Run.Style))
-                        : lineY + Math.Min(0D, (textLineHeight - segment.Run.Style.Font.Size) / 2D);
-                    double paintHeight = Math.Max(textLineHeight, segment.Run.Style.Font.Size);
+                    ResolveInlineTextVerticalPlacement(segment, current.HasReplacedImage, lineY,
+                        textLineHeight, baseline, out double textY, out double paintHeight);
                     RecordInlineOwnerGeometry(segment.Run, formattingContainer, x, textY, Math.Max(0.01D, segment.Width), paintHeight, inlineBounds);
                     if (!segment.Run.Style.PaintVisible) {
                         cursor += rightToLeftLine ? -segment.Width : segment.Width;

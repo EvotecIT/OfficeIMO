@@ -8,6 +8,21 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Html.Pdf;
 
 internal static partial class HtmlPdfRenderedConverter {
+    private static Func<string, OfficeFontInfo, OfficeFontFaceDescriptor, HtmlTextFaceMetrics?>? CreateFallbackTextFaceMetrics(
+        HtmlToPdfOptions options) {
+        if (!options.ResourcePolicy.AllowSystemFontEmbedding
+            || !options.ResourcePolicy.AllowDocumentFontEmbedding) return null;
+        return (text, font, descriptor) => {
+            foreach (string family in EnumerateBoundedSystemFamilies(font.FamilyName)) {
+                if (PdfCore.PdfEmbeddedFontFamily.TryMeasureSystemFaceVerticalMetrics(
+                    family, descriptor, text, font.Size, out double height, out double baseline)) {
+                    return new HtmlTextFaceMetrics(height, baseline);
+                }
+            }
+            return null;
+        };
+    }
+
     private static Func<string, OfficeFontInfo, OfficeFontFaceDescriptor, double?> CreateFallbackTextMeasurement(
         HtmlToPdfOptions options,
         PdfCore.PdfOptions measurementOptions) {

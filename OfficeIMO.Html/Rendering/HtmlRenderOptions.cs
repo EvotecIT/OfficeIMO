@@ -64,6 +64,9 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
     // A target writer can supply its fallback font metrics without replacing document fonts.
     internal Func<string, OfficeFontInfo, OfficeFontFaceDescriptor, double?>? FallbackTextMeasurement { get; set; }
 
+    // The same selected fallback face supplies CSS line-box metrics when it is not a document font.
+    internal Func<string, OfficeFontInfo, OfficeFontFaceDescriptor, HtmlTextFaceMetrics?>? FallbackTextFaceMetrics { get; set; }
+
     /// <summary>Default line-height multiplier.</summary>
     public double DefaultLineHeight { get; set; } = 1.2D;
 
@@ -253,6 +256,7 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         target.DefaultFontFamily = DefaultFontFamily;
         target.DefaultFontSize = DefaultFontSize;
         target.FallbackTextMeasurement = FallbackTextMeasurement;
+        target.FallbackTextFaceMetrics = FallbackTextFaceMetrics;
         target.DefaultLineHeight = DefaultLineHeight;
         target.UserAgentStyles = UserAgentStyles;
         target.TextHyphenationCallback = TextHyphenationCallback;

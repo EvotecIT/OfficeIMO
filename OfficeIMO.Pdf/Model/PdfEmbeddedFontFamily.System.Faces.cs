@@ -19,6 +19,32 @@ public sealed partial class PdfEmbeddedFontFamily {
         out PdfEmbeddedFontFamily? selected) {
         selected = null;
         if (string.IsNullOrWhiteSpace(familyName) || string.IsNullOrEmpty(text)) return false;
+        OfficeFontFaceCollection? collection = GetSystemFaceCollection(familyName);
+        return collection != null
+            && TrySelectSystemFace(collection, familyName, descriptor, text, out selected);
+    }
+
+    internal static bool TryMeasureSystemFaceVerticalMetrics(
+        string familyName,
+        OfficeFontFaceDescriptor descriptor,
+        string text,
+        double fontSize,
+        out double height,
+        out double baselineOffset) {
+        height = 0D;
+        baselineOffset = 0D;
+        if (string.IsNullOrWhiteSpace(familyName) || string.IsNullOrEmpty(text)
+            || fontSize <= 0D || double.IsNaN(fontSize) || double.IsInfinity(fontSize)) return false;
+        OfficeFontFaceCollection? collection = GetSystemFaceCollection(familyName);
+        if (collection == null
+            || !collection.TryResolveFaceForText(text, familyName, descriptor, out OfficeFontFace? face)
+            || face?.Program is not IOfficeFontBaselineMetrics metrics) return false;
+        height = face.Program.LineHeight(fontSize);
+        baselineOffset = metrics.BaselineOffset(fontSize);
+        return true;
+    }
+
+    private static OfficeFontFaceCollection? GetSystemFaceCollection(string familyName) {
         string normalizedFamily = NormalizeFamilyKey(familyName);
         System.Lazy<OfficeFontFaceCollection?> collection;
         lock (SystemFaceCollectionsLock) {
@@ -32,8 +58,7 @@ public sealed partial class PdfEmbeddedFontFamily {
             }
         }
 
-        return collection.Value != null
-            && TrySelectSystemFace(collection.Value, familyName, descriptor, text, out selected);
+        return collection.Value;
     }
 
     internal static bool TryResolveSystemFaceFromFiles(

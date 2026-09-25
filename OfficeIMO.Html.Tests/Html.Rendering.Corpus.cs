@@ -99,6 +99,26 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void StaticRendererUsesSelectedFaceMetricsForOversizedTextInShortLineBoxes() {
+        const string html = "<div style='font:20px/20px Example'><h1 style='font-size:100px;margin:0'>Heading</h1></div>";
+        HtmlRenderText RenderHeading(HtmlRenderOptions options) => Assert.Single(
+            HtmlRenderTestDriver.Render(html, options).Pages
+                .SelectMany(page => EnumerateCorpusVisuals(page.Scene))
+                .OfType<HtmlRenderText>(), item => item.Text == "Heading");
+
+        HtmlRenderText fallback = RenderHeading(new HtmlRenderOptions { ViewportWidth = 640D });
+        HtmlRenderText selectedFace = RenderHeading(new HtmlRenderOptions {
+            ViewportWidth = 640D,
+            FallbackTextFaceMetrics = (_, _, _) => new HtmlTextFaceMetrics(114D, 93D)
+        });
+
+        Assert.Equal(20D, selectedFace.LineHeight, 3);
+        Assert.Equal(fallback.LayoutY, selectedFace.LayoutY, 3);
+        Assert.Equal(fallback.Y - 14D, selectedFace.Y, 3);
+        Assert.Equal(114D, selectedFace.Height, 3);
+    }
+
+    [Fact]
     public void StaticRendererKeepsOversizedGlyphsWhenShortLineBoxesCrossPages() {
         const string html = "<style>@page{size:300px 60px;margin:0}html,body,p{margin:0}"
             + "p{font:100px/20px Arial}</style><p>I<br>J<br>K<br>L</p>";
