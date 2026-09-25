@@ -6,6 +6,11 @@ namespace OfficeIMO.Word.Html {
             if (!_unscaledImageSizes.TryGetValue(cached, out var original)) {
                 original = (cached.Width ?? 0D, cached.Height ?? 0D);
             }
+            ApplyImageSize(image, original, width, height);
+        }
+
+        private static void ApplyImageSize(WordImage image, (double Width, double Height) original,
+            double? width, double? height) {
             if (original.Width <= 0D || original.Height <= 0D) return;
 
             if (width.HasValue && height.HasValue) {

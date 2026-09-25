@@ -103,7 +103,7 @@ namespace OfficeIMO.Word.Html {
 
             WordImage image;
             if (src.StartsWith("data:image", StringComparison.OrdinalIgnoreCase)) {
-                if (!TryHandleDataImage(src, doc, options, ref paragraph, headerFooter, width, height, wrap, alt, out image)) {
+                if (!TryHandleDataImage(src, doc, options, ref paragraph, headerFooter, wrap, alt, out image)) {
                     InsertAltText(currentParagraph, headerFooter, doc, alt);
                     return;
                 }
@@ -118,7 +118,7 @@ namespace OfficeIMO.Word.Html {
                 try {
                     reservedBytes = EnsureFileWithinImageLimits(uri.LocalPath, options);
                     paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
-                    paragraph.AddImage(uri.LocalPath, width, height, wrap, description: alt);
+                    paragraph.AddImage(uri.LocalPath, null, null, wrap, description: alt);
                     reservedBytes = 0;
                     image = paragraph.Image!;
                 } catch (HtmlResourceLimitException ex) {
@@ -142,7 +142,7 @@ namespace OfficeIMO.Word.Html {
                 try {
                     reservedBytes = EnsureFileWithinImageLimits(src, options);
                     paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
-                    paragraph.AddImage(src, width, height, wrap, description: alt);
+                    paragraph.AddImage(src, null, null, wrap, description: alt);
                     reservedBytes = 0;
                     image = paragraph.Image!;
                 } catch (HtmlResourceLimitException ex) {
@@ -169,7 +169,7 @@ namespace OfficeIMO.Word.Html {
                     using var ms = new MemoryStream(data);
                     string fileName = GetFileNameFromUri(src);
                     paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
-                    paragraph.AddImage(ms, fileName, width, height, wrap, description: alt);
+                    paragraph.AddImage(ms, fileName, null, null, wrap, description: alt);
                     reservedBytes = 0;
                     image = paragraph.Image!;
                 } catch (HtmlResourceLimitException ex) {
@@ -205,6 +205,7 @@ namespace OfficeIMO.Word.Html {
 
             if (image.Width is double unscaledWidth && image.Height is double unscaledHeight) {
                 _unscaledImageSizes[image] = (unscaledWidth, unscaledHeight);
+                ApplyImageSize(image, (unscaledWidth, unscaledHeight), width, height);
             }
             FitImageToWidthConstraints(image, contentWidth, maximumWidth, options, src, alt);
             ApplyImageMetadata(image, alt, title);
@@ -443,7 +444,7 @@ namespace OfficeIMO.Word.Html {
             return false;
         }
 
-        private bool TryHandleDataImage(string src, WordDocument doc, HtmlToWordOptions options, ref WordParagraph? paragraph, WordHeaderFooter? headerFooter, double? width, double? height, WordImageTextWrapping wrap, string alt, out WordImage image) {
+        private bool TryHandleDataImage(string src, WordDocument doc, HtmlToWordOptions options, ref WordParagraph? paragraph, WordHeaderFooter? headerFooter, WordImageTextWrapping wrap, string alt, out WordImage image) {
             image = null!;
             if (!HtmlImageDataUri.TryParse(src, out var dataUri)) {
                 AddDiagnostic(options, "ImageDataUriInvalid", "Image data URI could not be parsed and was skipped.", src);
@@ -477,7 +478,7 @@ namespace OfficeIMO.Word.Html {
                     reservedBytes = bytes.LongLength;
                     paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
                     using var imageStream = new MemoryStream(bytes);
-                    paragraph.AddImage(imageStream, "image." + ext, width, height, wrap, description: alt);
+                    paragraph.AddImage(imageStream, "image." + ext, null, null, wrap, description: alt);
                 } else {
                     if (!dataUri.MediaType.Equals("image/svg+xml", StringComparison.OrdinalIgnoreCase)) {
                         AddDiagnostic(options, "ImageDataUriUnsupported", "Non-base64 data URI image was skipped because only SVG text data URIs are supported.", src);
@@ -494,7 +495,7 @@ namespace OfficeIMO.Word.Html {
                     }
                     reservedBytes = svgByteCount;
                     paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
-                    SvgHelper.AddSvg(paragraph, svgContent, width, height, alt);
+                    SvgHelper.AddSvg(paragraph, svgContent, null, null, alt);
                 }
                 image = paragraph.Image!;
                 reservedBytes = 0;

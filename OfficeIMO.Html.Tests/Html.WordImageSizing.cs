@@ -46,4 +46,30 @@ public partial class HtmlWordGapClosure {
         Assert.DoesNotContain(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated);
     }
+
+    [Fact]
+    public void HtmlToWord_ReusedImageUsesIntrinsicRatioWhenOnlyOneLaterDimensionIsGiven() {
+        string html = $"""
+            <img src="data:image/png;base64,{ValidPng}" width="100" height="50" alt="Stretched">
+            <img src="data:image/png;base64,{ValidPng}" width="200" alt="Scaled">
+            <img src="data:image/png;base64,{ValidPng}" alt="Intrinsic">
+            """;
+        var options = new HtmlToWordOptions {
+            MaxTotalImageBytes = Convert.FromBase64String(ValidPng).LongLength
+        };
+
+        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult(options);
+        using WordDocument document = result.Value;
+        WordImage[] images = document.Images.ToArray();
+
+        Assert.Equal(3, images.Length);
+        Assert.Equal(100D, images[0].Width!.Value, precision: 2);
+        Assert.Equal(50D, images[0].Height!.Value, precision: 2);
+        Assert.Equal(200D, images[1].Width!.Value, precision: 2);
+        Assert.Equal(200D, images[1].Height!.Value, precision: 2);
+        Assert.Equal(1D, images[2].Width!.Value, precision: 2);
+        Assert.Equal(1D, images[2].Height!.Value, precision: 2);
+        Assert.DoesNotContain(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == "ImageResourceBudgetExceeded");
+    }
 }
