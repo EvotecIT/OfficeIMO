@@ -79,6 +79,7 @@ string markdown = source.ToMarkdown(options);
 ## What it maps
 
 - Headings, paragraphs, ordered and unordered lists, block quotes, code blocks, horizontal rules, tables, images, figures, details/summary, definition lists, and raw HTML fallback blocks.
+- Structurally supported ARIA role tables become typed Markdown tables, including links and images hosted by role cells. `ToMarkdownDocumentResult()` reports unsupported role-table structures as approximations.
 - Emphasis, strong emphasis, strike-through, code spans, links, images, line breaks, and selected inline HTML wrappers.
 - Native and ARIA headings, accessible link/image names, ordered-list marker families, reversed lists, item value resets, and code-language hints. Generated Markdown uses decimal CommonMark markers while the typed list retains the original HTML marker family for HTML projection.
 - Local EPUB/DPUB-ARIA footnotes and GitHub-style footnote sections as typed `FootnoteRefInline` and `FootnoteDefinitionBlock` nodes, including structured definition bodies.
