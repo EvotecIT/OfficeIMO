@@ -140,6 +140,44 @@ public sealed class PdfReviewComparerTests {
     }
 
     [Fact]
+    public void ActualTextSubstitutionPreservesLayoutInsertedSpace() {
+        var first = new PdfTextSpan("A", "F1", 12D, 10D, 20D, 0D, null, true, 0D, null, null,
+            hasActualText: true);
+        first.SetSourceActualText("X");
+        var second = new PdfTextSpan("B", "F1", 12D, 30D, 20D);
+        var block = new PdfLogicalTextBlock(1, PdfLogicalElementKind.TextBlock, "A B", 10D, 40D,
+            20D, 12D, new[] { first, second });
+
+        Assert.Equal("X B", PdfReviewSemanticComparer.ReconstructSemanticText(block));
+    }
+
+    [Fact]
+    public void ActualTextSubstitutionPreservesRightToLeftReadingOrder() {
+        var visualLeft = new PdfTextSpan("\u05D0\u05D1", "F1", 12D, 10D, 20D);
+        var visualRight = new PdfTextSpan("\u05D2\u05D3", "F1", 12D, 40D, 20D, 0D, null, true, 0D, null, null,
+            hasActualText: true);
+        visualRight.SetSourceActualText("\u05E9\u05DD");
+        var block = new PdfLogicalTextBlock(1, PdfLogicalElementKind.TextBlock,
+            "\u05D2\u05D3 \u05D0\u05D1", 10D, 55D, 20D, 12D, new[] { visualLeft, visualRight });
+
+        Assert.Equal("\u05E9\u05DD \u05D0\u05D1", PdfReviewSemanticComparer.ReconstructSemanticText(block));
+    }
+
+    [Fact]
+    public void ConfiguredButUnusedMaskDoesNotCompareExactScansByPayload() {
+        const string content = "q 240 0 0 180 0 0 cm /Im0 Do Q\n";
+        PdfDocument expected = PdfDocument.Load(ImageWithPaintStatePdf("ABCDEF", content, width: 1));
+        PdfDocument actual = PdfDocument.Load(ImageWithPaintStatePdf("ABCXYZ", content, width: 1));
+        var options = new PdfReviewComparisonOptions();
+        options.Visual.IgnoredRegions.Add(new PdfPixelRegion(0, 0, 20, 20));
+
+        PdfReviewComparisonReport report = expected.Proof.CompareReview(actual, options);
+
+        Assert.False(Assert.Single(report.PageAlignment.Changes).UsesIgnoredRegions);
+        Assert.True(report.IsMatch);
+    }
+
+    [Fact]
     public void DetectsChangedActualTextAfterRotatedTextProjection() {
         PdfDocument expected = PdfDocument.Load(InvisibleTextPdf("Visible", rotated: true, actualTextHex: "FEFF004100200042"));
         PdfDocument actual = PdfDocument.Load(InvisibleTextPdf("Visible", rotated: true, actualTextHex: "FEFF004100A00042"));

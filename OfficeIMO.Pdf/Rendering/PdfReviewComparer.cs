@@ -51,7 +51,7 @@ internal static class PdfReviewComparer {
             PdfLogicalPage expectedPage = expectedLogical.PagesBySourcePageNumber[expectedNumber][0];
             PdfLogicalPage actualPage = actualLogical.PagesBySourcePageNumber[actualNumber][0];
             IReadOnlyList<PdfReviewChange> changes = PdfReviewSemanticComparer.Compare(
-                expectedPage, actualPage, visual, effective, cancellationToken);
+                expectedPage, actualPage, visual, pair.UsesIgnoredRegions, effective, cancellationToken);
             var page = new PdfReviewPageComparison(pair, visual, changes);
             if (!page.IsMatch) {
                 if (visual is not null) {

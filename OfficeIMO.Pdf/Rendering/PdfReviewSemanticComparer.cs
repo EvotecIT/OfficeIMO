@@ -9,6 +9,7 @@ internal static class PdfReviewSemanticComparer {
         PdfLogicalPage expected,
         PdfLogicalPage actual,
         PdfVisualPageComparison? visual,
+        bool usesIgnoredRegions,
         PdfReviewComparisonOptions options,
         CancellationToken cancellationToken) {
         int expectedPage = expected.PageNumber;
@@ -20,7 +21,7 @@ internal static class PdfReviewSemanticComparer {
         CompareText(expected, actual, visual, options, changes, cancellationToken);
         if (scanned) {
             if (visual is { IsMatch: false } ||
-                options.Visual.IgnoredRegions.Count > 0 && HasDifferentUnignoredScanImages(expected, actual, visual, options, cancellationToken)) {
+                usesIgnoredRegions && HasDifferentUnignoredScanImages(expected, actual, visual, options, cancellationToken)) {
                 changes.Add(new PdfReviewChange(PdfReviewChangeKind.ScannedPageUncertain, expectedPage, actualPage, null, null));
             }
             return OrderChanges(changes);
@@ -101,12 +102,40 @@ internal static class PdfReviewSemanticComparer {
             if (string.IsNullOrWhiteSpace(block.Text) || block.VisualBounds is null && block.XEnd <= block.XStart) continue;
             PdfLogicalVisualBounds bounds = block.VisualBounds ?? TextBounds(page, block);
             if (IsIgnored(bounds, page, visual, options.Visual)) continue;
-            string semanticText = block.Spans.Any(static span => span.HasActualText)
-                ? string.Concat(block.Spans.Select(static span => span.SourceActualText ?? span.Text))
-                : block.Text;
+            string semanticText = ReconstructSemanticText(block);
             output.Add(new TextFeature(block.Text, semanticText, Normalize(block.Text), bounds));
         }
         return output.ToArray();
+    }
+
+    internal static string ReconstructSemanticText(PdfLogicalTextBlock block) {
+        if (!block.Spans.Any(static span => span.HasActualText)) return block.Text;
+        var replacements = new List<(int Start, int End, string Text)>(block.Spans.Count);
+        foreach (PdfTextSpan span in block.Spans) {
+            if (span.Text.Length == 0) continue;
+            int searchStart = 0;
+            bool matched = false;
+            while (PdfLogicalTextBlock.TryFindNormalizedSpan(block.Text, span.Text, searchStart, out int match, out int end)) {
+                if (!replacements.Any(item => match < item.End && end > item.Start)) {
+                    replacements.Add((match, end, span.SourceActualText ?? span.Text));
+                    matched = true;
+                    break;
+                }
+                searchStart = match + 1;
+            }
+            if (!matched) {
+                return string.Concat(block.Spans.Select(static item => item.SourceActualText ?? item.Text));
+            }
+        }
+        var result = new System.Text.StringBuilder(block.Text.Length);
+        int offset = 0;
+        foreach ((int start, int end, string text) in replacements.OrderBy(static item => item.Start)) {
+            result.Append(block.Text, offset, start - offset);
+            result.Append(text);
+            offset = end;
+        }
+        result.Append(block.Text, offset, block.Text.Length - offset);
+        return result.ToString();
     }
 
     private static ImageFeature[] GetImages(PdfLogicalPage page, PdfVisualPageComparison? visual,
