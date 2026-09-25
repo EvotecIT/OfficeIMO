@@ -287,8 +287,9 @@ public abstract partial class OdfDocument {
             state.HiddenEvidence = "An owning OpenDocument sheet, row, or column has table:visibility='" + tableVisibility + "'.";
             state.HiddenContainer = true;
         }
-        if (string.Equals((string?)element.Attribute(OdfNamespaces.Table + "display"), "false", StringComparison.OrdinalIgnoreCase)) {
-            state.HiddenEvidence = "An owning OpenDocument table group has table:display='false'.";
+        string? groupDisplay = (string?)element.Attribute(OdfNamespaces.Table + "display");
+        if (OdfBoolean.TryParseXml(groupDisplay, out bool displayed) && !displayed) {
+            state.HiddenEvidence = "An owning OpenDocument table group has table:display='" + groupDisplay + "'.";
             state.HiddenContainer = true;
         }
         if ((element.Name == OdfNamespaces.Text + "hidden-text" || element.Name == OdfNamespaces.Text + "hidden-paragraph") &&

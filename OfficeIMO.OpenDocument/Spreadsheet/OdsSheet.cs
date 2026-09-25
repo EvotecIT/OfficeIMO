@@ -75,11 +75,12 @@ public sealed partial class OdsSheet {
     public IReadOnlyList<OdsRowRun> RowRuns {
         get {
             var runs = new List<OdsRowRun>();
+            IReadOnlyList<OdsColumnRun> columns = ColumnRuns;
             long start = 0;
             foreach (XElement row in RowElements()) {
                 long repeat = OdsRepeatModel.Read(row, OdfNamespaces.Table + "number-rows-repeated");
                 runs.Add(new OdsRowRun(_document, row, start, repeat,
-                    column => GetDefaultCellStyleName(row, column)));
+                    column => GetDefaultCellStyleName(row, column), columns));
                 start = checked(start + repeat);
             }
             return runs;
@@ -159,10 +160,10 @@ public sealed partial class OdsSheet {
         long required = checked(column - start + 1);
         var added = new XElement(OdfNamespaces.Table + "table-column");
         OdsRepeatModel.Set(added, OdfNamespaces.Table + "number-columns-repeated", required);
-        XElement? firstRow = RowElements().FirstOrDefault();
-        XElement? insertionPoint = firstRow?.Parent?.Name == OdfNamespaces.Table + "table-header-rows"
-            ? firstRow.Parent
-            : firstRow;
+        XElement? insertionPoint = Element.Elements().FirstOrDefault(child => child.Name == OdfNamespaces.Table + "table-row"
+            || child.Name == OdfNamespaces.Table + "table-header-rows"
+            || child.Name == OdfNamespaces.Table + "table-rows"
+            || child.Name == OdfNamespaces.Table + "table-row-group");
         if (insertionPoint == null) Element.Add(added); else insertionPoint.AddBeforeSelf(added);
         XElement result = OdsRepeatModel.Split(added, OdfNamespaces.Table + "number-columns-repeated", required - 1);
         Dirty();

@@ -120,4 +120,45 @@ public sealed class OdsCellStyleInheritanceTests {
         Assert.Equal(rowStyle.Name, firstCell.EffectiveStyleName);
         Assert.Equal(columnStyle.Name, secondCell.EffectiveStyleName);
     }
+
+    [Fact]
+    public void RepeatedPublicCellRunSplitsAtColumnStyleBoundaries() {
+        OdsDocument document = OdsDocument.Create();
+        OdfStyle left = document.Styles.CreateNamed("Left", OdfStyleFamily.TableCell);
+        left.TextAlign = "left";
+        OdfStyle right = document.Styles.CreateNamed("Right", OdfStyleFamily.TableCell);
+        right.TextAlign = "right";
+        OdsSheet sheet = document.AddSheet("Data");
+        sheet.Column(0).DefaultCellStyleName = left.Name;
+        sheet.Column(1).DefaultCellStyleName = right.Name;
+        sheet.Cell(0, 0).SetString("Same");
+        XElement cell = document.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Table + "table-cell").Single();
+        cell.SetAttributeValue(OdfNamespaces.Table + "number-columns-repeated", 2);
+        document.MarkPartDirty("content.xml");
+
+        OdsCellRun[] runs = sheet.RowRuns.Single().CellRuns.ToArray();
+        Assert.Equal(new long[] { 0, 1 }, runs.Select(run => run.StartColumn));
+        Assert.All(runs, run => Assert.Equal(1, run.RepeatCount));
+        Assert.Equal(new[] { left.Name, right.Name }, runs.Select(run => run.EffectiveStyleName));
+        Assert.Equal(new[] { "left", "right" }, runs.Select(run => run.TextAlign));
+        Assert.Single(document.Package.GetXml("content.xml").Descendants(OdfNamespaces.Table + "table-cell"));
+    }
+
+    [Fact]
+    public void ExplicitValueTypeAlignmentSurvivesEitherSetterOrder() {
+        OdsDocument document = OdsDocument.Create();
+        OdfStyle first = document.Styles.CreateNamed("First", OdfStyleFamily.TableCell);
+        first.CellTextAlignSource = "value-type";
+        first.TextAlign = "right";
+        OdfStyle second = document.Styles.CreateNamed("Second", OdfStyleFamily.TableCell);
+        second.TextAlign = "right";
+        second.CellTextAlignSource = "value-type";
+        OdfStyle fixedStyle = document.Styles.CreateNamed("Fixed", OdfStyleFamily.TableCell);
+        fixedStyle.TextAlign = "center";
+
+        Assert.Equal("value-type", first.CellTextAlignSource);
+        Assert.Equal("value-type", second.CellTextAlignSource);
+        Assert.Equal("fix", fixedStyle.CellTextAlignSource);
+    }
 }

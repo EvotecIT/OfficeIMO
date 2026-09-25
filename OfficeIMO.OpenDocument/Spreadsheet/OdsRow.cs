@@ -5,10 +5,12 @@ public sealed class OdsRowRun {
     private readonly OdsDocument _document;
     private readonly XElement _element;
     private readonly Func<long, string?>? _inheritedStyleResolver;
+    private readonly IReadOnlyList<OdsColumnRun>? _columnRuns;
     internal OdsRowRun(OdsDocument document, XElement element, long startRow, long repeatCount,
-        Func<long, string?>? inheritedStyleResolver = null) {
+        Func<long, string?>? inheritedStyleResolver = null, IReadOnlyList<OdsColumnRun>? columnRuns = null) {
         _document = document; _element = element; StartRow = startRow; RepeatCount = repeatCount;
         _inheritedStyleResolver = inheritedStyleResolver;
+        _columnRuns = columnRuns;
     }
     /// <summary>Zero-based first logical row.</summary>
     public long StartRow { get; }
@@ -19,13 +21,33 @@ public sealed class OdsRowRun {
         get {
             var runs = new List<OdsCellRun>();
             long start = 0;
+            int columnRunIndex = 0;
             foreach (XElement cell in OdsSheet.CellElements(_element)) {
                 long count = OdsRepeatModel.Read(cell, OdfNamespaces.Table + "number-columns-repeated");
-                long column = start;
-                runs.Add(new OdsCellRun(_document, cell, start, count,
-                    inheritedStyleResolver: _inheritedStyleResolver == null
-                        ? null : () => _inheritedStyleResolver(column)));
-                start = checked(start + count);
+                long end = checked(start + count);
+                bool usesColumnDefault = _columnRuns != null
+                    && cell.Attribute(OdfNamespaces.Table + "style-name") == null
+                    && _element.Attribute(OdfNamespaces.Table + "default-cell-style-name") == null;
+                for (long column = start; column < end;) {
+                    long boundary = end;
+                    if (usesColumnDefault) {
+                        while (columnRunIndex < _columnRuns!.Count
+                            && checked(_columnRuns[columnRunIndex].StartColumn + _columnRuns[columnRunIndex].RepeatCount) <= column)
+                            columnRunIndex++;
+                        if (columnRunIndex < _columnRuns.Count) {
+                            OdsColumnRun definition = _columnRuns[columnRunIndex];
+                            boundary = Math.Min(end, column < definition.StartColumn
+                                ? definition.StartColumn
+                                : checked(definition.StartColumn + definition.RepeatCount));
+                        }
+                    }
+                    long segmentStart = column;
+                    runs.Add(new OdsCellRun(_document, cell, segmentStart, boundary - segmentStart,
+                        inheritedStyleResolver: _inheritedStyleResolver == null
+                            ? null : () => _inheritedStyleResolver(segmentStart)));
+                    column = boundary;
+                }
+                start = end;
             }
             return runs;
         }
@@ -58,8 +80,8 @@ public sealed class OdsRow {
         }
     }
     private bool HiddenByGroup => _element.Ancestors(OdfNamespaces.Table + "table-row-group").Any(group =>
-        string.Equals((string?)group.Attribute(OdfNamespaces.Table + "display"), "false",
-            StringComparison.OrdinalIgnoreCase));
+        OdfBoolean.TryParseXml((string?)group.Attribute(OdfNamespaces.Table + "display"), out bool displayed)
+        && !displayed);
     /// <summary>Referenced row style name.</summary>
     public string? StyleName {
         get => (string?)_element.Attribute(OdfNamespaces.Table + "style-name");

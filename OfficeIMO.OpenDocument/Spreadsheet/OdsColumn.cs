@@ -42,8 +42,8 @@ public sealed class OdsColumn {
         }
     }
     private bool HiddenByGroup => _element.Ancestors(OdfNamespaces.Table + "table-column-group").Any(group =>
-        string.Equals((string?)group.Attribute(OdfNamespaces.Table + "display"), "false",
-            StringComparison.OrdinalIgnoreCase));
+        OdfBoolean.TryParseXml((string?)group.Attribute(OdfNamespaces.Table + "display"), out bool displayed)
+        && !displayed);
     /// <summary>Referenced column style name.</summary>
     public string? StyleName {
         get => (string?)_element.Attribute(OdfNamespaces.Table + "style-name");

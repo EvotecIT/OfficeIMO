@@ -195,8 +195,9 @@ public sealed class OdfStyle {
     public string? TextAlign {
         get => (string?)ParagraphProperties?.Attribute(OdfNamespaces.Fo + "text-align");
         set {
+            string? alignmentSource = Family == OdfStyleFamily.TableCell ? CellTextAlignSource : null;
             SetAttribute(GetProperties(OdfNamespaces.Style + "paragraph-properties"), OdfNamespaces.Fo + "text-align", value);
-            if (Family == OdfStyleFamily.TableCell)
+            if (Family == OdfStyleFamily.TableCell && (alignmentSource is null or "fix"))
                 CellTextAlignSource = value == null ? null : "fix";
         }
     }
