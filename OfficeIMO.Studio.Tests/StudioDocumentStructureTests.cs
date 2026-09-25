@@ -9,6 +9,87 @@ namespace OfficeIMO.Studio.Tests;
 
 public sealed class StudioDocumentStructureTests {
     [Fact]
+    public async Task LoadedMetadataWhitespaceIsNotAnUnsolicitedEdit() {
+        string root = CreateRoot();
+        string path = CreateDocument(root);
+        try {
+            PdfDocument.Load(path).UpdateMetadata(title: "  Original  ").Save(path);
+            using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
+            await model.OpenDocumentAsync(path);
+
+            Assert.Equal("  Original  ", model.PropertyTitle);
+            Assert.False(model.HasPropertyChanges);
+            Assert.False(model.ApplyPropertiesCommand.CanExecute(null));
+            model.PropertyTitle = "Changed";
+            Assert.True(model.HasPropertyChanges);
+            model.ResetPropertiesCommand.Execute(null);
+            Assert.Equal("  Original  ", model.PropertyTitle);
+            Assert.False(model.HasPropertyChanges);
+
+            model.PropertyAuthor = "Studio";
+            await model.ApplyPropertiesCommand.ExecuteAsync(null);
+            Assert.Equal("  Original  ", model.PropertyTitle);
+            Assert.False(model.HasPropertyChanges);
+
+            model.PropertyTitle = "  Changed  ";
+            await model.ApplyPropertiesCommand.ExecuteAsync(null);
+            Assert.Equal("Changed", model.PropertyTitle);
+            Assert.False(model.HasPropertyChanges);
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
+    public async Task MovingDuplicateBookmarksKeepsTheMovedEntrySelected() {
+        string root = CreateRoot();
+        string path = CreateDocument(root);
+        try {
+            using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
+            await model.OpenDocumentAsync(path);
+            model.SelectedPage = model.Pages[0];
+            await model.AddBookmarkCommand.ExecuteAsync(null);
+            await model.AddBookmarkCommand.ExecuteAsync(null);
+            Assert.Equal(2, model.Bookmarks.Count);
+            model.SelectedBookmark = model.Bookmarks[0];
+
+            await model.MoveBookmarkDownCommand.ExecuteAsync(null);
+
+            Assert.Equal(1, model.SelectedBookmark?.Index);
+            Assert.Equal(model.Bookmarks[1], model.SelectedBookmark);
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
+    public async Task PageNavigationRefreshesBookmarkRetargetAvailability() {
+        string root = CreateRoot();
+        string path = CreateDocument(root);
+        try {
+            using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
+            await model.OpenDocumentAsync(path);
+            model.SelectedPage = model.Pages[0];
+            await model.AddBookmarkCommand.ExecuteAsync(null);
+            Assert.False(model.RetargetBookmarkCommand.CanExecute(null));
+
+            model.SelectedPage = model.Pages[1];
+
+            Assert.True(model.RetargetBookmarkCommand.CanExecute(null));
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
+    public void ComparisonChangeNotifiesOcrPromptVisibility() {
+        using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
+        int changes = 0;
+        model.PropertyChanged += (_, e) => {
+            if (e.PropertyName == nameof(model.ShowOcrPrompt)) changes++;
+        };
+
+        model.IsComparisonOpen = true;
+        model.IsComparisonOpen = false;
+
+        Assert.Equal(2, changes);
+    }
+
+    [Fact]
     public async Task OpeningDocumentRefreshesExportAndConvertCommandState() {
         string root = CreateRoot();
         string path = CreateDocument(root);

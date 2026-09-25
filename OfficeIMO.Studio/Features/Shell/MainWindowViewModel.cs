@@ -293,6 +293,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         if (oldValue is not null) oldValue.PropertyChanged -= OnSelectedPageStateChanged;
         if (newValue is not null) newValue.PropertyChanged += OnSelectedPageStateChanged;
         OnPropertyChanged(nameof(ShowOcrPrompt));
+        RetargetBookmarkCommand.NotifyCanExecuteChanged();
     }
 
     private void OnSelectedPageStateChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e) {

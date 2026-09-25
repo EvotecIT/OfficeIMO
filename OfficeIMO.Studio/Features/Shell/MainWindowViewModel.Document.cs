@@ -67,10 +67,10 @@ public sealed partial class MainWindowViewModel {
     public bool CanEditAttachments => !IsWorkspaceBusy && _workspace?.CanEditAttachments == true;
 
     public bool HasPropertyChanges =>
-        !string.Equals(PropertyTitle.Trim(), _savedProperties.Title, StringComparison.Ordinal) ||
-        !string.Equals(PropertyAuthor.Trim(), _savedProperties.Author, StringComparison.Ordinal) ||
-        !string.Equals(PropertySubject.Trim(), _savedProperties.Subject, StringComparison.Ordinal) ||
-        !string.Equals(PropertyKeywords.Trim(), _savedProperties.Keywords, StringComparison.Ordinal);
+        !string.Equals(PropertyTitle, _savedProperties.Title, StringComparison.Ordinal) ||
+        !string.Equals(PropertyAuthor, _savedProperties.Author, StringComparison.Ordinal) ||
+        !string.Equals(PropertySubject, _savedProperties.Subject, StringComparison.Ordinal) ||
+        !string.Equals(PropertyKeywords, _savedProperties.Keywords, StringComparison.Ordinal);
 
     public bool HasEditableBookmarkSelection => SelectedBookmark?.IsEditable == true;
 
@@ -165,9 +165,18 @@ public sealed partial class MainWindowViewModel {
     [RelayCommand(CanExecute = nameof(CanApplyProperties))]
     private async Task ApplyPropertiesAsync(CancellationToken cancellationToken) {
         if (_workspace is not { } workspace) return;
-        string title = PropertyTitle, author = PropertyAuthor, subject = PropertySubject, keywords = PropertyKeywords;
-        await RunMutationAsync(token => workspace.UpdateMetadataAsync(title, author, subject, keywords, token, CreateProgress()),
+        // Keep untouched PDF metadata exact; trim only fields the user actually edited.
+        string title = string.Equals(PropertyTitle, _savedProperties.Title, StringComparison.Ordinal) ? _savedProperties.Title : PropertyTitle.Trim();
+        string author = string.Equals(PropertyAuthor, _savedProperties.Author, StringComparison.Ordinal) ? _savedProperties.Author : PropertyAuthor.Trim();
+        string subject = string.Equals(PropertySubject, _savedProperties.Subject, StringComparison.Ordinal) ? _savedProperties.Subject : PropertySubject.Trim();
+        string keywords = string.Equals(PropertyKeywords, _savedProperties.Keywords, StringComparison.Ordinal) ? _savedProperties.Keywords : PropertyKeywords.Trim();
+        bool succeeded = await RunMutationAsync(token => workspace.UpdateMetadataAsync(title, author, subject, keywords, token, CreateProgress()),
             cancellationToken).ConfigureAwait(true);
+        if (!succeeded) return;
+        PropertyTitle = title;
+        PropertyAuthor = author;
+        PropertySubject = subject;
+        PropertyKeywords = keywords;
         RefreshDocumentStructure();
     }
 
@@ -222,7 +231,7 @@ public sealed partial class MainWindowViewModel {
     private Task MoveBookmarkUpAsync(CancellationToken cancellationToken) {
         PdfBookmarkViewModel bookmark = SelectedBookmark!;
         return EditBookmarksAsync([], session => session.Move(bookmark.Id!, bookmark.ParentId, bookmark.Index - 1), cancellationToken,
-            selectAfter: bookmarks => FindMoved(bookmarks, bookmark));
+            selectAfter: bookmarks => FindMoved(bookmarks, bookmark, bookmark.ParentId, bookmark.Index - 1));
     }
 
     private bool CanMoveBookmarkDown() => CanEditSelectedBookmark() && Bookmarks.Any(item => item.ParentId == SelectedBookmark!.ParentId && item.Index == SelectedBookmark.Index + 1 && item.IsEditable);
@@ -231,7 +240,7 @@ public sealed partial class MainWindowViewModel {
     private Task MoveBookmarkDownAsync(CancellationToken cancellationToken) {
         PdfBookmarkViewModel bookmark = SelectedBookmark!;
         return EditBookmarksAsync([], session => session.Move(bookmark.Id!, bookmark.ParentId, bookmark.Index + 1), cancellationToken,
-            selectAfter: bookmarks => FindMoved(bookmarks, bookmark));
+            selectAfter: bookmarks => FindMoved(bookmarks, bookmark, bookmark.ParentId, bookmark.Index + 1));
     }
 
     private PdfBookmarkViewModel? PreviousSibling(PdfBookmarkViewModel bookmark) =>
@@ -243,8 +252,9 @@ public sealed partial class MainWindowViewModel {
     private Task IndentBookmarkAsync(CancellationToken cancellationToken) {
         PdfBookmarkViewModel bookmark = SelectedBookmark!;
         PdfBookmarkViewModel parent = PreviousSibling(bookmark)!;
+        int targetIndex = Bookmarks.Count(item => item.ParentId == parent.Id && item.IsEditable);
         return EditBookmarksAsync([], session => session.Move(bookmark.Id!, parent.Id), cancellationToken,
-            selectAfter: bookmarks => FindMoved(bookmarks, bookmark));
+            selectAfter: bookmarks => FindMoved(bookmarks, bookmark, parent.Id, targetIndex));
     }
 
     private bool CanOutdentBookmark() => CanEditSelectedBookmark() && SelectedBookmark!.ParentId is not null;
@@ -255,7 +265,7 @@ public sealed partial class MainWindowViewModel {
         PdfBookmarkViewModel? parent = Bookmarks.FirstOrDefault(item => item.Id == bookmark.ParentId);
         if (parent is null) return Task.CompletedTask;
         return EditBookmarksAsync([], session => session.Move(bookmark.Id!, parent.ParentId, parent.Index + 1), cancellationToken,
-            selectAfter: bookmarks => FindMoved(bookmarks, bookmark));
+            selectAfter: bookmarks => FindMoved(bookmarks, bookmark, parent.ParentId, parent.Index + 1));
     }
 
     private bool CanRetargetBookmark() => CanEditSelectedBookmark() && SelectedPage is not null && SelectedPage.PageNumber != SelectedBookmark!.PageNumber;
@@ -275,9 +285,11 @@ public sealed partial class MainWindowViewModel {
         EditBookmarksAsync([], session => session.RebuildFromHeadings(), cancellationToken, selectAfter: _ => null,
             describe: () => Bookmarks.Count == 0 ? UiText("Bookmarks.NoHeadings") : UiFormat("Bookmarks.Generated", Bookmarks.Count));
 
-    // Ids are positional, so the moved entry is found again by title and target page.
-    private static PdfBookmarkViewModel? FindMoved(IEnumerable<PdfBookmarkViewModel> bookmarks, PdfBookmarkViewModel moved) =>
-        bookmarks.FirstOrDefault(item => item.Title == moved.Title && item.PageNumber == moved.PageNumber);
+    // Ids are positional across edits; use the destination slot to distinguish duplicate titles and targets.
+    private static PdfBookmarkViewModel? FindMoved(IEnumerable<PdfBookmarkViewModel> bookmarks, PdfBookmarkViewModel moved,
+        string? parentId, int index) =>
+        bookmarks.FirstOrDefault(item => item.ParentId == parentId && item.Index == index &&
+            item.Title == moved.Title && item.PageNumber == moved.PageNumber);
 
     private async Task EditBookmarksAsync(IReadOnlyList<int> pages, Action<PdfBookmarkEditSession> edit, CancellationToken cancellationToken,
         Func<IReadOnlyList<PdfBookmarkViewModel>, PdfBookmarkViewModel?> selectAfter, Func<string?>? describe = null) {

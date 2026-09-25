@@ -67,16 +67,16 @@ public sealed partial class SignatureDialog : Window {
     private void OnClearClick(object? sender, RoutedEventArgs e) => Pad.Clear();
 
     private async void OnChooseImageClick(object? sender, RoutedEventArgs e) {
-        if (!StorageProvider.CanOpen) return;
-        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions {
-            AllowMultiple = false,
-            FileTypeFilter = [new FilePickerFileType("PNG, JPEG") { Patterns = ["*.png", "*.jpg", "*.jpeg"] }]
-        });
-        if (files.Count == 0) return;
         try {
+            if (!StorageProvider.CanOpen) return;
+            var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions {
+                AllowMultiple = false,
+                FileTypeFilter = [new FilePickerFileType("PNG, JPEG") { Patterns = ["*.png", "*.jpg", "*.jpeg"] }]
+            });
+            if (files.Count == 0) return;
             byte[]? image = await StudioStorageInput.ReadImageAsync(files, CancellationToken.None);
             if (image is not null) SetImage(image);
-        } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or InvalidOperationException) {
+        } catch (Exception ex) when (ex is not OutOfMemoryException) {
             ImageEmptyText.Text = ex.Message;
             ImageEmptyText.IsVisible = true;
         }

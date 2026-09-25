@@ -101,7 +101,10 @@ public sealed partial class MainWindowViewModel {
         foreach (PdfPageViewModel page in ComparisonPages) page.IsNightMode = value;
     }
 
-    partial void OnIsComparisonOpenChanged(bool value) => OnPropertyChanged(nameof(PrimaryReaderColumnSpan));
+    partial void OnIsComparisonOpenChanged(bool value) {
+        OnPropertyChanged(nameof(PrimaryReaderColumnSpan));
+        OnPropertyChanged(nameof(ShowOcrPrompt));
+    }
 
     partial void OnComparisonSelectedPageChanged(PdfPageViewModel? value) {
         OnPropertyChanged(nameof(ComparisonPagePosition));

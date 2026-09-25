@@ -20,7 +20,7 @@ internal sealed partial class PdfWorkspace {
         CancellationToken cancellationToken, IProgress<PdfWorkspaceProgress>? progress = null) =>
         // Empty strings clear a field; the engine keeps the Info dictionary and XMP packet in step.
         MutateBytesAsync(PdfWorkspaceOperationKind.Metadata, "Updated document properties", [],
-            bytes => LoadDocument(bytes).UpdateMetadata(title.Trim(), author.Trim(), subject.Trim(), keywords.Trim()).ToBytes(),
+            bytes => LoadDocument(bytes).UpdateMetadata(title, author, subject, keywords).ToBytes(),
             cancellationToken, progress);
 
     internal Task EditBookmarksAsync(string description, IReadOnlyList<int> pages, Action<PdfBookmarkEditSession> edit,
