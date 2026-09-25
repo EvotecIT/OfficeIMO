@@ -311,6 +311,9 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         int unsupportedSlideBackgrounds = 0;
         int unsupportedShapeAppearance = source.Slides.Sum(slide => slide.Shapes.Count(shape =>
             HasUnmappedOdpShapeAppearance(source, shape)));
+        int unsupportedBasicShapeText = source.Slides.Sum(slide => slide.Shapes.Count(shape =>
+            shape is OdpRectangle or OdpEllipse && shape.Element.Descendants().Any(element =>
+                element.Name == OdfNamespaces.Text + "p" || element.Name == OdfNamespaces.Text + "h")));
         int unsupportedRawDrawingShapes = source.Slides.Sum(CountUnwrappedOdpDrawingElements);
         int unsupportedTableAppearance = source.Slides.Sum(slide => slide.Shapes.OfType<OdpTable>()
             .Count(HasUnmappedOdpTableAppearance));
@@ -546,6 +549,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             "ODP slide image, gradient, transparency, hidden master background, or unsupported drawing-page background was omitted.");
         AddUnsupported(report, "shape-appearance", unsupportedShapeAppearance,
             "ODP graphic fill, stroke, transparency, dash, or effect styling outside solid colors was omitted.");
+        AddUnsupported(report, "shape-text", unsupportedBasicShapeText,
+            "Text inside ODP rectangle and ellipse shapes was omitted because basic PowerPoint auto-shapes have no editable text mapping in this adapter.");
         AddUnsupported(report, "shape-accessibility", unsupportedShapeAccessibility,
             "ODP shape title and description metadata were not transferred to PowerPoint.");
         AddUnsupported(report, "table-appearance", unsupportedTableAppearance,

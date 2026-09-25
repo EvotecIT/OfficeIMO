@@ -449,6 +449,39 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
     }
 
     [Fact]
+    public void ReadingMissingPowerPointApplicationPropertiesDoesNotCreatePart() {
+        using PowerPointPresentation source = CreateBlankPowerPoint();
+        if (source.OpenXmlDocument.ExtendedFilePropertiesPart is { } existingPart)
+            source.OpenXmlDocument.DeletePart(existingPart);
+        Assert.Null(source.OpenXmlDocument.ExtendedFilePropertiesPart);
+
+        _ = source.ToOpenDocumentResult();
+
+        Assert.Null(source.OpenXmlDocument.ExtendedFilePropertiesPart);
+    }
+
+    [Fact]
+    public void OdpBasicShapeTextIsExplicitLoss() {
+        OdpPresentation source = OdpPresentation.Create();
+        OdpSlide slide = source.AddSlide();
+        slide.AddRectangle(OdfRect.FromCentimeters(1, 1, 4, 2));
+        slide.AddEllipse(OdfRect.FromCentimeters(1, 4, 4, 2));
+        XDocument content = source.Package.GetXml("content.xml");
+        content.Descendants(OdfNamespaces.Draw + "rect").Single().Add(
+            new XElement(OdfNamespaces.Text + "p", "Rectangle label"));
+        content.Descendants(OdfNamespaces.Draw + "ellipse").Single().Add(
+            new XElement(OdfNamespaces.Text + "p", "Ellipse label"));
+        source.Package.MarkXmlDirty("content.xml");
+
+        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
+        using PowerPointPresentation target = conversion.Value;
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "shape-text" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 2);
+        Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointPresentationResult(
+            new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
     public void OdpTypedTableValueIsExplicitLoss() {
         OdpPresentation source = OdpPresentation.Create();
         source.AddSlide().AddTable(OdfRect.FromCentimeters(1, 1, 8, 3), 1, 1);

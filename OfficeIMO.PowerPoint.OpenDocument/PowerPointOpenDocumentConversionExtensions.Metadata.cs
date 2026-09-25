@@ -27,8 +27,9 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             source.OpenXmlDocument.PackageProperties.Identifier);
         unsupported += source.OpenXmlDocument.CustomFilePropertiesPart?.Properties?
             .ChildElements.Count ?? 0;
-        unsupported += CountNonempty(source.ApplicationProperties.Company,
-            source.ApplicationProperties.Manager);
+        var applicationProperties = source.OpenXmlDocument.ExtendedFilePropertiesPart?.Properties;
+        unsupported += CountNonempty(applicationProperties?.Company?.Text,
+            applicationProperties?.Manager?.Text);
         AddUnsupported(report, "document-metadata", unsupported,
             "PowerPoint keywords, category, revision, version, last-print time, company, manager, package content fields, and custom properties have no exact mapping in the current ODP metadata surface.");
     }
