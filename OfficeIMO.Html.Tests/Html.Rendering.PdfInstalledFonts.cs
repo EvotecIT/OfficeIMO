@@ -16,7 +16,7 @@ public sealed partial class HtmlRenderingTests {
         options.PdfOptions.RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily("Arial", font));
 
         HtmlPdfRenderResult result = HtmlPdfRenderedConverter.Convert(
-            HtmlConversionDocument.Parse("<div style='font:20px/20px Arial'><span style='font-size:100px'>A</span></div>"),
+            HtmlConversionDocument.Parse("<div style='font:20px/20px Arial'><span style='font-size:100px;text-shadow:0 0 red'>A</span></div>"),
             options);
         HtmlRenderText text = Assert.Single(result.RenderResult!.Document.Pages[0].Visuals.OfType<HtmlRenderText>());
         Assert.True(result.Document.Options.TryResolveNamedFontFace("Arial", false, false, out PdfCore.PdfNamedFontFace face));
@@ -26,6 +26,14 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(text.LayoutY + (20D - height) / 2D + ascent - 100D, text.Y, 3);
         Assert.Equal(ascent - 100D, text.PaintTopOverflow, 3);
+        HtmlRenderSemanticGroup shadow = Assert.Single(
+            EnumerateRenderVisuals(result.RenderResult.Document.Pages[0].Scene)
+                .OfType<HtmlRenderSemanticGroup>(),
+            group => group.Source?.Contains(":text-shadow", StringComparison.Ordinal) == true);
+        HtmlRenderEffectGroup sample = Assert.IsType<HtmlRenderEffectGroup>(Assert.Single(shadow.Visuals));
+        HtmlRenderText shadowText = Assert.IsType<HtmlRenderText>(Assert.Single(sample.Visuals));
+        Assert.Equal(text.PaintTopOverflow, shadowText.PaintTopOverflow, 3);
+        Assert.True(sample.Y <= shadowText.Y - shadowText.PaintTopOverflow);
         Assert.Equal("A", PdfCore.PdfReadDocument.Open(result.Document.ToBytes()).ExtractText().Trim());
     }
 
