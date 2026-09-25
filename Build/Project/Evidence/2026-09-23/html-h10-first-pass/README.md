@@ -247,3 +247,30 @@ and matching cold/warm fingerprints. Reports and the inspected page raster are
 retained under `Ignore/HtmlUnknownPageQualification/` in
 `h10-wai-float-bfc-clean-272f1fc2f`, `h10-h4-float-bfc-272f1fc2f`, and
 `h10-h4-budget-float-bfc-272f1fc2f`.
+
+## W3C installed font-face selection
+
+At clean source `a7762d428`, the macOS Trebuchet MS family now keeps its
+installed Bold, Italic and Bold Italic programs when the name-table style is
+localized. The system-font loader uses the OS/2 weight and style flags for face
+classification, prefers weights nearest 400 and 700 within the regular and
+bold slots, and retains the independent oblique flag. This fixes the W3C
+print lane's misleading `TrebuchetMS-Bold` PDF resource, which previously
+embedded weight-400 data. All three pages now embed weight-700 Bold data;
+the tutorial-card links and emphasized list text have the expected visible
+weight. This remains an opt-in local-font result on a host with those fonts.
+
+The unchanged W3C archive replayed from the clean code head with no runner
+failures. Chromium and OfficeIMO zero-margin local-font print both have three
+pages. The fifth card's floated image still begins in a sliver at the bottom
+of OfficeIMO page one and continues at the top of page two, whereas Chromium
+places the complete image on page two. Footer spacing and some text flow also
+remain different. Those are open W3C print-fidelity gaps, not resolved by
+the font correction. The full HTML suite passed 3,390/3,390 on .NET 10 and
+.NET 8, the PDF font-family group passed 128/128 on .NET 10, H4
+advanced-held-out acceptance passed 8/8, and the clean-source macOS H4 static
+budget passed with a 5,483 ms cold process, 2,060 ms maximum warm iteration,
+497 MB sampled peak and matching cold/warm fingerprints. Reports and page
+rasters are retained under `Ignore/HtmlUnknownPageQualification/` in
+`h10-wai-font-face-clean-a7762d428`, `h4-font-face-clean-a7762d428`, and
+`h4-font-face-budget-a7762d428`.
