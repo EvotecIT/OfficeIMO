@@ -142,6 +142,57 @@ public static partial class HtmlPowerPointConverterExtensions {
         || block.SourceElement.HasAttribute("data-officeimo-width")
         || block.SourceElement.HasAttribute("data-officeimo-height");
 
+    private static double[] EstimateGenericTableRowHeights(HtmlSemanticBlock block, double tableWidth, HtmlImportBudget budget) {
+        HtmlSemanticTable? source = block.Table;
+        if (source == null) return Array.Empty<double>();
+        int sourceRows = Math.Min(source.Rows.Count, budget.Limits.MaxTableCells);
+        int columns = (int)Math.Min(Math.Max(1, budget.Limits.MaxTableCells),
+            Math.Max(1L, source.Rows.Take(sourceRows).Select(row => row.Cells.Sum(cell => (long)Math.Max(1, cell.ColumnSpan)))
+                .DefaultIfEmpty(1L).Max()));
+        int rows = sourceRows;
+        for (int rowIndex = 0; rowIndex < sourceRows; rowIndex++) {
+            foreach (HtmlSemanticTableCell cell in source.Rows[rowIndex].Cells) {
+                rows = Math.Max(rows, (int)Math.Min(budget.Limits.MaxTableCells,
+                    (long)rowIndex + Math.Max(1, cell.RowSpan)));
+            }
+        }
+        double[] rowHeights = Enumerable.Repeat(34D, rows).ToArray();
+        double cellWidth = Math.Max(40D, tableWidth / columns - 16D);
+        var measurers = new Dictionary<(double Size, OfficeFontStyle Style), OfficeTextMeasurer>();
+        for (int rowIndex = 0; rowIndex < sourceRows; rowIndex++) {
+            HtmlSemanticTableRow row = source.Rows[rowIndex];
+            foreach (HtmlSemanticTableCell cell in row.Cells) {
+                double fontSize = 18D;
+                if (TryParseSemanticPixels(cell.Style?.GetValue("font-size"), out double cellPixels)) {
+                    fontSize = Math.Max(fontSize, cellPixels * 0.75D);
+                }
+                foreach (HtmlSemanticRun run in cell.Runs) {
+                    if (TryParseSemanticPixels(run.Style?.GetValue("font-size"), out double runPixels)) {
+                        fontSize = Math.Max(fontSize, runPixels * 0.75D);
+                    }
+                }
+                OfficeFontStyle fontStyle = cell.IsHeader || cell.Runs.Any(run => run.Bold)
+                    ? OfficeFontStyle.Bold : OfficeFontStyle.Regular;
+                if (!measurers.TryGetValue((fontSize, fontStyle), out OfficeTextMeasurer? measurer)) {
+                    measurer = OfficeTextMeasurer.Create(new OfficeFontInfo("Aptos", fontSize, fontStyle));
+                    measurers.Add((fontSize, fontStyle), measurer);
+                }
+                Func<string?, double, double> measure = (value, size) =>
+                    measurer.MeasureWidth(value, measurer.CreateStyle(measurer.FallbackFontInfo.WithSize(size)))
+                    * 72D / OfficeTextMeasurer.DefaultDpi;
+                OfficeTextBlockLayout layout = OfficeTextLayoutEngine.LayoutTextBlock(cell.Text, fontSize,
+                    cellWidth * Math.Min(columns, Math.Max(1, cell.ColumnSpan)), 100000D, 1.2D, 1D, measure,
+                    wrap: true, forceSingleLine: false, shrinkToFit: false);
+                int span = Math.Min(rows - rowIndex, Math.Max(1, cell.RowSpan));
+                double heightPerRow = Math.Ceiling((layout.Height + 16D) / span);
+                for (int spannedRow = rowIndex; spannedRow < rowIndex + span; spannedRow++) {
+                    rowHeights[spannedRow] = Math.Max(rowHeights[spannedRow], heightPerRow);
+                }
+            }
+        }
+        return rowHeights;
+    }
+
     private static double GetGenericTextMeasureFontSize(HtmlSemanticBlock block) {
         double size = 18D;
         foreach (HtmlSemanticRun run in block.Runs) {

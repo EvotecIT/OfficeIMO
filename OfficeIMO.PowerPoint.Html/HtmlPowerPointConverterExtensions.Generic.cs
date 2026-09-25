@@ -38,20 +38,41 @@ public static partial class HtmlPowerPointConverterExtensions {
                         break;
                     }
                 } else if (importTable) {
-                    if (TryGetOversizedGenericTableText(block, budget, out string tableText)) {
+                    double tableWidth = presentation.SlideSize.WidthPoints - 128D;
+                    double? authoredWidth = ReadOptionalDoubleAttribute(block.SourceElement, "data-officeimo-width");
+                    if (authoredWidth >= 1D && authoredWidth <= budget.Limits.MaxAbsoluteGeometry) {
+                        tableWidth = authoredWidth.Value;
+                    }
+                    double[] rowHeights = EstimateGenericTableRowHeights(block, tableWidth, budget);
+                    double tableHeight = Math.Max(90D, rowHeights.Sum());
+                    double? authoredHeight = ReadOptionalDoubleAttribute(block.SourceElement, "data-officeimo-height");
+                    if (authoredHeight >= 1D && authoredHeight <= budget.Limits.MaxAbsoluteGeometry) {
+                        tableHeight = authoredHeight.Value;
+                    }
+                    bool singleCellText = TryGetOversizedGenericTableText(block, budget, out string tableText);
+                    bool tooTallForSlide = tableHeight > slideBottom - 30D
+                        && !block.SourceElement.HasAttribute("data-officeimo-top")
+                        && !block.SourceElement.HasAttribute("data-officeimo-height");
+                    if (singleCellText || tooTallForSlide) {
+                        long tableTextLength = singleCellText ? tableText.Length
+                            : block.Table!.Rows.Sum(row => row.Cells.Sum(cell => (long)cell.Text.Length));
                         AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentApproximated,
-                            "A long single-cell HTML table was split into editable slide text; native cell structure and rich cell runs were not retained.",
+                            tooTallForSlide
+                                ? "An HTML table too tall for one slide was split into editable text; native cell structure and rich cell runs were not retained."
+                                : "A long single-cell HTML table was split into editable text; native cell structure and rich cell runs were not retained.",
                             lossKind: OfficeConversionLossKind.Approximation,
-                            detail: "cellTextLength=" + tableText.Length + "; projection=paginatedText");
-                        int omittedLinks = block.Table!.Rows[0].Cells[0].Runs.Count(run =>
-                            !string.IsNullOrWhiteSpace(run.Hyperlink));
+                            detail: "tableTextLength=" + tableTextLength + "; projection=paginatedText");
+                        int omittedLinks = block.Table!.Rows.Sum(row => row.Cells.Sum(cell =>
+                            cell.Runs.Count(run => !string.IsNullOrWhiteSpace(run.Hyperlink))));
                         if (omittedLinks > 0) {
                             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentOmitted,
-                                "Hyperlinks inside a paginated single-cell HTML table were not retained.",
+                                "Hyperlinks inside a paginated HTML table were not retained.",
                                 lossKind: OfficeConversionLossKind.Omission,
                                 detail: "hyperlinkRuns=" + omittedLinks);
                         }
-                        foreach (string chunk in SplitGenericTableText(tableText)) {
+                        IEnumerable<string> chunks = singleCellText ? SplitGenericTableText(tableText)
+                            : EnumerateGenericTableTextChunks(block.Table!);
+                        foreach (string chunk in chunks) {
                             if (NeedsGenericContinuation(contentTop, 130D, slideBottom)) {
                                 if (!TryAddGenericSlide(presentation, result, budget, out slide)) {
                                     slideLimitReached = true;
@@ -59,10 +80,14 @@ public static partial class HtmlPowerPointConverterExtensions {
                                 }
                                 contentTop = pictureTop = 30D;
                             }
+                            int previousTextBoxes = result.TextBoxes;
                             contentTop = ImportTextBox(null, chunk, slide, contentTop, result, budget, 130D);
+                            if (result.TextBoxes == previousTextBoxes) {
+                                slideLimitReached = true;
+                                break;
+                            }
                         }
                     } else {
-                        double tableHeight = Math.Max(90D, (block.Table?.Rows.Count ?? 1) * 40D);
                         if (NeedsGenericContinuation(contentTop, tableHeight, slideBottom)) {
                             if (!TryAddGenericSlide(presentation, result, budget, out slide)) {
                                 slideLimitReached = true;
@@ -70,7 +95,8 @@ public static partial class HtmlPowerPointConverterExtensions {
                             }
                             contentTop = pictureTop = 30D;
                         }
-                        contentTop = ImportTable(block.SourceElement, slide, contentTop, result, budget, block);
+                        contentTop = ImportTable(block.SourceElement, slide, contentTop, result, budget, block,
+                            tableWidth, tableHeight, rowHeights);
                     }
                 } else if (importPicture) {
                     if (NeedsGenericContinuation(contentTop, 90D, slideBottom)) {
@@ -162,6 +188,19 @@ public static partial class HtmlPowerPointConverterExtensions {
             }
             yield return text.Substring(start, end - start).Trim();
             start = end;
+        }
+    }
+
+    private static IEnumerable<string> EnumerateGenericTableTextChunks(HtmlSemanticTable table) {
+        for (int row = 0; row < table.Rows.Count; row++) {
+            IReadOnlyList<HtmlSemanticTableCell> cells = table.Rows[row].Cells;
+            for (int column = 0; column < cells.Count; column++) {
+                bool firstChunk = true;
+                foreach (string chunk in SplitGenericTableText(cells[column].Text)) {
+                    yield return firstChunk ? $"Row {row + 1}, cell {column + 1}: {chunk}" : chunk;
+                    firstChunk = false;
+                }
+            }
         }
     }
 

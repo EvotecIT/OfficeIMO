@@ -25,10 +25,96 @@ public class HtmlOfficeAdaptersPowerPointTables {
             .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
         using PowerPointPresentation presentation = result.RequireValue();
         PowerPointTable table = Assert.Single(presentation.Slides.SelectMany(slide => slide.Tables));
+        Assert.Equal(presentation.SlideSize.WidthPoints - 128D, table.WidthPoints, 3);
         Assert.Equal("Term", table.GetCell(0, 0).Text);
         Assert.Equal("Definition", table.GetCell(0, 1).Text);
         Assert.Equal("Basic water service level", table.GetCell(1, 0).Text);
         Assert.Equal("Collection time is at most 30 minutes.", table.GetCell(1, 1).Text);
+    }
+
+    [Fact]
+    public void PowerPointHtml_MovesTallGenericRoleTableToAVisibleSlide() {
+        const string html = """
+            <main>
+              <p>Introductory text before the definitions.</p>
+              <div role="table">
+                <div role="row"><div role="columnheader">Term</div><div role="columnheader">Definition</div></div>
+                <div role="row"><div role="cell">Safely managed</div><div role="cell">Drinking water from an improved source accessible on premises, available when needed, and free from fecal and priority chemical contamination.</div></div>
+                <div role="row"><div role="cell">Basic</div><div role="cell">Drinking water from an improved source, provided collection time is not more than 30 minutes round trip, including getting in line and waiting.</div></div>
+                <div role="row"><div role="cell">Limited</div><div role="cell">Drinking water from an improved source with collection time exceeding 30 minutes round trip, including getting in line and waiting.</div></div>
+                <div role="row"><div role="cell">Unimproved</div><div role="cell">Drinking water from an unprotected dug well or unprotected spring.</div></div>
+                <div role="row"><div role="cell">Surface water</div><div role="cell">Drinking water directly from a river, dam, lake, pond, stream, canal, or irrigation canal.</div></div>
+              </div>
+            </main>
+            """;
+
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html)
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        using PowerPointPresentation presentation = result.RequireValue();
+        PowerPointTable table = Assert.Single(presentation.Slides.SelectMany(slide => slide.Tables));
+
+        Assert.Contains(presentation.Slides.Skip(1), slide => slide.Tables.Contains(table));
+        Assert.Equal(30D, table.TopPoints, 3);
+        Assert.Equal("Surface water", table.GetCell(5, 0).Text);
+        Assert.True(table.TopPoints + table.HeightPoints <= presentation.SlideSize.HeightPoints - 30D);
+    }
+
+    [Fact]
+    public void PowerPointHtml_SizesUnevenRowsAndAuthoredWidthForGenericTable() {
+        string definition = string.Join(" ", Enumerable.Repeat("A longer explanation wraps within a narrow cell.", 4));
+        string html = "<div role='table' data-officeimo-width='300'>"
+            + "<div role='row'><div role='cell'>Short</div><div role='cell'>Value</div></div>"
+            + "<div role='row'><div role='cell'>Long</div><div role='cell'>" + definition + "</div></div></div>";
+
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html)
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        using PowerPointPresentation presentation = result.RequireValue();
+        PowerPointTable table = Assert.Single(presentation.Slides.SelectMany(slide => slide.Tables));
+
+        Assert.Equal(300D, table.WidthPoints, 3);
+        Assert.True(table.GetRowHeightPoints(1) > table.GetRowHeightPoints(0));
+        Assert.True(table.TopPoints + table.GetRowHeightPoints(0) + table.GetRowHeightPoints(1)
+            <= presentation.SlideSize.HeightPoints - 30D);
+        Assert.Equal(definition, table.GetCell(1, 1).Text);
+    }
+
+    [Fact]
+    public void PowerPointHtml_MeasuresLargeStyledTableRunsBeforePlacingRows() {
+        string text = string.Join(" ", Enumerable.Repeat("Large styled cell text wraps across the table.", 3));
+        string plainHtml = "<table><tr><td>Label</td><td>" + text + "</td></tr></table>";
+        string styledHtml = "<table><tr><td>Label</td><td><span style='font-size:36px'>"
+            + text + "</span></td></tr></table>";
+
+        using PowerPointPresentation plain = OfficeIMO.Html.HtmlConversionDocument.Parse(plainHtml)
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic }).RequireValue();
+        using PowerPointPresentation styled = OfficeIMO.Html.HtmlConversionDocument.Parse(styledHtml)
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic }).RequireValue();
+        PowerPointTable plainTable = Assert.Single(plain.Slides.SelectMany(slide => slide.Tables));
+        PowerPointTable styledTable = Assert.Single(styled.Slides.SelectMany(slide => slide.Tables));
+
+        Assert.True(styledTable.GetRowHeightPoints(0) > plainTable.GetRowHeightPoints(0));
+        Assert.True(styledTable.GetCell(0, 1).Runs[0].FontSizePoints >= 27D);
+    }
+
+    [Fact]
+    public void PowerPointHtml_ReportsAndPaginatesTableTooTallForOneSlide() {
+        string rows = string.Concat(Enumerable.Range(0, 15).Select(index =>
+            "<div role='row'><div role='cell'>Term " + index + "</div><div role='cell'>"
+            + string.Join(" ", Enumerable.Repeat("A long but editable definition.", 4)) + "</div></div>"));
+        string html = "<div role='table'>" + rows + "</div>";
+
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html)
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        using PowerPointPresentation presentation = result.RequireValue();
+
+        Assert.Empty(presentation.Slides.SelectMany(slide => slide.Tables));
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
+            && diagnostic.Message.Contains("too tall for one slide", StringComparison.Ordinal));
+        Assert.Contains(presentation.Slides.SelectMany(slide => slide.TextBoxes), box =>
+            box.Text.Contains("Term 14", StringComparison.Ordinal));
+        Assert.All(presentation.Slides.SelectMany(slide => slide.TextBoxes), box =>
+            Assert.True(box.TopPoints + box.HeightPoints <= presentation.SlideSize.HeightPoints));
     }
 
     [Fact]

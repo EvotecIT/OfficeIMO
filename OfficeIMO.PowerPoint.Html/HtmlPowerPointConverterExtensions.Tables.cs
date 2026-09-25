@@ -11,7 +11,10 @@ public static partial class HtmlPowerPointConverterExtensions {
         double top,
         HtmlToPowerPointResult result,
         HtmlImportBudget budget,
-        HtmlSemanticBlock? semanticBlock = null) {
+        HtmlSemanticBlock? semanticBlock = null,
+        double? genericWidth = null,
+        double? genericHeight = null,
+        IReadOnlyList<double>? genericRowHeights = null) {
         if (!budget.TryReserveTableWithShape(out string tableLimit)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                 "A slide table was omitted because the shared import limit was reached.",
@@ -24,11 +27,17 @@ public static partial class HtmlPowerPointConverterExtensions {
             return top;
         }
 
-        double fallbackWidth = Math.Max(240D, grid.Columns * 150D);
-        double fallbackHeight = Math.Max(70D, grid.Rows * 34D);
+        double fallbackWidth = genericWidth ?? Math.Max(240D, grid.Columns * 150D);
+        double fallbackHeight = genericHeight ?? Math.Max(70D, grid.Rows * 34D);
         ReadSemanticShapeGeometry(tableElement, 64D, top, fallbackWidth, fallbackHeight, budget, result,
             out double left, out double tableTop, out double width, out double height);
         PptCore.PowerPointTable table = slide.AddTablePoints(grid.Rows, grid.Columns, left, tableTop, width, height);
+        if (genericRowHeights?.Count == grid.Rows && !tableElement.HasAttribute("data-officeimo-height")) {
+            double remaining = Math.Max(0D, height - genericRowHeights.Sum());
+            for (int row = 0; row < grid.Rows; row++) {
+                table.SetRowHeightPoints(row, genericRowHeights[row] + (row == grid.Rows - 1 ? remaining : 0D));
+            }
+        }
         foreach (PowerPointHtmlTableCell cell in grid.Cells) {
             PptCore.PowerPointTableCell targetCell = table.GetCell(cell.Row, cell.Column);
             targetCell.Text = cell.Text;
@@ -45,7 +54,7 @@ public static partial class HtmlPowerPointConverterExtensions {
 
         ApplyShapeTransforms(tableElement, table, budget, result);
         result.Tables++;
-        return Math.Max(top + Math.Max(90D, grid.Rows * 40D), tableTop + height + 20D);
+        return Math.Max(top + Math.Max(90D, genericHeight ?? grid.Rows * 40D), tableTop + height + 20D);
     }
 
     private static void ApplySemanticTableFormatting(
