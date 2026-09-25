@@ -580,6 +580,8 @@
       "publishPath": "./static/data/ecosystem/stats.json",
       "summaryPath": "./Build/sync-ecosystem-stats-last-run.json",
       "title": "OfficeIMO Package Telemetry",
+      "githubOrg": "EvotecIT",
+      "githubTokenEnv": "GITHUB_TOKEN",
       "nugetOwner": "Evotec",
       "timeoutSeconds": 60,
       "preserveOnWarnings": true
