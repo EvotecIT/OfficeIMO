@@ -144,6 +144,8 @@ public static class HtmlCssMathResolver {
         switch (unit) {
             case HtmlCssLengthUnit.Em:
                 return ContextValue(context.FontSize, HtmlCssLengthResolutionStatus.MissingFontSize);
+            case HtmlCssLengthUnit.Ex:
+                return ContextValue(context.FontSize, HtmlCssLengthResolutionStatus.MissingFontSize).Scale(0.5D);
             case HtmlCssLengthUnit.Rem:
                 return ContextValue(context.RootFontSize, HtmlCssLengthResolutionStatus.MissingRootFontSize);
             case HtmlCssLengthUnit.Vw:

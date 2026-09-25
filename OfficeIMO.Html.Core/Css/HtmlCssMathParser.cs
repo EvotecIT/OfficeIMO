@@ -469,6 +469,7 @@ public static class HtmlCssMathParser {
             case "mm": unit = HtmlCssLengthUnit.Mm; return true;
             case "q": unit = HtmlCssLengthUnit.Q; return true;
             case "em": unit = HtmlCssLengthUnit.Em; return true;
+            case "ex": unit = HtmlCssLengthUnit.Ex; return true;
             case "rem": unit = HtmlCssLengthUnit.Rem; return true;
             case "vw": unit = HtmlCssLengthUnit.Vw; return true;
             case "vh": unit = HtmlCssLengthUnit.Vh; return true;

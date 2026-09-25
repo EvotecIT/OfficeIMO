@@ -31,7 +31,7 @@
   { "name": "margin-negative", "property": "margin-left", "value": "-2.5%", "status": "Parsed", "kind": "Percentage", "canonical": "-2.5%" },
   { "name": "padding-font-relative", "property": "padding-top", "value": "1.5em", "status": "Parsed", "kind": "Length", "canonical": "1.5em" },
   { "name": "padding-negative-literal", "property": "padding-bottom", "value": "-1px", "status": "UnsupportedValue" },
-  { "name": "unsupported-length-unit", "property": "width", "value": "2ex", "status": "UnsupportedValue" },
+  { "name": "width-font-x-height", "property": "width", "value": "2ex", "status": "Parsed", "kind": "Length", "canonical": "2ex" },
   { "name": "deferred-length", "property": "width", "value": "var(--panel-width, 50%)", "status": "Deferred", "kind": "DeferredFunction", "canonical": "var(--panel-width, 50%)" },
   { "name": "unknown-property-retained", "property": "future-paint", "value": "paint(sky)", "status": "UnknownProperty" }
 ]

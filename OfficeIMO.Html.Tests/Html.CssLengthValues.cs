@@ -47,6 +47,7 @@ public sealed class HtmlCssLengthValuesTests {
     public void ResolutionReportsTheSpecificMissingContextAndUsesContainerFallback() {
         HtmlCssMathExpression percentage = Parse("25%");
         HtmlCssMathExpression em = Parse("2em");
+        HtmlCssMathExpression ex = Parse("2ex");
         HtmlCssMathExpression rem = Parse("2rem");
         HtmlCssMathExpression viewport = Parse("2vmin");
         HtmlCssMathExpression container = Parse("10cqmin");
@@ -55,6 +56,11 @@ public sealed class HtmlCssLengthValuesTests {
             HtmlCssMathResolver.ResolveLength(percentage, new HtmlCssLengthResolutionContext()).Status);
         Assert.Equal(HtmlCssLengthResolutionStatus.MissingFontSize,
             HtmlCssMathResolver.ResolveLength(em, new HtmlCssLengthResolutionContext()).Status);
+        Assert.Equal(HtmlCssLengthResolutionStatus.MissingFontSize,
+            HtmlCssMathResolver.ResolveLength(ex, new HtmlCssLengthResolutionContext()).Status);
+        Assert.Equal(20D, HtmlCssMathResolver.ResolveLength(ex, new HtmlCssLengthResolutionContext {
+            FontSize = 20D
+        }).Value);
         Assert.Equal(HtmlCssLengthResolutionStatus.MissingRootFontSize,
             HtmlCssMathResolver.ResolveLength(rem, new HtmlCssLengthResolutionContext()).Status);
         Assert.Equal(HtmlCssLengthResolutionStatus.MissingViewportWidth,
@@ -148,6 +154,7 @@ public sealed class HtmlCssLengthValuesTests {
             [HtmlCssLengthUnit.Pc] = "pc", [HtmlCssLengthUnit.In] = "in",
             [HtmlCssLengthUnit.Cm] = "cm", [HtmlCssLengthUnit.Mm] = "mm",
             [HtmlCssLengthUnit.Q] = "q", [HtmlCssLengthUnit.Em] = "em",
+            [HtmlCssLengthUnit.Ex] = "ex",
             [HtmlCssLengthUnit.Rem] = "rem", [HtmlCssLengthUnit.Vw] = "vw",
             [HtmlCssLengthUnit.Vh] = "vh", [HtmlCssLengthUnit.Vmin] = "vmin",
             [HtmlCssLengthUnit.Vmax] = "vmax", [HtmlCssLengthUnit.Svw] = "svw",

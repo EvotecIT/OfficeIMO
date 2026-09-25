@@ -18,7 +18,7 @@
   { "name": "unitless zero in sum", "value": "calc(0 + 5px)", "parseStatus": "IncompatibleTypes" },
   { "name": "number and length sum", "value": "calc(2 + 5px)", "parseStatus": "IncompatibleTypes" },
   { "name": "dimension product", "value": "calc(2px * 5px)", "parseStatus": "IncompatibleTypes" },
-  { "name": "unsupported font metric unit", "value": "2ex", "parseStatus": "UnsupportedValue" },
+  { "name": "font x-height fallback", "value": "2ex", "parseStatus": "Parsed", "type": "Length", "canonical": "2ex", "resolved": 20 },
   { "name": "binary plus missing whitespace", "value": "calc(2px+ 5px)", "parseStatus": "InvalidSyntax" },
   { "name": "comment is not whitespace", "value": "calc(2px/**/+ 5px)", "parseStatus": "InvalidSyntax" },
   { "name": "decimal point requires fraction", "value": "1.px", "parseStatus": "InvalidSyntax" },

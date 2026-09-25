@@ -22,6 +22,48 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRender_WideBreadcrumbInsideFullWidthFlexChildRetainsIntermediateLinks() {
+        const string html = """
+            <style>
+              * { box-sizing: border-box; }
+              .container { width: 100%; padding-left: 10px; padding-right: 10px; }
+              .row { display: flex; flex-wrap: wrap; margin-left: -10px; margin-right: -10px; }
+              .row > * { flex-shrink: 0; width: 100%; max-width: 100%; padding-left: 10px; padding-right: 10px; }
+              .breadcrumb { font-size: 14px; }
+              .breadcrumb ol { display: block; margin: 0; padding: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+              .breadcrumb li { display: inline; }
+              .breadcrumb li:not(:last-child)::after { content: ""; display: inline-block; width: 2ex; height: 2ex; }
+              @media print { a[href]::after { content: " (" attr(href) ")"; overflow-wrap: break-word; } }
+            </style>
+            <div class="container"><div class="row"><div class="container">
+              <nav class="breadcrumb"><ol>
+                <li><a href="https://www.nps.gov/"><span>NPS.gov</span></a></li>
+                <li><a href="https://www.nps.gov/yell/index.htm"><span>Park Home</span></a></li>
+                <li><a href="https://www.nps.gov/yell/learn/index.htm"><span>Learn About the Park</span></a></li>
+                <li><a href="https://www.nps.gov/yell/learn/photosmultimedia/index.htm"><span>Photos &amp; Multimedia</span></a></li>
+                <li>Photo Gallery</li>
+              </ol></nav>
+            </div></div></div>
+            """;
+
+        HtmlRenderRequest request = HtmlRenderRequest.Create(
+            HtmlRenderIntentProfile.PrintPaged,
+            HtmlRenderEncoder.Pdf,
+            new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0) });
+        HtmlRenderDocument rendered = HtmlRenderEngine.Execute(HtmlConversionDocument.Parse(html), request).Document;
+        HtmlRenderText[] text = EnumerateTextOverflowVisuals(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderText>()
+            .ToArray();
+
+        Assert.True(text.Any(visual => visual.Text.Contains("Park Home", StringComparison.Ordinal)
+            && visual.LinkUri == "https://www.nps.gov/yell/index.htm"),
+            string.Join(" | ", text.Select(visual => $"{visual.Text} @ {visual.X:F1} ({visual.LinkUri})")));
+        Assert.True(text.Any(visual => visual.Text.Contains("Learn About the Park", StringComparison.Ordinal)
+            && visual.LinkUri == "https://www.nps.gov/yell/learn/index.htm"),
+            string.Join(" | ", text.Select(visual => $"{visual.Text} @ {visual.X:F1} ({visual.LinkUri})")));
+    }
+
+    [Fact]
     public void HtmlRender_EmitsEllipsisForOverflowingAtomicInlineContent() {
         const string html = "<div style='width:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis'><img src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP4/w8AAv8B/h10yjMAAAAASUVORK5CYII=' width='200' height='10'></div>";
 

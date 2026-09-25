@@ -67,7 +67,9 @@ public enum HtmlCssLengthUnit {
     /// <summary>One percent of the smaller query-container dimension.</summary>
     Cqmin,
     /// <summary>One percent of the larger query-container dimension.</summary>
-    Cqmax
+    Cqmax,
+    /// <summary>The element font's x-height, approximated as half the font size when metrics are unavailable.</summary>
+    Ex
 }
 
 /// <summary>Syntax node kinds in a parsed CSS numeric expression.</summary>
