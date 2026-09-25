@@ -1,0 +1,30 @@
+{{ community = data.community }}
+{{ if community && community.repositories }}
+<section class="imo-open imo-container" aria-labelledby="open-title">
+  <div class="imo-open__intro">
+    <p class="imo-section__eyebrow">Open source · MIT</p>
+    <h2 id="open-title">Built in the open. <span>Better with you.</span></h2>
+    <p>OfficeIMO and PSWriteOffice are developed on GitHub by Evotec and contributors. Every bug report, docs fix and question makes them better.</p>
+    <div class="imo-open__repos">
+      {{ for repo in community.repositories }}
+      <a class="imo-open__repo" href="{{ repo.url }}" target="_blank" rel="noopener">
+        <strong><svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38v-1.33c-2.23.48-2.7-1.07-2.7-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.8.06 1.23.83 1.23.83.72 1.22 1.87.87 2.33.66.07-.52.28-.87.5-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.28.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>{{ repo.slug }}</strong>
+        <small>{{ repo.description }}{{ if repo.forks }} · {{ repo.forks }} forks{{ end }}</small>
+        <span class="imo-open__star"><svg viewBox="0 0 24 24" width="13" height="13" fill="#e3b341" aria-hidden="true"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6L2.5 9.4l6.6-.8z"/></svg>Star{{ if repo.stars }} · {{ repo.stars }}{{ end }}</span>
+      </a>
+      {{ end }}
+    </div>
+  </div>
+  {{ if community.ways && community.ways.size > 0 }}
+  <div class="imo-open__ways">
+    {{ for way in community.ways }}
+    <a class="imo-open__way imo-open__way--{{ way.id }}{{ if way.wide }} imo-open__way--wide{{ end }}" href="{{ way.url }}" target="_blank" rel="noopener">
+      <span class="imo-open__icon" aria-hidden="true">{{ if way.id == "discord" || way.id == "example" }}<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2z"/><path d="M9 10h.01M15 10h.01"/></svg>{{ else if way.id == "sponsor" }}<svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.7 4.5c2.1 0 3.6 1.2 4.3 2.4.7-1.2 2.2-2.4 4.3-2.4 3.7 0 5.8 3.9 4.3 7.3C19.5 16.4 12 21 12 21z"/></svg>{{ else if way.id == "pull-request" }}<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M6 8.5v7M18 15.5V9a3 3 0 0 0-3-3h-4M13 3.5 10.5 6 13 8.5"/></svg>{{ else }}<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>{{ end }}</span>
+      <span class="imo-open__text"><strong>{{ way.title }}</strong><span>{{ way.description }}</span></span>
+      <span class="imo-open__action">{{ way.action }} <span aria-hidden="true">→</span></span>
+    </a>
+    {{ end }}
+  </div>
+  {{ end }}
+</section>
+{{ end }}

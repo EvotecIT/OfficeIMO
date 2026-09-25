@@ -56,20 +56,8 @@
         <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
         <span>Search</span><kbd>Ctrl K</kbd>
       </a>
-      <button class="imo-theme-toggle" type="button" aria-label="Toggle theme">
-        <svg class="icon-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-        <svg class="icon-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
-      </button>
-      {{ if navigation.actions && navigation.actions.size > 0 }}
-        {{ for action in navigation.actions }}
-          {{ if action.url }}
-          <a href="{{ action.url }}"{{ if action.css_class }} class="{{ action.css_class }}"{{ end }}{{ if action.aria_label }} aria-label="{{ action.aria_label }}"{{ else if action.title }} aria-label="{{ action.title }}"{{ end }}{{ if action.external }} target="_blank" rel="noopener"{{ end }}>
-            {{ if action.icon_html && action.icon_html != "" }}{{ action.icon_html }}{{ end }}
-            {{ if action.text && action.text != "" }} {{ action.text }}{{ else if !action.icon_html || action.icon_html == "" }} {{ action.title }}{{ end }}
-          </a>
-          {{ end }}
-        {{ end }}
-      {{ end }}
+      {{ include "community-menu" }}
+      {{ include "appearance-menu" }}
     </div>
   </div>
 </header>

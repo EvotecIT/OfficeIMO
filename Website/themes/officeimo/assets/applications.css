@@ -4,17 +4,7 @@
 .imo-platform-hero > p:not(.imo-application-eyebrow) { color: var(--imo-text-secondary); font-size: 1.15rem; line-height: 1.7; }
 .imo-platform-hero .imo-application-actions { margin-top: 1.5rem; }
 .imo-body--downloads .imo-platform-hero h1 { font-size: clamp(2.4rem, 4vw, 3.4rem); }
-.imo-entry-points { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; padding-bottom: 3.5rem; }
-.imo-entry-point { display: flex; flex-direction: column; border: 1px solid var(--imo-border); border-radius: 10px; padding: 1.6rem; color: var(--imo-text); background: var(--imo-surface); }
-.imo-entry-point:hover { border-color: var(--imo-accent); }
-.imo-entry-point h2 { display: flex; justify-content: space-between; gap: 1rem; font-size: 1.8rem; font-weight: 650; margin: .3rem 0 .8rem; }
-.imo-entry-point h2 span { color: var(--imo-accent); font-weight: 400; }
-.imo-entry-point p { color: var(--imo-text-secondary); line-height: 1.65; margin-bottom: 1.4rem; }
-.imo-entry-point strong { color: var(--imo-accent); margin-top: auto; font-size: .9rem; }
-.imo-platform-story { display: grid; grid-template-columns: .75fr 1.25fr; align-items: center; gap: 2.5rem; padding-top: 1.5rem; padding-bottom: 4rem; }
-.imo-platform-story h2 { font-size: clamp(1.8rem, 3vw, 2.7rem); line-height: 1.15; font-weight: 650; margin: 1rem 0; letter-spacing: -.03em; }
-.imo-platform-story p { color: var(--imo-text-secondary); line-height: 1.7; margin-bottom: 1.4rem; }
-.imo-platform-story img { width: 100%; border: 1px solid var(--imo-border); border-radius: 8px; box-shadow: 0 8px 24px #0001; }
+
 .imo-download-choice { display: grid; grid-template-columns: 1fr 1.6fr; gap: 3rem; border-top: 1px solid var(--imo-border); padding: 2.5rem 0; scroll-margin-top: 6rem; }
 .imo-download-choice h2 { font-size: 2rem; margin-bottom: .7rem; }
 .imo-download-choice h3 { font-size: 1.15rem; margin-bottom: .8rem; }
@@ -67,7 +57,7 @@
 .imo-application-terminal button { border: 1px solid #637a99; padding: .6rem 1rem; border-radius: 6px; background: #1c304c; color: #fff; cursor: pointer; }
 .imo-body--application a:focus-visible, .imo-body--application button:focus-visible { outline: 3px solid var(--imo-accent); outline-offset: 4px; }
 @media (max-width: 700px) {
-  .imo-entry-points, .imo-platform-story, .imo-download-choice { grid-template-columns: minmax(0, 1fr); }
+  .imo-download-choice { grid-template-columns: minmax(0, 1fr); }
   .imo-platform-hero { padding-top: 2.5rem; }
   .imo-application-hero { padding-top: 2.5rem; }
   .imo-application-summary { font-size: 1rem; }

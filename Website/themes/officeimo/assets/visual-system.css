@@ -20,21 +20,7 @@ body,
   background: var(--imo-bg);
 }
 
-.imo-body {
-  background:
-    linear-gradient(rgba(37, 99, 235, 0.018) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(37, 99, 235, 0.018) 1px, transparent 1px),
-    var(--imo-bg);
-  background-size: 28px 28px;
-}
-
-[data-theme="dark"] .imo-body {
-  background:
-    linear-gradient(rgba(109, 166, 255, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(109, 166, 255, 0.025) 1px, transparent 1px),
-    var(--imo-bg);
-  background-size: 28px 28px;
-}
+.imo-body { background: var(--imo-bg); }
 
 .imo-container {
   max-width: var(--imo-container-max);
@@ -428,29 +414,6 @@ p { text-wrap: pretty; }
   font-size: 0.58rem;
   line-height: 1.7;
 }
-
-.imo-trust-banner,
-[data-theme="light"] .imo-trust-banner {
-  padding: 0.9rem 0;
-  background: var(--imo-bg-elevated);
-  backdrop-filter: none;
-}
-
-[data-theme="dark"] .imo-trust-banner { background: #0b1627; }
-
-.imo-trust-banner__items { gap: 1.75rem; }
-
-.imo-trust-banner__item,
-[data-theme="light"] .imo-trust-banner__item {
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--imo-text-secondary);
-  font-size: 0.7rem;
-  box-shadow: none;
-}
-
-.imo-trust-banner__item svg { width: 17px; height: 17px; }
 
 .imo-how-it-works {
   padding: 2.8rem 0 3rem;
@@ -2180,8 +2143,6 @@ body.pf-api-docs {
   .imo-proof-sheet { top: 188px; width: 69%; }
   .imo-proof-slide { width: 68%; }
   .imo-proof-code { left: 2%; bottom: 94px; width: 78%; }
-  .imo-trust-banner__items { justify-content: flex-start; gap: 0.7rem 1.2rem; }
-  .imo-trust-banner__item { width: auto; }
   .imo-how-it-works__grid,
   .imo-docs-paths__grid,
   .imo-docs-start__grid,

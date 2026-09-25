@@ -8,8 +8,34 @@
   window.Prism = window.Prism || {};
   window.Prism.manual = true;
 
+  var BACKGROUND_KEY = "imo-bg";
+  var BACKGROUNDS = ["blueprint", "paper", "aurora", "plain"];
+  var colorSchemeQuery = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+
+  function readPreference(key) {
+    try { return localStorage.getItem(key); } catch (error) { return null; }
+  }
+
+  function writePreference(key, value) {
+    try {
+      if (value === null) localStorage.removeItem(key);
+      else localStorage.setItem(key, value);
+    } catch (error) { /* Storage can be unavailable; the page still works. */ }
+  }
+
   function getDefaultTheme() {
-    return "light";
+    return colorSchemeQuery && colorSchemeQuery.matches ? "dark" : "light";
+  }
+
+  function getThemePreference() {
+    var stored = readPreference(THEME_KEY);
+    return stored === "light" || stored === "dark" ? stored : "system";
+  }
+
+  function setPressed(selector, attribute, value) {
+    document.querySelectorAll(selector).forEach(function (btn) {
+      btn.setAttribute("aria-pressed", btn.getAttribute(attribute) === value ? "true" : "false");
+    });
   }
 
   function applyTheme(mode) {
@@ -22,20 +48,77 @@
       if (sun) sun.style.display = resolved === "dark" ? "none" : "block";
       if (moon) moon.style.display = resolved === "dark" ? "block" : "none";
     });
+    setPressed("[data-imo-theme]", "data-imo-theme", getThemePreference());
+  }
+
+  function applyBackground(background) {
+    var resolved = BACKGROUNDS.indexOf(background) >= 0 ? background : BACKGROUNDS[0];
+    document.documentElement.setAttribute("data-bg", resolved);
+    setPressed("[data-imo-bg]", "data-imo-bg", resolved);
   }
 
   function initTheme() {
-    var stored = localStorage.getItem(THEME_KEY);
-    if (stored !== "light" && stored !== "dark") {
-      stored = getDefaultTheme();
+    applyTheme(getThemePreference());
+    applyBackground(readPreference(BACKGROUND_KEY));
+
+    if (colorSchemeQuery) {
+      var onSystemChange = function () {
+        if (getThemePreference() === "system") applyTheme("system");
+      };
+      if (colorSchemeQuery.addEventListener) colorSchemeQuery.addEventListener("change", onSystemChange);
+      else if (colorSchemeQuery.addListener) colorSchemeQuery.addListener(onSystemChange);
     }
-    applyTheme(stored);
+
     document.querySelectorAll(".imo-theme-toggle").forEach(function (btn) {
       btn.addEventListener("click", function () {
         var cur = document.documentElement.getAttribute("data-theme") || getDefaultTheme();
         var next = cur === "dark" ? "light" : "dark";
-        localStorage.setItem(THEME_KEY, next);
+        writePreference(THEME_KEY, next);
         applyTheme(next);
+      });
+    });
+
+    document.querySelectorAll("[data-imo-theme]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var choice = btn.getAttribute("data-imo-theme");
+        writePreference(THEME_KEY, choice === "light" || choice === "dark" ? choice : null);
+        applyTheme(choice);
+      });
+    });
+
+    document.querySelectorAll("[data-imo-bg]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var choice = btn.getAttribute("data-imo-bg");
+        writePreference(BACKGROUND_KEY, choice === BACKGROUNDS[0] ? null : choice);
+        applyBackground(choice);
+      });
+    });
+  }
+
+  function initHeaderMenus() {
+    var menus = Array.prototype.slice.call(document.querySelectorAll("details.imo-menu"));
+    if (!menus.length) return;
+
+    menus.forEach(function (menu) {
+      menu.addEventListener("toggle", function () {
+        if (!menu.open) return;
+        menus.forEach(function (other) { if (other !== menu) other.open = false; });
+      });
+    });
+
+    document.addEventListener("click", function (event) {
+      menus.forEach(function (menu) {
+        if (menu.open && !menu.contains(event.target)) menu.open = false;
+      });
+    });
+
+    document.addEventListener("keydown", function (event) {
+      if (event.key !== "Escape") return;
+      menus.forEach(function (menu) {
+        if (!menu.open) return;
+        menu.open = false;
+        var summary = menu.querySelector("summary");
+        if (summary) summary.focus();
       });
     });
   }
@@ -60,7 +143,7 @@
 
     var actualCurrent = normalizePath(window.location.pathname);
     var current = actualCurrent;
-    if (current.indexOf('/products/') === 0) current = '/libraries';
+    if (current.indexOf('/products/') === 0 && current !== '/products/pswriteoffice') current = '/libraries';
     if (document.body.classList.contains('imo-body--docs')) current = '/docs';
     var navLinks = Array.prototype.slice.call(document.querySelectorAll(".imo-header .imo-nav a[href]"));
     var matchingLinks = [];
@@ -581,6 +664,7 @@
 
   function init() {
     initTheme();
+    initHeaderMenus();
     initMobileNav();
     initDropdowns();
     initHeaderLinks();

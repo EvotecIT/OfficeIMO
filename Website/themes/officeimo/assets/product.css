@@ -1558,7 +1558,8 @@
 }
 
 .imo-product-example { margin: 0; overflow: hidden; border: 1px solid var(--imo-border); border-radius: 12px; background: var(--imo-surface); }
-.imo-product-example img { display: block; width: 100%; height: auto; max-height: 420px; object-fit: contain; background: #fff; }
+.imo-product-example > a { display: flex; justify-content: center; padding: 1.25rem; border-bottom: 1px solid var(--imo-border); background: var(--imo-bg-alt); }
+.imo-product-example img { display: block; width: auto; max-width: 100%; height: auto; max-height: 440px; background: #fff; border-radius: 2px; box-shadow: 0 1px 0 rgba(16, 24, 40, .06), 0 14px 30px -16px rgba(16, 24, 40, .45); }
 .imo-product-example figcaption, .imo-product-example--guide { padding: 1.25rem; line-height: 1.6; }
 .imo-product-example figcaption p { color: var(--imo-text-secondary); font-size: .9rem; margin: .5rem 0; }
 .imo-product-example a { color: var(--imo-accent); }

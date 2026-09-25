@@ -386,7 +386,8 @@
         "Name": "experience",
         "Css": [
           "/css/visual-system.css",
-          "/css/site-shell.css"
+          "/css/site-shell.css",
+          "/css/workbench.css"
         ]
       },
       {
@@ -696,7 +697,7 @@
           "Url": "/studio/"
         },
         {
-          "Title": "Browser tools",
+          "Title": "Browser",
           "Url": "/convert/"
         },
         {
@@ -704,11 +705,15 @@
           "Url": "/tool/"
         },
         {
-          "Title": "Libraries",
+          "Title": ".NET",
           "Url": "/libraries/"
         },
         {
-          "Title": "Documentation",
+          "Title": "PowerShell",
+          "Url": "/products/pswriteoffice/"
+        },
+        {
+          "Title": "Docs",
           "Url": "/docs/"
         },
         {
@@ -784,6 +789,10 @@
         {
           "Title": "Studio",
           "Url": "/studio/"
+        },
+        {
+          "Title": "Browser tools",
+          "Url": "/convert/"
         },
         {
           "Title": "CLI",
@@ -886,8 +895,13 @@
           "External": true
         },
         {
-          "Title": "Report Issue",
+          "Title": "Report an issue",
           "Url": "https://github.com/EvotecIT/OfficeIMO/issues",
+          "External": true
+        },
+        {
+          "Title": "Sponsor",
+          "Url": "https://github.com/sponsors/PrzemyslawKlys",
           "External": true
         }
       ]
