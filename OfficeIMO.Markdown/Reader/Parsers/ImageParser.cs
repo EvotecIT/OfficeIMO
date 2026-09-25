@@ -6,13 +6,22 @@ public static partial class MarkdownReader {
             if (!options.Images) return false;
             var line = lines[i] ?? string.Empty;
             bool parsed = TryParseImage(line, options, state, out var img, out var sizeSpec, out var ranges);
+            string trailingText = string.Empty;
+            if (!parsed && TrySplitSizedImageWithTrailingText(line, linked: false, out var imageLine, out trailingText)) {
+                parsed = TryParseImage(imageLine, options, state, out img, out sizeSpec, out ranges);
+            }
             if (!parsed) {
                 int captionIndex = i + 1;
                 if (captionIndex >= lines.Length || !TryParseCaption(lines[captionIndex], out _)) {
                     return false;
                 }
 
-                if (!TryParseLinkedImageBlock(line, options, state, out img, out sizeSpec, out ranges)) {
+                string linkedImageLine = line;
+                if (TrySplitSizedImageWithTrailingText(line, linked: true, out var linkedPrefix, out var linkedTrailingText)) {
+                    linkedImageLine = linkedPrefix;
+                    trailingText = linkedTrailingText;
+                }
+                if (!TryParseLinkedImageBlock(linkedImageLine, options, state, out img, out sizeSpec, out ranges)) {
                     return false;
                 }
             }
@@ -83,7 +92,11 @@ public static partial class MarkdownReader {
             }
             int j = i + 1;
             if (j < lines.Length && TryParseCaption(lines[j], out var cap)) { img.Caption = cap; j++; }
-            doc.Add(img); i = j; return true;
+            doc.Add(img);
+            if (trailingText.Length > 0) {
+                doc.Add(new ParagraphBlock(ParseInlines(trailingText, options, state)));
+            }
+            i = j; return true;
 
             MarkdownSourceSpan? CreateMetadataSpan(int? relativeStart, int? length) {
                 if (!relativeStart.HasValue || !length.HasValue || length.Value <= 0) {

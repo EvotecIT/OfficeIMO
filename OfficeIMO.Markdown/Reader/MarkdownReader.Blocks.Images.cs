@@ -36,7 +36,44 @@ public static partial class MarkdownReader {
         ImageBlock image;
         string? sizeSpec;
         MarkdownImageSyntaxRanges ranges;
-        return TryParseImage(line, out image, out sizeSpec, out ranges);
+        return TryParseImage(line, out image, out sizeSpec, out ranges)
+            || TrySplitSizedImageWithTrailingText(line, linked: false, out _, out _);
+    }
+
+    /// <summary>
+    /// Keeps the block-only image size extension when prose follows it on the same
+    /// line. The image and prose become separate blocks because inline images have
+    /// no size contract.
+    /// </summary>
+    private static bool TrySplitSizedImageWithTrailingText(string line, bool linked, out string imageLine, out string trailingText) {
+        imageLine = trailingText = string.Empty;
+        string trimmed = line?.Trim() ?? string.Empty;
+        int imageLength = 0;
+        bool imageParsed = linked
+            ? trimmed.StartsWith("[![", StringComparison.Ordinal)
+                && TryParseImageLink(trimmed, 0, out imageLength, out _, out _, out _, out _, out _)
+            : trimmed.StartsWith("![", StringComparison.Ordinal)
+                && TryParseInlineImage(trimmed, 0, out imageLength, out _, out _, out _);
+        if (!imageParsed) {
+            return false;
+        }
+
+        int blockStart = imageLength;
+        while (blockStart < trimmed.Length && char.IsWhiteSpace(trimmed[blockStart])) blockStart++;
+        if (blockStart >= trimmed.Length || trimmed[blockStart] != '{') return false;
+        int close = MarkdownGenericAttributeParser.FindMatchingClosingBrace(trimmed.Substring(blockStart), 0);
+        if (close <= 0) return false;
+
+        int blockEnd = blockStart + close + 1;
+        imageLine = trimmed.Substring(0, blockEnd);
+        trailingText = trimmed.Substring(blockEnd).Trim();
+        if (trailingText.Length == 0) return false;
+        bool parsed = linked
+            ? TryParseLinkedImageBlock(imageLine, out _, out string? linkedSizeSpec)
+                && !string.IsNullOrEmpty(linkedSizeSpec)
+            : TryParseImage(imageLine, out _, out string? sizeSpec)
+                && !string.IsNullOrEmpty(sizeSpec);
+        return parsed;
     }
     private static bool TryParseImage(string line, out ImageBlock image, out string? sizeSpec) =>
         TryParseImage(line, new MarkdownReaderOptions(), new MarkdownReaderState(), out image, out sizeSpec, out _);

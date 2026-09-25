@@ -7,12 +7,49 @@ namespace OfficeIMO.Tests.MarkdownSuite {
     public class Markdown_Reader_Roundtrip_Tests {
         [Theory]
         [InlineData("![Survey photo](data:image/png;base64,aGVsbG8=) Credit: NOAA Fisheries.", "![Survey photo](data:image/png;base64,aGVsbG8=)")]
-        [InlineData("[![Survey photo](photo.png)](https://example.com/survey) Credit: NOAA Fisheries.", "[![Survey photo](photo.png)](https://example.com/survey)")]
+        [InlineData("[![Survey photo](photo.png)](https://example.com/survey) Credit: NOAA Fisheries.\n_Linked image caption_", "[![Survey photo](photo.png)](https://example.com/survey)")]
         public void Reader_Preserves_Text_After_Inline_Image(string source, string image) {
             var parsed = MarkdownDoc.Parse(source);
 
             string roundtrip = parsed.ToMarkdown();
             Assert.Contains(image, roundtrip, StringComparison.Ordinal);
+            Assert.Contains("Credit: NOAA Fisheries.", roundtrip, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Reader_Preserves_Size_And_Text_After_Sized_Image() {
+            const string source = "![Survey photo](photo.png){width=320 height=180} Credit: NOAA Fisheries.";
+
+            var parsed = MarkdownDoc.Parse(source);
+
+            Assert.Collection(parsed.Blocks,
+                block => {
+                    var image = Assert.IsType<ImageBlock>(block);
+                    Assert.Equal(320, image.Width);
+                    Assert.Equal(180, image.Height);
+                },
+                block => Assert.Contains("Credit: NOAA Fisheries.", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown(), StringComparison.Ordinal));
+            string roundtrip = parsed.ToMarkdown();
+            Assert.Contains("![Survey photo](photo.png){width=320 height=180}", roundtrip, StringComparison.Ordinal);
+            Assert.Contains("Credit: NOAA Fisheries.", roundtrip, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Reader_Preserves_Size_Link_And_Text_After_Sized_Linked_Image() {
+            const string source = "[![Survey photo](photo.png)](https://example.com/survey){width=320} Credit: NOAA Fisheries.\n_Linked image caption_";
+
+            var parsed = MarkdownDoc.Parse(source);
+
+            Assert.Collection(parsed.Blocks,
+                block => {
+                    var image = Assert.IsType<ImageBlock>(block);
+                    Assert.Equal(320, image.Width);
+                    Assert.Equal("https://example.com/survey", image.LinkUrl);
+                    Assert.Equal("Linked image caption", image.Caption);
+                },
+                block => Assert.Contains("Credit: NOAA Fisheries.", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown(), StringComparison.Ordinal));
+            string roundtrip = parsed.ToMarkdown();
+            Assert.Contains("[![Survey photo](photo.png)](https://example.com/survey){width=320}", roundtrip, StringComparison.Ordinal);
             Assert.Contains("Credit: NOAA Fisheries.", roundtrip, StringComparison.Ordinal);
         }
 
