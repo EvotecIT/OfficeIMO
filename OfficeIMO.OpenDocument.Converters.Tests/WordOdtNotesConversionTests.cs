@@ -506,14 +506,107 @@ public sealed class WordOdtNotesConversionTests {
     }
 
     [Fact]
-    public void WordNoteSettingsInAnotherSectionDoNotCountAgainstThisNote() {
+    public void WordNoteSettingsInAnotherSectionRemainExplicitLoss() {
         using WordDocument source = WordDocument.Create();
         source.AddParagraph("First section").AddFootNote("First note");
         source.AddSection().AddFootnoteProperties(numberingFormat: WordNumberFormat.UpperRoman);
         source.Sections[1].AddParagraph("Second section");
 
         OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
-        Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "note-numbering-placement");
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-numbering-placement" &&
+            mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
+        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void WordNoteSettingsWithoutReferencesRemainExplicitLoss() {
+        using WordDocument source = WordDocument.Create();
+        source.AddParagraph("No note references");
+        source.AddFootnoteProperties(WordNumberFormat.UpperRoman);
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-numbering-placement" &&
+            mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
+        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void WordSeparatorReferenceWithoutNotesRemainsExplicitLoss() {
+        using WordDocument source = WordDocument.Create();
+        source.AddParagraph("No note references");
+        source.OpenXmlDocument.MainDocumentPart!.DocumentSettingsPart!.Settings!.AddChild(
+            new W.FootnoteDocumentWideProperties(new W.FootnoteSpecialReference { Id = -2 }), true);
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-separators" &&
+            mapping.Status == OdfConversionMappingStatus.Approximated);
+        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void OdtSeparatorWithoutNotesRemainsExplicitLoss() {
+        OdtDocument source = OdtDocument.Create();
+        XNamespace office = "urn:oasis:names:tc:opendocument:xmlns:office:1.0";
+        XNamespace style = "urn:oasis:names:tc:opendocument:xmlns:style:1.0";
+        source.Package.GetXml("styles.xml").Root!.Element(office + "styles")!
+            .Add(new XElement(style + "footnote-sep"));
+        source.Package.MarkXmlDirty("styles.xml");
+
+        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        using WordDocument target = conversion.Value;
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-configuration" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+        Assert.Throws<OdfConversionLossException>(() => source.ToWordDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void InheritedWordReferenceStyleFormattingRemainsExplicitLoss() {
+        using WordDocument source = WordDocument.Create();
+        source.AddParagraph("Anchor").AddFootNote("Body");
+        W.Style baseStyle = source.OpenXmlDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
+            .Elements<W.Style>().Single(candidate => candidate.StyleId?.Value == "DefaultParagraphFont");
+        baseStyle.Append(new W.StyleRunProperties(new W.Color { Val = "AA0000" }));
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-reference-formatting" &&
+            mapping.Status == OdfConversionMappingStatus.Approximated);
+        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void HyperlinkWrappedWordNoteReferenceReportsContextLoss() {
+        using WordDocument source = WordDocument.Create();
+        source.AddParagraph("Anchor").AddFootNote("Body");
+        W.Run anchor = source.OpenXmlDocument.MainDocumentPart!.Document!.Body!
+            .Descendants<W.Run>().Single(run => run.GetFirstChild<W.FootnoteReference>() != null);
+        anchor.Parent!.ReplaceChild(new W.Hyperlink((W.Run)anchor.CloneNode(true)) {
+            Anchor = "Destination"
+        }, anchor);
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-reference-position" &&
+            mapping.Status == OdfConversionMappingStatus.Approximated);
+        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void CustomizedWordReferenceStyleIsReportedAsReferenceFormattingLoss() {
+        using WordDocument source = WordDocument.Create();
+        source.AddParagraph("Anchor").AddFootNote("Body");
+        W.Style style = source.OpenXmlDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
+            .Elements<W.Style>().Single(candidate => candidate.StyleId?.Value == "FootnoteReference");
+        style.StyleRunProperties!.Append(new W.Color { Val = "AA0000" });
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-reference-formatting" &&
+            mapping.Status == OdfConversionMappingStatus.Approximated);
+        Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-formatting");
     }
 
     [Fact]

@@ -151,7 +151,7 @@ public static partial class WordOpenDocumentConversionExtensions {
 
     private static bool HasAmbiguousWordNotePosition(WordRunSnapshot run) =>
         run.Text.Length > 0 || run.PositionedImages.Count > 0 || run.NonTextBreaks?.Count > 0 ||
-        (run.Footnote != null && run.Endnote != null);
+        run.IsHyperlink || (run.Footnote != null && run.Endnote != null);
 
     private static bool HasOdtParagraphNoteReferenceFormatting(OdtParagraph paragraph) =>
         paragraph.Bold.HasValue || paragraph.Italic.HasValue || paragraph.Underline.HasValue ||
@@ -266,23 +266,25 @@ public static partial class WordOpenDocumentConversionExtensions {
             if (documentEndnoteSettings || HasSectionEndnoteSettings(source.Sections[entry.Key].EndnoteSettings))
                 affectedNotes += entry.Value;
         }
-        notes.ApproximatedNumberingAndPlacement = affectedNotes;
-        if (notes.ConvertedFootnotes > 0)
-            notes.ApproximatedSeparators += CountCustomizedWordSeparators(
-                source.OpenXmlDocument.MainDocumentPart?.FootnotesPart?.Footnotes?.Elements<W.Footnote>()) +
-                CountCustomizedWordSeparatorReferences(source, OdtNoteKind.Footnote);
-        if (notes.ConvertedEndnotes > 0)
-            notes.ApproximatedSeparators += CountCustomizedWordSeparators(
-                source.OpenXmlDocument.MainDocumentPart?.EndnotesPart?.Endnotes?.Elements<W.Endnote>()) +
-                CountCustomizedWordSeparatorReferences(source, OdtNoteKind.Endnote);
+        bool hasUnreferencedConfiguration = documentFootnoteSettings || documentEndnoteSettings ||
+            source.Sections.Any(section => HasSectionFootnoteSettings(section.FootnoteSettings) ||
+                HasSectionEndnoteSettings(section.EndnoteSettings));
+        notes.ApproximatedNumberingAndPlacement = hasUnreferencedConfiguration
+            ? Math.Max(1, affectedNotes) : affectedNotes;
+        notes.ApproximatedSeparators += CountCustomizedWordSeparators(
+            source.OpenXmlDocument.MainDocumentPart?.FootnotesPart?.Footnotes?.Elements<W.Footnote>()) +
+            CountCustomizedWordSeparatorReferences(source, OdtNoteKind.Footnote);
+        notes.ApproximatedSeparators += CountCustomizedWordSeparators(
+            source.OpenXmlDocument.MainDocumentPart?.EndnotesPart?.Endnotes?.Elements<W.Endnote>()) +
+            CountCustomizedWordSeparatorReferences(source, OdtNoteKind.Endnote);
         if (notes.ConvertedFootnotes > 0 && HasCustomizedDefaultWordNoteStyle(source, "FootnoteText"))
             notes.ApproximatedBodies += notes.ConvertedFootnotes;
         if (notes.ConvertedFootnotes > 0 && HasCustomizedDefaultWordNoteReferenceStyle(source, "FootnoteReference"))
-            notes.ApproximatedBodies += notes.ConvertedFootnotes;
+            notes.ApproximatedReferenceFormatting += notes.ConvertedFootnotes;
         if (notes.ConvertedEndnotes > 0 && HasCustomizedDefaultWordNoteStyle(source, "EndnoteText"))
             notes.ApproximatedBodies += notes.ConvertedEndnotes;
         if (notes.ConvertedEndnotes > 0 && HasCustomizedDefaultWordNoteReferenceStyle(source, "EndnoteReference"))
-            notes.ApproximatedBodies += notes.ConvertedEndnotes;
+            notes.ApproximatedReferenceFormatting += notes.ConvertedEndnotes;
         if (HasAuthoredWordDocumentDefaults(source))
             notes.ApproximatedBodies += notes.ConvertedFootnotes + notes.ConvertedEndnotes;
     }
@@ -372,8 +374,7 @@ public static partial class WordOpenDocumentConversionExtensions {
             if (!source.Package.ContainsEntry(part)) continue;
             System.Xml.Linq.XDocument document = source.Package.GetXml(part);
             notes.UnsupportedOdtNoteConfigurations += document.Descendants(text + "notes-configuration").Count();
-            if (notes.ConvertedFootnotes > 0)
-                notes.UnsupportedOdtNoteConfigurations += document.Descendants(style + "footnote-sep").Count();
+            notes.UnsupportedOdtNoteConfigurations += document.Descendants(style + "footnote-sep").Count();
         }
     }
 
@@ -399,11 +400,15 @@ public static partial class WordOpenDocumentConversionExtensions {
     }
 
     private static bool HasCustomizedDefaultWordNoteReferenceStyle(WordDocument source, string styleId) {
-        W.Style? style = source.OpenXmlDocument.MainDocumentPart?.StyleDefinitionsPart?.Styles?
+        W.Styles? styles = source.OpenXmlDocument.MainDocumentPart?.StyleDefinitionsPart?.Styles;
+        W.Style? style = styles?
             .Elements<W.Style>().FirstOrDefault(candidate => string.Equals(candidate.StyleId?.Value,
                 styleId, StringComparison.OrdinalIgnoreCase));
         if (style == null) return false;
         if (style.CustomStyle?.Value == true || style.BasedOn?.Val?.Value != "DefaultParagraphFont") return true;
+        W.Style? baseStyle = styles?.Elements<W.Style>().FirstOrDefault(candidate =>
+            string.Equals(candidate.StyleId?.Value, "DefaultParagraphFont", StringComparison.OrdinalIgnoreCase));
+        if (baseStyle?.StyleRunProperties?.HasChildren == true || baseStyle?.BasedOn != null) return true;
         W.StyleRunProperties? properties = style.StyleRunProperties;
         return properties?.ChildElements.Count != 1 ||
             properties.GetFirstChild<W.VerticalTextAlignment>()?.Val?.Value != W.VerticalPositionValues.Superscript;
@@ -495,7 +500,7 @@ public static partial class WordOpenDocumentConversionExtensions {
             notes.UnsupportedOdtNoteConfigurations, "ODT note numbering, placement, or footnote separator configuration was not carried into Word.");
         if (notes.ApproximatedReferencePositions > 0) report.Add("note-reference-position", OdfConversionMappingStatus.Approximated,
             notes.ApproximatedReferencePositions,
-            "A Word run contained a note reference with text, another note, a break, or an image; relative inline order may have changed.");
+            "A Word run contained a note reference with text, another note, a break, an image, or a hyperlink; inline context or order may have changed.");
         if (notes.ApproximatedReferenceFormatting > 0) report.Add("note-reference-formatting", OdfConversionMappingStatus.Approximated,
             notes.ApproximatedReferenceFormatting, "Direct or inherited note-reference formatting was replaced by the destination's default note reference.");
         if (notes.ApproximatedCitations > 0) report.Add("note-citations", OdfConversionMappingStatus.Approximated,

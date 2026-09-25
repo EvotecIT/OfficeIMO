@@ -8,6 +8,30 @@ namespace OfficeIMO.OpenDocument.Tests;
 
 public sealed class OpenDocumentOdtNotesTests {
     [Fact]
+    public void SupportedNotesAreReportedAsEditable() {
+        OdtDocument source = OdtDocument.Create();
+        source.AddParagraph("Anchor").AddFootnote("Body");
+
+        OdfFeatureReport report = source.InspectFeatures();
+        Assert.Contains(report.Findings, finding => finding.Name == "text-notes" &&
+            finding.Support == OdfFeatureSupport.Editable && finding.Count == 1);
+    }
+
+    [Fact]
+    public void NoteInsideTrackedDeletionIsNotReportedAsEditable() {
+        OdtDocument source = OdtDocument.Create();
+        OdtParagraph deleted = source.AddParagraph("Anchor");
+        deleted.AddFootnote("Deleted note");
+        source.DeleteParagraphTracked(deleted, "Editor");
+
+        OdfFeatureReport report = source.InspectFeatures();
+        Assert.DoesNotContain(report.Findings, finding => finding.Name == "text-notes" &&
+            finding.Support == OdfFeatureSupport.Editable);
+        Assert.Contains(report.Findings, finding => finding.Name == "text-notes" &&
+            finding.Support == OdfFeatureSupport.Inspected && finding.Count == 1);
+    }
+
+    [Fact]
     public void InsertingEarlierNoteRenumbersGeneratedCitationsInDocumentOrder() {
         OdtDocument source = OdtDocument.Create();
         OdtParagraph earlier = source.AddParagraph("Earlier");
