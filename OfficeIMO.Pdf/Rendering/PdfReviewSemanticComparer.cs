@@ -14,7 +14,9 @@ internal static class PdfReviewSemanticComparer {
         int expectedPage = expected.PageNumber;
         int actualPage = actual.PageNumber;
         var changes = new List<PdfReviewChange>();
-        bool scanned = IsScan(expected) || IsScan(actual);
+        ValidateImagePlacementCount(expected, options, cancellationToken);
+        ValidateImagePlacementCount(actual, options, cancellationToken);
+        bool scanned = IsScan(expected, cancellationToken) || IsScan(actual, cancellationToken);
         CompareText(expected, actual, visual, options, changes, cancellationToken);
         if (scanned) {
             if (visual is { IsMatch: false }) changes.Add(new PdfReviewChange(PdfReviewChangeKind.ScannedPageUncertain, expectedPage, actualPage, null, null));
@@ -33,21 +35,11 @@ internal static class PdfReviewSemanticComparer {
         TextFeature[] after = GetText(actual, visual, options);
         bool[] usedBefore = new bool[before.Length];
         bool[] usedAfter = new bool[after.Length];
-        for (int i = 0; i < before.Length; i++) {
-            cancellationToken.ThrowIfCancellationRequested();
-            int best = -1;
-            double distance = double.MaxValue;
-            for (int j = 0; j < after.Length; j++) {
-                if (usedAfter[j] || !string.Equals(before[i].Normalized, after[j].Normalized, StringComparison.Ordinal)) continue;
-                double candidateDistance = Distance(before[i].Bounds, after[j].Bounds);
-                if (candidateDistance < distance) { distance = candidateDistance; best = j; }
-            }
-            if (best < 0) continue;
-            usedBefore[i] = true;
-            usedAfter[best] = true;
-            if (distance > 4D) changes.Add(new PdfReviewChange(PdfReviewChangeKind.TextMoved, expected.PageNumber, actual.PageNumber,
-                before[i].Bounds, after[best].Bounds, before[i].Text, after[best].Text));
-        }
+        MatchIdentical(before, after, static feature => feature.Normalized, usedBefore, usedAfter,
+            (i, j, distance) => {
+                if (distance > 4D) changes.Add(new PdfReviewChange(PdfReviewChangeKind.TextMoved, expected.PageNumber, actual.PageNumber,
+                    before[i].Bounds, after[j].Bounds, before[i].Text, after[j].Text));
+            }, cancellationToken);
         for (int i = 0; i < before.Length; i++) {
             if (usedBefore[i]) continue;
             cancellationToken.ThrowIfCancellationRequested();
@@ -70,21 +62,11 @@ internal static class PdfReviewSemanticComparer {
         ImageFeature[] after = GetImages(actual, visual, options, cancellationToken);
         bool[] usedBefore = new bool[before.Length];
         bool[] usedAfter = new bool[after.Length];
-        for (int i = 0; i < before.Length; i++) {
-            cancellationToken.ThrowIfCancellationRequested();
-            int best = -1;
-            double distance = double.MaxValue;
-            for (int j = 0; j < after.Length; j++) {
-                if (usedAfter[j] || !string.Equals(before[i].Hash, after[j].Hash, StringComparison.Ordinal)) continue;
-                double candidateDistance = Distance(before[i].Bounds, after[j].Bounds);
-                if (candidateDistance < distance) { distance = candidateDistance; best = j; }
-            }
-            if (best < 0) continue;
-            usedBefore[i] = true;
-            usedAfter[best] = true;
-            if (distance > 4D) changes.Add(new PdfReviewChange(PdfReviewChangeKind.ImageMoved,
-                expected.PageNumber, actual.PageNumber, before[i].Bounds, after[best].Bounds));
-        }
+        MatchIdentical(before, after, static feature => feature.Hash, usedBefore, usedAfter,
+            (i, j, distance) => {
+                if (distance > 4D) changes.Add(new PdfReviewChange(PdfReviewChangeKind.ImageMoved,
+                    expected.PageNumber, actual.PageNumber, before[i].Bounds, after[j].Bounds));
+            }, cancellationToken);
         for (int i = 0; i < before.Length; i++) {
             if (usedBefore[i]) continue;
             cancellationToken.ThrowIfCancellationRequested();
@@ -117,10 +99,7 @@ internal static class PdfReviewSemanticComparer {
 
     private static ImageFeature[] GetImages(PdfLogicalPage page, PdfVisualPageComparison? visual,
         PdfReviewComparisonOptions options, CancellationToken cancellationToken) {
-        int count = page.Images.Sum(static image => image.Placements.Count);
-        if (count > options.MaxImagePlacementsPerPage) {
-            throw PdfReadLimitException.Create(PdfReadLimitKind.UnderstandingArtifacts, options.MaxImagePlacementsPerPage, count);
-        }
+        int count = ValidateImagePlacementCount(page, options, cancellationToken);
         var output = new List<ImageFeature>(count);
         foreach (PdfLogicalImage image in page.Images) {
             string? hash = null;
@@ -137,15 +116,42 @@ internal static class PdfReviewSemanticComparer {
         return output.ToArray();
     }
 
-    private static bool IsScan(PdfLogicalPage page) {
+    private static int ValidateImagePlacementCount(PdfLogicalPage page, PdfReviewComparisonOptions options,
+        CancellationToken cancellationToken) {
+        int count = 0;
+        foreach (PdfLogicalImage image in page.Images) {
+            cancellationToken.ThrowIfCancellationRequested();
+            count = checked(count + image.Placements.Count);
+            if (count > options.MaxImagePlacementsPerPage) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.UnderstandingArtifacts, options.MaxImagePlacementsPerPage, count);
+            }
+        }
+        return count;
+    }
+
+    private static bool IsScan(PdfLogicalPage page, CancellationToken cancellationToken) {
         (double width, double height) = page.GetVisualPageSize();
         double area = width * height;
         if (area <= 0D) return false;
         foreach (PdfLogicalImage image in page.Images) {
             foreach (PdfImagePlacement placement in image.Placements) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (placement.Width <= 0D || placement.Height <= 0D || placement.IsHiddenOptionalContent) continue;
                 PdfVisualBounds bounds = page.TransformBoundsToVisual(placement.X, placement.Y, placement.X + placement.Width, placement.Y + placement.Height);
-                if ((bounds.Right - bounds.Left) * (bounds.Bottom - bounds.Top) >= area * 0.75D) return true;
+                double left = Math.Max(0D, bounds.Left);
+                double top = Math.Max(0D, bounds.Top);
+                double right = Math.Min(width, bounds.Right);
+                double bottom = Math.Min(height, bounds.Bottom);
+                if (placement.Clip is { } clip) {
+                    if (!clip.IsRectangle || !clip.IsExact || clip.ContainsTextClipping) continue;
+                    PdfVisualBounds clipped = page.TransformBoundsToVisual(clip.X,
+                        page.Height - clip.Y - clip.Height, clip.X + clip.Width, page.Height - clip.Y);
+                    left = Math.Max(left, clipped.Left);
+                    top = Math.Max(top, clipped.Top);
+                    right = Math.Min(right, clipped.Right);
+                    bottom = Math.Min(bottom, clipped.Bottom);
+                }
+                if (Math.Max(0D, right - left) * Math.Max(0D, bottom - top) >= area * 0.75D) return true;
             }
         }
         return false;
@@ -171,6 +177,36 @@ internal static class PdfReviewSemanticComparer {
         double bottom = bounds.Bottom * options.Scale + offsetY;
         return options.IgnoredRegions.Any(region => region.X <= left && region.Y <= top &&
             (long)region.X + region.Width >= right && (long)region.Y + region.Height >= bottom);
+    }
+
+    private static void MatchIdentical<T>(T[] before, T[] after, Func<T, string> key,
+        bool[] usedBefore, bool[] usedAfter, Action<int, int, double> onMatch, CancellationToken cancellationToken)
+        where T : IBoundedFeature {
+        // Claim exact surviving instances first, so removing one of several identical items does not look like a move.
+        var candidates = new List<(int Index, double Distance)>();
+        for (int i = 0; i < before.Length; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            double nearest = double.MaxValue;
+            for (int j = 0; j < after.Length; j++) {
+                if (!string.Equals(key(before[i]), key(after[j]), StringComparison.Ordinal)) continue;
+                nearest = Math.Min(nearest, Distance(before[i].Bounds, after[j].Bounds));
+            }
+            if (nearest < double.MaxValue) candidates.Add((i, nearest));
+        }
+        foreach ((int i, _) in candidates.OrderBy(static candidate => candidate.Distance).ThenBy(static candidate => candidate.Index)) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int best = -1;
+            double distance = double.MaxValue;
+            for (int j = 0; j < after.Length; j++) {
+                if (usedAfter[j] || !string.Equals(key(before[i]), key(after[j]), StringComparison.Ordinal)) continue;
+                double candidateDistance = Distance(before[i].Bounds, after[j].Bounds);
+                if (candidateDistance < distance) { best = j; distance = candidateDistance; }
+            }
+            if (best < 0) continue;
+            usedBefore[i] = true;
+            usedAfter[best] = true;
+            onMatch(i, best, distance);
+        }
     }
 
     private static int FindCorresponding<T>(PdfLogicalVisualBounds bounds, T[] other, bool[] used) where T : IBoundedFeature {

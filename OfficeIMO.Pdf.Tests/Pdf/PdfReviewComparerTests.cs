@@ -186,6 +186,74 @@ public sealed class PdfReviewComparerTests {
             static change => change.Kind == PdfReviewChangeKind.ScannedPageUncertain);
     }
 
+    [Fact]
+    public void RemovingTheFirstOfTwoIdenticalTextBlocksDoesNotMoveTheSecond() {
+        PdfDocument expected = PdfDocument.Load(PdfDocument.Create(new PdfOptions { PageWidth = 240D, PageHeight = 180D })
+            .Canvas(canvas => {
+                canvas.Text("Duplicate", 20D, 20D, 100D, 20D);
+                canvas.Text("Duplicate", 20D, 100D, 100D, 20D);
+            }).ToBytes());
+        PdfDocument actual = PageAt("Duplicate", 100D);
+
+        PdfReviewChange change = Assert.Single(Assert.Single(expected.Proof.CompareReview(actual).Pages).Changes);
+        Assert.Equal(PdfReviewChangeKind.TextRemoved, change.Kind);
+    }
+
+    [Fact]
+    public void RemovingTheFirstOfTwoIdenticalImagesDoesNotMoveTheSecond() {
+        byte[] image = PdfPngTestImages.CreateRgbPng(20, 60, 180);
+        PdfDocument expected = PdfDocument.Load(PdfDocument.Create(new PdfOptions { PageWidth = 240D, PageHeight = 180D })
+            .Canvas(canvas => {
+                canvas.Image(image, 20D, 20D, 40D, 40D);
+                canvas.Image(image, 20D, 100D, 40D, 40D);
+            }).ToBytes());
+        PdfDocument actual = PdfDocument.Load(PdfDocument.Create(new PdfOptions { PageWidth = 240D, PageHeight = 180D })
+            .Canvas(canvas => canvas.Image(image, 20D, 100D, 40D, 40D)).ToBytes());
+
+        PdfReviewChange change = Assert.Single(Assert.Single(expected.Proof.CompareReview(actual).Pages).Changes);
+        Assert.Equal(PdfReviewChangeKind.ImageRemoved, change.Kind);
+    }
+
+    [Fact]
+    public void ScanClassificationStillEnforcesImagePlacementBudget() {
+        byte[] blue = PdfPngTestImages.CreateRgbPng(20, 60, 180);
+        PdfDocument expected = ImagePage(blue, scan: true);
+        PdfDocument actual = PdfDocument.Load(PdfDocument.Create(new PdfOptions { PageWidth = 240D, PageHeight = 180D })
+            .Canvas(canvas => {
+                canvas.Image(blue, 0D, 0D, 240D, 180D);
+                canvas.Image(blue, 10D, 10D, 20D, 20D);
+            }).ToBytes());
+
+        Assert.Throws<PdfReadLimitException>(() => expected.Proof.CompareReview(actual,
+            new PdfReviewComparisonOptions { MaxImagePlacementsPerPage = 1 }));
+    }
+
+    [Fact]
+    public void MostlyOffPageImageIsComparedAsAnImageRatherThanAScan() {
+        PdfDocument expected = PdfDocument.Load(OffPageImagePdf("ABC"));
+        PdfDocument actual = PdfDocument.Load(OffPageImagePdf("DEF"));
+
+        Assert.Contains(Assert.Single(expected.Proof.CompareReview(actual).Pages).Changes,
+            static change => change.Kind == PdfReviewChangeKind.ImageChangedCandidate);
+    }
+
+    private static PdfDocument PageAt(string text, double y) => PdfDocument.Load(PdfDocument.Create(
+        new PdfOptions { PageWidth = 240D, PageHeight = 180D })
+        .Canvas(canvas => canvas.Text(text, 20D, y, 100D, 20D)).ToBytes());
+
+    private static byte[] OffPageImagePdf(string pixels) {
+        const string content = "q 240 0 0 180 230 0 cm /Im0 Do Q\n";
+        return System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+        "%PDF-1.7",
+        "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+        "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+        "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /XObject << /Im0 5 0 R >> >> /Contents 4 0 R >>", "endobj",
+        "4 0 obj", "<< /Length " + System.Text.Encoding.ASCII.GetByteCount(content) + " >>", "stream", content.TrimEnd('\n'), "endstream", "endobj",
+        "5 0 obj", "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length 3 >>", "stream", pixels, "endstream", "endobj",
+        "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF", string.Empty
+        }));
+    }
+
     private static PdfDocument Page(string text, double x) => PdfDocument.Load(PdfDocument.Create(
         new PdfOptions { PageWidth = 240D, PageHeight = 180D })
         .Canvas(canvas => canvas.Text(text, x, 30D, 130D, 25D)).ToBytes());
