@@ -183,6 +183,7 @@ internal sealed class HtmlRenderBoxStyle {
     internal string UnsupportedOverflowY = string.Empty;
     internal string UnsupportedOverflowClipMargin = string.Empty;
     internal string Transform = "none";
+    internal string IndividualScale = "none";
     internal string TransformOrigin = "50% 50%";
     internal string ClipPath = "none";
     internal bool OpacityWasSpecified;

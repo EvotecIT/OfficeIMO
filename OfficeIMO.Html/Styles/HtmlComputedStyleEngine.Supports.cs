@@ -273,6 +273,9 @@ public static partial class HtmlComputedStyleEngine {
         if (string.Equals(propertyName, "transform", StringComparison.OrdinalIgnoreCase)) {
             return HtmlCssTransformParser.IsSupportedTransformSyntax(normalized);
         }
+        if (string.Equals(propertyName, "scale", StringComparison.OrdinalIgnoreCase)) {
+            return HtmlCssTransformParser.IsSupportedIndividualScaleSyntax(normalized);
+        }
         if (string.Equals(propertyName, "transform-origin", StringComparison.OrdinalIgnoreCase)) {
             return HtmlCssTransformParser.IsSupportedOriginSyntax(normalized);
         }
@@ -413,6 +416,8 @@ public static partial class HtmlComputedStyleEngine {
                 || string.Equals(owned.Definition.Name, "visibility", StringComparison.OrdinalIgnoreCase))) return false;
         string normalized = rawNormalized;
         switch (propertyName.ToLowerInvariant()) {
+            case "scale":
+                return HtmlCssTransformParser.IsSupportedIndividualScaleSyntax(normalized);
             case "font":
                 return TryExpandFontShorthand(value, out _);
             case "text-decoration":

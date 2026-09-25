@@ -91,10 +91,12 @@ internal static class HtmlConversionPreflightAnalyzer {
     private static bool HasGeometry(HtmlSemanticBlock block) {
         if (block.Style == null) return false;
         string position = block.Style.GetValue("position");
+        string scale = block.Style.GetValue("scale");
         return (!string.IsNullOrWhiteSpace(position) && !string.Equals(position, "static", StringComparison.OrdinalIgnoreCase))
             || !string.IsNullOrWhiteSpace(block.Style.GetValue("width"))
             || !string.IsNullOrWhiteSpace(block.Style.GetValue("height"))
-            || !string.IsNullOrWhiteSpace(block.Style.GetValue("transform"));
+            || !string.IsNullOrWhiteSpace(block.Style.GetValue("transform"))
+            || !string.IsNullOrWhiteSpace(scale) && !string.Equals(scale, "none", StringComparison.OrdinalIgnoreCase);
     }
 
     private static FeatureEvidence RunEvidence(IReadOnlyList<HtmlSemanticBlock> blocks, Func<HtmlSemanticRun, bool> predicate) {

@@ -961,6 +961,11 @@ internal sealed partial class HtmlRenderStyleResolver {
         ApplyBackgroundLayers(computed, style, backgroundShorthand);
         ApplyOpacity(computed.GetValue("opacity"), style);
         style.Transform = NormalizeCssValue(computed.GetValue("transform"), "none");
+        if (HtmlCssTransformParser.TryParseIndividualScale(computed.GetValue("scale"), out string scale)
+            && scale.Length > 0) {
+            style.IndividualScale = scale;
+            style.Transform = style.Transform == "none" ? scale : scale + " " + style.Transform;
+        }
         style.TransformOrigin = NormalizeCssValue(computed.GetValue("transform-origin"), "50% 50%");
         style.ClipPath = NormalizeCssValue(computed.GetValue("clip-path"), "none");
         style.BoxDecorationBreak = NormalizeCssValue(computed.GetValue("box-decoration-break"), "slice");

@@ -297,6 +297,7 @@ public static partial class HtmlComputedStyleEngine {
         "baseline-shift",
         "transform",
         "transform-origin",
+        "scale",
         "top",
         "inset-block",
         "inset-block-end",

@@ -295,6 +295,7 @@ public static partial class HtmlEditableLayoutProjector {
             effects.Add(prefix + "background-color=" + backgroundColor);
         }
         AddNonDefaultEffect(style, "transform", "none", effects, prefix);
+        AddNonDefaultEffect(style, "scale", "none", effects, prefix);
         AddNonDefaultEffect(style, "clip-path", "none", effects, prefix);
         AddNonDefaultEffect(style, "filter", "none", effects, prefix);
         AddNonDefaultEffect(style, "mix-blend-mode", "normal", effects, prefix);

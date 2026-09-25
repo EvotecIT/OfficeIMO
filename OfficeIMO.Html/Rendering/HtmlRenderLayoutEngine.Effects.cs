@@ -61,31 +61,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         OfficeTransform transform = OfficeTransform.Identity;
         if (hasTransform) {
-            if (!HtmlCssTransformParser.TryParse(
-                    style.Transform,
-                    style.TransformOrigin,
-                    style.MarginLeft,
-                    style.MarginTop,
-                    boxWidth,
-                    boxHeight,
-                    style.Font.Size,
-                    _options.DefaultFontSize,
-                    _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Width : _options.ViewportWidth,
-                    _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D,
-                    style.ContainerUnitWidth ?? double.NaN,
-                    style.ContainerUnitHeight ?? double.NaN,
-                    out transform,
-                    out string detail)) {
+            if (!TryParsePaintTransform(style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight,
+                    out transform, out string detail, out bool retainedScale)) {
                 _diagnostics.Add(
                     ComponentName,
                     HtmlRenderDiagnosticCodes.TransformValueUnsupported,
-                    "A CSS transform or transform-origin value used the identity fallback.",
+                    retainedScale
+                        ? "An unsupported CSS transform was omitted while the individual scale was retained."
+                        : "A CSS transform or transform-origin value used the identity fallback.",
                     HtmlDiagnosticSeverity.Warning,
                     source,
                     detail,
                     OfficeConversionLossKind.Omission);
-                hasTransform = false;
-                transform = OfficeTransform.Identity;
+                hasTransform = retainedScale;
             }
         }
 
@@ -193,29 +181,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         OfficeTransform transform = OfficeTransform.Identity;
         bool hasTransform = style.Transform != "none";
-        if (hasTransform && !HtmlCssTransformParser.TryParse(
-                style.Transform,
-                style.TransformOrigin,
-                bounds.X,
-                bounds.Y,
-                bounds.Width,
-                bounds.Height,
-                style.Font.Size,
-                _options.DefaultFontSize,
-                _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Width : _options.ViewportWidth,
-                _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D,
-                style.ContainerUnitWidth ?? double.NaN,
-                style.ContainerUnitHeight ?? double.NaN,
-                out transform,
-                out string transformDetail)) {
+        if (hasTransform && !TryParsePaintTransform(style, bounds.X, bounds.Y, bounds.Width, bounds.Height,
+                out transform, out string transformDetail, out bool retainedScale)) {
             _diagnostics.Add(
                 ComponentName,
                 HtmlRenderDiagnosticCodes.TransformValueUnsupported,
-                "A CSS transform or transform-origin value used the identity fallback.",
+                retainedScale
+                    ? "An unsupported CSS transform was omitted while the individual scale was retained."
+                    : "A CSS transform or transform-origin value used the identity fallback.",
                 HtmlDiagnosticSeverity.Warning,
                 source,
                 transformDetail);
-            hasTransform = false;
+            hasTransform = retainedScale;
         }
 
         bool hasOpacity = style.OpacityWasSpecified && style.UnsupportedOpacity.Length == 0 && style.Opacity < 1D;
@@ -249,6 +226,33 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 0,
                 source)
         };
+    }
+
+    private bool TryParsePaintTransform(
+        HtmlRenderBoxStyle style,
+        double boxX,
+        double boxY,
+        double boxWidth,
+        double boxHeight,
+        out OfficeTransform transform,
+        out string detail,
+        out bool retainedScale) {
+        double viewportWidth = _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Width : _options.ViewportWidth;
+        double viewportHeight = _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D;
+        bool parsed = HtmlCssTransformParser.TryParse(
+            style.Transform, style.TransformOrigin, boxX, boxY, boxWidth, boxHeight,
+            style.Font.Size, _options.DefaultFontSize, viewportWidth, viewportHeight,
+            style.ContainerUnitWidth ?? double.NaN, style.ContainerUnitHeight ?? double.NaN,
+            out transform, out detail);
+        retainedScale = false;
+        if (parsed || style.IndividualScale == "none") return parsed;
+        retainedScale = HtmlCssTransformParser.TryParse(
+            style.IndividualScale, style.TransformOrigin, boxX, boxY, boxWidth, boxHeight,
+            style.Font.Size, _options.DefaultFontSize, viewportWidth, viewportHeight,
+            style.ContainerUnitWidth ?? double.NaN, style.ContainerUnitHeight ?? double.NaN,
+            out OfficeTransform scaleTransform, out _);
+        transform = retainedScale ? scaleTransform : OfficeTransform.Identity;
+        return false;
     }
 
     private IReadOnlyList<HtmlRenderVisual> ApplyInlineBoxDecoration(

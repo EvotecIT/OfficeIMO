@@ -87,6 +87,19 @@ public sealed class ContentSafetyContracts {
         Assert.All(report.Findings.Where(item => !item.IsInstructionLike), item => Assert.Equal(OfficeContentSafetyRisk.ContextDependent, item.Risk));
     }
 
+    [Theory]
+    [InlineData("scale:50")]
+    [InlineData("transform:scale(50)")]
+    public void HtmlCleanupKeepsTinyTextThatPaintScalingCanMagnify(string paintScaling) {
+        string html = "<p style='font-size:1px;" + paintScaling + "'>Scaled disclosure</p>";
+
+        OfficeContentSafetyReport report = HtmlContentSafety.Inspect(html);
+        OfficeContentSafetyFinding finding = Assert.Single(report.Findings,
+            item => item.Kind == OfficeContentConcealmentKind.TinyText);
+
+        Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+    }
+
     [Fact]
     public void HtmlContrastRequiresKnownBackdropAndStillFindsTransparentText() {
         const string html = """
