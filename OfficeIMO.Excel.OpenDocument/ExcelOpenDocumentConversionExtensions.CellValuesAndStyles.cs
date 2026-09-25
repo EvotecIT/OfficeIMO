@@ -253,7 +253,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         if (style.BackgroundColor.HasValue) target.SetFillColor(style.BackgroundColor.Value.ToString().TrimStart('#'));
         string? textAlign = style.TextAlign;
         string? textAlignSource = style.TextAlignSource;
-        if (textAlign != null && textAlignSource != "fix" ||
+        if (textAlignSource == "fix" && textAlign == null ||
+            textAlign != null && textAlignSource != "fix" ||
             textAlignSource != null && textAlignSource != "fix" && textAlignSource != "value-type") {
             unsupportedCellLayout++;
         } else {

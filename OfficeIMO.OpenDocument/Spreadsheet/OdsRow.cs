@@ -31,7 +31,7 @@ public sealed class OdsRowRun {
         }
     }
     /// <summary>Whether the prototype row is hidden.</summary>
-    public bool Hidden => (string?)_element.Attribute(OdfNamespaces.Table + "visibility") == "collapse";
+    public bool Hidden => new OdsRow(_document, _element).Hidden;
     /// <summary>Referenced prototype row style.</summary>
     public string? StyleName => (string?)_element.Attribute(OdfNamespaces.Table + "style-name");
     /// <summary>Default cell style for cells without an explicit style in this row.</summary>
@@ -48,9 +48,18 @@ public sealed class OdsRow {
     internal OdsRow(OdsDocument document, XElement element) { _document = document; _element = element; }
     /// <summary>Whether this row is hidden.</summary>
     public bool Hidden {
-        get => (string?)_element.Attribute(OdfNamespaces.Table + "visibility") == "collapse";
-        set { _element.SetAttributeValue(OdfNamespaces.Table + "visibility", value ? "collapse" : null); Dirty(); }
+        get => (string?)_element.Attribute(OdfNamespaces.Table + "visibility") is "collapse" or "filter" ||
+            HiddenByGroup;
+        set {
+            if (!value && HiddenByGroup)
+                throw new InvalidOperationException("Expand the owning row group before unhiding this row.");
+            _element.SetAttributeValue(OdfNamespaces.Table + "visibility", value ? "collapse" : null);
+            Dirty();
+        }
     }
+    private bool HiddenByGroup => _element.Ancestors(OdfNamespaces.Table + "table-row-group").Any(group =>
+        string.Equals((string?)group.Attribute(OdfNamespaces.Table + "display"), "false",
+            StringComparison.OrdinalIgnoreCase));
     /// <summary>Referenced row style name.</summary>
     public string? StyleName {
         get => (string?)_element.Attribute(OdfNamespaces.Table + "style-name");

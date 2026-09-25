@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
@@ -246,6 +247,93 @@ public sealed class SpreadsheetCellLayoutConversionTests {
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "blank-cell-styles" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
         Assert.Throws<OdfConversionLossException>(() => source.ToExcelDocumentResult(
+            new ExcelOpenDocumentConversionOptions {
+                LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
+            }));
+    }
+
+    [Fact]
+    public void CollapsedOdsRowAndColumnGroupsStayHiddenAndReportStructureLoss() {
+        OdsDocument source = OdsDocument.Create();
+        OdsSheet sheet = source.AddSheet("Grouped");
+        sheet.Column(0);
+        sheet.Cell(0, 0).SetNumber(42);
+        XElement column = sheet.Element.Elements(OdfNamespaces.Table + "table-column").Single();
+        column.ReplaceWith(new XElement(OdfNamespaces.Table + "table-column-group",
+            new XAttribute(OdfNamespaces.Table + "display", "false"), new XElement(column)));
+        XElement row = sheet.Element.Elements(OdfNamespaces.Table + "table-row").Single();
+        row.ReplaceWith(new XElement(OdfNamespaces.Table + "table-row-group",
+            new XAttribute(OdfNamespaces.Table + "display", "false"), new XElement(row)));
+        source.MarkPartDirty("content.xml");
+
+        OdsDocument reopened = OdsDocument.Load(new MemoryStream(source.ToBytes()));
+        OdsSheet grouped = reopened.GetSheet("Grouped")!;
+        Assert.True(grouped.RowRuns.Single().Hidden);
+        Assert.True(grouped.ColumnRuns.Single().Hidden);
+        Assert.True(grouped.Row(0).Hidden);
+        Assert.True(grouped.Column(0).Hidden);
+        Assert.Throws<InvalidOperationException>(() => grouped.Row(0).Hidden = false);
+        Assert.Throws<InvalidOperationException>(() => grouped.Column(0).Hidden = false);
+        OdfConversionResult<ExcelDocument> conversion = reopened.ToExcelDocumentResult();
+        using ExcelDocument target = conversion.Value;
+        ExcelWorksheetSnapshot snapshot = target.CreateInspectionSnapshot().Worksheets.Single();
+        Assert.True(snapshot.Rows.Single(rowSnapshot => rowSnapshot.Index == 1).Hidden);
+        Assert.True(snapshot.Columns.Single(columnSnapshot => columnSnapshot.StartIndex == 1).Hidden);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "row-groups" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "column-groups" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+        Assert.Throws<OdfConversionLossException>(() => reopened.ToExcelDocumentResult(
+            new ExcelOpenDocumentConversionOptions {
+                LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
+            }));
+    }
+
+    [Fact]
+    public void FixedAlignmentWithoutTextAlignReportsDefaultStartLoss() {
+        OdsDocument source = OdsDocument.Create();
+        OdfStyle style = source.Styles.CreateNamed("FixedStart", OdfStyleFamily.TableCell);
+        style.CellTextAlignSource = "fix";
+        OdsCell cell = source.AddSheet("Layout").Cell(0, 0);
+        cell.SetNumber(42);
+        cell.StyleName = style.Name;
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        using ExcelDocument target = conversion.Value;
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "cell-layout" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+        Assert.Throws<OdfConversionLossException>(() => source.ToExcelDocumentResult(
+            new ExcelOpenDocumentConversionOptions {
+                LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
+            }));
+    }
+
+    [Fact]
+    public void FilterHiddenOdsRowsAndColumnsStayHiddenWithExplicitLoss() {
+        OdsDocument source = OdsDocument.Create();
+        OdsSheet sheet = source.AddSheet("Filtered");
+        sheet.Column(0);
+        sheet.Cell(0, 0).SetNumber(42);
+        sheet.Element.Elements(OdfNamespaces.Table + "table-column").Single()
+            .SetAttributeValue(OdfNamespaces.Table + "visibility", "filter");
+        sheet.Element.Elements(OdfNamespaces.Table + "table-row").Single()
+            .SetAttributeValue(OdfNamespaces.Table + "visibility", "filter");
+        source.MarkPartDirty("content.xml");
+
+        OdsDocument reopened = OdsDocument.Load(new MemoryStream(source.ToBytes()));
+        OdsSheet filtered = reopened.GetSheet("Filtered")!;
+        Assert.True(filtered.RowRuns.Single().Hidden);
+        Assert.True(filtered.ColumnRuns.Single().Hidden);
+        Assert.True(filtered.Row(0).Hidden);
+        Assert.True(filtered.Column(0).Hidden);
+        OdfConversionResult<ExcelDocument> conversion = reopened.ToExcelDocumentResult();
+        using ExcelDocument target = conversion.Value;
+        ExcelWorksheetSnapshot snapshot = target.CreateInspectionSnapshot().Worksheets.Single();
+        Assert.True(snapshot.Rows.Single(rowSnapshot => rowSnapshot.Index == 1).Hidden);
+        Assert.True(snapshot.Columns.Single(columnSnapshot => columnSnapshot.StartIndex == 1).Hidden);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "filtered-visibility" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+        Assert.Throws<OdfConversionLossException>(() => reopened.ToExcelDocumentResult(
             new ExcelOpenDocumentConversionOptions {
                 LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
             }));

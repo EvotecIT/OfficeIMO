@@ -418,6 +418,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         int approximatedFontFamilyLists = 0, unsupportedFontFamilies = 0;
         int approximatedTextDecorations = 0, unsupportedCapitalization = 0, unsupportedCellLayout = 0;
         int unsupportedInheritedBlankStyles = 0;
+        int unsupportedRowGroups = 0, unsupportedColumnGroups = 0;
+        int filteredRows = 0, filteredColumns = 0;
         int forcedVisibleWorksheets = 0;
         var chartTargets = new List<(OdsSheet Source, ExcelSheet Target)>();
         bool truncated = false;
@@ -437,6 +439,12 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             if (!string.Equals(sheet.Name, odsSheet.Name, StringComparison.Ordinal)) renamedSheets++;
             sheet.SetHidden(odsSheet.Hidden);
             if (!odsSheet.Hidden && activeTarget == null) activeTarget = sheet;
+            unsupportedRowGroups += odsSheet.Element.Descendants(OdfNamespaces.Table + "table-row-group").Count();
+            unsupportedColumnGroups += odsSheet.Element.Descendants(OdfNamespaces.Table + "table-column-group").Count();
+            filteredRows += odsSheet.Element.Descendants(OdfNamespaces.Table + "table-row").Count(row =>
+                (string?)row.Attribute(OdfNamespaces.Table + "visibility") == "filter");
+            filteredColumns += odsSheet.Element.Descendants(OdfNamespaces.Table + "table-column").Count(column =>
+                (string?)column.Attribute(OdfNamespaces.Table + "visibility") == "filter");
 
             IReadOnlyList<OdsColumnRun> columnRuns = odsSheet.ColumnRuns;
             bool hasDefaultCellStyle = source.Styles.FindDefault(OdfStyleFamily.TableCell) != null;
@@ -660,6 +668,12 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         AddConverted(report, "worksheets", worksheetCount);
         AddConverted(report, "cells", cells);
         AddConverted(report, "row-layout", rowLayouts);
+        AddUnsupported(report, "row-groups", unsupportedRowGroups,
+            "ODS row-group structure was flattened; collapsed groups became hidden Excel rows.");
+        AddUnsupported(report, "column-groups", unsupportedColumnGroups,
+            "ODS column-group structure was flattened; collapsed groups became hidden Excel columns.");
+        AddUnsupported(report, "filtered-visibility", filteredRows + filteredColumns,
+            "Filtered ODS rows and columns became hidden Excel rows and columns without their filter rules.");
         if (columnLayouts > 0) report.Add("column-layout", OdfConversionMappingStatus.Approximated, columnLayouts,
             "Physical ODF column widths are converted to approximate Excel character widths.");
         AddConverted(report, "merges", merges);

@@ -7,7 +7,7 @@ public sealed class OdsColumnRun {
     internal OdsColumnRun(OdsDocument document, XElement element, long startColumn, long repeatCount) {
         _document = document; _element = element;
         StartColumn = startColumn; RepeatCount = repeatCount;
-        Hidden = (string?)element.Attribute(OdfNamespaces.Table + "visibility") == "collapse";
+        Hidden = new OdsColumn(document, element).Hidden;
         StyleName = (string?)element.Attribute(OdfNamespaces.Table + "style-name");
         DefaultCellStyleName = (string?)element.Attribute(OdfNamespaces.Table + "default-cell-style-name");
     }
@@ -32,9 +32,18 @@ public sealed class OdsColumn {
     internal OdsColumn(OdsDocument document, XElement element) { _document = document; _element = element; }
     /// <summary>Whether this column is hidden.</summary>
     public bool Hidden {
-        get => (string?)_element.Attribute(OdfNamespaces.Table + "visibility") == "collapse";
-        set { _element.SetAttributeValue(OdfNamespaces.Table + "visibility", value ? "collapse" : null); Dirty(); }
+        get => (string?)_element.Attribute(OdfNamespaces.Table + "visibility") is "collapse" or "filter" ||
+            HiddenByGroup;
+        set {
+            if (!value && HiddenByGroup)
+                throw new InvalidOperationException("Expand the owning column group before unhiding this column.");
+            _element.SetAttributeValue(OdfNamespaces.Table + "visibility", value ? "collapse" : null);
+            Dirty();
+        }
     }
+    private bool HiddenByGroup => _element.Ancestors(OdfNamespaces.Table + "table-column-group").Any(group =>
+        string.Equals((string?)group.Attribute(OdfNamespaces.Table + "display"), "false",
+            StringComparison.OrdinalIgnoreCase));
     /// <summary>Referenced column style name.</summary>
     public string? StyleName {
         get => (string?)_element.Attribute(OdfNamespaces.Table + "style-name");
