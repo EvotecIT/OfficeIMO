@@ -13,7 +13,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
 
     private static void AddUnmappedOdfFindings(OdfFeatureReport features, OdfConversionReport report,
         int formulas, int validations, int hyperlinks, int annotations, int namedRanges,
-        int conditionalStyleMaps, int convertedEmbeddedObjects = 0) {
+        int conditionalStyleMaps, int convertedEmbeddedObjects = 0, int convertedDataPilots = 0) {
         foreach (OdfFeatureDiagnostic diagnostic in features.Diagnostics) {
             report.Add("source-inspection", OdfConversionMappingStatus.Unsupported, 1,
                 diagnostic.Code + " in " + diagnostic.PartPath + ": " + diagnostic.Message);
@@ -22,6 +22,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         int remainingAnnotations = annotations, remainingNamedRanges = namedRanges;
         int remainingConditionalStyleMaps = conditionalStyleMaps;
         int remainingEmbeddedObjects = convertedEmbeddedObjects;
+        int remainingDataPilots = convertedDataPilots;
         foreach (OdfFeatureFinding finding in features.Findings) {
             int handled = 0;
             if (finding.Name == "spreadsheet-formulas") handled = Consume(ref remainingFormulas, finding.Count);
@@ -30,6 +31,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             else if (finding.Name == "annotations") handled = Consume(ref remainingAnnotations, finding.Count);
             else if (finding.Name == "spreadsheet-named-ranges") handled = Consume(ref remainingNamedRanges, finding.Count);
             else if (finding.Name == "conditional-style-maps") handled = Consume(ref remainingConditionalStyleMaps, finding.Count);
+            else if (finding.Name == "spreadsheet-data-pilot-tables") handled = Consume(ref remainingDataPilots, finding.Count);
             else if (finding.Name == "embedded-objects" && finding.PartPath == "content.xml")
                 handled = Consume(ref remainingEmbeddedObjects, finding.Count);
             int remaining = Math.Max(0, finding.Count - handled);

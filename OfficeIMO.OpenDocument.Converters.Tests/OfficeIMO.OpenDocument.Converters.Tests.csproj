@@ -33,6 +33,8 @@
   <ItemGroup>
     <Compile Include="..\TestSupport\OpenDocument\OdfTestPackageRewriter.cs" Link="TestSupport\OdfTestPackageRewriter.cs" />
     <None Include="..\OfficeIMO.OpenDocument.Tests\Fixtures\microsoft-excel-*-chart.ods" Link="Fixtures\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.OpenDocument.Tests\Fixtures\microsoft-excel-pivot.ods" Link="Fixtures\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.OpenDocument.Tests\Fixtures\microsoft-excel-pivot.xlsx" Link="Fixtures\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">

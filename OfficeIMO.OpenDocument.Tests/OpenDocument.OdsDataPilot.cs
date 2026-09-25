@@ -1,0 +1,65 @@
+using System;
+using System.IO;
+using System.Linq;
+using OfficeIMO.OpenDocument;
+using Xunit;
+
+namespace OfficeIMO.OpenDocument.Tests;
+
+public sealed class OpenDocumentOdsDataPilotTests {
+    [Fact]
+    public void ReadsExcelProducedPivotAndPreservesItsPackage() {
+        string path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "microsoft-excel-pivot.ods");
+        OdsDocument document = OdsDocument.Load(path);
+        byte[] content = document.GetPackageEntryBytes("content.xml");
+
+        OdsDataPilotTable pivot = Assert.Single(document.DataPilotTables);
+        Assert.Equal("SalesPivot", pivot.Name);
+        Assert.Equal("Data.A1:Data.C5", pivot.SourceRangeAddress);
+        Assert.Equal("Data.E1:Data.H5", pivot.TargetRangeAddress);
+        Assert.Equal(new[] { "Month", "Region", "Sales" }, pivot.Fields.Select(item => item.SourceFieldName));
+        Assert.Equal(new[] { "column", "row", "data" }, pivot.Fields.Select(item => item.Orientation));
+        Assert.Equal("sum", pivot.Fields[2].Function);
+        Assert.Contains(document.InspectFeatures().Findings,
+            finding => finding.Name == "spreadsheet-data-pilot-tables" && finding.Count == 1);
+        Assert.True(document.Validate().IsValid);
+
+        OdsDocument reopened = OdsDocument.Load(new MemoryStream(document.ToBytes()));
+        Assert.Single(reopened.DataPilotTables);
+        Assert.Equal(content, reopened.GetPackageEntryBytes("content.xml"));
+    }
+
+    [Fact]
+    public void AuthorsLocalRangePivotAndReopensWithFields() {
+        OdsDocument document = OdsDocument.Create();
+        OdsSheet sheet = document.AddSheet("Data");
+        sheet.Cell(0, 0).SetString("Region");
+        sheet.Cell(0, 1).SetString("Sales");
+        sheet.Cell(1, 0).SetString("North");
+        sheet.Cell(1, 1).SetNumber(10);
+        OdsDataPilotTable pivot = document.AddDataPilotTable("SalesPivot", "Data.A1:Data.B2", "Data.D1:Data.E3");
+        pivot.AddField("Region", "row");
+        pivot.AddField("Sales", "data", "sum");
+
+        OdsDocument reopened = OdsDocument.Load(new MemoryStream(document.ToBytes()));
+        OdsDataPilotTable actual = Assert.Single(reopened.DataPilotTables);
+        Assert.Equal("SalesPivot", actual.Name);
+        Assert.Equal("Data.A1:Data.B2", actual.SourceRangeAddress);
+        Assert.Equal("Data.D1:Data.E3", actual.TargetRangeAddress);
+        Assert.Equal("sum", actual.Fields[1].Function);
+        Assert.True(reopened.Validate().IsValid);
+    }
+
+    [Fact]
+    public void RejectsInvalidAddressesAndFieldSemanticsBeforeMutation() {
+        OdsDocument document = OdsDocument.Create();
+        document.AddSheet("Data");
+        Assert.Throws<ArgumentException>(() => document.AddDataPilotTable("Bad", "Missing.A1:Missing.B2", "Data.D1:Data.E3"));
+        Assert.Throws<ArgumentException>(() => document.AddDataPilotTable("Bad", "Data.A1:Data.B2", "Data.D1:Other.E3"));
+        Assert.Empty(document.DataPilotTables);
+        OdsDataPilotTable pivot = document.AddDataPilotTable("Good", "Data.A1:Data.B2", "Data.D1:Data.E3");
+        Assert.Throws<ArgumentException>(() => pivot.AddField("Sales", "data", "auto"));
+        Assert.Throws<ArgumentException>(() => pivot.AddField("Sales", "unknown"));
+        Assert.Empty(pivot.Fields);
+    }
+}

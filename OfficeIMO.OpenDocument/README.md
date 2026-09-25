@@ -59,6 +59,8 @@ For a formula-based validation, use `OdsValidationConditionSyntax.CreateFormula(
 
 ODS conditional cell styles can be authored and edited through `OdfStyle.AddConditionalMap`. Create a common named table-cell style for the desired appearance, add a mapping to a base style, and assign the base style to cells. For example, `baseStyle.AddConditionalMap("cell-content()>0", highlightStyle.Name, "$'Metrics'.$B$2")` applies the highlight style when the condition is true. The applied style must be a common named style in the same family as the base style; `Validate()` reports a missing, automatic, or different-family target. The map and its relative-reference base survive save and reopen. OfficeIMO preserves these native rules; its renderer does not evaluate them.
 
+ODS data pilot tables can be inspected through `OdsDocument.DataPilotTables`. Use `AddDataPilotTable("SalesPivot", "Metrics.A1:Metrics.B20", "Metrics.D1:Metrics.E22")` to author a local-range pivot, then add row, column, or data fields with `AddField`; a data field names its aggregation, such as `AddField("Value", "data", "sum")`. The target range describes the output area; the API does not calculate cached pivot results. Imported grouping, member selection, and other advanced settings remain in the package XML but are outside the typed authoring subset.
+
 Create an ODP presentation:
 
 ```csharp
@@ -170,7 +172,7 @@ Unknown XML, vendor extensions, scripts, embedded content, and unsupported drawi
 - Password-encrypted packages using the documented AES-256-CBC profile can be opened and written. Legacy Blowfish and other unsupported profiles fail before content is exposed.
 - Changed signed packages fail by default because saving would invalidate signatures. An explicit save option can remove invalidated signature entries.
 - The bounded OfficeIMO XML package-manifest signature profile can be created and validated through an explicit `IOfficeSecurityProvider`. Arbitrary producer-specific signature profiles remain inspection or preservation oriented.
-- ODS exposes embedded chart names, types, titles, source ranges, and frame positions through `OdsSheet.Charts`. `OdsSheet.AddChart` creates column, bar, or line charts with one to sixteen series linked to existing one-dimensional ODS cell ranges of up to 4,096 points. Chart styling is preserved in package XML; editing imported charts and pivot tables is outside the current surface.
+- ODS exposes embedded chart names, types, titles, source ranges, and frame positions through `OdsSheet.Charts`. `OdsSheet.AddChart` creates column, bar, or line charts with one to sixteen series linked to existing one-dimensional ODS cell ranges of up to 4,096 points. Chart styling is preserved in package XML; editing imported charts remains outside the current surface. Data pilot tables expose their source and target ranges and field orientations; advanced imported pivot settings remain preservation-oriented.
 - Flat XML variants (`.fodt`, `.fods`, `.fodp`) can be opened and written, including embedded raster images. Exotic embedded objects and package-only features may not project losslessly.
 - `OdsSheet.Merge` rejects merges above its default 100,000-cell materialization limit. Use the overload with an explicit lower limit when processing untrusted dimensions.
 - Unknown package entries and extension XML are always preserved by package editing. Explicit format conversion and flat XML projection report content they cannot carry through `OdfConversionReport` and `OdfSaveReport.LossyEntries`.
