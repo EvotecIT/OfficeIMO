@@ -105,6 +105,11 @@ public static partial class WordOpenDocumentConversionExtensions {
         if (unsupportedImages > 0) report.Add("images", OdfConversionMappingStatus.Unsupported, unsupportedImages,
             "Word image parts using formats unsupported by OpenDocument were skipped.");
         AddCount(report, "bookmarks", bookmarks);
+        int mappedFields = CountOdtFields(target);
+        AddCount(report, "fields", mappedFields);
+        int unmappedFields = Math.Max(0, source.InspectFields().Count - mappedFields);
+        if (unmappedFields > 0) report.Add("fields", OdfConversionMappingStatus.Unsupported,
+            unmappedFields, "Fields outside the basic PAGE, NUMPAGES, DATE, and TIME subset retain only cached display text.");
         if (snapshot.Sections.Count > 0) report.Add("page-layout", OdfConversionMappingStatus.Converted, 1);
         if (snapshot.Sections.Count > 1) report.Add("sections", OdfConversionMappingStatus.Approximated, snapshot.Sections.Count,
             "Section content is retained in order, but section-specific layout is collapsed to one ODT page layout.");
@@ -230,6 +235,11 @@ public static partial class WordOpenDocumentConversionExtensions {
         AddCount(report, "hyperlinks", hyperlinks);
         AddCount(report, "images", images);
         AddCount(report, "bookmarks", bookmarks);
+        int mappedFields = target.InspectFields().Count;
+        AddCount(report, "fields", mappedFields);
+        int unmappedFields = Math.Max(0, CountOdtFields(source) - mappedFields);
+        if (unmappedFields > 0) report.Add("fields", OdfConversionMappingStatus.Unsupported, unmappedFields,
+            "ODT fields with format, adjustment, fixed-value, or other unsupported properties retain only displayed text.");
         if (approximatedRuns > 0) report.Add("inline-formatting", OdfConversionMappingStatus.Approximated, approximatedRuns,
             "Inline elements outside the typed ODT text, span, hyperlink, image, and bookmark syntax were flattened to text.");
         if (approximatedTextDecorations > 0) report.Add("text-decorations", OdfConversionMappingStatus.Approximated,
@@ -347,6 +357,21 @@ public static partial class WordOpenDocumentConversionExtensions {
                     }
                     break;
                 case OdtInlineNodeKind.BookmarkEnd:
+                    break;
+                case OdtInlineNodeKind.Field:
+                    OdtField field = node.Field!;
+                    if (leaf.TargetLink == null && TryMapOdtField(field, out WordFieldType fieldType)) {
+                        target.AddField(fieldType);
+                        WordField wordField = target.Field!;
+                        wordField.Text = field.DisplayText;
+                        if (field.IsFixed) {
+                            wordField.LockField = true;
+                            wordField.UpdateField = false;
+                        }
+                        if (leaf.Span != null || leaf.StyleLink != null) approximatedRuns++;
+                    } else {
+                        target.AddText(field.DisplayText);
+                    }
                     break;
             }
         }
@@ -670,7 +695,7 @@ public static partial class WordOpenDocumentConversionExtensions {
 
     private static void AddUnmappedWordFindings(WordFeatureReport features, OdfConversionReport report,
         int images, int hyperlinks, int bookmarks) {
-        var structural = new HashSet<string>(StringComparer.Ordinal) { "Paragraphs", "Tables", "Sections", "Footnotes" };
+        var structural = new HashSet<string>(StringComparer.Ordinal) { "Paragraphs", "Tables", "Sections", "Footnotes", "Fields" };
         foreach (WordFeatureFinding finding in features.Features.Where(item => item.Count > 0 && !structural.Contains(item.Name))) {
             int handled = finding.Name == "Images" ? images : finding.Name == "External hyperlinks" ? hyperlinks :
                 finding.Name == "Bookmarks" ? bookmarks : 0;
@@ -687,6 +712,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         }
         int remainingHyperlinks = hyperlinks, remainingBookmarks = bookmarks, remainingPageLayouts = pageLayouts;
         foreach (OdfFeatureFinding finding in features.Findings) {
+            if (finding.Name == "text-fields") continue; // Reported against the mapped DOCX fields above.
             int handled = 0;
             if (finding.Name == "external-links") {
                 handled = Math.Min(remainingHyperlinks, finding.Count);

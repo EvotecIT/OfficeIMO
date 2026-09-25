@@ -16,9 +16,9 @@ foreach (OdfConversionMapping mapping in result.Report.Mappings) {
 }
 ```
 
-The adapter maps ordered body blocks, headings, paragraphs, alignment, indentation, spacing, shading, font family, common run formatting, hyperlinks, lists, tables and merges, embedded inline images, page layout, page breaks, bookmarks, and default headers and footers. Mixed ODT text, spans, hyperlinks, images, and bookmark markers are consumed in document order. Nested inline markup that does not have an exact typed mapping is flattened with an explicit `inline-formatting` approximation instead of being reported as exact.
+The adapter maps ordered body blocks, headings, paragraphs, alignment, indentation, spacing, shading, font family, common run formatting, hyperlinks, lists, tables and merges, embedded inline images, page layout, page breaks, bookmarks, and default headers and footers. Bare Word `PAGE`, `NUMPAGES`, `DATE`, and `TIME` simple fields map to native ODT fields with cached display text, and the same basic ODT fields map back to Word. Mixed ODT text, spans, hyperlinks, images, fields, and bookmark markers are consumed in document order. Nested inline markup that does not have an exact typed mapping is flattened with an explicit `inline-formatting` approximation instead of being reported as exact.
 
-The report calls out omitted table and image-layout details as well as tracked changes, section-specific layout, alternate headers/footers, footnotes, fields, charts, content controls, and other source features that cannot be represented directly. Use `ToOpenDocumentResult` or `ToWordDocumentResult` for evidence-bearing conversion, and set the options' `LossPolicy` to `ThrowOnAnyLoss` for strict workflows.
+The report calls out omitted table and image-layout details as well as tracked changes, section-specific layout, alternate headers/footers, footnotes, unsupported field instructions or properties, charts, content controls, and other source features that cannot be represented directly. Unsupported fields retain cached display text where available and report `fields` loss. Use `ToOpenDocumentResult` or `ToWordDocumentResult` for evidence-bearing conversion, and set the options' `LossPolicy` to `ThrowOnAnyLoss` for strict workflows.
 
 ## Dependency footprint
 

@@ -241,6 +241,35 @@ namespace OfficeIMO.Word {
                 });
             }
 
+            int runIndex = 0;
+            foreach (var element in paragraph._paragraph.ChildElements) {
+                if (element is Run or SdtRun) { runIndex++; continue; }
+                if (element is Hyperlink link) {
+                    foreach (var child in link.ChildElements) {
+                        if (child is Run) runIndex++;
+                        else if (child is SimpleField nestedField) AddInlineField(nestedField, runIndex, true);
+                    }
+                    continue;
+                }
+                if (element is SimpleField field) AddInlineField(field, runIndex, false);
+            }
+
+            void AddInlineField(SimpleField field, int index, bool nestedInHyperlink) {
+                snapshot.AddInlineField(new WordInlineFieldSnapshot {
+                    RunIndex = index,
+                    Instruction = field.Instruction?.Value ?? string.Empty,
+                    ResultText = string.Concat(field.Descendants<Text>().Select(text => text.Text)),
+                    IsLocked = field.FieldLock?.Value ?? false,
+                    IsDirty = field.Dirty?.Value ?? false,
+                    HasUnsupportedContainer = nestedInHyperlink,
+                    HasUnsupportedResultContent = field.Descendants<SimpleField>().Any() ||
+                        field.ChildElements.Any(child => child is not Run) ||
+                        field.Descendants<Run>().Any(resultRun => resultRun.ChildElements.Any(child =>
+                            child is not RunProperties and not Text) ||
+                            resultRun.RunProperties?.ChildElements.Any(child => child is not NoProof) == true)
+                });
+            }
+
             foreach (var tabStop in paragraph.TabStops) {
                 snapshot.AddTabStop(new WordTabStopSnapshot {
                     Alignment = NormalizeOpenXmlEnumValue(tabStop.Alignment),

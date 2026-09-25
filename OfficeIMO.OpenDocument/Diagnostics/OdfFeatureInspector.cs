@@ -53,6 +53,13 @@ internal static class OdfFeatureInspector {
             AddElementFinding(document, OdfNamespaces.Table + "scenario", "spreadsheet-scenarios", OdfFeatureSupport.Preserved, entry.Name, findings);
             AddElementFinding(document, OdfNamespaces.Table + "detective", "spreadsheet-detective", OdfFeatureSupport.Preserved, entry.Name, findings);
             AddElementFinding(document, OdfNamespaces.Text + "note", "text-notes", OdfFeatureSupport.Inspected, entry.Name, findings);
+            XElement[] textFields = document.Descendants()
+                .Where(element => OdtField.TryGetKind(element.Name, out _)).ToArray();
+            int basicTextFields = textFields.Count(OdtField.IsBasicElement);
+            if (basicTextFields > 0) findings.Add(new OdfFeatureFinding(
+                "text-fields", OdfFeatureSupport.Editable, entry.Name, basicTextFields));
+            if (textFields.Length > basicTextFields) findings.Add(new OdfFeatureFinding(
+                "text-fields", OdfFeatureSupport.Inspected, entry.Name, textFields.Length - basicTextFields));
             int bookmarks = document.Descendants(OdfNamespaces.Text + "bookmark").Count()
                 + document.Descendants(OdfNamespaces.Text + "bookmark-start").Count();
             if (bookmarks > 0) findings.Add(new OdfFeatureFinding("text-bookmarks", OdfFeatureSupport.Editable, entry.Name, bookmarks));

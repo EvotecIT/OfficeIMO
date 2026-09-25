@@ -102,6 +102,7 @@ namespace OfficeIMO.Word {
     /// <summary>Text, formatting, list, border, bookmark, and pagination state for one paragraph.</summary>
     public sealed class WordParagraphSnapshot : WordBlockSnapshot {
         private readonly List<WordRunSnapshot> _runs = new List<WordRunSnapshot>();
+        private readonly List<WordInlineFieldSnapshot> _fields = new List<WordInlineFieldSnapshot>();
         private readonly List<WordTabStopSnapshot> _tabStops = new List<WordTabStopSnapshot>();
 
         /// <summary>Creates an empty paragraph snapshot.</summary>
@@ -166,6 +167,8 @@ namespace OfficeIMO.Word {
         public int? BookmarkId { get; internal set; }
         /// <summary>Gets text runs in source order.</summary>
         public IReadOnlyList<WordRunSnapshot> Runs => _runs;
+        /// <summary>Simple fields and their positions among the paragraph's ordinary runs.</summary>
+        public IReadOnlyList<WordInlineFieldSnapshot> InlineFields => _fields;
         /// <summary>Gets explicit paragraph tab stops.</summary>
         public IReadOnlyList<WordTabStopSnapshot> TabStops => _tabStops;
 
@@ -174,10 +177,33 @@ namespace OfficeIMO.Word {
             _runs.Add(run);
         }
 
+        internal void AddInlineField(WordInlineFieldSnapshot field) {
+            if (field == null) throw new ArgumentNullException(nameof(field));
+            _fields.Add(field);
+        }
+
         internal void AddTabStop(WordTabStopSnapshot tabStop) {
             if (tabStop == null) throw new ArgumentNullException(nameof(tabStop));
             _tabStops.Add(tabStop);
         }
+    }
+
+    /// <summary>A simple Word field in a paragraph's inline order.</summary>
+    public sealed class WordInlineFieldSnapshot {
+        /// <summary>Number of ordinary runs before this field.</summary>
+        public int RunIndex { get; internal set; }
+        /// <summary>Raw field instruction.</summary>
+        public string Instruction { get; internal set; } = string.Empty;
+        /// <summary>Cached displayed result.</summary>
+        public string ResultText { get; internal set; } = string.Empty;
+        /// <summary>Whether the field is locked.</summary>
+        public bool IsLocked { get; internal set; }
+        /// <summary>Whether the cached value is marked for refresh.</summary>
+        public bool IsDirty { get; internal set; }
+        /// <summary>Whether the result contains content beyond plain text runs.</summary>
+        public bool HasUnsupportedResultContent { get; internal set; }
+        /// <summary>Whether the field is nested in markup that cannot be represented as a native ODT field.</summary>
+        public bool HasUnsupportedContainer { get; internal set; }
     }
 
     /// <summary>Extracted text, character formatting, links, notes, and images for one Word run.</summary>

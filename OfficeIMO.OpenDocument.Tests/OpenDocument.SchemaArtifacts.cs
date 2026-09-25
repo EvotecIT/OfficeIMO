@@ -29,6 +29,7 @@ public class OpenDocumentSchemaArtifactTests {
                 richSpan.BackgroundColor = OdfColor.Parse("#FFF200");
                 richText.AddText(" and ");
                 richText.AddHyperlink("a link", "https://example.com").Italic = true;
+                text.AddParagraph("Date: ").AddField(OdtFieldKind.Date, "September 25, 2026");
                 text.AddList().AddItem("One");
                 text.AddTable(2, 2, "Proof").Cell(0, 0).Text = "Value";
                 text.PageLayout.Header.AddParagraph("OfficeIMO");

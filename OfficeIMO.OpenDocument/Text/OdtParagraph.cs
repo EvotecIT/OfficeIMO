@@ -73,6 +73,12 @@ public sealed class OdtParagraph {
     public IReadOnlyList<OdtHyperlink> Hyperlinks => _element.Descendants(OdfNamespaces.Text + "a")
         .Select(element => new OdtHyperlink(_document, element, _partPath)).ToList();
 
+    /// <summary>Native page, count, date, and time fields in paragraph order.</summary>
+    public IReadOnlyList<OdtField> Fields => _element.Descendants()
+        .Where(element => OdtField.TryGetKind(element.Name, out _) &&
+            !element.Ancestors(OdfNamespaces.Text + "note").Any())
+        .Select(element => new OdtField(_document, element, _partPath)).ToList();
+
     /// <summary>
     /// Direct inline nodes in document order. Use this syntax view when mixed plain text,
     /// spans, links, images, or bookmark markers must be processed without flattening.
@@ -282,6 +288,14 @@ public sealed class OdtParagraph {
         _element.Add(element);
         Dirty();
         return new OdtHyperlink(_document, element, _partPath);
+    }
+
+    /// <summary>Appends a native ODT field with cached display text.</summary>
+    public OdtField AddField(OdtFieldKind kind, string? displayText) {
+        XElement element = OdtField.CreateElement(kind, displayText);
+        _element.Add(element);
+        Dirty();
+        return new OdtField(_document, element, _partPath);
     }
 
     /// <summary>Appends a collapsed bookmark.</summary>
