@@ -21,6 +21,10 @@ public static class PdfPageChangeAnalyzer {
         cancellationToken.ThrowIfCancellationRequested();
         PdfReadDocument expected = PdfReadDocument.Open(expectedPdf, expectedReadOptions, cancellationToken);
         PdfReadDocument actual = PdfReadDocument.Open(actualPdf, actualReadOptions, cancellationToken);
+        return Analyze(expected, actual, effective, cancellationToken);
+    }
+
+    internal static PdfPageChangeReport Analyze(PdfReadDocument expected, PdfReadDocument actual, PdfPageChangeOptions effective, CancellationToken cancellationToken) {
         if (expected.Pages.Count > effective.MaxPagesPerDocument || actual.Pages.Count > effective.MaxPagesPerDocument) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.RenderPages, effective.MaxPagesPerDocument,
                 Math.Max(expected.Pages.Count, actual.Pages.Count));

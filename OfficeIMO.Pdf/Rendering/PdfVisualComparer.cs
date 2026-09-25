@@ -89,13 +89,21 @@ public static class PdfVisualComparer {
         cancellationToken.ThrowIfCancellationRequested();
         PdfReadDocument expected = PdfReadDocument.Open(expectedPdf, expectedReadOptions, cancellationToken);
         PdfReadDocument actual = PdfReadDocument.Open(actualPdf, actualReadOptions, cancellationToken);
+        long totalPixels = 0;
+        return ComparePages(expected, expectedPageNumber, actual, actualPageNumber, effective, ref totalPixels, cancellationToken);
+    }
+
+    internal static PdfVisualPageComparison ComparePages(
+        PdfReadDocument expected, int expectedPageNumber,
+        PdfReadDocument actual, int actualPageNumber,
+        PdfVisualComparisonOptions options, ref long totalPixels,
+        CancellationToken cancellationToken) {
         if (expectedPageNumber < 1 || expectedPageNumber > expected.Pages.Count) throw new ArgumentOutOfRangeException(nameof(expectedPageNumber));
         if (actualPageNumber < 1 || actualPageNumber > actual.Pages.Count) throw new ArgumentOutOfRangeException(nameof(actualPageNumber));
-        long totalPixels = 0;
         var structural = new List<string>();
-        PdfVisualPageComparison page = ComparePage(expected, actual, expectedPageNumber, actualPageNumber, effective, structural, ref totalPixels, cancellationToken);
-        if (page.OutputByteLength > effective.MaxTotalOutputBytes) {
-            throw PdfReadLimitException.Create(PdfReadLimitKind.RenderBytes, effective.MaxTotalOutputBytes, page.OutputByteLength);
+        PdfVisualPageComparison page = ComparePage(expected, actual, expectedPageNumber, actualPageNumber, options, structural, ref totalPixels, cancellationToken);
+        if (page.OutputByteLength > options.MaxTotalOutputBytes) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.RenderBytes, options.MaxTotalOutputBytes, page.OutputByteLength);
         }
         return page;
     }
