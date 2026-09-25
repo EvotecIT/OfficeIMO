@@ -330,6 +330,12 @@ internal static class PdfTrueTypeUnicodeCmap {
 
     // A glyf glyph is empty when its loca range has no data.
     private static Func<int, bool> CreateEmptyGlyphTest(byte[] data, List<(string Tag, int Offset, int Length)> tables, int glyphCount) {
+        // A zero-length glyf outline can still be painted by COLR layers. Use the same validated
+        // color-glyph reader as raster/vector drawing, so ordinary empty spaces stay empty.
+        bool hasColorTable = tables.Exists(static table => string.Equals(table.Tag, "COLR", StringComparison.Ordinal));
+        IOfficeColorFontProgram? colorFont = hasColorTable ? OfficeTrueTypeFont.TryLoad(data) : null;
+        // CID programs can lack a source cmap until Rebuild adds one; preserve potential color ink.
+        bool unknownColorGlyphs = hasColorTable && colorFont is null;
         var head = tables.Find(static table => string.Equals(table.Tag, "head", StringComparison.Ordinal));
         var loca = tables.Find(static table => string.Equals(table.Tag, "loca", StringComparison.Ordinal));
         if (head.Length < 54 || loca.Length == 0) return static _ => false;
@@ -340,7 +346,7 @@ internal static class PdfTrueTypeUnicodeCmap {
             int offset = loca.Offset + glyph * entrySize;
             uint start = longOffsets ? ReadUInt32(data, offset) : (uint)ReadUInt16(data, offset) * 2;
             uint end = longOffsets ? ReadUInt32(data, offset + entrySize) : (uint)ReadUInt16(data, offset + entrySize) * 2;
-            return end <= start;
+            return end <= start && !unknownColorGlyphs && colorFont?.HasColorGlyph(glyph) != true;
         };
     }
 

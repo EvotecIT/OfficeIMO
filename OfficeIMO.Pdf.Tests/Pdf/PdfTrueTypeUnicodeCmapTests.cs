@@ -7,6 +7,19 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfTrueTypeUnicodeCmapTests {
     [Fact]
+    public void LongBaseFontKeepsEmbeddedFaceDigestWithinParserLimit() {
+        byte[] source = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A', 'B');
+        var font = new PdfFontResource("F1", new string('F', 300), "WinAnsiEncoding", false,
+            embeddedTrueTypeFont: source);
+
+        string family = Assert.IsType<string>(font.DrawingFontFamily);
+        Assert.Equal(256, family.Length);
+        string[] parts = family.Split('-');
+        Assert.Equal(24, parts[parts.Length - 1].Length);
+        Assert.Single(OfficeIMO.Drawing.OfficeFontFamilyParser.Parse(family));
+    }
+
+    [Fact]
     public void LargeSparseMapKeepsEveryGlyphInOneFormat12Subtable() {
         var mappings = new SortedDictionary<int, int>();
         for (int index = 0; index < 9000; index++) mappings.Add(0x1000 + index * 2, index % 2 + 1);

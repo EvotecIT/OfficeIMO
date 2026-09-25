@@ -15,28 +15,48 @@ namespace OfficeIMO.Pdf;
 /// </remarks>
 internal static class PdfArabicPaintedForms {
     private const double LineTolerance = 0.3D;
+    private const double RotationTolerance = 0.1D;
     // Joined letters touch; an inter-word space is well above this fraction of the font size.
     private const double WordGap = 0.12D;
 
     internal static void Apply(List<PdfTextSpan> spans, System.Threading.CancellationToken cancellationToken = default) {
         // A word may change font or size mid-word, so only the baseline direction separates groups.
-        var groups = new Dictionary<double, List<int>>();
+        var groups = new List<(double Rotation, List<int> Members)>();
+        var rotationBuckets = new Dictionary<int, List<int>>();
+        const int bucketCount = 3600;
         for (int index = 0; index < spans.Count; index++) {
             PdfTextSpan span = spans[index];
             // Invisible text, such as an OCR layer, must not interleave with painted letters.
-            if (!span.IsVisible || span.Color?.A <= 3 || span.Text.Length != 1 || !IsArabicLetterOrForm(span.Text[0]) ||
-                !(span.FontSize > 0D) || !(span.Advance > 0D) || double.IsInfinity(span.Advance)) continue;
-            double rotation = Math.Round(span.RotationDegrees);
-            if (!groups.TryGetValue(rotation, out List<int>? members)) groups.Add(rotation, members = new List<int>());
-            members.Add(index);
+            if (!span.IsVisible || span.Color?.A == 0 || span.Text.Length != 1 || !IsArabicLetterOrForm(span.Text[0]) ||
+                !(span.FontSize > 0D) || !(span.Advance > 0D) || double.IsInfinity(span.Advance) ||
+                double.IsNaN(span.RotationDegrees) || double.IsInfinity(span.RotationDegrees)) continue;
+            double normalizedRotation = (span.RotationDegrees % 360D + 360D) % 360D;
+            int bucket = Math.Min(bucketCount - 1, (int)(normalizedRotation / RotationTolerance));
+            int groupIndex = -1;
+            for (int offset = -1; offset <= 1 && groupIndex < 0; offset++) {
+                int neighbor = (bucket + offset + bucketCount) % bucketCount;
+                if (!rotationBuckets.TryGetValue(neighbor, out List<int>? candidates)) continue;
+                int match = candidates.FindIndex(candidate =>
+                    Math.Abs(Math.IEEERemainder(span.RotationDegrees - groups[candidate].Rotation, 360D)) <= RotationTolerance);
+                if (match >= 0) groupIndex = candidates[match];
+            }
+            if (groupIndex >= 0) {
+                groups[groupIndex].Members.Add(index);
+            } else {
+                groupIndex = groups.Count;
+                groups.Add((span.RotationDegrees, new List<int> { index }));
+                if (!rotationBuckets.TryGetValue(bucket, out List<int>? candidates))
+                    rotationBuckets.Add(bucket, candidates = new List<int>());
+                candidates.Add(groupIndex);
+            }
         }
 
-        foreach (KeyValuePair<double, List<int>> group in groups) {
+        foreach ((double rotation, List<int> members) in groups) {
             cancellationToken.ThrowIfCancellationRequested();
-            double radians = group.Key * Math.PI / 180D;
+            double radians = rotation * Math.PI / 180D;
             double cos = Math.Cos(radians);
             double sin = Math.Sin(radians);
-            var letters = group.Value
+            var letters = members
                 .Select(index => (Index: index,
                     Along: spans[index].X * cos + spans[index].Y * sin,
                     Across: -spans[index].X * sin + spans[index].Y * cos,

@@ -6,6 +6,51 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfArabicPaintedFormsSceneTests {
     [Fact]
+    public void FractionalRotationKeepsLongArabicWordOnOneBaseline() {
+        const double angle = 12.4D;
+        double radians = angle * Math.PI / 180D;
+        var spans = Enumerable.Range(0, 90).Select(index => {
+            double distance = 1000D - index * 6D;
+            return new PdfTextSpan("\u0628", "F1", 12D, distance * Math.Cos(radians),
+                distance * Math.Sin(radians), 6D, rotationDegrees: angle);
+        }).ToList();
+
+        PdfArabicPaintedForms.Apply(spans);
+
+        Assert.Equal("\uFE91", spans[0].Text);
+        Assert.Equal("\uFE90", spans[spans.Count - 1].Text);
+        Assert.All(spans, span => Assert.True(span.IsPaintedGlyphProjection));
+    }
+
+    [Fact]
+    public void NearlyIdenticalRotationsJoinAcrossOldRoundingBoundary() {
+        var spans = new List<PdfTextSpan> {
+            new("\u0628", "F1", 12D, 100D, 20D, 6D, rotationDegrees: 0.49D),
+            new("\u0628", "F1", 12D, 94D, 20D, 6D, rotationDegrees: 0.51D)
+        };
+
+        PdfArabicPaintedForms.Apply(spans);
+
+        Assert.Equal("\uFE91", spans[0].Text);
+        Assert.Equal("\uFE90", spans[1].Text);
+    }
+
+    [Fact]
+    public void FaintPaintedArabicLettersRetainJoiningContext() {
+        OfficeColor faint = OfficeColor.FromRgba(0, 0, 0, 1);
+        var spans = new List<PdfTextSpan> {
+            new("\u0628", "F1", 12D, 100D, 700D, 6D, faint),
+            new("\u0628", "F1", 12D, 94D, 700D, 6D, faint)
+        };
+
+        PdfArabicPaintedForms.Apply(spans);
+
+        Assert.Equal("\uFE91", spans[0].Text);
+        Assert.Equal("\uFE90", spans[1].Text);
+    }
+
+
+    [Fact]
     public void CoincidentArabicPaintPassesShareJoiningContext() {
         var spans = new List<PdfTextSpan> {
             new("\u0628", "F1", 12D, 100.6D, 700D, 6D),

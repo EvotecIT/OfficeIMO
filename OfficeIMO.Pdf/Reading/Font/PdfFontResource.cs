@@ -109,7 +109,13 @@ internal sealed class PdfFontResource {
             }
             hash = sha256.ComputeHash(identity);
         }
-        var family = new StringBuilder(string.IsNullOrWhiteSpace(baseFont) ? "PDF embedded font-" : baseFont + "-");
+        // Font-family parsing limits each candidate to 256 characters. Keep the digest within
+        // that bound so a long PDF BaseFont cannot truncate the identity used to load this face.
+        const int digestLength = 24;
+        const int maximumFamilyLength = 256;
+        string name = string.IsNullOrWhiteSpace(baseFont) ? "PDF embedded font" : baseFont;
+        var family = new StringBuilder(name.Substring(0, Math.Min(name.Length, maximumFamilyLength - digestLength - 1)));
+        family.Append('-');
         // Drawing family names are parsed as CSS-style family lists. PDF names such as "Arial,Bold"
         // must stay one family, so replace list separators, quotes and escapes.
         family.Replace(',', '-').Replace('"', '-').Replace('\'', '-').Replace('\\', '-');
