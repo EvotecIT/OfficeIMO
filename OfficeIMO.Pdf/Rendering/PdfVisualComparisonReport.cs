@@ -207,10 +207,24 @@ public sealed class PdfVisualPageComparison {
     internal long OutputByteLength => checked(_expectedPng.LongLength + _actualPng.LongLength + _diffPng.LongLength);
     internal bool HasChangedPixelsOutside(IReadOnlyList<PdfPixelRegion> classified, System.Threading.CancellationToken cancellationToken) {
         if (ChangedBounds is not PdfPixelRegion bounds) return false;
+        var intervals = new List<PdfPixelRegion>(classified.Count);
         for (int y = bounds.Y; y < bounds.Y + bounds.Height; y++) {
             cancellationToken.ThrowIfCancellationRequested();
+            intervals.Clear();
+            for (int index = 0; index < classified.Count; index++) {
+                PdfPixelRegion region = classified[index];
+                if (region.Y <= y && y < region.Y + region.Height) intervals.Add(region);
+            }
+            intervals.Sort(static (left, right) => left.X.CompareTo(right.X));
+            int intervalIndex = 0;
+            int coveredRight = 0;
             for (int x = bounds.X; x < bounds.X + bounds.Width; x++) {
-                if (_changedPixels[checked(y * Width + x)] && !classified.Any(region => region.Contains(x, y))) return true;
+                if (!_changedPixels[checked(y * Width + x)]) continue;
+                while (intervalIndex < intervals.Count && intervals[intervalIndex].X <= x) {
+                    PdfPixelRegion region = intervals[intervalIndex++];
+                    coveredRight = Math.Max(coveredRight, region.X + region.Width);
+                }
+                if (x >= coveredRight) return true;
             }
         }
         return false;

@@ -140,6 +140,18 @@ public sealed class PdfReviewComparerTests {
     }
 
     [Fact]
+    public void DetectsChangedActualTextAfterRotatedTextProjection() {
+        PdfDocument expected = PdfDocument.Load(InvisibleTextPdf("Visible", rotated: true, actualTextHex: "FEFF004100200042"));
+        PdfDocument actual = PdfDocument.Load(InvisibleTextPdf("Visible", rotated: true, actualTextHex: "FEFF004100A00042"));
+
+        PdfReviewChange change = Assert.Single(Assert.Single(expected.Proof.CompareReview(actual).Pages).Changes);
+
+        Assert.Equal(PdfReviewChangeKind.TextChanged, change.Kind);
+        Assert.Equal("A B", change.ExpectedText);
+        Assert.Equal("A\u00a0B", change.ActualText);
+    }
+
+    [Fact]
     public void SmallInvisibleTextMoveRemainsASemanticChange() {
         PdfDocument expected = PdfDocument.Load(InvisibleTextPdf("Searchable  text", y: 90D));
         PdfDocument moved = PdfDocument.Load(InvisibleTextPdf("Searchable  text", y: 92D));
@@ -162,6 +174,20 @@ public sealed class PdfReviewComparerTests {
             change.ExpectedPageNumber == 1 && change.ActualPageNumber == 2 && change.UsesIgnoredRegions && !change.IsExactRenderedMatch);
         Assert.Contains(report.PageAlignment.Changes, static change =>
             change.ExpectedPageNumber == 2 && change.ActualPageNumber == 1 && change.UsesIgnoredRegions && !change.IsExactRenderedMatch);
+    }
+
+    [Fact]
+    public void ExactPageMatchDoesNotClaimIgnoredPixelsWereNeeded() {
+        PdfDocument document = Page("Same", 20D);
+        var options = new PdfReviewComparisonOptions();
+        options.Visual.IgnoredRegions.Add(new PdfPixelRegion(0, 0, 240, 55));
+
+        PdfReviewComparisonReport report = document.Proof.CompareReview(PdfDocument.Load(document.ToBytes()), options);
+
+        PdfPageChange alignment = Assert.Single(report.PageAlignment.Changes);
+        Assert.True(alignment.IsExactRenderedMatch);
+        Assert.False(alignment.UsesIgnoredRegions);
+        Assert.True(report.IsMatch);
     }
 
     [Fact]
@@ -242,6 +268,23 @@ public sealed class PdfReviewComparerTests {
         PdfReviewComparisonReport stampedScan = ScanWithStamp(blue).Proof.CompareReview(ScanWithStamp(red));
         Assert.Contains(Assert.Single(stampedScan.Pages).Changes,
             static change => change.Kind == PdfReviewChangeKind.ScannedPageUncertain);
+    }
+
+    [Theory]
+    [InlineData(23D, 20D, 20D, 20D)]
+    [InlineData(20D, 20D, 24D, 20D)]
+    public void ReportsImagePlacementChangeEvenWhenWhitePixelsStayIdentical(
+        double actualX, double actualY, double actualWidth, double actualHeight) {
+        byte[] white = PdfPngTestImages.CreateRgbPng(255, 255, 255);
+        PdfDocument expected = PdfDocument.Load(PdfDocument.Create(new PdfOptions { PageWidth = 240D, PageHeight = 180D })
+            .Canvas(canvas => canvas.Image(white, 20D, 20D, 20D, 20D)).ToBytes());
+        PdfDocument actual = PdfDocument.Load(PdfDocument.Create(new PdfOptions { PageWidth = 240D, PageHeight = 180D })
+            .Canvas(canvas => canvas.Image(white, actualX, actualY, actualWidth, actualHeight)).ToBytes());
+
+        PdfReviewComparisonReport report = expected.Proof.CompareReview(actual);
+
+        Assert.False(report.IsMatch);
+        Assert.Contains(Assert.Single(report.Pages).Changes, static change => change.Kind == PdfReviewChangeKind.ImageMoved);
     }
 
     [Fact]

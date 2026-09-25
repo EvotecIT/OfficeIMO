@@ -72,8 +72,8 @@ internal static class PdfReviewSemanticComparer {
         bool[] usedBefore = new bool[before.Length];
         bool[] usedAfter = new bool[after.Length];
         MatchIdentical(before, after, static feature => feature.Hash, usedBefore, usedAfter,
-            (i, j, distance) => {
-                if (distance > 4D) changes.Add(new PdfReviewChange(PdfReviewChangeKind.ImageMoved,
+            (i, j, _) => {
+                if (BoundsDiffer(before[i].Bounds, after[j].Bounds)) changes.Add(new PdfReviewChange(PdfReviewChangeKind.ImageMoved,
                     expected.PageNumber, actual.PageNumber, before[i].Bounds, after[j].Bounds));
             }, cancellationToken);
         for (int i = 0; i < before.Length; i++) {
@@ -160,10 +160,19 @@ internal static class PdfReviewSemanticComparer {
         ImageFeature[] before = GetImages(expected, visual, options, cancellationToken);
         ImageFeature[] after = GetImages(actual, visual, options, cancellationToken);
         if (before.Length != after.Length) return true;
+        var matched = new bool[after.Length];
         for (int index = 0; index < before.Length; index++) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (!string.Equals(before[index].Hash, after[index].Hash, StringComparison.Ordinal) ||
-                Distance(before[index].Bounds, after[index].Bounds) > 0.01D) return true;
+            bool found = false;
+            for (int candidate = 0; candidate < after.Length; candidate++) {
+                if (matched[candidate] ||
+                    !string.Equals(before[index].Hash, after[candidate].Hash, StringComparison.Ordinal) ||
+                    Distance(before[index].Bounds, after[candidate].Bounds) > 0.01D) continue;
+                matched[candidate] = true;
+                found = true;
+                break;
+            }
+            if (!found) return true;
         }
         return false;
     }
@@ -339,6 +348,10 @@ internal static class PdfReviewSemanticComparer {
         double dy = (first.Top + first.Bottom - second.Top - second.Bottom) / 2D;
         return Math.Sqrt(dx * dx + dy * dy);
     }
+
+    private static bool BoundsDiffer(PdfLogicalVisualBounds first, PdfLogicalVisualBounds second) =>
+        Math.Abs(first.Left - second.Left) > 0.01D || Math.Abs(first.Top - second.Top) > 0.01D ||
+        Math.Abs(first.Right - second.Right) > 0.01D || Math.Abs(first.Bottom - second.Bottom) > 0.01D;
 
     private static string Normalize(string text) => string.Join(" ", text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
 

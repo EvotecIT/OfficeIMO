@@ -16,7 +16,7 @@ public enum PdfReviewChangeKind {
     ImageRemoved,
     /// <summary>Image payloads differ at corresponding placements; visual review remains necessary.</summary>
     ImageChangedCandidate,
-    /// <summary>The same image payload changed position.</summary>
+    /// <summary>The same image payload changed placement position or displayed size.</summary>
     ImageMoved,
     /// <summary>A scanned or image-dominated page differs and requires visual or OCR review.</summary>
     ScannedPageUncertain,
