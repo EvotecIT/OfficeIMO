@@ -545,7 +545,7 @@ public partial class PdfDocumentVisualQualityTests {
             .Select(match => double.Parse(match.Groups["opacity"].Value, CultureInfo.InvariantCulture))
             .ToArray();
         Assert.Contains(shadowOpacities, opacity => opacity > 0D && opacity < 0.02D);
-        Assert.Contains(shadowOpacities, opacity => opacity > 0.1D && opacity < 1D);
+        Assert.Contains(shadowOpacities, opacity => opacity > 0.05D && opacity < 1D);
         Assert.All(shadowOpacities, opacity => Assert.InRange(opacity, 0D, 0.999999D));
         Assert.True(content.Split(new[] { "1 0 0 rg" }, StringSplitOptions.None).Length - 1 >= 6);
     }

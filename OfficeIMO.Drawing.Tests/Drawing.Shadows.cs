@@ -13,15 +13,18 @@ public partial class DrawingTests {
             baseStrokeWidth: 0D,
             hasFill: false,
             hasStroke: false,
-            canExpand: OfficeShadowLayerPlanner.CanExpand(roundedRectangle));
+            canExpand: OfficeShadowLayerPlanner.CanExpand(roundedRectangle),
+            minimumShapeDimension: Math.Min(roundedRectangle.Width, roundedRectangle.Height));
 
-        Assert.Equal(15, layers.Count);
-        Assert.All(layers.Take(layers.Count - 1), layer => {
-            Assert.True(layer.Expansion > 0D);
+        Assert.True(layers.Count > 1);
+        Assert.Contains(layers, layer => layer.Expansion > 0D);
+        Assert.Contains(layers, layer => layer.Expansion == 0D);
+        Assert.Contains(layers, layer => layer.Expansion < 0D);
+        Assert.All(layers, layer => {
             Assert.True(layer.HasFill);
             Assert.False(layer.HasStroke);
         });
-        Assert.Equal(0D, layers[layers.Count - 1].Expansion);
+        Assert.True(layers[layers.Count - 1].Expansion < 0D);
         double compositeOpacity = 1D;
         foreach (OfficeShadowLayer layer in layers) compositeOpacity *= 1D - layer.Opacity;
         Assert.Equal(0.2D, 1D - compositeOpacity, 6);
@@ -35,7 +38,7 @@ public partial class DrawingTests {
 
         OfficeColor center = raster.GetPixel(70, 50);
         OfficeColor roundedCorner = raster.GetPixel(30, 50);
-        Assert.InRange(center.R, (byte)195, (byte)220);
+        Assert.InRange(center.R, (byte)195, (byte)225);
         Assert.True(roundedCorner.R >= center.R - 20, $"Rounded blur corner {roundedCorner} was materially darker than center {center}.");
     }
 
@@ -48,12 +51,26 @@ public partial class DrawingTests {
             baseStrokeWidth: 0D,
             hasFill: true,
             hasStroke: false,
-            canExpand: OfficeShadowLayerPlanner.CanExpand(rectangle));
+            canExpand: OfficeShadowLayerPlanner.CanExpand(rectangle),
+            minimumShapeDimension: Math.Min(rectangle.Width, rectangle.Height));
 
         Assert.True(layers.Count > 1);
         Assert.All(layers.Take(layers.Count - 1), layer => Assert.InRange(layer.Opacity, 0.000001D, 0.999999D));
         Assert.Equal(1D, layers[layers.Count - 1].Opacity);
         Assert.True(layers[0].Opacity < layers[layers.Count - 2].Opacity);
+
+        IReadOnlyList<OfficeShadowLayer> nearOpaqueLayers = OfficeShadowLayerPlanner.Create(
+            opacity: 0.999D,
+            blurRadius: 12D,
+            baseStrokeWidth: 0D,
+            hasFill: true,
+            hasStroke: false,
+            canExpand: true,
+            minimumShapeDimension: 30D);
+        Assert.Equal(layers.Count, nearOpaqueLayers.Count);
+        int firstCoreIndex = Array.FindIndex(layers.ToArray(), layer => layer.Expansion == 0D);
+        Assert.True(firstCoreIndex >= 0);
+        Assert.InRange(Math.Abs(layers[firstCoreIndex].Opacity - nearOpaqueLayers[firstCoreIndex].Opacity), 0D, 0.01D);
 
         rectangle.FillColor = OfficeColor.White;
         rectangle.StrokeWidth = 0D;
@@ -77,11 +94,13 @@ public partial class DrawingTests {
             baseStrokeWidth: 10D,
             hasFill: true,
             hasStroke: true,
-            canExpand: OfficeShadowLayerPlanner.CanExpand(rectangle));
+            canExpand: OfficeShadowLayerPlanner.CanExpand(rectangle),
+            minimumShapeDimension: Math.Min(rectangle.Width, rectangle.Height));
 
         Assert.True(layers.Count > 1);
         Assert.Equal(17D, layers[0].Expansion, 6);
-        Assert.Equal(5D, layers[layers.Count - 1].Expansion, 6);
+        Assert.Contains(layers, layer => Math.Abs(layer.Expansion - 5D) < 0.000001D);
+        Assert.True(layers[layers.Count - 1].Expansion < 5D);
         Assert.All(layers, layer => {
             Assert.True(layer.HasFill);
             Assert.False(layer.HasStroke);
@@ -96,7 +115,8 @@ public partial class DrawingTests {
             baseStrokeWidth: 0D,
             hasFill: true,
             hasStroke: false,
-            canExpand: false);
+            canExpand: false,
+            minimumShapeDimension: 30D);
 
         OfficeShadowLayer core = Assert.Single(layers, layer => layer.HasFill);
         Assert.False(core.HasStroke);

@@ -354,7 +354,8 @@ public static partial class OfficeDrawingSvgExporter {
             baseStrokeWidth,
             hasFill,
             hasStroke,
-            OfficeShadowLayerPlanner.CanExpand(shape));
+            OfficeShadowLayerPlanner.CanExpand(shape),
+            Math.Min(shape.Width, shape.Height));
         var shadowShapes = new List<OfficeDrawingShape>(layers.Count);
         for (int index = 0; index < layers.Count; index++) {
             OfficeShadowLayer layer = layers[index];
@@ -365,7 +366,7 @@ public static partial class OfficeDrawingSvgExporter {
 
     private static OfficeDrawingShape CreateShadowShape(OfficeDrawingShape drawingShape, OfficeShadow shadow, OfficeShadowLayer layer) {
         OfficeShape shape = drawingShape.Shape;
-        OfficeShape shadowShape = layer.Expansion > 0D
+        OfficeShape shadowShape = Math.Abs(layer.Expansion) > 0.000000001D
             ? OfficeShadowLayerPlanner.CreateExpandedShape(shape, layer.Expansion)
             : shape.Clone();
         shadowShape.Shadow = null;

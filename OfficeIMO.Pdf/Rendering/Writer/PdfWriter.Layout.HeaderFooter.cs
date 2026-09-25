@@ -348,12 +348,13 @@ internal static partial class PdfWriter {
             shape.StrokeWidth,
             shadowHasFill,
             shadowHasStroke,
-            OfficeShadowLayerPlanner.CanExpand(shape));
+            OfficeShadowLayerPlanner.CanExpand(shape),
+            Math.Min(shape.Width, shape.Height));
         double shadowX = x + shadow.OffsetX;
         double shadowBottomY = bottomY - shadow.OffsetY;
         for (int index = 0; index < layers.Count; index++) {
             OfficeShadowLayer layer = layers[index];
-            OfficeShape layerShape = layer.Expansion > 0D
+            OfficeShape layerShape = Math.Abs(layer.Expansion) > 0.000000001D
                 ? OfficeShadowLayerPlanner.CreateExpandedShape(shape, layer.Expansion)
                 : shape;
             GetHeaderFooterShapeLayerBounds(
@@ -574,10 +575,11 @@ internal static partial class PdfWriter {
             shape.StrokeWidth,
             hasFill,
             hasStroke,
-            OfficeShadowLayerPlanner.CanExpand(shape));
+            OfficeShadowLayerPlanner.CanExpand(shape),
+            Math.Min(shape.Width, shape.Height));
         for (int index = 0; index < layers.Count; index++) {
             OfficeShadowLayer layer = layers[index];
-            OfficeShape layerShape = layer.Expansion > 0D
+            OfficeShape layerShape = Math.Abs(layer.Expansion) > 0.000000001D
                 ? OfficeShadowLayerPlanner.CreateExpandedShape(shape, layer.Expansion)
                 : shape;
             DrawHeaderFooterShapeShadowLayer(
