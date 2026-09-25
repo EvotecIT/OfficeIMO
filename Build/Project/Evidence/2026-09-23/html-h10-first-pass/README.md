@@ -139,6 +139,23 @@ and cross-platform qualification remain open in the roadmap.
 
 At clean source `17fc174b4`, the same MDN archive replayed offline with no operation failures. Chromium print remained 16 pages; OfficeIMO's zero-margin local-font print produced 19. All print pages were rasterized and inspected at contact-sheet scale, with the first two page pairs also inspected at higher resolution. The article text and saved code blocks are present throughout, but OfficeIMO's breadcrumb items crowd together and its code/preview components repeatedly retain large bordered boxes where Chromium print uses compact controls and code. These repeated boxes contribute to the extra pages. The managed report explicitly marks the serialized shadow-root projection and unavailable shadow-scoped styling; this is a current static-rendering limit, not evidence that the missing styling can safely be applied as ordinary document CSS. The report also contains 36 unavailable-resource observations and many repeated OpenType feature warnings, whose counts do not measure visible loss. The exact report, PDFs, page rasters and contact sheets are retained under `Ignore/HtmlUnknownPageQualification/h10-mdn-baseline-17fc174b4/`. Fine-detail review beyond the first two page pairs and the separate screen PDF intents remain open; exact component appearance remains a browser-backed route.
 
+A September 25 browser probe clarified the MDN style boundary. At the 816 × 900
+capture viewport, the document light tree exposed 75 open shadow-root hosts;
+60 held adopted stylesheets with 1,787 CSS rules. This count does not traverse
+nested shadow roots. The frozen MHTML contains 179 serialized
+open-shadow templates but no `<style>` elements. Chromium's
+`Page.captureSnapshot` also omitted a `<style>` deliberately inserted into a
+minimal open shadow root immediately before capture. Copying those 60 adopted
+stylesheets into their live shadow roots likewise produced no serialized
+shadow styles.
+The frozen input therefore lacks those component rules; applying them as
+ordinary page CSS would lose their scope. This establishes a capture-format
+limit for the current static MDN replay, not a managed-renderer fix or a new
+browser-fidelity qualification. Exact component appearance still requires the
+explicit browser-backed route. The minimized and live snapshots, probe source,
+and measured counts are retained under
+`Ignore/HtmlUnknownPageQualification/h10-mdn-shadow-style-probe/`.
+
 ## W3C installed-font measurement follow-up
 
 The opt-in local-font PDF lane now measures text with the same installed face
