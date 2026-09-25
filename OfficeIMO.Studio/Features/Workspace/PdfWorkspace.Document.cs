@@ -102,7 +102,9 @@ internal sealed partial class PdfWorkspace {
         if (kind == PdfExportKind.Images) {
             return await ExportImagesAsync(snapshot, destination, cancellationToken, progress).ConfigureAwait(false);
         }
-        string content = await RunCancellableCpuWorkAsync(() => kind switch {
+        // Structured serialization and draft-filled XFDF do not accept cancellation. Keep the
+        // caller attached until they finish so Studio never reports cancellation while they hold the CPU gate.
+        string content = await RunNonDetachableCpuWorkAsync(() => kind switch {
             PdfExportKind.Markdown => snapshot.Read(cancellationToken: cancellationToken).ExportStructured(PdfStructuredExportFormat.Markdown),
             PdfExportKind.Json => snapshot.Read(cancellationToken: cancellationToken).ExportStructured(PdfStructuredExportFormat.Json),
             PdfExportKind.Text => snapshot.Read(cancellationToken: cancellationToken).Text,
@@ -134,7 +136,7 @@ internal sealed partial class PdfWorkspace {
         IProgress<PdfWorkspaceProgress>? progress = null) {
         var snapshot = await _storage.ReadSnapshotAsync(source, cancellationToken,
             PdfFormDataSet.DefaultMaxXfdfDocumentBytes).ConfigureAwait(false);
-        PdfFormDataSet data = await RunCancellableCpuWorkAsync(
+        PdfFormDataSet data = await RunNonDetachableCpuWorkAsync(
             () => PdfFormDataSet.ParseXfdfBytes(snapshot.Bytes), cancellationToken).ConfigureAwait(false);
         await MutateBytesAsync(PdfWorkspaceOperationKind.FormFill, "Imported form data from " + _storage.Describe(source).Name, [],
             bytes => LoadDocument(bytes).Forms.ImportData(data).ToBytes(), cancellationToken, progress).ConfigureAwait(false);
