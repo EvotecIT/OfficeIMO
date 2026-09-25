@@ -352,3 +352,30 @@ cancellation. The passing report is retained in
 `h10-h4-wai-float-idle-budget-d1e6a5866/`; the first contended run is in
 `h10-h4-page-deferral-budget-clean-2eda4f38e/`. Windows and Linux budgets
 remain open.
+
+## Matched-print all-page recheck
+
+At clean renderer head `bb3526a06`, the same frozen WAI archive
+(`c33e96c21941db20dc750f7dd01b1a9190b34b81460c7e419836dc8a3065abf9`)
+replayed with no runner failures. Chromium and OfficeIMO's zero-margin,
+opt-in installed-Trebuchet print lanes each have three pages. At 96 dpi, all
+three page pairs were inspected at normal reading size. The breadcrumb uses
+two rows in both outputs, the fifth card continues across the same page
+boundary, and the footer begins on page three in both. Normalized ordered
+Poppler words match exactly on pages one and two (334/334 and 326/326);
+page three has a 0.990 sequence ratio (254 browser and 253 managed words),
+with the difference around the “Next: One Header” navigation label. This is
+selected-content and page-flow evidence under a matched macOS font policy,
+not a claim for OfficeIMO's default-margin or portable-font print output.
+
+The print images still differ in some link wrapping, text weight and footer
+placement. The managed operation remains `Degraded` with 74 warnings: 26
+unavailable resources, 11 unavailable `@font-face` sources, 17 unsupported
+SVG-content instances, 14 unsupported OpenType features, five overflow
+snapshots and one stylesheet-URL note. The frozen MHTML has no
+`/WAI/assets/images/icons.svg` part although its HTML references that
+external icon sprite. These diagnostics require source/visibility
+classification before a resource-complete claim. The exact-head replay is
+under `Ignore/HtmlUnknownPageQualification/h10-wai-root-rem-clean-bb3526a06/`;
+the inspected page rasters are under
+`Ignore/HtmlUnknownPageQualification/h10-visual-inspection-bb3526a06/`.
