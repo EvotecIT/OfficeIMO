@@ -229,6 +229,24 @@ public sealed class PdfReviewComparerTests {
     }
 
     [Fact]
+    public void AdjacentImageTilesAreClassifiedAsAScan() {
+        byte[] blue = PdfPngTestImages.CreateRgbPng(20, 60, 180);
+        byte[] red = PdfPngTestImages.CreateRgbPng(180, 30, 20);
+        PdfDocument expected = TiledScan(blue);
+        PdfDocument actual = TiledScan(red);
+
+        PdfReviewChange change = Assert.Single(Assert.Single(expected.Proof.CompareReview(actual).Pages).Changes);
+        Assert.Equal(PdfReviewChangeKind.ScannedPageUncertain, change.Kind);
+    }
+
+    private static PdfDocument TiledScan(byte[] image) => PdfDocument.Load(PdfDocument.Create(
+        new PdfOptions { PageWidth = 240D, PageHeight = 180D })
+        .Canvas(canvas => {
+            canvas.Image(image, 0D, 0D, 120D, 180D);
+            canvas.Image(image, 120D, 0D, 120D, 180D);
+        }).ToBytes());
+
+    [Fact]
     public void MostlyOffPageImageIsComparedAsAnImageRatherThanAScan() {
         PdfDocument expected = PdfDocument.Load(OffPageImagePdf("ABC"));
         PdfDocument actual = PdfDocument.Load(OffPageImagePdf("DEF"));

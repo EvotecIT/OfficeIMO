@@ -133,6 +133,7 @@ internal static class PdfReviewSemanticComparer {
         (double width, double height) = page.GetVisualPageSize();
         double area = width * height;
         if (area <= 0D) return false;
+        var visible = new List<PdfLogicalVisualBounds>();
         foreach (PdfLogicalImage image in page.Images) {
             foreach (PdfImagePlacement placement in image.Placements) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -151,10 +152,44 @@ internal static class PdfReviewSemanticComparer {
                     right = Math.Min(right, clipped.Right);
                     bottom = Math.Min(bottom, clipped.Bottom);
                 }
-                if (Math.Max(0D, right - left) * Math.Max(0D, bottom - top) >= area * 0.75D) return true;
+                if (right > left && bottom > top) visible.Add(new PdfLogicalVisualBounds(left, top, right, bottom));
             }
         }
-        return false;
+        return UnionArea(visible, cancellationToken) >= area * 0.75D;
+    }
+
+    private static double UnionArea(List<PdfLogicalVisualBounds> bounds, CancellationToken cancellationToken) {
+        if (bounds.Count == 0) return 0D;
+        double[] edges = bounds.SelectMany(static item => new[] { item.Left, item.Right }).Distinct().OrderBy(static x => x).ToArray();
+        double area = 0D;
+        for (int edge = 0; edge < edges.Length - 1; edge++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            double left = edges[edge];
+            double right = edges[edge + 1];
+            if (right <= left) continue;
+            var spans = bounds.Where(item => item.Left < right && item.Right > left)
+                .OrderBy(static item => item.Top).ToArray();
+            double covered = 0D;
+            double top = 0D;
+            double bottom = 0D;
+            bool hasSpan = false;
+            foreach (PdfLogicalVisualBounds span in spans) {
+                if (!hasSpan) {
+                    top = span.Top;
+                    bottom = span.Bottom;
+                    hasSpan = true;
+                } else if (span.Top <= bottom) {
+                    bottom = Math.Max(bottom, span.Bottom);
+                } else {
+                    covered += bottom - top;
+                    top = span.Top;
+                    bottom = span.Bottom;
+                }
+            }
+            if (hasSpan) covered += bottom - top;
+            area += (right - left) * covered;
+        }
+        return area;
     }
 
     private static PdfLogicalVisualBounds TextBounds(PdfLogicalPage page, PdfLogicalTextBlock block) {
