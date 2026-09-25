@@ -53,7 +53,7 @@ gh release view "Studio-v$version" -R EvotecIT/OfficeIMO --json isDraft,assets
 wingetcreate submit "Artifacts/Studio/WindowsRelease/Winget/EvotecIT.OfficeIMO.Studio/$version" --no-open
 ```
 
-The website reads published Studio assets from the release hub and exposes direct versioned download links only when all four Windows packages are present. Before a public release, verify the exact signed artifact hashes, clean installation, upgrade, uninstall, and launch on x64 and Arm64 test systems. WinGet catalog acceptance is a separate public-state check.
+The website reads published Studio assets from the release hub. It shows Windows MSI and portable links, Linux Debian and portable links, or macOS application ZIP links only when the complete asset set for that platform and both architectures is present in a published release. Otherwise it points to the source build guide. Before a public release, verify exact asset hashes and applicable signatures, then test clean installation, upgrade, uninstall, and launch on supported systems. WinGet catalog acceptance is a separate public-state check.
 
 Windows binaries and the MSI use the existing OfficeIMO Authenticode certificate profile and a trusted timestamp. A missing signing tool, certificate, or timestamp is a release failure. Do not disable signing for a public artifact.
 
