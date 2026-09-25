@@ -392,6 +392,31 @@ public sealed class StudioDocumentStructureTests {
     }
 
     [Fact]
+    public async Task ClosingTabReleasesSavedSignaturePreviews() {
+        string root = CreateRoot();
+        try {
+            using var session = TestAppBuilder.StartSession();
+            await session.Dispatch(() => {
+                var dialog = new SignatureDialog(StudioSignatureKind.Signature, StudioLocalization.Current);
+                dialog.NameBox.Text = "Ada Lovelace";
+                byte[] png = dialog.CreateImage()!;
+                var services = StudioApplicationServices.Create(new StudioDataPaths(Path.Combine(root, "profile")));
+                services.Signatures.Save(StudioSignatureKind.Signature, png);
+                services.Signatures.Save(StudioSignatureKind.Initials, png);
+                var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services);
+                try {
+                    model.EnsureSignaturesLoaded();
+                    Assert.NotNull(Assert.Single(model.SavedSignatures).Preview);
+                    Assert.NotNull(Assert.Single(model.SavedInitials).Preview);
+                } finally { model.Dispose(); }
+                Assert.Empty(model.SavedSignatures);
+                Assert.Empty(model.SavedInitials);
+                return true;
+            }, CancellationToken.None);
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
     public async Task SignaturePreviewRejectsImageWhoseDecodedPixelsExceedBudget() {
         using var session = TestAppBuilder.StartSession();
         await session.Dispatch(() => {

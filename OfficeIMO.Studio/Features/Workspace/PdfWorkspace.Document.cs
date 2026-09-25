@@ -127,7 +127,7 @@ internal sealed partial class PdfWorkspace {
     /// <summary>Checks the current revision against a PDF/A, PDF/UA or PDF/X profile without changing it.</summary>
     internal Task<PdfComplianceReadinessReport> AssessComplianceAsync(PdfComplianceProfile profile, CancellationToken cancellationToken) {
         PdfDocument snapshot = CreateDocumentSnapshot();
-        return RunCancellableCpuWorkAsync(() => snapshot.AssessCompliance(profile), cancellationToken);
+        return RunNonDetachableCpuWorkAsync(() => snapshot.AssessCompliance(profile, cancellationToken), cancellationToken);
     }
 
     internal async Task ImportFormDataAsync(string source, CancellationToken cancellationToken,

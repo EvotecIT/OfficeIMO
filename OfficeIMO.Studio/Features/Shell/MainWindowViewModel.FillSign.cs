@@ -87,6 +87,13 @@ public sealed partial class MainWindowViewModel {
         OnPropertyChanged(nameof(HasSavedInitials));
     }
 
+    private void DisposeSavedSignaturePreviews() {
+        foreach (SavedSignatureViewModel signature in SavedSignatures) signature.Preview?.Dispose();
+        foreach (SavedSignatureViewModel initials in SavedInitials) initials.Preview?.Dispose();
+        SavedSignatures.Clear();
+        SavedInitials.Clear();
+    }
+
     [RelayCommand]
     private async Task CreateSignatureAsync(string? kind) {
         if (_workspace is null) return;

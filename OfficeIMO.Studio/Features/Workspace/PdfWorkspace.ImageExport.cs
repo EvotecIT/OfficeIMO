@@ -23,7 +23,9 @@ internal sealed partial class PdfWorkspace {
                     using (var stream = OfficeIMO.Core.Internal.OfficeTemporaryFile.CreateAtPath(
                         path, 64 * 1024, FileOptions.SequentialScan))
                         image.CopyTo(stream, cancellationToken);
-                    staged.Add((path, image.PageNumber, image.FileExtension ?? ".bin"));
+                    string extension = string.IsNullOrWhiteSpace(image.FileExtension)
+                        ? ".bin" : "." + image.FileExtension.TrimStart('.');
+                    staged.Add((path, image.PageNumber, extension));
                 }, cancellationToken);
                 return staged.Count;
             }, cancellationToken).ConfigureAwait(false);

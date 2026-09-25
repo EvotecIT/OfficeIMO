@@ -46,11 +46,14 @@ public sealed partial class PdfWorkspaceTests {
             Assert.Equal(sentinel, File.ReadAllBytes(occupied));
             string[] first = Directory.GetFiles(output);
             Assert.Equal(2, first.Length);
-            Assert.Contains(first, path => path != occupied && File.ReadAllBytes(path).Length > sentinel.Length);
+            string firstExport = Path.Combine(output, "image-1-p1-1.png");
+            Assert.Contains(firstExport, first);
+            Assert.True(File.ReadAllBytes(firstExport).Length > sentinel.Length);
 
             Assert.Equal(1, await workspace.ExportDocumentAsync(PdfExportKind.Images, output, CancellationToken.None));
             Assert.Equal(sentinel, File.ReadAllBytes(occupied));
             Assert.Equal(3, Directory.GetFiles(output).Length);
+            Assert.True(File.Exists(Path.Combine(output, "image-2-p1-1.png")));
             Assert.Empty(Directory.GetDirectories(output, ".officeimo-image-export-*"));
         } finally { Directory.Delete(root, recursive: true); }
     }

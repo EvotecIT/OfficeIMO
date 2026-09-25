@@ -560,6 +560,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         SaveDocumentViewState();
         _disposed = true;
         _services.Signatures.Changed -= OnSavedSignaturesChanged;
+        DisposeSavedSignaturePreviews();
         ClearTextReview();
         _services.Recovery.MaintenanceCompleted -= OnRecoveryMaintenanceCompleted;
         _services.DocumentHistory.Cleared -= OnDocumentHistoryCleared;
