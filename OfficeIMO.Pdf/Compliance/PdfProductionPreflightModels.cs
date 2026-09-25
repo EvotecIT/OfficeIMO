@@ -162,13 +162,9 @@ public sealed class PdfProductionPreflightReport {
         if (selected.Length != proposalIndices.Count || selected.Any(index => index < 0 || index >= FixupProposals.Count)) {
             throw new ArgumentOutOfRangeException(nameof(proposalIndices), "Indices must be distinct and present in this report.");
         }
-        PdfDocument output = PdfDocument.Load(_analyzedPdf, _readOptions);
-        foreach (int index in selected) {
-            cancellationToken.ThrowIfCancellationRequested();
-            PdfProductionFixupProposal proposal = FixupProposals[index];
-            PdfPageBox box = proposal.Bounds;
-            output = output.Pages.SetPageBox(proposal.Box, box.Left, box.Bottom, box.Right, box.Top, proposal.PageNumber);
-        }
+        PdfProductionFixupProposal[] proposals = selected.Select(index => FixupProposals[index]).ToArray();
+        byte[] rewritten = PdfPageEditor.SetPageBoxesWithReadOptions(_analyzedPdf, proposals, _readOptions, cancellationToken);
+        PdfDocument output = PdfDocument.Load(rewritten, _readOptions);
         PdfProductionPreflightReport after = PdfProductionPreflightInspector.Inspect(output, _options, cancellationToken);
         return new PdfProductionFixupResult(output, after);
     }

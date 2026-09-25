@@ -54,6 +54,11 @@ public sealed partial class PdfReadPage {
                 limits.MaxContentNestingDepth);
     }
 
+    internal PdfReadPage WithOptionalContentVisibility(PdfPageOptionalContentVisibility.DocumentState state) =>
+        new PdfReadPage(ObjectNumber, _pageDict, _objects, _limits, _fontResourceCache,
+            _demandTextExtraction, _demandContentExtraction, _includeArtifactText,
+            _outputIntentColorTransform, state);
+
     private PdfOutputIntentColorTransform? EffectiveOutputIntentColorTransform =>
         _outputIntentColorTransform != null && !GetOutputIntentCompositionInteraction(CancellationToken.None)
             ? _outputIntentColorTransform

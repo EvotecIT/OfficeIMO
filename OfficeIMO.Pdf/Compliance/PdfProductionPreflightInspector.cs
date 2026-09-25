@@ -12,6 +12,10 @@ internal static class PdfProductionPreflightInspector {
         var snapshot = source.GetReadSnapshot(cancellationToken: cancellationToken);
         PdfReadDocument document = snapshot.Document;
         document.DemandContentExtraction("production preflight");
+        PdfPageOptionalContentVisibility.DocumentState printVisibility =
+            PdfPageOptionalContentVisibility.CreatePrintDocumentState(document.CatalogDictionary,
+                document.Objects, document.ReadOptions.Limits.MaxContentNestingDepth,
+                cancellationToken);
         int[] pageNumbers = effective.PageSelection?.ToPageNumbers(document.Pages.Count, nameof(effective.PageSelection))
             ?? Enumerable.Range(1, document.Pages.Count).ToArray();
         pageNumbers = pageNumbers.Distinct().ToArray();
@@ -31,10 +35,12 @@ internal static class PdfProductionPreflightInspector {
             cancellationToken.ThrowIfCancellationRequested();
             PdfReadPage page = document.Pages[pageNumber - 1];
             PdfLogicalPage logicalPage = logical.PagesBySourcePageNumber[pageNumber][0];
+            bool unresolvedPrintResources = logicalPage.HasOptionalContentUsage &&
+                (printVisibility.HiddenObjectNumbers.Count > 0 || printVisibility.HasUnsupportedViewUsageApplications);
             InspectBoxes(pageNumber, page.GetGeometry());
-            InspectFonts(pageNumber);
-            PdfPrintProductionColorEvidence color = InspectColor(pageNumber);
-            InspectImages(pageNumber, page, logicalPage, color);
+            InspectFonts(pageNumber, unresolvedPrintResources);
+            PdfPrintProductionColorEvidence color = InspectColor(pageNumber, unresolvedPrintResources);
+            InspectImages(pageNumber, page.WithOptionalContentVisibility(printVisibility), logicalPage, color);
         }
         return new PdfProductionPreflightReport(snapshot.Bytes, snapshot.Options, effective, pageNumbers, findings, fixups);
 
@@ -97,7 +103,13 @@ internal static class PdfProductionPreflightInspector {
             }
         }
 
-        void InspectFonts(int pageNumber) {
+        void InspectFonts(int pageNumber, bool unresolvedPrintResources) {
+            if (unresolvedPrintResources) {
+                AddFinding(new PdfProductionFinding(PdfProductionFindingKind.UninspectableFont,
+                    PdfProductionFindingSeverity.Indeterminate, pageNumber,
+                    "Font usage could not be isolated from print-hidden optional content."));
+                return;
+            }
             PdfPrintProductionStructureEvidence structure = PdfPrintProductionStructureInspector.Inspect(document, pageNumber, cancellationToken);
             if (structure.UnembeddedFontResourceCount > 0) {
                 AddFinding(new PdfProductionFinding(PdfProductionFindingKind.UnembeddedFont,
@@ -111,11 +123,17 @@ internal static class PdfProductionPreflightInspector {
             }
         }
 
-        PdfPrintProductionColorEvidence InspectColor(int pageNumber) {
+        PdfPrintProductionColorEvidence InspectColor(int pageNumber, bool unresolvedPrintResources) {
             PdfPrintProductionColorEvidence color = PdfPrintProductionColorInspector.Inspect(document, pageNumber, cancellationToken);
-            if (color.HasDeviceRgbUsage && effective.Profile != PdfProductionPreflightProfile.PdfX4Candidate) {
+            if (unresolvedPrintResources) {
+                AddFinding(new PdfProductionFinding(PdfProductionFindingKind.UninspectableColor,
+                    PdfProductionFindingSeverity.Indeterminate, pageNumber,
+                    "Color usage could not be isolated from print-hidden optional content."));
+                return color;
+            }
+            if (color.HasDeviceRgbUsage) {
                 AddFinding(new PdfProductionFinding(PdfProductionFindingKind.DeviceRgbColor,
-                    effective.Profile == PdfProductionPreflightProfile.PdfX1aCandidate ? PdfProductionFindingSeverity.Error : PdfProductionFindingSeverity.Warning,
+                    effective.Profile == PdfProductionPreflightProfile.GeneralPrint ? PdfProductionFindingSeverity.Warning : PdfProductionFindingSeverity.Error,
                     pageNumber, "Reachable content uses device RGB without an explicit color conversion in this artifact."));
             }
             if (color.HasDeviceIndependentColorUsage && effective.Profile == PdfProductionPreflightProfile.PdfX1aCandidate) {
@@ -138,12 +156,23 @@ internal static class PdfProductionPreflightInspector {
 
         void InspectImages(int pageNumber, PdfReadPage readPage, PdfLogicalPage logicalPage,
             PdfPrintProductionColorEvidence color) {
+            if (logicalPage.HasOptionalContentUsage && printVisibility.HasUnsupportedViewUsageApplications) {
+                AddFinding(new PdfProductionFinding(PdfProductionFindingKind.UninspectableImageResolution,
+                    PdfProductionFindingSeverity.Indeterminate, pageNumber,
+                    "The optional-content print configuration could not be evaluated completely."));
+                if (color.HasUninspectedImagePlacementSources) {
+                    AddFinding(new PdfProductionFinding(PdfProductionFindingKind.UninspectableImageResolution,
+                        PdfProductionFindingSeverity.Indeterminate, pageNumber,
+                        "A reachable tiling pattern or printable annotation may paint images whose effective resolution was not inspected."));
+                }
+                return;
+            }
+            IReadOnlyList<PdfImagePlacement> placements = readPage.GetImagePlacements(pageNumber);
             int understoodPlacements = 0;
-            foreach (PdfLogicalImage image in logicalPage.Images) {
-                foreach (PdfImagePlacement placement in image.Placements) {
+            foreach (PdfExtractedImage image in readPage.GetImages(pageNumber, placements)) {
+                foreach (PdfImagePlacement placement in PdfLogicalPage.MatchImagePlacements(image, placements)) {
                     cancellationToken.ThrowIfCancellationRequested();
                     understoodPlacements++;
-                    if (placement.IsHiddenOptionalContent) continue;
                     double userUnit = logicalPage.UserUnit ?? 1D;
                     double horizontalPoints = Math.Sqrt(placement.A * placement.A + placement.B * placement.B) * userUnit;
                     double verticalPoints = Math.Sqrt(placement.C * placement.C + placement.D * placement.D) * userUnit;
@@ -163,20 +192,10 @@ internal static class PdfProductionPreflightInspector {
                         new PdfLogicalVisualBounds(visual.Left, visual.Top, visual.Right, visual.Bottom), ppi));
                 }
             }
-            IReadOnlyList<PdfImagePlacement> placements = logicalPage.HasOptionalContentUsage
-                ? readPage.GetImagePlacementsIncludingHiddenOptionalContent(pageNumber)
-                : readPage.GetImagePlacements(pageNumber);
-            int hiddenPlacements = placements.Count(static placement => placement.IsHiddenOptionalContent);
-            if (hiddenPlacements > 0) {
+            if (understoodPlacements < placements.Count) {
                 AddFinding(new PdfProductionFinding(PdfProductionFindingKind.UninspectableImageResolution,
                     PdfProductionFindingSeverity.Indeterminate, pageNumber,
-                    $"{hiddenPlacements} optional-content image placement(s) may print despite being hidden in the view configuration."));
-            }
-            int rawPlacements = placements.Count - hiddenPlacements;
-            if (understoodPlacements < rawPlacements) {
-                AddFinding(new PdfProductionFinding(PdfProductionFindingKind.UninspectableImageResolution,
-                    PdfProductionFindingSeverity.Indeterminate, pageNumber,
-                    $"{rawPlacements - understoodPlacements} image placement(s) lacked usable extraction metadata."));
+                    $"{placements.Count - understoodPlacements} image placement(s) lacked usable extraction metadata."));
             }
             if (color.HasUninspectedImagePlacementSources) {
                 AddFinding(new PdfProductionFinding(PdfProductionFindingKind.UninspectableImageResolution,

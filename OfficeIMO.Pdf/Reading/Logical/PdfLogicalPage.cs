@@ -1215,7 +1215,7 @@ public sealed partial class PdfLogicalPage {
         return builder.ToString();
     }
 
-    private static IReadOnlyList<PdfImagePlacement> MatchImagePlacements(PdfExtractedImage image, IReadOnlyList<PdfImagePlacement> placements) {
+    internal static IReadOnlyList<PdfImagePlacement> MatchImagePlacements(PdfExtractedImage image, IReadOnlyList<PdfImagePlacement> placements) {
         if (placements.Count == 0) {
             return Array.Empty<PdfImagePlacement>();
         }

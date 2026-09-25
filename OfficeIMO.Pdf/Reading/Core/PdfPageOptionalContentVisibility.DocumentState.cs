@@ -29,6 +29,21 @@ internal sealed partial class PdfPageOptionalContentVisibility {
         PdfDictionary? catalog,
         Dictionary<int, PdfIndirectObject> objects,
         int maxExpressionDepth,
+        System.Threading.CancellationToken cancellationToken = default) =>
+        CreateDocumentState(catalog, objects, maxExpressionDepth, "View", cancellationToken);
+
+    internal static DocumentState CreatePrintDocumentState(
+        PdfDictionary? catalog,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maxExpressionDepth,
+        System.Threading.CancellationToken cancellationToken = default) =>
+        CreateDocumentState(catalog, objects, maxExpressionDepth, "Print", cancellationToken);
+
+    private static DocumentState CreateDocumentState(
+        PdfDictionary? catalog,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maxExpressionDepth,
+        string usageEvent,
         System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         int effectiveMaxExpressionDepth = System.Math.Min(
@@ -46,8 +61,9 @@ internal sealed partial class PdfPageOptionalContentVisibility {
         Dictionary<int, bool> groupVisibility = ReadGroupVisibility(
             catalog,
             objects,
-            cancellationToken,
-            out bool hasUnsupportedViewUsageApplications);
+            out bool hasUnsupportedViewUsageApplications,
+            usageEvent,
+            cancellationToken);
         var hiddenObjectNumbers = new HashSet<int>();
         foreach (KeyValuePair<int, bool> entry in groupVisibility) {
             cancellationToken.ThrowIfCancellationRequested();

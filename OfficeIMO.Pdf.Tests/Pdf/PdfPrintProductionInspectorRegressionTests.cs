@@ -923,6 +923,21 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
     }
 
     [Theory]
+    [InlineData(0, 0)]
+    [InlineData(4, 1)]
+    public void StructureInspectorCountsAnnotationAppearanceFontOnlyWhenPrintable(int flags, int expectedUnembedded) {
+        const string appearance = "BT /F1 12 Tf (A) Tj ET";
+        byte[] pdf = BuildInspectionPdf(string.Empty, pageEntries: "/Annots [5 0 R]", extraObjects:
+            $"5 0 obj\n<< /Type /Annot /Subtype /Stamp /Rect [10 10 40 40] /F {flags} /AP << /N 6 0 R >> >>\nendobj\n" +
+            $"6 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 30 30] /Resources << /Font << /F1 7 0 R >> >> /Length {appearance.Length} >>\nstream\n{appearance}\nendstream\nendobj\n" +
+            "7 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n");
+
+        PdfPrintProductionStructureEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionStructure();
+
+        Assert.Equal(expectedUnembedded, evidence.UnembeddedFontResourceCount);
+    }
+
+    [Theory]
     [InlineData("/FontName /Fixture /Flags 32 /FontBBox [0 0 500 700] /ItalicAngle 0 /Ascent 700 /Descent -200 /StemV 80 /FontFile2 7 0 R")]
     [InlineData("/Type /FontDescriptor /FontName /Fixture /Flags 32 /FontBBox [0 0 500 700] /ItalicAngle 0 /Ascent 700 /Descent -200 /CapHeight 700 /FontFile2 7 0 R")]
     [InlineData("/Type /FontDescriptor /FontName /Fixture /Flags 32 /FontBBox [0 0 500 700] /ItalicAngle 0 /Ascent 700 /Descent -200 /StemV 80 /FontFile2 7 0 R")]

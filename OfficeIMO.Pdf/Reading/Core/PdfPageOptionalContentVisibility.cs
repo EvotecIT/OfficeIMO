@@ -412,8 +412,9 @@ internal sealed partial class PdfPageOptionalContentVisibility {
     private static Dictionary<int, bool> ReadGroupVisibility(
         PdfDictionary? catalog,
         Dictionary<int, PdfIndirectObject> objects,
-        System.Threading.CancellationToken cancellationToken,
-        out bool hasUnsupportedViewUsageApplications) {
+        out bool hasUnsupportedViewUsageApplications,
+        string usageEvent,
+        System.Threading.CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         hasUnsupportedViewUsageApplications = false;
         var result = new Dictionary<int, bool>();
@@ -465,7 +466,7 @@ internal sealed partial class PdfPageOptionalContentVisibility {
 
         hasUnsupportedViewUsageApplications |=
             HasUnsupportedOptionalContentIntent(defaultConfiguration, groups, objects, cancellationToken) ||
-            ApplyViewUsageApplications(defaultConfiguration, groups, result, objects, cancellationToken);
+            ApplyUsageApplications(defaultConfiguration, groups, result, objects, usageEvent, cancellationToken);
 
         return result;
     }
@@ -515,11 +516,12 @@ internal sealed partial class PdfPageOptionalContentVisibility {
             ResolveObject(names.Items[0], objects) is PdfName { Name: "View" };
     }
 
-    private static bool ApplyViewUsageApplications(
+    private static bool ApplyUsageApplications(
         PdfDictionary? defaultConfiguration,
         PdfArray groups,
         Dictionary<int, bool> visibility,
         Dictionary<int, PdfIndirectObject> objects,
+        string usageEvent,
         System.Threading.CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         if (defaultConfiguration == null ||
@@ -550,10 +552,10 @@ internal sealed partial class PdfPageOptionalContentVisibility {
                 hasUnsupportedViewUsageApplications = true;
                 continue;
             }
-            if (!string.Equals(eventName.Name, "View", StringComparison.Ordinal)) {
+            if (!string.Equals(eventName.Name, usageEvent, StringComparison.Ordinal)) {
                 continue;
             }
-            if (!HasExactViewCategory(application, objects)) {
+            if (!HasExactCategory(application, objects, usageEvent)) {
                 hasUnsupportedViewUsageApplications = true;
                 continue;
             }
@@ -590,7 +592,7 @@ internal sealed partial class PdfPageOptionalContentVisibility {
                     hasUnsupportedViewUsageApplications = true;
                     continue;
                 }
-                if (!usage.Items.TryGetValue("View", out PdfObject? viewObject)) continue;
+                if (!usage.Items.TryGetValue(usageEvent, out PdfObject? viewObject)) continue;
                 PdfObject? resolvedView = ResolveObject(viewObject, objects);
                 if (resolvedView is PdfNull) continue;
                 if (resolvedView is not PdfDictionary view) {
@@ -598,7 +600,7 @@ internal sealed partial class PdfPageOptionalContentVisibility {
                     continue;
                 }
 
-                if (!view.Items.TryGetValue("ViewState", out PdfObject? viewStateObject)) {
+                if (!view.Items.TryGetValue(usageEvent + "State", out PdfObject? viewStateObject)) {
                     visibility[reference.ObjectNumber] = true;
                     continue;
                 }
@@ -615,9 +617,9 @@ internal sealed partial class PdfPageOptionalContentVisibility {
     private static long GetReferenceKey(PdfReference reference) =>
         ((long)reference.ObjectNumber << 32) | (uint)reference.Generation;
 
-    private static bool HasExactViewCategory(PdfDictionary application, Dictionary<int, PdfIndirectObject> objects) =>
+    private static bool HasExactCategory(PdfDictionary application, Dictionary<int, PdfIndirectObject> objects, string usageEvent) =>
         ResolveObject(application.Items.TryGetValue("Category", out PdfObject? value) ? value : null, objects) is PdfArray { Items.Count: 1 } names &&
-        ResolveObject(names.Items[0], objects) is PdfName { Name: "View" };
+        ResolveObject(names.Items[0], objects) is PdfName name && name.Name == usageEvent;
 
     private static HashSet<int> ReadReferenceSet(
         PdfDictionary? dictionary,

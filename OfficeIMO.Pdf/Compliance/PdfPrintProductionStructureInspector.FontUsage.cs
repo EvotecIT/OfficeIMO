@@ -343,6 +343,13 @@ internal static partial class PdfPrintProductionStructureInspector {
             }
             if (resolved is not PdfDictionary dictionary) return;
             if (dictionary.Items.TryGetValue("AP", out PdfObject? appearances)) {
+                if (!dictionary.Items.TryGetValue("F", out PdfObject? flagsObject) ||
+                    ResolveObject(_objects, flagsObject, resolvedDepth + 1, _limits.MaxObjectNestingDepth, out _) is not PdfNumber flags) {
+                    // An annotation without the Print flag does not contribute to printed output.
+                    return;
+                }
+                int bits = (int)flags.Value;
+                if ((bits & 4) == 0 || (bits & 3) != 0) return;
                 AddAppearanceObject(appearances, pageResources, resolvedDepth + 1, visited);
             }
         }
