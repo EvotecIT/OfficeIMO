@@ -6,64 +6,120 @@ public sealed partial class PdfReadPage {
     internal (bool HasDeviceRgb, bool HasTransparency) GetDefiniteUnlayeredPrintColorUse(
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (IsHiddenOptionalContent(_pageDict)) return (false, false);
+        if (HasEffectiveOptionalContentEntry(_pageDict)) return (false, false);
         PdfDictionary? resources = ResolveDictionary(GetInheritedValue("Resources"));
-        PdfDictionary? colorSpaces = ResolveDictionary(
-            resources?.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject) == true
-                ? colorSpaceObject : null);
-        bool defaultRgbIsOverridden = colorSpaces?.Items.ContainsKey("DefaultRGB") == true;
         var budget = new PageContentBudget(this, cancellationToken);
-        string content = GetContentStreamContent(budget);
-        bool fillRgb = false;
-        bool strokeRgb = false;
-        bool transparent = false;
         bool foundRgb = false;
         bool foundTransparency = false;
-        int markedDepth = 0;
-        var states = new Stack<(bool FillRgb, bool StrokeRgb, bool Transparent)>();
-        PdfContentStreamInterpreter.Interpret(content, _limits.MaxContentOperations, operation => {
-            cancellationToken.ThrowIfCancellationRequested();
-            switch (operation.Name) {
-                case "BDC": case "BMC": markedDepth++; return;
-                case "EMC":
-                    if (markedDepth > 0 && --markedDepth == 0) {
-                        // Content inside a layer can change graphics state without restoring it.
-                        fillRgb = strokeRgb = transparent = false;
-                        states.Clear();
-                    }
-                    return;
-            }
-            if (markedDepth != 0 || operation.HasInvalidOperands) return;
-            switch (operation.Name) {
-                case "q": states.Push((fillRgb, strokeRgb, transparent)); break;
-                case "Q":
-                    if (states.Count > 0) (fillRgb, strokeRgb, transparent) = states.Pop();
-                    else fillRgb = strokeRgb = transparent = false;
-                    break;
-                case "rg": fillRgb = !defaultRgbIsOverridden && operation.Operands.Count == 3; break;
-                case "RG": strokeRgb = !defaultRgbIsOverridden && operation.Operands.Count == 3; break;
-                case "g": case "k": case "cs": fillRgb = false; break;
-                case "G": case "K": case "CS": strokeRgb = false; break;
-                case "gs":
-                    if (operation.Operands.Count > 0 && operation.Operands[operation.Operands.Count - 1] is string name) {
-                        PdfDictionary? extStates = ResolveDictionary(
-                            resources?.Items.TryGetValue("ExtGState", out PdfObject? statesObject) == true
-                                ? statesObject : null);
-                        PdfDictionary? state = ResolveDictionary(
-                            extStates?.Items.TryGetValue(name, out PdfObject? stateObject) == true
-                                ? stateObject : null);
-                        transparent |= state != null && HasExplicitTransparency(state);
-                    }
-                    break;
-                case "f": case "F": case "f*": foundRgb |= fillRgb; foundTransparency |= transparent; break;
-                case "S": case "s": foundRgb |= strokeRgb; foundTransparency |= transparent; break;
-                case "B": case "B*": case "b": case "b*":
-                    foundRgb |= fillRgb || strokeRgb;
-                    foundTransparency |= transparent;
-                    break;
-            }
-        }, maxNestingDepth: _limits.MaxContentNestingDepth, maxOperands: _limits.MaxContentOperands);
+        var activeForms = new HashSet<PdfStream>();
+        Scan(GetContentStreamContent(budget), resources, false, false, false, 0);
         return (foundRgb, foundTransparency);
+
+        void Scan(string content, PdfDictionary? currentResources, bool initialFillRgb,
+            bool initialStrokeRgb, bool initialTransparency, int depth) {
+            EnsureContentNestingBudget(depth);
+            PdfDictionary? colorSpaces = ResolveDictionary(
+                currentResources?.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject) == true
+                    ? colorSpaceObject : null);
+            bool defaultRgbIsOverridden = colorSpaces?.Items.ContainsKey("DefaultRGB") == true;
+            bool fillRgb = initialFillRgb;
+            bool strokeRgb = initialStrokeRgb;
+            bool transparent = initialTransparency;
+            int textMode = 0;
+            int layeredDepth = 0;
+            var markedContent = new Stack<bool>();
+            var states = new Stack<(bool FillRgb, bool StrokeRgb, bool Transparent, int TextMode)>();
+            PdfContentStreamInterpreter.Interpret(content, _limits.MaxContentOperations, operation => {
+                cancellationToken.ThrowIfCancellationRequested();
+                switch (operation.Name) {
+                    case "BDC":
+                        bool isLayer = operation.Operands.Count > 1 &&
+                            operation.Operands[operation.Operands.Count - 2] is string tag && tag == "OC";
+                        markedContent.Push(isLayer);
+                        if (isLayer) layeredDepth++;
+                        return;
+                    case "BMC": markedContent.Push(false); return;
+                    case "EMC":
+                        if (markedContent.Count > 0 && markedContent.Pop() && --layeredDepth == 0) {
+                            fillRgb = strokeRgb = transparent = false;
+                            states.Clear();
+                        }
+                        return;
+                }
+                if (layeredDepth != 0 || operation.HasInvalidOperands) return;
+                if (operation.InlineImage is PdfContentInlineImage inlineImage) {
+                    string? inlineColorSpace = (ResolveObject(inlineImage.Dictionary.Items.TryGetValue("ColorSpace", out PdfObject? inlineColor)
+                        ? inlineColor : null) as PdfName)?.Name;
+                    foundRgb |= !defaultRgbIsOverridden && inlineColorSpace == "DeviceRGB";
+                    foundRgb |= fillRgb && inlineImage.Dictionary.Items.TryGetValue("ImageMask", out PdfObject? inlineMask) &&
+                        ResolveObject(inlineMask) is PdfBoolean { Value: true };
+                    foundTransparency |= transparent || HasImageTransparency(inlineImage.Dictionary);
+                    return;
+                }
+                switch (operation.Name) {
+                    case "q": states.Push((fillRgb, strokeRgb, transparent, textMode)); break;
+                    case "Q":
+                        if (states.Count > 0) (fillRgb, strokeRgb, transparent, textMode) = states.Pop();
+                        else { fillRgb = strokeRgb = transparent = false; textMode = 0; }
+                        break;
+                    case "rg": fillRgb = !defaultRgbIsOverridden && operation.Operands.Count == 3; break;
+                    case "RG": strokeRgb = !defaultRgbIsOverridden && operation.Operands.Count == 3; break;
+                    case "g": case "k": case "cs": fillRgb = false; break;
+                    case "G": case "K": case "CS": strokeRgb = false; break;
+                    case "Tr":
+                        if (operation.Operands.Count == 1 && operation.Operands[0] is double mode &&
+                            mode >= 0D && mode <= 7D) textMode = (int)mode;
+                        break;
+                    case "gs":
+                        if (operation.Operands.Count > 0 && operation.Operands[operation.Operands.Count - 1] is string stateName) {
+                            PdfDictionary? extStates = ResolveDictionary(
+                                currentResources?.Items.TryGetValue("ExtGState", out PdfObject? statesObject) == true
+                                    ? statesObject : null);
+                            PdfDictionary? state = ResolveDictionary(
+                                extStates?.Items.TryGetValue(stateName, out PdfObject? stateObject) == true
+                                    ? stateObject : null);
+                            transparent |= state != null && HasExplicitTransparency(state);
+                        }
+                        break;
+                    case "f": case "F": case "f*": foundRgb |= fillRgb; foundTransparency |= transparent; break;
+                    case "S": case "s": foundRgb |= strokeRgb; foundTransparency |= transparent; break;
+                    case "B": case "B*": case "b": case "b*":
+                        foundRgb |= fillRgb || strokeRgb; foundTransparency |= transparent; break;
+                    case "Tj": case "TJ": case "'": case "\"":
+                        if (!GetShownTextBytes(operation).Any(static bytes => bytes.Length > 0)) break;
+                        if (textMode is 0 or 2 or 4 or 6) foundRgb |= fillRgb;
+                        if (textMode is 1 or 2 or 5 or 6) foundRgb |= strokeRgb;
+                        if (textMode != 3 && textMode != 7) foundTransparency |= transparent;
+                        break;
+                    case "Do":
+                        if (operation.Operands.Count == 0 || operation.Operands[operation.Operands.Count - 1] is not string resourceName) break;
+                        PdfDictionary? xObjects = ResolveDictionary(
+                            currentResources?.Items.TryGetValue("XObject", out PdfObject? xObjectsObject) == true
+                                ? xObjectsObject : null);
+                        if (PdfObjectLookup.ResolveChain(_objects,
+                                xObjects?.Items.TryGetValue(resourceName, out PdfObject? xObject) == true ? xObject : null) is not PdfStream stream ||
+                            HasEffectiveOptionalContentEntry(stream.Dictionary)) break;
+                        string? subtype = (ResolveObject(stream.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtypeObject)
+                            ? subtypeObject : null) as PdfName)?.Name;
+                        if (subtype == "Image") {
+                            string? colorSpace = (ResolveObject(stream.Dictionary.Items.TryGetValue("ColorSpace", out PdfObject? imageColor)
+                                ? imageColor : null) as PdfName)?.Name;
+                            foundRgb |= !defaultRgbIsOverridden && colorSpace == "DeviceRGB";
+                            foundRgb |= fillRgb && stream.Dictionary.Items.TryGetValue("ImageMask", out PdfObject? imageMask) &&
+                                ResolveObject(imageMask) is PdfBoolean { Value: true };
+                            foundTransparency |= HasImageTransparency(stream.Dictionary) || transparent;
+                        } else if (subtype == "Form" && activeForms.Add(stream)) {
+                            try {
+                                PdfDictionary? formResources = ResolveDictionary(stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? formResourceObject)
+                                    ? formResourceObject : null) ?? currentResources;
+                                Scan(PdfEncoding.Latin1GetString(budget.Decode(stream)), formResources,
+                                    fillRgb, strokeRgb, transparent, depth + 1);
+                            } finally { activeForms.Remove(stream); }
+                        }
+                        break;
+                }
+            }, maxNestingDepth: _limits.MaxContentNestingDepth, maxOperands: _limits.MaxContentOperands);
+        }
     }
 
     private bool GetOutputIntentCompositionInteraction(CancellationToken cancellationToken) =>

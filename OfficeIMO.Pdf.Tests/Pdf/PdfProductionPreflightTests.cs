@@ -248,4 +248,107 @@ public sealed class PdfProductionPreflightTests {
         Assert.Contains(report.Findings, static finding => finding.Kind == PdfProductionFindingKind.UninspectableColor);
         Assert.DoesNotContain(report.Findings, static finding => finding.Kind == PdfProductionFindingKind.LowImageResolution);
     }
+
+    [Fact]
+    public void UnusedHiddenPrintGroupDoesNotSuppressVisibleLayerFontFinding() {
+        const string content = "/OC /Visible BDC BT /F1 12 Tf 10 10 Td (Print text) Tj ET EMC\n";
+        byte[] source = RawPrintLayerPdf(content,
+            "/Font << /F1 5 0 R >> /Properties << /Visible 6 0 R >>",
+            "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n" +
+            "6 0 obj\n<< /Type /OCG /Name (Visible) /Usage << /Print << /PrintState /ON >> >> >>\nendobj\n" +
+            "7 0 obj\n<< /Type /OCG /Name (Unused) /Usage << /Print << /PrintState /OFF >> >> >>\nendobj",
+            "[6 0 R 7 0 R]", "[6 0 R 7 0 R]");
+
+        PdfProductionPreflightReport report = PdfDocument.Load(source).Proof.PreflightProduction();
+
+        Assert.Contains(report.Findings, static finding => finding.Kind == PdfProductionFindingKind.UnembeddedFont);
+        Assert.DoesNotContain(report.Findings, static finding => finding.Kind == PdfProductionFindingKind.UninspectableFont);
+    }
+
+    [Theory]
+    [InlineData("BT /F1 12 Tf 10 10 Td (Print text) Tj ET", "/Font << /F1 5 0 R >>")]
+    [InlineData("q 72 0 0 72 10 10 cm /Im0 Do Q", "/XObject << /Im0 5 0 R >>")]
+    public void UnlayeredTextOrImageStillReportsRgbBesideHiddenPrintContent(string painted, string resources) {
+        string content = "1 0 0 rg " + painted + " /OC /Hidden BDC 0 1 0 rg 10 10 10 10 re f EMC\n";
+        string objectFive = resources.IndexOf("/Font", StringComparison.Ordinal) >= 0
+            ? "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj"
+            : "5 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length 3 >>\nstream\nabc\nendstream\nendobj";
+        byte[] source = RawPrintLayerPdf(content, resources + " /Properties << /Hidden 6 0 R >>",
+            objectFive + "\n6 0 obj\n<< /Type /OCG /Name (Hidden) /Usage << /Print << /PrintState /OFF >> >> >>\nendobj",
+            "[6 0 R]", "[6 0 R]");
+
+        PdfProductionPreflightReport report = PdfDocument.Load(source).Proof.PreflightProduction();
+
+        Assert.Contains(report.Findings, static finding => finding.Kind == PdfProductionFindingKind.DeviceRgbColor);
+        Assert.Contains(report.Findings, static finding => finding.Kind == PdfProductionFindingKind.UninspectableColor);
+    }
+
+    [Fact]
+    public void InvisibleUnlayeredTextDoesNotCreateDefinitePrintColorFinding() {
+        const string content = "1 0 0 rg BT /F1 12 Tf 3 Tr 10 10 Td (Screen text) Tj ET /OC /Hidden BDC 10 10 10 10 re f EMC\n";
+        byte[] source = RawPrintLayerPdf(content, "/Font << /F1 5 0 R >> /Properties << /Hidden 6 0 R >>",
+            "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n" +
+            "6 0 obj\n<< /Type /OCG /Name (Hidden) /Usage << /Print << /PrintState /OFF >> >> >>\nendobj",
+            "[6 0 R]", "[6 0 R]");
+
+        PdfProductionPreflightReport report = PdfDocument.Load(source).Proof.PreflightProduction();
+
+        Assert.DoesNotContain(report.Findings, static finding => finding.Kind == PdfProductionFindingKind.DeviceRgbColor);
+        Assert.Contains(report.Findings, static finding => finding.Kind == PdfProductionFindingKind.UninspectableColor);
+    }
+
+    [Fact]
+    public void UnlayeredFormPaintRetainsDefiniteRgbFindingBesideHiddenPrintContent() {
+        const string formContent = "1 0 0 rg 10 10 20 20 re f\n";
+        const string content = "q /Form0 Do Q /OC /Hidden BDC 10 10 10 10 re f EMC\n";
+        byte[] source = RawPrintLayerPdf(content, "/XObject << /Form0 5 0 R >> /Properties << /Hidden 6 0 R >>",
+            "5 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 100 100] /Length " +
+            System.Text.Encoding.ASCII.GetByteCount(formContent) + " >>\nstream\n" + formContent.TrimEnd('\n') +
+            "\nendstream\nendobj\n" +
+            "6 0 obj\n<< /Type /OCG /Name (Hidden) /Usage << /Print << /PrintState /OFF >> >> >>\nendobj",
+            "[6 0 R]", "[6 0 R]");
+
+        PdfProductionPreflightReport report = PdfDocument.Load(source).Proof.PreflightProduction();
+
+        Assert.Contains(report.Findings, static finding => finding.Kind == PdfProductionFindingKind.DeviceRgbColor);
+        Assert.Contains(report.Findings, static finding => finding.Kind == PdfProductionFindingKind.UninspectableColor);
+    }
+
+    [Fact]
+    public void PrintHiddenMalformedImageIsNotDecodedThroughViewState() {
+        const string content = "q 72 0 0 72 10 10 cm /Im0 Do Q\n";
+        byte[] source = RawPrintLayerPdf(content, "/XObject << /Im0 5 0 R >>",
+            "5 0 obj\n<< /Type /XObject /Subtype /Image /Width 10000 /Height 10000 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /FlateDecode /OC 6 0 R /Length 3 >>\nstream\nabc\nendstream\nendobj\n" +
+            "6 0 obj\n<< /Type /OCG /Name (Hidden) /Usage << /Print << /PrintState /OFF >> >> >>\nendobj",
+            "[6 0 R]", "[6 0 R]");
+
+        PdfProductionPreflightReport report = PdfDocument.Load(source).Proof.PreflightProduction();
+
+        Assert.DoesNotContain(report.Findings, static finding => finding.Kind == PdfProductionFindingKind.LowImageResolution);
+    }
+
+    [Fact]
+    public void UnsupportedPrintLayerRuleRetainsUnlayeredLowResolutionImage() {
+        const string content = "q 72 0 0 72 10 10 cm /Im0 Do Q /OC /Layer BDC 10 10 10 10 re f EMC\n";
+        byte[] source = RawPrintLayerPdf(content,
+            "/XObject << /Im0 5 0 R >> /Properties << /Layer 6 0 R >>",
+            "5 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length 3 >>\nstream\nabc\nendstream\nendobj\n" +
+            "6 0 obj\n<< /Type /OCG /Name (Layer) >>\nendobj",
+            "[6 0 R]", "[6 0 R]", "/Print /View");
+
+        PdfProductionPreflightReport report = PdfDocument.Load(source).Proof.PreflightProduction();
+
+        Assert.Contains(report.Findings, static finding => finding.Kind == PdfProductionFindingKind.LowImageResolution);
+        Assert.Contains(report.Findings, static finding => finding.Kind == PdfProductionFindingKind.UninspectableImageResolution);
+    }
+
+    private static byte[] RawPrintLayerPdf(string content, string resources, string extraObjects,
+        string groups, string printGroups, string categories = "/Print") => System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", $"<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs {groups} /D << /BaseState /ON /AS [<< /Event /Print /Category [{categories}] /OCGs {printGroups} >>] >> >> >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", $"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Resources << {resources} >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + System.Text.Encoding.ASCII.GetByteCount(content) + " >>", "stream", content.TrimEnd('\n'), "endstream", "endobj",
+            extraObjects, "trailer", "<< /Root 1 0 R /Size 8 >>", "%%EOF", string.Empty
+        }));
 }

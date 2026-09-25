@@ -26,22 +26,17 @@ internal static class PdfProductionPreflightInspector {
         var findings = new List<PdfProductionFinding>();
         var fixups = new List<PdfProductionFixupProposal>();
         InspectOutputIntents();
-        PdfDocumentReadResult logical = PdfDocumentReadEngine.Read(document, new PdfReadOptions {
-            Profile = PdfReadProfile.Fast,
-            PageSelection = PdfPageSelection.From(pageNumbers),
-            Pipeline = new PdfUnderstandingPipelineOptions { MaxPages = effective.MaxPages }
-        }, cancellationToken);
         foreach (int pageNumber in pageNumbers) {
             cancellationToken.ThrowIfCancellationRequested();
             PdfReadPage page = document.Pages[pageNumber - 1];
-            PdfLogicalPage logicalPage = logical.PagesBySourcePageNumber[pageNumber][0];
-            bool unresolvedPrintResources = logicalPage.HasOptionalContentUsage &&
-                (printVisibility.HiddenObjectNumbers.Count > 0 || printVisibility.HasUnsupportedViewUsageApplications);
+            PdfReadPage printPage = page.WithOptionalContentVisibility(printVisibility);
+            bool hasOptionalContentUsage = printPage.HasOptionalContentUsage(cancellationToken);
+            bool unresolvedPrintResources = printPage.HasOptionalContentUsage(hiddenOnly: true, cancellationToken) ||
+                printVisibility.HasUnsupportedViewUsageApplications && hasOptionalContentUsage;
             InspectBoxes(pageNumber, page.GetGeometry());
             InspectFonts(pageNumber, unresolvedPrintResources);
-            PdfReadPage printPage = page.WithOptionalContentVisibility(printVisibility);
             PdfPrintProductionColorEvidence color = InspectColor(pageNumber, printPage, unresolvedPrintResources);
-            InspectImages(pageNumber, printPage, logicalPage, color);
+            InspectImages(pageNumber, printPage, hasOptionalContentUsage, color);
         }
         return new PdfProductionPreflightReport(snapshot.Bytes, snapshot.Options, effective, pageNumbers, findings, fixups);
 
@@ -166,9 +161,9 @@ internal static class PdfProductionPreflightInspector {
             return color;
         }
 
-        void InspectImages(int pageNumber, PdfReadPage readPage, PdfLogicalPage logicalPage,
+        void InspectImages(int pageNumber, PdfReadPage readPage, bool hasOptionalContentUsage,
             PdfPrintProductionColorEvidence color) {
-            if (logicalPage.HasOptionalContentUsage && printVisibility.HasUnsupportedViewUsageApplications) {
+            if (hasOptionalContentUsage && printVisibility.HasUnsupportedViewUsageApplications) {
                 AddFinding(new PdfProductionFinding(PdfProductionFindingKind.UninspectableImageResolution,
                     PdfProductionFindingSeverity.Indeterminate, pageNumber,
                     "The optional-content print configuration could not be evaluated completely."));
@@ -177,9 +172,13 @@ internal static class PdfProductionPreflightInspector {
                         PdfProductionFindingSeverity.Indeterminate, pageNumber,
                         "A reachable tiling pattern or printable annotation may paint images whose effective resolution was not inspected."));
                 }
-                return;
             }
             IReadOnlyList<PdfImagePlacement> placements = readPage.GetImagePlacements(pageNumber, cancellationToken);
+            if (hasOptionalContentUsage && printVisibility.HasUnsupportedViewUsageApplications) {
+                HashSet<int> unlayeredOffsets = readPage.GetDefiniteUnlayeredRootImageOperatorOffsets(cancellationToken);
+                placements = placements.Where(placement => placement.ContentOrderKey is { Depth: 1 } key &&
+                    key.RootOperatorOffset is int offset && unlayeredOffsets.Contains(offset)).ToArray();
+            }
             int understoodPlacements = 0;
             var matchedPlacements = new HashSet<PdfImagePlacement>();
             foreach (PdfExtractedImage image in readPage.GetImages(pageNumber, placements, cancellationToken)) {
@@ -187,7 +186,7 @@ internal static class PdfProductionPreflightInspector {
                     cancellationToken.ThrowIfCancellationRequested();
                     if (!matchedPlacements.Add(placement)) continue;
                     understoodPlacements++;
-                    double userUnit = logicalPage.UserUnit ?? 1D;
+                    double userUnit = readPage.GetGeometry().UserUnit ?? 1D;
                     double horizontalPoints = Math.Sqrt(placement.A * placement.A + placement.B * placement.B) * userUnit;
                     double verticalPoints = Math.Sqrt(placement.C * placement.C + placement.D * placement.D) * userUnit;
                     if (!IsPositiveFinite(horizontalPoints) || !IsPositiveFinite(verticalPoints) ||
@@ -198,7 +197,7 @@ internal static class PdfProductionPreflightInspector {
                     }
                     double ppi = Math.Min(image.Width * 72D / horizontalPoints, image.Height * 72D / verticalPoints);
                     if (ppi >= effective.EffectiveMinimumImagePpi) continue;
-                    PdfVisualBounds visual = logicalPage.TransformBoundsToVisual(placement.X, placement.Y,
+                    PdfVisualBounds visual = readPage.TransformBoundsToVisual(placement.X, placement.Y,
                         placement.X + placement.Width, placement.Y + placement.Height);
                     AddFinding(new PdfProductionFinding(PdfProductionFindingKind.LowImageResolution,
                         effective.Profile == PdfProductionPreflightProfile.GeneralPrint ? PdfProductionFindingSeverity.Warning : PdfProductionFindingSeverity.Error,

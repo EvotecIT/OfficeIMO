@@ -500,6 +500,7 @@ public sealed partial class PdfReadPage {
 
     internal IReadOnlyList<PdfExtractedImage> GetImages(int pageNumber,
         IReadOnlyList<PdfImagePlacement>? imagePlacements, CancellationToken cancellationToken) {
+        PrepareOutputIntentRendering(cancellationToken);
         return GetImages(pageNumber, imagePlacements, colorizeImageMasks: false,
             new PageContentBudget(this, cancellationToken), cancellationToken);
     }
@@ -582,6 +583,7 @@ public sealed partial class PdfReadPage {
     }
 
     internal IReadOnlyList<PdfImagePlacement> GetImagePlacements(int pageNumber, CancellationToken cancellationToken) {
+        PrepareOutputIntentRendering(cancellationToken);
         return GetImagePlacements(pageNumber, includeHiddenOptionalContent: false,
             cancellationCheck: cancellationToken.ThrowIfCancellationRequested,
             cancellationToken: cancellationToken);
