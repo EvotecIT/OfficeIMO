@@ -57,6 +57,11 @@ internal static class PdfPageImposer {
         (double cellWidth, double cellHeight) = options.Validate();
         int[] selectedPages = pageNumbers.OfType<int>().Distinct().ToArray();
         bool selectedAnnotations = selectedPages.Any(page => info.Pages[page - 1].HasAnnotations);
+        if (!selectedAnnotations) {
+            // The high-level inspector omits annotations with unreadable geometry, but overlay still drops them.
+            PdfReadDocument rawSource = PdfReadDocument.Open(pdf, readOptions);
+            selectedAnnotations = selectedPages.Any(page => HasRawAnnotations(rawSource.Pages[page - 1], rawSource.Objects));
+        }
         // XFA and fields without a placed widget have no page ownership to filter by selection.
         bool documentLevelForms = info.HasForms && (info.HasAcroFormXfa || info.FormFields.Count == 0 ||
             info.FormFields.Any(static field => field.Widgets.Count == 0 ||
@@ -125,5 +130,11 @@ internal static class PdfPageImposer {
         PdfDocumentInfo resultInfo = PdfInspector.Inspect(output);
         if (resultInfo.PageCount != sheetCount) throw new InvalidOperationException("Imposed output page count did not match its placement plan.");
         return new PdfImpositionResult(output, placements, removedSignatureCount, sourceFeatureLoss);
+    }
+
+    private static bool HasRawAnnotations(PdfReadPage page, Dictionary<int, PdfIndirectObject> objects) {
+        if (!page.PageDictionary.Items.TryGetValue("Annots", out PdfObject? value)) return false;
+        PdfObject? resolved = PdfObjectLookup.Resolve(objects, value);
+        return resolved is not PdfNull && (resolved is not PdfArray annotations || annotations.Items.Count > 0);
     }
 }

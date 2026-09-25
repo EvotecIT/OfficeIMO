@@ -68,7 +68,9 @@ public static class PdfPageChangeAnalyzer {
                 .Where(page => changes[page - 1] is null).ToArray();
             int[] actualGap = Enumerable.Range(previousActual + 1, actualAnchor - previousActual - 1)
                 .Where(page => !actualUsed[page - 1]).ToArray();
-            int paired = Math.Min(expectedGap.Length, actualGap.Length);
+            // An insertion/deletion in the same gap makes positional pairing ambiguous.
+            // Leave those pages unpaired so callers do not review an unrelated replacement.
+            int paired = expectedGap.Length == actualGap.Length ? expectedGap.Length : 0;
             for (int index = 0; index < paired; index++) {
                 changes[expectedGap[index] - 1] = new PdfPageChange(PdfPageChangeKind.ModifiedCandidate, expectedGap[index], actualGap[index]);
                 actualUsed[actualGap[index] - 1] = true;

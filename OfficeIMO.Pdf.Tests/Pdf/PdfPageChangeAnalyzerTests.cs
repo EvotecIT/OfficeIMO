@@ -43,6 +43,19 @@ public sealed class PdfPageChangeAnalyzerTests {
         Assert.Throws<OperationCanceledException>(() => source.Proof.AnalyzePageChanges(source, cancellationToken: canceled.Token));
     }
 
+    [Fact]
+    public void InsertionBesideModificationDoesNotPairTheWrongPage() {
+        PdfDocument expected = BuildPages("Alpha", "Bravo", "Charlie");
+        PdfDocument actual = BuildPages("Alpha", "Inserted", "Bravo revised", "Charlie");
+
+        PdfPageChangeReport report = expected.Proof.AnalyzePageChanges(actual);
+
+        Assert.Equal(PdfPageChangeKind.Deleted, report.Changes[1].Kind);
+        Assert.DoesNotContain(report.Changes, static change => change.Kind == PdfPageChangeKind.ModifiedCandidate);
+        Assert.Equal(new[] { 2, 3 }, report.Changes.Where(static change => change.Kind == PdfPageChangeKind.Inserted)
+            .Select(static change => change.ActualPageNumber.GetValueOrDefault()));
+    }
+
     private static PdfDocument BuildPages(params string[] texts) {
         PdfDocument document = PdfDocument.Create(new PdfOptions { PageSize = new PageSize(240, 180) });
         for (int index = 0; index < texts.Length; index++) {

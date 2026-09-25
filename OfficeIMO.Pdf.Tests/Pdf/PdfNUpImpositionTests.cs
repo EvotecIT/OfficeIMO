@@ -99,6 +99,27 @@ public sealed class PdfNUpImpositionTests {
     }
 
     [Fact]
+    public void UnreadableSelectedAnnotationStillRequiresFeatureLossApproval() {
+        byte[] source = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Annots [5 0 R] >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", "", "endstream", "endobj",
+            "5 0 obj", "<< /Type /Annot /Subtype /Text /Contents (Unreadable geometry) >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF"
+        }));
+        PdfDocument document = PdfDocument.Load(source);
+        var layout = new PdfNUpOptions(new PageSize(600, 400), 2, 1);
+
+        Assert.Throws<NotSupportedException>(() => document.Pages.ImposeNUp(layout));
+        layout.AllowSourceFeatureLoss = true;
+        PdfImpositionResult result = document.Pages.ImposeNUp(layout);
+
+        Assert.True(result.SourceFeatureLoss.HasFlag(PdfImpositionSourceFeatureLoss.Annotations));
+    }
+
+    [Fact]
     public void BookletPadsToFourAndMapsBothSidesOfDuplexSheets() {
         PdfDocument source = PdfDocument.Create(new PdfOptions { PageSize = new PageSize(240, 180) });
         for (int page = 1; page <= 5; page++) {
