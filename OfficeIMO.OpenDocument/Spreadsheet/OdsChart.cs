@@ -157,7 +157,8 @@ public sealed class OdsChart {
             .Where(element => element.Name == OdfNamespaces.Office + "automatic-styles"
                 || element.Name == OdfNamespaces.Office + "styles")
             .SelectMany(element => element.Elements(OdfNamespaces.Style + "style"))
-            .FirstOrDefault(element => string.Equals((string?)element.Attribute(OdfNamespaces.Style + "name"), styleName, StringComparison.Ordinal));
+            .FirstOrDefault(element => (string?)element.Attribute(OdfNamespaces.Style + "family") == "chart" &&
+                string.Equals((string?)element.Attribute(OdfNamespaces.Style + "name"), styleName, StringComparison.Ordinal));
 
     private static XElement? FindChartDefaultStyle(XDocument part) =>
         part.Root?.Elements()

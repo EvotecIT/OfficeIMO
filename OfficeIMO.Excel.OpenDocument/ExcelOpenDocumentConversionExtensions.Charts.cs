@@ -17,8 +17,12 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         var readers = new Dictionary<string, ChartCellReader>(StringComparer.Ordinal);
         foreach ((OdsSheet odsSheet, ExcelSheet excelSheet) in chartTargets) {
             foreach (OdsChart chart in odsSheet.Charts) {
-                if (!TryCreateExcelChartData(source, chart, options, readers, out ExcelChartData? data,
-                    out ExcelChartType chartType, out int row, out int column, out int width, out int height)) continue;
+                if (!TryCreateExcelChartData(source, odsSheet.Name, chart, options, readers,
+                    out ExcelChartData? data, out ExcelChartType chartType, out int row, out int column,
+                    out int width, out int height, out bool sourceLimitExceeded)) {
+                    if (sourceLimitExceeded) truncated = true;
+                    continue;
+                }
                 if (data!.Series.Count + 1 > options.MaximumColumns) {
                     truncated = true;
                     continue;
@@ -42,18 +46,24 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         return converted;
     }
 
-    private static bool TryCreateExcelChartData(OdsDocument document, OdsChart chart,
+    private static bool TryCreateExcelChartData(OdsDocument document, string hostSheetName, OdsChart chart,
         ExcelOpenDocumentConversionOptions options, Dictionary<string, ChartCellReader> readers,
         out ExcelChartData? data,
-        out ExcelChartType type, out int row, out int column, out int width, out int height) {
+        out ExcelChartType type, out int row, out int column, out int width, out int height,
+        out bool sourceLimitExceeded) {
         data = null;
         type = ExcelChartType.ColumnClustered;
         row = column = width = height = 0;
+        sourceLimitExceeded = false;
+        if (chart.AnchorRow.HasValue && chart.AnchorColumn.HasValue &&
+            (chart.AnchorRow.Value >= options.MaximumRows || chart.AnchorColumn.Value >= options.MaximumColumns)) {
+            sourceLimitExceeded = true;
+            return false;
+        }
         if (chart.IsStacked || chart.IsPercentage || chart.IsThreeDimensional
             || chart.TitleCellRangeAddress != null
             || chart.Series.Count < 1 || chart.Series.Count > MaximumConvertedChartSeries
             || !chart.AnchorRow.HasValue || !chart.AnchorColumn.HasValue
-            || chart.AnchorRow.Value >= options.MaximumRows || chart.AnchorColumn.Value >= options.MaximumColumns
             || !chart.Bounds.Width.TryToPoints(out double widthPoints)
             || !chart.Bounds.Height.TryToPoints(out double heightPoints)
             || widthPoints <= 0 || heightPoints <= 0
@@ -65,8 +75,12 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             case "chart:line": type = ExcelChartType.Line; break;
             default: return false;
         }
-        if (!TryReadChartCells(document, chart.CategoriesAddress, options, readers, out OdsCellValue[] categories)
-            || categories.Length < 1 || categories.Length > MaximumConvertedChartPoints) return false;
+        if (!TryReadChartCells(document, hostSheetName, chart.CategoriesAddress, options, readers,
+            out OdsCellValue[] categories, out bool categoryLimitExceeded)) {
+            sourceLimitExceeded = categoryLimitExceeded;
+            return false;
+        }
+        if (categories.Length < 1 || categories.Length > MaximumConvertedChartPoints) return false;
         var labels = new string[categories.Length];
         for (int index = 0; index < labels.Length; index++) {
             labels[index] = categories[index].DisplayText.Length > 0
@@ -76,12 +90,20 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         for (int seriesIndex = 0; seriesIndex < chart.Series.Count; seriesIndex++) {
             OdsChartSeries sourceSeries = chart.Series[seriesIndex];
             if (sourceSeries.ChartClass != null && sourceSeries.ChartClass != chart.ChartClass) return false;
-            if (!TryReadChartCells(document, sourceSeries.ValuesAddress, options, readers, out OdsCellValue[] values)
-                || values.Length != labels.Length) return false;
+            if (!TryReadChartCells(document, hostSheetName, sourceSeries.ValuesAddress, options, readers,
+                out OdsCellValue[] values, out bool valuesLimitExceeded)) {
+                sourceLimitExceeded = valuesLimitExceeded;
+                return false;
+            }
+            if (values.Length != labels.Length) return false;
             string name = "Series " + (seriesIndex + 1).ToString(CultureInfo.InvariantCulture);
             if (sourceSeries.LabelAddress != null) {
-                if (!TryReadChartCells(document, sourceSeries.LabelAddress, options, readers,
-                    out OdsCellValue[] nameCell) || nameCell.Length != 1) return false;
+                if (!TryReadChartCells(document, hostSheetName, sourceSeries.LabelAddress, options, readers,
+                    out OdsCellValue[] nameCell, out bool labelLimitExceeded)) {
+                    sourceLimitExceeded = labelLimitExceeded;
+                    return false;
+                }
+                if (nameCell.Length != 1) return false;
                 name = nameCell[0].DisplayText.Length > 0 ? nameCell[0].DisplayText : nameCell[0].LexicalValue;
                 if (string.IsNullOrWhiteSpace(name)) return false;
             }
@@ -103,28 +125,33 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         return true;
     }
 
-    private static bool TryReadChartCells(OdsDocument document, string? address,
+    private static bool TryReadChartCells(OdsDocument document, string hostSheetName, string? address,
         ExcelOpenDocumentConversionOptions options, Dictionary<string, ChartCellReader> readers,
-        out OdsCellValue[] values) {
+        out OdsCellValue[] values, out bool sourceLimitExceeded) {
         values = Array.Empty<OdsCellValue>();
+        sourceLimitExceeded = false;
         if (!SpreadsheetRangeReference.TryParse(address, SpreadsheetAddressDialect.OpenDocument,
                 out SpreadsheetRangeReference? range) || !range!.Start.IsCell) return false;
         SpreadsheetCellReference start = range.Start;
         SpreadsheetCellReference end = range.End ?? start;
-        if (!end.IsCell || string.IsNullOrEmpty(start.SheetName)
-            || (end.SheetName != null && !string.Equals(start.SheetName, end.SheetName, StringComparison.Ordinal))) return false;
+        string startSheetName = start.SheetName ?? hostSheetName;
+        string endSheetName = end.SheetName ?? hostSheetName;
+        if (!end.IsCell || !string.Equals(startSheetName, endSheetName, StringComparison.Ordinal)) return false;
         long firstRow = start.Row!.Value, lastRow = end.Row!.Value;
         int firstColumn = start.Column!.Value, lastColumn = end.Column!.Value;
+        if (lastRow > options.MaximumRows || lastColumn > options.MaximumColumns) {
+            sourceLimitExceeded = true;
+            return false;
+        }
         if (firstRow > lastRow || firstColumn > lastColumn
-            || lastRow > options.MaximumRows || lastColumn > options.MaximumColumns
             || (firstRow != lastRow && firstColumn != lastColumn)) return false;
         long count = firstRow == lastRow ? lastColumn - firstColumn + 1L : lastRow - firstRow + 1;
         if (count < 1 || count > MaximumConvertedChartPoints) return false;
-        if (!readers.TryGetValue(start.SheetName!, out ChartCellReader? reader)) {
-            OdsSheet? sheet = document.GetSheet(start.SheetName!);
+        if (!readers.TryGetValue(startSheetName, out ChartCellReader? reader)) {
+            OdsSheet? sheet = document.GetSheet(startSheetName);
             if (sheet == null) return false;
             reader = new ChartCellReader(sheet);
-            readers.Add(start.SheetName!, reader);
+            readers.Add(startSheetName, reader);
         }
         values = new OdsCellValue[checked((int)count)];
         for (int index = 0; index < values.Length; index++) {

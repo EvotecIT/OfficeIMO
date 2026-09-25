@@ -122,6 +122,68 @@ public sealed class SpreadsheetChartConversionTests {
     }
 
     [Fact]
+    public void ChartSourceRangeBeyondConfiguredRowsReportsExpansionLimit() {
+        byte[] package = RewritePart("Object 1/content.xml", xml => {
+            XNamespace chart = "urn:oasis:names:tc:opendocument:xmlns:chart:1.0";
+            XElement categories = xml.Descendants(chart + "categories").Single();
+            categories.SetAttributeValue(OdfNamespaces.Table + "cell-range-address", "Data.$A$99:Data.$A$100");
+        });
+        OdsDocument source = OdsDocument.Load(new MemoryStream(package));
+        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult(
+            new ExcelOpenDocumentConversionOptions { MaximumRows = 50 });
+        using ExcelDocument converted = result.Value;
+        Assert.Empty(converted["Data"].Charts);
+        Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "expansion-limits" &&
+            mapping.Status == OdfConversionMappingStatus.Skipped);
+    }
+
+    [Fact]
+    public void SourceNamedRangeCannotReplaceHiddenChartDataOwnerMarker() {
+        string path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "microsoft-excel-column-chart.ods");
+        OdsDocument source = OdsDocument.Load(path);
+        source.AddNamedRange("_OfficeIMO_ChartDataOwner", "$'Data'.$A$1");
+        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        using ExcelDocument converted = result.Value;
+        Assert.Single(converted["Data"].Charts);
+        Assert.NotNull(converted.GetNamedRange("_OfficeIMO_ChartDataOwner_2"));
+        Assert.NotEqual(converted.GetNamedRange("_OfficeIMO_ChartDataOwner_2"),
+            converted.GetNamedRange("_OfficeIMO_ChartDataOwner"));
+        using ExcelDocument reopened = ExcelDocument.Load(new MemoryStream(converted.ToBytes()));
+        Assert.NotNull(reopened.GetNamedRange("_OfficeIMO_ChartDataOwner"));
+        Assert.NotNull(reopened.GetNamedRange("_OfficeIMO_ChartDataOwner_2"));
+        Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "named-range-names" &&
+            mapping.Status == OdfConversionMappingStatus.Approximated);
+    }
+
+    [Fact]
+    public void CurrentSheetChartReferencesResolveAgainstHostSheet() {
+        byte[] package = RewritePart("Object 1/content.xml", xml => {
+            XNamespace chart = "urn:oasis:names:tc:opendocument:xmlns:chart:1.0";
+            xml.Descendants(chart + "categories").Single()
+                .SetAttributeValue(OdfNamespaces.Table + "cell-range-address", ".$A$2:.$A$3");
+        });
+        OdsDocument source = OdsDocument.Load(new MemoryStream(package));
+        using ExcelDocument converted = source.ToExcelDocumentResult().Value;
+        Assert.Single(converted["Data"].Charts);
+    }
+
+    [Fact]
+    public void ChartStyleNameMayAlsoExistInAnotherFamily() {
+        byte[] package = RewritePart("Object 1/content.xml", xml => {
+            XNamespace chart = "urn:oasis:names:tc:opendocument:xmlns:chart:1.0";
+            XElement chartElement = xml.Descendants(chart + "chart").Single();
+            string name = (string)chartElement.Attribute(chart + "style-name")!;
+            XElement styles = xml.Root!.Element(OdfNamespaces.Office + "automatic-styles")!;
+            styles.AddFirst(new XElement(OdfNamespaces.Style + "style",
+                new XAttribute(OdfNamespaces.Style + "name", name),
+                new XAttribute(OdfNamespaces.Style + "family", "paragraph")));
+        });
+        OdsDocument source = OdsDocument.Load(new MemoryStream(package));
+        using ExcelDocument converted = source.ToExcelDocumentResult().Value;
+        Assert.Single(converted["Data"].Charts);
+    }
+
+    [Fact]
     public void HiddenChartDataWidthRespectsColumnLimit() {
         byte[] package = RewritePart("Object 1/content.xml", xml => {
             XNamespace chart = "urn:oasis:names:tc:opendocument:xmlns:chart:1.0";
