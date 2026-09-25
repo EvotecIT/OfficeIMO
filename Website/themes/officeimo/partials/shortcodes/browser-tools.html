@@ -1,9 +1,8 @@
 <section class="imo-browser-tools imo-container" aria-labelledby="browser-tools-title">
   <header class="imo-browser-tools__heading">
-    <p class="imo-converter-launch__eyebrow">Browser tools</p>
-    <h1 id="browser-tools-title">What would you like to do?</h1>
-    <p>Convert a document, organize a PDF, or check file origin data. Your files stay in this browser.</p>
-    <p class="imo-browser-tools__loading-note">Tools load only when you open them.</p>
+    <p class="imo-workbench__eyebrow">Browser tools · Nothing is uploaded</p>
+    <h1 id="browser-tools-title">Convert and fix documents <span>right in your browser.</span></h1>
+    <p>Convert a document, organize a PDF, or check file origin data. Files stay on your device, and each tool loads only when you open it.</p>
   </header>
 {{~ browser_drop_extensions = [".pdf"] ~}}
 {{~ for route in data.office_conversion_routes.routes ~}}{{~ if route.browserAvailable ~}}{{~ browser_drop_extensions = array.concat browser_drop_extensions route.sourceExtensions ~}}{{~ end ~}}{{~ end ~}}
@@ -23,7 +22,7 @@
     </div>
   </div>
   <div class="imo-browser-tools__toolbar">
-    <nav aria-label="Tool categories"><a href="#browser-convert">Convert documents</a><a href="#browser-pdf">PDF tools</a><a href="#browser-inspect">File origin</a></nav>
+    <nav aria-label="Tool categories"><a href="#browser-convert">Convert documents</a><a href="#browser-pdf">Work with PDFs</a><a href="#browser-inspect">Inspect and clean</a></nav>
     <div class="imo-browser-tools__search" hidden><label for="browser-directory-search">Find a tool</label><input id="browser-directory-search" type="search" placeholder="Search tools…" /><span data-tool-count role="status"></span></div>
   </div>
   <section id="browser-convert" data-tool-group aria-labelledby="browser-convert-title">
@@ -35,7 +34,7 @@
 {{~ if source_label == "DOCX"; source_label = "Word"; else if source_label == "XLSX"; source_label = "Excel"; else if source_label == "PPTX"; source_label = "PowerPoint"; end ~}}
 {{~ if target_label == "DOCX"; target_label = "Word"; else if target_label == "XLSX"; target_label = "Excel"; else if target_label == "PPTX"; target_label = "PowerPoint"; end ~}}
       <a class="imo-browser-tools__card" data-route="{{ route.id | html.escape }}" data-accept="{{ route.sourceExtensions | array.join "," | html.escape }}" data-input="{{ route.inputKind | string.downcase | html.escape }}" href="/convert/?route={{ route.id | html.escape }}">
-        <span class="imo-browser-tools__badge">{{ route.source | html.escape }} <span aria-hidden="true">→</span> {{ route.target | html.escape }}</span>
+        <span class="imo-browser-tools__formats"><span class="imo-format-chip" data-format="{{ route.source | string.downcase | html.escape }}">{{ route.source | html.escape }}</span><span class="imo-browser-tools__arrow" aria-hidden="true">→</span><span class="imo-format-chip" data-format="{{ route.target | string.downcase | html.escape }}">{{ route.target | html.escape }}</span></span>
         <strong>{{ if route.id == "pdf-xlsx" }}PDF tables to Excel{{ else if route.id == "pdf-html" }}PDF to review HTML{{ else if route.id == "pdf-png" }}PDF to PNG images{{ else }}{{ source_label | html.escape }} to {{ target_label | html.escape }}{{ end }}</strong>
         <span class="imo-browser-tools__open">Open tool <span aria-hidden="true">→</span></span>
       </a>
@@ -48,7 +47,7 @@
     <div class="imo-browser-tools__grid">
 {{~ for tool in data.pdf_workflows.operations ~}}
       <a class="imo-browser-tools__card" data-pdf-tool="{{ tool.id | html.escape }}" data-accept=".pdf" data-input="file" href="/convert/?workspace=pdf&amp;tool={{ tool.id | html.escape }}">
-        <span class="imo-browser-tools__badge">{{ tool.category | html.escape }}</span>
+        <span class="imo-browser-tools__formats"><span class="imo-format-chip" data-format="pdf">PDF</span><span class="imo-browser-tools__category">{{ tool.category | html.escape }}</span></span>
         <strong>{{ tool.title | html.escape }}</strong><span>{{ tool.summary | html.escape }}</span>
       </a>
 {{~ end ~}}
@@ -58,7 +57,7 @@
     <h2 id="browser-inspect-title">Inspect and clean</h2>
     <p><a href="/provenance/">Learn about file origin checks and supported metadata removal</a>.</p>
     <div class="imo-browser-tools__grid">
-      <a class="imo-browser-tools__card" data-workspace="provenance" href="/convert/?workspace=provenance"><span class="imo-browser-tools__badge">File origin</span><strong>File origin data</strong><span>Inspect embedded origin records and create a separate copy with supported records removed.</span></a>
+      <a class="imo-browser-tools__card" data-workspace="provenance" href="/convert/?workspace=provenance"><span class="imo-browser-tools__formats"><span class="imo-format-chip" data-format="file">Any file</span><span class="imo-browser-tools__category">File origin</span></span><strong>File origin data</strong><span>Inspect embedded origin records and create a separate copy with supported records removed.</span></a>
     </div>
   </section>
   <p class="imo-browser-tools__limits">Processing runs on your device. Tool-specific limits and conversion warnings appear in the workspace. <a href="/docs/converters/browser-playground/">Read the browser guide</a>.</p>

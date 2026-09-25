@@ -189,30 +189,48 @@ body.imo-body { overflow-x: clip; }
 .imo-converter-launch__frame-shell { width: 100%; max-width: none; padding: 0; }
 .imo-converter-launch__frame { display: block; width: 100%; height: calc(100dvh - var(--imo-header-height)); min-height: 0; border: 0; border-radius: 0; }
 .imo-converter-launch [hidden] { display:none !important; }
-.imo-browser-tools { max-width:1200px; padding-block:40px 64px; }
-.imo-browser-tools__heading { max-width:760px; }
-.imo-browser-tools__heading h1 { margin:0 0 14px; font-size:clamp(28px,4vw,40px); line-height:1.15; letter-spacing:-.03em; }
-.imo-browser-tools__heading > p:not(.imo-converter-launch__eyebrow) { margin:0 0 12px; color:var(--imo-text-secondary); line-height:1.6; }
-.imo-browser-tools__heading .imo-browser-tools__loading-note { font-size:13px; }
-.imo-browser-tools__toolbar { display:flex; align-items:center; justify-content:space-between; gap:24px; margin:20px 0; padding:12px 0; border-block:1px solid var(--imo-border); }
-.imo-browser-tools__toolbar nav { display:flex; flex-wrap:wrap; gap:8px 20px; }
-.imo-browser-tools__toolbar nav a { display:inline-flex; align-items:center; min-height:44px; font-size:14px; font-weight:650; color:var(--imo-text); }
-.imo-browser-tools__search { display:grid; grid-template-columns:1fr auto; gap:6px; min-width:240px; }
+.imo-browser-tools { --imo-product: var(--imo-p-browser); max-width:1200px; padding-block:56px 72px; }
+.imo-browser-tools__heading { max-width:820px; margin-bottom:28px; }
+.imo-browser-tools__heading h1 { margin:0 0 16px; font-size:clamp(2.2rem,4.2vw,3.4rem); line-height:1.02; letter-spacing:-.04em; }
+.imo-browser-tools__heading h1 span { display:block; background:var(--imo-gradient-text); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.imo-browser-tools__heading > p:not(.imo-workbench__eyebrow) { max-width:60ch; margin:0; color:var(--imo-text-secondary); font-size:1.05rem; line-height:1.6; }
+.imo-browser-tools__toolbar { display:flex; align-items:end; justify-content:space-between; gap:24px; margin:0 0 28px; padding:0 0 20px; border-bottom:1px solid var(--imo-border); }
+.imo-browser-tools__toolbar nav { display:flex; flex-wrap:wrap; gap:8px; }
+.imo-browser-tools__toolbar nav a { display:inline-flex; align-items:center; min-height:40px; padding:0 14px; border:1px solid var(--imo-border); border-radius:999px; background:var(--imo-glass); color:var(--imo-text); font-size:14px; font-weight:650; }
+.imo-browser-tools__toolbar nav a:hover { border-color:var(--imo-product); color:var(--imo-text); }
+.imo-browser-tools__search { display:grid; grid-template-columns:1fr auto; gap:6px; min-width:260px; }
 .imo-browser-tools__search label { font-size:12px; font-weight:650; }
-.imo-browser-tools__search input { grid-column:1/-1; grid-row:2; min-height:44px; min-width:0; padding:10px 12px; border:1px solid var(--imo-border); border-radius:8px; color:var(--imo-text); background:var(--imo-bg-elevated); font:inherit; font-size:14px; }
+.imo-browser-tools__search input { grid-column:1/-1; grid-row:2; min-height:42px; min-width:0; padding:10px 12px; border:1px solid var(--imo-border); border-radius:8px; color:var(--imo-text); background:var(--imo-glass); font:inherit; }
+.imo-browser-tools__search input:focus { border-color:var(--imo-product); }
 .imo-browser-tools__search [data-tool-count] { grid-column:2; grid-row:1; align-self:end; font-size:12px; color:var(--imo-text-secondary); }
-.imo-browser-tools [data-tool-group] + [data-tool-group] { margin-top:36px; }
-.imo-browser-tools h2 { margin:0 0 16px; font-size:20px; }
-.imo-browser-tools__grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
-.imo-browser-tools__card { display:flex; flex-direction:column; align-items:flex-start; gap:12px; padding:24px; border:1px solid var(--imo-border); border-radius:12px; background:var(--imo-bg-elevated); color:var(--imo-text); text-decoration:none; }
-.imo-browser-tools__card:hover { border-color:var(--imo-accent); }
+.imo-browser-tools [data-tool-group] + [data-tool-group] { margin-top:44px; }
+.imo-browser-tools [data-tool-group] > h2 { margin:0 0 16px; font-size:1.35rem; letter-spacing:-.025em; }
+.imo-browser-tools [data-tool-group] > p { margin:-8px 0 16px; color:var(--imo-text-secondary); font-size:.92rem; }
+.imo-browser-tools__grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+.imo-browser-tools__card { display:flex; flex-direction:column; align-items:flex-start; gap:10px; padding:20px 22px 22px; border:1px solid var(--imo-border); border-radius:12px; background:var(--imo-glass); color:var(--imo-text); text-decoration:none; transition:border-color var(--imo-duration) var(--imo-ease), transform var(--imo-duration) var(--imo-ease), box-shadow var(--imo-duration) var(--imo-ease); }
+.imo-browser-tools__card:hover { border-color:var(--imo-product); color:var(--imo-text); transform:translateY(-2px); box-shadow:var(--imo-shadow-md); }
 .imo-browser-tools :is(a,input):focus-visible { outline:3px solid var(--imo-accent); outline-offset:3px; }
-.imo-browser-tools__card strong { font-size:17px; }
-.imo-browser-tools__card > span:last-child { color:var(--imo-text-secondary); font-size:13px; line-height:1.6; }
-.imo-browser-tools__badge { padding:4px 8px; border-radius:5px; background:color-mix(in srgb,var(--imo-accent) 8%,var(--imo-bg-elevated)); color:var(--imo-accent); font-size:11px; font-weight:700; }
-.imo-browser-tools__limits { margin-top:32px; color:var(--imo-text-secondary); font-size:13px; line-height:1.7; }
-@media(max-width:900px) { .imo-browser-tools__grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .imo-browser-tools__toolbar { align-items:stretch; flex-direction:column; gap:12px; } }
-@media(max-width:600px) { .imo-browser-tools { padding-block:28px 40px; } .imo-browser-tools__grid { grid-template-columns:minmax(0,1fr); } }
+.imo-browser-tools__card strong { font-family:var(--imo-font-display); font-size:1.12rem; font-weight:800; letter-spacing:-.015em; }
+.imo-browser-tools__card > span:last-child:not(.imo-browser-tools__open) { color:var(--imo-text-secondary); font-size:13px; line-height:1.6; }
+.imo-browser-tools__open { margin-top:auto; color:var(--imo-text-muted); font-size:13px; font-weight:650; }
+.imo-browser-tools__card:hover .imo-browser-tools__open { color:var(--imo-product); }
+.imo-browser-tools__formats { display:flex; align-items:center; gap:8px; }
+.imo-browser-tools__arrow { color:var(--imo-text-muted); font-size:13px; }
+.imo-browser-tools__category { color:var(--imo-text-muted); font-size:12px; font-weight:650; letter-spacing:.04em; text-transform:uppercase; }
+.imo-browser-tools__limits { margin-top:36px; color:var(--imo-text-secondary); font-size:13px; line-height:1.7; }
+.imo-format-chip { --imo-chip: var(--imo-text-muted); display:inline-flex; align-items:center; height:22px; padding:0 7px; border:1px solid color-mix(in srgb,var(--imo-chip) 28%,transparent); border-radius:5px; background:color-mix(in srgb,var(--imo-chip) 12%,transparent); color:var(--imo-chip); font:700 11px/1 var(--imo-font-mono); letter-spacing:.02em; }
+.imo-format-chip[data-format="docx"] { --imo-chip:#2b63e0; }
+.imo-format-chip[data-format="xlsx"] { --imo-chip:#17875a; }
+.imo-format-chip[data-format="pptx"] { --imo-chip:#d4522e; }
+.imo-format-chip[data-format="pdf"] { --imo-chip:#c4302b; }
+.imo-format-chip[data-format="html"] { --imo-chip:#c2410c; }
+.imo-format-chip[data-format="markdown"] { --imo-chip:#6d4fd6; }
+.imo-format-chip[data-format="png"] { --imo-chip:#0e7fa8; }
+.imo-format-chip[data-format="file"] { --imo-chip:var(--imo-p-browser); }
+[data-theme="dark"] .imo-format-chip { color:color-mix(in srgb,var(--imo-chip) 62%,#fff); }
+@media(max-width:900px) { .imo-browser-tools__grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .imo-browser-tools__toolbar { align-items:stretch; flex-direction:column; gap:14px; } }
+@media(max-width:600px) { .imo-browser-tools { padding-block:32px 48px; } .imo-browser-tools__grid { grid-template-columns:minmax(0,1fr); } }
+@media(prefers-reduced-motion:reduce) { .imo-browser-tools__card { transition:none; } .imo-browser-tools__card:hover { transform:none; } }
 
 @media (max-width: 1199px) {
   .imo-header .imo-nav__link { padding-inline: 8px; font-size: 13px; }

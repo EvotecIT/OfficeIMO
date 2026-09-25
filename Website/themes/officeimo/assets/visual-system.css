@@ -1380,7 +1380,7 @@ body.pf-api-docs {
   overflow-anchor: none;
 }
 .imo-main--playground { min-height: calc(100vh - var(--imo-header-height)); }
-.imo-converter-launch { background: var(--imo-bg); }
+.imo-converter-launch { background: none; }
 .imo-converter-launch__intro { display: block; padding-block: 1.75rem; }
 .imo-converter-launch__intro h1 { margin: 0.3rem 0 0.65rem; font-size: clamp(1.65rem, 3vw, 2.25rem); line-height: 1.2; }
 .imo-converter-launch__intro p { color: var(--imo-text-secondary); margin: 0 0 0.75rem; }
