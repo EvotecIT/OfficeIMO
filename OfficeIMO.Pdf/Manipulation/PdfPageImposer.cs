@@ -57,7 +57,11 @@ internal static class PdfPageImposer {
         (double cellWidth, double cellHeight) = options.Validate();
         int[] selectedPages = pageNumbers.OfType<int>().Distinct().ToArray();
         bool selectedAnnotations = selectedPages.Any(page => info.Pages[page - 1].HasAnnotations);
-        bool selectedForms = selectedPages.Any(page => info.Pages[page - 1].FormWidgets.Count > 0);
+        // XFA and fields without a placed widget have no page ownership to filter by selection.
+        bool documentLevelForms = info.HasForms && (info.HasAcroFormXfa || info.FormFields.Count == 0 ||
+            info.FormFields.Any(static field => field.Widgets.Count == 0 ||
+                field.Widgets.Any(static widget => !widget.PageNumber.HasValue)));
+        bool selectedForms = documentLevelForms || selectedPages.Any(page => info.Pages[page - 1].FormWidgets.Count > 0);
         PdfImpositionSourceFeatureLoss sourceFeatureLoss = PdfImpositionSourceFeatureLoss.None;
         if (selectedAnnotations) sourceFeatureLoss |= PdfImpositionSourceFeatureLoss.Annotations;
         if (selectedForms) sourceFeatureLoss |= PdfImpositionSourceFeatureLoss.Forms;
