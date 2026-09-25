@@ -157,7 +157,64 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         A.Blip? blip = fill.Blip;
         return blip?.ChildElements.Count > 0 ||
             fill.ChildElements.Any(child => child is not A.Blip and not A.SourceRectangle and not A.Stretch) ||
+            fill.GetFirstChild<A.SourceRectangle>() is A.SourceRectangle crop &&
+                crop.GetAttributes().Any(attribute => attribute.LocalName is "l" or "t" or "r" or "b" &&
+                    (!int.TryParse(attribute.Value, out int value) || value < 0 || value > 100000)) ||
             fill.Descendants<A.FillRectangle>().Any(rectangle => rectangle.HasAttributes);
+    }
+
+    private static bool HasAuthoredPowerPointShapeLocks(OpenXmlElement element) =>
+        element.LocalName is "spLocks" or "picLocks" or "cxnSpLocks" or "graphicFrameLocks" &&
+        element.GetAttributes().Any(attribute => !IsStockPowerPointShapeLock(element.LocalName, attribute.LocalName) &&
+            (attribute.Value == "1" || string.Equals(attribute.Value, "true", StringComparison.OrdinalIgnoreCase)));
+
+    private static bool IsStockPowerPointShapeLock(string element, string attribute) =>
+        element == "spLocks" && attribute == "noGrp" ||
+        (element is "picLocks" or "graphicFrameLocks") && attribute == "noChangeAspect";
+
+    private static int CountUnmappedPowerPointShapeLocks(PresentationPart? presentation,
+        IReadOnlyList<P.SlideId> slideIds) {
+        if (presentation == null) return 0;
+        int count = 0;
+        foreach (P.SlideId slideId in slideIds) {
+            if (slideId.RelationshipId?.Value is not string id ||
+                presentation.GetPartById(id) is not SlidePart part || part.Slide == null) continue;
+            count += part.Slide.Descendants().Count(HasAuthoredPowerPointShapeLocks);
+        }
+        return count;
+    }
+
+    private static int CountUnmappedOdpTextLayout(OdpPresentation source) {
+        XDocument content = source.Package.GetXml("content.xml");
+        int paragraphs = content.Descendants().Count(paragraph =>
+            (paragraph.Name == OdfNamespaces.Text + "p" || paragraph.Name == OdfNamespaces.Text + "h") &&
+            HasUnmappedOdpTextLayout(source, (string?)paragraph.Attribute(OdfNamespaces.Text + "style-name")));
+        int inlineStyles = content.Descendants().Count(element =>
+            (element.Name == OdfNamespaces.Text + "span" || element.Name == OdfNamespaces.Text + "a") &&
+            HasUnmappedOdpCharacterSpacing(source, OdfStyleFamily.Text,
+                (string?)element.Attribute(OdfNamespaces.Text + "style-name")));
+        return paragraphs + inlineStyles;
+    }
+
+    private static bool HasUnmappedOdpTextLayout(OdpPresentation source, string? styleName) {
+        XElement? paragraph = EffectiveOdfStyleProperties(source, OdfStyleFamily.Paragraph, styleName,
+            OdfNamespaces.Style + "paragraph-properties");
+        if (paragraph != null && (paragraph.HasElements || paragraph.Attributes().Any(attribute =>
+            attribute.Name != OdfNamespaces.Fo + "text-align" &&
+            attribute.Name != OdfNamespaces.Fo + "line-height" &&
+            attribute.Name != OdfNamespaces.Style + "writing-mode"))) return true;
+        return HasUnmappedOdpCharacterSpacing(source, OdfStyleFamily.Paragraph, styleName);
+    }
+
+    private static bool HasUnmappedOdpCharacterSpacing(OdpPresentation source, OdfStyleFamily family,
+        string? styleName) {
+        XElement? text = EffectiveOdfStyleProperties(source, family, styleName,
+            OdfNamespaces.Style + "text-properties");
+        return text?.Attributes().Any(attribute =>
+            attribute.Name == OdfNamespaces.Fo + "letter-spacing" ||
+            attribute.Name == OdfNamespaces.Fo + "word-spacing" ||
+            attribute.Name == OdfNamespaces.Fo + "text-shadow" ||
+            attribute.Name == OdfNamespaces.Style + "text-rotation-angle") == true;
     }
 
     private static int CountUnmappedPowerPointTextGeometry(PresentationPart? presentation,

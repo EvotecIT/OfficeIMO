@@ -121,6 +121,21 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             ? 0 : 1;
     }
 
+    private static int CountUnmappedPowerPointNotesSlides(PresentationPart? presentation,
+        IReadOnlyList<P.SlideId> slideIds) {
+        if (presentation == null) return 0;
+        int count = 0;
+        foreach (P.SlideId slideId in slideIds) {
+            if (slideId.RelationshipId?.Value is not string id ||
+                presentation.GetPartById(id) is not SlidePart part ||
+                part.NotesSlidePart?.NotesSlide is not P.NotesSlide notes) continue;
+            if (notes.CommonSlideData?.Background != null || notes.GetAttributes().Any(attribute =>
+                attribute.LocalName is "showMasterSp" or "showMasterPhAnim" &&
+                attribute.Value is "0" or "false")) count++;
+        }
+        return count;
+    }
+
     private static int CountUnmappedPowerPointHandoutMaster(PresentationPart? presentation) {
         string? sourceXml = presentation?.HandoutMasterPart?.HandoutMaster?.OuterXml;
         if (sourceXml == null) return 0;
@@ -135,6 +150,10 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         return string.Equals(sourceXml, DefaultPowerPointShowPropertiesXml.Value, StringComparison.Ordinal)
             ? 0 : 1;
     }
+
+    private static int CountUnmappedPowerPointPresentationProperties(PresentationPart? presentation) =>
+        presentation?.PresentationPropertiesPart?.PresentationProperties?.ChildElements
+            .Count(child => child is not P.ShowProperties) ?? 0;
 
     private static int CountUnmappedPowerPointViewProperties(PresentationPart? presentation) {
         string? sourceXml = presentation?.ViewPropertiesPart?.ViewProperties?.OuterXml;

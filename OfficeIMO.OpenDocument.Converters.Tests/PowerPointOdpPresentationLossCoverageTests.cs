@@ -212,6 +212,83 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
     }
 
     [Fact]
+    public void PowerPointPrintPropertiesAreExplicitLoss() {
+        using PowerPointPresentation source = CreateBlankPowerPoint();
+        PresentationPart presentation = source.OpenXmlDocument.PresentationPart!;
+        PresentationPropertiesPart properties = presentation.PresentationPropertiesPart ??
+            presentation.AddNewPart<PresentationPropertiesPart>();
+        properties.PresentationProperties ??= new PresentationProperties();
+        properties.PresentationProperties.Append(new DocumentFormat.OpenXml.OpenXmlUnknownElement(
+            "p", "prnPr", "http://schemas.openxmlformats.org/presentationml/2006/main"));
+
+        AssertLoss(source, "presentation-properties");
+    }
+
+    [Fact]
+    public void PerSlideNotesBackgroundAndMasterVisibilityAreExplicitLoss() {
+        using PowerPointPresentation source = CreateBlankPowerPoint();
+        source.Slides[0].Notes.Text = "Speaker note";
+        NotesSlide notes = source.OpenXmlDocument.PresentationPart!.SlideParts.First()
+            .NotesSlidePart!.NotesSlide!;
+        OdfConversionResult<OdpPresentation> baseline = source.ToOpenDocumentResult();
+        Assert.DoesNotContain(baseline.Report.Mappings, mapping => mapping.Feature == "notes-slide-appearance");
+        notes.CommonSlideData!.Background = new Background(new BackgroundProperties(
+            new A.SolidFill(new A.RgbColorModelHex { Val = "336699" })));
+        AssertLoss(source, "notes-slide-appearance");
+
+        notes.CommonSlideData.Background = null;
+        notes.ShowMasterShapes = false;
+        AssertLoss(source, "notes-slide-appearance");
+    }
+
+    [Fact]
+    public void PowerPointShapeLocksAreExplicitLoss() {
+        using PowerPointPresentation source = CreateBlankPowerPoint();
+        source.Slides[0].AddRectanglePoints(20, 20, 100, 50);
+        Shape shape = source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
+            .Descendants<Shape>().Single();
+        NonVisualShapeDrawingProperties drawing = shape.NonVisualShapeProperties!
+            .NonVisualShapeDrawingProperties!;
+        A.ShapeLocks locks = drawing.GetFirstChild<A.ShapeLocks>() ??
+            drawing.AppendChild(new A.ShapeLocks());
+        locks.NoMove = true;
+
+        AssertLoss(source, "shape-locks");
+    }
+
+    [Fact]
+    public void StockPictureAspectLockDoesNotHideAuthoredPictureRestrictions() {
+        using PowerPointPresentation source = CreateBlankPowerPoint();
+        byte[] png = Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+        using var image = new MemoryStream(png, writable: false);
+        source.Slides[0].AddPicture(image, OfficeImageFormat.Png);
+        OdfConversionResult<OdpPresentation> baseline = source.ToOpenDocumentResult();
+        Assert.DoesNotContain(baseline.Report.Mappings, mapping => mapping.Feature == "shape-locks");
+
+        Picture picture = source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
+            .Descendants<Picture>().Single();
+        A.PictureLocks locks = picture.NonVisualPictureProperties!
+            .NonVisualPictureDrawingProperties!.GetFirstChild<A.PictureLocks>()!;
+        locks.NoResize = true;
+        AssertLoss(source, "shape-locks");
+    }
+
+    [Fact]
+    public void NegativePowerPointPictureCropIsExplicitLoss() {
+        using PowerPointPresentation source = CreateBlankPowerPoint();
+        byte[] png = Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+        using var image = new MemoryStream(png, writable: false);
+        source.Slides[0].AddPicture(image, OfficeImageFormat.Png);
+        Picture picture = source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
+            .Descendants<Picture>().Single();
+        picture.BlipFill!.SourceRectangle = new A.SourceRectangle { Left = -1000 };
+
+        AssertLoss(source, "shape-appearance");
+    }
+
+    [Fact]
     public void AuthoredViewPropertiesAreExplicitLossWithoutFlaggingStockDefaults() {
         using PowerPointPresentation source = CreateBlankPowerPoint();
         OdfConversionResult<OdpPresentation> baseline = source.ToOpenDocumentResult();
@@ -289,6 +366,29 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
         source.Package.MarkXmlDirty("content.xml");
 
         AssertLoss(source, "slide-show-settings");
+    }
+
+    [Fact]
+    public void OdpParagraphMarginsAndCharacterSpacingAreExplicitLoss() {
+        OdpPresentation source = OdpPresentation.Create();
+        OdpTextBox box = source.AddSlide().AddTextBox(OdfRect.FromCentimeters(1, 1, 5, 2), "Text");
+        OdfStyle style = source.Styles.CreateNamed("SpacedParagraph", OdfStyleFamily.Paragraph);
+        style.SetProperty(OdfNamespaces.Style + "paragraph-properties", OdfNamespaces.Fo + "margin-left", "1cm");
+        style.SetProperty(OdfNamespaces.Style + "text-properties", OdfNamespaces.Fo + "letter-spacing", "0.2cm");
+        box.Paragraphs[0].StyleName = style.Name;
+
+        AssertLoss(source, "paragraph-layout");
+    }
+
+    [Fact]
+    public void OdpInlineCharacterSpacingIsExplicitLoss() {
+        OdpPresentation source = OdpPresentation.Create();
+        OdpTextBox box = source.AddSlide().AddTextBox(OdfRect.FromCentimeters(1, 1, 5, 2), "");
+        OdfStyle style = source.Styles.CreateNamed("SpacedRun", OdfStyleFamily.Text);
+        style.SetProperty(OdfNamespaces.Style + "text-properties", OdfNamespaces.Fo + "letter-spacing", "0.1cm");
+        box.Paragraphs[0].AddRun("Text").StyleName = style.Name;
+
+        AssertLoss(source, "paragraph-layout");
     }
 
     [Fact]

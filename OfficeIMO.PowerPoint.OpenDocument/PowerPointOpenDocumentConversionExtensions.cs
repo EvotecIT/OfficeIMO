@@ -41,6 +41,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         unsupportedPlaceholderRoles += CountUnmappedPowerPointNonTextPlaceholders(sourcePresentation, sourceSlideIds);
         int unsupportedPlaceholderMetadata = CountUnmappedPowerPointTextPlaceholderMetadata(sourcePresentation, sourceSlideIds);
         int unsupportedShapeAppearance = CountUnmappedPowerPointShapeAppearance(sourcePresentation, sourceSlideIds);
+        int unsupportedShapeLocks = CountUnmappedPowerPointShapeLocks(sourcePresentation, sourceSlideIds);
         int unsupportedTextColors = CountUnmappedPowerPointTextColors(sourcePresentation, sourceSlideIds);
         int unsupportedTextTypography = CountUnmappedPowerPointTextTypography(sourcePresentation, sourceSlideIds);
         int unsupportedEmbeddedFonts = CountUnmappedPowerPointEmbeddedFonts(sourcePresentation);
@@ -241,6 +242,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         AddUnsupported(report, "shapes", unsupportedShapes, "Charts, SmartArt, media, groups, and other advanced drawing shapes are not translated.");
         AddUnsupported(report, "shape-appearance", unsupportedShapeAppearance,
             "Text frame settings, picture effects, and theme, image, gradient, transparency, dash, or shape effect styling outside direct solid RGB fill and outline were omitted.");
+        AddUnsupported(report, "shape-locks", unsupportedShapeLocks,
+            "PowerPoint shape, picture, connector, or graphic-frame editing restrictions were not transferred to ODP.");
         AddUnsupported(report, "text-colors", unsupportedTextColors,
             "Inherited, theme, system, transformed, and other unsupported run or highlight colors were not transferred to ODP.");
         AddUnsupported(report, "text-typography", unsupportedTextTypography,
@@ -264,10 +267,14 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             "PowerPoint slide sections and their names are not represented in the current ODP presentation surface.");
         AddUnsupported(report, "notes-master", CountUnmappedPowerPointNotesMaster(sourcePresentation),
             "Authored notes-master appearance and placeholder geometry are not transferred to ODP.");
+        AddUnsupported(report, "notes-slide-appearance", CountUnmappedPowerPointNotesSlides(sourcePresentation, sourceSlideIds),
+            "Per-slide PowerPoint notes backgrounds and master-shape display settings were not transferred to ODP.");
         AddUnsupported(report, "handout-master", CountUnmappedPowerPointHandoutMaster(sourcePresentation),
             "Authored handout-master content is not transferred to ODP.");
         AddUnsupported(report, "slide-show-settings", CountUnmappedPowerPointShowProperties(sourcePresentation),
             "PowerPoint slide-show playback settings are not transferred to ODP.");
+        AddUnsupported(report, "presentation-properties", CountUnmappedPowerPointPresentationProperties(sourcePresentation),
+            "PowerPoint print, web, publishing, and other presentation properties were not transferred to ODP.");
         AddUnsupported(report, "view-settings", CountUnmappedPowerPointViewProperties(sourcePresentation),
             "Authored PowerPoint view settings were not transferred to ODP.");
         if (renamedSlides > 0) report.Add("slide-names", OdfConversionMappingStatus.Approximated,
@@ -311,6 +318,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         int unsupportedTableVisibility = source.Slides.Sum(slide => slide.Shapes.OfType<OdpTable>()
             .Count(HasUnmappedOdpTableVisibility));
         int unsupportedEmbeddedFonts = CountUnmappedOdpEmbeddedFonts(source);
+        int unsupportedOdpTextLayout = CountUnmappedOdpTextLayout(source);
         int approximatedTextDecorations = CountNonSolidTextDecorations(source);
         int unsupportedWritingModes = 0, approximatedParagraphAlignments = 0;
         int approximatedFontFamilyLists = 0, unsupportedFontFamilies = 0;
@@ -545,6 +553,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             "Collapsed or filtered ODP table rows and columns became visible in PowerPoint.");
         AddUnsupported(report, "embedded-fonts", unsupportedEmbeddedFonts,
             "Embedded ODF font faces were not transferred to PowerPoint.");
+        AddUnsupported(report, "paragraph-layout", unsupportedOdpTextLayout,
+            "ODP paragraph margins, indent, spacing, tab stops, and character spacing outside the mapped subset were not transferred to PowerPoint.");
         AddUnsupported(report, "table-values", source.Slides.Sum(slide => slide.Shapes.OfType<OdpTable>()
                 .Count(HasUnmappedOdpTableValues)),
             "Typed ODP table-cell values were not transferred to PowerPoint.");
