@@ -115,7 +115,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         AddCount(report, "fields", mappedFields);
         int unmappedFields = Math.Max(0, source.InspectFields().Count - mappedFields);
         if (unmappedFields > 0) report.Add("fields", OdfConversionMappingStatus.Unsupported,
-            unmappedFields, "Fields outside the basic PAGE, NUMPAGES, DATE, and TIME subset retain only cached display text.");
+            unmappedFields, "Unsupported Word fields are flattened to visible cached text where available.");
         if (fieldResultFormatting > 0) report.Add("field-result-formatting", OdfConversionMappingStatus.Unsupported,
             fieldResultFormatting, "Direct formatting on cached Word field results is not retained when those results become ODT text.");
         if (snapshot.Sections.Count > 0) report.Add("page-layout", OdfConversionMappingStatus.Converted, 1);

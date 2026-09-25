@@ -17,6 +17,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         for (int runIndex = 0; runIndex <= source.Runs.Count; runIndex++) {
             while (fieldIndex < fields.Length && fields[fieldIndex].RunIndex == runIndex) {
                 WordInlineFieldSnapshot field = fields[fieldIndex++];
+                if (field.IsHiddenInstructionContent) continue;
                 if (TryMapWordField(field, out OdtFieldKind kind)) {
                     target.AddField(kind, field.ResultText);
                     wrote = true;

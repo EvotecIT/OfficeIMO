@@ -242,16 +242,30 @@ namespace OfficeIMO.Word {
             }
 
             int runIndex = 0;
+            var complexFieldResults = new Stack<bool>();
             foreach (var element in paragraph._paragraph.ChildElements) {
-                if (element is Run or SdtRun) { runIndex++; continue; }
+                if (element is Run run) { ObserveFieldMarkers(run); runIndex++; continue; }
+                if (element is SdtRun) { runIndex++; continue; }
                 if (element is Hyperlink link) {
                     foreach (var child in link.ChildElements) {
-                        if (child is Run) runIndex++;
+                        if (child is Run linkRun) { ObserveFieldMarkers(linkRun); runIndex++; }
                         else if (child is SimpleField nestedField) AddInlineField(nestedField, runIndex, true);
                     }
                     continue;
                 }
                 if (element is SimpleField field) AddInlineField(field, runIndex, false);
+            }
+
+            void ObserveFieldMarkers(Run run) {
+                foreach (FieldChar marker in run.Elements<FieldChar>()) {
+                    if (marker.FieldCharType?.Value == FieldCharValues.Begin) complexFieldResults.Push(false);
+                    else if (marker.FieldCharType?.Value == FieldCharValues.Separate && complexFieldResults.Count > 0) {
+                        complexFieldResults.Pop();
+                        complexFieldResults.Push(true);
+                    } else if (marker.FieldCharType?.Value == FieldCharValues.End && complexFieldResults.Count > 0) {
+                        complexFieldResults.Pop();
+                    }
+                }
             }
 
             void AddInlineField(SimpleField field, int index, bool nestedInHyperlink) {
@@ -261,7 +275,8 @@ namespace OfficeIMO.Word {
                     ResultText = WordParagraph.ReadVisibleText(field),
                     IsLocked = field.FieldLock?.Value ?? false,
                     IsDirty = field.Dirty?.Value ?? false,
-                    HasUnsupportedContainer = nestedInHyperlink,
+                    HasUnsupportedContainer = nestedInHyperlink || complexFieldResults.Count > 0,
+                    IsHiddenInstructionContent = complexFieldResults.Contains(false),
                     HasFormattedResult = field.Descendants<Run>().Any(resultRun =>
                         resultRun.RunProperties?.ChildElements.Any(child => child is not NoProof) == true),
                     HasUnsupportedResultContent = field.Descendants<SimpleField>().Any() ||

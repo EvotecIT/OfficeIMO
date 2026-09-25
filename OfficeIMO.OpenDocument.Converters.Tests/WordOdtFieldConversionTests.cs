@@ -37,6 +37,48 @@ public sealed class WordOdtFieldConversionTests {
     }
 
     [Fact]
+    public void SimpleFieldInsideComplexInstructionIsNotConvertedOrDisplayed() {
+        using WordDocument source = WordDocument.Create();
+        WordParagraph paragraph = source.AddParagraph();
+        paragraph._paragraph.Append(
+            new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+            new Run(new FieldCode(" IF ")),
+            new SimpleField(new Run(new Text("5"))) { Instruction = " PAGE " },
+            new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+            new Run(new Text("Accepted")),
+            new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdtParagraph result = Assert.Single(conversion.Value.Paragraphs);
+        Assert.Equal("Accepted", result.Text);
+        Assert.Empty(result.Fields);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "fields" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 2);
+        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void SimpleFieldInsideComplexResultRetainsCachedTextWithLoss() {
+        using WordDocument source = WordDocument.Create();
+        WordParagraph paragraph = source.AddParagraph();
+        paragraph._paragraph.Append(
+            new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+            new Run(new FieldCode(" IF 1 = 1 ")),
+            new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+            new Run(new Text("Page ")),
+            new SimpleField(new Run(new Text("5"))) { Instruction = " PAGE " },
+            new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdtParagraph result = Assert.Single(conversion.Value.Paragraphs);
+        Assert.Equal("Page 5", result.Text);
+        Assert.Empty(result.Fields);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "fields" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 2);
+    }
+
+    [Fact]
     public void OdtFieldsBecomeWordSimpleFieldsWithCachedResults() {
         OdtDocument source = OdtDocument.Create();
         OdtParagraph paragraph = source.AddParagraph("Dated ");
