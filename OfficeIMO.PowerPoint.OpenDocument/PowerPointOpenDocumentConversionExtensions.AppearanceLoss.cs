@@ -275,8 +275,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
     }
 
     private static int CountUnmappedOdpShapeLayers(OdpPresentation source) =>
-        source.Slides.Sum(slide => slide.Shapes.Count(shape =>
-            shape.Element.Attribute(OdfNamespaces.Draw + "layer") != null));
+        source.Slides.Sum(slide => slide.Element.Descendants().Count(element =>
+            element.Attribute(OdfNamespaces.Draw + "layer") != null));
 
     private static int CountUnmappedOdpNavigationOrder(OdpPresentation source) =>
         source.Slides.Count(slide => slide.Element.Attribute(OdfNamespaces.Draw + "nav-order") != null);

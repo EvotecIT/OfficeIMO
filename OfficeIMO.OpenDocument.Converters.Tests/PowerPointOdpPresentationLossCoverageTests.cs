@@ -418,14 +418,23 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
     [Fact]
     public void OdpLayerAssignmentAndNavigationOrderAreExplicitLoss() {
         OdpPresentation source = OdpPresentation.Create();
-        source.AddSlide().AddRectangle(OdfRect.FromCentimeters(1, 1, 4, 2));
+        OdpSlide slide = source.AddSlide();
+        slide.AddRectangle(OdfRect.FromCentimeters(1, 1, 4, 2));
+        slide.AddGroup().AddTextBox(OdfRect.FromCentimeters(1, 1, 4, 2), "Nested");
         XDocument content = source.Package.GetXml("content.xml");
         content.Descendants(OdfNamespaces.Draw + "rect").Single()
+            .SetAttributeValue(OdfNamespaces.Draw + "layer", "hidden");
+        content.Descendants(OdfNamespaces.Draw + "g").Single()
+            .Descendants(OdfNamespaces.Draw + "frame").Single()
             .SetAttributeValue(OdfNamespaces.Draw + "layer", "hidden");
         content.Descendants(OdfNamespaces.Draw + "page").Single()
             .SetAttributeValue(OdfNamespaces.Draw + "nav-order", "shape2 shape1");
         source.Package.MarkXmlDirty("content.xml");
 
+        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
+        using PowerPointPresentation target = conversion.Value;
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "shape-layers" &&
+            mapping.Count >= 2);
         AssertLoss(source, "shape-layers");
         AssertLoss(source, "navigation-order");
     }
