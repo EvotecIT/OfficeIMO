@@ -51,6 +51,35 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.Contains(nativeParagraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Text && inline.ContainsPosition(1, creditColumn));
         }
 
+        [Theory]
+        [InlineData("![Survey{#para}](photo.png){width=320 height=180}{#photo} Credit: NOAA Fisheries.", false)]
+        [InlineData("[![Survey{#para}](photo.png)](https://example.com/survey){width=320 height=180}{#photo} Credit: NOAA Fisheries.", true)]
+        public void Reader_Preserves_Image_Size_And_Attributes_When_Alt_Attributes_Promote_To_Paragraph(string source, bool linked) {
+            var options = new MarkdownReaderOptions { GenericAttributes = true };
+            var parsed = MarkdownDoc.Parse(source, options);
+            var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(parsed.Blocks));
+            Assert.Equal("para", paragraph.Attributes.ElementId);
+
+            var image = Assert.Single(paragraph.Inlines.Nodes, inline => inline is ImageInline or ImageLinkInline);
+            if (linked) {
+                var linkedImage = Assert.IsType<ImageLinkInline>(image);
+                Assert.Equal(320, linkedImage.Width);
+                Assert.Equal(180, linkedImage.Height);
+                Assert.Equal("photo", linkedImage.Attributes.ElementId);
+            } else {
+                var plainImage = Assert.IsType<ImageInline>(image);
+                Assert.Equal(320, plainImage.Width);
+                Assert.Equal(180, plainImage.Height);
+                Assert.Equal("photo", plainImage.Attributes.ElementId);
+            }
+
+            string roundtrip = parsed.ToMarkdown();
+            Assert.Contains("{width=320 height=180}", roundtrip, StringComparison.Ordinal);
+            Assert.Contains("{#photo}", roundtrip, StringComparison.Ordinal);
+            Assert.Contains("Credit: NOAA Fisheries.", roundtrip, StringComparison.Ordinal);
+            Assert.Contains("width=\"320\"", parsed.ToHtmlFragment(), StringComparison.Ordinal);
+        }
+
         [Fact]
         public void Reader_Roundtrips_Basic_Document() {
             var md = MarkdownDoc.Create()
