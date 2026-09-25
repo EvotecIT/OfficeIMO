@@ -116,6 +116,73 @@ public sealed class PdfStaticFormRecognizerTests {
         Assert.Empty(report.Proposals);
     }
 
+    [Fact]
+    public void CheckedStaticBoxIsNotProposedAsAnEmptyCheckbox() {
+        OfficeShape firstMark = OfficeShape.Line(0D, 0D, 9D, 9D);
+        firstMark.StrokeColor = OfficeColor.Black;
+        OfficeShape secondMark = OfficeShape.Line(0D, 9D, 9D, 0D);
+        secondMark.StrokeColor = OfficeColor.Black;
+        byte[] source = PdfDocument.Create(new PdfOptions { PageWidth = 400D, PageHeight = 300D })
+            .Canvas(canvas => canvas
+                .Shape(Box(15D, 15D), 100D, 75D)
+                .Shape(firstMark, 103D, 78D)
+                .Shape(secondMark, 103D, 78D)
+                .Text("I agree", 125D, 72D, 100D, 20D))
+            .ToBytes();
+
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout();
+
+        Assert.Empty(report.Proposals);
+        Assert.Contains(report.Diagnostics, static diagnostic => diagnostic.Code == "occupied-field");
+    }
+
+    [Fact]
+    public void EdgeNearCheckmarkAndSmallFilledDotBothOccupyAStaticBox() {
+        OfficeShape mark = OfficeShape.Line(0D, 0D, 13D, 13D);
+        mark.StrokeColor = OfficeColor.Black;
+        OfficeShape dot = OfficeShape.Rectangle(3D, 3D);
+        dot.FillColor = OfficeColor.Black;
+        dot.StrokeColor = null;
+        byte[] source = PdfDocument.Create(new PdfOptions { PageWidth = 400D, PageHeight = 300D })
+            .Canvas(canvas => canvas
+                .Shape(Box(15D, 15D), 100D, 75D)
+                .Shape(mark, 101D, 76D)
+                .Text("First", 125D, 72D, 100D, 20D)
+                .Shape(Box(15D, 15D), 100D, 115D)
+                .Shape(dot, 106D, 121D)
+                .Text("Second", 125D, 112D, 100D, 20D))
+            .ToBytes();
+
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout();
+
+        Assert.Empty(report.Proposals);
+        Assert.Equal(2, report.Diagnostics.Count(static diagnostic => diagnostic.Code == "occupied-field"));
+    }
+
+    [Fact]
+    public void ExistingLinkAnnotationBlocksOverlappingProposal() {
+        byte[] source = PdfDocument.Create(new PdfOptions { PageWidth = 400D, PageHeight = 300D })
+            .Canvas(canvas => canvas.Text("Name:", 20D, 28D, 70D, 20D).Shape(Box(140D, 20D), 100D, 28D))
+            .ToBytes();
+        PdfDocument annotated = PdfDocument.Load(source).Annotations.Add(new PdfAnnotationCreateOptions {
+            Subtype = "Link", LinkUri = "https://example.com", Rectangle = new[] { 100D, 252D, 240D, 272D }
+        }).ToDocument();
+
+        PdfStaticFormRecognitionReport report = annotated.Forms.RecognizeStaticLayout();
+
+        Assert.Empty(report.Proposals);
+        Assert.Contains(report.Diagnostics, static diagnostic => diagnostic.Code == "existing-annotation");
+    }
+
+    [Fact]
+    public void DiagnosticLimitReportsTruncation() {
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(CreateStaticForm()).Forms.RecognizeStaticLayout(
+            new PdfStaticFormRecognitionOptions { MinimumConfidence = 1D, MaxDiagnostics = 1 });
+
+        Assert.Empty(report.Proposals);
+        Assert.Equal("diagnostics-truncated", Assert.Single(report.Diagnostics).Code);
+    }
+
     private static byte[] CreateStaticForm() {
         OfficeShape textBox = Box(140D, 20D);
         OfficeShape checkBox = Box(15D, 15D);

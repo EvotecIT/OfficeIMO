@@ -59,8 +59,16 @@ internal static class PdfStaticFormRecognizer {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!TryGetCandidate(primitive, pageWidth, pageHeight, out VisualRect visual, out PdfStaticFormEvidenceKind evidence)) continue;
                 if (HasPaintedInterior(filledAreas, visual, cancellationToken)) continue;
+                if (HasInteriorMark(primitives, visual, cancellationToken)) {
+                    AddDiagnostic("occupied-field", pageNumber, "A visual field candidate contains a painted mark.");
+                    continue;
+                }
                 if (OverlapsExistingWidget(page, visual)) {
                     AddDiagnostic("existing-widget", pageNumber, "A visual candidate overlaps an existing form widget.");
+                    continue;
+                }
+                if (OverlapsExistingAnnotation(page, visual)) {
+                    AddDiagnostic("existing-annotation", pageNumber, "A visual candidate overlaps an existing annotation.");
                     continue;
                 }
                 if (labels.Any(label => OverlapArea(label.Bounds, visual) > Math.Min(label.Bounds.Area, visual.Area) * 0.05D)) continue;
@@ -118,7 +126,12 @@ internal static class PdfStaticFormRecognizer {
         return new PdfStaticFormRecognitionReport(pdf, snapshot.Options, proposals, diagnostics);
 
         void AddDiagnostic(string code, int pageNumber, string message) {
-            if (diagnostics.Count < effective.MaxProposals) diagnostics.Add(new PdfStaticFormRecognitionDiagnostic(code, pageNumber, message));
+            if (diagnostics.Count < effective.MaxDiagnostics) {
+                diagnostics.Add(new PdfStaticFormRecognitionDiagnostic(code, pageNumber, message));
+            } else if (diagnostics[diagnostics.Count - 1].Code != "diagnostics-truncated") {
+                diagnostics[diagnostics.Count - 1] = new PdfStaticFormRecognitionDiagnostic("diagnostics-truncated", pageNumber,
+                    "Additional recognition diagnostics were omitted at the configured MaxDiagnostics limit.");
+            }
         }
     }
 
@@ -193,6 +206,25 @@ internal static class PdfStaticFormRecognizer {
         return painted;
     }
 
+    private static bool HasInteriorMark(IReadOnlyList<PdfPageVisualPrimitive> primitives, VisualRect candidate,
+        CancellationToken cancellationToken) {
+        const double inset = 0.2D;
+        foreach (PdfPageVisualPrimitive primitive in primitives) {
+            cancellationToken.ThrowIfCancellationRequested();
+            bool stroked = primitive.HasStrokePaint && primitive.StrokeOpacity != 0D;
+            bool filled = primitive.HasFillPaint && primitive.FillOpacity != 0D && !IsEmptyFill(primitive);
+            if (!stroked && !filled) continue;
+            double left = primitive.Kind == PdfPageVisualPrimitiveKind.Line ? Math.Min(primitive.X1, primitive.X2) : primitive.X;
+            double top = primitive.Kind == PdfPageVisualPrimitiveKind.Line ? Math.Min(primitive.Y1, primitive.Y2) : primitive.Y;
+            double right = primitive.Kind == PdfPageVisualPrimitiveKind.Line ? Math.Max(primitive.X1, primitive.X2) : primitive.X + primitive.Width;
+            double bottom = primitive.Kind == PdfPageVisualPrimitiveKind.Line ? Math.Max(primitive.Y1, primitive.Y2) : primitive.Y + primitive.Height;
+            if (right - left < 1D || bottom - top < 1D) continue;
+            if (left >= candidate.Left + inset && top >= candidate.Top + inset &&
+                right <= candidate.Right - inset && bottom <= candidate.Bottom - inset) return true;
+        }
+        return false;
+    }
+
     private static Label? FindLabel(IReadOnlyList<Label> labels, VisualRect field, PdfStaticFormEvidenceKind evidence) {
         Label? best = null;
         double bestDistance = double.MaxValue;
@@ -221,6 +253,22 @@ internal static class PdfStaticFormRecognizer {
             PdfSelectionQuad visual = page.MapUserSpaceRectangleToVisual(widget.X1, widget.Y1, widget.X2, widget.Y2);
             var widgetBounds = new VisualRect(visual.Left, visual.Top, visual.Right, visual.Bottom);
             if (OverlapArea(bounds, widgetBounds) > Math.Min(bounds.Area, widgetBounds.Area) * 0.05D) return true;
+        }
+        return false;
+    }
+
+    private static bool OverlapsExistingAnnotation(PdfLogicalPage page, VisualRect bounds) {
+        foreach (PdfAnnotation annotation in page.Annotations) {
+            if (!annotation.HasReadableRectangle || annotation.X2 <= annotation.X1 || annotation.Y2 <= annotation.Y1) continue;
+            PdfSelectionQuad visual = page.MapUserSpaceRectangleToVisual(annotation.X1, annotation.Y1, annotation.X2, annotation.Y2);
+            var annotationBounds = new VisualRect(visual.Left, visual.Top, visual.Right, visual.Bottom);
+            if (OverlapArea(bounds, annotationBounds) > Math.Min(bounds.Area, annotationBounds.Area) * 0.05D) return true;
+        }
+        foreach (PdfLinkAnnotation link in page.LinkAnnotations) {
+            if (link.X2 <= link.X1 || link.Y2 <= link.Y1) continue;
+            PdfSelectionQuad visual = page.MapUserSpaceRectangleToVisual(link.X1, link.Y1, link.X2, link.Y2);
+            var linkBounds = new VisualRect(visual.Left, visual.Top, visual.Right, visual.Bottom);
+            if (OverlapArea(bounds, linkBounds) > Math.Min(bounds.Area, linkBounds.Area) * 0.05D) return true;
         }
         return false;
     }
