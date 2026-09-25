@@ -194,7 +194,18 @@ public sealed class OdfStyle {
     /// <summary>Explicit horizontal paragraph alignment.</summary>
     public string? TextAlign {
         get => (string?)ParagraphProperties?.Attribute(OdfNamespaces.Fo + "text-align");
-        set => SetAttribute(GetProperties(OdfNamespaces.Style + "paragraph-properties"), OdfNamespaces.Fo + "text-align", value);
+        set {
+            SetAttribute(GetProperties(OdfNamespaces.Style + "paragraph-properties"), OdfNamespaces.Fo + "text-align", value);
+            if (Family == OdfStyleFamily.TableCell)
+                CellTextAlignSource = value == null ? null : "fix";
+        }
+    }
+    /// <summary>Whether table-cell horizontal alignment is fixed or follows the value type.</summary>
+    public string? CellTextAlignSource {
+        get => (string?)_element.Element(OdfNamespaces.Style + "table-cell-properties")?
+            .Attribute(OdfNamespaces.Style + "text-align-source");
+        set => SetAttribute(GetProperties(OdfNamespaces.Style + "table-cell-properties"),
+            OdfNamespaces.Style + "text-align-source", value);
     }
     /// <summary>Explicit table-cell vertical alignment token.</summary>
     public string? CellVerticalAlign {

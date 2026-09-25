@@ -3,9 +3,12 @@ namespace OfficeIMO.OpenDocument;
 /// <summary>An XML-backed ODS cell produced without expanding surrounding repeat runs.</summary>
 public sealed class OdsCell {
     private readonly OdsDocument _document;
+    private readonly string? _inheritedStyleName;
     private XElement _element;
 
-    internal OdsCell(OdsDocument document, XElement element) { _document = document; _element = element; }
+    internal OdsCell(OdsDocument document, XElement element, string? inheritedStyleName = null) {
+        _document = document; _element = element; _inheritedStyleName = inheritedStyleName;
+    }
     internal XElement Element => _element;
 
     /// <summary>True when this position is covered by a merged cell.</summary>
@@ -39,7 +42,7 @@ public sealed class OdsCell {
     /// <summary>Referenced number/date/time data style through the cell style.</summary>
     public string? NumberFormatName {
         get {
-            OdfStyle? style = StyleName == null ? null : _document.Styles.Find(OdfStyleFamily.TableCell, StyleName);
+            OdfStyle? style = ReferencedStyle;
             return style?.DataStyleName;
         }
         set { EnsureStyle().DataStyleName = value; }
@@ -95,8 +98,7 @@ public sealed class OdsCell {
     /// <summary>Explicit or inherited cell background color.</summary>
     public OdfColor? BackgroundColor {
         get {
-            OdfStyle? style = StyleName == null ? null : _document.Styles.Find(
-                OdfStyleFamily.TableCell, StyleName);
+            OdfStyle? style = ReferencedStyle;
             return _document.Styles.ResolveBackgroundColor(style);
         }
         set => EnsureStyle().BackgroundColor = value;
@@ -105,6 +107,11 @@ public sealed class OdsCell {
     public string? TextAlign {
         get => ResolveReference(style => style.TextAlign);
         set => EnsureStyle().TextAlign = value;
+    }
+    /// <summary>Explicit or inherited table-cell horizontal alignment source token.</summary>
+    public string? TextAlignSource {
+        get => ResolveReference(style => style.CellTextAlignSource);
+        set => EnsureStyle().CellTextAlignSource = value;
     }
     /// <summary>Explicit or inherited table-cell vertical alignment token.</summary>
     public string? VerticalAlign {
@@ -350,11 +357,24 @@ public sealed class OdsCell {
 
     private OdfStyle EnsureStyle() {
         EnsureEditable();
+        if (StyleName == null && _inheritedStyleName != null) {
+            _element.SetAttributeValue(OdfNamespaces.Table + "style-name", _inheritedStyleName);
+            Dirty();
+        }
         return _document.Styles.EnsureAutomaticStyle(_element, OdfNamespaces.Table + "style-name", OdfStyleFamily.TableCell, "ofCell");
     }
 
+    private OdfStyle? ReferencedStyle {
+        get {
+            string? name = StyleName ?? _inheritedStyleName;
+            return name != null
+                ? _document.Styles.Find(OdfStyleFamily.TableCell, name)
+                : _document.Styles.FindDefault(OdfStyleFamily.TableCell);
+        }
+    }
+
     private T? Resolve<T>(Func<OdfStyle, T?> selector) where T : struct {
-        OdfStyle? style = StyleName == null ? null : _document.Styles.Find(OdfStyleFamily.TableCell, StyleName);
+        OdfStyle? style = ReferencedStyle;
         if (style == null) return null;
         foreach (OdfStyle candidate in _document.Styles.Resolve(style)) {
             T? value = selector(candidate); if (value.HasValue) return value;
@@ -363,12 +383,14 @@ public sealed class OdsCell {
     }
 
     private string? ResolveReference(Func<OdfStyle, string?> selector) {
-        OdfStyle? style = StyleName == null ? null : _document.Styles.Find(OdfStyleFamily.TableCell, StyleName);
-        if (style == null) return null;
-        foreach (OdfStyle candidate in _document.Styles.Resolve(style)) {
-            string? value = selector(candidate); if (value != null) return value;
+        OdfStyle? style = ReferencedStyle;
+        if (style != null) {
+            foreach (OdfStyle candidate in _document.Styles.Resolve(style)) {
+                string? value = selector(candidate); if (value != null) return value;
+            }
         }
-        return null;
+        OdfStyle? defaultStyle = _document.Styles.FindDefault(OdfStyleFamily.TableCell);
+        return defaultStyle == null ? null : selector(defaultStyle);
     }
 
     private void EnsureEditable() {
@@ -381,9 +403,14 @@ public sealed class OdsCell {
 public sealed class OdsCellRun {
     private readonly OdsDocument _document;
     private readonly XElement _element;
-    internal OdsCellRun(OdsDocument document, XElement element, long startColumn, long repeatCount) {
+    private readonly string? _inheritedStyleName;
+    internal OdsCellRun(OdsDocument document, XElement element, long startColumn, long repeatCount,
+        string? inheritedStyleName = null) {
         _document = document; _element = element; StartColumn = startColumn; RepeatCount = repeatCount;
+        _inheritedStyleName = inheritedStyleName;
     }
+    internal OdsCellRun WithInheritedStyle(string? styleName) =>
+        new OdsCellRun(_document, _element, StartColumn, RepeatCount, styleName);
     /// <summary>Zero-based first logical column.</summary>
     public long StartColumn { get; }
     /// <summary>Number of logical cells represented by the run.</summary>
@@ -398,6 +425,8 @@ public sealed class OdsCellRun {
     public string? Formula => (string?)_element.Attribute(OdfNamespaces.Table + "formula");
     /// <summary>Referenced prototype cell style.</summary>
     public string? StyleName => Cell.StyleName;
+    /// <summary>Effective prototype cell style, including a row or column default.</summary>
+    public string? EffectiveStyleName => StyleName ?? _inheritedStyleName;
     /// <summary>Referenced prototype number or date style.</summary>
     public string? NumberFormatName => Cell.NumberFormatName;
     /// <summary>Referenced prototype validation rule.</summary>
@@ -438,6 +467,8 @@ public sealed class OdsCellRun {
     public OdfColor? BackgroundColor => Cell.BackgroundColor;
     /// <summary>Explicit or inherited prototype horizontal text alignment token.</summary>
     public string? TextAlign => Cell.TextAlign;
+    /// <summary>Explicit or inherited prototype horizontal alignment source token.</summary>
+    public string? TextAlignSource => Cell.TextAlignSource;
     /// <summary>Explicit or inherited prototype vertical alignment token.</summary>
     public string? VerticalAlign => Cell.VerticalAlign;
     /// <summary>Explicit or inherited prototype wrapping token.</summary>
@@ -452,7 +483,7 @@ public sealed class OdsCellRun {
     /// <summary>Number of columns spanned by the prototype merged-cell anchor.</summary>
     public long ColumnSpan => ReadSpan(OdfNamespaces.Table + "number-columns-spanned");
 
-    private OdsCell Cell => new OdsCell(_document, _element);
+    private OdsCell Cell => new OdsCell(_document, _element, _inheritedStyleName);
     private long ReadSpan(XName name) {
         string? lexical = (string?)_element.Attribute(name);
         return long.TryParse(lexical, NumberStyles.None, CultureInfo.InvariantCulture, out long value) && value > 0 ? value : 1;

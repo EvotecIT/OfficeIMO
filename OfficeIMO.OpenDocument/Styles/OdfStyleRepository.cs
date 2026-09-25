@@ -27,6 +27,16 @@ public sealed class OdfStyleRepository {
         return Automatic.Concat(Named).FirstOrDefault(style => style.Family == family && string.Equals(style.Name, name, StringComparison.Ordinal));
     }
 
+    internal OdfStyle? FindDefault(OdfStyleFamily family) {
+        if (!_document.Package.ContainsEntry("styles.xml")) return null;
+        XElement? element = _document.GetXml("styles.xml").Root?
+            .Element(OdfNamespaces.Office + "styles")?
+            .Elements(OdfNamespaces.Style + "default-style")
+            .FirstOrDefault(candidate => TryParseFamily((string?)candidate.Attribute(OdfNamespaces.Style + "family"),
+                out OdfStyleFamily candidateFamily) && candidateFamily == family);
+        return element == null ? null : new OdfStyle(_document, element, "styles.xml", false);
+    }
+
     /// <summary>Finds an automatic style within its owning package part before falling back to common styles.</summary>
     internal OdfStyle? FindInPart(OdfStyleFamily family, string name, string partPath) {
         if (string.IsNullOrWhiteSpace(name)) return null;

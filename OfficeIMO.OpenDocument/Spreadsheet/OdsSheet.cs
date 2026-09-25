@@ -90,7 +90,7 @@ public sealed partial class OdsSheet {
         get {
             var runs = new List<OdsColumnRun>();
             long start = 0;
-            foreach (XElement column in Element.Elements(OdfNamespaces.Table + "table-column")) {
+            foreach (XElement column in ColumnElements()) {
                 long repeat = OdsRepeatModel.Read(column, OdfNamespaces.Table + "number-columns-repeated");
                 runs.Add(new OdsColumnRun(_document, column, start, repeat));
                 start = checked(start + repeat);
@@ -132,7 +132,10 @@ public sealed partial class OdsSheet {
         if (column < 0) throw new ArgumentOutOfRangeException(nameof(column));
         XElement rowElement = GetRowForEdit(row);
         XElement cellElement = GetCellForEdit(rowElement, column);
-        return new OdsCell(_document, cellElement);
+        string? inheritedStyle = cellElement.Attribute(OdfNamespaces.Table + "style-name") == null
+            ? GetDefaultCellStyleName(rowElement, column)
+            : null;
+        return new OdsCell(_document, cellElement, inheritedStyle);
     }
 
     /// <summary>Gets an editable zero-based row, splitting its repeat run without expanding it.</summary>
@@ -232,6 +235,29 @@ public sealed partial class OdsSheet {
     }
 
     internal XElement Element { get; }
+
+    internal static string? GetDefaultCellStyleName(OdsRowRun row, long column, IReadOnlyList<OdsColumnRun> columns) =>
+        GetDefaultCellStyleName(row.Element, column, columns);
+
+    private string? GetDefaultCellStyleName(XElement row, long column) =>
+        GetDefaultCellStyleName(row, column, ColumnRuns);
+
+    private static string? GetDefaultCellStyleName(XElement row, long column, IReadOnlyList<OdsColumnRun> columns) {
+        string? rowStyle = (string?)row.Attribute(OdfNamespaces.Table + "default-cell-style-name");
+        if (rowStyle != null) return rowStyle;
+        int low = 0, high = columns.Count - 1;
+        while (low <= high) {
+            int middle = low + (high - low) / 2;
+            OdsColumnRun definition = columns[middle];
+            if (column < definition.StartColumn) high = middle - 1;
+            else if (column >= checked(definition.StartColumn + definition.RepeatCount)) low = middle + 1;
+            else return definition.DefaultCellStyleName;
+        }
+        return null;
+    }
+
+    private IEnumerable<XElement> ColumnElements() => Element.Descendants(OdfNamespaces.Table + "table-column")
+        .Where(column => ReferenceEquals(column.Ancestors(OdfNamespaces.Table + "table").FirstOrDefault(), Element));
 
     private XElement GetRowForEdit(long rowIndex) {
         long start = 0;

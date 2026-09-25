@@ -251,12 +251,18 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         if (fontFamily != null) target.SetFontName(fontFamily);
         if (style.Color.HasValue) target.SetFontColor(style.Color.Value.ToString().TrimStart('#'));
         if (style.BackgroundColor.HasValue) target.SetFillColor(style.BackgroundColor.Value.ToString().TrimStart('#'));
-        switch (style.TextAlign) {
-            case "left": target.Sheet.CellAlign(target.Row, target.Column, ExcelHorizontalAlignment.Left); break;
-            case "center": target.Sheet.CellAlign(target.Row, target.Column, ExcelHorizontalAlignment.Center); break;
-            case "right": target.Sheet.CellAlign(target.Row, target.Column, ExcelHorizontalAlignment.Right); break;
-            case "justify": target.Sheet.CellAlign(target.Row, target.Column, ExcelHorizontalAlignment.Justify); break;
-            case not null: unsupportedCellLayout++; break;
+        if (style.TextAlignSource == "value-type") {
+            unsupportedCellLayout++;
+        } else if (style.TextAlignSource != null && style.TextAlignSource != "fix") {
+            unsupportedCellLayout++;
+        } else {
+            switch (style.TextAlign) {
+                case "left": target.Sheet.CellAlign(target.Row, target.Column, ExcelHorizontalAlignment.Left); break;
+                case "center": target.Sheet.CellAlign(target.Row, target.Column, ExcelHorizontalAlignment.Center); break;
+                case "right": target.Sheet.CellAlign(target.Row, target.Column, ExcelHorizontalAlignment.Right); break;
+                case "justify": target.Sheet.CellAlign(target.Row, target.Column, ExcelHorizontalAlignment.Justify); break;
+                case not null: unsupportedCellLayout++; break;
+            }
         }
         switch (style.VerticalAlign) {
             case "top": target.Sheet.CellVerticalAlign(target.Row, target.Column, ExcelVerticalAlignment.Top); break;

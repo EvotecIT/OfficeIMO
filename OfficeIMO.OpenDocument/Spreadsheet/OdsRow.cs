@@ -28,6 +28,9 @@ public sealed class OdsRowRun {
     public bool Hidden => (string?)_element.Attribute(OdfNamespaces.Table + "visibility") == "collapse";
     /// <summary>Referenced prototype row style.</summary>
     public string? StyleName => (string?)_element.Attribute(OdfNamespaces.Table + "style-name");
+    /// <summary>Default cell style for cells without an explicit style in this row.</summary>
+    public string? DefaultCellStyleName => (string?)_element.Attribute(OdfNamespaces.Table + "default-cell-style-name");
+    internal XElement Element => _element;
     /// <summary>Explicit prototype row height.</summary>
     public OdfLength? Height => new OdsRow(_document, _element).Height;
 }
@@ -46,6 +49,11 @@ public sealed class OdsRow {
     public string? StyleName {
         get => (string?)_element.Attribute(OdfNamespaces.Table + "style-name");
         set { _element.SetAttributeValue(OdfNamespaces.Table + "style-name", value); Dirty(); }
+    }
+    /// <summary>Default table-cell style used when a cell has no direct style.</summary>
+    public string? DefaultCellStyleName {
+        get => (string?)_element.Attribute(OdfNamespaces.Table + "default-cell-style-name");
+        set { _element.SetAttributeValue(OdfNamespaces.Table + "default-cell-style-name", value); Dirty(); }
     }
     /// <summary>Explicit row height.</summary>
     public OdfLength? Height {
