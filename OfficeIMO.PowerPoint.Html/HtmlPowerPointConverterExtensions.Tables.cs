@@ -120,8 +120,10 @@ public static partial class HtmlPowerPointConverterExtensions {
                     columnIndex++;
                 }
 
-                int rowSpan = ReadPowerPointSpan(element, "rowspan", result);
-                int columnSpan = ReadPowerPointSpan(element, "colspan", result);
+                int rowSpan = ReadPowerPointSpan(element,
+                    HtmlAccessibilitySemantics.GetTableSpanAttributeName(element, "rowspan"), result);
+                int columnSpan = ReadPowerPointSpan(element,
+                    HtmlAccessibilitySemantics.GetTableSpanAttributeName(element, "colspan"), result);
                 if ((long)rowSpan * columnSpan > maxTableCells) {
                     AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                         "An HTML table span exceeded the configured MaxTableCells limit; the span was ignored.", lossKind: OfficeConversionLossKind.Approximation);
@@ -187,17 +189,25 @@ public static partial class HtmlPowerPointConverterExtensions {
 
     private static IEnumerable<IElement> EnumerateDirectTableRows(IElement table) {
         foreach (IElement child in table.Children) {
-            if (IsElement(child, "tr")) {
+            if (IsPowerPointTableRow(child)) {
                 yield return child;
-            } else if (IsElement(child, "thead") || IsElement(child, "tbody") || IsElement(child, "tfoot")) {
-                foreach (IElement row in child.Children.Where(element => IsElement(element, "tr"))) {
+            } else if (IsElement(child, "thead") || IsElement(child, "tbody") || IsElement(child, "tfoot")
+                || HtmlAccessibilitySemantics.HasRole(child, "rowgroup")) {
+                foreach (IElement row in child.Children.Where(IsPowerPointTableRow)) {
                     yield return row;
                 }
             }
         }
     }
 
-    private static bool IsPowerPointTableCell(IElement element) => IsElement(element, "th") || IsElement(element, "td");
+    private static bool IsPowerPointTableRow(IElement element) =>
+        IsElement(element, "tr") || HtmlAccessibilitySemantics.HasRole(element, "row");
+
+    private static bool IsPowerPointTableCell(IElement element) =>
+        IsElement(element, "th") || IsElement(element, "td")
+        || HtmlAccessibilitySemantics.HasRole(element, "cell")
+        || HtmlAccessibilitySemantics.HasRole(element, "columnheader")
+        || HtmlAccessibilitySemantics.HasRole(element, "rowheader");
 
     private static int ReadPowerPointSpan(IElement cell, string attributeName, HtmlToPowerPointResult result) {
         string? raw = cell.GetAttribute(attributeName);

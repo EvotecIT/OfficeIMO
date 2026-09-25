@@ -8,6 +8,52 @@ namespace OfficeIMO.Tests;
 
 public class HtmlOfficeAdaptersPowerPointTables {
     [Fact]
+    public void PowerPointHtml_ImportsRoleTableAsEditableGrid() {
+        const string html = """
+            <main>
+              <h1>Water service levels</h1>
+              <div role="table" aria-label="Service levels">
+                <div role="rowgroup">
+                  <div role="row"><div role="columnheader">Term</div><div role="columnheader">Definition</div></div>
+                  <div role="row"><div role="cell">Basic water service level</div><div role="cell">Collection time is at most 30 minutes.</div></div>
+                </div>
+              </div>
+            </main>
+            """;
+
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html)
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        using PowerPointPresentation presentation = result.RequireValue();
+        PowerPointTable table = Assert.Single(presentation.Slides.SelectMany(slide => slide.Tables));
+        Assert.Equal("Term", table.GetCell(0, 0).Text);
+        Assert.Equal("Definition", table.GetCell(0, 1).Text);
+        Assert.Equal("Basic water service level", table.GetCell(1, 0).Text);
+        Assert.Equal("Collection time is at most 30 minutes.", table.GetCell(1, 1).Text);
+    }
+
+    [Fact]
+    public void PowerPointHtml_PreservesRoleTableSpansAndLaterCells() {
+        const string html = """
+            <div role="table" aria-label="Spanned levels">
+              <div role="row"><div role="columnheader" aria-colspan="2">Service</div><div role="columnheader">Definition</div></div>
+              <div role="row"><div role="cell" aria-rowspan="2">Basic</div><div role="cell">30 minutes</div><div role="cell">Improved source</div></div>
+              <div role="row"><div role="cell">Limited</div><div role="cell">Over 30 minutes</div></div>
+            </div>
+            """;
+
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html)
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        using PowerPointPresentation presentation = result.RequireValue();
+        PowerPointTable table = Assert.Single(presentation.Slides.SelectMany(slide => slide.Tables));
+        Assert.Equal(2, result.MergedRanges);
+        Assert.Equal((1, 2), table.GetCell(0, 0).Merge);
+        Assert.Equal((2, 1), table.GetCell(1, 0).Merge);
+        Assert.Equal("Definition", table.GetCell(0, 2).Text);
+        Assert.Equal("Limited", table.GetCell(2, 1).Text);
+        Assert.Equal("Over 30 minutes", table.GetCell(2, 2).Text);
+    }
+
+    [Fact]
     public void PowerPointHtml_RoundTripsMergedTableCells() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
