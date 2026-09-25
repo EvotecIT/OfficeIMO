@@ -204,7 +204,7 @@
       "expectedAnnotationActionTypes": [],
       "expectedRepairCodes": [],
       "expectedRenderSucceeded": true,
-      "expectedRenderDiagnosticCodes": [ "render.resource.font-substitution" ],
+      "expectedRenderDiagnosticCodes": [],
       "expectedMutationMode": "AppendOnly",
       "features": [ "verapdf", "pdfa-1a", "tounicode", "tagged" ]
     },
@@ -281,7 +281,7 @@
       "expectedAnnotationActionTypes": [],
       "expectedRepairCodes": [],
       "expectedRenderSucceeded": true,
-      "expectedRenderDiagnosticCodes": [ "render.resource.font-substitution" ],
+      "expectedRenderDiagnosticCodes": [],
       "expectedMutationMode": "AppendOnly",
       "features": [ "verapdf", "pdfa-4", "optional-content", "tagged" ]
     },

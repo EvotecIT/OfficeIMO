@@ -26,7 +26,7 @@ public sealed partial class OfficeRasterCanvas {
         }
 
         double size = Math.Max(1D, fontSize);
-        var key = new TextMeasurementKey(text!, size, fontFamily, style);
+        var key = new TextMeasurementKey(text!, size, fontFamily, style, PreservePaintedGlyphOrder);
         Dictionary<TextMeasurementKey, double> cache = _textMeasurementCache ??= new Dictionary<TextMeasurementKey, double>();
         if (cache.TryGetValue(key, out double cached)) {
             return cached;
@@ -740,7 +740,7 @@ public sealed partial class OfficeRasterCanvas {
             return _font;
         }
 
-        return OfficeTrueTypeFont.TryLoadFontFamily(fontFamily) ?? _font;
+        return OfficeTrueTypeFont.TryLoadFontFamilyForText(fontFamily, style, text, out resolvedStyle) ?? _font;
     }
 
     private void DrawStrokeText(

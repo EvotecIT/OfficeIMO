@@ -53,7 +53,9 @@ internal sealed class PdfFontResource {
         FontDescriptorFlags = fontDescriptorFlags;
     }
 
-    private PdfFontResource(string resourceName, PdfFontResource source) {
+    private PdfFontResource(string resourceName, PdfFontResource source, PdfDrawingFontProgram? drawingProgram = null) {
+        byte[]? embeddedTrueTypeFont = drawingProgram?.Program;
+        DrawingProgram = drawingProgram ?? source.DrawingProgram;
         ResourceName = resourceName;
         BaseFont = source.BaseFont;
         Encoding = source.Encoding;
@@ -63,8 +65,10 @@ internal sealed class PdfFontResource {
         IsVerticalWriting = source.IsVerticalWriting;
         CMap = source.CMap;
         Differences = source.Differences;
-        EmbeddedTrueTypeFont = source.EmbeddedTrueTypeFont;
-        DrawingFontFamily = source.DrawingFontFamily;
+        EmbeddedTrueTypeFont = embeddedTrueTypeFont ?? source.EmbeddedTrueTypeFont;
+        DrawingFontFamily = embeddedTrueTypeFont == null
+            ? source.DrawingFontFamily
+            : CreateDrawingFontFamily(source.BaseFont, embeddedTrueTypeFont, drawingProgram);
         FontWeight = source.FontWeight;
         FontDescriptorFlags = source.FontDescriptorFlags;
         Type3 = source.Type3;
@@ -75,22 +79,48 @@ internal sealed class PdfFontResource {
             ? this
             : new PdfFontResource(resourceName, this);
 
-    private static string? CreateDrawingFontFamily(string baseFont, byte[]? fontData) {
-        if (fontData == null || !HasSubsetPrefix(baseFont)) return null;
+    /// <summary>Synthesized drawing program and mappings when the embedded program needed a Unicode cmap.</summary>
+    internal PdfDrawingFontProgram? DrawingProgram { get; }
+
+    /// <summary>Returns this resource with a drawing-ready embedded TrueType program.</summary>
+    internal PdfFontResource WithDrawingProgram(PdfDrawingFontProgram drawingProgram) =>
+        new PdfFontResource(ResourceName, this, drawingProgram);
+
+    // Embedded programs with the same PDF base name can differ between page and annotation resources.
+    private static string? CreateDrawingFontFamily(string baseFont, byte[]? fontData, PdfDrawingFontProgram? drawingProgram = null) {
+        if (fontData == null) return null;
         using SHA256 sha256 = SHA256.Create();
         byte[] hash = sha256.ComputeHash(fontData);
-        var family = new StringBuilder(string.IsNullOrWhiteSpace(baseFont) ? "PDF embedded font-" : baseFont + "-");
+        if (drawingProgram != null) {
+            // A rebuilt Unicode cmap can omit duplicate or cluster mappings. Keep the full PDF code
+            // map in the face identity, including CID entries above the one-byte simple-font range.
+            byte[]? cidMap = drawingProgram.CidToGlyphMap;
+            var identity = new byte[hash.Length + 1 + (cidMap?.Length ?? 256 * 2)];
+            Buffer.BlockCopy(hash, 0, identity, 0, hash.Length);
+            identity[hash.Length] = cidMap == null ? (byte)0 : (byte)1;
+            if (cidMap != null) {
+                Buffer.BlockCopy(cidMap, 0, identity, hash.Length + 1, cidMap.Length);
+            } else {
+                for (int code = 0; code < 256; code++) {
+                    int glyph = drawingProgram.GlyphForCode(code);
+                    identity[hash.Length + 1 + code * 2] = (byte)(glyph >> 8);
+                    identity[hash.Length + 1 + code * 2 + 1] = (byte)glyph;
+                }
+            }
+            hash = sha256.ComputeHash(identity);
+        }
+        // Font-family parsing limits each candidate to 256 characters. Keep the digest within
+        // that bound so a long PDF BaseFont cannot truncate the identity used to load this face.
+        const int digestLength = 24;
+        const int maximumFamilyLength = 256;
+        string name = string.IsNullOrWhiteSpace(baseFont) ? "PDF embedded font" : baseFont;
+        var family = new StringBuilder(name.Substring(0, Math.Min(name.Length, maximumFamilyLength - digestLength - 1)));
+        family.Append('-');
+        // Drawing family names are parsed as CSS-style family lists. PDF names such as "Arial,Bold"
+        // must stay one family, so replace list separators, quotes and escapes.
+        family.Replace(',', '-').Replace('"', '-').Replace('\'', '-').Replace('\\', '-');
         for (int i = 0; i < 12; i++) family.Append(hash[i].ToString("x2", CultureInfo.InvariantCulture));
         return family.ToString();
     }
 
-    private static bool HasSubsetPrefix(string baseFont) {
-        if (string.IsNullOrWhiteSpace(baseFont) || baseFont.Length <= 7 || baseFont[6] != '+') return false;
-        for (int i = 0; i < 6; i++) {
-            char ch = baseFont[i];
-            if (ch < 'A' || ch > 'Z') return false;
-        }
-
-        return true;
-    }
 }

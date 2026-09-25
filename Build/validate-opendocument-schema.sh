@@ -45,6 +45,9 @@ for package in "$artifact_dir"/*.odt "$artifact_dir"/*.ods "$artifact_dir"/*.odp
   for part in content.xml styles.xml meta.xml settings.xml; do
     xmllint --noout --relaxng "$document_schema" "$extract_dir/$part"
   done
+  while IFS= read -r -d '' embedded_content; do
+    xmllint --noout --relaxng "$document_schema" "$embedded_content"
+  done < <(find "$extract_dir" -mindepth 2 -name content.xml -type f -print0)
   xmllint --noout --relaxng "$manifest_schema" "$extract_dir/META-INF/manifest.xml"
 done
 

@@ -74,7 +74,13 @@ public static partial class OfficeDrawingRasterRenderer {
             if (element is OfficeDrawingShape shape) {
                 RenderShape(canvas, shape, scale);
             } else if (element is OfficeDrawingText text) {
-                RenderText(canvas, text, scale, maximumRasterPixels);
+                bool preserve = canvas.PreservePaintedGlyphOrder;
+                canvas.PreservePaintedGlyphOrder = text.PreservesPaintedGlyphs;
+                try {
+                    RenderText(canvas, text, scale, maximumRasterPixels);
+                } finally {
+                    canvas.PreservePaintedGlyphOrder = preserve;
+                }
             } else if (element is OfficeDrawingRichText richText) {
                 RenderRichText(canvas, richText, scale);
             } else if (element is OfficeDrawingImage drawingImage) {

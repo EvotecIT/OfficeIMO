@@ -15,12 +15,13 @@ internal static class SpreadsheetAddressConverter {
     internal static string ExcelRangeToOpenAddress(string reference, string? defaultSheetName = null) {
         if (!SpreadsheetRangeReference.TryParse(reference, SpreadsheetAddressDialect.ExcelA1,
                 out SpreadsheetRangeReference? parsed)) return string.Empty;
-        string converted = parsed!.Format(SpreadsheetAddressDialect.OpenDocument);
-        if (parsed.Start.SheetName != null || string.IsNullOrWhiteSpace(defaultSheetName)) return converted;
-
-        string local = converted.StartsWith(".", StringComparison.Ordinal) ? converted.Substring(1) : converted;
-        string escaped = defaultSheetName!.Replace("'", "''");
-        return "$'" + escaped + "'." + local;
+        if (parsed!.Start.SheetName == null && !string.IsNullOrWhiteSpace(defaultSheetName)) {
+            string qualified = "'" + defaultSheetName!.Replace("'", "''") + "'!" +
+                parsed.Format(SpreadsheetAddressDialect.ExcelA1);
+            if (!SpreadsheetRangeReference.TryParse(qualified, SpreadsheetAddressDialect.ExcelA1,
+                    out parsed)) return string.Empty;
+        }
+        return parsed!.Format(SpreadsheetAddressDialect.OpenDocument);
     }
 
     internal static string OpenAddressToExcel(string address) =>

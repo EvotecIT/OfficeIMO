@@ -26,10 +26,10 @@ public sealed class OpenDocumentProducerCorpusTests {
 
         Assert.Equal(1, manifest.SchemaVersion);
         Assert.Equal(actual, declared);
-        Assert.Equal(6, manifest.Fixtures.Count);
-        Assert.Equal(6, manifest.Fixtures.Select(fixture => fixture.Producer).Distinct(StringComparer.Ordinal).Count());
-
         foreach (ProducerFixture fixture in manifest.Fixtures) {
+            Assert.False(string.IsNullOrWhiteSpace(fixture.Producer));
+            Assert.False(string.IsNullOrWhiteSpace(fixture.ProducerVersion));
+            Assert.False(string.IsNullOrWhiteSpace(fixture.ProducedOn));
             string path = Path.Combine(fixturePath, fixture.File);
             byte[] bytes = File.ReadAllBytes(path);
             Assert.Equal(fixture.Bytes, bytes.Length);

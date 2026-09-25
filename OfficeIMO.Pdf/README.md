@@ -131,7 +131,7 @@ best-effort pagination.
 
 Add `using OfficeIMO.Drawing;` when applying an `OfficeRenderingProfile`.
 `Managed` selects the dependency-light shaping provider for its documented
-core-Arabic/TrueType subset. Supply a profile containing your embedded font family,
+Arabic-script/TrueType subset (core and extended Persian/Urdu letters). Supply a profile containing your embedded font family,
 fallbacks, language, and shaping provider when the document contract requires
 broader scripts or reproducible font selection.
 
@@ -174,7 +174,7 @@ content must fit a complete frame, including padding. Otherwise allow splitting.
 - Creates PDFs with page setup, headings, paragraphs, rich text, links, lists, reusable typed and page-aware components, tested report/invoice/label-sheet/ticket recipes, mixed inline images and boxes, dictionary-driven hyphenation, styled multipage containers, balanced block-flow columns, conditional/replayable flow, position capture, sections, generated TOCs, optional-content layers, tables, images, vector drawing, headers, footers, watermarks, metadata, portfolios, and form primitives. Raster inputs accepted by `OfficeIMO.Drawing` normalize once through the shared image owner before PDF embedding.
 - Reads and inspects PDFs through text extraction, logical document objects, page metadata, links, images, attachments, portfolios, outlines, forms, bounded immutable raw-structure views, active-content diagnostics, and security/revision markers.
 - Manipulates existing PDFs with page extraction, split, merge, delete, duplicate, move, rotate, metadata editing, stamps, watermarks, and complete-page overlay/underlay while preserving source PDF header versions on shared rewrite paths.
-- Renders supported embedded TrueType and OpenType/CFF fonts with stable-glyph subsetting. `UseManagedTextShaping()` selects Drawing's dependency-light positioned-glyph provider for its proven core-Arabic/TrueType subset. The shared `IOfficeTextShapingProvider` contract remains the extension point for broader scripts and shaping engines.
+- Renders supported embedded TrueType and OpenType/CFF fonts with stable-glyph subsetting. `UseManagedTextShaping()` selects Drawing's dependency-light positioned-glyph provider for its proven Arabic-script/TrueType subset (core and extended Persian/Urdu letters). The shared `IOfficeTextShapingProvider` contract remains the extension point for broader scripts and shaping engines.
 - Projects authored annotation appearance streams into page images. When a supported free-text, text-markup, shape, line, ink, path, stamp, or caret annotation has no usable normal appearance, the renderer reuses the bounded annotation synthesizer and reports `render.annotation.appearance-synthesized` as an approximation.
 - Shares managed CMYK, Lab, XYZ, calibrated-color conversion, bounded sampled, exponential, stitching, and Type 4 calculator color functions, vector tiling fills, standard blend modes, and alpha/luminosity soft masks with `OfficeIMO.Drawing`. Catalog destination output profiles with supported RGB matrix/TRC or ICC mBA transforms soft-proof vector, text, form, pattern, and image colors through the same rendering-intent pipeline. ICC LUT-composed and output-profile-composed shadings remain fail-closed unless their final interpolation can be certified. Pages with explicit transparency retain authored colors and report `render.colorspace.icc-output-intent-transparency-simplified` until output conversion can run after composition. Color-managed DCT/JPEG images use the ICC, `/Decode`, Indexed-palette, and transparency pipeline, while simple device-color JPEGs without required color management remain lossless pass-through payloads.
 - Bounds completed page/effect content and serialized-object retention with separate memory limits, temporary-file spillover, direct large-stream spooling, and chunked final assembly during stream saves. `PdfSaveResult.Serialization` records limits, peak retained bytes, spill decisions, final buffering, and passthrough without claiming forward-only layout. Per-page metadata and the authored block model remain proportional to document size, and `ToBytes()` buffers the final artifact.
@@ -427,7 +427,7 @@ IReadOnlyList<OfficeImageExportResult> pages = markdown
     .Export();
 ```
 
-Source conversion warnings are copied into every page result. Use `PdfReadPage.ToDrawing()` only when an intermediate `OfficeDrawing` is needed.
+Source conversion warnings are copied into every page result. Use `PdfReadPage.ToDrawing()` only when an intermediate `OfficeDrawing` is needed. The returned `OfficeDrawingText.Text` keeps decoded, editable text, including multi-letter ligatures. Raster and SVG rendering use the PDF's painted glyphs where the embedded font requires them, preserving the painted order of shaped Arabic text.
 
 Supply replacement fonts and any shaping provider during projection so glyph visibility uses the final font profile:
 
@@ -1787,7 +1787,7 @@ into a cross-version comparison.
 
 ## Current state
 
-The PDF engine is useful and broad, but it is still evolving. It has strong first-party coverage for common generated business documents, reusable Unicode line breaking and Latin ligatures, bounded built-in core-Arabic shaping plus an optional HarfBuzz adapter for full GSUB/GPOS shaping, and bounded Type 3 rendering within the documented capability contract. It also supports authored and bounded-synthesized annotation appearances in page images, conservative read/manipulation workflows, password security, optional provider-backed certificate signing/validation, standards-compliant Fast Web View output, and bounded-payload stream saves with runtime serialization evidence. See the [image export capability matrix](../Docs/officeimo.image-export-capability-matrix.md) for the exact Type 3 rendering coverage and current limitations.
+The PDF engine is useful and broad, but it is still evolving. It has strong first-party coverage for common generated business documents, reusable Unicode line breaking and Latin ligatures, bounded built-in Arabic-script shaping plus an optional HarfBuzz adapter for full GSUB/GPOS shaping, and bounded Type 3 rendering within the documented capability contract. It also supports authored and bounded-synthesized annotation appearances in page images, conservative read/manipulation workflows, password security, optional provider-backed certificate signing/validation, standards-compliant Fast Web View output, and bounded-payload stream saves with runtime serialization evidence. See the [image export capability matrix](../Docs/officeimo.image-export-capability-matrix.md) for the exact Type 3 rendering coverage and current limitations.
 
 Vertical `OfficeDrawing` text retains its logical string through PDF `/ActualText`, but painting still uses stacked horizontal glyphs and reports `vertical-text-stacked-fallback` as an approximation. Strict no-loss profiles reject that result. Native vertical glyph output remains open until shaped vertical advances and substitutions, readable logical text, and strict-profile results pass together against independent CJK producer references.
 

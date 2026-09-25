@@ -751,8 +751,9 @@ public static partial class OfficeTextBlockRenderer {
         OfficeTextFeatureSettings? featureSettings = null,
         string? fontPalette = null,
         OfficeTextShapingBackend? shapingBackend = null,
-        OfficeTextDirection direction = OfficeTextDirection.Auto) =>
-        AppendSvgTextElementCore(builder, text, x, y, lineHeight, color, fontFamily, fontSize, horizontalAlignment, bold, italic, underline, rotationDegrees, rotationCenterX, rotationCenterY, strikethrough, textAdvanceWidth, underlineStyle, strikethroughStyle, baseline, decorationColor, featureSettings, fontPalette, direction, shapingBackend);
+        OfficeTextDirection direction = OfficeTextDirection.Auto,
+        bool preservePaintedGlyphOrder = false) =>
+        AppendSvgTextElementCore(builder, text, x, y, lineHeight, color, fontFamily, fontSize, horizontalAlignment, bold, italic, underline, rotationDegrees, rotationCenterX, rotationCenterY, strikethrough, textAdvanceWidth, underlineStyle, strikethroughStyle, baseline, decorationColor, featureSettings, fontPalette, direction, shapingBackend, preservePaintedGlyphOrder);
 
     private static StringBuilder AppendSvgTextElementCore(
         StringBuilder builder,
@@ -779,7 +780,8 @@ public static partial class OfficeTextBlockRenderer {
         OfficeTextFeatureSettings? featureSettings,
         string? fontPalette,
         OfficeTextDirection direction = OfficeTextDirection.Auto,
-        OfficeTextShapingBackend? shapingBackend = null) {
+        OfficeTextShapingBackend? shapingBackend = null,
+        bool preservePaintedGlyphOrder = false) {
         if (builder == null) {
             throw new ArgumentNullException(nameof(builder));
         }
@@ -836,7 +838,10 @@ public static partial class OfficeTextBlockRenderer {
             builder.AppendAttribute("writing-mode", "vertical-rl")
                 .AppendAttribute("text-orientation", "mixed");
         }
-        if (resolvedDirection == OfficeTextDirection.RightToLeft) {
+        if (preservePaintedGlyphOrder) {
+            builder.AppendAttribute("direction", "ltr")
+                .AppendAttribute("unicode-bidi", "bidi-override");
+        } else if (resolvedDirection == OfficeTextDirection.RightToLeft) {
             builder.AppendAttribute("direction", "rtl");
             if (direction == OfficeTextDirection.Auto) {
                 builder.AppendAttribute("unicode-bidi", "plaintext");
