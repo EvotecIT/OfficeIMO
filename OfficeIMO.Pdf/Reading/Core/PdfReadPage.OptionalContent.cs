@@ -302,6 +302,79 @@ public sealed partial class PdfReadPage {
         return GetOptionalContentVisibility(resources)?.IsUnsupported(value) == true;
     }
 
+    internal Dictionary<PdfDictionary, HashSet<int>> GetDefiniteUnlayeredFontResources(System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        var fonts = new Dictionary<PdfDictionary, HashSet<int>>();
+        if (HasEffectiveOptionalContentEntry(_pageDict)) return fonts;
+        PdfDictionary? resources = ResolveDictionary(GetInheritedValue("Resources"));
+        var budget = new PageContentBudget(this, cancellationToken);
+        var activeForms = new HashSet<PdfStream>();
+        Scan(GetContentStreamContent(budget), resources, 0);
+        return fonts;
+
+        void Scan(string content, PdfDictionary? currentResources, int depth) {
+            EnsureContentNestingBudget(depth);
+            PdfDictionary? fontResources = ResolveDictionary(currentResources?.Items.TryGetValue("Font", out PdfObject? fontObject) == true
+                ? fontObject : null);
+            PdfDictionary? xObjects = ResolveDictionary(currentResources?.Items.TryGetValue("XObject", out PdfObject? xObject) == true
+                ? xObject : null);
+            PdfDictionary? selectedFont = null;
+            var savedFonts = new Stack<PdfDictionary?>();
+            var markedContent = new Stack<bool>();
+            int layeredDepth = 0;
+            bool inText = false;
+            PdfContentStreamInterpreter.Interpret(content, _limits.MaxContentOperations, operation => {
+                cancellationToken.ThrowIfCancellationRequested();
+                switch (operation.Name) {
+                    case "BDC":
+                        bool isLayer = operation.Operands.Count > 1 &&
+                            operation.Operands[operation.Operands.Count - 2] is string tag && tag == "OC";
+                        markedContent.Push(isLayer);
+                        if (isLayer) layeredDepth++;
+                        return;
+                    case "BMC": markedContent.Push(false); return;
+                    case "EMC":
+                        if (markedContent.Count > 0 && markedContent.Pop()) layeredDepth--;
+                        return;
+                    case "q": savedFonts.Push(selectedFont); return;
+                    case "Q": selectedFont = savedFonts.Count > 0 ? savedFonts.Pop() : null; return;
+                    case "BT": inText = true; return;
+                    case "ET": inText = false; return;
+                }
+                if (operation.HasInvalidOperands) return;
+                if (operation.Name == "Tf" && inText && operation.Operands.Count == 2 &&
+                    operation.Operands[0] is string fontName) {
+                    selectedFont = ResolveDictionary(fontResources?.Items.TryGetValue(fontName, out PdfObject? font) == true ? font : null);
+                    return;
+                }
+                if (layeredDepth != 0) return;
+                if (inText && operation.Name is "Tj" or "TJ" or "'" or "\"" && selectedFont != null) {
+                    if (!PdfPrintProductionColorInspector.TryGetShownTextBytes(operation, out List<byte[]> shownText) ||
+                        shownText.All(static bytes => bytes.Length == 0)) return;
+                    if (!fonts.TryGetValue(selectedFont, out HashSet<int>? codes)) {
+                        codes = new HashSet<int>();
+                        fonts.Add(selectedFont, codes);
+                    }
+                    foreach (byte[] text in shownText) {
+                        foreach (byte character in text) codes.Add(character);
+                    }
+                }
+                if (operation.Name != "Do" || operation.Operands.Count != 1 ||
+                    operation.Operands[0] is not string name ||
+                    PdfObjectLookup.ResolveChain(_objects, xObjects?.Items.TryGetValue(name, out PdfObject? formObject) == true
+                        ? formObject : null) is not PdfStream form ||
+                    HasEffectiveOptionalContentEntry(form.Dictionary) ||
+                    (ResolveObject(form.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtype) ? subtype : null) as PdfName)?.Name != "Form" ||
+                    !activeForms.Add(form)) return;
+                try {
+                    PdfDictionary? formResources = ResolveDictionary(form.Dictionary.Items.TryGetValue("Resources", out PdfObject? formResource)
+                        ? formResource : null) ?? currentResources;
+                    Scan(PdfEncoding.Latin1GetString(budget.Decode(form)), formResources, depth + 1);
+                } finally { activeForms.Remove(form); }
+            }, maxNestingDepth: _limits.MaxContentNestingDepth, maxOperands: _limits.MaxContentOperands);
+        }
+    }
+
     internal HashSet<PdfContentOrderKey> GetDefiniteUnlayeredImageContentOrderKeys(System.Threading.CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         var keys = new HashSet<PdfContentOrderKey>();

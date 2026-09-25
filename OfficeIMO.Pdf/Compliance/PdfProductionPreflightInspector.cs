@@ -105,6 +105,13 @@ internal static class PdfProductionPreflightInspector {
 
         void InspectFonts(int pageNumber, bool unresolvedPrintResources) {
             if (unresolvedPrintResources) {
+                int definiteUnembedded = PdfPrintProductionStructureInspector.CountUnembeddedDefiniteFonts(
+                    document, pageNumber, cancellationToken);
+                if (definiteUnembedded > 0) {
+                    AddFinding(new PdfProductionFinding(PdfProductionFindingKind.UnembeddedFont,
+                        effective.Profile == PdfProductionPreflightProfile.GeneralPrint ? PdfProductionFindingSeverity.Warning : PdfProductionFindingSeverity.Error,
+                        pageNumber, $"{definiteUnembedded} always-visible font resource(s) lack an inspectable embedded program."));
+                }
                 AddFinding(new PdfProductionFinding(PdfProductionFindingKind.UninspectableFont,
                     PdfProductionFindingSeverity.Indeterminate, pageNumber,
                     "Font usage could not be isolated from print-hidden optional content."));
@@ -126,11 +133,16 @@ internal static class PdfProductionPreflightInspector {
         PdfPrintProductionColorEvidence InspectColor(int pageNumber, PdfReadPage printPage, bool unresolvedPrintResources) {
             PdfPrintProductionColorEvidence color = PdfPrintProductionColorInspector.Inspect(document, pageNumber, cancellationToken);
             if (unresolvedPrintResources) {
-                (bool definiteRgb, bool definiteTransparency) = printPage.GetDefiniteUnlayeredPrintColorUse(cancellationToken);
+                (bool definiteRgb, bool definiteIndependent, bool definiteTransparency) = printPage.GetDefiniteUnlayeredPrintColorUse(cancellationToken);
                 if (definiteRgb) {
                     AddFinding(new PdfProductionFinding(PdfProductionFindingKind.DeviceRgbColor,
                         effective.Profile == PdfProductionPreflightProfile.GeneralPrint ? PdfProductionFindingSeverity.Warning : PdfProductionFindingSeverity.Error,
                         pageNumber, "Always-visible page content uses device RGB."));
+                }
+                if (definiteIndependent && effective.Profile == PdfProductionPreflightProfile.PdfX1aCandidate) {
+                    AddFinding(new PdfProductionFinding(PdfProductionFindingKind.DeviceIndependentColor,
+                        PdfProductionFindingSeverity.Error, pageNumber,
+                        "Always-visible page content uses device-independent color."));
                 }
                 if (definiteTransparency && effective.Profile != PdfProductionPreflightProfile.PdfX4Candidate) {
                     AddFinding(new PdfProductionFinding(PdfProductionFindingKind.Transparency,
@@ -171,11 +183,6 @@ internal static class PdfProductionPreflightInspector {
                 AddFinding(new PdfProductionFinding(PdfProductionFindingKind.UninspectableImageResolution,
                     PdfProductionFindingSeverity.Indeterminate, pageNumber,
                     "The optional-content print configuration could not be evaluated completely."));
-                if (color.HasUninspectedImagePlacementSources) {
-                    AddFinding(new PdfProductionFinding(PdfProductionFindingKind.UninspectableImageResolution,
-                        PdfProductionFindingSeverity.Indeterminate, pageNumber,
-                        "A reachable tiling pattern or printable annotation may paint images whose effective resolution was not inspected."));
-                }
             }
             IReadOnlyList<PdfImagePlacement> placements = readPage.GetImagePlacements(pageNumber, cancellationToken);
             if (unsupportedPrintContent) {
@@ -214,7 +221,7 @@ internal static class PdfProductionPreflightInspector {
                     PdfProductionFindingSeverity.Indeterminate, pageNumber,
                     $"{placements.Count - understoodPlacements} image placement(s) lacked usable extraction metadata."));
             }
-            if (color.HasUninspectedImagePlacementSources) {
+            if (color.HasUninspectedImagePlacementSources && !unsupportedPrintContent) {
                 AddFinding(new PdfProductionFinding(PdfProductionFindingKind.UninspectableImageResolution,
                     PdfProductionFindingSeverity.Indeterminate, pageNumber,
                     "A reachable tiling pattern or printable annotation may paint images whose effective resolution was not inspected."));

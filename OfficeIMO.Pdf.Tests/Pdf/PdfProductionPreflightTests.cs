@@ -407,6 +407,84 @@ public sealed class PdfProductionPreflightTests {
     }
 
     [Fact]
+    public void UnsupportedPrintRuleStillReportsDefinitelyUnembeddedUnlayeredFont() {
+        const string content = "BT /F1 12 Tf 10 80 Td (Visible) Tj ET /OC /Layer BDC BT /F1 12 Tf 10 40 Td (Hidden) Tj ET EMC\n";
+        byte[] source = RawPrintLayerPdf(content,
+            "/Font << /F1 7 0 R >> /Properties << /Layer 6 0 R >>",
+            "6 0 obj\n<< /Type /OCG /Name (Layer) >>\nendobj\n" +
+            "7 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj",
+            "[6 0 R]", "[6 0 R]", "/Print /View");
+
+        PdfProductionPreflightReport report = PdfDocument.Load(source).Proof.PreflightProduction(
+            new PdfProductionPreflightOptions { Profile = PdfProductionPreflightProfile.PdfX1aCandidate });
+
+        Assert.Contains(report.Findings, static finding => finding.Kind == PdfProductionFindingKind.UnembeddedFont);
+        Assert.Contains(report.Findings, static finding => finding.Kind == PdfProductionFindingKind.UninspectableFont);
+    }
+
+    [Fact]
+    public void UnsupportedPrintRuleStillRejectsMalformedAlwaysVisibleType3Glyph() {
+        const string content = "BT /F1 12 Tf 10 80 Td (A) Tj ET /OC /Layer BDC 10 10 20 20 re f EMC\n";
+        const string glyph = "0 0 m 10 10 l S";
+        byte[] source = RawPrintLayerPdf(content,
+            "/Font << /F1 7 0 R >> /Properties << /Layer 6 0 R >>",
+            "6 0 obj\n<< /Type /OCG /Name (Layer) >>\nendobj\n" +
+            "7 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] " +
+            "/CharProcs << /A 8 0 R >> /Encoding << /Type /Encoding /Differences [65 /A] >> " +
+            "/FirstChar 65 /LastChar 65 /Widths [500] /Resources << >> >>\nendobj\n" +
+            "8 0 obj\n<< /Length " + glyph.Length + " >>\nstream\n" + glyph + "\nendstream\nendobj",
+            "[6 0 R]", "[6 0 R]", "/Print /View");
+
+        PdfProductionPreflightReport report = PdfDocument.Load(source).Proof.PreflightProduction(
+            new PdfProductionPreflightOptions { Profile = PdfProductionPreflightProfile.PdfX1aCandidate });
+
+        Assert.Contains(report.Findings, static finding => finding.Kind == PdfProductionFindingKind.UnembeddedFont);
+    }
+
+    [Fact]
+    public void UnsupportedPrintRuleStillReportsDefinitelyUnlayeredCalRgbPaint() {
+        const string content = "/CS1 cs 0.2 0.3 0.4 sc 10 10 20 20 re f /OC /Layer BDC 40 10 20 20 re f EMC\n";
+        byte[] source = RawPrintLayerPdf(content,
+            "/ColorSpace << /CS1 [/CalRGB << /WhitePoint [1 1 1] >>] >> /Properties << /Layer 6 0 R >>",
+            "6 0 obj\n<< /Type /OCG /Name (Layer) >>\nendobj",
+            "[6 0 R]", "[6 0 R]", "/Print /View");
+
+        PdfProductionPreflightReport report = PdfDocument.Load(source).Proof.PreflightProduction(
+            new PdfProductionPreflightOptions { Profile = PdfProductionPreflightProfile.PdfX1aCandidate });
+
+        Assert.Contains(report.Findings, static finding => finding.Kind == PdfProductionFindingKind.DeviceIndependentColor);
+        Assert.Contains(report.Findings, static finding => finding.Kind == PdfProductionFindingKind.UninspectableColor);
+    }
+
+    [Fact]
+    public void UnsupportedPrintRuleStillReportsIndependentIndexedColorPaint() {
+        const string content = "/CS1 cs 0 sc 10 10 20 20 re f /OC /Layer BDC 40 10 20 20 re f EMC\n";
+        byte[] source = RawPrintLayerPdf(content,
+            "/ColorSpace << /CS1 [/Indexed [/CalRGB << /WhitePoint [1 1 1] >>] 0 <FF0000>] >> /Properties << /Layer 6 0 R >>",
+            "6 0 obj\n<< /Type /OCG /Name (Layer) >>\nendobj",
+            "[6 0 R]", "[6 0 R]", "/Print /View");
+
+        PdfProductionPreflightReport report = PdfDocument.Load(source).Proof.PreflightProduction(
+            new PdfProductionPreflightOptions { Profile = PdfProductionPreflightProfile.PdfX1aCandidate });
+
+        Assert.Contains(report.Findings, static finding => finding.Kind == PdfProductionFindingKind.DeviceIndependentColor);
+    }
+
+    [Fact]
+    public void UnsupportedPrintLayerAndPrintableAnnotationShareOneResolutionUnknown() {
+        const string content = "/OC /Layer BDC 10 10 20 20 re f EMC\n";
+        byte[] source = RawPrintLayerPdf(content, "/Properties << /Layer 6 0 R >>",
+            "6 0 obj\n<< /Type /OCG /Name (Layer) >>\nendobj\n" +
+            "7 0 obj\n<< /Type /Annot /Subtype /Text /Rect [10 10 30 30] /F 4 >>\nendobj",
+            "[6 0 R]", "[6 0 R]", "/Print /View", "/Annots [7 0 R]");
+
+        PdfProductionPreflightReport report = PdfDocument.Load(source).Proof.PreflightProduction();
+
+        Assert.Single(report.Findings, static finding =>
+            finding.Kind == PdfProductionFindingKind.UninspectableImageResolution);
+    }
+
+    [Fact]
     public void UnusedGroupWithUnsupportedPrintStateDoesNotDegradePageEvidence() {
         const string content = "/OC /Visible BDC q 72 0 0 72 10 10 cm /Im0 Do Q EMC\n";
         byte[] source = RawPrintLayerPdf(content, "/XObject << /Im0 5 0 R >> /Properties << /Visible 7 0 R >>",

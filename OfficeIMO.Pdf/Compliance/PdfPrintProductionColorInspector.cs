@@ -768,6 +768,10 @@ internal static partial class PdfPrintProductionColorInspector {
             : ColorSpaceUsage.Unknown;
     }
 
+    internal static bool UsesDeviceIndependentColorSpace(PdfObject? value,
+        Dictionary<int, PdfIndirectObject> objects, int maximumObjectDepth, int maximumDecodedStreamBytes) =>
+        ClassifyColorSpace(value, objects, maximumObjectDepth, maximumDecodedStreamBytes).UsesDeviceIndependent;
+
     private static ColorSpaceUsage ClassifyColorSpace(
         PdfObject? value,
         Dictionary<int, PdfIndirectObject> objects,

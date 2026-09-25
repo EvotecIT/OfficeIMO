@@ -635,6 +635,7 @@ internal sealed partial class PdfPageOptionalContentVisibility {
                 if (resolvedUsage is PdfNull) continue;
                 if (resolvedUsage is not PdfDictionary usage) {
                     unsupportedGroupNumbers.Add(reference.ObjectNumber);
+                    if (usageEvent == "View") hasUnsupportedViewUsageApplications = true;
                     continue;
                 }
                 if (!usage.Items.TryGetValue(usageEvent, out PdfObject? viewObject)) continue;
@@ -642,6 +643,7 @@ internal sealed partial class PdfPageOptionalContentVisibility {
                 if (resolvedView is PdfNull) continue;
                 if (resolvedView is not PdfDictionary view) {
                     unsupportedGroupNumbers.Add(reference.ObjectNumber);
+                    if (usageEvent == "View") hasUnsupportedViewUsageApplications = true;
                     continue;
                 }
 
@@ -653,7 +655,10 @@ internal sealed partial class PdfPageOptionalContentVisibility {
                 if (resolvedViewState is PdfNull) visibility[reference.ObjectNumber] = true;
                 else if (resolvedViewState is PdfName { Name: "ON" }) visibility[reference.ObjectNumber] = true;
                 else if (resolvedViewState is PdfName { Name: "OFF" }) visibility[reference.ObjectNumber] = false;
-                else unsupportedGroupNumbers.Add(reference.ObjectNumber);
+                else {
+                    unsupportedGroupNumbers.Add(reference.ObjectNumber);
+                    if (usageEvent == "View") hasUnsupportedViewUsageApplications = true;
+                }
             }
         }
         return hasUnsupportedViewUsageApplications;

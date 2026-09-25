@@ -3,6 +3,21 @@ using OfficeIMO.Pdf.Filters;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfPrintProductionStructureInspector {
+    internal static int CountUnembeddedDefiniteFonts(PdfReadDocument document, int pageNumber,
+        System.Threading.CancellationToken cancellationToken) {
+        int count = 0;
+        foreach (KeyValuePair<PdfDictionary, HashSet<int>> entry in document.Pages[pageNumber - 1]
+            .GetDefiniteUnlayeredFontResources(cancellationToken)) {
+            cancellationToken.ThrowIfCancellationRequested();
+            try {
+                if (!HasEmbeddedFontProgram(entry.Key, document.Objects, document.ReadOptions.Limits.MaxDecodedStreamBytes,
+                    document.ReadOptions.Limits.MaxObjectNestingDepth, entry.Value)) count++;
+            } catch (Exception exception) when (exception is InvalidDataException or NotSupportedException or PdfReadLimitException) {
+                // The indeterminate font finding records contexts that cannot be classified.
+            }
+        }
+        return count;
+    }
     internal static PdfPrintProductionStructureEvidence Inspect(PdfReadDocument document,
         System.Threading.CancellationToken cancellationToken = default) => Inspect(document, null, cancellationToken);
 
