@@ -267,7 +267,7 @@ public static partial class MarkdownReader {
                     sourceMap?.GetSpan(start + labelLength + 1, 2));
             }
         }
-        void AddInlineImageNode(
+        int AddInlineImageNode(
             string alt,
             string resolvedSource,
             string? title,
@@ -281,7 +281,8 @@ public static partial class MarkdownReader {
             int? titleStart,
             int? titleLength) {
             var image = new ImageInline(alt, resolvedSource, title, plainAlt);
-            AddRawNode(image, start, length);
+            int suffixLength = ConsumeInlineImageTrailingBlocks(text, start + length, options, image, sourceMap);
+            AddRawNode(image, start, length + suffixLength);
             MarkdownInlineMetadataSourceSpans.SetImageParts(
                 image,
                 sourceMap?.GetSpan(altStart, altLength),
@@ -297,6 +298,7 @@ public static partial class MarkdownReader {
                 sourceMap?.GetSpan(start + length - 1, 1),
                 "](",
                 sourceMap?.GetSpan(altStart + altLength, 2));
+            return suffixLength;
         }
         void AddReferenceImageNode(
             string alt,
@@ -534,7 +536,8 @@ public static partial class MarkdownReader {
                     } else {
                         var plainAlt2 = ExtractImageAltPlainText(alt2, options, state, imageAltDepth);
                         var imageLink = new ImageLinkInline(alt2, imgResolved!, hrefResolved!, imgTitle2, hrefTitle2, plainAlt2);
-                        AddRawNode(imageLink, pos, consumed);
+                        int suffixLength = ConsumeInlineImageTrailingBlocks(text, pos + consumed, options, imageLink, sourceMap);
+                        AddRawNode(imageLink, pos, consumed + suffixLength);
                         int outerSeparatorStart = FindLinkedImageOuterSeparatorStart(pos, consumed, imageLinkHrefStart);
                         MarkdownInlineMetadataSourceSpans.SetImageLinkParts(
                             imageLink,
@@ -555,6 +558,7 @@ public static partial class MarkdownReader {
                             sourceMap?.GetSpan(pos + consumed - 1, 1),
                             outerSeparatorStart >= 0 ? "](" : null,
                             outerSeparatorStart >= 0 ? sourceMap?.GetSpan(outerSeparatorStart, 2) : null);
+                        consumed += suffixLength;
                     }
                     pos += consumed; continue;
                 }
@@ -628,7 +632,7 @@ public static partial class MarkdownReader {
                             AddTextNode(string.IsNullOrEmpty(altImg) ? "image" : ExtractImageAltPlainText(altImg, options, state, imageAltDepth), pos, consumedImg);
                         } else {
                             var plainAltImg = ExtractImageAltPlainText(altImg, options, state, imageAltDepth);
-                            AddInlineImageNode(
+                            int suffixLength = AddInlineImageNode(
                                 altImg,
                                 srcResolved!,
                                 titleImg,
@@ -641,6 +645,7 @@ public static partial class MarkdownReader {
                                 srcLengthImg,
                                 titleStartImg,
                                 titleLengthImg);
+                            consumedImg += suffixLength;
                         }
                         pos += consumedImg; continue;
                     }

@@ -12,6 +12,12 @@ public static partial class MarkdownReader {
         if (IsUnorderedListLine(trimmed)) return false; // list items with ":" are not definition terms
         if (IsOrderedListLine(trimmed, out _, out _)) return false; // numbered list items with ":" are not definition terms
         if (StartsWithReferenceDefinitionLikeLabel(trimmed)) return false; // malformed or valid link ref definitions should not become <dl>
+        if (trimmed.StartsWith("![", StringComparison.Ordinal)
+            && TryParseInlineImage(trimmed, 0, out int imageLength, out _, out _, out _)
+            && imageLength < trimmed.Length) return false; // image followed by prose belongs to a paragraph
+        if (trimmed.StartsWith("[![", StringComparison.Ordinal)
+            && TryParseImageLink(trimmed, 0, out int linkedImageLength, out _, out _, out _, out _, out _)
+            && linkedImageLength < trimmed.Length) return false;
         return TryGetDefinitionSeparator(line, out _);
     }
 

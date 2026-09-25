@@ -26,6 +26,50 @@ public static partial class MarkdownReader {
         return InlinePlainText.Extract(altSequence);
     }
 
+    /// <summary>
+    /// Attaches consecutive OfficeIMO image-size and enabled generic-attribute blocks
+    /// to an inline image, leaving following prose for the paragraph parser.
+    /// </summary>
+    private static int ConsumeInlineImageTrailingBlocks(
+        string text,
+        int start,
+        MarkdownReaderOptions options,
+        MarkdownObject image,
+        MarkdownInlineSourceMap? sourceMap) {
+        int current = start;
+        while (current < text.Length) {
+            int opening = current;
+            while (opening < text.Length && char.IsWhiteSpace(text[opening])) opening++;
+            if (opening >= text.Length || text[opening] != '{') break;
+
+            int closingOffset = MarkdownGenericAttributeParser.FindMatchingClosingBrace(text.Substring(opening), 0);
+            if (closingOffset <= 0) break;
+            int closing = opening + closingOffset;
+            string block = text.Substring(opening + 1, closing - opening - 1).Trim();
+            if (TryParseImageSizeSpec(block, out var width, out var height)) {
+                if (image is ImageInline inline) {
+                    if (width.HasValue) inline.Width = width;
+                    if (height.HasValue) inline.Height = height;
+                } else if (image is ImageLinkInline linked) {
+                    if (width.HasValue) linked.Width = width;
+                    if (height.HasValue) linked.Height = height;
+                }
+            } else if (options.GenericAttributes && MarkdownGenericAttributeParser.TryParseAttributeBlock(block, out var attributes)) {
+                image.SetAttributes(MergeGenericAttributes(image.Attributes, attributes));
+                MarkdownGenericAttributeSourceSpans.Set(
+                    image,
+                    text.Substring(opening, closing - opening + 1),
+                    sourceMap?.GetSpan(opening, closing - opening + 1));
+            } else {
+                break;
+            }
+
+            current = closing + 1;
+        }
+
+        return current - start;
+    }
+
     private static bool TryConsumeLiteralInlineImage(string text, int start, out int consumed, InlineHtmlWrapperMatchIndex? inlineHtmlWrapperMatches = null) {
         consumed = 0;
         if (start + 1 >= text.Length || text[start] != '!' || text[start + 1] != '[') return false;

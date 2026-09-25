@@ -153,6 +153,12 @@ public static partial class MarkdownReader {
                     return false;
                 }
 
+                if (token.Kind == SimpleInlineTokenKind.Image) {
+                    int suffixStart = token.End;
+                    while (suffixStart < text.Length && char.IsWhiteSpace(text[suffixStart])) suffixStart++;
+                    if (suffixStart < text.Length && text[suffixStart] == '{') return false;
+                }
+
                 foundToken = true;
                 position = token.End;
                 continue;
