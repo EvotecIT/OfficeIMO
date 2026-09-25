@@ -36,7 +36,8 @@ internal static class PdfStaticFormRecognizer {
 
         PdfDocumentReadResult logical = PdfDocumentReadEngine.Read(document, new PdfReadOptions {
             Profile = PdfReadProfile.Fast,
-            PageSelection = PdfPageSelection.From(pageNumbers)
+            PageSelection = PdfPageSelection.From(pageNumbers),
+            Pipeline = new PdfUnderstandingPipelineOptions { MaxPages = effective.MaxPages }
         }, cancellationToken);
         var proposed = new List<Candidate>();
         var diagnostics = new List<PdfStaticFormRecognitionDiagnostic>();
@@ -47,19 +48,25 @@ internal static class PdfStaticFormRecognizer {
             List<Label> labels = GetLabels(page, suppliedText, pageWidth, pageHeight);
             PdfReadPage readPage = document.Pages[pageNumber - 1];
             IReadOnlyList<PdfPageVisualPrimitive> primitives = readPage.GetIdentityVisualPrimitives(cancellationToken);
-            var filledAreas = new List<(VisualRect Bounds, double PaintOrder, bool IsEmpty)>();
+            var filledAreas = new List<(VisualRect Bounds, double PaintOrder, bool IsEmpty, bool IsOpaqueWhite)>();
             foreach (PdfPageVisualPrimitive painted in primitives) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (painted.HasFillPaint && painted.FillOpacity != 0D && painted.Width > 0D && painted.Height > 0D) {
-                    filledAreas.Add((new VisualRect(painted.X, painted.Y, painted.X + painted.Width, painted.Y + painted.Height),
-                        painted.PaintOrder, IsEmptyFill(painted)));
+                    var visible = new VisualRect(painted.X, painted.Y, painted.X + painted.Width, painted.Y + painted.Height);
+                    if (painted.ClipPath is PdfPageClipPath clip && clip.IsRectangle && clip.IsExact && !clip.ContainsTextClipping) {
+                        visible = new VisualRect(Math.Max(visible.Left, clip.X), Math.Max(visible.Top, clip.Y),
+                            Math.Min(visible.Right, clip.X + clip.Width), Math.Min(visible.Bottom, clip.Y + clip.Height));
+                        if (visible.Area == 0D) continue;
+                    }
+                    filledAreas.Add((visible,
+                        painted.PaintOrder, IsEmptyFill(painted), IsOpaqueWhiteFill(painted)));
                 }
             }
             foreach (PdfPageVisualPrimitive primitive in primitives) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!TryGetCandidate(primitive, pageWidth, pageHeight, out VisualRect visual, out PdfStaticFormEvidenceKind evidence)) continue;
                 if (HasPaintedInterior(filledAreas, visual, cancellationToken)) continue;
-                if (HasInteriorMark(primitives, visual, cancellationToken)) {
+                if (HasInteriorMark(primitives, filledAreas, visual, cancellationToken)) {
                     AddDiagnostic("occupied-field", pageNumber, "A visual field candidate contains a painted mark.");
                     continue;
                 }
@@ -164,7 +171,7 @@ internal static class PdfStaticFormRecognizer {
     private static bool TryGetCandidate(PdfPageVisualPrimitive primitive, double pageWidth, double pageHeight, out VisualRect bounds, out PdfStaticFormEvidenceKind evidence) {
         bounds = default;
         evidence = default;
-        if (primitive.StrokeColor is null || primitive.StrokeOpacity == 0D || primitive.ClipPath is not null) return false;
+        if (primitive.StrokeColor is null || primitive.StrokeOpacity == 0D) return false;
         if (primitive.Kind == PdfPageVisualPrimitiveKind.Rectangle) {
             if (primitive.Width >= 9D && primitive.Width <= 22D && primitive.Height >= 9D && primitive.Height <= 22D &&
                 Math.Abs(primitive.Width - primitive.Height) <= 3D && IsEmptyFill(primitive)) {
@@ -181,6 +188,10 @@ internal static class PdfStaticFormRecognizer {
             bounds = new VisualRect(left, primitive.Y1 - 18D, Math.Max(primitive.X1, primitive.X2), primitive.Y1 + 2D);
             evidence = PdfStaticFormEvidenceKind.Underline;
         }
+        if (primitive.ClipPath is PdfPageClipPath clip &&
+            (!clip.IsRectangle || !clip.IsExact || clip.ContainsTextClipping ||
+             clip.X > bounds.Left || clip.Y > bounds.Top ||
+             clip.X + clip.Width < bounds.Right || clip.Y + clip.Height < bounds.Bottom)) return false;
         return bounds.Area > 0D && Valid(bounds.Left, bounds.Top, bounds.Right, bounds.Bottom, pageWidth, pageHeight);
     }
 
@@ -189,13 +200,23 @@ internal static class PdfStaticFormRecognizer {
         primitive.FillGradient is null && primitive.FillRadialGradient is null && primitive.FillTilingPattern is null &&
         primitive.FillColor is OfficeIMO.Drawing.OfficeColor color && color.R >= 245 && color.G >= 245 && color.B >= 245;
 
+    private static bool IsOpaqueWhiteFill(PdfPageVisualPrimitive primitive) =>
+        primitive.HasFillPaint && (primitive.FillOpacity ?? 1D) >= 0.999D &&
+        primitive.FillGradient is null && primitive.FillRadialGradient is null && primitive.FillTilingPattern is null &&
+        (primitive.ClipPath is not PdfPageClipPath clip ||
+         clip.IsRectangle && clip.IsExact && !clip.ContainsTextClipping &&
+         clip.X <= primitive.X && clip.Y <= primitive.Y &&
+         clip.X + clip.Width >= primitive.X + primitive.Width &&
+         clip.Y + clip.Height >= primitive.Y + primitive.Height) &&
+        primitive.FillColor is OfficeIMO.Drawing.OfficeColor color && color.R >= 245 && color.G >= 245 && color.B >= 245;
+
     private static bool HasPaintedInterior(
-        IReadOnlyList<(VisualRect Bounds, double PaintOrder, bool IsEmpty)> filledAreas,
+        IReadOnlyList<(VisualRect Bounds, double PaintOrder, bool IsEmpty, bool IsOpaqueWhite)> filledAreas,
         VisualRect candidate,
         CancellationToken cancellationToken) {
         double latestPaintOrder = double.NegativeInfinity;
         bool painted = false;
-        foreach ((VisualRect bounds, double paintOrder, bool isEmpty) in filledAreas) {
+        foreach (var (bounds, paintOrder, isEmpty, _) in filledAreas) {
             cancellationToken.ThrowIfCancellationRequested();
             if (bounds.Area > candidate.Area * 1.25D ||
                 OverlapArea(bounds, candidate) < candidate.Area * 0.8D ||
@@ -206,7 +227,9 @@ internal static class PdfStaticFormRecognizer {
         return painted;
     }
 
-    private static bool HasInteriorMark(IReadOnlyList<PdfPageVisualPrimitive> primitives, VisualRect candidate,
+    private static bool HasInteriorMark(IReadOnlyList<PdfPageVisualPrimitive> primitives,
+        IReadOnlyList<(VisualRect Bounds, double PaintOrder, bool IsEmpty, bool IsOpaqueWhite)> filledAreas,
+        VisualRect candidate,
         CancellationToken cancellationToken) {
         const double inset = 0.2D;
         foreach (PdfPageVisualPrimitive primitive in primitives) {
@@ -219,8 +242,14 @@ internal static class PdfStaticFormRecognizer {
             double right = primitive.Kind == PdfPageVisualPrimitiveKind.Line ? Math.Max(primitive.X1, primitive.X2) : primitive.X + primitive.Width;
             double bottom = primitive.Kind == PdfPageVisualPrimitiveKind.Line ? Math.Max(primitive.Y1, primitive.Y2) : primitive.Y + primitive.Height;
             if (right - left < 1D || bottom - top < 1D) continue;
+            if (primitive.ClipPath is PdfPageClipPath clip && clip.IsRectangle && clip.IsExact &&
+                !clip.ContainsTextClipping &&
+                (clip.X >= right || clip.Y >= bottom || clip.X + clip.Width <= left || clip.Y + clip.Height <= top)) continue;
             if (left >= candidate.Left + inset && top >= candidate.Top + inset &&
-                right <= candidate.Right - inset && bottom <= candidate.Bottom - inset) return true;
+                right <= candidate.Right - inset && bottom <= candidate.Bottom - inset &&
+                !filledAreas.Any(area => area.IsOpaqueWhite && area.PaintOrder > primitive.PaintOrder &&
+                    area.Bounds.Left <= left && area.Bounds.Top <= top &&
+                    area.Bounds.Right >= right && area.Bounds.Bottom >= bottom)) return true;
         }
         return false;
     }

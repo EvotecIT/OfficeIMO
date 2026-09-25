@@ -160,6 +160,60 @@ public sealed class PdfStaticFormRecognizerTests {
     }
 
     [Fact]
+    public void OpaqueFieldFillCanCoverAnEarlierMark() {
+        OfficeShape mark = OfficeShape.Line(0D, 0D, 9D, 9D);
+        mark.StrokeColor = OfficeColor.Black;
+        byte[] source = PdfDocument.Create(new PdfOptions { PageWidth = 400D, PageHeight = 300D })
+            .Canvas(canvas => canvas
+                .Shape(mark, 103D, 78D)
+                .Shape(Box(15D, 15D), 100D, 75D)
+                .Text("I agree", 125D, 72D, 100D, 20D))
+            .ToBytes();
+
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout();
+
+        Assert.Single(report.Proposals);
+    }
+
+    [Fact]
+    public void NonTruncatingRectangularClipKeepsStaticFieldCandidate() {
+        const string content = "q 0 0 400 300 re W n 1 w 100 205 15 15 re S BT /F1 12 Tf 125 208 Td (I agree) Tj ET Q\n";
+        byte[] source = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 400 300] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + System.Text.Encoding.ASCII.GetByteCount(content) + " >>", "stream", content.TrimEnd('\n'), "endstream", "endobj",
+            "5 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF", string.Empty
+        }));
+
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout();
+
+        Assert.Single(report.Proposals);
+    }
+
+    [Theory]
+    [InlineData("1 w 103 208 m 112 217 l S")]
+    [InlineData("0 0 0 rg 101 206 13 13 re f")]
+    public void PaintClippedOutsideCheckboxDoesNotOccupyIt(string clippedPaint) {
+        string content = $"q 0 0 10 10 re W n {clippedPaint} Q 1 w 100 205 15 15 re S BT /F1 12 Tf 125 208 Td (I agree) Tj ET\n";
+        byte[] source = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 400 300] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + System.Text.Encoding.ASCII.GetByteCount(content) + " >>", "stream", content.TrimEnd('\n'), "endstream", "endobj",
+            "5 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF", string.Empty
+        }));
+
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout();
+
+        Assert.Single(report.Proposals);
+    }
+
+    [Fact]
     public void ExistingLinkAnnotationBlocksOverlappingProposal() {
         byte[] source = PdfDocument.Create(new PdfOptions { PageWidth = 400D, PageHeight = 300D })
             .Canvas(canvas => canvas.Text("Name:", 20D, 28D, 70D, 20D).Shape(Box(140D, 20D), 100D, 28D))
