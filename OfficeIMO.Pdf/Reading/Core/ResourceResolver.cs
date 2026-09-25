@@ -1118,8 +1118,11 @@ internal static partial class ResourceResolver {
             case "perthousand": value = "\u2030"; return true;
             case "guilsinglleft": value = "\u2039"; return true;
             case "guilsinglright": value = "\u203A"; return true;
+            case "ff": value = "ff"; return true;
             case "fi": value = "fi"; return true;
             case "fl": value = "fl"; return true;
+            case "ffi": value = "ffi"; return true;
+            case "ffl": value = "ffl"; return true;
             default: return false;
         }
     }

@@ -427,7 +427,7 @@ IReadOnlyList<OfficeImageExportResult> pages = markdown
     .Export();
 ```
 
-Source conversion warnings are copied into every page result. Use `PdfReadPage.ToDrawing()` only when an intermediate `OfficeDrawing` is needed. The returned `OfficeDrawingText.Text` keeps decoded, editable text, including multi-letter ligatures. Raster rendering uses the PDF's painted glyphs where the embedded font requires them.
+Source conversion warnings are copied into every page result. Use `PdfReadPage.ToDrawing()` only when an intermediate `OfficeDrawing` is needed. The returned `OfficeDrawingText.Text` keeps decoded, editable text, including multi-letter ligatures. Raster and SVG rendering use the PDF's painted glyphs where the embedded font requires them, preserving the painted order of shaped Arabic text.
 
 Supply replacement fonts and any shaping provider during projection so glyph visibility uses the final font profile:
 

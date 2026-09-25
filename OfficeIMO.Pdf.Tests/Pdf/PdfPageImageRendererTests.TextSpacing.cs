@@ -481,7 +481,7 @@ public partial class PdfPageImageRendererTests {
         Assert.Equal("XYX", Assert.Single(page.GetTextSpans()).Text);
         OfficeDrawingText visual = Assert.Single(page.ToDrawing().Elements.OfType<OfficeDrawingText>());
         Assert.Equal("XYX", visual.Text);
-        Assert.Equal("fi fi", visual.RasterText);
+        Assert.Equal("\uFB01 \uFB01", visual.RasterText);
     }
 
     [Theory]

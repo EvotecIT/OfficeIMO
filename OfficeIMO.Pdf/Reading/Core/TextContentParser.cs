@@ -942,7 +942,9 @@ internal static class TextContentParser {
                 if (!useLogicalTextFilters && visualEncodingForResource != null) {
                     string? encoded = visualEncodingForResource(font, g);
                     if (encoded != null && encoded.Length > 0 && encoded.Length <= remainingGlyphCharacters) {
-                        t = NormalizeDecodedGlyphText(encoded);
+                        // The visual override names the glyph to paint. Compatibility
+                        // normalization belongs to the separate logical text path.
+                        t = encoded;
                         usedVisualEncoding = true;
                     }
                 }

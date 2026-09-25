@@ -864,6 +864,13 @@ public sealed partial class PdfReadPage {
                 decode = ResourceResolver.CreateSimpleEncodingDecoder(font);
                 substitutedGlyphDecoders.Add(fontRes, decode);
             }
+            if (font.Differences?.TryGetValue(code[0], out string? glyphName) == true) {
+                string? ligature = glyphName switch {
+                    "ff" => "\uFB00", "fi" => "\uFB01", "fl" => "\uFB02",
+                    "ffi" => "\uFB03", "ffl" => "\uFB04", _ => null
+                };
+                if (ligature != null) return ligature;
+            }
             string text = decode(code[0]);
             return text.Length > 0 ? text : null;
         }

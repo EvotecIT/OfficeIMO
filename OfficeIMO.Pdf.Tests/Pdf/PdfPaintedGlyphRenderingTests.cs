@@ -6,6 +6,44 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfPaintedGlyphRenderingTests {
+    [Theory]
+    [InlineData("ff", "\uFB00")]
+    [InlineData("fi", "\uFB01")]
+    [InlineData("fl", "\uFB02")]
+    [InlineData("ffi", "\uFB03")]
+    [InlineData("ffl", "\uFB04")]
+    public void SubstituteDifferenceLigatureKeepsLogicalTextAndPaintsOneGlyph(string glyphName, string painted) {
+        const string content = "BT /F1 20 Tf 20 80 Td (A) Tj ET";
+        const string cmap = "begincmap\n1 begincodespacerange\n<00> <FF>\nendcodespacerange\n1 beginbfchar\n<41> <0051>\nendbfchar\nendcmap";
+        byte[] pdf = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7", "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 100] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>", "endobj",
+            "4 0 obj", $"<< /Length {content.Length} >>", "stream", content, "endstream", "endobj",
+            "5 0 obj", $"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding << /Type /Encoding /BaseEncoding /WinAnsiEncoding /Differences [65 /{glyphName}] >> /ToUnicode 6 0 R >>", "endobj",
+            "6 0 obj", $"<< /Length {cmap.Length} >>", "stream", cmap, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 7 >>", "%%EOF"
+        }) + "\n");
+
+        OfficeDrawingText run = Assert.Single(PdfReadDocument.Open(pdf).Pages[0].ToDrawing().Elements.OfType<OfficeDrawingText>());
+        Assert.Equal("Q", run.Text);
+        Assert.Equal(painted, run.RasterText);
+    }
+
+    [Fact]
+    public void SvgKeepsAlreadyPaintedArabicGlyphOrder() {
+        var drawing = new OfficeDrawing(200, 100);
+        drawing.AddPositionedText("\uFE91\uFE90", 10, 10, 60, 20,
+            new OfficeImageFrameTransform(0, 10, 30));
+        drawing.MarkLastTextAsPaintedGlyphs();
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+
+        Assert.Contains("direction=\"ltr\"", svg);
+        Assert.Contains("unicode-bidi=\"bidi-override\"", svg);
+        Assert.DoesNotContain("direction=\"rtl\"", svg);
+    }
+
     [Fact]
     public void SubstituteEncodingPaintsItsGlyphWithoutReplacingToUnicodeSceneText() {
         const string content = "BT /F1 20 Tf 20 80 Td (A) Tj ET";
