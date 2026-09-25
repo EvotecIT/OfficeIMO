@@ -147,7 +147,7 @@ public sealed partial class OdsSheet {
     public OdsColumn Column(long column) {
         if (column < 0) throw new ArgumentOutOfRangeException(nameof(column));
         long start = 0;
-        foreach (XElement element in Element.Elements(OdfNamespaces.Table + "table-column").ToList()) {
+        foreach (XElement element in ColumnElements().ToList()) {
             long count = OdsRepeatModel.Read(element, OdfNamespaces.Table + "number-columns-repeated");
             if (column < checked(start + count)) {
                 XElement target = OdsRepeatModel.Split(element, OdfNamespaces.Table + "number-columns-repeated", column - start);

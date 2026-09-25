@@ -6,6 +6,32 @@ using Xunit;
 namespace OfficeIMO.OpenDocument.Tests;
 
 public sealed class OdsCellStyleInheritanceTests {
+    [Theory]
+    [InlineData("table-column-group")]
+    [InlineData("table-header-columns")]
+    public void EditingNestedRepeatedColumnUsesItsLogicalPosition(string wrapperName) {
+        OdsDocument document = OdsDocument.Create();
+        OdsSheet sheet = document.AddSheet("Data");
+        sheet.Cell(0, 0).SetString("Value");
+        XElement table = document.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Table + "table").Single();
+        table.Elements(OdfNamespaces.Table + "table-column").Remove();
+        table.AddFirst(new XElement(OdfNamespaces.Table + wrapperName,
+            new XElement(OdfNamespaces.Table + "table-column",
+                new XAttribute(OdfNamespaces.Table + "number-columns-repeated", 3))));
+        document.MarkPartDirty("content.xml");
+
+        Assert.Single(sheet.ColumnRuns);
+        Assert.Equal(3, sheet.ColumnRuns[0].RepeatCount);
+        sheet.Column(1).Hidden = true;
+
+        Assert.Empty(table.Elements(OdfNamespaces.Table + "table-column"));
+        Assert.Equal(new long[] { 0, 1, 2 }, sheet.ColumnRuns.Select(run => run.StartColumn));
+        Assert.Equal(new bool[] { false, true, false }, sheet.ColumnRuns.Select(run => run.Hidden));
+        OdsSheet reopened = OdsDocument.Load(new System.IO.MemoryStream(document.ToBytes())).Sheets.Single();
+        Assert.Equal(new bool[] { false, true, false }, reopened.ColumnRuns.Select(run => run.Hidden));
+    }
+
     [Fact]
     public void RetainedCellReadsCurrentRowAndColumnDefaultStyles() {
         OdsDocument document = OdsDocument.Create();
