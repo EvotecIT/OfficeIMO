@@ -12,16 +12,12 @@ public static partial class HtmlPowerPointConverterExtensions {
         HtmlToPowerPointResult result,
         HtmlImportBudget budget,
         HtmlEditableLayoutProjection? editableLayout) {
+        var firstSlideIndexes = new List<int>();
+        double slideBottom = presentation.SlideSize.HeightPoints - 30D;
+        bool slideLimitReached = false;
         foreach (HtmlSemanticSection section in document.Sections) {
-            if (!budget.TryReserveSemanticContainer(out string containerLimit)) {
-                AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
-                    "Additional HTML sections were omitted because the shared slide limit was reached.",
-                    HtmlDiagnosticSeverity.Error, OfficeConversionLossKind.Omission, detail: containerLimit);
-                break;
-            }
-
-            PptCore.PowerPointSlide slide = presentation.AddSlide();
-            result.Slides++;
+            if (!TryAddGenericSlide(presentation, result, budget, out PptCore.PowerPointSlide slide)) break;
+            firstSlideIndexes.Add(presentation.Slides.Count - 1);
             double contentTop = 30D;
             if (!string.IsNullOrWhiteSpace(section.Title)) {
                 HtmlSemanticBlock? titleBlock = section.Blocks.FirstOrDefault();
@@ -36,10 +32,19 @@ public static partial class HtmlPowerPointConverterExtensions {
                 bool importTable = options.ImportTables && block.Kind == HtmlSemanticBlockKind.Table;
                 bool importPicture = options.ImportPictures && block.Kind == HtmlSemanticBlockKind.Image;
                 if (importText && !isSectionTitle) {
+                    double textHeight = block.Kind == HtmlSemanticBlockKind.List
+                        ? Math.Max(52D, CountSemanticListItems(block) * 30D)
+                        : 52D;
+                    if (block.Text.Length > 0 && NeedsGenericContinuation(contentTop, textHeight, slideBottom)) {
+                        if (!TryAddGenericSlide(presentation, result, budget, out slide)) {
+                            slideLimitReached = true;
+                            break;
+                        }
+                        contentTop = pictureTop = 30D;
+                    }
                     int previousTextBoxes = result.TextBoxes;
                     contentTop = ImportTextBox(block.SourceElement, block.Text, slide, contentTop, result, budget,
-                        block.Kind == HtmlSemanticBlockKind.List ? Math.Max(52D, CountSemanticListItems(block) * 30D) : 52D,
-                        block);
+                        textHeight, block);
                     if (block.Kind == HtmlSemanticBlockKind.Form && result.TextBoxes > previousTextBoxes) {
                         AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentApproximated,
                             "An HTML form was imported as editable visible text without its interactive controls.",
@@ -47,29 +52,188 @@ public static partial class HtmlPowerPointConverterExtensions {
                             detail: "block=Form; preserved=visibleText; interaction=omitted");
                     }
                 } else if (importTable) {
-                    contentTop = ImportTable(block.SourceElement, slide, contentTop, result, budget, block);
+                    if (TryGetOversizedGenericTableText(block, budget, out string tableText)) {
+                        AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentApproximated,
+                            "A long single-cell HTML table was split into editable slide text; native cell structure and rich cell runs were not retained.",
+                            lossKind: OfficeConversionLossKind.Approximation,
+                            detail: "cellTextLength=" + tableText.Length + "; projection=paginatedText");
+                        int omittedLinks = block.Table!.Rows[0].Cells[0].Runs.Count(run =>
+                            !string.IsNullOrWhiteSpace(run.Hyperlink));
+                        if (omittedLinks > 0) {
+                            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentOmitted,
+                                "Hyperlinks inside a paginated single-cell HTML table were not retained.",
+                                lossKind: OfficeConversionLossKind.Omission,
+                                detail: "hyperlinkRuns=" + omittedLinks);
+                        }
+                        foreach (string chunk in SplitGenericTableText(tableText)) {
+                            if (NeedsGenericContinuation(contentTop, 130D, slideBottom)) {
+                                if (!TryAddGenericSlide(presentation, result, budget, out slide)) {
+                                    slideLimitReached = true;
+                                    break;
+                                }
+                                contentTop = pictureTop = 30D;
+                            }
+                            contentTop = ImportTextBox(null, chunk, slide, contentTop, result, budget, 130D);
+                        }
+                    } else {
+                        double tableHeight = Math.Max(90D, (block.Table?.Rows.Count ?? 1) * 40D);
+                        if (NeedsGenericContinuation(contentTop, tableHeight, slideBottom)) {
+                            if (!TryAddGenericSlide(presentation, result, budget, out slide)) {
+                                slideLimitReached = true;
+                                break;
+                            }
+                            contentTop = pictureTop = 30D;
+                        }
+                        contentTop = ImportTable(block.SourceElement, slide, contentTop, result, budget, block);
+                    }
                 } else if (importPicture) {
+                    if (NeedsGenericContinuation(contentTop, 90D, slideBottom)) {
+                        if (!TryAddGenericSlide(presentation, result, budget, out slide)) {
+                            slideLimitReached = true;
+                            break;
+                        }
+                        contentTop = pictureTop = 30D;
+                    }
                     pictureTop = Math.Max(pictureTop, contentTop);
-                    ImportPicture(block.SourceElement, slide, result, budget, ref pictureTop);
+                    ImportPicture(block.SourceElement, slide, result, budget, ref pictureTop, fallbackLeft: 64D);
                     contentTop = Math.Max(contentTop, pictureTop);
                 }
+                if (slideLimitReached) break;
                 if (options.ImportPictures) {
                     foreach (HtmlSemanticResource resource in EnumerateInlineResources(block)) {
+                        GetGenericResourcePictureSize(resource, presentation, budget,
+                            out _, out double imageHeight, out _);
+                        if (HtmlImageDataUri.TryParse(resource.Source, out _)
+                            && NeedsGenericContinuation(contentTop, imageHeight + 18D, slideBottom)) {
+                            if (!TryAddGenericSlide(presentation, result, budget, out slide)) {
+                                slideLimitReached = true;
+                                break;
+                            }
+                            contentTop = pictureTop = 30D;
+                        }
                         pictureTop = Math.Max(pictureTop, contentTop);
-                        ImportSemanticResourcePicture(resource, slide, result, budget, ref pictureTop);
+                        ImportSemanticResourcePicture(resource, slide, presentation, result, budget, ref pictureTop);
                         contentTop = Math.Max(contentTop, pictureTop);
                     }
                 }
+                if (slideLimitReached) break;
             }
+            if (slideLimitReached) break;
         }
 
         if (editableLayout?.Regions.Count > 0) {
-            ImportEditableLayoutRegions(editableLayout.Regions, presentation, options, result, budget);
+            ImportEditableLayoutRegions(editableLayout.Regions, firstSlideIndexes, presentation, options, result, budget);
+        }
+        ReportGenericOffSlideShapes(presentation, result, budget);
+    }
+
+    private static bool TryAddGenericSlide(
+        PptCore.PowerPointPresentation presentation,
+        HtmlToPowerPointResult result,
+        HtmlImportBudget budget,
+        out PptCore.PowerPointSlide slide) {
+        if (!budget.TryReserveSemanticContainer(out string containerLimit)) {
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
+                "Additional generic HTML content was omitted because the shared slide limit was reached.",
+                HtmlDiagnosticSeverity.Error, OfficeConversionLossKind.Omission, detail: containerLimit);
+            slide = null!;
+            return false;
+        }
+        slide = presentation.AddSlide();
+        result.Slides++;
+        return true;
+    }
+
+    private static bool NeedsGenericContinuation(double top, double height, double slideBottom) =>
+        top > 30D && top + height > slideBottom;
+
+    private static bool TryGetOversizedGenericTableText(
+        HtmlSemanticBlock block,
+        HtmlImportBudget budget,
+        out string text) {
+        text = string.Empty;
+        if (block.Table?.Rows.Count != 1 || block.Table.Rows[0].Cells.Count != 1
+            || block.SourceElement.HasAttribute("data-officeimo-left")
+            || block.SourceElement.HasAttribute("data-officeimo-top")
+            || block.SourceElement.HasAttribute("data-officeimo-width")
+            || block.SourceElement.HasAttribute("data-officeimo-height")) return false;
+        HtmlSemanticTableCell cell = block.Table.Rows[0].Cells[0];
+        if (cell.RowSpan != 1 || cell.ColumnSpan != 1) return false;
+        text = cell.Text;
+        return text.Length > 300 && budget.IsMetadataWithinLimit(text, out _);
+    }
+
+    private static IEnumerable<string> SplitGenericTableText(string text) {
+        const int maximumChunkLength = 180;
+        int start = 0;
+        while (start < text.Length) {
+            while (start < text.Length && char.IsWhiteSpace(text[start])) start++;
+            if (start >= text.Length) yield break;
+            int end = Math.Min(text.Length, start + maximumChunkLength);
+            if (end < text.Length) {
+                int wordEnd = text.LastIndexOf(' ', end - 1, end - start);
+                if (wordEnd > start + maximumChunkLength / 2) end = wordEnd;
+            }
+            yield return text.Substring(start, end - start).Trim();
+            start = end;
+        }
+    }
+
+    private static void GetGenericResourcePictureSize(
+        HtmlSemanticResource resource,
+        PptCore.PowerPointPresentation presentation,
+        HtmlImportBudget budget,
+        out double width,
+        out double height,
+        out bool fitted) {
+        double maximum = budget.Limits.MaxAbsoluteGeometry;
+        width = ReadGenericResourceDimension(resource.WidthPixels, 160D, maximum);
+        height = ReadGenericResourceDimension(resource.HeightPixels, 90D, maximum);
+        double widthLimit = Math.Max(1D, presentation.SlideSize.WidthPoints - 128D);
+        double heightLimit = Math.Max(1D, presentation.SlideSize.HeightPoints - 60D);
+        double scale = Math.Min(1D, Math.Min(widthLimit / width, heightLimit / height));
+        fitted = scale < 1D;
+        width *= scale;
+        height *= scale;
+    }
+
+    private static double ReadGenericResourceDimension(double? pixels, double fallback, double maximum) {
+        double value = pixels.GetValueOrDefault(fallback);
+        if (!double.IsFinite(value) || value <= 0D) value = fallback;
+        return Math.Min(maximum, Math.Max(1D, value * 0.75D));
+    }
+
+    private static void ReportGenericOffSlideShapes(
+        PptCore.PowerPointPresentation presentation,
+        HtmlToPowerPointResult result,
+        HtmlImportBudget budget) {
+        var options = new PptCore.PowerPointDeckPreflightOptions {
+            MaximumShapeCount = budget.Limits.MaxShapes,
+            DetectTextOverflow = false,
+            DetectUnreadableFontReduction = false,
+            DetectShapeCollisions = false,
+            DetectMissingVisualAssets = false,
+            IncludeVisualSnapshotDiagnostics = false
+        };
+        foreach (PptCore.PowerPointDeckPreflightFinding finding in presentation.InspectPreflight(options).Findings
+                     .Where(item => item.Code == "Layout.ShapeOffSlide")) {
+            PptCore.PowerPointLayoutBox? bounds = finding.Bounds;
+            bool whollyOutside = bounds.HasValue && (bounds.Value.Right <= 0L || bounds.Value.Bottom <= 0L
+                || bounds.Value.Left >= presentation.SlideSize.WidthEmus
+                || bounds.Value.Top >= presentation.SlideSize.HeightEmus);
+            AddImportDiagnostic(result,
+                whollyOutside ? HtmlConversionDiagnosticCodes.ContentOmitted : HtmlConversionDiagnosticCodes.ContentApproximated,
+                whollyOutside
+                    ? "A generic HTML slide shape lies outside the visible slide."
+                    : "A generic HTML slide shape extends beyond the visible slide and may be clipped.",
+                lossKind: whollyOutside ? OfficeConversionLossKind.Omission : OfficeConversionLossKind.Approximation,
+                detail: "slide=" + (finding.SlideIndex + 1) + "; shape=" + (finding.ShapeIndex.GetValueOrDefault() + 1));
         }
     }
 
     private static void ImportEditableLayoutRegions(
         IReadOnlyList<HtmlRenderLayoutRegion> regions,
+        IReadOnlyList<int> firstSlideIndexes,
         PptCore.PowerPointPresentation presentation,
         HtmlToPowerPointOptions options,
         HtmlToPowerPointResult result,
@@ -82,7 +246,9 @@ public static partial class HtmlPowerPointConverterExtensions {
         foreach (IGrouping<int, HtmlRenderLayoutRegion> sectionGroup in regions
                      .GroupBy(region => region.SemanticSectionNumber)
                      .OrderBy(group => group.Key)) {
-            int slideIndex = sectionGroup.Key - 1;
+            int slideIndex = sectionGroup.Key > 0 && sectionGroup.Key <= firstSlideIndexes.Count
+                ? firstSlideIndexes[sectionGroup.Key - 1]
+                : firstSlideIndexes.Count == 0 && sectionGroup.Key == 1 ? 0 : -1;
             if (slideIndex < 0 || slideIndex >= presentation.Slides.Count) {
                 foreach (HtmlRenderLayoutRegion region in sectionGroup) {
                     AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
@@ -410,6 +576,7 @@ public static partial class HtmlPowerPointConverterExtensions {
     private static void ImportSemanticResourcePicture(
         HtmlSemanticResource resource,
         PptCore.PowerPointSlide slide,
+        PptCore.PowerPointPresentation presentation,
         HtmlToPowerPointResult result,
         HtmlImportBudget budget,
         ref double top) {
@@ -433,15 +600,21 @@ public static partial class HtmlPowerPointConverterExtensions {
                 lossKind: OfficeConversionLossKind.Omission, source: resource.Source);
             return;
         }
-        double maximum = budget.Limits.MaxAbsoluteGeometry;
-        double width = Math.Min(maximum, Math.Max(1D, (resource.WidthPixels ?? 160D) * 0.75D));
-        double height = Math.Min(maximum, Math.Max(1D, (resource.HeightPixels ?? 90D) * 0.75D));
+        GetGenericResourcePictureSize(resource, presentation, budget,
+            out double width, out double height, out bool fitted);
         using var stream = new MemoryStream(bytes);
         PptCore.PowerPointPicture picture = slide.AddPicturePoints(stream, imagePartType, 64D, top, width, height);
         if (!string.IsNullOrWhiteSpace(resource.AlternateText)) picture.AltText = resource.AlternateText;
         result.Pictures++;
         imageReservation.Commit();
         top += height + 18D;
+        if (fitted) {
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentApproximated,
+                "An inline generic slide image was proportionally fitted to the slide canvas.",
+                lossKind: OfficeConversionLossKind.Approximation, source: resource.Source,
+                detail: "fittedWidthPoints=" + width.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)
+                    + "; fittedHeightPoints=" + height.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture));
+        }
     }
 
     private static bool IsGenericTextBlock(HtmlSemanticBlockKind kind) =>

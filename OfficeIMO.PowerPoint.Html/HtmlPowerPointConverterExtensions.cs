@@ -140,7 +140,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         string.Equals(value, "true", StringComparison.OrdinalIgnoreCase)
         || string.Equals(value, "1", StringComparison.Ordinal);
 
-    private static void ImportPicture(IElement item, PptCore.PowerPointSlide slide, HtmlToPowerPointResult result, HtmlImportBudget budget, ref double fallbackTop) {
+    private static void ImportPicture(IElement item, PptCore.PowerPointSlide slide, HtmlToPowerPointResult result, HtmlImportBudget budget, ref double fallbackTop, double fallbackLeft = 720D) {
         IElement? image = IsElement(item, "img") && item.HasAttribute("src") ? item : item.QuerySelector("img[src]");
         if (image == null || !HtmlImageDataUri.TryParse(image.GetAttribute("src"), out HtmlImageDataUri dataUri)) {
             return;
@@ -167,7 +167,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         }
 
         ReadPictureSize(item, budget, result, out double width, out double height);
-        ReadPicturePosition(item, 720D, fallbackTop, budget, result, out double left, out double pictureTop);
+        ReadPicturePosition(item, fallbackLeft, fallbackTop, budget, result, out double left, out double pictureTop);
         using var stream = new MemoryStream(bytes);
         PptCore.PowerPointPicture picture = slide.AddPicturePoints(stream, imagePartType, left, pictureTop, width, height);
         string label = NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent);
