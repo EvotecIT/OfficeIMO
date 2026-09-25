@@ -17,7 +17,8 @@ public sealed class PdfPrintProductionColorEvidence {
         int transparentImageCount,
         int nonOpaqueGraphicsStateCount,
         int transparencyGroupCount,
-        int uninspectableContentStreamCount) {
+        int uninspectableContentStreamCount,
+        bool hasUninspectedImagePlacementSources) {
         DeviceRgbOperatorCount = deviceRgbOperatorCount;
         DeviceCmykOperatorCount = deviceCmykOperatorCount;
         DeviceRgbImageCount = deviceRgbImageCount;
@@ -31,6 +32,7 @@ public sealed class PdfPrintProductionColorEvidence {
         NonOpaqueGraphicsStateCount = nonOpaqueGraphicsStateCount;
         TransparencyGroupCount = transparencyGroupCount;
         UninspectableContentStreamCount = uninspectableContentStreamCount;
+        HasUninspectedImagePlacementSources = hasUninspectedImagePlacementSources;
     }
 
     /// <summary>Number of device-RGB fill or stroke operators in inspected content streams.</summary>
@@ -59,6 +61,8 @@ public sealed class PdfPrintProductionColorEvidence {
     public int TransparencyGroupCount { get; }
     /// <summary>Number of selected content streams that could not be decoded and inspected.</summary>
     public int UninspectableContentStreamCount { get; }
+
+    internal bool HasUninspectedImagePlacementSources { get; }
 
     /// <summary>True when inspected page, form, pattern, image, or shading evidence still uses DeviceRGB.</summary>
     public bool HasDeviceRgbUsage =>

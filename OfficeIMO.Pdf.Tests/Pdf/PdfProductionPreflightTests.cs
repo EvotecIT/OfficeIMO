@@ -72,16 +72,33 @@ public sealed class PdfProductionPreflightTests {
     }
 
     [Fact]
-    public void PrintableAnnotationAppearanceMarksColorEvidenceIncomplete() {
+    public void DisplayProfileDoesNotSatisfyPrintOutputIntent() {
+        byte[] source = PdfDocument.Create(new PdfOptions().SetSrgbOutputIntent())
+            .Paragraph(paragraph => paragraph.Text("Screen profile"))
+            .ToBytes();
+
+        PdfProductionPreflightReport report = PdfDocument.Load(source).Proof.PreflightProduction();
+
+        Assert.Contains(report.Findings, static finding =>
+            finding.Kind == PdfProductionFindingKind.InvalidOutputIntent);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PrintableAnnotationMarksColorAndResolutionEvidenceIncomplete(bool generateAppearance) {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Page")).ToBytes();
         PdfDocument annotated = PdfDocument.Load(source).Annotations.Add(new PdfAnnotationCreateOptions {
-            Subtype = "Text", Contents = "Print note", GenerateAppearance = true, Flags = 4
+            Subtype = "Text", Contents = "Print note", GenerateAppearance = generateAppearance, Flags = 4
         }).ToDocument();
 
         PdfProductionPreflightReport report = annotated.Proof.PreflightProduction();
 
         Assert.Contains(report.Findings, static finding =>
             finding.Kind == PdfProductionFindingKind.UninspectableColor &&
+            finding.Severity == PdfProductionFindingSeverity.Indeterminate);
+        Assert.Contains(report.Findings, static finding =>
+            finding.Kind == PdfProductionFindingKind.UninspectableImageResolution &&
             finding.Severity == PdfProductionFindingSeverity.Indeterminate);
     }
 }

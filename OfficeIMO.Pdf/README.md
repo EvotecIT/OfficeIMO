@@ -1523,8 +1523,16 @@ PdfProductionPreflightReport report = incoming.Proof.PreflightProduction(
 foreach (PdfProductionFinding finding in report.Findings)
     Console.WriteLine($"Page {finding.PageNumber?.ToString() ?? "document"}: {finding.Kind} - {finding.Message}");
 
-// Review proposed page-box coordinates and select only the ones that are correct.
-int[] approved = report.FixupProposals.Select(proposal => proposal.Index).ToArray();
+foreach (PdfProductionFixupProposal proposal in report.FixupProposals)
+    Console.WriteLine($"[{proposal.Index}] Page {proposal.PageNumber} {proposal.Box}: " +
+        $"{proposal.Bounds.Left}, {proposal.Bounds.Bottom}, {proposal.Bounds.Right}, {proposal.Bounds.Top} — {proposal.Reason}");
+
+// Enter only indices whose finished size and bleed coordinates you verified.
+Console.Write("Approved proposal indices (comma-separated, blank to skip): ");
+string? response = Console.ReadLine();
+int[] approved = string.IsNullOrWhiteSpace(response)
+    ? Array.Empty<int>()
+    : response.Split(',').Select(value => int.Parse(value.Trim())).ToArray();
 if (approved.Length > 0) {
     PdfProductionFixupResult result = report.ApplySelected(approved);
     result.Document.Save("boxes-reviewed.pdf");
@@ -1535,8 +1543,9 @@ if (approved.Length > 0) {
 The general-print and PDF/X candidate profiles inspect output intents, page
 boxes, reachable font programs, color and transparency, and placed-image
 resolution. Findings link to pages and image bounds when the evidence permits.
-Printable annotation appearances currently produce an indeterminate color
-finding because their paint operators are not yet classified by preflight.
+Printable annotations and reachable tiling patterns currently produce
+indeterminate color or image-resolution findings where their painted content
+cannot be measured by preflight.
 Page-box fixups change metadata only; they never extend artwork or supply an
 ICC profile. Each accepted fixup is applied to the inspected PDF snapshot and
 the result is reopened for a new engine inspection. A qualified external

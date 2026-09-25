@@ -32,8 +32,8 @@ internal static class PdfProductionPreflightInspector {
             PdfLogicalPage logicalPage = logical.PagesBySourcePageNumber[pageNumber][0];
             InspectBoxes(pageNumber, page.GetGeometry());
             InspectFonts(pageNumber);
-            InspectColor(pageNumber);
-            InspectImages(pageNumber, page, logicalPage);
+            PdfPrintProductionColorEvidence color = InspectColor(pageNumber);
+            InspectImages(pageNumber, page, logicalPage, color);
         }
         return new PdfProductionPreflightReport(snapshot.Bytes, snapshot.Options, effective, pageNumbers, findings, fixups);
 
@@ -61,17 +61,18 @@ internal static class PdfProductionPreflightInspector {
                     null, "No catalog output intent was found; select and embed a suitable print profile explicitly."));
                 return;
             }
-            bool valid = document.OutputIntentsAreComplete &&
-                intents.All(intent => intent.HasDestinationOutputProfile && intent.DestinationOutputProfileHasIccSignature == true);
+            bool valid = document.OutputIntentsAreComplete && intents.All(IsInspectablePrintProfile);
             if (strict) valid = valid && intents.Count == 1 &&
-                string.Equals(intents[0].Subtype, "GTS_PDFX", StringComparison.Ordinal);
+                string.Equals(intents[0].Subtype, "GTS_PDFX", StringComparison.Ordinal) &&
+                !string.IsNullOrWhiteSpace(intents[0].OutputConditionIdentifier);
             if (effective.Profile == PdfProductionPreflightProfile.PdfX1aCandidate) {
-                valid = valid && intents[0].DestinationOutputProfileColorComponents == 4;
+                valid = valid && intents[0].DestinationOutputProfileColorComponents == 4 &&
+                    string.Equals(intents[0].DestinationOutputProfileColorSpace, "CMYK", StringComparison.Ordinal);
             }
             if (!valid) {
                 AddFinding(new PdfProductionFinding(PdfProductionFindingKind.InvalidOutputIntent,
                     strict ? PdfProductionFindingSeverity.Error : PdfProductionFindingSeverity.Warning,
-                    null, "Output intent entries are incomplete or do not contain the single inspectable PDF/X ICC profile required by this profile."));
+                    null, "Output intent entries lack an inspectable print ICC profile or do not meet this profile's PDF/X candidate rules."));
             }
         }
 
@@ -109,7 +110,7 @@ internal static class PdfProductionPreflightInspector {
             }
         }
 
-        void InspectColor(int pageNumber) {
+        PdfPrintProductionColorEvidence InspectColor(int pageNumber) {
             PdfPrintProductionColorEvidence color = PdfPrintProductionColorInspector.Inspect(document, pageNumber, cancellationToken);
             if (color.HasDeviceRgbUsage && effective.Profile != PdfProductionPreflightProfile.PdfX4Candidate) {
                 AddFinding(new PdfProductionFinding(PdfProductionFindingKind.DeviceRgbColor,
@@ -131,9 +132,11 @@ internal static class PdfProductionPreflightInspector {
                     PdfProductionFindingSeverity.Indeterminate, pageNumber,
                     $"{color.UninspectableContentStreamCount} color or annotation appearance context(s) could not be inspected completely."));
             }
+            return color;
         }
 
-        void InspectImages(int pageNumber, PdfReadPage readPage, PdfLogicalPage logicalPage) {
+        void InspectImages(int pageNumber, PdfReadPage readPage, PdfLogicalPage logicalPage,
+            PdfPrintProductionColorEvidence color) {
             int understoodPlacements = 0;
             foreach (PdfLogicalImage image in logicalPage.Images) {
                 foreach (PdfImagePlacement placement in image.Placements) {
@@ -164,6 +167,30 @@ internal static class PdfProductionPreflightInspector {
                 AddFinding(new PdfProductionFinding(PdfProductionFindingKind.UninspectableImageResolution,
                     PdfProductionFindingSeverity.Indeterminate, pageNumber,
                     $"{rawPlacements - understoodPlacements} image placement(s) lacked usable extraction metadata."));
+            }
+            if (color.HasUninspectedImagePlacementSources) {
+                AddFinding(new PdfProductionFinding(PdfProductionFindingKind.UninspectableImageResolution,
+                    PdfProductionFindingSeverity.Indeterminate, pageNumber,
+                    "A reachable tiling pattern or printable annotation may paint images whose effective resolution was not inspected."));
+            }
+        }
+
+        bool IsInspectablePrintProfile(PdfOutputIntentInfo intent) {
+            if (!intent.HasDestinationOutputProfile) return false;
+            try {
+                return intent.DestinationOutputProfileSizeBytes is int size && size >= 128 &&
+                    intent.DestinationOutputProfileDeclaredSizeBytes == size &&
+                    intent.DestinationOutputProfileHasIccSignature == true &&
+                    string.Equals(intent.DestinationOutputProfileDeviceClass, "prtr", StringComparison.Ordinal) &&
+                    intent.DestinationOutputProfileColorComponents == (intent.DestinationOutputProfileColorSpace switch {
+                        "RGB " => 3,
+                        "CMYK" => 4,
+                        "GRAY" => 1,
+                        _ => -1
+                    }) &&
+                    intent.DestinationOutputProfileHasSupportedOutputTransform == true;
+            } catch (InvalidDataException) {
+                return false;
             }
         }
     }

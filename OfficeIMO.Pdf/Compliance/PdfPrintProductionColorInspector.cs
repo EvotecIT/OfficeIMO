@@ -32,6 +32,7 @@ internal static partial class PdfPrintProductionColorInspector {
         int nonOpaqueStates = 0;
         int transparencyGroups = 0;
         int uninspectable = 0;
+        bool hasUninspectedPrintableAnnotation = false;
 
         int pageSequenceId = 0;
         foreach (PdfReadPage page in document.Pages) {
@@ -64,9 +65,11 @@ internal static partial class PdfPrintProductionColorInspector {
                     maximumObjectDepth,
                     pageSequenceId)) uninspectable++;
             }
-            // Appearance streams are not included in page /Contents. Until they are classified,
-            // printable annotations must make color evidence explicitly incomplete.
-            if (HasUninspectedPrintableAppearance(dictionary, objects, maximumObjectDepth)) uninspectable++;
+            // Printable appearances, including synthesized ones, are outside page /Contents.
+            if (HasUninspectedPrintableAnnotation(dictionary, objects, maximumObjectDepth)) {
+                uninspectable++;
+                hasUninspectedPrintableAnnotation = true;
+            }
             ReachableResourceCollection reachable = CollectReachableResourceContexts(
                 contentStreams,
                 firstPageContext,
@@ -594,6 +597,16 @@ internal static partial class PdfPrintProductionColorInspector {
             contextIndex = nextContextIndex - 1;
         }
 
+        bool hasReachableTilingPattern = false;
+        foreach (ContentStreamContext context in contentStreams) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (context.Stream.Dictionary.Items.TryGetValue("PatternType", out PdfObject? patternType) &&
+                ResolveObject(objects, patternType, 0, maximumObjectDepth) is PdfNumber { Value: 1D }) {
+                hasReachableTilingPattern = true;
+                break;
+            }
+        }
+
         return new PdfPrintProductionColorEvidence(
             rgbOperators,
             cmykOperators,
@@ -607,10 +620,11 @@ internal static partial class PdfPrintProductionColorInspector {
             transparentImages,
             nonOpaqueStates,
             transparencyGroups,
-            uninspectable);
+            uninspectable,
+            hasUninspectedPrintableAnnotation || hasReachableTilingPattern);
     }
 
-    private static bool HasUninspectedPrintableAppearance(
+    private static bool HasUninspectedPrintableAnnotation(
         PdfDictionary page,
         Dictionary<int, PdfIndirectObject> objects,
         int maximumObjectDepth) {
@@ -624,7 +638,7 @@ internal static partial class PdfPrintProductionColorInspector {
                 continue;
             }
             int flagBits = (int)flags.Value;
-            if ((flagBits & 4) != 0 && (flagBits & 3) == 0 && annotation.Items.ContainsKey("AP")) return true;
+            if ((flagBits & 4) != 0 && (flagBits & 3) == 0) return true;
         }
         return false;
     }
