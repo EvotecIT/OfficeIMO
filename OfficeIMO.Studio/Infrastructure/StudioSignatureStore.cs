@@ -5,6 +5,42 @@ internal enum StudioSignatureKind {
     Initials
 }
 
+internal static class StudioSignatureImage {
+    private const long MaximumPreviewPixels = 4_000_000;
+
+    internal static bool IsWithinPixelBudget(byte[] image) {
+        if (OfficeIMO.Drawing.OfficeImageReader.TryIdentifyByContent(image, null, out OfficeIMO.Drawing.OfficeImageInfo info))
+            return info.Width > 0 && info.Height > 0 && (long)info.Width * info.Height <= MaximumPreviewPixels;
+        // Avalonia accepts some PNG/JPEG payloads whose ancillary data the stricter document
+        // reader rejects. The container dimensions still bound decoding before Bitmap sees them.
+        if (image.Length >= 24 && image.AsSpan(0, 8).SequenceEqual(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }) &&
+            image.AsSpan(12, 4).SequenceEqual("IHDR"u8)) {
+            uint width = System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(image.AsSpan(16, 4));
+            uint height = System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(image.AsSpan(20, 4));
+            return width > 0 && height > 0 && width <= int.MaxValue && height <= int.MaxValue &&
+                width <= MaximumPreviewPixels / height;
+        }
+        if (image.Length < 4 || image[0] != 0xff || image[1] != 0xd8) return false;
+        for (int offset = 2; offset + 4 < image.Length;) {
+            if (image[offset] != 0xff) return false;
+            while (offset < image.Length && image[offset] == 0xff) offset++;
+            if (offset + 2 >= image.Length) return false;
+            byte marker = image[offset++];
+            if (marker is 0xd8 or 0x01 || marker is >= 0xd0 and <= 0xd7) continue;
+            int length = image[offset] << 8 | image[offset + 1];
+            if (length < 2 || offset + length > image.Length) return false;
+            if (marker is >= 0xc0 and <= 0xcf and not (0xc4 or 0xc8 or 0xcc)) {
+                if (length < 7) return false;
+                int height = image[offset + 3] << 8 | image[offset + 4];
+                int width = image[offset + 5] << 8 | image[offset + 6];
+                return width > 0 && height > 0 && (long)width * height <= MaximumPreviewPixels;
+            }
+            offset += length;
+        }
+        return false;
+    }
+}
+
 internal sealed record StudioSavedSignature(StudioSignatureKind Kind, string Path, byte[] Png, string? Text = null,
     IReadOnlyList<IReadOnlyList<Avalonia.Point>>? Strokes = null);
 
@@ -24,6 +60,8 @@ internal sealed class StudioSignatureStore {
 
     internal StudioSignatureStore(string root) => _root = root ?? throw new ArgumentNullException(nameof(root));
 
+    internal event Action? Changed;
+
     internal IReadOnlyList<StudioSavedSignature> List(StudioSignatureKind kind) {
         string[] paths;
         try { paths = Directory.GetFiles(_root, Prefix(kind) + "*.png"); }
@@ -41,7 +79,9 @@ internal sealed class StudioSignatureStore {
                 RestrictExistingFile(file.FullName);
                 RestrictExistingFile(System.IO.Path.ChangeExtension(file.FullName, ".json"));
                 StudioSignatureShape? shape = ReadShape(file.FullName);
-                result.Add(new StudioSavedSignature(kind, file.FullName, File.ReadAllBytes(file.FullName), shape?.Text,
+                byte[] image = File.ReadAllBytes(file.FullName);
+                if (!StudioSignatureImage.IsWithinPixelBudget(image)) continue;
+                result.Add(new StudioSavedSignature(kind, file.FullName, image, shape?.Text,
                     shape?.Strokes?.Select(stroke => (IReadOnlyList<Avalonia.Point>)Enumerable.Range(0, stroke.Length / 2)
                         .Select(index => new Avalonia.Point(stroke[index * 2], stroke[index * 2 + 1])).ToArray()).ToArray()));
             }
@@ -54,6 +94,7 @@ internal sealed class StudioSignatureStore {
     internal StudioSavedSignature Save(StudioSignatureKind kind, byte[] png, string? text = null, IReadOnlyList<IReadOnlyList<Avalonia.Point>>? strokes = null) {
         ArgumentNullException.ThrowIfNull(png);
         if (png.Length is 0 or > MaximumBytes) throw new ArgumentException("The signature image is empty or too large.", nameof(png));
+        if (!StudioSignatureImage.IsWithinPixelBudget(png)) throw new ArgumentException("The signature image exceeds the pixel limit or is invalid.", nameof(png));
         Directory.CreateDirectory(_root);
         string path = System.IO.Path.Combine(_root, Prefix(kind) + DateTime.UtcNow.ToString("yyyyMMddHHmmssfff", System.Globalization.CultureInfo.InvariantCulture) + ".png");
         string sidecar = System.IO.Path.ChangeExtension(path, ".json");
@@ -75,7 +116,9 @@ internal sealed class StudioSignatureStore {
             }
             throw;
         }
-        return new StudioSavedSignature(kind, path, png, text, strokes);
+        var saved = new StudioSavedSignature(kind, path, png, text, strokes);
+        Changed?.Invoke();
+        return saved;
     }
 
     internal void Delete(StudioSavedSignature signature) {
@@ -95,6 +138,7 @@ internal sealed class StudioSignatureStore {
             }
             throw;
         }
+        Changed?.Invoke();
     }
 
     private static void WritePrivateFile(string path, byte[] bytes) {

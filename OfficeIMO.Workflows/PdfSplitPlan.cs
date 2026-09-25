@@ -34,7 +34,9 @@ public sealed class PdfSplitPlan {
         if (pageCount < 1) throw new ArgumentOutOfRangeException(nameof(pageCount));
         if (starts is null) throw new ArgumentNullException(nameof(starts));
         if (maximumParts < 1) throw new ArgumentOutOfRangeException(nameof(maximumParts));
-        var ordered = starts.Where(start => start is not null && start.FirstPage >= 1 && start.FirstPage <= pageCount)
+        if (starts.Any(start => start is null || start.FirstPage < 1 || start.FirstPage > pageCount))
+            throw new ArgumentException("Every split start must identify a page in the document.", nameof(starts));
+        var ordered = starts
             .GroupBy(start => start.FirstPage).Select(group => group.First()).OrderBy(start => start.FirstPage).ToList();
         if (ordered.Count == 0) throw new ArgumentException("No split starts fall inside the document.", nameof(starts));
         if (ordered[0].FirstPage > 1) ordered.Insert(0, new PdfSplitStart(1, string.Empty));
@@ -76,6 +78,6 @@ public sealed class PdfSplitPlan {
         var invalid = new HashSet<char>(Path.GetInvalidFileNameChars().Concat(['/', '\\', ':', '*', '?', '"', '<', '>', '|']));
         string cleaned = new string(title.Trim().Select(character => invalid.Contains(character) || char.IsControl(character) ? ' ' : character).ToArray());
         cleaned = string.Join(" ", cleaned.Split(' ', StringSplitOptions.RemoveEmptyEntries)).Trim('.', ' ');
-        return cleaned.Length > 60 ? cleaned[..60].TrimEnd('.', ' ') : cleaned;
+        return OfficeIMO.Core.Internal.OfficePortableFileName.SanitizeBaseName(cleaned, 60);
     }
 }

@@ -83,8 +83,13 @@ public sealed partial class SignatureDialog : Window {
     }
 
     internal void SetImage(byte[] image) {
+        if (!StudioSignatureImage.IsWithinPixelBudget(image))
+            throw new InvalidDataException("The signature image exceeds the preview pixel limit or is invalid.");
         using var stream = new MemoryStream(image);
-        ImagePreview.Source = new Bitmap(stream);
+        var preview = new Bitmap(stream);
+        var previous = ImagePreview.Source as Bitmap;
+        ImagePreview.Source = preview;
+        previous?.Dispose();
         _image = image;
         ImageEmptyText.IsVisible = false;
         UpdateState();

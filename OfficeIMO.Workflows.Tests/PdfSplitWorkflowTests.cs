@@ -40,6 +40,16 @@ public sealed class PdfSplitWorkflowTests {
     }
 
     [Fact]
+    public void BookmarkPlanRejectsAnyInvalidStartAndKeepsSurrogatePairsIntact() {
+        Assert.Throws<ArgumentException>(() => PdfSplitPlan.FromStarts(10,
+            [new PdfSplitStart(1, "Valid"), new PdfSplitStart(11, "Invalid")]));
+        Assert.Throws<ArgumentException>(() => PdfSplitPlan.FromStarts(10,
+            [new PdfSplitStart(0, "Invalid"), new PdfSplitStart(2, "Valid")]));
+        var plan = PdfSplitPlan.FromStarts(1, [new PdfSplitStart(1, new string('a', 59) + "😀more")]);
+        Assert.Equal($"001-{new string('a', 59)}.pdf", Assert.Single(plan.Parts).Name);
+    }
+
+    [Fact]
     public async Task ExplicitPlanRejectsUncoveredSourcePagesBeforePublication() {
         string root = NewRoot();
         try {

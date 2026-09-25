@@ -13,7 +13,6 @@ namespace OfficeIMO.Studio.Features.Shell;
 /// </summary>
 public sealed partial class MainWindowViewModel {
     private Func<StudioSignatureKind, Task<StudioSignatureDraft?>> _createSignature = static _ => Task.FromResult<StudioSignatureDraft?>(null);
-    private bool _signaturesLoaded;
     private byte[]? _pendingPlacementImage;
     private double _pendingPlacementAspect = 3D;
     private string? _pendingPlacementText;
@@ -42,20 +41,45 @@ public sealed partial class MainWindowViewModel {
     // forms) still take drawn signatures as ink and typed signatures or dates as text.
     public bool CanFillAndSign => _workspace is not null && !IsWorkspaceBusy && (CanEditPageContent || CanEditAnnotations);
 
-    /// <summary>Loads saved signatures the first time the Fill and sign menu opens.</summary>
+    /// <summary>Refreshes saved signatures when the Fill and sign menu opens, including changes from other tabs.</summary>
     internal void EnsureSignaturesLoaded() {
-        if (_signaturesLoaded) return;
         try {
             IReadOnlyList<StudioSavedSignature> signatures = _services.Signatures.List(StudioSignatureKind.Signature);
             IReadOnlyList<StudioSavedSignature> initials = _services.Signatures.List(StudioSignatureKind.Initials);
-            foreach (StudioSavedSignature saved in signatures) SavedSignatures.Add(new SavedSignatureViewModel(saved));
-            foreach (StudioSavedSignature saved in initials) SavedInitials.Add(new SavedSignatureViewModel(saved));
-            _signaturesLoaded = true;
+            RefreshSavedSignatures(SavedSignatures, signatures);
+            RefreshSavedSignatures(SavedInitials, initials);
         } catch (Exception error) when (error is IOException or UnauthorizedAccessException) {
             ErrorMessage = error.Message;
             return;
         }
         NotifySavedSignatures();
+    }
+
+    private void OnSavedSignaturesChanged() {
+        if (_disposed) return;
+        if (Avalonia.Threading.Dispatcher.UIThread.CheckAccess()) EnsureSignaturesLoaded();
+        else Avalonia.Threading.Dispatcher.UIThread.Post(() => {
+            if (!_disposed) EnsureSignaturesLoaded();
+        });
+    }
+
+    private static void RefreshSavedSignatures(ObservableCollection<SavedSignatureViewModel> target,
+        IReadOnlyList<StudioSavedSignature> saved) {
+        StringComparer comparer = OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+        for (int index = target.Count - 1; index >= 0; index--) {
+            if (!saved.Any(item => comparer.Equals(item.Path, target[index].Saved.Path))) {
+                target[index].Preview?.Dispose();
+                target.RemoveAt(index);
+            }
+        }
+        for (int index = 0; index < saved.Count; index++) {
+            int current = -1;
+            for (int candidate = index; candidate < target.Count; candidate++) {
+                if (comparer.Equals(target[candidate].Saved.Path, saved[index].Path)) { current = candidate; break; }
+            }
+            if (current < 0) target.Insert(index, new SavedSignatureViewModel(saved[index]));
+            else if (current != index) target.Move(current, index);
+        }
     }
 
     private void NotifySavedSignatures() {
@@ -73,13 +97,11 @@ public sealed partial class MainWindowViewModel {
         if (draft is null || _workspace is null) return;
         if (draft.Remember) {
             try {
-                var saved = new SavedSignatureViewModel(_services.Signatures.Save(signatureKind, draft.Png, draft.Text, draft.Strokes));
+                EnsureSignaturesLoaded();
+                _services.Signatures.Save(signatureKind, draft.Png, draft.Text, draft.Strokes);
                 var target = signatureKind == StudioSignatureKind.Initials ? SavedInitials : SavedSignatures;
-                target.Insert(0, saved);
-                NotifySavedSignatures();
                 while (target.Count > StudioSignatureStore.MaximumPerKind) {
                     _services.Signatures.Delete(target[^1].Saved);
-                    target.RemoveAt(target.Count - 1);
                 }
             } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException) {
                 ErrorMessage = UiFormat("FillSign.SaveFailed", ex.Message);
@@ -103,9 +125,7 @@ public sealed partial class MainWindowViewModel {
             ErrorMessage = UiFormat("FillSign.SaveFailed", ex.Message);
             return;
         }
-        SavedSignatures.Remove(signature);
-        SavedInitials.Remove(signature);
-        NotifySavedSignatures();
+        EnsureSignaturesLoaded();
     }
 
     [RelayCommand]

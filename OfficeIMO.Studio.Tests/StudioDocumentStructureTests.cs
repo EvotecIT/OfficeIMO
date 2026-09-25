@@ -326,6 +326,47 @@ public sealed class StudioDocumentStructureTests {
     }
 
     [Fact]
+    public async Task SavedSignaturesRefreshAfterAnotherTabChangesTheStore() {
+        string root = CreateRoot();
+        try {
+            using var session = TestAppBuilder.StartSession();
+            await session.Dispatch(() => {
+                byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAMAAAABCAYAAAAb4BS0AAAAEElEQVR4nGNgYGD4z8DAwAAABQABnEX0RwAAAABJRU5ErkJggg==");
+                var services = StudioApplicationServices.Create(new StudioDataPaths(Path.Combine(root, "profile")));
+                using var first = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services);
+                using var second = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services);
+                first.EnsureSignaturesLoaded();
+                second.EnsureSignaturesLoaded();
+                Assert.Empty(first.SavedSignatures);
+                StudioSavedSignature saved = services.Signatures.Save(StudioSignatureKind.Signature, png);
+                Assert.Single(second.SavedSignatures);
+                Assert.Single(first.SavedSignatures);
+                services.Signatures.Delete(saved);
+                Assert.Empty(first.SavedSignatures);
+                Assert.Empty(second.SavedSignatures);
+                return true;
+            }, CancellationToken.None);
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
+    public async Task SignaturePreviewRejectsImageWhoseDecodedPixelsExceedBudget() {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(() => {
+            byte[] image = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAMAAAABCAYAAAAb4BS0AAAAEElEQVR4nGNgYGD4z8DAwAAABQABnEX0RwAAAABJRU5ErkJggg==");
+            image[16] = 0; image[17] = 0; image[18] = 0x4E; image[19] = 0x20;
+            image[20] = 0; image[21] = 0; image[22] = 0x4E; image[23] = 0x20;
+            Assert.False(StudioSignatureImage.IsWithinPixelBudget(image));
+            var dialog = new SignatureDialog(StudioSignatureKind.Signature, StudioLocalization.Current);
+            Assert.Throws<InvalidDataException>(() => dialog.SetImage(image));
+            Array.Fill(image, (byte)0xff, 16, 8);
+            Assert.False(StudioSignatureImage.IsWithinPixelBudget(image));
+            Assert.Throws<InvalidDataException>(() => dialog.SetImage(image));
+            return true;
+        }, CancellationToken.None);
+    }
+
+    [Fact]
     public async Task ScannedPageShortcutRequiresSavedSourceBeforeOpeningOcr() {
         string root = CreateRoot();
         string path = CreateDocument(root);
@@ -390,7 +431,8 @@ public sealed class StudioDocumentStructureTests {
         string root = CreateRoot();
         try {
             var store = new StudioSignatureStore(Path.Combine(root, "signatures"));
-            var saved = store.Save(StudioSignatureKind.Signature, [1, 2, 3], text: "Ada");
+            byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAMAAAABCAYAAAAb4BS0AAAAEElEQVR4nGNgYGD4z8DAwAAABQABnEX0RwAAAABJRU5ErkJggg==");
+            var saved = store.Save(StudioSignatureKind.Signature, png, text: "Ada");
             string shape = Path.ChangeExtension(saved.Path, ".json");
             UnixFileMode ownerOnly = UnixFileMode.UserRead | UnixFileMode.UserWrite;
             Assert.Equal(ownerOnly, File.GetUnixFileMode(saved.Path));

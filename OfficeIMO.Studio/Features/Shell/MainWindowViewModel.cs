@@ -124,6 +124,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         Func<CancellationToken, Task<string?>>? pickPrintOutput = null,
         Func<WatermarkPreviewViewModel, Task<bool>>? reviewWatermark = null) {
         _services = services ?? (Avalonia.Application.Current as App)?.Services ?? StudioApplicationServices.CreateDefault();
+        _services.Signatures.Changed += OnSavedSignaturesChanged;
         _persistDocumentViews = services is not null;
         _localizer = _services.Localizer;
         DocumentName = _localizer.Get("App.Name");
@@ -558,6 +559,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         if (_disposed) return;
         SaveDocumentViewState();
         _disposed = true;
+        _services.Signatures.Changed -= OnSavedSignaturesChanged;
         ClearTextReview();
         _services.Recovery.MaintenanceCompleted -= OnRecoveryMaintenanceCompleted;
         _services.DocumentHistory.Cleared -= OnDocumentHistoryCleared;
