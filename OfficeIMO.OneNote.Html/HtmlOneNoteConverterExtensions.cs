@@ -25,8 +25,17 @@ public static class HtmlOneNoteConverterExtensions {
         AngleSharp.Html.Dom.IHtmlDocument sourceDocument = document.CreateNativeDocumentForConversion();
         foreach (HtmlDiagnostic diagnostic in document.Diagnostics) result.AddImportDiagnostic(diagnostic);
         ReportSkippedStylesheetLinks(sourceDocument, document.MediaContext, result);
+        ReportUnpreservedColumnWidths(sourceDocument, result);
         ImportPages(semanticDocument, section, resolved, result);
         return result;
+    }
+
+    private static void ReportUnpreservedColumnWidths(
+        AngleSharp.Html.Dom.IHtmlDocument sourceDocument, HtmlToOneNoteSectionResult result) {
+        if (sourceDocument.QuerySelector("colgroup, col") == null) return;
+        Add(result, HtmlConversionDiagnosticCodes.ContentApproximated,
+            "HTML colgroup and col column definitions are not projected to OneNote table columns.",
+            HtmlDiagnosticSeverity.Warning, OfficeConversionLossKind.Approximation);
     }
 
     private static void ReportSkippedStylesheetLinks(
@@ -316,10 +325,126 @@ public static class HtmlOneNoteConverterExtensions {
             if (cells >= maxTableCells) break;
         }
         if (table.Rows.Count == 0) return;
+        SetImportedTableColumnWidths(source, table, result);
         target.Add(table);
         result.Elements++;
         result.Tables++;
     }
+
+    private static void SetImportedTableColumnWidths(
+        HtmlSemanticBlock source, OneNoteTable table, HtmlToOneNoteSectionResult result) {
+        int columns = table.Rows.Max(row => row.Cells.Count);
+        if (columns == 0) return;
+
+        // Native writing otherwise assigns one half-inch unit to every column,
+        // making ordinary imported tables unreadably narrow after reopen.
+        const double defaultWidthHalfInches = 15D;
+        double totalWidth = defaultWidthHalfInches;
+        string? authoredWidth = source.Style?.GetValue("width");
+        bool hasAuthoredTableWidth = TryParseTableWidth(authoredWidth, defaultWidthHalfInches, out double requestedWidth);
+        if (hasAuthoredTableWidth) {
+            totalWidth = Math.Min(defaultWidthHalfInches, Math.Max(columns, requestedWidth));
+            if (totalWidth != requestedWidth) ReportTableWidthApproximation(result, authoredWidth);
+        } else if (IsAuthoredWidth(authoredWidth)) {
+            ReportTableWidthApproximation(result, authoredWidth);
+        }
+        totalWidth = Math.Max(columns, totalWidth);
+
+        var weights = new double[columns];
+        foreach (OneNoteTableRow row in table.Rows) {
+            for (int column = 0; column < row.Cells.Count; column++) {
+                int characters = 0;
+                foreach (OneNoteTextRun run in row.Cells[column].Content.OfType<OneNoteParagraph>()
+                    .SelectMany(paragraph => paragraph.Runs)) {
+                    characters = Math.Min(256, characters + Math.Min(256, run.Text.Length));
+                    if (characters == 256) break;
+                }
+                weights[column] = Math.Max(weights[column], Math.Sqrt(Math.Min(256, characters) + 1D));
+            }
+        }
+
+        var widths = new double[columns];
+        var reportedConflicts = new bool[columns];
+        double explicitTotal = 0D;
+        for (int row = 0; row < table.Rows.Count; row++) {
+            HtmlSemanticTableRow sourceRow = source.Table!.Rows[row];
+            for (int column = 0; column < Math.Min(columns, sourceRow.Cells.Count); column++) {
+                HtmlSemanticTableCell cell = sourceRow.Cells[column];
+                string? cellWidth = cell.Style?.GetValue("width");
+                if (!IsAuthoredWidth(cellWidth)) continue;
+                if (cell.ColumnSpan != 1 || !TryParseTableWidth(cellWidth, totalWidth, out double requestedColumnWidth)) {
+                    ReportTableWidthApproximation(result, cellWidth);
+                    continue;
+                }
+                if (widths[column] == 0D) {
+                    widths[column] = Math.Max(1D, requestedColumnWidth);
+                    explicitTotal += widths[column];
+                    if (widths[column] != requestedColumnWidth) ReportTableWidthApproximation(result, cellWidth);
+                } else if (!reportedConflicts[column]
+                    && Math.Abs(widths[column] - requestedColumnWidth) > 0.01D) {
+                    ReportTableWidthApproximation(result, cellWidth);
+                    reportedConflicts[column] = true;
+                }
+            }
+        }
+
+        int inferredColumns = widths.Count(width => width == 0D);
+        if (explicitTotal > totalWidth - inferredColumns) {
+            Add(result, HtmlConversionDiagnosticCodes.ContentApproximated,
+                "Authored HTML table columns exceeded OneNote's available page width and were scaled.",
+                HtmlDiagnosticSeverity.Warning, OfficeConversionLossKind.Approximation);
+            double available = Math.Max(0D, totalWidth - columns);
+            double excess = explicitTotal - (columns - inferredColumns);
+            for (int column = 0; column < columns; column++) {
+                if (widths[column] > 0D) widths[column] = 1D + (excess > 0D ? available * (widths[column] - 1D) / excess : 0D);
+            }
+            explicitTotal = widths.Sum();
+        } else if (hasAuthoredTableWidth && inferredColumns == 0 && explicitTotal < totalWidth) {
+            Add(result, HtmlConversionDiagnosticCodes.ContentApproximated,
+                "Authored HTML table columns left unused table width, which was distributed proportionally.",
+                HtmlDiagnosticSeverity.Warning, OfficeConversionLossKind.Approximation);
+            for (int column = 0; column < columns; column++) widths[column] *= totalWidth / explicitTotal;
+            explicitTotal = totalWidth;
+        }
+
+        double distributable = Math.Max(0D, totalWidth - explicitTotal - inferredColumns);
+        double weightSum = 0D;
+        for (int column = 0; column < columns; column++) {
+            if (widths[column] == 0D) weightSum += weights[column];
+        }
+        for (int column = 0; column < columns; column++) {
+            if (widths[column] == 0D) {
+                widths[column] = 1D + (weightSum > 0D
+                    ? distributable * weights[column] / weightSum
+                    : distributable / inferredColumns);
+            }
+            table.ColumnWidths.Add(widths[column]);
+        }
+    }
+
+    private static bool TryParseTableWidth(string? value, double referenceHalfInches, out double widthHalfInches) {
+        widthHalfInches = 0D;
+        if (TryParseCssPoints(value, out double points)) {
+            widthHalfInches = points / 36D;
+        } else {
+            string text = (value ?? string.Empty).Trim();
+            if (!text.EndsWith("%", StringComparison.Ordinal)
+                || !double.TryParse(text.Substring(0, text.Length - 1), NumberStyles.Float,
+                    CultureInfo.InvariantCulture, out double percent)) return false;
+            widthHalfInches = referenceHalfInches * percent / 100D;
+        }
+        return widthHalfInches > 0D && !double.IsInfinity(widthHalfInches) && !double.IsNaN(widthHalfInches);
+    }
+
+    private static bool IsAuthoredWidth(string? value) {
+        if (string.IsNullOrWhiteSpace(value)) return false;
+        return !string.Equals(value!.Trim(), "auto", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static void ReportTableWidthApproximation(HtmlToOneNoteSectionResult result, string? authoredWidth) =>
+        Add(result, HtmlConversionDiagnosticCodes.ContentApproximated,
+            "An authored HTML table width could not be retained in OneNote's bounded page layout.",
+            HtmlDiagnosticSeverity.Warning, OfficeConversionLossKind.Approximation, authoredWidth);
 
     private static void ImportImage(
         HtmlSemanticResource resource,

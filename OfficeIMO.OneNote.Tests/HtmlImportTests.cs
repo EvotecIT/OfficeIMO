@@ -15,6 +15,97 @@ public sealed class HtmlImportTests {
     }
 
     [Fact]
+    public void HtmlImportTable_RetainsReadableColumnWidthsAfterNativeReopen() {
+        const string html = "<table><tr><th>Term</th><th>Definition</th></tr>"
+            + "<tr><td>Safely managed water service level</td>"
+            + "<td>Drinking water from an improved source that is accessible on premises, available when needed, and free from contamination.</td></tr>"
+            + "<tr><td>Basic water service level</td>"
+            + "<td>Drinking water from an improved source with collection time of no more than thirty minutes for a round trip.</td></tr></table>";
+
+        OneNoteSection section = HtmlConversionDocument.Parse(html).ToOneNoteSectionResult().RequireValue();
+        OneNoteSection reopened = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(section)));
+        OneNoteTable table = Assert.Single(reopened.Pages.SelectMany(page => page.Outlines)
+            .SelectMany(outline => outline.Children).OfType<OneNoteTable>());
+
+        Assert.Equal(2, table.ColumnWidths.Count);
+        Assert.True(table.ColumnWidths[0] > 1D);
+        Assert.True(table.ColumnWidths[1] > table.ColumnWidths[0]);
+        Assert.Equal(15D, table.ColumnWidths.Sum(), 2);
+        Assert.True(OneNotePageRenderer.CreateSnapshot(reopened.Pages[0]).Drawing.Height < 2000D);
+    }
+
+    [Fact]
+    public void HtmlImportTable_RespectsAnAuthoredNarrowWidth() {
+        const string html = "<table style='width:144px'><tr><td>Term</td><td>Definition</td></tr></table>";
+
+        OneNoteSection section = HtmlConversionDocument.Parse(html).ToOneNoteSectionResult().RequireValue();
+        OneNoteSection reopened = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(section)));
+        OneNoteTable table = Assert.Single(reopened.Pages.SelectMany(page => page.Outlines)
+            .SelectMany(outline => outline.Children).OfType<OneNoteTable>());
+
+        Assert.Equal(3D, table.ColumnWidths.Sum(), 2);
+        Assert.All(table.ColumnWidths, width => Assert.True(width >= 1D));
+    }
+
+    [Fact]
+    public void HtmlImportTable_RetainsPercentageWidthAndCellProportionsAfterNativeReopen() {
+        const string html = "<table style='width:50%'><tr>"
+            + "<td style='width:20%'>First</td><td style='width:80%'>Second</td></tr></table>";
+
+        HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse(html).ToOneNoteSectionResult();
+        OneNoteSection reopened = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(result.RequireValue())));
+        OneNoteTable table = Assert.Single(reopened.Pages.SelectMany(page => page.Outlines)
+            .SelectMany(outline => outline.Children).OfType<OneNoteTable>());
+
+        Assert.Equal(7.5D, table.ColumnWidths.Sum(), 2);
+        Assert.Equal(1.5D, table.ColumnWidths[0], 2);
+        Assert.Equal(6D, table.ColumnWidths[1], 2);
+        Assert.DoesNotContain(result.Report.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated);
+    }
+
+    [Fact]
+    public void HtmlImportTable_ReportsAnOversizedAuthoredWidth() {
+        const string html = "<table style='width:1200px'><tr><td>First</td><td>Second</td></tr></table>";
+
+        HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse(html).ToOneNoteSectionResult();
+        OneNoteSection reopened = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(result.RequireValue())));
+        OneNoteTable table = Assert.Single(reopened.Pages.SelectMany(page => page.Outlines)
+            .SelectMany(outline => outline.Children).OfType<OneNoteTable>());
+
+        Assert.Equal(15D, table.ColumnWidths.Sum(), 2);
+        Assert.Contains(result.Report.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated);
+    }
+
+    [Fact]
+    public void HtmlImportTable_ReportsUnprojectedColgroupWidths() {
+        const string html = "<style>col:first-child{width:20%}</style><table><colgroup><col><col></colgroup>"
+            + "<tr><td>First</td><td>Second</td></tr></table>";
+
+        HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse(html).ToOneNoteSectionResult();
+
+        Assert.Contains(result.Report.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
+                && diagnostic.Message.Contains("colgroup", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void HtmlImportTable_DistributesUnusedAuthoredTableWidthWithAReport() {
+        const string html = "<table style='width:50%'><tr>"
+            + "<td style='width:20%'>First</td><td style='width:20%'>Second</td></tr></table>";
+
+        HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse(html).ToOneNoteSectionResult();
+        OneNoteSection reopened = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(result.RequireValue())));
+        OneNoteTable table = Assert.Single(reopened.Pages.SelectMany(page => page.Outlines)
+            .SelectMany(outline => outline.Children).OfType<OneNoteTable>());
+
+        Assert.Equal(7.5D, table.ColumnWidths.Sum(), 2);
+        Assert.Contains(result.Report.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated);
+    }
+
+    [Fact]
     public void RejectedOversizedParagraphDoesNotConsumeShapeBudget() {
         var options = new HtmlToOneNoteOptions {
             Limits = new HtmlImportLimits {
