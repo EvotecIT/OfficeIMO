@@ -9,6 +9,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         OdsDocument target, ExcelOpenDocumentConversionOptions options,
         IReadOnlyDictionary<string, HashSet<(int Row, int Column)>> convertedCellsBySheet) {
         int converted = 0;
+        var authoredNames = new HashSet<string>(StringComparer.Ordinal);
         List<ExcelPivotTableInfo> pivots = source.Sheets.SelectMany(sheet => sheet.GetPivotTables()).ToList();
         var neededHeaderRows = new Dictionary<string, HashSet<int>>(StringComparer.Ordinal);
         foreach (ExcelPivotTableInfo pivot in pivots) {
@@ -59,12 +60,14 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                         || item.InsertBlankRow == true)
                     || pivot.HasValuesAxisField
                     || !TryMapPivotFunction(pivot.DataFields[0].Function, out string? function)
+                    || authoredNames.Contains(pivot.Name)
                     || !TryGetExcelPivotRanges(pivot, options, snapshot, omittedCellsBySheet, headersBySheet,
                         out string? sourceAddress, out string? targetAddress)) continue;
                 OdsDataPilotTable authored = target.AddDataPilotTable(pivot.Name, sourceAddress!, targetAddress!);
                 foreach (string fieldName in pivot.ColumnFields) authored.AddField(fieldName, "column");
                 foreach (string fieldName in pivot.RowFields) authored.AddField(fieldName, "row");
                 authored.AddField(pivot.DataFields[0].FieldName, "data", function);
+                authoredNames.Add(pivot.Name);
                 converted++;
         }
         return converted;
@@ -140,6 +143,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         ExcelOpenDocumentConversionOptions options,
         IReadOnlyDictionary<string, List<long>> convertedCellsBySheet) {
         int converted = 0;
+        // The Excel cache scans the source for each pivot. Bound the total work across the conversion.
+        long remainingPivotScanCells = 1_000_000;
         foreach (OdsDataPilotTable pivot in source.DataPilotTables) {
             if (pivot.HasAdvancedSettings || pivot.Fields.Count == 0 || pivot.Fields.Count > 17
                 || !TryGetLocalPivotRanges(pivot, options, out string? sourceSheetName,
@@ -176,10 +181,17 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             }
             if (unsupported || data.Count != 1 || rows.Count + columns.Count == 0
                 || rows.Count + columns.Count + data.Count != pivot.Fields.Count) continue;
+            if (!SpreadsheetRangeReference.TryParse(pivot.SourceRangeAddress, SpreadsheetAddressDialect.OpenDocument,
+                    out SpreadsheetRangeReference? sourceBounds) || sourceBounds?.End == null) continue;
+            long sourceRows = sourceBounds.End.Row!.Value - sourceBounds.Start.Row!.Value + 1;
+            long sourceColumns = sourceBounds.End.Column!.Value - sourceBounds.Start.Column!.Value + 1;
+            if (sourceRows <= 0 || sourceColumns <= 0 || sourceRows > remainingPivotScanCells / sourceColumns
+                || HasAmbiguousPivotHeaders(pair.Source, sourceBounds)) continue;
             long generatedLastRow = destinationRow + 1;
             long generatedLastColumn = destinationColumn + rows.Count + columns.Count + data.Count - 1;
             if (generatedLastRow > Math.Min(options.MaximumRows, 1_048_576)
                 || generatedLastColumn > Math.Min(options.MaximumColumns, 16_384)) continue;
+            remainingPivotScanCells -= sourceRows * sourceColumns;
             try {
                 pair.Target.AddPivotTable(sourceRange!, destination!, pivot.Name,
                     rowFields: rows, columnFields: columns, dataFields: data,
@@ -192,6 +204,25 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             }
         }
         return converted;
+    }
+
+    private static bool HasAmbiguousPivotHeaders(OdsSheet sheet, SpreadsheetRangeReference range) {
+        long firstRow = range.Start.Row!.Value - 1;
+        long firstColumn = range.Start.Column!.Value - 1;
+        long lastColumn = range.End!.Column!.Value - 1;
+        OdsRowRun? header = sheet.RowRuns.FirstOrDefault(run =>
+            firstRow >= run.StartRow && firstRow < SaturatingAdd(run.StartRow, run.RepeatCount));
+        if (header == null) return true;
+        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (OdsCellRun cell in header.CellRuns) {
+            if (cell.IsCovered || cell.StartColumn > lastColumn) continue;
+            long end = Math.Min(lastColumn, SaturatingAdd(cell.StartColumn, cell.RepeatCount) - 1);
+            if (end < firstColumn) continue;
+            string name = cell.Value.DisplayText;
+            if (string.IsNullOrWhiteSpace(name) || !names.Add(name) || end > Math.Max(cell.StartColumn, firstColumn))
+                return true;
+        }
+        return false;
     }
 
     private static bool PivotRangeRetained(OdsSheet sheet, string address,

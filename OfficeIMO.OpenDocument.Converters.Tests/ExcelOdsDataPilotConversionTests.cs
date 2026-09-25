@@ -35,6 +35,48 @@ public sealed class ExcelOdsDataPilotConversionTests {
     }
 
     [Fact]
+    public void DuplicateExcelPivotNamesOnDifferentSheetsRemainExplicitLoss() {
+        using ExcelDocument source = ExcelDocument.Create();
+        foreach (string name in new[] { "North", "South" }) {
+            ExcelSheet sheet = source.AddWorksheet(name);
+            sheet.CellValue(1, 1, "Region");
+            sheet.CellValue(1, 2, "Sales");
+            sheet.CellValue(2, 1, name);
+            sheet.CellValue(2, 2, 10d);
+            sheet.AddPivotTable("A1:B2", "D1", name: "SharedName",
+                rowFields: new[] { "Region" },
+                dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
+        }
+
+        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+        Assert.Single(conversion.Value.DataPilotTables);
+        Assert.Contains(conversion.Report.ForFeature("pivot-tables"), mapping =>
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+    }
+
+    [Fact]
+    public void CaseAmbiguousOdsHeadersRemainExplicitPivotLoss() {
+        OdsDocument source = OdsDocument.Create();
+        OdsSheet sheet = source.AddSheet("Data");
+        sheet.Cell(0, 0).SetString("Sales");
+        sheet.Cell(0, 1).SetString("sales");
+        sheet.Cell(0, 2).SetString("Region");
+        sheet.Cell(1, 0).SetNumber(10);
+        sheet.Cell(1, 1).SetNumber(20);
+        sheet.Cell(1, 2).SetString("North");
+        OdsDataPilotTable pivot = source.AddDataPilotTable("Ambiguous",
+            "Data.A1:Data.C2", "Data.E1:Data.F3");
+        pivot.AddField("Region", "row");
+        pivot.AddField("sales", "data", "sum");
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        using ExcelDocument result = conversion.Value;
+        Assert.Empty(result.Sheets.Single().GetPivotTables());
+        Assert.Contains(conversion.Report.ForFeature("pivot-tables"), mapping =>
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+    }
+
+    [Fact]
     public void PivotWithStaleCacheHeaderCasingRemainsExplicitLoss() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddWorksheet("Data");
