@@ -145,11 +145,18 @@ internal sealed partial class HtmlRenderStyleResolver {
             fontTag,
             computed,
             parent?.FontDescriptor ?? OfficeFontFaceDescriptor.Regular);
+        string display = pseudoElement
+            ? ResolvePseudoDisplay(computed.GetValue("display"))
+            : ResolveDisplay(element, computed.GetValue("display"), computed.GetValue("-webkit-box-orient"), ResolveLineClamp(computed).HasValue);
+        bool propagatedUnderline = parent != null && parent.UnderlineStyle != OfficeTextDecorationStyle.None
+            && (display == "inline" || display == "contents");
         OfficeFontStyle fontStyle = ResolveFontStyle(fontTag, computed);
         bool defaultLink = !pseudoElement && tag == "a" && element.HasAttribute("href");
         if (defaultLink && !HasAuthoredValue(computed, "text-decoration-line") && !HasAuthoredValue(computed, "text-decoration")) {
             fontStyle |= OfficeFontStyle.Underline;
         }
+        bool ownsUnderline = (fontStyle & OfficeFontStyle.Underline) == OfficeFontStyle.Underline;
+        if (propagatedUnderline) fontStyle |= OfficeFontStyle.Underline;
         fontStyle &= ~(OfficeFontStyle.Bold | OfficeFontStyle.Italic);
         fontStyle |= fontDescriptor.ToStyle();
         OfficeTextDecorationStyle decorationStyle = ResolveTextDecorationStyle(computed.GetValue("text-decoration-style"));
@@ -190,16 +197,20 @@ internal sealed partial class HtmlRenderStyleResolver {
         if (baselineLevel == 0 && Math.Abs(baselineOffset) > 0.000001D) baselineLevel = baselineOffset < 0D ? 1 : -1;
         OfficeColor color = defaultLink && !HasAuthoredValue(computed, "color")
             ? OfficeColor.FromRgb(0, 0, 238)
+            : computed.IsImplicitlyInheritedValue("color") && parent != null
+            ? parent.Color
             : ResolveColor(element, computed.GetValue("color"), parent?.Color ?? OfficeColor.Black, pseudoElement, "color");
         var style = new HtmlRenderBoxStyle {
-            Display = pseudoElement ? ResolvePseudoDisplay(computed.GetValue("display")) : ResolveDisplay(element, computed.GetValue("display"), computed.GetValue("-webkit-box-orient"), ResolveLineClamp(computed).HasValue),
+            Display = display,
             DisplayWasSpecified = !string.IsNullOrWhiteSpace(computed.GetValue("display")),
             PaintVisible = ResolvePaintVisibility(computed.GetValue("visibility"), parent),
             Font = new OfficeFontInfo(family, fontSize, fontStyle),
             FontDescriptor = fontDescriptor,
-            UnderlineStyle = (fontStyle & OfficeFontStyle.Underline) == OfficeFontStyle.Underline
-                ? decorationStyle
-                : OfficeTextDecorationStyle.None,
+            UnderlineStyle = propagatedUnderline && !ownsUnderline
+                ? parent!.UnderlineStyle
+                : (fontStyle & OfficeFontStyle.Underline) == OfficeFontStyle.Underline
+                    ? decorationStyle
+                    : OfficeTextDecorationStyle.None,
             StrikethroughStyle = (fontStyle & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough
                 ? decorationStyle
                 : OfficeTextDecorationStyle.None,
@@ -212,7 +223,9 @@ internal sealed partial class HtmlRenderStyleResolver {
             BaselineScale = baselineScale,
             BaselineOffset = baselineOffset,
             Color = color,
-            DecorationColor = ResolveColor(element, computed.GetValue("text-decoration-color"), color, pseudoElement, "text-decoration-color"),
+            DecorationColor = propagatedUnderline && !ownsUnderline
+                ? parent!.DecorationColor
+                : ResolveColor(element, computed.GetValue("text-decoration-color"), color, pseudoElement, "text-decoration-color"),
             Alignment = tag == "caption" && (string.IsNullOrWhiteSpace(computed.GetValue("text-align")) || computed.IsImplicitlyInheritedValue("text-align"))
                 ? OfficeTextAlignment.Center
                 : ResolveAlignment(computed.GetValue("text-align"), direction, parent?.Alignment),
@@ -635,10 +648,10 @@ internal sealed partial class HtmlRenderStyleResolver {
     }
 
     private static bool HasAuthoredValue(HtmlComputedStyle computed, string property) =>
-        computed.IsSpecifiedValue(property)
-        || computed.IsResetValue(property)
-        || computed.IsOriginRevertedValue(property)
-        || computed.IsInheritedValue(property) && !computed.IsImplicitlyInheritedValue(property);
+        !computed.IsOriginRevertedValue(property)
+        && (computed.IsSpecifiedValue(property)
+            || computed.IsResetValue(property)
+            || computed.IsInheritedValue(property) && !computed.IsImplicitlyInheritedValue(property));
 
     private static OfficeTextDecorationStyle ResolveTextDecorationStyle(string value) => value.Trim().ToLowerInvariant() switch {
         "double" => OfficeTextDecorationStyle.Double,

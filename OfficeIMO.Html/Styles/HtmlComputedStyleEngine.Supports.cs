@@ -601,7 +601,12 @@ public static partial class HtmlComputedStyleEngine {
                 if (effective.IsDeferredFontShorthand) deferredFonts.Add(pair.Key);
                 priorities[pair.Key] = ToCascadePriority(effective);
                 reset.Remove(pair.Key);
-                originReverted.Remove(pair.Key);
+                if (effective.InheritsComputedValue
+                    && string.Equals(pair.Value.AuthoredValue.Trim(), "revert", StringComparison.OrdinalIgnoreCase)) {
+                    originReverted.Add(pair.Key);
+                } else {
+                    originReverted.Remove(pair.Key);
+                }
                 if (ReferenceEquals(effective.Specificity, Specificity.Inherited) || effective.InheritsComputedValue) {
                     inherited.Add(pair.Key);
                     specified.Remove(pair.Key);
@@ -619,7 +624,7 @@ public static partial class HtmlComputedStyleEngine {
                     ids: -1, classes: -1, elements: -1, ruleOrder: -1, declarationOrder: -1);
                 inherited.Add(pair.Key);
                 reset.Remove(pair.Key);
-                originReverted.Remove(pair.Key);
+                originReverted.Add(pair.Key);
                 specified.Remove(pair.Key);
             } else {
                 raw.Remove(pair.Key);
@@ -654,7 +659,7 @@ public static partial class HtmlComputedStyleEngine {
         inheritedProperties = inherited;
         reset.ExceptWith(resolved.Keys);
         resetProperties = reset;
-        originReverted.IntersectWith(reset);
+        originReverted.IntersectWith(reset.Concat(resolved.Keys));
         originRevertedProperties = originReverted;
         specified.IntersectWith(resolved.Keys);
         specifiedProperties = specified;

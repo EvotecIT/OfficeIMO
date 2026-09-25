@@ -15,9 +15,14 @@ public sealed partial class HtmlRenderingTests {
             + "<a href='https://example.test' style='text-decoration:none;text-decoration-line:underline'>Restored underline</a>"
             + "<a href='https://example.test' style='text-decoration-line:underline;text-decoration:none'>Removed underline</a>"
             + "<a href='https://example.test' style='text-decoration:underline dotted red'>Decorated link</a>"
+            + "<a href='https://example.test'><span style='text-decoration:none'>Nested link</span></a>"
+            + "<a href='https://example.test'><span style='color:red'>Nested red link</span></a>"
+            + "<a href='https://example.test'><span style='display:inline-block'>Atomic link</span></a>"
+            + "<a href='https://example.test' style='color:revert;text-decoration:revert'>Reverted link</a>"
+            + "<a href='https://example.test' style='color:revert-layer;text-decoration:revert-layer'>Layer reverted link</a>"
             + "<a>Anchor without href</a></div>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
-            new HtmlRenderOptions { ViewportWidth = 1200D });
+            new HtmlRenderOptions { ViewportWidth = 1600D });
         HtmlRenderText[] text = rendered.Pages.SelectMany(page => EnumerateCorpusVisuals(page.Scene))
             .OfType<HtmlRenderText>().ToArray();
 
@@ -37,6 +42,21 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderText decoratedLink = Assert.Single(text, item => item.Text == "Decorated link");
         Assert.Equal(OfficeTextDecorationStyle.Dotted, decoratedLink.UnderlineStyle);
         Assert.Equal(OfficeColor.Red, decoratedLink.DecorationColor);
+
+        HtmlRenderText nestedLink = Assert.Single(text, item => item.Text == "Nested link");
+        Assert.Equal(OfficeColor.FromRgb(0, 0, 238), nestedLink.Color);
+        Assert.Equal(OfficeTextDecorationStyle.Single, nestedLink.UnderlineStyle);
+        HtmlRenderText redLink = Assert.Single(text, item => item.Text == "Nested red link");
+        Assert.Equal(OfficeColor.Red, redLink.Color);
+        Assert.Equal(OfficeTextDecorationStyle.Single, redLink.UnderlineStyle);
+        HtmlRenderText atomicLink = Assert.Single(text, item => item.Text == "Atomic link");
+        Assert.Equal(OfficeColor.FromRgb(0, 0, 238), atomicLink.Color);
+        Assert.Equal(OfficeTextDecorationStyle.None, atomicLink.UnderlineStyle);
+        foreach (string label in new[] { "Reverted link", "Layer reverted link" }) {
+            HtmlRenderText revertedLink = Assert.Single(text, item => item.Text == label);
+            Assert.Equal(OfficeColor.FromRgb(0, 0, 238), revertedLink.Color);
+            Assert.Equal(OfficeTextDecorationStyle.Single, revertedLink.UnderlineStyle);
+        }
 
         HtmlRenderText anchor = Assert.Single(text, item => item.Text == "Anchor without href");
         Assert.Equal(OfficeColor.FromRgb(0x44, 0x44, 0x44), anchor.Color);
