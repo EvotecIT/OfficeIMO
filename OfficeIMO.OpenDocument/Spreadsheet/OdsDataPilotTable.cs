@@ -57,6 +57,9 @@ public sealed class OdsDataPilotTable {
     private static bool IsAdvancedField(XElement element) {
         if (HasOtherAttributes(element, OdfNamespaces.Table + "source-field-name",
                 OdfNamespaces.Table + "orientation", OdfNamespaces.Table + "function")) return true;
+        if (!IsSupportedFieldShape((string?)element.Attribute(OdfNamespaces.Table + "source-field-name"),
+                (string?)element.Attribute(OdfNamespaces.Table + "orientation"),
+                (string?)element.Attribute(OdfNamespaces.Table + "function"))) return true;
         foreach (XElement level in element.Elements()) {
             if (level.Name != OdfNamespaces.Table + "data-pilot-level"
                 || HasOtherAttributes(level, OdfNamespaces.Table + "show-empty")
@@ -84,6 +87,15 @@ public sealed class OdsDataPilotTable {
     private static bool HasOtherAttributes(XElement element, params XName[] allowed) => element.Attributes()
         .Any(attribute => !attribute.IsNamespaceDeclaration && !allowed.Contains(attribute.Name));
 
+    private static bool IsSupportedFieldShape(string? name, string? orientation, string? function) =>
+        !string.IsNullOrWhiteSpace(name) &&
+        (orientation switch {
+            "data" => function is "sum" or "average" or "count" or "countnums" or "max" or "min"
+                or "product" or "stdev" or "stdevp" or "var" or "varp",
+            "row" or "column" or "page" => function is null or "auto",
+            _ => false
+        });
+
     /// <summary>Adds a source field to this table using an ODF orientation and optional aggregation function.</summary>
     public OdsDataPilotField AddField(string sourceFieldName, string orientation, string? function = null) {
         if (string.IsNullOrWhiteSpace(sourceFieldName)) throw new ArgumentException("Source field name cannot be empty.", nameof(sourceFieldName));
@@ -99,8 +111,12 @@ public sealed class OdsDataPilotTable {
         } else if (function != null && function != "auto") {
             throw new ArgumentException("Non-data fields can use only the auto function.", nameof(function));
         }
+        if (!SourceHeaderContains(sourceFieldName)) {
+            throw new ArgumentException("Source field name must match a header in the source range.", nameof(sourceFieldName));
+        }
         if (Fields.Any(field => string.Equals(field.SourceFieldName, sourceFieldName, StringComparison.Ordinal)
-            && string.Equals(field.Orientation, orientation, StringComparison.Ordinal))) {
+            && string.Equals(field.Orientation, orientation, StringComparison.Ordinal)
+            && (orientation != "data" || string.Equals(field.Function, function, StringComparison.Ordinal)))) {
             throw new InvalidOperationException("The source field is already present in this orientation.");
         }
         var element = new XElement(OdfNamespaces.Table + "data-pilot-field",
@@ -110,6 +126,27 @@ public sealed class OdsDataPilotTable {
         Element.Add(element);
         _document.MarkPartDirty("content.xml");
         return new OdsDataPilotField(element);
+    }
+
+    private bool SourceHeaderContains(string fieldName) {
+        SpreadsheetRangeReference range = ParseLocalRange(SourceRangeAddress ?? string.Empty, nameof(SourceRangeAddress));
+        OdsSheet? sheet = _document.GetSheet(range.Start.SheetName!);
+        if (sheet == null) return false;
+        long headerRow = range.Start.Row!.Value - 1;
+        long firstColumn = range.Start.Column!.Value - 1;
+        long lastColumn = range.End!.Column!.Value - 1;
+        foreach (OdsRowRun row in sheet.RowRuns) {
+            if (row.StartRow > headerRow) break;
+            if (headerRow - row.StartRow >= row.RepeatCount) continue;
+            foreach (OdsCellRun cell in row.CellRuns) {
+                if (cell.StartColumn > lastColumn) break;
+                if (firstColumn >= cell.StartColumn && firstColumn - cell.StartColumn >= cell.RepeatCount) continue;
+                if (cell.Value.Kind == OdsCellValueKind.String
+                    && string.Equals(cell.Text, fieldName, StringComparison.Ordinal)) return true;
+            }
+            break;
+        }
+        return false;
     }
 
     internal static SpreadsheetRangeReference ParseLocalRange(string address, string parameterName) {

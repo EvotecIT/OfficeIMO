@@ -23,7 +23,8 @@ public sealed partial class OdsDocument {
         XElement? container = SpreadsheetBody.Element(OdfNamespaces.Table + "data-pilot-tables");
         if (container == null) {
             container = new XElement(OdfNamespaces.Table + "data-pilot-tables");
-            SpreadsheetBody.Add(container);
+            InsertSpreadsheetMetadata(container, OdfNamespaces.Table + "consolidation",
+                OdfNamespaces.Table + "dde-links");
         }
         var element = new XElement(OdfNamespaces.Table + "data-pilot-table",
             new XAttribute(OdfNamespaces.Table + "name", name),
