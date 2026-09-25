@@ -90,6 +90,21 @@ public sealed class PdfPaintedGlyphRenderingTests {
     }
 
     [Fact]
+    public void FaintPaintedLigatureStillSplitsAtItsGlyphBoundary() {
+        var span = new PdfTextSpan("ffiX", "F1", 12, 10, 10, 24,
+            OfficeColor.FromRgba(0, 0, 0, 1), true, 0, "Subset", null,
+            drawingFontFamily: "Subset", characterAdvances: [6D, 6D, 6D, 6D],
+            glyphCharacterLengths: [3, 1], glyphBytes: [[65], [66]], glyphPaintedAdvances: [12D, 12D]);
+        var spans = new List<PdfTextSpan> { span };
+        int charged = 0;
+
+        PdfPaintedGlyphRuns.SplitComplexRuns(spans, count => charged += count);
+
+        Assert.Equal(2, charged);
+        Assert.Equal(new[] { "ffi", "X" }, spans.Select(glyph => glyph.Text));
+    }
+
+    [Fact]
     public void AlternateRunChargesExpansionBeforeCreatingGlyphSpans() {
         PdfTextSpan span = CreateGlyphRun("AB", new[] { 1, 1 });
         var program = new PdfDrawingFontProgram(Array.Empty<byte>(), new SortedDictionary<int, int> {

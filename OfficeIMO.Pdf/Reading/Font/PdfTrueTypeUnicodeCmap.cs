@@ -161,7 +161,10 @@ internal static class PdfTrueTypeUnicodeCmap {
             // A nonsymbolic font selects its PDF-encoded name through Mac Roman before any
             // symbolic table, even when the same program also carries a (3,0) subtable.
             string named = decodeEncoding(code);
-            if (named.Length == 1 && PdfMacRomanEncoding.TryEncode(named[0], out byte macCode)) {
+            // PDF glyph names /fi and /fl decode to editable clusters, while cmap entries
+            // identify their single painted ligature glyph with the compatibility scalar.
+            char lookup = named switch { "fi" => '\uFB01', "fl" => '\uFB02', _ => named.Length == 1 ? named[0] : '\0' };
+            if (lookup != '\0' && PdfMacRomanEncoding.TryEncode(lookup, out byte macCode)) {
                 int glyph = LookupSubtable(data, macintosh.Value, macCode);
                 if (glyph > 0) return glyph;
             }
@@ -172,12 +175,20 @@ internal static class PdfTrueTypeUnicodeCmap {
                 if (glyph > 0) return glyph;
             }
         }
-        if (!isSymbolic && unicode.HasValue && TryGetSingleScalar(decodeEncoding(code), out int scalar)) {
+        if (!isSymbolic && unicode.HasValue && TryGetLookupScalar(decodeEncoding(code), out int scalar)) {
             int glyph = LookupSubtable(data, unicode.Value, scalar);
             if (glyph > 0) return glyph;
         }
         if (!macintosh.HasValue) return 0;
         return LookupSubtable(data, macintosh.Value, code);
+    }
+
+    private static bool TryGetLookupScalar(string text, out int scalar) {
+        if (text is "fi" or "fl") {
+            scalar = text == "fi" ? 0xFB01 : 0xFB02;
+            return true;
+        }
+        return TryGetSingleScalar(text, out scalar);
     }
 
     private static bool TryGetSingleScalar(string text, out int scalar) {

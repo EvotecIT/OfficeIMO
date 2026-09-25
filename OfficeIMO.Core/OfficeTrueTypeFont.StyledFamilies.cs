@@ -203,10 +203,22 @@ public sealed partial class OfficeTrueTypeFont {
             yield break;
         }
 
+        // Every parsed face retains its backing array. Read a collection once so inspecting
+        // several faces does not retain a complete copy of the same large file per face.
+        byte[]? collection = TryReadCollection(path);
+        if (collection == null) yield break;
         for (int index = 0; index < count; index++) {
-            OfficeTrueTypeFont? face = TryLoad(path, index);
+            OfficeTrueTypeFont? face = TryLoad(collection, index);
             if (face != null) yield return face;
         }
+    }
+
+    private static byte[]? TryReadCollection(string path) {
+        try { return File.ReadAllBytes(path); }
+        catch (IOException) { return null; }
+        catch (UnauthorizedAccessException) { return null; }
+        catch (ArgumentException) { return null; }
+        catch (NotSupportedException) { return null; }
     }
 
     // Returns the number of faces in a font collection, or zero for a standalone font or unreadable file.

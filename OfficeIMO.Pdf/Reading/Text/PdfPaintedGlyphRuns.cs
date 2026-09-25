@@ -28,7 +28,7 @@ internal static class PdfPaintedGlyphRuns {
         for (int index = spans.Count - 1; index >= 0; index--) {
             cancellationToken.ThrowIfCancellationRequested();
             PdfTextSpan span = spans[index];
-            if (!span.IsVisible || span.Color?.A <= 3) continue;
+            if (!span.IsVisible || span.Color?.A == 0) continue;
             bool hasUndecodedGlyph = span.Text.Contains(UndecodedGlyph);
             // Substitute shaping keeps joining context unless a missing glyph needs its own
             // painted advance between the visible portions of the run.
@@ -46,7 +46,7 @@ internal static class PdfPaintedGlyphRuns {
     internal static List<PdfTextSpan>? SplitAlternateGlyphRun(PdfTextSpan span, PdfDrawingFontProgram program,
         Action<int> chargeExpansion,
         System.Threading.CancellationToken cancellationToken = default) {
-        if (!span.IsVisible || span.Color?.A <= 3 || span.Text.Length < 2 || !HasGlyphGeometry(span) ||
+        if (!span.IsVisible || span.Color?.A == 0 || span.Text.Length < 2 || !HasGlyphGeometry(span) ||
             !PdfTextAdvanceProjection.TryGetResolvedDirection(span, cancellationToken, out double direction)) return null;
         bool alternate = false;
         int characterOffset = 0;

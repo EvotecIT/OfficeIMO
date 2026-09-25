@@ -57,6 +57,22 @@ public sealed class PdfTrueTypeUnicodeCmapTests {
         Assert.True(OfficeIMO.Drawing.OfficeTrueTypeFont.TryLoad(drawing.Program)?.HasGlyphs("Q"));
     }
 
+    [Theory]
+    [InlineData("fi", 1)]
+    [InlineData("fl", 2)]
+    public void LigatureDifferenceLooksUpPaintedGlyphWithoutChangingLogicalCluster(string name, int glyph) {
+        byte[] source = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('\uFB01', '\uFB02');
+        var font = new PdfFontResource("F1", "LigatureSubset", "WinAnsiEncoding", false,
+            differences: new Dictionary<int, string> { [65] = name }, fontSubtype: "TrueType",
+            embeddedProgramSubtype: "TrueType", fontDescriptorFlags: 32);
+
+        PdfDrawingFontProgram drawing = Assert.IsType<PdfDrawingFontProgram>(
+            PdfTrueTypeUnicodeCmap.TryCreate(font, source, null));
+
+        Assert.Equal(glyph, drawing.GlyphForCode(65));
+        Assert.Equal(name, ResourceResolver.CreateSimpleEncodingDecoder(font)(65));
+    }
+
     [Fact]
     public void GlyfOpenTypeContainerUsesSimpleFontCodeMapping() {
         byte[] source = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A', 'B');

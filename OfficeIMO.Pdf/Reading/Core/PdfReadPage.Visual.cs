@@ -222,7 +222,7 @@ public sealed partial class PdfReadPage {
             cancellationToken.ThrowIfCancellationRequested();
             PdfPageDrawingElement element = elements[index];
             if (element.Kind != PdfPageDrawingElementKind.Text || element.TextSpan is not PdfTextSpan span ||
-                !span.IsVisible || span.Color?.A <= 3 ||
+                !span.IsVisible || span.Color?.A == 0 ||
                 span.DrawingFontFamily == null || !registeredFonts.TryGetValue(PaintedFontKey(span), out PdfFontResource? registered) ||
                 registered.DrawingProgram is not PdfDrawingFontProgram program) continue;
             List<PdfTextSpan>? glyphs = PdfPaintedGlyphRuns.SplitAlternateGlyphRun(span, program,
@@ -241,7 +241,7 @@ public sealed partial class PdfReadPage {
         for (int index = 0; index < elements.Count; index++) {
             PdfPageDrawingElement element = elements[index];
             if (element.Kind != PdfPageDrawingElementKind.Text || element.TextSpan is not PdfTextSpan span ||
-                !span.IsVisible || span.Color?.A <= 3 ||
+                !span.IsVisible || span.Color?.A == 0 ||
                 span.Text.Length == 0 || span.Text.Length == 1 && char.IsSurrogate(span.Text[0]) ||
                 span.DrawingFontFamily == null ||
                 span.GlyphBytes is not { Count: 1 } glyphBytes || glyphBytes[0].Length is < 1 or > 2 ||
