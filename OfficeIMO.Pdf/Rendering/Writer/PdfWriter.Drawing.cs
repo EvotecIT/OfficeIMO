@@ -211,7 +211,7 @@ internal static partial class PdfWriter {
         } else if (shape.Kind == OfficeIMO.Drawing.OfficeShapeKind.Polygon) {
             DrawPolygon(sb, hasFill ? color : (PdfColor?)null, hasStroke ? color : (PdfColor?)null, strokeWidth, OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid, shape.StrokeLineCap, shape.StrokeLineJoin, shape.Points, x, bottomY, shape.Height);
         } else if (shape.Kind == OfficeIMO.Drawing.OfficeShapeKind.Path) {
-            DrawPath(sb, hasFill ? color : (PdfColor?)null, hasStroke ? color : (PdfColor?)null, strokeWidth, OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid, shape.StrokeLineCap, shape.StrokeLineJoin, shape.PathCommands, x, bottomY, shape.Height);
+            DrawPath(sb, hasFill ? color : (PdfColor?)null, hasStroke ? color : (PdfColor?)null, strokeWidth, OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid, shape.StrokeLineCap, shape.StrokeLineJoin, shape.PathCommands, x, bottomY, shape.Height, shape.FillRule);
         }
     }
 
@@ -267,7 +267,7 @@ internal static partial class PdfWriter {
         content.RestoreState();
     }
 
-    private static void DrawPath(StringBuilder sb, PdfColor? fillColor, PdfColor? strokeColor, double strokeWidth, OfficeIMO.Drawing.OfficeStrokeDashStyle strokeDashStyle, OfficeIMO.Drawing.OfficeStrokeLineCap? strokeLineCap, OfficeIMO.Drawing.OfficeStrokeLineJoin? strokeLineJoin, System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficePathCommand> commands, double x, double y, double h) {
+    private static void DrawPath(StringBuilder sb, PdfColor? fillColor, PdfColor? strokeColor, double strokeWidth, OfficeIMO.Drawing.OfficeStrokeDashStyle strokeDashStyle, OfficeIMO.Drawing.OfficeStrokeLineCap? strokeLineCap, OfficeIMO.Drawing.OfficeStrokeLineJoin? strokeLineJoin, System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficePathCommand> commands, double x, double y, double h, OfficeIMO.Drawing.OfficeFillRule fillRule) {
         if (commands.Count == 0 || (!fillColor.HasValue && (!strokeColor.HasValue || strokeWidth <= 0))) {
             return;
         }
@@ -287,7 +287,7 @@ internal static partial class PdfWriter {
         }
 
         AppendPathCommands(content, commands, x, y, h);
-        PaintPath(content, fillColor.HasValue, stroke, closePath: false);
+        PaintPath(content, fillColor.HasValue, stroke, closePath: false, fillRule);
         content.RestoreState();
     }
 
@@ -441,15 +441,15 @@ internal static partial class PdfWriter {
             endpoint.X + ((controlPoint.X - endpoint.X) * (2D / 3D)),
             endpoint.Y + ((controlPoint.Y - endpoint.Y) * (2D / 3D)));
 
-    private static void PaintPath(ContentStreamBuilder content, bool fill, bool stroke, bool closePath) {
+    private static void PaintPath(ContentStreamBuilder content, bool fill, bool stroke, bool closePath, OfficeIMO.Drawing.OfficeFillRule fillRule = OfficeIMO.Drawing.OfficeFillRule.NonZero) {
         if (closePath) {
             content.ClosePath();
         }
 
         if (fill && stroke) {
-            content.FillStrokePath();
+            content.FillStrokePath(fillRule);
         } else if (fill) {
-            content.FillPath();
+            content.FillPath(fillRule);
         } else if (stroke) {
             content.StrokePath();
         } else {
@@ -548,7 +548,7 @@ internal static partial class PdfWriter {
                 break;
             case OfficeIMO.Drawing.OfficeShapeKind.Path:
                 AppendLocalPathCommands(content, shape.PathCommands);
-                PaintPath(content, fill, stroke, closePath: false);
+                PaintPath(content, fill, stroke, closePath: false, shape.FillRule);
                 break;
         }
 
@@ -585,7 +585,7 @@ internal static partial class PdfWriter {
                 break;
             case OfficeIMO.Drawing.OfficeShapeKind.Path:
                 AppendPathCommands(content, shape.PathCommands, x, y, shape.Height);
-                content.ClipPath().EndPath();
+                content.ClipPath(shape.FillRule).EndPath();
                 break;
         }
     }
@@ -615,7 +615,7 @@ internal static partial class PdfWriter {
                 break;
             case OfficeIMO.Drawing.OfficeShapeKind.Path:
                 AppendLocalPathCommands(content, shape.PathCommands);
-                content.ClipPath().EndPath();
+                content.ClipPath(shape.FillRule).EndPath();
                 break;
         }
     }

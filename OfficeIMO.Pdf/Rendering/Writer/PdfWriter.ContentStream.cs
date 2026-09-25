@@ -92,8 +92,18 @@ internal sealed class ContentStreamBuilder {
         return this;
     }
 
+    public ContentStreamBuilder FillPath(OfficeFillRule fillRule) {
+        _sb.Append(fillRule == OfficeFillRule.EvenOdd ? " f*\n" : " f\n");
+        return this;
+    }
+
     public ContentStreamBuilder FillStrokePath() {
         _sb.Append(" B\n");
+        return this;
+    }
+
+    public ContentStreamBuilder FillStrokePath(OfficeFillRule fillRule) {
+        _sb.Append(fillRule == OfficeFillRule.EvenOdd ? " B*\n" : " B\n");
         return this;
     }
 

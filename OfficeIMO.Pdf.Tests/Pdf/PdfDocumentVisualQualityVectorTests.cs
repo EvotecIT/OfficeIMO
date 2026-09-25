@@ -700,7 +700,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("80 120 m", content);
         Assert.Contains("100 160 140 160 160 120 c", content);
         Assert.Contains("h", content);
-        Assert.Contains("B", content);
+        Assert.Contains("B*", content);
     }
 
     [Fact]
@@ -729,7 +729,45 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("80 120 m", content);
         Assert.Contains("106.667 146.667 133.333 146.667 160 120 c", content);
         Assert.Contains("h", content);
-        Assert.Contains("B", content);
+        Assert.Contains("B*", content);
+    }
+
+    [Fact]
+    public void VectorPath_UsesConfiguredFillRuleForNormalAndTransformedShapes() {
+        OfficeShape CreateNestedPath(OfficeFillRule rule, bool transformed) {
+            var shape = OfficeShape.Path(
+                OfficePathCommand.MoveTo(0, 0),
+                OfficePathCommand.LineTo(40, 0),
+                OfficePathCommand.LineTo(40, 40),
+                OfficePathCommand.LineTo(0, 40),
+                OfficePathCommand.Close(),
+                OfficePathCommand.MoveTo(10, 10),
+                OfficePathCommand.LineTo(30, 10),
+                OfficePathCommand.LineTo(30, 30),
+                OfficePathCommand.LineTo(10, 30),
+                OfficePathCommand.Close());
+            shape.FillColor = OfficeColor.Black;
+            shape.FillRule = rule;
+            if (transformed) shape.Transform = OfficeTransform.Translate(2, 3);
+            return shape;
+        }
+
+        string Content(OfficeFillRule rule, bool transformed) => Encoding.ASCII.GetString(
+            PdfDocument.Create(new PdfOptions {
+                    PageWidth = 100,
+                    PageHeight = 100,
+                    MarginLeft = 10,
+                    MarginRight = 10,
+                    MarginTop = 10,
+                    MarginBottom = 10
+                })
+                .Shape(CreateNestedPath(rule, transformed))
+                .ToBytes());
+
+        Assert.Contains("h f*", Content(OfficeFillRule.EvenOdd, transformed: false));
+        Assert.Contains("h f\n", Content(OfficeFillRule.NonZero, transformed: false));
+        Assert.Contains("h f*", Content(OfficeFillRule.EvenOdd, transformed: true));
+        Assert.Contains("h f\n", Content(OfficeFillRule.NonZero, transformed: true));
     }
 
     [Fact]
