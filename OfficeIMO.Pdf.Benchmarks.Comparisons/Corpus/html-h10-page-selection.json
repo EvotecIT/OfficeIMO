@@ -86,7 +86,7 @@
     {
       "id": "noaa-pacific-coral-surveys-2026",
       "sourceClass": "substantial-illustrated-article",
-      "role": "held-out",
+      "role": "development",
       "selectionDate": "2026-09-25",
       "url": "https://www.fisheries.noaa.gov/feature-story/2026-pacific-coral-surveys-complete",
       "rightsUrl": "https://www.fisheries.noaa.gov/national/about-us/website-policies-and-disclaimers",
@@ -126,7 +126,51 @@
           "inspect": ["heading hierarchy", "measurement list", "image references and credits", "link destinations", "serialized and reparsed content"]
         }
       ],
-      "reason": "A NOAA Fisheries article with a long text flow, measurement list, credited photographs and a navigation system distinct from the gallery pages, selected before any OfficeIMO rendering or conversion of this source."
+      "reason": "Selected independently before the first render. Its frozen PowerPoint output exposed overlapping long paragraphs and missing loss diagnostics, so it is now a development regression before that owner fix."
+    },
+    {
+      "id": "usgs-atmosphere-water-cycle",
+      "sourceClass": "substantial-illustrated-article-with-data-table",
+      "role": "held-out",
+      "selectionDate": "2026-09-25",
+      "url": "https://www.usgs.gov/water-science-school/science/atmosphere-and-water-cycle",
+      "rightsUrl": "https://www.usgs.gov/information-policies-and-instructions/copyrights-and-credits",
+      "rightsNotes": "USGS-authored content is generally U.S. public-domain material, but this page credits a Wikimedia/Creative Commons image. Keep the capture only in ignored local evidence; record image provenance and exclude any third-party visual from checked-in output unless its specific reuse terms are verified.",
+      "requiredVisibleMarkers": ["The Atmosphere and the Water Cycle", "How much does a cloud weigh?", "Global distribution of atmospheric water", "3,094"],
+      "editableTargetSelectionDate": "2026-09-25",
+      "editableTargets": [
+        {
+          "target": "Word",
+          "profile": "semantic document",
+          "inspect": ["title and section hierarchy", "data table", "links and image credit", "saved and reopened content"]
+        },
+        {
+          "target": "Excel",
+          "profile": "typed data table and editable article grid",
+          "inspect": ["source table labels and numeric measurements", "article text and image placement", "saved and reopened cells and images"]
+        },
+        {
+          "target": "PowerPoint",
+          "profile": "generic editable slides",
+          "inspect": ["ordered article sections", "visible non-overlapping text and table", "editable picture and credit", "saved and reopened slide order"]
+        },
+        {
+          "target": "OneNote",
+          "profile": "generic semantic pages",
+          "inspect": ["heading and paragraph flow", "table, links and credited image", "saved and reopened section content"]
+        },
+        {
+          "target": "RTF",
+          "profile": "editable semantic document",
+          "inspect": ["heading and paragraph flow", "table, links and image credit", "saved and reopened content"]
+        },
+        {
+          "target": "Markdown",
+          "profile": "semantic text",
+          "inspect": ["heading hierarchy", "data table", "links and image credit", "serialized and reparsed content"]
+        }
+      ],
+      "reason": "An independently authored USGS Water Science School article with long prose, a measurements table, links and an attributed image on a new site and stylesheet system. Selected from source content only before OfficeIMO capture, rendering or conversion."
     }
   ]
 }
