@@ -5,6 +5,17 @@ using Xunit;
 
 namespace OfficeIMO.Tests.MarkdownSuite {
     public class Markdown_Reader_Roundtrip_Tests {
+        [Theory]
+        [InlineData("![Survey photo](data:image/png;base64,aGVsbG8=) Credit: NOAA Fisheries.", "![Survey photo](data:image/png;base64,aGVsbG8=)")]
+        [InlineData("[![Survey photo](photo.png)](https://example.com/survey) Credit: NOAA Fisheries.", "[![Survey photo](photo.png)](https://example.com/survey)")]
+        public void Reader_Preserves_Text_After_Inline_Image(string source, string image) {
+            var parsed = MarkdownDoc.Parse(source);
+
+            string roundtrip = parsed.ToMarkdown();
+            Assert.Contains(image, roundtrip, StringComparison.Ordinal);
+            Assert.Contains("Credit: NOAA Fisheries.", roundtrip, StringComparison.Ordinal);
+        }
+
         [Fact]
         public void Reader_Roundtrips_Basic_Document() {
             var md = MarkdownDoc.Create()

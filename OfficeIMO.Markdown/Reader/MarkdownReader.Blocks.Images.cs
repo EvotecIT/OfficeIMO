@@ -82,7 +82,9 @@ public static partial class MarkdownReader {
             linkTargetLength: null,
             linkTitleStart: null,
             linkTitleLength: null);
-        ConsumeImageTrailingBlocks(t.Substring(parenClose + 1), parenClose + 1, image, options, ref sizeSpec, ref attributeStart, ref attributeLength);
+        if (!TryConsumeImageTrailingBlocks(t.Substring(parenClose + 1), parenClose + 1, image, options, ref sizeSpec, ref attributeStart, ref attributeLength)) {
+            return false;
+        }
         ranges = new MarkdownImageSyntaxRanges(
             ranges.AltStart,
             ranges.AltLength,
@@ -159,7 +161,9 @@ public static partial class MarkdownReader {
             hrefTitleStart,
             hrefTitleLength);
 
-        ConsumeImageTrailingBlocks(t.Substring(consumed), consumed, image, options, ref sizeSpec, ref attributeStart, ref attributeLength);
+        if (!TryConsumeImageTrailingBlocks(t.Substring(consumed), consumed, image, options, ref sizeSpec, ref attributeStart, ref attributeLength)) {
+            return false;
+        }
         ranges = new MarkdownImageSyntaxRanges(
             ranges.AltStart,
             ranges.AltLength,
@@ -177,7 +181,11 @@ public static partial class MarkdownReader {
         return true;
     }
 
-    private static void ConsumeImageTrailingBlocks(
+    /// <summary>
+    /// Accepts only supported size and attribute blocks after a standalone image. Other
+    /// trailing content must be parsed with the image as part of a paragraph.
+    /// </summary>
+    private static bool TryConsumeImageTrailingBlocks(
         string? suffix,
         int suffixStart,
         ImageBlock image,
@@ -214,6 +222,9 @@ public static partial class MarkdownReader {
                 restStart++;
             }
         }
+        // An image followed by ordinary text belongs to a paragraph. Treating it as a
+        // standalone image block silently discards that text during load and rewrite.
+        return restStart == suffix.Length;
     }
 
     private static bool TryApplyImageSizeSpec(string? block, ImageBlock image) {
