@@ -114,17 +114,7 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfAlign objectAlign = ResolveNativeParagraphAlign(paragraph, allowJustify: false);
             PdfCore.PdfParagraphStyle style = CreateNativeParagraphStyle(paragraph, nativeDefaults, nativeFontMap);
             if (marker is { Marker.Length: 0 }) ApplyNativeMarkerlessListIndent(paragraph, style);
-            RenderNativeChart(pdf, paragraph.Chart, objectAlign, options, "body paragraph chart");
-
-            if (paragraph.Shape != null) {
-                RenderNativeShape(pdf, paragraph.Shape);
-            }
-
             List<WordParagraph> runs = GetNativeRuns(paragraph);
-            RenderNativeParagraphImages(pdf, paragraph, runs, objectAlign, options, style);
-
-            RenderNativeRunCharts(pdf, runs, objectAlign, options, paragraph._run);
-
             bool hasEquationContent = WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0;
             string content = hasEquationContent
                 ? AppendNativeTextWithEquation(paragraph.Text, paragraph)
@@ -138,6 +128,27 @@ namespace OfficeIMO.Word.Pdf {
             if (ShouldSuppressNativeContextualSpacingAfter(paragraph, nextParagraph)) {
                 style.SpacingAfter = 0D;
             }
+            bool chartOnly = !needsAnchorLine && !hasRenderableRuns && string.IsNullOrEmpty(renderContent) &&
+                marker == null && paragraphFootnoteNumbers.Count == 0 && paragraph.Shape == null &&
+                checkboxControls.Count == 0 && formFieldControls.Count == 0 && repeatingSectionControls.Count == 0 &&
+                !runs.Any(run => run.IsImage);
+            OfficeDrawing? directChartDrawing = PrepareNativeChart(paragraph.Chart, options, "body paragraph chart");
+            List<OfficeDrawing> runChartDrawings = PrepareNativeRunCharts(runs, options, paragraph._run);
+            bool renderedChart = directChartDrawing != null || runChartDrawings.Count > 0;
+            if (directChartDrawing != null) {
+                pdf.Drawing(directChartDrawing, objectAlign,
+                    spacingBefore: chartOnly ? style.SpacingBefore : 2D,
+                    spacingAfter: chartOnly && runChartDrawings.Count == 0 ? style.SpacingAfter ?? 0D : 0D);
+            }
+
+            if (paragraph.Shape != null) {
+                RenderNativeShape(pdf, paragraph.Shape);
+            }
+
+            RenderNativeParagraphImages(pdf, paragraph, runs, objectAlign, options, style);
+            RenderNativeRunCharts(pdf, runChartDrawings, objectAlign,
+                chartOnly && directChartDrawing == null ? style.SpacingBefore : 2D,
+                chartOnly ? style.SpacingAfter ?? 0D : 0D);
 
             if (!needsAnchorLine && marker == null &&
                 paragraphFootnoteNumbers.Count == 0 &&
@@ -149,6 +160,9 @@ namespace OfficeIMO.Word.Pdf {
 
             if (!needsAnchorLine && !hasRenderableRuns && string.IsNullOrEmpty(renderContent) && marker == null &&
                 paragraphFootnoteNumbers.Count == 0 && checkboxControls.Count == 0 && formFieldControls.Count == 0 && repeatingSectionControls.Count == 0) {
+                if (renderedChart && chartOnly) {
+                    return;
+                }
                 RenderNativeEmptyParagraph(
                     pdf,
                     paragraph,
@@ -663,13 +677,26 @@ namespace OfficeIMO.Word.Pdf {
                 anchorStyle.AnchoredCanvas = new PdfCore.PdfCanvasBlock(anchoredCanvas.Items);
         }
 
-        private static void RenderNativeRunCharts(INativePdfFlow pdf, IReadOnlyList<WordParagraph> runs, PdfCore.PdfAlign align, WordToPdfOptions? options, W.Run? currentRun = null) {
+        private static List<OfficeDrawing> PrepareNativeRunCharts(IReadOnlyList<WordParagraph> runs, WordToPdfOptions? options, W.Run? currentRun) {
+            var drawings = new List<OfficeDrawing>();
             foreach (WordParagraph run in runs) {
                 if (currentRun != null && ReferenceEquals(run._run, currentRun)) {
                     continue;
                 }
 
-                RenderNativeChart(pdf, run.Chart, align, options, "body paragraph chart run");
+                OfficeDrawing? drawing = PrepareNativeChart(run.Chart, options, "body paragraph chart run");
+                if (drawing != null) {
+                    drawings.Add(drawing);
+                }
+            }
+            return drawings;
+        }
+
+        private static void RenderNativeRunCharts(INativePdfFlow pdf, IReadOnlyList<OfficeDrawing> drawings, PdfCore.PdfAlign align, double spacingBefore, double spacingAfter) {
+            for (int index = 0; index < drawings.Count; index++) {
+                pdf.Drawing(drawings[index], align,
+                    spacingBefore: index == 0 ? spacingBefore : 2D,
+                    spacingAfter: index == drawings.Count - 1 ? spacingAfter : 0D);
             }
         }
 

@@ -722,7 +722,7 @@ internal static partial class PdfWriter {
                             TryGetTableCellLayoutAtColumn(cells, borderColumn, out TableCellLayout borderCell) &&
                             (borderColumn >= rowFillSkips.Length || !rowFillSkips[borderColumn]) &&
                             HasRenderableCellBorder(cellBorder)) {
-                            int span = wholeRowSegment ? borderCell.ColumnSpan : 1;
+                            int span = wholeRowSegment || cellBorder.HasHiddenSegments ? borderCell.ColumnSpan : 1;
                             double borderHeight = hRect;
                             double borderBottom = yRect;
                             if (wholeRowSegment) {
@@ -744,10 +744,12 @@ internal static partial class PdfWriter {
                             bool topRight = cellTouchesTop && cellTouchesRight;
                             bool bottomRight = cellTouchesBottom && cellTouchesRight;
                             bool bottomLeft = cellTouchesBottom && cellTouchesLeft;
-                            if (topLeft || topRight || bottomRight || bottomLeft) {
+                            if (!cellBorder.HasHiddenSegments && (topLeft || topRight || bottomRight || bottomLeft)) {
                                 DrawRoundedCellBorder(sb, cellBorder, borderX, borderBottom, GetTableCellWidth(colPixel, borderColumn, span, colGapPx), borderHeight, cornerRadius, roundedOuterBorder, topLeft, topRight, bottomRight, bottomLeft, emitGeneratedStructure);
                             } else {
-                                DrawCellBorder(sb, cellBorder, borderX, borderBottom, GetTableCellWidth(colPixel, borderColumn, span, colGapPx), borderHeight, emitGeneratedStructure);
+                                DrawCellBorder(sb, cellBorder, borderX, borderBottom, GetTableCellWidth(colPixel, borderColumn, span, colGapPx), borderHeight, emitGeneratedStructure,
+                                    GetCellBorderSegmentLengths(rowHeights, rowIndex, borderCell.RowSpan, rowGapPx),
+                                    GetCellBorderSegmentLengths(colPixel, borderColumn, span, colGapPx));
                             }
                         }
                         borderX += colPixel[borderColumn] + colGapPx;

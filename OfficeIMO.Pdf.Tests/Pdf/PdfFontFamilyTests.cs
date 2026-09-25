@@ -575,6 +575,35 @@ public class PdfFontFamilyTests {
         }
     }
 
+    [Theory]
+    [InlineData(4097, 2)]
+    [InlineData(2048, 128)]
+    public void PdfEmbeddedFontFamily_TryFromSystemFontFilesRejectsExcessiveOverlappingNames(int recordCount, int nameBytes) {
+        if (!TryFindSingleInstalledRegularFontFace(out _, out string fontPath)) {
+            return;
+        }
+
+        string tempDir = Path.Combine(Path.GetTempPath(), "OfficeIMO.Pdf.Fonts." + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        try {
+            string adversarialPath = Path.Combine(tempDir, "unrelated-face.ttf");
+            byte[] fontData = AddOverlappingTrueTypeFamilyAliases(File.ReadAllBytes(fontPath), recordCount, nameBytes);
+            File.WriteAllBytes(adversarialPath, fontData);
+
+            Assert.False(PdfEmbeddedFontFamily.TryFromSystemFontFiles(
+                "OfficeIMO Repeated Alias", new[] { adversarialPath }, out PdfEmbeddedFontFamily? family));
+            Assert.Null(family);
+
+            string matchingFilenamePath = Path.Combine(tempDir, "OfficeIMO Repeated Alias-Regular.ttf");
+            File.WriteAllBytes(matchingFilenamePath, fontData);
+            Assert.False(PdfEmbeddedFontFamily.TryFromSystemFontFiles(
+                "OfficeIMO Repeated Alias", new[] { matchingFilenamePath }, out family));
+            Assert.Null(family);
+        } finally {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
     [Fact]
     public void PdfEmbeddedFontFamily_TryFromSystemFontFilesSkipsReadableMetadataMismatchBeforeFilenameFallback() {
         if (!TryFindSingleInstalledRegularFontFace(out _, out string fontPath)) {
@@ -3752,6 +3781,40 @@ public class PdfFontFamilyTests {
         Array.Copy(aliasBytes, 0, result, newNameOffset + nameLength + 12, aliasBytes.Length);
         WriteUInt32(result, nameRecordOffset + 8, checked((uint)newNameOffset));
         WriteUInt32(result, nameRecordOffset + 12, checked((uint)newNameLength));
+        return result;
+    }
+
+    private static byte[] AddOverlappingTrueTypeFamilyAliases(byte[] fontData, int recordCount, int nameBytes) {
+        int tableCount = ReadUInt16(fontData, 4);
+        int nameRecordOffset = -1;
+        for (int index = 0; index < tableCount; index++) {
+            int recordOffset = 12 + index * 16;
+            if (Encoding.ASCII.GetString(fontData, recordOffset, 4) == "name") {
+                nameRecordOffset = recordOffset;
+                break;
+            }
+        }
+        Assert.True(nameRecordOffset >= 0);
+
+        int nameOffset = (fontData.Length + 3) & ~3;
+        int stringOffset = 6 + recordCount * 12;
+        byte[] repeatedName = Encoding.BigEndianUnicode.GetBytes("OfficeIMO Repeated Alias".PadRight(nameBytes / 2));
+        byte[] result = new byte[nameOffset + stringOffset + repeatedName.Length];
+        Array.Copy(fontData, result, fontData.Length);
+        WriteUInt16(result, nameOffset + 2, checked((ushort)recordCount));
+        WriteUInt16(result, nameOffset + 4, checked((ushort)stringOffset));
+        for (int index = 0; index < recordCount; index++) {
+            int record = nameOffset + 6 + index * 12;
+            WriteUInt16(result, record, 3);
+            WriteUInt16(result, record + 2, 1);
+            WriteUInt16(result, record + 4, 0x0415);
+            WriteUInt16(result, record + 6, 1);
+            WriteUInt16(result, record + 8, checked((ushort)repeatedName.Length));
+            WriteUInt16(result, record + 10, 0);
+        }
+        Array.Copy(repeatedName, 0, result, nameOffset + stringOffset, repeatedName.Length);
+        WriteUInt32(result, nameRecordOffset + 8, checked((uint)nameOffset));
+        WriteUInt32(result, nameRecordOffset + 12, checked((uint)(stringOffset + repeatedName.Length)));
         return result;
     }
 

@@ -24,7 +24,7 @@ namespace OfficeIMO.Word.Pdf {
 
             foreach (var child in borders.ChildElements) {
                 if (child is W.BorderType border &&
-                    border.Val?.Value == W.BorderValues.Nil) {
+                    (border.Val?.Value == W.BorderValues.Nil || border.Val?.Value == W.BorderValues.None)) {
                     return true;
                 }
             }
@@ -99,9 +99,13 @@ namespace OfficeIMO.Word.Pdf {
             side != null && !side.Color.HasValue && side.Width <= 0D;
 
         private static void ReconcileNativeHiddenSharedBorders(
+            WordTable table,
             TableLayout layout,
+            NativeTableStyleDefaults tableStyleDefaults,
+            int headerRowCount,
             Dictionary<(int Row, int Column), PdfCore.PdfCellBorder> borders,
             Dictionary<(int Row, int Column), WordTableCellBorder> directBorders) {
+            int columnCount = GetNativeTableColumnCount(layout);
             var occupied = new Dictionary<(int Row, int Column), (int Row, int Column)>();
             var spans = new Dictionary<(int Row, int Column), (int Rows, int Columns)>();
             for (int rowIndex = 0; rowIndex < layout.Rows.Count; rowIndex++) {
@@ -132,24 +136,24 @@ namespace OfficeIMO.Word.Pdf {
                 }
                 int row = entry.Key.Item1;
                 int column = entry.Key.Item2;
-                if (IsNativeHiddenCellBorderSide(border.RightBorder) && IsNativeNilBorderSide(entry.Key, NativeBorderEdge.Right, directBorders)) {
+                if (IsNativeHiddenCellBorderSide(border.RightBorder) && IsNativeNilBorderSide(table, layout, tableStyleDefaults, headerRowCount, columnCount, entry.Key, entry.Value.Columns, NativeBorderEdge.Right, directBorders)) {
                     for (int offset = 0; offset < entry.Value.Rows; offset++) {
-                        HideNativeNeighborBorder(occupied, borders, entry.Key, (row + offset, column + entry.Value.Columns), NativeBorderEdge.Left);
+                        HideNativeNeighborBorder(occupied, spans, borders, entry.Key, (row + offset, column + entry.Value.Columns), NativeBorderEdge.Left);
                     }
                 }
-                if (IsNativeHiddenCellBorderSide(border.LeftBorder) && IsNativeNilBorderSide(entry.Key, NativeBorderEdge.Left, directBorders)) {
+                if (IsNativeHiddenCellBorderSide(border.LeftBorder) && IsNativeNilBorderSide(table, layout, tableStyleDefaults, headerRowCount, columnCount, entry.Key, entry.Value.Columns, NativeBorderEdge.Left, directBorders)) {
                     for (int offset = 0; offset < entry.Value.Rows; offset++) {
-                        HideNativeNeighborBorder(occupied, borders, entry.Key, (row + offset, column - 1), NativeBorderEdge.Right);
+                        HideNativeNeighborBorder(occupied, spans, borders, entry.Key, (row + offset, column - 1), NativeBorderEdge.Right);
                     }
                 }
-                if (IsNativeHiddenCellBorderSide(border.BottomBorder) && IsNativeNilBorderSide(entry.Key, NativeBorderEdge.Bottom, directBorders)) {
+                if (IsNativeHiddenCellBorderSide(border.BottomBorder) && IsNativeNilBorderSide(table, layout, tableStyleDefaults, headerRowCount, columnCount, entry.Key, entry.Value.Columns, NativeBorderEdge.Bottom, directBorders)) {
                     for (int offset = 0; offset < entry.Value.Columns; offset++) {
-                        HideNativeNeighborBorder(occupied, borders, entry.Key, (row + entry.Value.Rows, column + offset), NativeBorderEdge.Top);
+                        HideNativeNeighborBorder(occupied, spans, borders, entry.Key, (row + entry.Value.Rows, column + offset), NativeBorderEdge.Top);
                     }
                 }
-                if (IsNativeHiddenCellBorderSide(border.TopBorder) && IsNativeNilBorderSide(entry.Key, NativeBorderEdge.Top, directBorders)) {
+                if (IsNativeHiddenCellBorderSide(border.TopBorder) && IsNativeNilBorderSide(table, layout, tableStyleDefaults, headerRowCount, columnCount, entry.Key, entry.Value.Columns, NativeBorderEdge.Top, directBorders)) {
                     for (int offset = 0; offset < entry.Value.Columns; offset++) {
-                        HideNativeNeighborBorder(occupied, borders, entry.Key, (row - 1, column + offset), NativeBorderEdge.Bottom);
+                        HideNativeNeighborBorder(occupied, spans, borders, entry.Key, (row - 1, column + offset), NativeBorderEdge.Bottom);
                     }
                 }
             }
@@ -158,48 +162,116 @@ namespace OfficeIMO.Word.Pdf {
         private enum NativeBorderEdge { Top, Right, Bottom, Left }
 
         private static bool IsNativeNilBorderSide(
+            WordTable table,
+            TableLayout layout,
+            NativeTableStyleDefaults defaults,
+            int headerRowCount,
+            int columnCount,
             (int Row, int Column) key,
+            int columnSpan,
             NativeBorderEdge edge,
             Dictionary<(int Row, int Column), WordTableCellBorder> directBorders) {
-            if (!directBorders.TryGetValue(key, out WordTableCellBorder? direct)) {
-                // A hidden conditional style side has no direct cell override.
-                return true;
+            if (directBorders.TryGetValue(key, out WordTableCellBorder? direct)) {
+                WordBorderStyle? style = edge switch {
+                    NativeBorderEdge.Top => direct.TopStyle,
+                    NativeBorderEdge.Right => direct.RightStyle,
+                    NativeBorderEdge.Bottom => direct.BottomStyle,
+                    _ => direct.LeftStyle
+                };
+                if (style.HasValue) {
+                    return style.Value == WordBorderStyle.Nil;
+                }
             }
 
-            WordBorderStyle? style = edge switch {
-                NativeBorderEdge.Top => direct.TopStyle,
-                NativeBorderEdge.Right => direct.RightStyle,
-                NativeBorderEdge.Bottom => direct.BottomStyle,
-                _ => direct.LeftStyle
+            W.BorderValues? conditional = null;
+            if (table.ConditionalFormattingFirstRow == true && key.Row == 0) {
+                UpdateNativeConditionalBorderValue(ref conditional, defaults.FirstRowStyle.CellBorders, edge);
+            }
+            if (table.ConditionalFormattingLastRow == true && layout.Rows.Count > headerRowCount && key.Row == layout.Rows.Count - 1) {
+                UpdateNativeConditionalBorderValue(ref conditional, defaults.LastRowStyle.CellBorders, edge);
+            }
+            int footerStartRow = table.ConditionalFormattingLastRow == true && layout.Rows.Count > headerRowCount
+                ? layout.Rows.Count - 1 : layout.Rows.Count;
+            if (key.Row >= headerRowCount && key.Row < footerStartRow) {
+                if (table.ConditionalFormattingNoHorizontalBand != true && (key.Row - headerRowCount) % 2 == 1) {
+                    UpdateNativeConditionalBorderValue(ref conditional, defaults.Band1HorizontalStyle.CellBorders, edge);
+                }
+                if (table.ConditionalFormattingNoVerticalBand != true && key.Column % 2 == 1) {
+                    UpdateNativeConditionalBorderValue(ref conditional, defaults.Band1VerticalStyle.CellBorders, edge);
+                }
+            }
+            if (table.ConditionalFormattingFirstColumn == true && key.Column == 0) {
+                UpdateNativeConditionalBorderValue(ref conditional, defaults.FirstColumnStyle.CellBorders, edge);
+            }
+            if (table.ConditionalFormattingLastColumn == true && key.Column + columnSpan >= columnCount) {
+                UpdateNativeConditionalBorderValue(ref conditional, defaults.LastColumnStyle.CellBorders, edge);
+            }
+            // Word's nil wins a collapsed shared edge; none hides only its own side.
+            return conditional != W.BorderValues.None;
+        }
+
+        private static void UpdateNativeConditionalBorderValue(ref W.BorderValues? value, W.TableCellBorders? borders, NativeBorderEdge edge) {
+            W.BorderType? border = edge switch {
+                NativeBorderEdge.Top => borders?.GetFirstChild<W.TopBorder>(),
+                NativeBorderEdge.Right => (W.BorderType?)borders?.GetFirstChild<W.RightBorder>() ?? borders?.GetFirstChild<W.EndBorder>(),
+                NativeBorderEdge.Bottom => borders?.GetFirstChild<W.BottomBorder>(),
+                _ => (W.BorderType?)borders?.GetFirstChild<W.LeftBorder>() ?? borders?.GetFirstChild<W.StartBorder>()
             };
-            return !style.HasValue || style.Value == WordBorderStyle.Nil;
+            if (HasNativeConditionalBorderOverride(border)) {
+                value = border!.Val!.Value;
+            }
         }
 
         private static void HideNativeNeighborBorder(
             Dictionary<(int Row, int Column), (int Row, int Column)> occupied,
+            Dictionary<(int Row, int Column), (int Rows, int Columns)> spans,
             Dictionary<(int Row, int Column), PdfCore.PdfCellBorder> borders,
             (int Row, int Column) source,
             (int Row, int Column) neighborPosition,
             NativeBorderEdge edge) {
             if (!occupied.TryGetValue(neighborPosition, out var neighborKey) || neighborKey == source ||
+                !spans.TryGetValue(neighborKey, out var neighborSpan) ||
                 !borders.TryGetValue(neighborKey, out PdfCore.PdfCellBorder? neighbor)) {
                 return;
             }
 
+            int rowSegment = neighborPosition.Row - neighborKey.Row;
+            int columnSegment = neighborPosition.Column - neighborKey.Column;
+
             switch (edge) {
                 case NativeBorderEdge.Top:
+                    if (neighborSpan.Columns > 1) {
+                        neighbor.HiddenTopColumnSegments ??= new HashSet<int>();
+                        neighbor.HiddenTopColumnSegments.Add(columnSegment);
+                        break;
+                    }
                     neighbor.Top = false;
                     neighbor.TopBorder = NativeHiddenCellBorderSide();
                     break;
                 case NativeBorderEdge.Right:
+                    if (neighborSpan.Rows > 1) {
+                        neighbor.HiddenRightRowSegments ??= new HashSet<int>();
+                        neighbor.HiddenRightRowSegments.Add(rowSegment);
+                        break;
+                    }
                     neighbor.Right = false;
                     neighbor.RightBorder = NativeHiddenCellBorderSide();
                     break;
                 case NativeBorderEdge.Bottom:
+                    if (neighborSpan.Columns > 1) {
+                        neighbor.HiddenBottomColumnSegments ??= new HashSet<int>();
+                        neighbor.HiddenBottomColumnSegments.Add(columnSegment);
+                        break;
+                    }
                     neighbor.Bottom = false;
                     neighbor.BottomBorder = NativeHiddenCellBorderSide();
                     break;
                 default:
+                    if (neighborSpan.Rows > 1) {
+                        neighbor.HiddenLeftRowSegments ??= new HashSet<int>();
+                        neighbor.HiddenLeftRowSegments.Add(rowSegment);
+                        break;
+                    }
                     neighbor.Left = false;
                     neighbor.LeftBorder = NativeHiddenCellBorderSide();
                     break;

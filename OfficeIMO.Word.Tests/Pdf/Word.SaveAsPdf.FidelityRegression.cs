@@ -1,7 +1,9 @@
 using System;
 using System.IO;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using M = DocumentFormat.OpenXml.Math;
@@ -127,6 +129,168 @@ public partial class Word {
         Assert.Contains("Conditional left", text);
         Assert.Contains("Conditional right", text);
         Assert.Equal(expectedStroke, PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath)).Contains(" RG", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void SaveAsPdf_ConditionalHiddenOuterBorderOverridesTableGrid(bool isNil) {
+        BorderValues borderStyle = isNil ? BorderValues.Nil : BorderValues.None;
+        string docPath = Path.Combine(_directoryWithFiles, $"PdfConditionalOuterEdge{borderStyle}.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, $"PdfConditionalOuterEdge{borderStyle}.pdf");
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            const string styleId = "PdfConditionalOuterEdge";
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(new Style(
+                new StyleName { Val = styleId },
+                new StyleTableProperties(new TableBorders(
+                    new TopBorder { Val = BorderValues.Single },
+                    new BottomBorder { Val = BorderValues.Nil },
+                    new LeftBorder { Val = BorderValues.Nil },
+                    new RightBorder { Val = BorderValues.Nil })),
+                new TableStyleProperties(
+                    new TableStyleConditionalFormattingTableCellProperties(new TableCellBorders(
+                        new TopBorder { Val = borderStyle })))
+                { Type = TableStyleOverrideValues.FirstRow })
+            { Type = StyleValues.Table, StyleId = styleId });
+
+            WordTable table = document.AddTable(1, 1);
+            table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
+            table.ConditionalFormattingFirstRow = true;
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "Hidden outer edge";
+            document.Save();
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
+        }
+
+        Assert.Contains("Hidden outer edge", OfficeIMO.Pdf.PdfTextExtractor.ExtractAllText(pdfPath));
+        Assert.DoesNotContain(" RG", PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath)));
+    }
+
+    [Fact]
+    public void SaveAsPdf_MergedCellSharedEdgeResolvesEachNeighborRow() {
+        double[] mixed = ExportBorderLengths(WordBorderStyle.Nil, WordBorderStyle.None, "Mixed");
+        double[] hidden = ExportBorderLengths(WordBorderStyle.Nil, WordBorderStyle.Nil, "Hidden");
+        double[] visible = ExportBorderLengths(WordBorderStyle.None, WordBorderStyle.None, "Visible");
+
+        Assert.Empty(hidden);
+        Assert.Single(mixed);
+        Assert.Single(visible);
+        Assert.True(mixed[0] > 5D && mixed[0] < visible[0] - 5D);
+
+        double[] ExportBorderLengths(WordBorderStyle upperBorder, WordBorderStyle lowerBorder, string suffix) {
+            string docPath = Path.Combine(_directoryWithFiles, $"PdfMergedSharedEdge{suffix}.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, $"PdfMergedSharedEdge{suffix}.pdf");
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                WordTable table = document.AddTable(2, 2);
+                table._tableProperties!.TableBorders = new TableBorders(
+                    new TopBorder { Val = BorderValues.Nil },
+                    new BottomBorder { Val = BorderValues.Nil },
+                    new LeftBorder { Val = BorderValues.Nil },
+                    new RightBorder { Val = BorderValues.Nil },
+                    new InsideHorizontalBorder { Val = BorderValues.Nil },
+                    new InsideVerticalBorder { Val = BorderValues.Single });
+                table.Rows[0].Height = 650;
+                table.Rows[1].Height = 850;
+                table.Rows[0].Cells[0].Paragraphs[0].Text = "Merged";
+                table.Rows[0].Cells[0].MergeVertically(1);
+                table.Rows[0].Cells[1].Paragraphs[0].Text = "Upper";
+                table.Rows[1].Cells[1].Paragraphs[0].Text = "Lower";
+                table.Rows[0].Cells[1].Borders.LeftStyle = upperBorder;
+                table.Rows[1].Cells[1].Borders.LeftStyle = lowerBorder;
+                document.Save();
+                document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
+            }
+
+            string operators = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
+            return Regex.Matches(operators, @"(?<x>-?\d+(?:\.\d+)?) (?<top>-?\d+(?:\.\d+)?) m\s+\k<x> (?<bottom>-?\d+(?:\.\d+)?) l")
+                .Cast<Match>()
+                .Select(match => Math.Abs(
+                    double.Parse(match.Groups["top"].Value, CultureInfo.InvariantCulture) -
+                    double.Parse(match.Groups["bottom"].Value, CultureInfo.InvariantCulture)))
+                .ToArray();
+        }
+    }
+
+    [Fact]
+    public void SaveAsPdf_MergedCellSharedEdgeResolvesEachNeighborColumn() {
+        double[] mixed = ExportBorderLengths(WordBorderStyle.Nil, WordBorderStyle.None, "Mixed");
+        double[] hidden = ExportBorderLengths(WordBorderStyle.Nil, WordBorderStyle.Nil, "Hidden");
+        double[] visible = ExportBorderLengths(WordBorderStyle.None, WordBorderStyle.None, "Visible");
+
+        Assert.Empty(hidden);
+        Assert.Single(mixed);
+        Assert.Single(visible);
+        Assert.True(mixed[0] > 5D && mixed[0] < visible[0] - 5D);
+
+        double[] ExportBorderLengths(WordBorderStyle leftBorder, WordBorderStyle rightBorder, string suffix) {
+            string docPath = Path.Combine(_directoryWithFiles, $"PdfMergedHorizontalSharedEdge{suffix}.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, $"PdfMergedHorizontalSharedEdge{suffix}.pdf");
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                WordTable table = document.AddTable(2, 2);
+                table._tableProperties!.TableBorders = new TableBorders(
+                    new TopBorder { Val = BorderValues.Nil },
+                    new BottomBorder { Val = BorderValues.Nil },
+                    new LeftBorder { Val = BorderValues.Nil },
+                    new RightBorder { Val = BorderValues.Nil },
+                    new InsideHorizontalBorder { Val = BorderValues.Single },
+                    new InsideVerticalBorder { Val = BorderValues.Nil });
+                table.Rows[0].Cells[0].Paragraphs[0].Text = "Merged";
+                table.Rows[0].Cells[0].MergeHorizontally(1);
+                table.Rows[1].Cells[0].Paragraphs[0].Text = "Left";
+                table.Rows[1].Cells[1].Paragraphs[0].Text = "Right";
+                table.Rows[1].Cells[0].Borders.TopStyle = leftBorder;
+                table.Rows[1].Cells[1].Borders.TopStyle = rightBorder;
+                document.Save();
+                document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
+            }
+
+            string operators = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
+            return Regex.Matches(operators, @"(?<left>-?\d+(?:\.\d+)?) (?<y>-?\d+(?:\.\d+)?) m\s+(?<right>-?\d+(?:\.\d+)?) \k<y> l")
+                .Cast<Match>()
+                .Select(match => Math.Abs(
+                    double.Parse(match.Groups["left"].Value, CultureInfo.InvariantCulture) -
+                    double.Parse(match.Groups["right"].Value, CultureInfo.InvariantCulture)))
+                .ToArray();
+        }
+    }
+
+    [Fact]
+    public void SaveAsPdf_SplitMergedCellBorderSegmentsStayWithinTheirPageFragment() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfSplitMergedBorderSegments.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfSplitMergedBorderSegments.pdf");
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordTable table = document.AddTable(2, 2);
+            table._tableProperties!.TableBorders = new TableBorders(
+                new TopBorder { Val = BorderValues.Nil },
+                new BottomBorder { Val = BorderValues.Nil },
+                new LeftBorder { Val = BorderValues.Nil },
+                new RightBorder { Val = BorderValues.Nil },
+                new InsideHorizontalBorder { Val = BorderValues.Single },
+                new InsideVerticalBorder { Val = BorderValues.Nil });
+            table.Rows[0].Cells[0].Paragraphs[0].Text = string.Join(" ", Enumerable.Repeat("Merged continuation", 100));
+            table.Rows[0].Cells[0].MergeHorizontally(1);
+            table.Rows[1].Cells[0].Paragraphs[0].Text = "Left";
+            table.Rows[1].Cells[1].Paragraphs[0].Text = "Right";
+            table.Rows[1].Cells[0].Borders.TopStyle = WordBorderStyle.Nil;
+            table.Rows[1].Cells[1].Borders.TopStyle = WordBorderStyle.None;
+            document.Save();
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+                IncludePageNumbers = false,
+                PageSize = new OfficeIMO.Pdf.PageSize(300, 220),
+                Margins = OfficeIMO.Pdf.PageMargins.Uniform(24)
+            });
+        }
+
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open(pdfPath);
+        Assert.True(pdf.NumberOfPages > 1);
+        string operators = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
+        Match[] horizontalLines = Regex.Matches(operators, @"(?<left>-?\d+(?:\.\d+)?) (?<y>-?\d+(?:\.\d+)?) m\s+(?<right>-?\d+(?:\.\d+)?) \k<y> l")
+            .Cast<Match>().ToArray();
+        Assert.NotEmpty(horizontalLines);
+        Assert.All(horizontalLines, line => Assert.True(
+            double.Parse(line.Groups["right"].Value, CultureInfo.InvariantCulture) >
+            double.Parse(line.Groups["left"].Value, CultureInfo.InvariantCulture),
+            "A split merged cell emitted a zero or reversed horizontal border."));
     }
 
     [Fact]

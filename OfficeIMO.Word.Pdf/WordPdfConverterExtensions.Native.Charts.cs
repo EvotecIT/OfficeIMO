@@ -19,11 +19,9 @@ namespace OfficeIMO.Word.Pdf {
         private const double MinNativeWordChartHeightPoints = 150D;
         private const double MaxNativeWordChartHeightPoints = 260D;
         private const double NativeWordChartTitleTopPadding = 31D;
-        private const double NativeWordChartSpacingAfter = NativeDefaultParagraphSpacingAfter;
-
-        private static bool RenderNativeChart(INativePdfFlow pdf, WordChart? chart, PdfCore.PdfAlign align, WordToPdfOptions? options, string source) {
+        private static OfficeDrawing? PrepareNativeChart(WordChart? chart, WordToPdfOptions? options, string source) {
             if (chart == null) {
-                return false;
+                return null;
             }
 
             if (!TryCreateNativeWordChartSnapshot(chart, out OfficeChartSnapshot? snapshot, out string? warning)) {
@@ -35,7 +33,7 @@ namespace OfficeIMO.Word.Pdf {
                         warning ?? "Word chart data is not mapped by the OfficeIMO PDF engine yet.");
                 }
 
-                return false;
+                return null;
             }
 
             if (!string.IsNullOrWhiteSpace(warning) && options != null) {
@@ -55,8 +53,7 @@ namespace OfficeIMO.Word.Pdf {
                     "Exported Word chart '" + GetNativeWordChartDisplayName(snapshot!) + "' with shared drawing quality warnings: " + string.Join("; ", rendering.QualityReport.Issues.Select(issue => issue.ToString())));
             }
 
-            pdf.Drawing(rendering.Drawing, align, spacingBefore: 2D, spacingAfter: NativeWordChartSpacingAfter);
-            return true;
+            return rendering.Drawing;
         }
 
         private static bool TryCreateNativeWordChartSnapshot(WordChart chart, out OfficeChartSnapshot? snapshot, out string? warning) {

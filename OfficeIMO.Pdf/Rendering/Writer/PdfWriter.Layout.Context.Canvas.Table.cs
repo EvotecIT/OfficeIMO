@@ -174,7 +174,9 @@ internal static partial class PdfWriter {
                                 cellTouchesTop && cellTouchesLeft,
                                 cellTouchesTop && cellTouchesRight,
                                 cellTouchesBottom && cellTouchesRight,
-                                cellTouchesBottom && cellTouchesLeft);
+                                cellTouchesBottom && cellTouchesLeft,
+                                GetCellBorderSegmentLengths(rowHeights, rowIndex, cell.RowSpan, rowGap),
+                                GetCellBorderSegmentLengths(columnWidths, cell.Column, cell.ColumnSpan, columnGap));
                         }
                     } finally {
                         _canvasStructureParentElement = tableParent;
@@ -437,15 +439,15 @@ internal static partial class PdfWriter {
             }
         }
 
-        private void DrawCanvasTableCellBorder(PdfTableStyle style, int rowIndex, int columnIndex, double x, double y, double width, double height, double cornerRadius, bool topLeft, bool topRight, bool bottomRight, bool bottomLeft) {
+        private void DrawCanvasTableCellBorder(PdfTableStyle style, int rowIndex, int columnIndex, double x, double y, double width, double height, double cornerRadius, bool topLeft, bool topRight, bool bottomRight, bool bottomLeft, double[]? rowSegmentHeights, double[]? columnSegmentWidths) {
             if (style.CellBorders != null &&
                 style.CellBorders.TryGetValue((rowIndex, columnIndex), out PdfCellBorder? border) &&
                 HasRenderableCellBorder(border)) {
-                if (cornerRadius > 0D && (topLeft || topRight || bottomRight || bottomLeft)) {
+                if (!border.HasHiddenSegments && cornerRadius > 0D && (topLeft || topRight || bottomRight || bottomLeft)) {
                     double outerBorderWidth = style.BorderColor is not null && style.BorderWidth > 0D ? style.BorderWidth : 0D;
                     DrawRoundedCellBorder(sb, border, x, y, width, height, cornerRadius, outerBorderWidth, topLeft, topRight, bottomRight, bottomLeft, true);
                 } else {
-                    DrawCellBorder(sb, border, x, y, width, height, true);
+                    DrawCellBorder(sb, border, x, y, width, height, true, rowSegmentHeights, columnSegmentWidths);
                 }
             }
         }
