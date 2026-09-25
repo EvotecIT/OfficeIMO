@@ -234,32 +234,6 @@
 @media(max-width:620px){.imo-hero{padding:3.5rem 0 3rem}.imo-hero__title{font-size:clamp(2.75rem,14vw,4rem)}.imo-hero-proof{min-height:620px}.imo-proof-document{width:74%}.imo-proof-sheet{width:70%;top:250px}.imo-proof-slide{width:72%;bottom:10px}.imo-proof-code{left:3%;bottom:130px;width:80%}.imo-how-it-works__grid{grid-template-columns:1fr}.imo-how-it-works__step{min-height:0}}
 
 /* ---------- Workbench home ---------- */
-.imo-workbench { max-width: 1320px; padding-top: clamp(3rem, 6vw, 4.75rem); }
-.imo-workbench__intro { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 1.5rem 3.5rem; align-items: end; }
-.imo-workbench h1 { margin: 0; font-size: clamp(2.5rem, 4.6vw, 4rem); line-height: 1; letter-spacing: -0.04em; }
-.imo-workbench h1 span { display: block; background: var(--imo-gradient-text); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.imo-workbench__lede > p { margin: 0; color: var(--imo-text-secondary); font-size: 1.08rem; line-height: 1.6; max-width: 34em; }
-.imo-workbench__actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 1.4rem; }
-.imo-workbench__facts { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 1.1rem 0 0; padding: 0; list-style: none; color: var(--imo-text-muted); font-size: .86rem; }
-.imo-workbench__facts li { display: flex; align-items: center; gap: 8px; }
-.imo-workbench__facts li::before { content: ""; width: 6px; height: 6px; border-radius: 2px; background: var(--imo-primary); }
-.imo-workbench__stage { position: relative; margin-top: clamp(2.5rem, 5vw, 3.5rem); min-height: 360px; }
-.imo-workbench__window { display: block; width: 84%; max-height: 520px; margin: 0 auto; overflow: hidden; border: 1px solid var(--imo-border-strong); border-bottom: 0; border-radius: 12px 12px 0 0; background: var(--imo-surface); box-shadow: var(--imo-window-glow); }
-.imo-workbench__window img { display: block; width: 100%; height: auto; }
-.imo-workbench__float { position: absolute; margin: 0; box-shadow: 0 30px 60px -22px rgba(0, 0, 0, .65); }
-.imo-workbench__float--cli { left: 0; bottom: 36px; width: min(430px, 44%); }
-.imo-workbench__float--ps { right: 0; top: 110px; width: min(410px, 42%); }
-
-.imo-terminal { overflow: hidden; border: 1px solid rgba(255, 255, 255, .1); border-radius: 10px; background: var(--imo-terminal-bg); color: var(--imo-terminal-text); font: 12.5px/1.7 var(--imo-font-mono); }
-.imo-terminal figcaption { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--imo-terminal-bar); color: var(--imo-terminal-muted); font-size: 11.5px; }
-.imo-terminal figcaption::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--imo-dot, #2a3754); }
-.imo-terminal pre { margin: 0; padding: 12px 14px; overflow-x: auto; background: none; border: 0; color: inherit; font: inherit; white-space: pre; }
-.imo-t-prompt, .imo-t-str { color: #5bd39a; }
-.imo-t-cmd { color: #f2c265; }
-.imo-t-arg { color: #c8aeff; }
-.imo-t-fn { color: #8ab6ff; }
-.imo-t-muted { color: #71809a; }
-
 .imo-surfaces { position: relative; z-index: 2; border-block: 1px solid var(--imo-border); background: var(--imo-border); }
 .imo-surfaces__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1px; max-width: var(--imo-max-width-wide); margin: 0 auto; }
 .imo-surface { position: relative; display: grid; align-content: start; gap: .5rem; padding: 1.6rem 1.5rem 1.8rem; background: var(--imo-bg-alt); color: var(--imo-text); text-decoration: none; transition: background var(--imo-duration) var(--imo-ease); }
@@ -306,10 +280,7 @@
 .imo-open__way--sponsor { --imo-way: #db61a2; }
 
 @media (max-width: 1023px) {
-  .imo-workbench__intro, .imo-open { grid-template-columns: minmax(0, 1fr); }
-  .imo-workbench__stage { display: grid; gap: 14px; min-height: 0; padding-bottom: 2rem; }
-  .imo-workbench__window { width: 100%; border-bottom: 1px solid var(--imo-border-strong); border-radius: 12px; }
-  .imo-workbench__float { position: static; width: auto; }
+  .imo-open { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 640px) {
   .imo-surfaces__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -318,7 +289,6 @@
   .imo-surface p { font-size: .84rem; }
   .imo-open__ways { grid-template-columns: minmax(0, 1fr); }
   .imo-open__way--wide { grid-template-columns: minmax(0, 1fr); }
-  .imo-workbench__float--ps { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .imo-open__way, .imo-surface { transition: none; }

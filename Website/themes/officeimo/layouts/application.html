@@ -23,34 +23,53 @@
   {{ include "header" }}
   {{ app = data.applications[page.meta.application] }}
   <main id="content" class="imo-main">
-    <section class="imo-application-hero imo-container" aria-labelledby="application-title">
-      <p class="imo-application-eyebrow">{{ page.title }} · {{ app.eyebrow }}</p>
-      <h1 id="application-title">{{ app.headline }}</h1>
-      <p class="imo-application-summary">{{ app.summary }}</p>
-      <div class="imo-application-actions">
-        <a class="imo-btn imo-btn-primary" href="{{ app.primaryUrl }}">{{ app.primaryLabel }}</a>
-        <a class="imo-btn imo-btn-ghost" href="{{ app.secondaryUrl }}">{{ app.secondaryLabel }}</a>
+    <section class="imo-workbench imo-workbench--app imo-container" data-product="{{ page.meta.application }}" aria-labelledby="application-title">
+      <div class="imo-workbench__intro">
+        <div>
+          <p class="imo-workbench__eyebrow">{{ page.title }} · {{ app.eyebrow }}</p>
+          <h1 id="application-title">{{ if app.headlineLead }}{{ app.headlineLead }} <span>{{ app.headlineAccent }}</span>{{ else }}{{ app.headline }}{{ end }}</h1>
+        </div>
+        <div class="imo-workbench__lede">
+          <p>{{ app.summary }}</p>
+          <div class="imo-workbench__actions">
+            <a class="imo-btn imo-btn-primary" href="{{ app.primaryUrl }}">{{ app.primaryLabel }}</a>
+            <a class="imo-btn imo-btn-ghost" href="{{ app.secondaryUrl }}">{{ app.secondaryLabel }}</a>
+          </div>
+          <ul class="imo-workbench__facts">{{ for fact in app.facts }}<li>{{ fact }}</li>{{ end }}</ul>
+          <p class="imo-workbench__availability">{{ app.availability }}</p>
+        </div>
       </div>
-      <p class="imo-application-availability">{{ app.availability }}</p>
-      <ul class="imo-application-facts">{{ for fact in app.facts }}<li>{{ fact }}</li>{{ end }}</ul>
       {{ if app.image }}
-      <figure class="imo-application-preview">
-        <a data-pf-media data-pf-media-group="studio" data-pf-media-caption="Studio · Document workspace" data-pf-media-light="/images/studio/workspace-light.png" data-pf-media-dark="/images/studio/workspace-dark.png" href="{{ app.image }}" aria-label="Open full-size Studio screenshot"><img decoding="async" src="{{ app.image }}" width="1440" height="960" alt="{{ app.imageAlt }}" fetchpriority="high" /></a>
+      <figure class="imo-workbench__stage imo-workbench__stage--single">
+        <a class="imo-workbench__window" data-pf-media data-pf-media-group="studio" data-pf-media-caption="Studio · Document workspace" data-pf-media-light="{{ app.image }}" data-pf-media-dark="{{ app.imageDark ?? app.image }}" href="{{ app.image }}" aria-label="Open full-size Studio screenshot">
+          <picture class="imo-theme-light-only">
+            <source srcset="{{ app.image | string.replace '.png' '.webp' }}" type="image/webp" />
+            <img src="{{ app.image }}" width="1440" height="960" alt="{{ app.imageAlt }}" loading="lazy" decoding="async" fetchpriority="high" />
+          </picture>
+          <picture class="imo-theme-dark-only">
+            <source srcset="{{ (app.imageDark ?? app.image) | string.replace '.png' '.webp' }}" type="image/webp" />
+            <img src="{{ app.imageDark ?? app.image }}" width="1440" height="960" alt="{{ app.imageAlt }}" loading="lazy" decoding="async" fetchpriority="high" />
+          </picture>
+        </a>
         <figcaption>{{ app.caption }}</figcaption>
       </figure>
       {{ else }}
-      <div class="imo-application-terminal" aria-label="OfficeIMO CLI install and example commands">
-        <p>OfficeIMO.Tool <span>Terminal</span></p>
-        <pre><code><span># Install</span>
-{{ app.install }}
+      <figure class="imo-workbench__stage imo-workbench__stage--single">
+        <div class="imo-terminal imo-terminal--hero" style="--imo-dot: #5bd39a">
+          <p class="imo-terminal__bar"><span>pwsh · OfficeIMO.Tool</span><button type="button" data-copy="{{ app.install }}" aria-label="Copy CLI installation command">Copy install</button></p>
+<pre aria-label="OfficeIMO CLI install and example commands"><span class="imo-t-muted"># Install once with the .NET SDK</span>
+<span class="imo-t-prompt">❯</span> {{ app.install }}
 
-<span># Convert a document</span>
-officeimo convert report.docx report.pdf
+<span class="imo-t-muted"># Convert a Word document to PDF</span>
+<span class="imo-t-prompt">❯</span> <span class="imo-t-cmd">officeimo</span> convert <span class="imo-t-arg">report.docx</span> <span class="imo-t-arg">report.pdf</span>
 
-<span># Extract readable content</span>
-officeimo convert report.pdf report.md</code></pre>
-        <button type="button" data-copy="{{ app.install }}" aria-label="Copy CLI installation command">Copy install command</button>
-      </div>
+<span class="imo-t-muted"># Extract the content as Markdown for search or AI</span>
+<span class="imo-t-prompt">❯</span> <span class="imo-t-cmd">officeimo</span> convert <span class="imo-t-arg">report.pdf</span> <span class="imo-t-arg">report.md</span>
+
+<span class="imo-t-muted"># Give an AI agent the same tools over MCP</span>
+<span class="imo-t-prompt">❯</span> <span class="imo-t-cmd">officeimo</span> mcp serve --stdio</pre>
+        </div>
+      </figure>
       {{ end }}
     </section>
     <div class="imo-container" id="application-guide"><article class="imo-application-guide imo-prose">{{ content }}</article></div>
@@ -67,8 +86,8 @@ officeimo convert report.pdf report.md</code></pre>
     <section class="imo-container imo-application-gallery" aria-labelledby="gallery-title">
       <h2 id="gallery-title">A workspace that follows your reading</h2>
       <div class="imo-application-gallery-grid">
-        <figure><a data-pf-media data-pf-media-group="studio" href="/images/studio/workspace-dark.png"><img decoding="async" src="/images/studio/workspace-dark.png" width="1440" height="960" loading="lazy" alt="The same sample PDF open in Studio with dark application appearance." /></a><figcaption>Dark application appearance keeps the PDF's original colors.</figcaption></figure>
-        <figure><a data-pf-media data-pf-media-group="studio" href="/images/studio/find.png"><img decoding="async" src="/images/studio/find.png" width="1440" height="960" loading="lazy" alt="Studio's Find panel showing matches alongside the sample PDF." /></a><figcaption>Find individual occurrences and follow their page highlights.</figcaption></figure>
+        <figure><a data-pf-media data-pf-media-group="studio" href="/images/studio/workspace-dark.png"><picture><source srcset="/images/studio/workspace-dark.webp" type="image/webp" /><img decoding="async" src="/images/studio/workspace-dark.png" width="1440" height="960" loading="lazy" alt="The same sample PDF open in Studio with dark application appearance." /></picture></a><figcaption>Dark application appearance keeps the PDF's original colors.</figcaption></figure>
+        <figure><a data-pf-media data-pf-media-group="studio" href="/images/studio/find.png"><picture><source srcset="/images/studio/find.webp" type="image/webp" /><img decoding="async" src="/images/studio/find.png" width="1440" height="960" loading="lazy" alt="Studio's Find panel showing matches alongside the sample PDF." /></picture></a><figcaption>Find individual occurrences and follow their page highlights.</figcaption></figure>
       </div>
     </section>
     {{ end }}

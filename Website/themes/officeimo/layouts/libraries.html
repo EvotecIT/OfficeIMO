@@ -24,7 +24,40 @@
   {{ include "header" }}
 
   <main id="content" class="imo-main imo-main--home">
-    <section class="imo-platform-hero imo-platform-hero--libraries imo-container"><p class="imo-application-eyebrow">Libraries for .NET and PowerShell</p><h1>Build reports.<br /><span>Automate document work.</span></h1><p>Create Word documents, Excel workbooks, presentations, and PDFs.<br />Choose a package for generation, conversion, editing, or extraction.</p><div class="imo-application-actions"><a class="imo-btn imo-btn-primary" href="/showcase/">Find an example with source</a><a class="imo-btn imo-btn-ghost" href="/products/pswriteoffice/">Automate with PowerShell</a></div></section>
+    <section class="imo-workbench imo-workbench--app imo-container" data-product="dotnet" aria-labelledby="libraries-title">
+      <div class="imo-workbench__intro">
+        <div>
+          <p class="imo-workbench__eyebrow">.NET libraries · One package per format</p>
+          <h1 id="libraries-title">Build documents <span>into your applications.</span></h1>
+        </div>
+        <div class="imo-workbench__lede">
+          <p>Create Word documents, Excel workbooks, presentations and PDFs from C#. Pick the focused package for generation, conversion, editing or extraction.</p>
+          <div class="imo-workbench__actions">
+            <a class="imo-btn imo-btn-primary" href="#library-catalog">Find your package</a>
+            <a class="imo-btn imo-btn-ghost" href="/showcase/">Examples with source</a>
+          </div>
+          <ul class="imo-workbench__facts"><li>No Office install</li><li>NativeAOT tested</li><li>MIT licensed</li></ul>
+          <p class="imo-workbench__availability">Scripting instead? <a href="/products/pswriteoffice/">PSWriteOffice brings the same engines to PowerShell</a>.</p>
+        </div>
+      </div>
+      <figure class="imo-workbench__stage imo-workbench__stage--single">
+        <div class="imo-terminal imo-terminal--hero" style="--imo-dot: #a68bff">
+          <p class="imo-terminal__bar"><span>Report.cs · OfficeIMO.Word</span><button type="button" data-copy="dotnet add package OfficeIMO.Word" aria-label="Copy the OfficeIMO.Word package command">Copy install</button></p>
+<pre aria-label="C# example that creates a Word report"><span class="imo-t-arg">using</span> OfficeIMO.Word;
+
+<span class="imo-t-arg">using var</span> doc = <span class="imo-t-fn">WordDocument</span>.Create(<span class="imo-t-str">"report.docx"</span>);
+
+<span class="imo-t-arg">var</span> title = doc.AddParagraph(<span class="imo-t-str">"Quarterly Sales Report"</span>);
+title.Style = <span class="imo-t-fn">WordParagraphStyle</span>.Heading1;
+
+<span class="imo-t-arg">var</span> table = doc.AddTable(<span class="imo-t-cmd">4</span>, <span class="imo-t-cmd">3</span>);
+table.Rows[<span class="imo-t-cmd">0</span>].Cells[<span class="imo-t-cmd">0</span>].Paragraphs[<span class="imo-t-cmd">0</span>].Text = <span class="imo-t-str">"Region"</span>;
+table.Rows[<span class="imo-t-cmd">0</span>].IsHeader = <span class="imo-t-arg">true</span>;
+
+doc.Save();</pre>
+        </div>
+      </figure>
+    </section>
     
     {{ include "sections/library-catalog" }}
     {{ include "sections/code-examples" }}
