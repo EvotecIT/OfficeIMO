@@ -260,9 +260,21 @@ public sealed partial class PdfEmbeddedFontFamily {
             return 200;
         }
 
+        foreach (string alias in metadata.FamilyAliases) {
+            if (IsMetadataFamilyNameMatch(alias, normalizedMetadataFamily)) {
+                return 150;
+            }
+        }
+
         if (!string.IsNullOrWhiteSpace(metadata.TypographicFamilyName) &&
             IsMetadataFamilyNameMatch(metadata.TypographicFamilyName!, normalizedMetadataFamily)) {
             return 0;
+        }
+
+        foreach (string alias in metadata.TypographicFamilyAliases) {
+            if (IsMetadataFamilyNameMatch(alias, normalizedMetadataFamily)) {
+                return 0;
+            }
         }
 
         foreach (string? faceName in metadata.GetFaceNames()) {
@@ -526,6 +538,8 @@ public sealed partial class PdfEmbeddedFontFamily {
         try {
             EnsureRange(data, offset, tableLength);
             var names = new System.Collections.Generic.Dictionary<int, TrueTypeNameValue>();
+            var familyAliases = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+            var typographicFamilyAliases = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
             int count = ReadUInt16(data, offset + 2);
             int stringOffset = offset + ReadUInt16(data, offset + 4);
             for (int i = 0; i < count; i++) {
@@ -547,9 +561,15 @@ public sealed partial class PdfEmbeddedFontFamily {
                     continue;
                 }
 
+                string trimmedValue = value!.Trim();
+                if (nameId == 1) {
+                    familyAliases.Add(trimmedValue);
+                } else if (nameId == 16) {
+                    typographicFamilyAliases.Add(trimmedValue);
+                }
                 int score = GetNameValueScore(platformId, languageId);
                 if (!names.TryGetValue(nameId, out TrueTypeNameValue? existing) || score > existing.Score) {
-                    names[nameId] = new TrueTypeNameValue(value!.Trim(), score);
+                    names[nameId] = new TrueTypeNameValue(trimmedValue, score);
                 }
             }
 
@@ -559,7 +579,9 @@ public sealed partial class PdfEmbeddedFontFamily {
                 GetName(names, 4),
                 GetName(names, 6),
                 GetName(names, 16),
-                GetName(names, 17));
+                GetName(names, 17),
+                familyAliases,
+                typographicFamilyAliases);
             return true;
         } catch (System.Exception exception) when (exception is System.NotSupportedException) {
             return false;
@@ -674,13 +696,17 @@ public sealed partial class PdfEmbeddedFontFamily {
             string? fullName,
             string? postScriptName,
             string? typographicFamilyName,
-            string? typographicSubfamilyName) {
+            string? typographicSubfamilyName,
+            System.Collections.Generic.IReadOnlyCollection<string> familyAliases,
+            System.Collections.Generic.IReadOnlyCollection<string> typographicFamilyAliases) {
             FamilyName = familyName;
             SubfamilyName = subfamilyName;
             FullName = fullName;
             PostScriptName = postScriptName;
             TypographicFamilyName = typographicFamilyName;
             TypographicSubfamilyName = typographicSubfamilyName;
+            FamilyAliases = familyAliases;
+            TypographicFamilyAliases = typographicFamilyAliases;
         }
 
         public string? FamilyName { get; }
@@ -694,6 +720,8 @@ public sealed partial class PdfEmbeddedFontFamily {
         public string? TypographicFamilyName { get; }
 
         public string? TypographicSubfamilyName { get; }
+        public System.Collections.Generic.IReadOnlyCollection<string> FamilyAliases { get; }
+        public System.Collections.Generic.IReadOnlyCollection<string> TypographicFamilyAliases { get; }
 
         public System.Collections.Generic.IEnumerable<string?> GetFaceNames() {
             yield return FullName;

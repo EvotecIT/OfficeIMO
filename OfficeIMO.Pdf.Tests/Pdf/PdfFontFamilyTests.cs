@@ -549,6 +549,32 @@ public class PdfFontFamilyTests {
         }
     }
 
+    [Theory]
+    [InlineData((ushort)1)]
+    [InlineData((ushort)16)]
+    public void PdfEmbeddedFontFamily_TryFromSystemFontFilesMatchesLocalizedFamilyAlias(ushort nameId) {
+        if (!TryFindSingleInstalledRegularFontFace(out _, out string fontPath)) {
+            return;
+        }
+
+        const string alias = "OfficeIMO Localized Family";
+        string tempDir = Path.Combine(Path.GetTempPath(), "OfficeIMO.Pdf.Fonts." + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        try {
+            string aliasPath = Path.Combine(tempDir, "officeimo-localized-face.ttf");
+            byte[] fontData = AddLocalizedTrueTypeFamilyAlias(File.ReadAllBytes(fontPath), alias, nameId);
+            File.WriteAllBytes(aliasPath, fontData);
+
+            bool found = PdfEmbeddedFontFamily.TryFromSystemFontFiles(alias, new[] { aliasPath }, out PdfEmbeddedFontFamily? family);
+
+            Assert.True(found);
+            Assert.NotNull(family);
+            Assert.Equal(fontData, family!.Regular);
+        } finally {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
     [Fact]
     public void PdfEmbeddedFontFamily_TryFromSystemFontFilesSkipsReadableMetadataMismatchBeforeFilenameFallback() {
         if (!TryFindSingleInstalledRegularFontFace(out _, out string fontPath)) {
@@ -3684,6 +3710,49 @@ public class PdfFontFamilyTests {
         }
 
         throw new InvalidOperationException("Required OpenType table '" + tag + "' was not found.");
+    }
+
+    private static byte[] AddLocalizedTrueTypeFamilyAlias(byte[] fontData, string alias, ushort nameId) {
+        int tableCount = ReadUInt16(fontData, 4);
+        int nameRecordOffset = -1;
+        for (int index = 0; index < tableCount; index++) {
+            int recordOffset = 12 + index * 16;
+            if (Encoding.ASCII.GetString(fontData, recordOffset, 4) == "name") {
+                nameRecordOffset = recordOffset;
+                break;
+            }
+        }
+        Assert.True(nameRecordOffset >= 0);
+
+        int nameOffset = checked((int)ReadUInt32(fontData, nameRecordOffset + 8));
+        int nameLength = checked((int)ReadUInt32(fontData, nameRecordOffset + 12));
+        int recordCount = ReadUInt16(fontData, nameOffset + 2);
+        int stringOffset = ReadUInt16(fontData, nameOffset + 4);
+        byte[] aliasBytes = Encoding.BigEndianUnicode.GetBytes(alias);
+        int originalStringBytes = nameLength - stringOffset;
+        int newNameLength = checked(nameLength + 12 + aliasBytes.Length);
+        int newNameOffset = (fontData.Length + 3) & ~3;
+        byte[] result = new byte[checked(newNameOffset + newNameLength)];
+        Array.Copy(fontData, result, fontData.Length);
+
+        int oldRecordEnd = 6 + recordCount * 12;
+        Assert.True(oldRecordEnd <= stringOffset && stringOffset <= nameLength);
+        Array.Copy(fontData, nameOffset, result, newNameOffset, oldRecordEnd);
+        Array.Copy(fontData, nameOffset + oldRecordEnd, result, newNameOffset + oldRecordEnd + 12, nameLength - oldRecordEnd);
+        WriteUInt16(result, newNameOffset + 2, checked((ushort)(recordCount + 1)));
+        WriteUInt16(result, newNameOffset + 4, checked((ushort)(stringOffset + 12)));
+
+        int aliasRecord = newNameOffset + oldRecordEnd;
+        WriteUInt16(result, aliasRecord, 3);
+        WriteUInt16(result, aliasRecord + 2, 1);
+        WriteUInt16(result, aliasRecord + 4, 0x0415);
+        WriteUInt16(result, aliasRecord + 6, nameId);
+        WriteUInt16(result, aliasRecord + 8, checked((ushort)aliasBytes.Length));
+        WriteUInt16(result, aliasRecord + 10, checked((ushort)originalStringBytes));
+        Array.Copy(aliasBytes, 0, result, newNameOffset + nameLength + 12, aliasBytes.Length);
+        WriteUInt32(result, nameRecordOffset + 8, checked((uint)newNameOffset));
+        WriteUInt32(result, nameRecordOffset + 12, checked((uint)newNameLength));
+        return result;
     }
 
     private static void WriteUInt16(byte[] data, int offset, ushort value) {

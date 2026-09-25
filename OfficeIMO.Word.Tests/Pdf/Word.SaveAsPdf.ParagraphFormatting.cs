@@ -274,6 +274,14 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Preserves_Empty_Paragraph_Before_Spacing() {
+            double noBeforeGap = RenderNativeEmptyParagraphGap("PdfNativeBlankNoBefore", includeBlankParagraph: true, blankSpacingBefore: 0D);
+            double withBeforeGap = RenderNativeEmptyParagraphGap("PdfNativeBlankWithBefore", includeBlankParagraph: true, blankSpacingBefore: 18D);
+
+            Assert.InRange(withBeforeGap - noBeforeGap, 16D, 20D);
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Maps_Justified_Paragraphs() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeJustifiedParagraph.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeJustifiedParagraph.pdf");
@@ -2066,7 +2074,7 @@ namespace OfficeIMO.Tests {
             Assert.True(lineLefts[1] > lineLefts[0] + 20D, $"Expected wrapped hanging-indent line to start farther right. First line x: {lineLefts[0]:0.##}; second line x: {lineLefts[1]:0.##}.");
         }
 
-        private double RenderNativeEmptyParagraphGap(string fileNamePrefix, bool includeBlankParagraph) {
+        private double RenderNativeEmptyParagraphGap(string fileNamePrefix, bool includeBlankParagraph, double blankSpacingBefore = 4D) {
             string beforeMarker = fileNamePrefix + "Before";
             string afterMarker = fileNamePrefix + "After";
             string docPath = Path.Combine(_directoryWithFiles, fileNamePrefix + ".docx");
@@ -2079,7 +2087,7 @@ namespace OfficeIMO.Tests {
                 if (includeBlankParagraph) {
                     WordParagraph blank = document.AddParagraph();
                     blank.FontSize = 20;
-                    blank.LineSpacingBeforePoints = 4;
+                    blank.LineSpacingBeforePoints = blankSpacingBefore;
                     blank.LineSpacingAfterPoints = 0;
                 }
 

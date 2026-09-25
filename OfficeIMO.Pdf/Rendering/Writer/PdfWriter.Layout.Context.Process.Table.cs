@@ -7,6 +7,8 @@ internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private void RenderDeferredTableFlowBlock(DeferredTableBlock deferredTable, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex) {
             PdfTableStyle style = deferredTable.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light();
+            double flowYBeforeTable = y;
+            LayoutResult.Page? pageBeforeTable = currentPage;
             foreach (DeferredTableBatch batch in deferredTable.CreateBatches(style)) {
                 cancellationToken.ThrowIfCancellationRequested();
                 RenderTableFlowBlock(
@@ -17,11 +19,15 @@ internal static partial class PdfWriter {
                     skipInitialHeaderRows: !batch.IsFirst,
                     bodyRowOffset: batch.BodyRowOffset,
                     logicalTopBoundary: batch.IsFirst,
-                    logicalBottomBoundary: batch.IsLast);
+                    logicalBottomBoundary: batch.IsLast,
+                    restoreVerticalFlow: false);
+            }
+            if (!style.ConsumesVerticalFlow && ReferenceEquals(currentPage, pageBeforeTable)) {
+                y = flowYBeforeTable;
             }
         }
 
-        private void RenderTableFlowBlock(TableBlock tb, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex, bool skipInitialHeaderRows = false, int bodyRowOffset = 0, bool logicalTopBoundary = true, bool logicalBottomBoundary = true) {
+        private void RenderTableFlowBlock(TableBlock tb, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex, bool skipInitialHeaderRows = false, int bodyRowOffset = 0, bool logicalTopBoundary = true, bool logicalBottomBoundary = true, bool restoreVerticalFlow = true) {
             PdfTableStyle style = tb.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light();
             double flowYBeforeTable = y;
             LayoutResult.Page? pageBeforeTable = currentPage;
@@ -815,7 +821,7 @@ internal static partial class PdfWriter {
             }
 
             y -= style.SpacingAfter;
-            if (!style.ConsumesVerticalFlow && ReferenceEquals(currentPage, pageBeforeTable)) {
+            if (restoreVerticalFlow && !style.ConsumesVerticalFlow && ReferenceEquals(currentPage, pageBeforeTable)) {
                 y = flowYBeforeTable;
             }
         }

@@ -286,10 +286,9 @@ namespace OfficeIMO.Word.Pdf {
                 nativeDefaults,
                 styleDefaults,
                 nativeFontMap);
+            double spacingBefore = style.SpacingBefore;
             double spacingAfter = style.SpacingAfter ?? nativeDefaults.ParagraphSpacingAfter;
-            // Word does not add paragraph-before spacing to an empty line box.
-            // It still uses the paragraph mark's font size and spacing after.
-            double height = (fontSize * lineHeight) + spacingAfter;
+            double height = spacingBefore + (fontSize * lineHeight) + spacingAfter;
             return double.IsNaN(height) || double.IsInfinity(height) ? 0D : Math.Max(0D, height);
         }
 
