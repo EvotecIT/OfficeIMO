@@ -170,6 +170,12 @@ commit. Inspect PDF text and rendered
 pages before making a compatibility claim. This lane is a diagnostic first pass,
 not the H10 corpus acceptance gate or a sandbox for arbitrary hostile sites.
 
+For a frozen archive that exceeds the untrusted CSS rule limit, append
+`--max-css-rules 20000` to run an explicit bounded qualification profile. The
+report records the effective rule and selector limits. This does not change
+the library's default 10,000-rule untrusted profile; measure time and memory
+before deciding whether a higher limit is suitable for ordinary use.
+
 Measure and enforce the H4/advanced-held-out OfficeIMO static-rendering budgets separately from
 the reference-engine comparison:
 

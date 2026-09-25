@@ -29,10 +29,17 @@ internal static class HtmlMhtmlEvidenceRunner {
 
     internal static async Task<int> RunAsync(string[] args) {
         string[] flags = args.Skip(5).ToArray();
+        int? maxCssRules = null;
+        if (flags.Length >= 2 && flags[flags.Length - 2] == "--max-css-rules"
+            && int.TryParse(flags[flags.Length - 1], out int requestedRuleLimit)
+            && requestedRuleLimit >= 10_000 && requestedRuleLimit <= 20_000) {
+            maxCssRules = requestedRuleLimit;
+            flags = flags.Take(flags.Length - 2).ToArray();
+        }
         if (args.Length < 5 || (args[1] != "--url" && args[1] != "--mhtml") || args[3] != "--output"
             || flags.Distinct(StringComparer.Ordinal).Count() != flags.Length
             || flags.Any(flag => flag != "--replay-browser" && flag != "--require-clean-source")) {
-            Console.Error.WriteLine("html-mhtml-evidence <--url https-url|--mhtml existing-archive> --output <new-directory> [--replay-browser] [--require-clean-source]");
+            Console.Error.WriteLine("html-mhtml-evidence <--url https-url|--mhtml existing-archive> --output <new-directory> [--replay-browser] [--require-clean-source] [--max-css-rules 10000..20000]");
             return 2;
         }
         bool replay = args[1] == "--mhtml";
@@ -118,7 +125,14 @@ internal static class HtmlMhtmlEvidenceRunner {
         MhtmlDocument? document = null;
         try {
             using var source = new MemoryStream(archive, writable: false);
-            document = MhtmlDocument.Load(source);
+            HtmlConversionDocumentOptions? htmlOptions = null;
+            if (maxCssRules.HasValue) {
+                htmlOptions = HtmlConversionDocumentOptions.CreateUntrustedProfile();
+                HtmlConversionLimits limits = htmlOptions.Limits.Clone();
+                limits.MaxCssRules = maxCssRules.Value;
+                htmlOptions.Limits = limits;
+            }
+            document = MhtmlDocument.Load(source, htmlOptions: htmlOptions);
         } catch (Exception exception) {
             failures.Add("OfficeIMO MHTML load: " + exception);
         }
@@ -180,6 +194,8 @@ internal static class HtmlMhtmlEvidenceRunner {
             browserReference = replay && !replayBrowser ? "not-recorded" : "offline-archive-replay",
             sourceCommit,
             worktreeDirty,
+            maxCssRules = maxCssRules ?? HtmlConversionLimits.CreateUntrustedProfile().MaxCssRules,
+            maxSelectorEvaluations = HtmlConversionLimits.CreateUntrustedProfile().MaxSelectorEvaluations,
             chromiumVersion,
             peachPdfVersion = HtmlCorpusEvidenceRunner.DependencyVersion("PeachPDF", typeof(PdfGenerator).Assembly),
             ownerVersions,
