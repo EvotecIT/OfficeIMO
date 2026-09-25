@@ -3,8 +3,12 @@ using OfficeIMO.Pdf.Filters;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfPrintProductionColorInspector {
+    internal static PdfPrintProductionColorEvidence Inspect(PdfReadDocument document,
+        System.Threading.CancellationToken cancellationToken = default) => Inspect(document, null, cancellationToken);
+
     internal static PdfPrintProductionColorEvidence Inspect(
         PdfReadDocument document,
+        int? selectedPageNumber,
         System.Threading.CancellationToken cancellationToken = default) {
         Guard.NotNull(document, nameof(document));
         cancellationToken.ThrowIfCancellationRequested();
@@ -32,6 +36,10 @@ internal static partial class PdfPrintProductionColorInspector {
         int pageSequenceId = 0;
         foreach (PdfReadPage page in document.Pages) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (selectedPageNumber.HasValue && pageSequenceId + 1 != selectedPageNumber.Value) {
+                pageSequenceId++;
+                continue;
+            }
             PdfDictionary dictionary = page.PageDictionary;
 
             ColorSpaceAliases pageAliases = ResolveColorSpaceAliases(
@@ -56,6 +64,9 @@ internal static partial class PdfPrintProductionColorInspector {
                     maximumObjectDepth,
                     pageSequenceId)) uninspectable++;
             }
+            // Appearance streams are not included in page /Contents. Until they are classified,
+            // printable annotations must make color evidence explicitly incomplete.
+            if (HasUninspectedPrintableAppearance(dictionary, objects, maximumObjectDepth)) uninspectable++;
             ReachableResourceCollection reachable = CollectReachableResourceContexts(
                 contentStreams,
                 firstPageContext,
@@ -597,6 +608,25 @@ internal static partial class PdfPrintProductionColorInspector {
             nonOpaqueStates,
             transparencyGroups,
             uninspectable);
+    }
+
+    private static bool HasUninspectedPrintableAppearance(
+        PdfDictionary page,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maximumObjectDepth) {
+        if (!page.Items.TryGetValue("Annots", out PdfObject? value)) return false;
+        if (ResolveObject(objects, value, 0, maximumObjectDepth) is not PdfArray annotations) return true;
+        foreach (PdfObject item in annotations.Items) {
+            if (ResolveObject(objects, item, 0, maximumObjectDepth) is not PdfDictionary annotation) return true;
+            if (!annotation.Items.TryGetValue("F", out PdfObject? flagsObject) ||
+                ResolveObject(objects, flagsObject, 0, maximumObjectDepth) is not PdfNumber flags) {
+                // Missing flags mean the annotation is not marked for printing.
+                continue;
+            }
+            int flagBits = (int)flags.Value;
+            if ((flagBits & 4) != 0 && (flagBits & 3) == 0 && annotation.Items.ContainsKey("AP")) return true;
+        }
+        return false;
     }
 
     private static bool CollectStreams(

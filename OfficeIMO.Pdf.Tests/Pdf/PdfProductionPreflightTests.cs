@@ -1,0 +1,87 @@
+using OfficeIMO.Pdf;
+using Xunit;
+
+namespace OfficeIMO.Tests.Pdf;
+
+public sealed class PdfProductionPreflightTests {
+    [Fact]
+    public void ProposedPageBoxesRequireSelectionAndAreReinspectedAfterRewrite() {
+        PdfDocument source = PdfDocument.Load(PdfDocument.Create(new PdfOptions { PageWidth = 300D, PageHeight = 200D })
+            .Paragraph(paragraph => paragraph.Text("Print proof"))
+            .ToBytes());
+        PdfProductionPreflightReport report = source.Proof.PreflightProduction(
+            new PdfProductionPreflightOptions { Profile = PdfProductionPreflightProfile.PdfX4Candidate });
+
+        Assert.Contains(report.Findings, finding => finding.Kind == PdfProductionFindingKind.MissingOutputIntent && finding.PageNumber is null);
+        Assert.Contains(report.Findings, finding => finding.Kind == PdfProductionFindingKind.InvalidPageBoxes && finding.PageNumber == 1);
+        Assert.Equal(new[] { PdfPageBoundaryBox.TrimBox, PdfPageBoundaryBox.BleedBox },
+            report.FixupProposals.Select(static proposal => proposal.Box));
+        Assert.Null(source.Inspect().Pages[0].TrimBox);
+
+        PdfProductionFixupResult fixedBoxes = report.ApplySelected(report.FixupProposals.Select(static proposal => proposal.Index).ToArray());
+
+        Assert.NotNull(fixedBoxes.Document.Inspect().Pages[0].TrimBox);
+        Assert.DoesNotContain(fixedBoxes.After.Findings, finding => finding.Kind == PdfProductionFindingKind.InvalidPageBoxes);
+        Assert.Contains(fixedBoxes.After.Findings, finding => finding.Kind == PdfProductionFindingKind.MissingOutputIntent);
+        Assert.Equal(PdfArtifactFingerprint.ComputeSha256(fixedBoxes.Document.ToBytes()), fixedBoxes.After.SourceSha256);
+    }
+
+    [Fact]
+    public void SelectedPageReportsLowImageResolutionAndDeviceColorWithPageGeometry() {
+        byte[] image = PdfPngTestImages.CreateRgbPng(30, 90, 180);
+        PdfDocument source = PdfDocument.Load(PdfDocument.Create(new PdfOptions { PageWidth = 240D, PageHeight = 180D })
+            .Paragraph(paragraph => paragraph.Text("First page"))
+            .PageBreak()
+            .Canvas(canvas => canvas.Image(image, 20D, 20D, 100D, 100D))
+            .ToBytes());
+
+        PdfProductionPreflightReport report = source.Proof.PreflightProduction(new PdfProductionPreflightOptions {
+            Profile = PdfProductionPreflightProfile.PdfX1aCandidate,
+            PageSelection = PdfPageSelection.From(2),
+            MaxPages = 1
+        });
+
+        Assert.Equal(new[] { 2 }, report.InspectedPages);
+        PdfProductionFinding resolution = Assert.Single(report.Findings,
+            finding => finding.Kind == PdfProductionFindingKind.LowImageResolution);
+        Assert.Equal(2, resolution.PageNumber);
+        Assert.NotNull(resolution.VisualBounds);
+        Assert.True(resolution.ObservedImagePpi < 300D);
+        Assert.Contains(report.Findings, finding => finding.Kind == PdfProductionFindingKind.DeviceRgbColor && finding.PageNumber == 2);
+        Assert.DoesNotContain(report.Findings, finding => finding.PageNumber == 1);
+    }
+
+    [Fact]
+    public void EffectiveImageResolutionAccountsForPageUserUnit() {
+        byte[] image = PdfPngTestImages.CreateRgbPng(30, 30);
+        byte[] source = PdfDocument.Create(new PdfOptions { PageWidth = 240D, PageHeight = 180D })
+            .Canvas(canvas => canvas.Image(image, 20D, 20D, 72D, 72D)).ToBytes();
+        byte[] scaled = PdfDocumentObjectGraphRewriter.Rewrite(source, null, null, (objects, security) => {
+            PdfIndirectObject page = Assert.Single(objects.Values, static item =>
+                item.Value is PdfDictionary dictionary && dictionary.Get<PdfName>("Type")?.Name == "Page");
+            Assert.IsType<PdfDictionary>(page.Value).Items["UserUnit"] = new PdfNumber(2D);
+            return security.InfoObjectNumber;
+        });
+
+        PdfProductionPreflightReport report = PdfDocument.Load(scaled).Proof.PreflightProduction(
+            new PdfProductionPreflightOptions { MinimumImagePpi = 20D });
+
+        PdfProductionFinding resolution = Assert.Single(report.Findings,
+            static finding => finding.Kind == PdfProductionFindingKind.LowImageResolution);
+        Assert.InRange(resolution.ObservedImagePpi!.Value, 14.9D, 15.1D);
+    }
+
+    [Fact]
+    public void PrintableAnnotationAppearanceMarksColorEvidenceIncomplete() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Page")).ToBytes();
+        PdfDocument annotated = PdfDocument.Load(source).Annotations.Add(new PdfAnnotationCreateOptions {
+            Subtype = "Text", Contents = "Print note", GenerateAppearance = true, Flags = 4
+        }).ToDocument();
+
+        PdfProductionPreflightReport report = annotated.Proof.PreflightProduction();
+
+        Assert.Contains(report.Findings, static finding =>
+            finding.Kind == PdfProductionFindingKind.UninspectableColor &&
+            finding.Severity == PdfProductionFindingSeverity.Indeterminate);
+    }
+}

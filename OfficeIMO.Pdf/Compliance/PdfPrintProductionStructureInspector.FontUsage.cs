@@ -5,8 +5,9 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfPrintProductionStructureInspector {
     private static ReachableFontInspection InspectReachableFonts(
         PdfReadDocument document,
+        int? selectedPageNumber,
         System.Threading.CancellationToken cancellationToken) {
-        var collector = new ReachableFontCollector(document, cancellationToken);
+        var collector = new ReachableFontCollector(document, selectedPageNumber, cancellationToken);
         return collector.Inspect();
     }
 
@@ -15,6 +16,7 @@ internal static partial class PdfPrintProductionStructureInspector {
         private readonly Dictionary<int, PdfIndirectObject> _objects;
         private readonly PdfReadLimits _limits;
         private readonly System.Threading.CancellationToken _cancellationToken;
+        private readonly int? _selectedPageNumber;
         private readonly HashSet<PdfDictionary> _fonts = new HashSet<PdfDictionary>();
         private readonly Dictionary<PdfDictionary, HashSet<int>> _selectedType3CharacterCodes =
             new Dictionary<PdfDictionary, HashSet<int>>();
@@ -24,16 +26,20 @@ internal static partial class PdfPrintProductionStructureInspector {
 
         internal ReachableFontCollector(
             PdfReadDocument document,
+            int? selectedPageNumber,
             System.Threading.CancellationToken cancellationToken) {
             _document = document;
             _objects = document.Objects;
             _limits = document.ReadOptions.Limits;
             _cancellationToken = cancellationToken;
+            _selectedPageNumber = selectedPageNumber;
         }
 
         internal ReachableFontInspection Inspect() {
-            foreach (PdfReadPage page in _document.Pages) {
+            for (int pageIndex = 0; pageIndex < _document.Pages.Count; pageIndex++) {
                 _cancellationToken.ThrowIfCancellationRequested();
+                if (_selectedPageNumber.HasValue && pageIndex + 1 != _selectedPageNumber.Value) continue;
+                PdfReadPage page = _document.Pages[pageIndex];
                 if (!_objects.TryGetValue(page.ObjectNumber, out PdfIndirectObject? pageObject) ||
                     pageObject == null ||
                     pageObject.Value is not PdfDictionary pageDictionary) {

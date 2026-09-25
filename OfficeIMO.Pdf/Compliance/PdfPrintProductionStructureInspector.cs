@@ -3,20 +3,26 @@ using OfficeIMO.Pdf.Filters;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfPrintProductionStructureInspector {
+    internal static PdfPrintProductionStructureEvidence Inspect(PdfReadDocument document,
+        System.Threading.CancellationToken cancellationToken = default) => Inspect(document, null, cancellationToken);
+
     internal static PdfPrintProductionStructureEvidence Inspect(
         PdfReadDocument document,
+        int? selectedPageNumber,
         System.Threading.CancellationToken cancellationToken = default) {
         Guard.NotNull(document, nameof(document));
         cancellationToken.ThrowIfCancellationRequested();
         int validBoxes = 0;
         int invalidBoxes = 0;
-        foreach (PdfReadPage page in document.Pages) {
+        for (int index = 0; index < document.Pages.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (selectedPageNumber.HasValue && index + 1 != selectedPageNumber.Value) continue;
+            PdfReadPage page = document.Pages[index];
             if (HasValidProductionBoxes(page.GetGeometry())) validBoxes++;
             else invalidBoxes++;
         }
 
-        ReachableFontInspection fontInspection = InspectReachableFonts(document, cancellationToken);
+        ReachableFontInspection fontInspection = InspectReachableFonts(document, selectedPageNumber, cancellationToken);
         HashSet<PdfDictionary> fontDictionaries = fontInspection.Fonts;
 
         int unembedded = 0;
@@ -40,7 +46,7 @@ internal static partial class PdfPrintProductionStructureInspector {
         }
 
         return new PdfPrintProductionStructureEvidence(
-            document.Pages.Count,
+            selectedPageNumber.HasValue ? 1 : document.Pages.Count,
             validBoxes,
             invalidBoxes,
             fontDictionaries.Count,
@@ -48,7 +54,7 @@ internal static partial class PdfPrintProductionStructureInspector {
             uninspectable);
     }
 
-    private static bool HasValidProductionBoxes(PdfPageGeometry geometry) {
+    internal static bool HasValidProductionBoxes(PdfPageGeometry geometry) {
         PdfPageBox? media = geometry.MediaBox;
         PdfPageBox? trim = geometry.TrimBox;
         PdfPageBox? bleed = geometry.BleedBox;

@@ -6,6 +6,11 @@ public sealed class PdfDocumentProof {
 
     internal PdfDocumentProof(PdfDocument document) => _document = document;
 
+    /// <summary>Inspects production-readiness evidence and proposes reviewable page-box metadata fixups.</summary>
+    public PdfProductionPreflightReport PreflightProduction(PdfProductionPreflightOptions? options = null,
+        System.Threading.CancellationToken cancellationToken = default) =>
+        PdfProductionPreflightInspector.Inspect(_document, options, cancellationToken);
+
     /// <summary>Compares this document with PDF bytes through the managed renderer.</summary>
     public PdfVisualComparisonReport CompareVisual(byte[] actualPdf, PdfPageSelection? selection = null, PdfVisualComparisonOptions? options = null, PdfLoadOptions? actualReadOptions = null) =>
         _document.CompareVisual(actualPdf, selection, options, actualReadOptions);
