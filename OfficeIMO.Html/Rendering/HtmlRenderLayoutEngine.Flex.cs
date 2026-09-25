@@ -406,15 +406,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private static double ClampFlexMainSize(FlexItem item, double value, bool vertical) {
         HtmlRenderBoxStyle style = item.Style;
-        double nonContent = vertical
-            ? (style.BorderBox ? 0D : style.VerticalInsets) + style.MarginTop + style.MarginBottom
-            : (style.BorderBox ? 0D : style.HorizontalInsets) + style.MarginLeft + style.MarginRight;
+        double insets = vertical ? style.VerticalInsets : style.HorizontalInsets;
+        double margins = vertical
+            ? style.MarginTop + style.MarginBottom
+            : style.MarginLeft + style.MarginRight;
+        double nonContent = (style.BorderBox ? 0D : insets) + margins;
         double? declaredMinimum = vertical ? style.MinHeight : style.MinWidth;
         double? declaredMaximum = vertical ? style.MaxHeight : style.MaxWidth;
         double minimum = declaredMinimum.HasValue ? declaredMinimum.Value + nonContent
             : vertical ? 0D : item.AutomaticMinimumMainSize;
         double maximum = declaredMaximum.HasValue ? declaredMaximum.Value + nonContent : double.PositiveInfinity;
-        return Math.Max(minimum, Math.Min(maximum, Math.Max(0D, value)));
+        // Border-box dimensions cannot shrink below their padding and borders.
+        return Math.Max(insets + margins, Math.Max(minimum, Math.Min(maximum, Math.Max(0D, value))));
     }
 
     private static double ResolveFlexCrossSize(HtmlRenderBoxStyle style, double naturalCrossSize) {

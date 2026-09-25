@@ -28,6 +28,56 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlFlexRow_PaddedZeroBasisItemStartsAfterFullWidthHeader() {
+        HtmlRenderDocument rendered = RenderFlex("""
+            <style>body{margin:0}</style>
+            <div style="display:flex;flex-wrap:wrap;width:500px;box-sizing:border-box;border:1px solid black">
+              <div id="header" style="min-width:100%;height:20px;background:#eeeeee"></div>
+              <div id="content" style="flex:1 1 0%;min-width:0;box-sizing:border-box;padding:0 16px;height:40px;background:#ff0000"></div>
+              <div id="image" style="width:34%;height:40px;background:#0000ff"></div>
+            </div>
+            """, 500D);
+
+        HtmlRenderShape header = FindFlexShape(rendered, "div#header");
+        HtmlRenderShape content = FindFlexShape(rendered, "div#content");
+        HtmlRenderShape image = FindFlexShape(rendered, "div#image");
+        Assert.Equal(header.Y + header.Height, content.Y, 3);
+        Assert.Equal(content.Y, image.Y, 3);
+        Assert.Equal(content.X + content.Width, image.X, 3);
+    }
+
+    [Fact]
+    public void HtmlFlexRow_UnpaddedZeroBasisItemRemainsOnFullLine() {
+        HtmlRenderDocument rendered = RenderFlex("""
+            <style>body{margin:0}</style>
+            <div style="display:flex;flex-wrap:wrap;align-items:flex-start;width:500px;box-sizing:border-box;border:1px solid black">
+              <div id="header" style="min-width:100%;height:20px;background:#eeeeee"></div>
+              <div id="content" style="flex:1 1 0%;min-width:0;height:40px;background:#ff0000"></div>
+            </div>
+            """, 500D);
+
+        HtmlRenderShape header = FindFlexShape(rendered, "div#header");
+        HtmlRenderShape content = FindFlexShape(rendered, "div#content");
+        Assert.Equal(header.Y, content.Y, 3);
+    }
+
+    [Fact]
+    public void HtmlFlexColumn_PaddedZeroBasisItemStartsAfterFullHeightColumn() {
+        HtmlRenderDocument rendered = RenderFlex("""
+            <style>body{margin:0}</style>
+            <div style="display:flex;flex-direction:column;flex-wrap:wrap;width:200px;height:100px;box-sizing:border-box;border:1px solid black">
+              <div id="header" style="width:40px;height:98px;background:#eeeeee"></div>
+              <div id="content" style="flex:0 1 0%;min-height:0;box-sizing:border-box;padding-top:10px;width:40px;background:#ff0000"></div>
+            </div>
+            """, 200D);
+
+        HtmlRenderShape header = FindFlexShape(rendered, "div#header");
+        HtmlRenderShape content = FindFlexShape(rendered, "div#content");
+        Assert.True(content.X >= header.X + header.Width - 0.001D);
+        Assert.Equal(header.Y, content.Y, 3);
+    }
+
+    [Fact]
     public void HtmlFlexColumn_NestedDefaultLayoutsRemainLinear() {
         var html = new StringBuilder();
         for (int index = 0; index < 24; index++) html.Append("<div style='display:flex;flex-direction:column'>");
