@@ -863,7 +863,7 @@ public sealed partial class PdfReadPage {
         Action<OfficeDrawing, OfficeTransform, double, PdfContentOrderKey?, PdfPageDrawingEffect>? type3GroupVisitor = null,
         CancellationToken cancellationToken = default) {
         textOutputBudget ??= CreateTextOutputBudget();
-        pageContentBudget ??= new PageContentBudget(this);
+        pageContentBudget ??= new PageContentBudget(this, cancellationToken);
         var primitives = new List<PdfPageVisualPrimitive>();
         PdfDictionary? pageResources = ResolveDictionary(GetInheritedValue("Resources"));
         var activeForms = new HashSet<PdfStream>();
@@ -1031,7 +1031,8 @@ public sealed partial class PdfReadPage {
                 initialRenderingIntent: initialRenderingIntent,
                 initialFillColorSelection: initialFillColorSelection,
                 initialStrokeColorSelection: initialStrokeColorSelection,
-                outputIntentColorTransform: EffectiveOutputIntentColorTransform);
+                outputIntentColorTransform: EffectiveOutputIntentColorTransform,
+                operationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
         Dictionary<string, PdfPageShadingPatternResource> shadingPatternResources = GetShadingPatternResources(
             resources,
             invokedPatternNames,
@@ -1119,7 +1120,8 @@ public sealed partial class PdfReadPage {
             initialStrokeColorSelection: initialStrokeColorSelection,
             outputIntentColorTransform: EffectiveOutputIntentColorTransform,
             inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
-            initialStrokeDashPattern: initialStrokeDashPattern);
+            initialStrokeDashPattern: initialStrokeDashPattern,
+            operationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
 
         foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
                      content,
@@ -1263,7 +1265,8 @@ public sealed partial class PdfReadPage {
                       pageWidth: pageWidth,
                       contentOrderPrefix: contentOrderPrefix,
                       textClippingBudget: invocationTextClippingBudget,
-                      initialStrokeDashPattern: initialStrokeDashPattern)) {
+                      initialStrokeDashPattern: initialStrokeDashPattern,
+                      operationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested)) {
             if (!TryGetFormStream(resources, invocation.Name, out PdfStream formStream)) {
                 if (requireSupportedType3Content && invocation.InlineImage == null && !TryGetImageXObject(resources, invocation.Name, out _, out _)) {
                     type3GlyphBudget.RecordFailure();

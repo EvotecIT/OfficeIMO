@@ -36,7 +36,7 @@ internal static class PdfStaticFormRecognizer {
 
         PdfDocumentReadResult logical = PdfDocumentReadEngine.Read(document, new PdfReadOptions {
             Profile = PdfReadProfile.Fast,
-            PageSelection = effective.PageSelection
+            PageSelection = PdfPageSelection.From(pageNumbers)
         }, cancellationToken);
         var proposed = new List<Candidate>();
         var diagnostics = new List<PdfStaticFormRecognitionDiagnostic>();
@@ -46,14 +46,24 @@ internal static class PdfStaticFormRecognizer {
             (double pageWidth, double pageHeight) = page.GetVisualPageSize();
             List<Label> labels = GetLabels(page, suppliedText, pageWidth, pageHeight);
             PdfReadPage readPage = document.Pages[pageNumber - 1];
-            foreach (PdfPageVisualPrimitive primitive in readPage.GetIdentityVisualPrimitives(cancellationToken)) {
+            IReadOnlyList<PdfPageVisualPrimitive> primitives = readPage.GetIdentityVisualPrimitives(cancellationToken);
+            var filledAreas = new List<(VisualRect Bounds, double PaintOrder, bool IsEmpty)>();
+            foreach (PdfPageVisualPrimitive painted in primitives) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (painted.HasFillPaint && painted.FillOpacity != 0D && painted.Width > 0D && painted.Height > 0D) {
+                    filledAreas.Add((new VisualRect(painted.X, painted.Y, painted.X + painted.Width, painted.Y + painted.Height),
+                        painted.PaintOrder, IsEmptyFill(painted)));
+                }
+            }
+            foreach (PdfPageVisualPrimitive primitive in primitives) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!TryGetCandidate(primitive, pageWidth, pageHeight, out VisualRect visual, out PdfStaticFormEvidenceKind evidence)) continue;
+                if (HasPaintedInterior(filledAreas, visual, cancellationToken)) continue;
                 if (OverlapsExistingWidget(page, visual)) {
                     AddDiagnostic("existing-widget", pageNumber, "A visual candidate overlaps an existing form widget.");
                     continue;
                 }
-                if (labels.Any(label => OverlapArea(label.Bounds, visual) > visual.Area * 0.05D)) continue;
+                if (labels.Any(label => OverlapArea(label.Bounds, visual) > Math.Min(label.Bounds.Area, visual.Area) * 0.05D)) continue;
                 Label? labelMatch = FindLabel(labels, visual, evidence);
                 if (labelMatch is null) continue;
                 double confidence = evidence switch {
@@ -63,7 +73,10 @@ internal static class PdfStaticFormRecognizer {
                 };
                 confidence *= labelMatch.Confidence;
                 if (labelMatch.IsOcr) confidence *= 0.9D;
-                if (confidence < effective.MinimumConfidence) continue;
+                if (confidence < effective.MinimumConfidence) {
+                    AddDiagnostic("low-confidence", pageNumber, "A visual field candidate was below the selected confidence threshold.");
+                    continue;
+                }
                 if (proposed.Any(candidate => candidate.PageNumber == pageNumber &&
                     OverlapArea(candidate.Visual, visual) > Math.Min(candidate.Visual.Area, visual.Area) * 0.6D)) {
                     AddDiagnostic("overlapping-proposals", pageNumber, "Overlapping visual field candidates need manual review.");
@@ -159,8 +172,26 @@ internal static class PdfStaticFormRecognizer {
     }
 
     private static bool IsEmptyFill(PdfPageVisualPrimitive primitive) =>
-        primitive.FillColor is null || primitive.FillOpacity == 0D ||
-        primitive.FillColor.Value.R >= 245 && primitive.FillColor.Value.G >= 245 && primitive.FillColor.Value.B >= 245;
+        primitive.FillOpacity == 0D || !primitive.HasFillPaint ||
+        primitive.FillGradient is null && primitive.FillRadialGradient is null && primitive.FillTilingPattern is null &&
+        primitive.FillColor is OfficeIMO.Drawing.OfficeColor color && color.R >= 245 && color.G >= 245 && color.B >= 245;
+
+    private static bool HasPaintedInterior(
+        IReadOnlyList<(VisualRect Bounds, double PaintOrder, bool IsEmpty)> filledAreas,
+        VisualRect candidate,
+        CancellationToken cancellationToken) {
+        double latestPaintOrder = double.NegativeInfinity;
+        bool painted = false;
+        foreach ((VisualRect bounds, double paintOrder, bool isEmpty) in filledAreas) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (bounds.Area > candidate.Area * 1.25D ||
+                OverlapArea(bounds, candidate) < candidate.Area * 0.8D ||
+                paintOrder < latestPaintOrder) continue;
+            latestPaintOrder = paintOrder;
+            painted = !isEmpty;
+        }
+        return painted;
+    }
 
     private static Label? FindLabel(IReadOnlyList<Label> labels, VisualRect field, PdfStaticFormEvidenceKind evidence) {
         Label? best = null;
@@ -188,7 +219,8 @@ internal static class PdfStaticFormRecognizer {
         foreach (PdfLogicalFormWidget widget in page.FormWidgets) {
             if (widget.X2 <= widget.X1 || widget.Y2 <= widget.Y1) continue;
             PdfSelectionQuad visual = page.MapUserSpaceRectangleToVisual(widget.X1, widget.Y1, widget.X2, widget.Y2);
-            if (OverlapArea(bounds, new VisualRect(visual.Left, visual.Top, visual.Right, visual.Bottom)) > bounds.Area * 0.05D) return true;
+            var widgetBounds = new VisualRect(visual.Left, visual.Top, visual.Right, visual.Bottom);
+            if (OverlapArea(bounds, widgetBounds) > Math.Min(bounds.Area, widgetBounds.Area) * 0.05D) return true;
         }
         return false;
     }

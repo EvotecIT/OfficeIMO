@@ -88,6 +88,34 @@ public sealed class PdfStaticFormRecognizerTests {
         });
     }
 
+    [Fact]
+    public void LowConfidenceCandidatesRemainVisibleInDiagnostics() {
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(CreateStaticForm()).Forms.RecognizeStaticLayout(
+            new PdfStaticFormRecognitionOptions { MinimumConfidence = 0.8D });
+
+        Assert.DoesNotContain(report.Proposals, static proposal => proposal.Kind == PdfFormFieldCreationKind.CheckBox);
+        Assert.Contains(report.Diagnostics, static diagnostic => diagnostic.Code == "low-confidence");
+    }
+
+    [Fact]
+    public void ContainedValueTextAndGradientPaintAreNotEmptyFields() {
+        OfficeShape gradientBox = Box(100D, 28D);
+        gradientBox.FillColor = null;
+        gradientBox.FillGradient = OfficeLinearGradient.Horizontal(OfficeColor.Red, OfficeColor.Blue);
+        byte[] source = PdfDocument.Create(new PdfOptions { PageWidth = 400D, PageHeight = 300D })
+            .Canvas(canvas => canvas
+                .Text("Name:", 20D, 28D, 70D, 20D)
+                .Shape(Box(100D, 28D), 140D, 20D)
+                .Text("Alice", 150D, 25D, 60D, 20D)
+                .Text("Status:", 20D, 78D, 70D, 20D)
+                .Shape(gradientBox, 140D, 70D))
+            .ToBytes();
+
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout();
+
+        Assert.Empty(report.Proposals);
+    }
+
     private static byte[] CreateStaticForm() {
         OfficeShape textBox = Box(140D, 20D);
         OfficeShape checkBox = Box(15D, 15D);

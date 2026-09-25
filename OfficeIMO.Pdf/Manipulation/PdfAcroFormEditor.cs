@@ -1,12 +1,16 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>Creates and transactionally edits AcroForm fields in existing PDFs.</summary>
 internal static partial class PdfAcroFormEditor {
     /// <summary>Applies field-tree, widget, calculation-order, tab-order, and selective-flatten edits as one validated full rewrite.</summary>
-    public static PdfAcroFormEditResult Edit(byte[] pdf, Action<PdfAcroFormEditSession> edit, PdfLoadOptions? readOptions = null, PdfFormFillerOptions? appearanceOptions = null) {
+    public static PdfAcroFormEditResult Edit(byte[] pdf, Action<PdfAcroFormEditSession> edit, PdfLoadOptions? readOptions = null,
+        PdfFormFillerOptions? appearanceOptions = null, CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(edit, nameof(edit));
-        PdfReadDocument source = PdfReadDocument.Open(pdf, readOptions);
+        cancellationToken.ThrowIfCancellationRequested();
+        PdfReadDocument source = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
         if (source.AcroFormXfa is not null) throw new NotSupportedException("Transactional AcroForm editing does not modify XFA packets. Remove or convert XFA before editing the AcroForm field tree.");
 
         var session = new PdfAcroFormEditSession(source.ReadOptions.Limits);
@@ -14,21 +18,25 @@ internal static partial class PdfAcroFormEditor {
         if (session.Commands.Count == 0) throw new ArgumentException("At least one AcroForm edit command is required.", nameof(edit));
         ValidatePlannedWidgetJavaScriptBudget(source, session.Commands);
         string[] fieldNames = session.Commands.SelectMany(GetCommandFieldNames).Distinct(StringComparer.Ordinal).ToArray();
-        PdfMutationPlan plan = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyAcroForm, readOptions, fieldNames);
+        PdfMutationPlan plan = PdfMutationPlanner.RequireFullRewriteDocument(pdf, PdfMutationOperation.ModifyAcroForm,
+            source, readOptions, fieldNames, cancellationToken).Plan;
 
         var refillValues = new Dictionary<string, string>(StringComparer.Ordinal);
         var flattenNames = new List<string>();
         var operations = new List<string>(session.Commands.Count);
         int[] pageObjectNumbers = source.Pages.Select(static page => page.ObjectNumber).ToArray();
         byte[] output = PdfDocumentObjectGraphRewriter.Rewrite(pdf, readOptions, null, (objects, security) => {
-            ApplyCommands(objects, security, pageObjectNumbers, session.Commands, refillValues, flattenNames, operations, appearanceOptions, source.ReadOptions.Limits);
+            ApplyCommands(objects, security, pageObjectNumbers, session.Commands, refillValues, flattenNames, operations,
+                appearanceOptions, source.ReadOptions.Limits, cancellationToken);
             return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value) ? security.InfoObjectNumber : null;
-        });
+        }, cancellationToken: cancellationToken);
 
         PdfLoadOptions savedReadOptions = PdfLoadOptions.WithMinimumInputBytes(source.ReadOptions, output.LongLength);
-        _ = PdfReadDocument.Open(output, savedReadOptions).FormWidgetJavaScriptCount;
+        _ = PdfReadDocument.Open(output, savedReadOptions, cancellationToken).FormWidgetJavaScriptCount;
         if (refillValues.Count > 0) {
-            IReadOnlyDictionary<string, PdfFormField> rewrittenFields = PdfInspector.Inspect(output, savedReadOptions).FormFieldsByName;
+            PdfReadDocument rewrittenDocument = PdfReadDocument.Open(output, savedReadOptions, cancellationToken);
+            IReadOnlyDictionary<string, PdfFormField> rewrittenFields =
+                PdfInspector.Inspect(output, rewrittenDocument, cancellationToken).FormFieldsByName;
             foreach (string fieldName in refillValues.Keys.ToArray()) {
                 if (rewrittenFields.TryGetValue(fieldName, out PdfFormField? field) && field.IsPushButton) {
                     refillValues.Remove(fieldName);
@@ -36,18 +44,21 @@ internal static partial class PdfAcroFormEditor {
             }
         }
         if (refillValues.Count > 0) {
+            cancellationToken.ThrowIfCancellationRequested();
             output = PdfFormFiller.FillFieldsWithinPlannedRewrite(output, ToFieldValues(refillValues), appearanceOptions, savedReadOptions);
             savedReadOptions = PdfLoadOptions.WithMinimumInputBytes(source.ReadOptions, output.LongLength);
         }
         if (flattenNames.Count > 0) {
+            cancellationToken.ThrowIfCancellationRequested();
             output = PdfFormFiller.FlattenFieldsWithinPlannedRewrite(output, flattenNames, readOptions: savedReadOptions);
             savedReadOptions = PdfLoadOptions.WithMinimumInputBytes(source.ReadOptions, output.LongLength);
         }
 
-        PdfDocumentInfo saved = PdfInspector.Inspect(output, savedReadOptions);
-        IReadOnlyList<string> calculationOrder = ReadCalculationOrder(output, savedReadOptions);
+        PdfReadDocument savedDocument = PdfReadDocument.Open(output, savedReadOptions, cancellationToken);
+        PdfDocumentInfo saved = PdfInspector.Inspect(output, savedDocument, cancellationToken);
+        IReadOnlyList<string> calculationOrder = ReadCalculationOrder(savedDocument);
         ValidateReadback(saved, calculationOrder, session.Commands);
-        bool requiresDocumentVersionUpgrade = RequiresDocumentVersionUpgrade(pdf, output, savedReadOptions);
+        bool requiresDocumentVersionUpgrade = RequiresDocumentVersionUpgrade(pdf, savedDocument);
         var preservationOptions = new PdfRewritePreservationOptions {
             OriginalReadOptions = source.ReadOptions,
             RewrittenReadOptions = savedReadOptions,
@@ -57,16 +68,15 @@ internal static partial class PdfAcroFormEditor {
             PreserveRevisionStructure = false,
             PreserveSecurityState = !session.Commands.Any(static command => command.Options?.Kind == PdfFormFieldCreationKind.Signature)
         };
-        PdfRewritePreservationReport preservation = PdfRewritePreservation.AssertPreserved(pdf, output, preservationOptions);
+        PdfRewritePreservationReport preservation = PdfRewritePreservation.AssertPreserved(pdf, output, preservationOptions, cancellationToken);
         return new PdfAcroFormEditResult(output, plan, preservation, saved.FormFields, calculationOrder, operations.AsReadOnly(), savedReadOptions);
     }
 
     private static bool RequiresDocumentVersionUpgrade(
         byte[] sourcePdf,
-        byte[] outputPdf,
-        PdfLoadOptions outputReadOptions) {
+        PdfReadDocument output) {
         PdfFileVersion sourceVersion = PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(sourcePdf));
-        Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(outputPdf, outputReadOptions).Map;
+        Dictionary<int, PdfIndirectObject> objects = output.Objects;
         bool hasOpenType = objects.Values.Any(indirect =>
             indirect.Value is PdfStream stream &&
             stream.Dictionary.Get<PdfName>("Subtype")?.Name == "OpenType");

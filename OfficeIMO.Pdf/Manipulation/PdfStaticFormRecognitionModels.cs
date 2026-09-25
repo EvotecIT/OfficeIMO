@@ -178,6 +178,6 @@ public sealed class PdfStaticFormRecognitionReport {
                 cancellationToken.ThrowIfCancellationRequested();
                 edit.Create(Proposals[index].ToCreateOptions());
             }
-        }, _readOptions);
+        }, _readOptions, cancellationToken: cancellationToken);
     }
 }

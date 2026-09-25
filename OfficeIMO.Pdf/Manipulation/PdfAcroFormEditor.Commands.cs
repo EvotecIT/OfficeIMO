@@ -10,13 +10,15 @@ internal static partial class PdfAcroFormEditor {
         List<string> flattenNames,
         List<string> operations,
         PdfFormFillerOptions? appearanceOptions,
-        PdfReadLimits limits) {
+        PdfReadLimits limits,
+        System.Threading.CancellationToken cancellationToken) {
         PdfDictionary catalog = RequireCatalog(objects, security);
         PdfDictionary acroForm = EnsureAcroForm(objects, catalog, out PdfArray fields);
         int nextObjectNumber = objects.Count == 0 ? 1 : objects.Keys.Max() + 1;
         int formFieldNodeCount = CountFormFieldNodes(objects, fields, limits);
 
         foreach (PdfAcroFormEditSession.EditCommand command in commands) {
+            cancellationToken.ThrowIfCancellationRequested();
             switch (command.Kind) {
                 case PdfAcroFormEditSession.EditKind.Create:
                     ApplyCreate(objects, acroForm, fields, pageObjectNumbers, command.Options!, command.EncodedJavaScript, refillValues, appearanceOptions, limits, ref formFieldNodeCount, ref nextObjectNumber);
