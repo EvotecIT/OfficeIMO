@@ -7,6 +7,116 @@ namespace OfficeIMO.Html.Tests;
 
 public sealed class HtmlOfficeAdaptersPowerPointGenericPaginationTests {
     [Fact]
+    public void LongParagraphsUseMeasuredHeightsAndPreserveLinkedTextAcrossSlides() {
+        string opening = string.Join(" ", Enumerable.Repeat("Atmospheric observations span many regions.", 65));
+        string closing = string.Join(" ", Enumerable.Repeat("Measured water remains in the atmosphere.", 65));
+        string html = "<article><h1>Water cycle report</h1><p>" + opening
+            + " <a href='https://example.org/source'>source measurements</a> " + closing
+            + "</p><p>Following paragraph remains visible.</p></article>";
+
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult(
+            new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false });
+        using PowerPointPresentation presentation = result.Value;
+
+        Assert.True(presentation.Slides.Count >= 3);
+        PowerPointTextBox[] articleBoxes = presentation.Slides.SelectMany(slide => slide.TextBoxes)
+            .Where(box => box.Text.Contains("Atmospheric observations", StringComparison.Ordinal)
+                || box.Text.Contains("source measurements", StringComparison.Ordinal)
+                || box.Text.Contains("Measured water", StringComparison.Ordinal))
+            .ToArray();
+        Assert.True(articleBoxes.Length >= 2);
+        Assert.Equal(opening + " source measurements " + closing,
+            string.Concat(articleBoxes.Select(box => box.Text)));
+        Assert.Contains(articleBoxes.SelectMany(box => box.Paragraphs).SelectMany(paragraph => paragraph.Runs),
+            run => run.Text == "source measurements"
+                && run.Hyperlink?.ToString() == "https://example.org/source");
+        Assert.DoesNotContain(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlConversionDiagnosticCodes.ContentOmitted);
+        Assert.DoesNotContain(presentation.InspectPreflight(new PowerPointDeckPreflightOptions {
+            DetectShapeCollisions = false,
+            DetectMissingVisualAssets = false,
+            IncludeVisualSnapshotDiagnostics = false
+        }).Findings, finding => finding.Code == "Text.Clipped" || finding.Code == "Layout.ShapeOffSlide");
+
+        foreach (PowerPointSlide slide in presentation.Slides) {
+            PowerPointTextBox[] boxes = slide.TextBoxes.OrderBy(box => box.TopPoints).ToArray();
+            for (int index = 1; index < boxes.Length; index++) {
+                Assert.True(boxes[index - 1].TopPoints + boxes[index - 1].HeightPoints <= boxes[index].TopPoints);
+            }
+        }
+
+        using var stream = new MemoryStream();
+        presentation.Save(stream);
+        using PowerPointPresentation reopened = PowerPointPresentation.Load(new MemoryStream(stream.ToArray()),
+            new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
+        Assert.Equal(presentation.Slides.Count, reopened.Slides.Count);
+        PowerPointTextBox[] reopenedArticleBoxes = reopened.Slides.SelectMany(slide => slide.TextBoxes)
+            .Where(box => box.Text.Contains("Atmospheric observations", StringComparison.Ordinal)
+                || box.Text.Contains("source measurements", StringComparison.Ordinal)
+                || box.Text.Contains("Measured water", StringComparison.Ordinal))
+            .ToArray();
+        Assert.Equal(opening + " source measurements " + closing,
+            string.Concat(reopenedArticleBoxes.Select(box => box.Text)));
+        Assert.Contains(reopenedArticleBoxes.SelectMany(box => box.Paragraphs).SelectMany(paragraph => paragraph.Runs),
+            run => run.Text == "source measurements"
+                && run.Hyperlink?.ToString() == "https://example.org/source");
+        Assert.Contains(reopened.Slides.SelectMany(slide => slide.TextBoxes),
+            box => box.Text == "Following paragraph remains visible.");
+    }
+
+    [Fact]
+    public void SeveralMediumParagraphsNeverOverlapOnTheSameSlide() {
+        string paragraph = string.Join(" ", Enumerable.Repeat("A longer scientific explanation needs visible line wrapping.", 11));
+        string html = "<article><h1>Observations</h1>"
+            + string.Concat(Enumerable.Range(1, 5).Select(index => "<p>Section " + index + ": " + paragraph + "</p>"))
+            + "</article>";
+
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult(
+            new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false });
+        using PowerPointPresentation presentation = result.Value;
+
+        Assert.Equal(5, presentation.Slides.SelectMany(slide => slide.TextBoxes)
+            .Count(box => box.Text.StartsWith("Section ", StringComparison.Ordinal)));
+        Assert.DoesNotContain(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlConversionDiagnosticCodes.ContentOmitted);
+        Assert.DoesNotContain(presentation.InspectPreflight(new PowerPointDeckPreflightOptions {
+            DetectShapeCollisions = false,
+            DetectMissingVisualAssets = false,
+            IncludeVisualSnapshotDiagnostics = false
+        }).Findings, finding => finding.Code == "Text.Clipped" || finding.Code == "Layout.ShapeOffSlide");
+        foreach (PowerPointSlide slide in presentation.Slides) {
+            PowerPointTextBox[] boxes = slide.TextBoxes.OrderBy(box => box.TopPoints).ToArray();
+            for (int index = 1; index < boxes.Length; index++) {
+                Assert.True(boxes[index - 1].TopPoints + boxes[index - 1].HeightPoints <= boxes[index].TopPoints);
+            }
+        }
+    }
+
+    [Fact]
+    public void OversizedListIsSplitWithItsMarkerLossReported() {
+        string html = "<article><h1>Survey data</h1><ul>"
+            + string.Concat(Enumerable.Range(1, 25).Select(index =>
+                "<li>Measurement " + index + " recorded from the field team.</li>"))
+            + "</ul></article>";
+
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult(
+            new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false });
+        using PowerPointPresentation presentation = result.Value;
+
+        Assert.True(presentation.Slides.Count > 1);
+        Assert.Contains(presentation.Slides.SelectMany(slide => slide.TextBoxes),
+            box => box.Text.Contains("Measurement 25", StringComparison.Ordinal));
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
+            && diagnostic.Detail?.Contains("block=List; projection=paginatedText", StringComparison.Ordinal) == true);
+        Assert.DoesNotContain(presentation.InspectPreflight(new PowerPointDeckPreflightOptions {
+            DetectShapeCollisions = false,
+            DetectMissingVisualAssets = false,
+            IncludeVisualSnapshotDiagnostics = false
+        }).Findings, finding => finding.Code == "Text.Clipped" || finding.Code == "Layout.ShapeOffSlide");
+    }
+
+    [Fact]
     public void LongGenericArticleContinuesOnVisibleSlidesAndSurvivesReopen() {
         const string image = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNg+P//HwAF/gL9HjcXBgAAAABJRU5ErkJggg==";
         string html = "<article><h1>Field notes</h1>"

@@ -32,24 +32,10 @@ public static partial class HtmlPowerPointConverterExtensions {
                 bool importTable = options.ImportTables && block.Kind == HtmlSemanticBlockKind.Table;
                 bool importPicture = options.ImportPictures && block.Kind == HtmlSemanticBlockKind.Image;
                 if (importText && !isSectionTitle) {
-                    double textHeight = block.Kind == HtmlSemanticBlockKind.List
-                        ? Math.Max(52D, CountSemanticListItems(block) * 30D)
-                        : 52D;
-                    if (block.Text.Length > 0 && NeedsGenericContinuation(contentTop, textHeight, slideBottom)) {
-                        if (!TryAddGenericSlide(presentation, result, budget, out slide)) {
-                            slideLimitReached = true;
-                            break;
-                        }
-                        contentTop = pictureTop = 30D;
-                    }
-                    int previousTextBoxes = result.TextBoxes;
-                    contentTop = ImportTextBox(block.SourceElement, block.Text, slide, contentTop, result, budget,
-                        textHeight, block);
-                    if (block.Kind == HtmlSemanticBlockKind.Form && result.TextBoxes > previousTextBoxes) {
-                        AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentApproximated,
-                            "An HTML form was imported as editable visible text without its interactive controls.",
-                            lossKind: OfficeConversionLossKind.Approximation,
-                            detail: "block=Form; preserved=visibleText; interaction=omitted");
+                    if (!TryImportGenericTextBlock(block, presentation, result, budget, ref slide,
+                            ref contentTop, ref pictureTop, slideBottom)) {
+                        slideLimitReached = true;
+                        break;
                     }
                 } else if (importTable) {
                     if (TryGetOversizedGenericTableText(block, budget, out string tableText)) {
@@ -199,7 +185,7 @@ public static partial class HtmlPowerPointConverterExtensions {
 
     private static double ReadGenericResourceDimension(double? pixels, double fallback, double maximum) {
         double value = pixels.GetValueOrDefault(fallback);
-        if (!double.IsFinite(value) || value <= 0D) value = fallback;
+        if (double.IsNaN(value) || double.IsInfinity(value) || value <= 0D) value = fallback;
         return Math.Min(maximum, Math.Max(1D, value * 0.75D));
     }
 
@@ -209,14 +195,21 @@ public static partial class HtmlPowerPointConverterExtensions {
         HtmlImportBudget budget) {
         var options = new PptCore.PowerPointDeckPreflightOptions {
             MaximumShapeCount = budget.Limits.MaxShapes,
-            DetectTextOverflow = false,
+            DetectTextOverflow = true,
             DetectUnreadableFontReduction = false,
             DetectShapeCollisions = false,
             DetectMissingVisualAssets = false,
             IncludeVisualSnapshotDiagnostics = false
         };
         foreach (PptCore.PowerPointDeckPreflightFinding finding in presentation.InspectPreflight(options).Findings
-                     .Where(item => item.Code == "Layout.ShapeOffSlide")) {
+                     .Where(item => item.Code == "Layout.ShapeOffSlide" || item.Code == "Text.Clipped")) {
+            if (finding.Code == "Text.Clipped") {
+                AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentOmitted,
+                    "Measured generic slide text may be clipped inside its editable text box.",
+                    lossKind: OfficeConversionLossKind.Omission,
+                    detail: "slide=" + (finding.SlideIndex + 1) + "; shape=" + (finding.ShapeIndex.GetValueOrDefault() + 1));
+                continue;
+            }
             PptCore.PowerPointLayoutBox? bounds = finding.Bounds;
             bool whollyOutside = bounds.HasValue && (bounds.Value.Right <= 0L || bounds.Value.Bottom <= 0L
                 || bounds.Value.Left >= presentation.SlideSize.WidthEmus
