@@ -121,7 +121,12 @@ public sealed class PdfStaticFormFieldProposal {
         Y = Rectangle.Bottom,
         Width = Rectangle.Width,
         Height = Rectangle.Height,
-        Style = new PdfFormFieldStyle { AlternateName = Label }
+        Style = new PdfFormFieldStyle {
+            AlternateName = Label,
+            BackgroundColor = null,
+            BorderColor = null,
+            BorderWidth = 0D
+        }
     };
 }
 
@@ -142,9 +147,13 @@ public sealed class PdfStaticFormRecognitionDiagnostic {
 
 /// <summary>Source-bound proposals and diagnostics; analysis never modifies the PDF.</summary>
 public sealed class PdfStaticFormRecognitionReport {
+    private readonly byte[] _analyzedPdf;
+    private readonly PdfLoadOptions _readOptions;
     private readonly string _sourceSha256;
-    internal PdfStaticFormRecognitionReport(string sourceSha256, IReadOnlyList<PdfStaticFormFieldProposal> proposals, IReadOnlyList<PdfStaticFormRecognitionDiagnostic> diagnostics) {
-        _sourceSha256 = sourceSha256;
+    internal PdfStaticFormRecognitionReport(byte[] analyzedPdf, PdfLoadOptions readOptions, IReadOnlyList<PdfStaticFormFieldProposal> proposals, IReadOnlyList<PdfStaticFormRecognitionDiagnostic> diagnostics) {
+        _analyzedPdf = (byte[])analyzedPdf.Clone();
+        _readOptions = readOptions;
+        _sourceSha256 = PdfArtifactFingerprint.ComputeSha256(_analyzedPdf);
         Proposals = Array.AsReadOnly(proposals.ToArray());
         Diagnostics = Array.AsReadOnly(diagnostics.ToArray());
     }
@@ -155,24 +164,20 @@ public sealed class PdfStaticFormRecognitionReport {
     /// <summary>SHA-256 of the exact analyzed source artifact.</summary>
     public string SourceSha256 => _sourceSha256;
 
-    /// <summary>Creates only explicitly selected proposals against the exact analyzed PDF.</summary>
-    public PdfAcroFormEditResult ApplySelected(PdfDocument source, IReadOnlyCollection<int> proposalIndices, CancellationToken cancellationToken = default) {
-        Guard.NotNull(source, nameof(source));
+    /// <summary>Creates only explicitly selected proposals against the immutable PDF snapshot analyzed by this report.</summary>
+    public PdfAcroFormEditResult ApplySelected(IReadOnlyCollection<int> proposalIndices, CancellationToken cancellationToken = default) {
         Guard.NotNull(proposalIndices, nameof(proposalIndices));
         cancellationToken.ThrowIfCancellationRequested();
-        if (!string.Equals(PdfArtifactFingerprint.ComputeSha256(source.GetBytesForOperation(cancellationToken)), _sourceSha256, StringComparison.Ordinal)) {
-            throw new InvalidOperationException("The PDF changed after static-form analysis. Analyze the current artifact before creating fields.");
-        }
         if (proposalIndices.Count == 0) throw new ArgumentException("Select at least one proposal to create.", nameof(proposalIndices));
         int[] selected = proposalIndices.Distinct().OrderBy(static index => index).ToArray();
         if (selected.Length != proposalIndices.Count || selected.Any(index => index < 0 || index >= Proposals.Count)) {
             throw new ArgumentOutOfRangeException(nameof(proposalIndices), "Proposal indices must be distinct and present in this report.");
         }
-        return source.Forms.Edit(edit => {
+        return PdfAcroFormEditor.Edit(_analyzedPdf, edit => {
             foreach (int index in selected) {
                 cancellationToken.ThrowIfCancellationRequested();
                 edit.Create(Proposals[index].ToCreateOptions());
             }
-        });
+        }, _readOptions);
     }
 }

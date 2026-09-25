@@ -329,7 +329,7 @@ int[] accepted = proposals.Proposals
     .Select(field => field.Index)
     .ToArray();
 if (accepted.Length > 0)
-    File.WriteAllBytes("fillable-form.pdf", proposals.ApplySelected(source, accepted).ToBytes());
+    File.WriteAllBytes("fillable-form.pdf", proposals.ApplySelected(accepted).ToBytes());
 ```
 
 Recognition proposes text fields from empty outlines or writing lines and check
@@ -338,8 +338,9 @@ can also pass bounded positioned OCR text as `PdfStaticFormTextEvidence` without
 installing an OCR runtime in `OfficeIMO.Pdf`. The report includes page-local tab
 order suggestions and collision diagnostics. It does not infer radio groups,
 choice values, calculations, or form actions from static marks. Applying selected
-proposals requires the exact analyzed source bytes and uses the existing form
-mutation and preservation checks.
+proposals edits the analyzed PDF snapshot; a new analysis is needed to include
+later changes to the source document. The usual PDF mutation and preservation
+checks apply.
 
 The same transaction creates text fields, check boxes, combo or list choices,
 radio-button groups, push buttons, and empty signature fields. Generated widget

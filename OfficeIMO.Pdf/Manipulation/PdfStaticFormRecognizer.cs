@@ -76,7 +76,15 @@ internal static class PdfStaticFormRecognizer {
             }
         }
 
-        var usedNames = new HashSet<string>(logical.FormFields.Where(static field => !string.IsNullOrWhiteSpace(field.Name)).Select(static field => field.Name!), StringComparer.Ordinal);
+        var usedNames = new HashSet<string>(StringComparer.Ordinal);
+        foreach (PdfFormField field in document.FormFields) {
+            if (string.IsNullOrWhiteSpace(field.Name)) continue;
+            string name = field.Name!;
+            usedNames.Add(name);
+            for (int separator = name.IndexOf('.'); separator >= 0; separator = name.IndexOf('.', separator + 1)) {
+                usedNames.Add(name.Substring(0, separator));
+            }
+        }
         var proposals = new List<PdfStaticFormFieldProposal>(proposed.Count);
         int currentPage = 0;
         int tabIndex = 0;
@@ -94,7 +102,7 @@ internal static class PdfStaticFormRecognizer {
                 new PdfLogicalVisualBounds(candidate.Visual.Left, candidate.Visual.Top, candidate.Visual.Right, candidate.Visual.Bottom),
                 candidate.Confidence, candidate.Evidence, candidate.Label.IsOcr));
         }
-        return new PdfStaticFormRecognitionReport(PdfArtifactFingerprint.ComputeSha256(pdf), proposals, diagnostics);
+        return new PdfStaticFormRecognitionReport(pdf, snapshot.Options, proposals, diagnostics);
 
         void AddDiagnostic(string code, int pageNumber, string message) {
             if (diagnostics.Count < effective.MaxProposals) diagnostics.Add(new PdfStaticFormRecognitionDiagnostic(code, pageNumber, message));
