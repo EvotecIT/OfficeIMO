@@ -79,8 +79,11 @@ Create an ODP presentation:
 using OdpPresentation presentation = OdpPresentation.Create();
 OdpMasterPage master = presentation.AddMasterPage("Brand");
 master.BackgroundColor = OdfColor.Parse("#F8FBFF");
-presentation.AddLayout("Title").AddPlaceholder("title", OdfRect.FromCentimeters(2, 1, 28, 3));
+OdpPresentationLayout layout = presentation.AddLayout("Title");
+layout.AddPlaceholder("title", OdfRect.FromCentimeters(2, 1, 28, 3));
 OdpSlide slide = presentation.AddSlide("Summary");
+slide.MasterPageName = master.Name;
+slide.LayoutName = layout.Name;
 OdpTextBox title = slide.AddTextBox(OdfRect.FromCentimeters(2, 1, 28, 3), "Native ODP");
 title.PresentationClass = "title";
 slide.AddRectangle(OdfRect.FromCentimeters(2, 5, 8, 3)).FillColor = OdfColor.Parse("#D1E9FF");

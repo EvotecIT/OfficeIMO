@@ -8,9 +8,11 @@ public sealed class OdpTable : OdpShape {
     public IReadOnlyList<OdpTableRow> Rows {
         get {
             List<XElement> elements = OdfTableRowElements.Enumerate(TableElement).ToList();
+            IReadOnlyDictionary<XElement, long> starts = LogicalStarts(elements,
+                OdfNamespaces.Table + "number-rows-repeated");
             return new OdfRepeatedElementCollection<OdpTableRow>(elements, OdfNamespaces.Table + "number-rows-repeated",
                 (element, offset) => {
-                    long logicalIndex = LogicalIndex(elements, element, offset, OdfNamespaces.Table + "number-rows-repeated");
+                    long logicalIndex = checked(starts[element] + offset);
                     return new OdpTableRow(Presentation, element, offset, () => ResolveRowElement(logicalIndex));
                 });
         }
@@ -45,13 +47,14 @@ public sealed class OdpTable : OdpShape {
     }
     private OdfRepeatedElementPosition ResolveRowElement(long logicalIndex) => OdsRepeatModel.Resolve(
         OdfTableRowElements.Enumerate(TableElement).ToList(), OdfNamespaces.Table + "number-rows-repeated", logicalIndex);
-    private static long LogicalIndex(IReadOnlyList<XElement> elements, XElement selected, long offset, XName repeatAttribute) {
+    internal static IReadOnlyDictionary<XElement, long> LogicalStarts(IReadOnlyList<XElement> elements, XName repeatAttribute) {
+        var starts = new Dictionary<XElement, long>();
         long index = 0;
         foreach (XElement element in elements) {
-            if (ReferenceEquals(element, selected)) return checked(index + offset);
+            starts.Add(element, index);
             index = checked(index + OdsRepeatModel.Read(element, repeatAttribute));
         }
-        throw new InvalidOperationException("Repeated ODF element is no longer present in its collection.");
+        return starts;
     }
 }
 
@@ -69,9 +72,11 @@ public sealed class OdpTableRow {
             List<XElement> elements = _element.Elements()
                 .Where(element => element.Name == OdfNamespaces.Table + "table-cell" || element.Name == OdfNamespaces.Table + "covered-table-cell")
                 .ToList();
+            IReadOnlyDictionary<XElement, long> starts = OdpTable.LogicalStarts(elements,
+                OdfNamespaces.Table + "number-columns-repeated");
             return new OdfRepeatedElementCollection<OdpTableCell>(elements, OdfNamespaces.Table + "number-columns-repeated",
                 (element, offset) => {
-                    long logicalIndex = LogicalIndex(elements, element, offset);
+                    long logicalIndex = checked(starts[element] + offset);
                     return new OdpTableCell(_presentation, element, offset, () => ResolveCellElement(logicalIndex));
                 });
         }
@@ -91,14 +96,6 @@ public sealed class OdpTableRow {
         return OdsRepeatModel.Resolve(_element.Elements()
             .Where(element => element.Name == OdfNamespaces.Table + "table-cell" || element.Name == OdfNamespaces.Table + "covered-table-cell")
             .ToList(), OdfNamespaces.Table + "number-columns-repeated", logicalIndex);
-    }
-    private static long LogicalIndex(IReadOnlyList<XElement> elements, XElement selected, long offset) {
-        long index = 0;
-        foreach (XElement element in elements) {
-            if (ReferenceEquals(element, selected)) return checked(index + offset);
-            index = checked(index + OdsRepeatModel.Read(element, OdfNamespaces.Table + "number-columns-repeated"));
-        }
-        throw new InvalidOperationException("Repeated ODF cell is no longer present in its row.");
     }
 }
 

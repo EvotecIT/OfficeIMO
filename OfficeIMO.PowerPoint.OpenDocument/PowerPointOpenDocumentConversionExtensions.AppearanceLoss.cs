@@ -396,7 +396,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         if (properties == null) return false;
         string? fill = (string?)properties.Attribute(OdfNamespaces.Draw + "fill");
         string? stroke = (string?)properties.Attribute(OdfNamespaces.Draw + "stroke");
-        if (fill != null && fill != "solid" || stroke != null && stroke != "solid") return true;
+        if (fill != null && fill != "solid" && !(shape is OdpLine && fill == "none") ||
+            stroke != null && stroke != "solid") return true;
         if (fill == "solid" && !OdfColor.TryParse((string?)properties.Attribute(OdfNamespaces.Draw + "fill-color"), out _)) return true;
         if (stroke == "solid" && !OdfColor.TryParse((string?)properties.Attribute(OdfNamespaces.Svg + "stroke-color"), out _)) return true;
         bool mappedImageClip = shape is OdpImage image && image.Crop.HasValue;
@@ -492,7 +493,12 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
     private static bool HasUnmappedOdpTableAppearance(OdpTable table) =>
         table.Element.DescendantsAndSelf().Any(element => element.Attributes().Any(attribute =>
             attribute.Name == OdfNamespaces.Table + "style-name" ||
-                attribute.Name == OdfNamespaces.Table + "default-cell-style-name"));
+                attribute.Name == OdfNamespaces.Table + "default-cell-style-name" ||
+                attribute.Name == OdfNamespaces.Table + "template-name" ||
+                attribute.Name.Namespace == OdfNamespaces.Table &&
+                attribute.Name.LocalName.StartsWith("use-", StringComparison.Ordinal) &&
+                attribute.Name.LocalName.EndsWith("-styles", StringComparison.Ordinal) &&
+                attribute.Value is "true" or "1"));
 
     private static bool HasUnmappedOdpShapeAccessibility(OdpShape shape) =>
         shape.Element.DescendantsAndSelf().Any(element =>

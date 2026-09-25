@@ -14,6 +14,58 @@ namespace OfficeIMO.OpenDocument.Converters.Tests;
 
 public sealed class PowerPointOdpCurrentHeadReviewTests {
     [Fact]
+    public void OdpTableTemplateAppearanceIsExplicitLoss() {
+        OdpPresentation source = OdpPresentation.Create();
+        source.AddSlide().AddTable(OdfRect.FromCentimeters(1, 1, 8, 3), 1, 1);
+        XElement table = source.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Table + "table").Single();
+        table.SetAttributeValue(OdfNamespaces.Table + "template-name", "BrandedTable");
+        table.SetAttributeValue(OdfNamespaces.Table + "use-first-row-styles", "true");
+        source.Package.MarkXmlDirty("content.xml");
+
+        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
+        using PowerPointPresentation target = conversion.Value;
+        Assert.Contains(conversion.Report.ForFeature("table-appearance"), mapping =>
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+    }
+
+    [Fact]
+    public void UnfilledOdpLineDoesNotReportShapeAppearanceLoss() {
+        OdpPresentation source = OdpPresentation.Create();
+        OdpLine line = source.AddSlide().AddLine(OdfLength.Centimeters(1), OdfLength.Centimeters(1),
+            OdfLength.Centimeters(6), OdfLength.Centimeters(2));
+        line.FillColor = null;
+        line.StrokeColor = OdfColor.Parse("#336699");
+
+        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
+        using PowerPointPresentation target = conversion.Value;
+        Assert.DoesNotContain(conversion.Report.ForFeature("shape-appearance"), mapping =>
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+    }
+
+    [Fact]
+    public void RepeatedOdpTableRowsAndCellsConvertAtLogicalPositions() {
+        OdpPresentation source = OdpPresentation.Create();
+        OdpTable table = source.AddSlide().AddTable(OdfRect.FromCentimeters(1, 1, 8, 3), 1, 1);
+        table.Cell(0, 0).Text = "Repeated";
+        XElement tableXml = source.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Table + "table").Single();
+        tableXml.Descendants(OdfNamespaces.Table + "table-row").Single()
+            .SetAttributeValue(OdfNamespaces.Table + "number-rows-repeated", 2);
+        tableXml.Descendants(OdfNamespaces.Table + "table-cell").Single()
+            .SetAttributeValue(OdfNamespaces.Table + "number-columns-repeated", 3);
+        source.Package.MarkXmlDirty("content.xml");
+
+        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
+        using PowerPointPresentation target = conversion.Value;
+        PowerPointTable result = target.Slides[0].Tables.Single();
+        Assert.Equal("Repeated", result.GetCell(0, 0).Paragraphs[0].Runs[0].Text);
+        Assert.Equal("Repeated", result.GetCell(1, 2).Paragraphs[0].Runs[0].Text);
+    }
+
+
+
+    [Fact]
     public void CustomOdpGeneratorIsMetadataLoss() {
         OdpPresentation source = OdpPresentation.Create();
         source.AddSlide();

@@ -412,11 +412,12 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                         unsupportedShapes++;
                         continue;
                     }
-                    int rowCount = Math.Max(1, table.Rows.Count);
+                    OdpTableRow[] sourceRows = table.Rows.ToArray();
+                    int rowCount = Math.Max(1, sourceRows.Length);
                     if (rowCount > effective.MaxTableRows) {
                         throw new InvalidDataException($"ODP table rows ({rowCount}) exceed the configured conversion limit ({effective.MaxTableRows}).");
                     }
-                    int columnCount = Math.Max(1, table.Rows.Select(row => row.Cells.Count).DefaultIfEmpty(1).Max());
+                    int columnCount = Math.Max(1, sourceRows.Select(row => row.Cells.Count).DefaultIfEmpty(1).Max());
                     if (columnCount > effective.MaxTableColumns) {
                         throw new InvalidDataException($"ODP table columns ({columnCount}) exceed the configured conversion limit ({effective.MaxTableColumns}).");
                     }
@@ -424,19 +425,23 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                     converted.Name = table.Name;
                     unsupportedMeasurements += CopyShapeAppearance(table, converted, effective);
                     var merges = new List<(int Row, int Column, int RowSpan, int ColumnSpan)>();
-                    for (int row = 0; row < table.Rows.Count; row++) {
-                        IReadOnlyList<OdpTableCell> cells = table.Rows[row].Cells;
-                        for (int column = 0; column < cells.Count; column++) {
-                            OdpTableCell cell = cells[column];
-                            if (cell.IsCovered) continue;
-                            CopyOdpParagraphsToPowerPoint(cell.Paragraphs,
-                                paragraphTexts => converted.GetCell(row, column).SetParagraphs(paragraphTexts), source.Slides,
-                                pendingInternalLinks, effective, textCaseCulture, ref paragraphs, ref textRuns, ref hyperlinks,
-                                ref externalHyperlinks, ref unsupportedHyperlinks, ref unsupportedHyperlinkBehaviors, ref approximatedRuns,
-                                ref skippedBasicFormatting, ref unsupportedWritingModes,
-                                ref approximatedParagraphAlignments, ref unsupportedMeasurements,
-                                ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
-                            if (cell.RowSpan > 1 || cell.ColumnSpan > 1) merges.Add((row, column, cell.RowSpan, cell.ColumnSpan));
+                    for (int row = 0; row < sourceRows.Length; row++) {
+                        IReadOnlyList<OdpTableCell> cells = sourceRows[row].Cells;
+                        int column = 0;
+                        foreach (OdpTableCell cell in cells) {
+                            if (!cell.IsCovered) {
+                                int targetColumn = column;
+                                CopyOdpParagraphsToPowerPoint(cell.Paragraphs,
+                                    paragraphTexts => converted.GetCell(row, targetColumn).SetParagraphs(paragraphTexts), source.Slides,
+                                    pendingInternalLinks, effective, textCaseCulture, ref paragraphs, ref textRuns, ref hyperlinks,
+                                    ref externalHyperlinks, ref unsupportedHyperlinks, ref unsupportedHyperlinkBehaviors, ref approximatedRuns,
+                                    ref skippedBasicFormatting, ref unsupportedWritingModes,
+                                    ref approximatedParagraphAlignments, ref unsupportedMeasurements,
+                                    ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
+                                if (cell.RowSpan > 1 || cell.ColumnSpan > 1)
+                                    merges.Add((row, column, cell.RowSpan, cell.ColumnSpan));
+                            }
+                            column++;
                         }
                     }
                     foreach (var merge in merges) converted.MergeCells(merge.Row, merge.Column,

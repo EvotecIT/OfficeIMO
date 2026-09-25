@@ -121,10 +121,8 @@ public abstract class OdpShape {
         value ??= (string?)defaults?.Attribute(colorName);
         return value == null ? (OdfColor?)null : OdfColor.Parse(value);
     }
-    private XElement? GetDefaultGraphicProperties() => Presentation.Package.GetXml("styles.xml")
-        .Descendants(OdfNamespaces.Style + "default-style")
-        .FirstOrDefault(element => (string?)element.Attribute(OdfNamespaces.Style + "family") == "graphic")?
-        .Element(OdfNamespaces.Style + "graphic-properties");
+    private XElement? GetDefaultGraphicProperties() => Presentation.Styles.FindDefaultProperties(
+        OdfStyleFamily.Graphic, OdfNamespaces.Style + "graphic-properties");
     private OdfLength ReadLength(string localName) => OdfLength.Parse((string?)Element.Attribute(OdfNamespaces.Svg + localName) ?? "0cm");
 }
 
