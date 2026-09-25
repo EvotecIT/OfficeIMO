@@ -59,6 +59,66 @@ public sealed class OpenDocumentOdtNotesTests {
     }
 
     [Fact]
+    public void ExistingNoteInRepeatedCellRejectsInsertionBeforeSplitting() {
+        OdtDocument document = OdtDocument.Create();
+        OdtTable table = document.AddTable(1, 1, "RepeatedExistingNote");
+        table.Cell(0, 0).Paragraphs[0].AddFootnote("Existing note");
+        XElement row = table.Element.Elements(OdfNamespaces.Table + "table-row").Single();
+        row.SetAttributeValue(OdfNamespaces.Table + "number-rows-repeated", 2);
+        row.Elements(OdfNamespaces.Table + "table-cell").Single()
+            .SetAttributeValue(OdfNamespaces.Table + "number-columns-repeated", 2);
+        document.Package.MarkXmlDirty("content.xml");
+        OdtDocument reopened = OdtDocument.Load(new MemoryStream(document.ToBytes()));
+        byte[] before = reopened.ToBytes();
+
+        Assert.Throws<NotSupportedException>(() =>
+            reopened.Tables.Single().Rows[1].Cells[1].Paragraphs[0].AddEndnote("New note"));
+        Assert.Equal(before, reopened.ToBytes());
+    }
+
+    [Fact]
+    public void ExistingNoteInSiblingCellRejectsRepeatedRowSplit() {
+        OdtDocument document = OdtDocument.Create();
+        OdtTable table = document.AddTable(1, 2, "RepeatedRowSiblingNote");
+        table.Cell(0, 0).Paragraphs[0].AddFootnote("Existing sibling note");
+        table.Element.Elements(OdfNamespaces.Table + "table-row").Single()
+            .SetAttributeValue(OdfNamespaces.Table + "number-rows-repeated", 2);
+        document.Package.MarkXmlDirty("content.xml");
+        OdtDocument reopened = OdtDocument.Load(new MemoryStream(document.ToBytes()));
+        byte[] before = reopened.ToBytes();
+
+        Assert.Throws<NotSupportedException>(() =>
+            reopened.Tables.Single().Rows[1].Cells[1].Paragraphs[0].AddEndnote("New note"));
+        Assert.Equal(before, reopened.ToBytes());
+    }
+
+    [Fact]
+    public void ExistingNoteRejectsOtherRepeatedRowAndCellMutations() {
+        OdtDocument document = OdtDocument.Create();
+        OdtTable table = document.AddTable(1, 2, "RepeatedMutation");
+        table.Cell(0, 0).Paragraphs[0].AddFootnote("Existing note");
+        XElement row = table.Element.Elements(OdfNamespaces.Table + "table-row").Single();
+        row.SetAttributeValue(OdfNamespaces.Table + "number-rows-repeated", 2);
+        document.Package.MarkXmlDirty("content.xml");
+        OdtDocument reopened = OdtDocument.Load(new MemoryStream(document.ToBytes()));
+        byte[] before = reopened.ToBytes();
+
+        Assert.Throws<NotSupportedException>(() => reopened.Tables.Single().Rows[1].AddCell("new"));
+        Assert.Throws<NotSupportedException>(() => reopened.Tables.Single().Rows[1].Cells[1].Text = "changed");
+        Assert.Equal(before, reopened.ToBytes());
+
+        row.SetAttributeValue(OdfNamespaces.Table + "number-rows-repeated", null);
+        row.Elements(OdfNamespaces.Table + "table-cell").First()
+            .SetAttributeValue(OdfNamespaces.Table + "number-columns-repeated", 2);
+        document.Package.MarkXmlDirty("content.xml");
+        OdtDocument repeatedCell = OdtDocument.Load(new MemoryStream(document.ToBytes()));
+        byte[] cellBefore = repeatedCell.ToBytes();
+        Assert.Throws<NotSupportedException>(() => repeatedCell.Tables.Single().Rows[0].Cells[1]
+            .AddParagraph("new"));
+        Assert.Equal(cellBefore, repeatedCell.ToBytes());
+    }
+
+    [Fact]
     public void SupportedNotesAreReportedAsEditable() {
         OdtDocument source = OdtDocument.Create();
         source.AddParagraph("Anchor").AddFootnote("Body");

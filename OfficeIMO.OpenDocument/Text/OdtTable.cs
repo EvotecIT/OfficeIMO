@@ -128,6 +128,10 @@ public sealed class OdtTableRow {
             _resolveRow = null;
         }
         if (_element.Attribute(OdfNamespaces.Table + "number-rows-repeated") == null) return;
+        if (OdsRepeatModel.Read(_element, OdfNamespaces.Table + "number-rows-repeated") > 1 &&
+            _element.Descendants(OdfNamespaces.Text + "note").Any()) {
+            throw new NotSupportedException("Splitting a repeated table row containing a note is not supported.");
+        }
         _element = OdsRepeatModel.Split(_element, OdfNamespaces.Table + "number-rows-repeated", _repeatOffset);
     }
 
@@ -182,6 +186,19 @@ public sealed class OdtTableCell {
     }
 
     private XElement ResolveParagraphForNote(int index) {
+        // Splitting a repeated row or cell clones its existing notes. Their IDs
+        // would then be shared by several physical notes, so reject before the
+        // first XML mutation instead of inserting against a stale note index.
+        bool repeatsCellWithNote =
+            OdsRepeatModel.Read(_element, OdfNamespaces.Table + "number-columns-repeated") > 1 &&
+            _element.Descendants(OdfNamespaces.Text + "note").Any();
+        bool repeatsRowWithNote = _element.Parent is XElement row &&
+            row.Name == OdfNamespaces.Table + "table-row" &&
+            OdsRepeatModel.Read(row, OdfNamespaces.Table + "number-rows-repeated") > 1 &&
+            row.Descendants(OdfNamespaces.Text + "note").Any();
+        if (repeatsCellWithNote || repeatsRowWithNote) {
+            throw new NotSupportedException("Adding a note while splitting a repeated table cell or row containing a note is not supported.");
+        }
         EnsureMaterialized();
         return _element.Elements()
             .Where(element => element.Name == OdfNamespaces.Text + "p" || element.Name == OdfNamespaces.Text + "h")
@@ -257,6 +274,10 @@ public sealed class OdtTableCell {
             resolvedRow = true;
         }
         if (_element.Attribute(OdfNamespaces.Table + "number-columns-repeated") != null) {
+            if (OdsRepeatModel.Read(_element, OdfNamespaces.Table + "number-columns-repeated") > 1 &&
+                _element.Descendants(OdfNamespaces.Text + "note").Any()) {
+                throw new NotSupportedException("Splitting a repeated table cell containing a note is not supported.");
+            }
             _element = OdsRepeatModel.Split(_element, OdfNamespaces.Table + "number-columns-repeated", _repeatOffset);
             Dirty();
         } else if (resolvedRow) {

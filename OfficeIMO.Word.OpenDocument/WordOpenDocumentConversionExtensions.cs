@@ -147,7 +147,8 @@ public static partial class WordOpenDocumentConversionExtensions {
         int approximatedRuns = 0, approximatedBookmarkRanges = 0, unsupportedMeasurements = 0;
         int approximatedFontFamilyLists = 0, unsupportedFontFamilies = 0;
         var notes = new NoteMappingStats {
-            HasOdtDefaultNoteBodyFormatting = HasOdtDefaultNoteBodyFormatting(source)
+            HasOdtDefaultNoteBodyFormatting = HasOdtDefaultNoteBodyFormatting(source),
+            HasOdtDefaultNoteReferenceFormatting = HasOdtDefaultNoteReferenceFormatting(source)
         };
         CultureInfo textCaseCulture = OdfTextCultureResolver.Resolve(source.Metadata.Language);
         int approximatedTextDecorations = CountNonSolidTextDecorations(source);
@@ -361,7 +362,8 @@ public static partial class WordOpenDocumentConversionExtensions {
                 case OdtInlineNodeKind.Note:
                     if (allowNotes) {
                         if (leaf.Span?.StyleName != null || leaf.StyleLink != null || leaf.TargetLink != null ||
-                            HasOdtParagraphNoteReferenceFormatting(source))
+                            HasOdtParagraphNoteReferenceFormatting(source) ||
+                            notes.HasOdtDefaultNoteReferenceFormatting)
                             notes.ApproximatedReferenceFormatting++;
                         CopyOdtNote(node.Note!, target, notes);
                     }

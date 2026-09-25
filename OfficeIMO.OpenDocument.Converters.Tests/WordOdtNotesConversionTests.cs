@@ -301,6 +301,26 @@ public sealed class WordOdtNotesConversionTests {
     }
 
     [Fact]
+    public void DefaultOdtTextStyleOnNoteAnchorHasReferenceFormattingLoss() {
+        OdtDocument source = OdtDocument.Create();
+        source.AddParagraph("Anchor").AddFootnote("Body");
+        XNamespace office = "urn:oasis:names:tc:opendocument:xmlns:office:1.0";
+        XNamespace style = "urn:oasis:names:tc:opendocument:xmlns:style:1.0";
+        XNamespace fo = "urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0";
+        source.Package.GetXml("styles.xml").Root!.Element(office + "styles")!.Add(
+            new XElement(style + "default-style", new XAttribute(style + "family", "paragraph"),
+                new XElement(style + "text-properties", new XAttribute(fo + "font-weight", "bold"))));
+        source.Package.MarkXmlDirty("styles.xml");
+
+        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        using WordDocument word = conversion.Value;
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-reference-formatting" &&
+            mapping.Status == OdfConversionMappingStatus.Approximated);
+        Assert.Throws<OdfConversionLossException>(() => source.ToWordDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
     public void WordNoteRunSemanticsAndPageBreaksAreExplicitLoss() {
         using WordDocument source = WordDocument.Create();
         source.AddParagraph("Anchor").AddFootNote("Body");

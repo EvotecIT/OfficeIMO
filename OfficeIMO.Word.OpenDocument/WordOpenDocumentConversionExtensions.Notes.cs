@@ -104,6 +104,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         internal int UnsupportedHeaderFooterNotes;
         internal int UnsupportedOdtNoteConfigurations;
         internal bool HasOdtDefaultNoteBodyFormatting;
+        internal bool HasOdtDefaultNoteReferenceFormatting;
         internal int CurrentSectionIndex;
         internal WordDocument? WordSource;
         internal readonly Dictionary<int, int> FootnotesBySection = new Dictionary<int, int>();
@@ -495,6 +496,15 @@ public static partial class WordOpenDocumentConversionExtensions {
             .Any(element => (element.Name == style + "paragraph-properties" ||
                              element.Name == style + "text-properties") &&
                             (element.HasAttributes || element.HasElements));
+    }
+
+    private static bool HasOdtDefaultNoteReferenceFormatting(OdtDocument source) {
+        if (!source.Package.ContainsEntry("styles.xml")) return false;
+        System.Xml.Linq.XNamespace style = "urn:oasis:names:tc:opendocument:xmlns:style:1.0";
+        return source.Package.GetXml("styles.xml").Descendants(style + "default-style")
+            .Where(element => (string?)element.Attribute(style + "family") is "paragraph" or "text")
+            .SelectMany(element => element.Elements(style + "text-properties"))
+            .Any(element => element.HasAttributes || element.HasElements);
     }
 
     private static void CountUnsupported(OdtNoteKind kind, NoteMappingStats notes) {
