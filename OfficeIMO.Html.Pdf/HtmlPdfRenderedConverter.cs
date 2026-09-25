@@ -114,7 +114,7 @@ internal static partial class HtmlPdfRenderedConverter {
         measurementOptions.SetTextShapingMode(options.TextShapingMode).SetTextShapingProvider(options.TextShapingProvider);
         if (options.FontFamily != null) measurementOptions.RegisterFontFamily(PdfCore.PdfStandardFont.Helvetica, options.FontFamily);
         renderOptions.FallbackTextMeasurement = CreateFallbackTextMeasurement(options, measurementOptions);
-        renderOptions.FallbackTextFaceMetrics = CreateFallbackTextFaceMetrics(options);
+        renderOptions.FallbackTextFaceMetrics = CreateFallbackTextFaceMetrics(options, measurementOptions);
         HtmlRenderResourceResolver? embeddedPackageResolver = options.EmbeddedPackageResourceResolver;
         HtmlUrlPolicy hostResourceUrlPolicy = (options.EmbeddedPackageHostResourceUrlPolicy ?? renderOptions.GetResourceUrlPolicy()).Clone();
         ApplyResourceAccessPolicy(
@@ -914,7 +914,8 @@ internal static partial class HtmlPdfRenderedConverter {
             MapAlignment(visual.Alignment),
             baselineFontSize.Value * PointsPerCssPixel,
             visual.LineHeight * PointsPerCssPixel,
-            (visual.TextPaintWidth ?? visual.TextAdvanceWidth) * PointsPerCssPixel);
+            (visual.TextPaintWidth ?? visual.TextAdvanceWidth) * PointsPerCssPixel,
+            visual.PaintTopOverflow * PointsPerCssPixel);
     }
 
     private static bool IsFragmentLink(string? link) =>

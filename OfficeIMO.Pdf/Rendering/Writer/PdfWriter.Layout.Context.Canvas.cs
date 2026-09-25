@@ -406,7 +406,7 @@ internal static partial class PdfWriter {
                 item.X,
                 bottomY,
                 width,
-                item.Height,
+                item.Height + item.PositionedClipTopOverflow,
                 item.X,
                 width,
                 structureType: structureType,

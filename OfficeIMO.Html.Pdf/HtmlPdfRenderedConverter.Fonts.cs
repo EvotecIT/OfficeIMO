@@ -9,15 +9,26 @@ namespace OfficeIMO.Html.Pdf;
 
 internal static partial class HtmlPdfRenderedConverter {
     private static Func<string, OfficeFontInfo, OfficeFontFaceDescriptor, HtmlTextFaceMetrics?>? CreateFallbackTextFaceMetrics(
-        HtmlToPdfOptions options) {
-        if (!options.ResourcePolicy.AllowSystemFontEmbedding
-            || !options.ResourcePolicy.AllowDocumentFontEmbedding) return null;
+        HtmlToPdfOptions options,
+        PdfCore.PdfOptions measurementOptions) {
+        bool useInstalledFonts = options.ResourcePolicy.AllowSystemFontEmbedding
+            && options.ResourcePolicy.AllowDocumentFontEmbedding;
         return (text, font, descriptor) => {
-            foreach (string family in EnumerateBoundedSystemFamilies(font.FamilyName)) {
-                if (PdfCore.PdfEmbeddedFontFamily.TryMeasureSystemFaceVerticalMetrics(
-                    family, descriptor, text, font.Size, out double height, out double baseline)) {
-                    return new HtmlTextFaceMetrics(height, baseline);
-                }
+            string family = ResolvePdfFontFamilyForText(font.FamilyName, text, font.IsBold,
+                font.IsItalic, descriptor, useInstalledFonts, measurementOptions);
+            if (!measurementOptions.TryResolveNamedFontFace(family, font.IsBold, font.IsItalic,
+                    out PdfCore.PdfNamedFontFace face)) return null;
+            if (measurementOptions.TryGetNamedFontProgram(face, out PdfCore.PdfTrueTypeFontProgram? trueType)
+                && trueType != null
+                && PdfCore.PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, trueType).Count == 0) {
+                double ascent = trueType.GetAscender(font.Size);
+                return new HtmlTextFaceMetrics(ascent + trueType.GetDescender(font.Size), ascent);
+            }
+            if (measurementOptions.TryGetNamedOpenTypeCffFontProgram(face, out PdfCore.PdfOpenTypeCffFontProgram? cff)
+                && cff != null
+                && PdfCore.PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, cff).Count == 0) {
+                double ascent = cff.GetAscender(font.Size);
+                return new HtmlTextFaceMetrics(ascent + cff.GetDescender(font.Size), ascent);
             }
             return null;
         };

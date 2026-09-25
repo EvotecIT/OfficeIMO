@@ -528,8 +528,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 } else if (segment.Text.Length > 0) {
                     double textLineHeight = current.HasReplacedImage ? segment.Run.Style.LineHeight : lineHeight;
                     ResolveInlineTextVerticalPlacement(segment, current.HasReplacedImage, lineY,
-                        textLineHeight, baseline, out double textY, out double paintHeight);
-                    RecordInlineOwnerGeometry(segment.Run, formattingContainer, x, textY, Math.Max(0.01D, segment.Width), paintHeight, inlineBounds);
+                        textLineHeight, baseline, out double textY, out double paintHeight,
+                        out double paintTopOverflow);
+                    RecordInlineOwnerGeometry(segment.Run, formattingContainer, x,
+                        textY - paintTopOverflow, Math.Max(0.01D, segment.Width),
+                        paintHeight + paintTopOverflow, inlineBounds);
                     if (!segment.Run.Style.PaintVisible) {
                         cursor += rightToLeftLine ? -segment.Width : segment.Width;
                         continue;
@@ -570,7 +573,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             featureSettings: segment.Run.Style.TextFeatureSettings,
                             fontPalette: segment.Run.Style.FontPalette,
                             layoutHeight: textLineHeight,
-                            fontDescriptor: segment.Run.Style.FontDescriptor));
+                            fontDescriptor: segment.Run.Style.FontDescriptor,
+                            paintTopOverflow: paintTopOverflow));
                     }
                     HtmlRenderVisual textVisual = paintSegments.Count > 1 || segment.BidiResolved ||
                         !string.Equals(segment.Text, segment.LogicalText, StringComparison.Ordinal) ||

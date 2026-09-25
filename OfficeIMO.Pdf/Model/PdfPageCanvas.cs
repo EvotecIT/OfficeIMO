@@ -761,6 +761,7 @@ internal sealed class PdfCanvasTextItem : PdfCanvasItem {
     public PdfCanvasTextStructureRole StructureRole { get; }
     internal bool PreservePositionedText { get; set; }
     internal double? PositionedAdvanceWidth { get; set; }
+    internal double PositionedClipTopOverflow { get; set; }
 }
 
 internal sealed class PdfCanvasTextBoxItem : PdfCanvasItem {

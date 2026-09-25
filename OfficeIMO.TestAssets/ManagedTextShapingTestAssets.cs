@@ -154,6 +154,10 @@ internal static class ManagedTextShapingTestAssets {
     internal static byte[] CreateFontWithTallGlyph(int scalar, int height) =>
         CreateFontFromCmap(CreateFormat12Cmap(new[] { scalar }), baseGlyphHeight: height);
 
+    internal static byte[] CreateFontWithVerticalMetrics(int scalar, int ascender, int descender, int glyphHeight) =>
+        CreateFontFromCmap(CreateFormat12Cmap(new[] { scalar }), baseGlyphHeight: glyphHeight,
+            ascender: ascender, descender: descender);
+
     private static byte[] CreateFontFromCmap(
         byte[] cmap,
         bool includeTrailingMetric = false,
@@ -164,7 +168,9 @@ internal static class ManagedTextShapingTestAssets {
         bool distinctSecondGlyph = false,
         byte[]? colr = null,
         byte[]? cpal = null,
-        int baseGlyphHeight = 700) {
+        int baseGlyphHeight = 700,
+        int ascender = 800,
+        int descender = -200) {
         byte[] glyph = CreateVisibleGlyph(400);
         var glyf = new byte[(glyphCount - 1) * glyph.Length];
         var loca = new byte[(glyphCount + 1) * 2];
@@ -182,7 +188,7 @@ internal static class ManagedTextShapingTestAssets {
             ("cmap", cmap),
             ("glyf", glyf),
             ("head", CreateHeadTable()),
-            ("hhea", CreateHheaTable()),
+            ("hhea", CreateHheaTable(ascender, descender)),
             ("hmtx", hmtx),
             ("loca", loca),
             ("maxp", maxp),
@@ -780,10 +786,10 @@ internal static class ManagedTextShapingTestAssets {
         return table;
     }
 
-    private static byte[] CreateHheaTable() {
+    private static byte[] CreateHheaTable(int ascender = 800, int descender = -200) {
         var table = new byte[36];
-        WriteUInt16(table, 4, 800);
-        WriteUInt16(table, 6, unchecked((ushort)-200));
+        WriteUInt16(table, 4, checked((ushort)ascender));
+        WriteUInt16(table, 6, unchecked((ushort)descender));
         WriteUInt16(table, 34, 1);
         return table;
     }

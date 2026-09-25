@@ -9,6 +9,27 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlPdf_ShortLineUsesTheCallerNamedFaceAndKeepsHighAscentVisible() {
+        byte[] font = ManagedTextShapingTestAssets.CreateFontWithVerticalMetrics('A', 1069, -200, 1040);
+        var options = new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0D) };
+        options.ResourcePolicy.AllowDocumentFontEmbedding = true;
+        options.PdfOptions.RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily("Arial", font));
+
+        HtmlPdfRenderResult result = HtmlPdfRenderedConverter.Convert(
+            HtmlConversionDocument.Parse("<div style='font:20px/20px Arial'><span style='font-size:100px'>A</span></div>"),
+            options);
+        HtmlRenderText text = Assert.Single(result.RenderResult!.Document.Pages[0].Visuals.OfType<HtmlRenderText>());
+        Assert.True(result.Document.Options.TryResolveNamedFontFace("Arial", false, false, out PdfCore.PdfNamedFontFace face));
+        Assert.True(result.Document.Options.TryGetNamedFontProgram(face, out PdfCore.PdfTrueTypeFontProgram? program));
+        double ascent = program!.GetAscender(100D);
+        double height = ascent + program.GetDescender(100D);
+
+        Assert.Equal(text.LayoutY + (20D - height) / 2D + ascent - 100D, text.Y, 3);
+        Assert.Equal(ascent - 100D, text.PaintTopOverflow, 3);
+        Assert.Equal("A", PdfCore.PdfReadDocument.Open(result.Document.ToBytes()).ExtractText().Trim());
+    }
+
+    [Fact]
     public void HtmlPdf_InstalledFontMeasurementKeepsPrintedFlexLinksTogether() {
         string? installedFamily = new[] { "Trebuchet MS", "Arial", "Calibri", "Liberation Sans", "DejaVu Sans" }
             .FirstOrDefault(candidate => PdfCore.PdfEmbeddedFontFamily.TryFromSystem(candidate, out _));

@@ -10,13 +10,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double lineHeight,
         double baseline,
         out double textY,
-        out double paintHeight) {
+        out double paintHeight,
+        out double paintTopOverflow) {
         HtmlRenderBoxStyle style = segment.Run.Style;
         double fontSize = style.Font.Size;
         textY = hasReplacedImage
             ? lineY + Math.Max(0D, baseline - ResolveTextAscent(style))
             : lineY + Math.Min(0D, (lineHeight - fontSize) / 2D);
         paintHeight = Math.Max(lineHeight, fontSize);
+        paintTopOverflow = 0D;
         if (hasReplacedImage || lineHeight >= fontSize) return;
 
         HtmlTextFaceMetrics? face = ResolveTextFaceMetrics(segment.Text, style);
@@ -30,6 +32,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         textY = lineY + (lineHeight - face.Value.Height) / 2D
             + face.Value.BaselineOffset - fontSize;
         paintHeight = Math.Max(lineHeight, face.Value.Height);
+        paintTopOverflow = Math.Max(0D, face.Value.BaselineOffset - fontSize);
     }
 
     private HtmlTextFaceMetrics? ResolveTextFaceMetrics(string text, HtmlRenderBoxStyle style) {
