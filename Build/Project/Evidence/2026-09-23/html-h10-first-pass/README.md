@@ -379,3 +379,13 @@ classification before a resource-complete claim. The exact-head replay is
 under `Ignore/HtmlUnknownPageQualification/h10-wai-root-rem-clean-bb3526a06/`;
 the inspected page rasters are under
 `Ignore/HtmlUnknownPageQualification/h10-visual-inspection-bb3526a06/`.
+
+At clean documentation head `72eaa7e02`, the macOS H4 static budget kept
+identical fingerprints for all 76 cold/warm outputs and passed allocation,
+peak memory, output-size and cancellation limits. Warm iterations took
+2,520, 2,621 and 3,638 ms, so the last exceeded the 3,000-ms ceiling.
+Nine concurrent `swift-frontend` processes each used roughly 85–91% CPU on
+this ten-core host immediately after the run; the timing failure cannot yet
+be attributed to the renderer alone. The failed report is
+retained under `Ignore/HtmlUnknownPageQualification/h10-h4-budget-root-rem-clean-72eaa7e02/`.
+An idle-host repeat and Windows/Linux budgets remain open.
