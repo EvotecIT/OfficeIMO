@@ -137,7 +137,7 @@ internal static partial class PdfIncrementalUpdater {
         byte[]? imageBytes = options.GetImageBytes();
         if (imageBytes is not null) {
             cancellationToken.ThrowIfCancellationRequested();
-            PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageBytes(imageBytes, cancellationToken);
+            PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageDocumentSource(imageBytes, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             if (!PdfWriter.TryBuildImageStream(
                     prepared,

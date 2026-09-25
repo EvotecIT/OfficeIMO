@@ -76,6 +76,8 @@ public sealed class PdfNUpImpositionTests {
     [InlineData("/TrimBox 5 0 R", "5 0 obj\nnull\nendobj")]
     [InlineData("/Metadata 5 0 R", "5 0 obj\n6 0 R\nendobj\n6 0 obj\nnull\nendobj")]
     [InlineData("/PieceInfo 5 0 R", "5 0 obj\n6 0 R\nendobj\n6 0 obj\nnull\nendobj")]
+    [InlineData("/Annots 5 0 R", "5 0 obj\n6 0 R\nendobj\n6 0 obj\nnull\nendobj")]
+    [InlineData("/Annots 5 0 R", "5 0 obj\n6 0 R\nendobj\n6 0 obj\n[]\nendobj")]
     public void NullPageEntriesDoNotRequireFeatureLossApproval(string pageEntry, string extraObject) {
         byte[] source = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
             "%PDF-1.7", "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
@@ -87,6 +89,42 @@ public sealed class PdfNUpImpositionTests {
 
         PdfImpositionResult result = PdfDocument.Load(source).Pages.ImposeNUp(
             new PdfNUpOptions(new PageSize(600, 400), 2, 1));
+
+        Assert.Equal(PdfImpositionSourceFeatureLoss.None, result.SourceFeatureLoss);
+    }
+
+    [Fact]
+    public void SelectedPageThumbnailRequiresFeatureLossApproval() {
+        byte[] source = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7", "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Thumb 5 0 R /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj",
+            "5 0 obj", "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length 3 >>", "stream", "abc", "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF", string.Empty
+        }));
+        PdfDocument document = PdfDocument.Load(source);
+        var options = new PdfNUpOptions(new PageSize(600, 400), 2, 1);
+
+        Assert.Throws<NotSupportedException>(() => document.Pages.ImposeNUp(options));
+        options.AllowSourceFeatureLoss = true;
+        Assert.True(document.Pages.ImposeNUp(options).SourceFeatureLoss.HasFlag(PdfImpositionSourceFeatureLoss.PageFeatures));
+    }
+
+    [Fact]
+    public void UnselectedPageActionDoesNotRequireCatalogFeatureLossApproval() {
+        byte[] source = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7", "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 2 /Kids [3 0 R 5 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj",
+            "5 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /AA << /O << /S /JavaScript /JS (alert) >> >> /Contents 6 0 R >>", "endobj",
+            "6 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 7 >>", "%%EOF", string.Empty
+        }));
+
+        PdfImpositionResult result = PdfDocument.Load(source).Pages.ImposeNUp(
+            new PdfNUpOptions(new PageSize(600, 400), 2, 1), PdfPageSelection.From(1));
 
         Assert.Equal(PdfImpositionSourceFeatureLoss.None, result.SourceFeatureLoss);
     }

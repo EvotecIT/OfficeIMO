@@ -71,7 +71,7 @@ internal static partial class PdfStamper {
         var effectiveOptions = options ?? new PdfImageStampOptions();
         PdfImageInput.EnsureWithinLimit(imageBytes.LongLength, effectiveOptions.MaximumEncodedImageBytes);
         ValidateImageOptions(effectiveOptions);
-        PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageBytes(imageBytes);
+        PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageDocumentSource(imageBytes, default);
 
         if (!PdfWriter.TryBuildImageStream(
                 prepared,

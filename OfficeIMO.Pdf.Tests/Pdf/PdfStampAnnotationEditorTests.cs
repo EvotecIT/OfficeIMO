@@ -68,6 +68,33 @@ public class PdfStampAnnotationEditorTests {
     }
 
     [Fact]
+    public void OrientedJpegStampEmbedsNormalizedPixels() {
+        var raster = new OfficeRasterImage(2, 1);
+        raster.SetPixel(0, 0, OfficeColor.Red);
+        raster.SetPixel(1, 0, OfficeColor.Blue);
+        byte[] image = OfficeJpegCodec.Encode(raster, new OfficeJpegEncodeOptions {
+            Quality = 100,
+            Subsampling = OfficeJpegSubsampling.Y444,
+            Metadata = new OfficeJpegMetadata(exif: [
+                (byte)'I', (byte)'I', 0x2A, 0x00, 0x08, 0x00, 0x00, 0x00,
+                0x01, 0x00, 0x12, 0x01, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00,
+                0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+            ])
+        });
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Oriented photo")).ToBytes();
+
+        PdfAnnotationEditResult result = PdfDocument.Load(source).Annotations.AddStamp(
+            new PdfStampAnnotationOptions { ImageBytes = image, Width = 80, Height = 80 });
+
+        var (objects, _) = PdfSyntax.ParseObjects(result.Bytes);
+        PdfStream embedded = Assert.Single(objects.Values.Select(static item => item.Value).OfType<PdfStream>(),
+            static stream => stream.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtype) &&
+                             subtype is PdfName { Name: "Image" } && stream.Dictionary.Items.ContainsKey("SMask"));
+        Assert.Equal(1, Assert.IsType<PdfNumber>(embedded.Dictionary.Items["Width"]).Value);
+        Assert.Equal(2, Assert.IsType<PdfNumber>(embedded.Dictionary.Items["Height"]).Value);
+    }
+
+    [Fact]
     public void ImageStampRejectsOversizedInputBeforeProducingAnArtifact() {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Source")).ToBytes();
         byte[] image = OfficeRasterImageEncoder.Encode(new OfficeRasterImage(4, 4, OfficeColor.Black), OfficeImageExportFormat.Png);

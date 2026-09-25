@@ -56,13 +56,9 @@ internal static class PdfPageImposer {
     private static PdfImpositionResult ImposePlan(byte[] pdf, PdfNUpOptions options, int?[] pageNumbers, PdfLoadOptions? readOptions, PdfDocumentInfo info) {
         (double cellWidth, double cellHeight) = options.Validate();
         int[] selectedPages = pageNumbers.OfType<int>().Distinct().ToArray();
-        bool selectedAnnotations = selectedPages.Any(page => info.Pages[page - 1].HasAnnotations);
         PdfReadDocument rawSource = PdfReadDocument.Open(pdf, readOptions);
+        bool selectedAnnotations = selectedPages.Any(page => HasRawAnnotations(rawSource.Pages[page - 1], rawSource.Objects));
         bool selectedPageFeatures = selectedPages.Any(page => HasRawPageFeatures(rawSource.Pages[page - 1], rawSource.Objects));
-        if (!selectedAnnotations) {
-            // The high-level inspector omits annotations with unreadable geometry, but overlay still drops them.
-            selectedAnnotations = selectedPages.Any(page => HasRawAnnotations(rawSource.Pages[page - 1], rawSource.Objects));
-        }
         // XFA and fields without a placed widget have no page ownership to filter by selection.
         bool documentLevelForms = info.HasForms && (info.HasAcroFormXfa || info.FormFields.Count == 0 ||
             info.FormFields.Any(static field => field.Widgets.Count == 0 ||
@@ -80,7 +76,7 @@ internal static class PdfPageImposer {
         if (info.HasNamedDestinations) sourceFeatureLoss |= PdfImpositionSourceFeatureLoss.NamedDestinations;
         if (info.HasCatalogViewSettings || info.HasOpenActions || info.HasViewerPreferences ||
             info.HasCatalogNameTrees || info.HasCatalogUri || info.HasCatalogActions ||
-            (info.HasActiveContent && !info.HasOnlyWidgetOwnedActiveContent) ||
+            HasRawCatalogActiveContent(rawSource) ||
             !string.IsNullOrWhiteSpace(info.CatalogLanguage)) {
             sourceFeatureLoss |= PdfImpositionSourceFeatureLoss.CatalogFeatures;
         }
@@ -114,7 +110,7 @@ internal static class PdfPageImposer {
             // The signature policy already accounts for removed signature fields and widgets.
             // Retain only interactive features that remain on the unsigned derivative.
             PdfReadDocument derivativeSource = PdfReadDocument.Open(sourcePdf);
-            selectedAnnotations = selectedPages.Any(page => info.Pages[page - 1].HasAnnotations ||
+            selectedAnnotations = selectedPages.Any(page =>
                 HasRawAnnotations(derivativeSource.Pages[page - 1], derivativeSource.Objects));
             bool hasResidualFields = info.FormFields.Count > 0 || HasRawFormFields(derivativeSource);
             documentLevelForms = info.HasAcroFormXfa || hasResidualFields &&
@@ -175,12 +171,12 @@ internal static class PdfPageImposer {
 
     private static bool HasRawAnnotations(PdfReadPage page, Dictionary<int, PdfIndirectObject> objects) {
         if (!page.PageDictionary.Items.TryGetValue("Annots", out PdfObject? value)) return false;
-        PdfObject? resolved = PdfObjectLookup.Resolve(objects, value);
+        PdfObject? resolved = PdfObjectLookup.ResolveChain(objects, value);
         return resolved is not PdfNull && (resolved is not PdfArray annotations || annotations.Items.Count > 0);
     }
 
     private static bool HasRawPageFeatures(PdfReadPage page, Dictionary<int, PdfIndirectObject> objects) {
-        foreach (string key in new[] { "AA", "Metadata", "PieceInfo", "Tabs", "Dur", "Trans", "TrimBox", "BleedBox", "ArtBox" }) {
+        foreach (string key in new[] { "AA", "Metadata", "PieceInfo", "Tabs", "Dur", "Trans", "TrimBox", "BleedBox", "ArtBox", "Thumb" }) {
             if (page.PageDictionary.Items.TryGetValue(key, out PdfObject? value) &&
                 PdfObjectLookup.ResolveChain(objects, value) is not PdfNull) return true;
         }
@@ -203,6 +199,11 @@ internal static class PdfPageImposer {
     private static bool HasRawCatalogXmpMetadata(PdfReadDocument source) =>
         source.CatalogDictionary?.Items.TryGetValue("Metadata", out PdfObject? value) == true &&
         PdfObjectLookup.ResolveChain(source.Objects, value) is not PdfNull;
+
+    private static bool HasRawCatalogActiveContent(PdfReadDocument source) =>
+        source.CatalogDictionary is PdfDictionary catalog &&
+        PdfActiveContentPolicy.MarkerNames.Any(name => catalog.Items.TryGetValue(name, out PdfObject? value) &&
+            PdfObjectLookup.ResolveChain(source.Objects, value) is not null and not PdfNull);
 
     private static bool HasRawFormFields(PdfReadDocument source) {
         PdfDictionary? catalog = source.CatalogDictionary;

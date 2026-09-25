@@ -16,7 +16,7 @@ internal static partial class PdfAnnotationEditor {
         PdfWriter.PdfImageStream? imageStream = null;
         if (imageBytes is not null) {
             PdfImageInput.EnsureWithinLimit(imageBytes.LongLength, effective.MaximumEncodedImageBytes);
-            PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageBytes(imageBytes);
+            PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageDocumentSource(imageBytes, default);
             if (!PdfWriter.TryBuildImageStream(prepared, effective.Width, effective.Height, out PdfWriter.PdfImageStream builtImage, out string? reason)) {
                 throw new NotSupportedException(reason ?? "Stamp image format is not supported.");
             }
