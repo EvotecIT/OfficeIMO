@@ -384,8 +384,7 @@
         "Name": "experience",
         "Css": [
           "/css/visual-system.css",
-          "/css/site-shell.css",
-          "/css/workbench.css"
+          "/css/site-shell.css"
         ]
       },
       {
