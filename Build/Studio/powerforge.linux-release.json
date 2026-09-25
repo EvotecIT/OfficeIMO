@@ -5,6 +5,8 @@
     "DotNetPublishConfigPath": "powerforge.dotnetpublish.json"
   },
   "Outputs": {
+    "ManifestJsonPath": "../../Artifacts/Studio/LinuxRelease/linux-release-manifest.json",
+    "ChecksumsPath": "../../Artifacts/Studio/LinuxRelease/linux-SHA256SUMS.txt",
     "Staging": {
       "RootPath": "../../Artifacts/Studio/LinuxRelease",
       "PortablePath": "GitHub",

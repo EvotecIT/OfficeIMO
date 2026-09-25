@@ -5,6 +5,8 @@
     "DotNetPublishConfigPath": "powerforge.dotnetpublish.json"
   },
   "Outputs": {
+    "ManifestJsonPath": "../../Artifacts/Studio/WindowsRelease/windows-release-manifest.json",
+    "ChecksumsPath": "../../Artifacts/Studio/WindowsRelease/windows-SHA256SUMS.txt",
     "Staging": {
       "RootPath": "../../Artifacts/Studio/WindowsRelease",
       "PortablePath": "GitHub",
