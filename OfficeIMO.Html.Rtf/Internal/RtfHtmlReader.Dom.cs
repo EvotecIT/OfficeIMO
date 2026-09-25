@@ -17,10 +17,12 @@ internal static partial class RtfHtmlReader {
         }
     }
 
-    private static void ReadDom(IHtmlDocument htmlDocument, HtmlToRtfOptions options, RtfDocument document) {
+    private static void ReadDom(IHtmlDocument htmlDocument, HtmlToRtfOptions options, RtfDocument document, bool sourceLimitsValidated) {
         Uri? effectiveBaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(htmlDocument, options.BaseUri);
         var context = new ReadContext(document, options, effectiveBaseUri);
-        HtmlDomLimitTracker? limits = HtmlDomLimitTracker.Create(options.MaxHtmlNodes, options.MaxHtmlDepth);
+        HtmlDomLimitTracker? limits = sourceLimitsValidated
+            ? null
+            : HtmlDomLimitTracker.Create(options.MaxHtmlNodes, options.MaxHtmlDepth);
         try {
             TraverseNode(HtmlDocumentParser.GetConversionRoot(htmlDocument, useBodyContentsOnly: false), context, limits, depth: 0);
         } catch (HtmlDomLimitException exception) {

@@ -3,9 +3,9 @@ using AngleSharp.Html.Dom;
 namespace OfficeIMO.Html;
 
 internal static partial class RtfHtmlReader {
-    internal static RtfDocument Read(IHtmlDocument htmlDocument, HtmlToRtfOptions options) {
+    internal static RtfDocument Read(IHtmlDocument htmlDocument, HtmlToRtfOptions options, bool sourceLimitsValidated = false) {
         RtfDocument document = RtfDocument.Create();
-        ReadDom(htmlDocument, options, document);
+        ReadDom(htmlDocument, options, document, sourceLimitsValidated);
         return document;
     }
 
