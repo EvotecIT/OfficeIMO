@@ -3,6 +3,69 @@ using System.Threading;
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadPage {
+    internal (bool HasDeviceRgb, bool HasTransparency) GetDefiniteUnlayeredPrintColorUse(
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (IsHiddenOptionalContent(_pageDict)) return (false, false);
+        PdfDictionary? resources = ResolveDictionary(GetInheritedValue("Resources"));
+        PdfDictionary? colorSpaces = ResolveDictionary(
+            resources?.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject) == true
+                ? colorSpaceObject : null);
+        bool defaultRgbIsOverridden = colorSpaces?.Items.ContainsKey("DefaultRGB") == true;
+        var budget = new PageContentBudget(this, cancellationToken);
+        string content = GetContentStreamContent(budget);
+        bool fillRgb = false;
+        bool strokeRgb = false;
+        bool transparent = false;
+        bool foundRgb = false;
+        bool foundTransparency = false;
+        int markedDepth = 0;
+        var states = new Stack<(bool FillRgb, bool StrokeRgb, bool Transparent)>();
+        PdfContentStreamInterpreter.Interpret(content, _limits.MaxContentOperations, operation => {
+            cancellationToken.ThrowIfCancellationRequested();
+            switch (operation.Name) {
+                case "BDC": case "BMC": markedDepth++; return;
+                case "EMC":
+                    if (markedDepth > 0 && --markedDepth == 0) {
+                        // Content inside a layer can change graphics state without restoring it.
+                        fillRgb = strokeRgb = transparent = false;
+                        states.Clear();
+                    }
+                    return;
+            }
+            if (markedDepth != 0 || operation.HasInvalidOperands) return;
+            switch (operation.Name) {
+                case "q": states.Push((fillRgb, strokeRgb, transparent)); break;
+                case "Q":
+                    if (states.Count > 0) (fillRgb, strokeRgb, transparent) = states.Pop();
+                    else fillRgb = strokeRgb = transparent = false;
+                    break;
+                case "rg": fillRgb = !defaultRgbIsOverridden && operation.Operands.Count == 3; break;
+                case "RG": strokeRgb = !defaultRgbIsOverridden && operation.Operands.Count == 3; break;
+                case "g": case "k": case "cs": fillRgb = false; break;
+                case "G": case "K": case "CS": strokeRgb = false; break;
+                case "gs":
+                    if (operation.Operands.Count > 0 && operation.Operands[operation.Operands.Count - 1] is string name) {
+                        PdfDictionary? extStates = ResolveDictionary(
+                            resources?.Items.TryGetValue("ExtGState", out PdfObject? statesObject) == true
+                                ? statesObject : null);
+                        PdfDictionary? state = ResolveDictionary(
+                            extStates?.Items.TryGetValue(name, out PdfObject? stateObject) == true
+                                ? stateObject : null);
+                        transparent |= state != null && HasExplicitTransparency(state);
+                    }
+                    break;
+                case "f": case "F": case "f*": foundRgb |= fillRgb; foundTransparency |= transparent; break;
+                case "S": case "s": foundRgb |= strokeRgb; foundTransparency |= transparent; break;
+                case "B": case "B*": case "b": case "b*":
+                    foundRgb |= fillRgb || strokeRgb;
+                    foundTransparency |= transparent;
+                    break;
+            }
+        }, maxNestingDepth: _limits.MaxContentNestingDepth, maxOperands: _limits.MaxContentOperands);
+        return (foundRgb, foundTransparency);
+    }
+
     private bool GetOutputIntentCompositionInteraction(CancellationToken cancellationToken) =>
         _outputIntentColorTransform != null && _hasOutputIntentCompositionInteraction.GetOrCreate(
             this, static (page, token) => page.ScanOutputIntentCompositionInteraction(token), cancellationToken);

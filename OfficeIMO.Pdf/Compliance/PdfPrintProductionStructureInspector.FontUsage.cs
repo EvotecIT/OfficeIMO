@@ -342,16 +342,31 @@ internal static partial class PdfPrintProductionStructureInspector {
                 return;
             }
             if (resolved is not PdfDictionary dictionary) return;
-            if (dictionary.Items.TryGetValue("AP", out PdfObject? appearances)) {
-                if (!dictionary.Items.TryGetValue("F", out PdfObject? flagsObject) ||
-                    ResolveObject(_objects, flagsObject, resolvedDepth + 1, _limits.MaxObjectNestingDepth, out _) is not PdfNumber flags) {
-                    // An annotation without the Print flag does not contribute to printed output.
-                    return;
-                }
-                int bits = (int)flags.Value;
-                if ((bits & 4) == 0 || (bits & 3) != 0) return;
-                AddAppearanceObject(appearances, pageResources, resolvedDepth + 1, visited);
+            if (!dictionary.Items.TryGetValue("F", out PdfObject? flagsObject) ||
+                ResolveObject(_objects, flagsObject, resolvedDepth + 1, _limits.MaxObjectNestingDepth, out _) is not PdfNumber flags) {
+                // An annotation without the Print flag does not contribute to printed output.
+                return;
             }
+            int bits = (int)flags.Value;
+            if ((bits & 4) == 0 || (bits & 3) != 0) return;
+
+            PdfObject? appearances = dictionary.Items.TryGetValue("AP", out PdfObject? apObject)
+                ? ResolveObject(_objects, apObject, resolvedDepth + 1, _limits.MaxObjectNestingDepth, out _)
+                : null;
+            PdfObject? normal = appearances is PdfDictionary ap && ap.Items.TryGetValue("N", out PdfObject? normalObject)
+                ? ResolveObject(_objects, normalObject, resolvedDepth + 2, _limits.MaxObjectNestingDepth, out _)
+                : null;
+            bool usableNormal = normal is PdfStream || normal is PdfDictionary states && states.Items.Values.Any(state =>
+                ResolveObject(_objects, state, resolvedDepth + 3, _limits.MaxObjectNestingDepth, out _) is PdfStream);
+            if (!usableNormal) {
+                if (dictionary.Items.TryGetValue("Subtype", out PdfObject? subtypeObject) &&
+                    ResolveObject(_objects, subtypeObject, resolvedDepth + 1, _limits.MaxObjectNestingDepth, out _) is PdfName subtype &&
+                    subtype.Name is "FreeText" or "Widget" or "Stamp") {
+                    _uninspectableContextCount++;
+                }
+                return;
+            }
+            AddAppearanceObject(normal!, pageResources, resolvedDepth + 2, visited);
         }
 
         private void AddAppearanceObject(

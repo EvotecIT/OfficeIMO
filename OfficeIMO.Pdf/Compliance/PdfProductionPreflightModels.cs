@@ -164,7 +164,8 @@ public sealed class PdfProductionPreflightReport {
         }
         PdfProductionFixupProposal[] proposals = selected.Select(index => FixupProposals[index]).ToArray();
         byte[] rewritten = PdfPageEditor.SetPageBoxesWithReadOptions(_analyzedPdf, proposals, _readOptions, cancellationToken);
-        PdfDocument output = PdfDocument.Load(rewritten, _readOptions);
+        PdfLoadOptions outputReadOptions = PdfLoadOptions.ForGeneratedOutput(_readOptions, _analyzedPdf, rewritten);
+        PdfDocument output = PdfDocument.Load(rewritten, outputReadOptions);
         PdfProductionPreflightReport after = PdfProductionPreflightInspector.Inspect(output, _options, cancellationToken);
         return new PdfProductionFixupResult(output, after);
     }

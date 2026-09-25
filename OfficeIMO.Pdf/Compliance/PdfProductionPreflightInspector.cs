@@ -39,8 +39,9 @@ internal static class PdfProductionPreflightInspector {
                 (printVisibility.HiddenObjectNumbers.Count > 0 || printVisibility.HasUnsupportedViewUsageApplications);
             InspectBoxes(pageNumber, page.GetGeometry());
             InspectFonts(pageNumber, unresolvedPrintResources);
-            PdfPrintProductionColorEvidence color = InspectColor(pageNumber, unresolvedPrintResources);
-            InspectImages(pageNumber, page.WithOptionalContentVisibility(printVisibility), logicalPage, color);
+            PdfReadPage printPage = page.WithOptionalContentVisibility(printVisibility);
+            PdfPrintProductionColorEvidence color = InspectColor(pageNumber, printPage, unresolvedPrintResources);
+            InspectImages(pageNumber, printPage, logicalPage, color);
         }
         return new PdfProductionPreflightReport(snapshot.Bytes, snapshot.Options, effective, pageNumbers, findings, fixups);
 
@@ -72,7 +73,7 @@ internal static class PdfProductionPreflightInspector {
             if (strict) valid = valid && intents.Count == 1 &&
                 string.Equals(intents[0].Subtype, "GTS_PDFX", StringComparison.Ordinal) &&
                 !string.IsNullOrWhiteSpace(intents[0].OutputConditionIdentifier);
-            if (effective.Profile == PdfProductionPreflightProfile.PdfX1aCandidate) {
+            if (strict) {
                 valid = valid && intents[0].DestinationOutputProfileColorComponents == 4 &&
                     string.Equals(intents[0].DestinationOutputProfileColorSpace, "CMYK", StringComparison.Ordinal);
             }
@@ -123,9 +124,20 @@ internal static class PdfProductionPreflightInspector {
             }
         }
 
-        PdfPrintProductionColorEvidence InspectColor(int pageNumber, bool unresolvedPrintResources) {
+        PdfPrintProductionColorEvidence InspectColor(int pageNumber, PdfReadPage printPage, bool unresolvedPrintResources) {
             PdfPrintProductionColorEvidence color = PdfPrintProductionColorInspector.Inspect(document, pageNumber, cancellationToken);
             if (unresolvedPrintResources) {
+                (bool definiteRgb, bool definiteTransparency) = printPage.GetDefiniteUnlayeredPrintColorUse(cancellationToken);
+                if (definiteRgb) {
+                    AddFinding(new PdfProductionFinding(PdfProductionFindingKind.DeviceRgbColor,
+                        effective.Profile == PdfProductionPreflightProfile.GeneralPrint ? PdfProductionFindingSeverity.Warning : PdfProductionFindingSeverity.Error,
+                        pageNumber, "Always-visible page content uses device RGB."));
+                }
+                if (definiteTransparency && effective.Profile != PdfProductionPreflightProfile.PdfX4Candidate) {
+                    AddFinding(new PdfProductionFinding(PdfProductionFindingKind.Transparency,
+                        effective.Profile == PdfProductionPreflightProfile.PdfX1aCandidate ? PdfProductionFindingSeverity.Error : PdfProductionFindingSeverity.Warning,
+                        pageNumber, "Always-visible page content uses transparency."));
+                }
                 AddFinding(new PdfProductionFinding(PdfProductionFindingKind.UninspectableColor,
                     PdfProductionFindingSeverity.Indeterminate, pageNumber,
                     "Color usage could not be isolated from print-hidden optional content."));
@@ -167,11 +179,13 @@ internal static class PdfProductionPreflightInspector {
                 }
                 return;
             }
-            IReadOnlyList<PdfImagePlacement> placements = readPage.GetImagePlacements(pageNumber);
+            IReadOnlyList<PdfImagePlacement> placements = readPage.GetImagePlacements(pageNumber, cancellationToken);
             int understoodPlacements = 0;
-            foreach (PdfExtractedImage image in readPage.GetImages(pageNumber, placements)) {
+            var matchedPlacements = new HashSet<PdfImagePlacement>();
+            foreach (PdfExtractedImage image in readPage.GetImages(pageNumber, placements, cancellationToken)) {
                 foreach (PdfImagePlacement placement in PdfLogicalPage.MatchImagePlacements(image, placements)) {
                     cancellationToken.ThrowIfCancellationRequested();
+                    if (!matchedPlacements.Add(placement)) continue;
                     understoodPlacements++;
                     double userUnit = logicalPage.UserUnit ?? 1D;
                     double horizontalPoints = Math.Sqrt(placement.A * placement.A + placement.B * placement.B) * userUnit;

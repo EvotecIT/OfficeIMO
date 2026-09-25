@@ -498,6 +498,12 @@ public sealed partial class PdfReadPage {
         return GetImages(pageNumber, imagePlacements, colorizeImageMasks: false);
     }
 
+    internal IReadOnlyList<PdfExtractedImage> GetImages(int pageNumber,
+        IReadOnlyList<PdfImagePlacement>? imagePlacements, CancellationToken cancellationToken) {
+        return GetImages(pageNumber, imagePlacements, colorizeImageMasks: false,
+            new PageContentBudget(this, cancellationToken), cancellationToken);
+    }
+
     internal IReadOnlyList<PdfExtractedImage> GetImages(int pageNumber, IReadOnlyList<PdfImagePlacement>? imagePlacements, bool colorizeImageMasks) {
         return GetImages(pageNumber, imagePlacements, colorizeImageMasks, new PageContentBudget(this));
     }
@@ -575,6 +581,12 @@ public sealed partial class PdfReadPage {
         return GetImagePlacements(pageNumber, includeHiddenOptionalContent: false);
     }
 
+    internal IReadOnlyList<PdfImagePlacement> GetImagePlacements(int pageNumber, CancellationToken cancellationToken) {
+        return GetImagePlacements(pageNumber, includeHiddenOptionalContent: false,
+            cancellationCheck: cancellationToken.ThrowIfCancellationRequested,
+            cancellationToken: cancellationToken);
+    }
+
     internal IReadOnlyList<PdfImagePlacement> GetImagePlacements(
         int pageNumber,
         int maximumPlacements,
@@ -613,13 +625,14 @@ public sealed partial class PdfReadPage {
         bool includeHiddenOptionalContent,
         int maximumPlacements = int.MaxValue,
         Action<long>? consumeWork = null,
-        Action? cancellationCheck = null) {
+        Action? cancellationCheck = null,
+        CancellationToken cancellationToken = default) {
         cancellationCheck?.Invoke();
         var placements = new List<PdfImagePlacement>();
         var pageResources = ResolveDictionary(GetInheritedValue("Resources"));
         var activeForms = new HashSet<PdfStream>();
         double pageHeight = GetPageSize().Height;
-        var pageContentBudget = new PageContentBudget(this);
+        var pageContentBudget = new PageContentBudget(this, cancellationToken);
 
         string content = GetContentStreamContent(pageContentBudget);
         cancellationCheck?.Invoke();
