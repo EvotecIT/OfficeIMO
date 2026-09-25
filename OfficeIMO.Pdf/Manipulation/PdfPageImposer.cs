@@ -55,9 +55,12 @@ internal static class PdfPageImposer {
 
     private static PdfImpositionResult ImposePlan(byte[] pdf, PdfNUpOptions options, int?[] pageNumbers, PdfLoadOptions? readOptions, PdfDocumentInfo info) {
         (double cellWidth, double cellHeight) = options.Validate();
+        int[] selectedPages = pageNumbers.OfType<int>().Distinct().ToArray();
+        bool selectedAnnotations = selectedPages.Any(page => info.Pages[page - 1].HasAnnotations);
+        bool selectedForms = selectedPages.Any(page => info.Pages[page - 1].FormWidgets.Count > 0);
         PdfImpositionSourceFeatureLoss sourceFeatureLoss = PdfImpositionSourceFeatureLoss.None;
-        if (info.HasAnnotations) sourceFeatureLoss |= PdfImpositionSourceFeatureLoss.Annotations;
-        if (info.HasForms) sourceFeatureLoss |= PdfImpositionSourceFeatureLoss.Forms;
+        if (selectedAnnotations) sourceFeatureLoss |= PdfImpositionSourceFeatureLoss.Annotations;
+        if (selectedForms) sourceFeatureLoss |= PdfImpositionSourceFeatureLoss.Forms;
         if (info.HasTaggedContent) sourceFeatureLoss |= PdfImpositionSourceFeatureLoss.StructureTags;
         if (info.HasSignatures) sourceFeatureLoss |= PdfImpositionSourceFeatureLoss.Signatures;
         if (info.HasOptionalContent) {
@@ -76,7 +79,7 @@ internal static class PdfPageImposer {
             removedSignatureCount = derivative.RemovedSignatureCount;
             info = PdfInspector.Inspect(sourcePdf);
         }
-        if (!options.AllowSourceFeatureLoss && (info.HasAnnotations || info.HasForms || info.HasTaggedContent)) {
+        if (!options.AllowSourceFeatureLoss && (selectedAnnotations || selectedForms || info.HasTaggedContent)) {
             throw new NotSupportedException("Imposed output cannot retain source annotations, forms, or structure tags. Set AllowSourceFeatureLoss to accept this loss.");
         }
         int cellsPerSheet = checked(options.Columns * options.Rows);

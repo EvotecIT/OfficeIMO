@@ -54,6 +54,26 @@ public sealed class PdfNUpImpositionTests {
     }
 
     [Fact]
+    public void UnselectedInteractivePagesDoNotRequireFeatureLossApproval() {
+        byte[] source = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Selected page"))
+            .PageBreak()
+            .TextAnnotation("Review note")
+            .TextField("ReviewedBy", value: "Ada")
+            .ToBytes();
+        PdfDocument document = PdfDocument.Load(source);
+        var layout = new PdfNUpOptions(new PageSize(600, 400), 2, 1);
+
+        PdfImpositionResult nup = document.Pages.ImposeNUp(layout, PdfPageSelection.From(1));
+        PdfImpositionResult booklet = document.Pages.ImposeBooklet(
+            new PdfBookletOptions(new PageSize(600, 400)), PdfPageSelection.From(1));
+
+        Assert.Equal(PdfImpositionSourceFeatureLoss.None, nup.SourceFeatureLoss);
+        Assert.Equal(PdfImpositionSourceFeatureLoss.None, booklet.SourceFeatureLoss);
+        Assert.Contains("Selected page", nup.ToDocument().Reader.Text());
+    }
+
+    [Fact]
     public void BookletPadsToFourAndMapsBothSidesOfDuplexSheets() {
         PdfDocument source = PdfDocument.Create(new PdfOptions { PageSize = new PageSize(240, 180) });
         for (int page = 1; page <= 5; page++) {
