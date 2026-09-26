@@ -215,9 +215,16 @@ internal static class PdfPageImposer {
         source.CatalogDictionary is PdfDictionary catalog &&
         (UnpreservedCatalogFeatureNames
             .Any(name => catalog.Items.TryGetValue(name, out PdfObject? value) &&
-                PdfObjectLookup.ResolveChain(source.Objects, value) is not null and not PdfNull) ||
+                HasCatalogFeature(name, PdfObjectLookup.ResolveChain(source.Objects, value))) ||
          catalog.Items.TryGetValue("NeedsRendering", out PdfObject? needsRendering) &&
          PdfObjectLookup.ResolveChain(source.Objects, needsRendering) is not null and not PdfNull and not PdfBoolean { Value: false });
+
+    private static bool HasCatalogFeature(string name, PdfObject? value) => value switch {
+        null or PdfNull => false,
+        PdfArray array => array.Items.Count > 0,
+        PdfDictionary dictionary => name == "Collection" || dictionary.Items.Count > 0,
+        _ => true
+    };
 
     private static bool HasRawFormFields(PdfReadDocument source) {
         PdfDictionary? catalog = source.CatalogDictionary;

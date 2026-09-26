@@ -113,6 +113,7 @@ public sealed class PdfNUpImpositionTests {
 
     [Theory]
     [InlineData("/Collection << /Type /Collection >>", PdfImpositionSourceFeatureLoss.CatalogFeatures)]
+    [InlineData("/Collection << >>", PdfImpositionSourceFeatureLoss.CatalogFeatures)]
     [InlineData("/Extensions << /ADBE << /BaseVersion /1.7 /ExtensionLevel 3 >> >>", PdfImpositionSourceFeatureLoss.CatalogFeatures)]
     [InlineData("/Requirements [<< /S /EnableJavaScripts >>]", PdfImpositionSourceFeatureLoss.CatalogFeatures)]
     [InlineData("/NeedsRendering true", PdfImpositionSourceFeatureLoss.CatalogFeatures)]
@@ -137,10 +138,14 @@ public sealed class PdfNUpImpositionTests {
         Assert.True(document.Pages.ImposeNUp(options).SourceFeatureLoss.HasFlag(expectedLoss));
     }
 
-    [Fact]
-    public void FalseNeedsRenderingDoesNotRequireFeatureLossApproval() {
+    [Theory]
+    [InlineData("/NeedsRendering false")]
+    [InlineData("/Threads []")]
+    [InlineData("/Requirements []")]
+    [InlineData("/Extensions << >>")]
+    public void EmptyCatalogFeatureDoesNotRequireFeatureLossApproval(string feature) {
         byte[] source = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
-            "%PDF-1.7", "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /NeedsRendering false >>", "endobj",
+            "%PDF-1.7", "1 0 obj", "<< /Type /Catalog /Pages 2 0 R " + feature + " >>", "endobj",
             "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
             "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>", "endobj",
             "4 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj",

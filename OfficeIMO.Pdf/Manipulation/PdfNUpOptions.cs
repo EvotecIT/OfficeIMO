@@ -27,7 +27,7 @@ public sealed class PdfNUpOptions {
     public int MaxSourcePages { get; set; } = 500;
     /// <summary>Maximum bytes retained for imposed page content and the finished PDF.</summary>
     public long MaxOutputBytes { get; set; } = 256L * 1024L * 1024L;
-    /// <summary>Allows source annotations, form widgets, and structure tags to be omitted; their appearances can also be lost.</summary>
+    /// <summary>Allows omission of source annotations, forms, structure tags, attachments, output intents, navigation, catalog and page features, metadata, and encryption. See <see cref="PdfImpositionSourceFeatureLoss"/> for the reported losses. Signatures require a separate policy.</summary>
     public bool AllowSourceFeatureLoss { get; set; }
     /// <summary>Explicit handling for a signed source. The default rejects it.</summary>
     public PdfImpositionSignaturePolicy SignaturePolicy { get; set; } = PdfImpositionSignaturePolicy.Reject;
