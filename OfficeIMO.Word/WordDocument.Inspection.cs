@@ -230,16 +230,35 @@ namespace OfficeIMO.Word {
                     : int.TryParse(bookmarkStart?.Id?.Value, out var bookmarkId) ? bookmarkId : null,
             };
 
-            // InlineFields owns cached simple-field results in the inspection snapshot.
-            // GetRuns includes those visible runs for other consumers, so omit them here.
-            foreach (var run in paragraph.GetRuns().Where(run => run._run?.Ancestors<SimpleField>().Any() != true)) {
+            // Walk runs and simple fields together so a field's insertion index uses the
+            // same run sequence that is stored in the inspection snapshot.
+            int runIndex = 0;
+            Stack<bool> complexFieldResults = expansionContext.ComplexFieldResultsFor(paragraph._paragraph);
+            foreach (OpenXmlElement item in EnumerateInspectionInlineItems(paragraph._paragraph)) {
+                if (item is SimpleField field) {
+                    Hyperlink? containingLink = field.Ancestors<Hyperlink>().FirstOrDefault();
+                    bool nestedInUnsupportedContainer = field.Ancestors().Any(ancestor =>
+                        ancestor is Hyperlink or CustomXmlRun or SdtRun);
+                    AddInlineField(field, runIndex, nestedInUnsupportedContainer, containingLink);
+                    continue;
+                }
+
+                var run = item is Run runElement
+                    ? new WordParagraph(this, paragraph._paragraph, runElement)
+                    : new WordParagraph(this, paragraph._paragraph, (SdtRun)item);
+                // Read the content control itself before attaching hyperlink metadata;
+                // WordParagraph.Text otherwise reads the entire enclosing hyperlink.
+                string runText = run.Text;
+                var nonTextBreaks = run.GetNonTextBreakPositions();
+                var images = run.GetPositionedImages().Select(positionedImage =>
+                    new WordPositionedImageSnapshot(positionedImage.Offset,
+                        BuildInlineImageSnapshot(positionedImage.Image))).ToArray();
+                run._hyperlink = item.Ancestors<Hyperlink>().FirstOrDefault();
                 var hyperlink = run.Hyperlink;
-                var images = run.GetPositionedImages().Select(item =>
-                    new WordPositionedImageSnapshot(item.Offset, BuildInlineImageSnapshot(item.Image))).ToArray();
 
                 snapshot.AddRun(new WordRunSnapshot {
-                    Text = run.Text,
-                    NonTextBreaks = run.GetNonTextBreakPositions(),
+                    Text = runText,
+                    NonTextBreaks = nonTextBreaks,
                     Bold = run.Bold,
                     Italic = run.Italic,
                     Underline = run.Underline.HasValue && run.Underline.Value != WordUnderlineStyle.None,
@@ -267,32 +286,9 @@ namespace OfficeIMO.Word {
                     InlineImage = images.FirstOrDefault()?.Image,
                     PositionedImages = images,
                 });
-            }
-
-            int runIndex = 0;
-            Stack<bool> complexFieldResults = expansionContext.ComplexFieldResultsFor(paragraph._paragraph);
-            foreach (var element in paragraph._paragraph.ChildElements) {
-                if (element is Run run) { ObserveFieldMarkers(run); runIndex++; continue; }
-                if (element is SdtRun) { runIndex++; continue; }
-                if (element is Hyperlink link) {
-                    foreach (var child in link.ChildElements) {
-                        if (child is Run linkRun) { ObserveFieldMarkers(linkRun); runIndex++; }
-                        else if (child is SimpleField nestedField) AddInlineField(nestedField, runIndex, true, link);
-                    }
-                    continue;
-                }
-                if (element is CustomXmlRun customXml) {
-                    foreach (OpenXmlElement nested in customXml.Descendants()) {
-                        if (nested is Run nestedRun && !nested.Ancestors().Any(ancestor => ancestor is SimpleField)) {
-                            ObserveFieldMarkers(nestedRun);
-                            if (ReferenceEquals(nested.Parent, customXml)) runIndex++;
-                        } else if (nested is SimpleField nestedField &&
-                            !nested.Ancestors().Any(ancestor => ancestor is SimpleField))
-                            AddInlineField(nestedField, runIndex, true);
-                    }
-                    continue;
-                }
-                if (element is SimpleField field) AddInlineField(field, runIndex, false);
+                if (item is Run visibleRun) ObserveFieldMarkers(visibleRun);
+                else foreach (Run nestedRun in item.Descendants<Run>()) ObserveFieldMarkers(nestedRun);
+                runIndex++;
             }
 
             void ObserveFieldMarkers(Run run) {
@@ -339,6 +335,24 @@ namespace OfficeIMO.Word {
             }
 
             return snapshot;
+        }
+
+        private static IEnumerable<OpenXmlElement> EnumerateInspectionInlineItems(OpenXmlCompositeElement container) {
+            foreach (OpenXmlElement item in container.ChildElements) {
+                if (item is SimpleField or Run) {
+                    yield return item;
+                } else if (item is SdtRun contentControl) {
+                    if (contentControl.Descendants<SimpleField>().Any()) {
+                        foreach (OpenXmlElement nested in EnumerateInspectionInlineItems(contentControl))
+                            yield return nested;
+                    } else {
+                        yield return contentControl;
+                    }
+                } else if (item is Hyperlink or CustomXmlRun or SdtContentRun) {
+                    foreach (OpenXmlElement nested in EnumerateInspectionInlineItems((OpenXmlCompositeElement)item))
+                        yield return nested;
+                }
+            }
         }
 
         private static WordInlineImageSnapshot BuildInlineImageSnapshot(WordImage image) => new WordInlineImageSnapshot {

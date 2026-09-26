@@ -1756,7 +1756,7 @@ namespace OfficeIMO.Word.Markdown {
                 cell.ColumnSpan > 1 || cell.RowSpan > 1 ||
                 cell.HasHorizontalMerge || cell.HasVerticalMerge));
             bool hasCellBorders = table.Rows.Any(row => row.Cells.Any(cell =>
-                cell._tableCell.TableCellProperties?.TableCellBorders != null));
+                cell._tableCell.TableCellProperties?.TableCellBorders?.ChildElements.Count > 0));
             if (hasMergedCells || hasCellBorders) {
                 options.OnWarning?.Invoke(hasMergedCells
                     ? "Word table cell merges cannot be represented by a Markdown table; cell layout was flattened."

@@ -38,6 +38,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WordToMarkdown_OnlyReportsAuthoredCellBorders() {
+            using var document = WordDocument.Create();
+            var cell = document.AddTable(1, 1).Rows[0].Cells[0];
+            cell.Paragraphs[0].AddText("Value");
+            cell._tableCell.TableCellProperties!.TableCellBorders = new TableCellBorders();
+
+            WordToMarkdownResult emptyBorders = document.ToMarkdownDocumentResult();
+            Assert.False(emptyBorders.Report.HasLoss);
+            emptyBorders.Report.RequireNoLoss();
+
+            cell._tableCell.TableCellProperties.TableCellBorders.Append(
+                new TopBorder { Val = BorderValues.None });
+            WordToMarkdownResult authoredBorder = document.ToMarkdownDocumentResult();
+            Assert.Contains(authoredBorder.Report.Diagnostics, diagnostic =>
+                diagnostic.Message.Contains("cell borders", StringComparison.Ordinal));
+            Assert.True(authoredBorder.Report.HasLoss);
+        }
+
+        [Fact]
         public void Markdown_To_Word_To_Markdown_RoundTrip_Preserves_CoreFeatures() {
             string md = "" +
                 "# Report\n" +
