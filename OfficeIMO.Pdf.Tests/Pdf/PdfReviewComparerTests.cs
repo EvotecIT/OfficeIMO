@@ -71,6 +71,68 @@ public sealed class PdfReviewComparerTests {
     }
 
     [Fact]
+    public void InsertedTextBeforeUnchangedVectorDoesNotMakeTheVectorAChange() {
+        static PdfDocument Make(bool insertText) {
+            var outline = OfficeIMO.Drawing.OfficeShape.Rectangle(100D, 25D);
+            outline.FillColor = null;
+            outline.StrokeColor = OfficeIMO.Drawing.OfficeColor.Black;
+            return PdfDocument.Load(PdfDocument.Create(new PdfOptions { PageWidth = 240D, PageHeight = 180D })
+                .Canvas(canvas => {
+                    canvas.Text("Name", 20D, 20D, 100D, 20D);
+                    if (insertText) canvas.Text("Added", 38D, 21D, 70D, 20D);
+                    canvas.Shape(outline, 18D, 18D);
+                }).ToBytes());
+        }
+
+        PdfReviewPageComparison page = Assert.Single(Make(false).Proof.CompareReview(Make(true)).Pages);
+
+        Assert.Contains(page.Changes, static change => change.Kind == PdfReviewChangeKind.TextChanged);
+        Assert.DoesNotContain(page.Changes, static change => change.Kind == PdfReviewChangeKind.UnclassifiedVisual);
+    }
+
+    [Fact]
+    public void ReorderedNonoverlappingVectorsRemainUnchangedAroundEditedText() {
+        const string textBefore = "BT /F1 12 Tf 25 90 Td (ABC) Tj ET";
+        const string textAfter = "BT /F1 12 Tf 25 90 Td (DEF) Tj ET";
+        PdfDocument expected = PdfDocument.Load(InvisibleTextOperationsPdf(
+            "0 0 0 RG 20 80 100 25 re S 140 80 60 25 re S " + textBefore));
+        PdfDocument actual = PdfDocument.Load(InvisibleTextOperationsPdf(
+            "0 0 0 RG 140 80 60 25 re S 20 80 100 25 re S " + textAfter));
+
+        PdfReviewPageComparison page = Assert.Single(expected.Proof.CompareReview(actual).Pages);
+
+        Assert.Contains(page.Changes, static change => change.Kind == PdfReviewChangeKind.TextChanged);
+        Assert.DoesNotContain(page.Changes, static change => change.Kind == PdfReviewChangeKind.UnclassifiedVisual);
+    }
+
+    [Fact]
+    public void VectorMovedAcrossTextPaintRetainsCompositingUncertainty() {
+        const string textBefore = "1 1 1 rg BT /F1 12 Tf 25 90 Td (ABC) Tj ET";
+        const string textAfter = "1 1 1 rg BT /F1 12 Tf 25 90 Td (DEF) Tj ET";
+        const string cover = "0 0 0 rg 20 80 100 25 re f";
+        PdfDocument expected = PdfDocument.Load(InvisibleTextOperationsPdf(textBefore + " " + cover));
+        PdfDocument actual = PdfDocument.Load(InvisibleTextOperationsPdf(cover + " " + textAfter));
+
+        PdfReviewPageComparison page = Assert.Single(expected.Proof.CompareReview(actual).Pages);
+
+        Assert.Contains(page.Changes, static change => change.Kind == PdfReviewChangeKind.TextChanged);
+        Assert.Contains(page.Changes, static change => change.Kind == PdfReviewChangeKind.UnclassifiedVisual);
+    }
+
+    [Fact]
+    public void VectorLayerChangeAroundMovedTextRemainsUncertain() {
+        const string cover = "0 0 0 rg 20 80 140 25 re f";
+        PdfDocument expected = PdfDocument.Load(InvisibleTextOperationsPdf(
+            "1 1 1 rg BT /F1 12 Tf 25 90 Td (ABC) Tj ET " + cover));
+        PdfDocument actual = PdfDocument.Load(InvisibleTextOperationsPdf(
+            cover + " 1 1 1 rg BT /F1 12 Tf 110 90 Td (DEF) Tj ET"));
+
+        PdfReviewPageComparison page = Assert.Single(expected.Proof.CompareReview(actual).Pages);
+
+        Assert.Contains(page.Changes, static change => change.Kind == PdfReviewChangeKind.UnclassifiedVisual);
+    }
+
+    [Fact]
     public void UnsupportedPaintRetainsExplicitReviewUncertainty() {
         static byte[] Pdf(string operation) => System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
             "%PDF-1.4", "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
@@ -472,6 +534,30 @@ public sealed class PdfReviewComparerTests {
             static change => change.Kind == PdfReviewChangeKind.ScannedPageUncertain);
     }
 
+    [Fact]
+    public void QuarterTurnImageCoveringPageRemainsAScannedPage() {
+        const string rotatedScan = "q 0 180 -240 0 240 0 cm /Im0 Do Q\n";
+        PdfDocument expected = PdfDocument.Load(ImageWithPaintStatePdf("ABC", rotatedScan));
+        PdfDocument actual = PdfDocument.Load(ImageWithPaintStatePdf("DEF", rotatedScan));
+
+        PdfReviewPageComparison page = Assert.Single(expected.Proof.CompareReview(actual).Pages);
+
+        Assert.Contains(page.Changes, static change => change.Kind == PdfReviewChangeKind.ScannedPageUncertain);
+        Assert.DoesNotContain(page.Changes, static change => change.Kind == PdfReviewChangeKind.ImageChangedCandidate);
+    }
+
+    [Fact]
+    public void SparsePageSizedImageMaskIsNotClassifiedAsAScan() {
+        const string image = "q 240 0 0 180 0 0 cm /Im0 Do Q\n";
+        PdfDocument expected = PdfDocument.Load(ImageWithPaintStatePdf("A", image, width: 8, imageMask: true));
+        PdfDocument actual = PdfDocument.Load(ImageWithPaintStatePdf("B", image, width: 8, imageMask: true));
+
+        PdfReviewPageComparison page = Assert.Single(expected.Proof.CompareReview(actual).Pages);
+
+        Assert.DoesNotContain(page.Changes, static change => change.Kind == PdfReviewChangeKind.ScannedPageUncertain);
+        Assert.Contains(page.Changes, static change => change.Kind == PdfReviewChangeKind.ImageChangedCandidate);
+    }
+
     [Theory]
     [InlineData(23D, 20D, 20D, 20D)]
     [InlineData(20D, 20D, 24D, 20D)]
@@ -707,7 +793,7 @@ public sealed class PdfReviewComparerTests {
     }
 
     private static byte[] ImageWithPaintStatePdf(string pixels, string content, bool withZeroOpacity = false,
-        int width = 1, bool withSoftMask = false, string pageBox = "/MediaBox [0 0 240 180]") =>
+        int width = 1, bool withSoftMask = false, string pageBox = "/MediaBox [0 0 240 180]", bool imageMask = false) =>
         System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
             "%PDF-1.7",
             "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
@@ -715,7 +801,9 @@ public sealed class PdfReviewComparerTests {
             "3 0 obj", "<< /Type /Page /Parent 2 0 R " + pageBox + " /Resources << /XObject << /Im0 5 0 R >>" +
                 (withZeroOpacity || withSoftMask ? " /ExtGState << /GS0 6 0 R >>" : string.Empty) + " >> /Contents 4 0 R >>", "endobj",
             "4 0 obj", "<< /Length " + System.Text.Encoding.ASCII.GetByteCount(content) + " >>", "stream", content.TrimEnd('\n'), "endstream", "endobj",
-            "5 0 obj", $"<< /Type /XObject /Subtype /Image /Width {width} /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length {pixels.Length} >>", "stream", pixels, "endstream", "endobj",
+            "5 0 obj", $"<< /Type /XObject /Subtype /Image /Width {width} /Height 1 " +
+                (imageMask ? "/ImageMask true /BitsPerComponent 1 " : "/ColorSpace /DeviceRGB /BitsPerComponent 8 ") +
+                $"/Length {pixels.Length} >>", "stream", pixels, "endstream", "endobj",
             withZeroOpacity ? "6 0 obj\n<< /Type /ExtGState /ca 0 >>\nendobj" : string.Empty,
             withSoftMask ? "6 0 obj\n<< /Type /ExtGState /SMask << /S /Alpha /G 7 0 R >> >>\nendobj" : string.Empty,
             withSoftMask ? "7 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 1 1] /Group << /S /Transparency >> /Length 0 >>\nstream\n\nendstream\nendobj" : string.Empty,
