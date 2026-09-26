@@ -183,7 +183,8 @@ public static partial class WordOpenDocumentConversionExtensions {
         int sourceImages = source.ContentBlocks.Where(block => block.Paragraph != null).Sum(block => block.Paragraph!.Images.Count) +
             source.ContentBlocks.Where(block => block.Table != null).Sum(block => block.Table!.Rows
                 .Sum(row => row.Cells.Sum(cell => cell.Paragraphs.Sum(paragraph => paragraph.Images.Count)))) +
-            sourceHeaderFooters.Sum(part => part.Paragraphs.Sum(paragraph => paragraph.Images.Count));
+            sourceHeaderFooters.Where(part => part.IsDisplayed)
+                .Sum(part => part.Paragraphs.Sum(paragraph => paragraph.Images.Count));
         WordList? currentList = null;
         bool? currentOrdered = null;
 
@@ -236,10 +237,13 @@ public static partial class WordOpenDocumentConversionExtensions {
             unsupportedPageMeasurements == 0 ? null : "Relative page measurements were omitted while absolute layout values were retained.");
 
         int headerFooterParagraphs = sourceHeaderFooters.Sum(part => part.Paragraphs.Count);
-        int unsupportedHeaderFooterBlocks = sourceHeaderFooters.Sum(part => part.NonParagraphBlockCount);
+        int displayedHeaderFooterParagraphs = sourceHeaderFooters.Where(part => part.IsDisplayed).Sum(part => part.Paragraphs.Count);
+        int unsupportedHeaderFooterBlocks = sourceHeaderFooters.Where(part => part.IsDisplayed).Sum(part => part.NonParagraphBlockCount);
+        int hiddenHeaderFooterBlocks = sourceHeaderFooters.Where(part => !part.IsDisplayed)
+            .Sum(part => part.Paragraphs.Count + part.NonParagraphBlockCount);
         bool hasAlternateHeaderFooter = sourcePageLayout.FirstHeader != null || sourcePageLayout.FirstFooter != null ||
             sourcePageLayout.LeftHeader != null || sourcePageLayout.LeftFooter != null;
-        if (effective.IncludeHeadersAndFooters && (headerFooterParagraphs > 0 || unsupportedHeaderFooterBlocks > 0 || hasAlternateHeaderFooter)) {
+        if (effective.IncludeHeadersAndFooters && (headerFooterParagraphs > 0 || unsupportedHeaderFooterBlocks > 0 || hiddenHeaderFooterBlocks > 0 || hasAlternateHeaderFooter)) {
             target.AddHeadersAndFooters();
             WordSection firstSection = target.Sections[0];
             if (sourcePageLayout.FirstHeader != null || sourcePageLayout.FirstFooter != null) {
@@ -254,16 +258,20 @@ public static partial class WordOpenDocumentConversionExtensions {
                 WordHeaderFooter destination = isHeader
                     ? firstSection.GetOrCreateHeader(kind)
                     : firstSection.GetOrCreateFooter(kind);
+                if (!story.IsDisplayed) continue;
                 CopyOdtHeaderFooter(story, destination, effective, textCaseCulture, ref hyperlinks, ref externalHyperlinks,
                     ref images, ref bookmarks, ref approximatedRuns, ref approximatedBookmarkRanges, ref unsupportedMeasurements,
                     ref approximatedFontFamilyLists, ref unsupportedFontFamilies, ref mappedFields, ref unsupportedFields,
                     handledUnsupportedFieldElements, notes);
             }
-            AddCount(report, "headers-footers", headerFooterParagraphs);
+            AddCount(report, "headers-footers", displayedHeaderFooterParagraphs);
+            if (hiddenHeaderFooterBlocks > 0) report.Add("hidden-header-footer-content", OdfConversionMappingStatus.Skipped,
+                hiddenHeaderFooterBlocks, "Header and footer content marked style:display='false' is omitted from the Word story.");
             if (unsupportedHeaderFooterBlocks > 0) report.Add("header-footer-blocks", OdfConversionMappingStatus.Unsupported,
                 unsupportedHeaderFooterBlocks, "Header and footer blocks other than paragraphs and headings are omitted.");
-        } else if (!effective.IncludeHeadersAndFooters && (headerFooterParagraphs > 0 || unsupportedHeaderFooterBlocks > 0 || hasAlternateHeaderFooter)) {
-            report.Add("headers-footers", OdfConversionMappingStatus.Skipped, Math.Max(1, headerFooterParagraphs + unsupportedHeaderFooterBlocks),
+        } else if (!effective.IncludeHeadersAndFooters && (headerFooterParagraphs > 0 || unsupportedHeaderFooterBlocks > 0 || hiddenHeaderFooterBlocks > 0 || hasAlternateHeaderFooter)) {
+            report.Add("headers-footers", OdfConversionMappingStatus.Skipped,
+                Math.Max(1, displayedHeaderFooterParagraphs + unsupportedHeaderFooterBlocks + hiddenHeaderFooterBlocks),
                 "Header and footer content was omitted because IncludeHeadersAndFooters is disabled.");
         }
 

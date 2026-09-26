@@ -9,6 +9,7 @@ public static partial class WordOpenDocumentConversionExtensions {
             : block.Table!.Rows.Sum(row => row.Cells.Sum(cell =>
                 cell.Paragraphs.Sum(CountNonSolidTextDecorations))));
         count += EnumerateOdtHeaderFooters(document.PageLayout)
+            .Where(part => part.IsDisplayed)
             .Sum(part => part.Paragraphs.Sum(CountNonSolidTextDecorations));
         return count;
     }
@@ -19,6 +20,7 @@ public static partial class WordOpenDocumentConversionExtensions {
             : block.Table!.Rows.Sum(row => row.Cells.Sum(cell =>
                 cell.Paragraphs.Count(paragraph => IsUnsupportedWritingMode(paragraph.WritingMode)))));
         count += EnumerateOdtHeaderFooters(document.PageLayout)
+            .Where(part => part.IsDisplayed)
             .Sum(part => part.Paragraphs.Count(paragraph => IsUnsupportedWritingMode(paragraph.WritingMode)));
         return count;
     }

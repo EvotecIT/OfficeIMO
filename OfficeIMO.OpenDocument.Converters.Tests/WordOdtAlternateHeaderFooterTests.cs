@@ -1,6 +1,8 @@
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.OpenDocument;
 using OfficeIMO.Word;
 using OfficeIMO.Word.OpenDocument;
@@ -89,6 +91,94 @@ public sealed class WordOdtAlternateHeaderFooterTests {
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "header-footer-blocks" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
         Assert.Throws<OdfConversionLossException>(() => odt.ToWordDocumentResult(new WordOpenDocumentConversionOptions {
+            LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss
+        }));
+    }
+
+    [Fact]
+    public void ExplicitlyDisabledWordFirstPageDoesNotReplaceDefaultHeader() {
+        using WordDocument authored = WordDocument.Create();
+        authored.AddParagraph("Body");
+        WordSection section = authored.Sections[0];
+        section.AddHeadersAndFooters();
+        section.GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph("Default header");
+        section.DifferentFirstPage = true;
+        section.GetOrCreateHeader(WordHeaderFooterType.First).AddParagraph("Dormant first header");
+
+        using var stream = new MemoryStream();
+        byte[] packageBytes = authored.ToBytes();
+        stream.Write(packageBytes, 0, packageBytes.Length);
+        stream.Position = 0;
+        using (WordprocessingDocument package = WordprocessingDocument.Open(stream, true)) {
+            SectionProperties properties = package.MainDocumentPart!.Document!.Body!.Descendants<SectionProperties>().Single();
+            properties.GetFirstChild<TitlePage>()!.Val = false;
+            package.MainDocumentPart.Document!.Save();
+        }
+        using WordDocument source = WordDocument.Load(new MemoryStream(stream.ToArray()));
+        Assert.False(source.Sections[0].DifferentFirstPage);
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        Assert.Equal("Default header", Assert.Single(conversion.Value.PageLayout.Header.Paragraphs).Text);
+        Assert.Null(conversion.Value.PageLayout.FirstHeader);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "alternate-headers-footers" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+        source.Sections[0].DifferentFirstPage = true;
+        Assert.True(source.Sections[0].DifferentFirstPage);
+        using WordprocessingDocument reenabled = WordprocessingDocument.Open(new MemoryStream(source.ToBytes()), false);
+        Assert.Single(reenabled.MainDocumentPart!.Document!.Body!.Descendants<TitlePage>());
+    }
+
+    [Fact]
+    public void WordOddEvenSettingWithMissingEvenPartsEmitsBlankLeftStories() {
+        using WordDocument authored = WordDocument.Create();
+        authored.AddParagraph("Body");
+        WordSection section = authored.Sections[0];
+        section.AddHeadersAndFooters();
+        section.GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph("Odd header");
+        section.GetOrCreateFooter(WordHeaderFooterType.Default).AddParagraph("Odd footer");
+        section.DifferentOddAndEvenPages = true;
+
+        using var stream = new MemoryStream();
+        byte[] packageBytes = authored.ToBytes();
+        stream.Write(packageBytes, 0, packageBytes.Length);
+        stream.Position = 0;
+        using (WordprocessingDocument package = WordprocessingDocument.Open(stream, true)) {
+            SectionProperties properties = package.MainDocumentPart!.Document!.Body!.Descendants<SectionProperties>().Single();
+            foreach (HeaderReference reference in properties.Elements<HeaderReference>()
+                         .Where(reference => reference.Type?.Value == HeaderFooterValues.Even).ToList()) reference.Remove();
+            foreach (FooterReference reference in properties.Elements<FooterReference>()
+                         .Where(reference => reference.Type?.Value == HeaderFooterValues.Even).ToList()) reference.Remove();
+            package.MainDocumentPart.Document!.Save();
+        }
+        using WordDocument source = WordDocument.Load(new MemoryStream(stream.ToArray()));
+        Assert.True(source.Sections[0].DifferentOddAndEvenPages);
+        OdtDocument odt = source.ToOpenDocument();
+        Assert.Equal("Odd header", Assert.Single(odt.PageLayout.Header.Paragraphs).Text);
+        Assert.Equal("Odd footer", Assert.Single(odt.PageLayout.Footer.Paragraphs).Text);
+        Assert.Empty(odt.PageLayout.LeftHeader!.Paragraphs);
+        Assert.Empty(odt.PageLayout.LeftFooter!.Paragraphs);
+    }
+
+    [Fact]
+    public void HiddenOdtStoriesDoNotBecomeVisibleInWord() {
+        OdtDocument source = OdtDocument.Create();
+        source.AddParagraph("Body");
+        source.PageLayout.Header.AddParagraph("Hidden default");
+        source.PageLayout.Header.IsDisplayed = false;
+        source.PageLayout.EnsureFirstHeader().AddParagraph("Hidden first");
+        source.PageLayout.FirstHeader!.IsDisplayed = false;
+        source.PageLayout.EnsureLeftHeader().AddParagraph("Hidden even");
+        source.PageLayout.LeftHeader!.IsDisplayed = false;
+
+        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        using WordDocument word = conversion.Value;
+        Assert.True(word.Sections[0].DifferentFirstPage);
+        Assert.True(word.Sections[0].DifferentOddAndEvenPages);
+        Assert.DoesNotContain(word.Sections[0].Header.Default!.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text));
+        Assert.DoesNotContain(word.Sections[0].Header.First!.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text));
+        Assert.DoesNotContain(word.Sections[0].Header.Even!.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text));
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "hidden-header-footer-content" &&
+            mapping.Status == OdfConversionMappingStatus.Skipped && mapping.Count == 3);
+        Assert.Throws<OdfConversionLossException>(() => source.ToWordDocumentResult(new WordOpenDocumentConversionOptions {
             LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss
         }));
     }

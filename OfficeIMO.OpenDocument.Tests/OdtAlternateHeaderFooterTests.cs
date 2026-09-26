@@ -17,6 +17,7 @@ public sealed class OdtAlternateHeaderFooterTests {
         document.PageLayout.EnsureLeftHeader().AddParagraph("Left header");
         document.PageLayout.EnsureFirstHeader().AddParagraph("First header");
         document.PageLayout.EnsureLeftFooter().AddParagraph("Left footer");
+        document.PageLayout.LeftFooter!.IsDisplayed = false;
         document.PageLayout.Header.AddParagraph("Default header");
         document.PageLayout.Footer.AddParagraph("Default footer");
 
@@ -27,6 +28,7 @@ public sealed class OdtAlternateHeaderFooterTests {
         Assert.Equal("First header", Assert.Single(reopened.PageLayout.FirstHeader!.Paragraphs).Text);
         Assert.Equal("Default footer", Assert.Single(reopened.PageLayout.Footer.Paragraphs).Text);
         Assert.Equal("Left footer", Assert.Single(reopened.PageLayout.LeftFooter!.Paragraphs).Text);
+        Assert.False(reopened.PageLayout.LeftFooter.IsDisplayed);
         Assert.Equal("First footer", Assert.Single(reopened.PageLayout.FirstFooter!.Paragraphs).Text);
 
         XDocument styles = reopened.Package.GetXml("styles.xml");

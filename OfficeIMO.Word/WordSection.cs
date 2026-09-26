@@ -837,7 +837,7 @@ namespace OfficeIMO.Word {
                 if (sectionProperties != null) {
                     var titlePage = sectionProperties.ChildElements.OfType<TitlePage>().FirstOrDefault();
                     if (titlePage != null) {
-                        return true;
+                        return titlePage.Val?.Value ?? true;
                     }
                 }
 
@@ -863,7 +863,8 @@ namespace OfficeIMO.Word {
                         titlePage.Remove();
                     }
                 } else {
-                    sectionProperties.Append(new TitlePage());
+                    if (titlePage == null) sectionProperties.Append(new TitlePage());
+                    else titlePage.Val = true;
                     WordHeadersAndFooters.AddHeaderReference(this._document, this, HeaderFooterValues.First);
                     WordHeadersAndFooters.AddFooterReference(this._document, this, HeaderFooterValues.First);
                 }
@@ -871,8 +872,8 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets whether this section has an explicit or inherited even-page header or footer while the
-        /// document-wide odd/even header and footer setting is enabled. Setting the value to
+        /// Gets whether the document-wide odd/even header and footer setting is enabled. A missing
+        /// even-page part in the first section represents an empty story. Setting the value to
         /// <see langword="true"/> creates even-page references for this section and enables that setting;
         /// setting it to <see langword="false"/> disables the document-wide setting.
         /// </summary>
@@ -882,9 +883,7 @@ namespace OfficeIMO.Word {
                     .DocumentSettingsPart?
                     .Settings?
                     .GetFirstChild<EvenAndOddHeaders>();
-                if (!(setting?.Val?.Value ?? setting is not null)) return false;
-
-                return ResolveEvenHeader() != null || ResolveEvenFooter() != null;
+                return setting?.Val?.Value ?? setting is not null;
 
             }
             set {

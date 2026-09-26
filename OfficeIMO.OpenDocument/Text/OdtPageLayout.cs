@@ -166,6 +166,15 @@ public sealed class OdtHeaderFooter {
         _element = element;
     }
 
+    /// <summary>Whether this header or footer is displayed by the master page.</summary>
+    public bool IsDisplayed {
+        get => OdfBoolean.ReadCompatible((string?)_element.Attribute(OdfNamespaces.Style + "display"), true);
+        set {
+            _element.SetAttributeValue(OdfNamespaces.Style + "display", value ? null : "false");
+            _document.MarkPartDirty("styles.xml");
+        }
+    }
+
     /// <summary>Paragraphs in this header or footer.</summary>
     public IReadOnlyList<OdtParagraph> Paragraphs => _element.Elements()
         .Where(element => element.Name == OdfNamespaces.Text + "p" || element.Name == OdfNamespaces.Text + "h")
