@@ -226,7 +226,7 @@ internal static class HtmlMhtmlEvidenceRunner {
         }, output, results, failures).ConfigureAwait(false);
 
         var report = new {
-            schemaVersion = 2,
+            schemaVersion = 3,
             sourceUrl = url?.ToString() ?? document?.BaseUri.ToString(),
             finalUrl,
             runUtc = DateTimeOffset.UtcNow,
@@ -378,8 +378,10 @@ internal static class HtmlMhtmlEvidenceRunner {
             timer.Stop();
             string file = name + ".pdf";
             await File.WriteAllBytesAsync(Path.Combine(output, file), bytes).ConfigureAwait(false);
-            int pageCount = OfficeIMO.Pdf.PdfDocument.Load(bytes).Inspect().PageCount;
-            results.Add(new OperationEvidence(name, file, bytes.Length, Sha256(bytes), pageCount, timer.Elapsed.TotalMilliseconds));
+            PdfCore.PdfDocumentInfo inspection = OfficeIMO.Pdf.PdfDocument.Load(bytes).Inspect();
+            results.Add(new OperationEvidence(name, file, bytes.Length, Sha256(bytes), inspection.PageCount,
+                inspection.Pages.Select(page => new PageSizeEvidence(page.PageNumber, page.Width, page.Height)).ToArray(),
+                timer.Elapsed.TotalMilliseconds));
         } catch (Exception exception) {
             failures.Add(FormatFailure(name, exception));
         }
@@ -398,7 +400,7 @@ internal static class HtmlMhtmlEvidenceRunner {
             timer.Stop();
             string file = name + ".pdf";
             await File.WriteAllBytesAsync(Path.Combine(output, file), bytes).ConfigureAwait(false);
-            int pageCount = PdfCore.PdfDocument.Load(bytes).Inspect().PageCount;
+            PdfCore.PdfDocumentInfo inspection = PdfCore.PdfDocument.Load(bytes).Inspect();
             var warnings = result.Report.Warnings.Select(warning => new WarningEvidence(
                 warning.Converter,
                 warning.Code,
@@ -407,7 +409,8 @@ internal static class HtmlMhtmlEvidenceRunner {
                 warning.Severity.ToString(),
                 warning.LossKind.ToString(),
                 warning.Details)).ToArray();
-            results.Add(new OperationEvidence(name, file, bytes.Length, Sha256(bytes), pageCount,
+            results.Add(new OperationEvidence(name, file, bytes.Length, Sha256(bytes), inspection.PageCount,
+                inspection.Pages.Select(page => new PageSizeEvidence(page.PageNumber, page.Width, page.Height)).ToArray(),
                 timer.Elapsed.TotalMilliseconds,
                 new ConversionReportEvidence(result.HasLoss, result.Report.FidelityStatus.ToString(), warnings)));
         } catch (Exception exception) {
@@ -453,7 +456,8 @@ internal static class HtmlMhtmlEvidenceRunner {
     }
 
     private sealed record OperationEvidence(string Intent, string File, int Bytes, string Sha256, int PageCount,
-        double ElapsedMilliseconds, ConversionReportEvidence? ConversionReport = null);
+        PageSizeEvidence[] PageSizesPoints, double ElapsedMilliseconds, ConversionReportEvidence? ConversionReport = null);
+    private sealed record PageSizeEvidence(int PageNumber, double Width, double Height);
     private sealed record ConversionReportEvidence(bool HasLoss, string FidelityStatus, WarningEvidence[] Warnings);
     private sealed record WarningEvidence(string Converter, string Code, string Source, string Message,
         string Severity, string LossKind, IReadOnlyDictionary<string, string> Details);
