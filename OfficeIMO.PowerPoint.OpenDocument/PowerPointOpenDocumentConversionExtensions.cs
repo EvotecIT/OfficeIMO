@@ -323,8 +323,9 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         int unsupportedShapeAppearance = source.Slides.Sum(slide => slide.Shapes.Count(shape =>
             HasUnmappedOdpShapeAppearance(source, shape)));
         int unsupportedBasicShapeText = source.Slides.Sum(slide => slide.Shapes.Count(shape =>
-            shape is OdpRectangle or OdpEllipse && shape.Element.Descendants().Any(element =>
+            shape is OdpRectangle or OdpEllipse or OdpLine && shape.Element.Descendants().Any(element =>
                 element.Name == OdfNamespaces.Text + "p" || element.Name == OdfNamespaces.Text + "h")));
+        int unsupportedImageCrop = 0;
         int unsupportedRawDrawingShapes = source.Slides.Sum(CountUnwrappedOdpDrawingElements);
         int unsupportedTableAppearance = source.Slides.Sum(slide => slide.Shapes.OfType<OdpTable>()
             .Count(HasUnmappedOdpTableAppearance));
@@ -409,7 +410,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                         PowerPointPicture converted = targetSlide.AddPicture(stream, imageType, imageBounds);
                         converted.Name = image.Name;
                         unsupportedMeasurements += CopyShapeAppearance(image, converted, effective);
-                        unsupportedMeasurements += ApplyOdpCrop(image, converted);
+                        unsupportedImageCrop += ApplyOdpCrop(image, converted);
                         pictures++;
                     } catch (Exception exception) when (exception is NotSupportedException || exception is InvalidDataException ||
                         exception is ArgumentException) {
@@ -566,10 +567,12 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             "ODP slide image, gradient, transparency, hidden master background, or unsupported drawing-page background was omitted.");
         AddUnsupported(report, "shape-appearance", unsupportedShapeAppearance,
             "ODP graphic fill, stroke, transparency, dash, or effect styling outside solid colors was omitted.");
+        AddUnsupported(report, "shape-appearance", unsupportedImageCrop,
+            "ODP image crop outside the PowerPoint representable range was clamped or omitted.");
         AddUnsupported(report, "text-box-chains", CountUnmappedOdpTextBoxChains(source),
             "Linked ODP text boxes were converted as independent boxes; text flow between frames was not retained.");
         AddUnsupported(report, "shape-text", unsupportedBasicShapeText,
-            "Text inside ODP rectangle and ellipse shapes was omitted because basic PowerPoint auto-shapes have no editable text mapping in this adapter.");
+            "Text inside ODP rectangle, ellipse, and line shapes was omitted because basic PowerPoint auto-shapes have no editable text mapping in this adapter.");
         AddUnsupported(report, "shape-accessibility", unsupportedShapeAccessibility,
             "ODP shape title and description metadata were not transferred to PowerPoint.");
         AddUnsupported(report, "table-appearance", unsupportedTableAppearance,
@@ -863,11 +866,23 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         if (!source.Bounds.Width.TryToPoints(out double width) || !source.Bounds.Height.TryToPoints(out double height)
             || !crop.Left.TryToPoints(out double left) || !crop.Top.TryToPoints(out double top)
             || !crop.Right.TryToPoints(out double right) || !crop.Bottom.TryToPoints(out double bottom)) return 1;
-        width = Math.Max(0.01D, width);
-        height = Math.Max(0.01D, height);
-        target.Crop(ClampPercent(left / width * 100D), ClampPercent(top / height * 100D),
-            ClampPercent(right / width * 100D), ClampPercent(bottom / height * 100D));
-        return 0;
+        if (width <= 0D || height <= 0D) return 1;
+        double leftPercent = left / width * 100D;
+        double topPercent = top / height * 100D;
+        double rightPercent = right / width * 100D;
+        double bottomPercent = bottom / height * 100D;
+        bool lossy = leftPercent < 0D || topPercent < 0D || rightPercent < 0D || bottomPercent < 0D
+            || leftPercent > 100D || topPercent > 100D || rightPercent > 100D || bottomPercent > 100D
+            || leftPercent + rightPercent >= 100D || topPercent + bottomPercent >= 100D;
+        double mappedLeft = ClampPercent(leftPercent);
+        double mappedTop = ClampPercent(topPercent);
+        double mappedRight = ClampPercent(rightPercent);
+        double mappedBottom = ClampPercent(bottomPercent);
+        // PowerPoint stores thousandths of a percent. Do not write a crop that leaves no visible image after rounding.
+        if (Math.Round(mappedLeft * 1000D) + Math.Round(mappedRight * 1000D) >= 100000D
+            || Math.Round(mappedTop * 1000D) + Math.Round(mappedBottom * 1000D) >= 100000D) return 1;
+        target.Crop(mappedLeft, mappedTop, mappedRight, mappedBottom);
+        return lossy ? 1 : 0;
     }
 
     private static double ClampPercent(double value) => Math.Max(0D, Math.Min(100D, value));

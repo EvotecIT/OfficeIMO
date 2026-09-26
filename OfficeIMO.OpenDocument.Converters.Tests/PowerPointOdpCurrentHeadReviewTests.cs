@@ -233,6 +233,17 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
     }
 
     [Fact]
+    public void PowerPointShapeUseBackgroundFillIsExplicitLoss() {
+        using PowerPointPresentation source = CreatePowerPoint();
+        source.Slides[0].AddRectanglePoints(20, 20, 100, 50);
+        Shape shape = source.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide!
+            .Descendants<Shape>().Single();
+        shape.UseBackgroundFill = true;
+
+        AssertPowerPointLoss(source, "shape-appearance");
+    }
+
+    [Fact]
     public void InternalPowerPointTextLinkUsesPreservedOdpSlideName() {
         using PowerPointPresentation source = CreatePowerPoint();
         PowerPointSlide destination = source.AddSlide(PowerPointSlideLayoutType.Blank);
@@ -462,6 +473,30 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
         Assert.InRange(Assert.Single(target.Slides[0].Pictures).CropLeftRatio, 0.09, 0.11);
         Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "shape-appearance" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
+    }
+
+    [Theory]
+    [InlineData(-0.2, 0)]
+    [InlineData(2.2, 0)]
+    [InlineData(1.2, 1.2)]
+    [InlineData(0.9999999, 0.9999999)]
+    public void UnrepresentableOdpImageCropIsExplicitLoss(double left, double right) {
+        OdpPresentation source = OdpPresentation.Create();
+        byte[] png = Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+        OdpImage image = source.AddSlide().AddImage(png, "pixel.png", OdfRect.FromCentimeters(1, 1, 2, 2));
+        image.Crop = new OdfInsets(OdfLength.Centimeters(0), OdfLength.Centimeters(right),
+            OdfLength.Centimeters(0), OdfLength.Centimeters(left));
+
+        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
+        using PowerPointPresentation target = conversion.Value;
+        Assert.Contains(conversion.Report.ForFeature("shape-appearance"), mapping =>
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+        if (left + right >= 1.999999D) {
+            Assert.Equal(0D, Assert.Single(target.Slides[0].Pictures).CropLeftRatio);
+        }
+        Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointPresentationResult(
+            new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
     [Fact]

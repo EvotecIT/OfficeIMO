@@ -529,17 +529,21 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
         OdpSlide slide = source.AddSlide();
         slide.AddRectangle(OdfRect.FromCentimeters(1, 1, 4, 2));
         slide.AddEllipse(OdfRect.FromCentimeters(1, 4, 4, 2));
+        slide.AddLine(OdfLength.Centimeters(1), OdfLength.Centimeters(7),
+            OdfLength.Centimeters(5), OdfLength.Centimeters(7));
         XDocument content = source.Package.GetXml("content.xml");
         content.Descendants(OdfNamespaces.Draw + "rect").Single().Add(
             new XElement(OdfNamespaces.Text + "p", "Rectangle label"));
         content.Descendants(OdfNamespaces.Draw + "ellipse").Single().Add(
             new XElement(OdfNamespaces.Text + "p", "Ellipse label"));
+        content.Descendants(OdfNamespaces.Draw + "line").Single().Add(
+            new XElement(OdfNamespaces.Text + "p", "Line label"));
         source.Package.MarkXmlDirty("content.xml");
 
         OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
         using PowerPointPresentation target = conversion.Value;
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "shape-text" &&
-            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 2);
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 3);
         Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointPresentationResult(
             new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }

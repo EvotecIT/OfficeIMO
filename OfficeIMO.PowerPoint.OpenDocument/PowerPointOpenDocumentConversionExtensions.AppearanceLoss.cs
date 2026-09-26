@@ -46,6 +46,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             count += part.Slide.Descendants<P.ShapeProperties>().Count(HasUnmappedPowerPointShapeAppearance);
             count += part.Slide.Descendants<P.ShapeStyle>().Count();
             count += part.Slide.Descendants<P.Shape>().Count(shape =>
+                shape.UseBackgroundFill?.Value == true);
+            count += part.Slide.Descendants<P.Shape>().Count(shape =>
                 shape.TextBody?.BodyProperties is A.BodyProperties body && (body.HasAttributes || body.HasChildren));
             count += part.Slide.Descendants<P.Picture>().Count(HasUnmappedPictureBlipAppearance);
         }
