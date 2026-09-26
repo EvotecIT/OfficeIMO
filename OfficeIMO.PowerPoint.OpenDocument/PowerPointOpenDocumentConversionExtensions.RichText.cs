@@ -10,6 +10,7 @@ namespace OfficeIMO.PowerPoint.OpenDocument;
 
 public static partial class PowerPointOpenDocumentConversionExtensions {
     private sealed class PowerPointToOdpTextConversionState {
+        internal IReadOnlyList<string> SlideNames = Array.Empty<string>();
         internal int Paragraphs;
         internal int TextRuns;
         internal int LineBreaks;
@@ -81,7 +82,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                     }
                     if (run.HasMouseOverInteraction) state.UnsupportedRunInteractions++;
                     if (hyperlink != null) {
-                        ApplyPowerPointRun(run, targetParagraph.AddHyperlink(run.Text, hyperlink.ToString()), options);
+                        ApplyPowerPointRun(run, targetParagraph.AddHyperlink(run.Text,
+                            MapPowerPointSlideHref(hyperlink, state.SlideNames)), options);
                         if (!string.IsNullOrWhiteSpace(run.HyperlinkTooltip)) state.UnsupportedHyperlinkTooltips++;
                     } else {
                         ApplyPowerPointRun(run, targetParagraph.AddRun(run.Text), options);
@@ -92,6 +94,17 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             if (sourceParagraph.BulletCharacter != null || sourceParagraph.IsNumbered) state.ListParagraphs++;
             state.Paragraphs++;
         }
+    }
+
+    private static string MapPowerPointSlideHref(Uri href, IReadOnlyList<string> slideNames) {
+        string value = href.OriginalString;
+        const string prefix = "#slide-";
+        if (!href.IsAbsoluteUri && value.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) &&
+            int.TryParse(value.Substring(prefix.Length), NumberStyles.None, CultureInfo.InvariantCulture,
+                out int oneBased) && oneBased >= 1 && oneBased <= slideNames.Count) {
+            return "#" + Uri.EscapeDataString(slideNames[oneBased - 1]);
+        }
+        return value;
     }
 
     private static void CopyOdpParagraphsToPowerPoint(

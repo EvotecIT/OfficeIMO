@@ -24,6 +24,8 @@ public sealed class OdfDocumentMetadata {
     public string? Description { get => Get(OdfNamespaces.Dc + "description"); set => Set(OdfNamespaces.Dc + "description", value); }
     /// <summary>Initial creator.</summary>
     public string? Creator { get => Get(OdfNamespaces.Meta + "initial-creator"); set => Set(OdfNamespaces.Meta + "initial-creator", value); }
+    /// <summary>Person who last modified the document.</summary>
+    public string? LastModifiedBy { get => Get(OdfNamespaces.Dc + "creator"); set => Set(OdfNamespaces.Dc + "creator", value); }
     /// <summary>Primary document language.</summary>
     public string? Language { get => Get(OdfNamespaces.Dc + "language"); set => Set(OdfNamespaces.Dc + "language", value); }
     /// <summary>Producer recorded in the package.</summary>

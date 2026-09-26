@@ -466,10 +466,9 @@ public sealed class OpenDocumentConversionContracts {
         linkedRun.SetHyperlink("https://example.com/table");
         sourceParagraphs[1].Runs[0].Underline = true;
 
-        OdfConversionResult<OdpPresentation> toOdp = source.ToOpenDocumentResult(
-            new PowerPointOpenDocumentConversionOptions {
-                LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
-            });
+        OdfConversionResult<OdpPresentation> toOdp = source.ToOpenDocumentResult();
+        Assert.Contains(toOdp.Report.Mappings, mapping => mapping.Feature == "table-appearance" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
         Assert.True(toOdp.Value.Validate().IsValid);
         OdpTableCell odpCell = Assert.IsType<OdpTable>(Assert.Single(toOdp.Value.Slides[0].Shapes)).Cell(0, 0);
         Assert.Equal(2, odpCell.Paragraphs.Count);

@@ -4,6 +4,15 @@ namespace OfficeIMO.OpenDocument;
 public sealed class OdpTextBox : OdpShape {
     internal OdpTextBox(OdpPresentation presentation, XElement element) : base(presentation, element) { }
     private XElement TextBox => Element.Element(OdfNamespaces.Draw + "text-box") ?? throw new InvalidDataException("ODP text frame has no draw:text-box.");
+    /// <summary>Presentation role such as <c>title</c>, <c>outline</c>, or <c>subtitle</c>.</summary>
+    public string? PresentationClass {
+        get => (string?)Element.Attribute(OdfNamespaces.Presentation + "class");
+        set {
+            if (value != null && string.IsNullOrWhiteSpace(value)) throw new ArgumentException("Presentation class cannot be empty.", nameof(value));
+            Element.SetAttributeValue(OdfNamespaces.Presentation + "class", value);
+            Dirty();
+        }
+    }
     /// <summary>Paragraphs in reading order, including list item paragraphs.</summary>
     public IReadOnlyList<OdpParagraph> Paragraphs => TextBox.Descendants()
         .Where(element => element.Name == OdfNamespaces.Text + "p" || element.Name == OdfNamespaces.Text + "h")

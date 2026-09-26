@@ -89,8 +89,15 @@ Create an ODP presentation:
 
 ```csharp
 using OdpPresentation presentation = OdpPresentation.Create();
+OdpMasterPage master = presentation.AddMasterPage("Brand");
+master.BackgroundColor = OdfColor.Parse("#F8FBFF");
+OdpPresentationLayout layout = presentation.AddLayout("Title");
+layout.AddPlaceholder("title", OdfRect.FromCentimeters(2, 1, 28, 3));
 OdpSlide slide = presentation.AddSlide("Summary");
-slide.AddTextBox(OdfRect.FromCentimeters(2, 1, 28, 3), "Native ODP");
+slide.MasterPageName = master.Name;
+slide.LayoutName = layout.Name;
+OdpTextBox title = slide.AddTextBox(OdfRect.FromCentimeters(2, 1, 28, 3), "Native ODP");
+title.PresentationClass = "title";
 slide.AddRectangle(OdfRect.FromCentimeters(2, 5, 8, 3)).FillColor = OdfColor.Parse("#D1E9FF");
 slide.GetOrCreateSpeakerNotes().AddParagraph("Explain the result.");
 presentation.Save("summary.odp");
@@ -172,7 +179,7 @@ Encrypted input fails with a classified `OdfEncryptedPackageException` when a pa
 | Package | Bounded ZIP/XML loading, direct reading of seekable package streams, manifest updates, deterministic output, metadata, atomic path saves, flat XML projection with loss reporting, unknown-entry preservation |
 | ODT | Paragraphs, headings, ordered inline text/span/link/image/bookmark syntax, page number/count and date/time fields with cached display text, whitespace controls, common text and paragraph styles, lists, tables, sections, page layout, default/first/left master-page headers and footers, page breaks, images, paragraph insertion/deletion tracking |
 | ODS | Sparse repeated rows/cells, typed values, OpenFormula text and cached values, bounded formula evaluation/recalculation, styles and data formats, merges, row/column sizing and visibility, sheet order, typed named ranges, annotations, typed scalar/list validations and messages, links, print ranges |
-| ODP | Slide order and visibility, page size, masters/layouts, ordered inline text/run/link syntax, common run styles, lists, rectangles, ellipses, lines, groups, transforms, images and crop, tables, speaker notes, backgrounds, transitions, basic shape animations |
+| ODP | Slide order and visibility, page size, masters/layouts and presentation classes, ordered inline text/run/link syntax, common run styles, lists, rectangles, ellipses, lines, groups, transforms, images and crop, tables, speaker notes, backgrounds, transitions, basic shape animations |
 | Inspection | Annotations, tracked changes, extension namespaces, scripts, event listeners, external links, embedded objects, formulas, validations, transitions, animations, encryption, and signatures |
 
 Unknown XML, vendor extensions, scripts, embedded content, and unsupported drawing features are preserved when their owning part is not replaced. The library never executes scripts, macros, event listeners, embedded objects, or external links. Formula evaluation is a bounded, side-effect-free parser for the documented local subset; it does not execute active content or fetch data.

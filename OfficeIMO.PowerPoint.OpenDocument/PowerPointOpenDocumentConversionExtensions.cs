@@ -20,27 +20,88 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         PowerPointOpenDocumentConversionOptions effective = NormalizeOptions(options);
         OdpPresentation target = OdpPresentation.Create();
         var report = new OdfConversionReport("PPTX", "ODP");
-        target.Metadata.Title = source.BuiltinDocumentProperties.Title;
+        CopyPowerPointMetadata(source, target, report);
         target.PageWidth = OdfLength.Points(source.SlideSize.WidthPoints);
         target.PageHeight = OdfLength.Points(source.SlideSize.HeightPoints);
 
         int textBoxes = 0, pictures = 0, tables = 0, autoShapes = 0;
         int notes = 0, transitions = 0, backgrounds = 0, unsupportedBackgrounds = 0, unsupportedShapes = 0, unsupportedPictures = 0;
         int transformedShapes = 0, skippedBasicFormatting = 0, skippedNotes = 0;
-        int unsupportedShapeHyperlinks = 0;
-        var textState = new PowerPointToOdpTextConversionState();
+        int mappedPlaceholderRoles = 0, unsupportedPlaceholderRoles = 0;
+        int mappedMasters = 0, mappedLayouts = 0, mappedMasterBackgrounds = 0, approximatedMasterLayouts = 0;
+        var masterNames = new Dictionary<SlideMasterPart, string>();
+        var layoutNames = new Dictionary<SlideLayoutPart, string>();
+        var solidMasters = new HashSet<SlideMasterPart>();
+        var usedSlideNames = new HashSet<string>(StringComparer.Ordinal);
+        int renamedSlides = 0;
+        PresentationPart? sourcePresentation = source.OpenXmlDocument.PresentationPart;
+        DocumentFormat.OpenXml.Presentation.SlideId[] sourceSlideIds = sourcePresentation?.Presentation?
+            .SlideIdList?.Elements<DocumentFormat.OpenXml.Presentation.SlideId>().ToArray()
+            ?? Array.Empty<DocumentFormat.OpenXml.Presentation.SlideId>();
+        unsupportedPlaceholderRoles += CountUnmappedPowerPointNonTextPlaceholders(sourcePresentation, sourceSlideIds);
+        int unsupportedPlaceholderMetadata = CountUnmappedPowerPointTextPlaceholderMetadata(sourcePresentation, sourceSlideIds);
+        int unsupportedShapeAppearance = CountUnmappedPowerPointShapeAppearance(sourcePresentation, sourceSlideIds);
+        int unsupportedShapeLocks = CountUnmappedPowerPointShapeLocks(sourcePresentation, sourceSlideIds);
+        int unsupportedTextColors = CountUnmappedPowerPointTextColors(sourcePresentation, sourceSlideIds);
+        int unsupportedTextTypography = CountUnmappedPowerPointTextTypography(sourcePresentation, sourceSlideIds);
+        int unsupportedEmbeddedFonts = CountUnmappedPowerPointEmbeddedFonts(sourcePresentation);
+        int unsupportedThemes = CountUnmappedPowerPointThemes(sourcePresentation);
+        int unsupportedShapeAccessibility = CountUnmappedPowerPointShapeAccessibility(sourcePresentation, sourceSlideIds);
+        int unsupportedShapeHyperlinks = CountUnmappedPowerPointShapeClicks(sourcePresentation, sourceSlideIds);
+        int unsupportedTableAppearance = CountUnmappedPowerPointTableAppearance(sourcePresentation, sourceSlideIds);
+        int unsupportedTextGeometry = CountUnmappedPowerPointTextGeometry(sourcePresentation, sourceSlideIds);
+        int unsupportedParagraphLayout = CountUnmappedPowerPointParagraphLayout(sourcePresentation, sourceSlideIds);
+        int unsupportedTransitionTiming = CountUnmappedPowerPointTransitionTiming(sourcePresentation, sourceSlideIds);
+        var targetSlideNames = new string[source.Slides.Count];
+        for (int slideIndex = 0; slideIndex < source.Slides.Count; slideIndex++) {
+            PowerPointSlide sourceSlide = source.Slides[slideIndex];
+            string? authoredSlideName = sourceSlide.Name;
+            bool normalizedAuthoredName = authoredSlideName != null && string.IsNullOrWhiteSpace(authoredSlideName);
+            if (normalizedAuthoredName) renamedSlides++;
+            string requestedSlideName = !string.IsNullOrWhiteSpace(authoredSlideName) ? authoredSlideName! :
+                "Slide" + (slideIndex + 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
+            string targetSlideName = requestedSlideName;
+            if (!usedSlideNames.Add(targetSlideName)) {
+                int suffix = 2;
+                do {
+                    targetSlideName = requestedSlideName + "_" +
+                        suffix.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    suffix++;
+                } while (!usedSlideNames.Add(targetSlideName));
+                if (authoredSlideName != null && !normalizedAuthoredName) renamedSlides++;
+            }
+            targetSlideNames[slideIndex] = targetSlideName;
+        }
+        var textState = new PowerPointToOdpTextConversionState { SlideNames = targetSlideNames };
         var imageValidationBudget = new OdfImageValidationBudget();
         for (int slideIndex = 0; slideIndex < source.Slides.Count; slideIndex++) {
             PowerPointSlide sourceSlide = source.Slides[slideIndex];
-            OdpSlide targetSlide = target.AddSlide("Slide" + (slideIndex + 1).ToString(System.Globalization.CultureInfo.InvariantCulture));
+            OdpSlide targetSlide = target.AddSlide(targetSlideNames[slideIndex]);
             targetSlide.Hidden = sourceSlide.Hidden;
-            MapBackground(sourceSlide, targetSlide, ref backgrounds, ref unsupportedBackgrounds);
+            bool inheritsMasterBackground = MapPowerPointMasterAndLayout(sourcePresentation,
+                slideIndex < sourceSlideIds.Length ? sourceSlideIds[slideIndex] : null,
+                target, targetSlide,
+                masterNames, layoutNames, solidMasters,
+                ref mappedMasters, ref mappedLayouts, ref mappedMasterBackgrounds, ref approximatedMasterLayouts,
+                out bool suppressInheritedBackground);
+            if (!inheritsMasterBackground) MapBackground(sourceSlide, targetSlide, ref backgrounds, ref unsupportedBackgrounds);
+            if (slideIndex < sourceSlideIds.Length && HasPowerPointDynamicSlideBackground(sourcePresentation, sourceSlideIds[slideIndex]))
+                unsupportedBackgrounds++;
+            if (suppressInheritedBackground && !targetSlide.BackgroundColor.HasValue)
+                targetSlide.SuppressInheritedBackground();
             if (MapTransition(sourceSlide.Transition, targetSlide)) transitions++;
 
             foreach (PowerPointShape shape in sourceSlide.Shapes.OrderBy(item => item.DrawingOrder)) {
-                if (shape.Hyperlink != null) unsupportedShapeHyperlinks++;
+                if (shape is PowerPointMedia) unsupportedShapes++;
                 if (shape is PowerPointTextBox textBox) {
                     OdpTextBox converted = targetSlide.AddTextBox(ToOdfRect(textBox), null, textBox.Name);
+                    string? presentationClass = GetOdpPresentationClass(sourceSlide, textBox);
+                    if (presentationClass != null) {
+                        converted.PresentationClass = presentationClass;
+                        mappedPlaceholderRoles++;
+                    } else if (textBox.IsPlaceholder) {
+                        unsupportedPlaceholderRoles++;
+                    }
                     CopyShapeAppearance(textBox, converted, effective);
                     CopyPowerPointParagraphsToOdp(textBox.Paragraphs,
                         () => converted.AddParagraph(), effective, textState);
@@ -134,6 +195,9 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             }
         }
 
+        approximatedMasterLayouts += CountUnmappedUnusedPowerPointMastersAndLayouts(
+            sourcePresentation, masterNames, layoutNames);
+
         AddConverted(report, "slides", source.Slides.Count);
         AddConverted(report, "text-boxes", textBoxes);
         AddConverted(report, "paragraphs", textState.Paragraphs);
@@ -143,10 +207,20 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         AddConverted(report, "tables", tables);
         AddConverted(report, "basic-shapes", autoShapes);
         AddConverted(report, "speaker-notes", notes);
+        AddConverted(report, "master-associations", mappedMasters);
+        AddConverted(report, "layout-associations", mappedLayouts);
+        AddConverted(report, "master-backgrounds", mappedMasterBackgrounds);
+        AddConverted(report, "placeholder-roles", mappedPlaceholderRoles);
+        AddUnsupported(report, "placeholder-roles", unsupportedPlaceholderRoles,
+            "This PowerPoint placeholder role has no matching ODP presentation class.");
+        AddUnsupported(report, "placeholder-metadata", unsupportedPlaceholderMetadata,
+            "PowerPoint text placeholder index, size, orientation, custom prompt, and extension metadata were not transferred to ODP.");
         AddConverted(report, "solid-backgrounds", backgrounds);
         AddUnsupported(report, "slide-backgrounds", unsupportedBackgrounds, "Image, gradient, theme, and unsupported backgrounds are not translated.");
         if (transitions > 0) report.Add("slide-transitions", OdfConversionMappingStatus.Approximated, transitions,
             "Common transition families are mapped without PowerPoint-specific speed and timing metadata.");
+        AddUnsupported(report, "slide-transition-timing", unsupportedTransitionTiming,
+            "PowerPoint slide advance timing, click behavior, and transition sound actions are not transferred to ODP.");
         if (textState.ListParagraphs > 0) report.Add("text-lists", OdfConversionMappingStatus.Approximated, textState.ListParagraphs,
             "List text is retained as paragraphs; PowerPoint bullet and numbering definitions are not translated.");
         if (textState.Fields > 0) report.Add("paragraph-fields", OdfConversionMappingStatus.Approximated,
@@ -167,12 +241,55 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             "PowerPoint hyperlink tooltips have no equivalent in the current ODP hyperlink surface and were omitted.");
         AddUnsupported(report, "shape-hyperlinks", unsupportedShapeHyperlinks,
             "PowerPoint shape-level click hyperlinks, including internal slide jumps, are not translated to ODP.");
+        AddUnsupported(report, "shape-hover-interactions", CountUnmappedPowerPointShapeHover(sourcePresentation, sourceSlideIds),
+            "PowerPoint shape-level mouse-over hyperlinks and actions are not translated to ODP.");
         AddUnsupported(report, "run-interactions", textState.UnsupportedRunInteractions,
             "PowerPoint run actions, mouse-over interactions, and action sounds outside ordinary click hyperlinks are not represented in ODP.");
         AddUnsupported(report, "images", unsupportedPictures, "Images disabled by options or unavailable from an embedded image part were skipped.");
         AddUnsupported(report, "shapes", unsupportedShapes, "Charts, SmartArt, media, groups, and other advanced drawing shapes are not translated.");
-        report.Add("masters-layouts", OdfConversionMappingStatus.Approximated, source.Slides.Count,
-            "Slide content is placed on one default ODP master and blank layout.");
+        AddUnsupported(report, "shape-appearance", unsupportedShapeAppearance,
+            "Text frame settings, picture effects, and theme, image, gradient, transparency, dash, or shape effect styling outside direct solid RGB fill and outline were omitted.");
+        AddUnsupported(report, "shape-locks", unsupportedShapeLocks,
+            "PowerPoint shape, picture, connector, or graphic-frame editing restrictions were not transferred to ODP.");
+        AddUnsupported(report, "text-colors", unsupportedTextColors,
+            "Inherited, theme, system, transformed, and other unsupported run or highlight colors were not transferred to ODP.");
+        AddUnsupported(report, "text-typography", unsupportedTextTypography,
+            "PowerPoint run character spacing, kerning, exact baseline shifts, script-specific fonts, and unsupported direct run effects were not transferred to ODP.");
+        AddUnsupported(report, "embedded-fonts", unsupportedEmbeddedFonts,
+            "Embedded PowerPoint font payloads were not transferred to ODP.");
+        AddUnsupported(report, "theme", unsupportedThemes,
+            "Authored PowerPoint theme colors, fonts, and effects were not transferred to ODP.");
+        AddUnsupported(report, "shape-accessibility", unsupportedShapeAccessibility,
+            "Shape accessibility title, description, or decorative metadata was not carried into ODP.");
+        AddUnsupported(report, "shape-geometry", unsupportedTextGeometry,
+            "Text-bearing nonrectangular or custom PowerPoint geometry was flattened to an ODP text frame.");
+        AddUnsupported(report, "paragraph-layout", unsupportedParagraphLayout,
+            "PowerPoint paragraph margins, indent, spacing, tab stops, outline level, or picture bullets were not transferred to ODP.");
+        AddUnsupported(report, "table-appearance", unsupportedTableAppearance,
+            "Table style, cell fill, borders, margins, alignment, or custom row and column sizing was not translated.");
+        if (approximatedMasterLayouts > 0) report.Add("masters-layouts", OdfConversionMappingStatus.Approximated,
+            approximatedMasterLayouts,
+            "Master and layout links are retained, but inherited drawing content, placeholder geometry and indexes, and layout-specific formatting are not reconstructed.");
+        AddUnsupported(report, "sections", source.GetSections().Count,
+            "PowerPoint slide sections and their names are not represented in the current ODP presentation surface.");
+        AddUnsupported(report, "notes-master", CountUnmappedPowerPointNotesMaster(sourcePresentation),
+            "Authored notes-master appearance and placeholder geometry are not transferred to ODP.");
+        AddUnsupported(report, "notes-slide-appearance", CountUnmappedPowerPointNotesSlides(sourcePresentation, sourceSlideIds),
+            "Per-slide PowerPoint notes backgrounds, authored placeholder text, shape appearance and geometry, and master-shape display settings were not transferred to ODP.");
+        AddUnsupported(report, "presentation-thumbnail", CountUnmappedPowerPointThumbnail(source),
+            "The authored PowerPoint presentation thumbnail was not transferred to ODP.");
+        AddUnsupported(report, "handout-master", CountUnmappedPowerPointHandoutMaster(sourcePresentation),
+            "Authored handout-master content is not transferred to ODP.");
+        AddUnsupported(report, "slide-show-settings", CountUnmappedPowerPointShowProperties(sourcePresentation),
+            "PowerPoint slide-show playback settings are not transferred to ODP.");
+        AddUnsupported(report, "presentation-properties", CountUnmappedPowerPointPresentationProperties(sourcePresentation),
+            "PowerPoint print, web, publishing, and other presentation properties were not transferred to ODP.");
+        AddUnsupported(report, "presentation-settings", CountUnmappedPowerPointRootSettings(sourcePresentation),
+            "PowerPoint root presentation settings and custom notes size were not transferred to ODP.");
+        AddUnsupported(report, "view-settings", CountUnmappedPowerPointViewProperties(sourcePresentation),
+            "Authored PowerPoint view settings were not transferred to ODP.");
+        if (renamedSlides > 0) report.Add("slide-names", OdfConversionMappingStatus.Approximated,
+            renamedSlides, "PowerPoint permits duplicate slide names; ODP requires unique names, so colliding names were changed.");
         AddAdvancedPowerPointFindings(source.InspectFeatures(), report);
         return new OdfConversionResult<OdpPresentation>(target, report).ApplyPolicy(effective.LossPolicy);
     }
@@ -189,7 +306,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         PowerPointPresentation target = PowerPointPresentation.Create();
         var report = new OdfConversionReport("ODP", "PPTX");
         CultureInfo textCaseCulture = OdfTextCultureResolver.Resolve(source.Metadata.Language);
-        target.BuiltinDocumentProperties.Title = source.Metadata.Title;
+        CopyOdpMetadata(source, target, report);
         int unsupportedMeasurements = 0;
         if (source.PageWidth.TryToPoints(out double pageWidth) && source.PageHeight.TryToPoints(out double pageHeight)) {
             target.SlideSize.SetSizePoints(pageWidth, pageHeight);
@@ -200,24 +317,51 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         int textBoxes = 0, paragraphs = 0, textRuns = 0, hyperlinks = 0, externalHyperlinks = 0, pictures = 0, tables = 0, basicShapes = 0;
         int notes = 0, transitions = 0, unsupportedTransitions = 0, unsupportedShapes = 0, unsupportedPictures = 0, transformedShapes = 0;
         int listParagraphs = 0, approximatedRuns = 0, unsupportedHyperlinks = 0, unsupportedHyperlinkBehaviors = 0;
-        int skippedBasicFormatting = 0, skippedNotes = 0, noteContainers = 0;
+        int skippedBasicFormatting = 0, skippedNotes = 0, noteContainers = 0, unsupportedNoteContent = 0;
+        int mappedPlaceholderRoles = 0, unsupportedPlaceholderRoles = 0;
+        int unsupportedSlideBackgrounds = 0;
+        int unsupportedShapeAppearance = source.Slides.Sum(slide => slide.Shapes.Count(shape =>
+            HasUnmappedOdpShapeAppearance(source, shape)));
+        int unsupportedBasicShapeText = source.Slides.Sum(slide => slide.Shapes.Count(shape =>
+            shape is OdpRectangle or OdpEllipse or OdpLine && shape.Element.Descendants().Any(element =>
+                element.Name == OdfNamespaces.Text + "p" || element.Name == OdfNamespaces.Text + "h")));
+        int unsupportedImageCrop = 0;
+        int unsupportedRawDrawingShapes = source.Slides.Sum(CountUnwrappedOdpDrawingElements);
+        int unsupportedTableAppearance = source.Slides.Sum(slide => slide.Shapes.OfType<OdpTable>()
+            .Count(HasUnmappedOdpTableAppearance));
+        int unsupportedShapeAccessibility = source.Slides.Sum(slide => slide.Shapes.Count(HasUnmappedOdpShapeAccessibility));
+        int unsupportedTableVisibility = source.Slides.Sum(slide => slide.Shapes.OfType<OdpTable>()
+            .Count(HasUnmappedOdpTableVisibility));
+        int unsupportedEmbeddedFonts = CountUnmappedOdpEmbeddedFonts(source);
+        int unsupportedOdpTextLayout = CountUnmappedOdpTextLayout(source);
+        int unsupportedOdpTextEffects = CountUnmappedOdpTextEffects(source);
         int approximatedTextDecorations = CountNonSolidTextDecorations(source);
         int unsupportedWritingModes = 0, approximatedParagraphAlignments = 0;
         int approximatedFontFamilyLists = 0, unsupportedFontFamilies = 0;
         var pendingInternalLinks = new List<(PowerPointTextRun Run, int SlideIndex)>();
         foreach (OdpSlide sourceSlide in source.Slides) {
             PowerPointSlide targetSlide = target.AddSlide();
+            targetSlide.Name = sourceSlide.Name;
             targetSlide.Hidden = sourceSlide.Hidden;
-            OdfColor? backgroundColor = sourceSlide.BackgroundColor;
-            if (!backgroundColor.HasValue && !string.IsNullOrWhiteSpace(sourceSlide.MasterPageName)) {
+            var slideBackground = ReadOdpSlideBackground(source, sourceSlide);
+            if (slideBackground.Loss || slideBackground.SuppressesMasterBackground) unsupportedSlideBackgrounds++;
+            OdfColor? backgroundColor = slideBackground.Color;
+            bool suppressesMasterBackground = slideBackground.SuppressesMasterBackground;
+            if (!suppressesMasterBackground && !slideBackground.Override && !backgroundColor.HasValue && !string.IsNullOrWhiteSpace(sourceSlide.MasterPageName)) {
                 backgroundColor = source.MasterPages.FirstOrDefault(master =>
                     string.Equals(master.Name, sourceSlide.MasterPageName, StringComparison.Ordinal))?.BackgroundColor;
             }
             if (backgroundColor.HasValue) targetSlide.BackgroundColor = backgroundColor.Value.ToString().TrimStart('#');
             if (MapTransition(sourceSlide, targetSlide)) transitions++;
             else if (!string.IsNullOrWhiteSpace(sourceSlide.TransitionStyle) || !string.IsNullOrWhiteSpace(sourceSlide.TransitionType)) unsupportedTransitions++;
+            if (HasUnmappedOdpTransitionTiming(source, sourceSlide)) unsupportedTransitions++;
+            if (sourceSlide.Shapes.Any(shape => shape.Element.Attribute(OdfNamespaces.Draw + "z-index") != null))
+                unsupportedShapes++;
 
             foreach (OdpShape shape in sourceSlide.Shapes) {
+                if (shape is not OdpTextBox &&
+                    shape.Element.Attribute(OdfNamespaces.Presentation + "class") != null)
+                    unsupportedPlaceholderRoles++;
                 if (shape is OdpTextBox textBox) {
                     if (!TryToPowerPointBox(textBox.Bounds, out PowerPointLayoutBox textBoxBounds)) {
                         unsupportedMeasurements++;
@@ -228,6 +372,15 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                     listParagraphs += textBox.Lists.Sum(list => list.Items.Count);
                     PowerPointTextBox converted = targetSlide.AddTextBox(string.Empty, textBoxBounds);
                     converted.Name = textBox.Name;
+                    if (textBox.PresentationClass != null) {
+                        PowerPointPlaceholderType? placeholderType = GetPowerPointPlaceholderType(textBox.PresentationClass);
+                        if (placeholderType.HasValue) {
+                            converted.PlaceholderType = placeholderType.Value;
+                            mappedPlaceholderRoles++;
+                        } else {
+                            unsupportedPlaceholderRoles++;
+                        }
+                    }
                     unsupportedMeasurements += CopyShapeAppearance(textBox, converted, effective);
                     CopyOdpParagraphsToPowerPoint(sourceParagraphs,
                         paragraphTexts => converted.SetParagraphs(paragraphTexts), source.Slides,
@@ -257,7 +410,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                         PowerPointPicture converted = targetSlide.AddPicture(stream, imageType, imageBounds);
                         converted.Name = image.Name;
                         unsupportedMeasurements += CopyShapeAppearance(image, converted, effective);
-                        unsupportedMeasurements += ApplyOdpCrop(image, converted);
+                        unsupportedImageCrop += ApplyOdpCrop(image, converted);
                         pictures++;
                     } catch (Exception exception) when (exception is NotSupportedException || exception is InvalidDataException ||
                         exception is ArgumentException) {
@@ -269,11 +422,14 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                         unsupportedShapes++;
                         continue;
                     }
-                    int rowCount = Math.Max(1, table.Rows.Count);
+                    IReadOnlyList<OdpTableRow> rows = table.Rows;
+                    int rowCount = Math.Max(1, rows.Count);
                     if (rowCount > effective.MaxTableRows) {
                         throw new InvalidDataException($"ODP table rows ({rowCount}) exceed the configured conversion limit ({effective.MaxTableRows}).");
                     }
-                    int columnCount = Math.Max(1, table.Rows.Select(row => row.Cells.Count).DefaultIfEmpty(1).Max());
+                    OdpTableRow[] sourceRows = rows.ToArray();
+                    int columnCount = Math.Max(ReadOdpDeclaredTableColumns(table, effective.MaxTableColumns),
+                        Math.Max(1, sourceRows.Select(row => row.Cells.Count).DefaultIfEmpty(1).Max()));
                     if (columnCount > effective.MaxTableColumns) {
                         throw new InvalidDataException($"ODP table columns ({columnCount}) exceed the configured conversion limit ({effective.MaxTableColumns}).");
                     }
@@ -281,19 +437,23 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                     converted.Name = table.Name;
                     unsupportedMeasurements += CopyShapeAppearance(table, converted, effective);
                     var merges = new List<(int Row, int Column, int RowSpan, int ColumnSpan)>();
-                    for (int row = 0; row < table.Rows.Count; row++) {
-                        IReadOnlyList<OdpTableCell> cells = table.Rows[row].Cells;
-                        for (int column = 0; column < cells.Count; column++) {
-                            OdpTableCell cell = cells[column];
-                            if (cell.IsCovered) continue;
-                            CopyOdpParagraphsToPowerPoint(cell.Paragraphs,
-                                paragraphTexts => converted.GetCell(row, column).SetParagraphs(paragraphTexts), source.Slides,
-                                pendingInternalLinks, effective, textCaseCulture, ref paragraphs, ref textRuns, ref hyperlinks,
-                                ref externalHyperlinks, ref unsupportedHyperlinks, ref unsupportedHyperlinkBehaviors, ref approximatedRuns,
-                                ref skippedBasicFormatting, ref unsupportedWritingModes,
-                                ref approximatedParagraphAlignments, ref unsupportedMeasurements,
-                                ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
-                            if (cell.RowSpan > 1 || cell.ColumnSpan > 1) merges.Add((row, column, cell.RowSpan, cell.ColumnSpan));
+                    for (int row = 0; row < sourceRows.Length; row++) {
+                        IReadOnlyList<OdpTableCell> cells = sourceRows[row].Cells;
+                        int column = 0;
+                        foreach (OdpTableCell cell in cells) {
+                            if (!cell.IsCovered) {
+                                int targetColumn = column;
+                                CopyOdpParagraphsToPowerPoint(cell.Paragraphs,
+                                    paragraphTexts => converted.GetCell(row, targetColumn).SetParagraphs(paragraphTexts), source.Slides,
+                                    pendingInternalLinks, effective, textCaseCulture, ref paragraphs, ref textRuns, ref hyperlinks,
+                                    ref externalHyperlinks, ref unsupportedHyperlinks, ref unsupportedHyperlinkBehaviors, ref approximatedRuns,
+                                    ref skippedBasicFormatting, ref unsupportedWritingModes,
+                                    ref approximatedParagraphAlignments, ref unsupportedMeasurements,
+                                    ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
+                                if (cell.RowSpan > 1 || cell.ColumnSpan > 1)
+                                    merges.Add((row, column, cell.RowSpan, cell.ColumnSpan));
+                            }
+                            column++;
                         }
                     }
                     foreach (var merge in merges) converted.MergeCells(merge.Row, merge.Column,
@@ -324,6 +484,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                         unsupportedShapes++;
                         continue;
                     }
+                    if (x1 > x2 || y1 > y2) transformedShapes++;
                     PowerPointAutoShape converted = targetSlide.AddLinePoints(x1, y1, x2, y2, line.Name);
                     unsupportedMeasurements += CopyShapeAppearance(line, converted, effective);
                     basicShapes++;
@@ -334,7 +495,10 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                 if (!string.IsNullOrWhiteSpace(shape.Transform)) transformedShapes++;
             }
 
-            if (sourceSlide.SpeakerNotes != null) noteContainers++;
+            if (sourceSlide.SpeakerNotes != null) {
+                noteContainers++;
+                if (HasUnmappedOdpNoteContent(source, sourceSlide)) unsupportedNoteContent++;
+            }
             if (effective.IncludeSpeakerNotes && sourceSlide.SpeakerNotes != null) {
                 IReadOnlyList<OdpParagraph> noteParagraphs = sourceSlide.SpeakerNotes.Paragraphs;
                 if (noteParagraphs.Any(paragraph => paragraph.Text.Length > 0)) {
@@ -365,6 +529,9 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         AddConverted(report, "tables", tables);
         AddConverted(report, "basic-shapes", basicShapes);
         AddConverted(report, "speaker-notes", notes);
+        AddConverted(report, "placeholder-roles", mappedPlaceholderRoles);
+        AddUnsupported(report, "placeholder-roles", unsupportedPlaceholderRoles,
+            "This ODP presentation class has no matching PowerPoint shape placeholder role.");
         if (transitions > 0) report.Add("slide-transitions", OdfConversionMappingStatus.Approximated, transitions,
             "Common ODF transition styles are mapped to PowerPoint transition families.");
         if (listParagraphs > 0) report.Add("text-lists", OdfConversionMappingStatus.Approximated, listParagraphs,
@@ -391,15 +558,67 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         if (skippedNotes > 0) report.Add("speaker-notes", OdfConversionMappingStatus.Skipped, skippedNotes,
             "Speaker notes were omitted because IncludeSpeakerNotes is disabled.");
         AddUnsupported(report, "slide-transitions", unsupportedTransitions, "The ODF transition family is not supported by the PowerPoint adapter.");
+        AddUnsupported(report, "speaker-notes", unsupportedNoteContent,
+            "ODP speaker-note drawings, frame geometry and style, images, and tables outside plain text paragraphs were omitted.");
         AddUnsupported(report, "images", unsupportedPictures, "Images disabled by options or using an unsupported PowerPoint image format were skipped.");
-        AddUnsupported(report, "shapes", unsupportedShapes, "Groups and unsupported ODF drawing elements are not translated.");
+        AddUnsupported(report, "shapes", unsupportedShapes, "Groups, explicit ODF z-order, and unsupported drawing elements are not translated.");
+        AddUnsupported(report, "shapes", unsupportedRawDrawingShapes,
+            "Unsupported native ODF drawing elements were omitted before typed shape conversion.");
+        AddUnsupported(report, "slide-backgrounds", unsupportedSlideBackgrounds,
+            "ODP slide image, gradient, transparency, hidden master background, or unsupported drawing-page background was omitted.");
+        AddUnsupported(report, "shape-appearance", unsupportedShapeAppearance,
+            "ODP graphic fill, stroke, transparency, dash, or effect styling outside solid colors was omitted.");
+        AddUnsupported(report, "shape-appearance", unsupportedImageCrop,
+            "ODP image crop outside the PowerPoint representable range was clamped or omitted.");
+        AddUnsupported(report, "text-box-chains", CountUnmappedOdpTextBoxChains(source),
+            "Linked ODP text boxes were converted as independent boxes; text flow between frames was not retained.");
+        AddUnsupported(report, "text-box-layout", CountUnmappedOdpTextBoxLayout(source),
+            "Authored ODP text-box sizing and layout attributes were not transferred to PowerPoint.");
+        AddUnsupported(report, "slide-headers-footers", CountUnmappedOdpHeaderFooterDeclarations(source),
+            "ODP slide header, footer, and date-time declarations or their slide references were not transferred to PowerPoint.");
+        AddUnsupported(report, "shape-text", unsupportedBasicShapeText,
+            "Text inside ODP rectangle, ellipse, and line shapes was omitted because basic PowerPoint auto-shapes have no editable text mapping in this adapter.");
+        AddUnsupported(report, "shape-accessibility", unsupportedShapeAccessibility,
+            "ODP shape title and description metadata were not transferred to PowerPoint.");
+        AddUnsupported(report, "table-appearance", unsupportedTableAppearance,
+            "ODP table, row, column, or cell styles and grouped table rows were not translated.");
+        AddUnsupported(report, "table-visibility", unsupportedTableVisibility,
+            "Collapsed or filtered ODP table rows and columns became visible in PowerPoint.");
+        AddUnsupported(report, "text-lists", source.Slides.Sum(slide => slide.Shapes.OfType<OdpTable>()
+                .Count(HasUnmappedOdpTableLists)),
+            "Nested ODP lists in table cells were omitted from PowerPoint table text.");
+        AddUnsupported(report, "table-protection", CountUnmappedOdpTableProtection(source),
+            "Protected ODP tables or cells became editable in PowerPoint.");
+        AddUnsupported(report, "shape-layers", CountUnmappedOdpShapeLayers(source),
+            "ODP drawing-layer visibility, print, or editing behavior was not transferred to PowerPoint.");
+        AddUnsupported(report, "navigation-order", CountUnmappedOdpNavigationOrder(source),
+            "ODP authored keyboard navigation order was not transferred to PowerPoint.");
+        AddUnsupported(report, "embedded-fonts", unsupportedEmbeddedFonts,
+            "Embedded ODF font faces were not transferred to PowerPoint.");
+        AddUnsupported(report, "paragraph-layout", unsupportedOdpTextLayout,
+            "ODP paragraph margins, indent, spacing, tab stops, and character spacing outside the mapped subset were not transferred to PowerPoint.");
+        AddUnsupported(report, "text-effects", unsupportedOdpTextEffects,
+            "ODP text effects and properties outside the mapped formatting subset were not transferred to PowerPoint.");
+        AddUnsupported(report, "text-headings", CountUnmappedOdpHeadings(source),
+            "ODP heading outline levels were flattened to ordinary PowerPoint paragraphs.");
+        AddUnsupported(report, "table-values", source.Slides.Sum(slide => slide.Shapes.OfType<OdpTable>()
+                .Count(HasUnmappedOdpTableValues)),
+            "Typed ODP table-cell values were not transferred to PowerPoint.");
         AddUnsupported(report, "shape-transforms", transformedShapes, "Raw ODF transform expressions are not translated.");
         AddUnsupported(report, "relative-measurements", unsupportedMeasurements,
             "Relative or unsupported ODF text measurements could not be projected to fixed PowerPoint point sizes and were omitted.");
-        if (source.MasterPages.Count > 0 || source.Layouts.Count > 0) report.Add("masters-layouts", OdfConversionMappingStatus.Approximated,
-            source.MasterPages.Count + source.Layouts.Count, "Content is placed on PowerPoint's default master and layout.");
+        int approximatedOdpMasterLayouts = CountUnmappedOdpMasterLayouts(source);
+        if (approximatedOdpMasterLayouts > 0) report.Add("masters-layouts", OdfConversionMappingStatus.Approximated,
+            approximatedOdpMasterLayouts,
+            "Effective solid backgrounds and common placeholder roles are retained, but distinct ODP masters, layouts, drawing content, and placeholder geometry are not reconstructed.");
+        AddUnsupported(report, "handout-master", CountUnmappedOdpHandoutMasters(source),
+            "ODP handout master layout and drawing content were not transferred to PowerPoint.");
         AddUnmappedOdfFindings(source.InspectFeatures(), report, externalHyperlinks, noteContainers,
             source.MasterPages.Count, transitions + unsupportedTransitions);
+        AddUnsupported(report, "custom-shows", CountUnmappedOdpCustomShows(source),
+            "ODP named custom slide shows were not transferred to PowerPoint.");
+        AddUnsupported(report, "slide-show-settings", CountUnmappedOdpSlideShowSettings(source),
+            "ODP slide-show playback settings were not transferred to PowerPoint.");
         return new OdfConversionResult<PowerPointPresentation>(target, report).ApplyPolicy(effective.LossPolicy);
     }
 
@@ -409,17 +628,17 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         out int zeroBasedIndex) {
         zeroBasedIndex = -1;
         if (!OdfUriReference.TryDecodeFragment(href, out string fragment)) return false;
+        for (int index = 0; index < slides.Count; index++) {
+            if (!string.Equals(slides[index].Name, fragment, StringComparison.Ordinal)) continue;
+            zeroBasedIndex = index;
+            return true;
+        }
         const string prefix = "slide-";
         if (fragment.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
             && int.TryParse(fragment.Substring(prefix.Length), System.Globalization.NumberStyles.None,
                 System.Globalization.CultureInfo.InvariantCulture, out int oneBased)
             && oneBased >= 1 && oneBased <= slides.Count) {
             zeroBasedIndex = oneBased - 1;
-            return true;
-        }
-        for (int index = 0; index < slides.Count; index++) {
-            if (!string.Equals(slides[index].Name, fragment, StringComparison.Ordinal)) continue;
-            zeroBasedIndex = index;
             return true;
         }
         return false;
@@ -593,8 +812,11 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
     private static void MapBackground(PowerPointSlide source, OdpSlide target, ref int converted, ref int unsupported) {
         PowerPointSlideBackground background = source.GetBackground();
         if (background.Kind == PowerPointSlideBackgroundKind.SolidColor && !string.IsNullOrWhiteSpace(background.Color)) {
-            target.BackgroundColor = ParseColor(background.Color);
-            converted++;
+            if (background.Color!.Trim().TrimStart('#').Length == 8) unsupported++;
+            else {
+                target.BackgroundColor = ParseColor(background.Color);
+                converted++;
+            }
         } else if (background.Kind != PowerPointSlideBackgroundKind.None) unsupported++;
     }
 
@@ -651,11 +873,23 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         if (!source.Bounds.Width.TryToPoints(out double width) || !source.Bounds.Height.TryToPoints(out double height)
             || !crop.Left.TryToPoints(out double left) || !crop.Top.TryToPoints(out double top)
             || !crop.Right.TryToPoints(out double right) || !crop.Bottom.TryToPoints(out double bottom)) return 1;
-        width = Math.Max(0.01D, width);
-        height = Math.Max(0.01D, height);
-        target.Crop(ClampPercent(left / width * 100D), ClampPercent(top / height * 100D),
-            ClampPercent(right / width * 100D), ClampPercent(bottom / height * 100D));
-        return 0;
+        if (width <= 0D || height <= 0D) return 1;
+        double leftPercent = left / width * 100D;
+        double topPercent = top / height * 100D;
+        double rightPercent = right / width * 100D;
+        double bottomPercent = bottom / height * 100D;
+        bool lossy = leftPercent < 0D || topPercent < 0D || rightPercent < 0D || bottomPercent < 0D
+            || leftPercent > 100D || topPercent > 100D || rightPercent > 100D || bottomPercent > 100D
+            || leftPercent + rightPercent >= 100D || topPercent + bottomPercent >= 100D;
+        double mappedLeft = ClampPercent(leftPercent);
+        double mappedTop = ClampPercent(topPercent);
+        double mappedRight = ClampPercent(rightPercent);
+        double mappedBottom = ClampPercent(bottomPercent);
+        // PowerPoint stores thousandths of a percent. Do not write a crop that leaves no visible image after rounding.
+        if (Math.Round(mappedLeft * 1000D) + Math.Round(mappedRight * 1000D) >= 100000D
+            || Math.Round(mappedTop * 1000D) + Math.Round(mappedBottom * 1000D) >= 100000D) return 1;
+        target.Crop(mappedLeft, mappedTop, mappedRight, mappedBottom);
+        return lossy ? 1 : 0;
     }
 
     private static double ClampPercent(double value) => Math.Max(0D, Math.Min(100D, value));
@@ -716,6 +950,18 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
     private static void AddAdvancedPowerPointFindings(PowerPointFeatureReport source, OdfConversionReport target) {
         foreach (PowerPointFeatureFinding finding in source.PreservedFeatures.Concat(source.UnsupportedFeatures).Where(item => item.Count > 0)) {
             target.Add("source-" + Slug(finding.Name), OdfConversionMappingStatus.Unsupported, finding.Count, finding.Note);
+        }
+        // Editability in the PowerPoint package is not evidence that this
+        // converter has an ODP representation for the same feature.
+        var droppedEditableFeatures = new HashSet<string>(StringComparer.Ordinal) {
+            "Custom shows", "Classic animations", "Typed timeline actions",
+            "Comments", "VBA macros", "Transition and action sounds",
+            "Embedded OLE objects"
+        };
+        foreach (PowerPointFeatureFinding finding in source.EditableFeatures.Where(item =>
+            item.Count > 0 && droppedEditableFeatures.Contains(item.Name))) {
+            target.Add("source-" + Slug(finding.Name), OdfConversionMappingStatus.Unsupported,
+                finding.Count, "This editable PowerPoint feature is not transferred to ODP.");
         }
     }
 

@@ -93,8 +93,11 @@ public class OpenDocumentSchemaArtifactTests {
             {
                 OdpPresentation presentation = OdpPresentation.Create();
                 OdpSlide slide = presentation.AddSlide("Schema proof");
-                OdpParagraph presentationText = slide.AddTextBox(
-                    OdfRect.FromCentimeters(1, 1, 12, 2), null).AddParagraph();
+                presentation.MasterPages[0].BackgroundColor = OdfColor.Parse("#F8FBFF");
+                presentation.Layouts[0].AddPlaceholder("title", OdfRect.FromCentimeters(1, 1, 12, 2));
+                OdpTextBox title = slide.AddTextBox(OdfRect.FromCentimeters(1, 1, 12, 2));
+                title.PresentationClass = "title";
+                OdpParagraph presentationText = title.AddParagraph();
                 presentationText.AddText("Native ODP ");
                 OdpRun presentationRun = presentationText.AddRun("with formatting");
                 presentationRun.Bold = true;
