@@ -5,6 +5,7 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
         private sealed class NativeSpacingCollapseFlow : INativePdfFlow {
+            public bool SupportsPositionedTables => _inner.SupportsPositionedTables;
             private readonly INativePdfFlow _inner;
             private double? _pendingSpacingAfter;
 

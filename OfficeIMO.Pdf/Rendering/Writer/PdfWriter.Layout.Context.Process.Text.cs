@@ -135,9 +135,71 @@ internal static partial class PdfWriter {
                 }
             }
 
+            List<double>? floatingLineOffsets = null;
+            List<double>? floatingLineWidths = null;
+            List<double>? floatingLineGaps = null;
+            HashSet<int>? floatingPageStarts = null;
+            var originalLines = lines;
+            var originalLineHeights = lineHeights;
+            void RestoreUnobstructedWrapping() {
+                lines = originalLines; lineHeights = originalLineHeights;
+                floatingLineOffsets = null; floatingLineWidths = null; floatingLineGaps = null; floatingPageStarts = null;
+            }
+            if (HasFloatingTables) {
+                floatingLineOffsets = new(); floatingLineWidths = new(); floatingLineGaps = new();
+                floatingPageStarts = new();
+                double simulatedTop = y - (y < frameStart - 0.001 ? spacingBefore : 0);
+                double previousHeight = 0;
+                bool onOriginalPage = true;
+                int layoutLineIndex = -1;
+                double lineBaseTop = simulatedTop;
+                bool lineBaseOriginalPage = true;
+                var wrapped = WrapRichRunsCoreWithFirstLineOrigin(rpb.Runs, textFrame.Width, size,
+                    ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth,
+                    textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts,
+                    paragraphStyle?.TabStops.ToArray(), (index, completedHeight, requiredHeight, minimumWidth) => {
+                        if (index != layoutLineIndex) {
+                            simulatedTop -= completedHeight - previousHeight;
+                            previousHeight = completedHeight;
+                            layoutLineIndex = index;
+                            lineBaseTop = simulatedTop;
+                            lineBaseOriginalPage = onOriginalPage;
+                        }
+                        simulatedTop = lineBaseTop;
+                        onOriginalPage = lineBaseOriginalPage;
+                        floatingPageStarts.Remove(index);
+                        if (simulatedTop - requiredHeight < currentOpts.MarginBottom) { simulatedTop = frameStart; onOriginalPage = false; floatingPageStarts.Add(index); }
+                        double left = index == 0 ? textFrame.FirstLineX : textFrame.X;
+                        double availableWidth = index == 0 ? textFrame.FirstLineWidth : textFrame.Width;
+                        var frame = onOriginalPage ? GetFloatingTextFrame(left, availableWidth, simulatedTop, requiredHeight, minimumWidth) : (X: left, Width: availableWidth, Gap: 0D);
+                        if (simulatedTop - frame.Gap - requiredHeight < currentOpts.MarginBottom) {
+                            frame = (left, availableWidth, 0D);
+                            simulatedTop = frameStart;
+                            onOriginalPage = false;
+                            floatingPageStarts.Add(index);
+                        }
+                        if (floatingLineOffsets.Count <= index) {
+                            floatingLineOffsets.Add(0); floatingLineWidths.Add(0); floatingLineGaps.Add(0);
+                        }
+                        floatingLineOffsets[index] = frame.X - textFrame.X;
+                        floatingLineWidths[index] = frame.Width;
+                        floatingLineGaps[index] = frame.Gap;
+                        return (frame.Width, frame.X - textFrame.X, frame.Gap);
+                    });
+                lines = wrapped.Lines; lineHeights = wrapped.LineHeights;
+                double actualHeight = (y < frameStart - 0.001 ? spacingBefore : 0) + lineHeights.Sum();
+                double nextHeight = paragraphStyle?.KeepWithNext == true && nextBlock != null
+                    ? MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, size, actualHeight) : 0;
+                bool mustMove = paragraphStyle?.KeepTogether == true && actualHeight > y - currentOpts.MarginBottom + 0.001;
+                mustMove |= nextHeight > 0 && actualHeight + nextHeight > y - currentOpts.MarginBottom + 0.001 &&
+                    originalLineHeights.Sum() + nextHeight <= frameStart - currentOpts.MarginBottom + 0.001;
+                if (mustMove) { NewPage(); RestoreUnobstructedWrapping(); }
+            }
+
             int lineIndex = 0;
             bool firstSegment = true;
             while (lineIndex < lines.Count) {
+                if (floatingPageStarts?.Remove(lineIndex) == true && y < frameStart - 0.001) NewPage();
                 double minimumLineHeight = lineHeights[lineIndex];
                 if (minimumLineHeight > frameStart - currentOpts.MarginBottom)
                     throw new ArgumentException("Paragraph line height exceeds the available page content height.");
@@ -164,6 +226,7 @@ internal static partial class PdfWriter {
                 int take = 0;
                 double heightSum = 0;
                 for (int k = lineIndex; k < lines.Count; k++) {
+                    if (k > lineIndex && floatingPageStarts?.Contains(k) == true) break;
                     double lineHeight = lineHeights[k];
                     if (heightSum + lineHeight > roomForText) {
                         break;
@@ -175,6 +238,7 @@ internal static partial class PdfWriter {
 
                 if (TryApplyWidowControl(paragraphStyle, lines.Count, lineIndex, ref take, ref heightSum, lineHeights, y < frameStart - 0.001)) {
                     NewPage();
+                    if (lineIndex == 0) RestoreUnobstructedWrapping();
                     firstSegment = false;
                     continue;
                 }
@@ -202,7 +266,8 @@ internal static partial class PdfWriter {
                 var paragraphFont = ChooseNormal(currentOpts.DefaultFont);
                 int? markedContentId = RegisterTextStructureElement("P");
                 MarkRichFonts(rpb.Runs);
-                WriteRichParagraph(sb, rpb, sliceLines, sliceHeights, currentOpts, FirstTextBaselineFromTop(paragraphFont, size, y), size, leading, currentPage!.Annotations, textFrame.X, textFrame.Width, sliceStartsAtFirstLine ? textFrame.FirstLineX : null, sliceStartsAtFirstLine ? textFrame.FirstLineWidth : null, "P", markedContentId, currentPage);
+                WriteRichParagraph(sb, rpb, sliceLines, sliceHeights, currentOpts, FirstTextBaselineFromTop(paragraphFont, size, y), size, leading, currentPage!.Annotations, textFrame.X, textFrame.Width, sliceStartsAtFirstLine ? textFrame.FirstLineX : null, sliceStartsAtFirstLine ? textFrame.FirstLineWidth : null, "P", markedContentId, currentPage,
+                    lineXOffsets: floatingLineOffsets?.GetRange(lineIndex, take), lineWidths: floatingLineWidths?.GetRange(lineIndex, take), lineTopGaps: floatingLineGaps?.GetRange(lineIndex, take));
                 y -= heightSum;
                 lineIndex += take;
                 firstSegment = false;

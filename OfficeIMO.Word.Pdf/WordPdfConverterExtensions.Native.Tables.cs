@@ -133,14 +133,16 @@ namespace OfficeIMO.Word.Pdf {
                 tableStyleDefaults,
                 layout,
                 nativeFontMap);
-            if (table._tableProperties?.TablePositionProperties != null) {
+            if (table._tableProperties?.TablePositionProperties is { } tablePosition) {
                 style.ConsumesVerticalFlow = false;
-                if (options != null) {
+                if (!pdf.SupportsPositionedTables && options != null) {
                     AddNativeExportWarning(options,
                         "NativePositionedTableWrapApproximation",
                         "table",
-                        "Positioned table is drawn without consuming vertical flow; exact text wrapping and vertical anchor offsets are approximated.");
+                        "Positioned table wrapping in a multi-column section is approximated.");
                 }
+                if (pdf.SupportsPositionedTables) style.Position = CreateNativeTablePosition(tablePosition,
+                    table._tableProperties?.GetFirstChild<W.TableOverlap>()?.Val?.Value != W.TableOverlapValues.Never);
             }
             if (cellFills.Count > 0) {
                 if (style.CellFills == null) {

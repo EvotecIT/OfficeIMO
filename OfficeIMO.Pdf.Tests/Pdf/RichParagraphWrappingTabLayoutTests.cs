@@ -107,7 +107,9 @@ namespace OfficeIMO.Tests.Pdf {
                 24D,
                 36D,
                 null,
-                new[] { new PdfTabStop(90) }
+                new[] { new PdfTabStop(90) },
+                null,
+                null
             })!;
 
             var line = Assert.Single(ExtractLines(result));
