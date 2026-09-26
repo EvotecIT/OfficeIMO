@@ -20,8 +20,8 @@ internal static partial class PdfReviewSemanticComparer {
         var changes = new List<PdfReviewChange>();
         ValidateImagePlacementCount(expected, options, cancellationToken);
         ValidateImagePlacementCount(actual, options, cancellationToken);
-        bool expectedScanned = IsScan(expected, cancellationToken);
-        bool actualScanned = IsScan(actual, cancellationToken);
+        bool expectedScanned = IsScan(expected, visual, options, cancellationToken);
+        bool actualScanned = IsScan(actual, visual, options, cancellationToken);
         bool scanned = expectedScanned || actualScanned;
         CompareText(expected, actual, visual, options, changes, cancellationToken);
         if (visual != null &&
@@ -32,7 +32,8 @@ internal static partial class PdfReviewSemanticComparer {
         }
         if (scanned) {
             if (visual is { IsMatch: false } || expectedScanned != actualScanned ||
-                usesIgnoredRegions && HasDifferentUnignoredScanImages(expected, actual, visual, options, cancellationToken)) {
+                HasDifferentUnignoredScanImages(expected, actual, visual, options,
+                    comparePayload: usesIgnoredRegions, cancellationToken: cancellationToken)) {
                 changes.Add(new PdfReviewChange(PdfReviewChangeKind.ScannedPageUncertain, expectedPage, actualPage, null, null));
             }
             return OrderChanges(changes);
@@ -85,8 +86,8 @@ internal static partial class PdfReviewSemanticComparer {
 
     private static void CompareImages(PdfLogicalPage expected, PdfLogicalPage actual, PdfVisualPageComparison? visual,
         PdfReviewComparisonOptions options, List<PdfReviewChange> changes, CancellationToken cancellationToken) {
-        ImageFeature[] before = GetImages(expected, visual, options, cancellationToken);
-        ImageFeature[] after = GetImages(actual, visual, options, cancellationToken);
+        ImageFeature[] before = GetImages(expected, visual, options, includePayloadHash: true, cancellationToken: cancellationToken);
+        ImageFeature[] after = GetImages(actual, visual, options, includePayloadHash: true, cancellationToken: cancellationToken);
         bool[] usedBefore = new bool[before.Length];
         bool[] usedAfter = new bool[after.Length];
         MatchIdentical(before, after, static feature => feature.Hash, usedBefore, usedAfter,
@@ -191,7 +192,7 @@ internal static partial class PdfReviewSemanticComparer {
     }
 
     private static ImageFeature[] GetImages(PdfLogicalPage page, PdfVisualPageComparison? visual,
-        PdfReviewComparisonOptions options, CancellationToken cancellationToken) {
+        PdfReviewComparisonOptions options, bool includePayloadHash, CancellationToken cancellationToken) {
         int count = ValidateImagePlacementCount(page, options, cancellationToken);
         var output = new List<ImageFeature>(count);
         foreach (PdfLogicalImage image in page.Images) {
@@ -200,7 +201,7 @@ internal static partial class PdfReviewSemanticComparer {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!TryVisibleImageBounds(page, placement, requireExactClip: true, out PdfLogicalVisualBounds bounds)) continue;
                 if (IsIgnored(bounds, page, visual, options.Visual)) continue;
-                hash ??= Hash(image.SourceImage.EncodedBytes, cancellationToken);
+                hash ??= includePayloadHash ? Hash(image.SourceImage.EncodedBytes, cancellationToken) : string.Empty;
                 output.Add(new ImageFeature(hash, bounds, VisualImageTransform(page, placement)));
             }
         }
@@ -220,7 +221,8 @@ internal static partial class PdfReviewSemanticComparer {
         return count;
     }
 
-    private static bool IsScan(PdfLogicalPage page, CancellationToken cancellationToken) {
+    private static bool IsScan(PdfLogicalPage page, PdfVisualPageComparison? visual,
+        PdfReviewComparisonOptions options, CancellationToken cancellationToken) {
         (double width, double height) = page.GetVisualPageSize();
         double area = width * height;
         if (area <= 0D) return false;
@@ -235,16 +237,18 @@ internal static partial class PdfReviewSemanticComparer {
                 bool quarterTurn = Math.Abs(placement.A) <= 0.0001D && Math.Abs(placement.D) <= 0.0001D &&
                     Math.Abs(placement.B) > 0.0001D && Math.Abs(placement.C) > 0.0001D;
                 if (!axisAligned && !quarterTurn) continue;
-                if (TryVisibleImageBounds(page, placement, requireExactClip: true, out PdfLogicalVisualBounds bounds)) visible.Add(bounds);
+                if (TryVisibleImageBounds(page, placement, requireExactClip: true, out PdfLogicalVisualBounds bounds) &&
+                    !IsIgnored(bounds, page, visual, options.Visual)) visible.Add(bounds);
             }
         }
         return UnionArea(visible, cancellationToken) >= area * 0.75D;
     }
 
     private static bool HasDifferentUnignoredScanImages(PdfLogicalPage expected, PdfLogicalPage actual,
-        PdfVisualPageComparison? visual, PdfReviewComparisonOptions options, CancellationToken cancellationToken) {
-        ImageFeature[] before = GetImages(expected, visual, options, cancellationToken);
-        ImageFeature[] after = GetImages(actual, visual, options, cancellationToken);
+        PdfVisualPageComparison? visual, PdfReviewComparisonOptions options, bool comparePayload,
+        CancellationToken cancellationToken) {
+        ImageFeature[] before = GetImages(expected, visual, options, includePayloadHash: comparePayload, cancellationToken: cancellationToken);
+        ImageFeature[] after = GetImages(actual, visual, options, includePayloadHash: comparePayload, cancellationToken: cancellationToken);
         if (before.Length != after.Length) return true;
         var matched = new bool[after.Length];
         for (int index = 0; index < before.Length; index++) {
@@ -252,7 +256,7 @@ internal static partial class PdfReviewSemanticComparer {
             bool found = false;
             for (int candidate = 0; candidate < after.Length; candidate++) {
                 if (matched[candidate] ||
-                    !string.Equals(before[index].Hash, after[candidate].Hash, StringComparison.Ordinal) ||
+                    comparePayload && !string.Equals(before[index].Hash, after[candidate].Hash, StringComparison.Ordinal) ||
                     BoundsDiffer(before[index].Bounds, after[candidate].Bounds) ||
                     ImageTransformDiffers(before[index], after[candidate])) continue;
                 matched[candidate] = true;

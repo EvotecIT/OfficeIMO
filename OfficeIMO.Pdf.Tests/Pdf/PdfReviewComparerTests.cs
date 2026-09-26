@@ -359,6 +359,21 @@ public sealed class PdfReviewComparerTests {
     }
 
     [Fact]
+    public void IdenticalWhiteRasterStillReportsChangedScanPlacement() {
+        byte[] white = PdfPngTestImages.CreateRgbPng(255, 255, 255);
+        var pageOptions = new PdfOptions { PageWidth = 240D, PageHeight = 180D };
+        PdfDocument expected = PdfDocument.Load(PdfDocument.Create(pageOptions)
+            .Canvas(canvas => canvas.Image(white, 0D, 0D, 240D, 180D)).ToBytes());
+        PdfDocument actual = PdfDocument.Load(PdfDocument.Create(pageOptions)
+            .Canvas(canvas => canvas.Image(white, 10D, 10D, 220D, 160D)).ToBytes());
+
+        Assert.True(expected.Proof.CompareVisual(actual).IsMatch);
+        PdfReviewPageComparison page = Assert.Single(expected.Proof.CompareReview(actual).Pages);
+
+        Assert.Contains(page.Changes, static change => change.Kind == PdfReviewChangeKind.ScannedPageUncertain);
+    }
+
+    [Fact]
     public void RemovingAnExactWhiteScanStillReportsSemanticUncertainty() {
         byte[] white = PdfPngTestImages.CreateRgbPng(255, 255, 255);
         var pageOptions = new PdfOptions { PageWidth = 240D, PageHeight = 180D };
@@ -372,6 +387,26 @@ public sealed class PdfReviewComparerTests {
 
         Assert.False(report.IsMatch);
         Assert.Contains(Assert.Single(report.Pages).Changes,
+            static change => change.Kind == PdfReviewChangeKind.ScannedPageUncertain);
+    }
+
+    [Fact]
+    public void FullyIgnoredScanDoesNotReportItsRemoval() {
+        byte[] white = PdfPngTestImages.CreateRgbPng(255, 255, 255);
+        var pageOptions = new PdfOptions { PageWidth = 400D, PageHeight = 180D };
+        PdfDocument scanned = PdfDocument.Load(PdfDocument.Create(pageOptions)
+            .Canvas(canvas => canvas.Image(white, 0D, 0D, 360D, 180D)
+                .Text("Anchor", 370D, 20D, 28D, 20D)).ToBytes());
+        PdfDocument blank = PdfDocument.Load(PdfDocument.Create(pageOptions)
+            .Canvas(canvas => canvas.Text("Anchor", 370D, 20D, 28D, 20D)).ToBytes());
+        var options = new PdfReviewComparisonOptions();
+        options.Visual.IgnoredRegions.Add(new PdfPixelRegion(0, 0, 360, 180));
+
+        PdfReviewComparisonReport report = scanned.Proof.CompareReview(blank, options);
+
+        Assert.True(report.IsMatch, "Alignment: " + string.Join(",", report.PageAlignment.Changes.Select(static change => change.Kind)) +
+            "; changes: " + string.Join(",", report.Pages.SelectMany(static page => page.Changes).Select(static change => change.Kind)));
+        Assert.DoesNotContain(report.Pages.SelectMany(static page => page.Changes),
             static change => change.Kind == PdfReviewChangeKind.ScannedPageUncertain);
     }
 
