@@ -156,6 +156,7 @@ namespace OfficeIMO.Word {
             }
         }
         internal Run? _run;
+        internal Run? _visibleRun;
 
         internal ParagraphProperties? _paragraphProperties {
             get {

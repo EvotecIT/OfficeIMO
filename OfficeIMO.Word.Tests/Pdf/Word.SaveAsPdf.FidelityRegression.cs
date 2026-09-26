@@ -411,6 +411,25 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_DoesNotRenderSimpleFieldInsideComplexInstruction() {
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfComplexInstructionNestedField.pdf");
+        using WordDocument document = WordDocument.Create();
+        WordParagraph paragraph = document.AddParagraph();
+        paragraph._paragraph.Append(
+            new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+            new SimpleField(new Run(new Text("Hidden"))) { Instruction = " PAGE " },
+            new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+            new SimpleField(new Run(new Text("Visible"))) { Instruction = " PAGE " },
+            new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+
+        document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
+
+        string pdfText = OfficeIMO.Pdf.PdfTextExtractor.ExtractAllText(pdfPath);
+        Assert.DoesNotContain("Hidden", pdfText, StringComparison.Ordinal);
+        Assert.Contains("Visible", pdfText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SaveAsPdf_PreservesSimpleFieldResultsInListAndTocHeading() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfSimpleFieldsListToc.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfSimpleFieldsListToc.pdf");

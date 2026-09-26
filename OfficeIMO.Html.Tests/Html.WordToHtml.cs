@@ -1221,6 +1221,28 @@ namespace OfficeIMO.Tests {
             Assert.Equal((short)240, roundTrip.Tables[0].StyleDetails!.CellSpacing);
         }
 
+        [Theory]
+        [InlineData(WordBorderStyle.Nil)]
+        [InlineData(WordBorderStyle.None)]
+        public void WordToHtml_SpacedBorderlessTableUsesSeparateBorderMode(WordBorderStyle hiddenBorder) {
+            using var doc = WordDocument.Create();
+            var table = doc.AddTable(1, 1);
+            table.StyleDetails!.CellSpacing = 240;
+            var cell = table.Rows[0].Cells[0];
+            cell.Paragraphs[0].Text = "Spaced";
+            cell.Borders.LeftStyle = hiddenBorder;
+            cell.Borders.RightStyle = hiddenBorder;
+            cell.Borders.TopStyle = hiddenBorder;
+            cell.Borders.BottomStyle = hiddenBorder;
+
+            string html = doc.ToHtml();
+
+            var parsed = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(html);
+            string? style = parsed.QuerySelector("table")?.GetAttribute("style");
+            Assert.Contains("border-spacing:12pt", style, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("border-collapse:separate", style, StringComparison.OrdinalIgnoreCase);
+        }
+
         [Fact]
         public void Test_WordToHtml_TableCellVerticalAlignment_RoundTrips() {
             using var doc = WordDocument.Create();

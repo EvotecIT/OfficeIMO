@@ -62,7 +62,15 @@ namespace OfficeIMO.Word {
         public string Text {
             get {
                 if (_run != null) {
-                    return ReadVisibleText(_run);
+                    return ReadVisibleText(_visibleRun ?? _run);
+                }
+
+                if (_stdRun != null) {
+                    if (_stdRun.SdtProperties?.Elements<W14.SdtContentCheckBox>().Any() == true) {
+                        return string.Empty;
+                    }
+
+                    return ReadVisibleText(_stdRun);
                 }
 
                 if (_hyperlink != null) {
@@ -75,14 +83,6 @@ namespace OfficeIMO.Word {
 
                 if (_runs != null) {
                     return ReadComplexFieldResultText(_runs);
-                }
-
-                if (_stdRun != null) {
-                    if (_stdRun.SdtProperties?.Elements<W14.SdtContentCheckBox>().Any() == true) {
-                        return string.Empty;
-                    }
-
-                    return ReadVisibleText(_stdRun);
                 }
 
                 if (_officeMath != null) {
@@ -109,6 +109,7 @@ namespace OfficeIMO.Word {
                 Run run = ResolveTextSetterRun(out OpenXmlElement textContainer, out IReadOnlyList<Run>? contentRuns);
                 if (contentRuns == null && ReferenceEquals(textContainer, run) &&
                     TrySetSimpleRunText(run, value ?? string.Empty)) {
+                    _visibleRun = null;
                     return;
                 }
 
@@ -240,6 +241,7 @@ namespace OfficeIMO.Word {
                     run.Append(preservedBreaks[preservedIndex].Break);
                     preservedIndex++;
                 }
+                _visibleRun = null;
             }
         }
 
@@ -277,6 +279,12 @@ namespace OfficeIMO.Word {
                 return _run;
             }
 
+            if (_stdRun != null) {
+                SdtContentRun content = _stdRun.SdtContentRun ??= new SdtContentRun();
+                textContainer = content;
+                return EnsureTextRun(content);
+            }
+
             if (_hyperlink != null) {
                 textContainer = _hyperlink;
                 return EnsureTextRun(_hyperlink);
@@ -291,12 +299,6 @@ namespace OfficeIMO.Word {
                 contentRuns = GetComplexFieldResultRuns(_runs);
                 textContainer = contentRuns.Count > 0 ? contentRuns[0] : _runs[0];
                 return contentRuns.Count > 0 ? contentRuns[0] : _runs[0];
-            }
-
-            if (_stdRun != null) {
-                SdtContentRun content = _stdRun.SdtContentRun ??= new SdtContentRun();
-                textContainer = content;
-                return EnsureTextRun(content);
             }
 
             textContainer = VerifyRun();

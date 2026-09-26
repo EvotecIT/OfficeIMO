@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void WordToMarkdown_OnlyReportsAuthoredCellBorders() {
             using var document = WordDocument.Create();
-            var cell = document.AddTable(1, 1).Rows[0].Cells[0];
+            var cell = document.AddTable(1, 1, WordTableStyle.TableNormal).Rows[0].Cells[0];
             cell.Paragraphs[0].AddText("Value");
             cell._tableCell.TableCellProperties!.TableCellBorders = new TableCellBorders();
 
@@ -52,8 +52,48 @@ namespace OfficeIMO.Tests {
                 new TopBorder { Val = BorderValues.None });
             WordToMarkdownResult authoredBorder = document.ToMarkdownDocumentResult();
             Assert.Contains(authoredBorder.Report.Diagnostics, diagnostic =>
-                diagnostic.Message.Contains("cell borders", StringComparison.Ordinal));
+                diagnostic.Message.Contains("table borders", StringComparison.Ordinal));
             Assert.True(authoredBorder.Report.HasLoss);
+        }
+
+        [Fact]
+        public void WordToMarkdown_ReportsMergedCellsAndAuthoredBordersSeparately() {
+            using var document = WordDocument.Create();
+            var cell = document.AddTable(1, 2, WordTableStyle.TableNormal).Rows[0].Cells[0];
+            cell.Paragraphs[0].AddText("Combined");
+            cell.MergeHorizontally(1);
+            cell._tableCell.TableCellProperties!.TableCellBorders = new TableCellBorders(
+                new TopBorder { Val = BorderValues.None });
+
+            WordToMarkdownResult result = document.ToMarkdownDocumentResult();
+
+            Assert.Contains(result.Report.Diagnostics, diagnostic =>
+                diagnostic.Message.Contains("cell merges", StringComparison.Ordinal));
+            Assert.Contains(result.Report.Diagnostics, diagnostic =>
+                diagnostic.Message.Contains("table borders", StringComparison.Ordinal));
+        }
+
+        [Fact]
+        public void WordToMarkdown_ReportsDirectAndInheritedTableBorders() {
+            using var document = WordDocument.Create();
+            WordTable direct = document.AddTable(1, 1, WordTableStyle.TableNormal);
+            direct.Rows[0].Cells[0].Paragraphs[0].Text = "Direct";
+            direct._tableProperties!.TableBorders = new TableBorders(
+                new TopBorder { Val = BorderValues.Single });
+            WordToMarkdownResult directResult = document.ToMarkdownDocumentResult();
+            Assert.Contains(directResult.Report.Diagnostics, diagnostic =>
+                diagnostic.Message.Contains("table borders", StringComparison.Ordinal));
+
+            direct._tableProperties.TableBorders = null;
+            direct._tableProperties.TableStyle!.Val = "InheritedGrid";
+            document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(
+                new Style(new BasedOn { Val = "TableGrid" }) {
+                    Type = StyleValues.Table,
+                    StyleId = "InheritedGrid"
+                });
+            WordToMarkdownResult inheritedResult = document.ToMarkdownDocumentResult();
+            Assert.Contains(inheritedResult.Report.Diagnostics, diagnostic =>
+                diagnostic.Message.Contains("table borders", StringComparison.Ordinal));
         }
 
         [Fact]

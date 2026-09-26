@@ -841,7 +841,9 @@ namespace OfficeIMO.Word.Pdf {
         private static bool HasNativeRenderableTextBoxText(IEnumerable<WordParagraph> paragraphs) {
             foreach (WordParagraph paragraph in paragraphs) {
                 List<WordParagraph> runs = GetNativeRuns(paragraph);
-                if (runs.Count == 0 && !IsNativeHiddenTextRun(paragraph) && !string.IsNullOrWhiteSpace(paragraph.Text)) {
+                if (runs.Count == 0 && !IsNativeHiddenTextRun(paragraph) &&
+                    WordComplexFieldRunVisibility.ForParagraph(paragraph._paragraph).IsVisible &&
+                    !string.IsNullOrWhiteSpace(paragraph.Text)) {
                     return true;
                 }
 
@@ -938,6 +940,7 @@ namespace OfficeIMO.Word.Pdf {
         private static bool ShouldRenderNativeDirectText(WordParagraph paragraph, IReadOnlyList<WordParagraph> runs, string content) =>
             runs.Count == 0 &&
             !string.IsNullOrEmpty(content) &&
+            WordComplexFieldRunVisibility.ForParagraph(paragraph._paragraph).IsVisible &&
             !IsNativeHiddenTextRun(paragraph);
 
         private static string NormalizeNativeDirectText(string? text) {

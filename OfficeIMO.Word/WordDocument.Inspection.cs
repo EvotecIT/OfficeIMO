@@ -233,7 +233,8 @@ namespace OfficeIMO.Word {
             // Walk runs and simple fields together so a field's insertion index uses the
             // same run sequence that is stored in the inspection snapshot.
             int runIndex = 0;
-            Stack<bool> complexFieldResults = expansionContext.ComplexFieldResultsFor(paragraph._paragraph);
+            var fieldVisibility = new WordComplexFieldRunVisibility(
+                expansionContext.ComplexFieldResultsFor(paragraph._paragraph).Reverse());
             foreach (OpenXmlElement item in EnumerateInspectionInlineItems(paragraph._paragraph)) {
                 if (item is SimpleField field) {
                     Hyperlink? containingLink = field.Ancestors<Hyperlink>().FirstOrDefault();
@@ -243,8 +244,13 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                var run = item is Run runElement
-                    ? new WordParagraph(this, paragraph._paragraph, runElement)
+                Run? visibleRun = item is Run sourceRun ? fieldVisibility.GetVisibleRun(sourceRun) : null;
+                if (item is Run && visibleRun == null) continue;
+                if (item is SdtRun && !fieldVisibility.IsVisible) continue;
+                var run = visibleRun != null
+                    ? new WordParagraph(this, paragraph._paragraph, (Run)item) {
+                        _visibleRun = ReferenceEquals(visibleRun, item) ? null : visibleRun
+                    }
                     : new WordParagraph(this, paragraph._paragraph, (SdtRun)item);
                 // Read the content control itself before attaching hyperlink metadata;
                 // WordParagraph.Text otherwise reads the entire enclosing hyperlink.
@@ -286,21 +292,7 @@ namespace OfficeIMO.Word {
                     InlineImage = images.FirstOrDefault()?.Image,
                     PositionedImages = images,
                 });
-                if (item is Run visibleRun) ObserveFieldMarkers(visibleRun);
-                else foreach (Run nestedRun in item.Descendants<Run>()) ObserveFieldMarkers(nestedRun);
                 runIndex++;
-            }
-
-            void ObserveFieldMarkers(Run run) {
-                foreach (FieldChar marker in run.Elements<FieldChar>()) {
-                    if (marker.FieldCharType?.Value == FieldCharValues.Begin) complexFieldResults.Push(false);
-                    else if (marker.FieldCharType?.Value == FieldCharValues.Separate && complexFieldResults.Count > 0) {
-                        complexFieldResults.Pop();
-                        complexFieldResults.Push(true);
-                    } else if (marker.FieldCharType?.Value == FieldCharValues.End && complexFieldResults.Count > 0) {
-                        complexFieldResults.Pop();
-                    }
-                }
             }
 
             void AddInlineField(SimpleField field, int index, bool nestedInHyperlink, Hyperlink? containingLink = null) {
@@ -312,10 +304,10 @@ namespace OfficeIMO.Word {
                     ResultText = WordParagraph.ReadVisibleText(field),
                     IsLocked = field.FieldLock?.Value ?? false,
                     IsDirty = field.Dirty?.Value ?? false,
-                    HasUnsupportedContainer = nestedInHyperlink || complexFieldResults.Count > 0,
+                    HasUnsupportedContainer = nestedInHyperlink || fieldVisibility.HasOpenField,
                     HyperlinkUri = link?.Uri?.ToString(),
                     HyperlinkAnchor = link?.Anchor,
-                    IsHiddenInstructionContent = complexFieldResults.Contains(false),
+                    IsHiddenInstructionContent = !fieldVisibility.IsVisible,
                     HasFormattedResult = field.Descendants<Run>().Any(resultRun =>
                         resultRun.RunProperties?.ChildElements.Any(child => child is not NoProof) == true),
                     HasUnsupportedResultContent = field.Descendants<SimpleField>().Any() ||
@@ -342,7 +334,8 @@ namespace OfficeIMO.Word {
                 if (item is SimpleField or Run) {
                     yield return item;
                 } else if (item is SdtRun contentControl) {
-                    if (contentControl.Descendants<SimpleField>().Any()) {
+                    if (contentControl.Descendants<SimpleField>().Any() ||
+                        contentControl.Descendants<FieldChar>().Any()) {
                         foreach (OpenXmlElement nested in EnumerateInspectionInlineItems(contentControl))
                             yield return nested;
                     } else {

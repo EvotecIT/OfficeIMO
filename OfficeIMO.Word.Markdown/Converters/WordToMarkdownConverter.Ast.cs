@@ -1757,11 +1757,11 @@ namespace OfficeIMO.Word.Markdown {
                 cell.HasHorizontalMerge || cell.HasVerticalMerge));
             bool hasCellBorders = table.Rows.Any(row => row.Cells.Any(cell =>
                 cell._tableCell.TableCellProperties?.TableCellBorders?.ChildElements.Count > 0));
-            if (hasMergedCells || hasCellBorders) {
-                options.OnWarning?.Invoke(hasMergedCells
-                    ? "Word table cell merges cannot be represented by a Markdown table; cell layout was flattened."
-                    : "Word table cell borders cannot be represented by a Markdown table; border formatting was omitted.");
-            }
+            bool hasTableBorders = HasAuthoredTableBorders(table);
+            if (hasMergedCells)
+                options.OnWarning?.Invoke("Word table cell merges cannot be represented by a Markdown table; cell layout was flattened.");
+            if (hasCellBorders || hasTableBorders)
+                options.OnWarning?.Invoke("Word table borders cannot be represented by a Markdown table; border formatting was omitted.");
 
             for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
                 var row = table.Rows[rowIndex];
@@ -1792,6 +1792,27 @@ namespace OfficeIMO.Word.Markdown {
 
             markdownTable.SetStructuredCells(structuredHeaders, structuredRows, markdownTable.ComputeContentSignature());
             return markdownTable;
+        }
+
+        private static bool HasAuthoredTableBorders(WordTable table) {
+            if (table._tableProperties?.TableBorders?.ChildElements.Count > 0) return true;
+
+            Styles? styles = table.Document._wordprocessingDocument.MainDocumentPart?
+                .StyleDefinitionsPart?.Styles;
+            if (styles == null) return false;
+            string? styleId = table._tableProperties?.TableStyle?.Val?.Value
+                ?? styles.Elements<Style>().FirstOrDefault(style =>
+                    style.Type?.Value == StyleValues.Table && style.Default?.Value == true)?.StyleId?.Value;
+            var visited = new HashSet<string>(StringComparer.Ordinal);
+            while (!string.IsNullOrWhiteSpace(styleId) && visited.Add(styleId!)) {
+                Style? style = styles.Elements<Style>().FirstOrDefault(candidate =>
+                    string.Equals(candidate.StyleId?.Value, styleId, StringComparison.Ordinal));
+                if (style == null) break;
+                if (style.GetFirstChild<StyleTableProperties>()?.GetFirstChild<TableBorders>()?.ChildElements.Count > 0)
+                    return true;
+                styleId = style.BasedOn?.Val?.Value;
+            }
+            return false;
         }
 
         private OmdTableCell BuildTableCell(WordTableCell cell, WordToMarkdownOptions options) {

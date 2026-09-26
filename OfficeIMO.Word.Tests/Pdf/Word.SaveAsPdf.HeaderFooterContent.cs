@@ -15,6 +15,39 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Fact]
+    public void SaveAsPdf_HidesCrossParagraphInstructionsAndHeaderLinkFieldCode() {
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfCrossParagraphAndHeaderFieldVisibility.pdf");
+        using WordDocument document = WordDocument.Create();
+        document.AddHeadersAndFooters();
+        WordHeader header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
+        WordParagraph headerParagraph = header.AddParagraph("Header ");
+        WordParagraph linked = headerParagraph.AddHyperLink("Original", new Uri("https://example.com/"));
+        Hyperlink hyperlink = linked._hyperlink!;
+        hyperlink.RemoveAllChildren();
+        hyperlink.Append(
+            new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }, new Text("Hidden header")),
+            new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+            new Run(new Text("Visible header")),
+            new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+
+        WordParagraph start = document.AddParagraph("Start ");
+        start._paragraph.Append(new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }));
+        document.AddParagraph("Hidden body instruction");
+        WordParagraph result = document.AddParagraph("Result ");
+        result._paragraph.Append(new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+            new Run(new Text("Visible body")),
+            new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+
+        document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
+
+        string pdfText = PdfCore.PdfTextExtractor.ExtractAllText(pdfPath);
+        Assert.DoesNotContain("Hidden header", pdfText, StringComparison.Ordinal);
+        Assert.DoesNotContain("Hidden body instruction", pdfText, StringComparison.Ordinal);
+        Assert.Contains("Visible header", pdfText, StringComparison.Ordinal);
+        Assert.Contains("Visible body", pdfText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Preserves_Wide_HeaderFooter_Zones_With_Diagnostics() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWideHeaderFooterZones.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWideHeaderFooterZones.pdf");

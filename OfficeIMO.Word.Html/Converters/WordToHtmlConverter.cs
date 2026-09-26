@@ -715,6 +715,9 @@ namespace OfficeIMO.Word.Html {
                 }
 
                 Paragraph paragraph = para._paragraph;
+                if (!WordComplexFieldRunVisibility.ForParagraph(paragraph).IsVisible) {
+                    return false;
+                }
                 if (paragraph.ParagraphProperties?.HasChildren == true) {
                     return false;
                 }
@@ -915,7 +918,7 @@ namespace OfficeIMO.Word.Html {
                 if (!string.IsNullOrEmpty(tableCellSpacing)) {
                     tableStyles.Add($"border-spacing:{tableCellSpacing}");
                 }
-                if (TableHasBorder(table)) {
+                if (!string.IsNullOrEmpty(tableCellSpacing) || TableHasBorder(table)) {
                     tableStyles.Add(!string.IsNullOrEmpty(tableCellSpacing) ? "border-collapse:separate" : "border-collapse:collapse");
                 }
                 if (tableStyles.Count > 0) {

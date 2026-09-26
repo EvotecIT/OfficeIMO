@@ -847,13 +847,19 @@ namespace OfficeIMO.Word.Pdf {
 
             pageNumberStyle = null;
             if (paragraph.IsHyperLink && paragraph.Hyperlink != null && !IsNativeHiddenTextRun(paragraph)) {
-                return PrependNativeHeaderFooterListMarker(paragraph, AppendNativeHeaderFooterSupplementalText(ApplyNativeTextTransform(paragraph.Hyperlink.Text, paragraph), paragraph), listMarkers, textBoxDepth);
+                string linkedText = string.Concat(GetNativeRuns(paragraph)
+                    .Where(run => ReferenceEquals(run._hyperlink, paragraph._hyperlink) && !IsNativeHiddenTextRun(run, paragraph))
+                    .Select(run => ApplyNativeTextTransform(run.Text, run, paragraph)));
+                return PrependNativeHeaderFooterListMarker(paragraph,
+                    AppendNativeHeaderFooterSupplementalText(linkedText, paragraph), listMarkers, textBoxDepth);
             }
 
             List<WordParagraph> runs = GetNativeRuns(paragraph);
             string? text = runs.Count > 0
                 ? string.Concat(runs.Where(run => !IsNativeHiddenTextRun(run, paragraph)).Select(run => ApplyNativeTextTransform(run.Text, run, paragraph)))
-                : IsNativeHiddenTextRun(paragraph) ? string.Empty : ApplyNativeTextTransform(paragraph.Text, paragraph);
+                : IsNativeHiddenTextRun(paragraph) || paragraph._paragraph.Descendants<W.FieldChar>().Any() ||
+                    !WordComplexFieldRunVisibility.ForParagraph(paragraph._paragraph).IsVisible
+                    ? string.Empty : ApplyNativeTextTransform(paragraph.Text, paragraph);
             text = AppendNativeHeaderFooterSupplementalText(text, paragraph);
             if (!string.IsNullOrWhiteSpace(text)) {
                 return PrependNativeHeaderFooterListMarker(paragraph, text, listMarkers, textBoxDepth);

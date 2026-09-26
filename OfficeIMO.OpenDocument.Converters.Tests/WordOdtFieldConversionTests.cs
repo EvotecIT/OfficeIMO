@@ -494,6 +494,39 @@ public sealed class WordOdtFieldConversionTests {
     }
 
     [Fact]
+    public void ComplexFieldInstructionRunsAndNestedSimpleFieldStayHidden() {
+        using WordDocument source = WordDocument.Create();
+        WordParagraph paragraph = source.AddParagraph();
+        paragraph._paragraph.Append(
+            new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+            new Run(new Text("instruction")),
+            new SimpleField(new Run(new Text("hidden"))) { Instruction = " PAGE " },
+            new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+            new Run(new Text("Visible")),
+            new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+
+        Assert.Equal("Visible", Assert.Single(conversion.Value.Paragraphs).Text);
+    }
+
+    [Fact]
+    public void ComplexFieldInstructionAcrossParagraphsStaysHiddenInOdt() {
+        using WordDocument source = WordDocument.Create();
+        WordParagraph start = source.AddParagraph("Start ");
+        start._paragraph.Append(new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }));
+        source.AddParagraph("Hidden instruction");
+        WordParagraph result = source.AddParagraph("Result ");
+        result._paragraph.Append(new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+            new Run(new Text("Visible")),
+            new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        Assert.DoesNotContain(conversion.Value.Paragraphs, paragraph => paragraph.Text.Contains("Hidden instruction"));
+        Assert.Contains(conversion.Value.Paragraphs, paragraph => paragraph.Text.Contains("Visible"));
+    }
+
+    [Fact]
     public void HandledHyperlinkFieldDoesNotHideInspectedDrawingField() {
         OdtDocument source = OdtDocument.Create();
         source.AddParagraph();
