@@ -63,6 +63,8 @@ public class PdfTableStyle {
     /// that overlays the following flow; the table is still drawn at the current cursor position.
     /// </summary>
     public bool ConsumesVerticalFlow { get; set; } = true;
+    /// <summary>Optional floating placement. A positioned table reserves space for surrounding text without advancing the flow cursor.</summary>
+    public PdfTablePosition? Position { get; set; }
     /// <summary>Stroke width, in points, for table borders and cell grid lines.</summary>
     public double BorderWidth {
         get => _borderWidth;
@@ -650,6 +652,7 @@ public class PdfTableStyle {
         var clone = new PdfTableStyle {
             BorderColor = BorderColor,
             ConsumesVerticalFlow = ConsumesVerticalFlow,
+            Position = Position,
             BorderWidth = BorderWidth,
             CornerRadius = CornerRadius,
             HeaderFill = HeaderFill,

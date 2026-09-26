@@ -56,6 +56,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private interface INativePdfFlow {
+            bool SupportsPositionedTables { get; }
             PdfCore.PageSize PageSize { get; }
             void PageBreak();
             void Spacer(double height);
@@ -78,6 +79,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private sealed class NativePdfDocumentFlow : INativePdfFlow {
+            public bool SupportsPositionedTables => true;
             private readonly PdfCore.PdfDocument _pdf;
 
             public NativePdfDocumentFlow(PdfCore.PdfDocument pdf, PdfCore.PageSize pageSize) {
@@ -113,6 +115,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private sealed class NativePdfColumnFlow : INativePdfFlow {
+            public bool SupportsPositionedTables => false;
             private readonly PdfCore.PdfPageBuilder _page;
             private readonly PdfCore.PdfContentBuilder _column;
 

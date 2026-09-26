@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Fact]
-    public void SaveAsPdf_PositionedTableReportsApproximateWrapping() {
+    public void SaveAsPdf_PositionedTableReservesFollowingTextSpace() {
         using WordDocument document = WordDocument.Create();
         WordTable table = document.AddTable(1, 1);
         table.Rows[0].Cells[0].Paragraphs[0].Text = "Positioned";
@@ -27,7 +27,7 @@ public partial class Word {
 
         var result = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false });
 
-        Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativePositionedTableWrapApproximation");
+        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "NativePositionedTableWrapApproximation");
         Assert.Contains("Following text", OfficeIMO.Pdf.PdfTextExtractor.ExtractAllText(result.Value.ToBytes()));
     }
 

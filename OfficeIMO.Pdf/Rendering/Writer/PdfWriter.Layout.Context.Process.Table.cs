@@ -207,6 +207,7 @@ internal static partial class PdfWriter {
                 colPixel[0],
                 colPixel[colPixel.Length - 1]);
             double xOrigin = ResolveTableX(tb.Align, style, currentOpts.MarginLeft, contentWidth, tableWidth);
+            if (style.Position is { } horizontalPosition) xOrigin = PositionTableX(horizontalPosition, tableWidth);
 
             double maxContentHeight = GetFullPageContentHeight();
             string? captionText = string.IsNullOrWhiteSpace(style.Caption) ? null : style.Caption;
@@ -230,6 +231,7 @@ internal static partial class PdfWriter {
             }
 
             double tableContentHeight = (captionLines == null ? 0 : captionHeight + style.CaptionSpacingAfter) + GetTableRowsHeight(rowHeights, 0, rowHeights.Length, rowGapPx);
+            if (style.Position is { } verticalPosition) y = PositionTableY(verticalPosition, tableContentHeight);
             double tableSpacingBefore = y < GetCurrentFramePageStartY() - 0.001 ? style.SpacingBefore : 0D;
             if (style.KeepTogether) {
                 double keepHeight = tableSpacingBefore + tableContentHeight + style.SpacingAfter;
@@ -755,6 +757,7 @@ internal static partial class PdfWriter {
                         borderX += colPixel[borderColumn] + colGapPx;
                     }
                 }
+                if (style?.Position is { } floatingPosition) ReserveFloatingTable(floatingPosition, xOrigin, y, tableWidth, rowHeight + (wholeRowSegment ? GetTableRowGapAfter(rowIndex, tb.Rows.Count, rowGapPx) : 0));
                 y -= rowHeight;
                 if (wholeRowSegment) {
                     y -= GetTableRowGapAfter(rowIndex, tb.Rows.Count, rowGapPx);
@@ -823,7 +826,7 @@ internal static partial class PdfWriter {
             }
 
             y -= style.SpacingAfter;
-            if (restoreVerticalFlow && !style.ConsumesVerticalFlow && ReferenceEquals(currentPage, pageBeforeTable)) {
+            if (restoreVerticalFlow && (!style.ConsumesVerticalFlow || style.Position != null) && ReferenceEquals(currentPage, pageBeforeTable)) {
                 y = flowYBeforeTable;
             }
         }

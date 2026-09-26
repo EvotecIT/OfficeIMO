@@ -34,6 +34,12 @@ internal static partial class PdfWriter {
 
                 EnsurePage();
 
+                if (HasFloatingTables && (block is HeadingBlock || block is PdfListBlock || block is ImageBlock ||
+                    block is ShapeBlock || block is DrawingBlock || block is RowBlock || block is ContainerBlock ||
+                    block is TableBlock { Style.Position: null })) {
+                    AvoidFloatingBlock(MeasureKeepWithNextBlockHeight(block, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize));
+                }
+
                 if (block is SemanticBlock semantic) { RenderSemanticBlock(semantic); continue; }
                 if (block is SectionBlock section) { RenderSectionBlock(section); continue; }
                 if (block is TableOfContentsBlock tableOfContents) { RenderTableOfContentsBlock(tableOfContents); continue; }
