@@ -390,6 +390,21 @@ public sealed class WordOdtAlternateHeaderFooterTests {
     }
 
     [Fact]
+    public void LaterSectionRestartAtOneIsReportedAsLoss() {
+        using WordDocument source = WordDocument.Create();
+        source.AddParagraph("First body");
+        WordSection later = source.AddSection();
+        later.AddParagraph("Second body");
+        later.AddPageNumbering(startNumber: 1);
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        Assert.Contains(conversion.Report.ForFeature("page-numbering"), mapping =>
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported }));
+    }
+
+    [Fact]
     public void InheritedEvenHeaderInLaterSectionIsNotAnotherLostStory() {
         using WordDocument authored = WordDocument.Create();
         authored.AddParagraph("Body");

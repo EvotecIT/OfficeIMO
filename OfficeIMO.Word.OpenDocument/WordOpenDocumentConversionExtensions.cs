@@ -118,7 +118,8 @@ public static partial class WordOpenDocumentConversionExtensions {
                 "Header and footer content was omitted because IncludeHeadersAndFooters is disabled.");
         }
 
-        int unsupportedPageNumberStarts = snapshot.Sections.Count(section => section.PageNumberStart is int start && start != 1);
+        int unsupportedPageNumberStarts = snapshot.Sections.Select((section, index) => (section, index))
+            .Count(item => item.section.PageNumberStart is int start && (item.index > 0 || start != 1));
         if (unsupportedPageNumberStarts > 0) report.Add("page-numbering", OdfConversionMappingStatus.Unsupported,
             unsupportedPageNumberStarts, "Word section page-number restarts are not preserved by the one-layout ODT conversion.");
 
