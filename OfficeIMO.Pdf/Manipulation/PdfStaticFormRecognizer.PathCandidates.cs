@@ -15,6 +15,12 @@ internal static partial class PdfStaticFormRecognizer {
                 expanded.Add(primitive);
                 continue;
             }
+            // Filled subpaths share a fill rule. Splitting them can turn a hole
+            // into an opaque cover and erase occupancy that still exists visually.
+            if (primitive.HasFillPaint && !HasExactRectangularFill(primitive)) {
+                expanded.Add(primitive);
+                continue;
+            }
             candidateScanWork = checked(candidateScanWork + primitive.PathCommands.Count);
             if (candidateScanWork > maxCandidateScanWork) {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.UnderstandingArtifacts,
@@ -72,7 +78,7 @@ internal static partial class PdfStaticFormRecognizer {
         return true;
     }
 
-    private static bool IsAxisAlignedRectangle(List<OfficePathCommand> commands) {
+    private static bool IsAxisAlignedRectangle(IReadOnlyList<OfficePathCommand> commands) {
         OfficePoint p0 = commands[0].Point;
         OfficePoint p1 = commands[1].Point;
         OfficePoint p2 = commands[2].Point;

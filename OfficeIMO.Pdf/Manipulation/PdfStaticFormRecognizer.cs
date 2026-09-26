@@ -115,12 +115,6 @@ internal static partial class PdfStaticFormRecognizer {
                         "A field outline cannot be distinguished from its painted background.");
                     continue;
                 }
-                if (IsCoveredByLaterOpaqueFill(filledAreas, OutlinePaintBounds(primitive, visual),
-                    primitive.PaintOrder, primitive.ContentOrderKey)) {
-                    AddDiagnostic("occluded-outline", pageNumber,
-                        "A visual field outline is covered by later opaque paint.");
-                    continue;
-                }
                 if (HasPaintedInterior(filledAreas, primitive, visual, evidence, cancellationToken)) {
                     AddDiagnostic("occupied-field", pageNumber, "A visual field candidate contains a painted mark.");
                     continue;
@@ -129,6 +123,11 @@ internal static partial class PdfStaticFormRecognizer {
                     ref candidateScanWork, effective.MaxCandidateScanWork, cancellationToken) ||
                     HasImageInterior(page, filledAreas, visual, cancellationToken)) {
                     AddDiagnostic("occupied-field", pageNumber, "A visual field candidate contains a painted mark.");
+                    continue;
+                }
+                if (HasLaterOutlinePaint(filledAreas, primitives, page, primitive, visual, cancellationToken)) {
+                    AddDiagnostic("occluded-outline", pageNumber,
+                        "Later paint prevents proving a continuous visible field outline.");
                     continue;
                 }
                 if (OverlapsExistingWidget(page, visual)) {
@@ -410,7 +409,7 @@ internal static partial class PdfStaticFormRecognizer {
         primitive.FillColor is OfficeColor color && color.R >= 245 && color.G >= 245 && color.B >= 245;
 
     private static bool IsOpaqueCover(PdfPageVisualPrimitive primitive) =>
-        primitive.Kind == PdfPageVisualPrimitiveKind.Rectangle && primitive.HasFillPaint &&
+        HasExactRectangularFill(primitive) && primitive.HasFillPaint &&
         (primitive.FillOpacity ?? 1D) >= 0.999D &&
         primitive.FillGradient is null && primitive.FillRadialGradient is null && primitive.FillTilingPattern is null &&
         (primitive.ClipPath is not PdfPageClipPath clip ||
@@ -513,7 +512,14 @@ internal static partial class PdfStaticFormRecognizer {
                 right >= candidate.Right && bottom >= candidate.Bottom) continue;
             var visible = new VisualRect(Math.Max(left, interior.Left), Math.Max(top, interior.Top),
                 Math.Min(right, interior.Right), Math.Min(bottom, interior.Bottom));
-            if (visible.Area > (filled ? 0D : 0.5D) &&
+            double paintedArea = visible.Area;
+            if (stroked && !filled && primitive.Kind == PdfPageVisualPrimitiveKind.Rectangle) {
+                double padding = Math.Max(0.5D, primitive.StrokeWidth * Math.Sqrt(2D)) / 2D;
+                var hollow = new VisualRect(primitive.X + padding, primitive.Y + padding,
+                    primitive.X + primitive.Width - padding, primitive.Y + primitive.Height - padding);
+                paintedArea -= OverlapArea(visible, hollow);
+            }
+            if (paintedArea > (filled ? 0D : 0.5D) &&
                 !IsCoveredByLaterOpaqueFill(filledAreas, visible, primitive.PaintOrder,
                     primitive.ContentOrderKey)) return true;
         }

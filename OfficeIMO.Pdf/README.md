@@ -335,7 +335,13 @@ if (accepted.Length > 0)
 Recognition proposes text fields from empty continuous outlines or writing lines
 and check boxes from small square outlines. Dashed outlines and writing lines are
 skipped with an `unsupported-outline-dash` diagnostic because their painted
-segments cannot be proven from the recognition geometry. Nearby native text supplies labels; callers
+segments cannot be proven from the recognition geometry. Later fill, stroke, or image paint that
+intersects a required outline segment is also skipped conservatively, including
+partially erased boxes and writing lines. Exact rectangular path fills can prove
+opaque covers; arbitrary or compound paths do not prove their entire bounds are
+filled. Compound filled-and-stroked paths are not split into independent field
+candidates, since their shared fill rule can leave holes. Nearby native text
+supplies labels; callers
 can also pass bounded positioned OCR text as `PdfStaticFormTextEvidence` without
 installing an OCR runtime in `OfficeIMO.Pdf`. Native labels require perceptible
 opacity, resolved paint, proven contrast, and full visibility within the visual

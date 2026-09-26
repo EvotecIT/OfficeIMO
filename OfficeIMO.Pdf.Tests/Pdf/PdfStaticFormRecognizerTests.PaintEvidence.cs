@@ -519,7 +519,7 @@ public sealed partial class PdfStaticFormRecognizerTests {
 
     [Fact]
     public void JpxEmbeddedAlphaIsNotAnOpaqueNativeLabelCover() {
-        const string content = "BT /F1 12 Tf 20 160 Td (Name:) Tj ET 1 w 100 145 120 20 re S q 90 0 0 30 10 145 cm /Im1 Do Q";
+        const string content = "BT /F1 12 Tf 20 160 Td (Name:) Tj ET 1 w 105 145 115 20 re S q 90 0 0 30 10 145 cm /Im1 Do Q";
         const string jpx = "unsupported";
         byte[] source = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
             "%PDF-1.7", "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
