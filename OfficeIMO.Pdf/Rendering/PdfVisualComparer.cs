@@ -124,7 +124,6 @@ public static class PdfVisualComparer {
         OfficeDrawing actualDrawing = PdfPageImageRenderer.RenderPage(actualDocument, actualPageNumber, cancellationToken);
         AddPixelBudget(expectedDrawing.Width, expectedDrawing.Height, options.Scale, options, ref totalPixels);
         AddPixelBudget(actualDrawing.Width, actualDrawing.Height, options.Scale, options, ref totalPixels);
-        PdfVisualComparisonOptions.EnsureIgnoredRegionWork(options.IgnoredRegions.Count, totalPixels);
         cancellationToken.ThrowIfCancellationRequested();
         var rasterOptions = new OfficeDrawingRasterRenderOptions {
             Scale = options.Scale,
@@ -143,6 +142,7 @@ public static class PdfVisualComparer {
         int width = Math.Max(expectedImage.Width, actualImage.Width);
         int height = Math.Max(expectedImage.Height, actualImage.Height);
         AddPixelBudget(width, height, 1D, options, ref totalPixels);
+        PdfVisualComparisonOptions.EnsureIgnoredRegionWork(options.IgnoredRegions.Count, (long)width * height);
         (int ExpectedX, int ExpectedY) = GetOffset(width, height, expectedImage.Width, expectedImage.Height, options.Alignment);
         (int ActualX, int ActualY) = GetOffset(width, height, actualImage.Width, actualImage.Height, options.Alignment);
         var diff = new OfficeRasterImage(width, height, OfficeColor.White);

@@ -129,7 +129,8 @@ public class PdfVisualComparerTests {
 
     [Fact]
     public void CompareRejectsIgnoredRegionWorkBeforeRasterizing() {
-        byte[] pdf = BuildPdf("Bounded ignored regions");
+        byte[] pdf = PdfDocument.Create(new PdfOptions { PageWidth = 400D, PageHeight = 300D })
+            .Canvas(canvas => canvas.Text("Bounded ignored regions", 20D, 20D, 200D, 20D)).ToBytes();
         var options = new PdfVisualComparisonOptions();
         for (int index = 0; index < 3000; index++) {
             options.IgnoredRegions.Add(new PdfPixelRegion(0, 0, 240, 180));
@@ -139,6 +140,33 @@ public class PdfVisualComparerTests {
             PdfVisualComparer.Compare(pdf, pdf, options: options));
 
         Assert.Equal(PdfReadLimitKind.UnderstandingArtifacts, failure.Kind);
+    }
+
+    [Fact]
+    public void CompareChargesIgnoredRegionWorkForTheCombinedCanvas() {
+        byte[] wide = PdfDocument.Create(new PdfOptions { PageWidth = 400D, PageHeight = 40D,
+            MarginTop = 0D, MarginBottom = 0D, MarginLeft = 0D, MarginRight = 0D })
+            .Canvas(canvas => canvas.Text("A", 0D, 0D, 10D, 10D)).ToBytes();
+        byte[] tall = PdfDocument.Create(new PdfOptions { PageWidth = 40D, PageHeight = 400D,
+            MarginTop = 0D, MarginBottom = 0D, MarginLeft = 0D, MarginRight = 0D })
+            .Canvas(canvas => canvas.Text("A", 0D, 0D, 10D, 10D)).ToBytes();
+        var options = new PdfVisualComparisonOptions();
+        for (int index = 0; index < 4096; index++) options.IgnoredRegions.Add(new PdfPixelRegion(0, 0, 1, 1));
+
+        PdfReadLimitException failure = Assert.Throws<PdfReadLimitException>(() =>
+            PdfVisualComparer.Compare(wide, tall, options: options));
+
+        Assert.Equal(PdfReadLimitKind.UnderstandingArtifacts, failure.Kind);
+    }
+
+    [Fact]
+    public void CompareDoesNotChargeSourceRastersAsIgnoredRegionWork() {
+        byte[] pdf = PdfDocument.Create(new PdfOptions { PageWidth = 500D, PageHeight = 500D })
+            .Canvas(canvas => canvas.Text("A", 20D, 20D, 20D, 20D)).ToBytes();
+        var options = new PdfVisualComparisonOptions();
+        for (int index = 0; index < 300; index++) options.IgnoredRegions.Add(new PdfPixelRegion(0, 0, 500, 500));
+
+        Assert.Single(PdfVisualComparer.Compare(pdf, pdf, options: options).Pages);
     }
 
     [Fact]

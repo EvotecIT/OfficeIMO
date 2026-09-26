@@ -20,7 +20,9 @@ internal static class PdfReviewSemanticComparer {
         var changes = new List<PdfReviewChange>();
         ValidateImagePlacementCount(expected, options, cancellationToken);
         ValidateImagePlacementCount(actual, options, cancellationToken);
-        bool scanned = IsScan(expected, cancellationToken) || IsScan(actual, cancellationToken);
+        bool expectedScanned = IsScan(expected, cancellationToken);
+        bool actualScanned = IsScan(actual, cancellationToken);
+        bool scanned = expectedScanned || actualScanned;
         CompareText(expected, actual, visual, options, changes, cancellationToken);
         if (visual != null &&
             (PdfRenderCapabilities.HasIncompleteVisualProjection(visual.ExpectedCapabilityDiagnostics) ||
@@ -29,7 +31,7 @@ internal static class PdfReviewSemanticComparer {
                 expectedPage, actualPage, null, null));
         }
         if (scanned) {
-            if (visual is { IsMatch: false } ||
+            if (visual is { IsMatch: false } || expectedScanned != actualScanned ||
                 usesIgnoredRegions && HasDifferentUnignoredScanImages(expected, actual, visual, options, cancellationToken)) {
                 changes.Add(new PdfReviewChange(PdfReviewChangeKind.ScannedPageUncertain, expectedPage, actualPage, null, null));
             }
@@ -56,9 +58,9 @@ internal static class PdfReviewSemanticComparer {
                     changes.Add(new PdfReviewChange(PdfReviewChangeKind.TextChanged, expected.PageNumber, actual.PageNumber,
                         before[i].Bounds, after[j].Bounds, before[i].SemanticText, after[j].SemanticText,
                         canCoverRenderedPixels: before[i].Text != after[j].Text && (before[i].CanPaint || after[j].CanPaint)));
-                } else if (TextGeometryDiffers(before[i], after[j])) {
+                } else if (TextGeometryDiffers(before[i], after[j], cancellationToken)) {
                     changes.Add(new PdfReviewChange(PdfReviewChangeKind.TextMoved, expected.PageNumber, actual.PageNumber,
-                        before[i].Bounds, after[j].Bounds, before[i].Text, after[j].Text,
+                        before[i].Bounds, after[j].Bounds, before[i].SemanticText, after[j].SemanticText,
                         canCoverRenderedPixels: before[i].CanPaint || after[j].CanPaint));
                 }
             }, cancellationToken);
@@ -70,14 +72,14 @@ internal static class PdfReviewSemanticComparer {
             usedBefore[i] = true;
             usedAfter[best] = true;
             changes.Add(new PdfReviewChange(PdfReviewChangeKind.TextChanged, expected.PageNumber, actual.PageNumber,
-                before[i].Bounds, after[best].Bounds, before[i].Text, after[best].Text,
+                        before[i].Bounds, after[best].Bounds, before[i].SemanticText, after[best].SemanticText,
                 canCoverRenderedPixels: before[i].CanPaint || after[best].CanPaint));
         }
         for (int i = 0; i < before.Length; i++) if (!usedBefore[i]) changes.Add(new PdfReviewChange(
-            PdfReviewChangeKind.TextRemoved, expected.PageNumber, actual.PageNumber, before[i].Bounds, null, before[i].Text,
+            PdfReviewChangeKind.TextRemoved, expected.PageNumber, actual.PageNumber, before[i].Bounds, null, before[i].SemanticText,
             canCoverRenderedPixels: before[i].CanPaint));
         for (int i = 0; i < after.Length; i++) if (!usedAfter[i]) changes.Add(new PdfReviewChange(
-            PdfReviewChangeKind.TextAdded, expected.PageNumber, actual.PageNumber, null, after[i].Bounds, actualText: after[i].Text,
+            PdfReviewChangeKind.TextAdded, expected.PageNumber, actual.PageNumber, null, after[i].Bounds, actualText: after[i].SemanticText,
             canCoverRenderedPixels: after[i].CanPaint));
     }
 
@@ -127,7 +129,7 @@ internal static class PdfReviewSemanticComparer {
                  span.ClipPath.Value is { IsRectangle: true, IsExact: true, ContainsTextClipping: false } &&
                  !span.ClipPath.Value.CanProveNoPositiveAreaIntersection(
                      PdfPageClipPath.Rectangle(bounds.Left, bounds.Top, bounds.Width, bounds.Height))));
-            output.Add(new TextFeature(block.Text, semanticText, Normalize(block.Text), bounds, canPaint, block.Spans));
+            output.Add(new TextFeature(block.Text, semanticText, Normalize(block.Text), bounds, canPaint, block.Spans, page));
         }
         return output.ToArray();
     }
@@ -199,7 +201,7 @@ internal static class PdfReviewSemanticComparer {
                 if (!TryVisibleImageBounds(page, placement, requireExactClip: true, out PdfLogicalVisualBounds bounds)) continue;
                 if (IsIgnored(bounds, page, visual, options.Visual)) continue;
                 hash ??= Hash(image.SourceImage.EncodedBytes, cancellationToken);
-                output.Add(new ImageFeature(hash, bounds, placement));
+                output.Add(new ImageFeature(hash, bounds, VisualImageTransform(page, placement)));
             }
         }
         return output.ToArray();
@@ -523,31 +525,122 @@ internal static class PdfReviewSemanticComparer {
         Math.Abs(first.Left - second.Left) > 0.01D || Math.Abs(first.Top - second.Top) > 0.01D ||
         Math.Abs(first.Right - second.Right) > 0.01D || Math.Abs(first.Bottom - second.Bottom) > 0.01D;
 
-    private static bool TextGeometryDiffers(TextFeature first, TextFeature second) {
-        if (BoundsDiffer(first.Bounds, second.Bounds) || first.Spans.Count != second.Spans.Count) return true;
+    private static bool TextGeometryDiffers(TextFeature first, TextFeature second, CancellationToken cancellationToken) {
+        if (BoundsDiffer(first.Bounds, second.Bounds)) return true;
+        var before = new List<GlyphGeometry>();
+        var after = new List<GlyphGeometry>();
+        if (TryGetGlyphGeometry(first, before, cancellationToken) &&
+            TryGetGlyphGeometry(second, after, cancellationToken)) {
+            if (before.Count != after.Count) return true;
+            for (int i = 0; i < before.Count; i++) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (before[i].DiffersFrom(after[i])) return true;
+            }
+            return false;
+        }
+        // Without usable advances, different segmentation cannot prove equivalent placement.
+        if (first.Spans.Count != second.Spans.Count) return true;
         for (int i = 0; i < first.Spans.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfTextSpan left = first.Spans[i];
             PdfTextSpan right = second.Spans[i];
-            if (Math.Abs(left.RotationDegrees - right.RotationDegrees) > 0.01D ||
-                Math.Abs(left.X - right.X) > 0.01D || Math.Abs(left.Y - right.Y) > 0.01D ||
-                Math.Abs(left.FontSize - right.FontSize) > 0.01D ||
-                Math.Abs(left.Advance - right.Advance) > 0.01D ||
-                left.TextToPageTransform.HasValue != right.TextToPageTransform.HasValue) return true;
-            if (left.TextToPageTransform is Matrix2D a && right.TextToPageTransform is Matrix2D b &&
-                (Math.Abs(a.A - b.A) > 0.01D || Math.Abs(a.B - b.B) > 0.01D ||
-                 Math.Abs(a.C - b.C) > 0.01D || Math.Abs(a.D - b.D) > 0.01D ||
-                 Math.Abs(a.E - b.E) > 0.01D || Math.Abs(a.F - b.F) > 0.01D)) return true;
+            PdfTextSpanBounds leftBounds = PdfTextSpanGeometry.GetAxisAlignedBounds(left);
+            PdfTextSpanBounds rightBounds = PdfTextSpanGeometry.GetAxisAlignedBounds(right);
+            PdfVisualBounds leftVisual = first.Page.TransformBoundsToVisual(leftBounds.Left, leftBounds.Bottom,
+                leftBounds.Right, leftBounds.Top);
+            PdfVisualBounds rightVisual = second.Page.TransformBoundsToVisual(rightBounds.Left, rightBounds.Bottom,
+                rightBounds.Right, rightBounds.Top);
+            if (Math.Abs(leftVisual.Left - rightVisual.Left) > 0.01D ||
+                Math.Abs(leftVisual.Top - rightVisual.Top) > 0.01D ||
+                Math.Abs(leftVisual.Right - rightVisual.Right) > 0.01D ||
+                Math.Abs(leftVisual.Bottom - rightVisual.Bottom) > 0.01D ||
+                TextDirectionDiffers(first.Page, left, second.Page, right)) return true;
         }
         return false;
     }
 
+    private static bool TryGetGlyphGeometry(TextFeature feature, List<GlyphGeometry> output,
+        CancellationToken cancellationToken) {
+        const int maxGlyphsPerBlock = 200_000;
+        foreach (PdfTextSpan span in feature.Spans) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!PdfTextAdvanceProjection.TryGetResolvedBoundaries(span, cancellationToken, out double[] boundaries)) {
+                if (span.Advance <= 0D || span.Text.Length == 0) return false;
+                boundaries = new double[span.Text.Length + 1];
+                for (int i = 1; i < boundaries.Length; i++) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    boundaries[i] = span.Advance * i / span.Text.Length;
+                }
+            }
+            if (span.Text.Length > maxGlyphsPerBlock - output.Count) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.UnderstandingArtifacts,
+                    maxGlyphsPerBlock, (long)output.Count + span.Text.Length);
+            }
+            (double x0, double y0) = VisualPoint(feature.Page, span.X, span.Y);
+            double radians = span.RotationDegrees * Math.PI / 180D;
+            (double x1, double y1) = VisualPoint(feature.Page,
+                span.X + Math.Cos(radians), span.Y + Math.Sin(radians));
+            for (int i = 0; i < span.Text.Length; i++) {
+                cancellationToken.ThrowIfCancellationRequested();
+                double start = Math.Min(boundaries[i], boundaries[i + 1]);
+                double advance = Math.Abs(boundaries[i + 1] - boundaries[i]);
+                PdfTextSpanBounds glyph = PdfTextSpanGeometry.GetAxisAlignedBounds(span, start, advance);
+                PdfVisualBounds visual = feature.Page.TransformBoundsToVisual(glyph.Left, glyph.Bottom,
+                    glyph.Right, glyph.Top);
+                output.Add(new GlyphGeometry(span.Text[i], visual, x1 - x0, y1 - y0));
+            }
+        }
+        return true;
+    }
+
+    private static bool TextDirectionDiffers(PdfLogicalPage firstPage, PdfTextSpan first,
+        PdfLogicalPage secondPage, PdfTextSpan second) {
+        double a = first.RotationDegrees * Math.PI / 180D;
+        double b = second.RotationDegrees * Math.PI / 180D;
+        (double ax0, double ay0) = VisualPoint(firstPage, first.X, first.Y);
+        (double ax1, double ay1) = VisualPoint(firstPage, first.X + Math.Cos(a), first.Y + Math.Sin(a));
+        (double bx0, double by0) = VisualPoint(secondPage, second.X, second.Y);
+        (double bx1, double by1) = VisualPoint(secondPage, second.X + Math.Cos(b), second.Y + Math.Sin(b));
+        return Math.Abs((ax1 - ax0) - (bx1 - bx0)) > 0.01D ||
+            Math.Abs((ay1 - ay0) - (by1 - by0)) > 0.01D;
+    }
+
+    private readonly struct GlyphGeometry {
+        internal GlyphGeometry(char character, PdfVisualBounds bounds, double directionX, double directionY) {
+            Character = character; Bounds = bounds; DirectionX = directionX; DirectionY = directionY;
+        }
+        private char Character { get; }
+        private PdfVisualBounds Bounds { get; }
+        private double DirectionX { get; }
+        private double DirectionY { get; }
+        internal bool DiffersFrom(GlyphGeometry other) => Character != other.Character ||
+            Math.Abs(Bounds.Left - other.Bounds.Left) > 0.01D ||
+            Math.Abs(Bounds.Top - other.Bounds.Top) > 0.01D ||
+            Math.Abs(Bounds.Right - other.Bounds.Right) > 0.01D ||
+            Math.Abs(Bounds.Bottom - other.Bounds.Bottom) > 0.01D ||
+            Math.Abs(DirectionX - other.DirectionX) > 0.01D ||
+            Math.Abs(DirectionY - other.DirectionY) > 0.01D;
+    }
+
+    private static Matrix2D VisualImageTransform(PdfLogicalPage page, PdfImagePlacement placement) {
+        (double x0, double y0) = VisualPoint(page, placement.E, placement.F);
+        (double x1, double y1) = VisualPoint(page, placement.A + placement.E, placement.B + placement.F);
+        (double x2, double y2) = VisualPoint(page, placement.C + placement.E, placement.D + placement.F);
+        return new Matrix2D(x1 - x0, y1 - y0, x2 - x0, y2 - y0, x0, y0);
+    }
+
+    private static (double X, double Y) VisualPoint(PdfLogicalPage page, double x, double y) {
+        PdfVisualBounds point = page.TransformBoundsToVisual(x, y, x, y);
+        return (point.Left, point.Top);
+    }
+
     private static bool ImageTransformDiffers(ImageFeature first, ImageFeature second) =>
-        Math.Abs(first.Placement.A - second.Placement.A) > 0.01D ||
-        Math.Abs(first.Placement.B - second.Placement.B) > 0.01D ||
-        Math.Abs(first.Placement.C - second.Placement.C) > 0.01D ||
-        Math.Abs(first.Placement.D - second.Placement.D) > 0.01D ||
-        Math.Abs(first.Placement.E - second.Placement.E) > 0.01D ||
-        Math.Abs(first.Placement.F - second.Placement.F) > 0.01D;
+        Math.Abs(first.VisualTransform.A - second.VisualTransform.A) > 0.01D ||
+        Math.Abs(first.VisualTransform.B - second.VisualTransform.B) > 0.01D ||
+        Math.Abs(first.VisualTransform.C - second.VisualTransform.C) > 0.01D ||
+        Math.Abs(first.VisualTransform.D - second.VisualTransform.D) > 0.01D ||
+        Math.Abs(first.VisualTransform.E - second.VisualTransform.E) > 0.01D ||
+        Math.Abs(first.VisualTransform.F - second.VisualTransform.F) > 0.01D;
 
     private static string Normalize(string text) => string.Join(" ", text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
 
@@ -574,27 +667,29 @@ internal static class PdfReviewSemanticComparer {
     private interface IBoundedFeature { PdfLogicalVisualBounds Bounds { get; } }
     private sealed class TextFeature : IBoundedFeature {
         internal TextFeature(string text, string semanticText, string normalized, PdfLogicalVisualBounds bounds, bool canPaint,
-            IReadOnlyList<PdfTextSpan> spans) {
+            IReadOnlyList<PdfTextSpan> spans, PdfLogicalPage page) {
             Text = text;
             SemanticText = semanticText;
             Normalized = normalized;
             Bounds = bounds;
             CanPaint = canPaint;
             Spans = spans;
+            Page = page;
         }
         internal string Text { get; }
         internal string SemanticText { get; }
         internal string Normalized { get; }
         internal bool CanPaint { get; }
         internal IReadOnlyList<PdfTextSpan> Spans { get; }
+        internal PdfLogicalPage Page { get; }
         public PdfLogicalVisualBounds Bounds { get; }
     }
     private sealed class ImageFeature : IBoundedFeature {
-        internal ImageFeature(string hash, PdfLogicalVisualBounds bounds, PdfImagePlacement placement) {
-            Hash = hash; Bounds = bounds; Placement = placement;
+        internal ImageFeature(string hash, PdfLogicalVisualBounds bounds, Matrix2D visualTransform) {
+            Hash = hash; Bounds = bounds; VisualTransform = visualTransform;
         }
         internal string Hash { get; }
-        internal PdfImagePlacement Placement { get; }
+        internal Matrix2D VisualTransform { get; }
         public PdfLogicalVisualBounds Bounds { get; }
     }
 }

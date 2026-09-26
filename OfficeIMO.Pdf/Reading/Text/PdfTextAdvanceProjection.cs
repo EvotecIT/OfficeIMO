@@ -5,6 +5,10 @@ internal static class PdfTextAdvanceProjection {
     internal static bool TryGetResolvedBoundaries(PdfTextSpan span, out double[] boundaries) =>
         TryGetResolvedBoundariesCore(span, out boundaries, false, false, default, out _);
 
+    internal static bool TryGetResolvedBoundaries(PdfTextSpan span,
+        System.Threading.CancellationToken cancellationToken, out double[] boundaries) =>
+        TryGetResolvedBoundariesCore(span, out boundaries, false, false, cancellationToken, out _);
+
     internal static bool TryGetResolvedDirection(PdfTextSpan span, System.Threading.CancellationToken cancellationToken,
         out double direction) =>
         TryGetResolvedBoundariesCore(span, out _, true, true, cancellationToken, out direction);
