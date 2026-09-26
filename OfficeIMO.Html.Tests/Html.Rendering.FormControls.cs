@@ -395,6 +395,23 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_ButtonPaintsGeneratedContentInsideItsChild() {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<style>.icon::before{content:'★';color:#123456}</style>" +
+            "<button id='search' aria-label='Search' style='display:block;padding:0 8px;border:1px solid #000;background:#eee;height:28px'>" +
+            "<span class='icon' aria-hidden='true'></span></button>",
+            new HtmlRenderOptions { ViewportWidth = 200D, Margins = HtmlRenderMargins.All(0D) });
+
+        HtmlRenderShape button = Assert.Single(rendered.Pages.SelectMany(page => page.Visuals)
+            .OfType<HtmlRenderShape>(), shape => shape.Source == "button#search" && shape.Shape.FillColor.HasValue);
+        HtmlRenderText icon = Assert.Single(rendered.Pages.SelectMany(page => page.Visuals)
+            .OfType<HtmlRenderText>(), text => text.Text == "★");
+        Assert.InRange(icon.X, button.X, button.X + button.Width);
+        Assert.InRange(icon.Y, button.Y, button.Y + button.Height);
+        Assert.DoesNotContain("Search", rendered.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlRendering_IconButtonIncludesSvgIntrinsicWidth() {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
             "<button id='icon' style='display:block;padding:0 6px;border:1px solid #000'><svg width='24' height='24' viewBox='0 0 24 24'><circle cx='12' cy='12' r='8'/></svg></button>",

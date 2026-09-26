@@ -63,6 +63,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return;
         }
 
+        if (tag == "button") {
+            AddButtonInlineContent(visuals, element, style, contentX, contentY, contentWidth, contentHeight);
+            return;
+        }
+
         string value;
         bool isPlaceholder = false;
         OfficeTextAlignment alignment = OfficeTextAlignment.Left;
@@ -94,6 +99,25 @@ internal sealed partial class HtmlRenderLayoutEngine {
             isPlaceholder,
             alignment,
             source);
+    }
+
+    private void AddButtonInlineContent(
+        ICollection<HtmlRenderVisual> visuals,
+        IElement element,
+        HtmlRenderBoxStyle style,
+        double x,
+        double y,
+        double width,
+        double height) {
+        HtmlRenderBoxStyle contentStyle = style.Clone();
+        if (!_styleResolver.IsPropertySpecified(element, "text-align")) {
+            contentStyle.Alignment = OfficeTextAlignment.Center;
+        }
+        HtmlInlineLayout inline = LayoutInlineNodes(element.ChildNodes, width, contentStyle, 0, null, element);
+        double offsetY = y + Math.Max(0D, (height - inline.Height) / 2D);
+        foreach (HtmlRenderVisual visual in inline.Visuals) {
+            visuals.Add(visual.Translate(x, offsetY, visuals.Count));
+        }
     }
 
     private static void AddCheckboxMark(
