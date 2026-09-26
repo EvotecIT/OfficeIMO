@@ -574,6 +574,100 @@ public sealed class PdfProductionPreflightTests {
     }
 
     [Fact]
+    public void GeneralPrintRejectsOutputIntentWithoutSubtype() {
+        byte[] source = PdfDocument.Create(new PdfOptions().SetSrgbOutputIntent())
+            .Paragraph(paragraph => paragraph.Text("Print source")).ToBytes();
+        byte[] altered = PdfDocumentObjectGraphRewriter.Rewrite(source, null, null, (objects, security) => {
+            PdfDictionary catalog = Assert.IsType<PdfDictionary>(Assert.Single(objects.Values,
+                static item => item.Value is PdfDictionary dictionary &&
+                    dictionary.Get<PdfName>("Type")?.Name == "Catalog").Value);
+            PdfArray intents = Assert.IsType<PdfArray>(PdfObjectLookup.ResolveChain(objects, catalog.Items["OutputIntents"]));
+            PdfDictionary intent = Assert.IsType<PdfDictionary>(PdfObjectLookup.ResolveChain(objects, Assert.Single(intents.Items)));
+            intent.Items.Remove("S");
+            return security.InfoObjectNumber;
+        });
+
+        PdfProductionPreflightReport report = PdfDocument.Load(altered).Proof.PreflightProduction();
+
+        Assert.Contains(report.Findings, static finding => finding.Kind == PdfProductionFindingKind.InvalidOutputIntent);
+    }
+
+    [Fact]
+    public void UnsupportedPrintRulePreservesDefaultGrayAlias() {
+        const string content = "0.5 g 10 10 20 20 re f /OC /Layer BDC 40 10 20 20 re f EMC\n";
+        byte[] source = RawPrintLayerPdf(content,
+            "/ColorSpace << /DefaultGray [/CalGray << /WhitePoint [1 1 1] >>] >> /Properties << /Layer 6 0 R >>",
+            "6 0 obj\n<< /Type /OCG /Name (Layer) >>\nendobj",
+            "[6 0 R]", "[6 0 R]", "/Print /View");
+
+        PdfProductionPreflightReport report = PdfDocument.Load(source).Proof.PreflightProduction(
+            new PdfProductionPreflightOptions { Profile = PdfProductionPreflightProfile.PdfX1aCandidate });
+
+        Assert.Contains(report.Findings, static finding => finding.Kind == PdfProductionFindingKind.DeviceIndependentColor);
+    }
+
+    [Fact]
+    public void UnsupportedPrintRulePreservesDefaultCmykAlias() {
+        const string content = "0.1 0.2 0.3 0.4 k 10 10 20 20 re f /OC /Layer BDC 40 10 20 20 re f EMC\n";
+        byte[] source = RawPrintLayerPdf(content,
+            "/ColorSpace << /DefaultCMYK [/ICCBased 8 0 R] >> /Properties << /Layer 6 0 R >>",
+            "6 0 obj\n<< /Type /OCG /Name (Layer) >>\nendobj\n" +
+            "8 0 obj\n<< /N 4 /Length 0 >>\nstream\n\nendstream\nendobj",
+            "[6 0 R]", "[6 0 R]", "/Print /View", size: 9);
+        byte[] withProfile = PdfDocumentObjectGraphRewriter.Rewrite(source, null, null, (objects, security) => {
+            objects[8] = new PdfIndirectObject(8, 0, new PdfStream(new PdfDictionary {
+                Items = { ["N"] = new PdfNumber(4) }
+            }, IccMabTestProfiles.CreateCmykLab8()));
+            return security.InfoObjectNumber;
+        });
+
+        PdfProductionPreflightReport report = PdfDocument.Load(withProfile).Proof.PreflightProduction(
+            new PdfProductionPreflightOptions { Profile = PdfProductionPreflightProfile.PdfX1aCandidate });
+
+        Assert.Contains(report.Findings, static finding => finding.Kind == PdfProductionFindingKind.DeviceIndependentColor);
+    }
+
+    [Theory]
+    [InlineData("/DeviceRGB", PdfProductionFindingKind.DeviceRgbColor)]
+    [InlineData("[/CalRGB << /WhitePoint [1 1 1] >>]", PdfProductionFindingKind.DeviceIndependentColor)]
+    public void UnsupportedPrintRulePreservesUnlayeredShadingColor(
+        string colorSpace, PdfProductionFindingKind expectedKind) {
+        const string content = "/Sh1 sh /OC /Layer BDC 40 10 20 20 re f EMC\n";
+        byte[] source = RawPrintLayerPdf(content,
+            "/Shading << /Sh1 5 0 R >> /Properties << /Layer 6 0 R >>",
+            "5 0 obj\n<< /ShadingType 2 /ColorSpace " + colorSpace + " /Coords [0 0 100 0] /Function << /FunctionType 2 /Domain [0 1] /C0 [0 0 0] /C1 [1 0 0] /N 1 >> >>\nendobj\n" +
+            "6 0 obj\n<< /Type /OCG /Name (Layer) >>\nendobj",
+            "[6 0 R]", "[6 0 R]", "/Print /View");
+
+        PdfProductionPreflightReport report = PdfDocument.Load(source).Proof.PreflightProduction(
+            new PdfProductionPreflightOptions { Profile = PdfProductionPreflightProfile.PdfX1aCandidate });
+
+        Assert.Contains(report.Findings, finding => finding.Kind == expectedKind);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ReachableType3GlyphImageMakesResolutionIndeterminate(bool inlineImage) {
+        const string content = "BT /F1 24 Tf 10 80 Td (A) Tj ET\n";
+        string glyph = inlineImage
+            ? "500 0 d0 q 1 0 0 1 0 0 cm BI /W 1 /H 1 /CS /G /BPC 8 ID x EI Q"
+            : "500 0 d0 q 1 0 0 1 0 0 cm /Im0 Do Q";
+        byte[] source = RawPrintLayerPdf(content, "/Font << /F1 7 0 R >>",
+            "7 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] " +
+            "/CharProcs << /A 8 0 R >> /Encoding << /Type /Encoding /Differences [65 /A] >> " +
+            "/FirstChar 65 /LastChar 65 /Widths [500] /Resources << /XObject << /Im0 9 0 R >> >> >>\nendobj\n" +
+            "8 0 obj\n<< /Length " + glyph.Length + " >>\nstream\n" + glyph + "\nendstream\nendobj\n" +
+            "9 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8 /Length 1 >>\nstream\nx\nendstream\nendobj",
+            "[]", "[]", size: 10);
+
+        PdfProductionPreflightReport report = PdfDocument.Load(source).Proof.PreflightProduction();
+
+        Assert.Contains(report.Findings, static finding =>
+            finding.Kind == PdfProductionFindingKind.UninspectableImageResolution);
+    }
+
+    [Fact]
     public void UnsupportedPrintLayerAndPrintableAnnotationShareOneResolutionUnknown() {
         const string content = "/OC /Layer BDC 10 10 20 20 re f EMC\n";
         byte[] source = RawPrintLayerPdf(content, "/Properties << /Layer 6 0 R >>",

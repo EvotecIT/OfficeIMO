@@ -25,7 +25,6 @@ public sealed partial class PdfReadPage {
                 currentResources?.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject) == true
                     ? colorSpaceObject : null);
             var selectedColorSpaces = new Dictionary<string, (bool UsesDeviceRgb, bool UsesDeviceIndependent)>(StringComparer.Ordinal);
-            bool defaultRgbIsOverridden = colorSpaces?.Items.ContainsKey("DefaultRGB") == true;
             bool fillRgb = initialFillRgb;
             bool strokeRgb = initialStrokeRgb;
             bool fillIndependent = initialFillIndependent;
@@ -56,15 +55,15 @@ public sealed partial class PdfReadPage {
                 if (layeredDepth != 0 && operation.Name is not ("q" or "Q" or "rg" or "RG" or
                     "g" or "G" or "k" or "K" or "cs" or "CS" or "Tr" or "gs")) return;
                 if (operation.InlineImage is PdfContentInlineImage inlineImage) {
-                    string? inlineColorSpace = (ResolveObject(inlineImage.Dictionary.Items.TryGetValue("ColorSpace", out PdfObject? inlineColor)
-                        ? inlineColor : null) as PdfName)?.Name;
-                    foundRgb |= !defaultRgbIsOverridden && ClassifySelected(inlineColorSpace).UsesDeviceRgb;
+                    PdfObject? inlineColorSpace = inlineImage.Dictionary.Items.TryGetValue("ColorSpace", out PdfObject? inlineColor)
+                        ? inlineColor : null;
+                    (bool imageRgb, bool imageIndependent) = ClassifyColorObject(inlineColorSpace);
+                    foundRgb |= imageRgb;
                     foundRgb |= fillRgb && inlineImage.Dictionary.Items.TryGetValue("ImageMask", out PdfObject? inlineMask) &&
                         ResolveObject(inlineMask) is PdfBoolean { Value: true };
                     foundIndependent |= fillIndependent && inlineImage.Dictionary.Items.TryGetValue("ImageMask", out PdfObject? independentInlineMask) &&
                         ResolveObject(independentInlineMask) is PdfBoolean { Value: true };
-                    foundIndependent |= IsIndependent(inlineColorSpace, colorSpaces) ||
-                        IsIndependentColorObject(inlineImage.Dictionary.Items.TryGetValue("ColorSpace", out PdfObject? inlineSpace) ? inlineSpace : null);
+                    foundIndependent |= imageIndependent;
                     foundTransparency |= transparency.Fill || transparency.Blend ||
                         transparency.SoftMask || HasImageTransparency(inlineImage.Dictionary);
                     return;
@@ -75,10 +74,12 @@ public sealed partial class PdfReadPage {
                         if (states.Count > 0) (fillRgb, strokeRgb, fillIndependent, strokeIndependent, transparency, textMode) = states.Pop();
                         else { fillRgb = strokeRgb = fillIndependent = strokeIndependent = false; transparency = default; textMode = 0; }
                         break;
-                    case "rg": fillRgb = !defaultRgbIsOverridden && operation.Operands.Count == 3; fillIndependent = defaultRgbIsOverridden && IsIndependent("DefaultRGB", colorSpaces); break;
-                    case "RG": strokeRgb = !defaultRgbIsOverridden && operation.Operands.Count == 3; strokeIndependent = defaultRgbIsOverridden && IsIndependent("DefaultRGB", colorSpaces); break;
-                    case "g": case "k": fillRgb = fillIndependent = false; break;
-                    case "G": case "K": strokeRgb = strokeIndependent = false; break;
+                    case "rg": (fillRgb, fillIndependent) = operation.Operands.Count == 3 ? ClassifySelected("DeviceRGB") : default; break;
+                    case "RG": (strokeRgb, strokeIndependent) = operation.Operands.Count == 3 ? ClassifySelected("DeviceRGB") : default; break;
+                    case "g": fillRgb = false; fillIndependent = ClassifySelected("DeviceGray").UsesDeviceIndependent; break;
+                    case "G": strokeRgb = false; strokeIndependent = ClassifySelected("DeviceGray").UsesDeviceIndependent; break;
+                    case "k": fillRgb = false; fillIndependent = ClassifySelected("DeviceCMYK").UsesDeviceIndependent; break;
+                    case "K": strokeRgb = false; strokeIndependent = ClassifySelected("DeviceCMYK").UsesDeviceIndependent; break;
                     case "cs":
                         (fillRgb, fillIndependent) = operation.Operands.Count == 1
                             ? ClassifySelected(operation.Operands[0] as string) : default;
@@ -129,6 +130,25 @@ public sealed partial class PdfReadPage {
                                 transparency.Blend || transparency.SoftMask;
                         }
                         break;
+                    case "sh":
+                        if (operation.Operands.Count != 1 || operation.Operands[0] is not string shadingName) break;
+                        PdfDictionary? shadingResources = ResolveDictionary(
+                            currentResources?.Items.TryGetValue("Shading", out PdfObject? shadingResourcesObject) == true
+                                ? shadingResourcesObject : null);
+                        PdfObject? shading = ResolveObject(
+                            shadingResources?.Items.TryGetValue(shadingName, out PdfObject? shadingObject) == true
+                                ? shadingObject : null);
+                        PdfDictionary? shadingDictionary = shading switch {
+                            PdfDictionary dictionary => dictionary,
+                            PdfStream shadingStream => shadingStream.Dictionary,
+                            _ => null
+                        };
+                        if (shadingDictionary?.Items.TryGetValue("ColorSpace", out PdfObject? shadingColorSpace) == true) {
+                            (bool shadingRgb, bool shadingIndependent) = ClassifyColorObject(shadingColorSpace);
+                            foundRgb |= shadingRgb;
+                            foundIndependent |= shadingIndependent;
+                        }
+                        break;
                     case "Do":
                         if (operation.Operands.Count == 0 || operation.Operands[operation.Operands.Count - 1] is not string resourceName) break;
                         PdfDictionary? xObjects = ResolveDictionary(
@@ -140,15 +160,15 @@ public sealed partial class PdfReadPage {
                         string? subtype = (ResolveObject(stream.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtypeObject)
                             ? subtypeObject : null) as PdfName)?.Name;
                         if (subtype == "Image") {
-                            string? colorSpace = (ResolveObject(stream.Dictionary.Items.TryGetValue("ColorSpace", out PdfObject? imageColor)
-                                ? imageColor : null) as PdfName)?.Name;
-                            foundRgb |= !defaultRgbIsOverridden && ClassifySelected(colorSpace).UsesDeviceRgb;
+                            PdfObject? colorSpace = stream.Dictionary.Items.TryGetValue("ColorSpace", out PdfObject? imageColor)
+                                ? imageColor : null;
+                            (bool imageRgb, bool imageIndependent) = ClassifyColorObject(colorSpace);
+                            foundRgb |= imageRgb;
                             foundRgb |= fillRgb && stream.Dictionary.Items.TryGetValue("ImageMask", out PdfObject? imageMask) &&
                                 ResolveObject(imageMask) is PdfBoolean { Value: true };
                             foundIndependent |= fillIndependent && stream.Dictionary.Items.TryGetValue("ImageMask", out PdfObject? independentImageMask) &&
                                 ResolveObject(independentImageMask) is PdfBoolean { Value: true };
-                            foundIndependent |= IsIndependent(colorSpace, colorSpaces) ||
-                                IsIndependentColorObject(stream.Dictionary.Items.TryGetValue("ColorSpace", out PdfObject? imageSpace) ? imageSpace : null);
+                            foundIndependent |= imageIndependent;
                             foundTransparency |= HasImageTransparency(stream.Dictionary) || transparency.Fill ||
                                 transparency.Blend || transparency.SoftMask;
                         } else if (subtype == "Form" && activeForms.Add(stream)) {
@@ -172,15 +192,11 @@ public sealed partial class PdfReadPage {
                 }
                 return usage;
             }
+
+            (bool UsesDeviceRgb, bool UsesDeviceIndependent) ClassifyColorObject(PdfObject? value) =>
+                PdfPrintProductionColorInspector.ClassifyColorSpaceObject(value,
+                    currentResources, _objects, _limits.MaxObjectNestingDepth, _limits.MaxDecodedStreamBytes);
         }
-
-        bool IsIndependent(string? name, PdfDictionary? colorSpaces) =>
-            name != null && colorSpaces?.Items.TryGetValue(name, out PdfObject? selected) == true &&
-            IsIndependentColorObject(selected);
-
-        bool IsIndependentColorObject(PdfObject? selected) =>
-            PdfPrintProductionColorInspector.UsesDeviceIndependentColorSpace(
-                selected, _objects, _limits.MaxObjectNestingDepth, _limits.MaxDecodedStreamBytes);
     }
 
     private bool GetOutputIntentCompositionInteraction(CancellationToken cancellationToken) =>

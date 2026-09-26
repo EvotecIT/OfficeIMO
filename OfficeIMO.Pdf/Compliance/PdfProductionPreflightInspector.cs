@@ -72,7 +72,8 @@ internal static class PdfProductionPreflightInspector {
                         : "No catalog output intent was found; select and embed a suitable print profile explicitly."));
                 return;
             }
-            bool valid = document.OutputIntentsAreComplete && intents.All(IsInspectablePrintProfile);
+            bool valid = document.OutputIntentsAreComplete && intents.All(intent =>
+                !string.IsNullOrWhiteSpace(intent.Subtype) && IsInspectablePrintProfile(intent));
             if (strict) valid = valid && intents.Count == 1 &&
                 string.Equals(intents[0].Subtype, "GTS_PDFX", StringComparison.Ordinal) &&
                 !string.IsNullOrWhiteSpace(intents[0].OutputConditionIdentifier);
@@ -228,7 +229,7 @@ internal static class PdfProductionPreflightInspector {
             if (color.HasUninspectedImagePlacementSources && !unsupportedPrintContent) {
                 AddFinding(new PdfProductionFinding(PdfProductionFindingKind.UninspectableImageResolution,
                     PdfProductionFindingSeverity.Indeterminate, pageNumber,
-                    "A reachable tiling pattern or printable annotation may paint images whose effective resolution was not inspected."));
+                    "A reachable tiling pattern, Type 3 glyph, or printable annotation may paint images whose effective resolution was not inspected."));
             }
         }
 

@@ -647,9 +647,15 @@ internal sealed partial class PdfPageOptionalContentVisibility {
                     continue;
                 }
 
-                if (!view.Items.TryGetValue(usageEvent + "State", out PdfObject? viewStateObject)) continue;
+                if (!view.Items.TryGetValue(usageEvent + "State", out PdfObject? viewStateObject)) {
+                    if (usageEvent == "View") visibility[reference.ObjectNumber] = true;
+                    continue;
+                }
                 PdfObject? resolvedViewState = ResolveObject(viewStateObject, objects);
-                if (resolvedViewState is PdfNull) continue;
+                if (resolvedViewState is PdfNull) {
+                    if (usageEvent == "View") visibility[reference.ObjectNumber] = true;
+                    continue;
+                }
                 if (resolvedViewState is PdfName { Name: "ON" }) visibility[reference.ObjectNumber] = true;
                 else if (resolvedViewState is PdfName { Name: "OFF" }) visibility[reference.ObjectNumber] = false;
                 else {

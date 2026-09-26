@@ -33,6 +33,7 @@ internal static partial class PdfPrintProductionColorInspector {
         int transparencyGroups = 0;
         int uninspectable = 0;
         bool hasUninspectedPrintableAnnotation = false;
+        bool hasReachableType3Image = false;
 
         int pageSequenceId = 0;
         foreach (PdfReadPage page in document.Pages) {
@@ -80,6 +81,7 @@ internal static partial class PdfPrintProductionColorInspector {
                 document.ReadOptions.Limits,
                 cancellationToken);
             transparencyGroups += reachable.TransparencyGroupCount;
+            hasReachableType3Image |= reachable.HasType3Image;
             if (!TryClassifyTransparencyGroup(
                     dictionary,
                     pageAliases,
@@ -621,7 +623,7 @@ internal static partial class PdfPrintProductionColorInspector {
             nonOpaqueStates,
             transparencyGroups,
             uninspectable,
-            hasUninspectedPrintableAnnotation || hasReachableTilingPattern);
+            hasUninspectedPrintableAnnotation || hasReachableTilingPattern || hasReachableType3Image);
     }
 
     private static bool HasUninspectedPrintableAnnotation(
@@ -776,9 +778,16 @@ internal static partial class PdfPrintProductionColorInspector {
         string? name, PdfDictionary? resources, Dictionary<int, PdfIndirectObject> objects,
         int maximumObjectDepth, int maximumDecodedStreamBytes) {
         if (name == null) return default;
+        return ClassifyColorSpaceObject(new PdfName(name), resources, objects,
+            maximumObjectDepth, maximumDecodedStreamBytes);
+    }
+
+    internal static (bool UsesDeviceRgb, bool UsesDeviceIndependent) ClassifyColorSpaceObject(
+        PdfObject? value, PdfDictionary? resources, Dictionary<int, PdfIndirectObject> objects,
+        int maximumObjectDepth, int maximumDecodedStreamBytes) {
         ColorSpaceAliases? aliases = resources == null ? null : CreateColorSpaceAliases(
             resources, objects, maximumObjectDepth, maximumDecodedStreamBytes);
-        ColorSpaceUsage usage = ClassifyColorSpace(new PdfName(name), objects,
+        ColorSpaceUsage usage = ClassifyColorSpace(value, objects,
             maximumObjectDepth, maximumDecodedStreamBytes, aliases);
         return (usage.IsKnown && usage.UsesDeviceRgb, usage.IsKnown && usage.UsesDeviceIndependent);
     }
@@ -1479,7 +1488,8 @@ internal static partial class PdfPrintProductionColorInspector {
                 (ReferenceEquals(left.Aliases, right.Aliases) || left.Aliases.SetEquals(right.Aliases)) &&
                 ReferenceEquals(left.Resources, right.Resources) &&
                 ReferenceEquals(left.InheritedFontObject, right.InheritedFontObject) &&
-                left.InitialColorState == right.InitialColorState;
+                left.InitialColorState == right.InitialColorState &&
+                left.FromType3Glyph == right.FromType3Glyph;
 
             public int GetHashCode(ContentStreamContext context) {
                 unchecked {
@@ -1487,7 +1497,7 @@ internal static partial class PdfPrintProductionColorInspector {
                     hash = hash * 31 + context.Aliases.ValueHashCode;
                     hash = hash * 31 + (context.Resources == null ? 0 : System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(context.Resources));
                     hash = hash * 31 + (context.InheritedFontObject == null ? 0 : System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(context.InheritedFontObject));
-                    return hash * 31 + context.InitialColorState.GetHashCode();
+                    return (hash * 31 + context.InitialColorState.GetHashCode()) * 31 + (context.FromType3Glyph ? 1 : 0);
                 }
             }
         }
@@ -1500,13 +1510,15 @@ internal static partial class PdfPrintProductionColorInspector {
             PdfDictionary? resources,
             PdfObject? inheritedFontObject,
             int? pageSequenceId,
-            ContentColorStateSnapshot? initialColorState) {
+            ContentColorStateSnapshot? initialColorState,
+            bool fromType3Glyph) {
             Stream = stream;
             Aliases = aliases;
             Resources = resources;
             InheritedFontObject = inheritedFontObject;
             PageSequenceId = pageSequenceId;
             InitialColorState = initialColorState;
+            FromType3Glyph = fromType3Glyph;
         }
 
         internal PdfStream Stream { get; }
@@ -1515,6 +1527,7 @@ internal static partial class PdfPrintProductionColorInspector {
         internal PdfObject? InheritedFontObject { get; }
         internal int? PageSequenceId { get; }
         internal ContentColorStateSnapshot? InitialColorState { get; }
+        internal bool FromType3Glyph { get; }
         internal bool ResourceInspectionIncomplete { get; set; }
     }
 
@@ -1574,7 +1587,7 @@ internal static partial class PdfPrintProductionColorInspector {
         bool FillUsesPattern,
         bool StrokeUsesPattern);
 
-    private sealed record ReachableResourceCollection(int TransparencyGroupCount);
+    private sealed record ReachableResourceCollection(int TransparencyGroupCount, bool HasType3Image);
 
     private sealed record ImageContext(PdfStream Stream, ColorSpaceAliases Aliases) {
         internal PdfDictionary Dictionary => Stream.Dictionary;
