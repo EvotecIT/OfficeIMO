@@ -26,6 +26,18 @@ table.Cell(1, 1).Text = "42";
 document.Save("summary.odt");
 ```
 
+Add a native ODT field in paragraph order with the value currently shown in the document:
+
+```csharp
+OdtParagraph pageLine = document.AddParagraph("Page ");
+pageLine.AddField(OdtFieldKind.PageNumber, "3");
+pageLine.AddText(" of ");
+pageLine.AddField(OdtFieldKind.PageCount, "12");
+document.Save("summary.odt");
+```
+
+`OdtParagraph.Fields` reads page number, page count, date, and time fields in order. `OdtField.DisplayText` edits the cached text; an office application can refresh a dynamic field later. `OdtField.IsFixed` retains a date, time, or page number value instead of refreshing it. Page count cannot be fixed.
+
 Add native ODT footnotes or endnotes at the current paragraph position:
 
 ```csharp
@@ -159,7 +171,7 @@ Encrypted input fails with a classified `OdfEncryptedPackageException` when a pa
 | Area | Current support |
 | --- | --- |
 | Package | Bounded ZIP/XML loading, direct reading of seekable package streams, manifest updates, deterministic output, metadata, atomic path saves, flat XML projection with loss reporting, unknown-entry preservation |
-| ODT | Paragraphs, headings, ordered inline text/span/link/image/bookmark syntax, whitespace controls, common text and paragraph styles, lists, tables, sections, page layout, headers/footers, page breaks, images, paragraph insertion/deletion tracking |
+| ODT | Paragraphs, headings, ordered inline text/span/link/image/bookmark syntax, page number/count and date/time fields with cached display text, whitespace controls, common text and paragraph styles, lists, tables, sections, page layout, headers/footers, page breaks, images, paragraph insertion/deletion tracking |
 | ODS | Sparse repeated rows/cells, typed values, OpenFormula text and cached values, bounded formula evaluation/recalculation, styles and data formats, merges, row/column sizing and visibility, sheet order, typed named ranges, annotations, typed scalar/list validations and messages, links, print ranges |
 | ODP | Slide order and visibility, page size, masters/layouts, ordered inline text/run/link syntax, common run styles, lists, rectangles, ellipses, lines, groups, transforms, images and crop, tables, speaker notes, backgrounds, transitions, basic shape animations |
 | Inspection | Annotations, tracked changes, extension namespaces, scripts, event listeners, external links, embedded objects, formulas, validations, transitions, animations, encryption, and signatures |

@@ -32,6 +32,8 @@ public static partial class WordOpenDocumentConversionExtensions {
         IEnumerable<WordParagraphSnapshot> convertedParagraphs = sourceParagraphs.Concat(convertedHeaderFooterParagraphs);
         int paragraphFormatting = convertedParagraphs.Count(HasUnsupportedParagraphFormatting);
         int runFormatting = convertedParagraphs.SelectMany(paragraph => paragraph.Runs).Count(HasUnsupportedRunFormatting);
+        int fieldResultFormatting = convertedParagraphs.SelectMany(paragraph => paragraph.InlineFields)
+            .Count(field => field.HasFormattedResult && field.ResultText.Length > 0);
         int tableFormatting = snapshot.Sections.SelectMany(section => section.Elements).OfType<WordTableSnapshot>().Count(HasUnsupportedTableFormatting);
         int imageLayout = convertedParagraphs.SelectMany(paragraph => paragraph.Runs)
             .SelectMany(run => run.PositionedImages).Count(positioned =>
@@ -109,6 +111,13 @@ public static partial class WordOpenDocumentConversionExtensions {
         if (unsupportedImages > 0) report.Add("images", OdfConversionMappingStatus.Unsupported, unsupportedImages,
             "Word image parts using formats unsupported by OpenDocument were skipped.");
         AddCount(report, "bookmarks", bookmarks);
+        int mappedFields = CountOdtFields(target);
+        AddCount(report, "fields", mappedFields);
+        int unmappedFields = Math.Max(0, source.InspectFields().Count - mappedFields);
+        if (unmappedFields > 0) report.Add("fields", OdfConversionMappingStatus.Unsupported,
+            unmappedFields, "Unsupported Word fields are flattened to visible cached text where available.");
+        if (fieldResultFormatting > 0) report.Add("field-result-formatting", OdfConversionMappingStatus.Unsupported,
+            fieldResultFormatting, "Direct formatting on cached Word field results is not retained when those results become ODT text.");
         if (snapshot.Sections.Count > 0) report.Add("page-layout", OdfConversionMappingStatus.Converted, 1);
         if (snapshot.Sections.Count > 1) report.Add("sections", OdfConversionMappingStatus.Approximated, snapshot.Sections.Count,
             "Section content is retained in order, but section-specific layout is collapsed to one ODT page layout.");
@@ -145,6 +154,8 @@ public static partial class WordOpenDocumentConversionExtensions {
         var report = new OdfConversionReport("ODT", "DOCX");
         int paragraphs = 0, headings = 0, lists = 0, tables = 0, hyperlinks = 0, externalHyperlinks = 0, images = 0, bookmarks = 0;
         int approximatedRuns = 0, approximatedBookmarkRanges = 0, unsupportedMeasurements = 0;
+        int mappedFields = 0, unsupportedFields = 0;
+        var handledUnsupportedFieldElements = new HashSet<System.Xml.Linq.XElement>();
         int approximatedFontFamilyLists = 0, unsupportedFontFamilies = 0;
         var notes = new NoteMappingStats {
             HasOdtDefaultNoteBodyFormatting = HasOdtDefaultNoteBodyFormatting(source),
@@ -167,7 +178,8 @@ public static partial class WordOpenDocumentConversionExtensions {
                 currentOrdered = null;
                 ConvertTable(block.Table, target, effective, textCaseCulture, ref hyperlinks, ref externalHyperlinks, ref images,
                     ref bookmarks, ref approximatedRuns, ref approximatedBookmarkRanges, ref unsupportedMeasurements,
-                    ref approximatedFontFamilyLists, ref unsupportedFontFamilies, notes);
+                    ref approximatedFontFamilyLists, ref unsupportedFontFamilies, ref mappedFields, ref unsupportedFields,
+                    handledUnsupportedFieldElements, notes);
                 tables++;
                 continue;
             }
@@ -197,7 +209,8 @@ public static partial class WordOpenDocumentConversionExtensions {
 
             CopyParagraph(paragraph, converted, effective, textCaseCulture, ref hyperlinks, ref externalHyperlinks, ref images, ref bookmarks,
                 ref approximatedRuns, ref approximatedBookmarkRanges, ref unsupportedMeasurements,
-                ref approximatedFontFamilyLists, ref unsupportedFontFamilies, notes);
+                ref approximatedFontFamilyLists, ref unsupportedFontFamilies, ref mappedFields, ref unsupportedFields,
+                handledUnsupportedFieldElements, notes);
         }
 
         int unsupportedPageMeasurements = ApplyOdtPageLayout(source.PageLayout, target.Sections[0]);
@@ -214,13 +227,15 @@ public static partial class WordOpenDocumentConversionExtensions {
                 WordParagraph converted = target.Header!.Default!.AddParagraph();
                 CopyParagraph(paragraph, converted, effective, textCaseCulture, ref hyperlinks, ref externalHyperlinks, ref images, ref bookmarks,
                     ref approximatedRuns, ref approximatedBookmarkRanges, ref unsupportedMeasurements,
-                    ref approximatedFontFamilyLists, ref unsupportedFontFamilies, notes, allowNotes: false);
+                    ref approximatedFontFamilyLists, ref unsupportedFontFamilies, ref mappedFields, ref unsupportedFields,
+                    handledUnsupportedFieldElements, notes, allowNotes: false);
             }
             foreach (OdtParagraph paragraph in source.PageLayout.Footer.Paragraphs) {
                 WordParagraph converted = target.Footer!.Default!.AddParagraph();
                 CopyParagraph(paragraph, converted, effective, textCaseCulture, ref hyperlinks, ref externalHyperlinks, ref images, ref bookmarks,
                     ref approximatedRuns, ref approximatedBookmarkRanges, ref unsupportedMeasurements,
-                    ref approximatedFontFamilyLists, ref unsupportedFontFamilies, notes, allowNotes: false);
+                    ref approximatedFontFamilyLists, ref unsupportedFontFamilies, ref mappedFields, ref unsupportedFields,
+                    handledUnsupportedFieldElements, notes, allowNotes: false);
             }
             report.Add("headers-footers", OdfConversionMappingStatus.Converted,
                 source.PageLayout.Header.Paragraphs.Count + source.PageLayout.Footer.Paragraphs.Count);
@@ -238,6 +253,9 @@ public static partial class WordOpenDocumentConversionExtensions {
         AddCount(report, "hyperlinks", hyperlinks);
         AddCount(report, "images", images);
         AddCount(report, "bookmarks", bookmarks);
+        AddCount(report, "fields", mappedFields);
+        if (unsupportedFields > 0) report.Add("fields", OdfConversionMappingStatus.Unsupported, unsupportedFields,
+            "ODT fields with format, adjustment, fixed-value, or other unsupported properties retain only displayed text.");
         CountOdtNoteConfigurationLoss(source, notes);
         AddNoteMappings(report, notes);
         if (approximatedRuns > 0) report.Add("inline-formatting", OdfConversionMappingStatus.Approximated, approximatedRuns,
@@ -258,7 +276,8 @@ public static partial class WordOpenDocumentConversionExtensions {
         if (unsupportedMeasurements > 0) report.Add("relative-measurements", OdfConversionMappingStatus.Unsupported,
             unsupportedMeasurements,
             "Relative or unsupported ODF lengths could not be projected to fixed Word point measurements and were omitted.");
-        AddUnmappedOdfFindings(source.InspectFeatures(), report, externalHyperlinks, bookmarks, pageLayouts: 1, notes);
+        AddUnmappedOdfFindings(source, source.InspectFeatures(), report, externalHyperlinks, bookmarks, pageLayouts: 1,
+            handledUnsupportedFieldElements, notes);
         target = Normalize(target);
         return new OdfConversionResult<WordDocument>(target, report).ApplyPolicy(effective.LossPolicy);
     }
@@ -267,7 +286,9 @@ public static partial class WordOpenDocumentConversionExtensions {
         WordOpenDocumentConversionOptions options, CultureInfo textCaseCulture,
         ref int hyperlinks, ref int externalHyperlinks, ref int images, ref int bookmarks,
         ref int approximatedRuns, ref int approximatedBookmarkRanges, ref int unsupportedMeasurements,
-        ref int approximatedFontFamilyLists, ref int unsupportedFontFamilies, NoteMappingStats notes,
+        ref int approximatedFontFamilyLists, ref int unsupportedFontFamilies,
+        ref int mappedFields, ref int unsupportedFields,
+        HashSet<System.Xml.Linq.XElement> handledUnsupportedFieldElements, NoteMappingStats notes,
         bool allowNotes = true) {
         OdtInlineLeaf[] leaves = FlattenOdtInlineNodes(source.InlineNodes).ToArray();
         OdfTextTransform?[] transforms = leaves.Select(leaf =>
@@ -358,6 +379,64 @@ public static partial class WordOpenDocumentConversionExtensions {
                     }
                     break;
                 case OdtInlineNodeKind.BookmarkEnd:
+                    break;
+                case OdtInlineNodeKind.Field:
+                    OdtField field = node.Field!;
+                    if (leaf.TargetLink == null && TryMapOdtField(field, out WordFieldType fieldType)) {
+                        target.AddField(fieldType);
+                        WordField wordField = target.Field!;
+                        wordField.Text = displayText;
+                        if (field.IsFixed) {
+                            wordField.LockField = true;
+                            wordField.UpdateField = false;
+                        }
+                        if (target._simpleField?.GetFirstChild<Run>() is Run resultRun) {
+                            var result = new WordParagraph(target._document, target._paragraph, resultRun);
+                            if (leaf.Span != null) {
+                                unsupportedMeasurements += ApplyOdtSpanFormatting(leaf.Span, source, result,
+                                    ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
+                            } else if (leaf.StyleLink != null) {
+                                unsupportedMeasurements += ApplyOdtHyperlinkFormatting(leaf.StyleLink, source, result,
+                                    ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
+                            } else {
+                                unsupportedMeasurements += ApplyOdtParagraphTextFormatting(source, result,
+                                    ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
+                            }
+                        }
+                        mappedFields++;
+                        if (leaf.Span != null || leaf.StyleLink != null) approximatedRuns++;
+                        if (transforms[nodeIndex] is OdfTextTransform.Lowercase or OdfTextTransform.Capitalize)
+                            approximatedRuns++;
+                    } else {
+                        WordParagraph? result = null;
+                        OdtHyperlink? fieldLink = leaf.TargetLink;
+                        if (fieldLink != null) {
+                            if (OdfUriReference.TryDecodeFragment(fieldLink.Href, out string fragment)) {
+                                result = target.AddHyperLink(displayText, fragment, addStyle: true);
+                            } else if (!fieldLink.Href.StartsWith("#", StringComparison.Ordinal)
+                                && Uri.TryCreate(fieldLink.Href, UriKind.RelativeOrAbsolute, out Uri? uri)) {
+                                result = target.AddHyperLink(displayText, uri, addStyle: true);
+                            }
+                            if (result != null && convertedLinks.Add(fieldLink)) {
+                                hyperlinks++;
+                                if (IsExternalOdfHref(fieldLink.Href)) externalHyperlinks++;
+                            }
+                            if (result == null) approximatedRuns++;
+                        }
+                        result ??= target.AddText(displayText);
+                        if (leaf.Span != null) {
+                            unsupportedMeasurements += ApplyOdtSpanFormatting(leaf.Span, source, result,
+                                ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
+                        } else if (leaf.StyleLink != null) {
+                            unsupportedMeasurements += ApplyOdtHyperlinkFormatting(leaf.StyleLink, source, result,
+                                ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
+                        } else {
+                            unsupportedMeasurements += ApplyOdtParagraphTextFormatting(source, result,
+                                ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
+                        }
+                        unsupportedFields++;
+                        handledUnsupportedFieldElements.Add(field.Element);
+                    }
                     break;
                 case OdtInlineNodeKind.Note:
                     if (allowNotes) {
@@ -560,7 +639,9 @@ public static partial class WordOpenDocumentConversionExtensions {
         WordOpenDocumentConversionOptions options, CultureInfo textCaseCulture,
         ref int hyperlinks, ref int externalHyperlinks, ref int images,
         ref int bookmarks, ref int approximatedRuns, ref int approximatedBookmarkRanges, ref int unsupportedMeasurements,
-        ref int approximatedFontFamilyLists, ref int unsupportedFontFamilies, NoteMappingStats notes) {
+        ref int approximatedFontFamilyLists, ref int unsupportedFontFamilies,
+        ref int mappedFields, ref int unsupportedFields,
+        HashSet<System.Xml.Linq.XElement> handledUnsupportedFieldElements, NoteMappingStats notes) {
         int rows = Math.Max(1, source.Rows.Count);
         int columns = Math.Max(1, source.Rows.Select(row => row.Cells.Count).DefaultIfEmpty(1).Max());
         WordTable target = targetDocument.AddTable(rows, columns);
@@ -576,7 +657,8 @@ public static partial class WordOpenDocumentConversionExtensions {
                     CopyParagraph(cell.Paragraphs[paragraphIndex], targetParagraph, options, textCaseCulture, ref hyperlinks,
                         ref externalHyperlinks, ref images, ref bookmarks, ref approximatedRuns,
                         ref approximatedBookmarkRanges, ref unsupportedMeasurements,
-                        ref approximatedFontFamilyLists, ref unsupportedFontFamilies, notes);
+                        ref approximatedFontFamilyLists, ref unsupportedFontFamilies,
+                        ref mappedFields, ref unsupportedFields, handledUnsupportedFieldElements, notes);
                 }
                 if (cell.RowSpan > 1 || cell.ColumnSpan > 1) merges.Add((row, column, cell.RowSpan, cell.ColumnSpan));
             }
@@ -692,7 +774,7 @@ public static partial class WordOpenDocumentConversionExtensions {
 
     private static void AddUnmappedWordFindings(WordFeatureReport features, OdfConversionReport report,
         int images, int hyperlinks, int bookmarks, NoteMappingStats notes) {
-        var structural = new HashSet<string>(StringComparer.Ordinal) { "Paragraphs", "Tables", "Sections" };
+        var structural = new HashSet<string>(StringComparer.Ordinal) { "Paragraphs", "Tables", "Sections", "Fields" };
         foreach (WordFeatureFinding finding in features.Features.Where(item => item.Count > 0 && !structural.Contains(item.Name))) {
             int handled = finding.Name == "Images" ? images : finding.Name == "External hyperlinks" ? hyperlinks :
                 finding.Name == "Bookmarks" ? bookmarks : finding.Name == "Footnotes" ?
@@ -703,8 +785,9 @@ public static partial class WordOpenDocumentConversionExtensions {
         }
     }
 
-    private static void AddUnmappedOdfFindings(OdfFeatureReport features, OdfConversionReport report,
-        int hyperlinks, int bookmarks, int pageLayouts, NoteMappingStats notes) {
+    private static void AddUnmappedOdfFindings(OdtDocument source, OdfFeatureReport features, OdfConversionReport report,
+        int hyperlinks, int bookmarks, int pageLayouts,
+        HashSet<System.Xml.Linq.XElement> handledUnsupportedFieldElements, NoteMappingStats notes) {
         foreach (OdfFeatureDiagnostic diagnostic in features.Diagnostics) {
             report.Add("source-inspection", OdfConversionMappingStatus.Unsupported, 1,
                 diagnostic.Code + " in " + diagnostic.PartPath + ": " + diagnostic.Message);
@@ -712,8 +795,16 @@ public static partial class WordOpenDocumentConversionExtensions {
         int remainingHyperlinks = hyperlinks, remainingBookmarks = bookmarks,
             remainingPageLayouts = pageLayouts, remainingNotes = notes.SeenOdtNotes;
         foreach (OdfFeatureFinding finding in features.Findings) {
+            if (finding.Name == "text-fields" && finding.Support == OdfFeatureSupport.Editable) continue;
             int handled = 0;
-            if (finding.Name == "external-links") {
+            if (finding.Name == "text-fields" && finding.Support == OdfFeatureSupport.Inspected &&
+                finding.PartPath is string partPath && source.Package.ContainsEntry(partPath)) {
+                System.Xml.Linq.XDocument part = source.Package.GetXml(partPath);
+                handled = handledUnsupportedFieldElements.Count(element =>
+                    ReferenceEquals(element.Document, part) &&
+                    !(OdtField.IsBasicElement(element) &&
+                        OdfFeatureInspector.IsEditableOdtField(source.Package.Kind, partPath, element)));
+            } else if (finding.Name == "external-links") {
                 handled = Math.Min(remainingHyperlinks, finding.Count);
                 remainingHyperlinks -= handled;
             } else if (finding.Name == "text-bookmarks") {

@@ -8,7 +8,7 @@
         WindowStartupLocation="CenterOwner" Background="{DynamicResource StudioPanelBrush}" FontSize="14">
   <Grid Margin="20" RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="10">
     <StackPanel Spacing="4">
-      <TextBlock Text="{loc:Loc Organizer.ExtractTitle}" FontSize="20" FontWeight="SemiBold" />
+      <TextBlock Text="{loc:Loc Organizer.ExtractTitle}" FontSize="19" FontWeight="SemiBold" />
       <TextBlock Text="{Binding Destination}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Destination}" IsVisible="{Binding IsPreview}" />
       <TextBlock Text="{Binding DestinationHint}" TextWrapping="Wrap" IsVisible="{Binding IsPreview}" />
       <TextBlock Text="{Binding Summary}" TextWrapping="Wrap" IsVisible="{Binding HasResult}" />
@@ -22,7 +22,7 @@
       <TextBlock Text="{Binding PageCountLabel}" />
     </StackPanel>
     <ScrollViewer Grid.Row="2" MaxHeight="90" HorizontalScrollBarVisibility="Disabled">
-      <TextBlock Text="{Binding ErrorMessage}" TextWrapping="Wrap" />
+      <TextBlock Classes="error" Text="{Binding ErrorMessage}" TextWrapping="Wrap" />
     </ScrollViewer>
     <ListBox x:Name="PageOrder" Grid.Row="3" ItemsSource="{Binding Pages}" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
              AutomationProperties.Name="{loc:Loc Organizer.ExtractOrder}">
@@ -34,11 +34,11 @@
       </DataTemplate></ListBox.ItemTemplate>
     </ListBox>
     <WrapPanel Grid.Row="4" HorizontalAlignment="Right">
-      <Button Content="{loc:Loc Organizer.ExtractOpen}" IsVisible="{Binding CanOpenOutput}" Command="{Binding OpenOutputCommand}" Margin="4" />
-      <Button Content="{loc:Loc Organizer.ExtractReveal}" IsVisible="{Binding CanRevealOutput}" Command="{Binding RevealOutputCommand}" Margin="4" />
-      <Button Content="{loc:Loc Common.Cancel}" IsVisible="{Binding IsPreview}" IsCancel="True" Click="OnCancel" Margin="4" />
-      <Button Content="{loc:Loc Organizer.ExtractCreate}" IsVisible="{Binding IsPreview}" IsEnabled="{Binding CanApply}" Click="OnApply" Margin="4" />
-      <Button Content="{loc:Loc Common.Close}" IsVisible="{Binding HasResult}" Click="OnCancel" Margin="4" />
+      <Button Classes="tool" Content="{loc:Loc Organizer.ExtractOpen}" IsVisible="{Binding CanOpenOutput}" Command="{Binding OpenOutputCommand}" Margin="4" />
+      <Button Classes="tool" Content="{loc:Loc Organizer.ExtractReveal}" IsVisible="{Binding CanRevealOutput}" Command="{Binding RevealOutputCommand}" Margin="4" />
+      <Button Classes="tool" Content="{loc:Loc Common.Cancel}" IsVisible="{Binding IsPreview}" IsCancel="True" Click="OnCancel" Margin="4" />
+      <Button Classes="primary" Content="{loc:Loc Organizer.ExtractCreate}" IsVisible="{Binding IsPreview}" IsEnabled="{Binding CanApply}" Click="OnApply" Margin="4" />
+      <Button Classes="tool" Content="{loc:Loc Common.Close}" IsVisible="{Binding HasResult}" Click="OnCancel" Margin="4" />
     </WrapPanel>
   </Grid>
 </Window>

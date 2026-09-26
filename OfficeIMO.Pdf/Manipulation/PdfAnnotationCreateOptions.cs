@@ -12,6 +12,8 @@ public sealed class PdfAnnotationCreateOptions {
     public string? Contents { get; set; }
     /// <summary>URI action target for a Link annotation. Other annotation subtypes must leave this null.</summary>
     public string? LinkUri { get; set; }
+    /// <summary>One-based page in this document that a Link annotation opens, fitted to the window. Use instead of <see cref="LinkUri"/>.</summary>
+    public int? LinkPageNumber { get; set; }
     /// <summary>Optional author/title.</summary>
     public string? Title { get; set; }
     /// <summary>Optional stable /NM name.</summary>

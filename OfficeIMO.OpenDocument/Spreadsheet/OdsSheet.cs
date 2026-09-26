@@ -72,17 +72,19 @@ public sealed partial class OdsSheet {
     }
 
     /// <summary>Sparse row runs without expanding <c>table:number-rows-repeated</c>.</summary>
-    public IReadOnlyList<OdsRowRun> RowRuns {
-        get {
-            var runs = new List<OdsRowRun>();
-            long start = 0;
-            foreach (XElement row in RowElements()) {
-                long repeat = OdsRepeatModel.Read(row, OdfNamespaces.Table + "number-rows-repeated");
-                runs.Add(new OdsRowRun(_document, row, start, repeat));
-                start = checked(start + repeat);
-            }
-            return runs;
+    public IReadOnlyList<OdsRowRun> RowRuns => GetRowRuns();
+
+    internal IReadOnlyList<OdsRowRun> GetRowRuns(IReadOnlyList<OdsColumnRun>? columnRuns = null) {
+        var runs = new List<OdsRowRun>();
+        long start = 0;
+        foreach (XElement row in RowElements()) {
+            long repeat = OdsRepeatModel.Read(row, OdfNamespaces.Table + "number-rows-repeated");
+            runs.Add(new OdsRowRun(_document, row, start, repeat,
+                column => GetDefaultCellStyleName(row, column, columnRuns ?? ColumnRuns),
+                () => columnRuns ?? ColumnRuns));
+            start = checked(start + repeat);
         }
+        return runs;
     }
 
     /// <summary>Sparse column definition runs without expanding repeats.</summary>
@@ -90,7 +92,7 @@ public sealed partial class OdsSheet {
         get {
             var runs = new List<OdsColumnRun>();
             long start = 0;
-            foreach (XElement column in Element.Elements(OdfNamespaces.Table + "table-column")) {
+            foreach (XElement column in ColumnElements()) {
                 long repeat = OdsRepeatModel.Read(column, OdfNamespaces.Table + "number-columns-repeated");
                 runs.Add(new OdsColumnRun(_document, column, start, repeat));
                 start = checked(start + repeat);
@@ -132,7 +134,8 @@ public sealed partial class OdsSheet {
         if (column < 0) throw new ArgumentOutOfRangeException(nameof(column));
         XElement rowElement = GetRowForEdit(row);
         XElement cellElement = GetCellForEdit(rowElement, column);
-        return new OdsCell(_document, cellElement);
+        return new OdsCell(_document, cellElement,
+            inheritedStyleResolver: () => GetDefaultCellStyleName(rowElement, column));
     }
 
     /// <summary>Gets an editable zero-based row, splitting its repeat run without expanding it.</summary>
@@ -145,7 +148,7 @@ public sealed partial class OdsSheet {
     public OdsColumn Column(long column) {
         if (column < 0) throw new ArgumentOutOfRangeException(nameof(column));
         long start = 0;
-        foreach (XElement element in Element.Elements(OdfNamespaces.Table + "table-column").ToList()) {
+        foreach (XElement element in ColumnElements().ToList()) {
             long count = OdsRepeatModel.Read(element, OdfNamespaces.Table + "number-columns-repeated");
             if (column < checked(start + count)) {
                 XElement target = OdsRepeatModel.Split(element, OdfNamespaces.Table + "number-columns-repeated", column - start);
@@ -157,10 +160,10 @@ public sealed partial class OdsSheet {
         long required = checked(column - start + 1);
         var added = new XElement(OdfNamespaces.Table + "table-column");
         OdsRepeatModel.Set(added, OdfNamespaces.Table + "number-columns-repeated", required);
-        XElement? firstRow = RowElements().FirstOrDefault();
-        XElement? insertionPoint = firstRow?.Parent?.Name == OdfNamespaces.Table + "table-header-rows"
-            ? firstRow.Parent
-            : firstRow;
+        XElement? insertionPoint = Element.Elements().FirstOrDefault(child => child.Name == OdfNamespaces.Table + "table-row"
+            || child.Name == OdfNamespaces.Table + "table-header-rows"
+            || child.Name == OdfNamespaces.Table + "table-rows"
+            || child.Name == OdfNamespaces.Table + "table-row-group");
         if (insertionPoint == null) Element.Add(added); else insertionPoint.AddBeforeSelf(added);
         XElement result = OdsRepeatModel.Split(added, OdfNamespaces.Table + "number-columns-repeated", required - 1);
         Dirty();
@@ -232,6 +235,29 @@ public sealed partial class OdsSheet {
     }
 
     internal XElement Element { get; }
+
+    internal static string? GetDefaultCellStyleName(OdsRowRun row, long column, IReadOnlyList<OdsColumnRun> columns) =>
+        GetDefaultCellStyleName(row.Element, column, columns);
+
+    private string? GetDefaultCellStyleName(XElement row, long column) =>
+        GetDefaultCellStyleName(row, column, ColumnRuns);
+
+    private static string? GetDefaultCellStyleName(XElement row, long column, IReadOnlyList<OdsColumnRun> columns) {
+        string? rowStyle = (string?)row.Attribute(OdfNamespaces.Table + "default-cell-style-name");
+        if (rowStyle != null) return rowStyle;
+        int low = 0, high = columns.Count - 1;
+        while (low <= high) {
+            int middle = low + (high - low) / 2;
+            OdsColumnRun definition = columns[middle];
+            if (column < definition.StartColumn) high = middle - 1;
+            else if (column >= checked(definition.StartColumn + definition.RepeatCount)) low = middle + 1;
+            else return definition.DefaultCellStyleName;
+        }
+        return null;
+    }
+
+    private IEnumerable<XElement> ColumnElements() => Element.Descendants(OdfNamespaces.Table + "table-column")
+        .Where(column => ReferenceEquals(column.Ancestors(OdfNamespaces.Table + "table").FirstOrDefault(), Element));
 
     private XElement GetRowForEdit(long rowIndex) {
         long start = 0;

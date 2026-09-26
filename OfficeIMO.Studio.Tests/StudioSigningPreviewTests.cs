@@ -15,6 +15,26 @@ namespace OfficeIMO.Studio.Tests;
 
 public sealed class StudioSigningPreviewTests {
     [Fact]
+    public async Task SigningReviewIdentifiesCertificationPolicyBeforeApproval() {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(() => {
+            var localizer = ((App)Application.Current!).Services.Localizer;
+            var certificate = new PdfSigningCertificateViewModel("1234", "Signer", DateTime.UtcNow.AddYears(1), "Issuer");
+            var approval = new PdfSigningSettings(certificate, "Signature", "", "", false, 1, 0, 0, 0, 0);
+            var certification = approval with { Certification = PdfCertificationPermissionLevel.FormFillingAndSignatures };
+            using var approvalPreview = new PdfSigningPreviewViewModel(approval, 1, "approved.pdf", false, null,
+                localizer, _ => Task.CompletedTask, _ => Task.CompletedTask);
+            using var certificationPreview = new PdfSigningPreviewViewModel(certification, 1, "certified.pdf", false, null,
+                localizer, _ => Task.CompletedTask, _ => Task.CompletedTask);
+
+            Assert.Contains(approvalPreview.Details, detail => detail.Contains("Approval signature", StringComparison.Ordinal));
+            Assert.Contains(certificationPreview.Details, detail => detail.Contains("Certification signature", StringComparison.Ordinal));
+            Assert.Contains(certificationPreview.Details, detail => detail.Contains("Form filling and signing", StringComparison.Ordinal));
+            return Task.FromResult(true);
+        }, CancellationToken.None);
+    }
+
+    [Fact]
     public async Task ApplyingAFormDraftBeforeReviewSignsTheChosenValue() {
         using var session = TestAppBuilder.StartSession();
         await session.Dispatch(async () => {
@@ -177,8 +197,14 @@ public sealed class StudioSigningPreviewTests {
                 loadSigningCertificate: _ => new X509Certificate2(certificate));
             try {
                 owner.Show(); await model.OpenDocumentAsync(source); SelectCertificate(model, certificate);
+                if (dark) {
+                    model.SignatureCertify = true;
+                    model.SelectedCertificationLevel = model.CertificationLevels[1];
+                }
                 Task signing = model.ApplyCertificateSignatureCommand.ExecuteAsync(null);
                 var dialog = await WaitDialog(owner, false); await Layout(dialog); Capture(dialog, $"signing-preview-{width}-{dark}");
+                if (dark) Assert.Contains(((PdfSigningPreviewViewModel)dialog.DataContext!).Details,
+                    detail => detail.Contains("Form filling and signing", StringComparison.Ordinal));
                 Assert.NotNull(((PdfSigningPreviewViewModel)dialog.DataContext!).PreviewImage);
                 dialog.FindControl<ScrollViewer>("ReviewContent")!.ScrollToEnd(); await Layout(dialog); Capture(dialog, $"signing-review-end-{width}-{dark}");
                 Click(dialog, services.Localizer.Get("Signing.Create"));

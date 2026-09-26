@@ -33,6 +33,7 @@ public sealed class StudioJobHistory : ObservableObject {
     public string? RecoveryError { get; }
     public ReadOnlyObservableCollection<StudioJobRecord> Entries { get; }
     public int ActiveCount => _entries.Count(entry => entry.IsActive);
+    public bool HasActive => ActiveCount > 0;
     public bool HasEntries => _entries.Count > 0;
     public bool CanClear => _entries.Any(entry => !entry.IsActive && !entry.HasRecovery);
     public string Summary => _localizer.FormatOrDefault("Jobs.Summary", "{0:N0} active · {1:N0} finished", ActiveCount, _entries.Count - ActiveCount);
@@ -68,6 +69,7 @@ public sealed class StudioJobHistory : ObservableObject {
     }
     private void NotifyState() {
         OnPropertyChanged(nameof(ActiveCount));
+        OnPropertyChanged(nameof(HasActive));
         OnPropertyChanged(nameof(HasEntries));
         OnPropertyChanged(nameof(CanClear));
         OnPropertyChanged(nameof(Summary));

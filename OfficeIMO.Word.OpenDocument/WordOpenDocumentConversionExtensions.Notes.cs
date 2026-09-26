@@ -189,9 +189,9 @@ public static partial class WordOpenDocumentConversionExtensions {
             return;
         }
         OdtNote result = kind == OdtNoteKind.Footnote
-            ? target.AddFootnote(paragraphs[0].Text)
-            : target.AddEndnote(paragraphs[0].Text);
-        for (int index = 1; index < paragraphs.Count; index++) result.AddParagraph(paragraphs[index].Text);
+            ? target.AddFootnote(VisibleWordNoteText(paragraphs[0]))
+            : target.AddEndnote(VisibleWordNoteText(paragraphs[0]));
+        for (int index = 1; index < paragraphs.Count; index++) result.AddParagraph(VisibleWordNoteText(paragraphs[index]));
         if (paragraphs.Any(paragraph => HasNonPlainWordNoteContent(paragraph, kind)) ||
             HasStyledWordNoteBodyRun(notes, referenceId, kind) ||
             HasNonDefaultWordNoteReferenceMark(notes, referenceId, kind))
@@ -208,6 +208,21 @@ public static partial class WordOpenDocumentConversionExtensions {
             notes.ConvertedEndnotes++;
             Increment(notes.EndnotesBySection, notes.CurrentSectionIndex);
         }
+    }
+
+    private static string VisibleWordNoteText(WordParagraphSnapshot paragraph) {
+        if (paragraph.InlineFields.Count == 0) return paragraph.Text;
+        var text = new System.Text.StringBuilder();
+        WordInlineFieldSnapshot[] fields = paragraph.InlineFields.OrderBy(field => field.RunIndex).ToArray();
+        int fieldIndex = 0;
+        for (int runIndex = 0; runIndex <= paragraph.Runs.Count; runIndex++) {
+            while (fieldIndex < fields.Length && fields[fieldIndex].RunIndex == runIndex) {
+                WordInlineFieldSnapshot field = fields[fieldIndex++];
+                if (!field.IsHiddenInstructionContent) text.Append(field.ResultText);
+            }
+            if (runIndex < paragraph.Runs.Count) text.Append(paragraph.Runs[runIndex].Text);
+        }
+        return text.ToString();
     }
 
     private static void Increment(Dictionary<int, int> counts, int key) =>

@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
                           xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                           xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
+             xmlns:infra="using:OfficeIMO.Studio.Infrastructure"
              xmlns:shell="using:OfficeIMO.Studio.Features.Shell"
              x:Class="OfficeIMO.Studio.Features.Workflows.DocumentHealthView"
              x:DataType="shell:MainWindowViewModel">
@@ -137,7 +138,11 @@
         <StackPanel IsVisible="{Binding DocumentHealth.IsResultStep}" Spacing="14">
           <TextBlock Text="{loc:Loc DocumentHealth.Result}" Classes="sectionTitle" />
           <Border IsVisible="{Binding DocumentHealth.IsResultSuccessful}" Background="{DynamicResource StudioSuccessSoftBrush}" BorderBrush="{DynamicResource StudioSuccessBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
-            <StackPanel Spacing="6"><TextBlock Text="{Binding DocumentHealth.Status}" Foreground="{DynamicResource StudioSuccessBrush}" FontWeight="SemiBold" /><TextBlock Text="{Binding DocumentHealth.Summary}" TextWrapping="Wrap" /><TextBlock Text="{Binding DocumentHealth.OutputPath}" IsVisible="{Binding DocumentHealth.HasOutput}" TextWrapping="Wrap" /></StackPanel>
+            <StackPanel Spacing="6"><TextBlock Text="{Binding DocumentHealth.Status}" Foreground="{DynamicResource StudioSuccessBrush}" FontWeight="SemiBold" /><TextBlock Text="{Binding DocumentHealth.Summary}" TextWrapping="Wrap" /><TextBlock Text="{Binding DocumentHealth.OutputPath, Converter={x:Static infra:StudioConverters.FileName}}" ToolTip.Tip="{Binding DocumentHealth.OutputPath}" IsVisible="{Binding DocumentHealth.HasOutput}" TextTrimming="CharacterEllipsis" FontWeight="Medium" />
+            <WrapPanel ItemSpacing="6" LineSpacing="6" IsVisible="{Binding DocumentHealth.HasOutput}">
+              <Button Classes="primary" Content="{loc:Loc Output.Open}" Command="{Binding OutputActions.OpenCommand}" CommandParameter="{Binding DocumentHealth.OutputPath}" />
+              <Button Classes="tool" Content="{loc:Loc Jobs.ShowInFolder}" Command="{Binding OutputActions.RevealCommand}" CommandParameter="{Binding DocumentHealth.OutputPath}" />
+            </WrapPanel></StackPanel>
           </Border>
           <Border IsVisible="{Binding DocumentHealth.IsResultCancelled}" Background="{DynamicResource StudioWarningSoftBrush}" BorderBrush="{DynamicResource StudioWarningBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
             <StackPanel Spacing="6"><TextBlock Text="{loc:Loc DocumentHealth.Cancelled}" Foreground="{DynamicResource StudioWarningBrush}" FontWeight="SemiBold" /><TextBlock Text="{Binding DocumentHealth.Summary}" TextWrapping="Wrap" /></StackPanel>
@@ -165,7 +170,7 @@
         <TextBlock Grid.Column="1" Text="{Binding DocumentHealth.Status}" Classes="muted" VerticalAlignment="Center" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" />
         <Button Grid.Column="2" Classes="primary" AutomationProperties.Name="{loc:Loc DocumentHealth.Continue}" Content="{loc:Loc DocumentHealth.Continue}" Command="{Binding DocumentHealth.ContinueCommand}" IsVisible="{Binding DocumentHealth.CanContinue}" />
         <Button Grid.Column="2" Classes="primary" Content="{Binding DocumentHealth.RunActionLabel}" Command="{Binding DocumentHealth.RunCommand}" IsVisible="{Binding DocumentHealth.IsReviewStep}" />
-        <Button Grid.Column="2" Classes="primary" AutomationProperties.Name="{loc:Loc DocumentHealth.StartAnother}" Content="{loc:Loc DocumentHealth.StartAnother}" Command="{Binding ShowDocumentHealthCommand}" IsVisible="{Binding DocumentHealth.IsResultStep}" />
+        <Button Grid.Column="2" Classes="tool" AutomationProperties.Name="{loc:Loc DocumentHealth.StartAnother}" Content="{loc:Loc DocumentHealth.StartAnother}" Command="{Binding ShowDocumentHealthCommand}" IsVisible="{Binding DocumentHealth.IsResultStep}" />
       </Grid>
     </Border>
   </Grid>

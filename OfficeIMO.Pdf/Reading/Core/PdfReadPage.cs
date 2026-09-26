@@ -489,6 +489,17 @@ public sealed partial class PdfReadPage {
         return GetImages(pageNumber, GetImagePlacements(pageNumber));
     }
 
+    internal void VisitImages(int pageNumber, Action<PdfExtractedImage> emit, CancellationToken cancellationToken) {
+        Guard.NotNull(emit, nameof(emit));
+        cancellationToken.ThrowIfCancellationRequested();
+        IReadOnlyList<PdfImagePlacement> placements = GetImagePlacements(pageNumber,
+            includeHiddenOptionalContent: false,
+            cancellationCheck: cancellationToken.ThrowIfCancellationRequested,
+            cancellationToken: cancellationToken);
+        VisitImagesForResources(ResolveDictionary(GetInheritedValue("Resources")), pageNumber, placements,
+            colorizeImageMasks: false, new PageContentBudget(this, cancellationToken), emit, cancellationToken);
+    }
+
     internal IReadOnlyList<PdfExtractedImage> GetImages(int pageNumber, IReadOnlyList<PdfImagePlacement>? imagePlacements) {
         return GetImages(pageNumber, imagePlacements, colorizeImageMasks: false);
     }
@@ -516,28 +527,44 @@ public sealed partial class PdfReadPage {
         IReadOnlyList<PdfImagePlacement>? imagePlacements,
         bool colorizeImageMasks = false,
         PageContentBudget? pageContentBudget = null, CancellationToken cancellationToken = default) {
+        var images = new List<PdfExtractedImage>();
+        VisitImagesForResources(resources, pageNumber, imagePlacements, colorizeImageMasks,
+            pageContentBudget, images.Add, cancellationToken);
+        return images.Count == 0 ? Array.Empty<PdfExtractedImage>() : images.AsReadOnly();
+    }
+
+    private void VisitImagesForResources(
+        PdfDictionary? resources,
+        int pageNumber,
+        IReadOnlyList<PdfImagePlacement>? imagePlacements,
+        bool colorizeImageMasks,
+        PageContentBudget? pageContentBudget,
+        Action<PdfExtractedImage> emit,
+        CancellationToken cancellationToken) {
         if (!cancellationToken.CanBeCanceled) cancellationToken = pageContentBudget?.CancellationToken ?? default;
         cancellationToken.ThrowIfCancellationRequested();
-        var images = resources == null
-            ? new List<PdfExtractedImage>()
-            : new List<PdfExtractedImage>(ResourceResolver.GetImageXObjectsForResources(
+        if (resources != null) {
+            ResourceResolver.VisitImageXObjectsForResources(
                 resources,
                 _objects,
                 pageNumber,
+                emit,
                 imagePlacements,
                 colorizeImageMasks,
                 _limits,
                 EffectiveOutputIntentColorTransform,
                 pageContentBudget == null ? null : pageContentBudget.TryConsumeColorFunctionEvaluations,
-                pageContentBudget?.ColorFunctionResolutionContext, cancellationToken));
+                pageContentBudget?.ColorFunctionResolutionContext, cancellationToken);
+        }
         if (imagePlacements is not null) {
             for (int i = 0; i < imagePlacements.Count; i++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 PdfImagePlacement placement = imagePlacements[i];
                 if (placement.InlineImageStream == null) {
                     continue;
                 }
 
-                images.Add(ResourceResolver.BuildExtractedImage(
+                emit(ResourceResolver.BuildExtractedImage(
                     pageNumber,
                     placement.ResourceName,
                     placement.ObjectNumber,
@@ -556,8 +583,6 @@ public sealed partial class PdfReadPage {
                     cancellationToken: cancellationToken, maxImageReferenceSteps: _limits.MaxImageReferenceSteps));
             }
         }
-
-        return images.Count == 0 ? Array.Empty<PdfExtractedImage>() : images.AsReadOnly();
     }
 
     /// <summary>Extracts image XObject placement invocations from this page.</summary>
@@ -608,13 +633,14 @@ public sealed partial class PdfReadPage {
         bool includeHiddenOptionalContent,
         int maximumPlacements = int.MaxValue,
         Action<long>? consumeWork = null,
-        Action? cancellationCheck = null) {
+        Action? cancellationCheck = null,
+        CancellationToken cancellationToken = default) {
         cancellationCheck?.Invoke();
         var placements = new List<PdfImagePlacement>();
         var pageResources = ResolveDictionary(GetInheritedValue("Resources"));
         var activeForms = new HashSet<PdfStream>();
         double pageHeight = GetPageSize().Height;
-        var pageContentBudget = new PageContentBudget(this);
+        var pageContentBudget = new PageContentBudget(this, cancellationToken);
 
         string content = GetContentStreamContent(pageContentBudget);
         cancellationCheck?.Invoke();

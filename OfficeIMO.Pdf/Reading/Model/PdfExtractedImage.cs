@@ -1,3 +1,6 @@
+using System;
+using System.IO;
+using System.Threading;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
@@ -98,6 +101,17 @@ public sealed class PdfExtractedImage {
     /// JPEG images with PDF transparency masks can expose unresolved mask metadata when the JPEG payload is passed through without alpha conversion. Other supported image streams return their original encoded bytes.
     /// </summary>
     public byte[] Bytes => (byte[])_bytes.Clone();
+
+    /// <summary>Copies extracted image bytes without creating another in-memory payload.</summary>
+    public void CopyTo(Stream destination, CancellationToken cancellationToken = default) {
+        Guard.NotNull(destination, nameof(destination));
+        for (int offset = 0; offset < _bytes.Length;) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int length = Math.Min(64 * 1024, _bytes.Length - offset);
+            destination.Write(_bytes, offset, length);
+            offset += length;
+        }
+    }
 
     internal byte[] EncodedBytes => _bytes;
 

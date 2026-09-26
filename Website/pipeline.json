@@ -438,7 +438,13 @@
         {
           "product": "officeimo.studio",
           "label": "OfficeIMO Studio",
-          "match": ["OfficeIMO-Studio-*.msi", "OfficeIMO-Studio-*-portable.zip"]
+          "match": [
+            "OfficeIMO-Studio-*.msi",
+            "OfficeIMO-Studio-*-portable.zip",
+            "OfficeIMO-Studio-linux-*-PortableCompat.zip",
+            "officeimo-studio_*.deb",
+            "OfficeIMO-Studio-*-osx-*.zip"
+          ]
         },
         {
           "product": "officeimo.googleworkspace.auth.googleapis",

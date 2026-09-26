@@ -14,6 +14,7 @@ internal static partial class PdfAnnotationEditor {
         ValidateLinkUriAgainstCatalog(options, objects, catalog);
         List<int> pages = GetPageObjectNumbersInDocumentOrder(objects);
         if (options.PageNumber > pages.Count) throw new ArgumentOutOfRangeException(nameof(options), "Annotation page number exceeds the PDF page count.");
+        if (options.LinkPageNumber > pages.Count) throw new ArgumentOutOfRangeException(nameof(options), "Link destination page exceeds the PDF page count.");
         int pageObjectNumber = pages[options.PageNumber - 1]; PdfIndirectObject pageIndirect = objects[pageObjectNumber]; PdfDictionary page = (PdfDictionary)pageIndirect.Value;
         int annotationObjectNumber = NextAnnotationObjectNumber(objects);
         var annotation = new PdfDictionary(); annotation.Items["Type"] = new PdfName("Annot"); annotation.Items["Subtype"] = new PdfName(options.Subtype); annotation.Items["P"] = new PdfReference(pageObjectNumber, pageIndirect.Generation);
@@ -40,6 +41,14 @@ internal static partial class PdfAnnotationEditor {
             action.Items["S"] = new PdfName("URI");
             action.Items["URI"] = new PdfStringObj(options.LinkUri, useTextStringEncoding: true);
             annotation.Items["A"] = action;
+            annotation.Items["Border"] = CreateNumberArray(InvisibleLinkBorder);
+        }
+        if (options.LinkPageNumber is int destinationPage) {
+            int destinationObjectNumber = pages[destinationPage - 1];
+            var destination = new PdfArray();
+            destination.Items.Add(new PdfReference(destinationObjectNumber, objects[destinationObjectNumber].Generation));
+            destination.Items.Add(new PdfName("Fit"));
+            annotation.Items["Dest"] = destination;
             annotation.Items["Border"] = CreateNumberArray(InvisibleLinkBorder);
         }
         if (options.IconName != null) annotation.Items["Name"] = new PdfName(options.IconName);
@@ -80,8 +89,13 @@ internal static partial class PdfAnnotationEditor {
         if ((options.Subtype == "Polygon" || options.Subtype == "PolyLine") && options.Vertices is null) throw new ArgumentException("Path annotations require vertices.", nameof(options));
         if (options.Subtype == "Ink" && options.InkPaths is null) throw new ArgumentException("Ink annotations require ink paths.", nameof(options));
         if (options.Subtype == "Link") {
-            Guard.NotNullOrWhiteSpace(options.LinkUri, nameof(options.LinkUri));
-            Guard.UriAction(options.LinkUri!, nameof(options.LinkUri));
+            if ((options.LinkUri is null) == (options.LinkPageNumber is null))
+                throw new ArgumentException("Link annotations require exactly one target: LinkUri or LinkPageNumber.", nameof(options));
+            if (options.LinkPageNumber is int destinationPage) Guard.PositiveInteger(destinationPage, nameof(options.LinkPageNumber));
+            else {
+                Guard.NotNullOrWhiteSpace(options.LinkUri, nameof(options.LinkUri));
+                Guard.UriAction(options.LinkUri!, nameof(options.LinkUri));
+            }
             if (options.Title != null ||
                 options.IconName != null ||
                 options.InReplyToObjectNumber.HasValue ||
@@ -96,8 +110,8 @@ internal static partial class PdfAnnotationEditor {
                     "Link annotations do not support markup-only author, popup, reply, review, subject, intent, or icon options.",
                     nameof(options));
             }
-        } else if (options.LinkUri != null) {
-            throw new ArgumentException("LinkUri can be used only with Link annotations.", nameof(options));
+        } else if (options.LinkUri != null || options.LinkPageNumber != null) {
+            throw new ArgumentException("Link targets can be used only with Link annotations.", nameof(options));
         }
     }
 
@@ -146,6 +160,7 @@ internal static partial class PdfAnnotationEditor {
         if (expectedParentObjectNumber.HasValue && found.Review?.InReplyToObjectNumber != expectedParentObjectNumber) throw new InvalidOperationException("PDF annotation reply relationship readback failed; the artifact was not returned.");
         if (options.ReviewState.HasValue && found.Review?.StandardState != options.ReviewState) throw new InvalidOperationException("PDF annotation review state readback failed; the artifact was not returned.");
         if (options.LinkUri != null && !info.GetLinkAnnotationsByUri(options.LinkUri).Any(link => link.PageNumber == options.PageNumber)) throw new InvalidOperationException("PDF link annotation readback failed; the URI target was not returned.");
+        if (options.LinkPageNumber is int page && !info.LinkAnnotations.Any(link => link.PageNumber == options.PageNumber && link.DestinationPageNumber == page)) throw new InvalidOperationException("PDF link annotation readback failed; the page destination was not returned.");
         if (options.InteriorColor is not null && !NumbersEqual(found.InteriorColor, options.InteriorColor.Select(ClampColor).ToArray())) throw new InvalidOperationException("PDF annotation interior-color readback failed; the artifact was not returned.");
         if (options.Opacity.HasValue && !NumberEquals(found.Opacity, options.Opacity.Value)) throw new InvalidOperationException("PDF annotation opacity readback failed; the artifact was not returned.");
         if (options.BorderWidth.HasValue && !NumberEquals(found.BorderWidth, options.BorderWidth.Value)) throw new InvalidOperationException("PDF annotation border-width readback failed; the artifact was not returned.");

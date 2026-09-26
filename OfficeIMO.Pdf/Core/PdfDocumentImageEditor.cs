@@ -1,3 +1,6 @@
+using System;
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>Finds and edits image placements on existing PDF pages.</summary>
@@ -9,6 +12,11 @@ public sealed class PdfDocumentImageEditor {
     /// <summary>Extracts every unique embedded image XObject in page order.</summary>
     public IReadOnlyList<PdfExtractedImage> Extract(PdfLoadOptions? readOptions = null) =>
         _document.Reader.Images(readOptions);
+
+    /// <summary>Visits each embedded image without retaining all extracted payloads.</summary>
+    public void Visit(Action<PdfExtractedImage> visit, CancellationToken cancellationToken = default) =>
+        PdfImageExtractor.VisitImages(_document.GetReadDocument(_document.ReadOptions, cancellationToken), visit,
+            cancellationToken);
 
     /// <summary>Extracts embedded images referenced by a caller-ordered page selection.</summary>
     public IReadOnlyList<PdfExtractedImage> Extract(PdfPageSelection selection, PdfLoadOptions? readOptions = null) =>

@@ -234,18 +234,52 @@ public abstract partial class OdfDocument {
         };
         XElement[] ancestry = owner.AncestorsAndSelf().Reverse().ToArray();
         foreach (XElement element in ancestry) {
+            if (document.Kind == OdfDocumentKind.Spreadsheet &&
+                (element.Name == OdfNamespaces.Table + "table-cell" ||
+                 element.Name == OdfNamespaces.Table + "covered-table-cell")) {
+                ApplyOdsInheritedCellState(document, element, state);
+            }
             ApplyOdfElementState(document, element, state);
             foreach (OdfStyle style in ResolveOdfElementStyles(document, element)) {
                 foreach (OdfStyle candidate in document.Styles.Resolve(style).Reverse()) ApplyOdfStyleState(candidate, state);
             }
         }
-        if (document.Kind == OdfDocumentKind.Spreadsheet && TryGetOdsColumnElement(owner, out XElement? column)) {
-            ApplyOdfElementState(document, column!, state);
-            foreach (OdfStyle style in ResolveOdfElementStyles(document, column!)) {
-                foreach (OdfStyle candidate in document.Styles.Resolve(style).Reverse()) ApplyOdfStyleState(candidate, state);
-            }
-        }
         return state;
+    }
+
+    private static void ApplyOdsInheritedCellState(OdfDocument document, XElement cell,
+        OdfContentSafetyState state) {
+        OdfStyle? familyDefault = document.Styles.FindDefault(OdfStyleFamily.TableCell);
+        if (familyDefault != null) ApplyOdfStyleState(familyDefault, state);
+
+        TryGetOdsColumnElement(cell, out XElement? column);
+        XElement? table = cell.Ancestors(OdfNamespaces.Table + "table").FirstOrDefault();
+        if (column != null && table != null) {
+            foreach (XElement group in column.Ancestors().TakeWhile(item => !ReferenceEquals(item, table)).Reverse()) {
+                ApplyOdfElementState(document, group, state);
+                ApplyOdfResolvedStyles(document, group, state);
+            }
+            ApplyOdfElementState(document, column, state);
+            ApplyOdfResolvedStyles(document, column, state);
+        }
+
+        if (cell.Attribute(OdfNamespaces.Table + "style-name") != null) return;
+        XElement? row = cell.Ancestors(OdfNamespaces.Table + "table-row").FirstOrDefault();
+        string? inheritedName = (string?)row?.Attribute(OdfNamespaces.Table + "default-cell-style-name")
+            ?? (string?)column?.Attribute(OdfNamespaces.Table + "default-cell-style-name");
+        if (inheritedName == null) return;
+        OdfStyle? inherited = document.Styles.FindInPart(OdfStyleFamily.TableCell, inheritedName, "content.xml")
+            ?? document.Styles.Find(OdfStyleFamily.TableCell, inheritedName);
+        if (inherited != null)
+            foreach (OdfStyle candidate in document.Styles.Resolve(inherited).Reverse())
+                ApplyOdfStyleState(candidate, state);
+    }
+
+    private static void ApplyOdfResolvedStyles(OdfDocument document, XElement element,
+        OdfContentSafetyState state) {
+        foreach (OdfStyle style in ResolveOdfElementStyles(document, element))
+            foreach (OdfStyle candidate in document.Styles.Resolve(style).Reverse())
+                ApplyOdfStyleState(candidate, state);
     }
 
     private static IEnumerable<OdfStyle> ResolveOdfElementStyles(OdfDocument document, XElement element) {
@@ -287,8 +321,9 @@ public abstract partial class OdfDocument {
             state.HiddenEvidence = "An owning OpenDocument sheet, row, or column has table:visibility='" + tableVisibility + "'.";
             state.HiddenContainer = true;
         }
-        if (string.Equals((string?)element.Attribute(OdfNamespaces.Table + "display"), "false", StringComparison.OrdinalIgnoreCase)) {
-            state.HiddenEvidence = "An owning OpenDocument table group has table:display='false'.";
+        string? groupDisplay = (string?)element.Attribute(OdfNamespaces.Table + "display");
+        if (OdfBoolean.TryParseXml(groupDisplay, out bool displayed) && !displayed) {
+            state.HiddenEvidence = "An owning OpenDocument table group has table:display='" + groupDisplay + "'.";
             state.HiddenContainer = true;
         }
         if ((element.Name == OdfNamespaces.Text + "hidden-text" || element.Name == OdfNamespaces.Text + "hidden-paragraph") &&
@@ -323,7 +358,8 @@ public abstract partial class OdfDocument {
             string? foreground = (string?)text.Attribute(OdfNamespaces.Fo + "color");
             if (!string.IsNullOrWhiteSpace(foreground)) state.Foreground = foreground;
             string? background = (string?)text.Attribute(OdfNamespaces.Fo + "background-color");
-            if (!string.IsNullOrWhiteSpace(background) && !string.Equals(background, "transparent", StringComparison.OrdinalIgnoreCase)) state.Background = background;
+            if (!string.IsNullOrWhiteSpace(background)) state.TextBackground = string.Equals(background, "transparent", StringComparison.OrdinalIgnoreCase)
+                ? null : background;
         }
         XElement? graphic = style.Element.Element(OdfNamespaces.Style + "graphic-properties");
         if (graphic != null) {
@@ -342,9 +378,11 @@ public abstract partial class OdfDocument {
             if (IsZeroOdfLength(length)) state.ZeroGeometryEvidence = "The resolved OpenDocument row or column style has zero visible geometry.";
         }
         string? cellBackground = (string?)style.Element.Element(OdfNamespaces.Style + "table-cell-properties")?.Attribute(OdfNamespaces.Fo + "background-color");
-        if (!string.IsNullOrWhiteSpace(cellBackground) && !string.Equals(cellBackground, "transparent", StringComparison.OrdinalIgnoreCase)) state.Background = cellBackground;
+        if (!string.IsNullOrWhiteSpace(cellBackground)) state.Background = string.Equals(cellBackground, "transparent", StringComparison.OrdinalIgnoreCase)
+            ? null : cellBackground;
         string? paragraphBackground = (string?)style.Element.Element(OdfNamespaces.Style + "paragraph-properties")?.Attribute(OdfNamespaces.Fo + "background-color");
-        if (!string.IsNullOrWhiteSpace(paragraphBackground) && !string.Equals(paragraphBackground, "transparent", StringComparison.OrdinalIgnoreCase)) state.Background = paragraphBackground;
+        if (!string.IsNullOrWhiteSpace(paragraphBackground)) state.ParagraphBackground =
+            string.Equals(paragraphBackground, "transparent", StringComparison.OrdinalIgnoreCase) ? null : paragraphBackground;
     }
 
     private static bool TryGetOdsColumnElement(XElement owner, out XElement? column) {
@@ -357,12 +395,28 @@ public abstract partial class OdfDocument {
             columnIndex = checked(columnIndex + ReadOdfRepeat(sibling, OdfNamespaces.Table + "number-columns-repeated"));
         }
         long cursor = 0;
-        foreach (XElement candidate in table.Elements(OdfNamespaces.Table + "table-column")) {
+        foreach (XElement candidate in OdsColumnDefinitions(table)) {
             long repeat = ReadOdfRepeat(candidate, OdfNamespaces.Table + "number-columns-repeated");
             if (columnIndex >= cursor && columnIndex < checked(cursor + repeat)) { column = candidate; return true; }
             cursor = checked(cursor + repeat);
         }
         return false;
+    }
+
+    private static IEnumerable<XElement> OdsColumnDefinitions(XElement container) {
+        foreach (XElement child in container.Elements()) {
+            if (child.Name == OdfNamespaces.Table + "table-row" ||
+                child.Name == OdfNamespaces.Table + "table-row-group" ||
+                child.Name == OdfNamespaces.Table + "table-header-rows" ||
+                child.Name == OdfNamespaces.Table + "table-rows") yield break;
+            if (child.Name == OdfNamespaces.Table + "table-column") {
+                yield return child;
+            } else if (child.Name == OdfNamespaces.Table + "table-column-group" ||
+                       child.Name == OdfNamespaces.Table + "table-header-columns" ||
+                       child.Name == OdfNamespaces.Table + "table-columns") {
+                foreach (XElement column in OdsColumnDefinitions(child)) yield return column;
+            }
+        }
     }
 
     private static long ReadOdfRepeat(XElement element, XName name) {
@@ -375,7 +429,7 @@ public abstract partial class OdfDocument {
         evidence = string.Empty;
         if (!OdfColor.TryParse(state.Foreground, out OdfColor foreground)) return false;
         OdfColor background;
-        if (OdfColor.TryParse(state.Background, out OdfColor parsedBackground)) {
+        if (OdfColor.TryParse(state.TextBackground ?? state.ParagraphBackground ?? state.Background, out OdfColor parsedBackground)) {
             background = parsedBackground;
         } else if (state.CanUseDefaultWhiteBackground) {
             background = new OdfColor(255, 255, 255);
@@ -421,6 +475,8 @@ public abstract partial class OdfDocument {
         internal double? FontSizePoints { get; set; }
         internal string? Foreground { get; set; }
         internal string? Background { get; set; }
+        internal string? ParagraphBackground { get; set; }
+        internal string? TextBackground { get; set; }
         internal bool CanUseDefaultWhiteBackground { get; set; }
         internal bool NonPrimary { get; set; }
     }

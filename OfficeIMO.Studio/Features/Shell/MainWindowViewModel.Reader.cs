@@ -62,6 +62,10 @@ public sealed partial class MainWindowViewModel {
 
     public int PrimaryReaderColumnSpan => IsComparisonOpen ? 1 : 3;
 
+    public string PageStatusText => SelectedPage is null
+        ? _localizer.Get("Document.NoPage")
+        : _localizer.Format("Document.PagePosition", SelectedPage.PageNumber, Pages.Count);
+
     public string ComparisonPagePosition => ComparisonSelectedPage is null
         ? _localizer.Get("Document.NoPage")
         : _localizer.Format("Document.PagePosition", ComparisonSelectedPage.PageNumber, ComparisonPages.Count);
@@ -97,7 +101,10 @@ public sealed partial class MainWindowViewModel {
         foreach (PdfPageViewModel page in ComparisonPages) page.IsNightMode = value;
     }
 
-    partial void OnIsComparisonOpenChanged(bool value) => OnPropertyChanged(nameof(PrimaryReaderColumnSpan));
+    partial void OnIsComparisonOpenChanged(bool value) {
+        OnPropertyChanged(nameof(PrimaryReaderColumnSpan));
+        OnPropertyChanged(nameof(ShowOcrPrompt));
+    }
 
     partial void OnComparisonSelectedPageChanged(PdfPageViewModel? value) {
         OnPropertyChanged(nameof(ComparisonPagePosition));
