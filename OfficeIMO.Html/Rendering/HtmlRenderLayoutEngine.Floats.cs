@@ -550,9 +550,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     RecordInlineOwnerGeometry(segment.Run, formattingContainer, x,
                         textY - paintTopOverflow, Math.Max(0.01D, segment.Width),
                         paintHeight + paintTopOverflow, inlineBounds);
-                    if (!string.IsNullOrWhiteSpace(segment.Text)) {
-                        RecordInlineAnchorGeometry(segment.Run, formattingContainer, x, lineY,
-                            segment.Width, lineHeight, anchorBounds);
+                    if (segment.Run.LinkUri != null && !string.IsNullOrWhiteSpace(segment.Text)) {
+                        double anchorY = lineY;
+                        double anchorHeight = lineHeight;
+                        if (!current.HasReplacedImage) {
+                            ResolveInlineAnchorTextVerticalBounds(segment, lineY, lineHeight,
+                                out anchorY, out anchorHeight);
+                        }
+                        RecordInlineAnchorGeometry(segment.Run, formattingContainer, x, anchorY,
+                            segment.Width, anchorHeight, anchorBounds);
                     }
                     if (!segment.Run.Style.PaintVisible) {
                         cursor += rightToLeftLine ? -segment.Width : segment.Width;

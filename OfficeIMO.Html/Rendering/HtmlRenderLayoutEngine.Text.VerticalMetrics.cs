@@ -43,4 +43,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         return _options.FallbackTextFaceMetrics?.Invoke(text, style.Font, style.FontDescriptor);
     }
+
+    private void ResolveInlineAnchorTextVerticalBounds(
+        InlineSegment segment,
+        double lineY,
+        double lineHeight,
+        out double anchorY,
+        out double anchorHeight) {
+        anchorY = lineY;
+        anchorHeight = lineHeight;
+        HtmlTextFaceMetrics? face = ResolveTextFaceMetrics(segment.Text, segment.Run.Style);
+        if (!face.HasValue || face.Value.Height <= 0D || double.IsNaN(face.Value.Height)
+            || double.IsInfinity(face.Value.Height)) return;
+
+        // An inline anchor's CSS box follows its font's ascent/descent box, not
+        // the full line box. Extra leading belongs to the line around it.
+        anchorHeight = face.Value.Height;
+    }
 }

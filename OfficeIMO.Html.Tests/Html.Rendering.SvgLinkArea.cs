@@ -116,4 +116,21 @@ public sealed partial class HtmlRenderingTests {
         Assert.InRange(link.Height, 25D, 40D);
         Assert.Equal("Text", link.Contents);
     }
+
+    [Fact]
+    public void HtmlPdf_InlineAnchorUsesFaceHeightInsteadOfExtraLineLeading() {
+        const string html = "<div style='font:16px/24px Example'>"
+            + "<a href='https://example.test/inline'>Link text</a></div>";
+        var options = new HtmlRenderOptions {
+            Margins = HtmlRenderMargins.All(0D),
+            FallbackTextFaceMetrics = (_, _, _) => new HtmlTextFaceMetrics(19D, 15D)
+        };
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        HtmlRenderAnchorFragment fragment = Assert.Single(rendered.Pages[0].Visuals
+            .OfType<HtmlRenderAnchorFragment>());
+        HtmlRenderText text = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>());
+
+        Assert.Equal(19D, fragment.Height, 3);
+        Assert.Equal(text.Y, fragment.Y, 3);
+    }
 }
