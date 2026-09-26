@@ -145,7 +145,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         var atomicVisualBottoms = new Dictionary<HtmlRenderFlowBlock, double>();
         IEnumerable<double> breakOffsets = lines.SelectMany(line => line.Items.SelectMany(item =>
-                item.Block!.BreakOffsets.Select(offset => contentY + line.CrossOffset + item.CrossOffset + offset)))
+                // A flex item's zero offset is its entry, not content. Keep the row
+                // boundary below, but do not strand the container's top border.
+                item.Block!.BreakOffsets
+                    .Where(offset => offset > 0.0001D)
+                    .Select(offset => contentY + line.CrossOffset + item.CrossOffset + offset)))
             .Concat(style.FlexWrap == "nowrap"
                 ? Array.Empty<double>()
                 : lines.Skip(1).Select(line => contentY + line.CrossOffset))

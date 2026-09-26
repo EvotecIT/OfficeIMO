@@ -161,7 +161,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     }
                     double marginAdjustment = 0D;
                     if (childBlock.HasCollapsibleMargins && adjoiningMargins.Count > 0) {
-                        adjoiningMargins.Add(childBlock.CollapsibleMarginTop);
+                        adjoiningMargins.Add(childBlock.CollapsibleMarginTopGroup);
                         if (!childBlock.CollapsesThrough) {
                             marginAdjustment = adjoiningMargins.Allocated - adjoiningMargins.Collapsed;
                         }
@@ -179,9 +179,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         adjoiningMargins.Clear();
                     } else if (childBlock.CollapsesThrough) {
                         if (adjoiningMargins.Count == 0) {
-                            adjoiningMargins.Reset(childBlock.CollapsibleMarginTop);
+                            adjoiningMargins.Reset(childBlock.CollapsibleMarginTopGroup);
                         }
-                        adjoiningMargins.Add(childBlock.CollapsibleMarginBottom);
+                        adjoiningMargins.Add(childBlock.CollapsibleMarginBottomGroup);
                         double collapsed = adjoiningMargins.Collapsed;
                         double trailingAdjustment = adjoiningMargins.Allocated - collapsed;
                         if (Math.Abs(trailingAdjustment) > 0.0001D) {
@@ -192,7 +192,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         }
                         adjoiningMargins.SetAllocated(collapsed);
                     } else {
-                        adjoiningMargins.Reset(childBlock.CollapsibleMarginBottom);
+                        adjoiningMargins.Reset(childBlock.CollapsibleMarginBottomGroup);
                     }
                     continue;
                 }
@@ -223,12 +223,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return false;
     }
 
-    private static double CollapseVerticalMargins(double first, double second) {
-        double positive = Math.Max(0D, Math.Max(first, second));
-        double negative = Math.Min(0D, Math.Min(first, second));
-        return positive + negative;
-    }
-
     private struct AdjoiningMarginState {
         private double _positive;
         private double _negative;
@@ -237,18 +231,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal double Allocated { get; private set; }
         internal double Collapsed => _positive + _negative;
 
-        internal void Add(double margin) {
+        internal void Add(HtmlCollapsedMargin margin) {
             Count++;
-            Allocated += margin;
-            _positive = Math.Max(_positive, margin);
-            _negative = Math.Min(_negative, margin);
+            Allocated += margin.Value;
+            _positive = Math.Max(_positive, margin.Positive);
+            _negative = Math.Min(_negative, margin.Negative);
         }
 
         internal void Clear() {
             this = default;
         }
 
-        internal void Reset(double margin) {
+        internal void Reset(HtmlCollapsedMargin margin) {
             this = default;
             Add(margin);
         }
@@ -358,14 +352,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
             _inlineFloatOverhangs.Remove(element);
         }
 
+        HtmlCollapsedMargin collapsedTopGroup = new HtmlCollapsedMargin(style.MarginTop);
+        HtmlCollapsedMargin collapsedBottomGroup = new HtmlCollapsedMargin(style.MarginBottom);
         if (!usesVerticalBlockFormatting && children.Count > 0 && CanCollapseParentMargin(style, top: true) && children[0].HasCollapsibleMargins) {
             HtmlRenderFlowBlock first = children[0];
             double childMargin = first.CollapsibleMarginTop;
             style = style.Clone();
-            style.MarginTop = CollapseVerticalMargins(style.MarginTop, childMargin);
+            collapsedTopGroup = collapsedTopGroup.Combine(first.CollapsibleMarginTopGroup);
+            style.MarginTop = collapsedTopGroup.Value;
             children[0] = first
                 .AdjustLeadingFlowSpace(childMargin)
-                .WithCollapsibleMargins(0D, first.CollapsibleMarginBottom, first.OwnerElement!);
+                .WithCollapsibleMargins(0D, first.CollapsibleMarginBottom, first.OwnerElement!,
+                    bottomGroup: first.CollapsibleMarginBottomGroup);
             if (first.OwnerElement != null) RemoveNormalFlowTopMargin(first.OwnerElement);
         }
         if (!usesVerticalBlockFormatting && children.Count > 0 && CanCollapseParentMargin(style, top: false) && children[children.Count - 1].HasCollapsibleMargins) {
@@ -373,10 +371,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             HtmlRenderFlowBlock last = children[lastIndex];
             double childMargin = last.CollapsibleMarginBottom;
             style = style.Clone();
-            style.MarginBottom = CollapseVerticalMargins(style.MarginBottom, childMargin);
+            collapsedBottomGroup = collapsedBottomGroup.Combine(last.CollapsibleMarginBottomGroup);
+            style.MarginBottom = collapsedBottomGroup.Value;
             children[lastIndex] = last
                 .AdjustTrailingFlowSpace(childMargin)
-                .WithCollapsibleMargins(last.CollapsibleMarginTop, 0D, last.OwnerElement!);
+                .WithCollapsibleMargins(last.CollapsibleMarginTop, 0D, last.OwnerElement!,
+                    topGroup: last.CollapsibleMarginTopGroup);
         }
         if (!usesVerticalBlockFormatting && children.Count > 0
             && (style.Display == "flow-root" || style.OverflowX is "auto" or "hidden" or "scroll"
@@ -626,7 +626,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             forcedBreaks: forcedBreaks.Select(item => item.Translate(contentYForBreaks)));
         block = ApplyElementSemantics(block, element, style);
         bool collapsesThrough = CanCollapseThroughEmptyBlock(style, usesBlockFormatting, children, contentVisuals, contentHeight);
-        return StampViewport(AttachElementMargins(ApplyElementPositioning(block, style, containingWidth, containingHeight, element), style, element, collapsesThrough));
+        return StampViewport(AttachElementMargins(ApplyElementPositioning(block, style, containingWidth, containingHeight, element),
+            style, element, collapsesThrough, collapsedTopGroup, collapsedBottomGroup));
     }
 
     private static HtmlRenderBoxStyle SuppressContinuationStartDecorations(HtmlRenderBoxStyle style) {
@@ -643,8 +644,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return continuation;
     }
 
-    private HtmlRenderFlowBlock AttachElementMargins(HtmlRenderFlowBlock block, HtmlRenderBoxStyle style, IElement element, bool collapsesThrough = false) {
-        HtmlRenderFlowBlock attached = block.WithCollapsibleMargins(style.MarginTop, style.MarginBottom, element, collapsesThrough);
+    private HtmlRenderFlowBlock AttachElementMargins(HtmlRenderFlowBlock block, HtmlRenderBoxStyle style, IElement element,
+        bool collapsesThrough = false, HtmlCollapsedMargin? topGroup = null, HtmlCollapsedMargin? bottomGroup = null) {
+        HtmlRenderFlowBlock attached = block.WithCollapsibleMargins(style.MarginTop, style.MarginBottom, element,
+            collapsesThrough, topGroup, bottomGroup);
         IReadOnlyList<HtmlCssRunningStringAssignment> ownAssignments =
             ResolveRunningStringAssignments(element, style, 0D);
         return ownAssignments.Count == 0
