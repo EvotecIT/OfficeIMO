@@ -60,6 +60,12 @@ internal sealed partial class OfficeOpenTypeSubstitution {
             exception is ArgumentOutOfRangeException || exception is IndexOutOfRangeException) { return false; }
     }
 
+    private static bool IsLatinDefaultScalar(int scalar) =>
+        scalar <= 0x024F || scalar >= 0x0300 && scalar <= 0x036F ||
+        scalar >= 0x1E00 && scalar <= 0x1EFF || scalar >= 0x2C60 && scalar <= 0x2C7F ||
+        scalar >= 0xA720 && scalar <= 0xA7FF || scalar >= 0xAB30 && scalar <= 0xAB6F ||
+        scalar >= 0x10780 && scalar <= 0x107BF || scalar >= 0x1DF00 && scalar <= 0x1DFFF;
+
     private bool ApplyLatinDefaultsCore(List<GlyphToken> glyphs, OfficeTextFeatureSettings settings, CancellationToken cancellationToken) {
         int[]? features = GetLatinDefaultFeatureIndexes();
         if (features == null) return false;
@@ -83,7 +89,17 @@ internal sealed partial class OfficeOpenTypeSubstitution {
             }
         }
         int operations = 0;
-        foreach (var lookup in lookups) ApplyLookup(glyphs, lookup.Key, lookup.Value, cancellationToken, ref operations);
+        // Script-specific lookups must not consume neighboring non-Latin or presentation glyphs.
+        var shaped = new List<GlyphToken>(glyphs.Count);
+        for (int index = 0; index < glyphs.Count;) {
+            if (!IsLatinDefaultScalar(glyphs[index].Scalar)) { shaped.Add(glyphs[index++]); continue; }
+            var segment = new List<GlyphToken>();
+            do { segment.Add(glyphs[index++]); }
+            while (index < glyphs.Count && IsLatinDefaultScalar(glyphs[index].Scalar));
+            foreach (var lookup in lookups) ApplyLookup(segment, lookup.Key, lookup.Value, cancellationToken, ref operations);
+            shaped.AddRange(segment);
+        }
+        glyphs.Clear(); glyphs.AddRange(shaped);
         return true;
     }
 }

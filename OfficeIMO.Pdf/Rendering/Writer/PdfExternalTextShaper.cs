@@ -37,7 +37,7 @@ internal static class PdfExternalTextShaper {
         }
 
         glyphRun = BuildGlyphRun(text, result, font.GlyphCount, font.UnitsPerEm, font.GetGlyphWidth1000, options.RecordGlyphUsage ? font.RecordGlyphUsage : null,
-            includeActualText: !automaticLatin);
+            includeActualText: !automaticLatin || result.Direction != OfficeTextDirection.LeftToRight);
         options.ProviderShapedTextRecorder?.Invoke(text, font.FontName, false);
         return true;
     }
@@ -76,7 +76,7 @@ internal static class PdfExternalTextShaper {
         }
 
         glyphRun = BuildGlyphRun(text, result, font.GlyphCount, font.UnitsPerEm, font.GetGlyphWidth1000, options.RecordGlyphUsage ? font.RecordGlyphUsage : null,
-            includeActualText: !automaticLatin);
+            includeActualText: !automaticLatin || result.Direction != OfficeTextDirection.LeftToRight);
         options.ProviderShapedTextRecorder?.Invoke(text, font.FontName, true);
         return true;
     }
@@ -123,7 +123,7 @@ internal static class PdfExternalTextShaper {
                 advanceWidth1000,
                 advanceHeight1000,
                 offsetX1000,
-                offsetY1000));
+                offsetY1000, result.GetLogicalClusterStart(glyphs.Count)));
         }
 
         // Automatic Latin runs retain logical clusters in ToUnicode. Avoid broad ActualText

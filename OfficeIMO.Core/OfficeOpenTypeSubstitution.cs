@@ -209,7 +209,15 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         var unicodeBuilder = new System.Text.StringBuilder(unicodeLength);
         for (int component = 0; component < bestComponentCount; component++) unicodeBuilder.Append(glyphs[index + component].UnicodeText);
         GlyphToken first = glyphs[index];
-        glyphs[index] = new GlyphToken(bestLigature, unicodeBuilder.ToString(), first.TextIndex, first.Scalar);
+        GlyphToken source = first;
+        int clusterStart = first.ClusterStart;
+        for (int component = 0; component < bestComponentCount; component++) {
+            GlyphToken token = glyphs[index + component];
+            clusterStart = Math.Min(clusterStart, token.ClusterStart);
+            if (source.UnicodeText.Length == 0 && token.UnicodeText.Length > 0) source = token;
+        }
+        glyphs[index] = new GlyphToken(bestLigature, unicodeBuilder.ToString(), source.TextIndex, source.Scalar,
+            isUnicodeContinuation: unicodeLength == 0, clusterStart: clusterStart);
         glyphs.RemoveRange(index + 1, bestComponentCount - 1);
         return true;
     }
@@ -274,12 +282,13 @@ internal sealed partial class OfficeOpenTypeSubstitution {
     }
 
     internal readonly struct GlyphToken {
-        internal GlyphToken(int glyphId, string unicodeText, int textIndex, int scalar, bool isUnicodeContinuation = false) {
+        internal GlyphToken(int glyphId, string unicodeText, int textIndex, int scalar, bool isUnicodeContinuation = false, int? clusterStart = null) {
             GlyphId = glyphId;
             UnicodeText = unicodeText;
             TextIndex = textIndex;
             Scalar = scalar;
             IsUnicodeContinuation = isUnicodeContinuation;
+            ClusterStart = clusterStart ?? textIndex;
         }
 
         internal int GlyphId { get; }
@@ -287,6 +296,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         internal int TextIndex { get; }
         internal int Scalar { get; }
         internal bool IsUnicodeContinuation { get; }
-        internal GlyphToken WithGlyph(int glyphId) => new GlyphToken(glyphId, UnicodeText, TextIndex, Scalar, IsUnicodeContinuation);
+        internal int ClusterStart { get; }
+        internal GlyphToken WithGlyph(int glyphId) => new GlyphToken(glyphId, UnicodeText, TextIndex, Scalar, IsUnicodeContinuation, ClusterStart);
     }
 }

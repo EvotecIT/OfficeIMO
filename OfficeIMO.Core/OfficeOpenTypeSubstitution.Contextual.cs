@@ -138,7 +138,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
             if (glyphId <= 0 || glyphId >= _reader.GlyphCount) return 0;
             replacements[replacementIndex] = replacementIndex == 0
                 ? source.WithGlyph(glyphId)
-                : new GlyphToken(glyphId, string.Empty, source.TextIndex, source.Scalar, isUnicodeContinuation: true);
+                : new GlyphToken(glyphId, string.Empty, source.TextIndex, source.Scalar, isUnicodeContinuation: true, clusterStart: source.ClusterStart);
         }
         glyphs.RemoveAt(index);
         glyphs.InsertRange(index, replacements);

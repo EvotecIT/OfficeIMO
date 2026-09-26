@@ -123,14 +123,15 @@ internal readonly struct PdfGlyphInfo {
         : this(glyphId, unicodeText, unicodeText != null && unicodeText.Length > 0 ? char.ConvertToUtf32(unicodeText, 0) : 0, textIndex, nominalWidth1000, advanceWidth1000, 0, offsetX1000, offsetY1000) {
     }
 
-    public PdfGlyphInfo(int glyphId, string unicodeText, int textIndex, int nominalWidth1000, int advanceWidth1000, int advanceHeight1000, int offsetX1000, int offsetY1000)
-        : this(glyphId, unicodeText, unicodeText != null && unicodeText.Length > 0 ? char.ConvertToUtf32(unicodeText, 0) : 0, textIndex, nominalWidth1000, advanceWidth1000, advanceHeight1000, offsetX1000, offsetY1000) { }
+    public PdfGlyphInfo(int glyphId, string unicodeText, int textIndex, int nominalWidth1000, int advanceWidth1000, int advanceHeight1000, int offsetX1000, int offsetY1000, int? logicalClusterStart = null)
+        : this(glyphId, unicodeText, unicodeText != null && unicodeText.Length > 0 ? char.ConvertToUtf32(unicodeText, 0) : 0, textIndex, nominalWidth1000, advanceWidth1000, advanceHeight1000, offsetX1000, offsetY1000, logicalClusterStart) { }
 
-    private PdfGlyphInfo(int glyphId, string unicodeText, int unicodeScalar, int textIndex, int nominalWidth1000, int advanceWidth1000, int advanceHeight1000, int offsetX1000, int offsetY1000) {
+    private PdfGlyphInfo(int glyphId, string unicodeText, int unicodeScalar, int textIndex, int nominalWidth1000, int advanceWidth1000, int advanceHeight1000, int offsetX1000, int offsetY1000, int? logicalClusterStart = null) {
         GlyphId = glyphId;
         UnicodeText = unicodeText ?? string.Empty;
         UnicodeScalar = unicodeScalar;
         TextIndex = textIndex;
+        LogicalClusterStart = logicalClusterStart ?? textIndex;
         NominalWidth1000 = nominalWidth1000;
         AdvanceWidth1000 = advanceWidth1000;
         AdvanceHeight1000 = advanceHeight1000;
@@ -142,6 +143,7 @@ internal readonly struct PdfGlyphInfo {
     public string UnicodeText { get; }
     public int UnicodeScalar { get; }
     public int TextIndex { get; }
+    internal int LogicalClusterStart { get; }
     public int NominalWidth1000 { get; }
     public int AdvanceWidth1000 { get; }
     public int AdvanceHeight1000 { get; }

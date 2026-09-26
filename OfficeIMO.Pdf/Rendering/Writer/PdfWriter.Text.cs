@@ -36,7 +36,7 @@ internal static partial class PdfWriter {
             options.TryGetEmbeddedStandardFontProgram(font, out PdfTrueTypeFontProgram? fontProgram) &&
             fontProgram != null) {
             IReadOnlyList<PdfTextShapingDiagnostic> shapingDiagnostics = options.HasDiagnosticsReport
-                ? PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text, fontProgram)
+                ? PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text, fontProgram, featureSettings: featureSettings)
                 : Array.Empty<PdfTextShapingDiagnostic>();
             if (options.HasDiagnosticsReport) {
                 options.AddTextDiagnostics(PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, fontProgram));
@@ -66,7 +66,7 @@ internal static partial class PdfWriter {
             options.TryGetEmbeddedStandardOpenTypeCffFontProgram(font, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
             cffFontProgram != null) {
             IReadOnlyList<PdfTextShapingDiagnostic> shapingDiagnostics = options.HasDiagnosticsReport
-                ? PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text, cffFontProgram)
+                ? PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text, cffFontProgram, featureSettings: featureSettings)
                 : Array.Empty<PdfTextShapingDiagnostic>();
             if (options.HasDiagnosticsReport) {
                 options.AddTextDiagnostics(PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, cffFontProgram));
@@ -118,7 +118,7 @@ internal static partial class PdfWriter {
             }
 
             IReadOnlyList<PdfTextShapingDiagnostic> shapingDiagnostics = options.HasDiagnosticsReport
-                ? PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text, fontProgram)
+                ? PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text, fontProgram, featureSettings: featureSettings)
                 : Array.Empty<PdfTextShapingDiagnostic>();
             PdfTextShapingOptions renderOptions = PdfTextShapingOptions.ForRendering(
                 fontProgram.FontName,
@@ -152,7 +152,7 @@ internal static partial class PdfWriter {
             }
 
             IReadOnlyList<PdfTextShapingDiagnostic> shapingDiagnostics = options.HasDiagnosticsReport
-                ? PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text, cffFontProgram)
+                ? PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text, cffFontProgram, featureSettings: featureSettings)
                 : Array.Empty<PdfTextShapingDiagnostic>();
             PdfGlyphRun glyphRun = cffFontProgram.ShapeText(text, PdfTextShapingOptions.ForRendering(
                 cffFontProgram.FontName,

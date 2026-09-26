@@ -128,4 +128,106 @@ public class PdfOpenTypeDefaultLigatureTests {
         Assert.Contains("unsupported-font-ligature-substitution", report.Warnings.Select(warning => warning.Code));
     }
 
+    [Theory]
+    [InlineData(0x03B1, 0x03B2)]
+    [InlineData(0x0430, 0x0431)]
+    public void DefaultLatinLookupsDoNotSubstituteOtherScripts(int first, int second) {
+        byte[] data = ManagedTextShapingTestAssets.CreateFontWithLigature(first, second, scriptTag: "latn");
+        var run = PdfTrueTypeFontProgram.Parse(data, "Test").ShapeText(char.ConvertFromUtf32(first) + char.ConvertFromUtf32(second),
+            PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.OpenTypeLigatures));
+        Assert.Equal(2, run.Glyphs.Count);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PresentationCharacterDoesNotDisableNeighboringLatinLigatures(bool cff) {
+        byte[] data = File.ReadAllBytes((cff ? PdfComplianceTestFonts.FindBundledOpenTypeCffFont() : PdfComplianceTestFonts.FindBundledTrueTypeFont())!);
+        var settings = PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.OpenTypeLigatures);
+        var run = cff ? PdfOpenTypeCffFontProgram.Parse(data, "Test").ShapeText("\uFB01 office", settings)
+            : PdfTrueTypeFontProgram.Parse(data, "Test").ShapeText("\uFB01 office", settings);
+        Assert.True(run.Glyphs.Count < 8);
+        Assert.Equal("\uFB01 office", string.Concat(run.Glyphs.Select(glyph => glyph.UnicodeText)));
+    }
+
+    [Fact]
+    public void ExplicitRtlAutomaticRunKeepsOriginalLogicalText() {
+        const string text = "()[]";
+        byte[] data = File.ReadAllBytes(PdfComplianceTestFonts.FindBundledTrueTypeFont()!);
+        var run = PdfTrueTypeFontProgram.Parse(data, "Test").ShapeText(text,
+            PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.OpenTypeLigatures, direction: OfficeTextDirection.RightToLeft));
+        Assert.Equal(text, run.ActualText);
+    }
+
+    [Fact]
+    public void EnabledUnsupportedDiscretionaryLigaturesHaveFallbackDiagnostic() {
+        byte[] data = ManagedTextShapingTestAssets.CreateFontWithLigature('f', 'i', featureTag: "dlig", scriptTag: "latn", lookupFlags: 8);
+        var font = PdfTrueTypeFontProgram.Parse(data, "Test");
+        Assert.Contains(PdfTextDiagnostics.AnalyzeAdvancedTextLayout("fi", font, featureSettings: OfficeTextFeatureSettings.Default.With("dlig", 1)),
+            diagnostic => diagnostic.Code == "unsupported-font-ligature-substitution");
+        Assert.DoesNotContain(PdfTextDiagnostics.AnalyzeAdvancedTextLayout("fi", font), diagnostic => diagnostic.Code == "unsupported-font-ligature-substitution");
+    }
+
+    [Fact]
+    public void LogicalWordScopeIncludesMultipleSubstitutionContinuations() {
+        var glyphs = new[] {
+            new PdfGlyphInfo(1, "A", 0, 600, 600, 0, 0, 0),
+            new PdfGlyphInfo(2, "", 0, 600, 600, 0, 0, 0),
+            new PdfGlyphInfo(3, "", 0, 600, 600, 0, 0, 0)
+        };
+        var output = new System.Text.StringBuilder();
+        new ContentStreamBuilder(output).BeginText().TextMatrix(40, 400)
+            .ShowText(new PdfGlyphRun(glyphs, System.Array.Empty<PdfTextEncodingDiagnostic>(), preserveGlyphUnicode: true).ToTextShowCommand(), 12).EndText();
+        string content = output.ToString();
+        Assert.Contains("<000100020003> Tj", content);
+        Assert.Equal(1, content.Split(new[] { "/ActualText" }, System.StringSplitOptions.None).Length - 1);
+    }
+
+    [Theory]
+    [InlineData("A", true)]
+    [InlineData("AB", false)]
+    [InlineData("A ", false)]
+    public void ComposedSubstitutionsKeepLogicalSourceAndContinuationOwnership(string text, bool continuationOnly) {
+        byte[] data = ManagedTextShapingTestAssets.CreateFontWithComposedMultipleLigature(text.Length > 1 ? text[1] : 'B', continuationOnly);
+        var run = PdfTrueTypeFontProgram.Parse(data, "Test").ShapeText(text, PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.OpenTypeLigatures));
+        Assert.Equal(text, string.Concat(run.Glyphs.Select(glyph => glyph.UnicodeText)));
+        Assert.Equal(6, run.Glyphs.Last().GlyphId);
+        Assert.Equal(0, run.Glyphs.Last().LogicalClusterStart);
+        Assert.Equal(text.Length > 1 ? 1 : 0, run.Glyphs.Last().TextIndex);
+        var output = new System.Text.StringBuilder();
+        new ContentStreamBuilder(output).BeginText().TextMatrix(40, 400).ShowText(run.ToTextShowCommand(), 12).EndText();
+        Assert.Equal(1, output.ToString().Split(new[] { "/ActualText" }, System.StringSplitOptions.None).Length - 1);
+    }
+
+    [Theory]
+    [InlineData("A", true)]
+    [InlineData("AB", false)]
+    public void RedactionRemovesComposedContinuationPaint(string text, bool continuationOnly) {
+        byte[] data = ManagedTextShapingTestAssets.CreateFontWithComposedMultipleLigature('B', continuationOnly);
+        var run = PdfTrueTypeFontProgram.Parse(data, "Test").ShapeText(text, PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.OpenTypeLigatures));
+        byte[] pdf = PdfDocument.Create(new PdfOptions { CompressContentStreams = false }.EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test"))
+            .Paragraph(paragraph => paragraph.Text(text)).ToBytes();
+        var span = PdfReadDocument.Open(pdf).Pages[0].GetTextSpans().First();
+        string painted = "<" + string.Concat(run.Glyphs.Select(glyph => glyph.GlyphId.ToString("X4"))) + "> Tj";
+        Assert.Contains(painted, PdfEncoding.Latin1GetString(pdf));
+        byte[] redacted = PdfRedactionApplier.Apply(pdf, new[] { new PdfRedactionArea(1, span.X - 1, span.Y - span.FontSize * 1.5, span.FontSize, span.FontSize * 2, "cluster") });
+        Assert.DoesNotContain(painted, PdfEncoding.Latin1GetString(redacted));
+    }
+
+    [Fact]
+    public void RedactionRemovesEveryGlyphInDefaultMultipleSubstitutionCluster() {
+        byte[] data = ManagedTextShapingTestAssets.CreateFontWithMultipleSubstitution('A', scriptTag: "latn", featureTag: "liga");
+        var font = PdfTrueTypeFontProgram.Parse(data, "Test");
+        var run = font.ShapeText("A", PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.OpenTypeLigatures));
+        Assert.Equal(2, run.Glyphs.Count);
+        Assert.Equal("", run.Glyphs[1].UnicodeText);
+        byte[] source = PdfDocument.Create(new PdfOptions { CompressContentStreams = false }.EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test"))
+            .Paragraph(paragraph => paragraph.Text("A")).ToBytes();
+        var span = Assert.Single(PdfReadDocument.Open(source).Pages[0].GetTextSpans(), item => item.Text == "A");
+        Assert.Equal(run.TotalAdvanceWidth1000 * span.FontSize / 1000D, span.Advance, 3);
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { new PdfRedactionArea(1, span.X - 1, span.Y - span.FontSize * 1.5, span.Advance + 2, span.FontSize * 2, "cluster") });
+        Assert.DoesNotContain("A", PdfTextExtractor.ExtractAllText(redacted));
+        Assert.DoesNotContain("<00030004> Tj", PdfEncoding.Latin1GetString(redacted));
+    }
+
 }

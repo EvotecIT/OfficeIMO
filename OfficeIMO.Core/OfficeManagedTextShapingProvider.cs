@@ -32,7 +32,6 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
             string.IsNullOrEmpty(request.Text) ||
             !OfficeManagedTextShaper.RequiresComplexLayout(request.Text) && request.FeatureSettings.IsDefault && !request.ApplyDefaultLatinLigatures ||
             request.ApplyDefaultLatinLigatures && OfficeManagedTextShaper.RequiresComplexLayout(request.Text) ||
-            request.ApplyDefaultLatinLigatures && request.Text.Any(character => character >= '\uFB00' && character <= '\uFB04') ||
             OfficeTextElements.ContainsVariationSelector(request.Text) ||
             OfficeTextElements.ContainsZeroWidthJoinerSequence(request.Text) ||
             OfficeTextElements.ContainsShapingRequiredScript(request.Text) ||
@@ -101,7 +100,9 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
             advanceAdjustments.Add(positioning[index].XAdvance);
         }
 
-        return glyphs.Count == 0 ? null : new OfficeTextShapingResult(glyphs, advanceAdjustments, request.Direction);
+        int[]? clusterStarts = tokens.Any(token => token.ClusterStart != token.TextIndex)
+            ? tokens.Select(token => token.ClusterStart).ToArray() : null;
+        return glyphs.Count == 0 ? null : new OfficeTextShapingResult(glyphs, advanceAdjustments, request.Direction, clusterStarts);
     }
 
     private static IReadOnlyList<VisualTextElement> MapVisualElements(

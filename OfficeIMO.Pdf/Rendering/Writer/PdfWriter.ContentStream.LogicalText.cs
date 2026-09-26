@@ -33,7 +33,10 @@ internal sealed partial class ContentStreamBuilder {
                 PdfGlyphInfo glyph = glyphs[index++];
                 word.Add(glyph);
                 logical.Append(glyph.UnicodeText);
-            } while (index < glyphs.Count && string.IsNullOrWhiteSpace(glyphs[index].UnicodeText) == whitespace);
+                if (glyph.UnicodeText.Length > 0) whitespace = string.IsNullOrWhiteSpace(glyph.UnicodeText);
+            } while (index < glyphs.Count && (glyphs[index].UnicodeText.Length == 0 ||
+                glyphs[index].LogicalClusterStart < glyphs[index].TextIndex ||
+                string.IsNullOrWhiteSpace(glyphs[index].UnicodeText) == whitespace));
             _sb.Append("ET\nBT\n");
             TextMatrix(_textA, _textB, _textC, _textD, _textE, _textF);
             bool marked = logical.Length != 0;

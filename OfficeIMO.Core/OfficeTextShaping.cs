@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 
 namespace OfficeIMO.Drawing;
 
@@ -321,6 +322,7 @@ public sealed class OfficeTextShapingRequest {
 /// <summary>A shaped glyph run in visual write order.</summary>
 public sealed class OfficeTextShapingResult {
     private readonly int[]? _advanceAdjustments;
+    private readonly int[]? _logicalClusterStarts;
 
     /// <summary>Creates an immutable result from shaped glyph mappings.</summary>
     public OfficeTextShapingResult(IEnumerable<OfficeShapedGlyph> glyphs)
@@ -335,7 +337,8 @@ public sealed class OfficeTextShapingResult {
     internal OfficeTextShapingResult(
         IEnumerable<OfficeShapedGlyph> glyphs,
         IReadOnlyList<int>? advanceAdjustments,
-        OfficeTextDirection direction = OfficeTextDirection.Auto) {
+        OfficeTextDirection direction = OfficeTextDirection.Auto,
+        IReadOnlyList<int>? logicalClusterStarts = null) {
         if (glyphs == null) {
             throw new ArgumentNullException(nameof(glyphs));
         }
@@ -352,6 +355,10 @@ public sealed class OfficeTextShapingResult {
         }
         Glyphs = Array.AsReadOnly(snapshot.ToArray());
         Direction = direction;
+        if (logicalClusterStarts != null) {
+            if (logicalClusterStarts.Count != snapshot.Count) throw new ArgumentException("Logical cluster mappings must match the glyph count.", nameof(logicalClusterStarts));
+            _logicalClusterStarts = logicalClusterStarts.ToArray();
+        }
         if (advanceAdjustments != null) {
             if (advanceAdjustments.Count != snapshot.Count) {
                 throw new ArgumentException("Shaped glyph advance adjustments must match the glyph count.", nameof(advanceAdjustments));
@@ -370,6 +377,8 @@ public sealed class OfficeTextShapingResult {
     public OfficeTextDirection Direction { get; }
 
     internal int GetAdvanceAdjustment(int glyphIndex) => _advanceAdjustments?[glyphIndex] ?? 0;
+    // A composed glyph can paint part of an earlier source cluster while its Unicode begins later.
+    internal int GetLogicalClusterStart(int glyphIndex) => _logicalClusterStarts?[glyphIndex] ?? Glyphs[glyphIndex].TextIndex;
 }
 
 /// <summary>Maps one shaped font glyph back to its logical Unicode source.</summary>
