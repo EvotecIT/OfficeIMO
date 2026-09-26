@@ -2,13 +2,16 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
-        private readonly List<(LayoutResult.Page? Page, double Left, double Right, double Top, double Bottom)> floatingTables = new();
+        private readonly List<(LayoutResult.Page? Page, double Left, double Right, double Top, double Bottom, bool AllowOverlap)> floatingTables = new();
 
         private double PositionTableX(PdfTablePosition position, double tableWidth) {
             double left = position.HorizontalAnchor == PdfTableAnchor.Page ? 0 : currentOpts.MarginLeft;
             double available = position.HorizontalAnchor == PdfTableAnchor.Page ? currentOpts.PageWidth : width;
-            double alignment = position.HorizontalAlignment == PdfAlign.Right ? available - tableWidth
-                : position.HorizontalAlignment == PdfAlign.Center ? (available - tableWidth) / 2 : 0;
+            PdfAlign horizontal = position.HorizontalAlignment;
+            if (position.MirrorHorizontalOnEvenPages && (pages.Count + 1) % 2 == 0)
+                horizontal = horizontal == PdfAlign.Left ? PdfAlign.Right : horizontal == PdfAlign.Right ? PdfAlign.Left : horizontal;
+            double alignment = horizontal == PdfAlign.Right ? available - tableWidth
+                : horizontal == PdfAlign.Center ? (available - tableWidth) / 2 : 0;
             return left + alignment + position.HorizontalOffset;
         }
 
@@ -21,11 +24,24 @@ internal static partial class PdfWriter {
             return top - alignment - position.VerticalOffset;
         }
 
+        private void AvoidFloatingTable(PdfTablePosition position, double left, double tableWidth, double height) {
+            bool moved;
+            do {
+                moved = false;
+                foreach (var region in floatingTables) {
+                    if ((position.AllowOverlap && region.AllowOverlap) || !ReferenceEquals(region.Page, currentPage) || left + tableWidth <= region.Left || left >= region.Right ||
+                        y - height >= region.Top || y <= region.Bottom) continue;
+                    y = region.Bottom - position.DistanceTop;
+                    moved = true;
+                }
+            } while (moved);
+        }
+
         private void ReserveFloatingTable(PdfTablePosition position, double left, double top, double tableWidth, double height) {
             floatingTables.RemoveAll(region => !ReferenceEquals(region.Page, currentPage));
             floatingTables.Add((currentPage, left - position.DistanceLeft,
                 left + tableWidth + position.DistanceRight, top + position.DistanceTop,
-                top - height - position.DistanceBottom));
+                top - height - position.DistanceBottom, position.AllowOverlap));
         }
 
         private bool HasFloatingTables => floatingTables.Any(region => ReferenceEquals(region.Page, currentPage));

@@ -148,36 +148,44 @@ internal static partial class PdfWriter {
             if (HasFloatingTables) {
                 floatingLineOffsets = new(); floatingLineWidths = new(); floatingLineGaps = new();
                 floatingPageStarts = new();
-                double wrapLeading = Math.Max(leading, rpb.Runs.Select(run => (run.FontSize ?? size) * leading / size).DefaultIfEmpty(leading).Max());
-                double inlineWidth = rpb.Runs.Select(run => run.InlineElement?.Width ?? 0).DefaultIfEmpty(0).Max();
-                double exclusionHeight = Math.Max(wrapLeading, rpb.Runs.Select(run => run.InlineElement is { } element
-                    ? Math.Max(GetAscenderForOptions(ChooseNormal(currentOpts.DefaultFont), size, currentOpts), element.BaselineOffset + element.Height)
-                        + Math.Max(GetDescenderForOptions(ChooseNormal(currentOpts.DefaultFont), size, currentOpts), -element.BaselineOffset)
-                    : 0).DefaultIfEmpty(0).Max());
                 double simulatedTop = y - (y < frameStart - 0.001 ? spacingBefore : 0);
                 double previousHeight = 0;
                 bool onOriginalPage = true;
+                int layoutLineIndex = -1;
+                double lineBaseTop = simulatedTop;
+                bool lineBaseOriginalPage = true;
                 var wrapped = WrapRichRunsCoreWithFirstLineOrigin(rpb.Runs, textFrame.Width, size,
                     ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth,
                     textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts,
-                    paragraphStyle?.TabStops.ToArray(), (index, completedHeight) => {
-                        simulatedTop -= completedHeight - previousHeight;
-                        previousHeight = completedHeight;
-                        if (simulatedTop - wrapLeading < currentOpts.MarginBottom) { simulatedTop = frameStart; onOriginalPage = false; floatingPageStarts.Add(index); }
+                    paragraphStyle?.TabStops.ToArray(), (index, completedHeight, requiredHeight, minimumWidth) => {
+                        if (index != layoutLineIndex) {
+                            simulatedTop -= completedHeight - previousHeight;
+                            previousHeight = completedHeight;
+                            layoutLineIndex = index;
+                            lineBaseTop = simulatedTop;
+                            lineBaseOriginalPage = onOriginalPage;
+                        }
+                        simulatedTop = lineBaseTop;
+                        onOriginalPage = lineBaseOriginalPage;
+                        floatingPageStarts.Remove(index);
+                        if (simulatedTop - requiredHeight < currentOpts.MarginBottom) { simulatedTop = frameStart; onOriginalPage = false; floatingPageStarts.Add(index); }
                         double left = index == 0 ? textFrame.FirstLineX : textFrame.X;
                         double availableWidth = index == 0 ? textFrame.FirstLineWidth : textFrame.Width;
-                        var frame = onOriginalPage ? GetFloatingTextFrame(left, availableWidth, simulatedTop, exclusionHeight, inlineWidth) : (X: left, Width: availableWidth, Gap: 0D);
-                        if (simulatedTop - frame.Gap - exclusionHeight < currentOpts.MarginBottom) {
+                        var frame = onOriginalPage ? GetFloatingTextFrame(left, availableWidth, simulatedTop, requiredHeight, minimumWidth) : (X: left, Width: availableWidth, Gap: 0D);
+                        if (simulatedTop - frame.Gap - requiredHeight < currentOpts.MarginBottom) {
                             frame = (left, availableWidth, 0D);
                             simulatedTop = frameStart;
                             onOriginalPage = false;
                             floatingPageStarts.Add(index);
                         }
-                        floatingLineOffsets.Add(frame.X - textFrame.X);
-                        floatingLineWidths.Add(frame.Width);
-                        floatingLineGaps.Add(frame.Gap);
+                        if (floatingLineOffsets.Count <= index) {
+                            floatingLineOffsets.Add(0); floatingLineWidths.Add(0); floatingLineGaps.Add(0);
+                        }
+                        floatingLineOffsets[index] = frame.X - textFrame.X;
+                        floatingLineWidths[index] = frame.Width;
+                        floatingLineGaps[index] = frame.Gap;
                         return (frame.Width, frame.X - textFrame.X, frame.Gap);
-                    }, minimumLineHeight: wrapLeading);
+                    });
                 lines = wrapped.Lines; lineHeights = wrapped.LineHeights;
                 double actualHeight = (y < frameStart - 0.001 ? spacingBefore : 0) + lineHeights.Sum();
                 double nextHeight = paragraphStyle?.KeepWithNext == true && nextBlock != null

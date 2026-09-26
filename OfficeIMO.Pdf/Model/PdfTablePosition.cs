@@ -31,7 +31,8 @@ public sealed class PdfTablePosition {
         PdfTableAnchor verticalAnchor = PdfTableAnchor.Flow, PdfAlign horizontalAlignment = PdfAlign.Left,
         PdfTableVerticalAlignment verticalAlignment = PdfTableVerticalAlignment.Top,
         double horizontalOffset = 0, double verticalOffset = 0,
-        double distanceLeft = 0, double distanceRight = 0, double distanceTop = 0, double distanceBottom = 0) {
+        double distanceLeft = 0, double distanceRight = 0, double distanceTop = 0, double distanceBottom = 0,
+        bool mirrorHorizontalOnEvenPages = false, bool allowOverlap = true) {
         if (horizontalAnchor < PdfTableAnchor.Flow || horizontalAnchor > PdfTableAnchor.Page) throw new ArgumentOutOfRangeException(nameof(horizontalAnchor));
         if (verticalAnchor < PdfTableAnchor.Flow || verticalAnchor > PdfTableAnchor.Page) throw new ArgumentOutOfRangeException(nameof(verticalAnchor));
         if (horizontalAlignment != PdfAlign.Left && horizontalAlignment != PdfAlign.Center && horizontalAlignment != PdfAlign.Right) throw new ArgumentOutOfRangeException(nameof(horizontalAlignment));
@@ -42,12 +43,18 @@ public sealed class PdfTablePosition {
         Validate(distanceRight, nameof(distanceRight), true);
         Validate(distanceTop, nameof(distanceTop), true);
         Validate(distanceBottom, nameof(distanceBottom), true);
+        MirrorHorizontalOnEvenPages = mirrorHorizontalOnEvenPages; AllowOverlap = allowOverlap;
         HorizontalAnchor = horizontalAnchor; VerticalAnchor = verticalAnchor;
         HorizontalAlignment = horizontalAlignment; VerticalAlignment = verticalAlignment;
         HorizontalOffset = horizontalOffset; VerticalOffset = verticalOffset;
         DistanceLeft = distanceLeft; DistanceRight = distanceRight;
         DistanceTop = distanceTop; DistanceBottom = distanceBottom;
     }
+
+    /// <summary>Reverse left/right alignment on even output pages for inside/outside placement.</summary>
+    public bool MirrorHorizontalOnEvenPages { get; }
+    /// <summary>Whether this table can intersect earlier floating table bounds.</summary>
+    public bool AllowOverlap { get; }
 
     /// <summary>Horizontal reference rectangle.</summary>
     public PdfTableAnchor HorizontalAnchor { get; }
