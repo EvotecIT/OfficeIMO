@@ -192,4 +192,15 @@ public sealed class OdtHeaderFooter {
         _document.MarkPartDirty("styles.xml");
         return new OdtParagraph(_document, paragraph, "styles.xml");
     }
+
+    /// <summary>Adds a heading with an outline level from 1 through 10.</summary>
+    public OdtParagraph AddHeading(string text, int level = 1) {
+        if (level < 1 || level > 10) throw new ArgumentOutOfRangeException(nameof(level), "Heading level must be between 1 and 10.");
+        var heading = new XElement(OdfNamespaces.Text + "h",
+            new XAttribute(OdfNamespaces.Text + "outline-level", level));
+        OdfTextCodec.Append(heading, text);
+        _element.Add(heading);
+        _document.MarkPartDirty("styles.xml");
+        return new OdtParagraph(_document, heading, "styles.xml");
+    }
 }

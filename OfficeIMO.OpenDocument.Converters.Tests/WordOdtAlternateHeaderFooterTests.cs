@@ -270,6 +270,49 @@ public sealed class WordOdtAlternateHeaderFooterTests {
     }
 
     [Fact]
+    public void WordHeadingInFirstHeaderKeepsItsOdtOutlineLevel() {
+        using WordDocument source = WordDocument.Create();
+        source.AddParagraph("Body");
+        WordSection section = source.Sections[0];
+        section.AddHeadersAndFooters();
+        section.DifferentFirstPage = true;
+        WordParagraph heading = section.GetOrCreateHeader(WordHeaderFooterType.First).AddParagraph("Heading");
+        heading.Style = WordParagraphStyles.Heading2;
+
+        OdtDocument target = source.ToOpenDocument();
+        Assert.Equal(2, target.PageLayout.FirstHeader!.Paragraphs.Single().HeadingLevel);
+        Assert.Contains(target.Package.GetXml("styles.xml").Descendants(OdfNamespaces.Text + "h"),
+            element => (string?)element.Attribute(OdfNamespaces.Text + "outline-level") == "2");
+    }
+
+    [Fact]
+    public void FallbackHeaderDoesNotDoubleCountUnsupportedSourceNote() {
+        OdtDocument source = OdtDocument.Create();
+        source.AddParagraph("Body");
+        source.PageLayout.Header.AddParagraph().AddFootnote("Header note");
+        source.PageLayout.EnsureFirstFooter().AddParagraph("First footer");
+
+        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        using WordDocument target = conversion.Value;
+        Assert.Contains(conversion.Report.ForFeature("note-headers-footers"), mapping =>
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+    }
+
+    [Fact]
+    public void BasicFieldInFirstHeaderIsMappedWithoutFalseSourceLoss() {
+        OdtDocument source = OdtDocument.Create();
+        source.AddParagraph("Body");
+        source.PageLayout.EnsureFirstHeader().AddParagraph().AddField(OdtFieldKind.PageNumber, "7");
+
+        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        using WordDocument target = conversion.Value;
+        Assert.DoesNotContain(conversion.Report.ForFeature("source-text-fields"), mapping =>
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+        Assert.Contains(conversion.Report.ForFeature("fields"), mapping =>
+            mapping.Status == OdfConversionMappingStatus.Converted && mapping.Count == 1);
+    }
+
+    [Fact]
     public void EmptyLaterDefaultHeaderIsReportedAsLoss() {
         using WordDocument source = WordDocument.Create();
         source.AddParagraph("Body");

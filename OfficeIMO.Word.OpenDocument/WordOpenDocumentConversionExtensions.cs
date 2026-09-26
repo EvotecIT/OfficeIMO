@@ -263,7 +263,7 @@ public static partial class WordOpenDocumentConversionExtensions {
                 if (!effectiveStory.IsDisplayed) continue;
                 if (story == null) {
                     CopyOdtHeaderFooterFallback(effectiveStory, destination, effective, textCaseCulture,
-                        handledUnsupportedFieldElements, notes);
+                        handledUnsupportedFieldElements);
                 } else {
                     CopyOdtHeaderFooter(effectiveStory, destination, effective, textCaseCulture, ref hyperlinks, ref externalHyperlinks,
                         ref images, ref bookmarks, ref approximatedRuns, ref approximatedBookmarkRanges, ref unsupportedMeasurements,
@@ -712,7 +712,9 @@ public static partial class WordOpenDocumentConversionExtensions {
         ref int bookmarks, NoteMappingStats notes) {
         if (source == null) return;
         foreach (WordParagraphSnapshot paragraph in source.Paragraphs) {
-            CopyParagraph(paragraph, target.AddParagraph(), options, imageValidationBudget, ref hyperlinks, ref images, ref unsupportedImages,
+            int headingLevel = GetHeadingLevel(paragraph);
+            OdtParagraph converted = headingLevel > 0 ? target.AddHeading(string.Empty, headingLevel) : target.AddParagraph();
+            CopyParagraph(paragraph, converted, options, imageValidationBudget, ref hyperlinks, ref images, ref unsupportedImages,
                 ref bookmarks, notes);
         }
     }
