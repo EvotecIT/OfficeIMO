@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Diagnostics;
+using System.Collections.Concurrent;
 using System.Text;
 using System.Text.Json;
 using HtmlTinkerX;
@@ -89,6 +90,7 @@ internal static class HtmlMhtmlEvidenceRunner {
         string? finalUrl = null;
         string? chromiumVersion = null;
         ImageReadiness? imageReadiness = null;
+        HtmlMhtmlFontCapture.Result? fontCapture = null;
         byte[] archive;
         if (replay) {
             archive = await File.ReadAllBytesAsync(Path.GetFullPath(args[2])).ConfigureAwait(false);
@@ -105,6 +107,11 @@ internal static class HtmlMhtmlEvidenceRunner {
         } else {
             await using HtmlBrowserSession browser = await HtmlPdfComparisonRenderers.OpenChromiumSessionAsync().ConfigureAwait(false);
             await browser.Page.SetViewportSizeAsync(ViewportWidth, ViewportHeight).ConfigureAwait(false);
+            var fontResponses = new ConcurrentDictionary<string, IResponse>(StringComparer.Ordinal);
+            browser.Page.Response += (_, response) => {
+                if (response.Request.ResourceType == "font" && response.Ok)
+                    fontResponses[response.Url] = response;
+            };
             chromiumVersion = browser.Browser?.Version;
             IResponse? response = await browser.Page.GotoAsync(url!.ToString(), new PageGotoOptions {
                 WaitUntil = WaitUntilState.DOMContentLoaded,
@@ -114,6 +121,13 @@ internal static class HtmlMhtmlEvidenceRunner {
             finalUrl = browser.Page.Url;
             await browser.Page.WaitForTimeoutAsync(1000).ConfigureAwait(false);
             imageReadiness = await PrepareImagesForCaptureAsync(browser.Page).ConfigureAwait(false);
+            bool fontsReady = await browser.Page.EvaluateAsync<bool>("""
+                async () => !document.fonts || await Promise.race([
+                    document.fonts.ready.then(() => true),
+                    new Promise(resolve => setTimeout(() => resolve(false), 15000))
+                ])
+                """).ConfigureAwait(false);
+            if (!fontsReady) failures.Add("Live font capture did not settle within 15000 ms.");
             if (imageReadiness.Pending > 0) {
                 failures.Add("Live image capture left " + imageReadiness.Pending + " image(s) pending after the bounded readiness window.");
             }
@@ -124,7 +138,9 @@ internal static class HtmlMhtmlEvidenceRunner {
                 }).ConfigureAwait(false);
                 if (!result.HasValue || !result.Value.TryGetProperty("data", out JsonElement data))
                     throw new InvalidDataException("Chromium did not return MHTML snapshot data.");
-                archive = Encoding.UTF8.GetBytes(data.GetString() ?? string.Empty);
+                fontCapture = await HtmlMhtmlFontCapture.AppendLoadedFontsAsync(
+                    data.GetString() ?? string.Empty, fontResponses.Values.ToArray()).ConfigureAwait(false);
+                archive = Encoding.UTF8.GetBytes(fontCapture.ArchiveText);
             } finally {
                 await session.DetachAsync().ConfigureAwait(false);
             }
@@ -216,8 +232,14 @@ internal static class HtmlMhtmlEvidenceRunner {
             runUtc = DateTimeOffset.UtcNow,
             sourceMode = replay ? "frozen-mhtml-replay" : "live-browser-capture",
             readinessPolicy = replay ? "offline archive navigation at DOMContentLoaded"
-                : "live navigation at DOMContentLoaded plus 1000 ms; eager lazy images in batches of 8 for up to 15000 ms",
+                : "live navigation at DOMContentLoaded plus 1000 ms; eager lazy images in batches of 8 for up to 15000 ms; font-set readiness for up to 15000 ms and bounded inclusion of loaded font responses absent from Chromium MHTML",
             imageReadiness,
+            fontCapture = fontCapture == null ? null : new {
+                fontCapture.Observed,
+                fontCapture.Added,
+                fontCapture.AddedBytes,
+                fontCapture.AlreadyArchived
+            },
             browserReference = replay && !replayBrowser ? "not-recorded" : "offline-archive-replay",
             sourceCommit,
             worktreeDirty,
