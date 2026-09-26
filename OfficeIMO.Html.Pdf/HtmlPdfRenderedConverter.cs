@@ -1012,7 +1012,6 @@ internal static partial class HtmlPdfRenderedConverter {
         double originX = visual.X * PointsPerCssPixel;
         double originY = visual.Y * PointsPerCssPixel;
         bool fragmentLink = IsFragmentLink(visual.LinkUri);
-        string? drawingLinkUri = fragmentLink ? null : visual.LinkUri;
         OfficeTransform drawingToPage = OfficeTransform.Scale(scaleX * PointsPerCssPixel, scaleY * PointsPerCssPixel)
             .Then(OfficeTransform.Translate(originX, originY));
         OfficeTransform pageToDrawing = drawingToPage.Invert();
@@ -1027,9 +1026,7 @@ internal static partial class HtmlPdfRenderedConverter {
                     originX,
                     originY,
                     visual.Width * PointsPerCssPixel,
-                    visual.Height * PointsPerCssPixel,
-                    linkUri: drawingLinkUri,
-                    linkContents: drawingLinkUri == null ? null : visual.Source);
+                    visual.Height * PointsPerCssPixel);
                 shapeBatch = new OfficeDrawing(source.Width, source.Height);
             }
 
@@ -1178,7 +1175,7 @@ internal static partial class HtmlPdfRenderedConverter {
                     text.Alignment,
                     (text.LineHeight ?? text.Font.Size * 1.2D) * scaleY,
                     paintOrder: 0,
-                    linkUri: drawingLinkUri,
+                    linkUri: null,
                     source: visual.Source,
                     semanticRole: "span",
                     layoutY: textY,
@@ -1205,14 +1202,25 @@ internal static partial class HtmlPdfRenderedConverter {
         } else {
             canvas.Figure(visual.AlternativeText!, figure => AddElements(figure, source.Elements));
         }
+        double linkX = visual.ImageX * PointsPerCssPixel;
+        double linkY = visual.ImageY * PointsPerCssPixel;
+        double linkWidth = visual.ImageWidth * PointsPerCssPixel;
+        double linkHeight = visual.ImageHeight * PointsPerCssPixel;
         if (fragmentLink) {
             canvas.LinkToNamedDestination(
                 MapNamedDestination(visual.LinkUri!.Substring(1)),
-                visual.X * PointsPerCssPixel,
-                visual.Y * PointsPerCssPixel,
-                visual.Width * PointsPerCssPixel,
-                visual.Height * PointsPerCssPixel,
+                linkX,
+                linkY,
+                linkWidth,
+                linkHeight,
                 visual.Source);
+        } else if (visual.LinkUri != null) {
+            // The HTML anchor covers the visible drawing viewport, including whitespace
+            // between SVG shapes. Nested groups may clip their own paint and annotations.
+            OfficeShape linkArea = OfficeShape.Rectangle(linkWidth, linkHeight);
+            linkArea.FillColor = null;
+            linkArea.StrokeColor = null;
+            canvas.Shape(linkArea, linkX, linkY, linkUri: visual.LinkUri, linkContents: visual.Source);
         }
     }
 
