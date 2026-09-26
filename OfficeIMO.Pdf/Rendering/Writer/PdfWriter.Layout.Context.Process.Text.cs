@@ -226,7 +226,7 @@ internal static partial class PdfWriter {
                 floatingLineOffsets = null; floatingLineWidths = null; floatingLineGaps = null; floatingPageStarts = null;
             }
             while (lineIndex < lines.Count) {
-                if (floatingPageStarts?.Remove(lineIndex) == true && y < frameStart - 0.001) NewParagraphPage();
+                if (floatingPageStarts?.Remove(lineIndex) == true && (HasFloatingTables || y < frameStart - 0.001)) NewParagraphPage();
                 double minimumLineHeight = lineHeights[lineIndex];
                 if (minimumLineHeight > frameStart - currentOpts.MarginBottom)
                     throw new ArgumentException("Paragraph line height exceeds the available page content height.");
