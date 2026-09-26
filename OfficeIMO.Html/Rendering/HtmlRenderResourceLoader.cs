@@ -605,7 +605,12 @@ internal static class HtmlRenderResourceLoader {
                 }
                 HtmlResolvedResource? resource = resolution.Resource;
                 if (resource == null) {
-                    diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ResourceUnavailable, "The configured resource resolver did not return content.", HtmlDiagnosticSeverity.Warning, reference.Source, reference.ResolvedSource, OfficeConversionLossKind.Omission);
+                    // The font-face loader reports loss when no source in the face is usable.
+                    // A missing alternate URL by itself does not imply a rendered omission.
+                    bool fontCandidate = reference.Kind == HtmlResourceKind.Font;
+                    diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ResourceUnavailable, "The configured resource resolver did not return content.",
+                        fontCandidate ? HtmlDiagnosticSeverity.Info : HtmlDiagnosticSeverity.Warning, reference.Source, reference.ResolvedSource,
+                        fontCandidate ? OfficeConversionLossKind.None : OfficeConversionLossKind.Omission);
                     continue;
                 }
 

@@ -238,6 +238,48 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public async Task HtmlRenderAsync_MissingAlternateFontSourceDoesNotReportVisibleOmission() {
+        byte[] fontData = CreateHtmlRenderTestFont();
+        var options = new HtmlRenderOptions {
+            ResourceResolver = (request, cancellationToken) => Task.FromResult<HtmlResolvedResource?>(
+                request.Uri.AbsolutePath.EndsWith("/demo.ttf", StringComparison.Ordinal)
+                    ? new HtmlResolvedResource(fontData, "font/ttf")
+                    : null)
+        };
+
+        HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(
+            "<style>@font-face{font-family:Demo;src:url('https://assets.example.test/demo.ttf') format('truetype'),url('https://assets.example.test/demo.woff') format('woff')}p{font-family:Demo}</style><p>Sample</p>",
+            options);
+
+        Assert.Single(rendered.Fonts.Faces);
+        HtmlDiagnostic missingAlternate = Assert.Single(rendered.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
+        Assert.Equal("https://assets.example.test/demo.woff", missingAlternate.Source);
+        Assert.Equal(OfficeConversionLossKind.None, missingAlternate.LossKind);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable);
+        Assert.False(rendered.HasLoss);
+    }
+
+    [Fact]
+    public async Task HtmlRenderAsync_MissingWholeFontFaceStillReportsApproximation() {
+        var options = new HtmlRenderOptions {
+            ResourceResolver = (request, cancellationToken) => Task.FromResult<HtmlResolvedResource?>(null)
+        };
+
+        HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(
+            "<style>@font-face{font-family:Missing;src:url('https://assets.example.test/missing.ttf') format('truetype')}p{font-family:Missing}</style><p>Sample</p>",
+            options);
+
+        HtmlDiagnostic missingSource = Assert.Single(rendered.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
+        Assert.Equal(OfficeConversionLossKind.None, missingSource.LossKind);
+        HtmlDiagnostic unavailableFace = Assert.Single(rendered.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable);
+        Assert.Equal(OfficeConversionLossKind.Approximation, unavailableFace.LossKind);
+        Assert.True(rendered.HasLoss);
+    }
+
+    [Fact]
     public async Task HtmlRenderAsync_DiagnosesUnsupportedWebFontFormatsWithoutAddingCodecs() {
         var options = new HtmlRenderOptions {
             ResourceResolver = (request, cancellationToken) => Task.FromResult<HtmlResolvedResource?>(
