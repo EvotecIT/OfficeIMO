@@ -113,6 +113,8 @@ public sealed class PdfNUpImpositionTests {
 
     [Theory]
     [InlineData("/Collection << /Type /Collection >>", PdfImpositionSourceFeatureLoss.CatalogFeatures)]
+    [InlineData("/Extensions << /ADBE << /BaseVersion /1.7 /ExtensionLevel 3 >> >>", PdfImpositionSourceFeatureLoss.CatalogFeatures)]
+    [InlineData("/Requirements [<< /S /EnableJavaScripts >>]", PdfImpositionSourceFeatureLoss.CatalogFeatures)]
     [InlineData("/VP [<< /Type /Viewport /BBox [0 0 200 200] >>]", PdfImpositionSourceFeatureLoss.PageFeatures)]
     public void PortfolioOrSelectedViewportRequiresFeatureLossApproval(string feature, PdfImpositionSourceFeatureLoss expectedLoss) {
         bool catalogFeature = expectedLoss == PdfImpositionSourceFeatureLoss.CatalogFeatures;

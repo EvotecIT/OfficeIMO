@@ -5,6 +5,10 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Vector page imposition over the existing PDF page-overlay engine.</summary>
 internal static class PdfPageImposer {
+    private static readonly string[] UnpreservedCatalogFeatureNames = {
+        "Collection", "Extensions", "Requirements", "Legal", "Threads", "PieceInfo", "SpiderInfo", "NeedsRendering"
+    };
+
     internal static PdfImpositionResult ImposeNUp(byte[] pdf, PdfNUpOptions options, PdfPageSelection? selection, PdfLoadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(options, nameof(options));
@@ -77,7 +81,7 @@ internal static class PdfPageImposer {
         if (info.HasCatalogViewSettings || info.HasOpenActions || info.HasViewerPreferences ||
             info.HasCatalogNameTrees || info.HasCatalogUri || info.HasCatalogActions ||
             HasRawCatalogActiveContent(rawSource) ||
-            HasRawCatalogCollection(rawSource) ||
+            HasRawCatalogUnpreservedFeatures(rawSource) ||
             !string.IsNullOrWhiteSpace(info.CatalogLanguage)) {
             sourceFeatureLoss |= PdfImpositionSourceFeatureLoss.CatalogFeatures;
         }
@@ -207,9 +211,11 @@ internal static class PdfPageImposer {
         PdfActiveContentPolicy.MarkerNames.Any(name => catalog.Items.TryGetValue(name, out PdfObject? value) &&
             PdfObjectLookup.ResolveChain(source.Objects, value) is not null and not PdfNull);
 
-    private static bool HasRawCatalogCollection(PdfReadDocument source) =>
-        source.CatalogDictionary?.Items.TryGetValue("Collection", out PdfObject? value) == true &&
-        PdfObjectLookup.ResolveChain(source.Objects, value) is not null and not PdfNull;
+    private static bool HasRawCatalogUnpreservedFeatures(PdfReadDocument source) =>
+        source.CatalogDictionary is PdfDictionary catalog &&
+        UnpreservedCatalogFeatureNames
+            .Any(name => catalog.Items.TryGetValue(name, out PdfObject? value) &&
+                PdfObjectLookup.ResolveChain(source.Objects, value) is not null and not PdfNull);
 
     private static bool HasRawFormFields(PdfReadDocument source) {
         PdfDictionary? catalog = source.CatalogDictionary;
