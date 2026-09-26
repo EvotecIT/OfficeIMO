@@ -275,7 +275,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         AddUnsupported(report, "notes-master", CountUnmappedPowerPointNotesMaster(sourcePresentation),
             "Authored notes-master appearance and placeholder geometry are not transferred to ODP.");
         AddUnsupported(report, "notes-slide-appearance", CountUnmappedPowerPointNotesSlides(sourcePresentation, sourceSlideIds),
-            "Per-slide PowerPoint notes backgrounds, authored placeholder text, and master-shape display settings were not transferred to ODP.");
+            "Per-slide PowerPoint notes backgrounds, authored placeholder text, shape appearance and geometry, and master-shape display settings were not transferred to ODP.");
         AddUnsupported(report, "presentation-thumbnail", CountUnmappedPowerPointThumbnail(source),
             "The authored PowerPoint presentation thumbnail was not transferred to ODP.");
         AddUnsupported(report, "handout-master", CountUnmappedPowerPointHandoutMaster(sourcePresentation),

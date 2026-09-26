@@ -23,6 +23,16 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         return baseline.OpenXmlDocument.PresentationPart?.NotesMasterPart?.NotesMaster?.OuterXml;
     });
 
+    private static readonly Lazy<HashSet<string>> DefaultPowerPointNotesShapeProperties = new(() => {
+        using PowerPointPresentation baseline = PowerPointPresentation.Create(new MemoryStream(),
+            new PowerPointCreateOptions());
+        baseline.AddSlide(PowerPointSlideLayoutType.Blank);
+        baseline.Slides[0].Notes.Text = "Baseline";
+        return new HashSet<string>(baseline.OpenXmlDocument.PresentationPart!.SlideParts.Single()
+            .NotesSlidePart!.NotesSlide!.Descendants<P.ShapeProperties>()
+            .Select(properties => properties.OuterXml), StringComparer.Ordinal);
+    });
+
     private static readonly Lazy<byte[]?> DefaultPowerPointThumbnail = new(() => {
         using PowerPointPresentation baseline = PowerPointPresentation.Create(new MemoryStream(),
             new PowerPointCreateOptions());
@@ -179,9 +189,17 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                     .GetFirstChild<P.PlaceholderShape>() is P.PlaceholderShape placeholder &&
                     placeholder.Type?.Value != P.PlaceholderValues.Body &&
                     shape.TextBody?.Descendants<A.Text>().Any(text => !string.IsNullOrWhiteSpace(text.Text)) == true ||
-                shape.ShapeProperties is P.ShapeProperties properties && HasUnmappedPowerPointShapeAppearance(properties) ||
+                shape.ShapeProperties is P.ShapeProperties properties &&
+                    (HasUnmappedPowerPointShapeAppearance(properties) ||
+                     (properties.HasAttributes || properties.HasChildren) &&
+                     !DefaultPowerPointNotesShapeProperties.Value.Contains(properties.OuterXml)) ||
                 shape.ShapeStyle != null ||
-                shape.TextBody?.BodyProperties is A.BodyProperties body && (body.HasAttributes || body.HasChildren));
+                shape.TextBody?.BodyProperties is A.BodyProperties body && (body.HasAttributes || body.HasChildren) ||
+                shape.TextBody?.Descendants<A.RunProperties>().Any(properties =>
+                    properties.GetAttributes().Any(attribute => attribute.LocalName is
+                        "b" or "i" or "sz" or "u" or "strike" or "baseline" or "cap")) == true ||
+                shape.TextBody?.Descendants<A.ParagraphProperties>().Any(properties =>
+                    properties.GetAttributes().Any(attribute => attribute.LocalName is "algn" or "rtl")) == true);
             bool authoredNotesConnectionsOrGroups = notes.Descendants<P.ConnectionShape>().Any() ||
                 notes.Descendants<P.GroupShape>().Any();
             if (notes.CommonSlideData?.Background != null || authoredNotesShapes ||

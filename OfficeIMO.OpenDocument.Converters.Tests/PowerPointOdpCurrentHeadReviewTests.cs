@@ -32,6 +32,58 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
     }
 
     [Theory]
+    [InlineData("fill")]
+    [InlineData("outline")]
+    [InlineData("geometry")]
+    public void AuthoredNotesBodyPlaceholderAppearanceIsExplicitLoss(string kind) {
+        using PowerPointPresentation source = CreatePowerPoint();
+        source.Slides[0].Notes.Text = "Body note";
+        Assert.DoesNotContain(source.ToOpenDocumentResult().Report.ForFeature("notes-slide-appearance"),
+            mapping => mapping.Status == OdfConversionMappingStatus.Unsupported);
+        Shape body = source.OpenXmlDocument.PresentationPart!.SlideParts.Single()
+            .NotesSlidePart!.NotesSlide!.Descendants<Shape>().First(shape =>
+                shape.NonVisualShapeProperties?.ApplicationNonVisualDrawingProperties?
+                    .GetFirstChild<PlaceholderShape>()?.Type?.Value == PlaceholderValues.Body);
+        ShapeProperties properties = body.ShapeProperties ?? body.AppendChild(new ShapeProperties());
+        switch (kind) {
+            case "fill":
+                properties.Append(new A.SolidFill(new A.RgbColorModelHex { Val = "336699" }));
+                break;
+            case "outline":
+                properties.Append(new A.Outline(new A.SolidFill(new A.RgbColorModelHex { Val = "336699" })));
+                break;
+            default:
+                A.Transform2D transform = properties.GetFirstChild<A.Transform2D>()
+                    ?? properties.AppendChild(new A.Transform2D());
+                transform.Rotation = 5400000;
+                break;
+        }
+
+        AssertPowerPointLoss(source, "notes-slide-appearance");
+    }
+
+    [Theory]
+    [InlineData("bold")]
+    [InlineData("alignment")]
+    public void AuthoredNotesBodyTextFormattingIsExplicitLoss(string kind) {
+        using PowerPointPresentation source = CreatePowerPoint();
+        source.Slides[0].Notes.Text = "Body note";
+        NotesSlide notes = source.OpenXmlDocument.PresentationPart!.SlideParts.Single()
+            .NotesSlidePart!.NotesSlide!;
+        if (kind == "bold") {
+            A.Run run = notes.Descendants<A.Run>().Single();
+            run.RunProperties ??= new A.RunProperties();
+            run.RunProperties.Bold = true;
+        } else {
+            A.Paragraph paragraph = notes.Descendants<A.Paragraph>().Single();
+            paragraph.ParagraphProperties ??= new A.ParagraphProperties();
+            paragraph.ParagraphProperties.Alignment = A.TextAlignmentTypeValues.Center;
+        }
+
+        AssertPowerPointLoss(source, "notes-slide-appearance");
+    }
+
+    [Theory]
     [InlineData("tgtFrame", "_blank")]
     [InlineData("history", "0")]
     [InlineData("highlightClick", "1")]
