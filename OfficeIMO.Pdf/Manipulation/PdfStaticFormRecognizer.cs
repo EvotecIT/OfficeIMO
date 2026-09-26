@@ -155,8 +155,7 @@ internal static partial class PdfStaticFormRecognizer {
                     PdfStaticFormEvidenceKind.CheckBox => 0.79D,
                     _ => 0.72D
                 };
-                confidence *= labelMatch.Confidence;
-                if (labelMatch.IsOcr) confidence *= 0.9D;
+                confidence *= GetLabelConfidence(labelMatch.Confidence, labelMatch.IsOcr);
                 if (confidence < effective.MinimumConfidence) {
                     AddDiagnostic("low-confidence", pageNumber, "A visual field candidate was below the selected confidence threshold.");
                     continue;
@@ -173,7 +172,7 @@ internal static partial class PdfStaticFormRecognizer {
             }
         }
 
-        proposed = AssignLabels(proposed, pageDirections, AddDiagnostic, cancellationToken);
+        proposed = AssignLabels(proposed, pageDirections, AddDiagnostic, ref candidateScanWork, effective.MaxCandidateScanWork, cancellationToken);
         var usedNames = new HashSet<string>(StringComparer.Ordinal);
         foreach (PdfFormField field in document.FormFields) {
             if (string.IsNullOrWhiteSpace(field.Name)) continue;

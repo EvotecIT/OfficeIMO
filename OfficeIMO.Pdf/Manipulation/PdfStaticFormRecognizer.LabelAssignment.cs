@@ -3,6 +3,9 @@ using System.Threading;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfStaticFormRecognizer {
+    // Evidence selection and proposal scoring must use the same OCR adjustment.
+    private static double GetLabelConfidence(double confidence, bool isOcr) => isOcr ? confidence * 0.9D : confidence;
+
     private static Label? FindLabel(IReadOnlyList<Label> labels, VisualRect field,
         PdfStaticFormEvidenceKind evidence, PdfReadingDirection direction) {
         Label? best = null;
@@ -43,7 +46,7 @@ internal static partial class PdfStaticFormRecognizer {
     // a label for a farther field. Equal relationships need manual authoring.
     private static List<Candidate> AssignLabels(List<Candidate> candidates,
         Dictionary<int, PdfReadingDirection> directions,
-        Action<string, int, string> addDiagnostic, CancellationToken cancellationToken) {
+        Action<string, int, string> addDiagnostic, ref long work, int maximumWork, CancellationToken cancellationToken) {
         var accepted = new HashSet<Candidate>();
         foreach (IGrouping<Label, Candidate> group in candidates.GroupBy(static candidate => candidate.Label)) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -57,7 +60,21 @@ internal static partial class PdfStaticFormRecognizer {
             if (choices.Length > 1) addDiagnostic("ambiguous-label", choices[0].PageNumber,
                 "A label supports at most one field; competing relationships require review.");
         }
-        return candidates.Where(accepted.Contains).ToList();
+        Candidate[] selected = candidates.Where(accepted.Contains).ToArray();
+        var conflicts = new HashSet<Candidate>();
+        for (int first = 0; first < selected.Length; first++) {
+            for (int second = first + 1; second < selected.Length; second++) {
+                ChargeEffectLookup(0, ref work, maximumWork, cancellationToken);
+                Candidate left = selected[first];
+                Candidate right = selected[second];
+                if (left.PageNumber != right.PageNumber || OverlapArea(left.Label.Bounds, right.Label.Bounds) <= 0D) continue;
+                conflicts.Add(left);
+                conflicts.Add(right);
+            }
+        }
+        foreach (Candidate conflict in conflicts) addDiagnostic("ambiguous-label", conflict.PageNumber,
+            "Overlapping label evidence supports multiple fields; manual assignment is required.");
+        return selected.Where(candidate => !conflicts.Contains(candidate)).ToList();
     }
 
     private static List<VisualRect> GetTableBounds(PdfLogicalPage page, ref long work,

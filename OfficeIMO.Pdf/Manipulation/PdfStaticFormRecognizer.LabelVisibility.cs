@@ -28,6 +28,11 @@ internal static partial class PdfStaticFormRecognizer {
                     cancellationToken.ThrowIfCancellationRequested();
                     if (!span.IsVisible || (span.Color?.A ?? 255) <= 3 && !span.HasAdditionalVisiblePaint) continue;
                     PdfTextSpanBounds spanBounds = PdfTextSpanGeometry.GetAxisAlignedBounds(span);
+                    if (span.VisibleStrokePadding > 0D) {
+                        double padding = span.VisibleStrokePadding;
+                        spanBounds = new PdfTextSpanBounds(spanBounds.Left - padding, spanBounds.Bottom - padding,
+                            spanBounds.Right + padding, spanBounds.Top + padding);
+                    }
                     bool fullyVisibleText = true;
                     if (span.ClipPath is PdfPageClipPath clip) {
                         var paintedText = PdfPageClipPath.Rectangle(spanBounds.Left,
@@ -46,11 +51,16 @@ internal static partial class PdfStaticFormRecognizer {
                         pageWidth, pageHeight);
                     if (!TryIntersectPage(spanProjected.Left, spanProjected.Top, spanProjected.Right, spanProjected.Bottom,
                         pageWidth, pageHeight, out VisualRect spanVisual)) continue;
-                    if (!fullyVisibleText || span.HasUnresolvedPaint || span.HasAdditionalVisiblePaint || (span.Color?.A ?? 255) < 46) {
-                        nativeTextBounds.Add(spanVisual);
-                        uncertainEffect = true;
-                        continue;
+                    if (span.ClipPath is { IsRectangle: true, IsExact: true, ContainsTextClipping: false } exactClip) {
+                        PdfVisualBounds clipped = page.TransformBoundsToVisual(exactClip.X,
+                            page.Height - exactClip.Y - exactClip.Height, exactClip.X + exactClip.Width, page.Height - exactClip.Y);
+                        spanVisual = new VisualRect(Math.Max(spanVisual.Left, clipped.Left), Math.Max(spanVisual.Top, clipped.Top),
+                            Math.Min(spanVisual.Right, clipped.Right), Math.Min(spanVisual.Bottom, clipped.Bottom));
+                        if (spanVisual.Right <= spanVisual.Left || spanVisual.Bottom <= spanVisual.Top) continue;
                     }
+                    bool uncertainSpan = !fullyVisibleText || span.HasUnresolvedPaint || span.HasAdditionalVisiblePaint ||
+                        (span.Color?.A ?? 255) < 46;
+                    if (uncertainSpan) uncertainEffect = true;
                     ChargeEffectLookup(effects.Count, ref candidateScanWork, maxCandidateScanWork, cancellationToken);
                     PdfPageDrawingEffect effect = PdfReadPage.ResolveDrawingEffect(effects, span.PaintOrder,
                         contentOrderKey: span.ContentOrderKey);
@@ -100,6 +110,10 @@ internal static partial class PdfStaticFormRecognizer {
                         }
                     }
                     if (covered) continue;
+                    if (uncertainSpan) {
+                        nativeTextBounds.Add(spanVisual);
+                        continue;
+                    }
                     if (span.IsArtifactContent) {
                         nativeTextBounds.Add(spanVisual);
                         continue;
@@ -146,6 +160,7 @@ internal static partial class PdfStaticFormRecognizer {
             // Overlapping detections of the same text share one physical owner. Merge
             // their bounds before assignment, including evidence connected through a third detection.
             double confidence = item.Confidence;
+            bool isOcr = true;
             bool merged;
             do {
                 merged = false;
@@ -156,7 +171,12 @@ internal static partial class PdfStaticFormRecognizer {
                         OverlapArea(existing.Bounds, bounds) <= 0D) continue;
                     bounds = new VisualRect(Math.Min(bounds.Left, existing.Bounds.Left), Math.Min(bounds.Top, existing.Bounds.Top),
                         Math.Max(bounds.Right, existing.Bounds.Right), Math.Max(bounds.Bottom, existing.Bounds.Bottom));
-                    confidence = Math.Max(confidence, existing.Confidence);
+                    double existingScore = GetLabelConfidence(existing.Confidence, existing.IsOcr);
+                    double currentScore = GetLabelConfidence(confidence, isOcr);
+                    if (existingScore > currentScore || existingScore == currentScore && !existing.IsOcr) {
+                        confidence = existing.Confidence;
+                        isOcr = existing.IsOcr;
+                    }
                     labels.RemoveAt(index);
                     merged = true;
                 }
@@ -167,7 +187,7 @@ internal static partial class PdfStaticFormRecognizer {
                 labels.RemoveAll(label => !label.IsOcr &&
                     OverlapArea(label.Bounds, bounds) > Math.Min(label.Bounds.Area, bounds.Area) * 0.5D);
             }
-            labels.Add(new Label(text, bounds, confidence, isOcr: true));
+            labels.Add(new Label(text, bounds, confidence, isOcr));
         }
         return labels;
     }

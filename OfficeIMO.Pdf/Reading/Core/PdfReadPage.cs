@@ -822,7 +822,8 @@ public sealed partial class PdfReadPage {
         bool includeHiddenOptionalContent = false,
         PdfTextStateSnapshot? initialTextState = null,
         PdfPageInvokedResourceNames? invokedResourceNames = null,
-        Action<int>? onTextSpan = null) {
+        Action<int>? onTextSpan = null,
+        double initialStrokeWidth = 1D, int initialStrokeLineJoin = 0, double initialMiterLimit = 10D) {
         cancellationCheck?.Invoke();
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
@@ -949,7 +950,8 @@ public sealed partial class PdfReadPage {
             initialArtifactContent: inheritedArtifactContent,
             cancellationCheck: cancellationCheck,
             initialTextState: initialTextState,
-            onTextSpan: onTextSpan));
+            onTextSpan: onTextSpan,
+            initialStrokeWidth: initialStrokeWidth, initialStrokeLineJoin: initialStrokeLineJoin, initialMiterLimit: initialMiterLimit));
 
         foreach (var invocation in TextContentParser.ExtractFormInvocations(
                      content,
@@ -981,7 +983,8 @@ public sealed partial class PdfReadPage {
                      inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
                      inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
                      cancellationCheck: cancellationCheck,
-                     initialTextState: initialTextState)) {
+                     initialTextState: initialTextState,
+                     initialStrokeWidth: initialStrokeWidth, initialStrokeLineJoin: initialStrokeLineJoin, initialMiterLimit: initialMiterLimit)) {
             if (!TryGetFormStream(resources, invocation.Name, out int? formObjectNumber, out var formStream)) {
                 continue;
             }
@@ -1057,7 +1060,8 @@ public sealed partial class PdfReadPage {
                     cancellationCheck: cancellationCheck,
                     includeHiddenOptionalContent: includeHiddenOptionalContent,
                     initialTextState: formInitialTextState,
-                    onTextSpan: onTextSpan);
+                    onTextSpan: onTextSpan,
+                    initialStrokeWidth: invocation.StrokeWidth, initialStrokeLineJoin: invocation.StrokeLineJoin, initialMiterLimit: invocation.MiterLimit);
             } finally {
                 activeForms.Remove(formStream);
             }

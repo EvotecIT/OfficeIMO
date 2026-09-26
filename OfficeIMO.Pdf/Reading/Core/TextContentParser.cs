@@ -241,6 +241,9 @@ internal static class TextContentParser {
         public PdfPaintColorSelection? StrokeColorSelection { get; }
         public PdfTextStateSnapshot TextState { get; }
         public bool IsArtifactContent { get; }
+        public double StrokeWidth { get; }
+        public int StrokeLineJoin { get; }
+        public double MiterLimit { get; }
 
         public FormInvocation(
             string name,
@@ -261,7 +264,7 @@ internal static class TextContentParser {
             PdfPaintColorSelection? fillColorSelection = null,
             PdfPaintColorSelection? strokeColorSelection = null,
             PdfTextStateSnapshot? textState = null,
-            bool isArtifactContent = false) {
+            bool isArtifactContent = false, double strokeWidth = 1D, int strokeLineJoin = 0, double miterLimit = 10D) {
             Name = name;
             Transform = transform;
             PaintOrder = paintOrder;
@@ -281,6 +284,9 @@ internal static class TextContentParser {
             StrokeColorSelection = strokeColorSelection;
             TextState = textState ?? PdfTextStateSnapshot.Default.WithTextRenderingMode(textRenderingMode);
             IsArtifactContent = isArtifactContent;
+            StrokeWidth = strokeWidth;
+            StrokeLineJoin = strokeLineJoin;
+            MiterLimit = miterLimit;
         }
     }
 
@@ -337,7 +343,8 @@ internal static class TextContentParser {
         PdfTextStateSnapshot? initialTextState = null,
         Action<int>? onTextSpan = null,
         Func<string, byte[], bool>? isEmptyPaintedGlyphForResource = null,
-        Func<string, byte[], string?>? visualEncodingForResource = null) {
+        Func<string, byte[], string?>? visualEncodingForResource = null,
+        double initialStrokeWidth = 1D, int initialStrokeLineJoin = 0, double initialMiterLimit = 10D) {
 #if NET8_0_OR_GREATER
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedTextCharacters);
@@ -382,10 +389,10 @@ internal static class TextContentParser {
         OfficeIccRenderingIntent renderingIntent = initialRenderingIntent;
         PdfPaintColorSelection? fillColorSelection = initialFillColorSelection;
         PdfPaintColorSelection? strokeColorSelection = initialStrokeColorSelection;
-        double strokeWidth = 1D;
+        double strokeWidth = initialStrokeWidth;
         int strokeLineCap = 0;
-        int strokeLineJoin = 0;
-        double miterLimit = 10D;
+        int strokeLineJoin = initialStrokeLineJoin;
+        double miterLimit = initialMiterLimit;
         string strokeDashIdentity = "[]:0";
         if (fillColorSelection != null && fillColorSelection.TryConvert(renderingIntent, out OfficeColor selectedFillColor)) {
             fillColor = selectedFillColor;
@@ -522,10 +529,10 @@ internal static class TextContentParser {
                         renderingIntent = initialRenderingIntent;
                         fillColorSelection = effectiveInitialFillColorSelection;
                         strokeColorSelection = effectiveInitialStrokeColorSelection;
-                        strokeWidth = 1D;
+                        strokeWidth = initialStrokeWidth;
                         strokeLineCap = 0;
-                        strokeLineJoin = 0;
-                        miterLimit = 10D;
+                        strokeLineJoin = initialStrokeLineJoin;
+                        miterLimit = initialMiterLimit;
                         strokeDashIdentity = "[]:0";
                     }
                     args.Clear();
@@ -1215,6 +1222,11 @@ internal static class TextContentParser {
                 if (usesVisibleFill && !fillColorResolved || usesVisibleStroke && !strokeColorResolved) {
                     span.MarkUnresolvedPaint();
                 }
+                if (usesVisibleStroke && ApplyTextOpacity(strokeColor, true).A > 3) {
+                    double scaleEnvelope = Math.Max(Math.Abs(ctm.A) + Math.Abs(ctm.C), Math.Abs(ctm.B) + Math.Abs(ctm.D));
+                    double joinEnvelope = strokeLineJoin == 0 ? Math.Max(1D, miterLimit) : 1D;
+                    span.SetVisibleStrokePadding(Math.Max(0.5D, Math.Abs(strokeWidth)) * scaleEnvelope * joinEnvelope / 2D);
+                }
                 if (usesVisibleFill && usesVisibleStroke && ApplyTextOpacity(strokeColor, true).A > 3) {
                     span.MarkAdditionalVisiblePaint();
                 }
@@ -1648,7 +1660,8 @@ internal static class TextContentParser {
         Func<string, int>? inlineImageComponentCount = null,
         Func<PdfArray, int>? inlineImageArrayComponentCount = null,
         Action? cancellationCheck = null,
-        PdfTextStateSnapshot? initialTextState = null) {
+        PdfTextStateSnapshot? initialTextState = null,
+        double initialStrokeWidth = 1D, int initialStrokeLineJoin = 0, double initialMiterLimit = 10D) {
         textClippingBudget ??= new PdfTextClippingBudget();
         var invocations = new List<FormInvocation>();
         Matrix2D ctm = Matrix2D.Identity;
@@ -1658,6 +1671,9 @@ internal static class TextContentParser {
         PdfPageColorSpace strokeColorSpace = initialStrokeColorSpace;
         double? fillOpacity = initialFillOpacity;
         double? strokeOpacity = initialStrokeOpacity;
+        double strokeWidth = initialStrokeWidth;
+        int strokeLineJoin = initialStrokeLineJoin;
+        double miterLimit = initialMiterLimit;
         PdfTextStateSnapshot startingTextState = initialTextState ??
             PdfTextStateSnapshot.Default.WithTextRenderingMode(initialTextRenderingMode);
         PdfTextStateSnapshot textState = startingTextState;
@@ -1704,7 +1720,7 @@ internal static class TextContentParser {
             string op = operation.Name;
             switch (op) {
                 case "q":
-                    gstack.Push(new TextGraphicsState(ctm, string.Empty, 0D, 0D, 0D, 0D, 1D, 0D, fillColor, fillColorSpace, strokeColor, strokeColorSpace, fillOpacity, strokeOpacity, textRenderingMode, clipPath, hasUnsupportedEffect: hasUnsupportedEffect, fillColorResolved: fillColorResolved, renderingIntent: renderingIntent, fillColorSelection: fillColorSelection, strokeColorSelection: strokeColorSelection));
+                    gstack.Push(new TextGraphicsState(ctm, string.Empty, 0D, 0D, 0D, 0D, 1D, 0D, fillColor, fillColorSpace, strokeColor, strokeColorSpace, fillOpacity, strokeOpacity, textRenderingMode, clipPath, hasUnsupportedEffect: hasUnsupportedEffect, fillColorResolved: fillColorResolved, renderingIntent: renderingIntent, fillColorSelection: fillColorSelection, strokeColorSelection: strokeColorSelection, strokeWidth: strokeWidth, strokeLineJoin: strokeLineJoin, miterLimit: miterLimit));
                     textStateStack.Push(textState);
                     args.Clear();
                     break;
@@ -1718,6 +1734,9 @@ internal static class TextContentParser {
                         strokeColorSpace = state.StrokeColorSpace;
                         fillOpacity = state.FillOpacity;
                         strokeOpacity = state.StrokeOpacity;
+                        strokeWidth = state.StrokeWidth;
+                        strokeLineJoin = state.StrokeLineJoin;
+                        miterLimit = state.MiterLimit;
                         textRenderingMode = state.TextRenderingMode;
                         clipPath = state.ClipPath;
                         hasUnsupportedEffect = state.HasUnsupportedEffect;
@@ -1734,6 +1753,9 @@ internal static class TextContentParser {
                         strokeColorSpace = effectiveInitialStrokeColorSpace;
                         fillOpacity = initialFillOpacity;
                         strokeOpacity = initialStrokeOpacity;
+                        strokeWidth = initialStrokeWidth;
+                        strokeLineJoin = initialStrokeLineJoin;
+                        miterLimit = initialMiterLimit;
                         textState = startingTextState;
                         textRenderingMode = ReadTextRenderingMode(startingTextState.TextRenderingMode);
                         clipPath = initialClipPath;
@@ -1891,6 +1913,9 @@ internal static class TextContentParser {
                     clipPathBuilder.Clear();
                     args.Clear();
                     break;
+                case "w": if (args.Count >= 1) strokeWidth = ToDouble(args[args.Count - 1]); args.Clear(); break;
+                case "j": if (args.Count >= 1) strokeLineJoin = (int)ToDouble(args[args.Count - 1]); args.Clear(); break;
+                case "M": if (args.Count >= 1) miterLimit = ToDouble(args[args.Count - 1]); args.Clear(); break;
                 case "gs":
                     if (args.Count >= 1) {
                         ApplyGraphicsStateResource(ToName(args[args.Count - 1]));
@@ -2015,7 +2040,7 @@ internal static class TextContentParser {
                                 fillColorSelection,
                                 strokeColorSelection,
                                 textState: textState,
-                                isArtifactContent: HasArtifactContent()));
+                                isArtifactContent: HasArtifactContent(), strokeWidth: strokeWidth, strokeLineJoin: strokeLineJoin, miterLimit: miterLimit));
                         }
                     }
                     args.Clear();
@@ -2115,6 +2140,8 @@ internal static class TextContentParser {
             }
             fillOpacity = resource.FillOpacity ?? fillOpacity;
             strokeOpacity = resource.StrokeOpacity ?? strokeOpacity;
+            strokeWidth = resource.StrokeWidth ?? strokeWidth;
+            strokeLineJoin = resource.StrokeLineJoin.HasValue ? (int)resource.StrokeLineJoin.Value : strokeLineJoin;
             hasUnsupportedEffect = hasUnsupportedEffect ||
                 resource.HasUnsupportedBlendMode ||
                 resource.HasUnsupportedSoftMask ||
