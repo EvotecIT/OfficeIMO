@@ -58,6 +58,9 @@ internal static partial class RtfHtmlReader {
 
             _row = _table!.AddRow();
             _row.RepeatHeader = _tableHead > 0;
+            // Ordinary HTML table rows are kept intact during pagination. RTF
+            // permits a row to split unless this is stated on the row itself.
+            _row.KeepTogether = true;
             _tableColumnIndex = 0;
             _cell = null;
             _cellTextAlignment = null;

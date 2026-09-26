@@ -15,7 +15,9 @@ internal static partial class RtfHtmlWriter {
     }
 
     private static void AddDirectTableRowMetadata(Dictionary<string, string> values, string prefix, RtfTableRow row) {
-        AddBool(values, prefix + ".keepTogether", row.KeepTogether);
+        // The HTML import keeps rows intact by default, so an RTF row that
+        // permits splitting must carry an explicit false on a round trip.
+        values[prefix + ".keepTogether"] = row.KeepTogether ? "true" : "false";
         AddBool(values, prefix + ".keepWithNext", row.KeepWithNext);
         AddNullableBool(values, prefix + ".autoFit", row.AutoFit);
         AddNullableInt(values, prefix + ".cellGap", row.CellGapTwips);

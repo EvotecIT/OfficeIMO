@@ -8,6 +8,12 @@ internal static partial class RtfHtmlReader {
                 return;
             }
 
+            // Earlier round-trip HTML omitted false booleans. A row with RTF metadata
+            // but no keepTogether key therefore retained its original splittable state.
+            if (!values.ContainsKey("row.keepTogether")) {
+                _row.KeepTogether = false;
+            }
+
             ApplyDirectTableRowMetadata(values, "row", _row);
         }
 

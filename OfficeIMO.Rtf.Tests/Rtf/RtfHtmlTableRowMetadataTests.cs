@@ -6,6 +6,37 @@ namespace OfficeIMO.Tests.Rtf;
 
 public class RtfHtmlTableRowMetadataTests {
     [Fact]
+    public void HtmlTableRowsStayTogetherInRtfUnlessRoundTripMetadataOverridesThem() {
+        RtfDocument imported = HtmlConversionDocument.Parse(
+            "<table><tr><th>Term</th><th>Definition</th></tr>"
+            + "<tr><td>Basic</td><td>A wrapped definition</td></tr></table>").ToRtfDocument();
+        RtfTable table = Assert.IsType<RtfTable>(Assert.Single(imported.Blocks));
+
+        Assert.All(table.Rows, row => Assert.True(row.KeepTogether));
+        Assert.Equal(2, System.Text.RegularExpressions.Regex.Matches(
+            imported.ToRtf(new RtfWriteOptions { IncludeGenerator = false }), @"\\trkeep(?!follow)").Count);
+
+        RtfDocument source = RtfDocument.Create();
+        source.AddTable(1, 1).Rows[0].Cells[0].AddParagraph("Splittable");
+        string html = source.ToHtml(new RtfToHtmlOptions { IncludeRoundTripMetadata = true });
+        RtfTable roundTrip = Assert.IsType<RtfTable>(Assert.Single(HtmlConversionDocument.Parse(html).ToRtfDocument().Blocks));
+        Assert.False(Assert.Single(roundTrip.Rows).KeepTogether);
+    }
+
+    [Fact]
+    public void OlderRoundTripRowMetadataWithoutKeepTogetherPreservesSplittableRow() {
+        string legacyMetadata = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(
+            "row.keepWithNext=dHJ1ZQ==\n"));
+        string html = $"<table><tr data-officeimo-rtf-row=\"{legacyMetadata}\"><td>Legacy row</td></tr></table>";
+
+        RtfDocument imported = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        RtfTableRow row = Assert.Single(Assert.IsType<RtfTable>(Assert.Single(imported.Blocks)).Rows);
+
+        Assert.False(row.KeepTogether);
+        Assert.True(row.KeepWithNext);
+    }
+
+    [Fact]
     public void RtfDocument_ToHtml_RoundTrips_Table_Row_Rtf_Metadata() {
         RtfDocument document = RtfDocument.Create();
         int red = document.AddColor(255, 0, 0);
@@ -73,4 +104,10 @@ public class RtfHtmlTableRowMetadataTests {
         Assert.Contains(@"\trbrdrt\brdrs\brdrw12\brdrcf1", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\trbrdrv\brdrdb\brdrw8\brdrcf2", rtf, StringComparison.Ordinal);
     }
+}
+
+internal static class RtfHtmlTableTestMarkup {
+    internal static string WithoutRowMetadata(string html) =>
+        System.Text.RegularExpressions.Regex.Replace(
+            html, " data-officeimo-rtf-row=\"[^\"]*\"", string.Empty);
 }

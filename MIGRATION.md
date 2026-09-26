@@ -9,6 +9,17 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## HTML table rows exported to RTF
+
+HTML-to-RTF conversion now keeps ordinary table rows together across pages. When
+round-trip RTF metadata explicitly describes a splittable row, including older
+metadata that omitted the false `keepTogether` value, that choice is preserved.
+Older HTML fragments without row metadata cannot be distinguished from ordinary
+HTML; they now receive the keep-together default. If an application depends on
+splitting such rows, set `RtfTableRow.KeepTogether = false` on the converted
+`RtfDocument` before writing it, or regenerate the HTML from its original RTF
+using the round-trip export profile.
+
 ## Studio attachment size limit
 
 Studio now rejects an attachment source larger than 64 MiB before adding it to
