@@ -197,6 +197,13 @@ public abstract partial class OdfDocument {
 
     private byte[] Render(OdfSaveOptions? options, out OdfSaveReport report) {
         OdfCompatibilityProfile profile = options?.CompatibilityProfile ?? OdfCompatibilityProfile.Odf14;
+        EnsureFirstPageStoriesAreSupported(profile);
+        byte[] bytes = Package.Write(options);
+        report = Package.CreateSaveReport();
+        return bytes;
+    }
+
+    private void EnsureFirstPageStoriesAreSupported(OdfCompatibilityProfile profile) {
         if (Kind == OdfDocumentKind.Text &&
             (profile == OdfCompatibilityProfile.Odf13 ||
              profile == OdfCompatibilityProfile.PreserveSource && Version != OdfVersion.V1_4) &&
@@ -206,9 +213,6 @@ public abstract partial class OdfDocument {
                 element.Name == OdfNamespaces.Style + "footer-first")) {
             throw new InvalidOperationException("First-page header and footer stories require ODF 1.4 output.");
         }
-        byte[] bytes = Package.Write(options);
-        report = Package.CreateSaveReport();
-        return bytes;
     }
 
     private void CompleteSave() {

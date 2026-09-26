@@ -236,6 +236,13 @@ public sealed class WordOdtAlternateHeaderFooterTests {
         Assert.Throws<InvalidOperationException>(() => older.ToBytes(new OdfSaveOptions {
             CompatibilityProfile = OdfCompatibilityProfile.PreserveSource
         }));
+        Assert.Throws<InvalidOperationException>(() => older.ToFlatXml());
+        using var flatStream = new MemoryStream();
+        Assert.Throws<InvalidOperationException>(() => older.SaveFlatXml(flatStream));
+        Assert.Equal(0, flatStream.Length);
+        string flatPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".fodt");
+        Assert.Throws<InvalidOperationException>(() => older.SaveFlatXml(flatPath));
+        Assert.False(File.Exists(flatPath));
     }
 
     [Fact]
@@ -267,6 +274,22 @@ public sealed class WordOdtAlternateHeaderFooterTests {
         using WordDocument target = conversion.Value;
         Assert.Equal(WordParagraphStyles.Heading2,
             target.Sections[0].Header.First!.Paragraphs.Single().Style);
+    }
+
+    [Fact]
+    public void OutlineLevelTenReportsApproximationInBodyAndFirstHeader() {
+        OdtDocument source = OdtDocument.Create();
+        source.AddHeading("Body heading", 10);
+        source.PageLayout.EnsureFirstHeader().AddHeading("Header heading", 10);
+
+        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        using WordDocument target = conversion.Value;
+        Assert.Equal(WordParagraphStyles.Heading9,
+            target.Sections[0].Header.First!.Paragraphs.Single().Style);
+        Assert.Contains(conversion.Report.ForFeature("heading-levels"), mapping =>
+            mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 2);
+        Assert.Throws<OdfConversionLossException>(() => source.ToWordDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
     [Fact]

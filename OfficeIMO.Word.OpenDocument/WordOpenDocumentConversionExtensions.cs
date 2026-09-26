@@ -168,6 +168,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         WordDocument target = WordDocument.Create();
         var report = new OdfConversionReport("ODT", "DOCX");
         int paragraphs = 0, headings = 0, lists = 0, tables = 0, hyperlinks = 0, externalHyperlinks = 0, images = 0, bookmarks = 0;
+        int approximatedHeadingLevels = 0;
         int approximatedRuns = 0, approximatedBookmarkRanges = 0, unsupportedMeasurements = 0;
         int mappedFields = 0, unsupportedFields = 0;
         var handledUnsupportedFieldElements = new HashSet<System.Xml.Linq.XElement>();
@@ -217,6 +218,7 @@ public static partial class WordOpenDocumentConversionExtensions {
                 currentOrdered = null;
                 converted = target.AddParagraph();
                 if (block.Kind == OdtContentBlockKind.Heading) {
+                    if (paragraph.HeadingLevel > 9) approximatedHeadingLevels++;
                     converted.Style = HeadingStyle(paragraph.HeadingLevel ?? 1);
                     headings++;
                 } else {
@@ -240,6 +242,8 @@ public static partial class WordOpenDocumentConversionExtensions {
         int headerFooterParagraphs = sourceHeaderFooters.Sum(part => part.Paragraphs.Count);
         int displayedHeaderFooterParagraphs = sourceHeaderFooters.Where(part => part.IsDisplayed).Sum(part => part.Paragraphs.Count);
         int unsupportedHeaderFooterBlocks = sourceHeaderFooters.Where(part => part.IsDisplayed).Sum(part => part.NonParagraphBlockCount);
+        if (effective.IncludeHeadersAndFooters) approximatedHeadingLevels += sourceHeaderFooters.Where(part => part.IsDisplayed)
+            .Sum(part => part.Paragraphs.Count(paragraph => paragraph.HeadingLevel > 9));
         int hiddenHeaderFooterBlocks = sourceHeaderFooters.Where(part => !part.IsDisplayed)
             .Sum(part => part.Paragraphs.Count + part.NonParagraphBlockCount);
         bool hasAlternateHeaderFooter = sourcePageLayout.FirstHeader != null || sourcePageLayout.FirstFooter != null ||
@@ -284,6 +288,8 @@ public static partial class WordOpenDocumentConversionExtensions {
 
         AddCount(report, "paragraphs", paragraphs);
         AddCount(report, "headings", headings);
+        if (approximatedHeadingLevels > 0) report.Add("heading-levels", OdfConversionMappingStatus.Approximated,
+            approximatedHeadingLevels, "ODF outline level 10 was mapped to Word Heading9.");
         AddCount(report, "lists", lists);
         AddCount(report, "tables", tables);
         AddCount(report, "hyperlinks", hyperlinks);
