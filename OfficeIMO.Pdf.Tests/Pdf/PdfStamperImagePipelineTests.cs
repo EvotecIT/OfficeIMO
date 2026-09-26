@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using Xunit;
@@ -9,6 +10,32 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfStamperTests {
+    [Fact]
+    public void StampImage_NormalizesExifOrientationBeforeEmbedding() {
+        var raster = new OfficeRasterImage(2, 1);
+        raster.SetPixel(0, 0, OfficeColor.Red);
+        raster.SetPixel(1, 0, OfficeColor.Blue);
+        byte[] jpeg = OfficeJpegCodec.Encode(raster, new OfficeJpegEncodeOptions {
+            Quality = 100,
+            Subsampling = OfficeJpegSubsampling.Y444,
+            Metadata = new OfficeJpegMetadata(exif: [
+                (byte)'I', (byte)'I', 0x2A, 0x00, 0x08, 0x00, 0x00, 0x00,
+                0x01, 0x00, 0x12, 0x01, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00,
+                0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+            ])
+        });
+
+        byte[] stamped = PdfStamper.StampImage(BuildTwoPagePdf(), jpeg,
+            new PdfImageStampOptions { PageNumbers = new[] { 1 }, X = 72, Y = 650 });
+
+        Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(stamped).Map;
+        PdfStream image = Assert.Single(objects.Values.Select(static item => item.Value).OfType<PdfStream>(),
+            static stream => stream.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtype) &&
+                             subtype is PdfName { Name: "Image" } && stream.Dictionary.Items.ContainsKey("SMask"));
+        Assert.Equal(1, Assert.IsType<PdfNumber>(image.Dictionary.Items["Width"]).Value);
+        Assert.Equal(2, Assert.IsType<PdfNumber>(image.Dictionary.Items["Height"]).Value);
+    }
+
     [Fact]
     public void StampImage_ReadsFromCurrentStreamPosition() {
         using var stream = CreatePrefixedStream(BuildTwoPagePdf());

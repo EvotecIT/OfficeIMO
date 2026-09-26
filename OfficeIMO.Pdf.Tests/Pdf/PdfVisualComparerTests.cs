@@ -65,6 +65,45 @@ public class PdfVisualComparerTests {
     }
 
     [Fact]
+    public void SkippedPaintDoesNotCountAsAVisualMatch() {
+        byte[] expected = UnsupportedOperatorPdf("UnknownPaintA");
+        byte[] actual = UnsupportedOperatorPdf("UnknownPaintB");
+
+        PdfVisualComparisonReport report = PdfVisualComparer.Compare(expected, actual);
+        PdfVisualPageComparison page = Assert.Single(report.Pages);
+
+        Assert.False(report.IsMatch);
+        Assert.False(page.IsMatch);
+        Assert.Equal(0, page.DifferentPixels);
+        Assert.Contains(page.ExpectedCapabilityDiagnostics,
+            diagnostic => diagnostic.Code == PdfRenderCapabilities.UnknownOperatorId);
+        Assert.Contains(page.ActualCapabilityDiagnostics,
+            diagnostic => diagnostic.Code == PdfRenderCapabilities.UnknownOperatorId);
+    }
+
+    [Fact]
+    public void UnembeddedCustomFontDoesNotProveAVisualMatch() {
+        const string content = "BT /F1 18 Tf 20 80 Td (Hello) Tj ET";
+        byte[] pdf = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.4", "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + content.Length + " >>", "stream", content, "endstream", "endobj",
+            "5 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /CustomSans /Encoding /WinAnsiEncoding >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF", ""
+        }));
+
+        PdfVisualPageComparison page = Assert.Single(PdfVisualComparer.Compare(pdf, pdf).Pages);
+
+        Assert.False(page.IsMatch);
+        Assert.Equal(0, page.DifferentPixels);
+        Assert.Contains(page.ExpectedCapabilityDiagnostics,
+            diagnostic => diagnostic.Code == PdfRenderCapabilities.FontSubstitutionId);
+        Assert.Equal(PdfPageChangeKind.ModifiedCandidate,
+            Assert.Single(PdfPageChangeAnalyzer.Analyze(pdf, pdf).Changes).Kind);
+    }
+
+    [Fact]
     public void Compare_EnforcesPagePixelOutputAndCancellationBudgets() {
         byte[] pdf = BuildPdf("Bounded visual comparison");
 
@@ -109,6 +148,14 @@ public class PdfVisualComparerTests {
     private static byte[] BuildPdf(string text) => PdfDocument.Create(new PdfOptions { PageSize = new PageSize(240, 180) })
         .Paragraph(paragraph => paragraph.Text(text))
         .ToBytes();
+
+    private static byte[] UnsupportedOperatorPdf(string operation) => System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+        "%PDF-1.4", "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+        "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+        "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Contents 4 0 R >>", "endobj",
+        "4 0 obj", "<< /Length " + operation.Length + " >>", "stream", operation, "endstream", "endobj",
+        "trailer", "<< /Root 1 0 R /Size 5 >>", "%%EOF", ""
+    }));
 
     private static int Count(string value, string token) {
         int count = 0;
