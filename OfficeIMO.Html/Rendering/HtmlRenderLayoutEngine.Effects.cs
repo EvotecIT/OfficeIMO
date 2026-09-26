@@ -270,16 +270,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             bool includeStartEdge = clone || index == 0 && !bounds.IsContinuation;
             bool includeEndEdge = clone || index == bounds.Fragments.Count - 1;
             HtmlRenderBoxStyle fragmentStyle = CreateInlineFragmentPaintStyle(style, includeStartEdge, includeEndEdge);
-            double leftInset = includeStartEdge ? fragmentStyle.BorderLeftWidth + fragmentStyle.PaddingLeft : 0D;
-            double rightInset = includeEndEdge ? fragmentStyle.BorderRightWidth + fragmentStyle.PaddingRight : 0D;
-            double topInset = fragmentStyle.BorderTopWidth + fragmentStyle.PaddingTop;
-            double bottomInset = fragmentStyle.BorderBottomWidth + fragmentStyle.PaddingBottom;
-            double x = fragment.X - leftInset;
-            double y = fragment.Y - topInset;
-            double width = Math.Max(0.01D, fragment.Width + leftInset + rightInset);
-            double height = Math.Max(0.01D, fragment.Height + topInset + bottomInset);
-            AddBoxPaint(backgroundsAndBorders, fragmentStyle, x, y, width, height, element);
-            AddBoxOutlinePaint(outlines, fragmentStyle, x, y, width, height, element);
+            InlineFragmentRect borderBox = ExpandInlineFragmentToBorderBox(
+                fragment, fragmentStyle, includeStartEdge, includeEndEdge);
+            AddBoxPaint(backgroundsAndBorders, fragmentStyle,
+                borderBox.X, borderBox.Y, borderBox.Width, borderBox.Height, element);
+            AddBoxOutlinePaint(outlines, fragmentStyle,
+                borderBox.X, borderBox.Y, borderBox.Width, borderBox.Height, element);
         }
 
         var decorated = new List<HtmlRenderVisual>(backgroundsAndBorders.Count + content.Count + outlines.Count);
@@ -287,6 +283,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
         decorated.AddRange(content);
         decorated.AddRange(outlines);
         return decorated;
+    }
+
+    private static InlineFragmentRect ExpandInlineFragmentToBorderBox(
+        InlineFragmentRect fragment,
+        HtmlRenderBoxStyle style,
+        bool includeStartEdge,
+        bool includeEndEdge) {
+        double leftInset = includeStartEdge ? style.BorderLeftWidth + style.PaddingLeft : 0D;
+        double rightInset = includeEndEdge ? style.BorderRightWidth + style.PaddingRight : 0D;
+        double topInset = style.BorderTopWidth + style.PaddingTop;
+        double bottomInset = style.BorderBottomWidth + style.PaddingBottom;
+        return new InlineFragmentRect(
+            fragment.X - leftInset,
+            fragment.Y - topInset,
+            fragment.Width + leftInset + rightInset,
+            fragment.Height + topInset + bottomInset);
     }
 
     private static HtmlRenderBoxStyle CreateInlineFragmentPaintStyle(

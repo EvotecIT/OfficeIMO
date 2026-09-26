@@ -47,6 +47,79 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
+    private void RecordInlineAnchorGeometry(
+        HtmlInlineRun run,
+        IElement? formattingContainer,
+        double x,
+        double y,
+        double width,
+        double height,
+        IDictionary<IElement, InlineAnchorBounds> bounds) {
+        if (run.LinkUri == null || !run.Style.PaintVisible) return;
+        for (IElement? current = run.OwnerElement; current != null; current = current.ParentElement) {
+            if (string.Equals(current.TagName, "a", StringComparison.OrdinalIgnoreCase)) {
+                // A laid-out anchor owns its border box. Its descendant runs must
+                // not create a second, content-sized PDF hit area.
+                if (_layoutStyles.TryGetValue(current, out HtmlRenderBoxStyle? style)
+                    && style.Display != "inline" && style.Display != "contents") return;
+                if (!bounds.TryGetValue(current, out InlineAnchorBounds? entry)) {
+                    entry = new InlineAnchorBounds(run.LinkUri, new InlineContainingBounds(this));
+                    bounds[current] = entry;
+                }
+                entry.Bounds.Include(
+                    x + run.PaintOffsetX,
+                    y + run.PaintOffsetY,
+                    Math.Max(0.01D, width),
+                    Math.Max(0.01D, height));
+                return;
+            }
+            if (ReferenceEquals(current, formattingContainer)) break;
+        }
+    }
+
+    private void AppendInlineAnchorFragments(
+        ICollection<HtmlRenderVisual> visuals,
+        IDictionary<IElement, List<HtmlRenderVisual>> ownedVisuals,
+        IReadOnlyDictionary<IElement, InlineAnchorBounds> bounds,
+        IElement? formattingContainer,
+        bool isInlineContinuation) {
+        foreach (KeyValuePair<IElement, InlineAnchorBounds> entry in bounds) {
+            IElement anchor = entry.Key;
+            int nodeId = GetSemanticNodeId(anchor);
+            string source = HtmlRenderStyleResolver.DescribeSource(anchor);
+            if (!_layoutStyles.TryGetValue(anchor, out HtmlRenderBoxStyle? style)) continue;
+            InlineFragmentRect[] fragments = entry.Value.Bounds.Fragments
+                .OrderBy(item => item.Y).ThenBy(item => item.X).ToArray();
+            bool clone = string.Equals(style.BoxDecorationBreak, "clone", StringComparison.Ordinal);
+            for (int index = 0; index < fragments.Length; index++) {
+                bool includeStartEdge = clone || index == 0 && !isInlineContinuation;
+                bool includeEndEdge = clone || index == fragments.Length - 1;
+                HtmlRenderBoxStyle fragmentStyle = CreateInlineFragmentPaintStyle(
+                    style, includeStartEdge, includeEndEdge);
+                InlineFragmentRect fragment = ExpandInlineFragmentToBorderBox(
+                    fragments[index], fragmentStyle, includeStartEdge, includeEndEdge);
+                AddInlineOwnedVisual(
+                    visuals,
+                    ownedVisuals,
+                    new HtmlRenderAnchorFragment(nodeId, entry.Value.LinkUri,
+                        ResolveAnchorLinkContents(anchor),
+                        fragment.X, fragment.Y, fragment.Width, fragment.Height,
+                        visuals.Count, source),
+                    anchor,
+                    formattingContainer);
+            }
+        }
+    }
+
+    private sealed class InlineAnchorBounds {
+        internal InlineAnchorBounds(string linkUri, InlineContainingBounds bounds) {
+            LinkUri = linkUri;
+            Bounds = bounds;
+        }
+        internal string LinkUri { get; }
+        internal InlineContainingBounds Bounds { get; }
+    }
+
     private void EnsureInlineStackingOwner(
         IElement? ownerElement,
         IElement? formattingContainer,
@@ -173,6 +246,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         private readonly Dictionary<long, List<int>> _fragmentsByLine = new Dictionary<long, List<int>>();
 
         internal InlineContainingBounds(HtmlRenderLayoutEngine owner) => _owner = owner;
+
+        internal IReadOnlyList<InlineFragmentRect> Fragments => _fragments;
 
         internal void Include(double x, double y, double width, double height) {
             _left = Math.Min(_left, x);

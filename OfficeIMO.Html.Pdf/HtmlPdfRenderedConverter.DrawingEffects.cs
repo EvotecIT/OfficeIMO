@@ -12,7 +12,8 @@ internal static partial class HtmlPdfRenderedConverter {
         OfficeDrawing source,
         double rasterScale,
         PdfCore.PdfConversionReport conversionReport,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        bool suppressLink) {
         if (!TryGetRasterizedDrawingEffectReason(source, out string effectReason)) return false;
 
         byte[] png = OfficeDrawingRasterRenderer.ToPng(source, new OfficeDrawingRasterRenderOptions {
@@ -22,15 +23,15 @@ internal static partial class HtmlPdfRenderedConverter {
         });
         PdfCore.PdfCanvasImageResource? effectImage = GetSharedPdfImageResource(png, "image/png");
         if (effectImage != null) {
-            bool fragmentLink = IsFragmentLink(visual.LinkUri);
+            bool fragmentLink = !suppressLink && IsFragmentLink(visual.LinkUri);
             canvas.ImageShared(
                 effectImage,
                 visual.X * PointsPerCssPixel,
                 visual.Y * PointsPerCssPixel,
                 visual.Width * PointsPerCssPixel,
                 visual.Height * PointsPerCssPixel,
-                linkUri: fragmentLink ? null : visual.LinkUri,
-                linkContents: visual.LinkUri == null || fragmentLink ? null : visual.Source,
+                linkUri: suppressLink || fragmentLink ? null : visual.LinkUri,
+                linkContents: suppressLink || visual.LinkUri == null || fragmentLink ? null : visual.Source,
                 alternativeText: string.IsNullOrWhiteSpace(visual.AlternativeText) ? null : visual.AlternativeText);
             if (fragmentLink) {
                 canvas.LinkToNamedDestination(

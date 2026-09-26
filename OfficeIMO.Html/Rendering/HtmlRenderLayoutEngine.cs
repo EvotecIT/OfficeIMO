@@ -1290,7 +1290,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 || visual is HtmlRenderDrawing
                 || visual is HtmlRenderImagePattern
                 || visual is HtmlRenderPathClipGroup
-                || visual is HtmlRenderShape) {
+                || visual is HtmlRenderShape
+                || visual is HtmlRenderAnchorFragment) {
                 fragment.Add(CreateVerticallyClippedVisualFragment(visual, start, intersectionTop, intersectionBottom, fragment.Count));
                 continue;
             }

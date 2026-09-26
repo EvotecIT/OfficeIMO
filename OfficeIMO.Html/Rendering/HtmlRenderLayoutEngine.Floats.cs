@@ -404,6 +404,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var visuals = new List<HtmlRenderVisual>();
         var ownedVisuals = new Dictionary<IElement, List<HtmlRenderVisual>>();
         var inlineBounds = new Dictionary<IElement, InlineContainingBounds>();
+        var anchorBounds = new Dictionary<IElement, InlineAnchorBounds>();
         var breakOffsets = new SortedSet<double>();
         var breakProgress = new List<HtmlInlineBreakProgress>();
         var runningStringAssignments = new List<HtmlCssRunningStringAssignment>();
@@ -419,6 +420,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 HtmlInlineRun run = placement.Run;
                 HtmlRenderFlowBlock block = run.FloatingBlock!;
                 RecordInlineOwnerGeometry(run, formattingContainer, placement.X, placement.Y, placement.Width, placement.Height, inlineBounds);
+                RecordInlineAnchorGeometry(run, formattingContainer, placement.X, placement.Y,
+                    placement.Width, placement.Height, anchorBounds);
                 foreach (HtmlCssRunningStringAssignment assignment in block.RunningStringAssignments) {
                     runningStringAssignments.Add(assignment.Translate(placement.Y));
                 }
@@ -479,6 +482,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     EnsureInlineStackingOwner(segment.Run.OwnerElement, formattingContainer, ownedVisuals);
                 } else if (segment.Run.LeaderPattern != null && segment.Width > 0.0001D) {
                     RecordInlineOwnerGeometry(segment.Run, formattingContainer, x, lineY, segment.Width, lineHeight, inlineBounds);
+                    RecordInlineAnchorGeometry(segment.Run, formattingContainer, x, lineY,
+                        segment.Width, lineHeight, anchorBounds);
                     if (segment.Run.Style.PaintVisible && segment.Run.LeaderPattern != " ") {
                         HtmlRenderVisual leaderVisual = CreateLeaderVisual(segment.Run, x, lineY, segment.Width, lineHeight, visuals.Count);
                         AddInlineOwnedVisual(
@@ -493,6 +498,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     double atomicBaseline = segment.Run.AtomicBaseline ?? atomic.Height;
                     double atomicY = lineY + Math.Max(0D, (current.HasReplacedImage ? baseline : lineHeight) - atomicBaseline);
                     RecordInlineOwnerGeometry(segment.Run, formattingContainer, x, atomicY, segment.Width, atomic.Height, inlineBounds);
+                    double anchorTop = Math.Min(lineY, atomicY);
+                    RecordInlineAnchorGeometry(segment.Run, formattingContainer, x, anchorTop,
+                        segment.Width, Math.Max(lineY + lineHeight, atomicY + atomic.Height) - anchorTop,
+                        anchorBounds);
                     foreach (HtmlCssRunningStringAssignment assignment in atomic.RunningStringAssignments) {
                         runningStringAssignments.Add(assignment.Translate(atomicY));
                     }
@@ -541,6 +550,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     RecordInlineOwnerGeometry(segment.Run, formattingContainer, x,
                         textY - paintTopOverflow, Math.Max(0.01D, segment.Width),
                         paintHeight + paintTopOverflow, inlineBounds);
+                    if (!string.IsNullOrWhiteSpace(segment.Text)) {
+                        RecordInlineAnchorGeometry(segment.Run, formattingContainer, x, lineY,
+                            segment.Width, lineHeight, anchorBounds);
+                    }
                     if (!segment.Run.Style.PaintVisible) {
                         cursor += rightToLeftLine ? -segment.Width : segment.Width;
                         continue;
@@ -654,6 +667,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             breakOffsets.RemoveWhere(CrossesFloat);
             breakProgress.RemoveAll(progress => CrossesFloat(progress.Offset));
         }
+        AppendInlineAnchorFragments(visuals, ownedVisuals, anchorBounds,
+            formattingContainer, isInlineContinuation);
         return new HtmlInlineLayout(
             ComposeInlinePositionedVisuals(visuals, ownedVisuals, inlineBounds, formattingContainer, isInlineContinuation),
             height,

@@ -18,7 +18,8 @@ internal static partial class HtmlPdfRenderedConverter {
         bool asSpan,
         bool logicalTextOwned,
         CancellationToken cancellationToken,
-        double baselineFontSize) {
+        double baselineFontSize,
+        bool suppressLink) {
         cancellationToken.ThrowIfCancellationRequested();
         OfficeFontStyle requestedStyle = (visual.Font.IsBold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
             | (visual.Font.IsItalic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
@@ -298,8 +299,8 @@ internal static partial class HtmlPdfRenderedConverter {
             decoration.StrokeColor = null;
             drawing.AddShape(decoration, 0D, 0D);
         }
-        string? link = string.IsNullOrWhiteSpace(visual.Text) || IsFragmentLink(visual.LinkUri) ? null : visual.LinkUri;
-        string? linkDestination = IsFragmentLink(visual.LinkUri)
+        string? link = suppressLink || string.IsNullOrWhiteSpace(visual.Text) || IsFragmentLink(visual.LinkUri) ? null : visual.LinkUri;
+        string? linkDestination = !suppressLink && IsFragmentLink(visual.LinkUri)
             ? MapNamedDestination(visual.LinkUri!.Substring(1))
             : null;
         Action<PdfCore.PdfPageCanvas> addDrawing = target => target.Drawing(

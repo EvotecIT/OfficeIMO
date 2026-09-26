@@ -33,4 +33,87 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("html-fragment:details", info.LinkDestinationNames);
         Assert.DoesNotContain("#details", info.LinkUris);
     }
+
+    [Fact]
+    public void HtmlPdf_FlexAnchorLinkCoversItsPaddedBorderBox() {
+        const string html = "<a href='https://example.test/logo' style='display:flex;width:100px;"
+            + "padding:8px 0;margin:0;align-items:center'>"
+            + "<svg xmlns='http://www.w3.org/2000/svg' width='46' height='46'>"
+            + "<rect width='46' height='46' fill='blue'/></svg></a>";
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        PdfCore.PdfLogicalLinkAnnotation link = Assert.Single(
+            PdfCore.PdfDocumentReadResult.Load(pdf).GetLinksByUri("https://example.test/logo"));
+
+        Assert.InRange(link.Width, 74.9D, 75.1D);
+        Assert.InRange(link.Height, 46.4D, 46.6D);
+    }
+
+    [Fact]
+    public void HtmlPdf_BlockAnchorsWithTheSameTargetKeepSeparatePaddedAreas() {
+        const string html = "<a href='https://example.test/target' style='display:block;width:100px;"
+            + "height:20px;padding:11px 0;margin:0'>First</a>"
+            + "<a href='https://example.test/target' style='display:block;width:100px;"
+            + "height:20px;padding:11px 0;margin:20px 0 0'>Second</a>";
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        IReadOnlyList<PdfCore.PdfLogicalLinkAnnotation> links = PdfCore.PdfDocumentReadResult
+            .Load(pdf).GetLinksByUri("https://example.test/target");
+
+        Assert.Equal(2, links.Count);
+        Assert.All(links, link => {
+            Assert.InRange(link.Width, 74.9D, 75.1D);
+            Assert.InRange(link.Height, 31.4D, 31.6D);
+        });
+    }
+
+    [Fact]
+    public void HtmlPdf_ClippedBlockAnchorRetainsVisibleLink() {
+        const string html = "<div style='clip-path:polygon(0 0,100% 0,0 100%);width:100px;height:40px'>"
+            + "<a href='https://example.test/inside' style='display:block;width:60px;height:20px'>Inside</a>"
+            + "</div>";
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        Assert.Single(PdfCore.PdfDocumentReadResult.Load(pdf)
+            .GetLinksByUri("https://example.test/inside"));
+    }
+
+    [Fact]
+    public void HtmlPdf_ClippedInlineAnchorDoesNotDuplicateItsLink() {
+        const string html = "<div style='clip-path:polygon(0 0,100% 0,0 100%);width:100px;height:40px'>"
+            + "<a href='https://example.test/inside'>Inside</a></div>";
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        Assert.Single(PdfCore.PdfDocumentReadResult.Load(pdf)
+            .GetLinksByUri("https://example.test/inside"));
+    }
+
+    [Fact]
+    public void HtmlPdf_InlineAnchorLinkIncludesPaintedPadding() {
+        const string html = "<div style='margin:30px 0 0 30px'><a href='https://example.test/padded' style='font:16px Arial;"
+            + "padding:10px 20px;background:yellow'>Text</a></div>";
+        var options = new HtmlRenderOptions { Margins = HtmlRenderMargins.All(0D) };
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        HtmlRenderAnchorFragment fragment = Assert.Single(rendered.Pages[0].Visuals
+            .OfType<HtmlRenderAnchorFragment>());
+
+        Assert.InRange(fragment.Width, 70D, 100D);
+        Assert.InRange(fragment.Height, 35D, 50D);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options));
+        PdfCore.PdfLogicalLinkAnnotation link = Assert.Single(PdfCore.PdfDocumentReadResult
+            .Load(pdf).GetLinksByUri("https://example.test/padded"));
+        Assert.InRange(link.Width, 50D, 60D);
+        Assert.InRange(link.Height, 25D, 40D);
+        Assert.Equal("Text", link.Contents);
+    }
 }
