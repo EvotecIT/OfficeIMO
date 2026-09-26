@@ -52,6 +52,14 @@ internal static class OdfFeatureInspector {
             AddElementFinding(document, OdfNamespaces.Table + "named-expression", "spreadsheet-named-expressions", OdfFeatureSupport.Inspected, entry.Name, findings);
             AddElementFinding(document, OdfNamespaces.Table + "scenario", "spreadsheet-scenarios", OdfFeatureSupport.Preserved, entry.Name, findings);
             AddElementFinding(document, OdfNamespaces.Table + "detective", "spreadsheet-detective", OdfFeatureSupport.Preserved, entry.Name, findings);
+            XElement[] textFields = document.Descendants()
+                .Where(element => OdtField.TryGetKind(element.Name, out _)).ToArray();
+            int basicTextFields = textFields.Count(element =>
+                OdtField.IsBasicElement(element) && IsEditableOdtField(package.Kind, entry.Name, element));
+            if (basicTextFields > 0) findings.Add(new OdfFeatureFinding(
+                "text-fields", OdfFeatureSupport.Editable, entry.Name, basicTextFields));
+            if (textFields.Length > basicTextFields) findings.Add(new OdfFeatureFinding(
+                "text-fields", OdfFeatureSupport.Inspected, entry.Name, textFields.Length - basicTextFields));
             XElement[] notes = document.Descendants(OdfNamespaces.Text + "note").ToArray();
             int editableNotes = notes.Count(note =>
                 !note.Ancestors(OdfNamespaces.Text + "tracked-changes").Any() &&
@@ -104,6 +112,46 @@ internal static class OdfFeatureInspector {
         string partPath, List<OdfFeatureFinding> findings) {
         int count = document.Descendants(elementName).Count();
         if (count > 0) findings.Add(new OdfFeatureFinding(featureName, support, partPath, count));
+    }
+
+    internal static bool IsEditableOdtField(OdfDocumentKind kind, string partPath, XElement element) {
+        if (kind != OdfDocumentKind.Text ||
+            element.Ancestors().Any(ancestor => ancestor.Name == OdfNamespaces.Text + "tracked-changes" ||
+                ancestor.Name == OdfNamespaces.Text + "note" ||
+                ancestor.Name == OdfNamespaces.Office + "annotation")) return false;
+        XElement? paragraph = element.Ancestors().FirstOrDefault(ancestor =>
+            ancestor.Name == OdfNamespaces.Text + "p" || ancestor.Name == OdfNamespaces.Text + "h");
+        if (paragraph == null) return false;
+        for (XElement? inline = element.Parent; inline != null && !ReferenceEquals(inline, paragraph);
+            inline = inline.Parent) {
+            if (inline.Name != OdfNamespaces.Text + "span" && inline.Name != OdfNamespaces.Text + "a")
+                return false;
+        }
+        if (partPath == "styles.xml") {
+            if (paragraph.Parent?.Name != OdfNamespaces.Style + "header" &&
+                paragraph.Parent?.Name != OdfNamespaces.Style + "footer") return false;
+            XElement? firstMaster = element.Document?.Root?
+                .Element(OdfNamespaces.Office + "master-styles")?
+                .Elements(OdfNamespaces.Style + "master-page").FirstOrDefault();
+            return ReferenceEquals(paragraph.Parent.Parent, firstMaster);
+        }
+        if (partPath != "content.xml") return false;
+        int tableDepth = 0;
+        for (XElement? container = paragraph.Parent; container != null; container = container.Parent) {
+            if (container.Name == OdfNamespaces.Office + "text") return true;
+            if (container.Name == OdfNamespaces.Table + "table" && ++tableDepth > 1) return false;
+            if (container.Name == OdfNamespaces.Table + "table-cell" &&
+                !ReferenceEquals(paragraph.Parent, container)) return false;
+            if (container.Name != OdfNamespaces.Text + "section" &&
+                container.Name != OdfNamespaces.Text + "list" &&
+                container.Name != OdfNamespaces.Text + "list-item" &&
+                container.Name != OdfNamespaces.Text + "list-header" &&
+                container.Name != OdfNamespaces.Table + "table" &&
+                container.Name != OdfNamespaces.Table + "table-header-rows" &&
+                container.Name != OdfNamespaces.Table + "table-row" &&
+                container.Name != OdfNamespaces.Table + "table-cell") return false;
+        }
+        return false;
     }
 
     private static int CountEditableStyleMaps(XDocument document, string partPath) {

@@ -29,6 +29,7 @@ public class OpenDocumentSchemaArtifactTests {
                 richSpan.BackgroundColor = OdfColor.Parse("#FFF200");
                 richText.AddText(" and ");
                 richText.AddHyperlink("a link", "https://example.com").Italic = true;
+                text.AddParagraph("Date: ").AddField(OdtFieldKind.Date, "September 25, 2026");
                 OdtParagraph cited = text.AddParagraph("A cited result");
                 cited.AddFootnote("Footnote schema proof.");
                 cited.AddText(" and a closing note");

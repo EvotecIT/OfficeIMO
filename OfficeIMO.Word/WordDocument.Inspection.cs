@@ -13,6 +13,32 @@ namespace OfficeIMO.Word {
 
             internal HashSet<string> ActiveNoteKeys { get; } = new(StringComparer.Ordinal);
             internal IReadOnlyDictionary<string, string?> ParagraphStyleNames { get; }
+            private Dictionary<Paragraph, bool[]> ComplexFieldPrefixes { get; } = new();
+            private HashSet<OpenXmlElement> ScannedFieldStories { get; } = new();
+
+            internal Stack<bool> ComplexFieldResultsFor(Paragraph paragraph) {
+                OpenXmlElement story = paragraph.Ancestors().FirstOrDefault(element =>
+                    element is Footnote or Endnote or DocumentFormat.OpenXml.Wordprocessing.Header
+                        or DocumentFormat.OpenXml.Wordprocessing.Footer)
+                    ?? paragraph.Ancestors().LastOrDefault() ?? paragraph;
+                if (ScannedFieldStories.Add(story) && story.Descendants<FieldChar>().Any()) {
+                    var stack = new Stack<bool>();
+                    foreach (Paragraph candidate in story.Descendants<Paragraph>()) {
+                        if (stack.Count > 0) ComplexFieldPrefixes[candidate] = stack.Reverse().ToArray();
+                        foreach (FieldChar marker in candidate.Descendants<FieldChar>()) {
+                            if (marker.FieldCharType?.Value == FieldCharValues.Begin) stack.Push(false);
+                            else if (marker.FieldCharType?.Value == FieldCharValues.Separate && stack.Count > 0) {
+                                stack.Pop();
+                                stack.Push(true);
+                            } else if (marker.FieldCharType?.Value == FieldCharValues.End && stack.Count > 0) {
+                                stack.Pop();
+                            }
+                        }
+                    }
+                }
+                return ComplexFieldPrefixes.TryGetValue(paragraph, out bool[]? prefix)
+                    ? new Stack<bool>(prefix) : new Stack<bool>();
+            }
         }
 
         /// <summary>Creates an independent snapshot of document metadata, sections, stories, paragraphs, tables, notes, and images.</summary>
@@ -238,6 +264,67 @@ namespace OfficeIMO.Word {
                     Endnote = BuildEndnoteSnapshot(run.EndNote, expansionContext),
                     InlineImage = images.FirstOrDefault()?.Image,
                     PositionedImages = images,
+                });
+            }
+
+            int runIndex = 0;
+            Stack<bool> complexFieldResults = expansionContext.ComplexFieldResultsFor(paragraph._paragraph);
+            foreach (var element in paragraph._paragraph.ChildElements) {
+                if (element is Run run) { ObserveFieldMarkers(run); runIndex++; continue; }
+                if (element is SdtRun) { runIndex++; continue; }
+                if (element is Hyperlink link) {
+                    foreach (var child in link.ChildElements) {
+                        if (child is Run linkRun) { ObserveFieldMarkers(linkRun); runIndex++; }
+                        else if (child is SimpleField nestedField) AddInlineField(nestedField, runIndex, true, link);
+                    }
+                    continue;
+                }
+                if (element is CustomXmlRun customXml) {
+                    foreach (OpenXmlElement nested in customXml.Descendants()) {
+                        if (nested is Run nestedRun && !nested.Ancestors().Any(ancestor => ancestor is SimpleField)) {
+                            ObserveFieldMarkers(nestedRun);
+                            if (ReferenceEquals(nested.Parent, customXml)) runIndex++;
+                        } else if (nested is SimpleField nestedField &&
+                            !nested.Ancestors().Any(ancestor => ancestor is SimpleField))
+                            AddInlineField(nestedField, runIndex, true);
+                    }
+                    continue;
+                }
+                if (element is SimpleField field) AddInlineField(field, runIndex, false);
+            }
+
+            void ObserveFieldMarkers(Run run) {
+                foreach (FieldChar marker in run.Elements<FieldChar>()) {
+                    if (marker.FieldCharType?.Value == FieldCharValues.Begin) complexFieldResults.Push(false);
+                    else if (marker.FieldCharType?.Value == FieldCharValues.Separate && complexFieldResults.Count > 0) {
+                        complexFieldResults.Pop();
+                        complexFieldResults.Push(true);
+                    } else if (marker.FieldCharType?.Value == FieldCharValues.End && complexFieldResults.Count > 0) {
+                        complexFieldResults.Pop();
+                    }
+                }
+            }
+
+            void AddInlineField(SimpleField field, int index, bool nestedInHyperlink, Hyperlink? containingLink = null) {
+                WordHyperLink? link = containingLink == null ? null
+                    : new WordHyperLink(paragraph._document, paragraph._paragraph, containingLink);
+                snapshot.AddInlineField(new WordInlineFieldSnapshot {
+                    RunIndex = index,
+                    Instruction = field.Instruction?.Value ?? string.Empty,
+                    ResultText = WordParagraph.ReadVisibleText(field),
+                    IsLocked = field.FieldLock?.Value ?? false,
+                    IsDirty = field.Dirty?.Value ?? false,
+                    HasUnsupportedContainer = nestedInHyperlink || complexFieldResults.Count > 0,
+                    HyperlinkUri = link?.Uri?.ToString(),
+                    HyperlinkAnchor = link?.Anchor,
+                    IsHiddenInstructionContent = complexFieldResults.Contains(false),
+                    HasFormattedResult = field.Descendants<Run>().Any(resultRun =>
+                        resultRun.RunProperties?.ChildElements.Any(child => child is not NoProof) == true),
+                    HasUnsupportedResultContent = field.Descendants<SimpleField>().Any() ||
+                        field.ChildElements.Any(child => child is not Run) ||
+                        field.Descendants<Run>().Any(resultRun => resultRun.ChildElements.Any(child =>
+                            child is not RunProperties and not Text) ||
+                            resultRun.RunProperties?.ChildElements.Any(child => child is not NoProof) == true)
                 });
             }
 
