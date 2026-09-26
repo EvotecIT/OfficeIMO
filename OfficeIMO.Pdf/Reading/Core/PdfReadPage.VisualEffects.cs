@@ -412,6 +412,13 @@ public sealed partial class PdfReadPage {
         if (!supported) return false;
         var validationDiagnostics = new BoundedRenderDiagnostics(1, 1, suppressRetention: true);
         var validationDiagnosticKeys = new HashSet<string>(StringComparer.Ordinal);
+        var softMasksToValidate = new List<(
+            PdfPageGraphicsStateResource State,
+            Matrix2D Transform,
+            OfficeColor FillColor,
+            OfficeColor StrokeColor,
+            bool HasFillPattern,
+            bool HasStrokePattern)>();
         IReadOnlyList<PdfPageXObjectInvocation> invocations = PdfPageXObjectInvocationParser.Parse(
             content,
             baseTransform,
@@ -495,26 +502,9 @@ public sealed partial class PdfReadPage {
                 }
             },
             graphicsStateVisitor: (state, stateTransform, fillColor, strokeColor, hasFillPattern, hasStrokePattern) => {
-                if (!CanDecodeType3SoftMask(
-                        state.SoftMask,
-                        stateTransform,
-                        pageContentBudget,
-                        validatedGroups,
-                        type3GlyphBudget,
-                        activeGroups,
-                        activeForms,
-                        activeType3Glyphs,
-                        contentNestingDepth + 1,
-                        nestingDepth,
-                        projectionPageWidth,
-                        projectionPageHeight,
-                        textOutputBudget,
-                        fillColor,
-                        strokeColor,
-                        hasFillPattern,
-                        hasStrokePattern,
-                        state)) {
-                    supported = false;
+                if (state.SoftMask != null) {
+                    softMasksToValidate.Add((state, stateTransform, fillColor, strokeColor,
+                        hasFillPattern, hasStrokePattern));
                 }
             },
             allowSupportedGraphicsEffects: true,
@@ -551,6 +541,29 @@ public sealed partial class PdfReadPage {
                 type3GlyphBudget),
             textClippingBudget: textClippingBudget);
         if (!supported) return false;
+        // Validation can parse another mask or form. Run it after this parser frame unwinds
+        // so nested Type3 transparency does not multiply parser stack usage.
+        foreach (var pending in softMasksToValidate) {
+            if (!CanDecodeType3SoftMask(
+                    pending.State.SoftMask,
+                    pending.Transform,
+                    pageContentBudget,
+                    validatedGroups,
+                    type3GlyphBudget,
+                    activeGroups,
+                    activeForms,
+                    activeType3Glyphs,
+                    contentNestingDepth + 1,
+                    nestingDepth,
+                    projectionPageWidth,
+                    projectionPageHeight,
+                    textOutputBudget,
+                    pending.FillColor,
+                    pending.StrokeColor,
+                    pending.HasFillPattern,
+                    pending.HasStrokePattern,
+                    pending.State)) return false;
+        }
 
         for (int index = 0; index < invocations.Count; index++) {
             PdfPageXObjectInvocation invocation = invocations[index];
