@@ -101,9 +101,14 @@ var fitted = new HtmlToPdfOptions {
 byte[] fittedPdf = source.ToPdfBytes(fitted);
 ```
 
-Fitting applies to print-paged reflow. `HonorCssPageRules` must be `false` so
-authored `@page` geometry is not silently replaced. The retained render result
-uses the wider CSS page dimensions; the PDF is the scaled paper-size artifact.
+Fitting applies to print-paged reflow. When `HonorCssPageRules` is `true`, the
+PDF keeps the resolved authored `@page` size and margins, and fits the chosen
+layout width inside their printable area. For example, a source with a
+`min-width: 1400px` print layout and `@page { size: 330mm 427mm; margin: .75in .5in }`
+can use `PrintLayoutWidthCssPixels = 1400` without replacing the authored sheet.
+The width must exceed the printable area; fitting is explicit and does not
+automatically infer a source's minimum width. The retained render result uses
+the wider CSS page dimensions; the PDF is the scaled paper-size artifact.
 
 A prepared HTML report can be exported directly to a file:
 

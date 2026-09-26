@@ -70,7 +70,9 @@ public sealed class HtmlToPdfOptions : HtmlRenderOptions {
     /// Optional wider CSS layout width for print-to-page fitting. The PDF keeps <see cref="HtmlRenderOptions.PageSize"/>
     /// as its physical size while the paged layout is uniformly reduced to fit its width.
     /// CSS media queries and responsive resource selection continue to use <see cref="HtmlRenderOptions.ViewportWidth"/>.
-    /// This mode requires <see cref="HtmlRenderOptions.HonorCssPageRules"/> to be false so authored page geometry is not silently changed.
+    /// When <see cref="HtmlRenderOptions.HonorCssPageRules"/> is true, the resolved authored page
+    /// size and margins remain the physical PDF geometry while the content is reduced to fit its
+    /// printable width. The requested width must exceed that printable width.
     /// </summary>
     public double? PrintLayoutWidthCssPixels {
         get => _printLayoutWidthCssPixels;

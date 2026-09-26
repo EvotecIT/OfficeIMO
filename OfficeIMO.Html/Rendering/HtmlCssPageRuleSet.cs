@@ -29,6 +29,19 @@ internal sealed class HtmlCssPageRuleSet {
         HtmlCssPageGeometry geometry = ResolveGeometry(
             _rules.Where(rule => rule.PageName == null && rule.Selector == HtmlCssPageSelector.Generic),
             options);
+        if (options.PrintFitContentWidth is double layoutWidth) {
+            double physicalContentWidth = geometry.ContentWidth;
+            double scale = physicalContentWidth / layoutWidth;
+            if (scale >= 1D || layoutWidth > options.MaxSurfaceWidth)
+                throw new ArgumentOutOfRangeException(nameof(options.PrintFitContentWidth),
+                    "Print layout width must exceed the authored page content width and stay within the surface limit.");
+            HtmlCssPageGeometry layoutGeometry = geometry.Scale(1D / scale);
+            if (layoutGeometry.Width > options.MaxSurfaceWidth || layoutGeometry.Height > options.MaxSurfaceHeight)
+                throw new ArgumentOutOfRangeException(nameof(options.PrintFitContentWidth),
+                    "The scaled page exceeds the configured surface limit.");
+            options.PrintFitScale = scale;
+            geometry = layoutGeometry;
+        }
         options.PageSize = new OfficePageSize(
             geometry.Width / HtmlRenderOptions.CssPixelsPerInch,
             geometry.Height / HtmlRenderOptions.CssPixelsPerInch);
@@ -78,10 +91,11 @@ internal sealed class HtmlCssPageRuleSet {
         HtmlRenderPrintProductionSettings? printProduction = ResolvePrintProduction(matching, width, height, options);
         HtmlRenderMargins margins = HtmlRenderMargins.FromCssPageRule(resolvedLeft, resolvedTop, resolvedRight, resolvedBottom);
         OfficeColor? resolvedBackgroundColor = ResolveBackgroundColor(backgroundColor);
-        if (printProduction == null) return new HtmlCssPageGeometry(width, height, margins, backgroundColor: resolvedBackgroundColor);
+        if (printProduction == null) return ScaleForPrintFit(
+            new HtmlCssPageGeometry(width, height, margins, backgroundColor: resolvedBackgroundColor), options);
 
         double sheetInset = printProduction.TrimInset;
-        return new HtmlCssPageGeometry(
+        return ScaleForPrintFit(new HtmlCssPageGeometry(
             width + (sheetInset * 2D),
             height + (sheetInset * 2D),
             HtmlRenderMargins.FromCssPageRule(
@@ -90,7 +104,16 @@ internal sealed class HtmlCssPageRuleSet {
                 margins.Right + sheetInset,
                 margins.Bottom + sheetInset),
             printProduction,
-            resolvedBackgroundColor);
+            resolvedBackgroundColor), options);
+    }
+
+    private static HtmlCssPageGeometry ScaleForPrintFit(HtmlCssPageGeometry geometry, HtmlRenderOptions options) {
+        if (options.PrintFitScale is not double scale) return geometry;
+        HtmlCssPageGeometry fitted = geometry.Scale(1D / scale);
+        if (fitted.Width > options.MaxSurfaceWidth || fitted.Height > options.MaxSurfaceHeight)
+            throw new ArgumentOutOfRangeException(nameof(options.PrintFitContentWidth),
+                "A fitted CSS page exceeds the configured surface limit.");
+        return fitted;
     }
 
     private static OfficeColor? ResolveBackgroundColor(HtmlCssPageCascadeValue value) {
@@ -444,6 +467,20 @@ internal readonly struct HtmlCssPageGeometry {
     internal OfficeColor? BackgroundColor { get; }
     internal double ContentWidth => Math.Max(1D, Width - Margins.Left - Margins.Right);
     internal double ContentHeight => Math.Max(1D, Height - Margins.Top - Margins.Bottom);
+
+    internal HtmlCssPageGeometry Scale(double factor) => new HtmlCssPageGeometry(
+        Width * factor,
+        Height * factor,
+        HtmlRenderMargins.FromCssPageRule(
+            Margins.Left * factor,
+            Margins.Top * factor,
+            Margins.Right * factor,
+            Margins.Bottom * factor),
+        PrintProduction == null ? null : new HtmlRenderPrintProductionSettings(
+            PrintProduction.Bleed * factor,
+            PrintProduction.MarkArea * factor,
+            PrintProduction.Marks),
+        BackgroundColor);
 }
 
 internal readonly struct HtmlCssPageProductionDeclaration {

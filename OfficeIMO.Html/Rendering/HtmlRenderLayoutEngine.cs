@@ -1079,15 +1079,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double trimInset = production.TrimInset;
         double trimRight = geometry.Width - trimInset;
         double trimBottom = geometry.Height - trimInset;
-        double markGap = 4D;
-        double markLength = 12D;
+        // Marks have physical dimensions. Compensate for the PDF adapter's final
+        // canvas reduction so their size and stroke remain unchanged on paper.
+        double markScale = _options.PrintFitScale is double fitScale ? 1D / fitScale : 1D;
+        double markGap = 4D * markScale;
+        double markLength = 12D * markScale;
         void AddLine(double x1, double y1, double x2, double y2, string suffix) {
             double width = Math.Max(0.0001D, x2 - x1);
             double height = Math.Max(0.0001D, y2 - y1);
             OfficeShape line = OfficeShape.Line(0D, 0D, width, height);
             line.FillColor = null;
             line.StrokeColor = OfficeColor.Black;
-            line.StrokeWidth = 0.6666666667D;
+            line.StrokeWidth = 0.6666666667D * markScale;
             visuals.Add(new HtmlRenderShape(line, x1, y1, _paintOrder++, source: "@page marks:" + suffix));
         }
 
@@ -1105,7 +1108,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if ((production.Marks & HtmlRenderPrintMarks.Cross) != 0) {
             double centerX = geometry.Width / 2D;
             double centerY = geometry.Height / 2D;
-            double radius = 4D;
+            double radius = 4D * markScale;
             double topY = production.MarkArea / 2D;
             double bottomY = geometry.Height - topY;
             double leftX = production.MarkArea / 2D;

@@ -144,6 +144,12 @@ dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmar
     --replay-browser --require-clean-source
 ```
 
+For a frozen page with a known print minimum width, add
+`--authored-print-fit-width <css-pixels>` to the replay. This adds a separate
+`officeimo-print-authored-fit` operation using the same `@page` size and margins;
+the default print operation remains in the report for comparison. The option
+does not infer a fitting width or qualify the page by itself.
+
 Choose a page you are permitted to capture and retain, and use new output
 directories. The live capture waits for `DOMContentLoaded` plus one second,
 then promotes lazy images in batches of eight and waits up to 15 seconds for

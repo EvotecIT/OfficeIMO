@@ -309,6 +309,8 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         target.EnableEditableLayoutRegions = EnableEditableLayoutRegions;
         target.CssMediaContextOverride = CssMediaContextOverride;
         target.CssMediaWidthOverride = CssMediaWidthOverride;
+        target.PrintFitContentWidth = PrintFitContentWidth;
+        target.PrintFitScale = PrintFitScale;
         target.ClipContinuousSurfaceToViewport = ClipContinuousSurfaceToViewport;
         return target;
     }
@@ -327,6 +329,12 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
     // Print fitting can lay out a wider page without changing the viewport
     // against which CSS width media queries were selected.
     internal double? CssMediaWidthOverride { get; set; }
+
+    // The PDF adapter may request wider print reflow while CSS @page still owns
+    // the physical sheet. Page geometry is expanded only after @page resolves.
+    internal double? PrintFitContentWidth { get; set; }
+
+    internal double? PrintFitScale { get; set; }
 
     internal double CssMediaWidth => CssMediaWidthOverride
         ?? (Mode == HtmlRenderMode.Paged ? PageWidth : ViewportWidth);
@@ -351,6 +359,8 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         }
         ValidatePositive(ViewportWidth, nameof(ViewportWidth));
         if (CssMediaWidthOverride.HasValue) ValidatePositive(CssMediaWidthOverride.Value, nameof(CssMediaWidthOverride));
+        if (PrintFitContentWidth.HasValue) ValidatePositive(PrintFitContentWidth.Value, nameof(PrintFitContentWidth));
+        if (PrintFitScale.HasValue) ValidatePositive(PrintFitScale.Value, nameof(PrintFitScale));
         if (ViewportHeight.HasValue) {
             ValidatePositive(ViewportHeight.Value, nameof(ViewportHeight));
         }

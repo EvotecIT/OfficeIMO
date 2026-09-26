@@ -52,7 +52,8 @@ public static class HtmlRenderCapabilityGalleryExtensions {
         HtmlRenderOptions renderOptions,
         OfficeImageExportFormat[] formats,
         CancellationToken cancellationToken) {
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(document, renderOptions, cancellationToken);
+        HtmlPdfRenderResult pdfResult = HtmlPdfRenderedConverter.Convert(document, pdfOptions, cancellationToken);
+        HtmlRenderDocument rendered = pdfResult.RenderResult!.Document;
         if (!options.PreviewAllPages && options.PreviewPageIndex >= rendered.Pages.Count)
             throw new ArgumentOutOfRangeException(nameof(options.PreviewPageIndex), "The selected preview page does not exist.");
 
@@ -64,8 +65,7 @@ public static class HtmlRenderCapabilityGalleryExtensions {
         string inputPath = Path.Combine(directory, prefix + ".input.html");
         artifacts.Add(HtmlCapabilityGalleryArtifact.WriteTextFile("source", "input-html", inputPath, "text/html", document.SourceHtml));
 
-        PdfCore.PdfDocumentConversionResult conversion = HtmlPdfConverterExtensions.CreateResult(
-            HtmlPdfRenderedConverter.CreatePdf(rendered, pdfOptions, cancellationToken));
+        PdfCore.PdfDocumentConversionResult conversion = HtmlPdfConverterExtensions.CreateResult(pdfResult);
         byte[] pdf = conversion.ToBytes(cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         string pdfPath = Path.Combine(directory, prefix + ".pdf");

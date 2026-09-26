@@ -156,7 +156,7 @@ internal static partial class HtmlPdfRenderedConverter {
         CancellationToken cancellationToken) {
         HtmlRenderResult rendered = HtmlRenderEngine.ExecuteCore(
             document, prepared.Request, resolved, cancellationToken);
-        return CreatePdf(rendered.Document, prepared.Options, cancellationToken).WithRenderResult(rendered);
+        return CreatePdf(rendered.Document, (HtmlToPdfOptions)resolved, cancellationToken).WithRenderResult(rendered);
     }
 
     private static async Task<HtmlPdfRenderResult> ConvertCoreAsync(
@@ -166,7 +166,7 @@ internal static partial class HtmlPdfRenderedConverter {
         CancellationToken cancellationToken) {
         HtmlRenderResult rendered = await HtmlRenderEngine.ExecuteCoreAsync(
             document, prepared.Request, resolved, cancellationToken).ConfigureAwait(false);
-        return CreatePdf(rendered.Document, prepared.Options, cancellationToken).WithRenderResult(rendered);
+        return CreatePdf(rendered.Document, (HtmlToPdfOptions)resolved, cancellationToken).WithRenderResult(rendered);
     }
 
     private static void CopyAdapterOptions(HtmlToPdfOptions source, HtmlToPdfOptions target) {

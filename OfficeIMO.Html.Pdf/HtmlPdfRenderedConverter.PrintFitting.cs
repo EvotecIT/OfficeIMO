@@ -9,8 +9,11 @@ internal static partial class HtmlPdfRenderedConverter {
             || request.Surface != HtmlRenderLayoutSurface.Paged
             || request.Pagination != HtmlRenderPaginationPolicy.FragmentedReflow)
             throw new ArgumentException("Print layout fitting requires a paged print reflow request.", nameof(request));
-        if (renderOptions.HonorCssPageRules)
-            throw new ArgumentException("Print layout fitting requires HonorCssPageRules=false so authored page geometry is not changed.", nameof(renderOptions));
+        if (renderOptions.HonorCssPageRules) {
+            renderOptions.CssMediaWidthOverride = renderOptions.ViewportWidth;
+            renderOptions.PrintFitContentWidth = layoutWidth;
+            return;
+        }
         double physicalWidth = renderOptions.PageWidth;
         if (layoutWidth <= physicalWidth || layoutWidth > renderOptions.MaxSurfaceWidth)
             throw new ArgumentOutOfRangeException(nameof(HtmlToPdfOptions.PrintLayoutWidthCssPixels),
@@ -34,7 +37,7 @@ internal static partial class HtmlPdfRenderedConverter {
     }
 
     private static double ResolvePrintLayoutScale(HtmlToPdfOptions options) =>
-        options.PrintLayoutWidthCssPixels is double layoutWidth
+        options.PrintFitScale ?? (options.PrintLayoutWidthCssPixels is double layoutWidth
             ? (options.PrintOutputPageSize ?? options.PageSize).WidthInches * HtmlRenderOptions.CssPixelsPerInch / layoutWidth
-            : 1D;
+            : 1D);
 }

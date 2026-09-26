@@ -30,21 +30,33 @@ internal static class HtmlMhtmlEvidenceRunner {
     internal static async Task<int> RunAsync(string[] args) {
         string[] flags = args.Skip(5).ToArray();
         int? maxCssRules = null;
-        if (flags.Length >= 2 && flags[flags.Length - 2] == "--max-css-rules"
-            && int.TryParse(flags[flags.Length - 1], out int requestedRuleLimit)
-            && requestedRuleLimit >= 10_000 && requestedRuleLimit <= 20_000) {
-            maxCssRules = requestedRuleLimit;
-            flags = flags.Take(flags.Length - 2).ToArray();
+        int? authoredPrintFitWidth = null;
+        var switches = new HashSet<string>(StringComparer.Ordinal);
+        bool invalidFlags = false;
+        for (int index = 0; index < flags.Length; index++) {
+            string flag = flags[index];
+            if (!switches.Add(flag)) { invalidFlags = true; break; }
+            if (flag == "--max-css-rules" && index + 1 < flags.Length
+                && int.TryParse(flags[++index], out int requestedRuleLimit)
+                && requestedRuleLimit >= 10_000 && requestedRuleLimit <= 20_000) {
+                maxCssRules = requestedRuleLimit;
+            } else if (flag == "--authored-print-fit-width" && index + 1 < flags.Length
+                && int.TryParse(flags[++index], out int requestedFitWidth)
+                && requestedFitWidth > 0 && requestedFitWidth <= 20_000) {
+                authoredPrintFitWidth = requestedFitWidth;
+            } else if (flag != "--replay-browser" && flag != "--require-clean-source") {
+                invalidFlags = true;
+                break;
+            }
         }
         if (args.Length < 5 || (args[1] != "--url" && args[1] != "--mhtml") || args[3] != "--output"
-            || flags.Distinct(StringComparer.Ordinal).Count() != flags.Length
-            || flags.Any(flag => flag != "--replay-browser" && flag != "--require-clean-source")) {
-            Console.Error.WriteLine("html-mhtml-evidence <--url https-url|--mhtml existing-archive> --output <new-directory> [--replay-browser] [--require-clean-source] [--max-css-rules 10000..20000]");
+            || invalidFlags) {
+            Console.Error.WriteLine("html-mhtml-evidence <--url https-url|--mhtml existing-archive> --output <new-directory> [--replay-browser] [--require-clean-source] [--max-css-rules 10000..20000] [--authored-print-fit-width css-pixels]");
             return 2;
         }
         bool replay = args[1] == "--mhtml";
-        bool replayBrowser = replay && flags.Contains("--replay-browser", StringComparer.Ordinal);
-        if (!replay && flags.Contains("--replay-browser", StringComparer.Ordinal))
+        bool replayBrowser = replay && switches.Contains("--replay-browser");
+        if (!replay && switches.Contains("--replay-browser"))
             throw new ArgumentException("--replay-browser requires --mhtml.");
         Uri? url = replay ? null : new Uri(args[2], UriKind.Absolute);
         if (url != null && url.Scheme != Uri.UriSchemeHttps) throw new ArgumentException("Only HTTPS page URLs are supported.");
@@ -63,7 +75,7 @@ internal static class HtmlMhtmlEvidenceRunner {
             ["PDF"] = InformationalVersion(typeof(OfficeIMO.Pdf.PdfDocument).Assembly),
             ["evidence runner"] = InformationalVersion(typeof(HtmlMhtmlEvidenceRunner).Assembly)
         };
-        if (flags.Contains("--require-clean-source", StringComparer.Ordinal)
+        if (switches.Contains("--require-clean-source")
             && (worktreeDirty || ownerVersions.Values.Any(version => version == null
                 || !version.EndsWith("+" + sourceCommit, StringComparison.OrdinalIgnoreCase)))) {
             throw new InvalidOperationException("Evidence requires a clean checkout and all owner assemblies rebuilt from its exact HEAD commit.");
@@ -143,6 +155,12 @@ internal static class HtmlMhtmlEvidenceRunner {
         }
         if (document != null) {
             await RunConversionAsync("officeimo-print", () => document.ToPdfDocumentResultAsync(), output, results, failures).ConfigureAwait(false);
+            if (authoredPrintFitWidth.HasValue) {
+                await RunConversionAsync("officeimo-print-authored-fit", () =>
+                    document.ToPdfDocumentResultAsync(new HtmlToPdfOptions {
+                        PrintLayoutWidthCssPixels = authoredPrintFitWidth.Value
+                    }), output, results, failures).ConfigureAwait(false);
+            }
             await RunConversionAsync("officeimo-print-zero-margin", () => document.ToPdfDocumentResultAsync(new HtmlToPdfOptions {
                 Margins = HtmlRenderMargins.All(0)
             }), output, results, failures).ConfigureAwait(false);
@@ -204,6 +222,7 @@ internal static class HtmlMhtmlEvidenceRunner {
             sourceCommit,
             worktreeDirty,
             maxCssRules = maxCssRules ?? HtmlConversionLimits.CreateUntrustedProfile().MaxCssRules,
+            authoredPrintFitWidthCssPixels = authoredPrintFitWidth,
             maxSelectorEvaluations = HtmlConversionLimits.CreateUntrustedProfile().MaxSelectorEvaluations,
             chromiumVersion,
             peachPdfVersion = HtmlCorpusEvidenceRunner.DependencyVersion("PeachPDF", typeof(PdfGenerator).Assembly),
