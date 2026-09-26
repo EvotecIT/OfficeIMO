@@ -214,7 +214,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         AddUnsupported(report, "placeholder-roles", unsupportedPlaceholderRoles,
             "This PowerPoint placeholder role has no matching ODP presentation class.");
         AddUnsupported(report, "placeholder-metadata", unsupportedPlaceholderMetadata,
-            "PowerPoint text placeholder index, size, and orientation were not transferred to ODP.");
+            "PowerPoint text placeholder index, size, orientation, custom prompt, and extension metadata were not transferred to ODP.");
         AddConverted(report, "solid-backgrounds", backgrounds);
         AddUnsupported(report, "slide-backgrounds", unsupportedBackgrounds, "Image, gradient, theme, and unsupported backgrounds are not translated.");
         if (transitions > 0) report.Add("slide-transitions", OdfConversionMappingStatus.Approximated, transitions,
@@ -275,7 +275,9 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         AddUnsupported(report, "notes-master", CountUnmappedPowerPointNotesMaster(sourcePresentation),
             "Authored notes-master appearance and placeholder geometry are not transferred to ODP.");
         AddUnsupported(report, "notes-slide-appearance", CountUnmappedPowerPointNotesSlides(sourcePresentation, sourceSlideIds),
-            "Per-slide PowerPoint notes backgrounds and master-shape display settings were not transferred to ODP.");
+            "Per-slide PowerPoint notes backgrounds, authored placeholder text, and master-shape display settings were not transferred to ODP.");
+        AddUnsupported(report, "presentation-thumbnail", CountUnmappedPowerPointThumbnail(source),
+            "The authored PowerPoint presentation thumbnail was not transferred to ODP.");
         AddUnsupported(report, "handout-master", CountUnmappedPowerPointHandoutMaster(sourcePresentation),
             "Authored handout-master content is not transferred to ODP.");
         AddUnsupported(report, "slide-show-settings", CountUnmappedPowerPointShowProperties(sourcePresentation),

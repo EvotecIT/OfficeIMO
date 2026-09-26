@@ -23,6 +23,27 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         return baseline.OpenXmlDocument.PresentationPart?.NotesMasterPart?.NotesMaster?.OuterXml;
     });
 
+    private static readonly Lazy<byte[]?> DefaultPowerPointThumbnail = new(() => {
+        using PowerPointPresentation baseline = PowerPointPresentation.Create(new MemoryStream(),
+            new PowerPointCreateOptions());
+        return ReadPowerPointThumbnail(baseline.OpenXmlDocument.ThumbnailPart);
+    });
+
+    private static byte[]? ReadPowerPointThumbnail(ThumbnailPart? part) {
+        if (part == null) return null;
+        using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
+        using MemoryStream copy = new();
+        stream.CopyTo(copy);
+        return copy.ToArray();
+    }
+
+    private static int CountUnmappedPowerPointThumbnail(PowerPointPresentation source) {
+        byte[]? authored = ReadPowerPointThumbnail(source.OpenXmlDocument.ThumbnailPart);
+        if (authored == null) return 0;
+        byte[]? baseline = DefaultPowerPointThumbnail.Value;
+        return baseline != null && authored.SequenceEqual(baseline) ? 0 : 1;
+    }
+
     private static readonly Lazy<string?> DefaultPowerPointHandoutMasterXml = new(() => {
         using PowerPointPresentation baseline = PowerPointPresentation.Create(new MemoryStream(),
             new PowerPointCreateOptions());
@@ -154,6 +175,10 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             bool authoredNotesShapes = notes.Descendants<P.Shape>().Any(shape =>
                 shape.NonVisualShapeProperties?.ApplicationNonVisualDrawingProperties?
                     .GetFirstChild<P.PlaceholderShape>() == null ||
+                shape.NonVisualShapeProperties?.ApplicationNonVisualDrawingProperties?
+                    .GetFirstChild<P.PlaceholderShape>() is P.PlaceholderShape placeholder &&
+                    placeholder.Type?.Value != P.PlaceholderValues.Body &&
+                    shape.TextBody?.Descendants<A.Text>().Any(text => !string.IsNullOrWhiteSpace(text.Text)) == true ||
                 shape.ShapeProperties is P.ShapeProperties properties && HasUnmappedPowerPointShapeAppearance(properties) ||
                 shape.ShapeStyle != null ||
                 shape.TextBody?.BodyProperties is A.BodyProperties body && (body.HasAttributes || body.HasChildren));

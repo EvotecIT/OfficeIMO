@@ -86,7 +86,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                 shape.TextBody != null && shape.NonVisualShapeProperties?
                     .ApplicationNonVisualDrawingProperties?.GetFirstChild<P.PlaceholderShape>() is
                     P.PlaceholderShape placeholder &&
-                (placeholder.Index != null || placeholder.Size != null || placeholder.Orientation != null));
+                (placeholder.Index != null || placeholder.Size != null || placeholder.Orientation != null ||
+                 placeholder.HasCustomPrompt != null || placeholder.HasChildren));
         }
         return count;
     }
@@ -138,7 +139,10 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             ? !latin.HasChildren && latin.GetAttributes().Count == 1 &&
               latin.GetAttributes()[0].LocalName == "typeface" &&
               !string.IsNullOrWhiteSpace(latin.Typeface?.Value)
-            : child is A.HyperlinkOnClick or A.Highlight || IsFillElement(child);
+            : child is A.HyperlinkOnClick click
+                ? !click.HasChildren && click.GetAttributes().All(attribute =>
+                    attribute.LocalName is "id" or "action" or "tooltip")
+                : child is A.Highlight || IsFillElement(child);
 
     private static bool HasUnmappedPowerPointInheritedRunFormatting(OpenXmlElement properties) =>
         properties.GetAttributes().Any(attribute => attribute.LocalName is

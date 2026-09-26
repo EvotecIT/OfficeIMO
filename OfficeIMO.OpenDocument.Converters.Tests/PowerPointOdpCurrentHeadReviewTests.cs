@@ -4,6 +4,7 @@ using System.Linq;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Presentation;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.OpenDocument;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.OpenDocument;
@@ -13,6 +14,71 @@ using Xunit;
 namespace OfficeIMO.OpenDocument.Converters.Tests;
 
 public sealed class PowerPointOdpCurrentHeadReviewTests {
+    [Fact]
+    public void NonBodyNotesPlaceholderTextIsExplicitLoss() {
+        using PowerPointPresentation source = CreatePowerPoint();
+        source.Slides[0].Notes.Text = "Body note";
+        NotesSlide notes = source.OpenXmlDocument.PresentationPart!.SlideParts.Single()
+            .NotesSlidePart!.NotesSlide!;
+        Shape placeholder = (Shape)notes.Descendants<Shape>().First(shape =>
+            shape.NonVisualShapeProperties?.ApplicationNonVisualDrawingProperties?
+                .GetFirstChild<PlaceholderShape>()?.Type?.Value == PlaceholderValues.Body).CloneNode(true);
+        placeholder.NonVisualShapeProperties!.ApplicationNonVisualDrawingProperties!
+            .GetFirstChild<PlaceholderShape>()!.Type = PlaceholderValues.Footer;
+        placeholder.TextBody!.Descendants<A.Text>().First().Text = "Authored footer";
+        notes.CommonSlideData!.ShapeTree!.Append(placeholder);
+
+        AssertPowerPointLoss(source, "notes-slide-appearance");
+    }
+
+    [Theory]
+    [InlineData("tgtFrame", "_blank")]
+    [InlineData("history", "0")]
+    [InlineData("highlightClick", "1")]
+    public void AuthoredRunHyperlinkFlagsAreExplicitLoss(string name, string value) {
+        using PowerPointPresentation source = CreatePowerPoint();
+        source.Slides[0].AddTextBoxPoints("Link", 20, 20, 100, 50);
+        A.Run run = source.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide!
+            .Descendants<A.Run>().Single();
+        run.RunProperties ??= new A.RunProperties();
+        A.HyperlinkOnClick click = run.RunProperties.AppendChild(new A.HyperlinkOnClick());
+        click.SetAttribute(new OpenXmlAttribute("", name, "", value));
+
+        AssertPowerPointLoss(source, "text-typography");
+    }
+
+    [Theory]
+    [InlineData("prompt")]
+    [InlineData("extension")]
+    public void AuthoredTextPlaceholderMetadataIsExplicitLoss(string kind) {
+        using PowerPointPresentation source = CreatePowerPoint();
+        source.Slides[0].AddTextBoxPoints("Agenda", 20, 20, 100, 50);
+        Shape shape = source.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide!
+            .Descendants<Shape>().Single();
+        PlaceholderShape placeholder = shape.NonVisualShapeProperties!
+            .ApplicationNonVisualDrawingProperties!.GetFirstChild<PlaceholderShape>()
+            ?? shape.NonVisualShapeProperties.ApplicationNonVisualDrawingProperties
+                .AppendChild(new PlaceholderShape { Type = PlaceholderValues.Body });
+        if (kind == "prompt") placeholder.HasCustomPrompt = true;
+        else placeholder.Append(new DocumentFormat.OpenXml.OpenXmlUnknownElement("p", "extLst",
+            "http://schemas.openxmlformats.org/presentationml/2006/main"));
+
+        AssertPowerPointLoss(source, "placeholder-metadata");
+    }
+
+    [Fact]
+    public void AuthoredPresentationThumbnailIsExplicitLoss() {
+        using PowerPointPresentation source = CreatePowerPoint();
+        Assert.DoesNotContain(source.ToOpenDocumentResult().Report.ForFeature("presentation-thumbnail"),
+            mapping => mapping.Status == OdfConversionMappingStatus.Unsupported);
+        ThumbnailPart thumbnail = source.OpenXmlDocument.ThumbnailPart!;
+        using (Stream stream = thumbnail.GetStream(FileMode.Create, FileAccess.Write)) {
+            stream.Write(new byte[] { 0xff, 0xd8, 0xff, 0xd9 }, 0, 4);
+        }
+
+        AssertPowerPointLoss(source, "presentation-thumbnail");
+    }
+
     [Fact]
     public void OdpTableTemplateAppearanceIsExplicitLoss() {
         OdpPresentation source = OdpPresentation.Create();
