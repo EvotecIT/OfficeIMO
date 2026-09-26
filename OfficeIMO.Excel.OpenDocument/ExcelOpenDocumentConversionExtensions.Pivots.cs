@@ -11,6 +11,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         int converted = 0;
         var authoredNames = new HashSet<string>(StringComparer.Ordinal);
         List<ExcelPivotTableInfo> pivots = source.Sheets.SelectMany(sheet => sheet.GetPivotTables()).ToList();
+        if (pivots.Count == 0) return 0;
         var neededHeaderRows = new Dictionary<string, HashSet<int>>(StringComparer.Ordinal);
         foreach (ExcelPivotTableInfo pivot in pivots) {
             if (pivot.SourceSheet == null
@@ -25,6 +26,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         var omittedCellsBySheet = new Dictionary<string, List<(int Row, int Column)>>(StringComparer.Ordinal);
         var headersBySheet = new Dictionary<string, Dictionary<int, List<(int Column, string Name)>>>(StringComparer.Ordinal);
         foreach (ExcelWorksheetSnapshot worksheet in snapshot.Worksheets) {
+            if (!neededHeaderRows.ContainsKey(worksheet.Name)) continue;
             if (!convertedCellsBySheet.TryGetValue(worksheet.Name, out HashSet<(int Row, int Column)>? convertedCells)) continue;
             ExcelSheet? sourceSheet = source.Sheets.FirstOrDefault(sheet =>
                 string.Equals(sheet.Name, worksheet.Name, StringComparison.Ordinal));
