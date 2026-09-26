@@ -205,7 +205,8 @@ public sealed partial class PdfReadPage {
         PageContentStreamSequence contentSequence = GetContentStreamSequence(pageContentBudget);
         string content = contentSequence.Content;
         if (content.Length > 0) {
-            PdfPageInvokedResourceNames invokedResources = GetRootInvokedResourceNames(content, pageResources);
+            PdfPageInvokedResourceNames invokedResources = GetRootInvokedResourceNames(content, pageResources,
+                cancellationToken.CanBeCanceled ? cancellationToken.ThrowIfCancellationRequested : null);
             CollectTextAndForms(
                 content,
                 pageResources,
@@ -918,7 +919,8 @@ public sealed partial class PdfReadPage {
         PdfPageOptionalContentVisibility? optionalContentVisibility = includeHiddenOptionalContent
             ? null
             : GetOptionalContentVisibility(resources);
-        PdfPageInvokedResourceNames invokedResources = invokedResourceNames ?? GetInvokedResourceNames(content, resources);
+        PdfPageInvokedResourceNames invokedResources = invokedResourceNames ?? GetInvokedResourceNames(
+            content, resources, cancellationCheck ?? (Action)pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
         Dictionary<string, PdfPageGraphicsStateResource> graphicsStates =
             GetGraphicsStateResources(resources, decoders, widthProviders, fonts);
         spans.AddRange(TextContentParser.Parse(

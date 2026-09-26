@@ -6,6 +6,20 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfAcroFormEditorTests {
     [Fact]
+    public void Edit_CancellationAbortsTheTransactionAndPreservesSource() {
+        byte[] source = PdfDocument.Create().TextField("Name", value: "Original").ToBytes();
+        byte[] original = (byte[])source.Clone();
+        using var cancellation = new System.Threading.CancellationTokenSource();
+        Assert.Throws<OperationCanceledException>(() => PdfAcroFormEditor.Edit(source, edit => {
+            edit.SetDefaultValue("Name", "Changed");
+            cancellation.Cancel();
+        }, cancellationToken: cancellation.Token));
+        Assert.Equal(original, source);
+        PdfAcroFormEditResult result = PdfDocument.Load(source).Forms.Edit(edit => edit.SetDefaultValue("Name", "Valid"));
+        Assert.Equal("Valid", Assert.Single(result.Fields).DefaultValue);
+    }
+
+    [Fact]
     public void Edit_ValidatesChoiceDefaultsAgainstAuthoredOptions() {
         byte[] list = PdfDocument.Create().ChoiceField("Country", new[] { "Poland", "Germany" }, value: "Poland").ToBytes();
         byte[] editableCombo = PdfDocument.Create()

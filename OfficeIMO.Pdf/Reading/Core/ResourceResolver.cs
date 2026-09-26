@@ -1496,6 +1496,10 @@ internal static partial class ResourceResolver {
     }
 
     private static string? GetTransparencyMaskKind(PdfDictionary dictionary, Dictionary<int, PdfIndirectObject> objects) {
+        if (dictionary.Items.TryGetValue("SMaskInData", out PdfObject? embeddedMask) &&
+            PdfObjectLookup.ResolveChain(objects, embeddedMask) is not (PdfNull or PdfNumber { Value: 0 })) {
+            return "embedded-soft-mask";
+        }
         if (dictionary.Items.TryGetValue("SMask", out var softMaskObj)) {
             if (!PdfObjectLookup.TryResolveReferenceChain(objects, softMaskObj, out PdfObject? resolvedSoftMask)) {
                 return "soft-mask";

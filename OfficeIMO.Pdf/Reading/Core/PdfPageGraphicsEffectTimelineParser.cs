@@ -14,7 +14,9 @@ internal static class PdfPageGraphicsEffectTimelineParser {
         int maxNestingDepth = PdfReadLimits.DefaultMaxContentNestingDepth,
         int maxOperands = PdfReadLimits.DefaultMaxContentOperands,
         Func<string, int>? inlineImageComponentCount = null,
-        Func<PdfArray, int>? inlineImageArrayComponentCount = null) {
+        Func<PdfArray, int>? inlineImageArrayComponentCount = null,
+        System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageDrawingEffectTransition>();
         }
@@ -27,6 +29,7 @@ internal static class PdfPageGraphicsEffectTimelineParser {
             content,
             maxOperations,
             operation => {
+                cancellationToken.ThrowIfCancellationRequested();
                 double paintOrder = paintOrderBase +
                     ((operation.OperatorOffset + paintOrderOffset) * paintOrderScale);
                 PdfContentOrderKey? contentOrderKey = contentOrderPrefix?.Append(operation.OperatorOffset);
@@ -109,6 +112,8 @@ internal static class PdfPageGraphicsEffectTimelineParser {
         ReferenceEquals(left.SoftMask, right.SoftMask) &&
         left.HasBlendMode == right.HasBlendMode &&
         left.HasSoftMask == right.HasSoftMask &&
+        left.HasUnresolvedSoftMask == right.HasUnresolvedSoftMask &&
+        left.HasUnsupportedGraphicsState == right.HasUnsupportedGraphicsState &&
         Nullable.Equals(left.SoftMaskTransform, right.SoftMaskTransform) &&
         left.RenderingIntent == right.RenderingIntent &&
         left.HasRenderingIntent == right.HasRenderingIntent;

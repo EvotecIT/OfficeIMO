@@ -1,4 +1,5 @@
 using OfficeIMO.Drawing;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
@@ -86,7 +87,8 @@ public sealed partial class PdfReadPage {
                 form.Dictionary);
             Matrix2D formTransform = Matrix2D.Multiply(invocationState.Transform, authoredFormMatrix);
             PdfType3PaintChannels channels = PdfType3PaintChannels.None;
-            PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(content, resources);
+            PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(
+                content, resources, pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
             Dictionary<string, PdfPageColorSpace> colorSpaces = GetColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget);
             IReadOnlyDictionary<string, PdfPageGraphicsStateResource> graphicsStates = GetGraphicsStateResources(resources);
             IReadOnlyList<PdfPageDrawingEffectTransition> effects = PdfPageGraphicsEffectTimelineParser.Parse(
@@ -98,7 +100,8 @@ public sealed partial class PdfReadPage {
                 maxNestingDepth: _limits.MaxContentNestingDepth,
                 maxOperands: _limits.MaxContentOperands,
                 inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
-                inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array));
+                inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
+                cancellationToken: pageContentBudget.CancellationToken);
             string transformedContent = WrapContentWithTransform(content, formTransform, out int transformedOffset);
             var visibilityGeometryBudget = new VisualGeometryBudget();
             _ = PdfPageContentVisualParser.Parse(
@@ -149,7 +152,8 @@ public sealed partial class PdfReadPage {
                 unsupportedShadingTransformVisitor: () => channels |= PdfType3PaintChannels.Both,
                 requireExactType3ShadingProjection: true,
                 retainPrimitiveData: false,
-                inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array));
+                inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
+                operationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
 
             Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
             Dictionary<string, Func<byte[], double>> widthProviders = ResourceResolver.GetFontWidthProvidersForResources(resources, _objects);
@@ -224,7 +228,8 @@ public sealed partial class PdfReadPage {
                                  type3GlyphBudget,
                                  depth + 1),
                          visibleShadingVisitor: _ => channels |= PdfType3PaintChannels.Visible,
-                         pageWidth: pageWidth)) {
+                         pageWidth: pageWidth,
+                         operationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested)) {
                 if (invocation.InlineImage != null &&
                     !IsInvisibleInlineImageInvocation(
                         invocation,
@@ -367,7 +372,7 @@ public sealed partial class PdfReadPage {
         var cacheKey = (softMask.Group, effectiveParentResources, transform, pageWidth, pageHeight);
         if (cache.BlackLuminosityForms.TryGetValue(cacheKey, out bool cached)) return cached;
         string content = PdfEncoding.Latin1GetString(pageContentBudget.Decode(softMask.Group));
-        if (!IsVectorOnlyLuminosityProofContent(content)) {
+        if (!IsVectorOnlyLuminosityProofContent(content, pageContentBudget.CancellationToken)) {
             cache.BlackLuminosityForms[cacheKey] = false;
             return false;
         }
@@ -394,12 +399,13 @@ public sealed partial class PdfReadPage {
         return result;
     }
 
-    private bool IsVectorOnlyLuminosityProofContent(string content) {
+    private bool IsVectorOnlyLuminosityProofContent(string content, CancellationToken cancellationToken) {
         bool vectorOnly = true;
         PdfContentStreamInterpreter.InterpretUntil(
             content,
             _limits.MaxContentOperations,
             operation => {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (operation.HasInvalidOperands || operation.Name is "BT" or "Do" or "BI") {
                     vectorOnly = false;
                     return false;

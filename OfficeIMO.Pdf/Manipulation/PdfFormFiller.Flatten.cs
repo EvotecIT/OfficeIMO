@@ -17,7 +17,8 @@ internal static partial class PdfFormFiller {
         Dictionary<int, FlattenWidgetState> widgets,
         HashSet<int> removableObjects,
         HashSet<int> visited,
-        ref int nextObjectNumber) {
+        ref int nextObjectNumber, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         int? fieldObjectNumber = null;
         if (fieldObject is PdfReference reference) {
             fieldObjectNumber = reference.ObjectNumber;
@@ -44,7 +45,7 @@ internal static partial class PdfFormFiller {
         PdfArray? choiceOptions = TryReadChoiceOptions(objects, field) ?? inheritedChoiceOptions;
         IReadOnlyList<string>? values = TryReadSimpleValues(objects, field, "V");
         string? richValue = TryReadText(objects, field, "RV");
-        string? richPlainText = PdfFreeTextStyleParser.ExtractPlainText(richValue);
+        string? richPlainText = PdfFreeTextStyleParser.ExtractPlainText(richValue, cancellationToken);
         IReadOnlyList<PdfFreeTextRichTextRun>? richAppearanceRuns = PdfFreeTextStyleParser.ExtractRichTextRuns(richValue) ?? inheritedRichAppearanceRuns;
         string? value = values is { Count: > 0 } ? values[0] : richPlainText ?? inheritedDisplayValue;
         bool isButtonField = string.Equals(fieldType, "Btn", StringComparison.Ordinal);
@@ -96,13 +97,16 @@ internal static partial class PdfFormFiller {
         }
 
         for (int i = 0; i < kids.Items.Count; i++) {
-            CollectFlattenWidgets(objects, kids.Items[i], fieldType, fieldFlags, fieldMaxLength, defaultResources, defaultAppearance, appearanceValue, richAppearanceRuns, fullName, choiceOptions, options, widgets, removableObjects, visited, ref nextObjectNumber);
+            cancellationToken.ThrowIfCancellationRequested();
+            CollectFlattenWidgets(objects, kids.Items[i], fieldType, fieldFlags, fieldMaxLength, defaultResources, defaultAppearance, appearanceValue, richAppearanceRuns, fullName, choiceOptions, options, widgets, removableObjects, visited, ref nextObjectNumber, cancellationToken);
         }
     }
 
-    private static int FlattenPageWidgets(Dictionary<int, PdfIndirectObject> objects, Dictionary<int, FlattenWidgetState> widgets, ref int nextObjectNumber) {
+    private static int FlattenPageWidgets(Dictionary<int, PdfIndirectObject> objects, Dictionary<int, FlattenWidgetState> widgets, ref int nextObjectNumber, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         int flattenedWidgetCount = 0;
         foreach (var entry in objects.OrderBy(pair => pair.Key).ToArray()) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (entry.Value.Value is not PdfDictionary page ||
                 page.Get<PdfName>("Type")?.Name != "Page" ||
                 !page.Items.TryGetValue("Annots", out var annotsObject) ||
@@ -113,6 +117,7 @@ internal static partial class PdfFormFiller {
             var pageWidgets = new List<FlattenWidgetState>();
             var remainingAnnots = new PdfArray();
             for (int i = 0; i < annots.Items.Count; i++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 PdfObject annot = annots.Items[i];
                 if (annot is PdfReference annotReference && widgets.TryGetValue(annotReference.ObjectNumber, out var widget)) {
                     pageWidgets.Add(widget);
@@ -132,21 +137,23 @@ internal static partial class PdfFormFiller {
                 page.Items["Annots"] = remainingAnnots;
             }
 
-            string content = BuildFlattenContent(objects, page, pageWidgets);
+            string content = BuildFlattenContent(objects, page, pageWidgets, cancellationToken);
             int contentObjectNumber = nextObjectNumber++;
             objects[contentObjectNumber] = new PdfIndirectObject(contentObjectNumber, 0, CreateContentStream(content));
-            AppendPageContent(objects, page, contentObjectNumber);
+            AppendPageContent(objects, page, contentObjectNumber, cancellationToken);
         }
 
         return flattenedWidgetCount;
     }
 
-    private static string BuildFlattenContent(Dictionary<int, PdfIndirectObject> objects, PdfDictionary page, List<FlattenWidgetState> widgets) {
+    private static string BuildFlattenContent(Dictionary<int, PdfIndirectObject> objects, PdfDictionary page, List<FlattenWidgetState> widgets, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         PdfDictionary xObjects = EnsurePageXObjects(objects, page);
         var builder = new StringBuilder();
         for (int i = 0; i < widgets.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             FlattenWidgetState widget = widgets[i];
-            string xObjectName = CreateUniqueXObjectName(xObjects);
+            string xObjectName = CreateUniqueXObjectName(xObjects, cancellationToken);
             xObjects.Items[xObjectName] = new PdfReference(widget.AppearanceObjectNumber, 0);
             builder.Append("q\n");
             if (!objects.TryGetValue(widget.AppearanceObjectNumber, out var appearanceObject) ||
@@ -167,7 +174,8 @@ internal static partial class PdfFormFiller {
         return PdfPageResourceHelper.EnsurePageXObjects(objects, page, "form flattening");
     }
 
-    private static string CreateUniqueXObjectName(PdfDictionary xObjects) {
+    private static string CreateUniqueXObjectName(PdfDictionary xObjects, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         int index = 1;
         string name;
         do {
@@ -183,7 +191,8 @@ internal static partial class PdfFormFiller {
         return new PdfStream(dictionary, PdfEncoding.Latin1GetBytes(content));
     }
 
-    private static void AppendPageContent(Dictionary<int, PdfIndirectObject> objects, PdfDictionary page, int contentObjectNumber) {
+    private static void AppendPageContent(Dictionary<int, PdfIndirectObject> objects, PdfDictionary page, int contentObjectNumber, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         var newReference = new PdfReference(contentObjectNumber, 0);
         if (!page.Items.TryGetValue("Contents", out var contents)) {
             page.Items["Contents"] = newReference;
@@ -196,14 +205,16 @@ internal static partial class PdfFormFiller {
         }
 
         var array = new PdfArray();
-        AppendContentEntries(objects, array, contents);
+        AppendContentEntries(objects, array, contents, cancellationToken);
         array.Items.Add(newReference);
         page.Items["Contents"] = array;
     }
 
-    private static void AppendContentEntries(Dictionary<int, PdfIndirectObject> objects, PdfArray target, PdfObject contents) {
+    private static void AppendContentEntries(Dictionary<int, PdfIndirectObject> objects, PdfArray target, PdfObject contents, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (contents is PdfArray directArray) {
             foreach (var item in directArray.Items) {
+                cancellationToken.ThrowIfCancellationRequested();
                 target.Items.Add(item);
             }
 
@@ -214,6 +225,7 @@ internal static partial class PdfFormFiller {
             PdfObjectLookup.TryGet(objects, reference, out var indirect) &&
             indirect.Value is PdfArray referencedArray) {
             foreach (var item in referencedArray.Items) {
+                cancellationToken.ThrowIfCancellationRequested();
                 target.Items.Add(item);
             }
 

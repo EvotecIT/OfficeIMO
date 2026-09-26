@@ -316,6 +316,38 @@ PdfAcroFormEditResult edited = PdfDocument.Load("input.pdf").Forms.Edit(form => 
 File.WriteAllBytes("form.pdf", edited.ToBytes());
 ```
 
+For a static paper-style form, inspect proposed fields before creating any widgets:
+
+```csharp
+PdfDocument source = PdfDocument.Load("static-form.pdf");
+PdfStaticFormRecognitionReport proposals = source.Forms.RecognizeStaticLayout();
+foreach (PdfStaticFormFieldProposal field in proposals.Proposals)
+    Console.WriteLine($"{field.Index}: {field.Label} ({field.Kind}, {field.Confidence:0.00})");
+
+int[] accepted = proposals.Proposals
+    .Where(field => field.Confidence >= 0.6)
+    .Select(field => field.Index)
+    .ToArray();
+if (accepted.Length > 0)
+    File.WriteAllBytes("fillable-form.pdf", proposals.ApplySelected(accepted).ToBytes());
+```
+
+Recognition proposes text fields from empty continuous outlines or writing lines
+and check boxes from small square outlines. Dashed outlines and writing lines are
+skipped with an `unsupported-outline-dash` diagnostic because their painted
+segments cannot be proven from the recognition geometry. Nearby native text supplies labels; callers
+can also pass bounded positioned OCR text as `PdfStaticFormTextEvidence` without
+installing an OCR runtime in `OfficeIMO.Pdf`. Native labels require perceptible
+opacity, proven contrast, and full visibility within any rectangular clip. Labels
+with partial or unproven clipping or image backdrops need separate visibility
+evidence such as positioned OCR. Unsupported graphics-state paint is excluded
+from field evidence. The report includes page-local tab
+order suggestions and collision diagnostics. It does not infer radio groups,
+choice values, calculations, or form actions from static marks. Applying selected
+proposals edits the analyzed PDF snapshot; a new analysis is needed to include
+later changes to the source document. The usual PDF mutation and preservation
+checks apply.
+
 The same transaction creates text fields, check boxes, combo or list choices,
 radio-button groups, push buttons, and empty signature fields. Generated widget
 appearances use `PdfFormFieldStyle`; widget JavaScript is returned as inert,

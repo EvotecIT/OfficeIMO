@@ -10,42 +10,45 @@ internal static partial class PdfAcroFormEditor {
         List<string> flattenNames,
         List<string> operations,
         PdfFormFillerOptions? appearanceOptions,
-        PdfReadLimits limits) {
+        PdfReadLimits limits,
+        System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         PdfDictionary catalog = RequireCatalog(objects, security);
         PdfDictionary acroForm = EnsureAcroForm(objects, catalog, out PdfArray fields);
         int nextObjectNumber = objects.Count == 0 ? 1 : objects.Keys.Max() + 1;
-        int formFieldNodeCount = CountFormFieldNodes(objects, fields, limits);
+        int formFieldNodeCount = CountFormFieldNodes(objects, fields, limits, cancellationToken);
 
         foreach (PdfAcroFormEditSession.EditCommand command in commands) {
+            cancellationToken.ThrowIfCancellationRequested();
             switch (command.Kind) {
                 case PdfAcroFormEditSession.EditKind.Create:
-                    ApplyCreate(objects, acroForm, fields, pageObjectNumbers, command.Options!, command.EncodedJavaScript, refillValues, appearanceOptions, limits, ref formFieldNodeCount, ref nextObjectNumber);
+                    ApplyCreate(objects, acroForm, fields, pageObjectNumbers, command.Options!, command.EncodedJavaScript, refillValues, appearanceOptions, limits, ref formFieldNodeCount, ref nextObjectNumber, cancellationToken);
                     operations.Add("Create " + command.Options!.Name);
                     break;
                 case PdfAcroFormEditSession.EditKind.Rename:
-                    ApplyRename(objects, fields, command.Name!, command.Value!, refillValues, flattenNames);
+                    ApplyRename(objects, fields, command.Name!, command.Value!, refillValues, flattenNames, cancellationToken);
                     operations.Add("Rename " + command.Name + " -> " + command.Value);
                     break;
                 case PdfAcroFormEditSession.EditKind.Remove:
-                    ApplyRemove(objects, acroForm, fields, command.Name!);
-                    formFieldNodeCount = CountFormFieldNodes(objects, fields, limits);
+                    ApplyRemove(objects, acroForm, fields, command.Name!, cancellationToken);
+                    formFieldNodeCount = CountFormFieldNodes(objects, fields, limits, cancellationToken);
                     RemoveQueuedSubtreeWork(refillValues, flattenNames, command.Name!);
                     operations.Add("Remove " + command.Name);
                     break;
                 case PdfAcroFormEditSession.EditKind.Move:
-                    ApplyMove(objects, acroForm, fields, pageObjectNumbers, command.Name!, command.PageNumber, command.Rectangle!, refillValues, appearanceOptions, ref nextObjectNumber);
+                    ApplyMove(objects, acroForm, fields, pageObjectNumbers, command.Name!, command.PageNumber, command.Rectangle!, refillValues, appearanceOptions, ref nextObjectNumber, cancellationToken);
                     operations.Add("Move " + command.Name + " to page " + command.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture));
                     break;
                 case PdfAcroFormEditSession.EditKind.DefaultValue:
-                    ApplyDefaultValue(objects, fields, command.Name!, command.Value);
+                    ApplyDefaultValue(objects, fields, command.Name!, command.Value, cancellationToken);
                     operations.Add("Set default " + command.Name);
                     break;
                 case PdfAcroFormEditSession.EditKind.Flags:
-                    ApplyFlags(objects, fields, command.Name!, command.Number, refillValues);
+                    ApplyFlags(objects, fields, command.Name!, command.Number, refillValues, cancellationToken);
                     operations.Add("Set flags " + command.Name);
                     break;
                 case PdfAcroFormEditSession.EditKind.CalculationOrder:
-                    ApplyCalculationOrder(objects, acroForm, fields, command.Names!);
+                    ApplyCalculationOrder(objects, acroForm, fields, command.Names!, cancellationToken);
                     operations.Add("Set calculation order");
                     break;
                 case PdfAcroFormEditSession.EditKind.TabOrder:
@@ -54,7 +57,8 @@ internal static partial class PdfAcroFormEditor {
                     break;
                 case PdfAcroFormEditSession.EditKind.Flatten:
                     for (int i = 0; i < command.Names!.Length; i++) {
-                        EditableField field = RequireField(objects, fields, command.Names[i]);
+                        cancellationToken.ThrowIfCancellationRequested();
+                        EditableField field = RequireField(objects, fields, command.Names[i], cancellationToken);
                         if (string.Equals(field.FieldType, "Sig", StringComparison.Ordinal)) throw new NotSupportedException("Signature fields cannot be flattened by the AcroForm editor.");
                         if (!flattenNames.Contains(field.FullName, StringComparer.Ordinal)) flattenNames.Add(field.FullName);
                     }
@@ -64,11 +68,12 @@ internal static partial class PdfAcroFormEditor {
         }
     }
 
-    private static void ApplyCreate(Dictionary<int, PdfIndirectObject> objects, PdfDictionary acroForm, PdfArray fields, int[] pages, PdfFormFieldCreateOptions options, byte[]? encodedJavaScript, Dictionary<string, string> refillValues, PdfFormFillerOptions? appearanceOptions, PdfReadLimits limits, ref int formFieldNodeCount, ref int nextObjectNumber) {
+    private static void ApplyCreate(Dictionary<int, PdfIndirectObject> objects, PdfDictionary acroForm, PdfArray fields, int[] pages, PdfFormFieldCreateOptions options, byte[]? encodedJavaScript, Dictionary<string, string> refillValues, PdfFormFillerOptions? appearanceOptions, PdfReadLimits limits, ref int formFieldNodeCount, ref int nextObjectNumber, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         ValidateCreateOptions(options, pages.Length);
-        if (FieldPathExists(objects, fields, options.Name)) throw new ArgumentException("PDF form field already exists: " + options.Name, nameof(options));
-        int addedFieldNodes = PreflightCreatedFieldPath(objects, fields, options.Name, formFieldNodeCount, limits);
-        (PdfArray fieldOwner, PdfReference? parentReference, string partialName) = EnsureCreatedFieldOwner(objects, fields, options.Name, ref nextObjectNumber);
+        if (FieldPathExists(objects, fields, options.Name, cancellationToken)) throw new ArgumentException("PDF form field already exists: " + options.Name, nameof(options));
+        int addedFieldNodes = PreflightCreatedFieldPath(objects, fields, options.Name, formFieldNodeCount, limits, cancellationToken);
+        (PdfArray fieldOwner, PdfReference? parentReference, string partialName) = EnsureCreatedFieldOwner(objects, fields, options.Name, ref nextObjectNumber, cancellationToken);
         string appearanceFontName = EnsureAcroFormAppearanceDefaults(objects, acroForm);
         if (options.Kind == PdfFormFieldCreationKind.RadioButtonGroup) {
             ApplyCreateRadioButtonGroup(objects, acroForm, fieldOwner, parentReference, partialName, pages, options, encodedJavaScript, appearanceFontName, refillValues, appearanceOptions, limits, ref nextObjectNumber);
@@ -114,19 +119,21 @@ internal static partial class PdfAcroFormEditor {
         formFieldNodeCount += addedFieldNodes;
     }
 
-    private static void ApplyRename(Dictionary<int, PdfIndirectObject> objects, PdfArray fields, string name, string newName, Dictionary<string, string> refillValues, List<string> flattenNames) {
-        if (FieldPathExists(objects, fields, newName)) throw new ArgumentException("PDF form field already exists: " + newName, nameof(newName));
-        EditableField field = RequireField(objects, fields, name);
+    private static void ApplyRename(Dictionary<int, PdfIndirectObject> objects, PdfArray fields, string name, string newName, Dictionary<string, string> refillValues, List<string> flattenNames, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (FieldPathExists(objects, fields, newName, cancellationToken)) throw new ArgumentException("PDF form field already exists: " + newName, nameof(newName));
+        EditableField field = RequireField(objects, fields, name, cancellationToken);
         string oldParent = ParentName(name); string newParent = ParentName(newName);
         if (!string.Equals(oldParent, newParent, StringComparison.Ordinal)) throw new NotSupportedException("Renaming a hierarchical field must preserve its parent path.");
         string partialName = ReadText(field.Dictionary, "T") ?? string.Empty;
         field.Dictionary.Items["T"] = new PdfStringObj(string.Equals(partialName, field.FullName, StringComparison.Ordinal) ? newName : LeafName(newName), true);
         string? value = refillValues.TryGetValue(name, out string? queuedValue)
             ? queuedValue
-            : ReadInheritedSimpleValue(objects, field.Dictionary);
+            : ReadInheritedSimpleValue(objects, field.Dictionary, cancellationToken);
         refillValues.Remove(name);
         QueueRefillValue(refillValues, newName, field.FieldType, value);
         for (int i = 0; i < flattenNames.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (string.Equals(flattenNames[i], name, StringComparison.Ordinal)) {
                 flattenNames[i] = newName;
             } else if (flattenNames[i].StartsWith(name + ".", StringComparison.Ordinal)) {
@@ -135,14 +142,18 @@ internal static partial class PdfAcroFormEditor {
         }
     }
 
-    private static void ApplyRemove(Dictionary<int, PdfIndirectObject> objects, PdfDictionary acroForm, PdfArray fields, string name) {
-        EditableField field = RequireFieldSubtree(objects, fields, name);
+    private static void ApplyRemove(Dictionary<int, PdfIndirectObject> objects, PdfDictionary acroForm, PdfArray fields, string name, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        EditableField field = RequireFieldSubtree(objects, fields, name, cancellationToken);
         field.Owner.Items.Remove(field.Reference);
         var removed = new HashSet<int>(field.ObjectNumbers);
-        RemoveWidgetReferences(objects, removed);
-        FilterReferenceArray(objects, acroForm, "CO", removed);
-        foreach (int objectNumber in removed) objects.Remove(objectNumber);
-        RemoveEmptyParents(objects, fields);
+        RemoveWidgetReferences(objects, removed, cancellationToken);
+        FilterReferenceArray(objects, acroForm, "CO", removed, cancellationToken);
+        foreach (int objectNumber in removed) {
+            cancellationToken.ThrowIfCancellationRequested();
+            objects.Remove(objectNumber);
+        }
+        RemoveEmptyParents(objects, fields, cancellationToken);
     }
 
     private static void RemoveQueuedSubtreeWork(Dictionary<string, string> refillValues, List<string> flattenNames, string name) {
@@ -155,8 +166,9 @@ internal static partial class PdfAcroFormEditor {
         flattenNames.RemoveAll(candidate => string.Equals(candidate, name, StringComparison.Ordinal) || candidate.StartsWith(descendantPrefix, StringComparison.Ordinal));
     }
 
-    private static void ApplyMove(Dictionary<int, PdfIndirectObject> objects, PdfDictionary acroForm, PdfArray fields, int[] pages, string name, int pageNumber, double[] rectangle, Dictionary<string, string> refillValues, PdfFormFillerOptions? appearanceOptions, ref int nextObjectNumber) {
-        EditableField field = RequireField(objects, fields, name);
+    private static void ApplyMove(Dictionary<int, PdfIndirectObject> objects, PdfDictionary acroForm, PdfArray fields, int[] pages, string name, int pageNumber, double[] rectangle, Dictionary<string, string> refillValues, PdfFormFillerOptions? appearanceOptions, ref int nextObjectNumber, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        EditableField field = RequireField(objects, fields, name, cancellationToken);
         if (field.WidgetObjectNumbers.Count != 1) throw new NotSupportedException("Moving a form field requires exactly one indirect widget.");
         PdfDictionary widget = RequireDictionary(objects, field.WidgetObjectNumbers[0]);
         PdfDictionary page = RequirePage(objects, pages, pageNumber);
@@ -176,7 +188,7 @@ internal static partial class PdfAcroFormEditor {
         }
         PdfArray destinationAnnotations = EnsureAnnotationArray(objects, page);
         int destinationIndex = FindReferenceIndex(destinationAnnotations, field.WidgetObjectNumbers[0]);
-        RemoveWidgetReferences(objects, new HashSet<int>(field.WidgetObjectNumbers));
+        RemoveWidgetReferences(objects, new HashSet<int>(field.WidgetObjectNumbers), cancellationToken);
         widget.Items["P"] = CreateReference(objects, pages[pageNumber - 1]); widget.Items["Rect"] = CreateRectangle(rectangle[0], rectangle[1], rectangle[2], rectangle[3]);
         destinationAnnotations = EnsureAnnotationArray(objects, page);
         PdfReference widgetReference = CreateReference(objects, field.WidgetObjectNumbers[0]);
@@ -192,7 +204,7 @@ internal static partial class PdfAcroFormEditor {
             refillValues.Remove(name);
             return;
         }
-        QueueRefillValue(refillValues, name, field.FieldType, ReadInheritedSimpleValue(objects, field.Dictionary), includeEmptyChoice: true);
+        QueueRefillValue(refillValues, name, field.FieldType, ReadInheritedSimpleValue(objects, field.Dictionary, cancellationToken), includeEmptyChoice: true);
     }
 
     private static bool IsPushButton(Dictionary<int, PdfIndirectObject> objects, EditableField field) =>
@@ -372,8 +384,9 @@ internal static partial class PdfAcroFormEditor {
     private static string? ReadResolvedText(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key) =>
         dictionary.Items.TryGetValue(key, out PdfObject? value) && PdfObjectLookup.Resolve(objects, value) is PdfStringObj text ? text.Value : null;
 
-    private static void ApplyDefaultValue(Dictionary<int, PdfIndirectObject> objects, PdfArray fields, string name, string? value) {
-        EditableField field = RequireField(objects, fields, name);
+    private static void ApplyDefaultValue(Dictionary<int, PdfIndirectObject> objects, PdfArray fields, string name, string? value, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        EditableField field = RequireField(objects, fields, name, cancellationToken);
         int flags = ReadInheritedFieldFlags(objects, field.Dictionary);
         if (value is not null && string.Equals(field.FieldType, "Sig", StringComparison.Ordinal)) {
             throw new ArgumentException("PDF signature fields do not support default values.", nameof(value));
@@ -461,8 +474,9 @@ internal static partial class PdfAcroFormEditor {
         }
     }
 
-    private static void ApplyFlags(Dictionary<int, PdfIndirectObject> objects, PdfArray fields, string name, int flags, Dictionary<string, string> refillValues) {
-        EditableField field = RequireField(objects, fields, name);
+    private static void ApplyFlags(Dictionary<int, PdfIndirectObject> objects, PdfArray fields, string name, int flags, Dictionary<string, string> refillValues, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        EditableField field = RequireField(objects, fields, name, cancellationToken);
         int previousFlags = ReadInheritedFieldFlags(objects, field.Dictionary);
         if (string.Equals(field.FieldType, "Btn", StringComparison.Ordinal) &&
             (previousFlags & FieldFlagPushButton) != 0 &&
@@ -519,7 +533,7 @@ internal static partial class PdfAcroFormEditor {
             refillValues.Remove(name);
             return;
         }
-        QueueRefillValue(refillValues, name, field.FieldType, ReadInheritedSimpleValue(objects, field.Dictionary), includeEmptyChoice: true);
+        QueueRefillValue(refillValues, name, field.FieldType, ReadInheritedSimpleValue(objects, field.Dictionary, cancellationToken), includeEmptyChoice: true);
     }
 
     private static bool HasInheritedPositiveInteger(
@@ -591,10 +605,12 @@ internal static partial class PdfAcroFormEditor {
         refillValues[name] = value;
     }
 
-    private static void ApplyCalculationOrder(Dictionary<int, PdfIndirectObject> objects, PdfDictionary acroForm, PdfArray fields, string[] names) {
+    private static void ApplyCalculationOrder(Dictionary<int, PdfIndirectObject> objects, PdfDictionary acroForm, PdfArray fields, string[] names, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         var order = new PdfArray(); var seen = new HashSet<int>();
         for (int i = 0; i < names.Length; i++) {
-            EditableField field = RequireField(objects, fields, names[i]);
+            cancellationToken.ThrowIfCancellationRequested();
+            EditableField field = RequireField(objects, fields, names[i], cancellationToken);
             if (field.Reference is not PdfReference reference) throw new NotSupportedException("Calculation-order fields must be indirect objects.");
             if (seen.Add(reference.ObjectNumber)) order.Items.Add(reference);
         }
