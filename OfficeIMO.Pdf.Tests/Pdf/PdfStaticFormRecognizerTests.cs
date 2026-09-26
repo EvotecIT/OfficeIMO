@@ -6,7 +6,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
-public sealed class PdfStaticFormRecognizerTests {
+public sealed partial class PdfStaticFormRecognizerTests {
     [Fact]
     public void ProposalsRequireSelectionAndCreateReopenableFields() {
         byte[] sourceBytes = CreateStaticForm();
@@ -65,7 +65,7 @@ public sealed class PdfStaticFormRecognizerTests {
     [InlineData(false)]
     [InlineData(true)]
     public void WhiteNativeLabelRequiresAContrastingBackdrop(bool darkBackdrop) {
-        OfficeShape backdrop = OfficeShape.Rectangle(95D, 35D);
+        OfficeShape backdrop = OfficeShape.Rectangle(80D, 35D);
         backdrop.FillColor = OfficeColor.Black;
         backdrop.StrokeColor = null;
         byte[] source = PdfDocument.Create(new PdfOptions { PageWidth = 400, PageHeight = 300 })

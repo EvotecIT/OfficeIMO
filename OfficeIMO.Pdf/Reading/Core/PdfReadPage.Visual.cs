@@ -435,7 +435,7 @@ public sealed partial class PdfReadPage {
             (primitive, effect) => elements.Add(PdfPageDrawingElement.FromPrimitive(primitive, elements.Count).WithEffect(effect)),
             (group, transform, paintOrder, contentOrderKey, effect) => elements.Add(
                 PdfPageDrawingElement.FromGroup(group, transform, paintOrder, contentOrderKey, elements.Count).WithEffect(effect)),
-            cancellationToken);
+            cancellationToken: cancellationToken);
         for (int i = 0; i < primitives.Count; i++) {
             elements.Add(PdfPageDrawingElement.FromPrimitive(primitives[i], elements.Count));
         }
@@ -861,6 +861,7 @@ public sealed partial class PdfReadPage {
         Action<PdfImagePlacement, PdfExtractedImage, PdfPageDrawingEffect>? type3ImageVisitor = null,
         Action<PdfPageVisualPrimitive, PdfPageDrawingEffect>? type3PrimitiveVisitor = null,
         Action<OfficeDrawing, OfficeTransform, double, PdfContentOrderKey?, PdfPageDrawingEffect>? type3GroupVisitor = null,
+        bool scaleStrokeWidthWithTransform = false,
         CancellationToken cancellationToken = default) {
         textOutputBudget ??= CreateTextOutputBudget();
         pageContentBudget ??= new PageContentBudget(this, cancellationToken);
@@ -892,15 +893,21 @@ public sealed partial class PdfReadPage {
                 invocationTextClippingBudget: invocationTextClippingBudget,
                 patternTextClippingBudget: patternTextClippingBudget,
                 pageContentBudget: pageContentBudget,
-                contentOrderPrefix: PdfContentOrderKey.Root);
+                contentOrderPrefix: PdfContentOrderKey.Root,
+                scaleStrokeWidthWithTransform: scaleStrokeWidthWithTransform);
         }
 
         return primitives.Count == 0 ? Array.Empty<PdfPageVisualPrimitive>() : primitives.AsReadOnly();
     }
 
-    internal IReadOnlyList<PdfPageVisualPrimitive> GetIdentityVisualPrimitives(CancellationToken cancellationToken = default) {
+    internal IReadOnlyList<PdfPageVisualPrimitive> GetIdentityVisualPrimitives(CancellationToken cancellationToken = default) =>
+        GetIdentityVisualPrimitives(scaleStrokeWidthWithTransform: false, cancellationToken: cancellationToken);
+
+    internal IReadOnlyList<PdfPageVisualPrimitive> GetIdentityVisualPrimitives(bool scaleStrokeWidthWithTransform,
+        CancellationToken cancellationToken = default) {
         (double width, double height) = GetVisualPageSize();
-        return GetVisualPrimitives(width, height, GetVisualPageTransform(), cancellationToken: cancellationToken);
+        return GetVisualPrimitives(width, height, GetVisualPageTransform(), cancellationToken: cancellationToken,
+            scaleStrokeWidthWithTransform: scaleStrokeWidthWithTransform);
     }
 
     private void CollectVisualPrimitivesAndForms(
@@ -954,7 +961,8 @@ public sealed partial class PdfReadPage {
         PdfPaintColorSelection? initialFillColorSelection = null,
         PdfPaintColorSelection? initialStrokeColorSelection = null,
         PdfStrokeDashPattern? initialStrokeDashPattern = null,
-        PdfPageInvokedResourceNames? invokedResourceNames = null) {
+        PdfPageInvokedResourceNames? invokedResourceNames = null,
+        bool scaleStrokeWidthWithTransform = false) {
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
         invocationTextClippingBudget ??= new PdfTextClippingBudget();
@@ -1093,7 +1101,7 @@ public sealed partial class PdfReadPage {
             maxOperands: _limits.MaxContentOperands,
             primitiveVisitor: currentPrimitiveVisitor,
             retainPrimitiveData: retainPrimitiveData,
-            scaleStrokeWidthWithTransform: requireSupportedType3Content,
+            scaleStrokeWidthWithTransform: requireSupportedType3Content || scaleStrokeWidthWithTransform,
             unsupportedShadingTransformVisitor: requireSupportedType3Content
                 ? type3GlyphBudget.RecordFailure
                 : null,
@@ -1450,7 +1458,8 @@ public sealed partial class PdfReadPage {
                     contentOrderPrefix: formOrderPrefix,
                     initialRenderingIntent: invocation.RenderingIntent,
                     initialFillColorSelection: invocation.FillColorSelection,
-                    initialStrokeColorSelection: invocation.StrokeColorSelection);
+                    initialStrokeColorSelection: invocation.StrokeColorSelection,
+                    scaleStrokeWidthWithTransform: scaleStrokeWidthWithTransform);
             } finally {
                 activeForms.Remove(formStream);
             }

@@ -49,7 +49,8 @@ internal static class PdfStaticFormRecognizer {
             PdfLogicalPage page = logical.PagesBySourcePageNumber[pageNumber][0];
             (double pageWidth, double pageHeight) = page.GetVisualPageSize();
             PdfReadPage readPage = document.Pages[pageNumber - 1];
-            IReadOnlyList<PdfPageVisualPrimitive> primitives = readPage.GetIdentityVisualPrimitives(cancellationToken);
+            IReadOnlyList<PdfPageVisualPrimitive> primitives = readPage.GetIdentityVisualPrimitives(
+                scaleStrokeWidthWithTransform: true, cancellationToken: cancellationToken);
             IReadOnlyList<PdfPageDrawingEffectTransition> effects = readPage.GetIdentityGraphicsEffectTransitions(cancellationToken);
             int imagePlacementCount = page.Images.Sum(static image => image.Placements.Count);
             var filledAreas = new List<PaintArea>();
@@ -69,8 +70,7 @@ internal static class PdfStaticFormRecognizer {
                     filledAreas.Add(new PaintArea(visible, painted.PaintOrder, painted.ContentOrderKey,
                         normalBlend && IsEmptyFill(painted), normalBlend && IsOpaqueWhiteFill(painted),
                         normalBlend && IsOpaqueCover(painted),
-                        normalBlend && IsOpaqueCover(painted) && painted.FillColor is OfficeColor backdrop &&
-                            backdrop.R * 0.2126D + backdrop.G * 0.7152D + backdrop.B * 0.0722D < 200D));
+                        normalBlend && IsOpaqueCover(painted) ? painted.FillColor : null));
                 }
             }
             List<Label> labels = GetLabels(page, suppliedText, pageWidth, pageHeight, filledAreas, effects,
@@ -99,13 +99,17 @@ internal static class PdfStaticFormRecognizer {
                 }
                 if (primitive.StrokeColor is OfficeColor strokeColor &&
                     primitive.StrokeGradient is null && primitive.StrokeRadialGradient is null &&
-                    primitive.StrokeTilingPattern is null &&
-                    strokeColor.R >= 245 && strokeColor.G >= 245 && strokeColor.B >= 245 &&
-                    !HasContrastingBackdrop(filledAreas, OutlinePaintBounds(primitive, visual),
-                        primitive.PaintOrder, primitive.ContentOrderKey)) {
-                    AddDiagnostic("invisible-outline", pageNumber,
-                        "A white field outline cannot be distinguished from its painted background.");
-                    continue;
+                    primitive.StrokeTilingPattern is null) {
+                    bool visible = IsOpaqueWhiteFill(primitive) && primitive.FillColor is OfficeColor ownFill
+                        ? ColorsContrast(strokeColor, ownFill)
+                        : filledAreas.Any(area => IsCandidateBackdrop(area, primitive, visual, evidence)) ||
+                          HasContrastingBackdrop(filledAreas, OutlinePaintBounds(primitive, visual), strokeColor,
+                              primitive.PaintOrder, primitive.ContentOrderKey, outlinedStroke: true);
+                    if (!visible) {
+                        AddDiagnostic("invisible-outline", pageNumber,
+                            "A field outline cannot be distinguished from its painted background.");
+                        continue;
+                    }
                 }
                 if (IsCoveredByLaterOpaqueFill(filledAreas, OutlinePaintBounds(primitive, visual),
                     primitive.PaintOrder, primitive.ContentOrderKey)) {
@@ -113,8 +117,8 @@ internal static class PdfStaticFormRecognizer {
                         "A visual field outline is covered by later opaque paint.");
                     continue;
                 }
-                if (HasPaintedInterior(filledAreas, visual, cancellationToken)) continue;
-                if (HasInteriorMark(primitives, filledAreas, candidateIndex, visual, cancellationToken) ||
+                if (HasPaintedInterior(filledAreas, primitive, visual, evidence, cancellationToken)) continue;
+                if (HasInteriorMark(primitives, filledAreas, effects, candidateIndex, visual, evidence, cancellationToken) ||
                     HasImageInterior(page, filledAreas, visual, cancellationToken)) {
                     AddDiagnostic("occupied-field", pageNumber, "A visual field candidate contains a painted mark.");
                     continue;
@@ -248,6 +252,21 @@ internal static class PdfStaticFormRecognizer {
                             break;
                         }
                     }
+                    if (!covered) {
+                        foreach (PdfLogicalImage image in page.Images) {
+                            foreach (PdfImagePlacement placement in image.Placements) {
+                                cancellationToken.ThrowIfCancellationRequested();
+                                candidateScanWork++;
+                                if (candidateScanWork > maxCandidateScanWork) {
+                                    throw PdfReadLimitException.Create(PdfReadLimitKind.UnderstandingArtifacts,
+                                        maxCandidateScanWork, candidateScanWork);
+                                }
+                                if (IsLaterOpaqueImageCover(page, image, placement, spanVisual,
+                                    span.PaintOrder, span.ContentOrderKey)) { covered = true; break; }
+                            }
+                            if (covered) break;
+                        }
+                    }
                     if (covered) continue;
                     if (span.Color is OfficeColor ink && ink.R >= 245 && ink.G >= 245 && ink.B >= 245 &&
                         !HasContrastingBackdrop(filledAreas, spanVisual, span.PaintOrder, span.ContentOrderKey)) {
@@ -346,7 +365,7 @@ internal static class PdfStaticFormRecognizer {
 
     private static bool HasPaintedInterior(
         IReadOnlyList<PaintArea> filledAreas,
-        VisualRect candidate,
+        PdfPageVisualPrimitive outline, VisualRect candidate, PdfStaticFormEvidenceKind evidence,
         CancellationToken cancellationToken) {
         PaintArea? latestPaint = null;
         bool painted = false;
@@ -354,6 +373,11 @@ internal static class PdfStaticFormRecognizer {
             cancellationToken.ThrowIfCancellationRequested();
             if (latestPaint.HasValue && !IsLater(area.PaintOrder, area.ContentOrderKey,
                 latestPaint.Value.PaintOrder, latestPaint.Value.ContentOrderKey)) continue;
+            if (IsCandidateBackdrop(area, outline, candidate, evidence)) {
+                latestPaint = area;
+                painted = false;
+                continue;
+            }
             if (area.IsEmpty) {
                 if (area.IsOpaqueWhite && area.Bounds.Left <= candidate.Left && area.Bounds.Top <= candidate.Top &&
                     area.Bounds.Right >= candidate.Right && area.Bounds.Bottom >= candidate.Bottom) {
@@ -370,9 +394,19 @@ internal static class PdfStaticFormRecognizer {
         return painted;
     }
 
+    private static bool IsCandidateBackdrop(PaintArea area, PdfPageVisualPrimitive outline,
+        VisualRect candidate, PdfStaticFormEvidenceKind evidence) =>
+        evidence == PdfStaticFormEvidenceKind.OutlinedField && area.IsOpaqueCover &&
+        area.Color is OfficeColor background && outline.StrokeColor is OfficeColor ink &&
+        ColorsContrast(ink, background) &&
+        IsLater(outline.PaintOrder, outline.ContentOrderKey, area.PaintOrder, area.ContentOrderKey) &&
+        area.Bounds.Left <= candidate.Left && area.Bounds.Top <= candidate.Top &&
+        area.Bounds.Right >= candidate.Right && area.Bounds.Bottom >= candidate.Bottom &&
+        area.Bounds.Area <= candidate.Area * 1.25D;
+
     private static bool HasInteriorMark(IReadOnlyList<PdfPageVisualPrimitive> primitives,
-        IReadOnlyList<PaintArea> filledAreas,
-        int candidateIndex, VisualRect candidate,
+        IReadOnlyList<PaintArea> filledAreas, IReadOnlyList<PdfPageDrawingEffectTransition> effects,
+        int candidateIndex, VisualRect candidate, PdfStaticFormEvidenceKind evidence,
         CancellationToken cancellationToken) {
         const double inset = 0.2D;
         var interior = new VisualRect(candidate.Left + inset, candidate.Top + inset,
@@ -382,6 +416,10 @@ internal static class PdfStaticFormRecognizer {
             cancellationToken.ThrowIfCancellationRequested();
             if (index == candidateIndex) continue;
             PdfPageVisualPrimitive primitive = primitives[index];
+            if (filledAreas.Any(area =>
+                !IsLater(area.PaintOrder, area.ContentOrderKey, primitive.PaintOrder, primitive.ContentOrderKey) &&
+                !IsLater(primitive.PaintOrder, primitive.ContentOrderKey, area.PaintOrder, area.ContentOrderKey) &&
+                IsCandidateBackdrop(area, candidatePrimitive, candidate, evidence))) continue;
             bool paintedAfterCandidate = IsLater(primitive.PaintOrder, primitive.ContentOrderKey,
                 candidatePrimitive.PaintOrder, candidatePrimitive.ContentOrderKey);
             bool stroked = primitive.HasStrokePaint && primitive.StrokeOpacity != 0D;
@@ -391,8 +429,10 @@ internal static class PdfStaticFormRecognizer {
             double top = primitive.Kind == PdfPageVisualPrimitiveKind.Line ? Math.Min(primitive.Y1, primitive.Y2) : primitive.Y;
             double right = primitive.Kind == PdfPageVisualPrimitiveKind.Line ? Math.Max(primitive.X1, primitive.X2) : primitive.X + primitive.Width;
             double bottom = primitive.Kind == PdfPageVisualPrimitiveKind.Line ? Math.Max(primitive.Y1, primitive.Y2) : primitive.Y + primitive.Height;
-            if (primitive.Kind == PdfPageVisualPrimitiveKind.Line && stroked) {
-                double strokePadding = Math.Max(0D, primitive.StrokeWidth) / 2D;
+            if (stroked) {
+                // The parser stores the RMS transform scale. Its largest singular scale can be
+                // sqrt(2) times larger, so use that conservative envelope for occupancy.
+                double strokePadding = Math.Max(0D, primitive.StrokeWidth) * Math.Sqrt(2D) / 2D;
                 left -= strokePadding;
                 top -= strokePadding;
                 right += strokePadding;
@@ -406,7 +446,11 @@ internal static class PdfStaticFormRecognizer {
                 bottom = Math.Min(bottom, clip.Y + clip.Height);
             }
             if (right <= left || bottom <= top) continue;
-            bool filled = hasFillPaint && (!IsEmptyFill(primitive) ||
+            PdfPageDrawingEffect effect = PdfReadPage.ResolveDrawingEffect(effects, primitive.PaintOrder,
+                contentOrderKey: primitive.ContentOrderKey);
+            bool uncertainEffect = effect.BlendMode != OfficeBlendMode.Normal || effect.SoftMask is not null ||
+                effect.HasUnresolvedSoftMask;
+            bool filled = hasFillPaint && (uncertainEffect || !IsEmptyFill(primitive) ||
                 HasContrastingBackdrop(filledAreas, new VisualRect(left, top, right, bottom),
                     primitive.PaintOrder, primitive.ContentOrderKey));
             if (!stroked && !filled) continue;
@@ -465,19 +509,63 @@ internal static class PdfStaticFormRecognizer {
             area.Bounds.Left <= painted.Left && area.Bounds.Top <= painted.Top &&
             area.Bounds.Right >= painted.Right && area.Bounds.Bottom >= painted.Bottom;
 
+    private static bool IsLaterOpaqueImageCover(PdfLogicalPage page, PdfLogicalImage image,
+        PdfImagePlacement placement, VisualRect painted, double paintOrder, PdfContentOrderKey? contentOrderKey) {
+        if (!IsLater(placement.PaintOrder, placement.ContentOrderKey, paintOrder, contentOrderKey) ||
+            placement.IsHiddenOptionalContent || placement.Width <= 0D || placement.Height <= 0D ||
+            placement.Opacity < 0.999D || placement.HasSoftMask || placement.HasUnsupportedBlendMode ||
+            placement.HasUnsupportedPaintState || placement.HasUnsupportedImagePaintEffect ||
+            placement.EffectiveBlendMode != OfficeBlendMode.Normal || image.SourceImage.IsImageMask ||
+            image.SourceImage.HasTransparencyMask ||
+            !(Math.Abs(placement.B) < 0.000001D && Math.Abs(placement.C) < 0.000001D ||
+              Math.Abs(placement.A) < 0.000001D && Math.Abs(placement.D) < 0.000001D) ||
+            placement.Clip is { IsRectangle: false } or { IsExact: false } or { ContainsTextClipping: true }) return false;
+        PdfVisualBounds mapped = page.TransformBoundsToVisual(placement.X, placement.Y,
+            placement.X + placement.Width, placement.Y + placement.Height);
+        var visible = new VisualRect(mapped.Left, mapped.Top, mapped.Right, mapped.Bottom);
+        if (placement.Clip is { } clip) {
+            PdfVisualBounds clipped = page.TransformBoundsToVisual(clip.X,
+                page.Height - clip.Y - clip.Height, clip.X + clip.Width, page.Height - clip.Y);
+            visible = new VisualRect(Math.Max(visible.Left, clipped.Left), Math.Max(visible.Top, clipped.Top),
+                Math.Min(visible.Right, clipped.Right), Math.Min(visible.Bottom, clipped.Bottom));
+        }
+        return visible.Left <= painted.Left && visible.Top <= painted.Top &&
+            visible.Right >= painted.Right && visible.Bottom >= painted.Bottom;
+    }
+
     private static bool HasContrastingBackdrop(IReadOnlyList<PaintArea> filledAreas, VisualRect outline,
-        double paintOrder, PdfContentOrderKey? contentOrderKey) {
-        PaintArea? latest = null;
+        double paintOrder, PdfContentOrderKey? contentOrderKey) =>
+        HasContrastingBackdrop(filledAreas, outline, OfficeColor.White, paintOrder, contentOrderKey);
+
+    private static bool HasContrastingBackdrop(IReadOnlyList<PaintArea> filledAreas, VisualRect outline,
+        OfficeColor ink, double paintOrder, PdfContentOrderKey? contentOrderKey, bool outlinedStroke = false) {
+        PaintArea? latestFullCover = null;
         foreach (PaintArea area in filledAreas) {
             if (!area.IsOpaqueCover || !IsLater(paintOrder, contentOrderKey, area.PaintOrder, area.ContentOrderKey) ||
                 OverlapArea(area.Bounds, outline) <= 0D) continue;
-            if (!latest.HasValue || IsLater(area.PaintOrder, area.ContentOrderKey,
-                latest.Value.PaintOrder, latest.Value.ContentOrderKey)) latest = area;
+            if (area.Bounds.Left <= outline.Left && area.Bounds.Top <= outline.Top &&
+                area.Bounds.Right >= outline.Right && area.Bounds.Bottom >= outline.Bottom &&
+                (!latestFullCover.HasValue || IsLater(area.PaintOrder, area.ContentOrderKey,
+                    latestFullCover.Value.PaintOrder, latestFullCover.Value.ContentOrderKey))) latestFullCover = area;
         }
-        return latest?.ContrastsWithWhite == true &&
-            latest.Value.Bounds.Left <= outline.Left && latest.Value.Bounds.Top <= outline.Top &&
-            latest.Value.Bounds.Right >= outline.Right && latest.Value.Bounds.Bottom >= outline.Bottom;
+        OfficeColor backdrop = latestFullCover?.Color ?? OfficeColor.White;
+        if (!ColorsContrast(ink, backdrop)) return false;
+        foreach (PaintArea area in filledAreas) {
+            if (!IsLater(paintOrder, contentOrderKey, area.PaintOrder, area.ContentOrderKey) ||
+                latestFullCover.HasValue && !IsLater(area.PaintOrder, area.ContentOrderKey,
+                    latestFullCover.Value.PaintOrder, latestFullCover.Value.ContentOrderKey) ||
+                OverlapArea(area.Bounds, outline) <= 0D) continue;
+            // Paint wholly inside a stroked outline does not cover its visible border.
+            if (outlinedStroke && area.Bounds.Left > outline.Left && area.Bounds.Top > outline.Top &&
+                area.Bounds.Right < outline.Right && area.Bounds.Bottom < outline.Bottom) continue;
+            if (!area.IsOpaqueCover || area.Color is not OfficeColor color || !ColorsContrast(ink, color)) return false;
+        }
+        return true;
     }
+
+    private static bool ColorsContrast(OfficeColor ink, OfficeColor backdrop) =>
+        Math.Max(Math.Abs(ink.R - backdrop.R),
+            Math.Max(Math.Abs(ink.G - backdrop.G), Math.Abs(ink.B - backdrop.B))) >= 45;
 
     internal static bool IsLater(double candidateOrder, PdfContentOrderKey? candidateKey,
         double earlierOrder, PdfContentOrderKey? earlierKey) =>
@@ -586,14 +674,14 @@ internal static class PdfStaticFormRecognizer {
 
     private readonly struct PaintArea {
         internal PaintArea(VisualRect bounds, double paintOrder, PdfContentOrderKey? contentOrderKey,
-            bool isEmpty, bool isOpaqueWhite, bool isOpaqueCover, bool contrastsWithWhite) {
+            bool isEmpty, bool isOpaqueWhite, bool isOpaqueCover, OfficeColor? color) {
             Bounds = bounds;
             PaintOrder = paintOrder;
             ContentOrderKey = contentOrderKey;
             IsEmpty = isEmpty;
             IsOpaqueWhite = isOpaqueWhite;
             IsOpaqueCover = isOpaqueCover;
-            ContrastsWithWhite = contrastsWithWhite;
+            Color = color;
         }
         internal VisualRect Bounds { get; }
         internal double PaintOrder { get; }
@@ -601,7 +689,7 @@ internal static class PdfStaticFormRecognizer {
         internal bool IsEmpty { get; }
         internal bool IsOpaqueWhite { get; }
         internal bool IsOpaqueCover { get; }
-        internal bool ContrastsWithWhite { get; }
+        internal OfficeColor? Color { get; }
     }
 
     private sealed class Label {
