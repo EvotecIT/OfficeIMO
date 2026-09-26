@@ -3,7 +3,7 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private static PdfCore.PdfTablePosition CreateNativeTablePosition(W.TablePositionProperties position) {
+        private static PdfCore.PdfTablePosition CreateNativeTablePosition(W.TablePositionProperties position, bool allowOverlap) {
             PdfCore.PdfTableAnchor horizontalAnchor = position.HorizontalAnchor?.Value == W.HorizontalAnchorValues.Page
                 ? PdfCore.PdfTableAnchor.Page : PdfCore.PdfTableAnchor.Margin;
             PdfCore.PdfTableAnchor verticalAnchor = position.VerticalAnchor?.Value == W.VerticalAnchorValues.Page
@@ -23,7 +23,9 @@ namespace OfficeIMO.Word.Pdf {
                 Math.Max(0, (position.LeftFromText?.Value ?? 0) / 20D),
                 Math.Max(0, (position.RightFromText?.Value ?? 0) / 20D),
                 Math.Max(0, (position.TopFromText?.Value ?? 0) / 20D),
-                Math.Max(0, (position.BottomFromText?.Value ?? 0) / 20D));
+                Math.Max(0, (position.BottomFromText?.Value ?? 0) / 20D),
+                mirrorHorizontalOnEvenPages: horizontal == W.HorizontalAlignmentValues.Inside || horizontal == W.HorizontalAlignmentValues.Outside,
+                allowOverlap: allowOverlap);
         }
     }
 }
