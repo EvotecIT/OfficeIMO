@@ -489,6 +489,34 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment);
     }
 
+    [Fact]
+    public void HtmlFloat_OverflowAutoCardThatFitsNextPageKeepsTextAndFloatTogether() {
+        const string html = "<body style='margin:0;font:10px/10px Arial'>"
+            + "<div style='height:80px'>Prelude</div>"
+            + "<ul style='margin:0;padding:0;list-style:none'>"
+            + "<li style='overflow:auto;margin:0;padding:0 0 0 45px'>"
+            + "<p style='margin:0'><strong><a href='https://example.test/card'>Card caption"
+            + "<span id='card-image' style='float:left;width:40px;height:40px;margin-left:-45px;background:red'></span>"
+            + "</a>:</strong> A card description that wraps onto another line.</p>"
+            + "</li></ul></body>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(100D / HtmlRenderOptions.CssPixelsPerInch, 100D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        Assert.Equal(2, rendered.Pages.Count);
+        Assert.DoesNotContain(EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>(),
+            text => text.Text.Contains("Card", StringComparison.Ordinal));
+        Assert.Contains(EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderText>(),
+            text => text.Text.Contains("Card", StringComparison.Ordinal));
+        HtmlRenderShape image = Assert.Single(EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderShape>(),
+            shape => shape.Source == "span#card-image" && shape.LinkUri == null);
+        Assert.True(image.Y <= 10.01D, $"Expected the moved float beside the first line on page two; Y={image.Y:R}.");
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

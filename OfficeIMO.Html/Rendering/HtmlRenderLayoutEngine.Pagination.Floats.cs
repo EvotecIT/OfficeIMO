@@ -21,6 +21,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
             : _styleResolver.Resolve(block.OwnerElement, geometry.ContentWidth, rootStyle);
         if (!ContainsFloatingDescendant(block.OwnerElement, geometry.ContentWidth, style, isRoot ? 0 : 1)) return false;
 
+        // If the legal break moves a page-sized scroll container as a unit,
+        // keep its float at its original local position. Deferring that float
+        // while also moving the container would shift it twice on the next page.
+        double entryBreak = FindFragmentEnd(block, 0D, remainingHeight, fullPageHeight: pageHeight);
+        if (entryBreak > 0.0001D && block.InlineBreakProgress.Any(progress =>
+                progress.IsBlockEntry
+                && Math.Abs(progress.Offset - entryBreak) <= 0.0001D
+                && progress.OwnerElement != null
+                && _layoutStyles.TryGetValue(progress.OwnerElement, out HtmlRenderBoxStyle? entryStyle)
+                && entryStyle.AvoidBreakInside
+                && ContainsFloatingDescendant(progress.OwnerElement, geometry.ContentWidth, entryStyle, 1))) {
+            return false;
+        }
+
         try {
             double boundaryHeight = remainingHeight;
             bool deferred = false;
@@ -36,7 +50,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 // If widows or orphans forbid a fragment here, pagination moves
                 // the entire original block to the next page. Do not retain a
                 // float offset computed for the previous page's empty space.
-                double fragmentEnd = FindFragmentEnd(candidate, 0D, remainingHeight);
+                double fragmentEnd = FindFragmentEnd(candidate, 0D, remainingHeight, fullPageHeight: pageHeight);
                 if (fragmentEnd <= 0.0001D || fragmentEnd > boundaryHeight + 0.0001D) break;
                 deferred = true;
                 reflowed = candidate;

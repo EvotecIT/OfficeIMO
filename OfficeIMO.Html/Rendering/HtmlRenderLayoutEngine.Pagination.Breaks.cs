@@ -23,19 +23,29 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return afterMargin;
     }
 
-    private static double FindFragmentEnd(HtmlRenderFlowBlock block, double start, double available, double? maximumEnd = null) {
+    private static double FindFragmentEnd(HtmlRenderFlowBlock block, double start, double available, double? maximumEnd = null, double fullPageHeight = 0D) {
         double limit = Math.Min(maximumEnd ?? block.Height, Math.Min(block.Height, start + available));
         IReadOnlyList<double> offsets = block.BreakOffsets;
         for (int index = UpperBound(offsets, limit + 0.0001D) - 1; index >= 0; index--) {
             double offset = offsets[index];
             if (offset <= start + 0.0001D) break;
-            if (IsAllowedLineBreak(block, start, offset)) return offset;
+            if (IsAllowedLineBreak(block, start, offset)
+                && !BreaksAvoidedRangeThatFitsPage(block, start, offset, fullPageHeight)) return offset;
         }
 
         return start;
     }
 
-    private static HtmlRenderTrailingGroup? ResolveTrailingGroup(HtmlRenderFlowBlock block, double start, double available, out double fragmentLimit) {
+    // When this page's full body can fit the card, prefer its entry or end.
+    // Otherwise retain interior offsets for a legal split.
+    private static bool BreaksAvoidedRangeThatFitsPage(HtmlRenderFlowBlock block, double start, double candidate, double fullPageHeight) =>
+        fullPageHeight > 0D && block.AvoidBreakRanges.Any(range =>
+            start <= range.Start + 0.0001D
+            && candidate > range.Start + 0.0001D
+            && candidate < range.End - 0.0001D
+            && range.End - range.Start <= fullPageHeight + 0.0001D);
+
+    private static HtmlRenderTrailingGroup? ResolveTrailingGroup(HtmlRenderFlowBlock block, double start, double available, double fullPageHeight, out double fragmentLimit) {
         HtmlRenderTrailingGroup? active = block.TrailingGroups.FirstOrDefault(group => group.AppliesAt(start));
         if (active != null) {
             fragmentLimit = active.ContentEndsAt;
@@ -52,7 +62,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         double candidateAvailable = Math.Max(0D, available - upcoming.Height);
-        double candidateEnd = FindFragmentEnd(block, start, candidateAvailable, upcoming.ContentEndsAt);
+        double candidateEnd = FindFragmentEnd(block, start, candidateAvailable, upcoming.ContentEndsAt, fullPageHeight);
         if (candidateEnd > upcoming.StartsAt + 0.0001D) {
             fragmentLimit = upcoming.ContentEndsAt;
             return upcoming;

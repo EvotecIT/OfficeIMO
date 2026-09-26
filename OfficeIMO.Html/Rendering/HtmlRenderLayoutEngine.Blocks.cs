@@ -318,6 +318,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var contentVisuals = new List<HtmlRenderVisual>();
         var childPaintLayers = new List<FlowPaintLayer>();
         var contentBreakOffsets = new List<double>();
+        var contentAvoidBreakRanges = new List<HtmlRenderAvoidBreakRange>();
         var forcedBreaks = new List<HtmlRenderForcedBreak>();
         var lineBreakOffsets = new List<double>();
         var lineBreakGroups = new List<HtmlRenderLineBreakGroup>();
@@ -441,6 +442,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (child.BreakAfter != HtmlPageBreakTarget.None) {
                     forcedBreaks.Add(new HtmlRenderForcedBreak(contentHeight, child.BreakAfter));
                 }
+                if (child.AvoidBreakInside)
+                    contentAvoidBreakRanges.Add(new HtmlRenderAvoidBreakRange(childStart, contentHeight));
+                contentAvoidBreakRanges.AddRange(child.AvoidBreakRanges.Select(range => range.Translate(childStart)));
                 foreach (double offset in child.BreakOffsets) {
                     // A child's zero offset is its entry, not a break inside it. The
                     // preceding sibling already contributes that boundary; forwarding
@@ -623,7 +627,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             inlineContinuationStart: ReferenceEquals(element, continuationTarget) ? continuationLogicalCharacters : 0,
             supportsInlineContinuationReflow: inlineLayout?.SupportsContinuationReflow == true
                 || continuationBreakProgress.Any(progress => progress.OwnerElement != null),
-            forcedBreaks: forcedBreaks.Select(item => item.Translate(contentYForBreaks)));
+            forcedBreaks: forcedBreaks.Select(item => item.Translate(contentYForBreaks)),
+            avoidBreakRanges: contentAvoidBreakRanges.Select(range => range.Translate(contentYForBreaks)));
         block = ApplyElementSemantics(block, element, style);
         bool collapsesThrough = CanCollapseThroughEmptyBlock(style, usesBlockFormatting, children, contentVisuals, contentHeight);
         return StampViewport(AttachElementMargins(ApplyElementPositioning(block, style, containingWidth, containingHeight, element),
