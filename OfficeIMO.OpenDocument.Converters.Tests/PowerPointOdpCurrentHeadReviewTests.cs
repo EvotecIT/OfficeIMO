@@ -616,6 +616,87 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
         AssertOdpLoss(source, "handout-master");
     }
 
+    [Theory]
+    [InlineData("pic")]
+    [InlineData("graphicFrame")]
+    public void NotesMediaOrGraphicalContentIsExplicitLoss(string elementName) {
+        using PowerPointPresentation source = CreatePowerPoint();
+        source.Slides[0].Notes.Text = "Body note";
+        NotesSlide notes = source.OpenXmlDocument.PresentationPart!.SlideParts.Single().NotesSlidePart!.NotesSlide!;
+        if (elementName == "pic") notes.CommonSlideData!.ShapeTree!.Append(new Picture());
+        else notes.CommonSlideData!.ShapeTree!.Append(new GraphicFrame());
+        AssertPowerPointLoss(source, "notes-slide-appearance");
+    }
+
+    [Theory]
+    [InlineData(3)]
+    [InlineData(256)]
+    public void DeclaredOdpTableColumnsSurviveSparseRows(int columns) {
+        OdpPresentation source = OdpPresentation.Create();
+        source.AddSlide().AddTable(OdfRect.FromCentimeters(1, 1, 8, 3), 1, 1);
+        source.Package.GetXml("content.xml").Descendants(OdfNamespaces.Table + "table-column").Single()
+            .SetAttributeValue(OdfNamespaces.Table + "number-columns-repeated", columns);
+        source.Package.MarkXmlDirty("content.xml");
+        using PowerPointPresentation converted = source.ToPowerPointPresentationResult().Value;
+        Assert.Equal(columns, converted.Slides[0].Tables.Single().Columns);
+        using PowerPointPresentation reopened = PowerPointPresentation.Load(new MemoryStream(converted.ToBytes()));
+        Assert.Equal(columns, reopened.Slides[0].Tables.Single().Columns);
+    }
+
+    [Fact]
+    public void DeclaredOdpTableColumnLimitIsEnforced() {
+        OdpPresentation source = OdpPresentation.Create();
+        source.AddSlide().AddTable(OdfRect.FromCentimeters(1, 1, 8, 3), 1, 1);
+        source.Package.GetXml("content.xml").Descendants(OdfNamespaces.Table + "table-column").Single()
+            .SetAttributeValue(OdfNamespaces.Table + "number-columns-repeated", "257");
+        source.Package.MarkXmlDirty("content.xml");
+        Assert.Throws<InvalidDataException>(() => source.ToPowerPointPresentationResult());
+    }
+
+    [Fact]
+    public void LegacyOdpAnimationsAreInspectedAndReported() {
+        OdpPresentation source = OdpPresentation.Create();
+        source.AddSlide().AddTextBox(OdfRect.FromCentimeters(1, 1, 8, 2), "Animated");
+        source.Package.GetXml("content.xml").Descendants(OdfNamespaces.Draw + "page").Single()
+            .Add(new XElement(OdfNamespaces.Presentation + "animations",
+                new XElement(OdfNamespaces.Presentation + "show-shape",
+                    new XAttribute(OdfNamespaces.Presentation + "effect", "fade"))));
+        source.Package.MarkXmlDirty("content.xml");
+        Assert.Contains(source.InspectFeatures().Findings, finding => finding.Name == "presentation-animations");
+        AssertOdpLoss(source, "source-presentation-animations");
+    }
+
+    [Fact]
+    public void OdpCustomGluePointsAreExplicitLoss() {
+        OdpPresentation source = OdpPresentation.Create();
+        source.AddSlide().AddTextBox(OdfRect.FromCentimeters(1, 1, 8, 2), "Connection");
+        source.Package.GetXml("content.xml").Descendants(OdfNamespaces.Draw + "frame").Single()
+            .Add(new XElement(OdfNamespaces.Draw + "glue-point", new XAttribute(OdfNamespaces.Draw + "id", "4"),
+                new XAttribute(OdfNamespaces.Svg + "x", "1cm"), new XAttribute(OdfNamespaces.Svg + "y", "1cm")));
+        source.Package.MarkXmlDirty("content.xml");
+        AssertOdpLoss(source, "shape-appearance");
+    }
+
+    [Fact]
+    public void UnsupportedPowerPointBackgroundExplicitlyHidesOdpMasterBackground() {
+        using PowerPointPresentation source = CreatePowerPoint();
+        SlidePart slide = source.OpenXmlDocument.PresentationPart!.SlideParts.Single();
+        slide.SlideLayoutPart!.SlideMasterPart!.SlideMaster!.CommonSlideData!.Background =
+            new Background(new BackgroundProperties(new A.SolidFill(new A.RgbColorModelHex { Val = "336699" })));
+        slide.Slide!.CommonSlideData!.Background = new Background(new BackgroundProperties(new A.GradientFill()));
+        OdpPresentation converted = source.ToOpenDocumentResult().Value;
+        OdpPresentation reopened = OdpPresentation.Load(new MemoryStream(converted.ToBytes()));
+        XElement page = reopened.Package.GetXml("content.xml").Descendants(OdfNamespaces.Draw + "page").Single();
+        Assert.Equal("#336699", reopened.MasterPages[0].BackgroundColor?.ToString());
+        string? pageStyle = (string?)page.Attribute(OdfNamespaces.Draw + "style-name");
+        XElement properties = reopened.Package.GetXml("content.xml").Descendants(OdfNamespaces.Style + "style")
+            .Single(style => (string?)style.Attribute(OdfNamespaces.Style + "name") == pageStyle)
+            .Element(OdfNamespaces.Style + "drawing-page-properties")!;
+        Assert.Equal("false", (string?)properties.Attribute(OdfNamespaces.Presentation + "background-visible"));
+        using PowerPointPresentation back = reopened.ToPowerPointPresentationResult().Value;
+        Assert.Null(back.Slides[0].GetBackground().Color);
+    }
+
     private static PowerPointPresentation CreatePowerPoint() {
         PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
         source.AddSlide(PowerPointSlideLayoutType.Blank);

@@ -205,7 +205,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                 shape.TextBody?.Descendants<A.ParagraphProperties>().Any(properties =>
                     properties.GetAttributes().Any(attribute => attribute.LocalName is "algn" or "rtl")) == true);
             bool authoredNotesConnectionsOrGroups = notes.Descendants<P.ConnectionShape>().Any() ||
-                notes.Descendants<P.GroupShape>().Any();
+                notes.Descendants<P.GroupShape>().Any() || notes.Descendants<P.Picture>().Any() ||
+                notes.Descendants<P.GraphicFrame>().Any();
             if (notes.CommonSlideData?.Background != null || authoredNotesShapes ||
                 authoredNotesConnectionsOrGroups || notes.GetAttributes().Any(attribute =>
                 attribute.LocalName is "showMasterSp" or "showMasterPhAnim" &&

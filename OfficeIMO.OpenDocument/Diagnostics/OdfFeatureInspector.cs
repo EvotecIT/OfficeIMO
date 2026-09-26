@@ -80,6 +80,8 @@ internal static class OdfFeatureInspector {
             int animations = document.Descendants().Count(element =>
                 element.Name.Namespace == OdfNamespaces.Anim &&
                 element.Name.LocalName is not ("par" or "seq" or "iterate"));
+            int legacyAnimations = document.Descendants(OdfNamespaces.Presentation + "animations").Count();
+            if (legacyAnimations > 0) findings.Add(new OdfFeatureFinding("presentation-animations", OdfFeatureSupport.Preserved, entry.Name, legacyAnimations));
             if (animations > 0) findings.Add(new OdfFeatureFinding("presentation-animations", OdfFeatureSupport.Editable, entry.Name, animations));
 
             var foreign = document.Root.DescendantsAndSelf()

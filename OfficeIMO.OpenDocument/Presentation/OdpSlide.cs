@@ -61,6 +61,7 @@ public sealed class OdpSlide {
     }
     internal void SuppressInheritedBackground() {
         OdfStyle style = EnsureDrawingPageStyle();
+        style.SetProperty(OdfNamespaces.Style + "drawing-page-properties", OdfNamespaces.Presentation + "background-visible", "false");
         style.SetProperty(OdfNamespaces.Style + "drawing-page-properties", OdfNamespaces.Draw + "fill", "none");
         style.SetProperty(OdfNamespaces.Style + "drawing-page-properties", OdfNamespaces.Draw + "fill-color", null);
     }

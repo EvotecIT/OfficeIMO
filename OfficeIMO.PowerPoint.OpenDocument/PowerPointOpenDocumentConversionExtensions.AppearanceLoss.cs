@@ -494,6 +494,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
     }
 
     private static bool HasUnmappedOdpDirectShapeGeometry(OdpShape shape) {
+        if (shape.Element.Descendants(OdfNamespaces.Draw + "glue-point").Any()) return true;
         if (shape is not OdpRectangle and not OdpEllipse and not OdpLine) return false;
         return shape.Element.Attributes().Any(attribute =>
             !attribute.IsNamespaceDeclaration &&
@@ -590,6 +591,23 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
     private static bool HasUnmappedOdpShapeAccessibility(OdpShape shape) =>
         shape.Element.DescendantsAndSelf().Any(element =>
             element.Name == OdfNamespaces.Svg + "title" || element.Name == OdfNamespaces.Svg + "desc");
+
+    private static int ReadOdpDeclaredTableColumns(OdpTable table, int maximum) {
+        XElement root = table.Element.Element(OdfNamespaces.Table + "table")!;
+        int count = 0;
+        foreach (XElement column in root.Descendants(OdfNamespaces.Table + "table-column")
+            .Where(column => column.Ancestors(OdfNamespaces.Table + "table").First() == root)) {
+            string? raw = (string?)column.Attribute(OdfNamespaces.Table + "number-columns-repeated");
+            long repeat = 1;
+            if (raw != null && (!long.TryParse(raw, System.Globalization.NumberStyles.None,
+                System.Globalization.CultureInfo.InvariantCulture, out repeat) || repeat < 1))
+                throw new InvalidDataException("ODP table column repeat must be a positive integer.");
+            if (repeat > maximum - count)
+                throw new InvalidDataException($"ODP table columns ({(decimal)count + repeat}) exceed the configured conversion limit ({maximum}).");
+            count += (int)repeat;
+        }
+        return count;
+    }
 
     private static bool HasUnmappedOdpTableVisibility(OdpTable table) =>
         table.Element.Descendants().Any(element =>

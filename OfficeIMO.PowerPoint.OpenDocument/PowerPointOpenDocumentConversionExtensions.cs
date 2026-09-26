@@ -428,7 +428,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                         throw new InvalidDataException($"ODP table rows ({rowCount}) exceed the configured conversion limit ({effective.MaxTableRows}).");
                     }
                     OdpTableRow[] sourceRows = rows.ToArray();
-                    int columnCount = Math.Max(1, sourceRows.Select(row => row.Cells.Count).DefaultIfEmpty(1).Max());
+                    int columnCount = Math.Max(ReadOdpDeclaredTableColumns(table, effective.MaxTableColumns),
+                        Math.Max(1, sourceRows.Select(row => row.Cells.Count).DefaultIfEmpty(1).Max()));
                     if (columnCount > effective.MaxTableColumns) {
                         throw new InvalidDataException($"ODP table columns ({columnCount}) exceed the configured conversion limit ({effective.MaxTableColumns}).");
                     }
