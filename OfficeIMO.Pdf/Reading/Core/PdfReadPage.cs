@@ -54,6 +54,11 @@ public sealed partial class PdfReadPage {
                 limits.MaxContentNestingDepth);
     }
 
+    internal PdfReadPage WithOptionalContentVisibility(PdfPageOptionalContentVisibility.DocumentState state) =>
+        new PdfReadPage(ObjectNumber, _pageDict, _objects, _limits, _fontResourceCache,
+            _demandTextExtraction, _demandContentExtraction, _includeArtifactText,
+            _outputIntentColorTransform, state);
+
     private PdfOutputIntentColorTransform? EffectiveOutputIntentColorTransform =>
         _outputIntentColorTransform != null && !GetOutputIntentCompositionInteraction(CancellationToken.None)
             ? _outputIntentColorTransform
@@ -504,6 +509,13 @@ public sealed partial class PdfReadPage {
         return GetImages(pageNumber, imagePlacements, colorizeImageMasks: false);
     }
 
+    internal IReadOnlyList<PdfExtractedImage> GetImages(int pageNumber,
+        IReadOnlyList<PdfImagePlacement>? imagePlacements, CancellationToken cancellationToken) {
+        PrepareOutputIntentRendering(cancellationToken);
+        return GetImages(pageNumber, imagePlacements, colorizeImageMasks: false,
+            new PageContentBudget(this, cancellationToken), cancellationToken);
+    }
+
     internal IReadOnlyList<PdfExtractedImage> GetImages(int pageNumber, IReadOnlyList<PdfImagePlacement>? imagePlacements, bool colorizeImageMasks) {
         return GetImages(pageNumber, imagePlacements, colorizeImageMasks, new PageContentBudget(this));
     }
@@ -593,6 +605,13 @@ public sealed partial class PdfReadPage {
 
     internal IReadOnlyList<PdfImagePlacement> GetImagePlacements(int pageNumber) {
         return GetImagePlacements(pageNumber, includeHiddenOptionalContent: false);
+    }
+
+    internal IReadOnlyList<PdfImagePlacement> GetImagePlacements(int pageNumber, CancellationToken cancellationToken) {
+        PrepareOutputIntentRendering(cancellationToken);
+        return GetImagePlacements(pageNumber, includeHiddenOptionalContent: false,
+            cancellationCheck: cancellationToken.ThrowIfCancellationRequested,
+            cancellationToken: cancellationToken);
     }
 
     internal IReadOnlyList<PdfImagePlacement> GetImagePlacements(

@@ -1527,6 +1527,43 @@ For reproducible builds, replace the generated timestamps and UUIDs with an expl
 
 Internal readiness is not a certification. Pass the exact artifact to a qualified PDF/X preflight tool and bind its result with `PdfExternalValidationResult.PassedForArtifact`; `PdfComplianceProofReport.CanClaimConformance` remains false when that exact external evidence is absent or mismatched.
 
+For an imported PDF, inspect print concerns before submitting it to a press:
+
+```csharp
+PdfDocument incoming = PdfDocument.Load("incoming.pdf");
+PdfProductionPreflightReport report = incoming.Proof.PreflightProduction(
+    new PdfProductionPreflightOptions { Profile = PdfProductionPreflightProfile.PdfX4Candidate });
+foreach (PdfProductionFinding finding in report.Findings)
+    Console.WriteLine($"Page {finding.PageNumber?.ToString() ?? "document"}: {finding.Kind} - {finding.Message}");
+
+foreach (PdfProductionFixupProposal proposal in report.FixupProposals)
+    Console.WriteLine($"[{proposal.Index}] Page {proposal.PageNumber} {proposal.Box}: " +
+        $"{proposal.Bounds.Left}, {proposal.Bounds.Bottom}, {proposal.Bounds.Right}, {proposal.Bounds.Top} — {proposal.Reason}");
+
+// Enter only indices whose finished size and bleed coordinates you verified.
+Console.Write("Approved proposal indices (comma-separated, blank to skip): ");
+string? response = Console.ReadLine();
+int[] approved = string.IsNullOrWhiteSpace(response)
+    ? Array.Empty<int>()
+    : response.Split(',').Select(value => int.Parse(value.Trim())).ToArray();
+if (approved.Length > 0) {
+    PdfProductionFixupResult result = report.ApplySelected(approved);
+    result.Document.Save("boxes-reviewed.pdf");
+    Console.WriteLine($"Remaining findings: {result.After.Findings.Count}");
+}
+```
+
+The general-print and PDF/X candidate profiles inspect output intents, page
+boxes, reachable font programs, color and transparency, and placed-image
+resolution. Findings link to pages and image bounds when the evidence permits.
+Printable annotations and reachable tiling patterns currently produce
+indeterminate color or image-resolution findings where their painted content
+cannot be measured by preflight.
+Page-box fixups change metadata only; they never extend artwork or supply an
+ICC profile. Each accepted fixup is applied to the inspected PDF snapshot and
+the result is reopened for a new engine inspection. A qualified external
+validator is still required for a PDF/X conformance claim.
+
 ### Choose converter-friendly text fallbacks
 
 ```csharp

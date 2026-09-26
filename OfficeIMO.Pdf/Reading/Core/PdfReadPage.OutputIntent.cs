@@ -3,6 +3,202 @@ using System.Threading;
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadPage {
+    internal (bool HasDeviceRgb, bool HasDeviceIndependent, bool HasTransparency) GetDefiniteUnlayeredPrintColorUse(
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (HasEffectiveOptionalContentEntry(_pageDict)) return (false, false, false);
+        PdfDictionary? resources = ResolveDictionary(GetInheritedValue("Resources"));
+        var budget = new PageContentBudget(this, cancellationToken);
+        bool foundRgb = false;
+        bool foundIndependent = false;
+        bool foundTransparency = false;
+        var activeForms = new HashSet<PdfStream>();
+        Scan(GetContentStreamContent(budget), resources, false, false, false, false,
+            (Fill: false, Stroke: false, Blend: false, SoftMask: false), 0);
+        return (foundRgb, foundIndependent, foundTransparency);
+
+        void Scan(string content, PdfDictionary? currentResources, bool initialFillRgb,
+            bool initialStrokeRgb, bool initialFillIndependent, bool initialStrokeIndependent,
+            (bool Fill, bool Stroke, bool Blend, bool SoftMask) initialTransparency, int depth) {
+            EnsureContentNestingBudget(depth);
+            PdfDictionary? colorSpaces = ResolveDictionary(
+                currentResources?.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject) == true
+                    ? colorSpaceObject : null);
+            var selectedColorSpaces = new Dictionary<string, (bool UsesDeviceRgb, bool UsesDeviceIndependent)>(StringComparer.Ordinal);
+            bool fillRgb = initialFillRgb;
+            bool strokeRgb = initialStrokeRgb;
+            bool fillIndependent = initialFillIndependent;
+            bool strokeIndependent = initialStrokeIndependent;
+            var transparency = initialTransparency;
+            int textMode = 0;
+            int layeredDepth = 0;
+            var markedContent = new Stack<bool>();
+            var states = new Stack<(bool FillRgb, bool StrokeRgb,
+                bool FillIndependent, bool StrokeIndependent,
+                (bool Fill, bool Stroke, bool Blend, bool SoftMask) Transparency, int TextMode)>();
+            PdfContentStreamInterpreter.Interpret(content, _limits.MaxContentOperations, operation => {
+                cancellationToken.ThrowIfCancellationRequested();
+                switch (operation.Name) {
+                    case "BDC":
+                        bool isLayer = operation.Operands.Count > 1 &&
+                            operation.Operands[operation.Operands.Count - 2] is string tag && tag == "OC";
+                        markedContent.Push(isLayer);
+                        if (isLayer) layeredDepth++;
+                        return;
+                    case "BMC": markedContent.Push(false); return;
+                    case "EMC":
+                        if (markedContent.Count > 0 && markedContent.Pop()) layeredDepth--;
+                        return;
+                }
+                if (operation.HasInvalidOperands) return;
+                // Optional content suppresses painting, not persistent graphics-state changes.
+                if (layeredDepth != 0 && operation.Name is not ("q" or "Q" or "rg" or "RG" or
+                    "g" or "G" or "k" or "K" or "cs" or "CS" or "Tr" or "gs")) return;
+                if (operation.InlineImage is PdfContentInlineImage inlineImage) {
+                    PdfObject? inlineColorSpace = inlineImage.Dictionary.Items.TryGetValue("ColorSpace", out PdfObject? inlineColor)
+                        ? inlineColor : null;
+                    (bool imageRgb, bool imageIndependent) = ClassifyColorObject(inlineColorSpace);
+                    foundRgb |= imageRgb;
+                    foundRgb |= fillRgb && inlineImage.Dictionary.Items.TryGetValue("ImageMask", out PdfObject? inlineMask) &&
+                        ResolveObject(inlineMask) is PdfBoolean { Value: true };
+                    foundIndependent |= fillIndependent && inlineImage.Dictionary.Items.TryGetValue("ImageMask", out PdfObject? independentInlineMask) &&
+                        ResolveObject(independentInlineMask) is PdfBoolean { Value: true };
+                    foundIndependent |= imageIndependent;
+                    foundTransparency |= transparency.Fill || transparency.Blend ||
+                        transparency.SoftMask || HasImageTransparency(inlineImage.Dictionary);
+                    return;
+                }
+                switch (operation.Name) {
+                    case "q": states.Push((fillRgb, strokeRgb, fillIndependent, strokeIndependent, transparency, textMode)); break;
+                    case "Q":
+                        if (states.Count > 0) (fillRgb, strokeRgb, fillIndependent, strokeIndependent, transparency, textMode) = states.Pop();
+                        else { fillRgb = strokeRgb = fillIndependent = strokeIndependent = false; transparency = default; textMode = 0; }
+                        break;
+                    case "rg": (fillRgb, fillIndependent) = operation.Operands.Count == 3 ? ClassifySelected("DeviceRGB") : default; break;
+                    case "RG": (strokeRgb, strokeIndependent) = operation.Operands.Count == 3 ? ClassifySelected("DeviceRGB") : default; break;
+                    case "g": fillRgb = false; fillIndependent = ClassifySelected("DeviceGray").UsesDeviceIndependent; break;
+                    case "G": strokeRgb = false; strokeIndependent = ClassifySelected("DeviceGray").UsesDeviceIndependent; break;
+                    case "k": fillRgb = false; fillIndependent = ClassifySelected("DeviceCMYK").UsesDeviceIndependent; break;
+                    case "K": strokeRgb = false; strokeIndependent = ClassifySelected("DeviceCMYK").UsesDeviceIndependent; break;
+                    case "cs":
+                        (fillRgb, fillIndependent) = operation.Operands.Count == 1
+                            ? ClassifySelected(operation.Operands[0] as string) : default;
+                        break;
+                    case "CS":
+                        (strokeRgb, strokeIndependent) = operation.Operands.Count == 1
+                            ? ClassifySelected(operation.Operands[0] as string) : default;
+                        break;
+                    case "Tr":
+                        if (operation.Operands.Count == 1 && operation.Operands[0] is double mode &&
+                            mode >= 0D && mode <= 7D) textMode = (int)mode;
+                        break;
+                    case "gs":
+                        if (operation.Operands.Count > 0 && operation.Operands[operation.Operands.Count - 1] is string stateName) {
+                            PdfDictionary? extStates = ResolveDictionary(
+                                currentResources?.Items.TryGetValue("ExtGState", out PdfObject? statesObject) == true
+                                    ? statesObject : null);
+                            PdfDictionary? state = ResolveDictionary(
+                                extStates?.Items.TryGetValue(stateName, out PdfObject? stateObject) == true
+                                    ? stateObject : null);
+                            if (state != null) {
+                                if (state.Items.ContainsKey("ca")) transparency.Fill = HasNonDefaultOpacity(state, "ca");
+                                if (state.Items.ContainsKey("CA")) transparency.Stroke = HasNonDefaultOpacity(state, "CA");
+                                if (state.Items.ContainsKey("BM")) transparency.Blend = HasNonNormalBlendMode(state);
+                                if (state.Items.TryGetValue("SMask", out PdfObject? mask)) {
+                                    PdfObject? resolvedMask = PdfObjectLookup.ResolveChain(_objects, mask);
+                                    transparency.SoftMask = resolvedMask is not PdfNull and not PdfName { Name: "None" };
+                                }
+                            }
+                        }
+                        break;
+                    case "f": case "F": case "f*": foundRgb |= fillRgb; foundIndependent |= fillIndependent; foundTransparency |= transparency.Fill || transparency.Blend || transparency.SoftMask; break;
+                    case "S": case "s": foundRgb |= strokeRgb; foundIndependent |= strokeIndependent; foundTransparency |= transparency.Stroke || transparency.Blend || transparency.SoftMask; break;
+                    case "B": case "B*": case "b": case "b*":
+                        foundRgb |= fillRgb || strokeRgb;
+                        foundIndependent |= fillIndependent || strokeIndependent;
+                        foundTransparency |= transparency.Fill || transparency.Stroke || transparency.Blend || transparency.SoftMask;
+                        break;
+                    case "Tj": case "TJ": case "'": case "\"":
+                        if (!GetShownTextBytes(operation).Any(static bytes => bytes.Length > 0)) break;
+                        if (textMode is 0 or 2 or 4 or 6) foundRgb |= fillRgb;
+                        if (textMode is 1 or 2 or 5 or 6) foundRgb |= strokeRgb;
+                        if (textMode is 0 or 2 or 4 or 6) foundIndependent |= fillIndependent;
+                        if (textMode is 1 or 2 or 5 or 6) foundIndependent |= strokeIndependent;
+                        if (textMode != 3 && textMode != 7) {
+                            foundTransparency |= (textMode is 0 or 2 or 4 or 6 && transparency.Fill) ||
+                                (textMode is 1 or 2 or 5 or 6 && transparency.Stroke) ||
+                                transparency.Blend || transparency.SoftMask;
+                        }
+                        break;
+                    case "sh":
+                        if (operation.Operands.Count != 1 || operation.Operands[0] is not string shadingName) break;
+                        PdfDictionary? shadingResources = ResolveDictionary(
+                            currentResources?.Items.TryGetValue("Shading", out PdfObject? shadingResourcesObject) == true
+                                ? shadingResourcesObject : null);
+                        PdfObject? shading = ResolveObject(
+                            shadingResources?.Items.TryGetValue(shadingName, out PdfObject? shadingObject) == true
+                                ? shadingObject : null);
+                        PdfDictionary? shadingDictionary = shading switch {
+                            PdfDictionary dictionary => dictionary,
+                            PdfStream shadingStream => shadingStream.Dictionary,
+                            _ => null
+                        };
+                        if (shadingDictionary?.Items.TryGetValue("ColorSpace", out PdfObject? shadingColorSpace) == true) {
+                            (bool shadingRgb, bool shadingIndependent) = ClassifyColorObject(shadingColorSpace);
+                            foundRgb |= shadingRgb;
+                            foundIndependent |= shadingIndependent;
+                        }
+                        break;
+                    case "Do":
+                        if (operation.Operands.Count == 0 || operation.Operands[operation.Operands.Count - 1] is not string resourceName) break;
+                        PdfDictionary? xObjects = ResolveDictionary(
+                            currentResources?.Items.TryGetValue("XObject", out PdfObject? xObjectsObject) == true
+                                ? xObjectsObject : null);
+                        if (PdfObjectLookup.ResolveChain(_objects,
+                                xObjects?.Items.TryGetValue(resourceName, out PdfObject? xObject) == true ? xObject : null) is not PdfStream stream ||
+                            HasEffectiveOptionalContentEntry(stream.Dictionary)) break;
+                        string? subtype = (ResolveObject(stream.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtypeObject)
+                            ? subtypeObject : null) as PdfName)?.Name;
+                        if (subtype == "Image") {
+                            PdfObject? colorSpace = stream.Dictionary.Items.TryGetValue("ColorSpace", out PdfObject? imageColor)
+                                ? imageColor : null;
+                            (bool imageRgb, bool imageIndependent) = ClassifyColorObject(colorSpace);
+                            foundRgb |= imageRgb;
+                            foundRgb |= fillRgb && stream.Dictionary.Items.TryGetValue("ImageMask", out PdfObject? imageMask) &&
+                                ResolveObject(imageMask) is PdfBoolean { Value: true };
+                            foundIndependent |= fillIndependent && stream.Dictionary.Items.TryGetValue("ImageMask", out PdfObject? independentImageMask) &&
+                                ResolveObject(independentImageMask) is PdfBoolean { Value: true };
+                            foundIndependent |= imageIndependent;
+                            foundTransparency |= HasImageTransparency(stream.Dictionary) || transparency.Fill ||
+                                transparency.Blend || transparency.SoftMask;
+                        } else if (subtype == "Form" && activeForms.Add(stream)) {
+                            try {
+                                PdfDictionary? formResources = ResolveDictionary(stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? formResourceObject)
+                                    ? formResourceObject : null) ?? currentResources;
+                                Scan(PdfEncoding.Latin1GetString(budget.Decode(stream)), formResources,
+                                    fillRgb, strokeRgb, fillIndependent, strokeIndependent, transparency, depth + 1);
+                            } finally { activeForms.Remove(stream); }
+                        }
+                        break;
+                }
+            }, maxNestingDepth: _limits.MaxContentNestingDepth, maxOperands: _limits.MaxContentOperands);
+
+            (bool UsesDeviceRgb, bool UsesDeviceIndependent) ClassifySelected(string? name) {
+                if (name == null) return default;
+                if (!selectedColorSpaces.TryGetValue(name, out var usage)) {
+                    usage = PdfPrintProductionColorInspector.ClassifySelectedColorSpace(name, currentResources,
+                        _objects, _limits.MaxObjectNestingDepth, _limits.MaxDecodedStreamBytes);
+                    selectedColorSpaces.Add(name, usage);
+                }
+                return usage;
+            }
+
+            (bool UsesDeviceRgb, bool UsesDeviceIndependent) ClassifyColorObject(PdfObject? value) =>
+                PdfPrintProductionColorInspector.ClassifyColorSpaceObject(value,
+                    currentResources, _objects, _limits.MaxObjectNestingDepth, _limits.MaxDecodedStreamBytes);
+        }
+    }
+
     private bool GetOutputIntentCompositionInteraction(CancellationToken cancellationToken) =>
         _outputIntentColorTransform != null && _hasOutputIntentCompositionInteraction.GetOrCreate(
             this, static (page, token) => page.ScanOutputIntentCompositionInteraction(token), cancellationToken);

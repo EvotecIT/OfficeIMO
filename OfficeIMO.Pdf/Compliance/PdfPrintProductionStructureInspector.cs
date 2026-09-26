@@ -3,20 +3,41 @@ using OfficeIMO.Pdf.Filters;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfPrintProductionStructureInspector {
+    internal static int CountUnembeddedDefiniteFonts(PdfReadDocument document, int pageNumber,
+        System.Threading.CancellationToken cancellationToken) {
+        int count = 0;
+        foreach (KeyValuePair<PdfDictionary, HashSet<int>> entry in document.Pages[pageNumber - 1]
+            .GetDefiniteUnlayeredFontResources(cancellationToken)) {
+            cancellationToken.ThrowIfCancellationRequested();
+            try {
+                if (!HasEmbeddedFontProgram(entry.Key, document.Objects, document.ReadOptions.Limits.MaxDecodedStreamBytes,
+                    document.ReadOptions.Limits.MaxObjectNestingDepth, entry.Value)) count++;
+            } catch (Exception exception) when (exception is InvalidDataException or NotSupportedException or PdfReadLimitException) {
+                // The indeterminate font finding records contexts that cannot be classified.
+            }
+        }
+        return count;
+    }
+    internal static PdfPrintProductionStructureEvidence Inspect(PdfReadDocument document,
+        System.Threading.CancellationToken cancellationToken = default) => Inspect(document, null, cancellationToken);
+
     internal static PdfPrintProductionStructureEvidence Inspect(
         PdfReadDocument document,
+        int? selectedPageNumber,
         System.Threading.CancellationToken cancellationToken = default) {
         Guard.NotNull(document, nameof(document));
         cancellationToken.ThrowIfCancellationRequested();
         int validBoxes = 0;
         int invalidBoxes = 0;
-        foreach (PdfReadPage page in document.Pages) {
+        for (int index = 0; index < document.Pages.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (selectedPageNumber.HasValue && index + 1 != selectedPageNumber.Value) continue;
+            PdfReadPage page = document.Pages[index];
             if (HasValidProductionBoxes(page.GetGeometry())) validBoxes++;
             else invalidBoxes++;
         }
 
-        ReachableFontInspection fontInspection = InspectReachableFonts(document, cancellationToken);
+        ReachableFontInspection fontInspection = InspectReachableFonts(document, selectedPageNumber, cancellationToken);
         HashSet<PdfDictionary> fontDictionaries = fontInspection.Fonts;
 
         int unembedded = 0;
@@ -40,7 +61,7 @@ internal static partial class PdfPrintProductionStructureInspector {
         }
 
         return new PdfPrintProductionStructureEvidence(
-            document.Pages.Count,
+            selectedPageNumber.HasValue ? 1 : document.Pages.Count,
             validBoxes,
             invalidBoxes,
             fontDictionaries.Count,
@@ -48,7 +69,7 @@ internal static partial class PdfPrintProductionStructureInspector {
             uninspectable);
     }
 
-    private static bool HasValidProductionBoxes(PdfPageGeometry geometry) {
+    internal static bool HasValidProductionBoxes(PdfPageGeometry geometry) {
         PdfPageBox? media = geometry.MediaBox;
         PdfPageBox? trim = geometry.TrimBox;
         PdfPageBox? bleed = geometry.BleedBox;

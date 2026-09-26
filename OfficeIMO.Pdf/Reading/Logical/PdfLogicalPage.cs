@@ -382,8 +382,8 @@ public sealed partial class PdfLogicalPage {
 
         IReadOnlyList<PdfImagePlacement> imagePlacements = analysis is not null
             ? pageAnalysis.ImagePlacements
-            : page.GetImagePlacements(pageNumber);
-        foreach (var image in page.GetImages(pageNumber, imagePlacements)) {
+            : page.GetImagePlacements(pageNumber, cancellationToken);
+        foreach (var image in page.GetImages(pageNumber, imagePlacements, cancellationToken)) {
             IReadOnlyList<PdfImagePlacement> matchingPlacements = MatchImagePlacements(image, imagePlacements);
             var logicalImage = new PdfLogicalImage(
                 image,
@@ -1215,7 +1215,7 @@ public sealed partial class PdfLogicalPage {
         return builder.ToString();
     }
 
-    private static IReadOnlyList<PdfImagePlacement> MatchImagePlacements(PdfExtractedImage image, IReadOnlyList<PdfImagePlacement> placements) {
+    internal static IReadOnlyList<PdfImagePlacement> MatchImagePlacements(PdfExtractedImage image, IReadOnlyList<PdfImagePlacement> placements) {
         if (placements.Count == 0) {
             return Array.Empty<PdfImagePlacement>();
         }
@@ -1231,6 +1231,13 @@ public sealed partial class PdfLogicalPage {
             }
         }
 
-        return result.Count == 0 ? Array.Empty<PdfImagePlacement>() : result.AsReadOnly();
+        if (result.Count == 0) return Array.Empty<PdfImagePlacement>();
+
+        // A resource can be extracted more than once for distinct active paint states.
+        // Keep each variant with the invocation that produced it.
+        List<PdfImagePlacement> matchingVariant = result.Where(placement =>
+            placement.RenderingIntent == image.RenderingIntent &&
+            (!image.IsImageMask || placement.ImageMaskColor.Equals(image.ImageMaskColor))).ToList();
+        return matchingVariant.Count > 0 ? matchingVariant.AsReadOnly() : result.AsReadOnly();
     }
 }

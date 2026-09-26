@@ -68,6 +68,35 @@ internal static partial class PdfPageEditor {
         return PdfPageExtractor.ExtractPages(objects, document.UncheckedMetadata, pageObjectNumbers, overrides, catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw), fileVersion: fileVersion);
     }
 
+    internal static byte[] SetPageBoxesWithReadOptions(byte[] pdf, IReadOnlyList<PdfProductionFixupProposal> proposals,
+        PdfLoadOptions? readOptions, System.Threading.CancellationToken cancellationToken) {
+        Guard.NotNull(pdf, nameof(pdf));
+        Guard.NotNull(proposals, nameof(proposals));
+        cancellationToken.ThrowIfCancellationRequested();
+        (_, PdfReadDocument document) = PdfMutationPlanner.RequireFullRewriteDocument(
+            pdf, PdfMutationOperation.ModifyPageTree, readOptions, cancellationToken: cancellationToken);
+        Dictionary<int, PdfIndirectObject> objects = document.Objects;
+        string trailerRaw = document.TrailerRaw;
+        var overrides = new Dictionary<int, Dictionary<string, PdfObject>>();
+        foreach (PdfProductionFixupProposal proposal in proposals) {
+            cancellationToken.ThrowIfCancellationRequested();
+            ValidatePageNumbers(new[] { proposal.PageNumber }, document.Pages.Count, nameof(proposals));
+            PdfPageBox bounds = proposal.Bounds;
+            ValidatePageBoxCoordinates(bounds.Left, bounds.Bottom, bounds.Right, bounds.Top);
+            int objectNumber = document.Pages[proposal.PageNumber - 1].ObjectNumber;
+            if (!overrides.TryGetValue(objectNumber, out Dictionary<string, PdfObject>? pageOverrides)) {
+                pageOverrides = new Dictionary<string, PdfObject>(StringComparer.Ordinal);
+                overrides.Add(objectNumber, pageOverrides);
+            }
+            pageOverrides[GetPageBoxName(proposal.Box)] = CreatePageBoxArray(bounds.Left, bounds.Bottom, bounds.Right, bounds.Top);
+        }
+        int[] pageObjectNumbers = document.Pages.Select(static page => page.ObjectNumber).ToArray();
+        PdfFileVersion fileVersion = PdfPageExtractor.GetSourceFileVersion(pdf);
+        return PdfPageExtractor.ExtractPages(objects, document.UncheckedMetadata, pageObjectNumbers, overrides,
+            catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw, cancellationToken),
+            fileVersion: fileVersion, cancellationToken: cancellationToken);
+    }
+
     /// <summary>Creates a new PDF with the selected pages updated to the supplied production boundary box from a readable stream.</summary>
     public static byte[] SetPageBox(Stream stream, string boxName, double left, double bottom, double right, double top, params int[] pageNumbers) {
         return SetPageBox(ReadStream(stream, nameof(stream)), boxName, left, bottom, right, top, pageNumbers);
