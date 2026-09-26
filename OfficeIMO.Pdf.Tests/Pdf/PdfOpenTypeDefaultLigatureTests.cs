@@ -8,6 +8,93 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public class PdfOpenTypeDefaultLigatureTests {
+    [Fact]
+    public void RedactingMixedWhitespaceLigaturePreservesFollowingWord() {
+        byte[] data = ManagedTextShapingTestAssets.CreateMixedWhitespaceLigatureFont();
+        byte[] pdf = PdfDocument.Create(new PdfOptions { CompressContentStreams = false }.EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test"))
+            .Canvas(canvas => canvas.Text("A B", 40, 40, 200, 30, fontSize: 12)).ToBytes();
+        var spans = PdfReadDocument.Open(pdf).Pages[0].GetTextSpans();
+        var first = spans.First(span => span.Text.Contains("A"));
+        Assert.Contains("B", PdfTextExtractor.ExtractAllText(pdf));
+        byte[] redacted = PdfRedactionApplier.Apply(pdf, new[] { new PdfRedactionArea(1,
+            first.X, first.Y - first.FontSize * 1.5, first.Advance - 0.1, first.FontSize * 2, "cluster") });
+        string extracted = PdfTextExtractor.ExtractAllText(redacted);
+        Assert.DoesNotContain("A", extracted);
+        Assert.Contains("B", extracted);
+    }
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ContextScanningConsumesInputButNotLookahead(bool lookahead) {
+        var request = new OfficeTextShapingRequest("AAA", "Test",
+            ManagedTextShapingTestAssets.CreateFontWithContextInputOrLookahead(lookahead), false, 1000,
+            direction: OfficeTextDirection.LeftToRight, language: "en", featureSettings: OfficeTextFeatureSettings.Default.With("calt", 1));
+        var result = Assert.IsType<OfficeTextShapingResult>(OfficeManagedTextShapingProvider.Instance.ShapeText(request));
+        Assert.Equal(lookahead ? new[] { 2, 2, 1 } : new[] { 2, 1, 1 }, result.Glyphs.Select(glyph => glyph.GlyphId));
+        Assert.Equal("AAA", string.Concat(result.Glyphs.Select(glyph => glyph.UnicodeText)));
+    }
+    [Theory]
+    [InlineData(0x05D0)]
+    [InlineData(0x0627)]
+    [InlineData(0x0915)]
+    public void MixedComplexTextStillShapesLatinSegment(int neighbor) {
+        string text = "fi " + char.ConvertFromUtf32(neighbor);
+        var font = PdfTrueTypeFontProgram.Parse(ManagedTextShapingTestAssets.CreateMixedLatinLigatureFont(neighbor), "Test");
+        var run = font.ShapeText(text, PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.OpenTypeLigatures));
+        Assert.Equal(3, run.Glyphs.Count);
+        Assert.Contains(run.Glyphs, glyph => glyph.GlyphId == 5 && glyph.UnicodeText == "fi");
+        Assert.Equal(text, run.ActualText);
+    }
+    [Fact]
+    public void ExplicitKerningWorksWithoutGsubInDefaultMode() {
+        var font = PdfTrueTypeFontProgram.Parse(ManagedTextShapingTestAssets.CreateFontWithKerning('A', 'V', -100), "Test");
+        var scalar = font.ShapeText("AV", PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.UnicodeScalar,
+            featureSettings: OfficeTextFeatureSettings.Default.With("kern", 1)));
+        var automatic = font.ShapeText("AV", PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.OpenTypeLigatures,
+            featureSettings: OfficeTextFeatureSettings.Default.With("kern", 1)));
+        Assert.Equal(scalar.TotalAdvanceWidth1000, automatic.TotalAdvanceWidth1000);
+        Assert.Contains(automatic.Glyphs, glyph => glyph.HasPositioning);
+        Assert.Equal(font.ShapeText("AV", PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.UnicodeScalar)).TotalAdvanceWidth1000 - 100,
+            automatic.TotalAdvanceWidth1000);
+    }
+
+    [Theory]
+    [InlineData(0x1AB0)]
+    [InlineData(0x1DC0)]
+    [InlineData(0x20D0)]
+    [InlineData(0xFE20)]
+    public void RequiredCompositionKeepsSupplementaryCombiningMarks(int mark) {
+        var font = PdfTrueTypeFontProgram.Parse(ManagedTextShapingTestAssets.CreateFontWithRequiredLigature("ccmp", 'A', mark), "Test");
+        string text = "A" + char.ConvertFromUtf32(mark);
+        var run = font.ShapeText(text, PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.OpenTypeLigatures));
+        Assert.Equal(3, Assert.Single(run.Glyphs).GlyphId);
+        Assert.Equal(text, run.Glyphs[0].UnicodeText);
+    }
+
+    [Theory]
+    [InlineData("ccmp", 'A', 'B')]
+    [InlineData("liga", 's', 't')]
+    public void UnsupportedSelectedFeaturesWarnWithoutPresentationSequence(string tag, char first, char second) {
+        byte[] data = tag == "ccmp" ? ManagedTextShapingTestAssets.CreateFontWithRequiredLigature(tag, first, second, 8)
+            : ManagedTextShapingTestAssets.CreateFontWithLigature(first, second, scriptTag: "latn", lookupFlags: 8);
+        var report = new PdfConversionReport();
+        PdfDocument.Create(new PdfOptions().ReportDiagnosticsTo(report).EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test"))
+            .Paragraph(p => p.Text(new string(new[] { first, second }))).ToBytes();
+        Assert.Contains(report.Warnings, warning => warning.Code == "unsupported-font-ligature-substitution");
+    }
+
+    [Theory]
+    [InlineData("A ")]
+    [InlineData("A B")]
+    [InlineData(" A")]
+    public void MixedWhitespaceClusterDoesNotOwnFollowingWord(string source) {
+        var glyphs = new[] { new PdfGlyphInfo(1, source, 0, 600, 600, 0, 0, 0), new PdfGlyphInfo(2, "B", source.Length, 600, 600, 0, 0, 0) };
+        var output = new System.Text.StringBuilder();
+        new ContentStreamBuilder(output).BeginText().TextMatrix(40, 400)
+            .ShowText(new PdfGlyphRun(glyphs, System.Array.Empty<PdfTextEncodingDiagnostic>(), preserveGlyphUnicode: true).ToTextShowCommand(), 12).EndText();
+        Assert.Equal(2, output.ToString().Split(new[] { "/ActualText" }, System.StringSplitOptions.None).Length - 1);
+    }
+
     [Theory]
     [InlineData(false, false)]
     [InlineData(false, true)]

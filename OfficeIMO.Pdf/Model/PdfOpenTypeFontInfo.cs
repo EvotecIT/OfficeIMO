@@ -4,6 +4,7 @@ namespace OfficeIMO.Pdf;
 /// Describes a parsed OpenType or TrueType font program without claiming it can be rendered by every PDF output path.
 /// </summary>
 public sealed class PdfOpenTypeFontInfo {
+    internal OfficeIMO.Drawing.OfficeOpenTypeSubstitution? LatinSubstitution { get; set; }
     internal PdfOpenTypeFontInfo(
         string fontName,
         string scalerType,

@@ -31,18 +31,16 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
         if (request.Direction == OfficeTextDirection.TopToBottom ||
             string.IsNullOrEmpty(request.Text) ||
             !OfficeManagedTextShaper.RequiresComplexLayout(request.Text) && request.FeatureSettings.IsDefault && !request.ApplyDefaultLatinLigatures ||
-            request.ApplyDefaultLatinLigatures && OfficeManagedTextShaper.RequiresComplexLayout(request.Text) ||
-            OfficeTextElements.ContainsVariationSelector(request.Text) ||
+            !request.ApplyDefaultLatinLigatures && (OfficeTextElements.ContainsVariationSelector(request.Text) ||
             OfficeTextElements.ContainsZeroWidthJoinerSequence(request.Text) ||
             OfficeTextElements.ContainsShapingRequiredScript(request.Text) ||
             (OfficeTextElements.ContainsJoiningScript(request.Text) &&
-             !OfficeArabicTextShaper.CanShapeAllJoiningCharacters(request.Text))) {
+             !OfficeArabicTextShaper.CanShapeAllJoiningCharacters(request.Text)))) {
             return null;
         }
 
         LatinFont? latinFont = request.ApplyDefaultLatinLigatures
             ? LatinFonts.GetValue(request.FontDataForShaping, data => new LatinFont(data, request.IsOpenTypeCff)) : null;
-        if (request.ApplyDefaultLatinLigatures && latinFont?.Substitution == null) return null;
         IOfficeFontProgram? font = latinFont?.Font ?? (request.IsOpenTypeCff
             ? OfficeOpenTypeCffFont.TryLoad(request.FontDataForShaping, request.VariationCoordinatesForShaping, out _)
             : OfficeTrueTypeFont.TryLoad(request.FontDataForShaping, request.FontCollectionIndex));
@@ -56,6 +54,13 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
             request.CancellationToken);
         if (visualElements.Count == 0) return null;
         string visual = string.Concat(visualElements.Select(static element => element.VisualText));
+        // Retain the established scalar/bidi fallback when presentation glyphs are absent.
+        // Only eligible Latin segments receive automatic GSUB; other scripts remain diagnosed.
+        if (request.ApplyDefaultLatinLigatures && !font.HasGlyphs(visual)) {
+            visualElements = MapVisualElements(request.Text, OfficeArabicTextShaper.ToLogicalText(request.Text),
+                request.Direction, request.CancellationToken);
+            visual = string.Concat(visualElements.Select(static element => element.VisualText));
+        }
         if (!font.HasGlyphs(visual)) return null;
         var tokens = new List<OfficeOpenTypeSubstitution.GlyphToken>();
         foreach (VisualTextElement element in visualElements) {
@@ -65,7 +70,7 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
 
         OfficeOpenTypeSubstitution? substitution = latinFont?.Substitution ?? OfficeOpenTypeSubstitution.TryCreate(request.FontDataForShaping);
         if (request.ApplyDefaultLatinLigatures) {
-            if (substitution == null || !substitution.ApplyLatinDefaults(tokens, request.FeatureSettings, request.CancellationToken)) return null;
+            if (substitution != null && !substitution.ApplyLatinDefaults(tokens, request.FeatureSettings, request.CancellationToken)) return null;
         } else {
             if (substitution != null && !substitution.CanApply(request.FeatureSettings)) return null;
             substitution?.Apply(tokens, request.FeatureSettings, request.CancellationToken);
@@ -180,7 +185,7 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
     private sealed class LatinFont {
         internal LatinFont(byte[] data, bool isCff) {
             Substitution = OfficeOpenTypeSubstitution.TryCreate(data);
-            if (Substitution != null) Font = isCff ? OfficeOpenTypeCffFont.TryLoad(data, null, out _) : OfficeTrueTypeFont.TryLoad(data);
+            Font = isCff ? OfficeOpenTypeCffFont.TryLoad(data, null, out _) : OfficeTrueTypeFont.TryLoad(data);
         }
         internal IOfficeFontProgram? Font { get; }
         internal OfficeOpenTypeSubstitution? Substitution { get; }

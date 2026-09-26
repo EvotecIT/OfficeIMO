@@ -441,11 +441,8 @@ Use the PDF's resolved font family name when registering a replacement. The over
 
 ### Embedded-font Latin ligatures
 
-Generated PDFs use `PdfTextShapingMode.OpenTypeLigatures` by default. Embedded
-TrueType and OpenType/CFF fonts apply supported `liga`, `clig`, and `rlig`
-lookups from their default Latin language system, or the default script when
-no Latin script is present. The selected language system's required feature is
-also applied. Measurement and painting use the same glyph run;
+Generated PDFs use `PdfTextShapingMode.OpenTypeLigatures` by default for embedded
+TrueType and OpenType/CFF fonts. Measurement and painting use the same glyph run;
 Unicode mappings retain the source text for extraction, search, and redaction.
 
 Set `PdfOptions.TextShapingMode = PdfTextShapingMode.UnicodeScalar` to retain
@@ -455,11 +452,9 @@ that optional feature; the language system's required feature remains enabled.
 `LatinLigatures` remains available for the presentation-character
 substitutions supported by that mode.
 
-Unsupported GSUB lookups retain scalar output and conversion diagnostics.
-Contextual rules that change glyph count before a later lookup record are
-outside the built-in subset, as are reverse lookups with multiple subtables.
-Automatic Latin ligatures do not enable complex-script shaping or GPOS
-positioning; use `TextShapingProvider` for those contracts.
+See the [PDF font support contract](../Docs/officeimo.pdf.current-state.md#resources-fonts-and-trust)
+for supported substitutions and limits. Use `TextShapingProvider` when a full
+OpenType shaping provider is needed.
 
 ### Write a generated PDF
 

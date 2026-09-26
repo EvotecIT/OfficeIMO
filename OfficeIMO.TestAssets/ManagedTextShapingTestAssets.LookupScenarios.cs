@@ -4,6 +4,12 @@ using System.Linq;
 namespace OfficeIMO.TestAssets;
 
 internal static partial class ManagedTextShapingTestAssets {
+    internal static byte[] CreateMixedWhitespaceLigatureFont() => CreateFontFromCmap(
+        CreateDistinctFormat12Cmap(new[] { 32, (int)'A', (int)'B' }), glyphCount: 5,
+        gsub: CreateLigatureGsub("liga", 2, 1, 4, "latn", 0));
+    internal static byte[] CreateMixedLatinLigatureFont(int neighbor) => CreateFontFromCmap(
+        CreateDistinctFormat12Cmap(new[] { 32, (int)'f', (int)'i', neighbor }), glyphCount: 6,
+        gsub: CreateLigatureGsub("liga", 2, 3, 5, "latn", 0));
     internal static byte[] CreateFontWithLookupScanningScenario(bool nested, bool extension, bool insertedOutput) {
         byte[] multiple = insertedOutput
             ? MultipleScenarioSubtable(new ushort[] { 1, 2 }, new[] { new ushort[] { 3, 2 }, new ushort[] { 4, 5 } })
@@ -13,6 +19,32 @@ internal static partial class ManagedTextShapingTestAssets {
         byte[][] lookups = nested ? new[] {
             ScenarioLookup(5, extension, new[] { ContextScenarioSubtable(insertedOutput ? new ushort[] { 1, 2 } : new ushort[] { 1 }) }), lookup
         } : new[] { lookup };
+        return CreateLookupScenarioFont(lookups);
+    }
+
+    internal static byte[] CreateFontWithContextInputOrLookahead(bool lookahead) {
+        var context = new byte[lookahead ? 30 : 26];
+        WriteUInt16(context, 0, 3);
+        if (lookahead) {
+            WriteUInt16(context, 4, 1); WriteUInt16(context, 6, 18);
+            WriteUInt16(context, 8, 1); WriteUInt16(context, 10, 24);
+            WriteUInt16(context, 12, 1); WriteUInt16(context, 16, 1);
+            WriteUInt16(context, 18, 1); WriteUInt16(context, 20, 1); WriteUInt16(context, 22, 1);
+            WriteUInt16(context, 24, 1); WriteUInt16(context, 26, 1); WriteUInt16(context, 28, 1);
+        } else {
+            WriteUInt16(context, 2, 2); WriteUInt16(context, 4, 1);
+            WriteUInt16(context, 6, 14); WriteUInt16(context, 8, 20); WriteUInt16(context, 12, 1);
+            WriteUInt16(context, 14, 1); WriteUInt16(context, 16, 1); WriteUInt16(context, 18, 1);
+            WriteUInt16(context, 20, 1); WriteUInt16(context, 22, 1); WriteUInt16(context, 24, 1);
+        }
+        var single = new byte[14];
+        WriteUInt16(single, 0, 2); WriteUInt16(single, 2, 8); WriteUInt16(single, 4, 1);
+        WriteUInt16(single, 6, 2); WriteUInt16(single, 8, 1); WriteUInt16(single, 10, 1); WriteUInt16(single, 12, 1);
+        return CreateLookupScenarioFont(new[] { ScenarioLookup(lookahead ? (ushort)6 : (ushort)5, false, new[] { context }),
+            ScenarioLookup(1, false, new[] { single }) });
+    }
+
+    private static byte[] CreateLookupScenarioFont(byte[][] lookups) {
         int size = 26 + 2 + lookups.Length * 2 + lookups.Sum(item => item.Length);
         var gsub = new byte[size];
         WriteUInt32(gsub, 0, 0x00010000); WriteUInt16(gsub, 4, 10); WriteUInt16(gsub, 6, 12); WriteUInt16(gsub, 8, 26);
@@ -64,10 +96,10 @@ internal static partial class ManagedTextShapingTestAssets {
         for (int index = 0; index < coverage.Length; index++) WriteUInt16(data, 16 + index * 2, coverage[index]);
         return data;
     }
-    internal static byte[] CreateFontWithRequiredLigature(string featureTag) {
-        byte[] gsub = CreateLigatureGsub(featureTag, 1, 2, 3, "latn", 0);
+    internal static byte[] CreateFontWithRequiredLigature(string featureTag, int first = 'f', int second = 'i', ushort flags = 0) {
+        byte[] gsub = CreateLigatureGsub(featureTag, 1, 2, 3, "latn", flags);
         WriteUInt16(gsub, 76, 0);
-        return CreateFontFromCmap(CreateFormat12Cmap('f', 1, 'i', 2, 32, 4), glyphCount: 5, gsub: gsub);
+        return CreateFontFromCmap(CreateFormat12Cmap(first, 1, second, 2, 32, 4), glyphCount: 5, gsub: gsub);
     }
 
     internal static byte[] CreateFontWithOversizedLookupList() {

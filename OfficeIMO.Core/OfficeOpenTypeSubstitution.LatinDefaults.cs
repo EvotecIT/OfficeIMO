@@ -63,6 +63,8 @@ internal sealed partial class OfficeOpenTypeSubstitution {
 
     private static bool IsLatinDefaultScalar(int scalar) =>
         scalar <= 0x024F || scalar >= 0x0300 && scalar <= 0x036F ||
+        scalar >= 0x1AB0 && scalar <= 0x1AFF || scalar >= 0x1DC0 && scalar <= 0x1DFF ||
+        scalar >= 0x20D0 && scalar <= 0x20FF || scalar >= 0xFE20 && scalar <= 0xFE2F ||
         scalar >= 0x1E00 && scalar <= 0x1EFF || scalar >= 0x2C60 && scalar <= 0x2C7F ||
         scalar >= 0xA720 && scalar <= 0xA7FF || scalar >= 0xAB30 && scalar <= 0xAB6F ||
         scalar >= 0x10780 && scalar <= 0x107BF || scalar >= 0x1DF00 && scalar <= 0x1DFFF;

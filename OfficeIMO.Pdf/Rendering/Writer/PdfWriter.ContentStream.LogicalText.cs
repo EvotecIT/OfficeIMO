@@ -29,14 +29,17 @@ internal sealed partial class ContentStreamBuilder {
             var word = new List<PdfGlyphInfo>();
             var logical = new System.Text.StringBuilder();
             bool whitespace = string.IsNullOrWhiteSpace(glyphs[index].UnicodeText);
+            bool mixedWhitespace = false;
             do {
                 PdfGlyphInfo glyph = glyphs[index++];
                 word.Add(glyph);
                 logical.Append(glyph.UnicodeText);
-                if (glyph.UnicodeText.Length > 0) whitespace = string.IsNullOrWhiteSpace(glyph.UnicodeText);
+                mixedWhitespace |= HasMixedWhitespace(glyph.UnicodeText);
+                if (glyph.UnicodeText.Length > 0) whitespace = char.IsWhiteSpace(glyph.UnicodeText[glyph.UnicodeText.Length - 1]);
             } while (index < glyphs.Count && (glyphs[index].UnicodeText.Length == 0 ||
                 glyphs[index].LogicalClusterStart < glyphs[index].TextIndex ||
-                string.IsNullOrWhiteSpace(glyphs[index].UnicodeText) == whitespace));
+                !mixedWhitespace && !HasMixedWhitespace(glyphs[index].UnicodeText) &&
+                char.IsWhiteSpace(glyphs[index].UnicodeText[0]) == whitespace));
             _sb.Append("ET\nBT\n");
             TextMatrix(_textA, _textB, _textC, _textD, _textE, _textF);
             bool marked = logical.Length != 0;
@@ -50,4 +53,7 @@ internal sealed partial class ContentStreamBuilder {
         TextMatrix(_textA, _textB, _textC, _textD, _textE, _textF);
         _lineE = lineE; _lineF = lineF; _isolatedText = true;
     }
+
+    private static bool HasMixedWhitespace(string text) =>
+        !string.IsNullOrWhiteSpace(text) && text.Any(char.IsWhiteSpace);
 }
