@@ -7,6 +7,67 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed partial class PdfStaticFormRecognizerTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void VisibleTextInsideFieldReportsOccupancyIncludingArtifacts(bool artifact) {
+        string value = "BT /F1 12 Tf 100 85 Td (Ada) Tj ET";
+        if (artifact) value = "/Artifact BMC " + value + " EMC";
+        byte[] source = StaticPdf("0 0 0 RG 1 w 80 80 120 20 re S " + value,
+            "/Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> ");
+        var labels = new[] { new PdfStaticFormTextEvidence(1, "Name", 10D, 100D, 70D, 120D, 1D) };
+
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: labels);
+        Assert.Empty(report.Proposals);
+        Assert.Contains(report.Diagnostics, static diagnostic => diagnostic.Code == "occupied-field");
+    }
+
+    [Fact]
+    public void ArtifactTextOutsideFieldDoesNotBecomeALabel() {
+        byte[] source = StaticPdf("0 0 0 RG 1 w 80 80 120 20 re S /Artifact BMC BT /F1 12 Tf 10 85 Td (Name) Tj ET EMC",
+            "/Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> ");
+
+        Assert.Empty(PdfDocument.Load(source).Forms.RecognizeStaticLayout().Proposals);
+    }
+
+    [Theory]
+    [InlineData(3)]
+    [InlineData(81)]
+    public void OcrTextInsideFieldReportsOccupancy(int textLength) {
+        byte[] source = StaticPdf("0 0 0 RG 1 w 80 80 120 20 re S");
+        var labels = new[] {
+            new PdfStaticFormTextEvidence(1, "Name", 10D, 100D, 70D, 120D, 1D),
+            new PdfStaticFormTextEvidence(1, new string('A', textLength), 100D, 103D, 130D, 117D, 1D)
+        };
+
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: labels);
+        Assert.Empty(report.Proposals);
+        Assert.Contains(report.Diagnostics, static diagnostic => diagnostic.Code == "occupied-field");
+    }
+
+    [Theory]
+    [InlineData("0.5")]
+    [InlineData("0")]
+    public void ThinStrokeInsideCheckboxReportsOccupancy(string strokeWidth) {
+        byte[] source = StaticPdf("0 0 0 RG 1 w 80 80 15 15 re S " + strokeWidth + " w 82 88 m 92 88 l S");
+        var labels = new[] { new PdfStaticFormTextEvidence(1, "Name", 10D, 100D, 70D, 120D, 1D) };
+
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: labels);
+        Assert.Empty(report.Proposals);
+        Assert.Contains(report.Diagnostics, static diagnostic => diagnostic.Code == "occupied-field");
+    }
+
+    [Theory]
+    [InlineData("20 w 80 80 120 20 re S")]
+    [InlineData("20 w 80 80 15 15 re S")]
+    [InlineData("40 w 80 100 m 200 100 l S")]
+    public void StrokeFillingTheWritingAreaIsNotAnEmptyField(string paint) {
+        byte[] source = StaticPdf("0 0 0 RG " + paint);
+        var label = new[] { new PdfStaticFormTextEvidence(1, "Name", 10D, 90D, 70D, 120D, 1D) };
+
+        Assert.Empty(PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: label).Proposals);
+    }
+
     [Fact]
     public void DarkNativeLabelOnMatchingOpaqueBackdropIsNotEvidence() {
         OfficeShape backdrop = OfficeShape.Rectangle(90D, 35D);

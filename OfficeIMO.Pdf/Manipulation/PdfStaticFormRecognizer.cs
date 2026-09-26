@@ -17,7 +17,7 @@ internal static partial class PdfStaticFormRecognizer {
         PdfStaticFormRecognitionOptions effective = options ?? new PdfStaticFormRecognitionOptions();
         effective.Validate();
         cancellationToken.ThrowIfCancellationRequested();
-        var snapshot = source.GetReadSnapshot(cancellationToken: cancellationToken);
+        var snapshot = source.GetReadSnapshot(PdfLoadOptions.WithArtifactText(source.ReadOptions), cancellationToken);
         byte[] pdf = snapshot.Bytes;
         PdfReadDocument document = snapshot.Document;
         int[] pageNumbers = effective.PageSelection?.ToPageNumbers(document.Pages.Count, nameof(effective.PageSelection))
@@ -137,7 +137,10 @@ internal static partial class PdfStaticFormRecognizer {
                     continue;
                 }
                 if (nativeTextBounds.Any(bounds => OverlapArea(bounds, visual) > Math.Min(bounds.Area, visual.Area) * 0.05D) ||
-                    labels.Any(label => label.IsOcr && OverlapArea(label.Bounds, visual) > Math.Min(label.Bounds.Area, visual.Area) * 0.05D)) continue;
+                    labels.Any(label => label.IsOcr && OverlapArea(label.Bounds, visual) > Math.Min(label.Bounds.Area, visual.Area) * 0.05D)) {
+                    AddDiagnostic("occupied-field", pageNumber, "A visual field candidate contains positioned text.");
+                    continue;
+                }
                 Label? labelMatch = FindLabel(labels, visual, evidence, pageDirections[pageNumber]);
                 if (labelMatch is null) continue;
                 double confidence = evidence switch {
@@ -291,6 +294,10 @@ internal static partial class PdfStaticFormRecognizer {
                         }
                     }
                     if (covered) continue;
+                    if (span.IsArtifactContent) {
+                        nativeTextBounds.Add(spanVisual);
+                        continue;
+                    }
                     if (span.Color is OfficeColor ink &&
                         !HasContrastingBackdrop(filledAreas, spanVisual, ink, span.PaintOrder, span.ContentOrderKey)) {
                         // Keep the text as possible field occupancy, but do not infer a label without visible contrast.
@@ -322,8 +329,10 @@ internal static partial class PdfStaticFormRecognizer {
             cancellationToken.ThrowIfCancellationRequested();
             if (item.PageNumber != page.PageNumber) continue;
             string text = NormalizeLabel(item.Text);
-            if (text.Length == 0 || text.Length > 80 || !Valid(item.Left, item.Top, item.Right, item.Bottom, pageWidth, pageHeight)) continue;
+            if (!Valid(item.Left, item.Top, item.Right, item.Bottom, pageWidth, pageHeight)) continue;
             var bounds = new VisualRect(item.Left, item.Top, item.Right, item.Bottom);
+            nativeTextBounds.Add(bounds);
+            if (text.Length == 0 || text.Length > 80) continue;
             if (labels.Any(label => string.Equals(label.Text, text, StringComparison.OrdinalIgnoreCase) &&
                 OverlapArea(label.Bounds, bounds) >= Math.Max(label.Bounds.Area, bounds.Area) * 0.8D)) continue;
             if (item.Confidence >= 0.8D) {
@@ -346,7 +355,10 @@ internal static partial class PdfStaticFormRecognizer {
         bounds = default;
         evidence = default;
         if (!primitive.HasStrokePaint || (primitive.StrokeOpacity ?? 1D) < 0.18D) return false;
+        // Retain a useful writing area after accounting for the conservative transformed stroke envelope.
+        double strokeEnvelope = Math.Max(0D, primitive.StrokeWidth) * Math.Sqrt(2D);
         if (primitive.Kind == PdfPageVisualPrimitiveKind.Rectangle) {
+            if (primitive.Width - strokeEnvelope < 5D || primitive.Height - strokeEnvelope < 5D) return false;
             if (primitive.Width >= 9D && primitive.Width <= 22D && primitive.Height >= 9D && primitive.Height <= 22D &&
                 Math.Abs(primitive.Width - primitive.Height) <= 3D && IsEmptyFill(primitive)) {
                 bounds = new VisualRect(primitive.X, primitive.Y, primitive.X + primitive.Width, primitive.Y + primitive.Height);
@@ -357,6 +369,7 @@ internal static partial class PdfStaticFormRecognizer {
             }
         } else if (primitive.Kind == PdfPageVisualPrimitiveKind.Line &&
                    Math.Abs(primitive.Y1 - primitive.Y2) <= 1D &&
+                   strokeEnvelope < 18D &&
                    Math.Abs(primitive.X2 - primitive.X1) >= 60D && Math.Abs(primitive.X2 - primitive.X1) <= 500D) {
             double left = Math.Min(primitive.X1, primitive.X2);
             bounds = new VisualRect(left, primitive.Y1 - 18D, Math.Max(primitive.X1, primitive.X2), primitive.Y1 + 2D);
@@ -451,7 +464,8 @@ internal static partial class PdfStaticFormRecognizer {
             if (stroked) {
                 // The parser stores the RMS transform scale. Its largest singular scale can be
                 // sqrt(2) times larger, so use that conservative envelope for occupancy.
-                double strokePadding = Math.Max(0D, primitive.StrokeWidth) * Math.Sqrt(2D) / 2D;
+                // PDF hairlines still paint; retain a conservative half-point footprint for occupancy.
+                double strokePadding = Math.Max(0.5D, primitive.StrokeWidth * Math.Sqrt(2D)) / 2D;
                 left -= strokePadding;
                 top -= strokePadding;
                 right += strokePadding;
@@ -480,7 +494,6 @@ internal static partial class PdfStaticFormRecognizer {
                 (right - left) * (bottom - top) > candidate.Area * 1.25D &&
                 !paintedAfterCandidate && left <= candidate.Left && top <= candidate.Top &&
                 right >= candidate.Right && bottom >= candidate.Bottom) continue;
-            if (!filled && (right - left < 1D || bottom - top < 1D)) continue;
             var visible = new VisualRect(Math.Max(left, interior.Left), Math.Max(top, interior.Top),
                 Math.Min(right, interior.Right), Math.Min(bottom, interior.Bottom));
             if (visible.Area > (filled ? 0D : 0.5D) &&
