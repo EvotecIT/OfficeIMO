@@ -116,6 +116,38 @@ public sealed class PdfStaticFormRecognizerTests {
     }
 
     [Fact]
+    public void WhiteRepaintCanClearOnlyTheImageAreaInsideAField() {
+        byte[] image = PdfPngTestImages.CreateRgbPng(180, 60);
+        OfficeShape white = OfficeShape.Rectangle(140D, 20D);
+        white.FillColor = OfficeColor.White;
+        white.StrokeColor = null;
+        OfficeShape outline = Box(140D, 20D);
+        outline.FillColor = null;
+        byte[] source = PdfDocument.Create(new PdfOptions { PageWidth = 400, PageHeight = 300 })
+            .Canvas(canvas => canvas.Image(image, 80D, 20D, 180D, 60D)
+                .Shape(white, 100D, 30D).Shape(outline, 100D, 30D))
+            .ToBytes();
+        var ocr = new[] { new PdfStaticFormTextEvidence(1, "Name", 20D, 30D, 70D, 50D, 1D) };
+
+        Assert.Single(PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: ocr).Proposals);
+    }
+
+    [Fact]
+    public void DifferenceBlendedOutlineIsNotAnEmptyField() {
+        const string content = "/GS1 gs 1 1 1 rg 1 w 80 80 120 20 re B";
+        byte[] source = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.4", "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 240 200] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /Resources << /ExtGState << /GS1 << /BM /Difference >> >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + content.Length + " >>", "stream", content, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R >>", "%%EOF", ""
+        }));
+        var ocr = new[] { new PdfStaticFormTextEvidence(1, "Name", 10D, 100D, 70D, 120D, 1D) };
+
+        Assert.Empty(PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: ocr).Proposals);
+    }
+
+    [Fact]
     public void SuggestedNamesReserveFieldAncestorsAcrossUnselectedPages() {
         byte[] sourceBytes = PdfDocument.Create(new PdfOptions { PageWidth = 400, PageHeight = 300 })
             .Canvas(canvas => canvas.Text("Customer:", 20D, 28D, 85D, 20D).Shape(Box(140D, 20D), 125D, 28D))

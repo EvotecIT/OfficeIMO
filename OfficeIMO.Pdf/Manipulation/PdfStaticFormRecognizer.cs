@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using System.Threading;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
 
@@ -58,6 +59,10 @@ internal static class PdfStaticFormRecognizer {
             foreach (PdfPageVisualPrimitive painted in primitives) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (painted.HasFillPaint && painted.FillOpacity != 0D && painted.Width > 0D && painted.Height > 0D) {
+                    PdfPageDrawingEffect paintEffect = PdfReadPage.ResolveDrawingEffect(effects, painted.PaintOrder,
+                        contentOrderKey: painted.ContentOrderKey);
+                    bool normalBlend = paintEffect.BlendMode == OfficeBlendMode.Normal &&
+                        paintEffect.SoftMask is null && !paintEffect.HasUnresolvedSoftMask;
                     var visible = new VisualRect(painted.X, painted.Y, painted.X + painted.Width, painted.Y + painted.Height);
                     if (painted.ClipPath is PdfPageClipPath clip && clip.IsRectangle && clip.IsExact && !clip.ContainsTextClipping) {
                         visible = new VisualRect(Math.Max(visible.Left, clip.X), Math.Max(visible.Top, clip.Y),
@@ -65,7 +70,7 @@ internal static class PdfStaticFormRecognizer {
                         if (visible.Area == 0D) continue;
                     }
                     filledAreas.Add((visible,
-                        painted.PaintOrder, IsEmptyFill(painted), IsOpaqueWhiteFill(painted)));
+                        painted.PaintOrder, normalBlend && IsEmptyFill(painted), normalBlend && IsOpaqueWhiteFill(painted)));
                 }
             }
             foreach (PdfPageVisualPrimitive primitive in primitives) {
@@ -81,7 +86,8 @@ internal static class PdfStaticFormRecognizer {
                 }
                 PdfPageDrawingEffect effect = PdfReadPage.ResolveDrawingEffect(effects, primitive.PaintOrder,
                     contentOrderKey: primitive.ContentOrderKey);
-                if (effect.SoftMask is not null || effect.HasUnresolvedSoftMask) continue;
+                if (effect.SoftMask is not null || effect.HasUnresolvedSoftMask ||
+                    effect.BlendMode != OfficeBlendMode.Normal) continue;
                 if (HasPaintedInterior(filledAreas, visual, cancellationToken)) continue;
                 if (HasInteriorMark(primitives, filledAreas, visual, cancellationToken) ||
                     HasImageInterior(page, filledAreas, visual, cancellationToken)) {
@@ -306,8 +312,10 @@ internal static class PdfStaticFormRecognizer {
                     visible = new VisualRect(Math.Max(visible.Left, clipped.Left), Math.Max(visible.Top, clipped.Top),
                         Math.Min(visible.Right, clipped.Right), Math.Min(visible.Bottom, clipped.Bottom));
                 }
-                if (OverlapArea(visible, interior) > 0.5D &&
-                    !IsCoveredByLaterWhiteFill(filledAreas, visible, placement.PaintOrder)) return true;
+                var inside = new VisualRect(Math.Max(visible.Left, interior.Left), Math.Max(visible.Top, interior.Top),
+                    Math.Min(visible.Right, interior.Right), Math.Min(visible.Bottom, interior.Bottom));
+                if (inside.Area > 0.5D &&
+                    !IsCoveredByLaterWhiteFill(filledAreas, inside, placement.PaintOrder)) return true;
             }
         }
         return false;
