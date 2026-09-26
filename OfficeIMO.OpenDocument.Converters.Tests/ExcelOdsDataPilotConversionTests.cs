@@ -58,6 +58,55 @@ public sealed class ExcelOdsDataPilotConversionTests {
     }
 
     [Fact]
+    public void DuplicateExcelAxisFieldIndexIsExplicitLoss() {
+        using ExcelDocument source = ExcelDocument.Create();
+        ExcelSheet sheet = source.AddWorksheet("Data");
+        sheet.CellValue(1, 1, "Region");
+        sheet.CellValue(1, 2, "Sales");
+        sheet.CellValue(2, 1, "North");
+        sheet.CellValue(2, 2, 10d);
+        sheet.AddPivotTable("A1:B2", "D1", name: "SalesPivot",
+            rowFields: new[] { "Region" },
+            dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
+        byte[] bytes = source.ToBytes();
+        using (var stream = new MemoryStream(bytes)) {
+            using (SpreadsheetDocument package = SpreadsheetDocument.Open(stream, true)) {
+                var definition = package.WorkbookPart!.WorksheetParts.Single().PivotTableParts.Single().PivotTableDefinition!;
+                definition.RowFields!.AppendChild(new DocumentFormat.OpenXml.Spreadsheet.Field { Index = 0 });
+                definition.RowFields.Count = 2;
+                definition.Save();
+            }
+            bytes = stream.ToArray();
+        }
+        using ExcelDocument imported = ExcelDocument.Load(new MemoryStream(bytes));
+
+        OdfConversionResult<OdsDocument> conversion = imported.ToOpenDocumentResult();
+        Assert.Empty(conversion.Value.DataPilotTables);
+        Assert.Contains(conversion.Report.ForFeature("pivot-tables"), mapping =>
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+    }
+
+    [Fact]
+    public void MissingTrailingOdsHeaderIsExplicitLoss() {
+        OdsDocument source = OdsDocument.Create();
+        OdsSheet sheet = source.AddSheet("Data");
+        sheet.Cell(0, 0).SetString("Region");
+        sheet.Cell(0, 1).SetString("Sales");
+        sheet.Cell(1, 0).SetString("North");
+        sheet.Cell(1, 1).SetNumber(10);
+        OdsDataPilotTable pivot = source.AddDataPilotTable("MissingHeader",
+            "Data.A1:Data.C2", "Data.E1:Data.F3");
+        pivot.AddField("Region", "row");
+        pivot.AddField("Sales", "data", "sum");
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        using ExcelDocument target = conversion.Value;
+        Assert.Empty(target.Sheets.Single().GetPivotTables());
+        Assert.Contains(conversion.Report.ForFeature("pivot-tables"), mapping =>
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+    }
+
+    [Fact]
     public void PivotNameThatExcelWouldTrimIsExplicitLoss() {
         OdsDocument source = CreateSimpleOdsPivot(" PivotName ", "Data.D1:Data.E3");
 

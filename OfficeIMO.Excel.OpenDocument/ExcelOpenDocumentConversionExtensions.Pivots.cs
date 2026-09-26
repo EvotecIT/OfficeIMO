@@ -59,6 +59,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                         || item.SubtotalCaption != null || item.InsertPageBreak == true
                         || item.InsertBlankRow == true)
                     || pivot.HasValuesAxisField
+                    || pivot.RowFields.Concat(pivot.ColumnFields).Distinct(StringComparer.OrdinalIgnoreCase).Count()
+                        != pivot.RowFields.Count + pivot.ColumnFields.Count
                     || !TryMapPivotFunction(pivot.DataFields[0].Function, out string? function)
                     || authoredNames.Contains(pivot.Name)
                     || !TryGetExcelPivotRanges(pivot, options, snapshot, omittedCellsBySheet, headersBySheet,
@@ -226,15 +228,19 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             firstRow >= run.StartRow && firstRow < SaturatingAdd(run.StartRow, run.RepeatCount));
         if (header == null) return true;
         var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        long nextColumn = firstColumn;
         foreach (OdsCellRun cell in header.CellRuns) {
-            if (cell.IsCovered || cell.StartColumn > lastColumn) continue;
+            if (cell.StartColumn > lastColumn) break;
             long end = Math.Min(lastColumn, SaturatingAdd(cell.StartColumn, cell.RepeatCount) - 1);
             if (end < firstColumn) continue;
+            long start = Math.Max(cell.StartColumn, firstColumn);
+            if (cell.IsCovered || start != nextColumn) return true;
             string name = cell.Value.DisplayText.Trim();
-            if (string.IsNullOrWhiteSpace(name) || !names.Add(name) || end > Math.Max(cell.StartColumn, firstColumn))
+            if (string.IsNullOrWhiteSpace(name) || !names.Add(name) || end > start)
                 return true;
+            nextColumn = end + 1;
         }
-        return false;
+        return nextColumn <= lastColumn;
     }
 
     private static bool PivotRangeRetained(OdsSheet sheet, string address,
