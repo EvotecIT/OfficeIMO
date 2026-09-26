@@ -12,6 +12,27 @@ namespace OfficeIMO.OpenDocument.Converters.Tests;
 
 public sealed class ExcelOdsDataPilotConversionTests {
     [Fact]
+    public void DisjointPivotRangesRemainIndependentAcrossIndexedPlanning() {
+        OdsDocument source = OdsDocument.Create();
+        OdsSheet sheet = source.AddSheet("Data");
+        for (int index = 0; index < 40; index++) {
+            int row = index * 4;
+            sheet.Cell(row, 0).SetString("Region");
+            sheet.Cell(row, 1).SetString("Sales");
+            sheet.Cell(row + 1, 0).SetString("North");
+            sheet.Cell(row + 1, 1).SetNumber(index);
+            OdsDataPilotTable pivot = source.AddDataPilotTable("Pivot" + index,
+                $"Data.A{row + 1}:Data.B{row + 2}", $"Data.D{row + 1}:Data.E{row + 3}");
+            pivot.AddField("Region", "row");
+            pivot.AddField("Sales", "data", "sum");
+        }
+        using ExcelDocument target = source.ToExcelDocumentResult().Value;
+        Assert.Equal(40, target.Sheets.Single().GetPivotTables().Count);
+        OdfConversionResult<OdsDocument> roundtrip = target.ToOpenDocumentResult();
+        Assert.Equal(40, roundtrip.Value.DataPilotTables.Count);
+    }
+
+    [Fact]
     public void BasicExcelPivotBecomesNativeDataPilotAndReopens() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddWorksheet("Data");

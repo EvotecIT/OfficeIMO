@@ -9,6 +9,27 @@ using Xunit;
 namespace OfficeIMO.OpenDocument.Tests;
 
 public sealed class OpenDocumentOdsDataPilotTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AmbiguousOrMisorderedSourceCannotBeEdited(bool misordered) {
+        OdsDocument document = OdsDocument.Create();
+        OdsSheet sheet = document.AddSheet("Data");
+        sheet.Cell(0, 0).SetString("Region");
+        sheet.Cell(1, 0).SetString("North");
+        OdsDataPilotTable pivot = document.AddDataPilotTable("Pivot", "Data.A1:Data.A2", "Data.C1:Data.D2");
+        pivot.AddField("Region", "row");
+        XElement element = document.Package.GetXml("content.xml").Descendants(OdfNamespaces.Table + "data-pilot-table").Single();
+        XElement source = element.Element(OdfNamespaces.Table + "source-cell-range")!;
+        if (misordered) { source.Remove(); element.Add(source); }
+        else element.Add(new XElement(source));
+        document.MarkPartDirty("content.xml");
+        Assert.True(pivot.HasAdvancedSettings);
+        Assert.Throws<InvalidOperationException>(() => pivot.AddField("Region", "column"));
+        Assert.Contains(document.InspectFeatures().Findings, finding => finding.Name == "spreadsheet-data-pilot-tables"
+            && finding.Support == OdfFeatureSupport.Inspected && finding.Count == 1);
+    }
+
     [Fact]
     public void MissingSpreadsheetBodyLeavesDataPilotInspected() {
         OdsDocument document = OdsDocument.Create();

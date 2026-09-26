@@ -49,8 +49,10 @@ public sealed class OdsDataPilotTable {
                     headerRow >= row.StartRow && headerRow - row.StartRow < row.RepeatCount);
                 if (header == null) return false;
                 _ = header.CellRuns;
+                return true;
             }
-            return fields.All(field => pivot.SourceHeaderMatchesExactlyOnce(field.SourceFieldName));
+            Dictionary<string, int> headers = pivot.ReadSourceHeaderCounts();
+            return fields.All(field => headers.TryGetValue(field.SourceFieldName, out int count) && count == 1);
         } catch (Exception exception) when (exception is ArgumentException or System.IO.InvalidDataException or OverflowException) {
             return false;
         }
@@ -58,7 +60,8 @@ public sealed class OdsDataPilotTable {
 
     private static bool HasAdvancedSettingsIn(XElement element) {
         XElement? source = element.Element(OdfNamespaces.Table + "source-cell-range");
-        return source == null || source.HasElements
+        return source == null || element.Elements(OdfNamespaces.Table + "source-cell-range").Count() != 1
+            || element.Elements().FirstOrDefault() != source || source.HasElements
             || HasOtherAttributes(source, OdfNamespaces.Table + "cell-range-address")
             || HasOtherAttributes(element, OdfNamespaces.Table + "name",
                 OdfNamespaces.Table + "target-range-address", OdfNamespaces.Table + "show-filter-button",
@@ -123,7 +126,8 @@ public sealed class OdsDataPilotTable {
         if (!ReferenceEquals(Element.Parent?.Parent, _document.SpreadsheetBody)
             || _document.GetSheet(target.Start.SheetName!) == null)
             throw new InvalidOperationException("Fields cannot be edited while the data pilot target worksheet is missing.");
-        if (Fields.Any(field => !SourceHeaderMatchesExactlyOnce(field.SourceFieldName)))
+        Dictionary<string, int> headers = ReadSourceHeaderCounts();
+        if (Fields.Any(field => !headers.TryGetValue(field.SourceFieldName, out int count) || count != 1))
             throw new InvalidOperationException("Fields cannot be edited while an existing source header binding is missing.");
         if (string.IsNullOrWhiteSpace(sourceFieldName)) throw new ArgumentException("Source field name cannot be empty.", nameof(sourceFieldName));
         if (orientation != "row" && orientation != "column" && orientation != "data" && orientation != "page") {
@@ -138,7 +142,7 @@ public sealed class OdsDataPilotTable {
         } else if (function != null && function != "auto") {
             throw new ArgumentException("Non-data fields can use only the auto function.", nameof(function));
         }
-        if (!SourceHeaderMatchesExactlyOnce(sourceFieldName)) {
+        if (!headers.TryGetValue(sourceFieldName, out int headerCount) || headerCount != 1) {
             throw new ArgumentException("Source field name must match exactly one header in the source range.", nameof(sourceFieldName));
         }
         if (Fields.Any(field => string.Equals(field.SourceFieldName, sourceFieldName, StringComparison.Ordinal)
@@ -155,14 +159,14 @@ public sealed class OdsDataPilotTable {
         return new OdsDataPilotField(element);
     }
 
-    private bool SourceHeaderMatchesExactlyOnce(string fieldName) {
+    private Dictionary<string, int> ReadSourceHeaderCounts() {
+        var counts = new Dictionary<string, int>(StringComparer.Ordinal);
         SpreadsheetRangeReference range = ParseLocalRange(SourceRangeAddress ?? string.Empty, nameof(SourceRangeAddress));
         OdsSheet? sheet = _document.GetSheet(range.Start.SheetName!);
-        if (sheet == null) return false;
+        if (sheet == null) return counts;
         long headerRow = range.Start.Row!.Value - 1;
         long firstColumn = range.Start.Column!.Value - 1;
         long lastColumn = range.End!.Column!.Value - 1;
-        bool matched = false;
         foreach (OdsRowRun row in sheet.RowRuns) {
             if (row.StartRow > headerRow) break;
             if (headerRow - row.StartRow >= row.RepeatCount) continue;
@@ -173,15 +177,15 @@ public sealed class OdsDataPilotTable {
                     ? long.MaxValue : cell.StartColumn + cell.RepeatCount;
                 long lastExclusive = Math.Min(lastColumn + 1, cellEnd);
                 if (firstIncluded >= lastExclusive) continue;
-                if (cell.Value.Kind != OdsCellValueKind.Empty
-                    && string.Equals(cell.Text, fieldName, StringComparison.Ordinal)) {
-                    if (matched || lastExclusive - firstIncluded > 1) return false;
-                    matched = true;
+                if (cell.Value.Kind != OdsCellValueKind.Empty) {
+                    string name = cell.Text;
+                    counts.TryGetValue(name, out int count);
+                    counts[name] = count != 0 || lastExclusive - firstIncluded > 1 ? 2 : 1;
                 }
             }
             break;
         }
-        return matched;
+        return counts;
     }
 
     internal static SpreadsheetRangeReference ParseLocalRange(string address, string parameterName) {

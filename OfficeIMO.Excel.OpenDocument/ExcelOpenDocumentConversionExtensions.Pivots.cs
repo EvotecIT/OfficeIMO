@@ -35,6 +35,11 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 ranges.Add(range);
             }
         }
+        var rangeIndexes = neededRanges.ToDictionary(pair => pair.Key,
+            pair => new PivotRangeIndex(pair.Value.Select(range => new PivotRangeIndex.Entry(
+                range.Start.Row!.Value, range.End!.Row!.Value, range.Start.Column!.Value, range.End.Column!.Value))),
+            StringComparer.Ordinal);
+        long remainingIndexWork = 32_000_000;
         var omittedCellsBySheet = new Dictionary<string, List<(int Row, int Column)>>(StringComparer.Ordinal);
         var headersBySheet = new Dictionary<string, Dictionary<int, List<(int Column, string Name)>>>(StringComparer.Ordinal);
         foreach (ExcelWorksheetSnapshot worksheet in snapshot.Worksheets) {
@@ -45,10 +50,12 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             var omitted = new List<(int Row, int Column)>();
             var headerRows = new Dictionary<int, List<(int Column, string Name)>>();
             neededHeaderRows.TryGetValue(worksheet.Name, out HashSet<int>? neededRows);
-            neededRanges.TryGetValue(worksheet.Name, out List<SpreadsheetRangeReference>? ranges);
+            rangeIndexes.TryGetValue(worksheet.Name, out PivotRangeIndex? rangeIndex);
             foreach (ExcelCellSnapshot cell in worksheet.Cells) {
-                if (ranges == null || !ranges.Any(range => cell.Row >= range.Start.Row && cell.Row <= range.End!.Row
-                    && cell.Column >= range.Start.Column && cell.Column <= range.End.Column)) continue;
+                if (rangeIndex == null) continue;
+                bool relevant = rangeIndex.Intersects(cell.Row, cell.Row, cell.Column, cell.Column, ref remainingIndexWork);
+                if (remainingIndexWork <= 0) return 0;
+                if (!relevant) continue;
                 if (!convertedCells.Contains((cell.Row, cell.Column))) omitted.Add((cell.Row, cell.Column));
                 if (neededRows?.Contains(cell.Row) == true && sourceSheet?.TryGetCellText(cell.Row, cell.Column, out string? text) == true
                     && !string.IsNullOrWhiteSpace(text)) {
@@ -174,10 +181,24 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         // The Excel cache scans the source for each pivot. Bound the total work across the conversion.
         long remainingPivotScanCells = 1_000_000;
         var convertedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var generatedFootprints = new List<(string Sheet, long FirstRow, long LastRow, long FirstColumn, long LastColumn)>();
+        var generatedEntries = new Dictionary<string, List<PivotRangeIndex.Entry>>(StringComparer.Ordinal);
+        IReadOnlyList<OdsDataPilotTable> pivots = source.DataPilotTables;
+        foreach (OdsDataPilotTable pivot in pivots) {
+            if (!TryGetLocalPivotRanges(pivot, options, out _, out string? sheet, out _, out _, out long row, out long column)
+                || sheet == null) continue;
+            int width = pivot.Fields.Count(field => field.Orientation is "row" or "column" or "data");
+            if (width == 0) continue;
+            if (!generatedEntries.TryGetValue(sheet, out List<PivotRangeIndex.Entry>? entries)) {
+                entries = new List<PivotRangeIndex.Entry>(); generatedEntries.Add(sheet, entries);
+            }
+            entries.Add(new PivotRangeIndex.Entry(row, row + 1, column, column + width - 1, pivot));
+        }
+        var generatedIndexes = generatedEntries.ToDictionary(pair => pair.Key,
+            pair => new PivotRangeIndex(pair.Value), StringComparer.Ordinal);
+        long remainingCollisionWork = 1_000_000;
         var sourceFootprints = new List<(string Sheet, long FirstRow, long LastRow, long FirstColumn, long LastColumn)>();
         // Reserve every retained local source before any output is authored, including later pivots.
-        foreach (OdsDataPilotTable pivot in source.DataPilotTables) {
+        foreach (OdsDataPilotTable pivot in pivots) {
             if (SpreadsheetRangeReference.TryParse(pivot.SourceRangeAddress, SpreadsheetAddressDialect.OpenDocument,
                     out SpreadsheetRangeReference? bounds) && bounds?.End != null
                 && bounds.Start.IsCell && bounds.End.IsCell && bounds.Start.SheetName != null
@@ -186,8 +207,11 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                     bounds.Start.Column!.Value, bounds.End.Column!.Value));
             }
         }
+        var sourceIndexes = sourceFootprints.GroupBy(item => item.Sheet, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => new PivotRangeIndex(group.Select(item =>
+                new PivotRangeIndex.Entry(item.FirstRow, item.LastRow, item.FirstColumn, item.LastColumn))), StringComparer.Ordinal);
         var rowRunsBySheet = new Dictionary<OdsSheet, IReadOnlyList<OdsRowRun>>();
-        foreach (OdsDataPilotTable pivot in source.DataPilotTables) {
+        foreach (OdsDataPilotTable pivot in pivots) {
             if (pivot.HasAdvancedSettings || pivot.Fields.Count == 0 || pivot.Fields.Count > 17
                 || string.IsNullOrWhiteSpace(pivot.Name) || pivot.Name != pivot.Name.Trim()
                 || convertedNames.Contains(pivot.Name)
@@ -257,29 +281,18 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 || PivotFootprintsOverlap(sourceBounds.Start.Row!.Value, sourceBounds.End.Row!.Value,
                     sourceBounds.Start.Column!.Value, sourceBounds.End.Column!.Value,
                     destinationRow, generatedLastRow, destinationColumn, generatedLastColumn)
-                || generatedFootprints.Any(footprint =>
-                    string.Equals(footprint.Sheet, pair.Source.Name, StringComparison.Ordinal) &&
-                    PivotFootprintsOverlap(footprint.FirstRow, footprint.LastRow,
-                        footprint.FirstColumn, footprint.LastColumn,
-                        destinationRow, generatedLastRow, destinationColumn, generatedLastColumn))
-                || sourceFootprints.Any(footprint =>
-                    string.Equals(footprint.Sheet, pair.Source.Name, StringComparison.Ordinal) &&
-                    PivotFootprintsOverlap(footprint.FirstRow, footprint.LastRow,
-                        footprint.FirstColumn, footprint.LastColumn,
-                        destinationRow, generatedLastRow, destinationColumn, generatedLastColumn))
-                || generatedFootprints.Any(footprint =>
-                    string.Equals(footprint.Sheet, pair.Source.Name, StringComparison.Ordinal) &&
-                    PivotFootprintsOverlap(footprint.FirstRow, footprint.LastRow,
-                        footprint.FirstColumn, footprint.LastColumn,
-                        sourceBounds.Start.Row!.Value, sourceBounds.End.Row!.Value,
-                        sourceBounds.Start.Column!.Value, sourceBounds.End.Column!.Value))) continue;
+                || (generatedIndexes.TryGetValue(pair.Source.Name, out PivotRangeIndex? generatedIndex)
+                    && (generatedIndex.Intersects(destinationRow, generatedLastRow, destinationColumn, generatedLastColumn, ref remainingCollisionWork)
+                        || generatedIndex.Intersects(sourceBounds.Start.Row!.Value, sourceBounds.End.Row!.Value,
+                            sourceBounds.Start.Column!.Value, sourceBounds.End.Column!.Value, ref remainingCollisionWork)))
+                || (sourceIndexes.TryGetValue(pair.Source.Name, out PivotRangeIndex? sourceIndex)
+                    && sourceIndex.Intersects(destinationRow, generatedLastRow, destinationColumn, generatedLastColumn, ref remainingCollisionWork))) continue;
             try {
                 pair.Target.AddPivotTable(sourceRange!, destination!, pivot.Name,
                     rowFields: rows, columnFields: columns, dataFields: data,
                     layout: ExcelPivotLayout.Outline);
                 convertedNames.Add(pivot.Name);
-                generatedFootprints.Add((pair.Source.Name, destinationRow, generatedLastRow,
-                    destinationColumn, generatedLastColumn));
+                generatedIndexes[pair.Source.Name].Enable(pivot);
                 converted++;
             } catch (ArgumentException) {
                 // Invalid or missing source headers cannot be represented as an Excel pivot.
