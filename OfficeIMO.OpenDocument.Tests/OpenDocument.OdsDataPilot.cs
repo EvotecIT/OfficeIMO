@@ -164,6 +164,31 @@ public sealed class OpenDocumentOdsDataPilotTests {
         Assert.Equal(new[] { "sum", "average" }, pivot.Fields.Skip(1).Select(field => field.Function));
     }
 
+    [Theory]
+    [InlineData("number-rows-repeated", "invalid", true)]
+    [InlineData("number-rows-repeated", "invalid", false)]
+    [InlineData("number-columns-repeated", "9223372036854775808", true)]
+    [InlineData("number-columns-repeated", "9223372036854775808", false)]
+    public void MalformedSourceRunsLeaveDataPilotInspected(string attribute, string value, bool hasField) {
+        OdsDocument document = OdsDocument.Create();
+        OdsSheet sheet = document.AddSheet("Data");
+        sheet.Cell(0, 0).SetString("Region");
+        sheet.Cell(1, 0).SetString("North");
+        OdsDataPilotTable pivot = document.AddDataPilotTable("Pivot", "Data.A1:Data.A2", "Data.C1:Data.D2");
+        if (hasField) pivot.AddField("Region", "row");
+        XElement row = sheet.Element.Elements(OdfNamespaces.Table + "table-row").First();
+        XElement affected = attribute == "number-rows-repeated"
+            ? row : row.Elements(OdfNamespaces.Table + "table-cell").First();
+        affected.SetAttributeValue(OdfNamespaces.Table + attribute, value);
+        document.Package.MarkXmlDirty("content.xml");
+
+        OdfFeatureReport report = document.InspectFeatures();
+        Assert.Contains(report.Findings, finding => finding.Name == "spreadsheet-data-pilot-tables"
+            && finding.Support == OdfFeatureSupport.Inspected && finding.Count == 1);
+        Assert.DoesNotContain(report.Findings, finding => finding.Name == "spreadsheet-data-pilot-tables"
+            && finding.Support == OdfFeatureSupport.Editable);
+    }
+
     [Fact]
     public void DuplicateSourceHeadersCannotBindAField() {
         OdsDocument document = OdsDocument.Create();

@@ -38,11 +38,20 @@ public sealed class OdsDataPilotTable {
                 .Attribute(OdfNamespaces.Table + "cell-range-address") ?? string.Empty, nameof(SourceRangeAddress));
             SpreadsheetRangeReference target = ParseLocalRange((string?)element.Attribute(OdfNamespaces.Table + "target-range-address")
                 ?? string.Empty, nameof(TargetRangeAddress));
-            if (document.GetSheet(source.Start.SheetName!) == null || document.GetSheet(target.Start.SheetName!) == null)
+            OdsSheet? sourceSheet = document.GetSheet(source.Start.SheetName!);
+            if (sourceSheet == null || document.GetSheet(target.Start.SheetName!) == null)
                 return false;
             var pivot = new OdsDataPilotTable(document, element);
-            return pivot.Fields.All(field => pivot.SourceHeaderMatchesExactlyOnce(field.SourceFieldName));
-        } catch (ArgumentException) {
+            IReadOnlyList<OdsDataPilotField> fields = pivot.Fields;
+            if (fields.Count == 0) {
+                long headerRow = source.Start.Row!.Value - 1;
+                OdsRowRun? header = sourceSheet.RowRuns.FirstOrDefault(row =>
+                    headerRow >= row.StartRow && headerRow - row.StartRow < row.RepeatCount);
+                if (header == null) return false;
+                _ = header.CellRuns;
+            }
+            return fields.All(field => pivot.SourceHeaderMatchesExactlyOnce(field.SourceFieldName));
+        } catch (Exception exception) when (exception is ArgumentException or System.IO.InvalidDataException or OverflowException) {
             return false;
         }
     }
