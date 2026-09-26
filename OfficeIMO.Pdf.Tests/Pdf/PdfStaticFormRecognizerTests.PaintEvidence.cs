@@ -299,13 +299,69 @@ public sealed partial class PdfStaticFormRecognizerTests {
             new PdfStaticFormTextEvidence(1, "Name", left, top, right, bottom, 1D));
     }
 
-    private static byte[] StaticPdf(string content, string resources = "") =>
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(1, false)]
+    [InlineData(2, false)]
+    [InlineData(0, true)]
+    [InlineData(1, true)]
+    public void PatternedNativeLabelRequiresResolvedPaint(int mode, bool restoreState) {
+        string pattern = "q /Pattern cs /P1 scn /Pattern CS /P1 SCN ";
+        string content = "0 0 0 RG 1 w 80 80 120 20 re S " + pattern +
+            (restoreState ? "Q " : "") + "BT /F1 12 Tf " + mode + " Tr 10 85 Td (Name) Tj ET";
+        const string paint = "1 g 0 0 10 10 re f";
+        byte[] source = StaticPdf(content,
+            "/Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> /Pattern << /P1 5 0 R >> >> ",
+            "5 0 obj\n<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources << >> /Length " + paint.Length +
+            " >>\nstream\n" + paint + "\nendstream\nendobj");
+
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout();
+
+        Assert.Equal(restoreState ? 1 : 0, report.Proposals.Count);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void TextCrossingTheVisualPageEdgeStillOccupiesTheField(bool cropPage) {
+        int pageWidth = cropPage ? 210 : 240;
+        string content = "0 0 0 RG 1 w " + (pageWidth - 60) + " 80 55 20 re S " +
+            "BT /F1 12 Tf " + (pageWidth - 50) + " 85 Td (ABCDEFGHIJKLMNO) Tj ET";
+        byte[] source = StaticPdf(content,
+            (cropPage ? "/CropBox [0 0 210 200] " : "") +
+            "/Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> ");
+        var label = new[] { new PdfStaticFormTextEvidence(1, "Name", pageWidth - 140D, 100D, pageWidth - 80D, 120D, 1D) };
+
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: label);
+
+        Assert.Empty(report.Proposals);
+        Assert.Contains(report.Diagnostics, static diagnostic => diagnostic.Code == "occupied-field");
+    }
+
+    [Theory]
+    [InlineData(2, true)]
+    [InlineData(6, true)]
+    [InlineData(2, false)]
+    public void CombinedTextPaintRetainsVisibleStrokeOccupancy(int mode, bool visibleStroke) {
+        byte[] source = StaticPdf("0 0 0 RG 1 w 80 80 120 20 re S q /GS1 gs BT /F1 12 Tf " +
+            mode + " Tr 85 85 Td (VALUE) Tj ET Q",
+            "/Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> " +
+            "/ExtGState << /GS1 << /ca 0 /CA " + (visibleStroke ? "1" : "0") + " >> >> >> ");
+        var label = new[] { new PdfStaticFormTextEvidence(1, "Name", 10D, 105D, 60D, 120D, 1D) };
+
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: label);
+
+        Assert.Equal(visibleStroke ? 0 : 1, report.Proposals.Count);
+        if (visibleStroke) Assert.Contains(report.Diagnostics, static diagnostic => diagnostic.Code == "occupied-field");
+    }
+
+    private static byte[] StaticPdf(string content, string resources = "", string extraObjects = "") =>
         System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
             "%PDF-1.4", "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
             "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 240 200] >>", "endobj",
             "3 0 obj", "<< /Type /Page /Parent 2 0 R " + resources + "/Contents 4 0 R >>", "endobj",
             "4 0 obj", "<< /Length " + content.Length + " >>", "stream", content, "endstream", "endobj",
-            "trailer", "<< /Root 1 0 R >>", "%%EOF", ""
+            extraObjects, "trailer", "<< /Root 1 0 R >>", "%%EOF", ""
         }));
 
     [Fact]

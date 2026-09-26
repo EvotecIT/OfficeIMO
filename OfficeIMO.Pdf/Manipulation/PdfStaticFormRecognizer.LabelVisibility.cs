@@ -1,6 +1,17 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfStaticFormRecognizer {
+    // Partial native text still occupies the visible page. Full bounds are required only for labels.
+    private static bool TryIntersectPage(double left, double top, double right, double bottom,
+        double width, double height, out VisualRect bounds) {
+        bounds = default;
+        if (double.IsNaN(left) || double.IsNaN(top) || double.IsNaN(right) || double.IsNaN(bottom) ||
+            double.IsInfinity(left) || double.IsInfinity(top) || double.IsInfinity(right) || double.IsInfinity(bottom) ||
+            right <= left || bottom <= top) return false;
+        bounds = new VisualRect(Math.Max(0D, left), Math.Max(0D, top), Math.Min(width, right), Math.Min(height, bottom));
+        return bounds.Right > bounds.Left && bounds.Bottom > bounds.Top;
+    }
+
     // The canonical effect resolver may scan the entire timeline. Charge its
     // conservative upper bound before lookup, including pages with no candidates.
     private static void ChargeEffectLookup(int transitionCount, ref long work, int maximumWork,

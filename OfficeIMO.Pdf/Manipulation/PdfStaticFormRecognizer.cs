@@ -238,10 +238,10 @@ internal static partial class PdfStaticFormRecognizer {
             cancellationToken.ThrowIfCancellationRequested();
             if (block.XEnd <= block.XStart) continue;
             PdfLogicalVisualBounds bounds = block.VisualBounds ?? ToVisualBounds(page, block);
-            if (!Valid(bounds.Left, bounds.Top, bounds.Right, bounds.Bottom, pageWidth, pageHeight)) continue;
-            var visual = new VisualRect(bounds.Left, bounds.Top, bounds.Right, bounds.Bottom);
+            bool completeBlock = Valid(bounds.Left, bounds.Top, bounds.Right, bounds.Bottom, pageWidth, pageHeight);
+            if (!TryIntersectPage(bounds.Left, bounds.Top, bounds.Right, bounds.Bottom, pageWidth, pageHeight, out VisualRect visual)) continue;
             bool visibleText = block.Spans.Count == 0;
-            bool provableLabel = block.Spans.Count == 0;
+            bool provableLabel = block.Spans.Count == 0 && completeBlock;
             string text = NormalizeLabel(block.Text);
             if (block.Spans.Count > 0) {
                 bool uncertainEffect = false;
@@ -249,7 +249,7 @@ internal static partial class PdfStaticFormRecognizer {
                 VisualRect? labelBounds = null;
                 foreach (PdfTextSpan span in block.Spans) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    if (!span.IsVisible || (span.Color?.A ?? 255) <= 3) continue;
+                    if (!span.IsVisible || (span.Color?.A ?? 255) <= 3 && !span.HasAdditionalVisiblePaint) continue;
                     PdfTextSpanBounds spanBounds = PdfTextSpanGeometry.GetAxisAlignedBounds(span);
                     bool fullyVisibleText = true;
                     if (span.ClipPath is PdfPageClipPath clip) {
@@ -265,11 +265,11 @@ internal static partial class PdfStaticFormRecognizer {
                     }
                     PdfVisualBounds spanProjected = page.TransformBoundsToVisual(spanBounds.Left, spanBounds.Bottom,
                         spanBounds.Right, spanBounds.Top);
-                    if (!Valid(spanProjected.Left, spanProjected.Top, spanProjected.Right, spanProjected.Bottom,
-                        pageWidth, pageHeight)) continue;
-                    var spanVisual = new VisualRect(spanProjected.Left, spanProjected.Top,
-                        spanProjected.Right, spanProjected.Bottom);
-                    if (!fullyVisibleText || (span.Color?.A ?? 255) < 46) {
+                    fullyVisibleText &= Valid(spanProjected.Left, spanProjected.Top, spanProjected.Right, spanProjected.Bottom,
+                        pageWidth, pageHeight);
+                    if (!TryIntersectPage(spanProjected.Left, spanProjected.Top, spanProjected.Right, spanProjected.Bottom,
+                        pageWidth, pageHeight, out VisualRect spanVisual)) continue;
+                    if (!fullyVisibleText || span.HasUnresolvedPaint || span.HasAdditionalVisiblePaint || (span.Color?.A ?? 255) < 46) {
                         nativeTextBounds.Add(spanVisual);
                         uncertainEffect = true;
                         continue;

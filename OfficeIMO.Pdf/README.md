@@ -338,9 +338,12 @@ skipped with an `unsupported-outline-dash` diagnostic because their painted
 segments cannot be proven from the recognition geometry. Nearby native text supplies labels; callers
 can also pass bounded positioned OCR text as `PdfStaticFormTextEvidence` without
 installing an OCR runtime in `OfficeIMO.Pdf`. Native labels require perceptible
-opacity, proven contrast, and full visibility within any rectangular clip. Labels
-with partial or unproven clipping or image backdrops need separate visibility
-evidence such as positioned OCR. Unsupported graphics-state paint is excluded
+opacity, resolved paint, proven contrast, and full visibility within the visual
+page and any rectangular clip. Patterned or combined fill-and-stroke labels,
+labels with partial or unproven clipping, and image backdrops need separate
+visibility evidence such as positioned
+OCR. Native text crossing a page or crop edge still counts as possible field
+occupancy within the visible page. Unsupported graphics-state paint is excluded
 from field evidence. The report includes page-local tab
 order suggestions and collision diagnostics. It does not infer radio groups,
 choice values, calculations, or form actions from static marks. Applying selected
