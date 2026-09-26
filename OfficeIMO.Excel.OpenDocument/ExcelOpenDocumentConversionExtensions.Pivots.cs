@@ -9,7 +9,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         OdsDocument target, ExcelOpenDocumentConversionOptions options,
         IReadOnlyDictionary<string, HashSet<(int Row, int Column)>> convertedCellsBySheet) {
         int converted = 0;
-        var authoredNames = new HashSet<string>(StringComparer.Ordinal);
+        var authoredNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         List<ExcelPivotTableInfo> pivots = source.Sheets.SelectMany(sheet => sheet.GetPivotTables()).ToList();
         if (pivots.Count == 0) return 0;
         var canonicalSheets = source.Sheets.ToDictionary(sheet => sheet.Name, sheet => sheet.Name, StringComparer.OrdinalIgnoreCase);
@@ -39,6 +39,10 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         var rangeIndexes = neededRanges.ToDictionary(pair => pair.Key,
             pair => new PivotRangeIndex(pair.Value.Select(range => new PivotRangeIndex.Entry(
                 range.Start.Row!.Value, range.End!.Row!.Value, range.Start.Column!.Value, range.End.Column!.Value))),
+            StringComparer.Ordinal);
+        var mergeIndexes = snapshot.Worksheets.ToDictionary(sheet => sheet.Name,
+            sheet => new PivotRangeIndex(sheet.MergedRanges.Select(merge =>
+                new PivotRangeIndex.Entry(merge.StartRow, merge.EndRow, merge.StartColumn, merge.EndColumn))),
             StringComparer.Ordinal);
         long remainingIndexWork = 32_000_000;
         var omittedCellsBySheet = new Dictionary<string, List<(int Row, int Column)>>(StringComparer.Ordinal);
@@ -92,7 +96,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                     || !TryMapPivotFunction(pivot.DataFields[0].Function, out string? function)
                     || authoredNames.Contains(pivot.Name)
                     || !TryGetExcelPivotRanges(pivot, options, snapshot, target, omittedCellsBySheet, headersBySheet,
-                        out string? sourceAddress, out string? targetAddress)) continue;
+                        mergeIndexes, ref remainingIndexWork, out string? sourceAddress, out string? targetAddress)) continue;
                 OdsDataPilotTable authored = target.AddDataPilotTable(pivot.Name, sourceAddress!, targetAddress!);
                 foreach (string fieldName in pivot.ColumnFields) authored.AddField(fieldName, "column");
                 foreach (string fieldName in pivot.RowFields) authored.AddField(fieldName, "row");
@@ -107,6 +111,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         ExcelOpenDocumentConversionOptions options, ExcelWorkbookSnapshot snapshot, OdsDocument target,
         IReadOnlyDictionary<string, List<(int Row, int Column)>> omittedCellsBySheet,
         IReadOnlyDictionary<string, Dictionary<int, List<(int Column, string Name)>>> headersBySheet,
+        IReadOnlyDictionary<string, PivotRangeIndex> mergeIndexes, ref long remainingIndexWork,
         out string? sourceAddress, out string? targetAddress) {
         sourceAddress = targetAddress = null;
         if (!SpreadsheetRangeReference.TryParse(pivot.SourceRange, SpreadsheetAddressDialect.ExcelA1,
@@ -156,6 +161,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             cell.Column >= source.Start.Column && cell.Column <= source.End.Column
             && !string.Equals(projectedSheet.Cell(source.Start.Row.Value - 1, cell.Column - 1).Text,
                 cell.Name, StringComparison.Ordinal))) return false;
+        if (mergeIndexes[sourceSheet.Name].Intersects(destination.Start.Row!.Value, destination.End.Row!.Value,
+                destination.Start.Column!.Value, destination.End.Column!.Value, ref remainingIndexWork)) return false;
         sourceAddress = SpreadsheetAddressConverter.ExcelRangeToOpenAddress(pivot.SourceRange!, sourceSheet.Name);
         targetAddress = SpreadsheetAddressConverter.ExcelRangeToOpenAddress(pivot.Location!, pivot.SheetName);
         return sourceAddress.Length > 0 && targetAddress.Length > 0;
@@ -201,6 +208,10 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         }
         var generatedIndexes = generatedEntries.ToDictionary(pair => pair.Key,
             pair => new PivotRangeIndex(pair.Value), StringComparer.Ordinal);
+        var mergeIndexes = sheets.ToDictionary(pair => pair.Source.Name,
+            pair => new PivotRangeIndex(pair.Target.GetMergedRanges().Select(merge =>
+                new PivotRangeIndex.Entry(merge.StartRow, merge.EndRow, merge.StartColumn, merge.EndColumn))),
+            StringComparer.Ordinal);
         long remainingCollisionWork = 1_000_000;
         var sourceFootprints = new List<(string Sheet, long FirstRow, long LastRow, long FirstColumn, long LastColumn)>();
         // Reserve every retained local source before any output is authored, including later pivots.
@@ -284,6 +295,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 || generatedLastColumn > Math.Min(options.MaximumColumns, 16_384)
                 || generatedLastRow > targetBounds.End.Row!.Value
                 || generatedLastColumn > targetBounds.End.Column!.Value
+                || mergeIndexes[pair.Source.Name].Intersects(destinationRow, generatedLastRow,
+                    destinationColumn, generatedLastColumn, ref remainingCollisionWork)
                 || PivotFootprintsOverlap(sourceBounds.Start.Row!.Value, sourceBounds.End.Row!.Value,
                     sourceBounds.Start.Column!.Value, sourceBounds.End.Column!.Value,
                     destinationRow, generatedLastRow, destinationColumn, generatedLastColumn)

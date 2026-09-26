@@ -11,6 +11,61 @@ using Xunit;
 namespace OfficeIMO.OpenDocument.Converters.Tests;
 
 public sealed class ExcelOdsDataPilotConversionTests {
+    [Fact]
+    public void ExcelPivotOutputOverMergeIsExplicitLoss() {
+        using ExcelDocument source = ExcelDocument.Create();
+        ExcelSheet sheet = source.AddWorksheet("Data");
+        sheet.CellValue(1, 1, "Region");
+        sheet.CellValue(1, 2, "Sales");
+        sheet.CellValue(2, 1, "North");
+        sheet.CellValue(2, 2, 10d);
+        sheet.MergeRange("D1:E1");
+        sheet.AddPivotTable("A1:B2", "D1", name: "Pivot", rowFields: new[] { "Region" },
+            dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
+        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+        Assert.Empty(conversion.Value.DataPilotTables);
+        Assert.Contains(conversion.Report.ForFeature("pivot-tables"), mapping =>
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+    }
+
+    [Fact]
+    public void ExcelPivotNamesCollidingAcrossSheetsAreExplicitLoss() {
+        using ExcelDocument source = ExcelDocument.Create();
+        foreach ((string name, string sheetName) in new[] { ("Sales", "FirstData"), ("sales", "SecondData") }) {
+            ExcelSheet sheet = source.AddWorksheet(sheetName);
+            sheet.CellValue(1, 1, "Region");
+            sheet.CellValue(1, 2, "Sales");
+            sheet.CellValue(2, 1, "North");
+            sheet.CellValue(2, 2, 10d);
+            sheet.AddPivotTable("A1:B2", "D1", name: name, rowFields: new[] { "Region" },
+                dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
+        }
+        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+        Assert.Equal("Sales", Assert.Single(conversion.Value.DataPilotTables).Name);
+        Assert.Contains(conversion.Report.ForFeature("pivot-tables"), mapping =>
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+    }
+
+    [Theory]
+    [InlineData(0, 3, true)]
+    [InlineData(1, 3, true)]
+    [InlineData(1, 4, true)]
+    [InlineData(0, 5, false)]
+    public void OdsPivotOutputAvoidsRetainedMerges(int row, int column, bool overlaps) {
+        OdsDocument source = CreateSimpleOdsPivot("Pivot", "Data.D1:Data.E3");
+        source.GetSheet("Data")!.Merge(row, column, 1, 2);
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        using ExcelDocument target = conversion.Value;
+        Assert.Single(target.Sheets.Single().GetMergedRanges());
+        Assert.Equal(overlaps ? 0 : 1, target.Sheets.Single().GetPivotTables().Count);
+        if (overlaps) {
+            Assert.Contains(conversion.Report.ForFeature("pivot-tables"), mapping =>
+                mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+            Assert.Throws<OdfConversionLossException>(() => source.ToExcelDocumentResult(
+                new ExcelOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported }));
+        }
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("Region")]
