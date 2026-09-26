@@ -37,6 +37,40 @@ public sealed class PdfReviewComparerTests {
     }
 
     [Fact]
+    public void VectorChangeInsideChangedTextBoundsRemainsUnclassified() {
+        static PdfDocument Make(string text, OfficeIMO.Drawing.OfficeColor color) {
+            var line = OfficeIMO.Drawing.OfficeShape.Rectangle(22D, 2D);
+            line.FillColor = color;
+            line.StrokeColor = null;
+            return PdfDocument.Load(PdfDocument.Create(new PdfOptions { PageWidth = 240D, PageHeight = 180D })
+                .Canvas(canvas => canvas.Text(text, 20D, 20D, 100D, 20D).Shape(line, 42D, 27D))
+                .ToBytes());
+        }
+
+        PdfReviewPageComparison page = Assert.Single(Make("Original", OfficeIMO.Drawing.OfficeColor.Black)
+            .Proof.CompareReview(Make("Revised", OfficeIMO.Drawing.OfficeColor.Red)).Pages);
+
+        Assert.Contains(page.Changes, static change => change.Kind == PdfReviewChangeKind.TextChanged);
+        Assert.Contains(page.Changes, static change => change.Kind == PdfReviewChangeKind.UnclassifiedVisual);
+    }
+
+    [Fact]
+    public void UnchangedOutlineAroundChangedTextDoesNotAddVisualUncertainty() {
+        static PdfDocument Make(string text) {
+            var outline = OfficeIMO.Drawing.OfficeShape.Rectangle(100D, 25D);
+            outline.FillColor = null;
+            outline.StrokeColor = OfficeIMO.Drawing.OfficeColor.Black;
+            return PdfDocument.Load(PdfDocument.Create(new PdfOptions { PageWidth = 240D, PageHeight = 180D })
+                .Canvas(canvas => canvas.Shape(outline, 18D, 18D).Text(text, 20D, 20D, 100D, 20D))
+                .ToBytes());
+        }
+
+        PdfReviewPageComparison page = Assert.Single(Make("Original").Proof.CompareReview(Make("Revised")).Pages);
+
+        Assert.Equal(PdfReviewChangeKind.TextChanged, Assert.Single(page.Changes).Kind);
+    }
+
+    [Fact]
     public void UnsupportedPaintRetainsExplicitReviewUncertainty() {
         static byte[] Pdf(string operation) => System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
             "%PDF-1.4", "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
@@ -182,6 +216,30 @@ public sealed class PdfReviewComparerTests {
             20D, 12D, new[] { first, second });
 
         Assert.Equal("X B", PdfReviewSemanticComparer.ReconstructSemanticText(block));
+    }
+
+    [Fact]
+    public void ActualTextSubstitutionUsesPositionForDuplicateSpans() {
+        var visualRight = new PdfTextSpan("A", "F1", 12D, 30D, 20D, 0D, null, true, 0D, null, null,
+            hasActualText: true);
+        visualRight.SetSourceActualText("X");
+        var visualLeft = new PdfTextSpan("A", "F1", 12D, 10D, 20D);
+        var block = new PdfLogicalTextBlock(1, PdfLogicalElementKind.TextBlock, "A A", 10D, 40D,
+            20D, 12D, new[] { visualRight, visualLeft });
+
+        Assert.Equal("A X", PdfReviewSemanticComparer.ReconstructSemanticText(block));
+    }
+
+    [Fact]
+    public void FarOffPageTextDoesNotOverflowVisualRegionConversion() {
+        PdfDocument expected = PdfDocument.Load(InvisibleTextPdf("Before", x: 1e12D, visibleText: true,
+            vectorPaint: "0 0 0 rg 20 20 20 20 re f"));
+        PdfDocument actual = PdfDocument.Load(InvisibleTextPdf("After", x: 1e12D, visibleText: true,
+            vectorPaint: "1 0 0 rg 20 20 20 20 re f"));
+
+        PdfReviewPageComparison page = Assert.Single(expected.Proof.CompareReview(actual).Pages);
+
+        Assert.Contains(page.Changes, static change => change.Kind == PdfReviewChangeKind.TextChanged);
     }
 
     [Fact]
@@ -618,14 +676,17 @@ public sealed class PdfReviewComparerTests {
     }
 
     private static byte[] InvisibleTextPdf(string text, bool rotated = false, double y = 90D,
-        string? actualTextHex = null, string? vectorPaint = null, bool clippedText = false) {
-        string position = rotated ? "0 1 -1 0 100 20 Tm " : "20 " + y.ToString(System.Globalization.CultureInfo.InvariantCulture) + " Td ";
+        string? actualTextHex = null, string? vectorPaint = null, bool clippedText = false,
+        double x = 20D, bool visibleText = false) {
+        string position = rotated ? "0 1 -1 0 100 20 Tm " :
+            x.ToString(System.Globalization.CultureInfo.InvariantCulture) + " " +
+            y.ToString(System.Globalization.CultureInfo.InvariantCulture) + " Td ";
         string prefix = actualTextHex is null ? string.Empty : "/Span << /ActualText <" + actualTextHex + "> >> BDC ";
         string suffix = actualTextHex is null ? string.Empty : " EMC";
         string clipPrefix = clippedText ? "q 0 0 5 5 re W n " : string.Empty;
         string clipSuffix = clippedText ? " Q" : string.Empty;
         byte[] content = System.Text.Encoding.ASCII.GetBytes(prefix + clipPrefix + "BT /F1 12 Tf " +
-            (clippedText ? "0" : "3") + " Tr " + position + "(" + text + ") Tj ET" + clipSuffix + suffix +
+            (clippedText || visibleText ? "0" : "3") + " Tr " + position + "(" + text + ") Tj ET" + clipSuffix + suffix +
             "\n" + vectorPaint + "\n");
         using var stream = new System.IO.MemoryStream();
         void Write(string value) {

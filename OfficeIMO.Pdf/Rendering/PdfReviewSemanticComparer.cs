@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Threading;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
 
@@ -8,6 +9,8 @@ internal static class PdfReviewSemanticComparer {
     internal static IReadOnlyList<PdfReviewChange> Compare(
         PdfLogicalPage expected,
         PdfLogicalPage actual,
+        PdfReadPage expectedReadPage,
+        PdfReadPage actualReadPage,
         PdfVisualPageComparison? visual,
         bool usesIgnoredRegions,
         PdfReviewComparisonOptions options,
@@ -34,7 +37,8 @@ internal static class PdfReviewSemanticComparer {
         }
         CompareImages(expected, actual, visual, options, changes, cancellationToken);
         if (visual is { IsMatch: false } &&
-            (visual.HasSizeDifference || HasUnclassifiedPixels(expected, actual, visual, options.Visual, changes, cancellationToken))) {
+            (visual.HasSizeDifference || HasUnclassifiedPixels(expected, actual, expectedReadPage, actualReadPage,
+                visual, options.Visual, changes, cancellationToken))) {
             changes.Add(new PdfReviewChange(PdfReviewChangeKind.UnclassifiedVisual, expectedPage, actualPage, null, null));
         }
         return OrderChanges(changes);
@@ -139,7 +143,16 @@ internal static class PdfReviewSemanticComparer {
         if (!block.Spans.Any(static span => span.HasActualText)) return block.Text;
         const long maxMappingWork = 4_000_000L;
         var replacements = new List<(int Start, int End, string Text)>(block.Spans.Count);
-        foreach (PdfTextSpan span in block.Spans) {
+        IEnumerable<PdfTextSpan> spans = block.Spans;
+        if (block.Spans.Count > 1 && block.Spans.All(span =>
+                Math.Abs(span.Y - block.Spans[0].Y) <= Math.Max(1D, block.FontSize * 0.5D) &&
+                Math.Abs(span.RotationDegrees) < 0.01D)) {
+            bool rightToLeft = OfficeTextElements.ResolveBaseDirection(block.Text) == OfficeTextDirection.RightToLeft;
+            spans = rightToLeft
+                ? block.Spans.OrderByDescending(static span => span.X)
+                : block.Spans.OrderBy(static span => span.X);
+        }
+        foreach (PdfTextSpan span in spans) {
             cancellationToken.ThrowIfCancellationRequested();
             if (span.Text.Length == 0) continue;
             int searchStart = 0;
@@ -161,7 +174,7 @@ internal static class PdfReviewSemanticComparer {
                 searchStart = match + 1;
             }
             if (!matched) {
-                return string.Concat(block.Spans.Select(static item => item.SourceActualText ?? item.Text));
+                return string.Concat(spans.Select(static item => item.SourceActualText ?? item.Text));
             }
         }
         var result = new System.Text.StringBuilder(block.Text.Length);
@@ -244,6 +257,7 @@ internal static class PdfReviewSemanticComparer {
     }
 
     private static bool HasUnclassifiedPixels(PdfLogicalPage expected, PdfLogicalPage actual,
+        PdfReadPage expectedReadPage, PdfReadPage actualReadPage,
         PdfVisualPageComparison visual, PdfVisualComparisonOptions options,
         List<PdfReviewChange> changes, CancellationToken cancellationToken) {
         var classified = new List<PdfPixelRegion>(changes.Count * 2);
@@ -254,7 +268,91 @@ internal static class PdfReviewSemanticComparer {
             if (change.ActualBounds is PdfLogicalVisualBounds after &&
                 ToPixelRegion(after, actual, visual, options, out PdfPixelRegion actualRegion)) classified.Add(actualRegion);
         }
-        return visual.HasChangedPixelsOutside(classified, cancellationToken);
+        if (visual.HasChangedPixelsOutside(classified, cancellationToken)) return true;
+        // A text or image rectangle is only a location estimate. Where vector paint
+        // intersects it, the raster change cannot be attributed to that element alone.
+        return HasChangedVectorPaintInsideClassifiedBounds(expectedReadPage, actualReadPage,
+            expected, actual, classified, visual, options, cancellationToken);
+    }
+
+    private static bool HasChangedVectorPaintInsideClassifiedBounds(
+        PdfReadPage expectedReadPage, PdfReadPage actualReadPage,
+        PdfLogicalPage expected, PdfLogicalPage actual,
+        List<PdfPixelRegion> classified, PdfVisualPageComparison visual,
+        PdfVisualComparisonOptions options, CancellationToken cancellationToken) {
+        if (classified.Count == 0) return false;
+        IReadOnlyList<PdfPageVisualPrimitive> before = expectedReadPage.GetIdentityVisualPrimitives(cancellationToken);
+        IReadOnlyList<PdfPageVisualPrimitive> after = actualReadPage.GetIdentityVisualPrimitives(cancellationToken);
+        int count = Math.Max(before.Count, after.Count);
+        for (int index = 0; index < count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (index < before.Count && index < after.Count && SameSimpleVectorPaint(before[index], after[index])) continue;
+            if (index < before.Count && ChangedPixelsIntersectVector(before[index], expected,
+                    classified, visual, options, cancellationToken) ||
+                index < after.Count && ChangedPixelsIntersectVector(after[index], actual,
+                    classified, visual, options, cancellationToken)) return true;
+        }
+        return false;
+    }
+
+    private static bool SameSimpleVectorPaint(PdfPageVisualPrimitive before, PdfPageVisualPrimitive after) {
+        // Complex effects cannot be compared by reference across independently read PDFs.
+        // Reporting uncertainty for them is safer than claiming their pixels are text or image paint.
+        if (before.FillGradient != null || after.FillGradient != null ||
+            before.FillRadialGradient != null || after.FillRadialGradient != null ||
+            before.StrokeGradient != null || after.StrokeGradient != null ||
+            before.StrokeRadialGradient != null || after.StrokeRadialGradient != null ||
+            before.FillTilingPattern != null || after.FillTilingPattern != null ||
+            before.StrokeTilingPattern != null || after.StrokeTilingPattern != null) return false;
+        return before.Kind == after.Kind && before.X == after.X && before.Y == after.Y &&
+            before.Width == after.Width && before.Height == after.Height &&
+            before.X1 == after.X1 && before.Y1 == after.Y1 &&
+            before.X2 == after.X2 && before.Y2 == after.Y2 &&
+            Nullable.Equals(before.FillColor, after.FillColor) &&
+            Nullable.Equals(before.StrokeColor, after.StrokeColor) &&
+            before.StrokeWidth == after.StrokeWidth &&
+            before.StrokeDashStyle == after.StrokeDashStyle &&
+            before.StrokeLineCap == after.StrokeLineCap &&
+            before.StrokeLineJoin == after.StrokeLineJoin &&
+            before.FillOpacity == after.FillOpacity && before.StrokeOpacity == after.StrokeOpacity &&
+            before.FillRule == after.FillRule && before.PaintOrder == after.PaintOrder &&
+            SameClipPath(before.ClipPath, after.ClipPath) &&
+            SameDashPattern(before.StrokeDashPattern, after.StrokeDashPattern) &&
+            before.PathCommands.SequenceEqual(after.PathCommands);
+    }
+
+    private static bool SameClipPath(PdfPageClipPath? before, PdfPageClipPath? after) {
+        if (!before.HasValue || !after.HasValue) return before.HasValue == after.HasValue;
+        PdfPageClipPath a = before.Value;
+        PdfPageClipPath b = after.Value;
+        return a.X == b.X && a.Y == b.Y && a.Width == b.Width && a.Height == b.Height &&
+            a.IsRectangle == b.IsRectangle && a.FillRule == b.FillRule &&
+            a.IsExact == b.IsExact && a.ContainsTextClipping == b.ContainsTextClipping &&
+            a.Commands.SequenceEqual(b.Commands);
+    }
+
+    private static bool SameDashPattern(PdfStrokeDashPattern? before, PdfStrokeDashPattern? after) {
+        if (!before.HasValue || !after.HasValue) return before.HasValue == after.HasValue;
+        return before.Value.Phase == after.Value.Phase &&
+            before.Value.Array.SequenceEqual(after.Value.Array);
+    }
+
+    private static bool ChangedPixelsIntersectVector(PdfPageVisualPrimitive primitive, PdfLogicalPage page,
+        List<PdfPixelRegion> classified, PdfVisualPageComparison visual,
+        PdfVisualComparisonOptions options, CancellationToken cancellationToken) {
+        double stroke = Math.Max(0D, primitive.StrokeWidth / 2D);
+        var bounds = new PdfLogicalVisualBounds(primitive.X - stroke, primitive.Y - stroke,
+            primitive.X + primitive.Width + stroke, primitive.Y + primitive.Height + stroke);
+        if (!ToPixelRegion(bounds, page, visual, options, out PdfPixelRegion vector)) return false;
+        foreach (PdfPixelRegion region in classified) {
+            int left = Math.Max(vector.X, region.X);
+            int top = Math.Max(vector.Y, region.Y);
+            int right = Math.Min(vector.X + vector.Width, region.X + region.Width);
+            int bottom = Math.Min(vector.Y + vector.Height, region.Y + region.Height);
+            if (right > left && bottom > top &&
+                visual.HasChangedPixelsIn(new PdfPixelRegion(left, top, right - left, bottom - top), cancellationToken)) return true;
+        }
+        return false;
     }
 
     private static bool ToPixelRegion(PdfLogicalVisualBounds bounds, PdfLogicalPage page,
@@ -265,14 +363,17 @@ internal static class PdfReviewSemanticComparer {
         int offsetX = options.Alignment == PdfVisualPageAlignment.Center ? (visual.Width - rasterWidth) / 2 : 0;
         int offsetY = options.Alignment == PdfVisualPageAlignment.Center ? (visual.Height - rasterHeight) / 2 : 0;
         const int padding = 2;
-        int left = Math.Max(0, checked((int)Math.Floor(bounds.Left * options.Scale)) + offsetX - padding);
-        int top = Math.Max(0, checked((int)Math.Floor(bounds.Top * options.Scale)) + offsetY - padding);
-        int right = Math.Min(visual.Width, checked((int)Math.Ceiling(bounds.Right * options.Scale)) + offsetX + padding);
-        int bottom = Math.Min(visual.Height, checked((int)Math.Ceiling(bounds.Bottom * options.Scale)) + offsetY + padding);
+        int left = ClampPixel(Math.Floor(bounds.Left * options.Scale) + offsetX - padding, visual.Width);
+        int top = ClampPixel(Math.Floor(bounds.Top * options.Scale) + offsetY - padding, visual.Height);
+        int right = ClampPixel(Math.Ceiling(bounds.Right * options.Scale) + offsetX + padding, visual.Width);
+        int bottom = ClampPixel(Math.Ceiling(bounds.Bottom * options.Scale) + offsetY + padding, visual.Height);
         if (right <= left || bottom <= top) { region = default; return false; }
         region = new PdfPixelRegion(left, top, right - left, bottom - top);
         return true;
     }
+
+    private static int ClampPixel(double coordinate, int extent) =>
+        coordinate <= 0D ? 0 : coordinate >= extent ? extent : (int)coordinate;
 
     private static bool TryVisibleImageBounds(PdfLogicalPage page, PdfImagePlacement placement,
         bool requireExactClip, out PdfLogicalVisualBounds bounds) {

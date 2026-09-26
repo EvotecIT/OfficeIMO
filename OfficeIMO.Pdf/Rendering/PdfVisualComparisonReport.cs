@@ -229,4 +229,16 @@ public sealed class PdfVisualPageComparison {
         }
         return false;
     }
+
+    internal bool HasChangedPixelsIn(PdfPixelRegion region, System.Threading.CancellationToken cancellationToken) {
+        int right = Math.Min(Width, region.X + region.Width);
+        int bottom = Math.Min(Height, region.Y + region.Height);
+        for (int y = Math.Max(0, region.Y); y < bottom; y++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            for (int x = Math.Max(0, region.X); x < right; x++) {
+                if (_changedPixels[checked(y * Width + x)]) return true;
+            }
+        }
+        return false;
+    }
 }

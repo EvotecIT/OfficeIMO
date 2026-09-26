@@ -863,7 +863,7 @@ public sealed partial class PdfReadPage {
         Action<OfficeDrawing, OfficeTransform, double, PdfContentOrderKey?, PdfPageDrawingEffect>? type3GroupVisitor = null,
         CancellationToken cancellationToken = default) {
         textOutputBudget ??= CreateTextOutputBudget();
-        pageContentBudget ??= new PageContentBudget(this);
+        pageContentBudget ??= new PageContentBudget(this, cancellationToken);
         var primitives = new List<PdfPageVisualPrimitive>();
         PdfDictionary? pageResources = ResolveDictionary(GetInheritedValue("Resources"));
         var activeForms = new HashSet<PdfStream>();
@@ -898,9 +898,9 @@ public sealed partial class PdfReadPage {
         return primitives.Count == 0 ? Array.Empty<PdfPageVisualPrimitive>() : primitives.AsReadOnly();
     }
 
-    internal IReadOnlyList<PdfPageVisualPrimitive> GetIdentityVisualPrimitives() {
+    internal IReadOnlyList<PdfPageVisualPrimitive> GetIdentityVisualPrimitives(CancellationToken cancellationToken = default) {
         (double width, double height) = GetVisualPageSize();
-        return GetVisualPrimitives(width, height, GetVisualPageTransform());
+        return GetVisualPrimitives(width, height, GetVisualPageTransform(), cancellationToken: cancellationToken);
     }
 
     private void CollectVisualPrimitivesAndForms(
