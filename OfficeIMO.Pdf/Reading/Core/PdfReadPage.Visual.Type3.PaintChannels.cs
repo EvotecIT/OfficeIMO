@@ -99,7 +99,8 @@ public sealed partial class PdfReadPage {
                 maxNestingDepth: _limits.MaxContentNestingDepth,
                 maxOperands: _limits.MaxContentOperands,
                 inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
-                inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array));
+                inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
+                cancellationToken: pageContentBudget.CancellationToken);
             string transformedContent = WrapContentWithTransform(content, formTransform, out int transformedOffset);
             var visibilityGeometryBudget = new VisualGeometryBudget();
             _ = PdfPageContentVisualParser.Parse(

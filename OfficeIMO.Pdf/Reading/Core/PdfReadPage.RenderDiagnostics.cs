@@ -449,7 +449,8 @@ public sealed partial class PdfReadPage {
                 maxNestingDepth: _limits.MaxContentNestingDepth,
                 maxOperands: _limits.MaxContentOperands,
                 inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
-                inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array));
+                inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
+                cancellationToken: pageContentBudget.CancellationToken);
             if (!HasSupportedType3PageBlendColorSpace() &&
                 drawingEffects.Any(static transition => transition.Effect.BlendMode != OfficeBlendMode.Normal)) return false;
             if (requireIsolatedGroupSemantics &&

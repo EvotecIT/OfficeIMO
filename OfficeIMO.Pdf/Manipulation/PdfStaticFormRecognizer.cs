@@ -215,6 +215,14 @@ internal static class PdfStaticFormRecognizer {
                 foreach (PdfTextSpan span in block.Spans) {
                     cancellationToken.ThrowIfCancellationRequested();
                     if (!span.IsVisible || (span.Color?.A ?? 255) <= 3) continue;
+                    if (span.ClipPath is PdfPageClipPath clip) {
+                        PdfTextSpanBounds spanBounds = PdfTextSpanGeometry.GetAxisAlignedBounds(span);
+                        var paintedText = PdfPageClipPath.Rectangle(spanBounds.Left,
+                            page.Height - spanBounds.Top, spanBounds.Right - spanBounds.Left,
+                            spanBounds.Top - spanBounds.Bottom);
+                        if (clip.Width <= 0D || clip.Height <= 0D ||
+                            clip.CanProveNoPositiveAreaIntersection(paintedText)) continue;
+                    }
                     PdfPageDrawingEffect effect = PdfReadPage.ResolveDrawingEffect(effects, span.PaintOrder,
                         contentOrderKey: span.ContentOrderKey);
                     if (effect.SoftMask is not null || effect.HasUnresolvedSoftMask ||
@@ -338,10 +346,13 @@ internal static class PdfStaticFormRecognizer {
         const double inset = 0.2D;
         var interior = new VisualRect(candidate.Left + inset, candidate.Top + inset,
             candidate.Right - inset, candidate.Bottom - inset);
+        PdfPageVisualPrimitive candidatePrimitive = primitives[candidateIndex];
         for (int index = 0; index < primitives.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
             if (index == candidateIndex) continue;
             PdfPageVisualPrimitive primitive = primitives[index];
+            bool paintedAfterCandidate = IsLater(primitive.PaintOrder, primitive.ContentOrderKey,
+                candidatePrimitive.PaintOrder, candidatePrimitive.ContentOrderKey);
             bool stroked = primitive.HasStrokePaint && primitive.StrokeOpacity != 0D;
             bool filled = primitive.HasFillPaint && primitive.FillOpacity != 0D && !IsEmptyFill(primitive);
             if (!stroked && !filled) continue;
@@ -357,7 +368,8 @@ internal static class PdfStaticFormRecognizer {
                 bottom += strokePadding;
             }
             if (primitive.Kind != PdfPageVisualPrimitiveKind.Line &&
-                (right - left) * (bottom - top) > candidate.Area * 1.25D) continue;
+                (right - left) * (bottom - top) > candidate.Area * 1.25D &&
+                !paintedAfterCandidate) continue;
             if (right - left < 1D || bottom - top < 1D) continue;
             if (primitive.ClipPath is PdfPageClipPath clip && clip.IsRectangle && clip.IsExact &&
                 !clip.ContainsTextClipping &&
