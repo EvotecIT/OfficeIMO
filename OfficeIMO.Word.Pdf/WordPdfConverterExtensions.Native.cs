@@ -13,7 +13,7 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
         private const double NativeDefaultParagraphLineHeight = 1.15D;
-        private const double NativeDefaultParagraphSpacingAfter = 8D;
+        private const double NativeDefaultParagraphSpacingAfter = 0D;
         private const double NativeCalibriSingleLineHeight = 1.220703125D;
         private const double NativeTablePageContinuationSpacingBefore = 24D;
         private const double NativeHeaderFooterFontSize = 9D;

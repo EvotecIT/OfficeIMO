@@ -9,6 +9,7 @@ namespace OfficeIMO.Word {
         private WordDocument _document;
         private readonly Paragraph _paragraph;
         private readonly Run _run;
+        private readonly Break? _selectedBreak;
 
         /// <summary>
         /// Get type of Break in given paragraph
@@ -16,7 +17,7 @@ namespace OfficeIMO.Word {
         public WordBreakType? BreakType {
             get {
                 if (_run != null) {
-                    var brake = _run.ChildElements.OfType<Break>().FirstOrDefault();
+                    var brake = _selectedBreak ?? _run.ChildElements.OfType<Break>().FirstOrDefault();
                     if (brake == null) {
                         return null;
                     }
@@ -34,10 +35,12 @@ namespace OfficeIMO.Word {
         /// <param name="document"></param>
         /// <param name="paragraph"></param>
         /// <param name="run"></param>
-        internal WordBreak(WordDocument document, Paragraph paragraph, Run run) {
+        /// <param name="selectedBreak">The visible break in the source run, when field projection is active.</param>
+        internal WordBreak(WordDocument document, Paragraph paragraph, Run run, Break? selectedBreak = null) {
             this._document = document;
             this._paragraph = paragraph;
             this._run = run;
+            _selectedBreak = selectedBreak;
         }
 
         /// <summary>
@@ -58,7 +61,7 @@ namespace OfficeIMO.Word {
                         _paragraph.Remove();
                     }
                 } else {
-                    this._run.ChildElements.OfType<Break>().FirstOrDefault()?.Remove();
+                    (_selectedBreak ?? this._run.ChildElements.OfType<Break>().FirstOrDefault())?.Remove();
                 }
             }
         }

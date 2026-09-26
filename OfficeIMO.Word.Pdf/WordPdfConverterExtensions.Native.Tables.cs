@@ -25,7 +25,7 @@ namespace OfficeIMO.Word.Pdf {
                 ignoreFallbackTableStyle: hasExplicitDefaultTableStyle);
             var rows = new List<PdfCore.PdfTableCell[]>();
             var cellFills = new Dictionary<(int Row, int Column), PdfCore.PdfColor>();
-            var cellBorders = new Dictionary<(int Row, int Column), PdfCore.PdfCellBorder>();
+            var directCellBorders = new Dictionary<(int Row, int Column), WordTableCellBorder>();
             var cellPaddings = new Dictionary<(int Row, int Column), PdfCore.PdfCellPadding>();
             var cellAlignments = new Dictionary<(int Row, int Column), PdfCore.PdfColumnAlign>();
             var cellVerticalAlignments = new Dictionary<(int Row, int Column), PdfCore.PdfCellVerticalAlign>();
@@ -94,9 +94,8 @@ namespace OfficeIMO.Word.Pdf {
                         cellFills[(rowIndex, logicalColumnIndex)] = fill.Value;
                     }
 
-                    PdfCore.PdfCellBorder? border = CreateNativeTableCellBorder(cell.Borders);
-                    if (border != null) {
-                        cellBorders[(rowIndex, logicalColumnIndex)] = border;
+                    if (HasNativeDirectCellBorder(cell.Borders)) {
+                        directCellBorders[(rowIndex, logicalColumnIndex)] = cell.Borders;
                     }
 
                     PdfCore.PdfCellPadding? padding = CreateNativeTableCellPadding(cell);
@@ -109,7 +108,7 @@ namespace OfficeIMO.Word.Pdf {
                         cellAlignments[(rowIndex, logicalColumnIndex)] = cellAlignment;
                     }
 
-                    PdfCore.PdfCellVerticalAlign? cellVerticalAlignment = ResolveNativeTableCellVerticalAlignment(cell, cellStyleDefaults);
+                    PdfCore.PdfCellVerticalAlign? cellVerticalAlignment = ResolveNativeTableCellVerticalAlignment(cell, cellStyleDefaults, layout, rowIndex, logicalColumnIndex, rowSpan);
                     if (cellVerticalAlignment.HasValue) {
                         cellVerticalAlignments[(rowIndex, logicalColumnIndex)] = cellVerticalAlignment.Value;
                     }
@@ -134,6 +133,15 @@ namespace OfficeIMO.Word.Pdf {
                 tableStyleDefaults,
                 layout,
                 nativeFontMap);
+            if (table._tableProperties?.TablePositionProperties != null) {
+                style.ConsumesVerticalFlow = false;
+                if (options != null) {
+                    AddNativeExportWarning(options,
+                        "NativePositionedTableWrapApproximation",
+                        "table",
+                        "Positioned table is drawn without consuming vertical flow; exact text wrapping and vertical anchor offsets are approximated.");
+                }
+            }
             if (cellFills.Count > 0) {
                 if (style.CellFills == null) {
                     style.CellFills = cellFills;
@@ -144,14 +152,9 @@ namespace OfficeIMO.Word.Pdf {
                 }
             }
 
-            if (cellBorders.Count > 0) {
-                if (style.CellBorders == null) {
-                    style.CellBorders = cellBorders;
-                } else {
-                    foreach (var cellBorder in cellBorders) {
-                        style.CellBorders[cellBorder.Key] = cellBorder.Value;
-                    }
-                }
+            ApplyNativeDirectCellBorders(style, layout, directCellBorders);
+            if (style.CellBorders != null && style.CellSpacing <= 0D) {
+                ReconcileNativeHiddenSharedBorders(table, layout, tableStyleDefaults, style.HeaderRowCount, style.CellBorders, directCellBorders);
             }
 
             if (cellPaddings.Count > 0) {
@@ -367,6 +370,9 @@ namespace OfficeIMO.Word.Pdf {
 
             if (options?.DefaultTableBorders == true && style.BorderColor == null) {
                 style.BorderColor = PdfCore.PdfColor.LightGray;
+                if (style.BorderWidth <= 0D) {
+                    style.BorderWidth = 0.5D;
+                }
             }
 
             ApplyNativeTableAccessibilityText(table, style);
@@ -379,6 +385,9 @@ namespace OfficeIMO.Word.Pdf {
             ApplyNativeTableConditionalStyles(table, style, tableStyleDefaults, rowCount, layout);
             ApplyNativeTableBandingStyles(table, layout, style, tableStyleDefaults);
             ApplyNativeTableConditionalColumnFills(table, layout, tableStyleDefaults, style);
+            if (HasNativeConditionalHiddenBorders(table, tableStyleDefaults)) {
+                MaterializeNativeTableBorderGrid(style, layout);
+            }
             ApplyNativeTableConditionalBorders(table, layout, tableStyleDefaults, style);
             ApplyNativeTableConditionalPaddings(table, layout, tableStyleDefaults, style);
             ApplyNativeTableLayoutOptions(table, layout, style, contentWidth, tableStyleDefaults);
@@ -422,6 +431,12 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             return new PdfCore.PdfTableStyle {
+                BorderColor = null,
+                BorderWidth = 0D,
+                HeaderFill = null,
+                FooterFill = null,
+                HeaderBold = false,
+                FooterBold = false,
                 RowStripeFill = null
             };
         }
@@ -714,8 +729,32 @@ namespace OfficeIMO.Word.Pdf {
             };
         }
 
-        private static PdfCore.PdfCellVerticalAlign? ResolveNativeTableCellVerticalAlignment(WordTableCell cell, NativeTableStyleDefaults cellStyleDefaults) {
+        private static PdfCore.PdfCellVerticalAlign? ResolveNativeTableCellVerticalAlignment(WordTableCell cell, NativeTableStyleDefaults cellStyleDefaults, TableLayout layout, int rowIndex, int columnIndex, int rowSpan) {
             PdfCore.PdfCellVerticalAlign? directAlignment = MapNativeNullableCellVerticalAlign(cell.VerticalAlignment);
+            if (directAlignment.HasValue) {
+                return directAlignment.Value;
+            }
+
+            // A vertically merged Word cell may declare its alignment on a continuation
+            // cell. The PDF model only retains the first cell, so carry the last declared
+            // continuation alignment onto that cell.
+            for (int continuationRow = rowIndex + 1; continuationRow < rowIndex + rowSpan && continuationRow < layout.Rows.Count; continuationRow++) {
+                int continuationColumn = GetNativeTableRowStartColumn(layout, continuationRow);
+                foreach (WordTableCell continuation in layout.Rows[continuationRow]) {
+                    if (IsNativeHorizontalMergeContinuation(continuation)) {
+                        continue;
+                    }
+                    int continuationSpan = GetNativeCellColumnSpan(continuation);
+                    if (continuationColumn <= columnIndex && columnIndex < continuationColumn + continuationSpan &&
+                        IsNativeVerticalMergeContinuation(continuation)) {
+                        PdfCore.PdfCellVerticalAlign? continuedAlignment = MapNativeNullableCellVerticalAlign(continuation.VerticalAlignment);
+                        if (continuedAlignment.HasValue) {
+                            directAlignment = continuedAlignment.Value;
+                        }
+                    }
+                    continuationColumn += continuationSpan;
+                }
+            }
             if (directAlignment.HasValue) {
                 return directAlignment.Value;
             }
@@ -910,10 +949,13 @@ namespace OfficeIMO.Word.Pdf {
 
         private static void ApplyNativeTableBorders(WordTable table, PdfCore.PdfTableStyle style, NativeTableStyleDefaults tableStyleDefaults) {
             W.TableBorders? directBorders = table._tableProperties?.TableBorders;
-            W.TableBorders? tableBorders = directBorders ?? tableStyleDefaults.Borders;
+            if (directBorders?.HasChildren != true) directBorders = null;
+            W.TableBorders? tableBorders = directBorders == null
+                ? tableStyleDefaults.Borders
+                : MergeNativeTableBorders(tableStyleDefaults.Borders, directBorders);
             (PdfCore.PdfColor Color, double Width)? border = directBorders == null
                 ? tableStyleDefaults.TableBorder
-                : GetNativeUniformTableBorder(directBorders);
+                : GetNativeUniformTableBorder(tableBorders);
             if (border != null) {
                 style.BorderColor = border.Value.Color;
                 style.BorderWidth = border.Value.Width;
@@ -922,12 +964,34 @@ namespace OfficeIMO.Word.Pdf {
 
             Dictionary<(int Row, int Column), PdfCore.PdfCellBorder>? cellBorders = CreateNativeTableBorderCellMap(table, tableBorders);
             if (cellBorders == null) {
+                if (directBorders != null) {
+                    style.BorderColor = null;
+                    style.BorderWidth = 0D;
+                    style.CellBorders = null;
+                }
                 return;
             }
 
             style.BorderColor = null;
             style.BorderWidth = 0D;
             style.CellBorders = cellBorders;
+        }
+
+        private static W.TableBorders MergeNativeTableBorders(W.TableBorders? inherited, W.TableBorders direct) {
+            var merged = new W.TableBorders();
+            AppendBorder(direct.TopBorder ?? inherited?.TopBorder);
+            AppendBorder(direct.LeftBorder ?? inherited?.LeftBorder);
+            AppendBorder(direct.BottomBorder ?? inherited?.BottomBorder);
+            AppendBorder(direct.RightBorder ?? inherited?.RightBorder);
+            AppendBorder(direct.InsideHorizontalBorder ?? inherited?.InsideHorizontalBorder);
+            AppendBorder(direct.InsideVerticalBorder ?? inherited?.InsideVerticalBorder);
+            return merged;
+
+            void AppendBorder(W.BorderType? source) {
+                if (source != null) {
+                    merged.Append(source.CloneNode(true));
+                }
+            }
         }
 
         private static (PdfCore.PdfColor Color, double Width)? GetNativeUniformTableBorder(W.TableBorders? borders) {
@@ -1066,8 +1130,11 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 if (!preserveConfiguredFallbackPadding) {
-                    style.CellPaddingTop ??= 3D;
-                    style.CellPaddingBottom ??= 3D;
+                    // Word's Normal Table defaults have no vertical cell margin.
+                    // PDF's presentation padding inflates dense Word rows enough
+                    // to move following content to another page.
+                    style.CellPaddingTop ??= 0D;
+                    style.CellPaddingBottom ??= 0D;
                 }
 
                 return;
@@ -1085,13 +1152,13 @@ namespace OfficeIMO.Word.Pdf {
             if (top.HasValue) {
                 style.CellPaddingTop = top.Value;
             } else if (!preserveConfiguredFallbackPadding) {
-                style.CellPaddingTop = 3D;
+                style.CellPaddingTop = 0D;
             }
 
             if (bottom.HasValue) {
                 style.CellPaddingBottom = bottom.Value;
             } else if (!preserveConfiguredFallbackPadding) {
-                style.CellPaddingBottom = 3D;
+                style.CellPaddingBottom = 0D;
             }
 
             if (left.HasValue) {

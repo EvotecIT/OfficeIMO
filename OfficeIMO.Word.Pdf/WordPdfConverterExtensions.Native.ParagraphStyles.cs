@@ -778,6 +778,23 @@ namespace OfficeIMO.Word.Pdf {
                 return 0;
             }
 
+            // Some Word files carry several whitespace-only header paragraphs.
+            // They paint nothing and Word does not move the body down for them.
+            // Keep the existing line estimate when any visible header content exists.
+            bool whitespaceOnly = true;
+            foreach (WordElement element in headerFooter.Elements) {
+                if (element is not WordParagraph paragraph ||
+                    !string.IsNullOrWhiteSpace(GetNativeHeaderFooterParagraphText(paragraph, listMarkers, out _)) ||
+                    paragraph.EnumerateImages().Any() || paragraph.PictureControl?.Image != null ||
+                    paragraph.Shape != null || paragraph.Chart != null || paragraph.TextBox != null) {
+                    whitespaceOnly = false;
+                    break;
+                }
+            }
+            if (whitespaceOnly) {
+                return 0;
+            }
+
             int textLines = GetNativeHeaderFooterTextLineCount(GetNativeHeaderFooterText(headerFooter, listMarkers));
             int structuralLines = 0;
             foreach (WordElement element in CollapseNativeParagraphElements(headerFooter.Elements)) {

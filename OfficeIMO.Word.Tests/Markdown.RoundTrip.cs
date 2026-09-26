@@ -3,10 +3,120 @@ using System.Linq;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Markdown;
 using OfficeIMO.Word.Fluent;
+using DocumentFormat.OpenXml.Wordprocessing;
 using Xunit;
 
 namespace OfficeIMO.Tests {
     public class MarkdownRoundTripTests {
+        [Fact]
+        public void WordToMarkdown_PreservesCachedSimpleDateFieldAndItalicText() {
+            using var document = WordDocument.Create();
+            WordParagraph paragraph = document.AddParagraph("Due ");
+            paragraph._paragraph.Append(new SimpleField(new Run(new Text("2020-01-02"))) {
+                Instruction = " DATE \\@ \"yyyy-MM-dd\" "
+            });
+            paragraph.AddText(" confirmed").SetItalic();
+
+            string markdown = document.ToMarkdown();
+
+            Assert.Contains("Due 2020-01-02", markdown);
+            Assert.Contains("*confirmed*", markdown);
+        }
+
+        [Fact]
+        public void WordToMarkdown_ReportsFlattenedMergedTableCells() {
+            using var document = WordDocument.Create();
+            var table = document.AddTable(2, 2);
+            table.Rows[0].Cells[0].Paragraphs[0].AddText("Combined");
+            table.Rows[0].Cells[0].MergeHorizontally(1);
+
+            WordToMarkdownResult result = document.ToMarkdownDocumentResult();
+
+            Assert.Contains(result.Report.Diagnostics, diagnostic =>
+                diagnostic.Message.Contains("cell merges", StringComparison.Ordinal));
+            Assert.True(result.Report.HasLoss);
+        }
+
+        [Fact]
+        public void WordToMarkdown_OnlyReportsAuthoredCellBorders() {
+            using var document = WordDocument.Create();
+            var cell = document.AddTable(1, 1, WordTableStyle.TableNormal).Rows[0].Cells[0];
+            cell.Paragraphs[0].AddText("Value");
+            cell._tableCell.TableCellProperties!.TableCellBorders = new TableCellBorders();
+
+            WordToMarkdownResult emptyBorders = document.ToMarkdownDocumentResult();
+            Assert.False(emptyBorders.Report.HasLoss);
+            emptyBorders.Report.RequireNoLoss();
+
+            cell._tableCell.TableCellProperties.TableCellBorders.Append(
+                new TopBorder { Val = BorderValues.None });
+            WordToMarkdownResult authoredBorder = document.ToMarkdownDocumentResult();
+            Assert.Contains(authoredBorder.Report.Diagnostics, diagnostic =>
+                diagnostic.Message.Contains("table borders", StringComparison.Ordinal));
+            Assert.True(authoredBorder.Report.HasLoss);
+        }
+
+        [Fact]
+        public void WordToMarkdown_ReportsMergedCellsAndAuthoredBordersSeparately() {
+            using var document = WordDocument.Create();
+            var cell = document.AddTable(1, 2, WordTableStyle.TableNormal).Rows[0].Cells[0];
+            cell.Paragraphs[0].AddText("Combined");
+            cell.MergeHorizontally(1);
+            cell._tableCell.TableCellProperties!.TableCellBorders = new TableCellBorders(
+                new TopBorder { Val = BorderValues.None });
+
+            WordToMarkdownResult result = document.ToMarkdownDocumentResult();
+
+            Assert.Contains(result.Report.Diagnostics, diagnostic =>
+                diagnostic.Message.Contains("cell merges", StringComparison.Ordinal));
+            Assert.Contains(result.Report.Diagnostics, diagnostic =>
+                diagnostic.Message.Contains("table borders", StringComparison.Ordinal));
+        }
+
+        [Fact]
+        public void WordToMarkdown_ReportsDirectAndInheritedTableBorders() {
+            using var document = WordDocument.Create();
+            WordTable direct = document.AddTable(1, 1, WordTableStyle.TableNormal);
+            direct.Rows[0].Cells[0].Paragraphs[0].Text = "Direct";
+            direct._tableProperties!.TableBorders = new TableBorders(
+                new TopBorder { Val = BorderValues.Single });
+            WordToMarkdownResult directResult = document.ToMarkdownDocumentResult();
+            Assert.Contains(directResult.Report.Diagnostics, diagnostic =>
+                diagnostic.Message.Contains("table borders", StringComparison.Ordinal));
+
+            direct._tableProperties.TableBorders = null;
+            direct._tableProperties.TableStyle!.Val = "InheritedGrid";
+            document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(
+                new Style(new BasedOn { Val = "TableGrid" }) {
+                    Type = StyleValues.Table,
+                    StyleId = "InheritedGrid"
+                });
+            WordToMarkdownResult inheritedResult = document.ToMarkdownDocumentResult();
+            Assert.Contains(inheritedResult.Report.Diagnostics, diagnostic =>
+                diagnostic.Message.Contains("table borders", StringComparison.Ordinal));
+        }
+
+        [Fact]
+        public void WordToMarkdown_ReportsBordersFromEnabledConditionalTableStyle() {
+            using var document = WordDocument.Create();
+            WordTable table = document.AddTable(1, 1, WordTableStyle.TableNormal);
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "Conditional";
+            table._tableProperties!.TableStyle!.Val = "ConditionalOnly";
+            var conditional = new TableStyleProperties { Type = TableStyleOverrideValues.FirstRow };
+            conditional.Append(new TableStyleConditionalFormattingTableCellProperties(
+                new TableCellBorders(new TopBorder { Val = BorderValues.Single })));
+            document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(
+                new Style(conditional) { Type = StyleValues.Table, StyleId = "ConditionalOnly" });
+
+            table.ConditionalFormattingFirstRow = false;
+            Assert.DoesNotContain(document.ToMarkdownDocumentResult().Report.Diagnostics, diagnostic =>
+                diagnostic.Message.Contains("table borders", StringComparison.Ordinal));
+
+            table.ConditionalFormattingFirstRow = true;
+            Assert.Contains(document.ToMarkdownDocumentResult().Report.Diagnostics, diagnostic =>
+                diagnostic.Message.Contains("table borders", StringComparison.Ordinal));
+        }
+
         [Fact]
         public void Markdown_To_Word_To_Markdown_RoundTrip_Preserves_CoreFeatures() {
             string md = "" +

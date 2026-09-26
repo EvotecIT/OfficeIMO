@@ -82,7 +82,9 @@ namespace OfficeIMO.Word.Pdf {
                 pdf.PageBreak();
             }
 
-            if (paragraph.IsPageBreak) {
+            List<WordParagraph> runs = GetNativeRuns(paragraph);
+            WordParagraph? currentRun = runs.FirstOrDefault(run => ReferenceEquals(run._run, paragraph._run));
+            if (currentRun?.IsPageBreak == true) {
                 pdf.PageBreak();
                 return;
             }
@@ -114,17 +116,6 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfAlign objectAlign = ResolveNativeParagraphAlign(paragraph, allowJustify: false);
             PdfCore.PdfParagraphStyle style = CreateNativeParagraphStyle(paragraph, nativeDefaults, nativeFontMap);
             if (marker is { Marker.Length: 0 }) ApplyNativeMarkerlessListIndent(paragraph, style);
-            RenderNativeChart(pdf, paragraph.Chart, objectAlign, options, "body paragraph chart");
-
-            if (paragraph.Shape != null) {
-                RenderNativeShape(pdf, paragraph.Shape);
-            }
-
-            List<WordParagraph> runs = GetNativeRuns(paragraph);
-            RenderNativeParagraphImages(pdf, paragraph, runs, objectAlign, options, style);
-
-            RenderNativeRunCharts(pdf, runs, objectAlign, options, paragraph._run);
-
             bool hasEquationContent = WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0;
             string content = hasEquationContent
                 ? AppendNativeTextWithEquation(paragraph.Text, paragraph)
@@ -138,6 +129,30 @@ namespace OfficeIMO.Word.Pdf {
             if (ShouldSuppressNativeContextualSpacingAfter(paragraph, nextParagraph)) {
                 style.SpacingAfter = 0D;
             }
+            WordShape? currentShape = currentRun?.Shape;
+            bool chartOnly = !needsAnchorLine && !hasRenderableRuns && string.IsNullOrEmpty(renderContent) &&
+                marker == null && paragraphFootnoteNumbers.Count == 0 && currentShape == null &&
+                checkboxControls.Count == 0 && formFieldControls.Count == 0 && repeatingSectionControls.Count == 0 &&
+                !runs.Any(run => run.IsImage);
+            OfficeDrawing? directChartDrawing = PrepareNativeChart(currentRun?.Chart, options, "body paragraph chart");
+            List<OfficeDrawing> runChartDrawings = PrepareNativeRunCharts(runs, options, paragraph._run);
+            bool renderedChart = directChartDrawing != null || runChartDrawings.Count > 0;
+            if (directChartDrawing != null) {
+                pdf.Drawing(directChartDrawing, objectAlign,
+                    spacingBefore: chartOnly ? style.SpacingBefore : 2D,
+                    spacingAfter: chartOnly && runChartDrawings.Count == 0 ? style.SpacingAfter ?? 0D : 0D);
+            }
+
+            if (currentShape != null) {
+                RenderNativeShape(pdf, currentShape);
+            }
+
+            RenderNativeParagraphImages(pdf, paragraph, runs, objectAlign, options, style);
+            needsAnchorLine = style.AnchoredCanvas != null && !hasRenderableRuns &&
+                string.IsNullOrEmpty(renderContent) && marker == null && paragraphFootnoteNumbers.Count == 0;
+            RenderNativeRunCharts(pdf, runChartDrawings, objectAlign,
+                chartOnly && directChartDrawing == null ? style.SpacingBefore : 2D,
+                chartOnly ? style.SpacingAfter ?? 0D : 0D);
 
             if (!needsAnchorLine && marker == null &&
                 paragraphFootnoteNumbers.Count == 0 &&
@@ -149,6 +164,9 @@ namespace OfficeIMO.Word.Pdf {
 
             if (!needsAnchorLine && !hasRenderableRuns && string.IsNullOrEmpty(renderContent) && marker == null &&
                 paragraphFootnoteNumbers.Count == 0 && checkboxControls.Count == 0 && formFieldControls.Count == 0 && repeatingSectionControls.Count == 0) {
+                if (renderedChart && chartOnly) {
+                    return;
+                }
                 RenderNativeEmptyParagraph(
                     pdf,
                     paragraph,
@@ -179,7 +197,7 @@ namespace OfficeIMO.Word.Pdf {
                     pdf.Bookmark(generatedDestinationName);
                 }
 
-                string headingText = GetNativeHeadingText(renderContent, runs, paragraph, nativeFontMap);
+                string headingText = GetNativeHeadingText(renderContent, runs, paragraph, nativeFontMap, hasEquationContent);
                 RenderNativeHeading(pdf, headingLevel, headingText, objectAlign, headingColor, paragraph, paragraphStyle, nativeFontMap, headingLink.LinkUri, headingLink.LinkDestinationName, headingLink.LinkContents);
                 if (CreateNativeBottomBorderRuleStyle(paragraph, paragraphStyle) is { } headingRuleStyle) {
                     pdf.HR(style: headingRuleStyle);
@@ -275,14 +293,20 @@ namespace OfficeIMO.Word.Pdf {
             NativeFontMap nativeFontMap) {
             NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
             double fontSize = ResolveNativeParagraphFontSize(paragraph, nativeDefaults, styleDefaults);
+            string? paragraphMarkSize = paragraph._paragraph?.ParagraphProperties?
+                .ParagraphMarkRunProperties?.GetFirstChild<W.FontSize>()?.Val?.Value;
+            if (int.TryParse(paragraphMarkSize, NumberStyles.Integer, CultureInfo.InvariantCulture, out int halfPoints) && halfPoints > 0) {
+                fontSize = halfPoints / 2D;
+            }
             double lineHeight = style.LineHeight ?? ResolveNativeParagraphLineHeight(
                 paragraph,
                 fontSize,
                 nativeDefaults,
                 styleDefaults,
                 nativeFontMap);
+            double spacingBefore = style.SpacingBefore;
             double spacingAfter = style.SpacingAfter ?? nativeDefaults.ParagraphSpacingAfter;
-            double height = style.SpacingBefore + (fontSize * lineHeight) + spacingAfter;
+            double height = spacingBefore + (fontSize * lineHeight) + spacingAfter;
             return double.IsNaN(height) || double.IsInfinity(height) ? 0D : Math.Max(0D, height);
         }
 
@@ -426,17 +450,29 @@ namespace OfficeIMO.Word.Pdf {
                 images ?? (IReadOnlyList<PdfCore.PdfTableCellImage>)Array.Empty<PdfCore.PdfTableCellImage>());
         }
 
-        private static IEnumerable<WordImage> EnumerateNativeParagraphImages(WordParagraph paragraph, CancellationToken cancellationToken) {
+        private static IEnumerable<WordImage> EnumerateNativeParagraphImages(WordParagraph paragraph, CancellationToken cancellationToken, int textBoxDepth = 0) {
             if (paragraph._paragraph == null) {
                 foreach (WordImage image in paragraph.EnumerateImages()) yield return image;
                 yield break;
             }
-            foreach (W.Run run in paragraph._paragraph.Descendants<W.Run>()) {
+            foreach (WordParagraph imageRun in GetNativeRuns(paragraph)) {
                 cancellationToken.ThrowIfCancellationRequested();
+                W.Run? run = imageRun._run;
+                if (run == null) continue;
                 if (run.Ancestors<W.DeletedRun>().Any() || run.Ancestors<W.MoveFromRun>().Any()) continue;
                 if (run.Ancestors<W.SdtRun>().Any(IsNativePictureControl)) continue;
-                var imageRun = new WordParagraph(paragraph._document, paragraph._paragraph, run);
                 foreach (WordImage image in imageRun.EnumerateImages()) yield return image;
+                if (textBoxDepth >= 8) continue;
+                IEnumerable<DocumentFormat.OpenXml.OpenXmlElement> visibleChildren = imageRun._visibleRunSourceChildren ??
+                    (IEnumerable<DocumentFormat.OpenXml.OpenXmlElement>)run.ChildElements;
+                foreach (W.TextBoxContent content in visibleChildren.SelectMany(child => child.Descendants<W.TextBoxContent>())) {
+                    foreach (W.Paragraph inner in content.Descendants<W.Paragraph>()
+                        .Where(inner => ReferenceEquals(inner.Ancestors<W.TextBoxContent>().FirstOrDefault(), content))) {
+                        var innerParagraph = new WordParagraph(paragraph._document, inner);
+                        foreach (WordImage image in EnumerateNativeParagraphImages(innerParagraph, cancellationToken, textBoxDepth + 1))
+                            yield return image;
+                    }
+                }
             }
             foreach (W.SdtRun control in GetNativePictureControls(paragraph)) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -637,15 +673,11 @@ namespace OfficeIMO.Word.Pdf {
                     : container != null && positions.TryGetValue(container, out int containerPosition) ? containerPosition : int.MaxValue;
                 images.Add((image, position));
             }
-            foreach (WordImage image in paragraph.EnumerateImages()) Add(image, paragraph._run);
-            Add(paragraph.PictureControl?.Image, paragraph._stdRun);
             foreach (W.SdtRun control in GetNativePictureControls(paragraph)) {
-                if (ReferenceEquals(control, paragraph._stdRun)) continue;
                 var pictureParagraph = new WordParagraph(paragraph._document, paragraph._paragraph!, control);
                 Add(pictureParagraph.PictureControl?.Image, control);
             }
             foreach (WordParagraph run in runs) {
-                if (ReferenceEquals(run._run, paragraph._run)) continue;
                 foreach (WordImage image in run.EnumerateImages()) Add(image, run._run);
             }
             var anchoredCanvas = new PdfCore.PdfPageCanvas();
@@ -657,13 +689,26 @@ namespace OfficeIMO.Word.Pdf {
                 anchorStyle.AnchoredCanvas = new PdfCore.PdfCanvasBlock(anchoredCanvas.Items);
         }
 
-        private static void RenderNativeRunCharts(INativePdfFlow pdf, IReadOnlyList<WordParagraph> runs, PdfCore.PdfAlign align, WordToPdfOptions? options, W.Run? currentRun = null) {
+        private static List<OfficeDrawing> PrepareNativeRunCharts(IReadOnlyList<WordParagraph> runs, WordToPdfOptions? options, W.Run? currentRun) {
+            var drawings = new List<OfficeDrawing>();
             foreach (WordParagraph run in runs) {
                 if (currentRun != null && ReferenceEquals(run._run, currentRun)) {
                     continue;
                 }
 
-                RenderNativeChart(pdf, run.Chart, align, options, "body paragraph chart run");
+                OfficeDrawing? drawing = PrepareNativeChart(run.Chart, options, "body paragraph chart run");
+                if (drawing != null) {
+                    drawings.Add(drawing);
+                }
+            }
+            return drawings;
+        }
+
+        private static void RenderNativeRunCharts(INativePdfFlow pdf, IReadOnlyList<OfficeDrawing> drawings, PdfCore.PdfAlign align, double spacingBefore, double spacingAfter) {
+            for (int index = 0; index < drawings.Count; index++) {
+                pdf.Drawing(drawings[index], align,
+                    spacingBefore: index == 0 ? spacingBefore : 2D,
+                    spacingAfter: index == drawings.Count - 1 ? spacingAfter : 0D);
             }
         }
 
@@ -712,19 +757,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static WordTextBox? FindNativeParagraphTextBox(WordParagraph paragraph) {
-            WordTextBox? textBox = paragraph.TextBox;
-            if (textBox != null || paragraph._paragraph == null) {
-                return textBox;
-            }
-
-            foreach (W.Run run in paragraph._paragraph.Elements<W.Run>()) {
-                if (run.Descendants<Wps.TextBoxInfo2>().Any() ||
-                    run.Descendants<DocumentFormat.OpenXml.Vml.TextBox>().Any()) {
-                    return new WordTextBox(paragraph._document, paragraph._paragraph, run);
-                }
-            }
-
-            return null;
+            return GetNativeRuns(paragraph).Select(run => run.TextBox).FirstOrDefault(textBox => textBox != null);
         }
 
         private static string? GetNativeParagraphTextBoxPlainText(WordParagraph paragraph) {
@@ -806,7 +839,10 @@ namespace OfficeIMO.Word.Pdf {
         private static bool HasNativeRenderableTextBoxText(IEnumerable<WordParagraph> paragraphs) {
             foreach (WordParagraph paragraph in paragraphs) {
                 List<WordParagraph> runs = GetNativeRuns(paragraph);
-                if (runs.Count == 0 && !IsNativeHiddenTextRun(paragraph) && !string.IsNullOrWhiteSpace(paragraph.Text)) {
+                if (runs.Count == 0 && !IsNativeHiddenTextRun(paragraph) &&
+                    WordComplexFieldRunVisibility.ForParagraph(paragraph._paragraph).IsVisible &&
+                    !paragraph._paragraph.Descendants<W.FieldChar>().Any() &&
+                    !string.IsNullOrWhiteSpace(paragraph.Text)) {
                     return true;
                 }
 
@@ -858,10 +894,11 @@ namespace OfficeIMO.Word.Pdf {
             pdf.Heading(level, normalizedText, align, color, style, linkUri, linkDestinationName, linkContents);
         }
 
-        private static string GetNativeHeadingText(string content, IReadOnlyList<WordParagraph> runs, WordParagraph paragraph, NativeFontMap nativeFontMap) {
-            string normalizedContent = NormalizeNativeDirectText(content);
-            if (!string.IsNullOrWhiteSpace(normalizedContent)) {
-                return ApplyNativeTextTransform(normalizedContent, paragraph, nativeFontMap: nativeFontMap);
+        private static string GetNativeHeadingText(string content, IReadOnlyList<WordParagraph> runs, WordParagraph paragraph, NativeFontMap nativeFontMap, bool hasEquationContent) {
+            // Equation content is assembled from the Open XML child order, including field
+            // results. Ordinary text runs alone omit the math node in a mixed heading.
+            if (hasEquationContent) {
+                return ApplyNativeTextTransform(NormalizeNativeDirectText(content), paragraph, nativeFontMap: nativeFontMap);
             }
 
             var builder = new StringBuilder();
@@ -886,7 +923,12 @@ namespace OfficeIMO.Word.Pdf {
                 }
             }
 
-            return NormalizeNativeDirectText(builder.ToString());
+            string runText = NormalizeNativeDirectText(builder.ToString());
+            if (!string.IsNullOrWhiteSpace(runText)) {
+                return runText;
+            }
+
+            return ApplyNativeTextTransform(NormalizeNativeDirectText(content), paragraph, nativeFontMap: nativeFontMap);
         }
 
         private static bool IsNativeRenderableTextRun(WordParagraph run, WordParagraph? fallback = null) =>
@@ -897,6 +939,8 @@ namespace OfficeIMO.Word.Pdf {
         private static bool ShouldRenderNativeDirectText(WordParagraph paragraph, IReadOnlyList<WordParagraph> runs, string content) =>
             runs.Count == 0 &&
             !string.IsNullOrEmpty(content) &&
+            WordComplexFieldRunVisibility.ForParagraph(paragraph._paragraph).IsVisible &&
+            !paragraph._paragraph.Descendants<W.FieldChar>().Any() &&
             !IsNativeHiddenTextRun(paragraph);
 
         private static string NormalizeNativeDirectText(string? text) {

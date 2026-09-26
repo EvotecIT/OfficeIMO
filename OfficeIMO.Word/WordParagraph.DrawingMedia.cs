@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Wordprocessing;
 using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
@@ -63,7 +64,7 @@ namespace OfficeIMO.Word {
         /// Enumerates direct run content while selecting the active markup-compatibility branch.
         /// </summary>
         private IEnumerable<DocumentFormat.OpenXml.OpenXmlElement> EnumerateEffectiveRunContent() {
-            foreach (DocumentFormat.OpenXml.OpenXmlElement child in _run!.ChildElements) {
+            foreach (OpenXmlElement child in VisibleSourceRunChildren()) {
                 if (child is not AlternateContent alternateContent) {
                     yield return child;
                     continue;
@@ -78,13 +79,20 @@ namespace OfficeIMO.Word {
             }
         }
 
+        private IEnumerable<OpenXmlElement> VisibleSourceRunChildren() =>
+            _visibleRunSourceChildren ?? (IEnumerable<OpenXmlElement>?)_run?.ChildElements ?? Array.Empty<OpenXmlElement>();
+
+        private IEnumerable<T> VisibleSourceRunDescendants<T>() where T : OpenXmlElement =>
+            VisibleSourceRunChildren().SelectMany(child =>
+                child is T direct ? new[] { direct } : child.Descendants<T>());
+
         /// <summary>
         /// Gets the embedded object associated with this run, if any.
         /// </summary>
         public WordEmbeddedObject? EmbeddedObject {
             get {
                 if (_run != null) {
-                    var ole = _run.Descendants<Ovml.OleObject>().FirstOrDefault();
+                    var ole = VisibleSourceRunDescendants<Ovml.OleObject>().FirstOrDefault();
                     if (ole != null) {
                         return new WordEmbeddedObject(_document, _run);
                     }
@@ -99,7 +107,7 @@ namespace OfficeIMO.Word {
         public WordChart? Chart {
             get {
                 if (_run is not null) {
-                    foreach (WordDrawing drawing in _run.ChildElements.OfType<WordDrawing>()) {
+                    foreach (WordDrawing drawing in VisibleSourceRunChildren().OfType<WordDrawing>()) {
                         if (drawing.Descendants<DocumentFormat.OpenXml.Drawing.Charts.ChartReference>().Any()) {
                             return new WordChart(_document, this, drawing);
                         }
@@ -115,7 +123,7 @@ namespace OfficeIMO.Word {
         public WordSmartArt? SmartArt {
             get {
                 if (_run is not null) {
-                    var drawing = _run.ChildElements.OfType<WordDrawing>().FirstOrDefault();
+                    var drawing = VisibleSourceRunChildren().OfType<WordDrawing>().FirstOrDefault();
                     if (drawing is not null) {
                         var data = drawing.Descendants<GraphicData>().FirstOrDefault();
                         if (data is not null && data.Uri == "http://schemas.openxmlformats.org/drawingml/2006/diagram") {
@@ -151,22 +159,24 @@ namespace OfficeIMO.Word {
             get {
                 if (_run is not null) {
                     // DrawingML text boxes
-                    var drawing = _run.ChildElements.OfType<WordDrawing>().FirstOrDefault();
+                    var drawing = VisibleSourceRunChildren().OfType<WordDrawing>().FirstOrDefault();
                     if (drawing is not null) {
                         if (drawing.Descendants<Wps.TextBoxInfo2>().Any()) {
-                            return new WordTextBox(_document, _paragraph, _run);
+                            return new WordTextBox(_document, _paragraph, _run, selectedDrawing: drawing);
                         }
                     }
 
                     // Legacy text boxes wrapped in AlternateContent (Word 2007)
                     bool choiceHasOnlyShape = false;
-                    foreach (var ac in _run.ChildElements.OfType<AlternateContent>()) {
+                    foreach (var ac in VisibleSourceRunChildren().OfType<AlternateContent>()) {
                         DocumentFormat.OpenXml.OpenXmlCompositeElement? branch =
                             WordAlternateContentResolver.SelectBranch(ac);
                         if (branch is not null) {
                             bool branchHasTextBox = branch.Descendants<Wps.TextBoxInfo2>().Any() || branch.Descendants<V.TextBox>().Any();
                             if (branchHasTextBox) {
-                                return new WordTextBox(_document, _paragraph, _run);
+                                return new WordTextBox(_document, _paragraph, _run,
+                                    selectedAlternateContent: ac,
+                                    selectedVmlTextBox: branch.Descendants<V.TextBox>().FirstOrDefault());
                             }
                             bool hasShape = branch.Descendants<Wps.WordprocessingShape>().Any() ||
                                 branch.Descendants<V.Shape>().Any(s => !s.Descendants<V.ImageData>().Any() && !s.Descendants<V.TextBox>().Any());
@@ -181,8 +191,8 @@ namespace OfficeIMO.Word {
                     }
 
                     // VML text boxes
-                    if (_run.Descendants<V.TextBox>().Any()) {
-                        return new WordTextBox(_document, _paragraph, _run);
+                    if (VisibleSourceRunDescendants<V.TextBox>().FirstOrDefault() is { } vmlTextBox) {
+                        return new WordTextBox(_document, _paragraph, _run, selectedVmlTextBox: vmlTextBox);
                     }
                 }
                 return null;
@@ -199,19 +209,17 @@ namespace OfficeIMO.Word {
                         return null;
                     }
                     // VML shapes
-                    if (_run.Descendants<V.Rectangle>().Any() ||
-                        _run.Descendants<V.RoundRectangle>().Any() ||
-                        _run.Descendants<V.Oval>().Any() ||
-                        _run.Descendants<V.Line>().Any() ||
-                        _run.Descendants<V.PolyLine>().Any() ||
-                        _run.Descendants<V.Shape>().Any(s => !s.Descendants<V.ImageData>().Any() && !s.Descendants<V.TextBox>().Any())) {
-                        return new WordShape(_document, _paragraph, _run);
-                    }
+                    OpenXmlElement? vmlShape = VisibleSourceRunChildren()
+                        .SelectMany(child => child.Descendants().Prepend(child))
+                        .FirstOrDefault(element => element is V.Rectangle or V.RoundRectangle or V.Oval or V.Line or V.PolyLine ||
+                            element is V.Shape shape && !shape.Descendants<V.ImageData>().Any() && !shape.Descendants<V.TextBox>().Any());
+                    if (vmlShape != null)
+                        return new WordShape(_document, _paragraph, _run, selectedVmlShape: vmlShape);
 
                     // DrawingML shapes (non-pictures and not text boxes)
-                    var drawing = _run.ChildElements.OfType<WordDrawing>().FirstOrDefault();
+                    var drawing = VisibleSourceRunChildren().OfType<WordDrawing>().FirstOrDefault();
                     if (drawing is null) {
-                        foreach (var ac in _run.ChildElements.OfType<AlternateContent>()) {
+                        foreach (var ac in VisibleSourceRunChildren().OfType<AlternateContent>()) {
                             DocumentFormat.OpenXml.OpenXmlCompositeElement? branch =
                                 WordAlternateContentResolver.SelectBranch(ac);
                             drawing = branch?.Descendants<WordDrawing>().FirstOrDefault();
@@ -238,9 +246,9 @@ namespace OfficeIMO.Word {
         public WordLine? Line {
             get {
                 if (_run is not null) {
-                    var line = _run.Descendants<V.Line>().FirstOrDefault();
+                    var line = VisibleSourceRunDescendants<V.Line>().FirstOrDefault();
                     if (line is not null) {
-                        return new WordLine(_document, _paragraph, _run);
+                        return new WordLine(_document, _paragraph, _run, line);
                     }
                 }
                 return null;

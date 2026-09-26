@@ -13,6 +13,8 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Reserves_Word_Post_Chart_Paragraph_Spacing() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartParagraphSpacing.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartParagraphSpacing.pdf");
+        string spacedPdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartParagraphSpacingExplicit.pdf");
+        string beforePdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartParagraphSpacingBefore.pdf");
         var options = new WordToPdfOptions {
             IncludePageNumbers = false,
             PageSize = new PdfCore.PageSize(420, 520),
@@ -20,7 +22,9 @@ public partial class Word {
         };
 
         using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddParagraph("BeforeChartSpacingProbe").LineSpacingAfterPoints = 0;
             WordChart chart = document.AddChart("ChartSpacingProbe", false, 360, 180);
+            document.Paragraphs.Last().LineSpacingAfterPoints = 0;
             chart.AddPie("Passed", 4);
             chart.AddPie("Failed", 2);
             document.AddParagraph("AfterChartSpacingProbe");
@@ -37,6 +41,38 @@ public partial class Word {
         var afterChart = Assert.Single(words, word => word.Text == "AfterChartSpacingProbe");
 
         Assert.True(chartTitle.BoundingBox.Bottom > afterChart.BoundingBox.Top);
-        Assert.True(afterChart.BoundingBox.Bottom < 318D, "A Word chart paragraph should reserve the normal following paragraph clearance.");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddParagraph("BeforeChartSpacingProbe").LineSpacingAfterPoints = 0;
+            WordChart chart = document.AddChart("ChartSpacingProbe", false, 360, 180);
+            document.Paragraphs.Last().LineSpacingAfterPoints = 24;
+            chart.AddPie("Passed", 4);
+            chart.AddPie("Failed", 2);
+            WordParagraph after = document.AddParagraph("AfterChartSpacingProbe");
+            after.LineSpacingBeforePoints = 12;
+            document.Save();
+            document.SaveAsPdf(spacedPdfPath, options);
+        }
+
+        using PdfPigDocument spacedPdf = PdfPigDocument.Open(spacedPdfPath);
+        var spacedText = Assert.Single(spacedPdf.GetPage(1).GetWords(), word => word.Text == "AfterChartSpacingProbe");
+        Assert.InRange(afterChart.BoundingBox.Top - spacedText.BoundingBox.Top, 20D, 28D);
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddParagraph("BeforeChartSpacingProbe").LineSpacingAfterPoints = 12;
+            WordChart chart = document.AddChart("ChartSpacingProbe", false, 360, 180);
+            document.Paragraphs.Last().LineSpacingBeforePoints = 24;
+            document.Paragraphs.Last().LineSpacingAfterPoints = 0;
+            chart.AddPie("Passed", 4);
+            chart.AddPie("Failed", 2);
+            document.AddParagraph("AfterChartSpacingProbe");
+            document.Save();
+            document.SaveAsPdf(beforePdfPath, options);
+        }
+
+        using PdfPigDocument beforePdf = PdfPigDocument.Open(beforePdfPath);
+        var shiftedChartTitle = Assert.Single(beforePdf.GetPage(1).GetWords(), word => word.Text == "ChartSpacingProbe");
+        Assert.InRange(chartTitle.BoundingBox.Top - shiftedChartTitle.BoundingBox.Top, 20D, 28D);
+
     }
 }

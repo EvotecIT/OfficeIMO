@@ -174,10 +174,10 @@ namespace OfficeIMO.Word.Pdf {
             W.BorderType? bottom = borders.GetFirstChild<W.BottomBorder>();
             W.BorderType? left = borders.GetFirstChild<W.LeftBorder>();
             left ??= borders.GetFirstChild<W.StartBorder>();
-            bool hasTop = HasNativeBorder(top?.Val?.Value);
-            bool hasRight = HasNativeBorder(right?.Val?.Value);
-            bool hasBottom = HasNativeBorder(bottom?.Val?.Value);
-            bool hasLeft = HasNativeBorder(left?.Val?.Value);
+            bool hasTop = HasNativeConditionalBorderOverride(top);
+            bool hasRight = HasNativeConditionalBorderOverride(right);
+            bool hasBottom = HasNativeConditionalBorderOverride(bottom);
+            bool hasLeft = HasNativeConditionalBorderOverride(left);
             if (!hasTop && !hasRight && !hasBottom && !hasLeft) {
                 return null;
             }
@@ -185,15 +185,28 @@ namespace OfficeIMO.Word.Pdf {
             return new PdfCore.PdfCellBorder {
                 Color = null,
                 Width = 0D,
-                TopBorder = CreateNativeCellBorderSide(top),
-                RightBorder = CreateNativeCellBorderSide(right),
-                BottomBorder = CreateNativeCellBorderSide(bottom),
-                LeftBorder = CreateNativeCellBorderSide(left),
+                TopBorder = CreateNativeConditionalBorderSide(top),
+                RightBorder = CreateNativeConditionalBorderSide(right),
+                BottomBorder = CreateNativeConditionalBorderSide(bottom),
+                LeftBorder = CreateNativeConditionalBorderSide(left),
                 Top = hasTop,
                 Right = hasRight,
                 Bottom = hasBottom,
                 Left = hasLeft
             };
+        }
+
+        private static bool HasNativeConditionalBorderOverride(W.BorderType? border) =>
+            HasNativeBorder(border?.Val?.Value) ||
+            border?.Val?.Value == W.BorderValues.Nil ||
+            border?.Val?.Value == W.BorderValues.None;
+
+        private static PdfCore.PdfCellBorderSide? CreateNativeConditionalBorderSide(W.BorderType? border) {
+            if (border?.Val?.Value == W.BorderValues.Nil || border?.Val?.Value == W.BorderValues.None) {
+                return new PdfCore.PdfCellBorderSide { Color = null, Width = 0D };
+            }
+
+            return CreateNativeCellBorderSide(border);
         }
 
         private static PdfCore.PdfCellBorder MergeNativeCellBorder(PdfCore.PdfCellBorder? existing, PdfCore.PdfCellBorder overlay) {

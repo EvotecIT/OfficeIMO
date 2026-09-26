@@ -847,13 +847,19 @@ namespace OfficeIMO.Word.Pdf {
 
             pageNumberStyle = null;
             if (paragraph.IsHyperLink && paragraph.Hyperlink != null && !IsNativeHiddenTextRun(paragraph)) {
-                return PrependNativeHeaderFooterListMarker(paragraph, AppendNativeHeaderFooterSupplementalText(ApplyNativeTextTransform(paragraph.Hyperlink.Text, paragraph), paragraph), listMarkers, textBoxDepth);
+                string linkedText = string.Concat(GetNativeRuns(paragraph)
+                    .Where(run => ReferenceEquals(run._hyperlink, paragraph._hyperlink) && !IsNativeHiddenTextRun(run, paragraph))
+                    .Select(run => ApplyNativeTextTransform(run.Text, run, paragraph)));
+                return PrependNativeHeaderFooterListMarker(paragraph,
+                    AppendNativeHeaderFooterSupplementalText(linkedText, paragraph), listMarkers, textBoxDepth);
             }
 
             List<WordParagraph> runs = GetNativeRuns(paragraph);
             string? text = runs.Count > 0
                 ? string.Concat(runs.Where(run => !IsNativeHiddenTextRun(run, paragraph)).Select(run => ApplyNativeTextTransform(run.Text, run, paragraph)))
-                : IsNativeHiddenTextRun(paragraph) ? string.Empty : ApplyNativeTextTransform(paragraph.Text, paragraph);
+                : IsNativeHiddenTextRun(paragraph) || paragraph._paragraph.Descendants<W.FieldChar>().Any() ||
+                    !WordComplexFieldRunVisibility.ForParagraph(paragraph._paragraph).IsVisible
+                    ? string.Empty : ApplyNativeTextTransform(paragraph.Text, paragraph);
             text = AppendNativeHeaderFooterSupplementalText(text, paragraph);
             if (!string.IsNullOrWhiteSpace(text)) {
                 return PrependNativeHeaderFooterListMarker(paragraph, text, listMarkers, textBoxDepth);
@@ -1095,7 +1101,11 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             var builder = new StringBuilder();
-            var state = new NativeHeaderFooterFieldState();
+            WordComplexFieldRunVisibility prefix = WordComplexFieldRunVisibility.ForParagraph(paragraph._paragraph);
+            var state = new NativeHeaderFooterFieldState {
+                CollectingFieldCode = prefix.HasOpenField && !prefix.IsVisible,
+                SkippingFieldResult = prefix.HasOpenField && prefix.IsVisible
+            };
             bool hasFieldToken = false;
             bool hasConflictingStyles = false;
             foreach (var element in paragraph._paragraph.ChildElements) {
@@ -1134,6 +1144,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             if (element is W.SimpleField simpleField) {
+                if (state.CollectingFieldCode || state.SkippingFieldResult) return;
                 string fieldCode = simpleField.Instruction?.Value ?? string.Empty;
                 if (TryGetNativeHeaderFooterFieldToken(fieldCode, out string? token, out PdfCore.PdfPageNumberStyle? style)) {
                     builder.Append(token);

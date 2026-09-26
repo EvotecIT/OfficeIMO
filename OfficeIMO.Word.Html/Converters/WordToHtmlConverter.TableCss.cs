@@ -210,6 +210,15 @@ namespace OfficeIMO.Word.Html {
                     return null;
                 }
 
+                if (style == BorderValues.Nil) {
+                    // Word nil wins a collapsed-border conflict against a visible neighbour.
+                    return "hidden";
+                }
+                if (style == BorderValues.None) {
+                    // Word none yields to the opposing border in a collapsed conflict.
+                    return "none";
+                }
+
                 string cssStyle = "solid";
                 if (style == BorderValues.Dashed) {
                     cssStyle = "dashed";
@@ -289,8 +298,14 @@ namespace OfficeIMO.Word.Html {
 
             bool CellHasBorder(WordTableCell cell) {
                 var b = cell.Borders;
-                return b != null && (b.LeftStyle != null || b.RightStyle != null || b.TopStyle != null || b.BottomStyle != null);
+                return b != null && (IsVisibleBorder(b.LeftStyle?.ToOpenXml()) ||
+                    IsVisibleBorder(b.RightStyle?.ToOpenXml()) ||
+                    IsVisibleBorder(b.TopStyle?.ToOpenXml()) ||
+                    IsVisibleBorder(b.BottomStyle?.ToOpenXml()));
             }
+
+            bool IsVisibleBorder(BorderValues? style) =>
+                style != null && style != BorderValues.Nil && style != BorderValues.None;
 
             bool TableHasBorder(WordTable table) {
                 return table.Rows.Any(r => r.Cells.Any(CellHasBorder));

@@ -7,6 +7,8 @@ internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private void RenderDeferredTableFlowBlock(DeferredTableBlock deferredTable, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex) {
             PdfTableStyle style = deferredTable.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light();
+            double flowYBeforeTable = y;
+            LayoutResult.Page? pageBeforeTable = currentPage;
             foreach (DeferredTableBatch batch in deferredTable.CreateBatches(style)) {
                 cancellationToken.ThrowIfCancellationRequested();
                 RenderTableFlowBlock(
@@ -17,12 +19,18 @@ internal static partial class PdfWriter {
                     skipInitialHeaderRows: !batch.IsFirst,
                     bodyRowOffset: batch.BodyRowOffset,
                     logicalTopBoundary: batch.IsFirst,
-                    logicalBottomBoundary: batch.IsLast);
+                    logicalBottomBoundary: batch.IsLast,
+                    restoreVerticalFlow: false);
+            }
+            if (!style.ConsumesVerticalFlow && ReferenceEquals(currentPage, pageBeforeTable)) {
+                y = flowYBeforeTable;
             }
         }
 
-        private void RenderTableFlowBlock(TableBlock tb, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex, bool skipInitialHeaderRows = false, int bodyRowOffset = 0, bool logicalTopBoundary = true, bool logicalBottomBoundary = true) {
+        private void RenderTableFlowBlock(TableBlock tb, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex, bool skipInitialHeaderRows = false, int bodyRowOffset = 0, bool logicalTopBoundary = true, bool logicalBottomBoundary = true, bool restoreVerticalFlow = true) {
             PdfTableStyle style = tb.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light();
+            double flowYBeforeTable = y;
+            LayoutResult.Page? pageBeforeTable = currentPage;
             int cols = GetTableColumnCount(tb);
             if (cols == 0) return;
             double padLeft = GetTableCellPaddingLeft(style);
@@ -653,7 +661,7 @@ internal static partial class PdfWriter {
                         var visibleWidths = SliceTableCellLineWidths(lines, sourceStartLine, visibleLineCount, innerW);
                         double textClipX = xi - TableCellClipBleed;
                         double textClipWidth = cellWidth + (TableCellClipBleed * 2D);
-                        ExpandTableCellTextClip(xi + cellPadLeft, innerW, cell.NoWrap, visibleXOffsets, visibleWidths, ref textClipX, ref textClipWidth);
+                        ExpandTableCellTextClip(xi + cellPadLeft, visibleXOffsets, visibleWidths, ref textClipX, ref textClipWidth);
                         var paragraph = new RichParagraphBlock(StripRunLinksWhenCellLinked(cell.Runs, linkUri, linkDestinationName), MapTableCellAlignment(align), textColor);
                         string structureType = renderAsHeader ? "TH" : "TD";
                         int tableColumnSpan = cell.ColumnSpan > 1 ? cell.ColumnSpan : 1;
@@ -714,7 +722,7 @@ internal static partial class PdfWriter {
                             TryGetTableCellLayoutAtColumn(cells, borderColumn, out TableCellLayout borderCell) &&
                             (borderColumn >= rowFillSkips.Length || !rowFillSkips[borderColumn]) &&
                             HasRenderableCellBorder(cellBorder)) {
-                            int span = wholeRowSegment ? borderCell.ColumnSpan : 1;
+                            int span = wholeRowSegment || cellBorder.HasHiddenSegments ? borderCell.ColumnSpan : 1;
                             double borderHeight = hRect;
                             double borderBottom = yRect;
                             if (wholeRowSegment) {
@@ -736,10 +744,12 @@ internal static partial class PdfWriter {
                             bool topRight = cellTouchesTop && cellTouchesRight;
                             bool bottomRight = cellTouchesBottom && cellTouchesRight;
                             bool bottomLeft = cellTouchesBottom && cellTouchesLeft;
-                            if (topLeft || topRight || bottomRight || bottomLeft) {
+                            if (!cellBorder.HasHiddenSegments && (topLeft || topRight || bottomRight || bottomLeft)) {
                                 DrawRoundedCellBorder(sb, cellBorder, borderX, borderBottom, GetTableCellWidth(colPixel, borderColumn, span, colGapPx), borderHeight, cornerRadius, roundedOuterBorder, topLeft, topRight, bottomRight, bottomLeft, emitGeneratedStructure);
                             } else {
-                                DrawCellBorder(sb, cellBorder, borderX, borderBottom, GetTableCellWidth(colPixel, borderColumn, span, colGapPx), borderHeight, emitGeneratedStructure);
+                                DrawCellBorder(sb, cellBorder, borderX, borderBottom, GetTableCellWidth(colPixel, borderColumn, span, colGapPx), borderHeight, emitGeneratedStructure,
+                                    GetCellBorderSegmentLengths(rowHeights, rowIndex, borderCell.RowSpan, rowGapPx),
+                                    GetCellBorderSegmentLengths(colPixel, borderColumn, span, colGapPx));
                             }
                         }
                         borderX += colPixel[borderColumn] + colGapPx;
@@ -813,6 +823,9 @@ internal static partial class PdfWriter {
             }
 
             y -= style.SpacingAfter;
+            if (restoreVerticalFlow && !style.ConsumesVerticalFlow && ReferenceEquals(currentPage, pageBeforeTable)) {
+                y = flowYBeforeTable;
+            }
         }
 
     }

@@ -240,10 +240,10 @@ namespace OfficeIMO.Word {
 
         private IReadOnlyList<OpenXmlElement> GetTextCaseTransformationRoots() {
             if (_run != null) return new OpenXmlElement[] { _run };
+            if (_stdRun?.SdtContentRun != null) return new OpenXmlElement[] { _stdRun.SdtContentRun };
             if (_hyperlink != null) return new OpenXmlElement[] { _hyperlink };
             if (_simpleField != null) return new OpenXmlElement[] { _simpleField };
             if (_runs != null && _runs.Count > 0) return GetComplexFieldResultRuns(_runs).Cast<OpenXmlElement>().ToArray();
-            if (_stdRun?.SdtContentRun != null) return new OpenXmlElement[] { _stdRun.SdtContentRun };
             return Array.Empty<OpenXmlElement>();
         }
         /// <summary>

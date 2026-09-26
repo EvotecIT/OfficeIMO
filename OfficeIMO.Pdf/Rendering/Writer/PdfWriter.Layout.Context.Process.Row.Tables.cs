@@ -13,6 +13,10 @@ internal static partial class PdfWriter {
         private bool RenderColumnTable(ColTable table, List<ColItem> items, ColumnTableCursor state, double xCol, double wCol, double fullColumnHeight, double columnPageStartY) {
         var tbColumn = table.Block;
         var tableStyle = table.Style;
+        bool tableStartedInThisColumn = state.Line == 0 && state.Subline == 0;
+        double flowYBeforeTable = state.Y;
+        double flowRemainingBeforeTable = state.Remaining;
+        double flowConsumedBeforeTable = state.Consumed;
         double padLeft = GetTableCellPaddingLeft(tableStyle);
         double padRight = GetTableCellPaddingRight(tableStyle);
         double padTop = GetTableCellPaddingTop(tableStyle);
@@ -346,7 +350,7 @@ internal static partial class PdfWriter {
                     var visibleWidths = SliceTableCellLineWidths(lines, sourceStartLine, visibleLineCount, innerW);
                     double textClipX = xi - TableCellClipBleed;
                     double textClipWidth = cellWidth + (TableCellClipBleed * 2D);
-                    ExpandTableCellTextClip(xi + cellPadLeft, innerW, cell.NoWrap, visibleXOffsets, visibleWidths, ref textClipX, ref textClipWidth);
+                    ExpandTableCellTextClip(xi + cellPadLeft, visibleXOffsets, visibleWidths, ref textClipX, ref textClipWidth);
                     var paragraph = new RichParagraphBlock(StripRunLinksWhenCellLinked(cell.Runs, linkUri, linkDestinationName), MapTableCellAlignment(align), textColor);
                     string structureType = renderAsHeader ? "TH" : "TD";
                     int tableColumnSpan = cell.ColumnSpan > 1 ? cell.ColumnSpan : 1;
@@ -446,7 +450,7 @@ internal static partial class PdfWriter {
                         TryGetTableCellLayoutAtColumn(cells, borderColumn, out TableCellLayout borderCell) &&
                         (borderColumn >= rowFillSkips.Length || !rowFillSkips[borderColumn]) &&
                         HasRenderableCellBorder(cellBorder)) {
-                        int span = wholeRowSegment ? borderCell.ColumnSpan : 1;
+                        int span = wholeRowSegment || cellBorder.HasHiddenSegments ? borderCell.ColumnSpan : 1;
                         double borderHeight = rowHeight;
                         double borderBottom = rowBottom;
                         if (wholeRowSegment) {
@@ -468,10 +472,12 @@ internal static partial class PdfWriter {
                         bool topRight = cellTouchesTop && cellTouchesRight;
                         bool bottomRight = cellTouchesBottom && cellTouchesRight;
                         bool bottomLeft = cellTouchesBottom && cellTouchesLeft;
-                        if (topLeft || topRight || bottomRight || bottomLeft) {
+                        if (!cellBorder.HasHiddenSegments && (topLeft || topRight || bottomRight || bottomLeft)) {
                             DrawRoundedCellBorder(sb, cellBorder, borderX, borderBottom, GetTableCellWidth(table.ColumnWidths, borderColumn, span, columnGap), borderHeight, cornerRadius, roundedOuterBorder, topLeft, topRight, bottomRight, bottomLeft, emitGeneratedStructure);
                         } else {
-                            DrawCellBorder(sb, cellBorder, borderX, borderBottom, GetTableCellWidth(table.ColumnWidths, borderColumn, span, columnGap), borderHeight, emitGeneratedStructure);
+                            DrawCellBorder(sb, cellBorder, borderX, borderBottom, GetTableCellWidth(table.ColumnWidths, borderColumn, span, columnGap), borderHeight, emitGeneratedStructure,
+                                GetCellBorderSegmentLengths(table.RowHeights, rowIndex, borderCell.RowSpan, columnTableRowGap),
+                                GetCellBorderSegmentLengths(table.ColumnWidths, borderColumn, span, columnGap));
                         }
                     }
                     borderX += table.ColumnWidths[borderColumn] + columnGap;
@@ -579,6 +585,11 @@ internal static partial class PdfWriter {
             state.Index++;
             state.Line = 0;
             state.Subline = 0;
+            if (!tableStyle.ConsumesVerticalFlow && tableStartedInThisColumn) {
+                state.Y = flowYBeforeTable;
+                state.Remaining = flowRemainingBeforeTable;
+                state.Consumed = flowConsumedBeforeTable;
+            }
         } else {
             return false;
         }

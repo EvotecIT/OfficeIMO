@@ -10,6 +10,66 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfDocumentDeferredTableTests {
     [Fact]
+    public void TableDeferred_NonFlowBatchesRetainTheirOwnRowPositions() {
+        var style = TableStyles.Minimal();
+        style.ConsumesVerticalFlow = false;
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 300,
+                PageHeight = 500,
+                MarginLeft = 24,
+                MarginRight = 24,
+                MarginTop = 24,
+                MarginBottom = 24
+            })
+            .TableDeferred(() => new[] {
+                new[] { "DeferredRowOne" },
+                new[] { "DeferredRowTwo" },
+                new[] { "DeferredRowThree" }
+            }, batchSize: 1, style: style)
+            .ToBytes();
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        var words = pdf.GetPage(1).GetWords().ToList();
+        double firstY = Assert.Single(words, word => word.Text == "DeferredRowOne").BoundingBox.Bottom;
+        double secondY = Assert.Single(words, word => word.Text == "DeferredRowTwo").BoundingBox.Bottom;
+        double thirdY = Assert.Single(words, word => word.Text == "DeferredRowThree").BoundingBox.Bottom;
+        Assert.True(firstY > secondY + 5D, $"First and second deferred rows overlap: {firstY}, {secondY}.");
+        Assert.True(secondY > thirdY + 5D, $"Second and third deferred rows overlap: {secondY}, {thirdY}.");
+    }
+
+    [Fact]
+    public void TableDeferred_NonFlowBatchesThatSpanPagesKeepFollowingTextBelowLastRow() {
+        var style = TableStyles.Minimal();
+        style.ConsumesVerticalFlow = false;
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 260,
+                PageHeight = 150,
+                MarginLeft = 20,
+                MarginRight = 20,
+                MarginTop = 20,
+                MarginBottom = 20
+            })
+            .TableDeferred(() => Enumerable.Range(1, 12).Select(index => new[] { "DeferredRow" + index }), batchSize: 1, style: style)
+            .Paragraph(paragraph => paragraph.Text("AfterDeferredRows"))
+            .ToBytes();
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        Assert.True(pdf.NumberOfPages > 1);
+        var lastRow = pdf.GetPages()
+            .SelectMany(page => page.GetWords().Where(word => word.Text == "DeferredRow12").Select(word => (Page: page.Number, Word: word)))
+            .Single();
+        var after = pdf.GetPages()
+            .SelectMany(page => page.GetWords().Where(word => word.Text == "AfterDeferredRows").Select(word => (Page: page.Number, Word: word)))
+            .Single();
+        Assert.True(after.Page >= lastRow.Page);
+        if (after.Page == lastRow.Page) {
+            Assert.True(lastRow.Word.BoundingBox.Bottom > after.Word.BoundingBox.Bottom + 5D);
+        }
+    }
+
+    [Fact]
     public void TableDeferred_DefersReplayableFactoryAndKeepsLogicalEdgesSingle() {
         int factoryCalls = 0;
         var style = TableStyles.Minimal();
