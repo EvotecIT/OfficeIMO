@@ -446,6 +446,20 @@ public sealed class PdfStaticFormRecognizerTests {
     }
 
     [Fact]
+    public void EarlierPanelCrossingOnlyPartOfAFieldPreventsAnEmptyProposal() {
+        OfficeShape panel = OfficeShape.Rectangle(200D, 15D);
+        panel.FillColor = OfficeColor.Blue;
+        panel.StrokeColor = null;
+        OfficeShape field = Box(140D, 20D);
+        field.FillColor = null;
+        byte[] source = PdfDocument.Create(new PdfOptions { PageWidth = 400D, PageHeight = 300D })
+            .Canvas(canvas => canvas.Text("Name:", 20D, 28D, 70D, 20D)
+                .Shape(panel, 95D, 35D).Shape(field, 100D, 28D)).ToBytes();
+
+        Assert.Empty(PdfDocument.Load(source).Forms.RecognizeStaticLayout().Proposals);
+    }
+
+    [Fact]
     public void LaterWhiteFillInsideAnOutlinedFieldKeepsTheEmptyProposal() {
         OfficeShape field = Box(140D, 20D);
         field.FillColor = null;
@@ -580,6 +594,23 @@ public sealed class PdfStaticFormRecognizerTests {
         }));
 
         Assert.Empty(PdfDocument.Load(source).Forms.RecognizeStaticLayout().Proposals);
+    }
+
+    [Fact]
+    public void TextClippedAwayFromAFieldDoesNotOccupyIt() {
+        const string content = "1 w 100 205 120 20 re S BT /F1 12 Tf 60 208 Td (Name) Tj ET q 0 0 5 5 re W n BT /F1 12 Tf 110 208 Td (Value) Tj ET Q";
+        byte[] source = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7", "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 400 300] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + content.Length + " >>", "stream", content, "endstream", "endobj",
+            "5 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF", ""
+        }));
+
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout();
+        Assert.True(report.Proposals.Count == 1,
+            "Expected one empty-field proposal; diagnostics: " + string.Join(", ", report.Diagnostics.Select(static d => d.Code)));
     }
 
     [Theory]

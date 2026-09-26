@@ -203,26 +203,34 @@ internal static class PdfStaticFormRecognizer {
         nativeTextBounds = new List<VisualRect>();
         foreach (PdfLogicalTextBlock block in page.TextBlocks) {
             cancellationToken.ThrowIfCancellationRequested();
-            string text = NormalizeLabel(block.Text);
-            if (text.Length == 0 || block.XEnd <= block.XStart) continue;
+            if (block.XEnd <= block.XStart) continue;
             PdfLogicalVisualBounds bounds = block.VisualBounds ?? ToVisualBounds(page, block);
             if (!Valid(bounds.Left, bounds.Top, bounds.Right, bounds.Bottom, pageWidth, pageHeight)) continue;
             var visual = new VisualRect(bounds.Left, bounds.Top, bounds.Right, bounds.Bottom);
             bool visibleText = block.Spans.Count == 0;
             bool provableLabel = block.Spans.Count == 0;
+            string text = NormalizeLabel(block.Text);
             if (block.Spans.Count > 0) {
                 bool uncertainEffect = false;
+                var visibleSpans = new List<PdfTextSpan>(block.Spans.Count);
+                VisualRect? labelBounds = null;
                 foreach (PdfTextSpan span in block.Spans) {
                     cancellationToken.ThrowIfCancellationRequested();
                     if (!span.IsVisible || (span.Color?.A ?? 255) <= 3) continue;
+                    PdfTextSpanBounds spanBounds = PdfTextSpanGeometry.GetAxisAlignedBounds(span);
                     if (span.ClipPath is PdfPageClipPath clip) {
-                        PdfTextSpanBounds spanBounds = PdfTextSpanGeometry.GetAxisAlignedBounds(span);
                         var paintedText = PdfPageClipPath.Rectangle(spanBounds.Left,
                             page.Height - spanBounds.Top, spanBounds.Right - spanBounds.Left,
                             spanBounds.Top - spanBounds.Bottom);
                         if (clip.Width <= 0D || clip.Height <= 0D ||
                             clip.CanProveNoPositiveAreaIntersection(paintedText)) continue;
                     }
+                    PdfVisualBounds spanProjected = page.TransformBoundsToVisual(spanBounds.Left, spanBounds.Bottom,
+                        spanBounds.Right, spanBounds.Top);
+                    if (!Valid(spanProjected.Left, spanProjected.Top, spanProjected.Right, spanProjected.Bottom,
+                        pageWidth, pageHeight)) continue;
+                    var spanVisual = new VisualRect(spanProjected.Left, spanProjected.Top,
+                        spanProjected.Right, spanProjected.Bottom);
                     PdfPageDrawingEffect effect = PdfReadPage.ResolveDrawingEffect(effects, span.PaintOrder,
                         contentOrderKey: span.ContentOrderKey);
                     if (effect.SoftMask is not null || effect.HasUnresolvedSoftMask ||
@@ -235,17 +243,30 @@ internal static class PdfStaticFormRecognizer {
                             throw PdfReadLimitException.Create(PdfReadLimitKind.UnderstandingArtifacts,
                                 maxCandidateScanWork, candidateScanWork);
                         }
-                        if (IsLaterCover(area, visual, span.PaintOrder, span.ContentOrderKey)) {
+                        if (IsLaterCover(area, spanVisual, span.PaintOrder, span.ContentOrderKey)) {
                             covered = true;
                             break;
                         }
                     }
-                    if (!covered) visibleText = true;
+                    if (covered) continue;
+                    visibleSpans.Add(span);
+                    nativeTextBounds.Add(spanVisual);
+                    labelBounds = labelBounds.HasValue
+                        ? new VisualRect(Math.Min(labelBounds.Value.Left, spanVisual.Left),
+                            Math.Min(labelBounds.Value.Top, spanVisual.Top),
+                            Math.Max(labelBounds.Value.Right, spanVisual.Right),
+                            Math.Max(labelBounds.Value.Bottom, spanVisual.Bottom))
+                        : spanVisual;
                 }
+                visibleText = visibleSpans.Count > 0;
                 provableLabel = visibleText && !uncertainEffect;
+                if (labelBounds.HasValue) visual = labelBounds.Value;
+                if (visibleSpans.Count != block.Spans.Count) {
+                    text = NormalizeLabel(string.Concat(visibleSpans.Select(static span => span.Text)));
+                }
             }
-            if (visibleText) nativeTextBounds.Add(visual);
-            if (!provableLabel || text.Length > 80) continue;
+            if (visibleText && block.Spans.Count == 0) nativeTextBounds.Add(visual);
+            if (!provableLabel || text.Length == 0 || text.Length > 80) continue;
             labels.Add(new Label(text, visual, block.Confidence, isOcr: false));
         }
         foreach (PdfStaticFormTextEvidence item in ocrText) {
@@ -369,7 +390,8 @@ internal static class PdfStaticFormRecognizer {
             }
             if (primitive.Kind != PdfPageVisualPrimitiveKind.Line &&
                 (right - left) * (bottom - top) > candidate.Area * 1.25D &&
-                !paintedAfterCandidate) continue;
+                !paintedAfterCandidate && left <= candidate.Left && top <= candidate.Top &&
+                right >= candidate.Right && bottom >= candidate.Bottom) continue;
             if (right - left < 1D || bottom - top < 1D) continue;
             if (primitive.ClipPath is PdfPageClipPath clip && clip.IsRectangle && clip.IsExact &&
                 !clip.ContainsTextClipping &&
