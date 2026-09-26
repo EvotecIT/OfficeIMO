@@ -172,6 +172,7 @@ those lanes with their explicit settings; equal page counts do not establish
 equal layout. Browser print and screen-media print are separate references;
 page-count differences across intents are not failures by themselves. The JSON
 records the archive hash, versions, source commit and dirty state, page counts,
+each output page's width and height in PDF points,
 MIME diagnostics, operation failures, and each OfficeIMO PDF intent's conversion
 warnings and loss status. Explicit screen intents use the MHTML-aware resource
 path, so embedded stylesheets and images remain available under the same archive
