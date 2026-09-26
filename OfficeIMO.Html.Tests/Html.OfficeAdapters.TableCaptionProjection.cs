@@ -71,7 +71,7 @@ public partial class HtmlOfficeAdapters {
     }
 
     [Fact]
-    public void ExcelReportsCaptionShorteningWhileKeepingNativeTableCells() {
+    public void ExcelRetainsFullLinkedCaptionAfterNativeTableCells() {
         HtmlToExcelResult result = HtmlConversionDocument.Parse(RegulatoryTableHtml).ToExcelDocumentResult(
             new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.RequireValue();
@@ -82,14 +82,15 @@ public partial class HtmlOfficeAdapters {
         ExcelSheet table = Assert.Single(reopened.Sheets);
         Assert.Equal("Contaminant", table.CellAt(1, 1).GetValue<string>());
         Assert.Equal("Fluoride", table.CellAt(2, 1).GetValue<string>());
+        Assert.Equal(RegulatoryTableCaption, table.CellAt(4, 1).GetValue<string>());
+        Assert.Equal(RegulatoryTableLink, table.GetHyperlinks()["A4"].Target);
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
             && diagnostic.LossKind == OfficeConversionLossKind.Approximation
             && diagnostic.Detail?.Contains("originalLength=" + RegulatoryTableCaption.Length,
                 StringComparison.Ordinal) == true);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.DoesNotContain(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentOmitted
-            && diagnostic.LossKind == OfficeConversionLossKind.Omission
             && diagnostic.Message.Contains("caption", StringComparison.OrdinalIgnoreCase));
     }
 

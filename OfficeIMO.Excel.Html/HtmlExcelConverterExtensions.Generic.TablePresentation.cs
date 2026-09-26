@@ -3,6 +3,50 @@ using OfficeIMO.Html;
 namespace OfficeIMO.Excel.Html;
 
 public static partial class HtmlExcelConverterExtensions {
+    private static void PreserveGenericTableCaption(
+        ExcelSheet sheet,
+        HtmlSemanticTable table,
+        HtmlToExcelResult result,
+        HtmlImportBudget budget) {
+        if (!A1.TryParseRange(sheet.UsedRangeA1, out _, out _, out int lastRow, out _)
+            || lastRow >= A1.MaxRows - 1) {
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentOmitted,
+                "The full table caption could not be placed after the native worksheet grid.",
+                lossKind: OfficeConversionLossKind.Omission);
+            return;
+        }
+
+        int captionRow = lastRow + 2;
+        if (!TrySetCellTextValue(sheet, captionRow, 1, table.Caption, result, budget)) return;
+        result.Cells++;
+        sheet.CellAt(captionRow, 1).SetBold();
+        sheet.CellWrapText(captionRow, 1);
+
+        HtmlSemanticRun[] textRuns = table.CaptionRuns
+            .Where(run => !string.IsNullOrWhiteSpace(run.Text))
+            .ToArray();
+        string[] linkTargets = textRuns
+            .Select(run => run.Hyperlink)
+            .Where(link => !string.IsNullOrWhiteSpace(link))
+            .Select(link => link!)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        if (linkTargets.Length == 1 && textRuns.All(run => run.Hyperlink == linkTargets[0])) {
+            sheet.SetHyperlinkReference(captionRow, 1, linkTargets[0], style: false);
+        } else if (linkTargets.Length > 0) {
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentOmitted,
+                "The table caption uses multiple or partially linked runs that one Excel cell cannot hyperlink faithfully.",
+                lossKind: OfficeConversionLossKind.Omission,
+                detail: "hyperlinkTargets=" + linkTargets.Length);
+        }
+
+        AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentApproximated,
+            "The authored table caption was placed after the native worksheet grid to keep its data coordinates.",
+            lossKind: OfficeConversionLossKind.Approximation,
+            detail: "cell=A" + captionRow + "; worksheet=" + sheet.Name
+                + "; originalLength=" + table.Caption.Length);
+    }
+
     private static void FormatSimpleGenericTableSheet(ExcelSheet sheet, HtmlSemanticTable table) {
         // Generic two-column tables are often term/definition data. Keep both
         // columns within a printable width and let longer values wrap visibly.

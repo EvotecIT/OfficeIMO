@@ -31,20 +31,17 @@ public static partial class HtmlExcelConverterExtensions {
                 int semanticTableNumber = tables[index].Number;
                 string title = table.Table?.Caption ?? "Table " + semanticTableNumber;
                 string sheetName = GetUniqueSheetName(title, usedNames);
-                if (!string.Equals(title, sheetName, StringComparison.Ordinal)
+                bool hasAuthoredCaption = table.Table != null
+                    && !string.IsNullOrWhiteSpace(table.Table.Caption)
                     && table.SourceElement.Children.Any(child =>
-                        string.Equals(child.LocalName, "caption", StringComparison.OrdinalIgnoreCase))) {
-                    AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentApproximated,
-                        "A table caption was changed to fit worksheet naming rules.",
-                        lossKind: OfficeConversionLossKind.Approximation,
-                        detail: "originalLength=" + title.Length + "; worksheet=" + sheetName);
-                }
-                int captionLinks = table.Table?.CaptionRuns.Count(run => !string.IsNullOrWhiteSpace(run.Hyperlink)) ?? 0;
-                if (captionLinks > 0) {
-                    AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentOmitted,
-                        "Hyperlinks in a table caption were not retained in the worksheet name.",
-                        lossKind: OfficeConversionLossKind.Omission,
-                        detail: "hyperlinkRuns=" + captionLinks);
+                        string.Equals(child.LocalName, "caption", StringComparison.OrdinalIgnoreCase));
+                string captionLimit = string.Empty;
+                bool preserveCaption = hasAuthoredCaption && IsWithinExcelFieldLimit(
+                    title, budget, ExcelCellTextCharacterLimit, "ExcelCellTextCharacterLimit", out captionLimit);
+                if (hasAuthoredCaption && !preserveCaption) {
+                    AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticMetadataLimitExceeded,
+                        "The full table caption was omitted because it exceeded a semantic or native Excel cell limit.",
+                        lossKind: OfficeConversionLossKind.Omission, detail: captionLimit);
                 }
                 ExcelSheet sheet = workbook.AddWorksheet(sheetName);
                 tableSheets[semanticTableNumber] = sheet;
@@ -61,6 +58,9 @@ public static partial class HtmlExcelConverterExtensions {
                     useSemanticValues: false,
                     semanticTable: table.Table);
                 FormatSimpleGenericTableSheet(sheet, table.Table!);
+                if (preserveCaption) {
+                    PreserveGenericTableCaption(sheet, table.Table!, result, budget);
+                }
             }
         }
 
