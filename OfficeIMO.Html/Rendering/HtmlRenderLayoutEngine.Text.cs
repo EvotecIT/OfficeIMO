@@ -64,30 +64,28 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double markerAdvance = marker.Image?.Width ?? MeasureInlineText(marker.Content, outsideMarkerStyle);
         double gutter = Math.Min(Math.Max(1D, width * 0.5D), markerAdvance + gap);
         HtmlInlineLayout markerLayout = LayoutInlineRuns(markerRuns, gutter, outsideMarkerStyle, formattingContainer);
-        HtmlInlineLayout bodyLayout = LayoutInlineRuns(runs, Math.Max(1D, width - gutter), parentStyle, formattingContainer, skipLogicalCharacters, pageBoundary);
-        return CombineOutsideListMarker(markerLayout, bodyLayout, width, gutter, gap, parentStyle);
+        HtmlInlineLayout bodyLayout = LayoutInlineRuns(runs, width, parentStyle, formattingContainer, skipLogicalCharacters, pageBoundary);
+        return CombineOutsideListMarker(markerLayout, bodyLayout, width, gap, parentStyle);
     }
 
     private static HtmlInlineLayout CombineOutsideListMarker(
         HtmlInlineLayout marker,
         HtmlInlineLayout body,
         double width,
-        double gutter,
         double gap,
         HtmlRenderBoxStyle style) {
         var visuals = new List<HtmlRenderVisual>(marker.Visuals.Count + body.Visuals.Count);
         if (marker.Visuals.Count > 0) {
             (double markerX, _, double markerWidth, _) = ResolveSemanticBounds(marker.Visuals, width, Math.Max(marker.Height, style.LineHeight));
             double offsetX = string.Equals(style.Direction, "rtl", StringComparison.OrdinalIgnoreCase)
-                ? width - markerX - markerWidth
-                : Math.Max(0D, gutter - gap - markerX - markerWidth);
+                ? width + gap - markerX
+                : -gap - markerX - markerWidth;
             foreach (HtmlRenderVisual visual in marker.Visuals) {
                 visuals.Add(visual.Translate(offsetX, 0D, visuals.Count));
             }
         }
         foreach (HtmlRenderVisual visual in body.Visuals) {
-            double bodyOffsetX = string.Equals(style.Direction, "rtl", StringComparison.OrdinalIgnoreCase) ? 0D : gutter;
-            visuals.Add(visual.Translate(bodyOffsetX, 0D, visuals.Count));
+            visuals.Add(visual.Translate(0D, 0D, visuals.Count));
         }
         return new HtmlInlineLayout(
             visuals,

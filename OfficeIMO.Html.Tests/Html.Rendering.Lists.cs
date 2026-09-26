@@ -105,6 +105,42 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_OutsideMarkerKeepsInlineTextAtTheListContentEdge() {
+        const string html = "<style>body,ul{margin:0}ul{padding-left:40px}li p{margin:0}</style>"
+            + "<ul><li><a href='https://example.test/inline'>Inline item</a></li>"
+            + "<li><p>Block item</p></li></ul>";
+        var options = new HtmlRenderOptions { ViewportWidth = 320D, Margins = HtmlRenderMargins.All(0D) };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        HtmlRenderText[] texts = EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>().ToArray();
+        HtmlRenderText inline = Assert.Single(texts, text => text.Text == "Inline item");
+        HtmlRenderText block = Assert.Single(texts, text => text.Text == "Block item");
+        HtmlRenderText[] markers = texts.Where(text => text.Source == "list-marker").ToArray();
+
+        Assert.Equal(2, markers.Length);
+        Assert.InRange(Math.Abs(inline.X - block.X), 0D, 1D);
+        Assert.InRange(inline.X, 39D, 41D);
+        Assert.True(markers[0].X < inline.X);
+    }
+
+    [Fact]
+    public void HtmlRendering_RtlOutsideMarkerKeepsInlineTextAtTheListContentEdge() {
+        const string html = "<style>body,ul{margin:0}ul{padding-right:40px}li p{margin:0}</style>"
+            + "<ul dir='rtl'><li>Inline item</li><li><p>Block item</p></li></ul>";
+        var options = new HtmlRenderOptions { ViewportWidth = 320D, Margins = HtmlRenderMargins.All(0D) };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        HtmlRenderText[] texts = EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>().ToArray();
+        HtmlRenderText inline = Assert.Single(texts, text => text.Text == "Inline item");
+        HtmlRenderText block = Assert.Single(texts, text => text.Text == "Block item");
+        HtmlRenderText[] markers = texts.Where(text => text.Source == "list-marker").ToArray();
+
+        Assert.Equal(2, markers.Length);
+        Assert.InRange(Math.Abs((inline.X + inline.Width) - (block.X + block.Width)), 0D, 1D);
+        Assert.True(markers[0].X >= inline.X + inline.Width);
+    }
+
+    [Fact]
     public void HtmlRendering_ListStyleImageUsesSharedResourcePipelineAndFallsBackToTextMarker() {
         string imageData = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(6, 4));
         string source = "data:image/png;base64," + imageData;
