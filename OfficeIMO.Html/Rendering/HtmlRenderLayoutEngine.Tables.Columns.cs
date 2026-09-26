@@ -72,7 +72,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private void ResolveTableCellIntrinsicWidths(IElement cell, HtmlRenderBoxStyle style, double containingWidth, int depth, out double minimum, out double preferred) {
         string text = ApplyTextTransform(cell.TextContent ?? string.Empty, style);
-        IReadOnlyList<string> tokens = HtmlRenderCssValues.SplitWhitespace(text);
+        // Cell content is text, not a CSS component value: quotes and parentheses
+        // must not protect whitespace (including tabs) from intrinsic sizing.
+        IReadOnlyList<string> tokens = text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
         string normalized = string.Join(" ", tokens);
         double insets = style.HorizontalInsets;
         minimum = tokens.Count == 0 ? insets + 1D : tokens.Max(token => MeasureInlineText(token, style)) + insets;

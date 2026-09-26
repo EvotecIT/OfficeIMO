@@ -226,6 +226,21 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlTables_AutoLayoutMeasuresQuotedTabTextWithEmbeddedFont() {
+        string? installedFamily = new[] { "Trebuchet MS", "Arial", "Calibri", "Liberation Sans", "DejaVu Sans" }
+            .FirstOrDefault(candidate => PdfCore.PdfEmbeddedFontFamily.TryFromSystem(candidate, out _));
+        if (installedFamily == null) return;
+
+        var options = new HtmlToPdfOptions();
+        options.ResourcePolicy.AllowDocumentFontEmbedding = true;
+        string html = "<table style=\"font-family:'" + installedFamily + "'\"><tr><td>\"A\tB\"</td><td>Next</td></tr></table>";
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(options);
+
+        Assert.Contains("A B", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlTables_AutoLayoutIncludesIntrinsicReplacedImageWidth() {
         string imageData = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(80, 10));
         string html = "<table style='width:100px;margin:0;table-layout:auto;font-size:8px;line-height:10px'><tr>"
