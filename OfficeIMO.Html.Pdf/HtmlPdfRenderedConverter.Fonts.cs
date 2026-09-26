@@ -16,21 +16,8 @@ internal static partial class HtmlPdfRenderedConverter {
         return (text, font, descriptor) => {
             string family = ResolvePdfFontFamilyForText(font.FamilyName, text, font.IsBold,
                 font.IsItalic, descriptor, useInstalledFonts, measurementOptions);
-            if (!measurementOptions.TryResolveNamedFontFace(family, font.IsBold, font.IsItalic,
-                    out PdfCore.PdfNamedFontFace face)) return null;
-            if (measurementOptions.TryGetNamedFontProgram(face, out PdfCore.PdfTrueTypeFontProgram? trueType)
-                && trueType != null
-                && PdfCore.PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, trueType).Count == 0) {
-                double ascent = trueType.GetAscender(font.Size);
-                return new HtmlTextFaceMetrics(ascent + trueType.GetDescender(font.Size), ascent);
-            }
-            if (measurementOptions.TryGetNamedOpenTypeCffFontProgram(face, out PdfCore.PdfOpenTypeCffFontProgram? cff)
-                && cff != null
-                && PdfCore.PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, cff).Count == 0) {
-                double ascent = cff.GetAscender(font.Size);
-                return new HtmlTextFaceMetrics(ascent + cff.GetDescender(font.Size), ascent);
-            }
-            return null;
+            return ResolveNamedFaceMetrics(measurementOptions, family, text, font.Size,
+                font.IsBold, font.IsItalic, useInstalledFonts);
         };
     }
 
@@ -64,15 +51,20 @@ internal static partial class HtmlPdfRenderedConverter {
                         && PdfCore.PdfEmbeddedFontFamily.TryFromSystem(
                             familyName, out PdfCore.PdfEmbeddedFontFamily? family)
                         && family != null
-                        && measurementOptions.TryRegisterNamedFontFamily(
-                            CreateCoverageStableFontFamily(family))) {
+                        && measurementOptions.TryRegisterNamedFontFamily(family)) {
                         loadedFamilies++;
                     }
-                    if (NamedFontCoversText(measurementOptions, familyName, text, font.IsBold, font.IsItalic)) {
+                    if (NamedFontCoversTextWithStyleFallback(measurementOptions, familyName, text,
+                            font.IsBold, font.IsItalic)) {
                         measuredFamily = familyName;
                         break;
                     }
                 }
+            }
+            if (useInstalledFonts) {
+                double? styledWidth = MeasureNamedFaceStyledText(measurementOptions,
+                    measuredFamily, text, font.Size, font.IsBold, font.IsItalic);
+                if (styledWidth.HasValue) return styledWidth.Value;
             }
             return PdfCore.PdfWriter.MeasurePositionedText(
                 new PdfCore.PdfTextRun(text, bold: font.IsBold, italic: font.IsItalic,
@@ -129,7 +121,9 @@ internal static partial class HtmlPdfRenderedConverter {
         }
         if (familyNames.IndexOf(',') < 0) return familyNames;
         foreach (string familyName in EnumerateBoundedSystemFamilies(familyNames)) {
-            if (NamedFontCoversText(options, familyName, text, bold, italic)) return familyName;
+            if ((allowInstalledFaces
+                    ? NamedFontCoversTextWithStyleFallback(options, familyName, text, bold, italic)
+                    : NamedFontCoversText(options, familyName, text, bold, italic))) return familyName;
         }
         return familyNames;
     }
@@ -279,7 +273,7 @@ internal static partial class HtmlPdfRenderedConverter {
             if (!PdfCore.PdfEmbeddedFontFamily.TryFromSystem(familyName, out PdfCore.PdfEmbeddedFontFamily? family)
                 || family == null) continue;
 
-            if (!pdf.Options.TryRegisterNamedFontFamily(CreateCoverageStableFontFamily(family))) break;
+            if (!pdf.Options.TryRegisterNamedFontFamily(family)) break;
             reservedFontSlots.Add(PdfCore.PdfStandardFontMapper.GetFontFamily(MapStandardFont(familyName)));
             loadedFamilyCount++;
         }
@@ -321,27 +315,6 @@ internal static partial class HtmlPdfRenderedConverter {
                 CreateCoverageSafeFontFamily(family, textRuns));
             reservedFontSlots.Add(PdfCore.PdfStandardFont.Helvetica);
             return;
-        }
-    }
-
-    private static PdfCore.PdfEmbeddedFontFamily CreateCoverageStableFontFamily(
-        PdfCore.PdfEmbeddedFontFamily family) {
-        byte[] regular = family.Regular;
-        byte[]? bold = SelectCoverageStableFace(family.Bold, regular);
-        byte[]? italic = SelectCoverageStableFace(family.Italic, regular);
-        byte[]? boldItalic = SelectCoverageStableFace(
-            family.BoldItalic ?? family.Bold ?? family.Italic, regular);
-        return new PdfCore.PdfEmbeddedFontFamily(family.FamilyName, regular, bold, italic, boldItalic);
-    }
-
-    private static byte[]? SelectCoverageStableFace(byte[]? styledFace, byte[] regularFace) {
-        if (styledFace == null) return null;
-        try {
-            PdfCore.PdfTrueTypeFontProgram regular = PdfCore.PdfFontProgramCache.GetTrueType(regularFace, null);
-            PdfCore.PdfTrueTypeFontProgram styled = PdfCore.PdfFontProgramCache.GetTrueType(styledFace, null);
-            return regular.HasCoverageWithin(styled) ? styledFace : regularFace;
-        } catch (Exception exception) when (PdfCore.PdfFontDiagnostics.IsFontProgramException(exception)) {
-            return regularFace;
         }
     }
 

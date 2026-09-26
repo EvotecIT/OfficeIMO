@@ -86,6 +86,113 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlPdf_TrueTypeCollectionKeepsCoveredBoldFaceWhenRegularHasBroaderCoverage() {
+        if (!PdfCore.PdfEmbeddedFontFamily.TryFromSystem("Helvetica Neue", out PdfCore.PdfEmbeddedFontFamily? expected)
+            || expected?.Bold == null
+            || expected.Bold.SequenceEqual(expected.Regular)) return;
+
+        var options = new HtmlToPdfOptions();
+        options.ResourcePolicy.AllowDocumentFontEmbedding = true;
+        HtmlPdfRenderResult result = HtmlPdfRenderedConverter.Convert(
+            HtmlConversionDocument.Parse("<p style=\"font-family:'Helvetica Neue'\"><strong>Exploring Planet Uranus Resource Page</strong></p>"),
+            options);
+
+        PdfCore.PdfEmbeddedFontFamily embedded = result.Document.Options.NamedFontFamilies["Helvetica Neue"];
+        Assert.Equal(expected.Bold, embedded.Bold);
+        Assert.NotEqual(embedded.Regular, embedded.Bold);
+        HtmlRenderText title = Assert.Single(result.RenderResult!.Document.Pages[0].Visuals
+            .OfType<HtmlRenderText>(), text => text.Text.Contains("Exploring Planet Uranus", StringComparison.Ordinal));
+        double paintedWidth = Assert.IsType<double>(PdfCore.PdfWriter.MeasurePositionedText(
+            new PdfCore.PdfTextRun(title.Text, bold: true, fontSize: title.Font.Size,
+                fontFamily: "Helvetica Neue"), result.Document.Options));
+        Assert.Equal(paintedWidth, Assert.IsType<double>(title.TextAdvanceWidth), 3);
+        Assert.Contains("Exploring Planet Uranus Resource Page",
+            PdfCore.PdfReadDocument.Open(result.Document.ToBytes()).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlPdf_TrueTypeCollectionRetainsRegularOnlyGlyphInBoldRun() {
+        if (!PdfCore.PdfEmbeddedFontFamily.TryFromSystem("Helvetica Neue", out PdfCore.PdfEmbeddedFontFamily? family)
+            || family?.Bold == null) return;
+        const string privateUseGlyph = "\uF6C0";
+        var regular = PdfCore.PdfFontProgramCache.GetTrueType(family.Regular, null);
+        var bold = PdfCore.PdfFontProgramCache.GetTrueType(family.Bold, null);
+        if (!regular.TryGetGlyphId(privateUseGlyph[0], out _) || bold.TryGetGlyphId(privateUseGlyph[0], out _)) return;
+
+        var options = new HtmlToPdfOptions();
+        options.ResourcePolicy.AllowDocumentFontEmbedding = true;
+        HtmlPdfRenderResult result = HtmlPdfRenderedConverter.Convert(
+            HtmlConversionDocument.Parse("<div style=\"font-family:'Helvetica Neue'\"><strong>Before "
+                + privateUseGlyph + " after</strong><strong> Fallback 中</strong></div>"),
+            options);
+
+        Assert.Equal(family.Bold, result.Document.Options.NamedFontFamilies["Helvetica Neue"].Bold);
+        HtmlRenderText mixed = Assert.Single(result.RenderResult!.Document.Pages[0].Visuals
+            .OfType<HtmlRenderText>(), text => text.Text.Contains(privateUseGlyph, StringComparison.Ordinal));
+        double measuredWidth = 0D;
+        foreach ((string part, bool isBold) in new[] {
+                     ("Before ", true), (privateUseGlyph, false), (" after", true)
+                 }) {
+            measuredWidth += Assert.IsType<double>(PdfCore.PdfWriter.MeasurePositionedText(
+                new PdfCore.PdfTextRun(part, bold: isBold, fontSize: mixed.Font.Size,
+                    fontFamily: "Helvetica Neue"), result.Document.Options));
+        }
+        Assert.Equal(measuredWidth, Assert.IsType<double>(mixed.TextAdvanceWidth), 3);
+        string extracted = PdfCore.PdfReadDocument.Open(result.Document.ToBytes()).ExtractText();
+        Assert.True(extracted.Contains(privateUseGlyph, StringComparison.Ordinal),
+            string.Join("; ", result.ConversionReport.Warnings.Select(warning => warning.Code + ": " + warning.Message)));
+    }
+
+    [Fact]
+    public void HtmlPdf_InstalledRegularOnlyGlyphSurvivesWebFontFirstCssList() {
+        if (!PdfCore.PdfEmbeddedFontFamily.TryFromSystem("Helvetica Neue", out PdfCore.PdfEmbeddedFontFamily? family)
+            || family?.Bold == null) return;
+        const string privateUseGlyph = "\uF6C0";
+        var regular = PdfCore.PdfFontProgramCache.GetTrueType(family.Regular, null);
+        var bold = PdfCore.PdfFontProgramCache.GetTrueType(family.Bold, null);
+        if (!regular.TryGetGlyphId(privateUseGlyph[0], out _) || bold.TryGetGlyphId(privateUseGlyph[0], out _)) return;
+
+        string html = "<style>" + CreatePortableEmbeddedFontFaceCss("Scoped Web")
+            + "strong{font-family:'Scoped Web','Helvetica Neue';font-size:24px}</style>"
+            + "<strong>Alpha " + privateUseGlyph + " omega</strong>";
+        var options = new HtmlToPdfOptions();
+        options.ResourcePolicy.AllowDocumentFontEmbedding = true;
+
+        HtmlPdfRenderResult result = HtmlPdfRenderedConverter.Convert(HtmlConversionDocument.Parse(html), options);
+        Assert.Contains(privateUseGlyph, string.Concat(result.RenderResult!.Document.Pages
+            .SelectMany(page => page.Visuals).OfType<HtmlRenderText>().Select(run => run.Text)), StringComparison.Ordinal);
+        string extracted = PdfCore.PdfReadDocument.Open(result.Document.ToBytes()).ExtractText();
+        Assert.True(extracted.Contains(privateUseGlyph, StringComparison.Ordinal),
+            string.Join("; ", result.ConversionReport.Warnings.Select(warning => warning.Code + ": " + warning.Message)));
+    }
+
+    [Fact]
+    public void HtmlPdf_MixedInstalledFaceKeepsTightLineVerticalMetrics() {
+        if (!PdfCore.PdfEmbeddedFontFamily.TryFromSystem("Helvetica Neue", out PdfCore.PdfEmbeddedFontFamily? family)
+            || family?.Bold == null) return;
+        const string privateUseGlyph = "\uF6C0";
+        var regular = PdfCore.PdfFontProgramCache.GetTrueType(family.Regular, null);
+        var bold = PdfCore.PdfFontProgramCache.GetTrueType(family.Bold, null);
+        if (!regular.TryGetGlyphId(privateUseGlyph[0], out _) || bold.TryGetGlyphId(privateUseGlyph[0], out _)) return;
+
+        var options = new HtmlToPdfOptions();
+        options.ResourcePolicy.AllowDocumentFontEmbedding = true;
+        HtmlPdfRenderResult result = HtmlPdfRenderedConverter.Convert(
+            HtmlConversionDocument.Parse("<div style=\"font-family:'Helvetica Neue';font-size:50px;line-height:10px\"><strong>A"
+                + privateUseGlyph + "A</strong></div>"), options);
+        HtmlRenderText text = Assert.Single(result.RenderResult!.Document.Pages[0].Visuals
+            .OfType<HtmlRenderText>(), run => run.Text.Contains(privateUseGlyph, StringComparison.Ordinal));
+        double ascent = Math.Max(regular.GetAscender(text.Font.Size), bold.GetAscender(text.Font.Size));
+        double descent = Math.Max(regular.GetDescender(text.Font.Size), bold.GetDescender(text.Font.Size));
+        double expectedY = text.LayoutY + (10D - ascent - descent) / 2D + ascent - text.Font.Size;
+
+        Assert.Equal(expectedY, text.Y, 3);
+        Assert.Equal(Math.Max(0D, ascent - text.Font.Size), text.PaintTopOverflow, 3);
+        Assert.Contains(privateUseGlyph,
+            PdfCore.PdfReadDocument.Open(result.Document.ToBytes()).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlPdf_InstalledFontMeasurementUsesNextCssFamilyForMissingWebGlyph() {
         string? installedFamily = new[] { "Trebuchet MS", "Arial", "Calibri", "Liberation Sans", "DejaVu Sans" }
             .FirstOrDefault(candidate => PdfCore.PdfEmbeddedFontFamily.TryFromSystem(candidate, out _));

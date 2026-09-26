@@ -905,25 +905,31 @@ internal static partial class HtmlPdfRenderedConverter {
         string pdfText = OmitUnavailablePrivateUseGlyphs(visual, webFonts, conversionReport, requestedStyle, cancellationToken);
         if (pdfText.Length == 0) return;
         var runs = webFonts.Faces.PlanFallbackRuns(pdfText, visual.Font.FamilyName, requestedStyle)
-            .Select(fallbackRun => {
+            .SelectMany(fallbackRun => {
+                bool allowInstalledFace = webFonts.AllowInstalledFontFaces
+                    && !webFonts.Slots.ContainsKey(fallbackRun.FamilyName);
                 string family = ResolvePdfFontFamilyForText(
                     fallbackRun.FamilyName,
                     fallbackRun.Text,
                     visual.Font.IsBold,
                     visual.Font.IsItalic,
                     visual.FontDescriptor,
-                    webFonts.AllowInstalledFontFaces
-                        && !EnumerateFamilies(fallbackRun.FamilyName).Any(webFonts.Slots.ContainsKey),
+                    allowInstalledFace,
                     webFonts.Options);
-                return new PdfCore.PdfTextRun(
-                    fallbackRun.Text,
-                    bold: visual.Font.IsBold,
+                IReadOnlyList<NamedFaceStyleRun> faceRuns = allowInstalledFace
+                    ? PlanNamedFaceStyleRuns(fallbackRun.Text, family,
+                        visual.Font.IsBold, visual.Font.IsItalic, webFonts.Options)
+                    : new[] { new NamedFaceStyleRun(fallbackRun.Text,
+                        visual.Font.IsBold, visual.Font.IsItalic, true) };
+                return faceRuns.Select(faceRun => new PdfCore.PdfTextRun(
+                    faceRun.Text,
+                    bold: faceRun.Bold,
                     underline: visual.Font.IsUnderline,
                     color: PdfCore.PdfColor.FromOfficeColorOrNull(visual.Color),
-                    italic: visual.Font.IsItalic,
+                    italic: faceRun.Italic,
                     strike: visual.Font.IsStrikethrough,
                     fontSize: visual.Font.Size * PointsPerCssPixel,
-                    font: MapFont(family, fallbackRun.Text, requestedStyle, webFonts),
+                    font: MapFont(family, faceRun.Text, requestedStyle, webFonts),
                     linkUri: link,
                     linkContents: link == null ? null : pdfText,
                     linkDestinationName: linkDestination,
@@ -932,7 +938,7 @@ internal static partial class HtmlPdfRenderedConverter {
                     underlineStyle: visual.UnderlineStyle,
                     strikeStyle: visual.StrikethroughStyle,
                     decorationColor: PdfCore.PdfColor.FromOfficeColorOrNull(visual.DecorationColor))
-                    .WithFeatureSettings(visual.FeatureSettings);
+                    .WithFeatureSettings(visual.FeatureSettings));
             }).ToArray();
         canvas.PositionedText(
             runs,
