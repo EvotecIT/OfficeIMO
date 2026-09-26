@@ -725,7 +725,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         if (truncated) report.Add("expansion-limits", OdfConversionMappingStatus.Skipped, 1,
             "Content outside the configured row, column, or expanded-cell limits was not materialized.");
         AddUnmappedOdfFindings(source.InspectFeatures(), report, formulas, convertedValidations,
-            externalHyperlinks, comments, namedRanges, convertedConditionalMapCount, convertedCharts, convertedPivots);
+            externalHyperlinks, comments, namedRanges, convertedConditionalMapCount, convertedCharts,
+            source.DataPilotTables.Count);
         target = Normalize(target);
         return new OdfConversionResult<ExcelDocument>(target, report).ApplyPolicy(effective.LossPolicy);
     }

@@ -30,7 +30,9 @@ public sealed class OdsDataPilotTable {
     public bool HasAdvancedSettings => HasAdvancedSettingsIn(Element);
 
     internal static bool IsEditableElement(OdsDocument document, XElement element) {
-        if (HasAdvancedSettingsIn(element) || string.IsNullOrWhiteSpace((string?)element.Attribute(OdfNamespaces.Table + "name"))) return false;
+        if (!ReferenceEquals(element.Parent?.Parent, document.SpreadsheetBody)
+            || HasAdvancedSettingsIn(element)
+            || string.IsNullOrWhiteSpace((string?)element.Attribute(OdfNamespaces.Table + "name"))) return false;
         try {
             SpreadsheetRangeReference source = ParseLocalRange((string?)element.Element(OdfNamespaces.Table + "source-cell-range")?
                 .Attribute(OdfNamespaces.Table + "cell-range-address") ?? string.Empty, nameof(SourceRangeAddress));
@@ -39,7 +41,7 @@ public sealed class OdsDataPilotTable {
             if (document.GetSheet(source.Start.SheetName!) == null || document.GetSheet(target.Start.SheetName!) == null)
                 return false;
             var pivot = new OdsDataPilotTable(document, element);
-            return pivot.Fields.All(field => pivot.SourceHeaderContains(field.SourceFieldName));
+            return pivot.Fields.All(field => pivot.SourceHeaderMatchesExactlyOnce(field.SourceFieldName));
         } catch (ArgumentException) {
             return false;
         }
@@ -103,7 +105,16 @@ public sealed class OdsDataPilotTable {
     public OdsDataPilotField AddField(string sourceFieldName, string orientation, string? function = null) {
         if (HasAdvancedSettings)
             throw new InvalidOperationException("Fields cannot be edited on a data pilot with advanced imported settings.");
-        if (Fields.Any(field => !SourceHeaderContains(field.SourceFieldName)))
+        SpreadsheetRangeReference target;
+        try {
+            target = ParseLocalRange(TargetRangeAddress ?? string.Empty, nameof(TargetRangeAddress));
+        } catch (ArgumentException) {
+            throw new InvalidOperationException("Fields cannot be edited while the data pilot target range is invalid.");
+        }
+        if (!ReferenceEquals(Element.Parent?.Parent, _document.SpreadsheetBody)
+            || _document.GetSheet(target.Start.SheetName!) == null)
+            throw new InvalidOperationException("Fields cannot be edited while the data pilot target worksheet is missing.");
+        if (Fields.Any(field => !SourceHeaderMatchesExactlyOnce(field.SourceFieldName)))
             throw new InvalidOperationException("Fields cannot be edited while an existing source header binding is missing.");
         if (string.IsNullOrWhiteSpace(sourceFieldName)) throw new ArgumentException("Source field name cannot be empty.", nameof(sourceFieldName));
         if (orientation != "row" && orientation != "column" && orientation != "data" && orientation != "page") {
@@ -118,8 +129,8 @@ public sealed class OdsDataPilotTable {
         } else if (function != null && function != "auto") {
             throw new ArgumentException("Non-data fields can use only the auto function.", nameof(function));
         }
-        if (!SourceHeaderContains(sourceFieldName)) {
-            throw new ArgumentException("Source field name must match a header in the source range.", nameof(sourceFieldName));
+        if (!SourceHeaderMatchesExactlyOnce(sourceFieldName)) {
+            throw new ArgumentException("Source field name must match exactly one header in the source range.", nameof(sourceFieldName));
         }
         if (Fields.Any(field => string.Equals(field.SourceFieldName, sourceFieldName, StringComparison.Ordinal)
             && string.Equals(field.Orientation, orientation, StringComparison.Ordinal)
@@ -135,25 +146,33 @@ public sealed class OdsDataPilotTable {
         return new OdsDataPilotField(element);
     }
 
-    private bool SourceHeaderContains(string fieldName) {
+    private bool SourceHeaderMatchesExactlyOnce(string fieldName) {
         SpreadsheetRangeReference range = ParseLocalRange(SourceRangeAddress ?? string.Empty, nameof(SourceRangeAddress));
         OdsSheet? sheet = _document.GetSheet(range.Start.SheetName!);
         if (sheet == null) return false;
         long headerRow = range.Start.Row!.Value - 1;
         long firstColumn = range.Start.Column!.Value - 1;
         long lastColumn = range.End!.Column!.Value - 1;
+        bool matched = false;
         foreach (OdsRowRun row in sheet.RowRuns) {
             if (row.StartRow > headerRow) break;
             if (headerRow - row.StartRow >= row.RepeatCount) continue;
             foreach (OdsCellRun cell in row.CellRuns) {
                 if (cell.StartColumn > lastColumn) break;
-                if (firstColumn >= cell.StartColumn && firstColumn - cell.StartColumn >= cell.RepeatCount) continue;
+                long firstIncluded = Math.Max(firstColumn, cell.StartColumn);
+                long cellEnd = cell.RepeatCount > long.MaxValue - cell.StartColumn
+                    ? long.MaxValue : cell.StartColumn + cell.RepeatCount;
+                long lastExclusive = Math.Min(lastColumn + 1, cellEnd);
+                if (firstIncluded >= lastExclusive) continue;
                 if (cell.Value.Kind == OdsCellValueKind.String
-                    && string.Equals(cell.Text, fieldName, StringComparison.Ordinal)) return true;
+                    && string.Equals(cell.Text, fieldName, StringComparison.Ordinal)) {
+                    if (matched || lastExclusive - firstIncluded > 1) return false;
+                    matched = true;
+                }
             }
             break;
         }
-        return false;
+        return matched;
     }
 
     internal static SpreadsheetRangeReference ParseLocalRange(string address, string parameterName) {

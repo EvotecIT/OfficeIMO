@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Xml.Linq;
 using OfficeIMO.OpenDocument;
 using Xunit;
@@ -161,5 +162,47 @@ public sealed class OpenDocumentOdsDataPilotTests {
         pivot.AddField("Sales", "data", "average");
         Assert.Throws<InvalidOperationException>(() => pivot.AddField("Sales", "data", "sum"));
         Assert.Equal(new[] { "sum", "average" }, pivot.Fields.Skip(1).Select(field => field.Function));
+    }
+
+    [Fact]
+    public void DuplicateSourceHeadersCannotBindAField() {
+        OdsDocument document = OdsDocument.Create();
+        OdsSheet sheet = document.AddSheet("Data");
+        sheet.Cell(0, 0).SetString("Sales");
+        sheet.Cell(0, 1).SetString("Sales");
+        OdsDataPilotTable pivot = document.AddDataPilotTable("Pivot", "Data.A1:Data.B2", "Data.D1:Data.E3");
+
+        Assert.Throws<ArgumentException>(() => pivot.AddField("Sales", "data", "sum"));
+        Assert.Empty(pivot.Fields);
+    }
+
+    [Fact]
+    public void RemovingTargetSheetPreventsFieldMutation() {
+        OdsDocument document = OdsDocument.Create();
+        OdsSheet source = document.AddSheet("Data");
+        source.Cell(0, 0).SetString("Sales");
+        document.AddSheet("Output");
+        OdsDataPilotTable pivot = document.AddDataPilotTable("Pivot", "Data.A1:Data.A2", "Output.A1:Output.B2");
+        Assert.True(document.RemoveSheet("Output"));
+
+        Assert.Throws<InvalidOperationException>(() => pivot.AddField("Sales", "data", "sum"));
+        Assert.Empty(pivot.Fields);
+    }
+
+    [Fact]
+    public void EmbeddedSpreadsheetPilotIsInspectedButNotEditable() {
+        OdsDocument document = OdsDocument.Create();
+        OdsSheet sheet = document.AddSheet("Data");
+        sheet.Cell(0, 0).SetString("Sales");
+        OdsDataPilotTable pivot = document.AddDataPilotTable("Pivot", "Data.A1:Data.A2", "Data.C1:Data.D2");
+        pivot.AddField("Sales", "data", "sum");
+        XDocument embedded = new XDocument(document.Package.GetXml("content.xml"));
+        document.Package.AddOrReplaceEntry("Object 1/content.xml",
+            Encoding.UTF8.GetBytes(embedded.ToString(SaveOptions.DisableFormatting)), "text/xml");
+
+        Assert.Contains(document.InspectFeatures().Findings, finding => finding.PartPath == "content.xml"
+            && finding.Name == "spreadsheet-data-pilot-tables" && finding.Support == OdfFeatureSupport.Editable);
+        Assert.Contains(document.InspectFeatures().Findings, finding => finding.PartPath == "Object 1/content.xml"
+            && finding.Name == "spreadsheet-data-pilot-tables" && finding.Support == OdfFeatureSupport.Inspected);
     }
 }

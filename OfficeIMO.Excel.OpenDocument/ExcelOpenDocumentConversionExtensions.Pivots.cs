@@ -94,11 +94,12 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         if (sourceSheet == null || !omittedCellsBySheet.TryGetValue(pivot.SourceSheet!, out List<(int Row, int Column)>? omitted)) return false;
         if (!headersBySheet.TryGetValue(pivot.SourceSheet!, out Dictionary<int, List<(int Column, string Name)>>? headerRows)
             || !headerRows.TryGetValue((int)source.Start.Row!.Value, out List<(int Column, string Name)>? headerCells)) return false;
-        var headers = new HashSet<string>(headerCells
+        var headerCounts = headerCells
             .Where(cell => cell.Column >= source.Start.Column && cell.Column <= source.End.Column)
-            .Select(cell => cell.Name), StringComparer.Ordinal);
+            .GroupBy(cell => cell.Name, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal);
         if (pivot.RowFields.Concat(pivot.ColumnFields).Append(pivot.DataFields[0].FieldName)
-            .Any(field => !headers.Contains(field))) return false;
+            .Any(field => !headerCounts.TryGetValue(field, out int count) || count != 1)) return false;
         int low = 0, high = omitted.Count;
         long firstRow = Math.Min(source.Start.Row!.Value, destination.Start.Row!.Value);
         long lastRow = Math.Max(source.End.Row!.Value, destination.End.Row!.Value);

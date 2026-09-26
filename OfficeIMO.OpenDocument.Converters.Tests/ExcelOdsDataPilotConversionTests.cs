@@ -35,6 +35,27 @@ public sealed class ExcelOdsDataPilotConversionTests {
     }
 
     [Fact]
+    public void DuplicateHeaderAddedAfterPivotCreationRemainsExplicitLoss() {
+        using ExcelDocument source = ExcelDocument.Create();
+        ExcelSheet sheet = source.AddWorksheet("Data");
+        sheet.CellValue(1, 1, "Region");
+        sheet.CellValue(1, 2, "Sales");
+        sheet.CellValue(1, 3, "Extra");
+        sheet.CellValue(2, 1, "North");
+        sheet.CellValue(2, 2, 10d);
+        sheet.CellValue(2, 3, "Note");
+        sheet.AddPivotTable("A1:C2", "E1", name: "SalesPivot",
+            rowFields: new[] { "Region" },
+            dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
+        sheet.CellValue(1, 3, "Region");
+
+        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+        Assert.Empty(conversion.Value.DataPilotTables);
+        Assert.Contains(conversion.Report.ForFeature("pivot-tables"), mapping =>
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+    }
+
+    [Fact]
     public void DuplicateExcelPivotNamesOnDifferentSheetsRemainExplicitLoss() {
         using ExcelDocument source = ExcelDocument.Create();
         foreach (string name in new[] { "North", "South" }) {
@@ -115,6 +136,8 @@ public sealed class ExcelOdsDataPilotConversionTests {
         Assert.Empty(conversion.Value.DataPilotTables);
         Assert.Contains(conversion.Report.ForFeature("pivot-tables"),
             mapping => mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+        Assert.DoesNotContain(conversion.Report.ForFeature("source-spreadsheet-data-pilot-tables"),
+            mapping => mapping.Status == OdfConversionMappingStatus.Unsupported);
     }
 
     [Fact]

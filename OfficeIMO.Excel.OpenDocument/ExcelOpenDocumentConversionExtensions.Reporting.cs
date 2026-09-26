@@ -31,7 +31,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             else if (finding.Name == "annotations") handled = Consume(ref remainingAnnotations, finding.Count);
             else if (finding.Name == "spreadsheet-named-ranges") handled = Consume(ref remainingNamedRanges, finding.Count);
             else if (finding.Name == "conditional-style-maps") handled = Consume(ref remainingConditionalStyleMaps, finding.Count);
-            else if (finding.Name == "spreadsheet-data-pilot-tables") handled = Consume(ref remainingDataPilots, finding.Count);
+            else if (finding.Name == "spreadsheet-data-pilot-tables" && finding.PartPath == "content.xml")
+                handled = Consume(ref remainingDataPilots, finding.Count);
             else if (finding.Name == "embedded-objects" && finding.PartPath == "content.xml")
                 handled = Consume(ref remainingEmbeddedObjects, finding.Count);
             int remaining = Math.Max(0, finding.Count - handled);
