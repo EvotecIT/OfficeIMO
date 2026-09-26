@@ -221,6 +221,24 @@ public sealed partial class PdfDocument {
             retainedManagedBytes: 0L,
             cancellationToken: cancellationToken);
         bool hasEmbeddedIccProfile = (sourceMetadata.Kinds & OfficeImageMetadataKinds.Icc) != 0;
+        if (hasEmbeddedIccProfile && sourceInfo.Format == OfficeImageFormat.Png) {
+            if (!OfficePngContainerValidator.TryReadValidatedIccProfile(
+                    data, cancellationToken, out byte[]? pngIccProfile) || pngIccProfile == null) {
+                throw new NotSupportedException(SupportedImageMessage +
+                    " The embedded PNG ICC profile cannot be read safely.");
+            }
+            if (!TryNormalizeIccPng(data, sourceInfo, pngIccProfile, cancellationToken,
+                    out byte[] normalizedIccPng, out string? normalizationReason)) {
+                throw new NotSupportedException(SupportedImageMessage + " " + normalizationReason);
+            }
+            if (!PdfWriter.TryGetPngImageData(normalizedIccPng, cancellationToken,
+                    out PdfWriter.PdfImageStream normalizedPngStream, out string? pngReason)) {
+                throw new NotSupportedException(SupportedImageMessage + " " +
+                    (pngReason ?? "The color-normalized PNG cannot be embedded safely."));
+            }
+            return new PreparedImage(
+                normalizedIccPng, sourceInfo, sourceInfo.Format, wasTranscoded: true, normalizedPngStream);
+        }
         if (hasEmbeddedIccProfile && sourceMetadata.Icc == null) {
             throw new NotSupportedException(
                 SupportedImageMessage + " The embedded ICC profile cannot be retained or normalized safely.");

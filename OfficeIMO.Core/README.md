@@ -148,7 +148,7 @@ that require color-managed pixels must perform that conversion explicitly before
 image. The profile APIs above provide bounded color conversion; metadata validation alone does not
 mean a raster image has been converted to sRGB.
 
-For already unpacked, tightly packed 8-bit RGB or CMYK device samples, use the explicit raster
+For already unpacked, tightly packed 8-bit Gray, RGB, or CMYK device samples, use the explicit raster
 converter with the corresponding embedded profile bytes:
 
 ```csharp

@@ -14,6 +14,89 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfDocumentPngImageTests {
     [Fact]
+    public void Image_WithIccTaggedRgbaPng_NormalizesColorAndKeepsAlpha() {
+        byte[] profileBytes = PdfIccProfiles.SrgbIec6196621;
+        byte[] source = PdfPngTestImages.CreateIccRgbaPng(70, 130, 190, 117, profileBytes);
+        Assert.True(OfficeImageReader.TryIdentify(source, null, out _));
+        Assert.True(OfficeIccColorProfile.TryCreate(profileBytes, out OfficeIccColorProfile? profile));
+        Assert.True(profile!.TryConvert(new[] { 70 / 255D, 130 / 255D, 190 / 255D },
+            OfficeIccRenderingIntent.RelativeColorimetric, out OfficeColor expected));
+
+        byte[] pdf = PdfDocument.Create().Image(source, 24, 24).ToBytes();
+        PdfExtractedImage extracted = Assert.Single(PdfImageExtractor.ExtractImages(pdf));
+        Assert.True(extracted.IsImageFile);
+        Assert.True(OfficeRasterImageDecoder.TryDecode(extracted.Bytes, options: null,
+            out OfficeRasterImage? decoded, out _));
+        OfficeColor actual = decoded!.GetPixel(0, 0);
+
+        Assert.Equal(expected.R, actual.R);
+        Assert.Equal(expected.G, actual.G);
+        Assert.Equal(expected.B, actual.B);
+        Assert.Equal((byte)117, actual.A);
+    }
+
+    [Fact]
+    public void Image_WithIccTaggedGrayAlphaPng_NormalizesGrayAndKeepsAlpha() {
+        byte[] profileBytes = CreateGrayIccProfile();
+        byte[] source = PdfPngTestImages.CreateIccGrayAlphaPng(128, 91, profileBytes);
+        Assert.True(OfficeImageReader.TryIdentify(source, null, out _));
+        Assert.True(OfficeIccColorProfile.TryCreate(profileBytes, out OfficeIccColorProfile? profile));
+        Assert.True(profile!.TryConvert(new[] { 128 / 255D },
+            OfficeIccRenderingIntent.RelativeColorimetric, out OfficeColor expected));
+
+        byte[] pdf = PdfDocument.Create().Image(source, 24, 24).ToBytes();
+        PdfExtractedImage extracted = Assert.Single(PdfImageExtractor.ExtractImages(pdf));
+        Assert.True(OfficeRasterImageDecoder.TryDecode(extracted.Bytes, options: null,
+            out OfficeRasterImage? decoded, out _));
+        OfficeColor actual = decoded!.GetPixel(0, 0);
+        Assert.Equal(expected.R, actual.R);
+        Assert.Equal(expected.G, actual.G);
+        Assert.Equal(expected.B, actual.B);
+        Assert.Equal((byte)91, actual.A);
+    }
+
+    [Fact]
+    public void Image_WithIccApng_EmbedsStaticDefaultRatherThanFirstAnimationFrame() {
+        byte[] profileBytes = PdfIccProfiles.SrgbIec6196621;
+        byte[] source = PdfPngTestImages.CreateIccApngWithSeparateDefault(profileBytes);
+        Assert.True(OfficeImageReader.TryIdentify(source, null, out _));
+        Assert.True(OfficeIccColorProfile.TryCreate(profileBytes, out OfficeIccColorProfile? profile));
+        Assert.True(profile!.TryConvert(new[] { 1D, 0D, 0D },
+            OfficeIccRenderingIntent.RelativeColorimetric, out OfficeColor expected));
+        Assert.True(OfficeRasterImageDecoder.TryDecode(source, options: null,
+            out OfficeRasterImage? firstAnimationFrame, out _));
+        Assert.True(firstAnimationFrame!.GetPixel(0, 0).B > 200);
+
+        byte[] pdf = PdfDocument.Create().Image(source, 24, 24).ToBytes();
+        PdfExtractedImage extracted = Assert.Single(PdfImageExtractor.ExtractImages(pdf));
+        Assert.True(OfficeRasterImageDecoder.TryDecode(extracted.Bytes, options: null,
+            out OfficeRasterImage? embedded, out _));
+        OfficeColor actual = embedded!.GetPixel(0, 0);
+        Assert.Equal(expected.R, actual.R);
+        Assert.Equal(expected.G, actual.G);
+        Assert.Equal(expected.B, actual.B);
+    }
+
+    private static byte[] CreateGrayIccProfile() {
+        byte[] profile = PdfIccProfiles.SrgbIec6196621;
+        Encoding.ASCII.GetBytes("GRAY", 0, 4, profile, 16);
+        int tagCount = (profile[128] << 24) | (profile[129] << 16) |
+            (profile[130] << 8) | profile[131];
+        bool renamed = false;
+        for (int index = 0; index < tagCount; index++) {
+            int offset = 132 + index * 12;
+            if (profile[offset] == (byte)'r' && profile[offset + 1] == (byte)'T' &&
+                profile[offset + 2] == (byte)'R' && profile[offset + 3] == (byte)'C') {
+                profile[offset] = (byte)'k';
+                renamed = true;
+                break;
+            }
+        }
+        Assert.True(renamed);
+        return profile;
+    }
+
+    [Fact]
     public void InlineImage_WithRgbaPng_ReusesPreparedStreamDuringSerialization() {
         int alphaSplitPasses = 0;
         byte[] source = PdfPngTestImages.CreateRgbaPng(17, 53, 87, 129);

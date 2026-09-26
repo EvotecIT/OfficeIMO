@@ -7,6 +7,61 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 internal static class PdfPngTestImages {
+    internal static byte[] CreateIccRgbaPng(byte red, byte green, byte blue, byte alpha, byte[] profile) {
+        using var ms = CreatePng();
+        WritePngChunk(ms, "IHDR", new byte[] {
+            0, 0, 0, 1,
+            0, 0, 0, 1,
+            8, 6, 0, 0, 0
+        });
+        WriteIccChunk(ms, profile);
+        WritePngChunk(ms, "IDAT", BuildStoredZlib(new byte[] { 0, red, green, blue, alpha }));
+        WritePngChunk(ms, "IEND", Array.Empty<byte>());
+        return ms.ToArray();
+    }
+
+    internal static byte[] CreateIccGrayAlphaPng(byte gray, byte alpha, byte[] profile) {
+        using var ms = CreatePng();
+        WritePngChunk(ms, "IHDR", new byte[] {
+            0, 0, 0, 1, 0, 0, 0, 1, 8, 4, 0, 0, 0
+        });
+        WriteIccChunk(ms, profile);
+        WritePngChunk(ms, "IDAT", BuildStoredZlib(new byte[] { 0, gray, alpha }));
+        WritePngChunk(ms, "IEND", Array.Empty<byte>());
+        return ms.ToArray();
+    }
+
+    internal static byte[] CreateIccApngWithSeparateDefault(byte[] profile) {
+        using var ms = CreatePng();
+        WritePngChunk(ms, "IHDR", new byte[] {
+            0, 0, 0, 1, 0, 0, 0, 1, 8, 6, 0, 0, 0
+        });
+        WriteIccChunk(ms, profile);
+        WritePngChunk(ms, "acTL", new byte[] { 0, 0, 0, 1, 0, 0, 0, 0 });
+        WritePngChunk(ms, "IDAT", BuildStoredZlib(new byte[] { 0, 255, 0, 0, 255 }));
+        WritePngChunk(ms, "fcTL", new byte[] {
+            0, 0, 0, 0,
+            0, 0, 0, 1, 0, 0, 0, 1,
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 1, 0, 100, 0, 0
+        });
+        byte[] compressedFrame = BuildStoredZlib(new byte[] { 0, 0, 0, 255, 255 });
+        var frameData = new byte[compressedFrame.Length + 4];
+        frameData[3] = 1;
+        Buffer.BlockCopy(compressedFrame, 0, frameData, 4, compressedFrame.Length);
+        WritePngChunk(ms, "fdAT", frameData);
+        WritePngChunk(ms, "IEND", Array.Empty<byte>());
+        return ms.ToArray();
+    }
+
+    private static void WriteIccChunk(Stream stream, byte[] profile) {
+        byte[] compressedProfile = BuildStoredZlib(profile);
+        byte[] iccPayload = new byte[9 + compressedProfile.Length];
+        Encoding.ASCII.GetBytes("Profile", 0, 7, iccPayload, 0);
+        Buffer.BlockCopy(compressedProfile, 0, iccPayload, 9, compressedProfile.Length);
+        WritePngChunk(stream, "iCCP", iccPayload);
+    }
+
     internal static byte[] CreateTwoFrameApng() {
         using var ms = CreatePng();
         WritePngChunk(ms, "IHDR", new byte[] {

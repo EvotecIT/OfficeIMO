@@ -478,11 +478,40 @@ internal static class OfficePngContainerValidator {
         return true;
     }
 
+    /// <summary>Reads the single iCCP profile from a PNG already accepted by TryValidate.</summary>
+    internal static bool TryReadValidatedIccProfile(
+        byte[] bytes,
+        CancellationToken cancellationToken,
+        out byte[]? profile) {
+        profile = null;
+        int offset = Signature.Length;
+        while (offset <= bytes.Length - 12) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int length = ReadBigEndianInt32(bytes, offset);
+            if (length < 0 || (long)offset + 12L + length > bytes.Length) return false;
+            if (bytes[offset + 4] == (byte)'i' && bytes[offset + 5] == (byte)'C' &&
+                bytes[offset + 6] == (byte)'C' && bytes[offset + 7] == (byte)'P') {
+                return TryReadIccProfile(bytes, offset + 8, length, cancellationToken, out profile);
+            }
+            offset += 12 + length;
+        }
+        return false;
+    }
+
     private static bool HasValidIccProfile(
         byte[] bytes,
         int offset,
         int length,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken) =>
+        TryReadIccProfile(bytes, offset, length, cancellationToken, out _);
+
+    private static bool TryReadIccProfile(
+        byte[] bytes,
+        int offset,
+        int length,
+        CancellationToken cancellationToken,
+        out byte[]? profile) {
+        profile = null;
         if (length < 9 || !TryReadKeyword(bytes, offset, length, out int keywordEnd)) return false;
         int compressionMethodOffset = keywordEnd + 1;
         if (compressionMethodOffset >= offset + length || bytes[compressionMethodOffset] != 0) return false;
@@ -496,12 +525,14 @@ internal static class OfficePngContainerValidator {
         var compressed = new byte[compressedLength];
         Buffer.BlockCopy(bytes, compressedOffset, compressed, 0, compressedLength);
         try {
-            byte[] profile = OfficeZlibCodec.Decompress(
+            byte[] decoded = OfficeZlibCodec.Decompress(
                 compressed,
                 maximumProfileBytes,
                 cancellationToken: cancellationToken);
-            return OfficeIccProfileValidator.TryValidate(
-                profile, 0, profile.Length, cancellationToken);
+            if (!OfficeIccProfileValidator.TryValidate(
+                    decoded, 0, decoded.Length, cancellationToken)) return false;
+            profile = decoded;
+            return true;
         } catch (Exception exception) when (
             exception is ArgumentException ||
             exception is FormatException ||
