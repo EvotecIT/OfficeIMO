@@ -8,14 +8,15 @@ namespace OfficeIMO.Drawing;
 internal sealed partial class OfficeOpenTypeSubstitution {
     // Latin defaults must come from the selected Script/LangSys, not unrelated Arabic features.
     internal IReadOnlyList<string>? GetLatinDefaultFeatureTags() {
-        int[]? indexes = GetLatinDefaultFeatureIndexes();
+        int[]? indexes = GetLatinDefaultFeatureIndexes(out _);
         if (indexes == null) return null;
         var tags = new List<string>(indexes.Length);
         foreach (int index in indexes) tags.Add(ReadTag(_featureList + 2 + index * 6));
         return tags;
     }
 
-    private int[]? GetLatinDefaultFeatureIndexes() {
+    private int[]? GetLatinDefaultFeatureIndexes(out int requiredFeature) {
+        requiredFeature = -1;
         try {
             int scriptList = Relative(_table, _reader.ReadUInt16(_table + 4), 2);
             int count = _reader.ReadUInt16(scriptList);
@@ -41,7 +42,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
             Ensure(_featureList + 2, checked(totalFeatures * 6));
             var features = new SortedSet<int>();
             int required = _reader.ReadUInt16(language + 2);
-            if (required != ushort.MaxValue) features.Add(required);
+            if (required != ushort.MaxValue) { features.Add(required); requiredFeature = required; }
             for (int index = 0; index < featureCount; index++) features.Add(_reader.ReadUInt16(language + 6 + index * 2));
             var result = new int[features.Count];
             int output = 0;
@@ -67,7 +68,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         scalar >= 0x10780 && scalar <= 0x107BF || scalar >= 0x1DF00 && scalar <= 0x1DFFF;
 
     private bool ApplyLatinDefaultsCore(List<GlyphToken> glyphs, OfficeTextFeatureSettings settings, CancellationToken cancellationToken) {
-        int[]? features = GetLatinDefaultFeatureIndexes();
+        int[]? features = GetLatinDefaultFeatureIndexes(out int requiredFeature);
         if (features == null) return false;
         var lookups = new SortedDictionary<int, int>();
         int inspections = 0;
@@ -75,7 +76,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
             cancellationToken.ThrowIfCancellationRequested();
             int record = _featureList + 2 + index * 6;
             string tag = ReadTag(record);
-            int setting = settings.TryGetValue(tag, out int explicitValue) ? explicitValue
+            int setting = index == requiredFeature ? 1 : settings.TryGetValue(tag, out int explicitValue) ? explicitValue
                 : tag == "liga" || tag == "clig" || tag == "rlig" ? 1 : 0;
             if (setting <= 0) continue;
             int feature = Relative(_featureList, _reader.ReadUInt16(record + 4), 4);

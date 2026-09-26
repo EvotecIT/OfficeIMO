@@ -44,11 +44,11 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         return true;
     }
 
-    private bool CanApplyLookup(int lookupIndex, int depth, ref int inspections) {
+    private bool CanApplyLookup(int lookupIndex, int depth, ref int inspections, bool allowGlyphCountChanges = true) {
         if (depth >= MaximumLookupRecursion || ++inspections > MaximumPreflightInspections) return false;
         Ensure(_lookupList, 2);
         int lookupCount = _reader.ReadUInt16(_lookupList);
-        if (lookupIndex < 0 || lookupIndex >= lookupCount) return false;
+        if (lookupCount > MaximumLookupRecords || lookupIndex < 0 || lookupIndex >= lookupCount) return false;
         Ensure(_lookupList + 2, checked(lookupCount * 2));
         int lookup = Relative(_lookupList, _reader.ReadUInt16(_lookupList + 2 + lookupIndex * 2), 6);
         int lookupType = _reader.ReadUInt16(lookup);
@@ -70,16 +70,17 @@ internal sealed partial class OfficeOpenTypeSubstitution {
                 subtable = Relative(subtable, (int)relative, 2);
             }
             if (effectiveType < 1 || effectiveType > 8 || effectiveType == 7) return false;
-            if (depth > 0 && effectiveType == 8) return false;
+            if (!allowGlyphCountChanges && (effectiveType == 2 || effectiveType == 4)) return false;
+            if (effectiveType == 8 && (depth > 0 || subtableCount != 1)) return false;
             if ((effectiveType == 5 || effectiveType == 6) && _reader.ReadUInt16(subtable) != 3) return false;
             if (effectiveType == 8 && _reader.ReadUInt16(subtable) != 1) return false;
             if ((effectiveType == 5 || effectiveType == 6)
-                && !CanApplyContextLookupRecords(effectiveType, subtable, depth, ref inspections)) return false;
+                && !CanApplyContextLookupRecords(effectiveType, subtable, depth, ref inspections, allowGlyphCountChanges)) return false;
         }
         return true;
     }
 
-    private bool CanApplyContextLookupRecords(int lookupType, int subtable, int depth, ref int inspections) {
+    private bool CanApplyContextLookupRecords(int lookupType, int subtable, int depth, ref int inspections, bool allowGlyphCountChanges) {
         int records;
         int recordCount;
         int inputGlyphCount;
@@ -114,7 +115,10 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         for (int record = 0; record < recordCount; record++) {
             int sequenceIndex = _reader.ReadUInt16(records + record * 4);
             int nestedLookup = _reader.ReadUInt16(records + record * 4 + 2);
-            if (sequenceIndex >= inputGlyphCount || !CanApplyLookup(nestedLookup, depth + 1, ref inspections)) return false;
+            // Later records address original input slots. Until slot tracking is supported,
+            // decline any earlier record (including nested contexts) that can change their positions.
+            if (sequenceIndex >= inputGlyphCount || !CanApplyLookup(nestedLookup, depth + 1, ref inspections,
+                allowGlyphCountChanges && record == recordCount - 1)) return false;
         }
         return true;
     }
@@ -145,7 +149,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         return replacementCount;
     }
 
-    private void ApplyContextual(
+    private int ApplyContextual(
         List<GlyphToken> glyphs,
         int index,
         int subtable,
@@ -155,19 +159,21 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         int recursionDepth) {
         Ensure(subtable, 6);
         int format = _reader.ReadUInt16(subtable);
-        if (format != 3) return;
+        if (format != 3) return 0;
         int glyphCount = _reader.ReadUInt16(subtable + 2);
         int recordCount = _reader.ReadUInt16(subtable + 4);
-        if (glyphCount <= 0 || glyphCount > MaximumContextGlyphs || recordCount > MaximumContextLookupRecords || index > glyphs.Count - glyphCount) return;
+        if (glyphCount <= 0 || glyphCount > MaximumContextGlyphs || recordCount > MaximumContextLookupRecords || index > glyphs.Count - glyphCount) return 0;
         Ensure(subtable + 6, checked(glyphCount * 2 + recordCount * 4));
         for (int input = 0; input < glyphCount; input++) {
             int coverage = Relative(subtable, _reader.ReadUInt16(subtable + 6 + input * 2), 4);
-            if (CoverageIndex(coverage, glyphs[index + input].GlyphId) < 0) return;
+            if (CoverageIndex(coverage, glyphs[index + input].GlyphId) < 0) return 0;
         }
+        int countBefore = glyphs.Count;
         ApplyLookupRecords(glyphs, index, subtable + 6 + glyphCount * 2, recordCount, featureValue, cancellationToken, ref operations, recursionDepth);
+        return Math.Max(1, glyphCount + glyphs.Count - countBefore);
     }
 
-    private void ApplyChainedContextual(
+    private int ApplyChainedContextual(
         List<GlyphToken> glyphs,
         int index,
         int subtable,
@@ -176,40 +182,42 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         ref int operations,
         int recursionDepth) {
         Ensure(subtable, 4);
-        if (_reader.ReadUInt16(subtable) != 3) return;
+        if (_reader.ReadUInt16(subtable) != 3) return 0;
         int cursor = subtable + 2;
         int backtrackCount = ReadBoundedCount(cursor);
         cursor += 2;
         Ensure(cursor, checked(backtrackCount * 2 + 2));
-        if (index < backtrackCount) return;
+        if (index < backtrackCount) return 0;
         for (int backtrack = 0; backtrack < backtrackCount; backtrack++) {
             int coverage = Relative(subtable, _reader.ReadUInt16(cursor + backtrack * 2), 4);
-            if (CoverageIndex(coverage, glyphs[index - backtrack - 1].GlyphId) < 0) return;
+            if (CoverageIndex(coverage, glyphs[index - backtrack - 1].GlyphId) < 0) return 0;
         }
         cursor += backtrackCount * 2;
         int inputCount = ReadBoundedCount(cursor);
         cursor += 2;
         Ensure(cursor, checked(inputCount * 2 + 2));
-        if (inputCount <= 0 || index > glyphs.Count - inputCount) return;
+        if (inputCount <= 0 || index > glyphs.Count - inputCount) return 0;
         for (int input = 0; input < inputCount; input++) {
             int coverage = Relative(subtable, _reader.ReadUInt16(cursor + input * 2), 4);
-            if (CoverageIndex(coverage, glyphs[index + input].GlyphId) < 0) return;
+            if (CoverageIndex(coverage, glyphs[index + input].GlyphId) < 0) return 0;
         }
         cursor += inputCount * 2;
         int lookaheadCount = ReadBoundedCount(cursor);
         cursor += 2;
         Ensure(cursor, checked(lookaheadCount * 2 + 2));
-        if (index + inputCount + lookaheadCount > glyphs.Count) return;
+        if (index + inputCount + lookaheadCount > glyphs.Count) return 0;
         for (int lookahead = 0; lookahead < lookaheadCount; lookahead++) {
             int coverage = Relative(subtable, _reader.ReadUInt16(cursor + lookahead * 2), 4);
-            if (CoverageIndex(coverage, glyphs[index + inputCount + lookahead].GlyphId) < 0) return;
+            if (CoverageIndex(coverage, glyphs[index + inputCount + lookahead].GlyphId) < 0) return 0;
         }
         cursor += lookaheadCount * 2;
         int recordCount = _reader.ReadUInt16(cursor);
         cursor += 2;
         if (recordCount > MaximumContextLookupRecords) throw new InvalidDataException("A GSUB chained-context rule exceeds the managed lookup-record limit.");
         Ensure(cursor, checked(recordCount * 4));
+        int countBefore = glyphs.Count;
         ApplyLookupRecords(glyphs, index, cursor, recordCount, featureValue, cancellationToken, ref operations, recursionDepth);
+        return Math.Max(1, inputCount + glyphs.Count - countBefore);
     }
 
     private void ApplyReverseChaining(
@@ -277,7 +285,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         }
     }
 
-    private void ApplyLookupAt(
+    private int ApplyLookupAt(
         List<GlyphToken> glyphs,
         int glyphIndex,
         int lookupIndex,
@@ -287,7 +295,8 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         int recursionDepth) {
         Ensure(_lookupList, 2);
         int lookupCount = _reader.ReadUInt16(_lookupList);
-        if (lookupIndex < 0 || lookupIndex >= lookupCount || glyphIndex < 0 || glyphIndex >= glyphs.Count) return;
+        if (lookupIndex < 0 || lookupIndex >= lookupCount || glyphIndex < 0 || glyphIndex >= glyphs.Count) return 0;
+        if (lookupCount > MaximumLookupRecords) throw new InvalidDataException("A GSUB lookup list exceeds the managed lookup limit.");
         Ensure(_lookupList + 2, checked(lookupCount * 2));
         int lookup = Relative(_lookupList, _reader.ReadUInt16(_lookupList + 2 + lookupIndex * 2), 6);
         int lookupType = _reader.ReadUInt16(lookup);
@@ -304,28 +313,26 @@ internal sealed partial class OfficeOpenTypeSubstitution {
                 int extendedType = _reader.ReadUInt16(subtable + 2);
                 uint relative = _reader.ReadUInt32(subtable + 4);
                 if (relative > int.MaxValue) continue;
-                ApplySubtableAt(glyphs, glyphIndex, extendedType, Relative(subtable, (int)relative, 2), featureValue, cancellationToken, ref operations, recursionDepth);
+                int advance = ApplySubtableAt(glyphs, glyphIndex, extendedType, Relative(subtable, (int)relative, 2), featureValue, cancellationToken, ref operations, recursionDepth);
+                if (advance > 0) return advance;
             } else {
-                ApplySubtableAt(glyphs, glyphIndex, lookupType, subtable, featureValue, cancellationToken, ref operations, recursionDepth);
+                int advance = ApplySubtableAt(glyphs, glyphIndex, lookupType, subtable, featureValue, cancellationToken, ref operations, recursionDepth);
+                if (advance > 0) return advance;
             }
         }
+        return 0;
     }
 
-    private void ApplySubtableAt(
-        List<GlyphToken> glyphs,
-        int index,
-        int lookupType,
-        int subtable,
-        int featureValue,
-        CancellationToken cancellationToken,
-        ref int operations,
-        int recursionDepth) {
-        if (index < 0 || index >= glyphs.Count) return;
-        if (lookupType == 1) ApplySingle(glyphs, index, subtable);
-        else if (lookupType == 2) ApplyMultiple(glyphs, index, subtable);
-        else if (lookupType == 3) ApplyAlternate(glyphs, index, subtable, featureValue);
-        else if (lookupType == 4) ApplyLigature(glyphs, index, subtable, ref operations);
-        else if (lookupType == 5) ApplyContextual(glyphs, index, subtable, featureValue, cancellationToken, ref operations, recursionDepth);
-        else if (lookupType == 6) ApplyChainedContextual(glyphs, index, subtable, featureValue, cancellationToken, ref operations, recursionDepth);
+    private int ApplySubtableAt(
+        List<GlyphToken> glyphs, int index, int lookupType, int subtable, int featureValue,
+        CancellationToken cancellationToken, ref int operations, int recursionDepth) {
+        if (index < 0 || index >= glyphs.Count) return 0;
+        if (lookupType == 1) return ApplySingle(glyphs, index, subtable) ? 1 : 0;
+        if (lookupType == 2) return ApplyMultiple(glyphs, index, subtable);
+        if (lookupType == 3) return ApplyAlternate(glyphs, index, subtable, featureValue) ? 1 : 0;
+        if (lookupType == 4) return ApplyLigature(glyphs, index, subtable, ref operations) ? 1 : 0;
+        if (lookupType == 5) return ApplyContextual(glyphs, index, subtable, featureValue, cancellationToken, ref operations, recursionDepth);
+        if (lookupType == 6) return ApplyChainedContextual(glyphs, index, subtable, featureValue, cancellationToken, ref operations, recursionDepth);
+        return 0;
     }
 }

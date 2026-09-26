@@ -7,7 +7,7 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.TestAssets;
 
-internal static class ManagedTextShapingTestAssets {
+internal static partial class ManagedTextShapingTestAssets {
     internal const string FamilyName = "OfficeIMO Shaping Test";
 
     internal static byte[] CreateFont(params int[] scalars) {

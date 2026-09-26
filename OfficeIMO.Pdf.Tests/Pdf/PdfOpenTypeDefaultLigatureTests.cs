@@ -9,6 +9,67 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfOpenTypeDefaultLigatureTests {
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void LookupStopsAfterFirstMatchingSubtable(bool nested, bool extension) {
+        var request = new OfficeTextShapingRequest("A", "Test",
+            ManagedTextShapingTestAssets.CreateFontWithLookupScanningScenario(nested, extension, false), false, 1000,
+            direction: OfficeTextDirection.LeftToRight, language: "en", featureSettings: OfficeTextFeatureSettings.Default.With("calt", 1));
+        var result = Assert.IsType<OfficeTextShapingResult>(OfficeManagedTextShapingProvider.Instance.ShapeText(request));
+        Assert.Equal(new[] { 3, 4 }, result.Glyphs.Select(g => g.GlyphId));
+        Assert.Equal("A", string.Concat(result.Glyphs.Select(g => g.UnicodeText)));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ContextualScanSkipsInsertedOutput(bool extension) {
+        var request = new OfficeTextShapingRequest("A", "Test",
+            ManagedTextShapingTestAssets.CreateFontWithLookupScanningScenario(true, extension, true), false, 1000,
+            direction: OfficeTextDirection.LeftToRight, language: "en", featureSettings: OfficeTextFeatureSettings.Default.With("calt", 1));
+        var result = Assert.IsType<OfficeTextShapingResult>(OfficeManagedTextShapingProvider.Instance.ShapeText(request));
+        Assert.Equal(new[] { 3, 2 }, result.Glyphs.Select(g => g.GlyphId));
+        Assert.Equal("A", string.Concat(result.Glyphs.Select(g => g.UnicodeText)));
+    }
+    [Theory]
+    [InlineData("ccmp")]
+    [InlineData("rlig")]
+    public void MandatoryLanguageFeatureCannotBeDisabled(string tag) {
+        var font = PdfTrueTypeFontProgram.Parse(ManagedTextShapingTestAssets.CreateFontWithRequiredLigature(tag), "Test");
+        var run = font.ShapeText("fi", PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.OpenTypeLigatures,
+            featureSettings: OfficeTextFeatureSettings.Default.With(tag, 0)));
+        Assert.Equal((ushort)3, Assert.Single(run.Glyphs).GlyphId);
+        Assert.Equal("fi", run.Glyphs[0].UnicodeText);
+    }
+
+    [Fact]
+    public void OversizedLookupListDeclinesShapingAndRetainsDiagnostic() {
+        byte[] data = ManagedTextShapingTestAssets.CreateFontWithOversizedLookupList();
+        var report = new PdfConversionReport();
+        byte[] pdf = PdfDocument.Create(new PdfOptions().ReportDiagnosticsTo(report)
+            .EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test")).Paragraph(p => p.Text("fi")).ToBytes();
+        Assert.Contains("fi", PdfReadDocument.Open(pdf).ExtractText());
+        Assert.Contains(report.Warnings, warning => warning.Code == "unsupported-font-ligature-substitution");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ContextualExpansionRequiresStableInputSlots(bool expansionLast) {
+        byte[] data = ManagedTextShapingTestAssets.CreateFontWithContextualExpansion(expansionLast);
+        var request = new OfficeTextShapingRequest("AB", "Test", data, false, 1000,
+            direction: OfficeTextDirection.LeftToRight, language: "en",
+            featureSettings: OfficeTextFeatureSettings.Default.With("calt", 1));
+        var result = OfficeManagedTextShapingProvider.Instance.ShapeText(request);
+        if (!expansionLast) { Assert.Null(result); return; }
+        Assert.NotNull(result);
+        Assert.Equal(3, result!.Glyphs.Count);
+        Assert.Equal("AB", string.Concat(result.Glyphs.Select(g => g.UnicodeText)));
+        Assert.Equal(3, result.Glyphs.Last().GlyphId);
+    }
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void DefaultLigaturesUseFontGlyphsAndPreserveSourceText(bool cff) {

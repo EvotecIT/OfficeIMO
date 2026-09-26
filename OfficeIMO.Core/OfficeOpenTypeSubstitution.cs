@@ -83,86 +83,64 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         int subtableCount = _reader.ReadUInt16(lookup + 4);
         if (subtableCount > MaximumSubtablesPerLookup) throw new InvalidDataException("A GSUB lookup exceeds the managed subtable limit.");
         Ensure(lookup + 6, checked(subtableCount * 2));
-        for (int subtableIndex = 0; subtableIndex < subtableCount; subtableIndex++) {
-            int subtable = Relative(lookup, _reader.ReadUInt16(lookup + 6 + subtableIndex * 2), 2);
-            ApplySubtable(glyphs, lookupType, subtable, featureValue, cancellationToken, ref operations, 0);
-        }
-    }
-
-    private void ApplySubtable(
-        List<GlyphToken> glyphs,
-        int lookupType,
-        int subtable,
-        int featureValue,
-        System.Threading.CancellationToken cancellationToken,
-        ref int operations,
-        int extensionDepth) {
+        if (subtableCount == 0) return;
+        int firstSubtable = Relative(lookup, _reader.ReadUInt16(lookup + 6), 2);
+        int effectiveType = lookupType;
         if (lookupType == 7) {
-            if (extensionDepth > 0) return;
-            Ensure(subtable, 8);
-            if (_reader.ReadUInt16(subtable) != 1) return;
-            int extendedType = _reader.ReadUInt16(subtable + 2);
-            uint relative = _reader.ReadUInt32(subtable + 4);
-            if (relative > int.MaxValue) return;
-            ApplySubtable(glyphs, extendedType, Relative(subtable, (int)relative, 2), featureValue, cancellationToken, ref operations, extensionDepth + 1);
+            Ensure(firstSubtable, 8);
+            effectiveType = _reader.ReadUInt16(firstSubtable + 2);
+            uint relative = _reader.ReadUInt32(firstSubtable + 4);
+            if (relative > int.MaxValue) throw new InvalidDataException("A GSUB extension offset exceeds the managed limit.");
+            firstSubtable = Relative(firstSubtable, (int)relative, 2);
+        }
+        if (effectiveType == 8) {
+            ApplyReverseChaining(glyphs, firstSubtable, cancellationToken, ref operations);
             return;
         }
-
-        if (lookupType == 8) {
-            ApplyReverseChaining(glyphs, subtable, cancellationToken, ref operations);
-            return;
-        }
-
-        for (int glyphIndex = 0; glyphIndex < glyphs.Count; glyphIndex++) {
+        for (int glyphIndex = 0; glyphIndex < glyphs.Count;) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (++operations > MaximumOperations) throw new InvalidDataException("GSUB shaping exceeded the managed operation budget.");
-            if (lookupType == 1) ApplySingle(glyphs, glyphIndex, subtable);
-            else if (lookupType == 2) {
-                int replacementCount = ApplyMultiple(glyphs, glyphIndex, subtable);
-                if (replacementCount > 1) glyphIndex += replacementCount - 1;
-            }
-            else if (lookupType == 3) ApplyAlternate(glyphs, glyphIndex, subtable, featureValue);
-            else if (lookupType == 4) ApplyLigature(glyphs, glyphIndex, subtable, ref operations);
-            else if (lookupType == 5) ApplyContextual(glyphs, glyphIndex, subtable, featureValue, cancellationToken, ref operations, 0);
-            else if (lookupType == 6) ApplyChainedContextual(glyphs, glyphIndex, subtable, featureValue, cancellationToken, ref operations, 0);
+            int advance = ApplyLookupAt(glyphs, glyphIndex, lookupIndex, featureValue, cancellationToken, ref operations, 0);
+            glyphIndex += Math.Max(1, advance);
         }
     }
 
-    private void ApplySingle(List<GlyphToken> glyphs, int index, int subtable) {
+    private bool ApplySingle(List<GlyphToken> glyphs, int index, int subtable) {
         Ensure(subtable, 6);
         int format = _reader.ReadUInt16(subtable);
         int coverage = Relative(subtable, _reader.ReadUInt16(subtable + 2), 4);
         int coverageIndex = CoverageIndex(coverage, glyphs[index].GlyphId);
-        if (coverageIndex < 0) return;
+        if (coverageIndex < 0) return false;
         int replacement;
         if (format == 1) {
             replacement = unchecked((ushort)(glyphs[index].GlyphId + _reader.ReadInt16(subtable + 4)));
         } else if (format == 2) {
             int glyphCount = _reader.ReadUInt16(subtable + 4);
-            if (glyphCount > MaximumCoverageGlyphs || coverageIndex >= glyphCount) return;
+            if (glyphCount > MaximumCoverageGlyphs || coverageIndex >= glyphCount) return false;
             Ensure(subtable + 6, checked(glyphCount * 2));
             replacement = _reader.ReadUInt16(subtable + 6 + coverageIndex * 2);
         } else {
-            return;
+            return false;
         }
         if (replacement > 0 && replacement < _reader.GlyphCount) glyphs[index] = glyphs[index].WithGlyph(replacement);
+        return true;
     }
 
-    private void ApplyAlternate(List<GlyphToken> glyphs, int index, int subtable, int featureValue) {
+    private bool ApplyAlternate(List<GlyphToken> glyphs, int index, int subtable, int featureValue) {
         Ensure(subtable, 6);
-        if (_reader.ReadUInt16(subtable) != 1) return;
+        if (_reader.ReadUInt16(subtable) != 1) return false;
         int coverage = Relative(subtable, _reader.ReadUInt16(subtable + 2), 4);
         int coverageIndex = CoverageIndex(coverage, glyphs[index].GlyphId);
         int setCount = _reader.ReadUInt16(subtable + 4);
-        if (setCount > MaximumCoverageGlyphs || coverageIndex < 0 || coverageIndex >= setCount) return;
+        if (setCount > MaximumCoverageGlyphs || coverageIndex < 0 || coverageIndex >= setCount) return false;
         Ensure(subtable + 6, checked(setCount * 2));
         int set = Relative(subtable, _reader.ReadUInt16(subtable + 6 + coverageIndex * 2), 2);
         int alternateCount = _reader.ReadUInt16(set);
-        if (alternateCount <= 0 || alternateCount > MaximumCoverageGlyphs) return;
+        if (alternateCount <= 0 || alternateCount > MaximumCoverageGlyphs) return false;
         Ensure(set + 2, checked(alternateCount * 2));
         int selected = Math.Min(Math.Max(1, featureValue), alternateCount) - 1;
         int replacement = _reader.ReadUInt16(set + 2 + selected * 2);
         if (replacement > 0 && replacement < _reader.GlyphCount) glyphs[index] = glyphs[index].WithGlyph(replacement);
+        return true;
     }
 
     private bool ApplyLigature(List<GlyphToken> glyphs, int index, int subtable, ref int operations) {
