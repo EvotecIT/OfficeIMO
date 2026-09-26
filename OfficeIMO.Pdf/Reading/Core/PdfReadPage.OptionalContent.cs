@@ -310,6 +310,26 @@ public sealed partial class PdfReadPage {
         var budget = new PageContentBudget(this, cancellationToken);
         var activeForms = new HashSet<PdfStream>();
         Scan(GetContentStreamContent(budget), resources, 0);
+        PdfArray? annotations = ResolveArray(
+            _pageDict.Items.TryGetValue("Annots", out PdfObject? annotationsObject) ? annotationsObject : null);
+        if (annotations != null) {
+            EnsureAnnotationBudget(annotations);
+            foreach (PdfObject item in annotations.Items) {
+                cancellationToken.ThrowIfCancellationRequested();
+                PdfDictionary? annotation = ResolveDictionary(item);
+                if (annotation == null || !IsPrintableAnnotation(annotation) ||
+                    HasEffectiveOptionalContentEntry(annotation) ||
+                    !TryGetNormalAppearanceStream(annotation, out PdfStream appearanceStream) ||
+                    HasEffectiveOptionalContentEntry(appearanceStream.Dictionary) ||
+                    !activeForms.Add(appearanceStream)) continue;
+                try {
+                    PdfDictionary? appearanceResources = ResolveDictionary(
+                        appearanceStream.Dictionary.Items.TryGetValue("Resources", out PdfObject? appearanceResource)
+                            ? appearanceResource : null) ?? resources;
+                    Scan(PdfEncoding.Latin1GetString(budget.Decode(appearanceStream)), appearanceResources, 1);
+                } finally { activeForms.Remove(appearanceStream); }
+            }
+        }
         return fonts;
 
         void Scan(string content, PdfDictionary? currentResources, int depth) {
@@ -439,10 +459,14 @@ public sealed partial class PdfReadPage {
 
     private static bool IsUnsupportedMarkedContent(PdfContentOperation operation, PdfPageOptionalContentVisibility? visibility) {
         object? property = operation.Operands.Count > 0 ? operation.Operands[operation.Operands.Count - 1] : null;
-        return (property is string name && visibility?.IsUnsupported(name) == true) ||
-            (property is PdfInlineOptionalContentReferences references && visibility?.IsUnsupported(references) == true) ||
+        return (property is string name && (visibility == null || visibility.HasInvalidProperty(name) || visibility.IsUnsupported(name))) ||
+            (property is PdfInlineOptionalContentReferences references &&
+                (visibility == null || !references.IsMembershipDictionary ||
+                 visibility.HasInvalidMembershipReferences(references) || visibility.IsUnsupported(references))) ||
             (property is PdfContentDictionary dictionary && dictionary.OptionalContentReferences is not null &&
-                visibility?.IsUnsupported(dictionary.OptionalContentReferences) == true);
+                (visibility == null || !dictionary.OptionalContentReferences.IsMembershipDictionary ||
+                 visibility.HasInvalidMembershipReferences(dictionary.OptionalContentReferences) ||
+                 visibility.IsUnsupported(dictionary.OptionalContentReferences)));
     }
 
     internal IReadOnlyList<PdfTextSpan> GetHiddenOptionalContentTextSpans(bool includeArtifactText) {

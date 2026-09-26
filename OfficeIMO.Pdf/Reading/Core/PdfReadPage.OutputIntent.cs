@@ -58,7 +58,7 @@ public sealed partial class PdfReadPage {
                 if (operation.InlineImage is PdfContentInlineImage inlineImage) {
                     string? inlineColorSpace = (ResolveObject(inlineImage.Dictionary.Items.TryGetValue("ColorSpace", out PdfObject? inlineColor)
                         ? inlineColor : null) as PdfName)?.Name;
-                    foundRgb |= !defaultRgbIsOverridden && inlineColorSpace == "DeviceRGB";
+                    foundRgb |= !defaultRgbIsOverridden && ClassifySelected(inlineColorSpace).UsesDeviceRgb;
                     foundRgb |= fillRgb && inlineImage.Dictionary.Items.TryGetValue("ImageMask", out PdfObject? inlineMask) &&
                         ResolveObject(inlineMask) is PdfBoolean { Value: true };
                     foundIndependent |= fillIndependent && inlineImage.Dictionary.Items.TryGetValue("ImageMask", out PdfObject? independentInlineMask) &&
@@ -142,7 +142,7 @@ public sealed partial class PdfReadPage {
                         if (subtype == "Image") {
                             string? colorSpace = (ResolveObject(stream.Dictionary.Items.TryGetValue("ColorSpace", out PdfObject? imageColor)
                                 ? imageColor : null) as PdfName)?.Name;
-                            foundRgb |= !defaultRgbIsOverridden && colorSpace == "DeviceRGB";
+                            foundRgb |= !defaultRgbIsOverridden && ClassifySelected(colorSpace).UsesDeviceRgb;
                             foundRgb |= fillRgb && stream.Dictionary.Items.TryGetValue("ImageMask", out PdfObject? imageMask) &&
                                 ResolveObject(imageMask) is PdfBoolean { Value: true };
                             foundIndependent |= fillIndependent && stream.Dictionary.Items.TryGetValue("ImageMask", out PdfObject? independentImageMask) &&
