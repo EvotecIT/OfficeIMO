@@ -63,6 +63,76 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
         Assert.Equal("Repeated", result.GetCell(1, 2).Paragraphs[0].Runs[0].Text);
     }
 
+    [Fact]
+    public void RepeatedOdpTableRowsRespectLimitBeforeExpansion() {
+        OdpPresentation source = OdpPresentation.Create();
+        source.AddSlide().AddTable(OdfRect.FromCentimeters(1, 1, 8, 3), 1, 1);
+        XElement row = source.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Table + "table-row").Single();
+        row.SetAttributeValue(OdfNamespaces.Table + "number-rows-repeated", 1_000);
+        source.Package.MarkXmlDirty("content.xml");
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            source.ToPowerPointPresentationResult(new PowerPointOpenDocumentConversionOptions {
+                MaxTableRows = 2
+            }));
+        Assert.Contains("configured conversion limit", exception.Message);
+    }
+
+    [Fact]
+    public void PowerPointShapeHoverIsExplicitLoss() {
+        using PowerPointPresentation source = CreatePowerPoint();
+        source.Slides[0].AddTextBox("Hover", 0, 0, 100000, 100000);
+        Shape shape = source.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide!
+            .Descendants<Shape>().Single();
+        shape.NonVisualShapeProperties!.NonVisualDrawingProperties!
+            .AppendChild(new A.HyperlinkOnHover { Id = string.Empty, Action = "ppaction://hlinkshowjump?jump=nextslide" });
+
+        AssertPowerPointLoss(source, "shape-hover-interactions");
+    }
+
+    [Fact]
+    public void LinkedOdpTextBoxesAreExplicitLoss() {
+        OdpPresentation source = OdpPresentation.Create();
+        source.AddSlide().AddTextBox(OdfRect.FromCentimeters(1, 1, 4, 2)).AddParagraph("Flowing text");
+        XElement textBox = source.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Draw + "text-box").Single();
+        textBox.SetAttributeValue(OdfNamespaces.Draw + "chain-next-name", "NextFrame");
+        source.Package.MarkXmlDirty("content.xml");
+
+        AssertOdpLoss(source, "text-box-chains");
+    }
+
+    [Fact]
+    public void OdpHeadingOutlineLevelIsExplicitLoss() {
+        OdpPresentation source = OdpPresentation.Create();
+        source.AddSlide().AddTextBox(OdfRect.FromCentimeters(1, 1, 4, 2)).AddParagraph("Heading");
+        XElement paragraph = source.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Text + "p").Single();
+        paragraph.ReplaceWith(new XElement(OdfNamespaces.Text + "h",
+            new XAttribute(OdfNamespaces.Text + "outline-level", "2"), paragraph.Nodes()));
+        source.Package.MarkXmlDirty("content.xml");
+
+        AssertOdpLoss(source, "text-headings");
+    }
+
+    [Theory]
+    [InlineData("text-transform", "lowercase")]
+    [InlineData("text-transform", "capitalize")]
+    [InlineData("text-position", "super 40%")]
+    public void OdpProjectedTextEffectsAreExplicitLoss(string property, string value) {
+        OdpPresentation source = OdpPresentation.Create();
+        OdpTextBox box = source.AddSlide().AddTextBox(OdfRect.FromCentimeters(1, 1, 4, 2));
+        OdfStyle style = source.Styles.CreateNamed("ProjectedText", OdfStyleFamily.Paragraph);
+        style.Element.Add(new XElement(OdfNamespaces.Style + "text-properties",
+            new XAttribute((property == "text-transform" ? OdfNamespaces.Fo : OdfNamespaces.Style) + property, value)));
+        source.Package.MarkXmlDirty("styles.xml");
+        OdpParagraph paragraph = box.AddParagraph("Authored text");
+        paragraph.StyleName = style.Name;
+
+        AssertOdpLoss(source, "text-effects");
+    }
+
 
 
     [Fact]
@@ -220,6 +290,15 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
         PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
         source.AddSlide(PowerPointSlideLayoutType.Blank);
         return source;
+    }
+
+    private static void AssertOdpLoss(OdpPresentation source, string feature) {
+        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
+        using PowerPointPresentation target = conversion.Value;
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == feature &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+        Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointPresentationResult(
+            new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
     private static void AssertPowerPointLoss(PowerPointPresentation source, string feature) {

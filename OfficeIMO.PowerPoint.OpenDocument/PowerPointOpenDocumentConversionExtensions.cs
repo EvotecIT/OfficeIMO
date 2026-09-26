@@ -236,6 +236,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             "PowerPoint hyperlink tooltips have no equivalent in the current ODP hyperlink surface and were omitted.");
         AddUnsupported(report, "shape-hyperlinks", unsupportedShapeHyperlinks,
             "PowerPoint shape-level click hyperlinks, including internal slide jumps, are not translated to ODP.");
+        AddUnsupported(report, "shape-hover-interactions", CountUnmappedPowerPointShapeHover(sourcePresentation, sourceSlideIds),
+            "PowerPoint shape-level mouse-over hyperlinks and actions are not translated to ODP.");
         AddUnsupported(report, "run-interactions", textState.UnsupportedRunInteractions,
             "PowerPoint run actions, mouse-over interactions, and action sounds outside ordinary click hyperlinks are not represented in ODP.");
         AddUnsupported(report, "images", unsupportedPictures, "Images disabled by options or unavailable from an embedded image part were skipped.");
@@ -412,11 +414,12 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                         unsupportedShapes++;
                         continue;
                     }
-                    OdpTableRow[] sourceRows = table.Rows.ToArray();
-                    int rowCount = Math.Max(1, sourceRows.Length);
+                    IReadOnlyList<OdpTableRow> rows = table.Rows;
+                    int rowCount = Math.Max(1, rows.Count);
                     if (rowCount > effective.MaxTableRows) {
                         throw new InvalidDataException($"ODP table rows ({rowCount}) exceed the configured conversion limit ({effective.MaxTableRows}).");
                     }
+                    OdpTableRow[] sourceRows = rows.ToArray();
                     int columnCount = Math.Max(1, sourceRows.Select(row => row.Cells.Count).DefaultIfEmpty(1).Max());
                     if (columnCount > effective.MaxTableColumns) {
                         throw new InvalidDataException($"ODP table columns ({columnCount}) exceed the configured conversion limit ({effective.MaxTableColumns}).");
@@ -556,6 +559,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             "ODP slide image, gradient, transparency, hidden master background, or unsupported drawing-page background was omitted.");
         AddUnsupported(report, "shape-appearance", unsupportedShapeAppearance,
             "ODP graphic fill, stroke, transparency, dash, or effect styling outside solid colors was omitted.");
+        AddUnsupported(report, "text-box-chains", CountUnmappedOdpTextBoxChains(source),
+            "Linked ODP text boxes were converted as independent boxes; text flow between frames was not retained.");
         AddUnsupported(report, "shape-text", unsupportedBasicShapeText,
             "Text inside ODP rectangle and ellipse shapes was omitted because basic PowerPoint auto-shapes have no editable text mapping in this adapter.");
         AddUnsupported(report, "shape-accessibility", unsupportedShapeAccessibility,
@@ -579,6 +584,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             "ODP paragraph margins, indent, spacing, tab stops, and character spacing outside the mapped subset were not transferred to PowerPoint.");
         AddUnsupported(report, "text-effects", unsupportedOdpTextEffects,
             "ODP text effects and properties outside the mapped formatting subset were not transferred to PowerPoint.");
+        AddUnsupported(report, "text-headings", CountUnmappedOdpHeadings(source),
+            "ODP heading outline levels were flattened to ordinary PowerPoint paragraphs.");
         AddUnsupported(report, "table-values", source.Slides.Sum(slide => slide.Shapes.OfType<OdpTable>()
                 .Count(HasUnmappedOdpTableValues)),
             "Typed ODP table-cell values were not transferred to PowerPoint.");

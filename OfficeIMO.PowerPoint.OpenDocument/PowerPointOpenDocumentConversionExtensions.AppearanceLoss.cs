@@ -9,6 +9,19 @@ using P = DocumentFormat.OpenXml.Presentation;
 namespace OfficeIMO.PowerPoint.OpenDocument;
 
 public static partial class PowerPointOpenDocumentConversionExtensions {
+    private static int CountUnmappedPowerPointShapeHover(PresentationPart? presentation,
+        IReadOnlyList<P.SlideId> slideIds) {
+        if (presentation == null) return 0;
+        int count = 0;
+        foreach (P.SlideId slideId in slideIds) {
+            if (slideId.RelationshipId?.Value is not string id ||
+                presentation.GetPartById(id) is not SlidePart part || part.Slide == null) continue;
+            count += part.Slide.Descendants<P.NonVisualDrawingProperties>()
+                .Count(properties => properties.GetFirstChild<A.HyperlinkOnHover>() != null);
+        }
+        return count;
+    }
+
     private static int CountUnmappedPowerPointShapeAppearance(PresentationPart? presentation,
         IReadOnlyList<P.SlideId> slideIds) {
         if (presentation == null) return 0;
@@ -267,6 +280,17 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         });
     }
 
+    private static int CountUnmappedOdpTextBoxChains(OdpPresentation source) =>
+        source.Slides.Sum(slide => slide.Shapes.Count(shape =>
+            shape.Element.DescendantsAndSelf().Any(element =>
+                element.Name == OdfNamespaces.Draw + "text-box" &&
+                element.Attribute(OdfNamespaces.Draw + "chain-next-name") != null)));
+
+    private static int CountUnmappedOdpHeadings(OdpPresentation source) =>
+        source.Package.GetXml("content.xml").Descendants(OdfNamespaces.Text + "h")
+            .Count(heading => heading.Ancestors(OdfNamespaces.Draw + "page").Any() &&
+                !heading.Ancestors(OdfNamespaces.Presentation + "notes").Any());
+
     private static bool IsEquivalentOdpDefaultTextProperty(XAttribute attribute) =>
         (attribute.Name == OdfNamespaces.Fo + "font-weight" ||
          attribute.Name == OdfNamespaces.Fo + "font-style") &&
@@ -275,6 +299,10 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
     private static bool IsMappedOdpTextProperty(XAttribute attribute) {
         if (attribute.IsNamespaceDeclaration) return true;
         XName name = attribute.Name;
+        if (name == OdfNamespaces.Style + "text-position")
+            return !attribute.Value.Contains('%');
+        if (name == OdfNamespaces.Fo + "text-transform")
+            return attribute.Value is "uppercase" or "none";
         if (name == OdfNamespaces.Fo + "font-weight")
             return attribute.Value is "bold" or "normal";
         if (name == OdfNamespaces.Fo + "font-style")
@@ -288,8 +316,6 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             name == OdfNamespaces.Style + "text-underline-type" ||
             name == OdfNamespaces.Style + "text-line-through-style" ||
             name == OdfNamespaces.Style + "text-line-through-type" ||
-            name == OdfNamespaces.Style + "text-position" ||
-            name == OdfNamespaces.Fo + "text-transform" ||
             name == OdfNamespaces.Fo + "font-variant" ||
             // These have their own paragraph-layout loss count.
             name == OdfNamespaces.Fo + "letter-spacing" ||
