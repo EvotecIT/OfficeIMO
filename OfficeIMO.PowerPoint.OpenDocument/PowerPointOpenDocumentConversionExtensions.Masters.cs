@@ -57,7 +57,9 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
           (root.FirstSlideNum?.Value ?? 1) + "|rtl=" +
           (root.RightToLeft?.Value ?? false) + "|title=" +
           (root.ShowSpecialPlaceholderOnTitleSlide?.Value ?? true) + "|notes=" +
-          (root.NotesSize?.Cx?.Value).ToString() + "," + (root.NotesSize?.Cy?.Value).ToString();
+          (root.NotesSize?.Cx?.Value).ToString() + "," + (root.NotesSize?.Cy?.Value).ToString() +
+          "|defaultText=" + (root.DefaultTextStyle is P.DefaultTextStyle defaults &&
+              (defaults.HasAttributes || defaults.HasChildren) ? defaults.OuterXml : string.Empty);
 
     private static int CountUnmappedPowerPointRootSettings(PresentationPart? presentation) =>
         PowerPointRootSettingsSignature(presentation?.Presentation) == DefaultPowerPointRootSettings.Value ? 0 : 1;
@@ -150,10 +152,15 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                 presentation.GetPartById(id) is not SlidePart part ||
                 part.NotesSlidePart?.NotesSlide is not P.NotesSlide notes) continue;
             bool authoredNotesShapes = notes.Descendants<P.Shape>().Any(shape =>
+                shape.NonVisualShapeProperties?.ApplicationNonVisualDrawingProperties?
+                    .GetFirstChild<P.PlaceholderShape>() == null ||
                 shape.ShapeProperties is P.ShapeProperties properties && HasUnmappedPowerPointShapeAppearance(properties) ||
                 shape.ShapeStyle != null ||
                 shape.TextBody?.BodyProperties is A.BodyProperties body && (body.HasAttributes || body.HasChildren));
-            if (notes.CommonSlideData?.Background != null || authoredNotesShapes || notes.GetAttributes().Any(attribute =>
+            bool authoredNotesConnectionsOrGroups = notes.Descendants<P.ConnectionShape>().Any() ||
+                notes.Descendants<P.GroupShape>().Any();
+            if (notes.CommonSlideData?.Background != null || authoredNotesShapes ||
+                authoredNotesConnectionsOrGroups || notes.GetAttributes().Any(attribute =>
                 attribute.LocalName is "showMasterSp" or "showMasterPhAnim" &&
                 attribute.Value is "0" or "false")) count++;
         }
@@ -350,12 +357,25 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             return properties.Attributes().Any(attribute => attribute.Name != draw + "fill" &&
                 attribute.Name != draw + "fill-color");
         });
+        var referencedMasters = new HashSet<string>(source.Slides.Select(slide => slide.MasterPageName)
+            .Where(name => !string.IsNullOrWhiteSpace(name)).Select(name => name!), StringComparer.Ordinal);
+        bool hasUnprojectedBackground = styles.Descendants(style + "master-page").Any(master => {
+            string? name = (string?)master.Attribute(style + "name");
+            if (name == null || referencedMasters.Contains(name)) return false;
+            string? styleName = (string?)master.Attribute(draw + "style-name");
+            if (styleName == null) return false;
+            XElement? properties = EffectiveOdfStyleProperties(source, OdfStyleFamily.DrawingPage,
+                styleName, style + "drawing-page-properties", "styles.xml");
+            string? fill = (string?)properties?.Attribute(draw + "fill");
+            return (fill == null || fill == "solid") &&
+                OdfColor.TryParse((string?)properties?.Attribute(draw + "fill-color"), out _);
+        });
         bool hasAuthoredNames = masters.Count == 1 &&
             !string.Equals(masters[0].Name, DefaultOdpMasterLayoutNames.Value.Master, StringComparison.Ordinal) ||
             layouts.Count == 1 &&
             !string.Equals(layouts[0].Name, DefaultOdpMasterLayoutNames.Value.Layout, StringComparison.Ordinal);
         return hasContent || hasUnsupportedAttributes || hasUnsupportedPageLayout ||
-            hasUnknownPageLayoutReference || hasUnsupportedBackground ||
+            hasUnknownPageLayoutReference || hasUnsupportedBackground || hasUnprojectedBackground ||
             hasAuthoredNames || masters.Count > 1 || layouts.Count > 1
             ? masters.Count + layouts.Count
             : 0;

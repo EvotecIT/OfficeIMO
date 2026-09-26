@@ -104,7 +104,15 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         root.Descendants<A.EndParagraphRunProperties>().Count(HasUnmappedPowerPointInheritedRunFormatting);
 
     private static bool HasUnmappedPowerPointTextTypography(OpenXmlElement properties) =>
-        properties.GetAttributes().Any(attribute => attribute.LocalName is "spc" or "kern");
+        properties.GetAttributes().Any(attribute => attribute.LocalName is "spc" or "kern") ||
+        properties.ChildElements.Any(child => !IsMappedPowerPointRunChild(child));
+
+    private static bool IsMappedPowerPointRunChild(OpenXmlElement child) =>
+        child is A.LatinFont latin
+            ? !latin.HasChildren && latin.GetAttributes().Count == 1 &&
+              latin.GetAttributes()[0].LocalName == "typeface" &&
+              !string.IsNullOrWhiteSpace(latin.Typeface?.Value)
+            : child is A.HyperlinkOnClick or A.Highlight || IsFillElement(child);
 
     private static bool HasUnmappedPowerPointInheritedRunFormatting(OpenXmlElement properties) =>
         properties.GetAttributes().Any(attribute => attribute.LocalName is
@@ -349,7 +357,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                 properties.GetAttributes().Any(attribute =>
                     attribute.LocalName is not "algn" and not "rtl" &&
                     (attribute.LocalName != "lvl" || attribute.Value != "0")) ||
-                properties.ChildElements.Any(child => child.LocalName is "spcBef" or "spcAft" or "tabLst")) +
+                properties.ChildElements.Any(child => child.LocalName is "spcBef" or "spcAft" or "tabLst" or "buBlip")) +
         root.Descendants<A.ListStyle>().Sum(style => style.ChildElements.Count(level =>
                 level.LocalName.StartsWith("lvl", StringComparison.Ordinal) &&
                 level.LocalName.EndsWith("pPr", StringComparison.Ordinal) &&
@@ -595,7 +603,6 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             effective.SetAttributeValue(OdfNamespaces.Draw + "fill-gradient-name", null);
             effective.SetAttributeValue(OdfNamespaces.Draw + "fill-image-name", null);
             effective.SetAttributeValue(OdfNamespaces.Draw + "fill-hatch-name", null);
-            effective.SetAttributeValue(OdfNamespaces.Draw + "fill-transparency-gradient-name", null);
         }
         return effective.HasAttributes || effective.HasElements ? effective : null;
     }

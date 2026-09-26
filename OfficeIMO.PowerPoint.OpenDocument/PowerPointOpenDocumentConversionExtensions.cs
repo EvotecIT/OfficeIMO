@@ -247,7 +247,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         AddUnsupported(report, "text-colors", unsupportedTextColors,
             "Inherited, theme, system, transformed, and other unsupported run or highlight colors were not transferred to ODP.");
         AddUnsupported(report, "text-typography", unsupportedTextTypography,
-            "PowerPoint run character spacing and kerning were not transferred to ODP.");
+            "PowerPoint run character spacing, kerning, script-specific fonts, and unsupported direct run effects were not transferred to ODP.");
         AddUnsupported(report, "embedded-fonts", unsupportedEmbeddedFonts,
             "Embedded PowerPoint font payloads were not transferred to ODP.");
         AddUnsupported(report, "theme", unsupportedThemes,
@@ -257,7 +257,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         AddUnsupported(report, "shape-geometry", unsupportedTextGeometry,
             "Text-bearing nonrectangular or custom PowerPoint geometry was flattened to an ODP text frame.");
         AddUnsupported(report, "paragraph-layout", unsupportedParagraphLayout,
-            "PowerPoint paragraph margins, indent, spacing, tab stops, or outline level were not transferred to ODP.");
+            "PowerPoint paragraph margins, indent, spacing, tab stops, outline level, or picture bullets were not transferred to ODP.");
         AddUnsupported(report, "table-appearance", unsupportedTableAppearance,
             "Table style, cell fill, borders, margins, alignment, or custom row and column sizing was not translated.");
         if (approximatedMasterLayouts > 0) report.Add("masters-layouts", OdfConversionMappingStatus.Approximated,
