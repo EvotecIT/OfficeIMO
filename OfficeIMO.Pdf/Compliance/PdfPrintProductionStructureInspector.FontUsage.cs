@@ -348,7 +348,7 @@ internal static partial class PdfPrintProductionStructureInspector {
                 return;
             }
             int bits = (int)flags.Value;
-            if ((bits & 4) == 0 || (bits & 3) != 0) return;
+            if ((bits & 4) == 0 || (bits & 2) != 0) return;
 
             PdfObject? appearances = dictionary.Items.TryGetValue("AP", out PdfObject? apObject)
                 ? ResolveObject(_objects, apObject, resolvedDepth + 1, _limits.MaxObjectNestingDepth, out _)

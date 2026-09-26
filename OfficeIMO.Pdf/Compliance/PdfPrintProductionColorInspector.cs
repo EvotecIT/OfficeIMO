@@ -638,7 +638,7 @@ internal static partial class PdfPrintProductionColorInspector {
                 continue;
             }
             int flagBits = (int)flags.Value;
-            if ((flagBits & 4) != 0 && (flagBits & 3) == 0) return true;
+            if ((flagBits & 4) != 0 && (flagBits & 2) == 0) return true;
         }
         return false;
     }

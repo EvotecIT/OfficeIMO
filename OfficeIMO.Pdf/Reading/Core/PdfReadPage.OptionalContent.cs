@@ -80,7 +80,7 @@ public sealed partial class PdfReadPage {
         PdfObject? flagsObject = annotation.Items.TryGetValue("F", out PdfObject? value) ? ResolveObject(value) : null;
         if (flagsObject is not PdfNumber flags) return false;
         int bits = (int)flags.Value;
-        return (bits & 4) != 0 && (bits & 3) == 0;
+        return (bits & 4) != 0 && (bits & 2) == 0;
     }
 
     private bool AnnotationAppearanceUsesOptionalContent(
