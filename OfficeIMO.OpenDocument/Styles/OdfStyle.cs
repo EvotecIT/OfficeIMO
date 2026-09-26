@@ -194,7 +194,33 @@ public sealed class OdfStyle {
     /// <summary>Explicit horizontal paragraph alignment.</summary>
     public string? TextAlign {
         get => (string?)ParagraphProperties?.Attribute(OdfNamespaces.Fo + "text-align");
-        set => SetAttribute(GetProperties(OdfNamespaces.Style + "paragraph-properties"), OdfNamespaces.Fo + "text-align", value);
+        set {
+            string? alignmentSource = Family == OdfStyleFamily.TableCell ? CellTextAlignSource : null;
+            SetAttribute(GetProperties(OdfNamespaces.Style + "paragraph-properties"), OdfNamespaces.Fo + "text-align", value);
+            if (Family == OdfStyleFamily.TableCell && (alignmentSource is null or "fix"))
+                CellTextAlignSource = value == null ? null : "fix";
+        }
+    }
+    /// <summary>Whether table-cell horizontal alignment is fixed or follows the value type.</summary>
+    public string? CellTextAlignSource {
+        get => (string?)_element.Element(OdfNamespaces.Style + "table-cell-properties")?
+            .Attribute(OdfNamespaces.Style + "text-align-source");
+        set => SetAttribute(GetProperties(OdfNamespaces.Style + "table-cell-properties"),
+            OdfNamespaces.Style + "text-align-source", value);
+    }
+    /// <summary>Explicit table-cell vertical alignment token.</summary>
+    public string? CellVerticalAlign {
+        get => (string?)_element.Element(OdfNamespaces.Style + "table-cell-properties")?
+            .Attribute(OdfNamespaces.Style + "vertical-align");
+        set => SetAttribute(GetProperties(OdfNamespaces.Style + "table-cell-properties"),
+            OdfNamespaces.Style + "vertical-align", value);
+    }
+    /// <summary>Explicit table-cell text wrapping token.</summary>
+    public string? CellWrapOption {
+        get => (string?)_element.Element(OdfNamespaces.Style + "table-cell-properties")?
+            .Attribute(OdfNamespaces.Fo + "wrap-option");
+        set => SetAttribute(GetProperties(OdfNamespaces.Style + "table-cell-properties"),
+            OdfNamespaces.Fo + "wrap-option", value);
     }
     /// <summary>Explicit ODF paragraph writing-mode token.</summary>
     public string? WritingMode {

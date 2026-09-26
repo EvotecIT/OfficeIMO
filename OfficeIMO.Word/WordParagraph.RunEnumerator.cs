@@ -24,6 +24,10 @@ namespace OfficeIMO.Word {
             foreach (DocumentFormat.OpenXml.OpenXmlElement element in container.ChildElements) {
                 if (element is Run runElement) {
                     yield return new WordParagraph(_document, _paragraph!, runElement) { _hyperlink = hyperlink };
+                } else if (element is CustomXmlRun customXml) {
+                    foreach (WordParagraph run in EnumerateVisibleRuns(customXml, hyperlink)) {
+                        yield return run;
+                    }
                 } else if (element is Hyperlink nestedHyperlink) {
                     foreach (WordParagraph run in EnumerateVisibleRuns(nestedHyperlink, nestedHyperlink)) {
                         yield return run;

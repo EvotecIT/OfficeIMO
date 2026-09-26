@@ -12,7 +12,25 @@ public static partial class WordOpenDocumentConversionExtensions {
         OdtParagraph first = target;
         target.PageBreakBefore = source.PageBreakBefore;
         ApplyWordParagraphFormatting(source, target);
-        foreach (WordRunSnapshot run in source.Runs) {
+        WordInlineFieldSnapshot[] fields = source.InlineFields.OrderBy(field => field.RunIndex).ToArray();
+        int fieldIndex = 0;
+        for (int runIndex = 0; runIndex <= source.Runs.Count; runIndex++) {
+            while (fieldIndex < fields.Length && fields[fieldIndex].RunIndex == runIndex) {
+                WordInlineFieldSnapshot field = fields[fieldIndex++];
+                if (field.IsHiddenInstructionContent) continue;
+                if (TryMapWordField(field, out OdtFieldKind kind)) {
+                    target.AddField(kind, field.ResultText).IsFixed = field.IsLocked;
+                    wrote = true;
+                } else if (field.ResultText.Length > 0) {
+                    if (!string.IsNullOrWhiteSpace(field.HyperlinkUri) || !string.IsNullOrWhiteSpace(field.HyperlinkAnchor)) {
+                        target.AddHyperlink(field.ResultText, field.HyperlinkUri ?? "#" + field.HyperlinkAnchor);
+                        hyperlinks++;
+                    } else target.AddText(field.ResultText);
+                    wrote = true;
+                }
+            }
+            if (runIndex == source.Runs.Count) break;
+            WordRunSnapshot run = source.Runs[runIndex];
             int start = 0;
             int imageIndex = 0;
             if (run.NonTextBreaks != null) {
