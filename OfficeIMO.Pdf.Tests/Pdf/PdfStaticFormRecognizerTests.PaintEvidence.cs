@@ -91,6 +91,101 @@ public sealed partial class PdfStaticFormRecognizerTests {
     }
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void UnsupportedTransferStateCannotProveAnOutline(bool restoreState) {
+        byte[] source = StaticPdf("q /GS1 gs " + (restoreState ? "Q " : "") + "0 0 0 RG 1 w 80 80 120 20 re S",
+            "/Resources << /ExtGState << /GS1 << /TR << /FunctionType 2 /Domain [0 1] /C0 [1] /C1 [1] /N 1 >> >> >> >>");
+        var label = new[] { new PdfStaticFormTextEvidence(1, "Name", 10D, 100D, 70D, 120D, 1D) };
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: label);
+        if (restoreState) Assert.Single(report.Proposals);
+        else {
+            Assert.Empty(report.Proposals);
+            Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "unsupported-effect");
+        }
+    }
+
+    [Theory]
+    [InlineData("0.02", false)]
+    [InlineData("1", true)]
+    public void NativeLabelRequiresPerceptibleOpacity(string opacity, bool visible) {
+        byte[] source = StaticPdf("0 0 0 RG 1 w 80 80 120 20 re S q /GS1 gs BT /F1 12 Tf 10 85 Td (Name) Tj ET Q",
+            "/Resources << /ExtGState << /GS1 << /ca " + opacity + " >> >> /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >>");
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout();
+        if (visible) Assert.Single(report.Proposals);
+        else Assert.Empty(report.Proposals);
+    }
+
+    [Fact]
+    public void UnsupportedTransferStateOnNativeLabelDoesNotProvideEvidence() {
+        byte[] source = StaticPdf("0 0 0 RG 1 w 80 80 120 20 re S q /GS1 gs BT /F1 12 Tf 10 85 Td (Name) Tj ET Q",
+            "/Resources << /ExtGState << /GS1 << /TR << /FunctionType 2 /Domain [0 1] /C0 [1] /C1 [1] /N 1 >> >> >> /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >>");
+        Assert.Empty(PdfDocument.Load(source).Forms.RecognizeStaticLayout().Proposals);
+    }
+
+    [Theory]
+    [InlineData("0.2", false)]
+    [InlineData("1", true)]
+    public void NativeLabelContrastIncludesItsOpacity(string opacity, bool visible) {
+        byte[] source = StaticPdf("0 0 0 RG 1 w 80 80 120 20 re S q /GS1 gs 0.8235294118 g BT /F1 12 Tf 10 85 Td (Name) Tj ET Q",
+            "/Resources << /ExtGState << /GS1 << /ca " + opacity + " >> >> /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >>");
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout();
+        if (visible) Assert.Single(report.Proposals);
+        else Assert.Empty(report.Proposals);
+    }
+
+    [Theory]
+    [InlineData("0.2", false)]
+    [InlineData("1", true)]
+    public void OutlineContrastIncludesItsOpacity(string opacity, bool visible) {
+        byte[] source = StaticPdf("q /GS1 gs 0.8235294118 G 1 w 80 80 120 20 re S Q",
+            "/Resources << /ExtGState << /GS1 << /CA " + opacity + " >> >> >>");
+        var label = new[] { new PdfStaticFormTextEvidence(1, "Name", 10D, 100D, 70D, 120D, 1D) };
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: label);
+        if (visible) Assert.Single(report.Proposals);
+        else Assert.Empty(report.Proposals);
+    }
+
+    [Theory]
+    [InlineData("10 70 0.01 40", false)]
+    [InlineData("0 0 240 200", true)]
+    public void NativeLabelRequiresItsFullBoundsInsideTheClip(string clip, bool visible) {
+        byte[] source = StaticPdf("0 0 0 RG 1 w 80 80 120 20 re S q " + clip + " re W n BT /F1 12 Tf 10 85 Td (Name) Tj ET Q",
+            "/Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >>");
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout();
+        if (visible) Assert.Single(report.Proposals);
+        else Assert.Empty(report.Proposals);
+    }
+
+    [Fact]
+    public void TextOnlyEffectLookupsRespectTheRecognitionWorkBudget() {
+        string content = string.Join(" ", Enumerable.Range(0, 20).Select(index =>
+            "/GS" + (index % 2 + 1) + " gs BT /F1 12 Tf 10 85 Td (Name) Tj ET"));
+        byte[] source = StaticPdf(content,
+            "/Resources << /ExtGState << /GS1 << /BM /Multiply >> /GS2 << /BM /Normal >> >> /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >>");
+        PdfReadLimitException error = Assert.Throws<PdfReadLimitException>(() =>
+            PdfDocument.Load(source).Forms.RecognizeStaticLayout(new PdfStaticFormRecognitionOptions { MaxCandidateScanWork = 10 }));
+        Assert.Equal(PdfReadLimitKind.UnderstandingArtifacts, error.Kind);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void NativeLabelOverImageNeedsSeparateVisibilityEvidence(bool supplyOcr) {
+        byte[] image = PdfPngTestImages.CreateRgbPng(80, 30);
+        byte[] source = PdfDocument.Create(new PdfOptions { PageWidth = 400D, PageHeight = 300D })
+            .Canvas(canvas => canvas.Image(image, 10D, 20D, 85D, 35D)
+                .Text("Name:", 20D, 28D, 70D, 20D)
+                .Shape(Box(140D, 20D), 100D, 28D)).ToBytes();
+        var labels = supplyOcr
+            ? new[] { new PdfStaticFormTextEvidence(1, "Name", 20D, 28D, 90D, 48D, 1D) }
+            : Array.Empty<PdfStaticFormTextEvidence>();
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: labels);
+        if (supplyOcr) Assert.Single(report.Proposals);
+        else Assert.Empty(report.Proposals);
+    }
+
+    [Theory]
     [InlineData("[1 10000] 2 d", "80 120 m 200 120 l S")]
     [InlineData("[1 10000] 2 d", "80 80 120 20 re S")]
     [InlineData("[1 10000] 2 d", "80 80 15 15 re S")]

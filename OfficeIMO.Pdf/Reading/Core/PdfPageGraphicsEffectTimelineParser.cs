@@ -113,6 +113,7 @@ internal static class PdfPageGraphicsEffectTimelineParser {
         left.HasBlendMode == right.HasBlendMode &&
         left.HasSoftMask == right.HasSoftMask &&
         left.HasUnresolvedSoftMask == right.HasUnresolvedSoftMask &&
+        left.HasUnsupportedGraphicsState == right.HasUnsupportedGraphicsState &&
         Nullable.Equals(left.SoftMaskTransform, right.SoftMaskTransform) &&
         left.RenderingIntent == right.RenderingIntent &&
         left.HasRenderingIntent == right.HasRenderingIntent;

@@ -59,10 +59,12 @@ internal static partial class PdfStaticFormRecognizer {
             foreach (PdfPageVisualPrimitive painted in primitives) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (painted.HasFillPaint && painted.FillOpacity != 0D && painted.Width > 0D && painted.Height > 0D) {
+                    ChargeEffectLookup(effects.Count, ref candidateScanWork, effective.MaxCandidateScanWork, cancellationToken);
                     PdfPageDrawingEffect paintEffect = PdfReadPage.ResolveDrawingEffect(effects, painted.PaintOrder,
                         contentOrderKey: painted.ContentOrderKey);
                     bool normalBlend = paintEffect.BlendMode == OfficeBlendMode.Normal &&
-                        paintEffect.SoftMask is null && !paintEffect.HasUnresolvedSoftMask;
+                        paintEffect.SoftMask is null && !paintEffect.HasUnresolvedSoftMask &&
+                        !paintEffect.HasUnsupportedGraphicsState;
                     var visible = new VisualRect(painted.X, painted.Y, painted.X + painted.Width, painted.Y + painted.Height);
                     if (painted.ClipPath is PdfPageClipPath clip && clip.IsRectangle && clip.IsExact && !clip.ContainsTextClipping) {
                         visible = new VisualRect(Math.Max(visible.Left, clip.X), Math.Max(visible.Top, clip.Y),
@@ -91,9 +93,10 @@ internal static partial class PdfStaticFormRecognizer {
                     throw PdfReadLimitException.Create(PdfReadLimitKind.UnderstandingArtifacts,
                         effective.MaxCandidateScanWork, candidateScanWork);
                 }
+                ChargeEffectLookup(effects.Count, ref candidateScanWork, effective.MaxCandidateScanWork, cancellationToken);
                 PdfPageDrawingEffect effect = PdfReadPage.ResolveDrawingEffect(effects, primitive.PaintOrder,
                     contentOrderKey: primitive.ContentOrderKey);
-                if (effect.SoftMask is not null || effect.HasUnresolvedSoftMask ||
+                if (effect.HasUnsupportedGraphicsState || effect.SoftMask is not null || effect.HasUnresolvedSoftMask ||
                     effect.BlendMode != OfficeBlendMode.Normal) {
                     AddDiagnostic("unsupported-effect", pageNumber,
                         "A visual field candidate uses compositing that cannot prove an empty field.");
@@ -122,7 +125,8 @@ internal static partial class PdfStaticFormRecognizer {
                     AddDiagnostic("occupied-field", pageNumber, "A visual field candidate contains a painted mark.");
                     continue;
                 }
-                if (HasInteriorMark(primitives, filledAreas, effects, candidateIndex, visual, evidence, cancellationToken) ||
+                if (HasInteriorMark(primitives, filledAreas, effects, candidateIndex, visual, evidence,
+                    ref candidateScanWork, effective.MaxCandidateScanWork, cancellationToken) ||
                     HasImageInterior(page, filledAreas, visual, cancellationToken)) {
                     AddDiagnostic("occupied-field", pageNumber, "A visual field candidate contains a painted mark.");
                     continue;
@@ -247,12 +251,17 @@ internal static partial class PdfStaticFormRecognizer {
                     cancellationToken.ThrowIfCancellationRequested();
                     if (!span.IsVisible || (span.Color?.A ?? 255) <= 3) continue;
                     PdfTextSpanBounds spanBounds = PdfTextSpanGeometry.GetAxisAlignedBounds(span);
+                    bool fullyVisibleText = true;
                     if (span.ClipPath is PdfPageClipPath clip) {
                         var paintedText = PdfPageClipPath.Rectangle(spanBounds.Left,
                             page.Height - spanBounds.Top, spanBounds.Right - spanBounds.Left,
                             spanBounds.Top - spanBounds.Bottom);
                         if (clip.Width <= 0D || clip.Height <= 0D ||
                             clip.CanProveNoPositiveAreaIntersection(paintedText)) continue;
+                        fullyVisibleText = clip.IsRectangle && clip.IsExact && !clip.ContainsTextClipping &&
+                            clip.X <= paintedText.X && clip.Y <= paintedText.Y &&
+                            clip.X + clip.Width >= paintedText.X + paintedText.Width &&
+                            clip.Y + clip.Height >= paintedText.Y + paintedText.Height;
                     }
                     PdfVisualBounds spanProjected = page.TransformBoundsToVisual(spanBounds.Left, spanBounds.Bottom,
                         spanBounds.Right, spanBounds.Top);
@@ -260,9 +269,15 @@ internal static partial class PdfStaticFormRecognizer {
                         pageWidth, pageHeight)) continue;
                     var spanVisual = new VisualRect(spanProjected.Left, spanProjected.Top,
                         spanProjected.Right, spanProjected.Bottom);
+                    if (!fullyVisibleText || (span.Color?.A ?? 255) < 46) {
+                        nativeTextBounds.Add(spanVisual);
+                        uncertainEffect = true;
+                        continue;
+                    }
+                    ChargeEffectLookup(effects.Count, ref candidateScanWork, maxCandidateScanWork, cancellationToken);
                     PdfPageDrawingEffect effect = PdfReadPage.ResolveDrawingEffect(effects, span.PaintOrder,
                         contentOrderKey: span.ContentOrderKey);
-                    if (effect.SoftMask is not null || effect.HasUnresolvedSoftMask ||
+                    if (effect.HasUnsupportedGraphicsState || effect.SoftMask is not null || effect.HasUnresolvedSoftMask ||
                         effect.BlendMode != OfficeBlendMode.Normal) uncertainEffect = true;
                     bool covered = false;
                     foreach (PaintArea area in filledAreas) {
@@ -288,6 +303,8 @@ internal static partial class PdfStaticFormRecognizer {
                                 }
                                 if (IsLaterOpaqueImageCover(page, image, placement, spanVisual,
                                     span.PaintOrder, span.ContentOrderKey)) { covered = true; break; }
+                                if (HasUnprovenImageBackdrop(page, placement, spanVisual,
+                                    span.PaintOrder, span.ContentOrderKey)) uncertainEffect = true;
                             }
                             if (covered) break;
                         }
@@ -437,6 +454,7 @@ internal static partial class PdfStaticFormRecognizer {
     private static bool HasInteriorMark(IReadOnlyList<PdfPageVisualPrimitive> primitives,
         IReadOnlyList<PaintArea> filledAreas, IReadOnlyList<PdfPageDrawingEffectTransition> effects,
         int candidateIndex, VisualRect candidate, PdfStaticFormEvidenceKind evidence,
+        ref long candidateScanWork, int maxCandidateScanWork,
         CancellationToken cancellationToken) {
         const double inset = 0.2D;
         var interior = new VisualRect(candidate.Left + inset, candidate.Top + inset,
@@ -480,10 +498,11 @@ internal static partial class PdfStaticFormRecognizer {
             if (IsOpaqueWhiteFill(primitive) &&
                 RepaintsEarlierMarkOnWhiteBackdrop(filledAreas, candidatePrimitive,
                     primitive, candidate, new VisualRect(left, top, right, bottom))) continue;
+            ChargeEffectLookup(effects.Count, ref candidateScanWork, maxCandidateScanWork, cancellationToken);
             PdfPageDrawingEffect effect = PdfReadPage.ResolveDrawingEffect(effects, primitive.PaintOrder,
                 contentOrderKey: primitive.ContentOrderKey);
             bool uncertainEffect = effect.BlendMode != OfficeBlendMode.Normal || effect.SoftMask is not null ||
-                effect.HasUnresolvedSoftMask;
+                effect.HasUnresolvedSoftMask || effect.HasUnsupportedGraphicsState;
             bool filled = hasFillPaint && (uncertainEffect || !IsEmptyFill(primitive) ||
                 HasContrastingBackdrop(filledAreas, new VisualRect(left, top, right, bottom),
                     primitive.PaintOrder, primitive.ContentOrderKey));
@@ -623,8 +642,7 @@ internal static partial class PdfStaticFormRecognizer {
     }
 
     private static bool ColorsContrast(OfficeColor ink, OfficeColor backdrop) =>
-        Math.Max(Math.Abs(ink.R - backdrop.R),
-            Math.Max(Math.Abs(ink.G - backdrop.G), Math.Abs(ink.B - backdrop.B))) >= 45;
+        ColorRangeContrasts(ink, ink, backdrop);
 
     internal static bool IsLater(double candidateOrder, PdfContentOrderKey? candidateKey,
         double earlierOrder, PdfContentOrderKey? earlierKey) =>
