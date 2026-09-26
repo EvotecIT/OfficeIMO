@@ -9,6 +9,19 @@ using P = DocumentFormat.OpenXml.Presentation;
 namespace OfficeIMO.PowerPoint.OpenDocument;
 
 public static partial class PowerPointOpenDocumentConversionExtensions {
+    private static int CountUnmappedPowerPointShapeClicks(PresentationPart? presentation,
+        IReadOnlyList<P.SlideId> slideIds) {
+        if (presentation == null) return 0;
+        int count = 0;
+        foreach (P.SlideId slideId in slideIds) {
+            if (slideId.RelationshipId?.Value is not string id ||
+                presentation.GetPartById(id) is not SlidePart part || part.Slide == null) continue;
+            count += part.Slide.Descendants<P.NonVisualDrawingProperties>()
+                .Count(properties => properties.GetFirstChild<A.HyperlinkOnClick>() != null);
+        }
+        return count;
+    }
+
     private static int CountUnmappedPowerPointShapeHover(PresentationPart? presentation,
         IReadOnlyList<P.SlideId> slideIds) {
         if (presentation == null) return 0;
@@ -163,6 +176,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             properties.Descendants().Any(child => child.LocalName == "decorative"));
 
     private static bool HasUnmappedPowerPointShapeAppearance(P.ShapeProperties properties) {
+        if (properties.HasAttributes) return true;
         OpenXmlElement[] fills = properties.ChildElements.Where(IsFillElement).ToArray();
         if (fills.Length > 1 || fills.Length == 1 && !IsDirectRgbFill(fills[0]) &&
             !(fills[0] is A.NoFill && IsLineShape(properties))) return true;
@@ -512,6 +526,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
     private static bool HasUnmappedPowerPointTableAppearance(A.Table table) {
         A.TableProperties? properties = table.TableProperties;
         if (properties != null && (properties.HasAttributes || properties.HasChildren)) return true;
+        if (table.Descendants<A.ExtensionList>().Any()) return true;
         long[] columnWidths = table.TableGrid?.Elements<A.GridColumn>()
             .Select(column => column.Width?.Value ?? 0L).ToArray() ?? Array.Empty<long>();
         long[] rowHeights = table.Elements<A.TableRow>()
@@ -525,6 +540,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
     }
 
     private static bool HasUnmappedOdpTableAppearance(OdpTable table) =>
+        table.Element.Descendants(OdfNamespaces.Table + "table-row-group").Any() ||
         table.Element.DescendantsAndSelf().Any(element => element.Attributes().Any(attribute =>
             attribute.Name == OdfNamespaces.Table + "style-name" ||
                 attribute.Name == OdfNamespaces.Table + "default-cell-style-name" ||

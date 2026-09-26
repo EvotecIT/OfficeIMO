@@ -92,6 +92,85 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
     }
 
     [Fact]
+    public void ActionOnlyPowerPointShapeClickIsExplicitLoss() {
+        using PowerPointPresentation source = CreatePowerPoint();
+        source.Slides[0].AddTextBox("Next", 0, 0, 100000, 100000);
+        Shape shape = source.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide!
+            .Descendants<Shape>().Single();
+        shape.NonVisualShapeProperties!.NonVisualDrawingProperties!
+            .AppendChild(new A.HyperlinkOnClick { Action = "ppaction://hlinkshowjump?jump=nextslide" });
+
+        AssertPowerPointLoss(source, "shape-hyperlinks");
+    }
+
+    [Fact]
+    public void PowerPointShapeBlackWhiteModeIsExplicitLoss() {
+        using PowerPointPresentation source = CreatePowerPoint();
+        source.Slides[0].AddRectanglePoints(20, 20, 100, 50);
+        ShapeProperties properties = source.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide!
+            .Descendants<Shape>().Single().ShapeProperties!;
+        properties.SetAttribute(new OpenXmlAttribute("", "bwMode", "", "black"));
+
+        AssertPowerPointLoss(source, "shape-appearance");
+    }
+
+    [Fact]
+    public void InternalPowerPointTextLinkUsesPreservedOdpSlideName() {
+        using PowerPointPresentation source = CreatePowerPoint();
+        PowerPointSlide destination = source.AddSlide(PowerPointSlideLayoutType.Blank);
+        destination.Name = "Agenda";
+        PowerPointTextBox box = source.Slides[0].AddTextBoxPoints("Open agenda", 20, 20, 200, 40);
+        box.Paragraphs[0].Runs[0].SetHyperlink(destination);
+
+        OdpPresentation target = source.ToOpenDocumentResult().Value;
+        XElement link = target.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Text + "a").Single();
+        Assert.Equal("#Agenda", (string?)link.Attribute(OdfNamespaces.XLink + "href"));
+
+        using PowerPointPresentation reopened = target.ToPowerPointPresentationResult().Value;
+        Assert.Equal("#slide-2", reopened.Slides[0].TextBoxes.Single().Paragraphs[0].Runs[0].Hyperlink?.OriginalString);
+    }
+
+    [Fact]
+    public void InternalPowerPointTextLinkUsesCollisionAdjustedOdpSlideName() {
+        using PowerPointPresentation source = CreatePowerPoint();
+        source.AddSlide(PowerPointSlideLayoutType.Blank).Name = "Agenda";
+        PowerPointSlide destination = source.AddSlide(PowerPointSlideLayoutType.Blank);
+        destination.Name = "Agenda";
+        source.Slides[0].AddTextBoxPoints("Open second agenda", 20, 20, 200, 40)
+            .Paragraphs[0].Runs[0].SetHyperlink(destination);
+
+        OdpPresentation target = source.ToOpenDocumentResult().Value;
+        XElement link = target.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Text + "a").Single();
+        Assert.Equal("#Agenda_2", (string?)link.Attribute(OdfNamespaces.XLink + "href"));
+        Assert.Equal("Agenda_2", target.Slides[2].Name);
+    }
+
+    [Fact]
+    public void GroupedOdpTableRowsAreReportedBeforeFlattening() {
+        OdpPresentation source = OdpPresentation.Create();
+        source.AddSlide().AddTable(OdfRect.FromCentimeters(1, 1, 8, 3), 1, 1).Cell(0, 0).Text = "Grouped";
+        XElement row = source.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Table + "table-row").Single();
+        row.ReplaceWith(new XElement(OdfNamespaces.Table + "table-row-group", row));
+        source.Package.MarkXmlDirty("content.xml");
+
+        AssertOdpLoss(source, "table-appearance");
+    }
+
+    [Fact]
+    public void PowerPointTableExtensionIdentityIsExplicitLoss() {
+        using PowerPointPresentation source = CreatePowerPoint();
+        source.Slides[0].AddTable(1, 1);
+        A.Table table = source.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide!
+            .Descendants<A.Table>().Single();
+        table.Elements<A.TableRow>().Single().AppendChild(new A.ExtensionList());
+
+        AssertPowerPointLoss(source, "table-appearance");
+    }
+
+    [Fact]
     public void LinkedOdpTextBoxesAreExplicitLoss() {
         OdpPresentation source = OdpPresentation.Create();
         source.AddSlide().AddTextBox(OdfRect.FromCentimeters(1, 1, 4, 2)).AddParagraph("Flowing text");
